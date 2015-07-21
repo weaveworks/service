@@ -12,10 +12,15 @@ import (
 	"github.com/dustinkirkland/golang-petname"
 )
 
+const (
+	cookieName = "_weave_run_session"
+)
+
 var templates *template.Template
 var users map[string]*User
 
 type User struct {
+	Email         string
 	Token         string
 	AppName       string
 	SessionID     string
@@ -34,8 +39,10 @@ func main() {
 
 	http.HandleFunc("/users/signup", Signup)
 	http.HandleFunc("/users/lookup", Lookup)
+	http.HandleFunc("/app/", App)
 
 	logrus.Info("Listening on :3000")
+	logrus.Info("Please visit: http://localhost:3000/users/signup")
 	logrus.Fatal(http.ListenAndServe(":3000", nil))
 }
 
@@ -55,12 +62,11 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 				user.SessionID = randomString()
 				user.SessionExpiry = time.Now().UTC().Add(1440 * time.Hour)
 				http.SetCookie(w, &http.Cookie{
-					Name:  "weave_run_session_id",
-					Value: user.SessionID,
-
+					Name:    cookieName,
+					Value:   user.SessionID,
+					Path:    "/",
 					Expires: user.SessionExpiry,
 				})
-				// TODO: Set a session cookie here
 				http.Redirect(w, r, fmt.Sprintf("/app/%s", user.AppName), http.StatusFound)
 				return
 			}
@@ -75,6 +81,7 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 func ensureUserExists(email string) {
 	if _, ok := users[email]; !ok {
 		users[email] = &User{
+			Email:   email,
 			AppName: fmt.Sprintf("%s-%d", petname.Generate(2, "-"), rand.Int31n(100)),
 		}
 	}
@@ -110,14 +117,37 @@ func Lookup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if authenticate(sessionID) != nil {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusUnauthorized)
+	}
+}
+
+func authenticate(sessionID string) *User {
 	for _, user := range users {
 		if user.SessionID == sessionID {
 			if time.Now().After(user.SessionExpiry) {
 				break
 			}
-			w.WriteHeader(http.StatusOK)
-			return
+			return user
 		}
 	}
-	w.WriteHeader(http.StatusUnauthorized)
+	return nil
+}
+
+func App(w http.ResponseWriter, r *http.Request) {
+	var data *User
+	if cookie, err := r.Cookie(cookieName); err != nil {
+		http.Redirect(w, r, "/users/signup", http.StatusFound)
+		return
+	} else {
+		if user := authenticate(cookie.Value); user == nil {
+			http.Redirect(w, r, "/users/signup", http.StatusFound)
+			return
+		} else {
+			data = user
+		}
+	}
+	executeTemplate(w, "app.html", data)
 }
