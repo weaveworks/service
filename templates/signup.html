@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Weave Run - Signup</title>
+  </head>
+  <body>
+    {{if .Token}}
+    <p>
+    Login email sent to {{.Email}} (login at: <a href="/users/signup?token={{.Token}}">/users/signup?token={{.Token}}</a>)!
+    </p>
+    {{end}}
+    {{if .TokenExpired}}
+    <p>
+    Login token has expired, please generate a new one.
+    </p>
+    {{end}}
+    <form action="/users/signup" method="post">
+      <input type="email" name="email" placeholder="joe@weave.works" />
+      <label for="email">Email</label>
+      <input type="submit" name="login" value="Login" />
+    </form>
+  </body>
+</html>
