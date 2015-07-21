@@ -1,3 +1,5 @@
 #!/bin/bash
 
+go get github.com/Sirupsen/logrus
+go get github.com/dustinkirkland/golang-petname
 go run main.go
