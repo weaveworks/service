@@ -30,4 +30,6 @@ coverage.html
 *~
 
 # Project specific
+.*.uptodate
+app
 Vagrantfile.local

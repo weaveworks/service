@@ -1,0 +1,8 @@
+web:
+  image: weaveworks/weave-run
+  hostname: web.weave.local.
+  ports:
+    - "3000:3000"
+db:
+  image: postgres
+  hostname: db.weave.local.
