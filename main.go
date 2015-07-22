@@ -51,10 +51,15 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		// TODO: Check this isn't being used to scrape our user database.
 		email := r.FormValue("email")
-		data["Email"] = email
-		ensureUserExists(email)
-		sendLoginEmail(email)
-		data["Token"] = users[email].Token
+		if email != "" {
+			data["Email"] = email
+			ensureUserExists(email)
+			sendLoginEmail(email)
+			data["Token"] = users[email].Token
+		} else {
+			data["EmailBlank"] = true
+			w.WriteHeader(http.StatusBadRequest)
+		}
 	} else if token := r.FormValue("token"); token != "" {
 		for _, user := range users {
 			if user.Token == token {

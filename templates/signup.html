@@ -15,8 +15,10 @@
     </p>
     {{end}}
     <form action="/users/signup" method="post">
-      <input type="email" name="email" placeholder="joe@weave.works" />
-      <label for="email">Email</label>
+      <label for="email" {{if .EmailBlank}}class="error" {{end}}>Email
+        <input type="email" name="email" placeholder="joe@weave.works" />
+        {{if .EmailBlank}}<small class="error">Email cannot be blank</small>{{end}}
+      </label>
       <input type="submit" name="login" value="Login" />
     </form>
   </body>
