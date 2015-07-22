@@ -19,14 +19,6 @@ const (
 var templates *template.Template
 var users map[string]*User
 
-type User struct {
-	Email         string
-	Token         string
-	AppName       string
-	SessionID     string
-	SessionExpiry time.Time
-}
-
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	users = make(map[string]*User)
@@ -44,6 +36,14 @@ func main() {
 	logrus.Info("Listening on :3000")
 	logrus.Info("Please visit: http://localhost:3000/users/signup")
 	logrus.Fatal(http.ListenAndServe(":3000", nil))
+}
+
+type User struct {
+	Email         string
+	Token         string
+	AppName       string
+	SessionID     string
+	SessionExpiry time.Time
 }
 
 func Signup(w http.ResponseWriter, r *http.Request) {
@@ -93,6 +93,7 @@ func sendLoginEmail(to string) {
 	users[to].Token = randomString()
 }
 
+// TODO: Replace this for security where needed.
 func randomString() string {
 	return strconv.FormatUint(uint64(rand.Int63()), 36)
 }
