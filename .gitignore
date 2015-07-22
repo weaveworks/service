@@ -31,5 +31,5 @@ coverage.html
 
 # Project specific
 .*.uptodate
-app
+web/web
 Vagrantfile.local

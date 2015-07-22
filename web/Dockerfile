@@ -1,5 +1,5 @@
 FROM scratch
-ADD app /
+ADD web /
 ADD templates /templates
 EXPOSE 3000
-CMD ["/app"]
+CMD ["/web"]

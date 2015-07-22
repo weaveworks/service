@@ -2,28 +2,28 @@
 
 # If you can use Docker without being root, you can `make SUDO= <target>`
 SUDO=sudo
-APP_EXE=app
-APP_UPTODATE=.app.uptodate
-APP_IMAGE=weaveworks/weave-run
+WEB_EXE=web/web
+WEB_UPTODATE=.web.uptodate
+WEB_IMAGE=weaveworks/web
 
 all: deps build
 
 deps:
 	go get -v -t ./...
 
-build: $(APP_UPTODATE)
+build: $(WEB_UPTODATE)
 
-$(APP_UPTODATE): Dockerfile $(APP_EXE) templates/*
-	$(SUDO) docker build -t $(APP_IMAGE) .
+$(WEB_UPTODATE): web/Dockerfile $(WEB_EXE) web/templates/*
+	$(SUDO) docker build -t $(WEB_IMAGE) web
 	touch $@
 
-$(APP_EXE): *.go
+$(WEB_EXE): web/*.go
 	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o $@ ./$(@D)
 
 test:
 	go test ./...
 
 clean:
-	-$(SUDO) docker rmi $(APP_IMAGE)
-	rm -rf $(APP_EXE) $(APP_UPTODATE)
+	-$(SUDO) docker rmi $(WEB_IMAGE)
+	rm -rf $(WEB_EXE) $(WEB_UPTODATE)
 	go clean ./...

@@ -1,5 +1,5 @@
 web:
-  image: weaveworks/weave-run
+  image: weaveworks/web
   hostname: web.weave.local.
   ports:
     - "3000:3000"
