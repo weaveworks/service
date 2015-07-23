@@ -19,6 +19,7 @@ var (
 
 func main() {
 	var (
+		databaseURI   string
 		emailURI      string
 		logLevel      string
 		sessionSecret string
@@ -26,6 +27,7 @@ func main() {
 
 	rand.Seed(time.Now().UnixNano())
 
+	flag.StringVar(&databaseURI, "database-uri", "postgres://postgres@db.weave.local/weave_development?sslmode=disable", "URI where the database can be found")
 	flag.StringVar(&emailURI, "email-uri", "smtp://smtp.weave.local:587", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port")
 	flag.StringVar(&logLevel, "log-level", "info", "logging level (debug, info, warning, error)")
 	flag.StringVar(&sessionSecret, "session-secret", "", "Secret used validate sessions")
@@ -33,7 +35,8 @@ func main() {
 
 	setupLogging(logLevel)
 	setupEmail(emailURI)
-	setupStorage()
+	setupStorage(databaseURI)
+	defer storage.Close()
 	setupTemplates()
 	setupSessions(sessionSecret)
 	logrus.Debug("Debug logging enabled")
@@ -74,7 +77,7 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 			err = SendWelcomeEmail(user)
 		} else {
 			var token string
-			if token, err = storage.GenerateUserToken(user.ID); err == nil {
+			if token, err = generateUserToken(storage, user); err == nil {
 				err = SendLoginEmail(user, token)
 			}
 		}
@@ -95,7 +98,7 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 			data["TokenExpired"] = false
 			if err := sessions.Set(w, user.ID); err != nil {
 				logrus.Error(err)
-			} else if err := storage.ResetUserToken(user.ID); err != nil {
+			} else if err := storage.SetUserToken(user.ID, ""); err != nil {
 				logrus.Error(err)
 			}
 			http.Redirect(w, r, fmt.Sprintf("/app/%s", user.OrganizationName), http.StatusFound)
@@ -105,6 +108,17 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	if err := executeTemplate(w, "signup.html", data); err != nil {
 		internalServerError(w, err)
 	}
+}
+
+func generateUserToken(storage Storage, user *User) (string, error) {
+	token, err := user.GenerateToken()
+	if err != nil {
+		return "", err
+	}
+	if err := storage.SetUserToken(user.ID, token); err != nil {
+		return "", err
+	}
+	return token, nil
 }
 
 func Lookup(w http.ResponseWriter, r *http.Request) {

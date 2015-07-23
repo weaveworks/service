@@ -1,12 +1,14 @@
 web:
   image: weaveworks/web
   hostname: web.weave.local.
-  command: /web -email-uri smtp://smtp.weave.local:1025
+  command: /web -email-uri smtp://smtp.weave.local:1025 -session-secret 3919365780a79e0658fde4d03e6945a080031ec077b88975898f698c0d298395
   ports:
     - "3000:3000"
 db:
-  image: postgres
+  build: db
   hostname: db.weave.local.
+  ports:
+    - "5432:5432"
 mailcatcher:
   image: schickling/mailcatcher
   hostname: smtp.weave.local.

@@ -2,13 +2,16 @@ package main
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	mathRand "math/rand"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/dustinkirkland/golang-petname"
+	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -20,77 +23,170 @@ type Storage interface {
 	CreateUser(email string) (*User, error)
 	FindUserByID(id string) (*User, error)
 	FindUserByEmail(email string) (*User, error)
+
+	// Approve the user for access. Should generate them a new organization.
 	ApproveUser(id string) error
-	ResetUserToken(id string) error
-	GenerateUserToken(id string) (string, error)
+
+	// Update the user's login token. Setting the token to "" should disable the
+	// user's token.
+	SetUserToken(id, token string) error
+
+	Close() error
 }
 
-func setupStorage() {
-	storage = &memoryStorage{
-		users:         make(map[string]*User),
-		organizations: make(map[string]*Organization),
+func setupStorage(databaseURI string) {
+	db, err := sql.Open("postgres", databaseURI)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	storage = &sqlStorage{db}
+}
+
+type sqlStorage struct {
+	*sql.DB
+}
+
+func (s sqlStorage) CreateUser(email string) (*User, error) {
+	u := &User{Email: email}
+	err := s.QueryRow("insert into users (email) values ($1) returning id", email).Scan(&u.ID)
+	switch {
+	case err == sql.ErrNoRows:
+		return nil, ErrNotFound
+	case err != nil:
+		return nil, err
+	}
+	return u, nil
+}
+
+func (s sqlStorage) FindUserByID(id string) (*User, error) {
+	return s.findUserByID(s, id)
+}
+
+type QueryRower interface {
+	QueryRow(query string, args ...interface{}) *sql.Row
+}
+
+func (s sqlStorage) findUserByID(db QueryRower, id string) (*User, error) {
+	user, err := scanUser(
+		db.QueryRow(`
+			select users.id, email, token, token_created_at, approved_at, organization_id, organizations.name
+				from users
+				left join organizations on (users.organization_id = organizations.id)
+				where users.id = $1
+				and users.deleted_at is null`,
+			id,
+		),
+	)
+	if err == sql.ErrNoRows {
+		err = ErrNotFound
+	}
+	return user, err
+}
+
+func (s sqlStorage) FindUserByEmail(email string) (*User, error) {
+	user, err := scanUser(
+		s.QueryRow(`
+			select users.id, email, token, token_created_at, approved_at, organization_id, organizations.name
+				from users
+				left join organizations on (users.organization_id = organizations.id)
+				where lower(email) = lower($1)
+				and users.deleted_at is null`,
+			email,
+		),
+	)
+	if err == sql.ErrNoRows {
+		err = ErrNotFound
+	}
+	return user, err
+}
+
+// TODO: Scan more columns
+func scanUser(row *sql.Row) (*User, error) {
+	u := &User{}
+	var token, oID, oName sql.NullString
+	var tokenCreatedAt, approvedAt pq.NullTime
+	if err := row.Scan(&u.ID, &u.Email, &token, &tokenCreatedAt, &approvedAt, &oID, &oName); err != nil {
+		return nil, err
+	}
+	setString(&u.Token, token)
+	setString(&u.OrganizationID, oID)
+	setString(&u.OrganizationName, oName)
+	setTime(&u.TokenCreatedAt, tokenCreatedAt)
+	setTime(&u.ApprovedAt, approvedAt)
+	return u, nil
+}
+
+func setTime(dst *time.Time, src pq.NullTime) {
+	if src.Valid {
+		*dst = src.Time
 	}
 }
 
-type memoryStorage struct {
-	users         map[string]*User
-	organizations map[string]*Organization
-}
-
-func (s memoryStorage) CreateUser(email string) (*User, error) {
-	s.users[email] = &User{
-		ID:    fmt.Sprint(len(s.users)),
-		Email: email,
+func setString(dst *string, src sql.NullString) {
+	if src.Valid {
+		*dst = src.String
 	}
-	return s.users[email], nil
 }
 
-func (s memoryStorage) FindUserByEmail(email string) (*User, error) {
-	s.users[email] = &User{
-		Email: email,
-	}
-	return s.users[email], nil
+func (s sqlStorage) ApproveUser(id string) error {
+	return s.Transaction(func(tx *sql.Tx) error {
+		o, err := s.createOrganization(tx)
+		if err != nil {
+			return err
+		}
+
+		result, err := tx.Exec(`
+			update users set
+				organization_id = $2,
+				approved_at = $3
+			where id = $1 and deleted_at is null`,
+			id,
+			o.ID,
+			time.Now().UTC(),
+		)
+		if err != nil {
+			return err
+		}
+		count, err := result.RowsAffected()
+		switch {
+		case err != nil:
+			return err
+		case count != 1:
+			return ErrNotFound
+		}
+		return nil
+	})
 }
 
-func (s memoryStorage) ApproveUser(id string) error {
-	for _, user := range s.users {
-		if user.ID == id {
-			o, err := s.createOrganization()
-			if err == nil {
-				user.OrganizationID = o.ID
-				user.OrganizationName = o.Name
-				user.ApprovedAt = time.Now().UTC()
-			}
+func (s sqlStorage) SetUserToken(id, token string) error {
+	var hashed []byte
+	if token != "" {
+		var err error
+		hashed, err = bcrypt.GenerateFromPassword([]byte(token), passwordHashingCost)
+		if err != nil {
 			return err
 		}
 	}
-	return ErrNotFound
-}
-
-func (s memoryStorage) ResetUserToken(id string) error {
-	for _, user := range s.users {
-		if user.ID == id {
-			user.Token = ""
-			return nil
-		}
-	}
-	return ErrNotFound
-}
-
-func (s memoryStorage) GenerateUserToken(id string) (string, error) {
-	user, err := s.FindUserByID(id)
+	result, err := s.Exec(`
+		update users set
+			token = $2,
+			token_created_at = $3
+		where id = $1 and deleted_at is null`,
+		id,
+		string(hashed),
+		time.Now().UTC(),
+	)
 	if err != nil {
-		return "", err
+		return err
 	}
-	raw, err := secureRandomBase64(128)
-	if err != nil {
-		return "", err
+	count, err := result.RowsAffected()
+	switch {
+	case err != nil:
+		return err
+	case count != 1:
+		return ErrNotFound
 	}
-	hashed, err := bcrypt.GenerateFromPassword([]byte(raw), passwordHashingCost)
-	if err != nil {
-		return "", err
-	}
-	return raw, nil
+	return nil
 }
 
 func secureRandomBase64(byteCount int) (string, error) {
@@ -99,16 +195,31 @@ func secureRandomBase64(byteCount int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	return base64.URLEncoding.EncodeToString(randomData), nil
 }
 
-func (s memoryStorage) createOrganization() (*Organization, error) {
+func (s sqlStorage) createOrganization(db QueryRower) (*Organization, error) {
 	o := &Organization{
-		ID:   fmt.Sprint(len(s.organizations)),
 		Name: fmt.Sprintf("%s-%d", petname.Generate(2, "-"), mathRand.Int31n(100)),
 	}
-
-	s.organizations[o.ID] = o
+	err := db.QueryRow("insert into organizations (name) values ($1) returning id", o.Name).Scan(&o.ID)
+	switch {
+	case err == sql.ErrNoRows:
+		return nil, ErrNotFound
+	case err != nil:
+		return nil, err
+	}
 	return o, nil
+}
+
+func (s sqlStorage) Transaction(f func(*sql.Tx) error) error {
+	tx, err := s.Begin()
+	if err != nil {
+		return err
+	}
+	if err = f(tx); err != nil {
+		// Rollback error is ignored as we already have one in progress
+		tx.Rollback()
+	}
+	return tx.Commit()
 }

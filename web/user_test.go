@@ -14,8 +14,8 @@ func Test_User_CompareToken(t *testing.T) {
 	assert.NoError(t, err)
 	hashedToken := string(h)
 	u := &User{
-		Token:       hashedToken,
-		TokenExpiry: time.Now().UTC().Add(1 * time.Hour),
+		Token:          hashedToken,
+		TokenCreatedAt: time.Now().UTC(),
 	}
 
 	// Matches tokens
@@ -33,6 +33,6 @@ func Test_User_CompareToken(t *testing.T) {
 
 	// Fails expired tokens
 	u.Token = hashedToken
-	u.TokenExpiry = time.Now().UTC().Add(-1 * time.Hour)
+	u.TokenCreatedAt = time.Now().UTC().Add(-7 * time.Hour)
 	assert.False(t, u.CompareToken(valid))
 }

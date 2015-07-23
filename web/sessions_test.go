@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_Sessions_EncodeDecode(t *testing.T) {
@@ -17,7 +18,7 @@ func Test_Sessions_EncodeDecode(t *testing.T) {
 	assert.NoError(t, err)
 
 	found, err := sessions.Decode(encoded)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, user.ID, found.ID)
 	assert.Equal(t, user.Email, found.Email)

@@ -15,17 +15,21 @@ type User struct {
 	OrganizationID   string
 	OrganizationName string
 	Token            string
-	TokenExpiry      time.Time
+	TokenCreatedAt   time.Time
 	ApprovedAt       time.Time
 	FirstLoginAt     time.Time
 	LastLoginAt      time.Time
+}
+
+func (u *User) GenerateToken() (string, error) {
+	return secureRandomBase64(128)
 }
 
 func (u *User) CompareToken(other string) bool {
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Token), []byte(other)); err != nil {
 		return false
 	}
-	return time.Now().UTC().Before(u.TokenExpiry)
+	return time.Now().UTC().Sub(u.TokenCreatedAt) <= 6*time.Hour
 }
 
 func (u *User) LoginURL(rawToken string) string {
