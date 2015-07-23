@@ -4,9 +4,9 @@
     <title>Weave Run - Signup</title>
   </head>
   <body>
-    {{if .Token}}
+    {{if .LoginEmailSent}}
     <p>
-    Login email sent to {{.Email}} (login at: <a href="/users/signup?token={{.Token}}">/users/signup?token={{.Token}}</a>)!
+    Login email sent to {{.User.Email}} (login at: <a href="{{.User.LoginLink}}">{{.User.LoginLink}}</a>)!
     </p>
     {{end}}
     {{if .TokenExpired}}

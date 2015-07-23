@@ -3,21 +3,29 @@
 package main
 
 import (
-	"html/template"
 	"testing"
+
+	"github.com/jordan-wright/email"
 )
 
+var sentEmails []*email.Email
+
 func setup(t *testing.T) {
+	domain = "example.com"
+	sentEmails = nil
+	sendEmail = testEmailSender
+
 	users = make(map[string]*User)
 
-	if templates == nil {
-		var err error
-		templates, err = template.ParseGlob("templates/*.html")
-		if err != nil {
-			t.Fatal(err)
-		}
+	if err := loadTemplates(); err != nil {
+		t.Fatal(err)
 	}
 }
 
 func cleanup(t *testing.T) {
+}
+
+func testEmailSender(e *email.Email) error {
+	sentEmails = append(sentEmails, e)
+	return nil
 }

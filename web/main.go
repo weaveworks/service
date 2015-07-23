@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"html/template"
+	htmlTemplate "html/template"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -16,16 +17,17 @@ const (
 	cookieName = "_weave_run_session"
 )
 
-var templates *template.Template
-var users map[string]*User
+var (
+	users  map[string]*User
+	domain = "localhost"
+)
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	users = make(map[string]*User)
+	sendEmail = stubEmailSender
 
-	var err error
-	templates, err = template.ParseGlob("templates/*.html")
-	if err != nil {
+	if err := loadTemplates(); err != nil {
 		logrus.Fatal(err)
 	}
 
@@ -44,25 +46,49 @@ type User struct {
 	AppName       string
 	SessionID     string
 	SessionExpiry time.Time
+	ApprovedAt    time.Time
+}
+
+func (u *User) LoginLink() htmlTemplate.HTML {
+	params := url.Values{}
+	params.Set("email", u.Email)
+	params.Set("token", u.Token)
+	link := fmt.Sprintf("http://%s/users/signup?%s", domain, params.Encode())
+	return htmlTemplate.HTML(
+		fmt.Sprintf(
+			"<a href=\"%s\">%s</a>",
+			link,
+			htmlTemplate.HTMLEscapeString(link),
+		),
+	)
 }
 
 func Signup(w http.ResponseWriter, r *http.Request) {
 	data := make(map[string]interface{})
+	email := r.FormValue("email")
 	if r.Method == "POST" {
-		// TODO: Check this isn't being used to scrape our user database.
-		email := r.FormValue("email")
-		if email != "" {
-			data["Email"] = email
-			ensureUserExists(email)
-			sendLoginEmail(email)
-			data["Token"] = users[email].Token
-		} else {
+		if email == "" {
 			data["EmailBlank"] = true
 			w.WriteHeader(http.StatusBadRequest)
+			if err := executeTemplate(w, "signup.html", data); err != nil {
+				logrus.Error(err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
+			return
 		}
+		data["Email"] = email
+		if user, ok := users[email]; ok && !user.ApprovedAt.IsZero() {
+			SendLoginEmail(user)
+			data["User"] = user
+		} else {
+			user = createUser(email)
+			SendWelcomeEmail(user)
+			data["User"] = user
+		}
+		data["LoginEmailSent"] = true
 	} else if token := r.FormValue("token"); token != "" {
 		for _, user := range users {
-			if user.Token == token {
+			if user.Email == email && user.Token == token {
 				user.Token = ""
 				user.SessionID = randomString()
 				user.SessionExpiry = time.Now().UTC().Add(1440 * time.Hour)
@@ -78,42 +104,24 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 			data["TokenExpired"] = true
 		}
 	}
-	executeTemplate(w, "signup.html", data)
-}
-
-// STUB
-// TODO: Implement this.
-func ensureUserExists(email string) {
-	if _, ok := users[email]; !ok {
-		users[email] = &User{
-			Email:   email,
-			AppName: fmt.Sprintf("%s-%d", petname.Generate(2, "-"), rand.Int31n(100)),
-		}
+	if err := executeTemplate(w, "signup.html", data); err != nil {
+		logrus.Error(err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
-// STUB
-// TODO: Implement this properly.
-func sendLoginEmail(to string) {
-	users[to].Token = randomString()
+// TODO: Implement this.
+func createUser(email string) *User {
+	users[email] = &User{
+		Email:   email,
+		AppName: fmt.Sprintf("%s-%d", petname.Generate(2, "-"), rand.Int31n(100)),
+	}
+	return users[email]
 }
 
 // TODO: Replace this for security where needed.
 func randomString() string {
 	return strconv.FormatUint(uint64(rand.Int63()), 36)
-}
-
-func executeTemplate(w http.ResponseWriter, templateName string, data interface{}) {
-	t := templates.Lookup(templateName)
-	if t == nil {
-		logrus.Errorf("Template Not Found: %s", templateName)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	if err := t.Execute(w, data); err != nil {
-		logrus.Error(err)
-	}
 }
 
 func Lookup(w http.ResponseWriter, r *http.Request) {
@@ -155,5 +163,8 @@ func App(w http.ResponseWriter, r *http.Request) {
 			data = user
 		}
 	}
-	executeTemplate(w, "app.html", data)
+	if err := executeTemplate(w, "app.html", data); err != nil {
+		logrus.Error(err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }
