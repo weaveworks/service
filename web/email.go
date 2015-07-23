@@ -7,6 +7,7 @@ import (
 	"net/smtp"
 	"net/url"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/jordan-wright/email"
 )
 
@@ -19,8 +20,12 @@ var (
 	ErrUnsupportedEmailProtocol = errors.New("Unsupported email protocol")
 )
 
-func stubEmailSender(e *email.Email) error {
-	return nil
+func setupEmail(emailURI string) {
+	var err error
+	sendEmail, err = smtpEmailSender(emailURI)
+	if err != nil {
+		logrus.Fatal(err)
+	}
 }
 
 // Takes a uri of the form smtp://username:password@hostname:port

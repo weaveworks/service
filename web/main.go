@@ -28,23 +28,21 @@ var (
 
 func main() {
 	var (
-		err      error
 		emailURI string
+		logLevel string
 	)
 
 	rand.Seed(time.Now().UnixNano())
 	users = make(map[string]*User)
 
 	flag.StringVar(&emailURI, "email-uri", "smtp://smtp.weave.local:587", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port")
+	flag.StringVar(&logLevel, "log-level", "info", "logging level (debug, info, warning, error)")
 	flag.Parse()
-	sendEmail, err = smtpEmailSender(emailURI)
-	if err != nil {
-		logrus.Fatal(err)
-	}
 
-	if err := loadTemplates(); err != nil {
-		logrus.Fatal(err)
-	}
+	setupLogging(logLevel)
+	setupEmail(emailURI)
+	setupTemplates()
+	logrus.Debug("Debug logging enabled")
 
 	http.HandleFunc("/users/signup", Signup)
 	http.HandleFunc("/users/lookup", Lookup)

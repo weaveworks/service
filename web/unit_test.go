@@ -20,9 +20,7 @@ func setup(t *testing.T) {
 
 	users = make(map[string]*User)
 
-	if err := loadTemplates(); err != nil {
-		t.Fatal(err)
-	}
+	setupTemplates()
 }
 
 func cleanup(t *testing.T) {

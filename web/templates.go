@@ -29,14 +29,16 @@ type executor interface {
 	Execute(wr io.Writer, data interface{}) (err error)
 }
 
-func loadTemplates() error {
+func setupTemplates() {
 	var err error
 	htmlTemplates, err = htmlTemplate.ParseGlob("templates/*.html")
 	if err != nil {
-		return err
+		logrus.Fatal(err)
 	}
 	textTemplates, err = textTemplate.ParseGlob("templates/*.text")
-	return err
+	if err != nil {
+		logrus.Fatal(err)
+	}
 }
 
 func lookupTemplate(name string) (t executor, err error) {
