@@ -6,10 +6,13 @@
   <body>
     {{if .LoginEmailSent}}
     <p>
-    Login email sent to {{.User.Email}} (login at: <a href="{{.User.LoginLink}}">{{.User.LoginLink}}</a>)!
+    Login email sent to {{.User.Email}} (check: <a href="/" onclick="javascript:event.target.port=1080">MailCatcher</a>)!
     </p>
-    {{end}}
-    {{if .TokenExpired}}
+    {{else if .ErrorSendingLoginEmail}}
+    <p>
+    There was an error sending the login email. Please try again later, or <a href="mailto:support@weave.works">contact support.</a>
+    </p>
+    {{else if .TokenExpired}}
     <p>
     Login token has expired, please generate a new one.
     </p>

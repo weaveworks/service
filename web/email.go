@@ -1,7 +1,11 @@
 package main
 
 import (
+	"errors"
+	"fmt"
+	"net"
 	"net/smtp"
+	"net/url"
 
 	"github.com/jordan-wright/email"
 )
@@ -10,16 +14,42 @@ const (
 	fromAddress = "Weave Support <support@weave.works>"
 )
 
-var sendEmail func(*email.Email) error
+var (
+	sendEmail                   func(*email.Email) error
+	ErrUnsupportedEmailProtocol = errors.New("Unsupported email protocol")
+)
 
 func stubEmailSender(e *email.Email) error {
 	return nil
 }
 
-func smtpEmailSender(addr string, auth smtp.Auth) func(e *email.Email) error {
+// Takes a uri of the form smtp://username:password@hostname:port
+func smtpEmailSender(uri string) (func(e *email.Email) error, error) {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return nil, fmt.Errorf("Error parsing email server uri: %s", err)
+	}
+	if u.Scheme != "smtp" {
+		return nil, ErrUnsupportedEmailProtocol
+	}
+
+	host, port, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		return nil, fmt.Errorf("Error parsing email server uri: %s", err)
+	}
+	if port == "" {
+		port = "587"
+	}
+	addr := fmt.Sprintf("%s:%s", host, port)
+	var auth smtp.Auth
+	if u.User != nil {
+		password, _ := u.User.Password()
+		auth = smtp.PlainAuth("", u.User.Username(), password, host)
+	}
+
 	return func(e *email.Email) error {
 		return e.Send(addr, auth)
-	}
+	}, nil
 }
 
 func SendWelcomeEmail(u *User) error {

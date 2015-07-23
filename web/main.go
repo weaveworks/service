@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	htmlTemplate "html/template"
 	"math/rand"
@@ -23,9 +24,20 @@ var (
 )
 
 func main() {
+	var (
+		err      error
+		emailURI string
+	)
+
 	rand.Seed(time.Now().UnixNano())
 	users = make(map[string]*User)
-	sendEmail = stubEmailSender
+
+	flag.StringVar(&emailURI, "email-uri", "smtp://smtp.weave.local:587", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port")
+	flag.Parse()
+	sendEmail, err = smtpEmailSender(emailURI)
+	if err != nil {
+		logrus.Fatal(err)
+	}
 
 	if err := loadTemplates(); err != nil {
 		logrus.Fatal(err)
@@ -77,15 +89,19 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data["Email"] = email
-		if user, ok := users[email]; ok && !user.ApprovedAt.IsZero() {
-			SendLoginEmail(user)
-			data["User"] = user
-		} else {
-			user = createUser(email)
-			SendWelcomeEmail(user)
-			data["User"] = user
-		}
 		data["LoginEmailSent"] = true
+		mailer := SendLoginEmail
+		user, ok := users[email]
+		if !ok || user.ApprovedAt.IsZero() {
+			mailer = SendWelcomeEmail
+			user = createUser(email)
+		}
+		data["User"] = user
+		if err := mailer(user); err != nil {
+			logrus.Error(err)
+			data["LoginEmailSent"] = false
+			data["ErrorSendingLoginEmail"] = true
+		}
 	} else if token := r.FormValue("token"); token != "" {
 		for _, user := range users {
 			if user.Email == email && user.Token == token {
