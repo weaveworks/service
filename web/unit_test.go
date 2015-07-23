@@ -5,6 +5,8 @@ package main
 import (
 	"testing"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/jordan-wright/email"
 )
 
@@ -12,6 +14,7 @@ var sentEmails []*email.Email
 
 func setup(t *testing.T) {
 	domain = "example.com"
+	passwordHashingCost = bcrypt.MinCost
 	sentEmails = nil
 	sendEmail = testEmailSender
 

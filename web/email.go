@@ -63,12 +63,21 @@ func SendWelcomeEmail(u *User) error {
 }
 
 func SendLoginEmail(u *User) error {
-	u.Token = randomString()
+	token, err := u.GenerateToken()
+	if err != nil {
+		return err
+	}
+
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
 	e.Subject = "Login to Weave"
-	e.Text = quietTemplateBytes("login_email.text", u)
-	e.HTML = quietTemplateBytes("login_email.html", u)
+	data := map[string]interface{}{
+		"LoginURL":  u.LoginURL(token),
+		"LoginLink": u.LoginLink(token),
+		"Token":     token,
+	}
+	e.Text = quietTemplateBytes("login_email.text", data)
+	e.HTML = quietTemplateBytes("login_email.html", data)
 	return sendEmail(e)
 }

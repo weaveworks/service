@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/dustinkirkland/golang-petname"
 )
@@ -19,8 +21,9 @@ const (
 )
 
 var (
-	users  map[string]*User
-	domain = "localhost"
+	users               map[string]*User
+	domain              = "localhost"
+	passwordHashingCost = 14
 )
 
 func main() {
@@ -61,16 +64,35 @@ type User struct {
 	ApprovedAt    time.Time
 }
 
-func (u *User) LoginLink() htmlTemplate.HTML {
+// TODO: Use something more secure than randomString
+func (u *User) GenerateToken() (string, error) {
+	raw := randomString()
+	hashed, err := bcrypt.GenerateFromPassword([]byte(raw), passwordHashingCost)
+	if err != nil {
+		return "", err
+	}
+	u.Token = string(hashed)
+	return raw, nil
+}
+
+func (u *User) CompareToken(other string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(u.Token), []byte(other)) == nil
+}
+
+func (u *User) LoginURL(rawToken string) string {
 	params := url.Values{}
 	params.Set("email", u.Email)
-	params.Set("token", u.Token)
-	link := fmt.Sprintf("http://%s/users/signup?%s", domain, params.Encode())
+	params.Set("token", rawToken)
+	return fmt.Sprintf("http://%s/users/signup?%s", domain, params.Encode())
+}
+
+func (u *User) LoginLink(rawToken string) htmlTemplate.HTML {
+	url := u.LoginURL(rawToken)
 	return htmlTemplate.HTML(
 		fmt.Sprintf(
 			"<a href=\"%s\">%s</a>",
-			link,
-			htmlTemplate.HTMLEscapeString(link),
+			url,
+			htmlTemplate.HTMLEscapeString(url),
 		),
 	)
 }
@@ -104,7 +126,7 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		}
 	} else if token := r.FormValue("token"); token != "" {
 		for _, user := range users {
-			if user.Email == email && user.Token == token {
+			if user.Email == email && user.CompareToken(token) {
 				user.Token = ""
 				user.SessionID = randomString()
 				user.SessionExpiry = time.Now().UTC().Add(1440 * time.Hour)
@@ -168,11 +190,13 @@ func authenticate(sessionID string) *User {
 
 func App(w http.ResponseWriter, r *http.Request) {
 	var data *User
-	if cookie, err := r.Cookie(cookieName); err != nil {
+	cookie, err := r.Cookie(cookieName)
+	if err != nil {
 		http.Redirect(w, r, "/users/signup", http.StatusFound)
 		return
 	}
-	if user := authenticate(cookie.Value); user == nil {
+	user := authenticate(cookie.Value)
+	if user == nil {
 		http.Redirect(w, r, "/users/signup", http.StatusFound)
 		return
 	}
