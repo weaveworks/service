@@ -171,14 +171,12 @@ func App(w http.ResponseWriter, r *http.Request) {
 	if cookie, err := r.Cookie(cookieName); err != nil {
 		http.Redirect(w, r, "/users/signup", http.StatusFound)
 		return
-	} else {
-		if user := authenticate(cookie.Value); user == nil {
-			http.Redirect(w, r, "/users/signup", http.StatusFound)
-			return
-		} else {
-			data = user
-		}
 	}
+	if user := authenticate(cookie.Value); user == nil {
+		http.Redirect(w, r, "/users/signup", http.StatusFound)
+		return
+	}
+	data = user
 	if err := executeTemplate(w, "app.html", data); err != nil {
 		logrus.Error(err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
