@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	cookieName = "_weave_run_session"
+	cookieName = "_weave_session"
 )
 
 var (
