@@ -10,10 +10,8 @@ func Test_Sessions_EncodeDecode(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := &User{
-		ID:    "1",
-		Email: "joe@weave.works",
-	}
+	user, err := storage.CreateUser("joe@weave.works")
+	assert.NoError(t, err)
 
 	encoded, err := sessions.Encode(user.ID)
 	assert.NoError(t, err)

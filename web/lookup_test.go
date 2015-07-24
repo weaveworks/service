@@ -12,11 +12,8 @@ func Test_Lookup(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := &User{
-		ID:    "1",
-		Email: "joe@weave.works",
-	}
-	users[user.Email] = user
+	user, err := storage.CreateUser("joe@weave.works")
+	assert.NoError(t, err)
 
 	session, err := sessions.Encode(user.ID)
 	assert.NoError(t, err)
