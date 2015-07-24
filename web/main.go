@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -62,18 +61,24 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		}
 		data["Email"] = email
 		data["LoginEmailSent"] = true
-		mailer := SendLoginEmail
+
 		user, err := storage.FindUserByEmail(email)
-		if err != nil || user.ApprovedAt.IsZero() {
-			mailer = SendWelcomeEmail
-			if user, err = storage.CreateUser(email); err != nil {
-				logrus.Error(err)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-				return
+		if err == ErrNotFound {
+			user, err = storage.CreateUser(email)
+		}
+		if err != nil {
+			internalServerError(w, err)
+			return
+		}
+		if user.ApprovedAt.IsZero() {
+			err = SendWelcomeEmail(user)
+		} else {
+			var token string
+			if token, err = storage.GenerateUserToken(user.ID); err == nil {
+				err = SendLoginEmail(user, token)
 			}
 		}
-		data["User"] = user
-		if err := mailer(user); err != nil {
+		if err != nil {
 			logrus.Error(err)
 			data["LoginEmailSent"] = false
 			data["ErrorSendingLoginEmail"] = true
@@ -87,26 +92,19 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err == nil && user.CompareToken(token) {
-			now := time.Now().UTC()
-			expired := now.After(user.TokenExpiry)
-			data["TokenExpired"] = expired
-			if !expired {
-				if err := sessions.Set(w, user.ID); err != nil {
-					logrus.Error(err)
-				}
-				http.Redirect(w, r, fmt.Sprintf("/app/%s", user.OrganizationName), http.StatusFound)
-				return
+			data["TokenExpired"] = false
+			if err := sessions.Set(w, user.ID); err != nil {
+				logrus.Error(err)
+			} else if err := storage.ResetUserToken(user.ID); err != nil {
+				logrus.Error(err)
 			}
+			http.Redirect(w, r, fmt.Sprintf("/app/%s", user.OrganizationName), http.StatusFound)
+			return
 		}
 	}
 	if err := executeTemplate(w, "signup.html", data); err != nil {
 		internalServerError(w, err)
 	}
-}
-
-// TODO: Replace this for security where needed.
-func randomString() string {
-	return strconv.FormatUint(uint64(rand.Int63()), 36)
 }
 
 func Lookup(w http.ResponseWriter, r *http.Request) {

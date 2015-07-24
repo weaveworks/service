@@ -21,19 +21,11 @@ type User struct {
 	LastLoginAt      time.Time
 }
 
-// TODO: Use something more secure than randomString
-func (u *User) GenerateToken() (string, error) {
-	raw := randomString()
-	hashed, err := bcrypt.GenerateFromPassword([]byte(raw), passwordHashingCost)
-	if err != nil {
-		return "", err
-	}
-	u.Token = string(hashed)
-	return raw, nil
-}
-
 func (u *User) CompareToken(other string) bool {
-	return bcrypt.CompareHashAndPassword([]byte(u.Token), []byte(other)) == nil
+	if err := bcrypt.CompareHashAndPassword([]byte(u.Token), []byte(other)); err != nil {
+		return false
+	}
+	return time.Now().UTC().Before(u.TokenExpiry)
 }
 
 func (u *User) LoginURL(rawToken string) string {

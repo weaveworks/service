@@ -1,13 +1,14 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
-	"math/rand"
+	mathRand "math/rand"
 	"time"
 
 	"github.com/dustinkirkland/golang-petname"
-
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -54,8 +55,10 @@ func (s memoryStorage) FindUserByEmail(email string) (*User, error) {
 func (s memoryStorage) ApproveUser(id string) error {
 	for _, user := range s.users {
 		if user.ID == id {
-			_, err := s.createOrganization(id)
+			o, err := s.createOrganization()
 			if err == nil {
+				user.OrganizationID = o.ID
+				user.OrganizationName = o.Name
 				user.ApprovedAt = time.Now().UTC()
 			}
 			return err
@@ -75,33 +78,35 @@ func (s memoryStorage) ResetUserToken(id string) error {
 }
 
 func (s memoryStorage) GenerateUserToken(id string) (string, error) {
-	for _, user := range s.users {
-		if user.ID == id {
-			raw := randomString()
-			hashed, err := bcrypt.GenerateFromPassword([]byte(raw), passwordHashingCost)
-			if err != nil {
-				return "", err
-			}
-			user.Token = string(hashed)
-			user.TokenExpiry = time.Now().UTC().Add(6 * time.Hour)
-			return raw, nil
-		}
+	user, err := s.FindUserByID(id)
+	if err != nil {
+		return "", err
 	}
-	return "", ErrNotFound
+	raw, err := secureRandomBase64(128)
+	if err != nil {
+		return "", err
+	}
+	hashed, err := bcrypt.GenerateFromPassword([]byte(raw), passwordHashingCost)
+	if err != nil {
+		return "", err
+	}
+	return raw, nil
 }
 
-func (s memoryStorage) createOrganization(memberIDs ...string) (*Organization, error) {
+func secureRandomBase64(byteCount int) (string, error) {
+	randomData := make([]byte, byteCount)
+	_, err := rand.Read(randomData)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.URLEncoding.EncodeToString(randomData), nil
+}
+
+func (s memoryStorage) createOrganization() (*Organization, error) {
 	o := &Organization{
 		ID:   fmt.Sprint(len(s.organizations)),
-		Name: fmt.Sprintf("%s-%d", petname.Generate(2, "-"), rand.Int31n(100)),
-	}
-	for _, user := range s.users {
-		for _, id := range memberIDs {
-			if user.ID == id {
-				user.OrganizationID = o.ID
-				user.OrganizationName = o.Name
-			}
-		}
+		Name: fmt.Sprintf("%s-%d", petname.Generate(2, "-"), mathRand.Int31n(100)),
 	}
 
 	s.organizations[o.ID] = o

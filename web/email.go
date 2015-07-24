@@ -67,12 +67,7 @@ func SendWelcomeEmail(u *User) error {
 	return sendEmail(e)
 }
 
-func SendLoginEmail(u *User) error {
-	token, err := u.GenerateToken()
-	if err != nil {
-		return err
-	}
-
+func SendLoginEmail(u *User, token string) error {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
