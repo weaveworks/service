@@ -16,20 +16,18 @@ import (
 	"github.com/dustinkirkland/golang-petname"
 )
 
-const (
-	cookieName = "_weave_session"
-)
-
 var (
 	users               map[string]*User
+	sessions            SessionStore
 	domain              = "localhost"
 	passwordHashingCost = 14
 )
 
 func main() {
 	var (
-		emailURI string
-		logLevel string
+		emailURI      string
+		logLevel      string
+		sessionSecret string
 	)
 
 	rand.Seed(time.Now().UnixNano())
@@ -37,11 +35,13 @@ func main() {
 
 	flag.StringVar(&emailURI, "email-uri", "smtp://smtp.weave.local:587", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port")
 	flag.StringVar(&logLevel, "log-level", "info", "logging level (debug, info, warning, error)")
+	flag.StringVar(&sessionSecret, "session-secret", "", "Secret used validate sessions")
 	flag.Parse()
 
 	setupLogging(logLevel)
 	setupEmail(emailURI)
 	setupTemplates()
+	setupSessions(sessionSecret)
 	logrus.Debug("Debug logging enabled")
 
 	http.HandleFunc("/users/signup", Signup)
@@ -54,12 +54,12 @@ func main() {
 }
 
 type User struct {
-	Email         string
-	Token         string
-	AppName       string
-	SessionID     string
-	SessionExpiry time.Time
-	ApprovedAt    time.Time
+	ID               string
+	Email            string
+	Token            string
+	ApprovedAt       time.Time
+	OrganizationID   string
+	OrganizationName string
 }
 
 // TODO: Use something more secure than randomString
@@ -103,8 +103,7 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 			data["EmailBlank"] = true
 			w.WriteHeader(http.StatusBadRequest)
 			if err := executeTemplate(w, "signup.html", data); err != nil {
-				logrus.Error(err)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				internalServerError(w, err)
 			}
 			return
 		}
@@ -126,31 +125,25 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		for _, user := range users {
 			if user.Email == email && user.CompareToken(token) {
 				user.Token = ""
-				user.SessionID = randomString()
-				user.SessionExpiry = time.Now().UTC().Add(1440 * time.Hour)
-				http.SetCookie(w, &http.Cookie{
-					Name:    cookieName,
-					Value:   user.SessionID,
-					Path:    "/",
-					Expires: user.SessionExpiry,
-				})
-				http.Redirect(w, r, fmt.Sprintf("/app/%s", user.AppName), http.StatusFound)
+				if err := sessions.Set(w, user.ID); err != nil {
+					logrus.Error(err)
+				}
+				http.Redirect(w, r, fmt.Sprintf("/app/%s", user.OrganizationName), http.StatusFound)
 				return
 			}
 			data["TokenExpired"] = true
 		}
 	}
 	if err := executeTemplate(w, "signup.html", data); err != nil {
-		logrus.Error(err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		internalServerError(w, err)
 	}
 }
 
 // TODO: Implement this.
 func createUser(email string) *User {
 	users[email] = &User{
-		Email:   email,
-		AppName: fmt.Sprintf("%s-%d", petname.Generate(2, "-"), rand.Int31n(100)),
+		Email:            email,
+		OrganizationName: fmt.Sprintf("%s-%d", petname.Generate(2, "-"), rand.Int31n(100)),
 	}
 	return users[email]
 }
@@ -167,40 +160,33 @@ func Lookup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if authenticate(sessionID) != nil {
+	_, err := sessions.Decode(sessionID)
+	switch {
+	case err == nil:
 		w.WriteHeader(http.StatusOK)
-	} else {
+	case err == ErrInvalidAuthenticationData:
 		w.WriteHeader(http.StatusUnauthorized)
+	default:
+		internalServerError(w, err)
 	}
-}
-
-func authenticate(sessionID string) *User {
-	for _, user := range users {
-		if user.SessionID == sessionID {
-			if time.Now().After(user.SessionExpiry) {
-				break
-			}
-			return user
-		}
-	}
-	return nil
 }
 
 func App(w http.ResponseWriter, r *http.Request) {
-	var data *User
-	cookie, err := r.Cookie(cookieName)
+	user, err := sessions.Get(r)
 	if err != nil {
-		http.Redirect(w, r, "/users/signup", http.StatusFound)
+		if err == ErrInvalidAuthenticationData {
+			http.Redirect(w, r, "/users/signup", http.StatusFound)
+		} else {
+			internalServerError(w, err)
+		}
 		return
 	}
-	user := authenticate(cookie.Value)
-	if user == nil {
-		http.Redirect(w, r, "/users/signup", http.StatusFound)
-		return
-	}
-	data = user
-	if err := executeTemplate(w, "app.html", data); err != nil {
+	if err := executeTemplate(w, "app.html", user); err != nil {
 		logrus.Error(err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
+}
+
+func internalServerError(w http.ResponseWriter, err error) {
+	logrus.Error(err)
+	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 }

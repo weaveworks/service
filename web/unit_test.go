@@ -20,7 +20,9 @@ func setup(t *testing.T) {
 
 	users = make(map[string]*User)
 
+	setupLogging("debug")
 	setupTemplates()
+	setupSessions("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd")
 }
 
 func cleanup(t *testing.T) {
