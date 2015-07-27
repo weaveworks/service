@@ -9,7 +9,7 @@ var store = {};
 store.orgName = 'foo'
 store.users = [{
     id: 0,
-    email: 'peter@weaver.works',
+    email: 'peter@weave.works',
     lastLogin: null
   }];
 
@@ -38,14 +38,16 @@ app.get('/app.js', function(req, res) {
 
 app.get('/api/org/foo', function(req, res) {
   res.json({
-    name: orgName
+    user: store.users[0].email,
+    name: store.orgName
   });
 });
 
 
 app.post('/api/org/foo', function(req, res) {
-  orgName = req.body.name;
+  store.orgName = req.body.name;
   res.json({
+    user: store.users[0].email,
     name: store.orgName
   });
 });
