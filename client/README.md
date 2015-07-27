@@ -1,5 +1,13 @@
 # React app for the Scope service
 
+## TLDR;
+
+```sh
+npm install
+npm run build
+```
+Copy contents of `build/` to your a static webserver's document root directory.
+
 ## Features
 
 - ES6 with polyfills for current browsers
