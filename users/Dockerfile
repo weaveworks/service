@@ -1,10 +1,10 @@
 FROM golang:1.4
 
-ADD . /go/src/github.com/weaveworks/service/web
-WORKDIR /go/src/github.com/weaveworks/service/web
+ADD . /go/src/github.com/weaveworks/service/users
+WORKDIR /go/src/github.com/weaveworks/service/users
 
 RUN go get -v -t ./...
 
 RUN go install -v ./...
 
-CMD ["web"]
+CMD ["users"]

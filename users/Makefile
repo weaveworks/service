@@ -1,8 +1,8 @@
 .PHONY: all build test integration-test clean
 
 # If you can use Docker without being root, you can `make SUDO= <target>`
-WEB_UPTODATE=.web.uptodate
-WEB_IMAGE=weaveworks/web
+WEB_UPTODATE=.users.uptodate
+WEB_IMAGE=weaveworks/users
 
 IMAGES=$(WEB_IMAGE)
 UPTODATES=$(WEB_UPTODATE)
@@ -14,15 +14,15 @@ all: build
 
 build: $(UPTODATES)
 
-$(WEB_UPTODATE): web/Dockerfile web/templates/*
-	$(SUDO) docker-compose build web
+$(WEB_UPTODATE): users/Dockerfile users/templates/*
+	$(SUDO) docker-compose build users
 	touch $@
 
 test:
 	go test ./...
 
 integration-test: $(WEB_UPTODATE)
-	$(SUDO) docker-compose run --rm web go test -tags integration -timeout 30s ./...
+	$(SUDO) docker-compose run --rm users go test -tags integration -timeout 30s ./...
 
 clean:
 	-$(SUDO) docker rmi $(IMAGES)
