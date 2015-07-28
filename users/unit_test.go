@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	mathRand "math/rand"
+	"net/http"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 )
 
 var sentEmails []*email.Email
+var app http.Handler
 
 func setup(t *testing.T) {
 	domain = "example.com"
@@ -28,6 +30,8 @@ func setup(t *testing.T) {
 	}
 	setupTemplates()
 	setupSessions("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd")
+
+	app = routes()
 }
 
 func cleanup(t *testing.T) {

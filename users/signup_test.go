@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"regexp"
 	"strings"
 	"testing"
@@ -14,7 +16,7 @@ import (
 )
 
 func findLoginLink(t *testing.T, e *email.Email) (url, token string) {
-	pattern := `http://` + domain + `/api/users/signup\?email=[\w.%]+&token=([A-Za-z0-9%._=-]+)`
+	pattern := `http://` + domain + `/login\?email=[\w.%]+&token=([A-Za-z0-9%._=-]+)`
 	re := regexp.MustCompile(pattern)
 	matches := re.FindStringSubmatch(string(e.Text))
 	require.Len(t, matches, 2, fmt.Sprintf("Could not find Login Link in text: %q", e.Text))
@@ -35,9 +37,12 @@ func Test_Signup(t *testing.T) {
 	r, _ := http.NewRequest("POST", "/api/users/signup?email=joe%40weave.works", nil)
 	_, err := storage.FindUserByEmail(email)
 	assert.EqualError(t, err, ErrNotFound.Error())
-	Signup(w, r)
+	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Login email sent")
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, map[string]interface{}{"mailSent": true, "email": email}, body)
+
 	user, err := storage.FindUserByEmail(email)
 	if !assert.NoError(t, err) {
 		return
@@ -55,20 +60,23 @@ func Test_Signup(t *testing.T) {
 
 	// Manually approve
 	assert.NoError(t, storage.ApproveUser(user.ID))
-
-	// Do it again: check it preserves their data, and sends a login email
-	Signup(w, r)
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Login email sent")
-	user, err = storage.FindUserByEmail(email)
-	if !assert.NoError(t, err) {
-		return
-	}
 	organizationName = user.OrganizationName
 	assert.False(t, user.ApprovedAt.IsZero())
 	assert.NotEqual(t, "", user.OrganizationID)
 	assert.NotEqual(t, "", user.OrganizationName)
+
+	// Do it again: check it preserves their data, and sends a login email
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+	body = map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, map[string]interface{}{"mailSent": true, "email": email}, body)
 	if !assert.Len(t, sentEmails, 2) {
+		return
+	}
+	user, err = storage.FindUserByEmail(email)
+	if !assert.NoError(t, err) {
 		return
 	}
 	assert.Equal(t, []string{email}, sentEmails[1].To)
@@ -85,9 +93,12 @@ func Test_Signup(t *testing.T) {
 	assert.NotContains(t, emailToken, "%24")
 
 	// Login with the link
+	u, err := url.Parse(loginLink)
+	assert.NoError(t, err)
+	u.Path = "/api/users/login" // The frontend will translate /login -> /api/users/login
 	w = httptest.NewRecorder()
-	r, _ = http.NewRequest("GET", loginLink, nil)
-	Signup(w, r)
+	r, _ = http.NewRequest("GET", u.String(), nil)
+	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusFound, w.Code)
 	assert.Equal(t, "/api/users/org/"+organizationName, w.HeaderMap.Get("Location"))
 	assert.True(t, strings.HasPrefix(w.HeaderMap.Get("Set-Cookie"), cookieName+"="))
@@ -109,7 +120,7 @@ func Test_Signup_WithBlankEmail(t *testing.T) {
 
 	_, err := storage.FindUserByEmail(email)
 	assert.EqualError(t, err, ErrNotFound.Error())
-	Signup(w, r)
+	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "Email cannot be blank")
 	_, err = storage.FindUserByEmail(email)

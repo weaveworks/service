@@ -17,6 +17,5 @@ $ make test
 integration tests:
 
 ```
-$ docker-compose up -d
 $ make integration-test
 ```

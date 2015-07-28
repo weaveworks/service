@@ -5,7 +5,6 @@ import (
 	"fmt"
 	htmlTemplate "html/template"
 	"io"
-	"net/http"
 	"path/filepath"
 	textTemplate "text/template"
 
@@ -52,16 +51,6 @@ func lookupTemplate(name string) (t executor, err error) {
 		err = ErrTemplateNotFound{name}
 	}
 	return t, err
-}
-
-func executeTemplate(w http.ResponseWriter, templateName string, data interface{}) error {
-
-	t, err := lookupTemplate(templateName)
-	if err != nil {
-		return err
-	}
-
-	return t.Execute(w, data)
 }
 
 func templateBytes(templateName string, data interface{}) ([]byte, error) {

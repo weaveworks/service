@@ -5,6 +5,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"net/http"
 	"testing"
 
 	"github.com/jordan-wright/email"
@@ -16,6 +17,7 @@ import (
 var databaseURI = flag.String("database-uri", "postgres://postgres@db.weave.local/weave_test?sslmode=disable", "Uri of a test database")
 
 var sentEmails []*email.Email
+var app http.Handler
 
 func setup(t *testing.T) {
 	domain = "example.com"
@@ -31,6 +33,8 @@ func setup(t *testing.T) {
 	setupSessions("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd")
 
 	truncateDatabase(t)
+
+	app = routes()
 }
 
 func cleanup(t *testing.T) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 )
 
 var (
@@ -41,72 +43,58 @@ func main() {
 	setupSessions(sessionSecret)
 	logrus.Debug("Debug logging enabled")
 
-	http.HandleFunc("/api/users/signup", Signup)
-	http.HandleFunc("/api/users/private/lookup", Lookup)
-	http.HandleFunc("/api/users/org/", Org)
-
 	logrus.Info("Listening on :80")
-	logrus.Fatal(http.ListenAndServe(":80", nil))
+	logrus.Fatal(http.ListenAndServe(":80", routes()))
+}
+
+func routes() http.Handler {
+	r := mux.NewRouter()
+	r.HandleFunc("/api/users/signup", Signup).Methods("POST")
+	r.HandleFunc("/api/users/login", Login).Methods("GET")
+	r.HandleFunc("/api/users/private/lookup", Lookup).Methods("GET")
+	r.HandleFunc("/api/users/org/{orgID}", Org).Methods("GET")
+	return r
+}
+
+type signupView struct {
+	MailSent bool   `json:"mailSent"`
+	Email    string `json:"email,omitempty"`
 }
 
 func Signup(w http.ResponseWriter, r *http.Request) {
-	data := make(map[string]interface{})
-	email := r.FormValue("email")
-	if r.Method == "POST" {
-		if email == "" {
-			data["EmailBlank"] = true
-			w.WriteHeader(http.StatusBadRequest)
-			if err := executeTemplate(w, "signup.html", data); err != nil {
-				internalServerError(w, err)
-			}
-			return
-		}
-		data["Email"] = email
-		data["LoginEmailSent"] = true
+	view := signupView{
+		MailSent: false,
+		Email:    r.FormValue("email"),
+	}
+	if view.Email == "" {
+		renderError(w, http.StatusBadRequest, fmt.Errorf("Email cannot be blank"))
+		return
+	}
 
-		user, err := storage.FindUserByEmail(email)
-		if err == ErrNotFound {
-			user, err = storage.CreateUser(email)
-		}
-		if err != nil {
-			internalServerError(w, err)
-			return
-		}
-		if user.ApprovedAt.IsZero() {
-			err = SendWelcomeEmail(user)
-		} else {
-			var token string
-			if token, err = generateUserToken(storage, user); err == nil {
-				err = SendLoginEmail(user, token)
-			}
-		}
-		if err != nil {
-			logrus.Error(err)
-			data["LoginEmailSent"] = false
-			data["ErrorSendingLoginEmail"] = true
-		}
-	} else if token := r.FormValue("token"); token != "" {
-		data["TokenExpired"] = true
-		user, err := storage.FindUserByEmail(email)
-		if err != ErrNotFound && err != nil {
-			logrus.Error(err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		if err == nil && user.CompareToken(token) {
-			data["TokenExpired"] = false
-			if err := sessions.Set(w, user.ID); err != nil {
-				logrus.Error(err)
-			} else if err := storage.SetUserToken(user.ID, ""); err != nil {
-				logrus.Error(err)
-			}
-			http.Redirect(w, r, fmt.Sprintf("/api/users/org/%s", user.OrganizationName), http.StatusFound)
-			return
-		}
+	user, err := storage.FindUserByEmail(view.Email)
+	if err == ErrNotFound {
+		user, err = storage.CreateUser(view.Email)
 	}
-	if err := executeTemplate(w, "signup.html", data); err != nil {
+	if err != nil {
 		internalServerError(w, err)
+		return
 	}
+	if user.ApprovedAt.IsZero() {
+		err = SendWelcomeEmail(user)
+	} else {
+		var token string
+		if token, err = generateUserToken(storage, user); err == nil {
+			err = SendLoginEmail(user, token)
+		}
+	}
+	if err != nil {
+		logrus.Error(err)
+		renderError(w, http.StatusInternalServerError, fmt.Errorf("Error sending login email"))
+	} else {
+		view.MailSent = true
+	}
+
+	renderJSON(w, http.StatusOK, view)
 }
 
 func generateUserToken(storage Storage, user *User) (string, error) {
@@ -118,6 +106,40 @@ func generateUserToken(storage Storage, user *User) (string, error) {
 		return "", err
 	}
 	return token, nil
+}
+
+func Login(w http.ResponseWriter, r *http.Request) {
+	email := r.FormValue("email")
+	token := r.FormValue("token")
+	if email == "" || token == "" {
+		http.Redirect(w, r, "/signup", http.StatusFound)
+	}
+
+	tokenExpired := func() {
+		http.Redirect(w, r, "/signup?token_expired=true", http.StatusFound)
+	}
+
+	user, err := storage.FindUserByEmail(email)
+	switch {
+	case err == ErrNotFound:
+		tokenExpired()
+		return
+	case err != nil:
+		internalServerError(w, err)
+		return
+	case !user.CompareToken(token):
+		tokenExpired()
+		return
+	}
+	if err = sessions.Set(w, user.ID); err == nil {
+		err = storage.SetUserToken(user.ID, "")
+	}
+	if err != nil {
+		logrus.Error(err)
+		tokenExpired()
+		return
+	}
+	http.Redirect(w, r, fmt.Sprintf("/api/users/org/%s", user.OrganizationName), http.StatusFound)
 }
 
 func Lookup(w http.ResponseWriter, r *http.Request) {
@@ -138,6 +160,11 @@ func Lookup(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type orgView struct {
+	User string `json:"user"`
+	Name string `json:"name"`
+}
+
 func Org(w http.ResponseWriter, r *http.Request) {
 	user, err := sessions.Get(r)
 	if err != nil {
@@ -148,12 +175,34 @@ func Org(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if err := executeTemplate(w, "app.html", user); err != nil {
-		logrus.Error(err)
-	}
+	renderJSON(w, http.StatusOK, orgView{
+		User: user.Email,
+		Name: user.OrganizationName,
+	})
 }
 
 func internalServerError(w http.ResponseWriter, err error) {
 	logrus.Error(err)
-	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	http.Error(w, `{"errors":[{"message":"An internal server error occurred"}]}`, http.StatusInternalServerError)
+}
+
+func renderJSON(w http.ResponseWriter, status int, data interface{}) {
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		logrus.Error(err)
+	}
+}
+
+func renderError(w http.ResponseWriter, status int, err error) {
+	w.WriteHeader(status)
+	data := map[string]interface{}{
+		"errors": []map[string]interface{}{
+			{
+				"message": err.Error(),
+			},
+		},
+	}
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		logrus.Error(err)
+	}
 }

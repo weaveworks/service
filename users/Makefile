@@ -20,6 +20,7 @@ test:
 	go test ./...
 
 integration-test: $(WEB_UPTODATE)
+	docker-compose up -d
 	docker-compose run --rm users go test -tags integration -timeout 30s ./...
 
 clean:
