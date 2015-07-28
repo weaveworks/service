@@ -72,6 +72,16 @@ app.post('/api/org/*/users', function(req, res) {
   res.json(store.users);
 });
 
+app.delete('/api/org/*/users/:userId', function(req, res) {
+  var id = parseInt(req.params.userId);
+  for(var i = store.users.length - 1; i >= 0; i--) {
+    if(store.users[i].id === id) {
+      store.users.splice(i, 1);
+    }
+  }
+  res.json(store.users);
+});
+
 
 // Mock login
 

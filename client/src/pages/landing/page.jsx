@@ -1,5 +1,5 @@
 import React from "react";
-import { getData } from "../../common/request";
+import { postData } from "../../common/request";
 import { Styles, RaisedButton, TextField } from "material-ui";
 
 const Colors = Styles.Colors;
@@ -67,7 +67,7 @@ export default class LandingPage extends React.Component {
 
     const email = this.refs.emailField.getValue();
 
-    getData('/api/signup', {email: email})
+    postData('/api/signup', {email: email})
       .then(function(resp) {
         this.setState({
           mailSent: resp.mailSent,

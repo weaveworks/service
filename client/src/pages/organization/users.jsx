@@ -1,6 +1,7 @@
 import React from "react";
-import { getData, postData } from "../../common/request";
-import { Styles, RaisedButton, TextField } from "material-ui";
+import { Styles, FlatButton, List, ListItem, RaisedButton, TextField } from "material-ui";
+import { getData, deleteData, postData } from "../../common/request";
+import { Box } from "../../components/box";
 
 const ThemeManager = new Styles.ThemeManager();
 
@@ -39,8 +40,17 @@ export default class Users extends React.Component {
 
   render() {
     let users = this.state.users.map(user => {
+      let buttonStyle = {
+        marginTop: 6
+      };
+      let button = (
+        <FlatButton label="Remove" style={buttonStyle} onClick={this._handleDeleteTouchTap.bind(this, user)} />
+      );
+
       return (
-        <li>{user.email}</li>
+        <ListItem primaryText={user.email} key={user.email}
+          rightIconButton={button}
+        />
       );
     });
 
@@ -48,22 +58,41 @@ export default class Users extends React.Component {
       marginLeft: '2em'
     };
 
+    let formStyle = {
+      textAlign: 'center',
+      marginTop: '1em'
+    };
 
     return (
       <div className="users">
-        <h3>Users</h3>
-        <div>
-          <ul>
+        <Box>
+          <List subheader="Users">
             {users}
-          </ul>
+          </List>
+        </Box>
+        <div style={formStyle}>
           <TextField hintText="Email" ref="emailField" />
-          <RaisedButton label="Invite" style={buttonStyle} onClick={this._handleTouchTap.bind(this)} />
+          <RaisedButton label="Invite" style={buttonStyle} onClick={this._handleInviteTouchTap.bind(this)} />
         </div>
       </div>
     );
   }
 
-  _handleTouchTap() {
+  _handleDeleteTouchTap(user) {
+    let url = `/api/org/${this.props.org}/users/${user.id}`;
+
+    deleteData(url)
+      .then(function(resp) {
+        this.setState({
+          users: resp
+        });
+        this.refs.emailField.setValue("");
+      }.bind(this), function(resp) {
+        // TODO show error
+      }.bind(this));
+  }
+
+  _handleInviteTouchTap() {
     let url = `/api/org/${this.props.org}/users`;
 
     const email = this.refs.emailField.getValue();
