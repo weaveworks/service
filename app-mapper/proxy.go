@@ -1,0 +1,71 @@
+package main
+
+import (
+	"io"
+	"net"
+	"net/http"
+
+	"github.com/Sirupsen/logrus"
+)
+
+func AppProxy(a Authenticator, m OrganizationMapper, w http.ResponseWriter, r *http.Request) {
+	authResponse, err := a.Authenticate(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	if authResponse.HttpStatus != http.StatusOK {
+		w.WriteHeader(authResponse.HttpStatus)
+		return
+	}
+
+	targetHost, err := m.GetOrganizationsHost(authResponse.OrganizationId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	logrus.Infof("proxy: mapping to %s", targetHost)
+
+	targetConn, err := net.Dial("tcp", targetHost)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		logrus.Errorf("proxy: error dialing backend %s: %v", targetHost, err)
+		return
+	}
+
+	// Hijack the connection to copy raw data back to the our client
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		logrus.Errorf("proxy: error casting to Hijacker on %s: %v", targetHost, err)
+		return
+	}
+	clientConn, _, err := hijacker.Hijack()
+	if err != nil {
+		logrus.Errorf("proxy: Hijack error: %v", err)
+		return
+	}
+	defer clientConn.Close()
+	defer targetConn.Close()
+
+	// Forward current request to the target host since it was received before
+	// hijacking
+	logrus.Debugf("proxy: writing original request to %s", targetHost)
+	err = r.Write(targetConn)
+	if err != nil {
+		logrus.Errorf("proxy: error copying request to target: %v", err)
+		return
+	}
+
+	// Copy information back and forth between the our client and the target
+	// host
+	errChannel := make(chan error, 2)
+	cp := func(dst io.Writer, src io.Reader) {
+		_, err := io.Copy(dst, src)
+		errChannel <- err
+	}
+	go cp(targetConn, clientConn)
+	go cp(clientConn, targetConn)
+	<-errChannel
+	logrus.Debugf("proxy: connection closed")
+}

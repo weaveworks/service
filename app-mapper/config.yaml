@@ -1,0 +1,7 @@
+log-level: debug
+mapper-type: constant
+constant-mapper-target-host: localhost:4560
+app-mapper-db-host: app-mapper-db.weave.local:5432
+
+authenticator-type: mock
+authenticator-host: web.weave.local:80
