@@ -45,9 +45,8 @@ func main() {
 	http.HandleFunc("/users/lookup", Lookup)
 	http.HandleFunc("/app/", App)
 
-	logrus.Info("Listening on :3000")
-	logrus.Info("Please visit: http://localhost:3000/users/signup")
-	logrus.Fatal(http.ListenAndServe(":3000", nil))
+	logrus.Info("Listening on :80")
+	logrus.Fatal(http.ListenAndServe(":80", nil))
 }
 
 func Signup(w http.ResponseWriter, r *http.Request) {
