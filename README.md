@@ -3,7 +3,6 @@
 ## Run
 
 ```
-$ make
 $ docker-compose up
 ```
 
@@ -18,7 +17,6 @@ $ make test
 integration tests:
 
 ```
-$ make
 $ docker-compose up -d
 $ make integration-test
 ```

@@ -1,45 +1,30 @@
-.PHONY: all deps build test clean
+.PHONY: all build test integration-test clean
 
 # If you can use Docker without being root, you can `make SUDO= <target>`
-SUDO=sudo
-WEB_EXE=web/web
 WEB_UPTODATE=.web.uptodate
 WEB_IMAGE=weaveworks/web
-DEV_IMAGE=weaveworks/dev
-DEV_UPTODATE=.dev.uptodate
 
-IMAGES=$(WEB_IMAGE) $(DEV_IMAGE)
-UPTODATES=$(WEB_UPTODATE) $(DEV_UPTODATE)
+IMAGES=$(WEB_IMAGE)
+UPTODATES=$(WEB_UPTODATE)
 
-all: deps build
+SUDO=sudo
+ENV=development
 
-deps:
-	go get -v -t ./web/...
-	go get -v bitbucket.org/liamstask/goose/cmd/goose
+all: build
 
-build: $(WEB_UPTODATE) $(DEV_UPTODATE)
+build: $(UPTODATES)
 
-$(WEB_UPTODATE): web/Dockerfile $(WEB_EXE) web/templates/*
-	$(SUDO) docker build -t $(WEB_IMAGE) web
+$(WEB_UPTODATE): web/Dockerfile web/templates/*
+	$(SUDO) docker-compose build web
 	touch $@
-
-$(DEV_UPTODATE): $(WEB_UPTODATE) Dockerfile db/dbconf.yml db/migrations/*
-	$(SUDO) docker build -t $(DEV_IMAGE) .
-	touch $@
-
-$(WEB_EXE): web/*.go
-	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o $@ ./$(@D)
 
 test:
-	go test ./web/...
+	go test ./...
 
-integration-test: $(DEV_UPTODATE)
-	$(SUDO) ./bin/dev make remote-integration-test
-
-remote-integration-test: deps
-	go test -tags integration -timeout 30s ./web/...
+integration-test: $(WEB_UPTODATE)
+	$(SUDO) docker-compose run --rm web go test -tags integration -timeout 30s ./...
 
 clean:
-	-$(SUDO) docker rmi $(WEB_IMAGE) $(IMAGES)
-	rm -rf $(WEB_EXE) $(UPTODATES)
-	go clean ./web/...
+	-$(SUDO) docker rmi $(IMAGES)
+	rm -rf $(EXES) $(UPTODATES)
+	go clean ./...
