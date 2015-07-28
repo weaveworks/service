@@ -90,11 +90,6 @@ module.exports = function(config) {
     },
 
     /**
-     * Once the mocha test suite returns, we want to exit from the test runner as well.
-     */
-    singleRun: true,
-
-    /**
      * List of plugins
      */
     plugins: [

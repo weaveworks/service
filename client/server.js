@@ -9,7 +9,7 @@ var store = {};
 store.orgName = 'foo'
 store.users = [{
     id: 0,
-    email: 'peter@weaver.works',
+    email: 'peter@weave.works',
     lastLogin: null
   }];
 
@@ -38,14 +38,16 @@ app.get('/app.js', function(req, res) {
 
 app.get('/api/org/foo', function(req, res) {
   res.json({
-    name: orgName
+    user: store.users[0].email,
+    name: store.orgName
   });
 });
 
 
 app.post('/api/org/foo', function(req, res) {
-  orgName = req.body.name;
+  store.orgName = req.body.name;
   res.json({
+    user: store.users[0].email,
     name: store.orgName
   });
 });
@@ -67,6 +69,16 @@ app.post('/api/org/*/users', function(req, res) {
     email: req.body.email,
     lastLogin: null
   });
+  res.json(store.users);
+});
+
+app.delete('/api/org/*/users/:userId', function(req, res) {
+  var id = parseInt(req.params.userId);
+  for(var i = store.users.length - 1; i >= 0; i--) {
+    if(store.users[i].id === id) {
+      store.users.splice(i, 1);
+    }
+  }
   res.json(store.users);
 });
 

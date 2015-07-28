@@ -1,22 +1,34 @@
 import React from "react";
 import { getData } from "../../common/request";
+import { Container } from "../../components/container";
+import { Column } from "../../components/column";
+import Probes from "./probes";
+import UserToolbar from "./toolbar";
+import Users from "./users";
 
 export default class OrganizationPage extends React.Component {
-  componentWillMount() {
-    console.log("[OrganizationPage] will mount with server response: ", this.props.data.home);
-  }
 
   render() {
-    let { name } = this.props.data.organization;
+    let { name, user } = this.props.data.organization;
 
     return (
-      <div id="organization-page">
+      <Container>
+        <UserToolbar user={user} />
         <h1>{name}</h1>
-      </div>
+        <Column>
+          <Users org={name} />
+        </Column>
+        <Column>
+          <Probes org={name} />
+        </Column>
+      </Container>
     );
   }
 
   static fetchData = function(params) {
-    return getData("/api/org/foo");
+    if (params.orgId) {
+      const url = '/api/org/' + params.orgId;
+      return getData(url);
+    }
   }
 }
