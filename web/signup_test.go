@@ -44,8 +44,9 @@ func Test_Signup(t *testing.T) {
 	}
 	organizationID := user.OrganizationID
 	organizationName := user.OrganizationName
-	assert.NotEqual(t, "", user.OrganizationID)
-	assert.NotEqual(t, "", user.OrganizationName)
+	assert.True(t, user.ApprovedAt.IsZero())
+	assert.Equal(t, "", organizationID)
+	assert.Equal(t, "", organizationName)
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{email}, sentEmails[0].To)
 		assert.Contains(t, string(sentEmails[0].Text), "Thanks for your interest")
@@ -63,8 +64,10 @@ func Test_Signup(t *testing.T) {
 	if !assert.NoError(t, err) {
 		return
 	}
-	assert.Equal(t, organizationID, user.OrganizationID)
-	assert.Equal(t, organizationName, user.OrganizationName)
+	organizationName = user.OrganizationName
+	assert.False(t, user.ApprovedAt.IsZero())
+	assert.NotEqual(t, "", user.OrganizationID)
+	assert.NotEqual(t, "", user.OrganizationName)
 	if !assert.Len(t, sentEmails, 2) {
 		return
 	}
