@@ -1,4 +1,4 @@
-# Scope As A Service
+# Scope As A Service - User Management API
 
 ## Run
 
