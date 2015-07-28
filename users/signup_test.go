@@ -14,7 +14,7 @@ import (
 )
 
 func findLoginLink(t *testing.T, e *email.Email) (url, token string) {
-	pattern := `http://` + domain + `/users/signup\?email=[\w.%]+&token=([A-Za-z0-9%._=-]+)`
+	pattern := `http://` + domain + `/api/users/signup\?email=[\w.%]+&token=([A-Za-z0-9%._=-]+)`
 	re := regexp.MustCompile(pattern)
 	matches := re.FindStringSubmatch(string(e.Text))
 	require.Len(t, matches, 2, fmt.Sprintf("Could not find Login Link in text: %q", e.Text))
@@ -32,7 +32,7 @@ func Test_Signup(t *testing.T) {
 
 	// Signup as a new user, should send welcome email
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/users/signup?email=joe%40weave.works", nil)
+	r, _ := http.NewRequest("POST", "/api/users/signup?email=joe%40weave.works", nil)
 	_, err := storage.FindUserByEmail(email)
 	assert.EqualError(t, err, ErrNotFound.Error())
 	Signup(w, r)
@@ -89,7 +89,7 @@ func Test_Signup(t *testing.T) {
 	r, _ = http.NewRequest("GET", loginLink, nil)
 	Signup(w, r)
 	assert.Equal(t, http.StatusFound, w.Code)
-	assert.Equal(t, "/app/"+organizationName, w.HeaderMap.Get("Location"))
+	assert.Equal(t, "/api/users/org/"+organizationName, w.HeaderMap.Get("Location"))
 	assert.True(t, strings.HasPrefix(w.HeaderMap.Get("Set-Cookie"), cookieName+"="))
 
 	// Invalidates their login token
@@ -105,7 +105,7 @@ func Test_Signup_WithBlankEmail(t *testing.T) {
 
 	email := ""
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/users/signup", nil)
+	r, _ := http.NewRequest("POST", "/api/users/signup", nil)
 
 	_, err := storage.FindUserByEmail(email)
 	assert.EqualError(t, err, ErrNotFound.Error())

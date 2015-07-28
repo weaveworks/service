@@ -14,7 +14,7 @@ all: build
 
 build: $(UPTODATES)
 
-$(WEB_UPTODATE): users/Dockerfile users/templates/*
+$(WEB_UPTODATE): Dockerfile *.go templates/*
 	$(SUDO) docker-compose build users
 	touch $@
 

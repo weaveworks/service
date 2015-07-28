@@ -41,9 +41,9 @@ func main() {
 	setupSessions(sessionSecret)
 	logrus.Debug("Debug logging enabled")
 
-	http.HandleFunc("/users/signup", Signup)
-	http.HandleFunc("/users/lookup", Lookup)
-	http.HandleFunc("/app/", App)
+	http.HandleFunc("/api/users/signup", Signup)
+	http.HandleFunc("/api/users/private/lookup", Lookup)
+	http.HandleFunc("/api/users/org/", Org)
 
 	logrus.Info("Listening on :80")
 	logrus.Fatal(http.ListenAndServe(":80", nil))
@@ -100,7 +100,7 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 			} else if err := storage.SetUserToken(user.ID, ""); err != nil {
 				logrus.Error(err)
 			}
-			http.Redirect(w, r, fmt.Sprintf("/app/%s", user.OrganizationName), http.StatusFound)
+			http.Redirect(w, r, fmt.Sprintf("/api/users/org/%s", user.OrganizationName), http.StatusFound)
 			return
 		}
 	}
@@ -138,11 +138,11 @@ func Lookup(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func App(w http.ResponseWriter, r *http.Request) {
+func Org(w http.ResponseWriter, r *http.Request) {
 	user, err := sessions.Get(r)
 	if err != nil {
 		if err == ErrInvalidAuthenticationData {
-			http.Redirect(w, r, "/users/signup", http.StatusFound)
+			http.Redirect(w, r, "/api/users/signup", http.StatusFound)
 		} else {
 			internalServerError(w, err)
 		}
