@@ -7,23 +7,21 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/jordan-wright/email"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func findLoginLink(t *testing.T, e *email.Email) (url, token string, ok bool) {
-	pattern := `http://` + domain + `/users/signup\?email=[\w.%]+&token=([A-Za-z0-9%.]+)`
+func findLoginLink(t *testing.T, e *email.Email) (url, token string) {
+	pattern := `http://` + domain + `/users/signup\?email=[\w.%]+&token=([A-Za-z0-9%._=-]+)`
 	re := regexp.MustCompile(pattern)
 	matches := re.FindStringSubmatch(string(e.Text))
-	if assert.Len(t, matches, 2, fmt.Sprintf("Could not find Login Link in text: %q", e.Text)) &&
-		assert.NotEqual(t, "", matches[0]) &&
-		assert.NotEqual(t, "", matches[1]) &&
-		assert.Contains(t, string(e.HTML), matches[0], fmt.Sprintf("Could not find Login Link in html: %q", e.HTML)) {
-		return matches[0], matches[1], true
-	}
-	return "", "", false
+	require.Len(t, matches, 2, fmt.Sprintf("Could not find Login Link in text: %q", e.Text))
+	require.NotEqual(t, "", matches[0])
+	require.NotEqual(t, "", matches[1])
+	require.Contains(t, string(e.HTML), matches[0], fmt.Sprintf("Could not find Login Link in html: %q", e.HTML))
+	return matches[0], matches[1]
 }
 
 func Test_Signup(t *testing.T) {
@@ -35,15 +33,20 @@ func Test_Signup(t *testing.T) {
 	// Signup as a new user, should send welcome email
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("POST", "/users/signup?email=joe%40weave.works", nil)
-	assert.Nil(t, users[email])
+	_, err := storage.FindUserByEmail(email)
+	assert.EqualError(t, err, ErrNotFound.Error())
 	Signup(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "Login email sent")
-	if !assert.NotNil(t, users[email]) {
+	user, err := storage.FindUserByEmail(email)
+	if !assert.NoError(t, err) {
 		return
 	}
-	appName := users[email].AppName
-	assert.NotEqual(t, "", appName)
+	organizationID := user.OrganizationID
+	organizationName := user.OrganizationName
+	assert.True(t, user.ApprovedAt.IsZero())
+	assert.Equal(t, "", organizationID)
+	assert.Equal(t, "", organizationName)
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{email}, sentEmails[0].To)
 		assert.Contains(t, string(sentEmails[0].Text), "Thanks for your interest")
@@ -51,28 +54,29 @@ func Test_Signup(t *testing.T) {
 	}
 
 	// Manually approve
-	users[email].ApprovedAt = time.Now()
+	assert.NoError(t, storage.ApproveUser(user.ID))
 
 	// Do it again: check it preserves their data, and sends a login email
 	Signup(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "Login email sent")
-	if !assert.NotNil(t, users[email]) {
+	user, err = storage.FindUserByEmail(email)
+	if !assert.NoError(t, err) {
 		return
 	}
-	assert.Equal(t, appName, users[email].AppName)
+	organizationName = user.OrganizationName
+	assert.False(t, user.ApprovedAt.IsZero())
+	assert.NotEqual(t, "", user.OrganizationID)
+	assert.NotEqual(t, "", user.OrganizationName)
 	if !assert.Len(t, sentEmails, 2) {
 		return
 	}
 	assert.Equal(t, []string{email}, sentEmails[1].To)
-	loginLink, emailToken, ok := findLoginLink(t, sentEmails[1])
-	if !ok {
-		return
-	}
+	loginLink, emailToken := findLoginLink(t, sentEmails[1])
 	assert.Contains(t, string(sentEmails[1].HTML), loginLink)
 
 	// Check the db one was hashed
-	dbToken := users[email].Token
+	dbToken := user.Token
 	assert.NotEqual(t, "", dbToken)
 	assert.NotEqual(t, dbToken, emailToken)
 
@@ -85,11 +89,14 @@ func Test_Signup(t *testing.T) {
 	r, _ = http.NewRequest("GET", loginLink, nil)
 	Signup(w, r)
 	assert.Equal(t, http.StatusFound, w.Code)
-	assert.Equal(t, "/app/"+appName, w.HeaderMap.Get("Location"))
+	assert.Equal(t, "/app/"+organizationName, w.HeaderMap.Get("Location"))
 	assert.True(t, strings.HasPrefix(w.HeaderMap.Get("Set-Cookie"), cookieName+"="))
 
 	// Invalidates their login token
-	assert.Equal(t, "", users[email].Token)
+	user, err = storage.FindUserByEmail(email)
+	if assert.NoError(t, err) {
+		assert.Equal(t, "", user.Token)
+	}
 }
 
 func Test_Signup_WithBlankEmail(t *testing.T) {
@@ -100,9 +107,11 @@ func Test_Signup_WithBlankEmail(t *testing.T) {
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("POST", "/users/signup", nil)
 
-	assert.Nil(t, users[email])
+	_, err := storage.FindUserByEmail(email)
+	assert.EqualError(t, err, ErrNotFound.Error())
 	Signup(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "Email cannot be blank")
-	assert.Nil(t, users[email])
+	_, err = storage.FindUserByEmail(email)
+	assert.EqualError(t, err, ErrNotFound.Error())
 }
