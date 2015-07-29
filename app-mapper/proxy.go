@@ -51,13 +51,12 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 	// Forward current request to the target host since it was received before
 	// hijacking
 	logrus.Debugf("proxy: writing original request to %s", targetHost)
-	err = r.Write(targetConn)
-	if err != nil {
+	if err = r.Write(targetConn); err != nil {
 		logrus.Errorf("proxy: error copying request to target: %v", err)
 		return
 	}
 
-	// Copy information back and forth between the our client and the target
+	// Copy information back and forth between our client and the target
 	// host
 	errChannel := make(chan error, 2)
 	cp := func(dst io.Writer, src io.Reader) {
