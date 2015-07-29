@@ -1,22 +1,22 @@
 package main
 
-type OrganizationMapper interface {
-	GetOrganizationsHost(orgId string) (string, error)
+type organizationMapper interface {
+	getOrganizationsHost(orgID string) (string, error)
 }
 
-type ConstantMapper struct {
-	TargetHost string
+type constantMapper struct {
+	targetHost string
 }
 
-func (m *ConstantMapper) GetOrganizationsHost(orgId string) (string, error) {
-	return m.TargetHost, nil
+func (m *constantMapper) getOrganizationsHost(orgID string) (string, error) {
+	return m.targetHost, nil
 }
 
-type DBMapper struct {
-	DBHost string
+type dbMapper struct {
+	dbHost string
 }
 
-func (m *DBMapper) GetOrganizationsHost(orgId string) (string, error) {
+func (m *dbMapper) getOrganizationsHost(orgID string) (string, error) {
 	// TODO
 	return "", nil
 }

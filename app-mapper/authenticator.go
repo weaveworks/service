@@ -4,26 +4,26 @@ import (
 	"net/http"
 )
 
-type Authenticator interface {
-	Authenticate(r *http.Request) (*AuthenticatorResponse, error)
+type authenticator interface {
+	authenticate(r *http.Request) (authenticatorResponse, error)
 }
 
-type AuthenticatorResponse struct {
-	OrganizationId string
-	HttpStatus     int
+type authenticatorResponse struct {
+	organizationID string
+	httpStatus     int
 }
 
-type MockAuthenticator struct{}
+type mockAuthenticator struct{}
 
-func (m *MockAuthenticator) Authenticate(r *http.Request) (*AuthenticatorResponse, error) {
-	return &AuthenticatorResponse{"", http.StatusOK}, nil
+func (m *mockAuthenticator) authenticate(r *http.Request) (authenticatorResponse, error) {
+	return authenticatorResponse{"", http.StatusOK}, nil
 }
 
-type WebAuthenticator struct {
+type webAuthenticator struct {
 	ServerHost string
 }
 
-func (m *WebAuthenticator) Authenticate(r *http.Request) (*AuthenticatorResponse, error) {
+func (m *webAuthenticator) authenticate(r *http.Request) (authenticatorResponse, error) {
 	// TODO
-	return &AuthenticatorResponse{"", http.StatusOK}, nil
+	return authenticatorResponse{"", http.StatusOK}, nil
 }

@@ -8,18 +8,18 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
-func AppProxy(a Authenticator, m OrganizationMapper, w http.ResponseWriter, r *http.Request) {
-	authResponse, err := a.Authenticate(r)
+func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *http.Request) {
+	authResponse, err := a.authenticate(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
-	if authResponse.HttpStatus != http.StatusOK {
-		w.WriteHeader(authResponse.HttpStatus)
+	if authResponse.httpStatus != http.StatusOK {
+		w.WriteHeader(authResponse.httpStatus)
 		return
 	}
 
-	targetHost, err := m.GetOrganizationsHost(authResponse.OrganizationId)
+	targetHost, err := m.getOrganizationsHost(authResponse.organizationID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

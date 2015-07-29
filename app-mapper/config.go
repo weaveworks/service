@@ -6,17 +6,17 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type Config struct {
-	LogLevel                 string `yaml:"log-level"`
-	MapperType               string `yaml:"mapper-type"`
-	ConstantMapperTargetHost string `yaml:"constant-mapper-target-host"`
-	AppMapperDBHost          string `yaml:"app-mapper-db-host"`
-	AuthenticatorType        string `yaml:"authenticator-type"`
-	AuthenticatorHost        string `yaml:"authenticator-host"`
+type config struct {
+	logLevel                 string `yaml:"log-level"`
+	mapperType               string `yaml:"mapper-type"`
+	constantMapperTargetHost string `yaml:"constant-mapper-target-host"`
+	appMapperDBHost          string `yaml:"app-mapper-db-host"`
+	authenticatorType        string `yaml:"authenticator-type"`
+	authenticatorHost        string `yaml:"authenticator-host"`
 }
 
-func ParseConfig(path string) (*Config, error) {
-	c := Config{}
+func parseConfig(path string) (*config, error) {
+	c := config{}
 	raw, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
