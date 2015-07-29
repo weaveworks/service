@@ -7,11 +7,11 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
-var (
-	configFile string
-)
-
 func main() {
+	var (
+		configFile string
+	)
+
 	flag.StringVar(&configFile, "config-file", "./config.yaml", "Path to configuration file")
 	flag.Parse()
 
