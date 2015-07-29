@@ -14,7 +14,7 @@ deps:
 
 build: $(APP_MAPPER_UPTODATE)
 
-$(APP_MAPPER_UPTODATE): Dockerfile config.yaml $(APP_MAPPER_EXE)
+$(APP_MAPPER_UPTODATE): Dockerfile $(APP_MAPPER_EXE)
 	$(SUDO) docker build -t $(APP_MAPPER_IMAGE) .
 	touch $@
 

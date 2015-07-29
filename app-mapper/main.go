@@ -1,28 +1,18 @@
 package main
 
 import (
-	"flag"
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
 )
 
 func main() {
-	var (
-		configFile string
-	)
 
-	flag.StringVar(&configFile, "config-file", "./config.yaml", "Path to configuration file")
-	flag.Parse()
+	flags := parseFlags()
+	setupLogging(flags.logLevel)
 
-	config, err := parseConfig(configFile)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	setupLogging(config.logLevel)
-
-	authenticator := getAuthenticator(config)
-	orgMapper := getOrganizationMapper(config)
+	authenticator := getAuthenticator(flags)
+	orgMapper := getOrganizationMapper(flags)
 	appProxyHandle := func(w http.ResponseWriter, r *http.Request) {
 		appProxy(authenticator, orgMapper, w, r)
 	}
@@ -39,24 +29,24 @@ func makeLoggingHandler(next http.Handler) http.Handler {
 	})
 }
 
-func getAuthenticator(c *config) authenticator {
-	if c.authenticatorType == "mock" {
+func getAuthenticator(f *flags) authenticator {
+	if f.authenticatorType == "mock" {
 		return &mockAuthenticator{}
 	}
 
 	return &webAuthenticator{
-		ServerHost: c.authenticatorHost,
+		ServerHost: f.authenticatorHost,
 	}
 }
 
-func getOrganizationMapper(c *config) organizationMapper {
-	if c.mapperType == "constant" {
+func getOrganizationMapper(f *flags) organizationMapper {
+	if f.mapperType == "constant" {
 		return &constantMapper{
-			targetHost: c.constantMapperTargetHost,
+			targetHost: f.constantMapperTargetHost,
 		}
 	}
 
 	return &dbMapper{
-		dbHost: c.appMapperDBHost,
+		dbHost: f.appMapperDBHost,
 	}
 }
