@@ -35,7 +35,7 @@ func getAuthenticator(f *flags) authenticator {
 	}
 
 	return &webAuthenticator{
-		ServerHost: f.authenticatorHost,
+		serverHost: f.authenticatorHost,
 	}
 }
 
