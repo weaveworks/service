@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,6 +16,11 @@ func Test_Lookup(t *testing.T) {
 	user, err := storage.CreateUser("joe@weave.works")
 	assert.NoError(t, err)
 
+	assert.NoError(t, storage.ApproveUser(user.ID))
+	user, err = storage.FindUserByID(user.ID)
+	assert.NoError(t, err)
+	assert.NotEqual(t, "", user.OrganizationID)
+
 	session, err := sessions.Encode(user.ID)
 	assert.NoError(t, err)
 
@@ -23,6 +29,9 @@ func Test_Lookup(t *testing.T) {
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, map[string]interface{}{"organizationID": user.OrganizationID}, body)
 }
 
 func Test_Lookup_NotFound(t *testing.T) {
@@ -35,4 +44,5 @@ func Test_Lookup_NotFound(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/api/users/private/lookup?session_id="+session, nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Len(t, w.Body.Bytes(), 0)
 }

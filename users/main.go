@@ -138,6 +138,10 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/api/users/org/%s", user.OrganizationName), http.StatusFound)
 }
 
+type lookupView struct {
+	OrganizationID string `json:"organizationID"`
+}
+
 func Lookup(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.FormValue("session_id")
 	if sessionID == "" {
@@ -145,10 +149,10 @@ func Lookup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := sessions.Decode(sessionID)
+	user, err := sessions.Decode(sessionID)
 	switch {
 	case err == nil:
-		w.WriteHeader(http.StatusOK)
+		renderJSON(w, http.StatusOK, lookupView{OrganizationID: user.OrganizationID})
 	case err == ErrInvalidAuthenticationData:
 		w.WriteHeader(http.StatusUnauthorized)
 	default:
