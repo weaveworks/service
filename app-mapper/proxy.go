@@ -34,7 +34,7 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 	}
 	defer targetConn.Close()
 
-	// Hijack the connection to copy raw data back to the our client
+	// Hijack the connection to copy raw data back to our client
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -62,6 +62,7 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 	cp := func(dst io.Writer, src io.Reader) {
 		_, err := io.Copy(dst, src)
 		errChannel <- err
+		logrus.Debugf("proxy: cp exited")
 	}
 	go cp(targetConn, clientConn)
 	go cp(clientConn, targetConn)
