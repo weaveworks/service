@@ -21,26 +21,22 @@ var (
 
 func main() {
 	var (
-		databaseURI   string
-		emailURI      string
-		logLevel      string
-		sessionSecret string
+		databaseURI   = flag.String("database-uri", "postgres://postgres@db.weave.local/weave_development?sslmode=disable", "URI where the database can be found")
+		emailURI      = flag.String("email-uri", "smtp://smtp.weave.local:587", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port")
+		logLevel      = flag.String("log-level", "info", "logging level (debug, info, warning, error)")
+		sessionSecret = flag.String("session-secret", "", "Secret used validate sessions")
 	)
+
+	flag.Parse()
 
 	rand.Seed(time.Now().UnixNano())
 
-	flag.StringVar(&databaseURI, "database-uri", "postgres://postgres@db.weave.local/weave_development?sslmode=disable", "URI where the database can be found")
-	flag.StringVar(&emailURI, "email-uri", "smtp://smtp.weave.local:587", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port")
-	flag.StringVar(&logLevel, "log-level", "info", "logging level (debug, info, warning, error)")
-	flag.StringVar(&sessionSecret, "session-secret", "", "Secret used validate sessions")
-	flag.Parse()
-
-	setupLogging(logLevel)
-	setupEmail(emailURI)
-	setupStorage(databaseURI)
+	setupLogging(*logLevel)
+	setupEmail(*emailURI)
+	setupStorage(*databaseURI)
 	defer storage.Close()
 	setupTemplates()
-	setupSessions(sessionSecret)
+	setupSessions(*sessionSecret)
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Info("Listening on :80")
