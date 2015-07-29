@@ -32,6 +32,7 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 		logrus.Errorf("proxy: error dialing backend %s: %v", targetHost, err)
 		return
 	}
+	defer targetConn.Close()
 
 	// Hijack the connection to copy raw data back to the our client
 	hijacker, ok := w.(http.Hijacker)
@@ -46,7 +47,6 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 		return
 	}
 	defer clientConn.Close()
-	defer targetConn.Close()
 
 	// Forward current request to the target host since it was received before
 	// hijacking
