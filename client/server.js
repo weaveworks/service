@@ -27,7 +27,7 @@ store.users = [{
 
 // Serve application file depending on environment
 app.get('/app.js', function(req, res) {
-  if (process.env.PRODUCTION) {
+  if (process.env.NODE_ENV === 'production') {
     res.sendFile(__dirname + '/build/app.js');
   } else {
     res.redirect('//localhost:9090/build/app.js');
@@ -111,7 +111,7 @@ app.get('*', function(req, res) {
  *
  *************************************************************/
 
-if (!process.env.PRODUCTION) {
+if (process.env.NODE_ENV !== 'production') {
   var webpack = require('webpack');
   var WebpackDevServer = require('webpack-dev-server');
   var config = require('./webpack.local.config');
