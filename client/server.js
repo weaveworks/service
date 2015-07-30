@@ -8,6 +8,11 @@ if (process.env.USE_MOCK_BACKEND) {
   app.use(bodyParser.json()); // for parsing application/json
 }
 
+// http proxy
+var httpProxy = require('http-proxy');
+var proxy = httpProxy.createProxyServer({ ws: true });
+
+
 // Mock data store
 var store = {};
 store.orgName = 'foo'

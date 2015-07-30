@@ -1,9 +1,7 @@
 import React from "react";
-import { Styles, Paper, List, ListItem } from "material-ui";
+import { Paper, List, ListItem } from "material-ui";
 import { getData, postData } from "../../common/request";
 import { Box } from "../../components/box";
-
-const ThemeManager = new Styles.ThemeManager();
 
 export default class Probes extends React.Component {
 
@@ -11,16 +9,6 @@ export default class Probes extends React.Component {
     super(props);
     this.state = {
       probes: []
-    };
-  }
-
-  static childContextTypes = {
-    muiTheme: React.PropTypes.object
-  }
-
-  getChildContext() {
-    return {
-      muiTheme: ThemeManager.getCurrentTheme()
     };
   }
 

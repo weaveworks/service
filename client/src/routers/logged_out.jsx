@@ -3,7 +3,7 @@ import { Route, DefaultRoute, RouteHandler } from "react-router";
 
 import OrganizationPage from "../pages/organization/page";
 import LandingPage from "../pages/landing/page";
-import Users from "../pages/organization/users";
+import WrapperPage from "../pages/wrapper/page";
 
 
 export default class LoggedOutRouter extends React.Component {
@@ -20,6 +20,7 @@ export default class LoggedOutRouter extends React.Component {
   static getRoutes = function() {
     return (
       <Route name="app" path="/" handler={LoggedOutRouter}>
+        <Route name="wrapper" path="app/:orgId" handler={WrapperPage} />
         <Route name="organization" path="org/:orgId" handler={OrganizationPage} />
         <DefaultRoute name="landing" handler={LandingPage} />
       </Route>
