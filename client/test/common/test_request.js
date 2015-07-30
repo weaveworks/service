@@ -1,8 +1,8 @@
-import { getData } from "../../src/common/request";
+import { postData } from "../../src/common/request";
 
 
 describe("Request", function() {
-  describe("getData", function() {
+  describe("postData", function() {
     let server;
 
     beforeEach(function() {
@@ -15,7 +15,7 @@ describe("Request", function() {
 
 
     it("should return promise fulfilled with response", function(done) {
-      let promise = getData('/test');
+      let promise = postData('/test');
       let responseData = {
         prop: "Testing",
         didRespond: true
@@ -34,7 +34,7 @@ describe("Request", function() {
     });
 
     it("should return promise rejected with error", function(done) {
-      let promise = getData('/anotherTest');
+      let promise = postData('/anotherTest');
       let responseData = {
         error: "Something went wrong!"
       }

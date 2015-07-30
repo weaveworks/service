@@ -1,9 +1,5 @@
-FROM node:0.12-onbuild
-
-# build JS bundle (postinstall has not been executed at this point)
-RUN npm run build
-
-# configure port
-EXPOSE 8080
-
-# onbuild runs `npm start` serving app from /usr/src/app/build/
+FROM node:0.10
+WORKDIR /home/weave
+ADD package.json karma.config.js karma.cross-browser.config.js /home/weave/
+ADD webpack.local.config.js webpack.production.config.js /home/weave/
+RUN npm install

@@ -98,7 +98,11 @@ app.get('/login', function(req, res) {
 
 // Serve index page
 app.get('*', function(req, res) {
-  res.sendFile(__dirname + '/build/index.html');
+  if (process.env.NODE_ENV === 'production') {
+    res.sendFile(__dirname + '/build/index.html');
+  } else {
+    res.sendFile(__dirname + '/src/index.html');
+  }
 });
 
 
