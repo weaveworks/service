@@ -58,7 +58,7 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 	defer clientConn.Close()
 
 	// Forward current request to the target host since it was received before hijacking
-	logrus.Debugf("proxy: writing original request to %s", targetHost)
+	logrus.Debugf("proxy: writing original request to '%s'", targetHost)
 	if err = r.Write(targetConn); err != nil {
 		logrus.Errorf("proxy: error copying request to target: %v", err)
 		return
@@ -69,8 +69,9 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 	cp := func(dst io.Writer, src io.Reader) {
 		_, err := io.Copy(dst, src)
 		errChannel <- err
-		logrus.Debugf("proxy: cp exited")
+		logrus.Debugf("proxy: copier exited")
 	}
+	logrus.Debugf("proxy: spawning copiers")
 	go cp(targetConn, clientConn)
 	go cp(clientConn, targetConn)
 	<-errChannel
