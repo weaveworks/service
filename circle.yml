@@ -28,3 +28,7 @@ test:
     - cd $SRCDIR; $TOOLS/lint .
     - cd $SRCDIR; $TOOLS/test
     - cd $SRCDIR/users; make
+
+teardown:
+  pre:
+    - cd $SRCDIR; cp coverage.* $CIRCLE_ARTIFACTS
