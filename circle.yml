@@ -26,4 +26,5 @@ dependencies:
 test:
   override:
     - cd $SRCDIR; $TOOLS/lint .
+    - cd $SRCDIR; $TOOLS/test
     - cd $SRCDIR/users; make
