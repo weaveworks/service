@@ -7,12 +7,15 @@ machine:
   services:
     - docker
   environment:
-    GOPATH: /home/ubuntu:$GOPATH
+    GOPATH: /home/ubuntu
+    TOOLS: /home/ubuntu/src/github.com/weaveworks/tools
     SRCDIR: /home/ubuntu/src/github.com/weaveworks/service
     PATH: $PATH:$HOME/.local/bin
 
 dependencies:
   post:
+    - mkdir -p $TOOLS
+    - git clone https://github.com/weaveworks/tools.git $TOOLS
     - go clean -i net
     - go install -tags netgo std
     - mkdir -p $(dirname $SRCDIR)
@@ -20,4 +23,5 @@ dependencies:
 
 test:
   override:
+    - cd $SRCDIR; $TOOLS/lint
     - cd $SRCDIR/users; make
