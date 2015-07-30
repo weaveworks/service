@@ -20,7 +20,7 @@ dependencies:
     - go install -tags netgo std
     - mkdir -p $(dirname $SRCDIR)
     - cp -r $(pwd)/ $SRCDIR
-    - curl -L https://github.com/docker/compose/releases/download/1.3.3/docker-compose-`uname -s`-`uname -m` > $HOME/bin
+    - curl -L https://github.com/docker/compose/releases/download/1.3.3/docker-compose-`uname -s`-`uname -m` > $HOME/bin/docker-compose
     - chmod +x $HOME/bin/docker-compose
 
 test:
