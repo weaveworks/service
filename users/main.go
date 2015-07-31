@@ -77,13 +77,16 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		internalServerError(w, err)
 		return
 	}
+	// We always do this so that the timing difference can't be used to infer a user's existence.
+	token, err := generateUserToken(storage, user)
+	if err != nil {
+		logrus.Error(err)
+		renderError(w, http.StatusInternalServerError, fmt.Errorf("Error sending login email"))
+	}
 	if user.ApprovedAt.IsZero() {
 		err = SendWelcomeEmail(user)
 	} else {
-		var token string
-		if token, err = generateUserToken(storage, user); err == nil {
-			err = SendLoginEmail(user, token)
-		}
+		err = SendLoginEmail(user, token)
 	}
 	if err != nil {
 		logrus.Error(err)
@@ -113,28 +116,35 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/signup", http.StatusFound)
 	}
 
-	tokenExpired := func() {
+	tokenExpired := func(errs ...error) {
+		for _, err := range errs {
+			if err != nil {
+				logrus.Error(err)
+			}
+		}
 		http.Redirect(w, r, "/signup?token_expired=true", http.StatusFound)
 	}
 
 	user, err := storage.FindUserByEmail(email)
-	switch {
-	case err == ErrNotFound:
-		tokenExpired()
-		return
-	case err != nil:
-		internalServerError(w, err)
-		return
-	case !user.CompareToken(token):
-		tokenExpired()
-		return
-	}
-	if err = sessions.Set(w, user.ID); err == nil {
-		err = storage.SetUserToken(user.ID, "")
+	if err == ErrNotFound {
+		user = &User{Token: "!"} // Will fail the token comparison
+		err = nil
 	}
 	if err != nil {
-		logrus.Error(err)
+		internalServerError(w, err)
+		return
+	}
+	// We always do this so that the timing difference can't be used to infer a user's existence.
+	if !user.CompareToken(token) {
 		tokenExpired()
+		return
+	}
+	if err := sessions.Set(w, user.ID); err != nil {
+		tokenExpired(err)
+		return
+	}
+	if err := storage.SetUserToken(user.ID, ""); err != nil {
+		tokenExpired(err)
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/org/%s", user.OrganizationName), http.StatusFound)
