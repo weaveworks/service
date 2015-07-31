@@ -44,14 +44,10 @@ func Test_Signup(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{"mailSent": true, "email": email}, body)
 
 	user, err := storage.FindUserByEmail(email)
-	if !assert.NoError(t, err) {
-		return
-	}
-	organizationID := user.OrganizationID
-	organizationName := user.OrganizationName
-	assert.True(t, user.ApprovedAt.IsZero())
-	assert.Equal(t, "", organizationID)
-	assert.Equal(t, "", organizationName)
+	require.NoError(t, err)
+	assert.True(t, user.ApprovedAt.IsZero(), "user should not be approved")
+	assert.Equal(t, "", user.OrganizationID, "user should not have an organization id")
+	assert.Equal(t, "", user.OrganizationName, "user should not have an organization name")
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{email}, sentEmails[0].To)
 		assert.Contains(t, string(sentEmails[0].Text), "Thanks for your interest")
@@ -60,10 +56,11 @@ func Test_Signup(t *testing.T) {
 
 	// Manually approve
 	assert.NoError(t, storage.ApproveUser(user.ID))
-	organizationName = user.OrganizationName
-	assert.False(t, user.ApprovedAt.IsZero())
-	assert.NotEqual(t, "", user.OrganizationID)
-	assert.NotEqual(t, "", user.OrganizationName)
+	user, err = storage.FindUserByID(user.ID)
+	require.NoError(t, err)
+	assert.False(t, user.ApprovedAt.IsZero(), "user should be approved")
+	assert.NotEqual(t, "", user.OrganizationID, "user should have an organization id")
+	assert.NotEqual(t, "", user.OrganizationName, "user should have an organization name")
 
 	// Do it again: check it preserves their data, and sends a login email
 	w = httptest.NewRecorder()
@@ -72,21 +69,16 @@ func Test_Signup(t *testing.T) {
 	body = map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{"mailSent": true, "email": email}, body)
-	if !assert.Len(t, sentEmails, 2) {
-		return
-	}
+	require.Len(t, sentEmails, 2)
 	user, err = storage.FindUserByEmail(email)
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
 	assert.Equal(t, []string{email}, sentEmails[1].To)
 	loginLink, emailToken := findLoginLink(t, sentEmails[1])
 	assert.Contains(t, string(sentEmails[1].HTML), loginLink)
 
 	// Check the db one was hashed
-	dbToken := user.Token
-	assert.NotEqual(t, "", dbToken)
-	assert.NotEqual(t, dbToken, emailToken)
+	assert.NotEqual(t, "", user.Token, "user should have a token set")
+	assert.NotEqual(t, user.Token, emailToken, "stored token should have been hashed")
 
 	// Check the email one wasn't hashed (by looking for dollar-signs)
 	assert.NotContains(t, emailToken, "$")
@@ -100,7 +92,7 @@ func Test_Signup(t *testing.T) {
 	r, _ = http.NewRequest("GET", u.String(), nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusFound, w.Code)
-	assert.Equal(t, "/api/users/org/"+organizationName, w.HeaderMap.Get("Location"))
+	assert.Equal(t, "/api/users/org/"+user.OrganizationName, w.HeaderMap.Get("Location"))
 	assert.True(t, strings.HasPrefix(w.HeaderMap.Get("Set-Cookie"), cookieName+"="))
 
 	// Invalidates their login token
