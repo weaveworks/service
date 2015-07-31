@@ -20,6 +20,10 @@ func testProxyRequest(t *testing.T, req *http.Request) {
 	var targetRecordedReq *http.Request
 	targetTestServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		targetRecordedReq = copyRequest(t, r)
+		// Close the connection after replying to let go of the proxy
+		// (otherwise, the test will hang because the DefaultTransport
+		//  caches clients, and doesn't explicitly close them)
+		w.Header().Set("Connection", "close")
 		w.WriteHeader(http.StatusOK)
 		w.Write(targetResponse)
 	}))
@@ -33,8 +37,7 @@ func testProxyRequest(t *testing.T, req *http.Request) {
 	proxyTestServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		appProxy(a, m, w, r)
 	}))
-	// TODO: for some reason the test hangs if we close the proxyTestServer
-	//defer proxyTestServer.Close()
+	defer proxyTestServer.Close()
 
 	// Tweak and make request to the proxy
 	// Inject target proxy hostname
