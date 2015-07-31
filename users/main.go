@@ -178,6 +178,10 @@ type userView struct {
 	CreatedAt time.Time
 }
 
+func (v userView) FormatCreatedAt() string {
+	return v.CreatedAt.Format(time.Stamp)
+}
+
 // List users needing approval
 func ListUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := storage.ListUnapprovedUsers()
@@ -189,7 +193,12 @@ func ListUsers(w http.ResponseWriter, r *http.Request) {
 	for _, u := range users {
 		userViews = append(userViews, userView{u.ID, u.Email, u.CreatedAt})
 	}
-	renderJSON(w, http.StatusOK, userViews)
+	b, err := templateBytes("list_users.html", userViews)
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+	w.Write(b)
 }
 
 // Approve a user by ID

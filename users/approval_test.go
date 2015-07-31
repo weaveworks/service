@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -32,13 +31,9 @@ func Test_Approval(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/api/users/private/users", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	body := []userView{}
-	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, []userView{
-		{ID: user1.ID, Email: user1.Email, CreatedAt: user1.CreatedAt},
-		{ID: user2.ID, Email: user2.Email, CreatedAt: user2.CreatedAt},
-	},
-		body)
+	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/api/users/private/users/%s/approve" method="POST">`, approved.ID))
+	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/api/users/private/users/%s/approve" method="POST">`, user1.ID))
+	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/api/users/private/users/%s/approve" method="POST">`, user2.ID))
 
 	// Approve user1
 	w = httptest.NewRecorder()
@@ -65,10 +60,7 @@ func Test_Approval(t *testing.T) {
 	r, _ = http.NewRequest("GET", "/api/users/private/users", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	body = []userView{}
-	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, []userView{
-		{ID: user2.ID, Email: user2.Email, CreatedAt: user2.CreatedAt},
-	},
-		body)
+	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/api/users/private/users/%s/approve" method="POST">`, approved.ID))
+	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/api/users/private/users/%s/approve" method="POST">`, user1.ID))
+	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/api/users/private/users/%s/approve" method="POST">`, user2.ID))
 }

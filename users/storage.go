@@ -146,7 +146,8 @@ func (s sqlStorage) ListUnapprovedUsers() ([]*User, error) {
 		from users
 		left join organizations on (users.organization_id = organizations.id)
 		where users.approved_at is null
-		and users.deleted_at is null`)
+		and users.deleted_at is null
+		order by users.created_at`)
 	if err != nil {
 		return nil, err
 	}

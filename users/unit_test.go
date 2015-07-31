@@ -6,6 +6,7 @@ import (
 	"fmt"
 	mathRand "math/rand"
 	"net/http"
+	"sort"
 	"testing"
 	"time"
 
@@ -74,6 +75,12 @@ func (s memoryStorage) FindUserByEmail(email string) (*User, error) {
 	return nil, ErrNotFound
 }
 
+type usersByCreatedAt []*User
+
+func (u usersByCreatedAt) Len() int           { return len(u) }
+func (u usersByCreatedAt) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
+func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.Before(u[j].CreatedAt) }
+
 func (s memoryStorage) ListUnapprovedUsers() ([]*User, error) {
 	users := []*User{}
 	for _, user := range s.users {
@@ -81,6 +88,7 @@ func (s memoryStorage) ListUnapprovedUsers() ([]*User, error) {
 			users = append(users, user)
 		}
 	}
+	sort.Sort(usersByCreatedAt(users))
 	return users, nil
 }
 
