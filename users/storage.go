@@ -46,9 +46,15 @@ type sqlStorage struct {
 	*sql.DB
 }
 
+// Postgres only stores times to the microsecond, so we pre-truncate times so
+// tests will match. We also normalize to UTC, for sanity.
+func pgNow() time.Time {
+	return time.Now().UTC().Truncate(time.Microsecond)
+}
+
 func (s sqlStorage) CreateUser(email string) (*User, error) {
-	u := &User{Email: email}
-	err := s.QueryRow("insert into users (email) values ($1) returning id", email).Scan(&u.ID)
+	u := &User{Email: email, CreatedAt: pgNow()}
+	err := s.QueryRow("insert into users (email, created_at) values (lower($1), $2) returning id", email, u.CreatedAt).Scan(&u.ID)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil, ErrNotFound
@@ -69,7 +75,7 @@ type QueryRower interface {
 func (s sqlStorage) findUserByID(db QueryRower, id string) (*User, error) {
 	user, err := scanUser(
 		db.QueryRow(`
-			select users.id, email, token, token_created_at, approved_at, organization_id, organizations.name
+			select users.id, email, token, token_created_at, approved_at, users.created_at, organization_id, organizations.name
 				from users
 				left join organizations on (users.organization_id = organizations.id)
 				where users.id = $1
@@ -86,7 +92,7 @@ func (s sqlStorage) findUserByID(db QueryRower, id string) (*User, error) {
 func (s sqlStorage) FindUserByEmail(email string) (*User, error) {
 	user, err := scanUser(
 		s.QueryRow(`
-			select users.id, email, token, token_created_at, approved_at, organization_id, organizations.name
+			select users.id, email, token, token_created_at, approved_at, users.created_at, organization_id, organizations.name
 				from users
 				left join organizations on (users.organization_id = organizations.id)
 				where lower(email) = lower($1)
@@ -100,12 +106,16 @@ func (s sqlStorage) FindUserByEmail(email string) (*User, error) {
 	return user, err
 }
 
+type scanner interface {
+	Scan(...interface{}) error
+}
+
 // TODO: Scan more columns
-func scanUser(row *sql.Row) (*User, error) {
+func scanUser(row scanner) (*User, error) {
 	u := &User{}
 	var token, oID, oName sql.NullString
-	var tokenCreatedAt, approvedAt pq.NullTime
-	if err := row.Scan(&u.ID, &u.Email, &token, &tokenCreatedAt, &approvedAt, &oID, &oName); err != nil {
+	var createdAt, tokenCreatedAt, approvedAt pq.NullTime
+	if err := row.Scan(&u.ID, &u.Email, &token, &tokenCreatedAt, &approvedAt, &createdAt, &oID, &oName); err != nil {
 		return nil, err
 	}
 	setString(&u.Token, token)
@@ -113,6 +123,7 @@ func scanUser(row *sql.Row) (*User, error) {
 	setString(&u.OrganizationName, oName)
 	setTime(&u.TokenCreatedAt, tokenCreatedAt)
 	setTime(&u.ApprovedAt, approvedAt)
+	setTime(&u.CreatedAt, createdAt)
 	return u, nil
 }
 
@@ -142,7 +153,7 @@ func (s sqlStorage) ApproveUser(id string) error {
 			where id = $1 and deleted_at is null`,
 			id,
 			o.ID,
-			time.Now().UTC(),
+			pgNow(),
 		)
 		if err != nil {
 			return err
@@ -174,7 +185,7 @@ func (s sqlStorage) SetUserToken(id, token string) error {
 		where id = $1 and deleted_at is null`,
 		id,
 		string(hashed),
-		time.Now().UTC(),
+		pgNow(),
 	)
 	if err != nil {
 		return err
