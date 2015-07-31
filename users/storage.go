@@ -5,13 +5,11 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"errors"
-	"fmt"
-	mathRand "math/rand"
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/dustinkirkland/golang-petname"
 	"github.com/lib/pq"
+	"github.com/weaveworks/service/users/names"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -239,7 +237,7 @@ func secureRandomBase64(byteCount int) (string, error) {
 
 func (s sqlStorage) createOrganization(db QueryRower) (*Organization, error) {
 	o := &Organization{
-		Name: fmt.Sprintf("%s-%d", petname.Generate(2, "-"), mathRand.Int31n(100)),
+		Name: names.Generate(),
 	}
 	err := db.QueryRow("insert into organizations (name) values ($1) returning id", o.Name).Scan(&o.ID)
 	switch {

@@ -4,14 +4,13 @@ package main
 
 import (
 	"fmt"
-	mathRand "math/rand"
 	"net/http"
 	"sort"
 	"testing"
 	"time"
 
-	"github.com/dustinkirkland/golang-petname"
 	"github.com/jordan-wright/email"
+	"github.com/weaveworks/service/users/names"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -128,7 +127,7 @@ func (s memoryStorage) SetUserToken(id, token string) error {
 func (s memoryStorage) createOrganization() (*Organization, error) {
 	o := &Organization{
 		ID:   fmt.Sprint(len(s.organizations)),
-		Name: fmt.Sprintf("%s-%d", petname.Generate(2, "-"), mathRand.Int31n(100)),
+		Name: names.Generate(),
 	}
 	s.organizations[o.ID] = o
 	return o, nil
