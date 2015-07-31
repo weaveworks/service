@@ -19,6 +19,7 @@ type User struct {
 	ApprovedAt       time.Time
 	FirstLoginAt     time.Time
 	LastLoginAt      time.Time
+	CreatedAt        time.Time
 }
 
 func (u *User) GenerateToken() (string, error) {

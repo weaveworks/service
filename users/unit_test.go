@@ -49,8 +49,9 @@ type memoryStorage struct {
 
 func (s memoryStorage) CreateUser(email string) (*User, error) {
 	u := &User{
-		ID:    fmt.Sprint(len(s.users)),
-		Email: email,
+		ID:        fmt.Sprint(len(s.users)),
+		Email:     email,
+		CreatedAt: time.Now().UTC(),
 	}
 	s.users[u.ID] = u
 	return u, nil
@@ -71,6 +72,16 @@ func (s memoryStorage) FindUserByEmail(email string) (*User, error) {
 		}
 	}
 	return nil, ErrNotFound
+}
+
+func (s memoryStorage) ListUnapprovedUsers() ([]*User, error) {
+	users := []*User{}
+	for _, user := range s.users {
+		if user.ApprovedAt.IsZero() {
+			users = append(users, user)
+		}
+	}
+	return users, nil
 }
 
 func (s memoryStorage) ApproveUser(id string) error {

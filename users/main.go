@@ -48,6 +48,8 @@ func routes() http.Handler {
 	r.HandleFunc("/api/users/signup", Signup).Methods("POST")
 	r.HandleFunc("/api/users/login", Login).Methods("GET")
 	r.HandleFunc("/api/users/private/lookup", Lookup).Methods("GET")
+	r.HandleFunc("/api/users/private/users", ListUsers).Methods("GET")
+	r.HandleFunc("/api/users/private/users/{userID}/approve", ApproveUser).Methods("POST")
 	r.HandleFunc("/api/users/org/{orgID}", Org).Methods("GET")
 	return r
 }
@@ -157,6 +159,45 @@ func Lookup(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	default:
 		internalServerError(w, err)
+	}
+}
+
+type userView struct {
+	ID        string
+	Email     string
+	CreatedAt time.Time
+}
+
+// List users needing approval
+func ListUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := storage.ListUnapprovedUsers()
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+	userViews := []userView{}
+	for _, u := range users {
+		userViews = append(userViews, userView{u.ID, u.Email, u.CreatedAt})
+	}
+	renderJSON(w, http.StatusOK, userViews)
+}
+
+// Approve a user by ID
+func ApproveUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID, ok := vars["userID"]
+	if !ok {
+		renderError(w, http.StatusNotFound, fmt.Errorf("Not Found"))
+		return
+	}
+	err := storage.ApproveUser(userID)
+	switch {
+	case err == ErrNotFound:
+		renderError(w, http.StatusNotFound, fmt.Errorf("Not Found"))
+	case err != nil:
+		internalServerError(w, err)
+	default:
+		http.Redirect(w, r, "/api/users/private/users", http.StatusFound)
 	}
 }
 

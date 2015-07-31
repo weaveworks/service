@@ -24,6 +24,7 @@ type Storage interface {
 	FindUserByID(id string) (*User, error)
 	FindUserByEmail(email string) (*User, error)
 
+	ListUnapprovedUsers() ([]*User, error)
 	// Approve the user for access. Should generate them a new organization.
 	ApproveUser(id string) error
 
@@ -137,6 +138,32 @@ func setString(dst *string, src sql.NullString) {
 	if src.Valid {
 		*dst = src.String
 	}
+}
+
+func (s sqlStorage) ListUnapprovedUsers() ([]*User, error) {
+	rows, err := s.Query(`
+		select users.id, email, token, token_created_at, approved_at, users.created_at, organization_id, organizations.name
+		from users
+		left join organizations on (users.organization_id = organizations.id)
+		where users.approved_at is null
+		and users.deleted_at is null`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := []*User{}
+	for rows.Next() {
+		user, err := scanUser(rows)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+	return users, nil
 }
 
 func (s sqlStorage) ApproveUser(id string) error {
