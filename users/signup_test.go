@@ -92,7 +92,7 @@ func Test_Signup(t *testing.T) {
 	r, _ = http.NewRequest("GET", u.String(), nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusFound, w.Code)
-	assert.Equal(t, "/api/users/org/"+user.OrganizationName, w.HeaderMap.Get("Location"))
+	assert.Equal(t, "/org/"+user.OrganizationName, w.HeaderMap.Get("Location"))
 	assert.True(t, strings.HasPrefix(w.HeaderMap.Get("Set-Cookie"), cookieName+"="))
 
 	// Invalidates their login token

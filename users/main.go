@@ -137,7 +137,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		tokenExpired()
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/api/users/org/%s", user.OrganizationName), http.StatusFound)
+	http.Redirect(w, r, fmt.Sprintf("/org/%s", user.OrganizationName), http.StatusFound)
 }
 
 type lookupView struct {
