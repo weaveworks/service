@@ -14,7 +14,7 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 		unauth, ok := err.(unauthorized)
 		if ok {
 			logrus.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
-			http.Error(w, unauth.Error(), unauth.httpStatus)
+			w.WriteHeader(http.StatusUnauthorized)
 		} else {
 			logrus.Errorf("proxy: error contacting authenticator: %v", err)
 			w.WriteHeader(http.StatusBadGateway)
