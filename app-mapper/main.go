@@ -16,7 +16,7 @@ func main() {
 	appProxyHandle := func(w http.ResponseWriter, r *http.Request) {
 		appProxy(authenticator, orgMapper, w, r)
 	}
-	http.HandleFunc("/app/", appProxyHandle)
+	http.HandleFunc("/", appProxyHandle)
 	logrus.Info("Listening on :80")
 	handler := makeLoggingHandler(http.DefaultServeMux)
 	logrus.Fatal(http.ListenAndServe(":80", handler))
