@@ -4,6 +4,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"sync"
 
 	"github.com/Sirupsen/logrus"
 )
@@ -65,15 +66,16 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 	}
 
 	// Copy information back and forth between our client and the target host
-	errChannel := make(chan error, 2)
+	var wg sync.WaitGroup
 	cp := func(dst io.Writer, src io.Reader) {
-		_, err := io.Copy(dst, src)
-		errChannel <- err
+		defer wg.Done()
+		io.Copy(dst, src)
 		logrus.Debugf("proxy: copier exited")
 	}
 	logrus.Debugf("proxy: spawning copiers")
+	wg.Add(2)
 	go cp(targetConn, clientConn)
 	go cp(clientConn, targetConn)
-	<-errChannel
+	wg.Wait()
 	logrus.Debugf("proxy: connection closed")
 }
