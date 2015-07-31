@@ -1,0 +1,154 @@
+package main
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func testAuthenticator(t *testing.T, serverHandler http.Handler, testFunc func(a authenticator)) {
+	authenticatorServer := httptest.NewServer(serverHandler)
+	defer authenticatorServer.Close()
+	parsedAuthenticatorURL, err := url.Parse(authenticatorServer.URL)
+	assert.NoError(t, err, "Cannot parse authenticatorServer URL")
+	testFunc(&webAuthenticator{parsedAuthenticatorURL.Host})
+}
+
+func newRequestToAuthenticate(t *testing.T, authCookieValue string, authHeaderValue string) *http.Request {
+	req, err := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
+	assert.NoError(t, err, "Cannot create request")
+	if len(authCookieValue) > 0 {
+		c := http.Cookie{
+			Name:  authCookieName,
+			Value: authCookieValue,
+		}
+		req.AddCookie(&c)
+	}
+	if len(authHeaderValue) > 0 {
+		req.Header.Set(authHeaderName, authHeaderValue)
+	}
+	return req
+}
+
+func TestAuthorize(t *testing.T) {
+	expectedOrganizationID := "foo"
+	serverHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, authLookupPath, r.URL.Path, "Unexpected URL path")
+		assert.Equal(t, "GET", r.Method, "Unexpected method")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{ "organizationID": "` + expectedOrganizationID + `" }`))
+	})
+
+	testFunc := func(a authenticator) {
+		r := newRequestToAuthenticate(t, "someCookieValue", "")
+		res, err := a.authenticate(r)
+		assert.NoError(t, err, "Unexpected error from authenticator")
+		assert.Equal(t, expectedOrganizationID, res.OrganizationID, "Unexpected organization")
+
+		r = newRequestToAuthenticate(t, "", "someAuthHeaderValue")
+		res, err = a.authenticate(r)
+		assert.NoError(t, err, "Unexpected error from authenticator")
+		assert.Equal(t, expectedOrganizationID, res.OrganizationID, "Unexpected organization")
+	}
+
+	testAuthenticator(t, serverHandler, testFunc)
+}
+
+func TestDenyAccess(t *testing.T) {
+	serverHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	})
+
+	testFunc := func(a authenticator) {
+		r := newRequestToAuthenticate(t, "someCookieValue", "")
+		_, err := a.authenticate(r)
+		assert.Error(t, err, "Unexpected successful authentication")
+	}
+
+	testAuthenticator(t, serverHandler, testFunc)
+}
+
+func TestCredentialForwarding(t *testing.T) {
+	const (
+		authCookieValue = "someCookieValue"
+		authHeaderValue = "someAuthHeaderValue"
+	)
+	var (
+		obtainedAuthCookieValue string
+		obtainedAuthHeaderValue string
+	)
+
+	serverHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie(authCookieName)
+		if err == nil {
+			obtainedAuthCookieValue = cookie.Value
+		}
+		obtainedAuthHeaderValue = r.Header.Get(authHeaderName)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{ "organizationID": "foo" }`))
+	})
+
+	testFunc := func(a authenticator) {
+
+		authCookieHeaders := []struct {
+			cookie string
+			header string
+		}{
+			{
+				authCookieValue,
+				"",
+			},
+			{
+				"",
+				authHeaderValue,
+			},
+			{
+				authCookieValue,
+				authHeaderValue,
+			},
+		}
+
+		for _, i := range authCookieHeaders {
+			obtainedAuthCookieValue = ""
+			obtainedAuthHeaderValue = ""
+			r := newRequestToAuthenticate(t, i.cookie, i.header)
+			_, err := a.authenticate(r)
+			assert.NoError(t, err, "Unexpected error from authenticator")
+			assert.Equal(t, i.cookie, obtainedAuthCookieValue)
+			assert.Equal(t, i.header, obtainedAuthHeaderValue)
+		}
+
+	}
+
+	testAuthenticator(t, serverHandler, testFunc)
+}
+
+func TestBadServerResponse(t *testing.T) {
+	var responseBody []byte
+	serverHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write(responseBody)
+	})
+
+	testFunc := func(a authenticator) {
+		badResponses := []string{
+			``,
+			`{}`,
+			`{ "SomeBogusField": "foo" }`,
+			` garbager osaij oasi98 llk;fs `,
+		}
+
+		for _, i := range badResponses {
+			responseBody = []byte(i)
+			r := newRequestToAuthenticate(t, "someCookieValue", "")
+			_, err := a.authenticate(r)
+			assert.Error(t, err, "Unexpected successful request")
+		}
+
+	}
+
+	testAuthenticator(t, serverHandler, testFunc)
+}

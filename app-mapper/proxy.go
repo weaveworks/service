@@ -22,15 +22,15 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 		return
 	}
 
-	targetHost, err := m.getOrganizationsHost(authResponse.organizationID)
+	targetHost, err := m.getOrganizationsHost(authResponse.OrganizationID)
 	if err != nil {
 		logrus.Errorf("proxy: cannot get host for organization '%s': %v",
-			authResponse.organizationID, err)
+			authResponse.OrganizationID, err)
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
 	logrus.Infof("proxy: mapping organization '%s' to host '%s'",
-		authResponse.organizationID, targetHost)
+		authResponse.OrganizationID, targetHost)
 
 	targetConn, err := net.Dial("tcp", targetHost)
 	if err != nil {

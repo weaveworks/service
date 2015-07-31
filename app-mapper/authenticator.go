@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -23,7 +24,7 @@ func (u unauthorized) Error() string {
 }
 
 type authenticatorResponse struct {
-	organizationID string
+	OrganizationID string
 }
 
 type mockAuthenticator struct{}
@@ -36,12 +37,18 @@ type webAuthenticator struct {
 	serverHost string
 }
 
+const (
+	authLookupPath = "/private/lookup"
+	authCookieName = "_weave_session"
+	authHeaderName = "Authorization"
+)
+
 func (m *webAuthenticator) authenticate(r *http.Request) (authenticatorResponse, error) {
 	var authRes authenticatorResponse
-	// Extract _weave_session cookie and/or the Authorization header to
-	// inject them in the lookup request
-	sessionCookie, errCookie := r.Cookie("_weave_session")
-	authHeader := r.Header.Get("Authorization")
+	// Extract Authorization cookie and/or the Authorization header to inject them in the
+	// lookup request
+	authCookie, errCookie := r.Cookie(authCookieName)
+	authHeader := r.Header.Get(authHeaderName)
 
 	// If the cookie and the header were not set, don't even bother to do a
 	// lookup
@@ -52,11 +59,11 @@ func (m *webAuthenticator) authenticate(r *http.Request) (authenticatorResponse,
 	// Contact the authorization server
 	client := &http.Client{}
 	lookupReq := m.newLookupRequest()
-	if len(authHeader) == 0 {
-		lookupReq.Header.Set("Authorization", authHeader)
+	if len(authHeader) > 0 {
+		lookupReq.Header.Set(authHeaderName, authHeader)
 	}
-	if errCookie != nil {
-		lookupReq.AddCookie(sessionCookie)
+	if errCookie == nil {
+		lookupReq.AddCookie(authCookie)
 	}
 	res, err := client.Do(lookupReq)
 	if err != nil {
@@ -74,6 +81,10 @@ func (m *webAuthenticator) authenticate(r *http.Request) (authenticatorResponse,
 		if err != nil {
 			return authRes, err
 		}
+		if len(authRes.OrganizationID) == 0 {
+			return authRes, errors.New("empty OrganizationID")
+		}
+
 	} else {
 		return authRes, &unauthorized{res.StatusCode}
 	}
@@ -82,7 +93,7 @@ func (m *webAuthenticator) authenticate(r *http.Request) (authenticatorResponse,
 }
 
 func (m *webAuthenticator) newLookupRequest() *http.Request {
-	url := fmt.Sprintf("http://%s/private/lookup", m.serverHost)
+	url := fmt.Sprintf("http://%s"+authLookupPath, m.serverHost)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		logrus.Fatal("authenticator: newLookupRequest() unexpectedly failed")
