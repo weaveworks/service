@@ -13,7 +13,7 @@ build/app.js:
 	mkdir -p build
 	docker run -ti -v $(shell pwd)/src:/home/weave/src \
 		-v $(shell pwd)/build:/home/weave/build \
-		$(CLIENT_BUILD_IMAGE) npm run-script build
+		$(CLIENT_BUILD_IMAGE) npm run build
 
 image.tar: build/app.js build/Dockerfile build/index.html
 	docker build -t $(CLIENT_SERVER_IMAGE) build/
