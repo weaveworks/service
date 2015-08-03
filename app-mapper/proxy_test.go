@@ -77,10 +77,10 @@ func testHTTPRequestTransparency(t *testing.T, req *http.Request) {
 func copyRequest(t *testing.T, req *http.Request) *http.Request {
 	dump, err := httputil.DumpRequest(req, true)
 	assert.NoError(t, err, "Cannot dump request body")
-	copy, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(dump)))
+	clone, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(dump)))
 	assert.NoError(t, err, "Cannot parse request")
-	copy.ContentLength = req.ContentLength
-	return copy
+	clone.ContentLength = req.ContentLength
+	return clone
 }
 
 func requestEqual(t *testing.T, expected *http.Request, actual *http.Request, msg string) {

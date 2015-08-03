@@ -93,32 +93,20 @@ func TestCredentialForwarding(t *testing.T) {
 
 	testFunc := func(a authenticator) {
 
-		authCookieHeaders := []struct {
-			cookie string
-			header string
+		for _, input := range []struct {
+			cookie, header string
 		}{
-			{
-				authCookieValue,
-				"",
-			},
-			{
-				"",
-				authHeaderValue,
-			},
-			{
-				authCookieValue,
-				authHeaderValue,
-			},
-		}
-
-		for _, i := range authCookieHeaders {
+			{authCookieValue, ""},
+			{"", authHeaderValue},
+			{authCookieValue, authHeaderValue},
+		} {
 			obtainedAuthCookieValue = ""
 			obtainedAuthHeaderValue = ""
-			r := newRequestToAuthenticate(t, i.cookie, i.header)
+			r := newRequestToAuthenticate(t, input.cookie, input.header)
 			_, err := a.authenticate(r)
 			assert.NoError(t, err, "Unexpected error from authenticator")
-			assert.Equal(t, i.cookie, obtainedAuthCookieValue)
-			assert.Equal(t, i.header, obtainedAuthHeaderValue)
+			assert.Equal(t, input.cookie, obtainedAuthCookieValue)
+			assert.Equal(t, input.header, obtainedAuthHeaderValue)
 		}
 
 	}
@@ -134,15 +122,13 @@ func TestBadServerResponse(t *testing.T) {
 	})
 
 	testFunc := func(a authenticator) {
-		badResponses := []string{
+		for _, badResponse := range []string{
 			``,
 			`{}`,
 			`{ "SomeBogusField": "foo" }`,
 			` garbager osaij oasi98 llk;fs `,
-		}
-
-		for _, i := range badResponses {
-			responseBody = []byte(i)
+		} {
+			responseBody = []byte(badResponse)
 			r := newRequestToAuthenticate(t, "someCookieValue", "")
 			_, err := a.authenticate(r)
 			assert.Error(t, err, "Unexpected successful request")

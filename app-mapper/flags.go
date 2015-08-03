@@ -23,3 +23,25 @@ func parseFlags() *flags {
 	flag.Parse()
 	return &f
 }
+
+func (f *flags) getAuthenticator() authenticator {
+	if f.authenticatorType == "mock" {
+		return &mockAuthenticator{}
+	}
+
+	return &webAuthenticator{
+		serverHost: f.authenticatorHost,
+	}
+}
+
+func (f *flags) getOrganizationMapper() organizationMapper {
+	if f.mapperType == "constant" {
+		return &constantMapper{
+			targetHost: f.constantMapperTargetHost,
+		}
+	}
+
+	return &dbMapper{
+		dbHost: f.appMapperDBHost,
+	}
+}

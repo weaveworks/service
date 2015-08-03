@@ -11,8 +11,8 @@ func main() {
 	flags := parseFlags()
 	setupLogging(flags.logLevel)
 
-	authenticator := getAuthenticator(flags)
-	orgMapper := getOrganizationMapper(flags)
+	authenticator := flags.getAuthenticator()
+	orgMapper := flags.getOrganizationMapper()
 	appProxyHandle := func(w http.ResponseWriter, r *http.Request) {
 		appProxy(authenticator, orgMapper, w, r)
 	}
@@ -27,26 +27,4 @@ func makeLoggingHandler(next http.Handler) http.Handler {
 		logrus.Infof("%s %s %s", r.RemoteAddr, r.Method, r.URL)
 		next.ServeHTTP(w, r)
 	})
-}
-
-func getAuthenticator(f *flags) authenticator {
-	if f.authenticatorType == "mock" {
-		return &mockAuthenticator{}
-	}
-
-	return &webAuthenticator{
-		serverHost: f.authenticatorHost,
-	}
-}
-
-func getOrganizationMapper(f *flags) organizationMapper {
-	if f.mapperType == "constant" {
-		return &constantMapper{
-			targetHost: f.constantMapperTargetHost,
-		}
-	}
-
-	return &dbMapper{
-		dbHost: f.appMapperDBHost,
-	}
 }
