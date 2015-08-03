@@ -4,6 +4,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"sync"
 
 	"github.com/Sirupsen/logrus"
 )
@@ -11,25 +12,36 @@ import (
 func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *http.Request) {
 	authResponse, err := a.authenticate(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
-		return
-	}
-	if authResponse.httpStatus != http.StatusOK {
-		w.WriteHeader(authResponse.httpStatus)
+		if unauth, ok := err.(unauthorized); ok {
+			logrus.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
+			w.WriteHeader(http.StatusUnauthorized)
+		} else {
+			logrus.Errorf("proxy: error contacting authenticator: %v", err)
+			w.WriteHeader(http.StatusBadGateway)
+		}
 		return
 	}
 
-	targetHost, err := m.getOrganizationsHost(authResponse.organizationID)
+	targetHost, err := m.getOrganizationsHost(authResponse.OrganizationID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		logrus.Errorf(
+			"proxy: cannot get host for organization %q: %v",
+			authResponse.OrganizationID,
+			err,
+		)
+		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
-	logrus.Infof("proxy: mapping to %s", targetHost)
+	logrus.Infof(
+		"proxy: mapping organization %q to host %q",
+		authResponse.OrganizationID,
+		targetHost,
+	)
 
 	targetConn, err := net.Dial("tcp", targetHost)
 	if err != nil {
+		logrus.Errorf("proxy: error dialing backend %q: %v", targetHost, err)
 		w.WriteHeader(http.StatusInternalServerError)
-		logrus.Errorf("proxy: error dialing backend %s: %v", targetHost, err)
 		return
 	}
 	defer targetConn.Close()
@@ -37,35 +49,36 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 	// Hijack the connection to copy raw data back to our client
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
+		logrus.Errorf("proxy: error casting to Hijacker on %q: %v", targetHost, err)
 		w.WriteHeader(http.StatusInternalServerError)
-		logrus.Errorf("proxy: error casting to Hijacker on %s: %v", targetHost, err)
 		return
 	}
 	clientConn, _, err := hijacker.Hijack()
 	if err != nil {
 		logrus.Errorf("proxy: Hijack error: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer clientConn.Close()
 
-	// Forward current request to the target host since it was received before
-	// hijacking
-	logrus.Debugf("proxy: writing original request to %s", targetHost)
+	// Forward current request to the target host since it was received before hijacking
+	logrus.Debugf("proxy: writing original request to %q", targetHost)
 	if err = r.Write(targetConn); err != nil {
 		logrus.Errorf("proxy: error copying request to target: %v", err)
 		return
 	}
 
-	// Copy information back and forth between our client and the target
-	// host
-	errChannel := make(chan error, 2)
+	// Copy information back and forth between our client and the target host
+	var wg sync.WaitGroup
 	cp := func(dst io.Writer, src io.Reader) {
-		_, err := io.Copy(dst, src)
-		errChannel <- err
-		logrus.Debugf("proxy: cp exited")
+		defer wg.Done()
+		io.Copy(dst, src)
+		logrus.Debugf("proxy: copier exited")
 	}
+	logrus.Debugf("proxy: spawning copiers")
+	wg.Add(2)
 	go cp(targetConn, clientConn)
 	go cp(clientConn, targetConn)
-	<-errChannel
+	wg.Wait()
 	logrus.Debugf("proxy: connection closed")
 }
