@@ -17,5 +17,7 @@ $ make test
 integration tests:
 
 ```
+$ weave launch
+$ eval "$(weave env)"
 $ make integration-test
 ```
