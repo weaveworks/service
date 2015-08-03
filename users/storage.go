@@ -1,9 +1,7 @@
 package main
 
 import (
-	"crypto/rand"
 	"database/sql"
-	"encoding/base64"
 	"errors"
 	"net/url"
 
@@ -47,13 +45,4 @@ func setupStorage(databaseURI string) {
 	default:
 		logrus.Fatalf("Unknown database type: %s", u.Scheme)
 	}
-}
-
-func secureRandomBase64(byteCount int) (string, error) {
-	randomData := make([]byte, byteCount)
-	_, err := rand.Read(randomData)
-	if err != nil {
-		return "", err
-	}
-	return base64.URLEncoding.EncodeToString(randomData), nil
 }

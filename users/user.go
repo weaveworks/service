@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	htmlTemplate "html/template"
 	"net/url"
@@ -23,7 +25,17 @@ type User struct {
 }
 
 func (u *User) GenerateToken() (string, error) {
-	return secureRandomBase64(128)
+	return secureRandomBase64(20)
+}
+
+func secureRandomBase64(charCount int) (string, error) {
+	byteCount := (charCount * 3) / 4
+	randomData := make([]byte, byteCount)
+	_, err := rand.Read(randomData)
+	if err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(randomData), nil
 }
 
 func (u *User) CompareToken(other string) bool {
