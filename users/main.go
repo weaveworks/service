@@ -21,6 +21,7 @@ var (
 
 func main() {
 	var (
+		addr          = flag.String("addr", "0.0.0.0:80", "interface and port to listen on")
 		databaseURI   = flag.String("database-uri", "postgres://postgres@db.weave.local/weave_development?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
 		emailURI      = flag.String("email-uri", "smtp://smtp.weave.local:587", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port")
 		logLevel      = flag.String("log-level", "info", "logging level (debug, info, warning, error)")
@@ -39,8 +40,8 @@ func main() {
 	setupSessions(*sessionSecret)
 	logrus.Debug("Debug logging enabled")
 
-	logrus.Info("Listening on :80")
-	logrus.Fatal(http.ListenAndServe(":80", handler()))
+	logrus.Infof("Listening on %s", *addr)
+	logrus.Fatal(http.ListenAndServe(*addr, handler()))
 }
 
 func handler() http.Handler {
