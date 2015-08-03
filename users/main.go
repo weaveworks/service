@@ -118,6 +118,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	token := r.FormValue("token")
 	if email == "" || token == "" {
 		http.Redirect(w, r, "/signup", http.StatusFound)
+		return
 	}
 
 	tokenExpired := func(errs ...error) {
