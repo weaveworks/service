@@ -65,10 +65,13 @@ type signupView struct {
 }
 
 func Signup(w http.ResponseWriter, r *http.Request) {
-	view := signupView{
-		MailSent: false,
-		Email:    r.FormValue("email"),
+	defer r.Body.Close()
+	var view signupView
+	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
+		renderError(w, http.StatusBadRequest, err)
+		return
 	}
+	view.MailSent = false
 	if view.Email == "" {
 		renderError(w, http.StatusBadRequest, fmt.Errorf("Email cannot be blank"))
 		return

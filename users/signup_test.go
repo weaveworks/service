@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -26,6 +28,12 @@ func findLoginLink(t *testing.T, e *email.Email) (url, token string) {
 	return matches[0], matches[1]
 }
 
+func jsonBody(t *testing.T, data interface{}) io.Reader {
+	b, err := json.Marshal(data)
+	require.NoError(t, err)
+	return bytes.NewReader(b)
+}
+
 func Test_Signup(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
@@ -34,7 +42,7 @@ func Test_Signup(t *testing.T) {
 
 	// Signup as a new user, should send welcome email
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/signup?email=joe%40weave.works", nil)
+	r, _ := http.NewRequest("POST", "/api/users/signup", jsonBody(t, map[string]interface{}{"email": "joe@weave.works"}))
 	_, err := storage.FindUserByEmail(email)
 	assert.EqualError(t, err, ErrNotFound.Error())
 	app.ServeHTTP(w, r)
@@ -64,6 +72,7 @@ func Test_Signup(t *testing.T) {
 
 	// Do it again: check it preserves their data, and sends a login email
 	w = httptest.NewRecorder()
+	r, _ = http.NewRequest("POST", "/api/users/signup", jsonBody(t, map[string]interface{}{"email": "joe@weave.works"}))
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	body = map[string]interface{}{}
@@ -102,13 +111,30 @@ func Test_Signup(t *testing.T) {
 	}
 }
 
+func Test_Signup_WithInvalidJSON(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	email := ""
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("POST", "/api/users/signup", strings.NewReader("this isn't json"))
+
+	_, err := storage.FindUserByEmail(email)
+	assert.EqualError(t, err, ErrNotFound.Error())
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "invalid character 'h' in literal true (expecting 'r')")
+	_, err = storage.FindUserByEmail(email)
+	assert.EqualError(t, err, ErrNotFound.Error())
+}
+
 func Test_Signup_WithBlankEmail(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	email := ""
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/signup", nil)
+	r, _ := http.NewRequest("POST", "/api/users/signup", jsonBody(t, map[string]interface{}{}))
 
 	_, err := storage.FindUserByEmail(email)
 	assert.EqualError(t, err, ErrNotFound.Error())
