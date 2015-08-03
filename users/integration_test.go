@@ -34,7 +34,7 @@ func setup(t *testing.T) {
 
 	truncateDatabase(t)
 
-	app = routes()
+	app = handler()
 }
 
 func cleanup(t *testing.T) {

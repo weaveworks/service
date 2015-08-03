@@ -31,7 +31,7 @@ func setup(t *testing.T) {
 	setupTemplates()
 	setupSessions("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd")
 
-	app = routes()
+	app = handler()
 }
 
 func cleanup(t *testing.T) {

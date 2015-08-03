@@ -40,7 +40,11 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Info("Listening on :80")
-	logrus.Fatal(http.ListenAndServe(":80", routes()))
+	logrus.Fatal(http.ListenAndServe(":80", handler()))
+}
+
+func handler() http.Handler {
+	return loggingMiddleware(routes())
 }
 
 func routes() http.Handler {
