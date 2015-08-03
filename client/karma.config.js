@@ -37,7 +37,7 @@ module.exports = function(config) {
      * Use Mocha as the test framework, Sinon for mocking, and
      * Chai for assertions.
      */
-    frameworks: ['mocha', 'sinon-chai'],
+    frameworks: ['mocha', 'chai-sinon'],
 
     /**
      * After running the tests, return the results and generate a
@@ -96,7 +96,7 @@ module.exports = function(config) {
       'karma-mocha',
       'karma-webpack',
       'karma-coverage',
-      'karma-sinon-chai',
+      'karma-chai-sinon',
       'karma-phantomjs-launcher'
     ],
   });

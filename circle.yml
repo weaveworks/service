@@ -28,6 +28,9 @@ test:
     - cd $SRCDIR; $TOOLS/lint .
     - cd $SRCDIR; $TOOLS/test
     - cd $SRCDIR/users; make
+    - cd $SRCDIR/client; $TOOLS/rebuild-image service_client_build . Dockerfile package.json karma.config.js karma.cross-browser.config.js webpack.local.config.js webpack.production.config.js
+    - cd $SRCDIR/client; make tests
+    - cd $SRCDIR/client; make image.tar
 
 teardown:
   pre:
