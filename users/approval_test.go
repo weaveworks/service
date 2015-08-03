@@ -17,7 +17,8 @@ func Test_Approval(t *testing.T) {
 	// approved user
 	approved, err := storage.CreateUser("approved@weave.works")
 	assert.NoError(t, err)
-	assert.NoError(t, storage.ApproveUser(approved.ID))
+	_, err = storage.ApproveUser(approved.ID)
+	assert.NoError(t, err)
 	// unapproved user1
 	user1, err := storage.CreateUser("user1@weave.works")
 	assert.NoError(t, err)
@@ -53,6 +54,13 @@ func Test_Approval(t *testing.T) {
 	// user1 should have an organization
 	assert.NotEqual(t, "", found.OrganizationID)
 	assert.NotEqual(t, "", found.OrganizationName)
+
+	// Email should have been sent
+	if assert.Len(t, sentEmails, 1) {
+		assert.Equal(t, []string{user1.Email}, sentEmails[0].To)
+		assert.Contains(t, string(sentEmails[0].Text), "Your Scope account has been approved!")
+		assert.Contains(t, string(sentEmails[0].HTML), "Your Scope account has been approved!")
+	}
 
 	// List unapproved users
 	// should equal user2

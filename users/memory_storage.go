@@ -65,10 +65,10 @@ func (s memoryStorage) ListUnapprovedUsers() ([]*User, error) {
 	return users, nil
 }
 
-func (s memoryStorage) ApproveUser(id string) error {
+func (s memoryStorage) ApproveUser(id string) (*User, error) {
 	user, err := s.FindUserByID(id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	o, err := s.createOrganization()
@@ -77,7 +77,7 @@ func (s memoryStorage) ApproveUser(id string) error {
 		user.OrganizationID = o.ID
 		user.OrganizationName = o.Name
 	}
-	return err
+	return user, err
 }
 
 func (s memoryStorage) SetUserToken(id, token string) error {

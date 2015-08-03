@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	fromAddress = "Weave Support <support@weave.works>"
+	fromAddress = "Scope Support <support@weave.works>"
 )
 
 var (
@@ -61,9 +61,24 @@ func SendWelcomeEmail(u *User) error {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
-	e.Subject = "Welcome to Weave"
+	e.Subject = "Welcome to Scope"
 	e.Text = quietTemplateBytes("welcome_email.text", nil)
 	e.HTML = quietTemplateBytes("welcome_email.html", nil)
+	return sendEmail(e)
+}
+
+func SendApprovedEmail(u *User, token string) error {
+	e := email.NewEmail()
+	e.From = fromAddress
+	e.To = []string{u.Email}
+	e.Subject = "Scope account approved"
+	data := map[string]interface{}{
+		"LoginURL":  u.LoginURL(token),
+		"LoginLink": u.LoginLink(token),
+		"Token":     token,
+	}
+	e.Text = quietTemplateBytes("approved_email.text", data)
+	e.HTML = quietTemplateBytes("approved_email.html", data)
 	return sendEmail(e)
 }
 
@@ -71,7 +86,7 @@ func SendLoginEmail(u *User, token string) error {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
-	e.Subject = "Login to Weave"
+	e.Subject = "Login to Scope"
 	data := map[string]interface{}{
 		"LoginURL":  u.LoginURL(token),
 		"LoginLink": u.LoginLink(token),

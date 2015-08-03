@@ -90,6 +90,7 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logrus.Error(err)
 		renderError(w, http.StatusInternalServerError, fmt.Errorf("Error sending login email"))
+		return
 	}
 	if user.ApprovedAt.IsZero() {
 		err = SendWelcomeEmail(user)
@@ -99,6 +100,7 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logrus.Error(err)
 		renderError(w, http.StatusInternalServerError, fmt.Errorf("Error sending login email"))
+		return
 	} else {
 		view.MailSent = true
 	}
@@ -218,15 +220,26 @@ func ApproveUser(w http.ResponseWriter, r *http.Request) {
 		renderError(w, http.StatusNotFound, fmt.Errorf("Not Found"))
 		return
 	}
-	err := storage.ApproveUser(userID)
+	user, err := storage.ApproveUser(userID)
 	switch {
 	case err == ErrNotFound:
 		renderError(w, http.StatusNotFound, fmt.Errorf("Not Found"))
+		return
 	case err != nil:
 		internalServerError(w, err)
-	default:
-		http.Redirect(w, r, "/api/users/private/users", http.StatusFound)
+		return
 	}
+	token, err := generateUserToken(storage, user)
+	if err != nil {
+		logrus.Error(err)
+		renderError(w, http.StatusInternalServerError, fmt.Errorf("Error sending approved email"))
+		return
+	}
+	if err := SendApprovedEmail(user, token); err != nil {
+		internalServerError(w, err)
+		return
+	}
+	http.Redirect(w, r, "/api/users/private/users", http.StatusFound)
 }
 
 type orgView struct {

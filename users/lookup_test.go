@@ -16,7 +16,8 @@ func Test_Lookup(t *testing.T) {
 	user, err := storage.CreateUser("joe@weave.works")
 	assert.NoError(t, err)
 
-	assert.NoError(t, storage.ApproveUser(user.ID))
+	_, err = storage.ApproveUser(user.ID)
+	assert.NoError(t, err)
 	user, err = storage.FindUserByID(user.ID)
 	assert.NoError(t, err)
 	assert.NotEqual(t, "", user.OrganizationID)

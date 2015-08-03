@@ -133,8 +133,9 @@ func (s pgStorage) ListUnapprovedUsers() ([]*User, error) {
 	return users, nil
 }
 
-func (s pgStorage) ApproveUser(id string) error {
-	return s.Transaction(func(tx *sql.Tx) error {
+func (s pgStorage) ApproveUser(id string) (*User, error) {
+	var user *User
+	err := s.Transaction(func(tx *sql.Tx) error {
 		o, err := s.createOrganization(tx)
 		if err != nil {
 			return err
@@ -159,8 +160,14 @@ func (s pgStorage) ApproveUser(id string) error {
 		case count != 1:
 			return ErrNotFound
 		}
-		return nil
+
+		user, err = s.findUserByID(tx, id)
+		return err
 	})
+	if err != nil {
+		user = nil
+	}
+	return user, err
 }
 
 func (s pgStorage) SetUserToken(id, token string) error {

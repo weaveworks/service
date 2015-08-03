@@ -19,7 +19,7 @@ type Storage interface {
 
 	ListUnapprovedUsers() ([]*User, error)
 	// Approve the user for access. Should generate them a new organization.
-	ApproveUser(id string) error
+	ApproveUser(id string) (*User, error)
 
 	// Update the user's login token. Setting the token to "" should disable the
 	// user's token.
