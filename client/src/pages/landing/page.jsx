@@ -15,7 +15,8 @@ export default class LandingPage extends React.Component {
     super(props);
     this.state = {
       mailRecipient: null,
-      mailSent: false
+      mailSent: false,
+      loginToken: null
     };
   }
 
@@ -41,20 +42,30 @@ export default class LandingPage extends React.Component {
       paddingTop: '200px'
     };
 
-    let linkStyle = {
+    let confirmationStyle = {
       display: this.state.mailSent ? "block" : "none",
       fontSize: '85%',
       opacity: 0.6
     };
+
+    let linkStyle = {
+      display: this.state.loginToken ? "block" : "none",
+      fontSize: '85%',
+      opacity: 0.6
+    };
+
+    let loginUrl = `/api/users/login?token=${this.state.loginToken}&email=${this.state.mailRecipient}`;
 
     return (
       <div id="landing-page" style={containerStyle}>
         <h1>Scope as a Service</h1>
         <TextField hintText="Email" ref="emailField" />
         <RaisedButton label="Go" primary={true} style={buttonStyle} onClick={this._handleTouchTap.bind(this)} />
-        <div style={linkStyle}>
+        <div style={confirmationStyle}>
           <p>A mail with login details was sent to {this.state.mailRecipient}.</p>
-          <a href="login?token=">Secret login link</a>
+        </div>
+        <div style={linkStyle}>
+          <a href={loginUrl}>Secret login link</a>
         </div>
       </div>
     );
@@ -67,14 +78,16 @@ export default class LandingPage extends React.Component {
 
     const email = this.refs.emailField.getValue();
 
-    postData('/api/signup', {email: email})
+    postData('/api/users/signup', {email: email})
       .then(function(resp) {
         this.setState({
           mailSent: resp.mailSent,
-          mailRecipient: resp.email
+          mailRecipient: resp.email,
+          loginToken: resp.token
         });
       }.bind(this), function(resp) {
         // TODO show error
+        console.error(resp);
       }.bind(this));
   }
 

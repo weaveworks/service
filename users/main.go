@@ -107,7 +107,7 @@ func Signup(directLogin bool) http.HandlerFunc {
 			renderError(w, http.StatusInternalServerError, fmt.Errorf("Error sending login email"))
 			return
 		} else {
-			view.MailSent = true
+			view.MailSent = !directLogin
 		}
 
 		renderJSON(w, http.StatusOK, view)
@@ -129,7 +129,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	token := r.FormValue("token")
 	if email == "" || token == "" {
-		http.Redirect(w, r, "/signup", http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
@@ -139,7 +139,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 				logrus.Error(err)
 			}
 		}
-		http.Redirect(w, r, "/signup?token_expired=true", http.StatusFound)
+		http.Redirect(w, r, "/?token_expired=true", http.StatusFound)
 	}
 
 	user, err := storage.FindUserByEmail(email)
