@@ -19,12 +19,14 @@ func setup(t *testing.T) {
 	sentEmails = nil
 	sendEmail = testEmailSender
 
+	var directLogin = false
+
 	setupLogging("debug")
 	setupStorage("memory://")
 	setupTemplates()
 	setupSessions("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd")
 
-	app = handler()
+	app = handler(directLogin)
 }
 
 func cleanup(t *testing.T) {

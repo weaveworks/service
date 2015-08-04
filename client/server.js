@@ -1,8 +1,12 @@
 var express = require('express');
 var bodyParser = require('body-parser');
-var app = express();
+var proxy = require('proxy-middleware');
+var url = require('url');
 
-app.use(bodyParser.json()); // for parsing application/json
+var app = express();
+if (process.env.USE_MOCK_BACKEND) {
+  app.use(bodyParser.json()); // for parsing application/json
+}
 
 // Mock data store
 var store = {};
@@ -34,69 +38,73 @@ app.get('/app.js', function(req, res) {
   }
 });
 
+// Proxy to backend
+
+app.use('/api', proxy(url.parse('http://localhost:4047/api')));
+
 // Mock backend
 
-app.get('/api/org/foo', function(req, res) {
-  res.json({
-    user: store.users[0].email,
-    name: store.orgName
+if (process.env.USE_MOCK_BACKEND) {
+  app.get('/api/org/foo', function(req, res) {
+    res.json({
+      user: store.users[0].email,
+      name: store.orgName
+    });
   });
-});
 
 
-app.post('/api/org/foo', function(req, res) {
-  store.orgName = req.body.name;
-  res.json({
-    user: store.users[0].email,
-    name: store.orgName
+  app.post('/api/org/foo', function(req, res) {
+    store.orgName = req.body.name;
+    res.json({
+      user: store.users[0].email,
+      name: store.orgName
+    });
   });
-});
 
-app.get('/api/org/*/probes', function(req, res) {
-  res.json([{
-    id: 'probe1',
-    state: 'connected'
-  }]);
-});
-
-app.get('/api/org/*/users', function(req, res) {
-  res.json(store.users);
-});
-
-app.post('/api/org/*/users', function(req, res) {
-  store.users.push({
-    id: store.users.length,
-    email: req.body.email,
-    lastLogin: null
+  app.get('/api/org/*/probes', function(req, res) {
+    res.json([{
+      id: 'probe1',
+      state: 'connected'
+    }]);
   });
-  res.json(store.users);
-});
 
-app.delete('/api/org/*/users/:userId', function(req, res) {
-  var id = parseInt(req.params.userId);
-  for(var i = store.users.length - 1; i >= 0; i--) {
-    if(store.users[i].id === id) {
-      store.users.splice(i, 1);
+  app.get('/api/org/*/users', function(req, res) {
+    res.json(store.users);
+  });
+
+  app.post('/api/org/*/users', function(req, res) {
+    store.users.push({
+      id: store.users.length,
+      email: req.body.email,
+      lastLogin: null
+    });
+    res.json(store.users);
+  });
+
+  app.delete('/api/org/*/users/:userId', function(req, res) {
+    var id = parseInt(req.params.userId);
+    for(var i = store.users.length - 1; i >= 0; i--) {
+      if(store.users[i].id === id) {
+        store.users.splice(i, 1);
+      }
     }
-  }
-  res.json(store.users);
-});
-
-
-// Mock login
-
-app.post('/api/signup', function(req, res) {
-  res.json({
-    mailSent: !!req.body.email,
-    email: req.body.email
+    res.json(store.users);
   });
-});
 
-app.get('/login', function(req, res) {
-  res.redirect('org/foo');
-});
+  app.post('/api/signup', function(req, res) {
+    res.json({
+      mailSent: !!req.body.email,
+      email: req.body.email
+    });
+  });  
+
+  app.get('/login', function(req, res) {
+    res.redirect('org/foo');
+  });
+}
 
 // Serve index page
+
 app.get('*', function(req, res) {
   res.sendFile(__dirname + '/build/index.html');
 });
@@ -135,7 +143,7 @@ if (process.env.NODE_ENV !== 'production') {
  *
  *****************/
 
-var port = process.env.PORT || 8080;
+var port = process.env.PORT || 4046;
 var server = app.listen(port, function () {
   var host = server.address().address;
   var port = server.address().port;
