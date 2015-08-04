@@ -1,30 +1,26 @@
-.PHONY: all deps build test clean
+.PHONY: all test clean
 
 # If you can use Docker without being root, you can `make SUDO= <target>`
-APP_MAPPER_UPTODATE=.app-mapper.uptodate
+IMAGE_TAR=image.tar
 APP_MAPPER_IMAGE=weaveworks/app-mapper
 APP_MAPPER_EXE=app-mapper
 
 SUDO=sudo
 
-all: deps build
+all: $(IMAGE_TAR)
 
-deps:
-	go get -v -t ./$*/...
-
-build: $(APP_MAPPER_UPTODATE)
-
-$(APP_MAPPER_UPTODATE): Dockerfile $(APP_MAPPER_EXE)
+$(IMAGE_TAR): Dockerfile $(APP_MAPPER_EXE)
 	$(SUDO) docker build -t $(APP_MAPPER_IMAGE) .
-	touch $@
+	$(SUDO) docker save $(APP_MAPPER_IMAGE):latest > $@
 
 $(APP_MAPPER_EXE): *.go
-	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o $@ ./$(@D)
+	go get -tags netgo ./$(@D)
+	go build -ldflags "-extldflags \"-static\"" -tags netgo -o $@ ./$(@D)
 
 test:
 	go test ./...
 
 clean:
 	-$(SUDO) docker rmi $(APP_MAPPER_IMAGE)
-	rm -rf $(APP_MAPPER_EXE) $(APP_MAPPER_UPTODATE)
+	rm -rf $(APP_MAPPER_EXE) $(IMAGE_TAR)
 	go clean ./...

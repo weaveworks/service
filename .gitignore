@@ -31,7 +31,8 @@ coverage.html
 
 # Project specific
 .*.uptodate
-web/web
 app-mapper/app-mapper
+users/users
 Vagrantfile.local
 .dir-locals.el
+image.tar

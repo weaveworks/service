@@ -1,4 +1,6 @@
 FROM scratch
-ADD app-mapper /
+MAINTAINER Weaveworks Inc <help@weave.works>
+WORKDIR /home/weave
+ADD app-mapper .
 EXPOSE 80
-CMD ["/app-mapper"]
+CMD ["app-mapper"]
