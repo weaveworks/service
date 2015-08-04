@@ -26,6 +26,7 @@ func main() {
 		emailURI      = flag.String("email-uri", "smtp://smtp.weave.local:587", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port")
 		logLevel      = flag.String("log-level", "info", "logging level (debug, info, warning, error)")
 		sessionSecret = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
+		directLogin   = flag.Bool("direct-login", false, "Approve user and send login token in the signup response (DEV only)")
 	)
 
 	flag.Parse()
@@ -41,16 +42,16 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Infof("Listening on port %d", *port)
-	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), handler()))
+	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), handler(*directLogin)))
 }
 
-func handler() http.Handler {
-	return loggingMiddleware(routes())
+func handler(directLogin bool) http.Handler {
+	return loggingMiddleware(routes(directLogin))
 }
 
-func routes() http.Handler {
+func routes(directLogin bool) http.Handler {
 	r := mux.NewRouter()
-	r.HandleFunc("/api/users/signup", Signup).Methods("POST")
+	r.HandleFunc("/api/users/signup", Signup(directLogin)).Methods("POST")
 	r.HandleFunc("/api/users/login", Login).Methods("GET")
 	r.HandleFunc("/api/users/private/lookup", Lookup).Methods("GET")
 	r.HandleFunc("/api/users/private/users", ListUsers).Methods("GET")
@@ -62,50 +63,55 @@ func routes() http.Handler {
 type signupView struct {
 	MailSent bool   `json:"mailSent"`
 	Email    string `json:"email,omitempty"`
+	Token    string `json:"token,omitempty"`
 }
 
-func Signup(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-	var view signupView
-	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
-		renderError(w, http.StatusBadRequest, err)
-		return
-	}
-	view.MailSent = false
-	if view.Email == "" {
-		renderError(w, http.StatusBadRequest, fmt.Errorf("Email cannot be blank"))
-		return
-	}
+func Signup(directLogin bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		var view signupView
+		if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
+			renderError(w, http.StatusBadRequest, err)
+			return
+		}
+		view.MailSent = false
+		if view.Email == "" {
+			renderError(w, http.StatusBadRequest, fmt.Errorf("Email cannot be blank"))
+			return
+		}
 
-	user, err := storage.FindUserByEmail(view.Email)
-	if err == ErrNotFound {
-		user, err = storage.CreateUser(view.Email)
-	}
-	if err != nil {
-		internalServerError(w, err)
-		return
-	}
-	// We always do this so that the timing difference can't be used to infer a user's existence.
-	token, err := generateUserToken(storage, user)
-	if err != nil {
-		logrus.Error(err)
-		renderError(w, http.StatusInternalServerError, fmt.Errorf("Error sending login email"))
-		return
-	}
-	if user.ApprovedAt.IsZero() {
-		err = SendWelcomeEmail(user)
-	} else {
-		err = SendLoginEmail(user, token)
-	}
-	if err != nil {
-		logrus.Error(err)
-		renderError(w, http.StatusInternalServerError, fmt.Errorf("Error sending login email"))
-		return
-	} else {
-		view.MailSent = true
-	}
+		user, err := storage.FindUserByEmail(view.Email)
+		if err == ErrNotFound {
+			user, err = storage.CreateUser(view.Email)
+		}
+		if err != nil {
+			internalServerError(w, err)
+			return
+		}
+		// We always do this so that the timing difference can't be used to infer a user's existence.
+		token, err := generateUserToken(storage, user)
+		if err != nil {
+			logrus.Error(err)
+			renderError(w, http.StatusInternalServerError, fmt.Errorf("Error sending login email"))
+			return
+		}
+		if directLogin {
+			view.Token = token
+		} else if user.ApprovedAt.IsZero() {
+			err = SendWelcomeEmail(user)
+		} else {
+			err = SendLoginEmail(user, token)
+		}
+		if err != nil {
+			logrus.Error(err)
+			renderError(w, http.StatusInternalServerError, fmt.Errorf("Error sending login email"))
+			return
+		} else {
+			view.MailSent = true
+		}
 
-	renderJSON(w, http.StatusOK, view)
+		renderJSON(w, http.StatusOK, view)
+	}
 }
 
 func generateUserToken(storage Storage, user *User) (string, error) {
