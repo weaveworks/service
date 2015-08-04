@@ -1,4 +1,4 @@
-.PHONY: all build test integration-test clean
+.PHONY: all test integration-test clean
 
 IMAGE_TAR=image.tar
 WEB_IMAGE=weaveworks/users
@@ -6,9 +6,7 @@ USERS_EXE=users
 
 ENV=development
 
-all: build
-
-build: $(UPTODATES)
+all: $(IMAGE_TAR)
 
 $(IMAGE_TAR): Dockerfile *.go templates/* $(USERS_EXE)
 	docker build -t $(WEB_IMAGE) .
