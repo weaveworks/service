@@ -1,10 +1,8 @@
 .PHONY: all build test integration-test clean
 
-WEB_UPTODATE=.users.uptodate
+IMAGE_TAR=image.tar
 WEB_IMAGE=weaveworks/users
-
-IMAGES=$(WEB_IMAGE)
-UPTODATES=$(WEB_UPTODATE)
+USERS_EXE=users
 
 ENV=development
 
@@ -12,9 +10,13 @@ all: build
 
 build: $(UPTODATES)
 
-$(WEB_UPTODATE): Dockerfile *.go templates/*
-	docker-compose build users
-	touch $@
+$(IMAGE_TAR): Dockerfile *.go templates/* $(USERS_EXE)
+	docker build -t $(WEB_IMAGE) .
+	docker save $(WEB_IMAGE):latest > $@
+
+$(USERS_EXE): *.go
+	go get -tags netgo ./$(@D)
+	go build -ldflags "-extldflags \"-static\"" -tags netgo -o $@ ./$(@D)
 
 test:
 	go test ./...
@@ -24,6 +26,6 @@ integration-test: $(WEB_UPTODATE)
 	docker-compose run --rm users go test -tags integration -timeout 30s ./...
 
 clean:
-	-docker rmi $(IMAGES)
-	rm -rf $(EXES) $(UPTODATES)
+	-docker rmi $(WEB_IMAGE)
+	rm -rf $(EXES) $(IMAGE_TAR)
 	go clean ./...

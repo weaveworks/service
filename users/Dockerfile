@@ -1,10 +1,5 @@
-FROM golang:1.4
-
-ADD . /go/src/github.com/weaveworks/service/users
-WORKDIR /go/src/github.com/weaveworks/service/users
-
-RUN go get -v -t ./...
-
-RUN go install -v ./...
-
+FROM scratch
+MAINTAINER Weaveworks Inc <help@weave.works>
+WORKDIR /user/weave
+ADD users .
 CMD ["users"]
