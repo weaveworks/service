@@ -30,7 +30,7 @@ $(APP_MAPPER_EXE): *.go
 integration-test:
 	$(SUDO) docker run -d --name app-mapper-test-db -p '5432:5432' $(APP_MAPPER_DB_IMAGE)
 	sleep 3 # wait for the db container to start
-	go test -tags=integration ./... ; (ret=$$?; $(SUDO) docker kill app-mapper-test-db; $(SUDO) docker rm app-mapper-test-db; exit $$ret)
+	go test -tags=integration ./... ; (ret=$$?; $(SUDO) docker rm -f app-mapper-test-db; exit $$ret)
 
 test:
 	go test ./...

@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/jmoiron/sqlx"
@@ -22,46 +21,42 @@ func (m *constantMapper) getOrganizationsHost(orgID string) (string, error) {
 }
 
 type dbMapper struct {
-	db *sqlx.DB
+	db          *sqlx.DB
+	provisioner appProvisioner
 }
 
 type dbOrgHost struct {
 	OrganizationID string `db:"organization_id"`
-	Host           string `db:"host"`
+	Hostname       string `db:"hostname"`
 }
 
-func newDBMapper(dbURI string) (*dbMapper, error) {
+func newDBMapper(dbURI string, p appProvisioner) (*dbMapper, error) {
 	db, err := sqlx.Open("postgres", dbURI)
 	if err != nil {
 		return nil, err
 	}
-	return &dbMapper{db}, nil
+	return &dbMapper{db, p}, nil
 }
 
 func (m *dbMapper) getOrganizationsHost(orgID string) (string, error) {
 	var host string
 	transactionRunner := func(tx *sqlx.Tx) error {
-		err := m.db.Get(&host, "SELECT org_host.host FROM org_host WHERE organization_id=$1;", orgID)
+		err := m.db.Get(&host, "SELECT org_hostname.hostname FROM org_hostname WHERE organization_id=$1;", orgID)
 		if err == nil || err != sql.ErrNoRows {
 			return err
 		}
 
-		// The organization wasn't assigned a host yet, let's find a free one and assign it
-		err = tx.Get(
-			&host,
-			"SELECT hosts.host FROM hosts WHERE NOT EXISTS (SELECT org_host.host FROM org_host WHERE hosts.host = org_host.host) LIMIT 1;",
-		)
-		if err == sql.ErrNoRows {
-			err = errors.New("dbMapper: ran out of hosts")
-		}
+		// The organization wasn't assigned a host yet, let's allocate one and assign it
+		logrus.Infof("organization mapper: provisioning app for organization %v", orgID)
+		host, err = m.provisioner.runApp(orgID)
 		if err != nil {
 			return err
 		}
 
 		toInsert := dbOrgHost{orgID, host}
-		logrus.Infof("organization_mapper: adding mapping %v", toInsert)
+		logrus.Infof("organization mapper: adding mapping %v", toInsert)
 
-		_, err = tx.NamedExec("INSERT INTO org_host VALUES (:organization_id, :host);", toInsert)
+		_, err = tx.NamedExec("INSERT INTO org_hostname VALUES (:organization_id, :hostname);", toInsert)
 
 		return err
 	}

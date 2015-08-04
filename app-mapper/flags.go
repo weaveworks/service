@@ -2,8 +2,19 @@ package main
 
 import (
 	"flag"
+	"time"
 
 	"github.com/Sirupsen/logrus"
+	docker "github.com/fsouza/go-dockerclient"
+)
+
+const (
+	defaultAppImage = "weaveworks/scope"
+)
+
+var (
+	defaultDockerClientTimeout = 1 * time.Second
+	defaultDockerRunTimeout    = 2 * time.Second
 )
 
 type flags struct {
@@ -14,6 +25,10 @@ type flags struct {
 	appMapperDBHost          string
 	authenticatorType        string
 	authenticatorHost        string
+	dockerAppImage           string
+	dockerHost               string
+	dockerClientTimeout      time.Duration
+	dockerRunTimeout         time.Duration
 }
 
 func parseFlags() *flags {
@@ -23,15 +38,19 @@ func parseFlags() *flags {
 	flag.StringVar(&f.dbMapperURI, "db-mapper-uri", "postgres://postgres@app-mapper-db.weave.local/app_mapper?sslmode=disable", "Where to contact the database")
 	flag.StringVar(&f.constantMapperTargetHost, "constant-mapper-target-host", "localhost:5450", "Host to be used by the constant mapper")
 	flag.StringVar(&f.authenticatorType, "authenticator-type", "web", "Authenticator type to use: web | mock")
-	flag.StringVar(&f.authenticatorHost, "authenticator-host", "users.weave.local:80", "Where to contact the authenticator service")
+	flag.StringVar(&f.authenticatorHost, "authenticator-host", "users.weave.local:80", "Where to find the authenticator service")
+	flag.StringVar(&f.dockerAppImage, "docker-app-image", defaultAppImage, "Docker image to use by the docker app provisioner")
+	flag.StringVar(&f.dockerHost, "docker-host", "http://swarm.weave.local", "Where to find the docker service")
+	flag.DurationVar(&f.dockerClientTimeout, "docker-client-timeout", defaultDockerClientTimeout, "Maximum time to wait for a response from docker")
+	flag.DurationVar(&f.dockerRunTimeout, "docker-run-timeout", defaultDockerRunTimeout, "Maximum time to wait for an app to run")
 	flag.Parse()
 
 	if f.mapperType != "db" && f.mapperType != "constant" {
-		logrus.Fatal("Incorrect mapper type:", f.mapperType)
+		logrus.Fatal("Incorrect mapper type: ", f.mapperType)
 	}
 
 	if f.authenticatorType != "web" && f.authenticatorType != "mock" {
-		logrus.Fatal("Incorrect authenticator type:", f.authenticatorType)
+		logrus.Fatal("Incorrect authenticator type: ", f.authenticatorType)
 	}
 
 	return &f
@@ -47,16 +66,30 @@ func (f *flags) getAuthenticator() authenticator {
 	}
 }
 
-func (f *flags) getOrganizationMapper() organizationMapper {
+func (f *flags) getOrganizationMapper(p appProvisioner) organizationMapper {
 	if f.mapperType == "constant" {
 		return &constantMapper{
 			targetHost: f.constantMapperTargetHost,
 		}
 	}
 
-	m, err := newDBMapper(f.dbMapperURI)
+	m, err := newDBMapper(f.dbMapperURI, p)
 	if err != nil {
 		logrus.Fatal("Cannot initialize database client:", err)
+	}
+	return m
+}
+
+func (f *flags) getAppProvisioner() appProvisioner {
+	options := dockerProvisionerOptions{
+		appConfig:     docker.Config{Image: defaultAppImage},
+		hostConfig:    docker.HostConfig{},
+		runTimeout:    f.dockerRunTimeout,
+		clientTimeout: f.dockerClientTimeout,
+	}
+	m, err := newDockerProvisioner(f.dockerHost, options)
+	if err != nil {
+		logrus.Fatal("Cannot initialize docker provisioner:", err)
 	}
 	return m
 }
