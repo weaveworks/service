@@ -1,4 +1,4 @@
-.PHONY: all deps build test clean
+.PHONY: all test clean
 
 # If you can use Docker without being root, you can `make SUDO= <target>`
 IMAGE_TAR=image.tar
@@ -7,12 +7,7 @@ APP_MAPPER_EXE=app-mapper
 
 SUDO=sudo
 
-all: deps build
-
-deps:
-	go get -v -t ./$*/...
-
-build: $(APP_MAPPER_UPTODATE)
+all: $(IMAGE_TAR)
 
 $(IMAGE_TAR): Dockerfile $(APP_MAPPER_EXE)
 	$(SUDO) docker build -t $(APP_MAPPER_IMAGE) .
