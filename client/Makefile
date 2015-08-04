@@ -1,5 +1,5 @@
 CLIENT_BUILD_IMAGE=service_client_build
-CLIENT_SERVER_IMAGE=service_client_server
+CLIENT_SERVER_IMAGE=weaveworks/ui-server
 
 buildimage: Dockerfile package.json karma.* webpack.*
 	docker build -t $(CLIENT_BUILD_IMAGE) .
@@ -20,4 +20,5 @@ image.tar: build/app.js build/Dockerfile build/index.html
 	docker save $(CLIENT_SERVER_IMAGE):latest > $@
 
 clean:
+	-docker rmi $(CLIENT_SERVER_IMAGE)
 	rm -f image.tar build/app.js

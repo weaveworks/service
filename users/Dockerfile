@@ -1,6 +1,6 @@
 FROM scratch
 MAINTAINER Weaveworks Inc <help@weave.works>
-WORKDIR /user/weave
+WORKDIR /
 ADD users .
 EXPOSE 80
 CMD ["users"]
