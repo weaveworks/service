@@ -22,5 +22,5 @@ test:
 
 clean:
 	-$(SUDO) docker rmi $(APP_MAPPER_IMAGE)
-	rm -rf $(APP_MAPPER_EXE) $(APP_MAPPER_UPTODATE)
+	rm -rf $(APP_MAPPER_EXE) $(IMAGE_TAR)
 	go clean ./...
