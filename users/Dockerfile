@@ -1,6 +1,7 @@
 FROM scratch
 MAINTAINER Weaveworks Inc <help@weave.works>
 WORKDIR /
-ADD users templates ./
+COPY users /
+COPY templates /templates/
 EXPOSE 80
-CMD ["users"]
+ENTRYPOINT ["/users"]

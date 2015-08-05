@@ -5,8 +5,15 @@ IMAGE_TAR=image.tar
 APP_MAPPER_IMAGE=weaveworks/app-mapper
 APP_MAPPER_DB_IMAGE=weaveworks/app-mapper-db
 APP_MAPPER_EXE=app-mapper
-
 SUDO=sudo
+NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
+	rm $@; \
+	echo "\nYour go standard library was built without the 'netgo' build tag."; \
+	echo "To fix that, run"; \
+	echo "    sudo go clean -i net"; \
+	echo "    sudo go install -tags netgo std"; \
+	false; \
+}
 
 all: $(IMAGE_TAR)
 
@@ -17,7 +24,8 @@ $(IMAGE_TAR): Dockerfile $(APP_MAPPER_EXE) db/Dockerfile db/schema.sql
 
 $(APP_MAPPER_EXE): *.go
 	go get -tags netgo ./$(@D)
-	go build -ldflags "-extldflags \"-static\"" -tags netgo -o $@ ./$(@D)
+	go build -ldflags "-extldflags \"-static\" -linkmode=external" -tags netgo -o $@ ./$(@D)
+	$(NETGO_CHECK)
 
 integration-test:
 	$(SUDO) docker run -d --name app-mapper-test-db -p '5432:5432' $(APP_MAPPER_DB_IMAGE)

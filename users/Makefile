@@ -3,18 +3,26 @@
 IMAGE_TAR=image.tar
 IMAGE_NAME=weaveworks/users
 USERS_EXE=users
-
 ENV=development
+NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
+	rm $@; \
+	echo "\nYour go standard library was built without the 'netgo' build tag."; \
+	echo "To fix that, run"; \
+	echo "    sudo go clean -i net"; \
+	echo "    sudo go install -tags netgo std"; \
+	false; \
+}
 
 all: $(IMAGE_TAR)
 
-$(IMAGE_TAR): Dockerfile *.go templates/* $(USERS_EXE)
+$(IMAGE_TAR): Dockerfile templates/* $(USERS_EXE)
 	docker build -t $(IMAGE_NAME) .
 	docker save $(IMAGE_NAME):latest > $@
 
 $(USERS_EXE): *.go
 	go get -tags netgo ./$(@D)
-	go build -ldflags "-extldflags \"-static\"" -tags netgo -o $@ ./$(@D)
+	go build -ldflags "-extldflags \"-static\" -linkmode=external" -tags netgo -o $@ ./$(@D)
+	$(NETGO_CHECK)
 
 test:
 	go test ./...
@@ -25,5 +33,5 @@ integration-test: $(WEB_UPTODATE)
 
 clean:
 	-docker rmi $(IMAGE_NAME)
-	rm -rf $(EXES) $(IMAGE_TAR)
+	rm -rf $(USERS_EXE) $(IMAGE_TAR)
 	go clean ./...
