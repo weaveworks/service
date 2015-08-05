@@ -23,7 +23,7 @@ $ docker-compose up
 ```
 
 Mail is sent to mailcatcher, which runs on port 1080.
-Users can be approved at `http://$(bootdocker ip):3000/api/users/private/users`
+Users can be approved at `http://$(bootdocker ip):3000/private/api/users`
 
 ## Tests
 
