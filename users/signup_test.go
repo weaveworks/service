@@ -18,7 +18,7 @@ import (
 )
 
 func findLoginLink(t *testing.T, e *email.Email) (url, token string) {
-	pattern := `http://` + domain + `/login\?email=[\w.%]+&token=([A-Za-z0-9%._=-]+)`
+	pattern := `http://` + domain + `/api/users/login\?email=[\w.%]+&token=([A-Za-z0-9%._=-]+)`
 	re := regexp.MustCompile(pattern)
 	matches := re.FindStringSubmatch(string(e.Text))
 	require.Len(t, matches, 2, fmt.Sprintf("Could not find Login Link in text: %q", e.Text))
@@ -102,7 +102,7 @@ func Test_Signup(t *testing.T) {
 	r, _ = http.NewRequest("GET", u.String(), nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusFound, w.Code)
-	assert.Equal(t, "/org/"+user.OrganizationName, w.HeaderMap.Get("Location"))
+	assert.Equal(t, "/#/org/"+user.OrganizationName, w.HeaderMap.Get("Location"))
 	assert.True(t, strings.HasPrefix(w.HeaderMap.Get("Set-Cookie"), cookieName+"="))
 
 	// Invalidates their login token

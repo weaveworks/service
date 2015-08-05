@@ -49,7 +49,7 @@ func (u *User) LoginURL(rawToken string) string {
 	params := url.Values{}
 	params.Set("email", u.Email)
 	params.Set("token", rawToken)
-	return fmt.Sprintf("http://%s/login?%s", domain, params.Encode())
+	return fmt.Sprintf("http://%s/api/users/login?%s", domain, params.Encode())
 }
 
 func (u *User) LoginLink(rawToken string) htmlTemplate.HTML {
