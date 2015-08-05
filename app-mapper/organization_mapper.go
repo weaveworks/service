@@ -31,7 +31,7 @@ type dbOrgHost struct {
 }
 
 func newDBMapper(dbURI string) (*dbMapper, error) {
-	db, err := sqlx.Connect("postgres", dbURI)
+	db, err := sqlx.Open("postgres", dbURI)
 	if err != nil {
 		return nil, err
 	}
@@ -72,14 +72,19 @@ func (m *dbMapper) getOrganizationsHost(orgID string) (string, error) {
 }
 
 func (m *dbMapper) runTransaction(runner func(*sqlx.Tx) error) error {
-	tx, err := m.db.Beginx()
-	if err != nil {
+	var (
+		tx  *sqlx.Tx
+		err error
+	)
+
+	if tx, err = m.db.Beginx(); err != nil {
 		return err
 	}
-	err = runner(tx)
-	if err != nil {
+
+	if err = runner(tx); err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	return tx.Commit()
 }

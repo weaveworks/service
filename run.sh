@@ -22,6 +22,6 @@ start_container() {
 }
 
 (cd users; docker-compose stop; docker-compose rm -f; docker-compose up -d)
-start_container weaveworks/app-mapper app-mapper
+(cd app-mapper; docker-compose stop; docker-compose rm -f; docker-compose up -d)
 start_container weaveworks/ui-server ui-server
 start_container weaveworks/frontend frontend --add-host=dns.weave.local:$(weave docker-bridge-ip)
