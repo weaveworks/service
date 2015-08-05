@@ -16,7 +16,7 @@
       <tr>
         <td>{{.Email}}</td>
         <td>{{.FormatCreatedAt}}</td>
-        <td><form action="/api/users/private/users/{{.ID}}/approve" method="POST"><input type="submit" value="Approve" /></form></td>
+        <td><form action="/private/api/users/{{.ID}}/approve" method="POST"><input type="submit" value="Approve" /></form></td>
       </tr>
       {{end}}
     </table>

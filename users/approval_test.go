@@ -29,23 +29,23 @@ func Test_Approval(t *testing.T) {
 	// List unapproved users
 	// should equal user1, user2
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/api/users/private/users", nil)
+	r, _ := http.NewRequest("GET", "/private/api/users", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/api/users/private/users/%s/approve" method="POST">`, approved.ID))
-	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/api/users/private/users/%s/approve" method="POST">`, user1.ID))
-	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/api/users/private/users/%s/approve" method="POST">`, user2.ID))
+	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, approved.ID))
+	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, user1.ID))
+	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, user2.ID))
 
 	// Approve user1
 	w = httptest.NewRecorder()
 	r, _ = http.NewRequest(
 		"POST",
-		fmt.Sprintf("/api/users/private/users/%s/approve", user1.ID),
+		fmt.Sprintf("/private/api/users/%s/approve", user1.ID),
 		nil,
 	)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusFound, w.Code)
-	assert.Equal(t, "/api/users/private/users", w.HeaderMap.Get("Location"))
+	assert.Equal(t, "/private/api/users", w.HeaderMap.Get("Location"))
 
 	found, err := storage.FindUserByID(user1.ID)
 	assert.NoError(t, err)
@@ -65,10 +65,10 @@ func Test_Approval(t *testing.T) {
 	// List unapproved users
 	// should equal user2
 	w = httptest.NewRecorder()
-	r, _ = http.NewRequest("GET", "/api/users/private/users", nil)
+	r, _ = http.NewRequest("GET", "/private/api/users", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/api/users/private/users/%s/approve" method="POST">`, approved.ID))
-	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/api/users/private/users/%s/approve" method="POST">`, user1.ID))
-	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/api/users/private/users/%s/approve" method="POST">`, user2.ID))
+	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, approved.ID))
+	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, user1.ID))
+	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, user2.ID))
 }

@@ -53,9 +53,9 @@ func routes(directLogin bool) http.Handler {
 	r := mux.NewRouter()
 	r.HandleFunc("/api/users/signup", Signup(directLogin)).Methods("POST")
 	r.HandleFunc("/api/users/login", Login).Methods("GET")
-	r.HandleFunc("/api/users/private/lookup", Lookup).Methods("GET")
-	r.HandleFunc("/api/users/private/users", ListUsers).Methods("GET")
-	r.HandleFunc("/api/users/private/users/{userID}/approve", ApproveUser).Methods("POST")
+	r.HandleFunc("/private/api/users/lookup", Lookup).Methods("GET")
+	r.HandleFunc("/private/api/users", ListUsers).Methods("GET")
+	r.HandleFunc("/private/api/users/{userID}/approve", ApproveUser).Methods("POST")
 	r.HandleFunc("/api/users/org/{orgID}", Org).Methods("GET")
 	return r
 }
@@ -245,7 +245,7 @@ func ApproveUser(w http.ResponseWriter, r *http.Request) {
 		internalServerError(w, err)
 		return
 	}
-	http.Redirect(w, r, "/api/users/private/users", http.StatusFound)
+	http.Redirect(w, r, "/private/api/users", http.StatusFound)
 }
 
 type orgView struct {

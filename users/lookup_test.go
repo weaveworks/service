@@ -26,7 +26,7 @@ func Test_Lookup(t *testing.T) {
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/api/users/private/lookup?session_id="+session, nil)
+	r, _ := http.NewRequest("GET", "/private/api/users/lookup?session_id="+session, nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -42,7 +42,7 @@ func Test_Lookup_NotFound(t *testing.T) {
 	session, err := sessions.Encode("foouser")
 	assert.NoError(t, err)
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/api/users/private/lookup?session_id="+session, nil)
+	r, _ := http.NewRequest("GET", "/private/api/users/lookup?session_id="+session, nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Len(t, w.Body.Bytes(), 0)
