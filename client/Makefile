@@ -1,17 +1,18 @@
 CLIENT_BUILD_IMAGE=service_client_build
 CLIENT_SERVER_IMAGE=weaveworks/ui-server
+RM=--rm
 
 buildimage: Dockerfile package.json karma.* webpack.*
 	docker build -t $(CLIENT_BUILD_IMAGE) .
 
 tests: *
-	docker run -ti -v $(shell pwd)/src:/home/weave/src \
+	docker run $(RM) -ti -v $(shell pwd)/src:/home/weave/src \
 		-v $(shell pwd)/test:/home/weave/test \
 		$(CLIENT_BUILD_IMAGE) npm test
 
 build/app.js:
 	mkdir -p build
-	docker run -ti -v $(shell pwd)/src:/home/weave/src \
+	docker run $(RM) -ti -v $(shell pwd)/src:/home/weave/src \
 		-v $(shell pwd)/build:/home/weave/build \
 		$(CLIENT_BUILD_IMAGE) npm run build
 
