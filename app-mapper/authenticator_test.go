@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,21 +37,22 @@ func newRequestToAuthenticate(t *testing.T, authCookieValue string, authHeaderVa
 
 func TestAuthorize(t *testing.T) {
 	expectedOrganizationID := "foo"
-	serverHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, authLookupPath, r.URL.Path, "Unexpected URL path")
+	serverHandler := mux.NewRouter()
+	serverHandler.HandleFunc("/private/lookup/{org}", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method, "Unexpected method")
+		assert.Equal(t, mux.Vars(r)["org"], expectedOrganizationID)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{ "organizationID": "` + expectedOrganizationID + `" }`))
 	})
 
 	testFunc := func(a authenticator) {
 		r := newRequestToAuthenticate(t, "someCookieValue", "")
-		res, err := a.authenticate(r)
+		res, err := a.authenticate(r, expectedOrganizationID)
 		assert.NoError(t, err, "Unexpected error from authenticator")
 		assert.Equal(t, expectedOrganizationID, res.OrganizationID, "Unexpected organization")
 
 		r = newRequestToAuthenticate(t, "", "someAuthHeaderValue")
-		res, err = a.authenticate(r)
+		res, err = a.authenticate(r, expectedOrganizationID)
 		assert.NoError(t, err, "Unexpected error from authenticator")
 		assert.Equal(t, expectedOrganizationID, res.OrganizationID, "Unexpected organization")
 	}
@@ -65,7 +67,7 @@ func TestDenyAccess(t *testing.T) {
 
 	testFunc := func(a authenticator) {
 		r := newRequestToAuthenticate(t, "someCookieValue", "")
-		_, err := a.authenticate(r)
+		_, err := a.authenticate(r, "whocares")
 		assert.Error(t, err, "Unexpected successful authentication")
 	}
 
@@ -104,7 +106,7 @@ func TestCredentialForwarding(t *testing.T) {
 			obtainedAuthCookieValue = ""
 			obtainedAuthHeaderValue = ""
 			r := newRequestToAuthenticate(t, input.cookie, input.header)
-			_, err := a.authenticate(r)
+			_, err := a.authenticate(r, "foo")
 			assert.NoError(t, err, "Unexpected error from authenticator")
 			assert.Equal(t, input.cookie, obtainedAuthCookieValue)
 			assert.Equal(t, input.header, obtainedAuthHeaderValue)
@@ -131,7 +133,7 @@ func TestBadServerResponse(t *testing.T) {
 		} {
 			responseBody = []byte(badResponse)
 			r := newRequestToAuthenticate(t, "someCookieValue", "")
-			_, err := a.authenticate(r)
+			_, err := a.authenticate(r, "foo")
 			assert.Error(t, err, "Unexpected successful request")
 		}
 

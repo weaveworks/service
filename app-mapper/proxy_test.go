@@ -27,7 +27,7 @@ func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFu
 	// Set a test server for the proxy (required for Hijack to work)
 	m := &constantMapper{parsedTargetURL.Host}
 	proxyTestServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		appProxy(a, m, w, r)
+		appProxy(a, m, w, r, "foo")
 	}))
 	defer proxyTestServer.Close()
 
@@ -112,10 +112,10 @@ func TestProxyPost(t *testing.T) {
 	testHTTPRequestTransparency(t, req)
 }
 
-type AuthenticatorFunc func(r *http.Request) (authenticatorResponse, error)
+type AuthenticatorFunc func(r *http.Request, org string) (authenticatorResponse, error)
 
-func (f AuthenticatorFunc) authenticate(r *http.Request) (authenticatorResponse, error) {
-	return f(r)
+func (f AuthenticatorFunc) authenticate(r *http.Request, org string) (authenticatorResponse, error) {
+	return f(r, org)
 }
 
 func TestUnauthorized(t *testing.T) {
@@ -125,7 +125,7 @@ func TestUnauthorized(t *testing.T) {
 	})
 
 	var authenticatorError error
-	failingAuthenticator := AuthenticatorFunc(func(r *http.Request) (authenticatorResponse, error) {
+	failingAuthenticator := AuthenticatorFunc(func(r *http.Request, org string) (authenticatorResponse, error) {
 		return authenticatorResponse{}, authenticatorError
 	})
 

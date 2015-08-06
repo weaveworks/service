@@ -4,13 +4,16 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"regexp"
 	"sync"
 
 	"github.com/Sirupsen/logrus"
 )
 
-func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *http.Request) {
-	authResponse, err := a.authenticate(r)
+var prefix = regexp.MustCompile("^/api/app/[^/]+")
+
+func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *http.Request, org string) {
+	authResponse, err := a.authenticate(r, org)
 	if err != nil {
 		if unauth, ok := err.(unauthorized); ok {
 			logrus.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
@@ -64,6 +67,14 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 
 	// Forward current request to the target host since it was received before hijacking
 	logrus.Debugf("proxy: writing original request to %q", targetHost)
+
+	// Ensure the URL is incorrecly munged by go.
+	r.URL.Opaque = r.RequestURI
+	r.URL.RawQuery = ""
+
+	// Trim /api/app/<foo> off the front of URL
+	r.URL.Opaque = prefix.ReplaceAllLiteralString(r.URL.Opaque, "")
+
 	if err = r.Write(targetConn); err != nil {
 		logrus.Errorf("proxy: error copying request to target: %v", err)
 		return

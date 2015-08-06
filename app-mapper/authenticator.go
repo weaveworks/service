@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	"github.com/Sirupsen/logrus"
 )
 
 type authenticator interface {
-	authenticate(r *http.Request) (authenticatorResponse, error)
+	authenticate(r *http.Request, org string) (authenticatorResponse, error)
 }
 
 // unauthorized error
@@ -29,8 +29,8 @@ type authenticatorResponse struct {
 
 type mockAuthenticator struct{}
 
-func (m *mockAuthenticator) authenticate(r *http.Request) (authenticatorResponse, error) {
-	return authenticatorResponse{"mockOrganizationID"}, nil
+func (m *mockAuthenticator) authenticate(r *http.Request, org string) (authenticatorResponse, error) {
+	return authenticatorResponse{org}, nil
 }
 
 type webAuthenticator struct {
@@ -38,65 +38,51 @@ type webAuthenticator struct {
 }
 
 const (
-	authLookupPath = "/private/lookup"
+	authLookupURL  = "http://%s/private/lookup/%s"
 	authCookieName = "_weave_run_session"
 	authHeaderName = "Authorization"
 )
 
-func (m *webAuthenticator) authenticate(r *http.Request) (authenticatorResponse, error) {
-	var authRes authenticatorResponse
+func (m *webAuthenticator) authenticate(r *http.Request, org string) (authenticatorResponse, error) {
 	// Extract Authorization cookie and/or the Authorization header to inject them in the
-	// lookup request
-	authCookie, errCookie := r.Cookie(authCookieName)
+	// lookup request. If the cookie and the header were not set, don't even bother to do a
+	// lookup.
+	authCookie, err := r.Cookie(authCookieName)
 	authHeader := r.Header.Get(authHeaderName)
-
-	// If the cookie and the header were not set, don't even bother to do a
-	// lookup
-	if errCookie != nil && len(authHeader) == 0 {
-		return authRes, &unauthorized{http.StatusUnauthorized}
+	if err != nil && len(authHeader) == 0 {
+		return authenticatorResponse{}, &unauthorized{http.StatusUnauthorized}
 	}
 
 	// Contact the authorization server
-	client := &http.Client{}
-	lookupReq := m.newLookupRequest()
+	url := fmt.Sprintf(authLookupURL, m.serverHost, url.QueryEscape(org))
+	lookupReq, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		logrus.Fatal("authenticator: unexpectedly failed:", err)
+	}
 	if len(authHeader) > 0 {
 		lookupReq.Header.Set(authHeaderName, authHeader)
 	}
-	if errCookie == nil {
+	if authCookie != nil {
 		lookupReq.AddCookie(authCookie)
 	}
+
+	client := &http.Client{}
 	res, err := client.Do(lookupReq)
 	if err != nil {
-		return authRes, err
+		return authenticatorResponse{}, err
 	}
 	defer res.Body.Close()
 
 	// Parse the response
-	if res.StatusCode == http.StatusOK {
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return authRes, err
-		}
-		err = json.Unmarshal(body, &authRes)
-		if err != nil {
-			return authRes, err
-		}
-		if len(authRes.OrganizationID) == 0 {
-			return authRes, errors.New("empty OrganizationID")
-		}
-
-	} else {
-		return authRes, &unauthorized{res.StatusCode}
+	if res.StatusCode != http.StatusOK {
+		return authenticatorResponse{}, &unauthorized{res.StatusCode}
 	}
-
+	var authRes authenticatorResponse
+	if err := json.NewDecoder(res.Body).Decode(&authRes); err != nil {
+		return authenticatorResponse{}, err
+	}
+	if len(authRes.OrganizationID) == 0 {
+		return authenticatorResponse{}, errors.New("empty OrganizationID")
+	}
 	return authRes, nil
-}
-
-func (m *webAuthenticator) newLookupRequest() *http.Request {
-	url := fmt.Sprintf("http://%s"+authLookupPath, m.serverHost)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		logrus.Fatal("authenticator: newLookupRequest() unexpectedly failed")
-	}
-	return req
 }
