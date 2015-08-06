@@ -10,7 +10,7 @@ tests: *
 		-v $(shell pwd)/test:/home/weave/test \
 		$(CLIENT_BUILD_IMAGE) npm test
 
-build/app.js:
+build/app.js: buildimage
 	mkdir -p build
 	docker run $(RM) -ti -v $(shell pwd)/src:/home/weave/src \
 		-v $(shell pwd)/build:/home/weave/build \
