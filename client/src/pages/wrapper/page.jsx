@@ -42,7 +42,7 @@ export default class Wrapper extends React.Component {
 
   render() {
 
-    let styles = {
+    const styles = {
       iframe: {
         display: 'block',
         border: 'none',
@@ -52,7 +52,7 @@ export default class Wrapper extends React.Component {
     };
 
     // forward wrapper state to scope UI via src URL
-    let frameUrl = '/api/app/' + location.hash;
+    const frameUrl = `/api/app/${this.props.params.orgId}/${location.hash}`;
 
     return (
       <div>
@@ -64,7 +64,7 @@ export default class Wrapper extends React.Component {
 
   _onFrameStateChanged(hash) {
     // save scope UI state in URL
-    page.show(hash);
+    //page.show(hash);
   }
 
 }
