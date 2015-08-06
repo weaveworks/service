@@ -38,7 +38,8 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 		targetHost,
 	)
 
-	targetConn, err := net.Dial("tcp", targetHost)
+	targetHostPort := addPort(targetHost, "80")
+	targetConn, err := net.Dial("tcp", targetHostPort)
 	if err != nil {
 		logrus.Errorf("proxy: error dialing backend %q: %v", targetHost, err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -81,4 +82,13 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 	go cp(clientConn, targetConn)
 	wg.Wait()
 	logrus.Debugf("proxy: connection closed")
+}
+
+func addPort(host, defaultPort string) string {
+	_, _, err := net.SplitHostPort(host)
+	if err == nil {
+		// it had a port number
+		return host
+	}
+	return net.JoinHostPort(host, defaultPort)
 }
