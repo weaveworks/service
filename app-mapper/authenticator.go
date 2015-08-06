@@ -39,7 +39,7 @@ type webAuthenticator struct {
 
 const (
 	authLookupPath = "/private/lookup"
-	authCookieName = "_weave_session"
+	authCookieName = "_weave_run_session"
 	authHeaderName = "Authorization"
 )
 
