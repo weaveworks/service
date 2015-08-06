@@ -42,6 +42,9 @@ type Session struct {
 
 func (s SessionStore) Get(r *http.Request) (*User, error) {
 	cookie, err := r.Cookie(cookieName)
+	if err == http.ErrNoCookie {
+		err = ErrInvalidAuthenticationData
+	}
 	if err != nil {
 		return nil, err
 	}
