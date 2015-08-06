@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	ErrInvalidAuthenticationData = errors.New("invalid authentication data")
+	ErrInvalidAuthenticationData = errors.New("Invalid authentication data")
 )
 
 func setupSessions(validationSecret string) {

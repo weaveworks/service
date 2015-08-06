@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -132,8 +133,15 @@ func generateUserToken(storage Storage, user *User) (string, error) {
 func Login(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	token := r.FormValue("token")
-	if email == "" || token == "" {
-		http.Redirect(w, r, "/", http.StatusFound)
+	errs := Errors{}
+	if email == "" {
+		errs = append(errs, fmt.Errorf("Email cannot be blank"))
+	}
+	if token == "" {
+		errs = append(errs, fmt.Errorf("Token cannot be blank"))
+	}
+	if len(errs) > 0 {
+		renderError(w, http.StatusBadRequest, errs)
 		return
 	}
 
@@ -143,7 +151,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 				logrus.Error(err)
 			}
 		}
-		http.Redirect(w, r, "/?token_expired=true", http.StatusFound)
+		renderError(w, http.StatusUnauthorized, ErrInvalidAuthenticationData)
+		return
 	}
 
 	user, err := storage.FindUserByEmail(email)
@@ -168,7 +177,10 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		tokenExpired(err)
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/#/org/%s", user.OrganizationName), http.StatusFound)
+	renderJSON(w, http.StatusOK, map[string]interface{}{
+		"email":            user.Email,
+		"organizationName": user.OrganizationName,
+	})
 }
 
 type lookupView struct {
@@ -261,7 +273,7 @@ func Org(w http.ResponseWriter, r *http.Request) {
 	user, err := sessions.Get(r)
 	if err != nil {
 		if err == ErrInvalidAuthenticationData {
-			http.Redirect(w, r, "/api/users/signup", http.StatusFound)
+			renderError(w, http.StatusUnauthorized, err)
 		} else {
 			internalServerError(w, err)
 		}
@@ -285,16 +297,49 @@ func renderJSON(w http.ResponseWriter, status int, data interface{}) {
 	}
 }
 
-func renderError(w http.ResponseWriter, status int, err error) {
-	w.WriteHeader(status)
-	data := map[string]interface{}{
-		"errors": []map[string]interface{}{
-			{
-				"message": err.Error(),
-			},
-		},
+func renderError(w http.ResponseWriter, status int, err error) bool {
+	if err == nil {
+		return false
 	}
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+
+	var view errorsView
+	switch err := err.(type) {
+	case Errors:
+		view = ErrorsView(err...)
+	default:
+		view = ErrorsView(err)
+	}
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(view); err != nil {
 		logrus.Error(err)
 	}
+	return true
+}
+
+type Errors []error
+
+func (e Errors) Error() string {
+	var msgs []string
+	for _, err := range e {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, ", ")
+}
+
+func ErrorsView(errors ...error) errorsView {
+	errorViews := []map[string]interface{}{}
+	for _, err := range errors {
+		errorViews = append(errorViews, errorView(err))
+	}
+	return errorsView{errorViews}
+}
+
+type errorsView struct {
+	Errors []map[string]interface{} `json:"errors"`
+}
+
+func errorView(err error) map[string]interface{} {
+	result := map[string]interface{}{}
+	result["message"] = err.Error()
+	return result
 }

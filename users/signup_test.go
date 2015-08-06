@@ -101,9 +101,11 @@ func Test_Signup(t *testing.T) {
 	w = httptest.NewRecorder()
 	r, _ = http.NewRequest("GET", u.String(), nil)
 	app.ServeHTTP(w, r)
-	assert.Equal(t, http.StatusFound, w.Code)
-	assert.Equal(t, "/#/org/"+user.OrganizationName, w.HeaderMap.Get("Location"))
+	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, strings.HasPrefix(w.HeaderMap.Get("Set-Cookie"), cookieName+"="))
+	body = map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, map[string]interface{}{"email": email, "organizationName": user.OrganizationName}, body)
 
 	// Invalidates their login token
 	user, err = storage.FindUserByEmail(email)
