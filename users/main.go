@@ -62,7 +62,7 @@ func routes(directLogin bool) http.Handler {
 }
 
 func Admin(w http.ResponseWriter, r *http.Request) {
-	w.Header.Set("Content-Type", "text/html")
+	w.Header().Add("Content-Type", "text/html")
 	fmt.Fprintf(w, `
 <html>
 	<head><title>User service</title></head>
