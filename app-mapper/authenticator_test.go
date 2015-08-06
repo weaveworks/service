@@ -38,7 +38,7 @@ func newRequestToAuthenticate(t *testing.T, authCookieValue string, authHeaderVa
 func TestAuthorize(t *testing.T) {
 	expectedOrganizationID := "foo"
 	serverHandler := mux.NewRouter()
-	serverHandler.HandleFunc("/private/lookup/{org}", func(w http.ResponseWriter, r *http.Request) {
+	serverHandler.HandleFunc("/private/api/users/lookup/{org}", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method, "Unexpected method")
 		assert.Equal(t, mux.Vars(r)["org"], expectedOrganizationID)
 		w.WriteHeader(http.StatusOK)
