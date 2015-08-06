@@ -96,6 +96,10 @@ func Signup(directLogin bool) http.HandlerFunc {
 			return
 		}
 		if directLogin {
+			// approve user, and return token
+			if user.OrganizationID == "" {
+				_, err = storage.ApproveUser(user.ID)
+			}
 			view.Token = token
 		} else if user.ApprovedAt.IsZero() {
 			err = SendWelcomeEmail(user)

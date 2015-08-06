@@ -96,10 +96,7 @@ export default class LandingPage extends React.Component {
       const valid = inputNode.validity.valid;
 
       if(valid) {
-        // clear previous errors
-        field.setErrorText();
-
-        // lock button
+        // lock button and clear error
         this.setState({
           errorText: '',
           submitting: true,

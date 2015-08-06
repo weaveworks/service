@@ -41,7 +41,7 @@ export default class OrganizationPage extends React.Component {
 
   static fetchData = function(params) {
     if (params.orgId) {
-      const url = '/api/org/' + params.orgId;
+      const url = '/api/users/org/' + params.orgId;
       return getData(url);
     }
   }
