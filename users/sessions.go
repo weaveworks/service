@@ -11,7 +11,7 @@ import (
 
 const (
 	sessionDuration = 1440 * time.Hour
-	cookieName      = "_weave_session"
+	cookieName      = "_weave_run_session"
 )
 
 var (
