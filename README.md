@@ -25,6 +25,6 @@ And configure you proxy settings for http://localhost:8080/proxy.pac
 ## Test workflow
 
 - Go to http://run.weave.works on you Mac (for the SAAS UI) and sign up.
-- Go to http://smtp.weave.local:1080 for the mailcatcher UI, you should see a welcome email
+- Go to http://smtp.weave.local for the mailcatcher UI, you should see a welcome email
 - Go to http://users.weave.local/private/api/users to approve youself
-- Follow link in email (see mailcatcher on http://smtp.weave.local:1080)
+- Follow link in email (see mailcatcher on http://smtp.weave.local)
