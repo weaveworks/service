@@ -9,6 +9,10 @@ fi
 
 HOST=$1
 FRONTEND_IP=$(ssh $HOST weave dns-lookup frontend)
+if [ -z "$FRONTEND_IP" ]; then
+	echo "Could not find frontend.weave.local: is it running?"
+	exit 1
+fi
 
 echo "Starting proxy container..."
 PROXY_CONTAINER=$(ssh $HOST weave run -d --add-host=run.weave.works:$FRONTEND_IP weaveworks/proxy)
