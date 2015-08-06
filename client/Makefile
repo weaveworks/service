@@ -1,16 +1,20 @@
 CLIENT_BUILD_IMAGE=service_client_build
 CLIENT_SERVER_IMAGE=weaveworks/ui-server
 RM=--rm
+BUILDIMAGE_UPTODATE=.service_client_build.uptodate
 
-buildimage: Dockerfile package.json karma.* webpack.*
+buildimage: $(BUILDIMAGE_UPTODATE)
+
+$(BUILDIMAGE_UPTODATE): Dockerfile package.json karma.* webpack.*
 	docker build -t $(CLIENT_BUILD_IMAGE) .
+	touch $(BUILDIMAGE_UPTODATE)
 
 tests: *
 	docker run $(RM) -ti -v $(shell pwd)/src:/home/weave/src \
 		-v $(shell pwd)/test:/home/weave/test \
 		$(CLIENT_BUILD_IMAGE) npm test
 
-build/app.js: buildimage
+build/app.js: $(BUILDIMAGE_UPTODATE)
 	mkdir -p build
 	docker run $(RM) -ti -v $(shell pwd)/src:/home/weave/src \
 		-v $(shell pwd)/build:/home/weave/build \
