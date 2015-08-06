@@ -18,7 +18,7 @@ import (
 )
 
 func findLoginLink(t *testing.T, e *email.Email) (url, token string) {
-	pattern := `http://` + domain + `/api/users/login\?email=[\w.%]+&token=([A-Za-z0-9%._=-]+)`
+	pattern := `http://` + domain + `/#/login/[\w.%]+/([A-Za-z0-9%._=-]+)`
 	re := regexp.MustCompile(pattern)
 	matches := re.FindStringSubmatch(string(e.Text))
 	require.Len(t, matches, 2, fmt.Sprintf("Could not find Login Link in text: %q", e.Text))
@@ -97,9 +97,14 @@ func Test_Signup(t *testing.T) {
 	// Login with the link
 	u, err := url.Parse(loginLink)
 	assert.NoError(t, err)
-	u.Path = "/api/users/login" // The frontend will translate /login -> /api/users/login
+	// convert email link /#/login/foo/bar to /api/users/login?email=foo&token=bar
+	fragments := strings.Split(u.Fragment, "/")
+	params := url.Values{}
+	params.Set("email", fragments[2])
+	params.Set("token", fragments[3])
+	path := fmt.Sprintf("/api/users/login?%s", params.Encode())
 	w = httptest.NewRecorder()
-	r, _ = http.NewRequest("GET", u.String(), nil)
+	r, _ = http.NewRequest("GET", path, nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, strings.HasPrefix(w.HeaderMap.Get("Set-Cookie"), cookieName+"="))

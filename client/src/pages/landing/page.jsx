@@ -1,5 +1,6 @@
 import React from "react";
-import { postData } from "../../common/request";
+import { HashLocation } from "react-router";
+import { getData, postData } from "../../common/request";
 import { Styles, RaisedButton, TextField } from "material-ui";
 
 const Colors = Styles.Colors;
@@ -13,14 +14,19 @@ export default class LandingPage extends React.Component {
 
   constructor(props) {
     super(props);
+
     this.state = {
       errorText: '',
-      loginToken: null,
-      mailRecipient: null,
+      token: null,
+      email: null,
       mailSent: false,
       submitText: 'Go',
       submitting: false
     };
+
+    this._handleSubmit = this._handleSubmit.bind(this);
+    this._handleLoginSuccess = this._handleLoginSuccess.bind(this);
+    this._handleLoginError = this._handleLoginError.bind(this);
   }
 
   getChildContext() {
@@ -33,6 +39,16 @@ export default class LandingPage extends React.Component {
     ThemeManager.setPalette({
       accent1Color: Colors.deepOrange500
     });
+
+    // triggered on fresh page load with login params
+    this._tryLogin();
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    // triggered via URL hashchange
+    if (!this.state.errorText && !this.state.submitting) {
+      this._tryLogin();
+    }
   }
 
   render() {
@@ -55,17 +71,15 @@ export default class LandingPage extends React.Component {
       },
 
       form: {
-        display: !this.state.mailSent && !this.state.loginToken ? "block" : "none",
+        display: !this.state.mailSent && !this.state.token ? "block" : "none",
       },
 
       link: {
-        display: this.state.loginToken ? "block" : "none",
+        display: this.state.token ? "block" : "none",
         fontSize: '85%',
         opacity: 0.6
       }
     };
-
-    const loginUrl = `/api/users/login?token=${this.state.loginToken}&email=${this.state.mailRecipient}`;
 
     return (
       <div id="landing-page" style={styles.container}>
@@ -77,13 +91,39 @@ export default class LandingPage extends React.Component {
             disabled={this.state.submitting} onClick={this._handleSubmit.bind(this)} />
         </div>
         <div style={styles.confirmation}>
-          <p>A mail with login details was sent to {this.state.mailRecipient}.</p>
+          <p>A mail with login details was sent to {this.state.email}.</p>
         </div>
         <div style={styles.link}>
-          <a href={loginUrl}>Developer login link</a>
+          <button onClick={this._doLogin.bind(this)}>Developer login link</button>
         </div>
       </div>
     );
+  }
+
+  _tryLogin() {
+    const params = this.props.params;
+    const email = this.state.email ? this.state.email : params.email;
+    const token = this.state.token ? this.state.token : params.token;
+    if (email && token) {
+      const url = `/api/users/login?email=${email}&token=${token}`;
+      getData(url).then(this._handleLoginSuccess, this._handleLoginError);
+    }
+  }
+
+  _doLogin() {
+    const loginUrl = `#/login/${this.state.email}/${this.state.token}`;
+    HashLocation.push(loginUrl);
+  }
+
+  _handleLoginSuccess(resp) {
+    const url = `/org/${resp.organizationName}`
+    HashLocation.push(url);
+  }
+
+  _handleLoginError(resp) {
+    this.setState({
+      errorText: resp.errors[0].message
+    });
   }
 
   _handleSubmit() {
@@ -110,8 +150,9 @@ export default class LandingPage extends React.Component {
 
             this.setState({
               mailSent: resp.mailSent,
-              mailRecipient: resp.email,
-              loginToken: resp.token
+              email: resp.email,
+              token: resp.token,
+              submitting: false
             });
           }.bind(this), function(resp) {
             this.setState({
@@ -129,5 +170,4 @@ export default class LandingPage extends React.Component {
     }
 
   }
-
 }

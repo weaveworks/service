@@ -46,10 +46,9 @@ func (u *User) CompareToken(other string) bool {
 }
 
 func (u *User) LoginURL(rawToken string) string {
-	params := url.Values{}
-	params.Set("email", u.Email)
-	params.Set("token", rawToken)
-	return fmt.Sprintf("http://%s/api/users/login?%s", domain, params.Encode())
+	email := url.QueryEscape(u.Email)
+	token := url.QueryEscape(rawToken)
+	return fmt.Sprintf("http://%s/#/login/%s/%s", domain, email, token)
 }
 
 func (u *User) LoginLink(rawToken string) htmlTemplate.HTML {

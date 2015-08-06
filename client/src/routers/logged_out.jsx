@@ -22,6 +22,7 @@ export default class LoggedOutRouter extends React.Component {
       <Route name="app" path="/" handler={LoggedOutRouter}>
         <Route name="wrapper" path="app/:orgId" handler={WrapperPage} />
         <Route name="organization" path="org/:orgId" handler={OrganizationPage} />
+        <Route name="login" path="login/:email/:token" handler={LandingPage} />
         <DefaultRoute name="landing" handler={LandingPage} />
       </Route>
     );
