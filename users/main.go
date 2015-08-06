@@ -51,6 +51,7 @@ func handler(directLogin bool) http.Handler {
 
 func routes(directLogin bool) http.Handler {
 	r := mux.NewRouter()
+	r.HandleFunc("/", Admin).Methods("GET")
 	r.HandleFunc("/api/users/signup", Signup(directLogin)).Methods("POST")
 	r.HandleFunc("/api/users/login", Login).Methods("GET")
 	r.HandleFunc("/private/api/users/lookup", Lookup).Methods("GET")
@@ -58,6 +59,20 @@ func routes(directLogin bool) http.Handler {
 	r.HandleFunc("/private/api/users/{userID}/approve", ApproveUser).Methods("POST")
 	r.HandleFunc("/api/users/org/{orgID}", Org).Methods("GET")
 	return r
+}
+
+func Admin(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, `
+<html>
+	<head><title>User service</title></head>
+	<body>
+		<h1>User service</h1>
+		<ul>
+			<li><a href="/private/api/users">Approve users</a></li>
+		</ul>
+	</body>
+</html>
+`)
 }
 
 type signupView struct {
