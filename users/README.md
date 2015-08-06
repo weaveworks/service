@@ -22,8 +22,8 @@ $ eval "$(weave env)"
 $ docker-compose up
 ```
 
-Mail is sent to mailcatcher, which runs on port 1080.
-Users can be approved at `http://$(bootdocker ip):3000/private/api/users`
+Mail is sent to mailcatcher, which runs at (http://smtp.weave.local)[http://smtp.weave.local]
+Users can be approved at (http://users.weave.local/private/api/users)[http://users.weave.local/private/api/users]
 
 ## Tests
 
