@@ -38,7 +38,7 @@ type webAuthenticator struct {
 }
 
 const (
-	authLookupURL  = "http://%s/private/lookup/%s"
+	authLookupURL  = "http://%s/private/api/users/lookup/%s"
 	authCookieName = "_weave_run_session"
 	authHeaderName = "Authorization"
 )
