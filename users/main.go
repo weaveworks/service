@@ -326,6 +326,10 @@ func (e Errors) Error() string {
 	return strings.Join(msgs, ", ")
 }
 
+type ErrorWithMetadata interface {
+	ErrorMetadata() map[string]interface{}
+}
+
 func ErrorsView(errors ...error) errorsView {
 	errorViews := []map[string]interface{}{}
 	for _, err := range errors {
@@ -340,6 +344,14 @@ type errorsView struct {
 
 func errorView(err error) map[string]interface{} {
 	result := map[string]interface{}{}
+
+	if m, hasMetadata := err.(ErrorWithMetadata); hasMetadata {
+		for k, v := range m.ErrorMetadata() {
+			result[k] = v
+		}
+	}
+
 	result["message"] = err.Error()
+
 	return result
 }
