@@ -16,7 +16,6 @@ import (
 var (
 	sessions            SessionStore
 	storage             Storage
-	domain              = "localhost"
 	passwordHashingCost = 14
 )
 
