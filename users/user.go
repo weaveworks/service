@@ -13,6 +13,7 @@ type User struct {
 	Email            string
 	OrganizationID   string
 	OrganizationName string
+	ProbeToken       string
 	Token            string
 	TokenCreatedAt   time.Time
 	ApprovedAt       time.Time

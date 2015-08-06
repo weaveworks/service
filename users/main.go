@@ -54,10 +54,10 @@ func routes(directLogin bool) http.Handler {
 	r.HandleFunc("/", Admin).Methods("GET")
 	r.HandleFunc("/api/users/signup", Signup(directLogin)).Methods("POST")
 	r.HandleFunc("/api/users/login", Login).Methods("GET")
-	r.HandleFunc("/private/api/users/lookup", Lookup).Methods("GET")
+	r.HandleFunc("/private/api/users/lookup/{orgName}", Lookup).Methods("GET")
 	r.HandleFunc("/private/api/users", ListUsers).Methods("GET")
 	r.HandleFunc("/private/api/users/{userID}/approve", ApproveUser).Methods("POST")
-	r.HandleFunc("/api/users/org/{orgID}", Org).Methods("GET")
+	r.HandleFunc("/api/users/org/{orgName}", Org).Methods("GET")
 	return r
 }
 
@@ -203,21 +203,32 @@ type lookupView struct {
 }
 
 func Lookup(w http.ResponseWriter, r *http.Request) {
-	sessionID := r.FormValue("session_id")
-	if sessionID == "" {
-		http.Error(w, "session_id param is required", http.StatusBadRequest)
+	orgName := mux.Vars(r)["orgName"]
+	user, err := sessions.Get(r)
+	if err == nil && user.OrganizationName == orgName {
+		renderJSON(w, http.StatusOK, lookupView{OrganizationID: user.OrganizationID})
 		return
 	}
 
-	user, err := sessions.Decode(sessionID)
-	switch {
-	case err == nil:
-		renderJSON(w, http.StatusOK, lookupView{OrganizationID: user.OrganizationID})
-	case err == ErrInvalidAuthenticationData:
-		w.WriteHeader(http.StatusUnauthorized)
-	default:
+	if err != nil && err != ErrInvalidAuthenticationData {
 		internalServerError(w, err)
+		return
 	}
+
+	authHeader := r.Header.Get("Authorization")
+	if fields := strings.Fields(authHeader); len(fields) == 2 && fields[0] == "Probe" {
+		org, err := storage.FindOrganizationByName(orgName)
+		if err == nil && fields[1] == org.ProbeToken {
+			renderJSON(w, http.StatusOK, lookupView{OrganizationID: org.ID})
+			return
+		}
+		if err != nil && err != ErrNotFound {
+			internalServerError(w, err)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusUnauthorized)
 }
 
 type userView struct {

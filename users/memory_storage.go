@@ -76,6 +76,7 @@ func (s memoryStorage) ApproveUser(id string) (*User, error) {
 		user.ApprovedAt = time.Now().UTC()
 		user.OrganizationID = o.ID
 		user.OrganizationName = o.Name
+		user.ProbeToken = o.ProbeToken
 	}
 	return user, err
 }
@@ -99,12 +100,26 @@ func (s memoryStorage) SetUserToken(id, token string) error {
 }
 
 func (s memoryStorage) createOrganization() (*Organization, error) {
+	probeToken, err := generateProbeToken()
+	if err != nil {
+		return nil, err
+	}
 	o := &Organization{
-		ID:   fmt.Sprint(len(s.organizations)),
-		Name: names.Generate(),
+		ID:         fmt.Sprint(len(s.organizations)),
+		Name:       names.Generate(),
+		ProbeToken: probeToken,
 	}
 	s.organizations[o.ID] = o
 	return o, nil
+}
+
+func (s memoryStorage) FindOrganizationByName(name string) (*Organization, error) {
+	for _, o := range s.organizations {
+		if o.Name == name {
+			return o, nil
+		}
+	}
+	return nil, ErrNotFound
 }
 
 func (s memoryStorage) Close() error {

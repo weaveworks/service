@@ -42,7 +42,10 @@ type QueryRower interface {
 func (s pgStorage) findUserByID(db QueryRower, id string) (*User, error) {
 	user, err := s.scanUser(
 		db.QueryRow(`
-			select users.id, email, token, token_created_at, approved_at, users.created_at, organization_id, organizations.name
+			select
+					users.id, email, token, token_created_at, approved_at,
+					users.created_at, organization_id, organizations.name,
+					organizations.probe_token
 				from users
 				left join organizations on (users.organization_id = organizations.id)
 				where users.id = $1
@@ -59,7 +62,10 @@ func (s pgStorage) findUserByID(db QueryRower, id string) (*User, error) {
 func (s pgStorage) FindUserByEmail(email string) (*User, error) {
 	user, err := s.scanUser(
 		s.QueryRow(`
-			select users.id, email, token, token_created_at, approved_at, users.created_at, organization_id, organizations.name
+			select
+					users.id, email, token, token_created_at, approved_at,
+					users.created_at, organization_id, organizations.name,
+					organizations.probe_token
 				from users
 				left join organizations on (users.organization_id = organizations.id)
 				where lower(email) = lower($1)
@@ -80,14 +86,15 @@ type scanner interface {
 // TODO: Scan more columns
 func (s pgStorage) scanUser(row scanner) (*User, error) {
 	u := &User{}
-	var token, oID, oName sql.NullString
+	var token, oID, oName, probeToken sql.NullString
 	var createdAt, tokenCreatedAt, approvedAt pq.NullTime
-	if err := row.Scan(&u.ID, &u.Email, &token, &tokenCreatedAt, &approvedAt, &createdAt, &oID, &oName); err != nil {
+	if err := row.Scan(&u.ID, &u.Email, &token, &tokenCreatedAt, &approvedAt, &createdAt, &oID, &oName, &probeToken); err != nil {
 		return nil, err
 	}
 	s.setString(&u.Token, token)
 	s.setString(&u.OrganizationID, oID)
 	s.setString(&u.OrganizationName, oName)
+	s.setString(&u.ProbeToken, probeToken)
 	s.setTime(&u.TokenCreatedAt, tokenCreatedAt)
 	s.setTime(&u.ApprovedAt, approvedAt)
 	s.setTime(&u.CreatedAt, createdAt)
@@ -202,16 +209,61 @@ func (s pgStorage) SetUserToken(id, token string) error {
 }
 
 func (s pgStorage) createOrganization(db QueryRower) (*Organization, error) {
-	o := &Organization{
-		Name: names.Generate(),
+	probeToken, err := generateProbeToken()
+	if err != nil {
+		return nil, err
 	}
-	err := db.QueryRow("insert into organizations (name) values ($1) returning id", o.Name).Scan(&o.ID)
+	o := &Organization{
+		Name:       names.Generate(),
+		ProbeToken: probeToken,
+		CreatedAt:  s.Now(),
+	}
+	err = db.QueryRow(`
+		insert into organizations
+			(name, probe_token, created_at)
+			values ($1, $2, $3)
+			returning id`,
+		o.Name, o.ProbeToken, o.CreatedAt,
+	).Scan(&o.ID)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil, ErrNotFound
 	case err != nil:
 		return nil, err
 	}
+	return o, nil
+}
+
+func (s pgStorage) FindOrganizationByName(name string) (*Organization, error) {
+	o, err := s.scanOrganization(
+		s.QueryRow(`
+			select
+					id, name, probe_token, first_probe_update_at, last_probe_update_at,
+					created_at
+				from organizations
+				where lower(name) = lower($1)
+				and deleted_at is null`,
+			name,
+		),
+	)
+	if err == sql.ErrNoRows {
+		err = ErrNotFound
+	}
+	return o, err
+}
+
+func (s pgStorage) scanOrganization(row scanner) (*Organization, error) {
+	o := &Organization{}
+	var name, probeToken sql.NullString
+	var firstProbeUpdatedAt, lastProbeUpdatedAt, createdAt pq.NullTime
+	if err := row.Scan(&o.ID, &name, &probeToken, &firstProbeUpdatedAt, &lastProbeUpdatedAt, &createdAt); err != nil {
+		return nil, err
+	}
+	s.setString(&o.Name, name)
+	s.setString(&o.ProbeToken, probeToken)
+	s.setTime(&o.FirstProbeUpdateAt, firstProbeUpdatedAt)
+	s.setTime(&o.LastProbeUpdateAt, lastProbeUpdatedAt)
+	s.setTime(&o.CreatedAt, createdAt)
 	return o, nil
 }
 
@@ -223,6 +275,7 @@ func (s pgStorage) Transaction(f func(*sql.Tx) error) error {
 	if err = f(tx); err != nil {
 		// Rollback error is ignored as we already have one in progress
 		tx.Rollback()
+		return err
 	}
 	return tx.Commit()
 }
