@@ -1,9 +1,7 @@
 import React from "react";
-import { Styles, FlatButton, List, ListItem, RaisedButton, TextField } from "material-ui";
+import { FlatButton, List, ListItem, RaisedButton, TextField } from "material-ui";
 import { getData, deleteData, postData } from "../../common/request";
 import { Box } from "../../components/box";
-
-const ThemeManager = new Styles.ThemeManager();
 
 export default class Users extends React.Component {
 
@@ -11,16 +9,6 @@ export default class Users extends React.Component {
     super(props);
     this.state = {
       users: []
-    };
-  }
-
-  static childContextTypes = {
-    muiTheme: React.PropTypes.object
-  }
-
-  getChildContext() {
-    return {
-      muiTheme: ThemeManager.getCurrentTheme()
     };
   }
 
