@@ -14,9 +14,12 @@ export default class LandingPage extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      errorText: '',
+      loginToken: null,
       mailRecipient: null,
       mailSent: false,
-      loginToken: null
+      submitText: 'Go',
+      submitting: false
     };
   }
 
@@ -33,62 +36,101 @@ export default class LandingPage extends React.Component {
   }
 
   render() {
-    let buttonStyle = {
-      marginLeft: '2em'
+    const styles = {
+      submit: {
+        marginLeft: '2em',
+        marginTop: '3px',
+        verticalAlign: 'top'
+      },
+
+      container: {
+        textAlign: 'center',
+        paddingTop: '200px'
+      },
+
+      confirmation: {
+        display: this.state.mailSent ? "block" : "none",
+        fontSize: '85%',
+        opacity: 0.6
+      },
+
+      form: {
+        display: !this.state.mailSent && !this.state.loginToken ? "block" : "none",
+      },
+
+      link: {
+        display: this.state.loginToken ? "block" : "none",
+        fontSize: '85%',
+        opacity: 0.6
+      }
     };
 
-    let containerStyle = {
-      textAlign: 'center',
-      paddingTop: '200px'
-    };
-
-    let confirmationStyle = {
-      display: this.state.mailSent ? "block" : "none",
-      fontSize: '85%',
-      opacity: 0.6
-    };
-
-    let linkStyle = {
-      display: this.state.loginToken ? "block" : "none",
-      fontSize: '85%',
-      opacity: 0.6
-    };
-
-    let loginUrl = `/api/users/login?token=${this.state.loginToken}&email=${this.state.mailRecipient}`;
+    const loginUrl = `/api/users/login?token=${this.state.loginToken}&email=${this.state.mailRecipient}`;
 
     return (
-      <div id="landing-page" style={containerStyle}>
+      <div id="landing-page" style={styles.container}>
         <h1>Scope as a Service</h1>
-        <TextField hintText="Email" ref="emailField" />
-        <RaisedButton label="Go" primary={true} style={buttonStyle} onClick={this._handleTouchTap.bind(this)} />
-        <div style={confirmationStyle}>
+        <div style={styles.form}>
+          <TextField hintText="Email" ref="emailField" type="email" errorText={this.state.errorText}
+            onEnterKeyDown={this._handleSubmit.bind(this)} />
+          <RaisedButton label={this.state.submitText} primary={true} style={styles.submit}
+            disabled={this.state.submitting} onClick={this._handleSubmit.bind(this)} />
+        </div>
+        <div style={styles.confirmation}>
           <p>A mail with login details was sent to {this.state.mailRecipient}.</p>
         </div>
-        <div style={linkStyle}>
-          <a href={loginUrl}>Secret login link</a>
+        <div style={styles.link}>
+          <a href={loginUrl}>Developer login link</a>
         </div>
       </div>
     );
   }
 
-  _handleTouchTap() {
-    // TODO trigger sending of email
+  _handleSubmit() {
+    const field = this.refs.emailField;
+    const value = field.getValue();
 
-    // TODO show "Sending email"
+    if (value) {
+      const wrapperNode = this.refs.emailField.getDOMNode();
+      const inputNode = wrapperNode.getElementsByTagName('input')[0];
+      const valid = inputNode.validity.valid;
 
-    const email = this.refs.emailField.getValue();
+      if(valid) {
+        // clear previous errors
+        field.setErrorText();
 
-    postData('/api/users/signup', {email: email})
-      .then(function(resp) {
+        // lock button
         this.setState({
-          mailSent: resp.mailSent,
-          mailRecipient: resp.email,
-          loginToken: resp.token
+          errorText: '',
+          submitting: true,
+          submitText: 'Sending...'
         });
-      }.bind(this), function(resp) {
-        // TODO show error
-        console.error(resp);
-      }.bind(this));
+
+        postData('/api/users/signup', {email: value})
+          .then(function(resp) {
+            // empty field
+            field.clearValue();
+
+            this.setState({
+              mailSent: resp.mailSent,
+              mailRecipient: resp.email,
+              loginToken: resp.token
+            });
+          }.bind(this), function(resp) {
+            this.setState({
+              errorText: resp,
+              submitting: false,
+              submitText: 'Go'
+            });
+          }.bind(this));
+      } else {
+        this.setState({
+          errorText: 'Please provide a valid email address.'
+        });
+      }
+
+    }
+
   }
 
 }
