@@ -8,19 +8,23 @@
 
 (Assuming its a Mac, and you have a Vagrant Linux VM for development)
 
-Setup a few ssh port forwards:
-```
-vagrant ssh -- -L1080:smtp.weave.local:1080
-vagrant ssh -- -L8080:frontend.weave.local:80
-```
-
-Then on you VM, start the service
+On you VM, start the services (make sure you ```eval $(weave env)```)
 ```
 cd <path to service.git>
 ./run.sh
 ```
 
-- Go to http://localhost:8080 on you Mac (for the SAAS UI) ans sign up.
-- Go to http://localhost:1080 for the mailcatcher UI, you should see a welcome email
-- Go to http://localhost:8080/api/users/private/users to approve youself
-- Follow link in email (see mailcatcher on http://localhost:1080)
+Then on you mac, start the proxy:
+```
+vagrant ssh-config >>~/.ssh/config # setup ssh for your vagrant VM
+./connect.sh <hostname>
+```
+
+And configure you proxy settings for http://localhost:8080/proxy.pac
+
+## Test workflow
+
+- Go to http://run.weave.works on you Mac (for the SAAS UI) and sign up.
+- Go to http://smtp.weave.local:1080 for the mailcatcher UI, you should see a welcome email
+- Go to http://users.weave.local/private/api/users to approve youself
+- Follow link in email (see mailcatcher on http://smtp.weave.local:1080)
