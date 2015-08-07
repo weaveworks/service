@@ -217,11 +217,12 @@ func Lookup(w http.ResponseWriter, r *http.Request) {
 
 	authHeader := r.Header.Get("Authorization")
 	if fields := strings.Fields(authHeader); len(fields) == 2 && fields[0] == "Scope-Probe" {
-		org, err := storage.AuthenticateByProbeToken(orgName, fields[1])
-		if err == nil {
+		org, err := storage.FindOrganizationByProbeToken(fields[1])
+		if err == nil && org.Name == orgName {
 			renderJSON(w, http.StatusOK, lookupView{OrganizationID: org.ID})
 			return
 		}
+
 		if err != ErrInvalidAuthenticationData {
 			internalServerError(w, err)
 			return

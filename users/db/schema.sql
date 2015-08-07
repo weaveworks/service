@@ -29,7 +29,6 @@ CREATE TABLE IF NOT EXISTS organizations (
 ) inherits(traceable);
 CREATE UNIQUE INDEX organizations_lower_name_idx ON organizations (lower(name)) WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX organizations_probe_token_idx ON organizations (probe_token) WHERE deleted_at IS NULL;
-CREATE UNIQUE INDEX organizations_lower_name_and_probe_token_idx ON organizations (lower(name), probe_token) WHERE deleted_at IS NULL;
 
 \c postgres;
 

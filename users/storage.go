@@ -25,7 +25,7 @@ type Storage interface {
 	// user's token.
 	SetUserToken(id, token string) error
 
-	AuthenticateByProbeToken(orgName, probeToken string) (*Organization, error)
+	FindOrganizationByProbeToken(probeToken string) (*Organization, error)
 
 	Close() error
 }

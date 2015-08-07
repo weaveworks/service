@@ -24,7 +24,7 @@ func Test_Org(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, "", user.Organization.ID)
 
-	org, err := storage.AuthenticateByProbeToken(user.Organization.Name, user.Organization.ProbeToken)
+	org, err := storage.FindOrganizationByProbeToken(user.Organization.ProbeToken)
 	require.NoError(t, err)
 	require.NotNil(t, org.FirstProbeUpdateAt)
 

@@ -5,7 +5,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/weaveworks/service/users/names"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -97,22 +96,20 @@ func (s memoryStorage) SetUserToken(id, token string) error {
 }
 
 func (s memoryStorage) createOrganization() (*Organization, error) {
-	probeToken, err := generateProbeToken()
-	if err != nil {
-		return nil, err
-	}
 	o := &Organization{
-		ID:         fmt.Sprint(len(s.organizations)),
-		Name:       names.Generate(),
-		ProbeToken: probeToken,
+		ID: fmt.Sprint(len(s.organizations)),
+	}
+	o.RegenerateName()
+	if err := o.RegenerateProbeToken(); err != nil {
+		return nil, err
 	}
 	s.organizations[o.ID] = o
 	return o, nil
 }
 
-func (s memoryStorage) AuthenticateByProbeToken(orgName, probeToken string) (*Organization, error) {
+func (s memoryStorage) FindOrganizationByProbeToken(probeToken string) (*Organization, error) {
 	for _, o := range s.organizations {
-		if o.Name == orgName {
+		if o.ProbeToken == probeToken {
 			if o.FirstProbeUpdateAt.IsZero() {
 				o.FirstProbeUpdateAt = time.Now().UTC()
 			}

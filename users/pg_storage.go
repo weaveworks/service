@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/weaveworks/service/users/names"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -85,9 +84,8 @@ type scanner interface {
 	Scan(...interface{}) error
 }
 
-// TODO: Scan more columns
 func (s pgStorage) scanUser(row scanner) (*User, error) {
-	u := &User{Organization: &Organization{}}
+	u := &User{}
 	var (
 		token,
 		oID,
@@ -234,32 +232,44 @@ func (s pgStorage) SetUserToken(id, token string) error {
 }
 
 func (s pgStorage) createOrganization(db QueryRower) (*Organization, error) {
-	probeToken, err := generateProbeToken()
-	if err != nil {
+	var (
+		o   = &Organization{CreatedAt: s.Now()}
+		err error
+	)
+	o.RegenerateName()
+	if err := o.RegenerateProbeToken(); err != nil {
 		return nil, err
 	}
-	o := &Organization{
-		Name:       names.Generate(),
-		ProbeToken: probeToken,
-		CreatedAt:  s.Now(),
-	}
-	err = db.QueryRow(`
-		insert into organizations
+
+	for {
+		err = db.QueryRow(`insert into organizations
 			(name, probe_token, created_at)
-			values ($1, $2, $3)
-			returning id`,
-		o.Name, o.ProbeToken, o.CreatedAt,
-	).Scan(&o.ID)
-	switch {
-	case err == sql.ErrNoRows:
-		return nil, ErrNotFound
-	case err != nil:
-		return nil, err
+			values ($1, $2, $3) returning id`,
+			o.Name, o.ProbeToken, o.CreatedAt,
+		).Scan(&o.ID)
+
+		if e, ok := err.(*pq.Error); ok {
+			switch e.Constraint {
+			case "organizations_lower_name_idx":
+				o.RegenerateName()
+				continue
+			case "organizations_probe_token_idx":
+				if err := o.RegenerateProbeToken(); err != nil {
+					return nil, err
+				}
+				continue
+			}
+		}
+		break
 	}
-	return o, nil
+
+	if err != nil {
+		o = nil
+	}
+	return o, err
 }
 
-func (s pgStorage) AuthenticateByProbeToken(orgName, probeToken string) (*Organization, error) {
+func (s pgStorage) FindOrganizationByProbeToken(probeToken string) (*Organization, error) {
 	var o *Organization
 	var err error
 	err = s.Transaction(func(tx *sql.Tx) error {
@@ -268,9 +278,9 @@ func (s pgStorage) AuthenticateByProbeToken(orgName, probeToken string) (*Organi
 				select
 						id, name, probe_token, first_probe_update_at, created_at
 					from organizations
-					where lower(name) = lower($1) and probe_token = $2
+					where probe_token = $1
 					and deleted_at is null`,
-				orgName, probeToken,
+				probeToken,
 			),
 		)
 		if err == nil && o.FirstProbeUpdateAt.IsZero() {

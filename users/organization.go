@@ -1,6 +1,10 @@
 package main
 
-import "time"
+import (
+	"time"
+
+	"github.com/weaveworks/service/users/names"
+)
 
 type Organization struct {
 	ID                 string
@@ -10,6 +14,15 @@ type Organization struct {
 	CreatedAt          time.Time
 }
 
-func generateProbeToken() (string, error) {
-	return secureRandomBase64(20)
+func (o *Organization) RegenerateName() {
+	o.Name = names.Generate()
+}
+
+func (o *Organization) RegenerateProbeToken() error {
+	t, err := secureRandomBase64(20)
+	if err != nil {
+		return err
+	}
+	o.ProbeToken = t
+	return nil
 }
