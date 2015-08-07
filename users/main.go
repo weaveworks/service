@@ -215,17 +215,19 @@ func Lookup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authHeader := r.Header.Get("Authorization")
-	if fields := strings.Fields(authHeader); len(fields) == 2 && fields[0] == "Scope-Probe" {
-		org, err := storage.FindOrganizationByProbeToken(fields[1])
-		if err == nil && org.Name == orgName {
-			renderJSON(w, http.StatusOK, lookupView{OrganizationID: org.ID})
-			return
-		}
+	credentials, ok := parseAuthHeader(r.Header.Get("Authorization"))
+	if ok && credentials.Realm == "Scope-Probe" {
+		if token, ok := credentials.Params["token"]; ok {
+			org, err := storage.FindOrganizationByProbeToken(token)
+			if err == nil && org.Name == orgName {
+				renderJSON(w, http.StatusOK, lookupView{OrganizationID: org.ID})
+				return
+			}
 
-		if err != ErrInvalidAuthenticationData {
-			internalServerError(w, err)
-			return
+			if err != ErrInvalidAuthenticationData {
+				internalServerError(w, err)
+				return
+			}
 		}
 	}
 
