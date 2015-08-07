@@ -12,25 +12,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const appPort = "80"
+
 func testAppProvisioner(t *testing.T, appID string, test func(p appProvisioner, host string)) {
 	echoAppConfig := docker.Config{
-		Image:        "busybox",
-		ExposedPorts: map[docker.Port]struct{}{docker.Port("8080"): {}},
-		Cmd:          strings.Split("busybox nc -ll -p 8080 -e cat", " "),
-		Hostname:     "localhost", // in production the hostname/domainname will be automatically provided by weave
-	}
-	hostConfig := docker.HostConfig{
-		PortBindings: map[docker.Port][]docker.PortBinding{
-			docker.Port("8080"): {docker.PortBinding{"127.0.0.1", "8080"}},
-		},
+		Image: "busybox",
+		Cmd:   strings.Split("busybox nc -ll -p "+appPort+" -e cat", " "),
 	}
 	o := dockerProvisionerOptions{
 		appConfig:     echoAppConfig,
-		hostConfig:    hostConfig,
 		runTimeout:    defaultDockerRunTimeout,
 		clientTimeout: defaultDockerClientTimeout,
 	}
-	p, err := newDockerProvisioner("unix:///var/run/docker.sock", o)
+	p, err := newDockerProvisioner("unix:///var/run/weave.sock", o)
 	require.NoError(t, err, "Cannot create provisioner")
 	err = p.fetchApp()
 	host, err := p.runApp(appID)
@@ -59,7 +53,7 @@ func TestAccessRunningApp(t *testing.T) {
 	const msg = "Tres tristes tigres"
 
 	test := func(p appProvisioner, host string) {
-		conn, err := net.Dial("tcp", net.JoinHostPort(host, "8080"))
+		conn, err := net.Dial("tcp", net.JoinHostPort(host, appPort))
 		require.NoError(t, err, "Cannot contact app")
 		defer conn.Close()
 		_, err = conn.Write([]byte(msg))

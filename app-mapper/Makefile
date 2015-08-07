@@ -28,10 +28,7 @@ $(APP_MAPPER_EXE): *.go
 	$(NETGO_CHECK)
 
 integration-test:
-	$(SUDO) docker run -d --name app-mapper-test-db -p '5432:5432' $(APP_MAPPER_DB_IMAGE)
-	sleep 3 # wait for the db container to start
-	go test -tags=integration ./... ; (ret=$$?; $(SUDO) docker rm -f app-mapper-test-db; exit $$ret)
-
+	script/integration-test.sh
 test:
 	go test ./...
 

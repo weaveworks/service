@@ -29,8 +29,7 @@ func (f mockProvisioner) isAppRunning(string) (bool, error) {
 }
 
 func testOrgMapper(t *testing.T, initialMapping []dbOrgHost, p appProvisioner, test func(organizationMapper)) {
-	const dbURI = "postgres://postgres@localhost/app_mapper?sslmode=disable"
-	dbMapper, err := newDBMapper(dbURI, p)
+	dbMapper, err := newDBMapper(defaultDBMapperURI, p)
 	require.NoError(t, err, "Cannot create mapper")
 
 	_, err = dbMapper.db.Exec("DELETE FROM org_hostname")
