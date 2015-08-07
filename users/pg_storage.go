@@ -261,8 +261,9 @@ func (s pgStorage) createOrganization(db QueryRower) (*Organization, error) {
 
 func (s pgStorage) AuthenticateByProbeToken(orgName, probeToken string) (*Organization, error) {
 	var o *Organization
-	err := s.Transaction(func(tx *sql.Tx) error {
-		o, err := s.scanOrganization(
+	var err error
+	err = s.Transaction(func(tx *sql.Tx) error {
+		o, err = s.scanOrganization(
 			tx.QueryRow(`
 				select
 						id, name, probe_token, first_probe_update_at, created_at
@@ -272,23 +273,20 @@ func (s pgStorage) AuthenticateByProbeToken(orgName, probeToken string) (*Organi
 				orgName, probeToken,
 			),
 		)
-		switch {
-		case err == sql.ErrNoRows:
-			return ErrInvalidAuthenticationData
-		case err != nil:
-			return err
-		case !o.FirstProbeUpdateAt.IsZero():
-			return nil
+		if err == nil && o.FirstProbeUpdateAt.IsZero() {
+			o.FirstProbeUpdateAt = s.Now()
+			_, err = tx.Exec(`update organizations set first_probe_update_at = $2 where id = $1`, o.ID, o.FirstProbeUpdateAt)
 		}
 
-		o.FirstProbeUpdateAt = s.Now()
-		_, err = tx.Exec(`update organizations set first_probe_update_at = $2 where id = $1`, o.ID, o.FirstProbeUpdateAt)
+		if err == sql.ErrNoRows {
+			err = ErrInvalidAuthenticationData
+		}
 		return err
 	})
 	if err != nil {
 		o = nil
 	}
-	return o, nil
+	return o, err
 }
 
 func (s pgStorage) scanOrganization(row scanner) (*Organization, error) {

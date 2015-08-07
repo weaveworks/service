@@ -75,9 +75,10 @@ func SendApprovedEmail(u *User, token string) error {
 	e.To = []string{u.Email}
 	e.Subject = "Scope account approved"
 	data := map[string]interface{}{
-		"LoginURL":  LoginURL(u.Email, token),
-		"LoginLink": LoginLink(u.Email, token),
-		"Token":     token,
+		"LoginURL":   LoginURL(u.Email, token),
+		"LoginLink":  LoginLink(u.Email, token),
+		"Token":      token,
+		"ProbeToken": u.Organization.ProbeToken,
 	}
 	e.Text = quietTemplateBytes("approved_email.text", data)
 	e.HTML = quietTemplateBytes("approved_email.html", data)
@@ -90,9 +91,10 @@ func SendLoginEmail(u *User, token string) error {
 	e.To = []string{u.Email}
 	e.Subject = "Login to Scope"
 	data := map[string]interface{}{
-		"LoginURL":  LoginURL(u.Email, token),
-		"LoginLink": LoginLink(u.Email, token),
-		"Token":     token,
+		"LoginURL":   LoginURL(u.Email, token),
+		"LoginLink":  LoginLink(u.Email, token),
+		"Token":      token,
+		"ProbeToken": u.Organization.ProbeToken,
 	}
 	e.Text = quietTemplateBytes("login_email.text", data)
 	e.HTML = quietTemplateBytes("login_email.html", data)
