@@ -22,20 +22,20 @@ func Test_Lookup(t *testing.T) {
 	assert.NoError(t, err)
 	user, err = storage.FindUserByID(user.ID)
 	assert.NoError(t, err)
-	assert.NotEqual(t, "", user.OrganizationID)
+	assert.NotEqual(t, "", user.Organization.ID)
 
 	cookie, err := sessions.Cookie(user.ID)
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/private/api/users/lookup/"+user.OrganizationName, nil)
+	r, _ := http.NewRequest("GET", "/private/api/users/lookup/"+user.Organization.Name, nil)
 	r.AddCookie(cookie)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, map[string]interface{}{"organizationID": user.OrganizationID}, body)
+	assert.Equal(t, map[string]interface{}{"organizationID": user.Organization.ID}, body)
 }
 
 func Test_Lookup_NotFound(t *testing.T) {
@@ -63,16 +63,20 @@ func Test_Lookup_ProbeToken(t *testing.T) {
 	require.NoError(t, err)
 	user, err = storage.FindUserByID(user.ID)
 	require.NoError(t, err)
-	assert.NotEqual(t, "", user.OrganizationID)
-	assert.NotEqual(t, "", user.ProbeToken)
+	assert.NotEqual(t, "", user.Organization.ID, "approved user should have an organization id")
 
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/private/api/users/lookup/"+user.OrganizationName, nil)
-	r.Header.Set("Authorization", fmt.Sprintf("Scope-Probe %s", user.ProbeToken))
+	r, _ := http.NewRequest("GET", "/private/api/users/lookup/"+user.Organization.Name, nil)
+	r.Header.Set("Authorization", fmt.Sprintf("Scope-Probe %s", user.Organization.ProbeToken))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, map[string]interface{}{"organizationID": user.OrganizationID}, body)
+	assert.Equal(t, map[string]interface{}{"organizationID": user.Organization.ID}, body)
+
+	user, err = storage.FindUserByID(user.ID)
+	require.NoError(t, err)
+	assert.NotNil(t, user.Organization.FirstProbeUpdateAt)
+	assert.False(t, user.Organization.FirstProbeUpdateAt.IsZero())
 }

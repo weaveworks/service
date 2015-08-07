@@ -71,12 +71,9 @@ func (s memoryStorage) ApproveUser(id string) (*User, error) {
 		return nil, err
 	}
 
-	o, err := s.createOrganization()
-	if err == nil {
+	if o, err := s.createOrganization(); err == nil {
 		user.ApprovedAt = time.Now().UTC()
-		user.OrganizationID = o.ID
-		user.OrganizationName = o.Name
-		user.ProbeToken = o.ProbeToken
+		user.Organization = o
 	}
 	return user, err
 }
@@ -113,9 +110,12 @@ func (s memoryStorage) createOrganization() (*Organization, error) {
 	return o, nil
 }
 
-func (s memoryStorage) FindOrganizationByName(name string) (*Organization, error) {
+func (s memoryStorage) AuthenticateByProbeToken(orgName, probeToken string) (*Organization, error) {
 	for _, o := range s.organizations {
-		if o.Name == name {
+		if o.Name == orgName {
+			if o.FirstProbeUpdateAt.IsZero() {
+				o.FirstProbeUpdateAt = time.Now().UTC()
+			}
 			return o, nil
 		}
 	}

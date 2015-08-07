@@ -113,7 +113,7 @@ func Signup(directLogin bool) http.HandlerFunc {
 		}
 		if directLogin {
 			// approve user, and return token
-			if user.OrganizationID == "" {
+			if user.Organization.ID == "" {
 				_, err = storage.ApproveUser(user.ID)
 			}
 			view.Token = token
@@ -194,7 +194,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 	renderJSON(w, http.StatusOK, map[string]interface{}{
 		"email":            user.Email,
-		"organizationName": user.OrganizationName,
+		"organizationName": user.Organization.Name,
 	})
 }
 
@@ -205,8 +205,8 @@ type lookupView struct {
 func Lookup(w http.ResponseWriter, r *http.Request) {
 	orgName := mux.Vars(r)["orgName"]
 	user, err := sessions.Get(r)
-	if err == nil && user.OrganizationName == orgName {
-		renderJSON(w, http.StatusOK, lookupView{OrganizationID: user.OrganizationID})
+	if err == nil && user.Organization.Name == orgName {
+		renderJSON(w, http.StatusOK, lookupView{OrganizationID: user.Organization.ID})
 		return
 	}
 
@@ -217,12 +217,12 @@ func Lookup(w http.ResponseWriter, r *http.Request) {
 
 	authHeader := r.Header.Get("Authorization")
 	if fields := strings.Fields(authHeader); len(fields) == 2 && fields[0] == "Scope-Probe" {
-		org, err := storage.FindOrganizationByName(orgName)
-		if err == nil && fields[1] == org.ProbeToken {
+		org, err := storage.AuthenticateByProbeToken(orgName, fields[1])
+		if err == nil {
 			renderJSON(w, http.StatusOK, lookupView{OrganizationID: org.ID})
 			return
 		}
-		if err != nil && err != ErrNotFound {
+		if err != ErrInvalidAuthenticationData {
 			internalServerError(w, err)
 			return
 		}
@@ -291,8 +291,10 @@ func ApproveUser(w http.ResponseWriter, r *http.Request) {
 }
 
 type orgView struct {
-	User string `json:"user"`
-	Name string `json:"name"`
+	User               string `json:"user"`
+	Name               string `json:"name"`
+	ProbeToken         string `json:"probeToken"`
+	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
 }
 
 func Org(w http.ResponseWriter, r *http.Request) {
@@ -306,9 +308,19 @@ func Org(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	renderJSON(w, http.StatusOK, orgView{
-		User: user.Email,
-		Name: user.OrganizationName,
+		User:               user.Email,
+		Name:               user.Organization.Name,
+		ProbeToken:         user.Organization.ProbeToken,
+		FirstProbeUpdateAt: renderTime(user.Organization.FirstProbeUpdateAt),
 	})
+}
+
+func renderTime(t time.Time) string {
+	utc := t.UTC()
+	if utc.IsZero() {
+		return ""
+	}
+	return utc.Format(time.RFC3339)
 }
 
 func internalServerError(w http.ResponseWriter, err error) {

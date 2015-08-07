@@ -7,7 +7,6 @@ type Organization struct {
 	Name               string
 	ProbeToken         string
 	FirstProbeUpdateAt time.Time
-	LastProbeUpdateAt  time.Time
 	CreatedAt          time.Time
 }
 
