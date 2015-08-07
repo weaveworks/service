@@ -15,16 +15,17 @@ var prefix = regexp.MustCompile("^/api/app/[^/]+")
 
 func makeProxyHandler(a authenticator, m organizationMapper) http.Handler {
 	proxyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orgID := mux.Vars(r)["orgID"]
-		appProxy(a, m, w, r, orgID)
+		orgName := mux.Vars(r)["orgName"]
+		appProxy(a, m, w, r, orgName)
 	})
 	router := mux.NewRouter()
-	router.PathPrefix("/api/app/{orgID}/").Handler(proxyHandler)
+	router.PathPrefix("/api/app/{orgName}/").Handler(proxyHandler)
 	return router
 }
 
-func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *http.Request, orgID string) {
-	if ok := confirmOrganization(a, w, r, orgID); !ok {
+func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *http.Request, orgName string) {
+	orgID := verifyOrganization(a, w, r, orgName)
+	if orgID == "" {
 		return
 	}
 
@@ -38,7 +39,7 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 		r.URL.Opaque = r.RequestURI
 		r.URL.RawQuery = ""
 
-		// Trim /api/app/<orgID> off the front of URL
+		// Trim /api/app/<orgName> off the front of URL
 		r.URL.Opaque = prefix.ReplaceAllLiteralString(r.URL.Opaque, "")
 
 		// Forward current request to the target host since it was received before hijacking
@@ -67,8 +68,8 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 	runProxy(targetHost, w, proxyFunc)
 }
 
-func confirmOrganization(a authenticator, w http.ResponseWriter, r *http.Request, orgID string) bool {
-	authResponse, err := a.authenticate(r, orgID)
+func verifyOrganization(a authenticator, w http.ResponseWriter, r *http.Request, orgName string) string {
+	authResponse, err := a.authenticate(r, orgName)
 	if err != nil {
 		if unauth, ok := err.(unauthorized); ok {
 			logrus.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
@@ -77,19 +78,19 @@ func confirmOrganization(a authenticator, w http.ResponseWriter, r *http.Request
 			logrus.Errorf("proxy: error contacting authenticator: %v", err)
 			w.WriteHeader(http.StatusBadGateway)
 		}
-		return false
+		return ""
 	}
-	return authResponse.OrganizationID == orgID
+	return authResponse.OrganizationID
 }
 
 func getTargetHost(m organizationMapper, w http.ResponseWriter, r *http.Request, orgID string) string {
 	targetHost, err := m.getOrganizationsHost(orgID)
 	if err != nil {
-		logrus.Errorf("proxy: cannot get host for organization %q: %v", orgID, err)
+		logrus.Errorf("proxy: cannot get host for organization with ID %q: %v", orgID, err)
 		w.WriteHeader(http.StatusBadGateway)
 		return ""
 	}
-	logrus.Infof("proxy: mapping organization %q to host %q", orgID, targetHost)
+	logrus.Infof("proxy: mapping organization with ID %q to host %q", orgID, targetHost)
 	return targetHost
 }
 

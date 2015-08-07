@@ -34,10 +34,10 @@ func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFu
 	testFunc(parsedProxyURL.Host)
 }
 
-type AuthenticatorFunc func(r *http.Request, orgID string) (authenticatorResponse, error)
+type AuthenticatorFunc func(r *http.Request, orgName string) (authenticatorResponse, error)
 
-func (f AuthenticatorFunc) authenticate(r *http.Request, orgID string) (authenticatorResponse, error) {
-	return f(r, orgID)
+func (f AuthenticatorFunc) authenticate(r *http.Request, orgName string) (authenticatorResponse, error) {
+	return f(r, orgName)
 }
 
 // Test that a request sent to the proxy is received by the other end
@@ -56,10 +56,10 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 		w.Write(targetResponse)
 	})
 
-	var targetRecordedOrgID string
-	authenticator := AuthenticatorFunc(func(r *http.Request, orgID string) (authenticatorResponse, error) {
-		targetRecordedOrgID = orgID
-		return authenticatorResponse{orgID}, nil
+	var targetRecordedOrgName string
+	authenticator := AuthenticatorFunc(func(r *http.Request, orgName string) (authenticatorResponse, error) {
+		targetRecordedOrgName = orgName
+		return authenticatorResponse{"somePersistentInternalID"}, nil
 	})
 
 	testFunc := func(proxyHost string) {
@@ -76,7 +76,7 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 
 		// Check that everything was received as expected
 		require.NotNil(t, targetRecordedReq, "target didn't receive request")
-		reconstructedPath := "/api/app/" + url.QueryEscape(targetRecordedOrgID) + targetRecordedReq.URL.Path
+		reconstructedPath := "/api/app/" + url.QueryEscape(targetRecordedOrgName) + targetRecordedReq.URL.Path
 		assert.Equal(t, reconstructedPath, req.URL.Path, "URL mismatch")
 		requestEqual(t, req, targetRecordedReq, "Request mismatch")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "Response status mismatch")
@@ -112,13 +112,13 @@ func requestEqual(t *testing.T, expected *http.Request, actual *http.Request, ms
 }
 
 func TestProxyGet(t *testing.T) {
-	req, err := http.NewRequest("GET", "http://example.com/api/app/foo/request?arg1=foo&arg2=bar", nil)
+	req, err := http.NewRequest("GET", "http://example.com/api/app/somePublicOrgName/request?arg1=foo&arg2=bar", nil)
 	require.NoError(t, err, "Cannot create request")
 	testHTTPRequest(t, req)
 }
 
 func TestProxyPost(t *testing.T) {
-	req, err := http.NewRequest("POST", "http://example.com/api/app/foo/request?arg1=foo&arg2=bar",
+	req, err := http.NewRequest("POST", "http://example.com/api/app/somePublicOrgName/request?arg1=foo&arg2=bar",
 		strings.NewReader("z=post&both=y&prio=2&empty="))
 	require.NoError(t, err, "Cannot create request")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
@@ -150,7 +150,7 @@ func TestUnauthorized(t *testing.T) {
 			errors.New("Whatever"):                       http.StatusBadGateway,
 		}
 
-		url := "http://" + proxyHost + "/api/app/foo/request?arg1=foo&arg2=bar"
+		url := "http://" + proxyHost + "/api/app/somePublicOrgName/request?arg1=foo&arg2=bar"
 		for authErr, expectedProxyStatus := range authErrToProxyStatus {
 			authenticatorError = authErr
 			res, err := http.Get(url)
@@ -172,7 +172,7 @@ func TestProxyWebSocket(t *testing.T) {
 
 	testFunc := func(proxyHost string) {
 		// Establish a websocket connection with the proxy
-		ws, err := websocket.Dial("ws://"+proxyHost+"/api/app/foo/request?arg1=foo&arg2=bar", "", "http://example.com")
+		ws, err := websocket.Dial("ws://"+proxyHost+"/api/app/somePublicOrgName/request?arg1=foo&arg2=bar", "", "http://example.com")
 		require.NoError(t, err, "Cannot dial websocket server")
 		defer ws.Close()
 

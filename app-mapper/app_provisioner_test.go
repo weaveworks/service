@@ -17,7 +17,7 @@ const appPort = "80"
 func testAppProvisioner(t *testing.T, appID string, test func(p appProvisioner, host string)) {
 	echoAppConfig := docker.Config{
 		Image: "busybox",
-		Cmd:   strings.Split("busybox nc -ll -p "+appPort+" -e cat", " "),
+		Cmd:   strings.Fields("busybox nc -ll -p " + appPort + " -e cat"),
 	}
 	o := dockerProvisionerOptions{
 		appConfig:     echoAppConfig,
