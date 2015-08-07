@@ -6,7 +6,7 @@ users:
     - "3000:80"
 db:
   build: db
-  hostname: db.weave.local.
+  hostname: users-db.weave.local.
   ports:
     - "5432:5432"
 mailcatcher:

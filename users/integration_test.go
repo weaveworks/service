@@ -14,7 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var databaseURI = flag.String("database-uri", "postgres://postgres@db.weave.local/weave_test?sslmode=disable", "Uri of a test database")
+var databaseURI = flag.String("database-uri", "postgres://postgres@users-db.weave.local/weave_test?sslmode=disable", "Uri of a test database")
 
 var sentEmails []*email.Email
 var app http.Handler
