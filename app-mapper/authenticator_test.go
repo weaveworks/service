@@ -20,7 +20,7 @@ func testAuthenticator(t *testing.T, serverHandler http.Handler, testFunc func(a
 }
 
 func newRequestToAuthenticate(t *testing.T, authCookieValue string, authHeaderValue string) *http.Request {
-	req, err := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
+	req, err := http.NewRequest("GET", "http://example.com/api/app/request?arg1=foo&arg2=bar", nil)
 	require.NoError(t, err, "Cannot create request")
 	if len(authCookieValue) > 0 {
 		c := http.Cookie{

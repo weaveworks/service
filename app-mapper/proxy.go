@@ -8,9 +8,20 @@ import (
 	"sync"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 )
 
 var prefix = regexp.MustCompile("^/api/app/[^/]+")
+
+func makeProxyHandler(a authenticator, m organizationMapper) http.Handler {
+	proxyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		orgID := mux.Vars(r)["orgID"]
+		appProxy(a, m, w, r, orgID)
+	})
+	router := mux.NewRouter()
+	router.PathPrefix("/api/app/{orgID}/").Handler(proxyHandler)
+	return router
+}
 
 func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *http.Request, orgID string) {
 	if ok := confirmOrganization(a, w, r, orgID); !ok {

@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -20,13 +19,7 @@ func main() {
 		logrus.Error("Couldn't fetch application: ", err)
 	}
 	orgMapper := flags.getOrganizationMapper(appProvisioner)
-	appProxyHandle := func(w http.ResponseWriter, r *http.Request) {
-		orgID := mux.Vars(r)["orgID"]
-		appProxy(authenticator, orgMapper, w, r, orgID)
-	}
-	router := mux.NewRouter()
-	router.HandleFunc("/api/app/{orgID}", appProxyHandle)
-	http.Handle("/", router)
+	http.Handle("/", makeProxyHandler(authenticator, orgMapper))
 	logrus.Info("Listening on :80")
 	handler := makeLoggingHandler(http.DefaultServeMux)
 	logrus.Fatal(http.ListenAndServe(":80", handler))
