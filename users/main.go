@@ -216,7 +216,7 @@ func Lookup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	authHeader := r.Header.Get("Authorization")
-	if fields := strings.Fields(authHeader); len(fields) == 2 && fields[0] == "Probe" {
+	if fields := strings.Fields(authHeader); len(fields) == 2 && fields[0] == "Scope-Probe" {
 		org, err := storage.FindOrganizationByName(orgName)
 		if err == nil && fields[1] == org.ProbeToken {
 			renderJSON(w, http.StatusOK, lookupView{OrganizationID: org.ID})
