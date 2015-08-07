@@ -76,7 +76,8 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 
 		// Check that everything was received as expected
 		require.NotNil(t, targetRecordedReq, "target didn't receive request")
-		assert.Equal(t, req.URL.Path, "/api/app/"+targetRecordedOrgID+targetRecordedReq.URL.Path)
+		reconstructedPath := "/api/app/" + url.QueryEscape(targetRecordedOrgID) + targetRecordedReq.URL.Path
+		assert.Equal(t, reconstructedPath, req.URL.Path, "URL mismatch")
 		requestEqual(t, req, targetRecordedReq, "Request mismatch")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "Response status mismatch")
 		body, err := ioutil.ReadAll(res.Body)
@@ -121,6 +122,12 @@ func TestProxyPost(t *testing.T) {
 		strings.NewReader("z=post&both=y&prio=2&empty="))
 	require.NoError(t, err, "Cannot create request")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
+	testHTTPRequest(t, req)
+}
+
+func TestProxyEncoding(t *testing.T) {
+	req, err := http.NewRequest("GET", "http://example.com/api/app/a%2Fb/request?arg1=foo&arg2=bar", nil)
+	require.NoError(t, err, "Cannot create request")
 	testHTTPRequest(t, req)
 }
 
