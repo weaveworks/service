@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	ErrInvalidAuthenticationData = errors.New("invalid authentication data")
+	ErrInvalidAuthenticationData = errors.New("Invalid authentication data")
 )
 
 func setupSessions(validationSecret string) {
@@ -75,7 +75,6 @@ func (s SessionStore) Set(w http.ResponseWriter, userID string) error {
 	if err == nil {
 		http.SetCookie(w, &http.Cookie{
 			Name:    cookieName,
-			Domain:  domain,
 			Value:   value,
 			Path:    "/",
 			Expires: time.Now().UTC().Add(sessionDuration),
