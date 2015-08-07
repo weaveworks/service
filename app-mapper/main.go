@@ -12,7 +12,13 @@ func main() {
 	setupLogging(flags.logLevel)
 
 	authenticator := flags.getAuthenticator()
-	orgMapper := flags.getOrganizationMapper()
+	appProvisioner := flags.getAppProvisioner()
+	logrus.Info("Fetching application")
+	err := appProvisioner.fetchApp()
+	if err != nil {
+		logrus.Error("Couldn't fetch application: ", err)
+	}
+	orgMapper := flags.getOrganizationMapper(appProvisioner)
 	appProxyHandle := func(w http.ResponseWriter, r *http.Request) {
 		appProxy(authenticator, orgMapper, w, r)
 	}

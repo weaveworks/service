@@ -7,19 +7,20 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testAuthenticator(t *testing.T, serverHandler http.Handler, testFunc func(a authenticator)) {
 	authenticatorServer := httptest.NewServer(serverHandler)
 	defer authenticatorServer.Close()
 	parsedAuthenticatorURL, err := url.Parse(authenticatorServer.URL)
-	assert.NoError(t, err, "Cannot parse authenticatorServer URL")
+	require.NoError(t, err, "Cannot parse authenticatorServer URL")
 	testFunc(&webAuthenticator{parsedAuthenticatorURL.Host})
 }
 
 func newRequestToAuthenticate(t *testing.T, authCookieValue string, authHeaderValue string) *http.Request {
 	req, err := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
-	assert.NoError(t, err, "Cannot create request")
+	require.NoError(t, err, "Cannot create request")
 	if len(authCookieValue) > 0 {
 		c := http.Cookie{
 			Name:  authCookieName,

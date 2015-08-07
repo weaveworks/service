@@ -2,5 +2,5 @@ appmapper:
   image: weaveworks/app-mapper
   hostname: app-mapper.weave.local.
 db:
-  build: db
+  image: weaveworks/app-mapper-db
   hostname: app-mapper-db.weave.local.

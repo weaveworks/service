@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/net/websocket"
 )
 
@@ -21,7 +22,7 @@ func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFu
 	targetTestServer := httptest.NewServer(targetHandler)
 	defer targetTestServer.Close()
 	parsedTargetURL, err := url.Parse(targetTestServer.URL)
-	assert.NoError(t, err, "Cannot parse targetTestServer URL")
+	require.NoError(t, err, "Cannot parse targetTestServer URL")
 
 	// Set a test server for the proxy (required for Hijack to work)
 	m := &constantMapper{parsedTargetURL.Host}
@@ -31,7 +32,7 @@ func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFu
 	defer proxyTestServer.Close()
 
 	parsedProxyURL, err := url.Parse(proxyTestServer.URL)
-	assert.NoError(t, err, "Cannot parse proxyTestServer URL")
+	require.NoError(t, err, "Cannot parse proxyTestServer URL")
 	testFunc(parsedProxyURL.Host)
 }
 
@@ -99,14 +100,14 @@ func requestEqual(t *testing.T, expected *http.Request, actual *http.Request, ms
 
 func TestProxyGet(t *testing.T) {
 	req, err := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
-	assert.NoError(t, err, "Cannot create request")
+	require.NoError(t, err, "Cannot create request")
 	testHTTPRequestTransparency(t, req)
 }
 
 func TestProxyPost(t *testing.T) {
 	req, err := http.NewRequest("POST", "http://example.com/request?arg1=foo&arg2=bar",
 		strings.NewReader("z=post&both=y&prio=2&empty="))
-	assert.NoError(t, err, "Cannot create request")
+	require.NoError(t, err, "Cannot create request")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
 	testHTTPRequestTransparency(t, req)
 }

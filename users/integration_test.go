@@ -26,6 +26,8 @@ func setup(t *testing.T) {
 	sentEmails = nil
 	sendEmail = testEmailSender
 
+	var directLogin = false
+
 	setupLogging("debug")
 	setupStorage(*databaseURI)
 	setupTemplates()
@@ -33,7 +35,7 @@ func setup(t *testing.T) {
 
 	truncateDatabase(t)
 
-	app = handler()
+	app = handler(directLogin)
 }
 
 func cleanup(t *testing.T) {
