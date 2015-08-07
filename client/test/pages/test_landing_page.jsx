@@ -8,7 +8,7 @@ describe("LandingPage Component", function() {
   it("should render", function() {
 
     let landingPageComponent = TestUtils.renderIntoDocument(
-      <LandingPage />
+      <LandingPage params={{email: null, token: null}} />
     );
 
     let heading = TestUtils.findRenderedDOMComponentWithTag(
