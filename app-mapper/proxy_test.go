@@ -26,7 +26,7 @@ func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFu
 
 	// Set a test server for the proxy (required for Hijack to work)
 	m := &constantMapper{parsedTargetURL.Host}
-	proxyTestServer := httptest.NewServer(makeProxyHandler(a, m))
+	proxyTestServer := httptest.NewServer(proxy{a, m}.handler())
 	defer proxyTestServer.Close()
 
 	parsedProxyURL, err := url.Parse(proxyTestServer.URL)
@@ -56,9 +56,9 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 		w.Write(targetResponse)
 	})
 
-	var targetRecordedOrgName string
+	var recordedOrgName string
 	authenticator := AuthenticatorFunc(func(r *http.Request, orgName string) (authenticatorResponse, error) {
-		targetRecordedOrgName = orgName
+		recordedOrgName = orgName
 		return authenticatorResponse{"somePersistentInternalID"}, nil
 	})
 
@@ -76,7 +76,7 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 
 		// Check that everything was received as expected
 		require.NotNil(t, targetRecordedReq, "target didn't receive request")
-		reconstructedPath := "/api/app/" + url.QueryEscape(targetRecordedOrgName) + targetRecordedReq.URL.Path
+		reconstructedPath := "/api/app/" + url.QueryEscape(recordedOrgName) + targetRecordedReq.URL.Path
 		assert.Equal(t, reconstructedPath, req.URL.Path, "URL mismatch")
 		requestEqual(t, req, targetRecordedReq, "Request mismatch")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "Response status mismatch")
@@ -126,9 +126,47 @@ func TestProxyPost(t *testing.T) {
 }
 
 func TestProxyEncoding(t *testing.T) {
-	req, err := http.NewRequest("GET", "http://example.com/api/app/a%2Fb/request?arg1=foo&arg2=bar", nil)
+	req, err := http.NewRequest("GET", "http://example.com/api/app/some%2FPublic%2FOrgName/request?arg1=foo&arg2=bar", nil)
 	require.NoError(t, err, "Cannot create request")
 	testHTTPRequest(t, req)
+}
+
+func TestMultiRequest(t *testing.T) {
+
+	targetReqCounter := 0
+	targetHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetReqCounter++
+		w.WriteHeader(http.StatusOK)
+	})
+
+	authenticatorReqCounter := 0
+	authenticator := AuthenticatorFunc(func(r *http.Request, orgName string) (authenticatorResponse, error) {
+		authenticatorReqCounter++
+		return authenticatorResponse{"somePersistentInternalID"}, nil
+	})
+
+	testFunc := func(proxyHost string) {
+		client := &http.Client{}
+		url := "http://" + proxyHost + "/api/app/somePublicOrgName/request?arg1=foo&arg2=bar"
+		req, err := http.NewRequest("GET", url, nil)
+		require.NoError(t, err, "Cannot create request")
+		req.Header.Set("Connection", "keep-alive")
+		for i := 0; i < 100; i++ {
+			if i == 99 {
+				// Close the connection in the last request to let go of the proxy
+				// (otherwise, the test will hang because the DefaultTransport
+				//  caches clients, and doesn't explicitly close them)
+				req.Header.Set("Connection", "close")
+			}
+			res, err := client.Do(req)
+			require.NoError(t, err, "Cannot make test request")
+			res.Body.Close()
+		}
+		assert.Equal(t, 100, targetReqCounter, "Mismatching target requests")
+		assert.Equal(t, 100, authenticatorReqCounter, "Mismatching authenticator requests")
+	}
+
+	testProxy(t, targetHandler, authenticator, testFunc)
 }
 
 func TestUnauthorized(t *testing.T) {
@@ -147,7 +185,7 @@ func TestUnauthorized(t *testing.T) {
 			unauthorized{http.StatusUnauthorized}:        http.StatusUnauthorized,
 			unauthorized{http.StatusBadRequest}:          http.StatusUnauthorized,
 			unauthorized{http.StatusInternalServerError}: http.StatusUnauthorized,
-			errors.New("Whatever"):                       http.StatusBadGateway,
+			errors.New("PhonyError"):                     http.StatusBadGateway,
 		}
 
 		url := "http://" + proxyHost + "/api/app/somePublicOrgName/request?arg1=foo&arg2=bar"
@@ -180,9 +218,11 @@ func TestProxyWebSocket(t *testing.T) {
 		messageToSend := "This is a test message"
 		var messageToReceive string
 		for i := 0; i < 100; i++ {
-			websocket.Message.Send(ws, messageToSend)
+			err = websocket.Message.Send(ws, messageToSend)
+			require.NoError(t, err, "Error sending message")
 			websocket.Message.Receive(ws, &messageToReceive)
-			assert.Equal(t, messageToSend, messageToReceive)
+			require.NoError(t, err, "Error receiving message")
+			require.Equal(t, messageToSend, messageToReceive)
 			messageToReceive = ""
 		}
 	}

@@ -5,7 +5,9 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/Sirupsen/logrus"
@@ -14,7 +16,12 @@ import (
 
 var prefix = regexp.MustCompile("^/api/app/[^/]+")
 
-func makeProxyHandler(a authenticator, m organizationMapper) http.Handler {
+type proxy struct {
+	authenticator authenticator
+	mapper        organizationMapper
+}
+
+func (p proxy) handler() http.Handler {
 	router := mux.NewRouter()
 	router.Path("/api/app/{orgName}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orgName := mux.Vars(r)["orgName"]
@@ -23,54 +30,55 @@ func makeProxyHandler(a authenticator, m organizationMapper) http.Handler {
 	})
 	router.PathPrefix("/api/app/{orgName}/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orgName := mux.Vars(r)["orgName"]
-		appProxy(a, m, w, r, orgName)
+		p.run(w, r, orgName)
 	})
 	return router
 }
 
-func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *http.Request, orgName string) {
-	orgID := verifyOrganization(a, w, r, orgName)
+func (p proxy) run(w http.ResponseWriter, r *http.Request, orgName string) {
+	orgID := verifyOrganization(p.authenticator, w, r, orgName)
 	if orgID == "" {
 		return
 	}
 
-	targetHost := getTargetHost(m, w, r, orgID)
+	targetHost := getTargetHost(p.mapper, w, r, orgID)
 	if targetHost == "" {
 		return
 	}
 
-	proxyFunc := func(clientConn net.Conn, targetConn net.Conn) {
-		// Ensure the URL is not incorrectly munged by go.
-		r.URL.Opaque = r.RequestURI
-		r.URL.RawQuery = ""
+	// Tweak request before sending
+	r.Host = targetHost
+	r.URL.Host = targetHost
+	r.URL.Scheme = "http"
 
-		// Trim /api/app/<orgName> off the front of URL
-		r.URL.Opaque = prefix.ReplaceAllLiteralString(r.URL.Opaque, "")
+	// Ensure the URL is not incorrectly munged by go.
+	r.URL.Opaque = r.RequestURI
+	r.URL.RawQuery = ""
 
-		// Forward current request to the target host since it was received before hijacking
-		logrus.Debugf("proxy: writing original request to http://%s%s", targetHost, r.URL.Opaque)
+	// Trim /api/app/<orgName> off the front of URL
+	r.URL.Opaque = prefix.ReplaceAllLiteralString(r.URL.Opaque, "")
 
-		if err := r.Write(targetConn); err != nil {
-			logrus.Errorf("proxy: error copying request to target: %v", err)
-			return
-		}
-
-		// Copy information back and forth between our client and the target host
-		var wg sync.WaitGroup
-		cp := func(dst io.Writer, src io.Reader) {
-			defer wg.Done()
-			io.Copy(dst, src)
-			logrus.Debugf("proxy: copier exited")
-		}
-		logrus.Debugf("proxy: spawning copiers")
-		wg.Add(2)
-		go cp(targetConn, clientConn)
-		go cp(clientConn, targetConn)
-		wg.Wait()
-		logrus.Debugf("proxy: connection closed")
+	// Detect whether we should do websockets
+	if isWSHandshakeRequest(r) {
+		logrus.Debugf("proxy: detected websocket handshake")
+		proxyWS(targetHost, w, r)
+		return
 	}
 
-	runProxy(targetHost, w, proxyFunc)
+	// Send request
+	res, err := http.DefaultTransport.RoundTrip(r)
+	if err != nil {
+		logrus.Errorf("proxy: error copying request to target: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer res.Body.Close()
+
+	// Return response
+	err = copyResponse(w, res)
+	if err != nil {
+		logrus.Errorf("proxy: error copying response back to client: %v", err)
+	}
 }
 
 func verifyOrganization(a authenticator, w http.ResponseWriter, r *http.Request, orgName string) string {
@@ -99,16 +107,64 @@ func getTargetHost(m organizationMapper, w http.ResponseWriter, r *http.Request,
 	return targetHost
 }
 
-func runProxy(targetHost string, w http.ResponseWriter, proxyFunc func(clientConn net.Conn, targetConn net.Conn)) {
+func isWSHandshakeRequest(req *http.Request) bool {
+	return strings.ToLower(req.Header.Get("Upgrade")) == "websocket" &&
+		strings.ToLower(req.Header.Get("Connection")) == "upgrade"
+
+}
+
+func isWSHandshakeResponse(res *http.Response) bool {
+	return res.StatusCode == http.StatusSwitchingProtocols &&
+		strings.ToLower(res.Header.Get("Upgrade")) == "websocket" &&
+		strings.ToLower(res.Header.Get("Connection")) == "upgrade"
+}
+
+func proxyWS(targetHost string, w http.ResponseWriter, wsHandshakeReq *http.Request) {
+	// Use httputil's ClientConn to contact the target since we need to
+	// reuse the connection after upgrading to websocket and http.Client's
+	// connection is not hijackable
 	targetHostPort := addPort(targetHost, "4040")
 	targetConn, err := net.Dial("tcp", targetHostPort)
-
 	if err != nil {
 		logrus.Errorf("proxy: error dialing backend %q: %v", targetHost, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer targetConn.Close()
+	client := httputil.NewClientConn(targetConn, nil)
+
+	// Make sure the handshake goes through, otherwise stay in http
+	logrus.Debugf("proxy: sending websocket handshake to target")
+	wsHandshakeRes, err := client.Do(wsHandshakeReq)
+	if err != nil {
+		logrus.Errorf("proxy: error sending websocket handshake request to target %q: %v", targetHost, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Write the handshake response back, whatever that is
+	logrus.Debugf("proxy: copying websocket response to client")
+	err = copyResponse(w, wsHandshakeRes)
+	if err != nil {
+		logrus.Errorf("proxy: error copying websocket handshake response: %v", err)
+		return
+	}
+
+	if !isWSHandshakeResponse(wsHandshakeRes) {
+		// stay in http
+		logrus.Infof("proxy: unexpected websocket handshake response: %v", *wsHandshakeRes)
+		return
+	}
+	logrus.Debugf("proxy: websocket handshake finished")
+
+	// Now we have upgraded to websocket
+
+	// Go back to raw tcp with our target
+	targetConn, _ = client.Hijack()
+	if err != nil {
+		logrus.Errorf("proxy: error hijacking client: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 
 	// Hijack the connection to copy raw data back to our client
 	hijacker, ok := w.(http.Hijacker)
@@ -117,15 +173,30 @@ func runProxy(targetHost string, w http.ResponseWriter, proxyFunc func(clientCon
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	clientConn, _, err := hijacker.Hijack()
+	clientConn, buf, err := hijacker.Hijack()
 	if err != nil {
 		logrus.Errorf("proxy: Hijack error: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer clientConn.Close()
+	if err = buf.Flush(); err != nil {
+		logrus.Errorf("proxy: cannot flush webserver buffer after Hijack: %v", err)
+		return
+	}
 
-	proxyFunc(clientConn, targetConn)
+	// Copy websocket back and forth between our client and the target host
+	var wg sync.WaitGroup
+	cp := func(dst io.Writer, src io.Reader) {
+		defer wg.Done()
+		io.Copy(dst, src)
+		logrus.Debugf("proxy: copier exited")
+	}
+	logrus.Debugf("proxy: spawning copiers")
+	wg.Add(2)
+	go cp(targetConn, clientConn)
+	go cp(clientConn, targetConn)
+	wg.Wait()
+	logrus.Debugf("proxy: connection closed")
 }
 
 func addPort(host, defaultPort string) string {
@@ -135,4 +206,15 @@ func addPort(host, defaultPort string) string {
 		return host
 	}
 	return net.JoinHostPort(host, defaultPort)
+}
+
+func copyResponse(w http.ResponseWriter, r *http.Response) error {
+	for k, vv := range r.Header {
+		for _, v := range vv {
+			w.Header().Add(k, v)
+		}
+	}
+	w.WriteHeader(r.StatusCode)
+	_, err := io.Copy(w, r.Body)
+	return err
 }
