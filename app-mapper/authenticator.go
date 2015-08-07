@@ -48,7 +48,7 @@ func (m *webAuthenticator) authenticate(r *http.Request, orgID string) (authenti
 	// lookup.
 	authCookie, err := r.Cookie(authCookieName)
 	authHeader := r.Header.Get(authHeaderName)
-	if err != nil && len(authHeader) == 0 {
+	if err != nil && authHeader == "" {
 		return authenticatorResponse{}, &unauthorized{http.StatusUnauthorized}
 	}
 
@@ -70,15 +70,14 @@ func (m *webAuthenticator) authenticate(r *http.Request, orgID string) (authenti
 	if err := json.NewDecoder(res.Body).Decode(&authRes); err != nil {
 		return authenticatorResponse{}, err
 	}
-	if len(authRes.OrganizationID) == 0 {
+	if authRes.OrganizationID == "" {
 		return authenticatorResponse{}, errors.New("empty OrganizationID")
 	}
 	return authRes, nil
 }
 
 func (m *webAuthenticator) buildLookupRequest(orgID string, authCookie *http.Cookie, authHeader string) *http.Request {
-	const authLookupURL = "http://%s/private/api/users/lookup/%s"
-	url := fmt.Sprintf(authLookupURL, m.serverHost, url.QueryEscape(orgID))
+	url := fmt.Sprintf("http://%s/private/api/users/lookup/%s", m.serverHost, url.QueryEscape(orgID))
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		logrus.Fatal("authenticator: cannot build lookup request: ", err)

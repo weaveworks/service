@@ -20,13 +20,13 @@ $ docker run weaveworks/app-mapper
 
 ## Tests
 
-unit tests:
+Unit tests:
 
 ```
 $ make test
 ```
 
-integration tests:
+Integration tests:
 
 ```
 $ make integration-test

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -45,7 +46,7 @@ func TestAuthorize(t *testing.T) {
 	shFunc := func(w http.ResponseWriter, r *http.Request, orgID string) {
 		assert.Equal(t, "GET", r.Method, "Unexpected method")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{ "organizationID": "` + orgID + `" }`))
+		fmt.Fprintf(w, `{ "organizationID": "%s" }`, orgID)
 	}
 
 	testFunc := func(a authenticator) {
@@ -68,11 +69,11 @@ func TestAuthorize(t *testing.T) {
 func TestEncoding(t *testing.T) {
 	shFunc := func(w http.ResponseWriter, r *http.Request, orgID string) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{ "organizationID": "` + orgID + `" }`))
+		fmt.Fprintf(w, `{ "organizationID": "%s" }`, orgID)
 	}
 
 	testFunc := func(a authenticator) {
-		const organizationID = "%21?ЖЗИЙК%$?"
+		const organizationID = "%21?ЖЗИЙ%2FК%$?"
 
 		r := newRequestToAuthenticate(t, "someCookieValue", "")
 		res, err := a.authenticate(r, organizationID)
@@ -114,7 +115,7 @@ func TestCredentialForwarding(t *testing.T) {
 		}
 		obtainedAuthHeaderValue = r.Header.Get(authHeaderName)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{ "organizationID": "` + orgID + `" }`))
+		fmt.Fprintf(w, `{ "organizationID": "%s" }`, orgID)
 	}
 
 	testFunc := func(a authenticator) {
