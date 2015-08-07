@@ -3,9 +3,6 @@ package main
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"fmt"
-	htmlTemplate "html/template"
-	"net/url"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -43,21 +40,4 @@ func (u *User) CompareToken(other string) bool {
 		return false
 	}
 	return time.Now().UTC().Sub(u.TokenCreatedAt) <= 6*time.Hour
-}
-
-func (u *User) LoginURL(rawToken string) string {
-	email := url.QueryEscape(u.Email)
-	token := url.QueryEscape(rawToken)
-	return fmt.Sprintf("http://%s/#/login/%s/%s", domain, email, token)
-}
-
-func (u *User) LoginLink(rawToken string) htmlTemplate.HTML {
-	url := u.LoginURL(rawToken)
-	return htmlTemplate.HTML(
-		fmt.Sprintf(
-			"<a href=\"%s\">%s</a>",
-			url,
-			htmlTemplate.HTMLEscapeString(url),
-		),
-	)
 }

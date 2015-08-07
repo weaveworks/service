@@ -20,7 +20,6 @@ var sentEmails []*email.Email
 var app http.Handler
 
 func setup(t *testing.T) {
-	domain = "example.com"
 	passwordHashingCost = bcrypt.MinCost
 
 	// TODO: Use some more realistic mailer here

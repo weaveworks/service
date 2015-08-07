@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	htmlTemplate "html/template"
 	"net"
 	"net/smtp"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 
 const (
 	fromAddress = "Scope Support <support@weave.works>"
+	domain      = "run.weave.works"
 )
 
 var (
@@ -73,8 +75,8 @@ func SendApprovedEmail(u *User, token string) error {
 	e.To = []string{u.Email}
 	e.Subject = "Scope account approved"
 	data := map[string]interface{}{
-		"LoginURL":  u.LoginURL(token),
-		"LoginLink": u.LoginLink(token),
+		"LoginURL":  LoginURL(u.Email, token),
+		"LoginLink": LoginLink(u.Email, token),
 		"Token":     token,
 	}
 	e.Text = quietTemplateBytes("approved_email.text", data)
@@ -88,11 +90,31 @@ func SendLoginEmail(u *User, token string) error {
 	e.To = []string{u.Email}
 	e.Subject = "Login to Scope"
 	data := map[string]interface{}{
-		"LoginURL":  u.LoginURL(token),
-		"LoginLink": u.LoginLink(token),
+		"LoginURL":  LoginURL(u.Email, token),
+		"LoginLink": LoginLink(u.Email, token),
 		"Token":     token,
 	}
 	e.Text = quietTemplateBytes("login_email.text", data)
 	e.HTML = quietTemplateBytes("login_email.html", data)
 	return sendEmail(e)
+}
+
+func LoginURL(email, rawToken string) string {
+	return fmt.Sprintf(
+		"http://%s/#/login/%s/%s",
+		domain,
+		url.QueryEscape(email),
+		url.QueryEscape(rawToken),
+	)
+}
+
+func LoginLink(email, rawToken string) htmlTemplate.HTML {
+	url := LoginURL(email, rawToken)
+	return htmlTemplate.HTML(
+		fmt.Sprintf(
+			"<a href=\"%s\">%s</a>",
+			url,
+			htmlTemplate.HTMLEscapeString(url),
+		),
+	)
 }
