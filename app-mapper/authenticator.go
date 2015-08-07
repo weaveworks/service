@@ -38,12 +38,11 @@ type webAuthenticator struct {
 }
 
 const (
-	authLookupURL  = "http://%s/private/api/users/lookup/%s"
 	authCookieName = "_weave_run_session"
 	authHeaderName = "Authorization"
 )
 
-func (m *webAuthenticator) authenticate(r *http.Request, org string) (authenticatorResponse, error) {
+func (m *webAuthenticator) authenticate(r *http.Request, orgID string) (authenticatorResponse, error) {
 	// Extract Authorization cookie and/or the Authorization header to inject them in the
 	// lookup request. If the cookie and the header were not set, don't even bother to do a
 	// lookup.
@@ -53,19 +52,9 @@ func (m *webAuthenticator) authenticate(r *http.Request, org string) (authentica
 		return authenticatorResponse{}, &unauthorized{http.StatusUnauthorized}
 	}
 
-	// Contact the authorization server
-	url := fmt.Sprintf(authLookupURL, m.serverHost, url.QueryEscape(org))
-	lookupReq, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		logrus.Fatal("authenticator: unexpectedly failed:", err)
-	}
-	if len(authHeader) > 0 {
-		lookupReq.Header.Set(authHeaderName, authHeader)
-	}
-	if authCookie != nil {
-		lookupReq.AddCookie(authCookie)
-	}
+	lookupReq := m.buildLookupRequest(orgID, authCookie, authHeader)
 
+	// Contact the authorization server
 	client := &http.Client{}
 	res, err := client.Do(lookupReq)
 	if err != nil {
@@ -85,4 +74,21 @@ func (m *webAuthenticator) authenticate(r *http.Request, org string) (authentica
 		return authenticatorResponse{}, errors.New("empty OrganizationID")
 	}
 	return authRes, nil
+}
+
+func (m *webAuthenticator) buildLookupRequest(orgID string, authCookie *http.Cookie, authHeader string) *http.Request {
+	const authLookupURL = "http://%s/private/api/users/lookup/%s"
+	url := fmt.Sprintf(authLookupURL, m.serverHost, url.QueryEscape(orgID))
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		logrus.Fatal("authenticator: cannot build lookup request: ", err)
+	}
+
+	if len(authHeader) > 0 {
+		req.Header.Set(authHeaderName, authHeader)
+	}
+	if authCookie != nil {
+		req.AddCookie(authCookie)
+	}
+	return req
 }

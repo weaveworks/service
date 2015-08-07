@@ -21,12 +21,11 @@ func main() {
 	}
 	orgMapper := flags.getOrganizationMapper(appProvisioner)
 	appProxyHandle := func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		org := vars["org"]
-		appProxy(authenticator, orgMapper, w, r, org)
+		orgID := mux.Vars(r)["orgID"]
+		appProxy(authenticator, orgMapper, w, r, orgID)
 	}
 	router := mux.NewRouter()
-	router.HandleFunc("/api/app/{org}", appProxyHandle)
+	router.HandleFunc("/api/app/{orgID}", appProxyHandle)
 	http.Handle("/", router)
 	logrus.Info("Listening on :80")
 	handler := makeLoggingHandler(http.DefaultServeMux)

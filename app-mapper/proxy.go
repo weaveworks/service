@@ -12,8 +12,52 @@ import (
 
 var prefix = regexp.MustCompile("^/api/app/[^/]+")
 
-func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *http.Request, org string) {
-	authResponse, err := a.authenticate(r, org)
+func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *http.Request, orgID string) {
+	if ok := confirmOrganization(a, w, r, orgID); !ok {
+		return
+	}
+
+	targetHost := getTargetHost(m, w, r, orgID)
+	if targetHost == "" {
+		return
+	}
+
+	proxyFunc := func(clientConn net.Conn, targetConn net.Conn) {
+		// Ensure the URL is not incorrectly munged by go.
+		r.URL.Opaque = r.RequestURI
+		r.URL.RawQuery = ""
+
+		// Trim /api/app/<orgID> off the front of URL
+		r.URL.Opaque = prefix.ReplaceAllLiteralString(r.URL.Opaque, "")
+
+		// Forward current request to the target host since it was received before hijacking
+		logrus.Debugf("proxy: writing original request to %q", targetHost)
+
+		if err := r.Write(targetConn); err != nil {
+			logrus.Errorf("proxy: error copying request to target: %v", err)
+			return
+		}
+
+		// Copy information back and forth between our client and the target host
+		var wg sync.WaitGroup
+		cp := func(dst io.Writer, src io.Reader) {
+			defer wg.Done()
+			io.Copy(dst, src)
+			logrus.Debugf("proxy: copier exited")
+		}
+		logrus.Debugf("proxy: spawning copiers")
+		wg.Add(2)
+		go cp(targetConn, clientConn)
+		go cp(clientConn, targetConn)
+		wg.Wait()
+		logrus.Debugf("proxy: connection closed")
+	}
+
+	runProxy(targetHost, w, proxyFunc)
+}
+
+func confirmOrganization(a authenticator, w http.ResponseWriter, r *http.Request, orgID string) bool {
+	authResponse, err := a.authenticate(r, orgID)
 	if err != nil {
 		if unauth, ok := err.(unauthorized); ok {
 			logrus.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
@@ -22,27 +66,26 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 			logrus.Errorf("proxy: error contacting authenticator: %v", err)
 			w.WriteHeader(http.StatusBadGateway)
 		}
-		return
+		return false
 	}
+	return authResponse.OrganizationID == orgID
+}
 
-	targetHost, err := m.getOrganizationsHost(authResponse.OrganizationID)
+func getTargetHost(m organizationMapper, w http.ResponseWriter, r *http.Request, orgID string) string {
+	targetHost, err := m.getOrganizationsHost(orgID)
 	if err != nil {
-		logrus.Errorf(
-			"proxy: cannot get host for organization %q: %v",
-			authResponse.OrganizationID,
-			err,
-		)
+		logrus.Errorf("proxy: cannot get host for organization %q: %v", orgID, err)
 		w.WriteHeader(http.StatusBadGateway)
-		return
+		return ""
 	}
-	logrus.Infof(
-		"proxy: mapping organization %q to host %q",
-		authResponse.OrganizationID,
-		targetHost,
-	)
+	logrus.Infof("proxy: mapping organization %q to host %q", orgID, targetHost)
+	return targetHost
+}
 
+func runProxy(targetHost string, w http.ResponseWriter, proxyFunc func(clientConn net.Conn, targetConn net.Conn)) {
 	targetHostPort := addPort(targetHost, "80")
 	targetConn, err := net.Dial("tcp", targetHostPort)
+
 	if err != nil {
 		logrus.Errorf("proxy: error dialing backend %q: %v", targetHost, err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -65,34 +108,7 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 	}
 	defer clientConn.Close()
 
-	// Forward current request to the target host since it was received before hijacking
-	logrus.Debugf("proxy: writing original request to %q", targetHost)
-
-	// Ensure the URL is incorrecly munged by go.
-	r.URL.Opaque = r.RequestURI
-	r.URL.RawQuery = ""
-
-	// Trim /api/app/<foo> off the front of URL
-	r.URL.Opaque = prefix.ReplaceAllLiteralString(r.URL.Opaque, "")
-
-	if err = r.Write(targetConn); err != nil {
-		logrus.Errorf("proxy: error copying request to target: %v", err)
-		return
-	}
-
-	// Copy information back and forth between our client and the target host
-	var wg sync.WaitGroup
-	cp := func(dst io.Writer, src io.Reader) {
-		defer wg.Done()
-		io.Copy(dst, src)
-		logrus.Debugf("proxy: copier exited")
-	}
-	logrus.Debugf("proxy: spawning copiers")
-	wg.Add(2)
-	go cp(targetConn, clientConn)
-	go cp(clientConn, targetConn)
-	wg.Wait()
-	logrus.Debugf("proxy: connection closed")
+	proxyFunc(clientConn, targetConn)
 }
 
 func addPort(host, defaultPort string) string {
