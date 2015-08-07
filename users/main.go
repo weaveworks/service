@@ -113,7 +113,7 @@ func Signup(directLogin bool) http.HandlerFunc {
 		}
 		if directLogin {
 			// approve user, and return token
-			if user.Organization.ID == "" {
+			if user.Organization == nil {
 				_, err = storage.ApproveUser(user.ID)
 			}
 			view.Token = token

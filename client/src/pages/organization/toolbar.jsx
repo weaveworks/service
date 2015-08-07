@@ -6,7 +6,7 @@ export default class UserToolbar extends React.Component {
   render() {
     let styles = {
       toolbar: {
-        width: '66%',
+        width: '60%',
         float: 'right'
       }
     };
