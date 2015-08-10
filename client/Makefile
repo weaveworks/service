@@ -26,4 +26,4 @@ image.tar: build/app.js build/Dockerfile build/index.html
 
 clean:
 	-docker rmi $(CLIENT_SERVER_IMAGE)
-	rm -f image.tar build/app.js
+	rm -f image.tar build/app.js $(BUILDIMAGE_UPTODATE)
