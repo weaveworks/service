@@ -33,6 +33,9 @@ vagrant ssh-config >> ~/.ssh/config
 ./connect.sh <hostname>
 ```
 
+When configuring your system proxies, ensure that proxies are *not*
+bypassed for *.local.
+
 ## Test workflow
 
 From your Mac,
