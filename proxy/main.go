@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"net"
+	"net/http"
 
 	socks5 "github.com/armon/go-socks5"
 )
