@@ -12,12 +12,15 @@ NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 	echo "    sudo go install -tags netgo std"; \
 	false; \
 }
+DB_IMAGE_TAR=db_image.tar
+DB_IMAGE_NAME=weaveworks/db_image
 
 all: $(IMAGE_TAR)
 
-$(IMAGE_TAR): Dockerfile templates/* $(USERS_EXE)
+$(IMAGE_TAR): Dockerfile templates/* $(USERS_EXE) db/*
 	docker build -t $(IMAGE_NAME) .
-	docker save $(IMAGE_NAME):latest > $@
+	docker build -t $(DB_IMAGE_NAME) db/
+	docker save $(IMAGE_NAME):latest $(DB_IMAGE_NAME):latest  > $@
 
 $(USERS_EXE): *.go
 	go get -tags netgo ./$(@D)

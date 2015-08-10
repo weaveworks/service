@@ -5,7 +5,7 @@ users:
   ports:
     - "3000:80"
 db:
-  build: db
+  image: weaveworks/db_image
   hostname: users-db.weave.local.
   ports:
     - "5432:5432"
