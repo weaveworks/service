@@ -19,7 +19,7 @@ func makeProxyHandler(a authenticator, m organizationMapper) http.Handler {
 		appProxy(a, m, w, r, orgName)
 	})
 	router := mux.NewRouter()
-	router.PathPrefix("/api/app/{orgName}/").Handler(proxyHandler)
+	router.PathPrefix("/api/app/{orgName}").Handler(proxyHandler)
 	return router
 }
 
