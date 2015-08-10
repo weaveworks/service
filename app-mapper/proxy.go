@@ -51,16 +51,27 @@ func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p proxy) run(w http.ResponseWriter, r *http.Request, orgName string) {
-	orgID := verifyOrganization(p.authenticator, w, r, orgName)
-	if orgID == "" {
+	authResponse, err := p.authenticator.authenticate(r, orgName)
+	if err != nil {
+		if unauth, ok := err.(unauthorized); ok {
+			logrus.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
+			w.WriteHeader(http.StatusUnauthorized)
+		} else {
+			logrus.Errorf("proxy: error contacting authenticator: %v", err)
+			w.WriteHeader(http.StatusBadGateway)
+		}
 		return
 	}
 
-	targetHost := getTargetHost(p.mapper, w, r, orgID)
-	if targetHost == "" {
+	orgID := authResponse.OrganizationID
+	targetHost, err := p.mapper.getOrganizationsHost(orgID)
+	if err != nil {
+		logrus.Errorf("proxy: cannot get host for organization with ID %q: %v", orgID, err)
+		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
 	targetHostPort := addPort(targetHost, scopeDefaultPortNumber)
+	logrus.Infof("proxy: mapping organization with ID %q to host %q", orgID, targetHostPort)
 
 	// Tweak request before sending
 	r.Host = targetHostPort
@@ -83,32 +94,6 @@ func (p proxy) run(w http.ResponseWriter, r *http.Request, orgName string) {
 
 	// Proxy request
 	p.reverseProxy.ServeHTTP(w, r)
-}
-
-func verifyOrganization(a authenticator, w http.ResponseWriter, r *http.Request, orgName string) string {
-	authResponse, err := a.authenticate(r, orgName)
-	if err != nil {
-		if unauth, ok := err.(unauthorized); ok {
-			logrus.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
-			w.WriteHeader(http.StatusUnauthorized)
-		} else {
-			logrus.Errorf("proxy: error contacting authenticator: %v", err)
-			w.WriteHeader(http.StatusBadGateway)
-		}
-		return ""
-	}
-	return authResponse.OrganizationID
-}
-
-func getTargetHost(m organizationMapper, w http.ResponseWriter, r *http.Request, orgID string) string {
-	targetHost, err := m.getOrganizationsHost(orgID)
-	if err != nil {
-		logrus.Errorf("proxy: cannot get host for organization with ID %q: %v", orgID, err)
-		w.WriteHeader(http.StatusBadGateway)
-		return ""
-	}
-	logrus.Infof("proxy: mapping organization with ID %q to host %q", orgID, targetHost)
-	return targetHost
 }
 
 func isWSHandshakeRequest(req *http.Request) bool {
