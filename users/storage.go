@@ -39,6 +39,7 @@ type Storage interface {
 	SetUserToken(id, token string) error
 
 	FindOrganizationByProbeToken(probeToken string) (*Organization, error)
+	RenameOrganization(oldName, newName string) error
 
 	Close() error
 }

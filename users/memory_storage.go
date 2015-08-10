@@ -173,6 +173,16 @@ func (s memoryStorage) FindOrganizationByProbeToken(probeToken string) (*Organiz
 	return nil, ErrNotFound
 }
 
+func (s memoryStorage) RenameOrganization(oldName, newName string) error {
+	for _, o := range s.organizations {
+		if o.Name == oldName {
+			o.Name = newName
+			return nil
+		}
+	}
+	return ErrNotFound
+}
+
 func (s memoryStorage) Close() error {
 	return nil
 }

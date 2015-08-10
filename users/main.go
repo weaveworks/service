@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -16,6 +17,7 @@ var (
 	sessions            SessionStore
 	storage             Storage
 	passwordHashingCost = 14
+	orgNameRegex        = regexp.MustCompile(`\A[a-zA-Z0-9_-]+\z`)
 )
 
 func main() {
@@ -54,6 +56,7 @@ func routes(directLogin bool) http.Handler {
 	r.HandleFunc("/api/users/signup", Signup(directLogin)).Methods("POST")
 	r.HandleFunc("/api/users/login", Login).Methods("GET")
 	r.HandleFunc("/api/users/org/{orgName}", Authenticated(Org)).Methods("GET")
+	r.HandleFunc("/api/users/org/{orgName}", Authenticated(RenameOrg)).Methods("PUT")
 	r.HandleFunc("/api/users/org/{orgName}/users", Authenticated(ListOrganizationUsers)).Methods("GET")
 	r.HandleFunc("/api/users/org/{orgName}/users", Authenticated(InviteUser)).Methods("POST")
 	r.HandleFunc("/api/users/org/{orgName}/users/{userEmail}", Authenticated(DeleteUser)).Methods("DELETE")
@@ -327,6 +330,34 @@ func Org(currentUser *User, w http.ResponseWriter, r *http.Request) {
 		ProbeToken:         currentUser.Organization.ProbeToken,
 		FirstProbeUpdateAt: renderTime(currentUser.Organization.FirstProbeUpdateAt),
 	})
+}
+
+func RenameOrg(currentUser *User, w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	var view orgView
+	err := json.NewDecoder(r.Body).Decode(&view)
+	switch {
+	case err != nil:
+		renderError(w, http.StatusBadRequest, err)
+		return
+	case view.Name == "":
+		renderError(w, http.StatusBadRequest, fmt.Errorf("Name cannot be blank"))
+		return
+	case !orgNameRegex.MatchString(view.Name):
+		renderError(w, http.StatusBadRequest, fmt.Errorf("Name can only contain letters, numbers, hyphen, and underscore"))
+		return
+	}
+
+	err = storage.RenameOrganization(mux.Vars(r)["orgName"], view.Name)
+	switch {
+	case err == ErrNotFound:
+		renderError(w, http.StatusNotFound, err)
+		return
+	case err != nil:
+		internalServerError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func ListOrganizationUsers(currentUser *User, w http.ResponseWriter, r *http.Request) {

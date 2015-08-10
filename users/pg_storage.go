@@ -391,6 +391,25 @@ func (s pgStorage) scanOrganization(row scanner) (*Organization, error) {
 	return o, nil
 }
 
+func (s pgStorage) RenameOrganization(oldName, newName string) error {
+	result, err := s.Exec(`
+		update organizations set name = $2
+		where lower(name) = lower($1) and deleted_at is null`,
+		oldName, newName,
+	)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	switch {
+	case err != nil:
+		return err
+	case count != 1:
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (s pgStorage) Transaction(f func(*sql.Tx) error) error {
 	tx, err := s.Begin()
 	if err != nil {
