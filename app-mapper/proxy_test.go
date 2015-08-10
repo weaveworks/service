@@ -26,7 +26,7 @@ func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFu
 
 	// Set a test server for the proxy (required for Hijack to work)
 	m := &constantMapper{parsedTargetURL.Host}
-	proxyTestServer := httptest.NewServer(proxy{a, m}.handler())
+	proxyTestServer := httptest.NewServer(proxy{a, m})
 	defer proxyTestServer.Close()
 
 	parsedProxyURL, err := url.Parse(proxyTestServer.URL)

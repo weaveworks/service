@@ -21,7 +21,7 @@ type proxy struct {
 	mapper        organizationMapper
 }
 
-func (p proxy) handler() http.Handler {
+func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	router := mux.NewRouter()
 	router.Path("/api/app/{orgName}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orgName := mux.Vars(r)["orgName"]
@@ -32,7 +32,7 @@ func (p proxy) handler() http.Handler {
 		orgName := mux.Vars(r)["orgName"]
 		p.run(w, r, orgName)
 	})
-	return router
+	router.ServeHTTP(w, r)
 }
 
 func (p proxy) run(w http.ResponseWriter, r *http.Request, orgName string) {
