@@ -26,7 +26,7 @@ func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFu
 
 	// Set a test server for the proxy (required for Hijack to work)
 	m := &constantMapper{parsedTargetURL.Host}
-	proxyTestServer := httptest.NewServer(proxy{a, m})
+	proxyTestServer := httptest.NewServer(newProxy(a, m))
 	defer proxyTestServer.Close()
 
 	parsedProxyURL, err := url.Parse(proxyTestServer.URL)
@@ -100,7 +100,11 @@ func copyRequest(t *testing.T, req *http.Request) *http.Request {
 func requestEqual(t *testing.T, expected *http.Request, actual *http.Request, msg string) {
 	assert.Equal(t, expected.Method, actual.Method, msg+": method")
 	assert.Equal(t, expected.ContentLength, actual.ContentLength, msg+": content length")
-	assert.Equal(t, expected.Header, actual.Header, msg+": headers")
+	// Leave "X-Forwarded-For" out of the comparison since it's legitimately injected by the proxy
+	headerToCompare := make(http.Header)
+	copyHeader(headerToCompare, actual.Header)
+	delete(headerToCompare, "X-Forwarded-For")
+	assert.Equal(t, expected.Header, headerToCompare, msg+": headers")
 	assert.Equal(t, expected.TransferEncoding, actual.TransferEncoding, msg+": transfer encoding")
 	if expected.ContentLength != 0 {
 		expectedBody, err := ioutil.ReadAll(expected.Body)

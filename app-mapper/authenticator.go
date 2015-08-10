@@ -49,6 +49,7 @@ func (m *webAuthenticator) authenticate(r *http.Request, orgName string) (authen
 	authCookie, err := r.Cookie(authCookieName)
 	authHeader := r.Header.Get(authHeaderName)
 	if err != nil && authHeader == "" {
+		logrus.Error("authenticator: tried to authenticate request without credentials")
 		return authenticatorResponse{}, &unauthorized{http.StatusUnauthorized}
 	}
 
