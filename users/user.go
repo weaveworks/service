@@ -9,16 +9,14 @@ import (
 )
 
 type User struct {
-	ID               string
-	Email            string
-	OrganizationID   string
-	OrganizationName string
-	Token            string
-	TokenCreatedAt   time.Time
-	ApprovedAt       time.Time
-	FirstLoginAt     time.Time
-	LastLoginAt      time.Time
-	CreatedAt        time.Time
+	ID             string
+	Email          string
+	Token          string
+	TokenCreatedAt time.Time
+	ApprovedAt     time.Time
+	FirstLoginAt   time.Time
+	CreatedAt      time.Time
+	Organization   *Organization
 }
 
 func (u *User) GenerateToken() (string, error) {

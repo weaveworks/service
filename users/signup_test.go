@@ -54,8 +54,7 @@ func Test_Signup(t *testing.T) {
 	user, err := storage.FindUserByEmail(email)
 	require.NoError(t, err)
 	assert.True(t, user.ApprovedAt.IsZero(), "user should not be approved")
-	assert.Equal(t, "", user.OrganizationID, "user should not have an organization id")
-	assert.Equal(t, "", user.OrganizationName, "user should not have an organization name")
+	assert.Nil(t, user.Organization, "user should not have an organization id")
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{email}, sentEmails[0].To)
 		assert.Contains(t, string(sentEmails[0].Text), "Thanks for your interest")
@@ -68,8 +67,8 @@ func Test_Signup(t *testing.T) {
 	user, err = storage.FindUserByID(user.ID)
 	require.NoError(t, err)
 	assert.False(t, user.ApprovedAt.IsZero(), "user should be approved")
-	assert.NotEqual(t, "", user.OrganizationID, "user should have an organization id")
-	assert.NotEqual(t, "", user.OrganizationName, "user should have an organization name")
+	assert.NotEqual(t, "", user.Organization.ID, "user should have an organization id")
+	assert.NotEqual(t, "", user.Organization.Name, "user should have an organization name")
 
 	// Do it again: check it preserves their data, and sends a login email
 	w = httptest.NewRecorder()
@@ -94,6 +93,10 @@ func Test_Signup(t *testing.T) {
 	assert.NotContains(t, emailToken, "$")
 	assert.NotContains(t, emailToken, "%24")
 
+	assert.NotEqual(t, "", user.Organization.ProbeToken, "user should have a probe token")
+	assert.Contains(t, string(sentEmails[1].Text), user.Organization.ProbeToken)
+	assert.Contains(t, string(sentEmails[1].HTML), user.Organization.ProbeToken)
+
 	// Login with the link
 	u, err := url.Parse(loginLink)
 	assert.NoError(t, err)
@@ -110,7 +113,7 @@ func Test_Signup(t *testing.T) {
 	assert.True(t, strings.HasPrefix(w.HeaderMap.Get("Set-Cookie"), cookieName+"="))
 	body = map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, map[string]interface{}{"email": email, "organizationName": user.OrganizationName}, body)
+	assert.Equal(t, map[string]interface{}{"email": email, "organizationName": user.Organization.Name}, body)
 
 	// Invalidates their login token
 	user, err = storage.FindUserByEmail(email)

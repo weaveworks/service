@@ -53,10 +53,10 @@ func routes(directLogin bool) http.Handler {
 	r.HandleFunc("/", Admin).Methods("GET")
 	r.HandleFunc("/api/users/signup", Signup(directLogin)).Methods("POST")
 	r.HandleFunc("/api/users/login", Login).Methods("GET")
-	r.HandleFunc("/private/api/users/lookup", Lookup).Methods("GET")
+	r.HandleFunc("/private/api/users/lookup/{orgName}", Lookup).Methods("GET")
 	r.HandleFunc("/private/api/users", ListUsers).Methods("GET")
 	r.HandleFunc("/private/api/users/{userID}/approve", ApproveUser).Methods("POST")
-	r.HandleFunc("/api/users/org/{orgID}", Org).Methods("GET")
+	r.HandleFunc("/api/users/org/{orgName}", Org).Methods("GET")
 	return r
 }
 
@@ -112,7 +112,7 @@ func Signup(directLogin bool) http.HandlerFunc {
 		}
 		if directLogin {
 			// approve user, and return token
-			if user.OrganizationID == "" {
+			if user.Organization == nil {
 				_, err = storage.ApproveUser(user.ID)
 			}
 			view.Token = token
@@ -190,7 +190,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 	renderJSON(w, http.StatusOK, map[string]interface{}{
 		"email":            user.Email,
-		"organizationName": user.OrganizationName,
+		"organizationName": user.Organization.Name,
 	})
 }
 
@@ -199,21 +199,35 @@ type lookupView struct {
 }
 
 func Lookup(w http.ResponseWriter, r *http.Request) {
-	sessionID := r.FormValue("session_id")
-	if sessionID == "" {
-		http.Error(w, "session_id param is required", http.StatusBadRequest)
+	orgName := mux.Vars(r)["orgName"]
+	user, err := sessions.Get(r)
+	if err == nil && user.Organization.Name == orgName {
+		renderJSON(w, http.StatusOK, lookupView{OrganizationID: user.Organization.ID})
 		return
 	}
 
-	user, err := sessions.Decode(sessionID)
-	switch {
-	case err == nil:
-		renderJSON(w, http.StatusOK, lookupView{OrganizationID: user.OrganizationID})
-	case err == ErrInvalidAuthenticationData:
-		w.WriteHeader(http.StatusUnauthorized)
-	default:
+	if err != nil && err != ErrInvalidAuthenticationData {
 		internalServerError(w, err)
+		return
 	}
+
+	credentials, ok := parseAuthHeader(r.Header.Get("Authorization"))
+	if ok && credentials.Realm == "Scope-Probe" {
+		if token, ok := credentials.Params["token"]; ok {
+			org, err := storage.FindOrganizationByProbeToken(token)
+			if err == nil && org.Name == orgName {
+				renderJSON(w, http.StatusOK, lookupView{OrganizationID: org.ID})
+				return
+			}
+
+			if err != ErrInvalidAuthenticationData {
+				internalServerError(w, err)
+				return
+			}
+		}
+	}
+
+	w.WriteHeader(http.StatusUnauthorized)
 }
 
 type userView struct {
@@ -276,8 +290,10 @@ func ApproveUser(w http.ResponseWriter, r *http.Request) {
 }
 
 type orgView struct {
-	User string `json:"user"`
-	Name string `json:"name"`
+	User               string `json:"user"`
+	Name               string `json:"name"`
+	ProbeToken         string `json:"probeToken"`
+	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
 }
 
 func Org(w http.ResponseWriter, r *http.Request) {
@@ -291,9 +307,19 @@ func Org(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	renderJSON(w, http.StatusOK, orgView{
-		User: user.Email,
-		Name: user.OrganizationName,
+		User:               user.Email,
+		Name:               user.Organization.Name,
+		ProbeToken:         user.Organization.ProbeToken,
+		FirstProbeUpdateAt: renderTime(user.Organization.FirstProbeUpdateAt),
 	})
+}
+
+func renderTime(t time.Time) string {
+	utc := t.UTC()
+	if utc.IsZero() {
+		return ""
+	}
+	return utc.Format(time.RFC3339)
 }
 
 func internalServerError(w http.ResponseWriter, err error) {

@@ -55,7 +55,6 @@ func (s SessionStore) Decode(encoded string) (*User, error) {
 	// Parse and validate the encoded session
 	var session Session
 	if err := s.encoder.Decode(cookieName, encoded, &session); err != nil {
-		logrus.Debugf("Error decoding session: %s", err)
 		return nil, ErrInvalidAuthenticationData
 	}
 	// Check the session hasn't expired
@@ -71,16 +70,21 @@ func (s SessionStore) Decode(encoded string) (*User, error) {
 }
 
 func (s SessionStore) Set(w http.ResponseWriter, userID string) error {
-	value, err := s.Encode(userID)
+	cookie, err := s.Cookie(userID)
 	if err == nil {
-		http.SetCookie(w, &http.Cookie{
-			Name:    cookieName,
-			Value:   value,
-			Path:    "/",
-			Expires: time.Now().UTC().Add(sessionDuration),
-		})
+		http.SetCookie(w, cookie)
 	}
 	return err
+}
+
+func (s SessionStore) Cookie(userID string) (*http.Cookie, error) {
+	value, err := s.Encode(userID)
+	return &http.Cookie{
+		Name:    cookieName,
+		Value:   value,
+		Path:    "/",
+		Expires: time.Now().UTC().Add(sessionDuration),
+	}, err
 }
 
 func (s SessionStore) Encode(userID string) (string, error) {

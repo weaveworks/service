@@ -5,7 +5,7 @@ export class Column extends React.Component {
 
     let styles = {
       float: 'left',
-      marginRight: 48,
+      margin: '0 2%',
       width: '45%'
     };
 

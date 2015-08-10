@@ -23,7 +23,7 @@ export default class OrganizationPage extends React.Component {
   }
 
   render() {
-    let { name, user } = this.props.data.organization;
+    let { name, user, probeToken } = this.props.data.organization;
 
     return (
       <Container>
@@ -33,7 +33,7 @@ export default class OrganizationPage extends React.Component {
           <Users org={name} />
         </Column>
         <Column>
-          <Probes org={name} />
+          <Probes org={name} probeToken={probeToken} />
         </Column>
       </Container>
     );

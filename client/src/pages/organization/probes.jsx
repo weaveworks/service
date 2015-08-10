@@ -1,5 +1,5 @@
 import React from "react";
-import { Paper, List, ListItem } from "material-ui";
+import { Styles, List, ListItem } from "material-ui";
 import { getData, postData } from "../../common/request";
 import { Box } from "../../components/box";
 
@@ -27,18 +27,37 @@ export default class Probes extends React.Component {
   }
 
   render() {
-    let probes = this.state.probes.map(probe => {
+    const probes = this.state.probes.map(probe => {
       return (
         <ListItem primaryText={probe.id} key={probe.id} />
       );
     });
 
+    const styles = {
+      tokenContainer: {
+        marginTop: '2em',
+        textAlign: 'center',
+        fontSize: '80%',
+        color: Styles.Colors.grey400
+      },
+      tokenValue: {
+        fontFamily: 'monospace',
+        fontSize: '130%'
+      }
+    };
+
     return (
-      <Box>
-        <List subheader="Probes">
-          {probes}
-        </List>
-      </Box>
+      <div>
+        <Box>
+          <List subheader="Probes">
+            {probes}
+          </List>
+        </Box>
+        <div style={styles.tokenContainer}>
+          <span style={styles.tokenLabel}>Probe token: </span>
+          <span style={styles.tokenValue}>{this.props.probeToken}</span>
+        </div>
+      </div>
     );
   }
 

@@ -49,17 +49,18 @@ func Test_Approval(t *testing.T) {
 
 	found, err := storage.FindUserByID(user1.ID)
 	assert.NoError(t, err)
-	// user1 should be approved
-	assert.False(t, found.ApprovedAt.IsZero())
-	// user1 should have an organization
-	assert.NotEqual(t, "", found.OrganizationID)
-	assert.NotEqual(t, "", found.OrganizationName)
+	assert.False(t, found.ApprovedAt.IsZero(), "user should have an approved_at timestamp")
+	assert.NotEqual(t, "", found.Organization.ID, "user should have an organization id")
+	assert.NotEqual(t, "", found.Organization.Name, "user should have an organization name")
+	assert.NotEqual(t, "", found.Organization.ProbeToken, "user should have a probe token")
 
 	// Email should have been sent
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{user1.Email}, sentEmails[0].To)
 		assert.Contains(t, string(sentEmails[0].Text), "Your Scope account has been approved!")
 		assert.Contains(t, string(sentEmails[0].HTML), "Your Scope account has been approved!")
+		assert.Contains(t, string(sentEmails[0].Text), found.Organization.ProbeToken)
+		assert.Contains(t, string(sentEmails[0].HTML), found.Organization.ProbeToken)
 	}
 
 	// List unapproved users
