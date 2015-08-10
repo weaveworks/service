@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"net"
 
 	socks5 "github.com/armon/go-socks5"
 )
@@ -26,8 +27,27 @@ function FindProxyForURL(url, host) {
 	}
 }
 
+type aliasingResolver struct {
+	aliases map[string]string
+	socks5.NameResolver
+}
+
+func (r aliasingResolver) Resolve(name string) (net.IP, error) {
+	if alias, ok := r.aliases[name]; ok {
+		return r.NameResolver.Resolve(alias)
+	}
+	return r.NameResolver.Resolve(name)
+}
+
 func socksProxy() {
-	conf := &socks5.Config{}
+	conf := &socks5.Config{
+		Resolver: aliasingResolver{
+			aliases: map[string]string{
+				"run.weave.works": "frontend.weave.local",
+			},
+			NameResolver: socks5.DNSResolver{},
+		},
+	}
 	server, err := socks5.New(conf)
 	if err != nil {
 		panic(err)
