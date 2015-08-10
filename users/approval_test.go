@@ -86,7 +86,7 @@ func Test_Approval_IsIdempotent(t *testing.T) {
 	// Approve the user
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
-	organizationID := user.OrganizationID
+	organizationID := user.Organization.ID
 	assert.NotEqual(t, "", organizationID)
 	approvedAt := user.ApprovedAt
 	assert.False(t, approvedAt.IsZero())
@@ -94,6 +94,6 @@ func Test_Approval_IsIdempotent(t *testing.T) {
 	// Approve them again
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
-	assert.Equal(t, organizationID, user.OrganizationID)
+	assert.Equal(t, organizationID, user.Organization.ID)
 	assert.Equal(t, approvedAt, user.ApprovedAt)
 }
