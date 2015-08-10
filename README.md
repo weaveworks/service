@@ -6,16 +6,20 @@
 
 ## Run
 
-On your Linux host or VM, start Weave. Must build Weave yourself from current
-master, using Weave 1.0.1 or latest on Docker Hub is not recent enough!
+On your Linux host or VM, start Weave. You must build Weave yourself from
+current master, using Weave 1.0.1 or latest on Docker Hub is not recent enough!
+Also, you must make sure running weave globally will invoke the weave script
+from current master.
 
 ```
 cd $GOPATH/src/github.com/weaveworks
 git clone https://github.com/weaveworks/weave
 cd weave
 make
-./weave launch
-eval $(./weave env)
+sudo rm -f /usr/local/bin/weave
+sudo ln -s $GOPATH/src/github.com/weaveworks/weave/weave /usr/local/bin/weave
+weave launch
+eval $(weave env)
 ```
 
 Now, still on your Linux host or VM, launch the run script.
@@ -44,3 +48,4 @@ From your Mac,
 1. http://smtp.weave.local — you should see a welcome email
 1. http://users.weave.local/proviate/api/users — approve yourself
 1. http://smtp.weave.local — click on the link in the approval email
+
