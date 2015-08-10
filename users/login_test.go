@@ -16,7 +16,7 @@ func Test_Login_NoParams(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/api/users/login", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), `{"errors":[{"message":"Email cannot be blank"},{"message":"Token cannot be blank"}]}`)
+	assert.Contains(t, w.Body.String(), `{"errors":[{"message":"Email cannot be blank"}]}`)
 }
 
 func Test_Login_Unauthorized(t *testing.T) {
