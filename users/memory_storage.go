@@ -59,6 +59,16 @@ func (s memoryStorage) InviteUser(email, orgName string) (*User, error) {
 	return u, nil
 }
 
+func (s memoryStorage) DeleteUser(email string) error {
+	for _, user := range s.users {
+		if user.Email == email {
+			delete(s.users, user.ID)
+			break
+		}
+	}
+	return nil
+}
+
 func (s memoryStorage) FindUserByID(id string) (*User, error) {
 	u, ok := s.users[id]
 	if !ok {

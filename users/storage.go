@@ -25,6 +25,9 @@ type Storage interface {
 	// * in the same organization, no-op.
 	InviteUser(email, orgName string) (*User, error)
 
+	// Ensure a user is deleted. If they do not exist, return success.
+	DeleteUser(email string) error
+
 	ListUnapprovedUsers() ([]*User, error)
 	ListOrganizationUsers(orgName string) ([]*User, error)
 

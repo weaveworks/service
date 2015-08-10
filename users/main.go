@@ -56,6 +56,7 @@ func routes(directLogin bool) http.Handler {
 	r.HandleFunc("/api/users/org/{orgName}", Authenticated(Org)).Methods("GET")
 	r.HandleFunc("/api/users/org/{orgName}/users", Authenticated(ListOrganizationUsers)).Methods("GET")
 	r.HandleFunc("/api/users/org/{orgName}/users", Authenticated(InviteUser)).Methods("POST")
+	r.HandleFunc("/api/users/org/{orgName}/users/{userEmail}", Authenticated(DeleteUser)).Methods("DELETE")
 	r.HandleFunc("/private/api/users/lookup/{orgName}", Lookup).Methods("GET")
 	r.HandleFunc("/private/api/users", ListUnapprovedUsers).Methods("GET")
 	r.HandleFunc("/private/api/users/{userID}/approve", ApproveUser).Methods("POST")
@@ -383,6 +384,19 @@ func InviteUser(currentUser *User, w http.ResponseWriter, r *http.Request) {
 	view.MailSent = true
 
 	renderJSON(w, http.StatusOK, view)
+}
+
+func DeleteUser(currentUser *User, w http.ResponseWriter, r *http.Request) {
+	err := storage.DeleteUser(mux.Vars(r)["userEmail"])
+	switch {
+	case err == ErrNotFound:
+		renderError(w, http.StatusNotFound, err)
+		return
+	case err != nil:
+		internalServerError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func renderTime(t time.Time) string {

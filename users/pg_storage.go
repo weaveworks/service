@@ -82,6 +82,16 @@ func (s pgStorage) InviteUser(email, orgName string) (*User, error) {
 	return s.FindUserByEmail(email)
 }
 
+func (s pgStorage) DeleteUser(email string) error {
+	_, err := s.Exec(`
+			update users set deleted_at = $2
+			where lower(email) = lower($1) and deleted_at is null`,
+		email,
+		s.Now(),
+	)
+	return err
+}
+
 func (s pgStorage) FindUserByID(id string) (*User, error) {
 	return s.findUserByID(s, id)
 }
