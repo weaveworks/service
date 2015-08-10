@@ -70,6 +70,10 @@ func (s memoryStorage) ApproveUser(id string) (*User, error) {
 		return nil, err
 	}
 
+	if !user.ApprovedAt.IsZero() {
+		return user, nil
+	}
+
 	if o, err := s.createOrganization(); err == nil {
 		user.ApprovedAt = time.Now().UTC()
 		user.Organization = o

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_Approval(t *testing.T) {
@@ -72,4 +73,27 @@ func Test_Approval(t *testing.T) {
 	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, approved.ID))
 	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, user1.ID))
 	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, user2.ID))
+}
+
+func Test_Approval_IsIdempotent(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	// Create a user
+	user, err := storage.CreateUser("approved@weave.works")
+	require.NoError(t, err)
+
+	// Approve the user
+	user, err = storage.ApproveUser(user.ID)
+	require.NoError(t, err)
+	organizationID := user.OrganizationID
+	assert.NotEqual(t, "", organizationID)
+	approvedAt := user.ApprovedAt
+	assert.False(t, approvedAt.IsZero())
+
+	// Approve them again
+	user, err = storage.ApproveUser(user.ID)
+	require.NoError(t, err)
+	assert.Equal(t, organizationID, user.OrganizationID)
+	assert.Equal(t, approvedAt, user.ApprovedAt)
 }

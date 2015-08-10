@@ -164,7 +164,6 @@ func (s pgStorage) ListUnapprovedUsers() ([]*User, error) {
 }
 
 func (s pgStorage) ApproveUser(id string) (*User, error) {
-	var user *User
 	err := s.Transaction(func(tx *sql.Tx) error {
 		o, err := s.createOrganization(tx)
 		if err != nil {
@@ -175,7 +174,9 @@ func (s pgStorage) ApproveUser(id string) (*User, error) {
 			update users set
 				organization_id = $2,
 				approved_at = $3
-			where id = $1 and deleted_at is null`,
+			where id = $1
+			and approved_at is null
+			and deleted_at is null`,
 			id,
 			o.ID,
 			s.Now(),
@@ -190,14 +191,12 @@ func (s pgStorage) ApproveUser(id string) (*User, error) {
 		case count != 1:
 			return ErrNotFound
 		}
-
-		user, err = s.findUserByID(tx, id)
-		return err
+		return nil
 	})
-	if err != nil {
-		user = nil
+	if err != nil && err != ErrNotFound {
+		return nil, err
 	}
-	return user, err
+	return s.FindUserByID(id)
 }
 
 func (s pgStorage) SetUserToken(id, token string) error {
