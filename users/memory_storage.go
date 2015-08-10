@@ -30,6 +30,35 @@ func (s memoryStorage) CreateUser(email string) (*User, error) {
 	return u, nil
 }
 
+func (s memoryStorage) InviteUser(email, orgName string) (*User, error) {
+	var o *Organization
+	for _, org := range s.organizations {
+		if org.Name == orgName {
+			o = org
+			break
+		}
+	}
+	if o == nil {
+		return nil, ErrNotFound
+	}
+
+	u, err := s.FindUserByEmail(email)
+	if err == ErrNotFound {
+		u, err = s.CreateUser(email)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if u.Organization != nil && u.Organization.Name != orgName {
+		return nil, ErrEmailIsTaken
+	}
+
+	u.ApprovedAt = time.Now().UTC()
+	u.Organization = o
+	return u, nil
+}
+
 func (s memoryStorage) FindUserByID(id string) (*User, error) {
 	u, ok := s.users[id]
 	if !ok {
@@ -57,6 +86,17 @@ func (s memoryStorage) ListUnapprovedUsers() ([]*User, error) {
 	users := []*User{}
 	for _, user := range s.users {
 		if user.ApprovedAt.IsZero() {
+			users = append(users, user)
+		}
+	}
+	sort.Sort(usersByCreatedAt(users))
+	return users, nil
+}
+
+func (s memoryStorage) ListOrganizationUsers(orgName string) ([]*User, error) {
+	users := []*User{}
+	for _, user := range s.users {
+		if user.Organization != nil && user.Organization.Name == orgName {
 			users = append(users, user)
 		}
 	}

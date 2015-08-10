@@ -12,6 +12,18 @@ type pgStorage struct {
 	*sql.DB
 }
 
+type Execer interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
+}
+
+type QueryRower interface {
+	QueryRow(query string, args ...interface{}) *sql.Row
+}
+
+type scanner interface {
+	Scan(...interface{}) error
+}
+
 // Postgres only stores times to the microsecond, so we pre-truncate times so
 // tests will match. We also normalize to UTC, for sanity.
 func (s pgStorage) Now() time.Time {
@@ -19,8 +31,12 @@ func (s pgStorage) Now() time.Time {
 }
 
 func (s pgStorage) CreateUser(email string) (*User, error) {
+	return s.createUser(s, email)
+}
+
+func (s pgStorage) createUser(db QueryRower, email string) (*User, error) {
 	u := &User{Email: email, CreatedAt: s.Now()}
-	err := s.QueryRow("insert into users (email, created_at) values (lower($1), $2) returning id", email, u.CreatedAt).Scan(&u.ID)
+	err := db.QueryRow("insert into users (email, created_at) values (lower($1), $2) returning id", email, u.CreatedAt).Scan(&u.ID)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil, ErrNotFound
@@ -30,12 +46,44 @@ func (s pgStorage) CreateUser(email string) (*User, error) {
 	return u, nil
 }
 
-func (s pgStorage) FindUserByID(id string) (*User, error) {
-	return s.findUserByID(s, id)
+func (s pgStorage) InviteUser(email, orgName string) (*User, error) {
+	err := s.Transaction(func(tx *sql.Tx) error {
+		o, err := s.scanOrganization(
+			tx.QueryRow(`
+				select
+						id, name, probe_token, first_probe_update_at, created_at
+					from organizations
+					where lower(name) = lower($1)
+					and deleted_at is null`,
+				orgName,
+			),
+		)
+		if err != nil {
+			return err
+		}
+
+		user, err := s.findUserByEmail(tx, email)
+		if err == ErrNotFound {
+			user, err = s.createUser(tx, email)
+		}
+		if err != nil {
+			return err
+		}
+
+		if user.Organization != nil && user.Organization.Name != orgName {
+			return ErrEmailIsTaken
+		}
+
+		return s.addUserToOrganization(tx, user.ID, o.ID)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return s.FindUserByEmail(email)
 }
 
-type QueryRower interface {
-	QueryRow(query string, args ...interface{}) *sql.Row
+func (s pgStorage) FindUserByID(id string) (*User, error) {
+	return s.findUserByID(s, id)
 }
 
 func (s pgStorage) findUserByID(db QueryRower, id string) (*User, error) {
@@ -60,6 +108,10 @@ func (s pgStorage) findUserByID(db QueryRower, id string) (*User, error) {
 }
 
 func (s pgStorage) FindUserByEmail(email string) (*User, error) {
+	return s.findUserByEmail(s, email)
+}
+
+func (s pgStorage) findUserByEmail(db QueryRower, email string) (*User, error) {
 	user, err := s.scanUser(
 		s.QueryRow(`
 			select
@@ -80,8 +132,19 @@ func (s pgStorage) FindUserByEmail(email string) (*User, error) {
 	return user, err
 }
 
-type scanner interface {
-	Scan(...interface{}) error
+func (s pgStorage) scanUsers(rows *sql.Rows) ([]*User, error) {
+	users := []*User{}
+	for rows.Next() {
+		user, err := s.scanUser(rows)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+	return users, nil
 }
 
 func (s pgStorage) scanUser(row scanner) (*User, error) {
@@ -149,18 +212,30 @@ func (s pgStorage) ListUnapprovedUsers() ([]*User, error) {
 	}
 	defer rows.Close()
 
-	users := []*User{}
-	for rows.Next() {
-		user, err := s.scanUser(rows)
-		if err != nil {
-			return nil, err
-		}
-		users = append(users, user)
+	return s.scanUsers(rows)
+}
+
+func (s pgStorage) ListOrganizationUsers(orgName string) ([]*User, error) {
+	rows, err := s.Query(`
+		select
+				users.id, users.email, users.token, users.token_created_at,
+				users.approved_at, users.created_at, users.organization_id,
+				organizations.name, organizations.probe_token,
+				organizations.first_probe_update_at, organizations.created_at
+			from users
+			left join organizations on (users.organization_id = organizations.id)
+			where lower(organizations.name) = lower($1)
+			and users.deleted_at is null
+			and organizations.deleted_at is null
+			order by users.created_at`,
+		orgName,
+	)
+	if err != nil {
+		return nil, err
 	}
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-	return users, nil
+	defer rows.Close()
+
+	return s.scanUsers(rows)
 }
 
 func (s pgStorage) ApproveUser(id string) (*User, error) {
@@ -171,24 +246,8 @@ func (s pgStorage) ApproveUser(id string) (*User, error) {
 			return err
 		}
 
-		result, err := tx.Exec(`
-			update users set
-				organization_id = $2,
-				approved_at = $3
-			where id = $1 and deleted_at is null`,
-			id,
-			o.ID,
-			s.Now(),
-		)
-		if err != nil {
+		if err = s.addUserToOrganization(tx, id, o.ID); err != nil {
 			return err
-		}
-		count, err := result.RowsAffected()
-		switch {
-		case err != nil:
-			return err
-		case count != 1:
-			return ErrNotFound
 		}
 
 		user, err = s.findUserByID(tx, id)
@@ -198,6 +257,29 @@ func (s pgStorage) ApproveUser(id string) (*User, error) {
 		user = nil
 	}
 	return user, err
+}
+
+func (s pgStorage) addUserToOrganization(db Execer, userID, organizationID string) error {
+	result, err := db.Exec(`
+			update users set
+				organization_id = $2,
+				approved_at = $3
+			where id = $1 and deleted_at is null`,
+		userID,
+		organizationID,
+		s.Now(),
+	)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	switch {
+	case err != nil:
+		return err
+	case count != 1:
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (s pgStorage) SetUserToken(id, token string) error {
@@ -289,7 +371,7 @@ func (s pgStorage) FindOrganizationByProbeToken(probeToken string) (*Organizatio
 		}
 
 		if err == sql.ErrNoRows {
-			err = ErrInvalidAuthenticationData
+			err = ErrNotFound
 		}
 		return err
 	})

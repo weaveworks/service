@@ -63,10 +63,16 @@ func (s SessionStore) Decode(encoded string) (*User, error) {
 	}
 	// Lookup the user by encoded id
 	user, err := storage.FindUserByID(session.UserID)
-	if err == ErrNotFound {
-		err = ErrInvalidAuthenticationData
+	switch {
+	case err == ErrNotFound:
+		return nil, ErrInvalidAuthenticationData
+	case err != nil:
+		return nil, err
+	case user.ApprovedAt.IsZero():
+		return nil, ErrInvalidAuthenticationData
 	}
-	return user, err
+
+	return user, nil
 }
 
 func (s SessionStore) Set(w http.ResponseWriter, userID string) error {

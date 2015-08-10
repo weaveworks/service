@@ -53,10 +53,12 @@ func routes(directLogin bool) http.Handler {
 	r.HandleFunc("/", Admin).Methods("GET")
 	r.HandleFunc("/api/users/signup", Signup(directLogin)).Methods("POST")
 	r.HandleFunc("/api/users/login", Login).Methods("GET")
+	r.HandleFunc("/api/users/org/{orgName}", Authenticated(Org)).Methods("GET")
+	r.HandleFunc("/api/users/org/{orgName}/users", Authenticated(ListOrganizationUsers)).Methods("GET")
+	r.HandleFunc("/api/users/org/{orgName}/users", Authenticated(InviteUser)).Methods("POST")
 	r.HandleFunc("/private/api/users/lookup/{orgName}", Lookup).Methods("GET")
-	r.HandleFunc("/private/api/users", ListUsers).Methods("GET")
+	r.HandleFunc("/private/api/users", ListUnapprovedUsers).Methods("GET")
 	r.HandleFunc("/private/api/users/{userID}/approve", ApproveUser).Methods("POST")
-	r.HandleFunc("/api/users/org/{orgName}", Org).Methods("GET")
 	return r
 }
 
@@ -231,9 +233,9 @@ func Lookup(w http.ResponseWriter, r *http.Request) {
 }
 
 type userView struct {
-	ID        string
-	Email     string
-	CreatedAt time.Time
+	ID        string    `json:"-"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"-"`
 }
 
 func (v userView) FormatCreatedAt() string {
@@ -241,7 +243,7 @@ func (v userView) FormatCreatedAt() string {
 }
 
 // List users needing approval
-func ListUsers(w http.ResponseWriter, r *http.Request) {
+func ListUnapprovedUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := storage.ListUnapprovedUsers()
 	if err != nil {
 		internalServerError(w, err)
@@ -289,6 +291,29 @@ func ApproveUser(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/private/api/users", http.StatusFound)
 }
 
+// Make sure we have a logged in user, and they are accessing their own org.
+func Authenticated(handler func(*User, http.ResponseWriter, *http.Request)) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, err := sessions.Get(r)
+		if err != nil {
+			if err == ErrInvalidAuthenticationData {
+				renderError(w, http.StatusUnauthorized, err)
+			} else {
+				internalServerError(w, err)
+			}
+			return
+		}
+
+		orgName := mux.Vars(r)["orgName"]
+		if orgName != user.Organization.Name {
+			renderError(w, http.StatusUnauthorized, ErrInvalidAuthenticationData)
+			return
+		}
+
+		handler(user, w, r)
+	})
+}
+
 type orgView struct {
 	User               string `json:"user"`
 	Name               string `json:"name"`
@@ -296,22 +321,68 @@ type orgView struct {
 	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
 }
 
-func Org(w http.ResponseWriter, r *http.Request) {
-	user, err := sessions.Get(r)
+func Org(currentUser *User, w http.ResponseWriter, r *http.Request) {
+	renderJSON(w, http.StatusOK, orgView{
+		User:               currentUser.Email,
+		Name:               currentUser.Organization.Name,
+		ProbeToken:         currentUser.Organization.ProbeToken,
+		FirstProbeUpdateAt: renderTime(currentUser.Organization.FirstProbeUpdateAt),
+	})
+}
+
+func ListOrganizationUsers(currentUser *User, w http.ResponseWriter, r *http.Request) {
+	users, err := storage.ListOrganizationUsers(mux.Vars(r)["orgName"])
 	if err != nil {
-		if err == ErrInvalidAuthenticationData {
-			renderError(w, http.StatusUnauthorized, err)
-		} else {
-			internalServerError(w, err)
-		}
+		internalServerError(w, err)
 		return
 	}
-	renderJSON(w, http.StatusOK, orgView{
-		User:               user.Email,
-		Name:               user.Organization.Name,
-		ProbeToken:         user.Organization.ProbeToken,
-		FirstProbeUpdateAt: renderTime(user.Organization.FirstProbeUpdateAt),
-	})
+	userViews := []userView{}
+	for _, u := range users {
+		userViews = append(userViews, userView{Email: u.Email})
+	}
+	renderJSON(w, http.StatusOK, userViews)
+}
+
+func InviteUser(currentUser *User, w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	var view signupView
+	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
+		renderError(w, http.StatusBadRequest, err)
+		return
+	}
+	view.MailSent = false
+	if view.Email == "" {
+		renderError(w, http.StatusBadRequest, fmt.Errorf("Email cannot be blank"))
+		return
+	}
+
+	invitee, err := storage.InviteUser(view.Email, mux.Vars(r)["orgName"])
+	switch {
+	case err == ErrNotFound:
+		renderError(w, http.StatusNotFound, err)
+		return
+	case err == ErrEmailIsTaken:
+		renderError(w, http.StatusBadRequest, err)
+		return
+	case err != nil:
+		internalServerError(w, err)
+		return
+	}
+	// We always do this so that the timing difference can't be used to infer a user's existence.
+	token, err := generateUserToken(storage, invitee)
+	if err != nil {
+		logrus.Error(err)
+		renderError(w, http.StatusInternalServerError, fmt.Errorf("Error sending invite email"))
+		return
+	}
+	if err = SendInviteEmail(invitee, token); err != nil {
+		logrus.Error(err)
+		renderError(w, http.StatusInternalServerError, fmt.Errorf("Error sending invite email"))
+		return
+	}
+	view.MailSent = true
+
+	renderJSON(w, http.StatusOK, view)
 }
 
 func renderTime(t time.Time) string {

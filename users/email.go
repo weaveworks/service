@@ -120,3 +120,20 @@ func LoginLink(email, rawToken string) htmlTemplate.HTML {
 		),
 	)
 }
+
+func SendInviteEmail(u *User, token string) error {
+	e := email.NewEmail()
+	e.From = fromAddress
+	e.To = []string{u.Email}
+	e.Subject = "You've been invited to Scope"
+	data := map[string]interface{}{
+		"LoginURL":         LoginURL(u.Email, token),
+		"LoginLink":        LoginLink(u.Email, token),
+		"Token":            token,
+		"OrganizationName": u.Organization.Name,
+		"ProbeToken":       u.Organization.ProbeToken,
+	}
+	e.Text = quietTemplateBytes("invite_email.text", data)
+	e.HTML = quietTemplateBytes("invite_email.html", data)
+	return sendEmail(e)
+}

@@ -3,7 +3,6 @@
 package main
 
 import (
-	"database/sql"
 	"flag"
 	"net/http"
 	"testing"
@@ -45,10 +44,6 @@ func cleanup(t *testing.T) {
 func testEmailSender(e *email.Email) error {
 	sentEmails = append(sentEmails, e)
 	return nil
-}
-
-type Execer interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
 }
 
 // Truncate the test store. Assumes the db is Postgres.
