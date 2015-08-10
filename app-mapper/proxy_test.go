@@ -26,9 +26,7 @@ func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFu
 
 	// Set a test server for the proxy (required for Hijack to work)
 	m := &constantMapper{parsedTargetURL.Host}
-	proxyTestServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		appProxy(a, m, w, r)
-	}))
+	proxyTestServer := httptest.NewServer(makeProxyHandler(a, m))
 	defer proxyTestServer.Close()
 
 	parsedProxyURL, err := url.Parse(proxyTestServer.URL)
@@ -36,9 +34,15 @@ func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFu
 	testFunc(parsedProxyURL.Host)
 }
 
+type AuthenticatorFunc func(r *http.Request, orgName string) (authenticatorResponse, error)
+
+func (f AuthenticatorFunc) authenticate(r *http.Request, orgName string) (authenticatorResponse, error) {
+	return f(r, orgName)
+}
+
 // Test that a request sent to the proxy is received by the other end
-// and that the reply is passed back
-func testHTTPRequestTransparency(t *testing.T, req *http.Request) {
+// with the appropriate path and that the reply is passed back
+func testHTTPRequest(t *testing.T, req *http.Request) {
 	// Set a test server to be targeted by the proxy
 	var targetResponse = []byte("Hi there, this is a response")
 	var targetRecordedReq *http.Request
@@ -52,6 +56,12 @@ func testHTTPRequestTransparency(t *testing.T, req *http.Request) {
 		w.Write(targetResponse)
 	})
 
+	var targetRecordedOrgName string
+	authenticator := AuthenticatorFunc(func(r *http.Request, orgName string) (authenticatorResponse, error) {
+		targetRecordedOrgName = orgName
+		return authenticatorResponse{"somePersistentInternalID"}, nil
+	})
+
 	testFunc := func(proxyHost string) {
 		// Tweak and make request to the proxy
 		// Inject target proxy hostname
@@ -62,9 +72,12 @@ func testHTTPRequestTransparency(t *testing.T, req *http.Request) {
 		client := &http.Client{}
 		res, err := client.Do(req)
 		defer res.Body.Close()
-		assert.NoError(t, err, "Cannot make test request")
+		require.NoError(t, err, "Cannot make test request")
 
 		// Check that everything was received as expected
+		require.NotNil(t, targetRecordedReq, "target didn't receive request")
+		reconstructedPath := "/api/app/" + url.QueryEscape(targetRecordedOrgName) + targetRecordedReq.URL.Path
+		assert.Equal(t, reconstructedPath, req.URL.Path, "URL mismatch")
 		requestEqual(t, req, targetRecordedReq, "Request mismatch")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "Response status mismatch")
 		body, err := ioutil.ReadAll(res.Body)
@@ -72,14 +85,14 @@ func testHTTPRequestTransparency(t *testing.T, req *http.Request) {
 		assert.Equal(t, targetResponse, body, "Response body mismatch")
 	}
 
-	testProxy(t, targetHandler, &mockAuthenticator{}, testFunc)
+	testProxy(t, targetHandler, authenticator, testFunc)
 }
 
 func copyRequest(t *testing.T, req *http.Request) *http.Request {
 	dump, err := httputil.DumpRequest(req, true)
-	assert.NoError(t, err, "Cannot dump request body")
+	require.NoError(t, err, "Cannot dump request body")
 	clone, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(dump)))
-	assert.NoError(t, err, "Cannot parse request")
+	require.NoError(t, err, "Cannot parse request")
 	clone.ContentLength = req.ContentLength
 	return clone
 }
@@ -99,23 +112,23 @@ func requestEqual(t *testing.T, expected *http.Request, actual *http.Request, ms
 }
 
 func TestProxyGet(t *testing.T) {
-	req, err := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
+	req, err := http.NewRequest("GET", "http://example.com/api/app/somePublicOrgName/request?arg1=foo&arg2=bar", nil)
 	require.NoError(t, err, "Cannot create request")
-	testHTTPRequestTransparency(t, req)
+	testHTTPRequest(t, req)
 }
 
 func TestProxyPost(t *testing.T) {
-	req, err := http.NewRequest("POST", "http://example.com/request?arg1=foo&arg2=bar",
+	req, err := http.NewRequest("POST", "http://example.com/api/app/somePublicOrgName/request?arg1=foo&arg2=bar",
 		strings.NewReader("z=post&both=y&prio=2&empty="))
 	require.NoError(t, err, "Cannot create request")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
-	testHTTPRequestTransparency(t, req)
+	testHTTPRequest(t, req)
 }
 
-type AuthenticatorFunc func(r *http.Request) (authenticatorResponse, error)
-
-func (f AuthenticatorFunc) authenticate(r *http.Request) (authenticatorResponse, error) {
-	return f(r)
+func TestProxyEncoding(t *testing.T) {
+	req, err := http.NewRequest("GET", "http://example.com/api/app/a%2Fb/request?arg1=foo&arg2=bar", nil)
+	require.NoError(t, err, "Cannot create request")
+	testHTTPRequest(t, req)
 }
 
 func TestUnauthorized(t *testing.T) {
@@ -125,7 +138,7 @@ func TestUnauthorized(t *testing.T) {
 	})
 
 	var authenticatorError error
-	failingAuthenticator := AuthenticatorFunc(func(r *http.Request) (authenticatorResponse, error) {
+	failingAuthenticator := AuthenticatorFunc(func(r *http.Request, org string) (authenticatorResponse, error) {
 		return authenticatorResponse{}, authenticatorError
 	})
 
@@ -137,7 +150,7 @@ func TestUnauthorized(t *testing.T) {
 			errors.New("Whatever"):                       http.StatusBadGateway,
 		}
 
-		url := "http://" + proxyHost + "/request?arg1=foo&arg2=bar"
+		url := "http://" + proxyHost + "/api/app/somePublicOrgName/request?arg1=foo&arg2=bar"
 		for authErr, expectedProxyStatus := range authErrToProxyStatus {
 			authenticatorError = authErr
 			res, err := http.Get(url)
@@ -159,8 +172,8 @@ func TestProxyWebSocket(t *testing.T) {
 
 	testFunc := func(proxyHost string) {
 		// Establish a websocket connection with the proxy
-		ws, err := websocket.Dial("ws://"+proxyHost+"/request?arg1=foo&arg2=bar", "", "http://example.com")
-		assert.NoError(t, err, "Cannot dial websocket server")
+		ws, err := websocket.Dial("ws://"+proxyHost+"/api/app/somePublicOrgName/request?arg1=foo&arg2=bar", "", "http://example.com")
+		require.NoError(t, err, "Cannot dial websocket server")
 		defer ws.Close()
 
 		// We should receive back exactly what we send

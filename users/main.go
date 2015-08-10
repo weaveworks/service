@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -148,15 +147,12 @@ func generateUserToken(storage Storage, user *User) (string, error) {
 func Login(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	token := r.FormValue("token")
-	errs := Errors{}
-	if email == "" {
-		errs = append(errs, fmt.Errorf("Email cannot be blank"))
-	}
-	if token == "" {
-		errs = append(errs, fmt.Errorf("Token cannot be blank"))
-	}
-	if len(errs) > 0 {
-		renderError(w, http.StatusBadRequest, errs)
+	switch {
+	case email == "":
+		renderError(w, http.StatusBadRequest, fmt.Errorf("Email cannot be blank"))
+		return
+	case token == "":
+		renderError(w, http.StatusBadRequest, fmt.Errorf("Token cannot be blank"))
 		return
 	}
 
@@ -343,32 +339,12 @@ func renderError(w http.ResponseWriter, status int, err error) bool {
 		return false
 	}
 
-	var view errorsView
-	switch err := err.(type) {
-	case Errors:
-		view = ErrorsView(err...)
-	default:
-		view = ErrorsView(err)
-	}
+	view := ErrorsView(err)
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(view); err != nil {
 		logrus.Error(err)
 	}
 	return true
-}
-
-type Errors []error
-
-func (e Errors) Error() string {
-	var msgs []string
-	for _, err := range e {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, ", ")
-}
-
-type ErrorWithMetadata interface {
-	ErrorMetadata() map[string]interface{}
 }
 
 func ErrorsView(errors ...error) errorsView {
@@ -385,12 +361,6 @@ type errorsView struct {
 
 func errorView(err error) map[string]interface{} {
 	result := map[string]interface{}{}
-
-	if m, hasMetadata := err.(ErrorWithMetadata); hasMetadata {
-		for k, v := range m.ErrorMetadata() {
-			result[k] = v
-		}
-	}
 
 	result["message"] = err.Error()
 

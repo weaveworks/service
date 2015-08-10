@@ -76,7 +76,7 @@ func (f *flags) getOrganizationMapper(p appProvisioner) organizationMapper {
 
 	m, err := newDBMapper(f.dbMapperURI, p)
 	if err != nil {
-		logrus.Fatal("Cannot initialize database client:", err)
+		logrus.Fatal("Cannot initialize database client: ", err)
 	}
 	return m
 }
@@ -90,7 +90,7 @@ func (f *flags) getAppProvisioner() appProvisioner {
 	}
 	m, err := newDockerProvisioner(f.dockerHost, options)
 	if err != nil {
-		logrus.Fatal("Cannot initialize docker provisioner:", err)
+		logrus.Fatal("Cannot initialize docker provisioner: ", err)
 	}
 	return m
 }

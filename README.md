@@ -4,27 +4,43 @@
 
 ![Architecture](docs/architecture.png)
 
-## Run on your laptop
+## Run
 
-(Assuming its a Mac, and you have a Vagrant Linux VM for development)
+On your Linux host or VM, start Weave. Must build Weave yourself from current
+master, using Weave 1.0.1 or latest on Docker Hub is not recent enough!
 
-On you VM, start the services (make sure you ```eval $(weave env)```)
 ```
-cd <path to service.git>
+cd $GOPATH/src/github.com/weaveworks
+git clone https://github.com/weaveworks/weave
+cd weave
+make
+./weave launch
+eval $(./weave env)
+```
+
+Now, still on your Linux host or VM, launch the run script.
+
+```
+cd $GOPATH/src/github.com/weaveworks/service
 ./run.sh
 ```
 
-Then on you mac, start the proxy:
+Finally, on your Mac, start the proxy. If you're using a Vagrant VM, you can
+use the connect.sh script.
+
 ```
-vagrant ssh-config >>~/.ssh/config # setup ssh for your vagrant VM
+vagrant ssh-config >> ~/.ssh/config
 ./connect.sh <hostname>
 ```
 
-And configure you proxy settings for http://localhost:8080/proxy.pac
+When configuring your system proxies, ensure that proxies are *not*
+bypassed for *.local.
 
 ## Test workflow
 
-- Go to http://run.weave.works on you Mac (for the SAAS UI) and sign up.
-- Go to http://smtp.weave.local for the mailcatcher UI, you should see a welcome email
-- Go to http://users.weave.local/private/api/users to approve youself
-- Follow link in email (see mailcatcher on http://smtp.weave.local)
+From your Mac,
+
+1. http://run.weave.works — sign up
+1. http://smtp.weave.local — you should see a welcome email
+1. http://users.weave.local/proviate/api/users — approve yourself
+1. http://smtp.weave.local — click on the link in the approval email
