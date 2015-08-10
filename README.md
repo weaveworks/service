@@ -6,13 +6,14 @@
 
 ## Run
 
-On your Linux host or VM, start Weave. Must use latest from master branch,
-Weave 1.0.1 is not good enough!
+On your Linux host or VM, start Weave. Must build Weave yourself from current
+master, using Weave 1.0.1 or latest on Docker Hub is not recent enough!
 
 ```
 cd $GOPATH/src/github.com/weaveworks
 git clone https://github.com/weaveworks/weave
 cd weave
+make
 ./weave launch
 eval $(./weave env)
 ```
