@@ -1,9 +1,9 @@
 appmapper:
   image: weaveworks/app-mapper
   hostname: app-mapper.weave.local.
-  command: -docker-host=unix:///var/run/docker.sock -log-level=debug
+  command: -docker-host=unix:///var/run/weave.sock -log-level=debug
   volumes:
-    - /var/run/docker.sock:/var/run/docker.sock
+    - /var/run/weave.sock:/var/run/weave.sock
 db:
   image: weaveworks/app-mapper-db
   hostname: app-mapper-db.weave.local.

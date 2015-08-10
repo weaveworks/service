@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
@@ -45,31 +46,31 @@ func (p *dockerProvisioner) fetchApp() error {
 	return p.client.PullImage(options, docker.AuthConfiguration{})
 }
 
-func (p *dockerProvisioner) runApp(appID string) (ret string, err error) {
+func (p *dockerProvisioner) runApp(appID string) (hostname string, err error) {
 	createOptions := docker.CreateContainerOptions{
-		Name:       appID,
+		Name:       fmt.Sprintf("scope-app-%s", appID),
 		Config:     &p.options.appConfig,
 		HostConfig: &p.options.hostConfig,
 	}
-	c, err := p.client.CreateContainer(createOptions)
+	container, err := p.client.CreateContainer(createOptions)
 	if err != nil {
 		return
 	}
+	id := container.ID
 	defer func() {
 		if err != nil {
-			p.destroyApp(c.ID)
+			p.destroyApp(id)
 		}
 	}()
 
-	err = p.client.StartContainer(c.ID, &p.options.hostConfig)
-	if err != nil {
+	if err = p.client.StartContainer(container.ID, &p.options.hostConfig); err != nil {
 		return
 	}
 
 	// Wait until the app is running
 	runDeadline := time.Now().Add(p.options.runTimeout)
-	for !c.State.Running {
-		c, err = p.client.InspectContainer(appID)
+	for !container.State.Running {
+		container, err = p.client.InspectContainer(createOptions.Name)
 		if err != nil {
 			return
 		}
@@ -80,7 +81,7 @@ func (p *dockerProvisioner) runApp(appID string) (ret string, err error) {
 		time.Sleep(time.Millisecond * 100)
 	}
 
-	ret = c.Config.Hostname + "." + c.Config.Domainname
+	hostname = container.Config.Hostname + "." + container.Config.Domainname
 	return
 }
 

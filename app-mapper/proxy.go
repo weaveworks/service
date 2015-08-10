@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -14,12 +15,16 @@ import (
 var prefix = regexp.MustCompile("^/api/app/[^/]+")
 
 func makeProxyHandler(a authenticator, m organizationMapper) http.Handler {
-	proxyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router := mux.NewRouter()
+	router.Path("/api/app/{orgName}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		orgName := mux.Vars(r)["orgName"]
+		w.Header().Set("Location", fmt.Sprintf("/api/app/%s/", orgName))
+		w.WriteHeader(301)
+	})
+	router.PathPrefix("/api/app/{orgName}/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orgName := mux.Vars(r)["orgName"]
 		appProxy(a, m, w, r, orgName)
 	})
-	router := mux.NewRouter()
-	router.PathPrefix("/api/app/{orgName}").Handler(proxyHandler)
 	return router
 }
 
@@ -43,7 +48,7 @@ func appProxy(a authenticator, m organizationMapper, w http.ResponseWriter, r *h
 		r.URL.Opaque = prefix.ReplaceAllLiteralString(r.URL.Opaque, "")
 
 		// Forward current request to the target host since it was received before hijacking
-		logrus.Debugf("proxy: writing original request to %q", targetHost)
+		logrus.Debugf("proxy: writing original request to http://%s%s", targetHost, r.URL.Opaque)
 
 		if err := r.Write(targetConn); err != nil {
 			logrus.Errorf("proxy: error copying request to target: %v", err)
@@ -95,7 +100,7 @@ func getTargetHost(m organizationMapper, w http.ResponseWriter, r *http.Request,
 }
 
 func runProxy(targetHost string, w http.ResponseWriter, proxyFunc func(clientConn net.Conn, targetConn net.Conn)) {
-	targetHostPort := addPort(targetHost, "80")
+	targetHostPort := addPort(targetHost, "4040")
 	targetConn, err := net.Dial("tcp", targetHostPort)
 
 	if err != nil {
