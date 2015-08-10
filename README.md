@@ -46,6 +46,6 @@ From your Mac,
 
 1. http://run.weave.works — sign up
 1. http://smtp.weave.local — you should see a welcome email
-1. http://users.weave.local/proviate/api/users — approve yourself
+1. http://users.weave.local/private/api/users — approve yourself
 1. http://smtp.weave.local — click on the link in the approval email
 
