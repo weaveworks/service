@@ -83,7 +83,7 @@ export default class LandingPage extends React.Component {
   }
 
   _handleLoginSuccess(resp) {
-    const url = `/org/${resp.organizationID}`;
+    const url = `/org/${resp.organizationName}`;
     this.setState({
       activityText: 'Logged in. Please wait for your app to load...'
     });
