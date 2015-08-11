@@ -86,10 +86,11 @@ func (s SessionStore) Set(w http.ResponseWriter, userID string) error {
 func (s SessionStore) Cookie(userID string) (*http.Cookie, error) {
 	value, err := s.Encode(userID)
 	return &http.Cookie{
-		Name:    cookieName,
-		Value:   value,
-		Path:    "/",
-		Expires: time.Now().UTC().Add(sessionDuration),
+		Name:     cookieName,
+		Value:    value,
+		Path:     "/",
+		HttpOnly: true,
+		Expires:  time.Now().UTC().Add(sessionDuration),
 	}, err
 }
 
