@@ -21,6 +21,11 @@ start_container() {
     done
 }
 
+if ! weave status > /dev/null; then
+    weave launch
+fi
+eval $(weave env)
+
 (cd users; docker-compose stop; docker-compose rm -f; docker-compose up -d)
 (cd app-mapper; docker-compose stop; docker-compose rm -f; docker-compose up -d)
 start_container weaveworks/ui-server ui-server
