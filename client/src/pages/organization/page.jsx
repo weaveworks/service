@@ -40,7 +40,7 @@ export default class OrganizationPage extends React.Component {
   }
 
   render() {
-    const appUrl = `/app/${this.state.name}`;
+    const appUrl = `#/app/${this.state.name}`;
     const styles = {
       activity: {
         marginTop: 200,

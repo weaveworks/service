@@ -98,7 +98,7 @@ export default class Wrapper extends React.Component {
   }
 
   _handleLoginSuccess(resp) {
-    const url = `/org/${resp.organizationName}`;
+    const url = `/api/app/${resp.name}`;
     this.setState({
       frameBaseUrl: url
     });
