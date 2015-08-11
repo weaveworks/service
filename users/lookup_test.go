@@ -66,7 +66,7 @@ func Test_Lookup_ProbeToken(t *testing.T) {
 	assert.NotEqual(t, "", user.Organization.ID, "approved user should have an organization id")
 
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/private/api/users/lookup/"+user.Organization.Name, nil)
+	r, _ := http.NewRequest("GET", "/private/api/users/lookup", nil)
 	r.Header.Set("Authorization", fmt.Sprintf("Scope-Probe token=%s", user.Organization.ProbeToken))
 
 	app.ServeHTTP(w, r)

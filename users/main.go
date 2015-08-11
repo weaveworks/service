@@ -60,7 +60,8 @@ func routes(directLogin bool) http.Handler {
 	r.HandleFunc("/api/users/org/{orgName}/users", Authenticated(ListOrganizationUsers)).Methods("GET")
 	r.HandleFunc("/api/users/org/{orgName}/users", Authenticated(InviteUser)).Methods("POST")
 	r.HandleFunc("/api/users/org/{orgName}/users/{userEmail}", Authenticated(DeleteUser)).Methods("DELETE")
-	r.HandleFunc("/private/api/users/lookup/{orgName}", Lookup).Methods("GET")
+	r.HandleFunc("/private/api/users/lookup/{orgName}", Authenticated(LookupUsingCookie)).Methods("GET")
+	r.HandleFunc("/private/api/users/lookup", LookupUsingToken).Methods("GET")
 	r.HandleFunc("/private/api/users", ListUnapprovedUsers).Methods("GET")
 	r.HandleFunc("/private/api/users/{userID}/approve", ApproveUser).Methods("POST")
 	return r
@@ -197,36 +198,34 @@ type lookupView struct {
 	OrganizationID string `json:"organizationID"`
 }
 
-func Lookup(w http.ResponseWriter, r *http.Request) {
-	orgName := mux.Vars(r)["orgName"]
-	user, err := sessions.Get(r)
-	if err == nil && user.Organization.Name == orgName {
-		renderJSON(w, http.StatusOK, lookupView{OrganizationID: user.Organization.ID})
-		return
-	}
+func LookupUsingCookie(user *User, w http.ResponseWriter, r *http.Request) {
+	renderJSON(w, http.StatusOK, lookupView{OrganizationID: user.Organization.ID})
+}
 
-	if err != nil && err != ErrInvalidAuthenticationData {
-		renderError(w, err)
-		return
-	}
-
+func LookupUsingToken(w http.ResponseWriter, r *http.Request) {
 	credentials, ok := parseAuthHeader(r.Header.Get("Authorization"))
-	if ok && credentials.Realm == "Scope-Probe" {
-		if token, ok := credentials.Params["token"]; ok {
-			org, err := storage.FindOrganizationByProbeToken(token)
-			if err == nil && org.Name == orgName {
-				renderJSON(w, http.StatusOK, lookupView{OrganizationID: org.ID})
-				return
-			}
-
-			if err != ErrInvalidAuthenticationData {
-				renderError(w, err)
-				return
-			}
-		}
+	if !ok || credentials.Realm != "Scope-Probe" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
 	}
 
-	w.WriteHeader(http.StatusUnauthorized)
+	token, ok := credentials.Params["token"]
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	org, err := storage.FindOrganizationByProbeToken(token)
+	if err == nil {
+		renderJSON(w, http.StatusOK, lookupView{OrganizationID: org.ID})
+		return
+	}
+
+	if err != ErrInvalidAuthenticationData {
+		w.WriteHeader(http.StatusUnauthorized)
+	} else {
+		renderError(w, err)
+	}
 }
 
 type userView struct {
