@@ -56,7 +56,13 @@ func (m *webAuthenticator) authenticateOrg(r *http.Request, orgName string) (aut
 		return authenticatorResponse{}, &unauthorized{http.StatusUnauthorized}
 	}
 
-	lookupReq := m.buildLookupOrgRequest(orgName, authCookie)
+	url := fmt.Sprintf("http://%s/private/api/users/lookup/%s", m.serverHost, url.QueryEscape(orgName))
+	lookupReq, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		logrus.Fatal("authenticator: cannot build lookup request: ", err)
+	}
+	lookupReq.AddCookie(authCookie)
+
 	return doAuthenticateRequest(lookupReq)
 }
 
@@ -69,7 +75,13 @@ func (m *webAuthenticator) authenticateProbe(r *http.Request) (authenticatorResp
 		return authenticatorResponse{}, &unauthorized{http.StatusUnauthorized}
 	}
 
-	lookupReq := m.buildLookupProbeRequest(authHeader)
+	url := fmt.Sprintf("http://%s/private/api/users/lookup", m.serverHost)
+	lookupReq, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		logrus.Fatal("authenticator: cannot build lookup request: ", err)
+	}
+	lookupReq.Header.Set(authHeaderName, authHeader)
+
 	return doAuthenticateRequest(lookupReq)
 }
 
@@ -95,24 +107,4 @@ func doAuthenticateRequest(r *http.Request) (authenticatorResponse, error) {
 	}
 	return authRes, nil
 
-}
-
-func (m *webAuthenticator) buildLookupOrgRequest(orgName string, authCookie *http.Cookie) *http.Request {
-	url := fmt.Sprintf("http://%s/private/api/users/lookup/%s", m.serverHost, url.QueryEscape(orgName))
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		logrus.Fatal("authenticator: cannot build lookup request: ", err)
-	}
-	req.AddCookie(authCookie)
-	return req
-}
-
-func (m *webAuthenticator) buildLookupProbeRequest(authHeader string) *http.Request {
-	url := fmt.Sprintf("http://%s/private/api/users/lookup", m.serverHost)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		logrus.Fatal("authenticator: cannot build lookup request: ", err)
-	}
-	req.Header.Set(authHeaderName, authHeader)
-	return req
 }

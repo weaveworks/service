@@ -16,4 +16,4 @@ docker run --rm \
 	-v "$GOPATH":/go/ \
 	--workdir /go/src/github.com/weaveworks/service/app-mapper \
 	golang:1.4 \
-	/bin/bash -c "go get golang.org/x/tools/cmd/cover && go test -tags integration -cover -coverprofile cover.out -timeout 30s ./... && go tool cover -html=cover.out -o cover.html && cat cover.html" > cover.html
+	/bin/bash -c "go test -tags integration -timeout 30s ./..."
