@@ -19,6 +19,9 @@ func testAuthenticator(t *testing.T, shFunc serverHandlerFunc, testFunc func(a a
 	serverHandler.HandleFunc("/private/api/users/lookup/{orgName}", func(w http.ResponseWriter, r *http.Request) {
 		shFunc(w, r, mux.Vars(r)["orgName"])
 	})
+	serverHandler.HandleFunc("/private/api/users/lookup", func(w http.ResponseWriter, r *http.Request) {
+		shFunc(w, r, "")
+	})
 	authenticatorServer := httptest.NewServer(serverHandler)
 	defer authenticatorServer.Close()
 	parsedAuthenticatorURL, err := url.Parse(authenticatorServer.URL)
@@ -26,23 +29,25 @@ func testAuthenticator(t *testing.T, shFunc serverHandlerFunc, testFunc func(a a
 	testFunc(&webAuthenticator{parsedAuthenticatorURL.Host})
 }
 
-func newRequestToAuthenticate(t *testing.T, authCookieValue string, authHeaderValue string) *http.Request {
+func authenticateOrg(t *testing.T, a authenticator, orgName string) (authenticatorResponse, error) {
 	req, err := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
 	require.NoError(t, err, "Cannot create request")
-	if len(authCookieValue) > 0 {
-		c := http.Cookie{
-			Name:  authCookieName,
-			Value: authCookieValue,
-		}
-		req.AddCookie(&c)
+	c := http.Cookie{
+		Name:  authCookieName,
+		Value: "someAuthCookieValue",
 	}
-	if len(authHeaderValue) > 0 {
-		req.Header.Set(authHeaderName, authHeaderValue)
-	}
-	return req
+	req.AddCookie(&c)
+	return a.authenticateOrg(req, orgName)
 }
 
-func TestAuthorize(t *testing.T) {
+func authenticateProbe(t *testing.T, a authenticator) (authenticatorResponse, error) {
+	req, err := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
+	require.NoError(t, err, "Cannot create request")
+	req.Header.Set(authHeaderName, "someAuthHeaderValue")
+	return a.authenticateProbe(req)
+}
+
+func TestAuthorizeOrg(t *testing.T) {
 	const organizationID = "somePersistentInternalID"
 	shFunc := func(w http.ResponseWriter, r *http.Request, orgName string) {
 		assert.Equal(t, "GET", r.Method, "Unexpected method")
@@ -53,13 +58,11 @@ func TestAuthorize(t *testing.T) {
 	testFunc := func(a authenticator) {
 		const organizationName = "somePublicOrgName"
 
-		r := newRequestToAuthenticate(t, "someCookieValue", "")
-		res, err := a.authenticate(r, organizationName)
+		res, err := authenticateOrg(t, a, organizationName)
 		assert.NoError(t, err, "Unexpected error from authenticator")
 		assert.Equal(t, organizationID, res.OrganizationID, "Unexpected organization")
 
-		r = newRequestToAuthenticate(t, "", "someAuthHeaderValue")
-		res, err = a.authenticate(r, organizationName)
+		res, err = authenticateProbe(t, a)
 		assert.NoError(t, err, "Unexpected error from authenticator")
 		assert.Equal(t, organizationID, res.OrganizationID, "Unexpected organization")
 	}
@@ -78,8 +81,7 @@ func TestEncoding(t *testing.T) {
 	testFunc := func(a authenticator) {
 		const organizationName = "%21?ЖЗИЙ%2FК%$?"
 
-		r := newRequestToAuthenticate(t, "someCookieValue", "")
-		_, err := a.authenticate(r, organizationName)
+		_, err := authenticateOrg(t, a, organizationName)
 		assert.NoError(t, err, "Unexpected error from authenticator")
 		assert.Equal(t, organizationName, recordedOrganizationName, "Unexpected organization")
 	}
@@ -93,8 +95,10 @@ func TestDenyAccess(t *testing.T) {
 	}
 
 	testFunc := func(a authenticator) {
-		r := newRequestToAuthenticate(t, "someCookieValue", "")
-		_, err := a.authenticate(r, "somePublicOrgName")
+		_, err := authenticateOrg(t, a, "somePublicOrgName")
+		assert.Error(t, err, "Unexpected successful authentication")
+
+		_, err = authenticateProbe(t, a)
 		assert.Error(t, err, "Unexpected successful authentication")
 	}
 
@@ -102,10 +106,6 @@ func TestDenyAccess(t *testing.T) {
 }
 
 func TestCredentialForwarding(t *testing.T) {
-	const (
-		authCookieValue = "someCookieValue"
-		authHeaderValue = "someAuthHeaderValue"
-	)
 	var (
 		obtainedAuthCookieValue string
 		obtainedAuthHeaderValue string
@@ -122,23 +122,16 @@ func TestCredentialForwarding(t *testing.T) {
 	}
 
 	testFunc := func(a authenticator) {
+		_, err := authenticateOrg(t, a, "foo")
+		assert.NoError(t, err, "Unexpected error from authenticator")
+		assert.Equal(t, "someAuthCookieValue", obtainedAuthCookieValue)
+		assert.Equal(t, "", obtainedAuthHeaderValue)
 
-		for _, input := range []struct {
-			cookie, header string
-		}{
-			{authCookieValue, ""},
-			{"", authHeaderValue},
-			{authCookieValue, authHeaderValue},
-		} {
-			obtainedAuthCookieValue = ""
-			obtainedAuthHeaderValue = ""
-			r := newRequestToAuthenticate(t, input.cookie, input.header)
-			_, err := a.authenticate(r, "foo")
-			assert.NoError(t, err, "Unexpected error from authenticator")
-			assert.Equal(t, input.cookie, obtainedAuthCookieValue)
-			assert.Equal(t, input.header, obtainedAuthHeaderValue)
-		}
-
+		obtainedAuthCookieValue = ""
+		_, err = authenticateProbe(t, a)
+		assert.NoError(t, err, "Unexpected error from authenticator")
+		assert.Equal(t, "someAuthHeaderValue", obtainedAuthHeaderValue)
+		assert.Equal(t, "", obtainedAuthCookieValue)
 	}
 
 	testAuthenticator(t, shFunc, testFunc)
@@ -160,8 +153,10 @@ func TestBadServerResponse(t *testing.T) {
 			` garbager osaij oasi98 llk;fs `,
 		} {
 			responseBody = []byte(badResponse)
-			r := newRequestToAuthenticate(t, "someCookieValue", "")
-			_, err := a.authenticate(r, "foo")
+			_, err := authenticateOrg(t, a, "foo")
+			assert.Error(t, err, "Unexpected successful request")
+
+			_, err = authenticateProbe(t, a)
 			assert.Error(t, err, "Unexpected successful request")
 		}
 

@@ -49,7 +49,6 @@ func Test_Lookup_NotFound(t *testing.T) {
 	r.AddCookie(cookie)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.Len(t, w.Body.Bytes(), 0)
 }
 
 func Test_Lookup_ProbeToken(t *testing.T) {
@@ -66,7 +65,7 @@ func Test_Lookup_ProbeToken(t *testing.T) {
 	assert.NotEqual(t, "", user.Organization.ID, "approved user should have an organization id")
 
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/private/api/users/lookup/"+user.Organization.Name, nil)
+	r, _ := http.NewRequest("GET", "/private/api/users/lookup", nil)
 	r.Header.Set("Authorization", fmt.Sprintf("Scope-Probe token=%s", user.Organization.ProbeToken))
 
 	app.ServeHTTP(w, r)

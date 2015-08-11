@@ -48,4 +48,14 @@ From your Mac,
 1. http://smtp.weave.local — you should see a welcome email
 1. http://users.weave.local/private/api/users — approve yourself
 1. http://smtp.weave.local — click on the link in the approval email
+1. Use the token in the approval email to start a probe:
+
+  ./scope launch --no-app --probe.token=lhFr_M4SwtOmjLrrxHc2 frontend.weave.local:80
+
+1. Navigate to http://run.weave.works/api/app/<org name> and behold the beauty
+
+
+Note:
+
+- You'll need to preload a recent build of the scope image
 
