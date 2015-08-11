@@ -5,13 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/Sirupsen/logrus"
 )
 
 type authenticator interface {
-	authenticate(r *http.Request, org string) (authenticatorResponse, error)
+	authenticate(r *http.Request) (authenticatorResponse, error)
 }
 
 // unauthorized error
@@ -29,7 +28,7 @@ type authenticatorResponse struct {
 
 type mockAuthenticator struct{}
 
-func (m *mockAuthenticator) authenticate(r *http.Request, orgName string) (authenticatorResponse, error) {
+func (m *mockAuthenticator) authenticate(r *http.Request) (authenticatorResponse, error) {
 	return authenticatorResponse{"mockID"}, nil
 }
 
@@ -42,7 +41,7 @@ const (
 	authHeaderName = "Authorization"
 )
 
-func (m *webAuthenticator) authenticate(r *http.Request, orgName string) (authenticatorResponse, error) {
+func (m *webAuthenticator) authenticate(r *http.Request) (authenticatorResponse, error) {
 	// Extract Authorization cookie and/or the Authorization header to inject them in the
 	// lookup request. If the cookie and the header were not set, don't even bother to do a
 	// lookup.
@@ -53,7 +52,7 @@ func (m *webAuthenticator) authenticate(r *http.Request, orgName string) (authen
 		return authenticatorResponse{}, &unauthorized{http.StatusUnauthorized}
 	}
 
-	lookupReq := m.buildLookupRequest(orgName, authCookie, authHeader)
+	lookupReq := m.buildLookupRequest(authCookie, authHeader)
 
 	// Contact the authorization server
 	client := &http.Client{}
@@ -77,8 +76,8 @@ func (m *webAuthenticator) authenticate(r *http.Request, orgName string) (authen
 	return authRes, nil
 }
 
-func (m *webAuthenticator) buildLookupRequest(orgName string, authCookie *http.Cookie, authHeader string) *http.Request {
-	url := fmt.Sprintf("http://%s/private/api/users/lookup/%s", m.serverHost, url.QueryEscape(orgName))
+func (m *webAuthenticator) buildLookupRequest(authCookie *http.Cookie, authHeader string) *http.Request {
+	url := fmt.Sprintf("http://%s/private/api/users/lookup", m.serverHost)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		logrus.Fatal("authenticator: cannot build lookup request: ", err)

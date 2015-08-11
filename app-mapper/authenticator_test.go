@@ -12,13 +12,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type serverHandlerFunc func(w http.ResponseWriter, r *http.Request, orgName string)
+type serverHandlerFunc func(w http.ResponseWriter, r *http.Request)
 
 func testAuthenticator(t *testing.T, shFunc serverHandlerFunc, testFunc func(a authenticator)) {
 	serverHandler := mux.NewRouter()
-	serverHandler.HandleFunc("/private/api/users/lookup/{orgName}", func(w http.ResponseWriter, r *http.Request) {
-		shFunc(w, r, mux.Vars(r)["orgName"])
-	})
+	serverHandler.HandleFunc("/private/api/users/lookup", shFunc)
 	authenticatorServer := httptest.NewServer(serverHandler)
 	defer authenticatorServer.Close()
 	parsedAuthenticatorURL, err := url.Parse(authenticatorServer.URL)
@@ -44,57 +42,35 @@ func newRequestToAuthenticate(t *testing.T, authCookieValue string, authHeaderVa
 
 func TestAuthorize(t *testing.T) {
 	const organizationID = "somePersistentInternalID"
-	shFunc := func(w http.ResponseWriter, r *http.Request, orgName string) {
+	shFunc := func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method, "Unexpected method")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, `{ "organizationID": "%s" }`, organizationID)
 	}
 
 	testFunc := func(a authenticator) {
-		const organizationName = "somePublicOrgName"
-
 		r := newRequestToAuthenticate(t, "someCookieValue", "")
-		res, err := a.authenticate(r, organizationName)
+		res, err := a.authenticate(r)
 		assert.NoError(t, err, "Unexpected error from authenticator")
 		assert.Equal(t, organizationID, res.OrganizationID, "Unexpected organization")
 
 		r = newRequestToAuthenticate(t, "", "someAuthHeaderValue")
-		res, err = a.authenticate(r, organizationName)
+		res, err = a.authenticate(r)
 		assert.NoError(t, err, "Unexpected error from authenticator")
 		assert.Equal(t, organizationID, res.OrganizationID, "Unexpected organization")
-	}
-
-	testAuthenticator(t, shFunc, testFunc)
-}
-
-func TestEncoding(t *testing.T) {
-	var recordedOrganizationName string
-	shFunc := func(w http.ResponseWriter, r *http.Request, orgName string) {
-		recordedOrganizationName = orgName
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{ "organizationID": "somePersistentInternalID" }`)
-	}
-
-	testFunc := func(a authenticator) {
-		const organizationName = "%21?ЖЗИЙ%2FК%$?"
-
-		r := newRequestToAuthenticate(t, "someCookieValue", "")
-		_, err := a.authenticate(r, organizationName)
-		assert.NoError(t, err, "Unexpected error from authenticator")
-		assert.Equal(t, organizationName, recordedOrganizationName, "Unexpected organization")
 	}
 
 	testAuthenticator(t, shFunc, testFunc)
 }
 
 func TestDenyAccess(t *testing.T) {
-	shFunc := func(w http.ResponseWriter, r *http.Request, orgID string) {
+	shFunc := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	}
 
 	testFunc := func(a authenticator) {
 		r := newRequestToAuthenticate(t, "someCookieValue", "")
-		_, err := a.authenticate(r, "somePublicOrgName")
+		_, err := a.authenticate(r)
 		assert.Error(t, err, "Unexpected successful authentication")
 	}
 
@@ -111,7 +87,7 @@ func TestCredentialForwarding(t *testing.T) {
 		obtainedAuthHeaderValue string
 	)
 
-	shFunc := func(w http.ResponseWriter, r *http.Request, orgName string) {
+	shFunc := func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(authCookieName)
 		if err == nil {
 			obtainedAuthCookieValue = cookie.Value
@@ -133,7 +109,7 @@ func TestCredentialForwarding(t *testing.T) {
 			obtainedAuthCookieValue = ""
 			obtainedAuthHeaderValue = ""
 			r := newRequestToAuthenticate(t, input.cookie, input.header)
-			_, err := a.authenticate(r, "foo")
+			_, err := a.authenticate(r)
 			assert.NoError(t, err, "Unexpected error from authenticator")
 			assert.Equal(t, input.cookie, obtainedAuthCookieValue)
 			assert.Equal(t, input.header, obtainedAuthHeaderValue)
@@ -147,7 +123,7 @@ func TestCredentialForwarding(t *testing.T) {
 func TestBadServerResponse(t *testing.T) {
 	var responseBody []byte
 
-	shFunc := func(w http.ResponseWriter, r *http.Request, orgName string) {
+	shFunc := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write(responseBody)
 	}
@@ -161,7 +137,7 @@ func TestBadServerResponse(t *testing.T) {
 		} {
 			responseBody = []byte(badResponse)
 			r := newRequestToAuthenticate(t, "someCookieValue", "")
-			_, err := a.authenticate(r, "foo")
+			_, err := a.authenticate(r)
 			assert.Error(t, err, "Unexpected successful request")
 		}
 
