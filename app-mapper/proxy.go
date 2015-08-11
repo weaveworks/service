@@ -12,7 +12,6 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"golang.org/x/net/websocket"
 )
 
 const scopeDefaultPortNumber = 4040
@@ -98,47 +97,54 @@ func (p proxy) run(w http.ResponseWriter, r *http.Request, orgName string) {
 
 func isWSHandshakeRequest(req *http.Request) bool {
 	return strings.ToLower(req.Header.Get("Upgrade")) == "websocket" &&
-		strings.ToLower(req.Header.Get("Connection")) == "upgrade" &&
-		req.Header.Get("Origin") != ""
+		strings.ToLower(req.Header.Get("Connection")) == "upgrade"
 }
 
 func proxyWS(targetHost string, w http.ResponseWriter, r *http.Request) {
 	// Connect to target
-	url := "ws://" + targetHost + r.URL.Opaque
-	wsTargetConfig, err := websocket.NewConfig(url, r.Header.Get("Origin"))
+	targetConn, err := net.Dial("tcp", targetHost)
 	if err != nil {
-		logrus.Errorf("proxy: error creating websocket config: %v", err)
+		logrus.Errorf("proxy: websocket: error dialing backend %q: %v", targetHost, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	copyHeader(wsTargetConfig.Header, r.Header)
-	wsTargetConn, err := websocket.DialConfig(wsTargetConfig)
-	if err != nil {
-		logrus.Errorf("proxy: error dialing %q: %v", url, err)
+	defer targetConn.Close()
+
+	// Hijack the connection to copy raw data back to our client
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		logrus.Errorf("proxy: websocket: error casting to Hijacker on %q: %v", targetHost, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer wsTargetConn.Close()
+	clientConn, _, err := hijacker.Hijack()
+	if err != nil {
+		logrus.Errorf("proxy: websocket: Hijack error: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer clientConn.Close()
+
+	// Forward current request to the target host since it was received before hijacking
+	logrus.Debugf("proxy: websocket: writing original request to http://%s%s", targetHost, r.URL.Opaque)
+	if err := r.Write(targetConn); err != nil {
+		logrus.Errorf("proxy: websocket: error copying request to target: %v", err)
+		return
+	}
 
 	// Copy websocket payload back and forth between our client and the target host
 	var wg sync.WaitGroup
-	cp := func(dst *websocket.Conn, src *websocket.Conn, tag string) {
+	cp := func(dst io.Writer, src io.Reader, tag string) {
 		defer wg.Done()
 		io.Copy(dst, src)
-		// Need to close the destination explicitly or the sibling go routine
-		// will hang
-		dst.Close()
 		logrus.Debugf("proxy: websocket: %q copier exited", tag)
 	}
-	wsHandler := websocket.Handler(func(wsClientConn *websocket.Conn) {
-		wg.Add(2)
-		logrus.Debugf("proxy: websocket: spawning copiers")
-		go cp(wsClientConn, wsTargetConn, "server2client")
-		go cp(wsTargetConn, wsClientConn, "client2server")
-		wg.Wait()
-		logrus.Debugf("proxy: websocket: connection closed")
-	})
-	wsHandler.ServeHTTP(w, r)
+	wg.Add(2)
+	logrus.Debugf("proxy: websocket: spawning copiers")
+	go cp(clientConn, targetConn, "server2client")
+	go cp(targetConn, clientConn, "client2server")
+	wg.Wait()
+	logrus.Debugf("proxy: websocket: connection closed")
 }
 
 func copyHeader(dst, src http.Header) {
