@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
@@ -53,7 +52,7 @@ func (p *dockerProvisioner) fetchApp() error {
 
 func (p *dockerProvisioner) runApp(appID string) (hostname string, err error) {
 	createOptions := docker.CreateContainerOptions{
-		Name:       fmt.Sprintf("scope-app-%s", appID),
+		Name:       appContainerName(appID),
 		Config:     &p.options.appConfig,
 		HostConfig: &p.options.hostConfig,
 	}
@@ -61,10 +60,9 @@ func (p *dockerProvisioner) runApp(appID string) (hostname string, err error) {
 	if err != nil {
 		return
 	}
-	id := container.ID
 	defer func() {
 		if err != nil {
-			p.destroyApp(id)
+			p.destroyApp(appID)
 		}
 	}()
 
@@ -90,8 +88,12 @@ func (p *dockerProvisioner) runApp(appID string) (hostname string, err error) {
 	return
 }
 
+func appContainerName(appID string) string {
+	return "scope-app-" + appID
+}
+
 func (p *dockerProvisioner) isAppRunning(appID string) (bool, error) {
-	c, err := p.client.InspectContainer(appID)
+	c, err := p.client.InspectContainer(appContainerName(appID))
 	if err != nil {
 		return false, err
 	}
@@ -100,7 +102,7 @@ func (p *dockerProvisioner) isAppRunning(appID string) (bool, error) {
 
 func (p *dockerProvisioner) destroyApp(appID string) error {
 	options := docker.RemoveContainerOptions{
-		ID:            appID,
+		ID:            appContainerName(appID),
 		RemoveVolumes: true,
 		Force:         true,
 	}

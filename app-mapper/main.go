@@ -19,7 +19,7 @@ func main() {
 		logrus.Error("Couldn't fetch application: ", err)
 	}
 	orgMapper := flags.getOrganizationMapper(appProvisioner)
-	http.Handle("/", makeProxyHandler(authenticator, orgMapper))
+	http.Handle("/", newProxy(authenticator, orgMapper))
 	logrus.Info("Listening on :80")
 	handler := makeLoggingHandler(http.DefaultServeMux)
 	logrus.Fatal(http.ListenAndServe(":80", handler))

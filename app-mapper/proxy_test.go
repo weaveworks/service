@@ -26,7 +26,7 @@ func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFu
 
 	// Set a test server for the proxy (required for Hijack to work)
 	m := &constantMapper{parsedTargetURL.Host}
-	proxyTestServer := httptest.NewServer(makeProxyHandler(a, m))
+	proxyTestServer := httptest.NewServer(newProxy(a, m))
 	defer proxyTestServer.Close()
 
 	parsedProxyURL, err := url.Parse(proxyTestServer.URL)
@@ -56,9 +56,9 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 		w.Write(targetResponse)
 	})
 
-	var targetRecordedOrgName string
+	var recordedOrgName string
 	authenticator := AuthenticatorFunc(func(r *http.Request, orgName string) (authenticatorResponse, error) {
-		targetRecordedOrgName = orgName
+		recordedOrgName = orgName
 		return authenticatorResponse{"somePersistentInternalID"}, nil
 	})
 
@@ -76,7 +76,7 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 
 		// Check that everything was received as expected
 		require.NotNil(t, targetRecordedReq, "target didn't receive request")
-		reconstructedPath := "/api/app/" + url.QueryEscape(targetRecordedOrgName) + targetRecordedReq.URL.Path
+		reconstructedPath := "/api/app/" + url.QueryEscape(recordedOrgName) + targetRecordedReq.URL.Path
 		assert.Equal(t, reconstructedPath, req.URL.Path, "URL mismatch")
 		requestEqual(t, req, targetRecordedReq, "Request mismatch")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "Response status mismatch")
@@ -86,6 +86,14 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 	}
 
 	testProxy(t, targetHandler, authenticator, testFunc)
+}
+
+func copyHeader(dst, src http.Header) {
+	for k, vv := range src {
+		for _, v := range vv {
+			dst.Add(k, v)
+		}
+	}
 }
 
 func copyRequest(t *testing.T, req *http.Request) *http.Request {
@@ -100,7 +108,11 @@ func copyRequest(t *testing.T, req *http.Request) *http.Request {
 func requestEqual(t *testing.T, expected *http.Request, actual *http.Request, msg string) {
 	assert.Equal(t, expected.Method, actual.Method, msg+": method")
 	assert.Equal(t, expected.ContentLength, actual.ContentLength, msg+": content length")
-	assert.Equal(t, expected.Header, actual.Header, msg+": headers")
+	// Leave "X-Forwarded-For" out of the comparison since it's legitimately injected by the proxy
+	headerToCompare := make(http.Header)
+	copyHeader(headerToCompare, actual.Header)
+	delete(headerToCompare, "X-Forwarded-For")
+	assert.Equal(t, expected.Header, headerToCompare, msg+": headers")
 	assert.Equal(t, expected.TransferEncoding, actual.TransferEncoding, msg+": transfer encoding")
 	if expected.ContentLength != 0 {
 		expectedBody, err := ioutil.ReadAll(expected.Body)
@@ -125,10 +137,81 @@ func TestProxyPost(t *testing.T) {
 	testHTTPRequest(t, req)
 }
 
+func TestProxyStrictSlash(t *testing.T) {
+	// Set a test server to be targeted by the proxy
+	reachedTarget := false
+	targetHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reachedTarget = true
+		// Close the connection after replying to let go of the proxy
+		// (otherwise, the test will hang because the DefaultTransport
+		//  caches clients, and doesn't explicitly close them)
+		w.Header().Set("Connection", "close")
+		w.WriteHeader(http.StatusOK)
+	})
+
+	testFunc := func(proxyHost string) {
+		redirected := false
+		client := &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				redirected = true
+				return nil
+			},
+		}
+		url := "http://" + proxyHost + "/api/app/somePublicOrgName"
+		res, err := client.Get(url)
+		defer res.Body.Close()
+		require.NoError(t, err, "Cannot make test request")
+
+		// Check that everything was received as expected
+		assert.True(t, reachedTarget, "target wasn't reached")
+		assert.True(t, redirected, "redirection didn't happen")
+	}
+
+	testProxy(t, targetHandler, &mockAuthenticator{}, testFunc)
+}
+
 func TestProxyEncoding(t *testing.T) {
-	req, err := http.NewRequest("GET", "http://example.com/api/app/a%2Fb/request?arg1=foo&arg2=bar", nil)
+	req, err := http.NewRequest("GET", "http://example.com/api/app/some%2FPublic%2FOrgName/request?arg1=foo&arg2=bar", nil)
 	require.NoError(t, err, "Cannot create request")
 	testHTTPRequest(t, req)
+}
+
+func TestMultiRequest(t *testing.T) {
+
+	targetReqCounter := 0
+	targetHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetReqCounter++
+		w.WriteHeader(http.StatusOK)
+	})
+
+	authenticatorReqCounter := 0
+	authenticator := AuthenticatorFunc(func(r *http.Request, orgName string) (authenticatorResponse, error) {
+		authenticatorReqCounter++
+		return authenticatorResponse{"somePersistentInternalID"}, nil
+	})
+
+	testFunc := func(proxyHost string) {
+		client := &http.Client{}
+		url := "http://" + proxyHost + "/api/app/somePublicOrgName/request?arg1=foo&arg2=bar"
+		req, err := http.NewRequest("GET", url, nil)
+		require.NoError(t, err, "Cannot create request")
+		req.Header.Set("Connection", "keep-alive")
+		for i := 0; i < 100; i++ {
+			if i == 99 {
+				// Close the connection in the last request to let go of the proxy
+				// (otherwise, the test will hang because the DefaultTransport
+				//  caches clients, and doesn't explicitly close them)
+				req.Header.Set("Connection", "close")
+			}
+			res, err := client.Do(req)
+			require.NoError(t, err, "Cannot make test request")
+			res.Body.Close()
+		}
+		assert.Equal(t, 100, targetReqCounter, "Mismatching target requests")
+		assert.Equal(t, 100, authenticatorReqCounter, "Mismatching authenticator requests")
+	}
+
+	testProxy(t, targetHandler, authenticator, testFunc)
 }
 
 func TestUnauthorized(t *testing.T) {
@@ -147,7 +230,7 @@ func TestUnauthorized(t *testing.T) {
 			unauthorized{http.StatusUnauthorized}:        http.StatusUnauthorized,
 			unauthorized{http.StatusBadRequest}:          http.StatusUnauthorized,
 			unauthorized{http.StatusInternalServerError}: http.StatusUnauthorized,
-			errors.New("Whatever"):                       http.StatusBadGateway,
+			errors.New("PhonyError"):                     http.StatusBadGateway,
 		}
 
 		url := "http://" + proxyHost + "/api/app/somePublicOrgName/request?arg1=foo&arg2=bar"
@@ -180,9 +263,11 @@ func TestProxyWebSocket(t *testing.T) {
 		messageToSend := "This is a test message"
 		var messageToReceive string
 		for i := 0; i < 100; i++ {
-			websocket.Message.Send(ws, messageToSend)
+			err = websocket.Message.Send(ws, messageToSend)
+			require.NoError(t, err, "Error sending message")
 			websocket.Message.Receive(ws, &messageToReceive)
-			assert.Equal(t, messageToSend, messageToReceive)
+			require.NoError(t, err, "Error receiving message")
+			require.Equal(t, messageToSend, messageToReceive)
 			messageToReceive = ""
 		}
 	}
