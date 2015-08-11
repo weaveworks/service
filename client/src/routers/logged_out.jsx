@@ -3,6 +3,7 @@ import { Route, DefaultRoute, RouteHandler } from "react-router";
 
 import OrganizationPage from "../pages/organization/page";
 import LandingPage from "../pages/landing/page";
+import LoginPage from "../pages/login/page";
 import WrapperPage from "../pages/wrapper/page";
 
 
@@ -22,7 +23,8 @@ export default class LoggedOutRouter extends React.Component {
       <Route name="app" path="/" handler={LoggedOutRouter}>
         <Route name="wrapper" path="app/:orgId" handler={WrapperPage} />
         <Route name="organization" path="org/:orgId" handler={OrganizationPage} />
-        <Route name="login" path="login/:email/:token" handler={LandingPage} />
+        <Route name="login" path="login" handler={LoginPage} />
+        <Route name="login-form" path="login/:email/:token" handler={LoginPage} />
         <DefaultRoute name="landing" handler={LandingPage} />
       </Route>
     );

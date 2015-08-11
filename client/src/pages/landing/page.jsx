@@ -1,7 +1,7 @@
 import React from "react";
 import { HashLocation } from "react-router";
-import { getData, postData } from "../../common/request";
-import { Styles, RaisedButton, TextField } from "material-ui";
+import { getData } from "../../common/request";
+import { CircularProgress, Styles } from "material-ui";
 
 const Colors = Styles.Colors;
 const ThemeManager = new Styles.ThemeManager();
@@ -16,15 +16,11 @@ export default class LandingPage extends React.Component {
     super(props);
 
     this.state = {
-      errorText: '',
-      token: null,
-      email: null,
-      mailSent: false,
-      submitText: 'Go',
-      submitting: false
+      activityText: 'Checking login state...',
+      errorText: ''
     };
 
-    this._handleSubmit = this._handleSubmit.bind(this);
+    this._checkCookie = this._checkCookie.bind(this);
     this._handleLoginSuccess = this._handleLoginSuccess.bind(this);
     this._handleLoginError = this._handleLoginError.bind(this);
   }
@@ -39,135 +35,74 @@ export default class LandingPage extends React.Component {
     ThemeManager.setPalette({
       accent1Color: Colors.deepOrange500
     });
-
-    // triggered on fresh page load with login params
-    this._tryLogin();
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    // triggered via URL hashchange
-    if (!this.state.errorText && !this.state.submitting) {
-      this._tryLogin();
-    }
+  componentDidMount() {
+    this._checkCookie();
   }
 
   render() {
     const styles = {
-      submit: {
-        marginLeft: '2em',
-        marginTop: '3px',
-        verticalAlign: 'top'
-      },
-
       container: {
         textAlign: 'center',
         paddingTop: '200px'
       },
 
-      confirmation: {
-        display: this.state.mailSent ? "block" : "none",
+      error: {
+        display: this.state.errorText ? "block" : "none",
         fontSize: '85%',
-        opacity: 0.6
+        opacity: 0.6,
+        color: Styles.Colors.red900
       },
 
-      form: {
-        display: !this.state.mailSent && !this.state.token ? "block" : "none",
-      },
-
-      link: {
-        display: this.state.token ? "block" : "none",
+      activity: {
+        display: this.state.activityText ? "block" : "none",
         fontSize: '85%',
         opacity: 0.6
       }
     };
 
     return (
-      <div id="landing-page" style={styles.container}>
+      <div style={styles.container}>
         <h1>Scope as a Service</h1>
-        <div style={styles.form}>
-          <TextField hintText="Email" ref="emailField" type="email" errorText={this.state.errorText}
-            onEnterKeyDown={this._handleSubmit.bind(this)} />
-          <RaisedButton label={this.state.submitText} primary={true} style={styles.submit}
-            disabled={this.state.submitting} onClick={this._handleSubmit.bind(this)} />
+        <div style={styles.activity}>
+          <CircularProgress mode="indeterminate" />
+          <p>{this.state.activityText}.</p>
         </div>
-        <div style={styles.confirmation}>
-          <p>A mail with login details was sent to {this.state.email}.</p>
-        </div>
-        <div style={styles.link}>
-          <button onClick={this._doLogin.bind(this)}>Developer login link</button>
+        <div style={styles.error}>
+          <h3>Scope service is not available. Please try again later.</h3>
+          <p>{this.state.errorText}</p>
         </div>
       </div>
     );
   }
 
-  _tryLogin() {
-    const params = this.props.params;
-    const email = this.state.email ? this.state.email : params.email;
-    const token = this.state.token ? this.state.token : params.token;
-    if (email && token) {
-      const url = `/api/users/login?email=${email}&token=${token}`;
-      getData(url).then(this._handleLoginSuccess, this._handleLoginError);
-    }
-  }
-
-  _doLogin() {
-    const loginUrl = `#/login/${this.state.email}/${this.state.token}`;
-    HashLocation.push(loginUrl);
+  _checkCookie() {
+    const url = `/api/users/lookup`;
+    getData(url).then(this._handleLoginSuccess, this._handleLoginError);
   }
 
   _handleLoginSuccess(resp) {
-    const url = `/org/${resp.organizationName}`
+    const url = `/org/${resp.organizationName}`;
+    this.setState({
+      activityText: 'Logged in. Please wait for your app to load...'
+    });
     HashLocation.push(url);
   }
 
   _handleLoginError(resp) {
-    this.setState({
-      errorText: resp.errors[0].message
-    });
-  }
-
-  _handleSubmit() {
-    const field = this.refs.emailField;
-    const value = field.getValue();
-
-    if (value) {
-      const wrapperNode = this.refs.emailField.getDOMNode();
-      const inputNode = wrapperNode.getElementsByTagName('input')[0];
-      const valid = inputNode.validity.valid;
-
-      if(valid) {
-        // lock button and clear error
-        this.setState({
-          errorText: '',
-          submitting: true,
-          submitText: 'Sending...'
-        });
-
-        postData('/api/users/signup', {email: value})
-          .then(function(resp) {
-            // empty field
-            field.clearValue();
-
-            this.setState({
-              mailSent: resp.mailSent,
-              email: resp.email,
-              token: resp.token,
-              submitting: false
-            });
-          }.bind(this), function(resp) {
-            this.setState({
-              errorText: resp,
-              submitting: false,
-              submitText: 'Go'
-            });
-          }.bind(this));
-      } else {
-        this.setState({
-          errorText: 'Please provide a valid email address.'
-        });
-      }
-
+    if (resp.status === 401) {
+      // if unauthorized, send to login page
+      this.setState({
+        activityText: 'Not logged in. Please wait for the login form to load...'
+      });
+      HashLocation.push('/login');
+    } else {
+      let err = resp.errors[0];
+      this.setState({
+        activityText: '',
+        errorText: err.message
+      });
     }
-
   }
 }

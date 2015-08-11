@@ -1,5 +1,6 @@
 import React from "react";
-import { Styles } from "material-ui";
+import { CircularProgress, Styles } from "material-ui";
+import { HashLocation } from "react-router";
 
 import { getData } from "../../common/request";
 import { Container } from "../../components/container";
@@ -16,33 +17,73 @@ export default class OrganizationPage extends React.Component {
     muiTheme: React.PropTypes.object
   }
 
+  constructor() {
+    super();
+    this.state = {
+      name: '',
+      user: '',
+      probeToken: ''
+    };
+
+    this._handleOrganizationSuccess = this._handleOrganizationSuccess.bind(this);
+    this._handleOrganizationError = this._handleOrganizationError.bind(this);
+  }
+
   getChildContext() {
     return {
       muiTheme: ThemeManager.getCurrentTheme()
     };
   }
 
+  componentDidMount() {
+    this._getOrganizationData(this.props.params.orgId);
+  }
+
   render() {
-    let { name, user, probeToken } = this.props.data.organization;
+    const appUrl = `#/app/${this.state.name}`;
+    const styles = {
+      activity: {
+        marginTop: 200,
+        textAlign: 'center'
+      }
+    };
 
     return (
       <Container>
-        <UserToolbar user={user} />
-        <h1><a href="/app/foo">{name}</a></h1>
-        <Column>
-          <Users org={name} />
-        </Column>
-        <Column>
-          <Probes org={name} probeToken={probeToken} />
-        </Column>
+        {this.state.name && <div>
+          <UserToolbar user={this.state.user} />
+          <h1><a href={appUrl}>{this.state.name}</a></h1>
+          <Column>
+            <Users org={this.state.ame} />
+          </Column>
+          <Column>
+            <Probes org={this.state.name} probeToken={this.state.probeToken} />
+          </Column>
+        </div>}
+        {!this.state.name && <div style={styles.activity}>
+          <CircularProgress mode="indeterminate" />
+        </div>}
       </Container>
     );
   }
 
-  static fetchData = function(params) {
-    if (params.orgId) {
-      const url = '/api/users/org/' + params.orgId;
-      return getData(url);
+  _getOrganizationData(organization) {
+    if (organization) {
+      const url = `/api/users/org/${organization}`;
+      getData(url).then(this._handleOrganizationSuccess, this._handleOrganizationError);
+    }
+  }
+
+  _handleOrganizationSuccess(resp) {
+    this.setState(resp);
+  }
+
+  _handleOrganizationError(resp) {
+    if (resp.status === 401) {
+      HashLocation.push('/login');
+    } else {
+      // TODO show errors
+      console.error(resp);
     }
   }
 }

@@ -23,7 +23,9 @@ export default class Users extends React.Component {
         this.setState({
           users: resp
         });
-      }.bind(this));
+      }.bind(this), resp => {
+        console.error(resp);
+      });
   }
 
   render() {

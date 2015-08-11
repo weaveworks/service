@@ -17,6 +17,7 @@ describe("Request", function() {
     it("should return promise fulfilled with response", function(done) {
       let promise = postData('/test');
       let responseData = {
+        status: 200,
         prop: "Testing",
         didRespond: true
       }
@@ -30,13 +31,16 @@ describe("Request", function() {
       promise.then(function(response) {
         expect(response).to.deep.equal(responseData);
         done();
+      }).catch(function(response) {
+        //
       });
     });
 
     it("should return promise rejected with error", function(done) {
       let promise = postData('/anotherTest');
       let responseData = {
-        error: "Something went wrong!"
+        error: "Something went wrong!",
+        status: 500
       }
 
       server.requests[0].respond(
@@ -45,7 +49,9 @@ describe("Request", function() {
         JSON.stringify(responseData)
       );
 
-      promise.catch(function(response) {
+      promise.then(function(response) {
+
+      }).catch(function(response) {
         expect(response).to.deep.equal(responseData);
         done()
       });

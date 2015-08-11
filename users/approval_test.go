@@ -17,15 +17,15 @@ func Test_Approval(t *testing.T) {
 	// Create some users
 	// approved user
 	approved, err := storage.CreateUser("approved@weave.works")
-	assert.NoError(t, err)
-	_, err = storage.ApproveUser(approved.ID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	approved, err = storage.ApproveUser(approved.ID)
+	require.NoError(t, err)
 	// unapproved user1
 	user1, err := storage.CreateUser("user1@weave.works")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// unapproved user2
 	user2, err := storage.CreateUser("user2@weave.works")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// List unapproved users
 	// should equal user1, user2
