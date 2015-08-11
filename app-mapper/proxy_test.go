@@ -88,6 +88,14 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 	testProxy(t, targetHandler, authenticator, testFunc)
 }
 
+func copyHeader(dst, src http.Header) {
+	for k, vv := range src {
+		for _, v := range vv {
+			dst.Add(k, v)
+		}
+	}
+}
+
 func copyRequest(t *testing.T, req *http.Request) *http.Request {
 	dump, err := httputil.DumpRequest(req, true)
 	require.NoError(t, err, "Cannot dump request body")
@@ -127,6 +135,39 @@ func TestProxyPost(t *testing.T) {
 	require.NoError(t, err, "Cannot create request")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
 	testHTTPRequest(t, req)
+}
+
+func TestProxyStrictSlash(t *testing.T) {
+	// Set a test server to be targeted by the proxy
+	reachedTarget := false
+	targetHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reachedTarget = true
+		// Close the connection after replying to let go of the proxy
+		// (otherwise, the test will hang because the DefaultTransport
+		//  caches clients, and doesn't explicitly close them)
+		w.Header().Set("Connection", "close")
+		w.WriteHeader(http.StatusOK)
+	})
+
+	testFunc := func(proxyHost string) {
+		redirected := false
+		client := &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				redirected = true
+				return nil
+			},
+		}
+		url := "http://" + proxyHost + "/api/app/somePublicOrgName"
+		res, err := client.Get(url)
+		defer res.Body.Close()
+		require.NoError(t, err, "Cannot make test request")
+
+		// Check that everything was received as expected
+		assert.True(t, reachedTarget, "target wasn't reached")
+		assert.True(t, redirected, "redirection didn't happen")
+	}
+
+	testProxy(t, targetHandler, &mockAuthenticator{}, testFunc)
 }
 
 func TestProxyEncoding(t *testing.T) {

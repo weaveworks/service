@@ -147,14 +147,6 @@ func proxyWS(targetHost string, w http.ResponseWriter, r *http.Request) {
 	logrus.Debugf("proxy: websocket: connection closed")
 }
 
-func copyHeader(dst, src http.Header) {
-	for k, vv := range src {
-		for _, v := range vv {
-			dst.Add(k, v)
-		}
-	}
-}
-
 func addPort(host string, defaultPort int) string {
 	_, _, err := net.SplitHostPort(host)
 	if err == nil {
