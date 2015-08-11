@@ -83,7 +83,10 @@ func (f *flags) getOrganizationMapper(p appProvisioner) organizationMapper {
 
 func (f *flags) getAppProvisioner() appProvisioner {
 	options := dockerProvisionerOptions{
-		appConfig:     docker.Config{Image: defaultAppImage},
+		appConfig: docker.Config{
+			Image: defaultAppImage,
+			Cmd:   []string{"--no-probe"},
+		},
 		hostConfig:    docker.HostConfig{},
 		runTimeout:    f.dockerRunTimeout,
 		clientTimeout: f.dockerClientTimeout,
