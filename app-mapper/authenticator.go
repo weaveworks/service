@@ -11,7 +11,8 @@ import (
 )
 
 type authenticator interface {
-	authenticate(r *http.Request, org string) (authenticatorResponse, error)
+	authenticateOrg(r *http.Request, orgName string) (authenticatorResponse, error)
+	authenticateProbe(r *http.Request) (authenticatorResponse, error)
 }
 
 // unauthorized error
@@ -29,7 +30,11 @@ type authenticatorResponse struct {
 
 type mockAuthenticator struct{}
 
-func (m *mockAuthenticator) authenticate(r *http.Request, orgName string) (authenticatorResponse, error) {
+func (m *mockAuthenticator) authenticateOrg(r *http.Request, orgName string) (authenticatorResponse, error) {
+	return authenticatorResponse{"mockID"}, nil
+}
+
+func (m *mockAuthenticator) authenticateProbe(r *http.Request) (authenticatorResponse, error) {
 	return authenticatorResponse{"mockID"}, nil
 }
 
@@ -42,22 +47,36 @@ const (
 	authHeaderName = "Authorization"
 )
 
-func (m *webAuthenticator) authenticate(r *http.Request, orgName string) (authenticatorResponse, error) {
-	// Extract Authorization cookie and/or the Authorization header to inject them in the
-	// lookup request. If the cookie and the header were not set, don't even bother to do a
-	// lookup.
+func (m *webAuthenticator) authenticateOrg(r *http.Request, orgName string) (authenticatorResponse, error) {
+	// Extract Authorization cookie to inject it in the lookup request. If it were
+	// not set, don't even bother to do a lookup.
 	authCookie, err := r.Cookie(authCookieName)
-	authHeader := r.Header.Get(authHeaderName)
-	if err != nil && authHeader == "" {
-		logrus.Error("authenticator: tried to authenticate request without credentials")
+	if err != nil {
+		logrus.Error("authenticator: org: tried to authenticate request without credentials")
 		return authenticatorResponse{}, &unauthorized{http.StatusUnauthorized}
 	}
 
-	lookupReq := m.buildLookupRequest(orgName, authCookie, authHeader)
+	lookupReq := m.buildLookupOrgRequest(orgName, authCookie)
+	return doAuthenticateRequest(lookupReq)
+}
 
+func (m *webAuthenticator) authenticateProbe(r *http.Request) (authenticatorResponse, error) {
+	// Extract Authorization header to inject it in the lookup request. If
+	// it were not set, don't even bother to do a lookup.
+	authHeader := r.Header.Get(authHeaderName)
+	if authHeader == "" {
+		logrus.Error("authenticator: probe: tried to authenticate request without credentials")
+		return authenticatorResponse{}, &unauthorized{http.StatusUnauthorized}
+	}
+
+	lookupReq := m.buildLookupProbeRequest(authHeader)
+	return doAuthenticateRequest(lookupReq)
+}
+
+func doAuthenticateRequest(r *http.Request) (authenticatorResponse, error) {
 	// Contact the authorization server
 	client := &http.Client{}
-	res, err := client.Do(lookupReq)
+	res, err := client.Do(r)
 	if err != nil {
 		return authenticatorResponse{}, err
 	}
@@ -75,20 +94,25 @@ func (m *webAuthenticator) authenticate(r *http.Request, orgName string) (authen
 		return authenticatorResponse{}, errors.New("empty OrganizationID")
 	}
 	return authRes, nil
+
 }
 
-func (m *webAuthenticator) buildLookupRequest(orgName string, authCookie *http.Cookie, authHeader string) *http.Request {
+func (m *webAuthenticator) buildLookupOrgRequest(orgName string, authCookie *http.Cookie) *http.Request {
 	url := fmt.Sprintf("http://%s/private/api/users/lookup/%s", m.serverHost, url.QueryEscape(orgName))
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		logrus.Fatal("authenticator: cannot build lookup request: ", err)
 	}
+	req.AddCookie(authCookie)
+	return req
+}
 
-	if len(authHeader) > 0 {
-		req.Header.Set(authHeaderName, authHeader)
+func (m *webAuthenticator) buildLookupProbeRequest(authHeader string) *http.Request {
+	url := fmt.Sprintf("http://%s/private/api/users/lookup", m.serverHost)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		logrus.Fatal("authenticator: cannot build lookup request: ", err)
 	}
-	if authCookie != nil {
-		req.AddCookie(authCookie)
-	}
+	req.Header.Set(authHeaderName, authHeader)
 	return req
 }

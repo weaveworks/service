@@ -16,7 +16,7 @@ import (
 
 const scopeDefaultPortNumber = 4040
 
-var prefix = regexp.MustCompile("^/api/app/[^/]+")
+var appPrefix = regexp.MustCompile("^/api/app/[^/]+")
 
 type proxy struct {
 	authenticator authenticator
@@ -40,18 +40,9 @@ func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	router.Path("/api/app/{orgName}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orgName := mux.Vars(r)["orgName"]
 		w.Header().Set("Location", fmt.Sprintf("/api/app/%s/", orgName))
-		w.WriteHeader(301)
+		w.WriteHeader(http.StatusMovedPermanently)
 	})
-	router.PathPrefix("/api/app/{orgName}/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orgName := mux.Vars(r)["orgName"]
-		p.run(w, r, orgName)
-	})
-	router.ServeHTTP(w, r)
-}
-
-func (p proxy) run(w http.ResponseWriter, r *http.Request, orgName string) {
-	authResponse, err := p.authenticator.authenticate(r, orgName)
-	if err != nil {
+	handleAuthError := func(err error) {
 		if unauth, ok := err.(unauthorized); ok {
 			logrus.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
 			w.WriteHeader(http.StatusUnauthorized)
@@ -59,10 +50,31 @@ func (p proxy) run(w http.ResponseWriter, r *http.Request, orgName string) {
 			logrus.Errorf("proxy: error contacting authenticator: %v", err)
 			w.WriteHeader(http.StatusBadGateway)
 		}
-		return
 	}
+	router.PathPrefix("/api/app/{orgName}/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		orgName := mux.Vars(r)["orgName"]
+		authResponse, err := p.authenticator.authenticateOrg(r, orgName)
+		if err != nil {
+			handleAuthError(err)
+			return
+		}
+		// Trim /api/app/<orgName> off the front of the URI
+		r.RequestURI = appPrefix.ReplaceAllLiteralString(r.RequestURI, "")
+		p.forwardRequest(w, r, authResponse.OrganizationID)
+	})
+	router.Path("/api/report").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authResponse, err := p.authenticator.authenticateProbe(r)
+		if err != nil {
+			handleAuthError(err)
+			return
+		}
+		p.forwardRequest(w, r, authResponse.OrganizationID)
 
-	orgID := authResponse.OrganizationID
+	})
+	router.ServeHTTP(w, r)
+}
+
+func (p proxy) forwardRequest(w http.ResponseWriter, r *http.Request, orgID string) {
 	targetHost, err := p.mapper.getOrganizationsHost(orgID)
 	if err != nil {
 		logrus.Errorf("proxy: cannot get host for organization with ID %q: %v", orgID, err)
@@ -80,9 +92,6 @@ func (p proxy) run(w http.ResponseWriter, r *http.Request, orgName string) {
 	// Ensure the URL is not incorrectly munged by go.
 	r.URL.Opaque = r.RequestURI
 	r.URL.RawQuery = ""
-
-	// Trim /api/app/<orgName> off the front of URL
-	r.URL.Opaque = prefix.ReplaceAllLiteralString(r.URL.Opaque, "")
 
 	// Detect whether we should do websockets
 	if isWSHandshakeRequest(r) {
