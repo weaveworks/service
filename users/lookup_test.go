@@ -49,7 +49,6 @@ func Test_Lookup_NotFound(t *testing.T) {
 	r.AddCookie(cookie)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.Len(t, w.Body.Bytes(), 0)
 }
 
 func Test_Lookup_ProbeToken(t *testing.T) {
