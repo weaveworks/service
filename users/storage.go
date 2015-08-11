@@ -10,7 +10,7 @@ import (
 
 var (
 	ErrNotFound     = errors.New("Not found")
-	ErrEmailIsTaken = errors.New("Email is already taken")
+	ErrEmailIsTaken = ValidationErrorf("Email is already taken")
 )
 
 type Storage interface {
