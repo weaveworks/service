@@ -38,7 +38,7 @@ func Test_Sessions_Unapproved(t *testing.T) {
 	require.NoError(t, err)
 
 	found, err := sessions.Decode(encoded)
-	require.Equal(t, ErrInvalidAuthenticationData, err)
+	require.Equal(t, errInvalidAuthenticationData, err)
 	assert.Nil(t, found)
 }
 
@@ -49,5 +49,5 @@ func Test_Sessions_Get_NoCookie(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/", nil)
 	user, err := sessions.Get(r)
 	assert.Nil(t, user)
-	assert.Equal(t, ErrInvalidAuthenticationData, err)
+	assert.Equal(t, errInvalidAuthenticationData, err)
 }

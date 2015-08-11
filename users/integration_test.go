@@ -48,13 +48,13 @@ func testEmailSender(e *email.Email) error {
 
 // Truncate the test store. Assumes the db is Postgres.
 func truncateDatabase(t *testing.T) {
-	db := storage.(Execer)
+	db := storage.(execer)
 	mustExec(t, db, `truncate table traceable;`)
 	mustExec(t, db, `truncate table users;`)
 	mustExec(t, db, `truncate table organizations;`)
 }
 
-func mustExec(t *testing.T, db Execer, query string, args ...interface{}) {
+func mustExec(t *testing.T, db execer, query string, args ...interface{}) {
 	_, err := db.Exec(query, args...)
 	require.NoError(t, err)
 }

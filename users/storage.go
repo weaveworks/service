@@ -9,36 +9,36 @@ import (
 )
 
 var (
-	ErrNotFound     = errors.New("Not found")
-	ErrEmailIsTaken = ValidationErrorf("Email is already taken")
+	errNotFound     = errors.New("Not found")
+	errEmailIsTaken = validationErrorf("Email is already taken")
 )
 
-type Storage interface {
-	CreateUser(email string) (*User, error)
-	FindUserByID(id string) (*User, error)
-	FindUserByEmail(email string) (*User, error)
+type database interface {
+	CreateUser(email string) (*user, error)
+	FindUserByID(id string) (*user, error)
+	FindUserByEmail(email string) (*user, error)
 
 	// Create a new user in an existing organization.
 	// If the user already exists:
-	// * in a *different* organization, this should return ErrEmailIsTaken.
+	// * in a *different* organization, this should return errEmailIsTaken.
 	// * but is not approved, approve them into the organization.
 	// * in the same organization, no-op.
-	InviteUser(email, orgName string) (*User, error)
+	InviteUser(email, orgName string) (*user, error)
 
 	// Ensure a user is deleted. If they do not exist, return success.
 	DeleteUser(email string) error
 
-	ListUnapprovedUsers() ([]*User, error)
-	ListOrganizationUsers(orgName string) ([]*User, error)
+	ListUnapprovedUsers() ([]*user, error)
+	ListOrganizationUsers(orgName string) ([]*user, error)
 
 	// Approve the user for access. Should generate them a new organization.
-	ApproveUser(id string) (*User, error)
+	ApproveUser(id string) (*user, error)
 
 	// Update the user's login token. Setting the token to "" should disable the
 	// user's token.
 	SetUserToken(id, token string) error
 
-	FindOrganizationByProbeToken(probeToken string) (*Organization, error)
+	FindOrganizationByProbeToken(probeToken string) (*organization, error)
 	RenameOrganization(oldName, newName string) error
 
 	Close() error

@@ -16,11 +16,11 @@ var (
 	textTemplates *textTemplate.Template
 )
 
-type ErrTemplateNotFound struct {
+type errTemplateNotFound struct {
 	name string
 }
 
-func (e ErrTemplateNotFound) Error() string {
+func (e errTemplateNotFound) Error() string {
 	return fmt.Sprintf("Template Not Found: %s", e.name)
 }
 
@@ -48,7 +48,7 @@ func lookupTemplate(name string) (t executor, err error) {
 		t = textTemplates.Lookup(name)
 	}
 	if t == nil {
-		err = ErrTemplateNotFound{name}
+		err = errTemplateNotFound{name}
 	}
 	return t, err
 }

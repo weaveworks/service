@@ -7,28 +7,28 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
-type MalformedInputError error
+type malformedInputError error
 
-func MalformedInputErrorf(format string, args ...interface{}) MalformedInputError {
-	return MalformedInputError(fmt.Errorf(format, args...))
+func malformedInputErrorf(format string, args ...interface{}) malformedInputError {
+	return malformedInputError(fmt.Errorf(format, args...))
 }
 
-type ValidationError error
+type validationError error
 
-func ValidationErrorf(format string, args ...interface{}) ValidationError {
-	return ValidationError(fmt.Errorf(format, args...))
+func validationErrorf(format string, args ...interface{}) validationError {
+	return validationError(fmt.Errorf(format, args...))
 }
 
 func errorStatusCode(err error) int {
 	switch {
-	case err == ErrNotFound:
+	case err == errNotFound:
 		return http.StatusNotFound
-	case err == ErrInvalidAuthenticationData:
+	case err == errInvalidAuthenticationData:
 		return http.StatusUnauthorized
 	}
 
 	switch err.(type) {
-	case MalformedInputError, ValidationError:
+	case malformedInputError, validationError:
 		return http.StatusBadRequest
 	}
 

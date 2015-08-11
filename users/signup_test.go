@@ -44,7 +44,7 @@ func Test_Signup(t *testing.T) {
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("POST", "/api/users/signup", jsonBody(t, map[string]interface{}{"email": "joe@weave.works"}))
 	_, err := storage.FindUserByEmail(email)
-	assert.EqualError(t, err, ErrNotFound.Error())
+	assert.EqualError(t, err, errNotFound.Error())
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
@@ -129,12 +129,12 @@ func Test_Signup_WithInvalidJSON(t *testing.T) {
 	r, _ := http.NewRequest("POST", "/api/users/signup", strings.NewReader("this isn't json"))
 
 	_, err := storage.FindUserByEmail(email)
-	assert.EqualError(t, err, ErrNotFound.Error())
+	assert.EqualError(t, err, errNotFound.Error())
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "invalid character 'h' in literal true (expecting 'r')")
 	_, err = storage.FindUserByEmail(email)
-	assert.EqualError(t, err, ErrNotFound.Error())
+	assert.EqualError(t, err, errNotFound.Error())
 }
 
 func Test_Signup_WithBlankEmail(t *testing.T) {
@@ -146,10 +146,10 @@ func Test_Signup_WithBlankEmail(t *testing.T) {
 	r, _ := http.NewRequest("POST", "/api/users/signup", jsonBody(t, map[string]interface{}{}))
 
 	_, err := storage.FindUserByEmail(email)
-	assert.EqualError(t, err, ErrNotFound.Error())
+	assert.EqualError(t, err, errNotFound.Error())
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "Email cannot be blank")
 	_, err = storage.FindUserByEmail(email)
-	assert.EqualError(t, err, ErrNotFound.Error())
+	assert.EqualError(t, err, errNotFound.Error())
 }

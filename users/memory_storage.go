@@ -9,19 +9,19 @@ import (
 )
 
 type memoryStorage struct {
-	users         map[string]*User
-	organizations map[string]*Organization
+	users         map[string]*user
+	organizations map[string]*organization
 }
 
 func newMemoryStorage() *memoryStorage {
 	return &memoryStorage{
-		users:         make(map[string]*User),
-		organizations: make(map[string]*Organization),
+		users:         make(map[string]*user),
+		organizations: make(map[string]*organization),
 	}
 }
 
-func (s memoryStorage) CreateUser(email string) (*User, error) {
-	u := &User{
+func (s memoryStorage) CreateUser(email string) (*user, error) {
+	u := &user{
 		ID:        fmt.Sprint(len(s.users)),
 		Email:     email,
 		CreatedAt: time.Now().UTC(),
@@ -30,8 +30,8 @@ func (s memoryStorage) CreateUser(email string) (*User, error) {
 	return u, nil
 }
 
-func (s memoryStorage) InviteUser(email, orgName string) (*User, error) {
-	var o *Organization
+func (s memoryStorage) InviteUser(email, orgName string) (*user, error) {
+	var o *organization
 	for _, org := range s.organizations {
 		if org.Name == orgName {
 			o = org
@@ -39,11 +39,11 @@ func (s memoryStorage) InviteUser(email, orgName string) (*User, error) {
 		}
 	}
 	if o == nil {
-		return nil, ErrNotFound
+		return nil, errNotFound
 	}
 
 	u, err := s.FindUserByEmail(email)
-	if err == ErrNotFound {
+	if err == errNotFound {
 		u, err = s.CreateUser(email)
 	}
 	if err != nil {
@@ -51,7 +51,7 @@ func (s memoryStorage) InviteUser(email, orgName string) (*User, error) {
 	}
 
 	if u.Organization != nil && u.Organization.Name != orgName {
-		return nil, ErrEmailIsTaken
+		return nil, errEmailIsTaken
 	}
 
 	u.ApprovedAt = time.Now().UTC()
@@ -69,31 +69,31 @@ func (s memoryStorage) DeleteUser(email string) error {
 	return nil
 }
 
-func (s memoryStorage) FindUserByID(id string) (*User, error) {
+func (s memoryStorage) FindUserByID(id string) (*user, error) {
 	u, ok := s.users[id]
 	if !ok {
-		return nil, ErrNotFound
+		return nil, errNotFound
 	}
 	return u, nil
 }
 
-func (s memoryStorage) FindUserByEmail(email string) (*User, error) {
+func (s memoryStorage) FindUserByEmail(email string) (*user, error) {
 	for _, user := range s.users {
 		if user.Email == email {
 			return user, nil
 		}
 	}
-	return nil, ErrNotFound
+	return nil, errNotFound
 }
 
-type usersByCreatedAt []*User
+type usersByCreatedAt []*user
 
 func (u usersByCreatedAt) Len() int           { return len(u) }
 func (u usersByCreatedAt) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.Before(u[j].CreatedAt) }
 
-func (s memoryStorage) ListUnapprovedUsers() ([]*User, error) {
-	users := []*User{}
+func (s memoryStorage) ListUnapprovedUsers() ([]*user, error) {
+	users := []*user{}
 	for _, user := range s.users {
 		if user.ApprovedAt.IsZero() {
 			users = append(users, user)
@@ -103,8 +103,8 @@ func (s memoryStorage) ListUnapprovedUsers() ([]*User, error) {
 	return users, nil
 }
 
-func (s memoryStorage) ListOrganizationUsers(orgName string) ([]*User, error) {
-	users := []*User{}
+func (s memoryStorage) ListOrganizationUsers(orgName string) ([]*user, error) {
+	users := []*user{}
 	for _, user := range s.users {
 		if user.Organization != nil && user.Organization.Name == orgName {
 			users = append(users, user)
@@ -114,7 +114,7 @@ func (s memoryStorage) ListOrganizationUsers(orgName string) ([]*User, error) {
 	return users, nil
 }
 
-func (s memoryStorage) ApproveUser(id string) (*User, error) {
+func (s memoryStorage) ApproveUser(id string) (*user, error) {
 	user, err := s.FindUserByID(id)
 	if err != nil {
 		return nil, err
@@ -142,15 +142,15 @@ func (s memoryStorage) SetUserToken(id, token string) error {
 	}
 	user, ok := s.users[id]
 	if !ok {
-		return ErrNotFound
+		return errNotFound
 	}
 	user.Token = string(hashed)
 	user.TokenCreatedAt = time.Now().UTC()
 	return nil
 }
 
-func (s memoryStorage) createOrganization() (*Organization, error) {
-	o := &Organization{
+func (s memoryStorage) createOrganization() (*organization, error) {
+	o := &organization{
 		ID: fmt.Sprint(len(s.organizations)),
 	}
 	o.RegenerateName()
@@ -161,7 +161,7 @@ func (s memoryStorage) createOrganization() (*Organization, error) {
 	return o, nil
 }
 
-func (s memoryStorage) FindOrganizationByProbeToken(probeToken string) (*Organization, error) {
+func (s memoryStorage) FindOrganizationByProbeToken(probeToken string) (*organization, error) {
 	for _, o := range s.organizations {
 		if o.ProbeToken == probeToken {
 			if o.FirstProbeUpdateAt.IsZero() {
@@ -170,7 +170,7 @@ func (s memoryStorage) FindOrganizationByProbeToken(probeToken string) (*Organiz
 			return o, nil
 		}
 	}
-	return nil, ErrNotFound
+	return nil, errNotFound
 }
 
 func (s memoryStorage) RenameOrganization(oldName, newName string) error {
@@ -180,7 +180,7 @@ func (s memoryStorage) RenameOrganization(oldName, newName string) error {
 			return nil
 		}
 	}
-	return ErrNotFound
+	return errNotFound
 }
 
 func (s memoryStorage) Close() error {

@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	ErrInvalidAuthenticationData = errors.New("Invalid authentication data")
+	errInvalidAuthenticationData = errors.New("Invalid authentication data")
 )
 
 func setupSessions(validationSecret string) {
@@ -24,26 +24,26 @@ func setupSessions(validationSecret string) {
 		logrus.Fatal("session-secret must be 64 bytes")
 	}
 
-	sessions = SessionStore{
+	sessions = sessionStore{
 		secret:  validationSecret,
 		encoder: securecookie.New(secretBytes, nil).SetSerializer(securecookie.JSONEncoder{}),
 	}
 }
 
-type SessionStore struct {
+type sessionStore struct {
 	secret  string
 	encoder *securecookie.SecureCookie
 }
 
-type Session struct {
+type session struct {
 	UserID    string
 	CreatedAt time.Time
 }
 
-func (s SessionStore) Get(r *http.Request) (*User, error) {
+func (s sessionStore) Get(r *http.Request) (*user, error) {
 	cookie, err := r.Cookie(cookieName)
 	if err == http.ErrNoCookie {
-		err = ErrInvalidAuthenticationData
+		err = errInvalidAuthenticationData
 	}
 	if err != nil {
 		return nil, err
@@ -51,31 +51,31 @@ func (s SessionStore) Get(r *http.Request) (*User, error) {
 	return s.Decode(cookie.Value)
 }
 
-func (s SessionStore) Decode(encoded string) (*User, error) {
+func (s sessionStore) Decode(encoded string) (*user, error) {
 	// Parse and validate the encoded session
-	var session Session
+	var session session
 	if err := s.encoder.Decode(cookieName, encoded, &session); err != nil {
-		return nil, ErrInvalidAuthenticationData
+		return nil, errInvalidAuthenticationData
 	}
 	// Check the session hasn't expired
 	if session.CreatedAt.IsZero() || time.Now().UTC().Sub(session.CreatedAt) > sessionDuration {
-		return nil, ErrInvalidAuthenticationData
+		return nil, errInvalidAuthenticationData
 	}
 	// Lookup the user by encoded id
 	user, err := storage.FindUserByID(session.UserID)
 	switch {
-	case err == ErrNotFound:
-		return nil, ErrInvalidAuthenticationData
+	case err == errNotFound:
+		return nil, errInvalidAuthenticationData
 	case err != nil:
 		return nil, err
 	case user.ApprovedAt.IsZero():
-		return nil, ErrInvalidAuthenticationData
+		return nil, errInvalidAuthenticationData
 	}
 
 	return user, nil
 }
 
-func (s SessionStore) Set(w http.ResponseWriter, userID string) error {
+func (s sessionStore) Set(w http.ResponseWriter, userID string) error {
 	cookie, err := s.Cookie(userID)
 	if err == nil {
 		http.SetCookie(w, cookie)
@@ -83,7 +83,7 @@ func (s SessionStore) Set(w http.ResponseWriter, userID string) error {
 	return err
 }
 
-func (s SessionStore) Cookie(userID string) (*http.Cookie, error) {
+func (s sessionStore) Cookie(userID string) (*http.Cookie, error) {
 	value, err := s.Encode(userID)
 	return &http.Cookie{
 		Name:     cookieName,
@@ -94,8 +94,8 @@ func (s SessionStore) Cookie(userID string) (*http.Cookie, error) {
 	}, err
 }
 
-func (s SessionStore) Encode(userID string) (string, error) {
-	return s.encoder.Encode(cookieName, Session{
+func (s sessionStore) Encode(userID string) (string, error) {
+	return s.encoder.Encode(cookieName, session{
 		UserID:    userID,
 		CreatedAt: time.Now().UTC(),
 	})

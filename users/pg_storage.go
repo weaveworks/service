@@ -12,11 +12,11 @@ type pgStorage struct {
 	*sql.DB
 }
 
-type Execer interface {
+type execer interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 }
 
-type QueryRower interface {
+type queryRower interface {
 	QueryRow(query string, args ...interface{}) *sql.Row
 }
 
@@ -30,23 +30,23 @@ func (s pgStorage) Now() time.Time {
 	return time.Now().UTC().Truncate(time.Microsecond)
 }
 
-func (s pgStorage) CreateUser(email string) (*User, error) {
+func (s pgStorage) CreateUser(email string) (*user, error) {
 	return s.createUser(s, email)
 }
 
-func (s pgStorage) createUser(db QueryRower, email string) (*User, error) {
-	u := &User{Email: email, CreatedAt: s.Now()}
+func (s pgStorage) createUser(db queryRower, email string) (*user, error) {
+	u := &user{Email: email, CreatedAt: s.Now()}
 	err := db.QueryRow("insert into users (email, created_at) values (lower($1), $2) returning id", email, u.CreatedAt).Scan(&u.ID)
 	switch {
 	case err == sql.ErrNoRows:
-		return nil, ErrNotFound
+		return nil, errNotFound
 	case err != nil:
 		return nil, err
 	}
 	return u, nil
 }
 
-func (s pgStorage) InviteUser(email, orgName string) (*User, error) {
+func (s pgStorage) InviteUser(email, orgName string) (*user, error) {
 	err := s.Transaction(func(tx *sql.Tx) error {
 		o, err := s.scanOrganization(
 			tx.QueryRow(`
@@ -63,7 +63,7 @@ func (s pgStorage) InviteUser(email, orgName string) (*User, error) {
 		}
 
 		user, err := s.findUserByEmail(tx, email)
-		if err == ErrNotFound {
+		if err == errNotFound {
 			user, err = s.createUser(tx, email)
 		}
 		if err != nil {
@@ -71,7 +71,7 @@ func (s pgStorage) InviteUser(email, orgName string) (*User, error) {
 		}
 
 		if user.Organization != nil && user.Organization.Name != orgName {
-			return ErrEmailIsTaken
+			return errEmailIsTaken
 		}
 
 		return s.addUserToOrganization(tx, user.ID, o.ID)
@@ -92,11 +92,11 @@ func (s pgStorage) DeleteUser(email string) error {
 	return err
 }
 
-func (s pgStorage) FindUserByID(id string) (*User, error) {
+func (s pgStorage) FindUserByID(id string) (*user, error) {
 	return s.findUserByID(s, id)
 }
 
-func (s pgStorage) findUserByID(db QueryRower, id string) (*User, error) {
+func (s pgStorage) findUserByID(db queryRower, id string) (*user, error) {
 	user, err := s.scanUser(
 		db.QueryRow(`
 			select
@@ -112,16 +112,16 @@ func (s pgStorage) findUserByID(db QueryRower, id string) (*User, error) {
 		),
 	)
 	if err == sql.ErrNoRows {
-		err = ErrNotFound
+		err = errNotFound
 	}
 	return user, err
 }
 
-func (s pgStorage) FindUserByEmail(email string) (*User, error) {
+func (s pgStorage) FindUserByEmail(email string) (*user, error) {
 	return s.findUserByEmail(s, email)
 }
 
-func (s pgStorage) findUserByEmail(db QueryRower, email string) (*User, error) {
+func (s pgStorage) findUserByEmail(db queryRower, email string) (*user, error) {
 	user, err := s.scanUser(
 		s.QueryRow(`
 			select
@@ -137,13 +137,13 @@ func (s pgStorage) findUserByEmail(db QueryRower, email string) (*User, error) {
 		),
 	)
 	if err == sql.ErrNoRows {
-		err = ErrNotFound
+		err = errNotFound
 	}
 	return user, err
 }
 
-func (s pgStorage) scanUsers(rows *sql.Rows) ([]*User, error) {
-	users := []*User{}
+func (s pgStorage) scanUsers(rows *sql.Rows) ([]*user, error) {
+	users := []*user{}
 	for rows.Next() {
 		user, err := s.scanUser(rows)
 		if err != nil {
@@ -157,8 +157,8 @@ func (s pgStorage) scanUsers(rows *sql.Rows) ([]*User, error) {
 	return users, nil
 }
 
-func (s pgStorage) scanUser(row scanner) (*User, error) {
-	u := &User{}
+func (s pgStorage) scanUser(row scanner) (*user, error) {
+	u := &user{}
 	var (
 		token,
 		oID,
@@ -182,7 +182,7 @@ func (s pgStorage) scanUser(row scanner) (*User, error) {
 	s.setTime(&u.ApprovedAt, approvedAt)
 	s.setTime(&u.CreatedAt, createdAt)
 	if oID.Valid {
-		o := &Organization{}
+		o := &organization{}
 		s.setString(&o.ID, oID)
 		s.setString(&o.Name, oName)
 		s.setString(&o.ProbeToken, oProbeToken)
@@ -205,7 +205,7 @@ func (s pgStorage) setString(dst *string, src sql.NullString) {
 	}
 }
 
-func (s pgStorage) ListUnapprovedUsers() ([]*User, error) {
+func (s pgStorage) ListUnapprovedUsers() ([]*user, error) {
 	rows, err := s.Query(`
 		select
 				users.id, users.email, users.token, users.token_created_at,
@@ -225,7 +225,7 @@ func (s pgStorage) ListUnapprovedUsers() ([]*User, error) {
 	return s.scanUsers(rows)
 }
 
-func (s pgStorage) ListOrganizationUsers(orgName string) ([]*User, error) {
+func (s pgStorage) ListOrganizationUsers(orgName string) ([]*user, error) {
 	rows, err := s.Query(`
 		select
 				users.id, users.email, users.token, users.token_created_at,
@@ -248,7 +248,7 @@ func (s pgStorage) ListOrganizationUsers(orgName string) ([]*User, error) {
 	return s.scanUsers(rows)
 }
 
-func (s pgStorage) ApproveUser(id string) (*User, error) {
+func (s pgStorage) ApproveUser(id string) (*user, error) {
 	err := s.Transaction(func(tx *sql.Tx) error {
 		o, err := s.createOrganization(tx)
 		if err != nil {
@@ -257,13 +257,13 @@ func (s pgStorage) ApproveUser(id string) (*User, error) {
 
 		return s.addUserToOrganization(tx, id, o.ID)
 	})
-	if err != nil && err != ErrNotFound {
+	if err != nil && err != errNotFound {
 		return nil, err
 	}
 	return s.FindUserByID(id)
 }
 
-func (s pgStorage) addUserToOrganization(db Execer, userID, organizationID string) error {
+func (s pgStorage) addUserToOrganization(db execer, userID, organizationID string) error {
 	_, err := db.Exec(`
 			update users set
 				organization_id = $2,
@@ -304,14 +304,14 @@ func (s pgStorage) SetUserToken(id, token string) error {
 	case err != nil:
 		return err
 	case count != 1:
-		return ErrNotFound
+		return errNotFound
 	}
 	return nil
 }
 
-func (s pgStorage) createOrganization(db QueryRower) (*Organization, error) {
+func (s pgStorage) createOrganization(db queryRower) (*organization, error) {
 	var (
-		o   = &Organization{CreatedAt: s.Now()}
+		o   = &organization{CreatedAt: s.Now()}
 		err error
 	)
 	o.RegenerateName()
@@ -347,8 +347,8 @@ func (s pgStorage) createOrganization(db QueryRower) (*Organization, error) {
 	return o, err
 }
 
-func (s pgStorage) FindOrganizationByProbeToken(probeToken string) (*Organization, error) {
-	var o *Organization
+func (s pgStorage) FindOrganizationByProbeToken(probeToken string) (*organization, error) {
+	var o *organization
 	var err error
 	err = s.Transaction(func(tx *sql.Tx) error {
 		o, err = s.scanOrganization(
@@ -367,7 +367,7 @@ func (s pgStorage) FindOrganizationByProbeToken(probeToken string) (*Organizatio
 		}
 
 		if err == sql.ErrNoRows {
-			err = ErrNotFound
+			err = errNotFound
 		}
 		return err
 	})
@@ -377,8 +377,8 @@ func (s pgStorage) FindOrganizationByProbeToken(probeToken string) (*Organizatio
 	return o, err
 }
 
-func (s pgStorage) scanOrganization(row scanner) (*Organization, error) {
-	o := &Organization{}
+func (s pgStorage) scanOrganization(row scanner) (*organization, error) {
+	o := &organization{}
 	var name, probeToken sql.NullString
 	var firstProbeUpdateAt, createdAt pq.NullTime
 	if err := row.Scan(&o.ID, &name, &probeToken, &firstProbeUpdateAt, &createdAt); err != nil {
@@ -405,7 +405,7 @@ func (s pgStorage) RenameOrganization(oldName, newName string) error {
 	case err != nil:
 		return err
 	case count != 1:
-		return ErrNotFound
+		return errNotFound
 	}
 	return nil
 }

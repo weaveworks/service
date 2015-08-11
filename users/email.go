@@ -19,7 +19,7 @@ const (
 
 var (
 	sendEmail                   func(*email.Email) error
-	ErrUnsupportedEmailProtocol = errors.New("Unsupported email protocol")
+	errUnsupportedEmailProtocol = errors.New("Unsupported email protocol")
 )
 
 func setupEmail(emailURI string) {
@@ -37,7 +37,7 @@ func smtpEmailSender(uri string) (func(e *email.Email) error, error) {
 		return nil, fmt.Errorf("Error parsing email server uri: %s", err)
 	}
 	if u.Scheme != "smtp" {
-		return nil, ErrUnsupportedEmailProtocol
+		return nil, errUnsupportedEmailProtocol
 	}
 
 	host, port, err := net.SplitHostPort(u.Host)
@@ -59,7 +59,7 @@ func smtpEmailSender(uri string) (func(e *email.Email) error, error) {
 	}, nil
 }
 
-func SendWelcomeEmail(u *User) error {
+func sendWelcomeEmail(u *user) error {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
@@ -69,14 +69,14 @@ func SendWelcomeEmail(u *User) error {
 	return sendEmail(e)
 }
 
-func SendApprovedEmail(u *User, token string) error {
+func sendApprovedEmail(u *user, token string) error {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
 	e.Subject = "Scope account approved"
 	data := map[string]interface{}{
-		"LoginURL":   LoginURL(u.Email, token),
-		"LoginLink":  LoginLink(u.Email, token),
+		"LoginURL":   loginURL(u.Email, token),
+		"LoginLink":  loginLink(u.Email, token),
 		"Token":      token,
 		"ProbeToken": u.Organization.ProbeToken,
 	}
@@ -85,14 +85,14 @@ func SendApprovedEmail(u *User, token string) error {
 	return sendEmail(e)
 }
 
-func SendLoginEmail(u *User, token string) error {
+func sendLoginEmail(u *user, token string) error {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
 	e.Subject = "Login to Scope"
 	data := map[string]interface{}{
-		"LoginURL":   LoginURL(u.Email, token),
-		"LoginLink":  LoginLink(u.Email, token),
+		"LoginURL":   loginURL(u.Email, token),
+		"LoginLink":  loginLink(u.Email, token),
 		"Token":      token,
 		"ProbeToken": u.Organization.ProbeToken,
 	}
@@ -101,7 +101,7 @@ func SendLoginEmail(u *User, token string) error {
 	return sendEmail(e)
 }
 
-func LoginURL(email, rawToken string) string {
+func loginURL(email, rawToken string) string {
 	return fmt.Sprintf(
 		"http://%s/#/login/%s/%s",
 		domain,
@@ -110,8 +110,8 @@ func LoginURL(email, rawToken string) string {
 	)
 }
 
-func LoginLink(email, rawToken string) htmlTemplate.HTML {
-	url := LoginURL(email, rawToken)
+func loginLink(email, rawToken string) htmlTemplate.HTML {
+	url := loginURL(email, rawToken)
 	return htmlTemplate.HTML(
 		fmt.Sprintf(
 			"<a href=\"%s\">%s</a>",
@@ -121,14 +121,14 @@ func LoginLink(email, rawToken string) htmlTemplate.HTML {
 	)
 }
 
-func SendInviteEmail(u *User, token string) error {
+func sendInviteEmail(u *user, token string) error {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
 	e.Subject = "You've been invited to Scope"
 	data := map[string]interface{}{
-		"LoginURL":         LoginURL(u.Email, token),
-		"LoginLink":        LoginLink(u.Email, token),
+		"LoginURL":         loginURL(u.Email, token),
+		"LoginLink":        loginLink(u.Email, token),
 		"Token":            token,
 		"OrganizationName": u.Organization.Name,
 		"ProbeToken":       u.Organization.ProbeToken,

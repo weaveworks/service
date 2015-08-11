@@ -8,7 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type User struct {
+type user struct {
 	ID             string
 	Email          string
 	Token          string
@@ -16,10 +16,10 @@ type User struct {
 	ApprovedAt     time.Time
 	FirstLoginAt   time.Time
 	CreatedAt      time.Time
-	Organization   *Organization
+	Organization   *organization
 }
 
-func (u *User) GenerateToken() (string, error) {
+func (u *user) GenerateToken() (string, error) {
 	return secureRandomBase64(20)
 }
 
@@ -33,7 +33,7 @@ func secureRandomBase64(charCount int) (string, error) {
 	return base64.URLEncoding.EncodeToString(randomData), nil
 }
 
-func (u *User) CompareToken(other string) bool {
+func (u *user) CompareToken(other string) bool {
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Token), []byte(other)); err != nil {
 		return false
 	}

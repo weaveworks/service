@@ -13,7 +13,7 @@ func Test_User_CompareToken(t *testing.T) {
 	h, err := bcrypt.GenerateFromPassword([]byte(valid), bcrypt.MinCost)
 	assert.NoError(t, err)
 	hashedToken := string(h)
-	u := &User{
+	u := &user{
 		Token:          hashedToken,
 		TokenCreatedAt: time.Now().UTC(),
 	}

@@ -36,5 +36,5 @@ func Test_DeleteUser(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	_, err = storage.FindUserByEmail("fran@weave.works")
-	assert.Equal(t, ErrNotFound, err)
+	assert.Equal(t, errNotFound, err)
 }

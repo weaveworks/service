@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	sessions            SessionStore
-	storage             Storage
+	sessions            sessionStore
+	storage             database
 	passwordHashingCost = 14
 	orgNameRegex        = regexp.MustCompile(`\A[a-zA-Z0-9_-]+\z`)
 )
@@ -52,23 +52,23 @@ func handler(directLogin bool) http.Handler {
 
 func routes(directLogin bool) http.Handler {
 	r := mux.NewRouter()
-	r.HandleFunc("/", Admin).Methods("GET")
-	r.HandleFunc("/api/users/signup", Signup(directLogin)).Methods("POST")
-	r.HandleFunc("/api/users/login", Login).Methods("GET")
-	r.HandleFunc("/api/users/lookup", Authenticated(PublicLookup)).Methods("GET")
-	r.HandleFunc("/api/users/org/{orgName}", Authenticated(Org)).Methods("GET")
-	r.HandleFunc("/api/users/org/{orgName}", Authenticated(RenameOrg)).Methods("PUT")
-	r.HandleFunc("/api/users/org/{orgName}/users", Authenticated(ListOrganizationUsers)).Methods("GET")
-	r.HandleFunc("/api/users/org/{orgName}/users", Authenticated(InviteUser)).Methods("POST")
-	r.HandleFunc("/api/users/org/{orgName}/users/{userEmail}", Authenticated(DeleteUser)).Methods("DELETE")
-	r.HandleFunc("/private/api/users/lookup/{orgName}", Authenticated(LookupUsingCookie)).Methods("GET")
-	r.HandleFunc("/private/api/users/lookup", LookupUsingToken).Methods("GET")
-	r.HandleFunc("/private/api/users", ListUnapprovedUsers).Methods("GET")
-	r.HandleFunc("/private/api/users/{userID}/approve", ApproveUser).Methods("POST")
+	r.HandleFunc("/", admin).Methods("GET")
+	r.HandleFunc("/api/users/signup", signup(directLogin)).Methods("POST")
+	r.HandleFunc("/api/users/login", login).Methods("GET")
+	r.HandleFunc("/api/users/lookup", authenticated(publicLookup)).Methods("GET")
+	r.HandleFunc("/api/users/org/{orgName}", authenticated(org)).Methods("GET")
+	r.HandleFunc("/api/users/org/{orgName}", authenticated(renameOrg)).Methods("PUT")
+	r.HandleFunc("/api/users/org/{orgName}/users", authenticated(listOrganizationUsers)).Methods("GET")
+	r.HandleFunc("/api/users/org/{orgName}/users", authenticated(inviteUser)).Methods("POST")
+	r.HandleFunc("/api/users/org/{orgName}/users/{userEmail}", authenticated(deleteUser)).Methods("DELETE")
+	r.HandleFunc("/private/api/users/lookup/{orgName}", authenticated(lookupUsingCookie)).Methods("GET")
+	r.HandleFunc("/private/api/users/lookup", lookupUsingToken).Methods("GET")
+	r.HandleFunc("/private/api/users", listUnapprovedUsers).Methods("GET")
+	r.HandleFunc("/private/api/users/{userID}/approve", approveUser).Methods("POST")
 	return r
 }
 
-func Admin(w http.ResponseWriter, r *http.Request) {
+func admin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/html")
 	fmt.Fprintf(w, `
 <html>
@@ -89,22 +89,22 @@ type signupView struct {
 	Token    string `json:"token,omitempty"`
 }
 
-func Signup(directLogin bool) http.HandlerFunc {
+func signup(directLogin bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		var view signupView
 		if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
-			renderError(w, MalformedInputError(err))
+			renderError(w, malformedInputError(err))
 			return
 		}
 		view.MailSent = false
 		if view.Email == "" {
-			renderError(w, ValidationErrorf("Email cannot be blank"))
+			renderError(w, validationErrorf("Email cannot be blank"))
 			return
 		}
 
 		user, err := storage.FindUserByEmail(view.Email)
-		if err == ErrNotFound {
+		if err == errNotFound {
 			user, err = storage.CreateUser(view.Email)
 		}
 		if renderError(w, err) {
@@ -121,9 +121,9 @@ func Signup(directLogin bool) http.HandlerFunc {
 			_, err = storage.ApproveUser(user.ID)
 			view.Token = token
 		} else if user.ApprovedAt.IsZero() {
-			err = SendWelcomeEmail(user)
+			err = sendWelcomeEmail(user)
 		} else {
-			err = SendLoginEmail(user, token)
+			err = sendLoginEmail(user, token)
 		}
 		if err != nil {
 			renderError(w, fmt.Errorf("Error sending login email: %s", err))
@@ -135,7 +135,7 @@ func Signup(directLogin bool) http.HandlerFunc {
 	}
 }
 
-func generateUserToken(storage Storage, user *User) (string, error) {
+func generateUserToken(storage database, user *user) (string, error) {
 	token, err := user.GenerateToken()
 	if err != nil {
 		return "", err
@@ -146,15 +146,15 @@ func generateUserToken(storage Storage, user *User) (string, error) {
 	return token, nil
 }
 
-func Login(w http.ResponseWriter, r *http.Request) {
+func login(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	token := r.FormValue("token")
 	switch {
 	case email == "":
-		renderError(w, ValidationErrorf("Email cannot be blank"))
+		renderError(w, validationErrorf("Email cannot be blank"))
 		return
 	case token == "":
-		renderError(w, ValidationErrorf("Token cannot be blank"))
+		renderError(w, validationErrorf("Token cannot be blank"))
 		return
 	}
 
@@ -164,34 +164,34 @@ func Login(w http.ResponseWriter, r *http.Request) {
 				logrus.Error(err)
 			}
 		}
-		renderError(w, ErrInvalidAuthenticationData)
+		renderError(w, errInvalidAuthenticationData)
 		return
 	}
 
-	user, err := storage.FindUserByEmail(email)
-	if err == ErrNotFound {
-		user = &User{Token: "!"} // Will fail the token comparison
+	u, err := storage.FindUserByEmail(email)
+	if err == errNotFound {
+		u = &user{Token: "!"} // Will fail the token comparison
 		err = nil
 	}
 	if renderError(w, err) {
 		return
 	}
 	// We always do this so that the timing difference can't be used to infer a user's existence.
-	if !user.CompareToken(token) {
+	if !u.CompareToken(token) {
 		tokenExpired()
 		return
 	}
-	if err := sessions.Set(w, user.ID); err != nil {
+	if err := sessions.Set(w, u.ID); err != nil {
 		tokenExpired(err)
 		return
 	}
-	if err := storage.SetUserToken(user.ID, ""); err != nil {
+	if err := storage.SetUserToken(u.ID, ""); err != nil {
 		tokenExpired(err)
 		return
 	}
 	renderJSON(w, http.StatusOK, map[string]interface{}{
-		"email":            user.Email,
-		"organizationName": user.Organization.Name,
+		"email":            u.Email,
+		"organizationName": u.Organization.Name,
 	})
 }
 
@@ -200,15 +200,15 @@ type lookupView struct {
 	OrganizationName string `json:"organizationName,omitempty"`
 }
 
-func PublicLookup(currentUser *User, w http.ResponseWriter, r *http.Request) {
+func publicLookup(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	renderJSON(w, http.StatusOK, lookupView{OrganizationName: currentUser.Organization.Name})
 }
 
-func LookupUsingCookie(user *User, w http.ResponseWriter, r *http.Request) {
-	renderJSON(w, http.StatusOK, lookupView{OrganizationID: user.Organization.ID})
+func lookupUsingCookie(currentUser *user, w http.ResponseWriter, r *http.Request) {
+	renderJSON(w, http.StatusOK, lookupView{OrganizationID: currentUser.Organization.ID})
 }
 
-func LookupUsingToken(w http.ResponseWriter, r *http.Request) {
+func lookupUsingToken(w http.ResponseWriter, r *http.Request) {
 	credentials, ok := parseAuthHeader(r.Header.Get("Authorization"))
 	if !ok || credentials.Realm != "Scope-Probe" {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -227,7 +227,7 @@ func LookupUsingToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err != ErrInvalidAuthenticationData {
+	if err != errInvalidAuthenticationData {
 		w.WriteHeader(http.StatusUnauthorized)
 	} else {
 		renderError(w, err)
@@ -244,8 +244,8 @@ func (v userView) FormatCreatedAt() string {
 	return v.CreatedAt.Format(time.Stamp)
 }
 
-// ListUnapprovedUsers lists users needing approval
-func ListUnapprovedUsers(w http.ResponseWriter, r *http.Request) {
+// listUnapprovedUsers lists users needing approval
+func listUnapprovedUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := storage.ListUnapprovedUsers()
 	if renderError(w, err) {
 		return
@@ -261,12 +261,12 @@ func ListUnapprovedUsers(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-// ApproveUser approves a user by ID
-func ApproveUser(w http.ResponseWriter, r *http.Request) {
+// approveUser approves a user by ID
+func approveUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, ok := vars["userID"]
 	if !ok {
-		renderError(w, ErrNotFound)
+		renderError(w, errNotFound)
 		return
 	}
 	user, err := storage.ApproveUser(userID)
@@ -278,28 +278,28 @@ func ApproveUser(w http.ResponseWriter, r *http.Request) {
 		renderError(w, fmt.Errorf("Error sending approved email: %s", err))
 		return
 	}
-	if renderError(w, SendApprovedEmail(user, token)) {
+	if renderError(w, sendApprovedEmail(user, token)) {
 		return
 	}
 	http.Redirect(w, r, "/private/api/users", http.StatusFound)
 }
 
-// Authenticated wraps a handlerfunc to make sure we have a logged in user, and
+// authenticated wraps a handlerfunc to make sure we have a logged in user, and
 // they are accessing their own org.
-func Authenticated(handler func(*User, http.ResponseWriter, *http.Request)) http.HandlerFunc {
+func authenticated(handler func(*user, http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, err := sessions.Get(r)
+		u, err := sessions.Get(r)
 		if renderError(w, err) {
 			return
 		}
 
 		orgName, hasOrgName := mux.Vars(r)["orgName"]
-		if hasOrgName && orgName != user.Organization.Name {
-			renderError(w, ErrInvalidAuthenticationData)
+		if hasOrgName && orgName != u.Organization.Name {
+			renderError(w, errInvalidAuthenticationData)
 			return
 		}
 
-		handler(user, w, r)
+		handler(u, w, r)
 	})
 }
 
@@ -310,7 +310,7 @@ type orgView struct {
 	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
 }
 
-func Org(currentUser *User, w http.ResponseWriter, r *http.Request) {
+func org(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	renderJSON(w, http.StatusOK, orgView{
 		User:               currentUser.Email,
 		Name:               currentUser.Organization.Name,
@@ -319,19 +319,19 @@ func Org(currentUser *User, w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func RenameOrg(currentUser *User, w http.ResponseWriter, r *http.Request) {
+func renameOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var view orgView
 	err := json.NewDecoder(r.Body).Decode(&view)
 	switch {
 	case err != nil:
-		renderError(w, MalformedInputError(err))
+		renderError(w, malformedInputError(err))
 		return
 	case view.Name == "":
-		renderError(w, ValidationErrorf("Name cannot be blank"))
+		renderError(w, validationErrorf("Name cannot be blank"))
 		return
 	case !orgNameRegex.MatchString(view.Name):
-		renderError(w, ValidationErrorf("Name can only contain letters, numbers, hyphen, and underscore"))
+		renderError(w, validationErrorf("Name can only contain letters, numbers, hyphen, and underscore"))
 		return
 	}
 
@@ -341,7 +341,7 @@ func RenameOrg(currentUser *User, w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func ListOrganizationUsers(currentUser *User, w http.ResponseWriter, r *http.Request) {
+func listOrganizationUsers(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	users, err := storage.ListOrganizationUsers(mux.Vars(r)["orgName"])
 	if renderError(w, err) {
 		return
@@ -353,16 +353,16 @@ func ListOrganizationUsers(currentUser *User, w http.ResponseWriter, r *http.Req
 	renderJSON(w, http.StatusOK, userViews)
 }
 
-func InviteUser(currentUser *User, w http.ResponseWriter, r *http.Request) {
+func inviteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var view signupView
 	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
-		renderError(w, MalformedInputError(err))
+		renderError(w, malformedInputError(err))
 		return
 	}
 	view.MailSent = false
 	if view.Email == "" {
-		renderError(w, ValidationErrorf("Email cannot be blank"))
+		renderError(w, validationErrorf("Email cannot be blank"))
 		return
 	}
 
@@ -376,7 +376,7 @@ func InviteUser(currentUser *User, w http.ResponseWriter, r *http.Request) {
 		renderError(w, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
-	if err = SendInviteEmail(invitee, token); err != nil {
+	if err = sendInviteEmail(invitee, token); err != nil {
 		renderError(w, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
@@ -385,7 +385,7 @@ func InviteUser(currentUser *User, w http.ResponseWriter, r *http.Request) {
 	renderJSON(w, http.StatusOK, view)
 }
 
-func DeleteUser(currentUser *User, w http.ResponseWriter, r *http.Request) {
+func deleteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	if renderError(w, storage.DeleteUser(mux.Vars(r)["userEmail"])) {
 		return
 	}

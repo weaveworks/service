@@ -6,7 +6,7 @@ import (
 	"github.com/weaveworks/service/users/names"
 )
 
-type Organization struct {
+type organization struct {
 	ID                 string
 	Name               string
 	ProbeToken         string
@@ -14,11 +14,11 @@ type Organization struct {
 	CreatedAt          time.Time
 }
 
-func (o *Organization) RegenerateName() {
+func (o *organization) RegenerateName() {
 	o.Name = names.Generate()
 }
 
-func (o *Organization) RegenerateProbeToken() error {
+func (o *organization) RegenerateProbeToken() error {
 	t, err := secureRandomBase64(20)
 	if err != nil {
 		return err
