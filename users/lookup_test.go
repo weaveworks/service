@@ -16,13 +16,9 @@ func Test_Lookup(t *testing.T) {
 	defer cleanup(t)
 
 	user, err := storage.CreateUser("joe@weave.works")
-	assert.NoError(t, err)
-
-	_, err = storage.ApproveUser(user.ID)
-	assert.NoError(t, err)
-	user, err = storage.FindUserByID(user.ID)
-	assert.NoError(t, err)
-	assert.NotEqual(t, "", user.Organization.ID)
+	require.NoError(t, err)
+	user, err = storage.ApproveUser(user.ID)
+	require.NoError(t, err)
 
 	cookie, err := sessions.Cookie(user.ID)
 	assert.NoError(t, err)

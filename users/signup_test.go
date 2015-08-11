@@ -62,9 +62,7 @@ func Test_Signup(t *testing.T) {
 	}
 
 	// Manually approve
-	_, err = storage.ApproveUser(user.ID)
-	assert.NoError(t, err)
-	user, err = storage.FindUserByID(user.ID)
+	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
 	assert.False(t, user.ApprovedAt.IsZero(), "user should be approved")
 	assert.NotEqual(t, "", user.Organization.ID, "user should have an organization id")
