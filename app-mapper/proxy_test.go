@@ -34,10 +34,10 @@ func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFu
 	testFunc(parsedProxyURL.Host)
 }
 
-type AuthenticatorFunc func(r *http.Request, orgName string) (authenticatorResponse, error)
+type AuthenticatorFunc func(r *http.Request) (authenticatorResponse, error)
 
-func (f AuthenticatorFunc) authenticate(r *http.Request, orgName string) (authenticatorResponse, error) {
-	return f(r, orgName)
+func (f AuthenticatorFunc) authenticate(r *http.Request) (authenticatorResponse, error) {
+	return f(r)
 }
 
 // Test that a request sent to the proxy is received by the other end
@@ -56,9 +56,7 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 		w.Write(targetResponse)
 	})
 
-	var recordedOrgName string
-	authenticator := AuthenticatorFunc(func(r *http.Request, orgName string) (authenticatorResponse, error) {
-		recordedOrgName = orgName
+	authenticator := AuthenticatorFunc(func(r *http.Request) (authenticatorResponse, error) {
 		return authenticatorResponse{"somePersistentInternalID"}, nil
 	})
 
@@ -76,9 +74,6 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 
 		// Check that everything was received as expected
 		require.NotNil(t, targetRecordedReq, "target didn't receive request")
-		reconstructedPath := "/api/app/" + url.QueryEscape(recordedOrgName) + targetRecordedReq.URL.Path
-		assert.Equal(t, reconstructedPath, req.URL.Path, "URL mismatch")
-		requestEqual(t, req, targetRecordedReq, "Request mismatch")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "Response status mismatch")
 		body, err := ioutil.ReadAll(res.Body)
 		assert.NoError(t, err, "Cannot read response body")
@@ -137,6 +132,32 @@ func TestProxyPost(t *testing.T) {
 	testHTTPRequest(t, req)
 }
 
+func TestProxyRewrites(t *testing.T) {
+
+	// Set a test server to be targeted by the proxy
+	var reachedPath string
+	targetHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reachedPath = r.URL.Path
+		// Close the connection after replying to let go of the proxy
+		// (otherwise, the test will hang because the DefaultTransport
+		//  caches clients, and doesn't explicitly close them)
+		w.Header().Set("Connection", "close")
+		w.WriteHeader(http.StatusOK)
+	})
+
+	testFunc := func(proxyHost string) {
+		path := "/request"
+		res, err := http.Get("http://" + proxyHost + "/api/app/somePublicOrgName" + path + "?arg1=foo&arg2=bar")
+		defer res.Body.Close()
+		require.NoError(t, err, "Cannot make test request")
+
+		// Check that everything was received as expected
+		assert.Equal(t, path, reachedPath, "unexpected rewrite")
+	}
+
+	testProxy(t, targetHandler, &mockAuthenticator{}, testFunc)
+}
+
 func TestProxyStrictSlash(t *testing.T) {
 	// Set a test server to be targeted by the proxy
 	reachedTarget := false
@@ -185,7 +206,7 @@ func TestMultiRequest(t *testing.T) {
 	})
 
 	authenticatorReqCounter := 0
-	authenticator := AuthenticatorFunc(func(r *http.Request, orgName string) (authenticatorResponse, error) {
+	authenticator := AuthenticatorFunc(func(r *http.Request) (authenticatorResponse, error) {
 		authenticatorReqCounter++
 		return authenticatorResponse{"somePersistentInternalID"}, nil
 	})
@@ -221,7 +242,7 @@ func TestUnauthorized(t *testing.T) {
 	})
 
 	var authenticatorError error
-	failingAuthenticator := AuthenticatorFunc(func(r *http.Request, org string) (authenticatorResponse, error) {
+	failingAuthenticator := AuthenticatorFunc(func(r *http.Request) (authenticatorResponse, error) {
 		return authenticatorResponse{}, authenticatorError
 	})
 

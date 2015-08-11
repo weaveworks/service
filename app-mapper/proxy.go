@@ -42,15 +42,12 @@ func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Location", fmt.Sprintf("/api/app/%s/", orgName))
 		w.WriteHeader(301)
 	})
-	router.PathPrefix("/api/app/{orgName}/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orgName := mux.Vars(r)["orgName"]
-		p.run(w, r, orgName)
-	})
+	router.PathPrefix("/api/app/{orgName}/").HandlerFunc(p.run)
 	router.ServeHTTP(w, r)
 }
 
-func (p proxy) run(w http.ResponseWriter, r *http.Request, orgName string) {
-	authResponse, err := p.authenticator.authenticate(r, orgName)
+func (p proxy) run(w http.ResponseWriter, r *http.Request) {
+	authResponse, err := p.authenticator.authenticate(r)
 	if err != nil {
 		if unauth, ok := err.(unauthorized); ok {
 			logrus.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
