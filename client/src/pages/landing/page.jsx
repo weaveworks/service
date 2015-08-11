@@ -91,14 +91,14 @@ export default class LandingPage extends React.Component {
   }
 
   _handleLoginError(resp) {
-    let err = resp.errors[0];
-    if (err.status && err.status === 401) {
+    if (resp.status === 401) {
       // if unauthorized, send to login page
       this.setState({
         activityText: 'Not logged in. Please wait for the login form to load...'
       });
       HashLocation.push('/login');
     } else {
+      let err = resp.errors[0];
       this.setState({
         activityText: '',
         errorText: err.message

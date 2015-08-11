@@ -19,6 +19,7 @@ let doRequest = function(url, method = 'GET', requestData = {}) {
       if (request.readyState === 4) {
         try {
           let responseObject = JSON.parse(request.responseText);
+          responseObject.status = request.status;
 
           if (request.status === 200) {
             resolve(responseObject);
@@ -34,7 +35,7 @@ let doRequest = function(url, method = 'GET', requestData = {}) {
           } else {
             errorText = 'Unexpected error: ' + e;
           }
-          reject({errors: [{message: errorText, status: request.status}]});
+          reject({errors: [{message: errorText}], status: request.status});
         }
       }
     }
