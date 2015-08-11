@@ -45,28 +45,28 @@ type apacheLoggingResponseWriter struct {
 	finishedAt time.Time
 }
 
-func (this *apacheLoggingResponseWriter) Write(b []byte) (int, error) {
-	if !this.Started {
-		this.Started = true
-		this.StatusCode = http.StatusOK
+func (w *apacheLoggingResponseWriter) Write(b []byte) (int, error) {
+	if !w.Started {
+		w.Started = true
+		w.StatusCode = http.StatusOK
 	}
 
-	n, err := this.ResponseWriter.Write(b)
-	this.BytesWritten += int64(n)
+	n, err := w.ResponseWriter.Write(b)
+	w.BytesWritten += int64(n)
 	return n, err
 }
 
-func (this *apacheLoggingResponseWriter) WriteHeader(status int) {
-	if !this.Started {
-		this.Started = true
-		this.StatusCode = status
+func (w *apacheLoggingResponseWriter) WriteHeader(status int) {
+	if !w.Started {
+		w.Started = true
+		w.StatusCode = status
 	}
-	this.ResponseWriter.WriteHeader(status)
+	w.ResponseWriter.WriteHeader(status)
 }
 
-func (this *apacheLoggingResponseWriter) String() string {
+func (w *apacheLoggingResponseWriter) String() string {
 	// TODO: Handle X-ForwardedFor
-	clientIP := this.r.RemoteAddr
+	clientIP := w.r.RemoteAddr
 	if colon := strings.LastIndex(clientIP, ":"); colon != -1 {
 		clientIP = clientIP[:colon]
 	}
@@ -74,10 +74,10 @@ func (this *apacheLoggingResponseWriter) String() string {
 	return fmt.Sprintf(
 		"%s - - [%s] \"%s %d %d\" %f",
 		clientIP,
-		this.finishedAt.Format("02/Jan/2006 03:04:05"),
-		fmt.Sprintf("%s %s %s", this.r.Method, this.r.RequestURI, this.r.Proto),
-		this.StatusCode,
-		this.BytesWritten,
-		this.finishedAt.Sub(this.startedAt).Seconds(),
+		w.finishedAt.Format("02/Jan/2006 03:04:05"),
+		fmt.Sprintf("%s %s %s", w.r.Method, w.r.RequestURI, w.r.Proto),
+		w.StatusCode,
+		w.BytesWritten,
+		w.finishedAt.Sub(w.startedAt).Seconds(),
 	)
 }

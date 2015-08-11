@@ -129,9 +129,8 @@ func Signup(directLogin bool) http.HandlerFunc {
 			logrus.Error(err)
 			renderError(w, http.StatusInternalServerError, fmt.Errorf("Error sending login email"))
 			return
-		} else {
-			view.MailSent = !directLogin
 		}
+		view.MailSent = !directLogin
 
 		renderJSON(w, http.StatusOK, view)
 	}
@@ -244,7 +243,7 @@ func (v userView) FormatCreatedAt() string {
 	return v.CreatedAt.Format(time.Stamp)
 }
 
-// List users needing approval
+// ListUnapprovedUsers lists users needing approval
 func ListUnapprovedUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := storage.ListUnapprovedUsers()
 	if err != nil {
@@ -263,7 +262,7 @@ func ListUnapprovedUsers(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-// Approve a user by ID
+// ApproveUser approves a user by ID
 func ApproveUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, ok := vars["userID"]
@@ -293,7 +292,8 @@ func ApproveUser(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/private/api/users", http.StatusFound)
 }
 
-// Make sure we have a logged in user, and they are accessing their own org.
+// Authenticated wraps a handlerfunc to make sure we have a logged in user, and
+// they are accessing their own org.
 func Authenticated(handler func(*User, http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, err := sessions.Get(r)
