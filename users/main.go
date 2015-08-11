@@ -55,6 +55,7 @@ func routes(directLogin bool) http.Handler {
 	r.HandleFunc("/", Admin).Methods("GET")
 	r.HandleFunc("/api/users/signup", Signup(directLogin)).Methods("POST")
 	r.HandleFunc("/api/users/login", Login).Methods("GET")
+	r.HandleFunc("/api/users/lookup", Authenticated(PublicLookup)).Methods("GET")
 	r.HandleFunc("/api/users/org/{orgName}", Authenticated(Org)).Methods("GET")
 	r.HandleFunc("/api/users/org/{orgName}", Authenticated(RenameOrg)).Methods("PUT")
 	r.HandleFunc("/api/users/org/{orgName}/users", Authenticated(ListOrganizationUsers)).Methods("GET")
@@ -195,7 +196,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 type lookupView struct {
-	OrganizationID string `json:"organizationID"`
+	OrganizationID   string `json:"organizationID,omitempty"`
+	OrganizationName string `json:"organizationName,omitempty"`
+}
+
+func PublicLookup(currentUser *User, w http.ResponseWriter, r *http.Request) {
+	renderJSON(w, http.StatusOK, lookupView{OrganizationName: currentUser.Organization.Name})
 }
 
 func LookupUsingCookie(user *User, w http.ResponseWriter, r *http.Request) {
@@ -287,8 +293,8 @@ func Authenticated(handler func(*User, http.ResponseWriter, *http.Request)) http
 			return
 		}
 
-		orgName := mux.Vars(r)["orgName"]
-		if orgName != user.Organization.Name {
+		orgName, hasOrgName := mux.Vars(r)["orgName"]
+		if hasOrgName && orgName != user.Organization.Name {
 			renderError(w, ErrInvalidAuthenticationData)
 			return
 		}
