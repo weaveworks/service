@@ -23,7 +23,9 @@ export default class Probes extends React.Component {
         this.setState({
           probes: resp
         });
-      }.bind(this));
+      }.bind(this), resp => {
+        console.error(resp);
+      });
   }
 
   render() {
