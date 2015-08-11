@@ -153,6 +153,15 @@ func TestProxyRewrites(t *testing.T) {
 
 		// Check that everything was received as expected
 		assert.Equal(t, path, reachedPath, "unexpected rewrite")
+
+		reachedPath = ""
+		res, err = http.Get("http://" + proxyHost + "/api/report" + path + "?arg1=foo&arg2=bar")
+		defer res.Body.Close()
+		require.NoError(t, err, "Cannot make test request")
+
+		// Check that everything was received as expected
+		assert.Equal(t, path, reachedPath, "unexpected rewrite")
+
 	}
 
 	testProxy(t, targetHandler, &mockAuthenticator{}, testFunc)
@@ -186,6 +195,18 @@ func TestProxyStrictSlash(t *testing.T) {
 		// Check that everything was received as expected
 		assert.True(t, reachedTarget, "target wasn't reached")
 		assert.True(t, redirected, "redirection didn't happen")
+
+		reachedTarget = false
+		redirected = false
+		url = "http://" + proxyHost + "/api/report"
+		res, err = client.Get(url)
+		defer res.Body.Close()
+		require.NoError(t, err, "Cannot make test request")
+
+		// Check that everything was received as expected
+		assert.True(t, reachedTarget, "target wasn't reached")
+		assert.True(t, redirected, "redirection didn't happen")
+
 	}
 
 	testProxy(t, targetHandler, &mockAuthenticator{}, testFunc)

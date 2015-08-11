@@ -16,8 +16,6 @@ import (
 
 const scopeDefaultPortNumber = 4040
 
-var prefix = regexp.MustCompile("^/api/app/[^/]+")
-
 type proxy struct {
 	authenticator authenticator
 	mapper        organizationMapper
@@ -36,17 +34,28 @@ func newProxy(a authenticator, m organizationMapper) proxy {
 }
 
 func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	appPrefix := regexp.MustCompile("^/api/app/[^/]+")
+	probePrefix := regexp.MustCompile("^/api/report")
 	router := mux.NewRouter()
 	router.Path("/api/app/{orgName}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orgName := mux.Vars(r)["orgName"]
 		w.Header().Set("Location", fmt.Sprintf("/api/app/%s/", orgName))
-		w.WriteHeader(301)
+		w.WriteHeader(http.StatusMovedPermanently)
 	})
-	router.PathPrefix("/api/app/{orgName}/").HandlerFunc(p.run)
+	router.PathPrefix("/api/app/{orgName}/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p.run(w, r, appPrefix)
+	})
+	router.Path("/api/report").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Location", "/api/report/")
+		w.WriteHeader(http.StatusMovedPermanently)
+	})
+	router.PathPrefix("/api/report/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p.run(w, r, probePrefix)
+	})
 	router.ServeHTTP(w, r)
 }
 
-func (p proxy) run(w http.ResponseWriter, r *http.Request) {
+func (p proxy) run(w http.ResponseWriter, r *http.Request, prefix *regexp.Regexp) {
 	authResponse, err := p.authenticator.authenticate(r)
 	if err != nil {
 		if unauth, ok := err.(unauthorized); ok {
@@ -78,7 +87,7 @@ func (p proxy) run(w http.ResponseWriter, r *http.Request) {
 	r.URL.Opaque = r.RequestURI
 	r.URL.RawQuery = ""
 
-	// Trim /api/app/<orgName> off the front of URL
+	// Trim prefix off the front of URL
 	r.URL.Opaque = prefix.ReplaceAllLiteralString(r.URL.Opaque, "")
 
 	// Detect whether we should do websockets
