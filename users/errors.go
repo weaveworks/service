@@ -46,7 +46,7 @@ func renderError(w http.ResponseWriter, err error) bool {
 		http.Error(w, `{"errors":[{"message":"An internal server error occurred"}]}`, http.StatusInternalServerError)
 	} else {
 		renderJSON(w, code, map[string][]map[string]interface{}{
-			"errors": []map[string]interface{}{
+			"errors": {
 				{"message": err.Error()},
 			},
 		})
