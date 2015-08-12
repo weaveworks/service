@@ -83,10 +83,17 @@ export default class LandingPage extends React.Component {
   }
 
   _handleLoginSuccess(resp) {
-    const url = `/org/${resp.organizationName}`;
     this.setState({
       activityText: 'Logged in. Please wait for your app to load...'
     });
+    let url;
+    if (resp.firstProbeUpdateAt) {
+      // go to app if a probe is connected
+      url = `/app/${resp.organizationName}`;
+    } else {
+      // otherwise go to management page
+      url = `/org/${resp.organizationName}`;
+    }
     HashLocation.push(url);
   }
 
