@@ -87,6 +87,9 @@ export default class LoginForm extends React.Component {
           submitText: 'Sending...'
         });
 
+        // disable input field
+        inputNode.disabled = true;
+
         postData('/api/users/signup', {email: value})
           .then(function(resp) {
             // empty field
