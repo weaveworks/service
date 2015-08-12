@@ -6,7 +6,7 @@ import { getData } from "../../common/request";
 import { Container } from "../../components/container";
 import { Column } from "../../components/column";
 import Probes from "./probes";
-import UserToolbar from "./toolbar";
+import Toolbar from "../../components/toolbar";
 import Users from "./users";
 
 const ThemeManager = new Styles.ThemeManager();
@@ -49,21 +49,23 @@ export default class OrganizationPage extends React.Component {
     };
 
     return (
-      <Container>
-        {this.state.name && <div>
-          <UserToolbar user={this.state.user} />
-          <h1><a href={appUrl}>{this.state.name}</a></h1>
-          <Column>
-            <Users org={this.state.ame} />
-          </Column>
-          <Column>
-            <Probes org={this.state.name} probeToken={this.state.probeToken} />
-          </Column>
-        </div>}
-        {!this.state.name && <div style={styles.activity}>
-          <CircularProgress mode="indeterminate" />
-        </div>}
-      </Container>
+      <div>
+        <Toolbar user={this.state.user} organization={this.props.params.orgId} />
+        <Container>
+          {this.state.name && <div>
+            <h1><a href={appUrl}>{this.state.name}</a></h1>
+            <Column>
+              <Users org={this.state.ame} />
+            </Column>
+            <Column>
+              <Probes org={this.state.name} probeToken={this.state.probeToken} />
+            </Column>
+          </div>}
+          {!this.state.name && <div style={styles.activity}>
+            <CircularProgress mode="indeterminate" />
+          </div>}
+        </Container>
+      </div>
     );
   }
 

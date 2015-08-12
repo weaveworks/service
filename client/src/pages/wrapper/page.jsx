@@ -4,7 +4,7 @@ import { HashLocation } from "react-router";
 
 import { getData } from "../../common/request";
 import { Container } from "../../components/container";
-import WrapperToolbar from "./toolbar";
+import Toolbar from "../../components/toolbar";
 
 const ThemeManager = new Styles.ThemeManager();
 
@@ -78,7 +78,7 @@ export default class Wrapper extends React.Component {
 
     return (
       <div>
-        <WrapperToolbar organization={this.props.params.orgId} />
+        <Toolbar organization={this.props.params.orgId} user={this.state.user} />
         {this.state.frameBaseUrl && <iframe ref="iframe"
           onLoad={this._handleFrameLoad.bind(this)} src={frameUrl} style={styles.iframe} />}
       </div>
@@ -100,6 +100,7 @@ export default class Wrapper extends React.Component {
   _handleLoginSuccess(resp) {
     const url = `/api/app/${resp.name}`;
     this.setState({
+      user: resp.user,
       frameBaseUrl: url
     });
   }
