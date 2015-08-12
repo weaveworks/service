@@ -19,7 +19,7 @@ func (o *organization) RegenerateName() {
 }
 
 func (o *organization) RegenerateProbeToken() error {
-	t, err := secureRandomBase64(20)
+	t, err := generateToken()
 	if err != nil {
 		return err
 	}

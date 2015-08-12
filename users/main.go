@@ -136,7 +136,7 @@ func signup(directLogin bool) http.HandlerFunc {
 }
 
 func generateUserToken(storage database, user *user) (string, error) {
-	token, err := user.GenerateToken()
+	token, err := generateToken()
 	if err != nil {
 		return "", err
 	}
