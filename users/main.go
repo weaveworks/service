@@ -196,12 +196,16 @@ func login(w http.ResponseWriter, r *http.Request) {
 }
 
 type lookupView struct {
-	OrganizationID   string `json:"organizationID,omitempty"`
-	OrganizationName string `json:"organizationName,omitempty"`
+	OrganizationID     string `json:"organizationID,omitempty"`
+	OrganizationName   string `json:"organizationName,omitempty"`
+	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
 }
 
 func publicLookup(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	renderJSON(w, http.StatusOK, lookupView{OrganizationName: currentUser.Organization.Name})
+	renderJSON(w, http.StatusOK, lookupView{
+		OrganizationName:   currentUser.Organization.Name,
+		FirstProbeUpdateAt: renderTime(currentUser.Organization.FirstProbeUpdateAt),
+	})
 }
 
 func lookupUsingCookie(currentUser *user, w http.ResponseWriter, r *http.Request) {

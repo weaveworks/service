@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,9 +57,12 @@ func Test_PublicLookup(t *testing.T) {
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
 
+	org, err := storage.FindOrganizationByProbeToken(user.Organization.ProbeToken)
+	require.NoError(t, err)
+	require.NotNil(t, org.FirstProbeUpdateAt)
+
 	cookie, err := sessions.Cookie(user.ID)
 	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "/api/users/lookup", nil)
 	r.AddCookie(cookie)
@@ -67,7 +71,11 @@ func Test_PublicLookup(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, map[string]interface{}{"organizationName": user.Organization.Name}, body)
+	assert.Equal(t, map[string]interface{}{
+		"organizationName":   user.Organization.Name,
+		"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
+	}, body)
+
 }
 
 func Test_PublicLookup_NotFound(t *testing.T) {
