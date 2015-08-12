@@ -4,13 +4,8 @@ import { getData, postData } from "../../common/request";
 import { Styles, RaisedButton, TextField } from "material-ui";
 
 const Colors = Styles.Colors;
-const ThemeManager = new Styles.ThemeManager();
 
-export default class LandingPage extends React.Component {
-
-  static childContextTypes = {
-    muiTheme: React.PropTypes.object
-  }
+export default class LoginForm extends React.Component {
 
   constructor(props) {
     super(props);
@@ -25,30 +20,6 @@ export default class LandingPage extends React.Component {
     };
 
     this._handleSubmit = this._handleSubmit.bind(this);
-    this._handleLoginSuccess = this._handleLoginSuccess.bind(this);
-    this._handleLoginError = this._handleLoginError.bind(this);
-  }
-
-  getChildContext() {
-    return {
-      muiTheme: ThemeManager.getCurrentTheme()
-    };
-  }
-
-  componentWillMount() {
-    ThemeManager.setPalette({
-      accent1Color: Colors.deepOrange500
-    });
-
-    // triggered on fresh page load with login params
-    this._tryLogin();
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    // triggered via URL hashchange
-    if (!this.state.errorText && !this.state.submitting) {
-      this._tryLogin();
-    }
   }
 
   render() {
@@ -57,11 +28,6 @@ export default class LandingPage extends React.Component {
         marginLeft: '2em',
         marginTop: '3px',
         verticalAlign: 'top'
-      },
-
-      container: {
-        textAlign: 'center',
-        paddingTop: '200px'
       },
 
       confirmation: {
@@ -82,8 +48,7 @@ export default class LandingPage extends React.Component {
     };
 
     return (
-      <div id="landing-page" style={styles.container}>
-        <h1>Scope as a Service</h1>
+      <div>
         <div style={styles.form}>
           <TextField hintText="Email" ref="emailField" type="email" errorText={this.state.errorText}
             onEnterKeyDown={this._handleSubmit.bind(this)} />
@@ -100,30 +65,9 @@ export default class LandingPage extends React.Component {
     );
   }
 
-  _tryLogin() {
-    const params = this.props.params;
-    const email = this.state.email ? this.state.email : params.email;
-    const token = this.state.token ? this.state.token : params.token;
-    if (email && token) {
-      const url = `/api/users/login?email=${email}&token=${token}`;
-      getData(url).then(this._handleLoginSuccess, this._handleLoginError);
-    }
-  }
-
   _doLogin() {
     const loginUrl = `#/login/${this.state.email}/${this.state.token}`;
     HashLocation.push(loginUrl);
-  }
-
-  _handleLoginSuccess(resp) {
-    const url = `/org/${resp.organizationName}`
-    HashLocation.push(url);
-  }
-
-  _handleLoginError(resp) {
-    this.setState({
-      errorText: resp.errors[0].message
-    });
   }
 
   _handleSubmit() {
