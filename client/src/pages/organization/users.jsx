@@ -60,10 +60,10 @@ export default class Users extends React.Component {
             {users}
           </List>
         </Box>
-        // <div style={formStyle}>
-        //   <TextField hintText="Email" ref="emailField" />
-        //   <RaisedButton label="Invite" style={buttonStyle} onClick={this._handleInviteTouchTap.bind(this)} />
-        // </div>
+        {/* <div style={formStyle}>
+          <TextField hintText="Email" ref="emailField" />
+          <RaisedButton label="Invite" style={buttonStyle} onClick={this._handleInviteTouchTap.bind(this)} />
+        </div> */}
       </div>
     );
   }
