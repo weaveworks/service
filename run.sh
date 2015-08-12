@@ -2,7 +2,7 @@
 
 set -eux
 
-for dir in app-mapper client users frontend proxy; do
+for dir in app-mapper client users frontend; do
     make -C $dir image.tar
 done
 

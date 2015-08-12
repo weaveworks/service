@@ -33,7 +33,6 @@ coverage.html
 .*.uptodate
 app-mapper/app-mapper
 users/users
-proxy/proxy
 Vagrantfile.local
 .dir-locals.el
 image.tar

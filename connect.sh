@@ -10,7 +10,7 @@ fi
 HOST=$1
 
 echo "Starting proxy container..."
-PROXY_CONTAINER=$(ssh $HOST weave run -d weaveworks/proxy)
+PROXY_CONTAINER=$(ssh $HOST weave run -d weaveworks/socksproxy -a run.weave.works:frontend.weave.local)
 
 function finish {
 	echo "Removing proxy container.."
@@ -19,6 +19,5 @@ function finish {
 trap finish EXIT
 
 PROXY_IP=$(ssh $HOST -- "docker inspect --format='{{.NetworkSettings.IPAddress}}' $PROXY_CONTAINER")
-
 echo 'Please configure your browser for proxy http://localhost:8080/proxy.pac'
 ssh -L8000:$PROXY_IP:8000 -L8080:$PROXY_IP:8080 $HOST docker attach $PROXY_CONTAINER
