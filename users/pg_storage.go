@@ -418,8 +418,8 @@ func (s pgStorage) Transaction(f func(*sql.Tx) error) error {
 	}
 	if err = f(tx); err != nil {
 		// Rollback error is ignored as we already have one in progress
-		if err := tx.Rollback(); err != nil {
-			logrus.Warn("transaction rollback: %v", err)
+		if err2 := tx.Rollback(); err2 != nil {
+			logrus.Warn("transaction rollback: %v (ignored)", err2)
 		}
 		return err
 	}

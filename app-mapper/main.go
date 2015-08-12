@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-
 	flags := parseFlags()
 	setupLogging(flags.logLevel)
 
@@ -31,6 +30,7 @@ func main() {
 	router := mux.NewRouter()
 	newProxy(authenticator, orgMapper, probeStorage).registerHandlers(router)
 	newProbeObserver(authenticator, probeStorage).registerHandlers(router)
+	http.Handle("/metrics", makePrometheusHandler())
 	http.Handle("/", router)
 	logrus.Info("Listening on :80")
 	handler := loggingHandler(http.DefaultServeMux)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,7 +21,7 @@ func setupLogging(logLevel string) {
 	logrus.SetLevel(level)
 }
 
-func loggingMiddleware(handler http.Handler) http.Handler {
+func instrumentingMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wrappedWriter := &apacheLoggingResponseWriter{
 			ResponseWriter: w,
@@ -29,8 +30,15 @@ func loggingMiddleware(handler http.Handler) http.Handler {
 		}
 		handler.ServeHTTP(wrappedWriter, r)
 		wrappedWriter.finishedAt = time.Now().UTC()
-
 		logrus.Info(wrappedWriter.String())
+
+		var (
+			took       = wrappedWriter.finishedAt.Sub(wrappedWriter.startedAt)
+			obs        = float64(took.Nanoseconds())
+			path       = r.URL.Path // this may explode Prometheus with too much dimensionality
+			statusCode = strconv.Itoa(wrappedWriter.StatusCode)
+		)
+		requestLatency.WithLabelValues(path, statusCode).Observe(obs)
 	})
 }
 

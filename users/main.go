@@ -43,11 +43,13 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Infof("Listening on port %d", *port)
-	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), handler(*directLogin)))
+	http.Handle("/metrics", makePrometheusHandler())
+	http.Handle("/", handler(*directLogin))
+	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }
 
 func handler(directLogin bool) http.Handler {
-	return loggingMiddleware(routes(directLogin))
+	return instrumentingMiddleware(routes(directLogin))
 }
 
 func routes(directLogin bool) http.Handler {

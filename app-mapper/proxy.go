@@ -45,6 +45,7 @@ func (p proxy) registerHandlers(router *mux.Router) {
 	router.PathPrefix("/api/app/{orgName}/").Handler(authOrgHandler(p.authenticator,
 		func(r *http.Request) string { return mux.Vars(r)["orgName"] },
 		func(w http.ResponseWriter, r *http.Request, orgID string) {
+			apiAppRequestCount.Inc()
 			// Trim /api/app/<orgName> off the front of the URI
 			r.RequestURI = appPrefix.ReplaceAllLiteralString(r.RequestURI, "")
 			p.forwardRequest(w, r, orgID)
@@ -52,11 +53,12 @@ func (p proxy) registerHandlers(router *mux.Router) {
 	))
 	router.Path("/api/report").Handler(authProbeHandler(p.authenticator,
 		func(w http.ResponseWriter, r *http.Request, orgID string) {
+			apiReportRequestCount.Inc()
 			if probeID := r.Header.Get(scope.ScopeProbeIDHeader); probeID == "" {
 				logrus.Error("proxy: probe with missing identification header")
 			} else {
 				if err := p.probeBumper.bumpProbeLastSeen(probeID, orgID); err != nil {
-					logrus.Warnf("proxy: cannot bump probe's last-seen (%q,%q): %v", probeID, orgID, err)
+					logrus.Warnf("proxy: cannot bump probe's last-seen (%q, %q): %v", probeID, orgID, err)
 				}
 			}
 			p.forwardRequest(w, r, orgID)
@@ -100,6 +102,10 @@ func isWSHandshakeRequest(req *http.Request) bool {
 }
 
 func proxyWS(targetHost string, w http.ResponseWriter, r *http.Request) {
+	wsRequestCount.Inc()
+	wsConnections.Inc()
+	defer wsConnections.Dec()
+
 	// Connect to target
 	targetConn, err := net.Dial("tcp", targetHost)
 	if err != nil {
