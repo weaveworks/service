@@ -5,7 +5,6 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
 )
 
 type organizationMapper interface {
@@ -30,12 +29,8 @@ type dbOrgHost struct {
 	Hostname       string `db:"hostname"`
 }
 
-func newDBMapper(dbURI string, p appProvisioner) (*dbMapper, error) {
-	db, err := sqlx.Open("postgres", dbURI)
-	if err != nil {
-		return nil, err
-	}
-	return &dbMapper{db, p}, nil
+func newDBMapper(db *sqlx.DB, p appProvisioner) *dbMapper {
+	return &dbMapper{db, p}
 }
 
 func (m *dbMapper) getOrganizationsHost(orgID string) (string, error) {

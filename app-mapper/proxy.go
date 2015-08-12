@@ -21,16 +21,18 @@ var appPrefix = regexp.MustCompile("^/api/app/[^/]+")
 type proxy struct {
 	authenticator authenticator
 	mapper        organizationMapper
+	probeStorage  probeStorage
 	reverseProxy  httputil.ReverseProxy
 }
 
-func newProxy(a authenticator, m organizationMapper) proxy {
+func newProxy(a authenticator, m organizationMapper, p probeStorage) proxy {
 	// Make all transformations outside of the director since
 	// they are also required when proxying websockets
 	emptyDirector := func(*http.Request) {}
 	return proxy{
 		authenticator: a,
 		mapper:        m,
+		probeStorage:  p,
 		reverseProxy:  httputil.ReverseProxy{Director: emptyDirector},
 	}
 }
@@ -67,6 +69,12 @@ func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			handleAuthError(err)
 			return
+		}
+		probeID := r.Header.Get(probeIDHeaderName)
+		if probeID == "" {
+			logrus.Error("proxy: probe with missing identification header")
+		} else {
+			p.probeStorage.bumpProbeLastSeen(probeID, authResponse.OrganizationID)
 		}
 		p.forwardRequest(w, r, authResponse.OrganizationID)
 

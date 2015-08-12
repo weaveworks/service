@@ -18,7 +18,7 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFunc func(proxyHost string)) {
+func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFunc func(proxyHost string, pms *probeMemStorage)) {
 	targetTestServer := httptest.NewServer(targetHandler)
 	defer targetTestServer.Close()
 	parsedTargetURL, err := url.Parse(targetTestServer.URL)
@@ -26,26 +26,17 @@ func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFu
 
 	// Set a test server for the proxy (required for Hijack to work)
 	m := &constantMapper{parsedTargetURL.Host}
-	proxyTestServer := httptest.NewServer(newProxy(a, m))
+	p := &probeMemStorage{}
+	proxyTestServer := httptest.NewServer(newProxy(a, m, p))
 	defer proxyTestServer.Close()
 
 	parsedProxyURL, err := url.Parse(proxyTestServer.URL)
 	require.NoError(t, err, "Cannot parse proxyTestServer URL")
-	testFunc(parsedProxyURL.Host)
-}
-
-type authenticatorFunc func(r *http.Request, orgName string) (authenticatorResponse, error)
-
-func (f authenticatorFunc) authenticateOrg(r *http.Request, orgName string) (authenticatorResponse, error) {
-	return f(r, orgName)
-}
-
-func (f authenticatorFunc) authenticateProbe(r *http.Request) (authenticatorResponse, error) {
-	return f(r, "")
+	testFunc(parsedProxyURL.Host, p)
 }
 
 // Test that a request sent to the proxy is received by the other end
-// with the appropriate path and that the reply is passed back
+// and that the reply is passed back
 func testHTTPRequest(t *testing.T, req *http.Request) {
 	// Set a test server to be targeted by the proxy
 	var targetResponse = []byte("Hi there, this is a response")
@@ -66,7 +57,7 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 		return authenticatorResponse{"somePersistentInternalID"}, nil
 	})
 
-	testFunc := func(proxyHost string) {
+	testFunc := func(proxyHost string, pms *probeMemStorage) {
 		// Tweak and make request to the proxy
 		// Inject target proxy hostname
 		req.URL.Host = proxyHost
@@ -163,7 +154,7 @@ func TestProxyStrictSlash(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	testFunc := func(proxyHost string) {
+	testFunc := func(proxyHost string, pms *probeMemStorage) {
 		redirected := false
 		client := &http.Client{
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -203,7 +194,7 @@ func TestProxyRewrites(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	testFunc := func(proxyHost string) {
+	testFunc := func(proxyHost string, pms *probeMemStorage) {
 		path := "/request"
 		res, err := http.Get("http://" + proxyHost + "/api/app/somePublicOrgName" + path + "?arg1=foo&arg2=bar")
 		defer res.Body.Close()
@@ -240,7 +231,7 @@ func TestMultiRequest(t *testing.T) {
 		return authenticatorResponse{"somePersistentInternalID"}, nil
 	})
 
-	testFunc := func(proxyHost string) {
+	testFunc := func(proxyHost string, pms *probeMemStorage) {
 		client := &http.Client{}
 		url := "http://" + proxyHost + "/api/app/somePublicOrgName/request?arg1=foo&arg2=bar"
 		req, err := http.NewRequest("GET", url, nil)
@@ -275,22 +266,24 @@ func TestUnauthorized(t *testing.T) {
 		return authenticatorResponse{}, authenticatorError
 	})
 
-	testFunc := func(proxyHost string) {
-		authErrToProxyStatus := map[error]int{
-			unauthorized{http.StatusUnauthorized}:        http.StatusUnauthorized,
-			unauthorized{http.StatusBadRequest}:          http.StatusUnauthorized,
-			unauthorized{http.StatusInternalServerError}: http.StatusUnauthorized,
-			errors.New("PhonyError"):                     http.StatusBadGateway,
-		}
-
-		url := "http://" + proxyHost + "/api/app/somePublicOrgName/request?arg1=foo&arg2=bar"
-		for authErr, expectedProxyStatus := range authErrToProxyStatus {
-			authenticatorError = authErr
-			res, err := http.Get(url)
-			assert.NoError(t, err, "Cannot send request")
-			defer res.Body.Close()
-			assert.Equal(t, expectedProxyStatus, res.StatusCode,
-				"Unexpected proxy response status with failing authenticator")
+	testFunc := func(proxyHost string, pms *probeMemStorage) {
+		for _, url := range []string{
+			"http://" + proxyHost + "/api/app/somePublicOrgName/request?arg1=foo&arg2=bar",
+			"http://" + proxyHost + "/api/report?arg1=foo&arg2=bar",
+		} {
+			for authErr, expectedProxyStatus := range map[error]int{
+				unauthorized{http.StatusUnauthorized}:        http.StatusUnauthorized,
+				unauthorized{http.StatusBadRequest}:          http.StatusUnauthorized,
+				unauthorized{http.StatusInternalServerError}: http.StatusUnauthorized,
+				errors.New("PhonyError"):                     http.StatusBadGateway,
+			} {
+				authenticatorError = authErr
+				res, err := http.Get(url)
+				assert.NoError(t, err, "Cannot send request")
+				defer res.Body.Close()
+				assert.Equal(t, expectedProxyStatus, res.StatusCode,
+					"Unexpected proxy response status with failing authenticator")
+			}
 		}
 	}
 
@@ -303,7 +296,7 @@ func TestProxyWebSocket(t *testing.T) {
 		io.Copy(ws, ws)
 	})
 
-	testFunc := func(proxyHost string) {
+	testFunc := func(proxyHost string, pms *probeMemStorage) {
 		// Establish a websocket connection with the proxy
 		ws, err := websocket.Dial("ws://"+proxyHost+"/api/app/somePublicOrgName/request?arg1=foo&arg2=bar", "", "http://example.com")
 		require.NoError(t, err, "Cannot dial websocket server")
@@ -320,6 +313,34 @@ func TestProxyWebSocket(t *testing.T) {
 			require.Equal(t, messageToSend, messageToReceive)
 			messageToReceive = ""
 		}
+	}
+
+	testProxy(t, targetHandler, &mockAuthenticator{}, testFunc)
+}
+
+func TestProbeLogging(t *testing.T) {
+	// Set a test server to be targeted by the proxy
+	targetHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Close the connection after replying to let go of the proxy
+		// (otherwise, the test will hang because the DefaultTransport
+		//  caches clients, and doesn't explicitly close them)
+		w.Header().Set("Connection", "close")
+		w.WriteHeader(http.StatusOK)
+	})
+
+	testFunc := func(proxyHost string, pms *probeMemStorage) {
+		const probeID = "probeIDValue"
+
+		req, err := http.NewRequest("GET", "http://"+proxyHost+"/api/report?arg1=foo&arg2=bar", nil)
+		req.Header.Add(probeIDHeaderName, probeID)
+		require.NoError(t, err, "Cannot create request")
+		client := &http.Client{}
+		res, err := client.Do(req)
+		defer res.Body.Close()
+
+		require.Equal(t, len(pms.probes), 1, "Probe wasn't logged")
+		require.Equal(t, probeID, pms.probes[0].ID, "Mismatching Probe ID")
+
 	}
 
 	testProxy(t, targetHandler, &mockAuthenticator{}, testFunc)
