@@ -2,6 +2,9 @@
  * App entry point
  */
 
+// icon fonts, loaded via webpack, available via fa classes
+require('font-awesome-webpack');
+
 // Polyfill
 import "babel-core/polyfill";
 
