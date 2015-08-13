@@ -1,5 +1,6 @@
 import React from "react";
 import { FlatButton, Toolbar, ToolbarGroup, ToolbarTitle } from "material-ui";
+import { HashLocation } from "react-router";
 
 export default class WrapperToolbar extends React.Component {
 
@@ -25,6 +26,6 @@ export default class WrapperToolbar extends React.Component {
   }
 
   _handleTouchTap() {
-    window.location.href = '/';
+    HashLocation.push('/logout');
   }
 }

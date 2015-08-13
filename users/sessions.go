@@ -83,6 +83,16 @@ func (s sessionStore) Set(w http.ResponseWriter, userID string) error {
 	return err
 }
 
+func (s sessionStore) Clear(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     cookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   -1,
+	})
+}
+
 func (s sessionStore) Cookie(userID string) (*http.Cookie, error) {
 	value, err := s.Encode(userID)
 	return &http.Cookie{

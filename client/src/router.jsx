@@ -6,6 +6,7 @@ import LandingPage from "./pages/landing/page";
 import CookieCheck from "./pages/landing/cookie-check";
 import Login from "./pages/landing/login";
 import LoginForm from "./pages/landing/login-form";
+import Logout from "./pages/landing/logout";
 import WrapperPage from "./pages/wrapper/page";
 
 
@@ -28,6 +29,7 @@ export default class RouterComponent extends React.Component {
         <Route handler={LandingPage}>
           <Route name="login-form" path="login" handler={LoginForm} />
           <Route name="login" path="login/:email/:token" handler={Login} />
+          <Route name="logout" path="logout" handler={Logout} />
           <DefaultRoute handler={CookieCheck} />
         </Route>
       </Route>
