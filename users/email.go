@@ -14,7 +14,7 @@ import (
 
 const (
 	fromAddress = "Scope Support <support@weave.works>"
-	domain      = "run.weave.works"
+	domain      = "scope.weave.works"
 )
 
 var (

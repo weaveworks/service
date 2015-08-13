@@ -10,7 +10,7 @@ fi
 HOST=$1
 
 echo "Starting proxy container..."
-PROXY_CONTAINER=$(ssh $HOST weave run -d weaveworks/socksproxy -a run.weave.works:frontend.weave.local)
+PROXY_CONTAINER=$(ssh $HOST weave run -d weaveworks/socksproxy -a scope.weave.works:frontend.weave.local)
 
 function finish {
 	echo "Removing proxy container.."
