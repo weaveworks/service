@@ -4,6 +4,9 @@ import (
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -18,14 +21,23 @@ func main() {
 	if err != nil {
 		logrus.Error("Couldn't fetch application: ", err)
 	}
-	orgMapper := flags.getOrganizationMapper(appProvisioner)
-	http.Handle("/", newProxy(authenticator, orgMapper))
+	db, err := sqlx.Open("postgres", flags.dbURI)
+	if err != nil {
+		logrus.Fatal("Cannot initialize database client: ", err)
+	}
+	orgMapper := flags.getOrganizationMapper(db, appProvisioner)
+	probeStorage := newProbeDBStorage(db)
+
+	router := mux.NewRouter()
+	newProxy(authenticator, orgMapper, probeStorage).registerHandlers(router)
+	newProbeObserver(authenticator, probeStorage).registerHandlers(router)
+	http.Handle("/", router)
 	logrus.Info("Listening on :80")
-	handler := makeLoggingHandler(http.DefaultServeMux)
+	handler := loggingHandler(http.DefaultServeMux)
 	logrus.Fatal(http.ListenAndServe(":80", handler))
 }
 
-func makeLoggingHandler(next http.Handler) http.Handler {
+func loggingHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logrus.Infof("%s %s %s", r.RemoteAddr, r.Method, r.URL)
 		next.ServeHTTP(w, r)

@@ -30,12 +30,8 @@ type dbOrgHost struct {
 	Hostname       string `db:"hostname"`
 }
 
-func newDBMapper(dbURI string, p appProvisioner) (*dbMapper, error) {
-	db, err := sqlx.Open("postgres", dbURI)
-	if err != nil {
-		return nil, err
-	}
-	return &dbMapper{db, p}, nil
+func newDBMapper(db *sqlx.DB, p appProvisioner) *dbMapper {
+	return &dbMapper{db, p}
 }
 
 func (m *dbMapper) getOrganizationsHost(orgID string) (string, error) {

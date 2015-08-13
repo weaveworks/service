@@ -108,3 +108,35 @@ func doAuthenticateRequest(r *http.Request) (authenticatorResponse, error) {
 	return authRes, nil
 
 }
+
+func authOrgHandler(a authenticator, getOrgName func(*http.Request) string, next func(w http.ResponseWriter, r *http.Request, orgID string)) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authResponse, err := a.authenticateOrg(r, getOrgName(r))
+		if err != nil {
+			handleAuthError(w, err)
+			return
+		}
+		next(w, r, authResponse.OrganizationID)
+	})
+}
+
+func authProbeHandler(a authenticator, next func(w http.ResponseWriter, r *http.Request, orgID string)) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authResponse, err := a.authenticateProbe(r)
+		if err != nil {
+			handleAuthError(w, err)
+			return
+		}
+		next(w, r, authResponse.OrganizationID)
+	})
+}
+
+func handleAuthError(w http.ResponseWriter, err error) {
+	if unauth, ok := err.(unauthorized); ok {
+		logrus.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
+		w.WriteHeader(http.StatusUnauthorized)
+	} else {
+		logrus.Errorf("proxy: error contacting authenticator: %v", err)
+		w.WriteHeader(http.StatusBadGateway)
+	}
+}

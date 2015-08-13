@@ -1,0 +1,71 @@
+package main
+
+import (
+	"net/http"
+	"time"
+)
+
+var isIntegrationTest = false
+
+type authenticatorFunc func(r *http.Request, orgName string) (authenticatorResponse, error)
+
+func (f authenticatorFunc) authenticateOrg(r *http.Request, orgName string) (authenticatorResponse, error) {
+	return f(r, orgName)
+}
+
+func (f authenticatorFunc) authenticateProbe(r *http.Request) (authenticatorResponse, error) {
+	return f(r, "")
+}
+
+type mockProvisioner func(appID string) (string, error)
+
+func (f mockProvisioner) fetchApp() error {
+	return nil
+}
+
+func (f mockProvisioner) runApp(appID string) (string, error) {
+	return f(appID)
+}
+
+func (f mockProvisioner) destroyApp(string) error {
+	return nil
+}
+
+func (f mockProvisioner) isAppRunning(string) (bool, error) {
+	return true, nil
+}
+
+type memProbe struct {
+	probe
+	orgID string
+}
+
+type probeMemStorage struct {
+	memProbes []memProbe
+}
+
+func (s *probeMemStorage) getProbesFromOrg(orgID string) ([]probe, error) {
+	var result []probe
+	for _, memProbe := range s.memProbes {
+		if memProbe.orgID == orgID {
+			result = append(result, probe{memProbe.ID, memProbe.LastSeen})
+		}
+	}
+	return result, nil
+}
+
+func (s *probeMemStorage) bumpProbeLastSeen(probeID string, orgID string) error {
+	for _, memProbe := range s.memProbes {
+		if memProbe.ID == probeID {
+			memProbe.LastSeen = time.Now()
+			return nil
+		}
+	}
+	newProbe := memProbe{
+		probe: probe{probeID, time.Now()},
+		orgID: orgID,
+	}
+
+	s.memProbes = append(s.memProbes, newProbe)
+	return nil
+}

@@ -12,66 +12,54 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	scope "github.com/weaveworks/scope/xfer"
 )
-
-const scopeDefaultPortNumber = 4040
 
 var appPrefix = regexp.MustCompile("^/api/app/[^/]+")
 
 type proxy struct {
 	authenticator authenticator
 	mapper        organizationMapper
+	probeBumper   probeBumper
 	reverseProxy  httputil.ReverseProxy
 }
 
-func newProxy(a authenticator, m organizationMapper) proxy {
+func newProxy(a authenticator, m organizationMapper, b probeBumper) proxy {
 	// Make all transformations outside of the director since
 	// they are also required when proxying websockets
 	emptyDirector := func(*http.Request) {}
 	return proxy{
 		authenticator: a,
 		mapper:        m,
+		probeBumper:   b,
 		reverseProxy:  httputil.ReverseProxy{Director: emptyDirector},
 	}
 }
 
-func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	router := mux.NewRouter()
+func (p proxy) registerHandlers(router *mux.Router) {
 	router.Path("/api/app/{orgName}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orgName := mux.Vars(r)["orgName"]
 		w.Header().Set("Location", fmt.Sprintf("/api/app/%s/", orgName))
 		w.WriteHeader(http.StatusMovedPermanently)
 	})
-	handleAuthError := func(err error) {
-		if unauth, ok := err.(unauthorized); ok {
-			logrus.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
-			w.WriteHeader(http.StatusUnauthorized)
-		} else {
-			logrus.Errorf("proxy: error contacting authenticator: %v", err)
-			w.WriteHeader(http.StatusBadGateway)
-		}
-	}
-	router.PathPrefix("/api/app/{orgName}/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orgName := mux.Vars(r)["orgName"]
-		authResponse, err := p.authenticator.authenticateOrg(r, orgName)
-		if err != nil {
-			handleAuthError(err)
-			return
-		}
-		// Trim /api/app/<orgName> off the front of the URI
-		r.RequestURI = appPrefix.ReplaceAllLiteralString(r.RequestURI, "")
-		p.forwardRequest(w, r, authResponse.OrganizationID)
-	})
-	router.Path("/api/report").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authResponse, err := p.authenticator.authenticateProbe(r)
-		if err != nil {
-			handleAuthError(err)
-			return
-		}
-		p.forwardRequest(w, r, authResponse.OrganizationID)
-
-	})
-	router.ServeHTTP(w, r)
+	router.PathPrefix("/api/app/{orgName}/").Handler(authOrgHandler(p.authenticator,
+		func(r *http.Request) string { return mux.Vars(r)["orgName"] },
+		func(w http.ResponseWriter, r *http.Request, orgID string) {
+			// Trim /api/app/<orgName> off the front of the URI
+			r.RequestURI = appPrefix.ReplaceAllLiteralString(r.RequestURI, "")
+			p.forwardRequest(w, r, orgID)
+		},
+	))
+	router.Path("/api/report").Handler(authProbeHandler(p.authenticator,
+		func(w http.ResponseWriter, r *http.Request, orgID string) {
+			if probeID := r.Header.Get(scope.ScopeProbeIDHeader); probeID == "" {
+				logrus.Error("proxy: probe with missing identification header")
+			} else {
+				p.probeBumper.bumpProbeLastSeen(probeID, orgID)
+			}
+			p.forwardRequest(w, r, orgID)
+		},
+	))
 }
 
 func (p proxy) forwardRequest(w http.ResponseWriter, r *http.Request, orgID string) {
@@ -81,7 +69,7 @@ func (p proxy) forwardRequest(w http.ResponseWriter, r *http.Request, orgID stri
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
-	targetHostPort := addPort(targetHost, scopeDefaultPortNumber)
+	targetHostPort := addPort(targetHost, scope.AppPort)
 	logrus.Infof("proxy: mapping organization with ID %q to host %q", orgID, targetHostPort)
 
 	// Tweak request before sending
