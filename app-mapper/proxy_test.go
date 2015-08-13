@@ -60,9 +60,7 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 		w.Write(targetResponse)
 	})
 
-	var recordedOrgName string
 	authenticator := authenticatorFunc(func(r *http.Request, orgName string) (authenticatorResponse, error) {
-		recordedOrgName = orgName
 		return authenticatorResponse{"somePersistentInternalID"}, nil
 	})
 
