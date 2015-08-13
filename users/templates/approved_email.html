@@ -9,4 +9,12 @@ Or click this link to go straight to Scope:
 
 <p>If you log in, it will be valid for 60 days.</p>
 
-<p>In case you forgot your probe token, it’s {{.ProbeToken}}</p>
+<p>You need to run probes on your Docker hosts to
+send information to Weave Scope.  To do this, type
+there commands:</p>
+
+<pre>
+# sudo wget -O /usr/local/bin/scope https://git.io/scope-latest
+# sudo chmod a+x /usr/local/bin/scope
+# sudo scope launch --service-token={{.ProbeToken}}
+</pre>
