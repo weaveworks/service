@@ -6,14 +6,17 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func testOrgMapper(t *testing.T, initialMapping []dbOrgHost, p appProvisioner, test func(organizationMapper)) {
-	dbMapper := newDBMapper(testDB, p)
-
-	_, err := dbMapper.db.Exec("DELETE FROM org_hostname")
+	db, err := sqlx.Open("postgres", defaultDBURI)
+	require.NoError(t, err, "Cannot initialize database client")
+	dbMapper := newDBMapper(db, p)
+	_, err = dbMapper.db.Exec("DELETE FROM org_hostname")
 	require.NoError(t, err, "Cannot wipe DB")
 
 	for _, orgHost := range initialMapping {

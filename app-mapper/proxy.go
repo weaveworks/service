@@ -12,27 +12,26 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	scope "github.com/weaveworks/scope/xfer"
 )
-
-const scopeDefaultPortNumber = 4040
 
 var appPrefix = regexp.MustCompile("^/api/app/[^/]+")
 
 type proxy struct {
 	authenticator authenticator
 	mapper        organizationMapper
-	probeStorage  probeStorage
+	probeBumper   probeBumper
 	reverseProxy  httputil.ReverseProxy
 }
 
-func newProxy(a authenticator, m organizationMapper, p probeStorage) proxy {
+func newProxy(a authenticator, m organizationMapper, b probeBumper) proxy {
 	// Make all transformations outside of the director since
 	// they are also required when proxying websockets
 	emptyDirector := func(*http.Request) {}
 	return proxy{
 		authenticator: a,
 		mapper:        m,
-		probeStorage:  p,
+		probeBumper:   b,
 		reverseProxy:  httputil.ReverseProxy{Director: emptyDirector},
 	}
 }
@@ -53,11 +52,10 @@ func (p proxy) registerHandlers(router *mux.Router) {
 	))
 	router.Path("/api/report").Handler(authProbeHandler(p.authenticator,
 		func(w http.ResponseWriter, r *http.Request, orgID string) {
-			probeID := r.Header.Get(probeIDHeaderName)
-			if probeID == "" {
+			if probeID := r.Header.Get(scope.ScopeProbeIDHeader); probeID == "" {
 				logrus.Error("proxy: probe with missing identification header")
 			} else {
-				p.probeStorage.bumpProbeLastSeen(probeID, orgID)
+				p.probeBumper.bumpProbeLastSeen(probeID, orgID)
 			}
 			p.forwardRequest(w, r, orgID)
 		},
@@ -71,7 +69,7 @@ func (p proxy) forwardRequest(w http.ResponseWriter, r *http.Request, orgID stri
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
-	targetHostPort := addPort(targetHost, scopeDefaultPortNumber)
+	targetHostPort := addPort(targetHost, scope.AppPort)
 	logrus.Infof("proxy: mapping organization with ID %q to host %q", orgID, targetHostPort)
 
 	// Tweak request before sending

@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	scope "github.com/weaveworks/scope/xfer"
 	"golang.org/x/net/websocket"
 )
 
@@ -67,8 +68,7 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 		// Explicitly set some headers which net/http/client injects if unset
 		req.Header.Set("User-Agent", "Foo")
 		req.Header.Set("Accept-Encoding", "gzip")
-		client := &http.Client{}
-		res, err := client.Do(req)
+		res, err := http.DefaultClient.Do(req)
 		defer res.Body.Close()
 		require.NoError(t, err, "Cannot make test request")
 
@@ -235,7 +235,6 @@ func TestMultiRequest(t *testing.T) {
 	})
 
 	testFunc := func(proxyHost string, pms *probeMemStorage) {
-		client := &http.Client{}
 		url := "http://" + proxyHost + "/api/app/somePublicOrgName/request?arg1=foo&arg2=bar"
 		req, err := http.NewRequest("GET", url, nil)
 		require.NoError(t, err, "Cannot create request")
@@ -247,7 +246,7 @@ func TestMultiRequest(t *testing.T) {
 				//  caches clients, and doesn't explicitly close them)
 				req.Header.Set("Connection", "close")
 			}
-			res, err := client.Do(req)
+			res, err := http.DefaultClient.Do(req)
 			require.NoError(t, err, "Cannot make test request")
 			res.Body.Close()
 		}
@@ -326,10 +325,9 @@ func TestProbeLogging(t *testing.T) {
 		const probeID = "probeIDValue"
 
 		req, err := http.NewRequest("GET", "http://"+proxyHost+"/api/report?arg1=foo&arg2=bar", nil)
-		req.Header.Add(probeIDHeaderName, probeID)
 		require.NoError(t, err, "Cannot create request")
-		client := &http.Client{}
-		res, err := client.Do(req)
+		req.Header.Add(scope.ScopeProbeIDHeader, probeID)
+		res, err := http.DefaultClient.Do(req)
 		defer res.Body.Close()
 
 		require.Equal(t, len(pms.memProbes), 1, "Probe wasn't logged")

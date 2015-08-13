@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-var testProbeStorage probeStorage = &probeMemStorage{}
+var isIntegrationTest = false
 
 type authenticatorFunc func(r *http.Request, orgName string) (authenticatorResponse, error)
 

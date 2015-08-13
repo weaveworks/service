@@ -5,6 +5,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
 type organizationMapper interface {

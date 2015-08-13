@@ -10,15 +10,16 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-const probeIDHeaderName = "X-Scope-Probe-ID"
-
 type probe struct {
 	ID       string    `db:"probe_id" json:"id"`
 	LastSeen time.Time `db:"last_seen" json:"lastSeen"`
 }
 
-type probeStorage interface {
+type probeGetter interface {
 	getProbesFromOrg(orgID string) ([]probe, error)
+}
+
+type probeBumper interface {
 	bumpProbeLastSeen(probeID string, orgID string) error
 }
 
@@ -41,20 +42,20 @@ func (s *probeDBStorage) bumpProbeLastSeen(probeID string, orgID string) error {
 	return err
 }
 
-func newProbeObserver(a authenticator, s probeStorage) *probeObserver {
-	return &probeObserver{a, s}
+func newProbeObserver(a authenticator, g probeGetter) probeObserver {
+	return probeObserver{a, g}
 }
 
 type probeObserver struct {
 	authenticator authenticator
-	storage       probeStorage
+	getter        probeGetter
 }
 
-func (o *probeObserver) registerHandlers(router *mux.Router) {
+func (o probeObserver) registerHandlers(router *mux.Router) {
 	router.Path("/api/org/{orgName}/probes").Methods("GET").Handler(authOrgHandler(o.authenticator,
 		func(r *http.Request) string { return mux.Vars(r)["orgName"] },
 		func(w http.ResponseWriter, r *http.Request, orgID string) {
-			probes, err := o.storage.getProbesFromOrg(orgID)
+			probes, err := o.getter.getProbesFromOrg(orgID)
 			if err != nil {
 				logrus.Errorf("probe: cannot access probes from org with id %q: %v", orgID, err)
 				w.WriteHeader(http.StatusInternalServerError)

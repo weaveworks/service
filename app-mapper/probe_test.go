@@ -7,22 +7,38 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"net/http/httptest"
 )
+
+type probeStorage interface {
+	probeBumper
+	probeGetter
+}
 
 func TestProbeStorage(t *testing.T) {
 	const (
 		orgID   = "somePrivateOrgID"
 		probeID = "someProbeID"
 	)
+
+	var probeStorage probeStorage
+	if isIntegrationTest {
+		db, err := sqlx.Open("postgres", defaultDBURI)
+		require.NoError(t, err, "Cannot initialize database client")
+		probeStorage = newProbeDBStorage(db)
+	} else {
+		probeStorage = &probeMemStorage{}
+	}
 	t1 := time.Now()
-	err := testProbeStorage.bumpProbeLastSeen(probeID, orgID)
+	err := probeStorage.bumpProbeLastSeen(probeID, orgID)
 	require.NoError(t, err, "bumpProbeLastSeen unexpectedly failed")
 	t2 := time.Now()
 
-	probes, err := testProbeStorage.getProbesFromOrg(orgID)
+	probes, err := probeStorage.getProbesFromOrg(orgID)
 	require.NoError(t, err, "getProbesFromOrg unexpectedly failed")
 	require.Equal(t, 1, len(probes), "unexpected probes length")
 	assert.Equal(t, probeID, probes[0].ID)
