@@ -58,8 +58,8 @@ func Test_Approval(t *testing.T) {
 	// Email should have been sent
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{user1.Email}, sentEmails[0].To)
-		assert.Contains(t, string(sentEmails[0].Text), "Your Scope account has been approved!")
-		assert.Contains(t, string(sentEmails[0].HTML), "Your Scope account has been approved!")
+		assert.Contains(t, string(sentEmails[0].Text), "account has been approved!")
+		assert.Contains(t, string(sentEmails[0].HTML), "account has been approved!")
 		assert.Contains(t, string(sentEmails[0].Text), found.Organization.ProbeToken)
 		assert.Contains(t, string(sentEmails[0].HTML), found.Organization.ProbeToken)
 	}
