@@ -63,9 +63,14 @@ export default class LoginForm extends React.Component {
   }
 
   _handleError(resp) {
-    this.setState({
-      activityText: '',
-      errorText: resp.errors[0].message
-    });
+    if (resp.status === 401) {
+      // logout should not fail for Unauthorized
+      HashLocation.push('/');
+    } else {
+      this.setState({
+        activityText: '',
+        errorText: resp.errors[0].message
+      });
+    }
   }
 }
