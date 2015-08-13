@@ -28,12 +28,22 @@ export default class Probes extends React.Component {
       });
   }
 
+  renderProbes() {
+    if (this.state.probes.length > 0) {
+      return this.state.probes.map(probe => {
+        return (
+          <ListItem primaryText={probe.id} key={probe.id} />
+        );
+      });
+    }
+
+    return (
+      <ListItem primaryText="No probes attached" disabled={true} />
+    );
+  }
+
   render() {
-    const probes = this.state.probes.map(probe => {
-      return (
-        <ListItem primaryText={probe.id} key={probe.id} />
-      );
-    });
+    const probes = this.renderProbes();
 
     const styles = {
       tokenContainer: {

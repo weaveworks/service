@@ -60,45 +60,45 @@ export default class Users extends React.Component {
             {users}
           </List>
         </Box>
-        {/* <div style={formStyle}>
+        <div style={formStyle}>
           <TextField hintText="Email" ref="emailField" />
           <RaisedButton label="Invite" style={buttonStyle} onClick={this._handleInviteTouchTap.bind(this)} />
-        </div> */}
+        </div>
       </div>
     );
   }
 
 
-  // _handleDeleteTouchTap(user) {
-  //   let url = `/api/org/${this.props.org}/users/${user.id}`;
+  _handleDeleteTouchTap(user) {
+    let url = `/api/org/${this.props.org}/users/${user.id}`;
 
-  //   deleteData(url)
-  //     .then(function(resp) {
-  //       this.setState({
-  //         users: resp
-  //       });
-  //       this.refs.emailField.setValue("");
-  //     }.bind(this), function(resp) {
-  //       // TODO show error
-  //     }.bind(this));
-  // }
+    deleteData(url)
+      .then(function(resp) {
+        this.setState({
+          users: resp
+        });
+        this.refs.emailField.setValue("");
+      }.bind(this), function(resp) {
+        // TODO show error
+      }.bind(this));
+  }
 
-  // _handleInviteTouchTap() {
-  //   let url = `/api/org/${this.props.org}/users`;
+  _handleInviteTouchTap() {
+    let url = `/api/org/${this.props.org}/users`;
 
-  //   const email = this.refs.emailField.getValue();
+    const email = this.refs.emailField.getValue();
 
-  //   if (email) {
-  //     postData(url, {email: email})
-  //       .then(function(resp) {
-  //         this.setState({
-  //           users: resp
-  //         });
-  //         this.refs.emailField.setValue("");
-  //       }.bind(this), function(resp) {
-  //         // TODO show error
-  //       }.bind(this));
-  //     }
-  // }
+    if (email) {
+      postData(url, {email: email})
+        .then(function(resp) {
+          this.setState({
+            users: resp
+          });
+          this.refs.emailField.setValue("");
+        }.bind(this), function(resp) {
+          // TODO show error
+        }.bind(this));
+      }
+  }
 
 }

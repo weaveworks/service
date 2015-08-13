@@ -6,7 +6,7 @@ export class Column extends React.Component {
     let styles = {
       float: 'left',
       margin: '0 2%',
-      width: '45%'
+      width: this.props.width ? this.props.width : '45%'
     };
 
     return (
