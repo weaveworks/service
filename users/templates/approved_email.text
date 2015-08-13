@@ -9,7 +9,7 @@ If you log in, it will be valid for 60 days.
 
 You need to run probes on your Docker hosts to
 send information to Weave Scope.  To do this, type
-there commands:
+these commands:
 
 # sudo wget -O /usr/local/bin/scope https://git.io/scope-latest
 # sudo chmod a+x /usr/local/bin/scope
