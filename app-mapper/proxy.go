@@ -37,8 +37,7 @@ func newProxy(a authenticator, m organizationMapper, p probeStorage) proxy {
 	}
 }
 
-func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	router := mux.NewRouter()
+func (p proxy) registerHandlers(router *mux.Router) {
 	router.Path("/api/app/{orgName}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orgName := mux.Vars(r)["orgName"]
 		w.Header().Set("Location", fmt.Sprintf("/api/app/%s/", orgName))
@@ -63,7 +62,6 @@ func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			p.forwardRequest(w, r, orgID)
 		},
 	))
-	router.ServeHTTP(w, r)
 }
 
 func (p proxy) forwardRequest(w http.ResponseWriter, r *http.Request, orgID string) {

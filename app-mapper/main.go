@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -26,7 +27,11 @@ func main() {
 	}
 	orgMapper := flags.getOrganizationMapper(db, appProvisioner)
 	probeStorage := newProbeDBStorage(db)
-	http.Handle("/", newProxy(authenticator, orgMapper, probeStorage))
+
+	router := mux.NewRouter()
+	newProxy(authenticator, orgMapper, probeStorage).registerHandlers(router)
+	newProbeObserver(authenticator, probeStorage).registerHandlers(router)
+	http.Handle("/", router)
 	logrus.Info("Listening on :80")
 	handler := loggingHandler(http.DefaultServeMux)
 	logrus.Fatal(http.ListenAndServe(":80", handler))

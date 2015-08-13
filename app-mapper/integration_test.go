@@ -16,4 +16,5 @@ func init() {
 	if err != nil {
 		logrus.Fatal("Cannot initialize database client: ", err)
 	}
+	testProbeStorage = newProbeDBStorage(testDB)
 }

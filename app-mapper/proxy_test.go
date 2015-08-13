@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/websocket"
@@ -27,7 +28,9 @@ func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFu
 	// Set a test server for the proxy (required for Hijack to work)
 	m := &constantMapper{parsedTargetURL.Host}
 	p := &probeMemStorage{}
-	proxyTestServer := httptest.NewServer(newProxy(a, m, p))
+	router := mux.NewRouter()
+	newProxy(a, m, p).registerHandlers(router)
+	proxyTestServer := httptest.NewServer(router)
 	defer proxyTestServer.Close()
 
 	parsedProxyURL, err := url.Parse(proxyTestServer.URL)
@@ -261,7 +264,7 @@ func TestUnauthorized(t *testing.T) {
 		assert.Fail(t, "Target contacted by proxy")
 	})
 
-	failingAuthenticator := authenticatorFunc(func(r *http.Request, org string) (authenticatorResponse, error) {
+	failingAuthenticator := authenticatorFunc(func(r *http.Request, orgName string) (authenticatorResponse, error) {
 		return authenticatorResponse{}, errors.New("PhonyError")
 	})
 

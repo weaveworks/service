@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+var testProbeStorage probeStorage = &probeMemStorage{}
+
 type authenticatorFunc func(r *http.Request, orgName string) (authenticatorResponse, error)
 
 func (f authenticatorFunc) authenticateOrg(r *http.Request, orgName string) (authenticatorResponse, error) {
@@ -41,7 +43,7 @@ func (s *probeMemStorage) getProbesFromOrg(orgID string) ([]probe, error) {
 	var result []probe
 	for _, probe := range s.probes {
 		if probe.OrgID == orgID {
-			s.probes = append(result, probe)
+			result = append(result, probe)
 		}
 	}
 	return result, nil

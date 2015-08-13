@@ -1,8 +1,12 @@
 package main
 
 import (
+	"encoding/json"
+	"net/http"
 	"time"
 
+	"github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -23,17 +27,45 @@ type probeDBStorage struct {
 	db *sqlx.DB
 }
 
-func newProbeDBStorage(db *sqlx.DB) probeDBStorage {
-	return probeDBStorage{db}
+func newProbeDBStorage(db *sqlx.DB) *probeDBStorage {
+	return &probeDBStorage{db}
 }
 
-func (s probeDBStorage) getProbesFromOrg(orgID string) ([]probe, error) {
+func (s *probeDBStorage) getProbesFromOrg(orgID string) ([]probe, error) {
 	var probes []probe
 	err := s.db.Select(&probes, "SELECT * FROM probe WHERE organization_id=$1;", orgID)
 	return probes, err
 }
 
-func (s probeDBStorage) bumpProbeLastSeen(probeID string, orgID string) error {
+func (s *probeDBStorage) bumpProbeLastSeen(probeID string, orgID string) error {
 	_, err := s.db.Exec("INSERT INTO probe VALUES ($1, $2, $3);", probeID, orgID, time.Now())
 	return err
+}
+
+func newProbeObserver(a authenticator, s probeStorage) *probeObserver {
+	return &probeObserver{a, s}
+}
+
+type probeObserver struct {
+	authenticator authenticator
+	storage       probeStorage
+}
+
+func (o *probeObserver) registerHandlers(router *mux.Router) {
+	router.Path("/api/org/{orgName}/probes").Methods("GET").Handler(authOrgHandler(o.authenticator,
+		func(r *http.Request) string { return mux.Vars(r)["orgName"] },
+		func(w http.ResponseWriter, r *http.Request, orgID string) {
+			probes, err := o.storage.getProbesFromOrg(orgID)
+			if err != nil {
+				logrus.Errorf("probe: cannot access probes from org with id %q: %v", orgID, err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			if err = json.NewEncoder(w).Encode(probes); err != nil {
+				logrus.Errorf("probe: cannot encode probes to json: %v", err)
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+			w.WriteHeader(http.StatusOK)
+		},
+	))
 }
