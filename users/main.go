@@ -55,6 +55,7 @@ func routes(directLogin bool) http.Handler {
 	r.HandleFunc("/", admin).Methods("GET")
 	r.HandleFunc("/api/users/signup", signup(directLogin)).Methods("POST")
 	r.HandleFunc("/api/users/login", login).Methods("GET")
+	r.HandleFunc("/api/users/logout", authenticated(logout)).Methods("GET")
 	r.HandleFunc("/api/users/lookup", authenticated(publicLookup)).Methods("GET")
 	r.HandleFunc("/api/users/org/{orgName}", authenticated(org)).Methods("GET")
 	r.HandleFunc("/api/users/org/{orgName}", authenticated(renameOrg)).Methods("PUT")
@@ -193,6 +194,11 @@ func login(w http.ResponseWriter, r *http.Request) {
 		"email":            u.Email,
 		"organizationName": u.Organization.Name,
 	})
+}
+
+func logout(_ *user, w http.ResponseWriter, r *http.Request) {
+	sessions.Clear(w)
+	renderJSON(w, http.StatusOK, map[string]interface{}{})
 }
 
 type lookupView struct {
