@@ -1,6 +1,5 @@
 import React from "react";
-import { Paper, FlatButton, Toolbar, ToolbarGroup, ToolbarTitle } from "material-ui";
-import { HashLocation } from "react-router";
+import { Paper } from "material-ui";
 
 import Colors from '../common/colors';
 
@@ -110,13 +109,5 @@ export default class WrapperToolbar extends React.Component {
         <div style={styles.filler} />
       </div>
     );
-  }
-
-  _handleLinkClick(route) {
-    HashLocation.push(route);
-  }
-
-  _handleTouchTap() {
-    window.location.href = '/';
   }
 }
