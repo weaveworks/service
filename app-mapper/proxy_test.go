@@ -332,8 +332,8 @@ func TestProbeLogging(t *testing.T) {
 		res, err := client.Do(req)
 		defer res.Body.Close()
 
-		require.Equal(t, len(pms.probes), 1, "Probe wasn't logged")
-		require.Equal(t, probeID, pms.probes[0].ID, "Mismatching Probe ID")
+		require.Equal(t, len(pms.memProbes), 1, "Probe wasn't logged")
+		require.Equal(t, probeID, pms.memProbes[0].ID, "Mismatching Probe ID")
 
 	}
 

@@ -13,9 +13,8 @@ import (
 const probeIDHeaderName = "X-Scope-Probe-ID"
 
 type probe struct {
-	ID       string    `db:"probe_id"`
-	OrgID    string    `db:"organization_id"`
-	LastSeen time.Time `db:"last_seen"`
+	ID       string    `db:"probe_id" json:"id"`
+	LastSeen time.Time `db:"last_seen" json:"lastSeen"`
 }
 
 type probeStorage interface {
@@ -33,7 +32,7 @@ func newProbeDBStorage(db *sqlx.DB) *probeDBStorage {
 
 func (s *probeDBStorage) getProbesFromOrg(orgID string) ([]probe, error) {
 	var probes []probe
-	err := s.db.Select(&probes, "SELECT * FROM probe WHERE organization_id=$1;", orgID)
+	err := s.db.Select(&probes, "SELECT probe_id, last_seen FROM probe WHERE organization_id=$1;", orgID)
 	return probes, err
 }
 

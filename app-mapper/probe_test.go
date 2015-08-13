@@ -26,7 +26,6 @@ func TestProbeStorage(t *testing.T) {
 	require.NoError(t, err, "getProbesFromOrg unexpectedly failed")
 	require.Equal(t, 1, len(probes), "unexpected probes length")
 	assert.Equal(t, probeID, probes[0].ID)
-	assert.Equal(t, orgID, probes[0].OrgID)
 	assert.WithinDuration(t, t1, probes[0].LastSeen, t2.Sub(t1))
 }
 
@@ -35,12 +34,14 @@ func TestProbeObserver(t *testing.T) {
 		orgName = "somePublicOrgName"
 		orgID   = "someInternalOrgID"
 	)
-	probesFromOrgID := []probe{
-		{"someProbeID1", orgID, time.Now().UTC()},
-		{"someProbeID2", orgID, time.Now().UTC()},
+	expectedResult := []probe{
+		{"someProbeID1", time.Now().UTC()},
+		{"someProbeID2", time.Now().UTC()},
 	}
-	probeFromOtherOrg := probe{"someProbeID3", "someOtherInternalOrgID", time.Now().UTC()}
-	p := &probeMemStorage{append(probesFromOrgID, probeFromOtherOrg)}
+	p := &probeMemStorage{[]memProbe{
+		{expectedResult[0], orgID},
+		{expectedResult[1], orgID},
+	}}
 
 	var recordedOrgName string
 	a := authenticatorFunc(func(r *http.Request, orgName string) (authenticatorResponse, error) {
@@ -59,6 +60,6 @@ func TestProbeObserver(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code, "Request unexpectedly failed")
 	err = json.NewDecoder(w.Body).Decode(&result)
 	require.NoError(t, err, "Cannot decode result")
-	assert.Equal(t, probesFromOrgID, result, "Unexpected result")
+	assert.Equal(t, expectedResult, result, "Unexpected result")
 	assert.Equal(t, orgName, recordedOrgName, "Organization name not correctly forward to authenticator")
 }

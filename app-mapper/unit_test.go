@@ -35,33 +35,37 @@ func (f mockProvisioner) isAppRunning(string) (bool, error) {
 	return true, nil
 }
 
+type memProbe struct {
+	probe
+	orgID string
+}
+
 type probeMemStorage struct {
-	probes []probe
+	memProbes []memProbe
 }
 
 func (s *probeMemStorage) getProbesFromOrg(orgID string) ([]probe, error) {
 	var result []probe
-	for _, probe := range s.probes {
-		if probe.OrgID == orgID {
-			result = append(result, probe)
+	for _, memProbe := range s.memProbes {
+		if memProbe.orgID == orgID {
+			result = append(result, probe{memProbe.ID, memProbe.LastSeen})
 		}
 	}
 	return result, nil
 }
 
 func (s *probeMemStorage) bumpProbeLastSeen(probeID string, orgID string) error {
-	for _, probe := range s.probes {
-		if probe.ID == probeID {
-			probe.LastSeen = time.Now()
+	for _, memProbe := range s.memProbes {
+		if memProbe.ID == probeID {
+			memProbe.LastSeen = time.Now()
 			return nil
 		}
 	}
-	newProbe := probe{
-		ID:       probeID,
-		OrgID:    orgID,
-		LastSeen: time.Now(),
+	newProbe := memProbe{
+		probe: probe{probeID, time.Now()},
+		orgID: orgID,
 	}
 
-	s.probes = append(s.probes, newProbe)
+	s.memProbes = append(s.memProbes, newProbe)
 	return nil
 }
