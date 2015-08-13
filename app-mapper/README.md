@@ -2,7 +2,7 @@
 
 The Application Mapper is a proxy between Scope probes/uis and Scope apps.
 
-## Endpoints:
+## Endpoints
 
 * `api/app/<orgName>/*`
 
@@ -31,7 +31,7 @@ The Application Mapper is a proxy between Scope probes/uis and Scope apps.
 
 * `api/org/<orgName>/probes`
 
-  HTTP Methods: POST
+  HTTP Methods: GET
 
   Authentication: `_weave_run_session` cookie
 
