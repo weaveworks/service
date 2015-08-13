@@ -51,7 +51,7 @@ export default class OrganizationPage extends React.Component {
       code: {
         padding: 24,
         backgroundColor: '#32324B',
-        fontFamilily: 'monospace',
+        fontFamily: 'monospace',
         color: Colors.text2
       },
       container: {
@@ -77,7 +77,7 @@ export default class OrganizationPage extends React.Component {
         </div>
         <Container>
           {this.state.name && <div style={styles.container}>
-            <Column width="50%">
+            <Column width="60%">
               <h1>Configure your instance</h1>
               <Box>
                 <div style={styles.code}>
