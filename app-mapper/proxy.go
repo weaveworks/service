@@ -44,41 +44,25 @@ func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Location", fmt.Sprintf("/api/app/%s/", orgName))
 		w.WriteHeader(http.StatusMovedPermanently)
 	})
-	handleAuthError := func(err error) {
-		if unauth, ok := err.(unauthorized); ok {
-			logrus.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
-			w.WriteHeader(http.StatusUnauthorized)
-		} else {
-			logrus.Errorf("proxy: error contacting authenticator: %v", err)
-			w.WriteHeader(http.StatusBadGateway)
-		}
-	}
-	router.PathPrefix("/api/app/{orgName}/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orgName := mux.Vars(r)["orgName"]
-		authResponse, err := p.authenticator.authenticateOrg(r, orgName)
-		if err != nil {
-			handleAuthError(err)
-			return
-		}
-		// Trim /api/app/<orgName> off the front of the URI
-		r.RequestURI = appPrefix.ReplaceAllLiteralString(r.RequestURI, "")
-		p.forwardRequest(w, r, authResponse.OrganizationID)
-	})
-	router.Path("/api/report").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authResponse, err := p.authenticator.authenticateProbe(r)
-		if err != nil {
-			handleAuthError(err)
-			return
-		}
-		probeID := r.Header.Get(probeIDHeaderName)
-		if probeID == "" {
-			logrus.Error("proxy: probe with missing identification header")
-		} else {
-			p.probeStorage.bumpProbeLastSeen(probeID, authResponse.OrganizationID)
-		}
-		p.forwardRequest(w, r, authResponse.OrganizationID)
-
-	})
+	router.PathPrefix("/api/app/{orgName}/").Handler(authOrgHandler(p.authenticator,
+		func(r *http.Request) string { return mux.Vars(r)["orgName"] },
+		func(w http.ResponseWriter, r *http.Request, orgID string) {
+			// Trim /api/app/<orgName> off the front of the URI
+			r.RequestURI = appPrefix.ReplaceAllLiteralString(r.RequestURI, "")
+			p.forwardRequest(w, r, orgID)
+		},
+	))
+	router.Path("/api/report").Handler(authProbeHandler(p.authenticator,
+		func(w http.ResponseWriter, r *http.Request, orgID string) {
+			probeID := r.Header.Get(probeIDHeaderName)
+			if probeID == "" {
+				logrus.Error("proxy: probe with missing identification header")
+			} else {
+				p.probeStorage.bumpProbeLastSeen(probeID, orgID)
+			}
+			p.forwardRequest(w, r, orgID)
+		},
+	))
 	router.ServeHTTP(w, r)
 }
 

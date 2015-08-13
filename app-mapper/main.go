@@ -28,11 +28,11 @@ func main() {
 	probeStorage := newProbeDBStorage(db)
 	http.Handle("/", newProxy(authenticator, orgMapper, probeStorage))
 	logrus.Info("Listening on :80")
-	handler := makeLoggingHandler(http.DefaultServeMux)
+	handler := loggingHandler(http.DefaultServeMux)
 	logrus.Fatal(http.ListenAndServe(":80", handler))
 }
 
-func makeLoggingHandler(next http.Handler) http.Handler {
+func loggingHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logrus.Infof("%s %s %s", r.RemoteAddr, r.Method, r.URL)
 		next.ServeHTTP(w, r)

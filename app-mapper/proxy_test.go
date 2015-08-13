@@ -261,9 +261,8 @@ func TestUnauthorized(t *testing.T) {
 		assert.Fail(t, "Target contacted by proxy")
 	})
 
-	var authenticatorError error
 	failingAuthenticator := authenticatorFunc(func(r *http.Request, org string) (authenticatorResponse, error) {
-		return authenticatorResponse{}, authenticatorError
+		return authenticatorResponse{}, errors.New("PhonyError")
 	})
 
 	testFunc := func(proxyHost string, pms *probeMemStorage) {
@@ -271,19 +270,11 @@ func TestUnauthorized(t *testing.T) {
 			"http://" + proxyHost + "/api/app/somePublicOrgName/request?arg1=foo&arg2=bar",
 			"http://" + proxyHost + "/api/report?arg1=foo&arg2=bar",
 		} {
-			for authErr, expectedProxyStatus := range map[error]int{
-				unauthorized{http.StatusUnauthorized}:        http.StatusUnauthorized,
-				unauthorized{http.StatusBadRequest}:          http.StatusUnauthorized,
-				unauthorized{http.StatusInternalServerError}: http.StatusUnauthorized,
-				errors.New("PhonyError"):                     http.StatusBadGateway,
-			} {
-				authenticatorError = authErr
-				res, err := http.Get(url)
-				assert.NoError(t, err, "Cannot send request")
-				defer res.Body.Close()
-				assert.Equal(t, expectedProxyStatus, res.StatusCode,
-					"Unexpected proxy response status with failing authenticator")
-			}
+			res, err := http.Get(url)
+			assert.NoError(t, err, "Cannot send request")
+			defer res.Body.Close()
+			assert.NotEqual(t, http.StatusOK, res.StatusCode,
+				"Unexpected OK status with failing authenticator")
 		}
 	}
 

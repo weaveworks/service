@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -163,4 +164,66 @@ func TestBadServerResponse(t *testing.T) {
 	}
 
 	testAuthenticator(t, shFunc, testFunc)
+}
+
+func TestAuthHandlers(t *testing.T) {
+	const (
+		orgName = "someOrgName"
+		orgID   = "someOrgID"
+	)
+	var (
+		authErrorToSend error
+		recordedOrgName string
+		recordedOrgID   string
+	)
+	authenticator := authenticatorFunc(func(r *http.Request, orgName string) (authenticatorResponse, error) {
+		recordedOrgName = orgName
+		return authenticatorResponse{orgID}, authErrorToSend
+	})
+	orgHandler := authOrgHandler(authenticator,
+		func(r *http.Request) string { return orgName },
+		func(w http.ResponseWriter, r *http.Request, orgID string) {
+			recordedOrgID = orgID
+		},
+	)
+	probeHandler := authProbeHandler(authenticator,
+		func(w http.ResponseWriter, r *http.Request, orgID string) {
+			recordedOrgID = orgID
+		},
+	)
+	for authErr, expectedHandlerStatus := range map[error]int{
+		unauthorized{http.StatusUnauthorized}:        http.StatusUnauthorized,
+		unauthorized{http.StatusBadRequest}:          http.StatusUnauthorized,
+		unauthorized{http.StatusInternalServerError}: http.StatusUnauthorized,
+		errors.New("PhonyError"):                     http.StatusBadGateway,
+		nil: http.StatusOK,
+	} {
+		authErrorToSend = authErr
+
+		// Test org Handler
+		w := httptest.NewRecorder()
+		recordedOrgName = ""
+		recordedOrgID = ""
+		orgHandler.ServeHTTP(w, nil)
+		assert.Equal(t, expectedHandlerStatus, w.Code, "Unexpected HTTP code")
+		if authErr == nil {
+			assert.Equal(t, orgID, recordedOrgID, "Unexpected organization ID")
+		} else {
+			assert.Equal(t, "", recordedOrgID, "Underlying handler shouldn't be called")
+		}
+		assert.Equal(t, orgName, recordedOrgName, "Unexpected organization name ")
+
+		// Test probe handler
+		w = httptest.NewRecorder()
+		recordedOrgName = ""
+		recordedOrgID = ""
+		probeHandler.ServeHTTP(w, nil)
+		assert.Equal(t, expectedHandlerStatus, w.Code, "Unexpected HTTP code")
+		if authErr == nil {
+			assert.Equal(t, orgID, recordedOrgID, "Unexpected organizationID")
+		} else {
+			assert.Equal(t, "", recordedOrgID, "Unexpected organizationID")
+		}
+
+	}
 }
