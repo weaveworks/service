@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 )
 
@@ -62,7 +63,9 @@ func (p *dockerProvisioner) runApp(appID string) (hostname string, err error) {
 	}
 	defer func() {
 		if err != nil {
-			p.destroyApp(appID)
+			if err := p.destroyApp(appID); err != nil {
+				logrus.Warnf("docker provisioner: destroy app %q: %v", appID, err)
+			}
 		}
 	}()
 
