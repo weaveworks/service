@@ -52,12 +52,11 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 		//  caches clients, and doesn't explicitly close them)
 		w.Header().Set("Connection", "close")
 		w.WriteHeader(http.StatusOK)
-		w.Write(targetResponse)
+		_, err := w.Write(targetResponse)
+		assert.NoError(t, err, "Couldn't write response body")
 	})
 
-	var recordedOrgName string
 	authenticator := authenticatorFunc(func(r *http.Request, orgName string) (authenticatorResponse, error) {
-		recordedOrgName = orgName
 		return authenticatorResponse{"somePersistentInternalID"}, nil
 	})
 
@@ -286,7 +285,8 @@ func TestUnauthorized(t *testing.T) {
 func TestProxyWebSocket(t *testing.T) {
 	// Use a websocket echo server in the target
 	targetHandler := websocket.Handler(func(ws *websocket.Conn) {
-		io.Copy(ws, ws)
+		_, err := io.Copy(ws, ws)
+		assert.NoError(t, err, "Target handler copy failed")
 	})
 
 	testFunc := func(proxyHost string, pms *probeMemStorage) {
@@ -301,7 +301,7 @@ func TestProxyWebSocket(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			err = websocket.Message.Send(ws, messageToSend)
 			require.NoError(t, err, "Error sending message")
-			websocket.Message.Receive(ws, &messageToReceive)
+			err = websocket.Message.Receive(ws, &messageToReceive)
 			require.NoError(t, err, "Error receiving message")
 			require.Equal(t, messageToSend, messageToReceive)
 			messageToReceive = ""

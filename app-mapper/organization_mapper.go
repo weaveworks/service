@@ -73,7 +73,9 @@ func (m *dbMapper) runTransaction(runner func(*sqlx.Tx) error) error {
 	}
 
 	if err = runner(tx); err != nil {
-		tx.Rollback()
+		if err2 := tx.Rollback(); err2 != nil {
+			logrus.Warnf("organization mapper: transaction rollback: %v", err2)
+		}
 		return err
 	}
 

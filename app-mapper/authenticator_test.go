@@ -143,7 +143,8 @@ func TestBadServerResponse(t *testing.T) {
 
 	shFunc := func(w http.ResponseWriter, r *http.Request, orgName string) {
 		w.WriteHeader(http.StatusOK)
-		w.Write(responseBody)
+		_, err := w.Write(responseBody)
+		assert.NoError(t, err, "Couldn't write response body")
 	}
 
 	testFunc := func(a authenticator) {

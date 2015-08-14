@@ -133,7 +133,9 @@ func proxyWS(targetHost string, w http.ResponseWriter, r *http.Request) {
 	var wg sync.WaitGroup
 	cp := func(dst io.Writer, src io.Reader, tag string) {
 		defer wg.Done()
-		io.Copy(dst, src)
+		if _, err := io.Copy(dst, src); err != nil {
+			logrus.Debugf("proxy: websocket: %q io.Copy: %v", tag, err) // EOF is normal
+		}
 		logrus.Debugf("proxy: websocket: %q copier exited", tag)
 	}
 	wg.Add(2)
