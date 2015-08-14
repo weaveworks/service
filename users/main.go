@@ -268,7 +268,9 @@ func listUnapprovedUsers(w http.ResponseWriter, r *http.Request) {
 	if renderError(w, err) {
 		return
 	}
-	w.Write(b)
+	if _, err := w.Write(b); err != nil {
+		logrus.Warn("list unapproved users: %v", err)
+	}
 }
 
 // approveUser approves a user by ID

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -417,7 +418,9 @@ func (s pgStorage) Transaction(f func(*sql.Tx) error) error {
 	}
 	if err = f(tx); err != nil {
 		// Rollback error is ignored as we already have one in progress
-		tx.Rollback()
+		if err := tx.Rollback(); err != nil {
+			logrus.Warn("transaction rollback: %v", err)
+		}
 		return err
 	}
 	return tx.Commit()
