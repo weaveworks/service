@@ -5,6 +5,7 @@ CREATE DATABASE app_mapper WITH ENCODING = 'UTF-8';
 CREATE TABLE org_hostname (
   organization_id text,
   hostname        text,
+  is_ready        boolean NOT NULL,
   PRIMARY KEY (organization_id, hostname)
 );
 

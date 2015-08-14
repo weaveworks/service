@@ -3,24 +3,20 @@
 package main
 
 import (
-	"net"
-	"strings"
 	"testing"
+	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-const appPort = "80"
-
 func testAppProvisioner(t *testing.T, appID string, test func(p appProvisioner, host string)) {
-	echoAppConfig := docker.Config{
-		Image: "busybox",
-		Cmd:   strings.Fields("busybox nc -ll -p " + appPort + " -e cat"),
+	appConfig := docker.Config{
+		Image: defaultAppImage,
 	}
 	o := dockerProvisionerOptions{
-		appConfig:     echoAppConfig,
+		appConfig:     appConfig,
 		runTimeout:    defaultDockerRunTimeout,
 		clientTimeout: defaultDockerClientTimeout,
 	}
@@ -41,27 +37,22 @@ func TestSimpleProvisioning(t *testing.T) {
 
 	test := func(p appProvisioner, host string) {
 		running, err := p.isAppRunning(appID)
-		assert.NoError(t, err, "Cannot check if app is running")
+		require.NoError(t, err, "Cannot check if app is running")
 		assert.True(t, running, "App not running")
 	}
 
 	testAppProvisioner(t, appID, test)
 }
 
-func TestAccessRunningApp(t *testing.T) {
+func TestIsAppReady(t *testing.T) {
 	const appID = "foo"
-	const msg = "Tres tristes tigres"
 
 	test := func(p appProvisioner, host string) {
-		conn, err := net.Dial("tcp", net.JoinHostPort(host, appPort))
-		require.NoError(t, err, "Cannot contact app")
-		defer conn.Close()
-		_, err = conn.Write([]byte(msg))
-		assert.NoError(t, err, "Cannot write to app")
-		receivedMsg := make([]byte, len(msg))
-		_, err = conn.Read(receivedMsg)
-		assert.NoError(t, err, "Cannot read from app")
-		assert.Equal(t, msg, string(receivedMsg))
+		// Let the app boot
+		time.Sleep(2 * time.Second)
+		ready, err := p.isAppReady(appID)
+		require.NoError(t, err, "Cannot check if app is ready")
+		assert.True(t, ready, "App not running")
 	}
 
 	testAppProvisioner(t, appID, test)

@@ -17,22 +17,29 @@ func (f authenticatorFunc) authenticateProbe(r *http.Request) (authenticatorResp
 	return f(r, "")
 }
 
-type mockProvisioner func(appID string) (string, error)
+type mockProvisioner struct {
+	mockRunApp     func(appID string) (string, error)
+	mockIsAppReady func(appID string) (bool, error)
+}
 
-func (f mockProvisioner) fetchApp() error {
+func (mockProvisioner) fetchApp() error {
 	return nil
 }
 
-func (f mockProvisioner) runApp(appID string) (string, error) {
-	return f(appID)
+func (m mockProvisioner) runApp(appID string) (string, error) {
+	return m.mockRunApp(appID)
 }
 
-func (f mockProvisioner) destroyApp(string) error {
+func (mockProvisioner) destroyApp(string) error {
 	return nil
 }
 
-func (f mockProvisioner) isAppRunning(string) (bool, error) {
+func (mockProvisioner) isAppRunning(string) (bool, error) {
 	return true, nil
+}
+
+func (m mockProvisioner) isAppReady(appID string) (bool, error) {
+	return m.mockIsAppReady(appID)
 }
 
 type memProbe struct {
