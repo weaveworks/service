@@ -14,9 +14,7 @@ export default class RouterComponent extends React.Component {
   render() {
     return (
       <div id="container">
-        <div id="main">
-          <RouteHandler {...this.props} />
-        </div>
+        <RouteHandler {...this.props} />
       </div>
     );
   }
