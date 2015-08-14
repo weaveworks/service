@@ -43,7 +43,7 @@ type webAuthenticator struct {
 }
 
 const (
-	authCookieName = "_weave_run_session"
+	authCookieName = "_weave_scope_session"
 	authHeaderName = "Authorization"
 )
 
