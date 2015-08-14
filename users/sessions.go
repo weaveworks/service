@@ -18,20 +18,22 @@ var (
 	errInvalidAuthenticationData = errors.New("Invalid authentication data")
 )
 
-func setupSessions(validationSecret string) {
+func setupSessions(validationSecret string, storage findUserByIDer) sessionStore {
 	secretBytes := []byte(validationSecret)
 	if len(secretBytes) != 64 {
 		logrus.Fatal("session-secret must be 64 bytes")
 	}
 
-	sessions = sessionStore{
+	return sessionStore{
 		secret:  validationSecret,
+		storage: storage,
 		encoder: securecookie.New(secretBytes, nil).SetSerializer(securecookie.JSONEncoder{}),
 	}
 }
 
 type sessionStore struct {
 	secret  string
+	storage findUserByIDer
 	encoder *securecookie.SecureCookie
 }
 
@@ -62,7 +64,7 @@ func (s sessionStore) Decode(encoded string) (*user, error) {
 		return nil, errInvalidAuthenticationData
 	}
 	// Lookup the user by encoded id
-	user, err := storage.FindUserByID(session.UserID)
+	user, err := s.storage.FindUserByID(session.UserID)
 	switch {
 	case err == errNotFound:
 		return nil, errInvalidAuthenticationData

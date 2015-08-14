@@ -3,29 +3,31 @@
 package main
 
 import (
-	"net/http"
 	"testing"
 
 	"github.com/jordan-wright/email"
 	"golang.org/x/crypto/bcrypt"
 )
 
-var sentEmails []*email.Email
-var app http.Handler
+var (
+	sentEmails []*email.Email
+	app        *api
+	storage    database
+	sessions   sessionStore
+)
 
 func setup(t *testing.T) {
 	passwordHashingCost = bcrypt.MinCost
-	sentEmails = nil
-	sendEmail = testEmailSender
 
 	var directLogin = false
 
 	setupLogging("debug")
-	setupStorage("memory://")
-	setupTemplates()
-	setupSessions("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd")
+	storage = setupStorage("memory://")
+	sessions = setupSessions("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", storage)
+	templates := setupTemplates()
 
-	app = makeApplicationHandler(directLogin)
+	sentEmails = nil
+	app = newAPI(directLogin, testEmailSender, sessions, storage, templates)
 }
 
 func cleanup(t *testing.T) {

@@ -16,8 +16,6 @@ import (
 )
 
 var (
-	sessions            sessionStore
-	storage             database
 	passwordHashingCost = 14
 	orgNameRegex        = regexp.MustCompile(`\A[a-zA-Z0-9_-]+\z`)
 )
@@ -37,39 +35,60 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	setupLogging(*logLevel)
-	setupEmail(*emailURI)
-	setupStorage(*databaseURI)
+	emailSender := setupEmail(*emailURI)
+	storage := setupStorage(*databaseURI)
 	defer storage.Close()
-	setupTemplates()
-	setupSessions(*sessionSecret)
+	sessions := setupSessions(*sessionSecret, storage)
+	templates := setupTemplates()
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Infof("Listening on port %d", *port)
-	http.Handle("/", makeApplicationHandler(*directLogin))
+	http.Handle("/", newAPI(*directLogin, emailSender, sessions, storage, templates))
 	http.Handle("/metrics", makePrometheusHandler())
 	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }
 
-func makeApplicationHandler(directLogin bool) http.Handler {
+type api struct {
+	directLogin bool
+	sendEmail   emailSender
+	sessions    sessionStore
+	storage     database
+	templates   templateEngine
+	http.Handler
+}
+
+func newAPI(directLogin bool, emailSender emailSender, sessions sessionStore, storage database, templates templateEngine) *api {
+	a := &api{
+		directLogin: directLogin,
+		sendEmail:   emailSender,
+		sessions:    sessions,
+		storage:     storage,
+		templates:   templates,
+	}
+	a.Handler = a.routes()
+	return a
+}
+
+func (a *api) routes() http.Handler {
 	r := mux.NewRouter()
 	for _, route := range []struct {
 		method, path string
 		handler      http.HandlerFunc
 	}{
-		{"GET", "/", admin},
-		{"POST", "/api/users/signup", signup(directLogin)},
-		{"GET", "/api/users/login", login},
-		{"GET", "/api/users/logout", authenticated(logout)},
-		{"GET", "/api/users/lookup", authenticated(publicLookup)},
-		{"GET", "/api/users/org/{orgName}", authenticated(org)},
-		{"PUT", "/api/users/org/{orgName}", authenticated(renameOrg)},
-		{"GET", "/api/users/org/{orgName}/users", authenticated(listOrganizationUsers)},
-		{"POST", "/api/users/org/{orgName}/users", authenticated(inviteUser)},
-		{"DELETE", "/api/users/org/{orgName}/users/{userEmail}", authenticated(deleteUser)},
-		{"GET", "/private/api/users/lookup/{orgName}", authenticated(lookupUsingCookie)},
-		{"GET", "/private/api/users/lookup", lookupUsingToken},
-		{"GET", "/private/api/users", listUnapprovedUsers},
-		{"POST", "/private/api/users/{userID}/approve", approveUser},
+		{"GET", "/", a.admin},
+		{"POST", "/api/users/signup", a.signup},
+		{"GET", "/api/users/login", a.login},
+		{"GET", "/api/users/logout", a.authenticated(a.logout)},
+		{"GET", "/api/users/lookup", a.authenticated(a.publicLookup)},
+		{"GET", "/api/users/org/{orgName}", a.authenticated(a.org)},
+		{"PUT", "/api/users/org/{orgName}", a.authenticated(a.renameOrg)},
+		{"GET", "/api/users/org/{orgName}/users", a.authenticated(a.listOrganizationUsers)},
+		{"POST", "/api/users/org/{orgName}/users", a.authenticated(a.inviteUser)},
+		{"DELETE", "/api/users/org/{orgName}/users/{userEmail}", a.authenticated(a.deleteUser)},
+		{"GET", "/private/api/users/lookup/{orgName}", a.authenticated(a.lookupUsingCookie)},
+		{"GET", "/private/api/users/lookup", a.lookupUsingToken},
+		{"GET", "/private/api/users", a.listUnapprovedUsers},
+		{"POST", "/private/api/users/{userID}/approve", a.approveUser},
 	} {
 		name := instrument.MakeLabelValue(route.path)
 		r.Handle(route.path, route.handler).Name(name).Methods(route.method)
@@ -77,7 +96,7 @@ func makeApplicationHandler(directLogin bool) http.Handler {
 	return instrument.Middleware(r, requestDuration)(r)
 }
 
-func admin(w http.ResponseWriter, r *http.Request) {
+func (a *api) admin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/html")
 	fmt.Fprintf(w, `
 <html>
@@ -98,50 +117,48 @@ type signupView struct {
 	Token    string `json:"token,omitempty"`
 }
 
-func signup(directLogin bool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-		var view signupView
-		if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
-			renderError(w, malformedInputError(err))
-			return
-		}
-		view.MailSent = false
-		if view.Email == "" {
-			renderError(w, validationErrorf("Email cannot be blank"))
-			return
-		}
-
-		user, err := storage.FindUserByEmail(view.Email)
-		if err == errNotFound {
-			user, err = storage.CreateUser(view.Email)
-		}
-		if renderError(w, err) {
-			return
-		}
-		// We always do this so that the timing difference can't be used to infer a user's existence.
-		token, err := generateUserToken(storage, user)
-		if err != nil {
-			renderError(w, fmt.Errorf("Error sending login email: %s", err))
-			return
-		}
-		if directLogin {
-			// approve user, and return token
-			_, err = storage.ApproveUser(user.ID)
-			view.Token = token
-		} else if user.ApprovedAt.IsZero() {
-			err = sendWelcomeEmail(user)
-		} else {
-			err = sendLoginEmail(user, token)
-		}
-		if err != nil {
-			renderError(w, fmt.Errorf("Error sending login email: %s", err))
-			return
-		}
-		view.MailSent = !directLogin
-
-		renderJSON(w, http.StatusOK, view)
+func (a *api) signup(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	var view signupView
+	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
+		renderError(w, malformedInputError(err))
+		return
 	}
+	view.MailSent = false
+	if view.Email == "" {
+		renderError(w, validationErrorf("Email cannot be blank"))
+		return
+	}
+
+	user, err := a.storage.FindUserByEmail(view.Email)
+	if err == errNotFound {
+		user, err = a.storage.CreateUser(view.Email)
+	}
+	if renderError(w, err) {
+		return
+	}
+	// We always do this so that the timing difference can't be used to infer a user's existence.
+	token, err := generateUserToken(a.storage, user)
+	if err != nil {
+		renderError(w, fmt.Errorf("Error sending login email: %s", err))
+		return
+	}
+	if a.directLogin {
+		// approve user, and return token
+		_, err = a.storage.ApproveUser(user.ID)
+		view.Token = token
+	} else if user.ApprovedAt.IsZero() {
+		err = a.sendEmail(welcomeEmail(a.templates, user))
+	} else {
+		err = a.sendEmail(loginEmail(a.templates, user, token))
+	}
+	if err != nil {
+		renderError(w, fmt.Errorf("Error sending login email: %s", err))
+		return
+	}
+	view.MailSent = !a.directLogin
+
+	renderJSON(w, http.StatusOK, view)
 }
 
 func generateUserToken(storage database, user *user) (string, error) {
@@ -155,7 +172,7 @@ func generateUserToken(storage database, user *user) (string, error) {
 	return token, nil
 }
 
-func login(w http.ResponseWriter, r *http.Request) {
+func (a *api) login(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	token := r.FormValue("token")
 	switch {
@@ -177,7 +194,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := storage.FindUserByEmail(email)
+	u, err := a.storage.FindUserByEmail(email)
 	if err == errNotFound {
 		u = &user{Token: "!"} // Will fail the token comparison
 		err = nil
@@ -190,11 +207,11 @@ func login(w http.ResponseWriter, r *http.Request) {
 		tokenExpired()
 		return
 	}
-	if err := sessions.Set(w, u.ID); err != nil {
+	if err := a.sessions.Set(w, u.ID); err != nil {
 		tokenExpired(err)
 		return
 	}
-	if err := storage.SetUserToken(u.ID, ""); err != nil {
+	if err := a.storage.SetUserToken(u.ID, ""); err != nil {
 		tokenExpired(err)
 		return
 	}
@@ -204,8 +221,8 @@ func login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func logout(_ *user, w http.ResponseWriter, r *http.Request) {
-	sessions.Clear(w)
+func (a *api) logout(_ *user, w http.ResponseWriter, r *http.Request) {
+	a.sessions.Clear(w)
 	renderJSON(w, http.StatusOK, map[string]interface{}{})
 }
 
@@ -215,18 +232,18 @@ type lookupView struct {
 	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
 }
 
-func publicLookup(currentUser *user, w http.ResponseWriter, r *http.Request) {
+func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	renderJSON(w, http.StatusOK, lookupView{
 		OrganizationName:   currentUser.Organization.Name,
 		FirstProbeUpdateAt: renderTime(currentUser.Organization.FirstProbeUpdateAt),
 	})
 }
 
-func lookupUsingCookie(currentUser *user, w http.ResponseWriter, r *http.Request) {
+func (a *api) lookupUsingCookie(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	renderJSON(w, http.StatusOK, lookupView{OrganizationID: currentUser.Organization.ID})
 }
 
-func lookupUsingToken(w http.ResponseWriter, r *http.Request) {
+func (a *api) lookupUsingToken(w http.ResponseWriter, r *http.Request) {
 	credentials, ok := parseAuthHeader(r.Header.Get("Authorization"))
 	if !ok || credentials.Realm != "Scope-Probe" {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -239,7 +256,7 @@ func lookupUsingToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	org, err := storage.FindOrganizationByProbeToken(token)
+	org, err := a.storage.FindOrganizationByProbeToken(token)
 	if err == nil {
 		renderJSON(w, http.StatusOK, lookupView{OrganizationID: org.ID})
 		return
@@ -262,9 +279,8 @@ func (v userView) FormatCreatedAt() string {
 	return v.CreatedAt.Format(time.Stamp)
 }
 
-// listUnapprovedUsers lists users needing approval
-func listUnapprovedUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := storage.ListUnapprovedUsers()
+func (a *api) listUnapprovedUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := a.storage.ListUnapprovedUsers()
 	if renderError(w, err) {
 		return
 	}
@@ -272,7 +288,7 @@ func listUnapprovedUsers(w http.ResponseWriter, r *http.Request) {
 	for _, u := range users {
 		userViews = append(userViews, userView{u.ID, u.Email, u.CreatedAt})
 	}
-	b, err := templateBytes("list_users.html", userViews)
+	b, err := a.templates.bytes("list_users.html", userViews)
 	if renderError(w, err) {
 		return
 	}
@@ -281,24 +297,23 @@ func listUnapprovedUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// approveUser approves a user by ID
-func approveUser(w http.ResponseWriter, r *http.Request) {
+func (a *api) approveUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, ok := vars["userID"]
 	if !ok {
 		renderError(w, errNotFound)
 		return
 	}
-	user, err := storage.ApproveUser(userID)
+	user, err := a.storage.ApproveUser(userID)
 	if renderError(w, err) {
 		return
 	}
-	token, err := generateUserToken(storage, user)
+	token, err := generateUserToken(a.storage, user)
 	if err != nil {
 		renderError(w, fmt.Errorf("Error sending approved email: %s", err))
 		return
 	}
-	if renderError(w, sendApprovedEmail(user, token)) {
+	if renderError(w, a.sendEmail(approvedEmail(a.templates, user, token))) {
 		return
 	}
 	http.Redirect(w, r, "/private/api/users", http.StatusFound)
@@ -306,9 +321,9 @@ func approveUser(w http.ResponseWriter, r *http.Request) {
 
 // authenticated wraps a handlerfunc to make sure we have a logged in user, and
 // they are accessing their own org.
-func authenticated(handler func(*user, http.ResponseWriter, *http.Request)) http.HandlerFunc {
+func (a *api) authenticated(handler func(*user, http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u, err := sessions.Get(r)
+		u, err := a.sessions.Get(r)
 		if renderError(w, err) {
 			return
 		}
@@ -330,7 +345,7 @@ type orgView struct {
 	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
 }
 
-func org(currentUser *user, w http.ResponseWriter, r *http.Request) {
+func (a *api) org(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	renderJSON(w, http.StatusOK, orgView{
 		User:               currentUser.Email,
 		Name:               currentUser.Organization.Name,
@@ -339,7 +354,7 @@ func org(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func renameOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
+func (a *api) renameOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var view orgView
 	err := json.NewDecoder(r.Body).Decode(&view)
@@ -355,14 +370,14 @@ func renameOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if renderError(w, storage.RenameOrganization(mux.Vars(r)["orgName"], view.Name)) {
+	if renderError(w, a.storage.RenameOrganization(mux.Vars(r)["orgName"], view.Name)) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
-func listOrganizationUsers(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	users, err := storage.ListOrganizationUsers(mux.Vars(r)["orgName"])
+func (a *api) listOrganizationUsers(currentUser *user, w http.ResponseWriter, r *http.Request) {
+	users, err := a.storage.ListOrganizationUsers(mux.Vars(r)["orgName"])
 	if renderError(w, err) {
 		return
 	}
@@ -373,7 +388,7 @@ func listOrganizationUsers(currentUser *user, w http.ResponseWriter, r *http.Req
 	renderJSON(w, http.StatusOK, userViews)
 }
 
-func inviteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {
+func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var view signupView
 	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
@@ -386,17 +401,17 @@ func inviteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	invitee, err := storage.InviteUser(view.Email, mux.Vars(r)["orgName"])
+	invitee, err := a.storage.InviteUser(view.Email, mux.Vars(r)["orgName"])
 	if renderError(w, err) {
 		return
 	}
 	// We always do this so that the timing difference can't be used to infer a user's existence.
-	token, err := generateUserToken(storage, invitee)
+	token, err := generateUserToken(a.storage, invitee)
 	if err != nil {
 		renderError(w, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
-	if err = sendInviteEmail(invitee, token); err != nil {
+	if err = a.sendEmail(inviteEmail(a.templates, invitee, token)); err != nil {
 		renderError(w, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
@@ -405,8 +420,8 @@ func inviteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	renderJSON(w, http.StatusOK, view)
 }
 
-func deleteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	if renderError(w, storage.DeleteUser(mux.Vars(r)["userEmail"])) {
+func (a *api) deleteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {
+	if renderError(w, a.storage.DeleteUser(mux.Vars(r)["userEmail"])) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)

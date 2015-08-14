@@ -3,17 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
-	htmlTemplate "html/template"
+	html "html/template"
 	"io"
 	"path/filepath"
-	textTemplate "text/template"
+	text "text/template"
 
 	"github.com/Sirupsen/logrus"
-)
-
-var (
-	htmlTemplates *htmlTemplate.Template
-	textTemplates *textTemplate.Template
 )
 
 type errTemplateNotFound struct {
@@ -28,24 +23,36 @@ type executor interface {
 	Execute(wr io.Writer, data interface{}) (err error)
 }
 
-func setupTemplates() {
-	var err error
-	htmlTemplates, err = htmlTemplate.ParseGlob("templates/*.html")
+func setupTemplates() *extensionTemplateEngine {
+	h, err := html.ParseGlob("templates/*.html")
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	textTemplates, err = textTemplate.ParseGlob("templates/*.text")
+	t, err := text.ParseGlob("templates/*.text")
 	if err != nil {
 		logrus.Fatal(err)
 	}
+
+	return &extensionTemplateEngine{h, t}
 }
 
-func lookupTemplate(name string) (t executor, err error) {
+type templateEngine interface {
+	lookup(name string) (executor, error)
+	bytes(name string, data interface{}) ([]byte, error)
+	quietBytes(name string, data interface{}) []byte
+}
+
+type extensionTemplateEngine struct {
+	htmlTemplates *html.Template
+	textTemplates *text.Template
+}
+
+func (l *extensionTemplateEngine) lookup(name string) (t executor, err error) {
 	switch filepath.Ext(name) {
 	case ".html":
-		t = htmlTemplates.Lookup(name)
+		t = l.htmlTemplates.Lookup(name)
 	case ".text":
-		t = textTemplates.Lookup(name)
+		t = l.textTemplates.Lookup(name)
 	}
 	if t == nil {
 		err = errTemplateNotFound{name}
@@ -53,8 +60,8 @@ func lookupTemplate(name string) (t executor, err error) {
 	return t, err
 }
 
-func templateBytes(templateName string, data interface{}) ([]byte, error) {
-	t, err := lookupTemplate(templateName)
+func (l *extensionTemplateEngine) bytes(templateName string, data interface{}) ([]byte, error) {
+	t, err := l.lookup(templateName)
 	if err != nil {
 		return nil, err
 	}
@@ -64,8 +71,8 @@ func templateBytes(templateName string, data interface{}) ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func quietTemplateBytes(name string, data interface{}) []byte {
-	b, err := templateBytes(name, data)
+func (l *extensionTemplateEngine) quietBytes(name string, data interface{}) []byte {
+	b, err := l.bytes(name, data)
 	if err != nil {
 		logrus.Error(err)
 	}
