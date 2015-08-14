@@ -10,9 +10,9 @@ var (
 	requestLatency = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Namespace: "scope",
 		Subsystem: "users",
-		Name:      "request_latency_nanoseconds",
-		Help:      "Time spent serving each HTTP request.",
-	}, []string{"path", "status_code"})
+		Name:      "request_duration_nanoseconds",
+		Help:      "Time spent serving HTTP requests.",
+	}, []string{"method", "route", "status_code"})
 )
 
 func makePrometheusHandler() http.Handler {

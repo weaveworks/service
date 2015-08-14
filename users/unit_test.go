@@ -25,7 +25,7 @@ func setup(t *testing.T) {
 	setupTemplates()
 	setupSessions("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd")
 
-	app = handler(directLogin)
+	app = router(directLogin)
 }
 
 func cleanup(t *testing.T) {

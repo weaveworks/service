@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 )
 
 func setupLogging(logLevel string) {
@@ -21,24 +22,26 @@ func setupLogging(logLevel string) {
 	logrus.SetLevel(level)
 }
 
-func instrumentingMiddleware(handler http.Handler) http.Handler {
+func instrument(m routeMatcher, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wrappedWriter := &apacheLoggingResponseWriter{
 			ResponseWriter: w,
 			r:              r,
 			startedAt:      time.Now().UTC(),
 		}
-		handler.ServeHTTP(wrappedWriter, r)
+
+		next.ServeHTTP(wrappedWriter, r)
+
 		wrappedWriter.finishedAt = time.Now().UTC()
 		logrus.Info(wrappedWriter.String())
-
 		var (
-			took       = wrappedWriter.finishedAt.Sub(wrappedWriter.startedAt)
-			obs        = float64(took.Nanoseconds())
-			path       = r.URL.Path // this may explode Prometheus with too much dimensionality
-			statusCode = strconv.Itoa(wrappedWriter.StatusCode)
+			method = r.Method
+			route  = normalizePath(m, r)
+			status = strconv.Itoa(wrappedWriter.StatusCode)
+			took   = wrappedWriter.finishedAt.Sub(wrappedWriter.startedAt)
 		)
-		requestLatency.WithLabelValues(path, statusCode).Observe(obs)
+		logrus.Debugf("%s: %s %s (%s) %s", r.URL.Path, method, route, status, took)
+		requestLatency.WithLabelValues(method, route, status).Observe(float64(took.Nanoseconds()))
 	})
 }
 
@@ -88,4 +91,22 @@ func (w *apacheLoggingResponseWriter) String() string {
 		w.BytesWritten,
 		w.finishedAt.Sub(w.startedAt).Seconds(),
 	)
+}
+
+type routeMatcher interface {
+	Match(*http.Request, *mux.RouteMatch) bool
+}
+
+func normalizePath(m routeMatcher, r *http.Request) string {
+	var match mux.RouteMatch
+	if !m.Match(r, &match) {
+		logrus.Warnf("couldn't normalize path: %s", r.URL.Path)
+		return "unmatched_path"
+	}
+	name := match.Route.GetName()
+	if name == "" {
+		logrus.Warnf("path isn't named: %s", r.URL.Path)
+		return "unnamed_path"
+	}
+	return name
 }

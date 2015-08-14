@@ -43,31 +43,29 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Infof("Listening on port %d", *port)
+	r := router(*directLogin)
+	http.Handle("/", instrument(r, r))
 	http.Handle("/metrics", makePrometheusHandler())
-	http.Handle("/", handler(*directLogin))
 	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }
 
-func handler(directLogin bool) http.Handler {
-	return instrumentingMiddleware(routes(directLogin))
-}
-
-func routes(directLogin bool) http.Handler {
+func router(directLogin bool) *mux.Router {
 	r := mux.NewRouter()
-	r.HandleFunc("/", admin).Methods("GET")
-	r.HandleFunc("/api/users/signup", signup(directLogin)).Methods("POST")
-	r.HandleFunc("/api/users/login", login).Methods("GET")
-	r.HandleFunc("/api/users/logout", authenticated(logout)).Methods("GET")
-	r.HandleFunc("/api/users/lookup", authenticated(publicLookup)).Methods("GET")
-	r.HandleFunc("/api/users/org/{orgName}", authenticated(org)).Methods("GET")
-	r.HandleFunc("/api/users/org/{orgName}", authenticated(renameOrg)).Methods("PUT")
-	r.HandleFunc("/api/users/org/{orgName}/users", authenticated(listOrganizationUsers)).Methods("GET")
-	r.HandleFunc("/api/users/org/{orgName}/users", authenticated(inviteUser)).Methods("POST")
-	r.HandleFunc("/api/users/org/{orgName}/users/{userEmail}", authenticated(deleteUser)).Methods("DELETE")
-	r.HandleFunc("/private/api/users/lookup/{orgName}", authenticated(lookupUsingCookie)).Methods("GET")
-	r.HandleFunc("/private/api/users/lookup", lookupUsingToken).Methods("GET")
-	r.HandleFunc("/private/api/users", listUnapprovedUsers).Methods("GET")
-	r.HandleFunc("/private/api/users/{userID}/approve", approveUser).Methods("POST")
+	// Route names are used by instrumentation.
+	r.HandleFunc("/", admin).Name("root").Methods("GET")
+	r.HandleFunc("/api/users/signup", signup(directLogin)).Name("api_users_signup").Methods("POST")
+	r.HandleFunc("/api/users/login", login).Name("api_users_login").Methods("GET")
+	r.HandleFunc("/api/users/logout", authenticated(logout)).Name("api_users_logout").Methods("GET")
+	r.HandleFunc("/api/users/lookup", authenticated(publicLookup)).Name("api_users_lookup").Methods("GET")
+	r.HandleFunc("/api/users/org/{orgName}", authenticated(org)).Name("api_users_org").Methods("GET")
+	r.HandleFunc("/api/users/org/{orgName}", authenticated(renameOrg)).Name("api_users_org").Methods("PUT")
+	r.HandleFunc("/api/users/org/{orgName}/users", authenticated(listOrganizationUsers)).Name("api_users_org_users").Methods("GET")
+	r.HandleFunc("/api/users/org/{orgName}/users", authenticated(inviteUser)).Name("api_users_org_users").Methods("POST")
+	r.HandleFunc("/api/users/org/{orgName}/users/{userEmail}", authenticated(deleteUser)).Name("api_users_org_users_email").Methods("DELETE")
+	r.HandleFunc("/private/api/users/lookup/{orgName}", authenticated(lookupUsingCookie)).Name("private_api_users_lookup_org").Methods("GET")
+	r.HandleFunc("/private/api/users/lookup", lookupUsingToken).Name("private_api_users_lookup").Methods("GET")
+	r.HandleFunc("/private/api/users", listUnapprovedUsers).Name("private_api_users").Methods("GET")
+	r.HandleFunc("/private/api/users/{userID}/approve", approveUser).Name("private_api_users_approve").Methods("POST")
 	return r
 }
 
