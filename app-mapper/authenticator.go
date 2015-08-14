@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
-	"time"
 
 	"github.com/Sirupsen/logrus"
 )
@@ -50,12 +48,6 @@ const (
 )
 
 func (m *webAuthenticator) authenticateOrg(r *http.Request, orgName string) (resp authenticatorResponse, err error) {
-	defer func(begin time.Time) {
-		val := strconv.FormatBool(err != nil)
-		obs := float64(time.Since(begin).Nanoseconds())
-		authenticateOrgLatency.WithLabelValues(val).Observe(obs)
-	}(time.Now())
-
 	// Extract Authorization cookie to inject it in the lookup request. If it were
 	// not set, don't even bother to do a lookup.
 	authCookie, err := r.Cookie(authCookieName)
@@ -75,12 +67,6 @@ func (m *webAuthenticator) authenticateOrg(r *http.Request, orgName string) (res
 }
 
 func (m *webAuthenticator) authenticateProbe(r *http.Request) (resp authenticatorResponse, err error) {
-	defer func(begin time.Time) {
-		val := strconv.FormatBool(err != nil)
-		obs := float64(time.Since(begin).Nanoseconds())
-		authenticateProbeLatency.WithLabelValues(val).Observe(obs)
-	}(time.Now())
-
 	// Extract Authorization header to inject it in the lookup request. If
 	// it were not set, don't even bother to do a lookup.
 	authHeader := r.Header.Get(authHeaderName)

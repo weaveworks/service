@@ -2,8 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"strconv"
-	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/jmoiron/sqlx"
@@ -37,12 +35,6 @@ func newDBMapper(db *sqlx.DB, p appProvisioner) *dbMapper {
 }
 
 func (m *dbMapper) getOrganizationsHost(orgID string) (response string, err error) {
-	defer func(begin time.Time) {
-		val := strconv.FormatBool(err != nil)
-		obs := float64(time.Since(begin).Nanoseconds())
-		getOrganizationsHostLatency.WithLabelValues(val).Observe(obs)
-	}(time.Now())
-
 	var host string
 	transactionRunner := func(tx *sqlx.Tx) error {
 		err := m.db.Get(&host, "SELECT org_hostname.hostname FROM org_hostname WHERE organization_id=$1;", orgID)

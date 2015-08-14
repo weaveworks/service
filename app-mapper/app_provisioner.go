@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"strconv"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -40,12 +39,6 @@ func newDockerProvisioner(dockerHost string, options dockerProvisionerOptions) (
 }
 
 func (p *dockerProvisioner) fetchApp() (err error) {
-	defer func(begin time.Time) {
-		val := strconv.FormatBool(err != nil)
-		obs := float64(time.Since(begin).Nanoseconds())
-		fetchAppLatency.WithLabelValues(val).Observe(obs)
-	}(time.Now())
-
 	_, err = p.client.InspectImage(p.options.appConfig.Image + ":latest")
 	if err == nil || err != docker.ErrNoSuchImage {
 		return err
@@ -59,12 +52,6 @@ func (p *dockerProvisioner) fetchApp() (err error) {
 }
 
 func (p *dockerProvisioner) runApp(appID string) (hostname string, err error) {
-	defer func(begin time.Time) {
-		val := strconv.FormatBool(err != nil)
-		obs := float64(time.Since(begin).Nanoseconds())
-		runAppLatency.WithLabelValues(val).Observe(obs)
-	}(time.Now())
-
 	createOptions := docker.CreateContainerOptions{
 		Name:       appContainerName(appID),
 		Config:     &p.options.appConfig,
@@ -109,12 +96,6 @@ func appContainerName(appID string) string {
 }
 
 func (p *dockerProvisioner) isAppRunning(appID string) (ok bool, err error) {
-	defer func(begin time.Time) {
-		val := strconv.FormatBool(err != nil)
-		obs := float64(time.Since(begin).Nanoseconds())
-		isAppRunningLatency.WithLabelValues(val).Observe(obs)
-	}(time.Now())
-
 	c, err := p.client.InspectContainer(appContainerName(appID))
 	if err != nil {
 		return false, err
@@ -123,12 +104,6 @@ func (p *dockerProvisioner) isAppRunning(appID string) (ok bool, err error) {
 }
 
 func (p *dockerProvisioner) destroyApp(appID string) (err error) {
-	defer func(begin time.Time) {
-		val := strconv.FormatBool(err != nil)
-		obs := float64(time.Since(begin).Nanoseconds())
-		destroyAppLatency.WithLabelValues(val).Observe(obs)
-	}(time.Now())
-
 	options := docker.RemoveContainerOptions{
 		ID:            appContainerName(appID),
 		RemoveVolumes: true,
