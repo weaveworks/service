@@ -55,7 +55,9 @@ func (p proxy) registerHandlers(router *mux.Router) {
 			if probeID := r.Header.Get(scope.ScopeProbeIDHeader); probeID == "" {
 				logrus.Error("proxy: probe with missing identification header")
 			} else {
-				p.probeBumper.bumpProbeLastSeen(probeID, orgID)
+				if err := p.probeBumper.bumpProbeLastSeen(probeID, orgID); err != nil {
+					logrus.Warnf("proxy: cannot bump probe's last-seen (%q,%q): %v", probeID, orgID, err)
+				}
 			}
 			p.forwardRequest(w, r, orgID)
 		},
