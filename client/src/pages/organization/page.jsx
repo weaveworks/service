@@ -1,5 +1,5 @@
 import React from "react";
-import { CircularProgress, Styles } from "material-ui";
+import { CircularProgress, Paper, Styles } from "material-ui";
 import { HashLocation } from "react-router";
 
 import Colors from '../../common/colors';
@@ -48,6 +48,9 @@ export default class OrganizationPage extends React.Component {
         marginTop: 200,
         textAlign: 'center'
       },
+      clear: {
+        clear: 'both'
+      },
       code: {
         padding: 24,
         backgroundColor: '#32324B',
@@ -64,8 +67,27 @@ export default class OrganizationPage extends React.Component {
         left: 64,
         top: 32 + 51 - 3
       },
+      circle: {
+        position: 'absolute',
+        left: '-3.5em',
+        top: '-0.75em',
+        width: '2.5em',
+        height: '2.5em',
+        borderRadius: '50%',
+        backgroundColor: Colors.text3,
+        color: 'white',
+        textAlign: 'center',
+        lineHeight: 2.5,
+        fontSize: '125%',
+        boxShadow: 'rgba(0, 0, 0, 0.117647) 0px 1px 6px, rgba(0, 0, 0, 0.239216) 0px 1px 4px'
+      },
       probes: {
-        marginTop: 32
+        padding: '24'
+      },
+      step: {
+        position: 'relative',
+        marginTop: '3em',
+        marginBottom: '1em'
       }
     };
 
@@ -78,7 +100,11 @@ export default class OrganizationPage extends React.Component {
         <Container>
           {this.state.name && <div style={styles.container}>
             <Column width="60%">
-              <h1>Configure your instance</h1>
+              <h1>Configure your app</h1>
+              <div style={styles.step}>
+                <span style={styles.circle}>1</span>
+                Run the following commands on your Docker hosts to connect them as probes to this Weave Scope instance:
+              </div>
               <Box>
                 <div style={styles.code}>
                   <div>sudo wget -O /usr/local/bin/scope https://git.io/scope-latest</div>
@@ -86,11 +112,18 @@ export default class OrganizationPage extends React.Component {
                   <div>sudo scope launch --service-token={this.state.probeToken}</div>
                 </div>
               </Box>
-              <div style={styles.probes}>
-                <Probes org={this.state.name} probeToken={this.state.probeToken} />
+              <div style={styles.step}>
+                <span style={styles.circle}>2</span>
+                Once you're started <code>scope</code> on your Docker hosts, click "My Scope" in the top right.
               </div>
             </Column>
-            <Column width="33%">
+            <Column width="40%">
+              <Paper style={{marginTop: '7em'}}>
+                <div style={styles.probes}>
+                  <h3>Probes</h3>
+                  <Probes org={this.state.name} probeToken={this.state.probeToken} />
+                </div>
+              </Paper>
             </Column>
           </div>}
           {!this.state.name && <div style={styles.activity}>

@@ -38,7 +38,7 @@ export default class Probes extends React.Component {
     }
 
     return (
-      <ListItem primaryText="No probes attached" disabled={true} />
+      <ListItem primaryText="No probes connected" disabled={true} />
     );
   }
 
@@ -61,7 +61,7 @@ export default class Probes extends React.Component {
     return (
       <div>
         <Box>
-          <List subheader="Probes">
+          <List subheader="Connected probes">
             {probes}
           </List>
         </Box>
