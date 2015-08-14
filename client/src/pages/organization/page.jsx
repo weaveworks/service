@@ -114,7 +114,7 @@ export default class OrganizationPage extends React.Component {
               </Box>
               <div style={styles.step}>
                 <span style={styles.circle}>2</span>
-                Once you're started <code>scope</code> on your Docker hosts, click "My Scope" in the top right.
+                Once you have started <code>scope</code> on your Docker hosts, click "My Scope" in the top right.
               </div>
             </Column>
             <Column width="40%">

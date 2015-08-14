@@ -25,7 +25,7 @@ export default class WrapperToolbar extends React.Component {
   renderLinks() {
     const styles = {
       toolbarLink: {
-        padding: 16
+        padding: 12
       },
       toolbarLinkIcon: {
         fontSize: '130%'
@@ -71,7 +71,7 @@ export default class WrapperToolbar extends React.Component {
       },
       toolbarOrganizationLabel: {
         color: Colors.text2,
-        fontSize: '70%',
+        fontSize: '60%',
         lineHeight: 1,
         marginRight: '0.5em',
         textTransform: 'uppercase'
@@ -95,7 +95,7 @@ export default class WrapperToolbar extends React.Component {
           <div style={styles.toolbar}>
             <div style={styles.toolbarLeft}>
               <span style={styles.toolbarOrganizationLabel}>
-                Instance:
+                App
               </span>
               <span style={styles.toolbarOrganization}>
                 {this.props.organization}
