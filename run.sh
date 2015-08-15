@@ -21,13 +21,22 @@ start_container() {
     done
 }
 
-if ! weave status > /dev/null; then
-    weave launch
+if [ "$(echo $1)" == "-prod" ]; then
+    DOCKER_HOST=tcp://localhost:4567
+    for dir in app-mapper client users frontend; do
+        docker load -i=$dir/image.tar
+    done
+else
+    if ! weave status > /dev/null; then
+        weave launch
+        weave expose
+    fi
+    eval $(weave env)
 fi
-eval $(weave env)
 
 (cd users; docker-compose stop; docker-compose rm -f; docker-compose up -d)
 (cd app-mapper; docker-compose stop; docker-compose rm -f; docker-compose up -d)
 start_container weaveworks/ui-server ui-server
-start_container weaveworks/frontend frontend --add-host=dns.weave.local:$(weave docker-bridge-ip)
+start_container weaveworks/frontend frontend --add-host=dns.weave.local:$(weave docker-bridge-ip) -p=80:80
 start_container weaveworks/prometheus prometheus
+
