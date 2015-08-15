@@ -22,7 +22,7 @@ start_container() {
 }
 
 if [ "$(echo $1)" == "-prod" ]; then
-    DOCKER_HOST=tcp://localhost:4567
+    export DOCKER_HOST=tcp://localhost:4567
     for dir in app-mapper client users frontend; do
         docker load -i=$dir/image.tar
     done
