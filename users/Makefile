@@ -17,10 +17,13 @@ DB_IMAGE_NAME=weaveworks/db_image
 
 all: $(IMAGE_TAR)
 
-$(IMAGE_TAR): Dockerfile templates/* $(USERS_EXE) db/*
+$(IMAGE_TAR): Dockerfile templates/* $(USERS_EXE) db/* ca-certificates.crt
 	docker build -t $(IMAGE_NAME) .
 	docker build -t $(DB_IMAGE_NAME) db/
 	docker save $(IMAGE_NAME):latest $(DB_IMAGE_NAME):latest  > $@
+
+ca-certificates.crt: /etc/ssl/certs/ca-certificates.crt
+	cp $? $@
 
 $(USERS_EXE): *.go
 	go get -tags netgo ./$(@D)
