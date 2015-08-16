@@ -1,4 +1,4 @@
-.PHONY: deps
+.PHONY: deps clean
 
 deps:
 	go get \
@@ -6,3 +6,6 @@ deps:
 		github.com/fzipp/gocyclo \
 		github.com/mattn/goveralls \
 		github.com/kisielk/errcheck
+
+clean:
+	for dir in app-mapper client users frontend; do make -C $$dir clean; done
