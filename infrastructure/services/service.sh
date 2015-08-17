@@ -24,6 +24,10 @@ install_weave() {
     done
     for host in $HOSTS; do
         run_on $host weave expose
+        run_on $host sudo curl -L https://github.com/weaveworks/scope/raw/master/scope -o /usr/local/bin/scope
+        run_on $host sudo chmod a+x /usr/local/bin/scope
+        run_on $host scope stop || true
+        run_on $host scope launch
     done
 }
 
