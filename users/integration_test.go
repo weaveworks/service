@@ -30,9 +30,9 @@ func setup(t *testing.T) {
 	var directLogin = false
 
 	setupLogging("debug")
-	storage = setupStorage(*databaseURI)
-	sessions = setupSessions("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", storage)
-	templates := setupTemplates()
+	storage = mustNewDatabase(*databaseURI)
+	sessions = mustNewSessionStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", storage)
+	templates := mustNewTemplateEngine()
 
 	truncateDatabase(t)
 

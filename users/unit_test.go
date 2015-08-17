@@ -22,9 +22,9 @@ func setup(t *testing.T) {
 	var directLogin = false
 
 	setupLogging("debug")
-	storage = setupStorage("memory://")
-	sessions = setupSessions("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", storage)
-	templates := setupTemplates()
+	storage = mustNewDatabase("memory://")
+	sessions = mustNewSessionStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", storage)
+	templates := mustNewTemplateEngine()
 
 	sentEmails = nil
 	app = newAPI(directLogin, testEmailSender, sessions, storage, templates)

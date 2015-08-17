@@ -35,11 +35,11 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	setupLogging(*logLevel)
-	emailSender := setupEmail(*emailURI)
-	storage := setupStorage(*databaseURI)
+	emailSender := mustNewEmailSender(*emailURI)
+	storage := mustNewDatabase(*databaseURI)
 	defer storage.Close()
-	sessions := setupSessions(*sessionSecret, storage)
-	templates := setupTemplates()
+	sessions := mustNewSessionStore(*sessionSecret, storage)
+	templates := mustNewTemplateEngine()
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Infof("Listening on port %d", *port)

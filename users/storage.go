@@ -48,7 +48,7 @@ type findUserByIDer interface {
 	FindUserByID(id string) (*user, error)
 }
 
-func setupStorage(databaseURI string) database {
+func mustNewDatabase(databaseURI string) database {
 	u, err := url.Parse(databaseURI)
 	if err != nil {
 		logrus.Fatal(err)

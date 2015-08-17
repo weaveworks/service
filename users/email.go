@@ -23,7 +23,7 @@ var (
 
 type emailSender func(*email.Email) error
 
-func setupEmail(emailURI string) emailSender {
+func mustNewEmailSender(emailURI string) emailSender {
 	m, err := smtpEmailSender(emailURI)
 	if err != nil {
 		logrus.Fatal(err)

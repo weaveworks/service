@@ -18,7 +18,7 @@ var (
 	errInvalidAuthenticationData = errors.New("Invalid authentication data")
 )
 
-func setupSessions(validationSecret string, storage findUserByIDer) sessionStore {
+func mustNewSessionStore(validationSecret string, storage findUserByIDer) sessionStore {
 	secretBytes := []byte(validationSecret)
 	if len(secretBytes) != 64 {
 		logrus.Fatal("session-secret must be 64 bytes")

@@ -23,7 +23,7 @@ type executor interface {
 	Execute(wr io.Writer, data interface{}) (err error)
 }
 
-func setupTemplates() *extensionTemplateEngine {
+func mustNewTemplateEngine() *extensionTemplateEngine {
 	h, err := html.ParseGlob("templates/*.html")
 	if err != nil {
 		logrus.Fatal(err)
