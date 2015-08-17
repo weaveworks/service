@@ -47,7 +47,7 @@ const (
 	authHeaderName = "Authorization"
 )
 
-func (m *webAuthenticator) authenticateOrg(r *http.Request, orgName string) (authenticatorResponse, error) {
+func (m *webAuthenticator) authenticateOrg(r *http.Request, orgName string) (resp authenticatorResponse, err error) {
 	// Extract Authorization cookie to inject it in the lookup request. If it were
 	// not set, don't even bother to do a lookup.
 	authCookie, err := r.Cookie(authCookieName)
@@ -66,7 +66,7 @@ func (m *webAuthenticator) authenticateOrg(r *http.Request, orgName string) (aut
 	return doAuthenticateRequest(lookupReq)
 }
 
-func (m *webAuthenticator) authenticateProbe(r *http.Request) (authenticatorResponse, error) {
+func (m *webAuthenticator) authenticateProbe(r *http.Request) (resp authenticatorResponse, err error) {
 	// Extract Authorization header to inject it in the lookup request. If
 	// it were not set, don't even bother to do a lookup.
 	authHeader := r.Header.Get(authHeaderName)

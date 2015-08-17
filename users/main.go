@@ -11,6 +11,8 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+
+	"github.com/weaveworks/service/common/instrument"
 )
 
 var (
@@ -43,30 +45,36 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Infof("Listening on port %d", *port)
-	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), handler(*directLogin)))
+	http.Handle("/", makeApplicationHandler(*directLogin))
+	http.Handle("/metrics", makePrometheusHandler())
+	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }
 
-func handler(directLogin bool) http.Handler {
-	return loggingMiddleware(routes(directLogin))
-}
-
-func routes(directLogin bool) http.Handler {
+func makeApplicationHandler(directLogin bool) http.Handler {
 	r := mux.NewRouter()
-	r.HandleFunc("/", admin).Methods("GET")
-	r.HandleFunc("/api/users/signup", signup(directLogin)).Methods("POST")
-	r.HandleFunc("/api/users/login", login).Methods("GET")
-	r.HandleFunc("/api/users/logout", authenticated(logout)).Methods("GET")
-	r.HandleFunc("/api/users/lookup", authenticated(publicLookup)).Methods("GET")
-	r.HandleFunc("/api/users/org/{orgName}", authenticated(org)).Methods("GET")
-	r.HandleFunc("/api/users/org/{orgName}", authenticated(renameOrg)).Methods("PUT")
-	r.HandleFunc("/api/users/org/{orgName}/users", authenticated(listOrganizationUsers)).Methods("GET")
-	r.HandleFunc("/api/users/org/{orgName}/users", authenticated(inviteUser)).Methods("POST")
-	r.HandleFunc("/api/users/org/{orgName}/users/{userEmail}", authenticated(deleteUser)).Methods("DELETE")
-	r.HandleFunc("/private/api/users/lookup/{orgName}", authenticated(lookupUsingCookie)).Methods("GET")
-	r.HandleFunc("/private/api/users/lookup", lookupUsingToken).Methods("GET")
-	r.HandleFunc("/private/api/users", listUnapprovedUsers).Methods("GET")
-	r.HandleFunc("/private/api/users/{userID}/approve", approveUser).Methods("POST")
-	return r
+	for _, route := range []struct {
+		method, path string
+		handler      http.HandlerFunc
+	}{
+		{"GET", "/", admin},
+		{"POST", "/api/users/signup", signup(directLogin)},
+		{"GET", "/api/users/login", login},
+		{"GET", "/api/users/logout", authenticated(logout)},
+		{"GET", "/api/users/lookup", authenticated(publicLookup)},
+		{"GET", "/api/users/org/{orgName}", authenticated(org)},
+		{"PUT", "/api/users/org/{orgName}", authenticated(renameOrg)},
+		{"GET", "/api/users/org/{orgName}/users", authenticated(listOrganizationUsers)},
+		{"POST", "/api/users/org/{orgName}/users", authenticated(inviteUser)},
+		{"DELETE", "/api/users/org/{orgName}/users/{userEmail}", authenticated(deleteUser)},
+		{"GET", "/private/api/users/lookup/{orgName}", authenticated(lookupUsingCookie)},
+		{"GET", "/private/api/users/lookup", lookupUsingToken},
+		{"GET", "/private/api/users", listUnapprovedUsers},
+		{"POST", "/private/api/users/{userID}/approve", approveUser},
+	} {
+		name := instrument.MakeLabelValue(route.path)
+		r.Handle(route.path, route.handler).Name(name).Methods(route.method)
+	}
+	return instrument.Middleware(r, requestDuration)(r)
 }
 
 func admin(w http.ResponseWriter, r *http.Request) {

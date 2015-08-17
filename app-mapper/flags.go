@@ -20,6 +20,7 @@ var (
 )
 
 type flags struct {
+	listen                   string
 	logLevel                 string
 	mapperType               string
 	dbURI                    string
@@ -35,6 +36,7 @@ type flags struct {
 
 func parseFlags() *flags {
 	f := flags{}
+	flag.StringVar(&f.listen, "listen", ":80", "HTTP server listen address")
 	flag.StringVar(&f.logLevel, "log-level", "info", "Logging level to use: debug | info | warn | error")
 	flag.StringVar(&f.mapperType, "mapper-type", "db", "Application mapper type to use: db | constant")
 	flag.StringVar(&f.dbURI, "db-uri", defaultDBURI, "Where to contact the database")

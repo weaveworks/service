@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    target_groups:
+    - targets: ['localhost:80']
+
+  - job_name: frontend
+    dns_sd_configs:
+    - type: A
+      port: 80
+      names:
+      - frontend.weave.local
+  - job_name: ui-server
+    dns_sd_configs:
+    - type: A
+      port: 80
+      names:
+      - ui-server.weave.local
+  - job_name: users
+    dns_sd_configs:
+    - type: A
+      port: 80
+      names:
+      - users.weave.local
+  - job_name: app-mapper
+    dns_sd_configs:
+    - type: A
+      port: 80
+      names:
+      - app-mapper.weave.local

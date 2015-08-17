@@ -34,7 +34,7 @@ func newDBMapper(db *sqlx.DB, p appProvisioner) *dbMapper {
 	return &dbMapper{db, p}
 }
 
-func (m *dbMapper) getOrganizationsHost(orgID string) (string, error) {
+func (m *dbMapper) getOrganizationsHost(orgID string) (response string, err error) {
 	var host string
 	transactionRunner := func(tx *sqlx.Tx) error {
 		err := m.db.Get(&host, "SELECT org_hostname.hostname FROM org_hostname WHERE organization_id=$1;", orgID)
@@ -57,8 +57,7 @@ func (m *dbMapper) getOrganizationsHost(orgID string) (string, error) {
 		return err
 	}
 
-	err := m.runTransaction(transactionRunner)
-
+	err = m.runTransaction(transactionRunner)
 	return host, err
 }
 

@@ -7,10 +7,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+
+	"github.com/weaveworks/service/common/instrument"
 )
 
 func main() {
-
 	flags := parseFlags()
 	setupLogging(flags.logLevel)
 
@@ -31,15 +32,8 @@ func main() {
 	router := mux.NewRouter()
 	newProxy(authenticator, orgMapper, probeStorage).registerHandlers(router)
 	newProbeObserver(authenticator, probeStorage).registerHandlers(router)
-	http.Handle("/", router)
-	logrus.Info("Listening on :80")
-	handler := loggingHandler(http.DefaultServeMux)
-	logrus.Fatal(http.ListenAndServe(":80", handler))
-}
-
-func loggingHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logrus.Infof("%s %s %s", r.RemoteAddr, r.Method, r.URL)
-		next.ServeHTTP(w, r)
-	})
+	http.Handle("/", instrument.Middleware(router, requestDuration)(router))
+	http.Handle("/metrics", makePrometheusHandler())
+	logrus.Infof("Listening on %s", flags.listen)
+	logrus.Fatal(http.ListenAndServe(flags.listen, nil))
 }

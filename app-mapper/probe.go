@@ -52,7 +52,7 @@ type probeObserver struct {
 }
 
 func (o probeObserver) registerHandlers(router *mux.Router) {
-	router.Path("/api/org/{orgName}/probes").Methods("GET").Handler(authOrgHandler(o.authenticator,
+	router.Path("/api/org/{orgName}/probes").Name("api_org_probes").Methods("GET").Handler(authOrgHandler(o.authenticator,
 		func(r *http.Request) string { return mux.Vars(r)["orgName"] },
 		func(w http.ResponseWriter, r *http.Request, orgID string) {
 			probes, err := o.getter.getProbesFromOrg(orgID)

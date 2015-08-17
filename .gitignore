@@ -36,3 +36,5 @@ users/users
 Vagrantfile.local
 .dir-locals.el
 image.tar
+prometheus/prometheus
+prometheus/.prometheus

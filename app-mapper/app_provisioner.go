@@ -38,8 +38,8 @@ func newDockerProvisioner(dockerHost string, options dockerProvisionerOptions) (
 	return &dockerProvisioner{client, options}, nil
 }
 
-func (p *dockerProvisioner) fetchApp() error {
-	_, err := p.client.InspectImage(p.options.appConfig.Image + ":latest")
+func (p *dockerProvisioner) fetchApp() (err error) {
+	_, err = p.client.InspectImage(p.options.appConfig.Image + ":latest")
 	if err == nil || err != docker.ErrNoSuchImage {
 		return err
 	}
@@ -63,8 +63,8 @@ func (p *dockerProvisioner) runApp(appID string) (hostname string, err error) {
 	}
 	defer func() {
 		if err != nil {
-			if err := p.destroyApp(appID); err != nil {
-				logrus.Warnf("docker provisioner: destroy app %q: %v", appID, err)
+			if err2 := p.destroyApp(appID); err2 != nil {
+				logrus.Warnf("docker provisioner: destroy app %q: %v", appID, err2)
 			}
 		}
 	}()
@@ -95,7 +95,7 @@ func appContainerName(appID string) string {
 	return "scope-app-" + appID
 }
 
-func (p *dockerProvisioner) isAppRunning(appID string) (bool, error) {
+func (p *dockerProvisioner) isAppRunning(appID string) (ok bool, err error) {
 	c, err := p.client.InspectContainer(appContainerName(appID))
 	if err != nil {
 		return false, err
@@ -103,7 +103,7 @@ func (p *dockerProvisioner) isAppRunning(appID string) (bool, error) {
 	return c.State.Running, nil
 }
 
-func (p *dockerProvisioner) destroyApp(appID string) error {
+func (p *dockerProvisioner) destroyApp(appID string) (err error) {
 	options := docker.RemoveContainerOptions{
 		ID:            appContainerName(appID),
 		RemoveVolumes: true,

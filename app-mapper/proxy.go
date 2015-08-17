@@ -37,12 +37,13 @@ func newProxy(a authenticator, m organizationMapper, b probeBumper) proxy {
 }
 
 func (p proxy) registerHandlers(router *mux.Router) {
-	router.Path("/api/app/{orgName}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Route names are used by instrumentation.
+	router.Path("/api/app/{orgName}").Name("api_app_redirect").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orgName := mux.Vars(r)["orgName"]
 		w.Header().Set("Location", fmt.Sprintf("/api/app/%s/", orgName))
 		w.WriteHeader(http.StatusMovedPermanently)
 	})
-	router.PathPrefix("/api/app/{orgName}/").Handler(authOrgHandler(p.authenticator,
+	router.PathPrefix("/api/app/{orgName}/").Name("api_app").Handler(authOrgHandler(p.authenticator,
 		func(r *http.Request) string { return mux.Vars(r)["orgName"] },
 		func(w http.ResponseWriter, r *http.Request, orgID string) {
 			// Trim /api/app/<orgName> off the front of the URI
@@ -50,13 +51,13 @@ func (p proxy) registerHandlers(router *mux.Router) {
 			p.forwardRequest(w, r, orgID)
 		},
 	))
-	router.Path("/api/report").Handler(authProbeHandler(p.authenticator,
+	router.Path("/api/report").Name("api_report").Handler(authProbeHandler(p.authenticator,
 		func(w http.ResponseWriter, r *http.Request, orgID string) {
 			if probeID := r.Header.Get(scope.ScopeProbeIDHeader); probeID == "" {
 				logrus.Error("proxy: probe with missing identification header")
 			} else {
 				if err := p.probeBumper.bumpProbeLastSeen(probeID, orgID); err != nil {
-					logrus.Warnf("proxy: cannot bump probe's last-seen (%q,%q): %v", probeID, orgID, err)
+					logrus.Warnf("proxy: cannot bump probe's last-seen (%q, %q): %v", probeID, orgID, err)
 				}
 			}
 			p.forwardRequest(w, r, orgID)
@@ -100,6 +101,10 @@ func isWSHandshakeRequest(req *http.Request) bool {
 }
 
 func proxyWS(targetHost string, w http.ResponseWriter, r *http.Request) {
+	wsRequestCount.Inc()
+	wsConnections.Inc()
+	defer wsConnections.Dec()
+
 	// Connect to target
 	targetConn, err := net.Dial("tcp", targetHost)
 	if err != nil {
