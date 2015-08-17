@@ -45,7 +45,7 @@ resource "aws_instance" "docker-server" {
     count = "${var.servers}"
 
     connection {
-      user = "ubuntu"
+      user = "${var.user}"
       key_file = "${var.key_path}"
     }
     key_name = "${var.key_name}"

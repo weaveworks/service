@@ -3,7 +3,7 @@
 set -eu
 
 if [ $# -lt 1 ]; then
-	echo "Usage: $0 <host>"
+	echo "Usage: $0 <host> [extra ssh arguments...]"
 	exit 1
 fi
 
