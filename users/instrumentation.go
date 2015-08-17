@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	requestLatency = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+	requestDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Namespace: "scope",
 		Subsystem: "users",
 		Name:      "request_duration_nanoseconds",
@@ -16,6 +16,6 @@ var (
 )
 
 func makePrometheusHandler() http.Handler {
-	prometheus.MustRegister(requestLatency)
+	prometheus.MustRegister(requestDuration)
 	return prometheus.Handler()
 }

@@ -11,6 +11,8 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+
+	"github.com/weaveworks/service/common/instrument"
 )
 
 var (
@@ -43,29 +45,43 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Infof("Listening on port %d", *port)
-	r := router(*directLogin)
-	http.Handle("/", instrument(r, r))
+	http.Handle("/", router(*directLogin))
 	http.Handle("/metrics", makePrometheusHandler())
 	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }
 
 func router(directLogin bool) *mux.Router {
-	r := mux.NewRouter()
-	// Route names are used by instrumentation.
-	r.HandleFunc("/", admin).Name("root").Methods("GET")
-	r.HandleFunc("/api/users/signup", signup(directLogin)).Name("api_users_signup").Methods("POST")
-	r.HandleFunc("/api/users/login", login).Name("api_users_login").Methods("GET")
-	r.HandleFunc("/api/users/logout", authenticated(logout)).Name("api_users_logout").Methods("GET")
-	r.HandleFunc("/api/users/lookup", authenticated(publicLookup)).Name("api_users_lookup").Methods("GET")
-	r.HandleFunc("/api/users/org/{orgName}", authenticated(org)).Name("api_users_org").Methods("GET")
-	r.HandleFunc("/api/users/org/{orgName}", authenticated(renameOrg)).Name("api_users_org").Methods("PUT")
-	r.HandleFunc("/api/users/org/{orgName}/users", authenticated(listOrganizationUsers)).Name("api_users_org_users").Methods("GET")
-	r.HandleFunc("/api/users/org/{orgName}/users", authenticated(inviteUser)).Name("api_users_org_users").Methods("POST")
-	r.HandleFunc("/api/users/org/{orgName}/users/{userEmail}", authenticated(deleteUser)).Name("api_users_org_users_email").Methods("DELETE")
-	r.HandleFunc("/private/api/users/lookup/{orgName}", authenticated(lookupUsingCookie)).Name("private_api_users_lookup_org").Methods("GET")
-	r.HandleFunc("/private/api/users/lookup", lookupUsingToken).Name("private_api_users_lookup").Methods("GET")
-	r.HandleFunc("/private/api/users", listUnapprovedUsers).Name("private_api_users").Methods("GET")
-	r.HandleFunc("/private/api/users/{userID}/approve", approveUser).Name("private_api_users_approve").Methods("POST")
+	var (
+		r  = mux.NewRouter()
+		mw = instrument.Middleware(r, requestDuration)
+	)
+	for _, route := range []struct {
+		method, path string
+		handler      http.HandlerFunc
+	}{
+		{"GET", "/", admin},
+		{"POST", "/api/users/signup", signup(directLogin)},
+		{"GET", "/api/users/login", login},
+		{"GET", "/api/users/logout", authenticated(logout)},
+		{"GET", "/api/users/lookup", authenticated(publicLookup)},
+		{"GET", "/api/users/org/{orgName}", authenticated(org)},
+		{"PUT", "/api/users/org/{orgName}", authenticated(renameOrg)},
+		{"GET", "/api/users/org/{orgName}/users", authenticated(listOrganizationUsers)},
+		{"POST", "/api/users/org/{orgName}/users", authenticated(inviteUser)},
+		{"DELETE", "/api/users/org/{orgName}/users/{userEmail}", authenticated(deleteUser)},
+		{"GET", "/private/api/users/lookup/{orgName}", authenticated(lookupUsingCookie)},
+		{"GET", "/private/api/users/lookup", lookupUsingToken},
+		{"GET", "/private/api/users", listUnapprovedUsers},
+		{"POST", "/private/api/users/{userID}/approve", approveUser},
+	} {
+		var (
+			path    = route.path
+			handler = mw(route.handler)
+			name    = instrument.MakeLabelValue(route.path)
+			method  = route.method
+		)
+		r.Handle(path, handler).Name(name).Methods(method)
+	}
 	return r
 }
 
