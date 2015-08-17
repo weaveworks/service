@@ -2,7 +2,7 @@
 Bring up infrastructure (VMs, DNS etc):
 
 ```
-# cd terraform; terraform apply -var-file=staging.tfvars)
+# cd terraform; terraform apply -var-file=staging.tfvars
 ```
 
 Bring up services:
