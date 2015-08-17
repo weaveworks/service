@@ -45,16 +45,13 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Infof("Listening on port %d", *port)
-	http.Handle("/", router(*directLogin))
+	http.Handle("/", makeApplicationHandler(*directLogin))
 	http.Handle("/metrics", makePrometheusHandler())
 	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }
 
-func router(directLogin bool) *mux.Router {
-	var (
-		r  = mux.NewRouter()
-		mw = instrument.Middleware(r, requestDuration)
-	)
+func makeApplicationHandler(directLogin bool) http.Handler {
+	r := mux.NewRouter()
 	for _, route := range []struct {
 		method, path string
 		handler      http.HandlerFunc
@@ -74,15 +71,10 @@ func router(directLogin bool) *mux.Router {
 		{"GET", "/private/api/users", listUnapprovedUsers},
 		{"POST", "/private/api/users/{userID}/approve", approveUser},
 	} {
-		var (
-			path    = route.path
-			handler = mw(route.handler)
-			name    = instrument.MakeLabelValue(route.path)
-			method  = route.method
-		)
-		r.Handle(path, handler).Name(name).Methods(method)
+		name := instrument.MakeLabelValue(route.path)
+		r.Handle(route.path, route.handler).Name(name).Methods(route.method)
 	}
-	return r
+	return instrument.Middleware(r, requestDuration)(r)
 }
 
 func admin(w http.ResponseWriter, r *http.Request) {
