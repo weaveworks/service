@@ -36,7 +36,7 @@ test:
 integration-test: $(WEB_UPTODATE)
 	docker-compose up -d
 	docker run --rm \
-		-v "$(PWD)":/usr/src/go/src/github.com/weaveworks/service/users \
+		-v "$(shell go list -e -f {{.Dir}} github.com/weaveworks/service)":/usr/src/go/src/github.com/weaveworks/service \
 		--workdir /usr/src/go/src/github.com/weaveworks/service/users \
 		golang:1.4 \
 		/bin/bash -c "go get -v -t ./... ; go test -tags integration -timeout 30s ./..."
