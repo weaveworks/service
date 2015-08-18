@@ -128,12 +128,16 @@ func containerFQDN(c *docker.Container) string {
 }
 
 func pingScopeApp(host string) (bool, error) {
+	pingTimeout := 200 * time.Millisecond
 	hostPort := addPort(host, scope.AppPort)
 	req, err := http.NewRequest("GET", "http://"+hostPort+"/api", nil)
 	if err != nil {
 		return false, err
 	}
-	res, err := http.DefaultClient.Do(req)
+	client := &http.Client{
+		Timeout: pingTimeout,
+	}
+	res, err := client.Do(req)
 	if err != nil {
 		return false, err
 	}
