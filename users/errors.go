@@ -9,10 +9,6 @@ import (
 
 type malformedInputError error
 
-func malformedInputErrorf(format string, args ...interface{}) malformedInputError {
-	return malformedInputError(fmt.Errorf(format, args...))
-}
-
 type validationError error
 
 func validationErrorf(format string, args ...interface{}) validationError {

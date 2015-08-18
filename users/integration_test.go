@@ -4,7 +4,6 @@ package main
 
 import (
 	"flag"
-	"net/http"
 	"testing"
 
 	"github.com/jordan-wright/email"
@@ -13,28 +12,31 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var databaseURI = flag.String("database-uri", "postgres://postgres@users-db.weave.local/weave_test?sslmode=disable", "Uri of a test database")
+var (
+	databaseURI = flag.String("database-uri", "postgres://postgres@users-db.weave.local/weave_test?sslmode=disable", "Uri of a test database")
 
-var sentEmails []*email.Email
-var app http.Handler
+	sentEmails []*email.Email
+	app        *api
+	storage    database
+	sessions   sessionStore
+)
 
 func setup(t *testing.T) {
 	passwordHashingCost = bcrypt.MinCost
 
 	// TODO: Use some more realistic mailer here
 	sentEmails = nil
-	sendEmail = testEmailSender
 
 	var directLogin = false
 
 	setupLogging("debug")
-	setupStorage(*databaseURI)
-	setupTemplates()
-	setupSessions("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd")
+	storage = mustNewDatabase(*databaseURI)
+	sessions = mustNewSessionStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", storage)
+	templates := mustNewTemplateEngine()
 
 	truncateDatabase(t)
 
-	app = handler(directLogin)
+	app = newAPI(directLogin, testEmailSender, sessions, storage, templates)
 }
 
 func cleanup(t *testing.T) {

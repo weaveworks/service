@@ -15,7 +15,7 @@ var (
 
 type database interface {
 	CreateUser(email string) (*user, error)
-	FindUserByID(id string) (*user, error)
+	findUserByIDer
 	FindUserByEmail(email string) (*user, error)
 
 	// Create a new user in an existing organization.
@@ -44,11 +44,16 @@ type database interface {
 	Close() error
 }
 
-func setupStorage(databaseURI string) {
+type findUserByIDer interface {
+	FindUserByID(id string) (*user, error)
+}
+
+func mustNewDatabase(databaseURI string) database {
 	u, err := url.Parse(databaseURI)
 	if err != nil {
 		logrus.Fatal(err)
 	}
+	var storage database
 	switch u.Scheme {
 	case "postgres":
 		db, err := sql.Open(u.Scheme, databaseURI)
@@ -61,4 +66,5 @@ func setupStorage(databaseURI string) {
 	default:
 		logrus.Fatalf("Unknown database type: %s", u.Scheme)
 	}
+	return storage
 }

@@ -18,16 +18,17 @@ const (
 )
 
 var (
-	sendEmail                   func(*email.Email) error
 	errUnsupportedEmailProtocol = errors.New("Unsupported email protocol")
 )
 
-func setupEmail(emailURI string) {
-	var err error
-	sendEmail, err = smtpEmailSender(emailURI)
+type emailSender func(*email.Email) error
+
+func mustNewEmailSender(emailURI string) emailSender {
+	m, err := smtpEmailSender(emailURI)
 	if err != nil {
 		logrus.Fatal(err)
 	}
+	return m
 }
 
 // Takes a uri of the form smtp://username:password@hostname:port
@@ -59,18 +60,18 @@ func smtpEmailSender(uri string) (func(e *email.Email) error, error) {
 	}, nil
 }
 
-func sendWelcomeEmail(u *user) error {
+func welcomeEmail(t templateEngine, u *user) *email.Email {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.Bcc = []string{fromAddress}
 	e.To = []string{u.Email}
 	e.Subject = "Welcome to Scope"
-	e.Text = quietTemplateBytes("welcome_email.text", nil)
-	e.HTML = quietTemplateBytes("welcome_email.html", nil)
-	return sendEmail(e)
+	e.Text = t.quietBytes("welcome_email.text", nil)
+	e.HTML = t.quietBytes("welcome_email.html", nil)
+	return e
 }
 
-func sendApprovedEmail(u *user, token string) error {
+func approvedEmail(t templateEngine, u *user, token string) *email.Email {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
@@ -81,12 +82,12 @@ func sendApprovedEmail(u *user, token string) error {
 		"Token":      token,
 		"ProbeToken": u.Organization.ProbeToken,
 	}
-	e.Text = quietTemplateBytes("approved_email.text", data)
-	e.HTML = quietTemplateBytes("approved_email.html", data)
-	return sendEmail(e)
+	e.Text = t.quietBytes("approved_email.text", data)
+	e.HTML = t.quietBytes("approved_email.html", data)
+	return e
 }
 
-func sendLoginEmail(u *user, token string) error {
+func loginEmail(t templateEngine, u *user, token string) *email.Email {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
@@ -97,9 +98,9 @@ func sendLoginEmail(u *user, token string) error {
 		"Token":      token,
 		"ProbeToken": u.Organization.ProbeToken,
 	}
-	e.Text = quietTemplateBytes("login_email.text", data)
-	e.HTML = quietTemplateBytes("login_email.html", data)
-	return sendEmail(e)
+	e.Text = t.quietBytes("login_email.text", data)
+	e.HTML = t.quietBytes("login_email.html", data)
+	return e
 }
 
 func loginURL(email, rawToken string) string {
@@ -122,7 +123,7 @@ func loginLink(email, rawToken string) htmlTemplate.HTML {
 	)
 }
 
-func sendInviteEmail(u *user, token string) error {
+func inviteEmail(t templateEngine, u *user, token string) *email.Email {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
@@ -134,7 +135,7 @@ func sendInviteEmail(u *user, token string) error {
 		"OrganizationName": u.Organization.Name,
 		"ProbeToken":       u.Organization.ProbeToken,
 	}
-	e.Text = quietTemplateBytes("invite_email.text", data)
-	e.HTML = quietTemplateBytes("invite_email.html", data)
-	return sendEmail(e)
+	e.Text = t.quietBytes("invite_email.text", data)
+	e.HTML = t.quietBytes("invite_email.html", data)
+	return e
 }
