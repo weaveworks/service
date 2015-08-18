@@ -74,6 +74,7 @@ func (f *flags) getOrganizationMapper(db *sqlx.DB, p appProvisioner) organizatio
 	if f.mapperType == "constant" {
 		return &constantMapper{
 			targetHost: f.constantMapperTargetHost,
+			isReady:    nil,
 		}
 	}
 	m := newDBMapper(db, p)

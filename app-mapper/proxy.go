@@ -40,8 +40,7 @@ func (p proxy) registerHandlers(router *mux.Router) {
 	// Route names are used by instrumentation.
 	router.Path("/api/app/{orgName}").Name("api_app_redirect").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orgName := mux.Vars(r)["orgName"]
-		w.Header().Set("Location", fmt.Sprintf("/api/app/%s/", orgName))
-		w.WriteHeader(http.StatusMovedPermanently)
+		http.Redirect(w, r, fmt.Sprintf("/api/app/%s/", orgName), http.StatusMovedPermanently)
 	})
 	router.PathPrefix("/api/app/{orgName}/").Name("api_app").Handler(authOrgHandler(p.authenticator,
 		func(r *http.Request) string { return mux.Vars(r)["orgName"] },
@@ -66,13 +65,17 @@ func (p proxy) registerHandlers(router *mux.Router) {
 }
 
 func (p proxy) forwardRequest(w http.ResponseWriter, r *http.Request, orgID string) {
-	targetHost, err := p.mapper.getOrganizationsHost(orgID)
+	hostInfo, err := p.mapper.getOrganizationsHost(orgID)
 	if err != nil {
 		logrus.Errorf("proxy: cannot get host for organization with ID %q: %v", orgID, err)
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
-	targetHostPort := addPort(targetHost, scope.AppPort)
+	if !hostInfo.IsReady {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+	targetHostPort := addPort(hostInfo.HostName, scope.AppPort)
 	logrus.Infof("proxy: mapping organization with ID %q to host %q", orgID, targetHostPort)
 
 	// Tweak request before sending

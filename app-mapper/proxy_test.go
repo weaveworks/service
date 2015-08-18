@@ -20,14 +20,14 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-func testProxy(t *testing.T, targetHandler http.Handler, a authenticator, testFunc func(proxyHost string, pms *probeMemStorage)) {
+func testProxy(t *testing.T, targetHandler http.Handler, isTargetReady *bool, a authenticator, testFunc func(proxyHost string, pms *probeMemStorage)) {
 	targetTestServer := httptest.NewServer(targetHandler)
 	defer targetTestServer.Close()
 	parsedTargetURL, err := url.Parse(targetTestServer.URL)
 	require.NoError(t, err, "Cannot parse targetTestServer URL")
 
 	// Set a test server for the proxy (required for Hijack to work)
-	m := &constantMapper{parsedTargetURL.Host}
+	m := &constantMapper{parsedTargetURL.Host, isTargetReady}
 	p := &probeMemStorage{}
 	router := mux.NewRouter()
 	newProxy(a, m, p).registerHandlers(router)
@@ -80,7 +80,7 @@ func testHTTPRequest(t *testing.T, req *http.Request) {
 		assert.Equal(t, targetResponse, body, "Response body mismatch")
 	}
 
-	testProxy(t, targetHandler, authenticator, testFunc)
+	testProxy(t, targetHandler, nil, authenticator, testFunc)
 }
 
 func copyRequest(t *testing.T, req *http.Request) *http.Request {
@@ -166,7 +166,7 @@ func TestProxyStrictSlash(t *testing.T) {
 		}
 		url := "http://" + proxyHost + "/api/app/somePublicOrgName"
 		res, err := client.Get(url)
-		defer res.Body.Close()
+		res.Body.Close()
 		require.NoError(t, err, "Cannot make test request")
 
 		// Check that everything was received as expected
@@ -174,7 +174,7 @@ func TestProxyStrictSlash(t *testing.T) {
 		assert.True(t, redirected, "redirection didn't happen")
 	}
 
-	testProxy(t, targetHandler, &mockAuthenticator{}, testFunc)
+	testProxy(t, targetHandler, nil, &mockAuthenticator{}, testFunc)
 }
 
 func TestProxyEncoding(t *testing.T) {
@@ -216,7 +216,7 @@ func TestProxyRewrites(t *testing.T) {
 
 	}
 
-	testProxy(t, targetHandler, &mockAuthenticator{}, testFunc)
+	testProxy(t, targetHandler, nil, &mockAuthenticator{}, testFunc)
 }
 
 func TestMultiRequest(t *testing.T) {
@@ -253,7 +253,7 @@ func TestMultiRequest(t *testing.T) {
 		assert.Equal(t, 100, authenticatorReqCounter, "Mismatching authenticator requests")
 	}
 
-	testProxy(t, targetHandler, authenticator, testFunc)
+	testProxy(t, targetHandler, nil, authenticator, testFunc)
 }
 
 func TestUnauthorized(t *testing.T) {
@@ -279,7 +279,7 @@ func TestUnauthorized(t *testing.T) {
 		}
 	}
 
-	testProxy(t, targetHandler, failingAuthenticator, testFunc)
+	testProxy(t, targetHandler, nil, failingAuthenticator, testFunc)
 }
 
 func TestProxyWebSocket(t *testing.T) {
@@ -308,7 +308,7 @@ func TestProxyWebSocket(t *testing.T) {
 		}
 	}
 
-	testProxy(t, targetHandler, &mockAuthenticator{}, testFunc)
+	testProxy(t, targetHandler, nil, &mockAuthenticator{}, testFunc)
 }
 
 func TestProbeLogging(t *testing.T) {
@@ -335,5 +335,54 @@ func TestProbeLogging(t *testing.T) {
 
 	}
 
-	testProxy(t, targetHandler, &mockAuthenticator{}, testFunc)
+	testProxy(t, targetHandler, nil, &mockAuthenticator{}, testFunc)
+}
+
+func TestConfirmAppIsReady(t *testing.T) {
+	var (
+		targetReached bool
+		isTargetReady bool
+	)
+
+	// Set a test server to be targeted by the proxy
+	targetHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetReached = true
+		// Close the connection after replying to let go of the proxy
+		// (otherwise, the test will hang because the DefaultTransport
+		//  caches clients, and doesn't explicitly close them)
+		w.Header().Set("Connection", "close")
+		w.WriteHeader(http.StatusOK)
+	})
+
+	testFunc := func(proxyHost string, pms *probeMemStorage) {
+		for _, url := range []string{
+			"http://" + proxyHost + "/api/app/somePublicOrgName/request?arg1=foo&arg2=bar",
+			"http://" + proxyHost + "/api/report?arg1=foo&arg2=bar",
+		} {
+			// Make provisioner report that the target is not ready
+			isTargetReady = false
+			// Reset target flag
+			targetReached = false
+			res, err := http.Get(url)
+			require.NoError(t, err, "Cannot make test request")
+			res.Body.Close()
+
+			assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode, "Should report service unavailable when the app is not ready")
+			assert.False(t, targetReached, "Shouldn't reach the app if it's not ready")
+
+			// Make provisioner report that the target ready
+			isTargetReady = true
+			// Reset target flag
+			targetReached = false
+			res, err = http.Get(url)
+			require.NoError(t, err, "Cannot make test request")
+			res.Body.Close()
+
+			assert.Equal(t, http.StatusOK, res.StatusCode, "Should forward whatever the target reported")
+			assert.True(t, targetReached, "The target should be reached since the app is ready")
+
+		}
+	}
+
+	testProxy(t, targetHandler, &isTargetReady, &mockAuthenticator{}, testFunc)
 }

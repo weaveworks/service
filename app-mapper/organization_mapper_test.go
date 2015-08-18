@@ -12,7 +12,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func testOrgMapper(t *testing.T, initialMapping []dbOrgHost, p appProvisioner, test func(organizationMapper)) {
+type orgHostNameRow struct {
+	orgID    string
+	hostname string
+	isReady  bool
+}
+
+func testOrgMapper(t *testing.T, initialMapping []orgHostNameRow, p appProvisioner, test func(organizationMapper)) {
 	db, err := sqlx.Open("postgres", defaultDBURI)
 	require.NoError(t, err, "Cannot initialize database client")
 	dbMapper := newDBMapper(db, p)
@@ -20,7 +26,12 @@ func testOrgMapper(t *testing.T, initialMapping []dbOrgHost, p appProvisioner, t
 	require.NoError(t, err, "Cannot wipe DB")
 
 	for _, orgHost := range initialMapping {
-		_, err = dbMapper.db.NamedExec("INSERT INTO org_hostname VALUES (:organization_id, :hostname);", orgHost)
+		_, err = dbMapper.db.Exec(
+			"INSERT INTO org_hostname VALUES ($1, $2, $3);",
+			orgHost.orgID,
+			orgHost.hostname,
+			orgHost.isReady,
+		)
 		require.NoError(t, err, "Cannot initialize orgHost mapping")
 	}
 
@@ -33,17 +44,20 @@ func TestSimpleMapping(t *testing.T) {
 		targetHost = "target.com"
 	)
 
-	m := []dbOrgHost{{orgID, targetHost}}
+	m := []orgHostNameRow{{orgID, targetHost, true}}
 
-	p := mockProvisioner(func(string) (string, error) {
-		assert.Fail(t, "Provisioner shouldn't be invoked")
-		return "", nil
-	})
+	p := mockProvisioner{
+		mockRunApp: func(string) (string, error) {
+			assert.Fail(t, "Provisioner shouldn't be invoked")
+			return "", nil
+		},
+	}
 
 	test := func(m organizationMapper) {
-		host, err := m.getOrganizationsHost(orgID)
-		assert.NoError(t, err, "Unsuccessful query")
-		assert.Equal(t, targetHost, host)
+		hostInfo, err := m.getOrganizationsHost(orgID)
+		require.NoError(t, err, "Unsuccessful query")
+		assert.Equal(t, targetHost, hostInfo.HostName, "Unexpected host")
+		assert.Equal(t, true, hostInfo.IsReady, "Unexpected isReady")
 	}
 
 	testOrgMapper(t, m, p, test)
@@ -55,28 +69,47 @@ func TestProvisioning(t *testing.T) {
 		targetHost = "target.com"
 	)
 
-	m := []dbOrgHost{}
+	var appReady bool
+
+	m := []orgHostNameRow{}
 
 	provisionerCalled := false
-	p := mockProvisioner(func(string) (string, error) {
-		provisionerCalled = true
-		return targetHost, nil
-	})
+	p := mockProvisioner{
+		mockRunApp: func(string) (string, error) {
+			provisionerCalled = true
+			return targetHost, nil
+		},
+		mockIsAppReady: func(string) (bool, error) {
+			return appReady, nil
+		},
+	}
 
 	test := func(m organizationMapper) {
-		host, err := m.getOrganizationsHost(orgID)
-		assert.NoError(t, err, "Unsuccessful query")
-		assert.Equal(t, targetHost, host)
-		assert.True(t, provisionerCalled, targetHost)
+		appReady = false
+
+		hostInfo, err := m.getOrganizationsHost(orgID)
+		require.NoError(t, err, "Unsuccessful query")
+		assert.True(t, provisionerCalled, "Provisioner must be called since the hostname didn't exist")
+		assert.Equal(t, targetHost, hostInfo.HostName, "Unexpected Hostname")
+		assert.False(t, hostInfo.IsReady, "App can't be ready when we map it for the first time")
 
 		// Check that the mapping is maintained across requests
 		// and that the provisioner is not called once the
 		// provisioning happens the first time
 		provisionerCalled = false
-		host, err = m.getOrganizationsHost(orgID)
-		assert.NoError(t, err, "Unsuccessful query")
-		assert.Equal(t, targetHost, host)
-		assert.False(t, provisionerCalled, targetHost)
+		hostInfo, err = m.getOrganizationsHost(orgID)
+		require.NoError(t, err, "Unsuccessful query")
+		assert.False(t, provisionerCalled, "Provisioner shouldn't be called since the hostname exists")
+		assert.Equal(t, targetHost, hostInfo.HostName, "Unexpected Hostname")
+		assert.False(t, hostInfo.IsReady, "App not set to be ready")
+
+		// Make the  app ready
+		appReady = true
+		hostInfo, err = m.getOrganizationsHost(orgID)
+		require.NoError(t, err, "Unsuccessful query")
+		assert.False(t, provisionerCalled, "Provisioner shouldn't be called since the hostname exists")
+		assert.Equal(t, targetHost, hostInfo.HostName, "Unexpected Hostname")
+		assert.True(t, hostInfo.IsReady, "App should finally be ready")
 	}
 
 	testOrgMapper(t, m, p, test)
@@ -90,21 +123,26 @@ func TestNoProvisioningSideEffects(t *testing.T) {
 		newTargetHost      = "target2.com"
 	)
 
-	m := []dbOrgHost{{existingOrgID, existingTargetHost}}
+	m := []orgHostNameRow{{existingOrgID, existingTargetHost, true}}
 
-	p := mockProvisioner(func(string) (string, error) {
-		return newTargetHost, nil
-	})
+	p := mockProvisioner{
+		mockRunApp: func(string) (string, error) {
+			return newTargetHost, nil
+		},
+		mockIsAppReady: func(string) (bool, error) {
+			return true, nil
+		},
+	}
 
 	test := func(m organizationMapper) {
-		host, err := m.getOrganizationsHost(newOrgID)
+		hostInfo, err := m.getOrganizationsHost(newOrgID)
 		assert.NoError(t, err, "Unsuccessful query")
-		assert.Equal(t, newTargetHost, host)
+		assert.Equal(t, newTargetHost, hostInfo.HostName)
 
 		// Check that existing mappings are maintained across requests
-		host, err = m.getOrganizationsHost(existingOrgID)
+		hostInfo, err = m.getOrganizationsHost(existingOrgID)
 		assert.NoError(t, err, "Unsuccessful query")
-		assert.Equal(t, existingTargetHost, host)
+		assert.Equal(t, existingTargetHost, hostInfo.HostName)
 	}
 
 	testOrgMapper(t, m, p, test)
@@ -113,11 +151,13 @@ func TestNoProvisioningSideEffects(t *testing.T) {
 func TestFailingProvisioner(t *testing.T) {
 	const orgID = "foo"
 
-	m := []dbOrgHost{}
+	m := []orgHostNameRow{}
 
-	p := mockProvisioner(func(string) (string, error) {
-		return "", errors.New("whatever")
-	})
+	p := mockProvisioner{
+		mockRunApp: func(string) (string, error) {
+			return "", errors.New("whatever")
+		},
+	}
 
 	test := func(m organizationMapper) {
 		_, err := m.getOrganizationsHost(orgID)

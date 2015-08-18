@@ -2,17 +2,20 @@ package main
 
 import (
 	"errors"
+	"net/http"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
+	scope "github.com/weaveworks/scope/xfer"
 )
 
 type appProvisioner interface {
 	fetchApp() error
-	runApp(appID string) (string, error)
+	runApp(appID string) (host string, err error)
 	destroyApp(appID string) error
 	isAppRunning(appID string) (bool, error)
+	isAppReady(appID string) (bool, error)
 }
 
 type dockerProvisioner struct {
@@ -87,7 +90,7 @@ func (p *dockerProvisioner) runApp(appID string) (hostname string, err error) {
 		time.Sleep(time.Millisecond * 100)
 	}
 
-	hostname = container.Config.Hostname + "." + container.Config.Domainname
+	hostname = containerFQDN(container)
 	return
 }
 
@@ -103,6 +106,14 @@ func (p *dockerProvisioner) isAppRunning(appID string) (ok bool, err error) {
 	return c.State.Running, nil
 }
 
+func (p *dockerProvisioner) isAppReady(appID string) (bool, error) {
+	c, err := p.client.InspectContainer(appContainerName(appID))
+	if err != nil {
+		return false, err
+	}
+	return pingScopeApp(containerFQDN(c))
+}
+
 func (p *dockerProvisioner) destroyApp(appID string) (err error) {
 	options := docker.RemoveContainerOptions{
 		ID:            appContainerName(appID),
@@ -110,4 +121,26 @@ func (p *dockerProvisioner) destroyApp(appID string) (err error) {
 		Force:         true,
 	}
 	return p.client.RemoveContainer(options)
+}
+
+func containerFQDN(c *docker.Container) string {
+	return c.Config.Hostname + "." + c.Config.Domainname
+}
+
+func pingScopeApp(host string) (bool, error) {
+	pingTimeout := 200 * time.Millisecond
+	hostPort := addPort(host, scope.AppPort)
+	req, err := http.NewRequest("GET", "http://"+hostPort+"/api", nil)
+	if err != nil {
+		return false, err
+	}
+	client := &http.Client{
+		Timeout: pingTimeout,
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return false, err
+	}
+	res.Body.Close()
+	return res.StatusCode == http.StatusOK, nil
 }
