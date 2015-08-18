@@ -129,6 +129,9 @@ func TestNoProvisioningSideEffects(t *testing.T) {
 		mockRunApp: func(string) (string, error) {
 			return newTargetHost, nil
 		},
+		mockIsAppReady: func(string) (bool, error) {
+			return true, nil
+		},
 	}
 
 	test := func(m organizationMapper) {

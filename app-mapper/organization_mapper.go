@@ -48,17 +48,23 @@ func (m *dbMapper) getOrganizationsHost(orgID string) (hostInfo, error) {
 
 		case err == sql.ErrNoRows:
 			// The organization wasn't assigned a host yet, let's allocate one and assign it
-			hostInfo.IsReady = false
 			logrus.Infof("organization mapper: provisioning app for organization %q", orgID)
 			hostInfo.HostName, err = m.provisioner.runApp(orgID)
 			if err != nil {
 				return err
 			}
+
+			// Most times the app is ready right away, let's confirm
+			ready, err2 := m.provisioner.isAppReady(orgID)
+			hostInfo.IsReady = err2 == nil && ready
+
 			logrus.Infof("organization mapper: adding mapping %q -> %q", orgID, hostInfo.HostName)
-			_, err = tx.Exec("INSERT INTO org_hostname VALUES ($1, $2, false);", orgID, hostInfo.HostName)
+			_, err = tx.Exec(
+				"INSERT INTO org_hostname VALUES ($1, $2, $3);",
+				orgID, hostInfo.HostName, hostInfo.IsReady)
 
 		case !hostInfo.IsReady:
-			// The organization wasn't assigned a host but, last time we checked, it wasn't ready.
+			// The organization was assigned a host but, last time we checked, it wasn't ready.
 			// Let's check again
 			ready, err2 := m.provisioner.isAppReady(orgID)
 			hostInfo.IsReady = err2 == nil && ready
