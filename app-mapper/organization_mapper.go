@@ -81,27 +81,6 @@ func (m *dbMapper) getOrganizationsHost(orgID string) (hostInfo, error) {
 		return err
 	}
 
-	err := m.runTransaction(transactionRunner)
+	err := runTransaction(m.db, transactionRunner)
 	return hostInfo, err
-}
-
-func (m *dbMapper) runTransaction(runner func(*sqlx.Tx) error) error {
-	var (
-		tx  *sqlx.Tx
-		err error
-	)
-
-	if tx, err = m.db.Beginx(); err != nil {
-		return err
-	}
-
-	if err = runner(tx); err != nil {
-		logrus.Warnf("organization mapper: failure during transaction: %v", err)
-		if err2 := tx.Rollback(); err2 != nil {
-			logrus.Warnf("organization mapper: transaction rollback: %v", err2)
-		}
-		return err
-	}
-
-	return tx.Commit()
 }
