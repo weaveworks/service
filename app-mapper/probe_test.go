@@ -43,6 +43,18 @@ func TestProbeStorage(t *testing.T) {
 	require.Equal(t, 1, len(probes), "unexpected probes length")
 	assert.Equal(t, probeID, probes[0].ID)
 	assert.WithinDuration(t, t1, probes[0].LastSeen, t2.Sub(t1))
+
+	// Bump a second time
+	t1 = time.Now()
+	err = probeStorage.bumpProbeLastSeen(probeID, orgID)
+	require.NoError(t, err, "bumpProbeLastSeen unexpectedly failed")
+	t2 = time.Now()
+
+	probes, err = probeStorage.getProbesFromOrg(orgID)
+	require.NoError(t, err, "getProbesFromOrg unexpectedly failed")
+	require.Equal(t, 1, len(probes), "unexpected probes length")
+	assert.Equal(t, probeID, probes[0].ID)
+	assert.WithinDuration(t, t1, probes[0].LastSeen, t2.Sub(t1))
 }
 
 func TestProbeObserver(t *testing.T) {

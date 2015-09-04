@@ -38,7 +38,16 @@ func (s *probeDBStorage) getProbesFromOrg(orgID string) ([]probe, error) {
 }
 
 func (s *probeDBStorage) bumpProbeLastSeen(probeID string, orgID string) error {
-	_, err := s.db.Exec("INSERT INTO probe VALUES ($1, $2, $3);", probeID, orgID, time.Now())
+	var wasSeenBefore bool
+	err := s.db.Get(&wasSeenBefore, "SELECT EXISTS(SELECT 1 FROM probe WHERE probe_id=$1 AND organization_id=$2);", probeID, orgID)
+	if err != nil {
+		return err
+	}
+	if wasSeenBefore {
+		_, err = s.db.Exec("UPDATE probe SET last_seen=$1 WHERE probe_id=$2 AND organization_id=$3;", time.Now(), probeID, orgID)
+	} else {
+		_, err = s.db.Exec("INSERT INTO probe VALUES ($1, $2, $3);", probeID, orgID, time.Now())
+	}
 	return err
 }
 

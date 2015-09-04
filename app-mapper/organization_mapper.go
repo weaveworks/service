@@ -74,7 +74,7 @@ func (m *dbMapper) getOrganizationsHost(orgID string) (hostInfo, error) {
 			}
 			logrus.Infof("organization mapper: marking mapping orgID %q -> %q as ready", orgID, hostInfo.HostName)
 			_, err = tx.Exec(
-				"UPDATE org_hostname SET is_ready=true WHERE organization_id=$1 and hostname=$2;",
+				"UPDATE org_hostname SET is_ready=true WHERE organization_id=$1 AND hostname=$2;",
 				orgID, hostInfo.HostName)
 		}
 
