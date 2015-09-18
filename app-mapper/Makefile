@@ -15,7 +15,7 @@ $(IMAGE_TAR): Dockerfile $(APP_MAPPER_EXE) db/Dockerfile db/schema.sql
 	$(SUDO) docker save $(APP_MAPPER_IMAGE):latest $(APP_MAPPER_DB_IMAGE):latest > $@
 
 $(APP_MAPPER_EXE): *.go
-	go get ./$(@D)
+	go get -d ./...
 	go build -ldflags "-extldflags \"-static\" -linkmode=external" -o $@ ./$(@D)
 
 integration-test:

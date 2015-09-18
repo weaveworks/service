@@ -18,7 +18,7 @@ ca-certificates.crt: /etc/ssl/certs/ca-certificates.crt
 	cp $? $@
 
 $(USERS_EXE): *.go
-	go get ./$(@D)
+	go get -d ./...
 	go build -ldflags "-extldflags \"-static\" -linkmode=external" -o $@ ./$(@D)
 
 test:
