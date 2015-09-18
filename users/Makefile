@@ -4,14 +4,6 @@ IMAGE_TAR=image.tar
 IMAGE_NAME=weaveworks/users
 USERS_EXE=users
 ENV=development
-NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
-	rm $@; \
-	echo "\nYour go standard library was built without the 'netgo' build tag."; \
-	echo "To fix that, run"; \
-	echo "    sudo go clean -i net"; \
-	echo "    sudo go install -tags netgo std"; \
-	false; \
-}
 DB_IMAGE_TAR=db_image.tar
 DB_IMAGE_NAME=weaveworks/db_image
 
@@ -26,9 +18,8 @@ ca-certificates.crt: /etc/ssl/certs/ca-certificates.crt
 	cp $? $@
 
 $(USERS_EXE): *.go
-	go get -tags netgo ./$(@D)
-	go build -ldflags "-extldflags \"-static\" -linkmode=external" -tags netgo -o $@ ./$(@D)
-	$(NETGO_CHECK)
+	go get -d ./...
+	go build -ldflags "-extldflags \"-static\" -linkmode=external" -o $@ ./$(@D)
 
 test:
 	go test ./...
