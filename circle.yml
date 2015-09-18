@@ -10,12 +10,13 @@ machine:
     GOPATH: /home/ubuntu
     TOOLS: /home/ubuntu/src/github.com/weaveworks/tools
     SRCDIR: /home/ubuntu/src/github.com/weaveworks/service
-    PATH: $PATH:$HOME/bin
+    PATH: /usr/local/go/bin:$HOME/bin:$PATH
 
 dependencies:
   cache_directories:
     - "~/docker"
   post:
+    - rm -rf /usr/local/go; curl -s https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz | tar xz -C /usr/local
     - mkdir -p $TOOLS
     - git clone https://github.com/weaveworks/tools.git $TOOLS
     - mkdir -p $(dirname $SRCDIR)
