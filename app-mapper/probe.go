@@ -38,8 +38,20 @@ func (s *probeDBStorage) getProbesFromOrg(orgID string) ([]probe, error) {
 }
 
 func (s *probeDBStorage) bumpProbeLastSeen(probeID string, orgID string) error {
-	_, err := s.db.Exec("INSERT INTO probe VALUES ($1, $2, $3);", probeID, orgID, time.Now())
-	return err
+	transactionRunner := func(tx *sqlx.Tx) error {
+		var wasSeenBefore bool
+		err := tx.Get(&wasSeenBefore, "SELECT EXISTS(SELECT 1 FROM probe WHERE probe_id=$1 AND organization_id=$2);", probeID, orgID)
+		if err != nil {
+			return err
+		}
+		if wasSeenBefore {
+			_, err = tx.Exec("UPDATE probe SET last_seen=$1 WHERE probe_id=$2 AND organization_id=$3;", time.Now(), probeID, orgID)
+		} else {
+			_, err = tx.Exec("INSERT INTO probe VALUES ($1, $2, $3);", probeID, orgID, time.Now())
+		}
+		return err
+	}
+	return runTransaction(s.db, transactionRunner)
 }
 
 func newProbeObserver(a authenticator, g probeGetter) probeObserver {

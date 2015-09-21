@@ -74,34 +74,13 @@ func (m *dbMapper) getOrganizationsHost(orgID string) (hostInfo, error) {
 			}
 			logrus.Infof("organization mapper: marking mapping orgID %q -> %q as ready", orgID, hostInfo.HostName)
 			_, err = tx.Exec(
-				"UPDATE org_hostname SET is_ready=true WHERE organization_id=$1 and hostname=$2;",
+				"UPDATE org_hostname SET is_ready=true WHERE organization_id=$1 AND hostname=$2;",
 				orgID, hostInfo.HostName)
 		}
 
 		return err
 	}
 
-	err := m.runTransaction(transactionRunner)
+	err := runTransaction(m.db, transactionRunner)
 	return hostInfo, err
-}
-
-func (m *dbMapper) runTransaction(runner func(*sqlx.Tx) error) error {
-	var (
-		tx  *sqlx.Tx
-		err error
-	)
-
-	if tx, err = m.db.Beginx(); err != nil {
-		return err
-	}
-
-	if err = runner(tx); err != nil {
-		logrus.Warnf("organization mapper: failure during transaction: %v", err)
-		if err2 := tx.Rollback(); err2 != nil {
-			logrus.Warnf("organization mapper: transaction rollback: %v", err2)
-		}
-		return err
-	}
-
-	return tx.Commit()
 }

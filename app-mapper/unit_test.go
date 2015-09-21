@@ -62,9 +62,9 @@ func (s *probeMemStorage) getProbesFromOrg(orgID string) ([]probe, error) {
 }
 
 func (s *probeMemStorage) bumpProbeLastSeen(probeID string, orgID string) error {
-	for _, memProbe := range s.memProbes {
+	for i, memProbe := range s.memProbes {
 		if memProbe.ID == probeID {
-			memProbe.LastSeen = time.Now()
+			s.memProbes[i].LastSeen = time.Now()
 			return nil
 		}
 	}
