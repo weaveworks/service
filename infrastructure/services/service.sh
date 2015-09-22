@@ -4,6 +4,7 @@ set -eux
 
 SSH_USER="ubuntu"
 WEAVE_REV="431d04bd40c0"
+SCRIPT_DIR=`dirname "$0"`
 
 case "$1" in
 	-prod)
@@ -24,6 +25,12 @@ esac
 
 SSH_ARGS="-i ../${ENVIRONMENT}-keypair.pem -o StrictHostKeyChecking=no"
 SYSTEM_ROLE="-l works.weave.role=system"
+
+scp_to() {
+	local host=$1
+	shift 1
+	scp $SSH_ARGS $1 $SSH_USER@$host:$2
+}
 
 run_on() {
 	local host=$1
@@ -50,6 +57,8 @@ install_weave() {
 		run_on $host weave stop || true
 		run_on $host weave launch-proxy -H tcp://0.0.0.0:12375 -H unix:///var/run/weave/weave.sock
 		run_on $host weave launch-router $INTERNAL_IPS
+		scp_to $host set_weave_dns.sh /tmp/set_weave_dns.sh
+		run_on $host sudo bash /tmp/set_weave_dns.sh
 	done
 	for host in $HOSTS; do
 		run_on $host weave expose
@@ -94,6 +103,29 @@ install_swarm() {
 	run_on $SWARM_MASTER DOCKER_HOST=unix:///var/run/weave/weave.sock docker run -d --name swarm-master $SYSTEM_ROLE swarm manage -H tcp://0.0.0.0:4567 consul://consul.weave.local:8500/swarm
 }
 
+install_registry() {
+	TFSTATE_FILE="${SCRIPT_DIR}/../terraform/${ENVIRONMENT}.tfstate"
+	JQ_KEY_PREFIX='.modules[0].resources["aws_iam_access_key.registry"].primary.attributes'
+	ACCESS_KEY=$(jq  -r "${JQ_KEY_PREFIX}.id" < "$TFSTATE_FILE")
+	SECRET_KEY=$(jq  -r "${JQ_KEY_PREFIX}.secret" < "$TFSTATE_FILE")
+	if [ "$ENVIRONMENT" = "dev" ]; then
+	    BUCKET_NAME="weaveworks_registry_dev"
+	else
+	    BUCKET_NAME="weaveworks_registry"
+	fi
+	# TODO, Run it through Swarm?
+	REGISTRY_HOST=$(dig +short docker.${DOMAIN} | sort | head -1)
+	run_on $REGISTRY_HOST docker rm -f registry || true
+	run_on $REGISTRY_HOST DOCKER_HOST=unix:///var/run/weave.sock docker run -d --name registry --restart=always \
+		-e REGISTRY_HTTP_ADDR=:80 \
+		-e REGISTRY_STORAGE=s3 \
+		-e REGISTRY_STORAGE_S3_BUCKET=$BUCKET_NAME \
+		-e REGISTRY_STORAGE_S3_REGION=us-east-1 \
+		-e REGISTRY_STORAGE_S3_ACCESSKEY=$ACCESS_KEY \
+		-e REGISTRY_STORAGE_S3_SECRETKEY=$SECRET_KEY \
+		registry:2.1.1
+}
+
 case $1 in
 	weave)
 		install_weave
@@ -103,5 +135,8 @@ case $1 in
 		;;
 	swarm)
 		install_swarm
+		;;
+	registry)
+		install_registry
 		;;
 esac
