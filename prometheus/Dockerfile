@@ -1,5 +1,4 @@
-FROM prom/prometheus
-ADD prometheus /bin/
+FROM prometheus:head
 ADD prometheus.yml /etc/prometheus/
 EXPOSE 80
 CMD [ "-config.file=/etc/prometheus/prometheus.yml", \
