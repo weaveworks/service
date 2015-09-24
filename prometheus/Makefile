@@ -21,5 +21,5 @@ $(PROMETHEUS_DIR):
 	git clone https://github.com/prometheus/prometheus $(PROMETHEUS_DIR)
 
 clean:
-	-docker rmi $(IMAGE_NAME) prometheus:head prometheus:${PRINT_HEAD_SHA}
+	-docker rmi $(IMAGE_NAME) prometheus:head prometheus:${PRINT_HEAD_SHA} > /dev/null 2>&1 || true
 	rm -rf $(IMAGE_TAR) $(PROMETHEUS_EXE) $(PROMETHEUS_DIR) $(HEAD_IMAGE_UPTODATE)

@@ -24,6 +24,6 @@ test:
 	go test ./...
 
 clean:
-	-$(SUDO) docker rmi $(APP_MAPPER_IMAGE) $(APP_MAPPER_DB_IMAGE)
+	-$(SUDO) docker rmi $(APP_MAPPER_IMAGE) $(APP_MAPPER_DB_IMAGE) > /dev/null 2>&1 || true
 	rm -rf $(APP_MAPPER_EXE) $(IMAGE_TAR)
 	go clean ./...
