@@ -25,5 +25,5 @@ image.tar: build/app.js build/Dockerfile build/index.html
 	docker save $(CLIENT_SERVER_IMAGE):latest > $@
 
 clean:
-	-docker rmi $(CLIENT_SERVER_IMAGE) 2>&1 > /dev/null || true
+	-docker rmi $(CLIENT_SERVER_IMAGE) > /dev/null 2>&1 || true
 	rm -f image.tar build/app.js $(BUILDIMAGE_UPTODATE)
