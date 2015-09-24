@@ -12,6 +12,10 @@ $(IMAGE_TAR): Dockerfile $(HEAD_IMAGE_UPTODATE)
 	docker build -t $(IMAGE_NAME) .
 	docker save $(IMAGE_NAME):latest > $@
 
+# DNS A-record support in service discovery is only available in
+# Prometheus 0.16.0+. Once that is released, we should change this
+# Makefile to use that version from the Docker Hub directly, rather
+# than building it manually from a clone.
 $(HEAD_IMAGE_UPTODATE): $(PROMETHEUS_DIR)
 	make -C $(PROMETHEUS_DIR) docker
 	docker tag prometheus:${PRINT_HEAD_SHA} prometheus:head
