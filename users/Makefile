@@ -33,6 +33,6 @@ integration-test: $(WEB_UPTODATE)
 		/bin/bash -c "go get -v -t ./... ; go test -tags integration -timeout 30s ./..."
 
 clean:
-	-docker rmi $(IMAGE_NAME)
+	-docker rmi $(IMAGE_NAME) > /dev/null 2>&1 || true
 	rm -rf $(USERS_EXE) $(IMAGE_TAR)
 	go clean ./...
