@@ -4,7 +4,7 @@ IMAGE_TAR=image.tar
 IMAGE_NAME=weaveworks/prometheus
 PROMETHEUS_DIR=.prometheus
 PRINT_HEAD_SHA=$$(cd $(PROMETHEUS_DIR) && git rev-parse --short HEAD)
-HEAD_IMAGE_UPTODATE=.head.image.updodate
+HEAD_IMAGE_UPTODATE=.head.image.uptodate
 
 all: $(IMAGE_TAR)
 
