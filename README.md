@@ -30,23 +30,15 @@ cd $GOPATH/src/github.com/weaveworks/service
 ```
 
 Now, we need to get your laptop onto the Weave network with the other components.
-If you're using a Vagrant VM, you can use the connect.sh script.
-(TODO: should this actually use the socks proxy from below?)
+We have a handy connect.sh script for that.
+If you're using a Vagrant VM, you may need to do this first.
 
 ```
-vagrant ssh-config >> ~/.ssh/config
+vagrant ssh-config >> ~/.ssh/config  # maybe necessary if you're using Vagrant
 ./connect.sh <hostname>
 ```
 
-If you're using a remove VPS, you should use the socks proxy in the build-tools repo.
-
-```
-cd $GOPATH/src/github.com/weaveworks
-git clone https://github.com/weaveworks/build-tools
-cd build-tools/socks
-./connect.sh <hostname>
-```
-
+It will tell you how to configure your host/browser to talk over the Weave network to the remote components.
 When configuring your system proxies, ensure that proxies are *not* bypassed for `*.local`.
 
 ## Test workflow
