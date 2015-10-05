@@ -29,16 +29,25 @@ cd $GOPATH/src/github.com/weaveworks/service
 ./run.sh
 ```
 
-Finally, on your Mac, start the proxy. If you're using a Vagrant VM, you can
-use the connect.sh script.
+Now, we need to get your laptop onto the Weave network with the other components.
+If you're using a Vagrant VM, you can use the connect.sh script.
+(TODO: should this actually use the socks proxy from below?)
 
 ```
 vagrant ssh-config >> ~/.ssh/config
 ./connect.sh <hostname>
 ```
 
-When configuring your system proxies, ensure that proxies are *not*
-bypassed for *.local.
+If you're using a remove VPS, you should use the socks proxy in the build-tools repo.
+
+```
+cd $GOPATH/src/github.com/weaveworks
+git clone https://github.com/weaveworks/build-tools
+cd build-tools/socks
+./connect.sh <hostname>
+```
+
+When configuring your system proxies, ensure that proxies are *not* bypassed for `*.local`.
 
 ## Test workflow
 
@@ -54,7 +63,5 @@ From your Mac,
 
 1. Navigate to http://scope.weave.works and behold the beauty
 
-Note:
-
-- You'll need to preload a recent build of the scope image
+Note that you'll need to preload a recent build of the Scope image.
 
