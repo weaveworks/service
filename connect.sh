@@ -28,6 +28,12 @@ echo "Starting proxy container..."
 docker_on rm -f $USER-proxy 2>/dev/null || true
 docker_on run -d --name $USER-proxy weaveworks/socksproxy -a scope.weave.works:frontend.weave.local
 
+echo "Weave exposing..."
+status=$(ssh $SSH_ARGS $HOST weave ps weave:expose | awk '{print $3}' 2>/dev/null)
+if [ -z "$status" ]; then
+    ssh $SSH_ARGS $HOST weave expose
+fi
+
 function finish {
     echo "Removing proxy container.."
     docker_on rm -f $USER-proxy
