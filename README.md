@@ -22,6 +22,13 @@ weave launch
 eval $(weave env)
 ```
 
+You must also have terraform installed on your VM.
+
+```
+wget https://dl.bintray.com/mitchellh/terraform/terraform_0.6.3_linux_amd64.zip -O /tmp/terraform.zip
+sudo unzip /tmp/terraform.zip -d /usr/local/bin
+```
+
 Now, still on your Linux host or VM, launch the run script.
 
 ```
