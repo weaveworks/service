@@ -1,0 +1,20 @@
+#!/bin/bash
+
+echo starting loadgen...
+trap "{ echo stopping loadgen; exit 0; }" INT TERM
+
+http() {
+	METHOD=$1
+	URL=$2
+	curl -Ss -X$METHOD $URL
+}
+
+while true
+do
+	for url in http://app-mapper.weave.local/loadgen http://users.weave.local/loadgen
+	do
+		http GET $url
+	done
+	sleep 1
+done
+

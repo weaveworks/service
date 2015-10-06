@@ -8,4 +8,4 @@ deps:
 		github.com/kisielk/errcheck
 
 clean:
-	for dir in app-mapper client users frontend prometheus; do make -C $$dir clean; done
+	for dir in app-mapper client users frontend monitoring; do make -C $$dir clean; done

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cd /grafana
+exec ./grafana
+
