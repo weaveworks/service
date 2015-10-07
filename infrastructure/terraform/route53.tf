@@ -1,6 +1,3 @@
-
-
-
 resource "aws_route53_zone" "zone" {
    name = "${lookup(var.domain, var.environment)}"
    lifecycle {
