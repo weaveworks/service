@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Grafana stores all config in its database.
+# We can provide dashboards as .json files in a known path.
+# But we can't provide data sources in a similar, declarative fashion.
+# The only way to add them programmatically is via the HTTP API.
+# So, this dumb service does that, in a loop, forever.
+
+create() {
+	curl -Ss -v -H "Content-Type: application/json" -XPOST -d'{
+		"name": "Scope-as-a-Service Prometheus",
+		"type": "prometheus",
+		"url": "http://127.0.0.1:9090",
+		"access": "proxy",
+		"basicAuth": false
+	}' http://admin:admin@127.0.0.1:3000/api/datasources
+	echo
+}
+
+echo "gfdatasource starting..."
+trap "{ echo gfdatasource exiting; exit 0; }" INT TERM
+
+while true
+do
+	create
+	sleep 10
+done
+

@@ -2,7 +2,7 @@
 
 set -eux
 
-for dir in app-mapper client users frontend prometheus; do
+for dir in app-mapper client users frontend monitoring; do
     make -C $dir image.tar
 done
 
@@ -38,5 +38,5 @@ fi
 (cd app-mapper; docker-compose stop; docker-compose rm -f; docker-compose up -d)
 start_container weaveworks/ui-server ui-server
 start_container weaveworks/frontend frontend --add-host=dns.weave.local:$(weave docker-bridge-ip) -p=80:80
-start_container weaveworks/prometheus prometheus
+start_container weaveworks/monitoring monitoring -p=9090:9090 -p=3000:3000
 

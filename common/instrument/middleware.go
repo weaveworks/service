@@ -20,7 +20,7 @@ func Middleware(m RouteMatcher, duration *prometheus.SummaryVec) func(http.Handl
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			begin := time.Now()
-			i := interceptor{ResponseWriter: w}
+			i := &interceptor{ResponseWriter: w, statusCode: http.StatusOK}
 			next.ServeHTTP(i, r)
 			var (
 				method = r.Method
@@ -39,12 +39,15 @@ type RouteMatcher interface {
 	Match(*http.Request, *mux.RouteMatch) bool
 }
 
+// interceptor implements WriteHeader to intercept status codes. WriteHeader
+// may not be called on success, so initialize statusCode with the status you
+// want to report on success, i.e. http.StatusOK.
 type interceptor struct {
 	http.ResponseWriter
 	statusCode int
 }
 
-func (i interceptor) WriteHeader(code int) {
+func (i *interceptor) WriteHeader(code int) {
 	i.statusCode = code
 	i.ResponseWriter.WriteHeader(code)
 }

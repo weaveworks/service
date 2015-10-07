@@ -1,0 +1,5 @@
+.grafana_gopath
+prometheus-*.linux-amd64/
+*.tar.gz
+*.tar
+

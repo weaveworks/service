@@ -37,5 +37,12 @@ users/ca-certificates.crt
 Vagrantfile.local
 .dir-locals.el
 image.tar
-prometheus/prometheus
-prometheus/.prometheus
+monitoring/prometheus
+monitoring/prometheus-*.linux-amd64.tar.gz
+monitoring/prometheus-*.linux-amd64/ 
+monitoring/grafana
+monitoring/.grafana_gopath
+monitoring/conf/
+monitoring/public_gen/
+monitoring/data/
+monitoring/runsvinit
