@@ -9,7 +9,12 @@ fi
 
 if [ "$1" == "-prod" ]; then
     HOST=ubuntu@$(dig +short docker.cloud.weave.works | sort | head -1)
-    SSH_ARGS="-i infrastructure/weave-keypair.pem"
+    SSH_ARGS="-i infrastructure/prod-keypair.pem"
+    DOCKER_IP_PORT=$(ssh $SSH_ARGS $HOST weave dns-lookup swarm-master):4567
+    DOCKER_CONFIG="-H=tcp://$DOCKER_IP_PORT"
+elif [ "$1" == "-dev" ]; then
+    HOST=ubuntu@$(dig +short docker.dev.weave.works | sort | head -1)
+    SSH_ARGS="-i infrastructure/dev-keypair.pem"
     DOCKER_IP_PORT=$(ssh $SSH_ARGS $HOST weave dns-lookup swarm-master):4567
     DOCKER_CONFIG="-H=tcp://$DOCKER_IP_PORT"
 else
@@ -17,6 +22,12 @@ else
     SSH_ARGS=
     DOCKER_CONFIG=$(ssh $HOST weave config)
     DOCKER_IP_PORT="127.0.0.1:12375"
+
+    echo "Weave exposing..."
+    status=$(ssh $SSH_ARGS $HOST weave ps weave:expose | awk '{print $3}' 2>/dev/null)
+    if [ -z "$status" ]; then
+        ssh $SSH_ARGS $HOST weave expose
+    fi
 fi
 shift 1
 
@@ -26,13 +37,7 @@ docker_on() {
 
 echo "Starting proxy container..."
 docker_on rm -f $USER-proxy 2>/dev/null || true
-docker_on run -d --name $USER-proxy weaveworks/socksproxy -a scope.weave.works:frontend.weave.local
-
-echo "Weave exposing..."
-status=$(ssh $SSH_ARGS $HOST weave ps weave:expose | awk '{print $3}' 2>/dev/null)
-if [ -z "$status" ]; then
-    ssh $SSH_ARGS $HOST weave expose
-fi
+docker_on run -d --name $USER-proxy -l works.weave.role=system weaveworks/socksproxy -a scope.weave.works:frontend.weave.local
 
 function finish {
     echo "Removing proxy container.."

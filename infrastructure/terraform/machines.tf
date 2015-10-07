@@ -62,10 +62,8 @@ resource "aws_instance" "docker-server" {
 
     provisioner "remote-exec" {
         inline = [
-            "sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D",
-            "sudo bash -c 'echo deb https://apt.dockerproject.org/repo ubuntu-vivid main > /etc/apt/sources.list.d/docker.list'",
-            "sudo apt-get update -qq",
-            "sudo apt-get install -q -y --force-yes --no-install-recommends docker-engine",
+            "sudo curl -sSL https://get.docker.com/gpg | sudo apt-key add -",
+            "sudo curl -sSL https://get.docker.com/ | sudo sh",
             "sudo usermod -a -G docker ubuntu",
             "sudo sed -i -e's%-H fd://%-H fd:// -H tcp://0.0.0.0:2375 --fixed-cidr=172.17.42.1/24 -H unix:///var/run/docker.sock  -s overlay%' /lib/systemd/system/docker.service",
             "sudo systemctl daemon-reload",

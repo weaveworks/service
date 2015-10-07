@@ -1,7 +1,9 @@
 variable "access_key" {
+    description = "Your AWS Access Key"
 }
 
 variable "secret_key" {
+    description = "Your AWS Secret Key"
 }
 
 variable "region" {
@@ -11,6 +13,7 @@ variable "region" {
 
 variable "key_name" {
     description = "SSH key name in your AWS account for AWS instances."
+    default = "weave-keypair"
 }
 
 variable "key_path" {
@@ -26,4 +29,13 @@ variable "user" {
     default = "ubuntu"
 }
 
+variable "environment" {
+    default = "dev"
+}
 
+variable "domain" {
+  default = {
+    "dev" = "dev.weave.works"
+    "prod" = "cloud.weave.works"
+  }
+}
