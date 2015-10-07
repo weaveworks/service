@@ -29,7 +29,7 @@ export default class LandingPage extends React.Component {
 
   renderLinks(linkStyle) {
     const links = [
-      {href: 'http://weave.works', text: 'Weave'},
+      {href: 'http://weave.works', text: 'Weaveworks'},
       {href: 'http://blog.weave.works', text: 'Blog'},
       {href: 'http://weave.works/help', text: 'Support'},
     ];

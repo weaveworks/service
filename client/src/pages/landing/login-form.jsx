@@ -62,7 +62,7 @@ export default class LoginForm extends React.Component {
         </div>
         <div style={styles.confirmation}>
           <span className="fa fa-check" style={styles.confirmationIcon}></span>
-          <p>A mail with login details was sent to {this.state.email}</p>
+          <p>A mail with further instructions was sent to {this.state.email}</p>
         </div>
         <div style={styles.link}>
           <button onClick={this._doLogin.bind(this)}>Developer login link</button>
