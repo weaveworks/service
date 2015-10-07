@@ -45,7 +45,7 @@ public_gen/robots.txt: .grafana_gopath/src/github.com/grafana/grafana/public_gen
 .grafana_gopath/src/github.com/grafana/grafana/public_gen/robots.txt: .grafana_gopath/src/github.com/grafana/.uptodate
 	@which node >/dev/null || { \
 		echo ""; \
-		echo "We need node in the PATH to build Grafana."; \
+		echo "We need node and npm in the PATH to build Grafana."; \
 		echo "If you don't care about node.js, try this:"; \
 		echo ""; \
 		echo "    cd \$$HOME"; \
