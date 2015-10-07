@@ -8,7 +8,7 @@ export class BackgroundContainer extends React.Component {
 
     this.state = {
       shiftX: 50,
-      shiftY: 60
+      shiftY: 50
     };
   }
 
@@ -16,17 +16,6 @@ export class BackgroundContainer extends React.Component {
     const backgroundPosition = `${this.state.shiftX}% ${this.state.shiftY}%`;
     const motionConfig = [200, 20];
     const styles = {
-      background: {
-        backgroundImage: `url("${this.props.imageUrl}")`,
-        backgroundPosition: backgroundPosition,
-        backgroundRepeat: 'no-repeat',
-        position: 'fixed',
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: -10
-      },
       container: {
         height: '100%'
       },
@@ -45,12 +34,12 @@ export class BackgroundContainer extends React.Component {
               backgroundImage: `url("${imageUrl}")`,
               backgroundPosition: `${shiftX}% ${shiftY}%`,
               backgroundRepeat: 'no-repeat',
-              position: 'fixed',
+              position: 'absolute',
               top: 0,
               bottom: 0,
               left: 0,
               right: 0,
-              zIndex: -10
+              zIndex: -1
             }}></div>
           }
         </Motion>
@@ -64,7 +53,7 @@ export class BackgroundContainer extends React.Component {
     const centerY = window.innerHeight / 2;
     const maxShiftPercent = 5;
     const shiftX = 50 + (centerX - e.clientX) / centerX * maxShiftPercent;
-    const shiftY = 60 + (centerY - e.clientY) / centerY * maxShiftPercent;
+    const shiftY = 50 + (centerY - e.clientY) / centerY * maxShiftPercent;
 
     this.setState({shiftX: shiftX, shiftY: shiftY});
   }
