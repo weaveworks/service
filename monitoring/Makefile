@@ -8,7 +8,7 @@ image.tar: Dockerfile prometheus run-prometheus prometheus.yml grafana run-grafa
 	docker build -t ${IMAGE_NAME} .
 	docker save ${IMAGE_NAME}:latest > $@
 
-# 
+#
 # Prometheus. We just need to download version 0.16.0 or above.
 #
 
@@ -43,19 +43,7 @@ public_gen/robots.txt: .grafana_gopath/src/github.com/grafana/grafana/public_gen
 .grafana_gopath/src/github.com/grafana/grafana/conf/defaults.ini: .grafana_gopath/src/github.com/grafana/.uptodate
 
 .grafana_gopath/src/github.com/grafana/grafana/public_gen/robots.txt: .grafana_gopath/src/github.com/grafana/.uptodate
-	@which node >/dev/null || { \
-		echo ""; \
-		echo "We need node and npm in the PATH to build Grafana."; \
-		echo "If you don't care about node.js, try this:"; \
-		echo ""; \
-		echo "    cd \$$HOME"; \
-		echo "    wget --quiet https://nodejs.org/dist/v4.1.2/node-v4.1.2-linux-x64.tar.gz"; \
-		echo "    tar zxf node-v4.1.2-linux-x64.tar.gz"; \
-		echo "    export PATH=\$$PATH:\$$HOME/node-v4.1.2-linux-x64/bin"; \
-		echo ""; \
-		false; \
-	}
-	cd $(shell dirname $<)/grafana && npm install && npm install -g grunt-cli && grunt
+	docker run -ti -v $(shell pwd)/:/home/weave node:0.10 /bin/sh -c "cd /home/weave/.grafana_gopath/src/github.com/grafana/grafana && npm install && npm install -g grunt-cli && grunt"
 
 .grafana_gopath/bin/grafana: .grafana_gopath/src/github.com/grafana/.uptodate
 	${GRAFANA_GO} install github.com/grafana/grafana
