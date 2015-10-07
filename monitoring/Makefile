@@ -4,7 +4,7 @@ GRAFANA_REV=0db2d07a1a
 GRAFANA_GO=GOPATH=$(shell pwd)/.grafana_gopath go
 GRAFANA_GODEP=GOPATH=$(shell pwd)/.grafana_gopath $(shell pwd)/.grafana_gopath/bin/godep
 
-image.tar: Dockerfile prometheus run-prometheus prometheus.yml grafana run-grafana grafana-defaults.ini grafana.ini saas-components.json public_gen/ gfdatasource run-gfdatasource loadgen run-loadgen runsvinit
+image.tar: Dockerfile prometheus run-prometheus prometheus.yml grafana run-grafana grafana-defaults.ini grafana.ini saas-components.json public_gen/robots.txt gfdatasource run-gfdatasource loadgen run-loadgen runsvinit
 	docker build -t ${IMAGE_NAME} .
 	docker save ${IMAGE_NAME}:latest > $@
 
@@ -55,7 +55,7 @@ public_gen/robots.txt: .grafana_gopath/src/github.com/grafana/grafana/public_gen
 		echo ""; \
 		false; \
 	}
-	cd $(shell dirname $@) && npm install && npm install -g grunt-cli && grunt
+	cd $(shell dirname $<)/grafana && npm install && npm install -g grunt-cli && grunt
 
 .grafana_gopath/bin/grafana: .grafana_gopath/src/github.com/grafana/.uptodate
 	${GRAFANA_GO} install github.com/grafana/grafana
