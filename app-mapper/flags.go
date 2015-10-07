@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	defaultAppImage = "weaveworks/scope"
+	defaultAppImage = "weaveworks/scope:0.8.0"
 	defaultDBURI    = "postgres://postgres@app-mapper-db.weave.local/app_mapper?sslmode=disable"
 )
 
