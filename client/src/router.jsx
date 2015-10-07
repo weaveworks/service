@@ -13,7 +13,7 @@ import WrapperPage from "./pages/wrapper/page";
 export default class RouterComponent extends React.Component {
   render() {
     return (
-      <div id="container">
+      <div id="container" style={{height: '100%'}}>
         <RouteHandler {...this.props} />
       </div>
     );
