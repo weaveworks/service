@@ -3,21 +3,13 @@ import { HashLocation, RouteHandler } from "react-router";
 import { getData } from "../../common/request";
 import { CircularProgress, Styles } from "material-ui";
 
+import { BackgroundContainer } from "../../components/background-container";
 import { Logo } from "../../components/logo";
 
 const Colors = Styles.Colors;
 const ThemeManager = new Styles.ThemeManager();
 
 export default class LandingPage extends React.Component {
-
-  constructor() {
-    super();
-
-    this.state = {
-      shiftX: 50,
-      shiftY: 60
-    };
-  }
 
   static childContextTypes = {
     muiTheme: React.PropTypes.object
@@ -52,19 +44,7 @@ export default class LandingPage extends React.Component {
   }
 
   render() {
-    let backgroundPosition = `${this.state.shiftX}% ${this.state.shiftY}%`;
     const styles = {
-      background: {
-        backgroundImage: 'url("landing.jpg")',
-        backgroundPosition: backgroundPosition,
-        backgroundRepeat: 'no-repeat',
-        position: 'fixed',
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: -10
-      },
       container: {
         height: '100%',
         paddingTop: 200,
@@ -126,8 +106,7 @@ export default class LandingPage extends React.Component {
     const links = this.renderLinks(styles.link);
 
     return (
-      <div style={{height: '100%'}} onMouseMove={this.handleMouseMove.bind(this)}>
-        <div style={styles.background}></div>
+      <BackgroundContainer imageUrl="landing.jpg">
         <div style={styles.container}>
           <div style={styles.logoWrapper}>
             <Logo />
@@ -175,17 +154,7 @@ export default class LandingPage extends React.Component {
             </div>
           </div>
         </div>
-      </div>
+      </BackgroundContainer>
     );
-  }
-
-  handleMouseMove(e) {
-    const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2;
-    const maxShiftPercent = 5;
-    const shiftX = 50 + (centerX - e.clientX) / centerX * maxShiftPercent;
-    const shiftY = 60 + (centerY - e.clientY) / centerY * maxShiftPercent;
-
-    this.setState({shiftX: shiftX, shiftY: shiftY});
   }
 }
