@@ -76,21 +76,24 @@ export default class LandingPage extends React.Component {
         alignItems: 'flex-start'
       },
       featureHeader: {
-        fontSize: 36,
+        fontSize: 48,
         fontWeight: 300,
         marginTop: '2rem'
       },
       featureWrapper: {
-        padding: 64,
-        width: 400
+        padding: '64px 128px 64px 64px',
+        width: 450
       },
       formContainer: {
-        padding: 64,
-        width: 400
+        margin: 16,
+        padding: 48,
+        width: 420,
+        backgroundColor: 'rgba(250,250,252,0.7)',
+        borderRadius: 4
       },
       formWrapper: {
-        marginTop: 48,
-        marginBottom: 48
+        padding: 8,
+        margin: '24px 8px',
       },
       infoHeader: {
         fontSize: 18,

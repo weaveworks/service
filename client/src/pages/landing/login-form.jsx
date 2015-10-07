@@ -31,9 +31,13 @@ export default class LoginForm extends React.Component {
       },
 
       confirmation: {
-        display: this.state.mailSent ? "block" : "none",
-        fontSize: '85%',
-        opacity: 0.6
+        textAlign: 'center',
+        display: this.state.mailSent ? "block" : "none"
+      },
+
+      confirmationIcon: {
+        fontSize: 48,
+        color: Colors.lightBlue500
       },
 
       form: {
@@ -51,12 +55,14 @@ export default class LoginForm extends React.Component {
       <div>
         <div style={styles.form}>
           <TextField hintText="Email" ref="emailField" type="email" errorText={this.state.errorText}
+            underlineStyle={{borderColor: Colors.orange500, borderWidth: 2}}
             onEnterKeyDown={this._handleSubmit.bind(this)} />
           <RaisedButton label={this.state.submitText} primary={true} style={styles.submit}
             disabled={this.state.submitting} onClick={this._handleSubmit.bind(this)} />
         </div>
         <div style={styles.confirmation}>
-          <p>A mail with login details was sent to {this.state.email}.</p>
+          <span className="fa fa-check" style={styles.confirmationIcon}></span>
+          <p>A mail with login details was sent to {this.state.email}</p>
         </div>
         <div style={styles.link}>
           <button onClick={this._doLogin.bind(this)}>Developer login link</button>
