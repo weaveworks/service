@@ -42,14 +42,18 @@ func newDockerProvisioner(dockerHost string, options dockerProvisionerOptions) (
 }
 
 func (p *dockerProvisioner) fetchApp() (err error) {
-	_, err = p.client.InspectImage(p.options.appConfig.Image + ":latest")
+	_, err = p.client.InspectImage(p.options.appConfig.Image)
 	if err == nil || err != docker.ErrNoSuchImage {
 		return err
 	}
 
+	repository, tag := docker.ParseRepositoryTag(p.options.appConfig.Image)
+	if tag == "" {
+		tag = "latest"
+	}
 	pullImageOptions := docker.PullImageOptions{
-		Repository: p.options.appConfig.Image,
-		Tag:        "latest",
+		Repository: repository,
+		Tag:        tag,
 	}
 	return p.client.PullImage(pullImageOptions, docker.AuthConfiguration{})
 }
