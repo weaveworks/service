@@ -1,6 +1,6 @@
-CREATE DATABASE weave_development WITH ENCODING = 'UTF-8';
+CREATE DATABASE users WITH ENCODING = 'UTF-8';
 
-\c weave_development;
+\c users;
 
 CREATE TABLE IF NOT EXISTS traceable (
   created_at timestamp with time zone not null default now(),
@@ -32,4 +32,4 @@ CREATE UNIQUE INDEX organizations_probe_token_idx ON organizations (probe_token)
 
 \c postgres;
 
-CREATE DATABASE weave_test WITH TEMPLATE weave_development;
+CREATE DATABASE users_test WITH TEMPLATE users;

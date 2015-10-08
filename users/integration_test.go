@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	databaseURI = flag.String("database-uri", "postgres://postgres@users-db.weave.local/weave_test?sslmode=disable", "Uri of a test database")
+	databaseURI = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users_test?sslmode=disable", "Uri of a test database")
 
 	sentEmails []*email.Email
 	app        *api

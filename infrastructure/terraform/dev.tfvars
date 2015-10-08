@@ -1,3 +1,5 @@
 access_key = "AKIAIKG6BZNPFGV3JOLQ"
 secret_key = "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"
 key_path = "../dev-keypair.pem"
+users_db_password = "w2rki4j82gcMBehk33KyzNGv"
+app_mapper_db_password = "8eU2GElyRicRLhpMVvn7zuPS"

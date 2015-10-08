@@ -48,6 +48,9 @@ You only want to do this when bringing up a new cluster.
 Note this step will potentially destroy all the VMs you have running and take the service
 offline.  Do not run it, unless you know what you are doing.
 
+Make a note of the database URIs output from this, as you'll need them
+to finish configuring the databases later.
+
 ## Configure Google DNS
 
 This step tells Google DNS (where we host the weave.works zone) to recursively use the
@@ -91,3 +94,30 @@ They are pretty much only useful for blowing away and bringing up a new environm
 # cd services; ./service.sh (-prod) consul
 # cd services; ./service.sh (-prod) swarm
 ```
+
+## Finishing Database Setup
+
+### Loading database schemas
+
+At the moment, loading the database schemas is a manual process.
+You'll need to connect to the RDS instance, and run the commands from
+`users/db/schema.sql`, or `app-mapper/db/schema.sql`.
+
+The "easiest" way to do this is to use `./connect.sh`, and run a
+docker container, as in:
+
+```
+$ ./connect.sh -ENV
+```
+
+And in a different window:
+
+```
+$ export DOCKER_HOST=localhost:4567
+$ cat SCHEMA_FILE_HERE | docker run -i --rm -e PGPASSWORD=RDS_PASSWORD_HERE postgres psql -U postgres -h RDS_INSTANCE_ADDRESS_HERE
+```
+
+### Configure Containers to point at new RDS instances
+
+You'll also need to change the container tfvars file to point at the
+new RDS instances, and redeploy the changed containers.

@@ -48,3 +48,4 @@ monitoring/data/
 monitoring/runsvinit
 terraform/local.terraform.tfstate
 terraform/local.terraform.tfstate.backup
+*.tfstate.backup
