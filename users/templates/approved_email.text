@@ -1,6 +1,6 @@
 Your Weave Scope account has been approved!
 
-Click this link to login to Scope:
+Please follow this link to access your Scope:
 
     {{.LoginURL}}
 
