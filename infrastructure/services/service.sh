@@ -3,6 +3,7 @@
 set -eux
 
 SSH_USER="ubuntu"
+WEAVE_REV="431d04bd40c0"
 
 case "$1" in
 	-prod)
@@ -40,8 +41,12 @@ install_weave() {
 	fi
 
 	for host in $HOSTS; do
-		run_on $host sudo curl -L https://github.com/weaveworks/weave/releases/download/v1.1.1/weave -o /usr/local/bin/weave
+		run_on $host sudo curl -L https://raw.githubusercontent.com/weaveworks/weave/$WEAVE_REV/weave -o /usr/local/bin/weave
 		run_on $host sudo chmod a+x /usr/local/bin/weave
+		run_on $host docker pull weaveworks/weave:git-$WEAVE_REV
+		run_on $host docker pull weaveworks/weaveexec:git-$WEAVE_REV
+		run_on $host docker tag -f weaveworks/weave:git-$WEAVE_REV weaveworks/weave:latest
+		run_on $host docker tag -f weaveworks/weaveexec:git-$WEAVE_REV weaveworks/weaveexec:latest
 		run_on $host weave stop || true
 		run_on $host weave launch-proxy -H tcp://0.0.0.0:12375 -H unix:///var/run/weave/weave.sock
 		run_on $host weave launch-router $INTERNAL_IPS
