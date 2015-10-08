@@ -3,7 +3,7 @@ resource "aws_db_instance" "users_db" {
     allocated_storage = 10
     multi_az = true
     engine = "postgres"
-    engine_version = "9.4"
+    engine_version = "9.4.4"
     instance_class = "db.m1.small"
     username = "postgres"
     password = "${var.users_db_password}"
@@ -20,7 +20,7 @@ resource "aws_db_instance" "app_mapper_db" {
     allocated_storage = 10
     multi_az = true
     engine = "postgres"
-    engine_version = "9.4"
+    engine_version = "9.4.4"
     instance_class = "db.m1.small"
     username = "postgres"
     password = "${var.app_mapper_db_password}"
