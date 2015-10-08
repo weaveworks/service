@@ -62,7 +62,7 @@ public_gen/robots.txt: .grafana_gopath/src/github.com/grafana/grafana/public_gen
 	${GRAFANA_GO} get github.com/kr/godep
 
 .grafana_gopath/src/github.com/grafana/grafana/build.go:
-	${GRAFANA_GO} get github.com/grafana/grafana
+	${GRAFANA_GO} get -d github.com/grafana/grafana
 
 #
 # runsvinit
