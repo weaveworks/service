@@ -31,14 +31,14 @@ func errorStatusCode(err error) int {
 	return http.StatusInternalServerError
 }
 
-func renderError(w http.ResponseWriter, err error) bool {
+func renderError(w http.ResponseWriter, r *http.Request, err error) bool {
 	if err == nil {
 		return false
 	}
+	logrus.Errorf("%s %s: %v", r.Method, r.URL.Path, err)
 
 	code := errorStatusCode(err)
 	if code == http.StatusInternalServerError {
-		logrus.Error(err)
 		http.Error(w, `{"errors":[{"message":"An internal server error occurred"}]}`, http.StatusInternalServerError)
 	} else {
 		renderJSON(w, code, map[string][]map[string]interface{}{

@@ -121,12 +121,12 @@ func (a *api) signup(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var view signupView
 	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
-		renderError(w, malformedInputError(err))
+		renderError(w, r, malformedInputError(err))
 		return
 	}
 	view.MailSent = false
 	if view.Email == "" {
-		renderError(w, validationErrorf("Email cannot be blank"))
+		renderError(w, r, validationErrorf("Email cannot be blank"))
 		return
 	}
 
@@ -134,13 +134,13 @@ func (a *api) signup(w http.ResponseWriter, r *http.Request) {
 	if err == errNotFound {
 		user, err = a.storage.CreateUser(view.Email)
 	}
-	if renderError(w, err) {
+	if renderError(w, r, err) {
 		return
 	}
 	// We always do this so that the timing difference can't be used to infer a user's existence.
 	token, err := generateUserToken(a.storage, user)
 	if err != nil {
-		renderError(w, fmt.Errorf("Error sending login email: %s", err))
+		renderError(w, r, fmt.Errorf("Error sending login email: %s", err))
 		return
 	}
 	if a.directLogin {
@@ -153,7 +153,7 @@ func (a *api) signup(w http.ResponseWriter, r *http.Request) {
 		err = a.sendEmail(loginEmail(a.templates, user, token))
 	}
 	if err != nil {
-		renderError(w, fmt.Errorf("Error sending login email: %s", err))
+		renderError(w, r, fmt.Errorf("Error sending login email: %s", err))
 		return
 	}
 	view.MailSent = !a.directLogin
@@ -177,10 +177,10 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 	token := r.FormValue("token")
 	switch {
 	case email == "":
-		renderError(w, validationErrorf("Email cannot be blank"))
+		renderError(w, r, validationErrorf("Email cannot be blank"))
 		return
 	case token == "":
-		renderError(w, validationErrorf("Token cannot be blank"))
+		renderError(w, r, validationErrorf("Token cannot be blank"))
 		return
 	}
 
@@ -190,7 +190,7 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 				logrus.Error(err)
 			}
 		}
-		renderError(w, errInvalidAuthenticationData)
+		renderError(w, r, errInvalidAuthenticationData)
 		return
 	}
 
@@ -199,7 +199,7 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 		u = &user{Token: "!"} // Will fail the token comparison
 		err = nil
 	}
-	if renderError(w, err) {
+	if renderError(w, r, err) {
 		return
 	}
 	// We always do this so that the timing difference can't be used to infer a user's existence.
@@ -265,7 +265,7 @@ func (a *api) lookupUsingToken(w http.ResponseWriter, r *http.Request) {
 	if err != errInvalidAuthenticationData {
 		w.WriteHeader(http.StatusUnauthorized)
 	} else {
-		renderError(w, err)
+		renderError(w, r, err)
 	}
 }
 
@@ -281,7 +281,7 @@ func (v userView) FormatCreatedAt() string {
 
 func (a *api) listUnapprovedUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := a.storage.ListUnapprovedUsers()
-	if renderError(w, err) {
+	if renderError(w, r, err) {
 		return
 	}
 	userViews := []userView{}
@@ -289,7 +289,7 @@ func (a *api) listUnapprovedUsers(w http.ResponseWriter, r *http.Request) {
 		userViews = append(userViews, userView{u.ID, u.Email, u.CreatedAt})
 	}
 	b, err := a.templates.bytes("list_users.html", userViews)
-	if renderError(w, err) {
+	if renderError(w, r, err) {
 		return
 	}
 	if _, err := w.Write(b); err != nil {
@@ -301,19 +301,19 @@ func (a *api) approveUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, ok := vars["userID"]
 	if !ok {
-		renderError(w, errNotFound)
+		renderError(w, r, errNotFound)
 		return
 	}
 	user, err := a.storage.ApproveUser(userID)
-	if renderError(w, err) {
+	if renderError(w, r, err) {
 		return
 	}
 	token, err := generateUserToken(a.storage, user)
 	if err != nil {
-		renderError(w, fmt.Errorf("Error sending approved email: %s", err))
+		renderError(w, r, fmt.Errorf("Error sending approved email: %s", err))
 		return
 	}
-	if renderError(w, a.sendEmail(approvedEmail(a.templates, user, token))) {
+	if renderError(w, r, a.sendEmail(approvedEmail(a.templates, user, token))) {
 		return
 	}
 	http.Redirect(w, r, "/private/api/users", http.StatusFound)
@@ -324,13 +324,13 @@ func (a *api) approveUser(w http.ResponseWriter, r *http.Request) {
 func (a *api) authenticated(handler func(*user, http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u, err := a.sessions.Get(r)
-		if renderError(w, err) {
+		if renderError(w, r, err) {
 			return
 		}
 
 		orgName, hasOrgName := mux.Vars(r)["orgName"]
 		if hasOrgName && orgName != u.Organization.Name {
-			renderError(w, errInvalidAuthenticationData)
+			renderError(w, r, errInvalidAuthenticationData)
 			return
 		}
 
@@ -360,17 +360,17 @@ func (a *api) renameOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 	err := json.NewDecoder(r.Body).Decode(&view)
 	switch {
 	case err != nil:
-		renderError(w, malformedInputError(err))
+		renderError(w, r, malformedInputError(err))
 		return
 	case view.Name == "":
-		renderError(w, validationErrorf("Name cannot be blank"))
+		renderError(w, r, validationErrorf("Name cannot be blank"))
 		return
 	case !orgNameRegex.MatchString(view.Name):
-		renderError(w, validationErrorf("Name can only contain letters, numbers, hyphen, and underscore"))
+		renderError(w, r, validationErrorf("Name can only contain letters, numbers, hyphen, and underscore"))
 		return
 	}
 
-	if renderError(w, a.storage.RenameOrganization(mux.Vars(r)["orgName"], view.Name)) {
+	if renderError(w, r, a.storage.RenameOrganization(mux.Vars(r)["orgName"], view.Name)) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -378,7 +378,7 @@ func (a *api) renameOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 
 func (a *api) listOrganizationUsers(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	users, err := a.storage.ListOrganizationUsers(mux.Vars(r)["orgName"])
-	if renderError(w, err) {
+	if renderError(w, r, err) {
 		return
 	}
 	userViews := []userView{}
@@ -392,27 +392,27 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 	defer r.Body.Close()
 	var view signupView
 	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
-		renderError(w, malformedInputError(err))
+		renderError(w, r, malformedInputError(err))
 		return
 	}
 	view.MailSent = false
 	if view.Email == "" {
-		renderError(w, validationErrorf("Email cannot be blank"))
+		renderError(w, r, validationErrorf("Email cannot be blank"))
 		return
 	}
 
 	invitee, err := a.storage.InviteUser(view.Email, mux.Vars(r)["orgName"])
-	if renderError(w, err) {
+	if renderError(w, r, err) {
 		return
 	}
 	// We always do this so that the timing difference can't be used to infer a user's existence.
 	token, err := generateUserToken(a.storage, invitee)
 	if err != nil {
-		renderError(w, fmt.Errorf("Error sending invite email: %s", err))
+		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
 	if err = a.sendEmail(inviteEmail(a.templates, invitee, token)); err != nil {
-		renderError(w, fmt.Errorf("Error sending invite email: %s", err))
+		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
 	view.MailSent = true
@@ -421,7 +421,7 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 }
 
 func (a *api) deleteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	if renderError(w, a.storage.DeleteUser(mux.Vars(r)["userEmail"])) {
+	if renderError(w, r, a.storage.DeleteUser(mux.Vars(r)["userEmail"])) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
