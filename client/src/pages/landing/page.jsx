@@ -46,21 +46,19 @@ export default class LandingPage extends React.Component {
   render() {
     const styles = {
       container: {
-        height: '100%',
-        paddingTop: 200,
         display: 'flex',
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'center',
         alignContent: 'flex-start',
-        alignItems: 'flex-start'
+        alignItems: 'flex-start',
       },
       featureHeader: {
         fontSize: 48,
         fontWeight: 300
       },
       featureWrapper: {
-        padding: '48px 64px 0px 0px',
+        padding: '48px 64px 16px 16px',
         width: 500
       },
       formContainer: {
@@ -84,21 +82,27 @@ export default class LandingPage extends React.Component {
       },
       infoWrapper: {
       },
+      headerContainer: {
+        display: 'flex',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        alignContent: 'flex-start',
+        alignItems: 'flex-start',
+      },
       link: {
         textTransform: 'uppercase',
         marginRight: '2rem'
       },
       logoWrapper: {
-        position: 'absolute',
         width: 250,
         height: 64,
-        left: 64,
-        top: 32 + 51 - 3
+        marginLeft: 64,
+        marginTop: 32 + 51 - 3
       },
       menuWrapper: {
-        position: 'absolute',
-        right: 64,
-        top: 32 + 51 + 6
+        padding: 64,
+        marginTop: 32 - 3
       }
     };
 
@@ -106,13 +110,15 @@ export default class LandingPage extends React.Component {
 
     return (
       <BackgroundContainer imageUrl="landing.jpg">
-        <div style={styles.container}>
+        <div style={styles.headerContainer}>
           <div style={styles.logoWrapper}>
             <Logo />
           </div>
           <div style={styles.menuWrapper}>
             {links}
           </div>
+        </div>
+        <div style={styles.container}>
           <div style={styles.featureWrapper}>
             <div style={styles.featureHeader}>
               Weave Scope is the easiest way to manage and monitor your Docker Containers on AWS ECS

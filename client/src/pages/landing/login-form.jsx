@@ -40,6 +40,15 @@ export default class LoginForm extends React.Component {
         color: Colors.lightBlue500
       },
 
+      emailField: {
+        width: 220
+      },
+
+      emailFieldLine: {
+        borderColor: Colors.orange500,
+        borderWidth: 2
+      },
+
       form: {
         display: !this.state.mailSent && !this.state.token ? "block" : "none",
       },
@@ -55,7 +64,7 @@ export default class LoginForm extends React.Component {
       <div>
         <div style={styles.form}>
           <TextField hintText="Email" ref="emailField" type="email" errorText={this.state.errorText}
-            underlineStyle={{borderColor: Colors.orange500, borderWidth: 2}}
+            underlineStyle={styles.emailFieldLine} style={styles.emailField}
             onEnterKeyDown={this._handleSubmit.bind(this)} />
           <RaisedButton label={this.state.submitText} primary={true} style={styles.submit}
             disabled={this.state.submitting} onClick={this._handleSubmit.bind(this)} />
