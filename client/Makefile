@@ -2,6 +2,7 @@ CLIENT_BUILD_IMAGE=service_client_build
 CLIENT_SERVER_IMAGE=weaveworks/ui-server
 RM=--rm
 BUILDIMAGE_UPTODATE=.service_client_build.uptodate
+JS_FILES=$(shell find ./src -name '*.jsx' -or -name '*.js')
 
 buildimage: $(BUILDIMAGE_UPTODATE)
 
@@ -14,7 +15,7 @@ tests: *
 		-v $(shell pwd)/test:/home/weave/test \
 		$(CLIENT_BUILD_IMAGE) npm test
 
-build/app.js: $(BUILDIMAGE_UPTODATE)
+build/app.js: $(BUILDIMAGE_UPTODATE) $(JS_FILES)
 	mkdir -p build
 	docker run $(RM) -ti -v $(shell pwd)/src:/home/weave/src \
 		-v $(shell pwd)/build:/home/weave/build \
