@@ -1,6 +1,17 @@
 #!/bin/bash
 
-set -eux
+set -eu
+
+usage() {
+    echo "Usage: $0 (-local|-dev|-prod)"
+}
+
+if [ $# -lt 1 ]; then
+    usage
+    exit 1
+fi
+
+set -x
 
 for dir in app-mapper client users frontend monitoring; do
     make -C $dir image.tar
@@ -24,7 +35,7 @@ case "$1" in
     eval $(weave env)
     ;;
   *)
-    echo "Please specify environment! (-local|-dev|-prod)"
+    usage
     exit 1
     ;;
 esac
