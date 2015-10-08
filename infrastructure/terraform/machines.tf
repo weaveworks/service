@@ -65,7 +65,7 @@ resource "aws_instance" "docker-server" {
             "sudo curl -sSL https://get.docker.com/gpg | sudo apt-key add -",
             "sudo curl -sSL https://get.docker.com/ | sudo sh",
             "sudo usermod -a -G docker ubuntu",
-            "sudo sed -i -e's%-H fd://%-H fd:// -H tcp://0.0.0.0:2375 --fixed-cidr=172.17.42.1/24 -H unix:///var/run/docker.sock  -s overlay%' /lib/systemd/system/docker.service",
+            "sudo sed -i -e's%-H fd://%-H fd:// -H tcp://0.0.0.0:2375 --fixed-cidr=172.17.42.1/24 -H unix:///var/run/docker.sock  -s overlay --insecure-registry weave.registry.local%' /lib/systemd/system/docker.service",
             "sudo systemctl daemon-reload",
             "sudo systemctl restart docker",
             "sudo systemctl enable docker",
