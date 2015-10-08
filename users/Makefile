@@ -4,6 +4,14 @@ IMAGE_TAR=image.tar
 IMAGE_NAME=weaveworks/users
 USERS_EXE=users
 ENV=development
+NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
+	rm $@; \
+	echo "\nYour go standard library was built without the 'netgo' build tag."; \
+	echo "To fix that, run"; \
+	echo "    sudo go clean -i net"; \
+	echo "    sudo go install -tags netgo std"; \
+	false; \
+}
 DB_IMAGE_TAR=db_image.tar
 DB_IMAGE_NAME=weaveworks/db_image
 
@@ -17,9 +25,10 @@ $(IMAGE_TAR): Dockerfile templates/* $(USERS_EXE) db/* ca-certificates.crt
 ca-certificates.crt: /etc/ssl/certs/ca-certificates.crt
 	cp $? $@
 
-$(USERS_EXE): *.go
-	go get -d ./...
-	go build -ldflags "-extldflags \"-static\" -linkmode=external" -o $@ ./$(@D)
+$(USERS_EXE): *.go names/*.go
+	go get -d -tags netgo ./...
+	go build -tags netgo -ldflags "-extldflags \"-static\" -linkmode=external" -o $@ ./$(@D)
+	$(NETGO_CHECK)
 
 test:
 	go test ./...
