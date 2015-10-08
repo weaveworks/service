@@ -45,4 +45,4 @@ for dir in app-mapper client users frontend; do
     docker load -i=$dir/image.tar
 done
 
-(cd terraform; terraform apply --var-file=$ENVIRONMENT.tfvars --state=$ENVIRONMENT.terraform.tfstate)
+(cd terraform; terraform apply --var-file=$ENVIRONMENT.tfvars --state=$ENVIRONMENT.tfstate)
