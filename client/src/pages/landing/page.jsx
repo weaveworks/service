@@ -57,12 +57,11 @@ export default class LandingPage extends React.Component {
       },
       featureHeader: {
         fontSize: 48,
-        fontWeight: 300,
-        marginTop: '2rem'
+        fontWeight: 300
       },
       featureWrapper: {
-        padding: '64px 128px 64px 64px',
-        width: 450
+        padding: '48px 64px 0px 0px',
+        width: 500
       },
       formContainer: {
         margin: 16,
@@ -116,22 +115,13 @@ export default class LandingPage extends React.Component {
           </div>
           <div style={styles.featureWrapper}>
             <div style={styles.featureHeader}>
-              Container Visibility
-            </div>
-            <div style={styles.featureText}>
-              Weave Scope automatically generates a map of your containers
-            </div>
-            <div style={styles.featureHeader}>
-              Container Monitoring
-            </div>
-            <div style={styles.featureText}>
-              Understand, monitor, and control your applications
+              Weave Scope is the easiest way to manage and monitor your Docker Containers on AWS ECS
             </div>
           </div>
           <div style={styles.formContainer}>
             <div style={styles.infoWrapper}>
               <div style={styles.infoHeader}>
-                Start monitoring your containers
+                Request an invite to our Early Access program
               </div>
             </div>
 
@@ -144,12 +134,12 @@ export default class LandingPage extends React.Component {
                 How it works
               </div>
               <ol>
-                <li style={styles.infoItem}>Fill out the email form to apply for participation in our beta program</li>
-                <li style={styles.infoItem}>Once approved, you’ll receive an email with a login link</li>
-                <li style={styles.infoItem}>Follow the instructions in the email to install the drop-in probe container and how to connect it to Scope</li>
+                <li style={styles.infoItem}>Submit your email to apply for participation in the Early Access program</li>
+                <li style={styles.infoItem}>You’ll receive an email with sign up details when we approve your participation.</li>
+                <li style={styles.infoItem}>Follow the simple instructions in the email to install the drop-in probe container and connect it to Scope.</li>
               </ol>
               <div style={styles.infoItem}>
-                There is no charge for the private beta.
+                <b>There is no charge for the private beta.</b>
               </div>
             </div>
           </div>
