@@ -2,7 +2,7 @@ CLIENT_BUILD_IMAGE=service_client_build
 CLIENT_SERVER_IMAGE=weaveworks/ui-server
 RM=--rm
 BUILDIMAGE_UPTODATE=.service_client_build.uptodate
-JS_FILES=$(shell find ./src -name '*.jsx')
+JS_FILES=$(shell find ./src -name '*.jsx' -or -name '*.js')
 
 buildimage: $(BUILDIMAGE_UPTODATE)
 
