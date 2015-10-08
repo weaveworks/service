@@ -33,7 +33,7 @@ Now, still on your Linux host or VM, launch the run script.
 
 ```
 cd $GOPATH/src/github.com/weaveworks/service
-./run.sh
+./run.sh -local
 ```
 
 Now, we need to get your laptop onto the Weave network with the other components.
