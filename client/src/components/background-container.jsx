@@ -17,7 +17,8 @@ export class BackgroundContainer extends React.Component {
     const motionConfig = [200, 20];
     const styles = {
       container: {
-        height: '100%'
+        height: '100%',
+        overflowY: 'scroll'
       },
       motion: {
         shiftX: spring(this.state.shiftX, motionConfig),
