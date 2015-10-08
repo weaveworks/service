@@ -39,3 +39,9 @@ variable "domain" {
     "prod" = "cloud.weave.works"
   }
 }
+
+variable "users_db_password" {
+}
+
+variable "app_mapper_db_password" {
+}
