@@ -135,7 +135,7 @@ export default class LandingPage extends React.Component {
               </div>
               <ol>
                 <li style={styles.infoItem}>Submit your email to apply for participation in the Early Access program</li>
-                <li style={styles.infoItem}>You’ll receive an email with sign up details when we approve your participation.</li>
+                <li style={styles.infoItem}>You'll receive an email with sign up details when we approve your participation.</li>
                 <li style={styles.infoItem}>Follow the simple instructions in the email to install the drop-in probe container and connect it to Scope.</li>
               </ol>
               <div style={styles.infoItem}>
