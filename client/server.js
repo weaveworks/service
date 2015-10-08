@@ -105,6 +105,10 @@ if (process.env.USE_MOCK_BACKEND) {
 
 // Serve index page
 
+app.get('/landing.jpg', function(req, res) {
+  res.sendFile(__dirname + '/build/landing.jpg');
+});
+
 app.get('*', function(req, res) {
   res.sendFile(__dirname + '/build/index.html');
 });
