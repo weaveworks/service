@@ -46,7 +46,7 @@ for host in $HOSTS; do
 		IMAGE="weaveworks/$comp:latest"
 
 		LOCALID=$(docker inspect --format='{{.Id}}' $IMAGE)
-		REMOTEID=$(ssh $SSH_ARGS ubuntu@$host docker inspect --format='{{.Id}}' $IMAGE)
+		REMOTEID=$(ssh $SSH_ARGS ubuntu@$host docker inspect --format='{{.Id}}' $IMAGE || true)
 		if [ "$LOCALID" = "$REMOTEID" ]; then
 			echo "- Skipping $IMAGE on $host; same as local"
 			continue
