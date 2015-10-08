@@ -35,6 +35,7 @@ test:
     - cd $SRCDIR/frontend; make image.tar
     - cd $SRCDIR/client; make RM= tests
     - cd $SRCDIR/client; make RM= image.tar
+    - cd $SRCDIR/monitoring; make RM= image.tar
 
 teardown:
   pre:
