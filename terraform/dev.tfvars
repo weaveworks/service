@@ -1,4 +1,4 @@
-host = "tcp://localhost:4567"
+host = "tcp://localhost:4502"
 users_session_secret = "3919365780a79e0658fde4d03e6945a080031ec077b88975898f698c0d298395"
 users_email_uri = "smtp://AKIAJC77KJCIV4HRCM2Q:AqliFmKAFLPagTQkd6FuoZHQDolVU195DorateSEKsTO@email-smtp.us-east-1.amazonaws.com:587"
 users_database_uri = "postgres://postgres:w2rki4j82gcMBehk33KyzNGv@users-db.cps0r5emv3nc.us-east-1.rds.amazonaws.com/users?sslmode=disable"
