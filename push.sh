@@ -36,7 +36,7 @@ if [ -z "$ENV_SET" ]; then
 fi
 
 if [ -z "$COMPONENTS" ]; then
-	COMPONENTS="app-mapper ui-server users frontend"
+	COMPONENTS="app-mapper ui-server users frontend monitoring"
 fi
 
 echo Pushing $COMPONENTS to $HOSTS...
