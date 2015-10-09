@@ -32,6 +32,7 @@ test:
     - cd $SRCDIR; $TOOLS/test
     - cd $SRCDIR/users; make image.tar
     - cd $SRCDIR/app-mapper; make image.tar
+    - cd $SRCDIR/app-mapper; make integration-test
     - cd $SRCDIR/frontend; make image.tar
     - cd $SRCDIR/client; make RM= tests
     - cd $SRCDIR/client; make RM= image.tar
