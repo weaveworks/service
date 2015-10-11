@@ -5,6 +5,10 @@ GRAFANA_REV=0db2d07a1a
 GRAFANA_GO=GOPATH=$(shell pwd)/.grafana_gopath go
 GRAFANA_GODEP=GOPATH=$(shell pwd)/.grafana_gopath $(shell pwd)/.grafana_gopath/bin/godep
 
+.PHONY: all
+
+all: $(IMAGES_UPTODATE)
+
 $(IMAGES_UPTODATE): Dockerfile prometheus run-prometheus prometheus.yml grafana run-grafana grafana-defaults.ini grafana.ini saas-components.json public_gen/robots.txt gfdatasource run-gfdatasource loadgen run-loadgen runsvinit
 	docker build -t ${IMAGE_NAME} .
 	touch $@
