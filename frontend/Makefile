@@ -1,10 +1,15 @@
-IMAGE_TAR=image.tar
+.PHONY: all clean
+
+IMAGE_UPTODATE=.image.uptodate
 IMAGE_NAME=weaveworks/frontend
 
-$(IMAGE_TAR): Dockerfile default.conf
+all: $(IMAGE_UPTODATE)
+
+$(IMAGE_UPTODATE): Dockerfile default.conf
 	docker build -t $(IMAGE_NAME) .
-	docker save $(IMAGE_NAME):latest > $@
+	touch $@
 
 clean:
 	-docker rmi $(IMAGE_NAME) > /dev/null 2>&1 || true
-	-rm -f $(IMAGE_TAR)
+	-rm -f $(IMAGE_UPTODATE)
+
