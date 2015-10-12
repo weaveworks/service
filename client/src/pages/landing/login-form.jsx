@@ -3,7 +3,7 @@ import { HashLocation } from "react-router";
 import { Styles, RaisedButton, TextField } from "material-ui";
 
 import { getData, postData } from "../../common/request";
-import { trackView } from '../../common/tracking';
+import { trackEvent, trackTiming, trackView } from '../../common/tracking';
 
 const Colors = Styles.Colors;
 
@@ -123,11 +123,6 @@ export default class LoginForm extends React.Component {
               submitting: false
             });
 
-            // GA tracking
-            if (window.ga) {
-              window.ga('send', 'event', 'serviceSignupButton', '')
-            }
-
           }.bind(this), function(resp) {
             this.setState({
               errorText: resp,
@@ -135,6 +130,10 @@ export default class LoginForm extends React.Component {
               submitText: 'Go'
             });
           }.bind(this));
+
+        // tracking
+        trackTiming('SignupButton', 'timeToClick');
+        trackEvent('SignupButton', 'click');
       } else {
         this.setState({
           errorText: 'Please provide a valid email address.'
