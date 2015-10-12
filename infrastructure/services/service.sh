@@ -104,26 +104,11 @@ install_swarm() {
 }
 
 install_registry() {
-	TFSTATE_FILE="${SCRIPT_DIR}/../terraform/${ENVIRONMENT}.tfstate"
-	JQ_KEY_PREFIX='.modules[0].resources["aws_iam_access_key.registry"].primary.attributes'
-	ACCESS_KEY=$(jq  -r "${JQ_KEY_PREFIX}.id" < "$TFSTATE_FILE")
-	SECRET_KEY=$(jq  -r "${JQ_KEY_PREFIX}.secret" < "$TFSTATE_FILE")
-	if [ "$ENVIRONMENT" = "dev" ]; then
-	    BUCKET_NAME="weaveworks_registry_dev"
-	else
-	    BUCKET_NAME="weaveworks_registry"
-	fi
 	# TODO, Run it through Swarm?
 	REGISTRY_HOST=$(dig +short docker.${DOMAIN} | sort | head -1)
+	REGISTRY_STORAGE_ARGS=$("${SCRIPT_DIR}/registry_storage_args.sh" -${ENVIRONMENT})
 	run_on $REGISTRY_HOST docker rm -f registry || true
-	run_on $REGISTRY_HOST DOCKER_HOST=unix:///var/run/weave.sock docker run -d --name registry --restart=always \
-		-e REGISTRY_HTTP_ADDR=:80 \
-		-e REGISTRY_STORAGE=s3 \
-		-e REGISTRY_STORAGE_S3_BUCKET=$BUCKET_NAME \
-		-e REGISTRY_STORAGE_S3_REGION=us-east-1 \
-		-e REGISTRY_STORAGE_S3_ACCESSKEY=$ACCESS_KEY \
-		-e REGISTRY_STORAGE_S3_SECRETKEY=$SECRET_KEY \
-		registry:2.1.1
+	run_on $REGISTRY_HOST DOCKER_HOST=unix:///var/run/weave.sock docker run -d --name registry --restart=always -e REGISTRY_HTTP_ADDR=:80 $REGISTRY_STORAGE_ARGS registry:2.1.1
 }
 
 case $1 in

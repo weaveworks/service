@@ -7,17 +7,17 @@ usage() {
 }
 
 COMPONENTS=
-ENV_SET=
+ENVIRONMENT=
 
 while [ $# -gt 0 ]; do
 	case "$1" in
 		-prod)
 		SSH_ARGS="-i infrastructure/prod-keypair.pem"
-		ENV_SET=1
+		ENVIRONMENT="prod"
 		;;
 		-dev)
 		SSH_ARGS="-i infrastructure/dev-keypair.pem"
-		ENV_SET=1
+		ENVIRONMENT="dev"
 		;;
 		*)
 		COMPONENTS="$COMPONENTS $1"
@@ -26,7 +26,7 @@ while [ $# -gt 0 ]; do
 	shift 1
 done
 
-if [ -z "$ENV_SET" ]; then
+if [ -z "$ENVIRONMENT" ]; then
 	usage
 	exit 1
 fi
@@ -35,16 +35,15 @@ if [ -z "$COMPONENTS" ]; then
 	COMPONENTS="app-mapper ui-server users frontend monitoring"
 fi
 
-echo Pushing $COMPONENTS to remote registry...
+echo Pushing $COMPONENTS to registry...
 
-# Create a ssh tunnel and trick the docker daemon into thinking that the
-# registry is running locally at localhost:5000
+# Push to a local registry backed by the same s3 storage as the remote one
 LOCAL_REGISTRY_PORT=5000
 REGISTRY_HOST=registry.weave.local
-ssh $SSH_ARGS -N -L $LOCAL_REGISTRY_PORT:$REGISTRY_HOST:80 $HOST &
-sleep 2 # give time for ssh to connect
-SSH_PID=$!
-trap 'kill $SSH_PID' EXIT
+REGISTRY_STORAGE_ARGS=$(`dirname "$0"`/infrastructure/services/registry_storage_args.sh -${ENVIRONMENT})
+docker run -d --name local_registry -p $LOCAL_REGISTRY_PORT:$LOCAL_REGISTRY_PORT -e REGISTRY_HTTP_ADDR=:$LOCAL_REGISTRY_PORT $REGISTRY_STORAGE_ARGS registry:2.1.1 > /dev/null
+trap 'docker rm -f local_registry' EXIT
+sleep 4 # give time for the registry to connect
 for COMPONENT in $COMPONENTS; do
 	LOCAL_REGISTRY_IMAGE=localhost:$LOCAL_REGISTRY_PORT/$COMPONENT
 	docker tag -f $REGISTRY_HOST/$COMPONENT $LOCAL_REGISTRY_IMAGE
