@@ -1,0 +1,3 @@
+ui-server:
+  image: weaveworks/ui-server
+  hostname: ui-server.weave.local.

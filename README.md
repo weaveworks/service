@@ -18,23 +18,24 @@ cd weave
 make
 sudo rm -f /usr/local/bin/weave
 sudo ln -s $GOPATH/src/github.com/weaveworks/weave/weave /usr/local/bin/weave
-weave launch
+weave launch-proxy -H tcp://0.0.0.0:12375 -H unix:///var/run/weave/weave.sock
+weave launch-router
 eval $(weave env)
 ```
 
-You must also have terraform installed on your VM.
+Install Terraform on your VM.
 
 ```
 wget https://dl.bintray.com/mitchellh/terraform/terraform_0.6.3_linux_amd64.zip -O /tmp/terraform.zip
 sudo unzip /tmp/terraform.zip -d /usr/local/bin
 ```
 
-Now, still on your Linux host or VM, build and deploy the service locally.
+Now, build the components on your VM, and deploy them locally.
 
 ```
 cd $GOPATH/src/github.com/weaveworks/service
-./build.sh -local
-./deploy.sh -local
+./build.sh local
+./deploy.sh local
 ```
 
 Now, we need to get your laptop onto the Weave network with the other components.
@@ -88,9 +89,8 @@ Note that you'll need to preload a recent build of the Scope image.
 
 1. Make and merge changes following a normal PR workflow.
 1. Produce up-to-date Docker image(s) on your local VM: `./build.sh`
-1. Push the image(s) to the relevant hosts: `./push.sh -dev servicename`
-1. Connect to the environment: `./connect.sh -dev`
-1. Deploy to the environment: `./deploy.sh -dev`
-1. Commit and push the new .tfstate to master!
+1. Push the image(s) to the relevant hosts: `./push.sh dev servicename`
+1. Connect to the environment: `./connect.sh dev`
+1. Deploy to the environment: `./deploy.sh dev`
 
-Replace `-dev` with `-local` or `-prod` as appropriate.
+Replace `dev` with `local` or `prod` as appropriate.

@@ -1,0 +1,6 @@
+monitoring:
+  image: weaveworks/monitoring
+  hostname: monitoring.weave.local.
+  ports:
+    - "3000:3000"
+    - "9090:9090"
