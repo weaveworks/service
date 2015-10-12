@@ -40,8 +40,16 @@ variable "domain" {
   }
 }
 
+
 variable "users_db_password" {
 }
 
 variable "app_mapper_db_password" {
+}
+
+variable "registry_bucket_name" {
+  default = {
+    "dev" = "weaveworks_registry_dev"
+    "prod" = "weave_works_registry"
+  }
 }

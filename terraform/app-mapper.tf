@@ -1,5 +1,5 @@
 resource "docker_image" "appmapper" {
-    name = "weaveworks/app-mapper:latest"
+    name = "registry.weave.local/app-mapper:latest"
     keep_updated = false
 }
 
@@ -22,7 +22,7 @@ resource "docker_container" "appmapper" {
 }
 
 resource "docker_image" "appmapper_db" {
-    name = "weaveworks/app-mapper-db:latest"
+    name = "registry.weave.local/app-mapper-db:latest"
     keep_updated = false
 }
 

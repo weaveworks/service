@@ -1,5 +1,5 @@
 resource "docker_image" "users" {
-    name = "weaveworks/users:latest"
+    name = "registry.weave.local/users:latest"
     keep_updated = false
 }
 
@@ -18,7 +18,7 @@ resource "docker_container" "users" {
 }
 
 resource "docker_image" "users_db" {
-    name = "weaveworks/db_image:latest"
+    name = "registry.weave.local/db_image:latest"
     keep_updated = false
 }
 

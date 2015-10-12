@@ -1,8 +1,13 @@
+.PHONY: all clean
+
 CLIENT_BUILD_IMAGE=service_client_build
-CLIENT_SERVER_IMAGE=weaveworks/ui-server
+CLIENT_SERVER_IMAGE=registry.weave.local/ui-server
 RM=--rm
+UISERVERIMAGE_UPTODATE=.ui-server.uptodate
 BUILDIMAGE_UPTODATE=.service_client_build.uptodate
 JS_FILES=$(shell find ./src -name '*.jsx' -or -name '*.js')
+
+all: $(UISERVERIMAGE_UPTODATE)
 
 buildimage: $(BUILDIMAGE_UPTODATE)
 
@@ -21,10 +26,11 @@ build/app.js: $(BUILDIMAGE_UPTODATE) $(JS_FILES)
 		-v $(shell pwd)/build:/home/weave/build \
 		$(CLIENT_BUILD_IMAGE) npm run build
 
-image.tar: build/app.js build/Dockerfile build/index.html
+$(UISERVERIMAGE_UPTODATE): build/app.js build/Dockerfile build/index.html
 	docker build -t $(CLIENT_SERVER_IMAGE) build/
-	docker save $(CLIENT_SERVER_IMAGE):latest > $@
+	touch $@
 
 clean:
 	-docker rmi $(CLIENT_SERVER_IMAGE) > /dev/null 2>&1 || true
-	rm -f image.tar build/app.js $(BUILDIMAGE_UPTODATE)
+	rm -f $(UISERVERIMAGE_UPTODATE) build/app.js $(BUILDIMAGE_UPTODATE)
+

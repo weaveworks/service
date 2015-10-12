@@ -30,12 +30,12 @@ test:
   override:
     - cd $SRCDIR; $TOOLS/lint .
     - cd $SRCDIR; $TOOLS/test
-    - cd $SRCDIR/users; make image.tar
-    - cd $SRCDIR/app-mapper; make image.tar
-    - cd $SRCDIR/frontend; make image.tar
+    - cd $SRCDIR/users; make
+    - cd $SRCDIR/app-mapper; make
+    - cd $SRCDIR/frontend; make
     - cd $SRCDIR/client; make RM= tests
-    - cd $SRCDIR/client; make RM= image.tar
-    - cd $SRCDIR/monitoring; make RM= image.tar
+    - cd $SRCDIR/monitoring; make RM=
+    - cd $SRCDIR/client; make RM=
 
 teardown:
   pre:
