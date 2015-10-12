@@ -1,6 +1,6 @@
 .PHONY: all test integration-test clean
 
-IMAGE_TAR=image.tar
+IMAGES_UPTODATE=.images.uptodate
 IMAGE_NAME=weaveworks/users
 USERS_EXE=users
 ENV=development
@@ -12,15 +12,14 @@ NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 	echo "    sudo go install -tags netgo std"; \
 	false; \
 }
-DB_IMAGE_TAR=db_image.tar
 DB_IMAGE_NAME=weaveworks/db_image
 
 all: $(IMAGE_TAR)
 
-$(IMAGE_TAR): Dockerfile templates/* $(USERS_EXE) db/* ca-certificates.crt
+$(IMAGES_UPTODATE): Dockerfile templates/* $(USERS_EXE) db/* ca-certificates.crt
 	docker build -t $(IMAGE_NAME) .
 	docker build -t $(DB_IMAGE_NAME) db/
-	docker save $(IMAGE_NAME):latest $(DB_IMAGE_NAME):latest  > $@
+	touch $@
 
 ca-certificates.crt: /etc/ssl/certs/ca-certificates.crt
 	cp $? $@
@@ -42,6 +41,6 @@ integration-test: $(WEB_UPTODATE)
 		/bin/bash -c "go get -v -t ./... ; go test -tags integration -timeout 30s ./..."
 
 clean:
-	-docker rmi $(IMAGE_NAME) > /dev/null 2>&1 || true
-	rm -rf $(USERS_EXE) $(IMAGE_TAR)
+	-docker rmi $(IMAGE_NAME) $(DB_IMAGE_NAME) > /dev/null 2>&1 || true
+	rm -rf $(USERS_EXE) $(IMAGES_UPTODATE)
 	go clean ./...
