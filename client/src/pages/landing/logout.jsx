@@ -2,7 +2,7 @@ import React from "react";
 import { HashLocation } from "react-router";
 import { getData, postData } from "../../common/request";
 import { CircularProgress, Styles } from "material-ui";
-import { pageView } from '../../common/tracking';
+import { trackView } from '../../common/tracking';
 
 const Colors = Styles.Colors;
 
@@ -22,7 +22,7 @@ export default class LoginForm extends React.Component {
 
   componentDidMount() {
     this._tryLogout();
-    pageView('Logout');
+    trackView('Logout');
   }
 
   render() {
