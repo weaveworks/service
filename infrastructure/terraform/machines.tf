@@ -69,6 +69,7 @@ resource "aws_instance" "docker-server" {
             "sudo systemctl daemon-reload",
             "sudo systemctl restart docker",
             "sudo systemctl enable docker",
+            "docker login -e="." -u="weaveworks+pullbot" -p="ML97V90HC1HWC6W2EUIIVJ0HXAKN1QFYDK9RALCK9DBYSU48ESCBB7OCOOKZPWK0" quay.io"
         ]
     }
 }

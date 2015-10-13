@@ -1,7 +1,7 @@
 .PHONY: all clean
 
 IMAGE_UPTODATE=.image.uptodate
-IMAGE_NAME=weaveworks/frontend
+IMAGE_NAME=quay.io/weaveworks/frontend
 
 all: $(IMAGE_UPTODATE)
 

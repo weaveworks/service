@@ -2,8 +2,8 @@
 
 # If you can use Docker without being root, you can `make SUDO= <target>`
 IMAGES_UPTODATE=.images.uptodate
-APP_MAPPER_IMAGE=weaveworks/app-mapper
-APP_MAPPER_DB_IMAGE=weaveworks/app-mapper-db
+APP_MAPPER_IMAGE=quay.io/weaveworks/app-mapper
+APP_MAPPER_DB_IMAGE=quay.io/weaveworks/app-mapper-db
 APP_MAPPER_EXE=app-mapper
 SUDO=sudo
 NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
