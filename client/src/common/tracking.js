@@ -12,7 +12,18 @@ export let trackEvent = function(subject, action, label, value) {
   } else {
     console.log('trackEvent', subject, action, label, value);
   }
-}
+};
+
+export let trackException = function(msg, fatal) {
+  if (window.ga) {
+    ga('send', 'exception', {
+      exDescription: msg,
+      exFatal: !!fatal
+    });
+  } else {
+    console.error(msg);
+  }
+};
 
 export let trackTiming = function(subject, action, time) {
   let timing = time || window.performance && window.performance.now();
@@ -21,7 +32,7 @@ export let trackTiming = function(subject, action, time) {
   } else {
     console.log('trackTiming', subject, action, timing);
   }
-}
+};
 
 export let trackView = function(page) {
   if (window.ga) {
@@ -30,4 +41,4 @@ export let trackView = function(page) {
   } else {
     console.log('trackView', pagePrefix + page);
   }
-}
+};

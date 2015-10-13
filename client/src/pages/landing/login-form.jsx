@@ -3,7 +3,7 @@ import { HashLocation } from "react-router";
 import { Styles, RaisedButton, TextField } from "material-ui";
 
 import { getData, postData } from "../../common/request";
-import { trackEvent, trackTiming, trackView } from '../../common/tracking';
+import { trackEvent, trackException, trackTiming, trackView } from '../../common/tracking';
 
 const Colors = Styles.Colors;
 
@@ -129,6 +129,7 @@ export default class LoginForm extends React.Component {
               submitting: false,
               submitText: 'Go'
             });
+            trackException(resp);
           }.bind(this));
 
         // tracking

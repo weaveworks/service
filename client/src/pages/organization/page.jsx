@@ -10,7 +10,7 @@ import { Column } from "../../components/column";
 import { Logo } from "../../components/logo";
 import Probes from "./probes";
 import Toolbar from "../../components/toolbar";
-import { trackView } from '../../common/tracking';
+import { trackException, trackView } from '../../common/tracking';
 
 const ThemeManager = new Styles.ThemeManager();
 
@@ -152,7 +152,7 @@ export default class OrganizationPage extends React.Component {
       HashLocation.push('/login');
     } else {
       // TODO show errors
-      console.error(resp);
+      trackException(resp);
     }
   }
 }
