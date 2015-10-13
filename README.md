@@ -29,11 +29,12 @@ wget https://dl.bintray.com/mitchellh/terraform/terraform_0.6.3_linux_amd64.zip 
 sudo unzip /tmp/terraform.zip -d /usr/local/bin
 ```
 
-Now, still on your Linux host or VM, launch the run script.
+Now, still on your Linux host or VM, build and deploy the service locally.
 
 ```
 cd $GOPATH/src/github.com/weaveworks/service
-./run.sh -local
+./build.sh -local
+./deploy.sh -local
 ```
 
 Now, we need to get your laptop onto the Weave network with the other components.
