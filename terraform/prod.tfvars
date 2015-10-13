@@ -6,3 +6,6 @@ appmapper_database_uri = "postgres://postgres:oTcF3mkakTafDcjHmVmLA0fr@app-mappe
 
 # Disable dev containers
 dev_containers_count = 0
+
+# Run one frontend per host
+frontend_count = 3

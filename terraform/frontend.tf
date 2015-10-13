@@ -4,7 +4,7 @@ resource "docker_image" "frontend" {
 }
 
 resource "docker_container" "frontend" {
-    count = 1
+    count = "${var.frontend_count}"
     image = "${docker_image.frontend.latest}"
     name = "frontend${count.index+1}"
     hostname = "frontend"
