@@ -14,7 +14,7 @@ NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 }
 DB_IMAGE_NAME=weaveworks/db_image
 
-all: $(IMAGE_TAR)
+all: $(IMAGES_UPTODATE)
 
 $(IMAGES_UPTODATE): Dockerfile templates/* $(USERS_EXE) db/* ca-certificates.crt
 	docker build -t $(IMAGE_NAME) .
