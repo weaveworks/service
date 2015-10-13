@@ -7,19 +7,19 @@ usage() {
 }
 
 COMPONENTS=
-ENV_SET=
+ENVIRONMENT=
 
 while [ $# -gt 0 ]; do
 	case "$1" in
 		-prod)
 		HOSTS=$(dig +short docker.cloud.weave.works)
 		SSH_ARGS="-i infrastructure/prod-keypair.pem"
-		ENV_SET=1
+		ENVIRONMENT=prod
 		;;
 		-dev)
 		HOSTS=$(dig +short docker.dev.weave.works)
 		SSH_ARGS="-i infrastructure/dev-keypair.pem"
-		ENV_SET=1
+		ENVIRONMENT=dev
 		;;
 		*)
 		COMPONENTS="$COMPONENTS $1"
@@ -28,7 +28,7 @@ while [ $# -gt 0 ]; do
 	shift 1
 done
 
-if [ -z "$ENV_SET" ]; then
+if [ -z "$ENVIRONMENT" ]; then
 	usage
 	exit 1
 fi
@@ -41,12 +41,14 @@ echo Pushing $COMPONENTS to $HOSTS...
 
 
 for COMP in $COMPONENTS; do
-    IMAGE="quay.io/weaveworks/$COMP:latest"
+    IMAGE="quay.io/weaveworks/$COMP"
     echo Pushing $COMP ...
-    docker push $IMAGE
+    docker tag -f $IMAGE:latest $IMAGE:$ENVIRONMENT
+    docker push $IMAGE:$ENVIRONMENT
     # Workaround for https://github.com/docker/swarm/issues/374 :(
     for HOST in $HOSTS; do
 	echo Pulling $COMP in $HOST ...
-	ssh $SSH_ARGS ubuntu@$HOST docker pull $IMAGE
+	ssh $SSH_ARGS ubuntu@$HOST docker pull $IMAGE:$ENVIRONMENT
+	ssh $SSH_ARGS ubuntu@$HOST docker tag -f $IMAGE:$ENVIRONMENT $IMAGE:latest
     done
 done
