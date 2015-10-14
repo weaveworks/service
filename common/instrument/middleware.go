@@ -1,6 +1,9 @@
 package instrument
 
 import (
+	"bufio"
+	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -50,6 +53,14 @@ type interceptor struct {
 func (i *interceptor) WriteHeader(code int) {
 	i.statusCode = code
 	i.ResponseWriter.WriteHeader(code)
+}
+
+func (i *interceptor) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hj, ok := i.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, fmt.Errorf("interceptor: can't cast parent ResponseWriter to Hijacker")
+	}
+	return hj.Hijack()
 }
 
 func getRouteName(m RouteMatcher, r *http.Request) string {

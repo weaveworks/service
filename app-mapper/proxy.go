@@ -120,7 +120,7 @@ func proxyWS(targetHost string, w http.ResponseWriter, r *http.Request) {
 	// Hijack the connection to copy raw data back to our client
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
-		logrus.Errorf("proxy: websocket: error casting to Hijacker on %q: %v", targetHost, err)
+		logrus.Errorf("proxy: websocket: error casting to Hijacker on request to %q", targetHost)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
