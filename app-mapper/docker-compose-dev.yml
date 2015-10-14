@@ -2,4 +2,4 @@ appmapper:
   extends:
     file: docker-compose.yml
     service: appmapper
-  command: -db-uri=postgres://postgres:8eU2GElyRicRLhpMVvn7zuPS@app-mapper-db.cps0r5emv3nc.us-east-1.rds.amazonaws.com/app_mapper?sslmode=disable -docker-host=unix:///var/run/weave/weave.sock -log-level=debug
+  command: -db-uri=postgres://postgres:8eU2GElyRicRLhpMVvn7zuPS@app-mapper-db.cps0r5emv3nc.us-east-1.rds.amazonaws.com/app_mapper?sslmode=disable -docker-host=unix:///var/run/weave.sock -log-level=debug
