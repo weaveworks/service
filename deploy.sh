@@ -1,53 +1,56 @@
 #!/bin/bash
 
-set -eu
-
-usage() {
-	echo "Usage: $0 (-local|-dev|-prod)"
-}
-
-if [ $# -lt 1 ]; then
-	usage
+if [ $# -lt 1 ]
+then
+	echo "usage: $0 <hostname>/dev/prod"
 	exit 1
 fi
 
-case "$1" in
-	-prod)
-		ENVIRONMENT="prod"
+ENV=$1
+shift
+
+case $ENV in
+	dev)
+		LOCAL_PORT=4502
 		;;
-	-dev)
-		ENVIRONMENT="dev"
-		;;
-	-local)
-		ENVIRONMENT="local"
-		if ! weave status > /dev/null; then
-			weave launch
-			weave expose
-		fi
-        # https://github.com/weaveworks/weave/issues/1527
-        # eval $(weave env)
-        export DOCKER_HOST=tcp://127.0.0.1:12375
+	prod)
+		LOCAL_PORT=4501
 		;;
 	*)
-		usage
-		exit 1
+		LOCAL_PORT=4567
 		;;
 esac
-shift 1
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PLANFILE=$(mktemp ${DIR}/saas.deploy.plan.XXXXXXXX)
-trap 'rm -f "$PLANFILE"' EXIT
+if [ $(lsof -i 4 -n -P 2>/dev/null | grep ":$LOCAL_PORT" | wc -l) -le 0 ]
+then
+	echo "No connection to $ENV (:$LOCAL_PORT) detected."
+	echo "Please run ./connect.sh $ENV"
+	exit 2
+fi
 
-(cd terraform; terraform plan -var-file $ENVIRONMENT.tfvars -state $ENVIRONMENT.tfstate -out $PLANFILE)
+COMPONENTS="app-mapper client frontend monitoring users"
+if [ ! -z "$@" ]
+then
+	COMPONENTS="$@"
+fi
 
-while true; do
-	read -p "Do you wish to apply the plan? " yn
-	case $yn in
-		yes ) break;;
-		no ) exit;;
-		* ) echo "Please type 'yes' or 'no'.";;
-	esac
+COMPOSE_COMMAND=${COMPOSE_COMMAND:-"up -d"}
+
+for COMPONENT in $COMPONENTS
+do
+	echo "$COMPONENT"
+
+	if [ -f $COMPONENT/docker-compose-$ENV.yml ]
+	then
+		FILE=$COMPONENT/docker-compose-$ENV.yml
+	elif [ -f $COMPONENT/docker-compose.yml ]
+	then
+		FILE=$COMPONENT/docker-compose.yml
+	else
+		echo "No docker-compose file found for $COMPONENT"
+		exit 3
+	fi
+	echo "Using $FILE"
+
+	DOCKER_HOST=tcp://127.0.0.1:$LOCAL_PORT docker-compose --file $FILE $COMPOSE_COMMAND
 done
-
-(cd terraform; terraform apply $PLANFILE)
