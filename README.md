@@ -88,7 +88,9 @@ Note that you'll need to preload a recent build of the Scope image.
 
 1. Make and merge changes following a normal PR workflow.
 1. Produce up-to-date Docker image(s) on your local VM: `./build.sh`
-1. Login to quay.io with `docker login quay.io` (this only needs to be done once)
+1. Login to Quay with `docker login quay.io`
+   This only needs to be done once. If you don't have access to Quay ask a fellow scopet to grant it.
+   If you already have access to Quay and are unsure about what credentials to type, go to  https://quay.io/tutorial/
 1. Push the image(s) to the relevant hosts: `./push.sh -dev servicename`
 1. Connect to the environment: `./connect.sh -dev`
 1. Deploy to the environment: `./deploy.sh -dev`
