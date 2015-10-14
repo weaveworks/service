@@ -1,5 +1,5 @@
 IMAGES_UPTODATE=.images.uptodate
-IMAGE_NAME=weaveworks/monitoring
+IMAGE_NAME=quay.io/weaveworks/monitoring
 PROMETHEUS_VERSION=0.16.0rc2
 GRAFANA_REV=0db2d07a1a
 GRAFANA_GO=GOPATH=$(shell pwd)/.grafana_gopath go

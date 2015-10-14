@@ -1,5 +1,5 @@
 CLIENT_BUILD_IMAGE=service_client_build
-CLIENT_SERVER_IMAGE=weaveworks/ui-server
+CLIENT_SERVER_IMAGE=quay.io/weaveworks/ui-server
 RM=--rm
 UISERVERIMAGE_UPTODATE=.ui-server.uptodate
 BUILDIMAGE_UPTODATE=.service_client_build.uptodate

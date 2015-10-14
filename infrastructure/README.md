@@ -97,6 +97,8 @@ They are pretty much only useful for blowing away and bringing up a new environm
 
 ## Finishing Database Setup
 
+Note you only need to do this if you have destroyed & recreated the RDS instance, which you should never do!
+
 ### Loading database schemas
 
 At the moment, loading the database schemas is a manual process.

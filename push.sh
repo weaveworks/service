@@ -1,27 +1,25 @@
 #!/bin/bash
 
-set -u
+set -ue
 
 usage() {
     echo "Usage: $0 (-dev|-prod) [components...]"
 }
 
-type pv >/dev/null 2>&1 || { echo >&2 "I require pv but it's not installed.  Aborting."; exit 1; }
-
 COMPONENTS=
-ENV_SET=
+ENVIRONMENT=
 
 while [ $# -gt 0 ]; do
 	case "$1" in
 		-prod)
 		HOSTS=$(dig +short docker.cloud.weave.works)
 		SSH_ARGS="-i infrastructure/prod-keypair.pem"
-		ENV_SET=1
+		ENVIRONMENT=prod
 		;;
 		-dev)
 		HOSTS=$(dig +short docker.dev.weave.works)
 		SSH_ARGS="-i infrastructure/dev-keypair.pem"
-		ENV_SET=1
+		ENVIRONMENT=dev
 		;;
 		*)
 		COMPONENTS="$COMPONENTS $1"
@@ -30,7 +28,7 @@ while [ $# -gt 0 ]; do
 	shift 1
 done
 
-if [ -z "$ENV_SET" ]; then
+if [ -z "$ENVIRONMENT" ]; then
 	usage
 	exit 1
 fi
@@ -41,18 +39,16 @@ fi
 
 echo Pushing $COMPONENTS to $HOSTS...
 
-for host in $HOSTS; do
-	for comp in $COMPONENTS; do
-		IMAGE="weaveworks/$comp:latest"
 
-		LOCALID=$(docker inspect --format='{{.Id}}' $IMAGE)
-		REMOTEID=$(ssh $SSH_ARGS ubuntu@$host docker inspect --format='{{.Id}}' $IMAGE || true)
-		if [ "$LOCALID" = "$REMOTEID" ]; then
-			echo "- Skipping $IMAGE on $host; same as local"
-			continue
-		fi
-
-		SIZE=$(docker inspect --format='{{.VirtualSize}}' $IMAGE)
-		docker save $IMAGE | pv -N "$(printf "%30s" "$IMAGE")" -s $SIZE | ssh -C $SSH_ARGS ubuntu@$host docker load
+for COMP in $COMPONENTS; do
+	IMAGE="quay.io/weaveworks/$COMP"
+	echo Pushing $COMP ...
+	docker tag -f $IMAGE:latest $IMAGE:$ENVIRONMENT
+	docker push $IMAGE:$ENVIRONMENT
+	# Workaround for https://github.com/docker/swarm/issues/374 :(
+	for HOST in $HOSTS; do
+		echo Pulling $COMP in $HOST ...
+		ssh $SSH_ARGS ubuntu@$HOST docker pull $IMAGE:$ENVIRONMENT
+		ssh $SSH_ARGS ubuntu@$HOST docker tag -f $IMAGE:$ENVIRONMENT $IMAGE:latest
 	done
 done

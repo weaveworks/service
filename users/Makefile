@@ -1,7 +1,7 @@
 .PHONY: all test integration-test clean
 
 IMAGES_UPTODATE=.images.uptodate
-IMAGE_NAME=weaveworks/users
+IMAGE_NAME=quay.io/weaveworks/users
 USERS_EXE=users
 ENV=development
 NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
@@ -12,7 +12,8 @@ NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 	echo "    sudo go install -tags netgo std"; \
 	false; \
 }
-DB_IMAGE_NAME=weaveworks/db_image
+# The DB image is only used in the local environemnt and it's not pushed to Quay
+DB_IMAGE_NAME=weaveworks/users-db
 
 all: $(IMAGES_UPTODATE)
 

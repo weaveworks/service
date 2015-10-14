@@ -1,5 +1,5 @@
 resource "docker_image" "monitoring" {
-    name = "weaveworks/monitoring:latest"
+    name = "quay.io/weaveworks/monitoring:latest"
     keep_updated = false
 }
 

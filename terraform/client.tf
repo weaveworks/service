@@ -1,5 +1,5 @@
 resource "docker_image" "ui-server" {
-    name = "weaveworks/ui-server:latest"
+    name = "quay.io/weaveworks/ui-server:latest"
     keep_updated = false
 }
 

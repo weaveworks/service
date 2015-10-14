@@ -1,5 +1,5 @@
 resource "docker_image" "appmapper" {
-    name = "weaveworks/app-mapper:latest"
+    name = "quay.io/weaveworks/app-mapper:latest"
     keep_updated = false
 }
 
@@ -22,6 +22,7 @@ resource "docker_container" "appmapper" {
 }
 
 resource "docker_image" "appmapper_db" {
+    count = "${var.dev_containers_count}"
     name = "weaveworks/app-mapper-db:latest"
     keep_updated = false
 }

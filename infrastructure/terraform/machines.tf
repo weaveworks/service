@@ -71,5 +71,12 @@ resource "aws_instance" "docker-server" {
             "sudo systemctl enable docker",
         ]
     }
+
+    // Need to not be sudo to do this, but need to login/logout for the usermod above to take effect.
+    provisioner "remote-exec" {
+        inline = [
+            "docker login -e='.' -u='weaveworks+pullbot' -p='ML97V90HC1HWC6W2EUIIVJ0HXAKN1QFYDK9RALCK9DBYSU48ESCBB7OCOOKZPWK0' quay.io"
+        ]
+    }
 }
 

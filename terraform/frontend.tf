@@ -1,5 +1,5 @@
 resource "docker_image" "frontend" {
-    name = "weaveworks/frontend:latest"
+    name = "quay.io/weaveworks/frontend:latest"
     keep_updated = false
 }
 
