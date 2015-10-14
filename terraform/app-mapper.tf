@@ -14,6 +14,11 @@ resource "docker_container" "appmapper" {
       "-docker-host=${var.appmapper_docker_host}",
       "-log-level=debug"
     ]
+    # Needed in the local (laptop) environment
+    volumes = {
+      host_path = "/var/run/weave/weave.sock"
+      container_path = "/var/run/weave/weave.sock"
+    }
     must_run = true
 }
 
