@@ -1,7 +1,9 @@
 import React from "react";
 import { HashLocation } from "react-router";
-import { getData, postData } from "../../common/request";
 import { Styles, RaisedButton, TextField } from "material-ui";
+
+import { getData, postData } from "../../common/request";
+import { trackEvent, trackException, trackTiming, trackView } from '../../common/tracking';
 
 const Colors = Styles.Colors;
 
@@ -20,6 +22,10 @@ export default class LoginForm extends React.Component {
     };
 
     this._handleSubmit = this._handleSubmit.bind(this);
+  }
+
+  componentDidMount() {
+    trackView('SignupForm');
   }
 
   render() {
@@ -116,13 +122,19 @@ export default class LoginForm extends React.Component {
               token: resp.token,
               submitting: false
             });
+
           }.bind(this), function(resp) {
             this.setState({
               errorText: resp,
               submitting: false,
               submitText: 'Go'
             });
+            trackException(resp);
           }.bind(this));
+
+        // tracking
+        trackTiming('SignupButton', 'timeToClick');
+        trackEvent('SignupButton', 'click');
       } else {
         this.setState({
           errorText: 'Please provide a valid email address.'

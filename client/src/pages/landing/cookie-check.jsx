@@ -2,6 +2,7 @@ import React from "react";
 import { HashLocation } from "react-router";
 import { getData } from "../../common/request";
 import { CircularProgress, Styles } from "material-ui";
+import { trackException, trackView } from '../../common/tracking';
 
 const Colors = Styles.Colors;
 
@@ -22,6 +23,7 @@ export default class CookieCheck extends React.Component {
 
   componentDidMount() {
     this._checkCookie();
+    trackView('CookieCheck');
   }
 
   render() {
@@ -87,6 +89,7 @@ export default class CookieCheck extends React.Component {
         activityText: '',
         errorText: err.message
       });
+      trackException(err.message);
     }
   }
 }

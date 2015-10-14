@@ -2,6 +2,7 @@ import React from "react";
 import { Styles, List, ListItem } from "material-ui";
 import { getData, postData } from "../../common/request";
 import { Box } from "../../components/box";
+import { trackEvent, trackException } from '../../common/tracking';
 
 export default class Probes extends React.Component {
 
@@ -23,8 +24,9 @@ export default class Probes extends React.Component {
         this.setState({
           probes: resp
         });
+        trackEvent('Scope', 'connectedProbes', this.props.org, resp.length);
       }.bind(this), resp => {
-        console.error(resp);
+        trackException(resp.errors[0].message);
       });
   }
 

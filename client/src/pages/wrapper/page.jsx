@@ -5,6 +5,7 @@ import { HashLocation } from "react-router";
 import { getData } from "../../common/request";
 import { Container } from "../../components/container";
 import Toolbar from "../../components/toolbar";
+import { trackView } from '../../common/tracking';
 
 const ThemeManager = new Styles.ThemeManager();
 
@@ -52,6 +53,7 @@ export default class Wrapper extends React.Component {
   componentDidMount() {
     // check if we're logged in
     this._checkCookie();
+    trackView('Wrapper');
   }
 
   componentWillUnmount() {

@@ -15,6 +15,9 @@ import Router from "react-router";
 // Routers
 import RouterComponent from "./router";
 
+// Tracking
+import { trackTiming } from './common/tracking';
+
 // ID of the DOM element to mount app on
 const DOM_APP_EL_ID = "app";
 
@@ -71,3 +74,5 @@ Router.run(routes, Router.HashLocation, function(Handler, state) {
     React.render(<Handler data={data} />, document.getElementById(DOM_APP_EL_ID));
   });
 });
+
+trackTiming('JS app', 'started');

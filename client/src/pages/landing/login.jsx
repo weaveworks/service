@@ -2,6 +2,7 @@ import React from "react";
 import { HashLocation } from "react-router";
 import { getData, postData } from "../../common/request";
 import { CircularProgress, Styles } from "material-ui";
+import { trackException, trackView } from '../../common/tracking';
 
 const Colors = Styles.Colors;
 
@@ -22,6 +23,7 @@ export default class LoginForm extends React.Component {
   componentDidMount() {
     // triggered on fresh page load with login params
     this._tryLogin();
+    trackView('Login');
   }
 
   render() {
@@ -72,6 +74,7 @@ export default class LoginForm extends React.Component {
         activityText: '',
         errorText: resp.errors[0].message
       });
+      trackException(resp.errors[0].message);
     }
   }
 }
