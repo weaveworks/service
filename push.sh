@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -u
+set -ue
 
 usage() {
     echo "Usage: $0 (-dev|-prod) [components...]"
