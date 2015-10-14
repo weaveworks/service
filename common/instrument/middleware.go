@@ -45,6 +45,9 @@ type RouteMatcher interface {
 // interceptor implements WriteHeader to intercept status codes. WriteHeader
 // may not be called on success, so initialize statusCode with the status you
 // want to report on success, i.e. http.StatusOK.
+//
+// interceptor also implements net.Hijacker, to let the downstream Handler
+// hijack the connection. This is needed by the app-mapper's proxy.
 type interceptor struct {
 	http.ResponseWriter
 	statusCode int
