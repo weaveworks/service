@@ -19,7 +19,7 @@ resource "docker_container" "users" {
 
 resource "docker_image" "users_db" {
     count = "${var.dev_containers_count}"
-    name = "quay.io/weaveworks/users-db:latest"
+    name = "weaveworks/users-db:latest"
     keep_updated = false
 }
 

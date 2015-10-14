@@ -12,7 +12,8 @@ NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 	echo "    sudo go install -tags netgo std"; \
 	false; \
 }
-DB_IMAGE_NAME=quay.io/weaveworks/users-db
+# The DB image is only used in the local environemnt and it's not pushed to Quay
+DB_IMAGE_NAME=weaveworks/users-db
 
 all: $(IMAGES_UPTODATE)
 
