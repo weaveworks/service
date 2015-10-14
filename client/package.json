@@ -59,6 +59,7 @@
     "material-ui": "^0.10.4",
     "page": "^1.6.3",
     "react": "^0.13.3",
+    "react-cookie-banner": "davkal/react-cookie-banner#dc5f4c1bf43c0dc65ed6fd909991871b2a1dce31",
     "react-motion": "^0.3.0",
     "react-router": "^0.13.3",
     "react-tap-event-plugin": "^0.1.7"
