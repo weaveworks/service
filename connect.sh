@@ -14,32 +14,32 @@ echo "Connecting to $ENV"
 
 case $ENV in
 	prod)
-        LOCAL_PORT=4501
+		LOCAL_PORT=4501
 		HOST=ubuntu@$(dig +short docker.cloud.weave.works | sort | head -1)
 		SSH_ARGS="-i infrastructure/prod-keypair.pem"
 		DOCKER_IP_PORT=$(ssh $SSH_ARGS $HOST weave dns-lookup swarm-master):4567
 		DOCKER_CONFIG="-H=tcp://$DOCKER_IP_PORT"
 		;;
 	dev)
-        LOCAL_PORT=4502
+		LOCAL_PORT=4502
 		HOST=ubuntu@$(dig +short docker.dev.weave.works | sort | head -1)
 		SSH_ARGS="-i infrastructure/dev-keypair.pem"
 		DOCKER_IP_PORT=$(ssh $SSH_ARGS $HOST weave dns-lookup swarm-master):4567
 		DOCKER_CONFIG="-H=tcp://$DOCKER_IP_PORT"
 		;;
 	*)
-        LOCAL_PORT=4567
-        HOST=$ENV
-        SSH_ARGS=
+		LOCAL_PORT=4567
+		HOST=$ENV
+		SSH_ARGS=
 		# https://github.com/weaveworks/weave/issues/1527
 		# DOCKER_CONFIG=$(ssh $HOST weave config)
-        DOCKER_CONFIG="-H=tcp://127.0.0.1:12375"
-        DOCKER_IP_PORT="127.0.0.1:12375"
-        status=$(ssh $SSH_ARGS $HOST weave ps weave:expose | awk '{print $3}' 2>/dev/null)
-        if [ -z "$status" ]; then
-            echo "Running 'weave expose' on $HOST"
-            ssh $SSH_ARGS $HOST weave expose
-        fi
+		DOCKER_CONFIG="-H=tcp://127.0.0.1:12375"
+		DOCKER_IP_PORT="127.0.0.1:12375"
+		status=$(ssh $SSH_ARGS $HOST weave ps weave:expose | awk '{print $3}' 2>/dev/null)
+		if [ -z "$status" ]; then
+			echo "Running 'weave expose' on $HOST"
+			ssh $SSH_ARGS $HOST weave expose
+		fi
 		;;
 esac
 
