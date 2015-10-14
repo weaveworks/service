@@ -1,8 +1,9 @@
 import React from "react";
 import { HashLocation, RouteHandler } from "react-router";
-import { getData } from "../../common/request";
 import { CircularProgress, Styles } from "material-ui";
+import CookieBanner from 'react-cookie-banner';
 
+import { getData } from "../../common/request";
 import { BackgroundContainer } from "../../components/background-container";
 import { Logo } from "../../components/logo";
 
@@ -52,6 +53,15 @@ export default class LandingPage extends React.Component {
         justifyContent: 'center',
         alignContent: 'flex-start',
         alignItems: 'flex-start',
+      },
+      cookieBanner: {
+        banner: {
+          backgroundColor: 'rgba(50,50,75,0.7)'
+        },
+        message: {
+          fontSize: '1rem',
+          fontWeight: 300
+        }
       },
       featureHeader: {
         fontSize: 48,
@@ -110,6 +120,8 @@ export default class LandingPage extends React.Component {
 
     return (
       <BackgroundContainer imageUrl="landing.jpg">
+        <CookieBanner message="We use two cookies, one that makes sure you stay logged in, and one that tracks usage anonymously."
+          cookie="eu-user-has-accepted-cookies" buttonMessage="I'm OK with this" styles={styles.cookieBanner} />
         <div style={styles.headerContainer}>
           <div style={styles.logoWrapper}>
             <Logo />
