@@ -58,21 +58,24 @@ export default class LandingPage extends React.Component {
         fontWeight: 300
       },
       featureWrapper: {
-        padding: '48px 64px 16px 16px',
+        marginRight: 48,
+        marginTop: 48,
+        padding: 16,
         width: 500
       },
       formContainer: {
-        margin: 16,
-        padding: 48,
+        margin: '0 16px 16px',
+        padding: '12px 48px 48px',
         width: 420,
         backgroundColor: 'rgba(250,250,252,0.7)',
         borderRadius: 4
       },
       formWrapper: {
-        padding: 8,
-        margin: '24px 8px',
+        padding: 12,
+        margin: '12px 8px',
       },
       infoHeader: {
+        marginTop: 32,
         fontSize: 18,
         fontWeight: 300
       },
@@ -145,7 +148,17 @@ export default class LandingPage extends React.Component {
                 <li style={styles.infoItem}>Follow the simple instructions in the email to install the drop-in probe container and connect it to Scope.</li>
               </ol>
               <div style={styles.infoItem}>
-                <b>There is no charge for the private beta.</b>
+                <em>Participation in the Early Access program is free of charge.</em>
+              </div>
+              <div style={styles.infoHeader}>
+                Learn
+              </div>
+              <div style={styles.infoItem}>
+                Learn more about Weave Scope <a href="http://weave.works/scope" target="website">on our website.</a>
+              </div>
+              <div style={styles.infoItem}>
+                Build and deploy a Docker app on Amazon ECS - check out 
+                  our <br /><a target="ecsguide" href="http://weave.works/guides/service-discovery-with-weave-aws-ecs.html">getting started guide</a>
               </div>
             </div>
           </div>
