@@ -14,6 +14,9 @@ variable "users_database_uri" {
 variable "appmapper_database_uri" {
 }
 
+variable "appmapper_docker_host" {
+}
+
 variable "dev_containers_count" {
     description = "Used to enable dev-only containers (e.g. DBs) in dev mode"
 }

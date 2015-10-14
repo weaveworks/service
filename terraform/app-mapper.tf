@@ -11,7 +11,7 @@ resource "docker_container" "appmapper" {
     domainname = "weave.local."
     command = [
       "-db-uri=${var.appmapper_database_uri}",
-      "-docker-host=${appmapper_docker_host}",
+      "-docker-host=${var.appmapper_docker_host}",
       "-log-level=debug"
     ]
     must_run = true
