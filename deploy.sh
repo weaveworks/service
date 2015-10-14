@@ -48,4 +48,4 @@ while true; do
     esac
 done
 
-(cd terraform; terraform apply $PLANFILE -state $ENVIRONMENT.tfstate)
+(cd terraform; terraform apply -state $ENVIRONMENT.tfstate $PLANFILE)
