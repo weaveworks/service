@@ -11,9 +11,10 @@ resource "docker_container" "appmapper" {
     domainname = "weave.local."
     command = [
       "-db-uri=${var.appmapper_database_uri}",
-      "-docker-host=unix:///var/run/weave/weave.sock",
+      "-docker-host=${var.appmapper_docker_host}",
       "-log-level=debug"
     ]
+    # Needed in the local (laptop) environment
     volumes = {
       host_path = "/var/run/weave/weave.sock"
       container_path = "/var/run/weave/weave.sock"

@@ -44,7 +44,7 @@ func parseFlags() *flags {
 	flag.StringVar(&f.authenticatorType, "authenticator-type", "web", "Authenticator type to use: web | mock")
 	flag.StringVar(&f.authenticatorHost, "authenticator-host", "users.weave.local:80", "Where to find the authenticator service")
 	flag.StringVar(&f.dockerAppImage, "docker-app-image", defaultAppImage, "Docker image to use by the docker app provisioner")
-	flag.StringVar(&f.dockerHost, "docker-host", "http://swarm.weave.local", "Where to find the docker service")
+	flag.StringVar(&f.dockerHost, "docker-host", "tcp://swarm-master.weave.local:4567", "Where to find the docker service")
 	flag.DurationVar(&f.dockerClientTimeout, "docker-client-timeout", defaultDockerClientTimeout, "Maximum time to wait for a response from docker")
 	flag.DurationVar(&f.dockerRunTimeout, "docker-run-timeout", defaultDockerRunTimeout, "Maximum time to wait for an app to run")
 	flag.Parse()
