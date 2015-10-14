@@ -4,7 +4,7 @@ resource "docker_image" "appmapper" {
 }
 
 resource "docker_container" "appmapper" {
-    count = 1
+    count = "${var.appmapper_count}"
     image = "${docker_image.appmapper.latest}"
     name = "appmapper${count.index+1}"
     hostname = "app-mapper"

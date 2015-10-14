@@ -4,7 +4,7 @@ resource "docker_image" "ui-server" {
 }
 
 resource "docker_container" "ui-server" {
-    count = 1
+    count = "${var.uiserver_count}"
     image = "${docker_image.ui-server.latest}"
     name = "ui-server${count.index+1}"
     hostname = "ui-server"

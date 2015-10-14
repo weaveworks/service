@@ -25,3 +25,18 @@ variable "frontend_count" {
     description = "Number of replicas of the frontend to deploy"
     default = 1
 }
+
+variable "appmapper_count" {
+    description = "Number of replicas of the appmapper service to deploy"
+    default = 1
+}
+
+variable "users_count" {
+    description = "Number of replicas of the users service to deploy"
+    default = 1
+}
+
+variable "uiserver_count" {
+    description = "Number of replicas of the uiserver to deploy"
+    default = 1
+}
