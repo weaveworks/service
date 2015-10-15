@@ -22,10 +22,12 @@ weave launch
 eval $(weave env)
 ```
 
-You must also have terraform installed on your VM.
+You must also have Terraform installed on your VM.  We use a custom built version of terrafrom, from
+https://github.com/tomwilkie/terraform/tree/dev (includes terraform/3364 and terraform/3509).
 
 ```
-wget https://dl.bintray.com/mitchellh/terraform/terraform_0.6.3_linux_amd64.zip -O /tmp/terraform.zip
+wget https://storage.googleapis.com/service-tools/terraform_darwin_amd64.zip -O /tmp/terraform.zip
+wget https://storage.googleapis.com/service-tools/terraform_linux_amd64.zip -O /tmp/terraform.zip
 sudo unzip /tmp/terraform.zip -d /usr/local/bin
 ```
 
