@@ -37,7 +37,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PLANFILE=$(mktemp ${DIR}/saas.deploy.plan.XXXXXXXX)
 trap 'rm -f "$PLANFILE"' EXIT
 
-(cd terraform; terraform plan -var-file $ENVIRONMENT.tfvars -state $ENVIRONMENT.tfstate -out $PLANFILE)
+(cd terraform; terraform plan -var-file $ENVIRONMENT.tfvars -parallelism=1 -state $ENVIRONMENT.tfstate -out $PLANFILE)
 
 while true; do
     read -p "Do you wish to apply the plan? " yn
