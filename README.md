@@ -22,12 +22,10 @@ weave launch
 eval $(weave env)
 ```
 
-You must also have terraform installed on your VM.
-
-```
-wget https://dl.bintray.com/mitchellh/terraform/terraform_0.6.3_linux_amd64.zip -O /tmp/terraform.zip
-sudo unzip /tmp/terraform.zip -d /usr/local/bin
-```
+You must also have terraform installed on your VM.  We use a custom built version of terrafrom, from
+https://github.com/tomwilkie/terraform/tree/swarm-fix (PR #3364 on Terraform).
+You can download the Linux amd64 build here https://drive.google.com/open?id=0BwqTw528sZRId0x3ZUUtdVZqNlU
+(in the shared drive, under Engineering/Scope Service/).  Unfortunately you need to use your browser to download.
 
 Now, still on your Linux host or VM, build and deploy the service locally.
 
