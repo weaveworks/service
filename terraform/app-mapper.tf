@@ -20,6 +20,7 @@ resource "docker_container" "appmapper" {
       container_path = "/var/run/weave/weave.sock"
     }
     must_run = true
+    restart_policy = "always"
 }
 
 resource "docker_image" "appmapper_db" {

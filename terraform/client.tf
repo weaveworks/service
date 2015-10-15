@@ -10,4 +10,5 @@ resource "docker_container" "ui-server" {
     hostname = "ui-server"
     domainname = "weave.local."
     must_run = true
+    restart_policy = "always"
 }

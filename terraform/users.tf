@@ -15,6 +15,7 @@ resource "docker_container" "users" {
       "-database-uri", "${var.users_database_uri}"
     ]
     must_run = true
+    restart_policy = "always"
 }
 
 resource "docker_image" "users_db" {
