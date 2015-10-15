@@ -5,7 +5,7 @@ IMAGE_NAME=quay.io/weaveworks/frontend
 
 all: $(IMAGE_UPTODATE)
 
-$(IMAGE_UPTODATE): Dockerfile default.conf
+$(IMAGE_UPTODATE): Dockerfile default.conf api.json
 	docker build -t $(IMAGE_NAME) .
 	touch $@
 
