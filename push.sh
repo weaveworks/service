@@ -6,6 +6,18 @@ usage() {
     echo "Usage: $0 (-dev|-prod) [components...]"
 }
 
+if echo "$DOCKER_HOST" | grep "127.0.0.1" >/dev/null; then
+    echo "!! DOCKER_HOST is set to \"$DOCKER_HOST\" !!"
+    while true; do
+        read -p "!! Please confirm you are not building on dev/prod by saying 'yes':" yn
+        case $yn in
+            yes ) break;;
+            no ) exit;;
+            * ) echo "Please type 'yes' or 'no'.";;
+        esac
+    done
+fi
+
 COMPONENTS=
 ENVIRONMENT=
 
