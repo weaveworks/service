@@ -31,11 +31,11 @@ wget https://storage.googleapis.com/service-tools/terraform_linux_amd64.zip -O /
 sudo unzip /tmp/terraform.zip -d /usr/local/bin
 ```
 
-Now, still on your Linux host or VM, build and deploy the service locally.
+Now, still on your Linux host or VM, build the service and deploy it locally.
 
 ```
 cd $GOPATH/src/github.com/weaveworks/service
-./build.sh -local
+./build.sh
 ./deploy.sh -local
 ```
 
@@ -90,11 +90,13 @@ Note that you'll need to preload a recent build of the Scope image.
 
 1. Make and merge changes following a normal PR workflow.
 1. Produce up-to-date Docker image(s) on your local VM: `./build.sh`
-1. Login to Quay with `docker login quay.io`
-   This only needs to be done once. If you don't have access to Quay ask a fellow scopet to grant it.
-   If you already have access to Quay and are unsure about what credentials to type, go to  https://quay.io/tutorial/
+1. Login to Quay with `docker login quay.io`. This only needs to be done once.
+   If you don't have access to Quay ask a fellow scopet to grant it. If you
+   already have access to Quay and are unsure about what credentials to type,
+   go to https://quay.io/tutorial/. (You will need to set up a Quay password.)
 1. Push the image(s) to the relevant hosts: `./push.sh -dev servicename`
-1. Connect to the environment: `./connect.sh -dev`
+1. Connect to the environment: `./connect.sh -dev`. You don't need to export
+   anything; the deploy script takes care of that.
 1. Deploy to the environment: `./deploy.sh -dev`
 1. Commit and push the new .tfstate to master!
 
