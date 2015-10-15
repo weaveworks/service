@@ -18,4 +18,5 @@ resource "docker_container" "monitoring" {
       internal = 9090
       external = 9090
     }
+    restart_policy = "always"
 }

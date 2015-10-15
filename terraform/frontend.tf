@@ -14,4 +14,5 @@ resource "docker_container" "frontend" {
       external = 80
     }
     must_run = true
+    restart_policy = "always"
 }
