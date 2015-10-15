@@ -8,3 +8,9 @@ appmapper_docker_host = "tcp://swarm-master.weave.local:4567"
 
 # Disable dev containers
 dev_containers_count = 0
+
+# Run one frontend per host
+frontend_count = 3
+appmapper_count = 2
+uiserver_count = 2
+users_count = 2

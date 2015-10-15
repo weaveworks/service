@@ -4,7 +4,7 @@ resource "docker_image" "users" {
 }
 
 resource "docker_container" "users" {
-    count = 1
+    count = "${var.users_count}"
     image = "${docker_image.users.latest}"
     name = "users${count.index+1}"
     hostname = "users"
