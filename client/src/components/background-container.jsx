@@ -12,8 +12,17 @@ export class BackgroundContainer extends React.Component {
     };
   }
 
+  handleMouseMove(ev) {
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    const maxShiftPercent = 5;
+    const shiftX = 50 + (centerX - ev.clientX) / centerX * maxShiftPercent;
+    const shiftY = 50 + (centerY - ev.clientY) / centerY * maxShiftPercent;
+
+    this.setState({shiftX: shiftX, shiftY: shiftY});
+  }
+
   render() {
-    const backgroundPosition = `${this.state.shiftX}% ${this.state.shiftY}%`;
     const motionConfig = [200, 20];
     const styles = {
       container: {
@@ -47,15 +56,5 @@ export class BackgroundContainer extends React.Component {
         {this.props.children}
       </div>
     );
-  }
-
-  handleMouseMove(e) {
-    const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2;
-    const maxShiftPercent = 5;
-    const shiftX = 50 + (centerX - e.clientX) / centerX * maxShiftPercent;
-    const shiftY = 50 + (centerY - e.clientY) / centerY * maxShiftPercent;
-
-    this.setState({shiftX: shiftX, shiftY: shiftY});
   }
 }

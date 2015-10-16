@@ -1,8 +1,12 @@
+import debug from 'debug';
+
+const log = debug('service:tracking');
+const error = debug('service:trackingErr');
 const trackPrefix = 'scopeService';
 
-export let trackEvent = function(subject, action, label, value) {
+export function trackEvent(subject, action, label, value) {
   if (window.ga) {
-    ga('send', {
+    window.ga('send', {
       hitType: 'event',
       eventCategory: trackPrefix + subject,
       eventAction: action,
@@ -10,35 +14,35 @@ export let trackEvent = function(subject, action, label, value) {
       eventValue: value
     });
   } else {
-    console.log('trackEvent', subject, action, label, value);
+    log('trackEvent', subject, action, label, value);
   }
-};
+}
 
-export let trackException = function(msg, fatal) {
+export function trackException(msg, fatal) {
   if (window.ga) {
-    ga('send', 'exception', {
+    window.ga('send', 'exception', {
       exDescription: msg,
       exFatal: !!fatal
     });
   } else {
-    console.error(msg);
+    error(msg);
   }
-};
+}
 
-export let trackTiming = function(subject, action, time) {
-  let timing = time || window.performance && window.performance.now();
+export function trackTiming(subject, action, time) {
+  const timing = time || window.performance && window.performance.now();
   if (window.ga) {
     window.ga('send', 'timing', subject, action, timing);
   } else {
-    console.log('trackTiming', subject, action, timing);
+    log('trackTiming', subject, action, timing);
   }
-};
+}
 
-export let trackView = function(page) {
+export function trackView(page) {
   if (window.ga) {
     window.ga('set', 'page', trackPrefix + page);
     window.ga('send', 'pageview');
   } else {
-    console.log('trackView', trackPrefix + page);
+    log('trackView', trackPrefix + page);
   }
-};
+}

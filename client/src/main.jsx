@@ -6,20 +6,20 @@
 require('font-awesome-webpack');
 
 // Polyfill
-import "babel-core/polyfill";
+import 'babel-core/polyfill';
 
 // Libraries
-import React from "react";
-import Router from "react-router";
+import React from 'react';
+import Router from 'react-router';
 
 // Routers
-import RouterComponent from "./router";
+import RouterComponent from './router';
 
 // Tracking
 import { trackTiming } from './common/tracking';
 
 // ID of the DOM element to mount app on
-const DOM_APP_EL_ID = "app";
+const DOM_APP_EL_ID = 'app';
 
 // Initialize routes
 const routes = RouterComponent.getRoutes();
@@ -55,21 +55,21 @@ const routes = RouterComponent.getRoutes();
  *
  * @return {Promise}        data containing responses mapped by route name
  */
-let fetchData = function(routes, params) {
-  let data = {};
+function fetchData(routes_, params) {
+  const data = {};
 
-  return Promise.all(routes
+  return Promise.all(routes_
     .filter(route => route.handler.fetchData)
     .map(route => {
       return route.handler.fetchData(params).then(resp => {
         data[route.name] = resp;
-      })
+      });
     })
   ).then(() => data);
 }
 
 // Start the router
-Router.run(routes, Router.HashLocation, function(Handler, state) {
+Router.run(routes, Router.HashLocation, function handleRoute(Handler, state) {
   fetchData(state.routes, state.params).then((data) => {
     React.render(<Handler data={data} />, document.getElementById(DOM_APP_EL_ID));
   });

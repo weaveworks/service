@@ -1,11 +1,10 @@
-import React from "react";
-import { HashLocation, RouteHandler } from "react-router";
-import { CircularProgress, Styles } from "material-ui";
+import React from 'react';
+import { RouteHandler } from 'react-router';
+import { Styles } from 'material-ui';
 import CookieBanner from 'react-cookie-banner';
 
-import { getData } from "../../common/request";
-import { BackgroundContainer } from "../../components/background-container";
-import { Logo } from "../../components/logo";
+import { BackgroundContainer } from '../../components/background-container';
+import { Logo } from '../../components/logo';
 
 const Colors = Styles.Colors;
 const ThemeManager = new Styles.ThemeManager();

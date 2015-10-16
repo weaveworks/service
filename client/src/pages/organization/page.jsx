@@ -1,15 +1,15 @@
-import React from "react";
-import { CircularProgress, Paper, Styles } from "material-ui";
-import { HashLocation } from "react-router";
+import React from 'react';
+import { CircularProgress, Paper, Styles } from 'material-ui';
+import { HashLocation } from 'react-router';
 
 import Colors from '../../common/colors';
-import { getData } from "../../common/request";
-import { Box } from "../../components/box";
-import { Container } from "../../components/container";
-import { Column } from "../../components/column";
-import { Logo } from "../../components/logo";
-import Probes from "./probes";
-import Toolbar from "../../components/toolbar";
+import { getData } from '../../common/request';
+import { Box } from '../../components/box';
+import { Container } from '../../components/container';
+import { Column } from '../../components/column';
+import { Logo } from '../../components/logo';
+import Probes from './probes';
+import Toolbar from '../../components/toolbar';
 import { trackException, trackView } from '../../common/tracking';
 
 const ThemeManager = new Styles.ThemeManager();
@@ -43,8 +43,27 @@ export default class OrganizationPage extends React.Component {
     trackView('Organization');
   }
 
+  _getOrganizationData(organization) {
+    if (organization) {
+      const url = `/api/users/org/${organization}`;
+      getData(url).then(this._handleOrganizationSuccess, this._handleOrganizationError);
+    }
+  }
+
+  _handleOrganizationSuccess(resp) {
+    this.setState(resp);
+  }
+
+  _handleOrganizationError(resp) {
+    if (resp.status === 401) {
+      HashLocation.push('/login');
+    } else {
+      // TODO show errors
+      trackException(resp);
+    }
+  }
+
   render() {
-    const appUrl = `#/app/${this.state.name}`;
     const styles = {
       activity: {
         marginTop: 200,
@@ -136,23 +155,4 @@ export default class OrganizationPage extends React.Component {
     );
   }
 
-  _getOrganizationData(organization) {
-    if (organization) {
-      const url = `/api/users/org/${organization}`;
-      getData(url).then(this._handleOrganizationSuccess, this._handleOrganizationError);
-    }
-  }
-
-  _handleOrganizationSuccess(resp) {
-    this.setState(resp);
-  }
-
-  _handleOrganizationError(resp) {
-    if (resp.status === 401) {
-      HashLocation.push('/login');
-    } else {
-      // TODO show errors
-      trackException(resp);
-    }
-  }
 }

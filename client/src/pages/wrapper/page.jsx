@@ -1,13 +1,14 @@
-import React from "react";
-import { Styles } from "material-ui";
-import { HashLocation } from "react-router";
+import React from 'react';
+import { Styles } from 'material-ui';
+import { HashLocation } from 'react-router';
+import debug from 'debug';
 
-import { getData } from "../../common/request";
-import { Container } from "../../components/container";
-import Toolbar from "../../components/toolbar";
+import { getData } from '../../common/request';
+import Toolbar from '../../components/toolbar';
 import { trackView } from '../../common/tracking';
 
 const ThemeManager = new Styles.ThemeManager();
+const log = debug('service:wrapper');
 
 export default class Wrapper extends React.Component {
 
@@ -34,34 +35,69 @@ export default class Wrapper extends React.Component {
     };
   }
 
-  componentDidUpdate() {
-    if (this.refs.iframe) {
-      // periodically check iframe's URL and react to changes
-      clearInterval(this.frameStateChecker);
-      let target = this.refs.iframe.getDOMNode().contentWindow;
-
-      this.frameStateChecker = setInterval(() => {
-        if (this.frameState !== target.location.hash) {
-          this.frameState = target.location.hash;
-          this._onFrameStateChanged(this.frameState);
-        }
-      }.bind(this), 1000);
-    }
-
-  }
-
   componentDidMount() {
     // check if we're logged in
     this._checkCookie();
     trackView('Wrapper');
   }
 
+  componentDidUpdate() {
+    if (this.refs.iframe) {
+      // periodically check iframe's URL and react to changes
+      clearInterval(this.frameStateChecker);
+      const target = this.refs.iframe.getDOMNode().contentWindow;
+
+      this.frameStateChecker = setInterval(() => {
+        if (this.frameState !== target.location.hash) {
+          this.frameState = target.location.hash;
+          this._onFrameStateChanged(this.frameState);
+        }
+      }, 1000);
+    }
+  }
+
   componentWillUnmount() {
     clearInterval(this.frameStateChecker);
   }
 
-  render() {
+  _handleFrameLoad(err) {
+    log(err);
+  }
 
+  _onFrameStateChanged() {
+  }
+
+  _checkCookie() {
+    const url = `/api/users/org/${this.props.params.orgId}`;
+    getData(url).then(this._handleLoginSuccess, this._handleLoginError);
+  }
+
+  _handleLoginSuccess(resp) {
+    const url = `/api/app/${resp.name}`;
+    this.setState({
+      user: resp.user,
+      frameBaseUrl: url
+    });
+  }
+
+  _handleLoginError(resp) {
+    if (resp.status === 401) {
+      // if unauthorized, send to login page
+      this.setState({
+        activityText: 'Not logged in. Please wait for the login form to load...'
+      });
+      HashLocation.push('/login');
+    } else {
+      const err = resp.errors[0];
+      log(err);
+      this.setState({
+        activityText: '',
+        errorText: err.message
+      });
+    }
+  }
+
+  render() {
     const styles = {
       activity: {
         marginTop: 200,
@@ -87,43 +123,4 @@ export default class Wrapper extends React.Component {
       </div>
     );
   }
-
-  _handleFrameLoad(e) {
-    console.log(e);
-  }
-
-  _onFrameStateChanged(hash) {
-  }
-
-  _checkCookie() {
-    const url = `/api/users/org/${this.props.params.orgId}`;
-    getData(url).then(this._handleLoginSuccess, this._handleLoginError);
-  }
-
-  _handleLoginSuccess(resp) {
-    const url = `/api/app/${resp.name}`;
-    this.setState({
-      user: resp.user,
-      frameBaseUrl: url
-    });
-  }
-
-  _handleLoginError(resp) {
-    if (resp.status === 401) {
-      // if unauthorized, send to login page
-      this.setState({
-        activityText: 'Not logged in. Please wait for the login form to load...'
-      });
-      HashLocation.push('/login');
-    } else {
-      let err = resp.errors[0];
-      console.error(err);
-      this.setState({
-        activityText: '',
-        errorText: err.message
-      });
-    }
-  }
-
-
 }

@@ -1,7 +1,11 @@
-import React from "react";
-import { FlatButton, List, ListItem, RaisedButton, TextField } from "material-ui";
-import { getData, deleteData, postData } from "../../common/request";
-import { Box } from "../../components/box";
+import React from 'react';
+import { FlatButton, List, ListItem, RaisedButton, TextField } from 'material-ui';
+import debug from 'debug';
+
+import { getData, deleteData, postData } from '../../common/request';
+import { Box } from '../../components/box';
+
+const error = debug('service:usersErr');
 
 export default class Users extends React.Component {
 
@@ -17,23 +21,55 @@ export default class Users extends React.Component {
   }
 
   getUsers() {
-    let url = `/api/org/${this.props.org}/users`;
+    const url = `/api/org/${this.props.org}/users`;
     getData(url)
       .then(resp => {
         this.setState({
           users: resp
         });
-      }.bind(this), resp => {
-        console.error(resp);
+      }, resp => {
+        error(resp);
       });
   }
 
+  _handleDeleteTouchTap(user) {
+    const url = `/api/org/${this.props.org}/users/${user.id}`;
+
+    deleteData(url)
+      .then(function handleResponse(resp) {
+        this.setState({
+          users: resp
+        });
+        this.refs.emailField.setValue('');
+      }, function handleError() {
+        // TODO show error
+      });
+  }
+
+  _handleInviteTouchTap() {
+    const url = `/api/org/${this.props.org}/users`;
+
+    const email = this.refs.emailField.getValue();
+
+    if (email) {
+      postData(url, {email: email})
+        .then(function handleResponse(resp) {
+          this.setState({
+            users: resp
+          });
+          this.refs.emailField.setValue('');
+        }, function handleError() {
+          // TODO show error
+        });
+    }
+  }
+
   render() {
-    let users = this.state.users.map(user => {
-      let buttonStyle = {
+    const users = this.state.users.map(user => {
+      const buttonStyle = {
         marginTop: 6
       };
-      let button = (
+      const button = (
         <FlatButton label="Remove" style={buttonStyle} onClick={this._handleDeleteTouchTap.bind(this, user)} />
       );
 
@@ -44,11 +80,11 @@ export default class Users extends React.Component {
       );
     });
 
-    let buttonStyle = {
+    const buttonStyle = {
       marginLeft: '2em'
     };
 
-    let formStyle = {
+    const formStyle = {
       textAlign: 'center',
       marginTop: '1em'
     };
@@ -66,39 +102,6 @@ export default class Users extends React.Component {
         </div>
       </div>
     );
-  }
-
-
-  _handleDeleteTouchTap(user) {
-    let url = `/api/org/${this.props.org}/users/${user.id}`;
-
-    deleteData(url)
-      .then(function(resp) {
-        this.setState({
-          users: resp
-        });
-        this.refs.emailField.setValue("");
-      }.bind(this), function(resp) {
-        // TODO show error
-      }.bind(this));
-  }
-
-  _handleInviteTouchTap() {
-    let url = `/api/org/${this.props.org}/users`;
-
-    const email = this.refs.emailField.getValue();
-
-    if (email) {
-      postData(url, {email: email})
-        .then(function(resp) {
-          this.setState({
-            users: resp
-          });
-          this.refs.emailField.setValue("");
-        }.bind(this), function(resp) {
-          // TODO show error
-        }.bind(this));
-      }
   }
 
 }
