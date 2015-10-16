@@ -3,7 +3,15 @@
 set -eux
 
 SSH_USER="ubuntu"
+
+# This is the revision of weave originally running in prod
+# WEAVE_REV="de95859"
+# WEAVE_DOCKER_TAG=1.1.1
+
+# This revision of weave is pre-fdp merge, but post bug fixes in
+# the proxy required for terraform.
 WEAVE_REV="431d04bd40c0"
+WEAVE_DOCKER_TAG="git-$WEAVE_REV"
 
 case "$1" in
 	-prod)
@@ -32,7 +40,7 @@ run_on() {
 }
 
 install_weave() {
-	# Start weave on all the hosts
+	# Stop / start weave on all the hosts
 	HOSTS=$(dig +short docker.${DOMAIN})
 	INTERNAL_IPS=$(dig +short internal.${DOMAIN})
 	if [ -z "$HOSTS" ] || [ -z "$INTERNAL_IPS" ]; then
@@ -41,16 +49,42 @@ install_weave() {
 	fi
 
 	for host in $HOSTS; do
+		# Stop weave (using the old script)
+		run_on $host weave stop || true
+
+		# Download new weave script straight of master.
+		# NB this script will not have a version number embedded
+		# and will expect to use whatever is tagger with latest,
+		# so we need to ensure that whatever image tagged with
+		# latest is the right version.
 		run_on $host sudo curl -L https://raw.githubusercontent.com/weaveworks/weave/$WEAVE_REV/weave -o /usr/local/bin/weave
 		run_on $host sudo chmod a+x /usr/local/bin/weave
-		run_on $host docker pull weaveworks/weave:git-$WEAVE_REV
-		run_on $host docker pull weaveworks/weaveexec:git-$WEAVE_REV
-		run_on $host docker tag -f weaveworks/weave:git-$WEAVE_REV weaveworks/weave:latest
-		run_on $host docker tag -f weaveworks/weaveexec:git-$WEAVE_REV weaveworks/weaveexec:latest
-		run_on $host weave stop || true
-		run_on $host weave launch-proxy -H tcp://0.0.0.0:12375 -H unix:///var/run/weave/weave.sock
+		run_on $host docker pull weaveworks/weave:$WEAVE_DOCKER_TAG
+		run_on $host docker pull weaveworks/weaveexec:$WEAVE_DOCKER_TAG
+		run_on $host docker tag -f weaveworks/weave:$WEAVE_DOCKER_TAG weaveworks/weave:latest
+		run_on $host docker tag -f weaveworks/weaveexec:$WEAVE_DOCKER_TAG weaveworks/weaveexec:latest
+
+		# Must launch the router first, and wait a bit - https://github.com/weaveworks/weave/issues/1547
 		run_on $host weave launch-router $INTERNAL_IPS
+		sleep 5
+
+		# Launch the proxy also listening on :12375, for the swarm master to talk to
+		run_on $host weave launch-proxy -H tcp://0.0.0.0:12375 -H unix:///var/run/weave/weave.sock
+
+		# Sleep to allow some time to settle
+		sleep 30
 	done
+}
+
+install_scope() {
+	# Start weave on all the hosts
+	HOSTS=$(dig +short docker.${DOMAIN})
+	INTERNAL_IPS=$(dig +short internal.${DOMAIN})
+	if [ -z "$HOSTS" ] || [ -z "$INTERNAL_IPS" ]; then
+		echo "Failed to find hosts!"
+		exit 1
+	fi
+
 	for host in $HOSTS; do
 		run_on $host weave expose
 		run_on $host sudo curl -L https://github.com/weaveworks/scope/releases/download/latest_release/scope -o /usr/local/bin/scope
@@ -97,6 +131,9 @@ install_swarm() {
 case $1 in
 	weave)
 		install_weave
+		;;
+	scope)
+		install_scope
 		;;
 	consul)
 		install_consul
