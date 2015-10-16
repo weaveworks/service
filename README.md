@@ -101,3 +101,15 @@ Note that you'll need to preload a recent build of the Scope image.
 1. Commit and push the new .tfstate to master!
 
 Replace `-dev` with `-local` or `-prod` as appropriate.
+
+## Destroying/recreating all the containers
+
+Sometimes it may be nessecary to destroy & recreate all the containers.
+To do this, run:
+
+```
+terraform show dev.tfstate | grep docker_container | grep -v taint | sed  's/\://' | xargs -n1 terraform taint --state=dev.tfstate
+```
+
+Which will 'taint' all the containers, causing Terraform to destroy and
+recreate them the next time you run ./deploy.sh.
