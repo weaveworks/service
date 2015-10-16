@@ -1,10 +1,10 @@
-const pagePrefix = 'scopeService';
+const trackPrefix = 'scopeService';
 
 export let trackEvent = function(subject, action, label, value) {
   if (window.ga) {
     ga('send', {
       hitType: 'event',
-      eventCategory: subject,
+      eventCategory: trackPrefix + subject,
       eventAction: action,
       eventLabel: label,
       eventValue: value
@@ -36,9 +36,9 @@ export let trackTiming = function(subject, action, time) {
 
 export let trackView = function(page) {
   if (window.ga) {
-    window.ga('set', 'page', pagePrefix + page);
+    window.ga('set', 'page', trackPrefix + page);
     window.ga('send', 'pageview');
   } else {
-    console.log('trackView', pagePrefix + page);
+    console.log('trackView', trackPrefix + page);
   }
 };
