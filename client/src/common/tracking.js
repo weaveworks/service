@@ -1,6 +1,6 @@
 import debug from 'debug';
 
-import { postData } from './request';
+import { postForm } from './request';
 
 const log = debug('service:tracking');
 const error = debug('service:trackingErr');
@@ -55,8 +55,10 @@ export function trackSignup(email) {
     const isHTTPS = (document.location.protocol === 'https:');
     const url = (isHTTPS ? 'https://go.pardot.com' : 'http://go.weave.works')
       + '/l/123932/2015-10-19/3pmpzj';
-    postData(url, {email: email})
+    postForm(url, {email: email})
       .then(function handleSuccess() {
       }, trackException);
+  } else {
+    log('trackSignup', email);
   }
 }
