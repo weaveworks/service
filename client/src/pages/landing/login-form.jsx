@@ -3,7 +3,7 @@ import { HashLocation } from 'react-router';
 import { Styles, RaisedButton, TextField } from 'material-ui';
 
 import { postData } from '../../common/request';
-import { trackEvent, trackException, trackTiming, trackView } from '../../common/tracking';
+import { trackEvent, trackException, trackTiming, trackView, trackSignup } from '../../common/tracking';
 
 const Colors = Styles.Colors;
 
@@ -142,4 +142,60 @@ export default class LoginForm extends React.Component {
     );
   }
 
+  _doLogin() {
+    const loginUrl = `#/login/${this.state.email}/${this.state.token}`;
+    HashLocation.push(loginUrl);
+  }
+
+  _handleSubmit() {
+    const field = this.refs.emailField;
+    const value = field.getValue();
+
+    if (value) {
+      const wrapperNode = this.refs.emailField.getDOMNode();
+      const inputNode = wrapperNode.getElementsByTagName('input')[0];
+      const valid = inputNode.validity.valid;
+
+      if (valid) {
+        // lock button and clear error
+        this.setState({
+          errorText: '',
+          submitting: true,
+          submitText: 'Sending...'
+        });
+
+        // disable input field
+        inputNode.disabled = true;
+
+        postData('/api/users/signup', {email: value})
+          .then(function handleSuccess(resp) {
+            // empty field
+            field.clearValue();
+
+            this.setState({
+              mailSent: resp.mailSent,
+              email: resp.email,
+              token: resp.token,
+              submitting: false
+            });
+          }, function handleError(resp) {
+            this.setState({
+              errorText: resp,
+              submitting: false,
+              submitText: 'Go'
+            });
+            trackException(resp);
+          });
+
+        // tracking
+        trackTiming('SignupButton', 'timeToClick');
+        trackEvent('SignupButton', 'click');
+        trackSignup(value);
+      } else {
+        this.setState({
+          errorText: 'Please provide a valid email address.'
+        });
+      }
+    }
+  }
 }

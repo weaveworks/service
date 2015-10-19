@@ -1,5 +1,7 @@
 import debug from 'debug';
 
+import { postData } from './request';
+
 const log = debug('service:tracking');
 const error = debug('service:trackingErr');
 const trackPrefix = 'scopeService';
@@ -44,5 +46,17 @@ export function trackView(page) {
     window.ga('send', 'pageview');
   } else {
     log('trackView', trackPrefix + page);
+  }
+}
+
+// pardot
+export function trackSignup(email) {
+  if (window.pi) {
+    const isHTTPS = (document.location.protocol === 'https:');
+    const url = (isHTTPS ? 'https://go.pardot.com' : 'http://go.weave.works')
+      + '/l/123932/2015-10-19/3pmpzj';
+    postData(url, {email: email})
+      .then(function handleSuccess() {
+      }, trackException);
   }
 }
