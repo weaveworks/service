@@ -33,6 +33,7 @@ test:
     - cd $SRCDIR/users; make
     - cd $SRCDIR/app-mapper; make
     - cd $SRCDIR/frontend; make
+    - cd $SRCDIR/client; make RM= lint
     - cd $SRCDIR/client; make RM= tests
     - cd $SRCDIR/client; make RM=
     - cd $SRCDIR/monitoring; make RM=
