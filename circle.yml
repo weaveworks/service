@@ -16,7 +16,9 @@ dependencies:
   cache_directories:
     - "~/docker"
   post:
-    - rm -rf /usr/local/go; curl -s https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz | tar xz -C /usr/local
+    - sudo chown -R `whoami` /usr/local/go
+    - rm -rf /usr/local/go/*; curl -s https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz | tar xz -C /usr/local
+    - go version
     - mkdir -p $TOOLS
     - git clone https://github.com/weaveworks/tools.git $TOOLS
     - go clean -i net
