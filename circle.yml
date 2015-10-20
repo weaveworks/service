@@ -33,7 +33,9 @@ test:
     - cd $SRCDIR; $TOOLS/lint .
     - cd $SRCDIR; $TOOLS/test
     - cd $SRCDIR/users; make
+    - cd $SRCDIR/users; make test
     - cd $SRCDIR/app-mapper; make
+    - cd $SRCDIR/app-mapper; make test
     - cd $SRCDIR/frontend; make
     - cd $SRCDIR/client; make RM= tests
     - cd $SRCDIR/client; make RM=
