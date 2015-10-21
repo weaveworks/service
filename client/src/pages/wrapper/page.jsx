@@ -114,7 +114,6 @@ export default class Wrapper extends React.Component {
     // forward wrapper state to scope UI via src URL
     const frameUrl = `${this.state.frameBaseUrl}/${location.hash}`;
 
-
     return (
       <div>
         <Toolbar organization={this.props.params.orgId} user={this.state.user} />
