@@ -168,8 +168,8 @@ export default class LandingPage extends React.Component {
                 Learn more about Weave Scope <a href="http://weave.works/scope" target="website">on our website.</a>
               </div>
               <div style={styles.infoItem}>
-                Build and deploy a Docker app on Amazon ECS - check out 
-                  our <br /><a target="ecsguide" href="http://weave.works/guides/service-discovery-with-weave-aws-ecs.html">getting started guide</a>
+                Build and deploy a Docker app on Amazon ECS - check out our
+                  <br /><a target="ecsguide" href="http://weave.works/guides/service-discovery-with-weave-aws-ecs.html">getting started guide</a>
               </div>
             </div>
           </div>

@@ -80,6 +80,16 @@ $ npm run build
 
 Build minified app for production using the [production](http://webpack.github.io/docs/cli.html#production-shortcut-p) shortcut.
 
+### lint
+
+```sh
+$ npm run lint
+```
+
+**Input:** `src`
+
+Uses [ESlint](http://eslint.org) with AirBnB's linting rules via package `eslint-config-airbnb`.
+
 ### test
 
 ```sh
