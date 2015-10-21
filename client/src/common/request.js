@@ -44,9 +44,6 @@ function doRequest(url, method = 'GET', requestData = {}, contentType = null) {
     if (contentType === 'application/json') {
       request.setRequestHeader('Content-Type', contentType);
       request.send(JSON.stringify(requestData));
-    } else if (contentType === 'application/x-www-form-urlencoded') {
-      request.setRequestHeader('Content-Type', contentType);
-      request.send(requestData);
     } else {
       request.send();
     }
@@ -61,10 +58,6 @@ export function getData(url) {
 
 export function postData(url, requestData = {}) {
   return doRequest(url, 'POST', requestData, 'application/json');
-}
-
-export function postForm(url, requestData = {}) {
-  return doRequest(url, 'POST', requestData, 'application/x-www-form-urlencoded');
 }
 
 export function deleteData(url) {

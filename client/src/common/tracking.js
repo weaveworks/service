@@ -1,8 +1,6 @@
 import debug from 'debug';
 import React from 'react';
 
-import { postForm } from './request';
-
 const log = debug('service:tracking');
 const error = debug('service:trackingErr');
 const trackPrefix = 'scopeService';
@@ -51,19 +49,6 @@ export function trackView(page) {
 }
 
 // pardot
-export function trackSignup(email) {
-  if (window.pi) {
-    const isHTTPS = (document.location.protocol === 'https:');
-    const url = (isHTTPS ? 'https://go.pardot.com' : 'http://go.weave.works')
-      + '/l/123932/2015-10-19/3pmpzj';
-    postForm(url, {email: email})
-      .then(function handleSuccess() {
-      }, trackException);
-  } else {
-    log('trackSignup', email);
-  }
-}
-
 export class PardotSignupIFrame extends React.Component {
   render() {
     let url;
