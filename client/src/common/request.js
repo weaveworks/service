@@ -7,18 +7,18 @@
  * @param  {Object} requestData the JSON data to send as the request body
  * @return {Promise}            resolves or rejects according to the response
  */
-let doRequest = function(url, method = 'GET', requestData = {}) {
-  let request = new XMLHttpRequest();
+function doRequest(url, method = 'GET', requestData = {}) {
+  const request = new XMLHttpRequest();
 
   if (!request) {
     throw new Error('Could not initialize XMLHttpRequest object!');
   }
 
-  let promise = new Promise(function(resolve, reject) {
-    request.onreadystatechange = function() {
+  const promise = new Promise(function requestResolver(resolve, reject) {
+    request.onreadystatechange = function onReadyStateChange() {
       if (request.readyState === 4) {
         try {
-          let responseObject = JSON.parse(request.responseText);
+          const responseObject = JSON.parse(request.responseText);
           responseObject.status = request.status;
 
           if (request.status === 200) {
@@ -26,19 +26,19 @@ let doRequest = function(url, method = 'GET', requestData = {}) {
           } else {
             reject(responseObject);
           }
-        } catch (e) {
+        } catch (ex) {
           let errorText;
           if (request.status === 404) {
             errorText = `Resource ${url} not found`;
           } else if (request.status === 500) {
             errorText = `Server error (${request.responseText})`;
           } else {
-            errorText = 'Unexpected error: ' + e;
+            errorText = 'Unexpected error: ' + ex;
           }
           reject({errors: [{message: errorText}], status: request.status});
         }
       }
-    }
+    };
 
     request.open(method, url);
     if (method === 'POST') {
@@ -50,16 +50,16 @@ let doRequest = function(url, method = 'GET', requestData = {}) {
   });
 
   return promise;
-};
+}
 
-export let getData = function(url) {
+export function getData(url) {
   return doRequest(url, 'GET');
-};
+}
 
-export let postData = function(url, requestData = {}) {
+export function postData(url, requestData = {}) {
   return doRequest(url, 'POST', requestData);
-};
+}
 
-export let deleteData = function(url) {
+export function deleteData(url) {
   return doRequest(url, 'DELETE');
-};
+}

@@ -1,25 +1,17 @@
-import React from "react";
-import { Route, DefaultRoute, RouteHandler } from "react-router";
+import React from 'react';
+import { Route, DefaultRoute, RouteHandler } from 'react-router';
 
-import OrganizationPage from "./pages/organization/page";
-import LandingPage from "./pages/landing/page";
-import CookieCheck from "./pages/landing/cookie-check";
-import Login from "./pages/landing/login";
-import LoginForm from "./pages/landing/login-form";
-import Logout from "./pages/landing/logout";
-import WrapperPage from "./pages/wrapper/page";
+import OrganizationPage from './pages/organization/page';
+import LandingPage from './pages/landing/page';
+import CookieCheck from './pages/landing/cookie-check';
+import Login from './pages/landing/login';
+import LoginForm from './pages/landing/login-form';
+import Logout from './pages/landing/logout';
+import WrapperPage from './pages/wrapper/page';
 
 
 export default class RouterComponent extends React.Component {
-  render() {
-    return (
-      <div id="container" style={{height: '100%'}}>
-        <RouteHandler {...this.props} />
-      </div>
-    );
-  }
-
-  static getRoutes = function() {
+  static getRoutes = function getRoutes() {
     return (
       <Route name="app" path="/" handler={RouterComponent}>
         <Route name="wrapper" path="app/:orgId" handler={WrapperPage} />
@@ -31,6 +23,14 @@ export default class RouterComponent extends React.Component {
           <DefaultRoute handler={CookieCheck} />
         </Route>
       </Route>
+    );
+  }
+
+  render() {
+    return (
+      <div id="container" style={{height: '100%'}}>
+        <RouteHandler {...this.props} />
+      </div>
     );
   }
 }

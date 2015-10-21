@@ -1,10 +1,8 @@
-import React from "react";
-import { HashLocation } from "react-router";
-import { getData, postData } from "../../common/request";
-import { CircularProgress, Styles } from "material-ui";
+import React from 'react';
+import { HashLocation } from 'react-router';
+import { getData } from '../../common/request';
+import { CircularProgress, Styles } from 'material-ui';
 import { trackException, trackView } from '../../common/tracking';
-
-const Colors = Styles.Colors;
 
 export default class LoginForm extends React.Component {
 
@@ -25,17 +23,39 @@ export default class LoginForm extends React.Component {
     trackView('Logout');
   }
 
+  _tryLogout() {
+    const url = `/api/users/logout`;
+    getData(url).then(this._handleSuccess, this._handleError);
+  }
+
+  _handleSuccess() {
+    HashLocation.push('/');
+  }
+
+  _handleError(resp) {
+    if (resp.status === 401) {
+      // logout should not fail for Unauthorized
+      HashLocation.push('/');
+    } else {
+      this.setState({
+        activityText: '',
+        errorText: resp.errors[0].message
+      });
+      trackException(resp.errors[0].message);
+    }
+  }
+
   render() {
     const styles = {
       error: {
-        display: this.state.errorText ? "block" : "none",
+        display: this.state.errorText ? 'block' : 'none',
         fontSize: '85%',
         opacity: 0.6,
         color: Styles.Colors.red900
       },
 
       activity: {
-        display: this.state.activityText ? "block" : "none",
+        display: this.state.activityText ? 'block' : 'none',
         fontSize: '85%',
         opacity: 0.6
       }
@@ -55,25 +75,4 @@ export default class LoginForm extends React.Component {
     );
   }
 
-  _tryLogout() {
-    const url = `/api/users/logout`;
-    getData(url).then(this._handleSuccess, this._handleError);
-  }
-
-  _handleSuccess(resp) {
-    HashLocation.push('/');
-  }
-
-  _handleError(resp) {
-    if (resp.status === 401) {
-      // logout should not fail for Unauthorized
-      HashLocation.push('/');
-    } else {
-      this.setState({
-        activityText: '',
-        errorText: resp.errors[0].message
-      });
-      trackException(resp.errors[0].message);
-    }
-  }
 }

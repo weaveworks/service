@@ -20,6 +20,11 @@ tests: *
 		-v $(shell pwd)/test:/home/weave/test \
 		$(CLIENT_BUILD_IMAGE) npm test
 
+lint: $(BUILDIMAGE_UPTODATE) $(JS_FILES)
+	docker run $(RM) -ti -v $(shell pwd)/src:/home/weave/src \
+		-v $(shell pwd)/test:/home/weave/test \
+		$(CLIENT_BUILD_IMAGE) npm run lint
+
 build/app.js: $(BUILDIMAGE_UPTODATE) $(JS_FILES)
 	mkdir -p build
 	docker run $(RM) -ti -v $(shell pwd)/src:/home/weave/src \

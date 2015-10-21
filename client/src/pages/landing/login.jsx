@@ -1,10 +1,8 @@
-import React from "react";
-import { HashLocation } from "react-router";
-import { getData, postData } from "../../common/request";
-import { CircularProgress, Styles } from "material-ui";
+import React from 'react';
+import { HashLocation } from 'react-router';
+import { getData } from '../../common/request';
+import { CircularProgress, Styles } from 'material-ui';
 import { trackException, trackView } from '../../common/tracking';
-
-const Colors = Styles.Colors;
 
 export default class LoginForm extends React.Component {
 
@@ -26,17 +24,39 @@ export default class LoginForm extends React.Component {
     trackView('Login');
   }
 
+  _tryLogin() {
+    const params = this.props.params;
+    const url = `/api/users/login?email=${params.email}&token=${params.token}`;
+    getData(url).then(this._handleLoginSuccess, this._handleLoginError);
+  }
+
+  _handleLoginSuccess() {
+    HashLocation.push('/');
+  }
+
+  _handleLoginError(resp) {
+    if (resp.status === 401) {
+      HashLocation.push('/login');
+    } else {
+      this.setState({
+        activityText: '',
+        errorText: resp.errors[0].message
+      });
+      trackException(resp.errors[0].message);
+    }
+  }
+
   render() {
     const styles = {
       error: {
-        display: this.state.errorText ? "block" : "none",
+        display: this.state.errorText ? 'block' : 'none',
         fontSize: '85%',
         opacity: 0.6,
         color: Styles.Colors.red900
       },
 
       activity: {
-        display: this.state.activityText ? "block" : "none",
+        display: this.state.activityText ? 'block' : 'none',
         fontSize: '85%',
         opacity: 0.6
       }
@@ -54,27 +74,5 @@ export default class LoginForm extends React.Component {
         </div>
       </div>
     );
-  }
-
-  _tryLogin() {
-    const params = this.props.params;
-    const url = `/api/users/login?email=${params.email}&token=${params.token}`;
-    getData(url).then(this._handleLoginSuccess, this._handleLoginError);
-  }
-
-  _handleLoginSuccess(resp) {
-    HashLocation.push('/');
-  }
-
-  _handleLoginError(resp) {
-    if (resp.status === 401) {
-      HashLocation.push('/login');
-    } else {
-      this.setState({
-        activityText: '',
-        errorText: resp.errors[0].message
-      });
-      trackException(resp.errors[0].message);
-    }
   }
 }

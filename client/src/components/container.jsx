@@ -2,8 +2,7 @@ import React from 'react';
 
 export class Container extends React.Component {
   render() {
-
-    let styles = {
+    const styles = {
       padding: '0 64px'
     };
 

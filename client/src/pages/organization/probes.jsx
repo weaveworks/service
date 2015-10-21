@@ -1,7 +1,7 @@
-import React from "react";
-import { Styles, List, ListItem } from "material-ui";
-import { getData, postData } from "../../common/request";
-import { Box } from "../../components/box";
+import React from 'react';
+import { Styles, List, ListItem } from 'material-ui';
+import { getData } from '../../common/request';
+import { Box } from '../../components/box';
 import { trackEvent, trackException } from '../../common/tracking';
 
 export default class Probes extends React.Component {
@@ -18,14 +18,14 @@ export default class Probes extends React.Component {
   }
 
   getProbes() {
-    let url = `/api/org/${this.props.org}/probes`;
+    const url = `/api/org/${this.props.org}/probes`;
     getData(url)
       .then(resp => {
         this.setState({
           probes: resp
         });
         trackEvent('Scope', 'connectedProbes', this.props.org, resp.length);
-      }.bind(this), resp => {
+      }, resp => {
         trackException(resp.errors[0].message);
       });
   }
@@ -40,7 +40,7 @@ export default class Probes extends React.Component {
     }
 
     return (
-      <ListItem primaryText="No probes connected" disabled={true} />
+      <ListItem primaryText="No probes connected" disabled />
     );
   }
 

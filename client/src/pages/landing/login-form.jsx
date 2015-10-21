@@ -1,8 +1,8 @@
-import React from "react";
-import { HashLocation } from "react-router";
-import { Styles, RaisedButton, TextField } from "material-ui";
+import React from 'react';
+import { HashLocation } from 'react-router';
+import { Styles, RaisedButton, TextField } from 'material-ui';
 
-import { getData, postData } from "../../common/request";
+import { postData } from '../../common/request';
 import { trackEvent, trackException, trackTiming, trackView } from '../../common/tracking';
 
 const Colors = Styles.Colors;
@@ -28,6 +28,62 @@ export default class LoginForm extends React.Component {
     trackView('SignupForm');
   }
 
+  _doLogin() {
+    const loginUrl = `#/login/${this.state.email}/${this.state.token}`;
+    HashLocation.push(loginUrl);
+  }
+
+  _handleSubmit() {
+    const field = this.refs.emailField;
+    const value = field.getValue();
+
+    if (value) {
+      const wrapperNode = this.refs.emailField.getDOMNode();
+      const inputNode = wrapperNode.getElementsByTagName('input')[0];
+      const valid = inputNode.validity.valid;
+
+      if (valid) {
+        // lock button and clear error
+        this.setState({
+          errorText: '',
+          submitting: true,
+          submitText: 'Sending...'
+        });
+
+        // disable input field
+        inputNode.disabled = true;
+
+        postData('/api/users/signup', {email: value})
+          .then(function handleSignupResponse(resp) {
+            // empty field
+            field.clearValue();
+
+            this.setState({
+              mailSent: resp.mailSent,
+              email: resp.email,
+              token: resp.token,
+              submitting: false
+            });
+          }.bind(this), function handleSignupError(resp) {
+            this.setState({
+              errorText: resp,
+              submitting: false,
+              submitText: 'Go'
+            });
+            trackException(resp);
+          }.bind(this));
+
+        // tracking
+        trackTiming('SignupButton', 'timeToClick');
+        trackEvent('SignupButton', 'click');
+      } else {
+        this.setState({
+          errorText: 'Please provide a valid email address.'
+        });
+      }
+    }
+  }
+
   render() {
     const styles = {
       submit: {
@@ -38,7 +94,7 @@ export default class LoginForm extends React.Component {
 
       confirmation: {
         textAlign: 'center',
-        display: this.state.mailSent ? "block" : "none"
+        display: this.state.mailSent ? 'block' : 'none'
       },
 
       confirmationIcon: {
@@ -56,11 +112,11 @@ export default class LoginForm extends React.Component {
       },
 
       form: {
-        display: !this.state.mailSent && !this.state.token ? "block" : "none",
+        display: !this.state.mailSent && !this.state.token ? 'block' : 'none',
       },
 
       link: {
-        display: this.state.token ? "block" : "none",
+        display: this.state.token ? 'block' : 'none',
         fontSize: '85%',
         opacity: 0.6
       }
@@ -72,7 +128,7 @@ export default class LoginForm extends React.Component {
           <TextField hintText="Email" ref="emailField" type="email" errorText={this.state.errorText}
             underlineStyle={styles.emailFieldLine} style={styles.emailField}
             onEnterKeyDown={this._handleSubmit.bind(this)} />
-          <RaisedButton label={this.state.submitText} primary={true} style={styles.submit}
+          <RaisedButton label={this.state.submitText} primary style={styles.submit}
             disabled={this.state.submitting} onClick={this._handleSubmit.bind(this)} />
         </div>
         <div style={styles.confirmation}>
@@ -86,62 +142,4 @@ export default class LoginForm extends React.Component {
     );
   }
 
-  _doLogin() {
-    const loginUrl = `#/login/${this.state.email}/${this.state.token}`;
-    HashLocation.push(loginUrl);
-  }
-
-  _handleSubmit() {
-    const field = this.refs.emailField;
-    const value = field.getValue();
-
-    if (value) {
-      const wrapperNode = this.refs.emailField.getDOMNode();
-      const inputNode = wrapperNode.getElementsByTagName('input')[0];
-      const valid = inputNode.validity.valid;
-
-      if(valid) {
-        // lock button and clear error
-        this.setState({
-          errorText: '',
-          submitting: true,
-          submitText: 'Sending...'
-        });
-
-        // disable input field
-        inputNode.disabled = true;
-
-        postData('/api/users/signup', {email: value})
-          .then(function(resp) {
-            // empty field
-            field.clearValue();
-
-            this.setState({
-              mailSent: resp.mailSent,
-              email: resp.email,
-              token: resp.token,
-              submitting: false
-            });
-
-          }.bind(this), function(resp) {
-            this.setState({
-              errorText: resp,
-              submitting: false,
-              submitText: 'Go'
-            });
-            trackException(resp);
-          }.bind(this));
-
-        // tracking
-        trackTiming('SignupButton', 'timeToClick');
-        trackEvent('SignupButton', 'click');
-      } else {
-        this.setState({
-          errorText: 'Please provide a valid email address.'
-        });
-      }
-
-    }
-
-  }
 }

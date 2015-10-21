@@ -1,10 +1,8 @@
-import React from "react";
-import { HashLocation } from "react-router";
-import { getData } from "../../common/request";
-import { CircularProgress, Styles } from "material-ui";
+import React from 'react';
+import { HashLocation } from 'react-router';
+import { getData } from '../../common/request';
+import { CircularProgress, Styles } from 'material-ui';
 import { trackException, trackView } from '../../common/tracking';
-
-const Colors = Styles.Colors;
 
 export default class CookieCheck extends React.Component {
 
@@ -26,34 +24,21 @@ export default class CookieCheck extends React.Component {
     trackView('CookieCheck');
   }
 
-  render() {
-    const styles = {
-      error: {
-        display: this.state.errorText ? "block" : "none",
-        fontSize: '85%',
-        opacity: 0.6,
-        color: Styles.Colors.red900
-      },
-
-      activity: {
-        display: this.state.activityText ? "block" : "none",
-        fontSize: '85%',
-        opacity: 0.6
-      }
-    };
-
-    return (
-      <div>
-        <div style={styles.activity}>
-          <CircularProgress mode="indeterminate" />
-          <p>{this.state.activityText}.</p>
-        </div>
-        <div style={styles.error}>
-          <h3>Scope service is not available. Please try again later.</h3>
-          <p>{this.state.errorText}</p>
-        </div>
-      </div>
-    );
+  _handleLoginError(resp) {
+    if (resp.status === 401) {
+      // if unauthorized, send to login page
+      this.setState({
+        activityText: 'Not logged in. Please wait for the login form to load...'
+      });
+      HashLocation.push('/login');
+    } else {
+      const err = resp.errors[0];
+      this.setState({
+        activityText: '',
+        errorText: err.message
+      });
+      trackException(err.message);
+    }
   }
 
   _checkCookie() {
@@ -76,20 +61,34 @@ export default class CookieCheck extends React.Component {
     HashLocation.push(url);
   }
 
-  _handleLoginError(resp) {
-    if (resp.status === 401) {
-      // if unauthorized, send to login page
-      this.setState({
-        activityText: 'Not logged in. Please wait for the login form to load...'
-      });
-      HashLocation.push('/login');
-    } else {
-      let err = resp.errors[0];
-      this.setState({
-        activityText: '',
-        errorText: err.message
-      });
-      trackException(err.message);
-    }
+  render() {
+    const styles = {
+      error: {
+        display: this.state.errorText ? 'block' : 'none',
+        fontSize: '85%',
+        opacity: 0.6,
+        color: Styles.Colors.red900
+      },
+
+      activity: {
+        display: this.state.activityText ? 'block' : 'none',
+        fontSize: '85%',
+        opacity: 0.6
+      }
+    };
+
+    return (
+      <div>
+        <div style={styles.activity}>
+          <CircularProgress mode="indeterminate" />
+          <p>{this.state.activityText}.</p>
+        </div>
+        <div style={styles.error}>
+          <h3>Scope service is not available. Please try again later.</h3>
+          <p>{this.state.errorText}</p>
+        </div>
+      </div>
+    );
   }
+
 }

@@ -2,8 +2,7 @@ import React from 'react';
 
 export class Box extends React.Component {
   render() {
-
-    let styles = {
+    const styles = {
       border: 'solid 1px #d9d9d9'
     };
 

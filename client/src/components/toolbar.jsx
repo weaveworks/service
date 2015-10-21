@@ -1,5 +1,5 @@
-import React from "react";
-import { Paper } from "material-ui";
+import React from 'react';
+import { Paper } from 'material-ui';
 
 import Colors from '../common/colors';
 
@@ -53,7 +53,7 @@ export default class WrapperToolbar extends React.Component {
   }
 
   render() {
-    let styles = {
+    const styles = {
       filler: {
         height: 50,
       },

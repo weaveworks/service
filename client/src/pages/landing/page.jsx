@@ -1,11 +1,10 @@
-import React from "react";
-import { HashLocation, RouteHandler } from "react-router";
-import { CircularProgress, Styles } from "material-ui";
+import React from 'react';
+import { RouteHandler } from 'react-router';
+import { Styles } from 'material-ui';
 import CookieBanner from 'react-cookie-banner';
 
-import { getData } from "../../common/request";
-import { BackgroundContainer } from "../../components/background-container";
-import { Logo } from "../../components/logo";
+import { BackgroundContainer } from '../../components/background-container';
+import { Logo } from '../../components/logo';
 
 const Colors = Styles.Colors;
 const ThemeManager = new Styles.ThemeManager();
@@ -169,8 +168,8 @@ export default class LandingPage extends React.Component {
                 Learn more about Weave Scope <a href="http://weave.works/scope" target="website">on our website.</a>
               </div>
               <div style={styles.infoItem}>
-                Build and deploy a Docker app on Amazon ECS - check out 
-                  our <br /><a target="ecsguide" href="http://weave.works/guides/service-discovery-with-weave-aws-ecs.html">getting started guide</a>
+                Build and deploy a Docker app on Amazon ECS - check out our
+                  <br /><a target="ecsguide" href="http://weave.works/guides/service-discovery-with-weave-aws-ecs.html">getting started guide</a>
               </div>
             </div>
           </div>
