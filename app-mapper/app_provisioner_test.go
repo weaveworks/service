@@ -20,7 +20,7 @@ func testAppProvisioner(t *testing.T, appID string, test func(p appProvisioner, 
 		runTimeout:    defaultDockerRunTimeout,
 		clientTimeout: defaultDockerClientTimeout,
 	}
-	p, err := newDockerProvisioner("unix:///var/run/weave.sock", o)
+	p, err := newDockerProvisioner("unix:///var/run/weave/weave.sock", o)
 	require.NoError(t, err, "Cannot create provisioner")
 	err = p.fetchApp()
 	host, err := p.runApp(appID)

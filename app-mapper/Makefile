@@ -28,8 +28,9 @@ $(APP_MAPPER_EXE): *.go
 	go build -ldflags "-extldflags \"-static\" -linkmode=external" -tags netgo -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
-integration-test:
+integration-test: $(IMAGES_UPTODATE)
 	script/integration-test.sh
+
 test:
 	go test ./...
 

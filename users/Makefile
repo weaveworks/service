@@ -1,5 +1,6 @@
 .PHONY: all test integration-test clean
 
+RM=--rm
 IMAGES_UPTODATE=.images.uptodate
 IMAGE_NAME=quay.io/weaveworks/users
 USERS_EXE=users
@@ -33,13 +34,17 @@ $(USERS_EXE): *.go names/*.go
 test:
 	go test ./...
 
-integration-test: $(WEB_UPTODATE)
-	docker-compose up -d
-	docker run --rm \
-		-v "$(shell go list -e -f {{.Dir}} github.com/weaveworks/service)":/usr/src/go/src/github.com/weaveworks/service \
-		--workdir /usr/src/go/src/github.com/weaveworks/service/users \
-		golang:1.4 \
-		/bin/bash -c "go get -v -t ./... ; go test -tags integration -timeout 30s ./..."
+integration-test: $(IMAGES_UPTODATE)
+	DB_CONTAINER="$$(docker run -d $(DB_IMAGE_NAME))"; \
+	docker run $(RM) \
+		-v "$(GOPATH)":/go/ \
+		--workdir /go/src/github.com/weaveworks/service/users \
+		--link "$$DB_CONTAINER":users-db.weave.local \
+		golang:1.5.1 \
+		/bin/bash -c "go get -v -d -t ./... ; go test -tags integration -timeout 30s ./..."; \
+	status=$$?; \
+	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
+	exit $$status
 
 clean:
 	-docker rmi $(IMAGE_NAME) $(DB_IMAGE_NAME) > /dev/null 2>&1 || true

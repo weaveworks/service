@@ -34,6 +34,7 @@ test:
     - cd $SRCDIR; $TOOLS/test
     - cd $SRCDIR/users; make
     - cd $SRCDIR/users; make test
+    - cd $SRCDIR/users; make RM= integration-test
     - cd $SRCDIR/app-mapper; make
     - cd $SRCDIR/app-mapper; make test
     - cd $SRCDIR/frontend; make
