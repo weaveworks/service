@@ -1,4 +1,5 @@
 import debug from 'debug';
+import React from 'react';
 
 const log = debug('service:tracking');
 const error = debug('service:trackingErr');
@@ -44,5 +45,24 @@ export function trackView(page) {
     window.ga('send', 'pageview');
   } else {
     log('trackView', trackPrefix + page);
+  }
+}
+
+// pardot
+export class PardotSignupIFrame extends React.Component {
+  render() {
+    let url;
+    const query = `email=${this.props.email}`;
+
+    if (window.pi) {
+      const isHTTPS = (document.location.protocol === 'https:');
+      const host = (isHTTPS ? 'https://go.pardot.com' : 'http://go.weave.works');
+      url = `${host}/l/123932/2015-10-19/3pmpzj?${query}`;
+    } else {
+      url = `/api/bogus?${query}`;
+      log('trackSignup', this.props.email);
+    }
+
+    return <iframe src={url} width="1" height="1" style={{opacity: 0}}></iframe>;
   }
 }

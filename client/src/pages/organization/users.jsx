@@ -36,13 +36,13 @@ export default class Users extends React.Component {
     const url = `/api/org/${this.props.org}/users/${user.id}`;
 
     deleteData(url)
-      .then(function handleResponse(resp) {
+      .then(resp => {
         this.setState({
           users: resp
         });
         this.refs.emailField.setValue('');
-      }, function handleError() {
-        // TODO show error
+      }, resp => {
+        error(resp);
       });
   }
 
@@ -53,13 +53,13 @@ export default class Users extends React.Component {
 
     if (email) {
       postData(url, {email: email})
-        .then(function handleResponse(resp) {
+        .then(resp => {
           this.setState({
             users: resp
           });
           this.refs.emailField.setValue('');
-        }, function handleError() {
-          // TODO show error
+        }, resp => {
+          error(resp);
         });
     }
   }

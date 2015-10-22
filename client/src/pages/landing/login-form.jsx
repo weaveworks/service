@@ -3,7 +3,7 @@ import { HashLocation } from 'react-router';
 import { Styles, RaisedButton, TextField } from 'material-ui';
 
 import { postData } from '../../common/request';
-import { trackEvent, trackException, trackTiming, trackView } from '../../common/tracking';
+import { trackEvent, trackException, trackTiming, trackView, PardotSignupIFrame } from '../../common/tracking';
 
 const Colors = Styles.Colors;
 
@@ -54,7 +54,7 @@ export default class LoginForm extends React.Component {
         inputNode.disabled = true;
 
         postData('/api/users/signup', {email: value})
-          .then(function handleSignupResponse(resp) {
+          .then(resp => {
             // empty field
             field.clearValue();
 
@@ -64,14 +64,14 @@ export default class LoginForm extends React.Component {
               token: resp.token,
               submitting: false
             });
-          }.bind(this), function handleSignupError(resp) {
+          }, resp => {
             this.setState({
               errorText: resp,
               submitting: false,
               submitText: 'Go'
             });
             trackException(resp);
-          }.bind(this));
+          });
 
         // tracking
         trackTiming('SignupButton', 'timeToClick');
@@ -85,6 +85,7 @@ export default class LoginForm extends React.Component {
   }
 
   render() {
+    const submitSuccess = this.state.token || this.state.mailSent;
     const styles = {
       submit: {
         marginLeft: '2em',
@@ -115,7 +116,7 @@ export default class LoginForm extends React.Component {
         display: !this.state.mailSent && !this.state.token ? 'block' : 'none',
       },
 
-      link: {
+      devLink: {
         display: this.state.token ? 'block' : 'none',
         fontSize: '85%',
         opacity: 0.6
@@ -135,9 +136,10 @@ export default class LoginForm extends React.Component {
           <span className="fa fa-check" style={styles.confirmationIcon}></span>
           <p>A mail with further instructions was sent to {this.state.email}</p>
         </div>
-        <div style={styles.link}>
+        <div style={styles.devLink}>
           <button onClick={this._doLogin.bind(this)}>Developer login link</button>
         </div>
+        {submitSuccess && <PardotSignupIFrame email={this.state.email} />}
       </div>
     );
   }
