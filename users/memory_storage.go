@@ -92,10 +92,14 @@ func (u usersByCreatedAt) Len() int           { return len(u) }
 func (u usersByCreatedAt) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.Before(u[j].CreatedAt) }
 
-func (s memoryStorage) ListUnapprovedUsers() ([]*user, error) {
+func (s memoryStorage) ListUsers(fs ...filter) ([]*user, error) {
 	users := []*user{}
 	for _, user := range s.users {
-		if user.ApprovedAt.IsZero() {
+		ok, err := s.applyFilters(user, fs)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
 			users = append(users, user)
 		}
 	}
@@ -149,6 +153,17 @@ func (s memoryStorage) SetUserToken(id, token string) error {
 	return nil
 }
 
+func (s memoryStorage) SetUserFirstLoginAt(id string) error {
+	user, ok := s.users[id]
+	if !ok {
+		return errNotFound
+	}
+	if user.FirstLoginAt.IsZero() {
+		user.FirstLoginAt = time.Now().UTC()
+	}
+	return nil
+}
+
 func (s memoryStorage) createOrganization() (*organization, error) {
 	o := &organization{
 		ID: fmt.Sprint(len(s.organizations)),
@@ -185,4 +200,39 @@ func (s memoryStorage) RenameOrganization(oldName, newName string) error {
 
 func (s memoryStorage) Close() error {
 	return nil
+}
+
+func (s memoryStorage) applyFilters(item interface{}, fs []filter) (bool, error) {
+	if len(fs) == 0 {
+		return true, nil
+	}
+
+	match := true
+	switch f := fs[0].(type) {
+	case usersApprovedFilter:
+		u, ok := item.(*user)
+		if !ok {
+			return false, nil
+		}
+		if bool(f) {
+			match = u.IsApproved()
+		} else {
+			match = !u.IsApproved()
+		}
+	case usersOrganizationFilter:
+		u, ok := item.(*user)
+		if !ok {
+			return false, nil
+		}
+		match = u.Organization != nil && u.Organization.Name == string(f)
+	case nil:
+		// no-op
+	default:
+		return false, filterNotImplementedError{f}
+	}
+
+	if !match {
+		return false, nil
+	}
+	return s.applyFilters(item, fs[1:])
 }

@@ -6,6 +6,7 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/jordan-wright/email"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/require"
@@ -50,13 +51,13 @@ func testEmailSender(e *email.Email) error {
 
 // Truncate the test store. Assumes the db is Postgres.
 func truncateDatabase(t *testing.T) {
-	db := storage.(execer)
+	db := storage.(squirrel.Execer)
 	mustExec(t, db, `truncate table traceable;`)
 	mustExec(t, db, `truncate table users;`)
 	mustExec(t, db, `truncate table organizations;`)
 }
 
-func mustExec(t *testing.T, db execer, query string, args ...interface{}) {
+func mustExec(t *testing.T, db squirrel.Execer, query string, args ...interface{}) {
 	_, err := db.Exec(query, args...)
 	require.NoError(t, err)
 }

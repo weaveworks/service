@@ -23,3 +23,22 @@ func (u *user) CompareToken(other string) bool {
 	}
 	return time.Now().UTC().Sub(u.TokenCreatedAt) <= 6*time.Hour
 }
+
+func (u *user) IsApproved() bool {
+	return !u.ApprovedAt.IsZero()
+}
+
+type usersApprovedFilter bool
+
+func newUsersApprovedFilter(s []string) filter {
+	return usersApprovedFilter(len(s) > 0 && s[0] == "true")
+}
+
+type usersOrganizationFilter string
+
+func newUsersOrganizationFilter(s []string) filter {
+	if len(s) == 0 {
+		return nil
+	}
+	return usersOrganizationFilter(s[0])
+}

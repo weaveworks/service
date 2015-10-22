@@ -34,6 +34,23 @@ func jsonBody(t *testing.T, data interface{}) io.Reader {
 	return bytes.NewReader(b)
 }
 
+func newLoginRequest(t *testing.T, e *email.Email) *http.Request {
+	loginLink, _ := findLoginLink(t, e)
+	require.Contains(t, string(e.HTML), loginLink)
+
+	u, err := url.Parse(loginLink)
+	require.NoError(t, err)
+	// convert email link /#/login/foo/bar to /api/users/login?email=foo&token=bar
+	fragments := strings.Split(u.Fragment, "/")
+	params := url.Values{}
+	params.Set("email", fragments[2])
+	params.Set("token", fragments[3])
+	path := fmt.Sprintf("/api/users/login?%s", params.Encode())
+	r, err := http.NewRequest("GET", path, nil)
+	require.NoError(t, err)
+	return r
+}
+
 func Test_Signup(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
@@ -114,11 +131,29 @@ func Test_Signup(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{"email": email, "organizationName": user.Organization.Name}, body)
 
-	// Invalidates their login token
 	user, err = storage.FindUserByEmail(email)
-	if assert.NoError(t, err) {
-		assert.Equal(t, "", user.Token)
-	}
+	require.NoError(t, err)
+	// Invalidates their login token
+	assert.Equal(t, "", user.Token)
+	// Sets their FirstLoginAt
+	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
+	firstLoginAt := user.FirstLoginAt
+
+	// Subsequent Logins do not change their FirstLoginAt
+	w = httptest.NewRecorder()
+	r, _ = http.NewRequest("POST", "/api/users/signup", jsonBody(t, map[string]interface{}{"email": "joe@weave.works"}))
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+	require.Len(t, sentEmails, 3)
+	assert.Equal(t, []string{email}, sentEmails[2].To)
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, newLoginRequest(t, sentEmails[2]))
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	user, err = storage.FindUserByEmail(email)
+	require.NoError(t, err)
+	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
+	assert.Equal(t, firstLoginAt, user.FirstLoginAt, "Second login should not have changed user's FirstLoginAt")
 }
 
 func Test_Signup_WithInvalidJSON(t *testing.T) {
