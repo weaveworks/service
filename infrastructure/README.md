@@ -91,6 +91,7 @@ They are pretty much only useful for blowing away and bringing up a new environm
 
 ```
 # cd services; ./service.sh (-prod) weave
+# cd services; ./service.sh (-prod) scope
 # cd services; ./service.sh (-prod) consul
 # cd services; ./service.sh (-prod) swarm
 ```
