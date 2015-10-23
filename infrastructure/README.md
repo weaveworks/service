@@ -81,7 +81,7 @@ This step bring up the various infrastructure services (Weave, Scope, Consul and
 Note, it may take some time for the DNS records to propagate, so before running these commands, you need to ensure:
 
 ```
-# dig +short docker.cloud.weave.works
+# dig +short docker.{dev/cloud}.weave.works
 ```
 
 returns the expected IP addresses.
