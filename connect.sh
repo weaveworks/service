@@ -51,5 +51,7 @@ trap finish EXIT
 PROXY_IP=$(ssh $SSH_ARGS $HOST weave dns-lookup $USER-proxy)
 echo "Please configure your browser for proxy http://localhost:8080/proxy.pac and"
 echo "export DOCKER_HOST=tcp://127.0.0.1:$LOCAL_PORT"
-ssh $SSH_ARGS -L8000:$PROXY_IP:8000 -L8080:$PROXY_IP:8080 -L$LOCAL_PORT:$DOCKER_IP_PORT $HOST \
-    docker $DOCKER_CONFIG attach $USER-proxy
+# While loop here is a temporary fix for swarm dropping attaches
+while ! output="$(ssh $SSH_ARGS -L8000:$PROXY_IP:8000 -L8080:$PROXY_IP:8080 -L$LOCAL_PORT:$DOCKER_IP_PORT $HOST docker $DOCKER_CONFIG attach $USER-proxy 2>&1 | tee /dev/stdout)"; do
+    echo "$output" | grep -v "cannot attach to a stopped container" || break
+done
