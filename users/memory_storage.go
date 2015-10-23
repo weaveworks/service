@@ -95,11 +95,7 @@ func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.Before(u[j
 func (s memoryStorage) ListUsers(fs ...filter) ([]*user, error) {
 	users := []*user{}
 	for _, user := range s.users {
-		ok, err := s.applyFilters(user, fs)
-		if err != nil {
-			return nil, err
-		}
-		if ok {
+		if s.applyFilters(user, fs) {
 			users = append(users, user)
 		}
 	}
@@ -202,37 +198,11 @@ func (s memoryStorage) Close() error {
 	return nil
 }
 
-func (s memoryStorage) applyFilters(item interface{}, fs []filter) (bool, error) {
-	if len(fs) == 0 {
-		return true, nil
-	}
-
-	match := true
-	switch f := fs[0].(type) {
-	case usersApprovedFilter:
-		u, ok := item.(*user)
-		if !ok {
-			return false, nil
+func (s memoryStorage) applyFilters(item interface{}, fs []filter) bool {
+	for _, f := range fs {
+		if !f.Item(item) {
+			return false
 		}
-		if bool(f) {
-			match = u.IsApproved()
-		} else {
-			match = !u.IsApproved()
-		}
-	case usersOrganizationFilter:
-		u, ok := item.(*user)
-		if !ok {
-			return false, nil
-		}
-		match = u.Organization != nil && u.Organization.Name == string(f)
-	case nil:
-		// no-op
-	default:
-		return false, filterNotImplementedError{f}
 	}
-
-	if !match {
-		return false, nil
-	}
-	return s.applyFilters(item, fs[1:])
+	return true
 }

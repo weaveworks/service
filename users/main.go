@@ -274,37 +274,6 @@ func (a *api) lookupUsingToken(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type userView struct {
-	ID           string    `json:"-"`
-	Email        string    `json:"email"`
-	CreatedAt    time.Time `json:"-"`
-	ApprovedAt   time.Time `json:"-"`
-	FirstLoginAt time.Time `json:"-"`
-}
-
-func formatTimestamp(t time.Time) string {
-	if t.IsZero() {
-		return ""
-	}
-	return t.Format(time.Stamp)
-}
-
-func (v userView) FormatCreatedAt() string {
-	return formatTimestamp(v.CreatedAt)
-}
-
-func (v userView) FormatApprovedAt() string {
-	return formatTimestamp(v.ApprovedAt)
-}
-
-func (v userView) FormatFirstLoginAt() string {
-	return formatTimestamp(v.FirstLoginAt)
-}
-
-func (v userView) IsApproved() bool {
-	return !v.ApprovedAt.IsZero()
-}
-
 var listUsersFilters = filters{
 	"approved": newUsersApprovedFilter,
 }
@@ -314,20 +283,10 @@ func (a *api) listUsers(w http.ResponseWriter, r *http.Request) {
 	if renderError(w, r, err) {
 		return
 	}
-	userViews := []userView{}
-	for _, u := range users {
-		userViews = append(userViews, userView{
-			ID:           u.ID,
-			Email:        u.Email,
-			CreatedAt:    u.CreatedAt,
-			ApprovedAt:   u.ApprovedAt,
-			FirstLoginAt: u.FirstLoginAt,
-		})
-	}
 	b, err := a.templates.bytes("list_users.html", map[string]interface{}{
 		"ShowingApproved":   r.URL.Query().Get("approved") == "true",
 		"ShowingUnapproved": r.URL.Query().Get("approved") == "false",
-		"Users":             userViews,
+		"Users":             users,
 	})
 	if renderError(w, r, err) {
 		return
@@ -425,11 +384,7 @@ func (a *api) listOrganizationUsers(currentUser *user, w http.ResponseWriter, r 
 	if renderError(w, r, err) {
 		return
 	}
-	userViews := []userView{}
-	for _, u := range users {
-		userViews = append(userViews, userView{Email: u.Email})
-	}
-	renderJSON(w, http.StatusOK, userViews)
+	renderJSON(w, http.StatusOK, users)
 }
 
 func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {

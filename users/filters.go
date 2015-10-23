@@ -2,9 +2,17 @@ package main
 
 import (
 	"net/url"
+
+	"github.com/Masterminds/squirrel"
 )
 
-type filter interface{}
+type filter interface {
+	// Apply this filter to an individual item
+	Item(interface{}) bool
+
+	// Apply this filter to an SQL select query
+	Select(squirrel.SelectBuilder) squirrel.SelectBuilder
+}
 
 type filters map[string]func([]string) filter
 
@@ -17,4 +25,18 @@ func (f filters) parse(params url.Values) []filter {
 		}
 	}
 	return fs
+}
+
+type inFilter struct {
+	Allowed  func(item interface{}) bool
+	SQLField string
+	Value    interface{}
+}
+
+func (f inFilter) Item(item interface{}) bool {
+	return f.Allowed(item)
+}
+
+func (f inFilter) Select(q squirrel.SelectBuilder) squirrel.SelectBuilder {
+	return q.Where(squirrel.Eq{f.SQLField: f.Value})
 }

@@ -206,11 +206,7 @@ func (s pgStorage) usersQuery() squirrel.SelectBuilder {
 }
 
 func (s pgStorage) ListUsers(fs ...filter) ([]*user, error) {
-	q, err := s.applyFilters(s.usersQuery(), fs)
-	if err != nil {
-		return nil, err
-	}
-	rows, err := q.Query()
+	rows, err := s.applyFilters(s.usersQuery(), fs).Query()
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +216,7 @@ func (s pgStorage) ListUsers(fs ...filter) ([]*user, error) {
 }
 
 func (s pgStorage) ListOrganizationUsers(orgName string) ([]*user, error) {
-	return s.ListUsers(usersOrganizationFilter(orgName))
+	return s.ListUsers(newUsersOrganizationFilter([]string{orgName}))
 }
 
 func (s pgStorage) ApproveUser(id string) (*user, error) {
@@ -423,25 +419,9 @@ func (s pgStorage) Transaction(f func(*sql.Tx) error) error {
 	return tx.Commit()
 }
 
-func (s pgStorage) applyFilters(q squirrel.SelectBuilder, fs []filter) (squirrel.SelectBuilder, error) {
-	if len(fs) == 0 {
-		return q, nil
+func (s pgStorage) applyFilters(q squirrel.SelectBuilder, fs []filter) squirrel.SelectBuilder {
+	for _, f := range fs {
+		q = f.Select(q)
 	}
-
-	switch f := fs[0].(type) {
-	case usersApprovedFilter:
-		if bool(f) {
-			q = q.Where("users.approved_at is not null")
-		} else {
-			q = q.Where("users.approved_at is null")
-		}
-	case usersOrganizationFilter:
-		q = q.Where(squirrel.Eq{"organizations.name": string(f)})
-	case nil:
-		// no-op
-	default:
-		return q, filterNotImplementedError{f}
-	}
-
-	return s.applyFilters(q, fs[1:])
+	return q
 }
