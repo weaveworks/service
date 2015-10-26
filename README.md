@@ -35,7 +35,7 @@ Now, still on your Linux host or VM, build the service and deploy it locally.
 
 ```
 cd $GOPATH/src/github.com/weaveworks/service
-./build.sh
+make
 ./deploy.sh -local
 ```
 
@@ -85,11 +85,11 @@ Note that you'll need to preload a recent build of the Scope image.
              │                   │               │
              │                   │               │
              │                   │               │
-         build.sh            push.sh        deploy.sh
+           make               push.sh        deploy.sh
 ```
 
 1. Make and merge changes following a normal PR workflow.
-1. Produce up-to-date Docker image(s) on your local VM: `./build.sh`
+1. Produce up-to-date Docker image(s) on your local VM: `make`
 1. Login to Quay with `docker login quay.io`. This only needs to be done once.
    If you don't have access to Quay ask a fellow scopet to grant it. If you
    already have access to Quay and are unsure about what credentials to type,

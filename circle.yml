@@ -8,7 +8,6 @@ machine:
     - docker
   environment:
     GOPATH: /home/ubuntu
-    TOOLS: /home/ubuntu/src/github.com/weaveworks/tools
     SRCDIR: /home/ubuntu/src/github.com/weaveworks/service
     PATH: /usr/local/go/bin:$HOME/bin:$PATH
 
@@ -16,35 +15,25 @@ dependencies:
   cache_directories:
     - "~/docker"
   post:
-    - sudo chown -R `whoami` /usr/local/go
-    - rm -rf /usr/local/go/*; curl -s https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz | tar xz -C /usr/local
-    - go version
-    - mkdir -p $TOOLS
-    - git clone https://github.com/weaveworks/tools.git $TOOLS
-    - go clean -i net
-    - go install -tags netgo std
     - mkdir -p $(dirname $SRCDIR)
     - cp -r $(pwd)/ $SRCDIR
-    - cd $SRCDIR; make
-    - cd $SRCDIR/client; $TOOLS/rebuild-image service_client_build . Dockerfile package.json karma.config.js karma.cross-browser.config.js webpack.local.config.js webpack.production.config.js
+    - cd $SRCDIR/client; ../tools/rebuild-image service_client_build . Dockerfile package.json karma.config.js karma.cross-browser.config.js webpack.local.config.js webpack.production.config.js
+    - touch $SRCDIR/client/.service_client_build.uptodate
+    - cd $SRCDIR/build; ../tools/rebuild-image service_build . build.sh Dockerfile
+    - touch $SRCDIR/build/.image.uptodate
 
 test:
   override:
-    - cd $SRCDIR; $TOOLS/lint .
-    - cd $SRCDIR; $TOOLS/test
-    - cd $SRCDIR/users; make
-    - cd $SRCDIR/users; make test
-    - cd $SRCDIR/users; make RM= integration-test
-    - cd $SRCDIR/app-mapper; make
-    - cd $SRCDIR/app-mapper; make test
-    - cd $SRCDIR/frontend; make
-    - cd $SRCDIR/client; make RM= lint
-    - cd $SRCDIR/client; make RM= tests
-    - cd $SRCDIR/client; make RM=
-    - cd $SRCDIR/monitoring; make RM=
+    - cd $SRCDIR; ./tools/lint .
+    - cd $SRCDIR; COVERDIR=./coverage make RM= test
+    - cd $SRCDIR; make RM=
+    - cd $SRCDIR; make RM= users-integration-test
+    - cd $SRCDIR; make RM= client-lint
+    - cd $SRCDIR; make RM= client-tests
 
 teardown:
   pre:
+    - cd $SRCDIR; ./tools/cover/gather_coverage.sh ./coverage $SRCDIR/coverage
     - go get github.com/mattn/goveralls
     - goveralls -repotoken $COVERALLS_REPO_TOKEN -coverprofile=$SRCDIR/profile.cov -service=circleci || true
     - cd $SRCDIR; cp coverage.* $CIRCLE_ARTIFACTS
