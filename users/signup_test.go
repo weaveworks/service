@@ -57,7 +57,6 @@ func Test_Signup(t *testing.T) {
 	assert.Nil(t, user.Organization, "user should not have an organization id")
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, fromAddress, sentEmails[0].From)
-		assert.Equal(t, []string{fromAddress}, sentEmails[0].Bcc)
 		assert.Equal(t, []string{email}, sentEmails[0].To)
 		assert.Contains(t, string(sentEmails[0].Text), "Thanks for your interest")
 		assert.Contains(t, string(sentEmails[0].HTML), "Thanks for your interest")

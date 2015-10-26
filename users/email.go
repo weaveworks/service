@@ -63,7 +63,6 @@ func smtpEmailSender(uri string) (func(e *email.Email) error, error) {
 func welcomeEmail(t templateEngine, u *user) *email.Email {
 	e := email.NewEmail()
 	e.From = fromAddress
-	e.Bcc = []string{fromAddress}
 	e.To = []string{u.Email}
 	e.Subject = "Welcome to Scope"
 	e.Text = t.quietBytes("welcome_email.text", nil)
