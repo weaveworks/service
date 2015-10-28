@@ -21,10 +21,12 @@ case "$1" in
   -local)
     ENVIRONMENT="local"
     if ! weave status > /dev/null; then
-        weave launch
+        weave launch-router
+        weave launch-proxy --hostname-match='^k8s_([^\.]+)\..*$'
         weave expose
     fi
     eval $(weave env)
+    ./spawn_local_k8s.sh
     ;;
   *)
     usage
