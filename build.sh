@@ -2,7 +2,7 @@
 
 set -eu
 
-if echo "$DOCKER_HOST" | grep "127.0.0.1" >/dev/null; then
+if [ -n "${DOCKER_HOST+x}" ] && echo "$DOCKER_HOST" | grep "127.0.0.1" >/dev/null; then
     echo "DOCKER_HOST is set to \"$DOCKER_HOST\"!"
     echo "If you are trying to build for dev/prod, this is probably a mistake."
     while true; do
