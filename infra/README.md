@@ -22,10 +22,15 @@ The **infra** deals with everything between our metal (EC2, GCE, ...) and our sc
 
 For now, we deploy onto EC2.
 
-## Get set up for AWS
+## Set up AWS
 
 - Install the AWS tool
 - Configure your credentials
+- Run these test commands
+
+## Set up kubectl
+
+- Install the kubectl tool
 - Run these test commands
 
 ## Run the bootstrapping script
@@ -33,6 +38,8 @@ For now, we deploy onto EC2.
 - See http://kubernetes.io/v1.0/docs/getting-started-guides/aws.html
 - Inspect our ec2/config-default.sh
 - Override defaults as necessary
+- Run it in this way
+- Common errors?
 
 ## Verify the cluster
 
