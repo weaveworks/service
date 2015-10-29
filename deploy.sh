@@ -27,6 +27,7 @@ case "$1" in
     fi
     eval $(weave env)
     ./spawn_local_k8s.sh
+    exit 0
     ;;
   *)
     usage
