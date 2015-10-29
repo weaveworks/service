@@ -32,7 +32,7 @@ docker run \
        --privileged=true \
        -d \
        gcr.io/google_containers/hyperkube:v1.0.6 \
-       /hyperkube kubelet --containerized --hostname-override="127.0.0.1" --address="0.0.0.0" --api-servers=http://localhost:8080 --config=/etc/kubernetes/manifests --cluster-dns=10.0.0.10 --cluster-domain=10.0.0.10
+       /hyperkube kubelet --containerized --hostname-override="127.0.0.1" --address="0.0.0.0" --api-servers=http://localhost:8080 --config=/etc/kubernetes/manifests --cluster-dns=10.0.0.10 --cluster-domain=cluster.local
 docker run --name k8s_proxy -d --net=host --privileged gcr.io/google_containers/hyperkube:v1.0.6 /hyperkube proxy --master=http://127.0.0.1:8080 --v=2
 # DNS
 # From https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/dns
