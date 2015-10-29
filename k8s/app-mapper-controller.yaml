@@ -11,15 +11,15 @@ spec:
   template:
     metadata:
       labels:
-        name: frontend
+        name: app-mapper
     spec:
       containers:
       - name: app-mapper
         image: quay.io/weaveworks/app-mapper
-	command: ["-db-uri=postgres://postgres@app-mapper-db.weave.local/app_mapper?sslmode=disable", "-docker-host=unix:///var/run/weave/weave.sock", "-log-level=debug"]
-	volumeMounts:
-	- mountPath: /var/run/weave/weave.sock
-	- hostPath: /var/run/weave/weave.sock
+        command: ["/app-mapper", "-db-uri=postgres://postgres@app-mapper-db.weave.local/app_mapper?sslmode=disable", "-docker-host=unix:///var/run/weave/weave.sock", "-log-level=debug"]
+        volumeMounts:
+          - mountPath: /var/run/weave/weave.sock
+            name: weavesock
         env:
         - name: GET_HOSTS_FROM
           value: dns
@@ -30,3 +30,7 @@ spec:
           # value: env
         ports:
         - containerPort: 80
+      volumes:
+      - name: weavesock
+        hostPath:
+          path: /var/run/weave/weave.sock
