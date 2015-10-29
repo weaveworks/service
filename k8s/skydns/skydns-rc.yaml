@@ -9,7 +9,7 @@ metadata:
     version: v9
     kubernetes.io/cluster-service: "true"
 spec:
-  replicas: {{ pillar['dns_replicas'] }}
+  replicas: 1
   selector:
     k8s-app: kube-dns
     version: v9
@@ -48,7 +48,7 @@ spec:
             memory: 50Mi
         args:
         # command = "/kube2sky"
-        - -domain={{ pillar['dns_domain'] }}
+        - -domain=cluster.local
       - name: skydns
         image: gcr.io/google_containers/skydns:2015-10-13-8c72f8c
         resources:
@@ -60,7 +60,7 @@ spec:
         - -machines=http://127.0.0.1:4001
         - -addr=0.0.0.0:53
         - -ns-rotate=false
-        - -domain={{ pillar['dns_domain'] }}.
+        - -domain=cluster.local
         ports:
         - containerPort: 53
           name: dns
@@ -89,7 +89,7 @@ spec:
             cpu: 10m
             memory: 20Mi
         args:
-        - -cmd=nslookup kubernetes.default.svc.{{ pillar['dns_domain'] }} 127.0.0.1 >/dev/null
+        - -cmd=nslookup kubernetes.default.svc.cluster.local 127.0.0.1 >/dev/null
         - -port=8080
         ports:
         - containerPort: 8080

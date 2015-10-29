@@ -15,10 +15,10 @@ stop_container etcd
 
 # Spawn new cluster
 # From https://github.com/kubernetes/kubernetes/blob/master/docs/getting-started-guides/docker.md
-docker run --name etcd --net=host -d gcr.io/google_containers/etcd:2.0.12 /usr/local/bin/etcd --addr=127.0.0.1:4001 --bind-addr=0.0.0.0:4001 --data-dir=/var/etcd/data
 # kubelet requires --docker-endpoint=$DOCKER_HOST, to make it talk to
 # weave but ... it doesn't work due to
 # https://github.com/weaveworks/weave/issues/1600
+docker run --name etcd --net=host -d gcr.io/google_containers/etcd:2.0.12 /usr/local/bin/etcd --addr=127.0.0.1:4001 --bind-addr=0.0.0.0:4001 --data-dir=/var/etcd/data
 docker run \
        --name k8s_master \
        --volume=/:/rootfs:ro \
@@ -32,5 +32,10 @@ docker run \
        --privileged=true \
        -d \
        gcr.io/google_containers/hyperkube:v1.0.6 \
-       /hyperkube kubelet --containerized --hostname-override="127.0.0.1" --address="0.0.0.0" --api-servers=http://localhost:8080 --config=/etc/kubernetes/manifests
+       /hyperkube kubelet --containerized --hostname-override="127.0.0.1" --address="0.0.0.0" --api-servers=http://localhost:8080 --config=/etc/kubernetes/manifests --cluster-dns=10.0.0.10 --cluster-domain=10.0.0.10
 docker run --name k8s_proxy -d --net=host --privileged gcr.io/google_containers/hyperkube:v1.0.6 /hyperkube proxy --master=http://127.0.0.1:8080 --v=2
+# DNS
+# From https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/dns
+# TODO: reuse main etcd instead of spawning another one
+sleep 3 # Let hyperkube boot
+kubectl create -f k8s/skydns
