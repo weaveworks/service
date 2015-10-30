@@ -155,7 +155,6 @@ Then, tell Kubernetes to create a new replication controller from the file.
 
 ```
 $ kubectl create -f helloworld-rc.yaml
-replicationcontrollers/helloworld-1.0.0
 ```
 
 Check that it was created.
@@ -195,8 +194,8 @@ Verify.
 
 ```
 $ kubectl get rc
-CONTROLLER         CONTAINER(S)   IMAGE(S)                                  SELECTOR                                    REPLICAS
-helloworld-1.0.0   helloworld     docker.io/peterbourgon/helloworld:1.0.0   app=helloworld,track=stable,version=1.0.0   3
+CONTROLLER         CONTAINER(S)   IMAGE(S)   SELECTOR   REPLICAS
+helloworld-1.0.0   helloworld     ...        ...        3
 ```
 
 To expose this application to the world, we need to create a Kubernetes service.
@@ -206,7 +205,6 @@ Our helloworld service will match all app=helloworld pods, ignoring all other la
 
 ```
 $ kubectl create -f helloworld-svc.yaml
-services/helloworld
 ```
 
 Inspect the service until you see the ELB endpoint that was created.
@@ -257,28 +255,19 @@ $ sed -i '' 's/1.0.0/2.0.0/g' helloworld-rc.yaml
 
 Now, let's do a rolling update, from 1.0.0 to 2.0.0.
 We'll wait 3s between starting a new pod and killing an old one.
-In production, you might want to wait longer, 1m or more.
+In production, you want to wait longer, 1m or more.
 
 ```
 $ kubectl rolling-update helloworld-1.0.0 -f helloworld-rc.yaml --update-period=3s
-Creating helloworld-2.0.0
-At beginning of loop: helloworld-1.0.0 replicas: 2, helloworld-2.0.0 replicas: 1
-Updating helloworld-1.0.0 replicas: 2, helloworld-2.0.0 replicas: 1
-At end of loop: helloworld-1.0.0 replicas: 2, helloworld-2.0.0 replicas: 1
-Stopping helloworld-1.0.0 replicas: 2 -> 0
-Update succeeded. Deleting helloworld-1.0.0
-helloworld-2.0.0
 ```
 
 In your other terminal, you should see "Hello world" and "Foo bar" interleaved, and then only "Foo bar".
-
+All done.
 Now, let's tear everything down.
 
 ```
 $ kubectl delete svc helloworld
-services/helloworld
 $ kubectl delete rc helloworld-2.0.0
-replicationcontrollers/helloworld-2.0.0
 ```
 
 No pods left.
