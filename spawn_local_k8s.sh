@@ -51,4 +51,5 @@ docker run --name local_k8s_proxy -d --net=host --privileged gcr.io/google_conta
 # From https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/dns
 # TODO: reuse main etcd instead of spawning another one
 sleep 3 # Let hyperkube boot
+kubectl create -f "$SCRIPT_DIR"/k8s/local/kube-system.json
 kubectl create -f "$SCRIPT_DIR"/k8s/local/skydns
