@@ -37,7 +37,7 @@ To interact with a cluster, use kubectl --kubeconfig.
 $ kubectl --kubeconfig=foo.kubeconfig get pods
 ```
 
-> ☝️ 
+> 💁 
 > There are more sophisticated ways to manage multiple clusters and kubeconfigs.
 > See [this Kubernetes documentation](http://kubernetes.io/v1.0/docs/user-guide/kubeconfig-file.html) for more info.
 
@@ -70,7 +70,7 @@ The script expects to find a **config-foo.bash** file with settings for your clu
 Use an existing config file as a template.
 Then, run the script.
 
-> ☝️
+> 💁
 > The script moves your existing ~/.kube/config to ~/.kube/config.backup.TIMESTAMP.
 
 ```
@@ -79,7 +79,7 @@ $ ./provision.bash foo
 
 This will take several minutes.
 
-> ☝️
+> 💁
 > The script changes your default AWS region to the one specified in your config-foo.bash file.
 > The Kubernetes bootstrapping script expects it to work that way when uploading assets to S3.
 > Feel free to change it back when finished.
@@ -94,7 +94,7 @@ To allow others to connect to your cluster, you should copy your kubeconfig file
 $ cp ~/.kube/config foo.kubeconfig
 ```
 
-> ☝️ 
+> 💁
 > There are probably security considerations here, which I am electing to ignore.
 
 Now, other developers may access your cluster via e.g.
