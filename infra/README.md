@@ -48,18 +48,46 @@ For now, we deploy our clusters onto EC2.
 
 ## Set up AWS
 
-- [Install the AWS tool](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
-- `aws configure`
-- `aws s3 ls /`
+[Install the AWS tool](https://docs.aws.amazon.com/cli/latest/userguide/installing.html).
+If you want to do this on your own user account, create an IAM user with AdministratorAccess.
+Otherwise, ask a team member for credentials for the shared account.
+Configure your AWS client with those credentials.
+
+```
+$ aws configure
+```
+
+Confirm it works.
+
+```
+$ aws s3 ls /
+```
 
 ## Set up kubectl
 
 You should have the kubectl tool already.
 If not, see the [basic config](#basic-config) section.
 
+## Scripts
+
+Here's how the scripts work.
+
+```
+      +------------------+
+      | config-base.bash |--.                           +--kubernetes--------++
+      +------------------+  |                           |  +--cluster------+  |
+   +--------------------+   v      +-----------------+  |  |  +--aws----+  |  |
+-->| provision.bash foo |---+--+-->| get-k8s-io.bash |--|--|--|-->*.sh  |  |  |
+   +--------------------+      ^   +-----------------+  |  |  +---------+  |  |
+          +-----------------+  |                        |  +---------------+  |
+          | config-foo.bash |--'                        +---------------------+
+          +-----------------+
+
+```
+
 ## Get the latest bootstrapping script
 
-The core bootstrapping script is provided and maintained by the Kubernetes project.
+The core bootstrapping script, get-k8s-io.bash, is provided and maintained by the Kubernetes project.
 We make a couple of modifications, to make it more failsafe.
 
 ```
