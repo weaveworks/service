@@ -17,6 +17,14 @@ stop_container local_k8s_proxy
 stop_container local_k8s_kubelet
 stop_container etcd
 
+# Generate certificates
+
+if ! [ -d "$SCRIPT_DIR/k8s/local/pki" ]; then
+    curl -s -L https://raw.githubusercontent.com/kubernetes/kubernetes/master/cluster/saltbase/salt/generate-cert/make-ca-cert.sh -o /tmp/make-ca-cert.sh
+    chmod +x /tmp/make-ca-cert.sh
+    CERT_GROUP=`id -g` CERT_DIR="$SCRIPT_DIR"/k8s/local/pki /tmp/make-ca-cert.sh 10.0.0.1 DNS:kubernetes,DNS:kubernetes.default,DNS:kubernetes.default.svc,DNS:kubernetes.default.svc.cluster.local
+fi
+
 # Spawn new cluster
 # From https://github.com/kubernetes/kubernetes/blob/master/docs/getting-started-guides/docker.md
 # kubelet requires --docker-endpoint=$DOCKER_HOST, to make it talk to
