@@ -1,17 +1,23 @@
 # infra
 
-The **infra** deals with everything between our metal (EC2, GCE, ...) and our scheduling platform (k8s).
+The **infra** deals with everything between our metal (AWS) and our application.
+It's concerned with provisioning the scheduling system (k8s), stateful storage (RDS), load balancers (ELB), and DNS (Route53).
 
 ```
-+-------+ --.
-|  EC2  |   |
-+-------+   | infra
-+-------+   |
-|  k8s  |   |
-+-------+ --'
-+-------+
-|  App  |
-+-------+
++-----------------------------+  --.
+|             AWS             |    |
++-----------------------------+    |
++-----+ +-----+ +-----+ +-----+    |
+| R53 |-| ELB | | EC2 | | RDS |    | infra
++-----+ |     | +-----+ |     |    |
+        |     |    |    |     |    |
+        |     | +-----+ |     |    |
+        |     |-| k8s | |     |    |
+        +-----+ +-----+ +-----+  --'
+                   |       |
+                +-------------+
+                |     App     |
+                +-------------+
 ```
 
 1. [Basic config](#basic-config)
