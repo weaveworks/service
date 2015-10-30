@@ -8,7 +8,7 @@ It's concerned with provisioning the scheduling system (k8s), stateful storage (
 |             AWS             |    |
 +-----------------------------+    |
 +-----+ +-----+ +-----+ +-----+    |
-| R53 |-| ELB | | EC2 | | RDS |    | infra
+| r53 |-| ELB | | EC2 | | RDS |    | infra
 +-----+ |     | +-----+ |     |    |
         |     |    |    |     |    |
         |     | +-----+ |     |    |
@@ -36,15 +36,12 @@ It's concerned with provisioning the scheduling system (k8s), stateful storage (
 1.1. [Delete replication controllers](#delete-replication-controllers)
 1.1. [Verify pods are gone](#verify-pods-are-gone)
 1.1. [Tear down database](#tear-down-database)
-1.1. [Terminate instances](#terminate-instances)
-1.1. [Delete volumes](#delete-volumes)
+1.1. [Tear down Kubernetes](#tear-down-kubernetes)
 1.1. [Delete file storage](#delete-file-storage)
-1.1. [Delete security groups](#delete-security-groups)
-1.1. [Delete roles and profiles](#delete-roles-and-profiles)
 
 # Bootstrap
 
-For now, we deploy our clusters onto EC2.
+For now, we deploy our clusters onto AWS.
 
 ## Set up AWS
 
@@ -377,34 +374,17 @@ $ TODO
 $ TODO
 ```
 
-## Terminate instances
+## Tear down Kubernetes
 
 Replace foo with your cluster name in the below command.
 
 ```
-$ aws ec2 describe-instances --no-paginate \
-    --filters "Name=tag:KubernetesCluster,Values=kubernetes_foo" \
-              "Name=instance-state-name,Values=running" \
- | jq '.Reservations[].Instances[].InstanceId' | tr -d '"' \
- | xargs aws ec2 terminate-instances --instance-ids
-```
-
-## Delete volumes
-
-Replace foo with your cluster name in the below command.
-
-```
-$ bash -c '
-  for v in $(aws ec2 describe-volumes --no-paginate \
-             --filters "Name=tag:KubernetesCluster,Values=kubernetes_foo" \
-             | jq ".Volumes[].VolumeId" | tr -d \'"\')
-  do
-    aws ec2 delete-volume --volume-id=$v
-  done
-'
+$ ./provision.bash foo down
 ```
 
 ## Delete file storage
+
+Replace foo with your cluster name in the below command.
 
 ```
 $ bash -c '
@@ -413,45 +393,6 @@ $ bash -c '
     echo $b
     aws s3 rm --recursive s3://$b/
     aws s3 rb s3://$b
-  done
-'
-```
-
-## Delete security groups
-
-Delete VPCs.
-
-```
-$ bash -c '
-  for vpcid in $(aws ec2 describe-vpcs --filters "Name=tag:KubernetesCluster,Values=kubernetes_dev" \
-              | jq '.Vpcs[].VpcId' | tr -d \'"\')
-  do
-    echo $vpcid
-    for aclid in $(aws ec2 describe-network-acls --filters "Name=vpc-id,Values=$vpcid" \
-                   | jq .'NetworkAcls[].NetworkAclId' | tr -d \'"\')
-    do
-      echo - $aclid
-      echo aws ec2 delete-network-acl --network-acl-id=$aclid
-    done
-    echo aws ec2 delete-vpc --vpc-id=$vpcid
-  done
-'
-```
-
-## Delete roles and profiles
-
-**Warning**: only do this if **no other Kubernetes cluster is using this account!!**
-In other words, this is **only for your personal account**, if you're doing testing.
-
-```
-$ bash -c '
-  for t in master minion
-  do
-    echo $t
-    aws iam remove-role-from-instance-profile --role-name=kubernetes-$t --instance-profile-name=kubernetes-$t
-    aws iam delete-role-policy --role-name=kubernetes-$t --policy-name=kubernetes-$t
-    aws iam delete-role --role-name=kubernetes-$t
-    aws iam delete-instance-profile --instance-profile-name=kubernetes-$t
   done
 '
 ```
