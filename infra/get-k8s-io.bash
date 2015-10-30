@@ -130,6 +130,6 @@ rm ${file}
 
 
 # If the S3 bucket already exists, don't die.
-sed -i 's/^\([ \t]+aws s3 mb "s3:\/\/" --region \)$/\1 || true/' kubernetes/cluster/aws/*.sh >> get-k8s-io.bash
+sed -i'.bak' 's/^\(.*aws s3 mb.*\)$/\1 || true/' kubernetes/cluster/aws/*.sh
 
 create_cluster
