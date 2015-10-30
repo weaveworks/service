@@ -1,5 +1,7 @@
 # infra
 
+The **infra** deals with everything between our metal (EC2, GCE, ...) and our scheduling platform (k8s).
+
 ```
 +-------+ --.
 |  EC2  |   |
@@ -11,8 +13,6 @@
 |  App  |
 +-------+
 ```
-
-The **infra** deals with everything between our metal (EC2, GCE, ...) and our scheduling platform (k8s).
 
 1. [Basic config](#basic-config)
 1. [Bootstrap a new cluster](#bootstrap-a-new-cluster)
@@ -37,7 +37,7 @@ To interact with a cluster, use kubectl --kubeconfig.
 $ kubectl --kubeconfig=foo.kubeconfig get pods
 ```
 
-> 💁 
+> 💁
 > There are more sophisticated ways to manage multiple clusters and kubeconfigs.
 > See [this Kubernetes documentation](http://kubernetes.io/v1.0/docs/user-guide/kubeconfig-file.html) for more info.
 
