@@ -105,11 +105,208 @@ $ kubectl --kubeconfig=foo.kubeconfig get pods
 
 ## Verify the cluster
 
-- Create a helloworld rc
-- Create a helloworld svc
-- curl the ELB
-- Migrate to the next version
-- Tear it all down
+To verify the cluster, we'll deploy an application, rolling-upgrade it to a new version, and then tear it all down.
+We assume you have a working Go compiler and Docker installed.
+
+```
+$ go version
+$ docker ps
+```
+
+We will work in the helloworld directory.
+
+```
+$ cd helloworld
+```
+
+Create the first version of your application.
+
+```
+$ cat <<EOF >helloworld.go
+package main
+
+import (
+	"net/http"
+	"log"
+)
+
+func main() {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("%s %s %s", r.RemoteAddr, r.Method, r.Path)
+		fmt.Fprintf(w, "Hello world\n")
+	})
+	log.Printf("listening on :80")
+	log.Fatal(http.ListenAndServe(":80", nil))
+}
+EOF
+```
+
+Compile it for Linux.
+
+```
+$ env GOOS=linux GOARCH=amd64 go build -o helloworld .
+```
+
+Build the Docker container.
+Kubernetes will eventually need to download this container, so we'll put it on Docker Hub.
+That means we should tag it as **yourname**/helloworld, where **yourname** is your Docker Hub username.
+We'll also use an explicit version tag, 1.0.0.
+
+```
+$ docker build -t yourname/helloworld:1.0.0 .
+```
+
+Push the Docker container to Docker Hub.
+This requires you to have an account on Docker Hub, and login with the docker CLI.
+See [this documentation](https://docs.docker.com/reference/commandline/login/) for details.
+
+```
+$ docker login
+$ docker push yourname/helloworld:1.0.0
+```
+
+Now we will tell Kubernetes to download and run this container.
+First, edit the helloworld-rc.yaml to use the container with the correct tag.
+
+```
+$ sed -i '' 's/yourname/peterbourgon/g' helloworld-rc.yaml
+```
+
+Then, tell Kubernetes to create a new replication controller from the file.
+
+```
+$ kubectl create -f helloworld-rc.yaml
+replicationcontrollers/helloworld-1.0.0
+```
+
+Check that it was created.
+
+```
+$ kubectl get rc
+CONTROLLER         CONTAINER(S)   IMAGE(S)                                  SELECTOR                                    REPLICAS
+helloworld-1.0.0   helloworld     docker.io/peterbourgon/helloworld:1.0.0   app=helloworld,track=stable,version=1.0.0   1
+```
+
+Check that a pod is running.
+
+```
+$ kubectl get pods
+NAME                     READY     STATUS    RESTARTS   AGE
+helloworld-1.0.0-uxnyk   1/1       Running   0          1m
+```
+
+Use kubectl to forward a port from your local machine to the pod directly.
+Then, curl that port to see your pod is working.
+Note you need to copy/paste the specific pod name from the above step.
+
+```
+$ kubectl port-forward -p helloworld-1.0.0-uxnyk 10000:80
+$ curl -Ss -XGET localhost:10000
+Hello world
+```
+
+Scale the number of replicas up to 3.
+
+```
+$ kubectl scale --replicas=3 rc helloworld-1.0.0
+scaled
+```
+
+Verify.
+
+```
+$ kubectl get rc
+CONTROLLER         CONTAINER(S)   IMAGE(S)                                  SELECTOR                                    REPLICAS
+helloworld-1.0.0   helloworld     docker.io/peterbourgon/helloworld:1.0.0   app=helloworld,track=stable,version=1.0.0   3
+```
+
+To expose this application to the world, we need to create a Kubernetes service.
+A service bridges a set of pods (matching some label query) and a load balancer endpoint.
+Kubernetes automatically uses the load balancer of the underlying platform; in our case, an ELB.
+Our helloworld service will match all app=helloworld pods, ignoring all other label dimensions like version.
+
+```
+$ kubectl create -f helloworld-svc.yaml
+services/helloworld
+```
+
+Inspect the service until you see the ELB endpoint that was created.
+It may take several minutes to appear in the output.
+
+```
+$ kubectl describe svc helloworld
+Name:                   helloworld
+Namespace:              default
+Labels:                 app=helloworld
+Selector:               app=helloworld
+Type:                   LoadBalancer
+IP:                     10.0.254.122
+LoadBalancer Ingress:   ab1896c8f7eff11e58b1502f93cffe5e-1066700612.us-west-2.elb.amazonaws.com
+Port:                   <unnamed>       80/TCP
+NodePort:               <unnamed>       30088/TCP
+Endpoints:              10.244.3.15:80
+Session Affinity:       None
+No events.
+```
+
+In another terminal, set up a loop to continuously GET the ELB.
+We'll use that to verify the version upgrade works as expected.
+
+```
+$ bash -c 'while true; do curl -Ss -XGET ab1896c8f7eff11e58b1502f93cffe5e-1066700612.us-west-2.elb.amazonaws.com; sleep 0.5; done'
+Hello world
+Hello world
+Hello world
+```
+
+Now, we'll deploy a new version of our application.
+Change helloworld.go to print "Foo bar" instead of "Hello world".
+Recompile, rebuild the Docker container as version 2.0.0, and push it to Docker Hub.
+
+```
+$ env GOOS=linux GOARCH=amd64 go build -o helloworld .
+$ docker build -t yourname/helloworld:2.0.0 .
+$ docker push yourname/helloworld:2.0.0
+```
+
+Modify the replication controller to control the 2.0.0 container.
+
+```
+$ sed -i '' 's/1.0.0/2.0.0/g' helloworld-rc.yaml
+```
+
+Now, let's do a rolling update, from 1.0.0 to 2.0.0.
+We'll wait 3s between starting a new pod and killing an old one.
+In production, you might want to wait longer, 1m or more.
+
+```
+$ kubectl rolling-update helloworld-1.0.0 -f helloworld-rc.yaml --update-period=3s
+Creating helloworld-2.0.0
+At beginning of loop: helloworld-1.0.0 replicas: 2, helloworld-2.0.0 replicas: 1
+Updating helloworld-1.0.0 replicas: 2, helloworld-2.0.0 replicas: 1
+At end of loop: helloworld-1.0.0 replicas: 2, helloworld-2.0.0 replicas: 1
+Stopping helloworld-1.0.0 replicas: 2 -> 0
+Update succeeded. Deleting helloworld-1.0.0
+helloworld-2.0.0
+```
+
+In your other terminal, you should see "Hello world" and "Foo bar" interleaved, and then only "Foo bar".
+
+Now, let's tear everything down.
+
+```
+$ kubectl delete svc helloworld
+services/helloworld
+$ kubectl delete rc helloworld-2.0.0
+replicationcontrollers/helloworld-2.0.0
+```
+
+No pods left.
+
+```
+$ kubectl get pods
+NAME      READY     STATUS    RESTARTS   AGE
+```
 
 ## Set up any CNAME
 

@@ -55,3 +55,4 @@ saas.deploy.plan.*
 infra/kubectl
 infra/kubernetes.tar.gz
 infra/kubernetes/*
+infra/helloworld/helloworld
