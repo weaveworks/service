@@ -349,13 +349,60 @@ TODO
 
 # Tear down an old cluster
 
-TODO
+This is a manual process.
+Configure your AWS client to the appropriate region, with the correct credentials.
 
-- Disconnect and delete DNS (Route53)
-- Delete frontend service (k8s)
-- Delete all replication controllers (k8s)
-- Verify pods are gone (k8s)
-- Tear down database (RDS)
-- Delete instances (EC2)
-- Delete file storage (S3)
-- Delete security groups
+Disconnect and delete DNS (Route53)
+
+```
+$ TODO
+```
+
+Delete frontend service (k8s)
+
+```
+$ TODO
+```
+
+Delete all replication controllers (k8s)
+
+```
+$ TODO
+```
+
+Verify pods are gone (k8s)
+
+```
+$ TODO
+```
+
+Tear down database (RDS)
+
+```
+$ TODO
+```
+
+Delete instances (EC2)
+
+```
+$ aws ec2 describe-instances --filters "Name=tag:KubernetesCluster,Values=kubernetes_foo" "Name=instance-state-name,Values=running" | \
+   jq '.Reservations[].Instances[].InstanceId' | tr -d '"' | \
+   xargs aws ec2 terminate-instances --instance-ids
+```
+
+Delete file storage (S3)
+
+```
+$ bash -c 'for b in $(aws s3 ls / | grep weaveworks-scope-kubernetes-foo | awk "{print $3}")
+           do
+             echo $b
+             aws s3 rm --recursive s3://$b/
+             aws s3 rb s3://$b
+           done'
+```
+
+Delete security groups
+
+```
+$ TODO
+```
