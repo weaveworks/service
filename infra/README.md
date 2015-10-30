@@ -120,28 +120,7 @@ $ cd helloworld
 ```
 
 Create the first version of your application.
-
-```
-$ cat <<EOF >helloworld.go
-package main
-
-import (
-	"net/http"
-	"log"
-)
-
-func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("%s %s %s", r.RemoteAddr, r.Method, r.Path)
-		fmt.Fprintf(w, "Hello world\n")
-	})
-	log.Printf("listening on :80")
-	log.Fatal(http.ListenAndServe(":80", nil))
-}
-EOF
-```
-
-Compile it for Linux.
+Compile helloworld.go for Linux.
 
 ```
 $ env GOOS=linux GOARCH=amd64 go build -o helloworld .
@@ -264,6 +243,7 @@ Change helloworld.go to print "Foo bar" instead of "Hello world".
 Recompile, rebuild the Docker container as version 2.0.0, and push it to Docker Hub.
 
 ```
+$ sed -i '' 's/Hello world/Foo bar/g' helloworld.go
 $ env GOOS=linux GOARCH=amd64 go build -o helloworld .
 $ docker build -t yourname/helloworld:2.0.0 .
 $ docker push yourname/helloworld:2.0.0
