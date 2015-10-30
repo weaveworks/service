@@ -30,6 +30,7 @@ docker run \
        --net=host \
        --pid=host \
        --privileged=true \
+       -v $PWD/k8s/master.json:/etc/kubernetes/manifests/master.json \
        -d \
        gcr.io/google_containers/hyperkube:v1.0.6 \
        /hyperkube kubelet --containerized --hostname-override="127.0.0.1" --address="0.0.0.0" --api-servers=http://localhost:8080 --config=/etc/kubernetes/manifests --cluster-dns=10.0.0.10 --cluster-domain=cluster.local
