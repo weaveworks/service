@@ -52,3 +52,7 @@ terraform/local.tfstate
 terraform/local.tfstate.backup
 *.tfstate.backup
 saas.deploy.plan.*
+
+infra/kubectl
+infra/kubernetes.tar.gz
+infra/kubernetes/*
