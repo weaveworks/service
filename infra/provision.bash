@@ -4,65 +4,63 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-if [ $# -ne 1 ]
+if [ $# -ne 2 ]
 then
-	echo "usage: $(basename $0) <name>"
+	echo "usage: $(basename $0) <name> up/down"
 	exit 1
 fi
 
 NAME=$1
-shift
+WHAT=$2
 
 ACCESS_KEY=$(aws configure get aws_access_key_id)
 echo "Using AWS access key ID ${ACCESS_KEY}"
 
 source config-base.bash
 source config-${NAME}.bash
-
-CURRENT_REGION=$(aws configure get region)
-DESIRED_REGION=${AWS_S3_REGION}
-if [ "${CURRENT_REGION}" != "${DESIRED_REGION}" ]
-then
-	echo
-	echo "Kubernetes wants aws configure get region (${CURRENT_REGION})"
-	echo "to be the same as AWS_S3_REGION (${DESIRED_REGION})."
-	echo "Changing that."
-	aws configure set region ${DESIRED_REGION}
-	echo
-else
-	echo
-	echo "aws configure get region (${CURRENT_REGION})"
-	echo "is the same as AWS_S3_REGION (${DESIRED_REGION})."
-	echo "That's fine."
-	echo
-fi
-
-if [ -f ${HOME}/.kube/config ]
-then
-	echo
-	TIMESTAMP=$(date +%Y%m%d%H%M%S)
-	echo "Detected ${HOME}/.kube/config"
-	echo "Moving it to ${HOME}/.kube/config.backup.${TIMESTAMP}"
-	mv ${HOME}/.kube/config ${HOME}/.kube/config.backup.${TIMESTAMP}
-	echo
-else 
-	echo
-	echo "No ${HOME}/.kube/config detected."
-	echo "That's fine."
-	echo
-fi
-
 source get-k8s-io.bash
 
-if [ -f ${HOME}/.kube/config ]
-then
-	echo
-	echo "Writing ${NAME}.kubeconfig"
-	cp ${HOME}/.kube/config ${NAME}.kubeconfig
-	echo
-else
-	echo
-	echo "${HOME}/.kube/config is missing."
-	echo "This is very strange and/or bad."
-	echo
-fi
+case $WHAT in
+up)
+	if [ -f ${HOME}/.kube/config ]
+	then
+		echo
+		TIMESTAMP=$(date +%Y%m%d%H%M%S)
+		echo "Detected ${HOME}/.kube/config"
+		echo "Moving it to ${HOME}/.kube/config.backup.${TIMESTAMP}"
+		mv ${HOME}/.kube/config ${HOME}/.kube/config.backup.${TIMESTAMP}
+		echo
+	else
+		echo
+		echo "No ${HOME}/.kube/config detected."
+		echo "That's fine."
+		echo
+	fi
+	create_cluster
+	if [ -f ${HOME}/.kube/config ]
+	then
+		echo
+		echo "Writing ${NAME}.kubeconfig"
+		cp ${HOME}/.kube/config ${NAME}.kubeconfig
+		echo
+	else
+		echo
+		echo "${HOME}/.kube/config is missing."
+		echo "This is very strange and/or bad."
+		echo
+	fi
+	;;
+
+down)
+	while true
+	do
+		read -n yn "Are you sure you want to bring $NAME down? "
+		case $yn in
+			yes) break;;
+			no) exit;;
+			*) echo "Please type 'yes' or 'no'";;
+		esac
+	done
+	cluster/kube-down.sh
+	;;
+esac

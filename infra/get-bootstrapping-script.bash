@@ -4,17 +4,15 @@ FILE="get-k8s-io.bash"
 
 wget -q --show-progress -O ${FILE} https://get.k8s.io
 
-# At the end, after downloading everything, the script calls create_cluster.
-# We need to make some changes to the downloaded files before doing that.
 
-echo "Making modifications..."
+echo "Modifying the script..."
 
-sed -i '' 's/^create_cluster//' ${FILE}
+# The bootstrapping script should download everything and set up vars.
+# Let us invoke create_cluster or kube-down on our own.
+sed -i'.bak' 's/^create_cluster//' ${FILE} ; rm -f *.bak
 
 cat <<EOF >>${FILE}
 # If the S3 bucket already exists, don't die.
 sed -i'.bak' 's/^\(.*aws s3 mb.*\)$/\1 || true/' kubernetes/cluster/aws/*.sh
-
-create_cluster
 EOF
 

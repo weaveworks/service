@@ -131,5 +131,3 @@ rm ${file}
 
 # If the S3 bucket already exists, don't die.
 sed -i'.bak' 's/^\(.*aws s3 mb.*\)$/\1 || true/' kubernetes/cluster/aws/*.sh
-
-create_cluster

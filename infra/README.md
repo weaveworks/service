@@ -20,35 +20,29 @@ It's concerned with provisioning the scheduling system (k8s), stateful storage (
                 +-------------+
 ```
 
-1. [Basic config](#basic-config)
-1. [Bootstrap a new cluster](#bootstrap-a-new-cluster)
-1. [Maintain an existing cluster](#maintain-an-existing-cluster)
-1. [Tear down an old cluster](#tear-down-an-old-cluster)
+1. [Bootstrap](#bootstrap)
+1.1. [Set up AWS](#set-up-aws)
+1.1. [Set up kubectl](#set-up-kubectl)
+1.1. [Get kubernetes.bash](#get-kubernetes.bash)
+1.1. [Run provision.bash](#run-provision.bash)
+1.1. [Verify the cluster](#verify-the-cluster)
+1.1. [Commit the kubeconfig](#commit-the-kubeconfig)
+1.1. [Provision databases](#provision-databases)
+1.1. [Deploy the application](#deploy-the-application)
+1.1. [Provision DNS](#provision-dns)
+1. [Teardown](#teardown)
+1.1. [Tear down DNS](#tear-down-dns)
+1.1. [Delete frontend service](#delete-frontend-service)
+1.1. [Delete replication controllers](#delete-replication-controllers)
+1.1. [Verify pods are gone](#verify-pods-are-gone)
+1.1. [Tear down database](#tear-down-database)
+1.1. [Terminate instances](#terminate-instances)
+1.1. [Delete volumes](#delete-volumes)
+1.1. [Delete file storage](#delete-file-storage)
+1.1. [Delete security groups](#delete-security-groups)
+1.1. [Delete roles and profiles](#delete-roles-and-profiles)
 
-# Basic config
-
-You interact with Kubernetes clusters via the kubectl tool.
-Download it with the get-kubectl.bash script.
-
-```
-$ ./get-kubectl.bash
-$ mv kubectl $HOME/bin  # or whatever
-```
-
-A cluster is defined by a configuration 3-tuple: a cluster, including the Kubernetes master IP; a user, including credentials; and a context, binding them together with a specific name.
-Each cluster foo should have a corresponding foo.kubeconfig checked in to revision control.
-To interact with a cluster, use kubectl --kubeconfig.
-
-```
-$ kubectl --kubeconfig=foo.kubeconfig get pods
-```
-
-> 💁
-> There are more sophisticated ways to manage multiple clusters and kubeconfigs.
-> See [this Kubernetes documentation](http://kubernetes.io/v1.0/docs/user-guide/kubeconfig-file.html) for more info.
-
-
-# Bootstrap a new cluster
+# Bootstrap
 
 For now, we deploy our clusters onto EC2.
 
@@ -71,27 +65,44 @@ $ aws s3 ls /
 
 ## Set up kubectl
 
-You should have the kubectl tool already.
-If not, see the [basic config](#basic-config) section.
+You interact with Kubernetes clusters via the kubectl tool.
+Download it with the get-kubectl.bash script.
 
-## Scripts
+```
+$ ./get-kubectl.bash
+$ mv kubectl $HOME/bin # or whatever
+```
+
+A cluster is defined by a configuration 3-tuple: a cluster, including the Kubernetes master IP; a user, including credentials; and a context, binding them together with a specific name.
+Each cluster foo should have a corresponding foo.kubeconfig checked in to revision control.
+To interact with a cluster, use kubectl --kubeconfig.
+
+```
+$ kubectl --kubeconfig=foo.kubeconfig get pods
+```
+
+> 💁
+> There are more sophisticated ways to manage multiple clusters and kubeconfigs.
+> See [this Kubernetes documentation](http://kubernetes.io/v1.0/docs/user-guide/kubeconfig-file.html) for more info.
+
+## Script overview
 
 Here's how the scripts work.
 
 ```
       +------------------+
       | config-base.bash |--.                           +--kubernetes--------++
-      +------------------+  |                           |  +--cluster------+  |
-   +--------------------+   v      +-----------------+  |  |  +--aws----+  |  |
--->| provision.bash foo |---+--+-->| get-k8s-io.bash |--|--|--|-->*.sh  |  |  |
-   +--------------------+      ^   +-----------------+  |  |  +---------+  |  |
-          +-----------------+  |                        |  +---------------+  |
+      +------------------+  |                           |  +--cluster------+  |   +-----+
+   +--------------------+   v      +-----------------+  |  |  +--aws----+.-|--|-->|     |
+-->| provision.bash foo |---+--+-->| get-k8s-io.bash |--|--|--|-->*.sh  |--|--|-->| AWS |
+   +--------------------+      ^   +-----------------+  |  |  +---------+'-|--|-->|     |
+          +-----------------+  |                        |  +---------------+  |   +-----+
           | config-foo.bash |--'                        +---------------------+
           +-----------------+
 
 ```
 
-## Get the latest bootstrapping script
+## Get kubernetes.bash
 
 The core bootstrapping script, get-k8s-io.bash, is provided and maintained by the Kubernetes project.
 We make a couple of modifications, to make it more failsafe.
@@ -102,7 +113,7 @@ $ ./get-bootstrapping-script.bash
 
 If this causes local modifications, please make a PR for them.
 
-## Run the provisioning script
+## Run provision.bash
 
 To create a new cluster named e.g. foo, the provisioning script expects to find a **config-foo.bash** file with settings.
 Create that file for your cluster, using an existing file as a template.
@@ -116,24 +127,6 @@ This will take several minutes.
 
 > 💁
 > The script moves your existing ~/.kube/config to ~/.kube/config.backup.TIMESTAMP.
-
-## Share the kubeconfig
-
-The provisioning script wrote user, cluster, and context settings to your ~/.kube/config.
-To allow others to connect to your cluster, you should copy your kubeconfig file to **foo.kubeconfig**, and check it in.
-
-```
-$ cp ~/.kube/config foo.kubeconfig
-```
-
-Now, other developers may access your cluster via e.g.
-
-```
-$ kubectl --kubeconfig=foo.kubeconfig get pods
-```
-
-> 💁
-> There are probably security considerations here, which I am electing to ignore.
 
 ## Verify the cluster
 
@@ -310,14 +303,32 @@ $ kubectl get pods
 NAME      READY     STATUS    RESTARTS   AGE
 ```
 
-## Set up databases
+## Commit the kubeconfig
 
-TODO
+The Kubernetes script wrote user, cluster, and context settings to your ~/.kube/config.
+The provisioning script has copied this file to **foo.kubeconfig**.
+Now that we've verified Kubernetes is working, you should commit this file, to allow your teammates to use it.
+Others may access your cluster via e.g.
+
+```
+$ kubectl --kubeconfig=foo.kubeconfig get pods
+```
+
+> 💁
+> There are probably security considerations here, which I am electing to ignore.
+
+## Provision databases
+
+TODO.
 
 - Terraform?
 - Data migration?
 
-## Set up DNS
+## Deploy the application
+
+See parent directory.
+
+## Provision DNS
 
 TODO
 
@@ -331,78 +342,116 @@ TODO
 - Get ELB from k8s
 - Use Route53 to point CNAME to ELB
 
-## Deploy the application
-
-See parent directory.
-
-
-# Maintain an existing cluster
-
-## Add EC2 instances
-
-TODO
-
-## Swap out an EC2 instance
-
-TODO
-
-
-# Tear down an old cluster
+# Teardown
 
 This is a manual process.
 Configure your AWS client to the appropriate region, with the correct credentials.
 
-Disconnect and delete DNS (Route53)
+## Tear down DNS
 
 ```
 $ TODO
 ```
 
-Delete frontend service (k8s)
+## Delete frontend service
 
 ```
 $ TODO
 ```
 
-Delete all replication controllers (k8s)
+## Delete replication controllers
 
 ```
 $ TODO
 ```
 
-Verify pods are gone (k8s)
+## Verify pods are gone
 
 ```
 $ TODO
 ```
 
-Tear down database (RDS)
+## Tear down database
 
 ```
 $ TODO
 ```
 
-Delete instances (EC2)
+## Terminate instances
+
+Replace foo with your cluster name in the below command.
 
 ```
-$ aws ec2 describe-instances --filters "Name=tag:KubernetesCluster,Values=kubernetes_foo" "Name=instance-state-name,Values=running" | \
-   jq '.Reservations[].Instances[].InstanceId' | tr -d '"' | \
-   xargs aws ec2 terminate-instances --instance-ids
+$ aws ec2 describe-instances --no-paginate \
+    --filters "Name=tag:KubernetesCluster,Values=kubernetes_foo" \
+              "Name=instance-state-name,Values=running" \
+ | jq '.Reservations[].Instances[].InstanceId' | tr -d '"' \
+ | xargs aws ec2 terminate-instances --instance-ids
 ```
 
-Delete file storage (S3)
+## Delete volumes
+
+Replace foo with your cluster name in the below command.
 
 ```
-$ bash -c 'for b in $(aws s3 ls / | grep weaveworks-scope-kubernetes-foo | awk "{print $3}")
-           do
-             echo $b
-             aws s3 rm --recursive s3://$b/
-             aws s3 rb s3://$b
-           done'
+$ bash -c '
+  for v in $(aws ec2 describe-volumes --no-paginate \
+             --filters "Name=tag:KubernetesCluster,Values=kubernetes_foo" \
+             | jq ".Volumes[].VolumeId" | tr -d \'"\')
+  do
+    aws ec2 delete-volume --volume-id=$v
+  done
+'
 ```
 
-Delete security groups
+## Delete file storage
 
 ```
-$ TODO
+$ bash -c '
+  for b in $(aws s3 ls / | grep weaveworks-scope-kubernetes-foo | awk "{print $3}")
+  do
+    echo $b
+    aws s3 rm --recursive s3://$b/
+    aws s3 rb s3://$b
+  done
+'
+```
+
+## Delete security groups
+
+Delete VPCs.
+
+```
+$ bash -c '
+  for vpcid in $(aws ec2 describe-vpcs --filters "Name=tag:KubernetesCluster,Values=kubernetes_dev" \
+              | jq '.Vpcs[].VpcId' | tr -d \'"\')
+  do
+    echo $vpcid
+    for aclid in $(aws ec2 describe-network-acls --filters "Name=vpc-id,Values=$vpcid" \
+                   | jq .'NetworkAcls[].NetworkAclId' | tr -d \'"\')
+    do
+      echo - $aclid
+      echo aws ec2 delete-network-acl --network-acl-id=$aclid
+    done
+    echo aws ec2 delete-vpc --vpc-id=$vpcid
+  done
+'
+```
+
+## Delete roles and profiles
+
+**Warning**: only do this if **no other Kubernetes cluster is using this account!!**
+In other words, this is **only for your personal account**, if you're doing testing.
+
+```
+$ bash -c '
+  for t in master minion
+  do
+    echo $t
+    aws iam remove-role-from-instance-profile --role-name=kubernetes-$t --instance-profile-name=kubernetes-$t
+    aws iam delete-role-policy --role-name=kubernetes-$t --policy-name=kubernetes-$t
+    aws iam delete-role --role-name=kubernetes-$t
+    aws iam delete-instance-profile --instance-profile-name=kubernetes-$t
+  done
+'
 ```
