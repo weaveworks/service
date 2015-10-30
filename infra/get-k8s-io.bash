@@ -134,4 +134,12 @@ if [ ! -d kubernetes ]; then
   #rm ${file}
 fi
 
+# If the S3 bucket already exists, don't die.
+sed -i 's/^\([ \t]+aws s3 mb "s3:\/\/${AWS_S3_BUCKET}" --region ${AWS_S3_REGION}\)$/\1 || true/' kubernetes/cluster/aws/*.sh
+
+# By default, the provisioning script strips the trailing '1' from e.g. eu-central-1.
+# That causes problems when e.g. creating or inspecting S3 buckets. Probably more.
+# This undoes that modification.
+#sed -i 's/AWS_REGION=${ZONE%?}/AWS_REGION=${ZONE}/' kubernetes/cluster/aws/*.sh
+
 create_cluster
