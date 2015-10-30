@@ -61,7 +61,10 @@ If not, see the [basic config](#basic-config) section.
 
 The core bootstrapping script is provided and maintained by the Kubernetes project.
 We make a couple of modifications, to make it more failsafe.
-TODO.
+
+```
+$ ./get-bootstrapping-script.bash
+```
 
 ## Run the provisioning script
 
