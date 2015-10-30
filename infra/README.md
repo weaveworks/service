@@ -290,7 +290,7 @@ Now, let's tear everything down.
 ```
 $ kubectl delete svc helloworld
 $ kubectl delete rc helloworld-2.0.0
-$ git checkout -- helloworld-rc.yaml
+$ git checkout -- helloworld-rc.yaml helloworld.go
 ```
 
 No pods left.
