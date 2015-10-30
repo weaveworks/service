@@ -24,7 +24,18 @@ then
 else
 	echo "aws configure get region (${CURRENT_REGION})"
 	echo "is the same as AWS_S3_REGION (${DESIRED_REGION})."
-	echo "Good."
+	echo "That's fine."
+fi
+
+if [ -f $HOME/.kube/config ]
+then
+	local TIMESTAMP=$(date +%Y%m%d%H%M%S)
+	echo "Detected ${HOME}/.kube/config"
+	echo "Moving it to ${HOME}/.kube/config.backup.${TIMESTAMP}"
+	mv $HOME/.kube/config $HOME/.kube/config.backup.${TIMESTAMP}
+else 
+	echo "No ${HOME}/.kube/config detected."
+	echo "That's fine."
 fi
 
 source get-k8s-io.bash
