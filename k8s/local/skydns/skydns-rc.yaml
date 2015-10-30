@@ -48,22 +48,6 @@ spec:
             memory: 50Mi
         args:
         # command = "/kube2sky"
-        #
-        # Ideally, kube2sky should discover the k8s API Server through its k8s
-        # Service and talk to it through https (which is what its k8s Service
-        # exposes). However, it requires generating certificates, which is a pain. See
-        # http://kubernetes.io/v1.0/docs/user-guide/accessing-the-cluster.html#accessing-the-api-from-a-pod ,
-        # https://github.com/kubernetes/kubernetes/issues/10265#issuecomment-115444815 ,
-        # https://github.com/kubernetes/kubernetes/issues/10265#issuecomment-120341497 and
-        # https://github.com/kubernetes/kubernetes/issues/11000#issuecomment-131891443
-        #
-        # In the meantime, we circumvent the problem by talking to the api
-        # server directly at the host level, which has an http endpoint on port
-        # 8080. This requires binding the api server to all interfaces
-        # (0.0.0.0). After that we can connect to it with any of host IPs. We
-        # use the default docker bridge IP (172.17.42.1) to avoid needing to
-        # configure the IP dynamically.
-        - -kube_master_url=http://172.17.42.1:8080
         - -domain=cluster.local
       - name: skydns
         image: gcr.io/google_containers/skydns:2015-10-13-8c72f8c
