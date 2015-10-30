@@ -54,13 +54,13 @@ up)
 down)
 	while true
 	do
-		read -n yn "Are you sure you want to bring $NAME down? "
+		read -p "Are you sure you want to bring $NAME down? " yn
 		case $yn in
 			yes) break;;
 			no) exit;;
 			*) echo "Please type 'yes' or 'no'";;
 		esac
 	done
-	cluster/kube-down.sh
+	kubernetes/cluster/kube-down.sh
 	;;
 esac
