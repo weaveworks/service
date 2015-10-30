@@ -4,6 +4,14 @@
 "metadata": {"name":"k8s-master"},
 "spec":{
   "hostNetwork": true,
+  "volumes": [
+	{
+	    "name": "pki",
+	    "hostPath": {
+		"path": "/home/vagrant/service/k8s/local/pki"
+	    }
+	}
+  ],
   "containers":[
     {
       "name": "controller-manager",
@@ -12,8 +20,16 @@
               "/hyperkube",
               "controller-manager",
               "--master=127.0.0.1:8080",
+              "--root-ca-file=/pki/ca.crt",
+              "--service-account-private-key-file=/pki/server.key",
               "--v=2"
-        ]
+      ],
+      "volumeMounts": [
+            {
+              "name": "pki",
+              "mountPath": "/pki"
+            }
+      ]
     },
     {
       "name": "apiserver",
@@ -25,8 +41,17 @@
               "--insecure-bind-address=0.0.0.0",
               "--etcd-servers=http://127.0.0.1:4001",
               "--cluster-name=kubernetes",
+              "--client-ca-file=/pki/ca.crt",
+              "--tls-cert-file=/pki/server.cert",
+              "--tls-private-key-file=/pki/server.key",
               "--v=2"
-        ]
+      ],
+      "volumeMounts": [
+            {
+              "name": "pki",
+              "mountPath": "/pki"
+            }
+      ]
     },
     {
       "name": "scheduler",
