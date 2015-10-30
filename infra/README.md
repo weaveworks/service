@@ -94,15 +94,13 @@ We make a couple of modifications, to make it more failsafe.
 $ ./get-bootstrapping-script.bash
 ```
 
+If this causes local modifications, please make a PR for them.
+
 ## Run the provisioning script
 
-To create a new cluster, run the provisioning script with a single argument of the name of the cluster, e.g. foo.
-The script expects to find a **config-foo.bash** file with settings for your cluster.
-Use an existing config file as a template.
+To create a new cluster named e.g. foo, the provisioning script expects to find a **config-foo.bash** file with settings.
+Create that file for your cluster, using an existing file as a template.
 Then, run the script.
-
-> 💁
-> The script moves your existing ~/.kube/config to ~/.kube/config.backup.TIMESTAMP.
 
 ```
 $ ./provision.bash foo
@@ -111,10 +109,7 @@ $ ./provision.bash foo
 This will take several minutes.
 
 > 💁
-> The script changes your default AWS region to the one specified in your config-foo.bash file.
-> The Kubernetes bootstrapping script expects it to work that way when uploading assets to S3.
-> Feel free to change it back when finished.
-
+> The script moves your existing ~/.kube/config to ~/.kube/config.backup.TIMESTAMP.
 
 ## Share the kubeconfig
 
@@ -125,14 +120,14 @@ To allow others to connect to your cluster, you should copy your kubeconfig file
 $ cp ~/.kube/config foo.kubeconfig
 ```
 
-> 💁
-> There are probably security considerations here, which I am electing to ignore.
-
 Now, other developers may access your cluster via e.g.
 
 ```
 $ kubectl --kubeconfig=foo.kubeconfig get pods
 ```
+
+> 💁
+> There are probably security considerations here, which I am electing to ignore.
 
 ## Verify the cluster
 
@@ -179,7 +174,7 @@ Now we will tell Kubernetes to download and run this container.
 First, edit the helloworld-rc.yaml to use the container with the correct tag.
 
 ```
-$ sed -i '' 's/yourname/peterbourgon/g' helloworld-rc.yaml
+$ sed -i'.bak' 's/yourname/peterbourgon/g' helloworld-rc.yaml ; rm -f *.bak
 ```
 
 Then, tell Kubernetes to create a new replication controller from the file.
@@ -272,7 +267,7 @@ Change helloworld.go to print "Foo bar" instead of "Hello world".
 Recompile, rebuild the Docker container as version 2.0.0, and push it to Docker Hub.
 
 ```
-$ sed -i '' 's/Hello world/Foo bar/g' helloworld.go
+$ sed -i'.bak' 's/Hello world/Foo bar/g' helloworld.go ; rm -f *.bak
 $ env GOOS=linux GOARCH=amd64 go build -o helloworld .
 $ docker build -t yourname/helloworld:2.0.0 .
 $ docker push yourname/helloworld:2.0.0
@@ -281,7 +276,7 @@ $ docker push yourname/helloworld:2.0.0
 Modify the replication controller to control the 2.0.0 container.
 
 ```
-$ sed -i '' 's/1.0.0/2.0.0/g' helloworld-rc.yaml
+$ sed -i'.bak' 's/1.0.0/2.0.0/g' helloworld-rc.yaml ; rm -f *.bak
 ```
 
 Now, let's do a rolling update, from 1.0.0 to 2.0.0.

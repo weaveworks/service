@@ -13,7 +13,7 @@ sed -i '' 's/^create_cluster//' ${FILE}
 
 cat <<EOF >>${FILE}
 # If the S3 bucket already exists, don't die.
-sed -i 's/^\([ \t]+aws s3 mb "s3:\/\/${AWS_S3_BUCKET}" --region ${AWS_S3_REGION}\)$/\1 || true/' kubernetes/cluster/aws/*.sh >> ${FILE}
+sed -i'.bak' 's/^\(.*aws s3 mb.*\)$/\1 || true/' kubernetes/cluster/aws/*.sh
 
 create_cluster
 EOF

@@ -23,26 +23,46 @@ CURRENT_REGION=$(aws configure get region)
 DESIRED_REGION=${AWS_S3_REGION}
 if [ "${CURRENT_REGION}" != "${DESIRED_REGION}" ]
 then
+	echo
 	echo "Kubernetes wants aws configure get region (${CURRENT_REGION})"
 	echo "to be the same as AWS_S3_REGION (${DESIRED_REGION})."
 	echo "Changing that."
 	aws configure set region ${DESIRED_REGION}
+	echo
 else
+	echo
 	echo "aws configure get region (${CURRENT_REGION})"
 	echo "is the same as AWS_S3_REGION (${DESIRED_REGION})."
 	echo "That's fine."
+	echo
 fi
 
-if [ -f $HOME/.kube/config ]
+if [ -f ${HOME}/.kube/config ]
 then
-	local TIMESTAMP=$(date +%Y%m%d%H%M%S)
+	echo
+	TIMESTAMP=$(date +%Y%m%d%H%M%S)
 	echo "Detected ${HOME}/.kube/config"
 	echo "Moving it to ${HOME}/.kube/config.backup.${TIMESTAMP}"
-	mv $HOME/.kube/config $HOME/.kube/config.backup.${TIMESTAMP}
+	mv ${HOME}/.kube/config ${HOME}/.kube/config.backup.${TIMESTAMP}
+	echo
 else 
+	echo
 	echo "No ${HOME}/.kube/config detected."
 	echo "That's fine."
+	echo
 fi
 
 source get-k8s-io.bash
 
+if [ -f ${HOME}/.kube/config ]
+then
+	echo
+	echo "Writing ${NAME}.kubeconfig"
+	cp ${HOME}/.kube/config ${NAME}.kubeconfig
+	echo
+else
+	echo
+	echo "${HOME}/.kube/config is missing."
+	echo "This is very strange and/or bad."
+	echo
+fi
