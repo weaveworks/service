@@ -294,6 +294,7 @@ Now, let's tear everything down.
 ```
 $ kubectl delete svc helloworld
 $ kubectl delete rc helloworld-2.0.0
+$ git checkout -- helloworld-rc.yaml
 ```
 
 No pods left.
@@ -303,10 +304,31 @@ $ kubectl get pods
 NAME      READY     STATUS    RESTARTS   AGE
 ```
 
-## Set up any CNAME
+## Set up databases
 
-- k8s.yourname.weave.works, or whatever, in Route53
-- Deploy a (mock?) frontend
+TODO
+
+- Terraform?
+- Data migration?
+
+## Set up DNS
+
+TODO
+
+```
++-----------------------+            +-----+        +------------------+        +---------------+
+| foo.cloud.weave.works |--Route53-->| ELB |--k8s-->| frontend service |--k8s-->| frontend pods |
++-----------------------+            +-----+        +------------------+        +---------------+
+```
+
+- Create frontend service (don't necessarily need pods yet)
+- Get ELB from k8s
+- Use Route53 to point CNAME to ELB
+
+## Deploy the application
+
+See parent directory.
+
 
 # Maintain an existing cluster
 
@@ -318,7 +340,16 @@ TODO
 
 TODO
 
+
 # Tear down an old cluster
 
 TODO
 
+- Disconnect and delete DNS (Route53)
+- Delete frontend service (k8s)
+- Delete all replication controllers (k8s)
+- Verify pods are gone (k8s)
+- Tear down database (RDS)
+- Delete instances (EC2)
+- Delete file storage (S3)
+- Delete security groups
