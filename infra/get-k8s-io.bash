@@ -105,41 +105,31 @@ fi
 
 file=kubernetes.tar.gz
 
-if [ ! -d kubernetes ]; then
-  if [ ! -f ${file} ]; then
-    echo "Downloading kubernetes release ${release} to ${PWD}/kubernetes.tar.gz"
-    if [[ -n "${KUBERNETES_SKIP_CONFIRM-}" ]]; then
-      echo "Is this ok? [Y]/n"
-      read confirm
-      if [[ "$confirm" == "n" ]]; then
-        echo "Aborting."
-        exit 0
-      fi
-    fi
-
-    if [[ $(which wget) ]]; then
-      wget -O ${file} ${release_url}
-    elif [[ $(which curl) ]]; then
-      curl -L -o ${file} ${release_url}
-    else
-      echo "Couldn't find curl or wget.  Bailing out."
-      exit 1
-    fi
-  else
-    echo "Already have ${file} on disk"
+echo "Downloading kubernetes release ${release} to ${PWD}/kubernetes.tar.gz"
+if [[ -n "${KUBERNETES_SKIP_CONFIRM-}" ]]; then
+  echo "Is this ok? [Y]/n"
+  read confirm
+  if [[ "$confirm" == "n" ]]; then
+    echo "Aborting."
+    exit 0
   fi
-
-  echo "Unpacking kubernetes release ${release}"
-  tar -xzf ${file}
-  #rm ${file}
 fi
 
-# If the S3 bucket already exists, don't die.
-sed -i 's/^\([ \t]+aws s3 mb "s3:\/\/${AWS_S3_BUCKET}" --region ${AWS_S3_REGION}\)$/\1 || true/' kubernetes/cluster/aws/*.sh
+if [[ $(which wget) ]]; then
+  wget -O ${file} ${release_url}
+elif [[ $(which curl) ]]; then
+  curl -L -o ${file} ${release_url}
+else
+  echo "Couldn't find curl or wget.  Bailing out."
+  exit 1
+fi
 
-# By default, the provisioning script strips the trailing '1' from e.g. eu-central-1.
-# That causes problems when e.g. creating or inspecting S3 buckets. Probably more.
-# This undoes that modification.
-#sed -i 's/AWS_REGION=${ZONE%?}/AWS_REGION=${ZONE}/' kubernetes/cluster/aws/*.sh
+echo "Unpacking kubernetes release ${release}"
+tar -xzf ${file}
+rm ${file}
+
+
+# If the S3 bucket already exists, don't die.
+sed -i 's/^\([ \t]+aws s3 mb "s3:\/\/" --region \)$/\1 || true/' kubernetes/cluster/aws/*.sh >> get-k8s-io.bash
 
 create_cluster

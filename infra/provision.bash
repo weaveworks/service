@@ -4,6 +4,12 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+if [ $# -ne 1 ]
+then
+	echo "usage: $(basename $0) <name>"
+	exit 1
+fi
+
 NAME=$1
 shift
 
