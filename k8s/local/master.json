@@ -15,7 +15,7 @@
   "containers":[
     {
       "name": "controller-manager",
-      "image": "gcr.io/google_containers/hyperkube:v1.0.6",
+      "image": "2opremio/hyperkube:664d2ef",
       "command": [
               "/hyperkube",
               "controller-manager",
@@ -33,7 +33,7 @@
     },
     {
       "name": "apiserver",
-      "image": "gcr.io/google_containers/hyperkube:v1.0.6",
+      "image": "2opremio/hyperkube:664d2ef",
       "command": [
               "/hyperkube",
               "apiserver",
@@ -56,7 +56,7 @@
     },
     {
       "name": "scheduler",
-      "image": "gcr.io/google_containers/hyperkube:v1.0.6",
+      "image": "2opremio/hyperkube:664d2ef",
       "command": [
               "/hyperkube",
               "scheduler",
