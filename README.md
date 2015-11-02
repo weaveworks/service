@@ -6,30 +6,9 @@
 
 ## Run the infrastructure
 
-On your Linux host or VM, start Weave. You must build Weave yourself from
-current master, using Weave 1.0.1 or latest on Docker Hub is not recent enough!
-Also, you must make sure running weave globally will invoke the weave script
-from current master.
-
-```
-cd $GOPATH/src/github.com/weaveworks
-git clone https://github.com/weaveworks/weave
-cd weave
-make
-sudo rm -f /usr/local/bin/weave
-sudo ln -s $GOPATH/src/github.com/weaveworks/weave/weave /usr/local/bin/weave
-weave launch
-eval $(weave env)
-```
-
-You must also have Terraform installed on your VM.  We use a custom built version of terrafrom, from
-https://github.com/tomwilkie/terraform/tree/dev (includes terraform/3364 and terraform/3509).
-
-```
-wget https://storage.googleapis.com/service-tools/terraform_darwin_amd64.zip -O /tmp/terraform.zip
-wget https://storage.googleapis.com/service-tools/terraform_linux_amd64.zip -O /tmp/terraform.zip
-sudo unzip /tmp/terraform.zip -d /usr/local/bin
-```
+On your Linux host or VM,
+[install kubectl](http://kubernetes.io/v1.0/docs/getting-started-guides/aws/kubectl.html)
+(ignore the tunnel part).  ```
 
 Now, still on your Linux host or VM, build the service and deploy it locally.
 
@@ -38,6 +17,8 @@ cd $GOPATH/src/github.com/weaveworks/service
 ./build.sh
 ./deploy.sh -local
 ```
+
+**TODO: Make connect.sh work with Kubernetes. We can probably use the kube proxy for this**
 
 Now, we need to get your laptop onto the Weave network with the other components.
 We have a handy connect.sh script for that.
