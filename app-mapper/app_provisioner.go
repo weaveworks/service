@@ -8,15 +8,30 @@ import (
 	"github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	scope "github.com/weaveworks/scope/xfer"
+	k8sAPI "k8s.io/kubernetes/pkg/api"
+	k8sClient "k8s.io/kubernetes/pkg/client/unversioned"
+	k8sFields "k8s.io/kubernetes/pkg/fields"
+	k8sLabels "k8s.io/kubernetes/pkg/labels"
 )
 
 type appProvisioner interface {
 	fetchApp() error
 	runApp(appID string) (host string, err error)
 	destroyApp(appID string) error
-	isAppRunning(appID string) (bool, error)
-	isAppReady(appID string) (bool, error)
+	isAppRunning(appID string) (ok bool, err error)
+	isAppReady(appID string) (ok bool, err error)
 }
+
+type appProvisionerOptions struct {
+	runTimeout    time.Duration
+	clientTimeout time.Duration
+}
+
+var errRunTimeout = errors.New("app provisioner: run timeout")
+
+//
+// Docker
+//
 
 type dockerProvisioner struct {
 	client  *docker.Client
@@ -24,13 +39,10 @@ type dockerProvisioner struct {
 }
 
 type dockerProvisionerOptions struct {
-	appConfig     docker.Config
-	hostConfig    docker.HostConfig
-	runTimeout    time.Duration
-	clientTimeout time.Duration
+	appConfig  docker.Config
+	hostConfig docker.HostConfig
+	appProvisionerOptions
 }
-
-var errDockerRunTimeout = errors.New("docker app provisioner: run timeout")
 
 func newDockerProvisioner(dockerHost string, options dockerProvisionerOptions) (*dockerProvisioner, error) {
 	client, err := docker.NewClient(dockerHost)
@@ -58,52 +70,30 @@ func (p *dockerProvisioner) fetchApp() (err error) {
 	return p.client.PullImage(pullImageOptions, docker.AuthConfiguration{})
 }
 
-func (p *dockerProvisioner) runApp(appID string) (hostname string, err error) {
+func (p *dockerProvisioner) runApp(appID string) (string, error) {
 	createOptions := docker.CreateContainerOptions{
-		Name:       appContainerName(appID),
+		Name:       getAppName(appID),
 		Config:     &p.options.appConfig,
 		HostConfig: &p.options.hostConfig,
 	}
-	container, err := p.client.CreateContainer(createOptions)
-	if err != nil {
-		return
-	}
-	defer func() {
+	spawnApp := func() error {
+		container, err := p.client.CreateContainer(createOptions)
 		if err != nil {
-			if err2 := p.destroyApp(appID); err2 != nil {
-				logrus.Warnf("docker provisioner: destroy app %q: %v", appID, err2)
-			}
+			return err
 		}
-	}()
-
-	if err = p.client.StartContainer(container.ID, &p.options.hostConfig); err != nil {
-		return
+		if err = p.client.StartContainer(container.ID, &p.options.hostConfig); err != nil {
+			return err
+		}
+		return nil
 	}
-
-	// Wait until the app is running
-	runDeadline := time.Now().Add(p.options.runTimeout)
-	for !container.State.Running {
-		container, err = p.client.InspectContainer(createOptions.Name)
-		if err != nil {
-			return
-		}
-		if time.Now().After(runDeadline) {
-			err = errDockerRunTimeout
-			return
-		}
-		time.Sleep(time.Millisecond * 100)
+	if err := runApp(appID, p, p.options.runTimeout, spawnApp); err != nil {
+		return "", err
 	}
-
-	hostname = containerFQDN(container)
-	return
+	return p.getAppHostname(appID)
 }
 
-func appContainerName(appID string) string {
-	return "scope-app-" + appID
-}
-
-func (p *dockerProvisioner) isAppRunning(appID string) (ok bool, err error) {
-	c, err := p.client.InspectContainer(appContainerName(appID))
+func (p *dockerProvisioner) isAppRunning(appID string) (bool, error) {
+	c, err := p.client.InspectContainer(getAppName(appID))
 	if err != nil {
 		return false, err
 	}
@@ -111,29 +101,257 @@ func (p *dockerProvisioner) isAppRunning(appID string) (ok bool, err error) {
 }
 
 func (p *dockerProvisioner) isAppReady(appID string) (bool, error) {
-	c, err := p.client.InspectContainer(appContainerName(appID))
+	hostname, err := p.getAppHostname(appID)
 	if err != nil {
 		return false, err
 	}
-	return pingScopeApp(containerFQDN(c))
+	return pingScopeApp(hostname)
 }
 
-func (p *dockerProvisioner) destroyApp(appID string) (err error) {
+func (p *dockerProvisioner) destroyApp(appID string) error {
 	options := docker.RemoveContainerOptions{
-		ID:            appContainerName(appID),
+		ID:            getAppName(appID),
 		RemoveVolumes: true,
 		Force:         true,
+	}
+	if _, err := p.client.InspectContainer(getAppName(appID)); err != nil {
+		return err
 	}
 	return p.client.RemoveContainer(options)
 }
 
-func containerFQDN(c *docker.Container) string {
-	return c.Config.Hostname + "." + c.Config.Domainname
+func (p *dockerProvisioner) getAppHostname(appID string) (string, error) {
+	c, err := p.client.InspectContainer(getAppName(appID))
+	if err != nil {
+		return "", err
+	}
+	return c.Config.Hostname + "." + c.Config.Domainname, nil
 }
 
-func pingScopeApp(host string) (bool, error) {
+//
+// Kubernetes
+//
+
+type k8sProvisionerOptions struct {
+	appContainer k8sAPI.Container
+	appProvisionerOptions
+}
+
+type k8sProvisioner struct {
+	client    *k8sClient.Client
+	namespace string
+	options   k8sProvisionerOptions
+}
+
+func newK8sProvisioner(options k8sProvisionerOptions) (*k8sProvisioner, error) {
+	client, err := k8sClient.NewInCluster()
+	if err != nil {
+		return nil, err
+	}
+	// TODO: Honor options.clientTimeout. It cannot be easily done until
+	// https://github.com/kubernetes/kubernetes/issues/16793 is resolved.
+	return &k8sProvisioner{client, "default", options}, nil
+}
+
+func (p *k8sProvisioner) fetchApp() (err error) {
+	// There doesn't seem to be a simple way to programmatically tell k8s to
+	// prefetch a Docker image in all its nodes. So, the image will be
+	// lazilly fetched on runApp.
+	//
+	// TODO: We could force pulling the image in each node by spawning an
+	// ephemeral pod which using the app-image and fixing the NodeName in its
+	// PodSpec. Another option could be temporarily spawning a DaemonSet
+	// using that image.
+	return nil
+}
+
+func (p *k8sProvisioner) runApp(appID string) (hostname string, err error) {
+	// Name used for all the labels and k8s object metadata. It will also
+	// be the service hostname, which is derived from its name by the k8s
+	// dns addon.
+	name := getAppName(appID)
+
+	labels := map[string]string{"name": name}
+	selector := labels
+	objMeta := k8sAPI.ObjectMeta{
+		Name:   name,
+		Labels: labels,
+	}
+	podTemplate := k8sAPI.PodTemplateSpec{
+		ObjectMeta: objMeta,
+		Spec: k8sAPI.PodSpec{
+			RestartPolicy: k8sAPI.RestartPolicyAlways,
+			Containers:    []k8sAPI.Container{p.options.appContainer},
+		},
+	}
+	rc := k8sAPI.ReplicationController{
+		ObjectMeta: objMeta,
+		Spec: k8sAPI.ReplicationControllerSpec{
+			Replicas: 1,
+			Selector: selector,
+			Template: &podTemplate,
+		},
+	}
+	service := k8sAPI.Service{
+		ObjectMeta: objMeta,
+		Spec: k8sAPI.ServiceSpec{
+			Ports: []k8sAPI.ServicePort{
+				k8sAPI.ServicePort{
+					Protocol: "TCP",
+					Port:     scope.AppPort,
+				},
+			},
+			Selector: selector,
+			// Doesn't matter since there's just one replica:
+			SessionAffinity: k8sAPI.ServiceAffinityNone,
+		},
+	}
+
+	spawnApp := func() error {
+		if _, err := p.client.ReplicationControllers(p.namespace).Create(&rc); err != nil {
+			return err
+		}
+		if _, err = p.client.Services(p.namespace).Create(&service); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if err = runApp(appID, p, p.options.runTimeout, spawnApp); err != nil {
+		return "", err
+	}
+
+	// We cannot provide the service FQDN because, AFAIK, the cluster domain is
+	// not accessible to the k8s client
+	return name, nil
+}
+
+func (p *k8sProvisioner) isAppRunning(appID string) (bool, error) {
+	name := getAppName(appID)
+
+	// Check that the replication controller is up
+	rc, err := p.client.ReplicationControllers(p.namespace).Get(name)
+	if err != nil || rc == nil || rc.Status.Replicas != 1 {
+		logrus.Debugf("k8sProvisioner: isAppRunning: controller for app %q not up", appID)
+		return false, err
+	}
+
+	// Check that the underlying pod is running
+	labelSelector := k8sLabels.Set(rc.Spec.Selector).AsSelector()
+	pods, err := p.client.Pods(p.namespace).List(labelSelector, k8sFields.Everything())
+	if err != nil || pods == nil || len(pods.Items) != 1 ||
+		pods.Items[0].Status.Phase != k8sAPI.PodRunning {
+		logrus.Debugf("k8sProvisioner: isAppRunning: pod for app %q not up", appID)
+		return false, err
+	}
+
+	// Finally, check that the pod is exposed through a service
+	service, err := p.client.Services(p.namespace).Get(name)
+	if err != nil || service != nil && service.Spec.ClusterIP == "" {
+		logrus.Debugf("k8sProvisioner: isAppRunning: service for app %q not up", appID)
+		return false, err
+	}
+	return true, nil
+}
+
+func (p *k8sProvisioner) isAppReady(appID string) (bool, error) {
+	hostname := getAppName(appID)
+	return pingScopeApp(hostname)
+}
+
+func (p *k8sProvisioner) destroyApp(appID string) (err error) {
+	var rcErr, podErr, serviceErr error
+	name := getAppName(appID)
+
+	// Delete replication controller
+	var rc *k8sAPI.ReplicationController
+	rcInterface := p.client.ReplicationControllers(p.namespace)
+	if rc, rcErr = rcInterface.Get(name); rcErr == nil && rc != nil {
+		logrus.Debugf("k8sProvisioner: destroyApp: destroying replication controller for app %q", appID)
+		rcErr = rcInterface.Delete(name)
+	}
+
+	// Delete pod
+	// Deleting a replication controller doesn't implicitly delete its
+	// underlying pods (unlike how it happens during creation).
+	labels := map[string]string{"name": name}
+	labelSelector := k8sLabels.Set(labels).AsSelector()
+	podInterface := p.client.Pods(p.namespace)
+	var pods *k8sAPI.PodList
+	if pods, podErr = podInterface.List(labelSelector, k8sFields.Everything()); podErr == nil && pods != nil {
+		if podNum := len(pods.Items); podNum > 1 {
+			logrus.Warnf("k8sProvisioner: destroyApp: unexpected number of pods (%d) for app %q", appID, podNum)
+		}
+		for _, pod := range pods.Items {
+			logrus.Debugf("k8sProvisioner: destroyApp: destroying pod %q for app %q", pod.Name, appID)
+			err := podInterface.Delete(pod.Name, &k8sAPI.DeleteOptions{})
+			if err != nil {
+				podErr = err
+			}
+		}
+	}
+
+	// Delete service
+	var service *k8sAPI.Service
+	serviceInterface := p.client.Services(p.namespace)
+	if service, serviceErr = serviceInterface.Get(name); serviceErr == nil && service != nil {
+		logrus.Debugf("k8sProvisioner: destroyApp: destroying service for app %q", appID)
+		serviceErr = serviceInterface.Delete(name)
+	}
+
+	if rcErr != nil {
+		return rcErr
+	}
+	if podErr != nil {
+		return podErr
+	}
+	if serviceErr != nil {
+		return serviceErr
+	}
+
+	return nil
+}
+
+//
+// Helpers
+//
+
+func getAppName(appID string) string {
+	return "scope-app-" + appID
+}
+
+func runApp(appID string, p appProvisioner, timeout time.Duration, spawnApp func() error) (err error) {
+	// App rollback
+	defer func() {
+		if err == nil {
+			return
+		}
+		logrus.Debugf("provisioner: rolling back app %q", appID)
+		if err2 := p.destroyApp(appID); err2 != nil {
+			logrus.Warnf("provisioner: error rolling back app %q: %v", appID, err2)
+		}
+	}()
+	if err = spawnApp(); err != nil {
+		return
+	}
+	runDeadline := time.Now().Add(timeout)
+	for true {
+		var ok bool
+		if ok, err = p.isAppRunning(appID); err != nil || ok {
+			return
+		}
+		if time.Now().After(runDeadline) {
+			err = errRunTimeout
+			return
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+	return
+}
+
+func pingScopeApp(hostname string) (bool, error) {
 	pingTimeout := 200 * time.Millisecond
-	hostPort := addPort(host, scope.AppPort)
+	hostPort := addPort(hostname, scope.AppPort)
 	req, err := http.NewRequest("GET", "http://"+hostPort+"/api", nil)
 	if err != nil {
 		return false, err

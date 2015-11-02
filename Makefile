@@ -101,7 +101,7 @@ $(APP_MAPPER_EXE) $(USERS_EXE): $(BUILD_UPTODATE)
 endif
 
 app-mapper-integration-test: $(APP_MAPPER_UPTODATE)
-	app-mapper/script/integration-test.sh
+	@app-mapper/script/integration-test.sh
 
 users-integration-test: $(USERS_UPTODATE)
 	DB_CONTAINER="$$(docker run -d $(USERS_DB_IMAGE))"; \
