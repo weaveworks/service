@@ -16,7 +16,11 @@ spec:
       containers:
       - name: app-mapper
         image: quay.io/weaveworks/app-mapper
-        command: ["/app-mapper", "-db-uri=postgres://postgres@app-mapper-db.weave.local/app_mapper?sslmode=disable", "-docker-host=unix:///var/run/weave/weave.sock", "-log-level=debug"]
+        args:
+        # command = "/app-mapper"
+        - -db-uri=postgres://postgres@app-mapper-db.weave.local/app_mapper?sslmode=disable
+        - -docker-host=unix:///var/run/weave/weave.sock
+        - -log-level=debug
         volumeMounts:
           - mountPath: /var/run/weave/weave.sock
             name: weavesock

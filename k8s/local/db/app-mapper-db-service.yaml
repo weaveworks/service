@@ -1,15 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: app-mapper
+  name: app-mapper-db
   labels:
-    name: app-mapper
+    name: app-mapper-db
 spec:
   # if your cluster supports it, uncomment the following to automatically create
   # an external load-balanced IP for the frontend service.
   # type: LoadBalancer
   ports:
     # the port that this service should serve on
-    - port: 80
+    - port: 5432
   selector:
-    name: app-mapper
+    name: app-mapper-db
