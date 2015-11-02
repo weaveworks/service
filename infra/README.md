@@ -87,16 +87,15 @@ $ kubectl --kubeconfig=foo.kubeconfig get pods
 Here's how the scripts work.
 
 ```
-      +------------------+
-      | config-base.bash |--.                           +--kubernetes--------++
-      +------------------+  |                           |  +--cluster------+  |   +-----+
-   +--------------------+   v      +-----------------+  |  |  +--aws----+.-|--|-->|     |
--->| provision.bash foo |---+--+-->| get-k8s-io.bash |--|--|--|-->*.sh  |--|--|-->| AWS |
-   +--------------------+      ^   +-----------------+  |  |  +---------+'-|--|-->|     |
-          +-----------------+  |                        |  +---------------+  |   +-----+
-          | config-foo.bash |--'                        +---------------------+
-          +-----------------+
-
+  +------------------+
+  | config-base.bash |--.                           +-cluster/aws--+
+  +------------------+  |                           |   +------+   |   +-----+
+   +----------------+   v      +-----------------+  |   |      |---|-->|     |
+-->| provision.bash |---+--+-->| get-k8s-io.bash |--|-->| *.sh |---|-->| AWS |
+   +----------------+      ^   +-----------------+  |   |      |---|-->|     |
+      +-----------------+  |                        |   +------+   |   +-----+
+      | config-foo.bash |--'                        +--------------+
+      +-----------------+
 ```
 
 ## Get kubernetes.bash
@@ -134,8 +133,8 @@ We will work in the helloworld directory.
 $ cd helloworld
 ```
 
-Now we will tell Kubernetes to download and run this container.
-We create a new replication controller, from the file.
+Tell Kubernetes to download and run this container.
+Create a new replication controller, from the file.
 
 ```
 $ kubectl create -f helloworld-rc.yaml
