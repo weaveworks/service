@@ -21,6 +21,9 @@ case "$1" in
   -local)
     ENVIRONMENT="local"
     ./spawn_local_k8s.sh
+    kubectl create -f k8s/local/db
+    # TODO: The following should be done in a general way also for prod and dev
+    kubectl create -f k8s
     exit 0
     ;;
   *)
