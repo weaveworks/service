@@ -120,7 +120,7 @@ $ ./provision.bash foo up
 ```
 
 This will take several minutes.
-See [K8S-AWS.md]() for a description of what the script does on AWS.
+See K8S-AWS.md for a description of what the script does on AWS.
 
 > 💁
 > The script moves your existing ~/.kube/config to ~/.kube/config.backup.TIMESTAMP.
@@ -128,7 +128,7 @@ See [K8S-AWS.md]() for a description of what the script does on AWS.
 ## Verify the cluster
 
 To verify the cluster, we'll deploy an application, rolling-upgrade it to a new version, and then tear it all down.
-See [VERIFY.md]() for instructions.
+See VERIFY.md for instructions.
 
 ## Commit the kubeconfig
 
