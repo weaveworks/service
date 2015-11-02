@@ -29,7 +29,7 @@ $(APP_MAPPER_EXE): *.go
 	$(NETGO_CHECK)
 
 integration-test: $(IMAGES_UPTODATE)
-	script/integration-test.sh
+	@script/integration-test.sh
 
 test:
 	go test ./...

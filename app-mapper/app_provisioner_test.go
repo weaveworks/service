@@ -1,4 +1,5 @@
 // +build integration
+// +build docker k8s
 
 package main
 
@@ -9,20 +10,49 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	k8sAPI "k8s.io/kubernetes/pkg/api"
 )
 
-func testAppProvisioner(t *testing.T, appID string, test func(p appProvisioner, host string)) {
-	appConfig := docker.Config{
-		Image: defaultAppImage,
+func newTestProvisioner(t *testing.T) appProvisioner {
+	generalOptions := appProvisionerOptions{
+		runTimeout:    defaultProvisionerRunTimeout,
+		clientTimeout: defaultProvisionerClientTimeout,
 	}
-	o := dockerProvisionerOptions{
-		appConfig:     appConfig,
-		runTimeout:    defaultDockerRunTimeout,
-		clientTimeout: defaultDockerClientTimeout,
+
+	if isDockerIntegrationTest {
+		appConfig := docker.Config{
+			Image: defaultAppImage,
+		}
+		o := dockerProvisionerOptions{
+			appConfig:             appConfig,
+			appProvisionerOptions: generalOptions,
+		}
+		p, err := newDockerProvisioner("unix:///var/run/weave/weave.sock", o)
+		require.NoError(t, err, "Cannot create docker provisioner")
+		return p
 	}
-	p, err := newDockerProvisioner("unix:///var/run/weave/weave.sock", o)
-	require.NoError(t, err, "Cannot create provisioner")
-	err = p.fetchApp()
+
+	if isK8sIntegrationTest {
+		options := k8sProvisionerOptions{
+			appContainer: k8sAPI.Container{
+				Name:  "scope",
+				Image: defaultAppImage,
+				Args:  []string{"--no-probe"},
+			},
+			appProvisionerOptions: generalOptions,
+		}
+
+		p, err := newK8sProvisioner(options)
+		require.NoError(t, err, "Cannot create k8s provisioner")
+		return p
+	}
+
+	return nil
+}
+
+func runProvisionerTest(t *testing.T, appID string, p appProvisioner, test func(p appProvisioner, host string)) {
+	err := p.fetchApp()
+	require.NoError(t, err, "Cannot fetch app")
 	host, err := p.runApp(appID)
 	require.NoError(t, err, "Cannot run app")
 
@@ -41,7 +71,8 @@ func TestSimpleProvisioning(t *testing.T) {
 		assert.True(t, running, "App not running")
 	}
 
-	testAppProvisioner(t, appID, test)
+	p := newTestProvisioner(t)
+	runProvisionerTest(t, appID, p, test)
 }
 
 func TestIsAppReady(t *testing.T) {
@@ -55,5 +86,6 @@ func TestIsAppReady(t *testing.T) {
 		assert.True(t, ready, "App not running")
 	}
 
-	testAppProvisioner(t, appID, test)
+	p := newTestProvisioner(t)
+	runProvisionerTest(t, appID, p, test)
 }

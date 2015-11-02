@@ -1,0 +1,49 @@
+{
+"apiVersion": "v1",
+"kind": "Pod",
+"metadata": {"name":"app-mapper-test"},
+"spec":{
+  "restartPolicy": "Never",
+  "volumes": [
+	{
+	    "name": "gopath",
+	    "hostPath": {
+		"path": "$GOPATH"
+	    }
+	},
+        {
+	    "name": "k8s-test-script",
+	    "hostPath": {
+		"path": "$K8S_TEST_SCRIPT"
+	    }
+	}
+  ],
+  "containers":[
+    {
+      "name": "app-mapper-test",
+      "image": "golang:1.5.1",
+      "command": [
+              "bash",
+              "/k8s_test_script.sh"
+      ],
+      "env": [
+            {
+                "name": "TEST_FLAGS",
+                "value": "$TEST_FLAGS"
+            }
+      ],
+      "volumeMounts": [
+            {
+              "name": "gopath",
+              "mountPath": "/go"
+            },
+	    {
+              "name": "k8s-test-script",
+              "mountPath": "/k8s_test_script.sh"
+            }
+
+      ]
+    }
+  ]
+ }
+}

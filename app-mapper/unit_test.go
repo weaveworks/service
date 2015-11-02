@@ -5,7 +5,11 @@ import (
 	"time"
 )
 
-var isIntegrationTest = false
+var (
+	isIntegrationTest       = false
+	isDockerIntegrationTest = false
+	isK8sIntegrationTest    = false
+)
 
 type authenticatorFunc func(r *http.Request, orgName string) (authenticatorResponse, error)
 
