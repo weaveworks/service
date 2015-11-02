@@ -10,10 +10,10 @@ metadata: # of this rc
 spec:
   replicas: 1
   selector:         # This rc will select pods matching...
-    app: helloworld #  these 
+    app: helloworld #  these
     track: stable   #   label
     version: 1.0.0  #    dimensions
-  
+
   template:
     metadata:
       labels:           # This rc will create pods and give them...
@@ -22,11 +22,11 @@ spec:
         version: 1.0.0  #    dimensions
     spec:
       containers:
-        - image: docker.io/yourname/helloworld:1.0.0
+        - image: docker.io/peterbourgon/helloworld:1.0.0
           name: helloworld
           ports:
             - containerPort: 80 # Our application binds to this port inside the container
-              protocol: TCP     
+              protocol: TCP
           livenessProbe:
             httpGet:
               path: "/"
