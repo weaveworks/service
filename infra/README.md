@@ -23,8 +23,8 @@ It's concerned with provisioning the scheduling system (k8s), stateful storage (
 1. [Bootstrap](#bootstrap)
   - [Set up AWS](#set-up-aws)
   - [Set up kubectl](#set-up-kubectl)
-  - [Get kubernetes.bash](#get-kubernetes.bash)
-  - [Run provision.bash](#run-provision.bash)
+  - [Update get-k8s-io.bash](#update-get-k8s-iobash)
+  - [Run provision.bash](#run-provisionbash)
   - [Verify the cluster](#verify-the-cluster)
   - [Commit the kubeconfig](#commit-the-kubeconfig)
   - [Provision databases](#provision-databases)
@@ -98,7 +98,7 @@ Here's how the scripts work.
       +-----------------+
 ```
 
-## Get kubernetes.bash
+## Update get-k8s-io.bash
 
 The core bootstrapping script, get-k8s-io.bash, is provided and maintained by the Kubernetes project.
 We make a couple of modifications, to make it more failsafe.
@@ -116,7 +116,7 @@ Create that file for your cluster, using an existing file as a template.
 Then, run the script.
 
 ```
-$ ./provision.bash foo
+$ ./provision.bash foo up
 ```
 
 This will take several minutes.
