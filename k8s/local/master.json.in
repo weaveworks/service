@@ -8,7 +8,7 @@
 	{
 	    "name": "pki",
 	    "hostPath": {
-		"path": "/home/vagrant/service/k8s/local/pki"
+		"path": "$PKI_HOST_PATH"
 	    }
 	}
   ],
