@@ -1,15 +1,6 @@
-# Notes
-
-## AWS networking
-
-Kubernetes creates all of these except the default route table.
-Arrows indicate foreign-key relationships.
-
-```
 digraph G {
     node [shape=rect];
-    rankdir=LR;
-    ranksep=1;
+    edge [minlen=2];
 
     {rank=same; vpc;}
     {rank=same; sg_master; sg_minion; acl; subnet; igw; rtb_k8s; rtb_default;}
@@ -38,8 +29,9 @@ digraph G {
 
 	rtb_k8s -> vpc;
 	rtb_k8s -> subnet;
-	rtb_k8s -> igw;
-	rtb_k8s -> ec2_minions;
+	rtb_k8s -> igw         [style=dashed];
+	rtb_k8s -> ec2_minions [style=dashed];
+	rtb_k8s -> ec2_master  [style=dashed];
 
 	rtb_default -> vpc;
 
@@ -49,4 +41,3 @@ digraph G {
 	ec2_master -> vpc;
 	ec2_master -> sg_master;
 }
-```
