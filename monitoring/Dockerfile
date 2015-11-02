@@ -7,6 +7,8 @@ FROM debian:jessie
 RUN touch /etc/inittab
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y -q runit curl
 
+LABEL works.weave.role=system
+
 COPY prometheus /prometheus/
 COPY prometheus.yml /etc/prometheus/
 COPY run-prometheus /etc/service/prometheus/run
