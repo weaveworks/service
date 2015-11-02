@@ -21,23 +21,23 @@ It's concerned with provisioning the scheduling system (k8s), stateful storage (
 ```
 
 1. [Bootstrap](#bootstrap)
-1.1. [Set up AWS](#set-up-aws)
-1.1. [Set up kubectl](#set-up-kubectl)
-1.1. [Get kubernetes.bash](#get-kubernetes.bash)
-1.1. [Run provision.bash](#run-provision.bash)
-1.1. [Verify the cluster](#verify-the-cluster)
-1.1. [Commit the kubeconfig](#commit-the-kubeconfig)
-1.1. [Provision databases](#provision-databases)
-1.1. [Deploy the application](#deploy-the-application)
-1.1. [Provision DNS](#provision-dns)
+  - [Set up AWS](#set-up-aws)
+  - [Set up kubectl](#set-up-kubectl)
+  - [Get kubernetes.bash](#get-kubernetes.bash)
+  - [Run provision.bash](#run-provision.bash)
+  - [Verify the cluster](#verify-the-cluster)
+  - [Commit the kubeconfig](#commit-the-kubeconfig)
+  - [Provision databases](#provision-databases)
+  - [Deploy the application](#deploy-the-application)
+  - [Provision DNS](#provision-dns)
 1. [Teardown](#teardown)
-1.1. [Tear down DNS](#tear-down-dns)
-1.1. [Delete frontend service](#delete-frontend-service)
-1.1. [Delete replication controllers](#delete-replication-controllers)
-1.1. [Verify pods are gone](#verify-pods-are-gone)
-1.1. [Tear down database](#tear-down-database)
-1.1. [Tear down Kubernetes](#tear-down-kubernetes)
-1.1. [Delete file storage](#delete-file-storage)
+  - [Tear down DNS](#tear-down-dns)
+  - [Delete frontend service](#delete-frontend-service)
+  - [Delete replication controllers](#delete-replication-controllers)
+  - [Verify pods are gone](#verify-pods-are-gone)
+  - [Tear down database](#tear-down-database)
+  - [Tear down Kubernetes](#tear-down-kubernetes)
+  - [Delete file storage](#delete-file-storage)
 
 # Bootstrap
 
@@ -128,52 +128,14 @@ This will take several minutes.
 ## Verify the cluster
 
 To verify the cluster, we'll deploy an application, rolling-upgrade it to a new version, and then tear it all down.
-We assume you have a working Go compiler and Docker installed.
-
-```
-$ go version
-$ docker ps
-```
-
 We will work in the helloworld directory.
 
 ```
 $ cd helloworld
 ```
 
-Create the first version of your application.
-Compile helloworld.go for Linux.
-
-```
-$ env GOOS=linux GOARCH=amd64 go build -o helloworld .
-```
-
-Build the Docker container.
-Kubernetes will eventually need to download this container, so we'll put it on Docker Hub.
-That means we should tag it as **yourname**/helloworld, where **yourname** is your Docker Hub username.
-We'll also use an explicit version tag, 1.0.0.
-
-```
-$ docker build -t yourname/helloworld:1.0.0 .
-```
-
-Push the Docker container to Docker Hub.
-This requires you to have an account on Docker Hub, and login with the docker CLI.
-See [this documentation](https://docs.docker.com/reference/commandline/login/) for details.
-
-```
-$ docker login
-$ docker push yourname/helloworld:1.0.0
-```
-
 Now we will tell Kubernetes to download and run this container.
-First, edit the helloworld-rc.yaml to use the container with the correct tag.
-
-```
-$ sed -i'.bak' 's/yourname/peterbourgon/g' helloworld-rc.yaml ; rm -f *.bak
-```
-
-Then, tell Kubernetes to create a new replication controller from the file.
+We create a new replication controller, from the file.
 
 ```
 $ kubectl create -f helloworld-rc.yaml
@@ -183,8 +145,8 @@ Check that it was created.
 
 ```
 $ kubectl get rc
-CONTROLLER         CONTAINER(S)   IMAGE(S)                                  SELECTOR                                    REPLICAS
-helloworld-1.0.0   helloworld     docker.io/peterbourgon/helloworld:1.0.0   app=helloworld,track=stable,version=1.0.0   1
+CONTROLLER         CONTAINER(S)   IMAGE(S)   SELECTOR   REPLICAS
+helloworld-1.0.0   helloworld     . . .      . . .      1
 ```
 
 Check that a pod is running.
@@ -250,6 +212,7 @@ No events.
 
 In another terminal, set up a loop to continuously GET the ELB.
 We'll use that to verify the version upgrade works as expected.
+It may take several minutes for the ELB to work correctly.
 
 ```
 $ bash -c 'while true; do curl -Ss -XGET ab1896c8f7eff11e58b1502f93cffe5e-1066700612.us-west-2.elb.amazonaws.com; sleep 0.5; done'
@@ -258,17 +221,7 @@ Hello world
 Hello world
 ```
 
-Now, we'll deploy a new version of our application.
-Change helloworld.go to print "Foo bar" instead of "Hello world".
-Recompile, rebuild the Docker container as version 2.0.0, and push it to Docker Hub.
-
-```
-$ sed -i'.bak' 's/Hello world/Foo bar/g' helloworld.go ; rm -f *.bak
-$ env GOOS=linux GOARCH=amd64 go build -o helloworld .
-$ docker build -t yourname/helloworld:2.0.0 .
-$ docker push yourname/helloworld:2.0.0
-```
-
+Now, we'll deploy a new version of our application, which prints "Foo bar" instead of "Hello world".
 Modify the replication controller to control the 2.0.0 container.
 
 ```
@@ -290,7 +243,7 @@ Now, let's tear everything down.
 ```
 $ kubectl delete svc helloworld
 $ kubectl delete rc helloworld-2.0.0
-$ git checkout -- helloworld-rc.yaml helloworld.go
+$ git checkout -- helloworld-rc.yaml
 ```
 
 No pods left.
