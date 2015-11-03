@@ -22,6 +22,7 @@ echo "Sourcing ${NAME}.k8s"
 source ${NAME}.k8s
 
 export KUBERNETES_PROVIDER="aws"
+export AWS_S3_BUCKET="weaveworks-scope-kubernetes-$(date | shasum | cut -c 1-7)"
 
 function ensure_release {
 	if [ -d kubernetes ]
