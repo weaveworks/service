@@ -56,3 +56,6 @@ infra/kubectl
 infra/kubernetes.tar.gz
 infra/kubernetes/*
 infra/helloworld/helloworld
+
+k8s/local/pki
+k8s/local/master.json
