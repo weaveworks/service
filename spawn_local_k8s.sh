@@ -51,7 +51,8 @@ docker run \
 docker run --name local_k8s_proxy -d --net=host --privileged 2opremio/hyperkube:664d2ef /hyperkube proxy --master=http://127.0.0.1:8080 --v=2
 # DNS
 # From https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/dns
-# TODO: reuse main etcd instead of spawning another one
-sleep 3 # Let hyperkube boot
+
+# Let hyperkube boot
+while ! kubectl get svc kubernetes > /dev/null 2>&1; do sleep 1; done
 kubectl create -f "$LOCAL_K8S_DIR"/kube-system.json
 kubectl create -f "$LOCAL_K8S_DIR"/skydns
