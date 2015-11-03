@@ -20,7 +20,16 @@ source config-base.bash
 source config-${NAME}.bash
 source get-k8s-io.bash
 
+
 case $WHAT in
+terraform)
+	KUBE_ROOT=$(dirname "${BASH_SOURCE}")/kubernetes
+	source "${KUBE_ROOT}/cluster/kube-env.sh"
+	source "${KUBE_ROOT}/cluster/${KUBERNETES_PROVIDER}/util.sh"
+	VPCID=$(get_vpc_id)
+	echo VpcId = ${VPCID}
+	;;
+
 up)
 	if [ -f ${HOME}/.kube/config ]
 	then
@@ -32,8 +41,8 @@ up)
 		echo
 	else
 		echo
-		echo "No ${HOME}/.kube/config detected."
-		echo "That's fine."
+		echo "No ${HOME}/.kube/config detected"
+		echo "That's fine"
 		echo
 	fi
 	create_cluster
@@ -45,8 +54,8 @@ up)
 		echo
 	else
 		echo
-		echo "${HOME}/.kube/config is missing."
-		echo "This is very strange and/or bad."
+		echo "${HOME}/.kube/config is missing"
+		echo "This is very strange and/or bad"
 		echo
 	fi
 	;;
