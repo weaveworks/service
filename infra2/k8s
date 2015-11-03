@@ -48,38 +48,55 @@ export KUBERNETES_PROVIDER="aws"
 
 case $WHAT in
 up)
-	#
-	# The bootstrapping script writes to ~/.kube/config.
-	# Move existing config away, to get a clean base.
-	#
-	if [ -f ${HOME}/.kube/config ]
+	if [ "${SKIP_BOOTSTRAP}" == "" ]
 	then
-		TIMESTAMP=$(date +%Y%m%d%H%M%S)
-		echo "Detected ${HOME}/.kube/config"
-		echo "Moving it to ${HOME}/.kube/config.backup.${TIMESTAMP}"
-		mv ${HOME}/.kube/config ${HOME}/.kube/config.backup.${TIMESTAMP}
+		#
+		# The bootstrapping script writes to ~/.kube/config.
+		# Move existing config away, to get a clean base.
+		#
+		if [ -f ${HOME}/.kube/config ]
+		then
+			TIMESTAMP=$(date +%Y%m%d%H%M%S)
+			echo "Detected ${HOME}/.kube/config"
+			echo "Moving it to ${HOME}/.kube/config.backup.${TIMESTAMP}"
+			mv ${HOME}/.kube/config ${HOME}/.kube/config.backup.${TIMESTAMP}
+		fi
+
+		#
+		# Launch the bootstrapping script.
+		#
+		(
+			echo "Will bootstrap in 5 seconds..."
+			sleep 5
+			cd kubernetes
+			./cluster/kube-up.sh
+			echo "Kubernetes installation successful."
+		)
 	fi
 
-	#
-	# Launch the bootstrapping script.
-	#
+    #
+    # Write the kubeconfig
+    #
 	(
-		cd kubernetes
-    	./cluster/kube-up.sh
-		echo "Kubernetes installation successful."
+		echo "Writing ${NAME}.kubeconfig"
+		cp ${HOME}/.kube/config ${NAME}.kubeconfig
 	)
 
-    #
-    # Write our output files.
-    #
-    echo "Writing ${NAME}.kubeconfig"
-    cp ${HOME}/.kube/config ${NAME}.kubeconfig
-
-    echo "Writing ${NAME}.aws"
-    TEMPFILE=$(mktemp)
-    VPC_ID=$(get_vpc_id)
-    echo "export VPC_ID=${VPC_ID}" >> $TEMPFILE
-    mv ${TEMPFILE} ${NAME}.aws
+	#
+	# Extract AWS information for use by other scripts.
+	#
+	(
+		source kubernetes/cluster/kube-env.sh
+		source kubernetes/cluster/${KUBERNETES_PROVIDER}/util.sh
+		echo "Writing ${NAME}.aws"
+		TEMPFILE=$(mktemp)
+		VPC_ID=$(get_vpc_id)
+		echo "#!/usr/bin/env bash" >> $TEMPFILE
+		echo "" >> $TEMPFILE
+		echo "export VPC_ID=${VPC_ID}" >> $TEMPFILE
+		echo "" >> $TEMPFILE
+		mv ${TEMPFILE} ${NAME}.aws
+	)
 	;;
 
 down)

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+export VPC_ID=vpc-c06522a5
+
