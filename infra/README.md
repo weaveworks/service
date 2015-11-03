@@ -24,7 +24,7 @@ Here, you'll find scripts to provision each piece of the cluster.
 Each script produces output file(s) that are used as input to other scripts.
 All output files should be checked in.
 
-![order.png](https://i.imgur.com/LzDkR8k.png)
+![order.png](http://i.imgur.com/y3g8DyD.png)
 
 1. [Prerequisites](#prerequisites)
 1. [Standup](#standup)
@@ -86,7 +86,7 @@ Run these commands one at a time.
 ./rds foo up
 ./r53 foo up
 
-git add foo.*
+git add foo.k8s foo.aws foo.kubeconfig foo-rds.tfstate foo-route53.tfstate
 git commit -m "Standup foo cluster"
 ```
 
@@ -97,7 +97,7 @@ git commit -m "Standup foo cluster"
 ./rds foo down
 ./k8s foo down
 
-git rm foo.*
+git rm foo.k8s foo.aws foo.kubeconfig foo-rds.tfstate foo-route53.tfstate
 git commit -m "Teardown foo cluster"
 ```
 
