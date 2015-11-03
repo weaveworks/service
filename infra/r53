@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+if [ $# -ne 2 ]
+then
+	echo "usage: $(basename $0) <name> up/down"
+	exit 1
+fi
+
+NAME=$1
+WHAT=$2
+
+echo "Sourcing ${NAME}.aws"
+source ${NAME}.aws
+
+function service_frontend_elb {
+	# kubectl --kubeconfig=${NAME}.kubeconfig get service frontend
+	# Parse for the ELB address
+	echo "TODO"
+}
+
+function create_tf {
+	# I don't think we need to create a tfvars...
+	# Create route53-${NAME}.tf, with record set to the service_frontend_elb.
+	# Maybe we don't need anything from ${NAME}.aws?
+	# All other parameters can be hard-coded, to start.
+	echo "TODO"
+}
+
+function remove_tf {
+	# rm route53-${NAME}.tf
+	echo "TODO"
+}
+
+function terraform_apply {
+	# Split into explicit plan and apply stages.
+	echo "TODO"
+}
+
+case ${WHAT} in
+up)
+	create_tf
+	terraform_apply
+	;;
+
+down)
+	remove_tf
+	terraform_apply
+	;;
+
+*)
+	echo "Unknown command"
+	exit 1
+	;;
+esac
