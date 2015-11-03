@@ -113,7 +113,7 @@ export default class Wrapper extends React.Component {
     const url = `/api/app/${this.state.name}/api`;
     this.setState({
       activityText: '',
-      frameUrl: url
+      frameBaseUrl: url
     });
   }
 
