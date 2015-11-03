@@ -6,6 +6,9 @@ digraph G {
     {rank=same; sg_master; sg_minion; acl; subnet; igw; rtb_k8s; rtb_default;}
     {rank=same; ec2_master; ec2_minions;}
 
+    autoscaling_group;
+    autoscaling_launchconfig;
+
 	vpc -> sg_master;
 	vpc -> sg_minion;
 	vpc -> acl;
