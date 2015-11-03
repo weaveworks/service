@@ -2,14 +2,14 @@ digraph G {
 	"foo.k8s" [shape=box];
 	"foo.aws" [shape=box];
 	"foo.kubeconfig" [shape=box];
-	"foo.rds" [shape=box];
-	"foo.r53" [shape=box];
+	"foo-rds.tfstate" [shape=box];
+	"foo-route53.tfstate" [shape=box];
 
 	k8s [style=filled];
 	rds [style=filled];
 	r53 [style=filled];
 
 	"foo.k8s" -> k8s -> {"foo.aws", "foo.kubeconfig"};
-	"foo.aws" -> rds -> "foo.rds";
-	{"foo.aws", "foo.kubeconfig"} -> r53 -> "foo.r53";
+	"foo.aws" -> rds -> "foo-rds.tfstate";
+	{"foo.aws", "foo.kubeconfig"} -> r53 -> "foo-route53.tfstate";
 }
