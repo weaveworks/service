@@ -11,9 +11,10 @@ export default class Probes extends React.Component {
     this.state = {
       probes: []
     };
+    this.getProbes = this.getProbes.bind(this);
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.getProbes();
   }
 
@@ -25,6 +26,7 @@ export default class Probes extends React.Component {
           probes: resp
         });
         trackEvent('Scope', 'connectedProbes', this.props.org, resp.length);
+        setTimeout(this.getProbes, 5000);
       }, resp => {
         trackException(resp.errors[0].message);
       });
