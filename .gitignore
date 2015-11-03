@@ -41,7 +41,8 @@ monitoring/prometheus
 monitoring/prometheus-*.linux-amd64.tar.gz
 monitoring/prometheus-*.linux-amd64/ 
 monitoring/grafana
-monitoring/.grafana_gopath
+monitoring/grafana-*.linux-x64.tar.gz
+monitoring/grafana-*/
 monitoring/conf/
 monitoring/public_gen/
 monitoring/data/
