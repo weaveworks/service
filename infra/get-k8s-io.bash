@@ -105,7 +105,7 @@ fi
 
 file=kubernetes.tar.gz
 
-echo "Downloading kubernetes release ${release} to ${PWD}/kubernetes.tar.gz"
+if [ ! -f kubernetes.tar.gz ]; then echo "Downloading kubernetes release ${release} to {PWD}/kubernetes.tar.gz"
 if [[ -n "${KUBERNETES_SKIP_CONFIRM-}" ]]; then
   echo "Is this ok? [Y]/n"
   read confirm
@@ -124,9 +124,9 @@ else
   exit 1
 fi
 
-echo "Unpacking kubernetes release ${release}"
+fi; echo "Unpacking kubernetes release ${release}"
 tar -xzf ${file}
-rm ${file}
+# rm ${file}
 
 
 # If the S3 bucket already exists, don't die.
