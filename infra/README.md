@@ -26,10 +26,10 @@ All output files should be checked in.
 
 ![order.png](https://i.imgur.com/LzDkR8k.png)
 
-1. Prerequisites
-1. Standup
-1. Teardown
-1. FAQ
+1. [Prerequisites](#prerequisites)
+1. [Standup](#standup)
+1. [Teardown](#teardown)
+1. [FAQ](#faq)
 
 ## Prerequisites
 
@@ -86,7 +86,7 @@ Run these commands one at a time.
 ./rds foo up
 ./r53 foo up
 
-git add foo.k8s foo.kubeconfig foo.rds foo.frontend foo.r53
+git add foo.k8s foo.kubeconfig foo.rds foo.r53
 git commit -m "Standup foo cluster"
 ```
 
@@ -97,7 +97,7 @@ git commit -m "Standup foo cluster"
 ./rds foo down
 ./k8s foo down
 
-git rm foo.k8s foo.kubeconfig foo.rds foo.frontend foo.r53
+git rm foo.k8s foo.kubeconfig foo.rds foo.r53
 git commit -m "Teardown foo cluster"
 ```
 
@@ -111,7 +111,7 @@ See the k8s-helloworld directory.
 
 ```
 $ bash -c '
-  for b in $(aws s3 ls / | grep weaveworks-scope-kubernetes- | awk "{print $3}")
+  for b in $(aws s3 ls / | grep weaveworks-scope-kubernetes- | awk \'{print $3}\')
   do
     echo $b
     aws s3 rm --recursive s3://$b/
