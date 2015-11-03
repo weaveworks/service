@@ -110,7 +110,7 @@ export default class Wrapper extends React.Component {
   }
 
   _handleInstanceSuccess() {
-    const url = `/api/app/${this.state.name}/api`;
+    const url = `/api/app/${this.state.name}/`;
     this.setState({
       activityText: '',
       frameBaseUrl: url
