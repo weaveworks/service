@@ -1,11 +1,5 @@
 # Verify a Kubernetes cluster
 
-We will work in the helloworld directory.
-
-```
-$ cd helloworld
-```
-
 Tell Kubernetes to download and run a simple web server.
 Create a new replication controller, from the file.
 
