@@ -21,11 +21,13 @@ VERSION="v1.0.6" # https://storage.googleapis.com/kubernetes-release/release/sta
 echo "Sourcing ${NAME}.k8s"
 source ${NAME}.k8s
 
-#
-# Ensure the release is present.
-#
-if [ ! -d kubernetes ]
-then
+export KUBERNETES_PROVIDER="aws"
+
+function ensure_release {
+	if [ -d kubernetes ]
+	then
+		return
+	fi
 	if [ ! -f kubernetes.tar.gz ]
 	then
 		echo "Downloading Kubernetes ${VERSION}"
@@ -34,72 +36,49 @@ then
 	fi
 	echo "Unpacking Kubernetes ${VERSION}"
 	tar zxf kubernetes.tar.gz
-fi
+	# `aws s3 mb` often needs some time to settle.
+	sed -i'.bak' 's/^\([ ]*aws s3 mb.*\)$/\1 ; sleep 5/g' kubernetes/cluster/aws/util.sh
+}
 
-#
-# `aws s3 mb` often needs some time to settle.
-#
-sed -i'.bak' 's/^\([ ]*aws s3 mb.*\)$/\1 ; sleep 5/g' kubernetes/cluster/aws/util.sh
-
-#
-# We always deploy to AWS.
-#
-export KUBERNETES_PROVIDER="aws"
-
-case $WHAT in
-up)
-	if [ "${SKIP_BOOTSTRAP}" == "" ]
+function move_kubeconfig {
+	if [ -f ${HOME}/.kube/config ]
 	then
-		#
-		# The bootstrapping script writes to ~/.kube/config.
-		# Move existing config away, to get a clean base.
-		#
-		if [ -f ${HOME}/.kube/config ]
-		then
-			TIMESTAMP=$(date +%Y%m%d%H%M%S)
-			echo "Detected ${HOME}/.kube/config"
-			echo "Moving it to ${HOME}/.kube/config.backup.${TIMESTAMP}"
-			mv ${HOME}/.kube/config ${HOME}/.kube/config.backup.${TIMESTAMP}
-		fi
-
-		#
-		# Launch the bootstrapping script.
-		#
-		(
-			echo "Will bootstrap in 5 seconds..."
-			sleep 5
-			cd kubernetes
-			./cluster/kube-up.sh
-			echo "Kubernetes installation successful."
-		)
+		TIMESTAMP=$(date +%Y%m%d%H%M%S)
+		echo "Detected ${HOME}/.kube/config"
+		echo "Moving it to ${HOME}/.kube/config.backup.${TIMESTAMP}"
+		mv ${HOME}/.kube/config ${HOME}/.kube/config.backup.${TIMESTAMP}
 	fi
+}
 
-    #
-    # Write the kubeconfig
-    #
+function kube_up {
 	(
-		echo "Writing ${NAME}.kubeconfig"
-		cp ${HOME}/.kube/config ${NAME}.kubeconfig
+		echo "Will bootstrap in 5 seconds..."
+		sleep 5
+		cd kubernetes
+		./cluster/kube-up.sh
+		echo "Kubernetes installation successful."
 	)
+}
 
-	#
-	# Extract AWS information for use by other scripts.
-	#
-	(
-		source kubernetes/cluster/kube-env.sh
-		source kubernetes/cluster/${KUBERNETES_PROVIDER}/util.sh
-		echo "Writing ${NAME}.aws"
-		TEMPFILE=$(mktemp)
-		VPC_ID=$(get_vpc_id)
-		echo "#!/usr/bin/env bash" >> $TEMPFILE
-		echo "" >> $TEMPFILE
-		echo "export VPC_ID=${VPC_ID}" >> $TEMPFILE
-		echo "" >> $TEMPFILE
-		mv ${TEMPFILE} ${NAME}.aws
-	)
-	;;
+function write_kubeconfig {
+	echo "Writing ${NAME}.kubeconfig"
+	cp ${HOME}/.kube/config ${NAME}.kubeconfig
+}
 
-down)
+function write_awsfile {
+	source kubernetes/cluster/kube-env.sh
+	source kubernetes/cluster/${KUBERNETES_PROVIDER}/util.sh
+	echo "Writing ${NAME}.aws"
+	TEMPFILE=$(mktemp)
+	VPC_ID=$(get_vpc_id)
+	echo "#!/usr/bin/env bash" >> $TEMPFILE
+	echo "" >> $TEMPFILE
+	echo "export VPC_ID=${VPC_ID}" >> $TEMPFILE
+	echo "" >> $TEMPFILE
+	mv ${TEMPFILE} ${NAME}.aws
+}
+
+function interactive_confirmation {
 	while true
 	do
 		read -p "Are you sure you want to bring $NAME down? " yn
@@ -109,19 +88,42 @@ down)
 			*) echo "Please type 'yes' or 'no'";;
 		esac
 	done
+}
 
-	#
-	# The bootstrapping script manages everything.
-	#
+function kube_down {
+	# This manages everything for us.
 	kubernetes/cluster/kube-down.sh
+}
 
-	#
-	# The output files are no longer valid.
-	#
+function remove_kubeconfig {
 	echo "Removing ${NAME}.kubeconfig"
 	rm -f ${NAME}.kubeconfig
+}
+
+function remove_awsfile {
 	echo "Removing ${NAME}.aws"
 	rm -f ${NAME}.aws
+}
+
+ensure_release
+
+case $WHAT in
+up)
+	move_kubeconfig
+	kube_up
+	write_kubeconfig
+	write_awsfile
+	;;
+
+down)
+	interactive_confirmation
+	kube_down
+	remove_kubeconfig
+	remove_awsfile
+	;;
+
+debug-write-aws)
+	write_awsfile
 	;;
 
 *)
