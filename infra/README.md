@@ -20,30 +20,18 @@ It's concerned with provisioning the scheduling system (k8s), stateful storage (
                 +-------------+
 ```
 
-1. [Bootstrap](#bootstrap)
-  - [Set up AWS](#set-up-aws)
-  - [Set up kubectl](#set-up-kubectl)
-  - [Update get-k8s-io.bash](#update-get-k8s-iobash)
-  - [Run provision.bash](#run-provisionbash)
-  - [Verify the cluster](#verify-the-cluster)
-  - [Commit the kubeconfig](#commit-the-kubeconfig)
-  - [Provision databases](#provision-databases)
-  - [Deploy the application](#deploy-the-application)
-  - [Provision DNS](#provision-dns)
-1. [Teardown](#teardown)
-  - [Tear down DNS](#tear-down-dns)
-  - [Delete frontend service](#delete-frontend-service)
-  - [Delete replication controllers](#delete-replication-controllers)
-  - [Verify pods are gone](#verify-pods-are-gone)
-  - [Tear down database](#tear-down-database)
-  - [Tear down Kubernetes](#tear-down-kubernetes)
-  - [Delete file storage](#delete-file-storage)
+Here, you'll find scripts to provision each piece of the cluster.
+Each script produces output file(s) that are used as input to other scripts.
+All output files should be checked in.
 
-# Bootstrap
+![order.png](https://i.imgur.com/LzDkR8k.png)
 
-For now, we deploy our clusters onto AWS.
+1. Prerequisites
+1. Standup
+1. Teardown
+1. FAQ
 
-## Set up AWS
+## Prerequisites
 
 [Install the AWS tool](https://docs.aws.amazon.com/cli/latest/userguide/installing.html).
 If you want to do this on your own user account, create an IAM user with AdministratorAccess.
@@ -60,14 +48,18 @@ Confirm it works.
 $ aws s3 ls /
 ```
 
-## Set up kubectl
-
 You interact with Kubernetes clusters via the kubectl tool.
-Download it with the get-kubectl.bash script.
+You can download the latest stable version for your platform.
 
 ```
-$ ./get-kubectl.bash
-$ mv kubectl $HOME/bin # or whatever
+$ bash -c '
+    VERSION=$(curl -Ss -XGET https://storage.googleapis.com/kubernetes-release/release/stable.txt)
+    OS=$(uname | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m) ; ARCH=${ARCH/x86_64/amd64}
+    URL="https://storage.googleapis.com/kubernetes-release/release/${VERSION}/bin/${OS}/${ARCH}/kubectl"
+    wget -q --show-progress -O kubectl $URL
+    chmod +x kubectl
+'
 ```
 
 A cluster is defined by a configuration 3-tuple: a cluster, including the Kubernetes master IP; a user, including credentials; and a context, binding them together with a specific name.
@@ -82,143 +74,44 @@ $ kubectl --kubeconfig=foo.kubeconfig get pods
 > There are more sophisticated ways to manage multiple clusters and kubeconfigs.
 > See [this Kubernetes documentation](http://kubernetes.io/v1.0/docs/user-guide/kubeconfig-file.html) for more info.
 
-## Script overview
+## Standup
 
-Here's how the scripts work.
-
-```
-  +------------------+
-  | config-base.bash |--.                           +-cluster/aws--+
-  +------------------+  |                           |   +------+   |   +-----+
-   +----------------+   v      +-----------------+  |   |      |---|-->|     |
--->| provision.bash |---+--+-->| get-k8s-io.bash |--|-->| *.sh |---|-->| AWS |
-   +----------------+      ^   +-----------------+  |   |      |---|-->|     |
-      +-----------------+  |                        |   +------+   |   +-----+
-      | config-foo.bash |--'                        +--------------+
-      +-----------------+
-```
-
-## Update get-k8s-io.bash
-
-The core bootstrapping script, get-k8s-io.bash, is provided and maintained by the Kubernetes project.
-We make a couple of modifications, to make it more failsafe.
+All instructions assume you're working with the **foo** cluster.
+**Make sure your AWS client is configured with the correct IAM** before continuing.
+If this is your first time standing up a cluster, don't just copy/paste.
+Run these commands one at a time.
 
 ```
-$ ./get-bootstrapping-script.bash
+./k8s foo up
+./rds foo up
+./r53 foo up
+
+git add foo.k8s foo.kubeconfig foo.rds foo.frontend foo.r53
+git commit -m "Standup foo cluster"
 ```
 
-If this causes local modifications, please make a PR for them.
-
-## Run provision.bash
-
-To create a new cluster named e.g. foo, the provisioning script expects to find a **config-foo.bash** file with settings.
-Create that file for your cluster, using an existing file as a template.
-Then, run the script.
+## Teardown
 
 ```
-$ ./provision.bash foo up
+./r53 foo down
+./rds foo down
+./k8s foo down
+
+git rm foo.k8s foo.kubeconfig foo.rds foo.frontend foo.r53
+git commit -m "Teardown foo cluster"
 ```
 
-This will take several minutes.
-See K8S-AWS.md for a description of what the script does on AWS.
+## FAQ
 
-> 💁
-> The script moves your existing ~/.kube/config to ~/.kube/config.backup.TIMESTAMP.
+### How can I test my Kubernetes cluster is working?
 
-## Verify the cluster
+See the k8s-helloworld directory.
 
-To verify the cluster, we'll deploy an application, rolling-upgrade it to a new version, and then tear it all down.
-See VERIFY.md for instructions.
-
-## Commit the kubeconfig
-
-The Kubernetes script wrote user, cluster, and context settings to your ~/.kube/config.
-The provisioning script has copied this file to **foo.kubeconfig**.
-Now that we've verified Kubernetes is working, you should commit this file, to allow your teammates to use it.
-Others may access your cluster via e.g.
-
-```
-$ kubectl --kubeconfig=foo.kubeconfig get pods
-```
-
-> 💁
-> There are probably security considerations here, which I am electing to ignore.
-
-## Provision databases
-
-TODO.
-
-- Terraform?
-- Data migration?
-
-## Deploy the application
-
-See parent directory.
-
-## Provision DNS
-
-TODO
-
-```
-+-----------------------+            +-----+        +------------------+        +---------------+
-| foo.cloud.weave.works |--Route53-->| ELB |--k8s-->| frontend service |--k8s-->| frontend pods |
-+-----------------------+            +-----+        +------------------+        +---------------+
-```
-
-- Create frontend service (don't necessarily need pods yet)
-- Get ELB from k8s
-- Use Route53 to point CNAME to ELB
-
-# Teardown
-
-This is a manual process.
-Configure your AWS client to the appropriate region, with the correct credentials.
-
-## Tear down DNS
-
-```
-$ TODO
-```
-
-## Delete frontend service
-
-```
-$ TODO
-```
-
-## Delete replication controllers
-
-```
-$ TODO
-```
-
-## Verify pods are gone
-
-```
-$ TODO
-```
-
-## Tear down database
-
-```
-$ TODO
-```
-
-## Tear down Kubernetes
-
-Replace foo with your cluster name in the below command.
-
-```
-$ ./provision.bash foo down
-```
-
-## Delete file storage
-
-Replace foo with your cluster name in the below command.
+### How do I clean up these S3 buckets?
 
 ```
 $ bash -c '
-  for b in $(aws s3 ls / | grep weaveworks-scope-kubernetes-foo | awk "{print $3}")
+  for b in $(aws s3 ls / | grep weaveworks-scope-kubernetes- | awk "{print $3}")
   do
     echo $b
     aws s3 rm --recursive s3://$b/
