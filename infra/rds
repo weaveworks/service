@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+if [ $# -ne 2 ]
+then
+	echo "usage: $(basename $0) <name> up/down"
+	exit 1
+fi
+
+NAME=$1
+WHAT=$2
+
+echo "Sourcing ${NAME}.aws"
+source ${NAME}.aws
+
+function create_tf {
+	# Create rds-${NAME}.tfvars with ${VPC_ID}.
+	# Create rds-${NAME}.tf with the RDS declaration.
+	# All other parameters can be hard-coded, to start.
+	echo "TODO"
+}
+
+function remove_tf {
+	# rm rds-${NAME}.{tf,tfvars}
+	echo "TODO"
+}
+
+function terraform_apply {
+	# Split into explicit plan and apply stages.
+	echo "TODO"
+}
+
+case ${WHAT} in
+up)
+	create_tf
+	terraform_apply
+	;;
+
+down)
+	remove_tf
+	terraform_apply
+	;;
+
+*)
+	echo "Unknown command"
+	exit 1
+	;;
+esac
