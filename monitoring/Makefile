@@ -23,7 +23,7 @@ prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus: prometheus-${PROMETHEUS
 	touch $@
 
 prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz:
-	wget --quiet --show-progress https://github.com/prometheus/prometheus/releases/download/${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz
+	wget --quiet https://github.com/prometheus/prometheus/releases/download/${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz
 	touch $@
 
 #
@@ -53,7 +53,7 @@ grafana-${GRAFANA_VERSION}/README.md: grafana-${GRAFANA_VERSION}.linux-x64.tar.g
 
 
 grafana-${GRAFANA_VERSION}.linux-x64.tar.gz:
-	wget --quiet --show-progress https://grafanarel.s3.amazonaws.com/builds/grafana-${GRAFANA_VERSION}.linux-x64.tar.gz
+	wget --quiet https://grafanarel.s3.amazonaws.com/builds/grafana-${GRAFANA_VERSION}.linux-x64.tar.gz
 	touch $@
 
 #
