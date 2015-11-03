@@ -1,0 +1,18 @@
+digraph G {
+	"foo.k8s" [shape=box];
+	"foo.aws" [shape=box];
+	"foo.kubeconfig" [shape=box];
+	"foo.rds" [shape=box];
+	"foo.frontend" [shape=box, style=dashed];
+	"foo.r53" [shape=box];
+
+	k8s [style=filled];
+	rds [style=filled];
+	kubectl [style=filled];
+	r53 [style=filled];
+
+	"foo.k8s" -> k8s -> {"foo.aws", "foo.kubeconfig"};
+	"foo.aws" -> rds -> "foo.rds";
+	"foo.kubeconfig" -> kubectl -> "foo.frontend";
+	{"foo.frontend", "foo.aws"} -> r53 -> "foo.r53";
+}

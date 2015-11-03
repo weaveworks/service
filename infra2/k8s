@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+
+#
+# This file is an adaptation of https://get.k8s.io.
+#
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+if [ $# -ne 2 ]
+then
+	echo "usage: $(basename $0) <name> up/down"
+	exit 1
+fi
+
+NAME=$1
+WHAT=$2
+VERSION="v1.0.6" # https://storage.googleapis.com/kubernetes-release/release/stable.txt
+
+echo "Sourcing ${NAME}.k8s"
+source ${NAME}.k8s
+
+#
+# Ensure the release is present.
+#
+if [ ! -d kubernetes ]
+then
+	if [ ! -f kubernetes.tar.gz ]
+	then
+		echo "Downloading Kubernetes ${VERSION}"
+		URL="https://storage.googleapis.com/kubernetes-release/release/${VERSION}/kubernetes.tar.gz"
+		wget -q --show-progress ${URL}
+	fi
+	echo "Unpacking Kubernetes ${VERSION}"
+	tar zxf kubernetes.tar.gz
+fi
+
+#
+# `aws s3 mb` often needs some time to settle.
+#
+sed -i'.bak' 's/^\([ ]*aws s3 mb.*\)$/\1 ; sleep 5/g' kubernetes/cluster/aws/util.sh
+
+#
+# We always deploy to AWS.
+#
+export KUBERNETES_PROVIDER="aws"
+
+case $WHAT in
+up)
+	#
+	# The bootstrapping script writes to ~/.kube/config.
+	# Move existing config away, to get a clean base.
+	#
+	if [ -f ${HOME}/.kube/config ]
+	then
+		TIMESTAMP=$(date +%Y%m%d%H%M%S)
+		echo "Detected ${HOME}/.kube/config"
+		echo "Moving it to ${HOME}/.kube/config.backup.${TIMESTAMP}"
+		mv ${HOME}/.kube/config ${HOME}/.kube/config.backup.${TIMESTAMP}
+	fi
+
+	#
+	# Launch the bootstrapping script.
+	#
+	(
+		cd kubernetes
+    	./cluster/kube-up.sh
+		echo "Kubernetes installation successful."
+	)
+
+    #
+    # Write our output files.
+    #
+    echo "Writing ${NAME}.kubeconfig"
+    cp ${HOME}/.kube/config ${NAME}.kubeconfig
+
+    echo "Writing ${NAME}.aws"
+    TEMPFILE=$(mktemp)
+    VPC_ID=$(get_vpc_id)
+    echo "export VPC_ID=${VPC_ID}" >> $TEMPFILE
+    mv ${TEMPFILE} ${NAME}.aws
+	;;
+
+down)
+	while true
+	do
+		read -p "Are you sure you want to bring $NAME down? " yn
+		case $yn in
+			yes) break;;
+			no) exit;;
+			*) echo "Please type 'yes' or 'no'";;
+		esac
+	done
+
+	#
+	# The bootstrapping script manages everything.
+	#
+	kubernetes/cluster/kube-down.sh
+
+	#
+	# The output files are no longer valid.
+	#
+	echo "Removing ${NAME}.kubeconfig"
+	rm -f ${NAME}.kubeconfig
+	echo "Removing ${NAME}.aws"
+	rm -f ${NAME}.aws
+	;;
+
+*)
+	echo "Unknown command"
+	exit 1
+	;;
+esac
