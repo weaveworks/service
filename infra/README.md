@@ -86,7 +86,7 @@ Run these commands one at a time.
 ./rds foo up
 ./r53 foo up
 
-git add foo.k8s foo.kubeconfig foo.rds foo.r53
+git add foo.*
 git commit -m "Standup foo cluster"
 ```
 
@@ -97,7 +97,7 @@ git commit -m "Standup foo cluster"
 ./rds foo down
 ./k8s foo down
 
-git rm foo.k8s foo.kubeconfig foo.rds foo.r53
+git rm foo.*
 git commit -m "Teardown foo cluster"
 ```
 
