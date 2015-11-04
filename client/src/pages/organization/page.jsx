@@ -5,7 +5,7 @@ import { HashLocation } from 'react-router';
 import Colors from '../../common/colors';
 import { getData } from '../../common/request';
 import { Box } from '../../components/box';
-import { Container } from '../../components/container';
+import { FlexContainer } from '../../components/flex-container';
 import { Column } from '../../components/column';
 import { Logo } from '../../components/logo';
 import Probes from './probes';
@@ -113,14 +113,14 @@ export default class OrganizationPage extends React.Component {
     };
 
     return (
-      <div>
+      <div style={{height: '100%', overflowY: 'scroll', position: 'relative'}}>
         <Toolbar user={this.state.user} organization={this.props.params.orgId} />
         <div style={styles.logoWrapper}>
           <Logo />
         </div>
-        <Container>
-          {this.state.name && <div style={styles.container}>
-            <Column width="60%">
+        {this.state.name && <div style={styles.container}>
+          <FlexContainer>
+            <Column minWidth="400">
               <h1>Configure your app</h1>
               <div style={styles.step}>
                 <span style={styles.circle}>1</span>
@@ -138,19 +138,19 @@ export default class OrganizationPage extends React.Component {
                 Once you have started <code>scope</code> on your Docker hosts, click "My Scope" in the top right.
               </div>
             </Column>
-            <Column width="40%">
-              <Paper style={{marginTop: '7em'}}>
+            <Column width="400">
+              <Paper style={{marginTop: '4em', marginBottom: '1em'}}>
                 <div style={styles.probes}>
                   <h3>Probes</h3>
                   <Probes org={this.state.name} probeToken={this.state.probeToken} />
                 </div>
               </Paper>
             </Column>
-          </div>}
+          </FlexContainer>
           {!this.state.name && <div style={styles.activity}>
             <CircularProgress mode="indeterminate" />
           </div>}
-        </Container>
+        </div>}
       </div>
     );
   }

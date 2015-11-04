@@ -1,7 +1,6 @@
 import React from 'react';
-import { Styles, List, ListItem } from 'material-ui';
+import { Styles } from 'material-ui';
 import { getData } from '../../common/request';
-import { Box } from '../../components/box';
 import { trackEvent, trackException } from '../../common/tracking';
 
 export default class Probes extends React.Component {
@@ -22,25 +21,31 @@ export default class Probes extends React.Component {
     getData(url)
       .then(resp => {
         this.setState({
-          probes: resp
+          probes: [{id: 1}, {id: 10}, {id: 100}, {id: 1000}, {id: 10000}, {id: 100000}, {id: 1000000}, {id: 10000000}, {id: 2}]
         });
         trackEvent('Scope', 'connectedProbes', this.props.org, resp.length);
       }, resp => {
+        this.setState({
+          probes: [{id: 1}, {id: 10}, {id: 100}, {id: 1000}, {id: 10000}, {id: 100000}, {id: 1000000}, {id: 10000000}, {id: 2}]
+        });
         trackException(resp.errors[0].message);
       });
   }
 
   renderProbes() {
+    const style = {
+      margin: 16
+    };
     if (this.state.probes.length > 0) {
       return this.state.probes.map(probe => {
         return (
-          <ListItem primaryText={probe.id} key={probe.id} />
+          <div key={probe.id} style={style}>{probe.id} (connected)</div>
         );
       });
     }
 
     return (
-      <ListItem primaryText="No probes connected" disabled />
+      <div>No probes connected</div>
     );
   }
 
@@ -62,11 +67,9 @@ export default class Probes extends React.Component {
 
     return (
       <div>
-        <Box>
-          <List subheader="Connected probes">
-            {probes}
-          </List>
-        </Box>
+        <div>
+          {probes}
+        </div>
         <div style={styles.tokenContainer}>
           <span style={styles.tokenLabel}>Probe token: </span>
           <span style={styles.tokenValue}>{this.props.probeToken}</span>

@@ -4,6 +4,7 @@ import { Styles } from 'material-ui';
 import CookieBanner from 'react-cookie-banner';
 
 import { BackgroundContainer } from '../../components/background-container';
+import { FlexContainer } from '../../components/flex-container';
 import { Logo } from '../../components/logo';
 
 const Colors = Styles.Colors;
@@ -45,14 +46,6 @@ export default class LandingPage extends React.Component {
 
   render() {
     const styles = {
-      container: {
-        display: 'flex',
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        alignContent: 'flex-start',
-        alignItems: 'flex-start',
-      },
       cookieBanner: {
         banner: {
           backgroundColor: 'rgba(50,50,75,0.7)'
@@ -132,7 +125,7 @@ export default class LandingPage extends React.Component {
             {links}
           </div>
         </div>
-        <div style={styles.container}>
+        <FlexContainer>
           <div style={styles.featureWrapper}>
             <div style={styles.featureHeader}>
               Weave Scope is the easiest way to manage and monitor your Docker Containers on AWS ECS
@@ -173,7 +166,7 @@ export default class LandingPage extends React.Component {
               </div>
             </div>
           </div>
-        </div>
+        </FlexContainer>
       </BackgroundContainer>
     );
   }
