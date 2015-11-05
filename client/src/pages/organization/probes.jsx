@@ -11,6 +11,7 @@ export default class Probes extends React.Component {
     this.state = {
       probes: []
     };
+    this.getProbesTimer = 0;
     this.getProbes = this.getProbes.bind(this);
   }
 
@@ -19,6 +20,7 @@ export default class Probes extends React.Component {
   }
 
   getProbes() {
+    clearTimeout(this.getProbesTimer);
     const url = `/api/org/${this.props.org}/probes`;
     getData(url)
       .then(resp => {
@@ -26,7 +28,7 @@ export default class Probes extends React.Component {
           probes: resp
         });
         trackEvent('Scope', 'connectedProbes', this.props.org, resp.length);
-        setTimeout(this.getProbes, 5000);
+        this.getProbesTimer = setTimeout(this.getProbes, 5000);
       }, resp => {
         trackException(resp.errors[0].message);
       });
