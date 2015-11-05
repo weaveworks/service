@@ -18,13 +18,7 @@ type appProvisioner interface {
 	fetchApp() error
 	runApp(appID string) (host string, err error)
 	destroyApp(appID string) error
-	isAppRunning(appID string) (ok bool, err error)
 	isAppReady(appID string) (ok bool, err error)
-}
-
-type appProvisionerOptions struct {
-	runTimeout    time.Duration
-	clientTimeout time.Duration
 }
 
 var errRunTimeout = errors.New("app provisioner: run timeout")
@@ -39,9 +33,9 @@ type dockerProvisioner struct {
 }
 
 type dockerProvisionerOptions struct {
-	appConfig  docker.Config
-	hostConfig docker.HostConfig
-	appProvisionerOptions
+	appConfig     docker.Config
+	hostConfig    docker.HostConfig
+	clientTimeout time.Duration
 }
 
 func newDockerProvisioner(dockerHost string, options dockerProvisionerOptions) (*dockerProvisioner, error) {
@@ -86,18 +80,10 @@ func (p *dockerProvisioner) runApp(appID string) (string, error) {
 		}
 		return nil
 	}
-	if err := runApp(appID, p, p.options.runTimeout, spawnApp); err != nil {
+	if err := runApp(appID, p, spawnApp); err != nil {
 		return "", err
 	}
 	return p.getAppHostname(appID)
-}
-
-func (p *dockerProvisioner) isAppRunning(appID string) (bool, error) {
-	c, err := p.client.InspectContainer(getAppName(appID))
-	if err != nil {
-		return false, err
-	}
-	return c.State.Running, nil
 }
 
 func (p *dockerProvisioner) isAppReady(appID string) (bool, error) {
@@ -133,8 +119,8 @@ func (p *dockerProvisioner) getAppHostname(appID string) (string, error) {
 //
 
 type k8sProvisionerOptions struct {
-	appContainer k8sAPI.Container
-	appProvisionerOptions
+	appContainer  k8sAPI.Container
+	clientTimeout time.Duration
 }
 
 type k8sProvisioner struct {
@@ -217,41 +203,13 @@ func (p *k8sProvisioner) runApp(appID string) (hostname string, err error) {
 		return nil
 	}
 
-	if err = runApp(appID, p, p.options.runTimeout, spawnApp); err != nil {
+	if err = runApp(appID, p, spawnApp); err != nil {
 		return "", err
 	}
 
 	// We cannot provide the service FQDN because, AFAIK, the cluster domain is
 	// not accessible to the k8s client
 	return name, nil
-}
-
-func (p *k8sProvisioner) isAppRunning(appID string) (bool, error) {
-	name := getAppName(appID)
-
-	// Check that the replication controller is up
-	rc, err := p.client.ReplicationControllers(p.namespace).Get(name)
-	if err != nil || rc == nil || rc.Status.Replicas != 1 {
-		logrus.Debugf("k8sProvisioner: isAppRunning: controller for app %q not up", appID)
-		return false, err
-	}
-
-	// Check that the underlying pod is running
-	labelSelector := k8sLabels.Set(rc.Spec.Selector).AsSelector()
-	pods, err := p.client.Pods(p.namespace).List(labelSelector, k8sFields.Everything())
-	if err != nil || pods == nil || len(pods.Items) != 1 ||
-		pods.Items[0].Status.Phase != k8sAPI.PodRunning {
-		logrus.Debugf("k8sProvisioner: isAppRunning: pod for app %q not up", appID)
-		return false, err
-	}
-
-	// Finally, check that the pod is exposed through a service
-	service, err := p.client.Services(p.namespace).Get(name)
-	if err != nil || service != nil && service.Spec.ClusterIP == "" {
-		logrus.Debugf("k8sProvisioner: isAppRunning: service for app %q not up", appID)
-		return false, err
-	}
-	return true, nil
 }
 
 func (p *k8sProvisioner) isAppReady(appID string) (bool, error) {
@@ -320,33 +278,15 @@ func getAppName(appID string) string {
 	return "scope-app-" + appID
 }
 
-func runApp(appID string, p appProvisioner, timeout time.Duration, spawnApp func() error) (err error) {
-	// App rollback
-	defer func() {
-		if err == nil {
-			return
-		}
+func runApp(appID string, p appProvisioner, spawnApp func() error) error {
+	err := spawnApp()
+	if err != nil {
 		logrus.Debugf("provisioner: rolling back app %q", appID)
 		if err2 := p.destroyApp(appID); err2 != nil {
 			logrus.Warnf("provisioner: error rolling back app %q: %v", appID, err2)
 		}
-	}()
-	if err = spawnApp(); err != nil {
-		return
 	}
-	runDeadline := time.Now().Add(timeout)
-	for true {
-		var ok bool
-		if ok, err = p.isAppRunning(appID); err != nil || ok {
-			return
-		}
-		if time.Now().After(runDeadline) {
-			err = errRunTimeout
-			return
-		}
-		time.Sleep(time.Millisecond * 100)
-	}
-	return
+	return err
 }
 
 func pingScopeApp(hostname string) (bool, error) {

@@ -14,18 +14,16 @@ import (
 )
 
 func newTestProvisioner(t *testing.T) appProvisioner {
-	generalOptions := appProvisionerOptions{
-		runTimeout:    defaultProvisionerRunTimeout,
-		clientTimeout: defaultProvisionerClientTimeout,
-	}
+	args := []string{"--no-probe"}
 
 	if isDockerIntegrationTest {
 		appConfig := docker.Config{
 			Image: defaultAppImage,
+			Cmd:   args,
 		}
 		o := dockerProvisionerOptions{
-			appConfig:             appConfig,
-			appProvisionerOptions: generalOptions,
+			appConfig:     appConfig,
+			clientTimeout: defaultProvisionerClientTimeout,
 		}
 		p, err := newDockerProvisioner("unix:///var/run/weave/weave.sock", o)
 		require.NoError(t, err, "Cannot create docker provisioner")
@@ -37,9 +35,9 @@ func newTestProvisioner(t *testing.T) appProvisioner {
 			appContainer: k8sAPI.Container{
 				Name:  "scope",
 				Image: defaultAppImage,
-				Args:  []string{"--no-probe"},
+				Args:  args,
 			},
-			appProvisionerOptions: generalOptions,
+			clientTimeout: defaultProvisionerClientTimeout,
 		}
 
 		p, err := newK8sProvisioner(options)
@@ -65,11 +63,7 @@ func runProvisionerTest(t *testing.T, appID string, p appProvisioner, test func(
 func TestSimpleProvisioning(t *testing.T) {
 	const appID = "foo"
 
-	test := func(p appProvisioner, host string) {
-		running, err := p.isAppRunning(appID)
-		require.NoError(t, err, "Cannot check if app is running")
-		assert.True(t, running, "App not running")
-	}
+	test := func(p appProvisioner, host string) {}
 
 	p := newTestProvisioner(t)
 	runProvisionerTest(t, appID, p, test)
@@ -79,11 +73,16 @@ func TestIsAppReady(t *testing.T) {
 	const appID = "foo"
 
 	test := func(p appProvisioner, host string) {
-		// Let the app boot
-		time.Sleep(2 * time.Second)
-		ready, err := p.isAppReady(appID)
-		require.NoError(t, err, "Cannot check if app is ready")
-		assert.True(t, ready, "App not running")
+		// Wait indefinitely until the app is ready. If this hangs, the
+		// testsuite timeout will simply kick in.
+		for true {
+			ready, err := p.isAppReady(appID)
+			if err == nil && ready {
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+
 	}
 
 	p := newTestProvisioner(t)
