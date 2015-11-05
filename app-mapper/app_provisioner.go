@@ -9,6 +9,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	scope "github.com/weaveworks/scope/xfer"
 	k8sAPI "k8s.io/kubernetes/pkg/api"
+	k8sErrors "k8s.io/kubernetes/pkg/api/errors"
 	k8sClient "k8s.io/kubernetes/pkg/client/unversioned"
 	k8sFields "k8s.io/kubernetes/pkg/fields"
 	k8sLabels "k8s.io/kubernetes/pkg/labels"
@@ -73,10 +74,18 @@ func (p *dockerProvisioner) runApp(appID string) (string, error) {
 	spawnApp := func() error {
 		container, err := p.client.CreateContainer(createOptions)
 		if err != nil {
-			return err
+			if err == docker.ErrContainerAlreadyExists {
+				logrus.Warnf("dockerProvisioner: runApp: trying to recreate existing container for app %q", appID)
+			} else {
+				return err
+			}
 		}
 		if err = p.client.StartContainer(container.ID, &p.options.hostConfig); err != nil {
-			return err
+			if _, ok := err.(*docker.ContainerAlreadyRunning); ok {
+				logrus.Warnf("dockerProvisioner: runApp: trying to start running container for app %q", appID)
+			} else {
+				return err
+			}
 		}
 		return nil
 	}
@@ -195,10 +204,18 @@ func (p *k8sProvisioner) runApp(appID string) (hostname string, err error) {
 
 	spawnApp := func() error {
 		if _, err := p.client.ReplicationControllers(p.namespace).Create(&rc); err != nil {
-			return err
+			if k8sErrors.IsAlreadyExists(err) {
+				logrus.Warnf("k8sProvisioner: runApp: trying to recreate existing rc for app %q", appID)
+			} else {
+				return err
+			}
 		}
 		if _, err = p.client.Services(p.namespace).Create(&service); err != nil {
-			return err
+			if k8sErrors.IsAlreadyExists(err) {
+				logrus.Warnf("k8sProvisioner: runApp: trying to recreate existing service for app %q", appID)
+			} else {
+				return err
+			}
 		}
 		return nil
 	}
