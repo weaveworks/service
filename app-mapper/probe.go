@@ -73,6 +73,11 @@ func (o probeObserver) registerHandlers(router *mux.Router) {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+			if probes == nil {
+				// The JSON parser in the frontend expects an
+				// empty array '[]' and not 'null' when there are no probes.
+				probes = make([]probe, 0)
+			}
 			if err = json.NewEncoder(w).Encode(probes); err != nil {
 				logrus.Errorf("probe: cannot encode probes to json: %v", err)
 				w.WriteHeader(http.StatusInternalServerError)
