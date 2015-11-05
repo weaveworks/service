@@ -21,13 +21,10 @@ export default class Probes extends React.Component {
     getData(url)
       .then(resp => {
         this.setState({
-          probes: [{id: 1}, {id: 10}, {id: 100}, {id: 1000}, {id: 10000}, {id: 100000}, {id: 1000000}, {id: 10000000}, {id: 2}]
+          probes: resp
         });
         trackEvent('Scope', 'connectedProbes', this.props.org, resp.length);
       }, resp => {
-        this.setState({
-          probes: [{id: 1}, {id: 10}, {id: 100}, {id: 1000}, {id: 10000}, {id: 100000}, {id: 1000000}, {id: 10000000}, {id: 2}]
-        });
         trackException(resp.errors[0].message);
       });
   }
