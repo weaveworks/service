@@ -1,5 +1,5 @@
 import React from 'react';
-import { Styles } from 'material-ui';
+import { CircularProgress, Styles } from 'material-ui';
 import { HashLocation } from 'react-router';
 import debug from 'debug';
 
@@ -21,10 +21,15 @@ export default class Wrapper extends React.Component {
 
     this.state = {
       activityText: '',
-      frameBaseUrl: ''
+      frameBaseUrl: '',
+      name: '',
+      user: ''
     };
 
     this._checkCookie = this._checkCookie.bind(this);
+    this._checkInstance = this._checkInstance.bind(this);
+    this._handleInstanceError = this._handleInstanceError.bind(this);
+    this._handleInstanceSuccess = this._handleInstanceSuccess.bind(this);
     this._handleLoginSuccess = this._handleLoginSuccess.bind(this);
     this._handleLoginError = this._handleLoginError.bind(this);
   }
@@ -72,12 +77,19 @@ export default class Wrapper extends React.Component {
     getData(url).then(this._handleLoginSuccess, this._handleLoginError);
   }
 
+  _checkInstance(name) {
+    const org = name || this.state.name;
+    const url = `/api/app/${org}/api`;
+    getData(url).then(this._handleInstanceSuccess, this._handleInstanceError);
+  }
+
   _handleLoginSuccess(resp) {
-    const url = `/api/app/${resp.name}`;
     this.setState({
       user: resp.user,
-      frameBaseUrl: url
+      name: resp.name
     });
+    // check if scope instance is ready
+    this._checkInstance(resp.name);
   }
 
   _handleLoginError(resp) {
@@ -95,6 +107,28 @@ export default class Wrapper extends React.Component {
         errorText: err.message
       });
     }
+  }
+
+  _handleInstanceSuccess() {
+    const url = `/api/app/${this.state.name}/`;
+    this.setState({
+      activityText: '',
+      frameBaseUrl: url
+    });
+  }
+
+  _handleInstanceError(resp) {
+    if (resp.status === 503) {
+      // not ready, try again
+      this.setState({
+        activityText: 'Spawning your Scope app...'
+      });
+    } else {
+      this.setState({
+        activityText: `Error while checking for your Scope instance. [${resp.status}]`
+      });
+    }
+    setTimeout(this._checkInstance, 2000);
   }
 
   render() {
@@ -117,6 +151,12 @@ export default class Wrapper extends React.Component {
     return (
       <div>
         <Toolbar organization={this.props.params.orgId} user={this.state.user} />
+        {this.state.activityText && <div>
+          <div style={styles.activity}>
+            <p>{this.state.activityText}</p>
+            <CircularProgress mode="indeterminate" />
+          </div>
+        </div>}
         {this.state.frameBaseUrl && <iframe ref="iframe"
           onLoad={this._handleFrameLoad.bind(this)} src={frameUrl} style={styles.iframe} />}
       </div>
