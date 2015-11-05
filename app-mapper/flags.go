@@ -18,7 +18,6 @@ const (
 
 var (
 	defaultProvisionerClientTimeout = 1 * time.Second
-	defaultProvisionerRunTimeout    = 2 * time.Second
 )
 
 type flags struct {
@@ -50,7 +49,6 @@ func parseFlags() *flags {
 	flag.StringVar(&f.dockerAppImage, "docker-app-image", defaultAppImage, "Docker image to use by the application provisioner")
 	flag.StringVar(&f.dockerHost, "docker-host", "", "Where to find the docker application provisioner")
 	flag.DurationVar(&f.provisionerClientTimeout, "app-provisioner-timeout", defaultProvisionerClientTimeout, "Maximum time to wait for a response from the application provisioner")
-	flag.DurationVar(&f.provisionerRunTimeout, "app-provisioner-run-timeout", defaultProvisionerRunTimeout, "Maximum time the application provisioner will wait for an application to start running")
 	flag.Parse()
 
 	if f.mapperType != "db" && f.mapperType != "constant" {
@@ -90,10 +88,6 @@ func (f *flags) getOrganizationMapper(db *sqlx.DB, p appProvisioner) organizatio
 }
 
 func (f *flags) getAppProvisioner() appProvisioner {
-	generalOptions := appProvisionerOptions{
-		runTimeout:    f.provisionerRunTimeout,
-		clientTimeout: f.provisionerClientTimeout,
-	}
 	args := []string{"--no-probe"}
 
 	if f.appProvisioner == "docker" {
@@ -102,8 +96,8 @@ func (f *flags) getAppProvisioner() appProvisioner {
 				Image: f.dockerAppImage,
 				Cmd:   args,
 			},
-			hostConfig:            docker.HostConfig{},
-			appProvisionerOptions: generalOptions,
+			hostConfig:    docker.HostConfig{},
+			clientTimeout: f.provisionerClientTimeout,
 		}
 		p, err := newDockerProvisioner(f.dockerHost, options)
 		if err != nil {
@@ -120,7 +114,7 @@ func (f *flags) getAppProvisioner() appProvisioner {
 			Ports: []k8sAPI.ContainerPort{
 				k8sAPI.ContainerPort{ContainerPort: scope.AppPort}},
 		},
-		appProvisionerOptions: generalOptions,
+		clientTimeout: f.provisionerClientTimeout,
 	}
 
 	p, err := newK8sProvisioner(options)
