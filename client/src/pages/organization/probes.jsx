@@ -1,7 +1,6 @@
 import React from 'react';
-import { Styles, List, ListItem } from 'material-ui';
+import { Styles } from 'material-ui';
 import { getData } from '../../common/request';
-import { Box } from '../../components/box';
 import { trackEvent, trackException } from '../../common/tracking';
 
 export default class Probes extends React.Component {
@@ -31,16 +30,19 @@ export default class Probes extends React.Component {
   }
 
   renderProbes() {
+    const style = {
+      margin: 16
+    };
     if (this.state.probes.length > 0) {
       return this.state.probes.map(probe => {
         return (
-          <ListItem primaryText={probe.id} key={probe.id} />
+          <div key={probe.id} style={style}>{probe.id} (connected)</div>
         );
       });
     }
 
     return (
-      <ListItem primaryText="No probes connected" disabled />
+      <div>No probes connected</div>
     );
   }
 
@@ -62,11 +64,9 @@ export default class Probes extends React.Component {
 
     return (
       <div>
-        <Box>
-          <List subheader="Connected probes">
-            {probes}
-          </List>
-        </Box>
+        <div>
+          {probes}
+        </div>
         <div style={styles.tokenContainer}>
           <span style={styles.tokenLabel}>Probe token: </span>
           <span style={styles.tokenValue}>{this.props.probeToken}</span>
