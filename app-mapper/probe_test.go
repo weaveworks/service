@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -90,4 +91,23 @@ func TestProbeObserver(t *testing.T) {
 	require.NoError(t, err, "Cannot decode result")
 	assert.Equal(t, expectedResult, result, "Unexpected result")
 	assert.Equal(t, orgName, recordedOrgName, "Organization name not correctly forward to authenticator")
+}
+
+func TestNoProbes(t *testing.T) {
+	const orgName = "somePublicOrgName"
+
+	p := &probeMemStorage{[]memProbe{}}
+
+	router := mux.NewRouter()
+	newProbeObserver(&mockAuthenticator{}, p).registerHandlers(router)
+	req, err := http.NewRequest("GET", "http://example.com/api/org/"+orgName+"/probes", nil)
+	require.NoError(t, err, "Cannot create request")
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, "Request unexpectedly failed")
+	// The JSON parser in the frontend expects an empty array '[]' and not
+	// 'null' when there are no probes. See
+	// https://github.com/weaveworks/service/pull/220#issuecomment-154069136
+	assert.Equal(t, "[]", strings.TrimSpace(w.Body.String()), "Unexpected response body")
 }
