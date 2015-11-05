@@ -121,7 +121,7 @@ export default class Wrapper extends React.Component {
     if (resp.status === 503) {
       // not ready, try again
       this.setState({
-        activityText: 'Waiting for your Scope instance to be ready...'
+        activityText: 'Spawning your Scope app...'
       });
     } else {
       this.setState({
@@ -153,8 +153,8 @@ export default class Wrapper extends React.Component {
         <Toolbar organization={this.props.params.orgId} user={this.state.user} />
         {this.state.activityText && <div>
           <div style={styles.activity}>
-            <CircularProgress mode="indeterminate" />
             <p>{this.state.activityText}</p>
+            <CircularProgress mode="indeterminate" />
           </div>
         </div>}
         {this.state.frameBaseUrl && <iframe ref="iframe"
