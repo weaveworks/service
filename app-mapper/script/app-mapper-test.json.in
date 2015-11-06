@@ -5,18 +5,18 @@
 "spec":{
   "restartPolicy": "Never",
   "volumes": [
-	{
-	    "name": "gopath",
-	    "hostPath": {
-		"path": "$GOPATH"
-	    }
-	},
+       {
+            "name": "gopath",
+            "hostPath": {
+                "path": "$GOPATH"
+            }
+        },
         {
-	    "name": "k8s-test-script",
-	    "hostPath": {
-		"path": "$K8S_TEST_SCRIPT"
-	    }
-	}
+            "name": "k8s-test-script",
+            "hostPath": {
+                "path": "$K8S_TEST_SCRIPT"
+            }
+        }
   ],
   "containers":[
     {
@@ -37,7 +37,7 @@
               "name": "gopath",
               "mountPath": "/go"
             },
-	    {
+            {
               "name": "k8s-test-script",
               "mountPath": "/k8s_test_script.sh"
             }

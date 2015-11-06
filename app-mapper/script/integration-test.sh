@@ -55,7 +55,7 @@ run_k8s_integration_tests() {
 
     # Spawn tests in kubernetes pod
     sed "s%\$GOPATH%${GOPATH}%g" "$SCRIPT_DIR"/app-mapper-test.json.in | sed \
-	"s%\$K8S_TEST_SCRIPT%${SCRIPT_DIR}/k8s_test_script.sh%g" | sed \
+        "s%\$K8S_TEST_SCRIPT%${SCRIPT_DIR}/k8s_test_script.sh%g" | sed \
         "s%\$TEST_FLAGS%$(get_flags k8s)%g"  | kubectl create -f -
 
     # Wait for the pod's creation
