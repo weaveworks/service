@@ -10,7 +10,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	k8sAPI "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func newTestProvisioner(t *testing.T) appProvisioner {
@@ -32,7 +32,7 @@ func newTestProvisioner(t *testing.T) appProvisioner {
 
 	if isK8sIntegrationTest {
 		options := k8sProvisionerOptions{
-			appContainer: k8sAPI.Container{
+			appContainer: kapi.Container{
 				Name:  "scope",
 				Image: defaultAppImage,
 				Args:  args,
@@ -45,6 +45,7 @@ func newTestProvisioner(t *testing.T) appProvisioner {
 		return p
 	}
 
+	t.Fatal("Unspecified app provisioner type")
 	return nil
 }
 

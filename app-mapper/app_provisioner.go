@@ -8,11 +8,11 @@ import (
 	"github.com/Sirupsen/logrus"
 	docker "github.com/fsouza/go-dockerclient"
 	scope "github.com/weaveworks/scope/xfer"
-	k8sAPI "k8s.io/kubernetes/pkg/api"
-	k8sErrors "k8s.io/kubernetes/pkg/api/errors"
-	k8sClient "k8s.io/kubernetes/pkg/client/unversioned"
-	k8sFields "k8s.io/kubernetes/pkg/fields"
-	k8sLabels "k8s.io/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kfields "k8s.io/kubernetes/pkg/fields"
+	klabels "k8s.io/kubernetes/pkg/labels"
 )
 
 type appProvisioner interface {
@@ -75,14 +75,20 @@ func (p *dockerProvisioner) runApp(appID string) (string, error) {
 		container, err := p.client.CreateContainer(createOptions)
 		if err != nil {
 			if err == docker.ErrContainerAlreadyExists {
-				logrus.Warnf("dockerProvisioner: runApp: trying to recreate existing container for app %q", appID)
+				logrus.Warnf(
+					"dockerProvisioner: runApp: trying to recreate existing container for app %q",
+					appID,
+				)
 			} else {
 				return err
 			}
 		}
 		if err = p.client.StartContainer(container.ID, &p.options.hostConfig); err != nil {
 			if _, ok := err.(*docker.ContainerAlreadyRunning); ok {
-				logrus.Warnf("dockerProvisioner: runApp: trying to start running container for app %q", appID)
+				logrus.Warnf(
+					"dockerProvisioner: runApp: trying to start already-running container for app %q",
+					appID,
+				)
 			} else {
 				return err
 			}
@@ -128,18 +134,18 @@ func (p *dockerProvisioner) getAppHostname(appID string) (string, error) {
 //
 
 type k8sProvisionerOptions struct {
-	appContainer  k8sAPI.Container
+	appContainer  kapi.Container
 	clientTimeout time.Duration
 }
 
 type k8sProvisioner struct {
-	client    *k8sClient.Client
+	client    *kclient.Client
 	namespace string
 	options   k8sProvisionerOptions
 }
 
 func newK8sProvisioner(options k8sProvisionerOptions) (*k8sProvisioner, error) {
-	client, err := k8sClient.NewInCluster()
+	client, err := kclient.NewInCluster()
 	if err != nil {
 		return nil, err
 	}
@@ -154,13 +160,16 @@ func (p *k8sProvisioner) fetchApp() (err error) {
 	// lazilly fetched on runApp.
 	//
 	// TODO: We could force pulling the image in each node by spawning an
-	// ephemeral pod which using the app-image and fixing the NodeName in its
+	// ephemeral pod which using the same image and fixing the NodeName in its
 	// PodSpec. Another option could be temporarily spawning a DaemonSet
 	// using that image.
 	return nil
 }
 
 func (p *k8sProvisioner) runApp(appID string) (hostname string, err error) {
+	// To run an app, we spawn one pod, one replication controller and one
+	// service
+
 	// Name used for all the labels and k8s object metadata. It will also
 	// be the service hostname, which is derived from its name by the k8s
 	// dns addon.
@@ -168,50 +177,50 @@ func (p *k8sProvisioner) runApp(appID string) (hostname string, err error) {
 
 	labels := map[string]string{"name": name}
 	selector := labels
-	objMeta := k8sAPI.ObjectMeta{
+	objMeta := kapi.ObjectMeta{
 		Name:   name,
 		Labels: labels,
 	}
-	podTemplate := k8sAPI.PodTemplateSpec{
+	podTemplate := kapi.PodTemplateSpec{
 		ObjectMeta: objMeta,
-		Spec: k8sAPI.PodSpec{
-			RestartPolicy: k8sAPI.RestartPolicyAlways,
-			Containers:    []k8sAPI.Container{p.options.appContainer},
+		Spec: kapi.PodSpec{
+			RestartPolicy: kapi.RestartPolicyAlways,
+			Containers:    []kapi.Container{p.options.appContainer},
 		},
 	}
-	rc := k8sAPI.ReplicationController{
+	rc := kapi.ReplicationController{
 		ObjectMeta: objMeta,
-		Spec: k8sAPI.ReplicationControllerSpec{
+		Spec: kapi.ReplicationControllerSpec{
 			Replicas: 1,
 			Selector: selector,
 			Template: &podTemplate,
 		},
 	}
-	service := k8sAPI.Service{
+	service := kapi.Service{
 		ObjectMeta: objMeta,
-		Spec: k8sAPI.ServiceSpec{
-			Ports: []k8sAPI.ServicePort{
-				k8sAPI.ServicePort{
+		Spec: kapi.ServiceSpec{
+			Ports: []kapi.ServicePort{
+				kapi.ServicePort{
 					Protocol: "TCP",
 					Port:     scope.AppPort,
 				},
 			},
 			Selector: selector,
 			// Doesn't matter since there's just one replica:
-			SessionAffinity: k8sAPI.ServiceAffinityNone,
+			SessionAffinity: kapi.ServiceAffinityNone,
 		},
 	}
 
 	spawnApp := func() error {
 		if _, err := p.client.ReplicationControllers(p.namespace).Create(&rc); err != nil {
-			if k8sErrors.IsAlreadyExists(err) {
+			if kerrors.IsAlreadyExists(err) {
 				logrus.Warnf("k8sProvisioner: runApp: trying to recreate existing rc for app %q", appID)
 			} else {
 				return err
 			}
 		}
 		if _, err = p.client.Services(p.namespace).Create(&service); err != nil {
-			if k8sErrors.IsAlreadyExists(err) {
+			if kerrors.IsAlreadyExists(err) {
 				logrus.Warnf("k8sProvisioner: runApp: trying to recreate existing service for app %q", appID)
 			} else {
 				return err
@@ -224,8 +233,8 @@ func (p *k8sProvisioner) runApp(appID string) (hostname string, err error) {
 		return "", err
 	}
 
-	// We cannot provide the service FQDN because, AFAIK, the cluster domain is
-	// not accessible to the k8s client
+	// We cannot provide the service FQDN because, AFAIK, the cluster domain
+	// is not accessible to the k8s client
 	return name, nil
 }
 
@@ -239,7 +248,7 @@ func (p *k8sProvisioner) destroyApp(appID string) (err error) {
 	name := getAppName(appID)
 
 	// Delete replication controller
-	var rc *k8sAPI.ReplicationController
+	var rc *kapi.ReplicationController
 	rcInterface := p.client.ReplicationControllers(p.namespace)
 	if rc, rcErr = rcInterface.Get(name); rcErr == nil && rc != nil {
 		logrus.Debugf("k8sProvisioner: destroyApp: destroying replication controller for app %q", appID)
@@ -250,16 +259,16 @@ func (p *k8sProvisioner) destroyApp(appID string) (err error) {
 	// Deleting a replication controller doesn't implicitly delete its
 	// underlying pods (unlike how it happens during creation).
 	labels := map[string]string{"name": name}
-	labelSelector := k8sLabels.Set(labels).AsSelector()
+	labelSelector := klabels.Set(labels).AsSelector()
 	podInterface := p.client.Pods(p.namespace)
-	var pods *k8sAPI.PodList
-	if pods, podErr = podInterface.List(labelSelector, k8sFields.Everything()); podErr == nil && pods != nil {
+	var pods *kapi.PodList
+	if pods, podErr = podInterface.List(labelSelector, kfields.Everything()); podErr == nil && pods != nil {
 		if podNum := len(pods.Items); podNum > 1 {
 			logrus.Warnf("k8sProvisioner: destroyApp: unexpected number of pods (%d) for app %q", appID, podNum)
 		}
 		for _, pod := range pods.Items {
 			logrus.Debugf("k8sProvisioner: destroyApp: destroying pod %q for app %q", pod.Name, appID)
-			err := podInterface.Delete(pod.Name, &k8sAPI.DeleteOptions{})
+			err := podInterface.Delete(pod.Name, &kapi.DeleteOptions{})
 			if err != nil {
 				podErr = err
 			}
@@ -267,7 +276,7 @@ func (p *k8sProvisioner) destroyApp(appID string) (err error) {
 	}
 
 	// Delete service
-	var service *k8sAPI.Service
+	var service *kapi.Service
 	serviceInterface := p.client.Services(p.namespace)
 	if service, serviceErr = serviceInterface.Get(name); serviceErr == nil && service != nil {
 		logrus.Debugf("k8sProvisioner: destroyApp: destroying service for app %q", appID)
