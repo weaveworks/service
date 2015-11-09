@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailcatcher
+  labels:
+    name: mailcatcher
+spec:
+  # if your cluster supports it, uncomment the following to automatically create
+  # an external load-balanced IP for the frontend service.
+  # type: LoadBalancer
+  ports:
+    # the ports that this service should serve on
+    - port: 587
+      name: smtp
+    - port: 80
+      name: http
+  selector:
+    name: mailcatcher
