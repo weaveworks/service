@@ -70,7 +70,7 @@ $(USERS_UPTODATE): users/Dockerfile users/templates/* $(USERS_EXE) users/db/* us
 	$(SUDO) docker build -t $(USERS_DB_IMAGE) users/db/
 	touch $@
 
-$(CLIENT_BUILD_UPTODATE): client/Dockerfile client/package.json client/karma.* client/webpack.*
+$(CLIENT_BUILD_UPTODATE): client/Dockerfile client/package.json client/webpack.*
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(CLIENT_BUILD_IMAGE) client/
 	touch $@
