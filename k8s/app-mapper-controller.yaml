@@ -19,11 +19,7 @@ spec:
         args:
         # command = "/app-mapper"
         - -db-uri=postgres://postgres@app-mapper-db/app_mapper?sslmode=disable
-        - -docker-host=unix:///var/run/weave/weave.sock
         - -log-level=debug
-        volumeMounts:
-          - mountPath: /var/run/weave/weave.sock
-            name: weavesock
         env:
         - name: GET_HOSTS_FROM
           value: dns
@@ -34,7 +30,3 @@ spec:
           # value: env
         ports:
         - containerPort: 80
-      volumes:
-      - name: weavesock
-        hostPath:
-          path: /var/run/weave/weave.sock
