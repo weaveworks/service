@@ -8,7 +8,7 @@ This is a single container that runs
 - loadgen, a service to generate some load to the components (so we don't have just flat lines)
 
 Each component (users, app-mapper, etc.) exposes a scrapable endpoint with metrics.
-Prometheus uses Weave DNS A-records to discover instances of each component, and scrapes them on a regular interval.
+Prometheus uses DNS A-records to discover instances of each component, and scrapes them on a regular interval.
 Grafana is configured with dashboards that call the Prometheus server.
 
 ```
@@ -37,4 +37,4 @@ Grafana is configured with dashboards that call the Prometheus server.
 + - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
 ```
 
-Access the dashboards on **monitoring.weave.local:3000**.
+Access the dashboards on **monitoring:3000**.
