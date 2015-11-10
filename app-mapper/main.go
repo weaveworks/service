@@ -49,7 +49,7 @@ func parseFlags() *flags {
 	flag.StringVar(&f.dbURI, "db-uri", defaultDBURI, "Where to find the db application mapper")
 	flag.StringVar(&f.constantMapperTargetHost, "constant-mapper-target-host", "localhost:5450", "Host to be used by the constant mapper")
 	flag.StringVar(&f.authenticatorType, "authenticator", "web", "What authenticator to use: web | mock")
-	flag.StringVar(&f.authenticatorHost, "authenticator-host", "users.weave.local:80", "Where to find web the authenticator service")
+	flag.StringVar(&f.authenticatorHost, "authenticator-host", "users:80", "Where to find web the authenticator service")
 	flag.StringVar(&f.appProvisioner, "app-provisioner", "kubernetes", "What application provisioner to use: docker | kubernetes")
 	flag.StringVar(&f.dockerAppImage, "docker-app-image", defaultAppImage, "Docker image to use by the application provisioner")
 	flag.StringVar(&f.dockerHost, "docker-host", "", "Where to find the docker application provisioner")
