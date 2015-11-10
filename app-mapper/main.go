@@ -114,7 +114,7 @@ func (f *flags) makeAppProvisioner() appProvisioner {
 		if err != nil {
 			logrus.Fatal("Cannot initialize docker provisioner: ", err)
 		}
-	case "k8s":
+	case "kubernetes":
 		options := k8sProvisionerOptions{
 			appContainer: kapi.Container{
 				Name:  "scope",
