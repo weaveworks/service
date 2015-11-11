@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 
-export VPC_ID=vpc-c06522a5
-
+export VPC_ID=vpc-2e16544b
+export MASTER_SECURITY_GROUP_ID=sg-ee6ce98a
+export MINION_SECURITY_GROUP_ID=sg-ef6ce98b

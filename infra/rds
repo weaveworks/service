@@ -16,30 +16,60 @@ WHAT=$2
 echo "Sourcing ${NAME}.aws"
 source ${NAME}.aws
 
+echo "Sourcing ${NAME}.sec"
+source ${NAME}.sec
+
+function create_tfvars {
+	cat <<EOF >${NAME}.tfvars
+users_db_password = "${USERS_DB_PASSWORD}"
+app_mapper_db_password = "${APP_MAPPER_DB_PASSWORD}"
+master_security_group_id = "${MASTER_SECURITY_GROUP_ID}"
+minion_security_group_id = "${MINION_SECURITY_GROUP_ID}"
+EOF
+}
+
 function create_tf {
-	# Create rds-${NAME}.tfvars with ${VPC_ID}.
-	# Create rds-${NAME}.tf with the RDS declaration.
-	# All other parameters can be hard-coded, to start.
-	echo "TODO"
+	cp rds.tf.template ${NAME}-rds.tf
+}
+
+function remove_tfvars {
+	rm -f ${NAME}-rds.tfvars
 }
 
 function remove_tf {
-	# rm rds-${NAME}.{tf,tfvars}
-	echo "TODO"
+	rm -f ${NAME}-rds.tf
+}
+
+function interactive_confirmation {
+	local prompt=$1
+	while true
+	do
+		read -p "${prompt} " yn
+		case $yn in
+			yes) break;;
+			no) exit;;
+			*) echo "Please type 'yes' or 'no'";;
+		esac
+	done
 }
 
 function terraform_apply {
-	# Split into explicit plan and apply stages.
-	echo "TODO"
+	TEMPFILE=$(mktemp)
+	trap "rm -rf ${TEMPFILE}" EXIT
+	terraform plan -state=${NAME}.tfstate -var-file=${NAME}.tfvars -out=${TEMPFILE}
+	interactive_confirmation "Do you wish to proceed with the plan?"
+	terraform apply -state=${NAME}.tfstate ${TEMPFILE}
 }
 
 case ${WHAT} in
 up)
+	create_tfvars
 	create_tf
 	terraform_apply
 	;;
 
 down)
+	remove_tfvars
 	remove_tf
 	terraform_apply
 	;;

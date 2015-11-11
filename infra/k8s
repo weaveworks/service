@@ -72,10 +72,15 @@ function write_awsfile {
 	echo "Writing ${NAME}.aws"
 	TEMPFILE=$(mktemp)
 	VPC_ID=$(get_vpc_id)
-	echo "#!/usr/bin/env bash" >> $TEMPFILE
-	echo "" >> $TEMPFILE
-	echo "export VPC_ID=${VPC_ID}" >> $TEMPFILE
-	echo "" >> $TEMPFILE
+	MASTER_SECURITY_GROUP_ID=$(get_security_group_id "${MASTER_SG_NAME}")
+	MINION_SECURITY_GROUP_ID=$(get_security_group_id "${MINION_SG_NAME}")
+	cat <<EOF >${TEMPFILE}
+#!/usr/bin/env bash
+
+export VPC_ID=${VPC_ID}
+export MASTER_SECURITY_GROUP_ID=${MASTER_SECURITY_GROUP_ID}
+export MINION_SECURITY_GROUP_ID=${MINION_SECURITY_GROUP_ID}
+EOF
 	mv ${TEMPFILE} ${NAME}.aws
 }
 

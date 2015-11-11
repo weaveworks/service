@@ -24,7 +24,7 @@ function service_frontend_elb {
 
 function create_tf {
 	# I don't think we need to create a tfvars...
-	# Create route53-${NAME}.tf, with record set to the service_frontend_elb.
+	# Create ${NAME}-r53.tf, with record set to the service_frontend_elb.
 	# Maybe we don't need anything from ${NAME}.aws?
 	# All other parameters can be hard-coded, to start.
 	echo "TODO"

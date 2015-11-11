@@ -24,7 +24,7 @@ Here, you'll find scripts to provision each piece of the cluster.
 Each script produces output file(s) that are used as input to other scripts.
 All output files should be checked in.
 
-![order.png](http://i.imgur.com/y3g8DyD.png)
+![order.png](http://i.imgur.com/l52oxHz.png)
 
 1. [Prerequisites](#prerequisites)
 1. [Standup](#standup)
@@ -36,20 +36,15 @@ All output files should be checked in.
 [Install the AWS tool](https://docs.aws.amazon.com/cli/latest/userguide/installing.html).
 If you want to do this on your own user account, create an IAM user with AdministratorAccess.
 Otherwise, ask a team member for credentials for the shared account.
-Configure your AWS client with those credentials.
+Configure your AWS client with those credentials and confirm it works.
 
 ```
 $ aws configure
-```
-
-Confirm it works.
-
-```
 $ aws s3 ls /
 ```
 
 You interact with Kubernetes clusters via the kubectl tool.
-You can download the latest stable version for your platform.
+Download the latest stable version for your platform.
 
 ```
 $ bash -c '
@@ -76,7 +71,7 @@ $ kubectl --kubeconfig=foo.kubeconfig get pods
 
 ## Standup
 
-All instructions assume you're working with the **foo** cluster.
+All instructions assume you're working with the **foo** cluster; change it as approprpiate.
 **Make sure your AWS client is configured with the correct IAM** before continuing.
 If this is your first time standing up a cluster, don't just copy/paste.
 Run these commands one at a time.
@@ -86,7 +81,7 @@ Run these commands one at a time.
 ./rds foo up
 ./r53 foo up
 
-git add foo.k8s foo.aws foo.kubeconfig foo-rds.tfstate foo-route53.tfstate
+git add foo.k8s foo.aws foo.kubeconfig foo-rds.tfstate foo-r53.tfstate
 git commit -m "Standup foo cluster"
 ```
 
@@ -97,7 +92,7 @@ git commit -m "Standup foo cluster"
 ./rds foo down
 ./k8s foo down
 
-git rm foo.k8s foo.aws foo.kubeconfig foo-rds.tfstate foo-route53.tfstate
+git rm foo.k8s foo.aws foo.kubeconfig foo-rds.tfstate foo-r53.tfstate
 git commit -m "Teardown foo cluster"
 ```
 

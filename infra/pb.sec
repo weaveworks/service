@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+export USERS_DB_PASSWORD="a59f8e66c75eceb"
+export APP_MAPPER_DB_PASSWORD="d2e5268c1ab252e"
