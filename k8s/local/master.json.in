@@ -15,7 +15,7 @@
   "containers":[
     {
       "name": "controller-manager",
-      "image": "2opremio/hyperkube:664d2ef",
+      "image": "2opremio/hyperkube:706d3a7",
       "command": [
               "/hyperkube",
               "controller-manager",
@@ -33,7 +33,7 @@
     },
     {
       "name": "apiserver",
-      "image": "2opremio/hyperkube:664d2ef",
+      "image": "2opremio/hyperkube:706d3a7",
       "command": [
               "/hyperkube",
               "apiserver",
@@ -56,7 +56,7 @@
     },
     {
       "name": "scheduler",
-      "image": "2opremio/hyperkube:664d2ef",
+      "image": "2opremio/hyperkube:706d3a7",
       "command": [
               "/hyperkube",
               "scheduler",

@@ -46,9 +46,9 @@ docker run \
        --privileged=true \
        -v "$LOCAL_K8S_DIR"/master.json:/etc/kubernetes/manifests/master.json \
        -d \
-       2opremio/hyperkube:664d2ef \
+       2opremio/hyperkube:706d3a7 \
        /hyperkube kubelet --containerized --hostname-override="127.0.0.1" --address="0.0.0.0" --api-servers=http://localhost:8080 --config=/etc/kubernetes/manifests --cluster-dns=10.0.0.10 --cluster-domain=cluster.local
-docker run --name local_k8s_proxy -d --net=host --privileged 2opremio/hyperkube:664d2ef /hyperkube proxy --master=http://127.0.0.1:8080 --v=2
+docker run --name local_k8s_proxy -d --net=host --privileged 2opremio/hyperkube:706d3a7 /hyperkube proxy --master=http://127.0.0.1:8080 --v=2
 # DNS
 # From https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/dns
 
