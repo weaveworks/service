@@ -32,7 +32,7 @@ EOF
 
 function remove_tfvars {
 	echo "Removing ${NAME}-rds.tfvars"
-	rm -f ${NAME}-rds.tfvars
+	rm -f ${NAME}-rds.tfvars || true
 }
 
 function create_tf {
@@ -41,7 +41,7 @@ function create_tf {
 
 function remove_tf {
 	echo "Removing ${NAME}-rds.tf"
-	rm -f ${NAME}-rds.tf
+	rm -f ${NAME}-rds.tf || true
 }
 
 function interactive_confirmation {
@@ -58,16 +58,16 @@ function interactive_confirmation {
 }
 
 function terraform_apply {
-	TEMPFILE=$(mktemp)
-	trap "rm -rf ${TEMPFILE}" EXIT
-	terraform plan -state=${NAME}-rds.tfstate -var-file=${NAME}-rds.tfvars -out=${TEMPFILE}
+	local tempfile=$(mktemp)
+	trap "rm -rf ${tempfile}" EXIT
+	terraform plan -state=${NAME}-rds.tfstate -var-file=${NAME}-rds.tfvars -out=${tempfile}
 	interactive_confirmation "Do you wish to proceed with the plan?"
-	terraform apply -state=${NAME}-rds.tfstate ${TEMPFILE}
+	terraform apply -state=${NAME}-rds.tfstate ${tempfile}
 }
 
 function remove_tfstate {
 	echo "Removing ${NAME}-rds.tfstate"
-	rm -f ${NAME}-rds.tfstate
+	rm -f ${NAME}-rds.tfstate || true
 }
 
 case ${WHAT} in
