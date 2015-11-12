@@ -3,11 +3,21 @@
 export KUBE_AWS_ZONE="eu-west-1a" # availability zone
 export AWS_S3_REGION="eu-west-1"  # region
 
+# If you don't specify a VPC_ID, Kubernetes will create one.
+# This causes problems when it's time to create RDS instances.
+# Best to put everything in the default VPC for your region.
+export VPC_ID="vpc-ea4c378f"
+
+# Similarly, if you don't specify a subnet, Kubernetes will try to create one.
+# But it lacks introspection into the VPC, and will try a bad CIDR.
+# So, specify one of the existing subnets.
+export SUBNET_ID="subnet-e1184f96"
+
 # http://cloud-images.ubuntu.com/locator/ec2/
 # export AWS_IMAGE="ami-58c1cd45" # eu-central-1
 export AWS_IMAGE="ami-ef8ab698" # eu-west-1
 
-export MASTER_SIZE="m3.medium"
+export MASTER_SIZE="t2.micro"
 export MINION_SIZE="t2.micro"
 export NUM_MINIONS="2"
 export KUBE_AWS_INSTANCE_PREFIX="kubernetes_pb"

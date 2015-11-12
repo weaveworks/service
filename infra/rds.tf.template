@@ -26,11 +26,3 @@ resource "aws_db_instance" "app_mapper_db" {
     vpc_security_group_ids = ["${var.minion_security_group_id}"]
     final_snapshot_identifier = "app-mapper-final"
 }
-
-# Annoyingly, if you don't want the DB to be created in the
-# default VPC, you seem to need to define this resource.
-resource "aws_db_subnet_group" "default" {
-    name = "k8s_subnet"
-    description = "The subnet created by the k8s provisioning process"
-    subnet_ids = ["${var.db_subnet_id}"] # TODO(pb): this is insufficient :(
-}

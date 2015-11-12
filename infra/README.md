@@ -102,15 +102,3 @@ git commit -m "Teardown foo cluster"
 
 See the k8s-helloworld directory.
 
-### How do I clean up these S3 buckets?
-
-```
-$ bash -c '
-  for b in $(aws s3 ls / | grep weaveworks-scope-kubernetes- | awk \'{print $3}\')
-  do
-    echo $b
-    aws s3 rm --recursive s3://$b/
-    aws s3 rb s3://$b
-  done
-'
-```
