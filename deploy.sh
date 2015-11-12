@@ -27,9 +27,6 @@ case "$1" in
     ./spawn_local_k8s.sh
     kubectl create -f k8s/local/db
     kubectl create -f k8s/local/mailcatcher
-    # TODO: The following should be done in a general way also for prod and dev
-    kubectl create -f k8s
-    exit 0
     ;;
   *)
     usage
@@ -38,3 +35,4 @@ case "$1" in
 esac
 
 
+kubectl create -f k8s/$ENVIRONMENT
