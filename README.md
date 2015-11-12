@@ -6,11 +6,16 @@
 
 ## Run the infrastructure
 
-On your Linux host or VM,
-[install kubectl](http://kubernetes.io/v1.0/docs/getting-started-guides/aws/kubectl.html)
-(ignore the tunnel part).  ```
+You will need a Linux host or Virtual Machine to run the infrastructure locally. In case of
+using a VM you will be able to connect to the infrastructure from your host
+(e.g. Mac laptop).
 
-Now, still on your Linux host or VM, build the service and deploy it locally.
+You will need to have `kubectl` >= 1.1 installed on both environments:
+
+* [For Mac](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/darwin/amd64/kubectl).
+* [For Linux](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/linux/amd64/kubectl)
+
+Now, on your Linux host or VM, build the service and deploy it locally.
 
 ```
 cd $GOPATH/src/github.com/weaveworks/service
@@ -18,32 +23,39 @@ make
 ./deploy.sh -local
 ```
 
-**TODO: Make connect.sh work with Kubernetes. We can probably use the kube proxy for this**
+Then, we need to get your browser onto the local Kubernetes cluster network to
+be able to talk to all its services. We have a handy `connect.sh` script for
+that.
 
-Now, we need to get your laptop onto the Weave network with the other components.
-We have a handy connect.sh script for that.
+If you are running everything directly on a Linux host, set `<hostname>` to `127.0.0.1`.
 
 ```
-vagrant ssh-config >> ~/.ssh/config  # maybe necessary if you're using Vagrant
 ./connect.sh <hostname>
 ```
 
-It will tell you how to configure your host/browser to talk over the Weave network to the remote components.
+It will tell you how to configure your host/browser to talk over the Kubernetes network.
 When configuring your system proxies, ensure that proxies are *not* bypassed for `*.local`.
 
 ## Test the workflow
 
-From your Mac,
+On your Mac laptop (or directly on your Linux host),
 
 1. http://scope.weave.works — sign up
-1. http://smtp.weave.local — you should see a welcome email
-1. http://users.weave.local/private/api/users — approve yourself
-1. http://smtp.weave.local — click on the link in the approval email
-1. Use the token in the approval email to start a probe:
+1. http://mailcatcher.default.svc.cluster.local — you should see a welcome email
+1. http://users.default.svc.cluster.local — approve yourself
+1. http://mailcatcher.default.svc.cluster.local — click on the link in the approval email
 
-  ./scope launch --service-token=lhFr_M4SwtOmjLrrxHc2 frontend.weave.local:80
+On your VM (or directly on your Linux host),
 
-1. Navigate to http://scope.weave.works and behold the beauty
+* Use the token in the approval email (e.g. `lhFr_M4SwtOmjLrrxHc2` )to start a probe:
+
+```
+scope launch --service-token=lhFr_M4SwtOmjLrrxHc2 "$(kubectl get svc frontend -o template --template '{{.spec.clusterIP}}')":80
+```
+
+Back on Mac laptop (or directly on your Linux host),
+
+* Navigate to http://scope.weave.works and behold the beauty
 
 Note that you'll need to preload a recent build of the Scope image.
 
@@ -82,15 +94,3 @@ Note that you'll need to preload a recent build of the Scope image.
 1. Commit and push the new .tfstate to master!
 
 Replace `-dev` with `-local` or `-prod` as appropriate.
-
-## Destroying/recreating all the containers
-
-Sometimes it may be nessecary to destroy & recreate all the containers.
-To do this, run:
-
-```
-terraform show dev.tfstate | grep docker_container | grep -v taint | sed  's/\://' | xargs -n1 terraform taint --state=dev.tfstate
-```
-
-Which will 'taint' all the containers, causing Terraform to destroy and
-recreate them the next time you run ./deploy.sh.
