@@ -13,7 +13,7 @@ PROXY_NAME=$USER-proxy
 if [ "$1" == "-prod" ]; then
     KUBECTL_ARGS="--kubeconfig=$SCRIPT_DIR/infra/prod.kubeconfig"
 elif [ "$1" == "-dev" ]; then
-    KUBECTL_ARGS="--kubeconfig=$SCRIPT_DIR/infra/prod.kubeconfig"
+    KUBECTL_ARGS="--kubeconfig=$SCRIPT_DIR/infra/dev.kubeconfig"
 else
     KUBECTL_ARGS="-s http://$1:8080"
 fi
