@@ -15,6 +15,9 @@ You will need to have `kubectl` >= 1.1 installed on both environments:
 * [For Mac](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/darwin/amd64/kubectl).
 * [For Linux](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/linux/amd64/kubectl)
 
+Also, please make sure to run Docker < 1.9 since version 1.9 has performance
+issues which will make your machine unusable.
+
 Now, on your Linux host or VM, build the service and deploy it locally.
 
 ```
