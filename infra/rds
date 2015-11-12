@@ -79,8 +79,8 @@ up)
 
 down)
 	remove_tf
-	remove_tfvars
 	terraform_apply
+	remove_tfvars
 	remove_tfstate
 	;;
 
