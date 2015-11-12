@@ -26,9 +26,6 @@ PORT_FORWARDER_PID=
 finish() {
     echo "Cleaning up..."
     kubectl_on delete rc $PROXY_NAME
-    if [ -n "$PORT_FORWARDER_PID" ]; then
-	kill $PORT_FORWARDER_PID
-    fi
 }
 
 finish > /dev/null 2>&1 || true
@@ -47,6 +44,4 @@ echo "Please configure your browser to use proxy auto-config http://localhost:80
 echo "provide '$KUBECTL_ARGS' to kubectl in order to connect to the cluster"
 
 kubectl_on port-forward $PROXY_POD 8000:8000 8080:8080 &
-PORT_FORWARDER_PID=$!
-
 kubectl_on logs -f $PROXY_POD -c $PROXY_NAME
