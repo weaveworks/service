@@ -200,7 +200,7 @@ func (p *k8sProvisioner) runApp(appID string) (hostname string, err error) {
 		ObjectMeta: objMeta,
 		Spec: kapi.ServiceSpec{
 			Ports: []kapi.ServicePort{
-				kapi.ServicePort{
+				{
 					Protocol: "TCP",
 					Port:     scope.AppPort,
 				},

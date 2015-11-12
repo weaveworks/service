@@ -121,7 +121,7 @@ func (f *flags) makeAppProvisioner() appProvisioner {
 				Image: f.dockerAppImage,
 				Args:  args,
 				Ports: []kapi.ContainerPort{
-					kapi.ContainerPort{ContainerPort: scope.AppPort}},
+					{ContainerPort: scope.AppPort}},
 			},
 			clientTimeout: f.provisionerClientTimeout,
 		}
