@@ -34,7 +34,7 @@ finish() {
 finish > /dev/null 2>&1 || true
 echo "Starting http proxy..."
 
-kubectl_on run $PROXY_NAME --image=weaveworks/socksproxy --command -- /proxy -h '*.svc.default.cluster.local' -a scope.weave.works:frontend.svc.default.cluster.local
+kubectl_on run $PROXY_NAME --image=weaveworks/socksproxy --command -- /proxy -h '*.default.svc.cluster.local' -a scope.weave.works:frontend.default.svc.cluster.local
 trap finish EXIT
 
 # Wait for replication controller to start running
