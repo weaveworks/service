@@ -16,7 +16,7 @@ fi
 
 NAME=$1
 WHAT=$2
-VERSION="v1.0.6" # https://storage.googleapis.com/kubernetes-release/release/stable.txt
+VERSION="v1.1.1" # https://storage.googleapis.com/kubernetes-release/release/stable.txt
 
 echo "Sourcing ${NAME}.k8s"
 source ${NAME}.k8s
@@ -119,8 +119,8 @@ function clean_s3_buckets {
 	for b in $(aws s3 ls / | grep weaveworks-scope-kubernetes- | awk '{print $3}')
 	do
 		echo $b
-		aws s3 rm --recursive s3://$b/ || true
-		aws s3 rb s3://$b || true
+		aws s3 rm --recursive s3://$b/ >/dev/null 2>&1 || true
+		aws s3 rb s3://$b >/dev/null 2>&1 || true
 	done
 }
 
