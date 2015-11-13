@@ -53,6 +53,12 @@ docker run --name local_k8s_proxy -d --net=host --privileged 2opremio/hyperkube:
 # DNS
 # From https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/dns
 
+# Make sure kubectl is installed otherwise the loop below will hang
+if ! command -v kubectl > /dev/null 2>&1 ;then
+    echo 'kubectl: command not found' >&2
+    exit 1
+fi
+
 # Let hyperkube boot
 while ! kubectl get svc kubernetes > /dev/null 2>&1; do sleep 1; done
 kubectl create -f "$LOCAL_K8S_DIR"/skydns
