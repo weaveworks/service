@@ -60,5 +60,5 @@ infra/helloworld/helloworld
 infra2/kubernetes.tar.gz
 infra2/kubernetes/*
 
-k8s/local/pki
-k8s/local/master.json
+k8s/local/master/pki
+k8s/local/master/master.json

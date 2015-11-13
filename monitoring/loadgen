@@ -11,7 +11,7 @@ http() {
 
 while true
 do
-	for url in http://app-mapper.weave.local/loadgen http://users.weave.local/loadgen
+	for url in http://app-mapper/loadgen http://users/loadgen
 	do
 		http GET $url
 	done

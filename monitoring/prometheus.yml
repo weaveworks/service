@@ -12,22 +12,22 @@ scrape_configs:
     - type: A
       port: 80
       names:
-      - frontend.weave.local
+      - frontend
   - job_name: ui-server
     dns_sd_configs:
     - type: A
       port: 80
       names:
-      - ui-server.weave.local
+      - ui-server
   - job_name: users
     dns_sd_configs:
     - type: A
       port: 80
       names:
-      - users.weave.local
+      - users
   - job_name: app-mapper
     dns_sd_configs:
     - type: A
       port: 80
       names:
-      - app-mapper.weave.local
+      - app-mapper

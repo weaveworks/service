@@ -3,53 +3,45 @@
 set -eu
 
 if [ $# -lt 1 ]; then
-	echo "Usage: $0 (-prod|<host>)"
+	echo "Usage: $0 (-prod|-dev|<host>)"
 	exit 1
 fi
 
-LOCAL_PORT=4567
+SCRIPT_DIR=$(cd `dirname -- "$0"`; pwd -P)
+PROXY_NAME=$USER-proxy
+
 if [ "$1" == "-prod" ]; then
-    HOST=ubuntu@$(dig +short docker.cloud.weave.works | sort | head -1)
-    SSH_ARGS="-i infrastructure/prod-keypair.pem"
-    LOCAL_PORT=4501
-    DOCKER_IP_PORT=$(ssh $SSH_ARGS $HOST weave dns-lookup swarm-master):4567
-    DOCKER_CONFIG="-H=tcp://$DOCKER_IP_PORT"
+    KUBECTL_ARGS="--kubeconfig=$SCRIPT_DIR/infra/prod.kubeconfig"
 elif [ "$1" == "-dev" ]; then
-    HOST=ubuntu@$(dig +short docker.dev.weave.works | sort | head -1)
-    SSH_ARGS="-i infrastructure/dev-keypair.pem"
-    LOCAL_PORT=4502
-    DOCKER_IP_PORT=$(ssh $SSH_ARGS $HOST weave dns-lookup swarm-master):4567
-    DOCKER_CONFIG="-H=tcp://$DOCKER_IP_PORT"
+    KUBECTL_ARGS="--kubeconfig=$SCRIPT_DIR/infra/dev.kubeconfig"
 else
-    HOST=$1
-    SSH_ARGS=
-    DOCKER_CONFIG=$(ssh $HOST weave config)
-    DOCKER_IP_PORT="127.0.0.1:12375"
-
-    echo "Weave exposing..."
-    status=$(ssh $SSH_ARGS $HOST weave ps weave:expose | awk '{print $3}' 2>/dev/null)
-    if [ -z "$status" ]; then
-        ssh $SSH_ARGS $HOST weave expose
-    fi
+    KUBECTL_ARGS="-s http://$1:8080"
 fi
-shift 1
 
-docker_on() {
-    ssh $SSH_ARGS $HOST docker $DOCKER_CONFIG "$@"
+kubectl_on() {
+    kubectl $KUBECTL_ARGS "$@"
 }
 
-echo "Starting proxy container..."
-docker_on rm -f $USER-proxy 2>/dev/null || true
-docker_on run -d --name $USER-proxy -l works.weave.role=system weaveworks/socksproxy -a scope.weave.works:frontend.weave.local
-
-function finish {
-    echo "Removing proxy container.."
-    docker_on rm -f $USER-proxy
+PORT_FORWARDER_PID=
+finish() {
+    echo "Cleaning up..."
+    kubectl_on delete rc $PROXY_NAME
 }
+
+finish > /dev/null 2>&1 || true
+echo "Starting http proxy..."
+
+kubectl_on run $PROXY_NAME --image=weaveworks/socksproxy --command -- /proxy -h '*.default.svc.cluster.local' -a scope.weave.works:frontend.default.svc.cluster.local
 trap finish EXIT
 
-PROXY_IP=$(ssh $SSH_ARGS $HOST weave dns-lookup $USER-proxy)
-echo "Please configure your browser for proxy http://localhost:8080/proxy.pac and"
-echo "export DOCKER_HOST=tcp://127.0.0.1:$LOCAL_PORT"
-ssh $SSH_ARGS -L8000:$PROXY_IP:8000 -L8080:$PROXY_IP:8080 -L$LOCAL_PORT:$DOCKER_IP_PORT $HOST \
-    docker $DOCKER_CONFIG attach $USER-proxy
+# Wait for replication controller to start running
+while [ "$(kubectl_on get rc $PROXY_NAME -o template --template='{{.status.replicas}}' 2>&1 )" -lt 1 ]; do sleep 1; done
+PROXY_POD=$(kubectl_on get pod --selector=run=$PROXY_NAME -o template --template='{{ (index .items  0).metadata.name }}')
+# Wait for pod to start running
+while [ "$(kubectl_on get pod $PROXY_POD -o template --template='{{.status.phase}}' 2>&1 )" != 'Running' ]; do sleep 1; done
+
+echo "Please configure your browser to use proxy auto-config http://localhost:8080/proxy.pac and"
+echo "provide '$KUBECTL_ARGS' to kubectl in order to connect to the cluster"
+
+kubectl_on port-forward $PROXY_POD 8000:8000 8080:8080 &
+kubectl_on logs -f $PROXY_POD -c $PROXY_NAME
