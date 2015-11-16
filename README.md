@@ -1,66 +1,49 @@
-# Scope As A Service
+# Scope as a Service
 
 [![Circle CI](https://circleci.com/gh/weaveworks/service/tree/master.svg?style=shield)](https://circleci.com/gh/weaveworks/service/tree/master) [![Coverage Status](https://coveralls.io/repos/weaveworks/service/badge.svg?branch=coverage&service=github&t=6Kr25T)](https://coveralls.io/github/weaveworks/service?branch=coverage)
 
 ![Architecture](docs/architecture.png)
 
-## Run the infrastructure
+## Local development
 
-You will need a Linux host or Virtual Machine to run the infrastructure locally. In case of
-using a VM you will be able to connect to the infrastructure from your host
-(e.g. Mac laptop).
+Prerequisites.
 
-You will need to have `kubectl` >= 1.1 installed on both environments:
+- A Linux host -- later, you'll be able to interact with the cluster from your Mac, if you want to
+- kubectl v1.1.1+ -- [Linux](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/linux/amd64/kubectl), [Darwin](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/darwin/amd64/kubectl)
+- Docker 1.8 -- 1.9 has [performance issues](https://github.com/docker/docker/issues/17720) that make it unusable
 
-* [For Mac](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/darwin/amd64/kubectl).
-* [For Linux](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/linux/amd64/kubectl)
-
-Also, please make sure to run Docker < 1.9 since version 1.9 has performance
-issues which will make your machine unusable.
-
-Now, on your Linux host or VM, build the service and deploy it locally.
+The deploy local script will deploy Kubernetes as a one-node cluster via Docker containers.
 
 ```
+# Linux host
 cd $GOPATH/src/github.com/weaveworks/service
 make
 ./deploy.sh -local
 ```
 
-Then, we need to get your browser onto the local Kubernetes cluster network to
-be able to talk to all its services. We have a handy `connect.sh` script for
-that.
-
-If you are running everything directly on a Linux host, set `<hostname>` to `127.0.0.1`.
+Now, we will get your laptop onto the Kubernetes cluster you've just built.
+If your laptop is also the Linux host, you can use 127.0.0.1 for hostname.
 
 ```
+# Your laptop
 ./connect.sh <hostname>
 ```
 
-It will tell you how to configure your host/browser to talk over the Kubernetes network.
-When configuring your system proxies, ensure that proxies are *not* bypassed for `*.local`.
+Follow the instructions provided after you connect.
+Then, you should be able to access the individual services.
 
-## Test the workflow
+- http://scope.weave.works -- front page, signup with a bogus email address
+- http://mailcatcher.default.svc.cluster.local —- you should see a welcome email
+- http://users.default.svc.cluster.local —- you can approve yourself here
+- http://mailcatcher.default.svc.cluster.local —- you should see another email, and can click the login link
 
-On your Mac laptop (or directly on your Linux host),
-
-1. http://scope.weave.works — sign up
-1. http://mailcatcher.default.svc.cluster.local — you should see a welcome email
-1. http://users.default.svc.cluster.local — approve yourself
-1. http://mailcatcher.default.svc.cluster.local — click on the link in the approval email
-
-On your VM (or directly on your Linux host),
-
-* Use the token in the approval email (e.g. `lhFr_M4SwtOmjLrrxHc2` )to start a probe:
+Now you can start a probe, and send reports to your Scope in the cloud.
 
 ```
-scope launch --service-token=lhFr_M4SwtOmjLrrxHc2 "$(kubectl get svc frontend -o template --template '{{.spec.clusterIP}}')":80
+scope launch --service-token=a0b1c2d3e4f5g6h7 "$(kubectl get svc frontend -o template --template '{{.spec.clusterIP}}')":80
 ```
 
-Back on Mac laptop (or directly on your Linux host),
-
-* Navigate to http://scope.weave.works and behold the beauty
-
-Note that you'll need to preload a recent build of the Scope image.
+You should see your topology appear in the web UI.
 
 ## Deploy a new version of a service
 
