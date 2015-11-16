@@ -72,7 +72,7 @@ $ kubectl --kubeconfig=foo.kubeconfig get pods
 ## Standup
 
 All instructions assume you're working with the **foo** cluster; change it as approprpiate.
-**Make sure your AWS client is configured with the correct IAM** before continuing.
+We also assume your AWS client is configured with the correct IAM by default.
 If this is your first time standing up a cluster, don't just copy/paste.
 Run these commands one at a time.
 
@@ -81,7 +81,7 @@ Run these commands one at a time.
 ./rds foo up
 ./r53 foo up
 
-git add foo.k8s foo.aws foo.kubeconfig foo-rds.tfstate foo-r53.tfstate
+git add foo.* foo-*.tf*
 git commit -m "Standup foo cluster"
 ```
 
@@ -92,13 +92,16 @@ git commit -m "Standup foo cluster"
 ./rds foo down
 ./k8s foo down
 
-git rm foo.k8s foo.aws foo.kubeconfig foo-rds.tfstate foo-r53.tfstate
+git add foo.* foo-*.tf*
 git commit -m "Teardown foo cluster"
 ```
+
+**Note** that the kube-down script fails to delete network components when used with a custom VPC_ID [due to bugs](https://github.com/kubernetes/kubernetes/issues/17219).
+You will have to go to the AWS console to manually delete 2 route tables and 1 security group.
+Sorry for the inconvenience.
 
 ## FAQ
 
 ### How can I test my Kubernetes cluster is working?
 
 See the k8s-helloworld directory.
-

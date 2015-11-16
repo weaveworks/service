@@ -70,11 +70,30 @@ function remove_tfstate {
 	rm -f ${NAME}-rds.tfstate || true
 }
 
+function load_schema {
+	local dbname=$1
+	local password=$2
+	local filename=$3
+	local hostname=$( cat ${NAME}-rds.tfstate | jq -r .modules[0].resources.\"aws_db_instance.${dbname}\".primary.attributes.address )
+	if [[ "${hostname}" == "" || "${hostname}" == "null" ]]
+	then
+		echo "Either ${NAME}-rds.tfstate or '${dbname}' is invalid."
+		exit 1
+	fi
+	local suffix=$(date | shasum | cut -c1-5)
+	local podname="rdsload-${suffix}"
+	echo "Loading ${filename} to ${hostname}..."
+	trap "kubectl stop pod --grace-period=1 ${podname}" EXIT
+	cat ${filename} | kubectl run ${podname} --image=postgres --stdin --restart=Never --env="PGPASSWORD=${password}" --command -- psql -U postgres -h ${hostname}
+}
+
 case ${WHAT} in
 up)
 	create_tfvars
 	create_tf
 	terraform_apply
+	load_schema users_db_endpoint ${USERS_DB_PASSWORD} ../users/db/schema.sql
+	load_schema app_mapper_db_endpoint ${APP_MAPPER_DB_PASSWORD} ../app-mapper/db/schema.sql
 	;;
 
 down)
@@ -82,6 +101,11 @@ down)
 	terraform_apply
 	remove_tfvars
 	remove_tfstate
+	;;
+
+debug-load-schema)
+	load_schema users_db ${USERS_DB_PASSWORD} ../users/db/schema.sql
+	load_schema app_mapper_db ${APP_MAPPER_DB_PASSWORD} ../app-mapper/db/schema.sql
 	;;
 
 *)
