@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	htmlTemplate "html/template"
 	"net"
 	"net/smtp"
 	"net/url"
@@ -15,6 +14,7 @@ import (
 const (
 	fromAddress = "Scope Support <support@weave.works>"
 	domain      = "scope.weave.works"
+	rootURL     = "http://" + domain
 )
 
 var (
@@ -77,7 +77,7 @@ func approvedEmail(t templateEngine, u *user, token string) *email.Email {
 	e.Subject = "Scope account approved"
 	data := map[string]interface{}{
 		"LoginURL":   loginURL(u.Email, token),
-		"LoginLink":  loginLink(u.Email, token),
+		"RootURL":    rootURL,
 		"Token":      token,
 		"ProbeToken": u.Organization.ProbeToken,
 	}
@@ -93,7 +93,7 @@ func loginEmail(t templateEngine, u *user, token string) *email.Email {
 	e.Subject = "Login to Scope"
 	data := map[string]interface{}{
 		"LoginURL":   loginURL(u.Email, token),
-		"LoginLink":  loginLink(u.Email, token),
+		"RootURL":    rootURL,
 		"Token":      token,
 		"ProbeToken": u.Organization.ProbeToken,
 	}
@@ -111,17 +111,6 @@ func loginURL(email, rawToken string) string {
 	)
 }
 
-func loginLink(email, rawToken string) htmlTemplate.HTML {
-	url := loginURL(email, rawToken)
-	return htmlTemplate.HTML(
-		fmt.Sprintf(
-			"<a href=\"%s\">%s</a>",
-			url,
-			htmlTemplate.HTMLEscapeString(url),
-		),
-	)
-}
-
 func inviteEmail(t templateEngine, u *user, token string) *email.Email {
 	e := email.NewEmail()
 	e.From = fromAddress
@@ -129,7 +118,7 @@ func inviteEmail(t templateEngine, u *user, token string) *email.Email {
 	e.Subject = "You've been invited to Scope"
 	data := map[string]interface{}{
 		"LoginURL":         loginURL(u.Email, token),
-		"LoginLink":        loginLink(u.Email, token),
+		"RootURL":          rootURL,
 		"Token":            token,
 		"OrganizationName": u.Organization.Name,
 		"ProbeToken":       u.Organization.ProbeToken,
