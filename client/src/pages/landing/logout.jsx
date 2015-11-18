@@ -1,5 +1,4 @@
 import React from 'react';
-import { HashLocation } from 'react-router';
 import { getData } from '../../common/request';
 import { CircularProgress, Styles } from 'material-ui';
 import { trackException, trackView } from '../../common/tracking';
@@ -29,13 +28,13 @@ export default class LoginForm extends React.Component {
   }
 
   _handleSuccess() {
-    HashLocation.push('/');
+    this.props.history.push('/');
   }
 
   _handleError(resp) {
     if (resp.status === 401) {
       // logout should not fail for Unauthorized
-      HashLocation.push('/');
+      this.props.history.push('/');
     } else {
       this.setState({
         activityText: '',

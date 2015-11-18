@@ -1,5 +1,5 @@
 import React from 'react';
-import { Route, DefaultRoute, RouteHandler } from 'react-router';
+import { Route, IndexRoute } from 'react-router';
 
 import OrganizationPage from './pages/organization/page';
 import LandingPage from './pages/landing/page';
@@ -8,29 +8,19 @@ import Login from './pages/landing/login';
 import LoginForm from './pages/landing/login-form';
 import Logout from './pages/landing/logout';
 import WrapperPage from './pages/wrapper/page';
+import RouterComponent from './components/router';
 
-
-export default class RouterComponent extends React.Component {
-  static getRoutes = function getRoutes() {
-    return (
-      <Route name="app" path="/" handler={RouterComponent}>
-        <Route name="wrapper" path="app/:orgId" handler={WrapperPage} />
-        <Route name="organization" path="org/:orgId" handler={OrganizationPage} />
-        <Route handler={LandingPage}>
-          <Route name="login-form" path="login" handler={LoginForm} />
-          <Route name="login" path="login/:email/:token" handler={Login} />
-          <Route name="logout" path="logout" handler={Logout} />
-          <DefaultRoute handler={CookieCheck} />
-        </Route>
+export default function getRoutes() {
+  return (
+    <Route name="app" path="/" component={RouterComponent}>
+      <Route name="wrapper" path="app/:orgId" component={WrapperPage} />
+      <Route name="organization" path="org/:orgId" component={OrganizationPage} />
+      <Route component={LandingPage}>
+        <IndexRoute component={CookieCheck} />
+        <Route name="login-form" path="login" component={LoginForm} />
+        <Route name="login" path="login/:email/:token" component={Login} />
+        <Route name="logout" path="logout" component={Logout} />
       </Route>
-    );
-  }
-
-  render() {
-    return (
-      <div id="container" style={{height: '100%'}}>
-        <RouteHandler {...this.props} />
-      </div>
-    );
-  }
+    </Route>
+  );
 }

@@ -1,31 +1,35 @@
 import React from 'react';
-import { RouteHandler } from 'react-router';
-import { Styles } from 'material-ui';
 import CookieBanner from 'react-cookie-banner';
+import ThemeManager from 'material-ui/lib/styles/theme-manager';
+import LightRawTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
+import Colors from 'material-ui/lib/styles/colors';
 
 import { BackgroundContainer } from '../../components/background-container';
 import { FlexContainer } from '../../components/flex-container';
 import { Logo } from '../../components/logo';
 
-const Colors = Styles.Colors;
-const ThemeManager = new Styles.ThemeManager();
-
 export default class LandingPage extends React.Component {
 
-  static childContextTypes = {
-    muiTheme: React.PropTypes.object
+  constructor() {
+    super();
+
+    this.state = {
+      muiTheme: ThemeManager.getMuiTheme(LightRawTheme)
+    };
   }
 
   getChildContext() {
     return {
-      muiTheme: ThemeManager.getCurrentTheme()
+      muiTheme: this.state.muiTheme
     };
   }
 
   componentWillMount() {
-    ThemeManager.setPalette({
-      accent1Color: Colors.deepOrange500
+    const newMuiTheme = ThemeManager.modifyRawThemePalette(this.state.muiTheme, {
+      accent1Color: Colors.deepOrange500,
     });
+
+    this.setState({muiTheme: newMuiTheme});
   }
 
   renderLinks(linkStyle) {
@@ -139,7 +143,7 @@ export default class LandingPage extends React.Component {
             </div>
 
             <div style={styles.formWrapper}>
-              <RouteHandler {...this.props} />
+              {this.props.children}
             </div>
 
             <div style={styles.infoWrapper}>
@@ -171,3 +175,7 @@ export default class LandingPage extends React.Component {
     );
   }
 }
+
+LandingPage.childContextTypes = {
+  muiTheme: React.PropTypes.object
+};

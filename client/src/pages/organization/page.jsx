@@ -1,6 +1,7 @@
 import React from 'react';
-import { CircularProgress, Paper, Styles } from 'material-ui';
-import { HashLocation } from 'react-router';
+import { CircularProgress, Paper } from 'material-ui';
+import ThemeManager from 'material-ui/lib/styles/theme-manager';
+import LightRawTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
 
 import Colors from '../../common/colors';
 import { getData } from '../../common/request';
@@ -12,17 +13,12 @@ import Probes from './probes';
 import Toolbar from '../../components/toolbar';
 import { trackException, trackView } from '../../common/tracking';
 
-const ThemeManager = new Styles.ThemeManager();
-
 export default class OrganizationPage extends React.Component {
-
-  static childContextTypes = {
-    muiTheme: React.PropTypes.object
-  }
 
   constructor() {
     super();
     this.state = {
+      muiTheme: ThemeManager.getMuiTheme(LightRawTheme),
       name: '',
       user: '',
       probeToken: ''
@@ -34,7 +30,7 @@ export default class OrganizationPage extends React.Component {
 
   getChildContext() {
     return {
-      muiTheme: ThemeManager.getCurrentTheme()
+      muiTheme: this.state.muiTheme
     };
   }
 
@@ -56,7 +52,7 @@ export default class OrganizationPage extends React.Component {
 
   _handleOrganizationError(resp) {
     if (resp.status === 401) {
-      HashLocation.push('/login');
+      this.props.history.push('/login');
     } else {
       // TODO show errors
       trackException(resp);
@@ -156,3 +152,7 @@ export default class OrganizationPage extends React.Component {
   }
 
 }
+
+OrganizationPage.childContextTypes = {
+  muiTheme: React.PropTypes.object
+};
