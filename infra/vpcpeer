@@ -7,27 +7,27 @@
 # FML.
 
 # VPC A
-set -x VPCPEER_VPC_A_CIDR "172.51.0.0/16"
+set VPCPEER_VPC_A_CIDR "172.51.0.0/16"
 aws ec2 create-vpc --cidr-block $VPCPEER_VPC_A_CIDR
-set -x VPCPEER_VPC_A_ID (aws ec2 describe-vpcs --filters "Name=cidr,Values=$VPCPEER_VPC_A_CIDR" | jq -r '.Vpcs[0].VpcId')
+set VPCPEER_VPC_A_ID (aws ec2 describe-vpcs --filters "Name=cidr,Values=$VPCPEER_VPC_A_CIDR" | jq -r '.Vpcs[0].VpcId')
 
 # Security group alpha
 aws ec2 create-security-group --group-name alpha --description "VPC A SG alpha" --vpc-id $VPCPEER_VPC_A_ID
-set -x VPCPEER_SG_A_ID (aws ec2 describe-security-groups --filters "Name=group-name,Values=alpha" | jq -r '.SecurityGroups[0].GroupId')
+set VPCPEER_SG_A_ID (aws ec2 describe-security-groups --filters "Name=group-name,Values=alpha" | jq -r '.SecurityGroups[0].GroupId')
 
 # Subnet in alpha
-set -x VPCPEER_SUBNET_A_CIDR "172.51.1.0/24"
+set VPCPEER_SUBNET_A_CIDR "172.51.1.0/24"
 aws ec2 create-subnet --vpc-id $VPCPEER_VPC_A_ID --cidr $VPCPEER_SUBNET_A_CIDR
-set -x VPCPEER_SUBNET_A_ID (aws ec2 describe-subnets --filters "Name=cidrBlock,Values=$VPCPEER_SUBNET_A_CIDR" | jq -r '.Subnets[0].SubnetId')
+set VPCPEER_SUBNET_A_ID (aws ec2 describe-subnets --filters "Name=cidrBlock,Values=$VPCPEER_SUBNET_A_CIDR" | jq -r '.Subnets[0].SubnetId')
 
 # Internet gateway A
-set -x VPCPEER_IGW_A_ID (aws ec2 create-internet-gateway | jq -r '.InternetGateway.InternetGatewayId')
+set VPCPEER_IGW_A_ID (aws ec2 create-internet-gateway | jq -r '.InternetGateway.InternetGatewayId')
 aws ec2 attach-internet-gateway --internet-gateway-id $VPCPEER_IGW_A_ID --vpc-id $VPCPEER_VPC_A_ID
 
 # Route table
-set -x VPCPEER_RTB_A_ID (aws ec2 create-route-table --vpc-id $VPCPEER_VPC_A_ID | jq -r '.RouteTable.RouteTableId')
+set VPCPEER_RTB_A_ID (aws ec2 create-route-table --vpc-id $VPCPEER_VPC_A_ID | jq -r '.RouteTable.RouteTableId')
 aws ec2 create-route --route-table-id $VPCPEER_RTB_A_ID --destination-cidr-block 0.0.0.0/0 --gateway-id $VPCPEER_IGW_A_ID
-set -x VPCPEER_RTBASSOC_A_ID (aws ec2 associate-route-table --subnet-id $VPCPEER_SUBNET_A_ID --route-table-id $VPCPEER_RTB_A_ID | jq -r '.AssociationId')
+set VPCPEER_RTBASSOC_A_ID (aws ec2 associate-route-table --subnet-id $VPCPEER_SUBNET_A_ID --route-table-id $VPCPEER_RTB_A_ID | jq -r '.AssociationId')
 
 # Allow inbound SSH + 1234 to alpha
 aws ec2 authorize-security-group-ingress --group-id $VPCPEER_SG_A_ID --protocol tcp --port 22 --cidr 0.0.0.0/0
@@ -35,27 +35,27 @@ aws ec2 authorize-security-group-ingress --group-id $VPCPEER_SG_A_ID --protocol 
 aws ec2 authorize-security-group-ingress --group-id $VPCPEER_SG_A_ID --protocol icmp --port -1 --cidr 0.0.0.0/0
 
 # VPC B
-set -x VPCPEER_VPC_B_CIDR "172.52.0.0/16"
+set VPCPEER_VPC_B_CIDR "172.52.0.0/16"
 aws ec2 create-vpc --cidr-block $VPCPEER_VPC_B_CIDR
-set -x VPCPEER_VPC_B_ID (aws ec2 describe-vpcs --filters "Name=cidr,Values=$VPCPEER_VPC_B_CIDR" | jq -r '.Vpcs[0].VpcId')
+set VPCPEER_VPC_B_ID (aws ec2 describe-vpcs --filters "Name=cidr,Values=$VPCPEER_VPC_B_CIDR" | jq -r '.Vpcs[0].VpcId')
 
 # Security group beta
 aws ec2 create-security-group --group-name beta --description "VPC B SG beta" --vpc-id $VPCPEER_VPC_B_ID
-set -x VPCPEER_SG_B_ID (aws ec2 describe-security-groups --filters "Name=group-name,Values=beta" | jq -r '.SecurityGroups[0].GroupId')
+set VPCPEER_SG_B_ID (aws ec2 describe-security-groups --filters "Name=group-name,Values=beta" | jq -r '.SecurityGroups[0].GroupId')
 
 # Subnet in beta
-set -x VPCPEER_SUBNET_B_CIDR "172.52.1.0/24"
+set VPCPEER_SUBNET_B_CIDR "172.52.1.0/24"
 aws ec2 create-subnet --vpc-id $VPCPEER_VPC_B_ID --cidr $VPCPEER_SUBNET_B_CIDR
-set -x VPCPEER_SUBNET_B_ID (aws ec2 describe-subnets --filters "Name=cidrBlock,Values=$VPCPEER_SUBNET_B_CIDR" | jq -r '.Subnets[0].SubnetId')
+set VPCPEER_SUBNET_B_ID (aws ec2 describe-subnets --filters "Name=cidrBlock,Values=$VPCPEER_SUBNET_B_CIDR" | jq -r '.Subnets[0].SubnetId')
 
 # Internet gateway B
-set -x VPCPEER_IGW_B_ID (aws ec2 create-internet-gateway | jq -r '.InternetGateway.InternetGatewayId')
+set VPCPEER_IGW_B_ID (aws ec2 create-internet-gateway | jq -r '.InternetGateway.InternetGatewayId')
 aws ec2 attach-internet-gateway --internet-gateway-id $VPCPEER_IGW_B_ID --vpc-id $VPCPEER_VPC_B_ID
 
 # Route table
-set -x VPCPEER_RTB_B_ID (aws ec2 create-route-table --vpc-id $VPCPEER_VPC_B_ID | jq -r '.RouteTable.RouteTableId')
+set VPCPEER_RTB_B_ID (aws ec2 create-route-table --vpc-id $VPCPEER_VPC_B_ID | jq -r '.RouteTable.RouteTableId')
 aws ec2 create-route --route-table-id $VPCPEER_RTB_B_ID --destination-cidr-block 0.0.0.0/0 --gateway-id $VPCPEER_IGW_B_ID
-set -x VPCPEER_RTBASSOC_B_ID (aws ec2 associate-route-table --subnet-id $VPCPEER_SUBNET_B_ID --route-table-id $VPCPEER_RTB_B_ID | jq -r '.AssociationId')
+set VPCPEER_RTBASSOC_B_ID (aws ec2 associate-route-table --subnet-id $VPCPEER_SUBNET_B_ID --route-table-id $VPCPEER_RTB_B_ID | jq -r '.AssociationId')
 
 # Allow inbound SSH + 1234 + ICMP to beta
 aws ec2 authorize-security-group-ingress --group-id $VPCPEER_SG_B_ID --protocol tcp --port 22 --cidr 0.0.0.0/0
@@ -64,27 +64,27 @@ aws ec2 authorize-security-group-ingress --group-id $VPCPEER_SG_B_ID --protocol 
 
 # Key pair
 # https://github.com/aws/aws-cli/issues/41#issuecomment-22034081
-set -x VPCPEER_KEYFILE "~/.ssh/kube_aws_rsa"
-set -x VPCPEER_KEYFILE_PUB "$VPCPEER_KEYFILE.pub"
+set VPCPEER_KEYFILE "~/.ssh/kube_aws_rsa"
+set VPCPEER_KEYFILE_PUB "$VPCPEER_KEYFILE.pub"
 aws ec2 import-key-pair --key-name test-key --public-key-material "file://$VPCPEER_KEYFILE_PUB"
 
 # Image ID
-set -x VPCPEER_IMAGE_ID "ami-87cb11f4"
+set VPCPEER_IMAGE_ID "ami-87cb11f4"
 
 # Alpha instance
 aws ec2 run-instances --image-id $VPCPEER_IMAGE_ID --count 1 --instance-type t2.micro --key-name test-key --security-group-ids $VPCPEER_SG_A_ID --subnet-id $VPCPEER_SUBNET_A_ID --associate-public-ip-address
-set -x VPCPEER_ALPHA_INSTANCE_ID (aws ec2 describe-instances --filters "Name=instance.group-id,Values=$VPCPEER_SG_A_ID" | jq -r '.Reservations[0].Instances[0].InstanceId')
-set -x VPCPEER_ALPHA_PUBLIC_IP null ; while test $VPCPEER_ALPHA_PUBLIC_IP = "null" ; set -x VPCPEER_ALPHA_PUBLIC_IP (aws ec2 describe-instances --instance-ids $VPCPEER_ALPHA_INSTANCE_ID | jq -r '.Reservations[0].Instances[0].PublicIpAddress') ; echo $VPCPEER_ALPHA_PUBLIC_IP ; end
-set -x VPCPEER_ALPHA_PRIVATE_IP null ; while test $VPCPEER_ALPHA_PRIVATE_IP = "null" ; set -x VPCPEER_ALPHA_PRIVATE_IP (aws ec2 describe-instances --instance-ids $VPCPEER_ALPHA_INSTANCE_ID | jq -r '.Reservations[0].Instances[0].PrivateIpAddress') ; echo $VPCPEER_ALPHA_PRIVATE_IP ; end
+set VPCPEER_ALPHA_INSTANCE_ID (aws ec2 describe-instances --filters "Name=instance.group-id,Values=$VPCPEER_SG_A_ID" | jq -r '.Reservations[0].Instances[0].InstanceId')
+set VPCPEER_ALPHA_PUBLIC_IP null ; while test $VPCPEER_ALPHA_PUBLIC_IP = "null" ; set VPCPEER_ALPHA_PUBLIC_IP (aws ec2 describe-instances --instance-ids $VPCPEER_ALPHA_INSTANCE_ID | jq -r '.Reservations[0].Instances[0].PublicIpAddress') ; echo $VPCPEER_ALPHA_PUBLIC_IP ; end
+set VPCPEER_ALPHA_PRIVATE_IP null ; while test $VPCPEER_ALPHA_PRIVATE_IP = "null" ; set VPCPEER_ALPHA_PRIVATE_IP (aws ec2 describe-instances --instance-ids $VPCPEER_ALPHA_INSTANCE_ID | jq -r '.Reservations[0].Instances[0].PrivateIpAddress') ; echo $VPCPEER_ALPHA_PRIVATE_IP ; end
 
 # Beta instance
 aws ec2 run-instances --image-id $VPCPEER_IMAGE_ID --count 1 --instance-type t2.micro --key-name test-key --security-group-ids $VPCPEER_SG_B_ID --subnet-id $VPCPEER_SUBNET_B_ID --associate-public-ip-address
-set -x VPCPEER_BETA_INSTANCE_ID (aws ec2 describe-instances --filters "Name=instance.group-id,Values=$VPCPEER_SG_B_ID" | jq -r '.Reservations[0].Instances[0].InstanceId')
-set -x VPCPEER_BETA_PUBLIC_IP null ; while test $VPCPEER_BETA_PUBLIC_IP = "null" ; set -x VPCPEER_BETA_PUBLIC_IP (aws ec2 describe-instances --instance-ids $VPCPEER_BETA_INSTANCE_ID | jq -r '.Reservations[0].Instances[0].PublicIpAddress') ; echo $VPCPEER_BETA_PUBLIC_IP ; end
-set -x VPCPEER_BETA_PRIVATE_IP null ; while test $VPCPEER_BETA_PRIVATE_IP = "null" ; set -x VPCPEER_BETA_PRIVATE_IP (aws ec2 describe-instances --instance-ids $VPCPEER_BETA_INSTANCE_ID | jq -r '.Reservations[0].Instances[0].PrivateIpAddress') ; echo $VPCPEER_BETA_PRIVATE_IP ; end
+set VPCPEER_BETA_INSTANCE_ID (aws ec2 describe-instances --filters "Name=instance.group-id,Values=$VPCPEER_SG_B_ID" | jq -r '.Reservations[0].Instances[0].InstanceId')
+set VPCPEER_BETA_PUBLIC_IP null ; while test $VPCPEER_BETA_PUBLIC_IP = "null" ; set VPCPEER_BETA_PUBLIC_IP (aws ec2 describe-instances --instance-ids $VPCPEER_BETA_INSTANCE_ID | jq -r '.Reservations[0].Instances[0].PublicIpAddress') ; echo $VPCPEER_BETA_PUBLIC_IP ; end
+set VPCPEER_BETA_PRIVATE_IP null ; while test $VPCPEER_BETA_PRIVATE_IP = "null" ; set VPCPEER_BETA_PRIVATE_IP (aws ec2 describe-instances --instance-ids $VPCPEER_BETA_INSTANCE_ID | jq -r '.Reservations[0].Instances[0].PrivateIpAddress') ; echo $VPCPEER_BETA_PRIVATE_IP ; end
 
 # VPC peering connection
-set -x VPCPEER_PCX_ID (aws ec2 create-vpc-peering-connection --vpc-id $VPCPEER_VPC_A_ID --peer-vpc-id $VPCPEER_VPC_B_ID | jq -r '.VpcPeeringConnection.VpcPeeringConnectionId')
+set VPCPEER_PCX_ID (aws ec2 create-vpc-peering-connection --vpc-id $VPCPEER_VPC_A_ID --peer-vpc-id $VPCPEER_VPC_B_ID | jq -r '.VpcPeeringConnection.VpcPeeringConnectionId')
 aws ec2 accept-vpc-peering-connection --vpc-peering-connection-id $VPCPEER_PCX_ID
 aws ec2 create-route --route-table-id $VPCPEER_RTB_A_ID --destination-cidr-block $VPCPEER_VPC_B_CIDR --vpc-peering-connection-id $VPCPEER_PCX_ID
 aws ec2 create-route --route-table-id $VPCPEER_RTB_B_ID --destination-cidr-block $VPCPEER_VPC_A_CIDR --vpc-peering-connection-id $VPCPEER_PCX_ID
