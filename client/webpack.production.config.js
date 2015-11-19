@@ -4,11 +4,11 @@ var webpack = require('webpack');
  * This is the Webpack configuration file for production.
  */
 module.exports = {
-  entry: "./src/main",
+  entry: './src/main',
 
   output: {
-    path: __dirname + "/build/",
-    filename: "app.js"
+    path: __dirname + '/build/',
+    filename: 'app.js'
   },
 
   module: {
@@ -21,7 +21,7 @@ module.exports = {
         test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
         loader: 'file-loader'
       },
-      { test: /\.jsx?$/, exclude: /node_modules/, loader: "babel" }
+      { test: /\.jsx?$/, exclude: /node_modules/, loader: 'babel' }
     ]
   },
 
@@ -29,9 +29,14 @@ module.exports = {
     extensions: ['', '.js', '.jsx']
   },
 
-  plugins: [new webpack.optimize.UglifyJsPlugin({
-    compress: {
-      warnings: false
-    }
-  })]
-}
+  plugins: [
+    new webpack.DefinePlugin({
+      'process.env': {NODE_ENV: '"production"'}
+    }),
+    new webpack.optimize.UglifyJsPlugin({
+      compress: {
+        warnings: false
+      }
+    })
+  ]
+};

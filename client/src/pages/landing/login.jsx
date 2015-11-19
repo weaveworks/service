@@ -35,7 +35,8 @@ export default class LoginForm extends React.Component {
 
   _handleLoginError(resp) {
     if (resp.status === 401) {
-      this.props.history.push('/login');
+      trackException('Server returned Unauthorized for login link');
+      this.props.history.push('/login/unauthorized');
     } else {
       this.setState({
         activityText: '',
@@ -50,14 +51,14 @@ export default class LoginForm extends React.Component {
       error: {
         display: this.state.errorText ? 'block' : 'none',
         fontSize: '85%',
-        opacity: 0.6,
         color: Styles.Colors.red900
       },
 
       activity: {
+        textAlign: 'center',
         display: this.state.activityText ? 'block' : 'none',
         fontSize: '85%',
-        opacity: 0.6
+        opacity: 0.8
       }
     };
 

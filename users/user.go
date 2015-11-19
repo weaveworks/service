@@ -21,5 +21,5 @@ func (u *user) CompareToken(other string) bool {
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Token), []byte(other)); err != nil {
 		return false
 	}
-	return time.Now().UTC().Sub(u.TokenCreatedAt) <= 6*time.Hour
+	return time.Now().UTC().Sub(u.TokenCreatedAt) <= 72*time.Hour
 }

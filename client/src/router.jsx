@@ -18,6 +18,7 @@ export default function getRoutes() {
       <Route component={LandingPage}>
         <IndexRoute component={CookieCheck} />
         <Route name="login-form" path="login" component={LoginForm} />
+        <Route name="login-form" path="login/:error" component={LoginForm} />
         <Route name="login" path="login/:email/:token" component={Login} />
         <Route name="logout" path="logout" component={Logout} />
       </Route>
