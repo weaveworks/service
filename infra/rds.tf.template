@@ -10,8 +10,8 @@ resource "aws_db_instance" "users_db" {
     instance_class = "db.m1.small"
     username = "postgres"
     password = "${var.users_db_password}"
-    vpc_security_group_ids = ["${var.minion_security_group_id}"]
-    final_snapshot_identifier = "users-final"
+    vpc_security_group_ids = ["${var.rds_security_group_id}"]
+    #final_snapshot_identifier = "users-final"
 }
 
 resource "aws_db_instance" "app_mapper_db" {
@@ -23,6 +23,6 @@ resource "aws_db_instance" "app_mapper_db" {
     instance_class = "db.m1.small"
     username = "postgres"
     password = "${var.app_mapper_db_password}"
-    vpc_security_group_ids = ["${var.minion_security_group_id}"]
-    final_snapshot_identifier = "app-mapper-final"
+    vpc_security_group_ids = ["${var.rds_security_group_id}"]
+    #final_snapshot_identifier = "app-mapper-final"
 }

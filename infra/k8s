@@ -27,6 +27,7 @@ export AWS_S3_BUCKET="weaveworks-scope-kubernetes-$(date | shasum | cut -c 1-7)"
 function ensure_release {
 	if [ -d kubernetes ]
 	then
+		echo "Kubernetes directory already exists."
 		return
 	fi
 	if [ ! -f kubernetes.tar.gz ]
@@ -37,8 +38,12 @@ function ensure_release {
 	fi
 	echo "Unpacking Kubernetes ${VERSION}"
 	tar zxf kubernetes.tar.gz
-	# `aws s3 mb` often needs some time to settle.
-	sed -i'.bak' 's/^\([ ]*aws s3 mb.*\)$/\1 ; sleep 5/g' kubernetes/cluster/aws/util.sh
+}
+
+function patch_release {
+	echo "Patching Kubernetes scripts"
+	wget -q -O kubernetes/cluster/aws/config-default.sh https://raw.githubusercontent.com/peterbourgon/kubernetes/master/cluster/aws/config-default.sh
+	wget -q -O kubernetes/cluster/aws/util.sh https://raw.githubusercontent.com/peterbourgon/kubernetes/master/cluster/aws/util.sh
 }
 
 function move_kubeconfig {
@@ -69,11 +74,20 @@ function write_kubeconfig {
 function write_awsfile {
 	source kubernetes/cluster/kube-env.sh
 	source kubernetes/cluster/${KUBERNETES_PROVIDER}/util.sh
+	if [ -z "${VPC_ID-}" ]
+	then
+		export VPC_ID=$(get_vpc_id)
+	fi
+	if [[ "${VPC_ID}" == "" ]]
+	then
+		echo "Could not deduce VPC_ID"
+		exit 1
+	fi
 	echo "Writing ${NAME}.aws"
 	local tempfile=$(mktemp)
-	local vpc_id=${VPC_ID:-$(get_vpc_id)}
+	local vpc_id=${VPC_ID}
 	#local MASTER_SECURITY_GROUP_ID=$(get_security_group_id "${MASTER_SG_NAME}")
-	local minion_security_group_id=$(get_security_group_id "${MINION_SG_NAME}")
+	local rds_security_group_id=$(get_security_group_id "${MINION_SG_NAME}")
 	#local K8S_SUBNET_ID=$($AWS_CMD describe-subnets --filters Name=tag:KubernetesCluster,Values=${CLUSTER_ID} | get_subnet_id ${vpc_id} ${KUBE_AWS_ZONE})
 	cat <<EOF >${tempfile}
 #!/usr/bin/env bash
@@ -83,7 +97,7 @@ function write_awsfile {
 
 export AWS_REGION=${AWS_S3_REGION}
 export VPC_ID=${vpc_id}
-export MINION_SECURITY_GROUP_ID=${minion_security_group_id}
+export RDS_SECURITY_GROUP_ID=${rds_security_group_id}
 EOF
 	mv ${tempfile} ${NAME}.aws
 }
@@ -101,6 +115,17 @@ function interactive_confirmation {
 }
 
 function kube_down {
+	source kubernetes/cluster/kube-env.sh
+	source kubernetes/cluster/${KUBERNETES_PROVIDER}/util.sh
+	if [ -z "${VPC_ID-}" ]
+	then
+		export VPC_ID=$(get_vpc_id)
+	fi
+	if [[ "${VPC_ID}" == "" ]]
+	then
+		echo "Could not deduce VPC_ID"
+		exit 1
+	fi
 	# This manages everything for us.
 	kubernetes/cluster/kube-down.sh
 }
@@ -125,6 +150,7 @@ function clean_s3_buckets {
 }
 
 ensure_release
+patch_release
 
 case $WHAT in
 up)

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
 
+# This should be the default security group,
+# with subnets in at least 2 availability zones.
+export RDS_SECURITY_GROUP_ID="sg-622e9b06"
+
 export USERS_DB_PASSWORD="a59f8e66c75eceb"
 export APP_MAPPER_DB_PASSWORD="d2e5268c1ab252e"

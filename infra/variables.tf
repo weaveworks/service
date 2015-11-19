@@ -9,5 +9,5 @@ variable "users_db_password" {
 variable "app_mapper_db_password" {
 }
 
-variable "minion_security_group_id" {
+variable "rds_security_group_id" {
 }

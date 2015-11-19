@@ -17,7 +17,7 @@ echo "Sourcing ${NAME}.aws"
 source ${NAME}.aws
 
 function service_frontend_elb {
-	# kubectl --kubeconfig=${NAME}.kubeconfig get service frontend
+	# kubectl --kubeconfig=${NAME}.kubeconfig get svc frontend --output=jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 	# Parse for the ELB address
 	echo "TODO"
 }
