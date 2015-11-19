@@ -155,13 +155,13 @@ export default class LoginForm extends React.Component {
         position: 'absolute',
         top: 0,
         left: -2,
-        fontSize: 36,
+        fontSize: 32,
         color: Colors.amber900
       },
 
       unauthorizedLabel: {
         color: Colors.amber900,
-        paddingLeft: 36
+        paddingLeft: 32
       }
     };
 
@@ -181,13 +181,13 @@ export default class LoginForm extends React.Component {
         <div style={styles.unauthorized}>
           <span className="fa fa-ban" style={styles.unauthorizedIcon}></span>
           <div style={styles.unauthorizedLabel}>
-            The login link is no longer valid. Request a new link by entering your email above.
+            The login link is no longer valid. Enter your email to log in.
           </div>
         </div>
         <div style={styles.confirmation}>
           <span className="fa fa-check" style={styles.confirmationIcon}></span>
           <div style={styles.confirmationLabel}>
-            A mail with the login link was sent to {this.state.email}
+            A mail with the next step was sent to {this.state.email}
           </div>
         </div>
         <div style={styles.devLink}>
