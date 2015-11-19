@@ -7,6 +7,7 @@ import Colors from 'material-ui/lib/styles/colors';
 import { BackgroundContainer } from '../../components/background-container';
 import { FlexContainer } from '../../components/flex-container';
 import { Logo } from '../../components/logo';
+import RegisterForm from './register-form';
 
 export default class LandingPage extends React.Component {
 
@@ -95,13 +96,16 @@ export default class LandingPage extends React.Component {
         display: 'flex',
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        alignContent: 'flex-start',
-        alignItems: 'flex-start',
+        marginBottom: 36
       },
       link: {
         textTransform: 'uppercase',
-        marginRight: '2rem'
+        padding: '12px 1rem'
+      },
+      loginWrapper: {
+        width: 280,
+        padding: '16px 48px 16px 24px',
+        marginTop: 56,
       },
       logoWrapper: {
         width: 250,
@@ -110,8 +114,11 @@ export default class LandingPage extends React.Component {
         marginTop: 32 + 51 - 3
       },
       menuWrapper: {
-        padding: 64,
-        marginTop: 32 - 3
+        padding: 16,
+        marginTop: 76
+      },
+      spaceWrapper: {
+        flex: 1
       }
     };
 
@@ -125,8 +132,13 @@ export default class LandingPage extends React.Component {
           <div style={styles.logoWrapper}>
             <Logo />
           </div>
+          <div style={styles.spaceWrapper}>
+          </div>
           <div style={styles.menuWrapper}>
             {links}
+          </div>
+          <div style={styles.loginWrapper}>
+            {this.props.children}
           </div>
         </div>
         <FlexContainer>
@@ -143,7 +155,7 @@ export default class LandingPage extends React.Component {
             </div>
 
             <div style={styles.formWrapper}>
-              {this.props.children}
+              <RegisterForm />
             </div>
 
             <div style={styles.infoWrapper}>

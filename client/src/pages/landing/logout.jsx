@@ -49,14 +49,14 @@ export default class LoginForm extends React.Component {
       error: {
         display: this.state.errorText ? 'block' : 'none',
         fontSize: '85%',
-        opacity: 0.6,
         color: Styles.Colors.red900
       },
 
       activity: {
+        textAlign: 'center',
         display: this.state.activityText ? 'block' : 'none',
         fontSize: '85%',
-        opacity: 0.6
+        opacity: 0.8
       }
     };
 
