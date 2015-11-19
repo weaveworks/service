@@ -1,25 +1,22 @@
 import React from 'react';
-import { CircularProgress, Styles } from 'material-ui';
-import { HashLocation } from 'react-router';
+import { CircularProgress } from 'material-ui';
 import debug from 'debug';
+import ThemeManager from 'material-ui/lib/styles/theme-manager';
+import LightRawTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
 
 import { getData } from '../../common/request';
 import Toolbar from '../../components/toolbar';
 import { trackView } from '../../common/tracking';
 
-const ThemeManager = new Styles.ThemeManager();
 const log = debug('service:wrapper');
 
 export default class Wrapper extends React.Component {
-
-  static childContextTypes = {
-    muiTheme: React.PropTypes.object
-  }
 
   constructor() {
     super();
 
     this.state = {
+      muiTheme: ThemeManager.getMuiTheme(LightRawTheme),
       activityText: '',
       frameBaseUrl: '',
       name: '',
@@ -36,7 +33,7 @@ export default class Wrapper extends React.Component {
 
   getChildContext() {
     return {
-      muiTheme: ThemeManager.getCurrentTheme()
+      muiTheme: this.state.muiTheme
     };
   }
 
@@ -98,7 +95,7 @@ export default class Wrapper extends React.Component {
       this.setState({
         activityText: 'Not logged in. Please wait for the login form to load...'
       });
-      HashLocation.push('/login');
+      this.props.history.push('/login');
     } else {
       const err = resp.errors[0];
       log(err);
@@ -163,3 +160,7 @@ export default class Wrapper extends React.Component {
     );
   }
 }
+
+Wrapper.childContextTypes = {
+  muiTheme: React.PropTypes.object
+};

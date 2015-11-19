@@ -1,5 +1,7 @@
-FROM node:0.10
+FROM node:4.2.2
 WORKDIR /home/weave
-COPY webpack.local.config.js webpack.production.config.js .eslintignore .eslintrc karma.config.js karma.cross-browser.config.js /home/weave/
 COPY package.json /home/weave/
-RUN npm install
+ENV NPM_CONFIG_LOGLEVEL warn
+# Dont install optional developer tools
+RUN npm install --no-optional
+COPY webpack.local.config.js webpack.production.config.js .eslintignore .eslintrc .babelrc /home/weave/

@@ -1,5 +1,4 @@
 import React from 'react';
-import { HashLocation } from 'react-router';
 import { Styles, RaisedButton, TextField } from 'material-ui';
 
 import { postData } from '../../common/request';
@@ -29,8 +28,8 @@ export default class LoginForm extends React.Component {
   }
 
   _doLogin() {
-    const loginUrl = `#/login/${this.state.email}/${this.state.token}`;
-    HashLocation.push(loginUrl);
+    const loginUrl = `/login/${this.state.email}/${this.state.token}`;
+    this.props.history.push(loginUrl);
   }
 
   _handleSubmit() {

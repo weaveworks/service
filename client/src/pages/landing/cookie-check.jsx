@@ -1,5 +1,4 @@
 import React from 'react';
-import { HashLocation } from 'react-router';
 import { getData } from '../../common/request';
 import { CircularProgress, Styles } from 'material-ui';
 import { trackException, trackView } from '../../common/tracking';
@@ -30,7 +29,7 @@ export default class CookieCheck extends React.Component {
       this.setState({
         activityText: 'Not logged in. Please wait for the login form to load...'
       });
-      HashLocation.push('/login');
+      this.props.history.push('/login');
     } else {
       const err = resp.errors[0];
       this.setState({
@@ -58,7 +57,7 @@ export default class CookieCheck extends React.Component {
       // otherwise go to management page
       url = `/org/${resp.organizationName}`;
     }
-    HashLocation.push(url);
+    this.props.history.push(url);
   }
 
   render() {
