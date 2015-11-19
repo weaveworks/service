@@ -17,7 +17,7 @@ export default class LoginForm extends React.Component {
       token: null,
       email: null,
       mailSent: false,
-      submitText: 'Send',
+      submitText: 'Register',
       submitting: false
     };
 
@@ -64,7 +64,7 @@ export default class LoginForm extends React.Component {
             this.setState({
               errorText: resp,
               submitting: false,
-              submitText: 'Go'
+              submitText: 'Register'
             });
             trackException(resp);
           });
