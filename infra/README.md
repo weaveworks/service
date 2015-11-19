@@ -43,22 +43,14 @@ $ aws configure
 $ aws s3 ls /
 ```
 
-You interact with Kubernetes clusters via the kubectl tool.
-Download the latest stable version for your platform.
+[Download the Terraform tool](https://terraform.io/downloads.html).
+You don't need the patched version anymore, as we're not trying to interact with Docker or Docker Swarm directly.
 
-```
-$ bash -c '
-    VERSION=$(curl -Ss -XGET https://storage.googleapis.com/kubernetes-release/release/stable.txt)
-    OS=$(uname | tr '[:upper:]' '[:lower:]')
-    ARCH=$(uname -m) ; ARCH=${ARCH/x86_64/amd64}
-    URL="https://storage.googleapis.com/kubernetes-release/release/${VERSION}/bin/${OS}/${ARCH}/kubectl"
-    wget -q --show-progress -O kubectl $URL
-    chmod +x kubectl
-'
-```
-
-A cluster is defined by a configuration 3-tuple: a cluster, including the Kubernetes master IP; a user, including credentials; and a context, binding them together with a specific name.
-Each cluster foo should have a corresponding foo.kubeconfig checked in to revision control.
+Download the kubectl (1.1.1) tool:
+ [Linux](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/linux/amd64/kubectl),
+ [Darwin](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/darwin/amd64/kubectl).
+Put it in your PATH.
+Each cluster will have a kubeconfig file checked in.
 To interact with a cluster, use kubectl --kubeconfig.
 
 ```
@@ -71,37 +63,34 @@ $ kubectl --kubeconfig=foo.kubeconfig get pods
 
 ## Standup
 
-All instructions assume you're working with the **foo** cluster; change it as approprpiate.
+All instructions assume you're working with the **foo** cluster; change it as appropriate.
 We also assume your AWS client is configured with the correct IAM by default.
 If this is your first time standing up a cluster, don't just copy/paste.
 Run these commands one at a time.
 
 ```
-./k8s foo up
-./rds foo up
-./r53 foo up
+cp someother.var foo.var # and edit
 
-git add foo.* foo-*.tf*
+./k8s foo up
+./tf foo up
+./schemaload foo
+
+git add foo.var foo.kubeconfig foo.tfvars foo.rds.tf foo.r53.tf foo.tfstate
 git commit -m "Standup foo cluster"
 ```
 
 ## Teardown
 
 ```
-./r53 foo down
-./rds foo down
 ./k8s foo down
+./tf foo down
 
-git add foo.* foo-*.tf*
+git rm foo.var foo.kubeconfig foo.tfvars foo.rds.tf foo.r53.tf foo.tfstate
 git commit -m "Teardown foo cluster"
 ```
-
-**Note** that the kube-down script fails to delete network components when used with a custom VPC_ID [due to bugs](https://github.com/kubernetes/kubernetes/issues/17219).
-You will have to go to the AWS console to manually delete 2 route tables and 1 security group.
-Sorry for the inconvenience.
 
 ## FAQ
 
 ### How can I test my Kubernetes cluster is working?
 
-See the k8s-helloworld directory.
+See the helloworld directory.
