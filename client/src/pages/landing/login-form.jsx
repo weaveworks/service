@@ -80,6 +80,7 @@ export default class LoginForm extends React.Component {
 
   render() {
     const submitSuccess = this.state.token || this.state.mailSent;
+    const unauthorized = this.props.params.error === 'unauthorized';
     const styles = {
       submit: {
         marginLeft: '1em',
@@ -142,7 +143,25 @@ export default class LoginForm extends React.Component {
         opacity: 0.6
       },
 
-      wrapper: {
+      unauthorized: {
+        position: 'relative',
+        width: 228,
+        fontSize: 14,
+        marginTop: 8,
+        display: unauthorized ? 'block' : 'none'
+      },
+
+      unauthorizedIcon: {
+        position: 'absolute',
+        top: 0,
+        left: -2,
+        fontSize: 36,
+        color: Colors.amber900
+      },
+
+      unauthorizedLabel: {
+        color: Colors.amber900,
+        paddingLeft: 36
       }
     };
 
@@ -158,6 +177,12 @@ export default class LoginForm extends React.Component {
           <FlatButton label={this.state.submitText} style={styles.submit}
             backgroundColor={Colors.blueGrey100} labelStyle={styles.submitLabel}
             disabled={submitSuccess || this.state.submitting} onClick={this._handleSubmit.bind(this)} />
+        </div>
+        <div style={styles.unauthorized}>
+          <span className="fa fa-ban" style={styles.unauthorizedIcon}></span>
+          <div style={styles.unauthorizedLabel}>
+            The login link is no longer valid. Request a new link by entering your email above.
+          </div>
         </div>
         <div style={styles.confirmation}>
           <span className="fa fa-check" style={styles.confirmationIcon}></span>

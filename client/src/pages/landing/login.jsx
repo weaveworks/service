@@ -35,7 +35,8 @@ export default class LoginForm extends React.Component {
 
   _handleLoginError(resp) {
     if (resp.status === 401) {
-      this.props.history.push('/login');
+      trackException('Server returned Unauthorized for login link');
+      this.props.history.push('/login/unauthorized');
     } else {
       this.setState({
         activityText: '',
