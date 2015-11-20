@@ -80,7 +80,7 @@ cp someother/var foo/var # and edit
 ./r53 up foo
 
 git add foo/*
-git commit -m "Standup foo cluster"
+git commit -m "Stand up foo cluster"
 ```
 
 ## Teardown
@@ -92,7 +92,7 @@ git commit -m "Standup foo cluster"
 ./k8s down foo
 
 git rm -rf foo/
-git commit -m "Teardown foo cluster"
+git commit -m "Tear down foo cluster"
 ```
 
 ## FAQ
