@@ -69,8 +69,8 @@ function kube_up {
 }
 
 function write_kubeconfig {
-	echo "Writing ${NAME}.kubeconfig"
-	cp ${HOME}/.kube/config ${NAME}.kubeconfig
+	echo "Writing ${NAME}/kubeconfig"
+	cp ${HOME}/.kube/config ${NAME}/kubeconfig
 }
 
 function kube_down {

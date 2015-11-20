@@ -44,6 +44,9 @@ variable "app_mapper_db_password" {
 resource "aws_vpc" "rds_vpc" {
     cidr_block = "${var.rds_vpc_cidr_block}"
     enable_dns_hostnames = true
+    tags {
+        Name = "terraform-rds-vpc"
+    }
 }
 
 resource "aws_security_group" "rds_sg" {
@@ -61,10 +64,16 @@ resource "aws_security_group" "rds_sg" {
         protocol = "-1"
         cidr_blocks = ["0.0.0.0/0"]
     }
+    tags {
+        Name = "terraform-rds-sg"
+    }
 }
 
 resource "aws_internet_gateway" "rds_igw" {
     vpc_id = "${aws_vpc.rds_vpc.id}"
+    tags {
+        Name = "terraform-rds-igw"
+    }
 }
 
 resource "aws_route_table" "rds_rtb" {
@@ -73,12 +82,18 @@ resource "aws_route_table" "rds_rtb" {
         cidr_block = "0.0.0.0/0"
         gateway_id = "${aws_internet_gateway.rds_igw.id}"
     }
+    tags {
+        Name = "terraform-rds-rtb"
+    }
 }
 
 resource "aws_subnet" "rds_subnet_a" {
     vpc_id = "${aws_vpc.rds_vpc.id}"
     cidr_block = "${var.rds_subnet_a_cidr_block}"
     availability_zone = "${var.rds_subnet_a_availability_zone}"
+    tags {
+        Name = "terraform-rds-subnet-a"
+    }
 }
 
 resource "aws_route_table_association" "rds_rtbassoc_a" {
@@ -90,6 +105,9 @@ resource "aws_subnet" "rds_subnet_b" {
     vpc_id = "${aws_vpc.rds_vpc.id}"
     cidr_block = "${var.rds_subnet_b_cidr_block}"
     availability_zone = "${var.rds_subnet_b_availability_zone}"
+    tags {
+        Name = "terraform-rds-subnet-b"
+    }
 }
 
 resource "aws_route_table_association" "rds_rtbassoc_b" {
@@ -101,6 +119,9 @@ resource "aws_subnet" "rds_subnet_c" {
     vpc_id = "${aws_vpc.rds_vpc.id}"
     cidr_block = "${var.rds_subnet_c_cidr_block}"
     availability_zone = "${var.rds_subnet_c_availability_zone}"
+    tags {
+        Name = "terraform-rds-subnet-c"
+    }
 }
 
 resource "aws_route_table_association" "rds_rtbassoc_c" {
@@ -112,6 +133,9 @@ resource "aws_db_subnet_group" "rds_subnet_group" {
     name = "rds_subnet_group"
     description = "DB subnet group for the databases"
     subnet_ids = ["${aws_subnet.rds_subnet_a.id}", "${aws_subnet.rds_subnet_b.id}", "${aws_subnet.rds_subnet_c.id}"]
+    tags {
+        Name = "terraform-rds-subnet-group"
+    }
 }
 
 resource "aws_db_instance" "users_db" {

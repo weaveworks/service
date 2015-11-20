@@ -54,7 +54,7 @@ Each cluster will have a kubeconfig file checked in.
 To interact with a cluster, use kubectl --kubeconfig.
 
 ```
-$ kubectl --kubeconfig=foo.kubeconfig get pods
+$ kubectl --kubeconfig=foo/kubeconfig get pods
 ```
 
 > 💁
@@ -69,13 +69,14 @@ If this is your first time standing up a cluster, don't just copy/paste.
 Run these commands one at a time.
 
 ```
+mkdir foo
 cp someother/var foo/var # and edit
 
 ./k8s up foo
 ./tfgen foo
 ./rds up foo
 ./schemaload foo
-# Bring up application components
+# Stand up application components
 ./r53 up foo
 
 git add foo/*
@@ -86,7 +87,7 @@ git commit -m "Standup foo cluster"
 
 ```
 ./r53 down foo
-# Bring down application components
+# Tear down application components
 ./rds down foo
 ./k8s down foo
 

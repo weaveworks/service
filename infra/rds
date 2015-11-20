@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 if [ $# -ne 2 ]
 then
 	echo "usage: $(basename $0) up/down <name>"
@@ -17,12 +21,29 @@ function delete_tf_file {
 	rm -f ${NAME}/rds.tf
 }
 
+function interactive_confirmation {
+	while true
+	do
+		read -p "$1 " yn
+		case $yn in
+			yes) break;;
+			no) exit;;
+			*) echo "Please type 'yes' or 'no'";;
+		esac
+	done
+}
+
 function terraform_apply {
-	local tempfile=$(mktemp)
-	trap "rm -rf ${tempfile}" EXIT
-	terraform plan -state=${NAME}.tfstate -var-file=${NAME}.tfvars -target=aws_db_instance.users_db -target=aws_db_instance.app_mapper_db -out=${tempfile}
-	interactive_confirmation "Do you wish to proceed with the plan?"
-	terraform apply -state=${NAME}.tfstate ${tempfile}
+	(
+		cd ${NAME}
+		local tempfile=$(mktemp)
+		trap "rm -rf ${tempfile}" EXIT
+		# This is insufficient: the dep walk misses a lot of stuff.
+		#terraform plan -state=tfstate -var-file=tfvars -out=${tempfile} -target=aws_db_instance.users_db -target=aws_db_instance.app_mapper_db
+		terraform plan -state=tfstate -var-file=tfvars -out=${tempfile} -target=aws_vpc.rds_vpc -target=aws_security_group.rds_sg -target=aws_internet_gateway.rds_igw -target=aws_route_table.rds_rtb -target=aws_subnet.rds_subnet_a -target=aws_route_table_association.rds_rtbassoc_a -target=aws_subnet.rds_subnet_b -target=aws_route_table_association.rds_rtbassoc_b -target=aws_subnet.rds_subnet_c -target=aws_route_table_association.rds_rtbassoc_c -target=aws_db_subnet_group.rds_subnet_group -target=aws_db_instance.users_db -target=aws_db_instance.app_mapper_db
+		interactive_confirmation "Do you wish to proceed with the plan?"
+		terraform apply -state=tfstate ${tempfile}
+	)
 }
 
 case $WHAT in

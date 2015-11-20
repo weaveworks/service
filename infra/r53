@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 if [ $# -ne 2 ]
 then
 	echo "usage: $(basename $0) up/down <name>"
@@ -18,11 +22,7 @@ function delete_tf_file {
 }
 
 function terraform_apply {
-	local tempfile=$(mktemp)
-	trap "rm -rf ${tempfile}" EXIT
-	terraform plan -state=${NAME}.tfstate -var-file=${NAME}.tfvars -target=aws_route53_record.www -out=${tempfile}
-	interactive_confirmation "Do you wish to proceed with the plan?"
-	terraform apply -state=${NAME}.tfstate ${tempfile}
+	echo TODO
 }
 
 case $WHAT in
