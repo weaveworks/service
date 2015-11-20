@@ -77,6 +77,8 @@ cp someother/var foo/var # and edit
 ./rds up foo
 ./schemaload foo
 # Stand up application components
+# Edit foo/var with ELB information
+./tfgen foo # again
 ./r53 up foo
 
 git add foo/*
