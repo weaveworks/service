@@ -4,7 +4,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-if [ $# -ne 2 ]
+if [ $# -ne 1 ]
 then
 	echo "usage: $(basename $0) <name>"
 	exit 1
@@ -12,9 +12,17 @@ fi
 
 NAME=$1
 
-# hostname=$( cat ${NAME}.tfstate | jq -r .modules[0].resources.\"aws_db_instance.${dbname}\".primary.attributes.address )
-# suffix=$(date | shasum | cut -c1-5)
-# podname="rdsload-${suffix}"
-# echo "Loading ${filename} to ${hostname}..."
-# trap "kubectl stop pod --grace-period=1 ${podname}" EXIT
-# cat ${filename} | kubectl run ${podname} --image=postgres --stdin --restart=Never --env="PGPASSWORD=${password}" --command -- psql -U postgres -h ${hostname}
+# load_schema {app_mapper_db,users_db} path/to/schema.sql
+function load_schema {
+	local dbname=$1
+	local schema=$2
+	local hostname=$( cat ${NAME}/tfstate | jq -r .modules[0].resources.\"aws_db_instance.${dbname}\".primary.attributes.address )
+	local password=$( cat ${NAME}/tfstate | jq -r .modules[0].resources.\"aws_db_instance.${dbname}\".primary.attributes.password )
+	local podname="schemaload-$(date|shasum|cut -c1-5)"
+	echo Loading ${schema} to ${hostname}
+	trap "kubectl --kubeconfig=${NAME}/kubeconfig stop pod --grace-period=1 ${podname}" EXIT
+	cat ${schema} | kubectl --kubeconfig=${NAME}/kubeconfig run ${podname} --image=postgres --stdin --restart=Never --env="PGPASSWORD=${password}" --command -- psql -U postgres -h ${hostname}
+}
+
+load_schema app_mapper_db ../app-mapper/db/schema.sql
+load_schema users_db ../users/db/schema.sql

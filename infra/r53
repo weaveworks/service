@@ -14,15 +14,34 @@ WHAT=$1
 NAME=$2
 
 function create_tf_file {
-	cp rds.template ${NAME}/r53.tf
+	cp r53.template ${NAME}/r53.tf
 }
 
 function delete_tf_file {
 	rm -f ${NAME}/r53.tf
 }
 
+function interactive_confirmation {
+	while true
+	do
+		read -p "$1 " yn
+		case $yn in
+			yes) break;;
+			no) exit;;
+			*) echo "Please type 'yes' or 'no'";;
+		esac
+	done
+}
+
 function terraform_apply {
-	echo TODO
+	(
+		cd ${NAME}
+		local tempfile=$(mktemp)
+		trap "rm -rf ${tempfile}" EXIT
+		terraform plan -state=tfstate -var-file=tfvars -out=${tempfile} -target=aws_route53_zone.zone -target=aws_route53_record.www
+		interactive_confirmation "Do you wish to proceed with the plan?"
+		terraform apply -state=tfstate ${tempfile}
+	)
 }
 
 case $WHAT in

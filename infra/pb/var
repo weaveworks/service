@@ -18,6 +18,6 @@ RDS_USERS_DB_PASSWORD="a59f8e66c75eceb"
 RDS_APP_MAPPER_DB_PASSWORD="d2e5268c1ab252e"
 
 R53_ZONE_NAME="helloworld.bourgon.org"
-R53_RECORD_NAME="frontend.helloworld.bourgon.org"
-R53_FRONTEND_ELB_ENDPOINT="a76afcf3a8ede11e580ba06fcd9afeb2-581405649.eu-west-1.elb.amazonaws.com"
+R53_RESOURCE_NAME="frontend.helloworld.bourgon.org"
+R53_FRONTEND_ELB_ENDPOINT="a7aac6a6f8f7a11e59d1b068aa363439-602858807.eu-west-1.elb.amazonaws.com"
 R53_FRONTEND_ELB_ZONE_ID="Z3NF1Z3NOM5OY2"

@@ -32,9 +32,9 @@ app_mapper_db_password = "${RDS_APP_MAPPER_DB_PASSWORD}"
 users_db_password = "${RDS_USERS_DB_PASSWORD}"
 
 route53_zone_name = "${R53_ZONE_NAME}"
-route53_frontend_elb_endpoint = "${R53_RECORD_NAME}"
-route53_frontend_elb_zone_id = "${R53_FRONTEND_ELB_ENDPOINT}"
-route53_record_name = "${R53_FRONTEND_ELB_ZONE_ID}"
+route53_resource_name = "${R53_RESOURCE_NAME}"
+route53_frontend_elb_endpoint = "${R53_FRONTEND_ELB_ENDPOINT}"
+route53_frontend_elb_zone_id = "${R53_FRONTEND_ELB_ZONE_ID}"
 EOF
 
 echo Creating ${NAME}/aws.tf
