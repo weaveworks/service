@@ -56,8 +56,10 @@ See [this Kubernetes documentation](http://kubernetes.io/v1.1/docs/user-guide/ku
 
 ## Standup
 
-All instructions assume you're working with the **foo** cluster; change it as appropriate.
-We also assume your AWS client is configured with the correct IAM by default.
+Each cluster is represented by a subdirectory in infra named after the cluster.
+In each subdirectory, there is a file called var, which contains all configuration for the cluster.
+In this example, we will be using a cluster called **foo**.
+Please change foo to dev, prod, etc. as appropriate.
 If this is your first time standing up a cluster, don't just copy/paste.
 Run these commands one at a time.
 
@@ -70,11 +72,12 @@ cp someother/var foo/var # and edit
 ./rds up foo
 ./schemaload foo
 
-# Stand up application components
-# Edit foo/var with ELB information
+# Deploy the application on Kubernetes.
+# Get the address of the frontend ELB.
+# Put it in the foo/var file.
 
-./tfgen foo # again
-./r53 up foo
+./tfgen foo  # Put ELB endpoint in tfvars
+./r53 up foo # Provision Route53 pointing to ELB
 
 git add foo/*
 git commit -m "Stand up foo cluster"
