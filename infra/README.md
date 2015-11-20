@@ -1,7 +1,7 @@
 # infra
 
 The **infra** deals with everything between our metal (AWS) and our application.
-It's concerned with provisioning the scheduling system (k8s), stateful storage (RDS), load balancers (ELB), and DNS (Route53).
+It's concerned with provisioning the scheduling system (k8s), stateful storage (RDS), and DNS (Route53).
 
 ```
 +-----------------------------+  --.
@@ -19,12 +19,6 @@ It's concerned with provisioning the scheduling system (k8s), stateful storage (
                 |     App     |
                 +-------------+
 ```
-
-Here, you'll find scripts to provision each piece of the cluster.
-Each script produces output file(s) that are used as input to other scripts.
-All output files should be checked in.
-
-![order.png](http://i.imgur.com/l52oxHz.png)
 
 1. [Prerequisites](#prerequisites)
 1. [Standup](#standup)
@@ -71,6 +65,7 @@ Run these commands one at a time.
 ```
 mkdir foo
 cp someother/var foo/var # and edit
+
 ./k8s up foo
 ./tfgen foo
 ./rds up foo
@@ -78,6 +73,7 @@ cp someother/var foo/var # and edit
 
 # Stand up application components
 # Edit foo/var with ELB information
+
 ./tfgen foo # again
 ./r53 up foo
 
@@ -89,7 +85,6 @@ git commit -m "Stand up foo cluster"
 
 ```
 ./r53 down foo
-# Tear down application components
 ./rds down foo
 ./k8s down foo
 
