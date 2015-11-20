@@ -51,9 +51,8 @@ To interact with a cluster, use kubectl --kubeconfig.
 $ kubectl --kubeconfig=foo/kubeconfig get pods
 ```
 
-> 💁
-> There are more sophisticated ways to manage multiple clusters and kubeconfigs.
-> See [this Kubernetes documentation](http://kubernetes.io/v1.0/docs/user-guide/kubeconfig-file.html) for more info.
+Note that there are more sophisticated ways to manage multiple clusters and kubeconfigs.
+See [this Kubernetes documentation](http://kubernetes.io/v1.1/docs/user-guide/kubeconfig-file.html) for more info.
 
 ## Standup
 
