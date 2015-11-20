@@ -8,7 +8,7 @@ It's concerned with provisioning the scheduling system (k8s), stateful storage (
 |             AWS             |    |
 +-----------------------------+    |
 +-----+ +-----+ +-----+ +-----+    |
-| r53 |-| ELB | | EC2 | | RDS |    | infra
+| R53 |-| ELB | | EC2 | | RDS |    | infra
 +-----+ |     | +-----+ |     |    |
         |     |    |    |     |    |
         |     | +-----+ |     |    |
@@ -71,11 +71,11 @@ Run these commands one at a time.
 ```
 mkdir foo
 cp someother/var foo/var # and edit
-
 ./k8s up foo
 ./tfgen foo
 ./rds up foo
 ./schemaload foo
+
 # Stand up application components
 # Edit foo/var with ELB information
 ./tfgen foo # again
