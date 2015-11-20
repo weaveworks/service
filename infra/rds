@@ -10,17 +10,17 @@ WHAT=$1
 NAME=$2
 
 function create_tf_file {
-	cp rds.template ${NAME}/r53.tf
+	cp rds.template ${NAME}/rds.tf
 }
 
 function delete_tf_file {
-	rm -f ${NAME}/r53.tf
+	rm -f ${NAME}/rds.tf
 }
 
 function terraform_apply {
 	local tempfile=$(mktemp)
 	trap "rm -rf ${tempfile}" EXIT
-	terraform plan -state=${NAME}.tfstate -var-file=${NAME}.tfvars -target=aws_route53_record.www -out=${tempfile}
+	terraform plan -state=${NAME}.tfstate -var-file=${NAME}.tfvars -target=aws_db_instance.users_db -target=aws_db_instance.app_mapper_db -out=${tempfile}
 	interactive_confirmation "Do you wish to proceed with the plan?"
 	terraform apply -state=${NAME}.tfstate ${tempfile}
 }

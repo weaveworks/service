@@ -6,26 +6,15 @@ set -o pipefail
 
 if [ $# -ne 2 ]
 then
-	echo "usage: $(basename $0) <name> up/down"
+	echo "usage: $(basename $0) <name>"
 	exit 1
 fi
 
 NAME=$1
-WHAT=$2
 
-function load_schema {
-	# local dbname=$1
-	# local password=$2
-	# local filename=$3
-	# local hostname=$( cat ${NAME}.tfstate | jq -r .modules[0].resources.\"aws_db_instance.${dbname}\".primary.attributes.address )
-	# local suffix=$(date | shasum | cut -c1-5)
-	# local podname="rdsload-${suffix}"
-	# echo "Loading ${filename} to ${hostname}..."
-	# trap "kubectl stop pod --grace-period=1 ${podname}" EXIT
-	# cat ${filename} | kubectl run ${podname} --image=postgres --stdin --restart=Never --env="PGPASSWORD=${password}" --command -- psql -U postgres -h ${hostname}
-}
-
-function load_schemas {
-	load_schema users_db ${USERS_DB_PASSWORD} ../users/db/schema.sql
-	load_schema app_mapper_db ${APP_MAPPER_DB_PASSWORD} ../app-mapper/db/schema.sql
-}
+# hostname=$( cat ${NAME}.tfstate | jq -r .modules[0].resources.\"aws_db_instance.${dbname}\".primary.attributes.address )
+# suffix=$(date | shasum | cut -c1-5)
+# podname="rdsload-${suffix}"
+# echo "Loading ${filename} to ${hostname}..."
+# trap "kubectl stop pod --grace-period=1 ${podname}" EXIT
+# cat ${filename} | kubectl run ${podname} --image=postgres --stdin --restart=Never --env="PGPASSWORD=${password}" --command -- psql -U postgres -h ${hostname}

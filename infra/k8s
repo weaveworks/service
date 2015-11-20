@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-#
 # This file is an adaptation of https://get.k8s.io.
-#
 
 set -o errexit
 set -o nounset
@@ -10,16 +8,16 @@ set -o pipefail
 
 if [ $# -ne 2 ]
 then
-	echo "usage: $(basename $0) <name> up/down"
+	echo "usage: $(basename $0) up/down <name>"
 	exit 1
 fi
 
-NAME=$1
-WHAT=$2
+WHAT=$1
+NAME=$2
 VERSION="v1.1.1" # https://storage.googleapis.com/kubernetes-release/release/stable.txt
 
-echo "Sourcing ${NAME}.var"
-source ${NAME}.var
+echo "Sourcing ${NAME}/var"
+source ${NAME}/var
 
 function export_variables {
 	export KUBERNETES_PROVIDER="aws"
@@ -36,7 +34,7 @@ function export_variables {
 function ensure_release {
 	if [ -d kubernetes ]
 	then
-		echo "Kubernetes directory already exists."
+		echo "Kubernetes directory already exists"
 		return
 	fi
 	if [ ! -f kubernetes.tar.gz ]
@@ -75,6 +73,28 @@ function write_kubeconfig {
 	cp ${HOME}/.kube/config ${NAME}.kubeconfig
 }
 
+function kube_down {
+	(
+		cd kubernetes
+		./cluster/kube-down.sh
+		echo "Kubernetes deinstallation successful."
+	)
+}
+
+function remove_kubeconfig {
+	echo "Removing ${NAME}/kubeconfig"
+	rm -f ${NAME}/kubeconfig
+}
+
+function clean_s3_buckets {
+	for b in $(aws s3 ls / | grep weaveworks-scope-kubernetes- | awk '{print $3}')
+	do
+		echo $b
+		aws s3 rm --recursive s3://$b/ >/dev/null 2>&1 || true
+		aws s3 rb s3://$b >/dev/null 2>&1 || true
+	done
+}
+
 function interactive_confirmation {
 	while true
 	do
@@ -87,33 +107,11 @@ function interactive_confirmation {
 	done
 }
 
-function kube_down {
-	(
-		cd kubernetes
-		./cluster/kube-down.sh
-		echo "Kubernetes deinstallation successful."
-	)
-}
-
-function remove_kubeconfig {
-	echo "Removing ${NAME}.kubeconfig"
-	rm -f ${NAME}.kubeconfig
-}
-
-function clean_s3_buckets {
-	for b in $(aws s3 ls / | grep weaveworks-scope-kubernetes- | awk '{print $3}')
-	do
-		echo $b
-		aws s3 rm --recursive s3://$b/ >/dev/null 2>&1 || true
-		aws s3 rb s3://$b >/dev/null 2>&1 || true
-	done
-}
-
 case $WHAT in
 up)
 	ensure_release
 	export_variables
-	interactive_confirmation "Are you sure you want to standup ${NAME}?"
+	interactive_confirmation "Are you sure you want to stand up ${NAME}?"
 	move_kubeconfig
 	kube_up
 	clean_s3_buckets
@@ -123,7 +121,7 @@ up)
 down)
 	ensure_release
 	export_variables
-	interactive_confirmation "Are you sure you want to teardown ${NAME}?"
+	interactive_confirmation "Are you sure you want to tear down ${NAME}?"
 	kube_down
 	remove_kubeconfig
 	;;

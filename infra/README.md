@@ -69,23 +69,28 @@ If this is your first time standing up a cluster, don't just copy/paste.
 Run these commands one at a time.
 
 ```
-cp someother.var foo.var # and edit
+cp someother/var foo/var # and edit
 
-./k8s foo up
-./tf foo up
+./k8s up foo
+./tfgen foo
+./rds up foo
 ./schemaload foo
+# Bring up application components
+./r53 up foo
 
-git add foo.var foo.kubeconfig foo.tfvars foo.rds.tf foo.r53.tf foo.tfstate
+git add foo/*
 git commit -m "Standup foo cluster"
 ```
 
 ## Teardown
 
 ```
-./k8s foo down
-./tf foo down
+./r53 down foo
+# Bring down application components
+./rds down foo
+./k8s down foo
 
-git rm foo.var foo.kubeconfig foo.tfvars foo.rds.tf foo.r53.tf foo.tfstate
+git rm -rf foo/
 git commit -m "Teardown foo cluster"
 ```
 
