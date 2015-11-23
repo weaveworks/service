@@ -73,6 +73,13 @@ function write_kubeconfig {
 	cp ${HOME}/.kube/config ${NAME}/kubeconfig
 }
 
+function write_credentials {
+	echo "Writing ${NAME}/kube_aws_rsa"
+	cp ${HOME}/.ssh/kube_aws_rsa ${NAME}/kube_aws_rsa
+	echo "Writing ${NAME}/kube_aws_rsa.pub"
+	cp ${HOME}/.ssh/kube_aws_rsa.pub ${NAME}/kube_aws_rsa.pub
+}
+
 function kube_down {
 	(
 		cd kubernetes
@@ -86,12 +93,31 @@ function remove_kubeconfig {
 	rm -f ${NAME}/kubeconfig
 }
 
+function remove_credentials {
+	echo "Removing ${NAME}/kube_aws_rsa"
+	rm -f ${NAME}/kube_aws_rsa
+	echo "Removing ${NAME}/kube_aws_rsa.pub"
+	rm -f ${NAME}/kube_aws_rsa.pub
+}
+
 function clean_s3_buckets {
 	for b in $(aws s3 ls / | grep weaveworks-scope-kubernetes- | awk '{print $3}')
 	do
 		echo $b
 		aws s3 rm --recursive s3://$b/ >/dev/null 2>&1 || true
 		aws s3 rb s3://$b >/dev/null 2>&1 || true
+	done
+}
+
+function copy_dockercfg {
+	# http://kubernetes.io/v1.1/docs/user-guide/images.html#configuring-nodes-to-authenticate-to-a-private-repository
+	# I downloaded the dockercfg directly from Quay.
+	# Account > Robots > weaveworks+pullbot > Credentials > Download.
+	for n in $(kubectl --kubeconfig=${NAME}/kubeconfig get nodes -o json | jq -r '.items[].status.addresses[] | select(.type == "ExternalIP").address')
+	do
+		echo Copying dockercfg to $n
+		scp -i ${NAME}/kube_aws_rsa dockercfg ubuntu@$n:/home/ubuntu/.dockercfg
+		#ssh -i ${NAME}/kube_aws_rsa ubuntu@$n -- sudo mv /home/ubuntu/dockercfg /root/.dockercfg
 	done
 }
 
@@ -116,6 +142,8 @@ up)
 	kube_up
 	clean_s3_buckets
 	write_kubeconfig
+	write_credentials
+	copy_dockercfg
 	;;
 
 down)
@@ -124,12 +152,16 @@ down)
 	interactive_confirmation "Are you sure you want to tear down ${NAME}?"
 	kube_down
 	remove_kubeconfig
+	remove_credentials
 	;;
 
 debug-clean-s3-buckets)
 	clean_s3_buckets
 	;;
 
+debug-copy-dockercfg)
+	copy_dockercfg
+	;;
 *)
 	echo "Unknown command"
 	exit 1

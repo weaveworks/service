@@ -40,9 +40,9 @@ $ aws s3 ls /
 [Download the Terraform tool](https://terraform.io/downloads.html).
 You don't need the patched version anymore, as we're not trying to interact with Docker or Docker Swarm directly.
 
-Download the kubectl (1.1.1) tool:
- [Linux](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/linux/amd64/kubectl),
- [Darwin](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/darwin/amd64/kubectl).
+Download the kubectl (1.1.1) tool
+ ([Linux](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/linux/amd64/kubectl),
+  [Darwin](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/darwin/amd64/kubectl)).
 Put it in your PATH.
 Each cluster will have a kubeconfig file checked in.
 To interact with a cluster, use kubectl --kubeconfig.
@@ -54,10 +54,12 @@ $ kubectl --kubeconfig=foo/kubeconfig get pods
 Note that there are more sophisticated ways to manage multiple clusters and kubeconfigs.
 See [this Kubernetes documentation](http://kubernetes.io/v1.1/docs/user-guide/kubeconfig-file.html) for more info.
 
+You will also need **jq**: `apt-get install jq` or `brew install jq`.
+
 ## Standup
 
-Each cluster is represented by a subdirectory in infra named after the cluster.
-In each subdirectory, there is a file called var, which contains all configuration for the cluster.
+Each cluster is represented by a subdirectory in infra which is named after the cluster.
+In each subdirectory, there is a file called var, which contains all the necessary config.
 In this example, we will be using a cluster called **foo**.
 Please change foo to dev, prod, etc. as appropriate.
 If this is your first time standing up a cluster, don't just copy/paste.
@@ -65,7 +67,11 @@ Run these commands one at a time.
 
 ```
 mkdir foo
-cp someother/var foo/var # and edit
+cp someother/var foo/var
+
+# Edit foo/var with your cluster's config.
+# You can fill in everything except the ELB info.
+# That will come later.
 
 ./k8s up foo
 ./tfgen foo
@@ -73,11 +79,12 @@ cp someother/var foo/var # and edit
 ./schemaload foo
 
 # Deploy the application on Kubernetes.
-# Get the address of the frontend ELB.
-# Put it in the foo/var file.
+# Get the address of the frontend ELB, via kubectl get svc.
+# Get the zone ID of the ELB, via aws elb describe-load-balancers.
+# Put these values in the foo/var file.
 
-./tfgen foo  # Put ELB endpoint in tfvars
-./r53 up foo # Provision Route53 pointing to ELB
+./tfgen foo  # Copies the ELB information to a tfvars file.
+./r53 up foo # Provisions Route53 to point to the ELB.
 
 git add foo/*
 git commit -m "Stand up foo cluster"
@@ -99,3 +106,7 @@ git commit -m "Tear down foo cluster"
 ### How can I test my Kubernetes cluster is working?
 
 See the helloworld directory.
+
+### How can I debug Kubernetes?
+
+`kubectl get events -w` is a good place to start.
