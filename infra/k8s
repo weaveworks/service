@@ -29,7 +29,7 @@ function export_variables {
 	export KUBERNETES_PROVIDER="aws"
 	export KUBE_AWS_ZONE="${K8S_AZ}"
 	export AWS_S3_REGION="${AWS_REGION}"
-	export AWS_S3_BUCKET="weaveworks-scope-kubernetes-$(date | shasum | cut -c 1-7)"
+	export AWS_S3_BUCKET="weaveworks-scope-kubernetes-$(cat /dev/urandom|xxd -ps|head -c7)"
 	export AWS_IMAGE="${K8S_AMI}"
 	export MASTER_SIZE="${K8S_MASTER_SIZE}"
 	export MINION_SIZE="${K8S_MINION_SIZE}"
