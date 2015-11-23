@@ -53,12 +53,10 @@ terraform/local.tfstate.backup
 *tfstate.backup
 saas.deploy.plan.*
 
-infra/kubectl
 infra/kubernetes.tar.gz
 infra/kubernetes/*
 infra/helloworld/helloworld
-infra2/kubernetes.tar.gz
-infra2/kubernetes/*
+infra/local/kubeconfig
 
 k8s/local/master/pki
 k8s/local/master/master.json

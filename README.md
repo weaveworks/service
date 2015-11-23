@@ -4,79 +4,105 @@
 
 ![Architecture](docs/architecture.png)
 
+## Prerequisites
+
+You need kubectl v1.1.1 in your PATH.
+Download the
+ [Linux](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/linux/amd64/kubectl) or
+ [Darwin](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/darwin/amd64/kubectl) release.
+
+```
+$ kubectl version
+Client Version: version.Info{Major:"1", Minor:"1", GitVersion:"v1.1.1", GitCommit:"92635e23dfafb2ddc828c8ac6c03c7a7205a84d8", GitTreeState:"clean"}
+error: couldn't read version from server: Get http://localhost:8080/api: dial tcp 127.0.0.1:8080: connection refused
+```
+
 ## Local development
 
-Prerequisites.
+### Stand up
 
-- A Linux host -- later, you'll be able to interact with the cluster from your Mac, if you want to
-- kubectl v1.1.1+ -- [Linux](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/linux/amd64/kubectl), [Darwin](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/darwin/amd64/kubectl)
-- Docker 1.8 -- 1.9 has [performance issues](https://github.com/docker/docker/issues/17720) that make it unusable
-
-The deploy local script will deploy Kubernetes as a one-node cluster via Docker containers.
+We bootstrap a one-node Kubernetes "cluster" on top of Docker.
+This works on both Linux and Darwin.
+Note this **must be Docker 1.8** -- 1.9 has [performance issues](https://github.com/docker/docker/issues/17720) that make it unusable.
 
 ```
-# Linux host
-cd $GOPATH/src/github.com/weaveworks/service
-make
-./deploy.sh -local
+$ infra/local-k8s up
 ```
 
-Now, we will get your laptop onto the Kubernetes cluster you've just built.
-If your laptop is also the Linux host, you can use 127.0.0.1 for hostname.
+### Deploy
 
 ```
-# Your laptop
-./connect.sh <hostname>
+$ TODO
 ```
 
-Follow the instructions provided after you connect.
-Then, you should be able to access the individual services.
-
-- http://scope.weave.works -- front page, signup with a bogus email address
-- http://mailcatcher.default.svc.cluster.local —- you should see a welcome email
-- http://users.default.svc.cluster.local —- you can approve yourself here
-- http://mailcatcher.default.svc.cluster.local —- you should see another email, and can click the login link
-
-Now you can start a probe, and send reports to your Scope in the cloud.
+### Connect
 
 ```
-scope launch --service-token=a0b1c2d3e4f5g6h7 "$(kubectl get svc frontend -o template --template '{{.spec.clusterIP}}')":80
+$ TODO
 ```
 
-You should see your topology appear in the web UI.
+### Test
 
-## Deploy a new version of a service
+You must connect to the cluster for these steps to work.
+
+1. Go to http://scope.weave.works and sign up with a bogus email address.
+2. Go to http://mailcatcher.default.svc.cluster.local and look for the welcome message.
+3. Go to http://users.default.svc.cluster.local and approve yourself.
+4. Go to http://mailcatcher.default.svc.cluster.local again, find the approval message, and click the login link.
+
+Now you can start a probe with your service token, and send reports to your local Scope-as-a-Service.
 
 ```
-┌ Local VM or VPS ─ ─ ─ ─ ─ ─ ┐     ┌ Remote (local, dev, prod) ─ ┐
-
-│                ┌──────────┐ │     │ ┌─────────────────────────┐ │
-                 │  Docker  │         │         Docker          │
-│ ┌──────┐       │  ┌─────┐ │ │     │ │ ┌─────┐     ┌─────────┐ │ │
-  │source│───────┼─▶│Image│─┼─────────┼▶│Image│────▶│Container│ │
-│ └──────┘   ▲   │  └─────┘ │ │  ▲  │ │ └─────┘  ▲  └─────────┘ │ │
-             │   └──────────┘    │    └──────────┼──────────────┘
-│            │                │  │  │            │                │
-             │                   │               │
-│            │                │  │  │            │                │
-             │                   │               │
-└ ─ ─ ─ ─ ─ ─│─ ─ ─ ─ ─ ─ ─ ─ ┘  │  └ ─ ─ ─ ─ ─ ─│─ ─ ─ ─ ─ ─ ─ ─ ┘
-             │                   │               │
-             │                   │               │
-             │                   │               │
-           make               push.sh        deploy.sh
+$ IP=$(kubectl --kubeconfig=infra/local/kubeconfig get svc frontend -o template --template '{{.spec.clusterIP}}')
+$ scope launch --service-token=abc $IP:80
 ```
 
-1. Make and merge changes following a normal PR workflow.
-1. Produce up-to-date Docker image(s) on your local VM: `make`
-1. Login to Quay with `docker login quay.io`. This only needs to be done once.
-   If you don't have access to Quay ask a fellow scopet to grant it. If you
-   already have access to Quay and are unsure about what credentials to type,
-   go to https://quay.io/tutorial/. (You will need to set up a Quay password.)
-1. Push the image(s) to the relevant hosts: `./push.sh -dev servicename`
-1. Connect to the environment: `./connect.sh -dev`. You don't need to export
-   anything; the deploy script takes care of that.
-1. Deploy to the environment: `./deploy.sh -dev`
-1. Commit and push the new .tfstate to master!
+### Tear down
 
-Replace `-dev` with `-local` or `-prod` as appropriate.
+```
+$ infra/local-k8s down
+```
+
+## Remote clusters
+
+This includes dev and prod clusters on AWS.
+
+### Stand up
+
+You probably won't need to stand up a new cluster on AWS.
+Instead, you'll probably interact with an existing cluster, like dev or prod.
+But if you really want to know, you can read [the README in the infra subdirectory](https://github.com/weaveworks/service/tree/master/infra).
+
+### Deploy
+
+```
+$ TODO
+```
+
+### Connect
+
+```
+$ TODO
+```
+
+### Test
+
+You must connect to the cluster for these steps to work.
+
+1. Go to http://scope.weave.works and sign up with a real email address.
+2. Check your email for the welcome message.
+3. Go to http://users.default.svc.cluster.local and approve yourself.
+4. Check your email for the approval message, and click the login link.
+
+Now you can start a probe with your service token, and send reports to the Scope-as-a-Service.
+If you're using e.g. the dev cluster, you'll need to specify the target by IP.
+
+```
+$ scope launch --service-token=abc dev.cloud.weave.works:80  # for dev
+$ scope launch --service-token=abc                           # for prod
+```
+
+### Tear down
+
+You almost certainly shouldn't be tearing down clusters on AWS.
+But, if you really want to, see [the README in the infra subdirectory](https://github.com/weaveworks/service/tree/master/infra).
