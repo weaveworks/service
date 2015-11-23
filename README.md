@@ -65,11 +65,7 @@ $ infra/local-k8s down
 
 ## Remote clusters
 
-This includes dev and prod clusters on AWS.
-
-### Stand up
-
-You probably won't need to stand up a new cluster on AWS.
+You probably won't need to stand up or tear down a cluster on AWS.
 Instead, you'll probably interact with an existing cluster, like dev or prod.
 But if you really want to know, you can read [the README in the infra subdirectory](https://github.com/weaveworks/service/tree/master/infra).
 
@@ -101,8 +97,3 @@ If you're using e.g. the dev cluster, you'll need to specify the target by IP.
 $ scope launch --service-token=abc dev.cloud.weave.works:80  # for dev
 $ scope launch --service-token=abc                           # for prod
 ```
-
-### Tear down
-
-You almost certainly shouldn't be tearing down clusters on AWS.
-But, if you really want to, see [the README in the infra subdirectory](https://github.com/weaveworks/service/tree/master/infra).
