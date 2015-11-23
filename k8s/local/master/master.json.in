@@ -1,69 +1,71 @@
 {
-"apiVersion": "v1",
-"kind": "Pod",
-"metadata": {"name":"k8s-master"},
-"spec":{
-  "hostNetwork": true,
-  "volumes": [
-	{
-	    "name": "pki",
-	    "hostPath": {
-		"path": "$PKI_HOST_PATH"
-	    }
-	}
-  ],
-  "containers":[
-    {
-      "name": "controller-manager",
-      "image": "2opremio/hyperkube:706d3a7",
-      "command": [
-              "/hyperkube",
-              "controller-manager",
-              "--master=127.0.0.1:8080",
-              "--root-ca-file=/pki/ca.crt",
-              "--service-account-private-key-file=/pki/server.key",
-              "--v=2"
-      ],
-      "volumeMounts": [
-            {
-              "name": "pki",
-              "mountPath": "/pki"
-            }
-      ]
-    },
-    {
-      "name": "apiserver",
-      "image": "2opremio/hyperkube:706d3a7",
-      "command": [
-              "/hyperkube",
-              "apiserver",
-              "--admission-control=NamespaceLifecycle,NamespaceAutoProvision,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota",
-              "--portal-net=10.0.0.1/24",
-              "--insecure-bind-address=0.0.0.0",
-              "--etcd-servers=http://127.0.0.1:4001",
-              "--cluster-name=kubernetes",
-              "--client-ca-file=/pki/ca.crt",
-              "--tls-cert-file=/pki/server.cert",
-              "--tls-private-key-file=/pki/server.key",
-              "--v=2"
-      ],
-      "volumeMounts": [
-            {
-              "name": "pki",
-              "mountPath": "/pki"
-            }
-      ]
-    },
-    {
-      "name": "scheduler",
-      "image": "2opremio/hyperkube:706d3a7",
-      "command": [
-              "/hyperkube",
-              "scheduler",
-              "--master=127.0.0.1:8080",
-              "--v=2"
+  "apiVersion": "v1",
+  "kind": "Pod",
+  "metadata": {
+    "name": "k8s-master"
+  },
+  "spec": {
+    "hostNetwork": true,
+    "volumes": [
+      {
+        "name": "pki",
+        "hostPath": {
+          "path": "$PKI_HOST_PATH"
+        }
+      }
+    ],
+    "containers": [
+      {
+        "name": "controller-manager",
+        "image": "2opremio/hyperkube:706d3a7",
+        "command": [
+          "/hyperkube",
+          "controller-manager",
+          "--master=127.0.0.1:8080",
+          "--root-ca-file=/pki/ca.crt",
+          "--service-account-private-key-file=/pki/server.key",
+          "--v=2"
+        ],
+        "volumeMounts": [
+          {
+            "name": "pki",
+            "mountPath": "/pki"
+          }
         ]
-    }
-  ]
- }
+      },
+      {
+        "name": "apiserver",
+        "image": "2opremio/hyperkube:706d3a7",
+        "command": [
+          "/hyperkube",
+          "apiserver",
+          "--admission-control=NamespaceLifecycle,NamespaceAutoProvision,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota",
+          "--portal-net=10.0.0.1/24",
+          "--insecure-bind-address=0.0.0.0",
+          "--etcd-servers=http://127.0.0.1:4001",
+          "--cluster-name=kubernetes",
+          "--client-ca-file=/pki/ca.crt",
+          "--tls-cert-file=/pki/server.cert",
+          "--tls-private-key-file=/pki/server.key",
+          "--v=2"
+        ],
+        "volumeMounts": [
+          {
+            "name": "pki",
+            "mountPath": "/pki"
+          }
+        ]
+      },
+      {
+        "name": "scheduler",
+        "image": "2opremio/hyperkube:706d3a7",
+        "command": [
+          "/hyperkube",
+          "scheduler",
+          "--master=127.0.0.1:8080",
+          "--v=2"
+        ]
+      }
+    ]
+  }
 }
