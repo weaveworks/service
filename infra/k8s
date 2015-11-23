@@ -14,10 +14,16 @@ fi
 
 WHAT=$1
 NAME=$2
-VERSION="v1.1.1" # https://storage.googleapis.com/kubernetes-release/release/stable.txt
+CLWD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/${NAME}"
 
-echo "Sourcing ${NAME}/var"
-source ${NAME}/var
+if [ ! -d ${CLWD} ]
+then
+	echo "${CLWD} is not a directory"
+	exit 1
+fi
+
+echo "Sourcing ${CLWD}/var"
+source ${CLWD}/var
 
 function export_variables {
 	export KUBERNETES_PROVIDER="aws"
@@ -32,6 +38,7 @@ function export_variables {
 }
 
 function ensure_release {
+	local version="v1.1.1" # https://storage.googleapis.com/kubernetes-release/release/stable.txt
 	if [ -d kubernetes ]
 	then
 		echo "Kubernetes directory already exists (good)"
@@ -39,11 +46,11 @@ function ensure_release {
 	fi
 	if [ ! -f kubernetes.tar.gz ]
 	then
-		echo "Downloading Kubernetes ${VERSION}"
-		URL="https://storage.googleapis.com/kubernetes-release/release/${VERSION}/kubernetes.tar.gz"
+		echo "Downloading Kubernetes ${version}"
+		URL="https://storage.googleapis.com/kubernetes-release/release/${version}/kubernetes.tar.gz"
 		wget -q --show-progress ${URL}
 	fi
-	echo "Unpacking Kubernetes ${VERSION}"
+	echo "Unpacking Kubernetes ${version}"
 	tar zxf kubernetes.tar.gz
 	echo "Patching Kubernetes scripts"
 	wget -q -O kubernetes/cluster/aws/config-default.sh https://raw.githubusercontent.com/peterbourgon/kubernetes/master/cluster/aws/config-default.sh
@@ -69,15 +76,15 @@ function kube_up {
 }
 
 function write_kubeconfig {
-	echo "Writing ${NAME}/kubeconfig"
-	cp ${HOME}/.kube/config ${NAME}/kubeconfig
+	echo "Writing ${CLWD}/kubeconfig"
+	cp ${HOME}/.kube/config ${CLWD}/kubeconfig
 }
 
 function write_credentials {
-	echo "Writing ${NAME}/kube_aws_rsa"
-	cp ${HOME}/.ssh/kube_aws_rsa ${NAME}/kube_aws_rsa
-	echo "Writing ${NAME}/kube_aws_rsa.pub"
-	cp ${HOME}/.ssh/kube_aws_rsa.pub ${NAME}/kube_aws_rsa.pub
+	echo "Writing ${CLWD}/kube_aws_rsa"
+	cp ${HOME}/.ssh/kube_aws_rsa ${CLWD}/kube_aws_rsa
+	echo "Writing ${CLWD}/kube_aws_rsa.pub"
+	cp ${HOME}/.ssh/kube_aws_rsa.pub ${CLWD}/kube_aws_rsa.pub
 }
 
 function kube_down {
@@ -89,8 +96,8 @@ function kube_down {
 }
 
 function remove_kubeconfig {
-	echo "Removing ${NAME}/kubeconfig"
-	rm -f ${NAME}/kubeconfig
+	echo "Removing ${CLWD}/kubeconfig"
+	rm -f ${CLWD}/kubeconfig
 }
 
 function remove_credentials {

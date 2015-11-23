@@ -12,15 +12,22 @@ fi
 
 WHAT=$1
 NAME=$2
+CLWD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/${NAME}"
+
+if [ ! -d ${CLWD} ]
+then
+	echo "${CLWD} is not a directory"
+	exit 1
+fi
 
 function create_tf_file {
-	echo "Creating ${NAME}/rds.tf"
-	cp rds.template ${NAME}/rds.tf
+	echo "Creating ${CLWD}/rds.tf"
+	cp rds.template ${CLWD}/rds.tf
 }
 
 function delete_tf_file {
-	echo "Deleting ${NAME}/rds.tf"
-	rm -f ${NAME}/rds.tf
+	echo "Deleting ${CLWD}/rds.tf"
+	rm -f ${CLWD}/rds.tf
 }
 
 function interactive_confirmation {
@@ -39,7 +46,7 @@ TARGETS="-target=aws_vpc.rds_vpc -target=aws_security_group.rds_sg -target=aws_i
 
 function terraform_destroy {
 	(
-		cd ${NAME}
+		cd ${CLWD}
 		terraform plan -destroy -state=tfstate -var-file=tfvars ${TARGETS}
 		interactive_confirmation "Does this look right?"
 		echo
@@ -52,7 +59,7 @@ function terraform_destroy {
 
 function terraform_apply {
 	(
-		cd ${NAME}
+		cd ${CLWD}
 		local tempfile=$(mktemp)
 		trap "rm -rf ${tempfile}" EXIT
 		terraform plan -state=tfstate -var-file=tfvars -out=${tempfile} ${TARGETS}
