@@ -34,7 +34,7 @@ function export_variables {
 function ensure_release {
 	if [ -d kubernetes ]
 	then
-		echo "Kubernetes directory already exists"
+		echo "Kubernetes directory already exists (good)"
 		return
 	fi
 	if [ ! -f kubernetes.tar.gz ]
@@ -109,18 +109,6 @@ function clean_s3_buckets {
 	done
 }
 
-function copy_dockercfg {
-	# http://kubernetes.io/v1.1/docs/user-guide/images.html#configuring-nodes-to-authenticate-to-a-private-repository
-	# I downloaded the dockercfg directly from Quay.
-	# Account > Robots > weaveworks+pullbot > Credentials > Download.
-	for n in $(kubectl --kubeconfig=${NAME}/kubeconfig get nodes -o json | jq -r '.items[].status.addresses[] | select(.type == "ExternalIP").address')
-	do
-		echo Copying dockercfg to $n
-		scp -i ${NAME}/kube_aws_rsa dockercfg ubuntu@$n:/home/ubuntu/.dockercfg
-		#ssh -i ${NAME}/kube_aws_rsa ubuntu@$n -- sudo mv /home/ubuntu/dockercfg /root/.dockercfg
-	done
-}
-
 function interactive_confirmation {
 	while true
 	do
@@ -143,7 +131,6 @@ up)
 	clean_s3_buckets
 	write_kubeconfig
 	write_credentials
-	copy_dockercfg
 	;;
 
 down)
@@ -159,9 +146,6 @@ debug-clean-s3-buckets)
 	clean_s3_buckets
 	;;
 
-debug-copy-dockercfg)
-	copy_dockercfg
-	;;
 *)
 	echo "Unknown command"
 	exit 1

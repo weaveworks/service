@@ -58,7 +58,7 @@ You will also need **jq**: `apt-get install jq` or `brew install jq`.
 
 ## Standup
 
-Each cluster is represented by a subdirectory in infra which is named after the cluster.
+Each cluster is represented by a subdirectory in infra with the same name as the cluster.
 In each subdirectory, there is a file called var, which contains all the necessary config.
 In this example, we will be using a cluster called **foo**.
 Please change foo to dev, prod, etc. as appropriate.

@@ -13,6 +13,8 @@ spec:
       labels:
         name: monitoring
     spec:
+      imagePullSecrets:
+      - name: quay-secret
       containers:
       - name: monitoring
         image: quay.io/weaveworks/monitoring:dev # TODO use SHA

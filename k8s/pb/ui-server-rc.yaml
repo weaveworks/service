@@ -5,7 +5,7 @@ metadata:
   labels:
     name: ui-server
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     name: ui-server
   template:
@@ -13,9 +13,11 @@ spec:
       labels:
         name: ui-server
     spec:
+      imagePullSecrets:
+      - name: quay-secret
       containers:
       - name: ui-server
-        image: quay.io/weaveworks/ui-server:be6765225645
+        image: quay.io/weaveworks/ui-server:dev # TODO use SHA
         command:
         env:
         - name: GET_HOSTS_FROM

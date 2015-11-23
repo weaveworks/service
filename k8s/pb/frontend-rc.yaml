@@ -5,7 +5,7 @@ metadata:
   labels:
     name: frontend
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     name: frontend
   template:
@@ -13,9 +13,11 @@ spec:
       labels:
         name: frontend
     spec:
+      imagePullSecrets:
+      - name: quay-secret
       containers:
       - name: frontend
-        image: quay.io/weaveworks/frontend:7336f333ba2c
+        image: quay.io/weaveworks/frontend:dev # TODO use SHA
         env:
         - name: GET_HOSTS_FROM
           value: dns
