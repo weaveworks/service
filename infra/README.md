@@ -27,7 +27,7 @@ It's concerned with provisioning the scheduling system (k8s), stateful storage (
 
 ## Prerequisites
 
-[Install the AWS tool](https://docs.aws.amazon.com/cli/latest/userguide/installing.html).
+[Install the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html).
 If you want to do this on your own user account, create an IAM user with AdministratorAccess.
 Otherwise, ask a team member for credentials for the shared account.
 Configure your AWS client with those credentials and confirm it works.
