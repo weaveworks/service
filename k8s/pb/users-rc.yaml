@@ -20,7 +20,7 @@ spec:
         image: quay.io/weaveworks/users:f1f58cd
         args:
         - -session-secret=3919365780a79e0658fde4d03e6945a080031ec077b88975898f698c0d298395
-        - -email-uri=smtp://AKIAIWJR2IYWOFHATYOQ:AoeopUEmk+K9hQxrutHSitm+WT3JEJEd2KN7y19Mc0iN@email-smtp.eu-west-1.amazonaws.com:587
+        - -email-uri=smtp://mailcatcher:587
         - -database-uri=postgres://postgres:a59f8e66c75eceb@users-db.ceiuafomwfcr.eu-west-1.rds.amazonaws.com/users?sslmode=disable
         env:
         - name: GET_HOSTS_FROM
