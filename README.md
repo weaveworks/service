@@ -39,9 +39,21 @@ So, you just need to run make.
 $ make
 ```
 
+You can also pull existing containers from Quay and re-tag them as latest.
+
+```
+$ bash -c '
+  for c in $(grep "quay.io/weaveworks/" k8s/prod/*-rc.yaml | awk \'{print $3}\')
+  do
+    docker pull $c
+    docker tag -f $c $(echo $c | cut -d\':\' -f1):latest
+  done
+'
+```
+
 ### Deploy
 
-Creating the components from an empty state.
+Create the components from an empty state.
 
 ```
 $ kubectl --kubeconfig=infra/local/kubeconfig create -f k8s/local
