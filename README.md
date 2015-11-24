@@ -44,14 +44,12 @@ $ make
 Creating the components from an empty state.
 
 ```
-$ # TODO verify this
-$ kubectl --kubeconfig=infra/local/kubeconfig create -f k8s/local/*.yaml
+$ kubectl --kubeconfig=infra/local/kubeconfig create -f k8s/local
 ```
 
 Or, update a specific component.
 
 ```
-$ # TODO verify this
 $ kubectl --kubeconfig=infra/local/kubeconfig replace -f k8s/local/users-rc.yaml
 ```
 
