@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+COMPONENTS=${@:-app-mapper ui-server frontend monitoring users}
+
+echo "When pushing, you may be prompted to log in. To get your password:"
+echo ""
+echo "  1. Go to http://quay.io"
+echo "  2. Log in with e.g. GitHub"
+echo "  3. Go to settings and generate an encrypted password"
+echo "  4. Copy/paste"
+echo ""
+echo "Using components: ${COMPONENTS}"
+echo ""
+
+for c in ${COMPONENTS}
+do
+	image_name="quay.io/weaveworks/${c}"
+	image_id=$(docker inspect --format='{{.Id}}' ${image_name}:latest | cut -c1-7)
+	echo "Tagging ${image_name}:latest as ${image_name}:${image_id}"
+	#docker tag -f ${image_name}:latest ${image_name}:${image_id}
+	echo "Pushing ${image_name}:${image_id}"
+	#docker push ${image_name}:${image_id}
+done

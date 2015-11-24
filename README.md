@@ -98,15 +98,13 @@ To make containers available to remote clusters, you need to
 
 ```
 $ make
-$ ./container tag
-$ ./container push
+$ ./tag-and-push
 ```
 
-If you just want to tag and push a specific container, use the COMPONENTS environment variable.
+If you just want to tag and push specific container(s), you may specify them as arguments.
 
 ```
-$ env COMPONENTS=users ./container tag
-$ env COMPONENTS=users ./container push
+$ ./tag-and-push users ui-server
 ```
 
 ### Deploy
