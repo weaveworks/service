@@ -12,23 +12,33 @@ fi
 
 WHAT=$1
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-COMPONENTS=${COMPONENTS:-app-mapper client frontend monitoring users}
+COMPONENTS=${COMPONENTS:-app-mapper ui-server frontend monitoring users}
 echo "Using components: ${COMPONENTS}"
 
 function tag {
 	for c in ${COMPONENTS}
 	do
 		local image_name="quay.io/weaveworks/$c"
-		local image_id=$(docker images -q ${image_name}:latest)
+		local image_id=$(docker inspect --format='{{.Id}}' ${image_name}:latest | cut -c1-7)
+		echo "Tagging ${image_name}:latest as ${image_name}:${image_id}"
 		docker tag -f ${image_name}:latest ${image_name}:${image_id}
 	done
 }
 
 function push {
+	echo ""
+	echo "You may be prompted to log in. To get your password:"
+	echo ""
+	echo "  1. Go to http://quay.io"
+	echo "  2. Log in with e.g. GitHub"
+	echo "  3. Go to settings and generate an encrypted password"
+	echo "  4. Copy/paste"
+	echo ""
 	for c in ${COMPONENTS}
 	do
 		local image_name="quay.io/weaveworks/$c"
-		local image_id=$(docker images -q ${image_name}:latest)
+		local image_id=$(docker inspect --format='{{.Id}}' ${image_name}:latest | cut -c1-7)
+		echo "Pushing ${image_name}:${image_id}"
 		docker push ${image_name}:${image_id}
 	done
 }
