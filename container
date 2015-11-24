@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+if [ $# -ne 1 ]
+then
+	echo "usage: $(basename $0) tag/push"
+	exit 1
+fi
+
+WHAT=$1
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+COMPONENTS=${COMPONENTS:-app-mapper client frontend monitoring users}
+echo "Using components: ${COMPONENTS}"
+
+function tag {
+	for c in ${COMPONENTS}
+	do
+		local image_name="quay.io/weaveworks/$c"
+		local image_id=$(docker images -q ${image_name}:latest)
+		docker tag -f ${image_name}:latest ${image_name}:${image_id}
+	done
+}
+
+function push {
+	for c in ${COMPONENTS}
+	do
+		local image_name="quay.io/weaveworks/$c"
+		local image_id=$(docker images -q ${image_name}:latest)
+		docker push ${image_name}:${image_id}
+	done
+}
+
+case $WHAT in
+tag)
+	tag
+	;;
+
+push)
+	push
+	;;
+
+*)
+	echo "Unknown command"
+	exit 1
+	;;
+esac

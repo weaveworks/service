@@ -13,7 +13,7 @@ Download the
 
 ```
 $ kubectl version
-Client Version: version.Info{Major:"1", Minor:"1", GitVersion:"v1.1.1", GitCommit:"92635e23dfafb2ddc828c8ac6c03c7a7205a84d8", GitTreeState:"clean"}
+Client Version: version.Info{Major:"1", Minor:"1", GitVersion:"v1.1.1", ... }
 error: couldn't read version from server: Get http://localhost:8080/api: dial tcp 127.0.0.1:8080: connection refused
 ```
 
@@ -29,10 +29,32 @@ Note this **must be Docker 1.8** -- 1.9 has [performance issues](https://github.
 $ infra/local-k8s up
 ```
 
-### Deploy
+### Build
+
+The Makefile will automatically produce container images for each component, saved to your local Docker daemon.
+And the k8s/local resource definitions use the latest images from the local Docker daemon.
+So, you just need to run make.
 
 ```
-$ TODO
+$ make
+```
+
+### Deploy
+
+Creating the components from an empty state.
+
+```
+$ # TODO verify this
+$ kubectl create -f k8s/local/db
+$ kubectl create -f k8s/local/mailcatcher
+$ kubectl create -f k8s/local/*.yaml
+```
+
+Or, update a specific component.
+
+```
+$ # TODO verify this
+$ kubectl replace -f k8s/local/users-rc.yaml
 ```
 
 ### Connect
@@ -69,11 +91,37 @@ You probably won't need to stand up or tear down a cluster on AWS.
 Instead, you'll probably interact with an existing cluster, like dev or prod.
 But if you really want to know, you can read [the README in the infra subdirectory](https://github.com/weaveworks/service/tree/master/infra).
 
-### Deploy
+### Build
+
+To make containers available to remote clusters, you need to
+ build them,
+ tag them with their Docker image IDs, and
+ push them to our private remote repository (Quay).
 
 ```
-$ TODO
+$ make
+$ ./container tag
+$ ./container push
 ```
+
+If you just want to tag and push a specific container, use the COMPONENTS environment variable.
+
+```
+$ env COMPONENTS=users ./container tag
+$ env COMPONENTS=users ./container push
+```
+
+### Deploy
+
+Someone has probably already created the components.
+You're probably interested in deploying a new version of a component.
+Kubernetes supports this nicely using a rolling upgrade.
+
+```
+$ # TODO kubectl
+```
+
+For more deployment options, see the Kubernetes documentation.
 
 ### Connect
 
