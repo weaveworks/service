@@ -45,16 +45,14 @@ Creating the components from an empty state.
 
 ```
 $ # TODO verify this
-$ kubectl create -f k8s/local/db
-$ kubectl create -f k8s/local/mailcatcher
-$ kubectl create -f k8s/local/*.yaml
+$ kubectl --kubeconfig=infra/local/kubeconfig create -f k8s/local/*.yaml
 ```
 
 Or, update a specific component.
 
 ```
 $ # TODO verify this
-$ kubectl replace -f k8s/local/users-rc.yaml
+$ kubectl --kubeconfig=infra/local/kubeconfig replace -f k8s/local/users-rc.yaml
 ```
 
 ### Connect
