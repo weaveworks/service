@@ -64,6 +64,9 @@ function terraform_apply {
 		trap "rm -rf ${tempfile}" EXIT
 		terraform plan -state=tfstate -var-file=tfvars -out=${tempfile} ${TARGETS}
 		interactive_confirmation "Do you wish to proceed with the plan?"
+		echo
+		echo "Note: creating an RDS instance can take a very long time, 15+ minutes."
+		echo
 		terraform apply -state=tfstate ${tempfile}
 	)
 }
@@ -73,10 +76,12 @@ up)
 	create_tf_file
 	terraform_apply
 	;;
+
 down)
 	terraform_destroy
 	delete_tf_file
 	;;
+
 *)
 	echo "Unknown command"
 	exit 1
