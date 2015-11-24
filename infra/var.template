@@ -53,12 +53,11 @@ K8S_INSTANCE_PREFIX="kubernetes_yourclustername"
 #
 
 # We create multi-AZ RDS instances, which need to be members of at least 2
-# subnets in different availability zones. Specify at least 3 distinct
+# subnets in different availability zones. Specify at least 2 distinct
 # availability zones for your region, here.
 #
 RDS_SUBNET_A_AZ="eu-west-1a"
 RDS_SUBNET_B_AZ="eu-west-1b"
-RDS_SUBNET_C_AZ="eu-west-1c"
 
 # Passwords for the RDS databases. If
 #

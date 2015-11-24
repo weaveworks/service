@@ -25,16 +25,6 @@ variable "rds_subnet_b_availability_zone" {
     default = "us-east-1b"
 }
 
-variable "rds_subnet_c_cidr_block" {
-    description = "The CIDR block for the third subnet in the RDS VPC."
-    default = "172.110.3.0/24"
-}
-
-variable "rds_subnet_c_availability_zone" {
-    description = "The AZ for the third subnet in the RDS VPC."
-    default = "us-east-1c"
-}
-
 variable "users_db_password" {
 }
 
@@ -115,24 +105,10 @@ resource "aws_route_table_association" "rds_rtbassoc_b" {
     route_table_id = "${aws_route_table.rds_rtb.id}"
 }
 
-resource "aws_subnet" "rds_subnet_c" {
-    vpc_id = "${aws_vpc.rds_vpc.id}"
-    cidr_block = "${var.rds_subnet_c_cidr_block}"
-    availability_zone = "${var.rds_subnet_c_availability_zone}"
-    tags {
-        Name = "terraform-rds-subnet-c"
-    }
-}
-
-resource "aws_route_table_association" "rds_rtbassoc_c" {
-    subnet_id = "${aws_subnet.rds_subnet_c.id}"
-    route_table_id = "${aws_route_table.rds_rtb.id}"
-}
-
 resource "aws_db_subnet_group" "rds_subnet_group" {
     name = "rds_subnet_group"
     description = "DB subnet group for the databases"
-    subnet_ids = ["${aws_subnet.rds_subnet_a.id}", "${aws_subnet.rds_subnet_b.id}", "${aws_subnet.rds_subnet_c.id}"]
+    subnet_ids = ["${aws_subnet.rds_subnet_a.id}", "${aws_subnet.rds_subnet_b.id}"]
     tags {
         Name = "terraform-rds-subnet-group"
     }
@@ -144,7 +120,7 @@ resource "aws_db_instance" "users_db" {
     multi_az = true
     engine = "postgres"
     engine_version = "9.4.4"
-    instance_class = "db.m1.small"
+    instance_class = "db.t2.small"
     username = "postgres"
     password = "${var.users_db_password}"
     vpc_security_group_ids = ["${aws_security_group.rds_sg.id}"]
@@ -157,7 +133,7 @@ resource "aws_db_instance" "app_mapper_db" {
     multi_az = true
     engine = "postgres"
     engine_version = "9.4.4"
-    instance_class = "db.m1.small"
+    instance_class = "db.t2.small"
     username = "postgres"
     password = "${var.app_mapper_db_password}"
     vpc_security_group_ids = ["${aws_security_group.rds_sg.id}"]
