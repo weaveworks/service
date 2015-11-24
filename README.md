@@ -85,7 +85,7 @@ $ infra/local-k8s down
 
 You probably won't need to stand up or tear down a cluster on AWS.
 Instead, you'll probably interact with an existing cluster, like dev or prod.
-But if you really want to know, you can read [the README in the infra subdirectory](https://github.com/weaveworks/service/tree/master/infra).
+But if you really want to know, you can read [the README in the infra subdirectory](/infra).
 
 ### Build
 
