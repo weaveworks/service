@@ -5,7 +5,7 @@ metadata:
   labels:
     name: app-mapper
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     name: app-mapper
   template:
@@ -17,7 +17,7 @@ spec:
       - name: quay-secret
       containers:
       - name: app-mapper
-        image: quay.io/weaveworks/app-mapper:dev # TODO use SHA
+        image: quay.io/weaveworks/app-mapper:7d99d26
         args:
         - -db-uri=postgres://postgres:d2e5268c1ab252e@app-mapper-db.ceiuafomwfcr.eu-west-1.rds.amazonaws.com/app_mapper?sslmode=disable
         - -log-level=debug

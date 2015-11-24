@@ -5,7 +5,7 @@ metadata:
   labels:
     name: users
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     name: users
   template:
@@ -17,7 +17,7 @@ spec:
       - name: quay-secret
       containers:
       - name: users
-        image: quay.io/weaveworks/users:dev # TODO use SHA
+        image: quay.io/weaveworks/users:f1f58cd
         args:
         - -session-secret=3919365780a79e0658fde4d03e6945a080031ec077b88975898f698c0d298395
         - -email-uri=smtp://AKIAIWJR2IYWOFHATYOQ:AoeopUEmk+K9hQxrutHSitm+WT3JEJEd2KN7y19Mc0iN@email-smtp.eu-west-1.amazonaws.com:587

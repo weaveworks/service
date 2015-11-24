@@ -17,7 +17,7 @@ spec:
       - name: quay-secret
       containers:
       - name: monitoring
-        image: quay.io/weaveworks/monitoring:dev # TODO use SHA
+        image: quay.io/weaveworks/monitoring:6e8d511
         env:
         - name: GET_HOSTS_FROM
           value: dns
