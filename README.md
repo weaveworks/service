@@ -68,7 +68,7 @@ $ kubectl --kubeconfig=infra/local/kubeconfig replace -f k8s/local/users-rc.yaml
 ### Connect
 
 ```
-$ TODO
+$ ./connect local
 ```
 
 ### Test
@@ -132,7 +132,7 @@ For more deployment options, see the Kubernetes documentation.
 ### Connect
 
 ```
-$ TODO
+$ ./connect mycluster
 ```
 
 ### Test
