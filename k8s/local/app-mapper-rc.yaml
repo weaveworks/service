@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: app-mapper
-        image: quay.io/weaveworks/app-mapper:latest
+        image: quay.io/weaveworks/app-mapper
         args:
         - -db-uri=postgres://postgres@app-mapper-db/app_mapper?sslmode=disable
         - -log-level=debug

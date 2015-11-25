@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: monitoring
-        image: quay.io/weaveworks/monitoring:latest
+        image: quay.io/weaveworks/monitoring
         env:
         - name: GET_HOSTS_FROM
           value: dns
