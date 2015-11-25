@@ -50,6 +50,11 @@ func (p proxy) registerHandlers(router *mux.Router) {
 			p.forwardRequest(w, r, orgID)
 		},
 	))
+	router.Path("/api/control/ws").Name("api_control").Handler(authProbeHandler(p.authenticator,
+		func(w http.ResponseWriter, r *http.Request, orgID string) {
+			p.forwardRequest(w, r, orgID)
+		},
+	))
 	router.Path("/api/report").Name("api_report").Handler(authProbeHandler(p.authenticator,
 		func(w http.ResponseWriter, r *http.Request, orgID string) {
 			if probeID := r.Header.Get(scope.ScopeProbeIDHeader); probeID == "" {
@@ -76,7 +81,6 @@ func (p proxy) forwardRequest(w http.ResponseWriter, r *http.Request, orgID stri
 		return
 	}
 	targetHostPort := addPort(hostInfo.HostName, scope.AppPort)
-	logrus.Infof("proxy: mapping organization with ID %q to host %q", orgID, targetHostPort)
 
 	// Tweak request before sending
 	r.Host = targetHostPort
@@ -86,6 +90,8 @@ func (p proxy) forwardRequest(w http.ResponseWriter, r *http.Request, orgID stri
 	// Ensure the URL is not incorrectly munged by go.
 	r.URL.Opaque = r.RequestURI
 	r.URL.RawQuery = ""
+
+	logrus.Debugf("proxy: forwardRequest: forwarding %s %s%s to orgID %q", r.Method, targetHostPort, r.URL.Opaque, orgID)
 
 	// Detect whether we should do websockets
 	if isWSHandshakeRequest(r) {
@@ -133,7 +139,7 @@ func proxyWS(targetHost string, w http.ResponseWriter, r *http.Request) {
 	defer clientConn.Close()
 
 	// Forward current request to the target host since it was received before hijacking
-	logrus.Debugf("proxy: websocket: writing original request to http://%s%s", targetHost, r.URL.Opaque)
+	logrus.Debugf("proxy: websocket: writing original request to %s%s", targetHost, r.URL.Opaque)
 	if err := r.Write(targetConn); err != nil {
 		logrus.Errorf("proxy: websocket: error copying request to target: %v", err)
 		return
