@@ -3,16 +3,19 @@
 set -o errexit
 set -o nounset
 set -o pipefail
-set -x
 
-if [ $# -ne 2 ]
+if [ $# -lt 2 ]
 then
-	echo "usage: $(basename $0) loadschema/dump <name>"
+	echo "usage:"
+	echo "  $(basename $0) bootstrap <name>"
+	echo "  $(basename $0) hostname <name> <database>"
+	echo "  $(basename $0) password <name> <database>"
 	exit 1
 fi
 
 WHAT=$1
 NAME=$2
+
 CLWD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/${NAME}"
 
 if [ ! -d ${CLWD} ]
@@ -21,39 +24,38 @@ then
 	exit 1
 fi
 
-function load_schema {
-	local dbname=$1
-	local schema=$2
-	local hostname=$( cat ${CLWD}/tfstate | jq -r .modules[0].resources.\"aws_db_instance.${dbname}\".primary.attributes.address )
-	local password=$( cat ${CLWD}/tfstate | jq -r .modules[0].resources.\"aws_db_instance.${dbname}\".primary.attributes.password )
-	local podname="dbloadschema-$(cat /dev/urandom|xxd -ps|head -c5)"
-	echo "Loading ${schema} to ${hostname}"
-	trap "kubectl --kubeconfig=${CLWD}/kubeconfig stop pod --grace-period=1 ${podname}" EXIT
-	cat ${schema} | kubectl --kubeconfig=${CLWD}/kubeconfig run ${podname} --image=postgres --stdin --restart=Never --env="PGPASSWORD=${password}" --command -- psql -U postgres -h ${hostname}
+function hostname {
+	local database=$1
+	local hostname=$( cat ${CLWD}/tfstate | jq -r .modules[0].resources.\"aws_db_instance.${database}\".primary.attributes.address )
+	echo ${hostname}
 }
 
-function dump {
-	local dbname=$1
-	local database=$2
-	local datestr=$( date +%Y%m%d-%H%M%S )
-	local hostname=$( cat ${CLWD}/tfstate | jq -r .modules[0].resources.\"aws_db_instance.${dbname}\".primary.attributes.address )
-	local password=$( cat ${CLWD}/tfstate | jq -r .modules[0].resources.\"aws_db_instance.${dbname}\".primary.attributes.password )
-	local podname="dbdump-$(cat /dev/urandom|xxd -ps|head -c5)"
-	local output="${dbname}-${database}-${datestr}.sql"
-	echo "Dumping ${dbname} (${database}) to ${output}"
+function password {
+	local database=$1
+	local password=$( cat ${CLWD}/tfstate | jq -r .modules[0].resources.\"aws_db_instance.${database}\".primary.attributes.password )
+	echo ${password}
+}
+
+function load {
+	local hostname=$1
+	local password=$2
+	local podname="dbload-$(cat /dev/urandom|xxd -ps|head -c5)"
 	trap "kubectl --kubeconfig=${CLWD}/kubeconfig stop pod --grace-period=1 ${podname}" EXIT
-	kubectl --kubeconfig=${CLWD}/kubeconfig run ${podname} --image=postgres --stdin --restart=Never --env="PGPASSWORD=${password}" --command -- pg_dump -U postgres -h ${hostname} --dbname=${database} | tee ${output}
+	kubectl --kubeconfig=${CLWD}/kubeconfig run ${podname} --image=postgres --stdin --restart=Never --env="PGPASSWORD=${password}" --command -- psql -U postgres -h ${hostname}
 }
 
 case $WHAT in
-loadschema)
-	load_schema app_mapper_database ${CLWD}/../../app-mapper/db/schema.sql
-	load_schema users_database ${CLWD}/../../users/db/schema.sql
+hostname)
+	hostname $3
 	;;
 
-dump)
-	dump app_mapper_database
-	dump users_database
+password)
+	password $3
+	;;
+
+bootstrap)
+	load $(hostname users_database) $(password users_database) < ${CLWD}/../../users/db/schema.sql
+	load $(hostname app_mapper_database) $(password app_mapper_database) < ${CLWD}/../../app_mapper/db/schema.sql
 	;;
 
 *)
