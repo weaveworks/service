@@ -148,6 +148,6 @@ Now you can start a probe with your service token, and send reports to the Scope
 If you're using e.g. the dev cluster, you'll need to specify the target by IP.
 
 ```
-$ scope launch --service-token=abc docker.dev.weave.works:80  # for dev
-$ scope launch --service-token=abc                            # for prod
+$ scope launch --service-token=abc frontend.dev.weave.works:80  # for dev
+$ scope launch --service-token=abc                              # for prod
 ```
