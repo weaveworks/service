@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+set -x
+
+if [ $# -ne 2 ]
+then
+	echo "usage: $(basename $0) loadschema/dump <name>"
+	exit 1
+fi
+
+WHAT=$1
+NAME=$2
+CLWD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/${NAME}"
+
+if [ ! -d ${CLWD} ]
+then
+	echo "${CLWD} is not a directory"
+	exit 1
+fi
+
+# load_schema {app_mapper_database,users_database} path/to/schema.sql
+function load_schema {
+	local dbname=$1
+	local schema=$2
+	local hostname=$( cat ${NAME}/tfstate | jq -r .modules[0].resources.\"aws_db_instance.${dbname}\".primary.attributes.address )
+	local password=$( cat ${NAME}/tfstate | jq -r .modules[0].resources.\"aws_db_instance.${dbname}\".primary.attributes.password )
+	local podname="dbloadschema-$(cat /dev/urandom|xxd -ps|head -c5)"
+	echo "Loading ${schema} to ${hostname}"
+	trap "kubectl --kubeconfig=${NAME}/kubeconfig stop pod --grace-period=1 ${podname}" EXIT
+	cat ${schema} | kubectl --kubeconfig=${NAME}/kubeconfig run ${podname} --image=postgres --stdin --restart=Never --env="PGPASSWORD=${password}" --command -- psql -U postgres -h ${hostname}
+}
+
+# dump {app_mapper_database,users_database}
+function dump {
+	local dbname=$1
+	local datestr=$( date +%Y%m%d-%H%M%S )
+	local hostname=$( cat ${NAME}/tfstate | jq -r .modules[0].resources.\"aws_db_instance.${dbname}\".primary.attributes.address )
+	local password=$( cat ${NAME}/tfstate | jq -r .modules[0].resources.\"aws_db_instance.${dbname}\".primary.attributes.password )
+	local podname="dbdump-$(cat /dev/urandom|xxd -ps|head -c5)"
+	echo "Dumping ${dbname} to ${dbname}-dump-${datestr}.sql"
+	trap "kubectl --kubeconfig=${NAME}/kubeconfig stop pod --grace-period=1 ${podname}" EXIT
+	cat ${schema} | kubectl --kubeconfig=${NAME}/kubeconfig run ${podname} --image=postgres --stdin --restart=Never --env="PGPASSWORD=${password}" --command -- pg_dump -U postgres -h ${hostname}
+}
+
+case $WHAT in
+loadschema)
+	load_schema app_mapper_database ${CLWD}/../../app-mapper/db/schema.sql
+	load_schema users_database ${CLWD}/../../users/db/schema.sql
+	;;
+
+dump)
+	dump app_mapper_database
+	dump users_database
+	;;
+
+*)
+	echo Unknown command
+	exit 1
+	;;
+esac
+

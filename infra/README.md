@@ -77,7 +77,7 @@ cp var.template foo/var
 ./k8s up foo
 ./tfgen foo
 ./rds up foo
-./schemaload foo
+./database loadschema foo
 
 # Deploy the application on Kubernetes.
 # Get the address of the frontend ELB, via kubectl get svc.
