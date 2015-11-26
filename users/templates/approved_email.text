@@ -10,6 +10,6 @@ You need to run probes on your Docker hosts to
 send information to Weave Scope.  To do this, type
 these commands:
 
-# sudo wget -O /usr/local/bin/scope https://git.io/scope-latest
+# sudo wget -O /usr/local/bin/scope https://github.com/weaveworks/scope/releases/download/v0.8.0/scope
 # sudo chmod a+x /usr/local/bin/scope
 # sudo scope launch --service-token={{.ProbeToken}}
