@@ -114,8 +114,8 @@ resource "aws_db_subnet_group" "rds_subnet_group" {
     }
 }
 
-resource "aws_db_instance" "users_db" {
-    identifier = "users-db"
+resource "aws_db_instance" "users_database" {
+    identifier = "users-database"
     allocated_storage = 10
     multi_az = true
     engine = "postgres"
@@ -124,11 +124,11 @@ resource "aws_db_instance" "users_db" {
     username = "postgres"
     password = "${var.users_db_password}"
     vpc_security_group_ids = ["${aws_security_group.rds_sg.id}"]
-    #final_snapshot_identifier = "users-final"
+    final_snapshot_identifier = "users-final"
 }
 
-resource "aws_db_instance" "app_mapper_db" {
-    identifier = "app-mapper-db"
+resource "aws_db_instance" "app_mapper_database" {
+    identifier = "app-mapper-database"
     allocated_storage = 10
     multi_az = true
     engine = "postgres"
@@ -137,5 +137,5 @@ resource "aws_db_instance" "app_mapper_db" {
     username = "postgres"
     password = "${var.app_mapper_db_password}"
     vpc_security_group_ids = ["${aws_security_group.rds_sg.id}"]
-    #final_snapshot_identifier = "app-mapper-final"
+    final_snapshot_identifier = "app-mapper-final"
 }
