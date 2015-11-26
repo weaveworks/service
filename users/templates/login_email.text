@@ -5,9 +5,5 @@ Click this link to login to Weave Scope:
 This single-use login link is valid for 3 days. You can generate a new one at any time by logging in at {{.RootURL}}
 
 You need to run probes on your Docker hosts to
-send information to Weave Scope.  To do this, type
-these commands:
-
-# sudo wget -O /usr/local/bin/scope https://git.io/scope-latest
-# sudo chmod a+x /usr/local/bin/scope
-# sudo scope launch --service-token={{.ProbeToken}}
+send information to Weave Scope. Instructions for
+that are available once you log in.
