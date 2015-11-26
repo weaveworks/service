@@ -5,7 +5,7 @@ metadata:
   labels:
     name: app-mapper
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     name: app-mapper
   template:
