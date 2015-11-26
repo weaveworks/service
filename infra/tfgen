@@ -34,7 +34,6 @@ aws_region = "${AWS_REGION}"
 
 rds_subnet_a_availability_zone = "${RDS_SUBNET_A_AZ}"
 rds_subnet_b_availability_zone = "${RDS_SUBNET_B_AZ}"
-rds_subnet_c_availability_zone = "${RDS_SUBNET_C_AZ}"
 app_mapper_db_password = "${RDS_APP_MAPPER_DB_PASSWORD}"
 users_db_password = "${RDS_USERS_DB_PASSWORD}"
 

@@ -59,7 +59,7 @@ K8S_INSTANCE_PREFIX="kubernetes_yourclustername"
 RDS_SUBNET_A_AZ="eu-west-1a"
 RDS_SUBNET_B_AZ="eu-west-1b"
 
-# Passwords for the RDS databases. If
+# Passwords for the RDS databases. If you need help, try:
 #
 #  cat /dev/urandom | xxd -ps | head -c16
 #
