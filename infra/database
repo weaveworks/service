@@ -55,7 +55,7 @@ password)
 
 bootstrap)
 	load $(hostname users_database) $(password users_database) < ${CLWD}/../../users/db/schema.sql
-	load $(hostname app_mapper_database) $(password app_mapper_database) < ${CLWD}/../../app_mapper/db/schema.sql
+	load $(hostname app_mapper_database) $(password app_mapper_database) < ${CLWD}/../../app-mapper/db/schema.sql
 	;;
 
 *)

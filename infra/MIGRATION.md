@@ -25,9 +25,9 @@ laptop$ scp -i keypair ubuntu@52.23.196.186:data.sql .
 You have to load from a host in the VPC for the new DB.
 
 ```
-laptop$ infra/database dev hostname users_database
+laptop$ infra/database hostname dev users_database
 new_user_db_host
-laptop$ infra/database dev password users_database
+laptop$ infra/database password dev users_database
 new_user_db_password
 laptop$ infra/minions dev|head -n1
 dev_minion_ip
