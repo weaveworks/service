@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "serial": 1,
+    "serial": 2,
     "modules": [
         {
             "path": [
@@ -122,6 +122,46 @@
                             "tags.#": "1",
                             "tags.Name": "terraform-rds-igw",
                             "vpc_id": "vpc-d947cebd"
+                        }
+                    }
+                },
+                "aws_route53_record.www": {
+                    "type": "aws_route53_record",
+                    "depends_on": [
+                        "aws_route53_zone.zone"
+                    ],
+                    "primary": {
+                        "id": "Z3D0C85OQQWW91_frontend.prod.weave.works_A",
+                        "attributes": {
+                            "alias.#": "1",
+                            "alias.312923244.evaluate_target_health": "false",
+                            "alias.312923244.name": "a827b3f9d952311e586e00a5860f6066-269443865.us-east-1.elb.amazonaws.com",
+                            "alias.312923244.zone_id": "Z3DZXE0Q79N41H",
+                            "fqdn": "frontend.prod.weave.works",
+                            "id": "Z3D0C85OQQWW91_frontend.prod.weave.works_A",
+                            "name": "frontend.prod.weave.works",
+                            "records.#": "0",
+                            "type": "A",
+                            "zone_id": "Z3D0C85OQQWW91"
+                        }
+                    }
+                },
+                "aws_route53_zone.zone": {
+                    "type": "aws_route53_zone",
+                    "primary": {
+                        "id": "Z3D0C85OQQWW91",
+                        "attributes": {
+                            "comment": "Managed by Terraform",
+                            "id": "Z3D0C85OQQWW91",
+                            "name": "prod.weave.works",
+                            "name_servers.#": "4",
+                            "name_servers.0": "ns-1006.awsdns-61.net",
+                            "name_servers.1": "ns-1047.awsdns-02.org",
+                            "name_servers.2": "ns-1688.awsdns-19.co.uk",
+                            "name_servers.3": "ns-349.awsdns-43.com",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-frontend-zone",
+                            "zone_id": "Z3D0C85OQQWW91"
                         }
                     }
                 },
