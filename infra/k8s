@@ -34,7 +34,7 @@ function export_variables {
 	export MASTER_SIZE="${K8S_MASTER_SIZE}"
 	export MINION_SIZE="${K8S_MINION_SIZE}"
 	export NUM_MINIONS="${K8S_NUM_MINIONS}"
-	export KUBE_AWS_INSTANCE_PREFIX="kubernetes_pb"
+	export KUBE_AWS_INSTANCE_PREFIX=${K8S_INSTANCE_PREFIX}
 }
 
 function ensure_release {
