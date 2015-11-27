@@ -11,7 +11,7 @@ AWS_SECRET_KEY="iWdYQsN5eCKofZUjNUcX17uQXNkH89WxHaYf7wgJ"
 
 # The region for your cluster. This must be the same as `aws configure`!
 #
-AWS_REGION="eu-west-1"
+AWS_REGION="us-east-1"
 
 #
 # Kubernetes
@@ -20,24 +20,24 @@ AWS_REGION="eu-west-1"
 # The default availability zone in your region.
 # The kube-up script will stage some S3 assets here.
 #
-K8S_AZ="eu-west-1a"
+K8S_AZ="us-east-1a"
 
 # The AMI that Kubernetes will use. Should be Ubuntu vivid hvm:ebs. Use the
 # Ubuntu locator at http://cloud-images.ubuntu.com/locator/ec2/ to find the
 # right image for your region.
 #
-K8S_AMI="ami-eccf159f"
+K8S_AMI="ami-d92e6bb3"
 
 # EC2 instance size for the Kubernetes master node.
 # Should not be smaller than m3.medium.
 #
-K8S_MASTER_SIZE="m3.medium"
+K8S_MASTER_SIZE="m3.large"
 
 # EC2 instance size for the Kubernetes minion nodes. t2.micro is enough to
 # boot Kubernetes for a test cluster, but not enough to run Scope-as-a-Service
 # components. For that you need at least t2.medium.
 #
-K8S_MINION_SIZE="t2.medium"
+K8S_MINION_SIZE="m3.large"
 
 # How many minion nodes to spawn.
 #
@@ -46,7 +46,7 @@ K8S_NUM_MINIONS="3"
 # A prefix for the EC2 instance names. Should probably include "kubernetes"
 # and the name of the cluster, to help keep things understandable.
 #
-K8S_INSTANCE_PREFIX="kubernetes_yourclustername"
+K8S_INSTANCE_PREFIX="kubernetes_prod"
 
 #
 # RDS
@@ -56,15 +56,15 @@ K8S_INSTANCE_PREFIX="kubernetes_yourclustername"
 # subnets in different availability zones. Specify at least 2 distinct
 # availability zones for your region, here.
 #
-RDS_SUBNET_A_AZ="eu-west-1a"
-RDS_SUBNET_B_AZ="eu-west-1b"
+RDS_SUBNET_A_AZ="us-east-1a"
+RDS_SUBNET_B_AZ="us-east-1b"
 
 # Passwords for the RDS databases. If you need help, try:
 #
 #  cat /dev/urandom | xxd -ps | head -c16
 #
-RDS_USERS_DB_PASSWORD=""
-RDS_APP_MAPPER_DB_PASSWORD=""
+RDS_USERS_DB_PASSWORD="usvqvHmLw2EahFK9Pa"
+RDS_APP_MAPPER_DB_PASSWORD="amK9NGqt2bwNgzz8DF"
 
 #
 # Route53
@@ -73,12 +73,12 @@ RDS_APP_MAPPER_DB_PASSWORD=""
 # The zone name for this cluster, e.g. "cloud.weave.works" or
 # "dev.weave.works".
 #
-R53_ZONE_NAME="some.domain.biz"
+R53_ZONE_NAME="prod.weave.works"
 
 # The FQDN resource within the zone, e.g. "frontend.cloud.weave.works" or
 # "frontend.dev.weave.works".
 #
-R53_RESOURCE_NAME="frontend.some.domain.biz"
+R53_RESOURCE_NAME="frontend.prod.weave.works"
 
 # The endpoint for the ELB that sits in front of the Kubernetes frontend
 # service. You won't have that information in the beginning, so leave it blank
