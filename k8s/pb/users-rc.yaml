@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: users
+  labels:
+    name: users
+spec:
+  replicas: 1
+  selector:
+    name: users
+  template:
+    metadata:
+      labels:
+        name: users
+    spec:
+      imagePullSecrets:
+      - name: quay-secret
+      containers:
+      - name: users
+        image: quay.io/weaveworks/users:f1f58cd
+        args:
+        - -session-secret=3919365780a79e0658fde4d03e6945a080031ec077b88975898f698c0d298395
+        - -email-uri=smtp://mailcatcher:587
+        - -database-uri=postgres://postgres:a59f8e66c75eceb@users-db.ceiuafomwfcr.eu-west-1.rds.amazonaws.com/users?sslmode=disable
+        env:
+        - name: GET_HOSTS_FROM
+          value: dns
+        ports:
+        - containerPort: 80

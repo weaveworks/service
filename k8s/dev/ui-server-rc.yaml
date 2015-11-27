@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: ui-server
+  labels:
+    name: ui-server
+spec:
+  replicas: 2
+  selector:
+    name: ui-server
+  template:
+    metadata:
+      labels:
+        name: ui-server
+    spec:
+      imagePullSecrets:
+      - name: quay-secret
+      containers:
+      - name: ui-server
+        image: quay.io/weaveworks/ui-server:0d51bc6
+        command:
+        env:
+        - name: GET_HOSTS_FROM
+          value: dns
+        ports:
+        - containerPort: 80

@@ -1,4 +1,5 @@
 // +build integration
+// +build docker k8s
 
 package main
 
@@ -9,20 +10,48 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
-func testAppProvisioner(t *testing.T, appID string, test func(p appProvisioner, host string)) {
-	appConfig := docker.Config{
-		Image: defaultAppImage,
+func newTestProvisioner(t *testing.T) appProvisioner {
+	args := []string{"--no-probe"}
+
+	if isDockerIntegrationTest {
+		appConfig := docker.Config{
+			Image: defaultAppImage,
+			Cmd:   args,
+		}
+		o := dockerProvisionerOptions{
+			appConfig:     appConfig,
+			clientTimeout: defaultProvisionerClientTimeout,
+		}
+		p, err := newDockerProvisioner("unix:///var/run/weave/weave.sock", o)
+		require.NoError(t, err, "Cannot create docker provisioner")
+		return p
 	}
-	o := dockerProvisionerOptions{
-		appConfig:     appConfig,
-		runTimeout:    defaultDockerRunTimeout,
-		clientTimeout: defaultDockerClientTimeout,
+
+	if isK8sIntegrationTest {
+		options := k8sProvisionerOptions{
+			appContainer: kapi.Container{
+				Name:  "scope",
+				Image: defaultAppImage,
+				Args:  args,
+			},
+			clientTimeout: defaultProvisionerClientTimeout,
+		}
+
+		p, err := newK8sProvisioner(options)
+		require.NoError(t, err, "Cannot create k8s provisioner")
+		return p
 	}
-	p, err := newDockerProvisioner("unix:///var/run/weave/weave.sock", o)
-	require.NoError(t, err, "Cannot create provisioner")
-	err = p.fetchApp()
+
+	t.Fatal("Unspecified app provisioner type")
+	return nil
+}
+
+func runProvisionerTest(t *testing.T, appID string, p appProvisioner, test func(p appProvisioner, host string)) {
+	err := p.fetchApp()
+	require.NoError(t, err, "Cannot fetch app")
 	host, err := p.runApp(appID)
 	require.NoError(t, err, "Cannot run app")
 
@@ -35,25 +64,28 @@ func testAppProvisioner(t *testing.T, appID string, test func(p appProvisioner, 
 func TestSimpleProvisioning(t *testing.T) {
 	const appID = "foo"
 
-	test := func(p appProvisioner, host string) {
-		running, err := p.isAppRunning(appID)
-		require.NoError(t, err, "Cannot check if app is running")
-		assert.True(t, running, "App not running")
-	}
+	test := func(p appProvisioner, host string) {}
 
-	testAppProvisioner(t, appID, test)
+	p := newTestProvisioner(t)
+	runProvisionerTest(t, appID, p, test)
 }
 
 func TestIsAppReady(t *testing.T) {
 	const appID = "foo"
 
 	test := func(p appProvisioner, host string) {
-		// Let the app boot
-		time.Sleep(2 * time.Second)
-		ready, err := p.isAppReady(appID)
-		require.NoError(t, err, "Cannot check if app is ready")
-		assert.True(t, ready, "App not running")
+		// Wait indefinitely until the app is ready. If this hangs, the
+		// testsuite timeout will simply kick in.
+		for true {
+			ready, err := p.isAppReady(appID)
+			if err == nil && ready {
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+
 	}
 
-	testAppProvisioner(t, appID, test)
+	p := newTestProvisioner(t)
+	runProvisionerTest(t, appID, p, test)
 }

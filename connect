@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+if [ $# -ne 1 ]
+then
+	echo "usage: $(basename $0) <name>"
+	exit 1
+fi
+
+NAME=$1
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROXY_NAME="${USER}-proxy"
+
+KUBECONFIG="${SCRIPT_DIR}/infra/${NAME}/kubeconfig"
+if [ ! -f ${KUBECONFIG} ]
+then
+	echo "${KUBECONFIG} not found"
+	exit 1
+fi
+
+function finish {
+    echo "Cleaning up..."
+    kubectl --kubeconfig=${KUBECONFIG} delete rc ${PROXY_NAME}
+}
+
+finish >/dev/null 2>&1 || true
+
+echo "Starting HTTP proxy..."
+
+kubectl --kubeconfig=${KUBECONFIG} run ${PROXY_NAME} --image=weaveworks/socksproxy --command -- /proxy -h '*.default.svc.cluster.local' -a scope.weave.works:frontend.default.svc.cluster.local
+
+trap finish EXIT
+
+echo -n "Waiting for replication controller..."
+while [ "$( kubectl --kubeconfig=${KUBECONFIG} get rc ${PROXY_NAME} -o template --template='{{.status.replicas}}' 2>&1 )" -lt 1 ]
+do
+	echo -n "."
+	sleep 1
+done
+echo "OK"
+
+PROXY_POD=$(kubectl --kubeconfig=${KUBECONFIG} get pod --selector=run=${PROXY_NAME} -o template --template='{{ (index .items  0).metadata.name }}')
+
+echo -n "Waiting for ${PROXY_POD}..."
+while [ "$(kubectl --kubeconfig=${KUBECONFIG} get pod ${PROXY_POD} -o template --template='{{.status.phase}}' 2>&1 )" != 'Running' ]
+do
+	echo -n "."
+	sleep 1
+done
+echo "OK"
+
+echo ""
+echo "Configure your browser to use http://localhost:8080/proxy.pac and"
+echo "use kubectl --kubeconfig=${KUBECONFIG} to access the cluster."
+echo ""
+
+kubectl --kubeconfig=${KUBECONFIG} port-forward ${PROXY_POD} 8000:8000 8080:8080 &
+kubectl --kubeconfig=${KUBECONFIG} logs -f ${PROXY_POD} -c ${PROXY_NAME}

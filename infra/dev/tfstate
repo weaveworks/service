@@ -1,0 +1,308 @@
+{
+    "version": 1,
+    "serial": 5,
+    "modules": [
+        {
+            "path": [
+                "root"
+            ],
+            "outputs": {},
+            "resources": {
+                "aws_db_instance.app_mapper_database": {
+                    "type": "aws_db_instance",
+                    "depends_on": [
+                        "aws_security_group.rds_sg"
+                    ],
+                    "primary": {
+                        "id": "app-mapper-database",
+                        "attributes": {
+                            "address": "app-mapper-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com",
+                            "allocated_storage": "10",
+                            "auto_minor_version_upgrade": "true",
+                            "availability_zone": "us-east-1e",
+                            "backup_retention_period": "0",
+                            "backup_window": "08:10-08:40",
+                            "copy_tags_to_snapshot": "false",
+                            "db_subnet_group_name": "default",
+                            "endpoint": "app-mapper-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com:5432",
+                            "engine": "postgres",
+                            "engine_version": "9.4.4",
+                            "final_snapshot_identifier": "app-mapper-final",
+                            "id": "app-mapper-database",
+                            "identifier": "app-mapper-database",
+                            "instance_class": "db.t2.small",
+                            "license_model": "postgresql-license",
+                            "maintenance_window": "wed:03:53-wed:04:23",
+                            "multi_az": "true",
+                            "parameter_group_name": "default.postgres9.4",
+                            "password": "am1e28d6a4b3302b",
+                            "port": "5432",
+                            "replicas.#": "0",
+                            "security_group_names.#": "0",
+                            "status": "available",
+                            "storage_encrypted": "false",
+                            "storage_type": "standard",
+                            "tags.#": "0",
+                            "username": "postgres",
+                            "vpc_security_group_ids.#": "1",
+                            "vpc_security_group_ids.484792779": "sg-67fbae01"
+                        }
+                    }
+                },
+                "aws_db_instance.users_database": {
+                    "type": "aws_db_instance",
+                    "depends_on": [
+                        "aws_security_group.rds_sg"
+                    ],
+                    "primary": {
+                        "id": "users-database",
+                        "attributes": {
+                            "address": "users-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com",
+                            "allocated_storage": "10",
+                            "auto_minor_version_upgrade": "true",
+                            "availability_zone": "us-east-1e",
+                            "backup_retention_period": "0",
+                            "backup_window": "05:22-05:52",
+                            "copy_tags_to_snapshot": "false",
+                            "db_subnet_group_name": "default",
+                            "endpoint": "users-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com:5432",
+                            "engine": "postgres",
+                            "engine_version": "9.4.4",
+                            "final_snapshot_identifier": "users-final",
+                            "id": "users-database",
+                            "identifier": "users-database",
+                            "instance_class": "db.t2.small",
+                            "license_model": "postgresql-license",
+                            "maintenance_window": "mon:03:27-mon:03:57",
+                            "multi_az": "true",
+                            "parameter_group_name": "default.postgres9.4",
+                            "password": "us45dcd40163798d",
+                            "port": "5432",
+                            "replicas.#": "0",
+                            "security_group_names.#": "0",
+                            "status": "available",
+                            "storage_encrypted": "false",
+                            "storage_type": "standard",
+                            "tags.#": "0",
+                            "username": "postgres",
+                            "vpc_security_group_ids.#": "1",
+                            "vpc_security_group_ids.484792779": "sg-67fbae01"
+                        }
+                    }
+                },
+                "aws_db_subnet_group.rds_subnet_group": {
+                    "type": "aws_db_subnet_group",
+                    "depends_on": [
+                        "aws_subnet.rds_subnet_a",
+                        "aws_subnet.rds_subnet_b"
+                    ],
+                    "primary": {
+                        "id": "rds_subnet_group",
+                        "attributes": {
+                            "description": "DB subnet group for the databases",
+                            "id": "rds_subnet_group",
+                            "name": "rds_subnet_group",
+                            "subnet_ids.#": "2",
+                            "subnet_ids.1524050312": "subnet-e57bbe93",
+                            "subnet_ids.2938517289": "subnet-1f6e6734",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds-subnet-group"
+                        }
+                    }
+                },
+                "aws_internet_gateway.rds_igw": {
+                    "type": "aws_internet_gateway",
+                    "depends_on": [
+                        "aws_vpc.rds_vpc"
+                    ],
+                    "primary": {
+                        "id": "igw-16f81d72",
+                        "attributes": {
+                            "id": "igw-16f81d72",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds-igw",
+                            "vpc_id": "vpc-471c9223"
+                        }
+                    }
+                },
+                "aws_route53_record.www": {
+                    "type": "aws_route53_record",
+                    "depends_on": [
+                        "aws_route53_zone.zone"
+                    ],
+                    "primary": {
+                        "id": "Z1ETPEB4M5S1VC_frontend.dev.weave.works_A",
+                        "attributes": {
+                            "alias.#": "1",
+                            "alias.3618879164.evaluate_target_health": "false",
+                            "alias.3618879164.name": "a3fe840ba945111e596e612fa16d4832-1340528781.us-east-1.elb.amazonaws.com",
+                            "alias.3618879164.zone_id": "Z3DZXE0Q79N41H",
+                            "fqdn": "frontend.dev.weave.works",
+                            "id": "Z1ETPEB4M5S1VC_frontend.dev.weave.works_A",
+                            "name": "frontend.dev.weave.works",
+                            "records.#": "0",
+                            "type": "A",
+                            "zone_id": "Z1ETPEB4M5S1VC"
+                        }
+                    }
+                },
+                "aws_route53_zone.zone": {
+                    "type": "aws_route53_zone",
+                    "primary": {
+                        "id": "Z1ETPEB4M5S1VC",
+                        "attributes": {
+                            "comment": "Managed by Terraform",
+                            "id": "Z1ETPEB4M5S1VC",
+                            "name": "dev.weave.works",
+                            "name_servers.#": "4",
+                            "name_servers.0": "ns-1289.awsdns-33.org",
+                            "name_servers.1": "ns-1690.awsdns-19.co.uk",
+                            "name_servers.2": "ns-62.awsdns-07.com",
+                            "name_servers.3": "ns-964.awsdns-56.net",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-frontend-zone",
+                            "zone_id": "Z1ETPEB4M5S1VC"
+                        }
+                    }
+                },
+                "aws_route_table.rds_rtb": {
+                    "type": "aws_route_table",
+                    "depends_on": [
+                        "aws_internet_gateway.rds_igw",
+                        "aws_vpc.rds_vpc"
+                    ],
+                    "primary": {
+                        "id": "rtb-16e19b72",
+                        "attributes": {
+                            "id": "rtb-16e19b72",
+                            "propagating_vgws.#": "0",
+                            "route.#": "1",
+                            "route.361140768.cidr_block": "0.0.0.0/0",
+                            "route.361140768.gateway_id": "igw-16f81d72",
+                            "route.361140768.instance_id": "",
+                            "route.361140768.network_interface_id": "",
+                            "route.361140768.vpc_peering_connection_id": "",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds-rtb",
+                            "vpc_id": "vpc-471c9223"
+                        }
+                    }
+                },
+                "aws_route_table_association.rds_rtbassoc_a": {
+                    "type": "aws_route_table_association",
+                    "depends_on": [
+                        "aws_route_table.rds_rtb",
+                        "aws_subnet.rds_subnet_a"
+                    ],
+                    "primary": {
+                        "id": "rtbassoc-b4de39d3",
+                        "attributes": {
+                            "id": "rtbassoc-b4de39d3",
+                            "route_table_id": "rtb-16e19b72",
+                            "subnet_id": "subnet-1f6e6734"
+                        }
+                    }
+                },
+                "aws_route_table_association.rds_rtbassoc_b": {
+                    "type": "aws_route_table_association",
+                    "depends_on": [
+                        "aws_route_table.rds_rtb",
+                        "aws_subnet.rds_subnet_b"
+                    ],
+                    "primary": {
+                        "id": "rtbassoc-b5de39d2",
+                        "attributes": {
+                            "id": "rtbassoc-b5de39d2",
+                            "route_table_id": "rtb-16e19b72",
+                            "subnet_id": "subnet-e57bbe93"
+                        }
+                    }
+                },
+                "aws_security_group.rds_sg": {
+                    "type": "aws_security_group",
+                    "primary": {
+                        "id": "sg-67fbae01",
+                        "attributes": {
+                            "description": "Security group for RDS instances",
+                            "egress.#": "1",
+                            "egress.482069346.cidr_blocks.#": "1",
+                            "egress.482069346.cidr_blocks.0": "0.0.0.0/0",
+                            "egress.482069346.from_port": "0",
+                            "egress.482069346.protocol": "-1",
+                            "egress.482069346.security_groups.#": "0",
+                            "egress.482069346.self": "false",
+                            "egress.482069346.to_port": "0",
+                            "id": "sg-67fbae01",
+                            "ingress.#": "1",
+                            "ingress.2661837834.cidr_blocks.#": "1",
+                            "ingress.2661837834.cidr_blocks.0": "0.0.0.0/0",
+                            "ingress.2661837834.from_port": "0",
+                            "ingress.2661837834.protocol": "tcp",
+                            "ingress.2661837834.security_groups.#": "0",
+                            "ingress.2661837834.self": "false",
+                            "ingress.2661837834.to_port": "5432",
+                            "name": "rds_sg",
+                            "owner_id": "376248598259",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds-sg",
+                            "vpc_id": "vpc-aab8b7cf"
+                        }
+                    }
+                },
+                "aws_subnet.rds_subnet_a": {
+                    "type": "aws_subnet",
+                    "depends_on": [
+                        "aws_vpc.rds_vpc"
+                    ],
+                    "primary": {
+                        "id": "subnet-1f6e6734",
+                        "attributes": {
+                            "availability_zone": "us-east-1a",
+                            "cidr_block": "172.110.1.0/24",
+                            "id": "subnet-1f6e6734",
+                            "map_public_ip_on_launch": "false",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds-subnet-a",
+                            "vpc_id": "vpc-471c9223"
+                        }
+                    }
+                },
+                "aws_subnet.rds_subnet_b": {
+                    "type": "aws_subnet",
+                    "depends_on": [
+                        "aws_vpc.rds_vpc"
+                    ],
+                    "primary": {
+                        "id": "subnet-e57bbe93",
+                        "attributes": {
+                            "availability_zone": "us-east-1b",
+                            "cidr_block": "172.110.2.0/24",
+                            "id": "subnet-e57bbe93",
+                            "map_public_ip_on_launch": "false",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds-subnet-b",
+                            "vpc_id": "vpc-471c9223"
+                        }
+                    }
+                },
+                "aws_vpc.rds_vpc": {
+                    "type": "aws_vpc",
+                    "primary": {
+                        "id": "vpc-471c9223",
+                        "attributes": {
+                            "cidr_block": "172.110.0.0/16",
+                            "default_network_acl_id": "acl-627cea06",
+                            "default_security_group_id": "sg-64fbae02",
+                            "dhcp_options_id": "dopt-96c731f3",
+                            "enable_dns_hostnames": "true",
+                            "id": "vpc-471c9223",
+                            "main_route_table_id": "rtb-08e19b6c",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds-vpc"
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

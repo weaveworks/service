@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+if [ $# -ne 2 ]
+then
+	echo "usage: $(basename $0) up/down <name>"
+	exit 1
+fi
+
+WHAT=$1
+NAME=$2
+CLWD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/${NAME}"
+
+if [ ! -d ${CLWD} ]
+then
+	echo "${CLWD} is not a directory"
+	exit 1
+fi
+
+function create_tf_file {
+	echo "Creating ${CLWD}/r53.tf"
+	cp r53.template ${CLWD}/r53.tf
+}
+
+function delete_tf_file {
+	echo "Deleting ${CLWD}/r53.tf"
+	rm -f ${CLWD}/r53.tf
+}
+
+function interactive_confirmation {
+	while true
+	do
+		read -p "$1 " yn
+		case $yn in
+			yes) break;;
+			no) exit;;
+			*) echo "Please type 'yes' or 'no'";;
+		esac
+	done
+}
+
+TARGETS="-target=aws_route53_zone.zone -target=aws_route53_record.www"
+
+function terraform_destroy {
+	(
+		cd ${CLWD}
+		terraform plan -destroy -state=tfstate -var-file=tfvars ${TARGETS}
+		interactive_confirmation "Does this look right?"
+		echo
+		echo "Terraform will warn you that it will 'delete all your managed infrastructure'."
+		echo "Don't worry: it will only delete the targets listed above."
+		echo
+		terraform destroy -state=tfstate -var-file=tfvars ${TARGETS}
+	)
+}
+
+function terraform_apply {
+	(
+		cd ${CLWD}
+		local tempfile=$(mktemp)
+		trap "rm -rf ${tempfile}" EXIT
+		terraform plan -state=tfstate -var-file=tfvars -out=${tempfile} ${TARGETS}
+		interactive_confirmation "Do you wish to proceed with the plan?"
+		terraform apply -state=tfstate ${tempfile}
+	)
+}
+
+case $WHAT in
+up)
+	create_tf_file
+	terraform_apply
+	;;
+down)
+	terraform_destroy
+	delete_tf_file
+	;;
+*)
+	echo "Unknown command"
+	exit 1
+	;;
+esac

@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+if [ $# -lt 2 ]
+then
+	echo "usage:"
+	echo "  $(basename $0) bootstrap <name>"
+	echo "  $(basename $0) hostname <name> <database>"
+	echo "  $(basename $0) password <name> <database>"
+	exit 1
+fi
+
+WHAT=$1
+NAME=$2
+
+CLWD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/${NAME}"
+
+if [ ! -d ${CLWD} ]
+then
+	echo "${CLWD} is not a directory"
+	exit 1
+fi
+
+function hostname {
+	local database=$1
+	local hostname=$( cat ${CLWD}/tfstate | jq -r .modules[0].resources.\"aws_db_instance.${database}\".primary.attributes.address )
+	echo ${hostname}
+}
+
+function password {
+	local database=$1
+	local password=$( cat ${CLWD}/tfstate | jq -r .modules[0].resources.\"aws_db_instance.${database}\".primary.attributes.password )
+	echo ${password}
+}
+
+function load {
+	local hostname=$1
+	local password=$2
+	local podname="dbload-$(cat /dev/urandom|xxd -ps|head -c5)"
+	trap "kubectl --kubeconfig=${CLWD}/kubeconfig stop pod --grace-period=1 ${podname}" EXIT
+	kubectl --kubeconfig=${CLWD}/kubeconfig run ${podname} --image=postgres --stdin --restart=Never --env="PGPASSWORD=${password}" --command -- psql -U postgres -h ${hostname}
+}
+
+case $WHAT in
+hostname)
+	hostname $3
+	;;
+
+password)
+	password $3
+	;;
+
+bootstrap)
+	load $(hostname users_database) $(password users_database) < ${CLWD}/../../users/db/schema.sql
+	load $(hostname app_mapper_database) $(password app_mapper_database) < ${CLWD}/../../app-mapper/db/schema.sql
+	;;
+
+*)
+	echo Unknown command
+	exit 1
+	;;
+esac
+

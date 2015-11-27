@@ -50,5 +50,13 @@ monitoring/data/
 monitoring/runsvinit
 terraform/local.tfstate
 terraform/local.tfstate.backup
-*.tfstate.backup
+*tfstate.backup
 saas.deploy.plan.*
+
+infra/kubernetes.tar.gz
+infra/kubernetes/*
+infra/helloworld/helloworld
+infra/local/kubeconfig
+
+k8s/local/master/pki
+k8s/local/master/master.json
