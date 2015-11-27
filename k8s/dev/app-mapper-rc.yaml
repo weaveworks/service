@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: app-mapper
-  labels:
-    name: app-mapper
+  name: app-mapper-7bcb16b
 spec:
   replicas: 2
   selector:
     name: app-mapper
+    version: 7bcb16b
   template:
     metadata:
       labels:
         name: app-mapper
+        version: 7bcb16b
     spec:
       imagePullSecrets:
       - name: quay-secret

@@ -62,7 +62,9 @@ $ kubectl --kubeconfig=infra/local/kubeconfig create -f k8s/local
 Or, update a specific component.
 
 ```
-$ kubectl --kubeconfig=infra/local/kubeconfig replace -f k8s/local/users-rc.yaml
+$ # TODO there might be a nicer way of doing this; investigate kubectl
+$ kubectl --kubeconfig=infra/local/kubeconfig delete rc users
+$ kubectl --kubeconfig=infra/local/kubeconfig create -f k8s/local/users.yaml
 ```
 
 ### Connect
@@ -119,15 +121,16 @@ $ ./tag-and-push users ui-server
 
 ### Deploy
 
-Someone has probably already created the components.
-You're probably interested in deploying a new version of a component.
-Kubernetes supports this nicely using a rolling upgrade.
+Someone has probably already created the components, and you probably just want to deploy a new version.
+Kubernetes supports this nicely using something called a rolling update.
+We've scripted it for you; just follow the prompts.
 
 ```
-$ # TODO kubectl
+$ ./rolling-update
 ```
 
-For more deployment options, see the Kubernetes documentation.
+Kubernetes has a lot of ways to move things around in the cluster.
+Don't be afraid to read the kubectl documentation.
 
 ### Connect
 

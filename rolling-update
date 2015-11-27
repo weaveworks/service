@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+echo
+echo "You should have edited the appropriate replication controller definition with"
+echo "the new version before running this script. If you haven't, do that now."
+echo
+
+read -p "Cluster? " CLUSTER
+
+KUBECONFIG="${SCRIPT_DIR}/infra/${CLUSTER}/kubeconfig"
+if [ ! -f ${KUBECONFIG} ]
+then
+	echo "${KUBECONFIG} not found"
+	exit 1
+fi
+echo "Using kubeconfig: ${KUBECONFIG}"
+
+read -p "Component? " COMPONENT
+
+NEW_FILE="${SCRIPT_DIR}/k8s/${CLUSTER}/${COMPONENT}-rc.yaml"
+if [ ! -f ${NEW_FILE} ]
+then
+	echo "${NEW_FILE} not found"
+	exit 1
+fi
+echo "Found: ${NEW_FILE}"
+
+OLD_RC=$(kubectl --kubeconfig=${KUBECONFIG} get rc --selector="name=${COMPONENT}" --output=jsonpath='{.items[0].metadata.name}')
+if [[ "${OLD_RC}" == "" ]]
+then
+	echo "${COMPONENT} replication controller not found"
+	exit 1
+fi
+echo "Current RC: ${OLD_RC}"
+
+NEW_VERSION=$(cat ${NEW_FILE} | grep 'version:' | awk '{print $2}' | sort | uniq)
+echo "New version: ${NEW_VERSION}"
+
+read -p "Update period (try 30s)? " PERIOD
+echo "Update period: ${PERIOD}"
+
+REL_KUBECONFIG=$(python -c "import os.path; print os.path.relpath('${KUBECONFIG}', '$(pwd)')")
+REL_NEW_FILE=$(python -c "import os.path; print os.path.relpath('${NEW_FILE}', '$(pwd)')")
+echo
+echo "Here's what I'm going to run:"
+echo
+echo " kubectl --kubeconfig=${REL_KUBECONFIG} rolling-update ${OLD_RC} -f ${REL_NEW_FILE} --update-period=${PERIOD}"
+echo
+
+echo -n "Press ctrl-C NOW if this doesn't look right.."
+for i in $(seq 1 5)
+do
+	echo -n "."
+	sleep 1
+done
+echo " proceeding"
+
+kubectl --kubeconfig=${KUBECONFIG} rolling-update ${OLD_RC} -f ${NEW_FILE} --update-period=${PERIOD}
+
+echo
+echo "Don't forget to commit and push your changes to $(basename ${NEW_FILE})!"
+echo

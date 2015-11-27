@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: users
-  labels:
-    name: users
+  name: users-8b7f1d8
 spec:
   replicas: 2
   selector:
     name: users
+    version: 8b7f1d8
   template:
     metadata:
       labels:
         name: users
+        version: 8b7f1d8
     spec:
       imagePullSecrets:
       - name: quay-secret
