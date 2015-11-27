@@ -7,13 +7,13 @@ How to copy data from one users DB instance to another one.
 You have to dump from a host in the VPC for the old DB.
 
 ```
-laptop$ grep users_db_uri infrastructure/terraform/dev.tfvars
+laptop$ grep users_db_uri infrastructure/terraform/dev.tfstate
 old_users_db_host
 laptop$ grep users_db_password infrastructure/terraform/dev.tfvars
 old_users_db_password
 laptop$ grep public_ip infrastructure/terraform/dev.tfstate | head -n1
 old_minion_ip
-laptop$ ssh -i infrastructure/terraform/dev-keypair.pem ubuntu@old_minion_ip
+laptop$ ssh -i infrastructure/dev-keypair.pem ubuntu@old_minion_ip
 
 ubuntu$ sudo apt-get install postgresql-client
 ubuntu$ export PGPASSWORD="old_users_db_password"
@@ -38,7 +38,7 @@ laptop$ ssh -i infra/dev/kube_aws_rsa ubuntu@new_minion_ip
 
 ubuntu$ sudo apt-get install postgresql-client
 ubuntu$ export PGPASSWORD="new_users_db_password"
-ubuntu$ psql -U ubuntu -h "new_users_db_host" --dbname=users < data.sql
+ubuntu$ psql -U postgres -h "new_users_db_host" --dbname=users < data.sql
 ```
 
 # Confirm
