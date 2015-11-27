@@ -1,3 +1,10 @@
+# DEPRECATED
+
+These instructions refer to a previous version of the infrastructure.
+For the up-to-date version, see [the imfra directory](/infra).
+
+---
+
 !!!!!DO NOT RUN THESE COMMANDS UNLESS YOU KNOW WHAT YOU'RE DOING!!!!!
 
 # The Infrastructure
