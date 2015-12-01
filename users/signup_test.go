@@ -110,8 +110,6 @@ func Test_Signup(t *testing.T) {
 	assert.NotContains(t, emailToken, "%24")
 
 	assert.NotEqual(t, "", user.Organization.ProbeToken, "user should have a probe token")
-	assert.Contains(t, string(sentEmails[1].Text), user.Organization.ProbeToken)
-	assert.Contains(t, string(sentEmails[1].HTML), user.Organization.ProbeToken)
 
 	// Login with the link
 	u, err := url.Parse(loginLink)

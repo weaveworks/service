@@ -60,8 +60,6 @@ func Test_Approval(t *testing.T) {
 		assert.Equal(t, []string{user1.Email}, sentEmails[0].To)
 		assert.Contains(t, string(sentEmails[0].Text), "account has been approved!")
 		assert.Contains(t, string(sentEmails[0].HTML), "account has been approved!")
-		assert.Contains(t, string(sentEmails[0].Text), found.Organization.ProbeToken)
-		assert.Contains(t, string(sentEmails[0].HTML), found.Organization.ProbeToken)
 	}
 
 	// List unapproved users
