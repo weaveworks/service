@@ -49,10 +49,6 @@ function terraform_destroy {
 		cd ${CLWD}
 		terraform plan -destroy -state=tfstate -var-file=tfvars ${TARGETS}
 		interactive_confirmation "Does this look right?"
-		echo
-		echo "Terraform will warn you that it will 'delete all your managed infrastructure'."
-		echo "Don't worry: it will only delete the targets listed above."
-		echo
 		terraform destroy -state=tfstate -var-file=tfvars ${TARGETS}
 	)
 }
