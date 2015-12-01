@@ -30,7 +30,7 @@ func Test_Approval(t *testing.T) {
 	// List unapproved users
 	// should equal user1, user2
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/private/api/users", nil)
+	r, _ := http.NewRequest("GET", "/private/api/users?approved=false", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, approved.ID))
@@ -67,12 +67,32 @@ func Test_Approval(t *testing.T) {
 	// List unapproved users
 	// should equal user2
 	w = httptest.NewRecorder()
+	r, _ = http.NewRequest("GET", "/private/api/users?approved=false", nil)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NotContains(t, w.Body.String(), approved.Email)
+	assert.NotContains(t, w.Body.String(), user1.Email)
+	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, user2.ID))
+
+	// List approved users
+	// should equal approved and user1
+	w = httptest.NewRecorder()
+	r, _ = http.NewRequest("GET", "/private/api/users?approved=true", nil)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), approved.Email)
+	assert.Contains(t, w.Body.String(), user1.Email)
+	assert.NotContains(t, w.Body.String(), user2.Email)
+
+	// List all users
+	// should equal all users
+	w = httptest.NewRecorder()
 	r, _ = http.NewRequest("GET", "/private/api/users", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, approved.ID))
-	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, user1.ID))
-	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, user2.ID))
+	assert.Contains(t, w.Body.String(), approved.Email)
+	assert.Contains(t, w.Body.String(), user1.Email)
+	assert.Contains(t, w.Body.String(), user2.Email)
 }
 
 func Test_Approval_IsIdempotent(t *testing.T) {

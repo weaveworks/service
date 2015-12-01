@@ -15,6 +15,14 @@ func validationErrorf(format string, args ...interface{}) validationError {
 	return validationError(fmt.Errorf(format, args...))
 }
 
+type filterNotImplementedError struct {
+	filter
+}
+
+func (f filterNotImplementedError) Error() string {
+	return fmt.Sprintf("Filter not implemented: %v", f.filter)
+}
+
 func errorStatusCode(err error) int {
 	switch {
 	case err == errNotFound:

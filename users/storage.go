@@ -28,7 +28,7 @@ type database interface {
 	// Ensure a user is deleted. If they do not exist, return success.
 	DeleteUser(email string) error
 
-	ListUnapprovedUsers() ([]*user, error)
+	ListUsers(...filter) ([]*user, error)
 	ListOrganizationUsers(orgName string) ([]*user, error)
 
 	// Approve the user for access. Should generate them a new organization.
@@ -37,6 +37,9 @@ type database interface {
 	// Update the user's login token. Setting the token to "" should disable the
 	// user's token.
 	SetUserToken(id, token string) error
+
+	// Update the user's first login timestamp. Should be called the first time a user logs in (i.e. if FirstLoginAt.IsZero())
+	SetUserFirstLoginAt(id string) error
 
 	FindOrganizationByProbeToken(probeToken string) (*organization, error)
 	RenameOrganization(oldName, newName string) error
@@ -60,7 +63,7 @@ func mustNewDatabase(databaseURI string) database {
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		storage = &pgStorage{db}
+		storage = newPGStorage(db)
 	case "memory":
 		storage = newMemoryStorage()
 	default:

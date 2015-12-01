@@ -1,27 +1,44 @@
 <!doctype html>
 <html>
   <head>
-    <title>Scope New Account Approval</title>
+    <title>Scope as a Service - Users</title>
   </head>
   <body>
-    <h2>New Accounts</h2>
+    <h2>Accounts</h2>
+    <span>
+      Showing:
+      {{if or .ShowingApproved .ShowingUnapproved}}<a href="/private/api/users">All</a>{{else}}All{{end}}
+      {{if .ShowingApproved}}Approved{{else}}<a href="/private/api/users?approved=true">Approved</a>{{end}}
+      {{if .ShowingUnapproved}}Unapproved{{else}}<a href="/private/api/users?approved=false">Unapproved</a>{{end}}
+    </span>
     {{with .}}
     <table>
       <tr>
         <th>Email</th>
         <th>CreatedAt</th>
-        <th></th>
+        <th>ApprovedAt</th>
+        <th>FirstLoginAt</th>
       </tr>
-      {{range .}}
+      {{range .Users}}
       <tr>
         <td>{{.Email}}</td>
         <td>{{.FormatCreatedAt}}</td>
-        <td><form action="/private/api/users/{{.ID}}/approve" method="POST"><input type="submit" value="Approve" /></form></td>
+        <td>
+          {{if .IsApproved}}
+          {{.FormatApprovedAt}}
+          {{else}}
+          <form action="/private/api/users/{{.ID}}/approve" method="POST">
+            <input type="hidden" name="redirect_to" value="/private/api/users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
+            <input type="submit" value="Approve" />
+          </form>
+          {{end}}
+        </td>
+        <td>{{.FormatFirstLoginAt}}</td>
       </tr>
       {{end}}
     </table>
     {{else}}
-    <p>No new users.</p>
+    <p>No users.</p>
     {{end}}
   </body>
 </html>

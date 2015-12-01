@@ -87,7 +87,7 @@ func (a *api) routes() http.Handler {
 		{"DELETE", "/api/users/org/{orgName}/users/{userEmail}", a.authenticated(a.deleteUser)},
 		{"GET", "/private/api/users/lookup/{orgName}", a.authenticated(a.lookupUsingCookie)},
 		{"GET", "/private/api/users/lookup", a.lookupUsingToken},
-		{"GET", "/private/api/users", a.listUnapprovedUsers},
+		{"GET", "/private/api/users", a.listUsers},
 		{"POST", "/private/api/users/{userID}/approve", a.approveUser},
 	} {
 		name := instrument.MakeLabelValue(route.path)
@@ -104,7 +104,7 @@ func (a *api) admin(w http.ResponseWriter, r *http.Request) {
 	<body>
 		<h1>User service</h1>
 		<ul>
-			<li><a href="/private/api/users">Approve users</a></li>
+			<li><a href="/private/api/users?approved=false">Approve users</a></li>
 		</ul>
 	</body>
 </html>
@@ -207,6 +207,11 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 		tokenExpired()
 		return
 	}
+	if u.FirstLoginAt.IsZero() {
+		if err := a.storage.SetUserFirstLoginAt(u.ID); renderError(w, r, err) {
+			return
+		}
+	}
 	if err := a.sessions.Set(w, u.ID); err != nil {
 		tokenExpired(err)
 		return
@@ -269,31 +274,25 @@ func (a *api) lookupUsingToken(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type userView struct {
-	ID        string    `json:"-"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"-"`
+var listUsersFilters = filters{
+	"approved": newUsersApprovedFilter,
 }
 
-func (v userView) FormatCreatedAt() string {
-	return v.CreatedAt.Format(time.Stamp)
-}
-
-func (a *api) listUnapprovedUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := a.storage.ListUnapprovedUsers()
+func (a *api) listUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := a.storage.ListUsers(listUsersFilters.parse(r.URL.Query())...)
 	if renderError(w, r, err) {
 		return
 	}
-	userViews := []userView{}
-	for _, u := range users {
-		userViews = append(userViews, userView{u.ID, u.Email, u.CreatedAt})
-	}
-	b, err := a.templates.bytes("list_users.html", userViews)
+	b, err := a.templates.bytes("list_users.html", map[string]interface{}{
+		"ShowingApproved":   r.URL.Query().Get("approved") == "true",
+		"ShowingUnapproved": r.URL.Query().Get("approved") == "false",
+		"Users":             users,
+	})
 	if renderError(w, r, err) {
 		return
 	}
 	if _, err := w.Write(b); err != nil {
-		logrus.Warn("list unapproved users: %v", err)
+		logrus.Warn("list users: %v", err)
 	}
 }
 
@@ -316,7 +315,11 @@ func (a *api) approveUser(w http.ResponseWriter, r *http.Request) {
 	if renderError(w, r, a.sendEmail(approvedEmail(a.templates, user, token))) {
 		return
 	}
-	http.Redirect(w, r, "/private/api/users", http.StatusFound)
+	redirectTo := r.FormValue("redirect_to")
+	if redirectTo == "" {
+		redirectTo = "/private/api/users"
+	}
+	http.Redirect(w, r, redirectTo, http.StatusFound)
 }
 
 // authenticated wraps a handlerfunc to make sure we have a logged in user, and
@@ -381,11 +384,7 @@ func (a *api) listOrganizationUsers(currentUser *user, w http.ResponseWriter, r 
 	if renderError(w, r, err) {
 		return
 	}
-	userViews := []userView{}
-	for _, u := range users {
-		userViews = append(userViews, userView{Email: u.Email})
-	}
-	renderJSON(w, http.StatusOK, userViews)
+	renderJSON(w, http.StatusOK, users)
 }
 
 func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {

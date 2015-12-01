@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/Sirupsen/logrus"
 	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
@@ -11,18 +12,18 @@ import (
 
 type pgStorage struct {
 	*sql.DB
-}
-
-type execer interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
+	squirrel.StatementBuilderType
 }
 
 type queryRower interface {
 	QueryRow(query string, args ...interface{}) *sql.Row
 }
 
-type scanner interface {
-	Scan(...interface{}) error
+func newPGStorage(db *sql.DB) *pgStorage {
+	return &pgStorage{
+		DB:                   db,
+		StatementBuilderType: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).RunWith(db),
+	}
 }
 
 // Postgres only stores times to the microsecond, so we pre-truncate times so
@@ -94,23 +95,8 @@ func (s pgStorage) DeleteUser(email string) error {
 }
 
 func (s pgStorage) FindUserByID(id string) (*user, error) {
-	return s.findUserByID(s, id)
-}
-
-func (s pgStorage) findUserByID(db queryRower, id string) (*user, error) {
 	user, err := s.scanUser(
-		db.QueryRow(`
-			select
-					users.id, users.email, users.token, users.token_created_at,
-					users.approved_at, users.created_at, users.organization_id,
-					organizations.name, organizations.probe_token,
-					organizations.first_probe_update_at, organizations.created_at
-				from users
-				left join organizations on (users.organization_id = organizations.id)
-				where users.id = $1
-				and users.deleted_at is null`,
-			id,
-		),
+		s.usersQuery().Where(squirrel.Eq{"users.id": id}).QueryRow(),
 	)
 	if err == sql.ErrNoRows {
 		err = errNotFound
@@ -119,23 +105,12 @@ func (s pgStorage) findUserByID(db queryRower, id string) (*user, error) {
 }
 
 func (s pgStorage) FindUserByEmail(email string) (*user, error) {
-	return s.findUserByEmail(s, email)
+	return s.findUserByEmail(s.DB, email)
 }
 
-func (s pgStorage) findUserByEmail(db queryRower, email string) (*user, error) {
+func (s pgStorage) findUserByEmail(db squirrel.BaseRunner, email string) (*user, error) {
 	user, err := s.scanUser(
-		s.QueryRow(`
-			select
-					users.id, users.email, users.token, users.token_created_at,
-					users.approved_at, users.created_at, users.organization_id,
-					organizations.name, organizations.probe_token,
-					organizations.first_probe_update_at, organizations.created_at
-				from users
-				left join organizations on (users.organization_id = organizations.id)
-				where lower(email) = lower($1)
-				and users.deleted_at is null`,
-			email,
-		),
+		s.usersQuery().RunWith(db).Where("lower(users.email) = lower($1)", email).QueryRow(),
 	)
 	if err == sql.ErrNoRows {
 		err = errNotFound
@@ -158,7 +133,7 @@ func (s pgStorage) scanUsers(rows *sql.Rows) ([]*user, error) {
 	return users, nil
 }
 
-func (s pgStorage) scanUser(row scanner) (*user, error) {
+func (s pgStorage) scanUser(row squirrel.RowScanner) (*user, error) {
 	u := &user{}
 	var (
 		token,
@@ -167,14 +142,16 @@ func (s pgStorage) scanUser(row scanner) (*user, error) {
 		oProbeToken sql.NullString
 
 		createdAt,
+		firstLoginAt,
 		tokenCreatedAt,
 		approvedAt,
 		oFirstProbeUpdateAt,
 		oCreatedAt pq.NullTime
 	)
 	if err := row.Scan(
-		&u.ID, &u.Email, &token, &tokenCreatedAt, &approvedAt, &createdAt, &oID,
-		&oName, &oProbeToken, &oFirstProbeUpdateAt, &oCreatedAt,
+		&u.ID, &u.Email, &token, &tokenCreatedAt, &approvedAt, &createdAt,
+		&firstLoginAt, &oID, &oName, &oProbeToken, &oFirstProbeUpdateAt,
+		&oCreatedAt,
 	); err != nil {
 		return nil, err
 	}
@@ -182,6 +159,7 @@ func (s pgStorage) scanUser(row scanner) (*user, error) {
 	s.setTime(&u.TokenCreatedAt, tokenCreatedAt)
 	s.setTime(&u.ApprovedAt, approvedAt)
 	s.setTime(&u.CreatedAt, createdAt)
+	s.setTime(&u.FirstLoginAt, firstLoginAt)
 	if oID.Valid {
 		o := &organization{}
 		s.setString(&o.ID, oID)
@@ -206,18 +184,29 @@ func (s pgStorage) setString(dst *string, src sql.NullString) {
 	}
 }
 
-func (s pgStorage) ListUnapprovedUsers() ([]*user, error) {
-	rows, err := s.Query(`
-		select
-				users.id, users.email, users.token, users.token_created_at,
-				users.approved_at, users.created_at, users.organization_id,
-				organizations.name, organizations.probe_token,
-				organizations.first_probe_update_at, organizations.created_at
-			from users
-			left join organizations on (users.organization_id = organizations.id)
-			where users.approved_at is null
-			and users.deleted_at is null
-			order by users.created_at`)
+func (s pgStorage) usersQuery() squirrel.SelectBuilder {
+	return s.Select(
+		"users.id",
+		"users.email",
+		"users.token",
+		"users.token_created_at",
+		"users.approved_at",
+		"users.created_at",
+		"users.first_login_at",
+		"users.organization_id",
+		"organizations.name",
+		"organizations.probe_token",
+		"organizations.first_probe_update_at",
+		"organizations.created_at",
+	).
+		From("users").
+		LeftJoin("organizations on (users.organization_id = organizations.id)").
+		Where("users.deleted_at is null").
+		OrderBy("users.created_at")
+}
+
+func (s pgStorage) ListUsers(fs ...filter) ([]*user, error) {
+	rows, err := s.applyFilters(s.usersQuery(), fs).Query()
 	if err != nil {
 		return nil, err
 	}
@@ -227,26 +216,7 @@ func (s pgStorage) ListUnapprovedUsers() ([]*user, error) {
 }
 
 func (s pgStorage) ListOrganizationUsers(orgName string) ([]*user, error) {
-	rows, err := s.Query(`
-		select
-				users.id, users.email, users.token, users.token_created_at,
-				users.approved_at, users.created_at, users.organization_id,
-				organizations.name, organizations.probe_token,
-				organizations.first_probe_update_at, organizations.created_at
-			from users
-			left join organizations on (users.organization_id = organizations.id)
-			where lower(organizations.name) = lower($1)
-			and users.deleted_at is null
-			and organizations.deleted_at is null
-			order by users.created_at`,
-		orgName,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return s.scanUsers(rows)
+	return s.ListUsers(newUsersOrganizationFilter([]string{orgName}))
 }
 
 func (s pgStorage) ApproveUser(id string) (*user, error) {
@@ -264,7 +234,7 @@ func (s pgStorage) ApproveUser(id string) (*user, error) {
 	return s.FindUserByID(id)
 }
 
-func (s pgStorage) addUserToOrganization(db execer, userID, organizationID string) error {
+func (s pgStorage) addUserToOrganization(db squirrel.Execer, userID, organizationID string) error {
 	_, err := db.Exec(`
 			update users set
 				organization_id = $2,
@@ -295,6 +265,29 @@ func (s pgStorage) SetUserToken(id, token string) error {
 		where id = $1 and deleted_at is null`,
 		id,
 		string(hashed),
+		s.Now(),
+	)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	switch {
+	case err != nil:
+		return err
+	case count != 1:
+		return errNotFound
+	}
+	return nil
+}
+
+func (s pgStorage) SetUserFirstLoginAt(id string) error {
+	result, err := s.Exec(`
+		update users set
+			first_login_at = $2
+		where id = $1
+			and first_login_at is null
+			and deleted_at is null`,
+		id,
 		s.Now(),
 	)
 	if err != nil {
@@ -378,7 +371,7 @@ func (s pgStorage) FindOrganizationByProbeToken(probeToken string) (*organizatio
 	return o, err
 }
 
-func (s pgStorage) scanOrganization(row scanner) (*organization, error) {
+func (s pgStorage) scanOrganization(row squirrel.RowScanner) (*organization, error) {
 	o := &organization{}
 	var name, probeToken sql.NullString
 	var firstProbeUpdateAt, createdAt pq.NullTime
@@ -424,4 +417,11 @@ func (s pgStorage) Transaction(f func(*sql.Tx) error) error {
 		return err
 	}
 	return tx.Commit()
+}
+
+func (s pgStorage) applyFilters(q squirrel.SelectBuilder, fs []filter) squirrel.SelectBuilder {
+	for _, f := range fs {
+		q = f.Select(q)
+	}
+	return q
 }
