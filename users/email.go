@@ -92,10 +92,9 @@ func loginEmail(t templateEngine, u *user, token string) *email.Email {
 	e.To = []string{u.Email}
 	e.Subject = "Login to Scope"
 	data := map[string]interface{}{
-		"LoginURL":   loginURL(u.Email, token),
-		"RootURL":    rootURL,
-		"Token":      token,
-		"ProbeToken": u.Organization.ProbeToken,
+		"LoginURL": loginURL(u.Email, token),
+		"RootURL":  rootURL,
+		"Token":    token,
 	}
 	e.Text = t.quietBytes("login_email.text", data)
 	e.HTML = t.quietBytes("login_email.html", data)
@@ -121,7 +120,6 @@ func inviteEmail(t templateEngine, u *user, token string) *email.Email {
 		"RootURL":          rootURL,
 		"Token":            token,
 		"OrganizationName": u.Organization.Name,
-		"ProbeToken":       u.Organization.ProbeToken,
 	}
 	e.Text = t.quietBytes("invite_email.text", data)
 	e.HTML = t.quietBytes("invite_email.html", data)
