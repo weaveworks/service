@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "serial": 3,
+    "serial": 5,
     "modules": [
         {
             "path": [
@@ -18,11 +18,10 @@
                         "attributes": {
                             "address": "app-mapper-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com",
                             "allocated_storage": "10",
-                            "auto_minor_version_upgrade": "true",
+                            "auto_minor_version_upgrade": "false",
                             "availability_zone": "us-east-1e",
                             "backup_retention_period": "0",
                             "backup_window": "05:38-06:08",
-                            "copy_tags_to_snapshot": "false",
                             "db_subnet_group_name": "default",
                             "endpoint": "app-mapper-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com:5432",
                             "engine": "postgres",
@@ -59,11 +58,10 @@
                         "attributes": {
                             "address": "users-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com",
                             "allocated_storage": "10",
-                            "auto_minor_version_upgrade": "true",
+                            "auto_minor_version_upgrade": "false",
                             "availability_zone": "us-east-1e",
                             "backup_retention_period": "0",
                             "backup_window": "04:17-04:47",
-                            "copy_tags_to_snapshot": "false",
                             "db_subnet_group_name": "default",
                             "endpoint": "users-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com:5432",
                             "engine": "postgres",
