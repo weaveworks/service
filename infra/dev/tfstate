@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "serial": 5,
+    "serial": 7,
     "modules": [
         {
             "path": [
@@ -18,9 +18,10 @@
                         "attributes": {
                             "address": "app-mapper-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com",
                             "allocated_storage": "10",
+                            "apply_immediately": "true",
                             "auto_minor_version_upgrade": "false",
                             "availability_zone": "us-east-1e",
-                            "backup_retention_period": "0",
+                            "backup_retention_period": "5",
                             "backup_window": "05:38-06:08",
                             "db_subnet_group_name": "default",
                             "endpoint": "app-mapper-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com:5432",
@@ -58,6 +59,7 @@
                         "attributes": {
                             "address": "users-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com",
                             "allocated_storage": "10",
+                            "apply_immediately": "true",
                             "auto_minor_version_upgrade": "false",
                             "availability_zone": "us-east-1e",
                             "backup_retention_period": "0",

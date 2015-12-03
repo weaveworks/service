@@ -125,7 +125,8 @@ resource "aws_db_instance" "users_database" {
     password = "${var.users_db_password}"
     vpc_security_group_ids = ["${aws_security_group.rds_sg.id}"]
     final_snapshot_identifier = "users-final"
-    backup_retention_period = 3
+    backup_retention_period = 5
+    apply_immediately = true
 }
 
 resource "aws_db_instance" "app_mapper_database" {
@@ -139,5 +140,6 @@ resource "aws_db_instance" "app_mapper_database" {
     password = "${var.app_mapper_db_password}"
     vpc_security_group_ids = ["${aws_security_group.rds_sg.id}"]
     final_snapshot_identifier = "app-mapper-final"
-    backup_retention_period = 3
+    backup_retention_period = 5
+    apply_immediately = true
 }
