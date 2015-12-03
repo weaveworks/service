@@ -40,7 +40,7 @@ function password {
 function shell {
 	local hostname=$1
 	local password=$2
-	local podname="dbshell-$(cat /dev/urandom|xxd -ps|head -c5)"
+	local podname="dbshell-${USER}-$(cat /dev/urandom|xxd -ps|head -c5)"
 	trap "kubectl --kubeconfig=${CLWD}/kubeconfig stop pod --grace-period=1 ${podname}" EXIT
 	kubectl --kubeconfig=${CLWD}/kubeconfig run ${podname} --image=postgres --stdin --tty --restart=Never --env="LINES=$(tput lines)" --env="COLUMNS=$(tput cols)" --env="PGPASSWORD=${password}" --command -- psql -U postgres -h ${hostname}
 }
