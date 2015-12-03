@@ -111,3 +111,56 @@ See the helloworld directory.
 ### How can I debug Kubernetes?
 
 `kubectl get events -w` is a good place to start.
+
+### How can I connect to the AWS console?
+
+We use two separate AWS accounts for the dev and prod environments with
+[Consolidated Billing](http://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/consolidated-billing.html)
+(managed centrally from the dev account).
+
+For dev, log in to https://weaveworks.signin.aws.amazon.com/console (the root account is tom.wilkie@weave.works).
+
+For prod, log in to https://weaveworks-prod.signin.aws.amazon.com/console (the root account is pgm@weave.works).
+
+If you don't have access credentials, ask a fellow developer to
+[provide you with an IAM user (with password)](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html#id_users_create_console)
+for the environment you want to access.
+
+### How is data backed up and restored?
+
+We are using the
+[standard automatic backup system from AWS RDS](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html),
+which creates daily snapshots. Here's
+[how to restore a DB from a snapshot](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_RestoreFromSnapshot.html).
+
+### How is DNS configured?
+
+As you can see in the var configuration files, each environment creates a DNS
+zone and
+[an A record aliased to an ELB](http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/using-domain-names-with-elb.html#dns-associate-custom-elb). This
+ELB
+[will normally point to the frontend Kubernetes service](http://kubernetes.io/v1.1/docs/user-guide/services.html#type-loadbalancer)
+and in turn is how the Scope service is accessed from the outside world.
+
+The A-records for dev and prod are `frontend.dev.weave.works.` and `frontend.prod.weave.works.`.
+
+On top of that there's a CNAME record for `scope.weave.works` pointing to
+`frontend.prod.weave.works` which is how the Scope service is publicly accessed
+by end users.
+
+Currently, the `weave.works` domain is manually managed in the `weaveworks` project in
+Google Cloud. This includes:
+
+* The `scope.weave.works` CNAME record
+* NS delegation records for `{dev,prod}.weave.works.`
+* [SES TXT verification record](http://docs.aws.amazon.com/ses/latest/DeveloperGuide/dns-txt-records.html)
+
+### What service is used to deliver email?
+
+We are currently using [AWS' SES](https://aws.amazon.com/ses/) for sending
+emails (e.g. welcome and password link emails). SES is configured manually in
+the dev environment and reused by the prod environment.
+
+We cannot have multiple SES configuration due to how
+[sender domain verification works](http://docs.aws.amazon.com/ses/latest/DeveloperGuide/dns-txt-records.html) (i.e.
+only one AWS environment can supply the value for the `_amazonses` TXT record)
