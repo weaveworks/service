@@ -27,6 +27,7 @@ test:
     - cd $SRCDIR; ./tools/lint .
     - cd $SRCDIR; COVERDIR=./coverage make RM= test
     - cd $SRCDIR; make RM=
+    - cd $SRCDIR; make RM= app-mapper-integration-test
     - cd $SRCDIR; make RM= users-integration-test
     - cd $SRCDIR; make RM= client-lint
     - cd $SRCDIR; make RM= client-tests
