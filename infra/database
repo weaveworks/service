@@ -10,6 +10,7 @@ then
 	echo "  $(basename $0) bootstrap <name>"
 	echo "  $(basename $0) hostname <name> <database>"
 	echo "  $(basename $0) password <name> <database>"
+	echo "  $(basename $0) shell <name> <database>"
 	exit 1
 fi
 
@@ -36,12 +37,12 @@ function password {
 	echo ${password}
 }
 
-function load {
+function shell {
 	local hostname=$1
 	local password=$2
-	local podname="dbload-$(cat /dev/urandom|xxd -ps|head -c5)"
+	local podname="dbshell-${USER}-$(cat /dev/urandom|xxd -ps|head -c5)"
 	trap "kubectl --kubeconfig=${CLWD}/kubeconfig stop pod --grace-period=1 ${podname}" EXIT
-	kubectl --kubeconfig=${CLWD}/kubeconfig run ${podname} --image=postgres --stdin --restart=Never --env="PGPASSWORD=${password}" --command -- psql -U postgres -h ${hostname}
+	kubectl --kubeconfig=${CLWD}/kubeconfig run ${podname} --image=postgres --stdin --tty --restart=Never --env="LINES=$(tput lines)" --env="COLUMNS=$(tput cols)" --env="PGPASSWORD=${password}" --command -- psql -U postgres -h ${hostname}
 }
 
 case $WHAT in
@@ -56,6 +57,10 @@ password)
 bootstrap)
 	load $(hostname users_database) $(password users_database) < ${CLWD}/../../users/db/schema.sql
 	load $(hostname app_mapper_database) $(password app_mapper_database) < ${CLWD}/../../app-mapper/db/schema.sql
+	;;
+
+shell)
+	shell $(hostname $3) $(password $3)
 	;;
 
 *)
