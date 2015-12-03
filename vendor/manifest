@@ -2,6 +2,12 @@
 	"version": 0,
 	"dependencies": [
 		{
+			"importpath": "github.com/Masterminds/squirrel",
+			"repository": "https://github.com/Masterminds/squirrel",
+			"revision": "4ad55e2a1f1b46756cf47381a90ed7f4df1ec80d",
+			"branch": "v1"
+		},
+		{
 			"importpath": "github.com/Sirupsen/logrus",
 			"repository": "https://github.com/Sirupsen/logrus",
 			"revision": "62f85a2e398fb4cae34ecd1db528422ede248d3c",
@@ -346,6 +352,18 @@
 			"importpath": "github.com/juju/ratelimit",
 			"repository": "https://github.com/juju/ratelimit",
 			"revision": "772f5c38e468398c4511514f4f6aa9a4185bc0a0",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/lann/builder",
+			"repository": "https://github.com/lann/builder",
+			"revision": "f22ce00fd9394014049dad11c244859432bd6820",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/lann/ps",
+			"repository": "https://github.com/lann/ps",
+			"revision": "62de8c46ede02a7675c4c79c84883eb164cb71e3",
 			"branch": "master"
 		},
 		{
