@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
+	gorillaws "github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	scope "github.com/weaveworks/scope/xfer"
@@ -303,12 +304,52 @@ func TestProxyWebSocket(t *testing.T) {
 			require.NoError(t, err, "Error sending message")
 			err = websocket.Message.Receive(ws, &messageToReceive)
 			require.NoError(t, err, "Error receiving message")
-			require.Equal(t, messageToSend, messageToReceive)
+			require.Equal(t, messageToSend, messageToReceive, "Unexpected echoed message")
 			messageToReceive = ""
 		}
 	}
 
 	testProxy(t, targetHandler, nil, &mockAuthenticator{}, testFunc)
+}
+
+// Regression test for "App-mapper proxy leaks file descriptors" https://github.com/weaveworks/service/issues/253
+func TestProxyWebSocketNoServerSideLeak(t *testing.T) {
+	serverExited := false
+
+	// Use a websocket echo server in the target
+	targetHandler := websocket.Handler(func(ws *websocket.Conn) {
+		_, err := io.Copy(ws, ws)
+		assert.NoError(t, err, "Target handler copy failed")
+		serverExited = true
+	})
+
+	testFunc := func(proxyHost string, pms *probeMemStorage) {
+		// Establish a websocket connection with the proxy
+		// Use the gorilla websocket library since its Conn.Close()
+		// function doesn't send the Websocket close message (not giving
+		// the server an opportunity to close the connection and forcing
+		// the Proxy to explicitly do it)
+		ws, _, err := gorillaws.DefaultDialer.Dial(
+			"ws://"+proxyHost+"/api/app/somePublicOrgName/request?arg1=foo&arg2=bar",
+			http.Header{"Origin": {"http://example.com"}},
+		)
+		require.NoError(t, err, "Cannot dial websocket server")
+
+		// We should receive back exactly what we send
+		messageToSend := []byte("This is a test message")
+		err = ws.WriteMessage(gorillaws.TextMessage, messageToSend)
+		require.NoError(t, err, "Error sending message")
+		msgType, messageToReceive, err := ws.ReadMessage()
+		require.NoError(t, err, "Error receiving message")
+		assert.Equal(t, gorillaws.TextMessage, msgType, "Unexpected message type")
+		require.Equal(t, messageToSend, messageToReceive, "Unexpected echoed message")
+
+		// When we close the client, the proxy should also close the server-side connection
+		ws.Close()
+	}
+
+	testProxy(t, targetHandler, nil, &mockAuthenticator{}, testFunc)
+	assert.True(t, serverExited, "Server didn't exit")
 }
 
 func TestProbeLogging(t *testing.T) {
