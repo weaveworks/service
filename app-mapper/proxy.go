@@ -147,19 +147,33 @@ func proxyWS(targetHost string, w http.ResponseWriter, r *http.Request) {
 
 	// Copy websocket payload back and forth between our client and the target host
 	var wg sync.WaitGroup
-	cp := func(dst io.Writer, src io.Reader, tag string) {
-		defer wg.Done()
-		if _, err := io.Copy(dst, src); err != nil {
-			logrus.Debugf("proxy: websocket: %q io.Copy: %v", tag, err) // EOF is normal
-		}
-		logrus.Debugf("proxy: websocket: %q copier exited", tag)
-	}
 	wg.Add(2)
 	logrus.Debugf("proxy: websocket: spawning copiers")
-	go cp(clientConn, targetConn, "server2client")
-	go cp(targetConn, clientConn, "client2server")
+	go copyStream(clientConn, targetConn, &wg, "proxy: websocket: \"server2client\"")
+	go copyStream(targetConn, clientConn, &wg, "proxy: websocket: \"client2server\"")
 	wg.Wait()
 	logrus.Debugf("proxy: websocket: connection closed")
+}
+
+type closeWriter interface {
+	CloseWrite() error
+}
+
+func copyStream(dst io.WriteCloser, src io.Reader, wg *sync.WaitGroup, tag string) {
+	defer wg.Done()
+	if _, err := io.Copy(dst, src); err != nil {
+		logrus.Warnf("%s: io.Copy: %s", tag, err)
+	}
+	var err error
+	if c, ok := dst.(closeWriter); ok {
+		err = c.CloseWrite()
+	} else {
+		err = dst.Close()
+	}
+	if err != nil {
+		logrus.Warningf("%s: error closing connection: %s", tag, err)
+	}
+	logrus.Debugf("%s: copier exited", tag)
 }
 
 func addPort(host string, defaultPort int) string {
