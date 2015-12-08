@@ -324,6 +324,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/gorilla/websocket",
+			"repository": "https://github.com/gorilla/websocket",
+			"revision": "361d4c0ffd78338ebe0a9e6320cdbe115d7dc026",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/inconshreveable/mousetrap",
 			"repository": "https://github.com/inconshreveable/mousetrap",
 			"revision": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75",
