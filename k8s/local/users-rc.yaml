@@ -17,7 +17,7 @@ spec:
       - name: users
         image: quay.io/weaveworks/users
         args:
-        - -session-secret=3919365780a79e0658fde4d03e6945a080031ec077b88975898f698c0d298395
+        - -session-secret=9334f0f44a271d686714c475b093a133fab81f90536b0de6a231af7dc78cb56e
         - -email-uri=smtp://mailcatcher:587
         - -database-uri=postgres://postgres@users-db/users?sslmode=disable
         env:
