@@ -40,3 +40,15 @@ $ weave launch
 $ eval "$(weave env)"
 $ make integration-test
 ```
+
+## User session secret generation
+
+The user management service signs the session cookies with HMAC. In order to do
+that, it needs a key which is provided on the command line with the `--session-key`
+argument.
+
+In order to generate a key from the command line you can do:
+
+```bash
+cat /dev/random|xxd -c 2000 -ps|head -c64; echo`
+```

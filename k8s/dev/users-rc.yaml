@@ -19,7 +19,7 @@ spec:
       - name: users
         image: quay.io/weaveworks/users:1f1031d
         args:
-        - -session-secret=3919365780a79e0658fd44d03e6945a080031ec077b88975898f698c0d298395
+        - -session-secret=56ee20ee7e8dc0b366abb1df4b3ac22ae05566d8eb18cba26f1c0925b1b9c7bf
         - -email-uri=smtp://AKIAJC77KJCIV4HRCM2Q:AqliFmKAFLPagTQkd6FuoZHQDolVU195DorateSEKsTO@email-smtp.us-east-1.amazonaws.com:587
         - -database-uri=postgres://postgres:us45dcd40163798d@users-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com/users?sslmode=disable
         env:
