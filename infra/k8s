@@ -6,10 +6,15 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+function usage {
+	echo "usage: $(basename $0) up/down <name>" 1>&2
+	exit 1
+}
+
+
 if [ $# -ne 2 ]
 then
-	echo "usage: $(basename $0) up/down <name>"
-	exit 1
+	usage
 fi
 
 WHAT=$1
@@ -155,6 +160,6 @@ debug-clean-s3-buckets)
 
 *)
 	echo "Unknown command"
-	exit 1
+	usage
 	;;
 esac
