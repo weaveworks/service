@@ -65,13 +65,12 @@ export default class LandingPage extends React.Component {
         fontWeight: 300
       },
       featureWrapper: {
-        marginRight: 48,
         marginTop: 48,
         padding: 16,
         width: 500
       },
       formContainer: {
-        margin: '0 16px 16px',
+        marginBottom: 16,
         padding: '12px 48px 48px',
         width: 420,
         backgroundColor: 'rgba(250,250,252,0.7)',
@@ -96,7 +95,9 @@ export default class LandingPage extends React.Component {
         display: 'flex',
         flexDirection: 'row',
         flexWrap: 'wrap',
-        marginBottom: 36
+        justifyContent: 'center',
+        marginBottom: 36,
+        marginTop: 56
       },
       link: {
         textTransform: 'uppercase',
@@ -104,18 +105,17 @@ export default class LandingPage extends React.Component {
       },
       loginWrapper: {
         width: 280,
-        padding: '16px 48px 16px 24px',
-        marginTop: 56,
+        padding: '16px 48px 16px 24px'
       },
       logoWrapper: {
         width: 250,
         height: 64,
         marginLeft: 64,
-        marginTop: 32 + 51 - 3
+        marginTop: 24
       },
       menuWrapper: {
         padding: 16,
-        marginTop: 76
+        marginTop: 20
       },
       spaceWrapper: {
         flex: 1
