@@ -74,11 +74,14 @@ up)
 	create_tf_file
 	terraform_apply
 	;;
+
 down)
 	terraform_destroy
 	delete_tf_file
 	;;
+
 *)
+	echo "Unknown command" 1>&2
 	usage
 	;;
 esac

@@ -32,9 +32,9 @@ fi
 
 function verify_db_name {
 	local databases="users app_mapper"
-	for DB in $databases
+	for db in $databases
 	do
-		if [ "$DB" = "$1" ]
+		if [ "$db" = "$1" ]
 		then
 			return 0
 		fi
@@ -102,7 +102,7 @@ shell)
 	;;
 
 *)
-	echo Unknown command 1>&2
+	echo "Unknown command" 1>&2
 	usage
 	;;
 esac

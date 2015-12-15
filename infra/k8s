@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# This file is an adaptation of https://get.k8s.io.
-
 set -o errexit
 set -o nounset
 set -o pipefail
@@ -10,7 +8,6 @@ function usage {
 	echo "usage: $(basename $0) up/down <name>" 1>&2
 	exit 1
 }
-
 
 if [ $# -ne 2 ]
 then
@@ -159,7 +156,7 @@ debug-clean-s3-buckets)
 	;;
 
 *)
-	echo "Unknown command"
+	echo "Unknown command" 1>&2
 	usage
 	;;
 esac
