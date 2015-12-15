@@ -72,9 +72,12 @@ function stand_up {
 	local k8s_ip="localhost"
 	if [[ "$(uname -s)" == "Darwin" ]]
 	then
-		k8s_ip=$(docker-machine ip default)
+		local machine_name=$(docker-machine ls -q | head -n1)
+		echo "Using docker-machine ${machine_name}"
+		k8s_ip=$(docker-machine ip ${machine_name})
 	fi
 
+	echo "Starting etcd"
 	docker run \
 		--name etcd \
 		--net=host \
@@ -86,6 +89,7 @@ function stand_up {
 	# kubelet requires --docker-endpoint=$DOCKER_HOST, to make it talk to Weave.
 	# But it doesn't work due to https://github.com/weaveworks/weave/issues/1600
 
+	echo "Starting kubelet"
 	docker run \
 		--name local_k8s_kubelet \
 		--volume=/:/rootfs:ro \
@@ -110,6 +114,7 @@ function stand_up {
 	done
 	echo
 
+	echo "Starting other components"
 	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/skydns
 	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/db
 	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/mailcatcher
@@ -126,6 +131,7 @@ function stand_up {
 }
 
 function generate_certificates {
+	echo "Generating certificates"
 	if ! [ -d "${LOCAL_PKI_K8S_DIR}" ]
 	then
 		curl -s -L https://raw.githubusercontent.com/kubernetes/kubernetes/master/cluster/saltbase/salt/generate-cert/make-ca-cert.sh -o /tmp/make-ca-cert.sh
