@@ -80,7 +80,7 @@ $(CLIENT_SERVER_UPTODATE): client/build/app.js client/build/Dockerfile client/bu
 	$(SUDO) docker build -t $(CLIENT_SERVER_IMAGE) client/build/
 	touch $@
 
-$(FRONTEND_UPTODATE): frontend/Dockerfile frontend/default.conf frontend/api.json
+$(FRONTEND_UPTODATE): frontend/Dockerfile frontend/default.conf frontend/api.json frontend/pki/scope.weave.works.crt frontend/dhparam.pem
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(FRONTEND_IMAGE) frontend/
 	touch $@
