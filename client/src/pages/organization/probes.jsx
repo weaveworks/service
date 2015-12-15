@@ -1,6 +1,6 @@
 import React from 'react';
 import { Styles } from 'material-ui';
-import { getData } from '../../common/request';
+import { getData, encodeURIs } from '../../common/request';
 import { trackEvent, trackException } from '../../common/tracking';
 
 export default class Probes extends React.Component {
@@ -20,7 +20,7 @@ export default class Probes extends React.Component {
 
   getProbes() {
     clearTimeout(this.getProbesTimer);
-    const url = `/api/org/${this.props.org}/probes`;
+    const url = encodeURIs`/api/org/${this.props.org}/probes`;
     getData(url)
       .then(resp => {
         this.setState({

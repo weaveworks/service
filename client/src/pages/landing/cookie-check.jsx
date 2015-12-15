@@ -1,5 +1,5 @@
 import React from 'react';
-import { getData } from '../../common/request';
+import { getData, encodeURIs } from '../../common/request';
 import { CircularProgress, Styles } from 'material-ui';
 import { trackException, trackView } from '../../common/tracking';
 
@@ -52,10 +52,10 @@ export default class CookieCheck extends React.Component {
     let url;
     if (resp.firstProbeUpdateAt) {
       // go to app if a probe is connected
-      url = `/app/${resp.organizationName}`;
+      url = encodeURIs`/app/${resp.organizationName}`;
     } else {
       // otherwise go to management page
-      url = `/org/${resp.organizationName}`;
+      url = encodeURIs`/org/${resp.organizationName}`;
     }
     this.props.history.push(url);
   }

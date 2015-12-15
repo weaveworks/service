@@ -4,7 +4,7 @@ import debug from 'debug';
 import ThemeManager from 'material-ui/lib/styles/theme-manager';
 import LightRawTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
 
-import { getData } from '../../common/request';
+import { getData, encodeURIs } from '../../common/request';
 import Toolbar from '../../components/toolbar';
 import { trackView } from '../../common/tracking';
 
@@ -70,13 +70,13 @@ export default class Wrapper extends React.Component {
   }
 
   _checkCookie() {
-    const url = `/api/users/org/${this.props.params.orgId}`;
+    const url = encodeURIs`/api/users/org/${this.props.params.orgId}`;
     getData(url).then(this._handleLoginSuccess, this._handleLoginError);
   }
 
   _checkInstance(name) {
     const org = name || this.state.name;
-    const url = `/api/app/${org}/api`;
+    const url = encodeURIs`/api/app/${org}/api`;
     getData(url).then(this._handleInstanceSuccess, this._handleInstanceError);
   }
 
@@ -107,7 +107,7 @@ export default class Wrapper extends React.Component {
   }
 
   _handleInstanceSuccess() {
-    const url = `/api/app/${this.state.name}/`;
+    const url = encodeURIs`/api/app/${this.state.name}/`;
     this.setState({
       activityText: '',
       frameBaseUrl: url

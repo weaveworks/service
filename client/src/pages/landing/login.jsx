@@ -24,9 +24,10 @@ export default class LoginForm extends React.Component {
   }
 
   _tryLogin() {
-    const params = this.props.params;
-    const url = `/api/users/login?email=${params.email}&token=${params.token}`;
-    getData(url).then(this._handleLoginSuccess, this._handleLoginError);
+    const {email, token} = this.props.params;
+    const url = '/api/users/login';
+    getData(url, {email, token})
+      .then(this._handleLoginSuccess, this._handleLoginError);
   }
 
   _handleLoginSuccess() {
