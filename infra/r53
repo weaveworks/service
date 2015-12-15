@@ -4,10 +4,15 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+function usage {
+	echo "usage: $(basename $0) up/down <name>" 1>&2
+	exit 1
+}
+
+
 if [ $# -ne 2 ]
 then
-	echo "usage: $(basename $0) up/down <name>"
-	exit 1
+	usage
 fi
 
 WHAT=$1
@@ -69,12 +74,14 @@ up)
 	create_tf_file
 	terraform_apply
 	;;
+
 down)
 	terraform_destroy
 	delete_tf_file
 	;;
+
 *)
-	echo "Unknown command"
-	exit 1
+	echo "Unknown command" 1>&2
+	usage
 	;;
 esac
