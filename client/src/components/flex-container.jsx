@@ -6,7 +6,7 @@ export class FlexContainer extends React.Component {
       display: 'flex',
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifyContent: 'center',
+      justifyContent: 'space-around',
       alignContent: 'flex-start',
       alignItems: 'flex-start',
       padding: '0 64px'
