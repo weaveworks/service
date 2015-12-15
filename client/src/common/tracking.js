@@ -1,5 +1,6 @@
 import debug from 'debug';
 import React from 'react';
+import { toQueryString } from './request';
 
 const log = debug('service:tracking');
 const error = debug('service:trackingErr');
@@ -52,7 +53,7 @@ export function trackView(page) {
 export class PardotSignupIFrame extends React.Component {
   render() {
     let url;
-    const query = `email=${this.props.email}`;
+    const query = toQueryString({email: this.props.email});
 
     if (window.pi) {
       const isHTTPS = (document.location.protocol === 'https:');

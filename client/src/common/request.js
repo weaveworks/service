@@ -52,8 +52,37 @@ function doRequest(url, method = 'GET', requestData = {}, contentType = null) {
   return promise;
 }
 
-export function getData(url) {
-  return doRequest(url, 'GET');
+//
+// https://leanpub.com/understandinges6/read#leanpub-auto-tagged-templates
+// based on function passthru(literals, ...substitutions)
+//
+// apply encodeURIComponent to all substitutions.
+//
+export function encodeURIs() {
+  const [literals, ...substitutions] = arguments;
+  let result = '';
+
+  // run the loop only for the substitution count
+  for (let i = 0; i < substitutions.length; i++) {
+    result += literals[i];
+    result += encodeURIComponent(substitutions[i]);
+  }
+
+  // add the last literal
+  result += literals[literals.length - 1];
+
+  return result;
+}
+
+export function toQueryString(params) {
+  return Object.keys(params).map((k) => {
+    return `${k}=${encodeURIComponent(params[k])}`;
+  }).join('&');
+}
+
+export function getData(url, params) {
+  const getUrl = params ? `${url}?${toQueryString(params)}` : url;
+  return doRequest(getUrl, 'GET');
 }
 
 export function postData(url, requestData = {}) {

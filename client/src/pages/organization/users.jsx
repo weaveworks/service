@@ -2,7 +2,7 @@ import React from 'react';
 import { FlatButton, List, ListItem, RaisedButton, TextField } from 'material-ui';
 import debug from 'debug';
 
-import { getData, deleteData, postData } from '../../common/request';
+import { getData, deleteData, postData, encodeURIs } from '../../common/request';
 import { Box } from '../../components/box';
 
 const error = debug('service:usersErr');
@@ -21,7 +21,7 @@ export default class Users extends React.Component {
   }
 
   getUsers() {
-    const url = `/api/org/${this.props.org}/users`;
+    const url = encodeURIs`/api/org/${this.props.org}/users`;
     getData(url)
       .then(resp => {
         this.setState({
@@ -33,7 +33,7 @@ export default class Users extends React.Component {
   }
 
   _handleDeleteTouchTap(user) {
-    const url = `/api/org/${this.props.org}/users/${user.id}`;
+    const url = encodeURIs`/api/org/${this.props.org}/users/${user.id}`;
 
     deleteData(url)
       .then(resp => {
@@ -47,7 +47,7 @@ export default class Users extends React.Component {
   }
 
   _handleInviteTouchTap() {
-    const url = `/api/org/${this.props.org}/users`;
+    const url = encodeURIs`/api/org/${this.props.org}/users`;
 
     const email = this.refs.emailField.getValue();
 

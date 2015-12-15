@@ -1,6 +1,7 @@
 import React from 'react';
 import { Paper } from 'material-ui';
 
+import { encodeURIs } from '../common/request';
 import Colors from '../common/colors';
 
 export default class WrapperToolbar extends React.Component {
@@ -10,11 +11,11 @@ export default class WrapperToolbar extends React.Component {
     }, {
       title: 'Visit my Scope Instance',
       label: 'My Scope',
-      route: `#/app/${this.props.organization}`
+      route: encodeURIs`#/app/${this.props.organization}`
     }, {
       iconClass: 'fa fa-cog',
       title: 'Settings',
-      route: `#/org/${this.props.organization}`
+      route: encodeURIs`#/org/${this.props.organization}`
     }, {
       iconClass: 'fa fa-sign-out',
       title: `Log out ${this.props.user}`,

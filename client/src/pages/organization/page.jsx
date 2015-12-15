@@ -4,7 +4,7 @@ import ThemeManager from 'material-ui/lib/styles/theme-manager';
 import LightRawTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
 
 import Colors from '../../common/colors';
-import { getData } from '../../common/request';
+import { getData, encodeURIs } from '../../common/request';
 import { Box } from '../../components/box';
 import { FlexContainer } from '../../components/flex-container';
 import { Column } from '../../components/column';
@@ -41,7 +41,7 @@ export default class OrganizationPage extends React.Component {
 
   _getOrganizationData(organization) {
     if (organization) {
-      const url = `/api/users/org/${organization}`;
+      const url = encodeURIs`/api/users/org/${organization}`;
       getData(url).then(this._handleOrganizationSuccess, this._handleOrganizationError);
     }
   }
