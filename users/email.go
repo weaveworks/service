@@ -103,7 +103,7 @@ func loginEmail(t templateEngine, u *user, token string) *email.Email {
 
 func loginURL(email, rawToken string) string {
 	return fmt.Sprintf(
-		"http://%s/#/login/%s/%s",
+		"https://%s/#/login/%s/%s",
 		domain,
 		url.QueryEscape(email),
 		url.QueryEscape(rawToken),
