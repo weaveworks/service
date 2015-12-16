@@ -14,7 +14,7 @@ import (
 const (
 	fromAddress = "Scope Support <support@weave.works>"
 	domain      = "scope.weave.works"
-	rootURL     = "http://" + domain
+	rootURL     = "https://" + domain
 )
 
 var (
