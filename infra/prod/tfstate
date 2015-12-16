@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "serial": 6,
+    "serial": 7,
     "modules": [
         {
             "path": [
@@ -134,9 +134,9 @@
                         "id": "Z3D0C85OQQWW91_frontend.prod.weave.works_A",
                         "attributes": {
                             "alias.#": "1",
-                            "alias.2195441751.evaluate_target_health": "false",
-                            "alias.2195441751.name": "a709b7cb3a3fd11e586e00a5860f6066-933815064.us-east-1.elb.amazonaws.com",
-                            "alias.2195441751.zone_id": "Z3DZXE0Q79N41H",
+                            "alias.850689549.evaluate_target_health": "false",
+                            "alias.850689549.name": "a8cacc86ea40111e586e00a5860f6066-343593289.us-east-1.elb.amazonaws.com",
+                            "alias.850689549.zone_id": "Z3DZXE0Q79N41H",
                             "fqdn": "frontend.prod.weave.works",
                             "id": "Z3D0C85OQQWW91_frontend.prod.weave.works_A",
                             "name": "frontend.prod.weave.works",
