@@ -115,9 +115,6 @@ users-integration-test: $(USERS_UPTODATE)
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
 
-users/ca-certificates.crt: /etc/ssl/certs/ca-certificates.crt
-	cp $? $@
-
 client-build-image: $(CLIENT_BUILD_UPTODATE)
 
 ifeq ($(BUILD_IN_CONTAINER),true)
