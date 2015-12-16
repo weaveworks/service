@@ -23,3 +23,12 @@ spec:
           value: dns
         ports:
         - containerPort: 80
+        - containerPort: 443
+        volumeMounts:
+        - name: tls-secret
+          mountPath: /tls/secret/
+          readOnly: true
+      volumes:
+      - name: tls-secret
+        secret:
+          secretName: tls-secret
