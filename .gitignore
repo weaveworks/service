@@ -34,7 +34,6 @@ coverage.html
 *.in-container
 app-mapper/app-mapper
 users/users
-users/ca-certificates.crt
 Vagrantfile.local
 .dir-locals.el
 image.tar
