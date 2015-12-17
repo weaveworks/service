@@ -4,7 +4,11 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-COMPONENTS=${@:-app-mapper ui-server frontend monitoring users}
+COMPONENTS=$@
+if [ "$COMPONENTS" == "" ]
+then
+	COMPONENTS="app-mapper ui-server frontend monitoring users"
+fi
 
 echo "When pushing, you may be prompted to log in. To get your password:"
 echo ""
