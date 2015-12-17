@@ -1,12 +1,36 @@
-# React app for the Scope service
+# client
 
-## TLDR;
+React app for the Scope service.
+
+## Build
+
+You should build all components via the toplevel Makefile.
+But, if you're just working on the client, you can try:
 
 ```sh
-npm install
-npm run build
+$ npm install
+$ npm run build
 ```
-Copy contents of `build/` to your a static webserver's document root directory.
+
+Copy the contents of `build/` to your static webserver's document root directory.
+
+## Run
+
+See instructions in the toplevel README about running a local cluster.
+But, to just run the local client:
+
+```sh
+$ npm install
+$ npm run server
+```
+
+Navigate to **http://localhost:8080/** to view the app.
+
+## Test
+
+```sh
+$ npm test
+```
 
 ## Features
 
@@ -14,20 +38,6 @@ Copy contents of `build/` to your a static webserver's document root directory.
 - Testability: ease of writing unit tests and generating code coverage
 - Minimize templates, compose DOM alongside components via JSX
 - Session-driven routing using [react-router](https://github.com/rackt/react-router) with async data fetching
-
-## Getting Started
-
-```sh
-$ npm install
-```
-
-Start the local dev server:
-
-```sh
-$ npm run server
-```
-
-Navigate to **http://localhost:8080/** to view the app.
 
 ## Dependencies
 

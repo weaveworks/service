@@ -1,4 +1,20 @@
-# Scope As A Service - User Management API
+# users
+
+The user management API service.
+
+## Build
+
+You should build all components via the toplevel Makefile.
+
+## Run
+
+See instructions in the toplevel README about running a local cluster.
+
+## Test
+
+```sh
+$ env GO15VENDOREXPERIMENT=1 go test
+```
 
 ## Run
 
