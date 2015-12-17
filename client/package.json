@@ -29,6 +29,7 @@
     "font-awesome-webpack": "0.0.4",
     "history": "1.13.1",
     "material-ui": "0.13.3",
+    "moment": "^2.10.6",
     "page": "1.6.4",
     "react": "0.14.6",
     "react-cookie-banner": "davkal/react-cookie-banner#dc5f4c1bf43c0dc65ed6fd909991871b2a1dce31",
