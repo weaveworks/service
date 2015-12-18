@@ -28,6 +28,7 @@
     "font-awesome": "4.4.0",
     "font-awesome-webpack": "0.0.4",
     "history": "1.13.1",
+    "lodash": "^3.10.1",
     "material-ui": "0.13.3",
     "moment": "^2.10.6",
     "page": "1.6.4",
