@@ -34,6 +34,8 @@ function doRequest(url, method = 'GET', requestData = {}, contentType = null) {
             errorText = `Resource ${url} not found`;
           } else if (request.status === 500) {
             errorText = `Server error (${request.responseText})`;
+          } else if (request.status >= 501) {
+            errorText = 'Service is unavailable';
           } else {
             errorText = `Unexpected error: ${ex}`;
           }
