@@ -1,4 +1,4 @@
-# Monitoring
+# monitoring
 
 This is a single container that runs
 
@@ -38,3 +38,15 @@ Grafana is configured with dashboards that call the Prometheus server.
 ```
 
 Access the dashboards on **monitoring:3000**.
+
+## Build
+
+You should build all components via the toplevel Makefile.
+
+## Run
+
+See instructions in the toplevel README about running a local cluster.
+
+## Test
+
+No tests.

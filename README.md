@@ -2,7 +2,44 @@
 
 [![Circle CI](https://circleci.com/gh/weaveworks/service/tree/master.svg?style=shield)](https://circleci.com/gh/weaveworks/service/tree/master) [![Coverage Status](https://coveralls.io/repos/weaveworks/service/badge.svg?branch=coverage&service=github&t=6Kr25T)](https://coveralls.io/github/weaveworks/service?branch=coverage)
 
-![Architecture](docs/architecture.png)
+```
+  Internet
+     |
+     v
++----------+
+|          | /*           +--------------------+
+| frontend |------------->| ui-server (client) |
+|          |              +--------------------+
+|          |
+|          | /api/users/login  +-------+  +----+
+|          |------------------>| users |--| DB |
+|          |                   +-------+  +----+
+|          | /api/app
+|          | /api/org
+|          | /api/report  +------------+  +----+
+|          |------------->| app-mapper |--| DB |
++----------+              +------------+  +----+
+                                |
+                              (k8s)
+                                |
+                                v
+                          +------------+
+                          | Scope Apps |-+
+                          +------------+ |
+                            +------------+
+```
+
+When visiting with a web browser, users see the front page via the ui-server,
+and are directed to sign up or log in. Authentication and email is managed by
+the users service. Once authenticated, users are brought to their dashboard.
+From there, they can learn how to configure a probe, and may view their Scope
+instance.
+
+Each user gets their own Scope app instance, managed by app-mapper and
+supervised by Kubernetes. When visiting scope.weave.works with a browser, the
+app-mapper uses browser cookies to proxy the user to the correct Scope app UI.
+When the user's Scope probe POSTs reports to scope.weave.works, the app-mapper
+uses the service token to proxy to the correct Scope app /api/report endpoint.
 
 ## Prerequisites
 

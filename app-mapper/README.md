@@ -1,16 +1,30 @@
-# Scope As A Service - Application Mapper
+# app-mapper
 
-The Application Mapper is a proxy between Scope probes/uis and Scope apps.
+The app-mapper is a proxy between Scope probes/UIs and Scope apps.
 
-## Endpoints
+## Build
+
+You should build all components via the toplevel Makefile.
+
+## Run
+
+See instructions in the toplevel README about running a local cluster.
+
+## Test
+
+```sh
+$ env GO15VENDOREXPERIMENT=1 go test
+```
+
+## API
 
 * `api/app/<orgName>/*`
 
-  HTTP Methods: all http methods and websockets
+  HTTP Methods: all HTTP methods and websockets.
 
   Authentication: `_weave_run_session` cookie
 
-  Meant to proxy requests from the Scope ui to Scope apps.
+  Meant to proxy requests from the Scope UI to Scope apps.
 
   Trims the `api/app/<orgName>` path prefix and forwards requests to the app of
   organization with name `<orgName>`, allocating a new app if necessary. For
@@ -19,7 +33,7 @@ The Application Mapper is a proxy between Scope probes/uis and Scope apps.
 
 * `/api/report`
 
-  HTTP Methods: all http methods and websockets
+  HTTP Methods: all HTTP methods and websockets.
 
   Authentication: `Authorization` header (set to a probe-token)
 
@@ -35,7 +49,7 @@ The Application Mapper is a proxy between Scope probes/uis and Scope apps.
 
   Authentication: `_weave_run_session` cookie
 
-  Responds with a description of the probes which contacted a Scopee app of
+  Responds with a description of the probes which contacted a Scope app of
   the organization with name `<orgName>`.
 
   Sample response:
@@ -45,25 +59,4 @@ The Application Mapper is a proxy between Scope probes/uis and Scope apps.
   {"id": "someProbeID1", "lastSeen":"2015-08-13T14:06:19.689855986Z"},
   {"id": "someProbeID2", "lastSeen":"2015-08-13T14:06:19.68985711Z"}
 ]
-```
-
-## Run
-
-```
-$ make
-$ docker run weaveworks/app-mapper
-```
-
-## Tests
-
-Unit tests:
-
-```
-$ make test
-```
-
-Integration tests:
-
-```
-$ make integration-test
 ```
