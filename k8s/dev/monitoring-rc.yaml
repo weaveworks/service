@@ -6,12 +6,12 @@ spec:
   replicas: 1
   selector:
     name: monitoring
-    version: '90ba9dd'
+    version: 90ba9dd
   template:
     metadata:
       labels:
         name: monitoring
-        version: '90ba9dd'
+        version: 90ba9dd
     spec:
       imagePullSecrets:
       - name: quay-secret
