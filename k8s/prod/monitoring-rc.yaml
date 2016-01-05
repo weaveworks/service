@@ -1,23 +1,23 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: monitoring-6e8d511
+  name: monitoring-90ba9dd
 spec:
   replicas: 1
   selector:
     name: monitoring
-    version: 6e8d511
+    version: 90ba9dd
   template:
     metadata:
       labels:
         name: monitoring
-        version: 6e8d511
+        version: 90ba9dd
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: monitoring
-        image: quay.io/weaveworks/monitoring:6e8d511
+        image: quay.io/weaveworks/monitoring:90ba9dd
         env:
         - name: GET_HOSTS_FROM
           value: dns
