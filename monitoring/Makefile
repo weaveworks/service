@@ -1,6 +1,6 @@
 IMAGES_UPTODATE=.images.uptodate
 IMAGE_NAME=quay.io/weaveworks/monitoring
-PROMETHEUS_VERSION=0.16.0
+PROMETHEUS_VERSION=0.16.1
 GRAFANA_VERSION=2.5.0
 
 .PHONY: all clean
