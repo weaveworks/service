@@ -10,6 +10,7 @@ machine:
     GOPATH: /home/ubuntu
     SRCDIR: /home/ubuntu/src/github.com/weaveworks/service
     PATH: /usr/local/go/bin:$HOME/bin:$PATH
+    GO15VENDOREXPERIMENT: 1
 
 dependencies:
   cache_directories:
