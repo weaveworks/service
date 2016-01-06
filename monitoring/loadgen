@@ -6,7 +6,7 @@ trap "{ echo stopping loadgen; exit 0; }" INT TERM
 http() {
 	METHOD=$1
 	URL=$2
-	curl -Ss -X$METHOD $URL
+	curl -Ss -X$METHOD $URL >/dev/null 2>&1
 }
 
 while true

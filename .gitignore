@@ -40,6 +40,9 @@ image.tar
 monitoring/prometheus
 monitoring/prometheus-*.linux-amd64.tar.gz
 monitoring/prometheus-*.linux-amd64/
+monitoring/alertmanager
+monitoring/alertmanager-*.linux-amd64.tar.gz
+monitoring/alertmanager-*.linux-amd64/
 monitoring/grafana
 monitoring/grafana-*.linux-x64.tar.gz
 monitoring/grafana-*/

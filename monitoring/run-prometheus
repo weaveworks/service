@@ -4,7 +4,7 @@ cd /prometheus
 exec ./prometheus \
 	-config.file=/etc/prometheus/prometheus.yml \
 	-storage.local.path=/prometheus/data \
+	-alertmanager.url='http://localhost:9093' \
 	-web.console.libraries=/etc/prometheus/console_libraries \
 	-web.console.templates=/etc/prometheus/consoles \
 	-web.listen-address=:9090
-

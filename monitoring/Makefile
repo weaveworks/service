@@ -1,13 +1,14 @@
 IMAGES_UPTODATE=.images.uptodate
 IMAGE_NAME=quay.io/weaveworks/monitoring
 PROMETHEUS_VERSION=0.16.1
+ALERTMANAGER_VERSION=0.1.0-beta0
 GRAFANA_VERSION=2.5.0
 
-.PHONY: all clean
+.PHONY: container clean
 
-all: $(IMAGES_UPTODATE)
+container: $(IMAGES_UPTODATE)
 
-$(IMAGES_UPTODATE): Dockerfile prometheus run-prometheus prometheus.yml grafana run-grafana grafana-defaults.ini grafana.ini saas-components.json public_gen/robots.txt gfdatasource run-gfdatasource loadgen run-loadgen runsvinit
+$(IMAGES_UPTODATE): Dockerfile alertmanager run-alertmanager prometheus run-prometheus prometheus.yml alert.rules grafana run-grafana grafana-defaults.ini grafana.ini saas-components.json public_gen/robots.txt gfdatasource run-gfdatasource loadgen run-loadgen runsvinit
 	docker build -t ${IMAGE_NAME} .
 	touch $@
 
@@ -24,6 +25,18 @@ prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus: prometheus-${PROMETHEUS
 
 prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz:
 	wget --quiet https://github.com/prometheus/prometheus/releases/download/${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz
+	touch $@
+
+#
+# Alertmanager, 0.1+
+#
+
+alertmanager: alertmanager-${ALERTMANAGER_VERSION}.linux-amd64.tar.gz
+	tar zxf $<
+	touch $@
+
+alertmanager-${ALERTMANAGER_VERSION}.linux-amd64.tar.gz:
+	wget --quiet https://github.com/prometheus/alertmanager/releases/download/${ALERTMANAGER_VERSION}/alertmanager-${ALERTMANAGER_VERSION}.linux-amd64.tar.gz
 	touch $@
 
 #
@@ -68,4 +81,5 @@ clean:
 	-docker rmi $(IMAGE_NAME) >/dev/null 2>&1 || true
 	rm -f $(IMAGES_UPTODATE)
 	rm -rf prometheus prometheus-*.linux-amd64* || true
-	rm -rf grafana grafana-*.*.*
+	rm -rf alertmanager alertmanager-*.linux-amd64* || true
+	rm -rf grafana grafana-*.*.* || true

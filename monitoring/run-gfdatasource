@@ -2,4 +2,3 @@
 
 cd /grafana
 exec ./gfdatasource
-
