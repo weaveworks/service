@@ -13,12 +13,27 @@ spec:
         heritage: helm
         k8s-app:  weave-scope-probe
     spec:
+      hostPID: true
+      hostNetwork: true
       containers:
       - name:  weave-scope-probe
         image: weaveworks/scope:0.11.1
         # uncomment the line below and comment the line one after if your Docker bridge interface is cbr0, and also uncomment env: part too
 #        command: ["/home/weave/entrypoint.sh", "--no-app", "--probe.docker.bridge", "cbr0", "--probe.docker", "true", "--probe.proc.root", "weave-scope-app"]
-        command: ["/home/weave/entrypoint.sh", "--no-app", "--probe.docker", "true", "--probe.kubernetes", "true", "weave-scope-app"]
+        command: ["/home/weave/entrypoint.sh", "--no-app", "--probe.docker", "true", "--probe.kubernetes", "true",
+                  # We cannot refer to the Scope App with its Kubernetes Service
+                  # DNS name (weave-scope-app) directly because Docker doesn't
+                  # allow customizing the DNS servers (the Kubernetes DNS add-on
+                  # server in this case) of a container when it runs in the
+                  # host's network namespace (see
+                  # https://github.com/docker/docker/issues/10384#issuecomment-72069550
+                  # ). Instead, we use variable expansion on its service
+                  # environment variables.
+                  #
+                  # NOTE: Unfortunately this imposes a specific creation
+                  # ordering since the Scope App Service needs to be created for
+                  # the service environment variables below to be accesible.
+                  "$(WEAVE_SCOPE_APP_SERVICE_HOST):$(WEAVE_SCOPE_APP_SERVICE_PORT)"]
         securityContext:
           privileged: true
         resources:
