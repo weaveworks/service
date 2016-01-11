@@ -15,7 +15,7 @@ spec:
       containers:
       - name: weave-scope-app
         image: weaveworks/scope:0.11.1
-        command: ["/home/weave/entrypoint.sh", "--no-probe", "--probe.docker", "true", "--probe.kubernetes", "true"]
+        command: ["/home/weave/entrypoint.sh", "--no-probe"]
         ports:
         - containerPort: 4040
           hostPort: 4040
