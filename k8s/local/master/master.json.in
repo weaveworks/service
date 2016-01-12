@@ -44,6 +44,8 @@
           "--insecure-bind-address=0.0.0.0",
           "--etcd-servers=http://127.0.0.1:4001",
           "--cluster-name=kubernetes",
+          "--allow-privileged",
+          "--runtime-config=extensions/v1beta1/daemonsets=true",
           "--client-ca-file=/pki/ca.crt",
           "--tls-cert-file=/pki/server.cert",
           "--tls-private-key-file=/pki/server.key",

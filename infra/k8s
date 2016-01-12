@@ -37,6 +37,7 @@ function export_variables {
 	export MINION_SIZE="${K8S_MINION_SIZE}"
 	export NUM_MINIONS="${K8S_NUM_MINIONS}"
 	export KUBE_AWS_INSTANCE_PREFIX="${K8S_INSTANCE_PREFIX}"
+	export KUBE_ENABLE_DAEMONSETS="true"
 }
 
 function ensure_release {

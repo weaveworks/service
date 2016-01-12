@@ -124,7 +124,7 @@ function stand_up {
 		--privileged=true \
 		-e 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:./usr/local/sbin:./usr/local/bin:./usr/sbin:./usr/bin:./sbin:./bin' \
 		-d 2opremio/hyperkube:706d3a7 \
-		nsenter --target=1 --wd=. --mount -- ./hyperkube kubelet --hostname-override="127.0.0.1" --address="0.0.0.0" --api-servers=http://localhost:8080 --config="${LOCAL_MASTER_K8S_DIR}" --cluster-dns=10.0.0.10 --cluster-domain=cluster.local
+		nsenter --target=1 --wd=. --mount -- ./hyperkube kubelet --hostname-override="127.0.0.1" --address="0.0.0.0" --api-servers=http://localhost:8080 --config="${LOCAL_MASTER_K8S_DIR}" --cluster-dns=10.0.0.10 --cluster-domain=cluster.local --allow-privileged
 
 	docker run --name local_k8s_proxy -d --net=host --privileged 2opremio/hyperkube:706d3a7 /hyperkube proxy --master=http://127.0.0.1:8080 --v=2
 
@@ -139,6 +139,10 @@ function stand_up {
 	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/skydns
 	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/db
 	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/mailcatcher
+	# Start Scope in the correct order (App Service first, so that the Probe can find it)
+	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/scope/scope-app-rc.yaml
+	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/scope/scope-app-svc.yaml
+	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/scope/scope-probe-ds.yaml
 
 	write_kubeconfig ${k8s_ip}
 

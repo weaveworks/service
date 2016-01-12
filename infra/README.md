@@ -164,3 +164,9 @@ the dev environment and reused by the prod environment.
 We cannot have multiple SES configuration due to how
 [sender domain verification works](http://docs.aws.amazon.com/ses/latest/DeveloperGuide/dns-txt-records.html) (i.e.
 only one AWS environment can supply the value for the `_amazonses` TXT record)
+
+### How can I access the monitoring UI?
+
+After connecting to an environment with `./connect`:
+* You can access the Prometheus Grafana UI at http://monitoring.default.svc.cluster.local:3000/
+* You can access the Scope UI (Scope monitoring the Scope service which is a bit meta) http://weave-scope-app.default.svc.cluster.local:4040/
