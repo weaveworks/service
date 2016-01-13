@@ -44,6 +44,11 @@ echo "OK"
 
 PROXY_POD=$(kubectl --kubeconfig=${KUBECONFIG} get pod --selector=run=${PROXY_NAME} -o template --template='{{ (index .items  0).metadata.name }}')
 
+echo "If the following step appears to hang, get more information via"
+echo ""
+echo "  kubectl --kubeconfig=${KUBECONFIG} get events -w"
+echo ""
+
 echo -n "Waiting for ${PROXY_POD}..."
 while [ "$(kubectl --kubeconfig=${KUBECONFIG} get pod ${PROXY_POD} -o template --template='{{.status.phase}}' 2>&1 )" != 'Running' ]
 do
