@@ -1,29 +1,43 @@
 ALERT AppMapperErrorRate
- IF          sum(rate( scope_appmapper_request_duration_nanoseconds_count{status_code !~ "[123][0-9][0-9]"}[1m] )) > 1.0
+ IF          sum(rate( scope_appmapper_request_duration_nanoseconds_count{status_code !~ "[1234][0-9][0-9]"}[1m] )) > 1.0
  FOR         5m
  WITH        { severity="critical" }
  SUMMARY     "app-mapper service: high error rate"
- DESCRIPTION "The app-mapper service has an error rate (response code >= 400) of {{$value}} errors per second."
+ DESCRIPTION "The app-mapper service has an error rate (response code >= 500) of {{$value}} errors per second."
 
 ALERT UsersErrorRate
- IF          sum(rate( scope_users_request_duration_nanoseconds_count{status_code !~ "[123][0-9][0-9]"}[1m] )) > 1.0
+ IF          sum(rate( scope_users_request_duration_nanoseconds_count{status_code !~ "[1234][0-9][0-9]"}[1m] )) > 1.0
  FOR         5m
  WITH        { severity="critical" }
  SUMMARY     "users service: high error rate"
- DESCRIPTION "The users service has an error rate (response code >= 400) of {{$value}} errors per second."
+ DESCRIPTION "The users service has an error rate (response code >= 500) of {{$value}} errors per second."
+
+ALERT AppMapper4xxRate
+ IF          sum(rate( scope_appmapper_request_duration_nanoseconds_count{status_code !~ "4[0-9][0-9]"}[1m] )) > 1.0
+ FOR         5m
+ WITH        { severity="warning" }
+ SUMMARY     "app-mapper service: high 4xx rate"
+ DESCRIPTION "The app-mapper service has a 4xx rate of {{$value}} errors per second."
+
+ALERT Users4xxRate
+ IF          sum(rate( scope_users_request_duration_nanoseconds_count{status_code !~ "4[0-9][0-9]"}[1m] )) > 1.0
+ FOR         5m
+ WITH        { severity="warning" }
+ SUMMARY     "users service: high 4xx rate"
+ DESCRIPTION "The users service has a 4xx rate of {{$value}} errors per second."
 
 # Use max(sort_desc(...)) to get around a bug in Prometheus' max() function.
 # https://github.com/prometheus/prometheus/issues/1289
 
 ALERT AppMapperLatency
- IF          max(sort_desc( scope_appmapper_request_duration_nanoseconds{status_code="200", quantile="0.9"}/1e9 )) > 100.0
+ IF          max(sort_desc( scope_appmapper_request_duration_nanoseconds{status_code="200", quantile="0.9"}/1e6 )) > 100.0
  FOR         5m
  WITH        { severity="warning" }
  SUMMARY     "app-mapper service: high latency"
  DESCRIPTION "The app-mapper service has a max 90th-quantile latency of {{$value}} ms."
 
 ALERT UsersLatency
- IF          max(sort_desc( scope_users_request_duration_nanoseconds{status_code="200", quantile="0.9"}/1e9 )) > 100.0
+ IF          max(sort_desc( scope_users_request_duration_nanoseconds{status_code="200", quantile="0.9"}/1e6 )) > 100.0
  FOR         5m
  WITH        { severity="warning" }
  SUMMARY     "users service: high latency"

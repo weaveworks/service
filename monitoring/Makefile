@@ -80,6 +80,6 @@ runsvinit:
 clean:
 	-docker rmi $(IMAGE_NAME) >/dev/null 2>&1 || true
 	rm -f $(IMAGES_UPTODATE)
-	rm -rf prometheus prometheus-*.linux-amd64* || true
-	rm -rf alertmanager alertmanager-*.linux-amd64* || true
-	rm -rf grafana grafana-*.*.* || true
+	rm -rf prometheus prometheus-*.linux-amd64*
+	rm -rf alertmanager alertmanager-*.linux-amd64*
+	rm -rf grafana grafana-*.*.*

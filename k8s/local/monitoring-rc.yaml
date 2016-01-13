@@ -22,3 +22,4 @@ spec:
         ports:
         - containerPort: 3000
         - containerPort: 9090
+        - containerPort: 9093

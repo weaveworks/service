@@ -12,6 +12,8 @@ scrape_configs:
     - 'https://kubernetes.default.svc'
     in_cluster: true
 
+  # https://github.com/prometheus/prometheus/blob/0.16.1/documentation/examples/prometheus-kubernetes.yml
+  # Note: do NOT include the 'keep' rule, which relies on information that isn't present for us.
   relabel_configs:
   - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
     action: replace
