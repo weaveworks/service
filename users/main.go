@@ -13,11 +13,13 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/service/common/instrument"
+	"github.com/weaveworks/service/users/pardot"
 )
 
 var (
 	passwordHashingCost = 14
 	orgNameRegex        = regexp.MustCompile(`\A[a-zA-Z0-9_-]+\z`)
+	pardotClient        *pardot.Client
 )
 
 func main() {
@@ -28,9 +30,16 @@ func main() {
 		logLevel      = flag.String("log-level", "info", "logging level (debug, info, warning, error)")
 		sessionSecret = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
 		directLogin   = flag.Bool("direct-login", false, "Approve user and send login token in the signup response (DEV only)")
+
+		pardotEmail    = flag.String("pardot-email", "", "")
+		pardotPassword = flag.String("pardot-password", "", "")
+		pardotUserKey  = flag.String("pardot-userkey", "", "")
 	)
 
 	flag.Parse()
+
+	pardotClient = pardot.NewClient(pardot.APIURL, *pardotEmail, *pardotPassword, *pardotUserKey)
+	defer pardotClient.Stop()
 
 	rand.Seed(time.Now().UnixNano())
 
@@ -89,6 +98,7 @@ func (a *api) routes() http.Handler {
 		{"GET", "/private/api/users/lookup/{orgName}", a.authenticated(a.lookupUsingCookie)},
 		{"GET", "/private/api/users/lookup", a.lookupUsingToken},
 		{"GET", "/private/api/users", a.listUsers},
+		{"GET", "/private/api/pardot", a.pardotRefresh},
 		{"POST", "/private/api/users/{userID}/approve", a.approveUser},
 	} {
 		name := instrument.MakeLabelValue(route.path)
@@ -106,6 +116,7 @@ func (a *api) admin(w http.ResponseWriter, r *http.Request) {
 		<h1>User service</h1>
 		<ul>
 			<li><a href="/private/api/users?approved=false">Approve users</a></li>
+			<li><a href="/private/api/pardot">Pardot upload</a></li>
 		</ul>
 	</body>
 </html>
@@ -134,10 +145,12 @@ func (a *api) signup(w http.ResponseWriter, r *http.Request) {
 	user, err := a.storage.FindUserByEmail(view.Email)
 	if err == errNotFound {
 		user, err = a.storage.CreateUser(view.Email)
+		pardotClient.UserCreated(user.Email, user.CreatedAt)
 	}
 	if renderError(w, r, err) {
 		return
 	}
+
 	// We always do this so that the timing difference can't be used to infer a user's existence.
 	token, err := generateUserToken(a.storage, user)
 	if err != nil {
@@ -297,6 +310,18 @@ func (a *api) listUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *api) pardotRefresh(w http.ResponseWriter, r *http.Request) {
+	users, err := a.storage.ListUsers(listUsersFilters.parse(r.URL.Query())...)
+	if renderError(w, r, err) {
+		return
+	}
+
+	for _, user := range users {
+		// tell pardot about the users
+		pardotClient.UserCreated(user.Email, user.CreatedAt)
+	}
+}
+
 func (a *api) approveUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, ok := vars["userID"]
@@ -313,6 +338,7 @@ func (a *api) approveUser(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, fmt.Errorf("Error sending approved email: %s", err))
 		return
 	}
+	pardotClient.UserApproved(user.Email, user.ApprovedAt)
 	if renderError(w, r, a.sendEmail(approvedEmail(a.templates, user, token))) {
 		return
 	}
@@ -337,6 +363,8 @@ func (a *api) authenticated(handler func(*user, http.ResponseWriter, *http.Reque
 			renderError(w, r, errInvalidAuthenticationData)
 			return
 		}
+
+		pardotClient.UserAccess(u.Email, time.Now())
 
 		handler(u, w, r)
 	})
