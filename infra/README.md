@@ -168,5 +168,19 @@ only one AWS environment can supply the value for the `_amazonses` TXT record)
 ### How can I access the monitoring UI?
 
 After connecting to an environment with `./connect`:
+
 * You can access the Prometheus Grafana UI at http://monitoring.default.svc.cluster.local:3000/
 * You can access the Scope UI (Scope monitoring the Scope service which is a bit meta) http://weave-scope-app.default.svc.cluster.local:4040/
+
+### How can I add nodes to a cluster?
+
+1. Log in to the appropriate AWS console
+1. Go to the EC2 autoscaling group for the Kubernetes minions
+1. Increase the min/max/desired equally to **the same number**
+1. Wait a few minutes, and then confirm it's worked via `kubectl get nodes`
+
+### How can I remove nodes from a cluster?
+
+Note that this hasn't yet been attempted.
+Follow [this guide](https://sttts.github.io/kubernetes/api/kubectl/2016/01/13/kubernetes-node-evacuation.html).
+You'll also need to take them out of the autoscaling group afterwards.
