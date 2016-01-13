@@ -39,9 +39,10 @@ K8S_MASTER_SIZE="m3.medium"
 #
 K8S_MINION_SIZE="t2.medium"
 
-# How many minion nodes to spawn.
+# How many minion nodes to spawn. 3 is enough for a dev cluster, but (as long
+# as we're spawning one app per customer) you'll need more for prod.
 #
-K8S_NUM_MINIONS="3"
+K8S_NUM_MINIONS="5"
 
 # A prefix for the EC2 instance names. Should probably include "kubernetes"
 # and the name of the cluster, to help keep things understandable.
