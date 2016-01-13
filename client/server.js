@@ -1,7 +1,8 @@
 var express = require('express');
 var bodyParser = require('body-parser');
-var proxy = require('proxy-middleware');
+var httpProxy = require('http-proxy');
 var url = require('url');
+var SocksProxyAgent = require('socks-proxy-agent');
 
 var app = express();
 if (process.env.USE_MOCK_BACKEND) {
@@ -40,7 +41,20 @@ app.get('/app.js', function(req, res) {
 
 // Proxy to backend
 
-app.use('/api', proxy(url.parse('http://localhost:4047/api')));
+var proxyOpts = {
+  target: 'http://localhost:4047',
+  ws: true
+};
+if (process.env.USE_SOCKS_PROXY) {
+  proxyOpts.agent = new SocksProxyAgent({host: 'localhost', port: 8000, protocol: 'socks5:'});
+}
+var proxy = httpProxy.createProxy(proxyOpts);
+
+proxy.on('error', function(err) {
+  console.error('Proxy error', err);
+});
+
+app.all('/api*', proxy.web.bind(proxy));
 
 // Mock backend
 
@@ -96,7 +110,7 @@ if (process.env.USE_MOCK_BACKEND) {
       mailSent: !!req.body.email,
       email: req.body.email
     });
-  });  
+  });
 
   app.get('/login', function(req, res) {
     res.redirect('org/foo');
@@ -154,3 +168,5 @@ var server = app.listen(port, function () {
 
   console.log('Scope Account Service UI listening at http://%s:%s', host, port);
 });
+
+server.on('upgrade', proxy.ws.bind(proxy));
