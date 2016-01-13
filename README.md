@@ -61,8 +61,8 @@ error: couldn't read version from server: Get http://localhost:8080/api: dial tc
 We bootstrap a one-node Kubernetes "cluster" on top of Docker.  This works on
 both Linux and Darwin.  Note this **must be Docker 1.8** -- 1.9 has
 [performance issues](https://github.com/docker/docker/issues/17720) that make it
-unusable. When using `docker-machine`, provide
-`--virtualbox-boot2docker-url=https://github.com/boot2docker/boot2docker/releases/download/v1.8.3/boot2docker.iso` to `docker-machine create`.
+unusable. When using `docker-machine`, create your VM with
+`docker-machine create --driver=virtualbox --virtualbox-boot2docker-url=https://github.com/boot2docker/boot2docker/releases/download/v1.8.3/boot2docker.iso <VMname>`.
 
 ```
 $ infra/local-k8s up
