@@ -23,6 +23,7 @@ spec:
         - --probe.docker.bridge=cbr0
         - --probe.docker=true
         - --probe.kubernetes=true
+        - --probe.http.listen=:4041
         # The URL below is correct but Kubernetes views won't work until
         # https://github.com/weaveworks/scope/issues/717 is fixed since the API
         # server requires a Bearer Token for authentication, which Scope is not yet providing:
