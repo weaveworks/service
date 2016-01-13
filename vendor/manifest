@@ -336,6 +336,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/jehiah/go-strftime",
+			"repository": "https://github.com/jehiah/go-strftime",
+			"revision": "2efbe75097a505e2789f7e39cb9da067b5be8e3e",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/jmoiron/sqlx",
 			"repository": "https://github.com/jmoiron/sqlx",
 			"revision": "ad7f2641d00865a3d5b860ccdade6f8e63dbdae6",
