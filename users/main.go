@@ -11,6 +11,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"github.com/segmentio/analytics-go"
 
 	"github.com/weaveworks/service/common/instrument"
 )
@@ -18,6 +19,7 @@ import (
 var (
 	passwordHashingCost = 14
 	orgNameRegex        = regexp.MustCompile(`\A[a-zA-Z0-9_-]+\z`)
+	segmentClient       *analytics.Client
 )
 
 func main() {
@@ -28,11 +30,14 @@ func main() {
 		logLevel      = flag.String("log-level", "info", "logging level (debug, info, warning, error)")
 		sessionSecret = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
 		directLogin   = flag.Bool("direct-login", false, "Approve user and send login token in the signup response (DEV only)")
+		segmentKey    = flag.String("segment-key", "", "Write key for segment")
 	)
 
 	flag.Parse()
 
 	rand.Seed(time.Now().UnixNano())
+
+	segmentClient = analytics.New(*segmentKey)
 
 	setupLogging(*logLevel)
 	emailSender := mustNewEmailSender(*emailURI)
@@ -137,6 +142,19 @@ func (a *api) signup(w http.ResponseWriter, r *http.Request) {
 	if renderError(w, r, err) {
 		return
 	}
+
+	// tell segment about the new user
+	segmentClient.Identify(&analytics.Identify{
+		UserId: user.ID,
+		Traits: map[string]interface{}{
+			"email": user.Email,
+		},
+	})
+	segmentClient.Track(&analytics.Track{
+		Event:  "Sign up",
+		UserId: user.ID,
+	})
+
 	// We always do this so that the timing difference can't be used to infer a user's existence.
 	token, err := generateUserToken(a.storage, user)
 	if err != nil {
@@ -315,6 +333,10 @@ func (a *api) approveUser(w http.ResponseWriter, r *http.Request) {
 	if renderError(w, r, a.sendEmail(approvedEmail(a.templates, user, token))) {
 		return
 	}
+	segmentClient.Track(&analytics.Track{
+		Event:  "Approve",
+		UserId: user.ID,
+	})
 	redirectTo := r.FormValue("redirect_to")
 	if redirectTo == "" {
 		redirectTo = "/private/api/users"
@@ -336,6 +358,12 @@ func (a *api) authenticated(handler func(*user, http.ResponseWriter, *http.Reque
 			renderError(w, r, errInvalidAuthenticationData)
 			return
 		}
+
+		// Tell segment the user has access the service.
+		segmentClient.Track(&analytics.Track{
+			Event:  "Access",
+			UserId: u.ID,
+		})
 
 		handler(u, w, r)
 	})
