@@ -14,12 +14,19 @@ spec:
         name: monitoring
     spec:
       containers:
-      - name: monitoring
-        image: quay.io/weaveworks/monitoring
-        env:
-        - name: GET_HOSTS_FROM
-          value: dns
+      - name: prometheus
+        image: quay.io/weaveworks/prometheus
+        ports:
+        - containerPort: 9090
+      - name: grafana
+        image: quay.io/weaveworks/grafana
         ports:
         - containerPort: 3000
-        - containerPort: 9090
+      - name: gfdatasource
+        image: quay.io/weaveworks/gfdatasource
+      - name: loadgen
+        image: quay.io/weaveworks/loadgen
+      - name: alertmanager
+        image: quay.io/weaveworks/alertmanager
+        ports:
         - containerPort: 9093
