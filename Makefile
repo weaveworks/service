@@ -136,6 +136,7 @@ clean:
 		$(BUILD_UPTODATE) client/build/app.js $(APP_MAPPER_EXE)$(IN_CONTAINER) \
 		$(USERS_EXE)$(IN_CONTAINER)
 	go clean ./...
+	make -C monitoring clean
 
 deps:
 	go get \
