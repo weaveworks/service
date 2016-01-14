@@ -75,6 +75,7 @@ func (a *api) routes() http.Handler {
 		method, path string
 		handler      http.HandlerFunc
 	}{
+		{"GET", "/loadgen", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintf(w, "OK") }},
 		{"GET", "/", a.admin},
 		{"POST", "/api/users/signup", a.signup},
 		{"GET", "/api/users/login", a.login},

@@ -1,10 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Grafana stores all config in its database.
 # We can provide dashboards as .json files in a known path.
 # But we can't provide data sources in a similar, declarative fashion.
 # The only way to add them programmatically is via the HTTP API.
 # So, this dumb service does that, in a loop, forever.
+
+echo "gfdatasource starting..."
+trap "{ echo gfdatasource exiting; exit 0; }" INT TERM
 
 create() {
 	curl -Ss -v -H "Content-Type: application/json" -XPOST -d'{
@@ -13,12 +16,8 @@ create() {
 		"url": "http://127.0.0.1:9090",
 		"access": "proxy",
 		"basicAuth": false
-	}' http://admin:admin@127.0.0.1:3000/api/datasources
-	echo
+	}' http://admin:admin@127.0.0.1:3000/api/datasources >/dev/null 2>&1
 }
-
-echo "gfdatasource starting..."
-trap "{ echo gfdatasource exiting; exit 0; }" INT TERM
 
 while true
 do

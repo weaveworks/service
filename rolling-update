@@ -42,7 +42,8 @@ echo "Current RC: ${OLD_RC}"
 NEW_VERSION=$(cat ${NEW_FILE} | grep 'version:' | awk '{print $2}' | sort | uniq)
 echo "New version: ${NEW_VERSION}"
 
-read -p "Update period (try 30s)? " PERIOD
+read -p "Update period [30s] " PERIOD
+PERIOD=${PERIOD:-30s}
 echo "Update period: ${PERIOD}"
 
 REL_KUBECONFIG=$(python -c "import os.path; print os.path.relpath('${KUBECONFIG}', '$(pwd)')")
@@ -53,13 +54,12 @@ echo
 echo " kubectl --kubeconfig=${REL_KUBECONFIG} rolling-update ${OLD_RC} -f ${REL_NEW_FILE} --update-period=${PERIOD}"
 echo
 
-echo -n "Press ctrl-C NOW if this doesn't look right.."
-for i in $(seq 1 5)
-do
-	echo -n "."
-	sleep 1
-done
-echo " proceeding"
+read -p "Does this look right? [Yn] " YN
+YN=${YN:-Y}
+case ${YN} in
+	Y|y) break;;
+	*)   exit 1;;
+esac
 
 kubectl --kubeconfig=${KUBECONFIG} rolling-update ${OLD_RC} -f ${NEW_FILE} --update-period=${PERIOD}
 

@@ -11,8 +11,14 @@ LABEL works.weave.role=system
 
 COPY prometheus /prometheus/
 COPY prometheus.yml /etc/prometheus/
+COPY alert.rules /etc/prometheus/
 COPY run-prometheus /etc/service/prometheus/run
 EXPOSE 9090
+
+COPY alertmanager /alertmanager/
+COPY alertmanager.yml /etc/alertmanager/alertmanager.yml
+COPY run-alertmanager /etc/service/alertmanager/run
+EXPOSE 9093
 
 COPY grafana /grafana/
 COPY grafana-defaults.ini /grafana/conf/defaults.ini

@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -166,6 +167,7 @@ func main() {
 	probeStorage := newProbeDBStorage(db)
 
 	router := mux.NewRouter()
+	router.Path("/loadgen").Name("loadgen").Methods("GET").HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintf(w, "OK") })
 	newProxy(authenticator, orgMapper, probeStorage).registerHandlers(router)
 	newProbeObserver(authenticator, probeStorage).registerHandlers(router)
 	http.Handle("/", instrument.Middleware(router, requestDuration)(router))

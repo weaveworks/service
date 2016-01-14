@@ -1,12 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-echo starting loadgen...
-trap "{ echo stopping loadgen; exit 0; }" INT TERM
+echo "loadgen starting..."
+trap "{ echo loadgen exiting; exit 0; }" INT TERM
 
 http() {
 	METHOD=$1
 	URL=$2
-	curl -Ss -X$METHOD $URL
+	curl -Ss --quiet -X$METHOD $URL
 }
 
 while true

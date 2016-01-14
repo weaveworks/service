@@ -1,71 +1,37 @@
 IMAGES_UPTODATE=.images.uptodate
-IMAGE_NAME=quay.io/weaveworks/monitoring
-PROMETHEUS_VERSION=0.16.1
-GRAFANA_VERSION=2.5.0
+IMAGE_PREFIX=quay.io/weaveworks
 
 .PHONY: all clean
 
-all: $(IMAGES_UPTODATE)
+all: ${IMAGES_UPTODATE}
 
-$(IMAGES_UPTODATE): Dockerfile prometheus run-prometheus prometheus.yml grafana run-grafana grafana-defaults.ini grafana.ini saas-components.json public_gen/robots.txt gfdatasource run-gfdatasource loadgen run-loadgen runsvinit
-	docker build -t ${IMAGE_NAME} .
+${IMAGES_UPTODATE}: prometheus/${IMAGES_UPTODATE} grafana/${IMAGES_UPTODATE} gfdatasource/${IMAGES_UPTODATE} loadgen/${IMAGES_UPTODATE} alertmanager/${IMAGES_UPTODATE}
 	touch $@
 
-#
-# Prometheus, 0.16.0+
-#
-
-prometheus: prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus
-	cp $< $@
-
-prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus: prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz
-	tar zxf $<
+prometheus/${IMAGES_UPTODATE}:
+	docker build -t ${IMAGE_PREFIX}/prometheus prometheus
 	touch $@
 
-prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz:
-	wget --quiet https://github.com/prometheus/prometheus/releases/download/${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz
+grafana/${IMAGES_UPTODATE}:
+	docker build -t ${IMAGE_PREFIX}/grafana grafana
 	touch $@
 
-#
-# Grafana, 2.5.0+
-#
-
-grafana: grafana-${GRAFANA_VERSION}/bin/grafana-server
-	cp $< $@
-
-# robots.txt is a shibboleth for the entire public directory
-public_gen/robots.txt: grafana-${GRAFANA_VERSION}/public/robots.txt
-	cp -r $(shell dirname $<) $(shell dirname $@)
-
-grafana-defaults.ini: grafana-${GRAFANA_VERSION}/conf/defaults.ini
-	cp $< $@
-
-grafana-${GRAFANA_VERSION}/bin/grafana-server: grafana-${GRAFANA_VERSION}/README.md
-
-grafana-${GRAFANA_VERSION}/conf/defaults.ini: grafana-${GRAFANA_VERSION}/README.md
-
-grafana-${GRAFANA_VERSION}/public/robots.txt: grafana-${GRAFANA_VERSION}/README.md
-
-# README.md is a standin for the entire Grafana directory
-grafana-${GRAFANA_VERSION}/README.md: grafana-${GRAFANA_VERSION}.linux-x64.tar.gz
-	tar zxf $<
+gfdatasource/${IMAGES_UPTODATE}:
+	docker build -t ${IMAGE_PREFIX}/gfdatasource gfdatasource
 	touch $@
 
-
-grafana-${GRAFANA_VERSION}.linux-x64.tar.gz:
-	wget --quiet https://grafanarel.s3.amazonaws.com/builds/grafana-${GRAFANA_VERSION}.linux-x64.tar.gz
+loadgen/${IMAGES_UPTODATE}:
+	docker build -t ${IMAGE_PREFIX}/loadgen loadgen
 	touch $@
 
-#
-# runsvinit
-#
-
-runsvinit:
-	go get -u -v github.com/peterbourgon/runsvinit # fetch repo
-	env GOOS=linux GOARCH=amd64 go build github.com/peterbourgon/runsvinit # build in pwd
+alertmanager/${IMAGES_UPTODATE}:
+	docker build -t ${IMAGE_PREFIX}/alertmanager alertmanager
+	touch $@
 
 clean:
-	-docker rmi $(IMAGE_NAME) >/dev/null 2>&1 || true
-	rm -f $(IMAGES_UPTODATE)
-	rm -rf prometheus prometheus-*.linux-amd64* || true
-	rm -rf grafana grafana-*.*.*
+	-docker rmi ${IMAGE_PREFIX}/prometheus   >/dev/null 2>&1 || true
+	-docker rmi ${IMAGE_PREFIX}/grafana      >/dev/null 2>&1 || true
+	-docker rmi ${IMAGE_PREFIX}/gfdatasource >/dev/null 2>&1 || true
+	-docker rmi ${IMAGE_PREFIX}/loadgen      >/dev/null 2>&1 || true
+	-docker rmi ${IMAGE_PREFIX}/alertmanager >/dev/null 2>&1 || true
+	rm -f ${IMAGES_UPTODATE} */${IMAGES_UPTODATE}
