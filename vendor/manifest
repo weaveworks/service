@@ -336,6 +336,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/jehiah/go-strftime",
+			"repository": "https://github.com/jehiah/go-strftime",
+			"revision": "2efbe75097a505e2789f7e39cb9da067b5be8e3e",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/jmoiron/sqlx",
 			"repository": "https://github.com/jmoiron/sqlx",
 			"revision": "ad7f2641d00865a3d5b860ccdade6f8e63dbdae6",
@@ -452,6 +458,18 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/segmentio/analytics-go",
+			"repository": "https://github.com/segmentio/analytics-go",
+			"revision": "a3bcbc9544d297bf807351cdd0487588dff4d378",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/segmentio/backo-go",
+			"repository": "https://github.com/segmentio/backo-go",
+			"revision": "ed3adc599ae5cd72e97bd085ff1835c9d3276594",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/shurcooL/sanitized_anchor_name",
 			"repository": "https://github.com/shurcooL/sanitized_anchor_name",
 			"revision": "10ef21a441db47d8b13ebcc5fd2310f636973c77",
@@ -510,6 +528,12 @@
 			"revision": "303bed1e2b8f22e9105ab65119a87882275b55bc",
 			"branch": "master",
 			"path": "/xfer"
+		},
+		{
+			"importpath": "github.com/xtgo/uuid",
+			"repository": "https://github.com/xtgo/uuid",
+			"revision": "a0b114877d4caeffbd7f87e3757c17fce570fea7",
+			"branch": "master"
 		},
 		{
 			"importpath": "golang.org/x/crypto/bcrypt",
