@@ -31,13 +31,11 @@ $ env GO15VENDOREXPERIMENT=1 go test
   instance, `api/app/<orgName>/request` would result in `/request` being
   forwarded to the app of organization with name `<orgName>`.
 
-* `/api/report`
+* `/api/report` (report from Scope probe) and `/api/control/ws` (control websocket from probe)
 
   HTTP Methods: all HTTP methods and websockets.
 
   Authentication: `Authorization` header (set to a probe-token)
-
-  Meant to proxy requests from Scope probes to Scope apps.
 
   Forwards the request request *as-is* to the app of organization associated to
   the probe-token in the `Authorization` header, allocating a new app if
