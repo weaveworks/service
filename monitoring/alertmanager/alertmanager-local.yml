@@ -1,0 +1,22 @@
+global:
+  smtp_smarthost: 'mailcatcher:25'
+  smtp_from: 'noreply@weave.works'
+
+templates:
+- '/etc/alertmanager/*.tmpl'
+
+route:
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 3h
+  continue: true
+
+  routes:
+  - match:
+    receiver: service-alerts-local
+
+receivers:
+- name: 'service-alerts-local'
+  email_configs:
+  - to: 'service-alerts+local@weave.works' # never actually get sent, due to mailcatcher

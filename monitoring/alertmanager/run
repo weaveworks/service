@@ -1,5 +1,0 @@
-#!/bin/sh
-
-cd /alertmanager
-./alertmanager \
-	-config.file=/etc/alertmanager/alertmanager.yml

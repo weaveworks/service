@@ -28,5 +28,8 @@ spec:
         image: quay.io/weaveworks/loadgen
       - name: alertmanager
         image: quay.io/weaveworks/alertmanager
+        command:
+        - /alertmanager/alertmanager
+        - -config.file=/etc/alertmanager/alertmanager-local.yml
         ports:
         - containerPort: 9093
