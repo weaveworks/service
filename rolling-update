@@ -57,7 +57,7 @@ echo
 read -p "Does this look right? [Yn] " YN
 YN=${YN:-Y}
 case ${YN} in
-	Y|y) break;;
+	Y|y) echo Great.;;
 	*)   exit 1;;
 esac
 
