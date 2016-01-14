@@ -1,23 +1,23 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: ui-server-832b68b
+  name: ui-server-dbac634
 spec:
   replicas: 2
   selector:
     name: ui-server
-    version: 832b68b
+    version: dbac634
   template:
     metadata:
       labels:
         name: ui-server
-        version: 832b68b
+        version: dbac634
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: ui-server
-        image: quay.io/weaveworks/ui-server:832b68b
+        image: quay.io/weaveworks/ui-server:dbac634
         command:
         env:
         - name: GET_HOSTS_FROM
