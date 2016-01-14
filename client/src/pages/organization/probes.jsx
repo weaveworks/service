@@ -1,7 +1,22 @@
 import React from 'react';
+import _ from 'lodash';
+import moment from 'moment';
 import { Styles } from 'material-ui';
 import { getData, encodeURIs } from '../../common/request';
 import { trackEvent, trackException } from '../../common/tracking';
+
+const STILL_CONNECTED_TIME_DELTA = 15000;
+
+function getTimeDiff(d1, d2) {
+  return (d2.getTime() - d1.getTime());
+}
+
+function isProbeConnected(probe) {
+  return (
+    getTimeDiff(new Date(probe.lastSeen), new Date()) <
+    STILL_CONNECTED_TIME_DELTA
+  );
+}
 
 export default class Probes extends React.Component {
 
@@ -24,7 +39,8 @@ export default class Probes extends React.Component {
     getData(url)
       .then(resp => {
         this.setState({
-          probes: resp
+          // negate isProbeConnected. In JS: false < true
+          probes: _.sortByAll(resp, [_.negate(isProbeConnected), 'id'])
         });
         trackEvent('Scope', 'connectedProbes', this.props.org, resp.length);
         this.getProbesTimer = setTimeout(this.getProbes, 5000);
@@ -34,13 +50,19 @@ export default class Probes extends React.Component {
   }
 
   renderProbes() {
-    const style = {
-      margin: 16
-    };
     if (this.state.probes.length > 0) {
       return this.state.probes.map(probe => {
+        const isConnected = isProbeConnected(probe);
+        const probeStyle = {
+          margin: 16,
+          opacity: isConnected ? 1 : 0.5
+        };
+        const now = new Date();
+        const title = `Last seen: ${moment(probe.lastSeen).from(now)}`;
         return (
-          <div key={probe.id} style={style}>{probe.id} (connected)</div>
+          <div key={probe.id} style={probeStyle} title={title} >
+            {probe.id} {isConnected ? '(connected)' : '(disconnected)'}
+          </div>
         );
       });
     }
