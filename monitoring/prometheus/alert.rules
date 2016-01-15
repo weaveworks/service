@@ -13,14 +13,14 @@ ALERT UsersErrorRate
  DESCRIPTION "The users service has an error rate (response code >= 500) of {{$value}} errors per second."
 
 ALERT AppMapper4xxRate
- IF          sum(rate( scope_appmapper_request_duration_nanoseconds_count{status_code !~ "4[0-9][0-9]"}[1m] )) > 1.0
+ IF          sum(rate( scope_appmapper_request_duration_nanoseconds_count{status_code =~ "4[0-9][0-9]"}[1m] )) > 1.0
  FOR         5m
  WITH        { severity="warning" }
  SUMMARY     "app-mapper service: high 4xx rate"
  DESCRIPTION "The app-mapper service has a 4xx rate of {{$value}} errors per second."
 
 ALERT Users4xxRate
- IF          sum(rate( scope_users_request_duration_nanoseconds_count{status_code !~ "4[0-9][0-9]"}[1m] )) > 1.0
+ IF          sum(rate( scope_users_request_duration_nanoseconds_count{status_code =~ "4[0-9][0-9]"}[1m] )) > 1.0
  FOR         5m
  WITH        { severity="warning" }
  SUMMARY     "users service: high 4xx rate"
