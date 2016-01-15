@@ -1,23 +1,23 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: app-mapper-2447699
+  name: app-mapper-0bf7549
 spec:
   replicas: 2
   selector:
     name: app-mapper
-    version: "2447699"
+    version: 0bf7549
   template:
     metadata:
       labels:
         name: app-mapper
-        version: "2447699"
+        version: 0bf7549
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: app-mapper
-        image: quay.io/weaveworks/app-mapper:2447699
+        image: quay.io/weaveworks/app-mapper:0bf7549
         args:
         - -db-uri=postgres://postgres:amK9NGqt2bwNgzz8DF@app-mapper-database.cqqzyyx2xnct.us-east-1.rds.amazonaws.com/app_mapper?sslmode=disable
         - -log-level=debug

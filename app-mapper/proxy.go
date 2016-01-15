@@ -42,14 +42,22 @@ func (p proxy) registerHandlers(router *mux.Router) {
 		orgName := mux.Vars(r)["orgName"]
 		http.Redirect(w, r, fmt.Sprintf("/api/app/%s/", orgName), http.StatusMovedPermanently)
 	})
-	router.PathPrefix("/api/app/{orgName}/").Name("api_app").Handler(authOrgHandler(p.authenticator,
+
+	fwd := authOrgHandler(p.authenticator,
 		func(r *http.Request) string { return mux.Vars(r)["orgName"] },
 		func(w http.ResponseWriter, r *http.Request, orgID string) {
 			// Trim /api/app/<orgName> off the front of the URI
 			r.RequestURI = appPrefix.ReplaceAllLiteralString(r.RequestURI, "")
 			p.forwardRequest(w, r, orgID)
 		},
-	))
+	)
+	// We believe forwards to /api/topology/{topology}/ws will normally have
+	// very high latencies. We separate that endpoint from the general
+	// PathPrefix in order to give it a special name, which we exclude from
+	// the latency alerting rules in our monitoring. See service #291.
+	router.Path("/api/app/{orgName}/api/topology/{topology}/ws").Name("api_app_topology_ws").Handler(fwd)
+	router.PathPrefix("/api/app/{orgName}/").Name("api_app").Handler(fwd)
+
 	router.Path("/api/control/ws").Name("api_control").Handler(authProbeHandler(p.authenticator,
 		func(w http.ResponseWriter, r *http.Request, orgID string) {
 			p.forwardRequest(w, r, orgID)
