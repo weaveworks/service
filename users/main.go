@@ -322,6 +322,9 @@ func (a *api) pardotRefresh(w http.ResponseWriter, r *http.Request) {
 	for _, user := range users {
 		// tell pardot about the users
 		pardotClient.UserCreated(user.Email, user.CreatedAt)
+		if !user.ApprovedAt.IsZero() {
+			pardotClient.UserApproved(user.Email, user.ApprovedAt)
+		}
 	}
 }
 
