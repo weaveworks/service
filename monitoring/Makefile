@@ -20,7 +20,7 @@ gfdatasource/${IMAGES_UPTODATE}:
 	docker build -t ${IMAGE_PREFIX}/gfdatasource gfdatasource
 	touch $@
 
-loadgen/${IMAGES_UPTODATE}:
+loadgen/${IMAGES_UPTODATE}: loadgen
 	docker build -t ${IMAGE_PREFIX}/loadgen loadgen
 	touch $@
 
