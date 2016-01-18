@@ -1,23 +1,23 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: users-068184e
+  name: users-ab371c2
 spec:
   replicas: 2
   selector:
     name: users
-    version: 068184e
+    version: ab371c2
   template:
     metadata:
       labels:
         name: users
-        version: 068184e
+        version: ab371c2
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: users
-        image: quay.io/weaveworks/users:068184e
+        image: quay.io/weaveworks/users:ab371c2
         args:
         - -session-secret=56ee20ee7e8dc0b366abb1df4b3ac22ae05566d8eb18cba26f1c0925b1b9c7bf
         - -email-uri=smtp://AKIAJC77KJCIV4HRCM2Q:AqliFmKAFLPagTQkd6FuoZHQDolVU195DorateSEKsTO@email-smtp.us-east-1.amazonaws.com:587
