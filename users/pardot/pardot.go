@@ -159,7 +159,7 @@ func (c *Client) push() {
 		})
 	}
 	log.Printf("Pusing %d prospect updates to pardot", len(prospects))
-	for i := 0; i < len(prospects); i += batchSize {
+	for i := 0; i < len(prospects); {
 		end := i + batchSize
 		if end > len(prospects) {
 			end = len(prospects)
@@ -168,6 +168,7 @@ func (c *Client) push() {
 		if err != nil {
 			log.Printf("Error pushing prospects: %v", err)
 		}
+		i = end
 	}
 }
 
@@ -195,6 +196,8 @@ func (c *Client) UserAccess(email string, hitAt time.Time) {
 }
 
 // UserCreated should be called when new users are created.
+// This will trigger an immediate 'upload' to pardot, although
+// that upload will still happen in the background.
 func (c *Client) UserCreated(email string, createdAt time.Time) {
 	if c == nil {
 		return
@@ -209,6 +212,8 @@ func (c *Client) UserCreated(email string, createdAt time.Time) {
 }
 
 // UserApproved should be called when users are approved.
+// This will trigger an immediate 'upload' to pardot, although
+// that upload will still happen in the background.
 func (c *Client) UserApproved(email string, approvedAt time.Time) {
 	if c == nil {
 		return

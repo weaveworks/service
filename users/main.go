@@ -116,7 +116,7 @@ func (a *api) admin(w http.ResponseWriter, r *http.Request) {
 		<h1>User service</h1>
 		<ul>
 			<li><a href="/private/api/users?approved=false">Approve users</a></li>
-			<li><a href="/private/api/pardot">Pardot upload</a></li>
+			<li><a href="/private/api/pardot">Sync User-Creation with Pardot</a></li>
 		</ul>
 	</body>
 </html>
@@ -364,6 +364,9 @@ func (a *api) authenticated(handler func(*user, http.ResponseWriter, *http.Reque
 			return
 		}
 
+		// User actions always go through this endpoint because
+		// app-mapper checks the authentication endpoint eevry time.
+		// We use this to tell pardot about login activity.
 		pardotClient.UserAccess(u.Email, time.Now())
 
 		handler(u, w, r)
