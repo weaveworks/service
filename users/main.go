@@ -38,8 +38,11 @@ func main() {
 
 	flag.Parse()
 
-	pardotClient = pardot.NewClient(pardot.APIURL, *pardotEmail, *pardotPassword, *pardotUserKey)
-	defer pardotClient.Stop()
+	if *pardotEmail != "" {
+		pardotClient = pardot.NewClient(pardot.APIURL,
+			*pardotEmail, *pardotPassword, *pardotUserKey)
+		defer pardotClient.Stop()
+	}
 
 	rand.Seed(time.Now().UnixNano())
 
