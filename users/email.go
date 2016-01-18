@@ -9,6 +9,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/jordan-wright/email"
+	"github.com/sendgrid/sendgrid-go"
 )
 
 const (
@@ -21,7 +22,39 @@ var (
 	errUnsupportedEmailProtocol = errors.New("Unsupported email protocol")
 )
 
+type emailer interface {
+	WelcomeEmail(u *user) error
+	ApprovedEmail(u *user, token string) error
+	LoginEmail(u *user, token string) error
+	InviteEmail(u *user, token string) error
+}
+
 type emailSender func(*email.Email) error
+
+type smtpEmailer struct {
+	templates templateEngine
+	sender    emailSender
+}
+
+func makeSMTPEmailer(sender emailSender, templates templateEngine) emailer {
+	return smtpEmailer{templates, sender}
+}
+
+func (s smtpEmailer) WelcomeEmail(u *user) error {
+	return s.sender(welcomeEmail(s.templates, u))
+}
+
+func (s smtpEmailer) ApprovedEmail(u *user, token string) error {
+	return s.sender(approvedEmail(s.templates, u, token))
+}
+
+func (s smtpEmailer) LoginEmail(u *user, token string) error {
+	return s.sender(loginEmail(s.templates, u, token))
+}
+
+func (s smtpEmailer) InviteEmail(u *user, token string) error {
+	return s.sender(inviteEmail(s.templates, u, token))
+}
 
 func mustNewEmailSender(emailURI string) emailSender {
 	m, err := smtpEmailSender(emailURI)
@@ -124,4 +157,59 @@ func inviteEmail(t templateEngine, u *user, token string) *email.Email {
 	e.Text = t.quietBytes("invite_email.text", data)
 	e.HTML = t.quietBytes("invite_email.html", data)
 	return e
+}
+
+type sendgridEmailer struct {
+	client *sendgrid.SGClient
+}
+
+func makeSendgridEmailer(apikey string) emailer {
+	client := sendgrid.NewSendGridClientWithApiKey(apikey)
+	return sendgridEmailer{client}
+}
+
+const (
+	welcomeEmailTemplate  = "1f6cb02e-2edc-43ee-8951-30a7ed051201"
+	approvedEmailTemplate = "e8fb1d1b-57e7-4f01-a8cb-cca050db03a0"
+	loginEmailTemplate    = "abc62283-b073-4af0-b2b7-83f7370dffc0"
+	inviteEmailTemplate   = "6ac279d1-d4f2-45c3-8c91-fefbcaf1468a"
+)
+
+func (s sendgridEmailer) WelcomeEmail(u *user) error {
+	mail := sendgrid.NewMail()
+	mail.AddFilter("template", "enable", "1")
+	mail.AddFilter("template", "template_id", welcomeEmailTemplate)
+	mail.AddTo(u.Email)
+	return s.client.Send(mail)
+}
+
+func (s sendgridEmailer) ApprovedEmail(u *user, token string) error {
+	mail := sendgrid.NewMail()
+	mail.AddFilter("template", "enable", "1")
+	mail.AddFilter("template", "template_id", approvedEmailTemplate)
+	mail.AddTo(u.Email)
+	mail.AddSubstitution(":login_url", loginURL(u.Email, token))
+	mail.AddSubstitution(":root_url", rootURL)
+	return s.client.Send(mail)
+}
+
+func (s sendgridEmailer) LoginEmail(u *user, token string) error {
+	mail := sendgrid.NewMail()
+	mail.AddFilter("template", "enable", "1")
+	mail.AddFilter("template", "template_id", loginEmailTemplate)
+	mail.AddTo(u.Email)
+	mail.AddSubstitution(":login_url", loginURL(u.Email, token))
+	mail.AddSubstitution(":root_url", rootURL)
+	return s.client.Send(mail)
+}
+
+func (s sendgridEmailer) InviteEmail(u *user, token string) error {
+	mail := sendgrid.NewMail()
+	mail.AddFilter("template", "enable", "1")
+	mail.AddFilter("template", "template_id", inviteEmailTemplate)
+	mail.AddTo(u.Email)
+	mail.AddSubstitution(":login_url", loginURL(u.Email, token))
+	mail.AddSubstitution(":root_url", rootURL)
+	mail.AddSubstitution(":org_name", u.Organization.Name)
+	return s.client.Send(mail)
 }
