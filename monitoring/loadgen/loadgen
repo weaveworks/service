@@ -11,7 +11,7 @@ http() {
 
 while true
 do
-	for url in http://app-mapper.default.svc.cluster.local/loadgen http://users.default.svc.cluster.local/loadgen
+	for url in http://app-mapper/loadgen http://users/loadgen
 	do
 		http GET $url
 	done

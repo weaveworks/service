@@ -1,5 +1,5 @@
-FROM alpine:latest
+FROM debian:jessie
 LABEL works.weave.role=system
-RUN apk update && apk upgrade && apk add curl bash
+RUN apt-get -y update && apt-get -y install curl
 COPY loadgen /
 ENTRYPOINT ["/loadgen"]
