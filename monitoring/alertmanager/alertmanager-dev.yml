@@ -19,4 +19,4 @@ route:
 receivers:
 - name: 'service-alerts-dev'
   email_configs:
-  - to: 'service-alerts+dev@weave.works'
+  - to: 'service-alerts-dev@weave.works'
