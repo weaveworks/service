@@ -8,23 +8,23 @@ all: ${IMAGES_UPTODATE}
 ${IMAGES_UPTODATE}: prometheus/${IMAGES_UPTODATE} grafana/${IMAGES_UPTODATE} gfdatasource/${IMAGES_UPTODATE} loadgen/${IMAGES_UPTODATE} alertmanager/${IMAGES_UPTODATE}
 	touch $@
 
-prometheus/${IMAGES_UPTODATE}:
+prometheus/${IMAGES_UPTODATE}: prometheus/Dockerfile prometheus/alert.rules prometheus/prometheus.yml prometheus/run
 	docker build -t ${IMAGE_PREFIX}/prometheus prometheus
 	touch $@
 
-grafana/${IMAGES_UPTODATE}:
+grafana/${IMAGES_UPTODATE}: grafana/Dockerfile grafana/grafana-defaults.ini grafana/grafana.ini grafana/saas-components.json
 	docker build -t ${IMAGE_PREFIX}/grafana grafana
 	touch $@
 
-gfdatasource/${IMAGES_UPTODATE}:
+gfdatasource/${IMAGES_UPTODATE}: gfdatasource/Dockerfile gfdatasource/gfdatasource
 	docker build -t ${IMAGE_PREFIX}/gfdatasource gfdatasource
 	touch $@
 
-loadgen/${IMAGES_UPTODATE}:
+loadgen/${IMAGES_UPTODATE}: loadgen/Dockerfile loadgen/loadgen
 	docker build -t ${IMAGE_PREFIX}/loadgen loadgen
 	touch $@
 
-alertmanager/${IMAGES_UPTODATE}:
+alertmanager/${IMAGES_UPTODATE}: alertmanager/Dockerfile alertmanager/alertmanager-local.yml alertmanager/alertmanager-dev.yml alertmanager/alertmanager-prod.yml
 	docker build -t ${IMAGE_PREFIX}/alertmanager alertmanager
 	touch $@
 
