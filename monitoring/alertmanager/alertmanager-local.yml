@@ -19,4 +19,4 @@ route:
 receivers:
 - name: 'service-alerts-local'
   email_configs:
-  - to: 'service-alerts+local@weave.works' # never actually get sent, due to mailcatcher
+  - to: 'service-alerts-local@weave.works' # never actually get sent, due to mailcatcher
