@@ -38,6 +38,7 @@ function export_variables {
 	export NUM_MINIONS="${K8S_NUM_MINIONS}"
 	export KUBE_AWS_INSTANCE_PREFIX="${K8S_INSTANCE_PREFIX}"
 	export KUBE_ENABLE_DAEMONSETS="true"
+	export KUBE_DOCKER_LOG_LEVEL="warn"
 }
 
 function ensure_release {
