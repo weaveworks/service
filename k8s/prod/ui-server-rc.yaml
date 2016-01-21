@@ -1,23 +1,23 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: ui-server-824df87
+  name: ui-server-e3f969f
 spec:
   replicas: 2
   selector:
     name: ui-server
-    version: 824df87
+    version: e3f969f
   template:
     metadata:
       labels:
         name: ui-server
-        version: 824df87
+        version: e3f969f
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: ui-server
-        image: quay.io/weaveworks/ui-server:824df87
+        image: quay.io/weaveworks/ui-server:e3f969f
         command:
         env:
         - name: GET_HOSTS_FROM
