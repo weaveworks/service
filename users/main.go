@@ -26,16 +26,16 @@ func main() {
 	var (
 		port          = flag.Int("port", 80, "port to listen on")
 		databaseURI   = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
-		emailURI      = flag.String("email-uri", "smtp://smtp.weave.local:587", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port")
+		emailURI      = flag.String("email-uri", "smtp://smtp.weave.local:587", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Either email-uri or sendgrid-api-key must be provided.")
 		logLevel      = flag.String("log-level", "info", "logging level (debug, info, warning, error)")
 		sessionSecret = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
 		directLogin   = flag.Bool("direct-login", false, "Approve user and send login token in the signup response (DEV only)")
 
-		pardotEmail    = flag.String("pardot-email", "", "")
-		pardotPassword = flag.String("pardot-password", "", "")
-		pardotUserKey  = flag.String("pardot-userkey", "", "")
+		pardotEmail    = flag.String("pardot-email", "", "Email of Pardot account.  If not supplied pardot integration will be disabled.")
+		pardotPassword = flag.String("pardot-password", "", "Password of Pardot account.")
+		pardotUserKey  = flag.String("pardot-userkey", "", "User key of Pardot account.")
 
-		sendgridAPIKey = flag.String("sendgrid-api-key", "", "")
+		sendgridAPIKey = flag.String("sendgrid-api-key", "", "Sendgrid API key.  Either email-uri or sendgrid-api-key must be provided.")
 	)
 
 	flag.Parse()
@@ -52,6 +52,10 @@ func main() {
 
 	templates := mustNewTemplateEngine()
 	var emailer emailer
+	if (*emailURI == "") != (*sendgridAPIKey == "") {
+		logrus.Error("Must provide one of -email-uri or -sendgrid-api-key")
+		return
+	}
 	if *emailURI != "" {
 		emailer = makeSMTPEmailer(mustNewEmailSender(*emailURI), templates)
 	} else {

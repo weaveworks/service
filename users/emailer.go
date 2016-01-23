@@ -169,10 +169,10 @@ func makeSendgridEmailer(apikey string) emailer {
 }
 
 const (
-	welcomeEmailTemplate  = "1f6cb02e-2edc-43ee-8951-30a7ed051201"
-	approvedEmailTemplate = "e8fb1d1b-57e7-4f01-a8cb-cca050db03a0"
-	loginEmailTemplate    = "abc62283-b073-4af0-b2b7-83f7370dffc0"
-	inviteEmailTemplate   = "6ac279d1-d4f2-45c3-8c91-fefbcaf1468a"
+	welcomeEmailTemplate  = "1721d506-dcf7-4e84-a629-63d34a86325b"
+	approvedEmailTemplate = "980cc9b5-6872-4596-8560-5c220a9341fd"
+	loginEmailTemplate    = "ccf3f6e2-20f9-4c41-bd72-ca204c1c3f6f"
+	inviteEmailTemplate   = "00ceaa49-857f-4ce4-bc39-789b7f56c886"
 )
 
 func (s sendgridEmailer) WelcomeEmail(u *user) error {
