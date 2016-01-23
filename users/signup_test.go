@@ -18,7 +18,7 @@ import (
 )
 
 func findLoginLink(t *testing.T, e *email.Email) (url, token string) {
-	pattern := `https://` + domain + `/#/login/[\w.%]+/([A-Za-z0-9%._=-]+)`
+	pattern := domain + `/#/login/[\w.%]+/([A-Za-z0-9%._=-]+)`
 	re := regexp.MustCompile(pattern)
 	matches := re.FindStringSubmatch(string(e.Text))
 	require.Len(t, matches, 2, fmt.Sprintf("Could not find Login Link in text: %q", e.Text))

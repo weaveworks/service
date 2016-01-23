@@ -14,6 +14,7 @@ var (
 	app        *api
 	storage    database
 	sessions   sessionStore
+	domain     = "http://fake.scope"
 )
 
 func setup(t *testing.T) {
@@ -27,7 +28,7 @@ func setup(t *testing.T) {
 	templates := mustNewTemplateEngine()
 
 	sentEmails = nil
-	app = newAPI(directLogin, makeSMTPEmailer(testEmailSender, templates), sessions, storage, templates)
+	app = newAPI(directLogin, makeSMTPEmailer(testEmailSender, templates, domain), sessions, storage, templates)
 }
 
 func cleanup(t *testing.T) {
