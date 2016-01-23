@@ -177,17 +177,19 @@ const (
 
 func (s sendgridEmailer) WelcomeEmail(u *user) error {
 	mail := sendgrid.NewMail()
-	mail.AddFilter("template", "enable", "1")
-	mail.AddFilter("template", "template_id", welcomeEmailTemplate)
+	mail.AddFilter("templates", "enable", "1")
+	mail.AddFilter("templates", "template_id", welcomeEmailTemplate)
 	mail.AddTo(u.Email)
+	mail.SetFrom(fromAddress)
 	return s.client.Send(mail)
 }
 
 func (s sendgridEmailer) ApprovedEmail(u *user, token string) error {
 	mail := sendgrid.NewMail()
-	mail.AddFilter("template", "enable", "1")
-	mail.AddFilter("template", "template_id", approvedEmailTemplate)
+	mail.AddFilter("templates", "enable", "1")
+	mail.AddFilter("templates", "template_id", approvedEmailTemplate)
 	mail.AddTo(u.Email)
+	mail.SetFrom(fromAddress)
 	mail.AddSubstitution(":login_url", loginURL(u.Email, token))
 	mail.AddSubstitution(":root_url", rootURL)
 	return s.client.Send(mail)
@@ -195,9 +197,10 @@ func (s sendgridEmailer) ApprovedEmail(u *user, token string) error {
 
 func (s sendgridEmailer) LoginEmail(u *user, token string) error {
 	mail := sendgrid.NewMail()
-	mail.AddFilter("template", "enable", "1")
-	mail.AddFilter("template", "template_id", loginEmailTemplate)
+	mail.AddFilter("templates", "enable", "1")
+	mail.AddFilter("templates", "template_id", loginEmailTemplate)
 	mail.AddTo(u.Email)
+	mail.SetFrom(fromAddress)
 	mail.AddSubstitution(":login_url", loginURL(u.Email, token))
 	mail.AddSubstitution(":root_url", rootURL)
 	return s.client.Send(mail)
@@ -205,9 +208,10 @@ func (s sendgridEmailer) LoginEmail(u *user, token string) error {
 
 func (s sendgridEmailer) InviteEmail(u *user, token string) error {
 	mail := sendgrid.NewMail()
-	mail.AddFilter("template", "enable", "1")
-	mail.AddFilter("template", "template_id", inviteEmailTemplate)
+	mail.AddFilter("templates", "enable", "1")
+	mail.AddFilter("templates", "template_id", inviteEmailTemplate)
 	mail.AddTo(u.Email)
+	mail.SetFrom(fromAddress)
 	mail.AddSubstitution(":login_url", loginURL(u.Email, token))
 	mail.AddSubstitution(":root_url", rootURL)
 	mail.AddSubstitution(":org_name", u.Organization.Name)
