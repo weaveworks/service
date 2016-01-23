@@ -14,8 +14,6 @@ import (
 
 const (
 	fromAddress = "Scope Support <support@weave.works>"
-	domain      = "scope.weave.works"
-	rootURL     = "https://" + domain
 )
 
 var (
@@ -34,26 +32,27 @@ type emailSender func(*email.Email) error
 type smtpEmailer struct {
 	templates templateEngine
 	sender    emailSender
+	domain    string
 }
 
-func makeSMTPEmailer(sender emailSender, templates templateEngine) emailer {
-	return smtpEmailer{templates, sender}
+func makeSMTPEmailer(sender emailSender, templates templateEngine, domain string) emailer {
+	return smtpEmailer{templates, sender, domain}
 }
 
 func (s smtpEmailer) WelcomeEmail(u *user) error {
-	return s.sender(welcomeEmail(s.templates, u))
+	return s.sender(s.welcomeEmail(u))
 }
 
 func (s smtpEmailer) ApprovedEmail(u *user, token string) error {
-	return s.sender(approvedEmail(s.templates, u, token))
+	return s.sender(s.approvedEmail(u, token))
 }
 
 func (s smtpEmailer) LoginEmail(u *user, token string) error {
-	return s.sender(loginEmail(s.templates, u, token))
+	return s.sender(s.loginEmail(u, token))
 }
 
 func (s smtpEmailer) InviteEmail(u *user, token string) error {
-	return s.sender(inviteEmail(s.templates, u, token))
+	return s.sender(s.inviteEmail(u, token))
 }
 
 func mustNewEmailSender(emailURI string) emailSender {
@@ -93,79 +92,80 @@ func smtpEmailSender(uri string) (func(e *email.Email) error, error) {
 	}, nil
 }
 
-func welcomeEmail(t templateEngine, u *user) *email.Email {
+func (s smtpEmailer) welcomeEmail(u *user) *email.Email {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
 	e.Subject = "Welcome to Scope"
-	e.Text = t.quietBytes("welcome_email.text", nil)
-	e.HTML = t.quietBytes("welcome_email.html", nil)
+	e.Text = s.templates.quietBytes("welcome_email.text", nil)
+	e.HTML = s.templates.quietBytes("welcome_email.html", nil)
 	return e
 }
 
-func approvedEmail(t templateEngine, u *user, token string) *email.Email {
+func (s smtpEmailer) approvedEmail(u *user, token string) *email.Email {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
 	e.Subject = "Scope account approved"
 	data := map[string]interface{}{
-		"LoginURL":   loginURL(u.Email, token),
-		"RootURL":    rootURL,
+		"LoginURL":   loginURL(u.Email, token, s.domain),
+		"RootURL":    s.domain,
 		"Token":      token,
 		"ProbeToken": u.Organization.ProbeToken,
 	}
-	e.Text = t.quietBytes("approved_email.text", data)
-	e.HTML = t.quietBytes("approved_email.html", data)
+	e.Text = s.templates.quietBytes("approved_email.text", data)
+	e.HTML = s.templates.quietBytes("approved_email.html", data)
 	return e
 }
 
-func loginEmail(t templateEngine, u *user, token string) *email.Email {
+func (s smtpEmailer) loginEmail(u *user, token string) *email.Email {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
 	e.Subject = "Login to Scope"
 	data := map[string]interface{}{
-		"LoginURL": loginURL(u.Email, token),
-		"RootURL":  rootURL,
+		"LoginURL": loginURL(u.Email, token, s.domain),
+		"RootURL":  s.domain,
 		"Token":    token,
 	}
-	e.Text = t.quietBytes("login_email.text", data)
-	e.HTML = t.quietBytes("login_email.html", data)
+	e.Text = s.templates.quietBytes("login_email.text", data)
+	e.HTML = s.templates.quietBytes("login_email.html", data)
 	return e
 }
 
-func loginURL(email, rawToken string) string {
+func loginURL(email, rawToken, domain string) string {
 	return fmt.Sprintf(
-		"https://%s/#/login/%s/%s",
+		"%s/#/login/%s/%s",
 		domain,
 		url.QueryEscape(email),
 		url.QueryEscape(rawToken),
 	)
 }
 
-func inviteEmail(t templateEngine, u *user, token string) *email.Email {
+func (s smtpEmailer) inviteEmail(u *user, token string) *email.Email {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
 	e.Subject = "You've been invited to Scope"
 	data := map[string]interface{}{
-		"LoginURL":         loginURL(u.Email, token),
-		"RootURL":          rootURL,
+		"LoginURL":         loginURL(u.Email, token, s.domain),
+		"RootURL":          s.domain,
 		"Token":            token,
 		"OrganizationName": u.Organization.Name,
 	}
-	e.Text = t.quietBytes("invite_email.text", data)
-	e.HTML = t.quietBytes("invite_email.html", data)
+	e.Text = s.templates.quietBytes("invite_email.text", data)
+	e.HTML = s.templates.quietBytes("invite_email.html", data)
 	return e
 }
 
 type sendgridEmailer struct {
 	client *sendgrid.SGClient
+	domain string
 }
 
-func makeSendgridEmailer(apikey string) emailer {
+func makeSendgridEmailer(apikey, domain string) emailer {
 	client := sendgrid.NewSendGridClientWithApiKey(apikey)
-	return sendgridEmailer{client}
+	return sendgridEmailer{client, domain}
 }
 
 const (
@@ -175,45 +175,44 @@ const (
 	inviteEmailTemplate   = "00ceaa49-857f-4ce4-bc39-789b7f56c886"
 )
 
-func (s sendgridEmailer) WelcomeEmail(u *user) error {
+func sendgridEmail(templateID string) *sendgrid.SGMail {
 	mail := sendgrid.NewMail()
-	mail.AddFilter("templates", "enable", "1")
-	mail.AddFilter("templates", "template_id", welcomeEmailTemplate)
-	mail.AddTo(u.Email)
 	mail.SetFrom(fromAddress)
+	mail.SetText(" ")
+	mail.SetHTML(" ")
+	mail.SetSubject(" ")
+	mail.AddFilter("templates", "enable", "1")
+	mail.AddFilter("templates", "template_id", templateID)
+	return mail
+}
+
+func (s sendgridEmailer) WelcomeEmail(u *user) error {
+	mail := sendgridEmail(welcomeEmailTemplate)
+	mail.AddTo(u.Email)
 	return s.client.Send(mail)
 }
 
 func (s sendgridEmailer) ApprovedEmail(u *user, token string) error {
-	mail := sendgrid.NewMail()
-	mail.AddFilter("templates", "enable", "1")
-	mail.AddFilter("templates", "template_id", approvedEmailTemplate)
+	mail := sendgridEmail(approvedEmailTemplate)
 	mail.AddTo(u.Email)
-	mail.SetFrom(fromAddress)
-	mail.AddSubstitution(":login_url", loginURL(u.Email, token))
-	mail.AddSubstitution(":root_url", rootURL)
+	mail.AddSubstitution(":login_url", loginURL(u.Email, token, s.domain))
+	mail.AddSubstitution(":root_url", s.domain)
 	return s.client.Send(mail)
 }
 
 func (s sendgridEmailer) LoginEmail(u *user, token string) error {
-	mail := sendgrid.NewMail()
-	mail.AddFilter("templates", "enable", "1")
-	mail.AddFilter("templates", "template_id", loginEmailTemplate)
+	mail := sendgridEmail(loginEmailTemplate)
 	mail.AddTo(u.Email)
-	mail.SetFrom(fromAddress)
-	mail.AddSubstitution(":login_url", loginURL(u.Email, token))
-	mail.AddSubstitution(":root_url", rootURL)
+	mail.AddSubstitution(":login_url", loginURL(u.Email, token, s.domain))
+	mail.AddSubstitution(":root_url", s.domain)
 	return s.client.Send(mail)
 }
 
 func (s sendgridEmailer) InviteEmail(u *user, token string) error {
-	mail := sendgrid.NewMail()
-	mail.AddFilter("templates", "enable", "1")
-	mail.AddFilter("templates", "template_id", inviteEmailTemplate)
+	mail := sendgridEmail(inviteEmailTemplate)
 	mail.AddTo(u.Email)
-	mail.SetFrom(fromAddress)
-	mail.AddSubstitution(":login_url", loginURL(u.Email, token))
-	mail.AddSubstitution(":root_url", rootURL)
+	mail.AddSubstitution(":login_url", loginURL(u.Email, token, s.domain))
+	mail.AddSubstitution(":root_url", s.domain)
 	mail.AddSubstitution(":org_name", u.Organization.Name)
 	return s.client.Send(mail)
 }
