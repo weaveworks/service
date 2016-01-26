@@ -68,6 +68,7 @@ When using `docker-machine`, create your VM with
 $ docker-machine create \
     --driver=virtualbox \
     --virtualbox-boot2docker-url=https://github.com/boot2docker/boot2docker/releases/download/v1.8.3/boot2docker.iso \
+    --virtualbox-memory=2048 \
     <machine-name>
 ```
 
