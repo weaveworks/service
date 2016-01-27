@@ -37,7 +37,8 @@ func setup(t *testing.T) {
 
 	truncateDatabase(t)
 
-	app = newAPI(directLogin, makeSMTPEmailer(testEmailSender, templates), sessions, storage, templates)
+	emailer := smtpEmailer{templates, testEmailSender, domain}
+	app = newAPI(directLogin, emailer, sessions, storage, templates)
 }
 
 func cleanup(t *testing.T) {

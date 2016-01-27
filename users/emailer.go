@@ -7,7 +7,6 @@ import (
 	"net/smtp"
 	"net/url"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/jordan-wright/email"
 	"github.com/sendgrid/sendgrid-go"
 )
@@ -20,6 +19,15 @@ var (
 	errUnsupportedEmailProtocol = errors.New("Unsupported email protocol")
 )
 
+func loginURL(email, rawToken, domain string) string {
+	return fmt.Sprintf(
+		"%s/#/login/%s/%s",
+		domain,
+		url.QueryEscape(email),
+		url.QueryEscape(rawToken),
+	)
+}
+
 type emailer interface {
 	WelcomeEmail(u *user) error
 	ApprovedEmail(u *user, token string) error
@@ -27,40 +35,25 @@ type emailer interface {
 	InviteEmail(u *user, token string) error
 }
 
-type emailSender func(*email.Email) error
-
 type smtpEmailer struct {
 	templates templateEngine
-	sender    emailSender
+	sender    func(*email.Email) error
 	domain    string
 }
 
-func makeSMTPEmailer(sender emailSender, templates templateEngine, domain string) emailer {
-	return smtpEmailer{templates, sender, domain}
-}
-
-func (s smtpEmailer) WelcomeEmail(u *user) error {
-	return s.sender(s.welcomeEmail(u))
-}
-
-func (s smtpEmailer) ApprovedEmail(u *user, token string) error {
-	return s.sender(s.approvedEmail(u, token))
-}
-
-func (s smtpEmailer) LoginEmail(u *user, token string) error {
-	return s.sender(s.loginEmail(u, token))
-}
-
-func (s smtpEmailer) InviteEmail(u *user, token string) error {
-	return s.sender(s.inviteEmail(u, token))
-}
-
-func mustNewEmailSender(emailURI string) emailSender {
-	m, err := smtpEmailSender(emailURI)
-	if err != nil {
-		logrus.Fatal(err)
+func makeEmailer(emailURI, sendgridAPIKey string, templates templateEngine, domain string) (emailer, error) {
+	if (emailURI == "") == (sendgridAPIKey == "") {
+		return nil, fmt.Errorf("Must provide one of -email-uri or -sendgrid-api-key")
 	}
-	return m
+	if emailURI != "" {
+		sender, err := smtpEmailSender(emailURI)
+		if err != nil {
+			return nil, err
+		}
+		return smtpEmailer{templates, sender, domain}, nil
+	}
+	client := sendgrid.NewSendGridClientWithApiKey(sendgridAPIKey)
+	return sendgridEmailer{client, domain}, nil
 }
 
 // Takes a uri of the form smtp://username:password@hostname:port
@@ -92,17 +85,17 @@ func smtpEmailSender(uri string) (func(e *email.Email) error, error) {
 	}, nil
 }
 
-func (s smtpEmailer) welcomeEmail(u *user) *email.Email {
+func (s smtpEmailer) WelcomeEmail(u *user) error {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
 	e.Subject = "Welcome to Scope"
 	e.Text = s.templates.quietBytes("welcome_email.text", nil)
 	e.HTML = s.templates.quietBytes("welcome_email.html", nil)
-	return e
+	return s.sender(e)
 }
 
-func (s smtpEmailer) approvedEmail(u *user, token string) *email.Email {
+func (s smtpEmailer) ApprovedEmail(u *user, token string) error {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
@@ -115,10 +108,10 @@ func (s smtpEmailer) approvedEmail(u *user, token string) *email.Email {
 	}
 	e.Text = s.templates.quietBytes("approved_email.text", data)
 	e.HTML = s.templates.quietBytes("approved_email.html", data)
-	return e
+	return s.sender(e)
 }
 
-func (s smtpEmailer) loginEmail(u *user, token string) *email.Email {
+func (s smtpEmailer) LoginEmail(u *user, token string) error {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
@@ -130,19 +123,10 @@ func (s smtpEmailer) loginEmail(u *user, token string) *email.Email {
 	}
 	e.Text = s.templates.quietBytes("login_email.text", data)
 	e.HTML = s.templates.quietBytes("login_email.html", data)
-	return e
+	return s.sender(e)
 }
 
-func loginURL(email, rawToken, domain string) string {
-	return fmt.Sprintf(
-		"%s/#/login/%s/%s",
-		domain,
-		url.QueryEscape(email),
-		url.QueryEscape(rawToken),
-	)
-}
-
-func (s smtpEmailer) inviteEmail(u *user, token string) *email.Email {
+func (s smtpEmailer) InviteEmail(u *user, token string) error {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
@@ -155,17 +139,12 @@ func (s smtpEmailer) inviteEmail(u *user, token string) *email.Email {
 	}
 	e.Text = s.templates.quietBytes("invite_email.text", data)
 	e.HTML = s.templates.quietBytes("invite_email.html", data)
-	return e
+	return s.sender(e)
 }
 
 type sendgridEmailer struct {
 	client *sendgrid.SGClient
 	domain string
-}
-
-func makeSendgridEmailer(apikey, domain string) emailer {
-	client := sendgrid.NewSendGridClientWithApiKey(apikey)
-	return sendgridEmailer{client, domain}
 }
 
 const (

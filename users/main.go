@@ -52,15 +52,9 @@ func main() {
 	setupLogging(*logLevel)
 
 	templates := mustNewTemplateEngine()
-	var emailer emailer
-	if (*emailURI == "") == (*sendgridAPIKey == "") {
-		logrus.Error("Must provide one of -email-uri or -sendgrid-api-key")
-		return
-	}
-	if *emailURI != "" {
-		emailer = makeSMTPEmailer(mustNewEmailSender(*emailURI), templates, *domain)
-	} else {
-		emailer = makeSendgridEmailer(*sendgridAPIKey, *domain)
+	emailer, err := makeEmailer(*emailURI, *sendgridAPIKey, templates, *domain)
+	if err != nil {
+		logrus.Fatal(err)
 	}
 
 	storage := mustNewDatabase(*databaseURI)
