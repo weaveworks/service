@@ -52,11 +52,7 @@ func main() {
 	setupLogging(*logLevel)
 
 	templates := mustNewTemplateEngine()
-	emailer, err := makeEmailer(*emailURI, *sendgridAPIKey, templates, *domain)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-
+	emailer := mustNewEmailer(*emailURI, *sendgridAPIKey, templates, *domain)
 	storage := mustNewDatabase(*databaseURI)
 	defer storage.Close()
 	sessions := mustNewSessionStore(*sessionSecret, storage)

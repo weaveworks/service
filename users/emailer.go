@@ -7,6 +7,7 @@ import (
 	"net/smtp"
 	"net/url"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/jordan-wright/email"
 	"github.com/sendgrid/sendgrid-go"
 )
@@ -41,19 +42,19 @@ type smtpEmailer struct {
 	domain    string
 }
 
-func makeEmailer(emailURI, sendgridAPIKey string, templates templateEngine, domain string) (emailer, error) {
+func mustNewEmailer(emailURI, sendgridAPIKey string, templates templateEngine, domain string) emailer {
 	if (emailURI == "") == (sendgridAPIKey == "") {
-		return nil, fmt.Errorf("Must provide one of -email-uri or -sendgrid-api-key")
+		logrus.Fatal("Must provide one of -email-uri or -sendgrid-api-key")
 	}
 	if emailURI != "" {
 		sender, err := smtpEmailSender(emailURI)
 		if err != nil {
-			return nil, err
+			logrus.Fatal(err)
 		}
-		return smtpEmailer{templates, sender, domain}, nil
+		return smtpEmailer{templates, sender, domain}
 	}
 	client := sendgrid.NewSendGridClientWithApiKey(sendgridAPIKey)
-	return sendgridEmailer{client, domain}, nil
+	return sendgridEmailer{client, domain}
 }
 
 // Takes a uri of the form smtp://username:password@hostname:port
