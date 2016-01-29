@@ -20,6 +20,7 @@ var (
 	app        *api
 	storage    database
 	sessions   sessionStore
+	domain     = "http://fake.scope"
 )
 
 func setup(t *testing.T) {
@@ -37,7 +38,8 @@ func setup(t *testing.T) {
 
 	truncateDatabase(t)
 
-	app = newAPI(directLogin, testEmailSender, sessions, storage, templates)
+	emailer := smtpEmailer{templates, testEmailSender, domain}
+	app = newAPI(directLogin, emailer, sessions, storage, templates)
 }
 
 func cleanup(t *testing.T) {

@@ -25,15 +25,18 @@ var (
 func main() {
 	var (
 		port          = flag.Int("port", 80, "port to listen on")
+		domain        = flag.String("domain", "https://scope.weave.works", "domain where scope service is runnning.")
 		databaseURI   = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
-		emailURI      = flag.String("email-uri", "smtp://smtp.weave.local:587", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port")
+		emailURI      = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Either email-uri or sendgrid-api-key must be provided.")
 		logLevel      = flag.String("log-level", "info", "logging level (debug, info, warning, error)")
 		sessionSecret = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
 		directLogin   = flag.Bool("direct-login", false, "Approve user and send login token in the signup response (DEV only)")
 
-		pardotEmail    = flag.String("pardot-email", "", "")
-		pardotPassword = flag.String("pardot-password", "", "")
-		pardotUserKey  = flag.String("pardot-userkey", "", "")
+		pardotEmail    = flag.String("pardot-email", "", "Email of Pardot account.  If not supplied pardot integration will be disabled.")
+		pardotPassword = flag.String("pardot-password", "", "Password of Pardot account.")
+		pardotUserKey  = flag.String("pardot-userkey", "", "User key of Pardot account.")
+
+		sendgridAPIKey = flag.String("sendgrid-api-key", "", "Sendgrid API key.  Either email-uri or sendgrid-api-key must be provided.")
 	)
 
 	flag.Parse()
@@ -47,35 +50,37 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	setupLogging(*logLevel)
-	emailSender := mustNewEmailSender(*emailURI)
+
+	templates := mustNewTemplateEngine()
+	emailer := mustNewEmailer(*emailURI, *sendgridAPIKey, templates, *domain)
 	storage := mustNewDatabase(*databaseURI)
 	defer storage.Close()
 	sessions := mustNewSessionStore(*sessionSecret, storage)
-	templates := mustNewTemplateEngine()
+
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Infof("Listening on port %d", *port)
-	http.Handle("/", newAPI(*directLogin, emailSender, sessions, storage, templates))
+	http.Handle("/", newAPI(*directLogin, emailer, sessions, storage, templates))
 	http.Handle("/metrics", makePrometheusHandler())
 	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }
 
 type api struct {
 	directLogin bool
-	sendEmail   emailSender
 	sessions    sessionStore
 	storage     database
 	templates   templateEngine
+	emailer     emailer
 	http.Handler
 }
 
-func newAPI(directLogin bool, emailSender emailSender, sessions sessionStore, storage database, templates templateEngine) *api {
+func newAPI(directLogin bool, emailer emailer, sessions sessionStore, storage database, templates templateEngine) *api {
 	a := &api{
 		directLogin: directLogin,
-		sendEmail:   emailSender,
 		sessions:    sessions,
 		storage:     storage,
 		templates:   templates,
+		emailer:     emailer,
 	}
 	a.Handler = a.routes()
 	return a
@@ -165,9 +170,9 @@ func (a *api) signup(w http.ResponseWriter, r *http.Request) {
 		_, err = a.storage.ApproveUser(user.ID)
 		view.Token = token
 	} else if user.ApprovedAt.IsZero() {
-		err = a.sendEmail(welcomeEmail(a.templates, user))
+		err = a.emailer.WelcomeEmail(user)
 	} else {
-		err = a.sendEmail(loginEmail(a.templates, user, token))
+		err = a.emailer.LoginEmail(user, token)
 	}
 	if err != nil {
 		renderError(w, r, fmt.Errorf("Error sending login email: %s", err))
@@ -345,7 +350,7 @@ func (a *api) approveUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pardotClient.UserApproved(user.Email, user.ApprovedAt)
-	if renderError(w, r, a.sendEmail(approvedEmail(a.templates, user, token))) {
+	if renderError(w, r, a.emailer.ApprovedEmail(user, token)) {
 		return
 	}
 	redirectTo := r.FormValue("redirect_to")
@@ -448,7 +453,7 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
-	if err = a.sendEmail(inviteEmail(a.templates, invitee, token)); err != nil {
+	if err = a.emailer.InviteEmail(invitee, token); err != nil {
 		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
