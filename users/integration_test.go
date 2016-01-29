@@ -20,6 +20,7 @@ var (
 	app        *api
 	storage    database
 	sessions   sessionStore
+	domain     = "http://fake.scope"
 )
 
 func setup(t *testing.T) {
