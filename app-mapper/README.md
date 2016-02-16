@@ -1,6 +1,6 @@
 # app-mapper
 
-The app-mapper is a proxy between Scope probes/UIs and Scope apps.
+The app-mapper is a proxy between Scope probes/UIs and Scope apps. It creates apps lazily on the first request.
 
 ## Build
 
