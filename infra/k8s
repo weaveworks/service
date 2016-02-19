@@ -57,8 +57,13 @@ function ensure_release {
 	echo "Unpacking Kubernetes ${version}"
 	tar zxf kubernetes.tar.gz
 	echo "Patching Kubernetes scripts"
-	wget -q -O kubernetes/cluster/aws/config-default.sh https://raw.githubusercontent.com/peterbourgon/kubernetes/master/cluster/aws/config-default.sh
-	wget -q -O kubernetes/cluster/aws/util.sh https://raw.githubusercontent.com/peterbourgon/kubernetes/master/cluster/aws/util.sh
+        fork=errordeveloper/kubernetes/v1.1.7-cherry-pick-peterbourgon-master
+	wget -q -O kubernetes/cluster/aws/config-default.sh \
+          https://raw.githubusercontent.com/${fork}/cluster/aws/config-default.sh
+        wget -q -O kubernetes/cluster/aws/util.sh \
+          https://raw.githubusercontent.com/${fork}/cluster/aws/util.sh
+	wget -q -O kubernetes/cluster/aws/templates/salt-master.sh \
+          https://raw.githubusercontent.com/${fork}/cluster/aws/templates/salt-master.sh
 }
 
 function move_kubeconfig {
