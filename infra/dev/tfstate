@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "serial": 8,
+    "serial": 14,
     "modules": [
         {
             "path": [
@@ -134,14 +134,19 @@
                         "id": "Z12AMLFW9TRQPN_frontend.dev.weave.works_A",
                         "attributes": {
                             "alias.#": "1",
-                            "alias.2594392508.evaluate_target_health": "false",
-                            "alias.2594392508.name": "a5dfe18afa3f711e5b57012127ef29bc-1480050444.us-east-1.elb.amazonaws.com",
-                            "alias.2594392508.zone_id": "Z3DZXE0Q79N41H",
+                            "alias.834300966.evaluate_target_health": "false",
+                            "alias.834300966.name": "8a32499ed73d11e59bbe12dc9dc996a-1542465414.us-east-1.elb.amazonaws.com",
+                            "alias.834300966.zone_id": "Z3DZXE0Q79N41H",
+                            "failover": "",
                             "fqdn": "frontend.dev.weave.works",
+                            "health_check_id": "",
                             "id": "Z12AMLFW9TRQPN_frontend.dev.weave.works_A",
                             "name": "frontend.dev.weave.works",
                             "records.#": "0",
+                            "set_identifier": "",
+                            "ttl": "0",
                             "type": "A",
+                            "weight": "-1",
                             "zone_id": "Z12AMLFW9TRQPN"
                         }
                     }
