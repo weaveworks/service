@@ -42,7 +42,7 @@ function export_variables {
 }
 
 function ensure_release {
-	local version="v1.1.1" # https://storage.googleapis.com/kubernetes-release/release/stable.txt
+	local version="v1.1.7" # https://storage.googleapis.com/kubernetes-release/release/stable.txt
 	if [ -d kubernetes ]
 	then
 		echo "Kubernetes directory already exists (good)"
