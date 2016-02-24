@@ -37,7 +37,7 @@ K8S_MASTER_SIZE="m3.large"
 # boot Kubernetes for a test cluster, but not enough to run Scope-as-a-Service
 # components. For that you need at least t2.medium.
 #
-K8S_MINION_SIZE="m3.large"
+K8S_MINION_SIZE="m3.xlarge"
 
 # How many minion nodes to spawn.
 #
