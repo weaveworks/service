@@ -42,7 +42,7 @@ function export_variables {
 }
 
 function ensure_release {
-	local version="v1.1.7" # https://storage.googleapis.com/kubernetes-release/release/stable.txt
+	local version="v1.1.8" # https://storage.googleapis.com/kubernetes-release/release/stable.txt
 	if [ -d kubernetes ]
 	then
 		echo "Kubernetes directory already exists (good)"
@@ -57,7 +57,7 @@ function ensure_release {
 	echo "Unpacking Kubernetes ${version}"
 	tar zxf kubernetes.tar.gz
 	echo "Patching Kubernetes scripts"
-        fork=errordeveloper/kubernetes/v1.1.7-cherry-pick-peterbourgon-master
+        fork=errordeveloper/kubernetes/cherry-pick-peterbourgon-master
 	wget -q -O kubernetes/cluster/aws/config-default.sh \
           https://raw.githubusercontent.com/${fork}/cluster/aws/config-default.sh
         wget -q -O kubernetes/cluster/aws/util.sh \
