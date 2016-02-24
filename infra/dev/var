@@ -87,7 +87,7 @@ R53_RESOURCE_NAME="frontend.dev.weave.works"
 #
 #  kubectl describe svc frontend
 #
-R53_FRONTEND_ELB_ENDPOINT="a8a32499ed73d11e59bbe12dc9dc996a-1542465414.us-east-1.elb.amazonaws.com"
+R53_FRONTEND_ELB_ENDPOINT="a41e2c423dad111e5aafc12d46bad2ae-287976260.us-east-1.elb.amazonaws.com"
 
 # The canonical zone ID for the ELB, above. Again, you won't have that
 # information to start, so leave it blank. Once you launch the frontend
