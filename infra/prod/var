@@ -46,7 +46,7 @@ K8S_NUM_MINIONS="3"
 # A prefix for the EC2 instance names. Should probably include "kubernetes"
 # and the name of the cluster, to help keep things understandable.
 #
-K8S_INSTANCE_PREFIX="kubernetes_prod"
+K8S_INSTANCE_PREFIX="kubernetes_prod_b"
 
 #
 # RDS
