@@ -17,7 +17,6 @@ spec:
         image: weaveworks/scope:0.13.0
         args:
         - --no-probe
-        - --debug
         ports:
         - containerPort: 4040
           hostPort: 4040
