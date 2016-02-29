@@ -170,7 +170,7 @@ only one AWS environment can supply the value for the `_amazonses` TXT record)
 After connecting to an environment with `./connect`:
 
 * You can access the Prometheus Grafana UI at http://monitoring.default.svc.cluster.local:3000/
-* (Disabled until https://github.com/weaveworks/scope/issues/812 is resolved) You can access the Scope UI (Scope monitoring the Scope service which is a bit meta) http://weave-scope-app.default.svc.cluster.local:4040/
+* You can access the Scope UI (Scope monitoring the Scope service which is a bit meta) http://weave-scope-app.default.svc.cluster.local:4040/
 
 ### How can I add nodes to a cluster?
 
