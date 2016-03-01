@@ -19,7 +19,7 @@ spec:
       - name: app-mapper
         image: quay.io/weaveworks/app-mapper:77d895a
         args:
-        - -db-uri=postgres://postgres:am1e28d6a4b3302b@app-mapper-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com/app_mapper?sslmode=disable
+        - -db-uri=postgres://postgres:c798bb333cf5d9c211921e0682c1fcdb507d1e85@app-mapper-database-devc.czc9e0lwsult.eu-west-1.rds.amazonaws.com/app_mapper?sslmode=disable
         - -log-level=debug
         env:
         - name: GET_HOSTS_FROM
