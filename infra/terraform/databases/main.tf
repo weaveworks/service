@@ -1,5 +1,5 @@
 variable "postgres_version" {
-    default = "9.4.4"
+    default = "9.4.5"
 }
 
 variable "cluster" {}
@@ -7,7 +7,7 @@ variable "rds_sg_id" {}
 variable "rds_vpc_id" {}
 
 variable "users_db_password" {}
-variable "app-mapper_db_password" {}
+variable "app_mapper_db_password" {}
 
 variable "aws_access_key" {}
 variable "aws_secret_key" {}
@@ -49,7 +49,7 @@ resource "aws_db_instance" "app_mapper_database" {
     engine_version            = "${var.postgres_version}"
     instance_class            = "db.t2.small"
     username                  = "postgres"
-    password                  = "${var.app-mapper_db_password}"
+    password                  = "${var.app_mapper_db_password}"
     vpc_security_group_ids    = ["${var.rds_sg_id}"]
     db_subnet_group_name      = "${aws_db_subnet_group.default_rds_subnet.name}"
     final_snapshot_identifier = "app-mapper-final"
@@ -75,4 +75,12 @@ resource "aws_db_subnet_group" "default_rds_subnet" {
     name        = "db-subnet-group-${var.cluster}"
     description =  "Subnet 1 for Postgres RDS instances"
     subnet_ids  = ["${aws_subnet.rds_subnet1.id}", "${aws_subnet.rds_subnet2.id}"]
+}
+
+output "users_database_endpoint" {
+    value = "postgres://postgres:${var.users_db_password}@${aws_db_instance.users_database.endpoint}"
+}
+
+output "app_mapper_database_endpoint" {
+    value = "postgres://postgres:${var.app_mapper_db_password}@${aws_db_instance.app_mapper_database.endpoint}"
 }
