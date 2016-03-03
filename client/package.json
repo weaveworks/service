@@ -32,12 +32,12 @@
     "material-ui": "0.13.3",
     "moment": "^2.10.6",
     "page": "1.6.4",
-    "react": "0.14.6",
+    "react": "^0.14.0",
     "react-cookie-banner": "davkal/react-cookie-banner#dc5f4c1bf43c0dc65ed6fd909991871b2a1dce31",
-    "react-dom": "0.14.6",
+    "react-dom": "^0.14.0",
     "react-motion": "0.3.1",
     "react-router": "1.0.0",
-    "react-tap-event-plugin": "0.2.1"
+    "react-tap-event-plugin": "^0.2.0"
   },
   "devDependencies": {
     "babel-core": "6.1.4",
