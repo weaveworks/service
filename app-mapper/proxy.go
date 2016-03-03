@@ -63,6 +63,21 @@ func (p proxy) registerHandlers(router *mux.Router) {
 			p.forwardRequest(w, r, orgID)
 		},
 	))
+
+	// Pipe deletion from probe
+	router.Path("/api/pipe/{pipeID}").Methods("DELETE").Name("api_pipe_probe_delete").Handler(authProbeHandler(p.authenticator,
+		func(w http.ResponseWriter, r *http.Request, orgID string) {
+			p.forwardRequest(w, r, orgID)
+		},
+	))
+
+	// Pipe websocket from probe
+	router.Path("/api/pipe/{pipeID}/probe").Name("api_pipe_probe").Handler(authProbeHandler(p.authenticator,
+		func(w http.ResponseWriter, r *http.Request, orgID string) {
+			p.forwardRequest(w, r, orgID)
+		},
+	))
+
 	router.Path("/api/report").Name("api_report").Handler(authProbeHandler(p.authenticator,
 		func(w http.ResponseWriter, r *http.Request, orgID string) {
 			if probeID := r.Header.Get(scope.ScopeProbeIDHeader); probeID == "" {
