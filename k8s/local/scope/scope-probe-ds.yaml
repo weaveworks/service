@@ -17,11 +17,15 @@ spec:
       hostNetwork: true
       containers:
       - name:  weave-scope-probe
-        image: weaveworks/scope:0.13.0
+        image: weaveworks/scope:0.13.1
+        env:
+        - name: CHECKPOINT_DISABLE
+          value: "true"
         args:
         - --no-app
         - --probe.docker=true
         - --probe.kubernetes=true
+        - --app.weave.addr=
         # We cannot refer to the Scope App with its Kubernetes Service
         # DNS name (weave-scope-app) directly because Docker doesn't
         # allow customizing the DNS servers (the Kubernetes DNS add-on

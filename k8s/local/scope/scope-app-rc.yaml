@@ -14,9 +14,13 @@ spec:
     spec:
       containers:
       - name: weave-scope-app
-        image: weaveworks/scope:0.13.0
+        image: weaveworks/scope:0.13.1
+        env:
+        - name: CHECKPOINT_DISABLE
+          value: "true"
         args:
         - --no-probe
+        - --app.weave.addr=
         ports:
         - containerPort: 4040
           hostPort: 4040
