@@ -26,7 +26,7 @@ spec:
         - --probe.docker.bridge=cbr0
         - --probe.docker=true
         - --probe.kubernetes=true
-        - --app.weave.addr=
+        - --probe.weave.router.addr=
 
         # We cannot refer to the Scope App with its Kubernetes Service
         # DNS name (weave-scope-app) directly because Docker doesn't
