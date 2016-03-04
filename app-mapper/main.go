@@ -120,7 +120,7 @@ func (f *flags) makeAppProvisioner() appProvisioner {
 			appContainer: kapi.Container{
 				Name:  "scope",
 				Image: f.dockerAppImage,
-				Env:   []kapi.EnvVar{kapi.EnvVar{Name: "CHECKPOINT_DISABLE", Value: "true"}},
+				Env:   []kapi.EnvVar{{Name: "CHECKPOINT_DISABLE", Value: "true"}},
 				Args:  args,
 				Ports: []kapi.ContainerPort{
 					{ContainerPort: scope.AppPort}},
