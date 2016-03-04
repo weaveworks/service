@@ -51,11 +51,13 @@ func (p proxy) registerHandlers(router *mux.Router) {
 			p.forwardRequest(w, r, orgID)
 		},
 	)
-	// We believe forwards to /api/topology/{topology}/ws will normally have
-	// very high latencies. We separate that endpoint from the general
+	// We believe forwards to websocket endpoints
+	// /api/topology/{topology}/ws and /api/pipe/{pipeID} will normally have
+	// very high latencies. We separate those endpoint from the general
 	// PathPrefix in order to give it a special name, which we exclude from
 	// the latency alerting rules in our monitoring. See service #291.
 	router.Path("/api/app/{orgName}/api/topology/{topology}/ws").Name("api_app_topology_ws").Handler(fwd)
+	router.Path("/api/app/{orgName}/api/pipe/{pipeID}").Name("api_app_pipe").Handler(fwd)
 	router.PathPrefix("/api/app/{orgName}/").Name("api_app").Handler(fwd)
 
 	router.Path("/api/control/ws").Name("api_control").Handler(authProbeHandler(p.authenticator,
@@ -63,6 +65,21 @@ func (p proxy) registerHandlers(router *mux.Router) {
 			p.forwardRequest(w, r, orgID)
 		},
 	))
+
+	// Pipe deletion from probe
+	router.Path("/api/pipe/{pipeID}").Methods("DELETE").Name("api_probe_pipe_delete").Handler(authProbeHandler(p.authenticator,
+		func(w http.ResponseWriter, r *http.Request, orgID string) {
+			p.forwardRequest(w, r, orgID)
+		},
+	))
+
+	// Pipe websocket from probe
+	router.Path("/api/pipe/{pipeID}/probe").Name("api_probe_pipe").Handler(authProbeHandler(p.authenticator,
+		func(w http.ResponseWriter, r *http.Request, orgID string) {
+			p.forwardRequest(w, r, orgID)
+		},
+	))
+
 	router.Path("/api/report").Name("api_report").Handler(authProbeHandler(p.authenticator,
 		func(w http.ResponseWriter, r *http.Request, orgID string) {
 			if probeID := r.Header.Get(scope.ScopeProbeIDHeader); probeID == "" {

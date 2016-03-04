@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	defaultAppImage = "weaveworks/scope:0.10.0"
+	defaultAppImage = "weaveworks/scope:0.13.1"
 	defaultDBURI    = "postgres://postgres@app-mapper-db/app_mapper?sslmode=disable"
 )
 
@@ -98,13 +98,13 @@ func (f *flags) makeAppProvisioner() appProvisioner {
 
 	var p appProvisioner
 
-	args := []string{"--no-probe"}
-
+	args := []string{"--no-probe", "--app.weave.addr="}
 	switch f.appProvisioner {
 	case "docker":
 		options := dockerProvisionerOptions{
 			appConfig: docker.Config{
 				Image: f.dockerAppImage,
+				Env:   []string{"CHECKPOINT_DISABLE=true"},
 				Cmd:   args,
 			},
 			hostConfig:    docker.HostConfig{},
@@ -120,6 +120,7 @@ func (f *flags) makeAppProvisioner() appProvisioner {
 			appContainer: kapi.Container{
 				Name:  "scope",
 				Image: f.dockerAppImage,
+				Env:   []kapi.EnvVar{{Name: "CHECKPOINT_DISABLE", Value: "true"}},
 				Args:  args,
 				Ports: []kapi.ContainerPort{
 					{ContainerPort: scope.AppPort}},
