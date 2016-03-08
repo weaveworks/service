@@ -26,7 +26,7 @@ echo ""
 for c in ${COMPONENTS}
 do
 	image_name="quay.io/weaveworks/${c}"
-	image_id=$(docker inspect --format='{{.Id}}' ${image_name}:latest | cut -c1-7)
+	image_id=$(docker inspect --format='{{.Id}}' ${image_name}:latest | cut -d: -f2 |  cut -c1-7)
 	echo "Tagging ${image_name}:latest as ${image_name}:${image_id}"
 	docker tag -f ${image_name}:latest ${image_name}:${image_id}
 	echo "Pushing ${image_name}:${image_id}"
