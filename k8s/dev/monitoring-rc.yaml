@@ -1,35 +1,35 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: monitoring-20160307
+  name: monitoring-20160316
 spec:
   replicas: 1
   selector:
     name: monitoring
-    version: '20160307'
+    version: '20160316'
   template:
     metadata:
       labels:
         name: monitoring
-        version: '20160307'
+        version: '20160316'
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: prometheus
-        image: quay.io/weaveworks/prometheus:48ac0db
+        image: quay.io/weaveworks/prometheus:e86d232
         ports:
         - containerPort: 9090
       - name: grafana
-        image: quay.io/weaveworks/grafana:f69cf1f
+        image: quay.io/weaveworks/grafana:81c87e0
         ports:
         - containerPort: 3000
       - name: gfdatasource
-        image: quay.io/weaveworks/gfdatasource:05189a7
+        image: quay.io/weaveworks/gfdatasource:1c8301b
       - name: loadgen
-        image: quay.io/weaveworks/loadgen:cfeac33
+        image: quay.io/weaveworks/loadgen:753490c
       - name: alertmanager
-        image: quay.io/weaveworks/alertmanager:30f978c
+        image: quay.io/weaveworks/alertmanager:0e21e5a
         command:
         - /alertmanager/alertmanager
         - -config.file=/etc/alertmanager/alertmanager-dev.yml
