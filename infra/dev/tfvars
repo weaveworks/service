@@ -13,5 +13,5 @@ users_db_password = "us45dcd40163798d"
 
 route53_zone_name = "dev.weave.works"
 route53_resource_name = "frontend.dev.weave.works"
-route53_frontend_elb_endpoint = "a41e2c423dad111e5aafc12d46bad2ae-287976260.us-east-1.elb.amazonaws.com"
+route53_frontend_elb_endpoint = "a67d06bd3f08611e5aafc12d46bad2ae-1433816556.us-east-1.elb.amazonaws.com"
 route53_frontend_elb_zone_id = "Z3DZXE0Q79N41H"
