@@ -143,13 +143,16 @@ users-integration-test: $(USERS_UPTODATE)
 client-build-image: $(CLIENT_BUILD_UPTODATE)
 
 clean:
-	-$(SUDO) docker rmi $(APP_MAPPER_IMAGE) $(APP_MAPPER_DB_IMAGE) $(USERS_IMAGE) \
-		$(USERS_DB_IMAGE) $(CLIENT_SERVER_IMAGE) $(CLIENT_BUILD_IMAGE) $(FRONTEND_IMAGE) \
-		$(METRICS_IMAGE) $(BUILD_IMAGE) >/dev/null 2>&1 || true
-	rm -rf $(APP_MAPPER_EXE) $(APP_MAPPER_UPTODATE) $(USERS_EXE) $(USERS_UPTODATE) \
-		$(CLIENT_BUILD_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) \
-		$(BUILD_UPTODATE) client/build/app.js $(APP_MAPPER_EXE)$(IN_CONTAINER) \
-		$(USERS_EXE)$(IN_CONTAINER) $(METRICS_EXE) $(METRICS_UPTODATE)
+	# Don't remove the build images, just remove the marker files.
+	-$(SUDO) docker rmi $(APP_MAPPER_IMAGE) $(APP_MAPPER_DB_IMAGE) \
+		$(USERS_IMAGE) $(USERS_DB_IMAGE) \
+		$(CLIENT_SERVER_IMAGE) $(FRONTEND_IMAGE) \
+		$(METRICS_IMAGE) >/dev/null 2>&1 || true
+	rm -rf $(APP_MAPPER_EXE) $(APP_MAPPER_UPTODATE) \
+		$(USERS_EXE) $(USERS_UPTODATE) \
+		$(METRICS_EXE) $(METRICS_UPTODATE) \
+		$(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) client/build/app.js \
+		$(BUILD_UPTODATE) $(CLIENT_BUILD_UPTODATE)
 	go clean ./...
 	make -C monitoring clean
 
