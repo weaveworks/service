@@ -50,11 +50,15 @@ TESTDIRS=$(find . -type f -name '*_test.go' | xargs -n1 dirname | grep -vE '^\./
 
 # If running on circle, use the scheduler to work out what tests to run on what shard
 if [ -n "$CIRCLECI" -a -z "$NO_SCHEDULER" -a -x "$DIR/sched" ]; then
-    TESTDIRS=$(echo $TESTDIRS | "$DIR/sched" sched units-$CIRCLE_BUILD_NUM $CIRCLE_NODE_TOTAL $CIRCLE_NODE_INDEX)
+    PREFIX=$(go list -e ./ | sed -e 's/\//-/g')
+    TESTDIRS=$(echo $TESTDIRS | "$DIR/sched" sched $PREFIX-$CIRCLE_BUILD_NUM $CIRCLE_NODE_TOTAL $CIRCLE_NODE_INDEX)
     echo $TESTDIRS
 fi
 
 PACKAGE_BASE=$(go list -e ./)
+
+# Speed up the tests by compiling and installing their dependancies first.
+go test -i $GO_TEST_ARGS $TESTDIRS
 
 for dir in $TESTDIRS; do
     if [ -z "$NO_GO_GET" ]; then
@@ -63,7 +67,7 @@ for dir in $TESTDIRS; do
 
     GO_TEST_ARGS_RUN="$GO_TEST_ARGS"
     if [ -n "$SLOW" ]; then
-        COVERPKGS=$( (go list $dir; go list -f '{{join .Deps "\n"}}' $dir | grep -v "vendor" | grep "^$PACKAGE_BASE/") | paste -s -d,)
+        COVERPKGS=$( (go list $dir; go list -f '{{join .Deps "\n"}}' $dir | grep -v "vendor" | grep "^$PACKAGE_BASE/") | paste -s -d, -)
         output=$(mktemp $coverdir/unit.XXXXXXXXXX)
         GO_TEST_ARGS_RUN="$GO_TEST_ARGS -coverprofile=$output -coverpkg=$COVERPKGS"
     fi
