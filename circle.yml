@@ -24,7 +24,7 @@ dependencies:
 
 test:
   override:
-    - cd $SRCDIR; ./tools/lint .
+    - cd $SRCDIR; make RM= lint
     - cd $SRCDIR; COVERDIR=./coverage make RM= test
     - cd $SRCDIR; make RM=
     - cd $SRCDIR; make RM= users-integration-test

@@ -102,15 +102,27 @@ $(USERS_EXE): users/*.go users/names/*.go
 $(METRICS_EXE): metrics/*.go
 
 ifeq ($(BUILD_IN_CONTAINER),true)
-$(APP_MAPPER_EXE) $(USERS_EXE) $(METRICS_EXE): $(BUILD_UPTODATE)
-	$(SUDO) docker run $(RM) -v $(shell pwd):/go/src/github.com/weaveworks/service $(BUILD_IMAGE) $@
+
+$(APP_MAPPER_EXE) $(USERS_EXE) $(METRICS_EXE) lint: $(BUILD_UPTODATE)
+	$(SUDO) docker run $(RM) -ti -v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
+		$(BUILD_IMAGE) $@
+
 else
+
 $(APP_MAPPER_EXE) $(USERS_EXE): $(BUILD_UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
 $(METRICS_EXE): $(BUILD_UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
+
+lint: $(BUILD_UPTODATE)
+	./tools/lint .
+
+test: $(BUILD_UPTODATE)
+	./tools/test -no-go-get
+
 endif
 
 app-mapper-integration-test: $(APP_MAPPER_UPTODATE)
@@ -129,16 +141,6 @@ users-integration-test: $(USERS_UPTODATE)
 	exit $$status
 
 client-build-image: $(CLIENT_BUILD_UPTODATE)
-
-ifeq ($(BUILD_IN_CONTAINER),true)
-test: $(BUILD_UPTODATE)
-	$(SUDO) docker run $(RM) -v $(shell pwd):/go/src/github.com/weaveworks/service \
-		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
-		$(BUILD_IMAGE) test
-else
-test: $(BUILD_UPTODATE)
-	./tools/test -no-go-get
-endif
 
 clean:
 	-$(SUDO) docker rmi $(APP_MAPPER_IMAGE) $(APP_MAPPER_DB_IMAGE) $(USERS_IMAGE) \
