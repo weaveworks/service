@@ -7,12 +7,12 @@ BUILD_IMAGE=service_build
 APP_MAPPER_UPTODATE=app-mapper/.images.uptodate
 APP_MAPPER_EXE=app-mapper/app-mapper
 APP_MAPPER_IMAGE=quay.io/weaveworks/app-mapper
-APP_MAPPER_DB_IMAGE=weaveworks/app-mapper-db # The DB image is only used in the local environemnt and it's not pushed to Quay
+APP_MAPPER_DB_IMAGE=weaveworks/app-mapper-db # The DB image is only used in the local environment and it's not pushed to Quay
 
 USERS_UPTODATE=users/.images.uptodate
 USERS_EXE=users/users
 USERS_IMAGE=quay.io/weaveworks/users
-USERS_DB_IMAGE=weaveworks/users-db # The DB image is only used in the local environemnt and it's not pushed to Quay
+USERS_DB_IMAGE=weaveworks/users-db # The DB image is only used in the local environment and it's not pushed to Quay
 
 METRICS_UPTODATE=metrics/.uptodate
 METRICS_EXE=metrics/metrics

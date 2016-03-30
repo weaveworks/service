@@ -4,7 +4,7 @@ kind: ReplicationController
 metadata: # of this rc
   labels:
     app: helloworld # These labels are useful for selecting this rc.
-    track: stable   # They're consumed by thigns that select rcs, e.g. services.
+    track: stable   # They're consumed by things that select rcs, e.g. services.
   name: helloworld-1.0.0
 
 spec:
