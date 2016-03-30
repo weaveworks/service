@@ -103,7 +103,7 @@ $(METRICS_EXE): metrics/*.go
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
-$(APP_MAPPER_EXE) $(USERS_EXE) $(METRICS_EXE) lint: $(BUILD_UPTODATE)
+$(APP_MAPPER_EXE) $(USERS_EXE) $(METRICS_EXE) lint test: $(BUILD_UPTODATE)
 	$(SUDO) docker run $(RM) -ti -v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
 		$(BUILD_IMAGE) $@
@@ -152,13 +152,6 @@ clean:
 		$(USERS_EXE)$(IN_CONTAINER) $(METRICS_EXE) $(METRICS_UPTODATE)
 	go clean ./...
 	make -C monitoring clean
-
-deps:
-	go get \
-		github.com/golang/lint/golint \
-		github.com/fzipp/gocyclo \
-		github.com/mattn/goveralls \
-		github.com/kisielk/errcheck
 
 client-tests: $(CLIENT_BUILD_UPTODATE)
 	$(SUDO) docker run $(RM) -ti -v $(shell pwd)/client/src:/home/weave/src \
