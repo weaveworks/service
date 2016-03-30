@@ -9,6 +9,10 @@ APP_MAPPER_EXE=app-mapper/app-mapper
 APP_MAPPER_IMAGE=quay.io/weaveworks/app-mapper
 APP_MAPPER_DB_IMAGE=weaveworks/app-mapper-db # The DB image is only used in the local environment and it's not pushed to Quay
 
+AUTHFE_UPTODATE=authfe/.images.uptodate
+AUTHFE_EXE=authfe/authfe
+AUTHFE_IMAGE=quay.io/weaveworks/authfe
+
 USERS_UPTODATE=users/.images.uptodate
 USERS_EXE=users/users
 USERS_IMAGE=quay.io/weaveworks/users
@@ -55,7 +59,7 @@ NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 	false; \
 }
 
-all: $(APP_MAPPER_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE)
+all: $(APP_MAPPER_UPTODATE) $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE)
 
 $(BUILD_UPTODATE): build/*
 	$(DOCKER_HOST_CHECK)
@@ -66,6 +70,11 @@ $(APP_MAPPER_UPTODATE): app-mapper/Dockerfile $(APP_MAPPER_EXE) app-mapper/db/Do
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(APP_MAPPER_IMAGE) app-mapper/
 	$(SUDO) docker build -t $(APP_MAPPER_DB_IMAGE) app-mapper/db/
+	touch $@
+
+$(AUTHFE_UPTODATE): authfe/Dockerfile $(AUTHFE_EXE)
+	$(DOCKER_HOST_CHECK)
+	$(SUDO) docker build -t $(AUTHFE_IMAGE) authfe/
 	touch $@
 
 $(USERS_UPTODATE): users/Dockerfile users/templates/* $(USERS_EXE) users/db/* users/ca-certificates.crt
@@ -98,19 +107,20 @@ $(MONITORING_UPTODATE):
 	make -C monitoring
 
 $(APP_MAPPER_EXE): app-mapper/*.go
+$(AUTHFE_EXE): authfe/*.go
 $(USERS_EXE): users/*.go users/names/*.go
 $(METRICS_EXE): metrics/*.go
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
-$(APP_MAPPER_EXE) $(USERS_EXE) $(METRICS_EXE) lint test: $(BUILD_UPTODATE)
+$(APP_MAPPER_EXE) $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) lint test: $(BUILD_UPTODATE)
 	$(SUDO) docker run $(RM) -ti -v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
 		$(BUILD_IMAGE) $@
 
 else
 
-$(APP_MAPPER_EXE) $(USERS_EXE): $(BUILD_UPTODATE)
+$(APP_MAPPER_EXE) $(AUTHFE_EXE) $(USERS_EXE): $(BUILD_UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
