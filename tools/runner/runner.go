@@ -63,10 +63,10 @@ func (ts tests) Less(i, j int) bool {
 	return ts[i].name < ts[j].name
 }
 
-func (ts *tests) pick(availible int) (test, bool) {
-	// pick the first test that fits in the availible hosts
+func (ts *tests) pick(available int) (test, bool) {
+	// pick the first test that fits in the available hosts
 	for i, test := range *ts {
-		if test.hosts <= availible {
+		if test.hosts <= available {
 			*ts = append((*ts)[:i], (*ts)[i+1:]...)
 			return test, true
 		}
@@ -138,7 +138,9 @@ func updateScheduler(test string, duration float64) {
 
 func getSchedule(tests []string) ([]string, error) {
 	var (
-		testRun     = "integration-" + os.Getenv("CIRCLE_BUILD_NUM")
+		project     = os.Getenv("CIRCLE_PROJECT_REPONAME")
+		buildNum    = os.Getenv("CIRCLE_BUILD_NUM")
+		testRun     = project + "-integration-" + buildNum
 		shardCount  = os.Getenv("CIRCLE_NODE_TOTAL")
 		shardID     = os.Getenv("CIRCLE_NODE_INDEX")
 		requestBody = &bytes.Buffer{}

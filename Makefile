@@ -7,12 +7,12 @@ BUILD_IMAGE=service_build
 APP_MAPPER_UPTODATE=app-mapper/.images.uptodate
 APP_MAPPER_EXE=app-mapper/app-mapper
 APP_MAPPER_IMAGE=quay.io/weaveworks/app-mapper
-APP_MAPPER_DB_IMAGE=weaveworks/app-mapper-db # The DB image is only used in the local environemnt and it's not pushed to Quay
+APP_MAPPER_DB_IMAGE=weaveworks/app-mapper-db # The DB image is only used in the local environment and it's not pushed to Quay
 
 USERS_UPTODATE=users/.images.uptodate
 USERS_EXE=users/users
 USERS_IMAGE=quay.io/weaveworks/users
-USERS_DB_IMAGE=weaveworks/users-db # The DB image is only used in the local environemnt and it's not pushed to Quay
+USERS_DB_IMAGE=weaveworks/users-db # The DB image is only used in the local environment and it's not pushed to Quay
 
 METRICS_UPTODATE=metrics/.uptodate
 METRICS_EXE=metrics/metrics
@@ -30,7 +30,7 @@ FRONTEND_IMAGE=quay.io/weaveworks/frontend
 MONITORING_UPTODATE=monitoring/.images.uptodate
 
 # If you can use Docker without being root, you can `make SUDO= <target>`
-SUDO=sudo -E
+SUDO=$(shell (echo "$$DOCKER_HOST" | grep "tcp://" >/dev/null) || echo "sudo -E")
 BUILD_IN_CONTAINER=true
 RM=--rm
 GO_FLAGS=-ldflags "-extldflags \"-static\" -linkmode=external" -tags netgo
@@ -102,15 +102,27 @@ $(USERS_EXE): users/*.go users/names/*.go
 $(METRICS_EXE): metrics/*.go
 
 ifeq ($(BUILD_IN_CONTAINER),true)
-$(APP_MAPPER_EXE) $(USERS_EXE) $(METRICS_EXE): $(BUILD_UPTODATE)
-	$(SUDO) docker run $(RM) -v $(shell pwd):/go/src/github.com/weaveworks/service $(BUILD_IMAGE) $@
+
+$(APP_MAPPER_EXE) $(USERS_EXE) $(METRICS_EXE) lint test: $(BUILD_UPTODATE)
+	$(SUDO) docker run $(RM) -ti -v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
+		$(BUILD_IMAGE) $@
+
 else
+
 $(APP_MAPPER_EXE) $(USERS_EXE): $(BUILD_UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
 $(METRICS_EXE): $(BUILD_UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
+
+lint: $(BUILD_UPTODATE)
+	./tools/lint .
+
+test: $(BUILD_UPTODATE)
+	./tools/test -no-go-get
+
 endif
 
 app-mapper-integration-test: $(APP_MAPPER_UPTODATE)
@@ -130,33 +142,19 @@ users-integration-test: $(USERS_UPTODATE)
 
 client-build-image: $(CLIENT_BUILD_UPTODATE)
 
-ifeq ($(BUILD_IN_CONTAINER),true)
-test: $(BUILD_UPTODATE)
-	$(SUDO) docker run $(RM) -v $(shell pwd):/go/src/github.com/weaveworks/service \
-		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
-		$(BUILD_IMAGE) test
-else
-test: $(BUILD_UPTODATE)
-	./tools/test -no-go-get
-endif
-
 clean:
-	-$(SUDO) docker rmi $(APP_MAPPER_IMAGE) $(APP_MAPPER_DB_IMAGE) $(USERS_IMAGE) \
-		$(USERS_DB_IMAGE) $(CLIENT_SERVER_IMAGE) $(CLIENT_BUILD_IMAGE) $(FRONTEND_IMAGE) \
-		$(METRICS_IMAGE) $(BUILD_IMAGE) >/dev/null 2>&1 || true
-	rm -rf $(APP_MAPPER_EXE) $(APP_MAPPER_UPTODATE) $(USERS_EXE) $(USERS_UPTODATE) \
-		$(CLIENT_BUILD_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) \
-		$(BUILD_UPTODATE) client/build/app.js $(APP_MAPPER_EXE)$(IN_CONTAINER) \
-		$(USERS_EXE)$(IN_CONTAINER) $(METRICS_EXE) $(METRICS_UPTODATE)
+	# Don't remove the build images, just remove the marker files.
+	-$(SUDO) docker rmi $(APP_MAPPER_IMAGE) $(APP_MAPPER_DB_IMAGE) \
+		$(USERS_IMAGE) $(USERS_DB_IMAGE) \
+		$(CLIENT_SERVER_IMAGE) $(FRONTEND_IMAGE) \
+		$(METRICS_IMAGE) >/dev/null 2>&1 || true
+	rm -rf $(APP_MAPPER_EXE) $(APP_MAPPER_UPTODATE) \
+		$(USERS_EXE) $(USERS_UPTODATE) \
+		$(METRICS_EXE) $(METRICS_UPTODATE) \
+		$(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) client/build/app.js \
+		$(BUILD_UPTODATE) $(CLIENT_BUILD_UPTODATE)
 	go clean ./...
 	make -C monitoring clean
-
-deps:
-	go get \
-		github.com/golang/lint/golint \
-		github.com/fzipp/gocyclo \
-		github.com/mattn/goveralls \
-		github.com/kisielk/errcheck
 
 client-tests: $(CLIENT_BUILD_UPTODATE)
 	$(SUDO) docker run $(RM) -ti -v $(shell pwd)/client/src:/home/weave/src \

@@ -11,6 +11,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/gorilla/mux"
@@ -314,13 +315,13 @@ func TestProxyWebSocket(t *testing.T) {
 
 // Regression test for "App-mapper proxy leaks file descriptors" https://github.com/weaveworks/service/issues/253
 func TestProxyWebSocketNoServerSideLeak(t *testing.T) {
-	serverExited := false
+	serverExited := uint32(0)
 
 	// Use a websocket echo server in the target
 	targetHandler := websocket.Handler(func(ws *websocket.Conn) {
 		_, err := io.Copy(ws, ws)
 		assert.NoError(t, err, "Target handler copy failed")
-		serverExited = true
+		atomic.StoreUint32(&serverExited, 1)
 	})
 
 	testFunc := func(proxyHost string, pms *probeMemStorage) {
@@ -349,7 +350,7 @@ func TestProxyWebSocketNoServerSideLeak(t *testing.T) {
 	}
 
 	testProxy(t, targetHandler, nil, &mockAuthenticator{}, testFunc)
-	assert.True(t, serverExited, "Server didn't exit")
+	assert.True(t, atomic.LoadUint32(&serverExited) == 1, "Server didn't exit")
 }
 
 func TestProbeLogging(t *testing.T) {
