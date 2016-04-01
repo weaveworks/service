@@ -15,6 +15,7 @@ dependencies:
   cache_directories:
     - "~/docker"
   post:
+    - curl -s -L https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/linux/amd64/kubectl -o /home/ubuntu/bin/kubectl && chmod +x /home/ubuntu/bin/kubectl
     - mkdir -p $(dirname $SRCDIR)
     - cp -r $(pwd)/ $SRCDIR
     - cd $SRCDIR/client; ../tools/rebuild-image service_client_build . Dockerfile package.json webpack.local.config.js webpack.production.config.js .babelrc
@@ -27,6 +28,7 @@ test:
     - cd $SRCDIR; make RM= lint
     - cd $SRCDIR; COVERDIR=./coverage make RM= test
     - cd $SRCDIR; make RM=
+    - cd $SRCDIR; make RM= app-mapper-integration-test
     - cd $SRCDIR; make RM= users-integration-test
     - cd $SRCDIR; make RM= client-lint
     - cd $SRCDIR; make RM= client-tests

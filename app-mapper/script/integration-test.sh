@@ -47,7 +47,7 @@ get_pod_phase() {
 
 run_k8s_integration_tests() {
     if ! kubectl get svc app-mapper-db > /dev/null 2>&1; then
-	(cd "$SCRIPT_DIR"/../../ && ./deploy.sh -local)
+	"$SCRIPT_DIR"/../../infra/local-k8s up
     fi
 
     # We need to do all the crap below because k8s doesn't nicely support
