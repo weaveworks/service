@@ -38,3 +38,7 @@ spec:
         - -config.file=/etc/alertmanager/alertmanager-local.yml
         ports:
         - containerPort: 9093
+      - name: monindex
+        image: quay.io/weaveworks/monindex
+        ports:
+        - containerPort: 80

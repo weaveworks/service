@@ -7,10 +7,10 @@ set -o pipefail
 COMPONENTS=$@
 if [ "${COMPONENTS}" == "" ]
 then
-	COMPONENTS="app-mapper ui-server frontend users metrics prometheus grafana gfdatasource loadgen alertmanager launch-generator"
+	COMPONENTS="app-mapper ui-server frontend users metrics prometheus grafana gfdatasource loadgen alertmanager launch-generator monindex"
 elif [ "${COMPONENTS}" == "monitoring" ] # Special case
 then
-	COMPONENTS="prometheus grafana gfdatasource loadgen alertmanager"
+	COMPONENTS="prometheus grafana gfdatasource loadgen alertmanager monindex"
 fi
 
 echo "When pushing, you may be prompted to log in. To get your password:"
