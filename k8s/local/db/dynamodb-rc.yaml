@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: dynamodb
+spec:
+  replicas: 1
+  selector:
+    name: dynamodb
+  template:
+    metadata:
+      labels:
+        name: dynamodb
+    spec:
+      containers:
+      - name: dynamodb
+        image: deangiberson/aws-dynamodb-local
+        ports:
+        - containerPort: 8000

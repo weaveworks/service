@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: weave-scope-app
-        image: weaveworks/scope:0.13.1
+        image: weaveworks/scope
         env:
         - name: CHECKPOINT_DISABLE
           value: "true"

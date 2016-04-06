@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: consul
+spec:
+  replicas: 1
+  selector:
+    name: consul
+  template:
+    metadata:
+      labels:
+        name: consul
+    spec:
+      containers:
+      - name: consul
+        image: progrium/consul
+        args:
+        - -server
+        - -bootstrap
+        - -ui-dir /ui
+        env:
+        - name: CHECKPOINT_DISABLE
+          value: "1"
+        ports:
+        - containerPort: 8400
+        - containerPort: 8500
+
