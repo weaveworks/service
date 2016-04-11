@@ -509,6 +509,13 @@
 			"path": "/codec"
 		},
 		{
+			"importpath": "github.com/weaveworks/scope/common/middleware",
+			"repository": "https://github.com/weaveworks/scope",
+			"revision": "945029c890f4569b688f516dde7b9b2fc0f3817f",
+			"branch": "master",
+			"path": "/common/middleware"
+		},
+		{
 			"importpath": "github.com/weaveworks/scope/common/sanitize",
 			"repository": "https://github.com/weaveworks/scope",
 			"revision": "303bed1e2b8f22e9105ab65119a87882275b55bc",
