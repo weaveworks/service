@@ -43,7 +43,7 @@ func init() {
 	prometheus.MustRegister(wsRequestCount)
 }
 
-func trimOrgPrfix(next http.Handler) http.Handler {
+func trimOrgPrefix(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.RequestURI = orgPrefix.ReplaceAllLiteralString(r.RequestURI, "")
 		next.ServeHTTP(w, r)
@@ -67,10 +67,10 @@ func main() {
 	flag.StringVar(&authenticatorType, "authenticator", "web", "What authenticator to use: web | mock")
 	flag.StringVar(&authenticatorURL, "authenticator.url", "http://users:80", "Where to find web the authenticator service")
 	flag.StringVar(&outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
-	flag.StringVar(&collectionHost, "collection", "collection.default.svc.cluster.local:80", "")
-	flag.StringVar(&queryHost, "query", "query.default.svc.cluster.local:80", "")
-	flag.StringVar(&controlHost, "control", "control.default.svc.cluster.local:80", "")
-	flag.StringVar(&pipeHost, "pipe", "pipe.default.svc.cluster.local:80", "")
+	flag.StringVar(&collectionHost, "collection", "collection.default.svc.cluster.local:80", "Hostname & port for collection service")
+	flag.StringVar(&queryHost, "query", "query.default.svc.cluster.local:80", "Hostname & port for query service")
+	flag.StringVar(&controlHost, "control", "control.default.svc.cluster.local:80", "Hostname & port for control service")
+	flag.StringVar(&pipeHost, "pipe", "pipe.default.svc.cluster.local:80", "Hostname & port for pipe service")
 	flag.Parse()
 
 	if err := logging.Setup(logLevel); err != nil {
@@ -131,7 +131,7 @@ func main() {
 		middleware.Merge(
 			orgInstrumentation,
 			orgAuthMiddleware,
-			middleware.Func(trimOrgPrfix),
+			middleware.Func(trimOrgPrefix),
 		).Wrap(orgRouter),
 	)
 	rootRouter.PathPrefix("/api").Handler(
