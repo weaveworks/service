@@ -61,3 +61,26 @@ func TestProxyWebSocket(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	assert.True(t, atomic.LoadUint32(&serverExited) == 1, "Server didn't exit")
 }
+
+// This tests ensure the proxy passes paths through without modifying it.
+func TestProxyGet(t *testing.T) {
+	expectedURI := "/foo//bar%2Fbaz?123"
+
+	// Use a super simple server as the target
+	handlerCalled := uint32(0)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, r.RequestURI, expectedURI)
+		atomic.StoreUint32(&handlerCalled, 1)
+	}))
+	defer server.Close()
+
+	// Setup a proxy server pointing at the server
+	serverURL, err := url.Parse(server.URL)
+	assert.NoError(t, err, "Cannot parse URL")
+	proxyServer := httptest.NewServer(newProxy(serverURL.Host))
+	defer proxyServer.Close()
+
+	_, err = http.Get(fmt.Sprintf("http://%s%s", serverURL.Host, expectedURI))
+	assert.NoError(t, err, "Failed to get URL")
+	assert.True(t, atomic.LoadUint32(&handlerCalled) == 1, "Server wasn't called")
+}
