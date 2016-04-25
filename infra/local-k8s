@@ -61,6 +61,14 @@ function tear_down {
 	remove_kubeconfig
 }
 
+function get_docker_ip_mac {
+    dscacheutil -q host -a name docker.local | grep ip_address | awk '{ print $2 }'
+}
+
+function get_docker_ip_machine {
+       docker-machine ip $(docker-machine active)
+}
+
 # https://github.com/kubernetes/kubernetes/blob/master/docs/getting-started-guides/docker.md
 function stand_up {
 	if ! command -v kubectl > /dev/null 2>&1
@@ -72,9 +80,11 @@ function stand_up {
 	local k8s_ip="localhost"
 	if [[ "$(uname -s)" == "Darwin" ]]
 	then
-		local machine_name=$(docker-machine ls -q | head -n1)
-		echo "Using docker-machine ${machine_name}"
-		k8s_ip=$(docker-machine ip ${machine_name})
+        if get_docker_ip_machine >/dev/null; then
+                k8s_ip=$(get_docker_ip_machine)
+        else
+                k8s_ip=$(get_docker_ip_mac)
+        fi
 	fi
 
 	echo "Starting etcd"
@@ -89,42 +99,28 @@ function stand_up {
 	# kubelet requires --docker-endpoint=$DOCKER_HOST, to make it talk to Weave.
 	# But it doesn't work due to https://github.com/weaveworks/weave/issues/1600
 
-	# HACK: Kubelet is run in the host mount namespace (using nsenter) to
-	#       workaround https://github.com/kubernetes/kubernetes/issues/18239
-	#       similarly to what is proposed at
-	#       https://github.com/kubernetes/kubernetes/pull/19069
-	#
-	#       We also provide a special PATH (in which directories are
-	#       prepended by '.' which still lives in the container's rootfs) so
-	#       that the executables in the image can still be accessed.
-	#
-	#       The nsenter/PATH hack can be removed when we switch to Docker >=
-	#       1.10 which releases support for volume mount propagation flags
-	#       (PR https://github.com/docker/docker/pull/17034 ) allowing to
-	#       mount /var/lib/hyperkube in 'shared' propagation mode.
-	#
-	#       Lengthy explanation: Kubelet expects the mounts under
-	#       /var/lib/kubeletet/pods/*/volumes to be viewable by the
-	#       containers it creates (Kubelet places Secret Volumes inside
-	#       tmpfs mounts, to support establishing secret size limits I
-	#       believe). Containers can see access those mounts when Kubelet is
-	#       running in the host, but this won't work in general when running
-	#       Kubelet in a container since mount events may not propagate down
-	#       to the container (Docker >= 1.9 sets the root filesystem of the
-	#       containers as MS_PRIVATE and only certain host systems, like the
-	#       systemd-based set the hosts root as MS_SHARED). Using nsenter
-	#       guarantees that kubelet runs in the host mount namespace,
-	#       circumventing the problem. See
-	#       https://www.kernel.org/doc/Documentation/filesystems/sharedsubtree.txt
+    echo "Setting up some dirs"
+    #docker run --rm --pid=host --privileged=true alpine \
+	#	nsenter --target=1 --wd=. --mount -- /bin/sh -c \
+    #    "mkdir -p /var/lib/kubelet; \
+	#	mount -o bind /var/lib/kubelet /var/lib/kubelet \
+	#	mount --make-shared /var/lib/kubelet"
+
 	echo "Starting kubelet"
 	docker run \
 		--name local_k8s_kubelet \
+		--volume=/:/rootfs:ro \
+		--volume=/sys:/sys:ro \
+		--volume=/dev:/dev \
+		--volume=/var/lib/docker/:/var/lib/docker:rw \
+		--volume=/var/lib/kubelet/:/var/lib/kubelet:rshared \
+		--volume=/var/run:/var/run:rw \
 		--net=host \
 		--pid=host \
 		--privileged=true \
-		-e 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:./usr/local/sbin:./usr/local/bin:./usr/sbin:./usr/bin:./sbin:./bin' \
+		-v "${LOCAL_MASTER_K8S_DIR}"/master.json:/etc/kubernetes/manifests/master.json \
 		-d 2opremio/hyperkube:706d3a7 \
-		nsenter --target=1 --wd=. --mount -- ./hyperkube kubelet --hostname-override="127.0.0.1" --address="0.0.0.0" --api-servers=http://localhost:8080 --config="${LOCAL_MASTER_K8S_DIR}" --cluster-dns=10.0.0.10 --cluster-domain=cluster.local --allow-privileged
+		/hyperkube kubelet --containerized --hostname-override="127.0.0.1" --address="0.0.0.0" --api-servers=http://localhost:8080 --config=/etc/kubernetes/manifests --cluster-dns=10.0.0.10 --cluster-domain=cluster.local
 
 	docker run --name local_k8s_proxy -d --net=host --privileged 2opremio/hyperkube:706d3a7 /hyperkube proxy --master=http://127.0.0.1:8080 --v=2
 
