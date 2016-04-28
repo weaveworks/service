@@ -17,7 +17,7 @@
     "containers": [
       {
         "name": "controller-manager",
-        "image": "2opremio/hyperkube:706d3a7",
+        "image": "gcr.io/google_containers/hyperkube-amd64:v1.2.3",
         "command": [
           "/hyperkube",
           "controller-manager",
@@ -35,17 +35,15 @@
       },
       {
         "name": "apiserver",
-        "image": "2opremio/hyperkube:706d3a7",
+        "image": "gcr.io/google_containers/hyperkube-amd64:v1.2.3",
         "command": [
           "/hyperkube",
           "apiserver",
           "--admission-control=NamespaceLifecycle,NamespaceAutoProvision,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota",
-          "--portal-net=10.0.0.1/24",
+          "--service-cluster-ip-range=10.0.0.1/24",
           "--insecure-bind-address=0.0.0.0",
           "--etcd-servers=http://127.0.0.1:4001",
-          "--cluster-name=kubernetes",
           "--allow-privileged",
-          "--runtime-config=extensions/v1beta1/daemonsets=true",
           "--client-ca-file=/pki/ca.crt",
           "--tls-cert-file=/pki/server.cert",
           "--tls-private-key-file=/pki/server.key",
@@ -60,7 +58,7 @@
       },
       {
         "name": "scheduler",
-        "image": "2opremio/hyperkube:706d3a7",
+        "image": "gcr.io/google_containers/hyperkube-amd64:v1.2.3",
         "command": [
           "/hyperkube",
           "scheduler",
