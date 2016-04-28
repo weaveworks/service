@@ -16,9 +16,6 @@ spec:
       containers:
       - name: frontend
         image: quay.io/weaveworks/frontend
-        env:
-        - name: GET_HOSTS_FROM
-          value: dns
         ports:
         - containerPort: 80
         - containerPort: 443

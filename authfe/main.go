@@ -43,13 +43,6 @@ func init() {
 	prometheus.MustRegister(wsRequestCount)
 }
 
-func trimOrgPrefix(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.RequestURI = orgPrefix.ReplaceAllLiteralString(r.RequestURI, "")
-		next.ServeHTTP(w, r)
-	})
-}
-
 func main() {
 	var (
 		listen            string
@@ -131,8 +124,14 @@ func main() {
 		middleware.Merge(
 			orgInstrumentation,
 			orgAuthMiddleware,
-			middleware.Func(trimOrgPrefix),
+			middleware.PathRewrite(orgPrefix, ""),
 		).Wrap(orgRouter),
+	)
+	rootRouter.Path("/api/org/{orgName}/probes").Handler(
+		middleware.Merge(
+			orgAuthMiddleware,
+			middleware.PathReplace("/api/probes"),
+		).Wrap(queryFwd),
 	)
 	rootRouter.PathPrefix("/api").Handler(
 		middleware.Merge(
