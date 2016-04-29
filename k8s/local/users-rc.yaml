@@ -16,6 +16,7 @@ spec:
       containers:
       - name: users
         image: quay.io/weaveworks/users
+        imagePullPolicy: IfNotPresent
         args:
         - -session-secret=9334f0f44a271d686714c475b093a133fab81f90536b0de6a231af7dc78cb56e
         - -email-uri=smtp://mailcatcher:587

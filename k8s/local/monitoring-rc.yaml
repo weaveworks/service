@@ -16,18 +16,23 @@ spec:
       containers:
       - name: prometheus
         image: quay.io/weaveworks/prometheus
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9090
       - name: grafana
         image: quay.io/weaveworks/grafana
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000
       - name: gfdatasource
         image: quay.io/weaveworks/gfdatasource
+        imagePullPolicy: IfNotPresent
       - name: loadgen
         image: quay.io/weaveworks/loadgen
+        imagePullPolicy: IfNotPresent
       - name: alertmanager
         image: quay.io/weaveworks/alertmanager
+        imagePullPolicy: IfNotPresent
         command:
         - /alertmanager/alertmanager
         - -config.file=/etc/alertmanager/alertmanager-local.yml

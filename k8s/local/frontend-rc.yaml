@@ -16,6 +16,7 @@ spec:
       containers:
       - name: frontend
         image: quay.io/weaveworks/frontend
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
         - containerPort: 443

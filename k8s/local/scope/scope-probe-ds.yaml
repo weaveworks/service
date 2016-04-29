@@ -18,6 +18,7 @@ spec:
       containers:
       - name:  weave-scope-probe
         image: weaveworks/scope
+        imagePullPolicy: IfNotPresent
         env:
         - name: CHECKPOINT_DISABLE
           value: "true"
