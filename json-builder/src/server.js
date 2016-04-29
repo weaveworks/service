@@ -6,6 +6,7 @@ var restify = require('restify');
 var Logger = require('bunyan');
 
 var k8s = require('./kubernetes.js');
+var ghr = require('./github_releases.js');
 
 var log = new Logger({
   name: 'json-builder',
@@ -23,16 +24,24 @@ var server = restify.createServer({ name: 'json-builder', log: log });
 
 server.use(restify.queryParser());
 
-server.get('/tag/:tag/weavescope.combined.json', function (req, res, next) {
+function handle_combined_manifest(params) {
+   return k8s.make_list([
+       k8s.make_app_replicationcontroller(params),
+       k8s.make_app_service(params),
+       k8s.make_probe_daemonset(params)
+   ]);
+}
 
-  var combined = k8s.make_list([
-      k8s.make_app_replicationcontroller(req.params),
-      k8s.make_app_service(req.params),
-      k8s.make_probe_daemonset(req.params)
-  ]);
-
-  res.send(combined);
+server.get('/k8s/scope/:tag/combined.json', function (req, res, next) {
+  res.send(handle_combined_manifest({tag: req.params.tag}));
   return next();
+});
+
+server.get('/k8s/scope/combined.json', function (req, res, next) {
+  ghr.get_latest_scope_release(log, function (tag) {
+    res.send(handle_combined_manifest({tag: tag}));
+    return next();
+  });
 });
 
 server.listen(8080, function () {

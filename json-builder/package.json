@@ -5,6 +5,7 @@
   "main": "./src/server.js",
   "dependencies": {
     "bunyan": "~1.8.0",
+    "ghrequest": "^1.0.0",
     "lodash": "^4.11.1",
     "restify": "~4.0.4"
   },
