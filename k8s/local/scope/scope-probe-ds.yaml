@@ -2,6 +2,7 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: weave-scope-probe
+  namespace: kube-system
   labels:
     heritage: helm
     k8s-app:  weave-scope-probe
