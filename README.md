@@ -43,10 +43,10 @@ uses the service token to proxy to the correct Scope app /api/report endpoint.
 
 ## Prerequisites
 
-You need kubectl v1.1.1 in your PATH.
+You need kubectl v1.2.3 in your PATH.
 Download the
- [Linux](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/linux/amd64/kubectl) or
- [Darwin](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/darwin/amd64/kubectl) release.
+ [Linux](https://storage.googleapis.com/kubernetes-release/release/v1.2.3/bin/linux/amd64/kubectl) or
+ [Darwin](https://storage.googleapis.com/kubernetes-release/release/v1.2.3/bin/darwin/amd64/kubectl) release.
 
 ```
 $ kubectl version
