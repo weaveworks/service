@@ -5,11 +5,11 @@ set -o nounset
 set -o pipefail
 
 function usage {
-	echo "usage: $(basename $0) up/down" 1>&2
+	echo "usage: $(basename $0) up [host_ip] / down" 1>&2
 	exit 1
 }
 
-if [ $# -ne 1 ]
+if [ $# -lt 1 ]
 then
 	usage
 fi
@@ -69,12 +69,21 @@ function stand_up {
 		exit 1
 	fi
 
-	local k8s_ip="localhost"
-	if [[ "$(uname -s)" == "Darwin" ]]
+	if [ $# -eq 1 ]
 	then
-		local machine_name=$(docker-machine ls -q | head -n1)
-		echo "Using docker-machine ${machine_name}"
-		k8s_ip=$(docker-machine ip ${machine_name})
+	    # Use a specific host
+	    local k8s_ip="$1"
+	else
+	    case "$(uname -s)" in
+		"Darwin")
+		    local machine_name=$(docker-machine ls -q | head -n1)
+		    echo "Using docker-machine ${machine_name}"
+		    k8s_ip=$(docker-machine ip ${machine_name})
+		    ;;
+		*)
+		    local k8s_ip="localhost"
+		    ;;
+	    esac
 	fi
 
 	echo "Starting etcd"
@@ -169,7 +178,12 @@ case $WHAT in
 up)
 	tear_down
 	generate_certificates
-	stand_up
+	if [ $# -gt 1 ]
+	then
+	    stand_up $2
+	else
+	    stand_up
+	fi
 	;;
 
 down)
