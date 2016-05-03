@@ -14,5 +14,6 @@ spec:
       containers:
       - name: sqs
         image: pakohan/elasticmq
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9324

@@ -16,6 +16,7 @@ spec:
       containers:
       - name: users-db
         image: weaveworks/users-db
+        imagePullPolicy: IfNotPresent
         command:
         ports:
         - containerPort: 5432

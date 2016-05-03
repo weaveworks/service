@@ -14,6 +14,7 @@ spec:
     spec:
       containers:
       - name: weave-scope-app
+        imagePullPolicy: IfNotPresent
         image: weaveworks/scope
         env:
         - name: CHECKPOINT_DISABLE

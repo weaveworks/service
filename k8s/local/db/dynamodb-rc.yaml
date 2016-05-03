@@ -14,5 +14,6 @@ spec:
       containers:
       - name: dynamodb
         image: deangiberson/aws-dynamodb-local
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000

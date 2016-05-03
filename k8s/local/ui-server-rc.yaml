@@ -16,6 +16,7 @@ spec:
       containers:
       - name: ui-server
         image: quay.io/weaveworks/ui-server
+        imagePullPolicy: IfNotPresent
         command:
         ports:
         - containerPort: 80
