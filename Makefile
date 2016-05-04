@@ -22,6 +22,9 @@ METRICS_UPTODATE=metrics/.uptodate
 METRICS_EXE=metrics/metrics
 METRICS_IMAGE=quay.io/weaveworks/metrics
 
+JSON_BUILDER_UPTODATE=json-builder/.uptodate
+JSON_BUILDER_IMAGE=quay.io/weaveworks/json-builder
+
 CLIENT_SERVER_UPTODATE=client/.ui-server.uptodate
 CLIENT_BUILD_UPTODATE=client/.service_client_build.uptodate
 CLIENT_SERVER_IMAGE=quay.io/weaveworks/ui-server
@@ -59,7 +62,7 @@ NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 	false; \
 }
 
-all: $(APP_MAPPER_UPTODATE) $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE)
+all: $(APP_MAPPER_UPTODATE) $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE) $(JSON_BUILDER_UPTODATE)
 
 $(BUILD_UPTODATE): build/*
 	$(DOCKER_HOST_CHECK)
@@ -86,6 +89,11 @@ $(USERS_UPTODATE): users/Dockerfile users/templates/* $(USERS_EXE) users/db/* us
 $(METRICS_UPTODATE): metrics/Dockerfile $(METRICS_EXE)
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(METRICS_IMAGE) metrics/
+	touch $@
+
+$(JSON_BUILDER_UPTODATE): json-builder/Dockerfile json-builder/src/*.js json-builder/package.json
+	$(DOCKER_HOST_CHECK)
+	$(SUDO) docker build -t $(JSON_BUILDER_IMAGE) json-builder/
 	touch $@
 
 $(CLIENT_BUILD_UPTODATE): client/Dockerfile client/package.json client/webpack.*
@@ -160,6 +168,7 @@ clean:
 		$(METRICS_IMAGE) >/dev/null 2>&1 || true
 	rm -rf $(APP_MAPPER_EXE) $(APP_MAPPER_UPTODATE) \
 		$(USERS_EXE) $(USERS_UPTODATE) \
+		$(JSON_BUILDER_UPTODATE) \
 		$(METRICS_EXE) $(METRICS_UPTODATE) \
 		$(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) client/build/app.js \
 		$(BUILD_UPTODATE) $(CLIENT_BUILD_UPTODATE)
