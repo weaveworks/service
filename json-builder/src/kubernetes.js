@@ -43,8 +43,8 @@ exports.make_app_replicationcontroller = function app_replicationcontroller(para
     containers: [{
         name:   'weavescope-app',
         image:  [ 'weaveworks/scope', params.tag ].join(':'), // overriding immage will be a thing
-        args:   [ '--no-probe' ], // probably has useful flags users migth need
-        ports:  [{ containerPort: 4040, hostPort: 4040 }]
+        args:   [ '--no-probe' ], // probably has useful flags users migth need, e.g. `--app.log.level=debug`
+        ports:  [{ containerPort: 4040 }]
     }]
   };
 
@@ -58,7 +58,7 @@ exports.make_app_replicationcontroller = function app_replicationcontroller(para
 exports.make_app_service = function app_service(params) {
   var _params = {
     type: 'NodePort',
-    ports: [{ name: 'app', 'port': 4040 }]
+    ports: [{ name: 'app', port: 80, targetPort: 4040, protocol: 'TCP' }]
   }
 
   return make_resource('v1', 'Service', 'app', {}, _params);
