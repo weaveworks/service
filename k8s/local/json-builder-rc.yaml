@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: json-builder
+  labels:
+    name: json-builder
+spec:
+  replicas: 1
+  selector:
+    name: json-builder
+  template:
+    metadata:
+      labels:
+        name: json-builder
+    spec:
+      containers:
+      - name: json-builder
+        image: quay.io/weaveworks/json-builder
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
