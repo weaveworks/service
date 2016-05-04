@@ -65,6 +65,13 @@ exports.make_app_service = function app_service(params) {
 }
 
 exports.make_probe_daemonset = function probe_daemonset(params) {
+
+  if (params.token !== undefined && typeof params.token == 'string') {
+    var probe_args = [ '--service-token', params.token ].join('=');
+  } else {
+    var probe_args = '$(WEAVESCOPE_APP_SERVICE_HOST):$(WEAVESCOPE_APP_SERVICE_PORT)';
+  }
+
   var _spec = {
     hostPID: true,
     hostNetwork: true,
@@ -77,7 +84,7 @@ exports.make_probe_daemonset = function probe_daemonset(params) {
           '--probe.docker=true',
           '--probe.kubernetes=true',
           // service token will got here, but user also might like to pass extra args
-          '$(WEAVESCOPE_APP_SERVICE_HOST):$(WEAVESCOPE_APP_SERVICE_PORT)'
+          probe_args
         ],
         securityContext: { privileged: true },
         resources: {

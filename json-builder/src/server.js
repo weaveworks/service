@@ -31,6 +31,9 @@ function handle_combined_manifest(params) {
        k8s.make_probe_daemonset(params)
    ]);
 }
+function handle_manifest_for_service(params) {
+   return k8s.make_probe_daemonset(params);
+}
 
 server.get('/k8s/scope/:tag/combined.json', function (req, res, next) {
   res.send(handle_combined_manifest({tag: req.params.tag}));
@@ -40,6 +43,17 @@ server.get('/k8s/scope/:tag/combined.json', function (req, res, next) {
 server.get('/k8s/scope/combined.json', function (req, res, next) {
   ghr.get_latest_scope_release(log, function (tag) {
     res.send(handle_combined_manifest({tag: tag}));
+    return next();
+  });
+});
+server.get('/k8s/scope/:tag/token/:token/combined.json', function (req, res, next) {
+  res.send(handle_manifest_for_service({tag: req.params.tag, token: req.params.token}));
+  return next();
+});
+
+server.get('/k8s/scope/token/:token/combined.json', function (req, res, next) {
+  ghr.get_latest_scope_release(log, function (tag) {
+    res.send(handle_manifest_for_service({tag: tag, token: req.params.token}));
     return next();
   });
 });
