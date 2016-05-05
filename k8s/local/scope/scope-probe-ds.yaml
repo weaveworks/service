@@ -28,6 +28,7 @@ spec:
         - --probe.docker=true
         - --probe.kubernetes=true
         - --probe.weave.addr=
+        # Workaround for https://github.com/kubernetes/kubernetes/issues/17406
         - --probe.resolver=$(KUBE_DNS_SERVICE_HOST):$(KUBE_DNS_SERVICE_PORT)
         - weave-scope-app.kube-system.svc.cluster.local:4040
         securityContext:
