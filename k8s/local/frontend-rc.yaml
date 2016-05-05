@@ -17,6 +17,11 @@ spec:
       - name: frontend
         image: quay.io/weaveworks/frontend
         imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        # This is a termporary work-around, untill Kubernetes Anywhere is used in all of our envirnoments.
+        - echo resolver 10.16.0.3:53\; > /etc/nginx/k8s-resolver.conf && nginx -g daemon\ off\;
         ports:
         - containerPort: 80
         - containerPort: 443
