@@ -57,7 +57,7 @@ exports.make_app_replicationcontroller = function app_replicationcontroller(para
 
 exports.make_app_service = function app_service(params) {
   var _params = {
-    type: 'NodePort',
+    type: params.type,
     ports: [{ name: 'app', port: 80, targetPort: 4040, protocol: 'TCP' }]
   }
 
