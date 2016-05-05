@@ -36,48 +36,48 @@ function handle_manifest_for_service(params) {
 }
 
 
-server.get('/k8s/scope/:tag/token/:token/combined.json', function (req, res, next) {
+server.get('/k8s/:tag/token/:token/weavescope.json', function (req, res, next) {
   res.send(handle_combined_manifest({tag: req.params.tag, token: req.params.token}));
   return next();
 });
 
-server.get('/k8s/scope/node-port/combined.json', function (req, res, next) {
+server.get('/k8s/node-port/weavescope.json', function (req, res, next) {
   ghr.get_latest_scope_release(log, function (tag) {
     res.send(handle_combined_manifest({tag: tag, token: req.params.token, type: 'NodePort'}));
     return next();
   });
 });
 
-server.get('/k8s/scope/load-balancer/combined.json', function (req, res, next) {
+server.get('/k8s/load-balancer/weavescope.json', function (req, res, next) {
   ghr.get_latest_scope_release(log, function (tag) {
     res.send(handle_combined_manifest({tag: tag, token: req.params.token, type: 'LoadBalancer'}));
     return next();
   });
 });
 
-server.get('/k8s/scope/:tag/node-port/combined.json', function (req, res, next) {
+server.get('/k8s/:tag/node-port/weavescope.json', function (req, res, next) {
   res.send(handle_combined_manifest({tag: req.params.tag, token: req.params.token, type: 'NodePort'}));
   return next();
 });
 
-server.get('/k8s/scope/:tag/load-balancer/combined.json', function (req, res, next) {
+server.get('/k8s/:tag/load-balancer/weavescope.json', function (req, res, next) {
   res.send(handle_combined_manifest({tag: req.params.tag, token: req.params.token, type: 'LoadBalancer'}));
   return next();
 });
 
-server.get('/k8s/scope/token/:token/combined.json', function (req, res, next) {
+server.get('/k8s/service-token/:token/weavescope.json', function (req, res, next) {
   ghr.get_latest_scope_release(log, function (tag) {
     res.send(handle_manifest_for_service({tag: tag, token: req.params.token}));
     return next();
   });
 });
 
-server.get('/k8s/scope/:tag/combined.json', function (req, res, next) {
+server.get('/k8s/:tag/weavescope.json', function (req, res, next) {
   res.send(handle_combined_manifest({tag: req.params.tag}));
   return next();
 });
 
-server.get('/k8s/scope/combined.json', function (req, res, next) {
+server.get('/k8s/weavescope.json', function (req, res, next) {
   ghr.get_latest_scope_release(log, function (tag) {
     res.send(handle_combined_manifest({tag: tag}));
     return next();
