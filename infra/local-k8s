@@ -19,6 +19,7 @@ WHAT=$1
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 LOCAL_K8S_DIR="${SCRIPT_DIR}/../k8s/local"
+export APISERVER_LOCAL_PORT="8001"
 
 version=${LOCAL_K8S_VERSION:-"v1.2"}
 
@@ -47,9 +48,10 @@ function call_kubectl {
 
 function write_kubeconfig {
         docker run --rm \
+          --env=APISERVER_LOCAL_PORT \
           --volumes-from=kube-toolbox-pki \
           "weaveworks/kubernetes-anywhere:toolbox-${version}" \
-            print-apiproxy-config > "${kubeconfig}"
+            print-local-config > "${kubeconfig}"
 }
 
 function remove_kubeconfig {
@@ -108,6 +110,7 @@ function stand_up {
               setup-single-node
 
         docker run --rm \
+          --env=APISERVER_LOCAL_PORT \
           --volume="/var/run/weave/weave.sock:/docker.sock" \
             "weaveworks/kubernetes-anywhere:toolbox-${version}" \
               compose -p kube up -d
