@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: json-builder
+  labels:
+    name: json-builder
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+      protocol: TCP
+  selector:
+    name: json-builder

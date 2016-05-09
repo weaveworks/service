@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: json-builder-dc71cb9
+  labels:
+    name: json-builder
+    version: dc71cb9
+spec:
+  replicas: 2
+  selector:
+    name: json-builder
+    version: dc71cb9
+  template:
+    metadata:
+      labels:
+        name: json-builder
+        version: dc71cb9
+    spec:
+      imagePullSecrets:
+      - name: quay-secret
+      containers:
+      - name: json-builder
+        image: quay.io/weaveworks/json-builder:dc71cb9
+        ports:
+        - containerPort: 8080
