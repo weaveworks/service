@@ -58,8 +58,13 @@ exports.make_app_replicationcontroller = function app_replicationcontroller(para
 
 exports.make_app_service = function app_service(params) {
   var _params = {
-    type: params.type,
     ports: [{ name: 'app', port: 80, targetPort: 4040, protocol: 'TCP' }]
+  }
+
+  if (params.type !== undefined && typeof params.type === 'string') {
+    if (params.type === 'NodePort' || params.type === 'LoadBalancer') {
+      _params.type = params.type;
+    }
   }
 
   return make_resource('v1', 'Service', 'app', {}, _params);
