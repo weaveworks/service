@@ -8,6 +8,7 @@ var Logger = require('bunyan');
 var k8s = require('./kubernetes.js');
 var ghr = require('./github_releases.js');
 var semver = require('semver');
+var yaml = require('js-yaml');
 
 ghr.poll();
 
@@ -34,6 +35,7 @@ function make_combined_manifest(params) {
        k8s.make_probe_daemonset(params)
    ]);
 }
+
 function make_manifest_for_service(params) {
    return k8s.make_probe_daemonset(params);
 }
@@ -62,31 +64,43 @@ function valid_image_tag(params) {
   }
 }
 
+function make_manifest(params) {
+
+  var _params = { tag: valid_image_tag(params) };
+
+  if (params['service-token'] !== undefined && typeof params['service-token'] === 'string') {
+    if (params['service-token'].length === 0) {
+      throw('service token must be set');
+    }
+    _params.token = params['service-token'];
+    return make_manifest_for_service(_params);
+  }
+
+  if (params['k8s-service-type'] !== undefined && typeof params['k8s-service-type'] === 'string') {
+    var _k8s_service_type = params['k8s-service-type'];
+    if (_k8s_service_type === 'NodePort' || _k8s_service_type === 'LoadBalancer') {
+      _params.type = _k8s_service_type;
+    }
+  }
+
+  return make_combined_manifest(_params);
+
+}
+
 server.get('/k8s-gen/weavescope.json', function (req, res, next) {
 
-  var _params = { tag: valid_image_tag(req.params) };
+  var _manifest = make_manifest(req.params);
 
-  res.send(function() {
+  res.send(_manifest);
+  return next();
+});
 
-    if (req.params['service-token'] !== undefined && typeof req.params['service-token'] === 'string') {
-      if (req.params['service-token'].length === 0) {
-        throw('service token must be set');
-      }
-      _params.token = req.params['service-token'];
-      return make_manifest_for_service(_params);
-    }
+server.get('/k8s-gen/weavescope.yaml', function (req, res, next) {
 
-    if (req.params['k8s-service-type'] !== undefined && typeof req.params['k8s-service-type'] === 'string') {
-      var _k8s_service_type = req.params['k8s-service-type'];
-      if (_k8s_service_type === 'NodePort' || _k8s_service_type === 'LoadBalancer') {
-        _params.type = _k8s_service_type;
-      }
-    }
+  var _manifest = yaml.safeDump(make_manifest(req.params));
 
-    return make_combined_manifest(_params);
-
-  }());
-
+  res.setHeader('content-type', 'application/x-yaml');
+  res.send(_manifest);
   return next();
 });
 
