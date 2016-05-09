@@ -1,4 +1,4 @@
-// this package guards agains rate-limitting and has local cache
+// this package guards against rate-limitting and has local cache
 var ghrequest = require('ghrequest');
 
 var latest;
