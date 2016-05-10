@@ -3,6 +3,8 @@ var ghrequest = require('ghrequest');
 
 var latest;
 
+var POLLING_INTERVAL = 15 * 60 * 1000;
+
 function update() {
 
   var req = {
@@ -11,16 +13,18 @@ function update() {
   };
 
   ghrequest(req, function(err, res, body) {
-    if (err) throw err;
+    if (err) {
+      throw err;
+    }
     latest = body[1].tag_name;
   });
 }
 
-exports.get_latest_scope_release = function() {
+exports.getLatestScopeRelease = function() {
   return latest;
 }
 
 exports.poll = function() {
   update();
-  setInterval(update, 900000) // 15min
+  setInterval(update, POLLING_INTERVAL);
 }

@@ -2,25 +2,25 @@
 
 var _ = require('lodash');
 
-var merge_spec = {
+var mergeSpec = {
   ReplicationController: function(_metadata, _spec, _params) {
     return {
-      template: _.merge(_.clone(_metadata), _spec)
+      template: _.merge({}, _.clone(_metadata), _spec)
     };
   },
   Service: function(_metadata, _spec, _params) {
-    return _.merge(_params, {
+    return _.merge({}, _params, {
       selector: _.clone(_metadata).metadata.labels
     });
   },
   DaemonSet: function(_metadata, _spec, _params) {
     return {
-      template: _.merge(_.clone(_metadata), _spec)
+      template: _.merge({}, _.clone(_metadata), _spec)
     };
   },
 };
 
-function make_resource(apiVersion, kind, component, _spec, _params) {
+function makeResource(apiVersion, kind, component, _spec, _params) {
 
   var _name = [ 'weavescope' , component ].join('-');
   var _metadata = {
@@ -29,16 +29,16 @@ function make_resource(apiVersion, kind, component, _spec, _params) {
     }
   };
 
-  return _.merge(_.clone(_metadata), {
+  return _.merge({}, _.clone(_metadata), {
     apiVersion: apiVersion,
     kind: kind,
     metadata: { name: _name },
-    spec: _.merge(_params, merge_spec[kind](_metadata, _spec, _params))
+    spec: _.merge({}, _params, mergeSpec[kind](_metadata, _spec, _params))
   });
 }
 
 
-exports.make_app_replicationcontroller = function app_replicationcontroller(params) {
+exports.makeAppReplicationController = function appReplicationController(params) {
 
   var _spec = {
     containers: [{
@@ -53,26 +53,26 @@ exports.make_app_replicationcontroller = function app_replicationcontroller(para
     replicas: 1
   }
 
-  return make_resource('v1', 'ReplicationController', 'app', { spec: _spec }, _params);
+  return makeResource('v1', 'ReplicationController', 'app', { spec: _spec }, _params);
 }
 
-exports.make_app_service = function app_service(params) {
+exports.makeAppService = function appService(params) {
   var _params = {
     ports: [{ name: 'app', port: 80, targetPort: 4040, protocol: 'TCP' }]
   }
 
-  if (params.type !== undefined && typeof params.type === 'string') {
+  if (_.isString(params.type)) {
     if (params.type === 'NodePort' || params.type === 'LoadBalancer') {
       _params.type = params.type;
     }
   }
 
-  return make_resource('v1', 'Service', 'app', {}, _params);
+  return makeResource('v1', 'Service', 'app', {}, _params);
 }
 
-exports.make_probe_daemonset = function probe_daemonset(params) {
+exports.makeProbeDaemonSet = function probeDaemonSet(params) {
 
-  if (params.token !== undefined && typeof params.token === 'string') {
+  if (_.isString(params.token)) {
     var probe_args = [ '--service-token', params.token ].join('=');
   } else {
     var probe_args = '$(WEAVESCOPE_APP_SERVICE_HOST):$(WEAVESCOPE_APP_SERVICE_PORT)';
@@ -107,9 +107,9 @@ exports.make_probe_daemonset = function probe_daemonset(params) {
     }]
   };
 
-  return make_resource('extensions/v1beta1', 'DaemonSet', 'probe', { spec: _spec }, {});
+  return makeResource('extensions/v1beta1', 'DaemonSet', 'probe', { spec: _spec }, {});
 }
 
-exports.make_list = function list(components) {
+exports.makeList = function list(components) {
   return { apiVersion: 'v1', kind: 'List', items: components };
 }

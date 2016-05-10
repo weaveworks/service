@@ -10,8 +10,6 @@ var ghr = require('./github_releases.js');
 var semver = require('semver');
 var yaml = require('js-yaml');
 
-ghr.poll();
-
 var log = new Logger({
   name: 'json-builder',
   streams: [{
@@ -28,24 +26,25 @@ var server = restify.createServer({ name: 'json-builder', log: log });
 
 server.use(restify.queryParser());
 
-function make_combined_manifest(params) {
-   return k8s.make_list([
-       k8s.make_app_replicationcontroller(params),
-       k8s.make_app_service(params),
-       k8s.make_probe_daemonset(params)
+function makeCombinedManifest(params) {
+   return k8s.makeList([
+       k8s.makeAppReplicationController(params),
+       k8s.makeAppService(params),
+       k8s.makeProbeDaemonSet(params)
    ]);
 }
 
-function make_manifest_for_service(params) {
-   return k8s.make_probe_daemonset(params);
+function makeManifestForService(params) {
+   return k8s.makeProbeDaemonSet(params);
 }
 
-function valid_image_tag(params) {
+function validImageTag(params) {
 
   function current() {
-    var ret = semver.valid(ghr.get_latest_scope_release());
+    var ret = semver.valid(ghr.getLatestScopeRelease());
     if (ret === null) {
-      return 'latest'; // should be unreachable, but just in case
+      log.warn({params: params}, 'this was meant to be unreachable!');
+      return 'latest';
     }
     return ret;
   }
@@ -64,32 +63,32 @@ function valid_image_tag(params) {
   }
 }
 
-function make_manifest(params) {
+function makeManifest(params) {
 
-  var _params = { tag: valid_image_tag(params) };
+  var _params = { tag: validImageTag(params) };
 
-  if (params['service-token'] !== undefined && typeof params['service-token'] === 'string') {
+  if (_.isString(params['service-token'])) {
     if (params['service-token'].length === 0) {
       throw('service token must be set');
     }
     _params.token = params['service-token'];
-    return make_manifest_for_service(_params);
+    return makeManifestForService(_params);
   }
 
-  if (params['k8s-service-type'] !== undefined && typeof params['k8s-service-type'] === 'string') {
+  if (_.isString(params['k8s-service-type'])) {
     var _k8s_service_type = params['k8s-service-type'];
     if (_k8s_service_type === 'NodePort' || _k8s_service_type === 'LoadBalancer') {
       _params.type = _k8s_service_type;
     }
   }
 
-  return make_combined_manifest(_params);
+  return makeCombinedManifest(_params);
 
 }
 
 server.get('/k8s-gen/weavescope.json', function (req, res, next) {
 
-  var _manifest = make_manifest(req.params);
+  var _manifest = makeManifest(req.params);
 
   res.send(_manifest);
   return next();
@@ -97,13 +96,14 @@ server.get('/k8s-gen/weavescope.json', function (req, res, next) {
 
 server.get('/k8s-gen/weavescope.yaml', function (req, res, next) {
 
-  var _manifest = yaml.safeDump(make_manifest(req.params));
+  var _manifest = yaml.safeDump(makeManifest(req.params));
 
   res.setHeader('content-type', 'application/x-yaml');
   res.send(_manifest);
   return next();
 });
 
+ghr.poll();
 
 server.listen(8080, function () {
   log.info({name: server.name, url: server.url}, 'listening');
