@@ -146,12 +146,7 @@ function stand_up {
 
 	echo "Starting other components"
 	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/skydns
-	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/db
-	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/mailcatcher
-	# Start Scope in the correct order (App Service first, so that the Probe can find it)
-	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/scope/scope-app-rc.yaml
-	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/scope/scope-app-svc.yaml
-	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/scope/scope-probe-ds.yaml
+	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/scope
 
 	write_kubeconfig ${k8s_ip}
 
