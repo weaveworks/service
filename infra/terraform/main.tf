@@ -21,8 +21,8 @@ module "kubernetes-anywhere-aws-ec2" {
     aws_secret_key = "${var.aws_secret_key}"
     aws_region     = "${var.aws_region}"
 
-    cluster                = "devx"
-    cluster_config_flavour = "secure"
+    cluster                = "devz"
+    cluster_config_flavour = "secure-v1.2"
 }
 
 module "databases" {
@@ -34,7 +34,7 @@ module "databases" {
     az1            = "${module.az.primary}"
     az2            = "${module.az.secondary}"
 
-    cluster        = "devx"
+    cluster        = "devz"
     rds_sg_id      = "${module.kubernetes-anywhere-aws-ec2.kubernetes-main-sg-id}"
     rds_vpc_id     = "${module.kubernetes-anywhere-aws-ec2.kubernetes-vpc-id}"
 
