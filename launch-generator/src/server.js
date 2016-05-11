@@ -86,7 +86,7 @@ function makeManifest(params) {
 
 }
 
-server.get('/k8s-gen/weavescope.json', function (req, res, next) {
+server.get('/launch/k8s/weavescope.json', function (req, res, next) {
 
   var _manifest = makeManifest(req.params);
 
@@ -94,7 +94,7 @@ server.get('/k8s-gen/weavescope.json', function (req, res, next) {
   return next();
 });
 
-server.get('/k8s-gen/weavescope.yaml', function (req, res, next) {
+server.get('/launch/k8s/weavescope.yaml', function (req, res, next) {
 
   var _manifest = yaml.safeDump(makeManifest(req.params));
 
