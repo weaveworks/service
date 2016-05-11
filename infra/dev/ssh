@@ -1,0 +1,10 @@
+#!/bin/bash -ex
+# TODO: pick a node randomly
+ssh \
+  -o Compression=yes \
+  -o LogLevel=FATAL \
+  -o StrictHostKeyChecking=no \
+  -o UserKnownHostsFile=/dev/null \
+  -o IdentitiesOnly=yes \
+  -i ec2_weaveworks.kubernetes-anywhere.us-east-1.pem \
+  ubuntu@54.172.66.220 "$@"
