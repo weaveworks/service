@@ -1,0 +1,12 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: fe-ing
+spec:
+  rules:
+  - host: scope.weave.works
+    http:
+    - paths: /
+      backend:
+        serviceName: ui-server
+        servicePort: 80

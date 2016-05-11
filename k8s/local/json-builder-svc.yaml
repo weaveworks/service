@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: json-builder
+  name: launch-generator
   labels:
-    name: json-builder
+    name: launch-generator
 spec:
   type: NodePort
   ports:
@@ -12,4 +12,4 @@ spec:
       name: http
       protocol: TCP
   selector:
-    name: json-builder
+    name: launch-generator

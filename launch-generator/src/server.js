@@ -11,7 +11,7 @@ var semver = require('semver');
 var yaml = require('js-yaml');
 
 var log = new Logger({
-  name: 'json-builder',
+  name: 'launch-generator',
   streams: [{
       stream: process.stdout,
       level: 'debug'
@@ -22,7 +22,7 @@ var log = new Logger({
   }
 });
 
-var server = restify.createServer({ name: 'json-builder', log: log });
+var server = restify.createServer({ name: 'launch-generator', log: log });
 
 server.use(restify.queryParser());
 

@@ -1,5 +1,5 @@
 {
-  "name": "json-builder",
+  "name": "launch-generator",
   "version": "0.1.0",
   "description": "Generate manifests for Kubernetes",
   "main": "./src/server.js",

@@ -22,8 +22,8 @@ METRICS_UPTODATE=metrics/.uptodate
 METRICS_EXE=metrics/metrics
 METRICS_IMAGE=quay.io/weaveworks/metrics
 
-JSON_BUILDER_UPTODATE=json-builder/.uptodate
-JSON_BUILDER_IMAGE=quay.io/weaveworks/json-builder
+JSON_BUILDER_UPTODATE=launch-generator/.uptodate
+JSON_BUILDER_IMAGE=quay.io/weaveworks/launch-generator
 
 CLIENT_SERVER_UPTODATE=client/.ui-server.uptodate
 CLIENT_BUILD_UPTODATE=client/.service_client_build.uptodate
@@ -91,9 +91,9 @@ $(METRICS_UPTODATE): metrics/Dockerfile $(METRICS_EXE)
 	$(SUDO) docker build -t $(METRICS_IMAGE) metrics/
 	touch $@
 
-$(JSON_BUILDER_UPTODATE): json-builder/Dockerfile json-builder/src/*.js json-builder/package.json
+$(JSON_BUILDER_UPTODATE): launch-generator/Dockerfile launch-generator/src/*.js launch-generator/package.json
 	$(DOCKER_HOST_CHECK)
-	$(SUDO) docker build -t $(JSON_BUILDER_IMAGE) json-builder/
+	$(SUDO) docker build -t $(JSON_BUILDER_IMAGE) launch-generator/
 	touch $@
 
 $(CLIENT_BUILD_UPTODATE): client/Dockerfile client/package.json client/webpack.*
