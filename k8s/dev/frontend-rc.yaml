@@ -1,23 +1,23 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: frontend-f5d1f69
+  name: frontend-4904804
 spec:
   replicas: 2
   selector:
     name: frontend
-    version: f5d1f69
+    version: "4904804"
   template:
     metadata:
       labels:
         name: frontend
-        version: f5d1f69
+        version: "4904804"
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: frontend
-        image: quay.io/weaveworks/frontend:f5d1f69
+        image: quay.io/weaveworks/frontend:4904804
         env:
         - name: GET_HOSTS_FROM
           value: dns
