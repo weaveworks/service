@@ -7,7 +7,7 @@ set -o pipefail
 COMPONENTS=$@
 if [ "${COMPONENTS}" == "" ]
 then
-	COMPONENTS="app-mapper ui-server frontend users metrics prometheus grafana gfdatasource loadgen alertmanager"
+	COMPONENTS="app-mapper ui-server frontend users metrics prometheus grafana gfdatasource loadgen alertmanager launch-generator"
 elif [ "${COMPONENTS}" == "monitoring" ] # Special case
 then
 	COMPONENTS="prometheus grafana gfdatasource loadgen alertmanager"

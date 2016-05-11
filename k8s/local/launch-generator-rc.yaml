@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: launch-generator
+  labels:
+    name: launch-generator
+spec:
+  replicas: 1
+  selector:
+    name: launch-generator
+  template:
+    metadata:
+      labels:
+        name: launch-generator
+    spec:
+      containers:
+      - name: launch-generator
+        image: quay.io/weaveworks/launch-generator
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
