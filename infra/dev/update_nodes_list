@@ -1,0 +1,4 @@
+#!/bin/bash -ex
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+echo nodes=\($(kubectl --kubeconfig "${script_dir}/kubeconfig" get nodes -o json | jq '.items[].status.addresses[] | select ( .type == "ExternalIP" ) .address')\) > nodes
