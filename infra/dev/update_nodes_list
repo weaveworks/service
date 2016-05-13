@@ -1,4 +1,6 @@
 #!/bin/bash -ex
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+## TODO: this has a circular dependency, should query via AWS CLI or Terrform to fix it
+
 echo nodes=\($(kubectl --kubeconfig "${script_dir}/kubeconfig" get nodes -o json | jq '.items[].status.addresses[] | select ( .type == "ExternalIP" ) .address')\) > nodes
