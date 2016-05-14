@@ -74,10 +74,11 @@ func (tunnel *SSHtunnel) forward(localConn net.Conn) {
 	}
 
 	copyConn := func(writer, reader net.Conn) {
-		_, err := io.Copy(writer, reader)
+		s, err := io.Copy(writer, reader)
 		if err != nil {
 			log.Println("io.Copy error: %s", err)
 		}
+		log.Printf("Copied %d bytes for connection %v", s, reader)
 	}
 
 	go copyConn(localConn, remoteConn)
@@ -133,11 +134,11 @@ func getNodes() (nodes []string, err error) {
 	if err != nil {
 		return
 	}
-	log.Println("Number of reservation sets: ", len(resp.Reservations))
+	log.Println("Number of reservation sets:", len(resp.Reservations))
 	for idx, res := range resp.Reservations {
-		log.Println("Number of instances: ", len(res.Instances))
+		log.Println("Number of instances:", len(res.Instances))
 		for _, inst := range resp.Reservations[idx].Instances {
-			log.Println("Instance ID: ", *inst.InstanceId)
+			log.Println("Instance ID:", *inst.InstanceId)
 			nodes = append(nodes, *inst.PublicIpAddress)
 		}
 	}
@@ -149,7 +150,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	log.Println(nodes)
+	log.Println("nodes:", nodes)
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	localEndpoint := &Endpoint{
@@ -172,7 +173,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	log.Printf("Created SSH client configuration: %v\n", config)
+	log.Printf("Created SSH client configuration: %#v\n", config)
 
 	tunnel := &SSHtunnel{
 		Config: config,
@@ -181,7 +182,7 @@ func main() {
 		Remote: remoteEndpoint,
 	}
 
-	log.Printf("Created SSH tunnel configuration: %v\n", tunnel)
+	log.Printf("Created SSH tunnel configuration: %#v\n", tunnel)
 
 	tunnelReady, tunnelExit := make(chan bool), make(chan bool)
 
@@ -217,7 +218,7 @@ func main() {
 			log.Println(err)
 			return
 		}
-		log.Println("%v", pods)
+		log.Printf("%#v", pods)
 	}()
 
 	<-tunnelExit
