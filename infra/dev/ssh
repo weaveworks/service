@@ -15,5 +15,6 @@ ssh_opts=(
 )
 
 ssh_key="${script_dir}/ec2_weaveworks.kubernetes-anywhere.us-east-1.pem"
+chmod 0600 "${ssh_key}"
 
 ssh "${ssh_opts[@]}" -i "${ssh_key}" "ubuntu@${any_node}" "$@"
