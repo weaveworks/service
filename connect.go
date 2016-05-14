@@ -5,7 +5,13 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net"
+	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"golang.org/x/crypto/ssh"
 
@@ -99,14 +105,60 @@ func makeSshConfig(user, privateKeyPath string) (*ssh.ClientConfig, error) {
 	return &config, nil
 }
 
+func getNodes() (nodes []string, err error) {
+	svc := ec2.New(session.New(), &aws.Config{Region: aws.String("us-east-1")})
+	params := &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("tag:KubernetesCluster"),
+				Values: []*string{
+					aws.String("kubernetes-devz"),
+				},
+			},
+			{
+				Name: aws.String("tag:Name"),
+				Values: []*string{
+					aws.String("kubernetes-node"),
+				},
+			},
+			{
+				Name: aws.String("instance-state-name"),
+				Values: []*string{
+					aws.String("running"),
+				},
+			},
+		},
+	}
+	resp, err := svc.DescribeInstances(params)
+	if err != nil {
+		return
+	}
+	log.Println("Number of reservation sets: ", len(resp.Reservations))
+	for idx, res := range resp.Reservations {
+		log.Println("Number of instances: ", len(res.Instances))
+		for _, inst := range resp.Reservations[idx].Instances {
+			log.Println("Instance ID: ", *inst.InstanceId)
+			nodes = append(nodes, *inst.PublicIpAddress)
+		}
+	}
+	return
+}
 func main() {
+
+	nodes, err := getNodes()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	log.Println(nodes)
+	rand.Seed(time.Now().UTC().UnixNano())
+
 	localEndpoint := &Endpoint{
 		Host: "localhost",
 		Port: 6443,
 	}
 
 	serverEndpoint := &Endpoint{
-		Host: "54.172.66.220",
+		Host: nodes[rand.Intn(len(nodes))],
 		Port: 22,
 	}
 
