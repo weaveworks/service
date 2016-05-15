@@ -7,6 +7,9 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	_ "net/url"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -19,8 +22,11 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	unversionedapi "k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	_ "k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	"k8s.io/kubernetes/pkg/client/unversioned/portforward"
+	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	_ "k8s.io/kubernetes/pkg/fields"
 	_ "k8s.io/kubernetes/pkg/labels"
 )
@@ -148,6 +154,16 @@ func getNodes() (nodes []string, err error) {
 
 func main() {
 
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt)
+	defer signal.Stop(signals)
+
+	stop := make(chan struct{}, 1)
+	go func() {
+		<-signals
+		close(stop)
+	}()
+
 	nodes, err := getNodes()
 	if err != nil {
 		log.Fatalln(err)
@@ -213,13 +229,11 @@ func main() {
 			return
 		}
 
-		/*
-			c, err := unversioned.New(config)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-		*/
+		c, err := unversioned.New(config)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 
 		/*
 			pods, err := c.Pods(api.NamespaceDefault).List(api.ListOptions{})
@@ -290,9 +304,52 @@ func main() {
 			} else {
 				return
 			}
+			go func() {
+				<-signals
+				log.Println("Deleting deployment of socksproxy...")
+				err = ec.Deployments(api.NamespaceDefault).Delete("socksproxy-ilya", &api.DeleteOptions{})
+				if err != nil {
+					log.Println(err)
+					return
+				}
+			}()
 		}
 
-		/* TODO: handle SIGINT */
+		podName := "TODO"
+
+		pod, err := c.Pods(api.NamespaceDefault).Get(podName)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		if pod.Status.Phase != api.PodRunning {
+			//TODO: should wait...
+			log.Println("Unable to execute command because pod is not running. Current status=%v", pod.Status.Phase)
+			return
+		}
+
+		req := c.RESTClient.Post().Resource("pods").Namespace(api.NamespaceDefault).Name(pod.Name).SubResource("portforward")
+
+		ports := []string{"8000", "8080"}
+
+		dialer, err := remotecommand.NewExecutor(config, "POST", req.URL())
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		fw, err := portforward.New(dialer, ports, stop, os.Stdout, os.Stderr)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		err = fw.ForwardPorts()
+		if err != nil {
+			log.Println(err)
+			return
+		}
 	}()
 
 	<-tunnelExit
