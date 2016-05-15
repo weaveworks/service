@@ -16,7 +16,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"k8s.io/kubernetes/pkg/api"
-	_ "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/errors"
 	unversionedapi "k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/unversioned"
@@ -198,6 +198,8 @@ func main() {
 
 	<-tunnelReady
 
+	log.Println("You can use `kubectl --kubeconfig=infra/dev/kubeconfig` to interact with the system")
+
 	go func() {
 		log.Println("Creating Kubernetes client...")
 
@@ -211,19 +213,23 @@ func main() {
 			return
 		}
 
-		c, err := unversioned.New(config)
-		if err != nil {
-			log.Println(err)
-			return
-		}
+		/*
+			c, err := unversioned.New(config)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+		*/
 
-		pods, err := c.Pods(api.NamespaceDefault).List(api.ListOptions{})
-		if err != nil {
-			log.Println(err)
-			return
-		}
+		/*
+			pods, err := c.Pods(api.NamespaceDefault).List(api.ListOptions{})
+			if err != nil {
+				log.Println(err)
+				return
+			}
 
-		//log.Printf("%#v", pods)
+			log.Printf("%#v", pods)
+		*/
 
 		ec, err := unversioned.NewExtensions(config)
 		if err != nil {
@@ -231,25 +237,26 @@ func main() {
 			return
 		}
 
-		deployments, err := ec.Deployments(api.NamespaceDefault).List(api.ListOptions{})
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		//log.Printf("%#v", deployments)
+		/*
+			deployments, err := ec.Deployments(api.NamespaceDefault).List(api.ListOptions{})
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			log.Printf("%#v", deployments)
+		*/
 
-		labels := map[string]string{"name": "socksproxy", "owner": "ilya"}
+		labels := map[string]string{"name": "socksproxy-ilya"}
 
 		log.Println("Creating socksproxy deployment...")
 		zero := int64(0)
-		deployment := &extensions.Deployment{
+		d := &extensions.Deployment{
 			ObjectMeta: api.ObjectMeta{
-				Name: "socksproxy",
+				Name: "socksproxy-ilya",
 			},
 			Spec: extensions.DeploymentSpec{
 				Replicas: 1,
 				Selector: &unversionedapi.LabelSelector{MatchLabels: labels},
-				//Strategy: extensions.DeploymentStrategy{Type: strategyType},
 				Template: api.PodTemplateSpec{
 					ObjectMeta: api.ObjectMeta{Labels: labels},
 					Spec: api.PodSpec{
@@ -257,18 +264,35 @@ func main() {
 						Containers: []api.Container{
 							{
 								Name:  "socksproxy",
-								Image: "weaveworks/socksporxy:latest",
+								Image: "weaveworks/socksproxy:latest",
 							},
 						},
 					},
 				},
 			},
 		}
-		_, err = ec.Deployments(api.NamespaceDefault).Create(deployment)
+		_, err = ec.Deployments(api.NamespaceDefault).Create(d)
 		if err != nil {
 			log.Println(err)
+			if errors.IsAlreadyExists(err) {
+				log.Println("Deployment of socksproxy with name \"socksproxy-ilya\" already exists - cleaning up...")
+				err = ec.Deployments(api.NamespaceDefault).Delete("socksproxy-ilya", &api.DeleteOptions{})
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				log.Println("Creating socksproxy deployment...")
+				_, err = ec.Deployments(api.NamespaceDefault).Create(d)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+			} else {
+				return
+			}
 		}
 
+		/* TODO: handle SIGINT */
 	}()
 
 	<-tunnelExit
