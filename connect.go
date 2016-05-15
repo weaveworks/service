@@ -16,12 +16,13 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"k8s.io/kubernetes/pkg/api"
+	_ "k8s.io/kubernetes/pkg/api/errors"
+	unversionedapi "k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-
 	_ "k8s.io/kubernetes/pkg/fields"
 	_ "k8s.io/kubernetes/pkg/labels"
-	_ "k8s.io/kubernetes/pkg/ssh"
 )
 
 type Endpoint struct {
@@ -144,6 +145,7 @@ func getNodes() (nodes []string, err error) {
 	}
 	return
 }
+
 func main() {
 
 	nodes, err := getNodes()
@@ -199,26 +201,74 @@ func main() {
 	go func() {
 		log.Println("Creating Kubernetes client...")
 
-		//loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 		loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: "infra/dev/kubeconfig"}
-		// if you want to change the loading rules (which files in which order), you can do so here
-
 		configOverrides := &clientcmd.ConfigOverrides{}
-		// if you want to change override values or bind them to flags, there are methods to help you
+		kubeconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 
-		kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
-		config, err := kubeConfig.ClientConfig()
+		config, err := kubeconfig.ClientConfig()
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		client, err := unversioned.New(config)
-		pods, err := client.Pods(api.NamespaceDefault).List(api.ListOptions{})
+
+		c, err := unversioned.New(config)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		log.Printf("%#v", pods)
+
+		pods, err := c.Pods(api.NamespaceDefault).List(api.ListOptions{})
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		//log.Printf("%#v", pods)
+
+		ec, err := unversioned.NewExtensions(config)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		deployments, err := ec.Deployments(api.NamespaceDefault).List(api.ListOptions{})
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		//log.Printf("%#v", deployments)
+
+		labels := map[string]string{"name": "socksproxy", "owner": "ilya"}
+
+		log.Println("Creating socksproxy deployment...")
+		zero := int64(0)
+		deployment := &extensions.Deployment{
+			ObjectMeta: api.ObjectMeta{
+				Name: "socksproxy",
+			},
+			Spec: extensions.DeploymentSpec{
+				Replicas: 1,
+				Selector: &unversionedapi.LabelSelector{MatchLabels: labels},
+				//Strategy: extensions.DeploymentStrategy{Type: strategyType},
+				Template: api.PodTemplateSpec{
+					ObjectMeta: api.ObjectMeta{Labels: labels},
+					Spec: api.PodSpec{
+						TerminationGracePeriodSeconds: &zero,
+						Containers: []api.Container{
+							{
+								Name:  "socksproxy",
+								Image: "weaveworks/socksporxy:latest",
+							},
+						},
+					},
+				},
+			},
+		}
+		_, err = ec.Deployments(api.NamespaceDefault).Create(deployment)
+		if err != nil {
+			log.Println(err)
+		}
+
 	}()
 
 	<-tunnelExit
