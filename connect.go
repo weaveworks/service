@@ -28,7 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/unversioned/portforward"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	_ "k8s.io/kubernetes/pkg/fields"
-	_ "k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/labels"
 )
 
 type Endpoint struct {
@@ -260,7 +260,7 @@ func main() {
 			log.Printf("%#v", deployments)
 		*/
 
-		labels := map[string]string{"name": "socksproxy-ilya"}
+		l := map[string]string{"name": "socksproxy-ilya"}
 
 		log.Println("Creating socksproxy deployment...")
 		zero := int64(0)
@@ -270,9 +270,9 @@ func main() {
 			},
 			Spec: extensions.DeploymentSpec{
 				Replicas: 1,
-				Selector: &unversionedapi.LabelSelector{MatchLabels: labels},
+				Selector: &unversionedapi.LabelSelector{MatchLabels: l},
 				Template: api.PodTemplateSpec{
-					ObjectMeta: api.ObjectMeta{Labels: labels},
+					ObjectMeta: api.ObjectMeta{Labels: l},
 					Spec: api.PodSpec{
 						TerminationGracePeriodSeconds: &zero,
 						Containers: []api.Container{
@@ -315,7 +315,13 @@ func main() {
 			}()
 		}
 
-		podName := "TODO"
+		pods, err := c.Pods(api.NamespaceDefault).List(api.ListOptions{LabelSelector: labels.Set(l).AsSelector()})
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		podName := pods.Items[0].ObjectMeta.Name
 
 		pod, err := c.Pods(api.NamespaceDefault).Get(podName)
 		if err != nil {
@@ -323,10 +329,13 @@ func main() {
 			return
 		}
 
-		if pod.Status.Phase != api.PodRunning {
-			//TODO: should wait...
-			log.Println("Unable to execute command because pod is not running. Current status=%v", pod.Status.Phase)
-			return
+		for pod.Status.Phase != api.PodRunning {
+			pod, err = c.Pods(api.NamespaceDefault).Get(podName)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			time.Sleep(2 * time.Second)
 		}
 
 		req := c.RESTClient.Post().Resource("pods").Namespace(api.NamespaceDefault).Name(pod.Name).SubResource("portforward")
