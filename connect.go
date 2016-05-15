@@ -7,7 +7,6 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	_ "net/url"
 	"os"
 	"os/signal"
 	"time"
@@ -22,12 +21,10 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	unversionedapi "k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	_ "k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/client/unversioned/portforward"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
-	_ "k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 )
 
@@ -154,6 +151,7 @@ func getNodes() (nodes []string, err error) {
 
 func main() {
 
+	//TODO: make it work properly
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt)
 	defer signal.Stop(signals)
@@ -235,30 +233,11 @@ func main() {
 			return
 		}
 
-		/*
-			pods, err := c.Pods(api.NamespaceDefault).List(api.ListOptions{})
-			if err != nil {
-				log.Println(err)
-				return
-			}
-
-			log.Printf("%#v", pods)
-		*/
-
 		ec, err := unversioned.NewExtensions(config)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-
-		/*
-			deployments, err := ec.Deployments(api.NamespaceDefault).List(api.ListOptions{})
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			log.Printf("%#v", deployments)
-		*/
 
 		l := map[string]string{"name": "socksproxy-ilya"}
 
