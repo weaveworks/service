@@ -12,26 +12,26 @@ import (
 
 // based on http://blog.ralch.com/tutorial/golang-ssh-tunneling/
 
-type Endpoint struct {
+type endpoint struct {
 	Host string
 	Port int
 }
 
-func (endpoint *Endpoint) String() string {
+func (endpoint *endpoint) String() string {
 	return fmt.Sprintf("%s:%d", endpoint.Host, endpoint.Port)
 }
 
-type SSHtunnel struct {
-	Local    *Endpoint
-	Server   *Endpoint
-	Remote   *Endpoint
+type tunnel struct {
+	Local    *endpoint
+	Server   *endpoint
+	Remote   *endpoint
 	Config   *ssh.ClientConfig
 	listener net.Listener
 }
 
-func (tunnel *SSHtunnel) Start(ready chan bool) (err error) {
+func (t *tunnel) start(ready chan bool) (err error) {
 	log.Println("Started processing tunnel traffic")
-	tunnel.listener, err = net.Listen("tcp", tunnel.Local.String())
+	t.listener, err = net.Listen("tcp", t.Local.String())
 	if err != nil {
 		return
 	}
@@ -39,16 +39,16 @@ func (tunnel *SSHtunnel) Start(ready chan bool) (err error) {
 	ready <- true
 
 	for {
-		conn, err := tunnel.listener.Accept()
+		conn, err := t.listener.Accept()
 		if err != nil {
 			return err
 		}
-		go tunnel.forward(conn)
+		go t.forward(conn)
 	}
 }
 
-func (tunnel *SSHtunnel) Stop() (err error) {
-	err = tunnel.listener.Close()
+func (t *tunnel) stop() (err error) {
+	err = t.listener.Close()
 	if err != nil {
 		log.Println(err)
 		return
@@ -57,15 +57,15 @@ func (tunnel *SSHtunnel) Stop() (err error) {
 	return
 }
 
-func (tunnel *SSHtunnel) forward(localConn net.Conn) {
+func (t *tunnel) forward(localConn net.Conn) {
 	log.Printf("Forwarding connection: %v\n", localConn)
-	serverConn, err := ssh.Dial("tcp", tunnel.Server.String(), tunnel.Config)
+	serverConn, err := ssh.Dial("tcp", t.Server.String(), t.Config)
 	if err != nil {
 		log.Printf("Server dial error: %s\n", err)
 		return
 	}
 
-	remoteConn, err := serverConn.Dial("tcp", tunnel.Remote.String())
+	remoteConn, err := serverConn.Dial("tcp", t.Remote.String())
 	if err != nil {
 		log.Printf("Remote dial error: %s\n", err)
 		return
@@ -83,7 +83,7 @@ func (tunnel *SSHtunnel) forward(localConn net.Conn) {
 	go copyConn(remoteConn, localConn)
 }
 
-func makeSshConfig(user, privateKeyPath string) (*ssh.ClientConfig, error) {
+func makeSSHConfig(user, privateKeyPath string) (*ssh.ClientConfig, error) {
 	buff, err := ioutil.ReadFile(privateKeyPath)
 	if err != nil {
 		return nil, err

@@ -16,7 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 )
 
-type KubernetesClient struct {
+type kubeClient struct {
 	podName        string
 	deploymentName string
 	c              *unversioned.Client
@@ -25,7 +25,7 @@ type KubernetesClient struct {
 	UserName       string
 }
 
-func (kube *KubernetesClient) CreateProxy(stop <-chan struct{}) (err error) {
+func (kube *kubeClient) createProxy(stop <-chan struct{}) (err error) {
 	log.Println("Creating Kubernetes client...")
 
 	loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: kube.ConfigPath}
@@ -102,7 +102,7 @@ func (kube *KubernetesClient) CreateProxy(stop <-chan struct{}) (err error) {
 	}
 
 	for pod.Status.Phase != api.PodRunning {
-		log.Println("Waiting for pod %q...", kube.podName)
+		log.Printf("Waiting for pod %q...", kube.podName)
 		time.Sleep(2 * time.Second)
 		pod, err = kube.c.Pods(api.NamespaceDefault).Get(kube.podName)
 		if err != nil {
@@ -133,7 +133,7 @@ func (kube *KubernetesClient) CreateProxy(stop <-chan struct{}) (err error) {
 	return
 }
 
-func (kube *KubernetesClient) DeleteProxy() (err error) {
+func (kube *kubeClient) deleteProxy() (err error) {
 	log.Println("Deleting deployment of socksproxy...")
 	err = kube.ec.Deployments(api.NamespaceDefault).Delete(kube.deploymentName, &api.DeleteOptions{})
 	if err != nil {
