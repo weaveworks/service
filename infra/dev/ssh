@@ -1,0 +1,20 @@
+#!/bin/bash -e
+
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "${script_dir}/nodes"
+
+any_node="${nodes["$[RANDOM % ${#nodes[@]}]"]}"
+
+ssh_opts=(
+  -o Compression=yes
+  -o LogLevel=FATAL
+  -o StrictHostKeyChecking=no
+  -o UserKnownHostsFile=/dev/null
+  -o IdentitiesOnly=yes
+)
+
+ssh_key="${script_dir}/ec2_weaveworks.kubernetes-anywhere.us-east-1.pem"
+chmod 0600 "${ssh_key}"
+
+ssh "${ssh_opts[@]}" -i "${ssh_key}" "ubuntu@${any_node}" "$@"

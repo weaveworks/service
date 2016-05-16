@@ -1,0 +1,4 @@
+#!/bin/bash -e
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+${script_dir}/ssh -N -L localhost:6443:10.16.0.1:443
