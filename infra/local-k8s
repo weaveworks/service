@@ -76,7 +76,7 @@ function stand_up {
 	else
 	    case "$(uname -s)" in
 		"Darwin")
-		    local machine_name=$(docker-machine ls -q | head -n1)
+		    local machine_name=$(docker-machine active)
 		    echo "Using docker-machine ${machine_name}"
 		    k8s_ip=$(docker-machine ip ${machine_name})
 		    ;;
