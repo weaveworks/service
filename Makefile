@@ -37,7 +37,6 @@ FRONTEND_IMAGE=quay.io/weaveworks/frontend
 MONITORING_UPTODATE=monitoring/.images.uptodate
 
 CONNECT_EXE=connect/connect
-CONNECT_UPTODATE=continue/.uptodate
 
 # If you can use Docker without being root, you can `make SUDO= <target>`
 SUDO=$(shell (echo "$$DOCKER_HOST" | grep "tcp://" >/dev/null) || echo "sudo -E")
@@ -65,7 +64,7 @@ NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 	false; \
 }
 
-all: $(APP_MAPPER_UPTODATE) $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE) $(JSON_BUILDER_UPTODATE) $(CONNECT_UPTODATE)
+all: $(APP_MAPPER_UPTODATE) $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE) $(JSON_BUILDER_UPTODATE) $(CONNECT_EXE)
 
 $(BUILD_UPTODATE): build/*
 	$(DOCKER_HOST_CHECK)
@@ -122,15 +121,11 @@ $(AUTHFE_EXE): authfe/*.go
 $(USERS_EXE): users/*.go users/names/*.go
 $(METRICS_EXE): metrics/*.go
 $(CONNECT_EXE): connect/*.go
+	go build $(GO_FLAGS) -o $@ ./$(@D)
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
 $(APP_MAPPER_EXE) $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) lint test: $(BUILD_UPTODATE)
-	$(SUDO) docker run $(RM) -ti -v $(shell pwd):/go/src/github.com/weaveworks/service \
-		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
-		$(BUILD_IMAGE) $@
-
-$(CONNECT_EXE): $(BUILD_UPTODATE)
 	$(SUDO) docker run $(RM) -ti -v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
 		$(BUILD_IMAGE) $@
@@ -143,8 +138,6 @@ $(APP_MAPPER_EXE) $(AUTHFE_EXE) $(USERS_EXE): $(BUILD_UPTODATE)
 
 $(METRICS_EXE): $(BUILD_UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
-
-$(CONNECT_UPTODATE): $(CONNECT_EXE)
 
 lint: $(BUILD_UPTODATE)
 	./tools/lint .
@@ -182,7 +175,7 @@ clean:
 		$(JSON_BUILDER_UPTODATE) \
 		$(METRICS_EXE) $(METRICS_UPTODATE) \
 		$(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) client/build/app.js \
-		$(CONNECT_UPTODATE) $(CONNECT_EXE) \
+		$(CONNECT_EXE) \
 		$(BUILD_UPTODATE) $(CLIENT_BUILD_UPTODATE)
 	go clean ./...
 	make -C monitoring clean
