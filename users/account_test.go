@@ -1,0 +1,200 @@
+package main
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/weaveworks/service/users/login"
+)
+
+func Test_Account_AttachOauthAccount(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	email := "joe@example.com"
+	remoteEmail := "fran@example.com"
+	login.Register("mock", MockLoginProvider{
+		// Different remote email, to prevent auto-matching
+		"joe": {ID: "joe", Email: remoteEmail},
+	})
+
+	user, err := storage.CreateUser("", email)
+	assert.NoError(t, err)
+	user, err = storage.ApproveUser(user.ID)
+	assert.NoError(t, err)
+
+	// Get a session for this user
+	cookie, err := sessions.Cookie(user.ID, "")
+	assert.NoError(t, err)
+
+	// Hit the endpoint that the oauth login will redirect to (with our session)
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/api/users/login/mock?code=joe&state=state", nil)
+	r.AddCookie(cookie)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, hasCookie(w, cookieName))
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, email, body["email"])
+	assert.Len(t, body["organizations"], 1)
+	assert.Len(t, sentEmails, 0)
+
+	// Should have logged us in as the same user.
+	found, err := storage.FindUserByLogin("mock", "joe")
+	require.NoError(t, err)
+	assert.Equal(t, user.ID, found.ID)
+
+	// User should have an login set
+	if assert.Len(t, found.Logins, 1) {
+		assert.Equal(t, user.ID, found.Logins[0].UserID)
+		assert.Equal(t, "mock", found.Logins[0].Provider)
+		assert.Equal(t, "joe", found.Logins[0].ProviderID)
+	}
+}
+
+func Test_Account_AttachOauthAccount_AlreadyAttachedToAnotherAccount(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	email := "joe@example.com"
+	remoteEmail := "fran@example.com"
+	login.Register("mock", MockLoginProvider{
+		// Different remote email, to prevent auto-matching
+		"fran": {ID: "fran", Email: remoteEmail},
+	})
+
+	user, err := storage.CreateUser("", email)
+	assert.NoError(t, err)
+	user, err = storage.ApproveUser(user.ID)
+	assert.NoError(t, err)
+
+	// Should be associated to another user
+	fran, err := storage.CreateUser("", remoteEmail)
+	assert.NoError(t, err)
+	assert.NoError(t, storage.AddLoginToUser(fran.ID, "mock", "fran", nil))
+	fran, err = storage.ApproveUser(fran.ID)
+	assert.NoError(t, err)
+	assert.Len(t, fran.Logins, 1)
+
+	// Get a session for our user
+	cookie, err := sessions.Cookie(user.ID, "")
+	assert.NoError(t, err)
+
+	// Hit the endpoint that the oauth login will redirect to (with our session)
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/api/users/login/mock?code=fran&state=state", nil)
+	r.AddCookie(cookie)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, hasCookie(w, cookieName))
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, email, body["email"])
+	assert.Len(t, body["organizations"], 1)
+	assert.Len(t, sentEmails, 0)
+
+	// Lookup by the login should point at the new user
+	found, err := storage.FindUserByLogin("mock", "fran")
+	require.NoError(t, err)
+	assert.Equal(t, user.ID, found.ID)
+
+	// User should have the login set
+	if assert.Len(t, found.Logins, 1) {
+		assert.Equal(t, user.ID, found.Logins[0].UserID)
+		assert.Equal(t, "mock", found.Logins[0].Provider)
+		assert.Equal(t, "fran", found.Logins[0].ProviderID)
+	}
+
+	// Old user should not be assocaited anymore
+	fran, err = storage.FindUserByID(fran.ID)
+	require.NoError(t, err)
+	assert.Len(t, fran.Logins, 0)
+}
+
+func Test_Account_AttachOauthAccount_AlreadyAttachedToSameAccount(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	email := "joe@example.com"
+	remoteEmail := "fran@example.com"
+	login.Register("mock", MockLoginProvider{
+		// Different remote email, to prevent auto-matching
+		"joe": {ID: "joe", Email: remoteEmail},
+	})
+
+	user, err := storage.CreateUser("", email)
+	assert.NoError(t, err)
+
+	// Should be associated to same user
+	assert.NoError(t, storage.AddLoginToUser(user.ID, "mock", "joe", nil))
+	user, err = storage.ApproveUser(user.ID)
+	assert.NoError(t, err)
+	assert.Len(t, user.Logins, 1)
+
+	// Get a session for our user
+	cookie, err := sessions.Cookie(user.ID, "")
+	assert.NoError(t, err)
+
+	// Hit the endpoint that the oauth login will redirect to (with our session)
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/api/users/login/mock?code=joe&state=state", nil)
+	r.AddCookie(cookie)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, hasCookie(w, cookieName))
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, email, body["email"])
+	assert.Len(t, body["organizations"], 1)
+	assert.Len(t, sentEmails, 0)
+
+	// Lookup by the login should point at the same user
+	found, err := storage.FindUserByLogin("mock", "joe")
+	require.NoError(t, err)
+	assert.Equal(t, user.ID, found.ID)
+
+	// User should have the login set
+	if assert.Len(t, found.Logins, 1) {
+		assert.Equal(t, user.ID, found.Logins[0].UserID)
+		assert.Equal(t, "mock", found.Logins[0].Provider)
+		assert.Equal(t, "joe", found.Logins[0].ProviderID)
+	}
+}
+
+func Test_Account_DetachOauthAccount(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	email := "joe@example.com"
+	login.Register("mock", MockLoginProvider{
+		"joe": {ID: "joe", Email: email},
+	})
+
+	user, err := storage.CreateUser("", email)
+	assert.NoError(t, err)
+	user, err = storage.ApproveUser(user.ID)
+	assert.NoError(t, err)
+	assert.NoError(t, storage.AddLoginToUser(user.ID, "mock", "joe", nil))
+
+	// Get a session for this user
+	cookie, err := sessions.Cookie(user.ID, "")
+	assert.NoError(t, err)
+
+	// Hit the endpoint that the oauth login will redirect to (with our session)
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("POST", "/api/users/logins/mock/detach", nil)
+	r.AddCookie(cookie)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// User should have no more logins set
+	user, err = storage.FindUserByID(user.ID)
+	require.NoError(t, err)
+	assert.Len(t, user.Logins, 0)
+}

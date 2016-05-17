@@ -1,11 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/weaveworks/service/users/login"
 )
 
 type memoryStorage struct {
@@ -20,14 +24,64 @@ func newMemoryStorage() *memoryStorage {
 	}
 }
 
-func (s memoryStorage) CreateUser(email string) (*user, error) {
+func (s memoryStorage) CreateUser(id, email string) (*user, error) {
+	if id == "" {
+		id = fmt.Sprint(len(s.users))
+	}
 	u := &user{
-		ID:        fmt.Sprint(len(s.users)),
-		Email:     email,
+		ID:        id,
+		Email:     strings.ToLower(email),
 		CreatedAt: time.Now().UTC(),
 	}
 	s.users[u.ID] = u
 	return u, nil
+}
+
+func (s memoryStorage) AddLoginToUser(userID, provider, providerID string, session json.RawMessage) error {
+	u, err := s.FindUserByID(userID)
+	if err != nil {
+		return err
+	}
+
+	// Remove any existing links to other user accounts
+	createdAt := time.Now().UTC()
+	for _, user := range s.users {
+		for i, a := range user.Logins {
+			if a.Provider == provider && a.ProviderID == providerID {
+				createdAt = a.CreatedAt
+				user.Logins = append(user.Logins[:i], user.Logins[i+1:]...)
+			}
+		}
+	}
+
+	// Add it to this one (updating session if needed).
+	u.Logins = append(u.Logins, &login.Login{
+		UserID:     userID,
+		Provider:   provider,
+		ProviderID: providerID,
+		Session:    session,
+		CreatedAt:  createdAt,
+	})
+	sort.Sort(login.LoginsByProvider(u.Logins))
+	return nil
+}
+
+func (s memoryStorage) DetachLoginFromUser(userID, provider string) error {
+	u, err := s.FindUserByID(userID)
+	if err == errNotFound {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	newLogins := []*login.Login{}
+	for _, a := range u.Logins {
+		if a.Provider != provider {
+			newLogins = append(newLogins, a)
+		}
+	}
+	u.Logins = newLogins
+	return nil
 }
 
 func (s memoryStorage) InviteUser(email, orgName string) (*user, error) {
@@ -44,19 +98,22 @@ func (s memoryStorage) InviteUser(email, orgName string) (*user, error) {
 
 	u, err := s.FindUserByEmail(email)
 	if err == errNotFound {
-		u, err = s.CreateUser(email)
+		u, err = s.CreateUser("", email)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	if u.Organization != nil && u.Organization.Name != orgName {
-		return nil, errEmailIsTaken
+	switch len(u.Organizations) {
+	case 0:
+		u.Organizations = append(u.Organizations, o)
+		return u, nil
+	case 1:
+		if u.Organizations[0].Name == orgName {
+			return u, nil
+		}
 	}
-
-	u.ApprovedAt = time.Now().UTC()
-	u.Organization = o
-	return u, nil
+	return nil, errEmailIsTaken
 }
 
 func (s memoryStorage) DeleteUser(email string) error {
@@ -86,6 +143,17 @@ func (s memoryStorage) FindUserByEmail(email string) (*user, error) {
 	return nil, errNotFound
 }
 
+func (s memoryStorage) FindUserByLogin(provider, providerID string) (*user, error) {
+	for _, user := range s.users {
+		for _, a := range user.Logins {
+			if a.Provider == provider && a.ProviderID == providerID {
+				return user, nil
+			}
+		}
+	}
+	return nil, errNotFound
+}
+
 type usersByCreatedAt []*user
 
 func (u usersByCreatedAt) Len() int           { return len(u) }
@@ -106,8 +174,11 @@ func (s memoryStorage) ListUsers(fs ...filter) ([]*user, error) {
 func (s memoryStorage) ListOrganizationUsers(orgName string) ([]*user, error) {
 	users := []*user{}
 	for _, user := range s.users {
-		if user.Organization != nil && user.Organization.Name == orgName {
-			users = append(users, user)
+		for _, org := range user.Organizations {
+			if org.Name == orgName {
+				users = append(users, user)
+				break
+			}
 		}
 	}
 	sort.Sort(usersByCreatedAt(users))
@@ -124,10 +195,7 @@ func (s memoryStorage) ApproveUser(id string) (*user, error) {
 		return user, nil
 	}
 
-	if o, err := s.createOrganization(); err == nil {
-		user.ApprovedAt = time.Now().UTC()
-		user.Organization = o
-	}
+	user.ApprovedAt = time.Now().UTC()
 	return user, err
 }
 
@@ -170,15 +238,32 @@ func (s memoryStorage) SetUserFirstLoginAt(id string) error {
 	return nil
 }
 
-func (s memoryStorage) createOrganization() (*organization, error) {
+func (s memoryStorage) CreateOrganization(ownerID string) (*organization, error) {
+	user, err := s.FindUserByID(ownerID)
+	if err != nil {
+		return nil, err
+	}
 	o := &organization{
 		ID: fmt.Sprint(len(s.organizations)),
 	}
-	o.RegenerateName()
+	for {
+		o.RegenerateName()
+		var found bool
+		for _, org := range s.organizations {
+			if org.Name == o.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			break
+		}
+	}
 	if err := o.RegenerateProbeToken(); err != nil {
 		return nil, err
 	}
 	s.organizations[o.ID] = o
+	user.Organizations = append(user.Organizations, o)
 	return o, nil
 }
 

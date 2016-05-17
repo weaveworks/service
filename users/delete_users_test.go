@@ -13,23 +13,26 @@ func Test_DeleteUser(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
+	user, err := storage.CreateUser("", "joe@weave.works")
 	require.NoError(t, err)
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
-	assert.NotEqual(t, "", user.Organization.ID)
 
-	fran, err := storage.CreateUser("fran@weave.works")
+	org, err := storage.CreateOrganization(user.ID)
 	require.NoError(t, err)
-	fran, err = storage.InviteUser(fran.Email, user.Organization.Name)
-	require.NoError(t, err)
-	assert.Equal(t, user.Organization.ID, fran.Organization.ID)
 
-	cookie, err := sessions.Cookie(user.ID)
+	fran, err := storage.CreateUser("", "fran@weave.works")
+	require.NoError(t, err)
+	fran, err = storage.InviteUser(fran.Email, org.Name)
+	require.NoError(t, err)
+	require.Len(t, fran.Organizations, 1)
+	assert.Equal(t, org.ID, fran.Organizations[0].ID)
+
+	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("DELETE", "/api/users/org/"+user.Organization.Name+"/users/"+fran.Email, nil)
+	r, _ := http.NewRequest("DELETE", "/api/users/org/"+org.Name+"/users/"+fran.Email, nil)
 	r.AddCookie(cookie)
 
 	app.ServeHTTP(w, r)

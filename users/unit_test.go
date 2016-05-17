@@ -7,6 +7,8 @@ import (
 
 	"github.com/jordan-wright/email"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/weaveworks/service/users/login"
 )
 
 var (
@@ -26,6 +28,7 @@ func setup(t *testing.T) {
 	storage = mustNewDatabase("memory://", "")
 	sessions = mustNewSessionStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", storage)
 	templates := mustNewTemplateEngine()
+	login.Register("", &storageAuth{storage})
 
 	sentEmails = nil
 	emailer := smtpEmailer{templates, testEmailSender, domain}
@@ -33,6 +36,7 @@ func setup(t *testing.T) {
 }
 
 func cleanup(t *testing.T) {
+	login.Reset()
 }
 
 func testEmailSender(e *email.Email) error {

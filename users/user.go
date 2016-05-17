@@ -5,18 +5,21 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/weaveworks/service/users/login"
 )
 
 type user struct {
-	ID             string        `json:"-"`
-	Email          string        `json:"email"`
-	Token          string        `json:"-"`
-	TokenCreatedAt time.Time     `json:"-"`
-	ApprovedAt     time.Time     `json:"-"`
-	FirstLoginAt   time.Time     `json:"-"`
-	CreatedAt      time.Time     `json:"-"`
-	Admin          bool          `json:"-"`
-	Organization   *organization `json:"-"`
+	ID             string          `json:"-"`
+	Email          string          `json:"email"`
+	Token          string          `json:"-"`
+	TokenCreatedAt time.Time       `json:"-"`
+	ApprovedAt     time.Time       `json:"-"`
+	FirstLoginAt   time.Time       `json:"-"`
+	CreatedAt      time.Time       `json:"-"`
+	Admin          bool            `json:"-"`
+	Logins         []*login.Login  `json:"-"`
+	Organizations  []*organization `json:"-"`
 }
 
 func formatTimestamp(t time.Time) string {
@@ -76,12 +79,18 @@ func (f usersApprovedFilter) Select(q squirrel.SelectBuilder) squirrel.SelectBui
 func newUsersOrganizationFilter(s []string) filter {
 	return inFilter{
 		SQLField: "organizations.name",
-		Value:    s,
+		SQLJoins: []string{
+			"memberships on (memberships.user_id = users.id)",
+			"organizations on (memberships.organization_id = organizations.id)",
+		},
+		Value: s,
 		Allowed: func(i interface{}) bool {
-			if u, ok := i.(*user); ok && u.Organization != nil {
-				for _, name := range s {
-					if u.Organization.Name == name {
-						return true
+			if u, ok := i.(*user); ok {
+				for _, org := range u.Organizations {
+					for _, name := range s {
+						if org.Name == name {
+							return true
+						}
 					}
 				}
 			}

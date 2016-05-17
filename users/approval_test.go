@@ -16,15 +16,15 @@ func Test_Approval(t *testing.T) {
 
 	// Create some users
 	// approved user
-	approved, err := storage.CreateUser("approved@weave.works")
+	approved, err := storage.CreateUser("", "approved@weave.works")
 	require.NoError(t, err)
 	approved, err = storage.ApproveUser(approved.ID)
 	require.NoError(t, err)
 	// unapproved user1
-	user1, err := storage.CreateUser("user1@weave.works")
+	user1, err := storage.CreateUser("", "user1@weave.works")
 	require.NoError(t, err)
 	// unapproved user2
-	user2, err := storage.CreateUser("user2@weave.works")
+	user2, err := storage.CreateUser("", "user2@weave.works")
 	require.NoError(t, err)
 
 	// List unapproved users
@@ -51,9 +51,6 @@ func Test_Approval(t *testing.T) {
 	found, err := storage.FindUserByID(user1.ID)
 	assert.NoError(t, err)
 	assert.False(t, found.ApprovedAt.IsZero(), "user should have an approved_at timestamp")
-	assert.NotEqual(t, "", found.Organization.ID, "user should have an organization id")
-	assert.NotEqual(t, "", found.Organization.Name, "user should have an organization name")
-	assert.NotEqual(t, "", found.Organization.ProbeToken, "user should have a probe token")
 
 	// Email should have been sent
 	if assert.Len(t, sentEmails, 1) {
@@ -98,20 +95,17 @@ func Test_Approval_IsIdempotent(t *testing.T) {
 	defer cleanup(t)
 
 	// Create a user
-	user, err := storage.CreateUser("approved@weave.works")
+	user, err := storage.CreateUser("", "approved@weave.works")
 	require.NoError(t, err)
 
 	// Approve the user
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
-	organizationID := user.Organization.ID
-	assert.NotEqual(t, "", organizationID)
 	approvedAt := user.ApprovedAt
 	assert.False(t, approvedAt.IsZero())
 
 	// Approve them again
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
-	assert.Equal(t, organizationID, user.Organization.ID)
 	assert.Equal(t, approvedAt, user.ApprovedAt)
 }

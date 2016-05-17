@@ -11,6 +11,8 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/weaveworks/service/users/login"
 )
 
 var (
@@ -36,6 +38,7 @@ func setup(t *testing.T) {
 	storage = mustNewDatabase(*databaseURI, *databaseMigrations)
 	sessions = mustNewSessionStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", storage)
 	templates := mustNewTemplateEngine()
+	login.Register("", &storageAuth{storage})
 
 	truncateDatabase(t)
 
@@ -44,6 +47,7 @@ func setup(t *testing.T) {
 }
 
 func cleanup(t *testing.T) {
+	login.Reset()
 	require.NoError(t, storage.Close())
 }
 
@@ -57,7 +61,10 @@ func truncateDatabase(t *testing.T) {
 	db := storage.(squirrel.Execer)
 	mustExec(t, db, `truncate table traceable;`)
 	mustExec(t, db, `truncate table users;`)
+	mustExec(t, db, `truncate table logins;`)
+
 	mustExec(t, db, `truncate table organizations;`)
+	mustExec(t, db, `truncate table memberships;`)
 }
 
 func mustExec(t *testing.T, db squirrel.Execer, query string, args ...interface{}) {
