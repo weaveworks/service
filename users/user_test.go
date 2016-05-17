@@ -35,4 +35,8 @@ func Test_User_CompareToken(t *testing.T) {
 	u.Token = hashedToken
 	u.TokenCreatedAt = time.Now().UTC().Add(-73 * time.Hour)
 	assert.False(t, u.CompareToken(valid))
+
+	// Works on nil user
+	var nilUser *user
+	assert.False(t, nilUser.CompareToken(""))
 }

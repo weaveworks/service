@@ -11,10 +11,12 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"github.com/justinas/nosurf"
 	"github.com/weaveworks/scope/common/middleware"
 
 	"github.com/weaveworks/service/common/instrument"
 	"github.com/weaveworks/service/common/logging"
+	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/pardot"
 )
 
@@ -42,6 +44,11 @@ func main() {
 		sendgridAPIKey = flag.String("sendgrid-api-key", "", "Sendgrid API key.  Either email-uri or sendgrid-api-key must be provided.")
 	)
 
+	logins := login.NewProviders()
+	logins.Register("github", login.NewGithubProvider())
+	logins.Register("google", login.NewGoogleProvider())
+	logins.Flags(flag.CommandLine)
+
 	flag.Parse()
 
 	if err := logging.Setup(*logLevel); err != nil {
@@ -68,7 +75,7 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Infof("Listening on port %d", *port)
-	http.Handle("/", newAPI(*directLogin, emailer, sessions, storage, templates))
+	http.Handle("/", newAPI(*directLogin, emailer, sessions, storage, logins, templates))
 	http.Handle("/metrics", makePrometheusHandler())
 	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }
@@ -77,16 +84,18 @@ type api struct {
 	directLogin bool
 	sessions    sessionStore
 	storage     database
+	logins      *login.Providers
 	templates   templateEngine
 	emailer     emailer
 	http.Handler
 }
 
-func newAPI(directLogin bool, emailer emailer, sessions sessionStore, storage database, templates templateEngine) *api {
+func newAPI(directLogin bool, emailer emailer, sessions sessionStore, storage database, logins *login.Providers, templates templateEngine) *api {
 	a := &api{
 		directLogin: directLogin,
 		sessions:    sessions,
 		storage:     storage,
+		logins:      logins,
 		templates:   templates,
 		emailer:     emailer,
 	}
@@ -100,20 +109,57 @@ func (a *api) routes() http.Handler {
 		method, path string
 		handler      http.HandlerFunc
 	}{
-		{"GET", "/loadgen", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintf(w, "OK") }},
-		{"GET", "/", a.admin},
+		// Used by the UI to determine all available login providers
+		{"GET", "/api/users/logins", a.listLoginProviders},
+
+		// Used by the UI for /account, to determine which providers are already
+		// attached to the current user
+		{"GET", "/api/users/attached_logins", a.authenticated(a.listAttachedLoginProviders)},
+
+		// Attaches a new login provider to the current user. If no current user is
+		// logged in, one will be looked up via email, or we will create one (if no
+		// matching email is found).
+		//
+		// This endpoint will then set the session cookie, return a json object
+		// with some fields like:
+		//  { "firstLogin": true, "attach": true, "userCreated": true }
+		{"GET", "/api/users/logins/{provider}/attach", a.attachLoginProvider},
+		// Detaches the given provider from the current user
+		{"POST", "/api/users/logins/{provider}/detach", a.authenticated(a.detachLoginProvider)},
+
+		// Finds/Creates a user account with a given email, and emails them a new
+		// login link
 		{"POST", "/api/users/signup", a.signup},
+
+		// This is the link the UI hits when the user visits the link from the
+		// login email. Doesn't need to handle any attachment, or providers, since
+		// it *only* handles email logins.
 		{"GET", "/api/users/login", a.login},
+
+		// Logs the current user out (just deletes the session cookie)
 		{"GET", "/api/users/logout", a.authenticated(a.logout)},
+
+		// This is the first endpoint the UI hits to see if the user is logged in.
 		{"GET", "/api/users/lookup", a.authenticated(a.publicLookup)},
+
+		// Basic view and management of an organization
 		{"GET", "/api/users/org/{orgName}", a.authenticated(a.org)},
 		{"PUT", "/api/users/org/{orgName}", a.authenticated(a.renameOrg)},
+
+		// Used to list and manage organization access (invites)
 		{"GET", "/api/users/org/{orgName}/users", a.authenticated(a.listOrganizationUsers)},
 		{"POST", "/api/users/org/{orgName}/users", a.authenticated(a.inviteUser)},
 		{"DELETE", "/api/users/org/{orgName}/users/{userEmail}", a.authenticated(a.deleteUser)},
+
+		// The users service client (i.e. our other services) use these to
+		// authenticate the admin/user/probe.
 		{"GET", "/private/api/users/admin", a.authenticated(a.lookupAdmin)},
-		{"GET", "/private/api/users/lookup/{orgName}", a.authenticated(a.lookupUsingCookie)},
+		{"GET", "/private/api/users/lookup/{orgName}", a.authenticated(a.lookupOrg)},
 		{"GET", "/private/api/users/lookup", a.lookupUsingToken},
+
+		// Internal stuff for our internal usage, internally.
+		{"GET", "/loadgen", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintf(w, "OK") }},
+		{"GET", "/", a.admin},
 		{"GET", "/private/api/users", a.listUsers},
 		{"GET", "/private/api/pardot", a.pardotRefresh},
 		{"POST", "/private/api/users/{userID}/admin", a.makeUserAdmin},
@@ -127,6 +173,7 @@ func (a *api) routes() http.Handler {
 			RouteMatcher: r,
 			Duration:     requestDuration,
 		},
+		middleware.Func(csrf),
 	).Wrap(r)
 }
 
@@ -145,6 +192,167 @@ func (a *api) admin(w http.ResponseWriter, r *http.Request) {
 	</body>
 </html>
 `)
+}
+
+type loginProvidersView struct {
+	Logins []loginProviderView `json:"logins"`
+}
+
+type loginProviderView struct {
+	ID   string     `json:"id"`
+	Name string     `json:"name"` // Human-readable name of this provider
+	Link login.Link `json:"link"` // HTML Attributes for the link to start this provider flow
+}
+
+func (a *api) listLoginProviders(w http.ResponseWriter, r *http.Request) {
+	view := loginProvidersView{}
+	a.logins.ForEach(func(id string, p login.Provider) {
+		v := loginProviderView{
+			ID:   id,
+			Name: p.Name(),
+		}
+		if link, ok := p.Link(r); ok {
+			v.Link = link
+		}
+		view.Logins = append(view.Logins, v)
+	})
+	renderJSON(w, http.StatusOK, view)
+}
+
+type attachedLoginProvidersView struct {
+	Logins []attachedLoginProviderView `json:"logins"`
+}
+
+type attachedLoginProviderView struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	LoginID  string `json:"loginID,omitempty"`
+	Username string `json:"username,omitempty"`
+}
+
+// List all the login providers currently attached to the current user. Used by
+// the /account page to determine which login providers are currently attached.
+func (a *api) listAttachedLoginProviders(currentUser *user, w http.ResponseWriter, r *http.Request) {
+	view := attachedLoginProvidersView{}
+	for _, l := range currentUser.Logins {
+		p, ok := a.logins.Get(l.Provider)
+		if !ok {
+			continue
+		}
+
+		v := attachedLoginProviderView{
+			ID:      l.Provider,
+			Name:    p.Name(),
+			LoginID: l.ProviderID,
+		}
+		v.Username, _ = p.Username(l.Session)
+		view.Logins = append(view.Logins, v)
+	}
+	renderJSON(w, http.StatusOK, view)
+}
+
+type attachLoginProviderView struct {
+	FirstLogin  bool `json:"firstLogin,omitempty"`
+	UserCreated bool `json:"userCreated,omitempty"`
+	Attach      bool `json:"attach,omitempty"`
+}
+
+func (a *api) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
+	view := attachLoginProviderView{}
+	vars := mux.Vars(r)
+	providerID := vars["provider"]
+	provider, ok := a.logins.Get(providerID)
+	if !ok {
+		logrus.Errorf("Login provider not found: %q", providerID)
+		renderError(w, r, errInvalidAuthenticationData)
+		return
+	}
+
+	id, email, authSession, err := provider.Login(r)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	u, err := findUser(
+		func() (*user, error) {
+			// If we have an existing session and an provider, we should use
+			// that. This means that we'll associate the provider (if we have
+			// one) with the logged in session.
+			u, err := a.sessions.Get(r)
+			switch err {
+			case nil:
+				view.Attach = true
+			case errInvalidAuthenticationData:
+				err = errNotFound
+			}
+			return u, err
+		},
+		func() (*user, error) {
+			// If the user has already attached this provider, this is a no-op, so we
+			// can just log them in with it.
+			return a.storage.FindUserByLogin(providerID, id)
+		},
+		func() (*user, error) {
+			// Match based on the user's email
+			return a.storage.FindUserByEmail(email)
+		},
+		func() (*user, error) {
+			// No matching user found, this must be a first-time-login with this
+			// provider, so we'll create an account for them.
+			view.UserCreated = true
+			u, err := a.storage.CreateUser(email)
+			pardotClient.UserCreated(u.Email, u.CreatedAt)
+			if err == nil {
+				u, err = a.storage.ApproveUser(u.ID)
+			}
+			return u, err
+		},
+	)
+	if err != nil {
+		logrus.Error(err)
+		renderError(w, r, errInvalidAuthenticationData)
+		return
+	}
+
+	err = a.storage.AddLoginToUser(u.ID, providerID, id, authSession)
+	if err != nil {
+		logrus.Error(err)
+		renderError(w, r, errInvalidAuthenticationData)
+		return
+	}
+
+	view.FirstLogin = u.FirstLoginAt.IsZero()
+	if renderError(w, r, a.updateUserAtLogin(u)) {
+		return
+	}
+
+	if err := a.sessions.Set(w, u.ID, providerID); err != nil {
+		renderError(w, r, errInvalidAuthenticationData)
+		return
+	}
+	renderJSON(w, http.StatusOK, view)
+}
+
+func (a *api) detachLoginProvider(currentUser *user, w http.ResponseWriter, r *http.Request) {
+	if err := a.storage.DetachLoginFromUser(currentUser.ID, mux.Vars(r)["provider"]); renderError(w, r, err) {
+		return
+	}
+	renderJSON(w, http.StatusNoContent, nil)
+}
+
+func findUser(fs ...func() (*user, error)) (*user, error) {
+	var (
+		u   *user
+		err error
+	)
+	for _, f := range fs {
+		u, err = f()
+		if err != errNotFound {
+			break
+		}
+	}
+	return u, err
 }
 
 type signupView struct {
@@ -169,7 +377,10 @@ func (a *api) signup(w http.ResponseWriter, r *http.Request) {
 	user, err := a.storage.FindUserByEmail(view.Email)
 	if err == errNotFound {
 		user, err = a.storage.CreateUser(view.Email)
-		pardotClient.UserCreated(user.Email, user.CreatedAt)
+		if err == nil {
+			pardotClient.UserCreated(user.Email, user.CreatedAt)
+			user, err = a.storage.ApproveUser(user.ID)
+		}
 	}
 	if renderError(w, r, err) {
 		return
@@ -181,7 +392,8 @@ func (a *api) signup(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, fmt.Errorf("Error sending login email: %s", err))
 		return
 	}
-	_, err = a.storage.ApproveUser(user.ID)
+
+	user, err = a.storage.ApproveUser(user.ID)
 	if err != nil {
 		renderError(w, r, fmt.Errorf("Error sending login email: %s", err))
 		return
@@ -212,6 +424,10 @@ func generateUserToken(storage database, user *user) (string, error) {
 	return token, nil
 }
 
+type loginView struct {
+	FirstLogin bool `json:"firstLogin,omitempty"`
+}
+
 func (a *api) login(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	token := r.FormValue("token")
@@ -224,46 +440,54 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenExpired := func(errs ...error) {
-		for _, err := range errs {
-			if err != nil {
-				logrus.Error(err)
-			}
-		}
+	u, err := a.storage.FindUserByEmail(email)
+	if err == errNotFound {
+		err = nil
+	}
+	if err != nil {
+		logrus.Error(err)
 		renderError(w, r, errInvalidAuthenticationData)
 		return
 	}
 
-	u, err := a.storage.FindUserByEmail(email)
-	if err == errNotFound {
-		u = &user{Token: "!"} // Will fail the token comparison
-		err = nil
-	}
-	if renderError(w, r, err) {
-		return
-	}
 	// We always do this so that the timing difference can't be used to infer a user's existence.
 	if !u.CompareToken(token) {
-		tokenExpired()
+		renderError(w, r, errInvalidAuthenticationData)
 		return
 	}
+
+	if err := a.storage.SetUserToken(u.ID, ""); err != nil {
+		logrus.Error(err)
+		renderError(w, r, errInvalidAuthenticationData)
+		return
+	}
+
+	view := loginView{
+		FirstLogin: u.FirstLoginAt.IsZero(),
+	}
+	if renderError(w, r, a.updateUserAtLogin(u)) {
+		return
+	}
+
+	if err := a.sessions.Set(w, u.ID, ""); err != nil {
+		renderError(w, r, errInvalidAuthenticationData)
+		return
+	}
+	renderJSON(w, http.StatusOK, view)
+}
+
+func (a *api) updateUserAtLogin(u *user) error {
 	if u.FirstLoginAt.IsZero() {
-		if err := a.storage.SetUserFirstLoginAt(u.ID); renderError(w, r, err) {
-			return
+		if err := a.storage.SetUserFirstLoginAt(u.ID); err != nil {
+			return err
 		}
 	}
-	if err := a.sessions.Set(w, u.ID); err != nil {
-		tokenExpired(err)
-		return
+	if len(u.Organizations) == 0 {
+		if _, err := a.storage.CreateOrganization(u.ID); err != nil {
+			return err
+		}
 	}
-	if err := a.storage.SetUserToken(u.ID, ""); err != nil {
-		tokenExpired(err)
-		return
-	}
-	renderJSON(w, http.StatusOK, map[string]interface{}{
-		"email":            u.Email,
-		"organizationName": u.Organization.Name,
-	})
+	return nil
 }
 
 func (a *api) logout(_ *user, w http.ResponseWriter, r *http.Request) {
@@ -272,21 +496,48 @@ func (a *api) logout(_ *user, w http.ResponseWriter, r *http.Request) {
 }
 
 type lookupView struct {
+	// 13/06/16 These fields are deprecated and should be removed.
 	OrganizationID     string `json:"organizationID,omitempty"`
 	OrganizationName   string `json:"organizationName,omitempty"`
 	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
-	AdminID            string `json:"adminID,omitempty"`
+
+	// These fields are the new official API.
+	AdminID       string    `json:"adminID,omitempty"`
+	Email         string    `json:"email,omitempty"`
+	Organizations []orgView `json:"organizations,omitempty"`
 }
 
 func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	renderJSON(w, http.StatusOK, lookupView{
-		OrganizationName:   currentUser.Organization.Name,
-		FirstProbeUpdateAt: renderTime(currentUser.Organization.FirstProbeUpdateAt),
-	})
+	existing := []orgView{}
+	for _, org := range currentUser.Organizations {
+		existing = append(existing, orgView{
+			Name:               org.Name,
+			FirstProbeUpdateAt: renderTime(org.FirstProbeUpdateAt),
+		})
+	}
+
+	result := lookupView{
+		Email:         currentUser.Email,
+		Organizations: existing,
+	}
+	if len(currentUser.Organizations) > 0 {
+		result.OrganizationName = currentUser.Organizations[0].Name
+		result.FirstProbeUpdateAt = renderTime(currentUser.Organizations[0].FirstProbeUpdateAt)
+	}
+
+	renderJSON(w, http.StatusOK, result)
 }
 
-func (a *api) lookupUsingCookie(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	renderJSON(w, http.StatusOK, lookupView{OrganizationID: currentUser.Organization.ID})
+func (a *api) lookupOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	orgName := vars["orgName"]
+	for _, org := range currentUser.Organizations {
+		if org.Name == orgName {
+			renderJSON(w, http.StatusOK, lookupView{OrganizationID: org.ID})
+			return
+		}
+	}
+	renderError(w, r, errNotFound)
 }
 
 func (a *api) lookupAdmin(currentUser *user, w http.ResponseWriter, r *http.Request) {
@@ -382,12 +633,6 @@ func (a *api) authenticated(handler func(*user, http.ResponseWriter, *http.Reque
 			return
 		}
 
-		orgName, hasOrgName := mux.Vars(r)["orgName"]
-		if hasOrgName && orgName != u.Organization.Name {
-			renderError(w, r, errInvalidAuthenticationData)
-			return
-		}
-
 		// User actions always go through this endpoint because
 		// app-mapper checks the authentication endpoint eevry time.
 		// We use this to tell pardot about login activity.
@@ -397,20 +642,43 @@ func (a *api) authenticated(handler func(*user, http.ResponseWriter, *http.Reque
 	})
 }
 
+// Make csrf stuff (via nosurf) available in this handler, and set the csrf
+// token cookie in any responses.
+func csrf(handler http.Handler) http.Handler {
+	h := nosurf.New(handler)
+	h.SetBaseCookie(http.Cookie{
+		MaxAge:   nosurf.MaxAge,
+		HttpOnly: true,
+		Path:     "/",
+	})
+	// We don't use nosurf's csrf checking. We only use it to generate & compare
+	// tokens.
+	h.ExemptFunc(func(r *http.Request) bool { return true })
+	return h
+}
+
 type orgView struct {
-	User               string `json:"user"`
+	User               string `json:"user,omitempty"`
 	Name               string `json:"name"`
-	ProbeToken         string `json:"probeToken"`
+	ProbeToken         string `json:"probeToken,omitempty"`
 	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
 }
 
 func (a *api) org(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	renderJSON(w, http.StatusOK, orgView{
-		User:               currentUser.Email,
-		Name:               currentUser.Organization.Name,
-		ProbeToken:         currentUser.Organization.ProbeToken,
-		FirstProbeUpdateAt: renderTime(currentUser.Organization.FirstProbeUpdateAt),
-	})
+	vars := mux.Vars(r)
+	orgName := vars["orgName"]
+	for _, org := range currentUser.Organizations {
+		if org.Name == orgName {
+			renderJSON(w, http.StatusOK, orgView{
+				User:               currentUser.Email,
+				Name:               org.Name,
+				ProbeToken:         org.ProbeToken,
+				FirstProbeUpdateAt: renderTime(org.FirstProbeUpdateAt),
+			})
+			return
+		}
+	}
+	renderError(w, r, errNotFound)
 }
 
 func (a *api) renameOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
@@ -435,12 +703,28 @@ func (a *api) renameOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 }
 
+type organizationUsersView struct {
+	Users []organizationUserView `json:"users"`
+}
+
+type organizationUserView struct {
+	Email string `json:"email"`
+	Self  bool   `json:"self,omitempty"`
+}
+
 func (a *api) listOrganizationUsers(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	users, err := a.storage.ListOrganizationUsers(mux.Vars(r)["orgName"])
 	if renderError(w, r, err) {
 		return
 	}
-	renderJSON(w, http.StatusOK, users)
+	view := organizationUsersView{}
+	for _, u := range users {
+		view.Users = append(view.Users, organizationUserView{
+			Email: u.Email,
+			Self:  u.ID == currentUser.ID,
+		})
+	}
+	renderJSON(w, http.StatusOK, view)
 }
 
 func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {
@@ -456,7 +740,13 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	invitee, err := a.storage.InviteUser(view.Email, mux.Vars(r)["orgName"])
+	orgName := mux.Vars(r)["orgName"]
+	invitee, err := a.storage.InviteUser(view.Email, orgName)
+	if renderError(w, r, err) {
+		return
+	}
+	// Auto-approve all invited users
+	invitee, err = a.storage.ApproveUser(invitee.ID)
 	if renderError(w, r, err) {
 		return
 	}
@@ -466,7 +756,7 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
-	if err = a.emailer.InviteEmail(invitee, token); err != nil {
+	if err = a.emailer.InviteEmail(invitee, orgName, token); err != nil {
 		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}

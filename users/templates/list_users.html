@@ -8,6 +8,7 @@
     {{with .}}
     <table>
       <tr>
+        <th>ID</th>
         <th>Email</th>
         <th>CreatedAt</th>
         <th>FirstLoginAt</th>
@@ -15,6 +16,7 @@
       </tr>
       {{range .Users}}
       <tr>
+        <td>{{.ID}}</td>
         <td>{{.Email}}</td>
         <td>{{.FormatCreatedAt}}</td>
         <td>{{.FormatFirstLoginAt}}</td>

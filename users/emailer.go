@@ -31,7 +31,7 @@ func loginURL(email, rawToken, domain string) string {
 
 type emailer interface {
 	LoginEmail(u *user, token string) error
-	InviteEmail(u *user, token string) error
+	InviteEmail(u *user, orgName, token string) error
 }
 
 type smtpEmailer struct {
@@ -115,7 +115,7 @@ func (s smtpEmailer) LoginEmail(u *user, token string) error {
 	return s.sender(e)
 }
 
-func (s smtpEmailer) InviteEmail(u *user, token string) error {
+func (s smtpEmailer) InviteEmail(u *user, orgName, token string) error {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
@@ -124,7 +124,7 @@ func (s smtpEmailer) InviteEmail(u *user, token string) error {
 		"LoginURL":         loginURL(u.Email, token, s.domain),
 		"RootURL":          s.domain,
 		"Token":            token,
-		"OrganizationName": u.Organization.Name,
+		"OrganizationName": orgName,
 	}
 	e.Text = s.templates.quietBytes("invite_email.text", data)
 	e.HTML = s.templates.quietBytes("invite_email.html", data)
@@ -160,11 +160,11 @@ func (s sendgridEmailer) LoginEmail(u *user, token string) error {
 	return s.client.Send(mail)
 }
 
-func (s sendgridEmailer) InviteEmail(u *user, token string) error {
+func (s sendgridEmailer) InviteEmail(u *user, orgName, token string) error {
 	mail := sendgridEmail(inviteEmailTemplate)
 	mail.AddTo(u.Email)
 	mail.AddSubstitution(":login_url", loginURL(u.Email, token, s.domain))
 	mail.AddSubstitution(":root_url", s.domain)
-	mail.AddSubstitution(":org_name", u.Organization.Name)
+	mail.AddSubstitution(":org_name", orgName)
 	return s.client.Send(mail)
 }
