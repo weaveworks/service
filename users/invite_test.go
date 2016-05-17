@@ -15,17 +15,19 @@ func Test_Invite(t *testing.T) {
 	defer cleanup(t)
 
 	user, err := storage.CreateUser("joe@weave.works")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
-	assert.NotEqual(t, "", user.Organization.ID)
 
-	cookie, err := sessions.Cookie(user.ID)
+	org, err := storage.CreateOrganization(user.ID)
+	require.NoError(t, err)
+
+	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/org/"+user.Organization.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
+	r, _ := http.NewRequest("POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
 	r.AddCookie(cookie)
 
 	app.ServeHTTP(w, r)
@@ -33,8 +35,8 @@ func Test_Invite(t *testing.T) {
 
 	fran, err := storage.FindUserByEmail("fran@weave.works")
 	require.NoError(t, err)
-	require.NotNil(t, fran.Organization)
-	assert.Equal(t, user.Organization.ID, fran.Organization.ID)
+	require.Len(t, fran.Organizations, 1)
+	assert.Equal(t, org.ID, fran.Organizations[0].ID)
 
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{"fran@weave.works"}, sentEmails[0].To)
@@ -48,17 +50,19 @@ func Test_Invite_WithInvalidJSON(t *testing.T) {
 	defer cleanup(t)
 
 	user, err := storage.CreateUser("joe@weave.works")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
-	assert.NotEqual(t, "", user.Organization.ID)
 
-	cookie, err := sessions.Cookie(user.ID)
+	org, err := storage.CreateOrganization(user.ID)
+	require.NoError(t, err)
+
+	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/org/"+user.Organization.Name+"/users", strings.NewReader(`garbage`))
+	r, _ := http.NewRequest("POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`garbage`))
 	r.AddCookie(cookie)
 
 	app.ServeHTTP(w, r)
@@ -71,17 +75,19 @@ func Test_Invite_WithBlankEmail(t *testing.T) {
 	defer cleanup(t)
 
 	user, err := storage.CreateUser("joe@weave.works")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
-	assert.NotEqual(t, "", user.Organization.ID)
 
-	cookie, err := sessions.Cookie(user.ID)
+	org, err := storage.CreateOrganization(user.ID)
+	require.NoError(t, err)
+
+	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/org/"+user.Organization.Name+"/users", strings.NewReader(`{"email":""}`))
+	r, _ := http.NewRequest("POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":""}`))
 	r.AddCookie(cookie)
 
 	app.ServeHTTP(w, r)
@@ -96,21 +102,25 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 
 	user, err := storage.CreateUser("joe@weave.works")
 	require.NoError(t, err)
+
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
-	assert.NotEqual(t, "", user.Organization.ID)
+
+	org, err := storage.CreateOrganization(user.ID)
+	require.NoError(t, err)
 
 	fran, err := storage.CreateUser("fran@weave.works")
 	require.NoError(t, err)
-	fran, err = storage.InviteUser(fran.Email, user.Organization.Name)
+	fran, err = storage.InviteUser(fran.Email, org.Name)
 	require.NoError(t, err)
-	assert.Equal(t, user.Organization.ID, fran.Organization.ID)
+	require.Len(t, fran.Organizations, 1)
+	assert.Equal(t, org.ID, fran.Organizations[0].ID)
 
-	cookie, err := sessions.Cookie(user.ID)
+	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/org/"+user.Organization.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
+	r, _ := http.NewRequest("POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
 	r.AddCookie(cookie)
 
 	app.ServeHTTP(w, r)
@@ -118,8 +128,8 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 
 	fran, err = storage.FindUserByEmail("fran@weave.works")
 	require.NoError(t, err)
-	require.NotNil(t, fran.Organization)
-	assert.Equal(t, user.Organization.ID, fran.Organization.ID)
+	require.Len(t, fran.Organizations, 1)
+	assert.Equal(t, org.ID, fran.Organizations[0].ID)
 
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{"fran@weave.works"}, sentEmails[0].To)
@@ -133,19 +143,22 @@ func Test_Invite_UserNotApproved(t *testing.T) {
 	defer cleanup(t)
 
 	user, err := storage.CreateUser("joe@weave.works")
-	assert.NoError(t, err)
+	require.NoError(t, err)
+
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
-	assert.NotEqual(t, "", user.Organization.ID)
+
+	org, err := storage.CreateOrganization(user.ID)
+	require.NoError(t, err)
 
 	fran, err := storage.CreateUser("fran@weave.works")
 	require.NoError(t, err)
 
-	cookie, err := sessions.Cookie(user.ID)
+	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/org/"+user.Organization.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
+	r, _ := http.NewRequest("POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
 	r.AddCookie(cookie)
 
 	app.ServeHTTP(w, r)
@@ -153,8 +166,8 @@ func Test_Invite_UserNotApproved(t *testing.T) {
 
 	fran, err = storage.FindUserByEmail("fran@weave.works")
 	require.NoError(t, err)
-	require.NotNil(t, fran.Organization)
-	assert.Equal(t, user.Organization.ID, fran.Organization.ID)
+	require.Len(t, fran.Organizations, 1)
+	assert.Equal(t, org.ID, fran.Organizations[0].ID)
 
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{"fran@weave.works"}, sentEmails[0].To)
@@ -169,23 +182,25 @@ func Test_Invite_UserInDifferentOrganization(t *testing.T) {
 
 	user, err := storage.CreateUser("joe@weave.works")
 	require.NoError(t, err)
+
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
-	assert.NotEqual(t, "", user.Organization.ID)
+
+	org, err := storage.CreateOrganization(user.ID)
+	require.NoError(t, err)
 
 	fran, err := storage.CreateUser("fran@weave.works")
 	require.NoError(t, err)
 	fran, err = storage.ApproveUser(fran.ID)
 	require.NoError(t, err)
-	organizationID := fran.Organization.ID
-	assert.NotEqual(t, "", organizationID)
-	assert.NotEqual(t, user.Organization.ID, organizationID)
+	franOrg, err := storage.CreateOrganization(fran.ID)
+	require.NoError(t, err)
 
-	cookie, err := sessions.Cookie(user.ID)
+	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/org/"+user.Organization.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
+	r, _ := http.NewRequest("POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
 	r.AddCookie(cookie)
 
 	app.ServeHTTP(w, r)
@@ -194,7 +209,7 @@ func Test_Invite_UserInDifferentOrganization(t *testing.T) {
 
 	fran, err = storage.FindUserByEmail("fran@weave.works")
 	require.NoError(t, err)
-	require.NotNil(t, fran.Organization)
-	assert.Equal(t, organizationID, fran.Organization.ID)
+	require.Len(t, fran.Organizations, 1)
+	assert.Equal(t, franOrg.ID, fran.Organizations[0].ID)
 	assert.Len(t, sentEmails, 0)
 }

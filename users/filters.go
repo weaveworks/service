@@ -31,6 +31,7 @@ type inFilter struct {
 	Allowed  func(item interface{}) bool
 	SQLField string
 	Value    interface{}
+	SQLJoins []string
 }
 
 func (f inFilter) Item(item interface{}) bool {
@@ -38,5 +39,9 @@ func (f inFilter) Item(item interface{}) bool {
 }
 
 func (f inFilter) Select(q squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return q.Where(squirrel.Eq{f.SQLField: f.Value})
+	q = q.Where(squirrel.Eq{f.SQLField: f.Value})
+	for _, t := range f.SQLJoins {
+		q = q.Join(t)
+	}
+	return q
 }

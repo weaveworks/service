@@ -145,7 +145,7 @@ func (m *webAuthenticator) decodeOrg(body io.ReadCloser, err error) (string, err
 	}
 	defer body.Close()
 	var authRes struct {
-		OrganizationID string
+		OrganizationID string `json:"organizationID"`
 	}
 	if err := json.NewDecoder(body).Decode(&authRes); err != nil {
 		return "", err
@@ -162,7 +162,7 @@ func (m *webAuthenticator) decodeAdmin(body io.ReadCloser, err error) (string, e
 	}
 	defer body.Close()
 	var authRes struct {
-		AdminID string
+		AdminID string `json:"adminID"`
 	}
 	if err := json.NewDecoder(body).Decode(&authRes); err != nil {
 		return "", err

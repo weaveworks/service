@@ -21,5 +21,11 @@ spec:
         - -database-uri=postgres://postgres@users-db.aws.svc.cluster.local/users?sslmode=disable
         - -database-migrations=/migrations
         - -direct-login=true
+        - -github-client-id=361dfaca09eb0be8c9fc
+        - -github-client-secret=7559ecdcbff17f2886dd66c7e9ca4b878b893377
+        - -github-redirect-url=https://scope.weave.works/login-via/github
+        - -google-client-id=1087353951550-6gmmc1jfdplma6sadbi641kd0rprcd15.apps.googleusercontent.com
+        - -google-client-secret=r--sKsXIG0BHugk5pzyjLE0z
+        - -google-redirect-url=https://scope.weave.works/login-via/google
         ports:
         - containerPort: 80
