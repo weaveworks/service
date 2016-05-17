@@ -59,20 +59,28 @@ error: couldn't read version from server: Get http://localhost:8080/api: dial tc
 ### Stand up
 
 We bootstrap a one-node Kubernetes "cluster" on top of Docker.
-This works on both Linux and Darwin.
-Note this **must be Docker 1.8** -- 1.9 has [performance issues](https://github.com/docker/docker/issues/17720) that make it
-unusable. 
-When using `docker-machine`, create your VM with
+This works on both Linux and Darwin, given client is configured against either
+local or remote Docker daemon. You also need `kubectl` installed and on your
+path, you also need `weave` on your path (doesn't have to be running).
+Docker for Mac, Docker Machine, as well as local Docker on Linux can be used.
 
-```
-$ docker-machine create \
-    --driver=virtualbox \
-    --virtualbox-boot2docker-url=https://github.com/boot2docker/boot2docker/releases/download/v1.8.3/boot2docker.iso \
-    --virtualbox-memory=2048 \
-    <machine-name>
-```
+> ***Docker***
+>
+> You must use **Docker v1.10** or later, and check [the `MountFlags` setting][ka-docker]
+> in the `docker.service` systemd unit, as it won't work otherwise.
+>
+> If you didn't read this, you will get an error like:
+>
+> ```
+> ERROR: for kubelet  Cannot start container 53c46bcf2daa335f0b8038feb4ac7403d17f5cd162f1ca244e98674b9964b92e: Path
+/var/lib/kubelet is mounted on / but it is not a shared mount.
+> ```
+>
+> [***see setup notes***](ka-docker)
 
-Then, boot up Kubernetes.
+[ka-docker](https://github.com/weaveworks/kubernetes-anywhere/blob/master/FIXES.md)
+
+Boot up Kubernetes.
 
 ```
 $ infra/local-k8s up

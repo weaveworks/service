@@ -5,188 +5,223 @@ set -o nounset
 set -o pipefail
 
 function usage {
-	echo "usage: $(basename $0) up [host_ip] / down" 1>&2
-	exit 1
+        echo "usage: $(basename "$0") up [host_ip] / down" 1>&2
+        exit 1
 }
 
 if [ $# -lt 1 ]
 then
-	usage
+        usage
 fi
 
-WHAT=$1
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-LOCAL_K8S_DIR="${SCRIPT_DIR}/../k8s/local"
-LOCAL_MASTER_K8S_DIR="${LOCAL_K8S_DIR}/master"
-LOCAL_PKI_K8S_DIR="${LOCAL_MASTER_K8S_DIR}/pki"
+mode="$1"
 
-function stop_container {
-	docker stop $1 > /dev/null 2>&1 || true
-	docker rm -v $1 > /dev/null 2>&1 || true
+version="${LOCAL_K8S_VERSION:-"v1.2"}"
+
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+local_k8s_dir="${script_dir}/../k8s/local"
+
+APISERVER_LOCAL_PORT="8001"
+APISERVER_LOCAL_BIND="${2:-"0.0.0.0"}"
+
+check_docker_for_mac() {
+        local -r docker_for_mac_conf_dir="${HOME}/Library/Containers/com.docker.docker/Data/database/com.docker.driver.amd64-linux"
+        [ "$(uname)" = "Darwin" ] \
+          && [ ! "${DOCKER_HOST+x}" = x ] \
+          && [ -d "${docker_for_mac_conf_dir}" ]
+}
+
+check_docker_local() {
+        [ -S /var/run/docker.sock ] \
+          && docker --host="unix:///var/run/docker.sock" info > /dev/null 2>&1
+        ## TODO: figure out if sudo is needed
+}
+
+check_docker_machine() {
+        [ "${DOCKER_MACHINE_NAME+x}" = x ]
+}
+
+function stop_containers {
+        docker stop "$@" > /dev/null 2>&1 || true
+        docker rm -v "$@" > /dev/null 2>&1 || true
+}
+
+kubeconfig="${script_dir}/local/kubeconfig"
+
+function call_kubectl {
+        kubectl --kubeconfig="${kubeconfig}" "$@"
 }
 
 function write_kubeconfig {
-	local k8s_ip="$1"
-	cat <<EOF >${SCRIPT_DIR}/local/kubeconfig
-apiVersion: v1
-clusters:
-- cluster:
-    server: http://${k8s_ip}:8080
-  name: local
-contexts:
-- context:
-    cluster: local
-    user: ""
-  name: local
-current-context: local
-kind: Config
-preferences: {}
-users: []
-EOF
+        docker run --rm --tty \
+          --env=APISERVER_LOCAL_PORT \
+          --volumes-from=kube-toolbox-pki \
+          "weaveworks/kubernetes-anywhere:toolbox-${version}" \
+            print-local-config > "${kubeconfig}"
+
+        if check_docker_machine
+        then
+              local -r ip="$(docker-machine ip "${DOCKER_MACHINE_NAME}")"
+              call_kubectl config set-cluster local-cluster \
+                --server="http://${ip}:${APISERVER_LOCAL_PORT}"
+        fi
+
+        if echo "${APISERVER_LOCAL_BIND}" | egrep -v -q "(0\.0\.0\.0|127\.0\.0\.1)"
+        then
+              call_kubectl config set-cluster local-cluster \
+                --server="http://${APISERVER_LOCAL_BIND}:${APISERVER_LOCAL_PORT}"
+        fi
 }
 
 function remove_kubeconfig {
-	rm -f ${SCRIPT_DIR}/local/kubeconfig
+        rm -f "${kubeconfig}"
+}
+
+function pull_toolbox() {
+        [ "$(docker images -q "weaveworks/kubernetes-anywhere:toolbox-${version}" | wc -l)" -eq 1 ] \
+          || docker pull "weaveworks/kubernetes-anywhere:toolbox-${version}"
 }
 
 function tear_down {
-	for c in $(docker ps -q -f 'name=k8s*')
-	do
-		stop_container $c
-	done
-	stop_container local_k8s_proxy
-	stop_container local_k8s_kubelet
-	stop_container etcd
-	remove_kubeconfig
+        local -a kube=($(docker ps -q -f 'name=kube_*'))
+        [ "${#kube[@]}" -gt 0 ] && stop_containers "${kube[@]}"
+        docker run --rm --tty \
+          --volume="/:/rootfs" \
+          --volume="/var/run/docker.sock:/docker.sock" \
+            "weaveworks/kubernetes-anywhere:toolbox-${version}" \
+              reset-single-node > /dev/null 2>&1
+        remove_kubeconfig
+        local -a -r apps=($(docker ps -q -f 'name=k8s_*'))
+        [ "${#apps[@]}" -gt 0 ] && stop_containers "${apps[@]}"
+        return 0
 }
 
-# https://github.com/kubernetes/kubernetes/blob/master/docs/getting-started-guides/docker.md
+function launch_weave {
+        local -r host="${1}"
+        shift
+        weave status > /dev/null || (weave launch-router && weave launch-proxy "$@")
+        ## Currently Weave Net doesn't persist DNS records
+        weave expose -h "${host}.weave.local" > /dev/null
+}
+
+function check_node_registered {
+  ## TODO: also check status
+  [ "$(call_kubectl get nodes -o go-template="{{len .items}}")" -gt 0 ] \
+    && [ "$(call_kubectl get nodes -o go-template='{{with index .items 0}}{{.metadata.name}}{{end}}' 2> /dev/null || true)" = "$1" ]
+}
+
+function check_kubernetes_service {
+  call_kubectl get svc kubernetes >/dev/null 2>&1
+}
+
 function stand_up {
-	if ! command -v kubectl > /dev/null 2>&1
-	then
-		echo "kubectl not found" >&2
-		exit 1
-	fi
+        for c in weave kubectl
+        do
+              if ! command -v "${c}" > /dev/null 2>&1
+              then
+                      echo "${c} not found" >&2
+                      exit 1
+              fi
+        done
 
-	if [ $# -eq 1 ]
-	then
-	    # Use a specific host
-	    local k8s_ip="$1"
-	else
-	    case "$(uname -s)" in
-		"Darwin")
-		    local machine_name=$(docker-machine active)
-		    echo "Using docker-machine ${machine_name}"
-		    k8s_ip=$(docker-machine ip ${machine_name})
-		    ;;
-		*)
-		    local k8s_ip="localhost"
-		    ;;
-	    esac
-	fi
 
-	echo "Starting etcd"
-	docker run \
-		--name etcd \
-		--net=host \
-		-d gcr.io/google_containers/etcd:2.0.12 \
-		/usr/local/bin/etcd --addr=127.0.0.1:4001 --bind-addr=0.0.0.0:4001 --data-dir=/var/etcd/data
+        if check_docker_local && check_docker_for_mac && ! check_docker_machine
+        then
+              local -r node_name="moby"
+              launch_weave "${node_name}" # hostname of Docker for Mac VM
+              APISERVER_LOCAL_BIND="127.0.0.1"
+        elif check_docker_local && ! check_docker_machine
+        then
+              local -r node_name="$(hostname)"
+              launch_weave "${node_name}"
+              eval "$(weave env)"
+        elif check_docker_machine
+        then
+              local -r node_name="${DOCKER_MACHINE_NAME}"
+              launch_weave "${node_name}" -H 0.0.0.0:12375 -H /var/run/weave-dummy.sock # work around weaveworks/weave#2302
+              eval "$(weave env)"
+        else
+              echo "Must have local Docker, Docker for Mac or \`DOCKER_MACHINE_NAME\` environment variable set to the name of your VM"
+              exit 1
+        fi
 
-	sed "s%\$PKI_HOST_PATH%${LOCAL_PKI_K8S_DIR}%g" "${LOCAL_MASTER_K8S_DIR}"/master.json.in > "${LOCAL_MASTER_K8S_DIR}"/master.json
+        export APISERVER_LOCAL_BIND APISERVER_LOCAL_PORT
 
-	# kubelet requires --docker-endpoint=$DOCKER_HOST, to make it talk to Weave.
-	# But it doesn't work due to https://github.com/weaveworks/weave/issues/1600
+        docker run --rm --tty \
+          --volume="/:/rootfs" \
+          --volume="/var/run/weave/weave.sock:/docker.sock" \
+            "weaveworks/kubernetes-anywhere:toolbox-${version}" \
+              setup-single-node
 
-	# HACK: Kubelet is run in the host mount namespace (using nsenter) to
-	#       workaround https://github.com/kubernetes/kubernetes/issues/18239
-	#       similarly to what is proposed at
-	#       https://github.com/kubernetes/kubernetes/pull/19069
-	#
-	#       We also provide a special PATH (in which directories are
-	#       prepended by '.' which still lives in the container's rootfs) so
-	#       that the executables in the image can still be accessed.
-	#
-	#       The nsenter/PATH hack can be removed when we switch to Docker >=
-	#       1.10 which releases support for volume mount propagation flags
-	#       (PR https://github.com/docker/docker/pull/17034 ) allowing to
-	#       mount /var/lib/hyperkube in 'shared' propagation mode.
-	#
-	#       Lengthy explanation: Kubelet expects the mounts under
-	#       /var/lib/kubeletet/pods/*/volumes to be viewable by the
-	#       containers it creates (Kubelet places Secret Volumes inside
-	#       tmpfs mounts, to support establishing secret size limits I
-	#       believe). Containers can see access those mounts when Kubelet is
-	#       running in the host, but this won't work in general when running
-	#       Kubelet in a container since mount events may not propagate down
-	#       to the container (Docker >= 1.9 sets the root filesystem of the
-	#       containers as MS_PRIVATE and only certain host systems, like the
-	#       systemd-based set the hosts root as MS_SHARED). Using nsenter
-	#       guarantees that kubelet runs in the host mount namespace,
-	#       circumventing the problem. See
-	#       https://www.kernel.org/doc/Documentation/filesystems/sharedsubtree.txt
-	echo "Starting kubelet"
-	docker run \
-		--name local_k8s_kubelet \
-		--net=host \
-		--pid=host \
-		--privileged=true \
-		-e 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:./usr/local/sbin:./usr/local/bin:./usr/sbin:./usr/bin:./sbin:./bin' \
-		-d gcr.io/google_containers/hyperkube-amd64:v1.2.3 \
-		nsenter --target=1 --wd=. --mount -- ./hyperkube kubelet --hostname-override="127.0.0.1" --address="0.0.0.0" --api-servers=http://localhost:8080 --config="${LOCAL_MASTER_K8S_DIR}" --cluster-dns=10.0.0.10 --cluster-domain=cluster.local --allow-privileged
+        docker run --rm --tty \
+          --env=APISERVER_LOCAL_BIND \
+          --env=APISERVER_LOCAL_PORT \
+          --volume="/var/run/weave/weave.sock:/docker.sock" \
+            "weaveworks/kubernetes-anywhere:toolbox-${version}" \
+              compose -p kube up -d
 
-	docker run --name local_k8s_proxy -d --net=host --privileged gcr.io/google_containers/hyperkube-amd64:v1.2.3 /hyperkube proxy --master=http://127.0.0.1:8080 --v=2
+        write_kubeconfig
 
-	while ! kubectl --server=http://${k8s_ip}:8080 get svc kubernetes >/dev/null 2>&1
-	do
-		echo -n "."
-		sleep 1
-	done
-	echo
+        local -i t1=120
+        until check_kubernetes_service
+        do
+                echo -n "."
+                sleep 1
+                if ((--t1 == 0))
+                then
+                    echo "The \`kubernetes\` service if unvailable - something went completely wrong!"
+                    exit 1
+                fi
+        done
+        echo
 
-	echo "Starting other components"
-	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/skydns
-	kubectl --server=http://${k8s_ip}:8080 create -f ${LOCAL_K8S_DIR}/scope
+        local -i t2=120
+        until check_node_registered "${node_name}"
+        do
+                echo -n "."
+                sleep 1
+                if ((--t2 == 0))
+                then
+                    echo "Node \`${node_name}\` has not registered properly, check \`docker logs kube_kubelet_1\`."
+                    exit 1
+                fi
+        done
+        echo
 
-	write_kubeconfig ${k8s_ip}
+        echo "Creating cluster addons..."
+        call_kubectl create -f "https://raw.github.com/weaveworks/kubernetes-anywhere/master/docker-images/toolbox/resources/addons-v1.2.yaml"
 
-	echo ""
-	echo "Kubernetes is running locally."
-	echo ""
-	echo " kubectl --kubeconfig=$(python -c "import os.path; print os.path.relpath('${SCRIPT_DIR}/local/kubeconfig', '$(pwd)')") get pods"
-	echo ""
-	echo "You may now deploy the application components."
-	echo ""
+        echo "Creating Scope addon..."
+        call_kubectl create -f "${local_k8s_dir}/scope"
+
+        echo ""
+        echo "Kubernetes is running locally."
+        echo ""
+        echo " kubectl --kubeconfig=$(python -c "import os.path; print os.path.relpath('${kubeconfig}', '$(pwd)')") get pods"
+        echo ""
+        echo "You may now deploy the application components."
+        echo ""
 }
 
-function generate_certificates {
-	echo "Generating certificates"
-	if ! [ -d "${LOCAL_PKI_K8S_DIR}" ]
-	then
-		curl -s -L https://raw.githubusercontent.com/kubernetes/kubernetes/master/cluster/saltbase/salt/generate-cert/make-ca-cert.sh -o /tmp/make-ca-cert.sh
-		chmod +x /tmp/make-ca-cert.sh
-		CERT_GROUP=`id -g` CERT_DIR="$LOCAL_PKI_K8S_DIR" /tmp/make-ca-cert.sh 10.0.0.1 DNS:kubernetes,DNS:kubernetes.default,DNS:kubernetes.default.svc,DNS:kubernetes.default.svc.cluster.local
-	fi
-}
+if check_docker_machine
+then
+      eval "$(docker-machine env "${DOCKER_MACHINE_NAME}")"
+fi
 
-case $WHAT in
+case "${mode}" in
 up)
-	tear_down
-	generate_certificates
-	if [ $# -gt 1 ]
-	then
-	    stand_up $2
-	else
-	    stand_up
-	fi
-	;;
+        pull_toolbox
+        tear_down
+        stand_up
+        ;;
 
 down)
-	tear_down
-	;;
+        tear_down
+        ;;
 
 *)
-	echo "Unknown command" 1>&2
-	usage
-	;;
+        echo "Unknown command" 1>&2
+        usage
+        ;;
 esac
