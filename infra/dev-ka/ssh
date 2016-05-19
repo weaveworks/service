@@ -1,0 +1,24 @@
+#!/bin/bash -e
+
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+master="$(terraform output -module=kubernetes-anywhere-aws-ec2 -state=terraform/terraform.tfstate kubernetes-master-ip)"
+
+if [ -f "${script_dir}/nodes" ] ; then
+  source "${script_dir}/nodes"
+  any_node="${nodes["$[RANDOM % ${#nodes[@]}]"]}"
+fi
+
+ssh_opts=(
+  -o Compression=yes
+  -o LogLevel=FATAL
+  -o StrictHostKeyChecking=no
+  -o UserKnownHostsFile=/dev/null
+  -o IdentitiesOnly=yes
+  -o ForwardAgent=yes
+)
+
+ssh_key="${script_dir}/ec2_weaveworks.kubernetes-anywhere.us-east-1.pem"
+chmod 0600 "${ssh_key}" # this is required because git only respect owner bits
+
+ssh "${ssh_opts[@]}" -i "${ssh_key}" "ubuntu@${any_node:-"${master}"}" "$@"
