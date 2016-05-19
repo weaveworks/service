@@ -39,12 +39,14 @@ Vagrantfile.local
 .dir-locals.el
 image.tar
 *tfstate.backup
+kill.tfstate
 saas.deploy.plan.*
 
 infra/kubernetes.tar.gz
 infra/kubernetes/*
 infra/helloworld/helloworld
 infra/local/kubeconfig
+infra/dev-ka/terraform/.terraform/
 
 k8s/local/master/pki
 k8s/local/master/master.json
