@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 	gorillaws "github.com/gorilla/websocket"
@@ -347,10 +348,18 @@ func TestProxyWebSocketNoServerSideLeak(t *testing.T) {
 
 		// When we close the client, the proxy should also close the server-side connection
 		ws.Close()
+
+		// Wait 5s for the server to also close the connection
+		for i := 0; i < 5; i++ {
+			if atomic.LoadUint32(&serverExited) == 1 {
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
+		require.Equal(t, atomic.LoadUint32(&serverExited), uint32(1), "Server didn't exit")
 	}
 
 	testProxy(t, targetHandler, nil, &mockAuthenticator{}, testFunc)
-	assert.True(t, atomic.LoadUint32(&serverExited) == 1, "Server didn't exit")
 }
 
 func TestProbeLogging(t *testing.T) {
