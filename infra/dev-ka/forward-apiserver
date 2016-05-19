@@ -1,0 +1,7 @@
+#!/bin/bash -e
+
+## This file exists to ILLUSTRATE FUNCTIONALITY, proper implementation is show in https://github.com/weaveworks/service/pull/346
+
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+${script_dir}/ssh -N -L localhost:6443:10.16.0.1:443
