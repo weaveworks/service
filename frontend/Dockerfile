@@ -7,6 +7,7 @@ RUN rm /etc/nginx/sites-available/default && \
   ln -sf /dev/stdout /var/log/nginx/access.log && \
   ln -sf /dev/stderr /var/log/nginx/error.log
 COPY default.conf /etc/nginx/conf.d/
+COPY k8s-resolver.conf /etc/nginx/
 COPY pki/scope.weave.works.crt /tls/scope.weave.works.crt
 COPY dhparam.pem /tls/dhparam.pem
 COPY api.json /home/weave/

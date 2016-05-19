@@ -23,7 +23,10 @@ fi
 
 function finish {
     echo "Cleaning up..."
-    kubectl --kubeconfig=${KUBECONFIG} delete rc ${PROXY_NAME}
+    kubectl --kubeconfig=${KUBECONFIG} get rc ${PROXY_NAME} 2> /dev/null \
+      && kubectl --kubeconfig=${KUBECONFIG} delete rc ${PROXY_NAME}
+    kubectl --kubeconfig=${KUBECONFIG} get deployment ${PROXY_NAME} 2> /dev/null \
+      && kubectl --kubeconfig=${KUBECONFIG} delete deployment ${PROXY_NAME}
 }
 
 finish >/dev/null 2>&1 || true
@@ -34,8 +37,13 @@ kubectl --kubeconfig=${KUBECONFIG} run ${PROXY_NAME} --image=weaveworks/sockspro
 
 trap finish EXIT
 
+kubectl --kubeconfig=${KUBECONFIG} get rc ${PROXY_NAME} 2> /dev/null \
+  && resource_type="rc"
+kubectl --kubeconfig=${KUBECONFIG} get deployment ${PROXY_NAME} 2> /dev/null \
+  && resource_type="deployment"
+
 echo -n "Waiting for replication controller..."
-while [ "$( kubectl --kubeconfig=${KUBECONFIG} get rc ${PROXY_NAME} -o template --template='{{.status.replicas}}' 2>&1 )" -lt 1 ]
+while [ "$( kubectl --kubeconfig=${KUBECONFIG} get ${resource_type} ${PROXY_NAME} -o template --template='{{.status.replicas}}' 2>&1 )" != 1 ]
 do
 	echo -n "."
 	sleep 1
