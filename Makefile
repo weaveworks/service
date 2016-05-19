@@ -34,6 +34,9 @@ JS_FILES=$(shell find client/src -name '*.jsx' -or -name '*.js')
 FRONTEND_UPTODATE=frontend/.image.uptodate
 FRONTEND_IMAGE=quay.io/weaveworks/frontend
 
+FRONTEND_MT_UPTODATE=frontend-mt/.image.uptodate
+FRONTEND_MT_IMAGE=quay.io/weaveworks/frontend-mt
+
 MONITORING_UPTODATE=monitoring/.images.uptodate
 
 # If you can use Docker without being root, you can `make SUDO= <target>`
@@ -62,7 +65,7 @@ NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 	false; \
 }
 
-all: $(APP_MAPPER_UPTODATE) $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE) $(JSON_BUILDER_UPTODATE)
+all: $(APP_MAPPER_UPTODATE) $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE) $(JSON_BUILDER_UPTODATE) $(FRONTEND_MT_UPTODATE)
 
 $(BUILD_UPTODATE): build/*
 	$(DOCKER_HOST_CHECK)
@@ -109,6 +112,11 @@ $(CLIENT_SERVER_UPTODATE): client/build/app.js client/build/Dockerfile client/bu
 $(FRONTEND_UPTODATE): frontend/Dockerfile frontend/default.conf frontend/api.json frontend/pki/scope.weave.works.crt frontend/dhparam.pem
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(FRONTEND_IMAGE) frontend/
+	touch $@
+
+$(FRONTEND_MT_UPTODATE): frontend-mt/Dockerfile frontend-mt/default.conf frontend-mt/api.json frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
+	$(DOCKER_HOST_CHECK)
+	$(SUDO) docker build -t $(FRONTEND_MT_IMAGE) frontend-mt/
 	touch $@
 
 $(MONITORING_UPTODATE):
