@@ -11,7 +11,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	kfields "k8s.io/kubernetes/pkg/fields"
 	klabels "k8s.io/kubernetes/pkg/labels"
 )
 
@@ -202,7 +201,7 @@ func (p *k8sProvisioner) runApp(appID string) (hostname string, err error) {
 			Ports: []kapi.ServicePort{
 				{
 					Protocol: "TCP",
-					Port:     scope.AppPort,
+					Port:     int32(scope.AppPort),
 				},
 			},
 			Selector: selector,
@@ -262,7 +261,7 @@ func (p *k8sProvisioner) destroyApp(appID string) (err error) {
 	labelSelector := klabels.Set(labels).AsSelector()
 	podInterface := p.client.Pods(p.namespace)
 	var pods *kapi.PodList
-	if pods, podErr = podInterface.List(labelSelector, kfields.Everything()); podErr == nil && pods != nil {
+	if pods, podErr = podInterface.List(kapi.ListOptions{LabelSelector: labelSelector}); podErr == nil && pods != nil {
 		if podNum := len(pods.Items); podNum > 1 {
 			logrus.Warnf("k8sProvisioner: destroyApp: unexpected number of pods (%d) for app %q", appID, podNum)
 		}
