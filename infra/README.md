@@ -91,6 +91,8 @@ git add foo/*
 git commit -m "Stand up foo cluster"
 ```
 
+# If recreating dev/prod cluster, please make sure that the {dev,prod}.weave.works NS records in CloudFlare are in sync with the corresponding Route53 zones
+
 ## Teardown
 
 ```
@@ -148,12 +150,10 @@ On top of that there's a CNAME record for `scope.weave.works` pointing to
 `frontend.prod.weave.works` which is how the Scope service is publicly accessed
 by end users.
 
-Currently, the `weave.works` domain is manually managed in the `weaveworks` project in
-Google Cloud. This includes:
+Currently, the `weave.works` domain is manually managed in CloudFloare project. This includes:
 
 * The `scope.weave.works` CNAME record
-* NS delegation records for `{dev,prod}.weave.works.`
-* [SES TXT verification record](http://docs.aws.amazon.com/ses/latest/DeveloperGuide/dns-txt-records.html)
+* The `dev.weave.works` and `prod.weave.works` NS records
 
 ### What service is used to deliver email?
 
