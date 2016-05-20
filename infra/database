@@ -64,6 +64,15 @@ function shell {
 	kubectl --kubeconfig=${CLWD}/kubeconfig run ${podname} --image=postgres --stdin --tty --restart=Never --env="LINES=$(tput lines)" --env="COLUMNS=$(tput cols)" --command -- psql "postgres://postgres:$password@$hostname/$db"
 }
 
+function load {
+	local hostname=$1
+	local password=$2
+	local podname="dbload-$(cat /dev/urandom|xxd -ps|head -c5)"
+	trap "kubectl --kubeconfig=${CLWD}/kubeconfig delete pod --grace-period=1 ${podname}" EXIT
+	kubectl --kubeconfig=${CLWD}/kubeconfig run ${podname} --image=postgres --stdin --restart=Never --env="PGPASSWORD=${password}" --command -- psql -U postgres -h ${hostname}
+}
+
+
 case $WHAT in
 hostname)
 	if [ $# != 3 ]
@@ -88,8 +97,8 @@ bootstrap)
 	then
 		usage
 	fi
-	load $(hostname users_database) $(password users_database) < ${CLWD}/../../users/db/schema.sql
-	load $(hostname app_mapper_database) $(password app_mapper_database) < ${CLWD}/../../app-mapper/db/schema.sql
+	load $(hostname app_mapper) $(password app_mapper) < ${CLWD}/../../app-mapper/db/schema.sql
+	load $(hostname users) $(password users) < ${CLWD}/../../users/db/schema.sql
 	;;
 
 shell)
