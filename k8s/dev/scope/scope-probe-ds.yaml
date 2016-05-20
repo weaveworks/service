@@ -1,11 +1,13 @@
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
+  namespace: kube-system  
   name: weave-scope-probe
   labels:
     heritage: helm
     k8s-app:  weave-scope-probe
 spec:
+  selector: {}  
   template:
     metadata:
       name:  weave-scope-probe
@@ -17,31 +19,19 @@ spec:
       hostNetwork: true
       containers:
       - name:  weave-scope-probe
-        image: weaveworks/scope:0.13.1
+        image: weaveworks/scope:0.15.0
         env:
         - name: CHECKPOINT_DISABLE
           value: "true"
         args:
         - --no-app
-        - --probe.docker.bridge=cbr0
         - --probe.docker=true
         - --probe.kubernetes=true
-        - --probe.weave.router.addr=
+        - --probe.weave.addr=        
         - --debug
-
-        # We cannot refer to the Scope App with its Kubernetes Service
-        # DNS name (weave-scope-app) directly because Docker doesn't
-        # allow customizing the DNS servers (the Kubernetes DNS add-on
-        # server in this case) of a container when it runs in the
-        # host's network namespace (see
-        # https://github.com/docker/docker/issues/10384#issuecomment-72069550
-        # ). Instead, we use variable expansion on its service
-        # environment variables.
-        #
-        # NOTE: Unfortunately this imposes a specific creation
-        # ordering since the Scope App Service needs to be created first for
-        # the service environment variables below to be accesible.
-        - "$(WEAVE_SCOPE_APP_SERVICE_HOST):$(WEAVE_SCOPE_APP_SERVICE_PORT)"
+        # Workaround for https://github.com/kubernetes/kubernetes/issues/17406
+        - --probe.resolver=$(KUBE_DNS_SERVICE_HOST):$(KUBE_DNS_SERVICE_PORT)
+        - weave-scope-app.kube-system.svc.cluster.local:4040
         securityContext:
           privileged: true
         resources:
