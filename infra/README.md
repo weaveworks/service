@@ -80,7 +80,7 @@ cp var.template foo/var
 ./database bootstrap foo
 
 # Deploy the application on Kubernetes.
-# Get the address of the frontend ELB, via kubectl get svc.
+# Get the address of the frontend ELB, via kubectl describe svc frontend.
 # Get the zone ID of the ELB, via aws elb describe-load-balancers.
 # Put these values in the foo/var file.
 
