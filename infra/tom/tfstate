@@ -1,0 +1,440 @@
+{
+    "version": 1,
+    "serial": 8,
+    "modules": [
+        {
+            "path": [
+                "root"
+            ],
+            "outputs": {},
+            "resources": {
+                "aws_db_instance.users_database": {
+                    "type": "aws_db_instance",
+                    "depends_on": [
+                        "aws_security_group.rds_sg"
+                    ],
+                    "primary": {
+                        "id": "users-database",
+                        "attributes": {
+                            "address": "users-database.czc9e0lwsult.eu-west-1.rds.amazonaws.com",
+                            "allocated_storage": "10",
+                            "apply_immediately": "true",
+                            "arn": "arn:aws:rds:eu-west-1:376248598259:db:users-database",
+                            "auto_minor_version_upgrade": "true",
+                            "availability_zone": "eu-west-1b",
+                            "backup_retention_period": "5",
+                            "backup_window": "23:26-23:56",
+                            "copy_tags_to_snapshot": "false",
+                            "db_subnet_group_name": "default",
+                            "endpoint": "users-database.czc9e0lwsult.eu-west-1.rds.amazonaws.com:5432",
+                            "engine": "postgres",
+                            "engine_version": "9.4.4",
+                            "final_snapshot_identifier": "users-final",
+                            "id": "users-database",
+                            "identifier": "users-database",
+                            "instance_class": "db.t2.small",
+                            "license_model": "postgresql-license",
+                            "maintenance_window": "fri:05:13-fri:05:43",
+                            "monitoring_interval": "0",
+                            "multi_az": "true",
+                            "name": "",
+                            "option_group_name": "default:postgres-9-4",
+                            "parameter_group_name": "default.postgres9.4",
+                            "password": "d224ca07b5e6282c",
+                            "port": "5432",
+                            "publicly_accessible": "true",
+                            "replicas.#": "0",
+                            "replicate_source_db": "",
+                            "security_group_names.#": "0",
+                            "skip_final_snapshot": "true",
+                            "status": "available",
+                            "storage_encrypted": "false",
+                            "storage_type": "standard",
+                            "tags.#": "0",
+                            "username": "postgres",
+                            "vpc_security_group_ids.#": "1",
+                            "vpc_security_group_ids.2304720280": "sg-89d477ee"
+                        }
+                    }
+                },
+                "aws_db_subnet_group.rds_subnet_group": {
+                    "type": "aws_db_subnet_group",
+                    "depends_on": [
+                        "aws_subnet.rds_subnet_a",
+                        "aws_subnet.rds_subnet_b"
+                    ],
+                    "primary": {
+                        "id": "rds_subnet_group",
+                        "attributes": {
+                            "arn": "arn:aws:rds:eu-west-1:376248598259:subgrp:rds_subnet_group",
+                            "description": "DB subnet group for the databases",
+                            "id": "rds_subnet_group",
+                            "name": "rds_subnet_group",
+                            "subnet_ids.#": "2",
+                            "subnet_ids.3459311936": "subnet-d7539aa1",
+                            "subnet_ids.391833019": "subnet-196acc7d",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds-subnet-group"
+                        }
+                    }
+                },
+                "aws_dynamodb_table.report_table": {
+                    "type": "aws_dynamodb_table",
+                    "primary": {
+                        "id": "reports",
+                        "attributes": {
+                            "arn": "arn:aws:dynamodb:eu-west-1:376248598259:table/reports",
+                            "attribute.#": "2",
+                            "attribute.113885566.name": "hour",
+                            "attribute.113885566.type": "S",
+                            "attribute.3983831006.name": "ts",
+                            "attribute.3983831006.type": "N",
+                            "global_secondary_index.#": "0",
+                            "hash_key": "hour",
+                            "id": "reports",
+                            "name": "reports",
+                            "range_key": "ts",
+                            "read_capacity": "20",
+                            "write_capacity": "20"
+                        }
+                    }
+                },
+                "aws_iam_access_key.report_reader_key": {
+                    "type": "aws_iam_access_key",
+                    "depends_on": [
+                        "aws_iam_user.report_reader"
+                    ],
+                    "primary": {
+                        "id": "AKIAIMHCL2SJ3USA7BJA",
+                        "attributes": {
+                            "id": "AKIAIMHCL2SJ3USA7BJA",
+                            "secret": "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",
+                            "ses_smtp_password": "AlwO37wp6RhViWCd6LwN5Qr81mjH0Xzp63MR/aFv5qQi",
+                            "status": "Active",
+                            "user": "report_reader"
+                        }
+                    }
+                },
+                "aws_iam_access_key.report_writer_key": {
+                    "type": "aws_iam_access_key",
+                    "depends_on": [
+                        "aws_iam_user.report_writer"
+                    ],
+                    "primary": {
+                        "id": "AKIAJDGNHDE677ZXTCXA",
+                        "attributes": {
+                            "id": "AKIAJDGNHDE677ZXTCXA",
+                            "secret": "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",
+                            "ses_smtp_password": "AhW+K6FNgT8ppHumQd2Is4O+e5SEzWLxzzTalmQqLHVZ",
+                            "status": "Active",
+                            "user": "report_write"
+                        }
+                    }
+                },
+                "aws_iam_access_key.sqs_readwriter_key": {
+                    "type": "aws_iam_access_key",
+                    "depends_on": [
+                        "aws_iam_user.sqs_readwriter"
+                    ],
+                    "primary": {
+                        "id": "AKIAJSOQMW5US67SCUNQ",
+                        "attributes": {
+                            "id": "AKIAJSOQMW5US67SCUNQ",
+                            "secret": "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",
+                            "ses_smtp_password": "Ai4q4U3Mn9bkhb/UZnFxPd+Dtd/YKbCpOLJLy1DBl/Ji",
+                            "status": "Active",
+                            "user": "sqs_readwriter"
+                        }
+                    }
+                },
+                "aws_iam_user.report_reader": {
+                    "type": "aws_iam_user",
+                    "primary": {
+                        "id": "report_reader",
+                        "attributes": {
+                            "arn": "arn:aws:iam::376248598259:user/report_reader",
+                            "id": "report_reader",
+                            "name": "report_reader",
+                            "path": "/",
+                            "unique_id": "AIDAICHHQ2UBWN3SDIYTS"
+                        }
+                    }
+                },
+                "aws_iam_user.report_writer": {
+                    "type": "aws_iam_user",
+                    "primary": {
+                        "id": "report_write",
+                        "attributes": {
+                            "arn": "arn:aws:iam::376248598259:user/report_write",
+                            "id": "report_write",
+                            "name": "report_write",
+                            "path": "/",
+                            "unique_id": "AIDAJORQUE6EGDJC5G7O2"
+                        }
+                    }
+                },
+                "aws_iam_user.sqs_readwriter": {
+                    "type": "aws_iam_user",
+                    "primary": {
+                        "id": "sqs_readwriter",
+                        "attributes": {
+                            "arn": "arn:aws:iam::376248598259:user/sqs_readwriter",
+                            "id": "sqs_readwriter",
+                            "name": "sqs_readwriter",
+                            "path": "/",
+                            "unique_id": "AIDAIH52W4KYJGCDARSXU"
+                        }
+                    }
+                },
+                "aws_iam_user_policy.report_reader_policy": {
+                    "type": "aws_iam_user_policy",
+                    "depends_on": [
+                        "aws_dynamodb_table.report_table",
+                        "aws_iam_user.report_reader"
+                    ],
+                    "primary": {
+                        "id": "report_reader:report_reader_policy",
+                        "attributes": {
+                            "id": "report_reader:report_reader_policy",
+                            "name": "report_reader_policy",
+                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Action\": [\n         \"dynamodb:Query\",\n         \"dynamodb:GetItem\",\n         \"dynamodb:BatchGetItem\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:dynamodb:eu-west-1:376248598259:table/reports\"\n    }\n  ]\n}\n",
+                            "user": "report_reader"
+                        }
+                    }
+                },
+                "aws_iam_user_policy.report_writer_policy": {
+                    "type": "aws_iam_user_policy",
+                    "depends_on": [
+                        "aws_dynamodb_table.report_table",
+                        "aws_iam_user.report_writer"
+                    ],
+                    "primary": {
+                        "id": "report_write:report_writer_policy",
+                        "attributes": {
+                            "id": "report_write:report_writer_policy",
+                            "name": "report_writer_policy",
+                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Action\": [\n         \"dynamodb:PutItem\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:dynamodb:eu-west-1:376248598259:table/reports\"\n    }\n  ]\n}\n",
+                            "user": "report_write"
+                        }
+                    }
+                },
+                "aws_iam_user_policy.sqs_readwriter_policy": {
+                    "type": "aws_iam_user_policy",
+                    "depends_on": [
+                        "aws_iam_user.sqs_readwriter"
+                    ],
+                    "primary": {
+                        "id": "sqs_readwriter:sqs_readwriter_policy",
+                        "attributes": {
+                            "id": "sqs_readwriter:sqs_readwriter_policy",
+                            "name": "sqs_readwriter_policy",
+                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Action\": \"sqs:*\",\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:sqs:eu-west-1:*:*\"\n    }\n  ]\n}\n",
+                            "user": "sqs_readwriter"
+                        }
+                    }
+                },
+                "aws_internet_gateway.rds_igw": {
+                    "type": "aws_internet_gateway",
+                    "depends_on": [
+                        "aws_vpc.rds_vpc"
+                    ],
+                    "primary": {
+                        "id": "igw-dcb0e8b9",
+                        "attributes": {
+                            "id": "igw-dcb0e8b9",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds-igw",
+                            "vpc_id": "vpc-e3f80087"
+                        }
+                    }
+                },
+                "aws_route53_record.www": {
+                    "type": "aws_route53_record",
+                    "depends_on": [
+                        "aws_route53_zone.zone"
+                    ],
+                    "primary": {
+                        "id": "ZCIU1QP3JJJ1K_frontend.tom-dev.weave.works_A",
+                        "attributes": {
+                            "alias.#": "1",
+                            "alias.3683906028.evaluate_target_health": "false",
+                            "alias.3683906028.name": "a9d9dd0b41e7211e6bf90028d230a307-1464182276.eu-west-1.elb.amazonaws.com",
+                            "alias.3683906028.zone_id": "Z3NF1Z3NOM5OY2",
+                            "failover": "",
+                            "fqdn": "frontend.tom-dev.weave.works",
+                            "health_check_id": "",
+                            "id": "ZCIU1QP3JJJ1K_frontend.tom-dev.weave.works_A",
+                            "name": "frontend.tom-dev.weave.works",
+                            "records.#": "0",
+                            "set_identifier": "",
+                            "ttl": "0",
+                            "type": "A",
+                            "weight": "-1",
+                            "zone_id": "ZCIU1QP3JJJ1K"
+                        }
+                    }
+                },
+                "aws_route53_zone.zone": {
+                    "type": "aws_route53_zone",
+                    "primary": {
+                        "id": "ZCIU1QP3JJJ1K",
+                        "attributes": {
+                            "comment": "Managed by Terraform",
+                            "id": "ZCIU1QP3JJJ1K",
+                            "name": "tom-dev.weave.works",
+                            "name_servers.#": "4",
+                            "name_servers.0": "ns-1457.awsdns-54.org",
+                            "name_servers.1": "ns-1940.awsdns-50.co.uk",
+                            "name_servers.2": "ns-323.awsdns-40.com",
+                            "name_servers.3": "ns-745.awsdns-29.net",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-frontend-zone",
+                            "zone_id": "ZCIU1QP3JJJ1K"
+                        }
+                    }
+                },
+                "aws_route_table.rds_rtb": {
+                    "type": "aws_route_table",
+                    "depends_on": [
+                        "aws_internet_gateway.rds_igw",
+                        "aws_vpc.rds_vpc"
+                    ],
+                    "primary": {
+                        "id": "rtb-df58efbb",
+                        "attributes": {
+                            "id": "rtb-df58efbb",
+                            "propagating_vgws.#": "0",
+                            "route.#": "1",
+                            "route.2311606154.cidr_block": "0.0.0.0/0",
+                            "route.2311606154.gateway_id": "igw-dcb0e8b9",
+                            "route.2311606154.instance_id": "",
+                            "route.2311606154.nat_gateway_id": "",
+                            "route.2311606154.network_interface_id": "",
+                            "route.2311606154.vpc_peering_connection_id": "",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds-rtb",
+                            "vpc_id": "vpc-e3f80087"
+                        }
+                    }
+                },
+                "aws_route_table_association.rds_rtbassoc_a": {
+                    "type": "aws_route_table_association",
+                    "depends_on": [
+                        "aws_route_table.rds_rtb",
+                        "aws_subnet.rds_subnet_a"
+                    ],
+                    "primary": {
+                        "id": "rtbassoc-4193cf25",
+                        "attributes": {
+                            "id": "rtbassoc-4193cf25",
+                            "route_table_id": "rtb-df58efbb",
+                            "subnet_id": "subnet-196acc7d"
+                        }
+                    }
+                },
+                "aws_route_table_association.rds_rtbassoc_b": {
+                    "type": "aws_route_table_association",
+                    "depends_on": [
+                        "aws_route_table.rds_rtb",
+                        "aws_subnet.rds_subnet_b"
+                    ],
+                    "primary": {
+                        "id": "rtbassoc-4093cf24",
+                        "attributes": {
+                            "id": "rtbassoc-4093cf24",
+                            "route_table_id": "rtb-df58efbb",
+                            "subnet_id": "subnet-d7539aa1"
+                        }
+                    }
+                },
+                "aws_security_group.rds_sg": {
+                    "type": "aws_security_group",
+                    "primary": {
+                        "id": "sg-89d477ee",
+                        "attributes": {
+                            "description": "Security group for RDS instances",
+                            "egress.#": "1",
+                            "egress.482069346.cidr_blocks.#": "1",
+                            "egress.482069346.cidr_blocks.0": "0.0.0.0/0",
+                            "egress.482069346.from_port": "0",
+                            "egress.482069346.protocol": "-1",
+                            "egress.482069346.security_groups.#": "0",
+                            "egress.482069346.self": "false",
+                            "egress.482069346.to_port": "0",
+                            "id": "sg-89d477ee",
+                            "ingress.#": "1",
+                            "ingress.2661837834.cidr_blocks.#": "1",
+                            "ingress.2661837834.cidr_blocks.0": "0.0.0.0/0",
+                            "ingress.2661837834.from_port": "0",
+                            "ingress.2661837834.protocol": "tcp",
+                            "ingress.2661837834.security_groups.#": "0",
+                            "ingress.2661837834.self": "false",
+                            "ingress.2661837834.to_port": "5432",
+                            "name": "rds_sg",
+                            "owner_id": "376248598259",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds-sg",
+                            "vpc_id": "vpc-fdb53598"
+                        }
+                    }
+                },
+                "aws_subnet.rds_subnet_a": {
+                    "type": "aws_subnet",
+                    "depends_on": [
+                        "aws_vpc.rds_vpc"
+                    ],
+                    "primary": {
+                        "id": "subnet-196acc7d",
+                        "attributes": {
+                            "availability_zone": "eu-west-1a",
+                            "cidr_block": "172.110.1.0/24",
+                            "id": "subnet-196acc7d",
+                            "map_public_ip_on_launch": "false",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds-subnet-a",
+                            "vpc_id": "vpc-e3f80087"
+                        }
+                    }
+                },
+                "aws_subnet.rds_subnet_b": {
+                    "type": "aws_subnet",
+                    "depends_on": [
+                        "aws_vpc.rds_vpc"
+                    ],
+                    "primary": {
+                        "id": "subnet-d7539aa1",
+                        "attributes": {
+                            "availability_zone": "eu-west-1b",
+                            "cidr_block": "172.110.2.0/24",
+                            "id": "subnet-d7539aa1",
+                            "map_public_ip_on_launch": "false",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds-subnet-b",
+                            "vpc_id": "vpc-e3f80087"
+                        }
+                    }
+                },
+                "aws_vpc.rds_vpc": {
+                    "type": "aws_vpc",
+                    "primary": {
+                        "id": "vpc-e3f80087",
+                        "attributes": {
+                            "cidr_block": "172.110.0.0/16",
+                            "default_network_acl_id": "acl-abdf7ccf",
+                            "default_security_group_id": "sg-8ad477ed",
+                            "dhcp_options_id": "dopt-7a11f31f",
+                            "enable_classiclink": "false",
+                            "enable_dns_hostnames": "true",
+                            "enable_dns_support": "true",
+                            "id": "vpc-e3f80087",
+                            "instance_tenancy": "default",
+                            "main_route_table_id": "rtb-dc58efb8",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds-vpc"
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

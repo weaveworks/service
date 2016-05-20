@@ -589,7 +589,7 @@
 			"importpath": "github.com/weaveworks/scope/common/middleware",
 			"repository": "https://github.com/weaveworks/scope",
 			"vcs": "git",
-			"revision": "7631116ff52c37c863e7938b74633a87f294d631",
+			"revision": "d13784092b8cff3df6d533eb9d0d90a5d6b8a829",
 			"branch": "master",
 			"path": "/common/middleware",
 			"notests": true

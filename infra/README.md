@@ -78,6 +78,8 @@ cp var.template foo/var
 ./tfgen foo
 ./rds up foo
 ./database bootstrap foo
+./dynamodb up foo
+./sqs up foo
 
 # Deploy the application on Kubernetes.
 # Get the address of the frontend ELB, via kubectl describe svc frontend.

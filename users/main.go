@@ -32,9 +32,10 @@ func main() {
 		sessionSecret = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
 		directLogin   = flag.Bool("direct-login", false, "Approve user and send login token in the signup response (DEV only)")
 
-		pardotEmail    = flag.String("pardot-email", "", "Email of Pardot account.  If not supplied pardot integration will be disabled.")
-		pardotPassword = flag.String("pardot-password", "", "Password of Pardot account.")
-		pardotUserKey  = flag.String("pardot-userkey", "", "User key of Pardot account.")
+		approvalRequired = flag.Bool("approval-required", true, "Do we want to gate users on approval.")
+		pardotEmail      = flag.String("pardot-email", "", "Email of Pardot account.  If not supplied pardot integration will be disabled.")
+		pardotPassword   = flag.String("pardot-password", "", "Password of Pardot account.")
+		pardotUserKey    = flag.String("pardot-userkey", "", "User key of Pardot account.")
 
 		sendgridAPIKey = flag.String("sendgrid-api-key", "", "Sendgrid API key.  Either email-uri or sendgrid-api-key must be provided.")
 	)
@@ -60,27 +61,29 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Infof("Listening on port %d", *port)
-	http.Handle("/", newAPI(*directLogin, emailer, sessions, storage, templates))
+	http.Handle("/", newAPI(*directLogin, *approvalRequired, emailer, sessions, storage, templates))
 	http.Handle("/metrics", makePrometheusHandler())
 	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }
 
 type api struct {
-	directLogin bool
-	sessions    sessionStore
-	storage     database
-	templates   templateEngine
-	emailer     emailer
+	directLogin      bool
+	approvalRequired bool
+	sessions         sessionStore
+	storage          database
+	templates        templateEngine
+	emailer          emailer
 	http.Handler
 }
 
-func newAPI(directLogin bool, emailer emailer, sessions sessionStore, storage database, templates templateEngine) *api {
+func newAPI(directLogin, approvalRequired bool, emailer emailer, sessions sessionStore, storage database, templates templateEngine) *api {
 	a := &api{
-		directLogin: directLogin,
-		sessions:    sessions,
-		storage:     storage,
-		templates:   templates,
-		emailer:     emailer,
+		directLogin:      directLogin,
+		approvalRequired: approvalRequired,
+		sessions:         sessions,
+		storage:          storage,
+		templates:        templates,
+		emailer:          emailer,
 	}
 	a.Handler = a.routes()
 	return a
@@ -165,11 +168,12 @@ func (a *api) signup(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, fmt.Errorf("Error sending login email: %s", err))
 		return
 	}
-	if a.directLogin {
-		// approve user, and return token
+	if !a.approvalRequired || a.directLogin {
 		_, err = a.storage.ApproveUser(user.ID)
+	}
+	if a.directLogin {
 		view.Token = token
-	} else if user.ApprovedAt.IsZero() {
+	} else if a.approvalRequired && user.ApprovedAt.IsZero() {
 		err = a.emailer.WelcomeEmail(user)
 	} else {
 		err = a.emailer.LoginEmail(user, token)

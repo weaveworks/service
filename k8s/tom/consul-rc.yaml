@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: consul
+spec:
+  replicas: 3
+  selector:
+    name: consul
+  template:
+    metadata:
+      labels:
+        name: consul
+    spec:
+      containers:
+      - name: consul
+        image: gliderlabs/consul:0.6
+        imagePullPolicy: IfNotPresent
+        command:
+        - "/bin/consul"
+        - "agent"
+        - "-ui"
+        - "-data-dir=/data"
+        - "-server"
+        - "-client=0.0.0.0"
+        - "-bootstrap-expect=3"
+        - "-atlas-join"
+        - "-atlas=weaveworks/tom-consul"
+        - "-atlas-token=IigQz1CKJy2yTw.atlasv1.zBhOp5JOZyZFpsCpC6hqEDFFH9yYY40sv4co1y9zuOCTzddxDvIt6JWtOUCQ2yYS3Dk"
+        env:
+        - name: CHECKPOINT_DISABLE
+          value: "1"
+        ports:
+        - name: serverrpc
+          containerPort: 8300
+        - name: serflan
+          containerPort: 8301
+        - name: clientrpc
+          containerPort: 8400
+        - name: http
+          containerPort: 8500
+
