@@ -6,8 +6,8 @@
 # this can be your personal account. Most likely, it should be one of the
 # shared Weaveworks accounts. This must be the same as `aws configure`!
 #
-AWS_ACCESS_KEY="AKIAIKG6BZNPFGV3JOLQ"
-AWS_SECRET_KEY="h5+QGnarlAckNohMa2fDWY6WJCC96R1YXd9kBFAz"
+AWS_ACCESS_KEY="AKIAJSPKOOJJODUYOL7A"
+AWS_SECRET_KEY="se25YprUqdTBcmUUys8lQEjqO5sTjs8j8te/XgUf"
 
 # The region for your cluster. This must be the same as `aws configure`!
 #
@@ -46,7 +46,7 @@ K8S_NUM_MINIONS="3"
 # A prefix for the EC2 instance names. Should probably include "kubernetes"
 # and the name of the cluster, to help keep things understandable.
 #
-K8S_INSTANCE_PREFIX="kubernetes_dev_b"
+K8S_INSTANCE_PREFIX="kubernetes_dev"
 
 #
 # RDS
@@ -87,7 +87,7 @@ R53_RESOURCE_NAME="frontend.dev.weave.works"
 #
 #  kubectl describe svc frontend
 #
-R53_FRONTEND_ELB_ENDPOINT="a41e2c423dad111e5aafc12d46bad2ae-287976260.us-east-1.elb.amazonaws.com"
+R53_FRONTEND_ELB_ENDPOINT="aa26e80551e8b11e68f6612b1a78e90c-179068735.us-east-1.elb.amazonaws.com"
 
 # The canonical zone ID for the ELB, above. Again, you won't have that
 # information to start, so leave it blank. Once you launch the frontend

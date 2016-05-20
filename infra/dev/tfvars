@@ -2,8 +2,8 @@
 # The authoritative source for this data is dev/var.
 # To edit this file, modify dev/var and re-run tfgen.
 
-aws_access_key = "AKIAIKG6BZNPFGV3JOLQ"
-aws_secret_key = "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"
+aws_access_key = "AKIAJSPKOOJJODUYOL7A"
+aws_secret_key = "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"
 aws_region = "us-east-1"
 
 rds_subnet_a_availability_zone = "us-east-1a"
@@ -13,5 +13,5 @@ users_db_password = "us45dcd40163798d"
 
 route53_zone_name = "dev.weave.works"
 route53_resource_name = "frontend.dev.weave.works"
-route53_frontend_elb_endpoint = "a67d06bd3f08611e5aafc12d46bad2ae-1433816556.us-east-1.elb.amazonaws.com"
+route53_frontend_elb_endpoint = "aa26e80551e8b11e68f6612b1a78e90c-179068735.us-east-1.elb.amazonaws.com"
 route53_frontend_elb_zone_id = "Z3DZXE0Q79N41H"
