@@ -2,6 +2,7 @@ apiVersion: v1
 kind: ReplicationController
 metadata:
   name: weave-scope-app
+  namespace: kube-system
   labels:
     provider: weave-scope-app
     heritage: helm
@@ -14,7 +15,7 @@ spec:
     spec:
       containers:
       - name: weave-scope-app
-        image: weaveworks/scope:0.13.1
+        image: weaveworks/scope:0.15.0
         env:
         - name: CHECKPOINT_DISABLE
           value: "true"
