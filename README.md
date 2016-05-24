@@ -52,6 +52,8 @@ uses the service token to proxy to the correct Scope app /api/report endpoint.
 
 ## Useful links
 
+After connecting to an environment with `./connect <env>`:
+
 Monitoring
 - [Grafana Dashboards](http://monitoring.default.svc.cluster.local:3000)
 - [Prometheus UI](http://monitoring.default.svc.cluster.local:9090)
