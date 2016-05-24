@@ -6,9 +6,9 @@ metadata:
     name: consul
 spec:
   ports:
-    - port: 8400
-      name: dunno
-    - port: 8500
-      name: webui
+  - name: serverrpc
+    port: 8300
+  - name: http
+    port: 8500
   selector:
     name: consul
