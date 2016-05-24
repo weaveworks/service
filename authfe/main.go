@@ -21,7 +21,7 @@ var (
 		Subsystem: "authfe",
 		Name:      "request_duration_nanoseconds",
 		Help:      "Time spent serving HTTP requests.",
-	}, []string{"method", "route", "status_code"})
+	}, []string{"method", "route", "status_code", "ws"})
 	wsConnections = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: "scope",
 		Subsystem: "authfe",
@@ -79,11 +79,11 @@ func main() {
 
 	// orgRouter is for all ui <-> app communication, authenticated using cookie credentials
 	orgRouter := mux.NewRouter().StrictSlash(false)
-	orgRouter.PathPrefix("/api").Name("api_app").Handler(queryFwd)
 	orgRouter.PathPrefix("/api/report").Name("api_app_report").Handler(queryFwd)
 	orgRouter.PathPrefix("/api/topology").Name("api_app_topology").Handler(queryFwd)
 	orgRouter.PathPrefix("/api/control").Name("api_app_control").Handler(contolFwd)
 	orgRouter.PathPrefix("/api/pipe").Name("api_app_pipe").Handler(pipeFwd)
+	orgRouter.PathPrefix("/").Name("api_app").Handler(queryFwd) // catch all forward to query service, for /api and static html
 
 	// probeRouter is for all probe <-> app communication, authenticated using header credentials
 	probeRouter := mux.NewRouter().StrictSlash(false)
