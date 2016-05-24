@@ -1,0 +1,71 @@
+resource "aws_dynamodb_table" "report_table" {
+    name = "reports"
+    read_capacity = 20
+    write_capacity = 20
+    hash_key = "hour"
+    range_key = "ts"
+    attribute {
+      name = "hour"
+      type = "S"
+    }
+    attribute {
+      name = "ts"
+      type = "N"
+    }
+}
+
+resource "aws_iam_user" "report_writer" {
+    name = "report_write"
+}
+
+resource "aws_iam_access_key" "report_writer_key" {
+    user = "${aws_iam_user.report_writer.name}"
+}
+
+resource "aws_iam_user_policy" "report_writer_policy" {
+    name = "report_writer_policy"
+    user = "${aws_iam_user.report_writer.name}"
+    policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+         "dynamodb:PutItem"
+      ],
+      "Effect": "Allow",
+      "Resource": "${aws_dynamodb_table.report_table.arn}"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_user" "report_reader" {
+    name = "report_reader"
+}
+
+resource "aws_iam_access_key" "report_reader_key" {
+    user = "${aws_iam_user.report_reader.name}"
+}
+
+resource "aws_iam_user_policy" "report_reader_policy" {
+    name = "report_reader_policy"
+    user = "${aws_iam_user.report_reader.name}"
+    policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+         "dynamodb:Query",
+         "dynamodb:GetItem",
+         "dynamodb:BatchGetItem"
+      ],
+      "Effect": "Allow",
+      "Resource": "${aws_dynamodb_table.report_table.arn}"
+    }
+  ]
+}
+EOF
+}

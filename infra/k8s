@@ -34,15 +34,15 @@ function export_variables {
 	export AWS_S3_BUCKET="weaveworks-scope-kubernetes-$(cat /dev/urandom|xxd -ps|head -c7)"
 	export AWS_IMAGE="${K8S_AMI}"
 	export MASTER_SIZE="${K8S_MASTER_SIZE}"
-	export MINION_SIZE="${K8S_MINION_SIZE}"
-	export NUM_MINIONS="${K8S_NUM_MINIONS}"
+	export NODE_SIZE="${K8S_MINION_SIZE}"
+	export NUM_NODES="${K8S_NUM_MINIONS}"
 	export KUBE_AWS_INSTANCE_PREFIX="${K8S_INSTANCE_PREFIX}"
 	export KUBE_ENABLE_DAEMONSETS="true"
 	export KUBE_DOCKER_LOG_LEVEL="warn"
 }
 
 function ensure_release {
-	local version="v1.1.8" # https://storage.googleapis.com/kubernetes-release/release/stable.txt
+	local version="v1.2.3" # https://storage.googleapis.com/kubernetes-release/release/stable.txt
 	if [ -d kubernetes ]
 	then
 		echo "Kubernetes directory already exists (good)"
@@ -56,14 +56,6 @@ function ensure_release {
 	fi
 	echo "Unpacking Kubernetes ${version}"
 	tar zxf kubernetes.tar.gz
-	echo "Patching Kubernetes scripts"
-        fork=errordeveloper/kubernetes/cherry-pick-peterbourgon-master
-	wget -q -O kubernetes/cluster/aws/config-default.sh \
-          https://raw.githubusercontent.com/${fork}/cluster/aws/config-default.sh
-        wget -q -O kubernetes/cluster/aws/util.sh \
-          https://raw.githubusercontent.com/${fork}/cluster/aws/util.sh
-	wget -q -O kubernetes/cluster/aws/templates/salt-master.sh \
-          https://raw.githubusercontent.com/${fork}/cluster/aws/templates/salt-master.sh
 }
 
 function move_kubeconfig {

@@ -97,7 +97,6 @@ bootstrap)
 	then
 		usage
 	fi
-	load $(hostname app_mapper) $(password app_mapper) < ${CLWD}/../../app-mapper/db/schema.sql
 	load $(hostname users) $(password users) < ${CLWD}/../../users/db/schema.sql
 	;;
 

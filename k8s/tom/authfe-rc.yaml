@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: authfe
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        name: authfe
+    spec:
+      imagePullSecrets:
+      - name: quay-secret
+      containers:
+      - name: authfe
+        image: quay.io/weaveworks/authfe:09ea358
+        imagePullPolicy: IfNotPresent
+        args:
+        - -log.level=debug
+        ports:
+        - containerPort: 80
