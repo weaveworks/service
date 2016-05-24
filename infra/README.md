@@ -78,6 +78,15 @@ cp var.template foo/var
 ./tfgen foo
 ./rds up foo
 ./database bootstrap foo
+./dynamodb up foo
+./sqs up foo
+
+# Next extract and URL encode the credentials for the users that were created,
+# providing them to the appropriate components (collection, query, control):
+
+./iam foo sqs_readwriter
+./iam foo report_reader
+./iam foo report_writer
 
 # Deploy the application on Kubernetes.
 # Get the address of the frontend ELB, via kubectl describe svc frontend.
@@ -99,6 +108,8 @@ git commit -m "Stand up foo cluster"
 ./r53 down foo
 ./rds down foo
 ./k8s down foo
+./dynamodb down foo
+./sqs down foo
 
 git rm -rf foo/
 git commit -m "Tear down foo cluster"
