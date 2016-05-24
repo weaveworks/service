@@ -1,5 +1,5 @@
 resource "aws_iam_user" "sqs_readwriter" {
-    name = "sqs_readwriter"
+    name = "${var.env_name}_sqs_readwriter"
 }
 
 resource "aws_iam_access_key" "sqs_readwriter_key" {
@@ -16,7 +16,7 @@ resource "aws_iam_user_policy" "sqs_readwriter_policy" {
     {
       "Action": "sqs:*",
       "Effect": "Allow",
-      "Resource": "arn:aws:sqs:${var.aws_region}:*:*"
+      "Resource": "arn:aws:sqs:${var.aws_region}:*:${var.env_name}_control_*"
     }
   ]
 }

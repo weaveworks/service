@@ -1,5 +1,5 @@
 resource "aws_dynamodb_table" "report_table" {
-    name = "reports"
+    name = "${var.env_name}_reports"
     read_capacity = 20
     write_capacity = 20
     hash_key = "hour"
@@ -15,7 +15,7 @@ resource "aws_dynamodb_table" "report_table" {
 }
 
 resource "aws_iam_user" "report_writer" {
-    name = "report_write"
+    name = "${var.env_name}_report_writer"
 }
 
 resource "aws_iam_access_key" "report_writer_key" {
@@ -42,7 +42,7 @@ EOF
 }
 
 resource "aws_iam_user" "report_reader" {
-    name = "report_reader"
+    name = "${var.env_name}_report_reader"
 }
 
 resource "aws_iam_access_key" "report_reader_key" {
