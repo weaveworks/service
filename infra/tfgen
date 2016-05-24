@@ -31,6 +31,7 @@ cat >${CLWD}/tfvars <<EOF
 aws_access_key = "${AWS_ACCESS_KEY}"
 aws_secret_key = "${AWS_SECRET_KEY}"
 aws_region = "${AWS_REGION}"
+env_name = "${NAME}"
 
 rds_subnet_a_availability_zone = "${RDS_SUBNET_A_AZ}"
 rds_subnet_b_availability_zone = "${RDS_SUBNET_B_AZ}"
