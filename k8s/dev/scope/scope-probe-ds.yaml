@@ -1,13 +1,13 @@
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
-  namespace: kube-system  
+  namespace: kube-system
   name: weave-scope-probe
   labels:
     heritage: helm
     k8s-app:  weave-scope-probe
 spec:
-  selector: {}  
+  selector: {}
   template:
     metadata:
       name:  weave-scope-probe
@@ -25,10 +25,12 @@ spec:
           value: "true"
         args:
         - --no-app
+        - --probe.docker.bridge=cbr0
         - --probe.docker=true
         - --probe.kubernetes=true
-        - --probe.weave.addr=        
+        - --probe.weave.addr=
         - --debug
+        - --probe.http.listen=:4041
         # Workaround for https://github.com/kubernetes/kubernetes/issues/17406
         - --probe.resolver=$(KUBE_DNS_SERVICE_HOST):$(KUBE_DNS_SERVICE_PORT)
         - weave-scope-app.kube-system.svc.cluster.local:4040
