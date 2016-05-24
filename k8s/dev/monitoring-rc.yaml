@@ -17,19 +17,19 @@ spec:
       - name: quay-secret
       containers:
       - name: prometheus
-        image: quay.io/weaveworks/prometheus:e86d232
+        image: quay.io/weaveworks/prometheus:2dc5061
         ports:
         - containerPort: 9090
       - name: grafana
-        image: quay.io/weaveworks/grafana:81c87e0
+        image: quay.io/weaveworks/grafana:5e770fd
         ports:
         - containerPort: 3000
       - name: gfdatasource
-        image: quay.io/weaveworks/gfdatasource:1c8301b
+        image: quay.io/weaveworks/gfdatasource:caa1ac4
       - name: loadgen
-        image: quay.io/weaveworks/loadgen:753490c
+        image: quay.io/weaveworks/loadgen:5f03be7
       - name: alertmanager
-        image: quay.io/weaveworks/alertmanager:0e21e5a
+        image: quay.io/weaveworks/alertmanager:98f3591
         command:
         - /alertmanager/alertmanager
         - -config.file=/etc/alertmanager/alertmanager-dev.yml
