@@ -1,0 +1,1215 @@
+{
+  "id": 1,
+  "title": "Multitenant Dashboard",
+  "originalTitle": "Multitenant Dashboard",
+  "tags": [],
+  "style": "dark",
+  "timezone": "browser",
+  "editable": true,
+  "hideControls": false,
+  "sharedCrosshair": false,
+  "rows": [
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 7,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(rate(scope_authfe_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",status_code =~ \"1..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "1xx",
+              "refId": "A",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_authfe_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",status_code =~ \"2..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "2xx",
+              "refId": "B",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_authfe_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",status_code =~ \"3..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "3xx",
+              "refId": "C",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_authfe_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",status_code =~ \"4..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "4xx",
+              "refId": "D",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_authfe_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",status_code =~ \"5..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "5xx",
+              "refId": "E",
+              "step": 60
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "AuthFE QPS",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 8,
+          "isNew": true,
+          "leftYAxisLabel": "ms",
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "max(scope_authfe_request_duration_nanoseconds{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",ws=\"false\"}/1e6) by (quantile)",
+              "intervalFactor": 2,
+              "legendFormat": "{{quantile}} quantile",
+              "refId": "A",
+              "step": 60
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "AuthFE Latency",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 1,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"collection\",status_code =~ \"1..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "1xx",
+              "refId": "A",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"collection\",status_code =~ \"2..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "2xx",
+              "refId": "B",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"collection\",status_code =~ \"3..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "3xx",
+              "refId": "C",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"collection\",status_code =~ \"4..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "4xx",
+              "refId": "D",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"collection\",status_code =~ \"5..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "5xx",
+              "refId": "E",
+              "step": 60
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Collection QPS",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 2,
+          "isNew": true,
+          "leftYAxisLabel": "ms",
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "max(scope_request_duration_nanoseconds{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"collection\",ws=\"false\"}/1e6) by (quantile)",
+              "intervalFactor": 2,
+              "legendFormat": "{{quantile}} quantile",
+              "refId": "A",
+              "step": 60
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Collection Latency",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        }
+      ],
+      "title": "Row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 3,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"query\",status_code =~ \"1..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "1xx",
+              "refId": "A",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"query\",status_code =~ \"2..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "2xx",
+              "refId": "B",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"query\",status_code =~ \"3..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "3xx",
+              "refId": "C",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"query\",status_code =~ \"4..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "4xx",
+              "refId": "D",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"query\",status_code =~ \"5..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "5xx",
+              "refId": "E",
+              "step": 60
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Query QPS",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 4,
+          "isNew": true,
+          "leftYAxisLabel": "ms",
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "max(scope_request_duration_nanoseconds{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"query\",ws=\"false\"}/1e6) by (quantile)",
+              "intervalFactor": 2,
+              "legendFormat": "{{quantile}} quantile",
+              "refId": "A",
+              "step": 60
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Query Latency",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 5,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"Query\",kubernetes_role=\"endpoint\",status_code=~\"2..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "Query 2xx",
+              "refId": "A",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"PutItem\",kubernetes_role=\"endpoint\",status_code=~\"2..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "PutItem 2xx",
+              "refId": "B",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"Query\",kubernetes_role=\"endpoint\",status_code=~\"5..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "Query 5xx",
+              "refId": "C",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"PutItem\",kubernetes_role=\"endpoint\",status_code=~\"5..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "PutItem 5xx",
+              "refId": "D",
+              "step": 60
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "DynamoDB QPS",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 6,
+          "isNew": true,
+          "leftYAxisLabel": "ms",
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "max(scope_dynamo_request_duration_nanoseconds{method=\"PutItem\",kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\"}/1e6) by (quantile)",
+              "intervalFactor": 2,
+              "legendFormat": "PutItem {{quantile}} Quantile",
+              "refId": "A",
+              "step": 60
+            },
+            {
+              "expr": "max(scope_dynamo_request_duration_nanoseconds{method=\"Query\",kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\"}/1e6) by (quantile)",
+              "intervalFactor": 2,
+              "legendFormat": "Query {{quantile}} Quantile",
+              "refId": "B",
+              "step": 60
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "DynamoDB Latency",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 9,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"control\",status_code =~ \"1..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "1xx",
+              "refId": "A",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"control\",status_code =~ \"2..\"}[1m]))",
+              "hide": false,
+              "intervalFactor": 2,
+              "legendFormat": "2xx",
+              "refId": "B",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"control\",status_code =~ \"3..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "3xx",
+              "refId": "C",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"control\",status_code =~ \"4..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "4xx",
+              "refId": "D",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"control\",status_code =~ \"5..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "5xx",
+              "refId": "E",
+              "step": 60
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Control QPS",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 10,
+          "isNew": true,
+          "leftYAxisLabel": "ms",
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "max(scope_request_duration_nanoseconds{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"control\",ws=\"false\"}/1e6) by (quantile)",
+              "intervalFactor": 2,
+              "legendFormat": "{{quantile}} quantile",
+              "refId": "A",
+              "step": 60
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Control Latency",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 11,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(rate(scope_sqs_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",status_code=~\"2..\"}[1m])) by (method)",
+              "intervalFactor": 2,
+              "legendFormat": "{{method}} 2xx",
+              "refId": "A",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_sqs_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",status_code=~\"5..\"}[1m])) by (method)",
+              "intervalFactor": 2,
+              "legendFormat": "{{method}} 5xx",
+              "refId": "B",
+              "step": 60
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "SQS QPS",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 12,
+          "isNew": true,
+          "leftYAxisLabel": "ms",
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "max(scope_sqs_request_duration_nanoseconds{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\"}/1e6) by (quantile, method)",
+              "intervalFactor": 2,
+              "legendFormat": "{{method}} {{quantile}} quantile",
+              "refId": "A",
+              "step": 60
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "SQS Latency",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 13,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"pipe\",status_code =~ \"1..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "1xx",
+              "refId": "A",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"pipe\",status_code =~ \"2..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "2xx",
+              "refId": "B",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"pipe\",status_code =~ \"3..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "3xx",
+              "refId": "C",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"pipe\",status_code =~ \"4..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "4xx",
+              "refId": "D",
+              "step": 60
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"pipe\",status_code =~ \"5..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "5xx",
+              "refId": "E",
+              "step": 60
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Pipe QPS",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "leftLogBase": 1,
+            "leftMax": null,
+            "leftMin": null,
+            "rightLogBase": 1,
+            "rightMax": null,
+            "rightMin": null,
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 14,
+          "isNew": true,
+          "leftYAxisLabel": "ms",
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "max(scope_request_duration_nanoseconds{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"pipe\",ws=\"false\"}/1e6) by (quantile)",
+              "intervalFactor": 2,
+              "legendFormat": "{{quantile}} quantile",
+              "refId": "A",
+              "step": 60
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Pipe Latency",
+          "tooltip": {
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "x-axis": true,
+          "y-axis": true,
+          "y_formats": [
+            "short",
+            "short"
+          ]
+        }
+      ],
+      "title": "New row"
+    }
+  ],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "now": true,
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h",
+      "2d",
+      "7d",
+      "30d"
+    ]
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "schemaVersion": 8,
+  "version": 9,
+  "links": []
+}
