@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "serial": 26,
+    "serial": 35,
     "modules": [
         {
             "path": [
@@ -284,37 +284,42 @@
                         "aws_route53_zone.zone"
                     ],
                     "primary": {
-                        "id": "ZVSQGENC4TECS_frontend.dev.weave.works_A",
+                        "id": "Z9W0R2E5JQPNX_frontend.dev.weave.works_A",
                         "attributes": {
                             "alias.#": "1",
-                            "alias.2070804438.evaluate_target_health": "false",
-                            "alias.2070804438.name": "aa26e80551e8b11e68f6612b1a78e90c-179068735.us-east-1.elb.amazonaws.com",
-                            "alias.2070804438.zone_id": "Z3DZXE0Q79N41H",
+                            "alias.326871072.evaluate_target_health": "false",
+                            "alias.326871072.name": "a6246991221d311e6a36012b23092a53-1870334710.us-east-1.elb.amazonaws.com",
+                            "alias.326871072.zone_id": "Z3DZXE0Q79N41H",
+                            "failover": "",
                             "fqdn": "frontend.dev.weave.works",
-                            "id": "ZVSQGENC4TECS_frontend.dev.weave.works_A",
+                            "health_check_id": "",
+                            "id": "Z9W0R2E5JQPNX_frontend.dev.weave.works_A",
                             "name": "frontend.dev.weave.works",
                             "records.#": "0",
+                            "set_identifier": "",
+                            "ttl": "0",
                             "type": "A",
-                            "zone_id": "ZVSQGENC4TECS"
+                            "weight": "-1",
+                            "zone_id": "Z9W0R2E5JQPNX"
                         }
                     }
                 },
                 "aws_route53_zone.zone": {
                     "type": "aws_route53_zone",
                     "primary": {
-                        "id": "ZVSQGENC4TECS",
+                        "id": "Z9W0R2E5JQPNX",
                         "attributes": {
                             "comment": "Managed by Terraform",
-                            "id": "ZVSQGENC4TECS",
+                            "id": "Z9W0R2E5JQPNX",
                             "name": "dev.weave.works",
                             "name_servers.#": "4",
-                            "name_servers.0": "ns-1272.awsdns-31.org",
-                            "name_servers.1": "ns-1905.awsdns-46.co.uk",
-                            "name_servers.2": "ns-491.awsdns-61.com",
-                            "name_servers.3": "ns-727.awsdns-26.net",
+                            "name_servers.0": "ns-1060.awsdns-04.org",
+                            "name_servers.1": "ns-1733.awsdns-24.co.uk",
+                            "name_servers.2": "ns-51.awsdns-06.com",
+                            "name_servers.3": "ns-701.awsdns-23.net",
                             "tags.#": "1",
                             "tags.Name": "terraform-frontend-zone",
-                            "zone_id": "ZVSQGENC4TECS"
+                            "zone_id": "Z9W0R2E5JQPNX"
                         }
                     }
                 },
