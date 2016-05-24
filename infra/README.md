@@ -1,23 +1,24 @@
 # infra
 
 The **infra** deals with everything between our metal (AWS) and our application.
-It's concerned with provisioning the scheduling system (k8s), stateful storage (RDS), and DNS (Route53).
+It's concerned with provisioning the scheduling system (k8s), stateful storage (RDS, DynamoDB), message bus (SQS) and DNS (Route53).
+Infra also creates various IAM users to control access to these resources.
 
 ```
-+-----------------------------+  --.
-|             AWS             |    |
-+-----------------------------+    |
-+-----+ +-----+ +-----+ +-----+    |
-| R53 |-| ELB | | EC2 | | RDS |    | infra
-+-----+ |     | +-----+ |     |    |
-        |     |    |    |     |    |
-        |     | +-----+ |     |    |
-        |     |-| k8s | |     |    |
-        +-----+ +-----+ +-----+  --'
-                   |       |
-                +-------------+
-                |     App     |
-                +-------------+
++--------------------------------------------------+  --.
+|             AWS                                  |    |
++--------------------------------------------------+    |
++-----+ +-----+ +-----+ +-----+ +-----+ +----------+    |
+| R53 |-| ELB | | EC2 | | RDS | | SQS | | DynamoDB |    | infra
++-----+ |     | +-----+ |     | +-----+ +----------+    |
+        |     |    |    |     |    |       |    |       |
+        |     | +-----+ |     |    o       o    o       |
+        |     |-| k8s | |     |   /_\     /_\  /_\      |
+        +-----+ +-----+ +-----+    |       |    |     --'
+                   |       |       |       |    |
+                +---------------------------------+
+                |               App               |
+                +---------------------------------+
 ```
 
 1. [Prerequisites](#prerequisites)
@@ -84,9 +85,9 @@ cp var.template foo/var
 # Next extract and URL encode the credentials for the users that were created,
 # providing them to the appropriate components (collection, query, control):
 
-./iam foo sqs_readwriter
-./iam foo report_reader
-./iam foo report_writer
+./iam foo report_writer  # user who can write to DynamoDB, for collection service
+./iam foo report_reader  # user who can read from DynamoDB, for query service
+./iam foo sqs_readwriter # user who can read from and write to SQS, for control service
 
 # Deploy the application on Kubernetes.
 # Get the address of the frontend ELB, via kubectl describe svc frontend.
