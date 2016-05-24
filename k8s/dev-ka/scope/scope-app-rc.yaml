@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: weave-scope-app
+  namespace: kube-system
+  labels:
+    provider: weave-scope-app
+    heritage: helm
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        provider: weave-scope-app
+    spec:
+      containers:
+      - name: weave-scope-app
+        image: weaveworks/scope:0.15.0
+        env:
+        - name: CHECKPOINT_DISABLE
+          value: "true"
+        args:
+        - --no-probe
+        - --app.weave.addr=
+        - --debug
+        ports:
+        - containerPort: 4040
+          hostPort: 4040

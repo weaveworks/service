@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: frontend-455b145
+spec:
+  replicas: 2
+  selector:
+    name: frontend
+    version: "455b145"
+  template:
+    metadata:
+      labels:
+        name: frontend
+        version: "455b145"
+    spec:
+      imagePullSecrets:
+      - name: quay-secret
+      containers:
+      - name: frontend
+        image: quay.io/weaveworks/frontend:455b145
+        ports:
+        - containerPort: 80
+        - containerPort: 443
+        volumeMounts:
+        - name: tls-secret
+          mountPath: /tls/secret/
+          readOnly: true
+      volumes:
+      - name: tls-secret
+        secret:
+          secretName: tls-secret
