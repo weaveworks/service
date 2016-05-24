@@ -1,5 +1,19 @@
 # Basic workflows
 
+## Connect to a running cluster
+
+In one terminal run:
+```
+./infra/dev-ka/connect
+```
+
+This does two things:
+
+- create SSH tunnel for API server, for use with `kubectl`
+- create SOCKS proxy
+
+Once connected, you can use `kubectl --kubeconfig ./infra/dev-ka/kubeconfig ...` and you can also use your browser to access internal service via the SOCKS proxy.
+
 ## Create a new cluster
 
 There is probably a cluster already when you are reading this, but anyhow here is how you'd create one if there wasn't one:
