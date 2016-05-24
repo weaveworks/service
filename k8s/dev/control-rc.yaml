@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: control
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        name: control
+    spec:
+      containers:
+      - name: control
+        image: weaveworks/scope:f68fa077f6b2
+        imagePullPolicy: Always
+        args:
+        - --no-probe
+        - --app.log.http=true
+        - --app.weave.addr=
+        - --app.http.address=:80
+        - --app.userid.header=X-Scope-OrgID
+        - --app.control.router=sqs://AKIAJECDWWRQWFNHFO2A:dP12kF6wREosllk%2B3%2B3ZqPpZxeDlGn%2FYgKebMJVj@us-east-1/dev_control_
+        env:
+        - name: CHECKPOINT_DISABLE
+          value: "1"
+        - name: SCOPE_HOSTNAME
+          value: "service"
+        ports:
+        - containerPort: 80

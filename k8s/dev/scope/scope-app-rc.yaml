@@ -3,9 +3,6 @@ kind: ReplicationController
 metadata:
   name: weave-scope-app
   namespace: kube-system
-  labels:
-    provider: weave-scope-app
-    heritage: helm
 spec:
   replicas: 1
   template:
