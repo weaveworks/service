@@ -554,6 +554,51 @@
 			"branch": "v2"
 		},
 		{
+			"importpath": "k8s.io/kubernetes/pkg",
+			"repository": "https://github.com/kubernetes/kubernetes",
+			"vcs": "git",
+			"revision": "01e79b88e1fd589861f92f0d7e2f8b236988a441",
+			"branch": "master",
+			"path": "/pkg",
+			"notests": true
+		},
+		{
+			"importpath": "k8s.io/kubernetes/plugin/pkg",
+			"repository": "https://github.com/kubernetes/kubernetes",
+			"vcs": "git",
+			"revision": "04d6162e0ff9f0ccc5dbfe9eb495a73669a13ee1",
+			"branch": "master",
+			"path": "/plugin/pkg",
+			"notests": true
+		},
+		{
+			"importpath": "k8s.io/kubernetes/third_party/forked/reflect",
+			"repository": "https://github.com/kubernetes/kubernetes",
+			"vcs": "git",
+			"revision": "04d6162e0ff9f0ccc5dbfe9eb495a73669a13ee1",
+			"branch": "master",
+			"path": "/third_party/forked/reflect",
+			"notests": true
+		},
+		{
+			"importpath": "k8s.io/kubernetes/third_party/golang/netutil",
+			"repository": "https://github.com/kubernetes/kubernetes",
+			"vcs": "git",
+			"revision": "04d6162e0ff9f0ccc5dbfe9eb495a73669a13ee1",
+			"branch": "master",
+			"path": "/third_party/golang/netutil",
+			"notests": true
+		},
+		{
+			"importpath": "k8s.io/kubernetes/vendor",
+			"repository": "https://github.com/kubernetes/kubernetes",
+			"vcs": "git",
+			"revision": "01e79b88e1fd589861f92f0d7e2f8b236988a441",
+			"branch": "master",
+			"path": "/vendor",
+			"notests": true
+		},
+		{
 			"importpath": "speter.net/go/exp/math/dec/inf",
 			"repository": "https://code.google.com/p/go-decimal-inf.exp",
 			"vcs": "",
