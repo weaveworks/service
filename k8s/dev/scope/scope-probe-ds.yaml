@@ -25,6 +25,7 @@ spec:
           value: "true"
         args:
         - --no-app
+        - --probe.docker.bridge=cbr0
         - --probe.docker=true
         - --probe.kubernetes=true
         - --probe.weave.addr=
