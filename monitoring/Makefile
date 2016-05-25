@@ -8,11 +8,11 @@ all: ${IMAGES_UPTODATE}
 ${IMAGES_UPTODATE}: prometheus/${IMAGES_UPTODATE} grafana/${IMAGES_UPTODATE} gfdatasource/${IMAGES_UPTODATE} loadgen/${IMAGES_UPTODATE} alertmanager/${IMAGES_UPTODATE}
 	touch $@
 
-prometheus/${IMAGES_UPTODATE}: prometheus/Dockerfile prometheus/alert.rules prometheus/prometheus.yml prometheus/run
+prometheus/${IMAGES_UPTODATE}: prometheus/*
 	docker build -t ${IMAGE_PREFIX}/prometheus prometheus
 	touch $@
 
-grafana/${IMAGES_UPTODATE}: grafana/Dockerfile grafana/grafana-defaults.ini grafana/grafana.ini grafana/saas-components.json
+grafana/${IMAGES_UPTODATE}: grafana/*
 	docker build -t ${IMAGE_PREFIX}/grafana grafana
 	touch $@
 

@@ -22,12 +22,6 @@
           "error": false,
           "fill": 1,
           "grid": {
-            "leftLogBase": 1,
-            "leftMax": null,
-            "leftMin": null,
-            "rightLogBase": 1,
-            "rightMax": null,
-            "rightMin": null,
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
@@ -58,39 +52,39 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(scope_authfe_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",status_code =~ \"1..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"authfe\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_authfe_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",status_code =~ \"2..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"authfe\",status_code =~ \"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_authfe_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",status_code =~ \"3..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"authfe\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_authfe_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",status_code =~ \"4..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"authfe\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_authfe_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",status_code =~ \"5..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"authfe\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
-              "step": 60
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -98,15 +92,29 @@
           "title": "AuthFE QPS",
           "tooltip": {
             "shared": true,
-            "value_type": "cumulative"
+            "value_type": "cumulative",
+            "msResolution": false
           },
           "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "y_formats": [
-            "short",
-            "short"
-          ]
+          "yaxes": [
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            },
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          }
         },
         {
           "aliasColors": {},
@@ -116,12 +124,6 @@
           "error": false,
           "fill": 1,
           "grid": {
-            "leftLogBase": 1,
-            "leftMax": null,
-            "leftMin": null,
-            "rightLogBase": 1,
-            "rightMax": null,
-            "rightMin": null,
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
@@ -129,7 +131,6 @@
           },
           "id": 8,
           "isNew": true,
-          "leftYAxisLabel": "ms",
           "legend": {
             "avg": false,
             "current": false,
@@ -153,11 +154,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_authfe_request_duration_nanoseconds{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",ws=\"false\"}/1e6) by (quantile)",
+              "expr": "max(scope_request_duration_nanoseconds{namespace=\"default\",job=\"authfe\",ws=\"false\"}/1e6) by (quantile)",
               "intervalFactor": 2,
               "legendFormat": "{{quantile}} quantile",
               "refId": "A",
-              "step": 60
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -165,18 +166,222 @@
           "title": "AuthFE Latency",
           "tooltip": {
             "shared": true,
-            "value_type": "cumulative"
+            "value_type": "cumulative",
+            "msResolution": false
           },
           "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "y_formats": [
-            "short",
-            "short"
-          ]
+          "yaxes": [
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short",
+              "label": "ms"
+            },
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          }
         }
       ],
       "title": "New row"
+    },
+    {
+      "title": "New row",
+      "height": "250px",
+      "editable": true,
+      "collapse": false,
+      "panels": [
+        {
+          "title": "Users QPS",
+          "error": false,
+          "span": 6,
+          "editable": true,
+          "type": "graph",
+          "isNew": true,
+          "id": 15,
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"users\",status_code =~ \"1..\"}[1m]))",
+              "intervalFactor": 2,
+              "step": 10,
+              "legendFormat": "1xx"
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"users\",status_code =~ \"2..\"}[1m]))",
+              "intervalFactor": 2,
+              "refId": "B",
+              "step": 10,
+              "metric": "",
+              "legendFormat": "2xx"
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"users\",status_code =~ \"3..\"}[1m]))",
+              "intervalFactor": 2,
+              "refId": "C",
+              "step": 10,
+              "legendFormat": "3xx"
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"users\",status_code =~ \"4..\"}[1m]))",
+              "intervalFactor": 2,
+              "refId": "D",
+              "step": 10,
+              "legendFormat": "4xx"
+            },
+            {
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"users\",status_code =~ \"5..\"}[1m]))",
+              "intervalFactor": 2,
+              "refId": "E",
+              "step": 10,
+              "legendFormat": "5xx"
+            }
+          ],
+          "datasource": "Scope-as-a-Service Prometheus",
+          "renderer": "flot",
+          "yaxes": [
+            {
+              "label": null,
+              "show": true,
+              "logBase": 1,
+              "min": null,
+              "max": null,
+              "format": "short"
+            },
+            {
+              "label": null,
+              "show": true,
+              "logBase": 1,
+              "min": null,
+              "max": null,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          },
+          "grid": {
+            "threshold1": null,
+            "threshold2": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "lines": true,
+          "fill": 1,
+          "linewidth": 2,
+          "points": false,
+          "pointradius": 5,
+          "bars": false,
+          "stack": false,
+          "percentage": false,
+          "legend": {
+            "show": true,
+            "values": false,
+            "min": false,
+            "max": false,
+            "current": false,
+            "total": false,
+            "avg": false
+          },
+          "nullPointMode": "connected",
+          "steppedLine": false,
+          "tooltip": {
+            "value_type": "cumulative",
+            "shared": true,
+            "msResolution": false
+          },
+          "timeFrom": null,
+          "timeShift": null,
+          "aliasColors": {},
+          "seriesOverrides": [],
+          "links": []
+        },
+        {
+          "title": "Users Latency",
+          "error": false,
+          "span": 6,
+          "editable": true,
+          "type": "graph",
+          "isNew": true,
+          "id": 16,
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max(scope_request_duration_nanoseconds{namespace=\"default\",job=\"users\"}/1e6) by (quantile)",
+              "intervalFactor": 2,
+              "step": 10,
+              "legendFormat": "{{quantile}} quantile"
+            }
+          ],
+          "datasource": "Scope-as-a-Service Prometheus",
+          "renderer": "flot",
+          "yaxes": [
+            {
+              "label": null,
+              "show": true,
+              "logBase": 1,
+              "min": null,
+              "max": null,
+              "format": "short"
+            },
+            {
+              "label": null,
+              "show": true,
+              "logBase": 1,
+              "min": null,
+              "max": null,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          },
+          "grid": {
+            "threshold1": null,
+            "threshold2": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "lines": true,
+          "fill": 1,
+          "linewidth": 2,
+          "points": false,
+          "pointradius": 5,
+          "bars": false,
+          "stack": false,
+          "percentage": false,
+          "legend": {
+            "show": true,
+            "values": false,
+            "min": false,
+            "max": false,
+            "current": false,
+            "total": false,
+            "avg": false
+          },
+          "nullPointMode": "connected",
+          "steppedLine": false,
+          "tooltip": {
+            "value_type": "cumulative",
+            "shared": true,
+            "msResolution": false
+          },
+          "timeFrom": null,
+          "timeShift": null,
+          "aliasColors": {},
+          "seriesOverrides": [],
+          "links": []
+        }
+      ]
     },
     {
       "collapse": false,
@@ -191,12 +396,6 @@
           "error": false,
           "fill": 1,
           "grid": {
-            "leftLogBase": 1,
-            "leftMax": null,
-            "leftMin": null,
-            "rightLogBase": 1,
-            "rightMax": null,
-            "rightMin": null,
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
@@ -227,39 +426,39 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"collection\",status_code =~ \"1..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"collection\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"collection\",status_code =~ \"2..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"collection\",status_code =~ \"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"collection\",status_code =~ \"3..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"collection\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"collection\",status_code =~ \"4..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"collection\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"collection\",status_code =~ \"5..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"collection\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
-              "step": 60
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -267,15 +466,29 @@
           "title": "Collection QPS",
           "tooltip": {
             "shared": true,
-            "value_type": "cumulative"
+            "value_type": "cumulative",
+            "msResolution": false
           },
           "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "y_formats": [
-            "short",
-            "short"
-          ]
+          "yaxes": [
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            },
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          }
         },
         {
           "aliasColors": {},
@@ -285,12 +498,6 @@
           "error": false,
           "fill": 1,
           "grid": {
-            "leftLogBase": 1,
-            "leftMax": null,
-            "leftMin": null,
-            "rightLogBase": 1,
-            "rightMax": null,
-            "rightMin": null,
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
@@ -298,7 +505,6 @@
           },
           "id": 2,
           "isNew": true,
-          "leftYAxisLabel": "ms",
           "legend": {
             "avg": false,
             "current": false,
@@ -322,11 +528,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_nanoseconds{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"collection\",ws=\"false\"}/1e6) by (quantile)",
+              "expr": "max(scope_request_duration_nanoseconds{namespace=\"default\",job=\"collection\",ws=\"false\"}/1e6) by (quantile)",
               "intervalFactor": 2,
               "legendFormat": "{{quantile}} quantile",
               "refId": "A",
-              "step": 60
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -334,15 +540,30 @@
           "title": "Collection Latency",
           "tooltip": {
             "shared": true,
-            "value_type": "cumulative"
+            "value_type": "cumulative",
+            "msResolution": false
           },
           "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "y_formats": [
-            "short",
-            "short"
-          ]
+          "yaxes": [
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short",
+              "label": "ms"
+            },
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          }
         }
       ],
       "title": "Row"
@@ -360,12 +581,6 @@
           "error": false,
           "fill": 1,
           "grid": {
-            "leftLogBase": 1,
-            "leftMax": null,
-            "leftMin": null,
-            "rightLogBase": 1,
-            "rightMax": null,
-            "rightMin": null,
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
@@ -396,39 +611,39 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"query\",status_code =~ \"1..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"query\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"query\",status_code =~ \"2..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"query\",status_code =~ \"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"query\",status_code =~ \"3..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"query\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"query\",status_code =~ \"4..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"query\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"query\",status_code =~ \"5..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"query\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
-              "step": 60
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -436,15 +651,29 @@
           "title": "Query QPS",
           "tooltip": {
             "shared": true,
-            "value_type": "cumulative"
+            "value_type": "cumulative",
+            "msResolution": false
           },
           "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "y_formats": [
-            "short",
-            "short"
-          ]
+          "yaxes": [
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            },
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          }
         },
         {
           "aliasColors": {},
@@ -454,12 +683,6 @@
           "error": false,
           "fill": 1,
           "grid": {
-            "leftLogBase": 1,
-            "leftMax": null,
-            "leftMin": null,
-            "rightLogBase": 1,
-            "rightMax": null,
-            "rightMin": null,
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
@@ -467,7 +690,6 @@
           },
           "id": 4,
           "isNew": true,
-          "leftYAxisLabel": "ms",
           "legend": {
             "avg": false,
             "current": false,
@@ -491,11 +713,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_nanoseconds{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"query\",ws=\"false\"}/1e6) by (quantile)",
+              "expr": "max(scope_request_duration_nanoseconds{namespace=\"default\",job=\"query\",ws=\"false\"}/1e6) by (quantile)",
               "intervalFactor": 2,
               "legendFormat": "{{quantile}} quantile",
               "refId": "A",
-              "step": 60
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -503,15 +725,30 @@
           "title": "Query Latency",
           "tooltip": {
             "shared": true,
-            "value_type": "cumulative"
+            "value_type": "cumulative",
+            "msResolution": false
           },
           "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "y_formats": [
-            "short",
-            "short"
-          ]
+          "yaxes": [
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short",
+              "label": "ms"
+            },
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          }
         }
       ],
       "title": "New row"
@@ -529,12 +766,6 @@
           "error": false,
           "fill": 1,
           "grid": {
-            "leftLogBase": 1,
-            "leftMax": null,
-            "leftMin": null,
-            "rightLogBase": 1,
-            "rightMax": null,
-            "rightMin": null,
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
@@ -565,32 +796,32 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"Query\",kubernetes_role=\"endpoint\",status_code=~\"2..\"}[1m]))",
+              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"Query\",status_code=~\"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "Query 2xx",
               "refId": "A",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"PutItem\",kubernetes_role=\"endpoint\",status_code=~\"2..\"}[1m]))",
+              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"PutItem\",status_code=~\"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "PutItem 2xx",
               "refId": "B",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"Query\",kubernetes_role=\"endpoint\",status_code=~\"5..\"}[1m]))",
+              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"Query\",status_code=~\"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "Query 5xx",
               "refId": "C",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"PutItem\",kubernetes_role=\"endpoint\",status_code=~\"5..\"}[1m]))",
+              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"PutItem\",status_code=~\"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "PutItem 5xx",
               "refId": "D",
-              "step": 60
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -598,15 +829,29 @@
           "title": "DynamoDB QPS",
           "tooltip": {
             "shared": true,
-            "value_type": "cumulative"
+            "value_type": "cumulative",
+            "msResolution": false
           },
           "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "y_formats": [
-            "short",
-            "short"
-          ]
+          "yaxes": [
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            },
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          }
         },
         {
           "aliasColors": {},
@@ -616,12 +861,6 @@
           "error": false,
           "fill": 1,
           "grid": {
-            "leftLogBase": 1,
-            "leftMax": null,
-            "leftMin": null,
-            "rightLogBase": 1,
-            "rightMax": null,
-            "rightMin": null,
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
@@ -629,7 +868,6 @@
           },
           "id": 6,
           "isNew": true,
-          "leftYAxisLabel": "ms",
           "legend": {
             "avg": false,
             "current": false,
@@ -653,18 +891,18 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_dynamo_request_duration_nanoseconds{method=\"PutItem\",kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\"}/1e6) by (quantile)",
+              "expr": "max(scope_dynamo_request_duration_nanoseconds{method=\"PutItem\",namespace=\"default\"}/1e6) by (quantile)",
               "intervalFactor": 2,
               "legendFormat": "PutItem {{quantile}} Quantile",
               "refId": "A",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "max(scope_dynamo_request_duration_nanoseconds{method=\"Query\",kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\"}/1e6) by (quantile)",
+              "expr": "max(scope_dynamo_request_duration_nanoseconds{method=\"Query\",namespace=\"default\"}/1e6) by (quantile)",
               "intervalFactor": 2,
               "legendFormat": "Query {{quantile}} Quantile",
               "refId": "B",
-              "step": 60
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -672,15 +910,30 @@
           "title": "DynamoDB Latency",
           "tooltip": {
             "shared": true,
-            "value_type": "cumulative"
+            "value_type": "cumulative",
+            "msResolution": false
           },
           "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "y_formats": [
-            "short",
-            "short"
-          ]
+          "yaxes": [
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short",
+              "label": "ms"
+            },
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          }
         }
       ],
       "title": "New row"
@@ -698,12 +951,6 @@
           "error": false,
           "fill": 1,
           "grid": {
-            "leftLogBase": 1,
-            "leftMax": null,
-            "leftMin": null,
-            "rightLogBase": 1,
-            "rightMax": null,
-            "rightMin": null,
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
@@ -734,40 +981,40 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"control\",status_code =~ \"1..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"control\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"control\",status_code =~ \"2..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"control\",status_code =~ \"2..\"}[1m]))",
               "hide": false,
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"control\",status_code =~ \"3..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"control\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"control\",status_code =~ \"4..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"control\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"control\",status_code =~ \"5..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"control\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
-              "step": 60
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -775,15 +1022,29 @@
           "title": "Control QPS",
           "tooltip": {
             "shared": true,
-            "value_type": "cumulative"
+            "value_type": "cumulative",
+            "msResolution": false
           },
           "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "y_formats": [
-            "short",
-            "short"
-          ]
+          "yaxes": [
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            },
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          }
         },
         {
           "aliasColors": {},
@@ -793,12 +1054,6 @@
           "error": false,
           "fill": 1,
           "grid": {
-            "leftLogBase": 1,
-            "leftMax": null,
-            "leftMin": null,
-            "rightLogBase": 1,
-            "rightMax": null,
-            "rightMin": null,
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
@@ -806,7 +1061,6 @@
           },
           "id": 10,
           "isNew": true,
-          "leftYAxisLabel": "ms",
           "legend": {
             "avg": false,
             "current": false,
@@ -830,11 +1084,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_nanoseconds{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"control\",ws=\"false\"}/1e6) by (quantile)",
+              "expr": "max(scope_request_duration_nanoseconds{namespace=\"default\",job=\"control\",ws=\"false\"}/1e6) by (quantile)",
               "intervalFactor": 2,
               "legendFormat": "{{quantile}} quantile",
               "refId": "A",
-              "step": 60
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -842,15 +1096,30 @@
           "title": "Control Latency",
           "tooltip": {
             "shared": true,
-            "value_type": "cumulative"
+            "value_type": "cumulative",
+            "msResolution": false
           },
           "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "y_formats": [
-            "short",
-            "short"
-          ]
+          "yaxes": [
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short",
+              "label": "ms"
+            },
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          }
         }
       ],
       "title": "New row"
@@ -868,12 +1137,6 @@
           "error": false,
           "fill": 1,
           "grid": {
-            "leftLogBase": 1,
-            "leftMax": null,
-            "leftMin": null,
-            "rightLogBase": 1,
-            "rightMax": null,
-            "rightMin": null,
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
@@ -904,18 +1167,18 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(scope_sqs_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",status_code=~\"2..\"}[1m])) by (method)",
+              "expr": "sum(rate(scope_sqs_request_duration_nanoseconds_count{status_code=~\"2..\"}[1m])) by (method)",
               "intervalFactor": 2,
               "legendFormat": "{{method}} 2xx",
               "refId": "A",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_sqs_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",status_code=~\"5..\"}[1m])) by (method)",
+              "expr": "sum(rate(scope_sqs_request_duration_nanoseconds_count{status_code=~\"5..\"}[1m])) by (method)",
               "intervalFactor": 2,
               "legendFormat": "{{method}} 5xx",
               "refId": "B",
-              "step": 60
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -923,15 +1186,29 @@
           "title": "SQS QPS",
           "tooltip": {
             "shared": true,
-            "value_type": "cumulative"
+            "value_type": "cumulative",
+            "msResolution": false
           },
           "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "y_formats": [
-            "short",
-            "short"
-          ]
+          "yaxes": [
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            },
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          }
         },
         {
           "aliasColors": {},
@@ -941,12 +1218,6 @@
           "error": false,
           "fill": 1,
           "grid": {
-            "leftLogBase": 1,
-            "leftMax": null,
-            "leftMin": null,
-            "rightLogBase": 1,
-            "rightMax": null,
-            "rightMin": null,
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
@@ -954,7 +1225,6 @@
           },
           "id": 12,
           "isNew": true,
-          "leftYAxisLabel": "ms",
           "legend": {
             "avg": false,
             "current": false,
@@ -978,11 +1248,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_sqs_request_duration_nanoseconds{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\"}/1e6) by (quantile, method)",
+              "expr": "max(scope_sqs_request_duration_nanoseconds{namespace=\"default\"}/1e6) by (quantile, method)",
               "intervalFactor": 2,
               "legendFormat": "{{method}} {{quantile}} quantile",
               "refId": "A",
-              "step": 60
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -990,15 +1260,30 @@
           "title": "SQS Latency",
           "tooltip": {
             "shared": true,
-            "value_type": "cumulative"
+            "value_type": "cumulative",
+            "msResolution": false
           },
           "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "y_formats": [
-            "short",
-            "short"
-          ]
+          "yaxes": [
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short",
+              "label": "ms"
+            },
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          }
         }
       ],
       "title": "New row"
@@ -1016,12 +1301,6 @@
           "error": false,
           "fill": 1,
           "grid": {
-            "leftLogBase": 1,
-            "leftMax": null,
-            "leftMin": null,
-            "rightLogBase": 1,
-            "rightMax": null,
-            "rightMin": null,
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
@@ -1052,39 +1331,39 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"pipe\",status_code =~ \"1..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"pipe\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"pipe\",status_code =~ \"2..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"pipe\",status_code =~ \"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"pipe\",status_code =~ \"3..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"pipe\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"pipe\",status_code =~ \"4..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"pipe\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
-              "step": 60
+              "step": 10
             },
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"pipe\",status_code =~ \"5..\"}[1m]))",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"pipe\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
-              "step": 60
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -1092,15 +1371,29 @@
           "title": "Pipe QPS",
           "tooltip": {
             "shared": true,
-            "value_type": "cumulative"
+            "value_type": "cumulative",
+            "msResolution": false
           },
           "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "y_formats": [
-            "short",
-            "short"
-          ]
+          "yaxes": [
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            },
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          }
         },
         {
           "aliasColors": {},
@@ -1110,12 +1403,6 @@
           "error": false,
           "fill": 1,
           "grid": {
-            "leftLogBase": 1,
-            "leftMax": null,
-            "leftMin": null,
-            "rightLogBase": 1,
-            "rightMax": null,
-            "rightMin": null,
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
@@ -1123,7 +1410,6 @@
           },
           "id": 14,
           "isNew": true,
-          "leftYAxisLabel": "ms",
           "legend": {
             "avg": false,
             "current": false,
@@ -1147,11 +1433,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_nanoseconds{kubernetes_role=\"endpoint\",kubernetes_namespace=\"default\",name=\"pipe\",ws=\"false\"}/1e6) by (quantile)",
+              "expr": "max(scope_request_duration_nanoseconds{namespace=\"default\",job=\"pipe\",ws=\"false\"}/1e6) by (quantile)",
               "intervalFactor": 2,
               "legendFormat": "{{quantile}} quantile",
               "refId": "A",
-              "step": 60
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -1159,22 +1445,37 @@
           "title": "Pipe Latency",
           "tooltip": {
             "shared": true,
-            "value_type": "cumulative"
+            "value_type": "cumulative",
+            "msResolution": false
           },
           "type": "graph",
-          "x-axis": true,
-          "y-axis": true,
-          "y_formats": [
-            "short",
-            "short"
-          ]
+          "yaxes": [
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short",
+              "label": "ms"
+            },
+            {
+              "show": true,
+              "min": null,
+              "max": null,
+              "logBase": 1,
+              "format": "short"
+            }
+          ],
+          "xaxis": {
+            "show": true
+          }
         }
       ],
       "title": "New row"
     }
   ],
   "time": {
-    "from": "now-6h",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
@@ -1209,7 +1510,7 @@
   "annotations": {
     "list": []
   },
-  "schemaVersion": 8,
+  "schemaVersion": 12,
   "version": 9,
   "links": []
 }

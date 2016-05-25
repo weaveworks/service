@@ -1,58 +1,98 @@
-ALERT AppMapperErrorRate
- IF          sum(rate( scope_appmapper_request_duration_nanoseconds_count{status_code !~ "[1234][0-9][0-9]", kubernetes_role="endpoint"}[1m] )) > 1.0
+# Define error rate
+job:scope_request_errors:rate1m =
+   (sum(rate(scope_request_duration_nanoseconds_count{namespace="default",status_code=~"5.."}[1m])) by (job)) /
+   (sum(rate(scope_request_duration_nanoseconds_count{namespace="default"}[1m])) by (job))
+
+# Define non-ws latency
+job:scope_request_latency:max =
+   max(scope_request_duration_nanoseconds{namespace="default", quantile="0.9", ws="false"}/1e6) by (job)
+
+# Foreach service, an alert on error rate
+
+ALERT AuthFEErrorRate
+ IF          job:scope_request_errors:rate1m{job="authfe"} > 0.1
  FOR         5m
  WITH        { severity="critical" }
- SUMMARY     "app-mapper service: high error rate"
- DESCRIPTION "The app-mapper service has an error rate (response code >= 500) of {{$value}} errors per second."
+ SUMMARY     "authfe service: high error rate"
+ DESCRIPTION "The authfe service has an error rate (response code >= 500) of {{$value}} errors per second."
 
 ALERT UsersErrorRate
- IF          sum(rate( scope_users_request_duration_nanoseconds_count{status_code !~ "[1234][0-9][0-9]", kubernetes_role="endpoint"}[1m] )) > 1.0
+ IF          job:scope_request_errors:rate1m{job="users"} > 0.1
  FOR         5m
  WITH        { severity="critical" }
  SUMMARY     "users service: high error rate"
  DESCRIPTION "The users service has an error rate (response code >= 500) of {{$value}} errors per second."
 
-ALERT AppMapper4xxRate
- IF          sum(rate( scope_appmapper_request_duration_nanoseconds_count{status_code =~ "4[0-9][0-9]", kubernetes_role="endpoint"}[1m] )) > 1.0
+ALERT CollectionErrorRate
+ IF          job:scope_request_errors:rate1m{job="collection"} > 0.1
+ FOR         5m
+ WITH        { severity="critical" }
+ SUMMARY     "collection service: high error rate"
+ DESCRIPTION "The collection service has an error rate (response code >= 500) of {{$value}} errors per second."
+
+ALERT QueryErrorRate
+ IF          job:scope_request_errors:rate1m{job="query"} > 0.1
+ FOR         5m
+ WITH        { severity="critical" }
+ SUMMARY     "query service: high error rate"
+ DESCRIPTION "The query service has an error rate (response code >= 500) of {{$value}} errors per second."
+
+# Foreach service, an alert on latency
+
+ALERT AuthFELatency
+ IF          job:scope_request_latency:max{job="authfe"} > 5000.0
  FOR         5m
  WITH        { severity="warning" }
- SUMMARY     "app-mapper service: high 4xx rate"
- DESCRIPTION "The app-mapper service has a 4xx rate of {{$value}} errors per second."
-
-ALERT Users4xxRate
- IF          sum(rate( scope_users_request_duration_nanoseconds_count{status_code =~ "4[0-9][0-9]", kubernetes_role="endpoint"}[1m] )) > 1.0
- FOR         5m
- WITH        { severity="warning" }
- SUMMARY     "users service: high 4xx rate"
- DESCRIPTION "The users service has a 4xx rate of {{$value}} errors per second."
-
-# Use max(sort_desc(...)) to get around a bug in Prometheus' max() function.
-# https://github.com/prometheus/prometheus/issues/1289
-
-ALERT AppMapperLatency
- IF          max(sort_desc( scope_appmapper_request_duration_nanoseconds{route!="api_control", route!="api_app_topology_ws", route!="api_app_pipe", route!="api_probe_pipe", status_code="200", quantile="0.9", kubernetes_role="endpoint"}/1e6 )) > 5000.0
- FOR         5m
- WITH        { severity="warning" }
- SUMMARY     "app-mapper service: high latency"
- DESCRIPTION "The app-mapper service has a max 90th-quantile latency of {{$value}} ms."
+ SUMMARY     "authfe service: high latency"
+ DESCRIPTION "The authfe service has a max 90th-quantile latency of {{$value}} ms."
 
 ALERT UsersLatency
- IF          max(sort_desc( scope_users_request_duration_nanoseconds{status_code="200", quantile="0.9", kubernetes_role="endpoint"}/1e6 )) > 5000.0
+ IF          job:scope_request_latency:max{job="users"} > 5000.0
  FOR         5m
  WITH        { severity="warning" }
  SUMMARY     "users service: high latency"
  DESCRIPTION "The users service has a max 90th-quantile latency of {{$value}} ms."
 
-ALERT AppMapperNoInstances
- IF          absent(scope_appmapper_request_duration_nanoseconds)
+ALERT CollectionLatency
+ IF          job:scope_request_latency:max{job="collection"} > 5000.0
+ FOR         5m
+ WITH        { severity="warning" }
+ SUMMARY     "collection service: high latency"
+ DESCRIPTION "The collection service has a max 90th-quantile latency of {{$value}} ms."
+
+ALERT QueryLatency
+ IF          job:scope_request_latency:max{job="query"} > 5000.0
+ FOR         5m
+ WITH        { severity="warning" }
+ SUMMARY     "query service: high latency"
+ DESCRIPTION "The query service has a max 90th-quantile latency of {{$value}} ms."
+
+# Foreach service, an alert it its absent
+
+ALERT AuthFENoInstances
+ IF          absent(scope_request_duration_nanoseconds{job="authfe"})
  FOR         5m
  WITH        { severity="critical" }
- SUMMARY     "app-mapper service: no instances"
- DESCRIPTION "The app-mapper service has no running instances."
+ SUMMARY     "authfe service: no instances"
+ DESCRIPTION "The authfe service has no running instances."
 
 ALERT UsersNoInstances
- IF          absent(scope_users_request_duration_nanoseconds)
+ IF          absent(scope_request_duration_nanoseconds{job="users"})
  FOR         5m
  WITH        { severity="critical" }
  SUMMARY     "users service: no instances"
  DESCRIPTION "The users service has no running instances."
+
+ALERT CollectionNoInstances
+ IF          absent(scope_request_duration_nanoseconds{job="collection"})
+ FOR         5m
+ WITH        { severity="critical" }
+ SUMMARY     "collection service: no instances"
+ DESCRIPTION "The collection service has no running instances."
+
+ALERT UsersNoInstances
+ IF          absent(scope_request_duration_nanoseconds{job="query"})
+ FOR         5m
+ WITH        { severity="critical" }
+ SUMMARY     "query service: no instances"
+ DESCRIPTION "The query service has no running instances."
