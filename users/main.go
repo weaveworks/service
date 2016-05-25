@@ -11,6 +11,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"github.com/weaveworks/scope/common/middleware"
 
 	"github.com/weaveworks/service/common/instrument"
 	"github.com/weaveworks/service/users/pardot"
@@ -115,7 +116,10 @@ func (a *api) routes() http.Handler {
 		name := instrument.MakeLabelValue(route.path)
 		r.Handle(route.path, route.handler).Name(name).Methods(route.method)
 	}
-	return instrument.Middleware(r, requestDuration)(r)
+	return middleware.Instrument{
+		RouteMatcher: r,
+		Duration:     requestDuration,
+	}.Wrap(r)
 }
 
 func (a *api) admin(w http.ResponseWriter, r *http.Request) {
