@@ -1,26 +1,21 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: frontend-4904804
+  name: frontend-mt
 spec:
-  replicas: 2
+  replicas: 3
   selector:
-    name: frontend
-    version: "455b145"
+    name: frontend-mt
   template:
     metadata:
       labels:
-        name: frontend
-        version: "455b145"
+        name: frontend-mt
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: frontend
-        image: quay.io/weaveworks/frontend:455b145
-        env:
-        - name: GET_HOSTS_FROM
-          value: dns
+        image: quay.io/weaveworks/frontend-mt:a1c6606
         ports:
         - containerPort: 80
         - containerPort: 443

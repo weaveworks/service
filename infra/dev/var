@@ -37,11 +37,11 @@ K8S_MASTER_SIZE="m3.medium"
 # boot Kubernetes for a test cluster, but not enough to run Scope-as-a-Service
 # components. For that you need at least t2.medium.
 #
-K8S_MINION_SIZE="t2.medium"
+K8S_MINION_SIZE="m4.xlarge"
 
 # How many minion nodes to spawn.
 #
-K8S_NUM_MINIONS="3"
+K8S_NUM_MINIONS="4"
 
 # A prefix for the EC2 instance names. Should probably include "kubernetes"
 # and the name of the cluster, to help keep things understandable.
@@ -87,7 +87,7 @@ R53_RESOURCE_NAME="frontend.dev.weave.works"
 #
 #  kubectl describe svc frontend
 #
-R53_FRONTEND_ELB_ENDPOINT="aa26e80551e8b11e68f6612b1a78e90c-179068735.us-east-1.elb.amazonaws.com"
+R53_FRONTEND_ELB_ENDPOINT="a6246991221d311e6a36012b23092a53-1870334710.us-east-1.elb.amazonaws.com"
 
 # The canonical zone ID for the ELB, above. Again, you won't have that
 # information to start, so leave it blank. Once you launch the frontend

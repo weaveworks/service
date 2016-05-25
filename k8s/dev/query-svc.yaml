@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: app-mapper
+  name: query
   labels:
-    name: app-mapper
+    name: query
 spec:
   ports:
     - port: 80
   selector:
-    name: app-mapper
+    name: query
