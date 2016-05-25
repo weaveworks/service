@@ -17,7 +17,7 @@ fi
 
 mode="$1"
 
-toolbox="${TOOLBOX_IMAGE:-"weaveworks/kubernetes-anywhere:toolbox-v1.2.4-d66f679"}"
+version="${LOCAL_K8S_VERSION:-"v1.2"}"
 
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 local_k8s_dir="${script_dir}/../k8s/local"
@@ -57,7 +57,7 @@ function write_kubeconfig {
         docker run --rm --tty \
           --env=APISERVER_LOCAL_PORT \
           --volumes-from=kube-toolbox-pki \
-          "${toolbox}" \
+          "weaveworks/kubernetes-anywhere:toolbox-${version}" \
             print-local-config > "${kubeconfig}"
 
         if check_docker_machine
@@ -79,8 +79,8 @@ function remove_kubeconfig {
 }
 
 function pull_toolbox() {
-        [ "$(docker images -q "${toolbox}" | wc -l)" -eq 1 ] \
-          || docker pull "${toolbox}"
+        [ "$(docker images -q "weaveworks/kubernetes-anywhere:toolbox-${version}" | wc -l)" -eq 1 ] \
+          || docker pull "weaveworks/kubernetes-anywhere:toolbox-${version}"
 }
 
 function tear_down {
@@ -89,7 +89,7 @@ function tear_down {
         docker run --rm --tty \
           --volume="/:/rootfs" \
           --volume="/var/run/docker.sock:/docker.sock" \
-            "${toolbox}" \
+            "weaveworks/kubernetes-anywhere:toolbox-${version}" \
               reset-single-node > /dev/null 2>&1
         remove_kubeconfig
         local -a -r apps=($(docker ps -q -f 'name=k8s_*'))
@@ -151,14 +151,14 @@ function stand_up {
         docker run --rm --tty \
           --volume="/:/rootfs" \
           --volume="/var/run/weave/weave.sock:/docker.sock" \
-            "${toolbox}" \
+            "weaveworks/kubernetes-anywhere:toolbox-${version}" \
               setup-single-node
 
         docker run --rm --tty \
           --env=APISERVER_LOCAL_BIND \
           --env=APISERVER_LOCAL_PORT \
           --volume="/var/run/weave/weave.sock:/docker.sock" \
-            "${toolbox}" \
+            "weaveworks/kubernetes-anywhere:toolbox-${version}" \
               compose -p kube up -d
 
         write_kubeconfig
