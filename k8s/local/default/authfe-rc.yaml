@@ -11,6 +11,10 @@ spec:
       labels:
         name: authfe
     spec:
+      volumes:
+      - name: bigquery-secret
+        secret:
+          secretName: bigquery-secret
       containers:
       - name: authfe
         image: quay.io/weaveworks/authfe
@@ -19,3 +23,13 @@ spec:
         - -log.level=debug
         ports:
         - containerPort: 80
+      - name: logging
+        image: quay.io/weaveworks/logging
+        env:
+        - name: FLUENTD_CONF
+          value: fluent-dev.conf
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: bigquery-secret
+          mountPath: /bigquery/secret/
+          readOnly: true

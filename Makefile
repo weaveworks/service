@@ -38,6 +38,9 @@ KUBEDIFF_UPTODATE=kubediff/.image.uptodate
 KUBEDIFF_IMAGE=quay.io/weaveworks/kubediff
 PROM_RUN_EXE=vendor/github.com/tomwilkie/prom-run/prom-run
 
+LOGGING_UPTODATE=logging/.images.uptodate
+LOGGING_IMAGE=quay.io/weaveworks/logging
+
 # If you can use Docker without being root, you can `make SUDO= <target>`
 SUDO=$(shell docker info >/dev/null 2>&1 || echo "sudo -E")
 BUILD_IN_CONTAINER=true
@@ -64,8 +67,7 @@ NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 	false; \
 }
 
-all: $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE) $(JSON_BUILDER_UPTODATE) $(FRONTEND_MT_UPTODATE) $(KUBEDIFF_UPTODATE)
-
+all: $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE) $(JSON_BUILDER_UPTODATE) $(FRONTEND_MT_UPTODATE) $(KUBEDIFF_UPTODATE) $(LOGGING_UPTODATE)
 
 $(BUILD_UPTODATE): build/*
 	$(DOCKER_HOST_CHECK)
@@ -124,6 +126,12 @@ $(KUBEDIFF_UPTODATE): kubediff/Dockerfile $(PROM_RUN_EXE)
 	cp $(PROM_RUN_EXE) kubediff/
 	$(SUDO) docker build -t $(KUBEDIFF_IMAGE) kubediff
 	$(SUDO) docker tag $(KUBEDIFF_IMAGE) $(KUBEDIFF_IMAGE):$(IMAGE_TAG)
+	touch $@
+
+$(LOGGING_UPTODATE): logging/Dockerfile logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
+	$(DOCKER_HOST_CHECK)
+	$(SUDO) docker build -t $(LOGGING_IMAGE) logging/
+	$(SUDO) docker tag $(LOGGING_IMAGE) $(LOGGING_IMAGE):$(IMAGE_TAG)
 	touch $@
 
 $(AUTHFE_EXE): $(shell find authfe -name '*.go')

@@ -1,0 +1,57 @@
+[
+    {
+      "name": "dt",
+      "type": "TIMESTAMP",
+      "mode": "REQUIRED",
+      "description": "Event timestamp"
+    },
+    {
+      "name": "event",
+      "type": "STRING",
+      "mode": "REQUIRED",
+      "description": "Event identifier, e.g. url path accessed from client."
+    },
+    {
+      "name": "product",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "Product issuing the event, 'scope-ui' or 'scope-probe' for now."
+    },
+    {
+      "name": "version",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "Product version"
+    },
+    {
+      "name": "user_agent",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "HTTP User Agent (when the event is an http request)."
+    },
+    {
+      "name": "client_id",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "Client's identifier, only applicable to the probe for now."
+    },
+    {
+      "name": "org_id",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "Organization identifier, to what service organization the event belongs. Can be joined to users table."
+    },
+    {
+      "name": "user_id",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "User within the organization."
+    },
+    {
+      "name": "dev",
+      "type": "BOOLEAN",
+      "mode": "NULLABLE",
+      "description": "Was the event issued in a development environment? Allows discarding development events from production graphs."
+    }
+]
+
