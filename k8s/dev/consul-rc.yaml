@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
       - name: consul
-        image: gliderlabs/consul:0.6
+        image: consul:v0.6.4
         imagePullPolicy: IfNotPresent
         command:
         - "/bin/consul"
