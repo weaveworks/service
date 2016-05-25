@@ -21,7 +21,7 @@ spec:
         - --app.weave.addr=
         - --app.http.address=:80
         - --app.userid.header=X-Scope-OrgID
-        - --app.collector=dynamodb://abc:123@dynamodb.default.svc.cluster.local:8000
+        - --app.collector=dynamodb://abc:123@dynamodb.default.svc.cluster.local:8000/reports
         env:
         - name: CHECKPOINT_DISABLE
           value: "1"
