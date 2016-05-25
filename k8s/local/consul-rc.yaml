@@ -23,6 +23,7 @@ spec:
         - "-server"
         - "-client=0.0.0.0"
         - "-bootstrap"
+        - "-config-file=/etc/config/consul.config"
         env:
         - name: CHECKPOINT_DISABLE
           value: "1"
@@ -35,4 +36,19 @@ spec:
           containerPort: 8400
         - name: http
           containerPort: 8500
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/config
+      - name: exporter
+        image: prom/statsd-exporter
+        imagePullPolicy: IfNotPresent
+        args:
+        - "-web.listen-address=:8000"
+        ports:
+        - name: prom
+          containerPort: 8000
+      volumes:
+        - name: config-volume
+          configMap:
+            name: consul-config
 
