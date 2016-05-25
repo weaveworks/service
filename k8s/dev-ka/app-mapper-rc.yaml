@@ -19,7 +19,7 @@ spec:
       - name: app-mapper
         image: quay.io/weaveworks/app-mapper:ee7b2c9
         args:
-        - -db-uri=postgres://postgres:amK9NGqt2bwNgzz8DF@app-mapper-database.cqqzyyx2xnct.us-east-1.rds.amazonaws.com/app_mapper?sslmode=disable
+        - -db-uri=postgres://postgres:am1e28d6a4b3302b@app-mapper-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com/app_mapper?sslmode=disable
         - -log-level=debug
         ports:
         - containerPort: 80

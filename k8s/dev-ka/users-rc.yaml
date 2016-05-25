@@ -19,10 +19,10 @@ spec:
       - name: users
         image: quay.io/weaveworks/users:cb08840
         args:
-        - -domain=https://scope.weave.works
-        - -session-secret=3919365780a79e0658fd44d03e6945a080031ec077b88975898f698c0d298395
+        - -domain=http://frontend.dev.weave.works
+        - -session-secret=56ee20ee7e8dc0b366abb1df4b3ac22ae05566d8eb18cba26f1c0925b1b9c7bf
         - -sendgrid-api-key=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
-        - -database-uri=postgres://postgres:usvqvHmLw2EahFK9Pa@users-database.cqqzyyx2xnct.us-east-1.rds.amazonaws.com/users?sslmode=disable
+        - -database-uri=postgres://postgres:us45dcd40163798d@users-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com/users?sslmode=disable
         - -pardot-email=tom@weave.works
         - -pardot-password=Zi23R}aV7T
         - -pardot-userkey=94f4347b4f6e55ff9b2057fcae67056e

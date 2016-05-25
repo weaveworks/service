@@ -16,5 +16,5 @@ spec:
       - name: metrics
         image: quay.io/weaveworks/metrics:98d4fd7
         args:
-        - -database-uri=postgres://postgres:usvqvHmLw2EahFK9Pa@users-database.cqqzyyx2xnct.us-east-1.rds.amazonaws.com/users?sslmode=disable
-        - -endpoint=https://bi.weave.works/import/service/users
+        - -database-uri=postgres://postgres:us45dcd40163798d@users-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com/users?sslmode=disable
+        - -endpoint=https://bi.weave.works/import/service_dev/users
