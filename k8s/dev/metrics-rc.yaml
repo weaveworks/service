@@ -4,6 +4,9 @@ metadata:
   name: metrics-98d4fd7
 spec:
   replicas: 1
+  selector:
+    name: metrics-98d4fd7
+    version: 98d4fd7
   template:
     metadata:
       labels:

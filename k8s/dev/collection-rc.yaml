@@ -1,13 +1,17 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: collection
+  name: collection-f68fa077f6b2
 spec:
   replicas: 3
+  selector:
+    name: collection
+    version: f68fa077f6b2
   template:
     metadata:
       labels:
         name: collection
+        version: f68fa077f6b2
     spec:
       containers:
       - name: collection

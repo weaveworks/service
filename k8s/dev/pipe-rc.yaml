@@ -1,13 +1,17 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: pipe
+  name: pipe-f68fa077f6b2
 spec:
   replicas: 3
+  selector:
+    name: pipe
+    version: f68fa077f6b2
   template:
     metadata:
       labels:
         name: pipe
+        version: f68fa077f6b2
     spec:
       containers:
       - name: pipe

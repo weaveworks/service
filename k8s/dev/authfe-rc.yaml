@@ -1,13 +1,17 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: authfe
+  name: authfe-5ba022a
 spec:
   replicas: 3
+  selector:
+    name: authfe
+    version: 5ba022a
   template:
     metadata:
       labels:
         name: authfe
+        version: 5ba022a
     spec:
       imagePullSecrets:
       - name: quay-secret
