@@ -13,7 +13,7 @@ spec:
       - name: quay-secret
       containers:
       - name: authfe
-        image: quay.io/weaveworks/authfe:09ea358
+        image: quay.io/weaveworks/authfe:5ba022a
         imagePullPolicy: IfNotPresent
         args:
         - -log.level=debug

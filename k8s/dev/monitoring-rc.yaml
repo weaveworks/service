@@ -17,11 +17,11 @@ spec:
       - name: quay-secret
       containers:
       - name: prometheus
-        image: quay.io/weaveworks/prometheus:2dc5061
+        image: quay.io/weaveworks/prometheus:d011507
         ports:
         - containerPort: 9090
       - name: grafana
-        image: quay.io/weaveworks/grafana:5e770fd
+        image: quay.io/weaveworks/grafana:4ff5fbf
         ports:
         - containerPort: 3000
       - name: gfdatasource

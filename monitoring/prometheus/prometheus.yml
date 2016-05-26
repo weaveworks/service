@@ -5,6 +5,7 @@ global:
 rule_files:
 - alert.rules
 
+# This scrape config gather all service endpoints
 scrape_configs:
 - job_name: 'kubernetes-services'
   kubernetes_sd_configs:
@@ -12,9 +13,10 @@ scrape_configs:
     - 'https://kubernetes.default.svc.cluster.local'
     in_cluster: true
 
-  # https://github.com/prometheus/prometheus/blob/0.16.1/documentation/examples/prometheus-kubernetes.yml
-  # Note: do NOT include the 'keep' rule, which relies on information that isn't present for us.
   relabel_configs:
+  - source_labels: [__meta_kubernetes_role]
+    action: keep
+    regex: endpoint
   - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
     action: replace
     target_label: __scheme__
@@ -33,19 +35,40 @@ scrape_configs:
   - action: labelmap
     regex: ^__meta_kubernetes_service_label_(.+)$
     replacement: $1
-  - source_labels: [__meta_kubernetes_role]
-    action: replace
-    regex: ^(.+)$
-    target_label: kubernetes_role
-    replacement: $1
   - source_labels: [__meta_kubernetes_service_namespace]
     action: replace
     regex: ^(.+)$
-    target_label: kubernetes_namespace
+    target_label: namespace
     replacement: $1
   - source_labels: [__meta_kubernetes_service_name]
-    action: replace
     regex: ^(.+)$
-    target_label: kubernetes_name
+    target_label: job
     replacement: $1
+
+# This scrape config gather all nodes
+- job_name: 'kubernetes-nodes'
+  kubernetes_sd_configs:
+  - api_servers:
+    - 'https://kubernetes.default.svc.cluster.local'
+    in_cluster: true
+
+  relabel_configs:
+  - source_labels: [__meta_kubernetes_role]
+    action: keep
+    regex: node
+  - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+    action: replace
+    target_label: __scheme__
+    regex: ^(https?)$
+    replacement: $1
+  - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+    action: replace
+    target_label: __metrics_path__
+    regex: ^(.+)$
+    replacement: $1
+  - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+    action: replace
+    target_label: __address__
+    regex: ^(.+)(?::\d+);(\d+)$
+    replacement: $1:$2
 
