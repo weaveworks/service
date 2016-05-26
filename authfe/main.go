@@ -88,6 +88,10 @@ func main() {
 	probeRouter.PathPrefix("/api/control").Name("api_probe_control").Handler(contolFwd)
 	probeRouter.PathPrefix("/api/pipe").Name("api_probe_pipe").Handler(pipeFwd)
 
+	// adminRouter is for all admin functionality, authenticated using header credentials
+	adminRouter := mux.NewRouter().StrictSlash(false)
+	adminRouter.PathPrefix("/admin").Name("admin").Handler(http.HandlerFunc(adminRoot))
+
 	// authentication is done by middleware
 	authenticator := users.MakeAuthenticator(authenticatorType, authenticatorURL)
 	orgAuthMiddleware := users.AuthOrgMiddleware{
@@ -102,12 +106,20 @@ func main() {
 		Authenticator: authenticator,
 		OutputHeader:  outputHeader,
 	}
+	adminAuthMiddleware := users.AuthAdminMiddleware{
+		Authenticator: authenticator,
+		OutputHeader:  outputHeader,
+	}
 	orgInstrumentation := middleware.Instrument{
 		RouteMatcher: orgRouter,
 		Duration:     requestDuration,
 	}
 	probeInstrumentation := middleware.Instrument{
 		RouteMatcher: probeRouter,
+		Duration:     requestDuration,
+	}
+	adminInstrumentation := middleware.Instrument{
+		RouteMatcher: adminRouter,
 		Duration:     requestDuration,
 	}
 
@@ -135,6 +147,11 @@ func main() {
 			probeInstrumentation,
 			probeAuthMiddleware,
 		).Wrap(probeRouter))
+	rootRouter.PathPrefix("/admin").Handler(
+		middleware.Merge(
+			adminInstrumentation,
+			adminAuthMiddleware,
+		).Wrap(adminRouter))
 	log.Infof("Listening on %s", listen)
 	log.Fatal(http.ListenAndServe(listen, middleware.Logging.Wrap(rootRouter)))
 }

@@ -108,6 +108,7 @@ func (a *api) routes() http.Handler {
 		{"GET", "/api/users/org/{orgName}/users", a.authenticated(a.listOrganizationUsers)},
 		{"POST", "/api/users/org/{orgName}/users", a.authenticated(a.inviteUser)},
 		{"DELETE", "/api/users/org/{orgName}/users/{userEmail}", a.authenticated(a.deleteUser)},
+		{"GET", "/private/api/users/admin", a.authenticated(a.lookupAdmin)},
 		{"GET", "/private/api/users/lookup/{orgName}", a.authenticated(a.lookupUsingCookie)},
 		{"GET", "/private/api/users/lookup", a.lookupUsingToken},
 		{"GET", "/private/api/users", a.listUsers},
@@ -266,7 +267,7 @@ type lookupView struct {
 	OrganizationID     string `json:"organizationID,omitempty"`
 	OrganizationName   string `json:"organizationName,omitempty"`
 	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
-	Admin              bool   `json:"admin,omitempty"`
+	AdminID            string `json:"adminID,omitempty"`
 }
 
 func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Request) {
@@ -277,7 +278,15 @@ func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Req
 }
 
 func (a *api) lookupUsingCookie(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	renderJSON(w, http.StatusOK, lookupView{OrganizationID: currentUser.Organization.ID, Admin: currentUser.Admin})
+	renderJSON(w, http.StatusOK, lookupView{OrganizationID: currentUser.Organization.ID})
+}
+
+func (a *api) lookupAdmin(currentUser *user, w http.ResponseWriter, r *http.Request) {
+	if currentUser.Admin {
+		renderJSON(w, http.StatusOK, lookupView{AdminID: currentUser.ID})
+		return
+	}
+	w.WriteHeader(http.StatusUnauthorized)
 }
 
 func (a *api) lookupUsingToken(w http.ResponseWriter, r *http.Request) {
