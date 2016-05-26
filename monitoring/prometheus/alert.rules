@@ -7,7 +7,7 @@ job:scope_request_errors:rate1m =
 job:scope_request_latency:max =
    max(scope_request_duration_nanoseconds{namespace="default", quantile="0.9", ws="false"}/1e6) by (job)
 
-# Foreach service, an alert on error rate
+# For each service, an alert on error rate
 
 ALERT AuthFEErrorRate
  IF          job:scope_request_errors:rate1m{job="authfe"} > 0.1
@@ -37,7 +37,7 @@ ALERT QueryErrorRate
  SUMMARY     "query service: high error rate"
  DESCRIPTION "The query service has an error rate (response code >= 500) of {{$value}} errors per second."
 
-# Foreach service, an alert on latency
+# For each service, an alert on latency
 
 ALERT AuthFELatency
  IF          job:scope_request_latency:max{job="authfe"} > 5000.0
@@ -67,7 +67,7 @@ ALERT QueryLatency
  SUMMARY     "query service: high latency"
  DESCRIPTION "The query service has a max 90th-quantile latency of {{$value}} ms."
 
-# Foreach service, an alert it its absent
+# For each service, an alert if it's absent
 
 ALERT AuthFENoInstances
  IF          absent(scope_request_duration_nanoseconds{job="authfe"})
