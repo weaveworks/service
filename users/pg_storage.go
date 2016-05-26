@@ -149,7 +149,7 @@ func (s pgStorage) scanUser(row squirrel.RowScanner) (*user, error) {
 		oCreatedAt pq.NullTime
 	)
 	if err := row.Scan(
-		&u.ID, &u.Email, &token, &tokenCreatedAt, &approvedAt, &createdAt,
+		&u.ID, &u.Email, &token, &tokenCreatedAt, &approvedAt, &createdAt, &u.Admin,
 		&firstLoginAt, &oID, &oName, &oProbeToken, &oFirstProbeUpdateAt,
 		&oCreatedAt,
 	); err != nil {
@@ -192,6 +192,7 @@ func (s pgStorage) usersQuery() squirrel.SelectBuilder {
 		"users.token_created_at",
 		"users.approved_at",
 		"users.created_at",
+		"users.admin",
 		"users.first_login_at",
 		"users.organization_id",
 		"organizations.name",
@@ -247,6 +248,25 @@ func (s pgStorage) addUserToOrganization(db squirrel.Execer, userID, organizatio
 		s.Now(),
 	)
 	return err
+}
+
+// Set the admin flag of a user
+func (s pgStorage) SetUserAdmin(id string, value bool) error {
+	result, err := s.Exec(`
+		update users set admin = $2 where id = $1 and deleted_at is null
+	`, id, value,
+	)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	switch {
+	case err != nil:
+		return err
+	case count != 1:
+		return errNotFound
+	}
+	return nil
 }
 
 func (s pgStorage) SetUserToken(id, token string) error {

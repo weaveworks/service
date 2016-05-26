@@ -266,6 +266,7 @@ type lookupView struct {
 	OrganizationID     string `json:"organizationID,omitempty"`
 	OrganizationName   string `json:"organizationName,omitempty"`
 	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
+	Admin              bool   `json:"admin,omitempty"`
 }
 
 func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Request) {
@@ -276,7 +277,7 @@ func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Req
 }
 
 func (a *api) lookupUsingCookie(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	renderJSON(w, http.StatusOK, lookupView{OrganizationID: currentUser.Organization.ID})
+	renderJSON(w, http.StatusOK, lookupView{OrganizationID: currentUser.Organization.ID, Admin: currentUser.Admin})
 }
 
 func (a *api) lookupUsingToken(w http.ResponseWriter, r *http.Request) {

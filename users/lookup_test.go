@@ -117,3 +117,47 @@ func Test_Lookup_ProbeToken(t *testing.T) {
 	assert.NotNil(t, user.Organization.FirstProbeUpdateAt)
 	assert.False(t, user.Organization.FirstProbeUpdateAt.IsZero())
 }
+
+func Test_Lookup_Admin(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user, err := storage.CreateUser("joe@weave.works")
+	require.NoError(t, err)
+	user, err = storage.ApproveUser(user.ID)
+	require.NoError(t, err)
+	require.NoError(t, storage.SetUserAdmin(user.ID, true))
+
+	cookie, err := sessions.Cookie(user.ID)
+	assert.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/private/api/users/admin", nil)
+	r.AddCookie(cookie)
+
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, map[string]interface{}{"adminID": user.ID}, body)
+}
+
+func Test_Lookup_Admin_Unauthorized(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user, err := storage.CreateUser("joe@weave.works")
+	require.NoError(t, err)
+	user, err = storage.ApproveUser(user.ID)
+	require.NoError(t, err)
+
+	cookie, err := sessions.Cookie(user.ID)
+	assert.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/private/api/users/admin", nil)
+	r.AddCookie(cookie)
+
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}

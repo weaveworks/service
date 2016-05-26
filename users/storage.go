@@ -36,6 +36,9 @@ type database interface {
 	// Approve the user for access. Should generate them a new organization.
 	ApproveUser(id string) (*user, error)
 
+	// Set the admin flag of a user
+	SetUserAdmin(id string, value bool) error
+
 	// Update the user's login token. Setting the token to "" should disable the
 	// user's token.
 	SetUserToken(id, token string) error
