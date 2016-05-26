@@ -15,7 +15,6 @@ dependencies:
   cache_directories:
     - "~/docker"
   post:
-    - sudo pip install pyyaml
     - mkdir -p $(dirname $SRCDIR)
     - cp -r $(pwd)/ $SRCDIR
     - cd $SRCDIR/client; ../tools/rebuild-image service_client_build . Dockerfile package.json webpack.local.config.js webpack.production.config.js .babelrc
@@ -26,7 +25,6 @@ dependencies:
 test:
   override:
     - cd $SRCDIR; make RM= lint
-    - cd $SRCDIR/k8s; ./lint.py dev
     - cd $SRCDIR; COVERDIR=./coverage make RM= test
     - cd $SRCDIR; make RM=
     - cd $SRCDIR; make RM= users-integration-test
