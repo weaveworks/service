@@ -1,14 +1,216 @@
 {
-  "id": 1,
-  "title": "Services Dashboard",
-  "originalTitle": "Services Dashboard",
-  "tags": [],
-  "style": "dark",
-  "timezone": "browser",
+  "annotations": {
+    "list": []
+  },
   "editable": true,
   "hideControls": false,
-  "sharedCrosshair": false,
+  "id": 1,
+  "links": [],
+  "originalTitle": "Services Dashboard",
+  "refresh": "10s",
   "rows": [
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 17,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(rate(nginx_http_requests_total{job=\"frontend-metrics\",status=~\"1..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "1xx",
+              "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "sum(rate(nginx_http_requests_total{job=\"frontend-metrics\",status=~\"2..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "2xx",
+              "refId": "B",
+              "step": 10
+            },
+            {
+              "expr": "sum(rate(nginx_http_requests_total{job=\"frontend-metrics\",status=~\"3..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "3xx",
+              "refId": "C",
+              "step": 10
+            },
+            {
+              "expr": "sum(rate(nginx_http_requests_total{job=\"frontend-metrics\",status=~\"4..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "4xx",
+              "refId": "D",
+              "step": 10
+            },
+            {
+              "expr": "sum(rate(nginx_http_requests_total{job=\"frontend-metrics\",status=~\"5..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "5xx",
+              "refId": "E",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Frontend QPS",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 18,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(nginx_http_request_duration_seconds_bucket{job=\"frontend-metrics\"}[1m])) by (le)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "0.5 quantile",
+              "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.9, sum(rate(nginx_http_request_duration_seconds_bucket{job=\"frontend-metrics\"}[1m])) by (le)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "0.9 quantile",
+              "refId": "B",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(nginx_http_request_duration_seconds_bucket{job=\"frontend-metrics\"}[1m])) by (le)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "0.99 quantile",
+              "refId": "C",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Frontend latency",
+          "tooltip": {
+            "msResolution": false,
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": "ms",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        }
+      ],
+      "title": ""
+    },
     {
       "collapse": false,
       "editable": true,
@@ -91,30 +293,30 @@
           "timeShift": null,
           "title": "AuthFE QPS",
           "tooltip": {
+            "msResolution": false,
             "shared": true,
-            "value_type": "cumulative",
-            "msResolution": false
+            "value_type": "cumulative"
           },
           "type": "graph",
-          "yaxes": [
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            },
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            }
-          ],
           "xaxis": {
             "show": true
-          }
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         },
         {
           "aliasColors": {},
@@ -165,223 +367,223 @@
           "timeShift": null,
           "title": "AuthFE Latency",
           "tooltip": {
+            "msResolution": false,
             "shared": true,
-            "value_type": "cumulative",
-            "msResolution": false
+            "value_type": "cumulative"
           },
           "type": "graph",
-          "yaxes": [
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short",
-              "label": "ms"
-            },
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            }
-          ],
           "xaxis": {
             "show": true
-          }
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": "ms",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         }
       ],
       "title": "New row"
     },
     {
-      "title": "New row",
-      "height": "250px",
-      "editable": true,
       "collapse": false,
+      "editable": true,
+      "height": "250px",
       "panels": [
         {
-          "title": "Users QPS",
-          "error": false,
-          "span": 6,
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
           "editable": true,
-          "type": "graph",
-          "isNew": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
           "id": 15,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
           "targets": [
             {
-              "refId": "A",
               "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"users\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
-              "step": 10,
-              "legendFormat": "1xx"
+              "legendFormat": "1xx",
+              "refId": "A",
+              "step": 10
             },
             {
               "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"users\",status_code =~ \"2..\"}[1m]))",
               "intervalFactor": 2,
-              "refId": "B",
-              "step": 10,
+              "legendFormat": "2xx",
               "metric": "",
-              "legendFormat": "2xx"
+              "refId": "B",
+              "step": 10
             },
             {
               "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"users\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
+              "legendFormat": "3xx",
               "refId": "C",
-              "step": 10,
-              "legendFormat": "3xx"
+              "step": 10
             },
             {
               "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"users\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
+              "legendFormat": "4xx",
               "refId": "D",
-              "step": 10,
-              "legendFormat": "4xx"
+              "step": 10
             },
             {
               "expr": "sum(rate(scope_request_duration_nanoseconds_count{namespace=\"default\",job=\"users\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
+              "legendFormat": "5xx",
               "refId": "E",
-              "step": 10,
-              "legendFormat": "5xx"
+              "step": 10
             }
           ],
-          "datasource": "Scope-as-a-Service Prometheus",
-          "renderer": "flot",
-          "yaxes": [
-            {
-              "label": null,
-              "show": true,
-              "logBase": 1,
-              "min": null,
-              "max": null,
-              "format": "short"
-            },
-            {
-              "label": null,
-              "show": true,
-              "logBase": 1,
-              "min": null,
-              "max": null,
-              "format": "short"
-            }
-          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Users QPS",
+          "tooltip": {
+            "msResolution": false,
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
           "xaxis": {
             "show": true
           },
-          "grid": {
-            "threshold1": null,
-            "threshold2": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "lines": true,
-          "fill": 1,
-          "linewidth": 2,
-          "points": false,
-          "pointradius": 5,
-          "bars": false,
-          "stack": false,
-          "percentage": false,
-          "legend": {
-            "show": true,
-            "values": false,
-            "min": false,
-            "max": false,
-            "current": false,
-            "total": false,
-            "avg": false
-          },
-          "nullPointMode": "connected",
-          "steppedLine": false,
-          "tooltip": {
-            "value_type": "cumulative",
-            "shared": true,
-            "msResolution": false
-          },
-          "timeFrom": null,
-          "timeShift": null,
-          "aliasColors": {},
-          "seriesOverrides": [],
-          "links": []
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         },
         {
-          "title": "Users Latency",
-          "error": false,
-          "span": 6,
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
           "editable": true,
-          "type": "graph",
-          "isNew": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
           "id": 16,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
           "targets": [
             {
-              "refId": "A",
               "expr": "max(scope_request_duration_nanoseconds{namespace=\"default\",job=\"users\"}/1e6) by (quantile)",
               "intervalFactor": 2,
-              "step": 10,
-              "legendFormat": "{{quantile}} quantile"
+              "legendFormat": "{{quantile}} quantile",
+              "refId": "A",
+              "step": 10
             }
           ],
-          "datasource": "Scope-as-a-Service Prometheus",
-          "renderer": "flot",
-          "yaxes": [
-            {
-              "label": null,
-              "show": true,
-              "logBase": 1,
-              "min": null,
-              "max": null,
-              "format": "short"
-            },
-            {
-              "label": null,
-              "show": true,
-              "logBase": 1,
-              "min": null,
-              "max": null,
-              "format": "short"
-            }
-          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Users Latency",
+          "tooltip": {
+            "msResolution": false,
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
           "xaxis": {
             "show": true
           },
-          "grid": {
-            "threshold1": null,
-            "threshold2": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "lines": true,
-          "fill": 1,
-          "linewidth": 2,
-          "points": false,
-          "pointradius": 5,
-          "bars": false,
-          "stack": false,
-          "percentage": false,
-          "legend": {
-            "show": true,
-            "values": false,
-            "min": false,
-            "max": false,
-            "current": false,
-            "total": false,
-            "avg": false
-          },
-          "nullPointMode": "connected",
-          "steppedLine": false,
-          "tooltip": {
-            "value_type": "cumulative",
-            "shared": true,
-            "msResolution": false
-          },
-          "timeFrom": null,
-          "timeShift": null,
-          "aliasColors": {},
-          "seriesOverrides": [],
-          "links": []
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         }
-      ]
+      ],
+      "title": "New row"
     },
     {
       "collapse": false,
@@ -465,30 +667,30 @@
           "timeShift": null,
           "title": "Collection QPS",
           "tooltip": {
+            "msResolution": false,
             "shared": true,
-            "value_type": "cumulative",
-            "msResolution": false
+            "value_type": "cumulative"
           },
           "type": "graph",
-          "yaxes": [
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            },
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            }
-          ],
           "xaxis": {
             "show": true
-          }
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         },
         {
           "aliasColors": {},
@@ -539,31 +741,31 @@
           "timeShift": null,
           "title": "Collection Latency",
           "tooltip": {
+            "msResolution": false,
             "shared": true,
-            "value_type": "cumulative",
-            "msResolution": false
+            "value_type": "cumulative"
           },
           "type": "graph",
-          "yaxes": [
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short",
-              "label": "ms"
-            },
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            }
-          ],
           "xaxis": {
             "show": true
-          }
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": "ms",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         }
       ],
       "title": "Row"
@@ -650,30 +852,30 @@
           "timeShift": null,
           "title": "Query QPS",
           "tooltip": {
+            "msResolution": false,
             "shared": true,
-            "value_type": "cumulative",
-            "msResolution": false
+            "value_type": "cumulative"
           },
           "type": "graph",
-          "yaxes": [
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            },
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            }
-          ],
           "xaxis": {
             "show": true
-          }
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         },
         {
           "aliasColors": {},
@@ -724,31 +926,31 @@
           "timeShift": null,
           "title": "Query Latency",
           "tooltip": {
+            "msResolution": false,
             "shared": true,
-            "value_type": "cumulative",
-            "msResolution": false
+            "value_type": "cumulative"
           },
           "type": "graph",
-          "yaxes": [
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short",
-              "label": "ms"
-            },
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            }
-          ],
           "xaxis": {
             "show": true
-          }
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": "ms",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         }
       ],
       "title": "New row"
@@ -828,30 +1030,30 @@
           "timeShift": null,
           "title": "DynamoDB QPS",
           "tooltip": {
+            "msResolution": false,
             "shared": true,
-            "value_type": "cumulative",
-            "msResolution": false
+            "value_type": "cumulative"
           },
           "type": "graph",
-          "yaxes": [
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            },
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            }
-          ],
           "xaxis": {
             "show": true
-          }
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         },
         {
           "aliasColors": {},
@@ -909,31 +1111,31 @@
           "timeShift": null,
           "title": "DynamoDB Latency",
           "tooltip": {
+            "msResolution": false,
             "shared": true,
-            "value_type": "cumulative",
-            "msResolution": false
+            "value_type": "cumulative"
           },
           "type": "graph",
-          "yaxes": [
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short",
-              "label": "ms"
-            },
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            }
-          ],
           "xaxis": {
             "show": true
-          }
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": "ms",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         }
       ],
       "title": "New row"
@@ -1021,30 +1223,30 @@
           "timeShift": null,
           "title": "Control QPS",
           "tooltip": {
+            "msResolution": false,
             "shared": true,
-            "value_type": "cumulative",
-            "msResolution": false
+            "value_type": "cumulative"
           },
           "type": "graph",
-          "yaxes": [
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            },
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            }
-          ],
           "xaxis": {
             "show": true
-          }
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         },
         {
           "aliasColors": {},
@@ -1095,31 +1297,31 @@
           "timeShift": null,
           "title": "Control Latency",
           "tooltip": {
+            "msResolution": false,
             "shared": true,
-            "value_type": "cumulative",
-            "msResolution": false
+            "value_type": "cumulative"
           },
           "type": "graph",
-          "yaxes": [
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short",
-              "label": "ms"
-            },
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            }
-          ],
           "xaxis": {
             "show": true
-          }
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": "ms",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         }
       ],
       "title": "New row"
@@ -1185,30 +1387,30 @@
           "timeShift": null,
           "title": "SQS QPS",
           "tooltip": {
+            "msResolution": false,
             "shared": true,
-            "value_type": "cumulative",
-            "msResolution": false
+            "value_type": "cumulative"
           },
           "type": "graph",
-          "yaxes": [
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            },
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            }
-          ],
           "xaxis": {
             "show": true
-          }
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         },
         {
           "aliasColors": {},
@@ -1259,31 +1461,31 @@
           "timeShift": null,
           "title": "SQS Latency",
           "tooltip": {
+            "msResolution": false,
             "shared": true,
-            "value_type": "cumulative",
-            "msResolution": false
+            "value_type": "cumulative"
           },
           "type": "graph",
-          "yaxes": [
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short",
-              "label": "ms"
-            },
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            }
-          ],
           "xaxis": {
             "show": true
-          }
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": "ms",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         }
       ],
       "title": "New row"
@@ -1370,30 +1572,30 @@
           "timeShift": null,
           "title": "Pipe QPS",
           "tooltip": {
+            "msResolution": false,
             "shared": true,
-            "value_type": "cumulative",
-            "msResolution": false
+            "value_type": "cumulative"
           },
           "type": "graph",
-          "yaxes": [
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            },
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            }
-          ],
           "xaxis": {
             "show": true
-          }
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         },
         {
           "aliasColors": {},
@@ -1444,36 +1646,203 @@
           "timeShift": null,
           "title": "Pipe Latency",
           "tooltip": {
+            "msResolution": false,
             "shared": true,
-            "value_type": "cumulative",
-            "msResolution": false
+            "value_type": "cumulative"
           },
           "type": "graph",
-          "yaxes": [
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short",
-              "label": "ms"
-            },
-            {
-              "show": true,
-              "min": null,
-              "max": null,
-              "logBase": 1,
-              "format": "short"
-            }
-          ],
           "xaxis": {
             "show": true
-          }
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": "ms",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 19,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(rate(consul_consul_rpc_query_counter{job=\"consul-exporter\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "QPS",
+              "refId": "A",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Consul QPS",
+          "tooltip": {
+            "msResolution": false,
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 20,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "max(consul_consul_rpc_consistentRead_timer{job=\"consul-exporter\"}) by (quantile) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "{{quantile}} quantile",
+              "refId": "A",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Consul Read Latency",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": "ms",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
         }
       ],
       "title": "New row"
     }
   ],
+  "schemaVersion": 12,
+  "sharedCrosshair": false,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": []
+  },
   "time": {
     "from": "now-1h",
     "to": "now"
@@ -1504,13 +1873,7 @@
       "30d"
     ]
   },
-  "templating": {
-    "list": []
-  },
-  "annotations": {
-    "list": []
-  },
-  "schemaVersion": 12,
-  "version": 9,
-  "links": []
+  "timezone": "browser",
+  "title": "Services Dashboard",
+  "version": 9
 }
