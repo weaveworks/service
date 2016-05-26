@@ -17,6 +17,7 @@ USERS_UPTODATE=users/.images.uptodate
 USERS_EXE=users/users
 USERS_IMAGE=quay.io/weaveworks/users
 USERS_DB_IMAGE=weaveworks/users-db # The DB image is only used in the local environment and it's not pushed to Quay
+USERS_DB_MIGRATE_EXE=users/db/migrate
 
 METRICS_UPTODATE=metrics/.uptodate
 METRICS_EXE=metrics/metrics
@@ -83,7 +84,7 @@ $(AUTHFE_UPTODATE): authfe/Dockerfile $(AUTHFE_EXE)
 	$(SUDO) docker build -t $(AUTHFE_IMAGE) authfe/
 	touch $@
 
-$(USERS_UPTODATE): users/Dockerfile users/templates/* $(USERS_EXE) users/db/* users/ca-certificates.crt
+$(USERS_UPTODATE): users/Dockerfile users/templates/* $(USERS_EXE) users/db/* users/ca-certificates.crt users/db/migrations/* $(USERS_DB_MIGRATE_EXE)
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(USERS_IMAGE) users/
 	$(SUDO) docker build -t $(USERS_DB_IMAGE) users/db/
@@ -129,7 +130,7 @@ $(METRICS_EXE): metrics/*.go
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
-$(APP_MAPPER_EXE) $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) lint test: $(BUILD_UPTODATE)
+$(APP_MAPPER_EXE) $(AUTHFE_EXE) $(USERS_EXE) $(USERS_DB_MIGRATE_EXE) $(METRICS_EXE) lint test: $(BUILD_UPTODATE)
 	$(SUDO) docker run $(RM) -ti -v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
 		$(BUILD_IMAGE) $@
@@ -142,6 +143,9 @@ $(APP_MAPPER_EXE) $(AUTHFE_EXE) $(USERS_EXE): $(BUILD_UPTODATE)
 
 $(METRICS_EXE): $(BUILD_UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
+
+$(USERS_DB_MIGRATE_EXE): $(BUILD_UPTODATE) $(shell find ./vendor/github.com/mattes/migrate/.)
+	go build $(GO_FLAGS) -o $@ ./vendor/github.com/mattes/migrate
 
 lint: $(BUILD_UPTODATE)
 	./tools/lint .

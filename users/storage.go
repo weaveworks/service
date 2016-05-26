@@ -6,6 +6,8 @@ import (
 	"net/url"
 
 	"github.com/Sirupsen/logrus"
+	_ "github.com/mattes/migrate/driver/postgres"
+	"github.com/mattes/migrate/migrate"
 )
 
 var (
@@ -51,10 +53,19 @@ type findUserByIDer interface {
 	FindUserByID(id string) (*user, error)
 }
 
-func mustNewDatabase(databaseURI string) database {
+func mustNewDatabase(databaseURI, migrationsDir string) database {
 	u, err := url.Parse(databaseURI)
 	if err != nil {
 		logrus.Fatal(err)
+	}
+	if migrationsDir != "" {
+		logrus.Infof("Running Database Migrations...")
+		if errs, ok := migrate.UpSync(databaseURI, migrationsDir); !ok {
+			for _, err := range errs {
+				logrus.Error(err)
+			}
+			logrus.Fatal("Database migrations failed")
+		}
 	}
 	var storage database
 	switch u.Scheme {

@@ -1,3 +1,5 @@
 FROM postgres:9.4
 
-ADD schema.sql /docker-entrypoint-initdb.d/
+ADD init-db.sh /docker-entrypoint-initdb.d/
+ADD migrate /migrate
+ADD migrations/*.sql /migrations/

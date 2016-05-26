@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	databaseURI = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users_test?sslmode=disable", "Uri of a test database")
+	databaseURI        = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users_test?sslmode=disable", "Uri of a test database")
+	databaseMigrations = flag.String("database-migrations", "", "Path where the database migration files can be found")
 
 	sentEmails []*email.Email
 	app        *api
@@ -32,7 +33,7 @@ func setup(t *testing.T) {
 	var directLogin, approvalRequired = false, true
 
 	setupLogging("debug")
-	storage = mustNewDatabase(*databaseURI)
+	storage = mustNewDatabase(*databaseURI, *databaseMigrations)
 	sessions = mustNewSessionStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", storage)
 	templates := mustNewTemplateEngine()
 
