@@ -7,7 +7,210 @@
   "id": 1,
   "links": [],
   "originalTitle": "Services Dashboard",
+  "refresh": "10s",
   "rows": [
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 17,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(rate(nginx_http_requests_total{job=\"frontend-metrics\",status=~\"1..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "1xx",
+              "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "sum(rate(nginx_http_requests_total{job=\"frontend-metrics\",status=~\"2..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "2xx",
+              "refId": "B",
+              "step": 10
+            },
+            {
+              "expr": "sum(rate(nginx_http_requests_total{job=\"frontend-metrics\",status=~\"3..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "3xx",
+              "refId": "C",
+              "step": 10
+            },
+            {
+              "expr": "sum(rate(nginx_http_requests_total{job=\"frontend-metrics\",status=~\"4..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "4xx",
+              "refId": "D",
+              "step": 10
+            },
+            {
+              "expr": "sum(rate(nginx_http_requests_total{job=\"frontend-metrics\",status=~\"5..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "5xx",
+              "refId": "E",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Frontend QPS",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 18,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(nginx_http_request_duration_seconds_bucket{job=\"frontend-metrics\"}[1m])) by (le)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "0.5 quantile",
+              "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.9, sum(rate(nginx_http_request_duration_seconds_bucket{job=\"frontend-metrics\"}[1m])) by (le)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "0.9 quantile",
+              "refId": "B",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(nginx_http_request_duration_seconds_bucket{job=\"frontend-metrics\"}[1m])) by (le)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "0.99 quantile",
+              "refId": "C",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Frontend latency",
+          "tooltip": {
+            "msResolution": false,
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": "ms",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        }
+      ],
+      "title": ""
+    },
     {
       "collapse": false,
       "editable": true,
