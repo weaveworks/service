@@ -5,7 +5,7 @@ metadata:
 spec:
   replicas: 3
   selector:
-    name: frontend-mt-a1c6606
+    name: frontend-mt
     version: a1c6606
   template:
     metadata:

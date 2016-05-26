@@ -5,12 +5,12 @@ metadata:
 spec:
   replicas: 1
   selector:
-    name: metrics-98d4fd7
+    name: metrics
     version: 98d4fd7
   template:
     metadata:
       labels:
-        name: metrics-98d4fd7
+        name: metrics
         version: 98d4fd7
     spec:
       imagePullSecrets:
