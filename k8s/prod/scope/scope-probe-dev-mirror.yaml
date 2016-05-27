@@ -1,0 +1,48 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  namespace: kube-system
+  name: weave-scope-probe-dev-mirror
+  labels:
+    heritage: helm
+    k8s-app:  weave-scope-probe-dev-mirror
+spec:
+  selector: {}
+  template:
+    metadata:
+      name:  weave-scope-probe-dev-mirror
+      labels:
+        heritage: helm
+        k8s-app:  weave-scope-probe-dev-mirror
+    spec:
+      hostPID: true
+      hostNetwork: true
+      containers:
+      - name:  weave-scope-probe-dev-mirror
+        image: weaveworks/scope:0.15.0
+        env:
+        - name: CHECKPOINT_DISABLE
+          value: "true"
+        args:
+        - --no-app
+        - --probe.docker.bridge=cbr0
+        - --probe.docker=true
+        - --probe.kubernetes=true
+        - --probe.weave.addr=
+        - --debug
+        - --probe.http.listen=:4041
+        # Organization nameless-night-79 (fons+loadfromprod@weave.works)
+        - --probe.token=4buwcruxxa57wz5pc1bkow74jonwj6yd
+        - frontend.dev.weave.works:80
+        securityContext:
+          privileged: true
+        resources:
+          limits:
+            cpu: 50m
+        volumeMounts:
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+      volumes:
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
