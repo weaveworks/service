@@ -16,8 +16,13 @@ spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
-      - name: frontend
+      - name: frontend-mt
         image: quay.io/weaveworks/frontend-mt:fc1d28c
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        - echo resolver 10.0.0.10:53\; > /etc/nginx/k8s-resolver.conf && nginx -g daemon\ off\;
         ports:
         - containerPort: 80
         - containerPort: 443
