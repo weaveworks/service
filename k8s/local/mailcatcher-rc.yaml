@@ -2,8 +2,6 @@ apiVersion: v1
 kind: ReplicationController
 metadata:
   name: mailcatcher
-  labels:
-    name: mailcatcher
 spec:
   replicas: 1
   selector:

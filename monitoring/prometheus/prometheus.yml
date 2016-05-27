@@ -7,16 +7,24 @@ rule_files:
 
 # This scrape config gather all service endpoints
 scrape_configs:
-- job_name: 'kubernetes-services'
+- job_name: 'kubernetes-service-endpoints'
   kubernetes_sd_configs:
   - api_servers:
     - 'https://kubernetes.default.svc.cluster.local'
     in_cluster: true
 
+  # You can specify the following annotations (on services):
+  #   prometheus.io.scrape: false - don't scrape this service
+  #   prometheus.io.scheme: https - use https for scraping
+  #   prometheus.io.port - scrape this port
+  #   prometheus.io.path - scrape this path
   relabel_configs:
   - source_labels: [__meta_kubernetes_role]
     action: keep
     regex: endpoint
+  - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+    action: drop
+    regex: false
   - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
     action: replace
     target_label: __scheme__
@@ -56,19 +64,3 @@ scrape_configs:
   - source_labels: [__meta_kubernetes_role]
     action: keep
     regex: node
-  - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
-    action: replace
-    target_label: __scheme__
-    regex: ^(https?)$
-    replacement: $1
-  - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
-    action: replace
-    target_label: __metrics_path__
-    regex: ^(.+)$
-    replacement: $1
-  - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
-    action: replace
-    target_label: __address__
-    regex: ^(.+)(?::\d+);(\d+)$
-    replacement: $1:$2
-

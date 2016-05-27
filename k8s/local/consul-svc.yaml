@@ -2,8 +2,8 @@ apiVersion: v1
 kind: Service
 metadata:
   name: consul
-  labels:
-    name: consul
+  annotations:
+    prometheus.io.port: "8000"
 spec:
   ports:
   - name: http

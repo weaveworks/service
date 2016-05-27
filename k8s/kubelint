@@ -1,19 +1,36 @@
 #!/usr/bin/env python
 
-import yaml, sys, os, os.path, string
+import yaml, sys, os, os.path, string, optparse
+
+SERVICE_ALLOWED_ANNOTATIONS={"prometheus.io.scrape", "prometheus.io.port"}
+
+def lint_service(filename, service):
+  # services are allowed some top level labels
+  if "annotations" in service["metadata"]:
+    annotations = set(service["metadata"]["annotations"].keys())
+    disallowed_annotations = annotations.difference(SERVICE_ALLOWED_ANNOTATIONS)
+    assert len(disallowed_annotations) == 0, \
+      "%s should not define top-level labels %s" % (filename, disallowed_annotations)
 
 def lint_replication_controller(filename, rc):
+  # if they exist, the selector labels should equal the template labels
+  labels = rc["spec"]["template"]["metadata"]["labels"]
+  if "selector" in rc["spec"]:
+    assert rc["spec"]["selector"] == labels, \
+      "%s selector does not match labels" % filename
+
+  # rest of the checks concern version label consistency, which
+  # we don't use in default
+  if options.noversions:
+    expected = string.rsplit(os.path.basename(filename), "-", 1)[0]
+    assert rc["metadata"]["name"] == expected
+    return
 
   # template should specify name and version labels
-  labels = rc["spec"]["template"]["metadata"]["labels"]
   assert "name" in labels, \
     "%s should define name label for template" % filename
   assert "version" in labels, \
     "%s should define version label for template" % filename
-
-  # the selector labels should equal the template labels
-  assert rc["spec"]["selector"] == labels, \
-    "%s selector does not match labels" % filename
 
   # the name of the rc should be name-version
   name = labels["name"]
@@ -35,16 +52,22 @@ def lint_replication_controller(filename, rc):
       "%s version label doesn't match image version" % filename
 
 def lint_file(path):
+  _, extension = os.path.splitext(path)
+  if extension != ".yaml":
+    return
+
+  print path
   with open(path, 'r') as stream:
     obj = yaml.load(stream)
 
-  # the top level object (replication controller, service) shouldn't
-  # have any labels
+  # no top level labels, please
   assert "labels" not in obj["metadata"], \
-    "%s should not define top-level labels" % path
+    "%s should not container top level lables" % path
 
   if obj["kind"] == "ReplicationController":
     lint_replication_controller(path, obj)
+  elif obj["kind"] == "Service":
+    lint_service(path, obj)
 
 def lint_dir(path):
   for filename in os.listdir(path):
@@ -55,7 +78,15 @@ def lint_dir(path):
       lint_file(f)
 
 if __name__ == "__main__":
-  for path in sys.argv[1:]:
+  parser =  optparse.OptionParser("usage: %prog [options] <dir/file>...")
+  parser.add_option("--noversions", action="store_true",
+    default=False, help="don't expect version labels")
+  (options, args) = parser.parse_args()
+  if len(args) == 0:
+    parser.print_help()
+    sys.exit(1)
+
+  for path in args:
     if os.path.isdir(path):
       lint_dir(path)
     else:
