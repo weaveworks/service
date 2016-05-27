@@ -1,21 +1,21 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: query-f68fa077f6b2
+  name: query-d00028f53249
 spec:
   replicas: 3
   selector:
     name: query
-    version: f68fa077f6b2
+    version: d00028f53249
   template:
     metadata:
       labels:
         name: query
-        version: f68fa077f6b2
+        version: d00028f53249
     spec:
       containers:
       - name: query
-        image: weaveworks/scope:f68fa077f6b2
+        image: weaveworks/scope:d00028f53249
         imagePullPolicy: Always
         args:
         - --no-probe

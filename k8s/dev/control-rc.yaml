@@ -1,21 +1,21 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: control-f68fa077f6b2
+  name: control-d00028f53249
 spec:
   replicas: 3
   selector:
     name: control
-    version: f68fa077f6b2
+    version: d00028f53249
   template:
     metadata:
       labels:
         name: control
-        version: f68fa077f6b2
+        version: d00028f53249
     spec:
       containers:
       - name: control
-        image: weaveworks/scope:f68fa077f6b2
+        image: weaveworks/scope:d00028f53249
         imagePullPolicy: Always
         args:
         - --no-probe

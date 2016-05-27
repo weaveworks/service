@@ -49,6 +49,5 @@ spec:
           containerPort: 8000
       volumes:
         - name: config-volume
-          configMap:
-            name: consul-config
-
+          secret:
+            secretName: consul-config
