@@ -2,8 +2,6 @@ apiVersion: v1
 kind: ReplicationController
 metadata:
   name: users-db
-  labels:
-    name: users-db
 spec:
   replicas: 1
   selector:
@@ -17,6 +15,5 @@ spec:
       - name: users-db
         image: weaveworks/users-db
         imagePullPolicy: IfNotPresent
-        command:
         ports:
         - containerPort: 5432

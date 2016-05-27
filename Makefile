@@ -145,7 +145,8 @@ $(METRICS_EXE): $(BUILD_UPTODATE)
 
 lint: $(BUILD_UPTODATE)
 	./tools/lint .
-	./k8s/lint.py ./k8s/dev
+	./k8s/kubelint --noversions ./k8s/local
+	./k8s/kubelint ./k8s/dev
 	promtool check-rules ./monitoring/prometheus/alert.rules
 
 test: $(BUILD_UPTODATE)
