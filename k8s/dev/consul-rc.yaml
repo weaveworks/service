@@ -25,6 +25,7 @@ spec:
         - "-server"
         - "-client=0.0.0.0"
         - "-bootstrap-expect=3"
+        - "-config-file=/etc/config/consul.config"
         - "-atlas-join"
         - "-atlas=weaveworks/dev-consul"
         - "-atlas-token=IigQz1CKJy2yTw.atlasv1.zBhOp5JOZyZFpsCpC6hqEDFFH9yYY40sv4co1y9zuOCTzddxDvIt6JWtOUCQ2yYS3Dk"
@@ -40,4 +41,18 @@ spec:
           containerPort: 8400
         - name: http
           containerPort: 8500
-
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/config
+      - name: exporter
+        image: prom/statsd-exporter
+        imagePullPolicy: IfNotPresent
+        args:
+        - "-web.listen-address=:8000"
+        ports:
+        - name: prom
+          containerPort: 8000
+      volumes:
+        - name: config-volume
+          configMap:
+            name: consul-config

@@ -1,23 +1,23 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: users-75e44f1
+  name: users-658903e
 spec:
   replicas: 2
   selector:
     name: users
-    version: 75e44f1
+    version: 658903e
   template:
     metadata:
       labels:
         name: users
-        version: 75e44f1
+        version: 658903e
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: users
-        image: quay.io/weaveworks/users:75e44f1
+        image: quay.io/weaveworks/users:658903e
         args:
         - -approval-required=false
         - -domain=http://frontend.dev.weave.works
