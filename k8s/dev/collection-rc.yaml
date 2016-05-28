@@ -1,21 +1,21 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: collection-d00028f53249
+  name: collection-df128eb3f887
 spec:
   replicas: 3
   selector:
     name: collection
-    version: d00028f53249
+    version: df128eb3f887
   template:
     metadata:
       labels:
         name: collection
-        version: d00028f53249
+        version: df128eb3f887
     spec:
       containers:
       - name: collection
-        image: weaveworks/scope:d00028f53249
+        image: weaveworks/scope:df128eb3f887
         args:
         - --no-probe
         - --app.log.http=true

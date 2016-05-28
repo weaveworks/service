@@ -1,7 +1,7 @@
 resource "aws_dynamodb_table" "report_table" {
     name = "${var.env_name}_reports"
-    read_capacity = 20
-    write_capacity = 20
+    read_capacity = 200
+    write_capacity = 200
     hash_key = "hour"
     range_key = "ts"
     attribute {
