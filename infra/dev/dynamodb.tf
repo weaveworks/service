@@ -1,7 +1,7 @@
 resource "aws_dynamodb_table" "report_table" {
     name = "${var.env_name}_reports"
-    read_capacity = 20
-    write_capacity = 20
+    read_capacity = 100
+    write_capacity = 200
     hash_key = "hour"
     range_key = "ts"
     attribute {
@@ -12,6 +12,10 @@ resource "aws_dynamodb_table" "report_table" {
       name = "ts"
       type = "N"
     }
+}
+
+resource "aws_s3_bucket" "report_bucket" {
+    bucket = "weaveworks_${var.env_name}_reports"
 }
 
 resource "aws_iam_user" "report_writer" {
@@ -35,6 +39,13 @@ resource "aws_iam_user_policy" "report_writer_policy" {
       ],
       "Effect": "Allow",
       "Resource": "${aws_dynamodb_table.report_table.arn}"
+    },
+    {
+      "Action": [
+         "s3:PutObject"
+      ],
+      "Effect": "Allow",
+      "Resource": "${aws_s3_bucket.report_bucket.arn}/*"
     }
   ]
 }
@@ -64,6 +75,13 @@ resource "aws_iam_user_policy" "report_reader_policy" {
       ],
       "Effect": "Allow",
       "Resource": "${aws_dynamodb_table.report_table.arn}"
+    },
+    {
+      "Action": [
+         "s3:GetObject"
+      ],
+      "Effect": "Allow",
+      "Resource": "${aws_s3_bucket.report_bucket.arn}/*"
     }
   ]
 }

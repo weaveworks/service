@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "serial": 35,
+    "serial": 39,
     "modules": [
         {
             "path": [
@@ -124,8 +124,8 @@
                             "id": "dev_reports",
                             "name": "dev_reports",
                             "range_key": "ts",
-                            "read_capacity": "20",
-                            "write_capacity": "20"
+                            "read_capacity": "100",
+                            "write_capacity": "200"
                         }
                     }
                 },
@@ -220,14 +220,15 @@
                     "type": "aws_iam_user_policy",
                     "depends_on": [
                         "aws_dynamodb_table.report_table",
-                        "aws_iam_user.report_reader"
+                        "aws_iam_user.report_reader",
+                        "aws_s3_bucket.report_bucket"
                     ],
                     "primary": {
                         "id": "dev_report_reader:report_reader_policy",
                         "attributes": {
                             "id": "dev_report_reader:report_reader_policy",
                             "name": "report_reader_policy",
-                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Action\": [\n         \"dynamodb:Query\",\n         \"dynamodb:GetItem\",\n         \"dynamodb:BatchGetItem\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:dynamodb:us-east-1:376248598259:table/dev_reports\"\n    }\n  ]\n}\n",
+                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Action\": [\n         \"dynamodb:Query\",\n         \"dynamodb:GetItem\",\n         \"dynamodb:BatchGetItem\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:dynamodb:us-east-1:376248598259:table/dev_reports\"\n    },\n    {\n      \"Action\": [\n         \"s3:GetObject\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:s3:::weaveworks_dev_reports/*\"\n    }\n  ]\n}\n",
                             "user": "dev_report_reader"
                         }
                     }
@@ -236,14 +237,15 @@
                     "type": "aws_iam_user_policy",
                     "depends_on": [
                         "aws_dynamodb_table.report_table",
-                        "aws_iam_user.report_writer"
+                        "aws_iam_user.report_writer",
+                        "aws_s3_bucket.report_bucket"
                     ],
                     "primary": {
                         "id": "dev_report_writer:report_writer_policy",
                         "attributes": {
                             "id": "dev_report_writer:report_writer_policy",
                             "name": "report_writer_policy",
-                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Action\": [\n         \"dynamodb:PutItem\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:dynamodb:us-east-1:376248598259:table/dev_reports\"\n    }\n  ]\n}\n",
+                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Action\": [\n         \"dynamodb:PutItem\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:dynamodb:us-east-1:376248598259:table/dev_reports\"\n    },\n    {\n      \"Action\": [\n         \"s3:PutObject\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:s3:::weaveworks_dev_reports/*\"\n    }\n  ]\n}\n",
                             "user": "dev_report_writer"
                         }
                     }
@@ -373,6 +375,25 @@
                             "id": "rtbassoc-5c3a883a",
                             "route_table_id": "rtb-65c68902",
                             "subnet_id": "subnet-c62d0db0"
+                        }
+                    }
+                },
+                "aws_s3_bucket.report_bucket": {
+                    "type": "aws_s3_bucket",
+                    "primary": {
+                        "id": "weaveworks_dev_reports",
+                        "attributes": {
+                            "acl": "private",
+                            "arn": "arn:aws:s3:::weaveworks_dev_reports",
+                            "bucket": "weaveworks_dev_reports",
+                            "cors_rule.#": "0",
+                            "force_destroy": "false",
+                            "hosted_zone_id": "Z3AQBSTGFYJSTF",
+                            "id": "weaveworks_dev_reports",
+                            "policy": "",
+                            "region": "us-east-1",
+                            "tags.#": "0",
+                            "website.#": "0"
                         }
                     }
                 },
