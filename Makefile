@@ -105,9 +105,9 @@ $(CLIENT_BUILD_UPTODATE): client/Dockerfile client/package.json client/webpack.*
 	$(SUDO) docker build -t $(CLIENT_BUILD_IMAGE) client/
 	touch $@
 
-$(CLIENT_SERVER_UPTODATE): client/build/app.js client/build/Dockerfile client/build/index.html
+$(CLIENT_SERVER_UPTODATE): client/build/app.js client/src/Dockerfile client/src/html/index.html
 	$(DOCKER_HOST_CHECK)
-	$(SUDO) docker build -t $(CLIENT_SERVER_IMAGE) client/build/
+	$(SUDO) docker build -t $(CLIENT_SERVER_IMAGE) -f client/src/Dockerfile client/build/
 	touch $@
 
 $(FRONTEND_UPTODATE): frontend/Dockerfile frontend/default.conf frontend/api.json frontend/pki/scope.weave.works.crt frontend/dhparam.pem
@@ -205,6 +205,6 @@ client/build/app.js: $(CLIENT_BUILD_UPTODATE) $(JS_FILES)
 	$(SUDO) docker run $(RM) -ti -v $(shell pwd)/client/src:/home/weave/src \
 		-v $(shell pwd)/client/build:/home/weave/build \
 		$(CLIENT_BUILD_IMAGE) npm run build
-
+	cp client/src/images/* client/build/
 
 

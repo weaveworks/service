@@ -1,4 +1,6 @@
 var webpack = require('webpack');
+var CleanWebpackPlugin = require('clean-webpack-plugin');
+var HtmlWebpackPlugin = require('html-webpack-plugin');
 
 /**
  * This is the Webpack configuration file for production.
@@ -30,6 +32,7 @@ module.exports = {
   },
 
   plugins: [
+    new CleanWebpackPlugin(['build']),
     new webpack.DefinePlugin({
       'process.env': {NODE_ENV: '"production"'}
     }),
@@ -37,6 +40,10 @@ module.exports = {
       compress: {
         warnings: false
       }
+    }),
+    new HtmlWebpackPlugin({
+      template: 'src/html/index.html',
+      filename: 'index.html'
     })
   ]
 };

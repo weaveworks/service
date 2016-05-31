@@ -1,4 +1,5 @@
 var webpack = require('webpack');
+var HtmlWebpackPlugin = require('html-webpack-plugin');
 
 /**
  * This is the Webpack configuration file for local development. It contains
@@ -10,6 +11,10 @@ var webpack = require('webpack');
  *
  * For more information, see: http://webpack.github.io/docs/configuration.html
  */
+
+ // Inject websocket url to dev backend
+ var WEBPACK_SERVER_HOST = process.env.WEBPACK_SERVER_HOST || 'localhost';
+
 module.exports = {
 
   // Efficiently evaluate modules with source maps
@@ -17,7 +22,7 @@ module.exports = {
 
   // Set entry point to ./src/main and include necessary files for hot load
   entry:  [
-    "webpack-dev-server/client?http://localhost:9090",
+    'webpack-dev-server/client?http://' + WEBPACK_SERVER_HOST + ':4048',
     "webpack/hot/only-dev-server",
     "./src/main"
   ],
@@ -27,13 +32,16 @@ module.exports = {
   output: {
     path: __dirname + "/build/",
     filename: "app.js",
-    publicPath: "http://localhost:9090/build/"
   },
 
   // Necessary plugins for hot load
   plugins: [
     new webpack.HotModuleReplacementPlugin(),
-    new webpack.NoErrorsPlugin()
+    new webpack.NoErrorsPlugin(),
+    new HtmlWebpackPlugin({
+      template: 'src/html/index.html',
+      filename: 'index.html'
+    })
   ],
 
   // Transform source code using Babel and React Hot Loader

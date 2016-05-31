@@ -1,5 +1,5 @@
 # Build
-build/app.js
+build/
 image.tar
 
 # Logs
@@ -8,14 +8,6 @@ logs
 
 # Coverage directory used by tools like istanbul
 coverage
-
-# Compiled binary addons (http://nodejs.org/api/addons.html)
-build/Release
-build/*.woff2
-build/*.ttf
-build/*.eot
-build/*.svg
-build/*.woff
 
 # Dependency directory
 node_modules

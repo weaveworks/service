@@ -8,6 +8,8 @@ if (process.env.USE_MOCK_BACKEND) {
   app.use(bodyParser.json()); // for parsing application/json
 }
 
+var WEBPACK_SERVER_HOST = process.env.WEBPACK_SERVER_HOST || 'localhost';
+
 // Mock data store
 var store = {};
 store.orgName = 'foo'
@@ -30,13 +32,13 @@ store.users = [{
  ************************************************************/
 
 // Serve application file depending on environment
-app.get('/app.js', function(req, res) {
-  if (process.env.NODE_ENV === 'production') {
-    res.sendFile(__dirname + '/build/app.js');
-  } else {
-    res.redirect('//localhost:9090/build/app.js');
-  }
-});
+// app.get('/app.js', function(req, res) {
+//   if (process.env.NODE_ENV === 'production') {
+//     res.sendFile(__dirname + '/build/app.js');
+//   } else {
+//     res.redirect('//localhost:9090/build/app.js');
+//   }
+// });
 
 // Mock backend
 
@@ -118,17 +120,24 @@ if (process.env.USE_MOCK_BACKEND) {
   app.use('/api/app', backendProxy);
 }
 
-// Serve index page
-
 app.get('/landing.jpg', function(req, res) {
-  res.sendFile(__dirname + '/build/landing.jpg');
+  res.sendFile(__dirname + '/src/images/landing.jpg');
 });
 
-app.get('*', function(req, res) {
-  res.sendFile(__dirname + '/build/index.html');
-});
-
-
+if (process.env.NODE_ENV === 'production') {
+  // serve all precompiled content from build/
+  app.use(express.static('build'));
+} else {
+  // redirect the JS bundles
+  app.get(/.*js/, function(req, res) {
+    res.redirect('//' + WEBPACK_SERVER_HOST + ':4048' + req.originalUrl);
+  });
+  // proxy everything else
+  var staticProxy = proxy({
+    target: 'http://' + WEBPACK_SERVER_HOST + ':4048'
+  });
+  app.all('*', staticProxy);
+}
 
 /*************************************************************
  *
@@ -148,7 +157,7 @@ if (process.env.NODE_ENV !== 'production') {
     noInfo: true,
     historyApiFallback: true,
     stats: { colors: true }
-  }).listen(9090, 'localhost', function (err, result) {
+  }).listen(4048, '0.0.0.0', function (err, result) {
     if (err) {
       console.log(err);
     }
