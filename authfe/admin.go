@@ -8,6 +8,7 @@ import (
 
 var (
 	adminServices = []adminService{
+		{Label: "scope", Host: "weave-scope-app", Domain: "kube-system.svc.cluster.local", Port: "4040"},
 		{Label: "alertmanager", Host: "monitoring", Port: "9093"},
 		{Label: "grafana", Host: "monitoring", Port: "3000"},
 		{Label: "prometheus", Host: "monitoring", Port: "9090"},
