@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "serial": 9,
+    "serial": 11,
     "modules": [
         {
             "path": [
@@ -107,6 +107,163 @@
                             "subnet_ids.3225839377": "subnet-051dd973",
                             "tags.#": "1",
                             "tags.Name": "terraform-rds-subnet-group"
+                        }
+                    }
+                },
+                "aws_dynamodb_table.report_table": {
+                    "type": "aws_dynamodb_table",
+                    "primary": {
+                        "id": "prod_reports",
+                        "attributes": {
+                            "arn": "arn:aws:dynamodb:us-east-1:664268111851:table/prod_reports",
+                            "attribute.#": "2",
+                            "attribute.113885566.name": "hour",
+                            "attribute.113885566.type": "S",
+                            "attribute.3983831006.name": "ts",
+                            "attribute.3983831006.type": "N",
+                            "global_secondary_index.#": "0",
+                            "hash_key": "hour",
+                            "id": "prod_reports",
+                            "name": "prod_reports",
+                            "range_key": "ts",
+                            "read_capacity": "100",
+                            "write_capacity": "200"
+                        }
+                    }
+                },
+                "aws_iam_access_key.report_reader_key": {
+                    "type": "aws_iam_access_key",
+                    "depends_on": [
+                        "aws_iam_user.report_reader"
+                    ],
+                    "primary": {
+                        "id": "AKIAJWD3SATMWKOSIOUQ",
+                        "attributes": {
+                            "id": "AKIAJWD3SATMWKOSIOUQ",
+                            "secret": "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",
+                            "ses_smtp_password": "Al0MmaWa8ju0DTTao0lXLmH0vOeKz1Q/NNei3hVF27oU",
+                            "status": "Active",
+                            "user": "prod_report_reader"
+                        }
+                    }
+                },
+                "aws_iam_access_key.report_writer_key": {
+                    "type": "aws_iam_access_key",
+                    "depends_on": [
+                        "aws_iam_user.report_writer"
+                    ],
+                    "primary": {
+                        "id": "AKIAIG6BLVLNEJ3HLPQQ",
+                        "attributes": {
+                            "id": "AKIAIG6BLVLNEJ3HLPQQ",
+                            "secret": "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",
+                            "ses_smtp_password": "AvDaATNUsZ+CbXGLq1Z5iSgsMYwA939Wv3Z4e5URwysh",
+                            "status": "Active",
+                            "user": "prod_report_writer"
+                        }
+                    }
+                },
+                "aws_iam_access_key.sqs_readwriter_key": {
+                    "type": "aws_iam_access_key",
+                    "depends_on": [
+                        "aws_iam_user.sqs_readwriter"
+                    ],
+                    "primary": {
+                        "id": "AKIAJA47SASHONICRWUA",
+                        "attributes": {
+                            "id": "AKIAJA47SASHONICRWUA",
+                            "secret": "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",
+                            "ses_smtp_password": "AiIxZvwrTyGpM4BRhMKGSAwHcGPx62uLC4nVzg+EiYek",
+                            "status": "Active",
+                            "user": "prod_sqs_readwriter"
+                        }
+                    }
+                },
+                "aws_iam_user.report_reader": {
+                    "type": "aws_iam_user",
+                    "primary": {
+                        "id": "prod_report_reader",
+                        "attributes": {
+                            "arn": "arn:aws:iam::664268111851:user/prod_report_reader",
+                            "id": "prod_report_reader",
+                            "name": "prod_report_reader",
+                            "path": "/",
+                            "unique_id": "AIDAIBWCU7WP7TDHS7FPW"
+                        }
+                    }
+                },
+                "aws_iam_user.report_writer": {
+                    "type": "aws_iam_user",
+                    "primary": {
+                        "id": "prod_report_writer",
+                        "attributes": {
+                            "arn": "arn:aws:iam::664268111851:user/prod_report_writer",
+                            "id": "prod_report_writer",
+                            "name": "prod_report_writer",
+                            "path": "/",
+                            "unique_id": "AIDAIQPYEC5UY6ND5557G"
+                        }
+                    }
+                },
+                "aws_iam_user.sqs_readwriter": {
+                    "type": "aws_iam_user",
+                    "primary": {
+                        "id": "prod_sqs_readwriter",
+                        "attributes": {
+                            "arn": "arn:aws:iam::664268111851:user/prod_sqs_readwriter",
+                            "id": "prod_sqs_readwriter",
+                            "name": "prod_sqs_readwriter",
+                            "path": "/",
+                            "unique_id": "AIDAJWARXBB7I4JO6U7LO"
+                        }
+                    }
+                },
+                "aws_iam_user_policy.report_reader_policy": {
+                    "type": "aws_iam_user_policy",
+                    "depends_on": [
+                        "aws_dynamodb_table.report_table",
+                        "aws_iam_user.report_reader",
+                        "aws_s3_bucket.report_bucket"
+                    ],
+                    "primary": {
+                        "id": "prod_report_reader:report_reader_policy",
+                        "attributes": {
+                            "id": "prod_report_reader:report_reader_policy",
+                            "name": "report_reader_policy",
+                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Action\": [\n         \"dynamodb:Query\",\n         \"dynamodb:GetItem\",\n         \"dynamodb:BatchGetItem\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:dynamodb:us-east-1:664268111851:table/prod_reports\"\n    },\n    {\n      \"Action\": [\n         \"s3:GetObject\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:s3:::weaveworks_prod_reports/*\"\n    }\n  ]\n}\n",
+                            "user": "prod_report_reader"
+                        }
+                    }
+                },
+                "aws_iam_user_policy.report_writer_policy": {
+                    "type": "aws_iam_user_policy",
+                    "depends_on": [
+                        "aws_dynamodb_table.report_table",
+                        "aws_iam_user.report_writer",
+                        "aws_s3_bucket.report_bucket"
+                    ],
+                    "primary": {
+                        "id": "prod_report_writer:report_writer_policy",
+                        "attributes": {
+                            "id": "prod_report_writer:report_writer_policy",
+                            "name": "report_writer_policy",
+                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Action\": [\n         \"dynamodb:PutItem\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:dynamodb:us-east-1:664268111851:table/prod_reports\"\n    },\n    {\n      \"Action\": [\n         \"s3:PutObject\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:s3:::weaveworks_prod_reports/*\"\n    }\n  ]\n}\n",
+                            "user": "prod_report_writer"
+                        }
+                    }
+                },
+                "aws_iam_user_policy.sqs_readwriter_policy": {
+                    "type": "aws_iam_user_policy",
+                    "depends_on": [
+                        "aws_iam_user.sqs_readwriter"
+                    ],
+                    "primary": {
+                        "id": "prod_sqs_readwriter:sqs_readwriter_policy",
+                        "attributes": {
+                            "id": "prod_sqs_readwriter:sqs_readwriter_policy",
+                            "name": "sqs_readwriter_policy",
+                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Action\": \"sqs:*\",\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:sqs:us-east-1:*:prod_control_*\"\n    }\n  ]\n}\n",
+                            "user": "prod_sqs_readwriter"
                         }
                     }
                 },
@@ -220,6 +377,25 @@
                             "id": "rtbassoc-b76f89d0",
                             "route_table_id": "rtb-73bcf917",
                             "subnet_id": "subnet-1278664b"
+                        }
+                    }
+                },
+                "aws_s3_bucket.report_bucket": {
+                    "type": "aws_s3_bucket",
+                    "primary": {
+                        "id": "weaveworks_prod_reports",
+                        "attributes": {
+                            "acl": "private",
+                            "arn": "arn:aws:s3:::weaveworks_prod_reports",
+                            "bucket": "weaveworks_prod_reports",
+                            "cors_rule.#": "0",
+                            "force_destroy": "false",
+                            "hosted_zone_id": "Z3AQBSTGFYJSTF",
+                            "id": "weaveworks_prod_reports",
+                            "policy": "",
+                            "region": "us-east-1",
+                            "tags.#": "0",
+                            "website.#": "0"
                         }
                     }
                 },
