@@ -1,21 +1,21 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: query-df128eb3f887
+  name: query-bac1eef419c1
 spec:
   replicas: 3
   selector:
     name: query
-    version: df128eb3f887
+    version: bac1eef419c1
   template:
     metadata:
       labels:
         name: query
-        version: df128eb3f887
+        version: bac1eef419c1
     spec:
       containers:
       - name: query
-        image: weaveworks/scope:df128eb3f887
+        image: weaveworks/scope:bac1eef419c1
         imagePullPolicy: Always
         args:
         - --no-probe
@@ -24,6 +24,7 @@ spec:
         - --app.http.address=:80
         - --app.userid.header=X-Scope-OrgID
         - --app.collector=dynamodb://AKIAJI4S2QEEF27QVJXQ:BixrkOgl%2Bu%2F2dfEJhdtItwsm8cMLNLPwDN%2BQt5Sr@us-east-1/dev_reports
+        - --app.collector.s3=s3://AKIAJI4S2QEEF27QVJXQ:BixrkOgl%2Bu%2F2dfEJhdtItwsm8cMLNLPwDN%2BQt5Sr@us-east-1/weaveworks_dev_reports
         env:
         - name: CHECKPOINT_DISABLE
           value: "1"

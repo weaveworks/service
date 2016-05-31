@@ -23,7 +23,8 @@ def lint_replication_controller(filename, rc):
   # we don't use in default
   if options.noversions:
     expected = string.rsplit(os.path.basename(filename), "-", 1)[0]
-    assert rc["metadata"]["name"] == expected
+    assert rc["metadata"]["name"] == expected, \
+      "expected name '%s, got '%s'" % (expected, rc["metadata"]["name"])
     return
 
   # template should specify name and version labels
