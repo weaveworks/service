@@ -1,27 +1,27 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: monitoring-20160527
+  name: monitoring-20160531
 spec:
   replicas: 1
   selector:
     name: monitoring
-    version: '20160527'
+    version: '20160531'
   template:
     metadata:
       labels:
         name: monitoring
-        version: '20160527'
+        version: '20160531'
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: prometheus
-        image: quay.io/weaveworks/prometheus:1eecf6b
+        image: quay.io/weaveworks/prometheus:bb26507
         ports:
         - containerPort: 9090
       - name: grafana
-        image: quay.io/weaveworks/grafana:00af280
+        image: quay.io/weaveworks/grafana:9d0fcab
         ports:
         - containerPort: 3000
       - name: gfdatasource

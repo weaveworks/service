@@ -49,6 +49,7 @@ function interactive_confirmation {
 
 TARGETS="
     -target=aws_dynamodb_table.report_table
+    -target=aws_s3_bucket.report_bucket
     -target=aws_iam_user.report_writer
     -target=aws_iam_user.report_reader
     -target=aws_iam_access_key.report_writer_key

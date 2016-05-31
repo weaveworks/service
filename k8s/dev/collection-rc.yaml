@@ -1,21 +1,21 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: collection-d00028f53249
+  name: collection-2400dedf5df2
 spec:
   replicas: 3
   selector:
     name: collection
-    version: d00028f53249
+    version: 2400dedf5df2
   template:
     metadata:
       labels:
         name: collection
-        version: d00028f53249
+        version: 2400dedf5df2
     spec:
       containers:
       - name: collection
-        image: weaveworks/scope:d00028f53249
+        image: weaveworks/scope:2400dedf5df2
         args:
         - --no-probe
         - --app.log.http=true
@@ -23,6 +23,7 @@ spec:
         - --app.http.address=:80
         - --app.userid.header=X-Scope-OrgID
         - --app.collector=dynamodb://AKIAJFWTRBJFTLBFXTAA:XZDGOZhMIEhuL0GQlKzBe5bkEpQPEbosOPePAa8Q@us-east-1/dev_reports
+        - --app.collector.s3=s3://AKIAJFWTRBJFTLBFXTAA:XZDGOZhMIEhuL0GQlKzBe5bkEpQPEbosOPePAa8Q@us-east-1/weaveworks_dev_reports
         env:
         - name: CHECKPOINT_DISABLE
           value: "1"
