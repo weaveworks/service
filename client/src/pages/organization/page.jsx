@@ -1,7 +1,5 @@
 import React from 'react';
 import { CircularProgress, Paper } from 'material-ui';
-import ThemeManager from 'material-ui/lib/styles/theme-manager';
-import LightRawTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
 
 import Colors from '../../common/colors';
 import { getData, encodeURIs } from '../../common/request';
@@ -18,7 +16,6 @@ export default class OrganizationPage extends React.Component {
   constructor() {
     super();
     this.state = {
-      muiTheme: ThemeManager.getMuiTheme(LightRawTheme),
       name: '',
       user: '',
       probeToken: ''
@@ -26,12 +23,6 @@ export default class OrganizationPage extends React.Component {
 
     this._handleOrganizationSuccess = this._handleOrganizationSuccess.bind(this);
     this._handleOrganizationError = this._handleOrganizationError.bind(this);
-  }
-
-  getChildContext() {
-    return {
-      muiTheme: this.state.muiTheme
-    };
   }
 
   componentDidMount() {
@@ -152,7 +143,3 @@ export default class OrganizationPage extends React.Component {
   }
 
 }
-
-OrganizationPage.childContextTypes = {
-  muiTheme: React.PropTypes.object
-};

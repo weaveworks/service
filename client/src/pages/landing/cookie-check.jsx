@@ -1,6 +1,7 @@
 import React from 'react';
 import { getData, encodeURIs } from '../../common/request';
-import { CircularProgress, Styles } from 'material-ui';
+import { CircularProgress } from 'material-ui';
+import { red900 } from 'material-ui/styles/colors';
 import { trackException, trackView } from '../../common/tracking';
 
 export default class CookieCheck extends React.Component {
@@ -66,7 +67,7 @@ export default class CookieCheck extends React.Component {
         display: this.state.errorText ? 'block' : 'none',
         fontSize: '85%',
         opacity: 0.6,
-        color: Styles.Colors.red900
+        color: red900
       },
 
       activity: {

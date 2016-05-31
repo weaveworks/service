@@ -1,8 +1,5 @@
 import React from 'react';
 import CookieBanner from 'react-cookie-banner';
-import ThemeManager from 'material-ui/lib/styles/theme-manager';
-import LightRawTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
-import Colors from 'material-ui/lib/styles/colors';
 
 import { BackgroundContainer } from '../../components/background-container';
 import { FlexContainer } from '../../components/flex-container';
@@ -10,28 +7,6 @@ import { Logo } from '../../components/logo';
 import RegisterForm from './register-form';
 
 export default class LandingPage extends React.Component {
-
-  constructor() {
-    super();
-
-    this.state = {
-      muiTheme: ThemeManager.getMuiTheme(LightRawTheme)
-    };
-  }
-
-  getChildContext() {
-    return {
-      muiTheme: this.state.muiTheme
-    };
-  }
-
-  componentWillMount() {
-    const newMuiTheme = ThemeManager.modifyRawThemePalette(this.state.muiTheme, {
-      accent1Color: Colors.deepOrange500,
-    });
-
-    this.setState({muiTheme: newMuiTheme});
-  }
 
   renderLinks(linkStyle) {
     const links = [
@@ -42,7 +17,7 @@ export default class LandingPage extends React.Component {
 
     return links.map(link => {
       return (
-        <a style={linkStyle} href={link.href} target="_blank">
+        <a style={linkStyle} href={link.href} key={link.text} target="_blank">
           {link.text}
         </a>
       );
@@ -187,7 +162,3 @@ export default class LandingPage extends React.Component {
     );
   }
 }
-
-LandingPage.childContextTypes = {
-  muiTheme: React.PropTypes.object
-};

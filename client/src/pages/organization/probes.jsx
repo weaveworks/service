@@ -1,7 +1,7 @@
 import React from 'react';
 import _ from 'lodash';
 import moment from 'moment';
-import { Styles } from 'material-ui';
+import { grey400 } from 'material-ui/styles/colors';
 import { getData, encodeURIs } from '../../common/request';
 import { trackEvent, trackException } from '../../common/tracking';
 
@@ -80,7 +80,7 @@ export default class Probes extends React.Component {
         marginTop: '2em',
         textAlign: 'center',
         fontSize: '80%',
-        color: Styles.Colors.grey400
+        color: grey400
       },
       tokenValue: {
         fontFamily: 'monospace',

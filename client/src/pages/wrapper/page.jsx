@@ -1,8 +1,6 @@
 import React from 'react';
 import { CircularProgress } from 'material-ui';
 import debug from 'debug';
-import ThemeManager from 'material-ui/lib/styles/theme-manager';
-import LightRawTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
 
 import { getData, encodeURIs } from '../../common/request';
 import Toolbar from '../../components/toolbar';
@@ -16,7 +14,6 @@ export default class Wrapper extends React.Component {
     super();
 
     this.state = {
-      muiTheme: ThemeManager.getMuiTheme(LightRawTheme),
       activityText: '',
       frameBaseUrl: '',
       name: '',
@@ -29,12 +26,6 @@ export default class Wrapper extends React.Component {
     this._handleInstanceSuccess = this._handleInstanceSuccess.bind(this);
     this._handleLoginSuccess = this._handleLoginSuccess.bind(this);
     this._handleLoginError = this._handleLoginError.bind(this);
-  }
-
-  getChildContext() {
-    return {
-      muiTheme: this.state.muiTheme
-    };
   }
 
   componentDidMount() {
@@ -160,7 +151,3 @@ export default class Wrapper extends React.Component {
     );
   }
 }
-
-Wrapper.childContextTypes = {
-  muiTheme: React.PropTypes.object
-};
