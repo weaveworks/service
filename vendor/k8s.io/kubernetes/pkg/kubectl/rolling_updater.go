@@ -20,7 +20,6 @@ import (
 	goerrors "errors"
 	"fmt"
 	"io"
-	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -28,9 +27,11 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/deployment"
+	"k8s.io/kubernetes/pkg/util/integer"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/util/wait"
 )
 
@@ -70,7 +71,7 @@ type RollingUpdaterConfig struct {
 	// can be scaled down further, followed by scaling up the new RC, ensuring
 	// that the total number of pods available at all times during the update is at
 	// least 70% of desired pods.
-	MaxUnavailable util.IntOrString
+	MaxUnavailable intstr.IntOrString
 	// MaxSurge is the maximum number of pods that can be scheduled above the desired number of pods.
 	// Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
 	// This can not be 0 if MaxUnavailable is 0.
@@ -81,7 +82,11 @@ type RollingUpdaterConfig struct {
 	// 130% of desired pods. Once old pods have been killed, new RC can be scaled up
 	// further, ensuring that total number of pods running at any time during
 	// the update is atmost 130% of desired pods.
-	MaxSurge util.IntOrString
+	MaxSurge intstr.IntOrString
+	// OnProgress is invoked if set during each scale cycle, to allow the caller to perform additional logic or
+	// abort the scale. If an error is returned the cleanup method will not be invoked. The percentage value
+	// is a synthetic "progress" calculation that represents the approximate percentage completion.
+	OnProgress func(oldRc, newRc *api.ReplicationController, percentage int) error
 }
 
 // RollingUpdaterCleanupPolicy is a cleanup action to take after the
@@ -112,10 +117,8 @@ type RollingUpdater struct {
 	getOrCreateTargetController func(controller *api.ReplicationController, sourceId string) (*api.ReplicationController, bool, error)
 	// cleanup performs post deployment cleanup tasks for newRc and oldRc.
 	cleanup func(oldRc, newRc *api.ReplicationController, config *RollingUpdaterConfig) error
-	// waitForReadyPods should block until there are >0 total pods ready amongst
-	// the old and new controllers, and should return the amount of old and new
-	// ready.
-	waitForReadyPods func(interval, timeout time.Duration, oldRc, newRc *api.ReplicationController) (int, int, error)
+	// getReadyPods returns the amount of old and new ready pods.
+	getReadyPods func(oldRc, newRc *api.ReplicationController) (int32, int32, error)
 }
 
 // NewRollingUpdater creates a RollingUpdater from a client.
@@ -127,7 +130,7 @@ func NewRollingUpdater(namespace string, client client.Interface) *RollingUpdate
 	// Inject real implementations.
 	updater.scaleAndWait = updater.scaleAndWaitWithScaler
 	updater.getOrCreateTargetController = updater.getOrCreateTargetControllerWithClient
-	updater.waitForReadyPods = updater.pollForReadyPods
+	updater.getReadyPods = updater.readyPods
 	updater.cleanup = updater.cleanupWithClients
 	return updater
 }
@@ -170,11 +173,12 @@ func (r *RollingUpdater) Update(config *RollingUpdaterConfig) error {
 		fmt.Fprintf(out, "Created %s\n", newRc.Name)
 	}
 	// Extract the desired replica count from the controller.
-	desired, err := strconv.Atoi(newRc.Annotations[desiredReplicasAnnotation])
+	desiredAnnotation, err := strconv.Atoi(newRc.Annotations[desiredReplicasAnnotation])
 	if err != nil {
 		return fmt.Errorf("Unable to parse annotation for %s: %s=%s",
 			newRc.Name, desiredReplicasAnnotation, newRc.Annotations[desiredReplicasAnnotation])
 	}
+	desired := int32(desiredAnnotation)
 	// Extract the original replica count from the old controller, adding the
 	// annotation if it doesn't yet exist.
 	_, hasOriginalAnnotation := oldRc.Annotations[originalReplicasAnnotation]
@@ -186,38 +190,56 @@ func (r *RollingUpdater) Update(config *RollingUpdaterConfig) error {
 		if existing.Annotations == nil {
 			existing.Annotations = map[string]string{}
 		}
-		existing.Annotations[originalReplicasAnnotation] = strconv.Itoa(existing.Spec.Replicas)
+		existing.Annotations[originalReplicasAnnotation] = strconv.Itoa(int(existing.Spec.Replicas))
 		updated, err := r.c.ReplicationControllers(existing.Namespace).Update(existing)
 		if err != nil {
 			return err
 		}
 		oldRc = updated
 	}
-	original, err := strconv.Atoi(oldRc.Annotations[originalReplicasAnnotation])
-	if err != nil {
-		return fmt.Errorf("Unable to parse annotation for %s: %s=%s\n",
-			oldRc.Name, originalReplicasAnnotation, oldRc.Annotations[originalReplicasAnnotation])
-	}
-	// The maximum pods which can go unavailable during the update.
-	maxUnavailable, err := extractMaxValue(config.MaxUnavailable, "maxUnavailable", desired)
+	// maxSurge is the maximum scaling increment and maxUnavailable are the maximum pods
+	// that can be unavailable during a rollout.
+	maxSurge, maxUnavailable, err := deployment.ResolveFenceposts(&config.MaxSurge, &config.MaxUnavailable, desired)
 	if err != nil {
 		return err
 	}
-	// The maximum scaling increment.
-	maxSurge, err := extractMaxValue(config.MaxSurge, "maxSurge", desired)
-	if err != nil {
-		return err
-	}
-	// Further validation.
-	if maxUnavailable == 0 && maxSurge == 0 {
+	// Validate maximums.
+	if desired > 0 && maxUnavailable == 0 && maxSurge == 0 {
 		return fmt.Errorf("one of maxSurge or maxUnavailable must be specified")
 	}
 	// The minumum pods which must remain available througout the update
 	// calculated for internal convenience.
-	minAvailable := original - maxUnavailable
+	minAvailable := int32(integer.IntMax(0, int(desired-maxUnavailable)))
+	// If the desired new scale is 0, then the max unavailable is necessarily
+	// the effective scale of the old RC regardless of the configuration
+	// (equivalent to 100% maxUnavailable).
+	if desired == 0 {
+		maxUnavailable = oldRc.Spec.Replicas
+		minAvailable = 0
+	}
 
 	fmt.Fprintf(out, "Scaling up %s from %d to %d, scaling down %s from %d to 0 (keep %d pods available, don't exceed %d pods)\n",
-		newRc.Name, newRc.Spec.Replicas, desired, oldRc.Name, oldRc.Spec.Replicas, minAvailable, original+maxSurge)
+		newRc.Name, newRc.Spec.Replicas, desired, oldRc.Name, oldRc.Spec.Replicas, minAvailable, desired+maxSurge)
+
+	// give a caller incremental notification and allow them to exit early
+	goal := desired - newRc.Spec.Replicas
+	if goal < 0 {
+		goal = -goal
+	}
+	progress := func(complete bool) error {
+		if config.OnProgress == nil {
+			return nil
+		}
+		progress := desired - newRc.Spec.Replicas
+		if progress < 0 {
+			progress = -progress
+		}
+		percentage := 100
+		if !complete && goal > 0 {
+			percentage = int((goal - progress) * 100 / goal)
+		}
+		return config.OnProgress(oldRc, newRc, percentage)
+	}
 
 	// Scale newRc and oldRc until newRc has the desired number of replicas and
 	// oldRc has 0 replicas.
@@ -228,11 +250,16 @@ func (r *RollingUpdater) Update(config *RollingUpdaterConfig) error {
 		oldReplicas := oldRc.Spec.Replicas
 
 		// Scale up as much as possible.
-		scaledRc, err := r.scaleUp(newRc, oldRc, original, desired, maxSurge, maxUnavailable, scaleRetryParams, config)
+		scaledRc, err := r.scaleUp(newRc, oldRc, desired, maxSurge, maxUnavailable, scaleRetryParams, config)
 		if err != nil {
 			return err
 		}
 		newRc = scaledRc
+
+		// notify the caller if necessary
+		if err := progress(false); err != nil {
+			return err
+		}
 
 		// Wait between scaling operations for things to settle.
 		time.Sleep(config.UpdatePeriod)
@@ -244,6 +271,11 @@ func (r *RollingUpdater) Update(config *RollingUpdaterConfig) error {
 		}
 		oldRc = scaledRc
 
+		// notify the caller if necessary
+		if err := progress(false); err != nil {
+			return err
+		}
+
 		// If we are making progress, continue to advance the progress deadline.
 		// Otherwise, time out with an error.
 		progressMade := (newRc.Spec.Replicas != newReplicas) || (oldRc.Spec.Replicas != oldReplicas)
@@ -254,6 +286,11 @@ func (r *RollingUpdater) Update(config *RollingUpdaterConfig) error {
 		}
 	}
 
+	// notify the caller if necessary
+	if err := progress(true); err != nil {
+		return err
+	}
+
 	// Housekeeping and cleanup policy execution.
 	return r.cleanup(oldRc, newRc, config)
 }
@@ -261,14 +298,14 @@ func (r *RollingUpdater) Update(config *RollingUpdaterConfig) error {
 // scaleUp scales up newRc to desired by whatever increment is possible given
 // the configured surge threshold. scaleUp will safely no-op as necessary when
 // it detects redundancy or other relevant conditions.
-func (r *RollingUpdater) scaleUp(newRc, oldRc *api.ReplicationController, original, desired, maxSurge, maxUnavailable int, scaleRetryParams *RetryParams, config *RollingUpdaterConfig) (*api.ReplicationController, error) {
+func (r *RollingUpdater) scaleUp(newRc, oldRc *api.ReplicationController, desired, maxSurge, maxUnavailable int32, scaleRetryParams *RetryParams, config *RollingUpdaterConfig) (*api.ReplicationController, error) {
 	// If we're already at the desired, do nothing.
 	if newRc.Spec.Replicas == desired {
 		return newRc, nil
 	}
 
 	// Scale up as far as we can based on the surge limit.
-	increment := (original + maxSurge) - (oldRc.Spec.Replicas + newRc.Spec.Replicas)
+	increment := (desired + maxSurge) - (oldRc.Spec.Replicas + newRc.Spec.Replicas)
 	// If the old is already scaled down, go ahead and scale all the way up.
 	if oldRc.Spec.Replicas == 0 {
 		increment = desired - newRc.Spec.Replicas
@@ -291,23 +328,27 @@ func (r *RollingUpdater) scaleUp(newRc, oldRc *api.ReplicationController, origin
 	return scaledRc, nil
 }
 
-// scaleDown scales down oldRc to 0 at whatever increment possible given the
+// scaleDown scales down oldRc to 0 at whatever decrement possible given the
 // thresholds defined on the config. scaleDown will safely no-op as necessary
 // when it detects redundancy or other relevant conditions.
-func (r *RollingUpdater) scaleDown(newRc, oldRc *api.ReplicationController, desired, minAvailable, maxUnavailable, maxSurge int, config *RollingUpdaterConfig) (*api.ReplicationController, error) {
+func (r *RollingUpdater) scaleDown(newRc, oldRc *api.ReplicationController, desired, minAvailable, maxUnavailable, maxSurge int32, config *RollingUpdaterConfig) (*api.ReplicationController, error) {
 	// Already scaled down; do nothing.
 	if oldRc.Spec.Replicas == 0 {
 		return oldRc, nil
 	}
-	// Block until there are any pods ready.
-	oldAvailable, newAvailable, err := r.waitForReadyPods(config.Interval, config.Timeout, oldRc, newRc)
+	// Get ready pods. We shouldn't block, otherwise in case both old and new
+	// pods are unavailable then the rolling update process blocks.
+	// Timeout-wise we are already covered by the progress check.
+	_, newAvailable, err := r.getReadyPods(oldRc, newRc)
 	if err != nil {
 		return nil, err
 	}
 	// The old controller is considered as part of the total because we want to
 	// maintain minimum availability even with a volatile old controller.
-	// Scale down as much as possible while maintaining minimum availability.
-	decrement := (oldAvailable + newAvailable) - minAvailable
+	// Scale down as much as possible while maintaining minimum availability
+	allPods := oldRc.Spec.Replicas + newRc.Spec.Replicas
+	newUnavailable := newRc.Spec.Replicas - newAvailable
+	decrement := allPods - minAvailable - newUnavailable
 	// The decrement normally shouldn't drop below 0 because the available count
 	// always starts below the old replica count, but the old replica count can
 	// decrement due to externalities like pods death in the replica set. This
@@ -342,7 +383,7 @@ func (r *RollingUpdater) scaleDown(newRc, oldRc *api.ReplicationController, desi
 
 // scalerScaleAndWait scales a controller using a Scaler and a real client.
 func (r *RollingUpdater) scaleAndWaitWithScaler(rc *api.ReplicationController, retry *RetryParams, wait *RetryParams) (*api.ReplicationController, error) {
-	scaler, err := ScalerFor("ReplicationController", r.c)
+	scaler, err := ScalerFor(api.Kind("ReplicationController"), r.c)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't make scaler: %s", err)
 	}
@@ -352,39 +393,34 @@ func (r *RollingUpdater) scaleAndWaitWithScaler(rc *api.ReplicationController, r
 	return r.c.ReplicationControllers(rc.Namespace).Get(rc.Name)
 }
 
-// pollForReadyPods polls oldRc and newRc each interval and returns the old
-// and new ready counts for their pods. If a pod is observed as being ready,
-// it's considered ready even if it later becomes notReady.
-func (r *RollingUpdater) pollForReadyPods(interval, timeout time.Duration, oldRc, newRc *api.ReplicationController) (int, int, error) {
+// readyPods returns the old and new ready counts for their pods.
+// If a pod is observed as being ready, it's considered ready even
+// if it later becomes notReady.
+func (r *RollingUpdater) readyPods(oldRc, newRc *api.ReplicationController) (int32, int32, error) {
 	controllers := []*api.ReplicationController{oldRc, newRc}
-	oldReady := 0
-	newReady := 0
-	err := wait.Poll(interval, timeout, func() (done bool, err error) {
-		anyReady := false
-		for _, controller := range controllers {
-			selector := labels.Set(controller.Spec.Selector).AsSelector()
-			pods, err := r.c.Pods(controller.Namespace).List(selector, fields.Everything())
-			if err != nil {
-				return false, err
-			}
-			for _, pod := range pods.Items {
-				if api.IsPodReady(&pod) {
-					switch controller.Name {
-					case oldRc.Name:
-						oldReady++
-					case newRc.Name:
-						newReady++
-					}
-					anyReady = true
+	oldReady := int32(0)
+	newReady := int32(0)
+
+	for i := range controllers {
+		controller := controllers[i]
+		selector := labels.Set(controller.Spec.Selector).AsSelector()
+		options := api.ListOptions{LabelSelector: selector}
+		pods, err := r.c.Pods(controller.Namespace).List(options)
+		if err != nil {
+			return 0, 0, err
+		}
+		for _, pod := range pods.Items {
+			if api.IsPodReady(&pod) {
+				switch controller.Name {
+				case oldRc.Name:
+					oldReady++
+				case newRc.Name:
+					newReady++
 				}
 			}
 		}
-		if anyReady {
-			return true, nil
-		}
-		return false, nil
-	})
-	return oldReady, newReady, err
+	}
+	return oldReady, newReady, nil
 }
 
 // getOrCreateTargetControllerWithClient looks for an existing controller with
@@ -404,7 +440,7 @@ func (r *RollingUpdater) getOrCreateTargetControllerWithClient(controller *api.R
 			return nil, false, err
 		}
 		if controller.Spec.Replicas <= 0 {
-			return nil, false, fmt.Errorf("Invalid controller spec for %s; required: > 0 replicas, actual: %d\n", controller.Name, controller.Spec)
+			return nil, false, fmt.Errorf("Invalid controller spec for %s; required: > 0 replicas, actual: %d\n", controller.Name, controller.Spec.Replicas)
 		}
 		// The controller wasn't found, so create it.
 		if controller.Annotations == nil {
@@ -430,7 +466,7 @@ func (r *RollingUpdater) getOrCreateTargetControllerWithClient(controller *api.R
 func (r *RollingUpdater) existingController(controller *api.ReplicationController) (*api.ReplicationController, error) {
 	// without rc name but generate name, there's no existing rc
 	if len(controller.Name) == 0 && len(controller.GenerateName) > 0 {
-		return nil, errors.NewNotFound("ReplicationController", controller.Name)
+		return nil, errors.NewNotFound(api.Resource("replicationcontrollers"), controller.Name)
 	}
 	// controller name is required to get rc back
 	return r.c.ReplicationControllers(controller.Namespace).Get(controller.Name)
@@ -481,29 +517,6 @@ func (r *RollingUpdater) cleanupWithClients(oldRc, newRc *api.ReplicationControl
 	}
 }
 
-// func extractMaxValue is a helper to extract config max values as either
-// absolute numbers or based on percentages of the given value.
-func extractMaxValue(field util.IntOrString, name string, value int) (int, error) {
-	switch field.Kind {
-	case util.IntstrInt:
-		if field.IntVal < 0 {
-			return 0, fmt.Errorf("%s must be >= 0", name)
-		}
-		return field.IntVal, nil
-	case util.IntstrString:
-		s := strings.Replace(field.StrVal, "%", "", -1)
-		v, err := strconv.Atoi(s)
-		if err != nil {
-			return 0, fmt.Errorf("invalid %s value %q: %v", name, field.StrVal, err)
-		}
-		if v < 0 {
-			return 0, fmt.Errorf("%s must be >= 0", name)
-		}
-		return int(math.Ceil(float64(value) * (float64(v)) / 100)), nil
-	}
-	return 0, fmt.Errorf("invalid kind %q for %s", field.Kind, name)
-}
-
 func Rename(c client.ReplicationControllersNamespacer, rc *api.ReplicationController, newName string) error {
 	oldName := rc.Name
 	rc.Name = newName
@@ -531,34 +544,63 @@ func LoadExistingNextReplicationController(c client.ReplicationControllersNamesp
 	return newRc, err
 }
 
-func CreateNewControllerFromCurrentController(c *client.Client, namespace, oldName, newName, image, deploymentKey string) (*api.ReplicationController, error) {
+type NewControllerConfig struct {
+	Namespace        string
+	OldName, NewName string
+	Image            string
+	Container        string
+	DeploymentKey    string
+	PullPolicy       api.PullPolicy
+}
+
+func CreateNewControllerFromCurrentController(c client.Interface, codec runtime.Codec, cfg *NewControllerConfig) (*api.ReplicationController, error) {
+	containerIndex := 0
 	// load the old RC into the "new" RC
-	newRc, err := c.ReplicationControllers(namespace).Get(oldName)
+	newRc, err := c.ReplicationControllers(cfg.Namespace).Get(cfg.OldName)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(newRc.Spec.Template.Spec.Containers) > 1 {
-		// TODO: support multi-container image update.
-		return nil, goerrors.New("Image update is not supported for multi-container pods")
+	if len(cfg.Container) != 0 {
+		containerFound := false
+
+		for i, c := range newRc.Spec.Template.Spec.Containers {
+			if c.Name == cfg.Container {
+				containerIndex = i
+				containerFound = true
+				break
+			}
+		}
+
+		if !containerFound {
+			return nil, fmt.Errorf("container %s not found in pod", cfg.Container)
+		}
 	}
+
+	if len(newRc.Spec.Template.Spec.Containers) > 1 && len(cfg.Container) == 0 {
+		return nil, goerrors.New("Must specify container to update when updating a multi-container pod")
+	}
+
 	if len(newRc.Spec.Template.Spec.Containers) == 0 {
 		return nil, goerrors.New(fmt.Sprintf("Pod has no containers! (%v)", newRc))
 	}
-	newRc.Spec.Template.Spec.Containers[0].Image = image
+	newRc.Spec.Template.Spec.Containers[containerIndex].Image = cfg.Image
+	if len(cfg.PullPolicy) != 0 {
+		newRc.Spec.Template.Spec.Containers[containerIndex].ImagePullPolicy = cfg.PullPolicy
+	}
 
-	newHash, err := api.HashObject(newRc, c.Codec)
+	newHash, err := api.HashObject(newRc, codec)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(newName) == 0 {
-		newName = fmt.Sprintf("%s-%s", newRc.Name, newHash)
+	if len(cfg.NewName) == 0 {
+		cfg.NewName = fmt.Sprintf("%s-%s", newRc.Name, newHash)
 	}
-	newRc.Name = newName
+	newRc.Name = cfg.NewName
 
-	newRc.Spec.Selector[deploymentKey] = newHash
-	newRc.Spec.Template.Labels[deploymentKey] = newHash
+	newRc.Spec.Selector[cfg.DeploymentKey] = newHash
+	newRc.Spec.Template.Labels[cfg.DeploymentKey] = newHash
 	// Clear resource version after hashing so that identical updates get different hashes.
 	newRc.ResourceVersion = ""
 	return newRc, nil
@@ -627,7 +669,9 @@ func AddDeploymentKeyToReplicationController(oldRc *api.ReplicationController, c
 
 	// Update all pods managed by the rc to have the new hash label, so they are correctly adopted
 	// TODO: extract the code from the label command and re-use it here.
-	podList, err := client.Pods(namespace).List(labels.SelectorFromSet(oldRc.Spec.Selector), fields.Everything())
+	selector := labels.SelectorFromSet(oldRc.Spec.Selector)
+	options := api.ListOptions{LabelSelector: selector}
+	podList, err := client.Pods(namespace).List(options)
 	if err != nil {
 		return nil, err
 	}
@@ -677,7 +721,9 @@ func AddDeploymentKeyToReplicationController(oldRc *api.ReplicationController, c
 	// Clean up any orphaned pods that don't have the new label, this can happen if the rc manager
 	// doesn't see the update to its pod template and creates a new pod with the old labels after
 	// we've finished re-adopting existing pods to the rc.
-	podList, err = client.Pods(namespace).List(labels.SelectorFromSet(selectorCopy), fields.Everything())
+	selector = labels.SelectorFromSet(selectorCopy)
+	options = api.ListOptions{LabelSelector: selector}
+	podList, err = client.Pods(namespace).List(options)
 	for ix := range podList.Items {
 		pod := &podList.Items[ix]
 		if value, found := pod.Labels[deploymentKey]; !found || value != deploymentValue {
@@ -718,7 +764,7 @@ func updateWithRetries(rcClient client.ReplicationControllerInterface, rc *api.R
 }
 
 func FindSourceController(r client.ReplicationControllersNamespacer, namespace, name string) (*api.ReplicationController, error) {
-	list, err := r.ReplicationControllers(namespace).List(labels.Everything(), fields.Everything())
+	list, err := r.ReplicationControllers(namespace).List(api.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

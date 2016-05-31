@@ -20,21 +20,59 @@ import (
 	"io"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	cmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/rollout"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/flag"
 
 	"github.com/spf13/cobra"
 )
 
 const (
 	bash_completion_func = `# call kubectl get $1,
+__kubectl_namespace_flag()
+{
+    local ret two_word_ns
+    ret=""
+    two_word_ns=false
+    for w in "${words[@]}"; do
+        if [ "$two_word_ns" = true ]; then
+            ret="--namespace=${w}"
+            two_word_ns=false
+            continue
+        fi
+        case "${w}" in
+            --namespace=*)
+                ret=${w}
+                ;;
+            --namespace)
+                two_word_ns=true
+                ;;
+            --all-namespaces)
+                ret=${w}
+                ;;
+        esac
+    done
+    echo $ret
+}
+
+__kubectl_get_namespaces()
+{
+    local template kubectl_out
+    template="{{ range .items  }}{{ .metadata.name }} {{ end }}"
+    if kubectl_out=$(kubectl get -o template --template="${template}" namespace 2>/dev/null); then
+        COMPREPLY=( $( compgen -W "${kubectl_out[*]}" -- "$cur" ) )
+    fi
+}
+
 __kubectl_parse_get()
 {
     local template
     template="{{ range .items  }}{{ .metadata.name }} {{ end }}"
     local kubectl_out
-    if kubectl_out=$(kubectl get -o template --template="${template}" "$1" 2>/dev/null); then
+    if kubectl_out=$(kubectl get $(__kubectl_namespace_flag) -o template --template="${template}" "$1" 2>/dev/null); then
         COMPREPLY=( $( compgen -W "${kubectl_out[*]}" -- "$cur" ) )
     fi
 }
@@ -70,7 +108,7 @@ __kubectl_get_containers()
     fi
     local last=${nouns[${len} -1]}
     local kubectl_out
-    if kubectl_out=$(kubectl get -o template --template="${template}" pods "${last}" 2>/dev/null); then
+    if kubectl_out=$(kubectl get $(__kubectl_namespace_flag) -o template --template="${template}" pods "${last}" 2>/dev/null); then
         COMPREPLY=( $( compgen -W "${kubectl_out[*]}" -- "$cur" ) )
     fi
 }
@@ -88,7 +126,8 @@ __kubectl_require_pod_and_container()
 
 __custom_func() {
     case ${last_command} in
-        kubectl_get | kubectl_describe | kubectl_delete | kubectl_label | kubectl_stop)
+        kubectl_get | kubectl_describe | kubectl_delete | kubectl_label | kubectl_stop | kubectl_edit | kubectl_patch |\
+        kubectl_annotate | kubectl_expose)
             __kubectl_get_resource
             return
             ;;
@@ -109,22 +148,32 @@ __custom_func() {
     esac
 }
 `
+
+	// If you add a resource to this list, please also take a look at pkg/kubectl/kubectl.go
+	// and add a short forms entry in expandResourceShortcut() when appropriate.
 	valid_resources = `Valid resource types include:
-   * pods (aka 'po')
-   * replicationcontrollers (aka 'rc')
+   * componentstatuses (aka 'cs')
+   * configmaps
    * daemonsets (aka 'ds')
-   * services (aka 'svc')
+   * deployments
    * events (aka 'ev')
+   * endpoints (aka 'ep')
+   * horizontalpodautoscalers (aka 'hpa')
+   * ingress (aka 'ing')
+   * jobs
+   * limitranges (aka 'limits')
    * nodes (aka 'no')
    * namespaces (aka 'ns')
-   * secrets
+   * pods (aka 'po')
    * persistentvolumes (aka 'pv')
    * persistentvolumeclaims (aka 'pvc')
-   * limitranges (aka 'limits')
-   * resourcequotas (aka 'quota')
-   * componentstatuses (aka 'cs')
-   * endpoints (aka 'ep')
    * quota
+   * resourcequotas (aka 'quota')
+   * replicasets (aka 'rs')
+   * replicationcontrollers (aka 'rc')
+   * secrets
+   * serviceaccounts (aka 'sa')
+   * services (aka 'svc')
 `
 )
 
@@ -142,43 +191,58 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 	}
 
 	f.BindFlags(cmds.PersistentFlags())
+	f.BindExternalFlags(cmds.PersistentFlags())
 
 	// From this point and forward we get warnings on flags that contain "_" separators
-	cmds.SetGlobalNormalizationFunc(util.WarnWordSepNormalizeFunc)
+	cmds.SetGlobalNormalizationFunc(flag.WarnWordSepNormalizeFunc)
 
 	cmds.AddCommand(NewCmdGet(f, out))
+	cmds.AddCommand(set.NewCmdSet(f, out))
 	cmds.AddCommand(NewCmdDescribe(f, out))
 	cmds.AddCommand(NewCmdCreate(f, out))
 	cmds.AddCommand(NewCmdReplace(f, out))
 	cmds.AddCommand(NewCmdPatch(f, out))
 	cmds.AddCommand(NewCmdDelete(f, out))
-	cmds.AddCommand(NewCmdEdit(f, out))
+	cmds.AddCommand(NewCmdEdit(f, out, err))
 	cmds.AddCommand(NewCmdApply(f, out))
 
 	cmds.AddCommand(NewCmdNamespace(out))
-	cmds.AddCommand(NewCmdLog(f, out))
+	cmds.AddCommand(NewCmdLogs(f, out))
 	cmds.AddCommand(NewCmdRollingUpdate(f, out))
 	cmds.AddCommand(NewCmdScale(f, out))
+	cmds.AddCommand(NewCmdCordon(f, out))
+	cmds.AddCommand(NewCmdDrain(f, out))
+	cmds.AddCommand(NewCmdUncordon(f, out))
 
 	cmds.AddCommand(NewCmdAttach(f, in, out, err))
 	cmds.AddCommand(NewCmdExec(f, in, out, err))
-	cmds.AddCommand(NewCmdPortForward(f))
+	cmds.AddCommand(NewCmdPortForward(f, out, err))
 	cmds.AddCommand(NewCmdProxy(f, out))
 
 	cmds.AddCommand(NewCmdRun(f, in, out, err))
 	cmds.AddCommand(NewCmdStop(f, out))
 	cmds.AddCommand(NewCmdExposeService(f, out))
 	cmds.AddCommand(NewCmdAutoscale(f, out))
+	cmds.AddCommand(rollout.NewCmdRollout(f, out))
 
 	cmds.AddCommand(NewCmdLabel(f, out))
 	cmds.AddCommand(NewCmdAnnotate(f, out))
+	cmds.AddCommand(NewCmdTaint(f, out))
 
-	cmds.AddCommand(cmdconfig.NewCmdConfig(cmdconfig.NewDefaultPathOptions(), out))
+	cmds.AddCommand(cmdconfig.NewCmdConfig(clientcmd.NewDefaultPathOptions(), out))
 	cmds.AddCommand(NewCmdClusterInfo(f, out))
 	cmds.AddCommand(NewCmdApiVersions(f, out))
 	cmds.AddCommand(NewCmdVersion(f, out))
 	cmds.AddCommand(NewCmdExplain(f, out))
 	cmds.AddCommand(NewCmdConvert(f, out))
+
+	if cmds.Flag("namespace").Annotations == nil {
+		cmds.Flag("namespace").Annotations = map[string][]string{}
+	}
+	cmds.Flag("namespace").Annotations[cobra.BashCompCustom] = append(
+		cmds.Flag("namespace").Annotations[cobra.BashCompCustom],
+		"__kubectl_get_namespaces",
+	)
 
 	return cmds
 }

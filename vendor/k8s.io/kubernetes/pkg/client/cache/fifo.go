@@ -18,6 +18,8 @@ package cache
 
 import (
 	"sync"
+
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // Queue is exactly like a Store, but has a Pop() method too.
@@ -32,6 +34,9 @@ type Queue interface {
 	// as nothing else (presumably more recent)
 	// has since been added.
 	AddIfNotPresent(interface{}) error
+
+	// Return true if the first batch of items has been popped
+	HasSynced() bool
 }
 
 // FIFO receives adds and updates from a Reflector, and puts them in a queue for
@@ -52,6 +57,13 @@ type FIFO struct {
 	// We depend on the property that items in the set are in the queue and vice versa.
 	items map[string]interface{}
 	queue []string
+
+	// populated is true if the first batch of items inserted by Replace() has been populated
+	// or Delete/Add/Update was called first.
+	populated bool
+	// initialPopulationCount is the number of items inserted by the first call of Replace()
+	initialPopulationCount int
+
 	// keyFunc is used to make the key used for queued item insertion and retrieval, and
 	// should be deterministic.
 	keyFunc KeyFunc
@@ -60,6 +72,14 @@ type FIFO struct {
 var (
 	_ = Queue(&FIFO{}) // FIFO is a Queue
 )
+
+// Return true if an Add/Update/Delete/AddIfNotPresent are called first,
+// or an Update called first but the first batch of items inserted by Replace() has been popped
+func (f *FIFO) HasSynced() bool {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	return f.populated && f.initialPopulationCount == 0
+}
 
 // Add inserts an item, and puts it in the queue. The item is only enqueued
 // if it doesn't already exist in the set.
@@ -70,6 +90,7 @@ func (f *FIFO) Add(obj interface{}) error {
 	}
 	f.lock.Lock()
 	defer f.lock.Unlock()
+	f.populated = true
 	if _, exists := f.items[id]; !exists {
 		f.queue = append(f.queue, id)
 	}
@@ -91,6 +112,7 @@ func (f *FIFO) AddIfNotPresent(obj interface{}) error {
 	}
 	f.lock.Lock()
 	defer f.lock.Unlock()
+	f.populated = true
 	if _, exists := f.items[id]; exists {
 		return nil
 	}
@@ -116,6 +138,7 @@ func (f *FIFO) Delete(obj interface{}) error {
 	}
 	f.lock.Lock()
 	defer f.lock.Unlock()
+	f.populated = true
 	delete(f.items, id)
 	return err
 }
@@ -174,6 +197,9 @@ func (f *FIFO) Pop() interface{} {
 		}
 		id := f.queue[0]
 		f.queue = f.queue[1:]
+		if f.initialPopulationCount > 0 {
+			f.initialPopulationCount--
+		}
 		item, ok := f.items[id]
 		if !ok {
 			// Item may have been deleted subsequently.
@@ -200,10 +226,36 @@ func (f *FIFO) Replace(list []interface{}, resourceVersion string) error {
 
 	f.lock.Lock()
 	defer f.lock.Unlock()
+
+	if !f.populated {
+		f.populated = true
+		f.initialPopulationCount = len(items)
+	}
+
 	f.items = items
 	f.queue = f.queue[:0]
 	for id := range items {
 		f.queue = append(f.queue, id)
+	}
+	if len(f.queue) > 0 {
+		f.cond.Broadcast()
+	}
+	return nil
+}
+
+// Resync will touch all objects to put them into the processing queue
+func (f *FIFO) Resync() error {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	inQueue := sets.NewString()
+	for _, id := range f.queue {
+		inQueue.Insert(id)
+	}
+	for id := range f.items {
+		if !inQueue.Has(id) {
+			f.queue = append(f.queue, id)
+		}
 	}
 	if len(f.queue) > 0 {
 		f.cond.Broadcast()

@@ -27,7 +27,7 @@ import (
 
 	"github.com/golang/glog"
 	"golang.org/x/net/websocket"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/runtime"
 )
 
 // The Websocket subprotocol "channel.k8s.io" prepends each binary message with a byte indicating
@@ -89,10 +89,10 @@ func IsWebSocketRequest(req *http.Request) bool {
 	return connectionUpgradeRegex.MatchString(strings.ToLower(req.Header.Get("Connection"))) && strings.ToLower(req.Header.Get("Upgrade")) == "websocket"
 }
 
-// ignoreReceives reads from a WebSocket until it is closed, then returns. If timeout is set, the
+// IgnoreReceives reads from a WebSocket until it is closed, then returns. If timeout is set, the
 // read and write deadlines are pushed every time a new message is received.
-func ignoreReceives(ws *websocket.Conn, timeout time.Duration) {
-	defer util.HandleCrash()
+func IgnoreReceives(ws *websocket.Conn, timeout time.Duration) {
+	defer runtime.HandleCrash()
 	var data []byte
 	for {
 		resetTimeout(ws, timeout)
@@ -163,7 +163,7 @@ func (conn *Conn) SetIdleTimeout(duration time.Duration) {
 // Open the connection and create channels for reading and writing.
 func (conn *Conn) Open(w http.ResponseWriter, req *http.Request) ([]io.ReadWriteCloser, error) {
 	go func() {
-		defer util.HandleCrash()
+		defer runtime.HandleCrash()
 		defer conn.Close()
 		websocket.Server{Handshake: conn.handshake, Handler: conn.handle}.ServeHTTP(w, req)
 	}()

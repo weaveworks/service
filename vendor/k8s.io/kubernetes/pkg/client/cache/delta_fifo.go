@@ -82,7 +82,7 @@ func NewDeltaFIFO(keyFunc KeyFunc, compressor DeltaCompressor, knownObjects KeyL
 // different versions of the same object.
 //
 // A note on the KeyLister used by the DeltaFIFO: It's main purpose is
-// to list keys that are "known", for the puspose of figuring out which
+// to list keys that are "known", for the purpose of figuring out which
 // items have been deleted when Replace() or Delete() are called. The deleted
 // objet will be included in the DeleteFinalStateUnknown markers. These objects
 // could be stale.
@@ -99,6 +99,12 @@ type DeltaFIFO struct {
 	// map have at least one Delta.
 	items map[string]Deltas
 	queue []string
+
+	// populated is true if the first batch of items inserted by Replace() has been populated
+	// or Delete/Add/Update was called first.
+	populated bool
+	// initialPopulationCount is the number of items inserted by the first call of Replace()
+	initialPopulationCount int
 
 	// keyFunc is used to make the key used for queued item
 	// insertion and retrieval, and should be deterministic.
@@ -141,11 +147,20 @@ func (f *DeltaFIFO) KeyOf(obj interface{}) (string, error) {
 	return f.keyFunc(obj)
 }
 
+// Return true if an Add/Update/Delete/AddIfNotPresent are called first,
+// or an Update called first but the first batch of items inserted by Replace() has been popped
+func (f *DeltaFIFO) HasSynced() bool {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	return f.populated && f.initialPopulationCount == 0
+}
+
 // Add inserts an item, and puts it in the queue. The item is only enqueued
 // if it doesn't already exist in the set.
 func (f *DeltaFIFO) Add(obj interface{}) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
+	f.populated = true
 	return f.queueActionLocked(Added, obj)
 }
 
@@ -153,6 +168,7 @@ func (f *DeltaFIFO) Add(obj interface{}) error {
 func (f *DeltaFIFO) Update(obj interface{}) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
+	f.populated = true
 	return f.queueActionLocked(Updated, obj)
 }
 
@@ -166,6 +182,7 @@ func (f *DeltaFIFO) Delete(obj interface{}) error {
 	}
 	f.lock.Lock()
 	defer f.lock.Unlock()
+	f.populated = true
 	if f.knownObjects == nil {
 		if _, exists := f.items[id]; !exists {
 			// Presumably, this was deleted when a relist happened.
@@ -203,6 +220,7 @@ func (f *DeltaFIFO) AddIfNotPresent(obj interface{}) error {
 	}
 	f.lock.Lock()
 	defer f.lock.Unlock()
+	f.populated = true
 	if _, exists := f.items[id]; exists {
 		return nil
 	}
@@ -288,6 +306,10 @@ func (f *DeltaFIFO) queueActionLocked(actionType DeltaType, obj interface{}) err
 func (f *DeltaFIFO) List() []interface{} {
 	f.lock.RLock()
 	defer f.lock.RUnlock()
+	return f.listLocked()
+}
+
+func (f *DeltaFIFO) listLocked() []interface{} {
 	list := make([]interface{}, 0, len(f.items))
 	for _, item := range f.items {
 		// Copy item's slice so operations on this slice (delta
@@ -354,6 +376,9 @@ func (f *DeltaFIFO) Pop() interface{} {
 		id := f.queue[0]
 		f.queue = f.queue[1:]
 		item, ok := f.items[id]
+		if f.initialPopulationCount > 0 {
+			f.initialPopulationCount--
+		}
 		if !ok {
 			// Item may have been deleted subsequently.
 			continue
@@ -373,6 +398,12 @@ func (f *DeltaFIFO) Replace(list []interface{}, resourceVersion string) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 	keys := make(sets.String, len(list))
+
+	if !f.populated {
+		f.populated = true
+		f.initialPopulationCount = len(list)
+	}
+
 	for _, item := range list {
 		key, err := f.KeyOf(item)
 		if err != nil {
@@ -420,6 +451,27 @@ func (f *DeltaFIFO) Replace(list []interface{}, resourceVersion string) error {
 		}
 		if err := f.queueActionLocked(Deleted, DeletedFinalStateUnknown{k, deletedObj}); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+// Resync will send a sync event for each item
+func (f *DeltaFIFO) Resync() error {
+	f.lock.RLock()
+	defer f.lock.RUnlock()
+	for _, k := range f.knownObjects.ListKeys() {
+		obj, exists, err := f.knownObjects.GetByKey(k)
+		if err != nil {
+			glog.Errorf("Unexpected error %v during lookup of key %v, unable to queue object for sync", err, k)
+			continue
+		} else if !exists {
+			glog.Infof("Key %v does not exist in known objects store, unable to queue object for sync", k)
+			continue
+		}
+
+		if err := f.queueActionLocked(Sync, obj); err != nil {
+			return fmt.Errorf("couldn't queue object: %v", err)
 		}
 	}
 	return nil

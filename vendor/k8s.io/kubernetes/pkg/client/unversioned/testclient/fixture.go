@@ -22,11 +22,10 @@ import (
 	"reflect"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/yaml"
 	"k8s.io/kubernetes/pkg/watch"
@@ -38,7 +37,7 @@ import (
 type ObjectRetriever interface {
 	// Kind should return a resource or a list of resources (depending on the provided kind and
 	// name). It should return an error if the caller should communicate an error to the server.
-	Kind(kind, name string) (runtime.Object, error)
+	Kind(gvk unversioned.GroupVersionKind, name string) (runtime.Object, error)
 	// Add adds a runtime object for test purposes into this object.
 	Add(runtime.Object) error
 }
@@ -59,7 +58,7 @@ type ObjectScheme interface {
 func ObjectReaction(o ObjectRetriever, mapper meta.RESTMapper) ReactionFunc {
 
 	return func(action Action) (bool, runtime.Object, error) {
-		_, kind, err := mapper.VersionAndKindForResource(action.GetResource())
+		kind, err := mapper.KindFor(unversioned.GroupVersionResource{Resource: action.GetResource()})
 		if err != nil {
 			return false, nil, fmt.Errorf("unrecognized action %s: %v", action.GetResource(), err)
 		}
@@ -67,7 +66,8 @@ func ObjectReaction(o ObjectRetriever, mapper meta.RESTMapper) ReactionFunc {
 		// TODO: have mapper return a Kind for a subresource?
 		switch castAction := action.(type) {
 		case ListAction:
-			resource, err := o.Kind(kind+"List", "")
+			kind.Kind += "List"
+			resource, err := o.Kind(kind, "")
 			return true, resource, err
 
 		case GetAction:
@@ -79,26 +79,24 @@ func ObjectReaction(o ObjectRetriever, mapper meta.RESTMapper) ReactionFunc {
 			return true, resource, err
 
 		case CreateAction:
-			meta, err := api.ObjectMetaFor(castAction.GetObject())
+			accessor, err := meta.Accessor(castAction.GetObject())
 			if err != nil {
 				return true, nil, err
 			}
-			resource, err := o.Kind(kind, meta.Name)
+			resource, err := o.Kind(kind, accessor.GetName())
 			return true, resource, err
 
 		case UpdateAction:
-			meta, err := api.ObjectMetaFor(castAction.GetObject())
+			accessor, err := meta.Accessor(castAction.GetObject())
 			if err != nil {
 				return true, nil, err
 			}
-			resource, err := o.Kind(kind, meta.Name)
+			resource, err := o.Kind(kind, accessor.GetName())
 			return true, resource, err
 
 		default:
 			return false, nil, fmt.Errorf("no reaction implemented for %s", action)
 		}
-
-		return true, nil, nil
 	}
 }
 
@@ -113,7 +111,7 @@ func AddObjectsFromPath(path string, o ObjectRetriever, decoder runtime.Decoder)
 	if err != nil {
 		return err
 	}
-	obj, err := decoder.Decode(data)
+	obj, err := runtime.Decode(decoder, data)
 	if err != nil {
 		return err
 	}
@@ -127,7 +125,7 @@ type objects struct {
 	types   map[string][]runtime.Object
 	last    map[string]int
 	scheme  ObjectScheme
-	decoder runtime.ObjectDecoder
+	decoder runtime.Decoder
 }
 
 var _ ObjectRetriever = &objects{}
@@ -142,7 +140,7 @@ var _ ObjectRetriever = &objects{}
 // as a runtime.Object if Status == Success).  If multiple PodLists are provided, they
 // will be returned in order by the Kind call, and the last PodList will be reused for
 // subsequent calls.
-func NewObjects(scheme ObjectScheme, decoder runtime.ObjectDecoder) ObjectRetriever {
+func NewObjects(scheme ObjectScheme, decoder runtime.Decoder) ObjectRetriever {
 	return objects{
 		types:   make(map[string][]runtime.Object),
 		last:    make(map[string]int),
@@ -151,23 +149,25 @@ func NewObjects(scheme ObjectScheme, decoder runtime.ObjectDecoder) ObjectRetrie
 	}
 }
 
-func (o objects) Kind(kind, name string) (runtime.Object, error) {
-	empty, _ := o.scheme.New("", kind)
+func (o objects) Kind(kind unversioned.GroupVersionKind, name string) (runtime.Object, error) {
+	kind.Version = runtime.APIVersionInternal
+
+	empty, _ := o.scheme.New(kind)
 	nilValue := reflect.Zero(reflect.TypeOf(empty)).Interface().(runtime.Object)
 
-	arr, ok := o.types[kind]
+	arr, ok := o.types[kind.Kind]
 	if !ok {
-		if strings.HasSuffix(kind, "List") {
-			itemKind := kind[:len(kind)-4]
+		if strings.HasSuffix(kind.Kind, "List") {
+			itemKind := kind.Kind[:len(kind.Kind)-4]
 			arr, ok := o.types[itemKind]
 			if !ok {
 				return empty, nil
 			}
-			out, err := o.scheme.New("", kind)
+			out, err := o.scheme.New(kind)
 			if err != nil {
 				return nilValue, err
 			}
-			if err := runtime.SetList(out, arr); err != nil {
+			if err := meta.SetList(out, arr); err != nil {
 				return nilValue, err
 			}
 			if out, err = o.scheme.Copy(out); err != nil {
@@ -175,25 +175,25 @@ func (o objects) Kind(kind, name string) (runtime.Object, error) {
 			}
 			return out, nil
 		}
-		return nilValue, errors.NewNotFound(kind, name)
+		return nilValue, errors.NewNotFound(unversioned.GroupResource{Group: kind.Group, Resource: kind.Kind}, name)
 	}
 
-	index := o.last[kind]
+	index := o.last[kind.Kind]
 	if index >= len(arr) {
 		index = len(arr) - 1
 	}
 	if index < 0 {
-		return nilValue, errors.NewNotFound(kind, name)
+		return nilValue, errors.NewNotFound(unversioned.GroupResource{Group: kind.Group, Resource: kind.Kind}, name)
 	}
 	out, err := o.scheme.Copy(arr[index])
 	if err != nil {
 		return nilValue, err
 	}
-	o.last[kind] = index + 1
+	o.last[kind.Kind] = index + 1
 
 	if status, ok := out.(*unversioned.Status); ok {
 		if status.Details != nil {
-			status.Details.Kind = kind
+			status.Details.Kind = kind.Kind
 		}
 		if status.Status != unversioned.StatusSuccess {
 			return nilValue, &errors.StatusError{ErrStatus: *status}
@@ -204,18 +204,19 @@ func (o objects) Kind(kind, name string) (runtime.Object, error) {
 }
 
 func (o objects) Add(obj runtime.Object) error {
-	_, kind, err := o.scheme.ObjectVersionAndKind(obj)
+	gvk, err := o.scheme.ObjectKind(obj)
 	if err != nil {
 		return err
 	}
+	kind := gvk.Kind
 
 	switch {
-	case runtime.IsListType(obj):
+	case meta.IsListType(obj):
 		if kind != "List" {
 			o.types[kind] = append(o.types[kind], obj)
 		}
 
-		list, err := runtime.ExtractList(obj)
+		list, err := meta.ExtractList(obj)
 		if err != nil {
 			return err
 		}
@@ -307,6 +308,6 @@ func (r *SimpleProxyReactor) Handles(action Action) bool {
 	return true
 }
 
-func (r *SimpleProxyReactor) React(action Action) (bool, client.ResponseWrapper, error) {
+func (r *SimpleProxyReactor) React(action Action) (bool, restclient.ResponseWrapper, error) {
 	return r.Reaction(action)
 }

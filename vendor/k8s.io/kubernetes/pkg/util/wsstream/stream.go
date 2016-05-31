@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"golang.org/x/net/websocket"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/runtime"
 )
 
 // The WebSocket subprotocol "binary.k8s.io" will only send messages to the
@@ -71,7 +71,7 @@ func (r *Reader) handshake(config *websocket.Config, req *http.Request) error {
 // method completes.
 func (r *Reader) Copy(w http.ResponseWriter, req *http.Request) error {
 	go func() {
-		defer util.HandleCrash()
+		defer runtime.HandleCrash()
 		websocket.Server{Handshake: r.handshake, Handler: r.handle}.ServeHTTP(w, req)
 	}()
 	return <-r.err
@@ -82,7 +82,7 @@ func (r *Reader) handle(ws *websocket.Conn) {
 	encode := len(ws.Config().Protocol) > 0 && ws.Config().Protocol[0] == base64BinaryWebSocketProtocol
 	defer close(r.err)
 	defer ws.Close()
-	go ignoreReceives(ws, r.timeout)
+	go IgnoreReceives(ws, r.timeout)
 	r.err <- messageCopy(ws, r.r, encode, r.ping, r.timeout)
 }
 

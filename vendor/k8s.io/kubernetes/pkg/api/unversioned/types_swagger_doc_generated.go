@@ -1,5 +1,5 @@
 /*
-Copyright 2015 The Kubernetes Authors All rights reserved.
+Copyright 2016 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ limitations under the License.
 
 package unversioned
 
-// This file contains a collection of methods that can be used from go-resful to
+// This file contains a collection of methods that can be used from go-restful to
 // generate Swagger API documentation for its models. Please read this PR for more
 // information on the implementation: https://github.com/emicklei/go-restful/pull/215
 //
@@ -28,10 +28,11 @@ package unversioned
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_APIGroup = map[string]string{
-	"":                 "APIGroup contains the name, the supported versions, and the preferred version of a group.",
-	"name":             "name is the name of the group.",
-	"versions":         "versions are the versions supported in this group.",
-	"preferredVersion": "preferredVersion is the version preferred by the API server, which probably is the storage version.",
+	"":                           "APIGroup contains the name, the supported versions, and the preferred version of a group.",
+	"name":                       "name is the name of the group.",
+	"versions":                   "versions are the versions supported in this group.",
+	"preferredVersion":           "preferredVersion is the version preferred by the API server, which probably is the storage version.",
+	"serverAddressByClientCIDRs": "a map of client CIDR to server address that is serving this group. This is to help clients reach servers in the most network-efficient way possible. Clients can use the appropriate server address as per the CIDR that they match. In case of multiple matches, clients should use the longest matching CIDR. The server returns only those CIDRs that it thinks that the client can match. For example: the master will return an internal IP CIDR only, if the client reaches the server using an internal IP. Server looks at X-Forwarded-For header or X-Real-Ip header or request.RemoteAddr (in that order) to get the client IP.",
 }
 
 func (APIGroup) SwaggerDoc() map[string]string {
@@ -51,6 +52,7 @@ var map_APIResource = map[string]string{
 	"":           "APIResource specifies the name of a resource and whether it is namespaced.",
 	"name":       "name is the name of the resource.",
 	"namespaced": "namespaced indicates if a resource is namespaced or not.",
+	"kind":       "kind is the kind for the resource (e.g. 'Foo' is the kind for a resource 'foo')",
 }
 
 func (APIResource) SwaggerDoc() map[string]string {
@@ -68,12 +70,23 @@ func (APIResourceList) SwaggerDoc() map[string]string {
 }
 
 var map_APIVersions = map[string]string{
-	"":         "APIVersions lists the versions that are available, to allow clients to discover the API at /api, which is the root path of the legacy v1 API.",
-	"versions": "versions are the api versions that are available.",
+	"":                           "APIVersions lists the versions that are available, to allow clients to discover the API at /api, which is the root path of the legacy v1 API.",
+	"versions":                   "versions are the api versions that are available.",
+	"serverAddressByClientCIDRs": "a map of client CIDR to server address that is serving this group. This is to help clients reach servers in the most network-efficient way possible. Clients can use the appropriate server address as per the CIDR that they match. In case of multiple matches, clients should use the longest matching CIDR. The server returns only those CIDRs that it thinks that the client can match. For example: the master will return an internal IP CIDR only, if the client reaches the server using an internal IP. Server looks at X-Forwarded-For header or X-Real-Ip header or request.RemoteAddr (in that order) to get the client IP.",
 }
 
 func (APIVersions) SwaggerDoc() map[string]string {
 	return map_APIVersions
+}
+
+var map_ExportOptions = map[string]string{
+	"":       "ExportOptions is the query options to the standard REST get call.",
+	"export": "Should this value be exported.  Export strips fields that a user can not specify.`",
+	"exact":  "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+}
+
+func (ExportOptions) SwaggerDoc() map[string]string {
+	return map_ExportOptions
 }
 
 var map_GroupVersionForDiscovery = map[string]string{
@@ -84,6 +97,27 @@ var map_GroupVersionForDiscovery = map[string]string{
 
 func (GroupVersionForDiscovery) SwaggerDoc() map[string]string {
 	return map_GroupVersionForDiscovery
+}
+
+var map_LabelSelector = map[string]string{
+	"":                 "A label selector is a label query over a set of resources. The result of matchLabels and matchExpressions are ANDed. An empty label selector matches all objects. A null label selector matches no objects.",
+	"matchLabels":      "matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is \"key\", the operator is \"In\", and the values array contains only \"value\". The requirements are ANDed.",
+	"matchExpressions": "matchExpressions is a list of label selector requirements. The requirements are ANDed.",
+}
+
+func (LabelSelector) SwaggerDoc() map[string]string {
+	return map_LabelSelector
+}
+
+var map_LabelSelectorRequirement = map[string]string{
+	"":         "A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.",
+	"key":      "key is the label key that the selector applies to.",
+	"operator": "operator represents a key's relationship to a set of values. Valid operators ard In, NotIn, Exists and DoesNotExist.",
+	"values":   "values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.",
+}
+
+func (LabelSelectorRequirement) SwaggerDoc() map[string]string {
+	return map_LabelSelectorRequirement
 }
 
 var map_ListMeta = map[string]string{
@@ -111,6 +145,16 @@ var map_RootPaths = map[string]string{
 
 func (RootPaths) SwaggerDoc() map[string]string {
 	return map_RootPaths
+}
+
+var map_ServerAddressByClientCIDR = map[string]string{
+	"":              "ServerAddressByClientCIDR helps the client to determine the server address that they should use, depending on the clientCIDR that they match.",
+	"clientCIDR":    "The CIDR with which clients can match their IP to figure out the server address that they should use.",
+	"serverAddress": "Address of this server, suitable for a client that matches the above CIDR. This can be a hostname, hostname:port, IP or IP:port.",
+}
+
+func (ServerAddressByClientCIDR) SwaggerDoc() map[string]string {
+	return map_ServerAddressByClientCIDR
 }
 
 var map_Status = map[string]string{
@@ -141,6 +185,7 @@ func (StatusCause) SwaggerDoc() map[string]string {
 var map_StatusDetails = map[string]string{
 	"":                  "StatusDetails is a set of additional properties that MAY be set by the server to provide additional information about a response. The Reason field of a Status object defines what attributes will be set. Clients must ignore fields that do not match the defined type of each attribute, and should assume that any attribute may be empty, invalid, or under defined.",
 	"name":              "The name attribute of the resource associated with the status StatusReason (when there is a single name which can be described).",
+	"group":             "The group attribute of the resource associated with the status StatusReason.",
 	"kind":              "The kind attribute of the resource associated with the status StatusReason. On some operations may differ from the requested resource Kind. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
 	"causes":            "The Causes array includes more details associated with the StatusReason failure. Not all StatusReasons may provide detailed causes.",
 	"retryAfterSeconds": "If specified, the time in seconds before the operation should be retried.",

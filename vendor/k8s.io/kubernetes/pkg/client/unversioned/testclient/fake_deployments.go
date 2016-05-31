@@ -19,17 +19,20 @@ package testclient
 import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/fields"
+	kclientlib "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
-// FakeDeployments implements DeploymentsInterface. Meant to be embedded into a struct to get a default
+// FakeDeployments implements DeploymentInterface. Meant to be embedded into a struct to get a default
 // implementation. This makes faking out just the methods you want to test easier.
 type FakeDeployments struct {
 	Fake      *FakeExperimental
 	Namespace string
 }
+
+// Ensure statically that FakeDeployments implements DeploymentInterface.
+var _ kclientlib.DeploymentInterface = &FakeDeployments{}
 
 func (c *FakeDeployments) Get(name string) (*extensions.Deployment, error) {
 	obj, err := c.Fake.Invokes(NewGetAction("deployments", c.Namespace, name), &extensions.Deployment{})
@@ -40,10 +43,14 @@ func (c *FakeDeployments) Get(name string) (*extensions.Deployment, error) {
 	return obj.(*extensions.Deployment), err
 }
 
-func (c *FakeDeployments) List(label labels.Selector, field fields.Selector) (*extensions.DeploymentList, error) {
-	obj, err := c.Fake.Invokes(NewListAction("deployments", c.Namespace, label, field), &extensions.DeploymentList{})
+func (c *FakeDeployments) List(opts api.ListOptions) (*extensions.DeploymentList, error) {
+	obj, err := c.Fake.Invokes(NewListAction("deployments", c.Namespace, opts), &extensions.DeploymentList{})
 	if obj == nil {
 		return nil, err
+	}
+	label := opts.LabelSelector
+	if label == nil {
+		label = labels.Everything()
 	}
 	list := &extensions.DeploymentList{}
 	for _, deployment := range obj.(*extensions.DeploymentList).Items {
@@ -86,6 +93,17 @@ func (c *FakeDeployments) Delete(name string, options *api.DeleteOptions) error 
 	return err
 }
 
-func (c *FakeDeployments) Watch(label labels.Selector, field fields.Selector, opts api.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(NewWatchAction("deployments", c.Namespace, label, field, opts))
+func (c *FakeDeployments) Watch(opts api.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(NewWatchAction("deployments", c.Namespace, opts))
+}
+
+func (c *FakeDeployments) Rollback(deploymentRollback *extensions.DeploymentRollback) error {
+	action := CreateActionImpl{}
+	action.Verb = "create"
+	action.Resource = "deployments"
+	action.Subresource = "rollback"
+	action.Object = deploymentRollback
+
+	_, err := c.Fake.Invokes(action, deploymentRollback)
+	return err
 }

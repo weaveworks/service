@@ -23,13 +23,13 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
 
-	"github.com/docker/docker/pkg/term"
 	"github.com/golang/glog"
+
+	"k8s.io/kubernetes/pkg/util/term"
 )
 
 const (
@@ -53,8 +53,8 @@ type Editor struct {
 // the proper command line. If the provided editor has no spaces, or no quotes,
 // it is treated as a bare command to be loaded. Otherwise, the string will
 // be passed to the user's shell for execution.
-func NewDefaultEditor() Editor {
-	args, shell := defaultEnvEditor()
+func NewDefaultEditor(envs []string) Editor {
+	args, shell := defaultEnvEditor(envs)
 	return Editor{
 		Args:  args,
 		Shell: shell,
@@ -73,8 +73,16 @@ func defaultEnvShell() []string {
 	return []string{shell, flag}
 }
 
-func defaultEnvEditor() ([]string, bool) {
-	editor := os.Getenv("EDITOR")
+func defaultEnvEditor(envs []string) ([]string, bool) {
+	var editor string
+	for _, env := range envs {
+		if len(env) > 0 {
+			editor = os.Getenv(env)
+		}
+		if len(editor) > 0 {
+			break
+		}
+	}
 	if len(editor) == 0 {
 		editor = platformize(defaultEditor, windowsEditor)
 	}
@@ -117,7 +125,7 @@ func (e Editor) Launch(path string) error {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	glog.V(5).Infof("Opening file with editor %v", args)
-	if err := withSafeTTYAndInterrupts(cmd.Run); err != nil {
+	if err := (term.TTY{In: os.Stdin, TryDev: true}).Safe(cmd.Run); err != nil {
 		if err, ok := err.(*exec.Error); ok {
 			if err.Err == exec.ErrNotFound {
 				return fmt.Errorf("unable to launch the editor %q", strings.Join(e.Args, " "))
@@ -150,40 +158,6 @@ func (e Editor) LaunchTempFile(prefix, suffix string, r io.Reader) ([]byte, stri
 	}
 	bytes, err := ioutil.ReadFile(path)
 	return bytes, path, err
-}
-
-// withSafeTTYAndInterrupts invokes the provided function after the terminal
-// state has been stored, and then on any error or termination attempts to
-// restore the terminal state to its prior behavior. It also eats signals
-// for the duration of the function.
-func withSafeTTYAndInterrupts(fn func() error) error {
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, childSignals...)
-	defer signal.Stop(ch)
-
-	inFd := os.Stdin.Fd()
-	if !term.IsTerminal(inFd) {
-		if f, err := os.Open("/dev/tty"); err == nil {
-			defer f.Close()
-			inFd = f.Fd()
-		}
-	}
-
-	if term.IsTerminal(inFd) {
-		state, err := term.SaveState(inFd)
-		if err != nil {
-			return err
-		}
-		go func() {
-			if _, ok := <-ch; !ok {
-				return
-			}
-			term.RestoreTerminal(inFd, state)
-		}()
-		defer term.RestoreTerminal(inFd, state)
-		return fn()
-	}
-	return fn()
 }
 
 func tempFile(prefix, suffix string) (f *os.File, err error) {

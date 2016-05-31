@@ -23,24 +23,30 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path"
 	"testing"
 	"time"
 
-	"k8s.io/kubernetes/pkg/tools"
-
+	etcd "github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/etcdserver"
-	"github.com/coreos/etcd/etcdserver/etcdhttp"
+	"github.com/coreos/etcd/etcdserver/api/v2http"
+	"github.com/coreos/etcd/pkg/testutil"
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/coreos/etcd/pkg/types"
-	"github.com/coreos/etcd/rafthttp"
-	goetcd "github.com/coreos/go-etcd/etcd"
+	"github.com/golang/glog"
+	"golang.org/x/net/context"
 )
 
 // EtcdTestServer encapsulates the datastructures needed to start local instance for testing
 type EtcdTestServer struct {
 	etcdserver.ServerConfig
 	PeerListeners, ClientListeners []net.Listener
-	Client                         tools.EtcdClient
+	Client                         etcd.Client
+
+	CertificatesDir string
+	CertFile        string
+	KeyFile         string
+	CAFile          string
 
 	raftHandler http.Handler
 	s           *etcdserver.EtcdServer
@@ -56,6 +62,43 @@ func newLocalListener(t *testing.T) net.Listener {
 	return l
 }
 
+// newSecuredLocalListener opens a port localhost using any port
+// with SSL enable
+func newSecuredLocalListener(t *testing.T, certFile, keyFile, caFile string) net.Listener {
+	var l net.Listener
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tlsInfo := transport.TLSInfo{
+		CertFile: certFile,
+		KeyFile:  keyFile,
+		CAFile:   caFile,
+	}
+	tlscfg, err := tlsInfo.ServerConfig()
+	if err != nil {
+		t.Fatalf("unexpected serverConfig error: %v", err)
+	}
+	l, err = transport.NewKeepAliveListener(l, "https", tlscfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return l
+}
+
+func newHttpTransport(t *testing.T, certFile, keyFile, caFile string) etcd.CancelableTransport {
+	tlsInfo := transport.TLSInfo{
+		CertFile: certFile,
+		KeyFile:  keyFile,
+		CAFile:   caFile,
+	}
+	tr, err := transport.NewTransport(tlsInfo, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return tr
+}
+
 // configureTestCluster will set the params to start an etcd server
 func configureTestCluster(t *testing.T, name string) *EtcdTestServer {
 	var err error
@@ -68,9 +111,26 @@ func configureTestCluster(t *testing.T, name string) *EtcdTestServer {
 		t.Fatal(err)
 	}
 
-	cln := newLocalListener(t)
+	m.CertificatesDir, err = ioutil.TempDir(os.TempDir(), "etcd_certificates")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.CertFile = path.Join(m.CertificatesDir, "etcdcert.pem")
+	if err = ioutil.WriteFile(m.CertFile, []byte(CertFileContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+	m.KeyFile = path.Join(m.CertificatesDir, "etcdkey.pem")
+	if err = ioutil.WriteFile(m.KeyFile, []byte(KeyFileContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+	m.CAFile = path.Join(m.CertificatesDir, "ca.pem")
+	if err = ioutil.WriteFile(m.CAFile, []byte(CAFileContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cln := newSecuredLocalListener(t, m.CertFile, m.KeyFile, m.CAFile)
 	m.ClientListeners = []net.Listener{cln}
-	m.ClientURLs, err = types.NewURLs([]string{"http://" + cln.Addr().String()})
+	m.ClientURLs, err = types.NewURLs([]string{"https://" + cln.Addr().String()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,10 +146,7 @@ func configureTestCluster(t *testing.T, name string) *EtcdTestServer {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m.Transport, err = transport.NewTimeoutTransport(transport.TLSInfo{}, time.Second, rafthttp.ConnReadTimeout, rafthttp.ConnWriteTimeout)
-	if err != nil {
-		t.Fatal(err)
-	}
+	m.InitialClusterToken = "TestEtcd"
 	m.NewCluster = true
 	m.ForceNewCluster = false
 	m.ElectionTicks = 10
@@ -106,7 +163,7 @@ func (m *EtcdTestServer) launch(t *testing.T) error {
 	}
 	m.s.SyncTicker = time.Tick(500 * time.Millisecond)
 	m.s.Start()
-	m.raftHandler = etcdhttp.NewPeerHandler(m.s.Cluster(), m.s.RaftHandler())
+	m.raftHandler = &testutil.PauseableHandler{Next: v2http.NewPeerHandler(m.s)}
 	for _, ln := range m.PeerListeners {
 		hs := &httptest.Server{
 			Listener: ln,
@@ -118,7 +175,7 @@ func (m *EtcdTestServer) launch(t *testing.T) error {
 	for _, ln := range m.ClientListeners {
 		hs := &httptest.Server{
 			Listener: ln,
-			Config:   &http.Server{Handler: etcdhttp.NewClientHandler(m.s, m.ServerConfig.ReqTimeout())},
+			Config:   &http.Server{Handler: v2http.NewClientHandler(m.s, m.ServerConfig.ReqTimeout())},
 		}
 		hs.Start()
 		m.hss = append(m.hss, hs)
@@ -126,15 +183,41 @@ func (m *EtcdTestServer) launch(t *testing.T) error {
 	return nil
 }
 
+// waitForEtcd wait until etcd is propagated correctly
+func (m *EtcdTestServer) waitUntilUp() error {
+	membersAPI := etcd.NewMembersAPI(m.Client)
+	for start := time.Now(); time.Since(start) < 5*time.Second; time.Sleep(10 * time.Millisecond) {
+		members, err := membersAPI.List(context.TODO())
+		if err != nil {
+			glog.Errorf("Error when getting etcd cluster members")
+			continue
+		}
+		if len(members) == 1 && len(members[0].ClientURLs) > 0 {
+			return nil
+		}
+	}
+	return fmt.Errorf("timeout on waiting for etcd cluster")
+}
+
 // Terminate will shutdown the running etcd server
 func (m *EtcdTestServer) Terminate(t *testing.T) {
-	m.Client.(*goetcd.Client).Close()
+	m.Client = nil
 	m.s.Stop()
+	// TODO: This is a pretty ugly hack to workaround races during closing
+	// in-memory etcd server in unit tests - see #18928 for more details.
+	// We should get rid of it as soon as we have a proper fix - etcd clients
+	// have overwritten transport counting opened connections (probably by
+	// overwriting Dial function) and termination function waiting for all
+	// connections to be closed and stopping accepting new ones.
+	time.Sleep(250 * time.Millisecond)
 	for _, hs := range m.hss {
 		hs.CloseClientConnections()
 		hs.Close()
 	}
 	if err := os.RemoveAll(m.ServerConfig.DataDir); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(m.CertificatesDir); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -144,13 +227,23 @@ func NewEtcdTestClientServer(t *testing.T) *EtcdTestServer {
 	server := configureTestCluster(t, "foo")
 	err := server.launch(t)
 	if err != nil {
-		t.Fatal("Failed to start etcd server error=%v", err)
+		t.Fatalf("Failed to start etcd server error=%v", err)
 		return nil
 	}
-	server.Client = goetcd.NewClient(server.ClientURLs.StringSlice())
-	if server.Client == nil {
-		t.Errorf("Failed to connect to local etcd server")
-		defer server.Terminate(t)
+
+	cfg := etcd.Config{
+		Endpoints: server.ClientURLs.StringSlice(),
+		Transport: newHttpTransport(t, server.CertFile, server.KeyFile, server.CAFile),
+	}
+	server.Client, err = etcd.New(cfg)
+	if err != nil {
+		t.Errorf("Unexpected error in NewEtcdTestClientServer (%v)", err)
+		server.Terminate(t)
+		return nil
+	}
+	if err := server.waitUntilUp(); err != nil {
+		t.Errorf("Unexpected error in waitUntilUp (%v)", err)
+		server.Terminate(t)
 		return nil
 	}
 	return server

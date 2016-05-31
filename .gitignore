@@ -48,3 +48,5 @@ infra/local/kubeconfig
 
 k8s/local/master/pki
 k8s/local/master/master.json
+
+infra/connect/connect

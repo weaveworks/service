@@ -84,18 +84,18 @@ func (l *ListNode) String() string {
 // TextNode holds plain text.
 type TextNode struct {
 	NodeType
-	Text []byte // The text; may span newlines.
+	Text string // The text; may span newlines.
 }
 
 func newText(text string) *TextNode {
-	return &TextNode{NodeType: NodeText, Text: []byte(text)}
+	return &TextNode{NodeType: NodeText, Text: text}
 }
 
 func (t *TextNode) String() string {
 	return fmt.Sprintf("%s: %s", t.Type(), t.Text)
 }
 
-// FieldNode holds filed of struct
+// FieldNode holds field of struct
 type FieldNode struct {
 	NodeType
 	Value string

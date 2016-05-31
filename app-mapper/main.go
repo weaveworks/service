@@ -123,7 +123,7 @@ func (f *flags) makeAppProvisioner() appProvisioner {
 				Env:   []kapi.EnvVar{{Name: "CHECKPOINT_DISABLE", Value: "true"}},
 				Args:  args,
 				Ports: []kapi.ContainerPort{
-					{ContainerPort: scope.AppPort}},
+					{ContainerPort: int32(scope.AppPort)}},
 			},
 			clientTimeout: f.provisionerClientTimeout,
 		}

@@ -22,6 +22,7 @@ import (
 	"net/url"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 )
@@ -54,6 +55,14 @@ type Storage interface {
 	New() runtime.Object
 }
 
+// KindProvider specifies a different kind for its API than for its internal storage.  This is necessary for external
+// objects that are not compiled into the api server.  For such objects, there is no in-memory representation for
+// the object, so they must be represented as generic objects (e.g. runtime.Unknown), but when we present the object as part of
+// API discovery we want to present the specific kind, not the generic internal representation.
+type KindProvider interface {
+	Kind() string
+}
+
 // Lister is an object that can retrieve resources that match the provided field and label criteria.
 type Lister interface {
 	// NewList returns an empty object that can be used with the List call.
@@ -61,6 +70,14 @@ type Lister interface {
 	NewList() runtime.Object
 	// List selects resources in the storage which match to the selector. 'options' can be nil.
 	List(ctx api.Context, options *api.ListOptions) (runtime.Object, error)
+}
+
+// Exporter is an object that knows how to strip a RESTful resource for export
+type Exporter interface {
+	// Export an object.  Fields that are not user specified (e.g. Status, ObjectMeta.ResourceVersion) are stripped out
+	// Returns the stripped object.  If 'exact' is true, fields that are specific to the cluster (e.g. namespace) are
+	// retained, otherwise they are stripped also.
+	Export(ctx api.Context, name string, opts unversioned.ExportOptions) (runtime.Object, error)
 }
 
 // Getter is an object that can retrieve a named RESTful resource.
@@ -87,7 +104,7 @@ type GetterWithOptions interface {
 	// value of the request path below the object will be included as the named
 	// string in the serialization of the runtime object. E.g., returning "path"
 	// will convert the trailing request scheme value to "path" in the map[string][]string
-	// passed to the convertor.
+	// passed to the converter.
 	NewGetOptions() (runtime.Object, bool, string)
 }
 
@@ -122,6 +139,17 @@ type GracefulDeleteAdapter struct {
 // Delete implements RESTGracefulDeleter in terms of Deleter
 func (w GracefulDeleteAdapter) Delete(ctx api.Context, name string, options *api.DeleteOptions) (runtime.Object, error) {
 	return w.Deleter.Delete(ctx, name)
+}
+
+// CollectionDeleter is an object that can delete a collection
+// of RESTful resources.
+type CollectionDeleter interface {
+	// DeleteCollection selects all resources in the storage matching given 'listOptions'
+	// and deletes them. If 'options' are provided, the resource will attempt to honor
+	// them or return an invalid request error.
+	// DeleteCollection may not be atomic - i.e. it may delete some objects and still
+	// return an error after it. On success, returns a list of deleted objects.
+	DeleteCollection(ctx api.Context, options *api.DeleteOptions, listOptions *api.ListOptions) (runtime.Object, error)
 }
 
 // Creater is an object that can create an instance of a RESTful object.
@@ -191,6 +219,7 @@ type StandardStorage interface {
 	Lister
 	CreaterUpdater
 	GracefulDeleter
+	CollectionDeleter
 	Watcher
 }
 
@@ -261,5 +290,4 @@ type ConnectRequest struct {
 	ResourcePath string
 }
 
-// IsAnAPIObject makes ConnectRequest a runtime.Object
-func (*ConnectRequest) IsAnAPIObject() {}
+func (obj *ConnectRequest) GetObjectKind() unversioned.ObjectKind { return unversioned.EmptyObjectKind }
