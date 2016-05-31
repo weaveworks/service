@@ -1,8 +1,7 @@
 var express = require('express');
 var bodyParser = require('body-parser');
-var httpProxy = require('http-proxy');
+var proxy = require('http-proxy-middleware');
 var url = require('url');
-var SocksProxyAgent = require('socks-proxy-agent');
 
 var app = express();
 if (process.env.USE_MOCK_BACKEND) {
@@ -38,23 +37,6 @@ app.get('/app.js', function(req, res) {
     res.redirect('//localhost:9090/build/app.js');
   }
 });
-
-// Proxy to backend
-
-var proxyOpts = {
-  target: 'http://localhost:4047',
-  ws: true
-};
-if (process.env.USE_SOCKS_PROXY) {
-  proxyOpts.agent = new SocksProxyAgent({host: 'localhost', port: 8000, protocol: 'socks5:'});
-}
-var proxy = httpProxy.createProxy(proxyOpts);
-
-proxy.on('error', function(err) {
-  console.error('Proxy error', err);
-});
-
-app.all('/api*', proxy.web.bind(proxy));
 
 // Mock backend
 
@@ -115,6 +97,25 @@ if (process.env.USE_MOCK_BACKEND) {
   app.get('/login', function(req, res) {
     res.redirect('org/foo');
   });
+} else {
+
+  // Proxy to users
+  var usersProxy = proxy({
+    target: 'http://localhost:4047',
+  });
+  app.use('/api/users', usersProxy);
+
+  // Proxy to local Scope
+  var backendProxy = proxy({
+    ws: true,
+    target: 'http://localhost:4042',
+    pathRewrite: function(path) {
+      // /api/app/icy-snow-65/api/foo -> /api/foo
+      return '/' + path.split('/').slice(4).join('/');
+    }
+  });
+
+  app.use('/api/app', backendProxy);
 }
 
 // Serve index page
@@ -143,10 +144,10 @@ if (process.env.NODE_ENV !== 'production') {
   var config = require('./webpack.local.config');
 
   new WebpackDevServer(webpack(config), {
-    publicPath: config.output.publicPath,
     hot: true,
     noInfo: true,
-    historyApiFallback: true
+    historyApiFallback: true,
+    stats: { colors: true }
   }).listen(9090, 'localhost', function (err, result) {
     if (err) {
       console.log(err);
@@ -165,8 +166,12 @@ var port = process.env.PORT || 4046;
 var server = app.listen(port, function () {
   var host = server.address().address;
   var port = server.address().port;
-
   console.log('Scope Account Service UI listening at http://%s:%s', host, port);
+  if (!process.env.USE_MOCK_BACKEND) {
+    console.log('Proxies to local users service on :4047 and to local Scope on :4042');
+  }
 });
 
-server.on('upgrade', proxy.ws.bind(proxy));
+if (!process.env.USE_MOCK_BACKEND) {
+  server.on('upgrade', backendProxy.upgrade);
+}
