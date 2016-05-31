@@ -998,31 +998,17 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"Query\",status_code=~\"2..\"}[1m]))",
+              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{status_code=~\"2..\"}[1m])) by (method)",
               "intervalFactor": 2,
-              "legendFormat": "Query 2xx",
+              "legendFormat": "{{method}} 2xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"PutItem\",status_code=~\"2..\"}[1m]))",
+              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{status_code=~\"5..\"}[1m])) by (method)",
               "intervalFactor": 2,
-              "legendFormat": "PutItem 2xx",
-              "refId": "B",
-              "step": 10
-            },
-            {
-              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"Query\",status_code=~\"5..\"}[1m]))",
-              "intervalFactor": 2,
-              "legendFormat": "Query 5xx",
+              "legendFormat": "{{method}} 5xx",
               "refId": "C",
-              "step": 10
-            },
-            {
-              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"PutItem\",status_code=~\"5..\"}[1m]))",
-              "intervalFactor": 2,
-              "legendFormat": "PutItem 5xx",
-              "refId": "D",
               "step": 10
             }
           ],
@@ -1093,17 +1079,10 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_dynamo_request_duration_nanoseconds{method=\"PutItem\",namespace=\"default\"}/1e6) by (quantile)",
+              "expr": "max(scope_dynamo_request_duration_nanoseconds{namespace=\"default\"}/1e6) by (method,quantile)",
               "intervalFactor": 2,
-              "legendFormat": "PutItem {{quantile}} Quantile",
+              "legendFormat": "{{method}} {{quantile}} Quantile",
               "refId": "A",
-              "step": 10
-            },
-            {
-              "expr": "max(scope_dynamo_request_duration_nanoseconds{method=\"Query\",namespace=\"default\"}/1e6) by (quantile)",
-              "intervalFactor": 2,
-              "legendFormat": "Query {{quantile}} Quantile",
-              "refId": "B",
               "step": 10
             }
           ],
