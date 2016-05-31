@@ -33,6 +33,9 @@ spec:
         - --probe.http.listen=:4041
         # Workaround for https://github.com/kubernetes/kubernetes/issues/17406
         - --probe.resolver=$(KUBE_DNS_SERVICE_HOST):$(KUBE_DNS_SERVICE_PORT)
+        # Mirror reports to organization nameless-night-79 (fons+loadfromprod@weave.works) in dev
+        - --probe.token=4buwcruxxa57wz5pc1bkow74jonwj6yd
+        - frontend.dev.weave.works:80
         - weave-scope-app.kube-system.svc.cluster.local:4040
         securityContext:
           privileged: true
