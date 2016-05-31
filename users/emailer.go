@@ -47,7 +47,19 @@ func mustNewEmailer(emailURI, sendgridAPIKey string, templates templateEngine, d
 		logrus.Fatal("Must provide one of -email-uri or -sendgrid-api-key")
 	}
 	if emailURI != "" {
-		sender, err := smtpEmailSender(emailURI)
+		var sender func(*email.Email) error
+		u, err := url.Parse(emailURI)
+		if err != nil {
+			logrus.Fatal(fmt.Errorf("Error parsing -email-uri: %s", err))
+		}
+		switch u.Scheme {
+		case "smtp":
+			sender, err = smtpEmailSender(u)
+		case "log":
+			sender = logEmailSender()
+		default:
+			err = errUnsupportedEmailProtocol
+		}
 		if err != nil {
 			logrus.Fatal(err)
 		}
@@ -58,15 +70,7 @@ func mustNewEmailer(emailURI, sendgridAPIKey string, templates templateEngine, d
 }
 
 // Takes a uri of the form smtp://username:password@hostname:port
-func smtpEmailSender(uri string) (func(e *email.Email) error, error) {
-	u, err := url.Parse(uri)
-	if err != nil {
-		return nil, fmt.Errorf("Error parsing email server uri: %s", err)
-	}
-	if u.Scheme != "smtp" {
-		return nil, errUnsupportedEmailProtocol
-	}
-
+func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 	host, port, err := net.SplitHostPort(u.Host)
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing email server uri: %s", err)
@@ -84,6 +88,18 @@ func smtpEmailSender(uri string) (func(e *email.Email) error, error) {
 	return func(e *email.Email) error {
 		return e.Send(addr, auth)
 	}, nil
+}
+
+// Takes a uri of the form log://, and just logs all emails, instead of sending them.
+func logEmailSender() func(e *email.Email) error {
+	return func(e *email.Email) error {
+		body := string(e.Text)
+		if body == "" {
+			body = string(e.HTML)
+		}
+		logrus.Infof("[Email] From: %q, To: %q, Subject: %q, Body:\n%s", e.From, e.To, e.Subject, body)
+		return nil
+	}
 }
 
 func (s smtpEmailer) WelcomeEmail(u *user) error {
