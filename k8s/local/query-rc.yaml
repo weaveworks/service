@@ -22,6 +22,7 @@ spec:
         - --app.http.address=:80
         - --app.userid.header=X-Scope-OrgID
         - --app.collector=dynamodb://abc:123@dynamodb.default.svc.cluster.local:8000/reports
+        - --app.collector.s3=s3://abc:123@default.svc.cluster.local:4569/s3
         env:
         - name: CHECKPOINT_DISABLE
           value: "1"
