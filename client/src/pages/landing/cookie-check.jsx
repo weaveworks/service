@@ -42,7 +42,7 @@ export default class CookieCheck extends React.Component {
   }
 
   _checkCookie() {
-    const url = `/api/users/lookup`;
+    const url = '/api/users/lookup';
     getData(url).then(this._handleLoginSuccess, this._handleLoginError);
   }
 

@@ -4,7 +4,8 @@ import { RaisedButton, TextField } from 'material-ui';
 import { grey100, lightBlue500, orange500 } from 'material-ui/styles/colors';
 
 import { postData } from '../../common/request';
-import { trackEvent, trackException, trackTiming, trackView, PardotSignupIFrame } from '../../common/tracking';
+import { trackEvent, trackException, trackTiming, trackView,
+  PardotSignupIFrame } from '../../common/tracking';
 
 export default class LoginForm extends React.Component {
 
@@ -21,6 +22,7 @@ export default class LoginForm extends React.Component {
     };
 
     this.handleKeyDown = this.handleKeyDown.bind(this);
+    this._handleSubmit = this._handleSubmit.bind(this);
   }
 
   componentDidMount() {
@@ -126,7 +128,7 @@ export default class LoginForm extends React.Component {
             onKeyDown={this.handleKeyDown} />
           <RaisedButton label={this.state.submitText} style={styles.submit}
             backgroundColor={orange500} labelColor={grey100}
-            disabled={this.state.submitting} onClick={this._handleSubmit.bind(this)} />
+            disabled={this.state.submitting} onClick={this._handleSubmit} />
         </div>
         <div style={styles.confirmation}>
           <span className="fa fa-check" style={styles.confirmationIcon}></span>

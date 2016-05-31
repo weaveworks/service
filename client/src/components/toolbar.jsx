@@ -20,7 +20,7 @@ export default class WrapperToolbar extends React.Component {
     }, {
       iconClass: 'fa fa-sign-out',
       title: `Log out ${this.props.user}`,
-      route: `#/logout`
+      route: '#/logout'
     }];
   }
 

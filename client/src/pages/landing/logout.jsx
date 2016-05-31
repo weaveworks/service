@@ -24,7 +24,7 @@ export default class LoginForm extends React.Component {
   }
 
   _tryLogout() {
-    const url = `/api/users/logout`;
+    const url = '/api/users/logout';
     getData(url).then(this._handleSuccess, this._handleError);
   }
 

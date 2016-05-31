@@ -26,6 +26,7 @@ export default class Wrapper extends React.Component {
     this._handleInstanceSuccess = this._handleInstanceSuccess.bind(this);
     this._handleLoginSuccess = this._handleLoginSuccess.bind(this);
     this._handleLoginError = this._handleLoginError.bind(this);
+    this._handleFrameLoad = this._handleFrameLoad.bind(this);
   }
 
   componentDidMount() {
@@ -146,7 +147,7 @@ export default class Wrapper extends React.Component {
           </div>
         </div>}
         {this.state.frameBaseUrl && <iframe ref="iframe"
-          onLoad={this._handleFrameLoad.bind(this)} src={frameUrl} style={styles.iframe} />}
+          onLoad={this._handleFrameLoad} src={frameUrl} style={styles.iframe} />}
       </div>
     );
   }

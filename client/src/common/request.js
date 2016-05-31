@@ -14,7 +14,7 @@ function doRequest(url, method = 'GET', requestData = {}, contentType = null) {
     throw new Error('Could not initialize XMLHttpRequest object!');
   }
 
-  const promise = new Promise(function requestResolver(resolve, reject) {
+  const promise = new Promise((resolve, reject) => {
     request.onreadystatechange = function onReadyStateChange() {
       if (request.readyState === 4) {
         try {
@@ -33,7 +33,7 @@ function doRequest(url, method = 'GET', requestData = {}, contentType = null) {
           } else if (request.status === 500) {
             errorText = `Server error (${request.responseText})`;
           } else {
-            errorText = 'Unexpected error: ' + ex;
+            errorText = `Unexpected error: ${ex}`;
           }
           reject({errors: [{message: errorText}], status: request.status});
         }
@@ -58,8 +58,8 @@ function doRequest(url, method = 'GET', requestData = {}, contentType = null) {
 //
 // apply encodeURIComponent to all substitutions.
 //
-export function encodeURIs() {
-  const [literals, ...substitutions] = arguments;
+export function encodeURIs(...args) {
+  const [literals, ...substitutions] = args;
   let result = '';
 
   // run the loop only for the substitution count
@@ -75,9 +75,7 @@ export function encodeURIs() {
 }
 
 export function toQueryString(params) {
-  return Object.keys(params).map((k) => {
-    return `${k}=${encodeURIComponent(params[k])}`;
-  }).join('&');
+  return Object.keys(params).map((k) => `${k}=${encodeURIComponent(params[k])}`).join('&');
 }
 
 export function getData(url, params) {

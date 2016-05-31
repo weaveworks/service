@@ -1,9 +1,17 @@
 {
   "extends": "airbnb",
+  "env": {
+    "browser": true,
+    "jest": true,
+    "node": true
+  },
   "rules": {
-    // disable requiring trailing commas because it might be nice to revert to
-    // being JSON at some point, and I don't want to make big changes now.
     "comma-dangle": 0,
+    "no-param-reassign": 0,
+    "object-curly-spacing": 0,
+    "react/jsx-closing-bracket-location": 0,
+    "react/prefer-stateless-function": 0,
+    "react/sort-comp": 0,
     "react/prop-types": 0
   }
 }

@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { FlatButton, TextField } from 'material-ui';
-import { amber900, blueGrey100, blueGrey200, blueGrey400, lightBlue500 } from 'material-ui/styles/colors';
+import { amber900, blueGrey100, blueGrey200, blueGrey400,
+  lightBlue500 } from 'material-ui/styles/colors';
 
 import { postData } from '../../common/request';
 import { trackEvent, trackException, trackTiming, PardotSignupIFrame } from '../../common/tracking';
@@ -21,6 +22,8 @@ export default class LoginForm extends React.Component {
     };
 
     this.handleKeyDown = this.handleKeyDown.bind(this);
+    this._handleSubmit = this._handleSubmit.bind(this);
+    this._doLogin = this._doLogin.bind(this);
   }
 
   handleKeyDown(ev) {
@@ -180,7 +183,8 @@ export default class LoginForm extends React.Component {
             onKeyDown={this.handleKeyDown} />
           <FlatButton label={this.state.submitText} style={styles.submit}
             backgroundColor={blueGrey100} labelStyle={styles.submitLabel}
-            disabled={submitSuccess || this.state.submitting} onClick={this._handleSubmit.bind(this)} />
+            disabled={submitSuccess || this.state.submitting}
+            onClick={this._handleSubmit} />
         </div>
         <div style={styles.unauthorized}>
           <span className="fa fa-ban" style={styles.unauthorizedIcon}></span>
@@ -195,7 +199,7 @@ export default class LoginForm extends React.Component {
           </div>
         </div>
         <div style={styles.devLink}>
-          <button onClick={this._doLogin.bind(this)}>Developer login link</button>
+          <button onClick={this._doLogin}>Developer login link</button>
         </div>
         {submitSuccess && <PardotSignupIFrame email={this.state.email} />}
       </div>

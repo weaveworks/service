@@ -111,7 +111,8 @@ export default class OrganizationPage extends React.Component {
               <h1>Configure your app</h1>
               <div style={styles.step}>
                 <span style={styles.circle}>1</span>
-                Run the following commands on your Docker hosts to connect them as probes to this Weave Scope instance:
+                Run the following commands on your Docker hosts to connect them
+                as probes to this Weave Scope instance:
               </div>
               <Box>
                 <div style={styles.code}>
@@ -122,7 +123,8 @@ export default class OrganizationPage extends React.Component {
               </Box>
               <div style={styles.step}>
                 <span style={styles.circle}>2</span>
-                Once you have started <code>scope</code> on your Docker hosts, click "My Scope" in the top right.
+                Once you have started <code>scope</code> on your Docker hosts,
+                click "My Scope" in the top right.
               </div>
             </Column>
             <Column width="400">
