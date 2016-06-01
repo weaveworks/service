@@ -191,7 +191,7 @@ function stand_up {
         echo
 
         echo "Creating cluster addons..."
-        call_kubectl create -f "https://raw.github.com/weaveworks/kubernetes-anywhere/master/docker-images/toolbox/resources/addons-v1.2.yaml"
+        call_kubectl create -f "https://raw.github.com/kubernetes/kubernetes-anywhere/master/phase2/docker-images/toolbox/resources/addons-v1.2.yaml"
 
         echo "Creating Scope addon..."
         call_kubectl create -f "${local_k8s_dir}/scope"
