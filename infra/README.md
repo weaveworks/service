@@ -100,7 +100,8 @@ cp var.template foo/var
 git add foo/*
 git commit -m "Stand up foo cluster"
 
-# If recreating dev/prod cluster, please make sure that the {dev,prod}.weave.works NS records in CloudFlare are in sync with the corresponding Route53 zones
+# If recreating dev/prod cluster, please make sure that the {dev,prod}.weave.works NS records 
+# in CloudFlare are in sync with the corresponding Route53 zones
 ```
 
 
