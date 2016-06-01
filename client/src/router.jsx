@@ -13,7 +13,7 @@ import RouterComponent from './components/router';
 export default function getRoutes() {
   return (
     <Route name="app" path="/" component={RouterComponent}>
-      <Route name="wrapper" path="app/:orgId(/state/:state)" component={WrapperPage} />
+      <Route name="wrapper" path="app/:orgId" component={WrapperPage} />
       <Route name="organization" path="org/:orgId" component={OrganizationPage} />
       <Route component={LandingPage}>
         <IndexRoute component={CookieCheck} />
