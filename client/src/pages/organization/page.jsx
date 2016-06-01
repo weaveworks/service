@@ -1,5 +1,6 @@
 import React from 'react';
 import { CircularProgress, Paper } from 'material-ui';
+import { hashHistory } from 'react-router';
 
 import Colors from '../../common/colors';
 import { getData, encodeURIs } from '../../common/request';
@@ -43,7 +44,7 @@ export default class OrganizationPage extends React.Component {
 
   _handleOrganizationError(resp) {
     if (resp.status === 401) {
-      this.props.history.push('/login');
+      hashHistory.push('/login');
     } else {
       // TODO show errors
       trackException(resp);

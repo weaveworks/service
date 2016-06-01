@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { FlatButton, TextField } from 'material-ui';
 import { amber900, blueGrey100, blueGrey200, blueGrey400,
   lightBlue500 } from 'material-ui/styles/colors';
+import { hashHistory } from 'react-router';
 
 import { postData } from '../../common/request';
 import { trackEvent, trackException, trackTiming, PardotSignupIFrame } from '../../common/tracking';
@@ -34,7 +35,7 @@ export default class LoginForm extends React.Component {
 
   _doLogin() {
     const loginUrl = `/login/${this.state.email}/${this.state.token}`;
-    this.props.history.push(loginUrl);
+    hashHistory.push(loginUrl);
   }
 
   _handleSubmit() {

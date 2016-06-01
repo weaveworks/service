@@ -1,6 +1,7 @@
 import React from 'react';
 import { CircularProgress } from 'material-ui';
 import debug from 'debug';
+import { hashHistory } from 'react-router';
 
 import { getData, encodeURIs } from '../../common/request';
 import Toolbar from '../../components/toolbar';
@@ -87,7 +88,7 @@ export default class Wrapper extends React.Component {
       this.setState({
         activityText: 'Not logged in. Please wait for the login form to load...'
       });
-      this.props.history.push('/login');
+      hashHistory.push('/login');
     } else {
       const err = resp.errors[0];
       log(err);

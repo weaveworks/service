@@ -1,4 +1,6 @@
 import React from 'react';
+import { hashHistory } from 'react-router';
+
 import { getData } from '../../common/request';
 import { CircularProgress } from 'material-ui';
 import { red900 } from 'material-ui/styles/colors';
@@ -29,13 +31,13 @@ export default class LoginForm extends React.Component {
   }
 
   _handleSuccess() {
-    this.props.history.push('/');
+    hashHistory.push('/');
   }
 
   _handleError(resp) {
     if (resp.status === 401) {
       // logout should not fail for Unauthorized
-      this.props.history.push('/');
+      hashHistory.push('/');
     } else {
       this.setState({
         activityText: '',
