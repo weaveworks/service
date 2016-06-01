@@ -1,4 +1,6 @@
+/* eslint react/jsx-no-bind:0 */
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { CircularProgress } from 'material-ui';
 import debug from 'debug';
 import { hashHistory } from 'react-router';
@@ -37,10 +39,11 @@ export default class Wrapper extends React.Component {
   }
 
   componentDidUpdate() {
-    if (this.refs.iframe) {
+    const iframe = ReactDOM.findDOMNode(this._iframe);
+    if (iframe) {
       // periodically check iframe's URL and react to changes
       clearInterval(this.frameStateChecker);
-      const target = this.refs.iframe.getDOMNode().contentWindow;
+      const target = iframe.contentWindow;
 
       this.frameStateChecker = setInterval(() => {
         if (this.frameState !== target.location.hash) {
@@ -121,6 +124,10 @@ export default class Wrapper extends React.Component {
     setTimeout(this._checkInstance, 2000);
   }
 
+  shouldComponentUpdate(nextProps, nextState) {
+    return this.state.frameBaseUrl !== nextState.frameBaseUrl;
+  }
+
   render() {
     const styles = {
       activity: {
@@ -136,7 +143,7 @@ export default class Wrapper extends React.Component {
     };
 
     // forward wrapper state to scope UI via src URL
-    const frameUrl = `${this.state.frameBaseUrl}/${location.hash}`;
+    const frameUrl = `${this.state.frameBaseUrl}`;
 
     return (
       <div>
@@ -147,7 +154,7 @@ export default class Wrapper extends React.Component {
             <CircularProgress mode="indeterminate" />
           </div>
         </div>}
-        {this.state.frameBaseUrl && <iframe ref="iframe"
+        {this.state.frameBaseUrl && <iframe ref={(c) => {this._iframe = c;}}
           onLoad={this._handleFrameLoad} src={frameUrl} style={styles.iframe} />}
       </div>
     );
