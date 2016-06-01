@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: frontend-8d630e2
+spec:
+  replicas: 2
+  selector:
+    name: frontend
+    version: "8d630e2"
+  template:
+    metadata:
+      labels:
+        name: frontend
+        version: "8d630e2"
+    spec:
+      imagePullSecrets:
+      - name: quay-secret
+      containers:
+      - name: frontend
+        image: quay.io/weaveworks/frontend:8d630e2
+        command:
+        - /bin/sh
+        - -c
+        # This is a termporary work-around, until Kubernetes Anywhere is used in all of our envirnoments.
+        - echo resolver 10.16.0.3:53\; > /etc/nginx/k8s-resolver.conf && nginx -g daemon\ off\;
+        ports:
+        - containerPort: 80
+        - containerPort: 443
+        volumeMounts:
+        - name: tls-secret
+          mountPath: /tls/secret/
+          readOnly: true
+      volumes:
+      - name: tls-secret
+        secret:
+          secretName: tls-secret

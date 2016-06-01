@@ -1,0 +1,23 @@
+#!/bin/bash -e
+AWS_ACCESS_KEY_ID="AKIAJ7FURWZ4EFA4RUDA"
+AWS_SECRET_ACCESS_KEY="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"
+export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+connect="/tmp/connect"
+if [ ! -x "${connect}" ] && [ ! -x "${script_dir}/../connect/connect" ] ; then
+  echo "Downloading precompiled pre-compiled binary to \`/tmp/connect\`"
+  curl --silent \
+    "https://storage.googleapis.com/kubernetes-anywhere/connect-$(uname -s)-$(uname -m)" \
+    --output "${connect}"
+  chmod +x "${connect}"
+elif [ -x "${script_dir}/../connect/connect" ] ; then
+  connect="${script_dir}/../connect/connect"
+fi
+
+exec "${connect}" \
+  -cluster-name "kubernetes-dev01" \
+  -ec2-region "us-east-1" \
+  -ssh-key-path "${script_dir}/ec2_weaveworks.kubernetes-anywhere.us-east-1.pem" \
+  -kubeconfig "${script_dir}/kubeconfig"

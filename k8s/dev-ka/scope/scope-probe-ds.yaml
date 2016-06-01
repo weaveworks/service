@@ -1,0 +1,48 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  namespace: kube-system
+  name: weave-scope-probe
+  labels:
+    heritage: helm
+    k8s-app:  weave-scope-probe
+spec:
+  selector: {}
+  template:
+    metadata:
+      name:  weave-scope-probe
+      labels:
+        heritage: helm
+        k8s-app:  weave-scope-probe
+    spec:
+      hostPID: true
+      hostNetwork: true
+      containers:
+      - name:  weave-scope-probe
+        image: weaveworks/scope:0.15.0
+        env:
+        - name: CHECKPOINT_DISABLE
+          value: "true"
+        args:
+        - --no-app
+        - --probe.docker.bridge=cbr0
+        - --probe.docker=true
+        - --probe.kubernetes=true
+        - --probe.weave.addr=
+        - --debug
+        - --probe.http.listen=:4041
+        # Workaround for https://github.com/kubernetes/kubernetes/issues/17406
+        - --probe.resolver=$(KUBE_DNS_SERVICE_HOST):$(KUBE_DNS_SERVICE_PORT)
+        - weave-scope-app.kube-system.svc.cluster.local:4040
+        securityContext:
+          privileged: true
+        resources:
+          limits:
+            cpu: 50m
+        volumeMounts:
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+      volumes:
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
