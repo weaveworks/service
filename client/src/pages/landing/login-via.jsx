@@ -52,7 +52,7 @@ export default class LoginVia extends React.Component {
                 icon={<span className={a.icon}></span>}
               />
             </div>
-        ) }
+        )}
         </div>
     );
   }

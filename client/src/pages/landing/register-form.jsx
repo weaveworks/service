@@ -6,7 +6,7 @@ import { grey100, lightBlue500, orange500 } from 'material-ui/styles/colors';
 import { postData } from '../../common/request';
 import { trackEvent, trackException, trackTiming, trackView,
   PardotSignupIFrame } from '../../common/tracking';
-import { LoginVia } from './login-via';
+import LoginVia from './login-via';
 
 export default class LoginForm extends React.Component {
 
