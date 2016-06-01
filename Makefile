@@ -84,7 +84,7 @@ $(AUTHFE_UPTODATE): authfe/Dockerfile $(AUTHFE_EXE)
 	$(SUDO) docker build -t $(AUTHFE_IMAGE) authfe/
 	touch $@
 
-$(USERS_UPTODATE): users/Dockerfile users/templates/* $(USERS_EXE) users/db/* users/ca-certificates.crt users/db/migrations/* $(USERS_DB_MIGRATE_EXE)
+$(USERS_UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/Dockerfile $(USERS_DB_MIGRATE_EXE)
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(USERS_IMAGE) users/
 	$(SUDO) docker build -t $(USERS_DB_IMAGE) users/db/
@@ -124,9 +124,9 @@ $(MONITORING_UPTODATE):
 	make -C monitoring
 
 $(APP_MAPPER_EXE): app-mapper/*.go
-$(AUTHFE_EXE): authfe/*.go
-$(USERS_EXE): users/*.go users/names/*.go
-$(METRICS_EXE): metrics/*.go
+$(AUTHFE_EXE): $(shell find authfe -name '*.go')
+$(USERS_EXE): $(shell find users -name '*.go')
+$(METRICS_EXE): $(shell find metrics -name '*.go')
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
@@ -178,7 +178,7 @@ client-build-image: $(CLIENT_BUILD_UPTODATE)
 clean:
 	# Don't remove the build images, just remove the marker files.
 	-$(SUDO) docker rmi $(APP_MAPPER_IMAGE) $(APP_MAPPER_DB_IMAGE) \
-		$(USERS_IMAGE) $(USERS_DB_IMAGE) \
+		$(USERS_IMAGE) $(USERS_DB_MIGRATE_EXE) $(USERS_DB_IMAGE) \
 		$(CLIENT_SERVER_IMAGE) $(FRONTEND_IMAGE) \
 		$(METRICS_IMAGE) >/dev/null 2>&1 || true
 	rm -rf $(APP_MAPPER_EXE) $(APP_MAPPER_UPTODATE) \
