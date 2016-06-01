@@ -1,23 +1,28 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: frontend-455b145
+  name: frontend-mt-fc1d28c
 spec:
-  replicas: 2
+  replicas: 3
   selector:
-    name: frontend
-    version: "455b145"
+    name: frontend-mt
+    version: fc1d28c
   template:
     metadata:
       labels:
-        name: frontend
-        version: "455b145"
+        name: frontend-mt
+        version: fc1d28c
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
-      - name: frontend
-        image: quay.io/weaveworks/frontend:455b145
+      - name: frontend-mt
+        image: quay.io/weaveworks/frontend-mt:fc1d28c
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        - echo resolver 10.0.0.10:53\; > /etc/nginx/k8s-resolver.conf && nginx -g daemon\ off\;
         ports:
         - containerPort: 80
         - containerPort: 443

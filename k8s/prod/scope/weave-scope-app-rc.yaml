@@ -1,17 +1,18 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: weave-scope-app
+  name: weave-scope-app-0.15.0
   namespace: kube-system
-  labels:
-    provider: weave-scope-app
-    heritage: helm
 spec:
   replicas: 1
+  selector:
+    name: weave-scope-app
+    version: 0.15.0
   template:
     metadata:
       labels:
-        provider: weave-scope-app
+        name: weave-scope-app
+        version: 0.15.0
     spec:
       containers:
       - name: weave-scope-app

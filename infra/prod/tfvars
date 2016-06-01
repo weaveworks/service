@@ -5,6 +5,7 @@
 aws_access_key = "AKIAJEUE5G4KAR4KSJIQ"
 aws_secret_key = "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"
 aws_region = "us-east-1"
+env_name = "prod"
 
 rds_subnet_a_availability_zone = "us-east-1a"
 rds_subnet_b_availability_zone = "us-east-1b"

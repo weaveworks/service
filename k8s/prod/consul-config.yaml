@@ -1,0 +1,7 @@
+kind: Secret
+apiVersion: v1
+metadata:
+  name: consul-config
+  namespace: default
+data:
+  consul.config: eyAidGVsZW1ldHJ5IjogeyJkb2dzdGF0c2RfYWRkciI6ICIxMjcuMC4wLjE6OTEyNSJ9IH0K

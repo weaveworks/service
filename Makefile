@@ -150,7 +150,7 @@ $(USERS_DB_MIGRATE_EXE): $(BUILD_UPTODATE) $(shell find ./vendor/github.com/matt
 lint: $(BUILD_UPTODATE)
 	./tools/lint .
 	./k8s/kubelint --noversions ./k8s/local
-	./k8s/kubelint ./k8s/dev
+	./k8s/kubelint ./k8s/dev ./k8s/prod
 	promtool check-rules ./monitoring/prometheus/alert.rules
 
 test: $(BUILD_UPTODATE)

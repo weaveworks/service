@@ -79,7 +79,10 @@ def lint_dir(path):
       lint_file(f)
 
 if __name__ == "__main__":
-  parser =  optparse.OptionParser("usage: %prog [options] <dir/file>...")
+  parser =  optparse.OptionParser("""usage: %prog [options] <dir/file>...
+
+Analyse yaml files in <dir> for errors in naming and consistent version
+labelling.""")
   parser.add_option("--noversions", action="store_true",
     default=False, help="don't expect version labels")
   (options, args) = parser.parse_args()

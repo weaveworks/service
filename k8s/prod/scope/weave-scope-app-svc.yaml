@@ -3,9 +3,6 @@ kind: Service
 metadata:
   name: weave-scope-app
   namespace: kube-system
-  labels:
-    provider: weave-scope-app
-    heritage: helm
 spec:
   ports:
   - name: app
