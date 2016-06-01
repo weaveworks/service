@@ -5,7 +5,7 @@ import FontIcon from 'material-ui/FontIcon';
 import { encodeURIs } from '../common/request';
 import Colors from '../common/colors';
 
-export default class WrapperToolbar extends React.Component {
+export default class Toolbar extends React.Component {
 
   getLinks() {
     return [{
@@ -44,7 +44,7 @@ export default class WrapperToolbar extends React.Component {
       const isOnPage = link.route === window.location.hash;
       const linkClass = isOnPage ? 'active' : '';
       return (
-        <span style={styles.toolbarLinkWrapper}>
+        <span style={styles.toolbarLinkWrapper} key={link.route}>
           <a style={styles.toolbarLink} title={link.title} className={linkClass} href={link.route}>
             <span style={styles.toolbarLinkLabel}>{link.label}</span>
             <FontIcon style={styles.toolbarLinkIcon} color={Colors.text2}

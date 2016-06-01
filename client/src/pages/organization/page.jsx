@@ -91,7 +91,7 @@ export default class OrganizationPage extends React.Component {
         boxShadow: 'rgba(0, 0, 0, 0.117647) 0px 1px 6px, rgba(0, 0, 0, 0.239216) 0px 1px 4px'
       },
       probes: {
-        padding: '24'
+        padding: 24
       },
       step: {
         position: 'relative',
