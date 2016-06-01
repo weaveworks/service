@@ -167,8 +167,8 @@ users-integration-test: $(USERS_UPTODATE)
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		--workdir /go/src/github.com/weaveworks/service/users \
 		--link "$$DB_CONTAINER":users-db.weave.local \
-		golang:1.5.1 \
-		/bin/bash -c "go get -v -d -t ./... ; go test -tags integration -timeout 30s ./..."; \
+		golang:1.6.2 \
+		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
