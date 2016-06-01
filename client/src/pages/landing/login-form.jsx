@@ -28,7 +28,7 @@ export default class LoginForm extends React.Component {
   }
 
   handleKeyDown(ev) {
-    if (ev.keyCode === 13) {
+    if (ev.keyCode === 13) { // ENTER
       this._handleSubmit();
     }
   }
@@ -88,7 +88,7 @@ export default class LoginForm extends React.Component {
   }
 
   render() {
-    const submitSuccess = this.state.token || this.state.mailSent;
+    const submitSuccess = Boolean(this.state.token) || this.state.mailSent;
     const unauthorized = this.props.params.error === 'unauthorized';
     const styles = {
       submit: {
@@ -177,14 +177,14 @@ export default class LoginForm extends React.Component {
       <div style={styles.wrapper}>
         <div style={styles.form}>
           <TextField hintText="Login with your email" ref="emailField" type="email"
-            disabled={!!(submitSuccess || this.state.submitting)}
+            disabled={submitSuccess || this.state.submitting}
             errorText={this.state.errorText} inputStyle={styles.emailFieldInput}
             underlineStyle={styles.emailFieldLine} underlineFocusStyle={styles.emailFieldFocusLine}
             style={styles.emailField} hintStyle={styles.emailFieldHint}
             onKeyDown={this.handleKeyDown} />
           <FlatButton label={this.state.submitText} style={styles.submit}
             backgroundColor={blueGrey100} labelStyle={styles.submitLabel}
-            disabled={!!(submitSuccess || this.state.submitting)}
+            disabled={submitSuccess || this.state.submitting}
             onClick={this._handleSubmit} />
         </div>
         <div style={styles.unauthorized}>

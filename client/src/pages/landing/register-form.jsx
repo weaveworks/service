@@ -30,7 +30,7 @@ export default class LoginForm extends React.Component {
   }
 
   handleKeyDown(ev) {
-    if (ev.keyCode === 13) {
+    if (ev.keyCode === 13) { // ENTER
       this._handleSubmit();
     }
   }
