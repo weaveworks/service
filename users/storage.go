@@ -6,6 +6,8 @@ import (
 	"net/url"
 
 	"github.com/Sirupsen/logrus"
+	_ "github.com/mattes/migrate/driver/postgres"
+	"github.com/mattes/migrate/migrate"
 )
 
 var (
@@ -34,6 +36,9 @@ type database interface {
 	// Approve the user for access. Should generate them a new organization.
 	ApproveUser(id string) (*user, error)
 
+	// Set the admin flag of a user
+	SetUserAdmin(id string, value bool) error
+
 	// Update the user's login token. Setting the token to "" should disable the
 	// user's token.
 	SetUserToken(id, token string) error
@@ -51,10 +56,19 @@ type findUserByIDer interface {
 	FindUserByID(id string) (*user, error)
 }
 
-func mustNewDatabase(databaseURI string) database {
+func mustNewDatabase(databaseURI, migrationsDir string) database {
 	u, err := url.Parse(databaseURI)
 	if err != nil {
 		logrus.Fatal(err)
+	}
+	if migrationsDir != "" {
+		logrus.Infof("Running Database Migrations...")
+		if errs, ok := migrate.UpSync(databaseURI, migrationsDir); !ok {
+			for _, err := range errs {
+				logrus.Error(err)
+			}
+			logrus.Fatal("Database migrations failed")
+		}
 	}
 	var storage database
 	switch u.Scheme {

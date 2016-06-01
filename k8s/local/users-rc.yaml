@@ -19,6 +19,7 @@ spec:
         - -session-secret=9334f0f44a271d686714c475b093a133fab81f90536b0de6a231af7dc78cb56e
         - -email-uri=smtp://mailcatcher:587
         - -database-uri=postgres://postgres@users-db/users?sslmode=disable
+        - -database-migrations=/migrations
         - -direct-login=true
         ports:
         - containerPort: 80

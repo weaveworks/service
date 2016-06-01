@@ -131,6 +131,16 @@ func (s memoryStorage) ApproveUser(id string) (*user, error) {
 	return user, err
 }
 
+// Set the admin flag of a user
+func (s memoryStorage) SetUserAdmin(id string, value bool) error {
+	user, ok := s.users[id]
+	if !ok {
+		return errNotFound
+	}
+	user.Admin = value
+	return nil
+}
+
 func (s memoryStorage) SetUserToken(id, token string) error {
 	var hashed []byte
 	if token != "" {

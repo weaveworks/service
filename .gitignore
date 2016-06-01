@@ -34,6 +34,7 @@ coverage.html
 *.in-container
 app-mapper/app-mapper
 users/users
+users/db/migrate
 authfe/authfe
 Vagrantfile.local
 .dir-locals.el

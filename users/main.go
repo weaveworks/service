@@ -25,13 +25,14 @@ var (
 
 func main() {
 	var (
-		port          = flag.Int("port", 80, "port to listen on")
-		domain        = flag.String("domain", "https://scope.weave.works", "domain where scope service is runnning.")
-		databaseURI   = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
-		emailURI      = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Either email-uri or sendgrid-api-key must be provided. For local development, you can set this to: log://, which will log all emails.")
-		logLevel      = flag.String("log-level", "info", "logging level (debug, info, warning, error)")
-		sessionSecret = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
-		directLogin   = flag.Bool("direct-login", false, "Approve user and send login token in the signup response (DEV only)")
+		port               = flag.Int("port", 80, "port to listen on")
+		domain             = flag.String("domain", "https://scope.weave.works", "domain where scope service is runnning.")
+		databaseURI        = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
+		databaseMigrations = flag.String("database-migrations", "", "Path where the database migration files can be found")
+		emailURI           = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Either email-uri or sendgrid-api-key must be provided. For local development, you can set this to: log://, which will log all emails.")
+		logLevel           = flag.String("log-level", "info", "logging level (debug, info, warning, error)")
+		sessionSecret      = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
+		directLogin        = flag.Bool("direct-login", false, "Approve user and send login token in the signup response (DEV only)")
 
 		approvalRequired = flag.Bool("approval-required", true, "Do we want to gate users on approval.")
 		pardotEmail      = flag.String("pardot-email", "", "Email of Pardot account.  If not supplied pardot integration will be disabled.")
@@ -55,7 +56,7 @@ func main() {
 
 	templates := mustNewTemplateEngine()
 	emailer := mustNewEmailer(*emailURI, *sendgridAPIKey, templates, *domain)
-	storage := mustNewDatabase(*databaseURI)
+	storage := mustNewDatabase(*databaseURI, *databaseMigrations)
 	defer storage.Close()
 	sessions := mustNewSessionStore(*sessionSecret, storage)
 
@@ -107,6 +108,7 @@ func (a *api) routes() http.Handler {
 		{"GET", "/api/users/org/{orgName}/users", a.authenticated(a.listOrganizationUsers)},
 		{"POST", "/api/users/org/{orgName}/users", a.authenticated(a.inviteUser)},
 		{"DELETE", "/api/users/org/{orgName}/users/{userEmail}", a.authenticated(a.deleteUser)},
+		{"GET", "/private/api/users/admin", a.authenticated(a.lookupAdmin)},
 		{"GET", "/private/api/users/lookup/{orgName}", a.authenticated(a.lookupUsingCookie)},
 		{"GET", "/private/api/users/lookup", a.lookupUsingToken},
 		{"GET", "/private/api/users", a.listUsers},
@@ -265,6 +267,7 @@ type lookupView struct {
 	OrganizationID     string `json:"organizationID,omitempty"`
 	OrganizationName   string `json:"organizationName,omitempty"`
 	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
+	AdminID            string `json:"adminID,omitempty"`
 }
 
 func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Request) {
@@ -276,6 +279,14 @@ func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Req
 
 func (a *api) lookupUsingCookie(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	renderJSON(w, http.StatusOK, lookupView{OrganizationID: currentUser.Organization.ID})
+}
+
+func (a *api) lookupAdmin(currentUser *user, w http.ResponseWriter, r *http.Request) {
+	if currentUser.Admin {
+		renderJSON(w, http.StatusOK, lookupView{AdminID: currentUser.ID})
+		return
+	}
+	w.WriteHeader(http.StatusUnauthorized)
 }
 
 func (a *api) lookupUsingToken(w http.ResponseWriter, r *http.Request) {

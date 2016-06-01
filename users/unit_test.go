@@ -23,7 +23,7 @@ func setup(t *testing.T) {
 	var directLogin, approvalRequired = false, true
 
 	setupLogging("debug")
-	storage = mustNewDatabase("memory://")
+	storage = mustNewDatabase("memory://", "")
 	sessions = mustNewSessionStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", storage)
 	templates := mustNewTemplateEngine()
 

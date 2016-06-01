@@ -15,6 +15,7 @@ type user struct {
 	ApprovedAt     time.Time     `json:"-"`
 	FirstLoginAt   time.Time     `json:"-"`
 	CreatedAt      time.Time     `json:"-"`
+	Admin          bool          `json:"-"`
 	Organization   *organization `json:"-"`
 }
 

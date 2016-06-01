@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -14,6 +15,7 @@ import (
 type Authenticator interface {
 	AuthenticateOrg(r *http.Request, orgName string) (string, error)
 	AuthenticateProbe(r *http.Request) (string, error)
+	AuthenticateAdmin(r *http.Request) (string, error)
 }
 
 // Unauthorized is the error type returned when authorisation fails/
@@ -50,6 +52,10 @@ func (mockAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
 	return "mockID", nil
 }
 
+func (mockAuthenticator) AuthenticateAdmin(r *http.Request) (string, error) {
+	return "mockID", nil
+}
+
 type webAuthenticator struct {
 	url    string
 	client http.Client
@@ -77,7 +83,7 @@ func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgName string) (str
 		return "", err
 	}
 	lookupReq.AddCookie(authCookie)
-	return m.doAuthenticateRequest(lookupReq)
+	return m.decodeOrg(m.doAuthenticateRequest(lookupReq))
 }
 
 func (m *webAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
@@ -96,31 +102,75 @@ func (m *webAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
 		return "", err
 	}
 	lookupReq.Header.Set(AuthHeaderName, authHeader)
-	return m.doAuthenticateRequest(lookupReq)
+	return m.decodeOrg(m.doAuthenticateRequest(lookupReq))
 }
 
-func (m *webAuthenticator) doAuthenticateRequest(r *http.Request) (string, error) {
+func (m *webAuthenticator) AuthenticateAdmin(r *http.Request) (string, error) {
+	// Extract Authorization cookie to inject it in the lookup request. If it were
+	// not set, don't even bother to do a lookup.
+	authCookie, err := r.Cookie(AuthCookieName)
+	if err != nil {
+		log.Error("authenticator: admin: tried to authenticate request without credentials")
+		return "", &Unauthorized{http.StatusUnauthorized}
+	}
+
+	url := fmt.Sprintf("%s/private/api/users/admin", m.url)
+	lookupReq, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Error("authenticator: cannot build lookup request: ", err)
+		return "", err
+	}
+	lookupReq.AddCookie(authCookie)
+	return m.decodeAdmin(m.doAuthenticateRequest(lookupReq))
+}
+
+func (m *webAuthenticator) doAuthenticateRequest(r *http.Request) (io.ReadCloser, error) {
 	// Contact the authorization server
 	res, err := m.client.Do(r)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	defer res.Body.Close()
 
 	// Parse the response
 	if res.StatusCode != http.StatusOK {
-		return "", &Unauthorized{res.StatusCode}
+		res.Body.Close()
+		return nil, &Unauthorized{res.StatusCode}
 	}
+	return res.Body, nil
+}
+
+func (m *webAuthenticator) decodeOrg(body io.ReadCloser, err error) (string, error) {
+	if err != nil {
+		return "", err
+	}
+	defer body.Close()
 	var authRes struct {
 		OrganizationID string
 	}
-	if err := json.NewDecoder(res.Body).Decode(&authRes); err != nil {
+	if err := json.NewDecoder(body).Decode(&authRes); err != nil {
 		return "", err
 	}
 	if authRes.OrganizationID == "" {
 		return "", errors.New("empty OrganizationID")
 	}
 	return authRes.OrganizationID, nil
+}
+
+func (m *webAuthenticator) decodeAdmin(body io.ReadCloser, err error) (string, error) {
+	if err != nil {
+		return "", err
+	}
+	defer body.Close()
+	var authRes struct {
+		AdminID string
+	}
+	if err := json.NewDecoder(body).Decode(&authRes); err != nil {
+		return "", err
+	}
+	if authRes.AdminID == "" {
+		return "", errors.New("empty AdminID")
+	}
+	return authRes.AdminID, nil
 }
 
 // AuthOrgMiddleware is a middleware.Interface for authentication organisations based on the
@@ -180,6 +230,32 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 		}
 
 		r.Header.Add(a.OutputHeader, organizationID)
+		next.ServeHTTP(w, r)
+	})
+}
+
+// AuthAdminMiddleware is a middleware.Interface for authentication probes based on the headers
+type AuthAdminMiddleware struct {
+	Authenticator Authenticator
+	OutputHeader  string
+}
+
+// Wrap implements middleware.Interface
+func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		adminID, err := a.Authenticator.AuthenticateAdmin(r)
+		if err != nil {
+			if unauth, ok := err.(*Unauthorized); ok {
+				log.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
+				w.WriteHeader(http.StatusUnauthorized)
+			} else {
+				log.Errorf("proxy: error contacting authenticator: %v", err)
+				w.WriteHeader(http.StatusBadGateway)
+			}
+			return
+		}
+
+		r.Header.Add(a.OutputHeader, adminID)
 		next.ServeHTTP(w, r)
 	})
 }
