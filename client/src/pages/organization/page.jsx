@@ -1,7 +1,6 @@
 import React from 'react';
 import { CircularProgress, Paper } from 'material-ui';
-import ThemeManager from 'material-ui/lib/styles/theme-manager';
-import LightRawTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
+import { hashHistory } from 'react-router';
 
 import Colors from '../../common/colors';
 import { getData, encodeURIs } from '../../common/request';
@@ -18,7 +17,6 @@ export default class OrganizationPage extends React.Component {
   constructor() {
     super();
     this.state = {
-      muiTheme: ThemeManager.getMuiTheme(LightRawTheme),
       name: '',
       user: '',
       probeToken: ''
@@ -26,12 +24,6 @@ export default class OrganizationPage extends React.Component {
 
     this._handleOrganizationSuccess = this._handleOrganizationSuccess.bind(this);
     this._handleOrganizationError = this._handleOrganizationError.bind(this);
-  }
-
-  getChildContext() {
-    return {
-      muiTheme: this.state.muiTheme
-    };
   }
 
   componentDidMount() {
@@ -52,7 +44,7 @@ export default class OrganizationPage extends React.Component {
 
   _handleOrganizationError(resp) {
     if (resp.status === 401) {
-      this.props.history.push('/login');
+      hashHistory.push('/login');
     } else {
       // TODO show errors
       trackException(resp);
@@ -99,7 +91,7 @@ export default class OrganizationPage extends React.Component {
         boxShadow: 'rgba(0, 0, 0, 0.117647) 0px 1px 6px, rgba(0, 0, 0, 0.239216) 0px 1px 4px'
       },
       probes: {
-        padding: '24'
+        padding: 24
       },
       step: {
         position: 'relative',
@@ -120,7 +112,8 @@ export default class OrganizationPage extends React.Component {
               <h1>Configure your app</h1>
               <div style={styles.step}>
                 <span style={styles.circle}>1</span>
-                Run the following commands on your Docker hosts to connect them as probes to this Weave Scope instance:
+                Run the following commands on your Docker hosts to connect them
+                as probes to this Weave Scope instance:
               </div>
               <Box>
                 <div style={styles.code}>
@@ -131,7 +124,8 @@ export default class OrganizationPage extends React.Component {
               </Box>
               <div style={styles.step}>
                 <span style={styles.circle}>2</span>
-                Once you have started <code>scope</code> on your Docker hosts, click "My Scope" in the top right.
+                Once you have started <code>scope</code> on your Docker hosts,
+                click "My Scope" in the top right.
               </div>
             </Column>
             <Column width="400">
@@ -152,7 +146,3 @@ export default class OrganizationPage extends React.Component {
   }
 
 }
-
-OrganizationPage.childContextTypes = {
-  muiTheme: React.PropTypes.object
-};

@@ -1,11 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Styles, RaisedButton, TextField } from 'material-ui';
+import { RaisedButton, TextField } from 'material-ui';
+import { grey100, lightBlue500, orange500 } from 'material-ui/styles/colors';
 
 import { postData } from '../../common/request';
-import { trackEvent, trackException, trackTiming, trackView, PardotSignupIFrame } from '../../common/tracking';
-
-const Colors = Styles.Colors;
+import { trackEvent, trackException, trackTiming, trackView,
+  PardotSignupIFrame } from '../../common/tracking';
 
 export default class LoginForm extends React.Component {
 
@@ -21,11 +21,18 @@ export default class LoginForm extends React.Component {
       submitting: false
     };
 
+    this.handleKeyDown = this.handleKeyDown.bind(this);
     this._handleSubmit = this._handleSubmit.bind(this);
   }
 
   componentDidMount() {
     trackView('SignupForm');
+  }
+
+  handleKeyDown(ev) {
+    if (ev.keyCode === 13) { // ENTER
+      this._handleSubmit();
+    }
   }
 
   _handleSubmit() {
@@ -96,7 +103,7 @@ export default class LoginForm extends React.Component {
 
       confirmationIcon: {
         fontSize: 48,
-        color: Colors.lightBlue500
+        color: lightBlue500
       },
 
       emailField: {
@@ -104,7 +111,7 @@ export default class LoginForm extends React.Component {
       },
 
       emailFieldLine: {
-        borderColor: Colors.orange500,
+        borderColor: orange500,
         borderWidth: 2
       },
 
@@ -118,9 +125,10 @@ export default class LoginForm extends React.Component {
         <div style={styles.form}>
           <TextField hintText="Email" ref="emailField" type="email" errorText={this.state.errorText}
             underlineStyle={styles.emailFieldLine} style={styles.emailField}
-            onEnterKeyDown={this._handleSubmit.bind(this)} />
-          <RaisedButton label={this.state.submitText} primary style={styles.submit}
-            disabled={this.state.submitting} onClick={this._handleSubmit.bind(this)} />
+            onKeyDown={this.handleKeyDown} />
+          <RaisedButton label={this.state.submitText} style={styles.submit}
+            backgroundColor={orange500} labelColor={grey100}
+            disabled={this.state.submitting} onClick={this._handleSubmit} />
         </div>
         <div style={styles.confirmation}>
           <span className="fa fa-check" style={styles.confirmationIcon}></span>

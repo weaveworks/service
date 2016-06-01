@@ -1,6 +1,9 @@
 import React from 'react';
+import { hashHistory } from 'react-router';
+
 import { getData, encodeURIs } from '../../common/request';
-import { CircularProgress, Styles } from 'material-ui';
+import { CircularProgress } from 'material-ui';
+import { red900 } from 'material-ui/styles/colors';
 import { trackException, trackView } from '../../common/tracking';
 
 export default class CookieCheck extends React.Component {
@@ -29,7 +32,7 @@ export default class CookieCheck extends React.Component {
       this.setState({
         activityText: 'Not logged in. Please wait for the login form to load...'
       });
-      this.props.history.push('/login');
+      hashHistory.push('/login');
     } else {
       const err = resp.errors[0];
       this.setState({
@@ -41,7 +44,7 @@ export default class CookieCheck extends React.Component {
   }
 
   _checkCookie() {
-    const url = `/api/users/lookup`;
+    const url = '/api/users/lookup';
     getData(url).then(this._handleLoginSuccess, this._handleLoginError);
   }
 
@@ -57,7 +60,7 @@ export default class CookieCheck extends React.Component {
       // otherwise go to management page
       url = encodeURIs`/org/${resp.organizationName}`;
     }
-    this.props.history.push(url);
+    hashHistory.push(url);
   }
 
   render() {
@@ -66,7 +69,7 @@ export default class CookieCheck extends React.Component {
         display: this.state.errorText ? 'block' : 'none',
         fontSize: '85%',
         opacity: 0.6,
-        color: Styles.Colors.red900
+        color: red900
       },
 
       activity: {

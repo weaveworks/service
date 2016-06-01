@@ -1,8 +1,7 @@
 import React from 'react';
 import { CircularProgress } from 'material-ui';
 import debug from 'debug';
-import ThemeManager from 'material-ui/lib/styles/theme-manager';
-import LightRawTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
+import { hashHistory } from 'react-router';
 
 import { getData, encodeURIs } from '../../common/request';
 import Toolbar from '../../components/toolbar';
@@ -16,7 +15,6 @@ export default class Wrapper extends React.Component {
     super();
 
     this.state = {
-      muiTheme: ThemeManager.getMuiTheme(LightRawTheme),
       activityText: '',
       frameBaseUrl: '',
       name: '',
@@ -29,12 +27,7 @@ export default class Wrapper extends React.Component {
     this._handleInstanceSuccess = this._handleInstanceSuccess.bind(this);
     this._handleLoginSuccess = this._handleLoginSuccess.bind(this);
     this._handleLoginError = this._handleLoginError.bind(this);
-  }
-
-  getChildContext() {
-    return {
-      muiTheme: this.state.muiTheme
-    };
+    this._handleFrameLoad = this._handleFrameLoad.bind(this);
   }
 
   componentDidMount() {
@@ -95,7 +88,7 @@ export default class Wrapper extends React.Component {
       this.setState({
         activityText: 'Not logged in. Please wait for the login form to load...'
       });
-      this.props.history.push('/login');
+      hashHistory.push('/login');
     } else {
       const err = resp.errors[0];
       log(err);
@@ -155,12 +148,8 @@ export default class Wrapper extends React.Component {
           </div>
         </div>}
         {this.state.frameBaseUrl && <iframe ref="iframe"
-          onLoad={this._handleFrameLoad.bind(this)} src={frameUrl} style={styles.iframe} />}
+          onLoad={this._handleFrameLoad} src={frameUrl} style={styles.iframe} />}
       </div>
     );
   }
 }
-
-Wrapper.childContextTypes = {
-  muiTheme: React.PropTypes.object
-};

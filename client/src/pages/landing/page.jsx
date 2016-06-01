@@ -1,8 +1,5 @@
 import React from 'react';
 import CookieBanner from 'react-cookie-banner';
-import ThemeManager from 'material-ui/lib/styles/theme-manager';
-import LightRawTheme from 'material-ui/lib/styles/raw-themes/light-raw-theme';
-import Colors from 'material-ui/lib/styles/colors';
 
 import { BackgroundContainer } from '../../components/background-container';
 import { FlexContainer } from '../../components/flex-container';
@@ -11,28 +8,6 @@ import RegisterForm from './register-form';
 
 export default class LandingPage extends React.Component {
 
-  constructor() {
-    super();
-
-    this.state = {
-      muiTheme: ThemeManager.getMuiTheme(LightRawTheme)
-    };
-  }
-
-  getChildContext() {
-    return {
-      muiTheme: this.state.muiTheme
-    };
-  }
-
-  componentWillMount() {
-    const newMuiTheme = ThemeManager.modifyRawThemePalette(this.state.muiTheme, {
-      accent1Color: Colors.deepOrange500,
-    });
-
-    this.setState({muiTheme: newMuiTheme});
-  }
-
   renderLinks(linkStyle) {
     const links = [
       {href: 'http://weave.works', text: 'Weaveworks'},
@@ -40,13 +15,11 @@ export default class LandingPage extends React.Component {
       {href: 'http://weave.works/help', text: 'Support'},
     ];
 
-    return links.map(link => {
-      return (
-        <a style={linkStyle} href={link.href} target="_blank">
-          {link.text}
-        </a>
-      );
-    });
+    return links.map(link => (
+      <a style={linkStyle} href={link.href} key={link.text} target="_blank">
+        {link.text}
+      </a>
+    ));
   }
 
   render() {
@@ -123,11 +96,13 @@ export default class LandingPage extends React.Component {
     };
 
     const links = this.renderLinks(styles.link);
+    const cookieMsg = 'We use two cookies,'
+      + ' one that makes sure you stay logged in, and one that tracks usage anonymously.';
 
     return (
       <BackgroundContainer imageUrl="landing.jpg">
-        <CookieBanner message="We use two cookies, one that makes sure you stay logged in, and one that tracks usage anonymously."
-          cookie="eu-user-has-accepted-cookies" buttonMessage="I'm OK with this" styles={styles.cookieBanner} />
+        <CookieBanner message={cookieMsg} cookie="eu-user-has-accepted-cookies"
+          buttonMessage="I'm OK with this" tyles={styles.cookieBanner} />
         <div style={styles.headerContainer}>
           <div style={styles.logoWrapper}>
             <Logo />
@@ -163,9 +138,16 @@ export default class LandingPage extends React.Component {
                 How it works
               </div>
               <ol>
-                <li style={styles.infoItem}>Submit your email to apply for participation in the Early Access program</li>
-                <li style={styles.infoItem}>You'll receive an email with sign up details when we approve your participation.</li>
-                <li style={styles.infoItem}>Follow the simple instructions in the email to install the drop-in probe container and connect it to Scope.</li>
+                <li style={styles.infoItem}>
+                  Submit your email to apply for participation in the Early Access program
+                </li>
+                <li style={styles.infoItem}>
+                  You'll receive an email with sign up details when we approve your participation.
+                </li>
+                <li style={styles.infoItem}>
+                  Follow the simple instructions in the email to install
+                  the drop-in probe container and connect it to Scope.
+                </li>
               </ol>
               <div style={styles.infoItem}>
                 <em>Participation in the Early Access program is free of charge.</em>
@@ -178,7 +160,8 @@ export default class LandingPage extends React.Component {
               </div>
               <div style={styles.infoItem}>
                 Build and deploy a Docker app on Amazon ECS&mdash;check out our
-                  <br /><a target="ecsguide" href="http://weave.works/guides/service-discovery-with-weave-aws-ecs.html">getting started guide</a>
+                  <br /><a href="http://weave.works/guides/service-discovery-with-weave-aws-ecs.html"
+                    target="ecsguide">getting started guide</a>
               </div>
             </div>
           </div>
@@ -187,7 +170,3 @@ export default class LandingPage extends React.Component {
     );
   }
 }
-
-LandingPage.childContextTypes = {
-  muiTheme: React.PropTypes.object
-};

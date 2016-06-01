@@ -9,8 +9,10 @@ require('font-awesome-webpack');
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import { Router } from 'react-router';
-import createHashHistory from 'history/lib/createHashHistory';
+import getMuiTheme from 'material-ui/styles/getMuiTheme';
+import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
+
+import { hashHistory, Router } from 'react-router';
 
 // Routers
 import getRoutes from './router';
@@ -23,9 +25,11 @@ const DOM_APP_EL_ID = 'app';
 
 // Initialize routes
 const routes = getRoutes();
-const history = createHashHistory();
 
-ReactDOM.render(<Router history={history}>{routes}</Router>,
+ReactDOM.render(
+  (<MuiThemeProvider muiTheme={getMuiTheme()}>
+    <Router history={hashHistory}>{routes}</Router>
+  </MuiThemeProvider>),
   document.getElementById(DOM_APP_EL_ID));
 
 trackTiming('JS app', 'started');

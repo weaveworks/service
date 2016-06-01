@@ -7,11 +7,11 @@ export class Column extends React.Component {
     };
 
     if (this.props.width) {
-      styles.width = this.props.width;
+      styles.width = `${this.props.width}px`;
     } else {
       styles.flex = 1;
       if (this.props.minWidth) {
-        styles.minWidth = this.props.minWidth;
+        styles.minWidth = `${this.props.minWidth}px`;
       }
     }
 

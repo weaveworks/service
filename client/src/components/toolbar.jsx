@@ -1,10 +1,11 @@
 import React from 'react';
 import { Paper } from 'material-ui';
+import FontIcon from 'material-ui/FontIcon';
 
 import { encodeURIs } from '../common/request';
 import Colors from '../common/colors';
 
-export default class WrapperToolbar extends React.Component {
+export default class Toolbar extends React.Component {
 
   getLinks() {
     return [{
@@ -19,7 +20,7 @@ export default class WrapperToolbar extends React.Component {
     }, {
       iconClass: 'fa fa-sign-out',
       title: `Log out ${this.props.user}`,
-      route: `#/logout`
+      route: '#/logout'
     }];
   }
 
@@ -43,10 +44,11 @@ export default class WrapperToolbar extends React.Component {
       const isOnPage = link.route === window.location.hash;
       const linkClass = isOnPage ? 'active' : '';
       return (
-        <span style={styles.toolbarLinkWrapper}>
+        <span style={styles.toolbarLinkWrapper} key={link.route}>
           <a style={styles.toolbarLink} title={link.title} className={linkClass} href={link.route}>
             <span style={styles.toolbarLinkLabel}>{link.label}</span>
-            <span style={styles.toolbarLinkIcon} className={link.iconClass} />
+            <FontIcon style={styles.toolbarLinkIcon} color={Colors.text2}
+              hoverColor={Colors.text} className={link.iconClass} />
           </a>
         </span>
       );

@@ -10,6 +10,8 @@ export class BackgroundContainer extends React.Component {
       shiftX: 50,
       shiftY: 50
     };
+
+    this.handleMouseMove = this.handleMouseMove.bind(this);
   }
 
   handleMouseMove(ev) {
@@ -19,7 +21,7 @@ export class BackgroundContainer extends React.Component {
     const shiftX = 50 + (centerX - ev.clientX) / centerX * maxShiftPercent;
     const shiftY = 50 + (centerY - ev.clientY) / centerY * maxShiftPercent;
 
-    this.setState({shiftX: shiftX, shiftY: shiftY});
+    this.setState({ shiftX, shiftY });
   }
 
   render() {
@@ -37,7 +39,7 @@ export class BackgroundContainer extends React.Component {
     const imageUrl = this.props.imageUrl;
 
     return (
-      <div style={styles.container} onMouseMove={this.handleMouseMove.bind(this)}>
+      <div style={styles.container} onMouseMove={this.handleMouseMove}>
         <Motion style={styles.motion}>
           {({shiftX, shiftY}) =>
             <div style={{

@@ -1,6 +1,9 @@
 import React from 'react';
+import { hashHistory } from 'react-router';
+
 import { getData } from '../../common/request';
-import { CircularProgress, Styles } from 'material-ui';
+import { CircularProgress } from 'material-ui';
+import { red900 } from 'material-ui/styles/colors';
 import { trackException, trackView } from '../../common/tracking';
 
 export default class LoginForm extends React.Component {
@@ -23,18 +26,18 @@ export default class LoginForm extends React.Component {
   }
 
   _tryLogout() {
-    const url = `/api/users/logout`;
+    const url = '/api/users/logout';
     getData(url).then(this._handleSuccess, this._handleError);
   }
 
   _handleSuccess() {
-    this.props.history.push('/');
+    hashHistory.push('/');
   }
 
   _handleError(resp) {
     if (resp.status === 401) {
       // logout should not fail for Unauthorized
-      this.props.history.push('/');
+      hashHistory.push('/');
     } else {
       this.setState({
         activityText: '',
@@ -49,7 +52,7 @@ export default class LoginForm extends React.Component {
       error: {
         display: this.state.errorText ? 'block' : 'none',
         fontSize: '85%',
-        color: Styles.Colors.red900
+        color: red900
       },
 
       activity: {

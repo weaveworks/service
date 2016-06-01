@@ -1,11 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Styles, FlatButton, TextField } from 'material-ui';
+import { FlatButton, TextField } from 'material-ui';
+import { amber900, blueGrey100, blueGrey200, blueGrey400,
+  lightBlue500 } from 'material-ui/styles/colors';
+import { hashHistory } from 'react-router';
 
 import { postData } from '../../common/request';
 import { trackEvent, trackException, trackTiming, PardotSignupIFrame } from '../../common/tracking';
-
-const Colors = Styles.Colors;
 
 export default class LoginForm extends React.Component {
 
@@ -21,12 +22,20 @@ export default class LoginForm extends React.Component {
       submitting: false
     };
 
+    this.handleKeyDown = this.handleKeyDown.bind(this);
     this._handleSubmit = this._handleSubmit.bind(this);
+    this._doLogin = this._doLogin.bind(this);
+  }
+
+  handleKeyDown(ev) {
+    if (ev.keyCode === 13) { // ENTER
+      this._handleSubmit();
+    }
   }
 
   _doLogin() {
     const loginUrl = `/login/${this.state.email}/${this.state.token}`;
-    this.props.history.push(loginUrl);
+    hashHistory.push(loginUrl);
   }
 
   _handleSubmit() {
@@ -79,15 +88,14 @@ export default class LoginForm extends React.Component {
   }
 
   render() {
-    const submitSuccess = this.state.token || this.state.mailSent;
+    const submitSuccess = Boolean(this.state.token) || this.state.mailSent;
     const unauthorized = this.props.params.error === 'unauthorized';
     const styles = {
       submit: {
         marginLeft: '1em',
-        marginTop: '11px',
+        marginTop: '5px',
         verticalAlign: 'top',
         minWidth: 35,
-        lineHeight: '30px',
         fontSize: '12px'
       },
 
@@ -108,7 +116,7 @@ export default class LoginForm extends React.Component {
         top: 2,
         left: 2,
         fontSize: 24,
-        color: Colors.lightBlue500
+        color: lightBlue500
       },
 
       confirmationLabel: {
@@ -121,12 +129,12 @@ export default class LoginForm extends React.Component {
       },
 
       emailFieldLine: {
-        borderColor: Colors.blueGrey200,
+        borderColor: blueGrey200,
         borderWidth: 1
       },
 
       emailFieldFocusLine: {
-        borderColor: Colors.blueGrey400
+        borderColor: blueGrey400
       },
 
       emailFieldInput: {
@@ -156,11 +164,11 @@ export default class LoginForm extends React.Component {
         top: 0,
         left: -2,
         fontSize: 32,
-        color: Colors.amber900
+        color: amber900
       },
 
       unauthorizedLabel: {
-        color: Colors.amber900,
+        color: amber900,
         paddingLeft: 32
       }
     };
@@ -173,10 +181,11 @@ export default class LoginForm extends React.Component {
             errorText={this.state.errorText} inputStyle={styles.emailFieldInput}
             underlineStyle={styles.emailFieldLine} underlineFocusStyle={styles.emailFieldFocusLine}
             style={styles.emailField} hintStyle={styles.emailFieldHint}
-            onEnterKeyDown={this._handleSubmit.bind(this)} />
+            onKeyDown={this.handleKeyDown} />
           <FlatButton label={this.state.submitText} style={styles.submit}
-            backgroundColor={Colors.blueGrey100} labelStyle={styles.submitLabel}
-            disabled={submitSuccess || this.state.submitting} onClick={this._handleSubmit.bind(this)} />
+            backgroundColor={blueGrey100} labelStyle={styles.submitLabel}
+            disabled={submitSuccess || this.state.submitting}
+            onClick={this._handleSubmit} />
         </div>
         <div style={styles.unauthorized}>
           <span className="fa fa-ban" style={styles.unauthorizedIcon}></span>
@@ -191,7 +200,7 @@ export default class LoginForm extends React.Component {
           </div>
         </div>
         <div style={styles.devLink}>
-          <button onClick={this._doLogin.bind(this)}>Developer login link</button>
+          <button onClick={this._doLogin}>Developer login link</button>
         </div>
         {submitSuccess && <PardotSignupIFrame email={this.state.email} />}
       </div>

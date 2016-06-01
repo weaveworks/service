@@ -1,13 +1,14 @@
 var express = require('express');
 var bodyParser = require('body-parser');
-var httpProxy = require('http-proxy');
+var proxy = require('http-proxy-middleware');
 var url = require('url');
-var SocksProxyAgent = require('socks-proxy-agent');
 
 var app = express();
 if (process.env.USE_MOCK_BACKEND) {
   app.use(bodyParser.json()); // for parsing application/json
 }
+
+var WEBPACK_SERVER_HOST = process.env.WEBPACK_SERVER_HOST || 'localhost';
 
 // Mock data store
 var store = {};
@@ -31,30 +32,13 @@ store.users = [{
  ************************************************************/
 
 // Serve application file depending on environment
-app.get('/app.js', function(req, res) {
-  if (process.env.NODE_ENV === 'production') {
-    res.sendFile(__dirname + '/build/app.js');
-  } else {
-    res.redirect('//localhost:9090/build/app.js');
-  }
-});
-
-// Proxy to backend
-
-var proxyOpts = {
-  target: 'http://localhost:4047',
-  ws: true
-};
-if (process.env.USE_SOCKS_PROXY) {
-  proxyOpts.agent = new SocksProxyAgent({host: 'localhost', port: 8000, protocol: 'socks5:'});
-}
-var proxy = httpProxy.createProxy(proxyOpts);
-
-proxy.on('error', function(err) {
-  console.error('Proxy error', err);
-});
-
-app.all('/api*', proxy.web.bind(proxy));
+// app.get('/app.js', function(req, res) {
+//   if (process.env.NODE_ENV === 'production') {
+//     res.sendFile(__dirname + '/build/app.js');
+//   } else {
+//     res.redirect('//localhost:9090/build/app.js');
+//   }
+// });
 
 // Mock backend
 
@@ -115,19 +99,45 @@ if (process.env.USE_MOCK_BACKEND) {
   app.get('/login', function(req, res) {
     res.redirect('org/foo');
   });
+} else {
+
+  // Proxy to users
+  var usersProxy = proxy({
+    target: 'http://localhost:4047',
+  });
+  app.use('/api/users', usersProxy);
+
+  // Proxy to local Scope
+  var backendProxy = proxy({
+    ws: true,
+    target: 'http://localhost:4042',
+    pathRewrite: function(path) {
+      // /api/app/icy-snow-65/api/foo -> /api/foo
+      return '/' + path.split('/').slice(4).join('/');
+    }
+  });
+
+  app.use('/api/app', backendProxy);
 }
 
-// Serve index page
-
 app.get('/landing.jpg', function(req, res) {
-  res.sendFile(__dirname + '/build/landing.jpg');
+  res.sendFile(__dirname + '/src/images/landing.jpg');
 });
 
-app.get('*', function(req, res) {
-  res.sendFile(__dirname + '/build/index.html');
-});
-
-
+if (process.env.NODE_ENV === 'production') {
+  // serve all precompiled content from build/
+  app.use(express.static('build'));
+} else {
+  // redirect the JS bundles
+  app.get(/.*js/, function(req, res) {
+    res.redirect('//' + WEBPACK_SERVER_HOST + ':4048' + req.originalUrl);
+  });
+  // proxy everything else
+  var staticProxy = proxy({
+    target: 'http://' + WEBPACK_SERVER_HOST + ':4048'
+  });
+  app.all('*', staticProxy);
+}
 
 /*************************************************************
  *
@@ -143,11 +153,11 @@ if (process.env.NODE_ENV !== 'production') {
   var config = require('./webpack.local.config');
 
   new WebpackDevServer(webpack(config), {
-    publicPath: config.output.publicPath,
     hot: true,
     noInfo: true,
-    historyApiFallback: true
-  }).listen(9090, 'localhost', function (err, result) {
+    historyApiFallback: true,
+    stats: { colors: true }
+  }).listen(4048, '0.0.0.0', function (err, result) {
     if (err) {
       console.log(err);
     }
@@ -165,8 +175,12 @@ var port = process.env.PORT || 4046;
 var server = app.listen(port, function () {
   var host = server.address().address;
   var port = server.address().port;
-
   console.log('Scope Account Service UI listening at http://%s:%s', host, port);
+  if (!process.env.USE_MOCK_BACKEND) {
+    console.log('Proxies to local users service on :4047 and to local Scope on :4042');
+  }
 });
 
-server.on('upgrade', proxy.ws.bind(proxy));
+if (!process.env.USE_MOCK_BACKEND) {
+  server.on('upgrade', backendProxy.upgrade);
+}
