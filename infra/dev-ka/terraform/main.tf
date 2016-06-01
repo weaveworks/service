@@ -16,7 +16,7 @@ module "az" {
 }
 
 module "kubernetes-anywhere-aws-ec2" {
-    source         = "git::https://github.com/weaveworks/weave-kubernetes-anywhere//examples/aws-ec2-terraform?ref=test-new-toolbox-in-ec2"
+    source         = "../../terraform/kubernetes"
     aws_access_key = "${var.aws_access_key}"
     aws_secret_key = "${var.aws_secret_key}"
     aws_region     = "${var.aws_region}"
