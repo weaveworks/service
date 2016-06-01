@@ -107,7 +107,8 @@ $(CLIENT_BUILD_UPTODATE): client/Dockerfile client/package.json client/webpack.*
 
 $(CLIENT_SERVER_UPTODATE): client/build/app.js client/src/Dockerfile client/src/html/index.html
 	$(DOCKER_HOST_CHECK)
-	$(SUDO) docker build -t $(CLIENT_SERVER_IMAGE) -f client/src/Dockerfile client/build/
+	cp client/src/Dockerfile client/build/
+	$(SUDO) docker build -t $(CLIENT_SERVER_IMAGE) client/build/
 	touch $@
 
 $(FRONTEND_UPTODATE): frontend/Dockerfile frontend/default.conf frontend/api.json frontend/pki/scope.weave.works.crt frontend/dhparam.pem
