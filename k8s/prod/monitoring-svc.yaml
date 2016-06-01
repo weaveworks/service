@@ -4,11 +4,11 @@ metadata:
   name: monitoring
 spec:
   ports:
-    - port: 9090
-      name: prometheus
-    - port: 9093
-      name: alertmanager
-    - port: 3000
-      name: grafana
+    - name: prometheus
+      port: 9090
+    - name: alertmanager
+      port: 9093
+    - name: grafana
+      port: 3000
   selector:
     name: monitoring
