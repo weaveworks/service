@@ -4,11 +4,6 @@
 BUILD_UPTODATE=build/.image.uptodate
 BUILD_IMAGE=service_build
 
-APP_MAPPER_UPTODATE=app-mapper/.images.uptodate
-APP_MAPPER_EXE=app-mapper/app-mapper
-APP_MAPPER_IMAGE=quay.io/weaveworks/app-mapper
-APP_MAPPER_DB_IMAGE=weaveworks/app-mapper-db # The DB image is only used in the local environment and it's not pushed to Quay
-
 AUTHFE_UPTODATE=authfe/.images.uptodate
 AUTHFE_EXE=authfe/authfe
 AUTHFE_IMAGE=quay.io/weaveworks/authfe
@@ -31,9 +26,6 @@ CLIENT_BUILD_UPTODATE=client/.service_client_build.uptodate
 CLIENT_SERVER_IMAGE=quay.io/weaveworks/ui-server
 CLIENT_BUILD_IMAGE=service_client_build # only for local use
 JS_FILES=$(shell find client/src -name '*.jsx' -or -name '*.js')
-
-FRONTEND_UPTODATE=frontend/.image.uptodate
-FRONTEND_IMAGE=quay.io/weaveworks/frontend
 
 FRONTEND_MT_UPTODATE=frontend-mt/.image.uptodate
 FRONTEND_MT_IMAGE=quay.io/weaveworks/frontend-mt
@@ -66,17 +58,11 @@ NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 	false; \
 }
 
-all: $(APP_MAPPER_UPTODATE) $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE) $(JSON_BUILDER_UPTODATE) $(FRONTEND_MT_UPTODATE)
+all: $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE) $(JSON_BUILDER_UPTODATE) $(FRONTEND_MT_UPTODATE)
 
 $(BUILD_UPTODATE): build/*
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(BUILD_IMAGE) build/
-	touch $@
-
-$(APP_MAPPER_UPTODATE): app-mapper/Dockerfile $(APP_MAPPER_EXE) app-mapper/db/Dockerfile app-mapper/db/schema.sql
-	$(DOCKER_HOST_CHECK)
-	$(SUDO) docker build -t $(APP_MAPPER_IMAGE) app-mapper/
-	$(SUDO) docker build -t $(APP_MAPPER_DB_IMAGE) app-mapper/db/
 	touch $@
 
 $(AUTHFE_UPTODATE): authfe/Dockerfile $(AUTHFE_EXE)
@@ -111,11 +97,6 @@ $(CLIENT_SERVER_UPTODATE): client/build/app.js client/src/Dockerfile client/src/
 	$(SUDO) docker build -t $(CLIENT_SERVER_IMAGE) client/build/
 	touch $@
 
-$(FRONTEND_UPTODATE): frontend/Dockerfile frontend/default.conf frontend/api.json frontend/pki/scope.weave.works.crt frontend/dhparam.pem
-	$(DOCKER_HOST_CHECK)
-	$(SUDO) docker build -t $(FRONTEND_IMAGE) frontend/
-	touch $@
-
 $(FRONTEND_MT_UPTODATE): frontend-mt/Dockerfile frontend-mt/default.conf frontend-mt/api.json frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(FRONTEND_MT_IMAGE) frontend-mt/
@@ -124,21 +105,20 @@ $(FRONTEND_MT_UPTODATE): frontend-mt/Dockerfile frontend-mt/default.conf fronten
 $(MONITORING_UPTODATE):
 	make -C monitoring
 
-$(APP_MAPPER_EXE): app-mapper/*.go
 $(AUTHFE_EXE): $(shell find authfe -name '*.go')
 $(USERS_EXE): $(shell find users -name '*.go')
 $(METRICS_EXE): $(shell find metrics -name '*.go')
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
-$(APP_MAPPER_EXE) $(AUTHFE_EXE) $(USERS_EXE) $(USERS_DB_MIGRATE_EXE) $(METRICS_EXE) lint test: $(BUILD_UPTODATE)
+$(AUTHFE_EXE) $(USERS_EXE) $(USERS_DB_MIGRATE_EXE) $(METRICS_EXE) lint test: $(BUILD_UPTODATE)
 	$(SUDO) docker run $(RM) -ti -v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
 		$(BUILD_IMAGE) $@
 
 else
 
-$(APP_MAPPER_EXE) $(AUTHFE_EXE) $(USERS_EXE): $(BUILD_UPTODATE)
+$(AUTHFE_EXE) $(USERS_EXE): $(BUILD_UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
@@ -159,9 +139,6 @@ test: $(BUILD_UPTODATE)
 
 endif
 
-app-mapper-integration-test: $(APP_MAPPER_UPTODATE)
-	@app-mapper/script/integration-test.sh
-
 users-integration-test: $(USERS_UPTODATE)
 	DB_CONTAINER="$$(docker run -d $(USERS_DB_IMAGE))"; \
 	docker run $(RM) \
@@ -178,15 +155,14 @@ client-build-image: $(CLIENT_BUILD_UPTODATE)
 
 clean:
 	# Don't remove the build images, just remove the marker files.
-	-$(SUDO) docker rmi $(APP_MAPPER_IMAGE) $(APP_MAPPER_DB_IMAGE) \
-		$(USERS_IMAGE) $(USERS_DB_MIGRATE_EXE) $(USERS_DB_IMAGE) \
-		$(CLIENT_SERVER_IMAGE) $(FRONTEND_IMAGE) \
+	-$(SUDO) docker rmi \
+		$(USERS_IMAGE)  $(USERS_DB_MIGRATE_EXE) $(USERS_DB_IMAGE) \
+		$(CLIENT_SERVER_IMAGE) $(FRONTEND_MT_IMAGE) \
 		$(METRICS_IMAGE) >/dev/null 2>&1 || true
-	rm -rf $(APP_MAPPER_EXE) $(APP_MAPPER_UPTODATE) \
-		$(USERS_EXE) $(USERS_UPTODATE) \
+	rm -rf $(USERS_EXE) $(USERS_UPTODATE) \
 		$(JSON_BUILDER_UPTODATE) \
 		$(METRICS_EXE) $(METRICS_UPTODATE) \
-		$(CLIENT_SERVER_UPTODATE) $(FRONTEND_UPTODATE) client/build/app.js \
+		$(CLIENT_SERVER_UPTODATE) $(FRONTEND_MT_IMAGE) client/build/app.js \
 		$(BUILD_UPTODATE) $(CLIENT_BUILD_UPTODATE)
 	go clean ./...
 	make -C monitoring clean

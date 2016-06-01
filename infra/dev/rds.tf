@@ -28,9 +28,6 @@ variable "rds_subnet_b_availability_zone" {
 variable "users_db_password" {
 }
 
-variable "app_mapper_db_password" {
-}
-
 resource "aws_vpc" "rds_vpc" {
     cidr_block = "${var.rds_vpc_cidr_block}"
     enable_dns_hostnames = true
@@ -119,27 +116,13 @@ resource "aws_db_instance" "users_database" {
     allocated_storage = 10
     multi_az = true
     engine = "postgres"
-    engine_version = "9.4.4"
+    engine_version = "9.4.5"
     instance_class = "db.t2.small"
     username = "postgres"
     password = "${var.users_db_password}"
     vpc_security_group_ids = ["${aws_security_group.rds_sg.id}"]
     final_snapshot_identifier = "users-final"
-    backup_retention_period = 5
-    apply_immediately = true
-}
-
-resource "aws_db_instance" "app_mapper_database" {
-    identifier = "app-mapper-database"
-    allocated_storage = 10
-    multi_az = true
-    engine = "postgres"
-    engine_version = "9.4.4"
-    instance_class = "db.t2.small"
-    username = "postgres"
-    password = "${var.app_mapper_db_password}"
-    vpc_security_group_ids = ["${aws_security_group.rds_sg.id}"]
-    final_snapshot_identifier = "app-mapper-final"
+    skip_final_snapshot = false
     backup_retention_period = 5
     apply_immediately = true
 }
