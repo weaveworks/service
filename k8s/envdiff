@@ -1,0 +1,109 @@
+#!/usr/bin/env python
+
+import yaml, sys, os, os.path, string, subprocess, optparse, re
+
+failed = False
+
+ALLOWED_DIFFERENCES={
+  ".spec.template.spec.containers[0].args.log.level",
+  ".spec.template.spec.containers[0].args.app.collector",
+  ".spec.template.spec.containers[0].args.app.collector.s3",
+  ".spec.template.spec.containers[0].args.app.control.router",
+  ".spec.template.spec.containers[0].args.database-uri",
+  ".spec.template.spec.containers[0].args.endpoint",
+  ".spec.template.spec.containers[0].args.domain",
+  ".spec.template.spec.containers[0].args.session-secret",
+}
+
+# checks, for every file, that the object exists and is configured in the right way in k8s
+# assumes your kubectl is setup to talk to the right cluster
+def check(b, msg, *arg):
+  global failed
+  if not b:
+    print " *** " + msg % arg
+    failed = True
+
+def parse_args(args):
+  parsed = {}
+  while len(args):
+    arg = args.pop(0)
+    m = re.match("^\-(?:\-)?(?P<name>[a-zA-Z0-9.\-_]+)(?:=| )?(?P<value>.+)?$", arg)
+    if m is not None:
+      parsed[m.group("name")] = m.group("value")
+    else:
+      break
+  return parsed, args
+
+def diff_args(path, want, have):
+  # args are a list, but we're going to parse as a map
+  want, _ = parse_args(want)
+  have, _ = parse_args(have)
+  diff_dicts(path, want, have)
+
+def diff_lists(path, want, have):
+  check(len(want) == len(have), "len(%s): %d != %d", path, len(want), len(have))
+
+  for i, (want_v, have_v) in enumerate(zip(want, have)):
+     diff("%s[%d]" % (path, i), want_v, have_v)
+
+def diff_dicts(path, want, have):
+  for k, want_v in want.iteritems():
+    key_path = "%s.%s" % (path, k)
+
+    check(k in have, "%s: '%s' missing", path, k)
+    if k in have:
+      if k == "args":
+        diff_args(key_path, want_v, have[k])
+      else:
+        diff(key_path, want_v, have[k])
+
+def diff(path, want, have):
+  if isinstance(want, dict):
+    diff_dicts(path, want, have)
+
+  elif isinstance(want, list):
+    diff_lists(path, want, have)
+
+  elif path in ALLOWED_DIFFERENCES:
+    pass
+
+  else:
+    check(want == have, "%s: '%s' != '%s'", path, want, have)
+
+def check_file(orig, last):
+  _, extension = os.path.splitext(orig)
+  if extension != ".yaml":
+    return
+
+  with open(orig, 'r') as stream:
+    orig_yaml = yaml.load(stream)
+
+  with open(last, 'r') as stream:
+    last_yaml = yaml.load(stream)
+
+  print "Checking '%s' against '%s'" % (orig, last)
+
+  diff("", orig_yaml, last_yaml)
+
+def check_dir(orig, last):
+  for filename in os.listdir(orig):
+    check_path(os.path.join(orig, filename), os.path.join(last, filename))
+
+def check_path(orig, last):
+  if os.path.isdir(orig):
+    check_dir(orig, last)
+  else:
+    check_file(orig, last)
+
+if __name__ == "__main__":
+  parser =  optparse.OptionParser("usage: %prog [options] <dir1> <dir2>")
+  (options, args) = parser.parse_args()
+  if len(args) != 2:
+    parser.print_help()
+    sys.exit(1)
+
+  check_path(args[0], args[1])
+
+  if failed:
+    sys.exit(2)
+
