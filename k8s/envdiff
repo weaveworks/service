@@ -15,8 +15,6 @@ ALLOWED_DIFFERENCES={
   ".spec.template.spec.containers[0].args.session-secret",
 }
 
-# checks, for every file, that the object exists and is configured in the right way in k8s
-# assumes your kubectl is setup to talk to the right cluster
 def check(b, msg, *arg):
   global failed
   if not b:
@@ -96,7 +94,11 @@ def check_path(orig, last):
     check_file(orig, last)
 
 if __name__ == "__main__":
-  parser =  optparse.OptionParser("usage: %prog [options] <dir1> <dir2>")
+  parser =  optparse.OptionParser("""usage: %prog [options] <dir1> <dir2>
+
+Compare yaml files in <dir1> to yaml files in <dir2> and print the differences.
+This is useful to ensure flags are consistent between environments.  There is
+a hard coded whitelist of flags which are allowed to differ.""")
   (options, args) = parser.parse_args()
   if len(args) != 2:
     parser.print_help()
