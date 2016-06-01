@@ -14,6 +14,7 @@ import (
 	"github.com/weaveworks/scope/common/middleware"
 
 	"github.com/weaveworks/service/common/instrument"
+	"github.com/weaveworks/service/common/logging"
 	"github.com/weaveworks/service/users/pardot"
 )
 
@@ -25,12 +26,12 @@ var (
 
 func main() {
 	var (
+		logLevel           = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
 		port               = flag.Int("port", 80, "port to listen on")
 		domain             = flag.String("domain", "https://scope.weave.works", "domain where scope service is runnning.")
 		databaseURI        = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
 		databaseMigrations = flag.String("database-migrations", "", "Path where the database migration files can be found")
 		emailURI           = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Either email-uri or sendgrid-api-key must be provided. For local development, you can set this to: log://, which will log all emails.")
-		logLevel           = flag.String("log-level", "info", "logging level (debug, info, warning, error)")
 		sessionSecret      = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
 		directLogin        = flag.Bool("direct-login", false, "Approve user and send login token in the signup response (DEV only)")
 
@@ -43,6 +44,11 @@ func main() {
 	)
 
 	flag.Parse()
+
+	if err := logging.Setup(*logLevel); err != nil {
+		logrus.Fatalf("Error configuring logging: %v", err)
+		return
+	}
 
 	if *pardotEmail != "" {
 		pardotClient = pardot.NewClient(pardot.APIURL,
@@ -118,10 +124,13 @@ func (a *api) routes() http.Handler {
 		name := instrument.MakeLabelValue(route.path)
 		r.Handle(route.path, route.handler).Name(name).Methods(route.method)
 	}
-	return middleware.Instrument{
-		RouteMatcher: r,
-		Duration:     requestDuration,
-	}.Wrap(r)
+	return middleware.Merge(
+		middleware.Logging,
+		middleware.Instrument{
+			RouteMatcher: r,
+			Duration:     requestDuration,
+		},
+	).Wrap(r)
 }
 
 func (a *api) admin(w http.ResponseWriter, r *http.Request) {
