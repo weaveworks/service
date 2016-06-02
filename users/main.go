@@ -106,15 +106,15 @@ func newAPI(directLogin bool, emailer emailer, sessions sessionStore, storage da
 func (a *api) routes() http.Handler {
 	r := mux.NewRouter()
 	for _, route := range []struct {
-		method, path string
-		handler      http.HandlerFunc
+		name, method, path string
+		handler            http.HandlerFunc
 	}{
 		// Used by the UI to determine all available login providers
-		{"GET", "/api/users/logins", a.listLoginProviders},
+		{"api_users_logins", "GET", "/api/users/logins", a.listLoginProviders},
 
 		// Used by the UI for /account, to determine which providers are already
 		// attached to the current user
-		{"GET", "/api/users/attached_logins", a.authenticated(a.listAttachedLoginProviders)},
+		{"api_users_attached_logins", "GET", "/api/users/attached_logins", a.authenticated(a.listAttachedLoginProviders)},
 
 		// Attaches a new login provider to the current user. If no current user is
 		// logged in, one will be looked up via email, or we will create one (if no
@@ -123,48 +123,48 @@ func (a *api) routes() http.Handler {
 		// This endpoint will then set the session cookie, return a json object
 		// with some fields like:
 		//  { "firstLogin": true, "attach": true, "userCreated": true }
-		{"GET", "/api/users/logins/{provider}/attach", a.attachLoginProvider},
+		{"api_users_logins_provider_attach", "GET", "/api/users/logins/{provider}/attach", a.attachLoginProvider},
 		// Detaches the given provider from the current user
-		{"POST", "/api/users/logins/{provider}/detach", a.authenticated(a.detachLoginProvider)},
+		{"api_users_logins_provider_detach", "POST", "/api/users/logins/{provider}/detach", a.authenticated(a.detachLoginProvider)},
 
 		// Finds/Creates a user account with a given email, and emails them a new
 		// login link
-		{"POST", "/api/users/signup", a.signup},
+		{"api_users_signup", "POST", "/api/users/signup", a.signup},
 
 		// This is the link the UI hits when the user visits the link from the
 		// login email. Doesn't need to handle any attachment, or providers, since
 		// it *only* handles email logins.
-		{"GET", "/api/users/login", a.login},
+		{"api_users_login", "GET", "/api/users/login", a.login},
 
 		// Logs the current user out (just deletes the session cookie)
-		{"GET", "/api/users/logout", a.authenticated(a.logout)},
+		{"api_users_logout", "GET", "/api/users/logout", a.authenticated(a.logout)},
 
 		// This is the first endpoint the UI hits to see if the user is logged in.
-		{"GET", "/api/users/lookup", a.authenticated(a.publicLookup)},
+		{"api_users_lookup", "GET", "/api/users/lookup", a.authenticated(a.publicLookup)},
 
 		// Basic view and management of an organization
-		{"GET", "/api/users/org/{orgName}", a.authenticated(a.org)},
-		{"PUT", "/api/users/org/{orgName}", a.authenticated(a.renameOrg)},
+		{"api_users_org_orgName", "GET", "/api/users/org/{orgName}", a.authenticated(a.org)},
+		{"api_users_org_orgName_rename", "PUT", "/api/users/org/{orgName}", a.authenticated(a.renameOrg)},
 
 		// Used to list and manage organization access (invites)
-		{"GET", "/api/users/org/{orgName}/users", a.authenticated(a.listOrganizationUsers)},
-		{"POST", "/api/users/org/{orgName}/users", a.authenticated(a.inviteUser)},
-		{"DELETE", "/api/users/org/{orgName}/users/{userEmail}", a.authenticated(a.deleteUser)},
+		{"api_users_org_orgName_users", "GET", "/api/users/org/{orgName}/users", a.authenticated(a.listOrganizationUsers)},
+		{"api_users_org_orgName_inviteUser", "POST", "/api/users/org/{orgName}/users", a.authenticated(a.inviteUser)},
+		{"api_users_org_orgName_deleteUser", "DELETE", "/api/users/org/{orgName}/users/{userEmail}", a.authenticated(a.deleteUser)},
 
 		// The users service client (i.e. our other services) use these to
 		// authenticate the admin/user/probe.
-		{"GET", "/private/api/users/admin", a.authenticated(a.lookupAdmin)},
-		{"GET", "/private/api/users/lookup/{orgName}", a.authenticated(a.lookupOrg)},
-		{"GET", "/private/api/users/lookup", a.lookupUsingToken},
+		{"private_api_users_admin", "GET", "/private/api/users/admin", a.authenticated(a.lookupAdmin)},
+		{"private_api_users_lookup_orgName", "GET", "/private/api/users/lookup/{orgName}", a.authenticated(a.lookupOrg)},
+		{"private_api_users_lookup", "GET", "/private/api/users/lookup", a.lookupUsingToken},
 
 		// Internal stuff for our internal usage, internally.
-		{"GET", "/loadgen", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintf(w, "OK") }},
-		{"GET", "/", a.admin},
-		{"GET", "/private/api/users", a.listUsers},
-		{"GET", "/private/api/pardot", a.pardotRefresh},
-		{"POST", "/private/api/users/{userID}/admin", a.makeUserAdmin},
+		{"loadgen", "GET", "/loadgen", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintf(w, "OK") }},
+		{"root", "GET", "/", a.admin},
+		{"private_api_users", "GET", "/private/api/users", a.listUsers},
+		{"private_api_pardot", "GET", "/private/api/pardot", a.pardotRefresh},
+		{"private_api_users_userID_admin", "POST", "/private/api/users/{userID}/admin", a.makeUserAdmin},
 	} {
-		r.Handle(route.path, route.handler).Methods(route.method)
+		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
 	return middleware.Merge(
 		middleware.Logging,
