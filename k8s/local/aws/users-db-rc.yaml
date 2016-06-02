@@ -1,19 +1,20 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: s3
+  namespace: aws
+  name: users-db
 spec:
   replicas: 1
   selector:
-    name: s3
+    name: users-db
   template:
     metadata:
       labels:
-        name: s3
+        name: users-db
     spec:
       containers:
-      - name: s3
-        image: lphoward/fake-s3
+      - name: users-db
+        image: weaveworks/users-db
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 4569
+        - containerPort: 5432

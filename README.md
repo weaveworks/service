@@ -55,15 +55,15 @@ uses the service token to proxy to the correct Scope app /api/report endpoint.
 After connecting to an environment with `./connect <env>`:
 
 Monitoring
-- [Grafana Dashboards](http://monitoring.default.svc.cluster.local:3000)
-- [Prometheus UI](http://monitoring.default.svc.cluster.local:9090)
-- [Alertmanager](http://monitoring.default.svc.cluster.local:9093)
-- [Service Scope](http://weave-scope-app.kube-system.svc.cluster.local:4040)
+- [Grafana Dashboards](http://monitoring.monitoring.svc.cluster.local:3000)
+- [Prometheus UI](http://monitoring.monitoring.svc.cluster.local:9090)
+- [Alertmanager](http://monitoring.monitoring.svc.cluster.local:9093)
+- [Service Scope](http://scope.kube-system.svc.cluster.local:80)
 
 Management
 - [Consul UI](http://consul.default.svc.cluster.local:8500)
 - [Users Service](http://users.default.svc.cluster.local:80)
-- [Kubediff](http://kubediff.default.svc.cluster.local:80)
+- [Kubediff](http://kubediff.monitoring.svc.cluster.local:80)
 
 ## Prerequisites
 

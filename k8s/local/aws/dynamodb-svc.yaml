@@ -1,11 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: s3
+  namespace: aws
+  name: dynamodb
   annotations:
     prometheus.io.scrape: "false"
 spec:
   ports:
-    - port: 4569
+    - port: 8000
   selector:
-    name: s3
+    name: dynamodb

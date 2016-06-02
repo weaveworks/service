@@ -21,7 +21,7 @@ def lint_replication_controller(filename, rc):
 
   # rest of the checks concern version label consistency, which
   # we don't use in default
-  if options.noversions:
+  if not options.versions:
     expected = string.rsplit(os.path.basename(filename), "-", 1)[0]
     assert rc["metadata"]["name"] == expected, \
       "expected name '%s, got '%s'" % (expected, rc["metadata"]["name"])
@@ -65,6 +65,13 @@ def lint_file(path):
   assert "labels" not in obj["metadata"], \
     "%s should not contain top level labels" % path
 
+  if options.namespaces and obj["kind"] != "Namespace":
+    namespace = obj["metadata"]["namespace"] if "namespace" in obj["metadata"] else "default"
+    dirname, _ = os.path.split(path)
+    _, dirname = os.path.split(dirname)
+    assert namespace == dirname, \
+      "%s should be in namespace %s" % (path, dirname)
+
   if obj["kind"] == "ReplicationController":
     lint_replication_controller(path, obj)
   elif obj["kind"] == "Service":
@@ -83,8 +90,12 @@ if __name__ == "__main__":
 
 Analyse yaml files in <dir> for errors in naming and consistent version
 labelling.""")
-  parser.add_option("--noversions", action="store_true",
-    default=False, help="don't expect version labels")
+  parser.add_option("--noversions",
+    dest="versions", default=True, action="store_false",
+    help="don't expect version labels")
+  parser.add_option("--nonamespaces", action="store_false",
+    dest="namespaces", default=True,
+    help="don't enforce namespace subdirectories.")
   (options, args) = parser.parse_args()
   if len(args) == 0:
     parser.print_help()

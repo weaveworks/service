@@ -1,19 +1,18 @@
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
+  name: scope-probe
   namespace: kube-system
-  name: weave-scope-probe
 spec:
   template:
     metadata:
-      name: weave-scope-probe
       labels:
-        name: weave-scope-probe
+        name: scope-probe
     spec:
       hostPID: true
       hostNetwork: true
       containers:
-      - name:  weave-scope-probe
+      - name:  scope-probe
         image: weaveworks/scope
         imagePullPolicy: IfNotPresent
         env:
@@ -23,10 +22,10 @@ spec:
         - --no-app
         - --probe.docker=true
         - --probe.kubernetes=true
-        - --probe.weave.addr=
+        - --probe.processes=false
         # Workaround for https://github.com/kubernetes/kubernetes/issues/17406
         - --probe.resolver=$(KUBE_DNS_SERVICE_HOST):$(KUBE_DNS_SERVICE_PORT)
-        - weave-scope-app.kube-system.svc.cluster.local:4040
+        - scope.kube-system.svc.cluster.local:80
         securityContext:
           privileged: true
         resources:
