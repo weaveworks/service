@@ -201,6 +201,10 @@ $ ./tag-and-push users ui-server
 
 ### Deploy
 
+First update the rc files for your desired deployment. e.g. for foo
+service in dev you'd update: `./k8s/dev/foo-rc.yaml`, with the tags from
+`./tag-and-push foo`
+
 Someone has probably already created the components, and you probably just want to deploy a new version.
 Kubernetes supports this nicely using something called a rolling update.
 We've scripted it for you; just follow the prompts.

@@ -1,23 +1,23 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: authfe-900212f
+  name: "authfe-2498300"
 spec:
   replicas: 3
   selector:
     name: authfe
-    version: 900212f
+    version: "2498300"
   template:
     metadata:
       labels:
         name: authfe
-        version: 900212f
+        version: "2498300"
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: authfe
-        image: quay.io/weaveworks/authfe:900212f
+        image: "quay.io/weaveworks/authfe:2498300"
         imagePullPolicy: IfNotPresent
         args:
         - -log.level=debug
