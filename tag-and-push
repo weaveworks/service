@@ -13,12 +13,12 @@ then
 	COMPONENTS="prometheus grafana gfdatasource loadgen alertmanager"
 fi
 
-echo "When pushing, you may be prompted to log in. To get your password:"
+echo "When pushing, you will *not* be prompted to log in. To get your password:"
 echo ""
 echo "  1. Go to http://quay.io"
 echo "  2. Log in with e.g. GitHub"
 echo "  3. Go to settings and generate an encrypted password"
-echo "  4. Copy/paste"
+echo "  4. Follow instructions"
 echo ""
 echo "Using components: ${COMPONENTS}"
 echo ""
