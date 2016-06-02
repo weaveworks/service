@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+BUILD_IMAGE_REPO=quay.io/weaveworks
+# Override if you want to push images elsewhere, e.g,. a locally-running registry
+IMAGE_REPOSITORY=${IMAGE_REPOSITORY:-${BUILD_IMAGE_REPO}}
+
+echo ""
+if [ "$IMAGE_REPOSITORY" == "$BUILD_IMAGE_REPO" ]; then \
+    echo "When pushing to quay.io, you will *not* be prompted to log in. To get your password:"
+    echo ""
+    echo "  1. Go to http://quay.io"
+    echo "  2. Log in with e.g. GitHub"
+    echo "  3. Go to settings and generate an encrypted password"
+    echo "  4. Follow instructions"
+    echo ""
+    echo ""
+fi
+
+COMPONENTS=$@
+if [ "${COMPONENTS}" == "" ]
+then
+	COMPONENTS="authfe ui-server frontend-mt users metrics prometheus grafana gfdatasource loadgen alertmanager launch-generator kubediff"
+elif [ "${COMPONENTS}" == "monitoring" ] # Special case
+then
+	COMPONENTS="prometheus grafana gfdatasource loadgen alertmanager"
+fi
+echo "Using components: ${COMPONENTS}"
+
+IMAGE_TAG=$(./image-tag)
+
+for c in ${COMPONENTS}
+do
+	build_image="${BUILD_IMAGE_REPO}/${c}:${IMAGE_TAG}"
+	if ! docker inspect ${build_image} >/dev/null; then
+	    echo "Expected image ${build_image} to exist, given the working directory state:" >&2
+	    echo "    ${IMAGE_TAG}" >&2
+	    echo "and the components to push:" >&2
+	    echo "    ${COMPONENTS}" >&2
+	    echo "But it does not exist. The local build may not have resulted in a new image." >&2
+	    exit 1
+	fi
+done
+
+for c in ${COMPONENTS}
+do
+	build_image="${BUILD_IMAGE_REPO}/${c}:${IMAGE_TAG}"
+	push_image="${IMAGE_REPOSITORY}/${c}:${IMAGE_TAG}"
+	if [ "$IMAGE_REPOSITORY" != "$BUILD_IMAGE_REPO" ]; then
+	    echo "Tagging built image ${build_image} for pushing as ${push_image}"
+	    docker tag -f "${build_image}" "${push_image}"
+	fi
+	echo "Pushing ${push_image}"
+	docker push "${push_image}"
+done

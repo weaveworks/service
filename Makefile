@@ -4,6 +4,8 @@
 BUILD_UPTODATE=build/.image.uptodate
 BUILD_IMAGE=service_build
 
+IMAGE_TAG:=$(shell ./image-tag)
+
 AUTHFE_UPTODATE=authfe/.images.uptodate
 AUTHFE_EXE=authfe/authfe
 AUTHFE_IMAGE=quay.io/weaveworks/authfe
@@ -68,27 +70,32 @@ all: $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(MONITORING
 $(BUILD_UPTODATE): build/*
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(BUILD_IMAGE) build/
+	$(SUDO) docker tag $(BUILD_IMAGE) $(BUILD_IMAGE):$(IMAGE_TAG)
 	touch $@
 
 $(AUTHFE_UPTODATE): authfe/Dockerfile $(AUTHFE_EXE)
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(AUTHFE_IMAGE) authfe/
+	$(SUDO) docker tag $(AUTHFE_IMAGE) $(AUTHFE_IMAGE):$(IMAGE_TAG)
 	touch $@
 
 $(USERS_UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/Dockerfile $(USERS_DB_MIGRATE_EXE)
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(USERS_IMAGE) users/
+	$(SUDO) docker tag $(USERS_IMAGE) $(USERS_IMAGE):$(IMAGE_TAG)
 	$(SUDO) docker build -t $(USERS_DB_IMAGE) users/db/
 	touch $@
 
 $(METRICS_UPTODATE): metrics/Dockerfile $(METRICS_EXE)
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(METRICS_IMAGE) metrics/
+	$(SUDO) docker tag $(METRICS_IMAGE) $(METRICS_IMAGE):$(IMAGE_TAG)
 	touch $@
 
 $(JSON_BUILDER_UPTODATE): launch-generator/Dockerfile launch-generator/src/*.js launch-generator/package.json
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(JSON_BUILDER_IMAGE) launch-generator/
+	$(SUDO) docker tag $(JSON_BUILDER_IMAGE) $(JSON_BUILDER_IMAGE):$(IMAGE_TAG)
 	touch $@
 
 $(CLIENT_BUILD_UPTODATE): client/Dockerfile client/package.json client/webpack.*
@@ -100,11 +107,13 @@ $(CLIENT_SERVER_UPTODATE): client/build/app.js client/src/Dockerfile client/src/
 	$(DOCKER_HOST_CHECK)
 	cp client/src/Dockerfile client/build/
 	$(SUDO) docker build -t $(CLIENT_SERVER_IMAGE) client/build/
+	$(SUDO) docker tag $(CLIENT_SERVER_IMAGE) $(CLIENT_SERVER_IMAGE):$(IMAGE_TAG)
 	touch $@
 
 $(FRONTEND_MT_UPTODATE): frontend-mt/Dockerfile frontend-mt/default.conf frontend-mt/api.json frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
 	$(DOCKER_HOST_CHECK)
 	$(SUDO) docker build -t $(FRONTEND_MT_IMAGE) frontend-mt/
+	$(SUDO) docker tag $(FRONTEND_MT_IMAGE) $(FRONTEND_MT_IMAGE):$(IMAGE_TAG)
 	touch $@
 
 $(MONITORING_UPTODATE):
@@ -114,6 +123,7 @@ $(KUBEDIFF_UPTODATE): kubediff/Dockerfile $(PROM_RUN_EXE)
 	$(DOCKER_HOST_CHECK)
 	cp $(PROM_RUN_EXE) kubediff/
 	$(SUDO) docker build -t $(KUBEDIFF_IMAGE) kubediff
+	$(SUDO) docker tag $(KUBEDIFF_IMAGE) $(KUBEDIFF_IMAGE):$(IMAGE_TAG)
 	touch $@
 
 $(AUTHFE_EXE): $(shell find authfe -name '*.go')
