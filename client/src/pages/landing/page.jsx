@@ -119,7 +119,8 @@ export default class LandingPage extends React.Component {
         <FlexContainer>
           <div style={styles.featureWrapper}>
             <div style={styles.featureHeader}>
-              Weave Scope is the easiest way to manage and monitor your Docker Containers on AWS ECS
+              Weave Scope is a fast and simple way to visualize,
+              manage and monitor containers and microservices
             </div>
           </div>
           <div style={styles.formContainer}>
@@ -159,9 +160,8 @@ export default class LandingPage extends React.Component {
                 Learn more about Weave Scope <a href="http://weave.works/scope" target="website">on our website.</a>
               </div>
               <div style={styles.infoItem}>
-                Build and deploy a Docker app on Amazon ECS&mdash;check out our
-                  <br /><a href="http://weave.works/guides/service-discovery-with-weave-aws-ecs.html"
-                    target="ecsguide">getting started guide</a>
+                Check out our <a href="https://www.weave.works/guides/"
+                  target="guides">getting started guides</a>.
               </div>
             </div>
           </div>
