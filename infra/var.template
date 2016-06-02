@@ -65,7 +65,6 @@ RDS_SUBNET_B_AZ="eu-west-1b"
 #  cat /dev/urandom | xxd -ps | head -c16
 #
 RDS_USERS_DB_PASSWORD=""
-RDS_APP_MAPPER_DB_PASSWORD=""
 
 #
 # Route53

@@ -47,7 +47,7 @@ function interactive_confirmation {
 	done
 }
 
-TARGETS="-target=aws_vpc.rds_vpc -target=aws_security_group.rds_sg -target=aws_internet_gateway.rds_igw -target=aws_route_table.rds_rtb -target=aws_subnet.rds_subnet_a -target=aws_route_table_association.rds_rtbassoc_a -target=aws_subnet.rds_subnet_b -target=aws_route_table_association.rds_rtbassoc_b -target=aws_db_subnet_group.rds_subnet_group -target=aws_db_instance.users_database -target=aws_db_instance.app_mapper_database"
+TARGETS="-target=aws_vpc.rds_vpc -target=aws_security_group.rds_sg -target=aws_internet_gateway.rds_igw -target=aws_route_table.rds_rtb -target=aws_subnet.rds_subnet_a -target=aws_route_table_association.rds_rtbassoc_a -target=aws_subnet.rds_subnet_b -target=aws_route_table_association.rds_rtbassoc_b -target=aws_db_subnet_group.rds_subnet_group -target=aws_db_instance.users_database"
 
 function terraform_destroy {
 	(

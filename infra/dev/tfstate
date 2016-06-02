@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "serial": 39,
+    "serial": 43,
     "modules": [
         {
             "path": [
@@ -8,46 +8,6 @@
             ],
             "outputs": {},
             "resources": {
-                "aws_db_instance.app_mapper_database": {
-                    "type": "aws_db_instance",
-                    "depends_on": [
-                        "aws_security_group.rds_sg"
-                    ],
-                    "primary": {
-                        "id": "app-mapper-database",
-                        "attributes": {
-                            "address": "app-mapper-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com",
-                            "allocated_storage": "10",
-                            "apply_immediately": "true",
-                            "availability_zone": "us-east-1e",
-                            "backup_retention_period": "5",
-                            "backup_window": "07:35-08:05",
-                            "db_subnet_group_name": "default",
-                            "endpoint": "app-mapper-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com:5432",
-                            "engine": "postgres",
-                            "engine_version": "9.4.4",
-                            "final_snapshot_identifier": "app-mapper-final",
-                            "id": "app-mapper-database",
-                            "identifier": "app-mapper-database",
-                            "instance_class": "db.t2.small",
-                            "license_model": "postgresql-license",
-                            "maintenance_window": "wed:03:04-wed:03:34",
-                            "multi_az": "true",
-                            "parameter_group_name": "default.postgres9.4",
-                            "password": "am1e28d6a4b3302b",
-                            "port": "5432",
-                            "replicas.#": "0",
-                            "security_group_names.#": "0",
-                            "status": "available",
-                            "storage_encrypted": "false",
-                            "storage_type": "standard",
-                            "tags.#": "0",
-                            "username": "postgres",
-                            "vpc_security_group_ids.#": "1",
-                            "vpc_security_group_ids.1899613972": "sg-7a9d4701"
-                        }
-                    }
-                },
                 "aws_db_instance.users_database": {
                     "type": "aws_db_instance",
                     "depends_on": [
@@ -59,25 +19,34 @@
                             "address": "users-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com",
                             "allocated_storage": "10",
                             "apply_immediately": "true",
+                            "arn": "arn:aws:rds:us-east-1:376248598259:db:users-database",
+                            "auto_minor_version_upgrade": "true",
                             "availability_zone": "us-east-1e",
                             "backup_retention_period": "5",
                             "backup_window": "03:25-03:55",
+                            "copy_tags_to_snapshot": "false",
                             "db_subnet_group_name": "default",
                             "endpoint": "users-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com:5432",
                             "engine": "postgres",
-                            "engine_version": "9.4.4",
+                            "engine_version": "9.4.5",
                             "final_snapshot_identifier": "users-final",
                             "id": "users-database",
                             "identifier": "users-database",
                             "instance_class": "db.t2.small",
                             "license_model": "postgresql-license",
                             "maintenance_window": "tue:09:40-tue:10:10",
+                            "monitoring_interval": "0",
                             "multi_az": "true",
+                            "name": "",
+                            "option_group_name": "default:postgres-9-4",
                             "parameter_group_name": "default.postgres9.4",
                             "password": "us45dcd40163798d",
                             "port": "5432",
+                            "publicly_accessible": "true",
                             "replicas.#": "0",
+                            "replicate_source_db": "",
                             "security_group_names.#": "0",
+                            "skip_final_snapshot": "false",
                             "status": "available",
                             "storage_encrypted": "false",
                             "storage_type": "standard",
@@ -97,6 +66,7 @@
                     "primary": {
                         "id": "rds_subnet_group",
                         "attributes": {
+                            "arn": "arn:aws:rds:us-east-1:376248598259:subgrp:rds_subnet_group",
                             "description": "DB subnet group for the databases",
                             "id": "rds_subnet_group",
                             "name": "rds_subnet_group",
@@ -337,11 +307,12 @@
                             "id": "rtb-65c68902",
                             "propagating_vgws.#": "0",
                             "route.#": "1",
-                            "route.603828431.cidr_block": "0.0.0.0/0",
-                            "route.603828431.gateway_id": "igw-ce1968aa",
-                            "route.603828431.instance_id": "",
-                            "route.603828431.network_interface_id": "",
-                            "route.603828431.vpc_peering_connection_id": "",
+                            "route.2619707753.cidr_block": "0.0.0.0/0",
+                            "route.2619707753.gateway_id": "igw-ce1968aa",
+                            "route.2619707753.instance_id": "",
+                            "route.2619707753.nat_gateway_id": "",
+                            "route.2619707753.network_interface_id": "",
+                            "route.2619707753.vpc_peering_connection_id": "",
                             "tags.#": "1",
                             "tags.Name": "terraform-rds-rtb",
                             "vpc_id": "vpc-cfba75a8"
@@ -473,8 +444,11 @@
                             "default_network_acl_id": "acl-fa7dd69d",
                             "default_security_group_id": "sg-7b9d4700",
                             "dhcp_options_id": "dopt-96c731f3",
+                            "enable_classiclink": "false",
                             "enable_dns_hostnames": "true",
+                            "enable_dns_support": "true",
                             "id": "vpc-cfba75a8",
+                            "instance_tenancy": "default",
                             "main_route_table_id": "rtb-66c68901",
                             "tags.#": "1",
                             "tags.Name": "terraform-rds-vpc"
