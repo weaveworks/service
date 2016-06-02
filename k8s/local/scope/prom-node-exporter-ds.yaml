@@ -4,7 +4,6 @@ metadata:
   namespace: kube-system
   name: prom-node-exporter
 spec:
-  selector: {}
   template:
     metadata:
       name:  prom-node-exporter
