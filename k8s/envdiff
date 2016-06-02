@@ -73,13 +73,17 @@ def check_file(orig, last):
   if extension != ".yaml":
     return
 
+  print "Checking '%s' against '%s'" % (orig, last)
+
   with open(orig, 'r') as stream:
     orig_yaml = yaml.load(stream)
 
-  with open(last, 'r') as stream:
-    last_yaml = yaml.load(stream)
-
-  print "Checking '%s' against '%s'" % (orig, last)
+  try:
+    with open(last, 'r') as stream:
+      last_yaml = yaml.load(stream)
+  except IOError:
+    check(False, "'%s' missing", last)
+    return
 
   diff("", orig_yaml, last_yaml)
 
