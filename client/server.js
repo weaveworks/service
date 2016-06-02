@@ -2,6 +2,7 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var proxy = require('http-proxy-middleware');
 var url = require('url');
+var reqwest = require('reqwest');
 
 var app = express();
 if (process.env.USE_MOCK_BACKEND) {
@@ -105,9 +106,21 @@ if (process.env.USE_MOCK_BACKEND) {
       return '/' + path.split('/').slice(4).join('/');
     }
   });
-
   app.use('/api/app', backendProxy);
 }
+
+app.get('/oauth/:email', function(req, res) {
+  reqwest({
+    url: 'http://localhost:4047/api/users/signup',
+    method: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({email: req.params.email}),
+    success: function (resp) {
+      var url = '/#/login/' + req.params.email + '/' + JSON.parse(resp).token;
+      res.redirect(url);
+    }
+  });
+});
 
 app.get('/landing.jpg', function(req, res) {
   res.sendFile(__dirname + '/src/images/landing.jpg');
