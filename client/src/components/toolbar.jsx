@@ -14,6 +14,10 @@ export default class Toolbar extends React.Component {
       label: 'My Scope',
       route: encodeURIs`#/app/${this.props.organization}`
     }, {
+      title: 'My Account',
+      iconClass: 'fa fa-user',
+      route: encodeURIs`#/account`
+    }, {
       iconClass: 'fa fa-cog',
       title: 'Settings',
       route: encodeURIs`#/org/${this.props.organization}`
