@@ -109,6 +109,10 @@ if (process.env.USE_MOCK_BACKEND) {
   app.use('/api/app', backendProxy);
 }
 
+app.get('/login-via/github', function(req, res) {
+  return res.redirect('/#' + req.originalUrl);
+});
+
 app.get('/oauth/:email', function(req, res) {
   reqwest({
     url: 'http://localhost:4047/api/users/signup',
