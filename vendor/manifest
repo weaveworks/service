@@ -636,6 +636,14 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/justinas/nosurf",
+			"repository": "https://github.com/justinas/nosurf",
+			"vcs": "git",
+			"revision": "2e708f28095ba17463e41438bbfd53abae8b6794",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/kr/pretty",
 			"repository": "https://github.com/kr/pretty",
 			"vcs": "git",
