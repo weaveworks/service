@@ -5,5 +5,12 @@ set -o nounset
 set -o pipefail
 
 WORKING_SUFFIX=$(if ! git diff-index --quiet HEAD; then echo "-WIP"; else echo ""; fi)
+
+if [ -n "$WORKING_SUFFIX" ]; then
+    echo "The working directory has uncomitted changes; adding -WIP to tag" >&2
+    echo >&2
+    git diff HEAD >&2
+fi
+
 BRANCH_PREFIX=$(git name-rev --name-only HEAD)
 echo "$BRANCH_PREFIX-$(git rev-parse --short HEAD)$WORKING_SUFFIX"
