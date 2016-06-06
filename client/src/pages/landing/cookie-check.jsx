@@ -52,15 +52,24 @@ export default class CookieCheck extends React.Component {
     this.setState({
       activityText: 'Logged in. Please wait for your app to load...'
     });
-    let url;
-    if (resp.firstProbeUpdateAt) {
-      // go to app if a probe is connected
-      url = encodeURIs`/app/${resp.organizationName}`;
-    } else {
-      // otherwise go to management page
-      url = encodeURIs`/org/${resp.organizationName}`;
+    if (resp.organizationName) {
+      // Handle backwards-compatibility while deploying
+      resp.organizations = [{
+        name: resp.organizationName,
+        firstProbeUpdateAt: resp.firstProbeUpdateAt
+      }];
     }
-    hashHistory.push(url);
+    if (resp.organizations.length >= 1) {
+      let url;
+      if (resp.organizations[0].firstProbeUpdateAt) {
+        // go to app if a probe is connected
+        url = encodeURIs`/app/${resp.organizations[0].name}`;
+      } else {
+        // otherwise go to management page
+        url = encodeURIs`/org/${resp.organizations[0].name}`;
+      }
+      hashHistory.push(url);
+    }
   }
 
   render() {
