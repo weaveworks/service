@@ -7,13 +7,15 @@ spec:
   replicas: 1
   selector:
     name: kubediff
-    version: 20160607
+    version: "20160607"
   template:
     metadata:
       labels:
         name: kubediff
-        version: 20160607
+        version: "20160607"
     spec:
+      imagePullSecrets:
+      - name: quay-secret
       volumes:
       - name: repo
         emptyDir: {}
@@ -31,15 +33,9 @@ spec:
           - -dest=/data/service
         env:
         - name: GIT_SYNC_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: kubediff-secret
-              key: username
+          value: tomwilkie
         - name: GIT_SYNC_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: kubediff-secret
-              key: password
+          value: bb2a6db26ff1aea53578e57c674e70b80e964fba
         volumeMounts:
         - name: repo
           mountPath: /data
