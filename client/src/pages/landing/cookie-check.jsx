@@ -1,7 +1,8 @@
 import React from 'react';
 import { hashHistory } from 'react-router';
 
-import { getData, encodeURIs } from '../../common/request';
+import { encodeURIs } from '../../common/request';
+import { getOrganizations } from '../../common/api';
 import { CircularProgress } from 'material-ui';
 import { red900 } from 'material-ui/styles/colors';
 import { trackException, trackView } from '../../common/tracking';
@@ -44,23 +45,25 @@ export default class CookieCheck extends React.Component {
   }
 
   _checkCookie() {
-    const url = '/api/users/lookup';
-    getData(url).then(this._handleLoginSuccess, this._handleLoginError);
+    getOrganizations().then(this._handleLoginSuccess, this._handleLoginError);
   }
 
   _handleLoginSuccess(resp) {
     this.setState({
       activityText: 'Logged in. Please wait for your app to load...'
     });
-    let url;
-    if (resp.firstProbeUpdateAt) {
-      // go to app if a probe is connected
-      url = encodeURIs`/app/${resp.organizationName}`;
-    } else {
-      // otherwise go to management page
-      url = encodeURIs`/org/${resp.organizationName}`;
+
+    if (resp.organizations.length >= 1) {
+      let url;
+      if (resp.organizations[0].firstProbeUpdateAt) {
+        // go to app if a probe is connected
+        url = encodeURIs`/app/${resp.organizations[0].name}`;
+      } else {
+        // otherwise go to management page
+        url = encodeURIs`/org/${resp.organizations[0].name}`;
+      }
+      hashHistory.push(url);
     }
-    hashHistory.push(url);
   }
 
   render() {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { FlatButton } from 'material-ui';
+
 import { getData, postData, encodeURIs } from '../../common/request';
 import { trackException } from '../../common/tracking';
 
@@ -8,9 +9,10 @@ export default class Logins extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      logins: []
+      logins: [],
     };
     this.getLogins = this.getLogins.bind(this);
+
     this.renderLogin = this.renderLogin.bind(this);
     this.detach = this.detach.bind(this);
   }
