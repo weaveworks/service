@@ -36,12 +36,11 @@ export default class LoginForm extends React.Component {
   }
 
   _handleSubmit() {
-    const field = this.refs.emailField;
-    const value = field.getValue();
+    const wrapperNode = ReactDOM.findDOMNode(this.refs.emailField);
+    const inputNode = wrapperNode.getElementsByTagName('input')[0];
+    const value = inputNode.value;
 
     if (value) {
-      const wrapperNode = ReactDOM.findDOMNode(this.refs.emailField);
-      const inputNode = wrapperNode.getElementsByTagName('input')[0];
       const valid = inputNode.validity.valid;
 
       if (valid) {
@@ -58,7 +57,7 @@ export default class LoginForm extends React.Component {
         postData('/api/users/signup', {email: value})
           .then(resp => {
             // empty field
-            field.clearValue();
+            inputNode.value = '';
 
             this.setState({
               mailSent: resp.mailSent,
