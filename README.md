@@ -83,8 +83,8 @@ Docker for Mac, Docker Machine, as well as local Docker on Linux can be used.
 
 > ***Docker***
 >
-> You must use **Docker v1.10** or later, and check [the `MountFlags` setting][ka-docker]
-> in the `docker.service` systemd unit, as it won't work otherwise.
+> You must use **Docker v1.10** or later, *and* ensure [the `MountFlags` setting](https://github.com/kubernetes/kubernetes-anywhere/blob/master/FIXES.md)
+> in the `docker.service` systemd unit is set correctly, as it won't work otherwise.
 >
 > If you didn't read this, you will get an error like:
 >
@@ -95,7 +95,6 @@ Docker for Mac, Docker Machine, as well as local Docker on Linux can be used.
 >
 > [***see setup notes***](ka-docker)
 
-[ka-docker](https://github.com/weaveworks/kubernetes-anywhere/blob/master/FIXES.md)
 
 Boot up Kubernetes.
 
