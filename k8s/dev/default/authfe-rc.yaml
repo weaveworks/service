@@ -18,7 +18,6 @@ spec:
       containers:
       - name: authfe
         image: "quay.io/weaveworks/authfe:2498300"
-        imagePullPolicy: IfNotPresent
         args:
         - -log.level=debug
         ports:

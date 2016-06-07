@@ -1,30 +1,28 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: pipe-d00028f53249
+  name: control-d00028f53249
 spec:
   replicas: 3
   selector:
-    name: pipe
+    name: control
     version: d00028f53249
   template:
     metadata:
       labels:
-        name: pipe
+        name: control
         version: d00028f53249
     spec:
       containers:
-      - name: pipe
+      - name: control
         image: weaveworks/scope:d00028f53249
-        imagePullPolicy: IfNotPresent
         args:
         - --no-probe
         - --app.log.http=true
         - --app.weave.addr=
         - --app.http.address=:80
         - --app.userid.header=X-Scope-OrgID
-        - --app.pipe.router=consul://consul.default.svc.cluster.local:8500/pipes/
-        - --app.consul.inf=eth0
+        - --app.control.router=sqs://AKIAJECDWWRQWFNHFO2A:dP12kF6wREosllk%2B3%2B3ZqPpZxeDlGn%2FYgKebMJVj@us-east-1/dev_control_
         env:
         - name: CHECKPOINT_DISABLE
           value: "1"

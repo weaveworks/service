@@ -18,7 +18,6 @@ spec:
       containers:
       - name: frontend-mt
         image: "quay.io/weaveworks/frontend-mt:5374853"
-        imagePullPolicy: IfNotPresent
         command:
         - /bin/sh
         - -c

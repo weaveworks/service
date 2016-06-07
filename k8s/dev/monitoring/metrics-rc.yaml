@@ -1,6 +1,7 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
+  namespace: monitoring
   name: metrics-49010a5
 spec:
   replicas: 1
