@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: launch-generator-dd9fcc1
+  name: launch-generator-471989f
 spec:
   replicas: 2
   selector:
     name: launch-generator
-    version: dd9fcc1
+    version: 471989f
   template:
     metadata:
       labels:
         name: launch-generator
-        version: dd9fcc1
+        version: 471989f
     spec:
       imagePullSecrets:
       - name: quay-secret
