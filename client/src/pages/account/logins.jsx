@@ -1,6 +1,8 @@
 import React from 'react';
 import { FlatButton } from 'material-ui';
 
+import { FlexContainer } from '../../components/flex-container';
+import { Column } from '../../components/column';
 import { getData, postData, encodeURIs } from '../../common/request';
 import { trackException } from '../../common/tracking';
 
@@ -47,14 +49,22 @@ export default class Logins extends React.Component {
       link = <FlatButton onClick={detach} label="Detach" />;
     }
     return (
-      <div key={a.id} style={a.style} title={a.title}>
-        {a.name} {a.username} {link}
-      </div>
+      <FlexContainer key={a.id} title={a.title} style={{padding: 0, alignItems: 'center'}}>
+        <Column style={{margin: '0 36px 0 0'}}><span className={a.icon} /> {a.name}</Column>
+        <Column>{a.username}</Column>
+        <Column style={{margin: '0 0 0 36px'}}>{link}</Column>
+      </FlexContainer>
     );
   }
 
   render() {
-    return <div>{(this.state.logins || []).map(this.renderLogin)}</div>;
+    return (
+      <div>
+        <h2>External Logins</h2>
+        <p>Control which external accounts are attached to this Weave Scope user.</p>
+        {(this.state.logins || []).map(this.renderLogin)}
+      </div>
+    );
   }
 
 }
