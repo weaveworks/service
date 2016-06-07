@@ -44,12 +44,6 @@ the users service. Once authenticated, users are brought to their dashboard.
 From there, they can learn how to configure a probe, and may view their Scope
 instance.
 
-Each user gets their own Scope app instance, managed by app-mapper and
-supervised by Kubernetes. When visiting scope.weave.works with a browser, the
-app-mapper uses browser cookies to proxy the user to the correct Scope app UI.
-When the user's Scope probe POSTs reports to scope.weave.works, the app-mapper
-uses the service token to proxy to the correct Scope app /api/report endpoint.
-
 ## Useful links
 
 After connecting to an environment with `./connect <env>`:
@@ -90,8 +84,8 @@ Docker for Mac, Docker Machine, as well as local Docker on Linux can be used.
 
 > ***Docker***
 >
-> You must use **Docker v1.10** or later, and check [the `MountFlags` setting][ka-docker]
-> in the `docker.service` systemd unit, as it won't work otherwise.
+> You must use **Docker v1.10** or later, *and* ensure [the `MountFlags` setting](https://github.com/kubernetes/kubernetes-anywhere/blob/master/FIXES.md)
+> in the `docker.service` systemd unit is set correctly, as it won't work otherwise.
 >
 > If you didn't read this, you will get an error like:
 >
@@ -100,9 +94,29 @@ Docker for Mac, Docker Machine, as well as local Docker on Linux can be used.
 /var/lib/kubelet is mounted on / but it is not a shared mount.
 > ```
 >
-> [***see setup notes***](ka-docker)
-
-[ka-docker](https://github.com/weaveworks/kubernetes-anywhere/blob/master/FIXES.md)
+> Scope as a Service requires many threads, you must also set `TasksMax` to a
+> sufficiently high number. 1024 will probably work, but `infinity` is the
+> only way to be sure.
+>
+> If `TasksMax` is too low, you can expect to see variations on the following
+> errors:
+>
+> * docker: Error response from daemon: rpc error: code = 2 desc = "runtime >error: exit status 2: runtime/cgo: pthread_create failed: Resource >temporarily unavailable\nSIGABRT: abort ..."
+> * docker: Error response from daemon: rpc error: code = 2 desc = "runtime error: read parent: connection reset by peer".
+> * docker: Error response from daemon: rpc error: code = 2 desc = "fork/exec /usr/bin/docker-containerd-shim: resource temporarily unavailable".
+> * docker: Error response from daemon: rpc error: code = 2 desc = "containerd: container not started".
+>
+> If you are using Docker 1.10 or 1.11, you must use a version that has been
+> compiled with Go 1.5. If you do not, you will get errors like:
+>
+> ```
+> Error response from daemon: 400 Bad Request: malformed Host header
+> ```
+>
+> The easiest way to do this is to install Docker using the script at
+> https://get.docker.com
+>
+> Docker 1.12 is expected to fix this problem.
 
 Boot up Kubernetes.
 

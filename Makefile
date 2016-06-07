@@ -37,7 +37,7 @@ KUBEDIFF_IMAGE=quay.io/weaveworks/kubediff
 PROM_RUN_EXE=vendor/github.com/tomwilkie/prom-run/prom-run
 
 # If you can use Docker without being root, you can `make SUDO= <target>`
-SUDO=$(shell (echo "$$DOCKER_HOST" | grep "tcp://" >/dev/null) || echo "sudo -E")
+SUDO=$(shell docker info >/dev/null 2>&1 || echo "sudo -E")
 BUILD_IN_CONTAINER=true
 RM=--rm
 GO_FLAGS=-ldflags "-extldflags \"-static\" -linkmode=external" -tags netgo
