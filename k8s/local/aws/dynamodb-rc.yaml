@@ -1,19 +1,20 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: users-db
+  namespace: aws
+  name: dynamodb
 spec:
   replicas: 1
   selector:
-    name: users-db
+    name: dynamodb
   template:
     metadata:
       labels:
-        name: users-db
+        name: dynamodb
     spec:
       containers:
-      - name: users-db
-        image: weaveworks/users-db
+      - name: dynamodb
+        image: deangiberson/aws-dynamodb-local
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 5432
+        - containerPort: 8000

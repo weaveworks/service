@@ -20,7 +20,7 @@ mode="$1"
 toolbox="${TOOLBOX_IMAGE:-"weaveworks/kubernetes-anywhere:toolbox-v1.2.4-6c14c77"}"
 
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-local_k8s_dir="${script_dir}/../k8s/local"
+local_k8s_dir="${script_dir}/local"
 
 APISERVER_LOCAL_PORT="8001"
 APISERVER_LOCAL_BIND="${2:-"0.0.0.0"}"
@@ -192,17 +192,18 @@ function stand_up {
 
         echo "Creating cluster addons..."
         call_kubectl create -f "https://raw.github.com/kubernetes/kubernetes-anywhere/master/phase2/docker-images/toolbox/resources/addons-v1.2.yaml"
-
-        echo "Creating Scope addon..."
-        call_kubectl create -f "${local_k8s_dir}/scope"
-
         echo ""
         echo "Kubernetes is running locally."
         echo ""
         echo " kubectl --kubeconfig=$(python -c "import os.path; print os.path.relpath('${kubeconfig}', '$(pwd)')") get pods"
         echo ""
-        echo "You may now deploy the application components."
+        echo "You may now deploy the application components:"
         echo ""
+        echo " kubectl create -f k8s/local"
+        echo " kubectl create -f k8s/local/kube-system"
+        echo " kubectl create -f k8s/local/aws"
+        echo " kubectl create -f k8s/local/monitoring"
+        echo " kubectl create -f k8s/local/default"
 }
 
 if check_docker_machine

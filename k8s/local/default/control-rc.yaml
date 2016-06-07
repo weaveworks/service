@@ -21,7 +21,7 @@ spec:
         - --app.weave.addr=
         - --app.http.address=:80
         - --app.userid.header=X-Scope-OrgID
-        - --app.control.router=sqs://abc:123@sqs.default.svc.cluster.local:9324
+        - --app.control.router=sqs://abc:123@sqs.aws.svc.cluster.local:9324
         env:
         - name: CHECKPOINT_DISABLE
           value: "1"

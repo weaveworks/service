@@ -1,19 +1,20 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: dynamodb
+  namespace: aws
+  name: s3
 spec:
   replicas: 1
   selector:
-    name: dynamodb
+    name: s3
   template:
     metadata:
       labels:
-        name: dynamodb
+        name: s3
     spec:
       containers:
-      - name: dynamodb
-        image: deangiberson/aws-dynamodb-local
+      - name: s3
+        image: lphoward/fake-s3
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 8000
+        - containerPort: 4569
