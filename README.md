@@ -105,8 +105,8 @@ Docker for Mac, Docker Machine, as well as local Docker on Linux can be used.
 > * docker: Error response from daemon: rpc error: code = 2 desc = "fork/exec /usr/bin/docker-containerd-shim: resource temporarily unavailable".
 > * docker: Error response from daemon: rpc error: code = 2 desc = "containerd: container not started".
 >
-> You must also use a version of Docker that has been compiled with Go 1.5. If
-> you do not, you will get errors like:
+> If you are using Docker 1.10 or 1.11, you must use a version that has been
+> compiled with Go 1.5. If you do not, you will get errors like:
 >
 > ```
 > Error response from daemon: 400 Bad Request: malformed Host header
@@ -114,6 +114,8 @@ Docker for Mac, Docker Machine, as well as local Docker on Linux can be used.
 >
 > The easiest way to do this is to install Docker using the script at
 > https://get.docker.com
+>
+> Docker 1.12 is expected to fix this problem.
 
 Boot up Kubernetes.
 
