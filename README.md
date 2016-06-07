@@ -44,12 +44,6 @@ the users service. Once authenticated, users are brought to their dashboard.
 From there, they can learn how to configure a probe, and may view their Scope
 instance.
 
-Each user gets their own Scope app instance, managed by app-mapper and
-supervised by Kubernetes. When visiting scope.weave.works with a browser, the
-app-mapper uses browser cookies to proxy the user to the correct Scope app UI.
-When the user's Scope probe POSTs reports to scope.weave.works, the app-mapper
-uses the service token to proxy to the correct Scope app /api/report endpoint.
-
 ## Useful links
 
 After connecting to an environment with `./connect <env>`:
