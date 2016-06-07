@@ -45,7 +45,8 @@ spec:
         args:
         - -period=60s
         - -listen-addr=:80
-        - /data/service/k8s/kubediff /data/service/k8s/local
+        - /data/service/k8s/kubediff
+        - /data/service/k8s/local
         volumeMounts:
         - name: repo
           mountPath: /data
