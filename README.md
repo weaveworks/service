@@ -93,7 +93,17 @@ Docker for Mac, Docker Machine, as well as local Docker on Linux can be used.
 /var/lib/kubelet is mounted on / but it is not a shared mount.
 > ```
 >
-> [***see setup notes***](ka-docker)
+> Scope as a Service requires many threads, you must also set `TasksMax` to a
+> sufficiently high number. 1024 will probably work, but `infinity` is the
+> only way to be sure.
+>
+> If `TasksMax` is too low, you can expect to see variations on the following
+> errors:
+>
+> * docker: Error response from daemon: rpc error: code = 2 desc = "runtime >error: exit status 2: runtime/cgo: pthread_create failed: Resource >temporarily unavailable\nSIGABRT: abort ..."
+> * docker: Error response from daemon: rpc error: code = 2 desc = "runtime error: read parent: connection reset by peer".
+> * docker: Error response from daemon: rpc error: code = 2 desc = "fork/exec /usr/bin/docker-containerd-shim: resource temporarily unavailable".
+> * docker: Error response from daemon: rpc error: code = 2 desc = "containerd: container not started".
 
 
 Boot up Kubernetes.
