@@ -32,6 +32,10 @@ FRONTEND_MT_IMAGE=quay.io/weaveworks/frontend-mt
 
 MONITORING_UPTODATE=monitoring/.images.uptodate
 
+KUBEDIFF_UPTODATE=kubediff/.image.uptodate
+KUBEDIFF_IMAGE=quay.io/weaveworks/kubediff
+PROM_RUN_EXE=vendor/github.com/tomwilkie/prom-run/prom-run
+
 # If you can use Docker without being root, you can `make SUDO= <target>`
 SUDO=$(shell (echo "$$DOCKER_HOST" | grep "tcp://" >/dev/null) || echo "sudo -E")
 BUILD_IN_CONTAINER=true
@@ -58,7 +62,8 @@ NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 	false; \
 }
 
-all: $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE) $(JSON_BUILDER_UPTODATE) $(FRONTEND_MT_UPTODATE)
+all: $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE) $(JSON_BUILDER_UPTODATE) $(FRONTEND_MT_UPTODATE) $(KUBEDIFF_UPTODATE)
+
 
 $(BUILD_UPTODATE): build/*
 	$(DOCKER_HOST_CHECK)
@@ -105,13 +110,21 @@ $(FRONTEND_MT_UPTODATE): frontend-mt/Dockerfile frontend-mt/default.conf fronten
 $(MONITORING_UPTODATE):
 	make -C monitoring
 
+$(KUBEDIFF_UPTODATE): kubediff/Dockerfile $(PROM_RUN_EXE)
+	$(DOCKER_HOST_CHECK)
+	cp $(PROM_RUN_EXE) kubediff/
+	$(SUDO) docker build -t $(KUBEDIFF_IMAGE) kubediff
+	touch $@
+
 $(AUTHFE_EXE): $(shell find authfe -name '*.go')
 $(USERS_EXE): $(shell find users -name '*.go')
 $(METRICS_EXE): $(shell find metrics -name '*.go')
+$(PROM_RUN_EXE): $(shell find ./vendor/github.com/tomwilkie/prom-run/.)
+$(USERS_DB_MIGRATE_EXE): $(shell find ./vendor/github.com/mattes/migrate/.)
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
-$(AUTHFE_EXE) $(USERS_EXE) $(USERS_DB_MIGRATE_EXE) $(METRICS_EXE) lint test: $(BUILD_UPTODATE)
+$(AUTHFE_EXE) $(USERS_EXE) $(USERS_DB_MIGRATE_EXE) $(METRICS_EXE) $(PROM_RUN_EXE) lint test: $(BUILD_UPTODATE)
 	$(SUDO) docker run $(RM) -ti -v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
 		$(BUILD_IMAGE) $@
@@ -125,8 +138,11 @@ $(AUTHFE_EXE) $(USERS_EXE): $(BUILD_UPTODATE)
 $(METRICS_EXE): $(BUILD_UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 
-$(USERS_DB_MIGRATE_EXE): $(BUILD_UPTODATE) $(shell find ./vendor/github.com/mattes/migrate/.)
+$(USERS_DB_MIGRATE_EXE): $(BUILD_UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./vendor/github.com/mattes/migrate
+
+$(PROM_RUN_EXE): $(BUILD_UPTODATE)
+	go build $(GO_FLAGS) -o $@ ./vendor/github.com/tomwilkie/prom-run
 
 lint: $(BUILD_UPTODATE)
 	./tools/lint .

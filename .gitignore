@@ -36,6 +36,7 @@ app-mapper/app-mapper
 users/users
 users/db/migrate
 authfe/authfe
+kubediff/prom-run
 Vagrantfile.local
 .dir-locals.el
 image.tar

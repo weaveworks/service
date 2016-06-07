@@ -63,6 +63,7 @@ Monitoring
 Management
 - [Consul UI](http://consul.default.svc.cluster.local:8500)
 - [Users Service](http://users.default.svc.cluster.local:80)
+- [Kubediff](http://kubediff.default.svc.cluster.local:80)
 
 ## Prerequisites
 
