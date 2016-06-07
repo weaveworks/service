@@ -147,7 +147,8 @@ $(PROM_RUN_EXE): $(BUILD_UPTODATE)
 lint: $(BUILD_UPTODATE)
 	./tools/lint .
 	./k8s/kubelint --noversions ./k8s/local
-	./k8s/kubelint --nonamespaces ./k8s/dev ./k8s/prod
+	./k8s/kubelint ./k8s/dev
+	./k8s/kubelint --nonamespaces ./k8s/prod
 	promtool check-rules ./monitoring/prometheus/alert.rules
 
 test: $(BUILD_UPTODATE)
@@ -178,7 +179,7 @@ clean:
 	rm -rf $(USERS_EXE) $(USERS_UPTODATE) \
 		$(JSON_BUILDER_UPTODATE) \
 		$(METRICS_EXE) $(METRICS_UPTODATE) \
-		$(CLIENT_SERVER_UPTODATE) $(FRONTEND_MT_IMAGE) client/build/app.js \
+		$(CLIENT_SERVER_UPTODATE) $(FRONTEND_MT_UPTODATE) client/build/app.js \
 		$(BUILD_UPTODATE) $(CLIENT_BUILD_UPTODATE)
 	go clean ./...
 	make -C monitoring clean

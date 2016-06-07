@@ -16,7 +16,6 @@ spec:
       containers:
       - name: consul
         image: consul:v0.6.4
-        imagePullPolicy: IfNotPresent
         command:
         - "/bin/consul"
         - "agent"
@@ -45,8 +44,7 @@ spec:
           - name: config-volume
             mountPath: /etc/config
       - name: exporter
-        image: prom/statsd-exporter
-        imagePullPolicy: IfNotPresent
+        image: prom/statsd-exporter:0.3.0
         args:
         - "-web.listen-address=:8000"
         ports:

@@ -52,6 +52,12 @@ def lint_replication_controller(filename, rc):
     assert image_version == version, \
       "%s version label doesn't match image version" % filename
 
+  # otherwise, there should at least be versions
+  else:
+    for container in rc["spec"]["template"]["spec"]["containers"]:
+      assert  ":" in container["image"], \
+        "%s should specify a version!" % filename
+
 def lint_file(path):
   _, extension = os.path.splitext(path)
   if extension != ".yaml":

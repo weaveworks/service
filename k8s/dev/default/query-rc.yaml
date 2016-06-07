@@ -16,7 +16,6 @@ spec:
       containers:
       - name: query
         image: weaveworks/scope:bac1eef419c1
-        imagePullPolicy: Always
         args:
         - --no-probe
         - --app.log.http=true
