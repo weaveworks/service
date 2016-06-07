@@ -198,30 +198,48 @@ But if you really want to know, you can read [the README in the infra subdirecto
 
 ### Build
 
-To make containers available to remote clusters, you need to
- build them,
- tag them with their Docker image IDs, and
- push them to our private remote repository (Quay).
+To make container images available to remote clusters, you need to
+build them and push them to our private remote repository (Quay).
+
+The build gives each image a name based on the state of the git
+working directory from which it was built, according to the script
+`image-tag`. If the working directory has uncommitted changes, the
+image name will include `-WIP` (work in progress), to make it stand
+out.
+
+The script `push-images` pushes the images *named for the current
+state of the git working directory* to the remote repository. So, if
+you just ran `make` and it succeeded, the images pushed will be those
+that were built by make. If you did anything with git or the source
+files in between, it will probably bail out.
 
 ```
 $ make
-$ ./tag-and-push
+$ ./push-images
 ```
 
-If you just want to tag and push specific container(s), you may specify them as arguments.
+If you just want to tag and push specific container(s), you may
+specify them as arguments.
 
 ```
-$ ./tag-and-push users ui-server
+$ ./push-images users ui-server
 ```
+
+Note that make will not usually build every image, so if you are
+running `push-images` from your own build directory, it's likely you
+will need to name specific components. The script will bail before
+pushing anything if it can't find all the images you mention (or imply
+by not mentioning any).
 
 ### Deploy
 
-First update the rc files for your desired deployment. e.g. for foo
-service in dev you'd update: `./k8s/dev/foo-rc.yaml`, with the tags from
-`./tag-and-push foo`
+First update the rc files for your desired component. e.g. for foo
+service in dev you'd update `./k8s/dev/foo-rc.yaml` with a new image
+name.
 
 Someone has probably already created the components, and you probably just want to deploy a new version.
 Kubernetes supports this nicely using something called a rolling update.
+
 We've scripted it for you; just follow the prompts.
 
 ```
