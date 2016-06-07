@@ -44,7 +44,7 @@ spec:
         - name: repo
           mountPath: /data
       - name: prom-run
-        image: quay.io/weaveworks/kubediff:9c464eb
+        image: quay.io/weaveworks/kubediff:948a2fb
         imagePullPolicy: IfNotPresent
         args:
         - -period=60s

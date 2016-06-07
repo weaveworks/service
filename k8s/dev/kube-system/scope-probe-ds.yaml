@@ -30,7 +30,7 @@ spec:
         - --probe.http.listen=:4041
         # Workaround for https://github.com/kubernetes/kubernetes/issues/17406
         - --probe.resolver=$(KUBE_DNS_SERVICE_HOST):$(KUBE_DNS_SERVICE_PORT)
-        - scope.kube-system.svc.cluster.local:4040
+        - scope.kube-system.svc.cluster.local:80
         securityContext:
           privileged: true
         resources:

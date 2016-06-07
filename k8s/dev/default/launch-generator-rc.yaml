@@ -17,6 +17,6 @@ spec:
       - name: quay-secret
       containers:
       - name: launch-generator
-        image: quay.io/weaveworks/launch-generator:dd9fcc1
+        image: quay.io/weaveworks/launch-generator:471989f
         ports:
         - containerPort: 8080
