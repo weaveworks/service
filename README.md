@@ -104,7 +104,16 @@ Docker for Mac, Docker Machine, as well as local Docker on Linux can be used.
 > * docker: Error response from daemon: rpc error: code = 2 desc = "runtime error: read parent: connection reset by peer".
 > * docker: Error response from daemon: rpc error: code = 2 desc = "fork/exec /usr/bin/docker-containerd-shim: resource temporarily unavailable".
 > * docker: Error response from daemon: rpc error: code = 2 desc = "containerd: container not started".
-
+>
+> You must also use a version of Docker that has been compiled with Go 1.5. If
+> you do not, you will get errors like:
+>
+> ```
+> Error response from daemon: 400 Bad Request: malformed Host header
+> ```
+>
+> The easiest way to do this is to install Docker using the script at
+> https://get.docker.com
 
 Boot up Kubernetes.
 
