@@ -194,16 +194,17 @@ function stand_up {
         call_kubectl create -f "https://raw.github.com/kubernetes/kubernetes-anywhere/master/phase2/docker-images/toolbox/resources/addons-v1.2.yaml"
         echo ""
         echo "Kubernetes is running locally."
+	kubeconfig_relative=$(python -c "import os.path; print os.path.relpath('${kubeconfig}', '$(pwd)')")
         echo ""
-        echo " kubectl --kubeconfig=$(python -c "import os.path; print os.path.relpath('${kubeconfig}', '$(pwd)')") get pods"
+        echo " kubectl --kubeconfig=$kubeconfig_relative get pods"
         echo ""
         echo "You may now deploy the application components:"
         echo ""
-        echo " kubectl create -f k8s/local"
-        echo " kubectl create -f k8s/local/kube-system"
-        echo " kubectl create -f k8s/local/aws"
-        echo " kubectl create -f k8s/local/monitoring"
-        echo " kubectl create -f k8s/local/default"
+        echo " kubectl create --kubeconfig=$kubeconfig_relative -f k8s/local"
+        echo " kubectl create --kubeconfig=$kubeconfig_relative -f k8s/local/kube-system"
+        echo " kubectl create --kubeconfig=$kubeconfig_relative -f k8s/local/aws"
+        echo " kubectl create --kubeconfig=$kubeconfig_relative -f k8s/local/monitoring"
+        echo " kubectl create --kubeconfig=$kubeconfig_relative -f k8s/local/default"
 }
 
 if check_docker_machine
