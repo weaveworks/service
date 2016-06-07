@@ -33,7 +33,7 @@ FRONTEND_MT_IMAGE=quay.io/weaveworks/frontend-mt
 MONITORING_UPTODATE=monitoring/.images.uptodate
 
 # If you can use Docker without being root, you can `make SUDO= <target>`
-SUDO=$(shell (echo "$$DOCKER_HOST" | grep "tcp://" >/dev/null) || echo "sudo -E")
+SUDO=$(shell docker info >/dev/null 2>&1 || echo "sudo -E")
 BUILD_IN_CONTAINER=true
 RM=--rm
 GO_FLAGS=-ldflags "-extldflags \"-static\" -linkmode=external" -tags netgo
