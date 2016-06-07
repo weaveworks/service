@@ -21,9 +21,11 @@ then
 fi
 echo "Using kubeconfig: ${KUBECONFIG}"
 
+read -p "Namespace? [default]" NAMESPACE
+NAMESPACE=${NAMESPACE:-default}
 read -p "Component? " COMPONENT
 
-NEW_FILE="${SCRIPT_DIR}/k8s/${CLUSTER}/${COMPONENT}-rc.yaml"
+NEW_FILE="${SCRIPT_DIR}/k8s/${CLUSTER}/${NAMESPACE}/${COMPONENT}-rc.yaml"
 if [ ! -f ${NEW_FILE} ]
 then
 	echo "${NEW_FILE} not found"
@@ -31,7 +33,7 @@ then
 fi
 echo "Found: ${NEW_FILE}"
 
-OLD_RC=$(kubectl --kubeconfig=${KUBECONFIG} get rc --selector="name=${COMPONENT}" --output=jsonpath='{.items[0].metadata.name}')
+OLD_RC=$(kubectl --kubeconfig=${KUBECONFIG} get rc --namespace="${NAMESPACE}" --selector="name=${COMPONENT}" --output=jsonpath='{.items[0].metadata.name}')
 if [[ "${OLD_RC}" == "" ]]
 then
 	echo "${COMPONENT} replication controller not found"
@@ -51,7 +53,7 @@ REL_NEW_FILE=$(python -c "import os.path; print os.path.relpath('${NEW_FILE}', '
 echo
 echo "Here's what I'm going to run:"
 echo
-echo " kubectl --kubeconfig=${REL_KUBECONFIG} rolling-update ${OLD_RC} -f ${REL_NEW_FILE} --update-period=${PERIOD}"
+echo " kubectl --kubeconfig=${REL_KUBECONFIG} --namespace=${NAMESPACE} rolling-update ${OLD_RC} -f ${REL_NEW_FILE} --update-period=${PERIOD}"
 echo
 
 read -p "Does this look right? [Yn] " YN
@@ -61,7 +63,7 @@ case ${YN} in
 	*)   exit 1;;
 esac
 
-kubectl --kubeconfig=${KUBECONFIG} rolling-update ${OLD_RC} -f ${NEW_FILE} --update-period=${PERIOD}
+kubectl --kubeconfig=${KUBECONFIG} --namespace=${NAMESPACE} rolling-update ${OLD_RC} -f ${NEW_FILE} --update-period=${PERIOD}
 
 echo
 echo "Don't forget to commit and push your changes to $(basename ${NEW_FILE})!"
