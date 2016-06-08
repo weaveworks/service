@@ -40,7 +40,7 @@ export default class Probes extends React.Component {
       .then(resp => {
         this.setState({
           // negate isProbeConnected. In JS: false < true
-          probes: _.sortByAll(resp, [_.negate(isProbeConnected), 'id'])
+          probes: _.sortBy(resp, [_.negate(isProbeConnected), 'id'])
         });
         trackEvent('Scope', 'connectedProbes', this.props.org, resp.length);
         this.getProbesTimer = setTimeout(this.getProbes, 5000);
