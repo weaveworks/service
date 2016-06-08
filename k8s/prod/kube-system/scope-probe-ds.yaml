@@ -2,19 +2,19 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   namespace: kube-system
-  name: weave-scope-probe
+  name: scope-probe
 spec:
   selector: {}
   template:
     metadata:
-      name:  weave-scope-probe
+      name:  scope-probe
       labels:
-        name: weave-scope-probe
+        name: scope-probe
     spec:
       hostPID: true
       hostNetwork: true
       containers:
-      - name:  weave-scope-probe
+      - name:  scope-probe
         image: weaveworks/scope:0.15.0
         env:
         - name: CHECKPOINT_DISABLE
@@ -32,7 +32,7 @@ spec:
         # Mirror reports to organization nameless-night-79 (fons+loadfromprod@weave.works) in dev
         - --probe.token=4buwcruxxa57wz5pc1bkow74jonwj6yd
         - frontend.dev.weave.works:80
-        - weave-scope-app.kube-system.svc.cluster.local:4040
+        - scope.kube-system.svc.cluster.local:80
         securityContext:
           privileged: true
         resources:
