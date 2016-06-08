@@ -28,6 +28,14 @@ export default class LoginForm extends React.Component {
 
   _tryLogin() {
     let url = '/api/users/login';
+    const { error } = this.props.location.query;
+    if (error) {
+      this.setState({
+        activityText: '',
+        errorText: "Oh no! That didn't work very well. We had a problem attaching you account.",
+      });
+      return;
+    }
     if (this.props.params.provider) {
       url += `/${this.props.params.provider}`;
     }
