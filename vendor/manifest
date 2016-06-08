@@ -141,6 +141,15 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/fluent/fluent-logger-golang/fluent",
+			"repository": "https://github.com/fluent/fluent-logger-golang",
+			"vcs": "git",
+			"revision": "8ba04e26e7839fc5ccdae3a1d2e0d77515af0f32",
+			"branch": "master",
+			"path": "/fluent",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/fsouza/go-dockerclient",
 			"repository": "https://github.com/fsouza/go-dockerclient",
 			"vcs": "",
@@ -377,6 +386,14 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/philhofer/fwd",
+			"repository": "https://github.com/philhofer/fwd",
+			"vcs": "git",
+			"revision": "98c11a7a6ec829d672b03833c3d69a7fae1ca972",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/prometheus/client_golang/prometheus",
 			"repository": "https://github.com/prometheus/client_golang",
 			"vcs": "",
@@ -480,6 +497,15 @@
 			"revision": "f3960ab1f9664ecc4e27c78af27cc9063d745a43",
 			"branch": "master",
 			"path": "/require"
+		},
+		{
+			"importpath": "github.com/tinylib/msgp/msgp",
+			"repository": "https://github.com/tinylib/msgp",
+			"vcs": "git",
+			"revision": "05e600edf28f1b907005ddf6b0488fe68b819971",
+			"branch": "master",
+			"path": "/msgp",
+			"notests": true
 		},
 		{
 			"importpath": "github.com/tomwilkie/prom-run",
