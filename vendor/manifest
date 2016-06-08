@@ -533,12 +533,30 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/weaveworks/scope/common/mtime",
+			"repository": "https://github.com/weaveworks/scope",
+			"vcs": "git",
+			"revision": "bbf55922d0c89571517b2cd52308bcbe49d418c2",
+			"branch": "master",
+			"path": "common/mtime",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/weaveworks/scope/common/sanitize",
 			"repository": "https://github.com/weaveworks/scope",
 			"vcs": "",
 			"revision": "303bed1e2b8f22e9105ab65119a87882275b55bc",
 			"branch": "master",
 			"path": "/common/sanitize"
+		},
+		{
+			"importpath": "github.com/weaveworks/scope/common/xfer",
+			"repository": "https://github.com/weaveworks/scope",
+			"vcs": "git",
+			"revision": "bbf55922d0c89571517b2cd52308bcbe49d418c2",
+			"branch": "master",
+			"path": "/common/xfer",
+			"notests": true
 		},
 		{
 			"importpath": "github.com/weaveworks/scope/report",
@@ -549,12 +567,76 @@
 			"path": "/report"
 		},
 		{
-			"importpath": "github.com/weaveworks/scope/xfer",
+			"importpath": "github.com/weaveworks/scope/test/reflect",
 			"repository": "https://github.com/weaveworks/scope",
-			"vcs": "",
-			"revision": "303bed1e2b8f22e9105ab65119a87882275b55bc",
+			"vcs": "git",
+			"revision": "bbf55922d0c89571517b2cd52308bcbe49d418c2",
 			"branch": "master",
-			"path": "/xfer"
+			"path": "test/reflect",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/weaveworks/scope/vendor/github.com/Sirupsen/logrus",
+			"repository": "https://github.com/weaveworks/scope",
+			"vcs": "git",
+			"revision": "bbf55922d0c89571517b2cd52308bcbe49d418c2",
+			"branch": "master",
+			"path": "vendor/github.com/Sirupsen/logrus",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/weaveworks/scope/vendor/github.com/davecgh/go-spew/spew",
+			"repository": "https://github.com/weaveworks/scope",
+			"vcs": "git",
+			"revision": "bbf55922d0c89571517b2cd52308bcbe49d418c2",
+			"branch": "master",
+			"path": "vendor/github.com/davecgh/go-spew/spew",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/weaveworks/scope/vendor/github.com/gorilla/websocket",
+			"repository": "https://github.com/weaveworks/scope",
+			"vcs": "git",
+			"revision": "bbf55922d0c89571517b2cd52308bcbe49d418c2",
+			"branch": "master",
+			"path": "vendor/github.com/gorilla/websocket",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/weaveworks/scope/vendor/github.com/mndrix/ps",
+			"repository": "https://github.com/weaveworks/scope",
+			"vcs": "git",
+			"revision": "bbf55922d0c89571517b2cd52308bcbe49d418c2",
+			"branch": "master",
+			"path": "vendor/github.com/mndrix/ps",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/weaveworks/scope/vendor/github.com/pmezard/go-difflib/difflib",
+			"repository": "https://github.com/weaveworks/scope",
+			"vcs": "git",
+			"revision": "bbf55922d0c89571517b2cd52308bcbe49d418c2",
+			"branch": "master",
+			"path": "vendor/github.com/pmezard/go-difflib/difflib",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/weaveworks/scope/vendor/github.com/stretchr/testify/assert",
+			"repository": "https://github.com/weaveworks/scope",
+			"vcs": "git",
+			"revision": "bbf55922d0c89571517b2cd52308bcbe49d418c2",
+			"branch": "master",
+			"path": "vendor/github.com/stretchr/testify/assert",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/weaveworks/scope/vendor/github.com/ugorji/go/codec",
+			"repository": "https://github.com/weaveworks/scope",
+			"vcs": "git",
+			"revision": "bbf55922d0c89571517b2cd52308bcbe49d418c2",
+			"branch": "master",
+			"path": "vendor/github.com/ugorji/go/codec",
+			"notests": true
 		},
 		{
 			"importpath": "golang.org/x/crypto/bcrypt",
