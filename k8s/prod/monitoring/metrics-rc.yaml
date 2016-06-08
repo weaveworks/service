@@ -1,23 +1,24 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: metrics-49010a5
+  namespace: monitoring
+  name: metrics-f0ddc62
 spec:
   replicas: 1
   selector:
     name: metrics
-    version: 49010a5
+    version: f0ddc62
   template:
     metadata:
       labels:
         name: metrics
-        version: 49010a5
+        version: f0ddc62
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: metrics
-        image: quay.io/weaveworks/metrics:49010a5
+        image: quay.io/weaveworks/metrics:f0ddc62
         args:
         - -database-uri=postgres://postgres:usvqvHmLw2EahFK9Pa@users-database.cqqzyyx2xnct.us-east-1.rds.amazonaws.com/users?sslmode=disable
         - -endpoint=https://bi.weave.works/import/service/users
