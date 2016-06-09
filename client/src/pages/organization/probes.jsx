@@ -32,7 +32,7 @@ export default class Probes extends React.Component {
         this.setState({
           probes: _.sortBy(resp, ['hostname', 'id'])
         });
-        trackEvent('Scope', 'connectedProbes', this.props.org, resp.length);
+        trackEvent('Cloud', 'connectedProbes', this.props.org, resp.length);
         this.getProbesTimer = setTimeout(this.getProbes, 5000);
       }, resp => {
         trackException(resp.errors[0].message);

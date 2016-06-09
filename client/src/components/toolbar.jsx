@@ -10,8 +10,8 @@ export default class Toolbar extends React.Component {
   getLinks() {
     return [{
     }, {
-      title: 'Visit my Scope Instance',
-      label: 'My Scope',
+      title: 'Visit my Weave Cloud Instance',
+      label: 'View Instance',
       route: encodeURIs`#/app/${this.props.organization}`
     }, {
       iconClass: 'fa fa-cog',

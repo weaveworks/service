@@ -104,7 +104,7 @@ export default class LandingPage extends React.Component {
         <FlexContainer>
           <div style={styles.featureWrapper}>
             <div style={styles.featureHeader}>
-              Weave Scope is a fast and simple way to visualize,
+              Weave Cloud is a fast and simple way to visualize,
               manage and monitor containers and microservices
             </div>
           </div>
@@ -142,7 +142,7 @@ export default class LandingPage extends React.Component {
                 Learn
               </div>
               <div style={styles.infoItem}>
-                Learn more about Weave Scope <a href="http://weave.works/scope" target="website">on our website.</a>
+                Learn more about Weave Cloud <a href="http://weave.works/cloud" target="website">on our website.</a>
               </div>
               <div style={styles.infoItem}>
                 Check out our <a href="https://www.weave.works/guides/"
