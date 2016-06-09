@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: authfe-logging-dadb07a
+  name: authfe-master-8a24f94
 spec:
   replicas: 3
   selector:
     name: authfe
-    version: logging-dadb07a
+    version: master-8a24f94
   template:
     metadata:
       labels:
         name: authfe
-        version: logging-dadb07a
+        version: master-8a24f94
     spec:
       imagePullSecrets:
       - name: quay-secret
@@ -21,14 +21,14 @@ spec:
           secretName: bigquery-secret
       containers:
       - name: authfe
-        image: quay.io/weaveworks/authfe:logging-dadb07a
+        image: quay.io/weaveworks/authfe:master-8a24f94
         args:
         - -log.level=debug
         - -fluent=localhost:24224
         ports:
         - containerPort: 80
       - name: logging
-        image: quay.io/weaveworks/logging:logging-dadb07a
+        image: quay.io/weaveworks/logging:master-8a24f94
         env:
         - name: FLUENTD_CONF
           value: fluent-dev.conf
