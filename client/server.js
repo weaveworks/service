@@ -14,10 +14,10 @@ var WEBPACK_SERVER_HOST = process.env.WEBPACK_SERVER_HOST || 'localhost';
 var store = {};
 store.orgName = 'foo'
 store.users = [{
-    id: 0,
-    email: 'peter@weave.works',
-    lastLogin: null
-  }];
+  id: 0,
+  email: 'peter@weave.works',
+  lastLogin: null
+}];
 
 /************************************************************
  *
@@ -43,50 +43,23 @@ store.users = [{
 // Mock backend
 
 if (process.env.USE_MOCK_BACKEND) {
-  app.get('/api/org/foo', function(req, res) {
-    res.json({
-      user: store.users[0].email,
-      name: store.orgName
-    });
-  });
-
-
-  app.post('/api/org/foo', function(req, res) {
-    store.orgName = req.body.name;
-    res.json({
-      user: store.users[0].email,
-      name: store.orgName
-    });
-  });
-
   app.get('/api/org/*/probes', function(req, res) {
     res.json([{
       id: 'probe1',
-      state: 'connected'
+      state: 'connected',
+      hostname: "weave-1",
+      lastSeen: "2016-06-08T13:04:57.033053845Z"
+    }, {
+      id: 'probe3',
+      state: 'connected',
+      hostname: "weave-3",
+      lastSeen: "2017-06-08T13:04:57.033053845Z"
+    }, {
+      id: 'probe2',
+      state: 'connected',
+      hostname: "weave-2",
+      lastSeen: "2017-06-08T13:04:57.033053845Z"
     }]);
-  });
-
-  app.get('/api/org/*/users', function(req, res) {
-    res.json(store.users);
-  });
-
-  app.post('/api/org/*/users', function(req, res) {
-    store.users.push({
-      id: store.users.length,
-      email: req.body.email,
-      lastLogin: null
-    });
-    res.json(store.users);
-  });
-
-  app.delete('/api/org/*/users/:userId', function(req, res) {
-    var id = parseInt(req.params.userId);
-    for(var i = store.users.length - 1; i >= 0; i--) {
-      if(store.users[i].id === id) {
-        store.users.splice(i, 1);
-      }
-    }
-    res.json(store.users);
   });
 
   app.post('/api/signup', function(req, res) {
@@ -98,6 +71,22 @@ if (process.env.USE_MOCK_BACKEND) {
 
   app.get('/login', function(req, res) {
     res.redirect('org/foo');
+  });
+
+  app.get('/api/users/lookup', function(req, res) {
+    res.json({
+      organizationName: store.orgName,
+      firstProbeUpdateAt: "2016-06-01T11:55:51Z"
+    });
+  });
+
+  app.get('/api/users/org/foo', function(req, res) {
+    res.json({
+      user: store.users.email,
+      name: store.orgName,
+      probeToken: "6bmx9riesxst8wc16msjy7toeeiwne4b",
+      firstProbeUpdateAt: "2016-06-01T11:55:51Z"
+    });
   });
 } else {
 
