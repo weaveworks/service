@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/scope/common/middleware"
-
+	"github.com/weaveworks/scope/common/xfer"
 	"github.com/weaveworks/service/common/logging"
 	users "github.com/weaveworks/service/users/client"
 )
@@ -40,6 +40,34 @@ func init() {
 	prometheus.MustRegister(wsRequestCount)
 }
 
+func newProbeRequestLogger(orgIDHeader string) logging.HTTPEventExtractor {
+	return func(r *http.Request) (logging.Event, bool) {
+		event := logging.Event{
+			ID:             r.URL.Path,
+			Product:        "scope-probe",
+			Version:        r.Header.Get(xfer.ScopeProbeVersionHeader),
+			UserAgent:      r.UserAgent(),
+			ClientID:       r.Header.Get(xfer.ScopeProbeIDHeader),
+			OrganizationID: r.Header.Get(orgIDHeader),
+		}
+		return event, true
+	}
+}
+
+func newUIRequestLogger(orgIDHeader string) logging.HTTPEventExtractor {
+	return func(r *http.Request) (logging.Event, bool) {
+		event := logging.Event{
+			ID:             r.URL.Path,
+			Product:        "scope-ui",
+			UserAgent:      r.UserAgent(),
+			OrganizationID: r.Header.Get(orgIDHeader),
+			// TODO: fill in after implementing user support in organizations
+			// UserID: "" ,
+		}
+		return event, true
+	}
+}
+
 func main() {
 	var (
 		listen            string
@@ -51,6 +79,7 @@ func main() {
 		queryHost         string
 		controlHost       string
 		pipeHost          string
+		fluentHost        string
 	)
 	flag.StringVar(&listen, "listen", ":80", "HTTP server listen address")
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
@@ -61,6 +90,7 @@ func main() {
 	flag.StringVar(&queryHost, "query", "query.default.svc.cluster.local:80", "Hostname & port for query service")
 	flag.StringVar(&controlHost, "control", "control.default.svc.cluster.local:80", "Hostname & port for control service")
 	flag.StringVar(&pipeHost, "pipe", "pipe.default.svc.cluster.local:80", "Hostname & port for pipe service")
+	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
 	flag.Parse()
 
 	if err := logging.Setup(logLevel); err != nil {
@@ -123,6 +153,25 @@ func main() {
 		Duration:     requestDuration,
 	}
 
+	probeHTTPlogger := middleware.Identity
+	uiHTTPlogger := middleware.Identity
+	if fluentHost != "" {
+		eventLogger, err := logging.NewEventLogger(fluentHost)
+		if err != nil {
+			log.Fatalf("Error setting up event logging: %v", err)
+			return
+		}
+		defer eventLogger.Close()
+		probeHTTPlogger = logging.HTTPEventLogger{
+			Extractor: newProbeRequestLogger(outputHeader),
+			Logger:    eventLogger,
+		}
+		uiHTTPlogger = logging.HTTPEventLogger{
+			Extractor: newUIRequestLogger(outputHeader),
+			Logger:    eventLogger,
+		}
+	}
+
 	// bring it all together in the root router
 	rootRouter := mux.NewRouter().StrictSlash(false)
 	rootRouter.Path("/loadgen").Name("loadgen").Methods("GET").HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -134,18 +183,21 @@ func main() {
 			orgInstrumentation,
 			orgAuthMiddleware,
 			middleware.PathRewrite(orgPrefix, ""),
+			uiHTTPlogger,
 		).Wrap(orgRouter),
 	)
 	rootRouter.Path("/api/org/{orgName}/probes").Handler(
 		middleware.Merge(
 			orgAuthMiddleware,
 			middleware.PathReplace("/api/probes"),
+			uiHTTPlogger,
 		).Wrap(queryFwd),
 	)
 	rootRouter.PathPrefix("/api").Handler(
 		middleware.Merge(
 			probeInstrumentation,
 			probeAuthMiddleware,
+			probeHTTPlogger,
 		).Wrap(probeRouter))
 	rootRouter.PathPrefix("/admin").Handler(
 		middleware.Merge(

@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "weaveworks-bi",
+  "private_key_id": "f034e454e6bc13b7fabaddd3a9880af98e87d22c",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCZ/v+pjBjoj1yq\nmEBW1I0Kq4T5Nj5bdH9L5FA/WJeOZ4iKlXsAn0uTv80uadP9dBxojpoZYWzgQKxX\nE1GLz4mmlhJnykHLa1CVtDZbh8qEcxsGFw4kC02FC+nHPKzEJ/XBc3oKF7fMX5j3\n2rQCms0NzmnS6wQtm+gMRd3UWY0UG1RFeoowLdWaayc5ifGJA+D89fIx/rS9Ssel\nx53sAUrPl+2VThVmqWTKjVVrcd1/LVLUxhyPFeAmDDt/NVLzr4liVM+7xEcPogad\nqcF4Qlb68QY4jZwYYcKTvfbynCC++Eh3tRLL2kU5Ulhr7SpPm4ojRvoslgsLtuFH\nTmKyRq7jAgMBAAECggEALd4FyDoyMRKCR02R3Eryt3re4FuHtzW7tJ8MR9HbUk8E\nHELpoAXSPO+j7W8X9SXgUEQpIeYix6h7rHPUlg/6r+ODF+bmMfCE0BIdHqYTa9/c\n7LNxQssbC8XAm9c2njZIvJXog5kM5ZKTvT8m3p+885/HZUsas3r8YqtspxMFMjd7\nT3QU2EvwYkE4Mz55HV3icx7xdVhDhztwiM7iNb4Epx8HpTGMTdNFKEuvbIZfoM3e\nmK5/deTIxJaacQrokTVUKF2Dkx+1Xju2UHjw9EM9dZhUIRCwYx6+YrcOYivHWFhe\nb45LAsaqNwLc3FXDg1mqcdDIQlq1S/A0HjkU+Q6+AQKBgQDMHDfS1mvRJUIMK7ao\n9SLolt83SYUjCDQVENtO2oGBdpZnS02EK6fPlQUMUDqx5P+/O3KWnjA3bjjuLunv\nJVppogePSCHp3yjqqJlzXT7pDok/mjkfjhPS54hFvhzXeW3zS459YwHuwNsfYcWf\nm/Ij8DAdUjG035A5lZ2QkvkO9QKBgQDBJUgdlpmdc6uySYqEpTQRWyi3SN85KcVj\noK54+ZMqOXt0m4IEOpeTlqzn2DOnT7gTg1TioYX9yeEp9f6sdc8toW8Wr5qy1FdE\nFgSJGysQ2adwQK4RQ5ngi50ggcsfQBafxSoDI8l6l8UFbjY7eV1B9QpZqhc5956u\nODt7AyLvdwKBgGEODfFgajYyLDzTUHD415eXnh6RBBDLZtCZil7tgeVIuW32na56\nf7oyVwsq3y4WARIyt2MtZyoEbGe9wRkpPtu54zRbjVzC85bZgtYbgb2aXuLyd7Us\nfvqrg93974L6R7EHvYKb4KBh7g/3Ety5b6NtI8PdgKtMHy1ymlDTwkA9AoGAIEbi\nrk8kjLNv1fOEOnaBJQVe4IJFC4B3hBauEXljpoLEps/2Ak7oVbmwW24984/W6yvf\nW6AyjB7YifKaBKgLX0zDC7980rW5f59OUrs/jylQWen1LN1nMacjMvN9xlMndLu2\nMaAhY2NJgYbReU7mzsbsW9+Y0g8XbXXoOr5jcDECgYB4zrdc/Xten0u6MW6u1cXL\nGclx8y8Wye6nJCMM6uuRGI0HKtRJabxSM29YXdG8tbSyNSrOoVSEPUn6I9BZ+u+e\nJtLQlhqyyywG6Onmd3e7ZmrtWtZ5l4gc2w28R/bxBul3buP6qG0uoFSlGGa0WDGN\n5THHhGVta5Gdo1Qx+zIhYg==\n-----END PRIVATE KEY-----\n",
+  "client_email": "service-logging@weaveworks-bi.iam.gserviceaccount.com",
+  "client_id": "118116195987439116465",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://accounts.google.com/o/oauth2/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/service-logging%40weaveworks-bi.iam.gserviceaccount.com"
+}

@@ -23,7 +23,7 @@ fi
 COMPONENTS=$@
 if [ "${COMPONENTS}" == "" ]
 then
-	COMPONENTS="authfe ui-server frontend-mt users metrics prometheus grafana gfdatasource loadgen alertmanager launch-generator kubediff"
+	COMPONENTS="authfe ui-server frontend-mt users metrics prometheus grafana gfdatasource loadgen alertmanager launch-generator kubediff logging"
 elif [ "${COMPONENTS}" == "monitoring" ] # Special case
 then
 	COMPONENTS="prometheus grafana gfdatasource loadgen alertmanager"
