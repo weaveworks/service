@@ -44,8 +44,9 @@ func NewEventLogger(fluentHostPort string) (*EventLogger, error) {
 		return nil, err
 	}
 	logger, err := fluent.New(fluent.Config{
-		FluentPort: intPort,
-		FluentHost: host,
+		FluentPort:   intPort,
+		FluentHost:   host,
+		AsyncConnect: true,
 	})
 	if err != nil {
 		return nil, err

@@ -90,19 +90,13 @@ func main() {
 	flag.StringVar(&queryHost, "query", "query.default.svc.cluster.local:80", "Hostname & port for query service")
 	flag.StringVar(&controlHost, "control", "control.default.svc.cluster.local:80", "Hostname & port for control service")
 	flag.StringVar(&pipeHost, "pipe", "pipe.default.svc.cluster.local:80", "Hostname & port for pipe service")
-	flag.StringVar(&fluentHost, "fluent", "127.0.0.1:24224", "Hostname & port for fluent")
+	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
 	flag.Parse()
 
 	if err := logging.Setup(logLevel); err != nil {
 		log.Fatalf("Error configuring logging: %v", err)
 		return
 	}
-	eventLogger, err := logging.NewEventLogger(fluentHost)
-	if err != nil {
-		log.Fatalf("Error setting up event logging: %v", err)
-		return
-	}
-	defer eventLogger.Close()
 
 	// these are the places we can forward requests to
 	collectionFwd := newProxy(collectionHost)
@@ -159,13 +153,23 @@ func main() {
 		Duration:     requestDuration,
 	}
 
-	probeHTTPlogger := logging.HTTPEventLogger{
-		Extractor: newProbeRequestLogger(outputHeader),
-		Logger:    eventLogger,
-	}
-	uiHTTPlogger := logging.HTTPEventLogger{
-		Extractor: newUIRequestLogger(outputHeader),
-		Logger:    eventLogger,
+	probeHTTPlogger := middleware.Identity
+	uiHTTPlogger := middleware.Identity
+	if fluentHost != "" {
+		eventLogger, err := logging.NewEventLogger(fluentHost)
+		if err != nil {
+			log.Fatalf("Error setting up event logging: %v", err)
+			return
+		}
+		defer eventLogger.Close()
+		probeHTTPlogger = logging.HTTPEventLogger{
+			Extractor: newProbeRequestLogger(outputHeader),
+			Logger:    eventLogger,
+		}
+		uiHTTPlogger = logging.HTTPEventLogger{
+			Extractor: newUIRequestLogger(outputHeader),
+			Logger:    eventLogger,
+		}
 	}
 
 	// bring it all together in the root router

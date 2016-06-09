@@ -21,6 +21,7 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
         - -log.level=debug
+        - -fluent=localhost:24224
         ports:
         - containerPort: 80
       - name: logging
