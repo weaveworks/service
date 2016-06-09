@@ -11,5 +11,5 @@ spec:
     - name: https
       port: 443
   selector:
-    name: frontend-mt
+    name: frontend
   type: LoadBalancer
