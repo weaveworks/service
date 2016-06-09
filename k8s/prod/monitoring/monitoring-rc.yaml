@@ -2,17 +2,17 @@ apiVersion: v1
 kind: ReplicationController
 metadata:
   namespace: monitoring
-  name: monitoring-20160607
+  name: monitoring-20160609
 spec:
   replicas: 1
   selector:
     name: monitoring
-    version: '20160607'
+    version: '20160609'
   template:
     metadata:
       labels:
         name: monitoring
-        version: '20160607'
+        version: '20160609'
     spec:
       imagePullSecrets:
       - name: quay-secret
@@ -22,7 +22,10 @@ spec:
         ports:
         - containerPort: 9090
       - name: grafana
-        image: quay.io/weaveworks/grafana:8393840
+        # WIP suffix - once the push from CI is done, this will go away;
+        # its effectively what we've always been doing, but the labels haven't
+        # reflected it until recently.
+        image: quay.io/weaveworks/grafana:nats-shortcut-reports-634cdd0-WIP
         ports:
         - containerPort: 3000
       - name: gfdatasource
