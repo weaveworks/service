@@ -17,7 +17,7 @@ def lint_service(filename, service):
   if basename not in SERVICE_SELECTOR_EXCEPTIONS:
     expected_selector = {"name": basename}
     assert service["spec"]["selector"] == expected_selector, \
-      "%s expected selector %s" % (filename, expected_selector)
+      "%s: Selector name must match filename (found %s)"  % (filename, expected_selector)
 
 def lint_replication_controller(filename, rc):
   # if they exist, the selector labels should equal the template labels
