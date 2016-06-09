@@ -114,11 +114,11 @@ export default class Wrapper extends React.Component {
     if (resp.status === 503) {
       // not ready, try again
       this.setState({
-        activityText: 'Spawning your Scope app...'
+        activityText: 'Spawning your Weave Cloud instance...'
       });
     } else {
       this.setState({
-        activityText: `Error while checking for your Scope instance. [${resp.status}]`
+        activityText: `Error while checking for your Weave Cloud instance. [${resp.status}]`
       });
     }
     setTimeout(this._checkInstance, 2000);
