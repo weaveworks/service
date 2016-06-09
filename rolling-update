@@ -33,6 +33,23 @@ then
 fi
 echo "Found: ${NEW_FILE}"
 
+KUBELINT="${SCRIPT_DIR}/k8s/kubelint"
+if [ ! -f ${KUBELINT} ]
+then
+    echo "${KUBELINT} not found"
+    exit 1
+fi
+
+# The local cluster has different linting requirements to the rest. This logic
+# is duplicated in the 'lint' target of the top-level Makefile.
+KUBELINT_OPTION=""
+if [ "${CLUSTER}" == "local" ]; then
+    KUBELINT_OPTIONS="--noversions"
+fi
+
+echo "Linting ${NEW_FILE}"
+${KUBELINT} ${KUBELINT_OPTIONS} ${NEW_FILE}
+
 OLD_RC=$(kubectl --kubeconfig=${KUBECONFIG} get rc --namespace="${NAMESPACE}" --selector="name=${COMPONENT}" --output=jsonpath='{.items[0].metadata.name}')
 if [[ "${OLD_RC}" == "" ]]
 then
