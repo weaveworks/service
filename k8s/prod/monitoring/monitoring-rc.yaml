@@ -22,6 +22,9 @@ spec:
         ports:
         - containerPort: 9090
       - name: grafana
+        # WIP suffix - once the push from CI is done, this will go away;
+        # its effectively what we've always been doing, but the labels haven't
+        # reflected it until recently.
         image: quay.io/weaveworks/grafana:nats-shortcut-reports-634cdd0-WIP
         ports:
         - containerPort: 3000
