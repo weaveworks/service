@@ -234,8 +234,8 @@
 		{
 			"importpath": "github.com/gorilla/mux",
 			"repository": "https://github.com/gorilla/mux",
-			"vcs": "",
-			"revision": "ad4d7a5882b961e07e2626045eb995c022ac6664",
+			"vcs": "git",
+			"revision": "9fa818a44c2bf1396a17f9d5a3c0f6dd39d2ff8e",
 			"branch": "master"
 		},
 		{
@@ -527,7 +527,7 @@
 			"importpath": "github.com/weaveworks/scope/common/middleware",
 			"repository": "https://github.com/weaveworks/scope",
 			"vcs": "git",
-			"revision": "001daf9ecdbc0606e58d2af6628b5c734681d191",
+			"revision": "ab1ca31760ae52bca0093798e6560a597556cece",
 			"branch": "master",
 			"path": "/common/middleware",
 			"notests": true
