@@ -1,5 +1,4 @@
 import React from 'react';
-import CookieBanner from 'react-cookie-banner';
 
 import { BackgroundContainer } from '../../components/background-container';
 import { FlexContainer } from '../../components/flex-container';
@@ -24,15 +23,6 @@ export default class LandingPage extends React.Component {
 
   render() {
     const styles = {
-      cookieBanner: {
-        banner: {
-          backgroundColor: 'rgba(50,50,75,0.7)'
-        },
-        message: {
-          fontSize: '1rem',
-          fontWeight: 300
-        }
-      },
       featureHeader: {
         fontSize: 48,
         fontWeight: 300
@@ -96,13 +86,8 @@ export default class LandingPage extends React.Component {
     };
 
     const links = this.renderLinks(styles.link);
-    const cookieMsg = 'We use two cookies,'
-      + ' one that makes sure you stay logged in, and one that tracks usage anonymously.';
-
     return (
       <BackgroundContainer imageUrl="landing.jpg">
-        <CookieBanner message={cookieMsg} cookie="eu-user-has-accepted-cookies"
-          buttonMessage="I'm OK with this" tyles={styles.cookieBanner} />
         <div style={styles.headerContainer}>
           <div style={styles.logoWrapper}>
             <Logo />
