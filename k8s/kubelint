@@ -3,6 +3,7 @@
 import yaml, sys, os, os.path, string, optparse
 
 SERVICE_ALLOWED_ANNOTATIONS={"prometheus.io.scrape", "prometheus.io.port"}
+SERVICE_SELECTOR_EXCEPTIONS={'scope'}
 
 def lint_service(filename, service):
   # services are allowed some top level annotations
@@ -11,6 +12,12 @@ def lint_service(filename, service):
     disallowed_annotations = annotations.difference(SERVICE_ALLOWED_ANNOTATIONS)
     assert len(disallowed_annotations) == 0, \
       "%s disallowed annotations found: %s" % (filename, disallowed_annotations)
+
+  basename = string.rsplit(os.path.basename(filename), "-", 1)[0]
+  if basename not in SERVICE_SELECTOR_EXCEPTIONS:
+    expected_selector = {"name": basename}
+    assert service["spec"]["selector"] == expected_selector, \
+      "%s: Selector name must match filename (found %s)"  % (filename, expected_selector)
 
 def lint_replication_controller(filename, rc):
   # if they exist, the selector labels should equal the template labels
