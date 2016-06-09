@@ -52,12 +52,12 @@ if (process.env.USE_MOCK_BACKEND) {
     }, {
       id: 'probe3',
       state: 'connected',
-      hostname: "weave-1",
+      hostname: "weave-3",
       lastSeen: "2017-06-08T13:04:57.033053845Z"
     }, {
       id: 'probe2',
       state: 'connected',
-      hostname: "weave-1",
+      hostname: "weave-2",
       lastSeen: "2017-06-08T13:04:57.033053845Z"
     }]);
   });
