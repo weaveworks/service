@@ -29,6 +29,9 @@ spec:
         - --probe.http.listen=:4041
         # Workaround for https://github.com/kubernetes/kubernetes/issues/17406
         - --probe.resolver=$(KUBE_DNS_SERVICE_HOST):$(KUBE_DNS_SERVICE_PORT)
+        # Mirror reports to organization winter-leaf-14 (fons@weave.works) in ka-dev (kubernetes anywhere) cluster
+        - --service-token=irydowcs1i4i14drahccekqmxr7mcrjh
+        - frontend.dev-ka.weave.works:80
         - scope.kube-system.svc.cluster.local:80
         securityContext:
           privileged: true
