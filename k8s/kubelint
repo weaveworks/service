@@ -63,7 +63,8 @@ def lint_file(path):
   if extension != ".yaml":
     return
 
-  print path
+  if options.verbose:
+    print path
   with open(path, 'r') as stream:
     obj = yaml.load(stream)
 
@@ -102,6 +103,9 @@ labelling.""")
   parser.add_option("--nonamespaces", action="store_false",
     dest="namespaces", default=True,
     help="don't enforce namespace subdirectories.")
+  parser.add_option("--verbose",
+    dest="verbose", default=False, action="store_true",
+    help="Verbose output (print filenames as they are checked)")
   (options, args) = parser.parse_args()
   if len(args) == 0:
     parser.print_help()
