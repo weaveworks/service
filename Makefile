@@ -159,7 +159,7 @@ lint: $(BUILD_UPTODATE)
 	# This mapping of cluster to lint options is duplicated in 'rolling-update'.
 	./k8s/kubelint --noversions ./k8s/local
 	./k8s/kubelint ./k8s/dev
-	./k8s/kubelint --nonamespaces ./k8s/prod
+	./k8s/kubelint ./k8s/prod
 	promtool check-rules ./monitoring/prometheus/alert.rules
 
 test: $(BUILD_UPTODATE)

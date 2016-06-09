@@ -40,22 +40,12 @@ then
     exit 1
 fi
 
-# Different target clusters have different linting requirements. This logic is
-# duplicated in the 'lint' target of the top-level Makefile.
-case "${CLUSTER}" in
-    prod)
-        KUBELINT_OPTIONS="--nonamespaces"
-        ;;
-    dev)
-        KUBELINT_OPTIONS=""
-        ;;
-    "local")
-        KUBELINT_OPTIONS="--noversions"
-        ;;
-    *)
-        KUBELINT_OPTIONS=""
-        ;;
-esac
+# The local cluster has different linting requirements to the rest. This logic
+# is duplicated in the 'lint' target of the top-level Makefile.
+KUBELINT_OPTION=""
+if [ "${CLUSTER}" == "local" ]; then
+    KUBELINT_OPTIONS="--noversions"
+fi
 
 echo "Linting ${NEW_FILE}"
 ${KUBELINT} ${KUBELINT_OPTIONS} ${NEW_FILE}
