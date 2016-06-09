@@ -33,6 +33,15 @@ then
 fi
 echo "Found: ${NEW_FILE}"
 
+KUBELINT="${SCRIPT_DIR}/k8s/kubelint"
+if [ ! -f ${KUBELINT} ]
+then
+    echo "${KUBELINT} not found"
+    exit 1
+fi
+echo "Linting ${NEW_FILE}"
+${KUBELINT} ${NEW_FILE}
+
 OLD_RC=$(kubectl --kubeconfig=${KUBECONFIG} get rc --namespace="${NAMESPACE}" --selector="name=${COMPONENT}" --output=jsonpath='{.items[0].metadata.name}')
 if [[ "${OLD_RC}" == "" ]]
 then
