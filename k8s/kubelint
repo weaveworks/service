@@ -2,16 +2,18 @@
 
 import yaml, sys, os, os.path, string, optparse
 
+
 SERVICE_ALLOWED_ANNOTATIONS={"prometheus.io.scrape", "prometheus.io.port"}
 SERVICE_SELECTOR_EXCEPTIONS={'scope'}
+
 
 def lint_service(filename, service):
   # services are allowed some top level annotations
   if "annotations" in service["metadata"]:
     annotations = set(service["metadata"]["annotations"].keys())
     disallowed_annotations = annotations.difference(SERVICE_ALLOWED_ANNOTATIONS)
-    assert len(disallowed_annotations) == 0, \
-      "%s disallowed annotations found: %s" % (filename, disallowed_annotations)
+    if disallowed_annotations:
+      yield "%s disallowed annotations found: %s" % (filename, disallowed_annotations)
 
   basename = string.rsplit(os.path.basename(filename), "-", 1)[0]
   if basename not in SERVICE_SELECTOR_EXCEPTIONS:
@@ -19,51 +21,53 @@ def lint_service(filename, service):
     assert service["spec"]["selector"] == expected_selector, \
       "%s: Selector name must match filename (found %s)"  % (filename, expected_selector)
 
+
 def lint_replication_controller(filename, rc):
   # if they exist, the selector labels should equal the template labels
   labels = rc["spec"]["template"]["metadata"]["labels"]
   if "selector" in rc["spec"]:
-    assert rc["spec"]["selector"] == labels, \
-      "%s selector does not match labels" % filename
+    if rc["spec"]["selector"] != labels:
+      yield "%s selector does not match labels" % filename
+
+  # template should specify name label
+  name = labels.get("name", None)
+  if name:
+    # the name label object should match filename
+    expected = string.rsplit(os.path.basename(filename), "-", 1)[0]
+    if name != expected:
+      yield "%s should container an object called %s, not %s" % (filename, expected, name)
+  else:
+    yield "%s should define name label for template" % filename
 
   # rest of the checks concern version label consistency, which
   # we don't use in default
   if not options.versions:
     expected = string.rsplit(os.path.basename(filename), "-", 1)[0]
-    assert rc["metadata"]["name"] == expected, \
-      "expected name '%s, got '%s'" % (expected, rc["metadata"]["name"])
-    return
+    if rc["metadata"]["name"] != expected:
+      yield "expected name '%s, got '%s'" % (expected, rc["metadata"]["name"])
 
-  # template should specify name and version labels
-  assert "name" in labels, \
-    "%s should define name label for template" % filename
-  assert "version" in labels, \
-    "%s should define version label for template" % filename
-
-  # the name of the rc should be name-version
-  name = labels["name"]
-  version = labels["version"]
-  expected = "%s-%s" % (name, version)
-  assert rc["metadata"]["name"] == expected, \
-    "%s name doesn't match labels (expected: %s)" % (filename, expected)
-
-  # the name label object should match filename
-  expected = string.rsplit(os.path.basename(filename), "-", 1)[0]
-  assert name == expected, \
-    "%s should container an object called %s, not %s" % (filename, expected, name)
-
-  # iff there is one container, the image tag should be the versions
-  if len(rc["spec"]["template"]["spec"]["containers"]) == 1:
-    container = rc["spec"]["template"]["spec"]["containers"][0]
-    image_version = container["image"].split(":", 1)[1]
-    assert image_version == version, \
-      "%s version label doesn't match image version" % filename
-
-  # otherwise, there should at least be versions
   else:
-    for container in rc["spec"]["template"]["spec"]["containers"]:
-      assert  ":" in container["image"], \
-        "%s should specify a version!" % filename
+    version = labels.get("version", None)
+    if version:
+      if name:
+        expected = "%s-%s" % (name, version)
+        if rc["metadata"]["name"] != expected:
+          yield "%s name doesn't match labels (expected: %s)" % (filename, expected)
+
+      # iff there is one container, the image tag should be the versions
+      if len(rc["spec"]["template"]["spec"]["containers"]) == 1 and version:
+        container = rc["spec"]["template"]["spec"]["containers"][0]
+        image_version = container["image"].split(":", 1)[1]
+        if image_version != version:
+          yield "%s version label doesn't match image version" % filename
+      # otherwise, there should at least be versions
+      else:
+        for container in rc["spec"]["template"]["spec"]["containers"]:
+          if  ":" not in container["image"]:
+            yield "%s should specify a version!" % filename
+    else:
+      yield "%s should define version label for template" % filename
+
 
 def lint_file(path):
   _, extension = os.path.splitext(path)
@@ -76,28 +80,48 @@ def lint_file(path):
     obj = yaml.load(stream)
 
   # no top level labels, please
-  assert "labels" not in obj["metadata"], \
-    "%s should not contain top level labels" % path
+  if "labels" in obj["metadata"]:
+    yield "%s should not contain top level labels" % path
 
   if options.namespaces and obj["kind"] != "Namespace":
     namespace = obj["metadata"]["namespace"] if "namespace" in obj["metadata"] else "default"
     dirname, _ = os.path.split(path)
     _, dirname = os.path.split(dirname)
-    assert namespace == dirname, \
-      "%s should be in namespace %s" % (path, dirname)
+    if namespace != dirname:
+      yield "%s should be in namespace %s" % (path, dirname)
 
   if obj["kind"] == "ReplicationController":
-    lint_replication_controller(path, obj)
+    linter = lint_replication_controller(path, obj)
   elif obj["kind"] == "Service":
-    lint_service(path, obj)
+    linter = lint_service(path, obj)
+  else:
+    linter = iter([])
+
+  for warning in linter:
+    yield warning
+
 
 def lint_dir(path):
   for filename in os.listdir(path):
     f = os.path.join(path, filename)
     if os.path.isdir(f):
-      lint_dir(f)
+      linter = lint_dir(f)
     else:
-      lint_file(f)
+      linter = lint_file(f)
+
+  for warning in linter:
+    yield warning
+
+
+def lint_paths(paths):
+  for path in paths:
+    if os.path.isdir(path):
+      linter = lint_dir(path)
+    else:
+      linter = lint_file(path)
+    for warning in linter:
+      yield warning
+
 
 if __name__ == "__main__":
   parser =  optparse.OptionParser("""usage: %prog [options] <dir/file>...
@@ -118,9 +142,10 @@ labelling.""")
     parser.print_help()
     sys.exit(1)
 
-  for path in args:
-    if os.path.isdir(path):
-      lint_dir(path)
-    else:
-      lint_file(path)
+  num_warnings = 0
+  for warning in lint_paths(args):
+    sys.stderr.write(warning)
+    sys.stderr.write('\n')
+    num_warnings += 1
 
+  sys.exit(2 if num_warnings else 0)
