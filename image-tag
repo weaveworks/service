@@ -13,5 +13,5 @@ WORKING_SUFFIX=$(if ! git diff --exit-code ${OUTPUT} HEAD >&2; \
                  then echo "-WIP"; \
                  else echo ""; \
                  fi)
-BRANCH_PREFIX=$(git name-rev --name-only HEAD)
+BRANCH_PREFIX=$(git rev-parse --abbrev-ref HEAD)
 echo "$BRANCH_PREFIX-$(git rev-parse --short HEAD)$WORKING_SUFFIX"
