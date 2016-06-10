@@ -30,7 +30,8 @@ export default class LandingPage extends React.Component {
   }
 
   render() {
-    const showingLogin = this.props.location.pathname === '/signup';
+    const isOnSignup = this.props.location.pathname === '/signup';
+    const showingLogin = isOnSignup;
     const showingSignup = this.props.location.pathname === '/login';
     const styles = {
       backgroundContainer: {
@@ -40,6 +41,7 @@ export default class LandingPage extends React.Component {
         fontWeight: 300
       },
       featureWrapper: {
+        display: isOnSignup ? 'block' : 'none',
         padding: 16,
         width: 500
       },
