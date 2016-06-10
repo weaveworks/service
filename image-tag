@@ -4,12 +4,14 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+OUTPUT=--quiet
 if [ "${1:-}" = '--show-diff' ]; then
-    echo "Diff to HEAD:" >&2
-    echo >&2
-    git diff-index -p HEAD >&2
+    OUTPUT=
 fi
 
-WORKING_SUFFIX=$(if ! git diff-index --quiet HEAD; then echo "-WIP"; else echo ""; fi)
+WORKING_SUFFIX=$(if ! git diff --exit-code ${OUTPUT} HEAD >&2; \
+                 then echo "-WIP"; \
+                 else echo ""; \
+                 fi)
 BRANCH_PREFIX=$(git name-rev --name-only HEAD)
 echo "$BRANCH_PREFIX-$(git rev-parse --short HEAD)$WORKING_SUFFIX"
