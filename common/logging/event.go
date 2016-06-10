@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"sync"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fluent/fluent-logger-golang/fluent"
@@ -26,11 +25,9 @@ type Event struct {
 
 // EventLogger logs events to the analytics system
 type EventLogger struct {
-	stopping      bool
-	stoppingMutex sync.RWMutex
-	stop          chan struct{}
-	events        chan Event
-	logger        *fluent.Fluent
+	stop   chan struct{}
+	events chan Event
+	logger *fluent.Fluent
 }
 
 // NewEventLogger creates a new EventLogger.
@@ -90,20 +87,18 @@ func (el *EventLogger) logLoop() {
 
 // Close closes and deallocates the event logger
 func (el *EventLogger) Close() error {
-	el.stoppingMutex.Lock()
-	defer el.stoppingMutex.Unlock()
-	el.stopping = true
-	el.stop <- struct{}{}
+	close(el.stop)
 	return nil
 }
 
 // LogEvent logs an event to the analytics system
 func (el *EventLogger) LogEvent(e Event) error {
-	el.stoppingMutex.RLock()
-	defer el.stoppingMutex.RUnlock()
-	if el.stopping {
+	select {
+	case <-el.stop:
 		return fmt.Errorf("Stopping, discarding event: %v", e)
+	default:
 	}
+
 	select {
 	case el.events <- e: // Put event in the channel unless it is full
 		return nil
