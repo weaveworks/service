@@ -27,8 +27,12 @@ readonly FILES=$@
 readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # split the argument into image and version
-image=$(echo "${IMAGE}" | cut -d':' -f 1)
-version=$(echo "${IMAGE}" | cut -d':' -f 2)
+image=$(echo "${IMAGE}" | cut -s -d':' -f 1)
+version=$(echo "${IMAGE}" | cut -s -d':' -f 2)
+if [ -z "${version}" ]; then
+    usage
+fi
+echo Version ${version}
 
 # escape a string for use in sed expressions
 escape() {
@@ -54,6 +58,8 @@ update_file() {
         # echo "Skipping ${filename} - does not use image" >&2
         return
     fi
+
+    ${DIR}/kubelint "${filename}"
 
     echo "Updating ${filename} - old image version was \"${existing_version}\""
     ${SED} -i "s/image: $(escape "${image}"):$(escape "${existing_version}")/image: $(escape "${image}"):$(escape "${version}")/" "${filename}"
