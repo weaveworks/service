@@ -1,5 +1,5 @@
 import React from 'react';
-import { Route, IndexRoute } from 'react-router';
+import { Redirect, Route, IndexRoute } from 'react-router';
 
 import AccountPage from './pages/account/page';
 import OrganizationPage from './pages/organization/page';
@@ -15,6 +15,7 @@ import RouterComponent from './components/router';
 export default function getRoutes() {
   return (
     <Route name="app" path="/" component={RouterComponent}>
+
       {/* Logged in */}
       <Route name="wrapper" path="app/:orgId" component={WrapperPage} />
       <Route name="organization" path="org/:orgId" component={OrganizationPage} />
@@ -23,6 +24,9 @@ export default function getRoutes() {
       {/* Sign up/Log in */}
       <Route component={LandingPage}>
         <IndexRoute component={CookieCheck} />
+        <Redirect from="login/success" to="/" />
+        <Redirect from="signup/success" to="/" />
+
         <Route name="register-form" path="signup" component={RegisterForm} />
         <Route name="login-form" path="login(/:error)" component={LoginForm} />
         <Route name="login-worker" path="login/:email/:token" component={Login} />
