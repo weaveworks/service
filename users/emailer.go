@@ -33,7 +33,7 @@ type emailer interface {
 	WelcomeEmail(u *user) error
 	ApprovedEmail(u *user, token string) error
 	LoginEmail(u *user, token string) error
-	InviteEmail(u *user, token string) error
+	InviteEmail(u *user, orgName, token string) error
 }
 
 type smtpEmailer struct {
@@ -142,16 +142,11 @@ func (s smtpEmailer) LoginEmail(u *user, token string) error {
 	return s.sender(e)
 }
 
-func (s smtpEmailer) InviteEmail(u *user, token string) error {
+func (s smtpEmailer) InviteEmail(u *user, orgName, token string) error {
 	e := email.NewEmail()
 	e.From = fromAddress
 	e.To = []string{u.Email}
 	e.Subject = "You've been invited to Scope"
-	var orgName string
-	for _, org := range u.Organizations {
-		orgName = org.Name
-		break
-	}
 	data := map[string]interface{}{
 		"LoginURL":         loginURL(u.Email, token, s.domain),
 		"RootURL":          s.domain,
@@ -208,16 +203,11 @@ func (s sendgridEmailer) LoginEmail(u *user, token string) error {
 	return s.client.Send(mail)
 }
 
-func (s sendgridEmailer) InviteEmail(u *user, token string) error {
+func (s sendgridEmailer) InviteEmail(u *user, orgName, token string) error {
 	mail := sendgridEmail(inviteEmailTemplate)
 	mail.AddTo(u.Email)
 	mail.AddSubstitution(":login_url", loginURL(u.Email, token, s.domain))
 	mail.AddSubstitution(":root_url", s.domain)
-	var orgName string
-	for _, org := range u.Organizations {
-		orgName = org.Name
-		break
-	}
 	mail.AddSubstitution(":org_name", orgName)
 	return s.client.Send(mail)
 }

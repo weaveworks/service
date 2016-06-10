@@ -14,8 +14,8 @@ type github struct {
 	OAuth
 }
 
-// Github authenticates users via github oauth
-func Github() Provider {
+// NewGithubProvider authenticates users via github oauth
+func NewGithubProvider() Provider {
 	return &github{
 		OAuth: OAuth{
 			Name: "Github",

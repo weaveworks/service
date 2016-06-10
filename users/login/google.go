@@ -14,8 +14,8 @@ type google struct {
 	OAuth
 }
 
-// Google authenticates users via github oauth
-func Google() Provider {
+// NewGoogleProvider authenticates users via google oauth
+func NewGoogleProvider() Provider {
 	return &google{
 		OAuth: OAuth{
 			Name: "Google",

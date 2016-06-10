@@ -36,7 +36,8 @@ func (a *OAuth) Flags(flags *flag.FlagSet) {
 	flag.StringVar(&a.Config.RedirectURL, name+"-redirect-url", a.Config.RedirectURL, "The URL to redirect users after going through the "+a.Name+" OAuth flow")
 }
 
-// Link we should render for the user to initiate a remote login
+// Link is a map of attributes for a link rendered into the UI. When the user
+// clicks it, it kicks off the remote authorization flow.
 func (a *OAuth) Link(id string, r *http.Request) map[string]string {
 	return map[string]string{
 		"href": a.Config.AuthCodeURL(

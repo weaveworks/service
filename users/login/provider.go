@@ -13,9 +13,8 @@ type Provider interface {
 	// Flags sets the flags this provider requires on the command-line
 	Flags(*flag.FlagSet)
 
-	// URL we should redirect the user to for this provider. If an ID is
-	// provided, we'll pass that through the redirect and associate the resultant
-	// account with it.
+	// Link is a map of attributes for a link rendered into the UI. When the user
+	// clicks it, it kicks off the remote authorization flow.
 	// Note: Providers which do not have an associated link, should return nil.
 	Link(id string, r *http.Request) map[string]string
 
@@ -34,8 +33,8 @@ var (
 )
 
 func init() {
-	Register("github", Github())
-	Register("google", Google())
+	Register("github", NewGithubProvider())
+	Register("google", NewGoogleProvider())
 }
 
 // Flags sets up the command-line flags for each registered provider.

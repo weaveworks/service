@@ -193,11 +193,6 @@ func main() {
 			uiHTTPlogger,
 		).Wrap(queryFwd),
 	)
-	rootRouter.Path("/api/users/org/{orgName}/users").Handler(
-		middleware.Merge(
-			orgAuthMiddleware,
-		).Wrap(queryFwd),
-	)
 	rootRouter.PathPrefix("/api").Handler(
 		middleware.Merge(
 			probeInstrumentation,

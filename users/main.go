@@ -622,7 +622,8 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	invitee, err := a.storage.InviteUser(view.Email, mux.Vars(r)["orgName"])
+	orgName := mux.Vars(r)["orgName"]
+	invitee, err := a.storage.InviteUser(view.Email, orgName)
 	if renderError(w, r, err) {
 		return
 	}
@@ -637,7 +638,7 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
-	if err = a.emailer.InviteEmail(invitee, token); err != nil {
+	if err = a.emailer.InviteEmail(invitee, orgName, token); err != nil {
 		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
