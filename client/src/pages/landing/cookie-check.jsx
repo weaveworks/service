@@ -33,7 +33,7 @@ export default class CookieCheck extends React.Component {
       this.setState({
         activityText: 'Not logged in. Please wait for the login form to load...'
       });
-      hashHistory.push('/login');
+      hashHistory.push('/signup');
     } else {
       const err = resp.errors[0];
       this.setState({

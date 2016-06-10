@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { RaisedButton, TextField } from 'material-ui';
 import { grey100, grey500, lightBlue500 } from 'material-ui/styles/colors';
+import { hashHistory } from 'react-router';
 
 import { postData } from '../../common/request';
 import { trackEvent, trackException, trackTiming, trackView,
@@ -28,6 +29,11 @@ export default class LoginForm extends React.Component {
 
   componentDidMount() {
     trackView('SignupForm');
+  }
+
+  handleClickLogin(ev) {
+    ev.preventDefault();
+    hashHistory.push('/login');
   }
 
   handleKeyDown(ev) {
@@ -88,7 +94,7 @@ export default class LoginForm extends React.Component {
   }
 
   render() {
-    const submitSuccess = this.state.token || this.state.mailSent;
+    const submitSuccess = Boolean(this.state.token) || this.state.mailSent;
     const styles = {
       submit: {
         marginLeft: '2em',
@@ -98,7 +104,7 @@ export default class LoginForm extends React.Component {
 
       confirmation: {
         textAlign: 'center',
-        display: this.state.mailSent ? 'block' : 'none'
+        display: submitSuccess ? 'block' : 'none'
       },
 
       confirmationIcon: {
@@ -120,7 +126,7 @@ export default class LoginForm extends React.Component {
       },
 
       form: {
-        display: !this.state.mailSent ? 'block' : 'none',
+        display: !submitSuccess ? 'block' : 'none',
         textAlign: 'center'
       },
 
@@ -137,10 +143,12 @@ export default class LoginForm extends React.Component {
       },
 
       loginVia: {
+        display: !submitSuccess ? 'block' : 'none',
         textAlign: 'center'
       },
 
       splitter: {
+        display: !submitSuccess ? 'block' : 'none',
         textAlign: 'center',
         padding: '36px 0px',
         textTransform: 'uppercase'
@@ -168,12 +176,14 @@ export default class LoginForm extends React.Component {
             backgroundColor={grey500} labelColor={grey100}
             disabled={this.state.submitting} onClick={this._handleSubmit} />
           <div style={styles.formHint}>
-            Already have an account? <a href="/login">Log in</a>
+            Already have an account? <a href="/login" onClick={this.handleClickLogin}>Log in</a>
           </div>
         </div>
         <div style={styles.confirmation}>
           <span className="fa fa-check" style={styles.confirmationIcon}></span>
-          <p>A mail with further instructions was sent to {this.state.email}</p>
+          <p>
+            We just sent you a verification email with a link to {this.state.email}.
+          </p>
         </div>
         {submitSuccess && <PardotSignupIFrame email={this.state.email} />}
       </div>

@@ -1,11 +1,21 @@
 import React from 'react';
 import { FlatButton } from 'material-ui';
 import { grey200, grey300 } from 'material-ui/styles/colors';
+import { hashHistory } from 'react-router';
 
 import { FlexContainer } from '../../components/flex-container';
 import { Logo } from '../../components/logo';
 
 export default class LandingPage extends React.Component {
+
+  handleClickLogin() {
+    hashHistory.push('/login');
+  }
+
+
+  handleClickSignup() {
+    hashHistory.push('/signup');
+  }
 
   renderLinks(linkStyle) {
     const links = [
@@ -20,6 +30,8 @@ export default class LandingPage extends React.Component {
   }
 
   render() {
+    const showingLogin = this.props.location.pathname === '/signup';
+    const showingSignup = this.props.location.pathname === '/login';
     const styles = {
       backgroundContainer: {
       },
@@ -96,9 +108,14 @@ export default class LandingPage extends React.Component {
           <div style={styles.menuWrapper}>
             {links}
           </div>
-          <div style={styles.loginWrapper}>
-            <FlatButton backgroundColor={grey300} label="Log in" />
-          </div>
+          {showingLogin && <div style={styles.loginWrapper}>
+            <FlatButton backgroundColor={grey300} label="Log in"
+              onClick={this.handleClickLogin} />
+          </div>}
+          {showingSignup && <div style={styles.loginWrapper}>
+            <FlatButton backgroundColor={grey300} label="Sign up"
+              onClick={this.handleClickSignup} />
+          </div>}
         </div>
         <FlexContainer>
           <div style={styles.featureWrapper}>
