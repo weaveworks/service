@@ -30,13 +30,13 @@ coverage.html
 *~
 
 # Project specific
-.*.uptodate
-*.in-container
+.uptodate
 users/users
-users/db/migrate
 authfe/authfe
-kubediff/prom-run
-vendor/github.com/tomwilkie/prom-run/prom-run
+kubediff/vendor/github.com/tomwilkie/prom-run/prom-run
+client/build/*
+ui-server/build/*
+
 Vagrantfile.local
 .dir-locals.el
 image.tar

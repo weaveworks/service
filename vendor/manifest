@@ -508,14 +508,6 @@
 			"notests": true
 		},
 		{
-			"importpath": "github.com/tomwilkie/prom-run",
-			"repository": "https://github.com/tomwilkie/prom-run",
-			"vcs": "git",
-			"revision": "fe36d85588336c8183ab0306d2d578a1dffb423e",
-			"branch": "master",
-			"notests": true
-		},
-		{
 			"importpath": "github.com/ugorji/go/codec",
 			"repository": "https://github.com/ugorji/go",
 			"vcs": "",
