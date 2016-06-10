@@ -88,7 +88,7 @@ You can also pull existing containers from Quay and re-tag them as latest.
 
 ```
 $ bash -c '
-  for c in $(grep "quay.io/weaveworks/" k8s/prod/*-rc.yaml | awk \'{print $3}\')
+  for c in $(find k8s/prod -name "*-rc.yaml" | xargs grep -h -o "quay.io/weaveworks/.*$" )
   do
     docker pull $c
     docker tag -f $c $(echo $c | cut -d\':\' -f1):latest
