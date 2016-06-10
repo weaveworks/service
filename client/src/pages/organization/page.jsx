@@ -68,7 +68,8 @@ export default class OrganizationPage extends React.Component {
         color: Colors.text2
       },
       container: {
-        marginTop: 128
+        marginTop: 64,
+        marginLeft: 64
       },
       logoWrapper: {
         position: 'absolute',
@@ -110,9 +111,9 @@ export default class OrganizationPage extends React.Component {
         {this.state.name && <div style={styles.container}>
           <FlexContainer>
             <Column minWidth="400">
-              <h1>Configure your app</h1>
               <div style={styles.step}>
                 <span style={styles.circle}>1</span>
+                <h2>Configure your app</h2>
                 Run the following commands on your Docker hosts to connect them
                 as probes to this Weave Cloud instance:
               </div>
@@ -125,11 +126,15 @@ export default class OrganizationPage extends React.Component {
               </Box>
               <div style={styles.step}>
                 <span style={styles.circle}>2</span>
+                <h2>Invite members</h2>
+                <Users org={this.state.name} />
+              </div>
+              <div style={styles.step}>
+                <span style={styles.circle}>3</span>
+                <h2>Visit Instance</h2>
                 Once you have started the probe on your Docker hosts,
                 click "View Instance" in the top right.
               </div>
-              <h1>Invite members</h1>
-              <Users org={this.state.name} />
             </Column>
             <Column width="400">
               <Paper style={{marginTop: '4em', marginBottom: '1em'}}>
