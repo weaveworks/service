@@ -9,6 +9,7 @@ import { FlexContainer } from '../../components/flex-container';
 import { Column } from '../../components/column';
 import { Logo } from '../../components/logo';
 import Probes from './probes';
+import Users from './users';
 import Toolbar from '../../components/toolbar';
 import { trackException, trackView } from '../../common/tracking';
 
@@ -127,6 +128,8 @@ export default class OrganizationPage extends React.Component {
                 Once you have started <code>scope</code> on your Docker hosts,
                 click "My Scope" in the top right.
               </div>
+              <h1>Invite members</h1>
+              <Users org={this.state.name} />
             </Column>
             <Column width="400">
               <Paper style={{marginTop: '4em', marginBottom: '1em'}}>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Route, IndexRoute } from 'react-router';
 
+import AccountPage from './pages/account/page';
 import OrganizationPage from './pages/organization/page';
 import LandingPage from './pages/landing/page';
 import CookieCheck from './pages/landing/cookie-check';
@@ -15,11 +16,13 @@ export default function getRoutes() {
     <Route name="app" path="/" component={RouterComponent}>
       <Route name="wrapper" path="app/:orgId" component={WrapperPage} />
       <Route name="organization" path="org/:orgId" component={OrganizationPage} />
+      <Route name="account" path="account" component={AccountPage} />
       <Route component={LandingPage}>
         <IndexRoute component={CookieCheck} />
         <Route name="login-form" path="login" component={LoginForm} />
         <Route name="login-form" path="login/:error" component={LoginForm} />
         <Route name="login" path="login/:email/:token" component={Login} />
+        <Route name="login-via" path="login-via/:provider" component={Login} />
         <Route name="logout" path="logout" component={Logout} />
       </Route>
     </Route>

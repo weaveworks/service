@@ -6,6 +6,7 @@ import { grey100, lightBlue500, orange500 } from 'material-ui/styles/colors';
 import { postData } from '../../common/request';
 import { trackEvent, trackException, trackTiming, trackView,
   PardotSignupIFrame } from '../../common/tracking';
+import { LoginVia } from './login-via';
 
 export default class LoginForm extends React.Component {
 
@@ -133,6 +134,7 @@ export default class LoginForm extends React.Component {
           <span className="fa fa-check" style={styles.confirmationIcon}></span>
           <p>A mail with further instructions was sent to {this.state.email}</p>
         </div>
+        <LoginVia />
         {submitSuccess && <PardotSignupIFrame email={this.state.email} />}
       </div>
     );

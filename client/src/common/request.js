@@ -78,6 +78,17 @@ export function toQueryString(params) {
   return Object.keys(params).map((k) => `${k}=${encodeURIComponent(params[k])}`).join('&');
 }
 
+export function fromQueryString(string) {
+  const result = {};
+  string.
+    slice(1).
+    split('&').
+    map(pair => pair.split('=', 2)).
+    forEach(([k, v]) => { result[k] = decodeURIComponent(v || ''); });
+  return result;
+}
+
+
 export function getData(url, params) {
   const getUrl = params ? `${url}?${toQueryString(params)}` : url;
   return doRequest(getUrl, 'GET');

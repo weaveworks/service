@@ -27,14 +27,20 @@ export default class LoginForm extends React.Component {
   }
 
   _tryLogin() {
-    const {email, token} = this.props.params;
-    const url = '/api/users/login';
-    getData(url, {email, token})
+    let url = '/api/users/login';
+    if (this.props.params.provider) {
+      url += `/${this.props.params.provider}`;
+    }
+    getData(url, Object.assign({}, this.props.params, this.props.location.query))
       .then(this._handleLoginSuccess, this._handleLoginError);
   }
 
-  _handleLoginSuccess() {
-    hashHistory.push('/');
+  _handleLoginSuccess(resp) {
+    if (resp.redirectTo) {
+      hashHistory.push(resp.redirectTo);
+    } else {
+      hashHistory.push('/');
+    }
   }
 
   _handleLoginError(resp) {
