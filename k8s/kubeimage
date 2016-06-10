@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+set -eu
+
+usage() {
+    echo "Usage: $0 <image name>:<image version> (filenames...)" >&2
+    echo "  Replaces usages of <image name> in (filenames) with the specified" >&2
+    echo "  version and updates k8s version labels to match." >&2
+    exit 2
+}
+
+if [ $# -lt 2 ]; then
+    usage
+elif [ "$1" = "--help" -o "$1" = "-h" ]; then
+    usage
+fi
+
+if [ "$(uname)" = "Darwin" ]; then
+    SED=gsed
+else
+    SED=sed
+fi
+
+readonly IMAGE=$1
+shift 1
+readonly FILES=$@
+readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# split the argument into image and version
+image=$(echo "${IMAGE}" | cut -d':' -f 1)
+version=$(echo "${IMAGE}" | cut -d':' -f 2)
+
+# escape a string for use in sed expressions
+escape() {
+    echo "$1" | ${SED} -e 's/[\/&]/\\&/g'
+}
+
+# extract the existing version
+existing_version() {
+    local filename=$1
+    ${SED} -nr "s/^(\s*)image: $(escape "${image}")://p" "${filename}"
+}
+
+update_file() {
+    local filename=$1
+    local rcname=$(basename "${filename}" | ${SED} -n "s/^\([a-z\-]*\)-rc\.yaml/\1/p")
+    if [ -z "${rcname}" ]; then
+        # echo "Skipping ${filename} - no -rc.yaml prefix" >&2
+        return
+    fi
+
+    local existing_version="$(existing_version "${filename}")"
+    if [ -z "${existing_version}" ]; then
+        # echo "Skipping ${filename} - does not use image" >&2
+        return
+    fi
+
+    echo "Updating ${filename} - old image version was \"${existing_version}\""
+    ${SED} -i "s/image: $(escape "${image}"):$(escape "${existing_version}")/image: $(escape "${image}"):$(escape "${version}")/" "${filename}"
+    ${SED} -i "s/version: $(escape "${existing_version}")/version: $(escape "${version}")/" "${filename}"
+    ${SED} -i "s/name: $(escape "${rcname}")\-$(escape "${existing_version}")/name: $(escape "${rcname}")\-$(escape "${version}")/" "${filename}"
+
+    ${DIR}/kubelint "${filename}"
+}
+
+for filename in ${FILES}; do
+    update_file "${filename}"
+done
