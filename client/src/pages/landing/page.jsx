@@ -1,17 +1,15 @@
 import React from 'react';
+import { FlatButton } from 'material-ui';
+import { grey200, grey300 } from 'material-ui/styles/colors';
 
-import { BackgroundContainer } from '../../components/background-container';
 import { FlexContainer } from '../../components/flex-container';
 import { Logo } from '../../components/logo';
-import RegisterForm from './register-form';
 
 export default class LandingPage extends React.Component {
 
   renderLinks(linkStyle) {
     const links = [
-      {href: 'http://weave.works', text: 'Weaveworks'},
-      {href: 'http://blog.weave.works', text: 'Blog'},
-      {href: 'http://weave.works/help', text: 'Support'},
+      {href: 'http://weave.works/help', text: 'Help'}
     ];
 
     return links.map(link => (
@@ -23,21 +21,23 @@ export default class LandingPage extends React.Component {
 
   render() {
     const styles = {
+      backgroundContainer: {
+      },
       featureHeader: {
         fontSize: 48,
         fontWeight: 300
       },
       featureWrapper: {
-        marginTop: 48,
         padding: 16,
         width: 500
       },
       formContainer: {
         marginBottom: 16,
-        padding: '12px 48px 48px',
-        width: 420,
-        backgroundColor: 'rgba(250,250,252,0.7)',
-        borderRadius: 4
+        padding: '12px 24px 24px',
+        width: 480,
+        backgroundColor: grey200,
+        border: '1px solid #2DB5CA',
+        borderRadius: 6
       },
       formWrapper: {
         padding: 12,
@@ -49,8 +49,8 @@ export default class LandingPage extends React.Component {
         fontWeight: 300
       },
       infoItem: {
-        fontSize: '0.8rem',
-        marginTop: '0.5rem'
+        fontSize: '1rem',
+        marginTop: '1rem'
       },
       infoWrapper: {
       },
@@ -58,17 +58,16 @@ export default class LandingPage extends React.Component {
         display: 'flex',
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'center',
+        justifyContent: 'right',
         marginBottom: 36,
-        marginTop: 56
+        marginTop: 36
       },
       link: {
         textTransform: 'uppercase',
         padding: '12px 1rem'
       },
       loginWrapper: {
-        width: 280,
-        padding: '16px 48px 16px 24px'
+        padding: '26px 48px 16px 24px'
       },
       logoWrapper: {
         width: 250,
@@ -87,7 +86,7 @@ export default class LandingPage extends React.Component {
 
     const links = this.renderLinks(styles.link);
     return (
-      <BackgroundContainer imageUrl="landing.jpg">
+      <div style={styles.backgroundContainer}>
         <div style={styles.headerContainer}>
           <div style={styles.logoWrapper}>
             <Logo />
@@ -98,7 +97,7 @@ export default class LandingPage extends React.Component {
             {links}
           </div>
           <div style={styles.loginWrapper}>
-            {this.props.children}
+            <FlatButton backgroundColor={grey300} label="Log in" />
           </div>
         </div>
         <FlexContainer>
@@ -107,40 +106,8 @@ export default class LandingPage extends React.Component {
               Weave Scope is a fast and simple way to visualize,
               manage and monitor containers and microservices
             </div>
-          </div>
-          <div style={styles.formContainer}>
-            <div style={styles.infoWrapper}>
-              <div style={styles.infoHeader}>
-                Request an invite to our Early Access program
-              </div>
-            </div>
-
-            <div style={styles.formWrapper}>
-              <RegisterForm />
-            </div>
 
             <div style={styles.infoWrapper}>
-              <div style={styles.infoHeader}>
-                How it works
-              </div>
-              <ol>
-                <li style={styles.infoItem}>
-                  Submit your email to apply for participation in the Early Access program
-                </li>
-                <li style={styles.infoItem}>
-                  You'll receive an email with sign up details when we approve your participation.
-                </li>
-                <li style={styles.infoItem}>
-                  Follow the simple instructions in the email to install
-                  the drop-in probe container and connect it to Scope.
-                </li>
-              </ol>
-              <div style={styles.infoItem}>
-                <em>Participation in the Early Access program is free of charge.</em>
-              </div>
-              <div style={styles.infoHeader}>
-                Learn
-              </div>
               <div style={styles.infoItem}>
                 Learn more about Weave Scope <a href="http://weave.works/scope" target="website">on our website.</a>
               </div>
@@ -150,8 +117,13 @@ export default class LandingPage extends React.Component {
               </div>
             </div>
           </div>
+          <div style={styles.formContainer}>
+            <div style={styles.formWrapper}>
+              {this.props.children}
+            </div>
+          </div>
         </FlexContainer>
-      </BackgroundContainer>
+      </div>
     );
   }
 }

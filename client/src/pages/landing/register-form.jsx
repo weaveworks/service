@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { RaisedButton, TextField } from 'material-ui';
-import { grey100, lightBlue500, orange500 } from 'material-ui/styles/colors';
+import { grey100, grey500, lightBlue500 } from 'material-ui/styles/colors';
 
 import { postData } from '../../common/request';
 import { trackEvent, trackException, trackTiming, trackView,
@@ -18,7 +18,7 @@ export default class LoginForm extends React.Component {
       token: null,
       email: null,
       mailSent: false,
-      submitText: 'Register',
+      submitText: 'Go',
       submitting: false
     };
 
@@ -71,7 +71,7 @@ export default class LoginForm extends React.Component {
             this.setState({
               errorText: resp,
               submitting: false,
-              submitText: 'Register'
+              submitText: 'Go'
             });
             trackException(resp);
           });
@@ -111,30 +111,70 @@ export default class LoginForm extends React.Component {
       },
 
       emailFieldLine: {
-        borderColor: orange500,
+        borderColor: grey500,
         borderWidth: 2
+      },
+
+      emailFieldFocusLine: {
+        borderColor: grey500
       },
 
       form: {
         display: !this.state.mailSent ? 'block' : 'none',
+        textAlign: 'center'
+      },
+
+      formHint: {
+        marginTop: '0.5em',
+        textAlign: 'center',
+        fontSize: '0.8rem'
+      },
+
+      heading: {
+        fontSize: 18,
+        textTransform: 'uppercase',
+        marginBottom: 36
+      },
+
+      loginVia: {
+        textAlign: 'center'
+      },
+
+      splitter: {
+        textAlign: 'center',
+        padding: '36px 0px',
+        textTransform: 'uppercase'
       }
     };
 
     return (
       <div>
+        <div style={styles.heading}>
+          Sign up
+        </div>
+        <div style={styles.loginVia}>
+          <LoginVia prefix="Sign up" />
+        </div>
+        <div style={styles.splitter}>
+          or
+        </div>
         <div style={styles.form}>
-          <TextField hintText="Email" ref="emailField" type="email" errorText={this.state.errorText}
+          <TextField hintText="Sign up with Email" ref="emailField" type="email"
+            errorText={this.state.errorText}
+            underlineFocusStyle={styles.emailFieldFocusLine}
             underlineStyle={styles.emailFieldLine} style={styles.emailField}
             onKeyDown={this.handleKeyDown} />
           <RaisedButton label={this.state.submitText} style={styles.submit}
-            backgroundColor={orange500} labelColor={grey100}
+            backgroundColor={grey500} labelColor={grey100}
             disabled={this.state.submitting} onClick={this._handleSubmit} />
+          <div style={styles.formHint}>
+            Already have an account? <a href="/login">Log in</a>
+          </div>
         </div>
         <div style={styles.confirmation}>
           <span className="fa fa-check" style={styles.confirmationIcon}></span>
           <p>A mail with further instructions was sent to {this.state.email}</p>
         </div>
-        <LoginVia />
         {submitSuccess && <PardotSignupIFrame email={this.state.email} />}
       </div>
     );

@@ -4,6 +4,16 @@ import { RaisedButton } from 'material-ui';
 import { getData } from '../../common/request';
 import { trackException, trackView } from '../../common/tracking';
 
+function injectPrefix(logins, prefix) {
+  if (prefix) {
+    return (logins || []).map(l => {
+      l.label = l.label.replace('Log in', prefix);
+      return l;
+    });
+  }
+  return logins;
+}
+
 export default class LoginVia extends React.Component {
 
   constructor(props) {
@@ -26,7 +36,8 @@ export default class LoginVia extends React.Component {
   }
 
   _handleLoadSuccess(resp) {
-    this.setState(resp);
+    const logins = injectPrefix(resp.logins, this.props.prefix);
+    this.setState({ logins });
   }
 
   _handleLoadError(resp) {
@@ -36,24 +47,26 @@ export default class LoginVia extends React.Component {
   render() {
     const styles = {
       base: {
-        color: Colors.white,
-        marginLeft: '2em',
         marginTop: '3px',
         verticalAlign: 'top'
+      },
+      wrapper: {
+        marginRight: '1em'
       }
     };
     return (
-      <div>
+      <span>
         {(this.state.logins || []).map(a =>
-            <div key={a.href}>
-              <RaisedButton linkButton secondary
+            <span key={a.href} className="login-via" style={styles.wrapper}>
+              <RaisedButton
                 style={styles.base}
+                labelColor={Colors.white}
                 {...a}
                 icon={<span className={a.icon}></span>}
               />
-            </div>
+            </span>
         )}
-        </div>
+        </span>
     );
   }
 }
