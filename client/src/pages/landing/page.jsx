@@ -72,14 +72,15 @@ export default class LandingPage extends React.Component {
         flexWrap: 'wrap',
         justifyContent: 'right',
         marginBottom: 36,
-        marginTop: 36
+        marginTop: 36,
+        marginRight: 24
       },
       link: {
         textTransform: 'uppercase',
         padding: '12px 1rem'
       },
       loginWrapper: {
-        padding: '26px 48px 16px 24px'
+        padding: '26px 24px 16px 24px'
       },
       logoWrapper: {
         width: 250,

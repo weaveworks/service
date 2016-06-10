@@ -175,11 +175,10 @@ export default class LoginForm extends React.Component {
       },
 
       unauthorized: {
+        display: 'inline-block',
         position: 'relative',
         width: 228,
         fontSize: 14,
-        marginTop: 8,
-        display: unauthorized ? 'block' : 'none'
       },
 
       unauthorizedIcon: {
@@ -193,6 +192,12 @@ export default class LoginForm extends React.Component {
       unauthorizedLabel: {
         color: amber900,
         paddingLeft: 32
+      },
+
+      unauthorizedWrapper: {
+        marginTop: 16,
+        textAlign: 'center',
+        display: unauthorized ? 'block' : 'none'
       }
     };
 
@@ -221,10 +226,12 @@ export default class LoginForm extends React.Component {
             You’ll get an email with a login token.
           </div>
         </div>
-        <div style={styles.unauthorized}>
-          <span className="fa fa-ban" style={styles.unauthorizedIcon}></span>
-          <div style={styles.unauthorizedLabel}>
-            The login link is no longer valid. Enter your email to log in.
+        <div style={styles.unauthorizedWrapper}>
+          <div style={styles.unauthorized}>
+            <span className="fa fa-ban" style={styles.unauthorizedIcon}></span>
+            <div style={styles.unauthorizedLabel}>
+              The login link is no longer valid. Enter your email to log in again.
+            </div>
           </div>
         </div>
         <div style={styles.confirmation}>
