@@ -17,10 +17,10 @@ dependencies:
   post:
     - mkdir -p $(dirname $SRCDIR)
     - cp -r $(pwd)/ $SRCDIR
-    - cd $SRCDIR/client; ../tools/rebuild-image service_client_build . Dockerfile package.json webpack.local.config.js webpack.production.config.js .babelrc
-    - touch $SRCDIR/client/.service_client_build.uptodate
-    - cd $SRCDIR/build; ../tools/rebuild-image service_build . build.sh Dockerfile
-    - touch $SRCDIR/build/.image.uptodate
+    - cd $SRCDIR/client; ../tools/rebuild-image quay.io/weaveworks/client . Dockerfile package.json webpack.local.config.js webpack.production.config.js .babelrc
+    - touch $SRCDIR/client/.uptodate
+    - cd $SRCDIR/build; ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile
+    - touch $SRCDIR/build/.uptodate
 
 test:
   override:

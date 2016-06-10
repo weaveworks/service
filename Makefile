@@ -1,64 +1,67 @@
-.PHONY: all test app-mapper-integration-test users-integration-test deps clean client-build-image client-tests client-lint
-.DEFAULT: all
+.PHONY: all test users-integration-test clean client-build-image client-tests client-lint
+.DEFAULT_GOAL := all
 
-BUILD_UPTODATE=build/.image.uptodate
-BUILD_IMAGE=service_build
+# Boiler plate for bulding Docker containers.
+# All this must go at top of file I'm afraid.
+IMAGE_PREFIX := quay.io/weaveworks
+IMAGE_TAG := $(shell ./image-tag)
+UPTODATE := .uptodate
+UPTODATE_FILES =
+IMAGE_NAMES =
 
-IMAGE_TAG:=$(shell ./image-tag)
+# Building Docker images is now automated.  The convention is every directory
+# with a Dockerfile in it builds an image calls quay.io/weaveworks/<dirname>.
+# Dependancies (ie things that go in the image) still need to be explicitly
+# declared.
+define DOCKER_IMAGE_template
+$(1)/$(UPTODATE): $(1)/Dockerfile
+	$(SUDO) docker build -t $(IMAGE_PREFIX)/$(basename $(1)) $(1)/
+	$(SUDO) docker tag $(IMAGE_PREFIX)/$(basename $(1)) $(IMAGE_PREFIX)/$(basename $(1)):$(IMAGE_TAG)
+	touch $(1)/$(UPTODATE)
 
-AUTHFE_UPTODATE=authfe/.images.uptodate
-AUTHFE_EXE=authfe/authfe
-AUTHFE_IMAGE=quay.io/weaveworks/authfe
+UPTODATE_FILES += $(1)/$(UPTODATE)
+IMAGE_NAMES += $(IMAGE_PREFIX)/$(basename $(1))
+endef
 
-USERS_UPTODATE=users/.images.uptodate
-USERS_EXE=users/users
-USERS_IMAGE=quay.io/weaveworks/users
-USERS_DB_IMAGE=weaveworks/users-db # The DB image is only used in the local environment and it's not pushed to Quay
-USERS_DB_MIGRATE_EXE=users/db/migrate
+# Get a list of directories container Dockerfiles, and run DOCKER_IMAGE on all
+# of them.
+DOCKER_IMAGE_DIRS=$(shell find * -type f -name Dockerfile ! -path "tools/*" ! -path "vendor/*" | xargs -n1 dirname)
+$(foreach dir,$(DOCKER_IMAGE_DIRS),$(eval $(call DOCKER_IMAGE_template,$(dir))))
 
-METRICS_UPTODATE=metrics/.uptodate
-METRICS_EXE=metrics/metrics
-METRICS_IMAGE=quay.io/weaveworks/metrics
+all: $(UPTODATE_FILES)
 
-JSON_BUILDER_UPTODATE=launch-generator/.uptodate
-JSON_BUILDER_IMAGE=quay.io/weaveworks/launch-generator
+# List of exes please
+AUTHFE_EXE := authfe/authfe
+USERS_EXE := users/users
+METRICS_EXE := metrics/metrics
+PROM_RUN_EXE := kubediff/vendor/github.com/tomwilkie/prom-run/prom-run
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_RUN_EXE)
 
-CLIENT_SERVER_UPTODATE=client/.ui-server.uptodate
-CLIENT_BUILD_UPTODATE=client/.service_client_build.uptodate
-CLIENT_SERVER_IMAGE=quay.io/weaveworks/ui-server
-CLIENT_BUILD_IMAGE=service_client_build # only for local use
-JS_FILES=$(shell find client/src -name '*.jsx' -or -name '*.js')
+# And what goes into each exe
+COMMON := $(shell find common -name '*.go')
+$(AUTHFE_EXE): $(shell find authfe -name '*.go') $(COMMON)
+$(USERS_EXE): $(shell find users -name '*.go') $(COMMON)
+$(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
+$(PROM_RUN_EXE): $(shell find ./kubediff/vendor/github.com/tomwilkie/prom-run/ -name '*.go') $(COMMON)
 
-FRONTEND_MT_UPTODATE=frontend-mt/.image.uptodate
-FRONTEND_MT_IMAGE=quay.io/weaveworks/frontend-mt
+# And now what goes into each image
+authfe/$(UPTODATE): $(AUTHFE_EXE)
+users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql')
+metrics/$(UPTODATE): $(METRICS_EXE)
+launch-generator/$(UPTODATE): launch-generator/src/*.js launch-generator/package.json
+kubediff/$(UPTODATE): $(PROM_RUN_EXE)
+frontend-mt/$(UPTODATE): frontend-mt/default.conf frontend-mt/api.json frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
+logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
+client/client-build/$(UPTODATE): client/package.json client/webpack.*
+client/$(UPTODATE): client/package.json client/webpack.* client/server.js
+ui-server/$(UPTODATE): ui-server/build/app.js
 
-MONITORING_UPTODATE=monitoring/.images.uptodate
-
-KUBEDIFF_UPTODATE=kubediff/.image.uptodate
-KUBEDIFF_IMAGE=quay.io/weaveworks/kubediff
-PROM_RUN_EXE=vendor/github.com/tomwilkie/prom-run/prom-run
-
-LOGGING_UPTODATE=logging/.images.uptodate
-LOGGING_IMAGE=quay.io/weaveworks/logging
-
-# If you can use Docker without being root, you can `make SUDO= <target>`
-SUDO=$(shell docker info >/dev/null 2>&1 || echo "sudo -E")
-BUILD_IN_CONTAINER=true
-RM=--rm
-GO_FLAGS=-ldflags "-extldflags \"-static\" -linkmode=external" -tags netgo
-DOCKER_HOST_CHECK=@if echo "$$DOCKER_HOST" | grep "127.0.0.1" >/dev/null; then \
-	echo "DOCKER_HOST is set to \"$$DOCKER_HOST\"!"; \
-	echo "If you are trying to build for dev/prod, this is probably a mistake."; \
-	while true; do \
-		read -p "Are you sure you want to continue? " yn; \
-		case $$yn in \
-			yes) break;; \
-			no) exit 1;; \
-			*) echo "Please type 'yes' or 'no'.";; \
-		esac; \
-	done; \
-fi
-NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
+# All the boiler plate for building golang follows:
+SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
+BUILD_IN_CONTAINER := true
+RM := --rm
+GO_FLAGS := -ldflags "-extldflags \"-static\" -linkmode=external -s -w" -tags netgo -i
+NETGO_CHECK = @strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 	rm $@; \
 	echo "\nYour go standard library was built without the 'netgo' build tag."; \
 	echo "To fix that, run"; \
@@ -67,117 +70,67 @@ NETGO_CHECK=@strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 	false; \
 }
 
-all: $(AUTHFE_UPTODATE) $(USERS_UPTODATE) $(CLIENT_SERVER_UPTODATE) $(MONITORING_UPTODATE) $(METRICS_UPTODATE) $(JSON_BUILDER_UPTODATE) $(FRONTEND_MT_UPTODATE) $(KUBEDIFF_UPTODATE) $(LOGGING_UPTODATE)
-
-$(BUILD_UPTODATE): build/*
-	$(DOCKER_HOST_CHECK)
-	$(SUDO) docker build -t $(BUILD_IMAGE) build/
-	$(SUDO) docker tag $(BUILD_IMAGE) $(BUILD_IMAGE):$(IMAGE_TAG)
-	touch $@
-
-$(AUTHFE_UPTODATE): authfe/Dockerfile $(AUTHFE_EXE)
-	$(DOCKER_HOST_CHECK)
-	$(SUDO) docker build -t $(AUTHFE_IMAGE) authfe/
-	$(SUDO) docker tag $(AUTHFE_IMAGE) $(AUTHFE_IMAGE):$(IMAGE_TAG)
-	touch $@
-
-$(USERS_UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/Dockerfile $(USERS_DB_MIGRATE_EXE)
-	$(DOCKER_HOST_CHECK)
-	$(SUDO) docker build -t $(USERS_IMAGE) users/
-	$(SUDO) docker tag $(USERS_IMAGE) $(USERS_IMAGE):$(IMAGE_TAG)
-	$(SUDO) docker build -t $(USERS_DB_IMAGE) users/db/
-	touch $@
-
-$(METRICS_UPTODATE): metrics/Dockerfile $(METRICS_EXE)
-	$(DOCKER_HOST_CHECK)
-	$(SUDO) docker build -t $(METRICS_IMAGE) metrics/
-	$(SUDO) docker tag $(METRICS_IMAGE) $(METRICS_IMAGE):$(IMAGE_TAG)
-	touch $@
-
-$(JSON_BUILDER_UPTODATE): launch-generator/Dockerfile launch-generator/src/*.js launch-generator/package.json
-	$(DOCKER_HOST_CHECK)
-	$(SUDO) docker build -t $(JSON_BUILDER_IMAGE) launch-generator/
-	$(SUDO) docker tag $(JSON_BUILDER_IMAGE) $(JSON_BUILDER_IMAGE):$(IMAGE_TAG)
-	touch $@
-
-$(CLIENT_BUILD_UPTODATE): client/Dockerfile client/package.json client/webpack.*
-	$(DOCKER_HOST_CHECK)
-	$(SUDO) docker build -t $(CLIENT_BUILD_IMAGE) client/
-	touch $@
-
-$(CLIENT_SERVER_UPTODATE): client/build/app.js client/src/Dockerfile client/src/html/index.html
-	$(DOCKER_HOST_CHECK)
-	cp client/src/Dockerfile client/build/
-	$(SUDO) docker build -t $(CLIENT_SERVER_IMAGE) client/build/
-	$(SUDO) docker tag $(CLIENT_SERVER_IMAGE) $(CLIENT_SERVER_IMAGE):$(IMAGE_TAG)
-	touch $@
-
-$(FRONTEND_MT_UPTODATE): frontend-mt/Dockerfile frontend-mt/default.conf frontend-mt/api.json frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
-	$(DOCKER_HOST_CHECK)
-	$(SUDO) docker build -t $(FRONTEND_MT_IMAGE) frontend-mt/
-	$(SUDO) docker tag $(FRONTEND_MT_IMAGE) $(FRONTEND_MT_IMAGE):$(IMAGE_TAG)
-	touch $@
-
-$(MONITORING_UPTODATE):
-	make -C monitoring
-
-$(KUBEDIFF_UPTODATE): kubediff/Dockerfile $(PROM_RUN_EXE)
-	$(DOCKER_HOST_CHECK)
-	cp $(PROM_RUN_EXE) kubediff/
-	$(SUDO) docker build -t $(KUBEDIFF_IMAGE) kubediff
-	$(SUDO) docker tag $(KUBEDIFF_IMAGE) $(KUBEDIFF_IMAGE):$(IMAGE_TAG)
-	touch $@
-
-$(LOGGING_UPTODATE): logging/Dockerfile logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
-	$(DOCKER_HOST_CHECK)
-	$(SUDO) docker build -t $(LOGGING_IMAGE) logging/
-	$(SUDO) docker tag $(LOGGING_IMAGE) $(LOGGING_IMAGE):$(IMAGE_TAG)
-	touch $@
-
-$(AUTHFE_EXE): $(shell find authfe -name '*.go')
-$(USERS_EXE): $(shell find users -name '*.go')
-$(METRICS_EXE): $(shell find metrics -name '*.go')
-$(PROM_RUN_EXE): $(shell find ./vendor/github.com/tomwilkie/prom-run/.)
-$(USERS_DB_MIGRATE_EXE): $(shell find ./vendor/github.com/mattes/migrate/.)
-
 ifeq ($(BUILD_IN_CONTAINER),true)
 
-$(AUTHFE_EXE) $(USERS_EXE) $(USERS_DB_MIGRATE_EXE) $(METRICS_EXE) $(PROM_RUN_EXE) lint test: $(BUILD_UPTODATE)
-	$(SUDO) docker run $(RM) -ti -v $(shell pwd):/go/src/github.com/weaveworks/service \
+$(EXES) lint test: build/$(UPTODATE)
+	@mkdir -p $(shell pwd)/.pkg
+	$(SUDO) docker run $(RM) -ti \
+		-v $(shell pwd)/.pkg:/go/pkg \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
-		$(BUILD_IMAGE) $@
+		$(IMAGE_PREFIX)/build $@
 
 else
 
-$(AUTHFE_EXE) $(USERS_EXE): $(BUILD_UPTODATE)
+$(AUTHFE_EXE) $(USERS_EXE) $(PROM_RUN_EXE): build/$(UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
-$(METRICS_EXE): $(BUILD_UPTODATE)
+$(METRICS_EXE): build/$(UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 
-$(USERS_DB_MIGRATE_EXE): $(BUILD_UPTODATE)
-	go build $(GO_FLAGS) -o $@ ./vendor/github.com/mattes/migrate
-
-$(PROM_RUN_EXE): $(BUILD_UPTODATE)
-	go build $(GO_FLAGS) -o $@ ./vendor/github.com/tomwilkie/prom-run
-
-lint: $(BUILD_UPTODATE)
+lint: build/$(UPTODATE)
 	./tools/lint .
 	# This mapping of cluster to lint options is duplicated in 'rolling-update'.
 	./k8s/kubelint --noversions ./k8s/local
 	./k8s/kubelint ./k8s/dev ./k8s/prod
 	promtool check-rules ./monitoring/prometheus/alert.rules
 
-test: $(BUILD_UPTODATE)
+test: build/$(UPTODATE)
 	./tools/test -no-go-get
 
 endif
 
+# All the boiler plate for building the client follows:
+JS_FILES=$(shell find client/src -name '*.jsx' -or -name '*.js')
+
+client-tests: client/$(UPTODATE) $(JS_FILES)
+	$(SUDO) docker run $(RM) -ti -v $(shell pwd)/client/src:/home/weave/src \
+		-v $(shell pwd)/client/test:/home/weave/test \
+		$(IMAGE_PREFIX)/client npm test
+
+client-lint: client/$(UPTODATE) $(JS_FILES)
+	$(SUDO) docker run $(RM) -ti -v $(shell pwd)/client/src:/home/weave/src \
+		-v $(shell pwd)/client/test:/home/weave/test \
+		$(IMAGE_PREFIX)/client npm run lint
+
+client/build/app.js: client/$(UPTODATE) $(JS_FILES) client/src/html/index.html
+	mkdir -p client/build
+	$(SUDO) docker run $(RM) -ti -v $(shell pwd)/client/src:/home/weave/src \
+		-v $(shell pwd)/client/build:/home/weave/build \
+		$(IMAGE_PREFIX)/client npm run build
+	cp -p client/src/images/* client/build/
+
+ui-server/build/app.js: client/build/app.js
+	mkdir -p $(@D)
+	install  client/build/* $(@D)/
+
+# Test and misc stuff
 users-integration-test: $(USERS_UPTODATE)
-	DB_CONTAINER="$$(docker run -d $(USERS_DB_IMAGE))"; \
+	DB_CONTAINER="$$(docker run -d quay.io/weaveworks/users-db)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-v $(shell pwd)/users/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/users \
 		--link "$$DB_CONTAINER":users-db.weave.local \
 		golang:1.6.2 \
@@ -186,37 +139,10 @@ users-integration-test: $(USERS_UPTODATE)
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
 
-client-build-image: $(CLIENT_BUILD_UPTODATE)
-
 clean:
-	# Don't remove the build images, just remove the marker files.
-	-$(SUDO) docker rmi \
-		$(USERS_IMAGE)  $(USERS_DB_MIGRATE_EXE) $(USERS_DB_IMAGE) \
-		$(CLIENT_SERVER_IMAGE) $(FRONTEND_MT_IMAGE) \
-		$(METRICS_IMAGE) >/dev/null 2>&1 || true
-	rm -rf $(USERS_EXE) $(USERS_UPTODATE) \
-		$(JSON_BUILDER_UPTODATE) \
-		$(METRICS_EXE) $(METRICS_UPTODATE) \
-		$(CLIENT_SERVER_UPTODATE) $(FRONTEND_MT_UPTODATE) client/build/app.js \
-		$(BUILD_UPTODATE) $(CLIENT_BUILD_UPTODATE)
+	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
+	rm -rf $(UPTODATE_FILES) $(EXES)
+	rm -rf client/build ui-server/build
 	go clean ./...
-	make -C monitoring clean
-
-client-tests: $(CLIENT_BUILD_UPTODATE)
-	$(SUDO) docker run $(RM) -ti -v $(shell pwd)/client/src:/home/weave/src \
-		-v $(shell pwd)/client/test:/home/weave/test \
-		$(CLIENT_BUILD_IMAGE) npm test
-
-client-lint: $(CLIENT_BUILD_UPTODATE) $(JS_FILES)
-	$(SUDO) docker run $(RM) -ti -v $(shell pwd)/client/src:/home/weave/src \
-		-v $(shell pwd)/client/test:/home/weave/test \
-		$(CLIENT_BUILD_IMAGE) npm run lint
-
-client/build/app.js: $(CLIENT_BUILD_UPTODATE) $(JS_FILES)
-	mkdir -p client/build
-	$(SUDO) docker run $(RM) -ti -v $(shell pwd)/client/src:/home/weave/src \
-		-v $(shell pwd)/client/build:/home/weave/build \
-		$(CLIENT_BUILD_IMAGE) npm run build
-	cp client/src/images/* client/build/
 
 
