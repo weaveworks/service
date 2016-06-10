@@ -62,14 +62,16 @@ export default class OrganizationPage extends React.Component {
         clear: 'both'
       },
       code: {
-        padding: 24,
+        marginLeft: -16,
+        padding: 16,
         backgroundColor: '#32324B',
         fontFamily: 'monospace',
-        color: Colors.text2
+        color: Colors.text4,
+        fontSize: '0.9rem',
+        borderRadius: 4
       },
       container: {
-        marginTop: 64,
-        marginLeft: 64
+        marginTop: 96
       },
       logoWrapper: {
         position: 'absolute',
@@ -80,17 +82,13 @@ export default class OrganizationPage extends React.Component {
       },
       circle: {
         position: 'absolute',
-        left: '-3.5em',
-        top: '-0.75em',
-        width: '2.5em',
-        height: '2.5em',
-        borderRadius: '50%',
-        backgroundColor: Colors.text3,
-        color: 'white',
+        left: -56,
+        top: -12,
+        color: Colors.text4,
+        backgroundColor: Colors.background,
         textAlign: 'center',
-        lineHeight: 2.5,
-        fontSize: '125%',
-        boxShadow: 'rgba(0, 0, 0, 0.117647) 0px 1px 6px, rgba(0, 0, 0, 0.239216) 0px 1px 4px'
+        lineHeight: 2,
+        fontSize: '200%',
       },
       probes: {
         padding: 24
@@ -99,6 +97,11 @@ export default class OrganizationPage extends React.Component {
         position: 'relative',
         marginTop: '3em',
         marginBottom: '1em'
+      },
+      steps: {
+        marginLeft: -12,
+        borderLeft: `1px solid ${Colors.text5}`,
+        paddingLeft: 48
       }
     };
 
@@ -110,30 +113,32 @@ export default class OrganizationPage extends React.Component {
         </div>
         {this.state.name && <div style={styles.container}>
           <FlexContainer>
-            <Column minWidth="400">
-              <div style={styles.step}>
-                <span style={styles.circle}>1</span>
-                <h2>Configure your app</h2>
-                Run the following commands on your Docker hosts to connect them
-                as probes to this Weave Cloud instance:
-              </div>
-              <Box>
-                <div style={styles.code}>
-                  <div>sudo wget -O /usr/local/bin/scope \<br />&nbsp;&nbsp;https://github.com/weaveworks/scope/releases/download/v0.15.0/scope</div>
-                  <div>sudo chmod a+x /usr/local/bin/scope</div>
-                  <div>sudo scope launch --service-token={this.state.probeToken}</div>
+            <Column minWidth="500">
+              <div style={styles.steps}>
+                <div style={styles.step}>
+                  <span style={styles.circle}>1</span>
+                  <h2>Configure your app</h2>
+                  Run the following commands on your Docker hosts to connect them
+                  as probes to this Weave Cloud instance:
                 </div>
-              </Box>
-              <div style={styles.step}>
-                <span style={styles.circle}>2</span>
-                <h2>Invite members</h2>
-                <Users org={this.state.name} />
-              </div>
-              <div style={styles.step}>
-                <span style={styles.circle}>3</span>
-                <h2>Visit Instance</h2>
-                Once you have started the probe on your Docker hosts,
-                click "View Instance" in the top right.
+                <Box>
+                  <div style={styles.code}>
+                    <div>sudo wget -O /usr/local/bin/scope \<br />&nbsp;&nbsp;https://github.com/weaveworks/scope/releases/download/v0.15.0/scope</div>
+                    <div>sudo chmod a+x /usr/local/bin/scope</div>
+                    <div>sudo scope launch --service-token={this.state.probeToken}</div>
+                  </div>
+                </Box>
+                <div style={styles.step}>
+                  <span style={styles.circle}>2</span>
+                  <h2>Invite members</h2>
+                  <Users org={this.state.name} />
+                </div>
+                <div style={styles.step}>
+                  <span style={styles.circle}>3</span>
+                  <h2>Visit Instance</h2>
+                  Once you have started the probe on your Docker hosts,
+                  click "View Instance" in the top right.
+                </div>
               </div>
             </Column>
             <Column width="400">
