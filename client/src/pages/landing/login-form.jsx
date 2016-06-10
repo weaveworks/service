@@ -1,13 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import FlatButton from 'material-ui/FlatButton';
+import RaisedButton from 'material-ui/RaisedButton';
 import TextField from 'material-ui/TextField';
-import { amber900, blueGrey100, blueGrey200, blueGrey400,
+import { amber900, grey100, grey500,
   lightBlue500 } from 'material-ui/styles/colors';
 import { hashHistory } from 'react-router';
 
 import { postData } from '../../common/request';
 import { trackEvent, trackException, trackTiming, PardotSignupIFrame } from '../../common/tracking';
+import LoginVia from './login-via';
 
 export default class LoginForm extends React.Component {
 
@@ -93,11 +94,9 @@ export default class LoginForm extends React.Component {
     const unauthorized = this.props.params.error === 'unauthorized';
     const styles = {
       submit: {
-        marginLeft: '1em',
-        marginTop: '5px',
-        verticalAlign: 'top',
-        minWidth: 35,
-        fontSize: '12px'
+        marginLeft: '2em',
+        marginTop: '3px',
+        verticalAlign: 'top'
       },
 
       submitLabel: {
@@ -125,25 +124,49 @@ export default class LoginForm extends React.Component {
       },
 
       emailField: {
-        width: 180,
-        fontSize: '14px'
+        width: 220
       },
 
       emailFieldLine: {
-        borderColor: blueGrey200,
-        borderWidth: 1
+        borderColor: grey500,
+        borderWidth: 2
       },
 
       emailFieldFocusLine: {
-        borderColor: blueGrey400
-      },
-
-      emailFieldInput: {
-        bottom: -2
+        borderColor: grey500
       },
 
       emailFieldHint: {
         bottom: 10
+      },
+
+      form: {
+        display: !submitSuccess ? 'block' : 'none',
+        textAlign: 'center'
+      },
+
+      formHint: {
+        marginTop: '0.5em',
+        textAlign: 'center',
+        fontSize: '0.8rem'
+      },
+
+      heading: {
+        fontSize: 18,
+        textTransform: 'uppercase',
+        marginBottom: 36
+      },
+
+      loginVia: {
+        display: !submitSuccess ? 'block' : 'none',
+        textAlign: 'center'
+      },
+
+      splitter: {
+        display: !submitSuccess ? 'block' : 'none',
+        textAlign: 'center',
+        padding: '36px 0px',
+        textTransform: 'uppercase'
       },
 
       devLink: {
@@ -153,11 +176,10 @@ export default class LoginForm extends React.Component {
       },
 
       unauthorized: {
+        display: 'inline-block',
         position: 'relative',
         width: 228,
         fontSize: 14,
-        marginTop: 8,
-        display: unauthorized ? 'block' : 'none'
       },
 
       unauthorizedIcon: {
@@ -171,27 +193,46 @@ export default class LoginForm extends React.Component {
       unauthorizedLabel: {
         color: amber900,
         paddingLeft: 32
+      },
+
+      unauthorizedWrapper: {
+        marginTop: 16,
+        textAlign: 'center',
+        display: unauthorized ? 'block' : 'none'
       }
     };
 
     return (
       <div style={styles.wrapper}>
-        <div style={styles.form}>
-          <TextField hintText="Login with your email" ref="emailField" type="email"
-            disabled={submitSuccess || this.state.submitting}
-            errorText={this.state.errorText} inputStyle={styles.emailFieldInput}
-            underlineStyle={styles.emailFieldLine} underlineFocusStyle={styles.emailFieldFocusLine}
-            style={styles.emailField} hintStyle={styles.emailFieldHint}
-            onKeyDown={this.handleKeyDown} />
-          <FlatButton label={this.state.submitText} style={styles.submit}
-            backgroundColor={blueGrey100} labelStyle={styles.submitLabel}
-            disabled={submitSuccess || this.state.submitting}
-            onClick={this._handleSubmit} />
+        <div style={styles.heading}>
+          Log in
         </div>
-        <div style={styles.unauthorized}>
-          <span className="fa fa-ban" style={styles.unauthorizedIcon}></span>
-          <div style={styles.unauthorizedLabel}>
-            The login link is no longer valid. Enter your email to log in.
+        <div style={styles.loginVia}>
+          <LoginVia prefix="Log in" />
+        </div>
+        <div style={styles.splitter}>
+          or
+        </div>
+        <div style={styles.form}>
+          <TextField hintText="Log in with your Email" ref="emailField" type="email"
+            disabled={submitSuccess || this.state.submitting}
+            errorText={this.state.errorText}
+            underlineFocusStyle={styles.emailFieldFocusLine}
+            underlineStyle={styles.emailFieldLine} style={styles.emailField}
+            onKeyDown={this.handleKeyDown} />
+          <RaisedButton label={this.state.submitText} style={styles.submit}
+            backgroundColor={grey500} labelColor={grey100}
+            disabled={this.state.submitting} onClick={this._handleSubmit} />
+          <div style={styles.formHint}>
+            You’ll get an email with a login token.
+          </div>
+        </div>
+        <div style={styles.unauthorizedWrapper}>
+          <div style={styles.unauthorized}>
+            <span className="fa fa-ban" style={styles.unauthorizedIcon}></span>
+            <div style={styles.unauthorizedLabel}>
+              The login link is no longer valid. Enter your email to log in again.
+            </div>
           </div>
         </div>
         <div style={styles.confirmation}>

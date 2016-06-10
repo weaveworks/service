@@ -18,8 +18,12 @@ export default class Toolbar extends React.Component {
       title: 'Settings',
       route: encodeURIs`#/org/${this.props.organization}`
     }, {
+      title: 'My Account',
+      iconClass: 'fa fa-user',
+      route: encodeURIs`#/account`
+    }, {
       iconClass: 'fa fa-sign-out',
-      title: `Log out ${this.props.user}`,
+      title: `Log out ${this.props.user || ''}`,
       route: '#/logout'
     }];
   }
