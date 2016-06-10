@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: users-db
-        image: weaveworks/users-db
+        image: quay.io/weaveworks/users-db
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5432

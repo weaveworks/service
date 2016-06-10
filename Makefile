@@ -15,12 +15,12 @@ IMAGE_NAMES =
 # declared.
 define DOCKER_IMAGE_template
 $(1)/$(UPTODATE): $(1)/Dockerfile
-	$(SUDO) docker build -t $(IMAGE_PREFIX)/$(basename $(1)) $(1)/
-	$(SUDO) docker tag $(IMAGE_PREFIX)/$(basename $(1)) $(IMAGE_PREFIX)/$(basename $(1)):$(IMAGE_TAG)
+	$(SUDO) docker build -t $(IMAGE_PREFIX)/$(shell basename $(1)) $(1)/
+	$(SUDO) docker tag $(IMAGE_PREFIX)/$(shell basename $(1)) $(IMAGE_PREFIX)/$(shell basename $(1)):$(IMAGE_TAG)
 	touch $(1)/$(UPTODATE)
 
 UPTODATE_FILES += $(1)/$(UPTODATE)
-IMAGE_NAMES += $(IMAGE_PREFIX)/$(basename $(1))
+IMAGE_NAMES += $(IMAGE_PREFIX)/$(shell basename $(1))
 endef
 
 # Get a list of directories container Dockerfiles, and run DOCKER_IMAGE on all

@@ -1,3 +1,3 @@
 FROM nginx
 MAINTAINER Weaveworks Inc <help@weave.works>
-COPY build/* /usr/share/nginx/html/
+COPY build /usr/share/nginx/html/
