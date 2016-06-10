@@ -151,7 +151,7 @@ $ bash -c '
 Create the components from an empty state.
 
 ```
-$ kubectl --kubeconfig=infra/local/kubeconfig create -f k8s/local
+$ find k8s/local -name '*.yaml' | xargs -n1 kubectl --kubeconfig=infra/local/kubeconfig create -f
 ```
 
 Or, update a specific component.
@@ -159,7 +159,7 @@ Or, update a specific component.
 ```
 $ # TODO there might be a nicer way of doing this; investigate kubectl
 $ kubectl --kubeconfig=infra/local/kubeconfig delete rc users
-$ kubectl --kubeconfig=infra/local/kubeconfig create -f k8s/local/users.yaml
+$ kubectl --kubeconfig=infra/local/kubeconfig create -f k8s/local/default/users-rc.yaml
 ```
 
 ### Connect
