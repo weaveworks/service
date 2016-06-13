@@ -7,4 +7,3 @@ CREATE TABLE IF NOT EXISTS memberships (
 CREATE UNIQUE INDEX memberships_user_id_organization_id_idx ON memberships (user_id, organization_id) WHERE deleted_at IS NULL;
 
 INSERT INTO memberships (user_id, organization_id) (SELECT id, organization_id from users);
-ALTER TABLE users DROP COLUMN organization_id;
