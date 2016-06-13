@@ -30,7 +30,7 @@ func setup(t *testing.T) {
 	// TODO: Use some more realistic mailer here
 	sentEmails = nil
 
-	var directLogin, approvalRequired = false, true
+	var directLogin = false
 
 	setupLogging("debug")
 	storage = mustNewDatabase(*databaseURI, *databaseMigrations)
@@ -40,7 +40,7 @@ func setup(t *testing.T) {
 	truncateDatabase(t)
 
 	emailer := smtpEmailer{templates, testEmailSender, domain}
-	app = newAPI(directLogin, approvalRequired, emailer, sessions, storage, templates)
+	app = newAPI(directLogin, emailer, sessions, storage, templates)
 }
 
 func cleanup(t *testing.T) {

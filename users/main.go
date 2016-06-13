@@ -35,10 +35,9 @@ func main() {
 		sessionSecret      = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
 		directLogin        = flag.Bool("direct-login", false, "Approve user and send login token in the signup response (DEV only)")
 
-		approvalRequired = flag.Bool("approval-required", true, "Do we want to gate users on approval.")
-		pardotEmail      = flag.String("pardot-email", "", "Email of Pardot account.  If not supplied pardot integration will be disabled.")
-		pardotPassword   = flag.String("pardot-password", "", "Password of Pardot account.")
-		pardotUserKey    = flag.String("pardot-userkey", "", "User key of Pardot account.")
+		pardotEmail    = flag.String("pardot-email", "", "Email of Pardot account.  If not supplied pardot integration will be disabled.")
+		pardotPassword = flag.String("pardot-password", "", "Password of Pardot account.")
+		pardotUserKey  = flag.String("pardot-userkey", "", "User key of Pardot account.")
 
 		sendgridAPIKey = flag.String("sendgrid-api-key", "", "Sendgrid API key.  Either email-uri or sendgrid-api-key must be provided.")
 	)
@@ -69,29 +68,27 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Infof("Listening on port %d", *port)
-	http.Handle("/", newAPI(*directLogin, *approvalRequired, emailer, sessions, storage, templates))
+	http.Handle("/", newAPI(*directLogin, emailer, sessions, storage, templates))
 	http.Handle("/metrics", makePrometheusHandler())
 	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }
 
 type api struct {
-	directLogin      bool
-	approvalRequired bool
-	sessions         sessionStore
-	storage          database
-	templates        templateEngine
-	emailer          emailer
+	directLogin bool
+	sessions    sessionStore
+	storage     database
+	templates   templateEngine
+	emailer     emailer
 	http.Handler
 }
 
-func newAPI(directLogin, approvalRequired bool, emailer emailer, sessions sessionStore, storage database, templates templateEngine) *api {
+func newAPI(directLogin bool, emailer emailer, sessions sessionStore, storage database, templates templateEngine) *api {
 	a := &api{
-		directLogin:      directLogin,
-		approvalRequired: approvalRequired,
-		sessions:         sessions,
-		storage:          storage,
-		templates:        templates,
-		emailer:          emailer,
+		directLogin: directLogin,
+		sessions:    sessions,
+		storage:     storage,
+		templates:   templates,
+		emailer:     emailer,
 	}
 	a.Handler = a.routes()
 	return a
@@ -119,7 +116,6 @@ func (a *api) routes() http.Handler {
 		{"GET", "/private/api/users/lookup", a.lookupUsingToken},
 		{"GET", "/private/api/users", a.listUsers},
 		{"GET", "/private/api/pardot", a.pardotRefresh},
-		{"POST", "/private/api/users/{userID}/approve", a.approveUser},
 		{"POST", "/private/api/users/{userID}/admin", a.makeUserAdmin},
 	} {
 		name := instrument.MakeLabelValue(route.path)
@@ -185,13 +181,14 @@ func (a *api) signup(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, fmt.Errorf("Error sending login email: %s", err))
 		return
 	}
-	if !a.approvalRequired || a.directLogin {
-		_, err = a.storage.ApproveUser(user.ID)
+	_, err = a.storage.ApproveUser(user.ID)
+	if err != nil {
+		renderError(w, r, fmt.Errorf("Error sending login email: %s", err))
+		return
 	}
+	pardotClient.UserApproved(user.Email, user.ApprovedAt)
 	if a.directLogin {
 		view.Token = token
-	} else if a.approvalRequired && user.ApprovedAt.IsZero() {
-		err = a.emailer.WelcomeEmail(user)
 	} else {
 		err = a.emailer.LoginEmail(user, token)
 	}
@@ -361,33 +358,6 @@ func (a *api) pardotRefresh(w http.ResponseWriter, r *http.Request) {
 			pardotClient.UserApproved(user.Email, user.ApprovedAt)
 		}
 	}
-}
-
-func (a *api) approveUser(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userID, ok := vars["userID"]
-	if !ok {
-		renderError(w, r, errNotFound)
-		return
-	}
-	user, err := a.storage.ApproveUser(userID)
-	if renderError(w, r, err) {
-		return
-	}
-	token, err := generateUserToken(a.storage, user)
-	if err != nil {
-		renderError(w, r, fmt.Errorf("Error sending approved email: %s", err))
-		return
-	}
-	pardotClient.UserApproved(user.Email, user.ApprovedAt)
-	if renderError(w, r, a.emailer.ApprovedEmail(user, token)) {
-		return
-	}
-	redirectTo := r.FormValue("redirect_to")
-	if redirectTo == "" {
-		redirectTo = "/private/api/users"
-	}
-	http.Redirect(w, r, redirectTo, http.StatusFound)
 }
 
 func (a *api) makeUserAdmin(w http.ResponseWriter, r *http.Request) {

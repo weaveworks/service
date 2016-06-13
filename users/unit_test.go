@@ -20,7 +20,7 @@ var (
 func setup(t *testing.T) {
 	passwordHashingCost = bcrypt.MinCost
 
-	var directLogin, approvalRequired = false, true
+	var directLogin = false
 
 	setupLogging("debug")
 	storage = mustNewDatabase("memory://", "")
@@ -29,7 +29,7 @@ func setup(t *testing.T) {
 
 	sentEmails = nil
 	emailer := smtpEmailer{templates, testEmailSender, domain}
-	app = newAPI(directLogin, approvalRequired, emailer, sessions, storage, templates)
+	app = newAPI(directLogin, emailer, sessions, storage, templates)
 }
 
 func cleanup(t *testing.T) {
