@@ -120,6 +120,7 @@ func (a *api) routes() http.Handler {
 		{"GET", "/private/api/users", a.listUsers},
 		{"GET", "/private/api/pardot", a.pardotRefresh},
 		{"POST", "/private/api/users/{userID}/approve", a.approveUser},
+		{"POST", "/private/api/users/{userID}/admin", a.makeUserAdmin},
 	} {
 		name := instrument.MakeLabelValue(route.path)
 		r.Handle(route.path, route.handler).Name(name).Methods(route.method)
@@ -136,13 +137,14 @@ func (a *api) routes() http.Handler {
 func (a *api) admin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/html")
 	fmt.Fprintf(w, `
+<!doctype html>
 <html>
 	<head><title>User service</title></head>
 	<body>
 		<h1>User service</h1>
 		<ul>
-			<li><a href="/private/api/users?approved=false">Approve users</a></li>
-			<li><a href="/private/api/pardot">Sync User-Creation with Pardot</a></li>
+			<li><a href="private/api/users?approved=false">Approve users</a></li>
+			<li><a href="private/api/pardot">Sync User-Creation with Pardot</a></li>
 		</ul>
 	</body>
 </html>
@@ -379,6 +381,25 @@ func (a *api) approveUser(w http.ResponseWriter, r *http.Request) {
 	}
 	pardotClient.UserApproved(user.Email, user.ApprovedAt)
 	if renderError(w, r, a.emailer.ApprovedEmail(user, token)) {
+		return
+	}
+	redirectTo := r.FormValue("redirect_to")
+	if redirectTo == "" {
+		redirectTo = "/private/api/users"
+	}
+	http.Redirect(w, r, redirectTo, http.StatusFound)
+}
+
+func (a *api) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID, ok := vars["userID"]
+	if !ok {
+		renderError(w, r, errNotFound)
+		return
+	}
+	admin := r.URL.Query().Get("admin") == "true"
+	err := a.storage.SetUserAdmin(userID, admin)
+	if renderError(w, r, err) {
 		return
 	}
 	redirectTo := r.FormValue("redirect_to")

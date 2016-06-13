@@ -33,9 +33,9 @@ func Test_Approval(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/private/api/users?approved=false", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, approved.ID))
-	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, user1.ID))
-	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, user2.ID))
+	assert.NotContains(t, w.Body.String(), fmt.Sprintf(`<form action="users/%s/approve" method="POST">`, approved.ID))
+	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="users/%s/approve" method="POST">`, user1.ID))
+	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="users/%s/approve" method="POST">`, user2.ID))
 
 	// Approve user1
 	w = httptest.NewRecorder()
@@ -70,7 +70,7 @@ func Test_Approval(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotContains(t, w.Body.String(), approved.Email)
 	assert.NotContains(t, w.Body.String(), user1.Email)
-	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="/private/api/users/%s/approve" method="POST">`, user2.ID))
+	assert.Contains(t, w.Body.String(), fmt.Sprintf(`<form action="users/%s/approve" method="POST">`, user2.ID))
 
 	// List approved users
 	// should equal approved and user1

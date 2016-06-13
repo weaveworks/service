@@ -7,9 +7,9 @@
     <h2>Accounts</h2>
     <span>
       Showing:
-      {{if or .ShowingApproved .ShowingUnapproved}}<a href="/private/api/users">All</a>{{else}}All{{end}}
-      {{if .ShowingApproved}}Approved{{else}}<a href="/private/api/users?approved=true">Approved</a>{{end}}
-      {{if .ShowingUnapproved}}Unapproved{{else}}<a href="/private/api/users?approved=false">Unapproved</a>{{end}}
+      {{if or .ShowingApproved .ShowingUnapproved}}<a href="users">All</a>{{else}}All{{end}}
+      {{if .ShowingApproved}}Approved{{else}}<a href="users?approved=true">Approved</a>{{end}}
+      {{if .ShowingUnapproved}}Unapproved{{else}}<a href="users?approved=false">Unapproved</a>{{end}}
     </span>
     {{with .}}
     <table>
@@ -28,14 +28,26 @@
           {{if .IsApproved}}
           {{.FormatApprovedAt}}
           {{else}}
-          <form action="/private/api/users/{{.ID}}/approve" method="POST">
-            <input type="hidden" name="redirect_to" value="/private/api/users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
+          <form action="users/{{.ID}}/approve" method="POST">
+            <input type="hidden" name="redirect_to" value="../../users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
             <input type="submit" value="Approve" />
           </form>
           {{end}}
         </td>
         <td>{{.FormatFirstLoginAt}}</td>
-        <td><input type="checkbox" name="admin" disabled value="true" {{if .Admin}}checked{{end}} /></td>
+        <td>
+          {{if .Admin}}
+          <form action="users/{{.ID}}/admin?admin=false" method="POST">
+            <input type="hidden" name="redirect_to" value="../../users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
+            <input type="submit" value="Clear Admin" />
+          </form>
+          {{else}}
+          <form action="users/{{.ID}}/admin?admin=true" method="POST">
+            <input type="hidden" name="redirect_to" value="../../users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
+            <input type="submit" value="Make Admin" />
+          </form>
+          {{end}}
+        </td>
       </tr>
       {{end}}
     </table>
