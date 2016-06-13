@@ -14,7 +14,7 @@ IMAGE_NAMES =
 # Dependancies (ie things that go in the image) still need to be explicitly
 # declared.
 define DOCKER_IMAGE_template
-$(1)/$(UPTODATE): $(1)/Dockerfile
+$(1)/$(UPTODATE): $(1)/*
 	$(SUDO) docker build -t $(IMAGE_PREFIX)/$(shell basename $(1)) $(1)/
 	$(SUDO) docker tag $(IMAGE_PREFIX)/$(shell basename $(1)) $(IMAGE_PREFIX)/$(shell basename $(1)):$(IMAGE_TAG)
 	touch $(1)/$(UPTODATE)
