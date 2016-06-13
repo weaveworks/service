@@ -28,6 +28,7 @@ export default class Users extends React.Component {
       errors: null,
     };
     this.doSubmit = this.doSubmit.bind(this);
+    this.renderUser = this.renderUser.bind(this);
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleInviteTouchTap = this.handleInviteTouchTap.bind(this);
     this.handleDeleteTouchTap = this.handleDeleteTouchTap.bind(this);
@@ -102,26 +103,30 @@ export default class Users extends React.Component {
     this.doSubmit();
   }
 
-  render() {
-    const users = this.state.users.map(user => {
-      const buttonStyle = {
-        marginTop: 6
-      };
-      const deleteUser = () => this.handleDeleteTouchTap(user);
-      const button = (
-        <FlatButton
-          label="Remove"
-          style={buttonStyle}
-          onClick={deleteUser}
-          />
-      );
+  renderUser(user) {
+    const buttonStyle = {
+      marginTop: 6
+    };
+    const deleteUser = () => this.handleDeleteTouchTap(user);
+    const button = user.self ? (<FlatButton
+      label="Self"
+      style={buttonStyle}
+      disabled="true" />) :
+      (<FlatButton
+        label="Remove"
+        style={buttonStyle}
+        onClick={deleteUser}
+        />);
 
-      return (
-        <ListItem primaryText={user.email} key={user.email}
-          rightIconButton={button}
-        />
-      );
-    });
+    return (
+      <ListItem primaryText={user.email} key={user.email}
+        rightIconButton={button}
+      />
+    );
+  }
+
+  render() {
+    const users = this.state.users.map(this.renderUser);
 
     const buttonStyle = {
       marginLeft: '2em'
@@ -134,6 +139,7 @@ export default class Users extends React.Component {
 
     return (
       <div className="users">
+        <h3>Current members</h3>
         <Box>
           <List>
             {users}
