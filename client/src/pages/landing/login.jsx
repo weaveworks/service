@@ -6,6 +6,10 @@ import { CircularProgress } from 'material-ui';
 import { red900 } from 'material-ui/styles/colors';
 import { trackException, trackView } from '../../common/tracking';
 
+
+const ERROR_TITLE = 'Weave Cloud is not available. Please try again later.';
+
+
 export default class LoginForm extends React.Component {
 
   constructor(props) {
@@ -32,7 +36,9 @@ export default class LoginForm extends React.Component {
     if (error) {
       this.setState({
         activityText: '',
-        errorText: "Oh no! That didn't work very well. We had a problem attaching you account.",
+        errorTitle: "Ooops! That didn't work very well",
+        errorText: `There was a problem attaching your account: ${error}. Try again, hopefully it
+          will work better this time.`,
       });
       return;
     }
@@ -87,7 +93,7 @@ export default class LoginForm extends React.Component {
           <p>{this.state.activityText}.</p>
         </div>
         <div style={styles.error}>
-          <h3>Weave Cloud is not available. Please try again later.</h3>
+          <h3>{this.state.errorTitle || ERROR_TITLE}</h3>
           <p>{this.state.errorText}</p>
         </div>
       </div>
