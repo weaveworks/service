@@ -57,6 +57,7 @@ frontend-mt/$(UPTODATE): frontend-mt/default.conf frontend-mt/api.json frontend-
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
 client/$(UPTODATE): client/package.json client/webpack.* client/server.js
 ui-server/$(UPTODATE): ui-server/build/app.js
+build/$(UPTODATE): build/build.sh
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
