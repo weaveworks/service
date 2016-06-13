@@ -55,6 +55,7 @@ logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_
 client/client-build/$(UPTODATE): client/package.json client/webpack.*
 client/$(UPTODATE): client/package.json client/webpack.* client/server.js
 ui-server/$(UPTODATE): ui-server/build/app.js
+build/$(UPTODATE): build/build.sh
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
