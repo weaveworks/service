@@ -49,7 +49,7 @@ instance.
 After connecting to an environment with `./connect <env>`:
 
 Monitoring
-- [Grafana Dashboards](http://monitoring.monitoring.svc.cluster.local:3000)
+- [Grafana Dashboards](http://grafana.monitoring.svc.cluster.local)
 - [Prometheus UI](http://monitoring.monitoring.svc.cluster.local:9090)
 - [Alertmanager](http://monitoring.monitoring.svc.cluster.local:9093)
 - [Service Scope](http://scope.kube-system.svc.cluster.local:80)

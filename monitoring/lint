@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -eu
+
+readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+promtool check-rules ${DIR}/prometheus/alert.rules
+
+# Check all the json in the dashboard is sorted, to minimise diffs
+for dashboard in ${DIR}/grafana/*.json; do
+    diff -u ${dashboard}  <(jq -S . <${dashboard})
+done

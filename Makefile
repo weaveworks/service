@@ -58,6 +58,9 @@ logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_
 client/$(UPTODATE): client/package.json client/webpack.* client/server.js
 ui-server/$(UPTODATE): ui-server/build/app.js
 build/$(UPTODATE): build/build.sh
+monitoring/grafana/$(UPTODATE): monitoring/grafana/*
+monitoring/gfdatasource/$(UPTODATE): monitoring/gfdatasource/*
+monitoring/prometheus/$(UPTODATE): monitoring/prometheus/*
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
@@ -94,7 +97,7 @@ lint: build/$(UPTODATE)
 	# This mapping of cluster to lint options is duplicated in 'rolling-update'.
 	./k8s/kubelint --noversions ./k8s/local
 	./k8s/kubelint ./k8s/dev ./k8s/prod
-	promtool check-rules ./monitoring/prometheus/alert.rules
+	./monitoring/lint
 
 test: build/$(UPTODATE)
 	./tools/test -no-go-get
