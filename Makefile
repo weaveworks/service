@@ -97,7 +97,7 @@ lint: build/$(UPTODATE)
 	# This mapping of cluster to lint options is duplicated in 'rolling-update'.
 	./k8s/kubelint --noversions ./k8s/local
 	./k8s/kubelint ./k8s/dev ./k8s/prod
-	promtool check-rules ./monitoring/prometheus/alert.rules
+	./monitoring/lint
 
 test: build/$(UPTODATE)
 	./tools/test -no-go-get
