@@ -14,7 +14,7 @@ IMAGE_NAMES =
 # Dependancies (ie things that go in the image) still need to be explicitly
 # declared.
 define DOCKER_IMAGE_template
-$(1)/$(UPTODATE): $(1)/*
+$(1)/$(UPTODATE): $(1)/Dockerfile
 	$(SUDO) docker build -t $(IMAGE_PREFIX)/$(shell basename $(1)) $(1)/
 	$(SUDO) docker tag $(IMAGE_PREFIX)/$(shell basename $(1)) $(IMAGE_PREFIX)/$(shell basename $(1)):$(IMAGE_TAG)
 	touch $(1)/$(UPTODATE)
@@ -58,6 +58,9 @@ logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_
 client/$(UPTODATE): client/package.json client/webpack.* client/server.js
 ui-server/$(UPTODATE): ui-server/build/app.js
 build/$(UPTODATE): build/build.sh
+monitoring/grafana/$(UPTODATE): monitoring/grafana/*
+monitoring/gfdatasource/$(UPTODATE): monitoring/gfdatasource/*
+monitoring/prometheus/$(UPTODATE): monitoring/prometheus/*
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
