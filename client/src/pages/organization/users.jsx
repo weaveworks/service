@@ -1,21 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { FlatButton, List, ListItem, RaisedButton, TextField } from 'material-ui';
+import { FlatButton, List, ListItem, RaisedButton, TextField, Snackbar } from 'material-ui';
 import debug from 'debug';
 
 import { getData, deleteData, postData, encodeURIs } from '../../common/request';
 import { Box } from '../../components/box';
 
 const error = debug('service:usersErr');
-
-
-function renderErrors(errors) {
-  return (
-    <div>
-      {errors.map((e, i) => <div key={i}>{e.message}</div>)}
-    </div>
-  );
-}
 
 
 export default class Users extends React.Component {
@@ -28,7 +19,9 @@ export default class Users extends React.Component {
       errors: null,
     };
     this.doSubmit = this.doSubmit.bind(this);
+    this.clearErrors = this.clearErrors.bind(this);
     this.renderUser = this.renderUser.bind(this);
+
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleInviteTouchTap = this.handleInviteTouchTap.bind(this);
     this.handleDeleteTouchTap = this.handleDeleteTouchTap.bind(this);
@@ -53,6 +46,10 @@ export default class Users extends React.Component {
       }, resp => {
         error(resp);
       });
+  }
+
+  clearErrors() {
+    this.setState(Object.assign({}, this.state, {errors: null}));
   }
 
   doSubmit() {
@@ -140,23 +137,29 @@ export default class Users extends React.Component {
 
     return (
       <div className="users">
+        <Snackbar
+          action="OK!"
+          open={Boolean(this.state.errors)}
+          message={this.state.errors && this.state.errors.map(e => e.message).join('. ')}
+          onActionTouchTap={this.clearErrors}
+          onRequestClose={this.clearErrors}
+        />
         <h3>Current members</h3>
         <Box>
           <List>
             {users}
           </List>
         </Box>
-        {this.state.errors && renderErrors(this.state.errors)}
         <div style={formStyle}>
           <TextField
             hintText="Email"
             ref="emailField"
-            disabled={this.state.submitting}
+            disabled={Boolean(this.state.submitting)}
             onKeyDown={this.handleKeyDown}
             />
           <RaisedButton
             label="Invite"
-            disabled={this.state.submitting}
+            disabled={Boolean(this.state.submitting)}
             style={buttonStyle}
             onClick={this.handleInviteTouchTap}
             />

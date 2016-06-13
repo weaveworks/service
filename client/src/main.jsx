@@ -5,6 +5,11 @@
 // icon fonts, loaded via webpack, available via fa classes
 require('font-awesome-webpack');
 
+// Required by material-ui. Their bigger components only listen to touch (taps).
+// This sets up some clicks->taps voodoo.
+const injectTapEventPlugin = require('react-tap-event-plugin');
+injectTapEventPlugin();
+
 // Libraries
 import React from 'react';
 import ReactDOM from 'react-dom';
