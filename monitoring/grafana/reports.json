@@ -52,14 +52,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{status_code=~\"2..\"}[1m])) by (method)",
+              "expr": "sum(irate(scope_dynamo_request_duration_nanoseconds_count{status_code=~\"2..\"}[1m])) by (method)",
               "intervalFactor": 2,
               "legendFormat": "{{method}} 2xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(rate(scope_dynamo_request_duration_nanoseconds_count{method=\"Query\",status_code=~\"5..\"}[1m])) by (method)",
+              "expr": "sum(irate(scope_dynamo_request_duration_nanoseconds_count{method=\"Query\",status_code=~\"5..\"}[1m])) by (method)",
               "intervalFactor": 2,
               "legendFormat": "{{method}} 5xx",
               "refId": "B",
@@ -219,7 +219,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(scope_dynamo_consumed_capacity[1m])) by (method)",
+              "expr": "sum(irate(scope_dynamo_consumed_capacity[1m])) by (method)",
               "intervalFactor": 2,
               "legendFormat": "{{method}}",
               "refId": "A",
@@ -295,7 +295,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(scope_report_size_bytes[1m]))  by (method)",
+              "expr": "sum(irate(scope_report_size_bytes[1m]))  by (method)",
               "intervalFactor": 2,
               "legendFormat": "reports written (compressed)",
               "refId": "A",
@@ -379,7 +379,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(scope_dynamo_cache_hits[1m])) / sum(rate(scope_dynamo_cache_hits[1m]) + rate(scope_dynamo_cache_miss[1m]))",
+              "expr": "sum(irate(scope_dynamo_cache_hits[1m])) / sum(irate(scope_dynamo_cache_hits[1m]) + irate(scope_dynamo_cache_miss[1m]))",
               "intervalFactor": 2,
               "legendFormat": "",
               "refId": "A",
@@ -463,7 +463,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(scope_s3_request_duration_nanoseconds_count[1m])) by (method,status_code)",
+              "expr": "sum(irate(scope_s3_request_duration_nanoseconds_count[1m])) by (method,status_code)",
               "intervalFactor": 2,
               "legendFormat": "{{method}} {{status_code}}",
               "refId": "A",
@@ -623,7 +623,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(scope_nats_requests[1m])) by (method, status_code)",
+              "expr": "sum(irate(scope_nats_requests[1m])) by (method, status_code)",
               "intervalFactor": 2,
               "legendFormat": "{{method}} {{status_code}}",
               "refId": "A",

@@ -52,7 +52,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "(count(max(node_cpu) by (cpu, instance)) by (instance) - sum(rate(node_cpu{mode=\"idle\"}[1m])) by (instance)) / count(max(node_cpu) by (cpu, instance)) by (instance) * 100",
+              "expr": "(count(max(node_cpu) by (cpu, instance)) by (instance) - sum(irate(node_cpu{mode=\"idle\"}[1m])) by (instance)) / count(max(node_cpu) by (cpu, instance)) by (instance) * 100",
               "intervalFactor": 2,
               "legendFormat": "{{instance}}",
               "refId": "A",
