@@ -39,8 +39,8 @@ $ aws configure
 $ aws s3 ls /
 ```
 
-[Download the Terraform tool](https://terraform.io/downloads.html).
-You don't need the patched version anymore, as we're not trying to interact with Docker or Docker Swarm directly.
+Download Terraform [zip file](https://terraform.io/downloads.html) or check if your package manager has a recent version.
+Homebrew does, so if you are on OS X, run `brew install terraform`. Be sure to use a recent version.
 
 Download the kubectl (1.1.1) tool
  ([Linux](https://storage.googleapis.com/kubernetes-release/release/v1.1.1/bin/linux/amd64/kubectl),
@@ -50,10 +50,11 @@ Each cluster will have a kubeconfig file checked in.
 To interact with a cluster, use kubectl --kubeconfig.
 
 ```
-$ kubectl --kubeconfig=foo/kubeconfig get pods
+$ kubectl --kubeconfig=infra/<env>/kubeconfig get pods
 ```
 
-Note that there are more sophisticated ways to manage multiple clusters and kubeconfigs.
+Note that there are more sophisticated ways to manage multiple clusters and kubeconfigs, but we currently prefer
+the way with checked config and explicit path.
 See [this Kubernetes documentation](http://kubernetes.io/v1.1/docs/user-guide/kubeconfig-file.html) for more info.
 
 You will also need **jq**: `apt-get install jq` or `brew install jq`.
@@ -68,6 +69,7 @@ If this is your first time standing up a cluster, don't just copy/paste.
 Run these commands one at a time.
 
 ```
+cd infra
 mkdir foo
 cp var.template foo/var
 
@@ -126,7 +128,7 @@ See the helloworld directory.
 
 ### How can I debug Kubernetes?
 
-`kubectl get events -w` is a good place to start.
+`kubectl get events --all-namespaces --watch` is a good place to start.
 
 ### How can I connect to the AWS console?
 
@@ -171,8 +173,9 @@ Currently, the `weave.works` domain is manually managed in CloudFloare project. 
 
 ### What service is used to deliver email?
 
-We are currently using [AWS' SES](https://aws.amazon.com/ses/) for sending
-emails (e.g. welcome and password link emails). SES is configured manually in
+We are currently using [SendGrid](https://sendgrid.com/) for sending emails to the users (e.g. welcome and password link emails).
+
+We are also using [AWS' SES](https://aws.amazon.com/ses/) for sending service alerts. SES is configured manually in
 the dev environment and reused by the prod environment.
 
 We cannot have multiple SES configuration due to how

@@ -63,8 +63,8 @@ Management
 
 You need kubectl v1.2.3 in your PATH.
 Download the
- [Linux](https://storage.googleapis.com/kubernetes-release/release/v1.2.3/bin/linux/amd64/kubectl) or
- [Darwin](https://storage.googleapis.com/kubernetes-release/release/v1.2.3/bin/darwin/amd64/kubectl) release.
+ [Linux](https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kubectl) or
+ [Darwin](https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/darwin/amd64/kubectl) release.
 
 ```
 $ kubectl version
@@ -74,6 +74,27 @@ error: couldn't read version from server: Get http://localhost:8080/api: dial tc
 
 ## Local development
 
+### Build
+
+The Makefile will automatically produce container images for each component, saved to your local Docker daemon.
+And the k8s/local resource definitions use the latest images from the local Docker daemon.
+So, you just need to run make.
+
+```
+$ make
+```
+
+You can also pull existing containers from Quay and re-tag them as latest.
+
+```
+$ bash -c '
+  for c in $(find k8s/prod -name "*-rc.yaml" | xargs grep -h -o "quay.io/weaveworks/.*$" )
+  do
+    docker pull $c
+    docker tag -f $c $(echo $c | cut -d\':\' -f1):latest
+  done
+'
+```
 ### Stand up
 
 We bootstrap a one-node Kubernetes "cluster" on top of Docker.
@@ -124,43 +145,9 @@ Boot up Kubernetes.
 $ infra/local-k8s up
 ```
 
-### Build
-
-The Makefile will automatically produce container images for each component, saved to your local Docker daemon.
-And the k8s/local resource definitions use the latest images from the local Docker daemon.
-So, you just need to run make.
-
-```
-$ make
-```
-
-You can also pull existing containers from Quay and re-tag them as latest.
-
-```
-$ bash -c '
-  for c in $(grep "quay.io/weaveworks/" k8s/prod/*-rc.yaml | awk \'{print $3}\')
-  do
-    docker pull $c
-    docker tag -f $c $(echo $c | cut -d\':\' -f1):latest
-  done
-'
-```
-
 ### Deploy
 
-Create the components from an empty state.
-
-```
-$ kubectl --kubeconfig=infra/local/kubeconfig create -f k8s/local
-```
-
-Or, update a specific component.
-
-```
-$ # TODO there might be a nicer way of doing this; investigate kubectl
-$ kubectl --kubeconfig=infra/local/kubeconfig delete rc users
-$ kubectl --kubeconfig=infra/local/kubeconfig create -f k8s/local/users.yaml
-```
+The `infra/local-k8s` script will print all the `kubectl` commands you need to run to deploy the components you have built.
 
 ### Connect
 
@@ -173,11 +160,7 @@ $ ./connect local
 You must connect to the cluster for these steps to work.
 
 1. Go to http://scope.weave.works and sign up with a bogus email address.
-2. Go to http://mailcatcher.default.svc.cluster.local and look for the welcome message.
-3. Go to http://users.default.svc.cluster.local and approve yourself.
-4. Go to http://mailcatcher.default.svc.cluster.local again, find the approval message, and click the login link.
-
-Now you can start a probe with your service token, and send reports to your local Scope-as-a-Service.
+2. Start a probe with your service token, and send reports to your local Scope-as-a-Service.
 
 ```
 $ IP=$(kubectl --kubeconfig=infra/local/kubeconfig get svc frontend -o template --template '{{.spec.clusterIP}}')
@@ -234,8 +217,8 @@ by not mentioning any).
 ### Deploy
 
 First update the rc files for your desired component. e.g. for foo
-service in dev you'd update `./k8s/dev/foo-rc.yaml` with a new image
-name.
+service in dev you'd update `./k8s/dev/<namespace>/foo-rc.yaml` with
+a new image name.
 
 Someone has probably already created the components, and you probably just want to deploy a new version.
 Kubernetes supports this nicely using something called a rolling update.
