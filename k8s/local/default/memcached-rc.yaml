@@ -16,8 +16,16 @@ spec:
         image: memcached:1.4.25
         imagePullPolicy: IfNotPresent
         args:
-        - -p 11211  # Default port, but being explicit is nice.
-        - -vv  # This gets us to the level of request logs.
+          - -p 11211  # Default port, but being explicit is nice.
+          - -vv  # This gets us to the level of request logs.
         ports:
-        - containerPort: 11211
-      # TODO(jml): memcached exporter
+          - name: clients
+            containerPort: 11211
+      - name: exporter
+        image: prom/memcached-exporter:master
+        args:
+          - -memcached.address=localhost:11211
+          - -web.listen-address=0.0.0.0:9150
+        ports:
+        - name: prom
+          containerPort: 9150
