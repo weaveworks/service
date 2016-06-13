@@ -16,7 +16,7 @@ export default class Users extends React.Component {
     this.state = {
       users: [],
       submitting: false,
-      errors: null,
+      notices: null,
     };
     this.doSubmit = this.doSubmit.bind(this);
     this.clearErrors = this.clearErrors.bind(this);
@@ -49,7 +49,7 @@ export default class Users extends React.Component {
   }
 
   clearErrors() {
-    this.setState(Object.assign({}, this.state, {errors: null}));
+    this.setState(Object.assign({}, this.state, {notices: null}));
   }
 
   doSubmit() {
@@ -59,18 +59,19 @@ export default class Users extends React.Component {
     if (email) {
       this.setState({
         submitting: true,
-        errors: null,
+        notices: null,
       });
       postData(url, { email })
         .then(() => {
           this.getEmailField().value = '';
           this.getUsers();
           this.setState({
+            notices: [{message: `Invitation sent to ${email}`}],
             submitting: false,
           });
         }, resp => {
           this.setState({
-            errors: resp.errors,
+            notices: resp.errors,
             submitting: false,
           });
         });
@@ -92,7 +93,7 @@ export default class Users extends React.Component {
         this.getEmailField().value = '';
       }, resp => {
         this.setState({
-          errors: resp.errors
+          notices: resp.errors
         });
       });
   }
@@ -139,8 +140,8 @@ export default class Users extends React.Component {
       <div className="users">
         <Snackbar
           action="OK!"
-          open={Boolean(this.state.errors)}
-          message={this.state.errors && this.state.errors.map(e => e.message).join('. ')}
+          open={Boolean(this.state.notices)}
+          message={this.state.notices && this.state.notices.map(e => e.message).join('. ')}
           onActionTouchTap={this.clearErrors}
           onRequestClose={this.clearErrors}
         />
