@@ -62,6 +62,7 @@ export default class Users extends React.Component {
     if (email) {
       this.setState({
         submitting: true,
+        errors: null,
       });
       postData(url, { email })
         .then(() => {
