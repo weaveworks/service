@@ -40,6 +40,15 @@ func init() {
 	prometheus.MustRegister(wsRequestCount)
 }
 
+// Gorilla Router with sensible defaults, namely:
+// - StrictSlash set to false
+// - SkipClean set to true
+//
+// This allows for /foo/bar/%2fbaz%2fqux URLs to be forwarded correctly.
+func newRouter() *mux.Router {
+	return mux.NewRouter().StrictSlash(false).SkipClean(true)
+}
+
 func newProbeRequestLogger(orgIDHeader string) logging.HTTPEventExtractor {
 	return func(r *http.Request) (logging.Event, bool) {
 		event := logging.Event{
@@ -105,7 +114,7 @@ func main() {
 	pipeFwd := newProxy(pipeHost)
 
 	// orgRouter is for all ui <-> app communication, authenticated using cookie credentials
-	orgRouter := mux.NewRouter().StrictSlash(false)
+	orgRouter := newRouter()
 	orgRouter.PathPrefix("/api/report").Name("api_app_report").Handler(queryFwd)
 	orgRouter.PathPrefix("/api/topology").Name("api_app_topology").Handler(queryFwd)
 	orgRouter.PathPrefix("/api/control").Name("api_app_control").Handler(contolFwd)
@@ -113,13 +122,13 @@ func main() {
 	orgRouter.PathPrefix("/").Name("api_app").Handler(queryFwd) // catch all forward to query service, for /api and static html
 
 	// probeRouter is for all probe <-> app communication, authenticated using header credentials
-	probeRouter := mux.NewRouter().StrictSlash(false)
+	probeRouter := newRouter()
 	probeRouter.PathPrefix("/api/report").Name("api_probe_report").Handler(collectionFwd)
 	probeRouter.PathPrefix("/api/control").Name("api_probe_control").Handler(contolFwd)
 	probeRouter.PathPrefix("/api/pipe").Name("api_probe_pipe").Handler(pipeFwd)
 
 	// adminRouter is for all admin functionality, authenticated using header credentials
-	adminRouter := mux.NewRouter().StrictSlash(false)
+	adminRouter := newRouter()
 	adminRouter.PathPrefix("/admin").Name("admin").Handler(http.HandlerFunc(adminRoot))
 
 	// authentication is done by middleware
@@ -173,7 +182,7 @@ func main() {
 	}
 
 	// bring it all together in the root router
-	rootRouter := mux.NewRouter().StrictSlash(false)
+	rootRouter := newRouter()
 	rootRouter.Path("/loadgen").Name("loadgen").Methods("GET").HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprintf(w, "OK")
 	})
