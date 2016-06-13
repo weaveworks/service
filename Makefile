@@ -1,4 +1,4 @@
-.PHONY: all test users-integration-test clean client-build-image client-tests client-lint
+.PHONY: all test users-integration-test clean client-build-image client-tests client-lint images
 .DEFAULT_GOAL := all
 
 # Boiler plate for bulding Docker containers.
@@ -28,6 +28,9 @@ endef
 DOCKER_IMAGE_DIRS=$(shell find * -type f -name Dockerfile ! -path "tools/*" ! -path "vendor/*" | xargs -n1 dirname)
 $(foreach dir,$(DOCKER_IMAGE_DIRS),$(eval $(call DOCKER_IMAGE_template,$(dir))))
 
+images:
+	$(info $(IMAGE_NAMES))
+
 all: $(UPTODATE_FILES)
 
 # List of exes please
@@ -42,7 +45,7 @@ COMMON := $(shell find common -name '*.go')
 $(AUTHFE_EXE): $(shell find authfe -name '*.go') $(COMMON)
 $(USERS_EXE): $(shell find users -name '*.go') $(COMMON)
 $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
-$(PROM_RUN_EXE): $(shell find ./kubediff/vendor/github.com/tomwilkie/prom-run/ -name '*.go') $(COMMON)
+$(PROM_RUN_EXE): $(shell find ./kubediff/vendor/github.com/tomwilkie/prom-run/ -name '*.go')
 
 # And now what goes into each image
 authfe/$(UPTODATE): $(AUTHFE_EXE)
@@ -52,7 +55,6 @@ launch-generator/$(UPTODATE): launch-generator/src/*.js launch-generator/package
 kubediff/$(UPTODATE): $(PROM_RUN_EXE)
 frontend-mt/$(UPTODATE): frontend-mt/default.conf frontend-mt/api.json frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
-client/client-build/$(UPTODATE): client/package.json client/webpack.*
 client/$(UPTODATE): client/package.json client/webpack.* client/server.js
 ui-server/$(UPTODATE): ui-server/build/app.js
 
@@ -82,12 +84,9 @@ $(EXES) lint test: build/$(UPTODATE)
 
 else
 
-$(AUTHFE_EXE) $(USERS_EXE) $(PROM_RUN_EXE): build/$(UPTODATE)
+$(EXES): build/$(UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
-
-$(METRICS_EXE): build/$(UPTODATE)
-	go build $(GO_FLAGS) -o $@ ./$(@D)
 
 lint: build/$(UPTODATE)
 	./tools/lint .
