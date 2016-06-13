@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { FlatButton, List, ListItem, RaisedButton, TextField } from 'material-ui';
 import debug from 'debug';
 
@@ -7,17 +8,38 @@ import { Box } from '../../components/box';
 
 const error = debug('service:usersErr');
 
+
+function renderErrors(errors) {
+  return (
+    <div>
+      {errors.map((e, i) => <div key={i}>{e.message}</div>)}
+    </div>
+  );
+}
+
+
 export default class Users extends React.Component {
 
   constructor(props) {
     super(props);
     this.state = {
-      users: []
+      users: [],
+      submitting: false,
+      errors: null,
     };
+    this.doSubmit = this.doSubmit.bind(this);
+    this.handleKeyDown = this.handleKeyDown.bind(this);
+    this.handleInviteTouchTap = this.handleInviteTouchTap.bind(this);
+    this.handleDeleteTouchTap = this.handleDeleteTouchTap.bind(this);
   }
 
   componentWillMount() {
     this.getUsers();
+  }
+
+  getEmailField() {
+    const wrapperNode = ReactDOM.findDOMNode(this.refs.emailField);
+    return wrapperNode.getElementsByTagName('input')[0];
   }
 
   getUsers() {
@@ -32,36 +54,52 @@ export default class Users extends React.Component {
       });
   }
 
-  _handleDeleteTouchTap(user) {
-    const url = encodeURIs`/api/org/${this.props.org}/users/${user.id}`;
+  doSubmit() {
+    const url = encodeURIs`/api/users/org/${this.props.org}/users`;
+    const email = this.getEmailField().value;
+
+    if (email) {
+      this.setState({
+        submitting: true,
+      });
+      postData(url, { email })
+        .then(() => {
+          this.getEmailField().value = '';
+          this.getUsers();
+          this.setState({
+            submitting: false,
+          });
+        }, resp => {
+          this.setState({
+            errors: resp.errors,
+            submitting: false,
+          });
+        });
+    }
+  }
+
+  handleKeyDown(ev) {
+    if (ev.keyCode === 13) { // ENTER
+      this.doSubmit();
+    }
+  }
+
+  handleDeleteTouchTap(user) {
+    const url = encodeURIs`/api/users/org/${this.props.org}/users/${user.email}`;
 
     deleteData(url)
-      .then(resp => {
-        this.setState({
-          users: resp
-        });
-        this.refs.emailField.setValue('');
+      .then(() => {
+        this.getUsers();
+        this.getEmailField().value = '';
       }, resp => {
-        error(resp);
+        this.setState({
+          errors: resp.errors
+        });
       });
   }
 
-  _handleInviteTouchTap() {
-    const url = encodeURIs`/api/users/org/${this.props.org}/users`;
-
-    const email = this.refs.emailField.getValue();
-
-    if (email) {
-      postData(url, { email })
-        .then(resp => {
-          this.setState({
-            users: resp
-          });
-          this.refs.emailField.setValue('');
-        }, resp => {
-          error(resp);
-        });
-    }
+  handleInviteTouchTap() {
+    this.doSubmit();
   }
 
   render() {
@@ -69,7 +107,7 @@ export default class Users extends React.Component {
       const buttonStyle = {
         marginTop: 6
       };
-      const deleteUser = () => this._handleDeleteTouchTap(user);
+      const deleteUser = () => this.handleDeleteTouchTap(user);
       const button = (
         <FlatButton
           label="Remove"
@@ -101,12 +139,19 @@ export default class Users extends React.Component {
             {users}
           </List>
         </Box>
+        {this.state.errors && renderErrors(this.state.errors)}
         <div style={formStyle}>
-          <TextField hintText="Email" ref="emailField" />
+          <TextField
+            hintText="Email"
+            ref="emailField"
+            disabled={this.state.submitting}
+            onKeyDown={this.handleKeyDown}
+            />
           <RaisedButton
             label="Invite"
+            disabled={this.state.submitting}
             style={buttonStyle}
-            onClick={this._handleInviteTouchTap}
+            onClick={this.handleInviteTouchTap}
             />
         </div>
       </div>

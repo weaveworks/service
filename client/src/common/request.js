@@ -18,7 +18,7 @@ function doRequest(url, method = 'GET', requestData = {}, contentType = null) {
     request.onreadystatechange = function onReadyStateChange() {
       if (request.readyState === 4) {
         try {
-          const responseObject = JSON.parse(request.responseText);
+          const responseObject = request.responseText && JSON.parse(request.responseText);
           if (responseObject) {
             responseObject.status = request.status;
           }
