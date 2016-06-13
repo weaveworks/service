@@ -3,7 +3,6 @@ package main
 import (
 	"time"
 
-	"github.com/Masterminds/squirrel"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -47,30 +46,6 @@ func (u *user) CompareToken(other string) bool {
 		return false
 	}
 	return time.Now().UTC().Sub(u.TokenCreatedAt) <= 72*time.Hour
-}
-
-type usersApprovedFilter bool
-
-func newUsersApprovedFilter(s []string) filter {
-	return usersApprovedFilter(len(s) > 0 && s[0] == "true")
-}
-
-func (f usersApprovedFilter) Item(i interface{}) bool {
-	u, ok := i.(*user)
-	if !ok {
-		return false
-	}
-	if bool(f) {
-		return u.IsApproved()
-	}
-	return !u.IsApproved()
-}
-
-func (f usersApprovedFilter) Select(q squirrel.SelectBuilder) squirrel.SelectBuilder {
-	if bool(f) {
-		return q.Where("users.approved_at is not null")
-	}
-	return q.Where("users.approved_at is null")
 }
 
 func newUsersOrganizationFilter(s []string) filter {

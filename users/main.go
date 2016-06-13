@@ -139,7 +139,7 @@ func (a *api) admin(w http.ResponseWriter, r *http.Request) {
 	<body>
 		<h1>User service</h1>
 		<ul>
-			<li><a href="private/api/users?approved=false">Approve users</a></li>
+			<li><a href="private/api/users">Users</a></li>
 			<li><a href="private/api/pardot">Sync User-Creation with Pardot</a></li>
 		</ul>
 	</body>
@@ -323,19 +323,13 @@ func (a *api) lookupUsingToken(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var listUsersFilters = filters{
-	"approved": newUsersApprovedFilter,
-}
-
 func (a *api) listUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := a.storage.ListUsers(listUsersFilters.parse(r.URL.Query())...)
+	users, err := a.storage.ListUsers()
 	if renderError(w, r, err) {
 		return
 	}
 	b, err := a.templates.bytes("list_users.html", map[string]interface{}{
-		"ShowingApproved":   r.URL.Query().Get("approved") == "true",
-		"ShowingUnapproved": r.URL.Query().Get("approved") == "false",
-		"Users":             users,
+		"Users": users,
 	})
 	if renderError(w, r, err) {
 		return
@@ -346,7 +340,7 @@ func (a *api) listUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) pardotRefresh(w http.ResponseWriter, r *http.Request) {
-	users, err := a.storage.ListUsers(listUsersFilters.parse(r.URL.Query())...)
+	users, err := a.storage.ListUsers()
 	if renderError(w, r, err) {
 		return
 	}

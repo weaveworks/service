@@ -10,7 +10,6 @@
       <tr>
         <th>Email</th>
         <th>CreatedAt</th>
-        <th>ApprovedAt</th>
         <th>FirstLoginAt</th>
         <th>Admin</th>
       </tr>
@@ -22,12 +21,12 @@
         <td>
           {{if .Admin}}
           <form action="users/{{.ID}}/admin?admin=false" method="POST">
-            <input type="hidden" name="redirect_to" value="../../users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
+            <input type="hidden" name="redirect_to" value="../../users" />
             <input type="submit" value="Clear Admin" />
           </form>
           {{else}}
           <form action="users/{{.ID}}/admin?admin=true" method="POST">
-            <input type="hidden" name="redirect_to" value="../../users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
+            <input type="hidden" name="redirect_to" value="../../users" />
             <input type="submit" value="Make Admin" />
           </form>
           {{end}}
