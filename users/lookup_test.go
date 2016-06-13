@@ -75,16 +75,13 @@ func Test_PublicLookup(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, map[string]interface{}{
-		"email": user.Email,
-		"organizations": []interface{}{
-			map[string]interface{}{
-				"name":               org.Name,
-				"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
-			},
+	assert.Equal(t, user.Email, body["email"])
+	assert.Equal(t, []interface{}{
+		map[string]interface{}{
+			"name":               org.Name,
+			"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
 		},
-	}, body)
-
+	}, body["organizations"])
 }
 
 func Test_PublicLookup_NotFound(t *testing.T) {
@@ -151,7 +148,7 @@ func Test_Lookup_Admin(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, map[string]interface{}{"adminID": user.ID}, body)
+	assert.Equal(t, user.ID, body["adminID"])
 }
 
 func Test_Lookup_Admin_Unauthorized(t *testing.T) {

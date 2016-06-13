@@ -378,10 +378,15 @@ func (a *api) logout(_ *user, w http.ResponseWriter, r *http.Request) {
 }
 
 type lookupView struct {
+	// 13/06/16 These fields are deprecated and should be removed.
 	OrganizationID     string `json:"organizationID,omitempty"`
 	OrganizationName   string `json:"organizationName,omitempty"`
 	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
-	AdminID            string `json:"adminID,omitempty"`
+
+	// These fields are the new official API.
+	AdminID       string    `json:"adminID,omitempty"`
+	Email         string    `json:"email,omitempty"`
+	Organizations []orgView `json:"organizations,omitempty"`
 }
 
 func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Request) {
@@ -393,10 +398,16 @@ func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Req
 		})
 	}
 
-	renderJSON(w, http.StatusOK, map[string]interface{}{
-		"email":         currentUser.Email,
-		"organizations": existing,
-	})
+	result := lookupView{
+		Email:         currentUser.Email,
+		Organizations: existing,
+	}
+	if len(currentUser.Organizations) > 0 {
+		result.OrganizationName = currentUser.Organizations[0].Name
+		result.FirstProbeUpdateAt = renderTime(currentUser.Organizations[0].FirstProbeUpdateAt)
+	}
+
+	renderJSON(w, http.StatusOK, result)
 }
 
 func (a *api) lookupOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
