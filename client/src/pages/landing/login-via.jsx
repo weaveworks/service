@@ -1,13 +1,13 @@
 import React from 'react';
 import Colors from '../../common/colors';
 import { RaisedButton } from 'material-ui';
-import { getData } from '../../common/request';
+import { getLogins } from '../../common/api';
 import { trackException, trackView } from '../../common/tracking';
 
 function injectPrefix(logins, prefix) {
   if (prefix) {
     return (logins || []).map(l => {
-      l.label = l.label.replace('Log in', prefix);
+      l.link.label = l.link.label.replace('Log in', prefix);
       return l;
     });
   }
@@ -31,8 +31,7 @@ export default class LoginVia extends React.Component {
   }
 
   _load() {
-    const url = '/api/users/logins';
-    getData(url).then(this._handleLoadSuccess, this._handleLoadError);
+    getLogins().then(this._handleLoadSuccess, this._handleLoadError);
   }
 
   _handleLoadSuccess(resp) {
@@ -57,12 +56,12 @@ export default class LoginVia extends React.Component {
     return (
       <span>
         {(this.state.logins || []).map(a =>
-            <span key={a.href} className="login-via" style={styles.wrapper}>
+            <span key={a.link.href} className="login-via" style={styles.wrapper}>
               <RaisedButton linkButton
                 style={styles.base}
                 labelColor={Colors.white}
-                {...a}
-                icon={<span className={a.icon}></span>}
+                {...a.link}
+                icon={<span className={a.link.icon}></span>}
               />
             </span>
         )}

@@ -23,7 +23,7 @@ function doRequest(url, method = 'GET', requestData = {}, contentType = null) {
             responseObject.status = request.status;
           }
 
-          if (request.status === 200) {
+          if (request.status >= 200 && request.status < 300) {
             resolve(responseObject);
           } else {
             reject(responseObject);

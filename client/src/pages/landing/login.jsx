@@ -26,12 +26,11 @@ export default class LoginForm extends React.Component {
 
   componentDidMount() {
     // triggered on fresh page load with login params
-    this._tryLogin();
+    this.tryLogin();
     trackView('Login');
   }
 
-  _tryLogin() {
-    let url = '/api/users/login';
+  tryLogin() {
     const { error } = this.props.location.query;
     if (error) {
       this.setState({
@@ -42,9 +41,12 @@ export default class LoginForm extends React.Component {
       });
       return;
     }
+
+    let url = '/api/users/login';
     if (this.props.params.provider) {
-      url += `/${this.props.params.provider}`;
+      url = `/api/users/logins/${this.props.params.provider}/attach`;
     }
+
     getData(url, Object.assign({}, this.props.params, this.props.location.query))
       .then(this._handleLoginSuccess, this._handleLoginError);
   }

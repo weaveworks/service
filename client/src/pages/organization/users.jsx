@@ -41,7 +41,7 @@ export default class Users extends React.Component {
     getData(url)
       .then(resp => {
         this.setState({
-          users: resp
+          users: resp.users
         });
       }, resp => {
         error(resp);

@@ -21,3 +21,8 @@ export function getOrganizations() {
     return resp;
   });
 }
+
+export function getLogins() {
+  const url = '/api/users/logins';
+  return getData(url);
+}

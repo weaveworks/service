@@ -1,4 +1,5 @@
 import React from 'react';
+import _ from 'lodash';
 import { FlatButton } from 'material-ui';
 
 import { FlexContainer } from '../../components/flex-container';
@@ -25,15 +26,24 @@ export default class Logins extends React.Component {
   }
 
   getLogins() {
-    const url = encodeURIs`/api/users/logins`;
     this.setState({ loading: true });
-    getData(url)
-      .then(resp => {
-        this.setState(Object.assign({ loading: false }, resp));
-      }, resp => {
-        this.setState(Object.assign({ loading: false }));
-        trackException(resp.errors[0].message);
+
+    Promise.all([
+      getData('/api/users/logins'),
+      getData('/api/users/attached_logins')
+    ]).then(([loginsRes, attachedLoginsRes]) => {
+      const logins = loginsRes.logins || [];
+      const attachedLogins = attachedLoginsRes.logins || [];
+      const attachedIndex = _.fromPairs(attachedLogins.map(l => [l.id, l]));
+
+      this.setState({
+        loading: false,
+        logins: logins.map(l => _.merge(l, attachedIndex[l.id])),
       });
+    }, resp => {
+      this.setState({ loading: false });
+      trackException(resp.errors[0].message);
+    });
   }
 
   detach(id) {
@@ -53,14 +63,14 @@ export default class Logins extends React.Component {
 
   renderLogin(a) {
     const detach = () => this.detach(a.id);
-    let link = <FlatButton linkButton href={a.href} label="Attach" />;
+    let link = <FlatButton linkButton href={a.link.href} label="Attach" />;
     if (a.loginID || a.username) {
       link = <FlatButton onClick={detach} label="Detach" />;
     }
     const style = {borderBottom: '1px solid #aaa', padding: 0, alignItems: 'center'};
     return (
-      <FlexContainer key={a.id} title={a.title} style={style}>
-        <Column style={{margin: '0 36px 0 0'}}><span className={a.icon} /> {a.name}</Column>
+      <FlexContainer key={a.id} style={style}>
+        <Column style={{margin: '0 36px 0 0'}}><span className={a.link.icon} /> {a.name}</Column>
         <Column>{a.username ? this.renderAttached(a.username) : 'Not attached'}
         </Column>
         <Column style={{textAlign: 'right', margin: '0 0 0 36px'}}>{link}</Column>
