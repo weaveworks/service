@@ -397,7 +397,8 @@ func (a *api) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, errNotFound)
 		return
 	}
-	err := a.storage.SetUserAdmin(userID, true)
+	admin := r.URL.Query().Get("admin") == "true"
+	err := a.storage.SetUserAdmin(userID, admin)
 	if renderError(w, r, err) {
 		return
 	}

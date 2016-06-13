@@ -29,7 +29,7 @@
           {{.FormatApprovedAt}}
           {{else}}
           <form action="users/{{.ID}}/approve" method="POST">
-            <input type="hidden" name="redirect_to" value="users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
+            <input type="hidden" name="redirect_to" value="../../users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
             <input type="submit" value="Approve" />
           </form>
           {{end}}
@@ -37,10 +37,13 @@
         <td>{{.FormatFirstLoginAt}}</td>
         <td>
           {{if .Admin}}
-          <input type="checkbox" name="admin" disabled value="true" checked/></td>
+          <form action="users/{{.ID}}/admin?admin=false" method="POST">
+            <input type="hidden" name="redirect_to" value="../../users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
+            <input type="submit" value="Clear Admin" />
+          </form>
           {{else}}
-          <form action="users/{{.ID}}/admin" method="POST">
-            <input type="hidden" name="redirect_to" value="users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
+          <form action="users/{{.ID}}/admin?admin=true" method="POST">
+            <input type="hidden" name="redirect_to" value="../../users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
             <input type="submit" value="Make Admin" />
           </form>
           {{end}}

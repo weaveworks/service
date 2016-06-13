@@ -49,7 +49,7 @@ $(PROM_RUN_EXE): $(shell find ./kubediff/vendor/github.com/tomwilkie/prom-run/ -
 
 # And now what goes into each image
 authfe/$(UPTODATE): $(AUTHFE_EXE)
-users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql')
+users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/templates/*
 metrics/$(UPTODATE): $(METRICS_EXE)
 launch-generator/$(UPTODATE): launch-generator/src/*.js launch-generator/package.json
 kubediff/$(UPTODATE): $(PROM_RUN_EXE)
