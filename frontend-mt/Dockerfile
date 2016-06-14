@@ -8,7 +8,9 @@ RUN rm /etc/nginx/sites-available/default && \
   ln -sf /dev/stderr /var/log/nginx/error.log
 COPY prometheus.lua /lua/
 COPY default.conf /etc/nginx/conf.d/
+COPY routes.conf /etc/nginx/
 COPY pki/scope.weave.works.crt /tls/scope.weave.works.crt
+COPY pki/cloud.weave.works.crt /tls/cloud.weave.works.crt
 COPY dhparam.pem /tls/dhparam.pem
 COPY api.json /home/weave/
 EXPOSE 80 443
