@@ -17,37 +17,13 @@ AWS_REGION="eu-west-1"
 # Kubernetes
 #
 
-# The default availability zone in your region.
-# The kube-up script will stage some S3 assets here.
+# Number of node
 #
-K8S_AZ="eu-west-1a"
+K8S_NODE_COUNT="3"
 
-# The AMI that Kubernetes will use. Should be Ubuntu vivid hvm:ebs. Use the
-# Ubuntu locator at http://cloud-images.ubuntu.com/locator/ec2/ to find the
-# right image for your region.
+# Type of EC2 instances
 #
-K8S_AMI="ami-eccf159f"
-
-# EC2 instance size for the Kubernetes master node.
-# Should not be smaller than m3.medium.
-#
-K8S_MASTER_SIZE="m3.medium"
-
-# EC2 instance size for the Kubernetes minion nodes. t2.micro is enough to
-# boot Kubernetes for a test cluster, but not enough to run Scope-as-a-Service
-# components. For that you need at least t2.medium.
-#
-K8S_MINION_SIZE="t2.medium"
-
-# How many minion nodes to spawn. 3 is enough for a dev cluster, but (as long
-# as we're spawning one app per customer) you'll need more for prod.
-#
-K8S_NUM_MINIONS="5"
-
-# A prefix for the EC2 instance names. Should probably include "kubernetes"
-# and the name of the cluster, to help keep things understandable.
-#
-K8S_INSTANCE_PREFIX="kubernetes_yourclustername"
+K8S_NODE_INSTANCE_TYPE="m4.xlarge"
 
 #
 # RDS

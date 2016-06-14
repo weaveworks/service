@@ -25,6 +25,14 @@ variable "rds_subnet_b_availability_zone" {
     default = "us-east-1b"
 }
 
+variable "rds_vpc_resource_name_prefix" {
+    default = "rds"
+}
+
+variable "rds_users_db_identifier" {
+    default = "users-database"
+}
+
 variable "users_db_password" {
 }
 
@@ -32,12 +40,12 @@ resource "aws_vpc" "rds_vpc" {
     cidr_block = "${var.rds_vpc_cidr_block}"
     enable_dns_hostnames = true
     tags {
-        Name = "terraform-rds-vpc"
+        Name = "terraform-${var.rds_vpc_resource_name_prefix}-vpc"
     }
 }
 
 resource "aws_security_group" "rds_sg" {
-    name = "rds_sg"
+    name = "${var.rds_vpc_resource_name_prefix}_sg"
     description = "Security group for RDS instances"
     ingress {
         from_port = 0
@@ -52,14 +60,14 @@ resource "aws_security_group" "rds_sg" {
         cidr_blocks = ["0.0.0.0/0"]
     }
     tags {
-        Name = "terraform-rds-sg"
+        Name = "terraform-${var.rds_vpc_resource_name_prefix}-sg"
     }
 }
 
 resource "aws_internet_gateway" "rds_igw" {
     vpc_id = "${aws_vpc.rds_vpc.id}"
     tags {
-        Name = "terraform-rds-igw"
+        Name = "terraform-${var.rds_vpc_resource_name_prefix}-igw"
     }
 }
 
@@ -70,7 +78,7 @@ resource "aws_route_table" "rds_rtb" {
         gateway_id = "${aws_internet_gateway.rds_igw.id}"
     }
     tags {
-        Name = "terraform-rds-rtb"
+        Name = "terraform-${var.rds_vpc_resource_name_prefix}-rtb"
     }
 }
 
@@ -79,7 +87,7 @@ resource "aws_subnet" "rds_subnet_a" {
     cidr_block = "${var.rds_subnet_a_cidr_block}"
     availability_zone = "${var.rds_subnet_a_availability_zone}"
     tags {
-        Name = "terraform-rds-subnet-a"
+        Name = "terraform-${var.rds_vpc_resource_name_prefix}-subnet-a"
     }
 }
 
@@ -93,7 +101,7 @@ resource "aws_subnet" "rds_subnet_b" {
     cidr_block = "${var.rds_subnet_b_cidr_block}"
     availability_zone = "${var.rds_subnet_b_availability_zone}"
     tags {
-        Name = "terraform-rds-subnet-b"
+        Name = "terraform-${var.rds_vpc_resource_name_prefix}-subnet-b"
     }
 }
 
@@ -103,16 +111,16 @@ resource "aws_route_table_association" "rds_rtbassoc_b" {
 }
 
 resource "aws_db_subnet_group" "rds_subnet_group" {
-    name = "rds_subnet_group"
+    name = "${var.rds_vpc_resource_name_prefix}_subnet_group"
     description = "DB subnet group for the databases"
     subnet_ids = ["${aws_subnet.rds_subnet_a.id}", "${aws_subnet.rds_subnet_b.id}"]
     tags {
-        Name = "terraform-rds-subnet-group"
+        Name = "terraform-${var.rds_vpc_resource_name_prefix}-subnet-group"
     }
 }
 
 resource "aws_db_instance" "users_database" {
-    identifier = "users-database"
+    identifier = "${var.rds_users_db_identifier}"
     allocated_storage = 10
     multi_az = true
     engine = "postgres"
@@ -121,7 +129,7 @@ resource "aws_db_instance" "users_database" {
     username = "postgres"
     password = "${var.users_db_password}"
     vpc_security_group_ids = ["${aws_security_group.rds_sg.id}"]
-    final_snapshot_identifier = "users-final"
+    final_snapshot_identifier = "${var.rds_users_db_identifier}-final"
     skip_final_snapshot = false
     backup_retention_period = 5
     apply_immediately = true
