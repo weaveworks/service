@@ -52,8 +52,8 @@ export default class LoginForm extends React.Component {
   }
 
   _handleLoginSuccess(resp) {
-    if (resp.redirectTo) {
-      hashHistory.push(resp.redirectTo);
+    if (resp.attach) {
+      hashHistory.push('/account');
     } else {
       hashHistory.push('/');
     }
