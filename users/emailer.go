@@ -12,10 +12,6 @@ import (
 	"github.com/sendgrid/sendgrid-go"
 )
 
-const (
-	fromAddress = "Scope Support <support@weave.works>"
-)
-
 var (
 	errUnsupportedEmailProtocol = errors.New("Unsupported email protocol")
 )
@@ -35,12 +31,13 @@ type emailer interface {
 }
 
 type smtpEmailer struct {
-	templates templateEngine
-	sender    func(*email.Email) error
-	domain    string
+	templates   templateEngine
+	sender      func(*email.Email) error
+	domain      string
+	fromAddress string
 }
 
-func mustNewEmailer(emailURI, sendgridAPIKey string, templates templateEngine, domain string) emailer {
+func mustNewEmailer(emailURI, sendgridAPIKey, fromAddress string, templates templateEngine, domain string) emailer {
 	if (emailURI == "") == (sendgridAPIKey == "") {
 		logrus.Fatal("Must provide one of -email-uri or -sendgrid-api-key")
 	}
@@ -61,10 +58,19 @@ func mustNewEmailer(emailURI, sendgridAPIKey string, templates templateEngine, d
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		return smtpEmailer{templates, sender, domain}
+		return smtpEmailer{
+			templates:   templates,
+			sender:      sender,
+			domain:      domain,
+			fromAddress: fromAddress,
+		}
 	}
 	client := sendgrid.NewSendGridClientWithApiKey(sendgridAPIKey)
-	return sendgridEmailer{client, domain}
+	return sendgridEmailer{
+		client:      client,
+		domain:      domain,
+		fromAddress: fromAddress,
+	}
 }
 
 // Takes a uri of the form smtp://username:password@hostname:port
@@ -102,7 +108,7 @@ func logEmailSender() func(e *email.Email) error {
 
 func (s smtpEmailer) LoginEmail(u *user, token string) error {
 	e := email.NewEmail()
-	e.From = fromAddress
+	e.From = s.fromAddress
 	e.To = []string{u.Email}
 	e.Subject = "Login to Scope"
 	data := map[string]interface{}{
@@ -117,7 +123,7 @@ func (s smtpEmailer) LoginEmail(u *user, token string) error {
 
 func (s smtpEmailer) InviteEmail(u *user, token string) error {
 	e := email.NewEmail()
-	e.From = fromAddress
+	e.From = s.fromAddress
 	e.To = []string{u.Email}
 	e.Subject = "You've been invited to Scope"
 	data := map[string]interface{}{
@@ -132,8 +138,9 @@ func (s smtpEmailer) InviteEmail(u *user, token string) error {
 }
 
 type sendgridEmailer struct {
-	client *sendgrid.SGClient
-	domain string
+	client      *sendgrid.SGClient
+	domain      string
+	fromAddress string
 }
 
 const (
@@ -141,9 +148,9 @@ const (
 	inviteEmailTemplate = "00ceaa49-857f-4ce4-bc39-789b7f56c886"
 )
 
-func sendgridEmail(templateID string) *sendgrid.SGMail {
+func (s sendgridEmailer) sendgridEmail(templateID string) *sendgrid.SGMail {
 	mail := sendgrid.NewMail()
-	mail.SetFrom(fromAddress)
+	mail.SetFrom(s.fromAddress)
 	mail.SetText(" ")
 	mail.SetHTML(" ")
 	mail.SetSubject(" ")
@@ -153,7 +160,7 @@ func sendgridEmail(templateID string) *sendgrid.SGMail {
 }
 
 func (s sendgridEmailer) LoginEmail(u *user, token string) error {
-	mail := sendgridEmail(loginEmailTemplate)
+	mail := s.sendgridEmail(loginEmailTemplate)
 	mail.AddTo(u.Email)
 	mail.AddSubstitution(":login_url", loginURL(u.Email, token, s.domain))
 	mail.AddSubstitution(":root_url", s.domain)
@@ -161,7 +168,7 @@ func (s sendgridEmailer) LoginEmail(u *user, token string) error {
 }
 
 func (s sendgridEmailer) InviteEmail(u *user, token string) error {
-	mail := sendgridEmail(inviteEmailTemplate)
+	mail := s.sendgridEmail(inviteEmailTemplate)
 	mail.AddTo(u.Email)
 	mail.AddSubstitution(":login_url", loginURL(u.Email, token, s.domain))
 	mail.AddSubstitution(":root_url", s.domain)
