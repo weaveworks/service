@@ -1,25 +1,24 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: users-bccd6fe
+  name: users-master-2b52820
 spec:
   replicas: 2
   selector:
     name: users
-    version: bccd6fe
+    version: master-2b52820
   template:
     metadata:
       labels:
         name: users
-        version: bccd6fe
+        version: master-2b52820
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: users
-        image: quay.io/weaveworks/users:bccd6fe
+        image: quay.io/weaveworks/users:master-2b52820
         args:
-        - -approval-required=false
         - -domain=https://cloud.weave.works
         - -session-secret=3919365780a79e0658fd44d03e6945a080031ec077b88975898f698c0d298395
         - -sendgrid-api-key=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
