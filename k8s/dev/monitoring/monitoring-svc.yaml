@@ -9,7 +9,5 @@ spec:
     name: alertmanager
   - port: 9090
     name: prometheus
-  - port: 3000
-    name: grafana
   selector:
     name: monitoring

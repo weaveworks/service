@@ -21,12 +21,6 @@ spec:
         image: quay.io/weaveworks/prometheus:bb26507
         ports:
         - containerPort: 9090
-      - name: grafana
-        image: quay.io/weaveworks/grafana:nats-shortcut-reports-634cdd0-WIP
-        ports:
-        - containerPort: 3000
-      - name: gfdatasource
-        image: quay.io/weaveworks/gfdatasource:ee4f63b
       - name: loadgen
         image: quay.io/weaveworks/loadgen:6d14ba2
       - name: alertmanager
