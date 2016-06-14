@@ -30,8 +30,6 @@ func loginURL(email, rawToken, domain string) string {
 }
 
 type emailer interface {
-	WelcomeEmail(u *user) error
-	ApprovedEmail(u *user, token string) error
 	LoginEmail(u *user, token string) error
 	InviteEmail(u *user, token string) error
 }
@@ -102,32 +100,6 @@ func logEmailSender() func(e *email.Email) error {
 	}
 }
 
-func (s smtpEmailer) WelcomeEmail(u *user) error {
-	e := email.NewEmail()
-	e.From = fromAddress
-	e.To = []string{u.Email}
-	e.Subject = "Welcome to Scope"
-	e.Text = s.templates.quietBytes("welcome_email.text", nil)
-	e.HTML = s.templates.quietBytes("welcome_email.html", nil)
-	return s.sender(e)
-}
-
-func (s smtpEmailer) ApprovedEmail(u *user, token string) error {
-	e := email.NewEmail()
-	e.From = fromAddress
-	e.To = []string{u.Email}
-	e.Subject = "Scope account approved"
-	data := map[string]interface{}{
-		"LoginURL":   loginURL(u.Email, token, s.domain),
-		"RootURL":    s.domain,
-		"Token":      token,
-		"ProbeToken": u.Organization.ProbeToken,
-	}
-	e.Text = s.templates.quietBytes("approved_email.text", data)
-	e.HTML = s.templates.quietBytes("approved_email.html", data)
-	return s.sender(e)
-}
-
 func (s smtpEmailer) LoginEmail(u *user, token string) error {
 	e := email.NewEmail()
 	e.From = fromAddress
@@ -165,10 +137,8 @@ type sendgridEmailer struct {
 }
 
 const (
-	welcomeEmailTemplate  = "1721d506-dcf7-4e84-a629-63d34a86325b"
-	approvedEmailTemplate = "980cc9b5-6872-4596-8560-5c220a9341fd"
-	loginEmailTemplate    = "ccf3f6e2-20f9-4c41-bd72-ca204c1c3f6f"
-	inviteEmailTemplate   = "00ceaa49-857f-4ce4-bc39-789b7f56c886"
+	loginEmailTemplate  = "ccf3f6e2-20f9-4c41-bd72-ca204c1c3f6f"
+	inviteEmailTemplate = "00ceaa49-857f-4ce4-bc39-789b7f56c886"
 )
 
 func sendgridEmail(templateID string) *sendgrid.SGMail {
@@ -180,20 +150,6 @@ func sendgridEmail(templateID string) *sendgrid.SGMail {
 	mail.AddFilter("templates", "enable", "1")
 	mail.AddFilter("templates", "template_id", templateID)
 	return mail
-}
-
-func (s sendgridEmailer) WelcomeEmail(u *user) error {
-	mail := sendgridEmail(welcomeEmailTemplate)
-	mail.AddTo(u.Email)
-	return s.client.Send(mail)
-}
-
-func (s sendgridEmailer) ApprovedEmail(u *user, token string) error {
-	mail := sendgridEmail(approvedEmailTemplate)
-	mail.AddTo(u.Email)
-	mail.AddSubstitution(":login_url", loginURL(u.Email, token, s.domain))
-	mail.AddSubstitution(":root_url", s.domain)
-	return s.client.Send(mail)
 }
 
 func (s sendgridEmailer) LoginEmail(u *user, token string) error {

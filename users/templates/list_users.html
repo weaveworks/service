@@ -5,18 +5,11 @@
   </head>
   <body>
     <h2>Accounts</h2>
-    <span>
-      Showing:
-      {{if or .ShowingApproved .ShowingUnapproved}}<a href="users">All</a>{{else}}All{{end}}
-      {{if .ShowingApproved}}Approved{{else}}<a href="users?approved=true">Approved</a>{{end}}
-      {{if .ShowingUnapproved}}Unapproved{{else}}<a href="users?approved=false">Unapproved</a>{{end}}
-    </span>
     {{with .}}
     <table>
       <tr>
         <th>Email</th>
         <th>CreatedAt</th>
-        <th>ApprovedAt</th>
         <th>FirstLoginAt</th>
         <th>Admin</th>
       </tr>
@@ -24,26 +17,16 @@
       <tr>
         <td>{{.Email}}</td>
         <td>{{.FormatCreatedAt}}</td>
-        <td>
-          {{if .IsApproved}}
-          {{.FormatApprovedAt}}
-          {{else}}
-          <form action="users/{{.ID}}/approve" method="POST">
-            <input type="hidden" name="redirect_to" value="../../users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
-            <input type="submit" value="Approve" />
-          </form>
-          {{end}}
-        </td>
         <td>{{.FormatFirstLoginAt}}</td>
         <td>
           {{if .Admin}}
           <form action="users/{{.ID}}/admin?admin=false" method="POST">
-            <input type="hidden" name="redirect_to" value="../../users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
+            <input type="hidden" name="redirect_to" value="../../users" />
             <input type="submit" value="Clear Admin" />
           </form>
           {{else}}
           <form action="users/{{.ID}}/admin?admin=true" method="POST">
-            <input type="hidden" name="redirect_to" value="../../users{{if $.ShowingApproved}}?approved=true{{else if $.ShowingUnapproved}}?approved=false{{end}}" />
+            <input type="hidden" name="redirect_to" value="../../users" />
             <input type="submit" value="Make Admin" />
           </form>
           {{end}}
