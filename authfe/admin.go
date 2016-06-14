@@ -18,7 +18,6 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 		<ul>
 			<li><a href="/admin/scope/">Scope</a></li>
 			<li><a href="/admin/grafana/">Grafana</a></li>
-			<li><a href="/admin/prometheus/">Prometheus</a></li>
 			<li><a href="/admin/kubediff/">Kubediff</a></li>
 		</ul>
 

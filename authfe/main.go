@@ -91,7 +91,6 @@ func main() {
 		fluentHost        string
 		grafanaHost       string
 		scopeHost         string
-		prometheusHost    string
 		usersHost         string
 		kubediffHost      string
 	)
@@ -108,7 +107,6 @@ func main() {
 
 	flag.StringVar(&grafanaHost, "grafana", "grafana.monitoring.svc.cluster.local:80", "Hostname & port for grafana")
 	flag.StringVar(&scopeHost, "scope", "scope.kube-system.svc.cluster.local:80", "Hostname & port for scope")
-	flag.StringVar(&prometheusHost, "prometheus", "monitoring.monitoring.svc.cluster.local:9090", "Hostname & port for prometheus")
 	flag.StringVar(&usersHost, "users", "users.default.svc.cluster.local", "Hostname & port for users")
 	flag.StringVar(&kubediffHost, "kubediff", "kubediff.monitoring.svc.cluster.local", "Hostname & port for kubediff")
 	flag.Parse()
@@ -147,7 +145,6 @@ func main() {
 	}
 	addAdminRoute("grafana", grafanaHost)
 	addAdminRoute("scope", scopeHost)
-	addAdminRoute("prometheus", prometheusHost)
 	addAdminRoute("users", usersHost)
 	addAdminRoute("kubediff", kubediffHost)
 	adminRouter.Path("/admin/").Name("admin").Handler(http.HandlerFunc(adminRoot))
