@@ -159,7 +159,7 @@ $ ./connect local
 
 You must connect to the cluster for these steps to work.
 
-1. Go to http://scope.weave.works and sign up with a bogus email address.
+1. Go to http://cloud.weave.works and sign up with a bogus email address.
 2. Start a probe with your service token, and send reports to your local Scope-as-a-Service.
 
 ```
@@ -242,7 +242,7 @@ $ ./connect mycluster
 
 You must connect to the cluster for these steps to work.
 
-1. Go to http://scope.weave.works and sign up with a real email address.
+1. Go to http://cloud.weave.works and sign up with a real email address.
 2. Check your email for the welcome message.
 3. Go to http://users.default.svc.cluster.local and approve yourself.
 4. Check your email for the approval message, and click the login link.
