@@ -1,3 +1,5 @@
+/* eslint react/jsx-boolean-value: 0 */
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { FlatButton, List, ListItem, RaisedButton, TextField, Snackbar } from 'material-ui';
@@ -110,7 +112,7 @@ export default class Users extends React.Component {
     const button = user.self ? (<FlatButton
       label="Self"
       style={buttonStyle}
-      disabled="true" />) :
+      disabled={true} />) :
       (<FlatButton
         label="Remove"
         style={buttonStyle}
@@ -141,7 +143,7 @@ export default class Users extends React.Component {
         <Snackbar
           action="OK!"
           open={Boolean(this.state.notices)}
-          message={this.state.notices && this.state.notices.map(e => e.message).join('. ')}
+          message={this.state.notices ? this.state.notices.map(e => e.message).join('. ') : ''}
           onActionTouchTap={this.clearErrors}
           onRequestClose={this.clearErrors}
         />
