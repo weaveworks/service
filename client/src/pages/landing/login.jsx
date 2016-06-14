@@ -6,6 +6,10 @@ import { CircularProgress } from 'material-ui';
 import { red900 } from 'material-ui/styles/colors';
 import { trackException, trackView } from '../../common/tracking';
 
+
+const ERROR_TITLE = 'Weave Cloud is not available. Please try again later.';
+
+
 export default class LoginForm extends React.Component {
 
   constructor(props) {
@@ -22,19 +26,37 @@ export default class LoginForm extends React.Component {
 
   componentDidMount() {
     // triggered on fresh page load with login params
-    this._tryLogin();
+    this.tryLogin();
     trackView('Login');
   }
 
-  _tryLogin() {
-    const {email, token} = this.props.params;
-    const url = '/api/users/login';
-    getData(url, {email, token})
+  tryLogin() {
+    const { error } = this.props.location.query;
+    if (error) {
+      this.setState({
+        activityText: '',
+        errorTitle: "Ooops! That didn't work very well",
+        errorText: `There was a problem attaching your account: ${error}. Try again, hopefully it
+          will work better this time.`,
+      });
+      return;
+    }
+
+    let url = '/api/users/login';
+    if (this.props.params.provider) {
+      url = `/api/users/logins/${this.props.params.provider}/attach`;
+    }
+
+    getData(url, Object.assign({}, this.props.params, this.props.location.query))
       .then(this._handleLoginSuccess, this._handleLoginError);
   }
 
-  _handleLoginSuccess() {
-    hashHistory.push('/');
+  _handleLoginSuccess(resp) {
+    if (resp.attach) {
+      hashHistory.push('/account');
+    } else {
+      hashHistory.push('/');
+    }
   }
 
   _handleLoginError(resp) {
@@ -73,7 +95,7 @@ export default class LoginForm extends React.Component {
           <p>{this.state.activityText}.</p>
         </div>
         <div style={styles.error}>
-          <h3>Scope service is not available. Please try again later.</h3>
+          <h3>{this.state.errorTitle || ERROR_TITLE}</h3>
           <p>{this.state.errorText}</p>
         </div>
       </div>

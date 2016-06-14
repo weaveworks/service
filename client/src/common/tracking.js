@@ -4,7 +4,7 @@ import { toQueryString } from './request';
 
 const log = debug('service:tracking');
 const error = debug('service:trackingErr');
-const trackPrefix = 'scopeService';
+const trackPrefix = 'weaveCloudService';
 
 export function trackEvent(subject, action, label, value) {
   if (window.ga) {

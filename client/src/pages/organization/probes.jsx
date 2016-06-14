@@ -42,7 +42,7 @@ export default class Probes extends React.Component {
           // negate isProbeConnected. In JS: false < true
           probes: _.sortBy(resp, [_.negate(isProbeConnected), 'hostname', 'id'])
         });
-        trackEvent('Scope', 'connectedProbes', this.props.org, resp.length);
+        trackEvent('Cloud', 'connectedProbes', this.props.org, resp.length);
         this.getProbesTimer = setTimeout(this.getProbes, 5000);
       }, resp => {
         trackException(resp.errors[0].message);

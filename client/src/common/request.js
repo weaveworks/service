@@ -18,10 +18,12 @@ function doRequest(url, method = 'GET', requestData = {}, contentType = null) {
     request.onreadystatechange = function onReadyStateChange() {
       if (request.readyState === 4) {
         try {
-          const responseObject = JSON.parse(request.responseText);
-          responseObject.status = request.status;
+          const responseObject = request.responseText && JSON.parse(request.responseText);
+          if (responseObject) {
+            responseObject.status = request.status;
+          }
 
-          if (request.status === 200) {
+          if (request.status >= 200 && request.status < 300) {
             resolve(responseObject);
           } else {
             reject(responseObject);
@@ -77,6 +79,17 @@ export function encodeURIs(...args) {
 export function toQueryString(params) {
   return Object.keys(params).map((k) => `${k}=${encodeURIComponent(params[k])}`).join('&');
 }
+
+export function fromQueryString(string) {
+  const result = {};
+  string.
+    slice(1).
+    split('&').
+    map(pair => pair.split('=', 2)).
+    forEach(([k, v]) => { result[k] = decodeURIComponent(v || ''); });
+  return result;
+}
+
 
 export function getData(url, params) {
   const getUrl = params ? `${url}?${toQueryString(params)}` : url;
