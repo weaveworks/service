@@ -2,6 +2,9 @@
  * App entry point
  */
 
+// Polyfills for promises.
+import 'babel-polyfill';
+
 // icon fonts, loaded via webpack, available via fa classes
 require('font-awesome-webpack');
 
