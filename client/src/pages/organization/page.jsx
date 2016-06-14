@@ -32,6 +32,10 @@ export default class OrganizationPage extends React.Component {
     trackView('Organization');
   }
 
+  instanceUrl() {
+    return encodeURIs`#/app/${this.props.params.orgId}`;
+  }
+
   _getOrganizationData(organization) {
     if (organization) {
       const url = encodeURIs`/api/users/org/${organization}`;
@@ -137,7 +141,7 @@ export default class OrganizationPage extends React.Component {
                   <span style={styles.circle}>3</span>
                   <h2>Visit Instance</h2>
                   Once you have started the probe on your Docker hosts,
-                  click "View Instance" in the top right.
+                  click <a href={this.instanceUrl()}> View Instance</a> in the top right.
                 </div>
               </div>
             </Column>

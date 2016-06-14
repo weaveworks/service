@@ -134,25 +134,18 @@ export default class Users extends React.Component {
     };
 
     const formStyle = {
-      textAlign: 'center',
       marginTop: '1em'
     };
 
     return (
       <div className="users">
         <Snackbar
-          action="OK!"
+          action="ok"
           open={Boolean(this.state.notices)}
           message={this.state.notices ? this.state.notices.map(e => e.message).join('. ') : ''}
           onActionTouchTap={this.clearErrors}
           onRequestClose={this.clearErrors}
         />
-        <h3>Current members</h3>
-        <Box>
-          <List>
-            {users}
-          </List>
-        </Box>
         <div style={formStyle}>
           <TextField
             hintText="Email"
@@ -167,6 +160,12 @@ export default class Users extends React.Component {
             onClick={this.handleInviteTouchTap}
             />
         </div>
+        <h3>Current members</h3>
+        <Box>
+          <List>
+            {users}
+          </List>
+        </Box>
       </div>
     );
   }

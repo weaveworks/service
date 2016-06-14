@@ -23,7 +23,7 @@ export default class Toolbar extends React.Component {
       route: encodeURIs`#/account`
     }, {
       iconClass: 'fa fa-sign-out',
-      title: `Log out ${this.props.user}`,
+      title: `Log out ${this.props.user || ''}`,
       route: '#/logout'
     }];
   }

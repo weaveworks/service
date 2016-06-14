@@ -1,9 +1,8 @@
 import React from 'react';
 import _ from 'lodash';
-import { FlatButton } from 'material-ui';
+import { FlatButton, List, ListItem } from 'material-ui';
 
-import { FlexContainer } from '../../components/flex-container';
-import { Column } from '../../components/column';
+import { Box } from '../../components/box';
 import { getData, postData, encodeURIs } from '../../common/request';
 import { trackException } from '../../common/tracking';
 
@@ -67,14 +66,24 @@ export default class Logins extends React.Component {
     if (a.loginID || a.username) {
       link = <FlatButton onClick={detach} label="Detach" />;
     }
-    const style = {borderBottom: '1px solid #aaa', padding: 0, alignItems: 'center'};
     return (
-      <FlexContainer key={a.id} style={style}>
-        <Column style={{margin: '0 36px 0 0'}}><span className={a.link.icon} /> {a.name}</Column>
-        <Column>{a.username ? this.renderAttached(a.username) : 'Not attached'}
-        </Column>
-        <Column style={{textAlign: 'right', margin: '0 0 0 36px'}}>{link}</Column>
-      </FlexContainer>
+      <ListItem
+        key={a.id}
+        primaryText={a.name}
+        leftIcon={<span style={{fontSize: '24px'}} className={a.link.icon} />}
+        rightIconButton={link}
+        secondaryText={a.username ? this.renderAttached(a.username) : 'Not attached'}
+      />
+    );
+  }
+
+  renderLogins() {
+    return (
+      <Box>
+        <List>
+          {this.state.logins.map(this.renderLogin)}
+        </List>
+      </Box>
     );
   }
 
@@ -85,7 +94,7 @@ export default class Logins extends React.Component {
         <p>Control which external accounts are attached to this user.</p>
         {this.state.loading ?
           <span><span className="fa fa-loading" /> Loading...</span> :
-          (this.state.logins || []).map(this.renderLogin)}
+          this.state.logins && this.renderLogins()}
       </div>
     );
   }
