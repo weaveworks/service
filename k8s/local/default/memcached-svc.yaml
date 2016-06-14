@@ -5,8 +5,11 @@ metadata:
   annotations:
     prometheus.io.port: "9150"
 spec:
+  # The memcache client uses DNS to get a list of memcached servers and then
+  # uses a consistent hash of the key to determine which server to pick.
+  clusterIP: None
   ports:
-    - name: clients
+    - name: memcached
       port: 11211
     - name: prom
       port: 9150
