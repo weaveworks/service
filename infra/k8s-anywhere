@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+function usage {
+    echo "usage: $(basename $0) up/down <name>" 1>&2
+    exit 1
+}
+
+
+if [ $# -ne 2 ]
+then
+    usage
+fi
+
+MODE="$1"
+NAME="$2"
+
+ENV_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/${NAME}"
+
+if [ ! -d "${ENV_DIR}" ]
+then
+    echo "${ENV_DIR} is not a directory"
+    exit 1
+fi
+
+
+function interactive_confirmation {
+    while true
+    do
+        read -p "$1 " yn
+        case $yn in
+            yes) break;;
+            no) exit;;
+            *) echo "Please type 'yes' or 'no'";;
+        esac
+    done
+}
+
+TARGETS="-target=module.kubernetes-anywhere-aws-ec2"
+
+function terraform_destroy {
+    (
+        cd "${ENV_DIR}"
+        terraform plan -destroy -state=tfstate -var-file=tfvars ${TARGETS}
+        interactive_confirmation "Does this look right?"
+        terraform destroy -state=tfstate -var-file=tfvars ${TARGETS}
+    )
+}
+
+function terraform_apply {
+    (
+        cd "${ENV_DIR}"
+        local tempfile=$(mktemp)
+        trap "rm -rf ${tempfile}" EXIT
+        terraform plan -state=tfstate -var-file=tfvars -out=${tempfile} ${TARGETS}
+        interactive_confirmation "Do you wish to proceed with the plan?"
+        terraform apply -state=tfstate ${tempfile}
+    )
+}
+
+function terraform_get {
+    (
+        cd "${ENV_DIR}"
+        terraform get
+    )
+}
+
+case "${MODE}" in
+up)
+    terraform_get
+    terraform_apply
+    ;;
+
+down)
+    terraform_get
+    terraform_destroy
+    ;;
+
+*)
+    echo "Unknown command" 1>&2
+    usage
+    ;;
+esac

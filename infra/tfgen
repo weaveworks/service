@@ -33,15 +33,24 @@ aws_secret_key = "${AWS_SECRET_KEY}"
 aws_region = "${AWS_REGION}"
 env_name = "${NAME}"
 
+k8s_node_count = "${K8S_NODE_COUNT}"
+k8s_node_instance_type = "${K8S_NODE_INSTANCE_TYPE}"
+
 rds_subnet_a_availability_zone = "${RDS_SUBNET_A_AZ}"
 rds_subnet_b_availability_zone = "${RDS_SUBNET_B_AZ}"
+rds_vpc_resource_name_prefix = "rds_${NAME}"
+rds_users_db_identifier = "users-db-${NAME}"
+
 users_db_password = "${RDS_USERS_DB_PASSWORD}"
 
 route53_zone_name = "${R53_ZONE_NAME}"
 route53_resource_name = "${R53_RESOURCE_NAME}"
 route53_frontend_elb_endpoint = "${R53_FRONTEND_ELB_ENDPOINT}"
 route53_frontend_elb_zone_id = "${R53_FRONTEND_ELB_ZONE_ID}"
+
 EOF
 
 echo Creating ${CLWD}/aws.tf
 cp aws.template ${CLWD}/aws.tf
+echo Creating ${CLWD}/k8s.tf
+cp k8s.template ${CLWD}/k8s.tf

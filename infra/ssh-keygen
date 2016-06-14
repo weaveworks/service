@@ -1,0 +1,16 @@
+#!/bin/bash -e
+
+function usage {
+    echo "usage: $(basename $0) <name> [...]" 1>&2
+    exit 1
+}
+
+if [ $# -ne 1 ]
+then
+    usage
+fi
+
+ENV_NAME="$1"
+ENV_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/${ENV_NAME}"
+
+ssh-keygen -N "" -t rsa -b 4096 -C "kubernetes-${ENV_NAME}" -f "${ENV_DIR}/k8s_id_rsa"
