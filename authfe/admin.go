@@ -1,68 +1,32 @@
 package main
 
 import (
-	"html/template"
+	"fmt"
 	"net/http"
-	"net/url"
 )
-
-var (
-	adminServices = []adminService{
-		{Label: "scope", Domain: "kube-system.svc.cluster.local"},
-		{Label: "alertmanager", Host: "monitoring", Port: "9093", Domain: "monitoring.svc.cluster.local"},
-		{Label: "grafana", Host: "monitoring", Port: "3000", Domain: "monitoring.svc.cluster.local"},
-		{Label: "prometheus", Host: "monitoring", Port: "9090", Domain: "monitoring.svc.cluster.local"},
-		{Label: "kubediff", Domain: "monitoring.svc.cluster.local"},
-		{Host: "consul", Port: "8500", Path: "/ui"},
-		{Host: "users"},
-	}
-)
-
-type adminService struct {
-	Label  string
-	Host   string
-	Domain string
-	Port   string
-	Path   string
-}
-
-func (s adminService) Text() string {
-	if s.Label == "" {
-		return s.Host
-	}
-	return s.Label
-}
-
-func (s adminService) URL() *url.URL {
-	host := s.Host
-	if s.Domain == "" {
-		s.Domain = "default.svc.cluster.local"
-	}
-	host += "." + s.Domain
-	if s.Port != "" {
-		host += ":" + s.Port
-	}
-	return &url.URL{
-		Scheme: "http",
-		Host:   host,
-		Path:   s.Path,
-	}
-}
 
 func adminRoot(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/html")
-	template.Must(template.New("adminRoot").Parse(`
+	fmt.Fprintf(w, `
 <!doctype html>
 <html>
-	<head><title>Admin Services</title></head>
+	<head><title>Admin service</title></head>
 	<body>
-		<h1>Admin Services</h1>
+		<h1>Admin service</h1>
+
+		<h2>Monitoring</h2>
 		<ul>
-		{{ range . }}
-			<li><a href="{{ .URL }}">{{ .Text }}</a></li>
-		{{ end }}
+			<li><a href="/admin/scope/">Scope</a></li>
+			<li><a href="/admin/grafana/">Grafana</a></li>
+			<li><a href="/admin/prometheus/">Prometheus</a></li>
+			<li><a href="/admin/kubediff/">Kubediff</a></li>
+		</ul>
+
+		<h2>Management</h2>
+		<ul>
+			<li><a href="/admin/users/">Users Service</a></li>
 		</ul>
 	</body>
 </html>
-	`)).Execute(w, adminServices)
+`)
 }
