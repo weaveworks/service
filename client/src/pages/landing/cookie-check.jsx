@@ -86,7 +86,7 @@ export default class CookieCheck extends React.Component {
           <p>{this.state.activityText}.</p>
         </div>
         <div style={styles.error}>
-          <h3>Scope service is not available. Please try again later.</h3>
+          <h3>Weave Cloud is not available. Please try again later.</h3>
           <p>{this.state.errorText}</p>
         </div>
       </div>
