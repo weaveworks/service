@@ -83,6 +83,8 @@ func (el *EventLogger) logLoop() {
 			done = true
 		}
 	}
+
+	el.logger.Close()
 }
 
 // Close closes and deallocates the event logger
