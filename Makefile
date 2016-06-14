@@ -53,7 +53,7 @@ users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/template
 metrics/$(UPTODATE): $(METRICS_EXE)
 launch-generator/$(UPTODATE): launch-generator/src/*.js launch-generator/package.json
 kubediff/$(UPTODATE): $(PROM_RUN_EXE)
-frontend-mt/$(UPTODATE): frontend-mt/default.conf frontend-mt/api.json frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
+frontend-mt/$(UPTODATE): frontend-mt/default.conf frontend-mt/routes.conf frontend-mt/api.json frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
 client/$(UPTODATE): client/package.json client/webpack.* client/server.js
 ui-server/$(UPTODATE): ui-server/build/app.js

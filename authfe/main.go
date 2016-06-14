@@ -89,6 +89,10 @@ func main() {
 		controlHost       string
 		pipeHost          string
 		fluentHost        string
+		grafanaHost       string
+		scopeHost         string
+		usersHost         string
+		kubediffHost      string
 	)
 	flag.StringVar(&listen, "listen", ":80", "HTTP server listen address")
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
@@ -100,6 +104,11 @@ func main() {
 	flag.StringVar(&controlHost, "control", "control.default.svc.cluster.local:80", "Hostname & port for control service")
 	flag.StringVar(&pipeHost, "pipe", "pipe.default.svc.cluster.local:80", "Hostname & port for pipe service")
 	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
+
+	flag.StringVar(&grafanaHost, "grafana", "grafana.monitoring.svc.cluster.local:80", "Hostname & port for grafana")
+	flag.StringVar(&scopeHost, "scope", "scope.kube-system.svc.cluster.local:80", "Hostname & port for scope")
+	flag.StringVar(&usersHost, "users", "users.default.svc.cluster.local", "Hostname & port for users")
+	flag.StringVar(&kubediffHost, "kubediff", "kubediff.monitoring.svc.cluster.local", "Hostname & port for kubediff")
 	flag.Parse()
 
 	if err := logging.Setup(logLevel); err != nil {
@@ -129,7 +138,16 @@ func main() {
 
 	// adminRouter is for all admin functionality, authenticated using header credentials
 	adminRouter := newRouter()
-	adminRouter.PathPrefix("/admin").Name("admin").Handler(http.HandlerFunc(adminRoot))
+	addAdminRoute := func(name, target string) {
+		adminRouter.PathPrefix("/admin/" + name).Name(name).Handler(
+			middleware.PathRewrite(regexp.MustCompile("^/admin/"+name), "").Wrap(
+				newProxy(target)))
+	}
+	addAdminRoute("grafana", grafanaHost)
+	addAdminRoute("scope", scopeHost)
+	addAdminRoute("users", usersHost)
+	addAdminRoute("kubediff", kubediffHost)
+	adminRouter.Path("/admin/").Name("admin").Handler(http.HandlerFunc(adminRoot))
 
 	// authentication is done by middleware
 	authenticator := users.MakeAuthenticator(authenticatorType, authenticatorURL)
