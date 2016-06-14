@@ -7,9 +7,9 @@ IMAGE_PREFIX := quay.io/weaveworks
 IMAGE_TAG := $(shell ./image-tag)
 UPTODATE := .uptodate
 
-# Building Docker images is now automated.  The convention is every directory
+# Building Docker images is now automated. The convention is every directory
 # with a Dockerfile in it builds an image calls quay.io/weaveworks/<dirname>.
-# Dependancies (ie things that go in the image) still need to be explicitly
+# Dependencies (i.e. things that go in the image) still need to be explicitly
 # declared.
 %/$(UPTODATE): %/Dockerfile
 	$(SUDO) docker build -t $(IMAGE_PREFIX)/$(shell basename $(@D)) $(@D)/
