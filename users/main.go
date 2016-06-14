@@ -39,7 +39,8 @@ func main() {
 		pardotPassword = flag.String("pardot-password", "", "Password of Pardot account.")
 		pardotUserKey  = flag.String("pardot-userkey", "", "User key of Pardot account.")
 
-		sendgridAPIKey = flag.String("sendgrid-api-key", "", "Sendgrid API key.  Either email-uri or sendgrid-api-key must be provided.")
+		sendgridAPIKey   = flag.String("sendgrid-api-key", "", "Sendgrid API key.  Either email-uri or sendgrid-api-key must be provided.")
+		emailFromAddress = flag.String("email-from-address", "Weave Cloud <support@weave.works>", "From address for emails.")
 	)
 
 	flag.Parse()
@@ -60,7 +61,7 @@ func main() {
 	setupLogging(*logLevel)
 
 	templates := mustNewTemplateEngine()
-	emailer := mustNewEmailer(*emailURI, *sendgridAPIKey, templates, *domain)
+	emailer := mustNewEmailer(*emailURI, *sendgridAPIKey, *emailFromAddress, templates, *domain)
 	storage := mustNewDatabase(*databaseURI, *databaseMigrations)
 	defer storage.Close()
 	sessions := mustNewSessionStore(*sessionSecret, storage)

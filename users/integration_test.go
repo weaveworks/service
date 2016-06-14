@@ -39,7 +39,7 @@ func setup(t *testing.T) {
 
 	truncateDatabase(t)
 
-	emailer := smtpEmailer{templates, testEmailSender, domain}
+	emailer := smtpEmailer{templates, testEmailSender, domain, "test@test.com"}
 	app = newAPI(directLogin, emailer, sessions, storage, templates)
 }
 

@@ -28,7 +28,7 @@ func setup(t *testing.T) {
 	templates := mustNewTemplateEngine()
 
 	sentEmails = nil
-	emailer := smtpEmailer{templates, testEmailSender, domain}
+	emailer := smtpEmailer{templates, testEmailSender, domain, "test@test.com"}
 	app = newAPI(directLogin, emailer, sessions, storage, templates)
 }
 
