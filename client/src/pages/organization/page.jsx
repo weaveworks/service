@@ -1,5 +1,5 @@
 import React from 'react';
-import { CircularProgress, Paper } from 'material-ui';
+import { CircularProgress, Paper, RaisedButton } from 'material-ui';
 import { hashHistory } from 'react-router';
 
 import Colors from '../../common/colors';
@@ -23,6 +23,7 @@ export default class OrganizationPage extends React.Component {
       probeToken: ''
     };
 
+    this.handleClickInstance = this.handleClickInstance.bind(this);
     this._handleOrganizationSuccess = this._handleOrganizationSuccess.bind(this);
     this._handleOrganizationError = this._handleOrganizationError.bind(this);
   }
@@ -41,6 +42,10 @@ export default class OrganizationPage extends React.Component {
       const url = encodeURIs`/api/users/org/${organization}`;
       getData(url).then(this._handleOrganizationSuccess, this._handleOrganizationError);
     }
+  }
+
+  handleClickInstance() {
+    hashHistory.push(this.instanceUrl());
   }
 
   _handleOrganizationSuccess(resp) {
@@ -139,9 +144,16 @@ export default class OrganizationPage extends React.Component {
                 </div>
                 <div style={styles.step}>
                   <span style={styles.circle}>3</span>
-                  <h2>Visit Instance</h2>
-                  Once you have started the probe on your Docker hosts,
-                  click <a href={this.instanceUrl()}> View Instance</a> in the top right.
+                  <h2>View Instance</h2>
+                  <p>
+                    Once you have started the probe on your Docker hosts,
+                    you can take a look at your system:
+                  </p>
+                  <div style={{textAlign: 'center'}}>
+                    {/* TODO this should be made primary only when probes are connected */}
+                    <RaisedButton primary
+                      label="View Instance" onClick={this.handleClickInstance} />
+                  </div>
                 </div>
               </div>
             </Column>

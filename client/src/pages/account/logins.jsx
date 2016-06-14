@@ -68,6 +68,7 @@ export default class Logins extends React.Component {
     }
     return (
       <ListItem
+        style={{cursor: 'default'}}
         key={a.id}
         primaryText={a.name}
         leftIcon={<span style={{fontSize: '24px'}} className={a.link.icon} />}
@@ -79,7 +80,7 @@ export default class Logins extends React.Component {
 
   renderLogins() {
     return (
-      <Box>
+      <Box style={{maxWidth: '32em'}}>
         <List>
           {this.state.logins.map(this.renderLogin)}
         </List>

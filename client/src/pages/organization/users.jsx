@@ -120,7 +120,7 @@ export default class Users extends React.Component {
         />);
 
     return (
-      <ListItem primaryText={user.email} key={user.email}
+      <ListItem primaryText={user.email} key={user.email} style={{cursor: 'default'}}
         rightIconButton={button}
       />
     );
