@@ -1,22 +1,22 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: ui-server-master-6c02353
+  name: ui-server-master-de43669
 spec:
   replicas: 2
   selector:
     name: ui-server
-    version: master-6c02353
+    version: master-de43669
   template:
     metadata:
       labels:
         name: ui-server
-        version: master-6c02353
+        version: master-de43669
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: ui-server
-        image: quay.io/weaveworks/ui-server:master-6c02353
+        image: quay.io/weaveworks/ui-server:master-de43669
         ports:
         - containerPort: 80
