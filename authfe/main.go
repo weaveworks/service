@@ -150,7 +150,7 @@ func main() {
 	addAdminRoute("prometheus", prometheusHost)
 	addAdminRoute("users", usersHost)
 	addAdminRoute("kubediff", kubediffHost)
-	adminRouter.Path("/admin").Name("admin").Handler(http.HandlerFunc(adminRoot))
+	adminRouter.Path("/admin/").Name("admin").Handler(http.HandlerFunc(adminRoot))
 
 	// authentication is done by middleware
 	authenticator := users.MakeAuthenticator(authenticatorType, authenticatorURL)
