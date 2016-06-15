@@ -9,7 +9,7 @@ module.exports = {
   entry: {
     app: './src/main',
     // keep only some in here, to make vendors and app bundles roughly same size
-    vendors: ['debug', 'moment',
+    vendors: ['debug',
       'react', 'react-dom', 'react-motion', 'react-router']
   },
 
@@ -43,8 +43,6 @@ module.exports = {
     }),
     new webpack.optimize.CommonsChunkPlugin('vendors', 'vendors.js'),
     new webpack.optimize.OccurenceOrderPlugin(true),
-    new webpack.IgnorePlugin(/^\.\/locale$/, [/moment$/]),
-    new webpack.IgnorePlugin(/^\.\/svg-icons$/, [/material-ui$/]),
     new webpack.optimize.UglifyJsPlugin({
       sourceMap: false,
       compress: {

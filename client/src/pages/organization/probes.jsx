@@ -1,6 +1,5 @@
 import React from 'react';
 import sortBy from 'lodash/sortBy';
-import moment from 'moment';
 import { grey400 } from 'material-ui/styles/colors';
 import { getData, encodeURIs } from '../../common/request';
 import { trackEvent, trackException } from '../../common/tracking';
@@ -45,8 +44,7 @@ export default class Probes extends React.Component {
         const probeStyle = {
           margin: 16
         };
-        const now = new Date();
-        const title = `Last seen: ${moment(probe.lastSeen).from(now)}`;
+        const title = `Last seen: ${probe.lastSeen}`;
         return (
           <div key={probe.id} style={probeStyle} title={title} >
             {probe.hostname} (connected)
