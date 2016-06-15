@@ -20,26 +20,28 @@ func Test_Lookup(t *testing.T) {
 	require.NoError(t, err)
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
+	org, err := storage.CreateOrganization(user.ID)
+	require.NoError(t, err)
 
-	cookie, err := sessions.Cookie(user.ID)
+	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/private/api/users/lookup/"+user.Organization.Name, nil)
+	r, _ := http.NewRequest("GET", "/private/api/users/lookup/"+org.Name, nil)
 	r.AddCookie(cookie)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, map[string]interface{}{"organizationID": user.Organization.ID}, body)
+	assert.Equal(t, map[string]interface{}{"organizationID": org.ID}, body)
 }
 
 func Test_Lookup_NotFound(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	cookie, err := sessions.Cookie("foouser")
+	cookie, err := sessions.Cookie("foouser", "")
 	assert.NoError(t, err)
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "/private/api/users/lookup/fooorg", nil)
@@ -56,12 +58,14 @@ func Test_PublicLookup(t *testing.T) {
 	require.NoError(t, err)
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
+	org, err := storage.CreateOrganization(user.ID)
+	require.NoError(t, err)
 
-	org, err := storage.FindOrganizationByProbeToken(user.Organization.ProbeToken)
+	org, err = storage.FindOrganizationByProbeToken(org.ProbeToken)
 	require.NoError(t, err)
 	require.NotNil(t, org.FirstProbeUpdateAt)
 
-	cookie, err := sessions.Cookie(user.ID)
+	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "/api/users/lookup", nil)
@@ -71,18 +75,25 @@ func Test_PublicLookup(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, user.Email, body["email"])
 	assert.Equal(t, map[string]interface{}{
-		"organizationName":   user.Organization.Name,
+		"email":              user.Email,
+		"organizationName":   org.Name,
 		"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
+		"organizations": []interface{}{
+			map[string]interface{}{
+				"name":               org.Name,
+				"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
+			},
+		},
 	}, body)
-
 }
 
 func Test_PublicLookup_NotFound(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	cookie, err := sessions.Cookie("foouser")
+	cookie, err := sessions.Cookie("foouser", "")
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
@@ -101,21 +112,24 @@ func Test_Lookup_ProbeToken(t *testing.T) {
 	require.NoError(t, err)
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
+	org, err := storage.CreateOrganization(user.ID)
+	require.NoError(t, err)
 
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "/private/api/users/lookup", nil)
-	r.Header.Set("Authorization", fmt.Sprintf("Scope-Probe token=%s", user.Organization.ProbeToken))
+	r.Header.Set("Authorization", fmt.Sprintf("Scope-Probe token=%s", org.ProbeToken))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, map[string]interface{}{"organizationID": user.Organization.ID}, body)
+	assert.Equal(t, map[string]interface{}{"organizationID": org.ID}, body)
 
 	user, err = storage.FindUserByID(user.ID)
 	require.NoError(t, err)
-	assert.NotNil(t, user.Organization.FirstProbeUpdateAt)
-	assert.False(t, user.Organization.FirstProbeUpdateAt.IsZero())
+	require.Len(t, user.Organizations, 1)
+	assert.NotNil(t, user.Organizations[0].FirstProbeUpdateAt)
+	assert.False(t, user.Organizations[0].FirstProbeUpdateAt.IsZero())
 }
 
 func Test_Lookup_Admin(t *testing.T) {
@@ -128,7 +142,7 @@ func Test_Lookup_Admin(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, storage.SetUserAdmin(user.ID, true))
 
-	cookie, err := sessions.Cookie(user.ID)
+	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
@@ -151,7 +165,7 @@ func Test_Lookup_Admin_Unauthorized(t *testing.T) {
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
 
-	cookie, err := sessions.Cookie(user.ID)
+	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()

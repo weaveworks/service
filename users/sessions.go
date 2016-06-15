@@ -38,8 +38,9 @@ type sessionStore struct {
 }
 
 type session struct {
-	UserID    string
-	CreatedAt time.Time
+	UserID     string
+	ProviderID string
+	CreatedAt  time.Time
 }
 
 func (s sessionStore) Get(r *http.Request) (*user, error) {
@@ -77,8 +78,8 @@ func (s sessionStore) Decode(encoded string) (*user, error) {
 	return user, nil
 }
 
-func (s sessionStore) Set(w http.ResponseWriter, userID string) error {
-	cookie, err := s.Cookie(userID)
+func (s sessionStore) Set(w http.ResponseWriter, userID, providerID string) error {
+	cookie, err := s.Cookie(userID, providerID)
 	if err == nil {
 		http.SetCookie(w, cookie)
 	}
@@ -95,8 +96,8 @@ func (s sessionStore) Clear(w http.ResponseWriter) {
 	})
 }
 
-func (s sessionStore) Cookie(userID string) (*http.Cookie, error) {
-	value, err := s.Encode(userID)
+func (s sessionStore) Cookie(userID, providerID string) (*http.Cookie, error) {
+	value, err := s.Encode(userID, providerID)
 	return &http.Cookie{
 		Name:     cookieName,
 		Value:    value,
@@ -106,9 +107,10 @@ func (s sessionStore) Cookie(userID string) (*http.Cookie, error) {
 	}, err
 }
 
-func (s sessionStore) Encode(userID string) (string, error) {
+func (s sessionStore) Encode(userID, providerID string) (string, error) {
 	return s.encoder.Encode(cookieName, session{
-		UserID:    userID,
-		CreatedAt: time.Now().UTC(),
+		UserID:     userID,
+		ProviderID: providerID,
+		CreatedAt:  time.Now().UTC(),
 	})
 }

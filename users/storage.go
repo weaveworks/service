@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"net/url"
 
@@ -11,14 +12,28 @@ import (
 )
 
 var (
-	errNotFound     = errors.New("Not found")
-	errEmailIsTaken = validationErrorf("Email is already taken")
+	errNotFound       = errors.New("Not found")
+	errEmailIsTaken   = validationErrorf("Email is already taken")
+	errOrgNameIsTaken = validationErrorf("Organization name is already taken")
 )
 
 type database interface {
+	// Create a user. The driver should set ID to some default only when it is "".
 	CreateUser(email string) (*user, error)
+
 	findUserByIDer
 	FindUserByEmail(email string) (*user, error)
+	FindUserByLogin(provider, id string) (*user, error)
+
+	// AddLoginToUser adds an entry denoting this user is linked to a
+	// remote login. e.g. if a user logs in via github this maps our
+	// account to the github account.
+	// Note: Must be idempotent!
+	AddLoginToUser(userID, provider, id string, session json.RawMessage) error
+
+	// DetachLoginFromUser removes all entries an entry denoting this
+	// user is linked to the remote login.
+	DetachLoginFromUser(userID, provider string) error
 
 	// Create a new user in an existing organization.
 	// If the user already exists:
@@ -46,6 +61,8 @@ type database interface {
 	// Update the user's first login timestamp. Should be called the first time a user logs in (i.e. if FirstLoginAt.IsZero())
 	SetUserFirstLoginAt(id string) error
 
+	// Create a new organization owned by the user. The name will be unique and randomly generated.
+	CreateOrganization(ownerID string) (*organization, error)
 	FindOrganizationByProbeToken(probeToken string) (*organization, error)
 	RenameOrganization(oldName, newName string) error
 

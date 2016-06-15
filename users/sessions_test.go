@@ -17,7 +17,7 @@ func Test_Sessions_EncodeDecode(t *testing.T) {
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
 
-	encoded, err := sessions.Encode(user.ID)
+	encoded, err := sessions.Encode(user.ID, "")
 	require.NoError(t, err)
 
 	found, err := sessions.Decode(encoded)
@@ -34,7 +34,7 @@ func Test_Sessions_Unapproved(t *testing.T) {
 	user, err := storage.CreateUser("joe@weave.works")
 	require.NoError(t, err)
 
-	encoded, err := sessions.Encode(user.ID)
+	encoded, err := sessions.Encode(user.ID, "")
 	require.NoError(t, err)
 
 	found, err := sessions.Decode(encoded)

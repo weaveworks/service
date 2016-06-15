@@ -4,18 +4,21 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/weaveworks/service/users/login"
 )
 
 type user struct {
-	ID             string        `json:"-"`
-	Email          string        `json:"email"`
-	Token          string        `json:"-"`
-	TokenCreatedAt time.Time     `json:"-"`
-	ApprovedAt     time.Time     `json:"-"`
-	FirstLoginAt   time.Time     `json:"-"`
-	CreatedAt      time.Time     `json:"-"`
-	Admin          bool          `json:"-"`
-	Organization   *organization `json:"-"`
+	ID             string          `json:"-"`
+	Email          string          `json:"email"`
+	Token          string          `json:"-"`
+	TokenCreatedAt time.Time       `json:"-"`
+	ApprovedAt     time.Time       `json:"-"`
+	FirstLoginAt   time.Time       `json:"-"`
+	CreatedAt      time.Time       `json:"-"`
+	Admin          bool            `json:"-"`
+	Logins         []*login.Login  `json:"-"`
+	Organizations  []*organization `json:"-"`
 }
 
 func formatTimestamp(t time.Time) string {
@@ -42,21 +45,35 @@ func (u *user) IsApproved() bool {
 }
 
 func (u *user) CompareToken(other string) bool {
-	if err := bcrypt.CompareHashAndPassword([]byte(u.Token), []byte(other)); err != nil {
+	var (
+		token          string
+		tokenCreatedAt time.Time
+	)
+	if u != nil {
+		token = u.Token
+		tokenCreatedAt = u.TokenCreatedAt
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(token), []byte(other)); err != nil {
 		return false
 	}
-	return time.Now().UTC().Sub(u.TokenCreatedAt) <= 72*time.Hour
+	return time.Now().UTC().Sub(tokenCreatedAt) <= 72*time.Hour
 }
 
 func newUsersOrganizationFilter(s []string) filter {
 	return inFilter{
 		SQLField: "organizations.name",
-		Value:    s,
+		SQLJoins: []string{
+			"memberships on (memberships.user_id = users.id)",
+			"organizations on (memberships.organization_id = organizations.id)",
+		},
+		Value: s,
 		Allowed: func(i interface{}) bool {
-			if u, ok := i.(*user); ok && u.Organization != nil {
-				for _, name := range s {
-					if u.Organization.Name == name {
-						return true
+			if u, ok := i.(*user); ok {
+				for _, org := range u.Organizations {
+					for _, name := range s {
+						if org.Name == name {
+							return true
+						}
 					}
 				}
 			}

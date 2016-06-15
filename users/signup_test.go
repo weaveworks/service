@@ -51,6 +51,17 @@ func newLoginRequest(t *testing.T, e *email.Email) *http.Request {
 	return r
 }
 
+// Check if a response has some named cookie
+func hasCookie(w *httptest.ResponseRecorder, name string) bool {
+	cookies := (&http.Response{Header: w.HeaderMap}).Cookies()
+	for _, c := range cookies {
+		if c.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
 func Test_Signup(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
@@ -83,8 +94,6 @@ func Test_Signup(t *testing.T) {
 	assert.NotContains(t, emailToken, "$")
 	assert.NotContains(t, emailToken, "%24")
 
-	assert.NotEqual(t, "", user.Organization.ProbeToken, "user should have a probe token")
-
 	// Login with the link
 	u, err := url.Parse(loginLink)
 	assert.NoError(t, err)
@@ -98,10 +107,12 @@ func Test_Signup(t *testing.T) {
 	r, _ = http.NewRequest("GET", path, nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.True(t, strings.HasPrefix(w.HeaderMap.Get("Set-Cookie"), cookieName+"="))
+	assert.True(t, hasCookie(w, cookieName))
 	body = map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, map[string]interface{}{"email": email, "organizationName": user.Organization.Name}, body)
+	assert.Equal(t, map[string]interface{}{
+		"firstLogin": true,
+	}, body)
 
 	user, err = storage.FindUserByEmail(email)
 	require.NoError(t, err)
@@ -110,10 +121,13 @@ func Test_Signup(t *testing.T) {
 	// Sets their FirstLoginAt
 	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 	firstLoginAt := user.FirstLoginAt
+	// Creates their first organization
+	require.Len(t, user.Organizations, 1)
+	orgName := user.Organizations[0].Name
 
-	// Subsequent Logins do not change their FirstLoginAt
+	// Subsequent Logins do not change their FirstLoginAt or organization
 	w = httptest.NewRecorder()
-	r, _ = http.NewRequest("POST", "/api/users/signup", jsonBody(t, map[string]interface{}{"email": "joe@weave.works"}))
+	r, _ = http.NewRequest("POST", "/api/users/signup", jsonBody(t, map[string]interface{}{"email": email}))
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	require.Len(t, sentEmails, 2)
@@ -121,11 +135,15 @@ func Test_Signup(t *testing.T) {
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, newLoginRequest(t, sentEmails[1]))
 	assert.Equal(t, http.StatusOK, w.Code)
+	body = map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, map[string]interface{}{}, body)
 
 	user, err = storage.FindUserByEmail(email)
 	require.NoError(t, err)
 	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 	assert.Equal(t, firstLoginAt, user.FirstLoginAt, "Second login should not have changed user's FirstLoginAt")
+	assert.Equal(t, orgName, user.Organizations[0].Name)
 }
 
 func Test_Signup_WithInvalidJSON(t *testing.T) {
@@ -160,4 +178,127 @@ func Test_Signup_WithBlankEmail(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Email cannot be blank")
 	_, err = storage.FindUserByEmail(email)
 	assert.EqualError(t, err, errNotFound.Error())
+}
+
+func Test_Signup_ViaOAuth(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	email := "joe@example.com"
+	logins.Register("mock", MockLoginProvider{
+		"joe": {ID: "joe", Email: email},
+	})
+
+	// Signup as a new user via oauth, should *not* send welcome email
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
+	_, err := storage.FindUserByEmail(email)
+	assert.EqualError(t, err, errNotFound.Error())
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, hasCookie(w, cookieName))
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, map[string]interface{}{
+		"firstLogin":  true,
+		"userCreated": true,
+	}, body)
+	assert.Len(t, sentEmails, 0)
+
+	user, err := storage.FindUserByEmail(email)
+	require.NoError(t, err)
+
+	assert.False(t, user.ApprovedAt.IsZero(), "user should be approved")
+	assert.Equal(t, "", user.Token, "user should not have a token set")
+	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
+
+	// User should have login set
+	if assert.Len(t, user.Logins, 1) {
+		assert.Equal(t, user.ID, user.Logins[0].UserID)
+		assert.Equal(t, "mock", user.Logins[0].Provider)
+		assert.Equal(t, "joe", user.Logins[0].ProviderID)
+	}
+}
+
+func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	email := "joe@example.com"
+	logins.Register("mock", MockLoginProvider{
+		"joe": {ID: "joe", Email: email},
+	})
+
+	user, err := storage.CreateUser(email)
+	require.NoError(t, err)
+	user, err = storage.ApproveUser(user.ID)
+	require.NoError(t, err)
+	// User should not have any logins yet.
+	assert.Len(t, user.Logins, 0)
+
+	// Signup as an existing user via oauth, should match with existing user
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, hasCookie(w, cookieName))
+	assert.Len(t, sentEmails, 0)
+
+	found, err := storage.FindUserByEmail(email)
+	require.NoError(t, err)
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, map[string]interface{}{
+		"firstLogin": true,
+	}, body)
+
+	assert.Equal(t, user.ID, found.ID, "user id should match the existing")
+	assert.False(t, found.ApprovedAt.IsZero(), "user should be approved")
+	assert.Equal(t, user.Token, found.Token, "user should still have same token set")
+	assert.False(t, found.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
+
+	// User should have a login set
+	if assert.Len(t, found.Logins, 1) {
+		assert.Equal(t, user.ID, found.Logins[0].UserID)
+		assert.Equal(t, "mock", found.Logins[0].Provider)
+		assert.Equal(t, "joe", found.Logins[0].ProviderID)
+	}
+}
+
+func Test_Signup_ViaOAuth_EmailChanged(t *testing.T) {
+	// When a user has changed their remote email, but the remote user ID is the same.
+	setup(t)
+	defer cleanup(t)
+	email := "joe@example.com"
+	provider := MockLoginProvider{
+		"joe": {ID: "joe", Email: email},
+	}
+	logins.Register("mock", provider)
+
+	user, err := storage.CreateUser(email)
+	require.NoError(t, err)
+	require.NoError(t, storage.AddLoginToUser(user.ID, "mock", "joe", nil))
+
+	// Change the remote email
+	newEmail := "fran@example.com"
+	provider["joe"] = MockRemoteUser{ID: "joe", Email: newEmail}
+
+	// Login as an existing user with remote email changed
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, hasCookie(w, cookieName))
+	assert.Len(t, sentEmails, 0)
+
+	_, err = storage.FindUserByEmail(newEmail)
+	assert.EqualError(t, err, errNotFound.Error())
+
+	user, err = storage.FindUserByID(user.ID)
+	require.NoError(t, err)
+	// User should have a login set
+	if assert.Len(t, user.Logins, 1) {
+		assert.Equal(t, user.ID, user.Logins[0].UserID)
+		assert.Equal(t, "mock", user.Logins[0].Provider)
+		assert.Equal(t, "joe", user.Logins[0].ProviderID)
+	}
 }
