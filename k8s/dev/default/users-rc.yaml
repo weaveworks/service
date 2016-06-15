@@ -34,8 +34,5 @@ spec:
         - -google-client-id=351720542146-rpqa7lm2a416p527b5m8g66lhqrl0nd2.apps.googleusercontent.com
         - -google-client-secret=sVUoFILR4hSWxbSF5LGDBl9h
         - -google-redirect-url=http://frontend.dev.weave.works/login-via/google
-        env:
-        - name: GET_HOSTS_FROM
-          value: dns
         ports:
         - containerPort: 80
