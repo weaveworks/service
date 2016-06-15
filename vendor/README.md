@@ -7,14 +7,14 @@ root of your checkout.
 For these changes to take effect, you'll have to `make clean` before running
 `make`.
 
-## Adding a New Dependency
+## Adding a Dependency
 
     ~/service$ gvt fetch example.com/organisation/module
 
-## Updating a Specific Dependancy
+## Updating a Dependency
 
     ~/service$ gvt update example.com/organisation/module
 
-## Remove a Dependency
+## Removing a Dependency
 
     ~/service$ gvt delete example.com/organisation/module
