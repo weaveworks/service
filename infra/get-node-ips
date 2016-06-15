@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+if [ $# -ne 1 ]
+then
+	echo "usage: $(basename $0) <name>"
+	exit 1
+fi
+
+KUBECONFIG="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/${1}/kubeconfig"
+
+if [ ! -f "${KUBECONFIG}" ]
+then
+	echo "${KUBECONFIG} does not exist"
+	exit 1
+fi
+
+kubectl --kubeconfig "${KUBECONFIG}" get nodes \
+  --output jsonpath="{range .items[*].status.addresses[?(@.type==\"ExternalIP\")].address}{@}{\"\\n\"}{end}"
