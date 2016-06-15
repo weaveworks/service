@@ -10,7 +10,7 @@ job:scope_request_latency:max =
 # For each service, an alert on error rate
 
 ALERT AuthFEErrorRate
-  IF          job:scope_request_errors:rate1m{job="authfe"} > 0.1
+  IF          job:scope_request_errors:rate1m{job="authfe", route !~ "admin|grafana"} > 0.1
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
