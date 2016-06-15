@@ -1,7 +1,7 @@
 /* eslint react/jsx-no-bind:0 */
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { CircularProgress } from 'material-ui';
+import CircularProgress from 'material-ui/CircularProgress';
 import debug from 'debug';
 import { hashHistory } from 'react-router';
 
