@@ -6,27 +6,21 @@
 IMAGE_PREFIX := quay.io/weaveworks
 IMAGE_TAG := $(shell ./image-tag)
 UPTODATE := .uptodate
-UPTODATE_FILES =
-IMAGE_NAMES =
 
 # Building Docker images is now automated.  The convention is every directory
 # with a Dockerfile in it builds an image calls quay.io/weaveworks/<dirname>.
 # Dependancies (ie things that go in the image) still need to be explicitly
 # declared.
-define DOCKER_IMAGE_template
-$(1)/$(UPTODATE): $(1)/Dockerfile
-	$(SUDO) docker build -t $(IMAGE_PREFIX)/$(shell basename $(1)) $(1)/
-	$(SUDO) docker tag $(IMAGE_PREFIX)/$(shell basename $(1)) $(IMAGE_PREFIX)/$(shell basename $(1)):$(IMAGE_TAG)
-	touch $(1)/$(UPTODATE)
+%/$(UPTODATE): %/Dockerfile
+	$(SUDO) docker build -t $(IMAGE_PREFIX)/$(shell basename $(@D)) $(@D)/
+	$(SUDO) docker tag $(IMAGE_PREFIX)/$(shell basename $(@D)) $(IMAGE_PREFIX)/$(shell basename $(@D)):$(IMAGE_TAG)
+	touch $@
 
-UPTODATE_FILES += $(1)/$(UPTODATE)
-IMAGE_NAMES += $(IMAGE_PREFIX)/$(shell basename $(1))
-endef
-
-# Get a list of directories container Dockerfiles, and run DOCKER_IMAGE on all
-# of them.
-DOCKER_IMAGE_DIRS=$(shell find * -type f -name Dockerfile ! -path "tools/*" ! -path "vendor/*" | xargs -n1 dirname)
-$(foreach dir,$(DOCKER_IMAGE_DIRS),$(eval $(call DOCKER_IMAGE_template,$(dir))))
+# Get a list of directories containing Dockerfiles
+DOCKERFILES=$(shell find * -type f -name Dockerfile ! -path "tools/*" ! -path "vendor/*")
+UPTODATE_FILES=$(patsubst %/Dockerfile,%/$(UPTODATE),$(DOCKERFILES))
+DOCKER_IMAGE_DIRS=$(patsubst %/Dockerfile,%,$(DOCKERFILES))
+IMAGE_NAMES=$(foreach dir,$(DOCKER_IMAGE_DIRS),$(patsubst %,$(IMAGE_PREFIX)/%,$(shell basename $(dir))))
 
 images:
 	$(info $(IMAGE_NAMES))
