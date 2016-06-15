@@ -406,17 +406,18 @@ func (a *api) signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pardotClient.UserApproved(user.Email, user.ApprovedAt)
+
 	if a.directLogin {
 		view.Token = token
-	} else {
-		err = a.emailer.LoginEmail(user, token)
 	}
+
+	err = a.emailer.LoginEmail(user, token)
 	if err != nil {
 		renderError(w, r, fmt.Errorf("Error sending login email: %s", err))
 		return
 	}
-	view.MailSent = !a.directLogin
 
+	view.MailSent = true
 	renderJSON(w, http.StatusOK, view)
 }
 
