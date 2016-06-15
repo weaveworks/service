@@ -27,8 +27,5 @@ spec:
         - -pardot-email=tom@weave.works
         - -pardot-password=Zi23R}aV7T
         - -pardot-userkey=94f4347b4f6e55ff9b2057fcae67056e
-        env:
-        - name: GET_HOSTS_FROM
-          value: dns
         ports:
         - containerPort: 80
