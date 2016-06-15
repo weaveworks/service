@@ -1,23 +1,23 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: users-master-2b52820
+  name: users-master-4f69380
 spec:
   replicas: 2
   selector:
     name: users
-    version: master-2b52820
+    version: master-4f69380
   template:
     metadata:
       labels:
         name: users
-        version: master-2b52820
+        version: master-4f69380
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: users
-        image: quay.io/weaveworks/users:master-2b52820
+        image: quay.io/weaveworks/users:master-4f69380
         args:
         - -domain=http://frontend.dev.weave.works
         - -session-secret=56ee20ee7e8dc0b366abb1df4b3ac22ae05566d8eb18cba26f1c0925b1b9c7bf
@@ -27,6 +27,13 @@ spec:
         - -pardot-email=tom@weave.works
         - -pardot-password=Zi23R}aV7T
         - -pardot-userkey=94f4347b4f6e55ff9b2057fcae67056e
+        - -github-client-id=9cdc87fa4b3ecd83b57d
+        - -github-client-secret=77462027fb70e6a617fc3a4b7ab5773fabfe5b9c
+        - -github-redirect-url=http://frontend.dev.weave.works/login-via/github
+        # Google OAuth client lives in the weaveworks (hallowed-hold-777) project
+        - -google-client-id=351720542146-rpqa7lm2a416p527b5m8g66lhqrl0nd2.apps.googleusercontent.com
+        - -google-client-secret=sVUoFILR4hSWxbSF5LGDBl9h
+        - -google-redirect-url=http://frontend.dev.weave.works/login-via/google
         env:
         - name: GET_HOSTS_FROM
           value: dns
