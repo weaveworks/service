@@ -207,7 +207,7 @@ export default class LoginForm extends React.Component {
           Log in
         </div>
         <div style={styles.loginVia}>
-          <LoginVia prefix="Log in" />
+          <LoginVia prefix="Log in with" />
         </div>
         <div style={styles.splitter}>
           or
