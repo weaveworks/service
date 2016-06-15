@@ -1,0 +1,20 @@
+# Managing Vendored Dependencies with `gvt`
+
+These operations result in uncommitted changes to your
+branch; you will need to commit them as normal. Execute them in the
+root of your checkout.
+
+For these changes to take effect, you'll have to `make clean` before running
+`make`.
+
+## Adding a New Dependency
+
+    ~/service$ gvt fetch example.com/organisation/module
+
+## Updating a Specific Dependancy
+
+    ~/service$ gvt update example.com/organisation/module
+
+## Remove a Dependency
+
+    ~/service$ gvt delete example.com/organisation/module
