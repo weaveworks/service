@@ -6,11 +6,16 @@ var HtmlWebpackPlugin = require('html-webpack-plugin');
  * This is the Webpack configuration file for production.
  */
 module.exports = {
-  entry: './src/main',
+  entry: {
+    app: './src/main',
+    // keep only some in here, to make vendors and app bundles roughly same size
+    vendors: ['babel-polyfill', 'debug', 'history', 'lodash', 'moment',
+      'react', 'react-dom', 'react-motion', 'react-router']
+  },
 
   output: {
     path: __dirname + '/build/',
-    filename: 'app.js'
+    filename: '[name].js'
   },
 
   module: {
@@ -36,12 +41,19 @@ module.exports = {
     new webpack.DefinePlugin({
       'process.env': {NODE_ENV: '"production"'}
     }),
+    new webpack.optimize.CommonsChunkPlugin('vendors', 'vendors.js'),
+    new webpack.optimize.OccurenceOrderPlugin(true),
+    new webpack.IgnorePlugin(/^\.\/locale$/, [/moment$/]),
+    new webpack.IgnorePlugin(/^\.\/svg-icons$/, [/material-ui$/]),
     new webpack.optimize.UglifyJsPlugin({
+      sourceMap: false,
       compress: {
         warnings: false
       }
     }),
     new HtmlWebpackPlugin({
+      hash: true,
+      chunks: ['vendors', 'app'],
       template: 'src/html/index.html',
       filename: 'index.html'
     })
