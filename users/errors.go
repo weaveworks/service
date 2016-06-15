@@ -31,10 +31,7 @@ func errorStatusCode(err error) int {
 	return http.StatusInternalServerError
 }
 
-func renderError(w http.ResponseWriter, r *http.Request, err error) bool {
-	if err == nil {
-		return false
-	}
+func renderError(w http.ResponseWriter, r *http.Request, err error) {
 	logrus.Errorf("%s %s: %v", r.Method, r.URL.Path, err)
 
 	code := errorStatusCode(err)
@@ -47,6 +44,4 @@ func renderError(w http.ResponseWriter, r *http.Request, err error) bool {
 			},
 		})
 	}
-
-	return true
 }

@@ -275,7 +275,9 @@ func (a *api) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := findUser(
+	// Try and find an existing user to attach this login to.
+	var u *user
+	for _, f := range []func() (*user, error){
 		func() (*user, error) {
 			// If we have an existing session and an provider, we should use
 			// that. This means that we'll associate the provider (if we have
@@ -298,33 +300,46 @@ func (a *api) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			// Match based on the user's email
 			return a.storage.FindUserByEmail(email)
 		},
-		func() (*user, error) {
-			// No matching user found, this must be a first-time-login with this
-			// provider, so we'll create an account for them.
-			view.UserCreated = true
-			u, err := a.storage.CreateUser(email)
-			pardotClient.UserCreated(u.Email, u.CreatedAt)
-			if err == nil {
-				u, err = a.storage.ApproveUser(u.ID)
-			}
-			return u, err
-		},
-	)
-	if err != nil {
-		logrus.Error(err)
-		renderError(w, r, errInvalidAuthenticationData)
-		return
+	} {
+		u, err = f()
+		if err == nil {
+			break
+		} else if err != errNotFound {
+			logrus.Error(err)
+			renderError(w, r, errInvalidAuthenticationData)
+			return
+		}
 	}
 
-	err = a.storage.AddLoginToUser(u.ID, providerID, id, authSession)
-	if err != nil {
+	if u == nil {
+		// No matching user found, this must be a first-time-login with this
+		// provider, so we'll create an account for them.
+		view.UserCreated = true
+		u, err = a.storage.CreateUser(email)
+		if err != nil {
+			logrus.Error(err)
+			renderError(w, r, errInvalidAuthenticationData)
+			return
+		}
+		pardotClient.UserCreated(u.Email, u.CreatedAt)
+		u, err = a.storage.ApproveUser(u.ID)
+		if err != nil {
+			logrus.Error(err)
+			renderError(w, r, errInvalidAuthenticationData)
+			return
+		}
+	}
+
+	if err := a.storage.AddLoginToUser(u.ID, providerID, id, authSession); err != nil {
 		logrus.Error(err)
 		renderError(w, r, errInvalidAuthenticationData)
 		return
 	}
 
 	view.FirstLogin = u.FirstLoginAt.IsZero()
-	if renderError(w, r, a.updateUserAtLogin(u)) {
+
+	if err := a.updateUserAtLogin(u); err != nil {
+		renderError(w, r, err)
 		return
 	}
 
@@ -332,28 +347,16 @@ func (a *api) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, errInvalidAuthenticationData)
 		return
 	}
+
 	renderJSON(w, http.StatusOK, view)
 }
 
 func (a *api) detachLoginProvider(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	if err := a.storage.DetachLoginFromUser(currentUser.ID, mux.Vars(r)["provider"]); renderError(w, r, err) {
+	if err := a.storage.DetachLoginFromUser(currentUser.ID, mux.Vars(r)["provider"]); err != nil {
+		renderError(w, r, err)
 		return
 	}
 	renderJSON(w, http.StatusNoContent, nil)
-}
-
-func findUser(fs ...func() (*user, error)) (*user, error) {
-	var (
-		u   *user
-		err error
-	)
-	for _, f := range fs {
-		u, err = f()
-		if err != errNotFound {
-			break
-		}
-	}
-	return u, err
 }
 
 type signupView struct {
@@ -378,12 +381,15 @@ func (a *api) signup(w http.ResponseWriter, r *http.Request) {
 	user, err := a.storage.FindUserByEmail(view.Email)
 	if err == errNotFound {
 		user, err = a.storage.CreateUser(view.Email)
+		// TODO(twilkie) I believe this is redundant, as Approve is also
+		// called below
 		if err == nil {
 			pardotClient.UserCreated(user.Email, user.CreatedAt)
 			user, err = a.storage.ApproveUser(user.ID)
 		}
 	}
-	if renderError(w, r, err) {
+	if err != nil {
+		renderError(w, r, err)
 		return
 	}
 
@@ -463,10 +469,9 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	view := loginView{
-		FirstLogin: u.FirstLoginAt.IsZero(),
-	}
-	if renderError(w, r, a.updateUserAtLogin(u)) {
+	firstLogin := u.FirstLoginAt.IsZero()
+	if err := a.updateUserAtLogin(u); err != nil {
+		renderError(w, r, err)
 		return
 	}
 
@@ -474,7 +479,7 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, errInvalidAuthenticationData)
 		return
 	}
-	renderJSON(w, http.StatusOK, view)
+	renderJSON(w, http.StatusOK, loginView{FirstLogin: firstLogin})
 }
 
 func (a *api) updateUserAtLogin(u *user) error {
@@ -577,13 +582,15 @@ func (a *api) lookupUsingToken(w http.ResponseWriter, r *http.Request) {
 
 func (a *api) listUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := a.storage.ListUsers()
-	if renderError(w, r, err) {
+	if err != nil {
+		renderError(w, r, err)
 		return
 	}
 	b, err := a.templates.bytes("list_users.html", map[string]interface{}{
 		"Users": users,
 	})
-	if renderError(w, r, err) {
+	if err != nil {
+		renderError(w, r, err)
 		return
 	}
 	if _, err := w.Write(b); err != nil {
@@ -593,7 +600,8 @@ func (a *api) listUsers(w http.ResponseWriter, r *http.Request) {
 
 func (a *api) pardotRefresh(w http.ResponseWriter, r *http.Request) {
 	users, err := a.storage.ListUsers()
-	if renderError(w, r, err) {
+	if err != nil {
+		renderError(w, r, err)
 		return
 	}
 
@@ -614,8 +622,8 @@ func (a *api) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	admin := r.URL.Query().Get("admin") == "true"
-	err := a.storage.SetUserAdmin(userID, admin)
-	if renderError(w, r, err) {
+	if err := a.storage.SetUserAdmin(userID, admin); err != nil {
+		renderError(w, r, err)
 		return
 	}
 	redirectTo := r.FormValue("redirect_to")
@@ -630,7 +638,8 @@ func (a *api) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
 func (a *api) authenticated(handler func(*user, http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u, err := a.sessions.Get(r)
-		if renderError(w, r, err) {
+		if err != nil {
+			renderError(w, r, err)
 			return
 		}
 
@@ -698,7 +707,8 @@ func (a *api) renameOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if renderError(w, r, a.storage.RenameOrganization(mux.Vars(r)["orgName"], view.Name)) {
+	if err := a.storage.RenameOrganization(mux.Vars(r)["orgName"], view.Name); err != nil {
+		renderError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -715,7 +725,8 @@ type organizationUserView struct {
 
 func (a *api) listOrganizationUsers(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	users, err := a.storage.ListOrganizationUsers(mux.Vars(r)["orgName"])
-	if renderError(w, r, err) {
+	if err != nil {
+		renderError(w, r, err)
 		return
 	}
 	view := organizationUsersView{}
@@ -743,12 +754,14 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 
 	orgName := mux.Vars(r)["orgName"]
 	invitee, err := a.storage.InviteUser(view.Email, orgName)
-	if renderError(w, r, err) {
+	if err != nil {
+		renderError(w, r, err)
 		return
 	}
 	// Auto-approve all invited users
 	invitee, err = a.storage.ApproveUser(invitee.ID)
-	if renderError(w, r, err) {
+	if err != nil {
+		renderError(w, r, err)
 		return
 	}
 	// We always do this so that the timing difference can't be used to infer a user's existence.
@@ -767,7 +780,8 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 }
 
 func (a *api) deleteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	if renderError(w, r, a.storage.DeleteUser(mux.Vars(r)["userEmail"])) {
+	if err := a.storage.DeleteUser(mux.Vars(r)["userEmail"]); err != nil {
+		renderError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
