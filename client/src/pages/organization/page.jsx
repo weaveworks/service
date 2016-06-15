@@ -1,5 +1,6 @@
 import React from 'react';
-import { CircularProgress, Paper } from 'material-ui';
+import CircularProgress from 'material-ui/CircularProgress';
+import Paper from 'material-ui/Paper';
 import { hashHistory } from 'react-router';
 
 import Colors from '../../common/colors';

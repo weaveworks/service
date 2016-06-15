@@ -1,6 +1,5 @@
 import React from 'react';
-import _ from 'lodash';
-import moment from 'moment';
+import sortBy from 'lodash/sortBy';
 import { grey400 } from 'material-ui/styles/colors';
 import { getData, encodeURIs } from '../../common/request';
 import { trackEvent, trackException } from '../../common/tracking';
@@ -30,7 +29,7 @@ export default class Probes extends React.Component {
     getData(url)
       .then(resp => {
         this.setState({
-          probes: _.sortBy(resp, ['hostname', 'id'])
+          probes: sortBy(resp, ['hostname', 'id'])
         });
         trackEvent('Cloud', 'connectedProbes', this.props.org, resp.length);
         this.getProbesTimer = setTimeout(this.getProbes, 5000);
@@ -45,8 +44,7 @@ export default class Probes extends React.Component {
         const probeStyle = {
           margin: 16
         };
-        const now = new Date();
-        const title = `Last seen: ${moment(probe.lastSeen).from(now)}`;
+        const title = `Last seen: ${probe.lastSeen}`;
         return (
           <div key={probe.id} style={probeStyle} title={title} >
             {probe.hostname} (connected)

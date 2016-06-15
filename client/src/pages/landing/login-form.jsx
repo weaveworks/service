@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { FlatButton, TextField } from 'material-ui';
+import FlatButton from 'material-ui/FlatButton';
+import TextField from 'material-ui/TextField';
 import { amber900, blueGrey100, blueGrey200, blueGrey400,
   lightBlue500 } from 'material-ui/styles/colors';
 import { hashHistory } from 'react-router';

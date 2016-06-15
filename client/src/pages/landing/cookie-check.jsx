@@ -1,9 +1,9 @@
 import React from 'react';
+import CircularProgress from 'material-ui/CircularProgress';
+import { red900 } from 'material-ui/styles/colors';
 import { hashHistory } from 'react-router';
 
 import { getData, encodeURIs } from '../../common/request';
-import { CircularProgress } from 'material-ui';
-import { red900 } from 'material-ui/styles/colors';
 import { trackException, trackView } from '../../common/tracking';
 
 export default class CookieCheck extends React.Component {

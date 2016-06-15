@@ -1,9 +1,9 @@
 import React from 'react';
 import { hashHistory } from 'react-router';
+import CircularProgress from 'material-ui/CircularProgress';
+import { red900 } from 'material-ui/styles/colors';
 
 import { getData } from '../../common/request';
-import { CircularProgress } from 'material-ui';
-import { red900 } from 'material-ui/styles/colors';
 import { trackException, trackView } from '../../common/tracking';
 
 export default class LoginForm extends React.Component {

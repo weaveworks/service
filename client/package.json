@@ -8,7 +8,7 @@
     "start": "node server.js",
     "start-production": "NODE_ENV=production node server.js",
     "lint": "eslint src --ext=jsx --ext=js",
-    "build": "webpack -p --config webpack.production.config.js",
+    "build": "webpack --config webpack.production.config.js",
     "test": "jest --coverage",
     "coveralls": "cat coverage/lcov.info | coveralls",
     "clean": "rm build/app.js"

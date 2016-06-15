@@ -1,6 +1,6 @@
 import React from 'react';
-import { Paper } from 'material-ui';
 import FontIcon from 'material-ui/FontIcon';
+import Paper from 'material-ui/Paper';
 
 import { encodeURIs } from '../common/request';
 import Colors from '../common/colors';

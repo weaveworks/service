@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { RaisedButton, TextField } from 'material-ui';
+import RaisedButton from 'material-ui/RaisedButton';
+import TextField from 'material-ui/TextField';
 import { grey100, lightBlue500, orange500 } from 'material-ui/styles/colors';
 
 import { postData } from '../../common/request';
