@@ -2,8 +2,7 @@ import React from 'react';
 import fromPairs from 'lodash/fromPairs';
 import merge from 'lodash/merge';
 import FlatButton from 'material-ui/FlatButton';
-import List from 'material-ui/List';
-import ListItem from 'material-ui/ListItem';
+import List, { ListItem } from 'material-ui/List';
 
 import { Box } from '../../components/box';
 import { getData, postData, encodeURIs } from '../../common/request';

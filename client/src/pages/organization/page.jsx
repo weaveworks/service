@@ -36,7 +36,7 @@ export default class OrganizationPage extends React.Component {
   }
 
   instanceUrl() {
-    return encodeURIs`#/app/${this.props.params.orgId}`;
+    return encodeURIs`/app/${this.props.params.orgId}`;
   }
 
   _getOrganizationData(organization) {

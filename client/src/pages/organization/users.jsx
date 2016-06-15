@@ -3,8 +3,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import FlatButton from 'material-ui/FlatButton';
-import List from 'material-ui/List';
-import ListItem from 'material-ui/ListItem';
+import List, { ListItem } from 'material-ui/List';
 import RaisedButton from 'material-ui/RaisedButton';
 import Snackbar from 'material-ui/Snackbar';
 import TextField from 'material-ui/TextField';

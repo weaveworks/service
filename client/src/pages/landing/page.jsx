@@ -127,7 +127,7 @@ export default class LandingPage extends React.Component {
               manage and monitor containers and microservices
             </div>
             <div style={styles.infoItem}>
-              Learn more about Weave Cloud <a href="http://weave.works/cloud" target="website">on our website.</a>
+              Learn more about Weave Cloud <a href="https://www.weave.works/" target="website">on our website.</a>
             </div>
             <div style={styles.infoItem}>
               Check out our <a href="https://www.weave.works/guides/"

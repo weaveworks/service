@@ -7,7 +7,7 @@ import { trackException, trackView } from '../../common/tracking';
 function injectPrefix(logins, prefix) {
   if (prefix) {
     return (logins || []).map(l => {
-      l.link.label = l.link.label.replace('Log in', prefix);
+      l.link.label = `${prefix} ${l.link.label}`;
       return l;
     });
   }

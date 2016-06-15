@@ -110,7 +110,7 @@ func (s smtpEmailer) LoginEmail(u *user, token string) error {
 	e := email.NewEmail()
 	e.From = s.fromAddress
 	e.To = []string{u.Email}
-	e.Subject = "Login to Scope"
+	e.Subject = "Login to Weave Cloud"
 	data := map[string]interface{}{
 		"LoginURL": loginURL(u.Email, token, s.domain),
 		"RootURL":  s.domain,
@@ -125,7 +125,7 @@ func (s smtpEmailer) InviteEmail(u *user, orgName, token string) error {
 	e := email.NewEmail()
 	e.From = s.fromAddress
 	e.To = []string{u.Email}
-	e.Subject = "You've been invited to Scope"
+	e.Subject = "You've been invited to Weave Cloud"
 	data := map[string]interface{}{
 		"LoginURL":         loginURL(u.Email, token, s.domain),
 		"RootURL":          s.domain,

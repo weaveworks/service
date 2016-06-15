@@ -208,7 +208,7 @@ export default class LoginForm extends React.Component {
           Log in
         </div>
         <div style={styles.loginVia}>
-          <LoginVia prefix="Log in" />
+          <LoginVia prefix="Log in with" />
         </div>
         <div style={styles.splitter}>
           or
@@ -224,7 +224,7 @@ export default class LoginForm extends React.Component {
             backgroundColor={grey500} labelColor={grey100}
             disabled={this.state.submitting} onClick={this._handleSubmit} />
           <div style={styles.formHint}>
-            You’ll get an email with a login token.
+            You’ll get an email with a login link.
           </div>
         </div>
         <div style={styles.unauthorizedWrapper}>
