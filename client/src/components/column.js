@@ -2,9 +2,9 @@ import React from 'react';
 
 export class Column extends React.Component {
   render() {
-    const styles = {
+    const styles = Object.assign({
       margin: '0 36px'
-    };
+    }, this.props.style);
 
     if (this.props.width) {
       styles.width = `${this.props.width}px`;

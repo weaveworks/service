@@ -2,7 +2,7 @@ import React from 'react';
 
 export class FlexContainer extends React.Component {
   render() {
-    const styles = {
+    const styles = Object.assign({
       display: 'flex',
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -10,7 +10,7 @@ export class FlexContainer extends React.Component {
       alignContent: 'flex-start',
       alignItems: 'flex-start',
       padding: '0 64px'
-    };
+    }, this.props.style);
 
     return (
       <div style={styles}>

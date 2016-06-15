@@ -30,7 +30,7 @@ func main() {
 	var (
 		logLevel           = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
 		port               = flag.Int("port", 80, "port to listen on")
-		domain             = flag.String("domain", "https://scope.weave.works", "domain where scope service is runnning.")
+		domain             = flag.String("domain", "https://cloud.weave.works", "domain where scope service is runnning.")
 		databaseURI        = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
 		databaseMigrations = flag.String("database-migrations", "", "Path where the database migration files can be found")
 		emailURI           = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Either email-uri or sendgrid-api-key must be provided. For local development, you can set this to: log://, which will log all emails.")
