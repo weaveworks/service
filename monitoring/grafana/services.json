@@ -365,7 +365,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "AuthFE Latency",
+          "title": "AuthFE Latency (excluding admin routes)",
           "tooltip": {
             "msResolution": false,
             "shared": true,
