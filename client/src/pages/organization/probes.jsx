@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'lodash';
+import sortBy from 'lodash/sortBy';
 import moment from 'moment';
 import { grey400 } from 'material-ui/styles/colors';
 import { getData, encodeURIs } from '../../common/request';
@@ -30,7 +30,7 @@ export default class Probes extends React.Component {
     getData(url)
       .then(resp => {
         this.setState({
-          probes: _.sortBy(resp, ['hostname', 'id'])
+          probes: sortBy(resp, ['hostname', 'id'])
         });
         trackEvent('Cloud', 'connectedProbes', this.props.org, resp.length);
         this.getProbesTimer = setTimeout(this.getProbes, 5000);

@@ -9,7 +9,7 @@ module.exports = {
   entry: {
     app: './src/main',
     // keep only some in here, to make vendors and app bundles roughly same size
-    vendors: ['babel-polyfill', 'debug', 'history', 'lodash', 'moment',
+    vendors: ['debug', 'moment',
       'react', 'react-dom', 'react-motion', 'react-router']
   },
 
