@@ -356,7 +356,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_nanoseconds{namespace=\"default\",job=\"authfe\",ws=\"false\"}/1e6) by (quantile)",
+              "expr": "max(scope_request_duration_nanoseconds{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"grafana|admin\"}/1e6) by (quantile)",
               "intervalFactor": 2,
               "legendFormat": "{{quantile}} quantile",
               "refId": "A",
@@ -365,7 +365,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "AuthFE Latency",
+          "title": "AuthFE Latency (excluding admin routes)",
           "tooltip": {
             "msResolution": false,
             "shared": true,
