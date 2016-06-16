@@ -67,10 +67,6 @@ def diff_dicts(path, want, have):
   for k, want_v in want.iteritems():
     key_path = "%s.%s" % (path, k)
 
-    if k not in have and k not in ALLOWED_MISSING:
-      if k not in have:
-        yield  "%s: '%s' missing" % (path, k)
-
     if k in have:
       if k == "args":
         for d in diff_args(key_path, want_v, have[k]):
@@ -78,6 +74,9 @@ def diff_dicts(path, want, have):
       else:
         for d in diff(key_path, want_v, have[k]):
           yield d
+
+    elif k not in ALLOWED_MISSING:
+      yield  "%s: '%s' missing" % (path, k)
 
 def diff(path, want, have):
   if isinstance(want, dict):
@@ -115,7 +114,7 @@ def check_file(orig, last):
 
   diffs = list(diff("", orig_yaml, last_yaml))
   if len(diffs):
-    print "Checking '%s' against '%s'" % (orig, last)
+    print "Diffs between '%s' and '%s':" % (orig, last)
     for d in diffs:
       print "  " + d
 
