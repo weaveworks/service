@@ -2,12 +2,13 @@ import React from 'react';
 import { hashHistory } from 'react-router';
 import CircularProgress from 'material-ui/CircularProgress';
 import { red900 } from 'material-ui/styles/colors';
+import RaisedButton from 'material-ui/RaisedButton';
 
 import { getData } from '../../common/request';
 import { trackException, trackView } from '../../common/tracking';
 
 
-const ERROR_TITLE = 'Weave Cloud is not available. Please try again later.';
+const ERROR_TITLE = 'Weave Cloud is not available. Please try again.';
 
 
 export default class LoginForm extends React.Component {
@@ -20,6 +21,7 @@ export default class LoginForm extends React.Component {
       errorText: ''
     };
 
+    this.handleClickTryAgain = this.handleClickTryAgain.bind(this);
     this._handleLoginSuccess = this._handleLoginSuccess.bind(this);
     this._handleLoginError = this._handleLoginError.bind(this);
   }
@@ -72,6 +74,10 @@ export default class LoginForm extends React.Component {
     }
   }
 
+  handleClickTryAgain() {
+    hashHistory.push('/');
+  }
+
   render() {
     const styles = {
       error: {
@@ -85,7 +91,13 @@ export default class LoginForm extends React.Component {
         display: this.state.activityText ? 'block' : 'none',
         fontSize: '85%',
         opacity: 0.8
-      }
+      },
+
+      errorButtonContainer: {
+        textAlign: 'right',
+        marginTop: 30,
+        marginBottom: -16
+      },
     };
 
     return (
@@ -97,6 +109,12 @@ export default class LoginForm extends React.Component {
         <div style={styles.error}>
           <h3>{this.state.errorTitle || ERROR_TITLE}</h3>
           <p>{this.state.errorText}</p>
+          <p style={styles.errorButtonContainer}>
+            <RaisedButton
+              primary
+              onClick={this.handleClickTryAgain}
+              label="Try again" />
+          </p>
         </div>
       </div>
     );
