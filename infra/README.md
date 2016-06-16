@@ -30,7 +30,6 @@ Infra also creates various IAM users to control access to these resources.
 
 [Install the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html).
 If you want to do this on your own user account, create an IAM user with AdministratorAccess.
-:xa
 Otherwise, ask a team member for credentials for the shared account.
 Configure your AWS client with those credentials and confirm it works.
 Apart from the AWS keys, you should set a region, which should match the region of the existing/desired Kubernetes cluster.
