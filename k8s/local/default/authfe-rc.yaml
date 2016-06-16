@@ -21,6 +21,8 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
         - -log.level=debug
+        - -auth.cache.size=200
+        - -auth.cache.expiration=5s
         - -fluent=localhost:24224
         ports:
         - containerPort: 80

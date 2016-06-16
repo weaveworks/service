@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -79,32 +80,37 @@ func newUIRequestLogger(orgIDHeader string) logging.HTTPEventExtractor {
 
 func main() {
 	var (
-		listen            string
-		logLevel          string
-		authenticatorType string
-		authenticatorURL  string
-		outputHeader      string
-		collectionHost    string
-		queryHost         string
-		controlHost       string
-		pipeHost          string
-		fluentHost        string
-		grafanaHost       string
-		scopeHost         string
-		usersHost         string
-		kubediffHost      string
+		listen              string
+		logLevel            string
+		authType            string
+		authURL             string
+		authCacheSize       int
+		authCacheExpiration time.Duration
+
+		outputHeader   string
+		collectionHost string
+		queryHost      string
+		controlHost    string
+		pipeHost       string
+		fluentHost     string
+		grafanaHost    string
+		scopeHost      string
+		usersHost      string
+		kubediffHost   string
 	)
 	flag.StringVar(&listen, "listen", ":80", "HTTP server listen address")
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
-	flag.StringVar(&authenticatorType, "authenticator", "web", "What authenticator to use: web | mock")
-	flag.StringVar(&authenticatorURL, "authenticator.url", "http://users:80", "Where to find web the authenticator service")
+	flag.StringVar(&authType, "authenticator", "web", "What authenticator to use: web | mock")
+	flag.StringVar(&authURL, "authenticator.url", "http://users:80", "Where to find web the authenticator service")
+	flag.IntVar(&authCacheSize, "auth.cache.size", 0, "How many entries to cache in the auth client.")
+	flag.DurationVar(&authCacheExpiration, "auth.cache.expiration", 30*time.Second, "How long to keep entries in the auth client.")
 	flag.StringVar(&outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
+
 	flag.StringVar(&collectionHost, "collection", "collection.default.svc.cluster.local:80", "Hostname & port for collection service")
 	flag.StringVar(&queryHost, "query", "query.default.svc.cluster.local:80", "Hostname & port for query service")
 	flag.StringVar(&controlHost, "control", "control.default.svc.cluster.local:80", "Hostname & port for control service")
 	flag.StringVar(&pipeHost, "pipe", "pipe.default.svc.cluster.local:80", "Hostname & port for pipe service")
 	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
-
 	flag.StringVar(&grafanaHost, "grafana", "grafana.monitoring.svc.cluster.local:80", "Hostname & port for grafana")
 	flag.StringVar(&scopeHost, "scope", "scope.kube-system.svc.cluster.local:80", "Hostname & port for scope")
 	flag.StringVar(&usersHost, "users", "users.default.svc.cluster.local", "Hostname & port for users")
@@ -150,7 +156,15 @@ func main() {
 	adminRouter.Path("/admin/").Name("admin").Handler(http.HandlerFunc(adminRoot))
 
 	// authentication is done by middleware
-	authenticator := users.MakeAuthenticator(authenticatorType, authenticatorURL)
+	authOptions := users.AuthenticatorOptions{}
+	if authCacheSize > 0 {
+		authOptions.CredCacheEnabled = true
+		authOptions.OrgCredCacheSize = authCacheSize
+		authOptions.ProbeCredCacheSize = authCacheSize
+		authOptions.OrgCredCacheExpiration = authCacheExpiration
+		authOptions.ProbeCredCacheExpiration = authCacheExpiration
+	}
+	authenticator := users.MakeAuthenticator(authType, authURL, authOptions)
 	orgAuthMiddleware := users.AuthOrgMiddleware{
 		Authenticator: authenticator,
 		OrgName: func(r *http.Request) (string, bool) {
