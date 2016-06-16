@@ -500,14 +500,7 @@ func (a *api) logout(_ *user, w http.ResponseWriter, r *http.Request) {
 	renderJSON(w, http.StatusOK, map[string]interface{}{})
 }
 
-type lookupView struct {
-	// 13/06/16 These fields are deprecated and should be removed.
-	OrganizationID     string `json:"organizationID,omitempty"`
-	OrganizationName   string `json:"organizationName,omitempty"`
-	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
-
-	// These fields are the new official API.
-	AdminID       string    `json:"adminID,omitempty"`
+type publicLookupView struct {
 	Email         string    `json:"email,omitempty"`
 	Organizations []orgView `json:"organizations,omitempty"`
 }
@@ -521,16 +514,14 @@ func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Req
 		})
 	}
 
-	result := lookupView{
+	renderJSON(w, http.StatusOK, publicLookupView{
 		Email:         currentUser.Email,
 		Organizations: existing,
-	}
-	if len(currentUser.Organizations) > 0 {
-		result.OrganizationName = currentUser.Organizations[0].Name
-		result.FirstProbeUpdateAt = renderTime(currentUser.Organizations[0].FirstProbeUpdateAt)
-	}
+	})
+}
 
-	renderJSON(w, http.StatusOK, result)
+type lookupOrgView struct {
+	OrganizationID string `json:"organizationID,omitempty"`
 }
 
 func (a *api) lookupOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
@@ -538,16 +529,20 @@ func (a *api) lookupOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 	orgName := vars["orgName"]
 	for _, org := range currentUser.Organizations {
 		if org.Name == orgName {
-			renderJSON(w, http.StatusOK, lookupView{OrganizationID: org.ID})
+			renderJSON(w, http.StatusOK, lookupOrgView{OrganizationID: org.ID})
 			return
 		}
 	}
 	renderError(w, r, errNotFound)
 }
 
+type lookupAdminView struct {
+	AdminID string `json:"adminID,omitempty"`
+}
+
 func (a *api) lookupAdmin(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	if currentUser.Admin {
-		renderJSON(w, http.StatusOK, lookupView{AdminID: currentUser.ID})
+		renderJSON(w, http.StatusOK, lookupAdminView{AdminID: currentUser.ID})
 		return
 	}
 	w.WriteHeader(http.StatusUnauthorized)
@@ -568,7 +563,7 @@ func (a *api) lookupUsingToken(w http.ResponseWriter, r *http.Request) {
 
 	org, err := a.storage.FindOrganizationByProbeToken(token)
 	if err == nil {
-		renderJSON(w, http.StatusOK, lookupView{OrganizationID: org.ID})
+		renderJSON(w, http.StatusOK, lookupOrgView{OrganizationID: org.ID})
 		return
 	}
 

@@ -77,9 +77,7 @@ func Test_PublicLookup(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, user.Email, body["email"])
 	assert.Equal(t, map[string]interface{}{
-		"email":              user.Email,
-		"organizationName":   org.Name,
-		"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
+		"email": user.Email,
 		"organizations": []interface{}{
 			map[string]interface{}{
 				"name":               org.Name,
