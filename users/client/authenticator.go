@@ -7,9 +7,24 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/bluele/gcache"
+	"github.com/prometheus/client_golang/prometheus"
 )
+
+var (
+	authCacheCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "scope",
+		Name:      "auth_cache",
+		Help:      "Reports fetches that miss local cache.",
+	}, []string{"cache", "result"})
+)
+
+func init() {
+	prometheus.MustRegister(authCacheCounter)
+}
 
 // Authenticator is the client interface to the users service.
 type Authenticator interface {
@@ -27,12 +42,28 @@ func (u Unauthorized) Error() string {
 	return http.StatusText(u.httpStatus)
 }
 
+// AuthenticatorOptions control behaviour of the authenticator client.
+type AuthenticatorOptions struct {
+	CredCacheEnabled         bool
+	ProbeCredCacheSize       int
+	OrgCredCacheSize         int
+	ProbeCredCacheExpiration time.Duration
+	OrgCredCacheExpiration   time.Duration
+}
+
 // MakeAuthenticator is a factory for Authenticators
-func MakeAuthenticator(kind, url string) Authenticator {
+func MakeAuthenticator(kind, url string, opts AuthenticatorOptions) Authenticator {
 	switch kind {
 	case "mock":
 		return &mockAuthenticator{}
 	case "web":
+		if opts.CredCacheEnabled {
+			return &webAuthenticator{
+				url:            url,
+				probeCredCache: gcache.New(opts.ProbeCredCacheSize).LRU().Expiration(opts.ProbeCredCacheExpiration).Build(),
+				orgCredCache:   gcache.New(opts.OrgCredCacheSize).LRU().Expiration(opts.OrgCredCacheExpiration).Build(),
+			}
+		}
 		return &webAuthenticator{
 			url: url,
 		}
@@ -57,8 +88,10 @@ func (mockAuthenticator) AuthenticateAdmin(r *http.Request) (string, error) {
 }
 
 type webAuthenticator struct {
-	url    string
-	client http.Client
+	url            string
+	client         http.Client
+	probeCredCache gcache.Cache
+	orgCredCache   gcache.Cache
 }
 
 // Constants exported for testing
@@ -66,6 +99,17 @@ const (
 	AuthCookieName = "_weave_scope_session"
 	AuthHeaderName = "Authorization"
 )
+
+func hitOrMiss(err error) string {
+	if err == nil {
+		return "hit"
+	}
+	return "miss"
+}
+
+type orgCredCacheKey struct {
+	cookie, orgName string
+}
 
 func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgName string) (string, error) {
 	// Extract Authorization cookie to inject it in the lookup request. If it were
@@ -76,6 +120,15 @@ func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgName string) (str
 		return "", &Unauthorized{http.StatusUnauthorized}
 	}
 
+	cacheKey := orgCredCacheKey{authCookie.Value, orgName}
+	if m.orgCredCache != nil {
+		org, err := m.orgCredCache.Get(cacheKey)
+		authCacheCounter.WithLabelValues("org_cred_cache", hitOrMiss(err)).Inc()
+		if err == nil {
+			return org.(string), nil
+		}
+	}
+
 	url := fmt.Sprintf("%s/private/api/users/lookup/%s", m.url, url.QueryEscape(orgName))
 	lookupReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -83,7 +136,11 @@ func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgName string) (str
 		return "", err
 	}
 	lookupReq.AddCookie(authCookie)
-	return m.decodeOrg(m.doAuthenticateRequest(lookupReq))
+	org, err := m.decodeOrg(m.doAuthenticateRequest(lookupReq))
+	if err == nil && m.orgCredCache != nil {
+		m.orgCredCache.Set(cacheKey, org)
+	}
+	return org, err
 }
 
 func (m *webAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
@@ -95,6 +152,14 @@ func (m *webAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
 		return "", &Unauthorized{http.StatusUnauthorized}
 	}
 
+	if m.probeCredCache != nil {
+		org, err := m.probeCredCache.Get(authHeader)
+		authCacheCounter.WithLabelValues("probe_cred_cache", hitOrMiss(err)).Inc()
+		if err == nil {
+			return org.(string), nil
+		}
+	}
+
 	url := fmt.Sprintf("%s/private/api/users/lookup", m.url)
 	lookupReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -102,7 +167,11 @@ func (m *webAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
 		return "", err
 	}
 	lookupReq.Header.Set(AuthHeaderName, authHeader)
-	return m.decodeOrg(m.doAuthenticateRequest(lookupReq))
+	org, err := m.decodeOrg(m.doAuthenticateRequest(lookupReq))
+	if err == nil && m.probeCredCache != nil {
+		m.probeCredCache.Set(authHeader, org)
+	}
+	return org, err
 }
 
 func (m *webAuthenticator) AuthenticateAdmin(r *http.Request) (string, error) {

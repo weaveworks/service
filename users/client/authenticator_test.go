@@ -58,7 +58,7 @@ func dummyServer() *httptest.Server {
 func TestAuth(t *testing.T) {
 	server := dummyServer()
 	defer server.Close()
-	auth := client.MakeAuthenticator("web", server.URL)
+	auth := client.MakeAuthenticator("web", server.URL, client.AuthenticatorOptions{})
 
 	// Test we can auth based on the headers
 	{
@@ -106,7 +106,7 @@ func TestAuth(t *testing.T) {
 func TestMiddleware(t *testing.T) {
 	server := dummyServer()
 	defer server.Close()
-	auth := client.MakeAuthenticator("web", server.URL)
+	auth := client.MakeAuthenticator("web", server.URL, client.AuthenticatorOptions{})
 
 	var (
 		body       = []byte("OK")
