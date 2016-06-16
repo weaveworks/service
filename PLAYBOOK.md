@@ -4,9 +4,11 @@
 
 ## General Advice
 
-- Check the logs!
-- If experiencing high latency, general advice is to scale the service up
+- If experiencing high latency, general advice is to look at latency of dependant services (recursively) until you find the culprit.  Scale the culprit up.
 - If experiencing high error rates, general advice is to look at error rates of dependant services (recursively) until you find the culprit.
+- Use [grafana](https://cloud.weave.works/admin/grafana/dashboard/file/services.json) for this.
+- Check the logs! `kubectl logs <pod name>`
+- Check [kubediff](https://cloud.weave.works/admin/kubediff) to see if something has changed.
 
 Common problems:
 - Bad credentials for AWS services
@@ -17,13 +19,14 @@ Common problems:
 
 ### Frontend
 
-**What**: Exclusively proxies requests to the AuthFE and Users service.  Terminates SSL.
+**What**:
+- Proxies requests to the AuthFE and Users service.
+- Terminates SSL.
 
-**If showing errors or high latency**: look at downstream servicesfor high error rates or latencies.
-
-Otherwise could be bad configuration, which is compile into the container.  Check the logs.
-
-NB Nginx is setup to resolve hostnames on every request, so a failure in KubeDNS or misconfiguration or resolver could cause a complete outage.  We inject the IP address of KubeDNS from the the yaml.
+**If showing errors or high latency**:
+- Look at downstream services for high error rates or latencies.
+- Otherwise could be bad configuration, which is compile into the container.  Check the logs.
+- NB Nginx is setup to resolve hostnames on every request, so a failure in KubeDNS or misconfiguration or resolver could cause a complete outage.  We inject the IP address of KubeDNS from the the yaml.
 
 ### Authfe
 
@@ -33,9 +36,9 @@ NB Nginx is setup to resolve hostnames on every request, so a failure in KubeDNS
 - Logs events to a sidecar, which then sends to bigquery.
 - Adds header to downstream requests to identify organisation.
 
-**If showing errors or high latency**: look at downstream servicesfor high error rates or latencies.
-
-Very little configuration; its all in the code.
+**If showing errors or high latency**:
+- Look at downstream services for high error rates or latencies.
+- Very little configuration; its all in the code.
 
 ### Users
 
@@ -50,9 +53,9 @@ Very little configuration; its all in the code.
 - Write time-based index of reports to DynamoDB
 - Also pushes report key to NATS for shortcut reports
 
-**If showing errors or high latency**: look at Dynamodb / S3 / NATS.
-
-Note service won't start if it can't contact NATS.  Check the logs.
+**If showing errors or high latency**:
+- Look at Dynamodb / S3 / NATS.
+- NB service won't start if it can't contact NATS.  Check the logs.
 
 ### Query
 
@@ -62,9 +65,9 @@ Note service won't start if it can't contact NATS.  Check the logs.
 - Has in process cache of decoded, decompressed reports
 - Listens on NATS for shortcut reports
 
-**If showing errors or high latency**: look at Dynamodb / S3 / NATS.
-
-Note service won't start if it can't contact NATS.  Check the logs.
+**If showing errors or high latency**:
+- Look at Dynamodb / S3 / NATS.
+- NB service won't start if it can't contact NATS.  Check the logs.
 
 ### Controls
 
@@ -109,7 +112,9 @@ Note service won't start if it can't contact NATS.  Check the logs.
 
 ### NATS
 
-**What**: Stateless, ephemeral pub-sub message bus used to publishing shortcut report ids from collection service to query service.
+**What**:
+- Stateless, ephemeral pub-sub message bus
+- Used to publishing shortcut report ids from collection service to query service.
 
 ### Consul
 
