@@ -14,6 +14,12 @@ ALLOWED_DIFFERENCES={
   ".spec.template.spec.containers[0].args.endpoint",
   ".spec.template.spec.containers[0].args.domain",
   ".spec.template.spec.containers[0].args.session-secret",
+  ".spec.template.spec.containers[0].args.github-client-id",
+  ".spec.template.spec.containers[0].args.github-client-secret",
+  ".spec.template.spec.containers[0].args.github-redirect-url",
+  ".spec.template.spec.containers[0].args.google-client-id",
+  ".spec.template.spec.containers[0].args.google-redirect-url",
+  ".spec.template.spec.containers[0].args.google-client-secret",
 }
 
 ALLOWED_MISSING={
@@ -31,12 +37,6 @@ VERSION_FIELDS={
   ".metadata.name"
 }
 
-def check(b, msg, *arg):
-  global failed
-  if not b:
-    print " *** " + msg % arg
-    failed = True
-
 def parse_args(args):
   parsed = {}
   while len(args):
@@ -52,33 +52,40 @@ def diff_args(path, want, have):
   # args are a list, but we're going to parse as a map
   want, _ = parse_args(want)
   have, _ = parse_args(have)
-  diff_dicts(path, want, have)
+  for d in diff_dicts(path, want, have):
+    yield d
 
 def diff_lists(path, want, have):
-  check(len(want) == len(have), "len(%s): %d != %d", path, len(want), len(have))
+  if len(want) != len(have):
+    yield "len(%s): %d != %d" % (path, len(want), len(have))
 
   for i, (want_v, have_v) in enumerate(zip(want, have)):
-     diff("%s[%d]" % (path, i), want_v, have_v)
+     for d in diff("%s[%d]" % (path, i), want_v, have_v):
+       yield d
 
 def diff_dicts(path, want, have):
   for k, want_v in want.iteritems():
     key_path = "%s.%s" % (path, k)
 
-    if k not in have and k not in ALLOWED_MISSING:
-      check(k in have, "%s: '%s' missing", path, k)
-
     if k in have:
       if k == "args":
-        diff_args(key_path, want_v, have[k])
+        for d in diff_args(key_path, want_v, have[k]):
+          yield d
       else:
-        diff(key_path, want_v, have[k])
+        for d in diff(key_path, want_v, have[k]):
+          yield d
+
+    elif k not in ALLOWED_MISSING:
+      yield  "%s: '%s' missing" % (path, k)
 
 def diff(path, want, have):
   if isinstance(want, dict):
-    diff_dicts(path, want, have)
+    for d in diff_dicts(path, want, have):
+      yield d
 
   elif isinstance(want, list):
-    diff_lists(path, want, have)
+    for d in diff_lists(path, want, have):
+      yield d
 
   elif not options.versions and path in VERSION_FIELDS:
     pass
@@ -87,14 +94,13 @@ def diff(path, want, have):
     pass
 
   else:
-    check(want == have, "%s: '%s' != '%s'", path, want, have)
+    if want != have:
+      yield "%s: '%s' != '%s'" % (path, want, have)
 
 def check_file(orig, last):
   _, extension = os.path.splitext(orig)
   if extension != ".yaml":
     return
-
-  print "Checking '%s' against '%s'" % (orig, last)
 
   with open(orig, 'r') as stream:
     orig_yaml = yaml.load(stream)
@@ -106,7 +112,11 @@ def check_file(orig, last):
     check(False, "'%s' missing", last)
     return
 
-  diff("", orig_yaml, last_yaml)
+  diffs = list(diff("", orig_yaml, last_yaml))
+  if len(diffs):
+    print "Diffs between '%s' and '%s':" % (orig, last)
+    for d in diffs:
+      print "  " + d
 
 def check_dir(orig, last):
   for filename in os.listdir(orig):
