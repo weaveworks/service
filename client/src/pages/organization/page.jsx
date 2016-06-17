@@ -141,7 +141,12 @@ export default class OrganizationPage extends React.Component {
                 </Box>
                 <div style={styles.step}>
                   <span style={styles.circle}>2</span>
-                  <h2>Invite members</h2>
+                  <h2>Invite team members</h2>
+                  <p>
+                    Send invites to allow other members of your team to view this
+                    Weave Cloud instance.
+                    You can also come back and do this later.
+                  </p>
                   <Users org={this.state.name} />
                 </div>
                 <div style={styles.step}>
@@ -151,7 +156,7 @@ export default class OrganizationPage extends React.Component {
                     Once you have started the probe on your Docker hosts,
                     you can take a look at your system:
                   </p>
-                  <div style={{textAlign: 'center'}}>
+                  <div style={{textAlign: 'center', marginBottom: 48}}>
                     {/* TODO this should be made primary only when probes are connected */}
                     <RaisedButton primary
                       label="View Instance" onClick={this.handleClickInstance} />
