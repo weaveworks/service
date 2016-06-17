@@ -105,7 +105,7 @@ export default class LoginForm extends React.Component {
 
       confirmation: {
         position: 'relative',
-        width: 228,
+        width: 300,
         fontSize: 14,
         marginTop: 8,
         display: this.state.mailSent ? 'block' : 'none'

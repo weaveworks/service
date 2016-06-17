@@ -76,6 +76,7 @@ export default class CookieCheck extends React.Component {
       },
 
       activity: {
+        textAlign: 'center',
         display: this.state.activityText ? 'block' : 'none',
         fontSize: '85%',
         opacity: 0.6
