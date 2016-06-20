@@ -198,7 +198,7 @@ export default class LoginForm extends React.Component {
       unauthorizedWrapper: {
         marginTop: 16,
         textAlign: 'center',
-        display: unauthorized ? 'block' : 'none'
+        display: unauthorized && !submitSuccess ? 'block' : 'none'
       }
     };
 

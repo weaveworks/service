@@ -4,6 +4,7 @@ import CircularProgress from 'material-ui/CircularProgress';
 import { red900 } from 'material-ui/styles/colors';
 import RaisedButton from 'material-ui/RaisedButton';
 
+import { getOrganizations } from '../../common/api';
 import { getData } from '../../common/request';
 import { trackException, trackView } from '../../common/tracking';
 
@@ -24,6 +25,7 @@ export default class LoginForm extends React.Component {
     this.handleClickTryAgain = this.handleClickTryAgain.bind(this);
     this._handleLoginSuccess = this._handleLoginSuccess.bind(this);
     this._handleLoginError = this._handleLoginError.bind(this);
+    this._handleCookieLookupError = this._handleCookieLookupError.bind(this);
   }
 
   componentDidMount() {
@@ -63,8 +65,8 @@ export default class LoginForm extends React.Component {
 
   _handleLoginError(resp) {
     if (resp.status === 401) {
-      trackException('Server returned Unauthorized for login link');
-      hashHistory.push('/login/unauthorized');
+      // try again, we might have a valid cookie already
+      getOrganizations().then(this._handleLoginSuccess, this._handleCookieLookupError);
     } else {
       this.setState({
         activityText: '',
@@ -72,6 +74,12 @@ export default class LoginForm extends React.Component {
       });
       trackException(resp.errors[0].message);
     }
+  }
+
+  _handleCookieLookupError() {
+    // neither token nor cookie worked, back to start
+    trackException('Server returned Unauthorized for login link');
+    hashHistory.push('/login/unauthorized');
   }
 
   handleClickTryAgain() {
