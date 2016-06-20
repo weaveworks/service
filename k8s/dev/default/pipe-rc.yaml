@@ -1,21 +1,21 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: pipe-d00028f53249
+  name: pipe-0.16.0
 spec:
   replicas: 3
   selector:
     name: pipe
-    version: d00028f53249
+    version: 0.16.0
   template:
     metadata:
       labels:
         name: pipe
-        version: d00028f53249
+        version: 0.16.0
     spec:
       containers:
       - name: pipe
-        image: weaveworks/scope:d00028f53249
+        image: weaveworks/scope:0.16.0
         args:
         - --no-probe
         - --app.log.http=true
