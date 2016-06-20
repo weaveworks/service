@@ -2,17 +2,17 @@ apiVersion: v1
 kind: ReplicationController
 metadata:
   namespace: monitoring
-  name: monitoring-20160613
+  name: monitoring-20160620
 spec:
   replicas: 1
   selector:
     name: monitoring
-    version: '20160613'
+    version: '20160620'
   template:
     metadata:
       labels:
         name: monitoring
-        version: '20160613'
+        version: '20160620'
     spec:
       imagePullSecrets:
       - name: quay-secret

@@ -24,6 +24,8 @@ spec:
         image: quay.io/weaveworks/authfe:master-cd63bec
         args:
         - -log.level=debug
+        - -auth.cache.size=200
+        - -auth.cache.expiration=30s
         - -fluent=localhost:24224
         ports:
         - containerPort: 80
