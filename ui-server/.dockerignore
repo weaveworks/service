@@ -1,1 +1,2 @@
-client-build/src
+client/*
+!client/build

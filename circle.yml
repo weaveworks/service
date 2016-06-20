@@ -18,8 +18,8 @@ dependencies:
     - mkdir -p $(dirname $SRCDIR)
     - cp -r $(pwd)/ $SRCDIR
     - |
-        cd $SRCDIR/ui-server/client-build && \
-        ../../tools/rebuild-image quay.io/weaveworks/client-build . \
+        cd $SRCDIR/ui-server/client && \
+        ../../tools/rebuild-image quay.io/weaveworks/client . \
           Dockerfile package.json webpack.local.config.js webpack.production.config.js .babelrc && \
         touch .uptodate
     - |
