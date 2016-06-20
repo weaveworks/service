@@ -1,22 +1,22 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: scope-app-0.15.0
+  name: scope-app-0.16.0
   namespace: kube-system
 spec:
   replicas: 1
   selector:
     name: scope-app
-    version: 0.15.0
+    version: 0.16.0
   template:
     metadata:
       labels:
         name: scope-app
-        version: 0.15.0
+        version: 0.16.0
     spec:
       containers:
       - name: scope-app
-        image: weaveworks/scope:0.15.0
+        image: weaveworks/scope:0.16.0
         env:
         - name: CHECKPOINT_DISABLE
           value: "true"
