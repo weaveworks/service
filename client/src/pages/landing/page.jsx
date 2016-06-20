@@ -19,6 +19,7 @@ export default class LandingPage extends React.Component {
 
   renderLinks(linkStyle) {
     const links = [
+      {href: 'https://www.weave.works/guides/using-weave-scope-cloud-service-to-visualize-and-monitor-docker-containers/', text: 'Learn more'},
       {href: 'http://weave.works/help', text: 'Help'}
     ];
 
@@ -127,11 +128,9 @@ export default class LandingPage extends React.Component {
               manage and monitor containers and microservices
             </div>
             <div style={styles.infoItem}>
-              Learn more about Weave Cloud <a href="https://www.weave.works/" target="website">on our website.</a>
-            </div>
-            <div style={styles.infoItem}>
-              Check out our <a href="https://www.weave.works/guides/"
-                target="guides">getting started guides</a>.
+              Want to find out more about Weaveworks and our products?
+              <br /><a href="https://www.weave.works/"
+                target="website">Check out our website</a>.
             </div>
           </div>
           <div style={styles.formContainer}>
