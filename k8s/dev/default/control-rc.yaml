@@ -1,21 +1,21 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: control-d00028f53249
+  name: control-0.16.0
 spec:
   replicas: 3
   selector:
     name: control
-    version: d00028f53249
+    version: 0.16.0
   template:
     metadata:
       labels:
         name: control
-        version: d00028f53249
+        version: 0.16.0
     spec:
       containers:
       - name: control
-        image: weaveworks/scope:d00028f53249
+        image: weaveworks/scope:0.16.0
         args:
         - --no-probe
         - --app.log.http=true

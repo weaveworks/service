@@ -15,7 +15,7 @@ spec:
       hostNetwork: true
       containers:
       - name:  scope-probe
-        image: weaveworks/scope:0.15.0
+        image: weaveworks/scope:0.16.0
         env:
         - name: CHECKPOINT_DISABLE
           value: "true"
@@ -25,6 +25,7 @@ spec:
         - --probe.docker=true
         - --probe.kubernetes=true
         - --probe.weave.addr=
+        - --probe.processes=false
         - --debug
         - --probe.http.listen=:4041
         # Workaround for https://github.com/kubernetes/kubernetes/issues/17406
