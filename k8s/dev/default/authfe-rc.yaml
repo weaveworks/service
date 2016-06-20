@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: authfe-398-caching-fbbebef
+  name: authfe-master-cd63bec
 spec:
   replicas: 3
   selector:
     name: authfe
-    version: 398-caching-fbbebef
+    version: master-cd63bec
   template:
     metadata:
       labels:
         name: authfe
-        version: 398-caching-fbbebef
+        version: master-cd63bec
     spec:
       imagePullSecrets:
       - name: quay-secret
@@ -21,7 +21,7 @@ spec:
           secretName: bigquery-secret
       containers:
       - name: authfe
-        image: quay.io/weaveworks/authfe:398-caching-fbbebef
+        image: quay.io/weaveworks/authfe:master-cd63bec
         args:
         - -log.level=debug
         - -auth.cache.size=200
