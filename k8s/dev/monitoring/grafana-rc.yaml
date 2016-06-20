@@ -2,23 +2,23 @@ apiVersion: v1
 kind: ReplicationController
 metadata:
   namespace: monitoring
-  name: grafana-deploy-admin-graph-fixes-cd63bec
+  name: grafana-master-cd63bec
 spec:
   replicas: 1
   selector:
     name: grafana
-    version: deploy-admin-graph-fixes-cd63bec
+    version: master-cd63bec
   template:
     metadata:
       labels:
         name: grafana
-        version: deploy-admin-graph-fixes-cd63bec
+        version: master-cd63bec
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: grafana
-        image: quay.io/weaveworks/grafana:deploy-admin-graph-fixes-cd63bec
+        image: quay.io/weaveworks/grafana:master-cd63bec
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80

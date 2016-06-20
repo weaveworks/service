@@ -24,7 +24,7 @@ spec:
       - name: loadgen
         image: quay.io/weaveworks/loadgen:6d14ba2
       - name: alertmanager
-        image: quay.io/weaveworks/alertmanager:deploy-admin-graph-fixes-cd63bec
+        image: quay.io/weaveworks/alertmanager:master-cd63bec
         command:
         - /alertmanager/alertmanager
         - -config.file=/etc/alertmanager/alertmanager-dev.yml
