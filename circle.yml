@@ -17,10 +17,15 @@ dependencies:
   post:
     - mkdir -p $(dirname $SRCDIR)
     - cp -r $(pwd)/ $SRCDIR
-    - cd $SRCDIR/client; ../tools/rebuild-image quay.io/weaveworks/client . Dockerfile package.json webpack.local.config.js webpack.production.config.js .babelrc
-    - touch $SRCDIR/client/.uptodate
-    - cd $SRCDIR/build; ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile
-    - touch $SRCDIR/build/.uptodate
+    - |
+        cd $SRCDIR/ui-server/client && \
+        ../../tools/rebuild-image quay.io/weaveworks/client . \
+          Dockerfile package.json webpack.local.config.js webpack.production.config.js .babelrc && \
+        touch .uptodate
+    - |
+        cd $SRCDIR/build && \
+        ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile && \
+        touch .uptodate
 
 test:
   override:
@@ -34,7 +39,6 @@ test:
     - cd $SRCDIR; make RM=
     - cd $SRCDIR; make RM= users-integration-test
     - cd $SRCDIR; make RM= client-lint
-    - cd $SRCDIR; make RM= client-tests
 
 teardown:
   pre:

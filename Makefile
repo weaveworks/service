@@ -1,4 +1,4 @@
-.PHONY: all test users-integration-test clean client-build-image client-tests client-lint images
+.PHONY: all test users-integration-test clean client-lint images
 .DEFAULT_GOAL := all
 
 # Boiler plate for bulding Docker containers.
@@ -49,8 +49,8 @@ launch-generator/$(UPTODATE): launch-generator/src/*.js launch-generator/package
 kubediff/$(UPTODATE): $(PROM_RUN_EXE)
 frontend-mt/$(UPTODATE): frontend-mt/default.conf frontend-mt/routes.conf frontend-mt/api.json frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
-client/$(UPTODATE): client/package.json client/webpack.* client/server.js
-ui-server/$(UPTODATE): ui-server/build/app.js
+ui-server/client/$(UPTODATE): ui-server/client/package.json ui-server/client/webpack.* ui-server/client/server.js ui-server/client/.eslintrc ui-server/client/.eslintignore ui-server/client/.babelrc
+ui-server/$(UPTODATE): ui-server/client/build/app.js
 build/$(UPTODATE): build/build.sh
 monitoring/grafana/$(UPTODATE): monitoring/grafana/*
 monitoring/gfdatasource/$(UPTODATE): monitoring/gfdatasource/*
@@ -99,28 +99,20 @@ test: build/$(UPTODATE)
 endif
 
 # All the boiler plate for building the client follows:
-JS_FILES=$(shell find client/src -name '*.jsx' -or -name '*.js')
+JS_FILES=$(shell find ui-server/client/src -name '*.jsx' -or -name '*.js')
 
-client-tests: client/$(UPTODATE) $(JS_FILES)
-	$(SUDO) docker run $(RM) -ti -v $(shell pwd)/client/src:/home/weave/src \
-		-v $(shell pwd)/client/test:/home/weave/test \
-		$(IMAGE_PREFIX)/client npm test
-
-client-lint: client/$(UPTODATE) $(JS_FILES)
-	$(SUDO) docker run $(RM) -ti -v $(shell pwd)/client/src:/home/weave/src \
-		-v $(shell pwd)/client/test:/home/weave/test \
+client-lint: ui-server/client/$(UPTODATE) $(JS_FILES)
+	$(SUDO) docker run $(RM) -ti \
+		-v $(shell pwd)/ui-server/client/src:/home/weave/src \
 		$(IMAGE_PREFIX)/client npm run lint
 
-client/build/app.js: client/$(UPTODATE) $(JS_FILES) client/src/html/index.html
-	mkdir -p client/build
-	$(SUDO) docker run $(RM) -ti -v $(shell pwd)/client/src:/home/weave/src \
-		-v $(shell pwd)/client/build:/home/weave/build \
+ui-server/client/build/app.js: ui-server/client/$(UPTODATE) $(JS_FILES) ui-server/client/src/html/index.html
+	mkdir -p ui-server/client/build
+	$(SUDO) docker run $(RM) -ti \
+		-v $(shell pwd)/ui-server/client/src:/home/weave/src \
+		-v $(shell pwd)/ui-server/client/build:/home/weave/build \
 		$(IMAGE_PREFIX)/client npm run build
-	cp -p client/src/images/* client/build/
-
-ui-server/build/app.js: client/build/app.js
-	mkdir -p $(@D)
-	install  client/build/* $(@D)/
+	cp -p ui-server/client/src/images/* ui-server/client/build
 
 # Test and misc stuff
 users-integration-test: $(USERS_UPTODATE)
@@ -139,7 +131,7 @@ users-integration-test: $(USERS_UPTODATE)
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
 	rm -rf $(UPTODATE_FILES) $(EXES)
-	rm -rf client/build ui-server/build
+	rm -rf ui-server/client/build
 	go clean ./...
 
 
