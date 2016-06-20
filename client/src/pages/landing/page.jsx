@@ -19,7 +19,7 @@ export default class LandingPage extends React.Component {
 
   renderLinks(linkStyle) {
     const links = [
-      {href: 'https://www.weave.works/guides/using-weave-scope-cloud-service-to-visualize-and-monitor-docker-containers/', text: 'How it works'},
+      {href: 'https://www.weave.works/guides/using-weave-scope-cloud-service-to-visualize-and-monitor-docker-containers/', text: 'Learn more'},
       {href: 'http://weave.works/help', text: 'Help'}
     ];
 
