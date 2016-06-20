@@ -134,7 +134,7 @@ export default class OrganizationPage extends React.Component {
                 </div>
                 <Box>
                   <div style={styles.code}>
-                    <div>sudo wget -O /usr/local/bin/scope \<br />&nbsp;&nbsp;https://git.io/scope/scope</div>
+                    <div>sudo wget -O /usr/local/bin/scope \<br />&nbsp;&nbsp;https://git.io/scope</div>
                     <div>sudo chmod a+x /usr/local/bin/scope</div>
                     <div>sudo scope launch --service-token={this.state.probeToken}</div>
                   </div>
