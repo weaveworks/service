@@ -101,11 +101,6 @@ endif
 # All the boiler plate for building the client follows:
 JS_FILES=$(shell find ui-server/client-build/src -name '*.jsx' -or -name '*.js')
 
-client-tests: ui-server/client-build/$(UPTODATE) $(JS_FILES)
-	$(SUDO) docker run $(RM) -ti \
-		-v $(shell pwd)/ui-server/client-build/src:/home/weave/src \
-		$(IMAGE_PREFIX)/client-build npm test
-
 client-lint: ui-server/client-build/$(UPTODATE) $(JS_FILES)
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/ui-server/client-build/src:/home/weave/src \
