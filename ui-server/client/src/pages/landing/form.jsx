@@ -2,9 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import RaisedButton from 'material-ui/RaisedButton';
 import TextField from 'material-ui/TextField';
-import { grey100, grey500, lightBlue500 } from 'material-ui/styles/colors';
+import { amber900, grey100, grey500,
+  lightBlue500 } from 'material-ui/styles/colors';
 import { hashHistory } from 'react-router';
 
+import { getLogins } from '../../common/api';
 import { postData } from '../../common/request';
 import { trackEvent, trackException, trackTiming, trackView,
   PardotSignupIFrame } from '../../common/tracking';
@@ -16,31 +18,60 @@ export default class LoginForm extends React.Component {
     super(props);
 
     this.state = {
-      errorText: '',
-      token: null,
       email: null,
+      errorText: '',
+      logins: [],
       mailSent: false,
       submitText: 'Go',
-      submitting: false
+      submitting: false,
+      token: null
     };
 
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this._handleSubmit = this._handleSubmit.bind(this);
+    this._handleLoadAuthsSuccess = this._handleLoadAuthsSuccess.bind(this);
+    this._handleLoadAuthsError = this._handleLoadAuthsError.bind(this);
+    this._doLogin = this._doLogin.bind(this);
+    this.getConfirmation = this.getConfirmation.bind(this);
+  }
+
+  _loadAuths() {
+    getLogins().then(this._handleLoadAuthsSuccess, this._handleLoadAuthsError);
+  }
+
+  _handleLoadAuthsSuccess(resp) {
+    this.setState({ logins: resp.logins });
+  }
+
+  _handleLoadAuthsError(resp) {
+    trackException(resp);
+    hashHistory.push('/');
+  }
+
+  _doLogin() {
+    // for dev login button
+    const loginUrl = `/login/${this.state.email}/${this.state.token}`;
+    hashHistory.push(loginUrl);
   }
 
   componentDidMount() {
-    trackView('SignupForm');
-  }
-
-  handleClickLogin(ev) {
-    ev.preventDefault();
-    hashHistory.push('/login');
+    this._loadAuths();
+    if (this.props.formId) {
+      trackView(this.props.formId);
+    }
   }
 
   handleKeyDown(ev) {
     if (ev.keyCode === 13) { // ENTER
       this._handleSubmit();
     }
+  }
+
+  getConfirmation() {
+    if (this.props.getConfirmation) {
+      return this.props.getConfirmation(this.state.email);
+    }
+    return `A mail with the next step was sent to ${this.state.email}`;
   }
 
   _handleSubmit() {
@@ -84,8 +115,10 @@ export default class LoginForm extends React.Component {
           });
 
         // tracking
-        trackTiming('SignupButton', 'timeToClick');
-        trackEvent('SignupButton', 'click');
+        if (this.props.buttonId) {
+          trackTiming(this.props.buttonId, 'timeToClick');
+          trackEvent(this.props.buttonId, 'click');
+        }
       } else {
         this.setState({
           errorText: 'Please provide a valid email address.'
@@ -96,6 +129,7 @@ export default class LoginForm extends React.Component {
 
   render() {
     const submitSuccess = Boolean(this.state.token) || this.state.mailSent;
+    const unauthorized = this.props.error === 'unauthorized';
     const styles = {
       submit: {
         marginLeft: '2em',
@@ -103,14 +137,28 @@ export default class LoginForm extends React.Component {
         verticalAlign: 'top'
       },
 
+      submitLabel: {
+        padding: '0 8px'
+      },
+
       confirmation: {
-        textAlign: 'center',
-        display: submitSuccess ? 'block' : 'none'
+        position: 'relative',
+        width: 300,
+        fontSize: 14,
+        marginTop: 8,
+        display: this.state.mailSent ? 'block' : 'none'
       },
 
       confirmationIcon: {
-        fontSize: 48,
+        position: 'absolute',
+        top: 2,
+        left: 2,
+        fontSize: 24,
         color: lightBlue500
+      },
+
+      confirmationLabel: {
+        paddingLeft: 36
       },
 
       emailField: {
@@ -124,6 +172,10 @@ export default class LoginForm extends React.Component {
 
       emailFieldFocusLine: {
         borderColor: grey500
+      },
+
+      emailFieldHint: {
+        bottom: 10
       },
 
       form: {
@@ -148,27 +200,61 @@ export default class LoginForm extends React.Component {
         textAlign: 'center'
       },
 
+      devLink: {
+        display: this.state.token ? 'block' : 'none',
+        fontSize: '85%',
+        opacity: 0.6
+      },
+
       splitter: {
         display: !submitSuccess ? 'block' : 'none',
         textAlign: 'center',
         padding: '36px 0px',
         textTransform: 'uppercase'
+      },
+
+      unauthorized: {
+        display: 'inline-block',
+        position: 'relative',
+        width: 228,
+        fontSize: 14,
+      },
+
+      unauthorizedIcon: {
+        position: 'absolute',
+        top: 0,
+        left: -2,
+        fontSize: 32,
+        color: amber900
+      },
+
+      unauthorizedLabel: {
+        color: amber900,
+        paddingLeft: 32
+      },
+
+      unauthorizedWrapper: {
+        marginTop: 16,
+        textAlign: 'center',
+        display: unauthorized && !submitSuccess ? 'block' : 'none'
       }
     };
+
+    const hintText = `${this.props.prefix} Email`;
 
     return (
       <div>
         <div style={styles.heading}>
-          Sign up
+          {this.props.title}
         </div>
         <div style={styles.loginVia}>
-          <LoginVia prefix="Sign up with" />
+          <LoginVia prefix={this.props.prefix} logins={this.state.logins} />
         </div>
         <div style={styles.splitter}>
           or
         </div>
         <div style={styles.form}>
-          <TextField hintText="Sign up with Email" ref="emailField" type="email"
+          <TextField hintText={hintText} ref="emailField" type="email"
             errorText={this.state.errorText}
             underlineFocusStyle={styles.emailFieldFocusLine}
             underlineStyle={styles.emailFieldLine} style={styles.emailField}
@@ -177,14 +263,25 @@ export default class LoginForm extends React.Component {
             backgroundColor={grey500} labelColor={grey100}
             disabled={this.state.submitting} onClick={this._handleSubmit} />
           <div style={styles.formHint}>
-            Already have an account? <a href="/login" onClick={this.handleClickLogin}>Log in</a>
+            {this.props.children}
+          </div>
+        </div>
+        <div style={styles.unauthorizedWrapper}>
+          <div style={styles.unauthorized}>
+            <span className="fa fa-ban" style={styles.unauthorizedIcon}></span>
+            <div style={styles.unauthorizedLabel}>
+              The login link is no longer valid. Enter your email to log in again.
+            </div>
           </div>
         </div>
         <div style={styles.confirmation}>
           <span className="fa fa-check" style={styles.confirmationIcon}></span>
           <p>
-            We just sent you a verification email with a link to {this.state.email}.
+            {this.getConfirmation()}.
           </p>
+        </div>
+        <div style={styles.devLink}>
+          <button onClick={this._doLogin}>Developer login link</button>
         </div>
         {submitSuccess && <PardotSignupIFrame email={this.state.email} />}
       </div>
