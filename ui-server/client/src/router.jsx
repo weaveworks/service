@@ -8,7 +8,7 @@ import CookieCheck from './pages/landing/cookie-check';
 import Login from './pages/landing/login';
 import LoginForm from './pages/landing/login-form';
 import Logout from './pages/landing/logout';
-import RegisterForm from './pages/landing/register-form';
+import SignupForm from './pages/landing/signup-form';
 import WrapperPage from './pages/wrapper/page';
 import RouterComponent from './components/router';
 
@@ -27,7 +27,7 @@ export default function getRoutes() {
         <Redirect from="login/success" to="/" />
         <Redirect from="signup/success" to="/" />
 
-        <Route name="register-form" path="signup" component={RegisterForm} />
+        <Route name="register-form" path="signup" component={SignupForm} />
         <Route name="login-form" path="login(/:error)" component={LoginForm} />
         <Route name="login-worker" path="login/:email/:token" component={Login} />
         <Route name="login-via" path="login-via/:provider" component={Login} />
