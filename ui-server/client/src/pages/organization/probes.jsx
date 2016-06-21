@@ -80,7 +80,7 @@ export default class Probes extends React.Component {
           {probes}
         </div>
         <div style={styles.tokenContainer}>
-          <span style={styles.tokenLabel}>Probe token: </span>
+          <span style={styles.tokenLabel}>Service token: </span>
           <span style={styles.tokenValue}>{this.props.probeToken}</span>
         </div>
       </div>
