@@ -1,8 +1,6 @@
 import React from 'react';
 import Colors from '../../common/colors';
 import RaisedButton from 'material-ui/RaisedButton';
-import { getLogins } from '../../common/api';
-import { trackException, trackView } from '../../common/tracking';
 
 function injectPrefix(logins, prefix) {
   if (prefix) {
@@ -16,33 +14,6 @@ function injectPrefix(logins, prefix) {
 
 export default class LoginVia extends React.Component {
 
-  constructor(props) {
-    super(props);
-
-    this.state = {};
-
-    this._handleLoadSuccess = this._handleLoadSuccess.bind(this);
-    this._handleLoadError = this._handleLoadError.bind(this);
-  }
-
-  componentDidMount() {
-    this._load();
-    trackView('LoginVia');
-  }
-
-  _load() {
-    getLogins().then(this._handleLoadSuccess, this._handleLoadError);
-  }
-
-  _handleLoadSuccess(resp) {
-    const logins = injectPrefix(resp.logins, this.props.prefix);
-    this.setState({ logins });
-  }
-
-  _handleLoadError(resp) {
-    trackException(resp);
-  }
-
   render() {
     const styles = {
       base: {
@@ -53,9 +24,10 @@ export default class LoginVia extends React.Component {
         marginRight: '1em'
       }
     };
+    const logins = injectPrefix(this.props.logins, this.props.prefix);
     return (
       <span>
-        {(this.state.logins || []).map(a =>
+        {(logins || []).map(a =>
             <span key={a.link.href} className="login-via" style={styles.wrapper}>
               <RaisedButton linkButton
                 style={styles.base}

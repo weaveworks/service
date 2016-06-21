@@ -6,6 +6,7 @@ import { amber900, grey100, grey500,
   lightBlue500 } from 'material-ui/styles/colors';
 import { hashHistory } from 'react-router';
 
+import { getLogins } from '../../common/api';
 import { postData } from '../../common/request';
 import { trackEvent, trackException, trackTiming, trackView,
   PardotSignupIFrame } from '../../common/tracking';
@@ -17,18 +18,34 @@ export default class LoginForm extends React.Component {
     super(props);
 
     this.state = {
-      errorText: '',
-      token: null,
       email: null,
+      errorText: '',
+      logins: [],
       mailSent: false,
       submitText: 'Go',
-      submitting: false
+      submitting: false,
+      token: null
     };
 
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this._handleSubmit = this._handleSubmit.bind(this);
+    this._handleLoadAuthsSuccess = this._handleLoadAuthsSuccess.bind(this);
+    this._handleLoadAuthsError = this._handleLoadAuthsError.bind(this);
     this._doLogin = this._doLogin.bind(this);
     this.getConfirmation = this.getConfirmation.bind(this);
+  }
+
+  _loadAuths() {
+    getLogins().then(this._handleLoadAuthsSuccess, this._handleLoadAuthsError);
+  }
+
+  _handleLoadAuthsSuccess(resp) {
+    this.setState({ logins: resp.logins });
+  }
+
+  _handleLoadAuthsError(resp) {
+    trackException(resp);
+    hashHistory.push('/');
   }
 
   _doLogin() {
@@ -38,6 +55,7 @@ export default class LoginForm extends React.Component {
   }
 
   componentDidMount() {
+    this._loadAuths();
     if (this.props.formId) {
       trackView(this.props.formId);
     }
@@ -230,7 +248,7 @@ export default class LoginForm extends React.Component {
           {this.props.title}
         </div>
         <div style={styles.loginVia}>
-          <LoginVia prefix={this.props.prefix} />
+          <LoginVia prefix={this.props.prefix} logins={this.state.logins} />
         </div>
         <div style={styles.splitter}>
           or

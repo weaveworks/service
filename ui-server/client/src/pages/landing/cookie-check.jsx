@@ -1,5 +1,6 @@
 import React from 'react';
 import CircularProgress from 'material-ui/CircularProgress';
+import RaisedButton from 'material-ui/RaisedButton';
 import { red900 } from 'material-ui/styles/colors';
 import { hashHistory } from 'react-router';
 
@@ -20,6 +21,7 @@ export default class CookieCheck extends React.Component {
     this._checkCookie = this._checkCookie.bind(this);
     this._handleLoginSuccess = this._handleLoginSuccess.bind(this);
     this._handleLoginError = this._handleLoginError.bind(this);
+    this._handleClickReload = this._handleClickReload.bind(this);
   }
 
   componentDidMount() {
@@ -66,6 +68,10 @@ export default class CookieCheck extends React.Component {
     }
   }
 
+  _handleClickReload() {
+    window.location.reload(true);
+  }
+
   render() {
     const styles = {
       error: {
@@ -92,6 +98,10 @@ export default class CookieCheck extends React.Component {
         <div style={styles.error}>
           <h3>Weave Cloud is not available. Please try again later.</h3>
           <p>{this.state.errorText}</p>
+          <p>
+            <RaisedButton onClick={this._handleClickReload}
+              label="Try again" />
+          </p>
         </div>
       </div>
     );
