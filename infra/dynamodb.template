@@ -15,7 +15,9 @@ resource "aws_dynamodb_table" "report_table" {
 }
 
 resource "aws_s3_bucket" "report_bucket" {
-    bucket = "weaveworks_${var.env_name}_reports"
+    ## Bucket names cannot contain underscores, which is a recent restriction
+    ## https://docs.aws.amazon.com/AmazonS3/latest/UG/CreatingaBucket.html
+    bucket = "weaveworks-${var.env_name}-reports"
 }
 
 resource "aws_iam_user" "report_writer" {
