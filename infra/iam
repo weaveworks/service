@@ -28,5 +28,8 @@ fi
 id=$( cat ${CLWD}/tfstate | jq -r .modules[0].resources.\"aws_iam_access_key.${USER}_key\".primary.attributes.id )
 secret=$( cat ${CLWD}/tfstate | jq -r .modules[0].resources.\"aws_iam_access_key.${USER}_key\".primary.attributes.secret )
 
-echo "Access Key:     ${id}"
-echo "Access Secret:  ${secret}"
+echo "Access Key:                 ${id}"
+echo "Access Secret:              ${secret}"
+echo ""
+echo "Access Key (urlencoded):    $(python -c "import urllib; print urllib.quote('''${id}''')")"
+echo "Access Secret (urlencoded): $(python -c "import urllib; print urllib.quote('''${secret}''')")"
