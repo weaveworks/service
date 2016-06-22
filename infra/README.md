@@ -84,7 +84,7 @@ cp var.template foo/var
 ./dynamodb up foo
 ./sqs up foo
 
-# Next extract and URL encode the credentials for the users that were created,
+# Next extract and use the URL encoded credentials for the users that were created,
 # providing them to the appropriate components (collection, query, control):
 
 ./iam foo report_writer  # user who can write to DynamoDB, for collection service
@@ -102,7 +102,7 @@ cp var.template foo/var
 git add foo/*
 git commit -m "Stand up foo cluster"
 
-# If recreating dev/prod cluster, please make sure that the {dev,prod}.weave.works NS records 
+# If recreating dev/prod cluster, please make sure that the {dev,prod}.weave.works NS records
 # in CloudFlare are in sync with the corresponding Route53 zones
 ```
 
