@@ -31,7 +31,7 @@ then
 fi
 
 function verify_db_name {
-	local databases="users app_mapper"
+	local databases="users"
 	for db in $databases
 	do
 		if [ "$db" = "$1" ]
@@ -97,7 +97,7 @@ bootstrap)
 	then
 		usage
 	fi
-	load $(hostname users) $(password users) < ${CLWD}/../../users/db/schema.sql
+	load $(hostname users) $(password users) < ${CLWD}/../../users-db/users-create.sql
 	;;
 
 shell)
