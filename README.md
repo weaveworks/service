@@ -182,7 +182,7 @@ But if you really want to know, you can read [the README in the infra subdirecto
 ### Build
 
 [The CI system](https://circleci.com/gh/weaveworks/service) will make images
-availible to remote clusters, by pushing them to our private remote repository
+available to remote clusters, by pushing them to our private remote repository
 (Quay).  You can push images manually, but for production we prefer to use
 images built in CI from the master branch.
 
@@ -249,7 +249,6 @@ in prod, the recommended process is:
 - Push this branch and open a PR, such that the review can test the active
   change in dev.
 - Once you get an LGTM, merge the PR then do the `./rolling-update`.
-
 
 ### Connect
 
