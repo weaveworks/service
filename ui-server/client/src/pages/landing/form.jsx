@@ -137,16 +137,12 @@ export default class LoginForm extends React.Component {
         verticalAlign: 'top'
       },
 
-      submitLabel: {
-        padding: '0 8px'
-      },
-
       confirmation: {
         position: 'relative',
         width: 300,
         fontSize: 14,
         marginTop: 8,
-        display: this.state.mailSent ? 'block' : 'none'
+        display: submitSuccess ? 'block' : 'none'
       },
 
       confirmationIcon: {
@@ -172,10 +168,6 @@ export default class LoginForm extends React.Component {
 
       emailFieldFocusLine: {
         borderColor: grey500
-      },
-
-      emailFieldHint: {
-        bottom: 10
       },
 
       form: {
@@ -276,7 +268,7 @@ export default class LoginForm extends React.Component {
         </div>
         <div style={styles.confirmation}>
           <span className="fa fa-check" style={styles.confirmationIcon}></span>
-          <p>
+          <p style={styles.confirmationLabel}>
             {this.getConfirmation()}.
           </p>
         </div>
