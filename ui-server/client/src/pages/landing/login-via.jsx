@@ -2,16 +2,6 @@ import React from 'react';
 import Colors from '../../common/colors';
 import RaisedButton from 'material-ui/RaisedButton';
 
-function injectPrefix(logins, prefix) {
-  if (prefix) {
-    return (logins || []).map(l => {
-      l.link.label = `${prefix} ${l.link.label}`;
-      return l;
-    });
-  }
-  return logins;
-}
-
 export default class LoginVia extends React.Component {
 
   render() {
@@ -24,15 +14,16 @@ export default class LoginVia extends React.Component {
         marginRight: '1em'
       }
     };
-    const logins = injectPrefix(this.props.logins, this.props.prefix);
     return (
       <span>
-        {(logins || []).map(a =>
+        {(this.props.logins || []).map(a =>
             <span key={a.link.href} className="login-via" style={styles.wrapper}>
               <RaisedButton linkButton
                 style={styles.base}
                 labelColor={Colors.white}
-                {...a.link}
+                backgroundColor={a.link.backgroundColor}
+                href={a.link.href}
+                label={`${this.props.prefix} ${a.link.label}`}
                 icon={<span className={a.link.icon}></span>}
               />
             </span>
