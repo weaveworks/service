@@ -262,9 +262,7 @@ $ ./connect mycluster
 You must connect to the cluster for these steps to work.
 
 1. Go to http://cloud.weave.works and sign up with a real email address.
-2. Check your email for the welcome message.
-3. Go to http://users.default.svc.cluster.local and approve yourself.
-4. Check your email for the approval message, and click the login link.
+2. Check your email for the login message.
 
 Now you can start a probe with your service token, and send reports to the Scope-as-a-Service.
 If you're using e.g. the dev cluster, you'll need to specify the target by IP.
