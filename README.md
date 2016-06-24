@@ -190,7 +190,12 @@ The build gives each image a name based on the state of the git
 working directory from which it was built, according to the script
 `image-tag`. If the working directory has uncommitted changes, the
 image name will include `-WIP` (work in progress), to make it stand
-out.
+out.  For example:
+
+```
+$ ./image-tag
+deployment-instructions-eca773b-WIP
+```
 
 The script `push-images` pushes the images *named for the current
 state of the git working directory* to the remote repository. So, if
@@ -224,7 +229,7 @@ a new image name.  Please use the image build by CI off the master branch.
 A script to update the yaml files for you exists, and might work:
 
 ```
-$ ./k8s/kubeimage quay.io/weaveworks/foo:master-xyz k8s/dev/default/*
+$ ./k8s/kubeimage quay.io/weaveworks/frontend-mt:master-eca773b k8s/dev/default/*
 ```
 
 Someone has probably already created the components, and you probably just want to deploy a new version.
@@ -236,19 +241,20 @@ We've scripted it for you; just follow the prompts.
 $ ./rolling-update
 ```
 
-Kubernetes has a lot of ways to move things around in the cluster.
-Don't be afraid to read the kubectl documentation.
-
-Feel free to experiment in the dev environment.  When updating something
-in prod, the recommended process is:
-- Make a change to the yaml in `k8s/dev/` updating the image and flags.
-- Apply this change using `./rolling-update`
+Feel free to experiment in the dev environment.  When deploying a new version
+of a given service, the recommended process is:
+- Make a change to the yaml in `k8s/dev/` updating the image, using `kubeimage`.
+- Apply this change to the dev cluster using `./rolling-update`.
 - Commit this a changeset `Deploying updates foo to dev` to a branch.
 - Make a changeset on the same branch to the yaml in `k8s/prod/` updating
-  the image and flags, but **do not** apply it yet.
+  the image, but **do not** apply it yet.
 - Push this branch and open a PR, such that the review can test the active
   change in dev.
 - Once you get an LGTM, merge the PR then do the `./rolling-update`.
+
+This is a simplified process; more thought must be given when adding new features
+and flags.  Kubernetes has a lot of ways to move things around in the cluster.
+Don't be afraid to read the kubectl documentation.
 
 ### Connect
 
