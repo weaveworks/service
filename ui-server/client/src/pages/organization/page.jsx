@@ -3,6 +3,8 @@ import CircularProgress from 'material-ui/CircularProgress';
 import Paper from 'material-ui/Paper';
 import RaisedButton from 'material-ui/RaisedButton';
 import { hashHistory } from 'react-router';
+import sortBy from 'lodash/sortBy';
+import { grey200 } from 'material-ui/styles/colors';
 
 import Colors from '../../common/colors';
 import { getData, encodeURIs } from '../../common/request';
@@ -13,7 +15,7 @@ import { Logo } from '../../components/logo';
 import Probes from './probes';
 import Users from './users';
 import Toolbar from '../../components/toolbar';
-import { trackException, trackView } from '../../common/tracking';
+import { trackEvent, trackException, trackView } from '../../common/tracking';
 
 export default class OrganizationPage extends React.Component {
 
@@ -22,17 +24,34 @@ export default class OrganizationPage extends React.Component {
     this.state = {
       name: '',
       user: '',
-      probeToken: ''
+      probeToken: '',
+      probes: [],
+      showHelp: false
     };
 
     this.handleClickInstance = this.handleClickInstance.bind(this);
     this._handleOrganizationSuccess = this._handleOrganizationSuccess.bind(this);
     this._handleOrganizationError = this._handleOrganizationError.bind(this);
+    this.getProbesTimer = 0;
+    this.getProbes = this.getProbes.bind(this);
+    this.expandHelp = this.expandHelp.bind(this);
   }
 
   componentDidMount() {
     this._getOrganizationData(this.props.params.orgId);
+    this.getProbes();
     trackView('Organization');
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this.getProbesTimer);
+  }
+
+  expandHelp(ev) {
+    ev.preventDefault();
+    if (!this.state.showHelp) {
+      this.setState({ showHelp: true });
+    }
   }
 
   instanceUrl() {
@@ -44,6 +63,22 @@ export default class OrganizationPage extends React.Component {
       const url = encodeURIs`/api/users/org/${organization}`;
       getData(url).then(this._handleOrganizationSuccess, this._handleOrganizationError);
     }
+  }
+
+  getProbes() {
+    clearTimeout(this.getProbesTimer);
+    const org = this.props.params.orgId;
+    const url = encodeURIs`/api/org/${org}/probes`;
+    getData(url)
+      .then(resp => {
+        this.setState({
+          probes: sortBy(resp, ['hostname', 'id'])
+        });
+        trackEvent('Cloud', 'connectedProbes', org, resp.length);
+        this.getProbesTimer = setTimeout(this.getProbes, 5000);
+      }, resp => {
+        trackException(resp.errors[0].message);
+      });
   }
 
   handleClickInstance() {
@@ -64,6 +99,7 @@ export default class OrganizationPage extends React.Component {
   }
 
   render() {
+    const hasProbes = this.state.probes && this.state.probes.length > 0;
     const styles = {
       activity: {
         marginTop: 200,
@@ -81,8 +117,30 @@ export default class OrganizationPage extends React.Component {
         fontSize: '0.9rem',
         borderRadius: 4
       },
+      completed: {
+        borderTop: `2px dotted ${grey200}`,
+        display: hasProbes ? 'block' : 'none',
+        marginTop: 24,
+        marginBottom: 24
+      },
       container: {
         marginTop: 96
+      },
+      help: {
+        borderTop: `2px dotted ${grey200}`,
+        display: hasProbes ? 'none' : 'block',
+        marginTop: 24,
+        marginBottom: 24,
+        lineHeight: 1.5,
+        fontSize: '85%'
+      },
+      helpHint: {
+        fontSize: '95%',
+        textAlign: 'center'
+      },
+      helpBlock: {
+        display: this.state.showHelp ? 'block' : 'none',
+        marginLeft: '-1em'
       },
       logoWrapper: {
         position: 'absolute',
@@ -112,7 +170,8 @@ export default class OrganizationPage extends React.Component {
       steps: {
         marginLeft: -12,
         borderLeft: `1px solid ${Colors.text5}`,
-        paddingLeft: 48
+        paddingLeft: 48,
+        paddingBottom: 24
       }
     };
 
@@ -149,26 +208,45 @@ export default class OrganizationPage extends React.Component {
                   </p>
                   <Users org={this.state.name} />
                 </div>
-                <div style={styles.step}>
-                  <span style={styles.circle}>3</span>
-                  <h2>View Instance</h2>
-                  <p>
-                    Once you have started the probe on your Docker hosts,
-                    you can take a look at your system:
-                  </p>
-                  <div style={{textAlign: 'center', marginBottom: 48}}>
-                    {/* TODO this should be made primary only when probes are connected */}
-                    <RaisedButton primary
-                      label="View Instance" onClick={this.handleClickInstance} />
-                  </div>
-                </div>
               </div>
             </Column>
             <Column width="400">
               <Paper style={{marginTop: '4em', marginBottom: '1em'}}>
                 <div style={styles.probes}>
                   <h3>Probes</h3>
-                  <Probes org={this.state.name} probeToken={this.state.probeToken} />
+                  <Probes probes={this.state.probes} probeToken={this.state.probeToken} />
+                  <div style={styles.completed}>
+                    <p>
+                      Looks like probes are connected,
+                      you can take a look at your system:
+                    </p>
+                    <div style={{textAlign: 'center'}}>
+                      {/* TODO this should be made primary only when probes are connected */}
+                      <RaisedButton primary
+                        label="View Instance" onClick={this.handleClickInstance} />
+                    </div>
+                  </div>
+                  <div style={styles.help}>
+                    <p style={styles.helpHint}>
+                      Have you started a probe and don't see it in this list?
+                      {!this.state.showHelp && <span>
+                        <br /><a href="#" onClick={this.expandHelp}>Show Help</a>
+                      </span>}
+                    </p>
+                    <ol style={styles.helpBlock}>
+                      <li>Make sure that the token passed
+                        to <code>scope launch</code> is correct.</li>
+                      <li>
+                        Check the scope probe logs for errors by running<br />
+                          <code>docker logs weavescope</code>
+                        <ul>
+                          <li>If you see 401 errors, check again that the token is correct</li>
+                          <li>If you see any other errors, please <a
+                            href="https://www.weave.works/help/" target="support">contact support</a></li>
+                        </ul>
+                      </li>
+                    </ol>
+                  </div>
                 </div>
               </Paper>
             </Column>

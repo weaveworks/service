@@ -1,53 +1,28 @@
 import React from 'react';
-import sortBy from 'lodash/sortBy';
-import { grey400 } from 'material-ui/styles/colors';
-import { getData, encodeURIs } from '../../common/request';
-import { trackEvent, trackException } from '../../common/tracking';
+import { cyan500, grey400 } from 'material-ui/styles/colors';
+
+const probeStyle = {
+  margin: 16
+};
+
+const connectedStyle = {
+  position: 'relative',
+  fontSize: '90%',
+  left: -8,
+  top: -1,
+  color: cyan500,
+  opacity: 0.8
+};
 
 export default class Probes extends React.Component {
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      probes: []
-    };
-    this.getProbesTimer = 0;
-    this.getProbes = this.getProbes.bind(this);
-  }
-
-  componentDidMount() {
-    this.getProbes();
-  }
-
-  componentWillUnmount() {
-    clearTimeout(this.getProbesTimer);
-  }
-
-  getProbes() {
-    clearTimeout(this.getProbesTimer);
-    const url = encodeURIs`/api/org/${this.props.org}/probes`;
-    getData(url)
-      .then(resp => {
-        this.setState({
-          probes: sortBy(resp, ['hostname', 'id'])
-        });
-        trackEvent('Cloud', 'connectedProbes', this.props.org, resp.length);
-        this.getProbesTimer = setTimeout(this.getProbes, 5000);
-      }, resp => {
-        trackException(resp.errors[0].message);
-      });
-  }
-
   renderProbes() {
-    if (this.state.probes.length > 0) {
-      return this.state.probes.map(probe => {
-        const probeStyle = {
-          margin: 16
-        };
+    if (this.props.probes.length > 0) {
+      return this.props.probes.map(probe => {
         const title = `Last seen: ${probe.lastSeen}`;
         return (
           <div key={probe.id} style={probeStyle} title={title} >
-            {probe.hostname} (connected)
+            <span style={connectedStyle} className="fa fa-circle" /> {probe.hostname}
           </div>
         );
       });
