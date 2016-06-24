@@ -49,7 +49,7 @@ instance.
 After connecting to an environment with `./connect <env>`:
 
 Monitoring
-- [Grafana Dashboards](http://frontend.default.svc.cluster.local/admin/prometheus)
+- [Grafana Dashboards](http://frontend.default.svc.cluster.local/admin/grafana)
 - [Prometheus UI](http://monitoring.monitoring.svc.cluster.local:9090)
 - [Alertmanager](http://monitoring.monitoring.svc.cluster.local:9093)
 - [Service Scope](http://scope.kube-system.svc.cluster.local:80)
@@ -246,6 +246,7 @@ $ ./rolling-update
 Feel free to experiment in the dev environment.  When deploying a new version
 of a given service, the recommended process is:
 - Make a change to the yaml in `k8s/dev/` updating the image, using `kubeimage`.
+- Announce that you are making a change to the dev environment in the #scope channel on Slack
 - Apply this change to the dev cluster using `./rolling-update`.
 - Optionally: `diff log pre..post -- component` to see what changed since the last deploy.
 - Commit this a changeset `Deploying updates foo to dev` to a branch.
