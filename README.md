@@ -49,7 +49,7 @@ instance.
 After connecting to an environment with `./connect <env>`:
 
 Monitoring
-- [Grafana Dashboards](http://grafana.monitoring.svc.cluster.local)
+- [Grafana Dashboards](http://frontend.default.svc.cluster.local/admin/grafana)
 - [Prometheus UI](http://monitoring.monitoring.svc.cluster.local:9090)
 - [Alertmanager](http://monitoring.monitoring.svc.cluster.local:9093)
 - [Service Scope](http://scope.kube-system.svc.cluster.local:80)
@@ -181,14 +181,23 @@ But if you really want to know, you can read [the README in the infra subdirecto
 
 ### Build
 
-To make container images available to remote clusters, you need to
-build them and push them to our private remote repository (Quay).
+[The CI system](https://circleci.com/gh/weaveworks/service) will make images
+available to remote clusters, by pushing them to our private remote repository
+(Quay).  You can push images manually, but for production we prefer to use
+images built in CI from the master branch.
+
+#### Build Manually
 
 The build gives each image a name based on the state of the git
 working directory from which it was built, according to the script
 `image-tag`. If the working directory has uncommitted changes, the
 image name will include `-WIP` (work in progress), to make it stand
-out.
+out.  For example:
+
+```
+$ ./image-tag
+deployment-instructions-eca773b-WIP
+```
 
 The script `push-images` pushes the images *named for the current
 state of the git working directory* to the remote repository. So, if
@@ -218,7 +227,12 @@ by not mentioning any).
 
 First update the rc files for your desired component. e.g. for foo
 service in dev you'd update `./k8s/dev/<namespace>/foo-rc.yaml` with
-a new image name.
+a new image name.  Please use the image build by CI off the master branch.
+A script to update the yaml files for you exists, and might work:
+
+```
+$ ./k8s/kubeimage quay.io/weaveworks/frontend-mt:master-eca773b k8s/dev/default/*
+```
 
 Someone has probably already created the components, and you probably just want to deploy a new version.
 Kubernetes supports this nicely using something called a rolling update.
@@ -229,7 +243,21 @@ We've scripted it for you; just follow the prompts.
 $ ./rolling-update
 ```
 
-Kubernetes has a lot of ways to move things around in the cluster.
+Feel free to experiment in the dev environment.  When deploying a new version
+of a given service, the recommended process is:
+- Make a change to the yaml in `k8s/dev/` updating the image, using `kubeimage`.
+- Announce that you are making a change to the dev environment in the #scope channel on Slack
+- Apply this change to the dev cluster using `./rolling-update`.
+- Optionally: `diff log pre..post -- component` to see what changed since the last deploy.
+- Commit this a changeset `Deploying updates foo to dev` to a branch.
+- Make a changeset on the same branch to the yaml in `k8s/prod/` updating
+  the image, but **do not** apply it yet.
+- Push this branch and open a PR, such that the review can test the active
+  change in dev.
+- Once you get an LGTM, merge the PR then do the `./rolling-update`.
+
+This is a simplified process; more thought must be given when adding new features
+and flags.  Kubernetes has a lot of ways to move things around in the cluster.
 Don't be afraid to read the kubectl documentation.
 
 ### Connect
@@ -243,9 +271,7 @@ $ ./connect mycluster
 You must connect to the cluster for these steps to work.
 
 1. Go to http://cloud.weave.works and sign up with a real email address.
-2. Check your email for the welcome message.
-3. Go to http://users.default.svc.cluster.local and approve yourself.
-4. Check your email for the approval message, and click the login link.
+2. Check your email for the login message.
 
 Now you can start a probe with your service token, and send reports to the Scope-as-a-Service.
 If you're using e.g. the dev cluster, you'll need to specify the target by IP.
