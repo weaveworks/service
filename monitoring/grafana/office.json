@@ -44,7 +44,7 @@
           "postfixFontSize": "50%",
           "prefix": "",
           "prefixFontSize": "50%",
-          "span": 6,
+          "span": 4,
           "sparkline": {
             "fillColor": "rgba(255, 255, 255, 0.18)",
             "full": true,
@@ -71,7 +71,7 @@
               "value": "null"
             }
           ],
-          "valueName": "avg"
+          "valueName": "current"
         },
         {
           "cacheTimeout": null,
@@ -83,6 +83,7 @@
             "rgba(245, 54, 54, 0.9)"
           ],
           "datasource": "Scope-as-a-Service Prometheus",
+          "decimals": 2,
           "editable": true,
           "error": false,
           "format": "none",
@@ -104,7 +105,7 @@
           "postfixFontSize": "50%",
           "prefix": "",
           "prefixFontSize": "50%",
-          "span": 6,
+          "span": 4,
           "sparkline": {
             "fillColor": "rgba(255, 255, 255, 0.18)",
             "full": true,
@@ -131,7 +132,70 @@
               "value": "null"
             }
           ],
-          "valueName": "avg"
+          "valueName": "current"
+        },
+        {
+          "cacheTimeout": null,
+          "colorBackground": false,
+          "colorValue": true,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "datasource": "Scope-as-a-Service Prometheus",
+          "decimals": 1,
+          "editable": true,
+          "error": false,
+          "format": "short",
+          "gauge": {
+            "maxValue": 100,
+            "minValue": 0,
+            "show": false,
+            "thresholdLabels": false,
+            "thresholdMarkers": false
+          },
+          "id": 4,
+          "interval": null,
+          "isNew": true,
+          "links": [],
+          "maxDataPoints": 100,
+          "nullPointMode": "connected",
+          "nullText": null,
+          "postfix": "%",
+          "postfixFontSize": "100%",
+          "prefix": "",
+          "prefixFontSize": "100%",
+          "span": 4,
+          "sparkline": {
+            "fillColor": "rgba(255, 255, 255, 0.18)",
+            "full": true,
+            "lineColor": "rgb(0, 0, 0)",
+            "show": true
+          },
+          "targets": [
+            {
+              "expr": "(1-job:scope_request_errors:rate1m{job=\"authfe\"}) * 100",
+              "hide": false,
+              "intervalFactor": 2,
+              "legendFormat": "",
+              "refId": "A",
+              "step": 240
+            }
+          ],
+          "thresholds": "80,90",
+          "title": "Successful Requests",
+          "transparent": true,
+          "type": "singlestat",
+          "valueFontSize": "100%",
+          "valueMaps": [
+            {
+              "op": "=",
+              "text": "N/A",
+              "value": "null"
+            }
+          ],
+          "valueName": "current"
         }
       ],
       "title": "Row"
@@ -283,5 +347,5 @@
   },
   "timezone": "browser",
   "title": "Office Console",
-  "version": 2
+  "version": 10
 }
