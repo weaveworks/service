@@ -186,6 +186,8 @@ available to remote clusters, by pushing them to our private remote repository
 (Quay).  You can push images manually, but for production we prefer to use
 images built in CI from the master branch.
 
+#### Build Manually
+
 The build gives each image a name based on the state of the git
 working directory from which it was built, according to the script
 `image-tag`. If the working directory has uncommitted changes, the
@@ -245,6 +247,7 @@ Feel free to experiment in the dev environment.  When deploying a new version
 of a given service, the recommended process is:
 - Make a change to the yaml in `k8s/dev/` updating the image, using `kubeimage`.
 - Apply this change to the dev cluster using `./rolling-update`.
+- Optionally: `diff log pre..post -- component` to see what changed since the last deploy.
 - Commit this a changeset `Deploying updates foo to dev` to a branch.
 - Make a changeset on the same branch to the yaml in `k8s/prod/` updating
   the image, but **do not** apply it yet.
