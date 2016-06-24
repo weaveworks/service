@@ -1,4 +1,4 @@
-import { getData } from './request';
+import { encodeURIs, getData } from './request';
 
 
 export function getOrganizations() {
@@ -20,6 +20,14 @@ export function getOrganizations() {
 
     return resp;
   });
+}
+
+export function getProbes(org) {
+  if (org) {
+    const url = encodeURIs`/api/app/${org}/api/probes`;
+    return getData(url);
+  }
+  return Promise.reject();
 }
 
 export function getLogins() {
