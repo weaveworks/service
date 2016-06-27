@@ -1,23 +1,23 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: frontend-master-778ecbb
+  name: frontend-master-eb7ac54
 spec:
   replicas: 3
   selector:
     name: frontend
-    version: master-778ecbb
+    version: master-eb7ac54
   template:
     metadata:
       labels:
         name: frontend
-        version: master-778ecbb
+        version: master-eb7ac54
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: frontend-mt
-        image: quay.io/weaveworks/frontend-mt:master-778ecbb
+        image: quay.io/weaveworks/frontend-mt:master-eb7ac54
         command:
         - /bin/sh
         - -c
