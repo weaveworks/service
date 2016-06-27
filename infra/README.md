@@ -175,12 +175,7 @@ Currently, the `weave.works` domain is manually managed in CloudFloare project. 
 
 We are currently using [SendGrid](https://sendgrid.com/) for sending emails to the users (e.g. welcome and password link emails).
 
-We are also using [AWS' SES](https://aws.amazon.com/ses/) for sending service alerts. SES is configured manually in
-the dev environment and reused by the prod environment.
-
-We cannot have multiple SES configuration due to how
-[sender domain verification works](http://docs.aws.amazon.com/ses/latest/DeveloperGuide/dns-txt-records.html) (i.e.
-only one AWS environment can supply the value for the `_amazonses` TXT record)
+When running locally, emails are delivered to a mailcatcher pod.
 
 ### How can I add nodes to a cluster?
 
