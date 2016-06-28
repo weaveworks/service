@@ -2,23 +2,23 @@ apiVersion: v1
 kind: ReplicationController
 metadata:
   namespace: monitoring
-  name: metrics-f0ddc62
+  name: metrics-metrics-export-memberships-7e37929
 spec:
   replicas: 1
   selector:
     name: metrics
-    version: f0ddc62
+    version: metrics-export-memberships-7e37929
   template:
     metadata:
       labels:
         name: metrics
-        version: f0ddc62
+        version: metrics-export-memberships-7e37929
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: metrics
-        image: quay.io/weaveworks/metrics:f0ddc62
+        image: quay.io/weaveworks/metrics:metrics-export-memberships-7e37929
         args:
         - -database-uri=postgres://postgres:us45dcd40163798d@users-database.cps0r5emv3nc.us-east-1.rds.amazonaws.com/users?sslmode=disable
         - -endpoint=https://bi.weave.works/import/service_dev/users
