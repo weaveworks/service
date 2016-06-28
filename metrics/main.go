@@ -85,7 +85,7 @@ SELECT
 	users.approved_at as ApprovedAt,
 	users.first_login_at as FirstLoginAt,
 	users.created_at as CreatedAt,
-	users.organization_id as OrgID,
+	organizations.id as OrgID,
 	organizations.name as OrgName,
 	organizations.first_probe_update_at as OrgFirstProbeUpdateAt,
 	organizations.created_at as OrgCreatedAt
