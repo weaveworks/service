@@ -90,7 +90,8 @@ SELECT
 	organizations.first_probe_update_at as OrgFirstProbeUpdateAt,
 	organizations.created_at as OrgCreatedAt
 FROM users
-LEFT JOIN organizations on (users.organization_id = organizations.id)
+LEFT JOIN memberships on (memberships.user_id = users.id)
+LEFT JOIN organizations on (memberships.organization_id = organizations.id)
 WHERE users.deleted_at is null
 ORDER BY users.created_at`)
 	if err != nil {
