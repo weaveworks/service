@@ -209,7 +209,7 @@ function stand_up {
 
 if check_docker_machine
 then
-      eval "$(docker-machine env "${DOCKER_MACHINE_NAME}")"
+      eval "$(docker-machine env --shell bash "${DOCKER_MACHINE_NAME}")"
 fi
 
 case "${mode}" in
