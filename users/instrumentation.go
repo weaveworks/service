@@ -9,8 +9,8 @@ import (
 var (
 	requestDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Namespace: "scope",
-		Name:      "request_duration_nanoseconds",
-		Help:      "Time spent serving HTTP requests.",
+		Name:      "request_duration_seconds",
+		Help:      "Time spent (in seconds) serving HTTP requests.",
 	}, []string{"method", "route", "status_code", "ws"})
 )
 
