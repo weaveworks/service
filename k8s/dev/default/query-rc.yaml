@@ -3,7 +3,7 @@ kind: ReplicationController
 metadata:
   name: query-master-4fa40e2
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     name: query
     version: master-4fa40e2

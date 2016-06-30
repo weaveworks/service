@@ -3,7 +3,7 @@ kind: ReplicationController
 metadata:
   name: authfe-prometheus-metrics-rename-84702b9
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     name: authfe
     version: prometheus-metrics-rename-84702b9

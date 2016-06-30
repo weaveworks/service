@@ -3,7 +3,7 @@ kind: ReplicationController
 metadata:
   name: frontend-master-eb7ac54
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     name: frontend
     version: master-eb7ac54

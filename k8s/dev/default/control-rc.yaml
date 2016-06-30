@@ -3,7 +3,7 @@ kind: ReplicationController
 metadata:
   name: control-master-4fa40e2
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     name: control
     version: master-4fa40e2
