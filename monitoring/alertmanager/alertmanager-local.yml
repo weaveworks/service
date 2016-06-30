@@ -6,15 +6,12 @@ templates:
 - '/etc/alertmanager/*.tmpl'
 
 route:
+  receiver: service-alerts-local
   group_by: ['alertname']
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 3h
   continue: true
-
-  routes:
-  - match:
-    receiver: service-alerts-local
 
 receivers:
 - name: 'service-alerts-local'

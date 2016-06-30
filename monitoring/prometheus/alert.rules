@@ -1,7 +1,7 @@
 # Define error rate
 job:scope_request_errors:rate1m =
-   (sum(rate(scope_request_duration_nanoseconds_count{namespace="default",status_code=~"5.."}[1m])) by (job)) /
-   (sum(rate(scope_request_duration_nanoseconds_count{namespace="default"}[1m])) by (job))
+   (sum(rate(scope_request_duration_seconds_count{namespace="default",status_code=~"5.."}[1m])) by (job)) /
+   (sum(rate(scope_request_duration_seconds_count{namespace="default"}[1m])) by (job))
 
 # Define non-ws latency by route
 job_route:scope_request_latency:max =
@@ -90,7 +90,7 @@ ALERT QueryLatency
 # For each service, an alert if it's absent
 
 ALERT AuthFENoInstances
-  IF          absent(scope_request_duration_nanoseconds{job="authfe"})
+  IF          absent(scope_request_duration_seconds{job="authfe"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -99,7 +99,7 @@ ALERT AuthFENoInstances
   }
 
 ALERT UsersNoInstances
-  IF          absent(scope_request_duration_nanoseconds{job="users"})
+  IF          absent(scope_request_duration_seconds{job="users"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -108,7 +108,7 @@ ALERT UsersNoInstances
   }
 
 ALERT CollectionNoInstances
-  IF          absent(scope_request_duration_nanoseconds{job="collection"})
+  IF          absent(scope_request_duration_seconds{job="collection"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -116,8 +116,8 @@ ALERT CollectionNoInstances
     description = "The collection service has no running instances.",
   }
 
-ALERT UsersNoInstances
-  IF          absent(scope_request_duration_nanoseconds{job="query"})
+ALERT QueryNoInstances
+  IF          absent(scope_request_duration_seconds{job="query"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {

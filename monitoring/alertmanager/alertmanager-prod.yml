@@ -8,6 +8,8 @@ templates:
 - '/etc/alertmanager/*.tmpl'
 
 route:
+  receiver: service-alerts-warning
+
   # Multiple alerts coming in with the same values for these label keys will
   # be batched into a single group.
   group_by: ['alertname']
@@ -42,9 +44,6 @@ route:
       severity: critical
     receiver: service-alerts-critical
 
-  - match:
-    receiver: service-alerts-warning
-
 # Inhibition rules allow to mute a set of alerts given that another alert is
 # firing. We use this to mute any warning-level notifications if the same
 # alert is already critical.
@@ -58,8 +57,11 @@ inhibit_rules:
 
 receivers:
 - name: 'service-alerts-warning'
-  email_configs:
-  - to: 'service-alerts+warning@weave.works'
+  slack_configs:
+  - api_url: https://hooks.slack.com/services/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
+    channel: scope
+    send_resolved: true
+    username: prod-alert
 
 - name: 'service-alerts-critical'
   email_configs:
