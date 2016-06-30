@@ -1,0 +1,986 @@
+{
+    "version": 1,
+    "serial": 8,
+    "modules": [
+        {
+            "path": [
+                "root"
+            ],
+            "outputs": {},
+            "resources": {
+                "aws_db_instance.users_database": {
+                    "type": "aws_db_instance",
+                    "depends_on": [
+                        "aws_security_group.rds_sg"
+                    ],
+                    "primary": {
+                        "id": "users-db-devka",
+                        "attributes": {
+                            "address": "users-db-devka.czc9e0lwsult.eu-west-1.rds.amazonaws.com",
+                            "allocated_storage": "10",
+                            "apply_immediately": "true",
+                            "arn": "arn:aws:rds:eu-west-1:376248598259:db:users-db-devka",
+                            "auto_minor_version_upgrade": "true",
+                            "availability_zone": "eu-west-1c",
+                            "backup_retention_period": "5",
+                            "backup_window": "23:08-23:38",
+                            "copy_tags_to_snapshot": "false",
+                            "db_subnet_group_name": "default",
+                            "endpoint": "users-db-devka.czc9e0lwsult.eu-west-1.rds.amazonaws.com:5432",
+                            "engine": "postgres",
+                            "engine_version": "9.4.5",
+                            "final_snapshot_identifier": "users-db-devka-final",
+                            "id": "users-db-devka",
+                            "identifier": "users-db-devka",
+                            "instance_class": "db.t2.small",
+                            "license_model": "postgresql-license",
+                            "maintenance_window": "wed:04:53-wed:05:23",
+                            "monitoring_interval": "0",
+                            "multi_az": "true",
+                            "name": "",
+                            "option_group_name": "default:postgres-9-4",
+                            "parameter_group_name": "default.postgres9.4",
+                            "password": "ee78da9e756d8a0c",
+                            "port": "5432",
+                            "publicly_accessible": "true",
+                            "replicas.#": "0",
+                            "replicate_source_db": "",
+                            "security_group_names.#": "0",
+                            "skip_final_snapshot": "false",
+                            "status": "available",
+                            "storage_encrypted": "false",
+                            "storage_type": "standard",
+                            "tags.#": "0",
+                            "username": "postgres",
+                            "vpc_security_group_ids.#": "1",
+                            "vpc_security_group_ids.456792921": "sg-913e59f6"
+                        }
+                    }
+                },
+                "aws_db_subnet_group.rds_subnet_group": {
+                    "type": "aws_db_subnet_group",
+                    "depends_on": [
+                        "aws_subnet.rds_subnet_a",
+                        "aws_subnet.rds_subnet_b"
+                    ],
+                    "primary": {
+                        "id": "rds_devka_subnet_group",
+                        "attributes": {
+                            "arn": "arn:aws:rds:eu-west-1:376248598259:subgrp:rds_devka_subnet_group",
+                            "description": "DB subnet group for the databases",
+                            "id": "rds_devka_subnet_group",
+                            "name": "rds_devka_subnet_group",
+                            "subnet_ids.#": "2",
+                            "subnet_ids.2065181795": "subnet-ca70d9bc",
+                            "subnet_ids.701591789": "subnet-19f9437d",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds_devka-subnet-group"
+                        }
+                    }
+                },
+                "aws_dynamodb_table.report_table": {
+                    "type": "aws_dynamodb_table",
+                    "primary": {
+                        "id": "devka_reports",
+                        "attributes": {
+                            "arn": "arn:aws:dynamodb:eu-west-1:376248598259:table/devka_reports",
+                            "attribute.#": "2",
+                            "attribute.113885566.name": "hour",
+                            "attribute.113885566.type": "S",
+                            "attribute.3983831006.name": "ts",
+                            "attribute.3983831006.type": "N",
+                            "global_secondary_index.#": "0",
+                            "hash_key": "hour",
+                            "id": "devka_reports",
+                            "name": "devka_reports",
+                            "range_key": "ts",
+                            "read_capacity": "100",
+                            "write_capacity": "200"
+                        }
+                    }
+                },
+                "aws_iam_access_key.report_reader_key": {
+                    "type": "aws_iam_access_key",
+                    "depends_on": [
+                        "aws_iam_user.report_reader"
+                    ],
+                    "primary": {
+                        "id": "AKIAJIT7RHHNXBVI7AIA",
+                        "attributes": {
+                            "id": "AKIAJIT7RHHNXBVI7AIA",
+                            "secret": "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",
+                            "ses_smtp_password": "Ak1U8TpanJhEVGzDbvp4NJL/qzgDBiKqwSw+OrOHAjb/",
+                            "status": "Active",
+                            "user": "devka_report_reader"
+                        }
+                    }
+                },
+                "aws_iam_access_key.report_writer_key": {
+                    "type": "aws_iam_access_key",
+                    "depends_on": [
+                        "aws_iam_user.report_writer"
+                    ],
+                    "primary": {
+                        "id": "AKIAIXB74EWN7KJ4BIGQ",
+                        "attributes": {
+                            "id": "AKIAIXB74EWN7KJ4BIGQ",
+                            "secret": "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",
+                            "ses_smtp_password": "ArTZ6EqMO5BAwj+ytPL0NweqVX/rqkDbCq2Bw/oUdEw5",
+                            "status": "Active",
+                            "user": "devka_report_writer"
+                        }
+                    }
+                },
+                "aws_iam_access_key.sqs_readwriter_key": {
+                    "type": "aws_iam_access_key",
+                    "depends_on": [
+                        "aws_iam_user.sqs_readwriter"
+                    ],
+                    "primary": {
+                        "id": "AKIAIUFXEVNDXTJQAJLQ",
+                        "attributes": {
+                            "id": "AKIAIUFXEVNDXTJQAJLQ",
+                            "secret": "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",
+                            "ses_smtp_password": "Al33RN7BOanx5byv5trXjPOyyhjhvuFzrxxl/Whe6e6l",
+                            "status": "Active",
+                            "user": "devka_sqs_readwriter"
+                        }
+                    }
+                },
+                "aws_iam_user.report_reader": {
+                    "type": "aws_iam_user",
+                    "primary": {
+                        "id": "devka_report_reader",
+                        "attributes": {
+                            "arn": "arn:aws:iam::376248598259:user/devka_report_reader",
+                            "id": "devka_report_reader",
+                            "name": "devka_report_reader",
+                            "path": "/",
+                            "unique_id": "AIDAJRHLVEFTD6TAFFQYK"
+                        }
+                    }
+                },
+                "aws_iam_user.report_writer": {
+                    "type": "aws_iam_user",
+                    "primary": {
+                        "id": "devka_report_writer",
+                        "attributes": {
+                            "arn": "arn:aws:iam::376248598259:user/devka_report_writer",
+                            "id": "devka_report_writer",
+                            "name": "devka_report_writer",
+                            "path": "/",
+                            "unique_id": "AIDAJGIXF7UYA57B2JVOS"
+                        }
+                    }
+                },
+                "aws_iam_user.sqs_readwriter": {
+                    "type": "aws_iam_user",
+                    "primary": {
+                        "id": "devka_sqs_readwriter",
+                        "attributes": {
+                            "arn": "arn:aws:iam::376248598259:user/devka_sqs_readwriter",
+                            "id": "devka_sqs_readwriter",
+                            "name": "devka_sqs_readwriter",
+                            "path": "/",
+                            "unique_id": "AIDAJXDO3EZDKVYRO6WSG"
+                        }
+                    }
+                },
+                "aws_iam_user_policy.report_reader_policy": {
+                    "type": "aws_iam_user_policy",
+                    "depends_on": [
+                        "aws_dynamodb_table.report_table",
+                        "aws_iam_user.report_reader",
+                        "aws_s3_bucket.report_bucket"
+                    ],
+                    "primary": {
+                        "id": "devka_report_reader:report_reader_policy",
+                        "attributes": {
+                            "id": "devka_report_reader:report_reader_policy",
+                            "name": "report_reader_policy",
+                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Action\": [\n         \"dynamodb:Query\",\n         \"dynamodb:GetItem\",\n         \"dynamodb:BatchGetItem\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:dynamodb:eu-west-1:376248598259:table/devka_reports\"\n    },\n    {\n      \"Action\": [\n         \"s3:GetObject\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:s3:::weaveworks-devka-reports/*\"\n    }\n  ]\n}\n",
+                            "user": "devka_report_reader"
+                        }
+                    }
+                },
+                "aws_iam_user_policy.report_writer_policy": {
+                    "type": "aws_iam_user_policy",
+                    "depends_on": [
+                        "aws_dynamodb_table.report_table",
+                        "aws_iam_user.report_writer",
+                        "aws_s3_bucket.report_bucket"
+                    ],
+                    "primary": {
+                        "id": "devka_report_writer:report_writer_policy",
+                        "attributes": {
+                            "id": "devka_report_writer:report_writer_policy",
+                            "name": "report_writer_policy",
+                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Action\": [\n         \"dynamodb:PutItem\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:dynamodb:eu-west-1:376248598259:table/devka_reports\"\n    },\n    {\n      \"Action\": [\n         \"s3:PutObject\"\n      ],\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:s3:::weaveworks-devka-reports/*\"\n    }\n  ]\n}\n",
+                            "user": "devka_report_writer"
+                        }
+                    }
+                },
+                "aws_iam_user_policy.sqs_readwriter_policy": {
+                    "type": "aws_iam_user_policy",
+                    "depends_on": [
+                        "aws_iam_user.sqs_readwriter"
+                    ],
+                    "primary": {
+                        "id": "devka_sqs_readwriter:sqs_readwriter_policy",
+                        "attributes": {
+                            "id": "devka_sqs_readwriter:sqs_readwriter_policy",
+                            "name": "sqs_readwriter_policy",
+                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Action\": \"sqs:*\",\n      \"Effect\": \"Allow\",\n      \"Resource\": \"arn:aws:sqs:eu-west-1:*:devka_control_*\"\n    }\n  ]\n}\n",
+                            "user": "devka_sqs_readwriter"
+                        }
+                    }
+                },
+                "aws_internet_gateway.rds_igw": {
+                    "type": "aws_internet_gateway",
+                    "depends_on": [
+                        "aws_vpc.rds_vpc"
+                    ],
+                    "primary": {
+                        "id": "igw-22063247",
+                        "attributes": {
+                            "id": "igw-22063247",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds_devka-igw",
+                            "vpc_id": "vpc-e328f487"
+                        }
+                    }
+                },
+                "aws_key_pair.kubernetes": {
+                    "type": "aws_key_pair",
+                    "primary": {
+                        "id": "kubernetes-devka",
+                        "attributes": {
+                            "fingerprint": "49:46:ef:c5:09:0b:9d:be:b0:22:1b:dc:95:1d:67:d5",
+                            "id": "kubernetes-devka",
+                            "key_name": "kubernetes-devka",
+                            "public_key": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCdfjeAYLXeuJWeho8l3UZCVJJ+YRtkzM5UPJ7mZNNVe6IHwdjXyIKRTUan6iIOle7yioVZGPD+nxQIDox0sCG/jN6o9qIAszoJJxeQkBdY2lV4gnYHJn0LgL/n0IUH3/wF7HhJdZGMiUlyFkyjfyoiUgbxkkfkZcxnXoWeJbXlGw+bEJMC+B0DnIVmyfyWY1zOYH+49iIYjod8VoOR9tJyhgdmM/L6vOfCwIILhrSkOrZzBDeg2jb0+eiB1wYMu3PdDuR7SpZQbCVv5KPBTVAwby286t1ZO9DvugXxsywNRs/Nb7vywA4yP5HydmQzkGAvvhmNMbmU9GD6cV+Kdzmudqgk0Ak9ro+AejMd/8UY9g+sDeQQMIXit8zKDJ18IFlXd6TANXe6sMoYME9ozxowFFseDHMbftDzQsCCEKhRr5u1yFOqFuRar2wKxf+TXpWuTv8mHPb66niiMGNEpmR5TaWSKYJJreRBHarOagUF10AvMKWGnXFduVtZdSsl2B4sMKugjbNsoxHb8ze8PRjamQOdd4HPiye7G420AJsr2T1Jh1LJT2roFYGiF8qm33w5vcm5UPPyuVBGUVknr3imgv+x0/hTdzA9C8Dg6ReRxmeKj9A/uE7B8Krgm9xilcTM/M6pGwz05rxG2Wm6aussCGv3ss4h/AFUj9R/M7UsHQ== kubernetes-devka"
+                        },
+                        "meta": {
+                            "schema_version": "1"
+                        }
+                    }
+                },
+                "aws_route53_record.www": {
+                    "type": "aws_route53_record",
+                    "depends_on": [
+                        "aws_route53_zone.zone"
+                    ],
+                    "primary": {
+                        "id": "Z1JLGWLTQWI6JQ_frontend.devka.weave.works_A",
+                        "attributes": {
+                            "alias.#": "1",
+                            "alias.3421547051.evaluate_target_health": "false",
+                            "alias.3421547051.name": "aba89e3753ebf11e690e90242ac11000-760942336.eu-west-1.elb.amazonaws.com",
+                            "alias.3421547051.zone_id": "Z3NF1Z3NOM5OY2",
+                            "failover": "",
+                            "fqdn": "frontend.devka.weave.works",
+                            "health_check_id": "",
+                            "id": "Z1JLGWLTQWI6JQ_frontend.devka.weave.works_A",
+                            "name": "frontend.devka.weave.works",
+                            "records.#": "0",
+                            "set_identifier": "",
+                            "ttl": "0",
+                            "type": "A",
+                            "weight": "-1",
+                            "zone_id": "Z1JLGWLTQWI6JQ"
+                        }
+                    }
+                },
+                "aws_route53_zone.zone": {
+                    "type": "aws_route53_zone",
+                    "primary": {
+                        "id": "Z1JLGWLTQWI6JQ",
+                        "attributes": {
+                            "comment": "Managed by Terraform",
+                            "id": "Z1JLGWLTQWI6JQ",
+                            "name": "devka.weave.works",
+                            "name_servers.#": "4",
+                            "name_servers.0": "ns-1144.awsdns-15.org",
+                            "name_servers.1": "ns-161.awsdns-20.com",
+                            "name_servers.2": "ns-1842.awsdns-38.co.uk",
+                            "name_servers.3": "ns-614.awsdns-12.net",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-frontend-zone",
+                            "zone_id": "Z1JLGWLTQWI6JQ"
+                        }
+                    }
+                },
+                "aws_route_table.rds_rtb": {
+                    "type": "aws_route_table",
+                    "depends_on": [
+                        "aws_internet_gateway.rds_igw",
+                        "aws_vpc.rds_vpc"
+                    ],
+                    "primary": {
+                        "id": "rtb-1473e570",
+                        "attributes": {
+                            "id": "rtb-1473e570",
+                            "propagating_vgws.#": "0",
+                            "route.#": "1",
+                            "route.1077034030.cidr_block": "0.0.0.0/0",
+                            "route.1077034030.gateway_id": "igw-22063247",
+                            "route.1077034030.instance_id": "",
+                            "route.1077034030.nat_gateway_id": "",
+                            "route.1077034030.network_interface_id": "",
+                            "route.1077034030.vpc_peering_connection_id": "",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds_devka-rtb",
+                            "vpc_id": "vpc-e328f487"
+                        }
+                    }
+                },
+                "aws_route_table_association.rds_rtbassoc_a": {
+                    "type": "aws_route_table_association",
+                    "depends_on": [
+                        "aws_route_table.rds_rtb",
+                        "aws_subnet.rds_subnet_a"
+                    ],
+                    "primary": {
+                        "id": "rtbassoc-59808f3d",
+                        "attributes": {
+                            "id": "rtbassoc-59808f3d",
+                            "route_table_id": "rtb-1473e570",
+                            "subnet_id": "subnet-19f9437d"
+                        }
+                    }
+                },
+                "aws_route_table_association.rds_rtbassoc_b": {
+                    "type": "aws_route_table_association",
+                    "depends_on": [
+                        "aws_route_table.rds_rtb",
+                        "aws_subnet.rds_subnet_b"
+                    ],
+                    "primary": {
+                        "id": "rtbassoc-5a808f3e",
+                        "attributes": {
+                            "id": "rtbassoc-5a808f3e",
+                            "route_table_id": "rtb-1473e570",
+                            "subnet_id": "subnet-ca70d9bc"
+                        }
+                    }
+                },
+                "aws_s3_bucket.report_bucket": {
+                    "type": "aws_s3_bucket",
+                    "primary": {
+                        "id": "weaveworks-devka-reports",
+                        "attributes": {
+                            "acl": "private",
+                            "arn": "arn:aws:s3:::weaveworks-devka-reports",
+                            "bucket": "weaveworks-devka-reports",
+                            "cors_rule.#": "0",
+                            "force_destroy": "false",
+                            "hosted_zone_id": "Z1BKCTXD74EZPE",
+                            "id": "weaveworks-devka-reports",
+                            "policy": "",
+                            "region": "eu-west-1",
+                            "tags.#": "0",
+                            "website.#": "0"
+                        }
+                    }
+                },
+                "aws_security_group.rds_sg": {
+                    "type": "aws_security_group",
+                    "primary": {
+                        "id": "sg-913e59f6",
+                        "attributes": {
+                            "description": "Security group for RDS instances",
+                            "egress.#": "1",
+                            "egress.482069346.cidr_blocks.#": "1",
+                            "egress.482069346.cidr_blocks.0": "0.0.0.0/0",
+                            "egress.482069346.from_port": "0",
+                            "egress.482069346.protocol": "-1",
+                            "egress.482069346.security_groups.#": "0",
+                            "egress.482069346.self": "false",
+                            "egress.482069346.to_port": "0",
+                            "id": "sg-913e59f6",
+                            "ingress.#": "1",
+                            "ingress.2661837834.cidr_blocks.#": "1",
+                            "ingress.2661837834.cidr_blocks.0": "0.0.0.0/0",
+                            "ingress.2661837834.from_port": "0",
+                            "ingress.2661837834.protocol": "tcp",
+                            "ingress.2661837834.security_groups.#": "0",
+                            "ingress.2661837834.self": "false",
+                            "ingress.2661837834.to_port": "5432",
+                            "name": "rds_devka_sg",
+                            "owner_id": "376248598259",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds_devka-sg",
+                            "vpc_id": "vpc-fdb53598"
+                        }
+                    }
+                },
+                "aws_subnet.rds_subnet_a": {
+                    "type": "aws_subnet",
+                    "depends_on": [
+                        "aws_vpc.rds_vpc"
+                    ],
+                    "primary": {
+                        "id": "subnet-19f9437d",
+                        "attributes": {
+                            "availability_zone": "eu-west-1a",
+                            "cidr_block": "172.110.1.0/24",
+                            "id": "subnet-19f9437d",
+                            "map_public_ip_on_launch": "false",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds_devka-subnet-a",
+                            "vpc_id": "vpc-e328f487"
+                        }
+                    }
+                },
+                "aws_subnet.rds_subnet_b": {
+                    "type": "aws_subnet",
+                    "depends_on": [
+                        "aws_vpc.rds_vpc"
+                    ],
+                    "primary": {
+                        "id": "subnet-ca70d9bc",
+                        "attributes": {
+                            "availability_zone": "eu-west-1b",
+                            "cidr_block": "172.110.2.0/24",
+                            "id": "subnet-ca70d9bc",
+                            "map_public_ip_on_launch": "false",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds_devka-subnet-b",
+                            "vpc_id": "vpc-e328f487"
+                        }
+                    }
+                },
+                "aws_vpc.rds_vpc": {
+                    "type": "aws_vpc",
+                    "primary": {
+                        "id": "vpc-e328f487",
+                        "attributes": {
+                            "cidr_block": "172.110.0.0/16",
+                            "default_network_acl_id": "acl-e07cfc84",
+                            "default_security_group_id": "sg-923e59f5",
+                            "dhcp_options_id": "dopt-7a11f31f",
+                            "enable_classiclink": "false",
+                            "enable_dns_hostnames": "true",
+                            "enable_dns_support": "true",
+                            "id": "vpc-e328f487",
+                            "instance_tenancy": "default",
+                            "main_route_table_id": "rtb-0873e56c",
+                            "tags.#": "1",
+                            "tags.Name": "terraform-rds_devka-vpc"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "path": [
+                "root",
+                "kubernetes-anywhere-aws-ec2"
+            ],
+            "outputs": {
+                "kubernetes-main-sg-id": "sg-d53156b2",
+                "kubernetes-master-ip": "52.209.11.212",
+                "kubernetes-master-pki-repository": "376248598259.dkr.ecr.eu-west-1.amazonaws.com/kubernetes-devka/master/pki",
+                "kubernetes-node-pki-repository": "376248598259.dkr.ecr.eu-west-1.amazonaws.com/kubernetes-devka/node/pki",
+                "kubernetes-subnet-id": "subnet-c3fa019b",
+                "kubernetes-vpc-id": "vpc-8a2ef2ee"
+            },
+            "resources": {
+                "aws_autoscaling_group.kubernetes-node-group": {
+                    "type": "aws_autoscaling_group",
+                    "depends_on": [
+                        "aws_launch_configuration.kubernetes-node-group",
+                        "aws_subnet.kubernetes-subnet"
+                    ],
+                    "primary": {
+                        "id": "tf-asg-qnjll2y5jvgkhdxupyb4kcvati",
+                        "attributes": {
+                            "availability_zones.#": "1",
+                            "availability_zones.94988580": "eu-west-1c",
+                            "default_cooldown": "300",
+                            "desired_capacity": "3",
+                            "force_delete": "false",
+                            "health_check_grace_period": "0",
+                            "health_check_type": "EC2",
+                            "id": "tf-asg-qnjll2y5jvgkhdxupyb4kcvati",
+                            "launch_configuration": "terraform-dj2suofmcjbpjcjoacppjonof4",
+                            "load_balancers.#": "0",
+                            "max_size": "3",
+                            "metrics_granularity": "1Minute",
+                            "min_size": "3",
+                            "name": "tf-asg-qnjll2y5jvgkhdxupyb4kcvati",
+                            "placement_group": "",
+                            "tag.#": "2",
+                            "tag.3704577055.key": "KubernetesCluster",
+                            "tag.3704577055.propagate_at_launch": "true",
+                            "tag.3704577055.value": "kubernetes-devka",
+                            "tag.4033811309.key": "Name",
+                            "tag.4033811309.propagate_at_launch": "true",
+                            "tag.4033811309.value": "kubernetes-node",
+                            "termination_policies.#": "0",
+                            "vpc_zone_identifier.#": "1",
+                            "vpc_zone_identifier.1774687376": "subnet-c3fa019b",
+                            "wait_for_capacity_timeout": "10m"
+                        }
+                    }
+                },
+                "aws_ecr_repository.kubernetes-master-pki-repository": {
+                    "type": "aws_ecr_repository",
+                    "primary": {
+                        "id": "kubernetes-devka/master/pki",
+                        "attributes": {
+                            "arn": "arn:aws:ecr:eu-west-1:376248598259:repository/kubernetes-devka/master/pki",
+                            "id": "kubernetes-devka/master/pki",
+                            "name": "kubernetes-devka/master/pki",
+                            "registry_id": "376248598259",
+                            "repository_url": "https://376248598259.dkr.ecr.eu-west-1.amazonaws.com/kubernetes-devka/master/pki"
+                        }
+                    }
+                },
+                "aws_ecr_repository.kubernetes-node-pki-repository": {
+                    "type": "aws_ecr_repository",
+                    "primary": {
+                        "id": "kubernetes-devka/node/pki",
+                        "attributes": {
+                            "arn": "arn:aws:ecr:eu-west-1:376248598259:repository/kubernetes-devka/node/pki",
+                            "id": "kubernetes-devka/node/pki",
+                            "name": "kubernetes-devka/node/pki",
+                            "registry_id": "376248598259",
+                            "repository_url": "https://376248598259.dkr.ecr.eu-west-1.amazonaws.com/kubernetes-devka/node/pki"
+                        }
+                    }
+                },
+                "aws_eip.kubernetes-master": {
+                    "type": "aws_eip",
+                    "depends_on": [
+                        "aws_instance.kubernetes-master"
+                    ],
+                    "primary": {
+                        "id": "eipalloc-12fcb077",
+                        "attributes": {
+                            "association_id": "eipassoc-c277bfa4",
+                            "domain": "vpc",
+                            "id": "eipalloc-12fcb077",
+                            "instance": "i-5a1e65d6",
+                            "network_interface": "eni-17c3b64b",
+                            "private_ip": "172.20.0.179",
+                            "public_ip": "52.209.11.212",
+                            "vpc": "true"
+                        }
+                    }
+                },
+                "aws_iam_instance_profile.kubernetes-master": {
+                    "type": "aws_iam_instance_profile",
+                    "depends_on": [
+                        "aws_iam_role.kubernetes-master"
+                    ],
+                    "primary": {
+                        "id": "kubernetes-master-devka",
+                        "attributes": {
+                            "arn": "arn:aws:iam::376248598259:instance-profile/kubernetes-master-devka",
+                            "id": "kubernetes-master-devka",
+                            "name": "kubernetes-master-devka",
+                            "path": "/",
+                            "roles.#": "1",
+                            "roles.245932494": "kubernetes-master-devka"
+                        }
+                    }
+                },
+                "aws_iam_instance_profile.kubernetes-node": {
+                    "type": "aws_iam_instance_profile",
+                    "depends_on": [
+                        "aws_iam_role.kubernetes-node"
+                    ],
+                    "primary": {
+                        "id": "kubernetes-node-devka",
+                        "attributes": {
+                            "arn": "arn:aws:iam::376248598259:instance-profile/kubernetes-node-devka",
+                            "id": "kubernetes-node-devka",
+                            "name": "kubernetes-node-devka",
+                            "path": "/",
+                            "roles.#": "1",
+                            "roles.1423049468": "kubernetes-node-devka"
+                        }
+                    }
+                },
+                "aws_iam_role.kubernetes-master": {
+                    "type": "aws_iam_role",
+                    "primary": {
+                        "id": "kubernetes-master-devka",
+                        "attributes": {
+                            "arn": "arn:aws:iam::376248598259:role/kubernetes-master-devka",
+                            "assume_role_policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [{\n     \"Effect\": \"Allow\",\n     \"Principal\": { \"Service\": \"ec2.amazonaws.com\" },\n     \"Action\": \"sts:AssumeRole\"\n  }]\n}\n",
+                            "id": "kubernetes-master-devka",
+                            "name": "kubernetes-master-devka",
+                            "path": "/",
+                            "unique_id": "AROAJACGZLL6A4E3IV3XG"
+                        }
+                    }
+                },
+                "aws_iam_role.kubernetes-node": {
+                    "type": "aws_iam_role",
+                    "primary": {
+                        "id": "kubernetes-node-devka",
+                        "attributes": {
+                            "arn": "arn:aws:iam::376248598259:role/kubernetes-node-devka",
+                            "assume_role_policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [{\n     \"Effect\": \"Allow\",\n     \"Principal\": { \"Service\": \"ec2.amazonaws.com\" },\n     \"Action\": \"sts:AssumeRole\"\n  }]\n}\n",
+                            "id": "kubernetes-node-devka",
+                            "name": "kubernetes-node-devka",
+                            "path": "/",
+                            "unique_id": "AROAIGEVYFK7ILXZVNUFM"
+                        }
+                    }
+                },
+                "aws_iam_role_policy.kubernetes-master": {
+                    "type": "aws_iam_role_policy",
+                    "depends_on": [
+                        "aws_ecr_repository.kubernetes-master-pki-repository",
+                        "aws_ecr_repository.kubernetes-node-pki-repository",
+                        "aws_iam_role.kubernetes-master"
+                    ],
+                    "primary": {
+                        "id": "kubernetes-master-devka:kubernetes-master-devka",
+                        "attributes": {
+                            "id": "kubernetes-master-devka:kubernetes-master-devka",
+                            "name": "kubernetes-master-devka",
+                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Effect\": \"Allow\",\n      \"Action\": [ \"ec2:*\", \"elasticloadbalancing:*\" ],\n      \"Resource\": \"*\"\n    },\n    {\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"ecr:GetAuthorizationToken\",\n        \"ecr:GetRepositoryPolicy\",\n        \"ecr:DescribeRepositories\"\n      ],\n      \"Resource\": \"*\"\n    },\n    {\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"ecr:BatchCheckLayerAvailability\",\n        \"ecr:GetDownloadUrlForLayer\",\n        \"ecr:ListImages\",\n        \"ecr:BatchGetImage\",\n        \"ecr:InitiateLayerUpload\",\n        \"ecr:UploadLayerPart\",\n        \"ecr:CompleteLayerUpload\",\n        \"ecr:PutImage\"\n      ],\n      \"Resource\": [\n        \"arn:aws:ecr:eu-west-1:376248598259:repository/kubernetes-devka/master/pki\",\n        \"arn:aws:ecr:eu-west-1:376248598259:repository/kubernetes-devka/node/pki\"\n      ]\n    }\n  ]\n}\n",
+                            "role": "kubernetes-master-devka"
+                        }
+                    }
+                },
+                "aws_iam_role_policy.kubernetes-node": {
+                    "type": "aws_iam_role_policy",
+                    "depends_on": [
+                        "aws_ecr_repository.kubernetes-node-pki-repository",
+                        "aws_iam_role.kubernetes-node"
+                    ],
+                    "primary": {
+                        "id": "kubernetes-node-devka:kubernetes-node-devka",
+                        "attributes": {
+                            "id": "kubernetes-node-devka:kubernetes-node-devka",
+                            "name": "kubernetes-node-devka",
+                            "policy": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Effect\": \"Allow\",\n      \"Action\": [ \"ec2:Describe*\", \"ec2:AttachVolume\", \"ec2:DetachVolume\" ],\n      \"Resource\": \"*\"\n    },\n    {\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"ecr:GetAuthorizationToken\",\n        \"ecr:GetRepositoryPolicy\",\n        \"ecr:DescribeRepositories\"\n      ],\n      \"Resource\": \"*\"\n    },\n    {\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"ecr:BatchCheckLayerAvailability\",\n        \"ecr:BatchGetImage\",\n        \"ecr:GetDownloadUrlForLayer\",\n        \"ecr:GetRepositoryPolicy\",\n        \"ecr:ListImages\"\n      ],\n      \"Resource\": \"arn:aws:ecr:eu-west-1:376248598259:repository/kubernetes-devka/node/pki\"\n    }\n  ]\n}\n",
+                            "role": "kubernetes-node-devka"
+                        }
+                    }
+                },
+                "aws_instance.kubernetes-master": {
+                    "type": "aws_instance",
+                    "depends_on": [
+                        "aws_iam_instance_profile.kubernetes-master",
+                        "aws_security_group.kubernetes-main-sg",
+                        "aws_security_group.kubernetes-master-sg",
+                        "aws_subnet.kubernetes-subnet",
+                        "module.ubuntu_ami"
+                    ],
+                    "primary": {
+                        "id": "i-5a1e65d6",
+                        "attributes": {
+                            "ami": "ami-3079f543",
+                            "associate_public_ip_address": "true",
+                            "availability_zone": "eu-west-1c",
+                            "disable_api_termination": "false",
+                            "ebs_block_device.#": "1",
+                            "ebs_block_device.2576023345.delete_on_termination": "true",
+                            "ebs_block_device.2576023345.device_name": "/dev/sdb",
+                            "ebs_block_device.2576023345.encrypted": "false",
+                            "ebs_block_device.2576023345.iops": "100",
+                            "ebs_block_device.2576023345.snapshot_id": "",
+                            "ebs_block_device.2576023345.volume_size": "20",
+                            "ebs_block_device.2576023345.volume_type": "gp2",
+                            "ebs_optimized": "false",
+                            "ephemeral_block_device.#": "0",
+                            "iam_instance_profile": "kubernetes-master-devka",
+                            "id": "i-5a1e65d6",
+                            "instance_state": "running",
+                            "instance_type": "m3.xlarge",
+                            "key_name": "kubernetes-devka",
+                            "monitoring": "false",
+                            "private_dns": "ip-172-20-0-179.eu-west-1.compute.internal",
+                            "private_ip": "172.20.0.179",
+                            "public_dns": "ec2-52-209-11-212.eu-west-1.compute.amazonaws.com",
+                            "public_ip": "52.209.11.212",
+                            "root_block_device.#": "1",
+                            "root_block_device.0.delete_on_termination": "true",
+                            "root_block_device.0.iops": "100",
+                            "root_block_device.0.volume_size": "8",
+                            "root_block_device.0.volume_type": "gp2",
+                            "security_groups.#": "0",
+                            "source_dest_check": "true",
+                            "subnet_id": "subnet-c3fa019b",
+                            "tags.#": "2",
+                            "tags.KubernetesCluster": "kubernetes-devka",
+                            "tags.Name": "kubernetes-master",
+                            "tenancy": "default",
+                            "user_data": "399c9050ab99e88d2bd00c10b635f2ba02d7c68b",
+                            "vpc_security_group_ids.#": "2",
+                            "vpc_security_group_ids.2224617078": "sg-d53156b2",
+                            "vpc_security_group_ids.746175825": "sg-d63156b1"
+                        },
+                        "meta": {
+                            "schema_version": "1"
+                        }
+                    }
+                },
+                "aws_internet_gateway.kubernetes-igw": {
+                    "type": "aws_internet_gateway",
+                    "depends_on": [
+                        "aws_vpc.kubernetes-vpc"
+                    ],
+                    "primary": {
+                        "id": "igw-3d053158",
+                        "attributes": {
+                            "id": "igw-3d053158",
+                            "tags.#": "2",
+                            "tags.KubernetesCluster": "kubernetes-devka",
+                            "tags.Name": "kubernetes-igw",
+                            "vpc_id": "vpc-8a2ef2ee"
+                        }
+                    }
+                },
+                "aws_launch_configuration.kubernetes-node-group": {
+                    "type": "aws_launch_configuration",
+                    "depends_on": [
+                        "aws_iam_instance_profile.kubernetes-node",
+                        "aws_security_group.kubernetes-main-sg",
+                        "module.ubuntu_ami"
+                    ],
+                    "primary": {
+                        "id": "terraform-dj2suofmcjbpjcjoacppjonof4",
+                        "attributes": {
+                            "associate_public_ip_address": "true",
+                            "ebs_block_device.#": "0",
+                            "ebs_optimized": "false",
+                            "enable_monitoring": "true",
+                            "ephemeral_block_device.#": "0",
+                            "iam_instance_profile": "kubernetes-node-devka",
+                            "id": "terraform-dj2suofmcjbpjcjoacppjonof4",
+                            "image_id": "ami-3079f543",
+                            "instance_type": "m4.xlarge",
+                            "key_name": "kubernetes-devka",
+                            "name": "terraform-dj2suofmcjbpjcjoacppjonof4",
+                            "root_block_device.#": "1",
+                            "root_block_device.0.delete_on_termination": "true",
+                            "root_block_device.0.iops": "0",
+                            "root_block_device.0.volume_size": "32",
+                            "root_block_device.0.volume_type": "gp2",
+                            "security_groups.#": "1",
+                            "security_groups.2224617078": "sg-d53156b2",
+                            "spot_price": "",
+                            "user_data": "399c9050ab99e88d2bd00c10b635f2ba02d7c68b"
+                        }
+                    }
+                },
+                "aws_network_acl.kubernetes-acl": {
+                    "type": "aws_network_acl",
+                    "depends_on": [
+                        "aws_subnet.kubernetes-subnet",
+                        "aws_vpc.kubernetes-vpc"
+                    ],
+                    "primary": {
+                        "id": "acl-a27afac6",
+                        "attributes": {
+                            "egress.#": "1",
+                            "egress.296684381.action": "allow",
+                            "egress.296684381.cidr_block": "0.0.0.0/0",
+                            "egress.296684381.from_port": "0",
+                            "egress.296684381.icmp_code": "0",
+                            "egress.296684381.icmp_type": "0",
+                            "egress.296684381.protocol": "-1",
+                            "egress.296684381.rule_no": "100",
+                            "egress.296684381.to_port": "0",
+                            "id": "acl-a27afac6",
+                            "ingress.#": "1",
+                            "ingress.296684381.action": "allow",
+                            "ingress.296684381.cidr_block": "0.0.0.0/0",
+                            "ingress.296684381.from_port": "0",
+                            "ingress.296684381.icmp_code": "0",
+                            "ingress.296684381.icmp_type": "0",
+                            "ingress.296684381.protocol": "-1",
+                            "ingress.296684381.rule_no": "100",
+                            "ingress.296684381.to_port": "0",
+                            "subnet_ids.#": "1",
+                            "subnet_ids.1774687376": "subnet-c3fa019b",
+                            "tags.#": "2",
+                            "tags.KubernetesCluster": "kubernetes-devka",
+                            "tags.Name": "kubernetes-acl",
+                            "vpc_id": "vpc-8a2ef2ee"
+                        }
+                    }
+                },
+                "aws_route_table.kubernetes-routes": {
+                    "type": "aws_route_table",
+                    "depends_on": [
+                        "aws_internet_gateway.kubernetes-igw",
+                        "aws_vpc.kubernetes-vpc"
+                    ],
+                    "primary": {
+                        "id": "rtb-f775e393",
+                        "attributes": {
+                            "id": "rtb-f775e393",
+                            "propagating_vgws.#": "0",
+                            "route.#": "1",
+                            "route.2088443846.cidr_block": "0.0.0.0/0",
+                            "route.2088443846.gateway_id": "igw-3d053158",
+                            "route.2088443846.instance_id": "",
+                            "route.2088443846.nat_gateway_id": "",
+                            "route.2088443846.network_interface_id": "",
+                            "route.2088443846.vpc_peering_connection_id": "",
+                            "tags.#": "0",
+                            "vpc_id": "vpc-8a2ef2ee"
+                        }
+                    }
+                },
+                "aws_route_table_association.kubernetes-routes": {
+                    "type": "aws_route_table_association",
+                    "depends_on": [
+                        "aws_route_table.kubernetes-routes",
+                        "aws_subnet.kubernetes-subnet"
+                    ],
+                    "primary": {
+                        "id": "rtbassoc-74838c10",
+                        "attributes": {
+                            "id": "rtbassoc-74838c10",
+                            "route_table_id": "rtb-f775e393",
+                            "subnet_id": "subnet-c3fa019b"
+                        }
+                    }
+                },
+                "aws_security_group.kubernetes-main-sg": {
+                    "type": "aws_security_group",
+                    "depends_on": [
+                        "aws_vpc.kubernetes-vpc"
+                    ],
+                    "primary": {
+                        "id": "sg-d53156b2",
+                        "attributes": {
+                            "description": "Kubernetes Anywhere security group applied to all nodes",
+                            "egress.#": "1",
+                            "egress.482069346.cidr_blocks.#": "1",
+                            "egress.482069346.cidr_blocks.0": "0.0.0.0/0",
+                            "egress.482069346.from_port": "0",
+                            "egress.482069346.protocol": "-1",
+                            "egress.482069346.security_groups.#": "0",
+                            "egress.482069346.self": "false",
+                            "egress.482069346.to_port": "0",
+                            "id": "sg-d53156b2",
+                            "ingress.#": "4",
+                            "ingress.1583902398.cidr_blocks.#": "1",
+                            "ingress.1583902398.cidr_blocks.0": "172.20.0.0/16",
+                            "ingress.1583902398.from_port": "6783",
+                            "ingress.1583902398.protocol": "tcp",
+                            "ingress.1583902398.security_groups.#": "0",
+                            "ingress.1583902398.self": "false",
+                            "ingress.1583902398.to_port": "6783",
+                            "ingress.1899489297.cidr_blocks.#": "1",
+                            "ingress.1899489297.cidr_blocks.0": "172.20.0.0/16",
+                            "ingress.1899489297.from_port": "6783",
+                            "ingress.1899489297.protocol": "udp",
+                            "ingress.1899489297.security_groups.#": "0",
+                            "ingress.1899489297.self": "false",
+                            "ingress.1899489297.to_port": "6784",
+                            "ingress.2541437006.cidr_blocks.#": "1",
+                            "ingress.2541437006.cidr_blocks.0": "0.0.0.0/0",
+                            "ingress.2541437006.from_port": "22",
+                            "ingress.2541437006.protocol": "tcp",
+                            "ingress.2541437006.security_groups.#": "0",
+                            "ingress.2541437006.self": "false",
+                            "ingress.2541437006.to_port": "22",
+                            "ingress.753360330.cidr_blocks.#": "0",
+                            "ingress.753360330.from_port": "0",
+                            "ingress.753360330.protocol": "-1",
+                            "ingress.753360330.security_groups.#": "0",
+                            "ingress.753360330.self": "true",
+                            "ingress.753360330.to_port": "0",
+                            "name": "kubernetes-devka",
+                            "owner_id": "376248598259",
+                            "tags.#": "2",
+                            "tags.KubernetesCluster": "kubernetes-devka",
+                            "tags.Name": "kubernetes-main-sg",
+                            "vpc_id": "vpc-8a2ef2ee"
+                        }
+                    }
+                },
+                "aws_security_group.kubernetes-master-sg": {
+                    "type": "aws_security_group",
+                    "depends_on": [
+                        "aws_vpc.kubernetes-vpc"
+                    ],
+                    "primary": {
+                        "id": "sg-d63156b1",
+                        "attributes": {
+                            "description": "Kubernetes Anywhere security group applied to master",
+                            "egress.#": "0",
+                            "id": "sg-d63156b1",
+                            "ingress.#": "1",
+                            "ingress.2617001939.cidr_blocks.#": "1",
+                            "ingress.2617001939.cidr_blocks.0": "0.0.0.0/0",
+                            "ingress.2617001939.from_port": "443",
+                            "ingress.2617001939.protocol": "tcp",
+                            "ingress.2617001939.security_groups.#": "0",
+                            "ingress.2617001939.self": "false",
+                            "ingress.2617001939.to_port": "443",
+                            "name": "kubernetes-master-devka",
+                            "owner_id": "376248598259",
+                            "tags.#": "2",
+                            "tags.KubernetesCluster": "kubernetes-devka",
+                            "tags.Name": "kubernetes-main-sg",
+                            "vpc_id": "vpc-8a2ef2ee"
+                        }
+                    }
+                },
+                "aws_subnet.kubernetes-subnet": {
+                    "type": "aws_subnet",
+                    "depends_on": [
+                        "aws_vpc.kubernetes-vpc"
+                    ],
+                    "primary": {
+                        "id": "subnet-c3fa019b",
+                        "attributes": {
+                            "availability_zone": "eu-west-1c",
+                            "cidr_block": "172.20.0.0/24",
+                            "id": "subnet-c3fa019b",
+                            "map_public_ip_on_launch": "false",
+                            "tags.#": "2",
+                            "tags.KubernetesCluster": "kubernetes-devka",
+                            "tags.Name": "kubernetes-subnet",
+                            "vpc_id": "vpc-8a2ef2ee"
+                        }
+                    }
+                },
+                "aws_vpc.kubernetes-vpc": {
+                    "type": "aws_vpc",
+                    "primary": {
+                        "id": "vpc-8a2ef2ee",
+                        "attributes": {
+                            "cidr_block": "172.20.0.0/16",
+                            "default_network_acl_id": "acl-a67afac2",
+                            "default_security_group_id": "sg-ce3156a9",
+                            "dhcp_options_id": "dopt-7a11f31f",
+                            "enable_classiclink": "false",
+                            "enable_dns_hostnames": "true",
+                            "enable_dns_support": "true",
+                            "id": "vpc-8a2ef2ee",
+                            "instance_tenancy": "default",
+                            "main_route_table_id": "rtb-ea75e38e",
+                            "tags.#": "2",
+                            "tags.KubernetesCluster": "kubernetes-devka",
+                            "tags.Name": "kubernetes-vpc"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "path": [
+                "root",
+                "kubernetes-anywhere-aws-ec2",
+                "ubuntu_ami"
+            ],
+            "outputs": {
+                "ami_id": "ami-3079f543"
+            },
+            "resources": {}
+        }
+    ]
+}
