@@ -148,7 +148,7 @@ func main() {
 	// adminRouter is for all admin functionality, authenticated using header credentials
 	adminRouter := newRouter()
 	addAdminRoute := func(name, target string, rewritePath bool) {
-		var handler http.Handler = newProxy(target)
+		handler := http.Handler(newProxy(target))
 		if rewritePath {
 			handler = middleware.PathRewrite(regexp.MustCompile("^/admin/"+name), "").Wrap(handler)
 		}
