@@ -24,8 +24,7 @@ spec:
       - name: alertmanager
         image: quay.io/weaveworks/alertmanager
         imagePullPolicy: IfNotPresent
-        command:
-        - /alertmanager/alertmanager
+        args:
         - -config.file=/etc/alertmanager/alertmanager-local.yml
         ports:
         - containerPort: 9093

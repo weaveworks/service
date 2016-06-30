@@ -1,22 +1,17 @@
-global:
-  smtp_smarthost: 'email-smtp.us-east-1.amazonaws.com:25'
-  smtp_from: 'noreply@weave.works'
-
 templates:
 - '/etc/alertmanager/*.tmpl'
 
 route:
+  receiver: service-alerts-dev
   group_by: ['alertname']
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 3h
   continue: true
 
-  routes:
-  - match:
-    receiver: service-alerts-dev
-
 receivers:
 - name: 'service-alerts-dev'
-  email_configs:
-  - to: 'service-alerts-dev@weave.works'
+  slack_configs:
+  - api_url: https://hooks.slack.com/services/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
+    channel: scope
+    send_resolved: true

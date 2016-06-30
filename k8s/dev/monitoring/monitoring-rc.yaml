@@ -2,17 +2,17 @@ apiVersion: v1
 kind: ReplicationController
 metadata:
   namespace: monitoring
-  name: monitoring-20160630
+  name: monitoring-20160630b
 spec:
   replicas: 1
   selector:
     name: monitoring
-    version: '20160630'
+    version: '20160630b'
   template:
     metadata:
       labels:
         name: monitoring
-        version: '20160630'
+        version: '20160630b'
     spec:
       imagePullSecrets:
       - name: quay-secret
@@ -24,9 +24,8 @@ spec:
       - name: loadgen
         image: quay.io/weaveworks/loadgen:6d14ba2
       - name: alertmanager
-        image: quay.io/weaveworks/alertmanager:master-cd63bec
-        command:
-        - /alertmanager/alertmanager
+        image: quay.io/weaveworks/alertmanager:fix-dev-alerts-312ef59
+        args:
         - -config.file=/etc/alertmanager/alertmanager-dev.yml
         env:
         - name: SMTP_AUTH_USERNAME      # See alertmanager's config file

@@ -55,6 +55,7 @@ build/$(UPTODATE): build/build.sh
 monitoring/grafana/$(UPTODATE): monitoring/grafana/*
 monitoring/gfdatasource/$(UPTODATE): monitoring/gfdatasource/*
 monitoring/prometheus/$(UPTODATE): monitoring/prometheus/*
+monitoring/alertmanager/$(UPTODATE): monitoring/alertmanager/*
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
