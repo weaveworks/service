@@ -356,7 +356,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"grafana|admin\"}/1e6) by (quantile)",
+              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"grafana|admin\"}) by (quantile) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{quantile}} quantile",
               "refId": "A",
@@ -377,7 +377,7 @@
           },
           "yaxes": [
             {
-              "format": "s",
+              "format": "ms",
               "label": "",
               "logBase": 1,
               "max": null,
@@ -544,7 +544,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"users\"}/1e6) by (quantile)",
+              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"users\"}) by (quantile) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{quantile}} quantile",
               "refId": "A",
@@ -565,7 +565,7 @@
           },
           "yaxes": [
             {
-              "format": "s",
+              "format": "ms",
               "label": "",
               "logBase": 1,
               "max": null,
@@ -730,7 +730,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"collection\",ws=\"false\"}/1e6) by (quantile)",
+              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"collection\",ws=\"false\"}) by (quantile) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{quantile}} quantile",
               "refId": "A",
@@ -751,7 +751,7 @@
           },
           "yaxes": [
             {
-              "format": "s",
+              "format": "ms",
               "label": "",
               "logBase": 1,
               "max": null,
@@ -915,7 +915,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"query\",ws=\"false\"}/1e6) by (quantile)",
+              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"query\",ws=\"false\"}) by (quantile) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{quantile}} quantile",
               "refId": "A",
@@ -936,7 +936,7 @@
           },
           "yaxes": [
             {
-              "format": "s",
+              "format": "ms",
               "label": "",
               "logBase": 1,
               "max": null,
@@ -1101,7 +1101,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"control\",ws=\"false\"}/1e6) by (quantile)",
+              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"control\",ws=\"false\"}) by (quantile) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{quantile}} quantile",
               "refId": "A",
@@ -1122,7 +1122,7 @@
           },
           "yaxes": [
             {
-              "format": "s",
+              "format": "ms",
               "label": "",
               "logBase": 1,
               "max": null,
@@ -1265,7 +1265,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_sqs_request_duration_seconds{namespace=\"default\"}/1e6) by (quantile, method)",
+              "expr": "max(scope_sqs_request_duration_seconds{namespace=\"default\"}) by (quantile, method) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{method}} {{quantile}} quantile",
               "refId": "A",
@@ -1286,7 +1286,7 @@
           },
           "yaxes": [
             {
-              "format": "s",
+              "format": "ms",
               "label": "",
               "logBase": 1,
               "max": null,
@@ -1450,7 +1450,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"pipe\",ws=\"false\"}/1e6) by (quantile)",
+              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"pipe\",ws=\"false\"}) by (quantile) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{quantile}} quantile",
               "refId": "A",
@@ -1471,7 +1471,7 @@
           },
           "yaxes": [
             {
-              "format": "s",
+              "format": "ms",
               "label": "",
               "logBase": 1,
               "max": null,
@@ -1630,7 +1630,7 @@
           },
           "yaxes": [
             {
-              "format": "s",
+              "format": "ms",
               "label": "",
               "logBase": 1,
               "max": null,
