@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: authfe-fix-dev-alerts-0f20be9
+  name: authfe-master-e8783c3
 spec:
   replicas: 2
   selector:
     name: authfe
-    version: fix-dev-alerts-0f20be9
+    version: master-e8783c3
   template:
     metadata:
       labels:
         name: authfe
-        version: fix-dev-alerts-0f20be9
+        version: master-e8783c3
     spec:
       imagePullSecrets:
       - name: quay-secret
@@ -21,7 +21,7 @@ spec:
           secretName: bigquery-secret
       containers:
       - name: authfe
-        image: quay.io/weaveworks/authfe:fix-dev-alerts-0f20be9
+        image: quay.io/weaveworks/authfe:master-e8783c3
         args:
         - -log.level=debug
         - -auth.cache.size=200
