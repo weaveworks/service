@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: authfe-master-cd63bec
+  name: authfe-prometheus-metrics-rename-84702b9
 spec:
   replicas: 3
   selector:
     name: authfe
-    version: master-cd63bec
+    version: prometheus-metrics-rename-84702b9
   template:
     metadata:
       labels:
         name: authfe
-        version: master-cd63bec
+        version: prometheus-metrics-rename-84702b9
     spec:
       imagePullSecrets:
       - name: quay-secret
@@ -21,7 +21,7 @@ spec:
           secretName: bigquery-secret
       containers:
       - name: authfe
-        image: quay.io/weaveworks/authfe:master-cd63bec
+        image: quay.io/weaveworks/authfe:prometheus-metrics-rename-84702b9
         args:
         - -log.level=debug
         - -auth.cache.size=200
