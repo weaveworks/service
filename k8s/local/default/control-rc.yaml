@@ -17,8 +17,8 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
         - --no-probe
+        - --weave=false
         - --app.log.http=true
-        - --app.weave.addr=
         - --app.http.address=:80
         - --app.userid.header=X-Scope-OrgID
         - --app.control.router=sqs://abc:123@sqs.aws.svc.cluster.local:9324
