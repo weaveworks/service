@@ -25,6 +25,9 @@ spec:
         - --app.collector=dynamodb://AKIAIG6BLVLNEJ3HLPQQ:XXV%2FbTBP1ILlZhIMXXXP4AAdD9qL0JzcaJHJi0z4@us-east-1/prod_reports
         - --app.collector.s3=s3://AKIAIG6BLVLNEJ3HLPQQ:XXV%2FbTBP1ILlZhIMXXXP4AAdD9qL0JzcaJHJi0z4@us-east-1/weaveworks_prod_reports
         - --app.nats=nats://nats.default.svc.cluster.local:4222
+        - --app.memcached.hostname=memcached.default.svc.cluster.local
+        - --app.memcached.timeout=100ms
+        - --app.memcached.service=memcached
         env:
         - name: CHECKPOINT_DISABLE
           value: "1"
