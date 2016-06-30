@@ -69,6 +69,6 @@ update_file() {
     ${DIR}/kubelint "${filename}"
 }
 
-for filename in $(find "${FILES}"); do
+for filename in $(find "${FILES}" -type f); do
     update_file "${filename}"
 done
