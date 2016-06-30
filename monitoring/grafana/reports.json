@@ -52,14 +52,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_dynamo_request_duration_nanoseconds_count{status_code=~\"2..\"}[1m])) by (method)",
+              "expr": "sum(irate(scope_dynamo_request_duration_seconds_count{status_code=~\"2..\"}[1m])) by (method)",
               "intervalFactor": 2,
               "legendFormat": "{{method}} 2xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_dynamo_request_duration_nanoseconds_count{method=\"Query\",status_code=~\"5..\"}[1m])) by (method)",
+              "expr": "sum(irate(scope_dynamo_request_duration_seconds_count{status_code=~\"5..\"}[1m])) by (method)",
               "intervalFactor": 2,
               "legendFormat": "{{method}} 5xx",
               "refId": "B",
@@ -135,7 +135,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_dynamo_request_duration_nanoseconds{namespace=\"default\"}/1e6) by (method,quantile)",
+              "expr": "max(scope_dynamo_request_duration_seconds{namespace=\"default\"}) by (method,quantile) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{method}} {{quantile}} quantile",
               "refId": "A",
@@ -156,7 +156,7 @@
           },
           "yaxes": [
             {
-              "format": "short",
+              "format": "ms",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -169,7 +169,7 @@
               "logBase": 1,
               "max": null,
               "min": null,
-              "show": true
+              "show": false
             }
           ]
         }
@@ -219,7 +219,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_dynamo_consumed_capacity[1m])) by (method)",
+              "expr": "sum(irate(scope_dynamo_consumed_capacity_total[1m])) by (method)",
               "intervalFactor": 2,
               "legendFormat": "{{method}}",
               "refId": "A",
@@ -295,7 +295,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_report_size_bytes[1m]))  by (method)",
+              "expr": "sum(irate(scope_report_size_bytes_total[1m])) by (method)",
               "intervalFactor": 2,
               "legendFormat": "reports written (compressed)",
               "refId": "A",
@@ -316,8 +316,8 @@
           },
           "yaxes": [
             {
-              "format": "short",
-              "label": "bytes/s",
+              "format": "Bps",
+              "label": "",
               "logBase": 1,
               "max": null,
               "min": null,
@@ -329,7 +329,7 @@
               "logBase": 1,
               "max": null,
               "min": null,
-              "show": true
+              "show": false
             }
           ]
         }
@@ -361,7 +361,7 @@
             "current": false,
             "max": false,
             "min": false,
-            "show": true,
+            "show": false,
             "total": false,
             "values": false
           },
@@ -379,7 +379,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_in_process_cache{result=\"hit\"}[1m])) / sum(irate(scope_in_process_cache[1m]))",
+              "expr": "sum(irate(scope_in_process_cache_hits_total[1m])) /  sum(irate(scope_in_process_cache_requests_total[1m]))",
               "intervalFactor": 2,
               "legendFormat": "",
               "refId": "A",
@@ -400,7 +400,7 @@
           },
           "yaxes": [
             {
-              "format": "short",
+              "format": "percentunit",
               "label": "",
               "logBase": 1,
               "max": 1.1,
@@ -413,7 +413,7 @@
               "logBase": 1,
               "max": null,
               "min": null,
-              "show": true
+              "show": false
             }
           ]
         }
@@ -463,7 +463,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_memcache_request_duration_nanoseconds_count[1m])) by (method,status_code)",
+              "expr": "sum(irate(scope_memcache_request_duration_seconds_count[1m])) by (method,status_code)",
               "interval": "",
               "intervalFactor": 2,
               "legendFormat": "{{method}} {{status_code}}",
@@ -540,7 +540,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_memcache_request_duration_nanoseconds) by (method,quantile) / 1e6",
+              "expr": "max(scope_memcache_request_duration_seconds) by (method,quantile) * 1e3",
               "interval": "",
               "intervalFactor": 2,
               "legendFormat": "{{method}} {{quantile}} quantile",
@@ -562,8 +562,8 @@
           },
           "yaxes": [
             {
-              "format": "short",
-              "label": "ms",
+              "format": "ms",
+              "label": "",
               "logBase": 1,
               "max": null,
               "min": null,
@@ -575,7 +575,7 @@
               "logBase": 1,
               "max": null,
               "min": null,
-              "show": true
+              "show": false
             }
           ]
         }
@@ -625,7 +625,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_memcache{result=\"hit\"}[1m])) / sum(irate(scope_memcache[1m]))",
+              "expr": "sum(irate(scope_memcache_hits_total[1m])) / sum(irate(scope_memcache_requests_total[1m]))",
               "intervalFactor": 2,
               "legendFormat": "",
               "refId": "A",
@@ -646,7 +646,7 @@
           },
           "yaxes": [
             {
-              "format": "short",
+              "format": "percentunit",
               "label": "",
               "logBase": 1,
               "max": 1.1,
@@ -659,7 +659,7 @@
               "logBase": 1,
               "max": null,
               "min": null,
-              "show": true
+              "show": false
             }
           ]
         },
@@ -723,7 +723,7 @@
           },
           "yaxes": [
             {
-              "format": "short",
+              "format": "percentunit",
               "label": "",
               "logBase": 1,
               "max": 1.1,
@@ -736,7 +736,7 @@
               "logBase": 1,
               "max": null,
               "min": null,
-              "show": true
+              "show": false
             }
           ]
         }
@@ -786,7 +786,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_s3_request_duration_nanoseconds_count[1m])) by (method,status_code)",
+              "expr": "sum(irate(scope_s3_request_duration_seconds_count[1m])) by (method,status_code)",
               "intervalFactor": 2,
               "legendFormat": "{{method}} {{status_code}}",
               "refId": "A",
@@ -862,7 +862,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_s3_request_duration_nanoseconds) by (method,quantile) / 1e6",
+              "expr": "max(scope_s3_request_duration_seconds) by (method,quantile) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{method}} {{quantile}} quantile",
               "refId": "A",
@@ -883,8 +883,8 @@
           },
           "yaxes": [
             {
-              "format": "short",
-              "label": "ms",
+              "format": "ms",
+              "label": "",
               "logBase": 1,
               "max": null,
               "min": null,
@@ -896,7 +896,7 @@
               "logBase": 1,
               "max": null,
               "min": null,
-              "show": true
+              "show": false
             }
           ]
         }
@@ -946,7 +946,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_nats_requests[1m])) by (method, status_code)",
+              "expr": "sum(irate(scope_nats_requests_total[1m])) by (method, status_code)",
               "intervalFactor": 2,
               "legendFormat": "{{method}} {{status_code}}",
               "refId": "A",

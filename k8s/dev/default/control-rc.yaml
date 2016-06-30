@@ -1,25 +1,25 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: control-0.16.0
+  name: control-master-4fa40e2
 spec:
   replicas: 3
   selector:
     name: control
-    version: 0.16.0
+    version: master-4fa40e2
   template:
     metadata:
       labels:
         name: control
-        version: 0.16.0
+        version: master-4fa40e2
     spec:
       containers:
       - name: control
-        image: weaveworks/scope:0.16.0
+        image: weaveworks/scope:master-4fa40e2
         args:
         - --no-probe
+        - --weave=false
         - --app.log.http=true
-        - --app.weave.addr=
         - --app.http.address=:80
         - --app.userid.header=X-Scope-OrgID
         - --app.control.router=sqs://AKIAJECDWWRQWFNHFO2A:dP12kF6wREosllk%2B3%2B3ZqPpZxeDlGn%2FYgKebMJVj@us-east-1/dev_control_

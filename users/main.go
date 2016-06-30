@@ -14,7 +14,6 @@ import (
 	"github.com/justinas/nosurf"
 	"github.com/weaveworks/scope/common/middleware"
 
-	"github.com/weaveworks/service/common/instrument"
 	"github.com/weaveworks/service/common/logging"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/pardot"
@@ -165,8 +164,7 @@ func (a *api) routes() http.Handler {
 		{"GET", "/private/api/pardot", a.pardotRefresh},
 		{"POST", "/private/api/users/{userID}/admin", a.makeUserAdmin},
 	} {
-		name := instrument.MakeLabelValue(route.path)
-		r.Handle(route.path, route.handler).Name(name).Methods(route.method)
+		r.Handle(route.path, route.handler).Methods(route.method)
 	}
 	return middleware.Merge(
 		middleware.Logging,
