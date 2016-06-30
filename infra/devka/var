@@ -1,0 +1,74 @@
+#
+# AWS
+#
+
+# The credentials for the AWS account you want to use. For personal clusters,
+# this can be your personal account. Most likely, it should be one of the
+# shared Weaveworks accounts. This must be the same as `aws configure`!
+#
+AWS_ACCESS_KEY=""
+AWS_SECRET_KEY=""
+
+# The region for your cluster. This must be the same as `aws configure`!
+#
+AWS_REGION="eu-west-1"
+
+#
+# Kubernetes
+#
+
+# Number of node
+#
+K8S_NODE_COUNT="3"
+
+# Type of EC2 instances
+#
+K8S_NODE_INSTANCE_TYPE="m4.xlarge"
+
+#
+# RDS
+#
+
+# We create multi-AZ RDS instances, which need to be members of at least 2
+# subnets in different availability zones. Specify at least 2 distinct
+# availability zones for your region, here.
+#
+RDS_SUBNET_A_AZ="eu-west-1a"
+RDS_SUBNET_B_AZ="eu-west-1b"
+
+# Passwords for the RDS databases. If you need help, try:
+#
+#  cat /dev/urandom | xxd -ps | head -c16
+#
+RDS_USERS_DB_PASSWORD="ee78da9e756d8a0c"
+
+#
+# Route53
+#
+
+# The zone name for this cluster, e.g. "cloud.weave.works" or
+# "dev.weave.works".
+#
+R53_ZONE_NAME="devka.weave.works"
+
+# The FQDN resource within the zone, e.g. "frontend.cloud.weave.works" or
+# "frontend.dev.weave.works".
+#
+R53_RESOURCE_NAME="frontend.devka.weave.works"
+
+# The endpoint for the ELB that sits in front of the Kubernetes frontend
+# service. You won't have that information in the beginning, so leave it blank
+# to start. Once you launch the frontend service in Kubernetes, get the
+# endpoint via
+#
+#  kubectl describe svc frontend
+#
+R53_FRONTEND_ELB_ENDPOINT="aba89e3753ebf11e690e90242ac11000-760942336.eu-west-1.elb.amazonaws.com"
+
+# The canonical zone ID for the ELB, above. Again, you won't have that
+# information to start, so leave it blank. Once you launch the frontend
+# service in Kubernetes, get the zone ID via
+#
+#  aws elb describe-load-balancers
+#
+R53_FRONTEND_ELB_ZONE_ID="Z3NF1Z3NOM5OY2"
