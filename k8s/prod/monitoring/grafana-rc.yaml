@@ -2,23 +2,23 @@ apiVersion: v1
 kind: ReplicationController
 metadata:
   namespace: monitoring
-  name: grafana-master-cd63bec
+  name: grafana-master-389668c
 spec:
   replicas: 1
   selector:
     name: grafana
-    version: master-cd63bec
+    version: master-389668c
   template:
     metadata:
       labels:
         name: grafana
-        version: master-cd63bec
+        version: master-389668c
     spec:
       imagePullSecrets:
       - name: quay-secret
       containers:
       - name: grafana
-        image: quay.io/weaveworks/grafana:master-cd63bec
+        image: quay.io/weaveworks/grafana:master-389668c
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
