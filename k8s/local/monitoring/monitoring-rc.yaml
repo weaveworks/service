@@ -16,6 +16,8 @@ spec:
       - name: prometheus
         image: quay.io/weaveworks/prometheus
         imagePullPolicy: IfNotPresent
+        args:
+        - -alertmanager.url='http://localhost:9093'
         ports:
         - containerPort: 9090
       - name: loadgen
@@ -26,5 +28,6 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
         - -config.file=/etc/alertmanager/alertmanager-local.yml
+        - -web.external-url=http://monitoring.monitoring.svc.cluster.local:9093
         ports:
         - containerPort: 9093

@@ -116,7 +116,7 @@ ALERT CollectionNoInstances
     description = "The collection service has no running instances.",
   }
 
-ALERT UsersNoInstances
+ALERT QueryNoInstances
   IF          absent(scope_request_duration_seconds{job="query"})
   FOR         5m
   LABELS      { severity="critical" }

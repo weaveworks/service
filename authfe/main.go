@@ -93,10 +93,12 @@ func main() {
 		controlHost    string
 		pipeHost       string
 		fluentHost     string
-		grafanaHost    string
-		scopeHost      string
-		usersHost      string
-		kubediffHost   string
+
+		grafanaHost      string
+		scopeHost        string
+		usersHost        string
+		kubediffHost     string
+		alertmanagerHost string
 	)
 	flag.StringVar(&listen, "listen", ":80", "HTTP server listen address")
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
@@ -115,6 +117,7 @@ func main() {
 	flag.StringVar(&scopeHost, "scope", "scope.kube-system.svc.cluster.local:80", "Hostname & port for scope")
 	flag.StringVar(&usersHost, "users", "users.default.svc.cluster.local", "Hostname & port for users")
 	flag.StringVar(&kubediffHost, "kubediff", "kubediff.monitoring.svc.cluster.local", "Hostname & port for kubediff")
+	flag.StringVar(&alertmanagerHost, "alertmanager", "monitoring.monitoring.svc.cluster.local:9093", "Hostname & port for alertmanager")
 	flag.Parse()
 
 	if err := logging.Setup(logLevel); err != nil {
@@ -144,15 +147,18 @@ func main() {
 
 	// adminRouter is for all admin functionality, authenticated using header credentials
 	adminRouter := newRouter()
-	addAdminRoute := func(name, target string) {
-		adminRouter.PathPrefix("/admin/" + name).Name(name).Handler(
-			middleware.PathRewrite(regexp.MustCompile("^/admin/"+name), "").Wrap(
-				newProxy(target)))
+	addAdminRoute := func(name, target string, rewritePath bool) {
+		var handler http.Handler = newProxy(target)
+		if rewritePath {
+			handler = middleware.PathRewrite(regexp.MustCompile("^/admin/"+name), "").Wrap(handler)
+		}
+		adminRouter.PathPrefix("/admin/" + name).Name(name).Handler(handler)
 	}
-	addAdminRoute("grafana", grafanaHost)
-	addAdminRoute("scope", scopeHost)
-	addAdminRoute("users", usersHost)
-	addAdminRoute("kubediff", kubediffHost)
+	addAdminRoute("grafana", grafanaHost, true)
+	addAdminRoute("scope", scopeHost, true)
+	addAdminRoute("users", usersHost, true)
+	addAdminRoute("kubediff", kubediffHost, true)
+	addAdminRoute("alertmanager", alertmanagerHost, false)
 	adminRouter.Path("/admin/").Name("admin").Handler(http.HandlerFunc(adminRoot))
 
 	// authentication is done by middleware

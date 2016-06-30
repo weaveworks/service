@@ -18,7 +18,9 @@ spec:
       - name: quay-secret
       containers:
       - name: prometheus
-        image: quay.io/weaveworks/prometheus:HEAD-b39ed30
+        image: quay.io/weaveworks/prometheus:fix-dev-alerts-97c6dc0
+        args:
+        - -alertmanager.url=http://localhost:9093/admin/alertmanager/
         ports:
         - containerPort: 9090
       - name: loadgen
@@ -27,10 +29,6 @@ spec:
         image: quay.io/weaveworks/alertmanager:fix-dev-alerts-312ef59
         args:
         - -config.file=/etc/alertmanager/alertmanager-dev.yml
-        env:
-        - name: SMTP_AUTH_USERNAME      # See alertmanager's config file
-          value: 'AKIAIV2MAR7JNRV6V2CA' # ses-smtp-user.20160108-111651.alertmanager
-        - name: SMTP_AUTH_PASSWORD
-          value: 'Av+GtaUk/JcR4239ke+iSi3dPAwB8yc66wnuRUZtLoa3'
+        - -web.external-url=http://frontend.dev.weave.works/admin/alertmanager/
         ports:
         - containerPort: 9093
