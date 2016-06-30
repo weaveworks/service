@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -eux
+
+# first delete the kubelet to stop it recreating containers
+docker rm -f kube_kubelet_1 || true
+docker rm -v -f $(docker ps -a -q) || true
+docker rmi $(docker images -q -f dangling=true) || true
+docker volume rm $(docker volume ls -q) || true
+
+# unmount and delete kubernetes volumes
+docker-machine ssh $(docker-machine active) "mount | grep /mnt/sda1/var/lib/kubelet/pods/ | cut -d' ' -f3 | xargs -n1 sudo umount" || true
+docker-machine ssh $(docker-machine active) "sudo rm -rf /var/lib/kubelet/*" || true
