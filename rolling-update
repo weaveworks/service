@@ -21,7 +21,7 @@ then
 fi
 echo "Using kubeconfig: ${KUBECONFIG}"
 
-read -p "Namespace? [default]" NAMESPACE
+read -p "Namespace? [default] " NAMESPACE
 NAMESPACE=${NAMESPACE:-default}
 read -p "Component? " COMPONENT
 

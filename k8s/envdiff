@@ -109,7 +109,7 @@ def check_file(orig, last):
     with open(last, 'r') as stream:
       last_yaml = yaml.load(stream)
   except IOError:
-    check(False, "'%s' missing", last)
+    print "'%s' missing" % last
     return
 
   diffs = list(diff("", orig_yaml, last_yaml))
