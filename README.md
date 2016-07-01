@@ -1,4 +1,4 @@
-# Scope as a Service
+# Weave Cloud
 
 [![Circle CI](https://circleci.com/gh/weaveworks/service/tree/master.svg?style=shield)](https://circleci.com/gh/weaveworks/service/tree/master) [![Coverage Status](https://coveralls.io/repos/weaveworks/service/badge.svg?branch=coverage&service=github&t=6Kr25T)](https://coveralls.io/github/weaveworks/service?branch=coverage)
 
@@ -44,37 +44,7 @@ the users service. Once authenticated, users are brought to their dashboard.
 From there, they can learn how to configure a probe, and may view their Scope
 instance.
 
-## Useful links
-
-After connecting to an environment with `./connect <env>`:
-
-Monitoring
-- [Grafana Dashboards](http://frontend.default.svc.cluster.local/admin/grafana)
-- [Prometheus UI](http://monitoring.monitoring.svc.cluster.local:9090)
-- [Alertmanager](http://monitoring.monitoring.svc.cluster.local:9093)
-- [Service Scope](http://scope.kube-system.svc.cluster.local:80)
-
-Management
-- [Consul UI](http://consul.default.svc.cluster.local:8500)
-- [Users Service](http://users.default.svc.cluster.local:80)
-- [Kubediff](http://kubediff.monitoring.svc.cluster.local:80)
-
-## Prerequisites
-
-You need kubectl v1.2.3 in your PATH.
-Download the
- [Linux](https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kubectl) or
- [Darwin](https://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/darwin/amd64/kubectl) release.
-
-```
-$ kubectl version
-Client Version: version.Info{Major:"1", Minor:"1", GitVersion:"v1.1.1", ... }
-error: couldn't read version from server: Get http://localhost:8080/api: dial tcp 127.0.0.1:8080: connection refused
-```
-
-## Local development
-
-### Build
+## Build
 
 The Makefile will automatically produce container images for each component, saved to your local Docker daemon.
 And the k8s/local resource definitions use the latest images from the local Docker daemon.
@@ -84,109 +54,14 @@ So, you just need to run make.
 $ make
 ```
 
-You can also pull existing containers from Quay and re-tag them as latest.
+## Test & Deploy
 
-```
-$ bash -c '
-  for c in $(find k8s/prod -name "*-rc.yaml" | xargs grep -h -o "quay.io/weaveworks/.*$" )
-  do
-    docker pull $c
-    docker tag -f $c $(echo $c | cut -d\':\' -f1):latest
-  done
-'
-```
-### Stand up
+For information about how to test these images locally, see (service-conf.git)[http://github.com/weaveworks/service-conf.git]
 
-We bootstrap a one-node Kubernetes "cluster" on top of Docker.
-This works on both Linux and Darwin, given client is configured against either
-local or remote Docker daemon. You also need `kubectl` installed and on your
-path, you also need `weave` on your path (doesn't have to be running).
-Docker for Mac, Docker Machine, as well as local Docker on Linux can be used.
+## Push Manually
 
-> ***Docker***
->
-> You must use **Docker v1.10** or later, *and* ensure [the `MountFlags` setting](https://github.com/kubernetes/kubernetes-anywhere/blob/master/FIXES.md)
-> in the `docker.service` systemd unit is set correctly, as it won't work otherwise.
->
-> If you didn't read this, you will get an error like:
->
-> ```
-> ERROR: for kubelet  Cannot start container 53c46bcf2daa335f0b8038feb4ac7403d17f5cd162f1ca244e98674b9964b92e: Path
-/var/lib/kubelet is mounted on / but it is not a shared mount.
-> ```
->
-> Scope as a Service requires many threads, you must also set `TasksMax` to a
-> sufficiently high number. 1024 will probably work, but `infinity` is the
-> only way to be sure.
->
-> If `TasksMax` is too low, you can expect to see variations on the following
-> errors:
->
-> * docker: Error response from daemon: rpc error: code = 2 desc = "runtime >error: exit status 2: runtime/cgo: pthread_create failed: Resource >temporarily unavailable\nSIGABRT: abort ..."
-> * docker: Error response from daemon: rpc error: code = 2 desc = "runtime error: read parent: connection reset by peer".
-> * docker: Error response from daemon: rpc error: code = 2 desc = "fork/exec /usr/bin/docker-containerd-shim: resource temporarily unavailable".
-> * docker: Error response from daemon: rpc error: code = 2 desc = "containerd: container not started".
->
-> If you are using Docker 1.10 or 1.11, you must use a version that has been
-> compiled with Go 1.5. If you do not, you will get errors like:
->
-> ```
-> Error response from daemon: 400 Bad Request: malformed Host header
-> ```
->
-> The easiest way to do this is to install Docker using the script at
-> https://get.docker.com
->
-> Docker 1.12 is expected to fix this problem.
-
-Boot up Kubernetes.
-
-```
-$ infra/local-k8s up
-```
-
-### Deploy
-
-The `infra/local-k8s` script will print all the `kubectl` commands you need to run to deploy the components you have built.
-
-### Connect
-
-```
-$ ./connect local
-```
-
-### Test
-
-You must connect to the cluster for these steps to work.
-
-1. Go to http://cloud.weave.works and sign up with a bogus email address.
-2. Start a probe with your service token, and send reports to your local Scope-as-a-Service.
-
-```
-$ IP=$(kubectl --kubeconfig=infra/local/kubeconfig get svc frontend -o template --template '{{.spec.clusterIP}}')
-$ scope launch --service-token=abc $IP:80
-```
-
-### Tear down
-
-```
-$ infra/local-k8s down
-```
-
-## Remote clusters
-
-You probably won't need to stand up or tear down a cluster on AWS.
-Instead, you'll probably interact with an existing cluster, like dev or prod.
-But if you really want to know, you can read [the README in the infra subdirectory](/infra).
-
-### Build
-
-[The CI system](https://circleci.com/gh/weaveworks/service) will make images
-available to remote clusters, by pushing them to our private remote repository
-(Quay).  You can push images manually, but for production we prefer to use
-images built in CI from the master branch.
-
-#### Build Manually
+You should not need to push images manually; the CI system should
+do this for you.  If you do, please follow these instructions.
 
 The build gives each image a name based on the state of the git
 working directory from which it was built, according to the script
@@ -222,61 +97,3 @@ running `push-images` from your own build directory, it's likely you
 will need to name specific components. The script will bail before
 pushing anything if it can't find all the images you mention (or imply
 by not mentioning any).
-
-### Deploy
-
-First update the rc files for your desired component. e.g. for foo
-service in dev you'd update `./k8s/dev/<namespace>/foo-rc.yaml` with
-a new image name.  Please use the image build by CI off the master branch.
-A script to update the yaml files for you exists, and might work:
-
-```
-$ ./k8s/kubeimage quay.io/weaveworks/frontend-mt:master-eca773b k8s/dev/default/*
-```
-
-Someone has probably already created the components, and you probably just want to deploy a new version.
-Kubernetes supports this nicely using something called a rolling update.
-
-We've scripted it for you; just follow the prompts.
-
-```
-$ ./rolling-update
-```
-
-Feel free to experiment in the dev environment.  When deploying a new version
-of a given service, the recommended process is:
-- Make a change to the yaml in `k8s/dev/` updating the image, using `kubeimage`.
-- Announce that you are making a change to the dev environment in the #scope channel on Slack
-- Apply this change to the dev cluster using `./rolling-update`.
-- Optionally: `diff log pre..post -- component` to see what changed since the last deploy.
-- Commit this a changeset `Deploying updates foo to dev` to a branch.
-- Make a changeset on the same branch to the yaml in `k8s/prod/` updating
-  the image, but **do not** apply it yet.
-- Push this branch and open a PR, such that the review can test the active
-  change in dev.
-- Once you get an LGTM, merge the PR then do the `./rolling-update`.
-
-This is a simplified process; more thought must be given when adding new features
-and flags.  Kubernetes has a lot of ways to move things around in the cluster.
-Don't be afraid to read the kubectl documentation.
-
-### Connect
-
-```
-$ ./connect mycluster
-```
-
-### Test
-
-You must connect to the cluster for these steps to work.
-
-1. Go to http://cloud.weave.works and sign up with a real email address.
-2. Check your email for the login message.
-
-Now you can start a probe with your service token, and send reports to the Scope-as-a-Service.
-If you're using e.g. the dev cluster, you'll need to specify the target by IP.
-
-```
-$ scope launch --service-token=abc frontend.dev.weave.works:80  # for dev
-$ scope launch --service-token=abc                              # for prod
-```
