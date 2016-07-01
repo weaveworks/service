@@ -5,7 +5,7 @@ import { red900 } from 'material-ui/styles/colors';
 import { hashHistory } from 'react-router';
 
 import { encodeURIs } from '../../common/request';
-import { getOrganizations } from '../../common/api';
+import { getOrganizations, getProbes } from '../../common/api';
 import { trackException, trackView } from '../../common/tracking';
 
 export default class CookieCheck extends React.Component {
@@ -14,6 +14,7 @@ export default class CookieCheck extends React.Component {
     super(props);
 
     this.state = {
+      name: null,
       activityText: 'Checking login state...',
       errorText: ''
     };
@@ -22,6 +23,8 @@ export default class CookieCheck extends React.Component {
     this._handleLoginSuccess = this._handleLoginSuccess.bind(this);
     this._handleLoginError = this._handleLoginError.bind(this);
     this._handleClickReload = this._handleClickReload.bind(this);
+    this.handleProbesSuccess = this.handleProbesSuccess.bind(this);
+    this.handleProbesError = this.handleProbesError.bind(this);
   }
 
   componentDidMount() {
@@ -51,21 +54,43 @@ export default class CookieCheck extends React.Component {
   }
 
   _handleLoginSuccess(resp) {
-    this.setState({
-      activityText: 'Logged in. Please wait for your app to load...'
-    });
-
     if (resp.organizations.length >= 1) {
-      let url;
-      if (resp.organizations[0].firstProbeUpdateAt) {
-        // go to app if a probe is connected
-        url = encodeURIs`/app/${resp.organizations[0].name}`;
-      } else {
-        // otherwise go to management page
-        url = encodeURIs`/org/${resp.organizations[0].name}`;
-      }
-      hashHistory.push(url);
+      const name = resp.organizations[0].name;
+      getProbes(name).then(this.handleProbesSuccess, this.handleProbesError);
+      this.setState({
+        name,
+        activityText: 'Logged in. Checking for connected probes...'
+      });
+    } else {
+      const errorText = 'No team found. Please contact Weave Cloud support.';
+      this.setState({
+        activityText: '',
+        errorText
+      });
+      trackException(errorText);
     }
+  }
+
+  handleProbesSuccess(resp) {
+    const { name } = this.state;
+    let url;
+    if (resp && resp.length > 0) {
+      // go to app if a probe is connected
+      url = encodeURIs`/app/${name}`;
+    } else {
+      // otherwise go to management page
+      url = encodeURIs`/org/${name}`;
+    }
+    hashHistory.push(url);
+  }
+
+  handleProbesError(resp) {
+    const err = resp.errors[0];
+    this.setState({
+      activityText: '',
+      errorText: err.message
+    });
+    trackException(err.message);
   }
 
   _handleClickReload() {
@@ -98,10 +123,10 @@ export default class CookieCheck extends React.Component {
         <div style={styles.error}>
           <h3>Weave Cloud is not available. Please try again later.</h3>
           <p>{this.state.errorText}</p>
-          <p>
+          <div>
             <RaisedButton onClick={this._handleClickReload}
               label="Try again" />
-          </p>
+          </div>
         </div>
       </div>
     );

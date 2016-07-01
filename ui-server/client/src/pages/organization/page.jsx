@@ -7,6 +7,7 @@ import sortBy from 'lodash/sortBy';
 import { grey200 } from 'material-ui/styles/colors';
 
 import Colors from '../../common/colors';
+import { getProbes } from '../../common/api';
 import { getData, encodeURIs } from '../../common/request';
 import { Box } from '../../components/box';
 import { FlexContainer } from '../../components/flex-container';
@@ -32,19 +33,19 @@ export default class OrganizationPage extends React.Component {
     this.handleClickInstance = this.handleClickInstance.bind(this);
     this._handleOrganizationSuccess = this._handleOrganizationSuccess.bind(this);
     this._handleOrganizationError = this._handleOrganizationError.bind(this);
-    this.getProbesTimer = 0;
-    this.getProbes = this.getProbes.bind(this);
+    this.loadProbesTimer = 0;
+    this.loadProbes = this.loadProbes.bind(this);
     this.expandHelp = this.expandHelp.bind(this);
   }
 
   componentDidMount() {
     this._getOrganizationData(this.props.params.orgId);
-    this.getProbes();
+    this.loadProbes();
     trackView('Organization');
   }
 
   componentWillUnmount() {
-    clearTimeout(this.getProbesTimer);
+    clearTimeout(this.loadProbesTimer);
   }
 
   expandHelp(ev) {
@@ -65,17 +66,16 @@ export default class OrganizationPage extends React.Component {
     }
   }
 
-  getProbes() {
-    clearTimeout(this.getProbesTimer);
+  loadProbes() {
+    clearTimeout(this.loadProbesTimer);
     const org = this.props.params.orgId;
-    const url = encodeURIs`/api/org/${org}/probes`;
-    getData(url)
+    getProbes(org)
       .then(resp => {
         this.setState({
           probes: sortBy(resp, ['hostname', 'id'])
         });
         trackEvent('Cloud', 'connectedProbes', org, resp.length);
-        this.getProbesTimer = setTimeout(this.getProbes, 5000);
+        this.loadProbesTimer = setTimeout(this.loadProbes, 5000);
       }, resp => {
         trackException(resp.errors[0].message);
       });
