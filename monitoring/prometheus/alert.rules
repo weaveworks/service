@@ -11,6 +11,17 @@ job_route:scope_request_latency:max =
 job:scope_request_latency:max =
    max(scope_request_duration_seconds{namespace="default", quantile="0.9", ws="false"}) by (job)
 
+# Alert if there is a kubediff
+
+ALERT Kubediff
+  IF          max(command_exit_code{job="kubediff"}) != 0
+  FOR         2h
+  LABELS      { severity="warning" }
+  ANNOTATIONS {
+    summary = "Kubediff has detected a differenct in running config.",
+    description = "Kubediff has detected a differenct in running config.",
+  }
+
 # For each service, an alert on error rate
 
 ALERT AuthFEErrorRate
