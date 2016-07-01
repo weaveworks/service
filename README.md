@@ -56,12 +56,13 @@ $ make
 
 ## Test & Deploy
 
-For information about how to test these images locally, see (service-conf.git)[http://github.com/weaveworks/service-conf.git]
+For information about how to test these images locally, see [service-conf.git](http://github.com/weaveworks/service-conf.git).
 
 ## Push Manually
 
-You should not need to push images manually; the CI system should
-do this for you.  If you do, please follow these instructions.
+Normally the CI system will push images, so you won't have to push
+them manually. If you have some reason for pushing images manually,
+follow these instructions.
 
 The build gives each image a name based on the state of the git
 working directory from which it was built, according to the script
