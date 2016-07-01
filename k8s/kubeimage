@@ -15,7 +15,7 @@ elif [ "$1" = "--help" -o "$1" = "-h" ]; then
     usage
 fi
 
-if [ "$(uname)" = "Darwin" ]; then
+if [ "$(uname)" = "Darwin" ] && [ $(type -p gsed) ]; then
     SED=gsed
 else
     SED=sed
