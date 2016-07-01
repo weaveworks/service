@@ -89,9 +89,6 @@ $(EXES): build/$(UPTODATE)
 
 lint: build/$(UPTODATE)
 	./tools/lint .
-	# This mapping of cluster to lint options is duplicated in 'rolling-update'.
-	./k8s/kubelint --noversions ./k8s/local
-	./k8s/kubelint ./k8s/dev ./k8s/prod
 	./monitoring/lint
 
 test: build/$(UPTODATE)
