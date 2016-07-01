@@ -40,7 +40,7 @@ RDS_SUBNET_B_AZ="eu-west-1b"
 #
 #  cat /dev/urandom | xxd -ps | head -c16
 #
-RDS_USERS_DB_PASSWORD=""
+RDS_USERS_DB_PASSWORD="ee78da9e756d8a0c"
 
 #
 # Route53
@@ -49,12 +49,12 @@ RDS_USERS_DB_PASSWORD=""
 # The zone name for this cluster, e.g. "cloud.weave.works" or
 # "dev.weave.works".
 #
-R53_ZONE_NAME="some.domain.biz"
+R53_ZONE_NAME="devka.weave.works"
 
 # The FQDN resource within the zone, e.g. "frontend.cloud.weave.works" or
 # "frontend.dev.weave.works".
 #
-R53_RESOURCE_NAME="frontend.some.domain.biz"
+R53_RESOURCE_NAME="frontend.devka.weave.works"
 
 # The endpoint for the ELB that sits in front of the Kubernetes frontend
 # service. You won't have that information in the beginning, so leave it blank
@@ -63,7 +63,7 @@ R53_RESOURCE_NAME="frontend.some.domain.biz"
 #
 #  kubectl describe svc frontend
 #
-R53_FRONTEND_ELB_ENDPOINT=""
+R53_FRONTEND_ELB_ENDPOINT="aba89e3753ebf11e690e90242ac11000-760942336.eu-west-1.elb.amazonaws.com"
 
 # The canonical zone ID for the ELB, above. Again, you won't have that
 # information to start, so leave it blank. Once you launch the frontend
@@ -71,4 +71,4 @@ R53_FRONTEND_ELB_ENDPOINT=""
 #
 #  aws elb describe-load-balancers
 #
-R53_FRONTEND_ELB_ZONE_ID=""
+R53_FRONTEND_ELB_ZONE_ID="Z3NF1Z3NOM5OY2"

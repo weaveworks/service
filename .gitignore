@@ -49,3 +49,5 @@ infra/helloworld/helloworld
 infra/local/kubeconfig
 infra/local/master/pki
 infra/local/master/master.json
+
+.terraform
