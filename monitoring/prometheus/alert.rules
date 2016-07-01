@@ -18,8 +18,8 @@ ALERT Kubediff
   FOR         2h
   LABELS      { severity="warning" }
   ANNOTATIONS {
-    summary = "Kubediff has detected a differenct in running config.",
-    description = "Kubediff has detected a differenct in running config.",
+    summary = "Kubediff has detected a difference in running config.",
+    description = "Kubediff has detected a difference in running config.",
   }
 
 # For each service, an alert on error rate
