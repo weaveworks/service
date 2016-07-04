@@ -85,12 +85,17 @@ export default class CookieCheck extends React.Component {
   }
 
   handleProbesError(resp) {
-    const err = resp.errors[0];
-    this.setState({
-      activityText: '',
-      errorText: err.message
-    });
-    trackException(err.message);
+    //const err = resp.errors[0];
+    //this.setState({
+    //  activityText: '',
+    //  errorText: err.message
+    //});
+    //trackException(err.message);
+
+    // go to management page if we failed to get the probes
+    const { name } = this.state;
+    let url = encodeURIs`/org/${name}`
+    hashHistory.push(url);
   }
 
   _handleClickReload() {
