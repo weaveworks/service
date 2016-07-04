@@ -2,6 +2,7 @@ import React from 'react';
 import CircularProgress from 'material-ui/CircularProgress';
 import Paper from 'material-ui/Paper';
 import RaisedButton from 'material-ui/RaisedButton';
+import Snackbar from 'material-ui/Snackbar';
 import { hashHistory } from 'react-router';
 import sortBy from 'lodash/sortBy';
 import { grey200 } from 'material-ui/styles/colors';
@@ -27,7 +28,8 @@ export default class OrganizationPage extends React.Component {
       user: '',
       probeToken: '',
       probes: [],
-      showHelp: false
+      showHelp: false,
+      errors: null
     };
 
     this.handleClickInstance = this.handleClickInstance.bind(this);
@@ -36,6 +38,8 @@ export default class OrganizationPage extends React.Component {
     this.loadProbesTimer = 0;
     this.loadProbes = this.loadProbes.bind(this);
     this.expandHelp = this.expandHelp.bind(this);
+    this.setErrors = this.setErrors.bind(this);
+    this.clearErrors = this.clearErrors.bind(this);
   }
 
   componentDidMount() {
@@ -46,6 +50,14 @@ export default class OrganizationPage extends React.Component {
 
   componentWillUnmount() {
     clearTimeout(this.loadProbesTimer);
+  }
+
+  clearErrors() {
+    this.setErrors(null);
+  }
+
+  setErrors(errors = null) {
+    this.setState(Object.assign({}, this.state, {errors}));
   }
 
   expandHelp(ev) {
@@ -78,6 +90,7 @@ export default class OrganizationPage extends React.Component {
         this.loadProbesTimer = setTimeout(this.loadProbes, 5000);
       }, resp => {
         trackException(resp.errors[0].message);
+        this.setErrors([{message: 'Failed to load probes'}]);
       });
   }
 
@@ -177,6 +190,13 @@ export default class OrganizationPage extends React.Component {
 
     return (
       <div style={{height: '100%', position: 'relative'}}>
+        <Snackbar
+          action="ok"
+          open={Boolean(this.state.errors)}
+          message={this.state.errors ? this.state.errors.map(e => e.message).join('. ') : ''}
+          onActionTouchTap={this.clearErrors}
+          onRequestClose={this.clearErrors}
+        />
         <Toolbar user={this.state.user} organization={this.props.params.orgId} />
         <div style={styles.logoWrapper}>
           <Logo />
