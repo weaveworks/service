@@ -138,7 +138,7 @@ export default class Wrapper extends React.Component {
         display: 'block',
         border: 'none',
         height: 'calc(100vh - 56px)',
-        width: '100vw'
+        width: '100%'
       }
     };
 
