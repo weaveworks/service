@@ -33,7 +33,10 @@ export default class AccountPage extends React.Component {
   }
 
   handleLoginSuccess(resp) {
-    this.setState({ organizations: resp.organizations });
+    this.setState({
+      user: resp.email,
+      organizations: resp.organizations
+    });
   }
 
   handleLoginError(resp) {
@@ -78,6 +81,7 @@ export default class AccountPage extends React.Component {
           <FlexContainer>
             <Column minWidth="400">
               <h1>Configure your account</h1>
+              <p>Logged in as {this.state.user}</p>
               <Logins />
             </Column>
           </FlexContainer>
