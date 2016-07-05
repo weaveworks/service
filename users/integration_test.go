@@ -41,7 +41,7 @@ func setup(t *testing.T) {
 	templates := mustNewTemplateEngine()
 	logins = login.NewProviders()
 
-	truncateDatabase(t)
+	storage.(truncater).truncate(t)
 
 	emailer := smtpEmailer{templates, testEmailSender, domain, "test@test.com"}
 	app = newAPI(directLogin, emailer, sessions, storage, logins, templates)
@@ -57,15 +57,21 @@ func testEmailSender(e *email.Email) error {
 	return nil
 }
 
-// Truncate the test store. Assumes the db is Postgres.
-func truncateDatabase(t *testing.T) {
-	db := storage.(squirrel.Execer)
-	mustExec(t, db, `truncate table traceable;`)
-	mustExec(t, db, `truncate table users;`)
-	mustExec(t, db, `truncate table logins;`)
+type truncater interface {
+	truncate(*testing.T)
+}
 
-	mustExec(t, db, `truncate table organizations;`)
-	mustExec(t, db, `truncate table memberships;`)
+// Truncate the test store. Assumes the db is Postgres.
+func (d timedDatabase) truncate(t *testing.T) {
+	d.d.(truncater).truncate(t)
+}
+
+func (s pgStorage) truncate(t *testing.T) {
+	mustExec(t, s, `truncate table traceable;`)
+	mustExec(t, s, `truncate table users;`)
+	mustExec(t, s, `truncate table logins;`)
+	mustExec(t, s, `truncate table organizations;`)
+	mustExec(t, s, `truncate table memberships;`)
 }
 
 func mustExec(t *testing.T, db squirrel.Execer, query string, args ...interface{}) {

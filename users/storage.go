@@ -9,6 +9,9 @@ import (
 	"github.com/Sirupsen/logrus"
 	_ "github.com/mattes/migrate/driver/postgres"
 	"github.com/mattes/migrate/migrate"
+	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/weaveworks/scope/common/instrument"
 )
 
 var (
@@ -100,5 +103,157 @@ func mustNewDatabase(databaseURI, migrationsDir string) database {
 	default:
 		logrus.Fatalf("Unknown database type: %s", u.Scheme)
 	}
-	return storage
+	return timedDatabase{storage, databaseRequestDuration}
+}
+
+type timedDatabase struct {
+	d        database
+	Duration *prometheus.SummaryVec
+}
+
+func (t timedDatabase) errorCode(err error) string {
+	switch err {
+	case nil:
+		return "200"
+	case errNotFound:
+		return "404"
+	case errEmailIsTaken:
+		return "400"
+	case errInvalidAuthenticationData:
+		return "401"
+	default:
+		return "500"
+	}
+}
+
+func (t timedDatabase) timeRequest(method string, f func() error) error {
+	return instrument.TimeRequestStatus(method, t.Duration, t.errorCode, f)
+}
+
+func (t timedDatabase) CreateUser(email string) (u *user, err error) {
+	t.timeRequest("CreateUser", func() error {
+		u, err = t.d.CreateUser(email)
+		return err
+	})
+	return
+}
+
+func (t timedDatabase) FindUserByID(id string) (u *user, err error) {
+	t.timeRequest("FindUserByID", func() error {
+		u, err = t.d.FindUserByID(id)
+		return err
+	})
+	return
+}
+
+func (t timedDatabase) FindUserByEmail(email string) (u *user, err error) {
+	t.timeRequest("FindUserByEmail", func() error {
+		u, err = t.d.FindUserByEmail(email)
+		return err
+	})
+	return
+}
+
+func (t timedDatabase) FindUserByLogin(provider, id string) (u *user, err error) {
+	t.timeRequest("FindUserByLogin", func() error {
+		u, err = t.d.FindUserByLogin(provider, id)
+		return err
+	})
+	return
+}
+
+func (t timedDatabase) AddLoginToUser(userID, provider, id string, session json.RawMessage) error {
+	return t.timeRequest("AddLoginToUser", func() error {
+		return t.d.AddLoginToUser(userID, provider, id, session)
+	})
+}
+
+func (t timedDatabase) DetachLoginFromUser(userID, provider string) error {
+	return t.timeRequest("DetachLoginFromUser", func() error {
+		return t.d.DetachLoginFromUser(userID, provider)
+	})
+}
+
+func (t timedDatabase) InviteUser(email, orgName string) (u *user, err error) {
+	t.timeRequest("InviteUser", func() error {
+		u, err = t.d.InviteUser(email, orgName)
+		return err
+	})
+	return
+}
+
+func (t timedDatabase) DeleteUser(email string) error {
+	return t.timeRequest("DeleteUser", func() error {
+		return t.d.DeleteUser(email)
+	})
+}
+
+func (t timedDatabase) ListUsers(fs ...filter) (us []*user, err error) {
+	t.timeRequest("ListUsers", func() error {
+		us, err = t.d.ListUsers(fs...)
+		return err
+	})
+	return
+}
+
+func (t timedDatabase) ListOrganizationUsers(orgName string) (us []*user, err error) {
+	t.timeRequest("ListOrganizationUsers", func() error {
+		us, err = t.d.ListOrganizationUsers(orgName)
+		return err
+	})
+	return
+}
+
+func (t timedDatabase) ApproveUser(id string) (u *user, err error) {
+	t.timeRequest("ApproveUser", func() error {
+		u, err = t.d.ApproveUser(id)
+		return err
+	})
+	return
+}
+
+func (t timedDatabase) SetUserAdmin(id string, value bool) error {
+	return t.timeRequest("SetUserAdmin", func() error {
+		return t.d.SetUserAdmin(id, value)
+	})
+}
+
+func (t timedDatabase) SetUserToken(id, token string) error {
+	return t.timeRequest("SetUserToken", func() error {
+		return t.d.SetUserToken(id, token)
+	})
+}
+
+func (t timedDatabase) SetUserFirstLoginAt(id string) error {
+	return t.timeRequest("SetUserFirstLoginAt", func() error {
+		return t.d.SetUserFirstLoginAt(id)
+	})
+}
+
+func (t timedDatabase) CreateOrganization(ownerID string) (o *organization, err error) {
+	t.timeRequest("CreateOrganization", func() error {
+		o, err = t.d.CreateOrganization(ownerID)
+		return err
+	})
+	return
+}
+
+func (t timedDatabase) FindOrganizationByProbeToken(probeToken string) (o *organization, err error) {
+	t.timeRequest("FindOrganizationByProbeToken", func() error {
+		o, err = t.d.FindOrganizationByProbeToken(probeToken)
+		return err
+	})
+	return
+}
+
+func (t timedDatabase) RenameOrganization(oldName, newName string) error {
+	return t.timeRequest("RenameOrganization", func() error {
+		return t.d.RenameOrganization(oldName, newName)
+	})
+}
+
+func (t timedDatabase) Close() error {
+	return t.timeRequest("Close", func() error {
+		return t.d.Close()
+	})
 }
