@@ -176,7 +176,7 @@ export default class OrganizationPage extends React.Component {
     };
 
     return (
-      <div style={{height: '100%', overflowY: 'scroll', position: 'relative'}}>
+      <div style={{height: '100%', position: 'relative'}}>
         <Toolbar user={this.state.user} organization={this.props.params.orgId} />
         <div style={styles.logoWrapper}>
           <Logo />

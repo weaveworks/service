@@ -66,7 +66,7 @@ export default class AccountPage extends React.Component {
     const orgName = get(this.state, ['organizations', 0, 'name']);
 
     return (
-      <div style={{height: '100%', overflowY: 'scroll', position: 'relative'}}>
+      <div style={{height: '100%', position: 'relative'}}>
         <Toolbar
           user={this.state.user}
           organization={orgName}
