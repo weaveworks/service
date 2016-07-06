@@ -684,8 +684,8 @@
 		{
 			"importpath": "github.com/lib/pq",
 			"repository": "https://github.com/lib/pq",
-			"vcs": "",
-			"revision": "83c4f410d0aed80a0f44bac6a576a7f2435791f3",
+			"vcs": "git",
+			"revision": "4dd446efc17690bc53e154025146f73203b18309",
 			"branch": "master"
 		},
 		{
@@ -693,6 +693,14 @@
 			"repository": "https://github.com/mattes/migrate",
 			"vcs": "git",
 			"revision": "ce1b59bb819416ca67422929b1cb48bb342720b6",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/mattn/go-runewidth",
+			"repository": "https://github.com/mattn/go-runewidth",
+			"vcs": "git",
+			"revision": "d6bea18f789704b5f83375793155289da36a3c7f",
 			"branch": "master",
 			"notests": true
 		},
@@ -718,6 +726,14 @@
 			"vcs": "",
 			"revision": "0542d5f0e87ea3a8fa4174322b9532f5d04f9fa8",
 			"branch": "master"
+		},
+		{
+			"importpath": "github.com/olekukonko/tablewriter",
+			"repository": "https://github.com/olekukonko/tablewriter",
+			"vcs": "git",
+			"revision": "daf2955e742cf123959884fdff4685aa79b63135",
+			"branch": "master",
+			"notests": true
 		},
 		{
 			"importpath": "github.com/pborman/uuid",
@@ -1128,6 +1144,14 @@
 			"vcs": "",
 			"revision": "e5efbe565a5a63d8aafee7efa2f4fdd7f42b7bd3",
 			"branch": "master"
+		},
+		{
+			"importpath": "gopkg.in/check.v1",
+			"repository": "https://gopkg.in/check.v1",
+			"vcs": "git",
+			"revision": "4f90aeace3a26ad7021961c297b22c42160c7b25",
+			"branch": "v1",
+			"notests": true
 		},
 		{
 			"importpath": "gopkg.in/gemnasium/logrus-airbrake-hook.v2",
