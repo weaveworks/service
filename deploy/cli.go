@@ -3,11 +3,13 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/olekukonko/tablewriter"
 	"gopkg.in/yaml.v2"
@@ -79,22 +81,26 @@ func deploy(c client.Client, args []string) {
 }
 
 func list(c client.Client, args []string) {
-	if len(args) != 0 {
+	flags := flag.NewFlagSet("list", flag.ContinueOnError)
+	page := flags.Int("page", 0, "Zero based index of page to list.")
+	pagesize := flags.Int("page-size", 10, "Number of results per page")
+	if err := flags.Parse(args); err != nil {
 		usage()
 		return
 	}
-	status, err := c.GetStatus()
+	deployments, err := c.GetDeployments(*page, *pagesize)
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"ID", "Image", "Version", "State"})
+	table.SetHeader([]string{"Created", "ID", "Image", "Version", "State"})
 	table.SetBorder(false)
 	table.SetColumnSeparator(" ")
-	for _, deployment := range status.Deployments {
+	for _, deployment := range deployments {
 		table.Append([]string{
+			deployment.CreatedAt.Format(time.RFC822),
 			deployment.ID,
 			deployment.ImageName,
 			deployment.Version,

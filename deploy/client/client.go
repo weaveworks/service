@@ -54,14 +54,9 @@ func (c Client) Deploy(deployment common.Deployment) error {
 	return nil
 }
 
-// Status describes the state of the system
-type Status struct {
-	Deployments []common.Deployment `json:"deployments"`
-}
-
-// GetStatus returns the current state of the system
-func (c Client) GetStatus() (*Status, error) {
-	req, err := c.newRequest("GET", "/api/deploy", nil)
+// GetDeployments returns a list of deployments
+func (c Client) GetDeployments(page, pagesize int) ([]common.Deployment, error) {
+	req, err := c.newRequest("GET", fmt.Sprintf("/api/deploy?page=%d&pagesize=%d", page, pagesize), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -72,11 +67,13 @@ func (c Client) GetStatus() (*Status, error) {
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("Error making request: %s", res.Status)
 	}
-	var status Status
-	if err := json.NewDecoder(res.Body).Decode(&status); err != nil {
+	var response struct {
+		Deployments []common.Deployment `json:"deployments"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
 		return nil, err
 	}
-	return &status, nil
+	return response.Deployments, nil
 }
 
 // GetConfig returns the current Config

@@ -20,8 +20,7 @@ CREATE TABLE IF NOT EXISTS deploys (
   version               text NOT NULL,
   priority              int,
   state                 text NOT NULL,
-  log_key               text,
-  created_at            timestamp with time zone default now()
+  log_key               text
 ) inherits(traceable);
 
 DO
@@ -36,6 +35,5 @@ $$ LANGUAGE plpgsql;
 CREATE TABLE IF NOT EXISTS conf (
   id                    text PRIMARY KEY NOT NULL DEFAULT nextval('conf_id_seq'),
   organization_id       text NOT NULL,
-  conf                  text NOT NULL,
-  created_at            timestamp with time zone default now()
+  conf                  text NOT NULL
 ) inherits(traceable);

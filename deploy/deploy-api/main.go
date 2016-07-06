@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -112,7 +113,7 @@ func main() {
 	})
 	router.Path("/metrics").Handler(prometheus.Handler())
 	router.Methods("POST").Path("/api/deploy").HandlerFunc(withOrgID(d.deploy))
-	router.Methods("GET").Path("/api/deploy").HandlerFunc(withOrgID(d.status))
+	router.Methods("GET").Path("/api/deploy").HandlerFunc(withOrgID(d.list))
 	router.Methods("GET").Path("/api/deploy/{id}/log").HandlerFunc(withOrgID(d.getLog))
 	router.Methods("POST").Path("/api/config/deploy").HandlerFunc(withOrgID(d.setConfig))
 	router.Methods("GET").Path("/api/config/deploy").HandlerFunc(withOrgID(d.getConfig))
@@ -162,19 +163,36 @@ func (d *deployer) deploy(orgID string, w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-type statusResponse struct {
+type listResponse struct {
 	Deployments []common.Deployment `json:"deployments"`
 }
 
-func (d *deployer) status(orgID string, w http.ResponseWriter, r *http.Request) {
-	deployments, err := d.store.GetDeployments(orgID)
+func intQueryArg(values url.Values, key string, def int) (int, error) {
+	if s := values.Get(key); s != "" {
+		return strconv.Atoi(s)
+	}
+	return def, nil
+}
+
+func (d *deployer) list(orgID string, w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	page, err := intQueryArg(query, "page", 0)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	pageSize, err := intQueryArg(query, "pagesize", 10)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	deployments, err := d.store.GetDeployments(orgID, pageSize, page*pageSize)
 	if err != nil {
 		log.Errorf("Error getting deployments: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	response := statusResponse{
+	response := listResponse{
 		Deployments: deployments,
 	}
 	if err := json.NewEncoder(w).Encode(&response); err != nil {

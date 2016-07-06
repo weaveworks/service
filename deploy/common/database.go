@@ -2,6 +2,7 @@ package common
 
 import (
 	"database/sql"
+	"time"
 )
 
 // States the deployments can be in
@@ -15,12 +16,13 @@ const (
 
 // Deployment describes a deployment
 type Deployment struct {
-	ID        string `json:"id"`
-	ImageName string `json:"image_name"`
-	Version   string `json:"version"`
-	Priority  int    `json:"priority"`
-	State     string `json:"status"`
-	LogKey    string `json:"-"`
+	ID        string    `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	ImageName string    `json:"image_name"`
+	Version   string    `json:"version"`
+	Priority  int       `json:"priority"`
+	State     string    `json:"status"`
+	LogKey    string    `json:"-"`
 }
 
 // DeployStore stores info about deployments.
@@ -91,13 +93,17 @@ func (d *DeployStore) UpdateDeploymentState(id, state, logKey string) error {
 }
 
 // GetDeployments fetches deployments from the database
-func (d *DeployStore) GetDeployments(orgID string) ([]Deployment, error) {
+func (d *DeployStore) GetDeployments(orgID string, limit, offset int) ([]Deployment, error) {
 	result := []Deployment{}
 	rows, err := d.db.Query(
-		`SELECT id, image, version, priority, state, log_key
+		`SELECT id, created_at, image, version, priority, state, log_key
 		   FROM deploys
 		  WHERE organization_id = $1
-	   ORDER BY id::Integer DESC`, orgID)
+	   ORDER BY id::Integer DESC
+		  LIMIT $2
+		 OFFSET $3`,
+		orgID, limit, offset,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +112,9 @@ func (d *DeployStore) GetDeployments(orgID string) ([]Deployment, error) {
 		var deployment Deployment
 		var logKey sql.NullString
 		if err := rows.Scan(
-			&deployment.ID, &deployment.ImageName, &deployment.Version,
-			&deployment.Priority, &deployment.State, &logKey,
+			&deployment.ID, &deployment.CreatedAt, &deployment.ImageName,
+			&deployment.Version, &deployment.Priority, &deployment.State,
+			&logKey,
 		); err != nil {
 			return nil, err
 		}
@@ -125,14 +132,15 @@ func (d *DeployStore) GetDeployment(orgID, deployID string) (*Deployment, error)
 	var deployment Deployment
 	var logKey sql.NullString
 	if err := d.db.QueryRow(
-		`SELECT id, image, version, priority, state, log_key
+		`SELECT id, created_at, image, version, priority, state, log_key
 		   FROM deploys
 		  WHERE organization_id = $1
 		    AND id = $2`,
 		orgID, deployID,
 	).Scan(
-		&deployment.ID, &deployment.ImageName, &deployment.Version,
-		&deployment.Priority, &deployment.State, &logKey,
+		&deployment.ID, &deployment.CreatedAt, &deployment.ImageName,
+		&deployment.Version, &deployment.Priority, &deployment.State,
+		&logKey,
 	); err == sql.ErrNoRows {
 		return nil, ErrNotFound
 	} else if err != nil {
