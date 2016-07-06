@@ -25,14 +25,17 @@ IMAGE_NAMES=$(foreach dir,$(DOCKER_IMAGE_DIRS),$(patsubst %,$(IMAGE_PREFIX)/%,$(
 images:
 	$(info $(IMAGE_NAMES))
 
-all: $(UPTODATE_FILES)
+all: $(UPTODATE_FILES) $(DEPLOY_CLIENT_EXE)
 
 # List of exes please
 AUTHFE_EXE := authfe/authfe
 USERS_EXE := users/users
 METRICS_EXE := metrics/metrics
 PROM_RUN_EXE := kubediff/vendor/github.com/tomwilkie/prom-run/prom-run
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_RUN_EXE)
+DEPLOY_API_EXE := deploy/deploy-api/deploy-api
+DEPLOY_WORKER_EXE := deploy/deploy-worker/deploy-worker
+DEPLOY_CLIENT_EXE := deploy/wc
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_RUN_EXE) $(DEPLOY_API_EXE) $(DEPLOY_WORKER_EXE) $(DEPLOY_CLIENT_EXE)
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
@@ -40,6 +43,9 @@ $(AUTHFE_EXE): $(shell find authfe -name '*.go') $(shell find users/client -name
 $(USERS_EXE): $(shell find users -name '*.go') $(COMMON)
 $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
 $(PROM_RUN_EXE): $(shell find ./kubediff/vendor/github.com/tomwilkie/prom-run/ -name '*.go')
+$(DEPLOY_API_EXE): $(shell find deploy/deploy-api -name '*.go') $(shell find deploy/common -name '*.go')
+$(DEPLOY_WORKER_EXE): $(shell find deploy/deploy-worker -name '*.go') $(shell find deploy/common -name '*.go')
+$(DEPLOY_CLIENT_EXE): deploy/cli.go deploy/client/* deploy/common/*
 
 # And now what goes into each image
 authfe/$(UPTODATE): $(AUTHFE_EXE)
@@ -56,6 +62,9 @@ monitoring/grafana/$(UPTODATE): monitoring/grafana/*
 monitoring/gfdatasource/$(UPTODATE): monitoring/gfdatasource/*
 monitoring/prometheus/$(UPTODATE): monitoring/prometheus/*
 monitoring/alertmanager/$(UPTODATE): monitoring/alertmanager/*
+deploy/deploy-api/$(UPTODATE): $(DEPLOY_API_EXE) deploy/deploy-api/migrations/*
+deploy/deploy-db/$(UPTODATE): deploy/deploy-db/*
+deploy/deploy-worker/$(UPTODATE): $(DEPLOY_WORKER_EXE) deploy/deploy-worker/*
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
