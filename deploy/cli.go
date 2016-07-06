@@ -32,7 +32,8 @@ func usage() {
 	fmt.Println(`Usage:
 		deploy <image>:<version>
 		list
-		config (<filename>)`)
+		config (<filename>)
+		logs <deploy>`)
 }
 
 func main() {
@@ -50,6 +51,8 @@ func main() {
 		list(c, os.Args[2:])
 	case "config":
 		config(c, os.Args[2:])
+	case "logs":
+		logs(c, os.Args[2:])
 	default:
 		usage()
 	}
@@ -152,4 +155,19 @@ func config(c client.Client, args []string) {
 
 		fmt.Println(string(buf))
 	}
+}
+
+func logs(c client.Client, args []string) {
+	if len(args) != 1 {
+		usage()
+		return
+	}
+
+	output, err := c.GetLogs(args[0])
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	fmt.Println(string(output))
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/weaveworks/service/deploy/common"
@@ -39,7 +40,7 @@ func (c Client) Deploy(deployment common.Deployment) error {
 	if err := json.NewEncoder(&buf).Encode(deployment); err != nil {
 		return err
 	}
-	req, err := c.newRequest("POST", "/api/deploy/new", &buf)
+	req, err := c.newRequest("POST", "/api/deploy", &buf)
 	if err != nil {
 		return err
 	}
@@ -60,7 +61,7 @@ type Status struct {
 
 // GetStatus returns the current state of the system
 func (c Client) GetStatus() (*Status, error) {
-	req, err := c.newRequest("GET", "/api/deploy/status", nil)
+	req, err := c.newRequest("GET", "/api/deploy", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +81,7 @@ func (c Client) GetStatus() (*Status, error) {
 
 // GetConfig returns the current Config
 func (c Client) GetConfig() (*common.Config, error) {
-	req, err := c.newRequest("GET", "/api/deploy/config", nil)
+	req, err := c.newRequest("GET", "/api/config/deploy", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +105,7 @@ func (c Client) SetConfig(config *common.Config) error {
 	if err := json.NewEncoder(&buf).Encode(config); err != nil {
 		return err
 	}
-	req, err := c.newRequest("POST", "/api/deploy/config", &buf)
+	req, err := c.newRequest("POST", "/api/config/deploy", &buf)
 	if err != nil {
 		return err
 	}
@@ -116,4 +117,20 @@ func (c Client) SetConfig(config *common.Config) error {
 		return fmt.Errorf("Error making request: %s", res.Status)
 	}
 	return nil
+}
+
+// GetConfig returns the current Config
+func (c Client) GetLogs(deployID string) ([]byte, error) {
+	req, err := c.newRequest("GET", fmt.Sprintf("/api/deploy/%s/log", deployID), nil)
+	if err != nil {
+		return nil, err
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf("Error making request: %s", res.Status)
+	}
+	return ioutil.ReadAll(res.Body)
 }

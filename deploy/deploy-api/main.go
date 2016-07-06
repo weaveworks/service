@@ -5,16 +5,21 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
-	"regexp"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	_ "github.com/mattes/migrate/driver/postgres"
 	"github.com/mattes/migrate/migrate"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/weaveworks/scope/common/instrument"
 	"github.com/weaveworks/scope/common/middleware"
 
 	"github.com/weaveworks/service/common/logging"
@@ -27,11 +32,16 @@ var (
 		Name:      "request_duration_seconds",
 		Help:      "Time (in seconds) spent serving HTTP requests.",
 	}, []string{"method", "route", "status_code", "ws"})
-	orgPrefix = regexp.MustCompile("^/api/app/[^/]+")
+	s3RequestDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		Namespace: "scope",
+		Name:      "s3_request_duration_nanoseconds",
+		Help:      "Time spent doing S3 requests.",
+	}, []string{"method", "status_code"})
 )
 
 func init() {
 	prometheus.MustRegister(requestDuration)
+	prometheus.MustRegister(s3RequestDuration)
 }
 
 const (
@@ -44,11 +54,13 @@ func main() {
 		logLevel      string
 		databaseURL   string
 		migrationsDir string
+		s3URL         string
 	)
 	flag.StringVar(&listen, "listen", ":80", "HTTP server listen address")
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
 	flag.StringVar(&databaseURL, "database", "", "URL of database")
 	flag.StringVar(&migrationsDir, "migrations", "migrations", "Location of migrations directory")
+	flag.StringVar(&s3URL, "s3", "", "URL for S3")
 	flag.Parse()
 
 	if err := logging.Setup(logLevel); err != nil {
@@ -76,8 +88,22 @@ func main() {
 		return
 	}
 
+	parsedS3URL, err := url.Parse(s3URL)
+	if err != nil {
+		log.Fatalf("Valid URL for s3 required: %v", err)
+		return
+	}
+
+	s3Config, err := common.AWSConfigFromURL(parsedS3URL)
+	if err != nil {
+		log.Fatalf("Failed to consturct AWS config: %v", err)
+		return
+	}
+
 	d := &deployer{
-		DB: db,
+		store:      common.NewDeployStore(db),
+		s3:         s3.New(session.New(s3Config)),
+		bucketName: strings.TrimPrefix(parsedS3URL.Path, "/"),
 	}
 
 	router := mux.NewRouter().StrictSlash(false).SkipClean(true)
@@ -85,10 +111,11 @@ func main() {
 		fmt.Fprintf(w, "OK")
 	})
 	router.Path("/metrics").Handler(prometheus.Handler())
-	router.Methods("POST").Path("/api/deploy/new").HandlerFunc(withOrgID(d.deploy))
-	router.Methods("GET").Path("/api/deploy/status").HandlerFunc(withOrgID(d.status))
-	router.Methods("POST").Path("/api/deploy/config").HandlerFunc(withOrgID(d.setConfig))
-	router.Methods("GET").Path("/api/deploy/config").HandlerFunc(withOrgID(d.getConfig))
+	router.Methods("POST").Path("/api/deploy").HandlerFunc(withOrgID(d.deploy))
+	router.Methods("GET").Path("/api/deploy").HandlerFunc(withOrgID(d.status))
+	router.Methods("GET").Path("/api/deploy/{id}/log").HandlerFunc(withOrgID(d.getLog))
+	router.Methods("POST").Path("/api/config/deploy").HandlerFunc(withOrgID(d.setConfig))
+	router.Methods("GET").Path("/api/config/deploy").HandlerFunc(withOrgID(d.getConfig))
 	log.Infof("Listening on %s", listen)
 	log.Fatal(http.ListenAndServe(
 		listen,
@@ -114,7 +141,9 @@ func withOrgID(f func(string, http.ResponseWriter, *http.Request)) http.HandlerF
 }
 
 type deployer struct {
-	DB *sql.DB
+	store      *common.DeployStore
+	s3         *s3.S3
+	bucketName string
 }
 
 func (d *deployer) deploy(orgID string, w http.ResponseWriter, r *http.Request) {
@@ -125,7 +154,7 @@ func (d *deployer) deploy(orgID string, w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := common.StoreNewDeployment(d.DB, orgID, request); err != nil {
+	if err := d.store.StoreNewDeployment(orgID, request); err != nil {
 		log.Errorf("Error doing insert: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -138,7 +167,7 @@ type statusResponse struct {
 }
 
 func (d *deployer) status(orgID string, w http.ResponseWriter, r *http.Request) {
-	deployments, err := common.GetDeployments(d.DB, orgID)
+	deployments, err := d.store.GetDeployments(orgID)
 	if err != nil {
 		log.Errorf("Error getting deployments: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -163,7 +192,7 @@ func (d *deployer) setConfig(orgID string, w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := common.StoreConfig(d.DB, orgID, config); err != nil {
+	if err := d.store.StoreConfig(orgID, config); err != nil {
 		log.Errorf("Error storing config: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -172,8 +201,8 @@ func (d *deployer) setConfig(orgID string, w http.ResponseWriter, r *http.Reques
 }
 
 func (d *deployer) getConfig(orgID string, w http.ResponseWriter, r *http.Request) {
-	config, err := common.GetConfig(d.DB, orgID)
-	if err == common.ErrNoConfig {
+	config, err := d.store.GetConfig(orgID)
+	if err == common.ErrNotFound {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	} else if err != nil {
@@ -184,6 +213,40 @@ func (d *deployer) getConfig(orgID string, w http.ResponseWriter, r *http.Reques
 
 	if err := json.NewEncoder(w).Encode(config); err != nil {
 		log.Errorf("Error encoding config: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (d *deployer) getLog(orgID string, w http.ResponseWriter, r *http.Request) {
+	deployID := mux.Vars(r)["id"]
+	deployment, err := d.store.GetDeployment(orgID, deployID)
+	if err == common.ErrNotFound {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	} else if err != nil {
+		log.Errorf("Error fetching deployment: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var resp *s3.GetObjectOutput
+	err = instrument.TimeRequest("Get", s3RequestDuration, func() error {
+		var err error
+		resp, err = d.s3.GetObject(&s3.GetObjectInput{
+			Bucket: aws.String(d.bucketName),
+			Key:    aws.String(deployment.LogKey),
+		})
+		return err
+	})
+	if err != nil {
+		log.Errorf("Error fetching log: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		log.Errorf("Error copying log: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

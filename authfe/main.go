@@ -148,6 +148,7 @@ func main() {
 	probeRouter.PathPrefix("/api/control").Name("api_probe_control").Handler(contolFwd)
 	probeRouter.PathPrefix("/api/pipe").Name("api_probe_pipe").Handler(pipeFwd)
 	probeRouter.PathPrefix("/api/deploy").Name("api_deploy").Handler(deployFwd)
+	probeRouter.PathPrefix("/api/config").Name("api_config").Handler(deployFwd)
 
 	// adminRouter is for all admin functionality, authenticated using header credentials
 	adminRouter := newRouter()

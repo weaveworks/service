@@ -17,12 +17,12 @@ type Config struct {
 }
 
 // ErrNoConfig is the error returns by GetConfig if the user hasn't set a config yet.
-var ErrNoConfig = fmt.Errorf("No config for organisation")
+var ErrNotFound = fmt.Errorf("Not found")
 
 // GetConfig fetches config from the database for a given user.
-func GetConfig(db *sql.DB, orgID string) (*Config, error) {
+func (d *DeployStore) GetConfig(orgID string) (*Config, error) {
 	var confJSON string
-	if err := db.QueryRow(
+	if err := d.db.QueryRow(
 		`SELECT conf
 		   FROM conf
 		  WHERE organization_id = $1
@@ -30,7 +30,7 @@ func GetConfig(db *sql.DB, orgID string) (*Config, error) {
 		  LIMIT 1`,
 		orgID,
 	).Scan(&confJSON); err == sql.ErrNoRows {
-		return nil, ErrNoConfig
+		return nil, ErrNotFound
 	} else if err != nil {
 		return nil, err
 	}
@@ -43,14 +43,14 @@ func GetConfig(db *sql.DB, orgID string) (*Config, error) {
 }
 
 // StoreConfig saves config to the database for a given user.
-func StoreConfig(db *sql.DB, orgID string, c Config) error {
+func (d *DeployStore) StoreConfig(orgID string, c Config) error {
 	// And reencode...
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(&c); err != nil {
 		return err
 	}
 
-	_, err := db.Exec(
+	_, err := d.db.Exec(
 		"INSERT INTO conf (organization_id, conf) VALUES ($1, $2)",
 		orgID,
 		buf.String(),

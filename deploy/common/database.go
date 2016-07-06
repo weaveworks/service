@@ -20,10 +20,21 @@ type Deployment struct {
 	Version   string `json:"version"`
 	Priority  int    `json:"priority"`
 	State     string `json:"status"`
+	LogKey    string `json:"-"`
 }
 
-func tx(db *sql.DB, f func(*sql.Tx) error) error {
-	tx, err := db.Begin()
+type DeployStore struct {
+	db *sql.DB
+}
+
+func NewDeployStore(db *sql.DB) *DeployStore {
+	return &DeployStore{
+		db: db,
+	}
+}
+
+func (d *DeployStore) tx(f func(*sql.Tx) error) error {
+	tx, err := d.db.Begin()
 	if err != nil {
 		return err
 	}
@@ -35,8 +46,8 @@ func tx(db *sql.DB, f func(*sql.Tx) error) error {
 }
 
 // StoreNewDeployment stores a new deployment in the pending state.
-func StoreNewDeployment(db *sql.DB, orgID string, d Deployment) error {
-	return tx(db, func(tx *sql.Tx) error {
+func (d *DeployStore) StoreNewDeployment(orgID string, deployment Deployment) error {
+	return d.tx(func(tx *sql.Tx) error {
 		if _, err := tx.Exec(
 			`UPDATE deploys
 			    SET state = $1
@@ -46,7 +57,7 @@ func StoreNewDeployment(db *sql.DB, orgID string, d Deployment) error {
 			Skipped,
 			Pending,
 			orgID,
-			d.ImageName,
+			deployment.ImageName,
 		); err != nil {
 			return err
 		}
@@ -55,9 +66,9 @@ func StoreNewDeployment(db *sql.DB, orgID string, d Deployment) error {
 			`INSERT INTO deploys (organization_id, image, version, priority, state)
 			 VALUES ($1, $2, $3, $4, $5)`,
 			orgID,
-			d.ImageName,
-			d.Version,
-			d.Priority,
+			deployment.ImageName,
+			deployment.Version,
+			deployment.Priority,
 			Pending,
 		)
 		return err
@@ -65,22 +76,23 @@ func StoreNewDeployment(db *sql.DB, orgID string, d Deployment) error {
 }
 
 // UpdateDeploymentState updates the state of a deployment
-func UpdateDeploymentState(db *sql.DB, id, state string) error {
-	_, err := db.Exec(
+func (d *DeployStore) UpdateDeploymentState(id, state, logKey string) error {
+	_, err := d.db.Exec(
 		`UPDATE deploys
-		    SET state = $1
-		  WHERE id = $2`,
+		    SET (state, log_key) = ($1, $2)
+		  WHERE id = $3`,
 		state,
+		logKey,
 		id,
 	)
 	return err
 }
 
 // GetDeployments fetches deployments from the database
-func GetDeployments(db *sql.DB, orgID string) ([]Deployment, error) {
+func (d *DeployStore) GetDeployments(orgID string) ([]Deployment, error) {
 	result := []Deployment{}
-	rows, err := db.Query(
-		`SELECT id, image, version, priority, state
+	rows, err := d.db.Query(
+		`SELECT id, image, version, priority, state, log_key
 		   FROM deploys
 		  WHERE organization_id = $1
 	   ORDER BY id::Integer DESC`, orgID)
@@ -90,9 +102,14 @@ func GetDeployments(db *sql.DB, orgID string) ([]Deployment, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var deployment Deployment
-		if err := rows.Scan(&deployment.ID, &deployment.ImageName, &deployment.Version, &deployment.Priority, &deployment.State); err != nil {
+		var logKey sql.NullString
+		if err := rows.Scan(
+			&deployment.ID, &deployment.ImageName, &deployment.Version,
+			&deployment.Priority, &deployment.State, &deployment.LogKey,
+		); err != nil {
 			return nil, err
 		}
+		deployment.LogKey = logKey.String
 		result = append(result, deployment)
 	}
 	if err := rows.Err(); err != nil {
@@ -101,8 +118,30 @@ func GetDeployments(db *sql.DB, orgID string) ([]Deployment, error) {
 	return result, nil
 }
 
+// GetDeployments fetches deployments from the database
+func (d *DeployStore) GetDeployment(orgID, deployID string) (*Deployment, error) {
+	var deployment Deployment
+	var logKey sql.NullString
+	if err := d.db.QueryRow(
+		`SELECT id, image, version, priority, state, log_key
+		   FROM deploys
+		  WHERE organization_id = $1
+		    AND id = $2`,
+		orgID, deployID,
+	).Scan(
+		&deployment.ID, &deployment.ImageName, &deployment.Version,
+		&deployment.Priority, &deployment.State, &logKey,
+	); err == sql.ErrNoRows {
+		return nil, ErrNotFound
+	} else if err != nil {
+		return nil, err
+	}
+	deployment.LogKey = logKey.String
+	return &deployment, nil
+}
+
 // GetNextDeployment fetches the next deployment to "do", and marks it as running.
-func GetNextDeployment(db *sql.DB) (string, *Deployment, error) {
+func (d *DeployStore) GetNextDeployment() (string, *Deployment, error) {
 	// Query the database for the lowest, "new" deploy, claim it,
 	// find any subsequent deploys for the same image, pick the latest
 	// and make the rest of the deploys for the same image as "skipped"
@@ -110,7 +149,7 @@ func GetNextDeployment(db *sql.DB) (string, *Deployment, error) {
 		orgID      string
 		deployment Deployment
 	)
-	err := tx(db, func(tx *sql.Tx) error {
+	err := d.tx(func(tx *sql.Tx) error {
 		// Query the database for the lowest pending deploy
 		if err := tx.QueryRow(`
 			SELECT id, organization_id, image, version
