@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 )
 
+// AWSConfigFromURL generates a AWS config from a URL.
 func AWSConfigFromURL(url *url.URL) (*aws.Config, error) {
 	if url.User == nil {
 		return nil, fmt.Errorf("Must specify username & password in URL")

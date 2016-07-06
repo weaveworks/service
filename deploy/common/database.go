@@ -23,10 +23,12 @@ type Deployment struct {
 	LogKey    string `json:"-"`
 }
 
+// DeployStore stores info about deployments.
 type DeployStore struct {
 	db *sql.DB
 }
 
+// NewDeployStore creates a new DeployStore
 func NewDeployStore(db *sql.DB) *DeployStore {
 	return &DeployStore{
 		db: db,
@@ -105,7 +107,7 @@ func (d *DeployStore) GetDeployments(orgID string) ([]Deployment, error) {
 		var logKey sql.NullString
 		if err := rows.Scan(
 			&deployment.ID, &deployment.ImageName, &deployment.Version,
-			&deployment.Priority, &deployment.State, &deployment.LogKey,
+			&deployment.Priority, &deployment.State, &logKey,
 		); err != nil {
 			return nil, err
 		}
@@ -118,7 +120,7 @@ func (d *DeployStore) GetDeployments(orgID string) ([]Deployment, error) {
 	return result, nil
 }
 
-// GetDeployments fetches deployments from the database
+// GetDeployment fetches a deployment from the database
 func (d *DeployStore) GetDeployment(orgID, deployID string) (*Deployment, error) {
 	var deployment Deployment
 	var logKey sql.NullString

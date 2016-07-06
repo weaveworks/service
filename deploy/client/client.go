@@ -119,7 +119,7 @@ func (c Client) SetConfig(config *common.Config) error {
 	return nil
 }
 
-// GetConfig returns the current Config
+// GetLogs returns the logs for a given deployment.
 func (c Client) GetLogs(deployID string) ([]byte, error) {
 	req, err := c.newRequest("GET", fmt.Sprintf("/api/deploy/%s/log", deployID), nil)
 	if err != nil {

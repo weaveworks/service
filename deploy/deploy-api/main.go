@@ -222,11 +222,16 @@ func (d *deployer) getLog(orgID string, w http.ResponseWriter, r *http.Request) 
 	deployID := mux.Vars(r)["id"]
 	deployment, err := d.store.GetDeployment(orgID, deployID)
 	if err == common.ErrNotFound {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, "Deployment not found", http.StatusNotFound)
 		return
 	} else if err != nil {
 		log.Errorf("Error fetching deployment: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if deployment.LogKey == "" {
+		http.Error(w, "No logs for deployment", http.StatusNotFound)
 		return
 	}
 

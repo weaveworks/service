@@ -16,7 +16,7 @@ type Config struct {
 	KubeconfigPath string `json:"kubeconfig_path" yaml:"kubeconfig_path"`
 }
 
-// ErrNoConfig is the error returns by GetConfig if the user hasn't set a config yet.
+// ErrNotFound is the error returned when something is not found.
 var ErrNotFound = fmt.Errorf("Not found")
 
 // GetConfig fetches config from the database for a given user.
