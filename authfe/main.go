@@ -92,6 +92,7 @@ func main() {
 		queryHost      string
 		controlHost    string
 		pipeHost       string
+		deployHost     string
 		fluentHost     string
 
 		grafanaHost      string
@@ -112,6 +113,7 @@ func main() {
 	flag.StringVar(&queryHost, "query", "query.default.svc.cluster.local:80", "Hostname & port for query service")
 	flag.StringVar(&controlHost, "control", "control.default.svc.cluster.local:80", "Hostname & port for control service")
 	flag.StringVar(&pipeHost, "pipe", "pipe.default.svc.cluster.local:80", "Hostname & port for pipe service")
+	flag.StringVar(&deployHost, "deploy", "api.deploy.svc.cluster.local:80", "Hostname & port for deploy service")
 	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
 	flag.StringVar(&grafanaHost, "grafana", "grafana.monitoring.svc.cluster.local:80", "Hostname & port for grafana")
 	flag.StringVar(&scopeHost, "scope", "scope.kube-system.svc.cluster.local:80", "Hostname & port for scope")
@@ -130,6 +132,7 @@ func main() {
 	queryFwd := newProxy(queryHost)
 	contolFwd := newProxy(controlHost)
 	pipeFwd := newProxy(pipeHost)
+	deployFwd := newProxy(deployHost)
 
 	// orgRouter is for all ui <-> app communication, authenticated using cookie credentials
 	orgRouter := newRouter()
@@ -144,6 +147,8 @@ func main() {
 	probeRouter.PathPrefix("/api/report").Name("api_probe_report").Handler(collectionFwd)
 	probeRouter.PathPrefix("/api/control").Name("api_probe_control").Handler(contolFwd)
 	probeRouter.PathPrefix("/api/pipe").Name("api_probe_pipe").Handler(pipeFwd)
+	probeRouter.PathPrefix("/api/deploy").Name("api_deploy").Handler(deployFwd)
+	probeRouter.PathPrefix("/api/config").Name("api_config").Handler(deployFwd)
 
 	// adminRouter is for all admin functionality, authenticated using header credentials
 	adminRouter := newRouter()
