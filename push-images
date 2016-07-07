@@ -22,21 +22,25 @@ fi
 
 SINCE=false
 DEPLOY=false
-case "${1:-}" in
-    --if-changed-since=*)
-        SINCE=${1#--if-changed-since}
-        shift 1
-        ;;
-    --if-changed-since)
-        SINCE=${2:-HEAD~1}
-        shift 2
-        ;;
-    --and-deploy)
-        DEPLOY=true
-        shift 1
-        ;;
-    *)
-esac
+while [ $# -gt 0 ]; do
+    case "${1:-}" in
+        --if-changed-since=*)
+            SINCE=${1#--if-changed-since}
+            shift 1
+            ;;
+        --if-changed-since)
+            SINCE=${2:-HEAD~1}
+            shift 2
+            ;;
+        --and-deploy)
+            DEPLOY=true
+            shift 1
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
 
 MONITORING_COMPONENTS="monitoring/prometheus monitoring/grafana monitoring/gfdatasource monitoring/loadgen monitoring/alertmanager"
 
