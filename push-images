@@ -21,6 +21,7 @@ if [ "$IMAGE_REPOSITORY" == "$BUILD_IMAGE_REPO" ]; then \
 fi
 
 SINCE=false
+DEPLOY=false
 case "${1:-}" in
     --if-changed-since=*)
         SINCE=${1#--if-changed-since}
@@ -30,6 +31,10 @@ case "${1:-}" in
         SINCE=${2:-HEAD~1}
         shift 2
         ;;
+    --and-deploy)
+        DEPLOY=true
+        shift 1
+        ;;
     *)
 esac
 
@@ -38,10 +43,10 @@ MONITORING_COMPONENTS="monitoring/prometheus monitoring/grafana monitoring/gfdat
 COMPONENTS="$@"
 if [ "${COMPONENTS}" == "" ]
 then
-	COMPONENTS="authfe ui-server frontend-mt users metrics launch-generator kubediff logging $MONITORING_COMPONENTS"
+    COMPONENTS="authfe ui-server frontend-mt users metrics launch-generator kubediff logging $MONITORING_COMPONENTS"
 elif [ "${COMPONENTS}" == "monitoring" ] # Special case
 then
-	COMPONENTS="$MONITORING_COMPONENTS"
+    COMPONENTS="$MONITORING_COMPONENTS"
 fi
 echo "Using components: ${COMPONENTS}"
 
@@ -54,15 +59,15 @@ do
         exit 1
     fi
     image=$(basename $c)
-	build_image="${BUILD_IMAGE_REPO}/${image}:${IMAGE_TAG}"
-	if ! docker inspect ${build_image} >/dev/null; then
-	    echo "Expected image ${build_image} to exist, given the working directory state:" >&2
-	    echo "    ${IMAGE_TAG}" >&2
-	    echo "and the components to push:" >&2
-	    echo "    ${COMPONENTS}" >&2
-	    echo "But it does not exist. The local build may not have resulted in a new image." >&2
-	    exit 1
-	fi
+    build_image="${BUILD_IMAGE_REPO}/${image}:${IMAGE_TAG}"
+    if ! docker inspect ${build_image} >/dev/null; then
+        echo "Expected image ${build_image} to exist, given the working directory state:" >&2
+        echo "    ${IMAGE_TAG}" >&2
+        echo "and the components to push:" >&2
+        echo "    ${COMPONENTS}" >&2
+        echo "But it does not exist. The local build may not have resulted in a new image." >&2
+        exit 1
+    fi
 done
 
 for c in ${COMPONENTS}
@@ -72,13 +77,17 @@ do
     image=$(basename $c)
     push_image="${IMAGE_REPOSITORY}/${image}:${IMAGE_TAG}"
     if [ "$SINCE" = 'false' ] || ! git diff --quiet "$SINCE" -- "$c"/; then
-	build_image="${BUILD_IMAGE_REPO}/${image}:${IMAGE_TAG}"
-	if [ "$IMAGE_REPOSITORY" != "$BUILD_IMAGE_REPO" ]; then
-	    echo "Tagging built image ${build_image} for pushing as ${push_image}"
-	    docker tag -f "${build_image}" "${push_image}"
-	fi
-	echo "Pushing ${push_image}"
-	docker push "${push_image}"
+        build_image="${BUILD_IMAGE_REPO}/${image}:${IMAGE_TAG}"
+        if [ "$IMAGE_REPOSITORY" != "$BUILD_IMAGE_REPO" ]; then
+            echo "Tagging built image ${build_image} for pushing as ${push_image}"
+            docker tag -f "${build_image}" "${push_image}"
+        fi
+        echo "Pushing ${push_image}"
+        docker push "${push_image}"
+
+        if [ "$DEPLOY" = 'true' ]; then
+            wcloud deploy "${push_image}"
+        fi
     else
         echo "Not pushing image for $push_image, because no changes in $c since commit $SINCE"
     fi
