@@ -1159,6 +1159,191 @@
             "threshold2": null,
             "threshold2Color": "rgba(234, 112, 112, 0.22)"
           },
+          "id": 3,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"demo\",status_code =~ \"1..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "1xx",
+              "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"demo\",status_code =~ \"2..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "2xx",
+              "refId": "B",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"demo\",status_code =~ \"3..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "3xx",
+              "refId": "C",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"demo\",status_code =~ \"4..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "4xx",
+              "refId": "D",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"demo\",status_code =~ \"5..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "5xx",
+              "refId": "E",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Demo QPS",
+          "tooltip": {
+            "msResolution": false,
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 4,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"demo\",ws=\"false\"}) by (quantile) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "{{quantile}} quantile",
+              "refId": "A",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Demo Latency",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "ms",
+              "label": "",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": false
+            }
+          ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
           "id": 11,
           "isNew": true,
           "legend": {
