@@ -8,7 +8,7 @@ job_route:scope_request_latency:max =
    max(scope_request_duration_seconds{namespace="default", quantile="0.9", ws="false"}) by (job, route)
 
 job_route:scope_request_duration_seconds:95quantile =
-   histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,le)) * 1e3
+   histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,le))
 
 # Define non-ws latency
 job:scope_request_latency:max =
