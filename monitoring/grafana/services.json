@@ -730,10 +730,17 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"collection\",ws=\"false\"}) by (quantile) * 1e3",
+              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"collection\",ws=\"false\"}[5m])) by (le)) * 1e3",
               "intervalFactor": 2,
-              "legendFormat": "{{quantile}} quantile",
+              "legendFormat": "95th quantile",
               "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"collection\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "50th quantile",
+              "refId": "B",
               "step": 10
             }
           ],
@@ -915,10 +922,17 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"query\",ws=\"false\"}) by (quantile) * 1e3",
+              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"query\",ws=\"false\"}[5m])) by (le)) * 1e3",
               "intervalFactor": 2,
-              "legendFormat": "{{quantile}} quantile",
+              "legendFormat": "95th quantile",
               "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"query\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "50th quantile",
+              "refId": "B",
               "step": 10
             }
           ],
@@ -1101,10 +1115,17 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"control\",ws=\"false\"}) by (quantile) * 1e3",
+              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"control\",ws=\"false\"}[5m])) by (le)) * 1e3",
               "intervalFactor": 2,
-              "legendFormat": "{{quantile}} quantile",
+              "legendFormat": "95th quantile",
               "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.50, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"control\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "50th quantile",
+              "refId": "B",
               "step": 10
             }
           ],
@@ -1450,10 +1471,17 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_sqs_request_duration_seconds{namespace=\"default\"}) by (quantile, method) * 1e3",
+              "expr": "histogram_quantile(0.95, sum(rate(scope_sqs_request_duration_seconds_bucket[5m])) by (le,method)) * 1e3",
               "intervalFactor": 2,
-              "legendFormat": "{{method}} {{quantile}} quantile",
+              "legendFormat": "95th quantile {{method}}",
               "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(scope_sqs_request_duration_seconds_bucket[5m])) by (le,method)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "50th quantile {{method}}",
+              "refId": "B",
               "step": 10
             }
           ],
@@ -1635,10 +1663,17 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"pipe\",ws=\"false\"}) by (quantile) * 1e3",
+              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"pipe\",ws=\"false\"}[5m])) by (le)) * 1e3",
               "intervalFactor": 2,
-              "legendFormat": "{{quantile}} quantile",
+              "legendFormat": "95th quantile",
               "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"pipe\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "50th quantile",
+              "refId": "B",
               "step": 10
             }
           ],
