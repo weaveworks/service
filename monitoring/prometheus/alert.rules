@@ -7,6 +7,9 @@ job:scope_request_errors:rate1m =
 job_route:scope_request_latency:max =
    max(scope_request_duration_seconds{namespace="default", quantile="0.9", ws="false"}) by (job, route)
 
+job_route:scope_request_duration_seconds:95quantile =
+   histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,le))
+
 # Define non-ws latency
 job:scope_request_latency:max =
    max(scope_request_duration_seconds{namespace="default", quantile="0.9", ws="false"}) by (job)
@@ -81,7 +84,7 @@ ALERT UsersLatency
   }
 
 ALERT CollectionLatency
-  IF          job:scope_request_latency:max{job="collection"} > 5.0
+  IF          job_route:scope_request_duration_seconds:95quantile{job="collection"} > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
@@ -90,7 +93,7 @@ ALERT CollectionLatency
   }
 
 ALERT QueryLatency
-  IF          job:scope_request_latency:max{job="query"} > 5.0
+  IF          job_route:scope_request_duration_seconds:95quantile{job="query"} > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
@@ -101,7 +104,7 @@ ALERT QueryLatency
 # For each service, an alert if it's absent
 
 ALERT AuthFENoInstances
-  IF          absent(scope_request_duration_seconds{job="authfe"})
+  IF          absent(scope_request_duration_seconds_count{job="authfe"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -110,7 +113,7 @@ ALERT AuthFENoInstances
   }
 
 ALERT UsersNoInstances
-  IF          absent(scope_request_duration_seconds{job="users"})
+  IF          absent(scope_request_duration_seconds_count{job="users"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -119,7 +122,7 @@ ALERT UsersNoInstances
   }
 
 ALERT CollectionNoInstances
-  IF          absent(scope_request_duration_seconds{job="collection"})
+  IF          absent(scope_request_duration_seconds_count{job="collection"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -128,7 +131,7 @@ ALERT CollectionNoInstances
   }
 
 ALERT QueryNoInstances
-  IF          absent(scope_request_duration_seconds{job="query"})
+  IF          absent(scope_request_duration_seconds_count{job="query"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
