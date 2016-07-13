@@ -207,7 +207,7 @@ export default class OrganizationPage extends React.Component {
               <div style={styles.steps}>
                 <div style={styles.step}>
                   <span style={styles.circle}>1</span>
-                  <h2>Launch the Weave Cloud Agent</h2>
+                  <h2>Launch the Weave Cloud Probe</h2>
                   Run the following commands on your Docker hosts to connect them
                   as probes to this Weave Cloud instance:
                 </div>
