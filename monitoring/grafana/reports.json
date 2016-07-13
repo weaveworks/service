@@ -742,7 +742,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Memcache Memory Capacity",
+          "title": "Memcache Memory Usage",
           "tooltip": {
             "msResolution": false,
             "shared": true,
