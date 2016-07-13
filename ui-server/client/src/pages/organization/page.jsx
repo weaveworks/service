@@ -207,19 +207,30 @@ export default class OrganizationPage extends React.Component {
               <div style={styles.steps}>
                 <div style={styles.step}>
                   <span style={styles.circle}>1</span>
-                  <h2>Configure your app</h2>
+                  <h2>Launch the Weave Cloud Probe</h2>
                   Run the following commands on your Docker hosts to connect them
                   as probes to this Weave Cloud instance:
                 </div>
                 <Box>
                   <div style={styles.code}>
-                    <div>sudo wget -O /usr/local/bin/scope \<br />&nbsp;&nbsp;https://git.io/scope</div>
+                    <div>sudo curl -L git.io/scope -o /usr/local/bin/scope</div>
                     <div>sudo chmod a+x /usr/local/bin/scope</div>
                     <div>scope launch --service-token={this.state.probeToken}</div>
                   </div>
                 </Box>
                 <div style={styles.step}>
                   <span style={styles.circle}>2</span>
+                  <h2>Try our Reference Application</h2>
+                  If you don't have an application of your own, try our <a href="https://github.com/weaveworks/weaveDemo">Reference Application</a> using <a href="https://docs.docker.com/compose/install/">Docker Compose</a>:
+                </div>
+                <Box>
+                  <div style={styles.code}>
+                    <div>curl -L git.io/weavedemo-compose.yml -o docker-compose.yml</div>
+                    <div>docker-compose up</div>
+                  </div>
+                </Box>
+                <div style={styles.step}>
+                  <span style={styles.circle}>3</span>
                   <h2>Invite team members</h2>
                   <p>
                     Send invites to allow other members of your team to view this
