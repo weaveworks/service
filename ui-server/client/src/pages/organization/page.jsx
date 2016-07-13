@@ -213,7 +213,7 @@ export default class OrganizationPage extends React.Component {
                 </div>
                 <Box>
                   <div style={styles.code}>
-                    <div>sudo wget -O /usr/local/bin/scope \<br />&nbsp;&nbsp;https://git.io/scope</div>
+                    <div>sudo curl -L git.io/scope -o /usr/local/bin/scope</div>
                     <div>sudo chmod a+x /usr/local/bin/scope</div>
                     <div>scope launch --service-token={this.state.probeToken}</div>
                   </div>
@@ -227,7 +227,7 @@ export default class OrganizationPage extends React.Component {
                 </div>
                 <Box>
                   <div style={styles.code}>
-                    <div>wget -O docker-compose.yml https://git.io/weavedemo-compose.yml</div>
+                    <div>curl -L git.io/weavedemo-compose.yml -o docker-compose.yml</div>
                     <div>docker-compose up</div>
                   </div>
                 </Box>
