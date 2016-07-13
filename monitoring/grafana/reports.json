@@ -302,16 +302,33 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_report_size_bytes_total[1m])) by (method)",
+              "expr": "histogram_quantile(0.95, sum(irate(scope_report_size_bytes_bucket{job=\"collection\",namespace=\"default\"}[5m])) by (le))",
               "intervalFactor": 2,
-              "legendFormat": "reports written (compressed)",
+              "legendFormat": "95th quantile",
               "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum(irate(scope_report_size_bytes_bucket{job=\"collection\",namespace=\"default\"}[5m])) by (le))",
+              "intervalFactor": 2,
+              "legendFormat": "50th quantile",
+              "metric": "",
+              "refId": "B",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(scope_report_size_bytes_sum{namespace=\"default\",job=\"collection\"}[5m])) / sum(irate(scope_report_size_bytes_count{namespace=\"default\",job=\"collection\"}[5m]))",
+              "interval": "",
+              "intervalFactor": 2,
+              "legendFormat": "Mean",
+              "metric": "",
+              "refId": "C",
               "step": 10
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Report Sizes",
+          "title": "Report Sizes (compressed)",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -323,7 +340,7 @@
           },
           "yaxes": [
             {
-              "format": "Bps",
+              "format": "bytes",
               "label": "",
               "logBase": 1,
               "max": null,
