@@ -220,10 +220,8 @@ export default class OrganizationPage extends React.Component {
                 </Box>
                 <div style={styles.step}>
                   <span style={styles.circle}>2</span>
-                  <h2>Run our Demo App</h2>
-                  If you want to quickly experiment with Weave Cloud and
-                  haven't got an application of your own handy, you may wish to
-                  run the <a href="https://github.com/weaveworks/weaveDemo">Demo App</a>:
+                  <h2>Try our Reference Application</h2>
+                  If you don't have an application of your own, try our <a href="https://github.com/weaveworks/weaveDemo">Reference Application</a> using <a href="https://docs.docker.com/compose/install/">Docker Compose</a>:
                 </div>
                 <Box>
                   <div style={styles.code}>
