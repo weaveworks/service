@@ -207,7 +207,7 @@ export default class OrganizationPage extends React.Component {
               <div style={styles.steps}>
                 <div style={styles.step}>
                   <span style={styles.circle}>1</span>
-                  <h2>Configure your app</h2>
+                  <h2>Launch the Weave Cloud Agent</h2>
                   Run the following commands on your Docker hosts to connect them
                   as probes to this Weave Cloud instance:
                 </div>
@@ -220,6 +220,19 @@ export default class OrganizationPage extends React.Component {
                 </Box>
                 <div style={styles.step}>
                   <span style={styles.circle}>2</span>
+                  <h2>Run our Demo App</h2>
+                  If you want to quickly experiment with Weave Cloud and
+                  haven't got an application of your own handy, you may wish to
+                  run the <a href="https://github.com/weaveworks/weaveDemo">Demo App</a>:
+                </div>
+                <Box>
+                  <div style={styles.code}>
+                    <div>wget -O docker-compose.yml https://git.io/weavedemo-compose.yml</div>
+                    <div>docker-compose up</div>
+                  </div>
+                </Box>
+                <div style={styles.step}>
+                  <span style={styles.circle}>3</span>
                   <h2>Invite team members</h2>
                   <p>
                     Send invites to allow other members of your team to view this
