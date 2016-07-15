@@ -153,7 +153,7 @@ func Test_RelabelOrganization(t *testing.T) {
 	r.AddCookie(cookie)
 
 	app.ServeHTTP(w, r)
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusNoContent, w.Code)
 
 	user, err = storage.FindUserByID(user.ID)
 	require.NoError(t, err)
@@ -305,6 +305,34 @@ func Test_CustomNameOrganization_Validation(t *testing.T) {
 			assert.Equal(t, otherOrg.Name, user.Organizations[0].Name)
 		}
 	}
+}
+
+func Test_Organization_GenerateOrgName(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user, err := storage.CreateUser("joe@weave.works")
+	require.NoError(t, err)
+
+	user, err = storage.ApproveUser(user.ID)
+	require.NoError(t, err)
+
+	cookie, err := sessions.Cookie(user.ID, "")
+	assert.NoError(t, err)
+
+	// Generate a new org name
+	r, _ := http.NewRequest("GET", "/api/users/generateOrgName", nil)
+	r.AddCookie(cookie)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+	body := map[string]string{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.NotEqual(t, "", body["name"])
+
+	// Check it's available, and creatable
+	_, err = storage.CreateOrganization(user.ID, body["name"], body["name"])
+	require.NoError(t, err)
 }
 
 func Test_Organization_CheckIfNameExists(t *testing.T) {

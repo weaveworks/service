@@ -141,6 +141,7 @@ func (a *api) routes() http.Handler {
 		{"api_users_lookup", "GET", "/api/users/lookup", a.authenticated(a.publicLookup)},
 
 		// Basic view and management of an organization
+		{"api_users_generateOrgName", "GET", "/api/users/generateOrgName", a.authenticated(a.generateOrgName)},
 		{"api_users_org_create", "POST", "/api/users/org", a.authenticated(a.createOrg)},
 		{"api_users_org_orgName", "GET", "/api/users/org/{orgName}", a.authenticated(a.org)},
 		{"api_users_org_orgName_update", "PUT", "/api/users/org/{orgName}", a.authenticated(a.updateOrg)},
@@ -668,7 +669,7 @@ func csrf(handler http.Handler) http.Handler {
 type orgView struct {
 	User               string `json:"user,omitempty"`
 	Name               string `json:"name"`
-	Label              string `json:"label"`
+	Label              string `json:"label,omitempty"`
 	ProbeToken         string `json:"probeToken,omitempty"`
 	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
 }
@@ -696,6 +697,15 @@ func (a *api) org(currentUser *user, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	renderError(w, r, errNotFound)
+}
+
+func (a *api) generateOrgName(currentUser *user, w http.ResponseWriter, r *http.Request) {
+	name, err := a.storage.GenerateOrganizationName()
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	renderJSON(w, http.StatusOK, orgView{Name: name})
 }
 
 func (a *api) createOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
@@ -732,7 +742,7 @@ func (a *api) updateOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 		renderError(w, r, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 type organizationUsersView struct {
