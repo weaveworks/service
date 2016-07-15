@@ -90,6 +90,7 @@ $(EXES): build/$(UPTODATE)
 lint: build/$(UPTODATE)
 	./tools/lint .
 	./monitoring/lint
+	./tools/shell-lint .
 
 test: build/$(UPTODATE)
 	./tools/test -no-go-get
