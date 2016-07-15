@@ -83,15 +83,9 @@ func (s memoryStorage) DetachLoginFromUser(userID, provider string) error {
 }
 
 func (s memoryStorage) InviteUser(email, orgName string) (*user, error) {
-	var o *organization
-	for _, org := range s.organizations {
-		if strings.ToLower(org.Name) == strings.ToLower(orgName) {
-			o = org
-			break
-		}
-	}
-	if o == nil {
-		return nil, errNotFound
+	o, err := s.findOrganizationByName(orgName)
+	if err != nil {
+		return nil, err
 	}
 
 	u, err := s.FindUserByEmail(email)
@@ -238,17 +232,24 @@ func (s memoryStorage) SetUserFirstLoginAt(id string) error {
 
 func (s memoryStorage) GenerateOrganizationName() (string, error) {
 	var name string
-	for exists := true; exists; {
+	for {
 		name = names.Generate()
-		exists = false
-		for _, org := range s.organizations {
-			if strings.ToLower(org.Name) == strings.ToLower(name) {
-				exists = true
-				break
-			}
+		_, err := s.findOrganizationByName(name)
+		if err != nil && err != errNotFound {
+			return "", err
 		}
+		break
 	}
 	return name, nil
+}
+
+func (s memoryStorage) findOrganizationByName(name string) (*organization, error) {
+	for _, o := range s.organizations {
+		if strings.ToLower(o.Name) == strings.ToLower(name) {
+			return o, nil
+		}
+	}
+	return nil, errNotFound
 }
 
 func (s memoryStorage) CreateOrganization(ownerID, name, label string) (*organization, error) {
@@ -304,22 +305,22 @@ func (s memoryStorage) RelabelOrganization(name, label string) error {
 		return err
 	}
 
-	for _, o := range s.organizations {
-		if strings.ToLower(o.Name) == strings.ToLower(name) {
-			o.Label = label
-			return nil
-		}
+	o, err := s.findOrganizationByName(name)
+	if err != nil {
+		return err
 	}
-	return errNotFound
+
+	o.Label = label
+	return nil
 }
 
 func (s memoryStorage) OrganizationExists(name string) (bool, error) {
-	for _, o := range s.organizations {
-		if strings.ToLower(o.Name) == strings.ToLower(name) {
-			return true, nil
-		}
+	if _, err := s.findOrganizationByName(name); err == errNotFound {
+		return false, nil
+	} else if err != nil {
+		return false, err
 	}
-	return false, nil
+	return true, nil
 }
 
 func (s memoryStorage) Close() error {
