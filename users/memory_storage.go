@@ -85,7 +85,7 @@ func (s memoryStorage) DetachLoginFromUser(userID, provider string) error {
 func (s memoryStorage) InviteUser(email, orgName string) (*user, error) {
 	var o *organization
 	for _, org := range s.organizations {
-		if org.Name == orgName {
+		if strings.ToLower(org.Name) == strings.ToLower(orgName) {
 			o = org
 			break
 		}
@@ -107,7 +107,7 @@ func (s memoryStorage) InviteUser(email, orgName string) (*user, error) {
 		u.Organizations = append(u.Organizations, o)
 		return u, nil
 	case 1:
-		if u.Organizations[0].Name == orgName {
+		if strings.ToLower(u.Organizations[0].Name) == strings.ToLower(orgName) {
 			return u, nil
 		}
 	}
@@ -173,7 +173,7 @@ func (s memoryStorage) ListOrganizationUsers(orgName string) ([]*user, error) {
 	users := []*user{}
 	for _, user := range s.users {
 		for _, org := range user.Organizations {
-			if org.Name == orgName {
+			if strings.ToLower(org.Name) == strings.ToLower(orgName) {
 				users = append(users, user)
 				break
 			}
@@ -240,8 +240,9 @@ func (s memoryStorage) GenerateOrganizationName() (string, error) {
 	var name string
 	for exists := true; exists; {
 		name = names.Generate()
+		exists = false
 		for _, org := range s.organizations {
-			if org.Name == name {
+			if strings.ToLower(org.Name) == strings.ToLower(name) {
 				exists = true
 				break
 			}
@@ -261,10 +262,19 @@ func (s memoryStorage) CreateOrganization(ownerID, name, label string) (*organiz
 		Label:     label,
 		CreatedAt: time.Now().UTC(),
 	}
+	if err := o.Valid(); err != nil {
+		return nil, err
+	}
+	if exists, err := s.OrganizationExists(o.Name); err != nil {
+		return nil, err
+	} else if exists {
+		return nil, errOrgNameIsTaken
+	}
 	for exists := o.ProbeToken == ""; exists; {
 		if err := o.RegenerateProbeToken(); err != nil {
 			return nil, err
 		}
+		exists = false
 		for _, org := range s.organizations {
 			if org.ProbeToken == o.ProbeToken {
 				exists = true
@@ -290,13 +300,26 @@ func (s memoryStorage) FindOrganizationByProbeToken(probeToken string) (*organiz
 }
 
 func (s memoryStorage) RelabelOrganization(name, label string) error {
+	if err := (&organization{Name: name, Label: label}).Valid(); err != nil {
+		return err
+	}
+
 	for _, o := range s.organizations {
-		if o.Name == name {
+		if strings.ToLower(o.Name) == strings.ToLower(name) {
 			o.Label = label
 			return nil
 		}
 	}
 	return errNotFound
+}
+
+func (s memoryStorage) OrganizationExists(name string) (bool, error) {
+	for _, o := range s.organizations {
+		if strings.ToLower(o.Name) == strings.ToLower(name) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (s memoryStorage) Close() error {

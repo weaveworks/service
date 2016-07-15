@@ -75,6 +75,7 @@ type database interface {
 	CreateOrganization(ownerID, name, label string) (*organization, error)
 	FindOrganizationByProbeToken(probeToken string) (*organization, error)
 	RelabelOrganization(name, newLabel string) error
+	OrganizationExists(name string) (bool, error)
 
 	Close() error
 }
@@ -265,6 +266,15 @@ func (t timedDatabase) RelabelOrganization(name, label string) error {
 	return t.timeRequest("RelabelOrganization", func() error {
 		return t.d.RelabelOrganization(name, label)
 	})
+}
+
+func (t timedDatabase) OrganizationExists(name string) (b bool, err error) {
+	t.timeRequest("OrganizationExists", func() error {
+		b, err = t.d.OrganizationExists(name)
+		return err
+	})
+	return
+
 }
 
 func (t timedDatabase) Close() error {

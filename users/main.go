@@ -141,6 +141,7 @@ func (a *api) routes() http.Handler {
 		{"api_users_lookup", "GET", "/api/users/lookup", a.authenticated(a.publicLookup)},
 
 		// Basic view and management of an organization
+		{"api_users_org_create", "POST", "/api/users/org", a.authenticated(a.createOrg)},
 		{"api_users_org_orgName", "GET", "/api/users/org/{orgName}", a.authenticated(a.org)},
 		{"api_users_org_orgName_update", "PUT", "/api/users/org/{orgName}", a.authenticated(a.updateOrg)},
 
@@ -512,6 +513,7 @@ func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Req
 	for _, org := range currentUser.Organizations {
 		existing = append(existing, orgView{
 			Name:               org.Name,
+			Label:              org.Label,
 			FirstProbeUpdateAt: renderTime(org.FirstProbeUpdateAt),
 		})
 	}
@@ -679,11 +681,19 @@ func (a *api) org(currentUser *user, w http.ResponseWriter, r *http.Request) {
 			renderJSON(w, http.StatusOK, orgView{
 				User:               currentUser.Email,
 				Name:               org.Name,
+				Label:              org.Label,
 				ProbeToken:         org.ProbeToken,
 				FirstProbeUpdateAt: renderTime(org.FirstProbeUpdateAt),
 			})
 			return
 		}
+	}
+	if exists, err := a.storage.OrganizationExists(orgName); err != nil {
+		renderError(w, r, err)
+		return
+	} else if exists {
+		w.WriteHeader(http.StatusForbidden)
+		return
 	}
 	renderError(w, r, errNotFound)
 }
@@ -702,7 +712,7 @@ func (a *api) createOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 		renderError(w, r, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (a *api) updateOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {

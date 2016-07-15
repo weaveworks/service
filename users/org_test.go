@@ -58,6 +58,7 @@ func Test_Org(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{
 		"user":               user.Email,
 		"name":               org.Name,
+		"label":              org.Label,
 		"probeToken":         org.ProbeToken,
 		"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
 	}, body)
@@ -92,6 +93,7 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{
 		"user":       user.Email,
 		"name":       org.Name,
+		"label":      org.Label,
 		"probeToken": org.ProbeToken,
 	}, body)
 }
@@ -302,5 +304,43 @@ func Test_CustomNameOrganization_Validation(t *testing.T) {
 			assert.Equal(t, otherOrg.ID, user.Organizations[0].ID)
 			assert.Equal(t, otherOrg.Name, user.Organizations[0].Name)
 		}
+	}
+}
+
+func Test_Organization_CheckIfNameExists(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user, err := storage.CreateUser("joe@weave.works")
+	require.NoError(t, err)
+
+	user, err = storage.ApproveUser(user.ID)
+	require.NoError(t, err)
+
+	otherUser, err := storage.CreateUser("otherUser@weave.works")
+	require.NoError(t, err)
+
+	name, err := storage.GenerateOrganizationName()
+	require.NoError(t, err)
+
+	cookie, err := sessions.Cookie(user.ID, "")
+	assert.NoError(t, err)
+
+	r, _ := http.NewRequest("GET", "/api/users/org/"+name, nil)
+	r.AddCookie(cookie)
+
+	{
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	}
+
+	_, err = storage.CreateOrganization(otherUser.ID, name, name)
+	require.NoError(t, err)
+
+	{
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusForbidden, w.Code)
 	}
 }

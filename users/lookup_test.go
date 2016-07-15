@@ -65,6 +65,7 @@ func Test_PublicLookup(t *testing.T) {
 	org, err := storage.CreateOrganization(user.ID, name, name)
 	require.NoError(t, err)
 
+	// Use the org, so that firstProbeUpdateAt is set.
 	org, err = storage.FindOrganizationByProbeToken(org.ProbeToken)
 	require.NoError(t, err)
 	require.NotNil(t, org.FirstProbeUpdateAt)
@@ -85,6 +86,7 @@ func Test_PublicLookup(t *testing.T) {
 		"organizations": []interface{}{
 			map[string]interface{}{
 				"name":               org.Name,
+				"label":              org.Label,
 				"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
 			},
 		},

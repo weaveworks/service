@@ -279,24 +279,12 @@ func (s pgStorage) scanUser(row squirrel.RowScanner) (*user, error) {
 	); err != nil {
 		return nil, err
 	}
-	s.setString(&u.Token, token)
-	s.setTime(&u.TokenCreatedAt, tokenCreatedAt)
-	s.setTime(&u.ApprovedAt, approvedAt)
-	s.setTime(&u.CreatedAt, createdAt)
-	s.setTime(&u.FirstLoginAt, firstLoginAt)
+	u.Token = token.String
+	u.TokenCreatedAt = tokenCreatedAt.Time
+	u.ApprovedAt = approvedAt.Time
+	u.CreatedAt = createdAt.Time
+	u.FirstLoginAt = firstLoginAt.Time
 	return u, nil
-}
-
-func (s pgStorage) setTime(dst *time.Time, src pq.NullTime) {
-	if src.Valid {
-		*dst = src.Time
-	}
-}
-
-func (s pgStorage) setString(dst *string, src sql.NullString) {
-	if src.Valid {
-		*dst = src.String
-	}
 }
 
 func (s pgStorage) usersQuery() squirrel.SelectBuilder {
@@ -319,6 +307,7 @@ func (s pgStorage) organizationsQuery() squirrel.SelectBuilder {
 	return s.Select(
 		"organizations.id",
 		"organizations.name",
+		"organizations.label",
 		"organizations.probe_token",
 		"organizations.first_probe_update_at",
 		"organizations.created_at",
@@ -416,10 +405,10 @@ func (s pgStorage) listLoginsForUserIDs(db squirrel.BaseRunner, userIDs ...strin
 		if err := rows.Scan(&userID, &provider, &providerID, &session, &createdAt); err != nil {
 			return nil, err
 		}
-		s.setString(&l.UserID, userID)
-		s.setString(&l.Provider, provider)
-		s.setString(&l.ProviderID, providerID)
-		s.setTime(&l.CreatedAt, createdAt)
+		l.UserID = userID.String
+		l.Provider = provider.String
+		l.ProviderID = providerID.String
+		l.CreatedAt = createdAt.Time
 		l.Session = session
 		ls = append(ls, l)
 	}
@@ -538,16 +527,14 @@ func (s pgStorage) SetUserFirstLoginAt(id string) error {
 }
 
 func (s pgStorage) GenerateOrganizationName() (string, error) {
-	var name string
-	err := s.Transaction(func(tx *sql.Tx) error {
+	var (
+		name string
+		err  error
+	)
+	err = s.Transaction(func(tx *sql.Tx) error {
 		for exists := true; exists; {
 			name = names.Generate()
-			if err := tx.QueryRow(
-				`select exists(select 1 from organizations where lower(name) = lower($1) and deleted_at is null)`,
-				name,
-			).Scan(&exists); err != nil {
-				return err
-			}
+			exists, err = s.organizationExists(tx, name)
 		}
 		return nil
 	})
@@ -565,6 +552,12 @@ func (s pgStorage) CreateOrganization(ownerID, name, label string) (*organizatio
 	}
 
 	err := s.Transaction(func(tx *sql.Tx) error {
+		if exists, err := s.organizationExists(tx, o.Name); err != nil {
+			return err
+		} else if exists {
+			return errOrgNameIsTaken
+		}
+
 		for exists := o.ProbeToken == ""; exists; {
 			if err := o.RegenerateProbeToken(); err != nil {
 				return err
@@ -634,15 +627,16 @@ func (s pgStorage) scanOrganizations(rows *sql.Rows) ([]*organization, error) {
 
 func (s pgStorage) scanOrganization(row squirrel.RowScanner) (*organization, error) {
 	o := &organization{}
-	var name, probeToken sql.NullString
+	var name, label, probeToken sql.NullString
 	var firstProbeUpdateAt, createdAt pq.NullTime
-	if err := row.Scan(&o.ID, &name, &probeToken, &firstProbeUpdateAt, &createdAt); err != nil {
+	if err := row.Scan(&o.ID, &name, &label, &probeToken, &firstProbeUpdateAt, &createdAt); err != nil {
 		return nil, err
 	}
-	s.setString(&o.Name, name)
-	s.setString(&o.ProbeToken, probeToken)
-	s.setTime(&o.FirstProbeUpdateAt, firstProbeUpdateAt)
-	s.setTime(&o.CreatedAt, createdAt)
+	o.Name = name.String
+	o.Label = label.String
+	o.ProbeToken = probeToken.String
+	o.FirstProbeUpdateAt = firstProbeUpdateAt.Time
+	o.CreatedAt = createdAt.Time
 	return o, nil
 }
 
@@ -667,6 +661,19 @@ func (s pgStorage) RelabelOrganization(name, label string) error {
 		return errNotFound
 	}
 	return nil
+}
+
+func (s pgStorage) OrganizationExists(name string) (bool, error) {
+	return s.organizationExists(s, name)
+}
+
+func (s pgStorage) organizationExists(db queryRower, name string) (bool, error) {
+	var exists bool
+	err := db.QueryRow(
+		`select exists(select 1 from organizations where lower(name) = lower($1) and deleted_at is null)`,
+		name,
+	).Scan(&exists)
+	return exists, err
 }
 
 func (s pgStorage) Transaction(f func(*sql.Tx) error) error {
