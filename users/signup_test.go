@@ -223,15 +223,11 @@ func Test_Signup_ViaOAuth(t *testing.T) {
 func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
-	email := "joe@example.com"
-	logins.Register("mock", MockLoginProvider{
-		"joe": {ID: "joe", Email: email},
-	})
 
-	user, err := storage.CreateUser(email)
-	require.NoError(t, err)
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
+	user := getApprovedUser(t)
+	logins.Register("mock", MockLoginProvider{
+		"joe": {ID: "joe", Email: user.Email},
+	})
 	// User should not have any logins yet.
 	assert.Len(t, user.Logins, 0)
 
@@ -243,7 +239,7 @@ func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 	assert.True(t, hasCookie(w, cookieName))
 	assert.Len(t, sentEmails, 0)
 
-	found, err := storage.FindUserByEmail(email)
+	found, err := storage.FindUserByEmail(user.Email)
 	require.NoError(t, err)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
@@ -268,14 +264,12 @@ func Test_Signup_ViaOAuth_EmailChanged(t *testing.T) {
 	// When a user has changed their remote email, but the remote user ID is the same.
 	setup(t)
 	defer cleanup(t)
-	email := "joe@example.com"
+	user := getApprovedUser(t)
 	provider := MockLoginProvider{
-		"joe": {ID: "joe", Email: email},
+		"joe": {ID: "joe", Email: user.Email},
 	}
 	logins.Register("mock", provider)
 
-	user, err := storage.CreateUser(email)
-	require.NoError(t, err)
 	require.NoError(t, storage.AddLoginToUser(user.ID, "mock", "joe", nil))
 
 	// Change the remote email
@@ -290,7 +284,7 @@ func Test_Signup_ViaOAuth_EmailChanged(t *testing.T) {
 	assert.True(t, hasCookie(w, cookieName))
 	assert.Len(t, sentEmails, 0)
 
-	_, err = storage.FindUserByEmail(newEmail)
+	_, err := storage.FindUserByEmail(newEmail)
 	assert.EqualError(t, err, errNotFound.Error())
 
 	user, err = storage.FindUserByID(user.ID)

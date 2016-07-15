@@ -17,23 +17,10 @@ func Test_Org(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	assert.NoError(t, err)
-
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
+	user, org := getOrg(t)
 
 	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
-
-	// Create the user's first organization
-	name, err := storage.GenerateOrganizationName()
-	require.NoError(t, err)
-	org, err := storage.CreateOrganization(user.ID, name, name)
-	assert.NoError(t, err)
-	assert.NotEqual(t, "", org.ID)
-	assert.NotEqual(t, "", org.Name)
-	assert.Equal(t, org.Name, org.Label)
 
 	// Check the user was added to the org
 	user, err = storage.FindUserByID(user.ID)
@@ -68,16 +55,7 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	require.NoError(t, err)
-
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
-
-	name, err := storage.GenerateOrganizationName()
-	require.NoError(t, err)
-	org, err := storage.CreateOrganization(user.ID, name, name)
-	require.NoError(t, err)
+	user, org := getOrg(t)
 
 	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
@@ -102,20 +80,10 @@ func Test_ListOrganizationUsers(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	require.NoError(t, err)
+	user, org := getOrg(t)
 
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
-
-	name, err := storage.GenerateOrganizationName()
-	require.NoError(t, err)
-	org, err := storage.CreateOrganization(user.ID, name, name)
-	require.NoError(t, err)
-
-	fran, err := storage.CreateUser("fran@weave.works")
-	require.NoError(t, err)
-	fran, err = storage.InviteUser(fran.Email, org.Name)
+	fran := getApprovedUser(t)
+	fran, err := storage.InviteUser(fran.Email, org.Name)
 	require.NoError(t, err)
 
 	cookie, err := sessions.Cookie(user.ID, "")
@@ -127,23 +95,14 @@ func Test_ListOrganizationUsers(t *testing.T) {
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), `{"users":[{"email":"joe@weave.works","self":true},{"email":"fran@weave.works"}]}`)
+	assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"users":[{"email":%q,"self":true},{"email":%q}]}`, user.Email, fran.Email))
 }
 
 func Test_RelabelOrganization(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	require.NoError(t, err)
-
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
-
-	name, err := storage.GenerateOrganizationName()
-	require.NoError(t, err)
-	org, err := storage.CreateOrganization(user.ID, name, name)
-	require.NoError(t, err)
+	user, org := getOrg(t)
 
 	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
@@ -168,16 +127,7 @@ func Test_RenameOrganization_NotAllowed(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	require.NoError(t, err)
-
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
-
-	name, err := storage.GenerateOrganizationName()
-	require.NoError(t, err)
-	org, err := storage.CreateOrganization(user.ID, name, name)
-	require.NoError(t, err)
+	user, org := getOrg(t)
 
 	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
@@ -203,16 +153,7 @@ func Test_RelabelOrganization_Validation(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	require.NoError(t, err)
-
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
-
-	name, err := storage.GenerateOrganizationName()
-	require.NoError(t, err)
-	org, err := storage.CreateOrganization(user.ID, name, name)
-	require.NoError(t, err)
+	user, org := getOrg(t)
 
 	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
@@ -242,11 +183,7 @@ func Test_CustomNameOrganization(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	require.NoError(t, err)
-
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
+	user := getApprovedUser(t)
 
 	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
@@ -271,16 +208,7 @@ func Test_CustomNameOrganization_Validation(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	require.NoError(t, err)
-
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
-
-	name, err := storage.GenerateOrganizationName()
-	require.NoError(t, err)
-	otherOrg, err := storage.CreateOrganization(user.ID, name, name)
-	require.NoError(t, err)
+	user, otherOrg := getOrg(t)
 
 	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
@@ -311,11 +239,7 @@ func Test_Organization_GenerateOrgName(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	require.NoError(t, err)
-
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
+	user := getApprovedUser(t)
 
 	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
@@ -330,23 +254,18 @@ func Test_Organization_GenerateOrgName(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.NotEqual(t, "", body["name"])
 
-	// Check it's available, and creatable
-	_, err = storage.CreateOrganization(user.ID, body["name"], body["name"])
+	// Check it's available
+	exists, err := storage.OrganizationExists(body["name"])
 	require.NoError(t, err)
+	assert.False(t, exists)
 }
 
 func Test_Organization_CheckIfNameExists(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	require.NoError(t, err)
-
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
-
-	otherUser, err := storage.CreateUser("otherUser@weave.works")
-	require.NoError(t, err)
+	user := getApprovedUser(t)
+	otherUser := getApprovedUser(t)
 
 	name, err := storage.GenerateOrganizationName()
 	require.NoError(t, err)
@@ -363,6 +282,7 @@ func Test_Organization_CheckIfNameExists(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	}
 
+	// Create the org so it exists
 	_, err = storage.CreateOrganization(otherUser.ID, name, name)
 	require.NoError(t, err)
 

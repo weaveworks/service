@@ -14,17 +14,13 @@ func Test_Account_AttachOauthAccount(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	email := "joe@example.com"
+	user := getApprovedUser(t)
+
 	remoteEmail := "fran@example.com"
 	logins.Register("mock", MockLoginProvider{
 		// Different remote email, to prevent auto-matching
 		"joe": {ID: "joe", Email: remoteEmail},
 	})
-
-	user, err := storage.CreateUser(email)
-	assert.NoError(t, err)
-	user, err = storage.ApproveUser(user.ID)
-	assert.NoError(t, err)
 
 	// Get a session for this user
 	cookie, err := sessions.Cookie(user.ID, "")
@@ -62,25 +58,19 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToAnotherAccount(t *testing.
 	setup(t)
 	defer cleanup(t)
 
-	email := "joe@example.com"
-	remoteEmail := "fran@example.com"
-	logins.Register("mock", MockLoginProvider{
-		// Different remote email, to prevent auto-matching
-		"fran": {ID: "fran", Email: remoteEmail},
-	})
-
-	user, err := storage.CreateUser(email)
-	assert.NoError(t, err)
-	user, err = storage.ApproveUser(user.ID)
-	assert.NoError(t, err)
+	user := getApprovedUser(t)
+	fran := getApprovedUser(t)
+	require.NoError(t, storage.AddLoginToUser(fran.ID, "mock", "fran", nil))
+	fran, err := storage.FindUserByID(fran.ID)
+	require.NoError(t, err)
+	assert.Len(t, fran.Logins, 1)
 
 	// Should be associated to another user
-	fran, err := storage.CreateUser(remoteEmail)
-	assert.NoError(t, err)
-	assert.NoError(t, storage.AddLoginToUser(fran.ID, "mock", "fran", nil))
-	fran, err = storage.ApproveUser(fran.ID)
-	assert.NoError(t, err)
-	assert.Len(t, fran.Logins, 1)
+
+	logins.Register("mock", MockLoginProvider{
+		// Different remote email, to prevent auto-matching
+		"fran": {ID: "fran", Email: fran.Email},
+	})
 
 	// Get a session for our user
 	cookie, err := sessions.Cookie(user.ID, "")
@@ -123,21 +113,19 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToSameAccount(t *testing.T) 
 	setup(t)
 	defer cleanup(t)
 
-	email := "joe@example.com"
+	user := getApprovedUser(t)
+
+	// Should be associated to same user
+	assert.NoError(t, storage.AddLoginToUser(user.ID, "mock", "joe", nil))
+	user, err := storage.FindUserByID(user.ID)
+	assert.NoError(t, err)
+	assert.Len(t, user.Logins, 1)
+
 	remoteEmail := "fran@example.com"
 	logins.Register("mock", MockLoginProvider{
 		// Different remote email, to prevent auto-matching
 		"joe": {ID: "joe", Email: remoteEmail},
 	})
-
-	user, err := storage.CreateUser(email)
-	assert.NoError(t, err)
-
-	// Should be associated to same user
-	assert.NoError(t, storage.AddLoginToUser(user.ID, "mock", "joe", nil))
-	user, err = storage.ApproveUser(user.ID)
-	assert.NoError(t, err)
-	assert.Len(t, user.Logins, 1)
 
 	// Get a session for our user
 	cookie, err := sessions.Cookie(user.ID, "")
@@ -175,17 +163,12 @@ func Test_Account_ListAttachedLoginProviders(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	email := "joe@example.com"
+	user := getApprovedUser(t)
+
 	logins.Register("mock", MockLoginProvider{
 		// Different remote email, to prevent auto-matching
-		"joe": {ID: "joe", Email: email},
+		"joe": {ID: "joe", Email: user.Email},
 	})
-
-	user, err := storage.CreateUser(email)
-	assert.NoError(t, err)
-
-	user, err = storage.ApproveUser(user.ID)
-	assert.NoError(t, err)
 
 	// Get a session for our user
 	cookie, err := sessions.Cookie(user.ID, "")
@@ -235,7 +218,7 @@ func Test_Account_ListAttachedLoginProviders(t *testing.T) {
 		assert.Equal(t, "mock", body.Logins[0].ID)
 		assert.Equal(t, "mock", body.Logins[0].Name)
 		assert.Equal(t, "joe", body.Logins[0].LoginID)
-		assert.Equal(t, email, body.Logins[0].Username)
+		assert.Equal(t, user.Email, body.Logins[0].Username)
 	}
 }
 
@@ -243,15 +226,12 @@ func Test_Account_DetachOauthAccount(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	email := "joe@example.com"
+	user := getApprovedUser(t)
+
 	logins.Register("mock", MockLoginProvider{
-		"joe": {ID: "joe", Email: email},
+		"joe": {ID: "joe", Email: user.Email},
 	})
 
-	user, err := storage.CreateUser(email)
-	assert.NoError(t, err)
-	user, err = storage.ApproveUser(user.ID)
-	assert.NoError(t, err)
 	assert.NoError(t, storage.AddLoginToUser(user.ID, "mock", "joe", nil))
 
 	// Get a session for this user

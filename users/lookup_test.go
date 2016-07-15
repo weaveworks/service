@@ -16,14 +16,7 @@ func Test_Lookup(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	require.NoError(t, err)
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
-	name, err := storage.GenerateOrganizationName()
-	require.NoError(t, err)
-	org, err := storage.CreateOrganization(user.ID, name, name)
-	require.NoError(t, err)
+	user, org := getOrg(t)
 
 	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
@@ -56,17 +49,10 @@ func Test_PublicLookup(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	require.NoError(t, err)
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
-	name, err := storage.GenerateOrganizationName()
-	require.NoError(t, err)
-	org, err := storage.CreateOrganization(user.ID, name, name)
-	require.NoError(t, err)
+	user, org := getOrg(t)
 
 	// Use the org, so that firstProbeUpdateAt is set.
-	org, err = storage.FindOrganizationByProbeToken(org.ProbeToken)
+	org, err := storage.FindOrganizationByProbeToken(org.ProbeToken)
 	require.NoError(t, err)
 	require.NotNil(t, org.FirstProbeUpdateAt)
 
@@ -112,14 +98,7 @@ func Test_Lookup_ProbeToken(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	require.NoError(t, err)
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
-	name, err := storage.GenerateOrganizationName()
-	require.NoError(t, err)
-	org, err := storage.CreateOrganization(user.ID, name, name)
-	require.NoError(t, err)
+	user, org := getOrg(t)
 
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "/private/api/users/lookup", nil)
@@ -131,7 +110,7 @@ func Test_Lookup_ProbeToken(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{"organizationID": org.ID}, body)
 
-	user, err = storage.FindUserByID(user.ID)
+	user, err := storage.FindUserByID(user.ID)
 	require.NoError(t, err)
 	require.Len(t, user.Organizations, 1)
 	assert.NotNil(t, user.Organizations[0].FirstProbeUpdateAt)
@@ -142,10 +121,7 @@ func Test_Lookup_Admin(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	require.NoError(t, err)
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
+	user := getApprovedUser(t)
 	require.NoError(t, storage.SetUserAdmin(user.ID, true))
 
 	cookie, err := sessions.Cookie(user.ID, "")
@@ -166,10 +142,7 @@ func Test_Lookup_Admin_Unauthorized(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, err := storage.CreateUser("joe@weave.works")
-	require.NoError(t, err)
-	user, err = storage.ApproveUser(user.ID)
-	require.NoError(t, err)
+	user := getApprovedUser(t)
 
 	cookie, err := sessions.Cookie(user.ID, "")
 	assert.NoError(t, err)
