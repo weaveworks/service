@@ -15,9 +15,12 @@ import (
 )
 
 var (
-	errNotFound       = errors.New("Not found")
-	errEmailIsTaken   = validationErrorf("Email is already taken")
-	errOrgNameIsTaken = validationErrorf("Organization name is already taken")
+	errNotFound              = errors.New("Not found")
+	errEmailIsTaken          = validationErrorf("Email is already taken")
+	errOrgNameIsTaken        = validationErrorf("Name is already taken")
+	errOrgNameCannotBeBlank  = validationErrorf("Name cannot be blank")
+	errOrgNameFormat         = validationErrorf("Name can only contain letters, numbers, hyphen, and underscore")
+	errOrgLabelCannotBeBlank = validationErrorf("Label cannot be blank")
 )
 
 type database interface {
@@ -64,10 +67,14 @@ type database interface {
 	// Update the user's first login timestamp. Should be called the first time a user logs in (i.e. if FirstLoginAt.IsZero())
 	SetUserFirstLoginAt(id string) error
 
-	// Create a new organization owned by the user. The name will be unique and randomly generated.
-	CreateOrganization(ownerID string) (*organization, error)
+	// GenerateOrganizationName generates a new, available organization name
+	GenerateOrganizationName() (string, error)
+
+	// Create a new organization owned by the user. name and label cannot be blank.
+	// name must match the name regex.
+	CreateOrganization(ownerID, name, label string) (*organization, error)
 	FindOrganizationByProbeToken(probeToken string) (*organization, error)
-	RenameOrganization(oldName, newName string) error
+	RelabelOrganization(name, newLabel string) error
 
 	Close() error
 }
@@ -230,9 +237,17 @@ func (t timedDatabase) SetUserFirstLoginAt(id string) error {
 	})
 }
 
-func (t timedDatabase) CreateOrganization(ownerID string) (o *organization, err error) {
+func (t timedDatabase) GenerateOrganizationName() (s string, err error) {
+	t.timeRequest("GenerateOrganizationName", func() error {
+		s, err = t.d.GenerateOrganizationName()
+		return err
+	})
+	return
+}
+
+func (t timedDatabase) CreateOrganization(ownerID, name, label string) (o *organization, err error) {
 	t.timeRequest("CreateOrganization", func() error {
-		o, err = t.d.CreateOrganization(ownerID)
+		o, err = t.d.CreateOrganization(ownerID, name, label)
 		return err
 	})
 	return
@@ -246,9 +261,9 @@ func (t timedDatabase) FindOrganizationByProbeToken(probeToken string) (o *organ
 	return
 }
 
-func (t timedDatabase) RenameOrganization(oldName, newName string) error {
-	return t.timeRequest("RenameOrganization", func() error {
-		return t.d.RenameOrganization(oldName, newName)
+func (t timedDatabase) RelabelOrganization(name, label string) error {
+	return t.timeRequest("RelabelOrganization", func() error {
+		return t.d.RelabelOrganization(name, label)
 	})
 }
 

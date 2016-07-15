@@ -20,7 +20,9 @@ func Test_Invite(t *testing.T) {
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
 
-	org, err := storage.CreateOrganization(user.ID)
+	name, err := storage.GenerateOrganizationName()
+	require.NoError(t, err)
+	org, err := storage.CreateOrganization(user.ID, name, name)
 	require.NoError(t, err)
 
 	cookie, err := sessions.Cookie(user.ID, "")
@@ -55,7 +57,9 @@ func Test_Invite_WithInvalidJSON(t *testing.T) {
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
 
-	org, err := storage.CreateOrganization(user.ID)
+	name, err := storage.GenerateOrganizationName()
+	require.NoError(t, err)
+	org, err := storage.CreateOrganization(user.ID, name, name)
 	require.NoError(t, err)
 
 	cookie, err := sessions.Cookie(user.ID, "")
@@ -80,7 +84,9 @@ func Test_Invite_WithBlankEmail(t *testing.T) {
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
 
-	org, err := storage.CreateOrganization(user.ID)
+	name, err := storage.GenerateOrganizationName()
+	require.NoError(t, err)
+	org, err := storage.CreateOrganization(user.ID, name, name)
 	require.NoError(t, err)
 
 	cookie, err := sessions.Cookie(user.ID, "")
@@ -106,7 +112,9 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
 
-	org, err := storage.CreateOrganization(user.ID)
+	name, err := storage.GenerateOrganizationName()
+	require.NoError(t, err)
+	org, err := storage.CreateOrganization(user.ID, name, name)
 	require.NoError(t, err)
 
 	fran, err := storage.CreateUser("fran@weave.works")
@@ -148,7 +156,9 @@ func Test_Invite_UserNotApproved(t *testing.T) {
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
 
-	org, err := storage.CreateOrganization(user.ID)
+	name, err := storage.GenerateOrganizationName()
+	require.NoError(t, err)
+	org, err := storage.CreateOrganization(user.ID, name, name)
 	require.NoError(t, err)
 
 	fran, err := storage.CreateUser("fran@weave.works")
@@ -186,14 +196,18 @@ func Test_Invite_UserInDifferentOrganization(t *testing.T) {
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
 
-	org, err := storage.CreateOrganization(user.ID)
+	name, err := storage.GenerateOrganizationName()
+	require.NoError(t, err)
+	org, err := storage.CreateOrganization(user.ID, name, name)
 	require.NoError(t, err)
 
 	fran, err := storage.CreateUser("fran@weave.works")
 	require.NoError(t, err)
 	fran, err = storage.ApproveUser(fran.ID)
 	require.NoError(t, err)
-	franOrg, err := storage.CreateOrganization(fran.ID)
+	name, err = storage.GenerateOrganizationName()
+	require.NoError(t, err)
+	franOrg, err := storage.CreateOrganization(fran.ID, name, name)
 	require.NoError(t, err)
 
 	cookie, err := sessions.Cookie(user.ID, "")

@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/weaveworks/service/users/login"
+	"github.com/weaveworks/service/users/names"
 )
 
 type memoryStorage struct {
@@ -235,29 +236,41 @@ func (s memoryStorage) SetUserFirstLoginAt(id string) error {
 	return nil
 }
 
-func (s memoryStorage) CreateOrganization(ownerID string) (*organization, error) {
+func (s memoryStorage) GenerateOrganizationName() (string, error) {
+	var name string
+	for exists := true; exists; {
+		name = names.Generate()
+		for _, org := range s.organizations {
+			if org.Name == name {
+				exists = true
+				break
+			}
+		}
+	}
+	return name, nil
+}
+
+func (s memoryStorage) CreateOrganization(ownerID, name, label string) (*organization, error) {
 	user, err := s.FindUserByID(ownerID)
 	if err != nil {
 		return nil, err
 	}
 	o := &organization{
-		ID: fmt.Sprint(len(s.organizations)),
+		ID:        fmt.Sprint(len(s.organizations)),
+		Name:      name,
+		Label:     label,
+		CreatedAt: time.Now().UTC(),
 	}
-	for {
-		o.RegenerateName()
-		var found bool
+	for exists := o.ProbeToken == ""; exists; {
+		if err := o.RegenerateProbeToken(); err != nil {
+			return nil, err
+		}
 		for _, org := range s.organizations {
-			if org.Name == o.Name {
-				found = true
+			if org.ProbeToken == o.ProbeToken {
+				exists = true
 				break
 			}
 		}
-		if !found {
-			break
-		}
-	}
-	if err := o.RegenerateProbeToken(); err != nil {
-		return nil, err
 	}
 	s.organizations[o.ID] = o
 	user.Organizations = append(user.Organizations, o)
@@ -276,10 +289,10 @@ func (s memoryStorage) FindOrganizationByProbeToken(probeToken string) (*organiz
 	return nil, errNotFound
 }
 
-func (s memoryStorage) RenameOrganization(oldName, newName string) error {
+func (s memoryStorage) RelabelOrganization(name, label string) error {
 	for _, o := range s.organizations {
-		if o.Name == oldName {
-			o.Name = newName
+		if o.Name == name {
+			o.Label = label
 			return nil
 		}
 	}

@@ -20,7 +20,9 @@ func Test_Lookup(t *testing.T) {
 	require.NoError(t, err)
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
-	org, err := storage.CreateOrganization(user.ID)
+	name, err := storage.GenerateOrganizationName()
+	require.NoError(t, err)
+	org, err := storage.CreateOrganization(user.ID, name, name)
 	require.NoError(t, err)
 
 	cookie, err := sessions.Cookie(user.ID, "")
@@ -58,7 +60,9 @@ func Test_PublicLookup(t *testing.T) {
 	require.NoError(t, err)
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
-	org, err := storage.CreateOrganization(user.ID)
+	name, err := storage.GenerateOrganizationName()
+	require.NoError(t, err)
+	org, err := storage.CreateOrganization(user.ID, name, name)
 	require.NoError(t, err)
 
 	org, err = storage.FindOrganizationByProbeToken(org.ProbeToken)
@@ -110,7 +114,9 @@ func Test_Lookup_ProbeToken(t *testing.T) {
 	require.NoError(t, err)
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
-	org, err := storage.CreateOrganization(user.ID)
+	name, err := storage.GenerateOrganizationName()
+	require.NoError(t, err)
+	org, err := storage.CreateOrganization(user.ID, name, name)
 	require.NoError(t, err)
 
 	w := httptest.NewRecorder()

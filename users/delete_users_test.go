@@ -18,7 +18,9 @@ func Test_DeleteUser(t *testing.T) {
 	user, err = storage.ApproveUser(user.ID)
 	require.NoError(t, err)
 
-	org, err := storage.CreateOrganization(user.ID)
+	name, err := storage.GenerateOrganizationName()
+	require.NoError(t, err)
+	org, err := storage.CreateOrganization(user.ID, name, name)
 	require.NoError(t, err)
 
 	fran, err := storage.CreateUser("fran@weave.works")
