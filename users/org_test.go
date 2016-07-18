@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -92,10 +91,11 @@ func Test_RelabelOrganization(t *testing.T) {
 
 	user, org := getOrg(t)
 	otherUser := getApprovedUser(t)
+	body := map[string]interface{}{"label": "my-organization"}
 
 	{
 		w := httptest.NewRecorder()
-		r := requestAs(t, otherUser, "PUT", "/api/users/org/"+org.Name, strings.NewReader(`{"label":"my-organization"}`))
+		r := requestAs(t, otherUser, "PUT", "/api/users/org/"+org.Name, jsonBody(body).Reader(t))
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusForbidden, w.Code)
@@ -109,7 +109,7 @@ func Test_RelabelOrganization(t *testing.T) {
 	// Should 404 for not found orgs
 	{
 		w := httptest.NewRecorder()
-		r := requestAs(t, otherUser, "PUT", "/api/users/org/not-found-org", strings.NewReader(`{"label":"my-organization"}`))
+		r := requestAs(t, otherUser, "PUT", "/api/users/org/not-found-org", jsonBody(body).Reader(t))
 
 		app.ServeHTTP(w, r)
 
@@ -118,7 +118,7 @@ func Test_RelabelOrganization(t *testing.T) {
 	// Should update my org
 	{
 		w := httptest.NewRecorder()
-		r := requestAs(t, user, "PUT", "/api/users/org/"+org.Name, strings.NewReader(`{"label":"my-organization"}`))
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.Name, jsonBody(body).Reader(t))
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusNoContent, w.Code)
@@ -140,7 +140,7 @@ func Test_RenameOrganization_NotAllowed(t *testing.T) {
 	user, org := getOrg(t)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "PUT", "/api/users/org/"+org.Name, strings.NewReader(`{"name":"my-organization"}`))
+	r := requestAs(t, user, "PUT", "/api/users/org/"+org.Name, jsonBody{"name": "my-organization"}.Reader(t))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -165,7 +165,7 @@ func Test_RelabelOrganization_Validation(t *testing.T) {
 		"": "Label cannot be blank",
 	} {
 		w := httptest.NewRecorder()
-		r := requestAs(t, user, "PUT", "/api/users/org/"+org.Name, strings.NewReader(fmt.Sprintf(`{"label":%q}`, label)))
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.Name, jsonBody{"label": label}.Reader(t))
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -188,7 +188,10 @@ func Test_CustomNameOrganization(t *testing.T) {
 	user := getApprovedUser(t)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "POST", "/api/users/org", strings.NewReader(`{"name":"my-organization","label":"my organization"}`))
+	r := requestAs(t, user, "POST", "/api/users/org", jsonBody{
+		"name":  "my-organization",
+		"label": "my organization",
+	}.Reader(t))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusCreated, w.Code)
@@ -214,7 +217,10 @@ func Test_CustomNameOrganization_Validation(t *testing.T) {
 		otherOrg.Name:                  "Name is already taken",
 	} {
 		w := httptest.NewRecorder()
-		r := requestAs(t, user, "POST", "/api/users/org", strings.NewReader(fmt.Sprintf(`{"name":%q,"label":"my organization"}`, name)))
+		r := requestAs(t, user, "POST", "/api/users/org", jsonBody{
+			"name":  name,
+			"label": "my organization",
+		}.Reader(t))
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -285,13 +291,13 @@ func Test_Organization_CreateMultiple(t *testing.T) {
 
 	user := getApprovedUser(t)
 
-	r1 := requestAs(t, user, "POST", "/api/users/org", strings.NewReader(`{"name":"my-first-org","label":"my first org"}`))
+	r1 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"name": "my-first-org", "label": "my first org"}.Reader(t))
 
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, r1)
 	assert.Equal(t, http.StatusCreated, w.Code)
 
-	r2 := requestAs(t, user, "POST", "/api/users/org", strings.NewReader(`{"name":"my-second-org","label":"my second org"}`))
+	r2 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"name": "my-second-org", "label": "my second org"}.Reader(t))
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, r2)

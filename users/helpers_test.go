@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -50,4 +52,12 @@ func getOrg(t *testing.T) (*user, *organization) {
 	assert.Equal(t, org.Name, org.Label)
 
 	return user, org
+}
+
+type jsonBody map[string]interface{}
+
+func (j jsonBody) Reader(t *testing.T) io.Reader {
+	b, err := json.Marshal(j)
+	require.NoError(t, err)
+	return bytes.NewReader(b)
 }
