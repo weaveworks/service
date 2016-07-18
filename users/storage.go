@@ -76,6 +76,7 @@ type database interface {
 	FindOrganizationByProbeToken(probeToken string) (*organization, error)
 	RelabelOrganization(name, newLabel string) error
 	OrganizationExists(name string) (bool, error)
+	DeleteOrganization(name string) error
 
 	Close() error
 }
@@ -274,7 +275,12 @@ func (t timedDatabase) OrganizationExists(name string) (b bool, err error) {
 		return err
 	})
 	return
+}
 
+func (t timedDatabase) DeleteOrganization(name string) error {
+	return t.timeRequest("DeleteOrganization", func() error {
+		return t.d.DeleteOrganization(name)
+	})
 }
 
 func (t timedDatabase) Close() error {

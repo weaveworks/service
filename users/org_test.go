@@ -308,3 +308,55 @@ func Test_Organization_CreateMultiple(t *testing.T) {
 		assert.Equal(t, "my second org", user.Organizations[1].Label)
 	}
 }
+
+func Test_Organization_Delete(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user := getApprovedUser(t)
+	otherUser := getApprovedUser(t)
+
+	name, err := storage.GenerateOrganizationName()
+	require.NoError(t, err)
+
+	cookie, err := sessions.Cookie(otherUser.ID, "")
+	assert.NoError(t, err)
+
+	r, _ := http.NewRequest("DELETE", "/api/users/org/"+name, nil)
+	r.AddCookie(cookie)
+
+	// Should NoContent if the org already doesn't exist
+	{
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	}
+
+	// Create the org so it exists
+	org, err := storage.CreateOrganization(user.ID, name, name)
+	require.NoError(t, err)
+
+	{
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	}
+
+	// Login as the org owner
+	cookie, err = sessions.Cookie(user.ID, "")
+	assert.NoError(t, err)
+	r, _ = http.NewRequest("DELETE", "/api/users/org/"+name, nil)
+	r.AddCookie(cookie)
+
+	{
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	}
+
+	// Check the org no longer exists
+	exists, err := storage.OrganizationExists(org.Name)
+	require.NoError(t, err)
+	require.False(t, exists)
+
+}

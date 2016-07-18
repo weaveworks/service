@@ -146,6 +146,7 @@ func (a *api) routes() http.Handler {
 		{"api_users_org_create", "POST", "/api/users/org", a.authenticated(a.createOrg)},
 		{"api_users_org_orgName", "GET", "/api/users/org/{orgName}", a.authenticated(a.org)},
 		{"api_users_org_orgName_update", "PUT", "/api/users/org/{orgName}", a.authenticated(a.updateOrg)},
+		{"api_users_org_orgName_delete", "DELETE", "/api/users/org/{orgName}", a.authenticated(a.deleteOrg)},
 
 		// Used to list and manage organization access (invites)
 		{"api_users_org_orgName_users", "GET", "/api/users/org/{orgName}/users", a.authenticated(a.listOrganizationUsers)},
@@ -752,6 +753,24 @@ func (a *api) updateOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if err := a.storage.RelabelOrganization(orgName, view.Label); err != nil {
+		renderError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *api) deleteOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
+	orgName := mux.Vars(r)["orgName"]
+	if !currentUser.HasOrganization(orgName) {
+		if exists, err := a.storage.OrganizationExists(orgName); err != nil {
+			renderError(w, r, err)
+			return
+		} else if exists {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+	}
+	if err := a.storage.DeleteOrganization(orgName); err != nil {
 		renderError(w, r, err)
 		return
 	}
