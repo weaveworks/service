@@ -17,12 +17,8 @@ func Test_Invite(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
-	r.AddCookie(cookie)
+	r, _ := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -45,12 +41,8 @@ func Test_Invite_WithInvalidJSON(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`garbage`))
-	r.AddCookie(cookie)
+	r, _ := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`garbage`))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -63,12 +55,8 @@ func Test_Invite_WithBlankEmail(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":""}`))
-	r.AddCookie(cookie)
+	r, _ := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":""}`))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -89,12 +77,8 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 	require.Len(t, fran.Organizations, 1)
 	assert.Equal(t, org.ID, fran.Organizations[0].ID)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
-	r.AddCookie(cookie)
+	r, _ := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -120,12 +104,8 @@ func Test_Invite_UserNotApproved(t *testing.T) {
 	fran, err := storage.CreateUser("fran@weave.works")
 	require.NoError(t, err)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
-	r.AddCookie(cookie)
+	r, _ := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -149,18 +129,14 @@ func Test_Invite_UserInDifferentOrganization(t *testing.T) {
 	user, org := getOrg(t)
 	fran, franOrg := getOrg(t)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(fmt.Sprintf(`{"email":%q}`, fran.Email)))
-	r.AddCookie(cookie)
+	r, _ := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(fmt.Sprintf(`{"email":%q}`, fran.Email)))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), `{"errors":[{"message":"Email is already taken"}]}`)
 
-	fran, err = storage.FindUserByEmail(fran.Email)
+	fran, err := storage.FindUserByEmail(fran.Email)
 	require.NoError(t, err)
 	require.Len(t, fran.Organizations, 1)
 	assert.Equal(t, franOrg.ID, fran.Organizations[0].ID)

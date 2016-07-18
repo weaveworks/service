@@ -22,12 +22,8 @@ func Test_DeleteUser(t *testing.T) {
 	require.Len(t, fran.Organizations, 1)
 	assert.Equal(t, org.ID, fran.Organizations[0].ID)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("DELETE", "/api/users/org/"+org.Name+"/users/"+fran.Email, nil)
-	r.AddCookie(cookie)
+	r, _ := requestAs(t, user, "DELETE", "/api/users/org/"+org.Name+"/users/"+fran.Email, nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
