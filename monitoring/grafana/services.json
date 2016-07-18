@@ -356,10 +356,17 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"grafana|admin\"}) by (quantile) * 1e3",
+              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"grafana|admin\"}[5m])) by (le)) * 1e3",
               "intervalFactor": 2,
-              "legendFormat": "{{quantile}} quantile",
+              "legendFormat": "95th quantile",
               "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"grafana|admin\"}[5m])) by (le)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "50th quantile",
+              "refId": "B",
               "step": 10
             }
           ],
@@ -544,10 +551,17 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_seconds{namespace=\"default\",job=\"users\"}) by (quantile) * 1e3",
+              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"users\",ws=\"false\"}[5m])) by (le)) * 1e3",
               "intervalFactor": 2,
-              "legendFormat": "{{quantile}} quantile",
+              "legendFormat": "95th quantile",
               "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"users\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "50th quantile",
+              "refId": "B",
               "step": 10
             }
           ],
