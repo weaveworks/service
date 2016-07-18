@@ -263,7 +263,7 @@ func (s memoryStorage) CreateOrganization(ownerID, name, label string) (*organiz
 		Label:     label,
 		CreatedAt: time.Now().UTC(),
 	}
-	if err := o.Valid(); err != nil {
+	if err := o.valid(); err != nil {
 		return nil, err
 	}
 	if exists, err := s.OrganizationExists(o.Name); err != nil {
@@ -301,7 +301,7 @@ func (s memoryStorage) FindOrganizationByProbeToken(probeToken string) (*organiz
 }
 
 func (s memoryStorage) RelabelOrganization(name, label string) error {
-	if err := (&organization{Name: name, Label: label}).Valid(); err != nil {
+	if err := (&organization{Name: name, Label: label}).valid(); err != nil {
 		return err
 	}
 

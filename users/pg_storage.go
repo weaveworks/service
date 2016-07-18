@@ -547,7 +547,7 @@ func (s pgStorage) CreateOrganization(ownerID, name, label string) (*organizatio
 		Label:     label,
 		CreatedAt: s.Now(),
 	}
-	if err := o.Valid(); err != nil {
+	if err := o.valid(); err != nil {
 		return nil, err
 	}
 
@@ -641,7 +641,7 @@ func (s pgStorage) scanOrganization(row squirrel.RowScanner) (*organization, err
 }
 
 func (s pgStorage) RelabelOrganization(name, label string) error {
-	if err := (&organization{Name: name, Label: label}).Valid(); err != nil {
+	if err := (&organization{Name: name, Label: label}).valid(); err != nil {
 		return err
 	}
 

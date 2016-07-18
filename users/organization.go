@@ -27,7 +27,7 @@ func (o *organization) RegenerateProbeToken() error {
 	return nil
 }
 
-func (o *organization) Valid() error {
+func (o *organization) valid() error {
 	switch {
 	case o.Name == "":
 		return errOrgNameCannotBeBlank
