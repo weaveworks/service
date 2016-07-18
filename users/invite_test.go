@@ -36,6 +36,31 @@ func Test_InviteNonExistentUser(t *testing.T) {
 	}
 }
 
+func Test_InviteExistingUser(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user, org := getOrg(t)
+	fran := getApprovedUser(t)
+
+	w := httptest.NewRecorder()
+	r, _ := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(fmt.Sprintf(`{"email":%q}`, fran.Email)))
+
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	fran, err := storage.FindUserByEmail(fran.Email)
+	require.NoError(t, err)
+	require.Len(t, fran.Organizations, 1)
+	assert.Equal(t, org.ID, fran.Organizations[0].ID)
+
+	if assert.Len(t, sentEmails, 1) {
+		assert.Equal(t, []string{fran.Email}, sentEmails[0].To)
+		assert.Contains(t, string(sentEmails[0].Text), "You've been invited")
+		assert.Contains(t, string(sentEmails[0].HTML), "You've been invited")
+	}
+}
+
 func Test_Invite_WithInvalidJSON(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
