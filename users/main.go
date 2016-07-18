@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -678,7 +679,7 @@ func (a *api) org(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orgName := vars["orgName"]
 	for _, org := range currentUser.Organizations {
-		if org.Name == orgName {
+		if strings.ToLower(org.Name) == strings.ToLower(orgName) {
 			renderJSON(w, http.StatusOK, orgView{
 				User:               currentUser.Email,
 				Name:               org.Name,
@@ -738,7 +739,19 @@ func (a *api) updateOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := a.storage.RelabelOrganization(mux.Vars(r)["orgName"], view.Label); err != nil {
+	orgName := mux.Vars(r)["orgName"]
+	if !currentUser.HasOrganization(orgName) {
+		if exists, err := a.storage.OrganizationExists(orgName); err != nil {
+			renderError(w, r, err)
+			return
+		} else if exists {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		renderError(w, r, errNotFound)
+		return
+	}
+	if err := a.storage.RelabelOrganization(orgName, view.Label); err != nil {
 		renderError(w, r, err)
 		return
 	}

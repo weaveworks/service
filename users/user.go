@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -57,6 +58,15 @@ func (u *user) CompareToken(other string) bool {
 		return false
 	}
 	return time.Now().UTC().Sub(tokenCreatedAt) <= 72*time.Hour
+}
+
+func (u *user) HasOrganization(name string) bool {
+	for _, o := range u.Organizations {
+		if strings.ToLower(o.Name) == strings.ToLower(name) {
+			return true
+		}
+	}
+	return false
 }
 
 func newUsersOrganizationFilter(s []string) filter {

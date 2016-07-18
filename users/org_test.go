@@ -103,23 +103,56 @@ func Test_RelabelOrganization(t *testing.T) {
 	defer cleanup(t)
 
 	user, org := getOrg(t)
+	otherUser := getApprovedUser(t)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
+	// Should forbid updating someone else's org
+	{
+		cookie, err := sessions.Cookie(otherUser.ID, "")
+		assert.NoError(t, err)
+		w := httptest.NewRecorder()
+		r, _ := http.NewRequest("PUT", "/api/users/org/"+org.Name, strings.NewReader(`{"label":"my-organization"}`))
+		r.AddCookie(cookie)
 
-	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("PUT", "/api/users/org/"+org.Name, strings.NewReader(`{"label":"my-organization"}`))
-	r.AddCookie(cookie)
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusForbidden, w.Code)
 
-	app.ServeHTTP(w, r)
-	assert.Equal(t, http.StatusNoContent, w.Code)
+		found, err := storage.FindOrganizationByProbeToken(org.ProbeToken)
+		if assert.NoError(t, err) {
+			assert.Equal(t, org.Label, found.Label)
+		}
+	}
 
-	user, err = storage.FindUserByID(user.ID)
-	require.NoError(t, err)
-	if assert.Len(t, user.Organizations, 1) {
-		assert.Equal(t, org.ID, user.Organizations[0].ID)
-		assert.Equal(t, org.Name, user.Organizations[0].Name)
-		assert.Equal(t, "my-organization", user.Organizations[0].Label)
+	// Should 404 for not found orgs
+	{
+		cookie, err := sessions.Cookie(otherUser.ID, "")
+		assert.NoError(t, err)
+		w := httptest.NewRecorder()
+		r, _ := http.NewRequest("PUT", "/api/users/org/not-found-org", strings.NewReader(`{"label":"my-organization"}`))
+		r.AddCookie(cookie)
+
+		app.ServeHTTP(w, r)
+
+	}
+
+	// Should update my org
+	{
+		cookie, err := sessions.Cookie(user.ID, "")
+		assert.NoError(t, err)
+
+		w := httptest.NewRecorder()
+		r, _ := http.NewRequest("PUT", "/api/users/org/"+org.Name, strings.NewReader(`{"label":"my-organization"}`))
+		r.AddCookie(cookie)
+
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusNoContent, w.Code)
+
+		user, err = storage.FindUserByID(user.ID)
+		require.NoError(t, err)
+		if assert.Len(t, user.Organizations, 1) {
+			assert.Equal(t, org.ID, user.Organizations[0].ID)
+			assert.Equal(t, org.Name, user.Organizations[0].Name)
+			assert.Equal(t, "my-organization", user.Organizations[0].Label)
+		}
 	}
 }
 
