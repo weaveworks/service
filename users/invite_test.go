@@ -10,25 +10,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Invite(t *testing.T) {
+func Test_InviteNonExistentUser(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	user, org := getOrg(t)
+	franEmail := "fran@weave.works"
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": "fran@weave.works"}.Reader(t))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": franEmail}.Reader(t))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	fran, err := storage.FindUserByEmail("fran@weave.works")
+	fran, err := storage.FindUserByEmail(franEmail)
 	require.NoError(t, err)
 	require.Len(t, fran.Organizations, 1)
 	assert.Equal(t, org.ID, fran.Organizations[0].ID)
+	assert.Equal(t, fran.Email, franEmail)
 
 	if assert.Len(t, sentEmails, 1) {
-		assert.Equal(t, []string{"fran@weave.works"}, sentEmails[0].To)
+		assert.Equal(t, []string{franEmail}, sentEmails[0].To)
 		assert.Contains(t, string(sentEmails[0].Text), "You've been invited")
 		assert.Contains(t, string(sentEmails[0].HTML), "You've been invited")
 	}
@@ -77,12 +79,12 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 	assert.Equal(t, org.ID, fran.Organizations[0].ID)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": "fran@weave.works"}.Reader(t))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": fran.Email}.Reader(t))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	fran, err = storage.FindUserByEmail("fran@weave.works")
+	fran, err = storage.FindUserByEmail(fran.Email)
 	require.NoError(t, err)
 	require.Len(t, fran.Organizations, 1)
 	assert.Equal(t, org.ID, fran.Organizations[0].ID)
@@ -124,18 +126,18 @@ func Test_Invite_UserNotApproved(t *testing.T) {
 	require.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": "fran@weave.works"}.Reader(t))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": fran.Email}.Reader(t))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	fran, err = storage.FindUserByEmail("fran@weave.works")
+	fran, err = storage.FindUserByEmail(fran.Email)
 	require.NoError(t, err)
 	require.Len(t, fran.Organizations, 1)
 	assert.Equal(t, org.ID, fran.Organizations[0].ID)
 
 	if assert.Len(t, sentEmails, 1) {
-		assert.Equal(t, []string{"fran@weave.works"}, sentEmails[0].To)
+		assert.Equal(t, []string{fran.Email}, sentEmails[0].To)
 		assert.Contains(t, string(sentEmails[0].Text), "You've been invited")
 		assert.Contains(t, string(sentEmails[0].HTML), "You've been invited")
 	}
