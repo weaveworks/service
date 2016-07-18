@@ -24,7 +24,7 @@ func Test_Account_AttachOauthAccount(t *testing.T) {
 
 	// Hit the endpoint that the oauth login will redirect to (with our session)
 	w := httptest.NewRecorder()
-	r, _ := requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
+	r := requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, hasCookie(w, cookieName))
@@ -69,7 +69,7 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToAnotherAccount(t *testing.
 
 	// Hit the endpoint that the oauth login will redirect to (with our session)
 	w := httptest.NewRecorder()
-	r, _ := requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=fran&state=state", nil)
+	r := requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=fran&state=state", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, hasCookie(w, cookieName))
@@ -119,7 +119,7 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToSameAccount(t *testing.T) 
 
 	// Hit the endpoint that the oauth login will redirect to (with our session)
 	w := httptest.NewRecorder()
-	r, _ := requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
+	r := requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, hasCookie(w, cookieName))
@@ -158,7 +158,7 @@ func Test_Account_ListAttachedLoginProviders(t *testing.T) {
 	// Listing when none attached
 	{
 		w := httptest.NewRecorder()
-		r, _ := requestAs(t, user, "GET", "/api/users/attached_logins", nil)
+		r := requestAs(t, user, "GET", "/api/users/attached_logins", nil)
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusOK, w.Code)
 		var body struct {
@@ -181,7 +181,7 @@ func Test_Account_ListAttachedLoginProviders(t *testing.T) {
 		assert.Len(t, user.Logins, 1)
 
 		w := httptest.NewRecorder()
-		r, _ := requestAs(t, user, "GET", "/api/users/attached_logins", nil)
+		r := requestAs(t, user, "GET", "/api/users/attached_logins", nil)
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusOK, w.Code)
 		var body struct {
@@ -215,7 +215,7 @@ func Test_Account_DetachOauthAccount(t *testing.T) {
 
 	// Hit the endpoint that the oauth login will redirect to (with our session)
 	w := httptest.NewRecorder()
-	r, _ := requestAs(t, user, "POST", "/api/users/logins/mock/detach", nil)
+	r := requestAs(t, user, "POST", "/api/users/logins/mock/detach", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusNoContent, w.Code)
 

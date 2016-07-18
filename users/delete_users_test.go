@@ -23,7 +23,7 @@ func Test_DeleteUser(t *testing.T) {
 	assert.Equal(t, org.ID, fran.Organizations[0].ID)
 
 	w := httptest.NewRecorder()
-	r, _ := requestAs(t, user, "DELETE", "/api/users/org/"+org.Name+"/users/"+fran.Email, nil)
+	r := requestAs(t, user, "DELETE", "/api/users/org/"+org.Name+"/users/"+fran.Email, nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)

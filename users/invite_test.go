@@ -18,7 +18,7 @@ func Test_Invite(t *testing.T) {
 	user, org := getOrg(t)
 
 	w := httptest.NewRecorder()
-	r, _ := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -42,7 +42,7 @@ func Test_Invite_WithInvalidJSON(t *testing.T) {
 	user, org := getOrg(t)
 
 	w := httptest.NewRecorder()
-	r, _ := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`garbage`))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`garbage`))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -56,7 +56,7 @@ func Test_Invite_WithBlankEmail(t *testing.T) {
 	user, org := getOrg(t)
 
 	w := httptest.NewRecorder()
-	r, _ := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":""}`))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":""}`))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -78,7 +78,7 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 	assert.Equal(t, org.ID, fran.Organizations[0].ID)
 
 	w := httptest.NewRecorder()
-	r, _ := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -105,7 +105,7 @@ func Test_Invite_UserNotApproved(t *testing.T) {
 	require.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	r, _ := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`{"email":"fran@weave.works"}`))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -130,7 +130,7 @@ func Test_Invite_UserInDifferentOrganization(t *testing.T) {
 	fran, franOrg := getOrg(t)
 
 	w := httptest.NewRecorder()
-	r, _ := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(fmt.Sprintf(`{"email":%q}`, fran.Email)))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(fmt.Sprintf(`{"email":%q}`, fran.Email)))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
