@@ -860,7 +860,7 @@
 			"importpath": "github.com/weaveworks/scope/common/instrument",
 			"repository": "https://github.com/weaveworks/scope",
 			"vcs": "git",
-			"revision": "8cb1ecdf2cc4dd692d42973ccdcde20534ede9f4",
+			"revision": "7e6cca76e8045ac61740567a9feaf04580c66833",
 			"branch": "master",
 			"path": "/common/instrument",
 			"notests": true
@@ -869,7 +869,7 @@
 			"importpath": "github.com/weaveworks/scope/common/middleware",
 			"repository": "https://github.com/weaveworks/scope",
 			"vcs": "git",
-			"revision": "4fa40e22b2f2be3047b099b8b9ebc1e7533f34b3",
+			"revision": "7e6cca76e8045ac61740567a9feaf04580c66833",
 			"branch": "master",
 			"path": "/common/middleware",
 			"notests": true
