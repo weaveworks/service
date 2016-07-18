@@ -17,10 +17,11 @@ import (
 )
 
 var (
-	requestDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "scope",
 		Name:      "request_duration_seconds",
 		Help:      "Time (in seconds) spent serving HTTP requests.",
+		Buckets:   prometheus.DefBuckets,
 	}, []string{"method", "route", "status_code", "ws"})
 	wsConnections = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: "scope",

@@ -7,15 +7,17 @@ import (
 )
 
 var (
-	requestDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "scope",
 		Name:      "request_duration_seconds",
 		Help:      "Time spent (in seconds) serving HTTP requests.",
+		Buckets:   prometheus.DefBuckets,
 	}, []string{"method", "route", "status_code", "ws"})
-	databaseRequestDuration = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+	databaseRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "scope",
 		Name:      "database_request_duration_seconds",
 		Help:      "Time spent (in seconds) doing database requests.",
+		Buckets:   prometheus.DefBuckets,
 	}, []string{"method", "status_code"})
 )
 
