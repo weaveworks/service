@@ -151,18 +151,14 @@ func (s pgStorage) InviteUser(email, orgName string) (*user, error) {
 			return err
 		}
 
-		switch len(u.Organizations) {
-		case 0:
-			if err = s.addUserToOrganization(tx, u.ID, o.ID); err == nil {
-				u, err = s.findUserByID(tx, u.ID)
-				return err
-			}
-		case 1:
-			if u.Organizations[0].Name == orgName {
-				return nil
-			}
+		if u.HasOrganization(orgName) {
+			return nil
 		}
-		return errEmailIsTaken
+		if err = s.addUserToOrganization(tx, u.ID, o.ID); err == nil {
+			u, err = s.findUserByID(tx, u.ID)
+			return err
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, err

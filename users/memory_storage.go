@@ -96,16 +96,11 @@ func (s memoryStorage) InviteUser(email, orgName string) (*user, error) {
 		return nil, err
 	}
 
-	switch len(u.Organizations) {
-	case 0:
-		u.Organizations = append(u.Organizations, o)
+	if u.HasOrganization(orgName) {
 		return u, nil
-	case 1:
-		if strings.ToLower(u.Organizations[0].Name) == strings.ToLower(orgName) {
-			return u, nil
-		}
 	}
-	return nil, errEmailIsTaken
+	u.Organizations = append(u.Organizations, o)
+	return u, nil
 }
 
 func (s memoryStorage) RemoveUserFromOrganization(orgName, email string) error {

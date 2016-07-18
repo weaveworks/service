@@ -44,7 +44,7 @@ func Test_InviteExistingUser(t *testing.T) {
 	fran := getApprovedUser(t)
 
 	w := httptest.NewRecorder()
-	r, _ := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(fmt.Sprintf(`{"email":%q}`, fran.Email)))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": fran.Email}.Reader(t))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -173,20 +173,26 @@ func Test_Invite_UserInDifferentOrganization(t *testing.T) {
 	defer cleanup(t)
 
 	user, org := getOrg(t)
-	fran, franOrg := getOrg(t)
+	fran, _ := getOrg(t)
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": fran.Email}.Reader(t))
 
 	app.ServeHTTP(w, r)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), `{"errors":[{"message":"Email is already taken"}]}`)
+
+	assert.Equal(t, http.StatusOK, w.Code)
 
 	fran, err := storage.FindUserByEmail(fran.Email)
 	require.NoError(t, err)
-	require.Len(t, fran.Organizations, 1)
-	assert.Equal(t, franOrg.ID, fran.Organizations[0].ID)
-	assert.Len(t, sentEmails, 0)
+	require.Len(t, fran.Organizations, 2)
+	orgIDs := []string{fran.Organizations[0].ID, fran.Organizations[1].ID}
+	assert.Contains(t, orgIDs, org.ID)
+
+	if assert.Len(t, sentEmails, 1) {
+		assert.Equal(t, []string{fran.Email}, sentEmails[0].To)
+		assert.Contains(t, string(sentEmails[0].Text), "You've been invited")
+		assert.Contains(t, string(sentEmails[0].HTML), "You've been invited")
+	}
 }
 
 func Test_Invite_RemoveOtherUsersAccess(t *testing.T) {
