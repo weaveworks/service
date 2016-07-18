@@ -325,3 +325,38 @@ func Test_Organization_CheckIfNameExists(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	}
 }
+
+func Test_Organization_CreateMultiple(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user := getApprovedUser(t)
+
+	cookie, err := sessions.Cookie(user.ID, "")
+	assert.NoError(t, err)
+
+	r1, _ := http.NewRequest("POST", "/api/users/org", strings.NewReader(`{"name":"my-first-org","label":"my first org"}`))
+	r1.AddCookie(cookie)
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, r1)
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	r2, _ := http.NewRequest("POST", "/api/users/org", strings.NewReader(`{"name":"my-second-org","label":"my second org"}`))
+	r2.AddCookie(cookie)
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, r2)
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	user, err = storage.FindUserByID(user.ID)
+	require.NoError(t, err)
+	if assert.Len(t, user.Organizations, 2) {
+		assert.NotEqual(t, "", user.Organizations[0].ID)
+		assert.Equal(t, "my-first-org", user.Organizations[0].Name)
+		assert.Equal(t, "my first org", user.Organizations[0].Label)
+		assert.NotEqual(t, "", user.Organizations[1].ID)
+		assert.Equal(t, "my-second-org", user.Organizations[1].Name)
+		assert.Equal(t, "my second org", user.Organizations[1].Label)
+	}
+}
