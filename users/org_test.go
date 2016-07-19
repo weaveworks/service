@@ -19,11 +19,8 @@ func Test_Org(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	// Check the user was added to the org
-	user, err = storage.FindUserByID(user.ID)
+	user, err := storage.FindUserByID(user.ID)
 	assert.NoError(t, err)
 	require.Len(t, user.Organizations, 1)
 	assert.Equal(t, org.ID, user.Organizations[0].ID, "user should have an organization id")
@@ -36,8 +33,7 @@ func Test_Org(t *testing.T) {
 	require.NotNil(t, org.FirstProbeUpdateAt)
 
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/api/users/org/"+user.Organizations[0].Name, nil)
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "GET", "/api/users/org/"+user.Organizations[0].Name, nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
@@ -57,12 +53,8 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/api/users/org/"+org.Name, nil)
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "GET", "/api/users/org/"+org.Name, nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -86,12 +78,8 @@ func Test_ListOrganizationUsers(t *testing.T) {
 	fran, err := storage.InviteUser(fran.Email, org.Name)
 	require.NoError(t, err)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/api/users/org/"+org.Name+"/users", nil)
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "GET", "/api/users/org/"+org.Name+"/users", nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -105,13 +93,9 @@ func Test_RelabelOrganization(t *testing.T) {
 	user, org := getOrg(t)
 	otherUser := getApprovedUser(t)
 
-	// Should forbid updating someone else's org
 	{
-		cookie, err := sessions.Cookie(otherUser.ID, "")
-		assert.NoError(t, err)
 		w := httptest.NewRecorder()
-		r, _ := http.NewRequest("PUT", "/api/users/org/"+org.Name, strings.NewReader(`{"label":"my-organization"}`))
-		r.AddCookie(cookie)
+		r := requestAs(t, otherUser, "PUT", "/api/users/org/"+org.Name, strings.NewReader(`{"label":"my-organization"}`))
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusForbidden, w.Code)
@@ -124,11 +108,8 @@ func Test_RelabelOrganization(t *testing.T) {
 
 	// Should 404 for not found orgs
 	{
-		cookie, err := sessions.Cookie(otherUser.ID, "")
-		assert.NoError(t, err)
 		w := httptest.NewRecorder()
-		r, _ := http.NewRequest("PUT", "/api/users/org/not-found-org", strings.NewReader(`{"label":"my-organization"}`))
-		r.AddCookie(cookie)
+		r := requestAs(t, otherUser, "PUT", "/api/users/org/not-found-org", strings.NewReader(`{"label":"my-organization"}`))
 
 		app.ServeHTTP(w, r)
 
@@ -136,17 +117,13 @@ func Test_RelabelOrganization(t *testing.T) {
 
 	// Should update my org
 	{
-		cookie, err := sessions.Cookie(user.ID, "")
-		assert.NoError(t, err)
-
 		w := httptest.NewRecorder()
-		r, _ := http.NewRequest("PUT", "/api/users/org/"+org.Name, strings.NewReader(`{"label":"my-organization"}`))
-		r.AddCookie(cookie)
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.Name, strings.NewReader(`{"label":"my-organization"}`))
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusNoContent, w.Code)
 
-		user, err = storage.FindUserByID(user.ID)
+		user, err := storage.FindUserByID(user.ID)
 		require.NoError(t, err)
 		if assert.Len(t, user.Organizations, 1) {
 			assert.Equal(t, org.ID, user.Organizations[0].ID)
@@ -162,18 +139,14 @@ func Test_RenameOrganization_NotAllowed(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("PUT", "/api/users/org/"+org.Name, strings.NewReader(`{"name":"my-organization"}`))
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "PUT", "/api/users/org/"+org.Name, strings.NewReader(`{"name":"my-organization"}`))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), `{"errors":[{"message":"Name cannot be changed"}]}`)
 
-	user, err = storage.FindUserByID(user.ID)
+	user, err := storage.FindUserByID(user.ID)
 	require.NoError(t, err)
 	if assert.Len(t, user.Organizations, 1) {
 		assert.Equal(t, org.ID, user.Organizations[0].ID)
@@ -188,21 +161,17 @@ func Test_RelabelOrganization_Validation(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	for label, errMsg := range map[string]string{
 		"": "Label cannot be blank",
 	} {
 		w := httptest.NewRecorder()
-		r, _ := http.NewRequest("PUT", "/api/users/org/"+org.Name, strings.NewReader(fmt.Sprintf(`{"label":%q}`, label)))
-		r.AddCookie(cookie)
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.Name, strings.NewReader(fmt.Sprintf(`{"label":%q}`, label)))
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"errors":[{"message":%q}]}`, errMsg))
 
-		user, err = storage.FindUserByID(user.ID)
+		user, err := storage.FindUserByID(user.ID)
 		require.NoError(t, err)
 		if assert.Len(t, user.Organizations, 1) {
 			assert.Equal(t, org.ID, user.Organizations[0].ID)
@@ -218,17 +187,13 @@ func Test_CustomNameOrganization(t *testing.T) {
 
 	user := getApprovedUser(t)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/org", strings.NewReader(`{"name":"my-organization","label":"my organization"}`))
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "POST", "/api/users/org", strings.NewReader(`{"name":"my-organization","label":"my organization"}`))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusCreated, w.Code)
 
-	user, err = storage.FindUserByID(user.ID)
+	user, err := storage.FindUserByID(user.ID)
 	require.NoError(t, err)
 	if assert.Len(t, user.Organizations, 1) {
 		assert.NotEqual(t, "", user.Organizations[0].ID)
@@ -243,23 +208,19 @@ func Test_CustomNameOrganization_Validation(t *testing.T) {
 
 	user, otherOrg := getOrg(t)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	for name, errMsg := range map[string]string{
 		"": "Name cannot be blank",
 		"org with^/invalid&characters": "Name can only contain letters, numbers, hyphen, and underscore",
 		otherOrg.Name:                  "Name is already taken",
 	} {
 		w := httptest.NewRecorder()
-		r, _ := http.NewRequest("POST", "/api/users/org", strings.NewReader(fmt.Sprintf(`{"name":%q,"label":"my organization"}`, name)))
-		r.AddCookie(cookie)
+		r := requestAs(t, user, "POST", "/api/users/org", strings.NewReader(fmt.Sprintf(`{"name":%q,"label":"my organization"}`, name)))
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"errors":[{"message":%q}]}`, errMsg))
 
-		user, err = storage.FindUserByID(user.ID)
+		user, err := storage.FindUserByID(user.ID)
 		require.NoError(t, err)
 		if assert.Len(t, user.Organizations, 1) {
 			assert.Equal(t, otherOrg.ID, user.Organizations[0].ID)
@@ -274,12 +235,8 @@ func Test_Organization_GenerateOrgName(t *testing.T) {
 
 	user := getApprovedUser(t)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	// Generate a new org name
-	r, _ := http.NewRequest("GET", "/api/users/generateOrgName", nil)
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "GET", "/api/users/generateOrgName", nil)
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -303,11 +260,7 @@ func Test_Organization_CheckIfNameExists(t *testing.T) {
 	name, err := storage.GenerateOrganizationName()
 	require.NoError(t, err)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
-	r, _ := http.NewRequest("GET", "/api/users/org/"+name, nil)
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "GET", "/api/users/org/"+name, nil)
 
 	{
 		w := httptest.NewRecorder()
@@ -323,5 +276,35 @@ func Test_Organization_CheckIfNameExists(t *testing.T) {
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusForbidden, w.Code)
+	}
+}
+
+func Test_Organization_CreateMultiple(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user := getApprovedUser(t)
+
+	r1 := requestAs(t, user, "POST", "/api/users/org", strings.NewReader(`{"name":"my-first-org","label":"my first org"}`))
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, r1)
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	r2 := requestAs(t, user, "POST", "/api/users/org", strings.NewReader(`{"name":"my-second-org","label":"my second org"}`))
+
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, r2)
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	user, err := storage.FindUserByID(user.ID)
+	require.NoError(t, err)
+	if assert.Len(t, user.Organizations, 2) {
+		assert.NotEqual(t, "", user.Organizations[0].ID)
+		assert.Equal(t, "my-first-org", user.Organizations[0].Name)
+		assert.Equal(t, "my first org", user.Organizations[0].Label)
+		assert.NotEqual(t, "", user.Organizations[1].ID)
+		assert.Equal(t, "my-second-org", user.Organizations[1].Name)
+		assert.Equal(t, "my second org", user.Organizations[1].Label)
 	}
 }

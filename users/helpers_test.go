@@ -2,12 +2,26 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"math/rand"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// requestAs makes a request as the given user.
+func requestAs(t *testing.T, u *user, method, endpoint string, body io.Reader) *http.Request {
+	cookie, err := sessions.Cookie(u.ID, "")
+	assert.NoError(t, err)
+
+	r, err := http.NewRequest(method, endpoint, body)
+	require.NoError(t, err)
+
+	r.AddCookie(cookie)
+	return r
+}
 
 // getApprovedUser makes a randomly named, approved user
 func getApprovedUser(t *testing.T) *user {

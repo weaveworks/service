@@ -22,14 +22,9 @@ func Test_Account_AttachOauthAccount(t *testing.T) {
 		"joe": {ID: "joe", Email: remoteEmail},
 	})
 
-	// Get a session for this user
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	// Hit the endpoint that the oauth login will redirect to (with our session)
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, hasCookie(w, cookieName))
@@ -72,14 +67,9 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToAnotherAccount(t *testing.
 		"fran": {ID: "fran", Email: fran.Email},
 	})
 
-	// Get a session for our user
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	// Hit the endpoint that the oauth login will redirect to (with our session)
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/api/users/logins/mock/attach?code=fran&state=state", nil)
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=fran&state=state", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, hasCookie(w, cookieName))
@@ -127,14 +117,9 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToSameAccount(t *testing.T) 
 		"joe": {ID: "joe", Email: remoteEmail},
 	})
 
-	// Get a session for our user
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	// Hit the endpoint that the oauth login will redirect to (with our session)
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, hasCookie(w, cookieName))
@@ -170,15 +155,10 @@ func Test_Account_ListAttachedLoginProviders(t *testing.T) {
 		"joe": {ID: "joe", Email: user.Email},
 	})
 
-	// Get a session for our user
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	// Listing when none attached
 	{
 		w := httptest.NewRecorder()
-		r, _ := http.NewRequest("GET", "/api/users/attached_logins", nil)
-		r.AddCookie(cookie)
+		r := requestAs(t, user, "GET", "/api/users/attached_logins", nil)
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusOK, w.Code)
 		var body struct {
@@ -201,8 +181,7 @@ func Test_Account_ListAttachedLoginProviders(t *testing.T) {
 		assert.Len(t, user.Logins, 1)
 
 		w := httptest.NewRecorder()
-		r, _ := http.NewRequest("GET", "/api/users/attached_logins", nil)
-		r.AddCookie(cookie)
+		r := requestAs(t, user, "GET", "/api/users/attached_logins", nil)
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusOK, w.Code)
 		var body struct {
@@ -234,19 +213,14 @@ func Test_Account_DetachOauthAccount(t *testing.T) {
 
 	assert.NoError(t, storage.AddLoginToUser(user.ID, "mock", "joe", nil))
 
-	// Get a session for this user
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	// Hit the endpoint that the oauth login will redirect to (with our session)
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/logins/mock/detach", nil)
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "POST", "/api/users/logins/mock/detach", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusNoContent, w.Code)
 
 	// User should have no more logins set
-	user, err = storage.FindUserByID(user.ID)
+	user, err := storage.FindUserByID(user.ID)
 	require.NoError(t, err)
 	assert.Len(t, user.Logins, 0)
 }
