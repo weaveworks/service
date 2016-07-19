@@ -49,7 +49,7 @@ type database interface {
 	// * in the same organization, no-op.
 	InviteUser(email, orgName string) (*user, error)
 
-	// Remove a user from an organization. If they do not exist, return success.
+	// Remove a user from an organization. If they do not exist (or are not a member of the org), return success.
 	RemoveUserFromOrganization(orgName, email string) error
 
 	ListUsers(...filter) ([]*user, error)
