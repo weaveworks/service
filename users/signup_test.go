@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -26,12 +24,6 @@ func findLoginLink(t *testing.T, e *email.Email) (url, token string) {
 	require.NotEqual(t, "", matches[1])
 	require.Contains(t, string(e.HTML), matches[0], fmt.Sprintf("Could not find Login Link in html: %q", e.HTML))
 	return matches[0], matches[1]
-}
-
-func jsonBody(t *testing.T, data interface{}) io.Reader {
-	b, err := json.Marshal(data)
-	require.NoError(t, err)
-	return bytes.NewReader(b)
 }
 
 func newLoginRequest(t *testing.T, e *email.Email) *http.Request {
@@ -70,7 +62,7 @@ func Test_Signup(t *testing.T) {
 
 	// Signup as a new user, should send login email
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/signup", jsonBody(t, map[string]interface{}{"email": email}))
+	r, _ := http.NewRequest("POST", "/api/users/signup", jsonBody{"email": email}.Reader(t))
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
@@ -127,7 +119,7 @@ func Test_Signup(t *testing.T) {
 
 	// Subsequent Logins do not change their FirstLoginAt or organization
 	w = httptest.NewRecorder()
-	r, _ = http.NewRequest("POST", "/api/users/signup", jsonBody(t, map[string]interface{}{"email": email}))
+	r, _ = http.NewRequest("POST", "/api/users/signup", jsonBody{"email": email}.Reader(t))
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	require.Len(t, sentEmails, 2)
@@ -169,7 +161,7 @@ func Test_Signup_WithBlankEmail(t *testing.T) {
 
 	email := ""
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("POST", "/api/users/signup", jsonBody(t, map[string]interface{}{}))
+	r, _ := http.NewRequest("POST", "/api/users/signup", jsonBody{}.Reader(t))
 
 	_, err := storage.FindUserByEmail(email)
 	assert.EqualError(t, err, errNotFound.Error())
