@@ -15,6 +15,7 @@ import (
 )
 
 var (
+	errForbidden             = errors.New("Forbidden found")
 	errNotFound              = errors.New("Not found")
 	errEmailIsTaken          = validationErrorf("Email is already taken")
 	errOrgNameIsTaken        = validationErrorf("Name is already taken")
@@ -48,8 +49,8 @@ type database interface {
 	// * in the same organization, no-op.
 	InviteUser(email, orgName string) (*user, error)
 
-	// Ensure a user is deleted. If they do not exist, return success.
-	DeleteUser(email string) error
+	// Remove a user from an organization. If they do not exist, return success.
+	RemoveUserFromOrganization(orgName, email string) error
 
 	ListUsers(...filter) ([]*user, error)
 	ListOrganizationUsers(orgName string) ([]*user, error)
@@ -190,9 +191,9 @@ func (t timedDatabase) InviteUser(email, orgName string) (u *user, err error) {
 	return
 }
 
-func (t timedDatabase) DeleteUser(email string) error {
-	return t.timeRequest("DeleteUser", func() error {
-		return t.d.DeleteUser(email)
+func (t timedDatabase) RemoveUserFromOrganization(orgName, email string) error {
+	return t.timeRequest("RemoveUserFromOrganization", func() error {
+		return t.d.RemoveUserFromOrganization(orgName, email)
 	})
 }
 

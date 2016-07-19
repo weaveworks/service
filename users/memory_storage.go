@@ -108,10 +108,15 @@ func (s memoryStorage) InviteUser(email, orgName string) (*user, error) {
 	return nil, errEmailIsTaken
 }
 
-func (s memoryStorage) DeleteUser(email string) error {
+func (s memoryStorage) RemoveUserFromOrganization(orgName, email string) error {
 	for _, user := range s.users {
 		if user.Email == email {
-			delete(s.users, user.ID)
+			for i, o := range user.Organizations {
+				if strings.ToLower(orgName) != strings.ToLower(o.Name) {
+					continue
+				}
+				user.Organizations = append(user.Organizations[:i], user.Organizations[i+1:]...)
+			}
 			break
 		}
 	}
