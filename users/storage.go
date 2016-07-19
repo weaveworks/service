@@ -108,7 +108,7 @@ func mustNewDatabase(databaseURI, migrationsDir string) database {
 
 type timedDatabase struct {
 	d        database
-	Duration *prometheus.SummaryVec
+	Duration *prometheus.HistogramVec
 }
 
 func (t timedDatabase) errorCode(err error) string {
@@ -127,7 +127,7 @@ func (t timedDatabase) errorCode(err error) string {
 }
 
 func (t timedDatabase) timeRequest(method string, f func() error) error {
-	return instrument.TimeRequestStatus(method, t.Duration, t.errorCode, f)
+	return instrument.TimeRequestHistogramStatus(method, t.Duration, t.errorCode, f)
 }
 
 func (t timedDatabase) CreateUser(email string) (u *user, err error) {
