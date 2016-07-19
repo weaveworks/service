@@ -323,6 +323,27 @@ func (s memoryStorage) OrganizationExists(name string) (bool, error) {
 	return true, nil
 }
 
+func (s memoryStorage) DeleteOrganization(name string) error {
+	o, err := s.findOrganizationByName(name)
+	if err == errNotFound {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	delete(s.organizations, o.ID)
+
+	for _, user := range s.users {
+		for i, org := range user.Organizations {
+			if org.ID != o.ID {
+				continue
+			}
+			user.Organizations = append(user.Organizations[:i], user.Organizations[i+1:]...)
+		}
+	}
+	return nil
+}
+
 func (s memoryStorage) Close() error {
 	return nil
 }

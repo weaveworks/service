@@ -676,6 +676,14 @@ func (s pgStorage) organizationExists(db queryRower, name string) (bool, error) 
 	return exists, err
 }
 
+func (s pgStorage) DeleteOrganization(name string) error {
+	_, err := s.Exec(
+		`update organizations set deleted_at = $1 where lower(name) = lower($2)`,
+		s.Now(), name,
+	)
+	return err
+}
+
 func (s pgStorage) Transaction(f func(*sql.Tx) error) error {
 	tx, err := s.Begin()
 	if err != nil {
