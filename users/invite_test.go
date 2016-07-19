@@ -47,7 +47,7 @@ func Test_InviteExistingUser(t *testing.T) {
 	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": fran.Email}.Reader(t))
 
 	app.ServeHTTP(w, r)
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusNoContent, w.Code)
 
 	fran, err := storage.FindUserByEmail(fran.Email)
 	require.NoError(t, err)
