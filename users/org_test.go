@@ -319,11 +319,7 @@ func Test_Organization_Delete(t *testing.T) {
 	name, err := storage.GenerateOrganizationName()
 	require.NoError(t, err)
 
-	cookie, err := sessions.Cookie(otherUser.ID, "")
-	assert.NoError(t, err)
-
-	r, _ := http.NewRequest("DELETE", "/api/users/org/"+name, nil)
-	r.AddCookie(cookie)
+	r := requestAs(t, otherUser, "DELETE", "/api/users/org/"+name, nil)
 
 	// Should NoContent if the org already doesn't exist
 	{
@@ -336,6 +332,7 @@ func Test_Organization_Delete(t *testing.T) {
 	org, err := storage.CreateOrganization(user.ID, name, name)
 	require.NoError(t, err)
 
+	// Should 401 because otherUser doesn't have access
 	{
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, r)
@@ -343,10 +340,7 @@ func Test_Organization_Delete(t *testing.T) {
 	}
 
 	// Login as the org owner
-	cookie, err = sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-	r, _ = http.NewRequest("DELETE", "/api/users/org/"+name, nil)
-	r.AddCookie(cookie)
+	r = requestAs(t, user, "DELETE", "/api/users/org/"+name, nil)
 
 	{
 		w := httptest.NewRecorder()
@@ -359,4 +353,15 @@ func Test_Organization_Delete(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, exists)
 
+	// Check the user no longer has the org
+	user, err = storage.FindUserByID(user.ID)
+	require.NoError(t, err)
+	var found bool
+	for _, o := range user.Organizations {
+		if o.ID == org.ID {
+			found = true
+			break
+		}
+	}
+	assert.False(t, found, "Expected user not to have the deleted org any more")
 }

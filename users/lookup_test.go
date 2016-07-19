@@ -18,12 +18,8 @@ func Test_Lookup(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/private/api/users/lookup/"+org.Name, nil)
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "GET", "/private/api/users/lookup/"+org.Name, nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -56,11 +52,8 @@ func Test_PublicLookup(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, org.FirstProbeUpdateAt)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/api/users/lookup", nil)
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "GET", "/api/users/lookup", nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -124,12 +117,8 @@ func Test_Lookup_Admin(t *testing.T) {
 	user := getApprovedUser(t)
 	require.NoError(t, storage.SetUserAdmin(user.ID, true))
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/private/api/users/admin", nil)
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "GET", "/private/api/users/admin", nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -144,12 +133,8 @@ func Test_Lookup_Admin_Unauthorized(t *testing.T) {
 
 	user := getApprovedUser(t)
 
-	cookie, err := sessions.Cookie(user.ID, "")
-	assert.NoError(t, err)
-
 	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "/private/api/users/admin", nil)
-	r.AddCookie(cookie)
+	r := requestAs(t, user, "GET", "/private/api/users/admin", nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)

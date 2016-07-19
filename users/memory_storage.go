@@ -332,6 +332,15 @@ func (s memoryStorage) DeleteOrganization(name string) error {
 		return err
 	}
 	delete(s.organizations, o.ID)
+
+	for _, user := range s.users {
+		for i, org := range user.Organizations {
+			if org.ID != o.ID {
+				continue
+			}
+			user.Organizations = append(user.Organizations[:i], user.Organizations[i+1:]...)
+		}
+	}
 	return nil
 }
 
