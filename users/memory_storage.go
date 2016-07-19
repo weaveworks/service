@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/weaveworks/service/users/login"
+	"github.com/weaveworks/service/users/names"
 )
 
 type memoryStorage struct {
@@ -82,15 +83,9 @@ func (s memoryStorage) DetachLoginFromUser(userID, provider string) error {
 }
 
 func (s memoryStorage) InviteUser(email, orgName string) (*user, error) {
-	var o *organization
-	for _, org := range s.organizations {
-		if org.Name == orgName {
-			o = org
-			break
-		}
-	}
-	if o == nil {
-		return nil, errNotFound
+	o, err := s.findOrganizationByName(orgName)
+	if err != nil {
+		return nil, err
 	}
 
 	u, err := s.FindUserByEmail(email)
@@ -106,7 +101,7 @@ func (s memoryStorage) InviteUser(email, orgName string) (*user, error) {
 		u.Organizations = append(u.Organizations, o)
 		return u, nil
 	case 1:
-		if u.Organizations[0].Name == orgName {
+		if strings.ToLower(u.Organizations[0].Name) == strings.ToLower(orgName) {
 			return u, nil
 		}
 	}
@@ -172,7 +167,7 @@ func (s memoryStorage) ListOrganizationUsers(orgName string) ([]*user, error) {
 	users := []*user{}
 	for _, user := range s.users {
 		for _, org := range user.Organizations {
-			if org.Name == orgName {
+			if strings.ToLower(org.Name) == strings.ToLower(orgName) {
 				users = append(users, user)
 				break
 			}
@@ -235,29 +230,58 @@ func (s memoryStorage) SetUserFirstLoginAt(id string) error {
 	return nil
 }
 
-func (s memoryStorage) CreateOrganization(ownerID string) (*organization, error) {
+func (s memoryStorage) GenerateOrganizationName() (string, error) {
+	var name string
+	for {
+		name = names.Generate()
+		_, err := s.findOrganizationByName(name)
+		if err != nil && err != errNotFound {
+			return "", err
+		}
+		break
+	}
+	return name, nil
+}
+
+func (s memoryStorage) findOrganizationByName(name string) (*organization, error) {
+	for _, o := range s.organizations {
+		if strings.ToLower(o.Name) == strings.ToLower(name) {
+			return o, nil
+		}
+	}
+	return nil, errNotFound
+}
+
+func (s memoryStorage) CreateOrganization(ownerID, name, label string) (*organization, error) {
 	user, err := s.FindUserByID(ownerID)
 	if err != nil {
 		return nil, err
 	}
 	o := &organization{
-		ID: fmt.Sprint(len(s.organizations)),
+		ID:        fmt.Sprint(len(s.organizations)),
+		Name:      name,
+		Label:     label,
+		CreatedAt: time.Now().UTC(),
 	}
-	for {
-		o.RegenerateName()
-		var found bool
+	if err := o.valid(); err != nil {
+		return nil, err
+	}
+	if exists, err := s.OrganizationExists(o.Name); err != nil {
+		return nil, err
+	} else if exists {
+		return nil, errOrgNameIsTaken
+	}
+	for exists := o.ProbeToken == ""; exists; {
+		if err := o.RegenerateProbeToken(); err != nil {
+			return nil, err
+		}
+		exists = false
 		for _, org := range s.organizations {
-			if org.Name == o.Name {
-				found = true
+			if org.ProbeToken == o.ProbeToken {
+				exists = true
 				break
 			}
 		}
-		if !found {
-			break
-		}
-	}
-	if err := o.RegenerateProbeToken(); err != nil {
-		return nil, err
 	}
 	s.organizations[o.ID] = o
 	user.Organizations = append(user.Organizations, o)
@@ -276,14 +300,27 @@ func (s memoryStorage) FindOrganizationByProbeToken(probeToken string) (*organiz
 	return nil, errNotFound
 }
 
-func (s memoryStorage) RenameOrganization(oldName, newName string) error {
-	for _, o := range s.organizations {
-		if o.Name == oldName {
-			o.Name = newName
-			return nil
-		}
+func (s memoryStorage) RelabelOrganization(name, label string) error {
+	if err := (&organization{Name: name, Label: label}).valid(); err != nil {
+		return err
 	}
-	return errNotFound
+
+	o, err := s.findOrganizationByName(name)
+	if err != nil {
+		return err
+	}
+
+	o.Label = label
+	return nil
+}
+
+func (s memoryStorage) OrganizationExists(name string) (bool, error) {
+	if _, err := s.findOrganizationByName(name); err == errNotFound {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (s memoryStorage) Close() error {

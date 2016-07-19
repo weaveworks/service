@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/weaveworks/service/users/login"
+	"github.com/weaveworks/service/users/names"
 )
 
 type pgStorage struct {
@@ -278,24 +279,12 @@ func (s pgStorage) scanUser(row squirrel.RowScanner) (*user, error) {
 	); err != nil {
 		return nil, err
 	}
-	s.setString(&u.Token, token)
-	s.setTime(&u.TokenCreatedAt, tokenCreatedAt)
-	s.setTime(&u.ApprovedAt, approvedAt)
-	s.setTime(&u.CreatedAt, createdAt)
-	s.setTime(&u.FirstLoginAt, firstLoginAt)
+	u.Token = token.String
+	u.TokenCreatedAt = tokenCreatedAt.Time
+	u.ApprovedAt = approvedAt.Time
+	u.CreatedAt = createdAt.Time
+	u.FirstLoginAt = firstLoginAt.Time
 	return u, nil
-}
-
-func (s pgStorage) setTime(dst *time.Time, src pq.NullTime) {
-	if src.Valid {
-		*dst = src.Time
-	}
-}
-
-func (s pgStorage) setString(dst *string, src sql.NullString) {
-	if src.Valid {
-		*dst = src.String
-	}
 }
 
 func (s pgStorage) usersQuery() squirrel.SelectBuilder {
@@ -318,6 +307,7 @@ func (s pgStorage) organizationsQuery() squirrel.SelectBuilder {
 	return s.Select(
 		"organizations.id",
 		"organizations.name",
+		"organizations.label",
 		"organizations.probe_token",
 		"organizations.first_probe_update_at",
 		"organizations.created_at",
@@ -415,10 +405,10 @@ func (s pgStorage) listLoginsForUserIDs(db squirrel.BaseRunner, userIDs ...strin
 		if err := rows.Scan(&userID, &provider, &providerID, &session, &createdAt); err != nil {
 			return nil, err
 		}
-		s.setString(&l.UserID, userID)
-		s.setString(&l.Provider, provider)
-		s.setString(&l.ProviderID, providerID)
-		s.setTime(&l.CreatedAt, createdAt)
+		l.UserID = userID.String
+		l.Provider = provider.String
+		l.ProviderID = providerID.String
+		l.CreatedAt = createdAt.Time
 		l.Session = session
 		ls = append(ls, l)
 	}
@@ -536,47 +526,63 @@ func (s pgStorage) SetUserFirstLoginAt(id string) error {
 	return nil
 }
 
-func (s pgStorage) CreateOrganization(ownerID string) (*organization, error) {
+func (s pgStorage) GenerateOrganizationName() (string, error) {
 	var (
-		o   = &organization{CreatedAt: s.Now()}
-		err error
+		name string
+		err  error
 	)
-	if err := o.RegenerateProbeToken(); err != nil {
+	err = s.Transaction(func(tx *sql.Tx) error {
+		for exists := true; exists; {
+			name = names.Generate()
+			exists, err = s.organizationExists(tx, name)
+		}
+		return nil
+	})
+	return name, err
+}
+
+func (s pgStorage) CreateOrganization(ownerID, name, label string) (*organization, error) {
+	o := &organization{
+		Name:      name,
+		Label:     label,
+		CreatedAt: s.Now(),
+	}
+	if err := o.valid(); err != nil {
 		return nil, err
 	}
 
-	for {
-		o.RegenerateName()
-		err = s.QueryRow(`insert into organizations
-			(name, probe_token, created_at)
-			values ($1, $2, $3) returning id`,
-			o.Name, o.ProbeToken, o.CreatedAt,
-		).Scan(&o.ID)
-
-		e, ok := err.(*pq.Error)
-		if !ok {
-			break
+	err := s.Transaction(func(tx *sql.Tx) error {
+		if exists, err := s.organizationExists(tx, o.Name); err != nil {
+			return err
+		} else if exists {
+			return errOrgNameIsTaken
 		}
 
-		switch e.Constraint {
-		case "organizations_lower_name_idx":
-			continue
-		case "organizations_probe_token_idx":
+		for exists := o.ProbeToken == ""; exists; {
 			if err := o.RegenerateProbeToken(); err != nil {
-				return nil, err
+				return err
 			}
-			continue
-		default:
-			break
+			if err := tx.QueryRow(
+				`select exists(select 1 from organizations where probe_token = $1 and deleted_at is null)`,
+				o.ProbeToken,
+			).Scan(&exists); err != nil {
+				return err
+			}
 		}
-	}
+
+		err := tx.QueryRow(`insert into organizations
+			(name, label, probe_token, created_at)
+			values ($1, $2, $3, $4) returning id`,
+			o.Name, o.Label, o.ProbeToken, o.CreatedAt,
+		).Scan(&o.ID)
+		if err != nil {
+			return err
+		}
+
+		return s.addUserToOrganization(tx, ownerID, o.ID)
+	})
 	if err != nil {
 		return nil, err
-	}
-
-	err = s.addUserToOrganization(s.DB, ownerID, o.ID)
-	if err != nil {
-		o = nil
 	}
 	return o, err
 }
@@ -621,23 +627,28 @@ func (s pgStorage) scanOrganizations(rows *sql.Rows) ([]*organization, error) {
 
 func (s pgStorage) scanOrganization(row squirrel.RowScanner) (*organization, error) {
 	o := &organization{}
-	var name, probeToken sql.NullString
+	var name, label, probeToken sql.NullString
 	var firstProbeUpdateAt, createdAt pq.NullTime
-	if err := row.Scan(&o.ID, &name, &probeToken, &firstProbeUpdateAt, &createdAt); err != nil {
+	if err := row.Scan(&o.ID, &name, &label, &probeToken, &firstProbeUpdateAt, &createdAt); err != nil {
 		return nil, err
 	}
-	s.setString(&o.Name, name)
-	s.setString(&o.ProbeToken, probeToken)
-	s.setTime(&o.FirstProbeUpdateAt, firstProbeUpdateAt)
-	s.setTime(&o.CreatedAt, createdAt)
+	o.Name = name.String
+	o.Label = label.String
+	o.ProbeToken = probeToken.String
+	o.FirstProbeUpdateAt = firstProbeUpdateAt.Time
+	o.CreatedAt = createdAt.Time
 	return o, nil
 }
 
-func (s pgStorage) RenameOrganization(oldName, newName string) error {
+func (s pgStorage) RelabelOrganization(name, label string) error {
+	if err := (&organization{Name: name, Label: label}).valid(); err != nil {
+		return err
+	}
+
 	result, err := s.Exec(`
-		update organizations set name = $2
+		update organizations set label = $2
 		where lower(name) = lower($1) and deleted_at is null`,
-		oldName, newName,
+		name, label,
 	)
 	if err != nil {
 		return err
@@ -650,6 +661,19 @@ func (s pgStorage) RenameOrganization(oldName, newName string) error {
 		return errNotFound
 	}
 	return nil
+}
+
+func (s pgStorage) OrganizationExists(name string) (bool, error) {
+	return s.organizationExists(s, name)
+}
+
+func (s pgStorage) organizationExists(db queryRower, name string) (bool, error) {
+	var exists bool
+	err := db.QueryRow(
+		`select exists(select 1 from organizations where lower(name) = lower($1) and deleted_at is null)`,
+		name,
+	).Scan(&exists)
+	return exists, err
 }
 
 func (s pgStorage) Transaction(f func(*sql.Tx) error) error {

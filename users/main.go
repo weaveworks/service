@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"regexp"
+	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -21,7 +21,6 @@ import (
 
 var (
 	passwordHashingCost = 14
-	orgNameRegex        = regexp.MustCompile(`\A[a-zA-Z0-9_-]+\z`)
 	pardotClient        *pardot.Client
 )
 
@@ -143,8 +142,10 @@ func (a *api) routes() http.Handler {
 		{"api_users_lookup", "GET", "/api/users/lookup", a.authenticated(a.publicLookup)},
 
 		// Basic view and management of an organization
+		{"api_users_generateOrgName", "GET", "/api/users/generateOrgName", a.authenticated(a.generateOrgName)},
+		{"api_users_org_create", "POST", "/api/users/org", a.authenticated(a.createOrg)},
 		{"api_users_org_orgName", "GET", "/api/users/org/{orgName}", a.authenticated(a.org)},
-		{"api_users_org_orgName_rename", "PUT", "/api/users/org/{orgName}", a.authenticated(a.renameOrg)},
+		{"api_users_org_orgName_update", "PUT", "/api/users/org/{orgName}", a.authenticated(a.updateOrg)},
 
 		// Used to list and manage organization access (invites)
 		{"api_users_org_orgName_users", "GET", "/api/users/org/{orgName}/users", a.authenticated(a.listOrganizationUsers)},
@@ -488,7 +489,11 @@ func (a *api) updateUserAtLogin(u *user) error {
 		}
 	}
 	if len(u.Organizations) == 0 {
-		if _, err := a.storage.CreateOrganization(u.ID); err != nil {
+		name, err := a.storage.GenerateOrganizationName()
+		if err != nil {
+			return err
+		}
+		if _, err := a.storage.CreateOrganization(u.ID, name, name); err != nil {
 			return err
 		}
 	}
@@ -510,6 +515,7 @@ func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Req
 	for _, org := range currentUser.Organizations {
 		existing = append(existing, orgView{
 			Name:               org.Name,
+			Label:              org.Label,
 			FirstProbeUpdateAt: renderTime(org.FirstProbeUpdateAt),
 		})
 	}
@@ -664,6 +670,7 @@ func csrf(handler http.Handler) http.Handler {
 type orgView struct {
 	User               string `json:"user,omitempty"`
 	Name               string `json:"name"`
+	Label              string `json:"label,omitempty"`
 	ProbeToken         string `json:"probeToken,omitempty"`
 	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
 }
@@ -672,20 +679,37 @@ func (a *api) org(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orgName := vars["orgName"]
 	for _, org := range currentUser.Organizations {
-		if org.Name == orgName {
+		if strings.ToLower(org.Name) == strings.ToLower(orgName) {
 			renderJSON(w, http.StatusOK, orgView{
 				User:               currentUser.Email,
 				Name:               org.Name,
+				Label:              org.Label,
 				ProbeToken:         org.ProbeToken,
 				FirstProbeUpdateAt: renderTime(org.FirstProbeUpdateAt),
 			})
 			return
 		}
 	}
+	if exists, err := a.storage.OrganizationExists(orgName); err != nil {
+		renderError(w, r, err)
+		return
+	} else if exists {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
 	renderError(w, r, errNotFound)
 }
 
-func (a *api) renameOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
+func (a *api) generateOrgName(currentUser *user, w http.ResponseWriter, r *http.Request) {
+	name, err := a.storage.GenerateOrganizationName()
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	renderJSON(w, http.StatusOK, orgView{Name: name})
+}
+
+func (a *api) createOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var view orgView
 	err := json.NewDecoder(r.Body).Decode(&view)
@@ -693,19 +717,45 @@ func (a *api) renameOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 	case err != nil:
 		renderError(w, r, malformedInputError(err))
 		return
-	case view.Name == "":
-		renderError(w, r, validationErrorf("Name cannot be blank"))
-		return
-	case !orgNameRegex.MatchString(view.Name):
-		renderError(w, r, validationErrorf("Name can only contain letters, numbers, hyphen, and underscore"))
-		return
 	}
 
-	if err := a.storage.RenameOrganization(mux.Vars(r)["orgName"], view.Name); err != nil {
+	if _, err := a.storage.CreateOrganization(currentUser.ID, view.Name, view.Label); err != nil {
 		renderError(w, r, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (a *api) updateOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	var view orgView
+	err := json.NewDecoder(r.Body).Decode(&view)
+	switch {
+	case err != nil:
+		renderError(w, r, malformedInputError(err))
+		return
+	case view.Name != "":
+		renderError(w, r, validationErrorf("Name cannot be changed"))
+		return
+	}
+
+	orgName := mux.Vars(r)["orgName"]
+	if !currentUser.HasOrganization(orgName) {
+		if exists, err := a.storage.OrganizationExists(orgName); err != nil {
+			renderError(w, r, err)
+			return
+		} else if exists {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		renderError(w, r, errNotFound)
+		return
+	}
+	if err := a.storage.RelabelOrganization(orgName, view.Label); err != nil {
+		renderError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 type organizationUsersView struct {
