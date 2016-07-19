@@ -170,12 +170,25 @@ func (s pgStorage) InviteUser(email, orgName string) (*user, error) {
 	return u, nil
 }
 
-func (s pgStorage) DeleteUser(email string) error {
+func (s pgStorage) RemoveUserFromOrganization(orgName, email string) error {
 	_, err := s.Exec(`
-			update users set deleted_at = $2
-			where lower(email) = lower($1) and deleted_at is null`,
-		email,
+			update memberships set deleted_at = $1
+			where user_id in (
+					select id
+					  from users
+					 where lower(email) = lower($2)
+					   and deleted_at is null
+				)
+			  and organization_id in (
+					select id
+					  from organizations
+					 where lower(name) = lower($3)
+					   and deleted_at is null
+				)
+			  and deleted_at is null`,
 		s.Now(),
+		email,
+		orgName,
 	)
 	return err
 }

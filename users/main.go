@@ -741,15 +741,8 @@ func (a *api) updateOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 	}
 
 	orgName := mux.Vars(r)["orgName"]
-	if !currentUser.HasOrganization(orgName) {
-		if exists, err := a.storage.OrganizationExists(orgName); err != nil {
-			renderError(w, r, err)
-			return
-		} else if exists {
-			w.WriteHeader(http.StatusForbidden)
-			return
-		}
-		renderError(w, r, errNotFound)
+	if err := a.userCanAccessOrg(currentUser, orgName); err != nil {
+		renderError(w, r, err)
 		return
 	}
 	if err := a.storage.RelabelOrganization(orgName, view.Label); err != nil {
@@ -787,7 +780,13 @@ type organizationUserView struct {
 }
 
 func (a *api) listOrganizationUsers(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	users, err := a.storage.ListOrganizationUsers(mux.Vars(r)["orgName"])
+	orgName := mux.Vars(r)["orgName"]
+	if err := a.userCanAccessOrg(currentUser, orgName); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	users, err := a.storage.ListOrganizationUsers(orgName)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -816,6 +815,11 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 	}
 
 	orgName := mux.Vars(r)["orgName"]
+	if err := a.userCanAccessOrg(currentUser, orgName); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
 	invitee, err := a.storage.InviteUser(view.Email, orgName)
 	if err != nil {
 		renderError(w, r, err)
@@ -843,11 +847,31 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 }
 
 func (a *api) deleteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	if err := a.storage.DeleteUser(mux.Vars(r)["userEmail"]); err != nil {
+	vars := mux.Vars(r)
+	orgName := vars["orgName"]
+	userEmail := vars["userEmail"]
+	if err := a.userCanAccessOrg(currentUser, orgName); err != nil {
 		renderError(w, r, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+
+	if err := a.storage.RemoveUserFromOrganization(orgName, userEmail); err != nil {
+		renderError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *api) userCanAccessOrg(currentUser *user, orgName string) error {
+	if !currentUser.HasOrganization(orgName) {
+		if exists, err := a.storage.OrganizationExists(orgName); err != nil {
+			return err
+		} else if exists {
+			return errForbidden
+		}
+		return errNotFound
+	}
+	return nil
 }
 
 func renderTime(t time.Time) string {

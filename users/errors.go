@@ -17,6 +17,8 @@ func validationErrorf(format string, args ...interface{}) validationError {
 
 func errorStatusCode(err error) int {
 	switch {
+	case err == errForbidden:
+		return http.StatusForbidden
 	case err == errNotFound:
 		return http.StatusNotFound
 	case err == errInvalidAuthenticationData:
