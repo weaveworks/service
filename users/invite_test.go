@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -22,6 +23,12 @@ func Test_InviteNonExistentUser(t *testing.T) {
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, map[string]interface{}{
+		"mailSent": true,
+		"email":    franEmail,
+	}, body)
 
 	fran, err := storage.FindUserByEmail(franEmail)
 	require.NoError(t, err)
@@ -48,6 +55,12 @@ func Test_InviteExistingUser(t *testing.T) {
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, map[string]interface{}{
+		"mailSent": true,
+		"email":    fran.Email,
+	}, body)
 
 	fran, err := storage.FindUserByEmail(fran.Email)
 	require.NoError(t, err)
