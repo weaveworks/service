@@ -58,6 +58,8 @@ export default class Login extends React.Component {
   _handleLoginSuccess(resp) {
     if (resp.attach) {
       hashHistory.push('/account');
+    } else if (resp.firstLogin) {
+      hashHistory.push('/instances/create');
     } else {
       hashHistory.push('/');
     }

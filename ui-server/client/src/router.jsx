@@ -2,6 +2,10 @@ import React from 'react';
 import { Redirect, Route, IndexRoute } from 'react-router';
 
 import AccountPage from './pages/account/page';
+import InstancesCreate from './pages/instances/instances-create';
+import InstancesList from './pages/instances/instances-list';
+import InstancesPage from './pages/instances/page';
+import InstancesSelect from './pages/instances/instances-select';
 import OrganizationPage from './pages/organization/page';
 import LandingPage from './pages/landing/page';
 import CookieCheck from './pages/landing/cookie-check';
@@ -20,6 +24,11 @@ export default function getRoutes() {
       <Route name="wrapper" path="app/:orgId" component={WrapperPage} />
       <Route name="organization" path="org/:orgId" component={OrganizationPage} />
       <Route name="account" path="account" component={AccountPage} />
+      <Route path="instances" component={InstancesPage}>
+        <IndexRoute component={InstancesList} />
+        <Route path="create" component={InstancesCreate} />
+        <Route path="select/:name" component={InstancesSelect} />
+      </Route>
 
       {/* Sign up/Log in */}
       <Route component={LandingPage}>

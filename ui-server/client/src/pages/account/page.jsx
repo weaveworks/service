@@ -10,6 +10,7 @@ import FontIcon from 'material-ui/FontIcon';
 import { FlexContainer } from '../../components/flex-container';
 import { Column } from '../../components/column';
 import { Logo } from '../../components/logo';
+import InstancesList from '../instances/instances-list';
 import Logins from './logins';
 import Toolbar from '../../components/toolbar';
 import { trackView, trackException } from '../../common/tracking';
@@ -117,6 +118,10 @@ export default class AccountPage extends React.Component {
               </List>}
 
               <Logins />
+            </Column>
+            <Column>
+              <h2>Instances</h2>
+              <InstancesList />
             </Column>
           </FlexContainer>
         </div>

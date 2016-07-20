@@ -98,7 +98,7 @@ export default class Toolbar extends React.Component {
           <div style={styles.toolbar}>
             <div style={styles.toolbarLeft}>
               <span style={styles.toolbarOrganizationLabel}>
-                App
+                Instance
               </span>
               <span style={styles.toolbarOrganization}>
                 {this.props.organization}
