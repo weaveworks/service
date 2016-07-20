@@ -141,6 +141,7 @@ func main() {
 	orgRouter.PathPrefix("/api/topology").Name("api_app_topology").Handler(queryFwd)
 	orgRouter.PathPrefix("/api/control").Name("api_app_control").Handler(contolFwd)
 	orgRouter.PathPrefix("/api/pipe").Name("api_app_pipe").Handler(pipeFwd)
+	orgRouter.PathPrefix("/api/deploy").Name("api_app_deploy").Handler(deployFwd)
 	orgRouter.PathPrefix("/").Name("api_app").Handler(queryFwd) // catch all forward to query service, for /api and static html
 
 	// probeRouter is for all probe <-> app communication, authenticated using header credentials
