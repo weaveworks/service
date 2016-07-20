@@ -5,7 +5,6 @@ import Paper from 'material-ui/Paper';
 import { encodeURIs } from '../common/request';
 import Colors from '../common/colors';
 
-
 export default class Toolbar extends React.Component {
 
   getLinks() {
@@ -22,34 +21,38 @@ export default class Toolbar extends React.Component {
       title: 'My Account',
       iconClass: 'fa fa-user',
       route: encodeURIs`#/account`
+    }, {
+      iconClass: 'fa fa-sign-out',
+      title: `Log out ${this.props.user || ''}`,
+      route: '#/logout'
     }];
   }
 
   renderLinks() {
-    return this.getLinks().map(link => {
-      const linkColor = Colors.text3;
-      const styles = {
-        toolbarLink: {
-          padding: 12,
-          color: linkColor,
-        },
-        toolbarLinkIcon: {
-          fontSize: '130%'
-        },
-        toolbarLinkLabel: {
-          fontSize: '110%'
-        },
-        toolbarLinkWrapper: {
-          padding: 0
-        }
-      };
+    const styles = {
+      toolbarLink: {
+        padding: 12
+      },
+      toolbarLinkIcon: {
+        fontSize: '130%'
+      },
+      toolbarLinkLabel: {
+        fontSize: '110%'
+      },
+      toolbarLinkWrapper: {
+        padding: 0
+      }
+    };
 
+    return this.getLinks().map(link => {
+      const isOnPage = link.route === window.location.hash;
+      const linkClass = isOnPage ? 'active' : '';
       return (
         <span style={styles.toolbarLinkWrapper} key={link.route}>
-          <a style={styles.toolbarLink} title={link.title} href={link.route}>
-            {link.iconClass && <FontIcon style={styles.toolbarLinkIcon} color={linkColor}
-              hoverColor={Colors.text} className={link.iconClass} />}
-            {link.label && <span style={styles.toolbarLinkLabel}>{link.label}</span>}
+          <a style={styles.toolbarLink} title={link.title} className={linkClass} href={link.route}>
+            <span style={styles.toolbarLinkLabel}>{link.label}</span>
+            <FontIcon style={styles.toolbarLinkIcon} color={Colors.text2}
+              hoverColor={Colors.text} className={link.iconClass} />
           </a>
         </span>
       );
@@ -82,7 +85,7 @@ export default class Toolbar extends React.Component {
       },
       toolbarRight: {
         float: 'right',
-        padding: 15,
+        padding: '12px 24px'
       },
       toolbarWrapper: {
         backgroundColor: '#e4e4ed',

@@ -44,7 +44,7 @@ store.users = [{
 // Mock backend
 
 if (process.env.USE_MOCK_BACKEND) {
-  app.get('/api/app/*/api/probes', function(req, res) {
+  app.get('/api/org/*/probes', function(req, res) {
     res.json([{
       id: 'probe1',
       state: 'connected',
@@ -76,10 +76,8 @@ if (process.env.USE_MOCK_BACKEND) {
 
   app.get('/api/users/lookup', function(req, res) {
     res.json({
-      email: 'foo@example.com',
-      organizations: [{
-        name: store.orgName
-      }]
+      organizationName: store.orgName,
+      firstProbeUpdateAt: "2016-06-01T11:55:51Z"
     });
   });
 
@@ -89,18 +87,6 @@ if (process.env.USE_MOCK_BACKEND) {
       name: store.orgName,
       probeToken: "6bmx9riesxst8wc16msjy7toeeiwne4b",
       firstProbeUpdateAt: "2016-06-01T11:55:51Z"
-    });
-  });
-
-  app.get('/api/users/logins', function(req, res) {
-    res.json({
-      logins: []
-    });
-  });
-
-  app.get('/api/users/attached_logins', function(req, res) {
-    res.json({
-      logins: []
     });
   });
 } else {
