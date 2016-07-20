@@ -1,4 +1,4 @@
-FROM prom/prometheus:0.17.0
+FROM prom/prometheus:v1.0.0
 LABEL works.weave.role=system
 
 COPY prometheus.yml alert.rules /etc/prometheus/

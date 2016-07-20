@@ -12,6 +12,7 @@ scrape_configs:
   - api_servers:
     - 'https://kubernetes.default.svc.cluster.local'
     in_cluster: true
+    role: endpoint
 
   # You can specify the following annotations (on services):
   #   prometheus.io.scrape: false - don't scrape this service
@@ -19,9 +20,6 @@ scrape_configs:
   #   prometheus.io.port - scrape this port
   #   prometheus.io.path - scrape this path
   relabel_configs:
-  - source_labels: [__meta_kubernetes_role]
-    action: keep
-    regex: endpoint
   - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
     action: drop
     regex: false
@@ -59,8 +57,4 @@ scrape_configs:
   - api_servers:
     - 'https://kubernetes.default.svc.cluster.local'
     in_cluster: true
-
-  relabel_configs:
-  - source_labels: [__meta_kubernetes_role]
-    action: keep
-    regex: node
+    role: node
