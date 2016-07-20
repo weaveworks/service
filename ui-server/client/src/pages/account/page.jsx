@@ -5,6 +5,7 @@ import get from 'lodash/get';
 import RaisedButton from 'material-ui/RaisedButton';
 import List, { ListItem } from 'material-ui/List';
 import Avatar from 'material-ui/Avatar';
+import FontIcon from 'material-ui/FontIcon';
 
 import { FlexContainer } from '../../components/flex-container';
 import { Column } from '../../components/column';
@@ -13,7 +14,6 @@ import Logins from './logins';
 import Toolbar from '../../components/toolbar';
 import { trackView, trackException } from '../../common/tracking';
 import { getOrganizations } from '../../common/api';
-import gravatar from '../../common/gravatar';
 
 
 export default class AccountPage extends React.Component {
@@ -101,11 +101,11 @@ export default class AccountPage extends React.Component {
               <h2>User</h2>
 
               {this.state.user && <List style={{ maxWidth: '32em' }}>
-                <ListItem
+                <ListItem disabled
                   style={{cursor: 'default'}}
                   primaryText={this.state.user}
                   leftAvatar={<Avatar style={styles.avatar}
-                    src={gravatar(this.state.user)}
+                    icon={<FontIcon className="fa fa-user" />}
                     size={32}
                     />}
                   rightIconButton={logoutButton}
