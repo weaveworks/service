@@ -64,18 +64,20 @@ export default class Logins extends React.Component {
 
   renderLogin(a) {
     const detach = () => this.detach(a.id);
-    let link = <FlatButton linkButton href={a.link.href} label="Attach" />;
+    const buttonStyle = { top: 15, right: 16 };
+    let link = <FlatButton style={buttonStyle} linkButton href={a.link.href} label="Attach" />;
     if (a.loginID || a.username) {
-      link = <FlatButton onClick={detach} label="Detach" />;
+      link = <FlatButton style={buttonStyle} onClick={detach} label="Detach" />;
     }
     return (
       <ListItem
         style={{cursor: 'default'}}
         key={a.id}
         primaryText={a.name}
-        leftIcon={<span style={{fontSize: '24px'}} className={a.link.icon} />}
+        leftIcon={<span style={{top: '6px', left: '13px', fontSize: '26px'}}
+          className={a.link.icon} />}
         rightIconButton={link}
-        secondaryText={a.username ? this.renderAttached(a.username) : 'Not attached'}
+        secondaryText={a.username ? this.renderAttached(a.username) : <span>Not attached</span>}
       />
     );
   }
