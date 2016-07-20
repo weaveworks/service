@@ -96,3 +96,22 @@ func (g *google) personEmail(p *plus.Person) (string, error) {
 	}
 	return "", fmt.Errorf("Invalid authentication data")
 }
+
+// Logout handles a user logout request with this provider. It should return
+// detach revoke the user session, requiring the user to re-authenticate next
+// time.
+func (g *google) Logout(session json.RawMessage) error {
+	var s oauthUserSession
+	if err := json.Unmarshal(session, &s); err != nil {
+		return err
+	}
+
+	response, err := http.Get(fmt.Sprintf("https://accounts.google.com/o/oauth2/revoke?token=%s", s.Token.AccessToken))
+	if err != nil {
+		return err
+	}
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("Error revoking google oauth token: %s", response.Status)
+	}
+	return nil
+}

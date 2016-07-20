@@ -28,6 +28,11 @@ type Provider interface {
 	// Username fetches a user's username on the remote service, for displaying
 	// *which* account this is linked with.
 	Username(session json.RawMessage) (string, error)
+
+	// Logout handles a user logout request with this provider. It should return
+	// detach revoke the user session, requiring the user to re-authenticate next
+	// time.
+	Logout(session json.RawMessage) error
 }
 
 // Link is the attributes of a rendered HTML button the user should click to

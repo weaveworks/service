@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -57,6 +58,27 @@ func (a MockLoginProvider) Username(session json.RawMessage) (string, error) {
 		}
 	}
 	return "", errNotFound
+}
+
+// Logout handles a user logout request with this provider. It should return
+// detach revoke the user session, requiring the user to re-authenticate next
+// time.
+func (a MockLoginProvider) Logout(session json.RawMessage) error {
+	var id string
+	if err := json.Unmarshal(session, &id); err != nil {
+		return fmt.Errorf("Error logging out: %s, Session: %q", err.Error(), string(session))
+	}
+
+	var ks []string
+	for k, u := range a {
+		if u.ID == id {
+			ks = append(ks, k)
+		}
+	}
+	for _, k := range ks {
+		delete(a, k)
+	}
+	return nil
 }
 
 func Test_Login_NoParams(t *testing.T) {
