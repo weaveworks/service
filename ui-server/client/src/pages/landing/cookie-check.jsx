@@ -51,10 +51,10 @@ export default class CookieCheck extends React.Component {
   }
 
   _handleLoginSuccess(resp) {
-    if (resp.organizations.length > 1) {
+    if (resp.organizations && resp.organizations.length > 1) {
       // choose instance
       hashHistory.push('/instances');
-    } else if (resp.organizations.length === 1) {
+    } else if (resp.organizations && resp.organizations.length === 1) {
       // only one instance -> go straight there
       const name = resp.organizations[0].name;
       hashHistory.push(encodeURIs`/instances/select/${name}`);
