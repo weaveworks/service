@@ -6,7 +6,7 @@ import { red900 } from 'material-ui/styles/colors';
 import { getData } from '../../common/request';
 import { trackException, trackView } from '../../common/tracking';
 
-export default class LoginForm extends React.Component {
+export default class Logout extends React.Component {
 
   constructor(props) {
     super(props);

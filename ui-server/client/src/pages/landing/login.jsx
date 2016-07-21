@@ -12,7 +12,7 @@ import { trackException, trackView } from '../../common/tracking';
 const ERROR_TITLE = 'Weave Cloud is not available. Please try again.';
 
 
-export default class LoginForm extends React.Component {
+export default class Login extends React.Component {
 
   constructor(props) {
     super(props);
@@ -117,12 +117,12 @@ export default class LoginForm extends React.Component {
         <div style={styles.error}>
           <h3>{this.state.errorTitle || ERROR_TITLE}</h3>
           <p>{this.state.errorText}</p>
-          <p style={styles.errorButtonContainer}>
+          <div style={styles.errorButtonContainer}>
             <RaisedButton
               primary
               onClick={this.handleClickTryAgain}
               label="Try again" />
-          </p>
+          </div>
         </div>
       </div>
     );

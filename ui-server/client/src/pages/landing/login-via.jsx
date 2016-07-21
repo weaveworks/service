@@ -18,7 +18,7 @@ export default class LoginVia extends React.Component {
       <span>
         {(this.props.logins || []).map(a =>
             <span key={a.link.href} className="login-via" style={styles.wrapper}>
-              <RaisedButton linkButton
+              <RaisedButton
                 style={styles.base}
                 labelColor={Colors.white}
                 backgroundColor={a.link.backgroundColor}
