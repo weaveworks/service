@@ -352,11 +352,29 @@ func (a *api) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) detachLoginProvider(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	if err := a.storage.DetachLoginFromUser(currentUser.ID, mux.Vars(r)["provider"]); err != nil {
+	vars := mux.Vars(r)
+	providerID := vars["provider"]
+	provider, ok := a.logins.Get(providerID)
+	if !ok {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	for _, login := range currentUser.Logins {
+		if login.Provider != providerID {
+			continue
+		}
+		if err := provider.Logout(login.Session); err != nil {
+			renderError(w, r, err)
+			return
+		}
+	}
+
+	if err := a.storage.DetachLoginFromUser(currentUser.ID, providerID); err != nil {
 		renderError(w, r, err)
 		return
 	}
-	renderJSON(w, http.StatusNoContent, nil)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 type signupView struct {

@@ -207,20 +207,23 @@ func Test_Account_DetachOauthAccount(t *testing.T) {
 
 	user := getApprovedUser(t)
 
-	logins.Register("mock", MockLoginProvider{
-		"joe": {ID: "joe", Email: user.Email},
-	})
+	mockLoginProvider := MockLoginProvider{"joe": {ID: "joe", Email: user.Email}}
+	logins.Register("mock", mockLoginProvider)
 
-	assert.NoError(t, storage.AddLoginToUser(user.ID, "mock", "joe", nil))
+	assert.NoError(t, storage.AddLoginToUser(user.ID, "mock", "joe", json.RawMessage(`"joe"`)))
 
 	// Hit the endpoint that the oauth login will redirect to (with our session)
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "POST", "/api/users/logins/mock/detach", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusNoContent, w.Code)
+	assert.Len(t, w.Body.Bytes(), 0)
 
 	// User should have no more logins set
 	user, err := storage.FindUserByID(user.ID)
 	require.NoError(t, err)
 	assert.Len(t, user.Logins, 0)
+
+	// Provider session should have been revoked.
+	assert.Len(t, mockLoginProvider, 0)
 }

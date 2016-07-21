@@ -83,3 +83,37 @@ func (g *github) Username(session json.RawMessage) (string, error) {
 	}
 	return *user.Login, nil
 }
+
+// Logout handles a user logout request with this provider. It should revoke
+// the remote user session, requiring the user to re-authenticate next time.
+func (g *github) Logout(session json.RawMessage) error {
+	var s oauthUserSession
+	if err := json.Unmarshal(session, &s); err != nil {
+		return err
+	}
+	client := gClient.NewClient(&http.Client{
+		Transport: &basicAuthTransport{
+			username: g.Config.ClientID,
+			password: g.Config.ClientSecret,
+		},
+	})
+	if response, err := client.Authorizations.Revoke(g.Config.ClientID, s.Token.AccessToken); err != nil {
+		if response == nil || response.StatusCode != http.StatusNotFound {
+			return err
+		}
+	}
+	return nil
+}
+
+type basicAuthTransport struct {
+	username, password string
+	http.RoundTripper
+}
+
+func (c *basicAuthTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if c.RoundTripper == nil {
+		c.RoundTripper = http.DefaultTransport
+	}
+	r.SetBasicAuth(c.username, c.password)
+	return c.RoundTripper.RoundTrip(r)
+}
