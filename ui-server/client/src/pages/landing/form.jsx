@@ -12,7 +12,7 @@ import { trackEvent, trackException, trackTiming, trackView,
   PardotSignupIFrame } from '../../common/tracking';
 import LoginVia from './login-via';
 
-export default class LoginForm extends React.Component {
+export default class Form extends React.Component {
 
   constructor(props) {
     super(props);

@@ -2,8 +2,9 @@ import React from 'react';
 import { hashHistory } from 'react-router';
 import get from 'lodash/get';
 
+import RaisedButton from 'material-ui/RaisedButton';
+import List, { ListItem } from 'material-ui/List';
 import Avatar from 'material-ui/Avatar';
-import { Card, CardHeader } from 'material-ui/Card';
 import FontIcon from 'material-ui/FontIcon';
 
 import { FlexContainer } from '../../components/flex-container';
@@ -13,6 +14,7 @@ import Logins from './logins';
 import Toolbar from '../../components/toolbar';
 import { trackView, trackException } from '../../common/tracking';
 import { getOrganizations } from '../../common/api';
+
 
 export default class AccountPage extends React.Component {
 
@@ -67,12 +69,21 @@ export default class AccountPage extends React.Component {
         height: 64,
         left: 64,
         top: 32 + 51 - 3
+      },
+      avatar: {
+        top: 19,
+        left: 20,
+        borderRadius: '3px',
       }
     };
 
     const orgName = get(this.state, ['organizations', 0, 'name']);
-    const avatar = (<Avatar icon={<FontIcon
-      className="fa fa-user" />} />);
+    const logoutButton = (
+      <RaisedButton
+        style={{ top: 18, right: 18 }}
+        secondary
+        href="#/logout"
+        label="Logout" />);
 
     return (
       <div style={{height: '100%', position: 'relative'}}>
@@ -86,15 +97,21 @@ export default class AccountPage extends React.Component {
         <div style={styles.container}>
           <FlexContainer>
             <Column minWidth="400">
-              <h1>Configure your account</h1>
-              <h2>Current User</h2>
-              <Card style={{boxShadow: null, backgroundColor: null}}>
-                <CardHeader
-                  title={this.state.user}
-                  subtitle={orgName}
-                  avatar={avatar}
-                  />
-              </Card>
+              <h2>User</h2>
+
+              {this.state.user && <List style={{ maxWidth: '32em' }}>
+                <ListItem disabled
+                  style={{cursor: 'default'}}
+                  primaryText={this.state.user}
+                  leftAvatar={<Avatar style={styles.avatar}
+                    icon={<FontIcon className="fa fa-user" />}
+                    size={32}
+                    />}
+                  rightIconButton={logoutButton}
+                  secondaryText={orgName}
+                />
+              </List>}
+
               <Logins />
             </Column>
           </FlexContainer>
