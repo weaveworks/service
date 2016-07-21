@@ -101,6 +101,7 @@ func main() {
 		usersHost        string
 		kubediffHost     string
 		alertmanagerHost string
+		prometheusHost   string
 	)
 	flag.StringVar(&listen, "listen", ":80", "HTTP server listen address")
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
@@ -120,7 +121,8 @@ func main() {
 	flag.StringVar(&scopeHost, "scope", "scope.kube-system.svc.cluster.local:80", "Hostname & port for scope")
 	flag.StringVar(&usersHost, "users", "users.default.svc.cluster.local", "Hostname & port for users")
 	flag.StringVar(&kubediffHost, "kubediff", "kubediff.monitoring.svc.cluster.local", "Hostname & port for kubediff")
-	flag.StringVar(&alertmanagerHost, "alertmanager", "monitoring.monitoring.svc.cluster.local:9093", "Hostname & port for alertmanager")
+	flag.StringVar(&alertmanagerHost, "alertmanager", "alertmanager.monitoring.svc.cluster.local", "Hostname & port for alertmanager")
+	flag.StringVar(&prometheusHost, "prometheus", "prometheus.monitoring.svc.cluster.local", "Hostname & port for prometheus")
 	flag.Parse()
 
 	if err := logging.Setup(logLevel); err != nil {
@@ -166,6 +168,7 @@ func main() {
 	addAdminRoute("users", usersHost, true)
 	addAdminRoute("kubediff", kubediffHost, true)
 	addAdminRoute("alertmanager", alertmanagerHost, false)
+	addAdminRoute("prometheus", prometheusHost, false)
 	adminRouter.Path("/admin/").Name("admin").Handler(http.HandlerFunc(adminRoot))
 
 	// authentication is done by middleware
