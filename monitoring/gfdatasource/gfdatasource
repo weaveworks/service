@@ -6,17 +6,22 @@
 # The only way to add them programmatically is via the HTTP API.
 # So, this dumb service does that, in a loop, forever.
 
+# TODO: Update default URL after we've moved prometheus everywhere.
+default_url="http://monitoring.monitoring.svc.cluster.local:9090"
+
 echo "gfdatasource starting..."
+data_source_url="${1:-$default_url}"
+echo "Setting data source to: ${data_source_url}"
 trap "{ echo gfdatasource exiting; exit 0; }" INT TERM
 
 create() {
-	curl -Ss -v -H "Content-Type: application/json" -XPOST -d'{
-		"name": "Scope-as-a-Service Prometheus",
-		"type": "prometheus",
-		"url": "http://monitoring.monitoring.svc.cluster.local:9090",
-		"access": "proxy",
-		"basicAuth": false
-	}' http://admin:admin@127.0.0.1:80/api/datasources >/dev/null 2>&1
+	curl -Ss -v -H "Content-Type: application/json" -XPOST -d"{
+		\"name\": \"Scope-as-a-Service Prometheus\",
+		\"type\": \"prometheus\",
+		\"url\": \"${data_source_url}\",
+		\"access\": \"proxy\",
+		\"basicAuth\": false
+	}" http://admin:admin@127.0.0.1:80/api/datasources >/dev/null 2>&1
 }
 
 while true
