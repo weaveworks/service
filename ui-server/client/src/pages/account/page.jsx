@@ -54,6 +54,10 @@ export default class AccountPage extends React.Component {
     }
   }
 
+  onClickLogout() {
+    hashHistory.push('/logout');
+  }
+
   render() {
     const styles = {
       activity: {
@@ -82,7 +86,7 @@ export default class AccountPage extends React.Component {
       <RaisedButton
         style={{ top: 18, right: 18 }}
         secondary
-        href="#/logout"
+        onClick={this.onClickLogout}
         label="Logout" />);
 
     return (
