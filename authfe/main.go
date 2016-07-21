@@ -2,15 +2,12 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
 	"regexp"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/weaveworks/scope/common/middleware"
 	"github.com/weaveworks/scope/common/xfer"
 	"github.com/weaveworks/service/common/logging"
 	users "github.com/weaveworks/service/users/client"
@@ -40,15 +37,6 @@ func init() {
 	prometheus.MustRegister(requestDuration)
 	prometheus.MustRegister(wsConnections)
 	prometheus.MustRegister(wsRequestCount)
-}
-
-// Gorilla Router with sensible defaults, namely:
-// - StrictSlash set to false
-// - SkipClean set to true
-//
-// This allows for /foo/bar/%2fbaz%2fqux URLs to be forwarded correctly.
-func newRouter() *mux.Router {
-	return mux.NewRouter().StrictSlash(false).SkipClean(true)
 }
 
 func newProbeRequestLogger(orgIDHeader string) logging.HTTPEventExtractor {
@@ -88,20 +76,7 @@ func main() {
 		authCacheSize       int
 		authCacheExpiration time.Duration
 
-		outputHeader   string
-		collectionHost string
-		queryHost      string
-		controlHost    string
-		pipeHost       string
-		deployHost     string
-		fluentHost     string
-
-		grafanaHost      string
-		scopeHost        string
-		usersHost        string
-		kubediffHost     string
-		alertmanagerHost string
-		prometheusHost   string
+		c Config
 	)
 	flag.StringVar(&listen, "listen", ":80", "HTTP server listen address")
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
@@ -109,20 +84,20 @@ func main() {
 	flag.StringVar(&authURL, "authenticator.url", "http://users:80", "Where to find web the authenticator service")
 	flag.IntVar(&authCacheSize, "auth.cache.size", 0, "How many entries to cache in the auth client.")
 	flag.DurationVar(&authCacheExpiration, "auth.cache.expiration", 30*time.Second, "How long to keep entries in the auth client.")
-	flag.StringVar(&outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
+	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
 
-	flag.StringVar(&collectionHost, "collection", "collection.default.svc.cluster.local:80", "Hostname & port for collection service")
-	flag.StringVar(&queryHost, "query", "query.default.svc.cluster.local:80", "Hostname & port for query service")
-	flag.StringVar(&controlHost, "control", "control.default.svc.cluster.local:80", "Hostname & port for control service")
-	flag.StringVar(&pipeHost, "pipe", "pipe.default.svc.cluster.local:80", "Hostname & port for pipe service")
-	flag.StringVar(&deployHost, "deploy", "api.deploy.svc.cluster.local:80", "Hostname & port for deploy service")
-	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
-	flag.StringVar(&grafanaHost, "grafana", "grafana.monitoring.svc.cluster.local:80", "Hostname & port for grafana")
-	flag.StringVar(&scopeHost, "scope", "scope.kube-system.svc.cluster.local:80", "Hostname & port for scope")
-	flag.StringVar(&usersHost, "users", "users.default.svc.cluster.local", "Hostname & port for users")
-	flag.StringVar(&kubediffHost, "kubediff", "kubediff.monitoring.svc.cluster.local", "Hostname & port for kubediff")
-	flag.StringVar(&alertmanagerHost, "alertmanager", "alertmanager.monitoring.svc.cluster.local", "Hostname & port for alertmanager")
-	flag.StringVar(&prometheusHost, "prometheus", "prometheus.monitoring.svc.cluster.local", "Hostname & port for prometheus")
+	flag.StringVar(&c.collectionHost, "collection", "collection.default.svc.cluster.local:80", "Hostname & port for collection service")
+	flag.StringVar(&c.queryHost, "query", "query.default.svc.cluster.local:80", "Hostname & port for query service")
+	flag.StringVar(&c.controlHost, "control", "control.default.svc.cluster.local:80", "Hostname & port for control service")
+	flag.StringVar(&c.pipeHost, "pipe", "pipe.default.svc.cluster.local:80", "Hostname & port for pipe service")
+	flag.StringVar(&c.deployHost, "deploy", "api.deploy.svc.cluster.local:80", "Hostname & port for deploy service")
+	flag.StringVar(&c.fluentHost, "fluent", "", "Hostname & port for fluent")
+	flag.StringVar(&c.grafanaHost, "grafana", "grafana.monitoring.svc.cluster.local:80", "Hostname & port for grafana")
+	flag.StringVar(&c.scopeHost, "scope", "scope.kube-system.svc.cluster.local:80", "Hostname & port for scope")
+	flag.StringVar(&c.usersHost, "users", "users.default.svc.cluster.local", "Hostname & port for users")
+	flag.StringVar(&c.kubediffHost, "kubediff", "kubediff.monitoring.svc.cluster.local", "Hostname & port for kubediff")
+	flag.StringVar(&c.alertmanagerHost, "alertmanager", "alertmanager.monitoring.svc.cluster.local", "Hostname & port for alertmanager")
+	flag.StringVar(&c.prometheusHost, "prometheus", "prometheus.monitoring.svc.cluster.local", "Hostname & port for prometheus")
 	flag.Parse()
 
 	if err := logging.Setup(logLevel); err != nil {
@@ -130,48 +105,6 @@ func main() {
 		return
 	}
 
-	// these are the places we can forward requests to
-	collectionFwd := newProxy(collectionHost)
-	queryFwd := newProxy(queryHost)
-	contolFwd := newProxy(controlHost)
-	pipeFwd := newProxy(pipeHost)
-	deployFwd := newProxy(deployHost)
-
-	// orgRouter is for all ui <-> app communication, authenticated using cookie credentials
-	orgRouter := newRouter()
-	orgRouter.PathPrefix("/api/report").Name("api_app_report").Handler(queryFwd)
-	orgRouter.PathPrefix("/api/topology").Name("api_app_topology").Handler(queryFwd)
-	orgRouter.PathPrefix("/api/control").Name("api_app_control").Handler(contolFwd)
-	orgRouter.PathPrefix("/api/pipe").Name("api_app_pipe").Handler(pipeFwd)
-	orgRouter.PathPrefix("/api/deploy").Name("api_app_deploy").Handler(deployFwd)
-	orgRouter.PathPrefix("/").Name("api_app").Handler(queryFwd) // catch all forward to query service, for /api and static html
-
-	// probeRouter is for all probe <-> app communication, authenticated using header credentials
-	probeRouter := newRouter()
-	probeRouter.PathPrefix("/api/report").Name("api_probe_report").Handler(collectionFwd)
-	probeRouter.PathPrefix("/api/control").Name("api_probe_control").Handler(contolFwd)
-	probeRouter.PathPrefix("/api/pipe").Name("api_probe_pipe").Handler(pipeFwd)
-	probeRouter.PathPrefix("/api/deploy").Name("api_deploy").Handler(deployFwd)
-	probeRouter.PathPrefix("/api/config").Name("api_config").Handler(deployFwd)
-
-	// adminRouter is for all admin functionality, authenticated using header credentials
-	adminRouter := newRouter()
-	addAdminRoute := func(name, target string, rewritePath bool) {
-		handler := http.Handler(newProxy(target))
-		if rewritePath {
-			handler = middleware.PathRewrite(regexp.MustCompile("^/admin/"+name), "").Wrap(handler)
-		}
-		adminRouter.PathPrefix("/admin/" + name).Name(name).Handler(handler)
-	}
-	addAdminRoute("grafana", grafanaHost, true)
-	addAdminRoute("scope", scopeHost, true)
-	addAdminRoute("users", usersHost, true)
-	addAdminRoute("kubediff", kubediffHost, true)
-	addAdminRoute("alertmanager", alertmanagerHost, false)
-	addAdminRoute("prometheus", prometheusHost, false)
-	adminRouter.Path("/admin/").Name("admin").Handler(http.HandlerFunc(adminRoot))
-
-	// authentication is done by middleware
 	authOptions := users.AuthenticatorOptions{}
 	if authCacheSize > 0 {
 		authOptions.CredCacheEnabled = true
@@ -180,80 +113,12 @@ func main() {
 		authOptions.OrgCredCacheExpiration = authCacheExpiration
 		authOptions.ProbeCredCacheExpiration = authCacheExpiration
 	}
-	authenticator := users.MakeAuthenticator(authType, authURL, authOptions)
-	orgAuthMiddleware := users.AuthOrgMiddleware{
-		Authenticator: authenticator,
-		OrgName: func(r *http.Request) (string, bool) {
-			v, ok := mux.Vars(r)["orgName"]
-			return v, ok
-		},
-		OutputHeader: outputHeader,
-	}
-	probeAuthMiddleware := users.AuthProbeMiddleware{
-		Authenticator: authenticator,
-		OutputHeader:  outputHeader,
-	}
-	adminAuthMiddleware := users.AuthAdminMiddleware{
-		Authenticator: authenticator,
-		OutputHeader:  outputHeader,
-	}
-	orgInstrumentation := middleware.Instrument{
-		RouteMatcher: orgRouter,
-		Duration:     requestDuration,
-	}
-	probeInstrumentation := middleware.Instrument{
-		RouteMatcher: probeRouter,
-		Duration:     requestDuration,
-	}
-	adminInstrumentation := middleware.Instrument{
-		RouteMatcher: adminRouter,
-		Duration:     requestDuration,
-	}
+	c.authenticator = users.MakeAuthenticator(authType, authURL, authOptions)
 
-	probeHTTPlogger := middleware.Identity
-	uiHTTPlogger := middleware.Identity
-	if fluentHost != "" {
-		eventLogger, err := logging.NewEventLogger(fluentHost)
-		if err != nil {
-			log.Fatalf("Error setting up event logging: %v", err)
-			return
-		}
-		defer eventLogger.Close()
-		probeHTTPlogger = logging.HTTPEventLogger{
-			Extractor: newProbeRequestLogger(outputHeader),
-			Logger:    eventLogger,
-		}
-		uiHTTPlogger = logging.HTTPEventLogger{
-			Extractor: newUIRequestLogger(outputHeader),
-			Logger:    eventLogger,
-		}
+	r, err := routes(c)
+	if err != nil {
+		log.Fatal(err)
 	}
-
-	// bring it all together in the root router
-	rootRouter := newRouter()
-	rootRouter.Path("/loadgen").Name("loadgen").Methods("GET").HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprintf(w, "OK")
-	})
-	rootRouter.Path("/metrics").Handler(prometheus.Handler())
-	rootRouter.PathPrefix("/api/app/{orgName}").Handler(
-		middleware.Merge(
-			orgInstrumentation,
-			orgAuthMiddleware,
-			middleware.PathRewrite(orgPrefix, ""),
-			uiHTTPlogger,
-		).Wrap(orgRouter),
-	)
-	rootRouter.PathPrefix("/api").Handler(
-		middleware.Merge(
-			probeInstrumentation,
-			probeAuthMiddleware,
-			probeHTTPlogger,
-		).Wrap(probeRouter))
-	rootRouter.PathPrefix("/admin").Handler(
-		middleware.Merge(
-			adminInstrumentation,
-			adminAuthMiddleware,
-		).Wrap(adminRouter))
 	log.Infof("Listening on %s", listen)
-	log.Fatal(http.ListenAndServe(listen, middleware.Logging.Wrap(rootRouter)))
+	log.Fatal(http.ListenAndServe(listen, r))
 }
