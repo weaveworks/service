@@ -84,9 +84,8 @@ func (g *github) Username(session json.RawMessage) (string, error) {
 	return *user.Login, nil
 }
 
-// Logout handles a user logout request with this provider. It should return
-// detach revoke the user session, requiring the user to re-authenticate next
-// time.
+// Logout handles a user logout request with this provider. It should revoke
+// the remote user session, requiring the user to re-authenticate next time.
 func (g *github) Logout(session json.RawMessage) error {
 	var s oauthUserSession
 	if err := json.Unmarshal(session, &s); err != nil {

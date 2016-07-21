@@ -60,9 +60,8 @@ func (a MockLoginProvider) Username(session json.RawMessage) (string, error) {
 	return "", errNotFound
 }
 
-// Logout handles a user logout request with this provider. It should return
-// detach revoke the user session, requiring the user to re-authenticate next
-// time.
+// Logout handles a user logout request with this provider. It should revoke
+// the remote user session, requiring the user to re-authenticate next time.
 func (a MockLoginProvider) Logout(session json.RawMessage) error {
 	var id string
 	if err := json.Unmarshal(session, &id); err != nil {

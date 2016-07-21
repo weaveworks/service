@@ -97,9 +97,8 @@ func (g *google) personEmail(p *plus.Person) (string, error) {
 	return "", fmt.Errorf("Invalid authentication data")
 }
 
-// Logout handles a user logout request with this provider. It should return
-// detach revoke the user session, requiring the user to re-authenticate next
-// time.
+// Logout handles a user logout request with this provider. It should revoke
+// the remote user session, requiring the user to re-authenticate next time.
 func (g *google) Logout(session json.RawMessage) error {
 	var s oauthUserSession
 	if err := json.Unmarshal(session, &s); err != nil {

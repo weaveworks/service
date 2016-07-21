@@ -29,9 +29,8 @@ type Provider interface {
 	// *which* account this is linked with.
 	Username(session json.RawMessage) (string, error)
 
-	// Logout handles a user logout request with this provider. It should return
-	// detach revoke the user session, requiring the user to re-authenticate next
-	// time.
+	// Logout handles a user logout request with this provider. It should revoke
+	// the remote user session, requiring the user to re-authenticate next time.
 	Logout(session json.RawMessage) error
 }
 
