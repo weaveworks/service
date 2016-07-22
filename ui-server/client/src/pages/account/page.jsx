@@ -119,8 +119,9 @@ export default class AccountPage extends React.Component {
 
               <Logins />
             </Column>
-            <Column>
+            <Column style={{marginLeft: 64}}>
               <h2>Instances</h2>
+              <p>This is a list of all instances you have access to.</p>
               <InstancesList />
             </Column>
           </FlexContainer>

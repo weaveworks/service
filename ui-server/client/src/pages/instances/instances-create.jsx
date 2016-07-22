@@ -72,10 +72,8 @@ export default class InstancesCreate extends React.Component {
   }
 
   _handleSubmit() {
-    const label = this._labelField.getValue();
+    const { label, name } = this.state;
     const errorTextLabel = label ? '' : 'Label cannot be empty.';
-
-    const name = this._nameField.getValue();
     const errorTextName = name ? '' : 'Name cannot be empty.';
 
     if (!label || !name) {
@@ -92,20 +90,9 @@ export default class InstancesCreate extends React.Component {
       submitText: 'Creating...'
     });
 
-    // disable input field
-    this._labelField.disabled = true;
-    this._nameField.disabled = true;
-
     postData('/api/users/org', {label, name})
       .then(() => {
-        this.setState({
-          instanceCreated: true,
-          submitText: 'Created',
-          submitting: false
-        });
-        setTimeout(() => {
-          hashHistory.push(encodeURIs`/instances/select/${this.state.name}`);
-        }, 10);
+        hashHistory.push(encodeURIs`/instances/select/${this.state.name}`);
       }, resp => {
         const err = resp.errors[0];
         this.setState({
@@ -169,14 +156,15 @@ export default class InstancesCreate extends React.Component {
             (e.g., Testing, Staging, Production).
             The name is a unique identifier for your instance.</p>
           <TextField hintText="Provide a label" floatingLabelText="Label"
+            disabled={this.state.submitting}
             onChange={this.handleChangeLabel}
             style={{verticalAlign: 'top'}}
-            value={this.state.label} ref={(c) => this._labelField = c}
+            value={this.state.label}
             errorText={this.state.errorTextLabel} />
           <TextField hintText="Provide a name" floatingLabelText="Name"
+            disabled={this.state.submitting}
             style={{verticalAlign: 'top', marginLeft: 16}}
             onChange={this.handleChangeName}
-            ref={(c) => this._nameField = c}
             value={this.state.name}
             errorText={this.state.errorTextName} />
 

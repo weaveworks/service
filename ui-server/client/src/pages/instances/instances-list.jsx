@@ -7,7 +7,7 @@ import { hashHistory } from 'react-router';
 import { Box } from '../../components/box';
 import { encodeURIs } from '../../common/request';
 import { getOrganizations } from '../../common/api';
-import { trackException, trackView } from '../../common/tracking';
+import { trackException } from '../../common/tracking';
 
 export default class IntancesList extends React.Component {
 
@@ -19,14 +19,13 @@ export default class IntancesList extends React.Component {
     };
 
     this.renderInstance = this.renderInstance.bind(this);
-    this.onGetInstancesSuccess = this.onGetInstancesSuccess.bind(this);
-    this.onGetInstancesError = this.onGetInstancesError.bind(this);
+    this.handleGetInstancesSuccess = this.handleGetInstancesSuccess.bind(this);
+    this.handleGetInstancesError = this.handleGetInstancesError.bind(this);
   }
 
   componentDidMount() {
     getOrganizations()
-      .then(this.onGetInstancesSuccess, this.onGetInstancesError);
-    trackView('InstanceList');
+      .then(this.handleGetInstancesSuccess, this.handleGetInstancesError);
   }
 
   onClickNew(ev) {
@@ -34,25 +33,19 @@ export default class IntancesList extends React.Component {
     hashHistory.push('/instances/create');
   }
 
-  onGetInstancesSuccess(resp) {
+  handleGetInstancesSuccess(resp) {
     this.setState({
       loading: false,
       instances: resp.organizations
     });
   }
 
-  onGetInstancesError(resp) {
+  handleGetInstancesError(resp) {
     const err = resp.errors[0];
     trackException(err.message);
     this.setState({
       errorText: 'Could not load instance list, please try again later.'
     });
-  }
-
-  renderAttached(username) {
-    return (
-      <span>Attached to <span style={{fontWeight: 'bold'}}>{username}</span></span>
-    );
   }
 
   selectInstance(id) {
@@ -62,14 +55,13 @@ export default class IntancesList extends React.Component {
   renderInstance(instance) {
     const selectInstance = () => this.selectInstance(instance.name);
     const link = (<FlatButton onClick={selectInstance} label="Select" />);
-    const secondaryText = instance.label !== instance.name ? instance.name : false;
     return (
       <ListItem
         style={{cursor: 'default'}}
         key={instance.name}
         primaryText={instance.label}
         rightIconButton={link}
-        secondaryText={secondaryText}
+        secondaryText={instance.name}
       />
     );
   }
@@ -103,21 +95,11 @@ export default class IntancesList extends React.Component {
       errorIcon: {
         marginLeft: 16,
         marginRight: 16
-      },
-
-      heading: {
-        fontSize: 18,
-        textTransform: 'uppercase',
-        marginBottom: 36
       }
     };
 
     return (
       <div>
-        <div style={styles.heading}>
-          Instances
-        </div>
-        <p>Choose the instance you want to access:</p>
         {this.state.loading ?
           <span><span className="fa fa-loading" /> Loading...</span> :
           this.state.instances && this.renderInstances()}
