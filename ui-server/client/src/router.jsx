@@ -26,7 +26,7 @@ export default function getRoutes() {
       <Route name="account" path="account/:orgId" component={AccountPage} />
       <Route path="instances" component={InstancesPage}>
         <IndexRoute component={InstancesPicker} />
-        <Route path="create" component={InstancesCreate} />
+        <Route path="create(/:first)" component={InstancesCreate} />
         <Route path="select/:name" component={InstancesSelect} />
       </Route>
 

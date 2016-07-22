@@ -33,6 +33,7 @@ export default class InstancesCreate extends React.Component {
     this.handleNewInstanceNameError = this.handleNewInstanceNameError.bind(this);
     this.handleChangeLabel = this.handleChangeLabel.bind(this);
     this.handleChangeName = this.handleChangeName.bind(this);
+    this.handleCancel = this.handleCancel.bind(this);
   }
 
   componentDidMount() {
@@ -68,7 +69,11 @@ export default class InstancesCreate extends React.Component {
   }
 
   handleCancel() {
-    hashHistory.push('/logout');
+    if (this.props.params.first) {
+      hashHistory.push('/logout');
+    } else {
+      window.history.back();
+    }
   }
 
   _handleSubmit() {
