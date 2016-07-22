@@ -19,12 +19,15 @@ export default class InstancesCreate extends React.Component {
   constructor(props) {
     super(props);
 
+    const { first } = this.props.params;
+
     this.state = {
+      first,
       name: '',
       label: DEFAULT_LABEL,
       errorText: '',
       instanceCreated: false,
-      submitText: 'Create',
+      submitText: 'Loading instance...',
       submitting: false
     };
 
@@ -56,6 +59,7 @@ export default class InstancesCreate extends React.Component {
 
   handleNewInstanceNameSuccess(resp) {
     this.setState({
+      submitText: this.state.first ? 'Continue' : 'Create',
       name: resp.name
     });
   }
@@ -101,7 +105,7 @@ export default class InstancesCreate extends React.Component {
       }, resp => {
         const err = resp.errors[0];
         this.setState({
-          errorTextName: err.message,
+          errorText: err.message,
           submitting: false,
           submitText: 'Create'
         });
@@ -111,6 +115,14 @@ export default class InstancesCreate extends React.Component {
 
   render() {
     const submitSuccess = this.state.instanceCreated;
+    const { first } = this.state;
+
+    const heading = first
+      ? 'Welcome to your instance'
+      : 'Create a new instance';
+
+    const submitText = first ? 'Continue' : this.state.submitText;
+
     const styles = {
       submit: {
         marginLeft: '1em',
@@ -138,40 +150,26 @@ export default class InstancesCreate extends React.Component {
       },
 
       formHint: {
-        marginTop: '0.5em',
-        textAlign: 'center',
-        fontSize: '0.8rem'
-      },
-
-      heading: {
-        fontSize: 18,
-        textTransform: 'uppercase',
-        marginBottom: 36
+        marginTop: '0.25em',
+        fontSize: '0.7rem',
+        opacity: 0.6
       }
     };
 
     return (
       <div>
-        <div style={styles.heading}>
-          Create your instance
-        </div>
+        <h2>
+          {heading}
+        </h2>
         <div style={styles.form}>
-          <p>Let’s get started by labelling your instance,
-            so that it becomes easier to refer to
-            (e.g., Testing, Staging, Production).
-            The name is a unique identifier for your instance.</p>
+          <p>You can customize your instance by giving it a name
+            <br />(e.g., Testing, Staging, Production):</p>
           <TextField hintText="Provide a label" floatingLabelText="Label"
             disabled={this.state.submitting}
             onChange={this.handleChangeLabel}
-            style={{verticalAlign: 'top'}}
+            style={{verticalAlign: 'top', width: 400}}
             value={this.state.label}
             errorText={this.state.errorTextLabel} />
-          <TextField hintText="Provide a name" floatingLabelText="Name"
-            disabled={this.state.submitting}
-            style={{verticalAlign: 'top', marginLeft: 16}}
-            onChange={this.handleChangeName}
-            value={this.state.name}
-            errorText={this.state.errorTextName} />
 
           <div style={styles.error}>
             <p style={styles.errorLabel}>
@@ -180,12 +178,17 @@ export default class InstancesCreate extends React.Component {
             </p>
           </div>
 
+          <div style={styles.formHint}>
+            Your instance will have the ID {this.state.name || '...'}
+          </div>
+
           <div style={styles.formButtons}>
-            <RaisedButton primary label={this.state.submitText} style={styles.submit}
-              disabled={this.state.submitting} onClick={this._handleSubmit} />
+            <RaisedButton primary label={submitText} style={styles.submit}
+              disabled={this.state.submitting || !this.state.name} onClick={this._handleSubmit} />
             <FlatButton label="Cancel" style={styles.submit}
               disabled={this.state.submitting} onClick={this.handleCancel} />
           </div>
+
         </div>
       </div>
     );
