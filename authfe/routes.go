@@ -84,11 +84,11 @@ func routes(c Config) (http.Handler, error) {
 		prefix{
 			"/api",
 			map[string]http.Handler{
-				"/api/report":  newProxy(c.collectionHost),
-				"/api/control": newProxy(c.controlHost),
-				"/api/pipe":    newProxy(c.pipeHost),
-				"/api/deploy":  newProxy(c.deployHost),
-				"/api/config":  newProxy(c.deployHost),
+				"/report":  newProxy(c.collectionHost),
+				"/control": newProxy(c.controlHost),
+				"/pipe":    newProxy(c.pipeHost),
+				"/deploy":  newProxy(c.deployHost),
+				"/config":  newProxy(c.deployHost),
 			},
 			middleware.Merge(
 				users.AuthProbeMiddleware{
@@ -103,13 +103,13 @@ func routes(c Config) (http.Handler, error) {
 		prefix{
 			"/admin",
 			map[string]http.Handler{
-				"/admin/grafana":      trim("^/admin/grafana", newProxy(c.grafanaHost)),
-				"/admin/scope":        trim("^/admin/scope", newProxy(c.scopeHost)),
-				"/admin/users":        trim("^/admin/users", newProxy(c.usersHost)),
-				"/admin/kubediff":     trim("^/admin/kubediff", newProxy(c.kubediffHost)),
-				"/admin/alertmanager": newProxy(c.alertmanagerHost),
-				"/admin/prometheus":   newProxy(c.prometheusHost),
-				"/admin/":             http.HandlerFunc(adminRoot),
+				"/grafana":      trim("^/admin/grafana", newProxy(c.grafanaHost)),
+				"/scope":        trim("^/admin/scope", newProxy(c.scopeHost)),
+				"/users":        trim("^/admin/users", newProxy(c.usersHost)),
+				"/kubediff":     trim("^/admin/kubediff", newProxy(c.kubediffHost)),
+				"/alertmanager": newProxy(c.alertmanagerHost),
+				"/prometheus":   newProxy(c.prometheusHost),
+				"/":             http.HandlerFunc(adminRoot),
 			},
 			users.AuthAdminMiddleware{
 				Authenticator: c.authenticator,
