@@ -31,7 +31,6 @@ all: $(UPTODATE_FILES)
 AUTHFE_EXE := authfe/authfe
 USERS_EXE := users/users
 METRICS_EXE := metrics/metrics
-PROM_RUN_EXE := kubediff/vendor/github.com/tomwilkie/prom-run/prom-run
 EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_RUN_EXE)
 
 # And what goes into each exe
@@ -39,14 +38,12 @@ COMMON := $(shell find common -name '*.go')
 $(AUTHFE_EXE): $(shell find authfe -name '*.go') $(shell find users/client -name '*.go') $(COMMON)
 $(USERS_EXE): $(shell find users -name '*.go') $(COMMON)
 $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
-$(PROM_RUN_EXE): $(shell find ./kubediff/vendor/github.com/tomwilkie/prom-run/ -name '*.go')
 
 # And now what goes into each image
 authfe/$(UPTODATE): $(AUTHFE_EXE)
 users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/templates/*
 metrics/$(UPTODATE): $(METRICS_EXE)
 launch-generator/$(UPTODATE): launch-generator/src/*.js launch-generator/package.json
-kubediff/$(UPTODATE): $(PROM_RUN_EXE)
 frontend-mt/$(UPTODATE): frontend-mt/default.conf frontend-mt/routes.conf frontend-mt/api.json frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
 ui-server/client/$(UPTODATE): ui-server/client/package.json ui-server/client/webpack.* ui-server/client/server.js ui-server/client/.eslintrc ui-server/client/.eslintignore ui-server/client/.babelrc
