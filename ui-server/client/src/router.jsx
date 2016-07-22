@@ -23,7 +23,7 @@ export default function getRoutes() {
       {/* Logged in */}
       <Route name="wrapper" path="app/:orgId" component={WrapperPage} />
       <Route name="organization" path="org/:orgId" component={OrganizationPage} />
-      <Route name="account" path="account" component={AccountPage} />
+      <Route name="account" path="account/:orgId" component={AccountPage} />
       <Route path="instances" component={InstancesPage}>
         <IndexRoute component={InstancesPicker} />
         <Route path="create" component={InstancesCreate} />

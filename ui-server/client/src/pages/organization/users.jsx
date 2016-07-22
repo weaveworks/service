@@ -116,7 +116,7 @@ export default class Users extends React.Component {
     const button = user.self ? (<FlatButton
       label="Self"
       style={buttonStyle}
-      disabled={true} />) :
+      disabled />) :
       (<FlatButton
         label="Remove"
         style={buttonStyle}

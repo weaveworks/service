@@ -20,7 +20,7 @@ export default class Toolbar extends React.Component {
     }, {
       title: 'My Account',
       iconClass: 'fa fa-user',
-      route: encodeURIs`#/account`
+      route: encodeURIs`#/account/${this.props.organization}`
     }];
   }
 
@@ -98,7 +98,7 @@ export default class Toolbar extends React.Component {
           <div style={styles.toolbar}>
             <div style={styles.toolbarLeft}>
               <span style={styles.toolbarOrganizationLabel}>
-                Instance
+                Current Instance:
               </span>
               <span style={styles.toolbarOrganization}>
                 {this.props.organization}

@@ -1,6 +1,5 @@
 import React from 'react';
 import { hashHistory } from 'react-router';
-import get from 'lodash/get';
 
 import RaisedButton from 'material-ui/RaisedButton';
 import List, { ListItem } from 'material-ui/List';
@@ -82,7 +81,7 @@ export default class AccountPage extends React.Component {
       }
     };
 
-    const orgName = get(this.state, ['organizations', 0, 'name']);
+    const orgName = this.props.params.orgId;
     const logoutButton = (
       <RaisedButton
         style={{ top: 18, right: 18 }}
@@ -122,7 +121,7 @@ export default class AccountPage extends React.Component {
             <Column style={{marginLeft: 64}}>
               <h2>Instances</h2>
               <p>This is a list of all instances you have access to.</p>
-              <InstancesList />
+              <InstancesList currentInstance={orgName} />
             </Column>
           </FlexContainer>
         </div>

@@ -54,7 +54,9 @@ export default class IntancesList extends React.Component {
 
   renderInstance(instance) {
     const selectInstance = () => this.selectInstance(instance.name);
-    const link = (<FlatButton onClick={selectInstance} label="Select" />);
+    const isCurrentInstance = this.props.currentInstance === instance.name;
+    const link = isCurrentInstance ? (<FlatButton label="Active" disabled />) : (<FlatButton
+      onClick={selectInstance} label="Select" />);
     return (
       <ListItem
         style={{cursor: 'default'}}
