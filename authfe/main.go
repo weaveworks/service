@@ -115,6 +115,15 @@ func main() {
 	}
 	c.authenticator = users.MakeAuthenticator(authType, authURL, authOptions)
 
+	if c.fluentHost != "" {
+		var err error
+		c.eventLogger, err = logging.NewEventLogger(c.fluentHost)
+		if err != nil {
+			log.Fatalf("Error setting up event logging: %v", err)
+		}
+		defer c.eventLogger.Close()
+	}
+
 	r, err := routes(c)
 	if err != nil {
 		log.Fatal(err)

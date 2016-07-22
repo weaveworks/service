@@ -16,6 +16,7 @@ import (
 // Config is all the config we need to build the routes
 type Config struct {
 	authenticator    users.Authenticator
+	eventLogger      *logging.EventLogger
 	outputHeader     string
 	collectionHost   string
 	queryHost        string
@@ -34,19 +35,14 @@ type Config struct {
 func routes(c Config) (http.Handler, error) {
 	probeHTTPlogger := middleware.Identity
 	uiHTTPlogger := middleware.Identity
-	if c.fluentHost != "" {
-		eventLogger, err := logging.NewEventLogger(c.fluentHost)
-		if err != nil {
-			return nil, fmt.Errorf("Error setting up event logging: %v", err)
-		}
-		defer eventLogger.Close()
+	if c.eventLogger != nil {
 		probeHTTPlogger = logging.HTTPEventLogger{
 			Extractor: newProbeRequestLogger(c.outputHeader),
-			Logger:    eventLogger,
+			Logger:    c.eventLogger,
 		}
 		uiHTTPlogger = logging.HTTPEventLogger{
 			Extractor: newUIRequestLogger(c.outputHeader),
-			Logger:    eventLogger,
+			Logger:    c.eventLogger,
 		}
 	}
 
