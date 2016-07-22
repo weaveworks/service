@@ -38,6 +38,7 @@ export default function getRoutes() {
 
         <Route name="register-form" path="signup" component={SignupForm} />
         <Route name="login-form" path="login(/:error)" component={LoginForm} />
+        <Route name="login-worker-invite" path="login/:orgId/:email/:token" component={Login} />
         <Route name="login-worker" path="login/:email/:token" component={Login} />
         <Route name="login-via" path="login-via/:provider" component={Login} />
         <Route name="logout" path="logout" component={Logout} />

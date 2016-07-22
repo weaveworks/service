@@ -5,7 +5,7 @@ import { red900 } from 'material-ui/styles/colors';
 import RaisedButton from 'material-ui/RaisedButton';
 
 import { getOrganizations } from '../../common/api';
-import { getData } from '../../common/request';
+import { encodeURIs, getData } from '../../common/request';
 import { trackException, trackView } from '../../common/tracking';
 
 
@@ -56,7 +56,10 @@ export default class Login extends React.Component {
   }
 
   _handleLoginSuccess(resp) {
-    if (resp.firstLogin) {
+    const { orgId } = this.props.params;
+    if (orgId) {
+      hashHistory.push(encodeURIs`/instances/select/${orgId}`);
+    } else if (resp.firstLogin) {
       hashHistory.push('/instances/create/first');
     } else {
       hashHistory.push('/');

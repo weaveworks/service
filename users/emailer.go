@@ -25,6 +25,16 @@ func loginURL(email, rawToken, domain string) string {
 	)
 }
 
+func inviteURL(email, rawToken, domain, orgName string) string {
+	return fmt.Sprintf(
+		"%s/#/login/%s/%s/%s",
+		domain,
+		orgName,
+		url.QueryEscape(email),
+		url.QueryEscape(rawToken),
+	)
+}
+
 type emailer interface {
 	LoginEmail(u *user, token string) error
 	InviteEmail(u *user, orgName, token string) error
@@ -127,7 +137,7 @@ func (s smtpEmailer) InviteEmail(u *user, orgName, token string) error {
 	e.To = []string{u.Email}
 	e.Subject = "You've been invited to Weave Cloud"
 	data := map[string]interface{}{
-		"LoginURL":         loginURL(u.Email, token, s.domain),
+		"LoginURL":         inviteURL(u.Email, token, s.domain, orgName),
 		"RootURL":          s.domain,
 		"Token":            token,
 		"OrganizationName": orgName,
@@ -170,7 +180,7 @@ func (s sendgridEmailer) LoginEmail(u *user, token string) error {
 func (s sendgridEmailer) InviteEmail(u *user, orgName, token string) error {
 	mail := s.sendgridEmail(inviteEmailTemplate)
 	mail.AddTo(u.Email)
-	mail.AddSubstitution(":login_url", loginURL(u.Email, token, s.domain))
+	mail.AddSubstitution(":login_url", inviteURL(u.Email, token, s.domain, orgName))
 	mail.AddSubstitution(":root_url", s.domain)
 	mail.AddSubstitution(":org_name", orgName)
 	return s.client.Send(mail)
