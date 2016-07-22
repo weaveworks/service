@@ -37,19 +37,19 @@ func getApprovedUser(t *testing.T) *user {
 	return user
 }
 
-// getOrg makes a randomly named org and user for testing
+// getOrg makes org with a random ExternalID and user for testing
 func getOrg(t *testing.T) (*user, *organization) {
 	user := getApprovedUser(t)
 
-	name, err := storage.GenerateOrganizationName()
+	externalID, err := storage.GenerateOrganizationExternalID()
 	require.NoError(t, err)
 
-	org, err := storage.CreateOrganization(user.ID, name, name)
+	org, err := storage.CreateOrganization(user.ID, externalID, externalID)
 	require.NoError(t, err)
 
 	assert.NotEqual(t, "", org.ID)
-	assert.NotEqual(t, "", org.Name)
-	assert.Equal(t, org.Name, org.Label)
+	assert.NotEqual(t, "", org.ExternalID)
+	assert.Equal(t, org.ExternalID, org.Label)
 
 	return user, org
 }

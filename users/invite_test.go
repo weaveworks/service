@@ -19,7 +19,7 @@ func Test_InviteNonExistentUser(t *testing.T) {
 	franEmail := "fran@weave.works"
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": franEmail}.Reader(t))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.ExternalID+"/users", jsonBody{"email": franEmail}.Reader(t))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -51,7 +51,7 @@ func Test_InviteExistingUser(t *testing.T) {
 	fran := getApprovedUser(t)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": fran.Email}.Reader(t))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.ExternalID+"/users", jsonBody{"email": fran.Email}.Reader(t))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -81,7 +81,7 @@ func Test_Invite_WithInvalidJSON(t *testing.T) {
 	user, org := getOrg(t)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", strings.NewReader(`garbage`))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.ExternalID+"/users", strings.NewReader(`garbage`))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -95,7 +95,7 @@ func Test_Invite_WithBlankEmail(t *testing.T) {
 	user, org := getOrg(t)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": ""}.Reader(t))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.ExternalID+"/users", jsonBody{"email": ""}.Reader(t))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -111,13 +111,13 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 
 	fran, err := storage.CreateUser("fran@weave.works")
 	require.NoError(t, err)
-	fran, err = storage.InviteUser(fran.Email, org.Name)
+	fran, err = storage.InviteUser(fran.Email, org.ExternalID)
 	require.NoError(t, err)
 	require.Len(t, fran.Organizations, 1)
 	assert.Equal(t, org.ID, fran.Organizations[0].ID)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": fran.Email}.Reader(t))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.ExternalID+"/users", jsonBody{"email": fran.Email}.Reader(t))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -143,7 +143,7 @@ func Test_Invite_UserToAnOrgIDontOwn(t *testing.T) {
 	_, otherOrg := getOrg(t)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "POST", "/api/users/org/"+otherOrg.Name+"/users", jsonBody{"email": otherUser.Email}.Reader(t))
+	r := requestAs(t, user, "POST", "/api/users/org/"+otherOrg.ExternalID+"/users", jsonBody{"email": otherUser.Email}.Reader(t))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusForbidden, w.Code)
@@ -164,7 +164,7 @@ func Test_Invite_UserNotApproved(t *testing.T) {
 	require.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": fran.Email}.Reader(t))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.ExternalID+"/users", jsonBody{"email": fran.Email}.Reader(t))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -189,7 +189,7 @@ func Test_Invite_UserInDifferentOrganization(t *testing.T) {
 	fran, _ := getOrg(t)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "POST", "/api/users/org/"+org.Name+"/users", jsonBody{"email": fran.Email}.Reader(t))
+	r := requestAs(t, user, "POST", "/api/users/org/"+org.ExternalID+"/users", jsonBody{"email": fran.Email}.Reader(t))
 
 	app.ServeHTTP(w, r)
 
@@ -214,13 +214,13 @@ func Test_Invite_RemoveOtherUsersAccess(t *testing.T) {
 
 	user, org := getOrg(t)
 	otherUser := getApprovedUser(t)
-	otherUser, err := storage.InviteUser(otherUser.Email, org.Name)
+	otherUser, err := storage.InviteUser(otherUser.Email, org.ExternalID)
 	require.NoError(t, err)
 	require.Len(t, otherUser.Organizations, 1)
 
 	{
 		w := httptest.NewRecorder()
-		r := requestAs(t, user, "DELETE", "/api/users/org/"+org.Name+"/users/"+otherUser.Email, nil)
+		r := requestAs(t, user, "DELETE", "/api/users/org/"+org.ExternalID+"/users/"+otherUser.Email, nil)
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusNoContent, w.Code)
@@ -232,7 +232,7 @@ func Test_Invite_RemoveOtherUsersAccess(t *testing.T) {
 
 	{
 		w := httptest.NewRecorder()
-		r := requestAs(t, user, "GET", "/api/users/org/"+org.Name+"/users", nil)
+		r := requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID+"/users", nil)
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusOK, w.Code)
@@ -251,7 +251,7 @@ func Test_Invite_RemoveMyOwnAccess(t *testing.T) {
 	user, org := getOrg(t)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "DELETE", "/api/users/org/"+org.Name+"/users/"+user.Email, nil)
+	r := requestAs(t, user, "DELETE", "/api/users/org/"+org.ExternalID+"/users/"+user.Email, nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusNoContent, w.Code)
@@ -269,7 +269,7 @@ func Test_Invite_RemoveAccess_Forbidden(t *testing.T) {
 	otherUser, otherOrg := getOrg(t)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "DELETE", "/api/users/org/"+otherOrg.Name+"/users/"+otherUser.Email, nil)
+	r := requestAs(t, user, "DELETE", "/api/users/org/"+otherOrg.ExternalID+"/users/"+otherUser.Email, nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusForbidden, w.Code)

@@ -142,21 +142,22 @@ func (a *api) routes() http.Handler {
 		{"api_users_lookup", "GET", "/api/users/lookup", a.authenticated(a.publicLookup)},
 
 		// Basic view and management of an organization
-		{"api_users_generateOrgName", "GET", "/api/users/generateOrgName", a.authenticated(a.generateOrgName)},
+		{"api_users_generateOrgName", "GET", "/api/users/generateOrgName", a.authenticated(a.generateOrgExternalID)},
+		{"api_users_generateOrgID", "GET", "/api/users/generateOrgID", a.authenticated(a.generateOrgExternalID)},
 		{"api_users_org_create", "POST", "/api/users/org", a.authenticated(a.createOrg)},
-		{"api_users_org_orgName", "GET", "/api/users/org/{orgName}", a.authenticated(a.org)},
-		{"api_users_org_orgName_update", "PUT", "/api/users/org/{orgName}", a.authenticated(a.updateOrg)},
-		{"api_users_org_orgName_delete", "DELETE", "/api/users/org/{orgName}", a.authenticated(a.deleteOrg)},
+		{"api_users_org_orgExternalID", "GET", "/api/users/org/{orgExternalID}", a.authenticated(a.org)},
+		{"api_users_org_orgExternalID_update", "PUT", "/api/users/org/{orgExternalID}", a.authenticated(a.updateOrg)},
+		{"api_users_org_orgExternalID_delete", "DELETE", "/api/users/org/{orgExternalID}", a.authenticated(a.deleteOrg)},
 
 		// Used to list and manage organization access (invites)
-		{"api_users_org_orgName_users", "GET", "/api/users/org/{orgName}/users", a.authenticated(a.listOrganizationUsers)},
-		{"api_users_org_orgName_inviteUser", "POST", "/api/users/org/{orgName}/users", a.authenticated(a.inviteUser)},
-		{"api_users_org_orgName_deleteUser", "DELETE", "/api/users/org/{orgName}/users/{userEmail}", a.authenticated(a.deleteUser)},
+		{"api_users_org_orgExternalID_users", "GET", "/api/users/org/{orgExternalID}/users", a.authenticated(a.listOrganizationUsers)},
+		{"api_users_org_orgExternalID_inviteUser", "POST", "/api/users/org/{orgExternalID}/users", a.authenticated(a.inviteUser)},
+		{"api_users_org_orgExternalID_deleteUser", "DELETE", "/api/users/org/{orgExternalID}/users/{userEmail}", a.authenticated(a.deleteUser)},
 
 		// The users service client (i.e. our other services) use these to
 		// authenticate the admin/user/probe.
 		{"private_api_users_admin", "GET", "/private/api/users/admin", a.authenticated(a.lookupAdmin)},
-		{"private_api_users_lookup_orgName", "GET", "/private/api/users/lookup/{orgName}", a.authenticated(a.lookupOrg)},
+		{"private_api_users_lookup_orgExternalID", "GET", "/private/api/users/lookup/{orgExternalID}", a.authenticated(a.lookupOrg)},
 		{"private_api_users_lookup", "GET", "/private/api/users/lookup", a.lookupUsingToken},
 
 		// Internal stuff for our internal usage, internally.
@@ -524,7 +525,8 @@ func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Req
 	existing := []orgView{}
 	for _, org := range currentUser.Organizations {
 		existing = append(existing, orgView{
-			Name:               org.Name,
+			ExternalID:         org.ExternalID,
+			Name:               org.ExternalID,
 			Label:              org.Label,
 			FirstProbeUpdateAt: renderTime(org.FirstProbeUpdateAt),
 		})
@@ -542,9 +544,9 @@ type lookupOrgView struct {
 
 func (a *api) lookupOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	orgName := vars["orgName"]
+	orgExternalID := vars["orgExternalID"]
 	for _, org := range currentUser.Organizations {
-		if org.Name == orgName {
+		if strings.ToLower(org.ExternalID) == strings.ToLower(orgExternalID) {
 			renderJSON(w, http.StatusOK, lookupOrgView{OrganizationID: org.ID})
 			return
 		}
@@ -679,6 +681,7 @@ func csrf(handler http.Handler) http.Handler {
 
 type orgView struct {
 	User               string `json:"user,omitempty"`
+	ExternalID         string `json:"id"`
 	Name               string `json:"name"`
 	Label              string `json:"label,omitempty"`
 	ProbeToken         string `json:"probeToken,omitempty"`
@@ -687,12 +690,13 @@ type orgView struct {
 
 func (a *api) org(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	orgName := vars["orgName"]
+	orgExternalID := vars["orgExternalID"]
 	for _, org := range currentUser.Organizations {
-		if strings.ToLower(org.Name) == strings.ToLower(orgName) {
+		if strings.ToLower(org.ExternalID) == strings.ToLower(orgExternalID) {
 			renderJSON(w, http.StatusOK, orgView{
 				User:               currentUser.Email,
-				Name:               org.Name,
+				ExternalID:         org.ExternalID,
+				Name:               org.ExternalID,
 				Label:              org.Label,
 				ProbeToken:         org.ProbeToken,
 				FirstProbeUpdateAt: renderTime(org.FirstProbeUpdateAt),
@@ -700,7 +704,7 @@ func (a *api) org(currentUser *user, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if exists, err := a.storage.OrganizationExists(orgName); err != nil {
+	if exists, err := a.storage.OrganizationExists(orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	} else if exists {
@@ -710,13 +714,13 @@ func (a *api) org(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	renderError(w, r, errNotFound)
 }
 
-func (a *api) generateOrgName(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	name, err := a.storage.GenerateOrganizationName()
+func (a *api) generateOrgExternalID(currentUser *user, w http.ResponseWriter, r *http.Request) {
+	externalID, err := a.storage.GenerateOrganizationExternalID()
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
-	renderJSON(w, http.StatusOK, orgView{Name: name})
+	renderJSON(w, http.StatusOK, orgView{Name: externalID, ExternalID: externalID})
 }
 
 func (a *api) createOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
@@ -729,7 +733,12 @@ func (a *api) createOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if _, err := a.storage.CreateOrganization(currentUser.ID, view.Name, view.Label); err != nil {
+	id := view.ExternalID
+	if id == "" {
+		id = view.Name
+	}
+
+	if _, err := a.storage.CreateOrganization(currentUser.ID, id, view.Label); err != nil {
 		renderError(w, r, err)
 		return
 	}
@@ -744,17 +753,17 @@ func (a *api) updateOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 	case err != nil:
 		renderError(w, r, malformedInputError(err))
 		return
-	case view.Name != "":
-		renderError(w, r, validationErrorf("Name cannot be changed"))
+	case view.ExternalID != "":
+		renderError(w, r, validationErrorf("ID cannot be changed"))
 		return
 	}
 
-	orgName := mux.Vars(r)["orgName"]
-	if err := a.userCanAccessOrg(currentUser, orgName); err != nil {
+	orgExternalID := mux.Vars(r)["orgExternalID"]
+	if err := a.userCanAccessOrg(currentUser, orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	}
-	if err := a.storage.RelabelOrganization(orgName, view.Label); err != nil {
+	if err := a.storage.RelabelOrganization(orgExternalID, view.Label); err != nil {
 		renderError(w, r, err)
 		return
 	}
@@ -762,9 +771,9 @@ func (a *api) updateOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 }
 
 func (a *api) deleteOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	orgName := mux.Vars(r)["orgName"]
-	if !currentUser.HasOrganization(orgName) {
-		if exists, err := a.storage.OrganizationExists(orgName); err != nil {
+	orgExternalID := mux.Vars(r)["orgExternalID"]
+	if !currentUser.HasOrganization(orgExternalID) {
+		if exists, err := a.storage.OrganizationExists(orgExternalID); err != nil {
 			renderError(w, r, err)
 			return
 		} else if exists {
@@ -772,7 +781,7 @@ func (a *api) deleteOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 			return
 		}
 	}
-	if err := a.storage.DeleteOrganization(orgName); err != nil {
+	if err := a.storage.DeleteOrganization(orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	}
@@ -789,13 +798,13 @@ type organizationUserView struct {
 }
 
 func (a *api) listOrganizationUsers(currentUser *user, w http.ResponseWriter, r *http.Request) {
-	orgName := mux.Vars(r)["orgName"]
-	if err := a.userCanAccessOrg(currentUser, orgName); err != nil {
+	orgExternalID := mux.Vars(r)["orgExternalID"]
+	if err := a.userCanAccessOrg(currentUser, orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	users, err := a.storage.ListOrganizationUsers(orgName)
+	users, err := a.storage.ListOrganizationUsers(orgExternalID)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -823,13 +832,13 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	orgName := mux.Vars(r)["orgName"]
-	if err := a.userCanAccessOrg(currentUser, orgName); err != nil {
+	orgExternalID := mux.Vars(r)["orgExternalID"]
+	if err := a.userCanAccessOrg(currentUser, orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	invitee, err := a.storage.InviteUser(view.Email, orgName)
+	invitee, err := a.storage.InviteUser(view.Email, orgExternalID)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -846,7 +855,7 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
-	if err = a.emailer.InviteEmail(invitee, orgName, token); err != nil {
+	if err = a.emailer.InviteEmail(invitee, orgExternalID, token); err != nil {
 		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
@@ -857,23 +866,23 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 
 func (a *api) deleteUser(currentUser *user, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	orgName := vars["orgName"]
+	orgExternalID := vars["orgExternalID"]
 	userEmail := vars["userEmail"]
-	if err := a.userCanAccessOrg(currentUser, orgName); err != nil {
+	if err := a.userCanAccessOrg(currentUser, orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	if err := a.storage.RemoveUserFromOrganization(orgName, userEmail); err != nil {
+	if err := a.storage.RemoveUserFromOrganization(orgExternalID, userEmail); err != nil {
 		renderError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (a *api) userCanAccessOrg(currentUser *user, orgName string) error {
-	if !currentUser.HasOrganization(orgName) {
-		if exists, err := a.storage.OrganizationExists(orgName); err != nil {
+func (a *api) userCanAccessOrg(currentUser *user, orgExternalID string) error {
+	if !currentUser.HasOrganization(orgExternalID) {
+		if exists, err := a.storage.OrganizationExists(orgExternalID); err != nil {
 			return err
 		} else if exists {
 			return errForbidden

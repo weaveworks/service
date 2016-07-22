@@ -50,7 +50,7 @@ func routes(c Config) (http.Handler, error) {
 
 		// For all ui <-> app communication, authenticated using cookie credentials
 		prefix{
-			"/api/app/{orgName}",
+			"/api/app/{orgExternalID}",
 			[]path{
 				{"/api/report", newProxy(c.queryHost)},
 				{"/api/topology", newProxy(c.queryHost)},
@@ -64,8 +64,8 @@ func routes(c Config) (http.Handler, error) {
 			middleware.Merge(
 				users.AuthOrgMiddleware{
 					Authenticator: c.authenticator,
-					OrgName: func(r *http.Request) (string, bool) {
-						v, ok := mux.Vars(r)["orgName"]
+					OrgExternalID: func(r *http.Request) (string, bool) {
+						v, ok := mux.Vars(r)["orgExternalID"]
 						return v, ok
 					},
 					OutputHeader: c.outputHeader,
