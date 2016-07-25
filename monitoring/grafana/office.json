@@ -53,7 +53,7 @@
           },
           "targets": [
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{method=\"POST\",route=\"api_probe_report\"}[1m])) * 3",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{method=\"POST\",route=\"api_report\"}[1m])) * 3",
               "intervalFactor": 2,
               "refId": "A",
               "step": 240
@@ -114,7 +114,7 @@
           },
           "targets": [
             {
-              "expr": "sum(rate(scope_request_duration_nanoseconds_count{method=\"GET\",job=\"query\",route=\"api_topology\"}[1m])) * 5",
+              "expr": "sum(rate(scope_request_duration_nanoseconds_count{method=\"GET\",job=\"query\",route=\"api_app_orgname_api_topology\"}[1m])) * 5",
               "intervalFactor": 2,
               "refId": "A",
               "step": 240
@@ -266,7 +266,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_nanoseconds{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"grafana|admin\"}/1e6) by (quantile)",
+              "expr": "max(scope_request_duration_nanoseconds{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"^admin.*\"}/1e6) by (quantile)",
               "intervalFactor": 10,
               "legendFormat": "{{quantile}}",
               "refId": "A",

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"path/filepath"
 	"regexp"
@@ -23,7 +22,6 @@ type Config struct {
 	controlHost      string
 	pipeHost         string
 	deployHost       string
-	fluentHost       string
 	grafanaHost      string
 	scopeHost        string
 	usersHost        string
@@ -48,23 +46,20 @@ func routes(c Config) (http.Handler, error) {
 
 	r := newRouter()
 	for _, route := range []routable{
-		path{"/loadgen", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			fmt.Fprintf(w, "OK")
-		})},
-
 		path{"/metrics", prometheus.Handler()},
 
 		// For all ui <-> app communication, authenticated using cookie credentials
 		prefix{
 			"/api/app/{orgName}",
-			map[string]http.Handler{
-				"/api/report":   newProxy(c.queryHost),
-				"/api/topology": newProxy(c.queryHost),
-				"/api/control":  newProxy(c.controlHost),
-				"/api/pipe":     newProxy(c.pipeHost),
-				"/api/deploy":   newProxy(c.deployHost),
-				"/api/config":   newProxy(c.deployHost),
-				"/":             newProxy(c.queryHost), // catch all forward to query service, for /api and static html
+			[]path{
+				{"/api/report", newProxy(c.queryHost)},
+				{"/api/topology", newProxy(c.queryHost)},
+				{"/api/control", newProxy(c.controlHost)},
+				{"/api/pipe", newProxy(c.pipeHost)},
+				{"/api/deploy", newProxy(c.deployHost)},
+				{"/api/config", newProxy(c.deployHost)},
+				// Catch-all forward to query service, which is a Scope instance that we use to serve the Scope UI.
+				{"/", newProxy(c.queryHost)},
 			},
 			middleware.Merge(
 				users.AuthOrgMiddleware{
@@ -83,12 +78,12 @@ func routes(c Config) (http.Handler, error) {
 		// For all probe <-> app communication, authenticated using header credentials
 		prefix{
 			"/api",
-			map[string]http.Handler{
-				"/report":  newProxy(c.collectionHost),
-				"/control": newProxy(c.controlHost),
-				"/pipe":    newProxy(c.pipeHost),
-				"/deploy":  newProxy(c.deployHost),
-				"/config":  newProxy(c.deployHost),
+			[]path{
+				{"/report", newProxy(c.collectionHost)},
+				{"/control", newProxy(c.controlHost)},
+				{"/pipe", newProxy(c.pipeHost)},
+				{"/deploy", newProxy(c.deployHost)},
+				{"/config", newProxy(c.deployHost)},
 			},
 			middleware.Merge(
 				users.AuthProbeMiddleware{
@@ -102,14 +97,14 @@ func routes(c Config) (http.Handler, error) {
 		// For all admin functionality, authenticated using header credentials
 		prefix{
 			"/admin",
-			map[string]http.Handler{
-				"/grafana":      trim("^/admin/grafana", newProxy(c.grafanaHost)),
-				"/scope":        trim("^/admin/scope", newProxy(c.scopeHost)),
-				"/users":        trim("^/admin/users", newProxy(c.usersHost)),
-				"/kubediff":     trim("^/admin/kubediff", newProxy(c.kubediffHost)),
-				"/alertmanager": newProxy(c.alertmanagerHost),
-				"/prometheus":   newProxy(c.prometheusHost),
-				"/":             http.HandlerFunc(adminRoot),
+			[]path{
+				{"/grafana", trimPrefix("/admin/grafana", newProxy(c.grafanaHost))},
+				{"/scope", trimPrefix("/admin/scope", newProxy(c.scopeHost))},
+				{"/users", trimPrefix("/admin/users", newProxy(c.usersHost))},
+				{"/kubediff", trimPrefix("/admin/kubediff", newProxy(c.kubediffHost))},
+				{"/alertmanager", newProxy(c.alertmanagerHost)},
+				{"/prometheus", newProxy(c.prometheusHost)},
+				{"/", http.HandlerFunc(adminRoot)},
 			},
 			users.AuthAdminMiddleware{
 				Authenticator: c.authenticator,
@@ -138,8 +133,8 @@ func newRouter() *mux.Router {
 	return mux.NewRouter().StrictSlash(false).SkipClean(true)
 }
 
-func trim(regex string, handler http.Handler) http.Handler {
-	return middleware.PathRewrite(regexp.MustCompile(regex), "").Wrap(handler)
+func trimPrefix(regex string, handler http.Handler) http.Handler {
+	return middleware.PathRewrite(regexp.MustCompile("^"+regex), "").Wrap(handler)
 }
 
 type routable interface {
@@ -156,22 +151,22 @@ func (p path) Add(r *mux.Router) {
 }
 
 type prefix struct {
-	prefix   string
-	handlers map[string]http.Handler
-	mid      middleware.Interface
+	prefix string
+	routes []path
+	mid    middleware.Interface
 }
 
 func (p prefix) Add(r *mux.Router) {
 	if p.mid == nil {
 		p.mid = middleware.Identity
 	}
-	for path, handler := range p.handlers {
-		path = filepath.Join(p.prefix, path)
+	for _, route := range p.routes {
+		path := filepath.Join(p.prefix, route.path)
 		r.
 			PathPrefix(path).
 			Name(middleware.MakeLabelValue(path)).
 			Handler(
-				p.mid.Wrap(handler),
+				p.mid.Wrap(route.handler),
 			)
 	}
 }
