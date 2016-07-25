@@ -164,7 +164,7 @@ export default class Users extends React.Component {
             onClick={this.handleInviteTouchTap}
             />
         </div>
-        <h3>Current members</h3>
+        <h4>Current members</h4>
         <Box>
           <List>
             {users}

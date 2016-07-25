@@ -58,7 +58,7 @@ export default class IntancesList extends React.Component {
     const link = isCurrentInstance ? (<FlatButton label="Active" disabled />) : (<FlatButton
       onClick={selectInstance} label="Select" />);
     return (
-      <ListItem
+      <ListItem disabled
         style={{cursor: 'default'}}
         key={instance.name}
         primaryText={instance.label}
@@ -110,7 +110,7 @@ export default class IntancesList extends React.Component {
           Do you have a new cluster? <a href="/instances/create"
             onClick={this.onClickNew}>
             Create a new instance
-          </a>
+          </a> to monitor it.
         </div>
         <div style={styles.error}>
           <p style={styles.errorLabel}>

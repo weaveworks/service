@@ -70,7 +70,7 @@ export default class Logins extends React.Component {
       link = <FlatButton style={buttonStyle} onClick={detach} label="Detach" />;
     }
     return (
-      <ListItem
+      <ListItem disabled
         style={{cursor: 'default'}}
         key={a.id}
         primaryText={a.name}

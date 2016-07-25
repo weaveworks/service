@@ -12,7 +12,7 @@ import { encodeURIs, postData } from '../../common/request';
 import { trackException, trackView } from '../../common/tracking';
 
 
-const DEFAULT_LABEL = 'Untitled Instance';
+const DEFAULT_LABEL = 'Untitled Cluster';
 
 export default class InstancesCreate extends React.Component {
 
@@ -162,8 +162,8 @@ export default class InstancesCreate extends React.Component {
           {heading}
         </h2>
         <div style={styles.form}>
-          <p>You can customize your instance by giving it a name
-            <br />(e.g., Testing, Staging, Production):</p>
+          <p>Let's start by creating a monitoring instance for your cluster.
+            <br />Give your cluster a name:</p>
           <TextField hintText="Provide a label" floatingLabelText="Label"
             disabled={this.state.submitting}
             onChange={this.handleChangeLabel}
@@ -179,7 +179,7 @@ export default class InstancesCreate extends React.Component {
           </div>
 
           <div style={styles.formHint}>
-            Your instance will have the ID {this.state.name || '...'}
+            Your monitoring instance will have the ID {this.state.name || '...'}
           </div>
 
           <div style={styles.formButtons}>

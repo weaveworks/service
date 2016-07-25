@@ -10,10 +10,6 @@ export default class Toolbar extends React.Component {
 
   getLinks() {
     return [{
-      title: 'Visit my Weave Cloud Instance',
-      label: 'View Instance',
-      route: encodeURIs`#/app/${this.props.organization}`
-    }, {
       iconClass: 'fa fa-cog',
       title: 'Settings',
       route: encodeURIs`#/org/${this.props.organization}`
@@ -76,8 +72,7 @@ export default class Toolbar extends React.Component {
         color: Colors.text2,
         fontSize: '60%',
         lineHeight: 1,
-        marginRight: '0.5em',
-        textTransform: 'uppercase'
+        marginLeft: '0.5em'
       },
       toolbarRight: {
         float: 'right',
@@ -97,12 +92,14 @@ export default class Toolbar extends React.Component {
         <Paper zDepth={1} style={styles.toolbarWrapper}>
           <div style={styles.toolbar}>
             <div style={styles.toolbarLeft}>
-              <span style={styles.toolbarOrganizationLabel}>
-                Current Instance:
-              </span>
-              <span style={styles.toolbarOrganization}>
-                {this.props.organization}
-              </span>
+              <a href={encodeURIs`#/app/${this.props.organization}`}
+                style={styles.toolbarOrganization}>
+
+                View Instance
+                <span style={styles.toolbarOrganizationLabel}>
+                  {this.props.organization}
+                </span>
+              </a>
             </div>
             <div style={styles.toolbarRight}>
               {links}

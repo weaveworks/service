@@ -107,20 +107,20 @@ export default class AccountPage extends React.Component {
                 <ListItem disabled
                   style={{cursor: 'default'}}
                   primaryText={this.state.user}
+                  innerDivStyle={{paddingTop: 26}}
                   leftAvatar={<Avatar style={styles.avatar}
                     icon={<FontIcon className="fa fa-user" />}
                     size={32}
                     />}
                   rightIconButton={logoutButton}
-                  secondaryText={orgName}
                 />
               </List>}
 
               <Logins />
             </Column>
             <Column style={{marginLeft: 64}}>
-              <h2>Instances</h2>
-              <p>This is a list of all instances you have access to.</p>
+              <h2>Your Instances</h2>
+              <p>This is a list of all monitoring instances you have access to:</p>
               <InstancesList currentInstance={orgName} />
             </Column>
           </FlexContainer>
