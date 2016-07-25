@@ -527,7 +527,6 @@ func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Req
 		existing = append(existing, orgView{
 			ExternalID:         org.ExternalID,
 			Name:               org.Name,
-			Label:              org.Name,
 			FirstProbeUpdateAt: renderTime(org.FirstProbeUpdateAt),
 		})
 	}
@@ -683,7 +682,6 @@ type orgView struct {
 	User               string `json:"user,omitempty"`
 	ExternalID         string `json:"id"`
 	Name               string `json:"name"`
-	Label              string `json:"label,omitempty"`
 	ProbeToken         string `json:"probeToken,omitempty"`
 	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
 }
@@ -697,7 +695,6 @@ func (a *api) org(currentUser *user, w http.ResponseWriter, r *http.Request) {
 				User:               currentUser.Email,
 				ExternalID:         org.ExternalID,
 				Name:               org.Name,
-				Label:              org.Name,
 				ProbeToken:         org.ProbeToken,
 				FirstProbeUpdateAt: renderTime(org.FirstProbeUpdateAt),
 			})
@@ -733,12 +730,7 @@ func (a *api) createOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	name := view.Name
-	if name == "" {
-		name = view.Label
-	}
-
-	if _, err := a.storage.CreateOrganization(currentUser.ID, view.ExternalID, name); err != nil {
+	if _, err := a.storage.CreateOrganization(currentUser.ID, view.ExternalID, view.Name); err != nil {
 		renderError(w, r, err)
 		return
 	}
@@ -763,13 +755,7 @@ func (a *api) updateOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 		renderError(w, r, err)
 		return
 	}
-
-	name := view.Name
-	if name == "" {
-		name = view.Label
-	}
-
-	if err := a.storage.RenameOrganization(orgExternalID, name); err != nil {
+	if err := a.storage.RenameOrganization(orgExternalID, view.Name); err != nil {
 		renderError(w, r, err)
 		return
 	}
