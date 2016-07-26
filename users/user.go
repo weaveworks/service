@@ -70,24 +70,31 @@ func (u *user) HasOrganization(name string) bool {
 }
 
 func newUsersOrganizationFilter(s []string) filter {
-	return inFilter{
-		SQLField: "organizations.name",
-		SQLJoins: []string{
-			"memberships on (memberships.user_id = users.id)",
-			"organizations on (memberships.organization_id = organizations.id)",
-		},
-		Value: s,
-		Allowed: func(i interface{}) bool {
-			if u, ok := i.(*user); ok {
-				for _, org := range u.Organizations {
-					for _, name := range s {
-						if org.Name == name {
-							return true
+	return and{
+		inFilter{
+			SQLField: "organizations.name",
+			SQLJoins: []string{
+				"memberships on (memberships.user_id = users.id)",
+				"organizations on (memberships.organization_id = organizations.id)",
+			},
+			Value: s,
+			Allowed: func(i interface{}) bool {
+				if u, ok := i.(*user); ok {
+					for _, org := range u.Organizations {
+						for _, name := range s {
+							if org.Name == name {
+								return true
+							}
 						}
 					}
 				}
-			}
-			return false
+				return false
+			},
+		},
+		inFilter{
+			SQLField: "memberships.deleted_at",
+			Value:    nil,
+			Allowed:  func(i interface{}) bool { return true },
 		},
 	}
 }

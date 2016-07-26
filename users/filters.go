@@ -45,3 +45,21 @@ func (f inFilter) Select(q squirrel.SelectBuilder) squirrel.SelectBuilder {
 	}
 	return q
 }
+
+type and []filter
+
+func (a and) Item(item interface{}) bool {
+	for _, f := range a {
+		if !f.Item(item) {
+			return false
+		}
+	}
+	return true
+}
+
+func (a and) Select(q squirrel.SelectBuilder) squirrel.SelectBuilder {
+	for _, f := range a {
+		q = f.Select(q)
+	}
+	return q
+}

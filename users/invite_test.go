@@ -218,15 +218,30 @@ func Test_Invite_RemoveOtherUsersAccess(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, otherUser.Organizations, 1)
 
-	w := httptest.NewRecorder()
-	r := requestAs(t, user, "DELETE", "/api/users/org/"+org.Name+"/users/"+otherUser.Email, nil)
+	{
+		w := httptest.NewRecorder()
+		r := requestAs(t, user, "DELETE", "/api/users/org/"+org.Name+"/users/"+otherUser.Email, nil)
 
-	app.ServeHTTP(w, r)
-	assert.Equal(t, http.StatusNoContent, w.Code)
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	}
 
 	otherUser, err = storage.FindUserByID(otherUser.ID)
 	require.NoError(t, err)
 	require.Len(t, otherUser.Organizations, 0)
+
+	{
+		w := httptest.NewRecorder()
+		r := requestAs(t, user, "GET", "/api/users/org/"+org.Name+"/users", nil)
+
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusOK, w.Code)
+		body := map[string]interface{}{}
+		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+		assert.Equal(t, map[string]interface{}{
+			"users": []interface{}{map[string]interface{}{"email": user.Email, "self": true}},
+		}, body)
+	}
 }
 
 func Test_Invite_RemoveMyOwnAccess(t *testing.T) {
