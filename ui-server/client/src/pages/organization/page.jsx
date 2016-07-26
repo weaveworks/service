@@ -165,7 +165,7 @@ export default class OrganizationPage extends React.Component {
       circle: {
         position: 'absolute',
         left: -56,
-        top: -12,
+        top: -24,
         color: Colors.text4,
         backgroundColor: Colors.background,
         textAlign: 'center',
@@ -204,10 +204,11 @@ export default class OrganizationPage extends React.Component {
         {this.state.name && <div style={styles.container}>
           <FlexContainer>
             <Column minWidth="500">
+              <h2>Configure <nobr>{this.props.params.orgId}</nobr></h2>
               <div style={styles.steps}>
                 <div style={styles.step}>
                   <span style={styles.circle}>1</span>
-                  <h2>Launch the Weave Cloud Probe</h2>
+                  <h3>Launch the Weave Cloud Probe</h3>
                   Run the following commands on your Docker hosts to connect them
                   as probes to this Weave Cloud instance:
                 </div>
@@ -220,7 +221,7 @@ export default class OrganizationPage extends React.Component {
                 </Box>
                 <div style={styles.step}>
                   <span style={styles.circle}>2</span>
-                  <h2>Try our Reference Application</h2>
+                  <h3>Try our Reference Application</h3>
                   If you don't have an application of your own, try our <a href="https://github.com/weaveworks/weaveDemo">Reference Application</a> using <a href="https://docs.docker.com/compose/install/">Docker Compose</a>:
                 </div>
                 <Box>
@@ -231,7 +232,7 @@ export default class OrganizationPage extends React.Component {
                 </Box>
                 <div style={styles.step}>
                   <span style={styles.circle}>3</span>
-                  <h2>Invite team members</h2>
+                  <h3>Invite team members</h3>
                   <p>
                     Send invites to allow other members of your team to view this
                     Weave Cloud instance.

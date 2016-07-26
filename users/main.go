@@ -507,15 +507,6 @@ func (a *api) updateUserAtLogin(u *user) error {
 			return err
 		}
 	}
-	if len(u.Organizations) == 0 {
-		name, err := a.storage.GenerateOrganizationName()
-		if err != nil {
-			return err
-		}
-		if _, err := a.storage.CreateOrganization(u.ID, name, name); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 

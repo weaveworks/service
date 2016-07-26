@@ -113,9 +113,8 @@ func Test_Signup(t *testing.T) {
 	// Sets their FirstLoginAt
 	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 	firstLoginAt := user.FirstLoginAt
-	// Creates their first organization
-	require.Len(t, user.Organizations, 1)
-	orgName := user.Organizations[0].Name
+	// Doesn't create an organization.
+	assert.Len(t, user.Organizations, 0)
 
 	// Subsequent Logins do not change their FirstLoginAt or organization
 	w = httptest.NewRecorder()
@@ -135,7 +134,7 @@ func Test_Signup(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 	assert.Equal(t, firstLoginAt, user.FirstLoginAt, "Second login should not have changed user's FirstLoginAt")
-	assert.Equal(t, orgName, user.Organizations[0].Name)
+	assert.Len(t, user.Organizations, 0)
 }
 
 func Test_Signup_WithInvalidJSON(t *testing.T) {

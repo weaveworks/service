@@ -1,6 +1,5 @@
 import React from 'react';
 import { hashHistory } from 'react-router';
-import get from 'lodash/get';
 
 import RaisedButton from 'material-ui/RaisedButton';
 import List, { ListItem } from 'material-ui/List';
@@ -10,6 +9,7 @@ import FontIcon from 'material-ui/FontIcon';
 import { FlexContainer } from '../../components/flex-container';
 import { Column } from '../../components/column';
 import { Logo } from '../../components/logo';
+import InstancesList from '../instances/instances-list';
 import Logins from './logins';
 import Toolbar from '../../components/toolbar';
 import { trackView, trackException } from '../../common/tracking';
@@ -81,7 +81,7 @@ export default class AccountPage extends React.Component {
       }
     };
 
-    const orgName = get(this.state, ['organizations', 0, 'name']);
+    const orgName = this.props.params.orgId;
     const logoutButton = (
       <RaisedButton
         style={{ top: 18, right: 18 }}
@@ -107,16 +107,21 @@ export default class AccountPage extends React.Component {
                 <ListItem disabled
                   style={{cursor: 'default'}}
                   primaryText={this.state.user}
+                  innerDivStyle={{paddingTop: 26}}
                   leftAvatar={<Avatar style={styles.avatar}
                     icon={<FontIcon className="fa fa-user" />}
                     size={32}
                     />}
                   rightIconButton={logoutButton}
-                  secondaryText={orgName}
                 />
               </List>}
 
               <Logins />
+            </Column>
+            <Column style={{marginLeft: 64}}>
+              <h2>Your Instances</h2>
+              <p>This is a list of all monitoring instances you have access to:</p>
+              <InstancesList currentInstance={orgName} />
             </Column>
           </FlexContainer>
         </div>

@@ -5,7 +5,7 @@ import { red900 } from 'material-ui/styles/colors';
 import { hashHistory } from 'react-router';
 
 import { encodeURIs } from '../../common/request';
-import { getOrganizations, getProbes } from '../../common/api';
+import { getOrganizations } from '../../common/api';
 import { trackException, trackView } from '../../common/tracking';
 
 export default class CookieCheck extends React.Component {
@@ -22,9 +22,6 @@ export default class CookieCheck extends React.Component {
     this._checkCookie = this._checkCookie.bind(this);
     this._handleLoginSuccess = this._handleLoginSuccess.bind(this);
     this._handleLoginError = this._handleLoginError.bind(this);
-    this._handleClickReload = this._handleClickReload.bind(this);
-    this.handleProbesSuccess = this.handleProbesSuccess.bind(this);
-    this.handleProbesError = this.handleProbesError.bind(this);
   }
 
   componentDidMount() {
@@ -54,41 +51,16 @@ export default class CookieCheck extends React.Component {
   }
 
   _handleLoginSuccess(resp) {
-    if (resp.organizations.length >= 1) {
+    if (resp.organizations && resp.organizations.length > 1) {
+      // choose instance
+      hashHistory.push('/instances');
+    } else if (resp.organizations && resp.organizations.length === 1) {
+      // only one instance -> go straight there
       const name = resp.organizations[0].name;
-      getProbes(name).then(this.handleProbesSuccess, this.handleProbesError);
-      this.setState({
-        name,
-        activityText: 'Logged in. Checking for connected probes...'
-      });
+      hashHistory.push(encodeURIs`/instances/select/${name}`);
     } else {
-      const errorText = 'No team found. Please contact Weave Cloud support.';
-      this.setState({
-        activityText: '',
-        errorText
-      });
-      trackException(errorText);
+      hashHistory.push('/instances/create');
     }
-  }
-
-  handleProbesSuccess(resp) {
-    const { name } = this.state;
-    let url;
-    if (resp && resp.length > 0) {
-      // go to app if a probe is connected
-      url = encodeURIs`/app/${name}`;
-    } else {
-      // otherwise go to management page
-      url = encodeURIs`/org/${name}`;
-    }
-    hashHistory.push(url);
-  }
-
-  handleProbesError() {
-    // go to management page if we failed to get the probes
-    const { name } = this.state;
-    const url = encodeURIs`/org/${name}`;
-    hashHistory.push(url);
   }
 
   _handleClickReload() {

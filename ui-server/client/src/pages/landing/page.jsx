@@ -1,42 +1,16 @@
 import React from 'react';
-import FlatButton from 'material-ui/FlatButton';
-import { grey200, grey300 } from 'material-ui/styles/colors';
-import { hashHistory } from 'react-router';
+import { grey200 } from 'material-ui/styles/colors';
 
 import { FlexContainer } from '../../components/flex-container';
-import { Logo } from '../../components/logo';
+import PublicPage from '../../components/public-page';
 
 export default class LandingPage extends React.Component {
-
-  handleClickLogin() {
-    hashHistory.push('/login');
-  }
-
-
-  handleClickSignup() {
-    hashHistory.push('/signup');
-  }
-
-  renderLinks(linkStyle) {
-    const links = [
-      {href: 'https://www.weave.works/guides/using-weave-scope-cloud-service-to-visualize-and-monitor-docker-containers/', text: 'Learn more'},
-      {href: 'http://weave.works/help', text: 'Help'}
-    ];
-
-    return links.map(link => (
-      <a style={linkStyle} href={link.href} key={link.text} target="_blank">
-        {link.text}
-      </a>
-    ));
-  }
 
   render() {
     const isOnSignup = this.props.location.pathname === '/signup';
     const showingLogin = isOnSignup;
     const showingSignup = this.props.location.pathname === '/login';
     const styles = {
-      backgroundContainer: {
-      },
       featureHeader: {
         fontSize: 48,
         fontWeight: 300
@@ -66,61 +40,11 @@ export default class LandingPage extends React.Component {
       infoItem: {
         fontSize: '1rem',
         marginTop: '1rem'
-      },
-      infoWrapper: {
-      },
-      headerContainer: {
-        display: 'flex',
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'right',
-        marginBottom: 36,
-        marginTop: 36,
-        marginRight: 24
-      },
-      link: {
-        textTransform: 'uppercase',
-        padding: '12px 1rem'
-      },
-      loginWrapper: {
-        padding: '26px 24px 16px 24px'
-      },
-      logoWrapper: {
-        width: 250,
-        height: 64,
-        marginLeft: 64,
-        marginTop: 24
-      },
-      menuWrapper: {
-        padding: 16,
-        marginTop: 20
-      },
-      spaceWrapper: {
-        flex: 1
       }
     };
 
-    const links = this.renderLinks(styles.link);
     return (
-      <div style={styles.backgroundContainer}>
-        <div style={styles.headerContainer}>
-          <div style={styles.logoWrapper}>
-            <Logo />
-          </div>
-          <div style={styles.spaceWrapper}>
-          </div>
-          <div style={styles.menuWrapper}>
-            {links}
-          </div>
-          {showingLogin && <div style={styles.loginWrapper}>
-            <FlatButton backgroundColor={grey300} label="Log in"
-              onClick={this.handleClickLogin} />
-          </div>}
-          {showingSignup && <div style={styles.loginWrapper}>
-            <FlatButton backgroundColor={grey300} label="Sign up"
-              onClick={this.handleClickSignup} />
-          </div>}
-        </div>
+      <PublicPage showLogin={showingLogin} showSignup={showingSignup}>
         <FlexContainer>
           <div style={styles.featureWrapper}>
             <div style={styles.featureHeader}>
@@ -139,7 +63,7 @@ export default class LandingPage extends React.Component {
             </div>
           </div>
         </FlexContainer>
-      </div>
+      </PublicPage>
     );
   }
 }
