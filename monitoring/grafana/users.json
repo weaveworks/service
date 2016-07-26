@@ -156,10 +156,17 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_seconds{job=\"users\"}) by (quantile) * 1e3",
+              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"users\",ws=\"false\"}[5m])) by (le)) * 1e3",
               "intervalFactor": 2,
-              "legendFormat": "{{quantile}} quantile",
+              "legendFormat": "95th quantile",
               "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"users\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "50th quantile",
+              "refId": "B",
               "step": 10
             }
           ],
@@ -344,7 +351,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_seconds{job=\"users\",quantile=\"0.99\"}) by (route,status_code) * 1e3",
+              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"users\",ws=\"false\"}[5m])) by (le,route,status_code)) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{route}} {{status_code}}",
               "refId": "A",
@@ -353,7 +360,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Users Latency by Endpoint (99th quantile)",
+          "title": "Users Latency by Endpoint (95th quantile)",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -504,10 +511,17 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_database_request_duration_seconds{namespace=\"default\",job=\"users\"}) by (quantile) * 1e3",
+              "expr": "histogram_quantile(0.95, sum(rate(scope_database_request_duration_seconds_bucket{namespace=\"default\",job=\"users\"}[5m])) by (le)) * 1e3",
               "intervalFactor": 2,
-              "legendFormat": "{{quantile}} quantile",
+              "legendFormat": "95th quantile",
               "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum(rate(scope_database_request_duration_seconds_bucket{namespace=\"default\",job=\"users\"}[5m])) by (le)) * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "50th quantile",
+              "refId": "B",
               "step": 10
             }
           ],
@@ -664,7 +678,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_database_request_duration_seconds{namespace=\"default\",job=\"users\",quantile=\"0.99\"}) by (method,status_code) * 1e3",
+              "expr": "histogram_quantile(0.95, sum(rate(scope_database_request_duration_seconds_bucket{namespace=\"default\",job=\"users\"}[5m])) by (le,method,status_code)) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{method}} - {{status_code}}",
               "refId": "A",
@@ -673,7 +687,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Users DB Latency By Endpoint (99th Quantile)",
+          "title": "Users DB Latency By Endpoint (95th Quantile)",
           "tooltip": {
             "msResolution": true,
             "shared": true,
