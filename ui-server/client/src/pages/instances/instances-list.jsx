@@ -61,7 +61,7 @@ export default class IntancesList extends React.Component {
       <ListItem disabled
         style={{cursor: 'default'}}
         key={instance.id}
-        primaryText={instance.label}
+        primaryText={instance.name}
         rightIconButton={link}
         secondaryText={instance.id}
       />

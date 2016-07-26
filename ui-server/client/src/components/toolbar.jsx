@@ -68,7 +68,7 @@ export default class Toolbar extends React.Component {
         fontSize: '110%',
         lineHeight: 1
       },
-      toolbarOrganizationLabel: {
+      toolbarOrganizationName: {
         color: Colors.text2,
         fontSize: '60%',
         lineHeight: 1,
@@ -96,7 +96,7 @@ export default class Toolbar extends React.Component {
                 style={styles.toolbarOrganization}>
 
                 View Instance
-                <span style={styles.toolbarOrganizationLabel}>
+                <span style={styles.toolbarOrganizationName}>
                   {this.props.organization}
                 </span>
               </a>

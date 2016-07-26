@@ -24,7 +24,7 @@ export default class InstancesCreate extends React.Component {
     this.state = {
       first,
       id: '',
-      label: DEFAULT_LABEL,
+      name: DEFAULT_LABEL,
       errorText: '',
       instanceCreated: false,
       submitText: 'Loading instance...',
@@ -34,7 +34,7 @@ export default class InstancesCreate extends React.Component {
     this._handleSubmit = this._handleSubmit.bind(this);
     this.handleNewInstanceIdSuccess = this.handleNewInstanceIdSuccess.bind(this);
     this.handleNewInstanceIdError = this.handleNewInstanceIdError.bind(this);
-    this.handleChangeLabel = this.handleChangeLabel.bind(this);
+    this.handleChangeName = this.handleChangeName.bind(this);
     this.handleChangeId = this.handleChangeId.bind(this);
     this.handleCancel = this.handleCancel.bind(this);
   }
@@ -64,8 +64,8 @@ export default class InstancesCreate extends React.Component {
     });
   }
 
-  handleChangeLabel(ev) {
-    this.setState({label: ev.target.value});
+  handleChangeName(ev) {
+    this.setState({name: ev.target.value});
   }
 
   handleChangeId(ev) {
@@ -81,25 +81,25 @@ export default class InstancesCreate extends React.Component {
   }
 
   _handleSubmit() {
-    const { label, id } = this.state;
-    const errorTextLabel = label ? '' : 'Label cannot be empty.';
+    const { name, id } = this.state;
+    const errorTextName = name ? '' : 'Name cannot be empty.';
     const errorTextId = id ? '' : 'ID cannot be empty.';
 
-    if (!label || !id) {
-      this.setState({ errorTextId, errorTextLabel });
+    if (!name || !id) {
+      this.setState({ errorTextId, errorTextName });
       return;
     }
 
     // lock button and clear error
     this.setState({
       errorTextId: '',
-      errorTextLabel: '',
+      errorTextName: '',
       errorText: '',
       submitting: true,
       submitText: 'Creating...'
     });
 
-    postData('/api/users/org', {label, id})
+    postData('/api/users/org', {name, id})
       .then(() => {
         hashHistory.push(encodeURIs`/instances/select/${this.state.id}`);
       }, resp => {
@@ -164,12 +164,12 @@ export default class InstancesCreate extends React.Component {
         <div style={styles.form}>
           <p>Let's start by creating a monitoring instance for your cluster.
             <br />Give your cluster a name:</p>
-          <TextField hintText="Provide a label" floatingLabelText="Label"
+          <TextField hintText="Provide a name" floatingLabelText="Name"
             disabled={this.state.submitting}
-            onChange={this.handleChangeLabel}
+            onChange={this.handleChangeName}
             style={{verticalAlign: 'top', width: 400}}
-            value={this.state.label}
-            errorText={this.state.errorTextLabel} />
+            value={this.state.name}
+            errorText={this.state.errorTextName} />
 
           <div style={styles.error}>
             <p style={styles.errorLabel}>
