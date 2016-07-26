@@ -65,8 +65,8 @@ func Test_PublicLookup(t *testing.T) {
 		"organizations": []interface{}{
 			map[string]interface{}{
 				"id":                 org.ExternalID,
-				"name":               org.ExternalID,
-				"label":              org.Label,
+				"name":               org.Name,
+				"label":              org.Name,
 				"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
 			},
 		},

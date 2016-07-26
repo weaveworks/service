@@ -252,7 +252,7 @@ func (s memoryStorage) findOrganizationByExternalID(externalID string) (*organiz
 	return nil, errNotFound
 }
 
-func (s memoryStorage) CreateOrganization(ownerID, externalID, label string) (*organization, error) {
+func (s memoryStorage) CreateOrganization(ownerID, externalID, name string) (*organization, error) {
 	user, err := s.FindUserByID(ownerID)
 	if err != nil {
 		return nil, err
@@ -260,7 +260,7 @@ func (s memoryStorage) CreateOrganization(ownerID, externalID, label string) (*o
 	o := &organization{
 		ID:         fmt.Sprint(len(s.organizations)),
 		ExternalID: externalID,
-		Label:      label,
+		Name:       name,
 		CreatedAt:  time.Now().UTC(),
 	}
 	if err := o.valid(); err != nil {
@@ -300,8 +300,8 @@ func (s memoryStorage) FindOrganizationByProbeToken(probeToken string) (*organiz
 	return nil, errNotFound
 }
 
-func (s memoryStorage) RelabelOrganization(externalID, label string) error {
-	if err := (&organization{ExternalID: externalID, Label: label}).valid(); err != nil {
+func (s memoryStorage) RenameOrganization(externalID, name string) error {
+	if err := (&organization{ExternalID: externalID, Name: name}).valid(); err != nil {
 		return err
 	}
 
@@ -310,7 +310,7 @@ func (s memoryStorage) RelabelOrganization(externalID, label string) error {
 		return err
 	}
 
-	o.Label = label
+	o.Name = name
 	return nil
 }
 

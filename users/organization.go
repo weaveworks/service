@@ -12,7 +12,7 @@ var (
 type organization struct {
 	ID                 string
 	ExternalID         string
-	Label              string
+	Name               string
 	ProbeToken         string
 	FirstProbeUpdateAt time.Time
 	CreatedAt          time.Time
@@ -33,8 +33,8 @@ func (o *organization) valid() error {
 		return errOrgExternalIDCannotBeBlank
 	case !orgExternalIDRegex.MatchString(o.ExternalID):
 		return errOrgExternalIDFormat
-	case o.Label == "":
-		return errOrgLabelCannotBeBlank
+	case o.Name == "":
+		return errOrgNameCannotBeBlank
 	}
 	return nil
 }
