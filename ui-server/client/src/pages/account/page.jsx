@@ -81,7 +81,7 @@ export default class AccountPage extends React.Component {
       }
     };
 
-    const orgName = this.props.params.orgId;
+    const orgId = this.props.params.orgId;
     const logoutButton = (
       <RaisedButton
         style={{ top: 18, right: 18 }}
@@ -93,7 +93,7 @@ export default class AccountPage extends React.Component {
       <div style={{height: '100%', position: 'relative'}}>
         <Toolbar
           user={this.state.user}
-          organization={orgName}
+          organization={orgId}
           page="Account" />
         <div style={styles.logoWrapper}>
           <Logo />
@@ -121,7 +121,7 @@ export default class AccountPage extends React.Component {
             <Column style={{marginLeft: 64}}>
               <h2>Your Instances</h2>
               <p>This is a list of all monitoring instances you have access to:</p>
-              <InstancesList currentInstance={orgName} />
+              <InstancesList currentInstance={orgId} />
             </Column>
           </FlexContainer>
         </div>

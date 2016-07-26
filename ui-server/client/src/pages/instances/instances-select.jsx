@@ -31,26 +31,26 @@ export default class InstancesSelect extends React.Component {
   }
 
   checkProbes() {
-    const { name } = this.props.params;
-    if (name) {
-      getProbes(name).then(this.handleProbesSuccess, this.handleProbesError);
+    const { id } = this.props.params;
+    if (id) {
+      getProbes(id).then(this.handleProbesSuccess, this.handleProbesError);
       this.mounted = true;
     } else {
-      const errorText = 'Need instance name to proceed.';
+      const errorText = 'Need instance ID to proceed.';
       this.setState({ errorText });
       trackException(errorText);
     }
   }
 
   handleProbesSuccess(resp) {
-    const { name } = this.props.params;
+    const { id } = this.props.params;
     let url;
     if (resp && resp.length > 0) {
       // go to app if a probe is connected
-      url = encodeURIs`/app/${name}`;
+      url = encodeURIs`/app/${id}`;
     } else {
       // otherwise go to management page
-      url = encodeURIs`/org/${name}`;
+      url = encodeURIs`/org/${id}`;
     }
     if (this.mounted) {
       hashHistory.push(url);
@@ -59,8 +59,8 @@ export default class InstancesSelect extends React.Component {
 
   handleProbesError() {
     // go to management page if we failed to get the probes
-    const { name } = this.props.params;
-    const url = encodeURIs`/org/${name}`;
+    const { id } = this.props.params;
+    const url = encodeURIs`/org/${id}`;
     if (this.mounted) {
       hashHistory.push(url);
     }

@@ -24,7 +24,7 @@ export default class OrganizationPage extends React.Component {
   constructor() {
     super();
     this.state = {
-      name: '',
+      id: '',
       user: '',
       probeToken: '',
       probes: [],
@@ -201,10 +201,10 @@ export default class OrganizationPage extends React.Component {
         <div style={styles.logoWrapper}>
           <Logo />
         </div>
-        {this.state.name && <div style={styles.container}>
+        {this.state.id && <div style={styles.container}>
           <FlexContainer>
             <Column minWidth="500">
-              <h2>Configure <nobr>{this.props.params.orgId}</nobr></h2>
+              <h2>Configure <nobr>{this.state.id}</nobr></h2>
               <div style={styles.steps}>
                 <div style={styles.step}>
                   <span style={styles.circle}>1</span>
@@ -238,7 +238,7 @@ export default class OrganizationPage extends React.Component {
                     Weave Cloud instance.
                     You can also come back and do this later.
                   </p>
-                  <Users org={this.state.name} />
+                  <Users org={this.props.params.orgId} />
                 </div>
               </div>
             </Column>
@@ -283,7 +283,7 @@ export default class OrganizationPage extends React.Component {
               </Paper>
             </Column>
           </FlexContainer>
-          {!this.state.name && <div style={styles.activity}>
+          {!this.state.id && <div style={styles.activity}>
             <CircularProgress mode="indeterminate" />
           </div>}
         </div>}
