@@ -88,10 +88,9 @@ export default class Wrapper extends React.Component {
   _handleLoginError(resp) {
     if (resp.status === 401) {
       // if unauthorized, send to login page
-      this.setState({
-        activityText: 'Not logged in. Please wait for the login form to load...'
-      });
       hashHistory.push('/login');
+    } else if (resp.status === 403) {
+      hashHistory.push('/login/forbidden');
     } else {
       const err = resp.errors[0];
       log(err);

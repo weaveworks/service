@@ -48,6 +48,8 @@ export default class AccountPage extends React.Component {
   handleLoginError(resp) {
     if (resp.status === 401) {
       hashHistory.push('/login');
+    } else if (resp.status === 403) {
+      hashHistory.push('/login/forbidden');
     } else {
       const err = resp.errors[0];
       trackException(err.message);
