@@ -356,14 +356,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"^admin.*\"}[5m])) by (le)) * 1e3",
+              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"^(admin|metrics).*\"}[5m])) by (le)) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"^admin.*\"}[5m])) by (le)) * 1e3",
+              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"^(admin|metrics).*\"}[5m])) by (le)) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "B",

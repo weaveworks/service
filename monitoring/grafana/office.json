@@ -266,7 +266,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(scope_request_duration_nanoseconds{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"^admin.*\"}/1e6) by (quantile)",
+              "expr": "max(scope_request_duration_nanoseconds{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"^(admin|metrics).*\"}/1e6) by (quantile)",
               "intervalFactor": 10,
               "legendFormat": "{{quantile}}",
               "refId": "A",
