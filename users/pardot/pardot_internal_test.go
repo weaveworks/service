@@ -113,6 +113,6 @@ func TestPardotClient(t *testing.T) {
 			t.Fatal("Wrong data: ", ps)
 		}
 	case <-time.After(200 * time.Millisecond):
-		t.Fatal("No prospects recieved.")
+		t.Fatal("No prospects received.")
 	}
 }
