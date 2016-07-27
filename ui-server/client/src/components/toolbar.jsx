@@ -11,10 +11,14 @@ export default class Toolbar extends React.Component {
   getLinks() {
     return [{
       iconClass: 'fa fa-cog',
-      title: 'Settings',
+      title: 'Settings for this instance',
       route: encodeURIs`#/org/${this.props.organization}`
     }, {
-      title: 'My Account',
+      title: 'Manage instances',
+      iconClass: 'fa fa-cubes',
+      route: encodeURIs`#/instance/${this.props.organization}`
+    }, {
+      title: 'User account',
       iconClass: 'fa fa-user',
       route: encodeURIs`#/account/${this.props.organization}`
     }];

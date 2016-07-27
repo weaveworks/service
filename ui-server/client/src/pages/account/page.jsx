@@ -9,7 +9,6 @@ import FontIcon from 'material-ui/FontIcon';
 import { FlexContainer } from '../../components/flex-container';
 import { Column } from '../../components/column';
 import { Logo } from '../../components/logo';
-import InstancesList from '../instances/instances-list';
 import Logins from './logins';
 import Toolbar from '../../components/toolbar';
 import { trackView, trackException } from '../../common/tracking';
@@ -119,11 +118,6 @@ export default class AccountPage extends React.Component {
               </List>}
 
               <Logins />
-            </Column>
-            <Column style={{marginLeft: 64}}>
-              <h2>Your Instances</h2>
-              <p>This is a list of all Weave Cloud instances you have access to:</p>
-              <InstancesList currentInstance={orgId} />
             </Column>
           </FlexContainer>
         </div>

@@ -14,6 +14,7 @@ import { Box } from '../../components/box';
 import { FlexContainer } from '../../components/flex-container';
 import { Column } from '../../components/column';
 import { Logo } from '../../components/logo';
+import InstancesDelete from '../instances/instances-delete';
 import Probes from './probes';
 import Users from './users';
 import Toolbar from '../../components/toolbar';
@@ -206,7 +207,7 @@ export default class OrganizationPage extends React.Component {
         {this.state.id && <div style={styles.container}>
           <FlexContainer>
             <Column minWidth="500">
-              <h2>Configure <nobr>{this.state.id}</nobr></h2>
+              <h2>Configure <nobr>{this.state.name}</nobr></h2>
               <div style={styles.steps}>
                 <div style={styles.step}>
                   <span style={styles.circle}>1</span>
@@ -283,6 +284,9 @@ export default class OrganizationPage extends React.Component {
                   </div>
                 </div>
               </Paper>
+              <Box style={{marginTop: 64, padding: 24}}>
+                <InstancesDelete instanceName={this.state.name} />
+              </Box>
             </Column>
           </FlexContainer>
           {!this.state.id && <div style={styles.activity}>

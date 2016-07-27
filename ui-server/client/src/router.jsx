@@ -2,10 +2,12 @@ import React from 'react';
 import { Redirect, Route, IndexRoute } from 'react-router';
 
 import AccountPage from './pages/account/page';
-import InstancesCreate from './pages/instances/instances-create';
-import InstancesPicker from './pages/instances/instances-picker';
+import InstancesCreate from './pages/onboarding/instances-create';
 import InstancesPage from './pages/instances/page';
-import InstancesSelect from './pages/instances/instances-select';
+import InstancesDeleted from './pages/onboarding/instances-deleted';
+import InstancesPicker from './pages/onboarding/instances-picker';
+import InstancesSelect from './pages/onboarding/instances-select';
+import OnboardingPage from './pages/onboarding/page';
 import OrganizationPage from './pages/organization/page';
 import LandingPage from './pages/landing/page';
 import CookieCheck from './pages/landing/cookie-check';
@@ -24,10 +26,12 @@ export default function getRoutes() {
       <Route name="wrapper" path="app/:orgId" component={WrapperPage} />
       <Route name="organization" path="org/:orgId" component={OrganizationPage} />
       <Route name="account" path="account/:orgId" component={AccountPage} />
-      <Route path="instances" component={InstancesPage}>
+      <Route name="instance" path="instance/:orgId" component={InstancesPage} />
+      <Route path="instances" component={OnboardingPage}>
         <IndexRoute component={InstancesPicker} />
         <Route path="create(/:first)" component={InstancesCreate} />
         <Route path="select/:id" component={InstancesSelect} />
+        <Route path="deleted" component={InstancesDeleted} />
       </Route>
 
       {/* Sign up/Log in */}

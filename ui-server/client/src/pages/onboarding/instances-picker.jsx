@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { trackView } from '../../common/tracking';
-import InstancesList from './instances-list';
+import InstancesList from '../instances/instances-list';
 
 export default class IntancesPicker extends React.Component {
 
