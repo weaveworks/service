@@ -4,9 +4,15 @@ set -eu
 
 readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-promtool check-rules ${DIR}/prometheus/alert.rules
+promtool check-rules "${DIR}"/prometheus/*.rules
 
-# Check all the json in the dashboard is sorted, to minimise diffs
 for dashboard in ${DIR}/grafana/*.json; do
-    diff -u ${dashboard}  <(jq -S . <${dashboard})
+    # Check all the JSON in the dashboard is sorted, to minimise diffs.
+    diff -u "${dashboard}"  <(jq -S . <"${dashboard}")
 done
+
+# Check that we don't duplicate panel IDs. We want unique IDs so we can edit
+# graphs in the Grafana UI.
+#
+# Use xargs so we get lint for all files, not just the first failure.
+git ls-files "${DIR}"/grafana/\*.json | xargs jq '[[.rows[].panels[] | {title, id}] | group_by(.id) | map(select(length > 1)) | .[] | {id: .[0].id, titles: map(.title)}] | if length == 0 then empty else .[], error("Duplicate panel IDs found") end'

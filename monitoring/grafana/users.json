@@ -410,7 +410,7 @@
             "threshold2": null,
             "threshold2Color": "rgba(234, 112, 112, 0.22)"
           },
-          "id": 17,
+          "id": 1,
           "isNew": true,
           "legend": {
             "avg": false,
@@ -486,7 +486,7 @@
             "threshold2": null,
             "threshold2Color": "rgba(234, 112, 112, 0.22)"
           },
-          "id": 18,
+          "id": 2,
           "isNew": true,
           "legend": {
             "avg": false,
