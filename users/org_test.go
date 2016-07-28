@@ -24,7 +24,7 @@ func Test_Org(t *testing.T) {
 	require.Len(t, user.Organizations, 1)
 	assert.Equal(t, org.ID, user.Organizations[0].ID, "user should have an organization id")
 	assert.Equal(t, org.ExternalID, user.Organizations[0].ExternalID, "user should have an organization external id")
-	assert.Equal(t, org.Label, user.Organizations[0].Label, "user should have an organization label")
+	assert.Equal(t, org.Name, user.Organizations[0].Name, "user should have an organization name")
 	assert.NotEqual(t, "", user.Organizations[0].ProbeToken, "user should have a probe token")
 
 	org, err = storage.FindOrganizationByProbeToken(user.Organizations[0].ProbeToken)
@@ -40,8 +40,8 @@ func Test_Org(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{
 		"user":               user.Email,
 		"id":                 org.ExternalID,
-		"name":               org.ExternalID,
-		"label":              org.Label,
+		"name":               org.Name,
+		"label":              org.Name,
 		"probeToken":         org.ProbeToken,
 		"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
 	}, body)
@@ -63,8 +63,8 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{
 		"user":       user.Email,
 		"id":         org.ExternalID,
-		"name":       org.ExternalID,
-		"label":      org.Label,
+		"name":       org.Name,
+		"label":      org.Name,
 		"probeToken": org.ProbeToken,
 	}, body)
 }
@@ -87,13 +87,13 @@ func Test_ListOrganizationUsers(t *testing.T) {
 	assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"users":[{"email":%q,"self":true},{"email":%q}]}`, user.Email, fran.Email))
 }
 
-func Test_RelabelOrganization(t *testing.T) {
+func Test_RenameOrganization(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	user, org := getOrg(t)
 	otherUser := getApprovedUser(t)
-	body := map[string]interface{}{"label": "my-organization"}
+	body := map[string]interface{}{"name": "my-organization"}
 
 	{
 		w := httptest.NewRecorder()
@@ -104,7 +104,7 @@ func Test_RelabelOrganization(t *testing.T) {
 
 		found, err := storage.FindOrganizationByProbeToken(org.ProbeToken)
 		if assert.NoError(t, err) {
-			assert.Equal(t, org.Label, found.Label)
+			assert.Equal(t, org.Name, found.Name)
 		}
 	}
 
@@ -130,7 +130,7 @@ func Test_RelabelOrganization(t *testing.T) {
 		if assert.Len(t, user.Organizations, 1) {
 			assert.Equal(t, org.ID, user.Organizations[0].ID)
 			assert.Equal(t, org.ExternalID, user.Organizations[0].ExternalID)
-			assert.Equal(t, "my-organization", user.Organizations[0].Label)
+			assert.Equal(t, "my-organization", user.Organizations[0].Name)
 		}
 	}
 }
@@ -153,21 +153,21 @@ func Test_ReIDOrganization_NotAllowed(t *testing.T) {
 	if assert.Len(t, user.Organizations, 1) {
 		assert.Equal(t, org.ID, user.Organizations[0].ID)
 		assert.Equal(t, org.ExternalID, user.Organizations[0].ExternalID)
-		assert.Equal(t, org.Label, user.Organizations[0].Label)
+		assert.Equal(t, org.Name, user.Organizations[0].Name)
 	}
 }
 
-func Test_RelabelOrganization_Validation(t *testing.T) {
+func Test_RenameOrganization_Validation(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	user, org := getOrg(t)
 
-	for label, errMsg := range map[string]string{
-		"": "Label cannot be blank",
+	for name, errMsg := range map[string]string{
+		"": "Name cannot be blank",
 	} {
 		w := httptest.NewRecorder()
-		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody{"label": label}.Reader(t))
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody{"name": name}.Reader(t))
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -178,7 +178,7 @@ func Test_RelabelOrganization_Validation(t *testing.T) {
 		if assert.Len(t, user.Organizations, 1) {
 			assert.Equal(t, org.ID, user.Organizations[0].ID)
 			assert.Equal(t, org.ExternalID, user.Organizations[0].ExternalID)
-			assert.Equal(t, org.Label, user.Organizations[0].Label)
+			assert.Equal(t, org.Name, user.Organizations[0].Name)
 		}
 	}
 }
@@ -191,8 +191,8 @@ func Test_CustomExternalIDOrganization(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "POST", "/api/users/org", jsonBody{
-		"id":    "my-organization",
-		"label": "my organization",
+		"id":   "my-organization",
+		"name": "my organization",
 	}.Reader(t))
 
 	app.ServeHTTP(w, r)
@@ -203,7 +203,7 @@ func Test_CustomExternalIDOrganization(t *testing.T) {
 	if assert.Len(t, user.Organizations, 1) {
 		assert.NotEqual(t, "", user.Organizations[0].ID)
 		assert.Equal(t, "my-organization", user.Organizations[0].ExternalID)
-		assert.Equal(t, "my organization", user.Organizations[0].Label)
+		assert.Equal(t, "my organization", user.Organizations[0].Name)
 	}
 }
 
@@ -220,8 +220,8 @@ func Test_CustomExternalIDOrganization_Validation(t *testing.T) {
 	} {
 		w := httptest.NewRecorder()
 		r := requestAs(t, user, "POST", "/api/users/org", jsonBody{
-			"id":    id,
-			"label": "my organization",
+			"id":   id,
+			"name": "my organization",
 		}.Reader(t))
 
 		app.ServeHTTP(w, r)
@@ -293,13 +293,13 @@ func Test_Organization_CreateMultiple(t *testing.T) {
 
 	user := getApprovedUser(t)
 
-	r1 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-first-org", "label": "my first org"}.Reader(t))
+	r1 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-first-org", "name": "my first org"}.Reader(t))
 
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, r1)
 	assert.Equal(t, http.StatusCreated, w.Code)
 
-	r2 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-second-org", "label": "my second org"}.Reader(t))
+	r2 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-second-org", "name": "my second org"}.Reader(t))
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, r2)
@@ -310,10 +310,10 @@ func Test_Organization_CreateMultiple(t *testing.T) {
 	if assert.Len(t, user.Organizations, 2) {
 		assert.NotEqual(t, "", user.Organizations[0].ID)
 		assert.Equal(t, "my-first-org", user.Organizations[0].ExternalID)
-		assert.Equal(t, "my first org", user.Organizations[0].Label)
+		assert.Equal(t, "my first org", user.Organizations[0].Name)
 		assert.NotEqual(t, "", user.Organizations[1].ID)
 		assert.Equal(t, "my-second-org", user.Organizations[1].ExternalID)
-		assert.Equal(t, "my second org", user.Organizations[1].Label)
+		assert.Equal(t, "my second org", user.Organizations[1].Name)
 	}
 }
 

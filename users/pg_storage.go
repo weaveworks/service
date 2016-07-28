@@ -316,7 +316,7 @@ func (s pgStorage) organizationsQuery() squirrel.SelectBuilder {
 	return s.Select(
 		"organizations.id",
 		"organizations.external_id",
-		"organizations.label",
+		"organizations.name",
 		"organizations.probe_token",
 		"organizations.first_probe_update_at",
 		"organizations.created_at",
@@ -550,10 +550,10 @@ func (s pgStorage) GenerateOrganizationExternalID() (string, error) {
 	return externalID, err
 }
 
-func (s pgStorage) CreateOrganization(ownerID, externalID, label string) (*organization, error) {
+func (s pgStorage) CreateOrganization(ownerID, externalID, name string) (*organization, error) {
 	o := &organization{
 		ExternalID: externalID,
-		Label:      label,
+		Name:       name,
 		CreatedAt:  s.Now(),
 	}
 	if err := o.valid(); err != nil {
@@ -580,9 +580,9 @@ func (s pgStorage) CreateOrganization(ownerID, externalID, label string) (*organ
 		}
 
 		err := tx.QueryRow(`insert into organizations
-			(external_id, label, probe_token, created_at)
+			(external_id, name, probe_token, created_at)
 			values (lower($1), $2, $3, $4) returning id`,
-			o.ExternalID, o.Label, o.ProbeToken, o.CreatedAt,
+			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt,
 		).Scan(&o.ID)
 		if err != nil {
 			return err
@@ -636,28 +636,28 @@ func (s pgStorage) scanOrganizations(rows *sql.Rows) ([]*organization, error) {
 
 func (s pgStorage) scanOrganization(row squirrel.RowScanner) (*organization, error) {
 	o := &organization{}
-	var externalID, label, probeToken sql.NullString
+	var externalID, name, probeToken sql.NullString
 	var firstProbeUpdateAt, createdAt pq.NullTime
-	if err := row.Scan(&o.ID, &externalID, &label, &probeToken, &firstProbeUpdateAt, &createdAt); err != nil {
+	if err := row.Scan(&o.ID, &externalID, &name, &probeToken, &firstProbeUpdateAt, &createdAt); err != nil {
 		return nil, err
 	}
 	o.ExternalID = externalID.String
-	o.Label = label.String
+	o.Name = name.String
 	o.ProbeToken = probeToken.String
 	o.FirstProbeUpdateAt = firstProbeUpdateAt.Time
 	o.CreatedAt = createdAt.Time
 	return o, nil
 }
 
-func (s pgStorage) RelabelOrganization(externalID, label string) error {
-	if err := (&organization{ExternalID: externalID, Label: label}).valid(); err != nil {
+func (s pgStorage) RenameOrganization(externalID, name string) error {
+	if err := (&organization{ExternalID: externalID, Name: name}).valid(); err != nil {
 		return err
 	}
 
 	result, err := s.Exec(`
-		update organizations set label = $2
+		update organizations set name = $2
 		where lower(external_id) = lower($1) and deleted_at is null`,
-		externalID, label,
+		externalID, name,
 	)
 	if err != nil {
 		return err

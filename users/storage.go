@@ -21,7 +21,7 @@ var (
 	errOrgExternalIDIsTaken       = validationErrorf("ID is already taken")
 	errOrgExternalIDCannotBeBlank = validationErrorf("ID cannot be blank")
 	errOrgExternalIDFormat        = validationErrorf("ID can only contain letters, numbers, hyphen, and underscore")
-	errOrgLabelCannotBeBlank      = validationErrorf("Label cannot be blank")
+	errOrgNameCannotBeBlank       = validationErrorf("Name cannot be blank")
 )
 
 type database interface {
@@ -71,11 +71,11 @@ type database interface {
 	// GenerateOrganizationExternalID generates a new, available organization ExternalID
 	GenerateOrganizationExternalID() (string, error)
 
-	// Create a new organization owned by the user. ExternalID and label cannot be blank.
+	// Create a new organization owned by the user. ExternalID and name cannot be blank.
 	// ExternalID must match the ExternalID regex.
-	CreateOrganization(ownerID, externalID, label string) (*organization, error)
+	CreateOrganization(ownerID, externalID, name string) (*organization, error)
 	FindOrganizationByProbeToken(probeToken string) (*organization, error)
-	RelabelOrganization(externalID, newLabel string) error
+	RenameOrganization(externalID, newName string) error
 	OrganizationExists(externalID string) (bool, error)
 	DeleteOrganization(externalID string) error
 
@@ -248,9 +248,9 @@ func (t timedDatabase) GenerateOrganizationExternalID() (s string, err error) {
 	return
 }
 
-func (t timedDatabase) CreateOrganization(ownerID, externalID, label string) (o *organization, err error) {
+func (t timedDatabase) CreateOrganization(ownerID, externalID, name string) (o *organization, err error) {
 	t.timeRequest("CreateOrganization", func() error {
-		o, err = t.d.CreateOrganization(ownerID, externalID, label)
+		o, err = t.d.CreateOrganization(ownerID, externalID, name)
 		return err
 	})
 	return
@@ -264,9 +264,9 @@ func (t timedDatabase) FindOrganizationByProbeToken(probeToken string) (o *organ
 	return
 }
 
-func (t timedDatabase) RelabelOrganization(externalID, label string) error {
-	return t.timeRequest("RelabelOrganization", func() error {
-		return t.d.RelabelOrganization(externalID, label)
+func (t timedDatabase) RenameOrganization(externalID, name string) error {
+	return t.timeRequest("RenameOrganization", func() error {
+		return t.d.RenameOrganization(externalID, name)
 	})
 }
 

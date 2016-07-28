@@ -49,7 +49,7 @@ func getOrg(t *testing.T) (*user, *organization) {
 
 	assert.NotEqual(t, "", org.ID)
 	assert.NotEqual(t, "", org.ExternalID)
-	assert.Equal(t, org.ExternalID, org.Label)
+	assert.Equal(t, org.ExternalID, org.Name)
 
 	return user, org
 }
