@@ -18,7 +18,7 @@ function doRequest(url, method = 'GET', requestData = {}, contentType = null) {
     request.onreadystatechange = function onReadyStateChange() {
       if (request.readyState === 4) {
         try {
-          const responseObject = JSON.parse(request.responseText);
+          const responseObject = (request.responseText && JSON.parse(request.responseText)) || {};
           responseObject.status = request.status;
           if (request.status >= 200 && request.status < 300) {
             resolve(responseObject);
