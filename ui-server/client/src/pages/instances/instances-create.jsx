@@ -7,7 +7,7 @@ import TextField from 'material-ui/TextField';
 import { red900 } from 'material-ui/styles/colors';
 import { hashHistory } from 'react-router';
 
-import { getNewInstanceName } from '../../common/api';
+import { getNewInstanceId } from '../../common/api';
 import { encodeURIs, postData } from '../../common/request';
 import { trackException, trackView } from '../../common/tracking';
 
@@ -23,7 +23,7 @@ export default class InstancesCreate extends React.Component {
 
     this.state = {
       first,
-      name: '',
+      id: '',
       label: DEFAULT_LABEL,
       errorText: '',
       instanceCreated: false,
@@ -32,10 +32,10 @@ export default class InstancesCreate extends React.Component {
     };
 
     this._handleSubmit = this._handleSubmit.bind(this);
-    this.handleNewInstanceNameSuccess = this.handleNewInstanceNameSuccess.bind(this);
-    this.handleNewInstanceNameError = this.handleNewInstanceNameError.bind(this);
+    this.handleNewInstanceIdSuccess = this.handleNewInstanceIdSuccess.bind(this);
+    this.handleNewInstanceIdError = this.handleNewInstanceIdError.bind(this);
     this.handleChangeLabel = this.handleChangeLabel.bind(this);
-    this.handleChangeName = this.handleChangeName.bind(this);
+    this.handleChangeId = this.handleChangeId.bind(this);
     this.handleCancel = this.handleCancel.bind(this);
   }
 
@@ -45,11 +45,11 @@ export default class InstancesCreate extends React.Component {
   }
 
   initializeInstance() {
-    getNewInstanceName()
-      .then(this.handleNewInstanceNameSuccess, this.handleNewInstanceNameError);
+    getNewInstanceId()
+      .then(this.handleNewInstanceIdSuccess, this.handleNewInstanceIdError);
   }
 
-  handleNewInstanceNameError(resp) {
+  handleNewInstanceIdError(resp) {
     const err = resp.errors[0];
     trackException(err.message);
     this.setState({
@@ -57,10 +57,10 @@ export default class InstancesCreate extends React.Component {
     });
   }
 
-  handleNewInstanceNameSuccess(resp) {
+  handleNewInstanceIdSuccess(resp) {
     this.setState({
       submitText: this.state.first ? 'Continue' : 'Create',
-      name: resp.name
+      id: resp.id
     });
   }
 
@@ -68,8 +68,8 @@ export default class InstancesCreate extends React.Component {
     this.setState({label: ev.target.value});
   }
 
-  handleChangeName(ev) {
-    this.setState({name: ev.target.value});
+  handleChangeId(ev) {
+    this.setState({id: ev.target.value});
   }
 
   handleCancel() {
@@ -81,27 +81,27 @@ export default class InstancesCreate extends React.Component {
   }
 
   _handleSubmit() {
-    const { label, name } = this.state;
+    const { label, id } = this.state;
     const errorTextLabel = label ? '' : 'Label cannot be empty.';
-    const errorTextName = name ? '' : 'Name cannot be empty.';
+    const errorTextId = id ? '' : 'ID cannot be empty.';
 
-    if (!label || !name) {
-      this.setState({ errorTextName, errorTextLabel });
+    if (!label || !id) {
+      this.setState({ errorTextId, errorTextLabel });
       return;
     }
 
     // lock button and clear error
     this.setState({
-      errorTextName: '',
+      errorTextId: '',
       errorTextLabel: '',
       errorText: '',
       submitting: true,
       submitText: 'Creating...'
     });
 
-    postData('/api/users/org', {label, name})
+    postData('/api/users/org', {label, id})
       .then(() => {
-        hashHistory.push(encodeURIs`/instances/select/${this.state.name}`);
+        hashHistory.push(encodeURIs`/instances/select/${this.state.id}`);
       }, resp => {
         const err = resp.errors[0];
         this.setState({
@@ -179,12 +179,12 @@ export default class InstancesCreate extends React.Component {
           </div>
 
           <div style={styles.formHint}>
-            Your monitoring instance will have the ID {this.state.name || '...'}
+            Your monitoring instance will have the ID {this.state.id || '...'}
           </div>
 
           <div style={styles.formButtons}>
             <RaisedButton primary label={submitText} style={styles.submit}
-              disabled={this.state.submitting || !this.state.name} onClick={this._handleSubmit} />
+              disabled={this.state.submitting || !this.state.id} onClick={this._handleSubmit} />
             <FlatButton label="Cancel" style={styles.submit}
               disabled={this.state.submitting} onClick={this.handleCancel} />
           </div>

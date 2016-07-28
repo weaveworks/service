@@ -56,8 +56,8 @@ export default class CookieCheck extends React.Component {
       hashHistory.push('/instances');
     } else if (resp.organizations && resp.organizations.length === 1) {
       // only one instance -> go straight there
-      const name = resp.organizations[0].name;
-      hashHistory.push(encodeURIs`/instances/select/${name}`);
+      const id = resp.organizations[0].id;
+      hashHistory.push(encodeURIs`/instances/select/${id}`);
     } else {
       hashHistory.push('/instances/create');
     }

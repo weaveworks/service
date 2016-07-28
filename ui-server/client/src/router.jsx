@@ -27,7 +27,7 @@ export default function getRoutes() {
       <Route path="instances" component={InstancesPage}>
         <IndexRoute component={InstancesPicker} />
         <Route path="create(/:first)" component={InstancesCreate} />
-        <Route path="select/:name" component={InstancesSelect} />
+        <Route path="select/:id" component={InstancesSelect} />
       </Route>
 
       {/* Sign up/Log in */}

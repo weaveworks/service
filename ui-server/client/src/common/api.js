@@ -1,7 +1,7 @@
 import { encodeURIs, getData } from './request';
 
-export function getNewInstanceName() {
-  return getData('/api/users/generateOrgName');
+export function getNewInstanceId() {
+  return getData('/api/users/generateOrgID');
 }
 
 export function getOrganizations() {

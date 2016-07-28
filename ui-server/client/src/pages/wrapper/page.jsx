@@ -19,7 +19,7 @@ export default class Wrapper extends React.Component {
     this.state = {
       activityText: '',
       frameBaseUrl: '',
-      name: '',
+      id: '',
       user: ''
     };
 
@@ -70,8 +70,8 @@ export default class Wrapper extends React.Component {
     getData(url).then(this._handleLoginSuccess, this._handleLoginError);
   }
 
-  _checkInstance(name) {
-    const org = name || this.state.name;
+  _checkInstance(id) {
+    const org = id || this.state.id;
     const url = encodeURIs`/api/app/${org}/api`;
     getData(url).then(this._handleInstanceSuccess, this._handleInstanceError);
   }
@@ -79,10 +79,10 @@ export default class Wrapper extends React.Component {
   _handleLoginSuccess(resp) {
     this.setState({
       user: resp.user,
-      name: resp.name
+      id: resp.id
     });
     // check if scope instance is ready
-    this._checkInstance(resp.name);
+    this._checkInstance(resp.id);
   }
 
   _handleLoginError(resp) {
@@ -103,7 +103,7 @@ export default class Wrapper extends React.Component {
   }
 
   _handleInstanceSuccess() {
-    const url = encodeURIs`/api/app/${this.state.name}/`;
+    const url = encodeURIs`/api/app/${this.state.id}/`;
     this.setState({
       activityText: '',
       frameBaseUrl: url

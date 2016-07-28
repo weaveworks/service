@@ -580,8 +580,8 @@ func (s pgStorage) CreateOrganization(ownerID, externalID, label string) (*organ
 		}
 
 		err := tx.QueryRow(`insert into organizations
-			(name, external_id, label, probe_token, created_at)
-			values (lower($1), lower($1), $2, $3, $4) returning id`,
+			(external_id, label, probe_token, created_at)
+			values (lower($1), $2, $3, $4) returning id`,
 			o.ExternalID, o.Label, o.ProbeToken, o.CreatedAt,
 		).Scan(&o.ID)
 		if err != nil {
