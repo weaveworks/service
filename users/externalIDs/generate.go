@@ -1,4 +1,4 @@
-package names
+package externalIDs
 
 import (
 	"fmt"
@@ -34,7 +34,7 @@ var (
 	}
 )
 
-// Generate a new name of the form autumn-waterfall-99
+// Generate a new id of the form autumn-waterfall-99
 func Generate() string {
 	return fmt.Sprintf(
 		"%s-%s-%02d",

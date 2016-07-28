@@ -23,7 +23,7 @@ func Test_Org(t *testing.T) {
 	assert.NoError(t, err)
 	require.Len(t, user.Organizations, 1)
 	assert.Equal(t, org.ID, user.Organizations[0].ID, "user should have an organization id")
-	assert.Equal(t, org.Name, user.Organizations[0].Name, "user should have an organization name")
+	assert.Equal(t, org.ExternalID, user.Organizations[0].ExternalID, "user should have an organization external id")
 	assert.Equal(t, org.Label, user.Organizations[0].Label, "user should have an organization label")
 	assert.NotEqual(t, "", user.Organizations[0].ProbeToken, "user should have a probe token")
 
@@ -32,14 +32,15 @@ func Test_Org(t *testing.T) {
 	require.NotNil(t, org.FirstProbeUpdateAt)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "GET", "/api/users/org/"+user.Organizations[0].Name, nil)
+	r := requestAs(t, user, "GET", "/api/users/org/"+user.Organizations[0].ExternalID, nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
 		"user":               user.Email,
-		"name":               org.Name,
+		"id":                 org.ExternalID,
+		"name":               org.ExternalID,
 		"label":              org.Label,
 		"probeToken":         org.ProbeToken,
 		"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
@@ -53,7 +54,7 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 	user, org := getOrg(t)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "GET", "/api/users/org/"+org.Name, nil)
+	r := requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID, nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -61,7 +62,8 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
 		"user":       user.Email,
-		"name":       org.Name,
+		"id":         org.ExternalID,
+		"name":       org.ExternalID,
 		"label":      org.Label,
 		"probeToken": org.ProbeToken,
 	}, body)
@@ -74,11 +76,11 @@ func Test_ListOrganizationUsers(t *testing.T) {
 	user, org := getOrg(t)
 
 	fran := getApprovedUser(t)
-	fran, err := storage.InviteUser(fran.Email, org.Name)
+	fran, err := storage.InviteUser(fran.Email, org.ExternalID)
 	require.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "GET", "/api/users/org/"+org.Name+"/users", nil)
+	r := requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID+"/users", nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -95,7 +97,7 @@ func Test_RelabelOrganization(t *testing.T) {
 
 	{
 		w := httptest.NewRecorder()
-		r := requestAs(t, otherUser, "PUT", "/api/users/org/"+org.Name, jsonBody(body).Reader(t))
+		r := requestAs(t, otherUser, "PUT", "/api/users/org/"+org.ExternalID, jsonBody(body).Reader(t))
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusForbidden, w.Code)
@@ -118,7 +120,7 @@ func Test_RelabelOrganization(t *testing.T) {
 	// Should update my org
 	{
 		w := httptest.NewRecorder()
-		r := requestAs(t, user, "PUT", "/api/users/org/"+org.Name, jsonBody(body).Reader(t))
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody(body).Reader(t))
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusNoContent, w.Code)
@@ -127,30 +129,30 @@ func Test_RelabelOrganization(t *testing.T) {
 		require.NoError(t, err)
 		if assert.Len(t, user.Organizations, 1) {
 			assert.Equal(t, org.ID, user.Organizations[0].ID)
-			assert.Equal(t, org.Name, user.Organizations[0].Name)
+			assert.Equal(t, org.ExternalID, user.Organizations[0].ExternalID)
 			assert.Equal(t, "my-organization", user.Organizations[0].Label)
 		}
 	}
 }
 
-func Test_RenameOrganization_NotAllowed(t *testing.T) {
+func Test_ReIDOrganization_NotAllowed(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	user, org := getOrg(t)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "PUT", "/api/users/org/"+org.Name, jsonBody{"name": "my-organization"}.Reader(t))
+	r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody{"id": "my-organization"}.Reader(t))
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), `{"errors":[{"message":"Name cannot be changed"}]}`)
+	assert.Contains(t, w.Body.String(), `{"errors":[{"message":"ID cannot be changed"}]}`)
 
 	user, err := storage.FindUserByID(user.ID)
 	require.NoError(t, err)
 	if assert.Len(t, user.Organizations, 1) {
 		assert.Equal(t, org.ID, user.Organizations[0].ID)
-		assert.Equal(t, org.Name, user.Organizations[0].Name)
+		assert.Equal(t, org.ExternalID, user.Organizations[0].ExternalID)
 		assert.Equal(t, org.Label, user.Organizations[0].Label)
 	}
 }
@@ -165,7 +167,7 @@ func Test_RelabelOrganization_Validation(t *testing.T) {
 		"": "Label cannot be blank",
 	} {
 		w := httptest.NewRecorder()
-		r := requestAs(t, user, "PUT", "/api/users/org/"+org.Name, jsonBody{"label": label}.Reader(t))
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody{"label": label}.Reader(t))
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -175,13 +177,13 @@ func Test_RelabelOrganization_Validation(t *testing.T) {
 		require.NoError(t, err)
 		if assert.Len(t, user.Organizations, 1) {
 			assert.Equal(t, org.ID, user.Organizations[0].ID)
-			assert.Equal(t, org.Name, user.Organizations[0].Name)
+			assert.Equal(t, org.ExternalID, user.Organizations[0].ExternalID)
 			assert.Equal(t, org.Label, user.Organizations[0].Label)
 		}
 	}
 }
 
-func Test_CustomNameOrganization(t *testing.T) {
+func Test_CustomExternalIDOrganization(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
@@ -189,7 +191,7 @@ func Test_CustomNameOrganization(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "POST", "/api/users/org", jsonBody{
-		"name":  "my-organization",
+		"id":    "my-organization",
 		"label": "my organization",
 	}.Reader(t))
 
@@ -200,25 +202,25 @@ func Test_CustomNameOrganization(t *testing.T) {
 	require.NoError(t, err)
 	if assert.Len(t, user.Organizations, 1) {
 		assert.NotEqual(t, "", user.Organizations[0].ID)
-		assert.Equal(t, "my-organization", user.Organizations[0].Name)
+		assert.Equal(t, "my-organization", user.Organizations[0].ExternalID)
 		assert.Equal(t, "my organization", user.Organizations[0].Label)
 	}
 }
 
-func Test_CustomNameOrganization_Validation(t *testing.T) {
+func Test_CustomExternalIDOrganization_Validation(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	user, otherOrg := getOrg(t)
 
-	for name, errMsg := range map[string]string{
-		"": "Name cannot be blank",
-		"org with^/invalid&characters": "Name can only contain letters, numbers, hyphen, and underscore",
-		otherOrg.Name:                  "Name is already taken",
+	for id, errMsg := range map[string]string{
+		"": "ID cannot be blank",
+		"org with^/invalid&characters": "ID can only contain letters, numbers, hyphen, and underscore",
+		otherOrg.ExternalID:            "ID is already taken",
 	} {
 		w := httptest.NewRecorder()
 		r := requestAs(t, user, "POST", "/api/users/org", jsonBody{
-			"name":  name,
+			"id":    id,
 			"label": "my organization",
 		}.Reader(t))
 
@@ -230,43 +232,43 @@ func Test_CustomNameOrganization_Validation(t *testing.T) {
 		require.NoError(t, err)
 		if assert.Len(t, user.Organizations, 1) {
 			assert.Equal(t, otherOrg.ID, user.Organizations[0].ID)
-			assert.Equal(t, otherOrg.Name, user.Organizations[0].Name)
+			assert.Equal(t, otherOrg.ExternalID, user.Organizations[0].ExternalID)
 		}
 	}
 }
 
-func Test_Organization_GenerateOrgName(t *testing.T) {
+func Test_Organization_GenerateOrgExternalID(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	user := getApprovedUser(t)
 
-	// Generate a new org name
-	r := requestAs(t, user, "GET", "/api/users/generateOrgName", nil)
+	// Generate a new org id
+	r := requestAs(t, user, "GET", "/api/users/generateOrgID", nil)
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]string{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.NotEqual(t, "", body["name"])
+	assert.NotEqual(t, "", body["id"])
 
 	// Check it's available
-	exists, err := storage.OrganizationExists(body["name"])
+	exists, err := storage.OrganizationExists(body["id"])
 	require.NoError(t, err)
 	assert.False(t, exists)
 }
 
-func Test_Organization_CheckIfNameExists(t *testing.T) {
+func Test_Organization_CheckIfExternalIDExists(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	user := getApprovedUser(t)
 	otherUser := getApprovedUser(t)
 
-	name, err := storage.GenerateOrganizationName()
+	id, err := storage.GenerateOrganizationExternalID()
 	require.NoError(t, err)
 
-	r := requestAs(t, user, "GET", "/api/users/org/"+name, nil)
+	r := requestAs(t, user, "GET", "/api/users/org/"+id, nil)
 
 	{
 		w := httptest.NewRecorder()
@@ -275,7 +277,7 @@ func Test_Organization_CheckIfNameExists(t *testing.T) {
 	}
 
 	// Create the org so it exists
-	_, err = storage.CreateOrganization(otherUser.ID, name, name)
+	_, err = storage.CreateOrganization(otherUser.ID, id, id)
 	require.NoError(t, err)
 
 	{
@@ -291,13 +293,13 @@ func Test_Organization_CreateMultiple(t *testing.T) {
 
 	user := getApprovedUser(t)
 
-	r1 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"name": "my-first-org", "label": "my first org"}.Reader(t))
+	r1 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-first-org", "label": "my first org"}.Reader(t))
 
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, r1)
 	assert.Equal(t, http.StatusCreated, w.Code)
 
-	r2 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"name": "my-second-org", "label": "my second org"}.Reader(t))
+	r2 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-second-org", "label": "my second org"}.Reader(t))
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, r2)
@@ -307,10 +309,10 @@ func Test_Organization_CreateMultiple(t *testing.T) {
 	require.NoError(t, err)
 	if assert.Len(t, user.Organizations, 2) {
 		assert.NotEqual(t, "", user.Organizations[0].ID)
-		assert.Equal(t, "my-first-org", user.Organizations[0].Name)
+		assert.Equal(t, "my-first-org", user.Organizations[0].ExternalID)
 		assert.Equal(t, "my first org", user.Organizations[0].Label)
 		assert.NotEqual(t, "", user.Organizations[1].ID)
-		assert.Equal(t, "my-second-org", user.Organizations[1].Name)
+		assert.Equal(t, "my-second-org", user.Organizations[1].ExternalID)
 		assert.Equal(t, "my second org", user.Organizations[1].Label)
 	}
 }
@@ -322,10 +324,10 @@ func Test_Organization_Delete(t *testing.T) {
 	user := getApprovedUser(t)
 	otherUser := getApprovedUser(t)
 
-	name, err := storage.GenerateOrganizationName()
+	externalID, err := storage.GenerateOrganizationExternalID()
 	require.NoError(t, err)
 
-	r := requestAs(t, otherUser, "DELETE", "/api/users/org/"+name, nil)
+	r := requestAs(t, otherUser, "DELETE", "/api/users/org/"+externalID, nil)
 
 	// Should NoContent if the org already doesn't exist
 	{
@@ -335,7 +337,7 @@ func Test_Organization_Delete(t *testing.T) {
 	}
 
 	// Create the org so it exists
-	org, err := storage.CreateOrganization(user.ID, name, name)
+	org, err := storage.CreateOrganization(user.ID, externalID, externalID)
 	require.NoError(t, err)
 
 	// Should 401 because otherUser doesn't have access
@@ -346,7 +348,7 @@ func Test_Organization_Delete(t *testing.T) {
 	}
 
 	// Login as the org owner
-	r = requestAs(t, user, "DELETE", "/api/users/org/"+name, nil)
+	r = requestAs(t, user, "DELETE", "/api/users/org/"+externalID, nil)
 
 	{
 		w := httptest.NewRecorder()
@@ -355,7 +357,7 @@ func Test_Organization_Delete(t *testing.T) {
 	}
 
 	// Check the org no longer exists
-	exists, err := storage.OrganizationExists(org.Name)
+	exists, err := storage.OrganizationExists(org.ExternalID)
 	require.NoError(t, err)
 	require.False(t, exists)
 

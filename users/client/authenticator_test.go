@@ -13,26 +13,24 @@ import (
 	"github.com/weaveworks/service/users/client"
 )
 
-type serverHandlerFunc func(w http.ResponseWriter, r *http.Request, orgName string)
-
 const (
-	orgName   = "%21?ЖЗИЙ%2FК%$?"
-	orgID     = "somePersistentInternalID"
-	orgToken  = "token123"
-	orgCookie = "cookie123"
+	orgExternalID = "%21?ЖЗИЙ%2FК%$?"
+	orgID         = "somePersistentInternalID"
+	orgToken      = "token123"
+	orgCookie     = "cookie123"
 )
 
 func dummyServer() *httptest.Server {
 	serverHandler := mux.NewRouter()
-	serverHandler.Methods("GET").Path("/private/api/users/lookup/{orgName}").
+	serverHandler.Methods("GET").Path("/private/api/users/lookup/{orgExternalID}").
 		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			localOrgName := mux.Vars(r)["orgName"]
+			localOrgExternalID := mux.Vars(r)["orgExternalID"]
 			localOrgCookie, err := r.Cookie(client.AuthCookieName)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			if localOrgName == orgName && orgCookie == localOrgCookie.Value {
+			if localOrgExternalID == orgExternalID && orgCookie == localOrgCookie.Value {
 				w.WriteHeader(http.StatusOK)
 				fmt.Fprintf(w, `{ "organizationID": "%s" }`, orgID)
 				return
@@ -76,7 +74,7 @@ func TestAuth(t *testing.T) {
 			Name:  client.AuthCookieName,
 			Value: orgCookie,
 		})
-		res, err := auth.AuthenticateOrg(req, orgName)
+		res, err := auth.AuthenticateOrg(req, orgExternalID)
 		assert.NoError(t, err, "Unexpected error from authenticator")
 		assert.Equal(t, orgID, res, "Unexpected organization")
 	}
@@ -97,7 +95,7 @@ func TestAuth(t *testing.T) {
 			Name:  client.AuthCookieName,
 			Value: "Not the right cookie",
 		})
-		res, err := auth.AuthenticateOrg(req, orgName)
+		res, err := auth.AuthenticateOrg(req, orgExternalID)
 		assert.Error(t, err, "Unexpected successful authentication")
 		assert.Equal(t, "", res, "Unexpected organization")
 	}
@@ -146,7 +144,7 @@ func TestMiddleware(t *testing.T) {
 		})
 		mw := client.AuthOrgMiddleware{
 			Authenticator: auth,
-			OrgName:       func(*http.Request) (string, bool) { return orgName, true },
+			OrgExternalID: func(*http.Request) (string, bool) { return orgExternalID, true },
 			OutputHeader:  headerName,
 		}
 		result := testMiddleware(mw, req)
@@ -176,7 +174,7 @@ func TestMiddleware(t *testing.T) {
 		})
 		mw := client.AuthOrgMiddleware{
 			Authenticator: auth,
-			OrgName:       func(*http.Request) (string, bool) { return orgName, true },
+			OrgExternalID: func(*http.Request) (string, bool) { return orgExternalID, true },
 			OutputHeader:  headerName,
 		}
 		result := testMiddleware(mw, req)

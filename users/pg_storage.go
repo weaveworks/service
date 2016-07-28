@@ -10,8 +10,8 @@ import (
 	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/weaveworks/service/users/externalIDs"
 	"github.com/weaveworks/service/users/login"
-	"github.com/weaveworks/service/users/names"
 )
 
 type pgStorage struct {
@@ -133,11 +133,11 @@ func (s pgStorage) DetachLoginFromUser(userID, provider string) error {
 	return err
 }
 
-func (s pgStorage) InviteUser(email, orgName string) (*user, error) {
+func (s pgStorage) InviteUser(email, orgExternalID string) (*user, error) {
 	var u *user
 	err := s.Transaction(func(tx *sql.Tx) error {
 		o, err := s.scanOrganization(
-			s.organizationsQuery().RunWith(tx).Where("lower(organizations.name) = lower($1)", orgName).QueryRow(),
+			s.organizationsQuery().RunWith(tx).Where("lower(organizations.external_id) = lower($1)", orgExternalID).QueryRow(),
 		)
 		if err != nil {
 			return err
@@ -151,7 +151,7 @@ func (s pgStorage) InviteUser(email, orgName string) (*user, error) {
 			return err
 		}
 
-		if u.HasOrganization(orgName) {
+		if u.HasOrganization(orgExternalID) {
 			return nil
 		}
 		if err = s.addUserToOrganization(tx, u.ID, o.ID); err == nil {
@@ -166,7 +166,7 @@ func (s pgStorage) InviteUser(email, orgName string) (*user, error) {
 	return u, nil
 }
 
-func (s pgStorage) RemoveUserFromOrganization(orgName, email string) error {
+func (s pgStorage) RemoveUserFromOrganization(orgExternalID, email string) error {
 	_, err := s.Exec(`
 			update memberships set deleted_at = $1
 			where user_id in (
@@ -178,13 +178,13 @@ func (s pgStorage) RemoveUserFromOrganization(orgName, email string) error {
 			  and organization_id in (
 					select id
 					  from organizations
-					 where lower(name) = lower($3)
+					 where lower(external_id) = lower($3)
 					   and deleted_at is null
 				)
 			  and deleted_at is null`,
 		s.Now(),
 		email,
-		orgName,
+		orgExternalID,
 	)
 	return err
 }
@@ -315,7 +315,7 @@ func (s pgStorage) usersQuery() squirrel.SelectBuilder {
 func (s pgStorage) organizationsQuery() squirrel.SelectBuilder {
 	return s.Select(
 		"organizations.id",
-		"organizations.name",
+		"organizations.external_id",
 		"organizations.label",
 		"organizations.probe_token",
 		"organizations.first_probe_update_at",
@@ -367,8 +367,8 @@ func (s pgStorage) ListUsers(fs ...filter) ([]*user, error) {
 	return users, err
 }
 
-func (s pgStorage) ListOrganizationUsers(orgName string) ([]*user, error) {
-	return s.ListUsers(newUsersOrganizationFilter([]string{orgName}))
+func (s pgStorage) ListOrganizationUsers(orgExternalID string) ([]*user, error) {
+	return s.ListUsers(newUsersOrganizationFilter([]string{orgExternalID}))
 }
 
 func (s pgStorage) listOrganizationsForUserIDs(db squirrel.BaseRunner, userIDs ...string) ([]*organization, error) {
@@ -535,36 +535,36 @@ func (s pgStorage) SetUserFirstLoginAt(id string) error {
 	return nil
 }
 
-func (s pgStorage) GenerateOrganizationName() (string, error) {
+func (s pgStorage) GenerateOrganizationExternalID() (string, error) {
 	var (
-		name string
-		err  error
+		externalID string
+		err        error
 	)
 	err = s.Transaction(func(tx *sql.Tx) error {
 		for exists := true; exists; {
-			name = names.Generate()
-			exists, err = s.organizationExists(tx, name)
+			externalID = externalIDs.Generate()
+			exists, err = s.organizationExists(tx, externalID)
 		}
 		return nil
 	})
-	return name, err
+	return externalID, err
 }
 
-func (s pgStorage) CreateOrganization(ownerID, name, label string) (*organization, error) {
+func (s pgStorage) CreateOrganization(ownerID, externalID, label string) (*organization, error) {
 	o := &organization{
-		Name:      name,
-		Label:     label,
-		CreatedAt: s.Now(),
+		ExternalID: externalID,
+		Label:      label,
+		CreatedAt:  s.Now(),
 	}
 	if err := o.valid(); err != nil {
 		return nil, err
 	}
 
 	err := s.Transaction(func(tx *sql.Tx) error {
-		if exists, err := s.organizationExists(tx, o.Name); err != nil {
+		if exists, err := s.organizationExists(tx, o.ExternalID); err != nil {
 			return err
 		} else if exists {
-			return errOrgNameIsTaken
+			return errOrgExternalIDIsTaken
 		}
 
 		for exists := o.ProbeToken == ""; exists; {
@@ -580,9 +580,9 @@ func (s pgStorage) CreateOrganization(ownerID, name, label string) (*organizatio
 		}
 
 		err := tx.QueryRow(`insert into organizations
-			(name, label, probe_token, created_at)
-			values ($1, $2, $3, $4) returning id`,
-			o.Name, o.Label, o.ProbeToken, o.CreatedAt,
+			(name, external_id, label, probe_token, created_at)
+			values (lower($1), lower($1), $2, $3, $4) returning id`,
+			o.ExternalID, o.Label, o.ProbeToken, o.CreatedAt,
 		).Scan(&o.ID)
 		if err != nil {
 			return err
@@ -636,12 +636,12 @@ func (s pgStorage) scanOrganizations(rows *sql.Rows) ([]*organization, error) {
 
 func (s pgStorage) scanOrganization(row squirrel.RowScanner) (*organization, error) {
 	o := &organization{}
-	var name, label, probeToken sql.NullString
+	var externalID, label, probeToken sql.NullString
 	var firstProbeUpdateAt, createdAt pq.NullTime
-	if err := row.Scan(&o.ID, &name, &label, &probeToken, &firstProbeUpdateAt, &createdAt); err != nil {
+	if err := row.Scan(&o.ID, &externalID, &label, &probeToken, &firstProbeUpdateAt, &createdAt); err != nil {
 		return nil, err
 	}
-	o.Name = name.String
+	o.ExternalID = externalID.String
 	o.Label = label.String
 	o.ProbeToken = probeToken.String
 	o.FirstProbeUpdateAt = firstProbeUpdateAt.Time
@@ -649,15 +649,15 @@ func (s pgStorage) scanOrganization(row squirrel.RowScanner) (*organization, err
 	return o, nil
 }
 
-func (s pgStorage) RelabelOrganization(name, label string) error {
-	if err := (&organization{Name: name, Label: label}).valid(); err != nil {
+func (s pgStorage) RelabelOrganization(externalID, label string) error {
+	if err := (&organization{ExternalID: externalID, Label: label}).valid(); err != nil {
 		return err
 	}
 
 	result, err := s.Exec(`
 		update organizations set label = $2
-		where lower(name) = lower($1) and deleted_at is null`,
-		name, label,
+		where lower(external_id) = lower($1) and deleted_at is null`,
+		externalID, label,
 	)
 	if err != nil {
 		return err
@@ -672,23 +672,23 @@ func (s pgStorage) RelabelOrganization(name, label string) error {
 	return nil
 }
 
-func (s pgStorage) OrganizationExists(name string) (bool, error) {
-	return s.organizationExists(s, name)
+func (s pgStorage) OrganizationExists(externalID string) (bool, error) {
+	return s.organizationExists(s, externalID)
 }
 
-func (s pgStorage) organizationExists(db queryRower, name string) (bool, error) {
+func (s pgStorage) organizationExists(db queryRower, externalID string) (bool, error) {
 	var exists bool
 	err := db.QueryRow(
-		`select exists(select 1 from organizations where lower(name) = lower($1) and deleted_at is null)`,
-		name,
+		`select exists(select 1 from organizations where lower(external_id) = lower($1) and deleted_at is null)`,
+		externalID,
 	).Scan(&exists)
 	return exists, err
 }
 
-func (s pgStorage) DeleteOrganization(name string) error {
+func (s pgStorage) DeleteOrganization(externalID string) error {
 	_, err := s.Exec(
-		`update organizations set deleted_at = $1 where lower(name) = lower($2)`,
-		s.Now(), name,
+		`update organizations set deleted_at = $1 where lower(external_id) = lower($2)`,
+		s.Now(), externalID,
 	)
 	return err
 }

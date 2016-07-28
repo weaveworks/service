@@ -60,9 +60,9 @@ func (u *user) CompareToken(other string) bool {
 	return time.Now().UTC().Sub(tokenCreatedAt) <= 72*time.Hour
 }
 
-func (u *user) HasOrganization(name string) bool {
+func (u *user) HasOrganization(externalID string) bool {
 	for _, o := range u.Organizations {
-		if strings.ToLower(o.Name) == strings.ToLower(name) {
+		if strings.ToLower(o.ExternalID) == strings.ToLower(externalID) {
 			return true
 		}
 	}
@@ -72,7 +72,7 @@ func (u *user) HasOrganization(name string) bool {
 func newUsersOrganizationFilter(s []string) filter {
 	return and{
 		inFilter{
-			SQLField: "organizations.name",
+			SQLField: "organizations.external_id",
 			SQLJoins: []string{
 				"memberships on (memberships.user_id = users.id)",
 				"organizations on (memberships.organization_id = organizations.id)",
@@ -81,8 +81,8 @@ func newUsersOrganizationFilter(s []string) filter {
 			Allowed: func(i interface{}) bool {
 				if u, ok := i.(*user); ok {
 					for _, org := range u.Organizations {
-						for _, name := range s {
-							if org.Name == name {
+						for _, externalID := range s {
+							if org.ExternalID == externalID {
 								return true
 							}
 						}

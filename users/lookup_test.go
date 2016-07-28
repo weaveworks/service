@@ -19,7 +19,7 @@ func Test_Lookup(t *testing.T) {
 	user, org := getOrg(t)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "GET", "/private/api/users/lookup/"+org.Name, nil)
+	r := requestAs(t, user, "GET", "/private/api/users/lookup/"+org.ExternalID, nil)
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -64,7 +64,8 @@ func Test_PublicLookup(t *testing.T) {
 		"email": user.Email,
 		"organizations": []interface{}{
 			map[string]interface{}{
-				"name":               org.Name,
+				"id":                 org.ExternalID,
+				"name":               org.ExternalID,
 				"label":              org.Label,
 				"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
 			},

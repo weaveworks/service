@@ -15,13 +15,13 @@ import (
 )
 
 var (
-	errForbidden             = errors.New("Forbidden found")
-	errNotFound              = errors.New("Not found")
-	errEmailIsTaken          = validationErrorf("Email is already taken")
-	errOrgNameIsTaken        = validationErrorf("Name is already taken")
-	errOrgNameCannotBeBlank  = validationErrorf("Name cannot be blank")
-	errOrgNameFormat         = validationErrorf("Name can only contain letters, numbers, hyphen, and underscore")
-	errOrgLabelCannotBeBlank = validationErrorf("Label cannot be blank")
+	errForbidden                  = errors.New("Forbidden found")
+	errNotFound                   = errors.New("Not found")
+	errEmailIsTaken               = validationErrorf("Email is already taken")
+	errOrgExternalIDIsTaken       = validationErrorf("ID is already taken")
+	errOrgExternalIDCannotBeBlank = validationErrorf("ID cannot be blank")
+	errOrgExternalIDFormat        = validationErrorf("ID can only contain letters, numbers, hyphen, and underscore")
+	errOrgLabelCannotBeBlank      = validationErrorf("Label cannot be blank")
 )
 
 type database interface {
@@ -47,13 +47,13 @@ type database interface {
 	// * in a *different* organization, this should return errEmailIsTaken.
 	// * but is not approved, approve them into the organization.
 	// * in the same organization, no-op.
-	InviteUser(email, orgName string) (*user, error)
+	InviteUser(email, orgExternalID string) (*user, error)
 
 	// Remove a user from an organization. If they do not exist (or are not a member of the org), return success.
-	RemoveUserFromOrganization(orgName, email string) error
+	RemoveUserFromOrganization(orgExternalID, email string) error
 
 	ListUsers(...filter) ([]*user, error)
-	ListOrganizationUsers(orgName string) ([]*user, error)
+	ListOrganizationUsers(orgExternalID string) ([]*user, error)
 
 	// Approve the user for access. Should generate them a new organization.
 	ApproveUser(id string) (*user, error)
@@ -68,16 +68,16 @@ type database interface {
 	// Update the user's first login timestamp. Should be called the first time a user logs in (i.e. if FirstLoginAt.IsZero())
 	SetUserFirstLoginAt(id string) error
 
-	// GenerateOrganizationName generates a new, available organization name
-	GenerateOrganizationName() (string, error)
+	// GenerateOrganizationExternalID generates a new, available organization ExternalID
+	GenerateOrganizationExternalID() (string, error)
 
-	// Create a new organization owned by the user. name and label cannot be blank.
-	// name must match the name regex.
-	CreateOrganization(ownerID, name, label string) (*organization, error)
+	// Create a new organization owned by the user. ExternalID and label cannot be blank.
+	// ExternalID must match the ExternalID regex.
+	CreateOrganization(ownerID, externalID, label string) (*organization, error)
 	FindOrganizationByProbeToken(probeToken string) (*organization, error)
-	RelabelOrganization(name, newLabel string) error
-	OrganizationExists(name string) (bool, error)
-	DeleteOrganization(name string) error
+	RelabelOrganization(externalID, newLabel string) error
+	OrganizationExists(externalID string) (bool, error)
+	DeleteOrganization(externalID string) error
 
 	Close() error
 }
@@ -184,17 +184,17 @@ func (t timedDatabase) DetachLoginFromUser(userID, provider string) error {
 	})
 }
 
-func (t timedDatabase) InviteUser(email, orgName string) (u *user, err error) {
+func (t timedDatabase) InviteUser(email, orgExternalID string) (u *user, err error) {
 	t.timeRequest("InviteUser", func() error {
-		u, err = t.d.InviteUser(email, orgName)
+		u, err = t.d.InviteUser(email, orgExternalID)
 		return err
 	})
 	return
 }
 
-func (t timedDatabase) RemoveUserFromOrganization(orgName, email string) error {
+func (t timedDatabase) RemoveUserFromOrganization(orgExternalID, email string) error {
 	return t.timeRequest("RemoveUserFromOrganization", func() error {
-		return t.d.RemoveUserFromOrganization(orgName, email)
+		return t.d.RemoveUserFromOrganization(orgExternalID, email)
 	})
 }
 
@@ -206,9 +206,9 @@ func (t timedDatabase) ListUsers(fs ...filter) (us []*user, err error) {
 	return
 }
 
-func (t timedDatabase) ListOrganizationUsers(orgName string) (us []*user, err error) {
+func (t timedDatabase) ListOrganizationUsers(orgExternalID string) (us []*user, err error) {
 	t.timeRequest("ListOrganizationUsers", func() error {
-		us, err = t.d.ListOrganizationUsers(orgName)
+		us, err = t.d.ListOrganizationUsers(orgExternalID)
 		return err
 	})
 	return
@@ -240,17 +240,17 @@ func (t timedDatabase) SetUserFirstLoginAt(id string) error {
 	})
 }
 
-func (t timedDatabase) GenerateOrganizationName() (s string, err error) {
-	t.timeRequest("GenerateOrganizationName", func() error {
-		s, err = t.d.GenerateOrganizationName()
+func (t timedDatabase) GenerateOrganizationExternalID() (s string, err error) {
+	t.timeRequest("GenerateOrganizationExternalID", func() error {
+		s, err = t.d.GenerateOrganizationExternalID()
 		return err
 	})
 	return
 }
 
-func (t timedDatabase) CreateOrganization(ownerID, name, label string) (o *organization, err error) {
+func (t timedDatabase) CreateOrganization(ownerID, externalID, label string) (o *organization, err error) {
 	t.timeRequest("CreateOrganization", func() error {
-		o, err = t.d.CreateOrganization(ownerID, name, label)
+		o, err = t.d.CreateOrganization(ownerID, externalID, label)
 		return err
 	})
 	return
@@ -264,23 +264,23 @@ func (t timedDatabase) FindOrganizationByProbeToken(probeToken string) (o *organ
 	return
 }
 
-func (t timedDatabase) RelabelOrganization(name, label string) error {
+func (t timedDatabase) RelabelOrganization(externalID, label string) error {
 	return t.timeRequest("RelabelOrganization", func() error {
-		return t.d.RelabelOrganization(name, label)
+		return t.d.RelabelOrganization(externalID, label)
 	})
 }
 
-func (t timedDatabase) OrganizationExists(name string) (b bool, err error) {
+func (t timedDatabase) OrganizationExists(externalID string) (b bool, err error) {
 	t.timeRequest("OrganizationExists", func() error {
-		b, err = t.d.OrganizationExists(name)
+		b, err = t.d.OrganizationExists(externalID)
 		return err
 	})
 	return
 }
 
-func (t timedDatabase) DeleteOrganization(name string) error {
+func (t timedDatabase) DeleteOrganization(externalID string) error {
 	return t.timeRequest("DeleteOrganization", func() error {
-		return t.d.DeleteOrganization(name)
+		return t.d.DeleteOrganization(externalID)
 	})
 }
 

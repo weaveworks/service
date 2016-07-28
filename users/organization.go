@@ -6,12 +6,12 @@ import (
 )
 
 var (
-	orgNameRegex = regexp.MustCompile(`\A[a-zA-Z0-9_-]+\z`)
+	orgExternalIDRegex = regexp.MustCompile(`\A[a-zA-Z0-9_-]+\z`)
 )
 
 type organization struct {
 	ID                 string
-	Name               string
+	ExternalID         string
 	Label              string
 	ProbeToken         string
 	FirstProbeUpdateAt time.Time
@@ -29,10 +29,10 @@ func (o *organization) RegenerateProbeToken() error {
 
 func (o *organization) valid() error {
 	switch {
-	case o.Name == "":
-		return errOrgNameCannotBeBlank
-	case !orgNameRegex.MatchString(o.Name):
-		return errOrgNameFormat
+	case o.ExternalID == "":
+		return errOrgExternalIDCannotBeBlank
+	case !orgExternalIDRegex.MatchString(o.ExternalID):
+		return errOrgExternalIDFormat
 	case o.Label == "":
 		return errOrgLabelCannotBeBlank
 	}
