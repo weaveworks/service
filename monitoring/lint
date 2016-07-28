@@ -1,18 +1,81 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python2.7
 
-set -eu
+from glob import glob
+from itertools import chain
+import json
+import os
+import subprocess
+import sys
 
-readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+def get_directory(path):
+  """Get the directory that 'path' is in."""
+  return os.path.dirname(os.path.abspath(path))
 
-promtool check-rules "${DIR}"/prometheus/*.rules
+def iter_files(paths):
+  """Generate a list of paths to the files under 'paths'."""
+  for path in paths:
+    if os.path.isfile(path):
+      yield path
+    else:
+      for root, _dirs, filenames in os.walk(path):
+        for filename in filenames:
+          yield os.path.join(root, filename)
 
-for dashboard in ${DIR}/grafana/*.json; do
-    # Check all the JSON in the dashboard is sorted, to minimise diffs.
-    diff -u "${dashboard}"  <(jq -S . <"${dashboard}")
-done
+def sort_json_file(path):
+  """Sort contents of JSON file."""
+  return subprocess.check_output('jq -S . "%s"' % path, shell=True)
 
-# Check that we don't duplicate panel IDs. We want unique IDs so we can edit
-# graphs in the Grafana UI.
-#
-# Use xargs so we get lint for all files, not just the first failure.
-git ls-files "${DIR}"/grafana/\*.json | xargs jq '[[.rows[].panels[] | {title, id}] | group_by(.id) | map(select(length > 1)) | .[] | {id: .[0].id, titles: map(.title)}] | if length == 0 then empty else .[], error("Duplicate panel IDs found") end'
+def lint_is_json_sorted(path):
+  """Yield a warning if JSON file is not sorted."""
+  sorted_json = sort_json_file(path)
+  actual_json = open(path, 'r').read()
+  if sorted_json != actual_json:
+    yield 'Keys in JSON file %r are not sorted. Sort with jq -S . "%s"' % (path, path)
+
+def lint_prometheus(path):
+  """Yield a warning if a Prometheus rules file has problems."""
+  try:
+    subprocess.check_output(['promtool', 'check-rules', path])
+  except subprocess.CalledProcessError as e:
+    yield str(e)
+
+def lint_unique_panel_ids(path):
+  """Yield warnings if the panel IDs in 'path' are not unique.
+
+  We want unique IDs so we can edit graphs in our Grafana UI.
+  """
+  panels = {}
+  data = json.load(open(path, 'r'))
+  for row in data.get('rows', []):
+    for panel in row.get('panels', []):
+      panel_id = panel.get('id', None)
+      title = panel.get('title', None)
+      title_display = title if title else '<no title found>'
+      if panel_id is None:
+        yield "%s: panel %r has no 'id' field" % (path, title_display)
+        continue
+      if panel_id in panels:
+        yield "%s: panel %r shares id %s with panel %r" % (path, title_display, panel_id, panels[panel_id])
+        continue
+      panels[panel_id] = title
+
+def lint_monitoring(directory):
+  """Lint monitoring files in 'directory' for correctness."""
+  for rules_file in glob('%s/prometheus/*.rules' % directory):
+    for warning in lint_prometheus(rules_file):
+      yield warning
+
+  for json_file in glob('%s/grafana/*.json' % directory):
+    warnings = chain(lint_is_json_sorted(json_file), lint_unique_panel_ids(json_file))
+    for warning in warnings:
+      yield warning
+
+
+if __name__ == '__main__':
+  directory = get_directory(__file__)
+  num_warnings = 0
+  for warning in lint_monitoring(directory):
+    sys.stderr.write(warning)
+    sys.stderr.write('\n')
+    num_warnings += 1
+  sys.exit(2 if num_warnings else 0)
