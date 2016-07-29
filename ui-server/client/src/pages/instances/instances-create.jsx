@@ -150,7 +150,8 @@ export default class InstancesCreate extends React.Component {
       },
 
       formHint: {
-        marginTop: '0.25em',
+        display: !this.state.errorTextName ? 'block' : 'none',
+        marginTop: '0.2em',
         fontSize: '0.7rem',
         opacity: 0.6
       }
@@ -164,7 +165,7 @@ export default class InstancesCreate extends React.Component {
         <div style={styles.form}>
           <p>Let's start by creating a monitoring instance for your cluster.
             <br />Give your cluster a name:</p>
-          <TextField hintText="Provide a name" floatingLabelText="Name"
+          <TextField hintText="Provide a name"
             disabled={this.state.submitting}
             onChange={this.handleChangeName}
             style={{verticalAlign: 'top', width: 400}}
