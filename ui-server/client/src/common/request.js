@@ -17,25 +17,27 @@ function doRequest(url, method = 'GET', requestData = {}, contentType = null) {
   const promise = new Promise((resolve, reject) => {
     request.onreadystatechange = function onReadyStateChange() {
       if (request.readyState === 4) {
-        try {
-          const responseObject = (request.responseText && JSON.parse(request.responseText)) || {};
-          responseObject.status = request.status;
-          if (request.status >= 200 && request.status < 300) {
-            resolve(responseObject);
-          } else {
-            reject(responseObject);
+        let errorText;
+        let responseObject;
+        if (request.status >= 200 && request.status < 300) {
+          try {
+            responseObject = (request.responseText && JSON.parse(request.responseText)) || {};
+            responseObject.status = request.status;
+          } catch (ex) {
+            errorText = `Error while interpreting server message: ${ex}`;
           }
-        } catch (ex) {
-          let errorText;
-          if (request.status === 404) {
-            errorText = `Resource ${url} not found`;
-          } else if (request.status === 500) {
-            errorText = `Server error (${request.responseText})`;
-          } else if (request.status >= 501 && request.status < 600) {
-            errorText = 'Service is unavailable';
-          } else {
-            errorText = `Unexpected error: ${ex}`;
-          }
+        } else if (request.status === 404) {
+          errorText = `Resource ${url} not found`;
+        } else if (request.status === 500) {
+          errorText = `Server error (${request.responseText})`;
+        } else if (request.status >= 501 && request.status < 600) {
+          errorText = 'Service is unavailable';
+        } else {
+          errorText = `Unexpected error: ${request.responseText}`;
+        }
+        if (responseObject) {
+          resolve(responseObject);
+        } else {
           reject({errors: [{message: errorText}], status: request.status});
         }
       }
