@@ -122,7 +122,7 @@ export default class AccountPage extends React.Component {
             </Column>
             <Column style={{marginLeft: 64}}>
               <h2>Your Instances</h2>
-              <p>This is a list of all monitoring instances you have access to:</p>
+              <p>This is a list of all Weave Cloud instances you have access to:</p>
               <InstancesList currentInstance={orgId} />
             </Column>
           </FlexContainer>

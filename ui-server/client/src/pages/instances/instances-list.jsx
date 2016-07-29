@@ -109,7 +109,7 @@ export default class IntancesList extends React.Component {
         <div style={styles.createNew}>
           Do you have a new cluster? <a href="/instances/create"
             onClick={this.onClickNew}>
-            Create a new instance
+            Create a new Weave Cloud instance
           </a> to monitor it.
         </div>
         <div style={styles.error}>

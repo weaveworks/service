@@ -21,9 +21,9 @@ export default class IntancesPicker extends React.Component {
     return (
       <div>
         <div style={styles.heading}>
-          Instances
+          Weave Cloud Instances
         </div>
-        <p>Choose the instance you want to access:</p>
+        <p>Choose the Weave Cloud instance you want to access:</p>
         <InstancesList />
       </div>
     );
