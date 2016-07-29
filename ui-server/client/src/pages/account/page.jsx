@@ -111,7 +111,7 @@ export default class AccountPage extends React.Component {
                   primaryText={this.state.user}
                   innerDivStyle={{paddingTop: 26}}
                   leftAvatar={<Avatar style={styles.avatar}
-                    icon={<FontIcon className="fa fa-user" />}
+                    icon={<FontIcon className="fa fa-user" style={{left: 2}} />}
                     size={32}
                     />}
                   rightIconButton={logoutButton}
