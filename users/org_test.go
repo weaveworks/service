@@ -41,7 +41,6 @@ func Test_Org(t *testing.T) {
 		"user":               user.Email,
 		"id":                 org.ExternalID,
 		"name":               org.Name,
-		"label":              org.Name,
 		"probeToken":         org.ProbeToken,
 		"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
 	}, body)
@@ -64,7 +63,6 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 		"user":       user.Email,
 		"id":         org.ExternalID,
 		"name":       org.Name,
-		"label":      org.Name,
 		"probeToken": org.ProbeToken,
 	}, body)
 }
