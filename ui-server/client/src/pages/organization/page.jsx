@@ -224,7 +224,7 @@ export default class OrganizationPage extends React.Component {
                   <span style={styles.circle}>2</span>
                   <h3>Try out Weave Cloud</h3>
                   If you don't have a cluster, give our <a href="https://github.com/weaveworks/weaveDemo">Demo Application</a> a spin.
-                  It's a great way to explore Weave Cloud and only takes a couple of minutes to set up with <a href="https://docs.docker.com/compose/install/">Docker Compose</a>:
+                  It's a great way to explore Weave Cloud and is easy to set up with <a href="https://docs.docker.com/compose/install/">Docker Compose</a>:
                 </div>
                 <Box>
                   <div style={styles.code}>
