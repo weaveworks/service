@@ -162,7 +162,7 @@ export default class InstancesCreate extends React.Component {
           {heading}
         </h2>
         <div style={styles.form}>
-          <p>Let's start by creating a monitoring instance for your cluster.
+          <p>Let's start by creating a Weave Cloud instance for your cluster.
             <br />Give your cluster a name:</p>
           <TextField hintText="Provide a name" floatingLabelText="Name"
             disabled={this.state.submitting}
@@ -179,7 +179,7 @@ export default class InstancesCreate extends React.Component {
           </div>
 
           <div style={styles.formHint}>
-            Your monitoring instance will have the ID {this.state.id || '...'}
+            Your Weave Cloud instance will have the ID {this.state.id || '...'}
           </div>
 
           <div style={styles.formButtons}>
