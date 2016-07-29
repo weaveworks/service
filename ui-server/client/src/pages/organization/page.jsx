@@ -105,6 +105,8 @@ export default class OrganizationPage extends React.Component {
   _handleOrganizationError(resp) {
     if (resp.status === 401) {
       hashHistory.push('/login');
+    } else if (resp.status === 403) {
+      hashHistory.push('/login/forbidden');
     } else {
       // TODO show errors
       trackException(resp);

@@ -12,6 +12,11 @@ import { trackEvent, trackException, trackTiming, trackView,
   PardotSignupIFrame } from '../../common/tracking';
 import LoginVia from './login-via';
 
+const ERROR_MESSAGES = {
+  forbidden: 'Your login is no longer valid. Try logging in again.',
+  unauthorized: 'The login link is no longer valid. Enter your email to log in again.'
+};
+
 export default class Form extends React.Component {
 
   constructor(props) {
@@ -130,6 +135,9 @@ export default class Form extends React.Component {
   render() {
     const submitSuccess = Boolean(this.state.token) || this.state.mailSent;
     const unauthorized = this.props.error === 'unauthorized';
+    const forbidden = this.props.error === 'forbidden';
+    const isError = unauthorized || forbidden;
+    const errorMessage = ERROR_MESSAGES[this.props.error];
     const styles = {
       submit: {
         marginLeft: '2em',
@@ -228,7 +236,7 @@ export default class Form extends React.Component {
       unauthorizedWrapper: {
         marginTop: 16,
         textAlign: 'center',
-        display: unauthorized && !submitSuccess ? 'block' : 'none'
+        display: isError && !submitSuccess ? 'block' : 'none'
       }
     };
 
@@ -262,7 +270,7 @@ export default class Form extends React.Component {
           <div style={styles.unauthorized}>
             <span className="fa fa-ban" style={styles.unauthorizedIcon}></span>
             <div style={styles.unauthorizedLabel}>
-              The login link is no longer valid. Enter your email to log in again.
+              {errorMessage}
             </div>
           </div>
         </div>
