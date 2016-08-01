@@ -29,7 +29,6 @@ export default class OrganizationPage extends React.Component {
       id: '',
       user: '',
       name: '',
-      editingName: false,
       probeToken: '',
       probes: [],
       showHelp: false,

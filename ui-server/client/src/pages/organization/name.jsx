@@ -29,7 +29,7 @@ export default class Users extends React.Component {
   }
 
   clearErrors() {
-    this.setState(Object.assign({}, this.state, {notices: null}));
+    this.setState({ notices: null });
   }
 
   doSubmit() {
@@ -64,7 +64,10 @@ export default class Users extends React.Component {
   }
 
   handleClickCancel() {
-    this.setState({ editing: false });
+    this.setState({
+      editing: false,
+      editingName: this.props.name
+    });
   }
 
   handleClickEdit() {
@@ -85,12 +88,6 @@ export default class Users extends React.Component {
     const styles = {
       button: {
         marginLeft: '0.5em'
-      },
-      editIcon: {
-        marginLeft: '0.5em',
-        fontSize: '1rem',
-        opacity: 0.7,
-        cursor: 'pointer'
       }
     };
 
