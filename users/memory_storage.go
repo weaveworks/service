@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -16,6 +17,7 @@ import (
 type memoryStorage struct {
 	users         map[string]*user
 	organizations map[string]*organization
+	mtx           sync.Mutex
 }
 
 func newMemoryStorage() *memoryStorage {
@@ -25,7 +27,13 @@ func newMemoryStorage() *memoryStorage {
 	}
 }
 
-func (s memoryStorage) CreateUser(email string) (*user, error) {
+func (s *memoryStorage) CreateUser(email string) (*user, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.createUser(email)
+}
+
+func (s *memoryStorage) createUser(email string) (*user, error) {
 	u := &user{
 		ID:        fmt.Sprint(len(s.users)),
 		Email:     strings.ToLower(email),
@@ -35,8 +43,10 @@ func (s memoryStorage) CreateUser(email string) (*user, error) {
 	return u, nil
 }
 
-func (s memoryStorage) AddLoginToUser(userID, provider, providerID string, session json.RawMessage) error {
-	u, err := s.FindUserByID(userID)
+func (s *memoryStorage) AddLoginToUser(userID, provider, providerID string, session json.RawMessage) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	u, err := s.findUserByID(userID)
 	if err != nil {
 		return err
 	}
@@ -67,8 +77,10 @@ func (s memoryStorage) AddLoginToUser(userID, provider, providerID string, sessi
 	return nil
 }
 
-func (s memoryStorage) DetachLoginFromUser(userID, provider string) error {
-	u, err := s.FindUserByID(userID)
+func (s *memoryStorage) DetachLoginFromUser(userID, provider string) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	u, err := s.findUserByID(userID)
 	if err == errNotFound {
 		return nil
 	}
@@ -85,15 +97,17 @@ func (s memoryStorage) DetachLoginFromUser(userID, provider string) error {
 	return nil
 }
 
-func (s memoryStorage) InviteUser(email, orgExternalID string) (*user, error) {
+func (s *memoryStorage) InviteUser(email, orgExternalID string) (*user, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	o, err := s.findOrganizationByExternalID(orgExternalID)
 	if err != nil {
 		return nil, err
 	}
 
-	u, err := s.FindUserByEmail(email)
+	u, err := s.findUserByEmail(email)
 	if err == errNotFound {
-		u, err = s.CreateUser(email)
+		u, err = s.createUser(email)
 	}
 	if err != nil {
 		return nil, err
@@ -106,7 +120,9 @@ func (s memoryStorage) InviteUser(email, orgExternalID string) (*user, error) {
 	return u, nil
 }
 
-func (s memoryStorage) RemoveUserFromOrganization(orgExternalID, email string) error {
+func (s *memoryStorage) RemoveUserFromOrganization(orgExternalID, email string) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	for _, user := range s.users {
 		if user.Email == email {
 			var newOrganizations []*organization
@@ -122,7 +138,13 @@ func (s memoryStorage) RemoveUserFromOrganization(orgExternalID, email string) e
 	return nil
 }
 
-func (s memoryStorage) FindUserByID(id string) (*user, error) {
+func (s *memoryStorage) FindUserByID(id string) (*user, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.findUserByID(id)
+}
+
+func (s *memoryStorage) findUserByID(id string) (*user, error) {
 	u, ok := s.users[id]
 	if !ok {
 		return nil, errNotFound
@@ -130,7 +152,13 @@ func (s memoryStorage) FindUserByID(id string) (*user, error) {
 	return u, nil
 }
 
-func (s memoryStorage) FindUserByEmail(email string) (*user, error) {
+func (s *memoryStorage) FindUserByEmail(email string) (*user, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.findUserByEmail(email)
+}
+
+func (s *memoryStorage) findUserByEmail(email string) (*user, error) {
 	for _, user := range s.users {
 		if user.Email == email {
 			return user, nil
@@ -139,7 +167,9 @@ func (s memoryStorage) FindUserByEmail(email string) (*user, error) {
 	return nil, errNotFound
 }
 
-func (s memoryStorage) FindUserByLogin(provider, providerID string) (*user, error) {
+func (s *memoryStorage) FindUserByLogin(provider, providerID string) (*user, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	for _, user := range s.users {
 		for _, a := range user.Logins {
 			if a.Provider == provider && a.ProviderID == providerID {
@@ -156,7 +186,9 @@ func (u usersByCreatedAt) Len() int           { return len(u) }
 func (u usersByCreatedAt) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.Before(u[j].CreatedAt) }
 
-func (s memoryStorage) ListUsers(fs ...filter) ([]*user, error) {
+func (s *memoryStorage) ListUsers(fs ...filter) ([]*user, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	users := []*user{}
 	for _, user := range s.users {
 		if s.applyFilters(user, fs) {
@@ -167,7 +199,9 @@ func (s memoryStorage) ListUsers(fs ...filter) ([]*user, error) {
 	return users, nil
 }
 
-func (s memoryStorage) ListOrganizationUsers(orgExternalID string) ([]*user, error) {
+func (s *memoryStorage) ListOrganizationUsers(orgExternalID string) ([]*user, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	users := []*user{}
 	for _, user := range s.users {
 		for _, org := range user.Organizations {
@@ -181,8 +215,10 @@ func (s memoryStorage) ListOrganizationUsers(orgExternalID string) ([]*user, err
 	return users, nil
 }
 
-func (s memoryStorage) ApproveUser(id string) (*user, error) {
-	user, err := s.FindUserByID(id)
+func (s *memoryStorage) ApproveUser(id string) (*user, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	user, err := s.findUserByID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +232,9 @@ func (s memoryStorage) ApproveUser(id string) (*user, error) {
 }
 
 // Set the admin flag of a user
-func (s memoryStorage) SetUserAdmin(id string, value bool) error {
+func (s *memoryStorage) SetUserAdmin(id string, value bool) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	user, ok := s.users[id]
 	if !ok {
 		return errNotFound
@@ -205,7 +243,9 @@ func (s memoryStorage) SetUserAdmin(id string, value bool) error {
 	return nil
 }
 
-func (s memoryStorage) SetUserToken(id, token string) error {
+func (s *memoryStorage) SetUserToken(id, token string) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	var hashed []byte
 	if token != "" {
 		var err error
@@ -223,7 +263,9 @@ func (s memoryStorage) SetUserToken(id, token string) error {
 	return nil
 }
 
-func (s memoryStorage) SetUserFirstLoginAt(id string) error {
+func (s *memoryStorage) SetUserFirstLoginAt(id string) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	user, ok := s.users[id]
 	if !ok {
 		return errNotFound
@@ -234,7 +276,9 @@ func (s memoryStorage) SetUserFirstLoginAt(id string) error {
 	return nil
 }
 
-func (s memoryStorage) GenerateOrganizationExternalID() (string, error) {
+func (s *memoryStorage) GenerateOrganizationExternalID() (string, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	var externalID string
 	for {
 		externalID = externalIDs.Generate()
@@ -247,7 +291,7 @@ func (s memoryStorage) GenerateOrganizationExternalID() (string, error) {
 	return externalID, nil
 }
 
-func (s memoryStorage) findOrganizationByExternalID(externalID string) (*organization, error) {
+func (s *memoryStorage) findOrganizationByExternalID(externalID string) (*organization, error) {
 	for _, o := range s.organizations {
 		if strings.ToLower(o.ExternalID) == strings.ToLower(externalID) {
 			return o, nil
@@ -256,8 +300,10 @@ func (s memoryStorage) findOrganizationByExternalID(externalID string) (*organiz
 	return nil, errNotFound
 }
 
-func (s memoryStorage) CreateOrganization(ownerID, externalID, name string) (*organization, error) {
-	user, err := s.FindUserByID(ownerID)
+func (s *memoryStorage) CreateOrganization(ownerID, externalID, name string) (*organization, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	user, err := s.findUserByID(ownerID)
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +316,7 @@ func (s memoryStorage) CreateOrganization(ownerID, externalID, name string) (*or
 	if err := o.valid(); err != nil {
 		return nil, err
 	}
-	if exists, err := s.OrganizationExists(o.ExternalID); err != nil {
+	if exists, err := s.organizationExists(o.ExternalID); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, errOrgExternalIDIsTaken
@@ -292,7 +338,9 @@ func (s memoryStorage) CreateOrganization(ownerID, externalID, name string) (*or
 	return o, nil
 }
 
-func (s memoryStorage) FindOrganizationByProbeToken(probeToken string) (*organization, error) {
+func (s *memoryStorage) FindOrganizationByProbeToken(probeToken string) (*organization, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	for _, o := range s.organizations {
 		if o.ProbeToken == probeToken {
 			if o.FirstProbeUpdateAt.IsZero() {
@@ -304,7 +352,9 @@ func (s memoryStorage) FindOrganizationByProbeToken(probeToken string) (*organiz
 	return nil, errNotFound
 }
 
-func (s memoryStorage) RenameOrganization(externalID, name string) error {
+func (s *memoryStorage) RenameOrganization(externalID, name string) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	if err := (&organization{ExternalID: externalID, Name: name}).valid(); err != nil {
 		return err
 	}
@@ -318,7 +368,13 @@ func (s memoryStorage) RenameOrganization(externalID, name string) error {
 	return nil
 }
 
-func (s memoryStorage) OrganizationExists(externalID string) (bool, error) {
+func (s *memoryStorage) OrganizationExists(externalID string) (bool, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.organizationExists(externalID)
+}
+
+func (s *memoryStorage) organizationExists(externalID string) (bool, error) {
 	if _, err := s.findOrganizationByExternalID(externalID); err == errNotFound {
 		return false, nil
 	} else if err != nil {
@@ -327,7 +383,9 @@ func (s memoryStorage) OrganizationExists(externalID string) (bool, error) {
 	return true, nil
 }
 
-func (s memoryStorage) DeleteOrganization(externalID string) error {
+func (s *memoryStorage) DeleteOrganization(externalID string) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	o, err := s.findOrganizationByExternalID(externalID)
 	if err == errNotFound {
 		return nil
@@ -349,11 +407,13 @@ func (s memoryStorage) DeleteOrganization(externalID string) error {
 	return nil
 }
 
-func (s memoryStorage) Close() error {
+func (s *memoryStorage) Close() error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 	return nil
 }
 
-func (s memoryStorage) applyFilters(item interface{}, fs []filter) bool {
+func (s *memoryStorage) applyFilters(item interface{}, fs []filter) bool {
 	for _, f := range fs {
 		if !f.Item(item) {
 			return false
