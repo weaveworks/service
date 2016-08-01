@@ -13,12 +13,11 @@ import { getData, encodeURIs } from '../../common/request';
 import { Box } from '../../components/box';
 import { FlexContainer } from '../../components/flex-container';
 import { Column } from '../../components/column';
-import { Logo } from '../../components/logo';
 import InstancesDelete from '../instances/instances-delete';
+import PrivatePage from '../../components/private-page';
 import Probes from './probes';
 import Users from './users';
 import Name from './name';
-import Toolbar from '../../components/toolbar';
 import { trackEvent, trackException, trackView } from '../../common/tracking';
 
 export default class OrganizationPage extends React.Component {
@@ -142,7 +141,7 @@ export default class OrganizationPage extends React.Component {
         marginBottom: 24
       },
       container: {
-        marginTop: 96
+        marginTop: 32
       },
       help: {
         borderTop: `2px dotted ${grey200}`,
@@ -159,13 +158,6 @@ export default class OrganizationPage extends React.Component {
       helpBlock: {
         display: this.state.showHelp ? 'block' : 'none',
         marginLeft: '-1em'
-      },
-      logoWrapper: {
-        position: 'absolute',
-        width: 250,
-        height: 64,
-        left: 64,
-        top: 32 + 51 - 3
       },
       circle: {
         position: 'absolute',
@@ -194,7 +186,7 @@ export default class OrganizationPage extends React.Component {
     };
 
     return (
-      <div style={{height: '100%', position: 'relative'}}>
+      <PrivatePage page="organization" {...this.props.params}>
         <Snackbar
           action="ok"
           open={Boolean(this.state.errors)}
@@ -202,10 +194,6 @@ export default class OrganizationPage extends React.Component {
           onActionTouchTap={this.clearErrors}
           onRequestClose={this.clearErrors}
         />
-        <Toolbar user={this.state.user} organization={this.props.params.orgId} />
-        <div style={styles.logoWrapper}>
-          <Logo />
-        </div>
         {this.state.id && <div style={styles.container}>
           <FlexContainer>
             <Column minWidth="500">
@@ -298,7 +286,7 @@ export default class OrganizationPage extends React.Component {
             <CircularProgress mode="indeterminate" />
           </div>}
         </div>}
-      </div>
+      </PrivatePage>
     );
   }
 

@@ -1,51 +1,15 @@
 import React from 'react';
-import { hashHistory } from 'react-router';
 
 import { FlexContainer } from '../../components/flex-container';
 import { Column } from '../../components/column';
-import { Logo } from '../../components/logo';
 import InstancesList from '../instances/instances-list';
-import Toolbar from '../../components/toolbar';
-import { trackView, trackException } from '../../common/tracking';
-import { getOrganizations } from '../../common/api';
+import PrivatePage from '../../components/private-page';
+import { trackView } from '../../common/tracking';
 
 export default class InstancesPage extends React.Component {
 
-  constructor() {
-    super();
-    this.state = {
-      user: '',
-      organizations: [],
-    };
-
-    this.checkCookie = this.checkCookie.bind(this);
-    this.handleLoginSuccess = this.handleLoginSuccess.bind(this);
-    this.handleLoginError = this.handleLoginError.bind(this);
-  }
-
   componentDidMount() {
-    this.checkCookie();
     trackView('Instances');
-  }
-
-  checkCookie() {
-    return getOrganizations().then(this.handleLoginSuccess, this.handleLoginError);
-  }
-
-  handleLoginSuccess(resp) {
-    this.setState({
-      user: resp.email,
-      organizations: resp.organizations
-    });
-  }
-
-  handleLoginError(resp) {
-    if (resp.status === 401) {
-      hashHistory.push('/login');
-    } else {
-      const err = resp.errors[0];
-      trackException(err.message);
-    }
   }
 
   render() {
@@ -55,7 +19,7 @@ export default class InstancesPage extends React.Component {
         textAlign: 'center'
       },
       container: {
-        marginTop: 128
+        marginTop: 32
       },
       logoWrapper: {
         position: 'absolute',
@@ -69,14 +33,7 @@ export default class InstancesPage extends React.Component {
     const orgId = this.props.params.orgId;
 
     return (
-      <div style={{height: '100%', position: 'relative', paddingBottom: 64}}>
-        <Toolbar
-          user={this.state.user}
-          organization={orgId}
-          page="Instances" />
-        <div style={styles.logoWrapper}>
-          <Logo />
-        </div>
+      <PrivatePage page="instance" {...this.props.params}>
         <div style={styles.container}>
           <FlexContainer>
             <Column>
@@ -87,7 +44,7 @@ export default class InstancesPage extends React.Component {
             <Column />
           </FlexContainer>
         </div>
-      </div>
+      </PrivatePage>
     );
   }
 

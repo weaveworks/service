@@ -5,6 +5,7 @@ import Paper from 'material-ui/Paper';
 import { encodeURIs } from '../common/request';
 import Colors from '../common/colors';
 
+import { Logo } from './logo';
 
 export default class Toolbar extends React.Component {
 
@@ -12,15 +13,15 @@ export default class Toolbar extends React.Component {
     return [{
       iconClass: 'fa fa-cog',
       title: 'Settings for this instance',
-      route: encodeURIs`#/org/${this.props.organization}`
+      route: encodeURIs`#/org/${this.props.orgId}`
     }, {
       title: 'Manage instances',
       iconClass: 'fa fa-cubes',
-      route: encodeURIs`#/instance/${this.props.organization}`
+      route: encodeURIs`#/instance/${this.props.orgId}`
     }, {
       title: 'User account',
       iconClass: 'fa fa-user',
-      route: encodeURIs`#/account/${this.props.organization}`
+      route: encodeURIs`#/account/${this.props.orgId}`
     }];
   }
 
@@ -61,11 +62,19 @@ export default class Toolbar extends React.Component {
         height: 50,
       },
       toolbar: {
+        display: 'flex',
+        justifyContent: 'space-between',
         width: '100%'
       },
+      toolbarCenter: {
+        padding: 15
+      },
       toolbarLeft: {
-        float: 'left',
-        padding: '16px 24px'
+        top: 2,
+        left: 12,
+        padding: 8,
+        width: 160,
+        position: 'relative'
       },
       toolbarOrganization: {
         color: Colors.text2,
@@ -79,7 +88,6 @@ export default class Toolbar extends React.Component {
         marginLeft: '0.5em'
       },
       toolbarRight: {
-        float: 'right',
         padding: 15,
       },
       toolbarWrapper: {
@@ -96,14 +104,19 @@ export default class Toolbar extends React.Component {
         <Paper zDepth={1} style={styles.toolbarWrapper}>
           <div style={styles.toolbar}>
             <div style={styles.toolbarLeft}>
-              <a href={encodeURIs`#/app/${this.props.organization}`}
+              <div style={styles.logoWrapper}>
+                <Logo />
+              </div>
+            </div>
+            <div style={styles.toolbarCenter}>
+              {this.props.instance && <a href={encodeURIs`#/app/${this.props.orgId}`}
                 style={styles.toolbarOrganization}>
 
                 View Instance
                 <span style={styles.toolbarOrganizationName}>
-                  {this.props.organization}
+                  {this.props.instance.name}
                 </span>
-              </a>
+              </a>}
             </div>
             <div style={styles.toolbarRight}>
               {links}

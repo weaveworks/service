@@ -8,9 +8,8 @@ import FontIcon from 'material-ui/FontIcon';
 
 import { FlexContainer } from '../../components/flex-container';
 import { Column } from '../../components/column';
-import { Logo } from '../../components/logo';
 import Logins from './logins';
-import Toolbar from '../../components/toolbar';
+import PrivatePage from '../../components/private-page';
 import { trackView, trackException } from '../../common/tracking';
 import { getOrganizations } from '../../common/api';
 
@@ -66,14 +65,7 @@ export default class AccountPage extends React.Component {
         textAlign: 'center'
       },
       container: {
-        marginTop: 128
-      },
-      logoWrapper: {
-        position: 'absolute',
-        width: 250,
-        height: 64,
-        left: 64,
-        top: 32 + 51 - 3
+        marginTop: 32
       },
       avatar: {
         top: 19,
@@ -82,7 +74,6 @@ export default class AccountPage extends React.Component {
       }
     };
 
-    const orgId = this.props.params.orgId;
     const logoutButton = (
       <RaisedButton
         style={{ top: 18, right: 18 }}
@@ -91,14 +82,7 @@ export default class AccountPage extends React.Component {
         label="Logout" />);
 
     return (
-      <div style={{height: '100%', position: 'relative'}}>
-        <Toolbar
-          user={this.state.user}
-          organization={orgId}
-          page="Account" />
-        <div style={styles.logoWrapper}>
-          <Logo />
-        </div>
+      <PrivatePage page="account" {...this.props.params}>
         <div style={styles.container}>
           <FlexContainer>
             <Column minWidth="400">
@@ -121,7 +105,7 @@ export default class AccountPage extends React.Component {
             </Column>
           </FlexContainer>
         </div>
-      </div>
+      </PrivatePage>
     );
   }
 
