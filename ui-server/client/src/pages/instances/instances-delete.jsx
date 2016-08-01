@@ -27,6 +27,7 @@ export default class InstancesDelete extends React.Component {
     this.handleChangeDeleteInput = this.handleChangeDeleteInput.bind(this);
     this.handleDeleteSuccess = this.handleDeleteSuccess.bind(this);
     this.handleDeleteError = this.handleDeleteError.bind(this);
+    this.handleKeyDownDelete = this.handleKeyDownDelete.bind(this);
   }
 
   handleCloseDeleteDialog() {
@@ -44,10 +45,7 @@ export default class InstancesDelete extends React.Component {
   }
 
   handleClickDelete() {
-    this.setState({ deleting: true, deleteDialogOpen: false });
-    deleteData(encodeURIs`/api/users/org/${this.props.params.orgId}`)
-      .then(this.handleDeleteSuccess)
-      .catch(this.handleDeleteError);
+    this.doDelete();
   }
 
   handleDeleteSuccess() {
@@ -64,9 +62,22 @@ export default class InstancesDelete extends React.Component {
   }
 
   handleChangeDeleteInput(ev) {
-    const deleteDialogValid = this.state.instanceName
-      && this.state.instanceName === ev.target.value;
+    const deleteDialogValid = this.props.instanceName
+      && this.props.instanceName.toLowerCase() === ev.target.value.toLowerCase();
     this.setState({ deleteDialogValid });
+  }
+
+  handleKeyDownDelete(ev) {
+    if (ev.keyCode === 13 && this.state.deleteDialogValid) { // ENTER
+      this.doDelete();
+    }
+  }
+
+  doDelete() {
+    this.setState({ deleting: true, deleteDialogOpen: false });
+    deleteData(encodeURIs`/api/users/org/${this.props.orgId}`)
+      .then(this.handleDeleteSuccess)
+      .catch(this.handleDeleteError);
   }
 
   render() {
@@ -89,11 +100,11 @@ export default class InstancesDelete extends React.Component {
       <FlatButton primary
         label="Delete"
         disabled={!this.state.deleteDialogValid}
-        onTouchTap={this.handleClickDelete}
+        onClick={this.handleClickDelete}
       />,
       <FlatButton keyboardFocused
         label="Cancel"
-        onTouchTap={this.handleCloseDeleteDialog}
+        onClick={this.handleCloseDeleteDialog}
       />
     ];
 
@@ -124,6 +135,7 @@ export default class InstancesDelete extends React.Component {
           <TextField
             hintText="Type the instance name"
             onChange={this.handleChangeDeleteInput}
+            onKeyDown={this.handleKeyDownDelete}
             />
         </Dialog>
       </div>

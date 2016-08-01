@@ -89,7 +89,7 @@ export default class IntancesList extends React.Component {
     const styles = {
       createNew: {
         marginTop: 16,
-        fontSize: '0.8rem'
+        fontSize: '0.9rem'
       },
 
       error: {

@@ -285,7 +285,7 @@ export default class OrganizationPage extends React.Component {
                 </div>
               </Paper>
               <Box style={{marginTop: 64, padding: 24}}>
-                <InstancesDelete instanceName={this.state.name} />
+                <InstancesDelete instanceName={this.state.name} orgId={this.props.params.orgId} />
               </Box>
             </Column>
           </FlexContainer>
