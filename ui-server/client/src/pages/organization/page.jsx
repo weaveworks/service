@@ -17,6 +17,7 @@ import { Logo } from '../../components/logo';
 import InstancesDelete from '../instances/instances-delete';
 import Probes from './probes';
 import Users from './users';
+import Name from './name';
 import Toolbar from '../../components/toolbar';
 import { trackEvent, trackException, trackView } from '../../common/tracking';
 
@@ -27,6 +28,7 @@ export default class OrganizationPage extends React.Component {
     this.state = {
       id: '',
       user: '',
+      name: '',
       probeToken: '',
       probes: [],
       showHelp: false,
@@ -207,7 +209,10 @@ export default class OrganizationPage extends React.Component {
         {this.state.id && <div style={styles.container}>
           <FlexContainer>
             <Column minWidth="500">
-              <h2>Configure <nobr>{this.state.name}</nobr></h2>
+              <h2>
+                <Name id={this.props.params.orgId} name={this.state.name}
+                  prefix="Configure" />
+              </h2>
               <div style={styles.steps}>
                 <div style={styles.step}>
                   <span style={styles.circle}>1</span>

@@ -101,6 +101,10 @@ export function postData(url, requestData = {}) {
   return doRequest(url, 'POST', requestData, 'application/json');
 }
 
+export function putData(url, requestData = {}) {
+  return doRequest(url, 'PUT', requestData, 'application/json');
+}
+
 export function deleteData(url) {
   return doRequest(url, 'DELETE');
 }
