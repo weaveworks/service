@@ -44,12 +44,15 @@ func (s memoryStorage) AddLoginToUser(userID, provider, providerID string, sessi
 	// Remove any existing links to other user accounts
 	createdAt := time.Now().UTC()
 	for _, user := range s.users {
-		for i, a := range user.Logins {
+		var newLogins []*login.Login
+		for _, a := range user.Logins {
 			if a.Provider == provider && a.ProviderID == providerID {
 				createdAt = a.CreatedAt
-				user.Logins = append(user.Logins[:i], user.Logins[i+1:]...)
+			} else {
+				newLogins = append(newLogins, a)
 			}
 		}
+		user.Logins = newLogins
 	}
 
 	// Add it to this one (updating session if needed).
@@ -106,12 +109,13 @@ func (s memoryStorage) InviteUser(email, orgExternalID string) (*user, error) {
 func (s memoryStorage) RemoveUserFromOrganization(orgExternalID, email string) error {
 	for _, user := range s.users {
 		if user.Email == email {
-			for i, o := range user.Organizations {
+			var newOrganizations []*organization
+			for _, o := range user.Organizations {
 				if strings.ToLower(orgExternalID) != strings.ToLower(o.ExternalID) {
-					continue
+					newOrganizations = append(newOrganizations, o)
 				}
-				user.Organizations = append(user.Organizations[:i], user.Organizations[i+1:]...)
 			}
+			user.Organizations = newOrganizations
 			break
 		}
 	}
@@ -334,12 +338,13 @@ func (s memoryStorage) DeleteOrganization(externalID string) error {
 	delete(s.organizations, o.ID)
 
 	for _, user := range s.users {
-		for i, org := range user.Organizations {
+		var newOrganizations []*organization
+		for _, org := range user.Organizations {
 			if org.ID != o.ID {
-				continue
+				newOrganizations = append(newOrganizations, org)
 			}
-			user.Organizations = append(user.Organizations[:i], user.Organizations[i+1:]...)
 		}
+		user.Organizations = newOrganizations
 	}
 	return nil
 }
