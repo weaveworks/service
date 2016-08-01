@@ -59,7 +59,7 @@ export default class IntancesList extends React.Component {
       onClick={selectInstance} label="Select" />);
     return (
       <ListItem disabled
-        style={{cursor: 'default'}}
+        style={{cursor: 'default', paddingRight: 80}}
         key={instance.id}
         primaryText={instance.name}
         rightIconButton={link}
@@ -69,6 +69,13 @@ export default class IntancesList extends React.Component {
   }
 
   renderInstances() {
+    if (!this.state.instances || this.state.instances.length === 0) {
+      return (
+        <Box style={{padding: 16}}>
+          No instances
+        </Box>
+      );
+    }
     return (
       <Box>
         <List>
@@ -82,7 +89,7 @@ export default class IntancesList extends React.Component {
     const styles = {
       createNew: {
         marginTop: 16,
-        fontSize: '0.8rem'
+        fontSize: '0.9rem'
       },
 
       error: {
@@ -104,7 +111,7 @@ export default class IntancesList extends React.Component {
       <div>
         {this.state.loading ?
           <span><span className="fa fa-loading" /> Loading...</span> :
-          this.state.instances && this.renderInstances()}
+          this.renderInstances()}
 
         <div style={styles.createNew}>
           Do you have a new cluster? <a href="/instances/create"
