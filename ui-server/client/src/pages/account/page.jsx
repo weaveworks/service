@@ -19,39 +19,31 @@ export default class AccountPage extends React.Component {
   constructor() {
     super();
     this.state = {
-      organizations: [],
+      user: '',
+      organizations: []
     };
 
-    this.checkCookie = this.checkCookie.bind(this);
-    this.handleLoginSuccess = this.handleLoginSuccess.bind(this);
-    this.handleLoginError = this.handleLoginError.bind(this);
+    this.handleOrganizationSuccess = this.handleOrganizationSuccess.bind(this);
+    this.handleOrganizationError = this.handleOrganizationError.bind(this);
   }
 
   componentDidMount() {
-    this.checkCookie();
+    getOrganizations()
+      .then(this.handleOrganizationSuccess)
+      .catch(this.handleOrganizationError);
+
     trackView('Account');
   }
 
-  checkCookie() {
-    return getOrganizations().then(this.handleLoginSuccess, this.handleLoginError);
-  }
-
-  handleLoginSuccess(resp) {
+  handleOrganizationSuccess(resp) {
     this.setState({
       user: resp.email,
       organizations: resp.organizations
     });
   }
 
-  handleLoginError(resp) {
-    if (resp.status === 401) {
-      hashHistory.push('/login');
-    } else if (resp.status === 403) {
-      hashHistory.push('/login/forbidden');
-    } else {
-      const err = resp.errors[0];
-      trackException(err.message);
-    }
+  handleOrganizationError(resp) {
+    trackException(resp);
   }
 
   onClickLogout() {

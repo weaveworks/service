@@ -21,13 +21,14 @@ export function trackEvent(subject, action, label, value) {
 }
 
 export function trackException(msg, fatal) {
+  const message = msg.errors && msg.errors.length > 0 ? msg.errors[0].message : msg;
   if (window.ga) {
     window.ga('send', 'exception', {
-      exDescription: msg,
+      exDescription: message,
       exFatal: !!fatal
     });
   } else {
-    error(msg);
+    error(message);
   }
 }
 

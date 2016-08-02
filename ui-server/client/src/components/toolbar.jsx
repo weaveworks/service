@@ -104,9 +104,7 @@ export default class Toolbar extends React.Component {
         <Paper zDepth={1} style={styles.toolbarWrapper}>
           <div style={styles.toolbar}>
             <div style={styles.toolbarLeft}>
-              <div style={styles.logoWrapper}>
-                <Logo />
-              </div>
+              <Logo />
             </div>
             <div style={styles.toolbarCenter}>
               {this.props.instance && <a href={encodeURIs`#/app/${this.props.orgId}`}

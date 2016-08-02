@@ -76,7 +76,9 @@ export default class OrganizationPage extends React.Component {
   _getOrganizationData(organization) {
     if (organization) {
       const url = encodeURIs`/api/users/org/${organization}`;
-      getData(url).then(this._handleOrganizationSuccess, this._handleOrganizationError);
+      getData(url)
+        .then(this._handleOrganizationSuccess)
+        .catch(this._handleOrganizationError);
     }
   }
 
@@ -105,14 +107,8 @@ export default class OrganizationPage extends React.Component {
   }
 
   _handleOrganizationError(resp) {
-    if (resp.status === 401) {
-      hashHistory.push('/login');
-    } else if (resp.status === 403) {
-      hashHistory.push('/login/forbidden');
-    } else {
-      // TODO show errors
-      trackException(resp);
-    }
+    // TODO show errors
+    trackException(resp);
   }
 
   render() {
