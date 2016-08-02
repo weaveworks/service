@@ -13,7 +13,6 @@ scrape_configs:
     - 'https://kubernetes.default.svc.cluster.local'
     in_cluster: true
     role: endpoint
-
   # You can specify the following annotations (on services):
   #   prometheus.io.scrape: false - don't scrape this service
   #   prometheus.io.scheme: https - use https for scraping
@@ -58,3 +57,19 @@ scrape_configs:
     - 'https://kubernetes.default.svc.cluster.local'
     in_cluster: true
     role: node
+
+  tls_config:
+    ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+  bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+# This scape config gathers data from the api server
+- job_name: 'kubernets-api'
+  kubernetes_sd_configs:
+  - api_servers:
+    - 'https://kubernetes.default.svc.cluster.local'
+    in_cluster: true
+    role: apiserver
+
+  tls_config:
+    ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+  bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
