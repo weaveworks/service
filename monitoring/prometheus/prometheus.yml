@@ -4,6 +4,7 @@ global:
 
 rule_files:
 - alert.rules
+- recording.rules
 
 # This scrape config gather all service endpoints
 scrape_configs:

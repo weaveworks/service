@@ -135,14 +135,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_dynamo_request_duration_seconds_bucket[5m])) by (method,le)) * 1e3",
+              "expr": "method:scope_dynamo_request_latency:95quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile {{method}} ",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(scope_dynamo_request_duration_seconds_bucket[5m])) by (method,le)) * 1e3",
+              "expr": "method:scope_dynamo_request_latency:50quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile {{method}}",
               "refId": "C",
@@ -302,14 +302,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(irate(scope_report_size_bytes_bucket{job=\"collection\",namespace=\"default\"}[5m])) by (le))",
+              "expr": "scope_report_size:95quantile",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum(irate(scope_report_size_bytes_bucket{job=\"collection\",namespace=\"default\"}[5m])) by (le))",
+              "expr": "scope_report_size:50quantile",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "metric": "",
@@ -317,7 +317,7 @@
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_report_size_bytes_sum{namespace=\"default\",job=\"collection\"}[5m])) / sum(irate(scope_report_size_bytes_count{namespace=\"default\",job=\"collection\"}[5m]))",
+              "expr": "scope_report_size:mean",
               "interval": "",
               "intervalFactor": 2,
               "legendFormat": "Mean",
@@ -659,7 +659,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_memcache_request_duration_seconds_bucket[5m])) by (method,le))  *  1e3",
+              "expr": "method:scope_memcache_request_latency:95quantile * 1e3",
               "interval": "",
               "intervalFactor": 2,
               "legendFormat": "95th quantile {{method}}",
@@ -667,7 +667,7 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.50, sum(rate(scope_memcache_request_duration_seconds_bucket[5m])) by (method,le))  *  1e3",
+              "expr": "method:scope_memcache_request_latency:50quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile {{method}}",
               "refId": "B",
@@ -988,14 +988,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_s3_request_duration_seconds_bucket[5m])) by (method,le)) * 1e3",
+              "expr": "method:scope_s3_request_latency:95quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile {{method}} ",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.50, sum(rate(scope_s3_request_duration_seconds_bucket[5m])) by (method,le)) * 1e3",
+              "expr": "method:scope_s3_request_latency:50quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile {{method}} ",
               "refId": "B",
