@@ -26,6 +26,7 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 		<h2>Management</h2>
 		<ul>
 			<li><a href="/admin/users/">Users Service</a></li>
+			<li><a href="/admin/kubedash/">Kubernetes Dashboard</a></li>
 		</ul>
 	</body>
 </html>
