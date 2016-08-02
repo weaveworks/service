@@ -28,6 +28,7 @@ type Config struct {
 	kubediffHost     string
 	alertmanagerHost string
 	prometheusHost   string
+	kubedashHost     string
 }
 
 func routes(c Config) (http.Handler, error) {
@@ -104,6 +105,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/kubediff", trimPrefix("/admin/kubediff", newProxy(c.kubediffHost))},
 				{"/alertmanager", newProxy(c.alertmanagerHost)},
 				{"/prometheus", newProxy(c.prometheusHost)},
+				{"/kubedash", trimPrefix("/admin/kubedash", newProxy(c.kubedashHost))},
 				{"/", http.HandlerFunc(adminRoot)},
 			},
 			users.AuthAdminMiddleware{
