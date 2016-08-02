@@ -67,7 +67,7 @@ scrape_configs:
   - target_label: __scheme__
     replacement: https
 
-# This scape config gathers data from the api server
+# This scrape config gathers data from the api server
 - job_name: 'kubernetes-api'
   kubernetes_sd_configs:
   - api_servers:
