@@ -58,3 +58,23 @@ scrape_configs:
     - 'https://kubernetes.default.svc.cluster.local'
     in_cluster: true
     role: node
+
+  tls_config:
+    ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+  bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+  relabel_configs:
+  - target_label: __scheme__
+    replacement: https
+
+# This scrape config gathers data from the api server
+- job_name: 'kubernetes-api'
+  kubernetes_sd_configs:
+  - api_servers:
+    - 'https://kubernetes.default.svc.cluster.local'
+    in_cluster: true
+    role: apiserver
+
+  tls_config:
+    ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+  bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
