@@ -27,6 +27,7 @@ export function getLogins() {
 
 export function getInstance(id) {
   return new Promise((resolve, reject) => {
+    // implies a cookie check
     getOrganizations()
       .then(res => {
         if (res.organizations) {
@@ -39,8 +40,11 @@ export function getInstance(id) {
         }
       })
       .catch(res => {
+        // not logged in -> redirect
         if (res.status === 401) {
           hashHistory.push('/login');
+        } else if (res.status === 403) {
+          hashHistory.push('/login/forbidden');
         } else {
           const err = res.errors[0];
           trackException(err.message);
