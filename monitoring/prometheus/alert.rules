@@ -142,7 +142,7 @@ ALERT QueryNoInstances
 # Deployment-related alerts
 
 ALERT DeploymentGenerationMismatch
-  IF          k8s_deployment_status_observedGeneration != k8s_deployment_metadata_generation
+  IF          k8s_deployment_status_observedGeneration{job="kube-api-exporter"} != k8s_deployment_metadata_generation{job="kube-api-exporter"}
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -151,7 +151,7 @@ ALERT DeploymentGenerationMismatch
   }
 
 ALERT DeploymentReplicasMismatch
-  IF          k8s_deployment_spec_replicas != k8s_deployment_status_replicas
+  IF          k8s_deployment_spec_replicas{job="kube-api-exporter"} != k8s_deployment_status_availableReplicas{job="kube-api-exporter"}
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
