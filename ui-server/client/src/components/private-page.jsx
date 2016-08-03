@@ -17,7 +17,7 @@ export default class PrivatePage extends React.Component {
   }
 
   handleInstanceSuccess(instance) {
-    this.setState({ instance });
+    this.setState(instance);
   }
 
   handleInstanceError(res) {
@@ -45,7 +45,8 @@ export default class PrivatePage extends React.Component {
       <div style={styles.backgroundContainer}>
         <Toolbar
           page={this.props.page}
-          instance={this.state.instance}
+          instances={this.state.organizations}
+          instanceName={this.state.name}
           orgId={this.props.orgId} />
         {this.props.children}
       </div>

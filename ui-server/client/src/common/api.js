@@ -33,6 +33,8 @@ export function getInstance(id) {
         if (res.organizations) {
           const instance = res.organizations.find(org => org.id === id);
           if (instance) {
+            // hack to only have one request
+            instance.organizations = res.organizations;
             resolve(instance);
           } else {
             reject(Error('Instance not found'));

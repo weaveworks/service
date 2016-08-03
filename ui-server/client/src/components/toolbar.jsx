@@ -1,23 +1,42 @@
 import React from 'react';
+import Divider from 'material-ui/Divider';
+import FlatButton from 'material-ui/FlatButton';
 import FontIcon from 'material-ui/FontIcon';
+import IconButton from 'material-ui/IconButton';
+import IconMenu from 'material-ui/IconMenu';
+import MenuItem from 'material-ui/MenuItem';
 import Paper from 'material-ui/Paper';
+import { hashHistory } from 'react-router';
 
 import { encodeURIs } from '../common/request';
 import Colors from '../common/colors';
 
+import InstanceItem from './instance-item';
 import { Logo } from './logo';
 
 export default class Toolbar extends React.Component {
+
+  constructor(props, context) {
+    super(props, context);
+    this.handleClickInstance = this.handleClickInstance.bind(this);
+    this.handleManageInstances = this.handleManageInstances.bind(this);
+  }
+
+  handleClickInstance() {
+    const url = encodeURIs`/app/${this.props.orgId}`;
+    hashHistory.push(url);
+  }
+
+  handleManageInstances() {
+    const url = encodeURIs`/instance/${this.props.orgId}`;
+    hashHistory.push(url);
+  }
 
   getLinks() {
     return [{
       iconClass: 'fa fa-cog',
       title: 'Settings for this instance',
       route: encodeURIs`#/org/${this.props.orgId}`
-    }, {
-      title: 'Manage instances',
-      iconClass: 'fa fa-cubes',
-      route: encodeURIs`#/instance/${this.props.orgId}`
     }, {
       title: 'User account',
       iconClass: 'fa fa-user',
@@ -67,7 +86,7 @@ export default class Toolbar extends React.Component {
         width: '100%'
       },
       toolbarCenter: {
-        padding: 15
+        padding: 8
       },
       toolbarLeft: {
         top: 2,
@@ -75,17 +94,6 @@ export default class Toolbar extends React.Component {
         padding: 8,
         width: 160,
         position: 'relative'
-      },
-      toolbarOrganization: {
-        color: Colors.text2,
-        fontSize: '110%',
-        lineHeight: 1
-      },
-      toolbarOrganizationName: {
-        color: Colors.text2,
-        fontSize: '60%',
-        lineHeight: 1,
-        marginLeft: '0.5em'
       },
       toolbarRight: {
         padding: 15,
@@ -98,6 +106,7 @@ export default class Toolbar extends React.Component {
     };
 
     const links = this.renderLinks();
+    const viewText = this.props.instanceName ? `View ${this.props.instanceName}` : 'Loading...';
 
     return (
       <div>
@@ -107,14 +116,27 @@ export default class Toolbar extends React.Component {
               <Logo />
             </div>
             <div style={styles.toolbarCenter}>
-              {this.props.instance && <a href={encodeURIs`#/app/${this.props.orgId}`}
-                style={styles.toolbarOrganization}>
-
-                View Instance
-                <span style={styles.toolbarOrganizationName}>
-                  {this.props.instance.name}
-                </span>
-              </a>}
+              <div style={{position: 'relative'}}>
+                <FlatButton
+                  style={{color: Colors.text2}}
+                  onClick={this.handleClickInstance}
+                  label={viewText} />
+                {this.props.instances && this.props.instances.length > 0 && <IconMenu
+                  iconButtonElement={<IconButton iconStyle={{color: Colors.text2}}>
+                    <FontIcon className="fa fa-caret-down" />
+                  </IconButton>}
+                  style={{position: 'absolute', right: -40, top: -6}}
+                  anchorOrigin={{horizontal: 'right', vertical: 'top'}}
+                  targetOrigin={{horizontal: 'right', vertical: 'top'}}
+                  >
+                    {this.props.instances.map(ins => <InstanceItem key={ins.id} {...ins} />)}
+                    <Divider />
+                    <MenuItem
+                      style={{lineHeight: '24px', fontSize: 13}}
+                      primaryText="Manage instances" onClick={this.handleManageInstances} />
+                  </IconMenu>
+                }
+              </div>
             </div>
             <div style={styles.toolbarRight}>
               {links}
