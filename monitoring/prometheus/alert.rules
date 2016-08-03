@@ -138,3 +138,23 @@ ALERT QueryNoInstances
     summary = "query service: no instances",
     description = "The query service has no running instances.",
   }
+
+# Deployment-related alerts
+
+ALERT DeploymentGenerationMismatch
+  IF          k8s_deployment_status_observedGeneration{job="kube-api-exporter"} != k8s_deployment_metadata_generation{job="kube-api-exporter"}
+  FOR         5m
+  LABELS      { severity="critical" }
+  ANNOTATIONS {
+    summary = "Deployment of {{$labels.exported_namespace}}/{{$labels.name}} failed",
+    description = "Deployment of {{$labels.exported_namespace}}/{{$labels.name}} failed - observed generation != intended generation.",
+  }
+
+ALERT DeploymentReplicasMismatch
+  IF          k8s_deployment_spec_replicas{job="kube-api-exporter"} != k8s_deployment_status_availableReplicas{job="kube-api-exporter"}
+  FOR         5m
+  LABELS      { severity="critical" }
+  ANNOTATIONS {
+    summary = "Deployment of {{$labels.exported_namespace}}/{{$labels.name}} failed",
+    description = "Deployment of {{$labels.exported_namespace}}/{{$labels.name}} failed - observed replicas != intended replicas.",
+  }
