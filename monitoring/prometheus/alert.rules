@@ -4,10 +4,10 @@ job:scope_request_errors:rate1m =
    (sum(rate(scope_request_duration_seconds_count{namespace="default"}[1m])) by (job))
 
 # Define latency
-job_route:scope_request_latency:95quantile =
+job_route:scope_request_duration_seconds:95quantile =
    histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,route,le))
 
-job:scope_request_latency:95quantile =
+job:scope_request_duration_seconds:95quantile =
    histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,le))
 
 # Alert if there is a kubediff
@@ -62,7 +62,7 @@ ALERT QueryErrorRate
 # For each service, an alert on latency
 
 ALERT AuthFELatency
-  IF          max(job_route:scope_request_latency:95quantile{job="authfe",route!~"admin|grafana"}) by (job) > 5.0
+  IF          max(job_route:scope_request_duration_seconds:95quantile{job="authfe",route!~"admin|grafana"}) by (job) > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
@@ -71,7 +71,7 @@ ALERT AuthFELatency
   }
 
 ALERT UsersLatency
-  IF          job:scope_request_latency:95quantile{job="users"} > 5.0
+  IF          job:scope_request_duration_seconds:95quantile{job="users"} > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
@@ -80,7 +80,7 @@ ALERT UsersLatency
   }
 
 ALERT CollectionLatency
-  IF          job_route:scope_request_latency:95quantile{job="collection"} > 5.0
+  IF          job_route:scope_request_duration_seconds:95quantile{job="collection"} > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
@@ -89,7 +89,7 @@ ALERT CollectionLatency
   }
 
 ALERT QueryLatency
-  IF          job_route:scope_request_latency:95quantile{job="query"} > 5.0
+  IF          job_route:scope_request_duration_seconds:95quantile{job="query"} > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {

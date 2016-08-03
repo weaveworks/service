@@ -3,9 +3,9 @@
 # Rules for services dashboard
 
 # 95quantiles for both of these are defined in alert.rules.
-job_route:scope_request_latency:50quantile =
+job_route:scope_request_duration_seconds:50quantile =
    histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,route,le))
-job:scope_request_latency:50quantile =
+job:scope_request_duration_seconds:50quantile =
    histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,le))
 
 
@@ -18,10 +18,10 @@ frontend_request_latency:99quantile =
    histogram_quantile(0.99, sum(irate(nginx_http_request_duration_seconds_bucket{job="frontend"}[1m])) by (le))
 
 # Demo is not in 'default' namespace
-job:scope_request_latency_extras:95quantile =
-   histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="extras",ws="false"}[5m])) by (job,le))
-job:scope_request_latency_extras:50quantile =
-   histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace="extras",ws="false"}[5m])) by (job,le))
+job_namespace:scope_request_duration_seconds:95quantile =
+   histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{ws="false"}[5m])) by (job,namespace,le))
+job_namespace:scope_request_duration_seconds:50quantile =
+   histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{ws="false"}[5m])) by (job,namespace,le))
 
 method:scope_sqs_request_latency:95quantile =
    histogram_quantile(0.95, sum(rate(scope_sqs_request_duration_seconds_bucket[5m])) by (le,method))
@@ -56,7 +56,7 @@ method:scope_s3_request_latency:50quantile =
 
 # Rules for users dashboard
 
-job_route_status:scope_request_latency:95quantile =
+job_route_status:scope_request_duration_seconds:95quantile =
    histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,route,status,le))
 
 job:scope_database_request_latency:95quantile =

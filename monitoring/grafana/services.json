@@ -1321,14 +1321,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job:scope_request_latency_extras:95quantile{job=\"demo\"} * 1e3", # wrong namespace
+              "expr": "job_namespace:scope_request_latency:95quantile{job=\"demo\",namespace=\"extras\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "job:scope_request_latency_extras:50quantile{job=\"demo\"} * 1e3",
+              "expr": "job_namespace:scope_request_latency:50quantile{job=\"demo\",namespace=\"extras\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "B",
