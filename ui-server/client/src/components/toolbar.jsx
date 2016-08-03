@@ -45,8 +45,9 @@ export default class Toolbar extends React.Component {
   }
 
   renderLinks() {
+    const { isActive } = this.context.router;
     return this.getLinks().map(link => {
-      const linkColor = Colors.text3;
+      const linkColor = isActive(link.route.substr(1)) ? Colors.text : Colors.text3;
       const styles = {
         toolbarLink: {
           padding: 12,
@@ -107,6 +108,8 @@ export default class Toolbar extends React.Component {
 
     const links = this.renderLinks();
     const viewText = this.props.instanceName ? `View ${this.props.instanceName}` : 'Loading...';
+    const viewPath = encodeURIs`/app/${this.props.orgId}`;
+    const viewColor = this.context.router.isActive(viewPath) ? Colors.text : Colors.text3;
 
     return (
       <div>
@@ -118,7 +121,7 @@ export default class Toolbar extends React.Component {
             <div style={styles.toolbarCenter}>
               <div style={{position: 'relative'}}>
                 <FlatButton
-                  style={{color: Colors.text2}}
+                  style={{color: viewColor}}
                   onClick={this.handleClickInstance}
                   label={viewText} />
                 {this.props.instances && this.props.instances.length > 0 && <IconMenu
@@ -148,3 +151,5 @@ export default class Toolbar extends React.Component {
     );
   }
 }
+
+Toolbar.contextTypes = { router: React.PropTypes.object.isRequired };
