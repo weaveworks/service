@@ -7,9 +7,11 @@ import os
 import subprocess
 import sys
 
+
 def get_directory(path):
   """Get the directory that 'path' is in."""
   return os.path.dirname(os.path.abspath(path))
+
 
 def iter_files(paths):
   """Generate a list of paths to the files under 'paths'."""
@@ -21,9 +23,11 @@ def iter_files(paths):
         for filename in filenames:
           yield os.path.join(root, filename)
 
+
 def sort_json_file(path):
   """Sort contents of JSON file."""
   return subprocess.check_output('jq -S . "%s"' % path, shell=True)
+
 
 def lint_is_json_sorted(path):
   """Yield a warning if JSON file is not sorted."""
@@ -32,12 +36,14 @@ def lint_is_json_sorted(path):
   if sorted_json != actual_json:
     yield 'Keys in JSON file %r are not sorted. Sort with jq -S . "%s"' % (path, path)
 
+
 def lint_prometheus(path):
   """Yield a warning if a Prometheus rules file has problems."""
   try:
     subprocess.check_output(['promtool', 'check-rules', path])
   except subprocess.CalledProcessError as e:
     yield str(e)
+
 
 def lint_unique_panel_ids(path):
   """Yield warnings if the panel IDs in 'path' are not unique.
@@ -58,6 +64,7 @@ def lint_unique_panel_ids(path):
         yield "%s: panel %r shares id %s with panel %r" % (path, title_display, panel_id, panels[panel_id])
         continue
       panels[panel_id] = title
+
 
 def lint_monitoring(directory):
   """Lint monitoring files in 'directory' for correctness."""
