@@ -37,11 +37,11 @@ method:scope_dynamo_request_latency:50quantile =
    histogram_quantile(0.5, sum(rate(scope_dynamo_request_duration_seconds_bucket[5m])) by (method,le))
 
 scope_report_size:95quantile =
-   histogram_quantile(0.95, sum(irate(scope_report_size_bytes_bucket{job="collection",namespace="default"}[5m])))
+   histogram_quantile(0.95, sum(irate(scope_report_size_bytes_bucket{job="collection",namespace="default"}[5m])) by (le))
 scope_report_size:50quantile =
-  histogram_quantile(0.5, sum(irate(scope_report_size_bytes_bucket{job="collection",namespace="default"}[5m])))
+   histogram_quantile(0.5, sum(irate(scope_report_size_bytes_bucket{job="collection",namespace="default"}[5m])) by (le))
 scope_report_size:mean =
-  sum(irate(scope_report_size_bytes_sum{namespace="default",job="collection"}[5m])) / sum(irate(scope_report_size_bytes_count{namespace="default",job="collection"}[5m]))
+   sum(irate(scope_report_size_bytes_sum{namespace="default",job="collection"}[5m])) / sum(irate(scope_report_size_bytes_count{namespace="default",job="collection"}[5m]))
 
 method:scope_memcache_request_latency:95quantile =
    histogram_quantile(0.95, sum(rate(scope_memcache_request_duration_seconds_bucket[5m])) by (method,le))

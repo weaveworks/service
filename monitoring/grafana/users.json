@@ -163,7 +163,7 @@
               "step": 10
             },
             {
-              "expr": "job:scope_request_latency:50quantile * 1e3",
+              "expr": "job:scope_request_duration_seconds:50quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "B",
@@ -351,7 +351,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "(job_route_status:scope_request_latency:95quantile{job=\"users\"} by (route,status_code)) * 1e3",
+              "expr": "(job_route_status:scope_request_duration_seconds:95quantile{job=\"users\"} by (route,status_code)) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{route}} {{status_code}}",
               "refId": "A",
