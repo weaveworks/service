@@ -51,13 +51,12 @@ def iter_panels(data):
       yield panel
 
 
-def lint_unique_panel_ids(path):
+def lint_unique_panel_ids(path, data):
   """Yield warnings if the panel IDs in 'path' are not unique.
 
   We want unique IDs so we can edit graphs in our Grafana UI.
   """
   panels = {}
-  data = json.load(open(path, 'r'))
   for panel in iter_panels(data):
     panel_id = panel.get('id', None)
     title = panel.get('title', None)
@@ -78,7 +77,12 @@ def lint_monitoring(directory):
       yield warning
 
   for json_file in glob('%s/grafana/*.json' % directory):
-    warnings = chain(lint_is_json_sorted(json_file), lint_unique_panel_ids(json_file))
+    with open(json_file, 'r') as stream:
+      data = json.load(stream)
+    warnings = chain(
+      lint_is_json_sorted(json_file),
+      lint_unique_panel_ids(json_file, data),
+    )
     for warning in warnings:
       yield warning
 
