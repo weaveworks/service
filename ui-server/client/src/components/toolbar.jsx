@@ -1,59 +1,51 @@
 import React from 'react';
+import Divider from 'material-ui/Divider';
+import FlatButton from 'material-ui/FlatButton';
 import FontIcon from 'material-ui/FontIcon';
+import IconMenu from 'material-ui/IconMenu';
+import MenuItem from 'material-ui/MenuItem';
 import Paper from 'material-ui/Paper';
+import { hashHistory } from 'react-router';
 
 import { encodeURIs } from '../common/request';
 import Colors from '../common/colors';
 
+import InstanceItem from './instance-item';
 import { Logo } from './logo';
 
 export default class Toolbar extends React.Component {
 
-  getLinks() {
-    return [{
-      iconClass: 'fa fa-cog',
-      title: 'Settings for this instance',
-      route: encodeURIs`#/org/${this.props.orgId}`
-    }, {
-      title: 'Manage instances',
-      iconClass: 'fa fa-cubes',
-      route: encodeURIs`#/instance/${this.props.orgId}`
-    }, {
-      title: 'User account',
-      iconClass: 'fa fa-user',
-      route: encodeURIs`#/account/${this.props.orgId}`
-    }];
+  constructor(props, context) {
+    super(props, context);
+    this.handleClickAccount = this.handleClickAccount.bind(this);
+    this.handleClickInstance = this.handleClickInstance.bind(this);
+    this.handleClickSettings = this.handleClickSettings.bind(this);
+    this.handleClickManageInstances = this.handleClickManageInstances.bind(this);
   }
 
-  renderLinks() {
-    return this.getLinks().map(link => {
-      const linkColor = Colors.text3;
-      const styles = {
-        toolbarLink: {
-          padding: 12,
-          color: linkColor,
-        },
-        toolbarLinkIcon: {
-          fontSize: '130%'
-        },
-        toolbarLinkLabel: {
-          fontSize: '110%'
-        },
-        toolbarLinkWrapper: {
-          padding: 0
-        }
-      };
+  handleClickInstance() {
+    const url = encodeURIs`/app/${this.props.orgId}`;
+    hashHistory.push(url);
+  }
 
-      return (
-        <span style={styles.toolbarLinkWrapper} key={link.route}>
-          <a style={styles.toolbarLink} title={link.title} href={link.route}>
-            {link.iconClass && <FontIcon style={styles.toolbarLinkIcon} color={linkColor}
-              hoverColor={Colors.text} className={link.iconClass} />}
-            {link.label && <span style={styles.toolbarLinkLabel}>{link.label}</span>}
-          </a>
-        </span>
-      );
-    });
+  handleClickSettings() {
+    const url = encodeURIs`/org/${this.props.orgId}`;
+    hashHistory.push(url);
+  }
+
+  handleClickAccount() {
+    const url = encodeURIs`/account/${this.props.orgId}`;
+    hashHistory.push(url);
+  }
+
+  handleClickManageInstances() {
+    const url = encodeURIs`/instance/${this.props.orgId}`;
+    hashHistory.push(url);
+  }
+
+  isActive(page) {
+    const url = encodeURIs`/${page}/${this.props.orgId}`;
+    return this.context.router.isActive(url);
   }
 
   render() {
@@ -66,8 +58,15 @@ export default class Toolbar extends React.Component {
         justifyContent: 'space-between',
         width: '100%'
       },
+      toolbarButton: {
+        minWidth: 48
+      },
+      toolbarButtonIcon: {
+        fontSize: '1.2rem',
+        top: 2
+      },
       toolbarCenter: {
-        padding: 15
+        padding: 8
       },
       toolbarLeft: {
         top: 2,
@@ -76,19 +75,9 @@ export default class Toolbar extends React.Component {
         width: 160,
         position: 'relative'
       },
-      toolbarOrganization: {
-        color: Colors.text2,
-        fontSize: '110%',
-        lineHeight: 1
-      },
-      toolbarOrganizationName: {
-        color: Colors.text2,
-        fontSize: '60%',
-        lineHeight: 1,
-        marginLeft: '0.5em'
-      },
       toolbarRight: {
-        padding: 15,
+        marginRight: 12,
+        padding: 8
       },
       toolbarWrapper: {
         backgroundColor: '#e4e4ed',
@@ -97,7 +86,16 @@ export default class Toolbar extends React.Component {
       }
     };
 
-    const links = this.renderLinks();
+    const viewText = this.props.instance ? `View ${this.props.instance.name}` : 'Loading...';
+    const viewColor = this.isActive('app') ? Colors.text : Colors.text3;
+    const settingsColor = this.isActive('org') ? Colors.text : Colors.text3;
+    const accountColor = this.isActive('account') ? Colors.text : Colors.text3;
+    const viewSelectorButton = (
+      <FlatButton style={styles.toolbarButton}>
+        <FontIcon className="fa fa-caret-down" color={Colors.text2}
+          style={styles.toolbarButtonIcon} />
+      </FlatButton>
+    );
 
     return (
       <div>
@@ -107,17 +105,30 @@ export default class Toolbar extends React.Component {
               <Logo />
             </div>
             <div style={styles.toolbarCenter}>
-              {this.props.instance && <a href={encodeURIs`#/app/${this.props.orgId}`}
-                style={styles.toolbarOrganization}>
-
-                View Instance
-                <span style={styles.toolbarOrganizationName}>
-                  {this.props.instance.name}
-                </span>
-              </a>}
+              <div style={{position: 'relative'}}>
+                <IconMenu
+                  iconButtonElement={viewSelectorButton}
+                  anchorOrigin={{horizontal: 'left', vertical: 'top'}}
+                  targetOrigin={{horizontal: 'left', vertical: 'top'}}>
+                  {this.props.instances.map(ins => <InstanceItem key={ins.id} {...ins} />)}
+                  <Divider />
+                  <MenuItem
+                    style={{lineHeight: '24px', fontSize: 13, cursor: 'pointer'}}
+                    primaryText="Manage instances" onClick={this.handleClickManageInstances} />
+                </IconMenu>
+                <FlatButton
+                  style={{color: viewColor}}
+                  onClick={this.handleClickInstance}
+                  label={viewText} />
+                <FlatButton style={styles.toolbarButton} onClick={this.handleClickSettings}>
+                  <FontIcon className="fa fa-cog" color={settingsColor}
+                    style={styles.toolbarButtonIcon} />
+                </FlatButton>
+              </div>
             </div>
             <div style={styles.toolbarRight}>
-              {links}
+            <FlatButton style={styles.toolbarButton} labelStyle={{color: accountColor}}
+              onClick={this.handleClickAccount} label={this.props.user} />
             </div>
           </div>
         </Paper>
@@ -126,3 +137,5 @@ export default class Toolbar extends React.Component {
     );
   }
 }
+
+Toolbar.contextTypes = { router: React.PropTypes.object.isRequired };

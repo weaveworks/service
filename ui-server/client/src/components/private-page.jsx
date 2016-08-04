@@ -9,15 +9,17 @@ export default class PrivatePage extends React.Component {
   constructor() {
     super();
     this.state = {
-      instance: null
+      email: '',
+      instance: null,
+      organizations: []
     };
 
     this.handleInstanceSuccess = this.handleInstanceSuccess.bind(this);
     this.handleInstanceError = this.handleInstanceError.bind(this);
   }
 
-  handleInstanceSuccess(instance) {
-    this.setState({ instance });
+  handleInstanceSuccess(userData) {
+    this.setState(userData);
   }
 
   handleInstanceError(res) {
@@ -45,7 +47,9 @@ export default class PrivatePage extends React.Component {
       <div style={styles.backgroundContainer}>
         <Toolbar
           page={this.props.page}
+          instances={this.state.organizations}
           instance={this.state.instance}
+          user={this.state.email}
           orgId={this.props.orgId} />
         {this.props.children}
       </div>

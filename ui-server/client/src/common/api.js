@@ -30,10 +30,16 @@ export function getInstance(id) {
     // implies a cookie check
     getOrganizations()
       .then(res => {
-        if (res.organizations) {
-          const instance = res.organizations.find(org => org.id === id);
+        const { organizations, email } = res;
+        if (organizations) {
+          const instance = organizations.find(org => org.id === id);
           if (instance) {
-            resolve(instance);
+            // include all to only have one request
+            resolve({
+              email,
+              organizations,
+              instance
+            });
           } else {
             reject(Error('Instance not found'));
           }
