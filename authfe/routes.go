@@ -59,8 +59,15 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/pipe", newProxy(c.pipeHost)},
 				{"/api/deploy", newProxy(c.deployHost)},
 				{"/api/config", newProxy(c.deployHost)},
-				// Catch-all forward to query service, which is a Scope instance that we use to serve the Scope UI.
-				{"/", newProxy(c.queryHost)},
+				{"/api", newProxy(c.queryHost)},
+
+				// Catch-all forward to query service, which is a Scope instance that we
+				// use to serve the Scope UI.  Note we forward /index.html to
+				// /ui/index.html etc, as we never want to expose the root of a services
+				// to the outside world - they can get at the debug info and metrics that
+				// way.
+				{"/", middleware.PathRewrite(regexp.MustCompile("(.*)"), "/ui$1").
+					Wrap(newProxy(c.queryHost))},
 			},
 			middleware.Merge(
 				users.AuthOrgMiddleware{
