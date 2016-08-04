@@ -156,21 +156,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "frontend_request_latency:50quantile",
+              "expr": ":nginx_http_request_duration_seconds:50quantile",
               "intervalFactor": 2,
               "legendFormat": "0.5 quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "frontend_request_latency:90quantile",
+              "expr": ":nginx_http_request_duration_seconds:90quantile",
               "intervalFactor": 2,
               "legendFormat": "0.9 quantile",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "frontend_request_latency:99quantile",
+              "expr": ":nginx_http_request_duration_seconds:99quantile",
               "intervalFactor": 2,
               "legendFormat": "0.99 quantile",
               "refId": "C",

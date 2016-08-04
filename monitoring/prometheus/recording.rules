@@ -14,11 +14,11 @@ job:scope_request_duration_seconds:50quantile =
 
 
 # Nginx
-frontend_request_latency:50quantile =
+:nginx_http_request_duration_seconds:50quantile =
    histogram_quantile(0.5, sum(irate(nginx_http_request_duration_seconds_bucket{job="frontend"}[1m])) by (le))
-frontend_request_latency:90quantile =
+:nginx_http_request_duration_seconds:90quantile =
    histogram_quantile(0.9, sum(irate(nginx_http_request_duration_seconds_bucket{job="frontend"}[1m])) by (le))
-frontend_request_latency:99quantile =
+:nginx_http_request_duration_seconds:99quantile =
    histogram_quantile(0.99, sum(irate(nginx_http_request_duration_seconds_bucket{job="frontend"}[1m])) by (le))
 
 # Demo is not in 'default' namespace
@@ -40,16 +40,16 @@ method:scope_dynamo_request_latency:95quantile =
 method:scope_dynamo_request_latency:50quantile =
    histogram_quantile(0.5, sum(rate(scope_dynamo_request_duration_seconds_bucket[5m])) by (method,le))
 
-scope_report_size:95quantile =
+:scope_report_size_bytes:95quantile =
    histogram_quantile(0.95, sum(irate(scope_report_size_bytes_bucket{job="collection",namespace="default"}[5m])) by (le))
-scope_report_size:50quantile =
+:scope_report_size_bytes:50quantile =
    histogram_quantile(0.5, sum(irate(scope_report_size_bytes_bucket{job="collection",namespace="default"}[5m])) by (le))
-scope_report_size:mean =
+:scope_report_size_bytes:mean =
    sum(irate(scope_report_size_bytes_sum{namespace="default",job="collection"}[5m])) / sum(irate(scope_report_size_bytes_count{namespace="default",job="collection"}[5m]))
 
-method:scope_memcache_request_latency:95quantile =
+method:scope_memcache_request_duration_seconds:95quantile =
    histogram_quantile(0.95, sum(rate(scope_memcache_request_duration_seconds_bucket[5m])) by (method,le))
-method:scope_memcache_request_latency:50quantile =
+method:scope_memcache_request_duration_seconds:50quantile =
    histogram_quantile(0.5, sum(rate(scope_memcache_request_duration_seconds_bucket[5m])) by (method,le))
 
 method:scope_s3_request_latency:95quantile =
@@ -60,13 +60,13 @@ method:scope_s3_request_latency:50quantile =
 
 # Rules for users dashboard
 
-job_route_status:scope_request_duration_seconds:95quantile =
-   histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,route,status,le))
+job_route_status_code:scope_request_duration_seconds:95quantile =
+   histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,route,status_code,le))
 
-job:scope_database_request_latency:95quantile =
+job:scope_database_request_duration_seconds:95quantile =
    histogram_quantile(0.95, sum(rate(scope_database_request_duration_seconds_bucket{namespace="default"}[5m])) by (job, le))
-job:scope_database_request_latency:50quantile =
+job:scope_database_request_duration_seconds:50quantile =
    histogram_quantile(0.5, sum(rate(scope_database_request_duration_seconds_bucket{namespace="default"}[5m])) by (job, le))
 
-job_method_status:scope_database_request_latency:95quantile =
+job_method_status_code:scope_database_request_duration_seconds:95quantile =
    histogram_quantile(0.95, sum(rate(scope_database_request_duration_seconds_bucket{namespace="default"}[5m])) by (job, method, status_code, le))

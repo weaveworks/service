@@ -302,14 +302,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "scope_report_size:95quantile",
+              "expr": ":scope_report_size_bytes:95quantile",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "scope_report_size:50quantile",
+              "expr": ":scope_report_size_bytes:50quantile",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "metric": "",
@@ -317,7 +317,7 @@
               "step": 10
             },
             {
-              "expr": "scope_report_size:mean",
+              "expr": ":scope_report_size_bytes:mean",
               "interval": "",
               "intervalFactor": 2,
               "legendFormat": "Mean",
@@ -659,7 +659,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "method:scope_memcache_request_latency:95quantile * 1e3",
+              "expr": "method:scope_memcache_request_duration_seconds:95quantile * 1e3",
               "interval": "",
               "intervalFactor": 2,
               "legendFormat": "95th quantile {{method}}",
@@ -667,7 +667,7 @@
               "step": 10
             },
             {
-              "expr": "method:scope_memcache_request_latency:50quantile * 1e3",
+              "expr": "method:scope_memcache_request_duration_seconds:50quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile {{method}}",
               "refId": "B",
