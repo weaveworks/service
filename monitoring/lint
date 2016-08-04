@@ -45,6 +45,12 @@ def lint_prometheus(path):
     yield str(e)
 
 
+def iter_panels(data):
+  for row in data.get('rows', []):
+    for panel in row.get('panels', []):
+      yield panel
+
+
 def lint_unique_panel_ids(path):
   """Yield warnings if the panel IDs in 'path' are not unique.
 
@@ -52,18 +58,17 @@ def lint_unique_panel_ids(path):
   """
   panels = {}
   data = json.load(open(path, 'r'))
-  for row in data.get('rows', []):
-    for panel in row.get('panels', []):
-      panel_id = panel.get('id', None)
-      title = panel.get('title', None)
-      title_display = title if title else '<no title found>'
-      if panel_id is None:
-        yield "%s: panel %r has no 'id' field" % (path, title_display)
-        continue
-      if panel_id in panels:
-        yield "%s: panel %r shares id %s with panel %r" % (path, title_display, panel_id, panels[panel_id])
-        continue
-      panels[panel_id] = title
+  for panel in iter_panels(data):
+    panel_id = panel.get('id', None)
+    title = panel.get('title', None)
+    title_display = title if title else '<no title found>'
+    if panel_id is None:
+      yield "%s: panel %r has no 'id' field" % (path, title_display)
+      continue
+    if panel_id in panels:
+      yield "%s: panel %r shares id %s with panel %r" % (path, title_display, panel_id, panels[panel_id])
+      continue
+    panels[panel_id] = title
 
 
 def lint_monitoring(directory):
