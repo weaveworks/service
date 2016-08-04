@@ -4,6 +4,7 @@ from glob import glob
 from itertools import chain
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -51,6 +52,53 @@ def iter_panels(data):
       yield panel
 
 
+def iter_expressions(data):
+  for panel in iter_panels(data):
+    for target in panel.get('targets', []):
+      yield target['expr']
+
+
+"""Match the definition of a recording rule.
+
+e.g.
+    foo:bar:baz = ...
+"""
+RECORDING_RULE_DEFINITION_RE = re.compile(r'^([A-Za-z0-9:_]+)\s*=')
+
+
+def iter_recording_rules(stream):
+  """Iterate through names of recording rules in 'stream'."""
+  # This is a terrible parser.
+  # https://github.com/prometheus/prometheus/blob/master/promql/parse.go is
+  # the correct way.
+  for line in stream:
+    match = RECORDING_RULE_DEFINITION_RE.search(line)
+    if not match:
+      continue
+    yield match.group(1)
+
+
+"""Match the part of a Prometheus expression that refers to recording rule.
+
+Insists that it has a colon in it.
+
+e.g.
+    sum(foo:bar:baz) by (qux)
+"""
+RECORDING_RULE_RE = re.compile(r'([A-Za-z0-9:_]*:[A-Za-z0-9:_]*)')
+
+
+def lint_recording_rules(path, data, available_rules):
+  for expression in iter_expressions(data):
+    # XXX: Doesn't match multiple rules in an expression.
+    match = RECORDING_RULE_RE.search(expression)
+    if not match:
+      continue
+    rule = match.group(1)
+    if rule not in available_rules:
+      yield "%s: recording rule %s not found in rules definitions" % (path, rule)
+
+
 def lint_unique_panel_ids(path, data):
   """Yield warnings if the panel IDs in 'path' are not unique.
 
@@ -72,9 +120,12 @@ def lint_unique_panel_ids(path, data):
 
 def lint_monitoring(directory):
   """Lint monitoring files in 'directory' for correctness."""
+  rule_names = set()
   for rules_file in glob('%s/prometheus/*.rules' % directory):
     for warning in lint_prometheus(rules_file):
       yield warning
+    with open(rules_file, 'r') as stream:
+      rule_names |= set(iter_recording_rules(stream))
 
   for json_file in glob('%s/grafana/*.json' % directory):
     with open(json_file, 'r') as stream:
@@ -82,6 +133,7 @@ def lint_monitoring(directory):
     warnings = chain(
       lint_is_json_sorted(json_file),
       lint_unique_panel_ids(json_file, data),
+      lint_recording_rules(json_file, data, rule_names),
     )
     for warning in warnings:
       yield warning
