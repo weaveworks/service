@@ -18,7 +18,8 @@ export default class InstanceItem extends React.Component {
 
   render() {
     return (
-      <MenuItem primaryText={this.props.name} onClick={this.handleClick} />
+      <MenuItem primaryText={this.props.name} onClick={this.handleClick}
+        style={{cursor: 'pointer'}} />
     );
   }
 }

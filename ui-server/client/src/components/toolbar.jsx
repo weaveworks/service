@@ -113,7 +113,7 @@ export default class Toolbar extends React.Component {
                   {this.props.instances.map(ins => <InstanceItem key={ins.id} {...ins} />)}
                   <Divider />
                   <MenuItem
-                    style={{lineHeight: '24px', fontSize: 13}}
+                    style={{lineHeight: '24px', fontSize: 13, cursor: 'pointer'}}
                     primaryText="Manage instances" onClick={this.handleClickManageInstances} />
                 </IconMenu>
                 <FlatButton
