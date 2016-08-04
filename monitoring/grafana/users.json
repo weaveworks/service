@@ -156,7 +156,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job:scope_request_latency:95quantile * 1e3",
+              "expr": "job:scope_request_duration_seconds:95quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
