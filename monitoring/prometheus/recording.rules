@@ -2,9 +2,13 @@
 
 # Rules for services dashboard
 
-# 95quantiles for both of these are defined in alert.rules.
+job_route:scope_request_duration_seconds:95quantile =
+   histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,route,le))
 job_route:scope_request_duration_seconds:50quantile =
    histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,route,le))
+
+job:scope_request_duration_seconds:95quantile =
+   histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,le))
 job:scope_request_duration_seconds:50quantile =
    histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,le))
 

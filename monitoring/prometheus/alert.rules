@@ -3,13 +3,6 @@ job:scope_request_errors:rate1m =
    (sum(rate(scope_request_duration_seconds_count{namespace="default",status_code=~"5.."}[1m])) by (job)) /
    (sum(rate(scope_request_duration_seconds_count{namespace="default"}[1m])) by (job))
 
-# Define latency
-job_route:scope_request_duration_seconds:95quantile =
-   histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,route,le))
-
-job:scope_request_duration_seconds:95quantile =
-   histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,le))
-
 # Alert if there is a kubediff
 
 ALERT Kubediff
