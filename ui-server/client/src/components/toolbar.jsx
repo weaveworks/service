@@ -86,7 +86,7 @@ export default class Toolbar extends React.Component {
       }
     };
 
-    const viewText = this.props.instanceName ? `View ${this.props.instanceName}` : 'Loading...';
+    const viewText = this.props.instance ? `View ${this.props.instance.name}` : 'Loading...';
     const viewColor = this.isActive('app') ? Colors.text : Colors.text3;
     const settingsColor = this.isActive('org') ? Colors.text : Colors.text3;
     const accountColor = this.isActive('account') ? Colors.text : Colors.text3;
@@ -106,18 +106,16 @@ export default class Toolbar extends React.Component {
             </div>
             <div style={styles.toolbarCenter}>
               <div style={{position: 'relative'}}>
-                {this.props.instances && this.props.instances.length > 0 && <IconMenu
+                <IconMenu
                   iconButtonElement={viewSelectorButton}
                   anchorOrigin={{horizontal: 'left', vertical: 'top'}}
-                  targetOrigin={{horizontal: 'left', vertical: 'top'}}
-                  >
-                    {this.props.instances.map(ins => <InstanceItem key={ins.id} {...ins} />)}
-                    <Divider />
-                    <MenuItem
-                      style={{lineHeight: '24px', fontSize: 13}}
-                      primaryText="Manage instances" onClick={this.handleClickManageInstances} />
-                  </IconMenu>
-                }
+                  targetOrigin={{horizontal: 'left', vertical: 'top'}}>
+                  {this.props.instances.map(ins => <InstanceItem key={ins.id} {...ins} />)}
+                  <Divider />
+                  <MenuItem
+                    style={{lineHeight: '24px', fontSize: 13}}
+                    primaryText="Manage instances" onClick={this.handleClickManageInstances} />
+                </IconMenu>
                 <FlatButton
                   style={{color: viewColor}}
                   onClick={this.handleClickInstance}
@@ -130,7 +128,7 @@ export default class Toolbar extends React.Component {
             </div>
             <div style={styles.toolbarRight}>
             <FlatButton style={styles.toolbarButton} labelStyle={{color: accountColor}}
-              onClick={this.handleClickAccount} label="Account" />
+              onClick={this.handleClickAccount} label={this.props.user} />
             </div>
           </div>
         </Paper>
