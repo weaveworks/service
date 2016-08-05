@@ -847,7 +847,7 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
-	if err = a.emailer.InviteEmail(invitee, orgExternalID, token); err != nil {
+	if err = a.emailer.InviteEmail(currentUser, invitee, orgExternalID, token); err != nil {
 		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
