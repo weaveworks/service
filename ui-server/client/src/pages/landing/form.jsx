@@ -14,6 +14,7 @@ import LoginVia from './login-via';
 
 const ERROR_MESSAGES = {
   forbidden: 'Your login is no longer valid. Try logging in again.',
+  notfound: 'Instance not found. If it exists, ask your team members to invite you.',
   unauthorized: 'The login link is no longer valid. Enter your email to log in again.'
 };
 
@@ -134,9 +135,6 @@ export default class Form extends React.Component {
 
   render() {
     const submitSuccess = Boolean(this.state.token) || this.state.mailSent;
-    const unauthorized = this.props.error === 'unauthorized';
-    const forbidden = this.props.error === 'forbidden';
-    const isError = unauthorized || forbidden;
     const errorMessage = ERROR_MESSAGES[this.props.error];
     const styles = {
       submit: {
@@ -213,14 +211,14 @@ export default class Form extends React.Component {
         textTransform: 'uppercase'
       },
 
-      unauthorized: {
+      error: {
         display: 'inline-block',
         position: 'relative',
         width: 228,
         fontSize: 14,
       },
 
-      unauthorizedIcon: {
+      errorIcon: {
         position: 'absolute',
         top: 0,
         left: -2,
@@ -228,15 +226,16 @@ export default class Form extends React.Component {
         color: amber900
       },
 
-      unauthorizedLabel: {
+      errorLabel: {
         color: amber900,
+        textAlign: 'left',
         paddingLeft: 32
       },
 
-      unauthorizedWrapper: {
+      errorWrapper: {
         marginTop: 16,
         textAlign: 'center',
-        display: isError && !submitSuccess ? 'block' : 'none'
+        display: errorMessage && !submitSuccess ? 'block' : 'none'
       }
     };
 
@@ -266,10 +265,10 @@ export default class Form extends React.Component {
             {this.props.children}
           </div>
         </div>
-        <div style={styles.unauthorizedWrapper}>
-          <div style={styles.unauthorized}>
-            <span className="fa fa-ban" style={styles.unauthorizedIcon}></span>
-            <div style={styles.unauthorizedLabel}>
+        <div style={styles.errorWrapper}>
+          <div style={styles.error}>
+            <span className="fa fa-ban" style={styles.errorIcon}></span>
+            <div style={styles.errorLabel}>
               {errorMessage}
             </div>
           </div>

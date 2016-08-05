@@ -26,7 +26,7 @@ export function getLogins() {
 }
 
 export function getInstance(id) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     // implies a cookie check
     getOrganizations()
       .then(res => {
@@ -41,7 +41,7 @@ export function getInstance(id) {
               instance
             });
           } else {
-            reject(Error('Instance not found'));
+            hashHistory.push('/login/notfound');
           }
         }
       })
