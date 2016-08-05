@@ -1,5 +1,4 @@
 import React from 'react';
-import FlatButton from 'material-ui/FlatButton';
 import { red900 } from 'material-ui/styles/colors';
 import List, { ListItem } from 'material-ui/List';
 import { hashHistory } from 'react-router';
@@ -54,15 +53,12 @@ export default class IntancesList extends React.Component {
 
   renderInstance(instance) {
     const selectInstance = () => this.selectInstance(instance.id);
-    const isCurrentInstance = this.props.currentInstance === instance.id;
-    const link = isCurrentInstance ? (<FlatButton label="Active" disabled />) : (<FlatButton
-      onClick={selectInstance} label="Select" />);
     return (
-      <ListItem disabled
-        style={{cursor: 'default', paddingRight: 80}}
+      <ListItem
+        onClick={selectInstance}
+        style={{paddingRight: 64}}
         key={instance.id}
         primaryText={instance.name}
-        rightIconButton={link}
         secondaryText={instance.id}
       />
     );
