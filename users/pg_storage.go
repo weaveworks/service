@@ -695,6 +695,7 @@ func (s pgStorage) getOrganizationName(db queryRower, externalID string) (string
 	var name string
 	err := db.QueryRow(
 		`select name from organizations where lower(external_id) = lower($1) and deleted_at is null`,
+		externalID,
 	).Scan(&name)
 	return name, err
 }
