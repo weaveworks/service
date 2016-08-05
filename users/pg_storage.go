@@ -133,8 +133,9 @@ func (s pgStorage) DetachLoginFromUser(userID, provider string) error {
 	return err
 }
 
-func (s pgStorage) InviteUser(email, orgExternalID string) (*user, error) {
+func (s pgStorage) InviteUser(email, orgExternalID string) (*user, bool, error) {
 	var u *user
+	userCreated := false
 	err := s.Transaction(func(tx *sql.Tx) error {
 		o, err := s.scanOrganization(
 			s.organizationsQuery().RunWith(tx).Where("lower(organizations.external_id) = lower($1)", orgExternalID).QueryRow(),
@@ -146,6 +147,7 @@ func (s pgStorage) InviteUser(email, orgExternalID string) (*user, error) {
 		u, err = s.findUserByEmail(tx, email)
 		if err == errNotFound {
 			u, err = s.createUser(tx, email)
+			userCreated = true
 		}
 		if err != nil {
 			return err
@@ -161,9 +163,9 @@ func (s pgStorage) InviteUser(email, orgExternalID string) (*user, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	return u, nil
+	return u, userCreated, nil
 }
 
 func (s pgStorage) RemoveUserFromOrganization(orgExternalID, email string) error {

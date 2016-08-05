@@ -830,7 +830,7 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	invitee, err := a.storage.InviteUser(view.Email, orgExternalID)
+	invitee, created, err := a.storage.InviteUser(view.Email, orgExternalID)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -852,7 +852,12 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 		renderError(w, r, fmt.Errorf("Error getting organization name: %s", err))
 	}
 
-	if err = a.emailer.InviteEmail(currentUser, invitee, orgExternalID, orgName, token); err != nil {
+	if created {
+		err = a.emailer.InviteEmail(currentUser, invitee, orgExternalID, orgName, token)
+	} else {
+		err = a.emailer.GrantAccessEmail(currentUser, invitee, orgExternalID, orgName)
+	}
+	if err != nil {
 		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}

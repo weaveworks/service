@@ -35,9 +35,14 @@ func inviteURL(email, rawToken, domain, orgName string) string {
 	)
 }
 
+func organizationURL(domain, orgExternalID string) string {
+	return fmt.Sprintf("%s/#/org/%s", domain, orgExternalID)
+}
+
 type emailer interface {
 	LoginEmail(u *user, token string) error
 	InviteEmail(inviter, invited *user, orgExternalID, orgName, token string) error
+	GrantAccessEmail(inviter, invited *user, orgExternalID, orgName string) error
 }
 
 type smtpEmailer struct {
@@ -148,6 +153,21 @@ func (s smtpEmailer) InviteEmail(inviter, invited *user, orgExternalID, orgName,
 	return s.sender(e)
 }
 
+func (s smtpEmailer) GrantAccessEmail(inviter, invited *user, orgExternalID, orgName string) error {
+	e := email.NewEmail()
+	e.From = s.fromAddress
+	e.To = []string{invited.Email}
+	e.Subject = "Weave Cloud access granted to instance"
+	data := map[string]interface{}{
+		"InviterName":      userName(inviter),
+		"OrganizationName": orgName,
+		"OrganizationURL":  organizationURL(orgExternalID, orgName),
+	}
+	e.Text = s.templates.quietBytes("grant_access_email.text", data)
+	e.HTML = s.templates.quietBytes("grant_access_email.html", data)
+	return s.sender(e)
+}
+
 type sendgridEmailer struct {
 	client      *sendgrid.SGClient
 	domain      string
@@ -155,8 +175,9 @@ type sendgridEmailer struct {
 }
 
 const (
-	loginEmailTemplate  = "ccf3f6e2-20f9-4c41-bd72-ca204c1c3f6f"
-	inviteEmailTemplate = "00ceaa49-857f-4ce4-bc39-789b7f56c886"
+	loginEmailTemplate       = "ccf3f6e2-20f9-4c41-bd72-ca204c1c3f6f"
+	inviteEmailTemplate      = "00ceaa49-857f-4ce4-bc39-789b7f56c886"
+	grantAccessEmailTemplate = "e0b17255-ff21-4389-9551-52943c661ca5"
 )
 
 func (s sendgridEmailer) sendgridEmail(templateID string) *sendgrid.SGMail {
@@ -186,6 +207,16 @@ func (s sendgridEmailer) InviteEmail(inviter, invited *user, orgExternalID, orgN
 	mail.AddSubstitution(":root_url", s.domain)
 	mail.AddSubstitution(":org_name", orgName)
 	mail.AddSubstitution(":org_id", orgExternalID)
+	return s.client.Send(mail)
+}
+
+// GrantAccessEmail sends an email granting access.
+func (s sendgridEmailer) GrantAccessEmail(inviter, invited *user, orgExternalID, orgName string) error {
+	mail := s.sendgridEmail(grantAccessEmailTemplate)
+	mail.AddTo(invited.Email)
+	mail.AddSubstitution(":inviter_name", userName(inviter))
+	mail.AddSubstitution(":org_url", organizationURL(s.domain, orgExternalID))
+	mail.AddSubstitution(":org_name", orgName)
 	return s.client.Send(mail)
 }
 
