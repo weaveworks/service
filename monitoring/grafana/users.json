@@ -156,14 +156,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"users\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "expr": "job:scope_request_duration_seconds:95quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"users\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "expr": "job:scope_request_duration_seconds:50quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "B",
@@ -351,7 +351,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"users\",ws=\"false\"}[5m])) by (le,route,status_code)) * 1e3",
+              "expr": "job_route_status_code:scope_request_duration_seconds:95quantile{job=\"users\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{route}} {{status_code}}",
               "refId": "A",
@@ -511,14 +511,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_database_request_duration_seconds_bucket{namespace=\"default\",job=\"users\"}[5m])) by (le)) * 1e3",
+              "expr": "job:scope_database_request_duration_seconds:95quantile{job=\"users\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(scope_database_request_duration_seconds_bucket{namespace=\"default\",job=\"users\"}[5m])) by (le)) * 1e3",
+              "expr": "job:scope_database_request_duration_seconds:50quantile{job=\"users\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "B",
@@ -678,7 +678,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_database_request_duration_seconds_bucket{namespace=\"default\",job=\"users\"}[5m])) by (le,method,status_code)) * 1e3",
+              "expr": "job_method_status_code:scope_database_request_duration_seconds:95quantile{job=\"users\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{method}} - {{status_code}}",
               "refId": "A",

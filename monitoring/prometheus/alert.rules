@@ -3,17 +3,6 @@ job:scope_request_errors:rate1m =
    (sum(rate(scope_request_duration_seconds_count{namespace="default",status_code=~"5.."}[1m])) by (job)) /
    (sum(rate(scope_request_duration_seconds_count{namespace="default"}[1m])) by (job))
 
-# Define non-ws latency by route
-job_route:scope_request_latency:max =
-   max(scope_request_duration_seconds{namespace="default", quantile="0.9", ws="false"}) by (job, route)
-
-job_route:scope_request_duration_seconds:95quantile =
-   histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,le))
-
-# Define non-ws latency
-job:scope_request_latency:max =
-   max(scope_request_duration_seconds{namespace="default", quantile="0.9", ws="false"}) by (job)
-
 # Alert if there is a kubediff
 
 ALERT Kubediff
@@ -66,21 +55,21 @@ ALERT QueryErrorRate
 # For each service, an alert on latency
 
 ALERT AuthFELatency
-  IF          max(job_route:scope_request_latency:max{job="authfe",route!~"admin|grafana"}) by (job) > 5.0
+  IF          max(job_route:scope_request_duration_seconds:95quantile{job="authfe",route!~"admin|grafana"}) by (job) > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
     summary = "authfe service: high latency",
-    description = "The authfe service has a max 90th-quantile latency of {{$value}} ms.",
+    description = "The authfe service has a max 95th-quantile latency of {{$value}} ms.",
   }
 
 ALERT UsersLatency
-  IF          job:scope_request_latency:max{job="users"} > 5.0
+  IF          job:scope_request_duration_seconds:95quantile{job="users"} > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
     summary = "users service: high latency",
-    description = "The users service has a max 90th-quantile latency of {{$value}} ms.",
+    description = "The users service has a max 95th-quantile latency of {{$value}} ms.",
   }
 
 ALERT CollectionLatency
@@ -89,7 +78,7 @@ ALERT CollectionLatency
   LABELS      { severity="warning" }
   ANNOTATIONS {
     summary = "collection service: high latency",
-    description = "The collection service has a max 90th-quantile latency of {{$value}} ms.",
+    description = "The collection service has a max 95th-quantile latency of {{$value}} ms.",
   }
 
 ALERT QueryLatency
@@ -98,7 +87,7 @@ ALERT QueryLatency
   LABELS      { severity="warning" }
   ANNOTATIONS {
     summary = "query service: high latency",
-    description = "The query service has a max 90th-quantile latency of {{$value}} ms.",
+    description = "The query service has a max 95th-quantile latency of {{$value}} ms.",
   }
 
 # For each service, an alert if it's absent

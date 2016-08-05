@@ -156,21 +156,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.5, sum(irate(nginx_http_request_duration_seconds_bucket{job=\"frontend\"}[1m])) by (le))",
+              "expr": ":nginx_http_request_duration_seconds:50quantile",
               "intervalFactor": 2,
               "legendFormat": "0.5 quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.9, sum(irate(nginx_http_request_duration_seconds_bucket{job=\"frontend\"}[1m])) by (le))",
+              "expr": ":nginx_http_request_duration_seconds:90quantile",
               "intervalFactor": 2,
               "legendFormat": "0.9 quantile",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.99, sum(irate(nginx_http_request_duration_seconds_bucket{job=\"frontend\"}[1m])) by (le))",
+              "expr": ":nginx_http_request_duration_seconds:99quantile",
               "intervalFactor": 2,
               "legendFormat": "0.99 quantile",
               "refId": "C",
@@ -356,14 +356,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"^(admin|metrics).*\"}[5m])) by (le)) * 1e3",
+              "expr": "job_route:scope_request_duration_seconds:95quantile{job=\"authfe\",route!~\"admin|grafana\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"authfe\",ws=\"false\",route !~ \"^(admin|metrics).*\"}[5m])) by (le)) * 1e3",
+              "expr": "job_route:scope_request_duration_seconds:50quantile{job=\"authfe\",route!~\"admin|grafana\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "B",
@@ -551,14 +551,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"users\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "expr": "job:scope_request_duration_seconds:95quantile{job=\"users\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"users\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "expr": "job:scope_request_duration_seconds:50quantile{job=\"users\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "B",
@@ -744,14 +744,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"collection\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "expr": "job:scope_request_duration_seconds:95quantile{job=\"collection\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"collection\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "expr": "job:scope_request_duration_seconds:50quantile{job=\"collection\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "B",
@@ -936,14 +936,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"query\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "expr": "job:scope_request_duration_seconds:95quantile{job=\"query\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"query\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "expr": "job:scope_request_duration_seconds:50quantile{job=\"query\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "B",
@@ -1129,14 +1129,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"control\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "expr": "job:scope_request_duration_seconds:95quantile{job=\"control\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.50, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"control\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "expr": "job:scope_request_duration_seconds:50quantile{job=\"control\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "B",
@@ -1321,14 +1321,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"extra\",job=\"demo\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "expr": "job_namespace:scope_request_duration_seconds:95quantile{job=\"demo\",namespace=\"extra\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"extra\",job=\"demo\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "expr": "job_namespace:scope_request_duration_seconds:50quantile{job=\"demo\",namespace=\"extras\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "B",
@@ -1492,14 +1492,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_sqs_request_duration_seconds_bucket[5m])) by (le,method)) * 1e3",
+              "expr": "method:scope_sqs_request_latency:95quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile {{method}}",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(scope_sqs_request_duration_seconds_bucket[5m])) by (le,method)) * 1e3",
+              "expr": "method:scope_sqs_request_latency:50quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile {{method}}",
               "refId": "B",
@@ -1684,14 +1684,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"pipe\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "expr": "job:scope_request_duration_seconds:95quantile{job=\"pipe\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace=\"default\",job=\"pipe\",ws=\"false\"}[5m])) by (le)) * 1e3",
+              "expr": "job:scope_request_duration_seconds:50quantile{job=\"pipe\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "B",
