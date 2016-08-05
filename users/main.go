@@ -847,7 +847,12 @@ func (a *api) inviteUser(currentUser *user, w http.ResponseWriter, r *http.Reque
 		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
-	if err = a.emailer.InviteEmail(currentUser, invitee, orgExternalID, token); err != nil {
+	orgName, err := a.storage.GetOrganizationName(orgExternalID)
+	if err != nil {
+		renderError(w, r, fmt.Errorf("Error getting organization name: %s", err))
+	}
+
+	if err = a.emailer.InviteEmail(currentUser, invitee, orgExternalID, orgName, token); err != nil {
 		renderError(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}

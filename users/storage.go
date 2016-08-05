@@ -77,6 +77,7 @@ type database interface {
 	FindOrganizationByProbeToken(probeToken string) (*organization, error)
 	RenameOrganization(externalID, newName string) error
 	OrganizationExists(externalID string) (bool, error)
+	GetOrganizationName(externalID string) (string, error)
 	DeleteOrganization(externalID string) error
 
 	Close() error
@@ -273,6 +274,14 @@ func (t timedDatabase) RenameOrganization(externalID, name string) error {
 func (t timedDatabase) OrganizationExists(externalID string) (b bool, err error) {
 	t.timeRequest("OrganizationExists", func() error {
 		b, err = t.d.OrganizationExists(externalID)
+		return err
+	})
+	return
+}
+
+func (t timedDatabase) GetOrganizationName(externalID string) (name string, err error) {
+	t.timeRequest("GetOrganizationName", func() error {
+		name, err = t.d.GetOrganizationName(externalID)
 		return err
 	})
 	return

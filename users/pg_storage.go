@@ -685,6 +685,18 @@ func (s pgStorage) organizationExists(db queryRower, externalID string) (bool, e
 	return exists, err
 }
 
+func (s pgStorage) GetOrganizationName(externalID string) (string, error) {
+	return s.getOrganizationName(s, externalID)
+}
+
+func (s pgStorage) getOrganizationName(db queryRower, externalID string) (string, error) {
+	var name string
+	err := db.QueryRow(
+		`select name from organizations where lower(external_id) = lower($1) and deleted_at is null`,
+	).Scan(&name)
+	return name, err
+}
+
 func (s pgStorage) DeleteOrganization(externalID string) error {
 	_, err := s.Exec(
 		`update organizations set deleted_at = $1 where lower(external_id) = lower($2)`,

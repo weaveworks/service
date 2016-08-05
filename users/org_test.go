@@ -371,3 +371,19 @@ func Test_Organization_Delete(t *testing.T) {
 	}
 	assert.False(t, found, "Expected user not to have the deleted org any more")
 }
+
+func Test_Organization_Name(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user := getApprovedUser(t)
+	externalID, err := storage.GenerateOrganizationExternalID()
+	name := "arbitrary name"
+	require.NoError(t, err)
+
+	_, err = storage.CreateOrganization(user.ID, externalID, name)
+	require.NoError(t, err)
+
+	foundName, err := storage.GetOrganizationName(externalID)
+	assert.Equal(t, name, foundName)
+}

@@ -37,7 +37,7 @@ func inviteURL(email, rawToken, domain, orgName string) string {
 
 type emailer interface {
 	LoginEmail(u *user, token string) error
-	InviteEmail(inviter, invited *user, orgExternalID, token string) error
+	InviteEmail(inviter, invited *user, orgExternalID, orgName, token string) error
 }
 
 type smtpEmailer struct {
@@ -131,7 +131,7 @@ func (s smtpEmailer) LoginEmail(u *user, token string) error {
 	return s.sender(e)
 }
 
-func (s smtpEmailer) InviteEmail(inviter, invited *user, orgExternalID, token string) error {
+func (s smtpEmailer) InviteEmail(inviter, invited *user, orgExternalID, orgName, token string) error {
 	e := email.NewEmail()
 	e.From = s.fromAddress
 	e.To = []string{invited.Email}
@@ -140,7 +140,7 @@ func (s smtpEmailer) InviteEmail(inviter, invited *user, orgExternalID, token st
 		"LoginURL":         inviteURL(invited.Email, token, s.domain, orgExternalID),
 		"RootURL":          s.domain,
 		"Token":            token,
-		"OrganizationName": orgExternalID,
+		"OrganizationName": orgName,
 		"OrganizationID":   orgExternalID,
 	}
 	e.Text = s.templates.quietBytes("invite_email.text", data)
@@ -178,12 +178,21 @@ func (s sendgridEmailer) LoginEmail(u *user, token string) error {
 	return s.client.Send(mail)
 }
 
-func (s sendgridEmailer) InviteEmail(inviter, invited *user, orgExternalID, token string) error {
+func (s sendgridEmailer) InviteEmail(inviter, invited *user, orgExternalID, orgName, token string) error {
 	mail := s.sendgridEmail(inviteEmailTemplate)
 	mail.AddTo(invited.Email)
+	mail.AddSubstitution(":inviter_name", userName(inviter))
 	mail.AddSubstitution(":login_url", inviteURL(invited.Email, token, s.domain, orgExternalID))
 	mail.AddSubstitution(":root_url", s.domain)
-	mail.AddSubstitution(":org_name", orgExternalID)
+	mail.AddSubstitution(":org_name", orgName)
 	mail.AddSubstitution(":org_id", orgExternalID)
 	return s.client.Send(mail)
+}
+
+// getUserName returns a string that will identify the user doing the inviting
+// to the person being invited.
+//
+// For now, it's just the email address.
+func userName(u *user) string {
+	return u.Email
 }

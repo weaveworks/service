@@ -383,6 +383,20 @@ func (s *memoryStorage) organizationExists(externalID string) (bool, error) {
 	return true, nil
 }
 
+func (s *memoryStorage) GetOrganizationName(externalID string) (string, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.getOrganizationName(externalID)
+}
+
+func (s *memoryStorage) getOrganizationName(externalID string) (string, error) {
+	o, err := s.findOrganizationByExternalID(externalID)
+	if err != nil {
+		return "", err
+	}
+	return o.Name, nil
+}
+
 func (s *memoryStorage) DeleteOrganization(externalID string) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
