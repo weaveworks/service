@@ -74,7 +74,7 @@ func Test_ListOrganizationUsers(t *testing.T) {
 	user, org := getOrg(t)
 
 	fran := getApprovedUser(t)
-	fran, err := storage.InviteUser(fran.Email, org.ExternalID)
+	fran, _, err := storage.InviteUser(fran.Email, org.ExternalID)
 	require.NoError(t, err)
 
 	w := httptest.NewRecorder()
