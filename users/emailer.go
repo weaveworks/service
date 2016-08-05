@@ -37,7 +37,7 @@ func inviteURL(email, rawToken, domain, orgName string) string {
 
 type emailer interface {
 	LoginEmail(u *user, token string) error
-	InviteEmail(u *user, orgExternalID, token string) error
+	InviteEmail(invited *user, orgExternalID, token string) error
 }
 
 type smtpEmailer struct {
@@ -131,13 +131,13 @@ func (s smtpEmailer) LoginEmail(u *user, token string) error {
 	return s.sender(e)
 }
 
-func (s smtpEmailer) InviteEmail(u *user, orgExternalID, token string) error {
+func (s smtpEmailer) InviteEmail(invited *user, orgExternalID, token string) error {
 	e := email.NewEmail()
 	e.From = s.fromAddress
-	e.To = []string{u.Email}
+	e.To = []string{invited.Email}
 	e.Subject = "You've been invited to Weave Cloud"
 	data := map[string]interface{}{
-		"LoginURL":         inviteURL(u.Email, token, s.domain, orgExternalID),
+		"LoginURL":         inviteURL(invited.Email, token, s.domain, orgExternalID),
 		"RootURL":          s.domain,
 		"Token":            token,
 		"OrganizationName": orgExternalID,
@@ -178,10 +178,10 @@ func (s sendgridEmailer) LoginEmail(u *user, token string) error {
 	return s.client.Send(mail)
 }
 
-func (s sendgridEmailer) InviteEmail(u *user, orgExternalID, token string) error {
+func (s sendgridEmailer) InviteEmail(invited *user, orgExternalID, token string) error {
 	mail := s.sendgridEmail(inviteEmailTemplate)
-	mail.AddTo(u.Email)
-	mail.AddSubstitution(":login_url", inviteURL(u.Email, token, s.domain, orgExternalID))
+	mail.AddTo(invited.Email)
+	mail.AddSubstitution(":login_url", inviteURL(invited.Email, token, s.domain, orgExternalID))
 	mail.AddSubstitution(":root_url", s.domain)
 	mail.AddSubstitution(":org_name", orgExternalID)
 	mail.AddSubstitution(":org_id", orgExternalID)
