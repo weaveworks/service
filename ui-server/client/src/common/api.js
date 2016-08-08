@@ -26,23 +26,21 @@ export function getLogins() {
 }
 
 export function getInstance(id) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     // implies a cookie check
     getOrganizations()
       .then(res => {
         const { organizations, email } = res;
-        if (organizations) {
-          const instance = organizations.find(org => org.id === id);
-          if (instance) {
-            // include all to only have one request
-            resolve({
-              email,
-              organizations,
-              instance
-            });
-          } else {
-            reject(Error('Instance not found'));
-          }
+        const instance = organizations && organizations.find(org => org.id === id);
+        if (instance) {
+          // include all to only have one request
+          resolve({
+            email,
+            organizations,
+            instance
+          });
+        } else {
+          hashHistory.push('/instances/error/notfound');
         }
       })
       .catch(res => {

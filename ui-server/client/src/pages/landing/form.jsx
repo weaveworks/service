@@ -2,14 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import RaisedButton from 'material-ui/RaisedButton';
 import TextField from 'material-ui/TextField';
-import { amber900, grey100, grey500,
-  lightBlue500 } from 'material-ui/styles/colors';
+import { grey100, grey500, lightBlue500 } from 'material-ui/styles/colors';
 import { hashHistory } from 'react-router';
 
 import { getLogins } from '../../common/api';
 import { postData } from '../../common/request';
 import { trackEvent, trackException, trackTiming, trackView,
   PardotSignupIFrame } from '../../common/tracking';
+import ErrorMessage from '../../components/error-message';
 import LoginVia from './login-via';
 
 const ERROR_MESSAGES = {
@@ -134,9 +134,6 @@ export default class Form extends React.Component {
 
   render() {
     const submitSuccess = Boolean(this.state.token) || this.state.mailSent;
-    const unauthorized = this.props.error === 'unauthorized';
-    const forbidden = this.props.error === 'forbidden';
-    const isError = unauthorized || forbidden;
     const errorMessage = ERROR_MESSAGES[this.props.error];
     const styles = {
       submit: {
@@ -211,32 +208,6 @@ export default class Form extends React.Component {
         textAlign: 'center',
         padding: '36px 0px',
         textTransform: 'uppercase'
-      },
-
-      unauthorized: {
-        display: 'inline-block',
-        position: 'relative',
-        width: 228,
-        fontSize: 14,
-      },
-
-      unauthorizedIcon: {
-        position: 'absolute',
-        top: 0,
-        left: -2,
-        fontSize: 32,
-        color: amber900
-      },
-
-      unauthorizedLabel: {
-        color: amber900,
-        paddingLeft: 32
-      },
-
-      unauthorizedWrapper: {
-        marginTop: 16,
-        textAlign: 'center',
-        display: isError && !submitSuccess ? 'block' : 'none'
       }
     };
 
@@ -266,14 +237,9 @@ export default class Form extends React.Component {
             {this.props.children}
           </div>
         </div>
-        <div style={styles.unauthorizedWrapper}>
-          <div style={styles.unauthorized}>
-            <span className="fa fa-ban" style={styles.unauthorizedIcon}></span>
-            <div style={styles.unauthorizedLabel}>
-              {errorMessage}
-            </div>
-          </div>
-        </div>
+
+        <ErrorMessage message={errorMessage} hidden={submitSuccess} />
+
         <div style={styles.confirmation}>
           <span className="fa fa-check" style={styles.confirmationIcon}></span>
           <p style={styles.confirmationLabel}>
