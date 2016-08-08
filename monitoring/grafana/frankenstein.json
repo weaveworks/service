@@ -52,10 +52,10 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "go_memstats_heap_alloc_bytes{job=\"distributor\"}",
+              "expr": "rate(prometheus_remote_storage_sent_samples_total{job=\"retrieval\"}[1m])",
               "intervalFactor": 2,
-              "legendFormat": "",
-              "metric": "go_memstats_heap_alloc_bytes",
+              "legendFormat": "{{instance}} - {{result}}",
+              "metric": "",
               "refId": "A",
               "step": 240
             }
@@ -381,7 +381,7 @@
               "expr": "rate(prometheus_dynamo_consumed_capacity_total{job=\"distributor\"}[1m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}",
-              "metric": "prometheus_dynamo_consumed_capacity_total",
+              "metric": "",
               "refId": "A",
               "step": 240
             }
@@ -1085,7 +1085,7 @@
               "expr": "rate(prometheus_dynamo_consumed_capacity_total{job=\"ingestor\"}[1m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}",
-              "metric": "prometheus_dynamo_consumed_capacity_total",
+              "metric": "",
               "refId": "A",
               "step": 240
             }
