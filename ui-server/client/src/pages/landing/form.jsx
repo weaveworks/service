@@ -2,19 +2,18 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import RaisedButton from 'material-ui/RaisedButton';
 import TextField from 'material-ui/TextField';
-import { amber900, grey100, grey500,
-  lightBlue500 } from 'material-ui/styles/colors';
+import { grey100, grey500, lightBlue500 } from 'material-ui/styles/colors';
 import { hashHistory } from 'react-router';
 
 import { getLogins } from '../../common/api';
 import { postData } from '../../common/request';
 import { trackEvent, trackException, trackTiming, trackView,
   PardotSignupIFrame } from '../../common/tracking';
+import ErrorMessage from '../../components/error-message';
 import LoginVia from './login-via';
 
 const ERROR_MESSAGES = {
   forbidden: 'Your login is no longer valid. Try logging in again.',
-  notfound: 'Instance not found. If it exists, ask your team members to invite you.',
   unauthorized: 'The login link is no longer valid. Enter your email to log in again.'
 };
 
@@ -209,33 +208,6 @@ export default class Form extends React.Component {
         textAlign: 'center',
         padding: '36px 0px',
         textTransform: 'uppercase'
-      },
-
-      error: {
-        display: 'inline-block',
-        position: 'relative',
-        width: 228,
-        fontSize: 14,
-      },
-
-      errorIcon: {
-        position: 'absolute',
-        top: 0,
-        left: -2,
-        fontSize: 32,
-        color: amber900
-      },
-
-      errorLabel: {
-        color: amber900,
-        textAlign: 'left',
-        paddingLeft: 32
-      },
-
-      errorWrapper: {
-        marginTop: 16,
-        textAlign: 'center',
-        display: errorMessage && !submitSuccess ? 'block' : 'none'
       }
     };
 
@@ -265,14 +237,9 @@ export default class Form extends React.Component {
             {this.props.children}
           </div>
         </div>
-        <div style={styles.errorWrapper}>
-          <div style={styles.error}>
-            <span className="fa fa-ban" style={styles.errorIcon}></span>
-            <div style={styles.errorLabel}>
-              {errorMessage}
-            </div>
-          </div>
-        </div>
+
+        <ErrorMessage message={errorMessage} hidden={submitSuccess} />
+
         <div style={styles.confirmation}>
           <span className="fa fa-check" style={styles.confirmationIcon}></span>
           <p style={styles.confirmationLabel}>

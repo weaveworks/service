@@ -5,6 +5,7 @@ import AccountPage from './pages/account/page';
 import InstancesCreate from './pages/onboarding/instances-create';
 import InstancesPage from './pages/instances/page';
 import InstancesDeleted from './pages/onboarding/instances-deleted';
+import InstancesError from './pages/onboarding/instances-error';
 import InstancesPicker from './pages/onboarding/instances-picker';
 import InstancesSelect from './pages/onboarding/instances-select';
 import OnboardingPage from './pages/onboarding/page';
@@ -32,6 +33,7 @@ export default function getRoutes() {
         <Route path="create(/:first)" component={InstancesCreate} />
         <Route path="select/:id" component={InstancesSelect} />
         <Route path="deleted" component={InstancesDeleted} />
+        <Route path="error/:error" component={InstancesError} />
       </Route>
 
       {/* Sign up/Log in */}

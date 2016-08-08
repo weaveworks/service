@@ -31,18 +31,16 @@ export function getInstance(id) {
     getOrganizations()
       .then(res => {
         const { organizations, email } = res;
-        if (organizations) {
-          const instance = organizations.find(org => org.id === id);
-          if (instance) {
-            // include all to only have one request
-            resolve({
-              email,
-              organizations,
-              instance
-            });
-          } else {
-            hashHistory.push('/login/notfound');
-          }
+        const instance = organizations && organizations.find(org => org.id === id);
+        if (instance) {
+          // include all to only have one request
+          resolve({
+            email,
+            organizations,
+            instance
+          });
+        } else {
+          hashHistory.push('/instances/error/notfound');
         }
       })
       .catch(res => {
