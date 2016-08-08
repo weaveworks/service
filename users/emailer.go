@@ -159,7 +159,7 @@ func (s smtpEmailer) GrantAccessEmail(inviter, invited *user, orgExternalID, org
 	e.To = []string{invited.Email}
 	e.Subject = "Weave Cloud access granted to instance"
 	data := map[string]interface{}{
-		"InviterName":      userName(inviter),
+		"InviterName":      inviter.Email,
 		"OrganizationName": orgName,
 		"OrganizationURL":  organizationURL(orgExternalID, orgName),
 	}
@@ -202,7 +202,7 @@ func (s sendgridEmailer) LoginEmail(u *user, token string) error {
 func (s sendgridEmailer) InviteEmail(inviter, invited *user, orgExternalID, orgName, token string) error {
 	mail := s.sendgridEmail(inviteEmailTemplate)
 	mail.AddTo(invited.Email)
-	mail.AddSubstitution(":inviter_name", userName(inviter))
+	mail.AddSubstitution(":inviter_name", inviter.Email)
 	mail.AddSubstitution(":login_url", inviteURL(invited.Email, token, s.domain, orgExternalID))
 	mail.AddSubstitution(":root_url", s.domain)
 	mail.AddSubstitution(":org_name", orgName)
@@ -214,16 +214,8 @@ func (s sendgridEmailer) InviteEmail(inviter, invited *user, orgExternalID, orgN
 func (s sendgridEmailer) GrantAccessEmail(inviter, invited *user, orgExternalID, orgName string) error {
 	mail := s.sendgridEmail(grantAccessEmailTemplate)
 	mail.AddTo(invited.Email)
-	mail.AddSubstitution(":inviter_name", userName(inviter))
+	mail.AddSubstitution(":inviter_name", inviter.Email)
 	mail.AddSubstitution(":org_url", organizationURL(s.domain, orgExternalID))
 	mail.AddSubstitution(":org_name", orgName)
 	return s.client.Send(mail)
-}
-
-// getUserName returns a string that will identify the user doing the inviting
-// to the person being invited.
-//
-// For now, it's just the email address.
-func userName(u *user) string {
-	return u.Email
 }
