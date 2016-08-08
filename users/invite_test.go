@@ -69,8 +69,8 @@ func Test_InviteExistingUser(t *testing.T) {
 
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{fran.Email}, sentEmails[0].To)
-		assert.Contains(t, string(sentEmails[0].Text), "You've been invited")
-		assert.Contains(t, string(sentEmails[0].HTML), "You've been invited")
+		assert.Contains(t, string(sentEmails[0].Text), "has granted you access")
+		assert.Contains(t, string(sentEmails[0].HTML), "has granted you access")
 	}
 }
 
@@ -111,10 +111,11 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 
 	fran, err := storage.CreateUser("fran@weave.works")
 	require.NoError(t, err)
-	fran, err = storage.InviteUser(fran.Email, org.ExternalID)
+	fran, created, err := storage.InviteUser(fran.Email, org.ExternalID)
 	require.NoError(t, err)
 	require.Len(t, fran.Organizations, 1)
 	assert.Equal(t, org.ID, fran.Organizations[0].ID)
+	assert.Equal(t, created, false)
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "POST", "/api/users/org/"+org.ExternalID+"/users", jsonBody{"email": fran.Email}.Reader(t))
@@ -129,8 +130,8 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{"fran@weave.works"}, sentEmails[0].To)
-		assert.Contains(t, string(sentEmails[0].Text), "You've been invited")
-		assert.Contains(t, string(sentEmails[0].HTML), "You've been invited")
+		assert.Contains(t, string(sentEmails[0].Text), "has granted you access")
+		assert.Contains(t, string(sentEmails[0].HTML), "has granted you access")
 	}
 }
 
@@ -176,8 +177,8 @@ func Test_Invite_UserNotApproved(t *testing.T) {
 
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{fran.Email}, sentEmails[0].To)
-		assert.Contains(t, string(sentEmails[0].Text), "You've been invited")
-		assert.Contains(t, string(sentEmails[0].HTML), "You've been invited")
+		assert.Contains(t, string(sentEmails[0].Text), "has granted you access")
+		assert.Contains(t, string(sentEmails[0].HTML), "has granted you access")
 	}
 }
 
@@ -203,8 +204,8 @@ func Test_Invite_UserInDifferentOrganization(t *testing.T) {
 
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{fran.Email}, sentEmails[0].To)
-		assert.Contains(t, string(sentEmails[0].Text), "You've been invited")
-		assert.Contains(t, string(sentEmails[0].HTML), "You've been invited")
+		assert.Contains(t, string(sentEmails[0].Text), "has granted you access")
+		assert.Contains(t, string(sentEmails[0].HTML), "has granted you access")
 	}
 }
 
@@ -214,7 +215,7 @@ func Test_Invite_RemoveOtherUsersAccess(t *testing.T) {
 
 	user, org := getOrg(t)
 	otherUser := getApprovedUser(t)
-	otherUser, err := storage.InviteUser(otherUser.Email, org.ExternalID)
+	otherUser, _, err := storage.InviteUser(otherUser.Email, org.ExternalID)
 	require.NoError(t, err)
 	require.Len(t, otherUser.Organizations, 1)
 

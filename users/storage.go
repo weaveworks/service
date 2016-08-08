@@ -42,12 +42,8 @@ type database interface {
 	// user is linked to the remote login.
 	DetachLoginFromUser(userID, provider string) error
 
-	// Create a new user in an existing organization.
-	// If the user already exists:
-	// * in a *different* organization, this should return errEmailIsTaken.
-	// * but is not approved, approve them into the organization.
-	// * in the same organization, no-op.
-	InviteUser(email, orgExternalID string) (*user, error)
+	// Invite a user to access an existing organization.
+	InviteUser(email, orgExternalID string) (*user, bool, error)
 
 	// Remove a user from an organization. If they do not exist (or are not a member of the org), return success.
 	RemoveUserFromOrganization(orgExternalID, email string) error
@@ -77,6 +73,7 @@ type database interface {
 	FindOrganizationByProbeToken(probeToken string) (*organization, error)
 	RenameOrganization(externalID, newName string) error
 	OrganizationExists(externalID string) (bool, error)
+	GetOrganizationName(externalID string) (string, error)
 	DeleteOrganization(externalID string) error
 
 	Close() error
@@ -184,9 +181,9 @@ func (t timedDatabase) DetachLoginFromUser(userID, provider string) error {
 	})
 }
 
-func (t timedDatabase) InviteUser(email, orgExternalID string) (u *user, err error) {
+func (t timedDatabase) InviteUser(email, orgExternalID string) (u *user, created bool, err error) {
 	t.timeRequest("InviteUser", func() error {
-		u, err = t.d.InviteUser(email, orgExternalID)
+		u, created, err = t.d.InviteUser(email, orgExternalID)
 		return err
 	})
 	return
@@ -273,6 +270,14 @@ func (t timedDatabase) RenameOrganization(externalID, name string) error {
 func (t timedDatabase) OrganizationExists(externalID string) (b bool, err error) {
 	t.timeRequest("OrganizationExists", func() error {
 		b, err = t.d.OrganizationExists(externalID)
+		return err
+	})
+	return
+}
+
+func (t timedDatabase) GetOrganizationName(externalID string) (name string, err error) {
+	t.timeRequest("GetOrganizationName", func() error {
+		name, err = t.d.GetOrganizationName(externalID)
 		return err
 	})
 	return

@@ -97,27 +97,29 @@ func (s *memoryStorage) DetachLoginFromUser(userID, provider string) error {
 	return nil
 }
 
-func (s *memoryStorage) InviteUser(email, orgExternalID string) (*user, error) {
+func (s *memoryStorage) InviteUser(email, orgExternalID string) (*user, bool, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
+	created := false
 	o, err := s.findOrganizationByExternalID(orgExternalID)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	u, err := s.findUserByEmail(email)
 	if err == errNotFound {
 		u, err = s.createUser(email)
+		created = true
 	}
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	if u.HasOrganization(orgExternalID) {
-		return u, nil
+		return u, false, nil
 	}
 	u.Organizations = append(u.Organizations, o)
-	return u, nil
+	return u, created, nil
 }
 
 func (s *memoryStorage) RemoveUserFromOrganization(orgExternalID, email string) error {
@@ -381,6 +383,16 @@ func (s *memoryStorage) organizationExists(externalID string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (s *memoryStorage) GetOrganizationName(externalID string) (string, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	o, err := s.findOrganizationByExternalID(externalID)
+	if err != nil {
+		return "", err
+	}
+	return o.Name, nil
 }
 
 func (s *memoryStorage) DeleteOrganization(externalID string) error {
