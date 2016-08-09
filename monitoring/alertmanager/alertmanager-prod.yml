@@ -59,7 +59,7 @@ receivers:
 - name: 'service-alerts-warning'
   slack_configs:
   - api_url: https://hooks.slack.com/services/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
-    channel: scope
+    channel: cloud
     send_resolved: true
     username: prod-alert
 
