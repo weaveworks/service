@@ -95,7 +95,7 @@ func main() {
 	flag.StringVar(&c.promHost, "prom", "distributor.frankenstein.svc.cluster.local:80", "Hostname & port for prom service")
 
 	// For Admin routers
-	flag.StringVar(&c.grafanaHost, "grafana", "grafana.monitoring.svc.cluster.local:80", "Hostname & port for gafana")
+	flag.StringVar(&c.grafanaHost, "grafana", "grafana.monitoring.svc.cluster.local:80", "Hostname & port for grafana")
 	flag.StringVar(&c.scopeHost, "scope", "scope.kube-system.svc.cluster.local:80", "Hostname & port for scope")
 	flag.StringVar(&c.usersHost, "users", "users.default.svc.cluster.local", "Hostname & port for users")
 	flag.StringVar(&c.kubediffHost, "kubediff", "kubediff.monitoring.svc.cluster.local", "Hostname & port for kubediff")
