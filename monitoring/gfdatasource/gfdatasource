@@ -21,6 +21,18 @@ create() {
 		\"access\": \"proxy\",
 		\"basicAuth\": false
 	}" http://admin:admin@127.0.0.1:80/api/datasources >/dev/null 2>&1
+
+	for user in 1 2; do
+		curl -Ss -v -H "Content-Type: application/json" -XPOST -d"{
+			\"name\": \"Frankenstein User ${user}\",
+			\"type\": \"prometheus\",
+			\"url\": \"http://frontend.default.svc.cluster.local/api/prom\",
+			\"access\": \"proxy\",
+			\"basicAuth\": true,
+			\"basicAuthUser\": \"unused\",
+			\"basicAuthPassword\": \"${user}\"
+		}" http://admin:admin@127.0.0.1:80/api/datasources >/dev/null 2>&1
+	done
 }
 
 while true
