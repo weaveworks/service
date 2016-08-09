@@ -38,8 +38,8 @@ func Test_InviteNonExistentUser(t *testing.T) {
 
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{franEmail}, sentEmails[0].To)
-		assert.Contains(t, string(sentEmails[0].Text), "You've been invited")
-		assert.Contains(t, string(sentEmails[0].HTML), "You've been invited")
+		assert.Contains(t, string(sentEmails[0].Text), "has invited you")
+		assert.Contains(t, string(sentEmails[0].HTML), "has invited you")
 	}
 }
 

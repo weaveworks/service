@@ -82,6 +82,7 @@ func mustNewEmailer(emailURI, sendgridAPIKey, fromAddress string, templates temp
 	}
 	client := sendgrid.NewSendGridClientWithApiKey(sendgridAPIKey)
 	return sendgridEmailer{
+		templates:   templates,
 		client:      client,
 		domain:      domain,
 		fromAddress: fromAddress,
@@ -129,7 +130,6 @@ func (s smtpEmailer) LoginEmail(u *user, token string) error {
 	data := map[string]interface{}{
 		"LoginURL": loginURL(u.Email, token, s.domain),
 		"RootURL":  s.domain,
-		"Token":    token,
 	}
 	e.Text = s.templates.quietBytes("login_email.text", data)
 	e.HTML = s.templates.quietBytes("login_email.html", data)
@@ -142,11 +142,10 @@ func (s smtpEmailer) InviteEmail(inviter, invited *user, orgExternalID, orgName,
 	e.To = []string{invited.Email}
 	e.Subject = "You've been invited to Weave Cloud"
 	data := map[string]interface{}{
+		"InviterName":      inviter.Email,
 		"LoginURL":         inviteURL(invited.Email, token, s.domain, orgExternalID),
 		"RootURL":          s.domain,
-		"Token":            token,
 		"OrganizationName": orgName,
-		"OrganizationID":   orgExternalID,
 	}
 	e.Text = s.templates.quietBytes("invite_email.text", data)
 	e.HTML = s.templates.quietBytes("invite_email.html", data)
@@ -169,53 +168,57 @@ func (s smtpEmailer) GrantAccessEmail(inviter, invited *user, orgExternalID, org
 }
 
 type sendgridEmailer struct {
+	templates   templateEngine
 	client      *sendgrid.SGClient
 	domain      string
 	fromAddress string
 }
 
-const (
-	loginEmailTemplate       = "ccf3f6e2-20f9-4c41-bd72-ca204c1c3f6f"
-	inviteEmailTemplate      = "00ceaa49-857f-4ce4-bc39-789b7f56c886"
-	grantAccessEmailTemplate = "e0b17255-ff21-4389-9551-52943c661ca5"
-)
-
-func (s sendgridEmailer) sendgridEmail(templateID string) *sendgrid.SGMail {
+func (s sendgridEmailer) sendgridEmail() *sendgrid.SGMail {
 	mail := sendgrid.NewMail()
 	mail.SetFrom(s.fromAddress)
-	mail.SetText(" ")
-	mail.SetHTML(" ")
-	mail.SetSubject(" ")
-	mail.AddFilter("templates", "enable", "1")
-	mail.AddFilter("templates", "template_id", templateID)
 	return mail
 }
 
 func (s sendgridEmailer) LoginEmail(u *user, token string) error {
-	mail := s.sendgridEmail(loginEmailTemplate)
+	mail := s.sendgridEmail()
 	mail.AddTo(u.Email)
-	mail.AddSubstitution(":login_url", loginURL(u.Email, token, s.domain))
-	mail.AddSubstitution(":root_url", s.domain)
+	mail.SetSubject("Login to Weave Cloud")
+	data := map[string]interface{}{
+		"LoginURL": loginURL(u.Email, token, s.domain),
+		"RootURL":  s.domain,
+	}
+	mail.SetText(string(s.templates.quietBytes("login_email.text", data)))
+	mail.SetHTML(string(s.templates.quietBytes("login_email.html", data)))
 	return s.client.Send(mail)
 }
 
 func (s sendgridEmailer) InviteEmail(inviter, invited *user, orgExternalID, orgName, token string) error {
-	mail := s.sendgridEmail(inviteEmailTemplate)
+	mail := s.sendgridEmail()
 	mail.AddTo(invited.Email)
-	mail.AddSubstitution(":inviter_name", inviter.Email)
-	mail.AddSubstitution(":login_url", inviteURL(invited.Email, token, s.domain, orgExternalID))
-	mail.AddSubstitution(":root_url", s.domain)
-	mail.AddSubstitution(":org_name", orgName)
-	mail.AddSubstitution(":org_id", orgExternalID)
+	mail.SetSubject("You've been invited to Weave Cloud")
+	data := map[string]interface{}{
+		"InviterName":      inviter.Email,
+		"LoginURL":         inviteURL(invited.Email, token, s.domain, orgExternalID),
+		"RootURL":          s.domain,
+		"OrganizationName": orgName,
+	}
+	mail.SetText(string(s.templates.quietBytes("invite_email.text", data)))
+	mail.SetHTML(string(s.templates.quietBytes("invite_email.html", data)))
 	return s.client.Send(mail)
 }
 
 // GrantAccessEmail sends an email granting access.
 func (s sendgridEmailer) GrantAccessEmail(inviter, invited *user, orgExternalID, orgName string) error {
-	mail := s.sendgridEmail(grantAccessEmailTemplate)
+	mail := s.sendgridEmail()
 	mail.AddTo(invited.Email)
-	mail.AddSubstitution(":inviter_name", inviter.Email)
-	mail.AddSubstitution(":org_url", organizationURL(s.domain, orgExternalID))
-	mail.AddSubstitution(":org_name", orgName)
+	mail.SetSubject("Weave Cloud access granted to instance")
+	data := map[string]interface{}{
+		"InviterName":      inviter.Email,
+		"OrganizationName": orgName,
+		"OrganizationURL":  organizationURL(orgExternalID, orgName),
+	}
+	mail.SetText(string(s.templates.quietBytes("grant_access_email.text", data)))
+	mail.SetHTML(string(s.templates.quietBytes("grant_access_email.html", data)))
 	return s.client.Send(mail)
 }
