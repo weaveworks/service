@@ -13,6 +13,6 @@ receivers:
 - name: 'service-alerts-dev'
   slack_configs:
   - api_url: https://hooks.slack.com/services/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
-    channel: scope
+    channel: cloud
     send_resolved: true
     username: dev-alert
