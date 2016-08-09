@@ -143,13 +143,29 @@ func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string
 	return org, err
 }
 
+func getAuthHeader(r *http.Request) (string, error) {
+	authHeader := r.Header.Get(AuthHeaderName)
+	if authHeader != "" {
+		return authHeader, nil
+	}
+
+	// To allow grafana to talk to the service, we also accept basic auth,
+	// ignoring the username and treating the password as the token.
+	_, token, ok := r.BasicAuth()
+	if ok {
+		return fmt.Sprintf("Scope-Probe token=%s", token), nil
+	}
+
+	log.Error("authenticator: probe: tried to authenticate request without credentials")
+	return "", &Unauthorized{http.StatusUnauthorized}
+}
+
 func (m *webAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
 	// Extract Authorization header to inject it in the lookup request. If
 	// it were not set, don't even bother to do a lookup.
-	authHeader := r.Header.Get(AuthHeaderName)
-	if authHeader == "" {
-		log.Error("authenticator: probe: tried to authenticate request without credentials")
-		return "", &Unauthorized{http.StatusUnauthorized}
+	authHeader, err := getAuthHeader(r)
+	if err != nil {
+		return "", err
 	}
 
 	if m.probeCredCache != nil {
