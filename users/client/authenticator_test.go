@@ -16,7 +16,7 @@ import (
 const (
 	orgExternalID = "%21?ЖЗИЙ%2FК%$?"
 	orgID         = "somePersistentInternalID"
-	orgToken      = "token123"
+	orgToken      = "Scope-Probe token=token123"
 	orgCookie     = "cookie123"
 )
 

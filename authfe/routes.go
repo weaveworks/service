@@ -29,6 +29,7 @@ type Config struct {
 	alertmanagerHost string
 	prometheusHost   string
 	kubedashHost     string
+	promHost         string
 }
 
 func routes(c Config) (http.Handler, error) {
@@ -59,6 +60,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/pipe", newProxy(c.pipeHost)},
 				{"/api/deploy", newProxy(c.deployHost)},
 				{"/api/config", newProxy(c.deployHost)},
+				{"/api/prom", newProxy(c.promHost)},
 				{"/api", newProxy(c.queryHost)},
 
 				// Catch-all forward to query service, which is a Scope instance that we
@@ -92,6 +94,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/pipe", newProxy(c.pipeHost)},
 				{"/deploy", newProxy(c.deployHost)},
 				{"/config", newProxy(c.deployHost)},
+				{"/prom", newProxy(c.promHost)},
 			},
 			middleware.Merge(
 				users.AuthProbeMiddleware{

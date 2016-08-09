@@ -86,13 +86,15 @@ func main() {
 	flag.IntVar(&authCacheSize, "auth.cache.size", 0, "How many entries to cache in the auth client.")
 	flag.DurationVar(&authCacheExpiration, "auth.cache.expiration", 30*time.Second, "How long to keep entries in the auth client.")
 	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
-
 	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
 	flag.StringVar(&c.collectionHost, "collection", "collection.default.svc.cluster.local:80", "Hostname & port for collection service")
 	flag.StringVar(&c.queryHost, "query", "query.default.svc.cluster.local:80", "Hostname & port for query service")
 	flag.StringVar(&c.controlHost, "control", "control.default.svc.cluster.local:80", "Hostname & port for control service")
 	flag.StringVar(&c.pipeHost, "pipe", "pipe.default.svc.cluster.local:80", "Hostname & port for pipe service")
 	flag.StringVar(&c.deployHost, "deploy", "api.deploy.svc.cluster.local:80", "Hostname & port for deploy service")
+	flag.StringVar(&c.promHost, "prom", "distributor.frankenstein.svc.cluster.local:80", "Hostname & port for prom service")
+
+	// For Admin routers
 	flag.StringVar(&c.grafanaHost, "grafana", "grafana.monitoring.svc.cluster.local:80", "Hostname & port for grafana")
 	flag.StringVar(&c.scopeHost, "scope", "scope.kube-system.svc.cluster.local:80", "Hostname & port for scope")
 	flag.StringVar(&c.usersHost, "users", "users.default.svc.cluster.local", "Hostname & port for users")
