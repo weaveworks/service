@@ -129,7 +129,6 @@ func (s smtpEmailer) LoginEmail(u *user, token string) error {
 	data := map[string]interface{}{
 		"LoginURL": loginURL(u.Email, token, s.domain),
 		"RootURL":  s.domain,
-		"Token":    token,
 	}
 	e.Text = s.templates.quietBytes("login_email.text", data)
 	e.HTML = s.templates.quietBytes("login_email.html", data)
@@ -142,11 +141,10 @@ func (s smtpEmailer) InviteEmail(inviter, invited *user, orgExternalID, orgName,
 	e.To = []string{invited.Email}
 	e.Subject = "You've been invited to Weave Cloud"
 	data := map[string]interface{}{
+		"InviterName":      inviter.Email,
 		"LoginURL":         inviteURL(invited.Email, token, s.domain, orgExternalID),
 		"RootURL":          s.domain,
-		"Token":            token,
 		"OrganizationName": orgName,
-		"OrganizationID":   orgExternalID,
 	}
 	e.Text = s.templates.quietBytes("invite_email.text", data)
 	e.HTML = s.templates.quietBytes("invite_email.html", data)
