@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -145,7 +146,7 @@ func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string
 
 func getAuthHeader(r *http.Request) (string, error) {
 	authHeader := r.Header.Get(AuthHeaderName)
-	if authHeader != "" {
+	if strings.HasPrefix(authHeader, "Scope-Probe") {
 		return authHeader, nil
 	}
 
