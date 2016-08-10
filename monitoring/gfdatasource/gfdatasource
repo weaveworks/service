@@ -13,26 +13,23 @@ data_source_url="${1:-$default_url}"
 echo "Setting data source to: ${data_source_url}"
 trap "{ echo gfdatasource exiting; exit 0; }" INT TERM
 
+basicAuth="${2:false}"
+basicAuthUser="${3:user}"
+basicAuthPassword="${4:password}"
+if [ "${basicAuth}" != "false" ]; then
+	echo "Using basic auth"
+fi
+
 create() {
 	curl -Ss -v -H "Content-Type: application/json" -XPOST -d"{
 		\"name\": \"Scope-as-a-Service Prometheus\",
 		\"type\": \"prometheus\",
 		\"url\": \"${data_source_url}\",
 		\"access\": \"proxy\",
-		\"basicAuth\": false
+		\"basicAuth\": ${basicAuth},
+		\"basicAuthUser\": \"${basicAuthUser}\",
+		\"basicAuthPassword\": \"${basicAuthPassword}\"
 	}" http://admin:admin@127.0.0.1:80/api/datasources >/dev/null 2>&1
-
-	for user in 1 2; do
-		curl -Ss -v -H "Content-Type: application/json" -XPOST -d"{
-			\"name\": \"Frankenstein User ${user}\",
-			\"type\": \"prometheus\",
-			\"url\": \"http://frontend.default.svc.cluster.local/api/prom\",
-			\"access\": \"proxy\",
-			\"basicAuth\": true,
-			\"basicAuthUser\": \"unused\",
-			\"basicAuthPassword\": \"${user}\"
-		}" http://admin:admin@127.0.0.1:80/api/datasources >/dev/null 2>&1
-	done
 }
 
 while true
