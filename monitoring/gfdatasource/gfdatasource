@@ -13,9 +13,9 @@ data_source_url="${1:-$default_url}"
 echo "Setting data source to: ${data_source_url}"
 trap "{ echo gfdatasource exiting; exit 0; }" INT TERM
 
-basicAuth="${2:false}"
-basicAuthUser="${3:user}"
-basicAuthPassword="${4:password}"
+basicAuth="${2:-false}"
+basicAuthUser="${3:-}"
+basicAuthPassword="${4:-}"
 if [ "${basicAuth}" != "false" ]; then
 	echo "Using basic auth"
 fi
