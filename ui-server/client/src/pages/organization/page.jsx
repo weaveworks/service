@@ -35,6 +35,7 @@ export default class OrganizationPage extends React.Component {
     };
 
     this.handleClickInstance = this.handleClickInstance.bind(this);
+    this.handleNameChange = this.handleNameChange.bind(this);
     this._handleOrganizationSuccess = this._handleOrganizationSuccess.bind(this);
     this._handleOrganizationError = this._handleOrganizationError.bind(this);
     this.loadProbesTimer = 0;
@@ -100,6 +101,10 @@ export default class OrganizationPage extends React.Component {
 
   handleClickInstance() {
     hashHistory.push(this.instanceUrl());
+  }
+
+  handleNameChange(name) {
+    this.setState({ name });
   }
 
   _handleOrganizationSuccess(resp) {
@@ -195,6 +200,7 @@ export default class OrganizationPage extends React.Component {
             <Column minWidth="500">
               <h2>
                 <Name id={this.props.params.orgId} name={this.state.name}
+                  onChange={this.handleNameChange}
                   prefix="Configure" />
               </h2>
               <div style={styles.steps}>

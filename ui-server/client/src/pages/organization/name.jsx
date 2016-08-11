@@ -48,6 +48,9 @@ export default class Users extends React.Component {
             submitting: false,
             editing: false
           });
+          if (this.props.onChange) {
+            this.props.onChange(name);
+          }
         }, resp => {
           this.setState({
             notices: resp.errors,
