@@ -20,7 +20,7 @@ export default class Toolbar extends React.Component {
     this.handleClickAccount = this.handleClickAccount.bind(this);
     this.handleClickInstance = this.handleClickInstance.bind(this);
     this.handleClickSettings = this.handleClickSettings.bind(this);
-    this.handleClickManageInstances = this.handleClickManageInstances.bind(this);
+    this.handleClickCreateInstance = this.handleClickCreateInstance.bind(this);
   }
 
   handleClickInstance() {
@@ -38,8 +38,8 @@ export default class Toolbar extends React.Component {
     hashHistory.push(url);
   }
 
-  handleClickManageInstances() {
-    const url = encodeURIs`/instance/${this.props.orgId}`;
+  handleClickCreateInstance() {
+    const url = encodeURIs`/instances/create`;
     hashHistory.push(url);
   }
 
@@ -114,7 +114,7 @@ export default class Toolbar extends React.Component {
                   <Divider />
                   <MenuItem
                     style={{lineHeight: '24px', fontSize: 13, cursor: 'pointer'}}
-                    primaryText="Manage instances" onClick={this.handleClickManageInstances} />
+                    primaryText="Create new instance" onClick={this.handleClickCreateInstance} />
                 </IconMenu>
                 <FlatButton
                   style={{color: viewColor}}
