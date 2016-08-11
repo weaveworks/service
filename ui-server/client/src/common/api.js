@@ -12,6 +12,11 @@ export function getOrganizations() {
   return getData(url);
 }
 
+export function getOrganizationData(id) {
+  const url = encodeURIs`/api/users/org/${id}`;
+  return getData(url);
+}
+
 export function getProbes(org) {
   if (org) {
     const url = encodeURIs`/api/app/${org}/api/probes`;
