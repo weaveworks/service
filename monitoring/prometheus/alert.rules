@@ -3,7 +3,7 @@ job:scope_request_errors:rate1m =
    (sum(rate(scope_request_duration_seconds_count{namespace="default",status_code=~"5.."}[1m])) by (job)) /
    (sum(rate(scope_request_duration_seconds_count{namespace="default"}[1m])) by (job))
 
-# Alert if there is a kubediff
+# Alert if there is a kubediff or terradiff
 
 ALERT Kubediff
   IF          max(command_exit_code{job="kubediff"}) != 0
@@ -12,6 +12,15 @@ ALERT Kubediff
   ANNOTATIONS {
     summary = "Kubediff has detected a difference in running config.",
     description = "Kubediff has detected a difference in running config.",
+  }
+
+ALERT Kubediff
+  IF          max(command_exit_code{job="terradiff"}) != 0
+  FOR         2h
+  LABELS      { severity="warning" }
+  ANNOTATIONS {
+    summary = "Terradiff has detected a difference in running config.",
+    description = "Terradiff has detected a difference in running config.",
   }
 
 # For each service, an alert on error rate

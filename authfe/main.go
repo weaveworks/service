@@ -99,6 +99,7 @@ func main() {
 	flag.StringVar(&c.scopeHost, "scope", "scope.kube-system.svc.cluster.local:80", "Hostname & port for scope")
 	flag.StringVar(&c.usersHost, "users", "users.default.svc.cluster.local", "Hostname & port for users")
 	flag.StringVar(&c.kubediffHost, "kubediff", "kubediff.monitoring.svc.cluster.local", "Hostname & port for kubediff")
+	flag.StringVar(&c.terradiffHost, "terradiff", "terradiff.monitoring.svc.cluster.local", "Hostname & port for terradiff")
 	flag.StringVar(&c.alertmanagerHost, "alertmanager", "alertmanager.monitoring.svc.cluster.local", "Hostname & port for alertmanager")
 	flag.StringVar(&c.prometheusHost, "prometheus", "prometheus.monitoring.svc.cluster.local", "Hostname & port for prometheus")
 	flag.StringVar(&c.kubedashHost, "kubedash", "kubernetes-dashboard.kube-system.svc.cluster.local", "Hostname & port for kubedash")

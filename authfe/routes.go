@@ -26,6 +26,7 @@ type Config struct {
 	scopeHost        string
 	usersHost        string
 	kubediffHost     string
+	terradiffHost    string
 	alertmanagerHost string
 	prometheusHost   string
 	kubedashHost     string
@@ -113,6 +114,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/scope", trimPrefix("/admin/scope", newProxy(c.scopeHost))},
 				{"/users", trimPrefix("/admin/users", newProxy(c.usersHost))},
 				{"/kubediff", trimPrefix("/admin/kubediff", newProxy(c.kubediffHost))},
+				{"/terradiff", trimPrefix("/admin/terradiff", newProxy(c.terradiffHost))},
 				{"/alertmanager", newProxy(c.alertmanagerHost)},
 				{"/prometheus", newProxy(c.prometheusHost)},
 				{"/kubedash", trimPrefix("/admin/kubedash", newProxy(c.kubedashHost))},
