@@ -14,7 +14,7 @@ ALERT Kubediff
     description = "Kubediff has detected a difference in running config.",
   }
 
-ALERT Kubediff
+ALERT Terradiff
   IF          max(command_exit_code{job="terradiff"}) != 0
   FOR         2h
   LABELS      { severity="warning" }
