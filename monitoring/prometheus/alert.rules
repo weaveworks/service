@@ -64,7 +64,7 @@ ALERT QueryErrorRate
 # For each service, an alert on latency
 
 ALERT AuthFELatency
-  IF          max(job_route:scope_request_duration_seconds:95quantile{job="authfe",route!~"admin|grafana"}) by (job) > 5.0
+  IF          max(job_route:scope_request_duration_seconds:95quantile{job="authfe",route!~"(admin|metrics).*"}) by (job) > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {

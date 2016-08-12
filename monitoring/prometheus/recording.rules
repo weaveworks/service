@@ -7,6 +7,11 @@ job_route:scope_request_duration_seconds:95quantile =
 job_route:scope_request_duration_seconds:50quantile =
    histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,route,le))
 
+:scope_authfe_request_duration_seconds:95quantile =
+   histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false",job="authfe",route!~"(admin|metrics).*"}[5m])) by (le))
+:scope_authfe_request_duration_seconds:50quantile =
+   histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false",job="authfe",route!~"(admin|metrics).*"}[5m])) by (le))
+
 job:scope_request_duration_seconds:95quantile =
    histogram_quantile(0.95, sum(rate(scope_request_duration_seconds_bucket{namespace="default",ws="false"}[5m])) by (job,le))
 job:scope_request_duration_seconds:50quantile =

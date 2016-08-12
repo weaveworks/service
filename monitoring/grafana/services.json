@@ -356,14 +356,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job_route:scope_request_duration_seconds:95quantile{job=\"authfe\",route!~\"admin|grafana\"} * 1e3",
+              "expr": ":scope_authfe_request_duration_seconds:95quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "job_route:scope_request_duration_seconds:50quantile{job=\"authfe\",route!~\"admin|grafana\"} * 1e3",
+              "expr": ":scope_authfe_request_duration_seconds:50quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "B",
