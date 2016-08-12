@@ -9,8 +9,8 @@ module.exports = {
   entry: {
     app: './src/main',
     // keep only some in here, to make vendors and app bundles roughly same size
-    vendors: ['babel-polyfill', 'debug',
-      'react', 'react-dom', 'react-motion', 'react-router']
+    vendors: ['babel-polyfill', 'debug', 'react', 'react-dom', 'react-router',
+      'redux', 'react-redux', 'redux-thunk']
   },
 
   output: {
