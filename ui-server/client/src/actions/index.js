@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import zipObject from 'lodash/zipObject';
 import * as api from '../common/api';
 
 import { trackException } from '../common/tracking';
@@ -11,7 +11,7 @@ const ACTION_TYPES = [
 ];
 
 
-export const ActionTypes = _.zipObject(ACTION_TYPES, ACTION_TYPES);
+export const ActionTypes = zipObject(ACTION_TYPES, ACTION_TYPES);
 
 //
 // Actions!
