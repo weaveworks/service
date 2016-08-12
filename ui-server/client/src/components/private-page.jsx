@@ -1,37 +1,19 @@
 import React from 'react';
+import { connect } from 'react-redux';
 
-import { getInstance } from '../common/api';
-import { trackException } from '../common/tracking';
+import { getInstance } from '../actions';
 import Toolbar from './toolbar';
 
-export default class PrivatePage extends React.Component {
-
-  constructor() {
-    super();
-    this.state = {
-      email: '',
-      instance: null,
-      organizations: []
-    };
-
-    this.handleInstanceSuccess = this.handleInstanceSuccess.bind(this);
-    this.handleInstanceError = this.handleInstanceError.bind(this);
-  }
-
-  handleInstanceSuccess(userData) {
-    this.setState(userData);
-  }
-
-  handleInstanceError(res) {
-    trackException(res);
-  }
+class PrivatePage extends React.Component {
 
   componentDidMount() {
     if (this.props.orgId) {
-      // includes a cookie check
-      getInstance(this.props.orgId)
-        .then(this.handleInstanceSuccess)
-        .catch(this.handleInstanceError);
+      //
+      // includes:
+      // - a cookie check
+      // - a 404 check
+      //
+      this.props.getInstance(this.props.orgId);
     }
   }
 
@@ -47,12 +29,24 @@ export default class PrivatePage extends React.Component {
       <div style={styles.backgroundContainer}>
         <Toolbar
           page={this.props.page}
-          instances={this.state.organizations}
-          instance={this.state.instance}
-          user={this.state.email}
+          instances={this.props.instanceList}
+          instance={this.props.instance}
+          user={this.props.email}
           orgId={this.props.orgId} />
         {this.props.children}
       </div>
     );
   }
 }
+
+
+function mapStateToProps(state, ownProps) {
+  return {
+    instanceList: Object.keys(state.instances).map(k => state.instances[k]),
+    instance: state.instances[ownProps.orgId],
+    email: state.email,
+  };
+}
+
+
+export default connect(mapStateToProps, { getInstance })(PrivatePage);

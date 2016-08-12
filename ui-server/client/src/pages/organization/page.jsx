@@ -6,10 +6,12 @@ import Snackbar from 'material-ui/Snackbar';
 import { hashHistory } from 'react-router';
 import sortBy from 'lodash/sortBy';
 import { grey200 } from 'material-ui/styles/colors';
+import { connect } from 'react-redux';
 
+import { getOrganizationData, updateInstance } from '../../actions';
 import Colors from '../../common/colors';
 import { getProbes } from '../../common/api';
-import { getData, encodeURIs } from '../../common/request';
+import { encodeURIs } from '../../common/request';
 import { Box } from '../../components/box';
 import { FlexContainer } from '../../components/flex-container';
 import { Column } from '../../components/column';
@@ -20,7 +22,7 @@ import Users from './users';
 import Name from './name';
 import { trackEvent, trackException, trackView } from '../../common/tracking';
 
-export default class OrganizationPage extends React.Component {
+class OrganizationPage extends React.Component {
 
   constructor() {
     super();
@@ -35,8 +37,7 @@ export default class OrganizationPage extends React.Component {
     };
 
     this.handleClickInstance = this.handleClickInstance.bind(this);
-    this._handleOrganizationSuccess = this._handleOrganizationSuccess.bind(this);
-    this._handleOrganizationError = this._handleOrganizationError.bind(this);
+    this.handleNameChange = this.handleNameChange.bind(this);
     this.loadProbesTimer = 0;
     this.loadProbes = this.loadProbes.bind(this);
     this.expandHelp = this.expandHelp.bind(this);
@@ -75,10 +76,7 @@ export default class OrganizationPage extends React.Component {
 
   _getOrganizationData(organization) {
     if (organization) {
-      const url = encodeURIs`/api/users/org/${organization}`;
-      getData(url)
-        .then(this._handleOrganizationSuccess)
-        .catch(this._handleOrganizationError);
+      this.props.getOrganizationData(organization);
     }
   }
 
@@ -102,13 +100,8 @@ export default class OrganizationPage extends React.Component {
     hashHistory.push(this.instanceUrl());
   }
 
-  _handleOrganizationSuccess(resp) {
-    this.setState(resp);
-  }
-
-  _handleOrganizationError(resp) {
-    // TODO show errors
-    trackException(resp);
+  handleNameChange(name) {
+    this.props.updateInstance({ id: this.props.params.orgId, name });
   }
 
   render() {
@@ -190,11 +183,14 @@ export default class OrganizationPage extends React.Component {
           onActionTouchTap={this.clearErrors}
           onRequestClose={this.clearErrors}
         />
-        {this.state.id && <div style={styles.container}>
+        {this.props.instance && <div style={styles.container}>
           <FlexContainer>
             <Column minWidth="500">
               <h2>
-                <Name id={this.props.params.orgId} name={this.state.name}
+                <Name
+                  id={this.props.params.orgId}
+                  name={this.props.instance.name}
+                  onChange={this.handleNameChange}
                   prefix="Configure" />
               </h2>
               <div style={styles.steps}>
@@ -207,7 +203,7 @@ export default class OrganizationPage extends React.Component {
                   <div style={styles.code}>
                     <div>sudo curl -L git.io/scope -o /usr/local/bin/scope</div>
                     <div>sudo chmod a+x /usr/local/bin/scope</div>
-                    <div>scope launch --service-token={this.state.probeToken}</div>
+                    <div>scope launch --service-token={this.props.instance.probeToken}</div>
                   </div>
                 </Box>
                 <div style={styles.step}>
@@ -238,7 +234,7 @@ export default class OrganizationPage extends React.Component {
               <Paper style={{marginTop: '4em', marginBottom: '1em'}}>
                 <div style={styles.probes}>
                   <h3>Probes</h3>
-                  <Probes probes={this.state.probes} probeToken={this.state.probeToken} />
+                  <Probes probes={this.state.probes} probeToken={this.props.instance.probeToken} />
                   <div style={styles.completed}>
                     <p>
                       Looks like probes are connected,
@@ -274,16 +270,30 @@ export default class OrganizationPage extends React.Component {
                 </div>
               </Paper>
               <Box style={{marginTop: 64, padding: 24}}>
-                <InstancesDelete instanceName={this.state.name} orgId={this.props.params.orgId} />
+                <InstancesDelete
+                  instanceName={this.props.instance.name}
+                  orgId={this.props.params.orgId} />
               </Box>
             </Column>
           </FlexContainer>
-          {!this.state.id && <div style={styles.activity}>
+          {!this.props.instance && <div style={styles.activity}>
             <CircularProgress mode="indeterminate" />
           </div>}
         </div>}
       </PrivatePage>
     );
   }
-
 }
+
+
+function mapStateToProps(state, ownProps) {
+  return {
+    instance: state.instances[ownProps.params.orgId]
+  };
+}
+
+
+export default connect(
+  mapStateToProps,
+  { getOrganizationData, updateInstance }
+)(OrganizationPage);

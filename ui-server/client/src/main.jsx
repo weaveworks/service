@@ -22,11 +22,15 @@ import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 
 import { hashHistory, Router } from 'react-router';
 
+import { Provider } from 'react-redux';
+
 // Routers
 import getRoutes from './router';
 
 // Tracking
 import { trackTiming } from './common/tracking';
+
+import configureStore from './stores/configureStore';
 
 // ID of the DOM element to mount app on
 const DOM_APP_EL_ID = 'app';
@@ -34,9 +38,13 @@ const DOM_APP_EL_ID = 'app';
 // Initialize routes
 const routes = getRoutes();
 
+const store = configureStore();
+
 ReactDOM.render(
   (<MuiThemeProvider muiTheme={getMuiTheme()}>
-    <Router history={hashHistory}>{routes}</Router>
+     <Provider store={store}>
+       <Router history={hashHistory}>{routes}</Router>
+    </Provider>
   </MuiThemeProvider>),
   document.getElementById(DOM_APP_EL_ID));
 

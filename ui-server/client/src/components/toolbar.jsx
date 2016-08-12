@@ -56,7 +56,11 @@ export default class Toolbar extends React.Component {
       toolbar: {
         display: 'flex',
         justifyContent: 'space-between',
-        width: '100%'
+        //
+        // prevent scrollbar appearance from "pushing" content into the page.
+        // scrollbar instead appears to be overlayed over everything.
+        //
+        width: 'calc(100vw - 16px)',
       },
       toolbarButton: {
         minWidth: 48
@@ -76,7 +80,6 @@ export default class Toolbar extends React.Component {
         position: 'relative'
       },
       toolbarRight: {
-        marginRight: 12,
         padding: 8
       },
       toolbarWrapper: {
