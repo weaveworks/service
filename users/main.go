@@ -539,6 +539,7 @@ func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Req
 
 type lookupOrgView struct {
 	OrganizationID string `json:"organizationID,omitempty"`
+	UserID         string `json:"userID,omitempty"`
 }
 
 func (a *api) lookupOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
@@ -546,7 +547,10 @@ func (a *api) lookupOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 	orgExternalID := vars["orgExternalID"]
 	for _, org := range currentUser.Organizations {
 		if strings.ToLower(org.ExternalID) == strings.ToLower(orgExternalID) {
-			renderJSON(w, http.StatusOK, lookupOrgView{OrganizationID: org.ID})
+			renderJSON(w, http.StatusOK, lookupOrgView{
+				OrganizationID: org.ID,
+				UserID:         currentUser.ID,
+			})
 			return
 		}
 	}

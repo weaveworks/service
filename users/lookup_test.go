@@ -25,7 +25,7 @@ func Test_Lookup(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, map[string]interface{}{"organizationID": org.ID}, body)
+	assert.Equal(t, map[string]interface{}{"organizationID": org.ID, "userID": user.ID}, body)
 }
 
 func Test_Lookup_NotFound(t *testing.T) {
