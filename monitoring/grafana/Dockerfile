@@ -1,7 +1,7 @@
 FROM grafana/grafana
 LABEL works.weave.role=system
 
-COPY grafana-defaults.ini grafana.ini /etc/grafana/
+COPY *.ini /etc/grafana/
 COPY *.json /grafana/dashboards/
 
 EXPOSE 80
