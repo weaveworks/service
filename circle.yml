@@ -31,7 +31,7 @@ dependencies:
 test:
   override:
     - |
-        cd $SRCDIR; if [ $(./image-tag --show-diff | grep -e '-WIP$') ]; then
+        cd $SRCDIR; if [ $(./tools/image-tag --show-diff | grep -e '-WIP$') ]; then
            echo "WIP build; exiting with error to mark as a failure"
            exit 1
         fi
