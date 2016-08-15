@@ -18,6 +18,7 @@ const (
 	orgID         = "somePersistentInternalID"
 	orgToken      = "Scope-Probe token=token123"
 	orgCookie     = "cookie123"
+	userID        = "user12346"
 )
 
 func dummyServer() *httptest.Server {
@@ -32,7 +33,7 @@ func dummyServer() *httptest.Server {
 			}
 			if localOrgExternalID == orgExternalID && orgCookie == localOrgCookie.Value {
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintf(w, `{ "organizationID": "%s" }`, orgID)
+				fmt.Fprintf(w, `{ "organizationID": "%s", "userID": "%s" }`, orgID, userID)
 				return
 			}
 			w.WriteHeader(http.StatusUnauthorized)
@@ -74,9 +75,10 @@ func TestAuth(t *testing.T) {
 			Name:  client.AuthCookieName,
 			Value: orgCookie,
 		})
-		res, err := auth.AuthenticateOrg(req, orgExternalID)
+		res, user, err := auth.AuthenticateOrg(req, orgExternalID)
 		assert.NoError(t, err, "Unexpected error from authenticator")
 		assert.Equal(t, orgID, res, "Unexpected organization")
+		assert.Equal(t, userID, user, "Unexpected user")
 	}
 
 	// Test denying access for headers
@@ -95,9 +97,10 @@ func TestAuth(t *testing.T) {
 			Name:  client.AuthCookieName,
 			Value: "Not the right cookie",
 		})
-		res, err := auth.AuthenticateOrg(req, orgExternalID)
+		res, user, err := auth.AuthenticateOrg(req, orgExternalID)
 		assert.Error(t, err, "Unexpected successful authentication")
 		assert.Equal(t, "", res, "Unexpected organization")
+		assert.Equal(t, "", user, "Unexpected user")
 	}
 }
 
