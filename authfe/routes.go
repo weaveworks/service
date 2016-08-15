@@ -42,7 +42,7 @@ func routes(c Config) (http.Handler, error) {
 			Logger:    c.eventLogger,
 		}
 		uiHTTPlogger = logging.HTTPEventLogger{
-			Extractor: newUIRequestLogger(c.outputHeader),
+			Extractor: newUIRequestLogger(c.outputHeader, userIDHeader),
 			Logger:    c.eventLogger,
 		}
 	}
@@ -80,6 +80,7 @@ func routes(c Config) (http.Handler, error) {
 						return v, ok
 					},
 					OutputHeader: c.outputHeader,
+					UserIDHeader: userIDHeader,
 				},
 				middleware.PathRewrite(regexp.MustCompile("^/api/app/[^/]+"), ""),
 				uiHTTPlogger,

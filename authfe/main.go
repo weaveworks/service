@@ -15,6 +15,7 @@ import (
 
 const (
 	sessionCookieKey = "_weaveclientid"
+	userIDHeader     = "X-Scope-UserID"
 )
 
 var (
@@ -57,7 +58,7 @@ func newProbeRequestLogger(orgIDHeader string) logging.HTTPEventExtractor {
 	}
 }
 
-func newUIRequestLogger(orgIDHeader string) logging.HTTPEventExtractor {
+func newUIRequestLogger(orgIDHeader, userIDHeader string) logging.HTTPEventExtractor {
 	return func(r *http.Request) (logging.Event, bool) {
 		sessionCookie, err := r.Cookie(sessionCookieKey)
 		var sessionID string
@@ -71,8 +72,7 @@ func newUIRequestLogger(orgIDHeader string) logging.HTTPEventExtractor {
 			Product:        "scope-ui",
 			UserAgent:      r.UserAgent(),
 			OrganizationID: r.Header.Get(orgIDHeader),
-			// TODO: fill in after implementing user support in organizations
-			// UserID: "" ,
+			UserID:         r.Header.Get(userIDHeader),
 		}
 		return event, true
 	}

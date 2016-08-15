@@ -29,7 +29,7 @@ func init() {
 
 // Authenticator is the client interface to the users service.
 type Authenticator interface {
-	AuthenticateOrg(r *http.Request, orgExternalID string) (string, error)
+	AuthenticateOrg(r *http.Request, orgExternalID string) (string, string, error)
 	AuthenticateProbe(r *http.Request) (string, error)
 	AuthenticateAdmin(r *http.Request) (string, error)
 }
@@ -76,8 +76,8 @@ func MakeAuthenticator(kind, url string, opts AuthenticatorOptions) Authenticato
 
 type mockAuthenticator struct{}
 
-func (mockAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string) (string, error) {
-	return "mockID", nil
+func (mockAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string) (string, string, error) {
+	return "mockID", "mockUserID", nil
 }
 
 func (mockAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
@@ -112,13 +112,17 @@ type orgCredCacheKey struct {
 	cookie, orgExternalID string
 }
 
-func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string) (string, error) {
+type orgCredCacheValue struct {
+	orgID, userID string
+}
+
+func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string) (string, string, error) {
 	// Extract Authorization cookie to inject it in the lookup request. If it were
 	// not set, don't even bother to do a lookup.
 	authCookie, err := r.Cookie(AuthCookieName)
 	if err != nil {
 		log.Error("authenticator: org: tried to authenticate request without credentials")
-		return "", &Unauthorized{http.StatusUnauthorized}
+		return "", "", &Unauthorized{http.StatusUnauthorized}
 	}
 
 	cacheKey := orgCredCacheKey{authCookie.Value, orgExternalID}
@@ -126,7 +130,8 @@ func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string
 		org, err := m.orgCredCache.Get(cacheKey)
 		authCacheCounter.WithLabelValues("org_cred_cache", hitOrMiss(err)).Inc()
 		if err == nil {
-			return org.(string), nil
+			v := org.(orgCredCacheValue)
+			return v.orgID, v.userID, nil
 		}
 	}
 
@@ -134,14 +139,17 @@ func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string
 	lookupReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Error("authenticator: cannot build lookup request: ", err)
-		return "", err
+		return "", "", err
 	}
 	lookupReq.AddCookie(authCookie)
-	org, err := m.decodeOrg(m.doAuthenticateRequest(lookupReq))
+	orgID, userID, err := m.decodeOrg(m.doAuthenticateRequest(lookupReq))
 	if err == nil && m.orgCredCache != nil {
-		m.orgCredCache.Set(cacheKey, org)
+		m.orgCredCache.Set(cacheKey, orgCredCacheValue{
+			orgID:  orgID,
+			userID: userID,
+		})
 	}
-	return org, err
+	return orgID, userID, err
 }
 
 func getAuthHeader(r *http.Request) (string, error) {
@@ -184,7 +192,7 @@ func (m *webAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
 		return "", err
 	}
 	lookupReq.Header.Set(AuthHeaderName, authHeader)
-	org, err := m.decodeOrg(m.doAuthenticateRequest(lookupReq))
+	org, _, err := m.decodeOrg(m.doAuthenticateRequest(lookupReq))
 	if err == nil && m.probeCredCache != nil {
 		m.probeCredCache.Set(authHeader, org)
 	}
@@ -225,21 +233,22 @@ func (m *webAuthenticator) doAuthenticateRequest(r *http.Request) (io.ReadCloser
 	return res.Body, nil
 }
 
-func (m *webAuthenticator) decodeOrg(body io.ReadCloser, err error) (string, error) {
+func (m *webAuthenticator) decodeOrg(body io.ReadCloser, err error) (string, string, error) {
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer body.Close()
 	var authRes struct {
 		OrganizationID string `json:"organizationID"`
+		UserID         string `json:"userID"`
 	}
 	if err := json.NewDecoder(body).Decode(&authRes); err != nil {
-		return "", err
+		return "", "", err
 	}
 	if authRes.OrganizationID == "" {
-		return "", errors.New("empty OrganizationID")
+		return "", "", errors.New("empty OrganizationID")
 	}
-	return authRes.OrganizationID, nil
+	return authRes.OrganizationID, authRes.UserID, nil
 }
 
 func (m *webAuthenticator) decodeAdmin(body io.ReadCloser, err error) (string, error) {
@@ -265,6 +274,7 @@ type AuthOrgMiddleware struct {
 	Authenticator Authenticator
 	OrgExternalID func(*http.Request) (string, bool)
 	OutputHeader  string
+	UserIDHeader  string
 }
 
 // Wrap implements middleware.Interface
@@ -277,7 +287,7 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		organizationID, err := a.Authenticator.AuthenticateOrg(r, orgExternalID)
+		organizationID, userID, err := a.Authenticator.AuthenticateOrg(r, orgExternalID)
 		if err != nil {
 			if unauth, ok := err.(*Unauthorized); ok {
 				log.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
@@ -290,6 +300,7 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 		}
 
 		r.Header.Add(a.OutputHeader, organizationID)
+		r.Header.Add(a.UserIDHeader, userID)
 		next.ServeHTTP(w, r)
 	})
 }
