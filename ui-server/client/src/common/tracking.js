@@ -6,6 +6,10 @@ const log = debug('service:tracking');
 const error = debug('service:trackingErr');
 const trackPrefix = 'weaveCloudService';
 
+export function generateSessionCookie() {
+  return '_weaveclientid=xxxxxxxx'.replace(/x/g, () => (Math.random() * 16 | 0).toString(16));
+}
+
 export function trackEvent(subject, action, label, value) {
   if (window.ga) {
     window.ga('send', {
