@@ -15,6 +15,7 @@ const maxBufferedEvents = 100
 // Event is a user event to be sent to out analytics system
 type Event struct {
 	ID             string `msg:"event"`
+	SessionID      string `msg:"session_id"`
 	Product        string `msg:"product"`
 	Version        string `msg:"version"`
 	UserAgent      string `msg:"user_agent"`
