@@ -82,7 +82,7 @@ ALERT UsersLatency
   }
 
 ALERT CollectionLatency
-  IF          job_route:scope_request_duration_seconds:95quantile{job="collection"} > 5.0
+  IF          job:scope_request_duration_seconds:95quantile{job="collection"} > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
@@ -91,7 +91,7 @@ ALERT CollectionLatency
   }
 
 ALERT QueryLatency
-  IF          job_route:scope_request_duration_seconds:95quantile{job="query"} > 5.0
+  IF          job:scope_request_duration_seconds:95quantile{job="query"} > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
