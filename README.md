@@ -66,12 +66,12 @@ follow these instructions.
 
 The build gives each image a name based on the state of the git
 working directory from which it was built, according to the script
-`image-tag`. If the working directory has uncommitted changes, the
+`./tools/image-tag`. If the working directory has uncommitted changes, the
 image name will include `-WIP` (work in progress), to make it stand
 out.  For example:
 
 ```
-$ ./image-tag
+$ ./tools/image-tag
 deployment-instructions-eca773b-WIP
 ```
 

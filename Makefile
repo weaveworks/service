@@ -4,7 +4,7 @@
 # Boiler plate for bulding Docker containers.
 # All this must go at top of file I'm afraid.
 IMAGE_PREFIX := quay.io/weaveworks
-IMAGE_TAG := $(shell ./image-tag)
+IMAGE_TAG := $(shell ./tools/image-tag)
 UPTODATE := .uptodate
 
 # Building Docker images is now automated. The convention is every directory

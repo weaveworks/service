@@ -54,7 +54,7 @@ then
 fi
 echo "Using components: ${COMPONENTS}"
 
-IMAGE_TAG=$(./image-tag)
+IMAGE_TAG=$(./tools/image-tag)
 
 for c in ${COMPONENTS}
 do
