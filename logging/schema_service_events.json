@@ -46,6 +46,12 @@
       "type": "STRING",
       "mode": "NULLABLE",
       "description": "User within the organization."
+    },
+    {
+      "name": "session_id",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "Client generated session id."
     }
 ]
 

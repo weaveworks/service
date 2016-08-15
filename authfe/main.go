@@ -13,6 +13,10 @@ import (
 	users "github.com/weaveworks/service/users/client"
 )
 
+const (
+	sessionCookieKey = "_weaveclientid"
+)
+
 var (
 	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "scope",
@@ -55,8 +59,15 @@ func newProbeRequestLogger(orgIDHeader string) logging.HTTPEventExtractor {
 
 func newUIRequestLogger(orgIDHeader string) logging.HTTPEventExtractor {
 	return func(r *http.Request) (logging.Event, bool) {
+		sessionCookie, err := r.Cookie(sessionCookieKey)
+		var sessionID string
+		if err == nil {
+			sessionID = sessionCookie.Value
+		}
+
 		event := logging.Event{
 			ID:             r.URL.Path,
+			SessionID:      sessionID,
 			Product:        "scope-ui",
 			UserAgent:      r.UserAgent(),
 			OrganizationID: r.Header.Get(orgIDHeader),
