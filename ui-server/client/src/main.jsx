@@ -28,12 +28,15 @@ import { Provider } from 'react-redux';
 import getRoutes from './router';
 
 // Tracking
-import { trackTiming } from './common/tracking';
+import { generateSessionCookie, trackTiming } from './common/tracking';
 
 import configureStore from './stores/configureStore';
 
 // ID of the DOM element to mount app on
 const DOM_APP_EL_ID = 'app';
+
+// make our own tracking unique
+document.cookie = generateSessionCookie();
 
 // Initialize routes
 const routes = getRoutes();
