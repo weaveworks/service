@@ -795,7 +795,7 @@
       "30d"
     ]
   },
-  "timezone": "browser",
+  "timezone": "utc",
   "title": "Users Service Dashboard",
   "version": 1
 }

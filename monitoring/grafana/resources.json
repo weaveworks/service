@@ -331,7 +331,7 @@
       "30d"
     ]
   },
-  "timezone": "browser",
+  "timezone": "utc",
   "title": "Node Resource Dashboard",
   "version": 0
 }

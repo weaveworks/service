@@ -1981,7 +1981,7 @@
       "30d"
     ]
   },
-  "timezone": "browser",
+  "timezone": "utc",
   "title": "Services Dashboard",
   "version": 9
 }

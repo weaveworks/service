@@ -1579,7 +1579,7 @@
       "30d"
     ]
   },
-  "timezone": "browser",
+  "timezone": "utc",
   "title": "Frankenstein",
   "version": 3
 }

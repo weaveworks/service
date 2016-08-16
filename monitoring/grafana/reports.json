@@ -1287,7 +1287,7 @@
       "30d"
     ]
   },
-  "timezone": "browser",
+  "timezone": "utc",
   "title": "Report Storage Dashboard",
   "version": 8
 }
