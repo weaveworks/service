@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"golang.org/x/oauth2"
 	"io/ioutil"
 	"math/rand"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -88,9 +90,18 @@ func assignPullRequest(client *github.Client, users map[string]*github.User, pr 
 	if len(candidates) > 0 {
 		assignee := users[candidates[rand.Intn(len(candidates))]]
 
-		_, _, err := client.PullRequests.Edit(pr.repo.owner, pr.repo.name, pr.id, &github.PullRequest{
-			Assignee: assignee,
+		url := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/%d", pr.repo.owner, pr.repo.name, pr.id)
+		reqBody, err := json.Marshal(map[string]string{
+			"assignee": *assignee.Login,
 		})
+		if err != nil {
+			return err
+		}
+		req, err := http.NewRequest("PATCH", url, bytes.NewBuffer(reqBody))
+		if err != nil {
+			return err
+		}
+		_, err = client.Do(req, nil)
 		if err != nil {
 			return err
 		}
