@@ -45,7 +45,13 @@
       "height": "250px",
       "panels": [
         {
-          "aliasColors": {},
+          "aliasColors": {
+            "1xx": "#EAB839",
+            "2xx": "#7EB26D",
+            "3xx": "#6ED0E0",
+            "4xx": "#EF843C",
+            "5xx": "#E24D42"
+          },
           "bars": false,
           "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
@@ -249,7 +255,13 @@
       "height": "250px",
       "panels": [
         {
-          "aliasColors": {},
+          "aliasColors": {
+            "1xx": "#EAB839",
+            "2xx": "#7EB26D",
+            "3xx": "#6ED0E0",
+            "4xx": "#EF843C",
+            "5xx": "#E24D42"
+          },
           "bars": false,
           "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
@@ -443,7 +455,13 @@
       "height": "250px",
       "panels": [
         {
-          "aliasColors": {},
+          "aliasColors": {
+            "1xx": "#EAB839",
+            "2xx": "#7EB26D",
+            "3xx": "#6ED0E0",
+            "4xx": "#EF843C",
+            "5xx": "#E24D42"
+          },
           "bars": false,
           "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
@@ -641,7 +659,13 @@
       "height": "250px",
       "panels": [
         {
-          "aliasColors": {},
+          "aliasColors": {
+            "1xx": "#EAB839",
+            "2xx": "#7EB26D",
+            "3xx": "#6ED0E0",
+            "4xx": "#EF843C",
+            "5xx": "#E24D42"
+          },
           "bars": false,
           "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
@@ -837,7 +861,13 @@
       "height": "250px",
       "panels": [
         {
-          "aliasColors": {},
+          "aliasColors": {
+            "1xx": "#EAB839",
+            "2xx": "#7EB26D",
+            "3xx": "#6ED0E0",
+            "4xx": "#EF843C",
+            "5xx": "#E24D42"
+          },
           "bars": false,
           "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
@@ -1031,7 +1061,13 @@
       "height": "250px",
       "panels": [
         {
-          "aliasColors": {},
+          "aliasColors": {
+            "1xx": "#EAB839",
+            "2xx": "#7EB26D",
+            "3xx": "#6ED0E0",
+            "4xx": "#EF843C",
+            "5xx": "#E24D42"
+          },
           "bars": false,
           "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
@@ -1226,7 +1262,13 @@
       "height": "250px",
       "panels": [
         {
-          "aliasColors": {},
+          "aliasColors": {
+            "1xx": "#EAB839",
+            "2xx": "#7EB26D",
+            "3xx": "#6ED0E0",
+            "4xx": "#EF843C",
+            "5xx": "#E24D42"
+          },
           "bars": false,
           "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
@@ -1593,7 +1635,13 @@
       "height": "250px",
       "panels": [
         {
-          "aliasColors": {},
+          "aliasColors": {
+            "1xx": "#EAB839",
+            "2xx": "#7EB26D",
+            "3xx": "#6ED0E0",
+            "4xx": "#EF843C",
+            "5xx": "#E24D42"
+          },
           "bars": false,
           "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
