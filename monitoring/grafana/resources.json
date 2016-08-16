@@ -1,12 +1,42 @@
 {
+  "__inputs": [
+    {
+      "description": "",
+      "label": "Scope-as-a-Service Prometheus",
+      "name": "DS_SCOPE-AS-A-SERVICE_PROMETHEUS",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus",
+      "type": "datasource"
+    }
+  ],
+  "__requires": [
+    {
+      "id": "graph",
+      "name": "Graph",
+      "type": "panel",
+      "version": ""
+    },
+    {
+      "id": "grafana",
+      "name": "Grafana",
+      "type": "grafana",
+      "version": "3.1.1"
+    },
+    {
+      "id": "prometheus",
+      "name": "Prometheus",
+      "type": "datasource",
+      "version": "1.0.0"
+    }
+  ],
   "annotations": {
     "list": []
   },
   "editable": true,
+  "gnetId": null,
   "hideControls": false,
   "id": null,
   "links": [],
-  "originalTitle": "New dashboard",
   "refresh": "10s",
   "rows": [
     {
@@ -17,7 +47,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -65,6 +95,7 @@
           "tooltip": {
             "msResolution": false,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -101,7 +132,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -149,6 +180,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -185,7 +217,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -233,6 +265,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",

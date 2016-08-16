@@ -1,11 +1,41 @@
 {
+  "__inputs": [
+    {
+      "description": "",
+      "label": "Scope-as-a-Service Prometheus",
+      "name": "DS_SCOPE-AS-A-SERVICE_PROMETHEUS",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus",
+      "type": "datasource"
+    }
+  ],
+  "__requires": [
+    {
+      "id": "graph",
+      "name": "Graph",
+      "type": "panel",
+      "version": ""
+    },
+    {
+      "id": "grafana",
+      "name": "Grafana",
+      "type": "grafana",
+      "version": "3.1.1"
+    },
+    {
+      "id": "prometheus",
+      "name": "Prometheus",
+      "type": "datasource",
+      "version": "1.0.0"
+    }
+  ],
   "annotations": {
     "list": []
   },
   "editable": true,
   "gnetId": null,
   "hideControls": false,
-  "id": 1,
+  "id": null,
   "links": [],
   "refresh": false,
   "rows": [
@@ -17,7 +47,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -57,7 +87,7 @@
               "legendFormat": "{{instance}} - {{result}}",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -95,7 +125,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -135,14 +165,14 @@
               "legendFormat": "{{instance}} - length",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 600
             },
             {
               "expr": "prometheus_remote_storage_queue_capacity{job=\"retrieval\"}",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - capacity",
               "refId": "B",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -180,7 +210,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -219,7 +249,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -266,7 +296,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -305,7 +335,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -343,7 +373,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -383,7 +413,7 @@
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -421,7 +451,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -460,7 +490,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{quantile}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -498,7 +528,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -537,7 +567,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -575,7 +605,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -614,7 +644,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}} - {{quantile}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -652,7 +682,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -691,7 +721,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{handler}} - {{quantile}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -729,7 +759,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -768,7 +798,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -806,7 +836,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -845,7 +875,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -883,7 +913,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -923,7 +953,7 @@
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -970,7 +1000,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -1009,7 +1039,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -1047,7 +1077,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -1087,7 +1117,7 @@
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -1125,7 +1155,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -1164,7 +1194,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{quantile}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -1202,7 +1232,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -1279,7 +1309,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -1356,7 +1386,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -1433,7 +1463,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
+          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
           "editable": true,
           "error": false,
           "fill": 1,
