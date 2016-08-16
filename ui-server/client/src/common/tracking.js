@@ -1,8 +1,12 @@
 import debug from 'debug';
+import { postData } from './request';
 
 const log = debug('service:tracking');
 const error = debug('service:trackingErr');
 const trackPrefix = 'weaveCloudService';
+
+let lastView = null;
+let lastViewAt = null;
 
 export function generateSessionCookie() {
   return '_weaveclientid=xxxxxxxx'.replace(/x/g, () => (Math.random() * 16 | 0).toString(16));
@@ -43,11 +47,30 @@ export function trackTiming(subject, action, time) {
   }
 }
 
-export function trackView(page) {
+export function trackView(page, state) {
+  const view = page.toLowerCase();
   if (window.ga) {
-    window.ga('set', 'page', trackPrefix + page);
+    window.ga('set', 'page', trackPrefix + view);
     window.ga('send', 'pageview');
   } else {
-    log('trackView', trackPrefix + page);
+    log('trackView', trackPrefix + view, lastView);
   }
+
+  // track page transitions
+  let lastViewTimeSpent;
+  if (lastViewAt) {
+    // navigated to this page
+    lastViewTimeSpent = (new Date()) - lastViewAt;
+  } else {
+    // landed on this page
+    lastViewTimeSpent = (window.performance && window.performance.now()) || 0;
+  }
+  postData('/api/analytics/view', {
+    state,
+    view,
+    lastView,
+    lastViewTimeSpent
+  }).catch(() => {});
+  lastView = view;
+  lastViewAt = new Date();
 }

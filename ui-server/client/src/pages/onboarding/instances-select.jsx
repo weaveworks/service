@@ -6,7 +6,7 @@ import { browserHistory } from 'react-router';
 
 import { encodeURIs } from '../../common/request';
 import { getProbes } from '../../common/api';
-import { trackException } from '../../common/tracking';
+import { trackException, trackView } from '../../common/tracking';
 
 export default class InstancesSelect extends React.Component {
 
@@ -24,6 +24,7 @@ export default class InstancesSelect extends React.Component {
 
   componentDidMount() {
     this.checkProbes();
+    trackView('InstanceSelect');
   }
 
   componentWillUnmount() {

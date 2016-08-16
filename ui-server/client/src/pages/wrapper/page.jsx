@@ -9,6 +9,13 @@ import PrivatePage from '../../components/private-page';
 import { trackView } from '../../common/tracking';
 import { updateScopeViewState, focusFrame } from '../../actions';
 
+const TRACKABLE_STATE_KEYS = [
+  'topologyViewMode',
+  'pinnedMetricType',
+  'gridSortBy',
+  'topologyId',
+];
+
 class WrapperPage extends React.Component {
 
   constructor() {
@@ -22,9 +29,9 @@ class WrapperPage extends React.Component {
     this._checkInstance = this._checkInstance.bind(this);
     this._handleInstanceError = this._handleInstanceError.bind(this);
     this._handleInstanceSuccess = this._handleInstanceSuccess.bind(this);
-
     this.handleFrameFocus = this.handleFrameFocus.bind(this);
     this.handleFrameLoad = this.handleFrameLoad.bind(this);
+    this.previousTrackableState = '';
   }
 
   componentDidMount() {
@@ -32,7 +39,7 @@ class WrapperPage extends React.Component {
     this._checkInstance();
     // track internal view state
     this.startFrameUrlTracker();
-    trackView('Wrapper');
+    trackView('Scope');
   }
 
   componentWillReceiveProps(nextProps) {
@@ -69,6 +76,27 @@ class WrapperPage extends React.Component {
     this.props.updateScopeViewState(nextFrameState);
     // store in URL for reloads
     window.location.hash = nextFrameState;
+    this.trackViewState(nextFrameState);
+  }
+
+  trackViewState(frameState) {
+    if (frameState) {
+      const urlStateString = frameState
+        .replace('#!/state/', '')
+        .replace('#!/', '') || '{}';
+      const state = JSON.parse(urlStateString);
+      const nextTrackableState = TRACKABLE_STATE_KEYS.map(key => state[key]).join();
+      if (nextTrackableState !== this.previousTrackableState) {
+        const trackableState = {};
+        TRACKABLE_STATE_KEYS.forEach(key => {
+          if (state[key] !== undefined) {
+            trackableState[key] = state[key];
+          }
+        });
+        trackView('Scope', trackableState);
+        this.previousTrackableState = nextTrackableState;
+      }
+    }
   }
 
   handleFrameLoad() {
