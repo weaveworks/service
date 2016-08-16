@@ -118,6 +118,13 @@ def lint_unique_panel_ids(path, data):
     panels[panel_id] = title
 
 
+def lint_timezones(path, data):
+  """Yield warnings if timezone is not UTC."""
+  tz = data.get('timezone', None)
+  if tz != 'utc':
+    yield "%s: timezone not set to 'utc', currently: %r" % (path, tz)
+
+
 def lint_monitoring(directory):
   """Lint monitoring files in 'directory' for correctness."""
   rule_names = set()
@@ -133,6 +140,7 @@ def lint_monitoring(directory):
     warnings = chain(
       lint_is_json_sorted(json_file),
       lint_unique_panel_ids(json_file, data),
+      lint_timezones(json_file, data),
       lint_recording_rules(json_file, data, rule_names),
     )
     for warning in warnings:
