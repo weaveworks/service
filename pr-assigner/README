@@ -3,7 +3,7 @@ and assigns them randomly according to its configured list.
 
 You may specify directives in the PR description to control behaviour.
 Directives are lines that begin "pr-assigner: ", followed by a directive name
-then any number of comma-seperated args.
+then any number of comma-separated args.
 The following directives are currently defined:
 	pr-assigner: ignore
 		Args are ignored. The pr-assigner will not touch this PR.
