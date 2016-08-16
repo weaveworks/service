@@ -836,7 +836,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(memcached_current_bytes) by (instance) / sum(memcached_limit_bytes) by (instance)",
+              "expr": "sum(memcached_current_bytes{namespace=\"default\"}) by (instance) / sum(memcached_limit_bytes{namespace=\"default\"}) by (instance)",
               "interval": "",
               "intervalFactor": 2,
               "legendFormat": "{{instance}}",
