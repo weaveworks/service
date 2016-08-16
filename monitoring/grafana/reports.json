@@ -3,10 +3,10 @@
     "list": []
   },
   "editable": true,
+  "gnetId": null,
   "hideControls": false,
-  "id": 1,
+  "id": null,
   "links": [],
-  "originalTitle": "Report Storage Dashboard",
   "refresh": "10s",
   "rows": [
     {
@@ -72,6 +72,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -84,7 +85,7 @@
               "label": null,
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -155,6 +156,7 @@
           "tooltip": {
             "msResolution": false,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -167,7 +169,7 @@
               "label": null,
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -239,6 +241,7 @@
           "tooltip": {
             "msResolution": false,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -251,7 +254,7 @@
               "label": null,
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -332,6 +335,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -344,7 +348,7 @@
               "label": "",
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -435,7 +439,8 @@
           "tooltip": {
             "msResolution": false,
             "shared": true,
-            "value_type": "cumulative"
+            "sort": 0,
+            "value_type": "individual"
           },
           "type": "graph",
           "xaxis": {
@@ -447,7 +452,7 @@
               "label": null,
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -511,6 +516,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -596,6 +602,7 @@
           "tooltip": {
             "msResolution": false,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -608,7 +615,7 @@
               "label": null,
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -680,6 +687,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -692,7 +700,7 @@
               "label": "",
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -764,6 +772,7 @@
           "tooltip": {
             "msResolution": false,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -841,6 +850,7 @@
           "tooltip": {
             "msResolution": false,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -925,6 +935,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -937,7 +948,7 @@
               "label": null,
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -1008,6 +1019,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -1020,7 +1032,7 @@
               "label": "",
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -1092,6 +1104,7 @@
           "tooltip": {
             "msResolution": false,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -1104,7 +1117,7 @@
               "label": null,
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -1178,6 +1191,7 @@
           "tooltip": {
             "msResolution": false,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -1190,7 +1204,7 @@
               "label": null,
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -1243,7 +1257,7 @@
       "30d"
     ]
   },
-  "timezone": "browser",
+  "timezone": "utc",
   "title": "Report Storage Dashboard",
   "version": 8
 }

@@ -3,10 +3,10 @@
     "list": []
   },
   "editable": true,
+  "gnetId": null,
   "hideControls": false,
-  "id": 1,
+  "id": null,
   "links": [],
-  "originalTitle": "Users Service Dashboard",
   "refresh": "10s",
   "rows": [
     {
@@ -15,7 +15,13 @@
       "height": "250px",
       "panels": [
         {
-          "aliasColors": {},
+          "aliasColors": {
+            "1xx": "#EAB839",
+            "2xx": "#7EB26D",
+            "3xx": "#6ED0E0",
+            "4xx": "#EF843C",
+            "5xx": "#E24D42"
+          },
           "bars": false,
           "datasource": "Scope-as-a-Service Prometheus",
           "editable": true,
@@ -93,6 +99,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -105,7 +112,7 @@
               "label": null,
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -176,6 +183,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -188,7 +196,7 @@
               "label": "",
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -288,6 +296,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -300,7 +309,7 @@
               "label": null,
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -364,6 +373,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -376,7 +386,7 @@
               "label": "",
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -448,6 +458,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -460,7 +471,7 @@
               "label": null,
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -531,6 +542,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -543,7 +555,7 @@
               "label": "",
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -615,6 +627,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -691,6 +704,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -757,7 +771,7 @@
       "30d"
     ]
   },
-  "timezone": "browser",
+  "timezone": "utc",
   "title": "Users Service Dashboard",
   "version": 1
 }

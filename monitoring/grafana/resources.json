@@ -3,10 +3,10 @@
     "list": []
   },
   "editable": true,
+  "gnetId": null,
   "hideControls": false,
   "id": null,
   "links": [],
-  "originalTitle": "New dashboard",
   "refresh": "10s",
   "rows": [
     {
@@ -65,6 +65,7 @@
           "tooltip": {
             "msResolution": false,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -149,6 +150,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -233,6 +235,7 @@
           "tooltip": {
             "msResolution": true,
             "shared": true,
+            "sort": 0,
             "value_type": "cumulative"
           },
           "type": "graph",
@@ -298,7 +301,7 @@
       "30d"
     ]
   },
-  "timezone": "browser",
+  "timezone": "utc",
   "title": "Node Resource Dashboard",
   "version": 0
 }

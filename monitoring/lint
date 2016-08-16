@@ -14,6 +14,21 @@ def get_directory(path):
   return os.path.dirname(os.path.abspath(path))
 
 
+YELLOW = "#EAB839"
+GREEN = "#7EB26D"
+BLUE = "#6ED0E0"
+ORANGE = "#EF843C"
+RED = "#E24D42"
+
+ALIAS_COLORS = {
+  "1xx": YELLOW,
+  "2xx": GREEN,
+  "3xx": BLUE,
+  "4xx": ORANGE,
+  "5xx": RED,
+}
+
+
 def iter_files(paths):
   """Generate a list of paths to the files under 'paths'."""
   for path in paths:
@@ -118,6 +133,27 @@ def lint_unique_panel_ids(path, data):
     panels[panel_id] = title
 
 
+def lint_timezones(path, data):
+  """Yield warnings if timezone is not UTC."""
+  tz = data.get('timezone', None)
+  if tz != 'utc':
+    yield "%s: timezone not set to 'utc', currently: %r" % (path, tz)
+
+
+def lint_colors(path, data):
+  """Yield warnings if QPS graphs are colored wrong."""
+  for panel in iter_panels(data):
+    for target in panel.get('targets', []):
+      label = target.get('legendFormat', None)
+      if label and label in ALIAS_COLORS:
+        expected = ALIAS_COLORS[label]
+        observed = panel.get('aliasColors', {}).get(label, None)
+        if expected != observed:
+          title_display = panel.get('title', '<no title found>')
+          yield "%s: %r axis %s should be colored %s, currently: %r" % (
+            path, title_display, label, expected, observed)
+
+
 def lint_monitoring(directory):
   """Lint monitoring files in 'directory' for correctness."""
   rule_names = set()
@@ -133,7 +169,9 @@ def lint_monitoring(directory):
     warnings = chain(
       lint_is_json_sorted(json_file),
       lint_unique_panel_ids(json_file, data),
+      lint_timezones(json_file, data),
       lint_recording_rules(json_file, data, rule_names),
+      lint_colors(json_file, data),
     )
     for warning in warnings:
       yield warning

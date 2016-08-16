@@ -5,7 +5,7 @@
   "editable": true,
   "gnetId": null,
   "hideControls": false,
-  "id": 1,
+  "id": null,
   "links": [],
   "refresh": false,
   "rows": [
@@ -57,7 +57,7 @@
               "legendFormat": "{{instance}} - {{result}}",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -135,14 +135,14 @@
               "legendFormat": "{{instance}} - length",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 600
             },
             {
               "expr": "prometheus_remote_storage_queue_capacity{job=\"retrieval\"}",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - capacity",
               "refId": "B",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -219,7 +219,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -305,7 +305,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -383,7 +383,7 @@
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -460,7 +460,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{quantile}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -537,7 +537,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -614,7 +614,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}} - {{quantile}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -691,7 +691,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{handler}} - {{quantile}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -768,7 +768,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -845,7 +845,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -923,7 +923,7 @@
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -1009,7 +1009,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -1087,7 +1087,7 @@
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -1164,7 +1164,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{quantile}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -1549,7 +1549,7 @@
       "30d"
     ]
   },
-  "timezone": "browser",
+  "timezone": "utc",
   "title": "Frankenstein",
   "version": 3
 }
