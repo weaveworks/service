@@ -528,6 +528,7 @@ func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Req
 			ExternalID:         org.ExternalID,
 			Name:               org.Name,
 			FirstProbeUpdateAt: renderTime(org.FirstProbeUpdateAt),
+			FeatureFlags:       org.FeatureFlags,
 		})
 	}
 
@@ -683,11 +684,12 @@ func csrf(handler http.Handler) http.Handler {
 }
 
 type orgView struct {
-	User               string `json:"user,omitempty"`
-	ExternalID         string `json:"id"`
-	Name               string `json:"name"`
-	ProbeToken         string `json:"probeToken,omitempty"`
-	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
+	User               string   `json:"user,omitempty"`
+	ExternalID         string   `json:"id"`
+	Name               string   `json:"name"`
+	ProbeToken         string   `json:"probeToken,omitempty"`
+	FirstProbeUpdateAt string   `json:"firstProbeUpdateAt,omitempty"`
+	FeatureFlags       []string `json:"featureFlags,omitempty"`
 }
 
 func (a *api) org(currentUser *user, w http.ResponseWriter, r *http.Request) {
@@ -701,6 +703,7 @@ func (a *api) org(currentUser *user, w http.ResponseWriter, r *http.Request) {
 				Name:               org.Name,
 				ProbeToken:         org.ProbeToken,
 				FirstProbeUpdateAt: renderTime(org.FirstProbeUpdateAt),
+				FeatureFlags:       org.FeatureFlags,
 			})
 			return
 		}

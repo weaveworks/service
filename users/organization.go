@@ -16,6 +16,7 @@ type organization struct {
 	ProbeToken         string
 	FirstProbeUpdateAt time.Time
 	CreatedAt          time.Time
+	FeatureFlags       []string
 }
 
 func (o *organization) RegenerateProbeToken() error {
