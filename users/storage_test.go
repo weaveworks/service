@@ -27,3 +27,16 @@ func Test_Storage_RemoveOtherUsersAccess(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, orgUsers, 1)
 }
+
+func Test_Storage_AddFeatureFlag(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	_, org := getOrg(t)
+	err := storage.AddFeatureFlag(org.ExternalID, "supercow")
+	require.NoError(t, err)
+
+	org, err = storage.FindOrganizationByProbeToken(org.ProbeToken)
+	require.NoError(t, err)
+	require.Equal(t, org.FeatureFlags, []string{"supercow"})
+}

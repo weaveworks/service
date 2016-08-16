@@ -705,6 +705,14 @@ func (s pgStorage) DeleteOrganization(externalID string) error {
 	return err
 }
 
+func (s pgStorage) AddFeatureFlag(externalID string, featureFlag string) error {
+	_, err := s.Exec(
+		`update organizations set feature_flags = feature_flags || $1 where lower(external_id) = lower($2)`,
+		pq.Array([]string{featureFlag}), externalID,
+	)
+	return err
+}
+
 func (s pgStorage) Transaction(f func(*sql.Tx) error) error {
 	tx, err := s.Begin()
 	if err != nil {
