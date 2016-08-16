@@ -1,34 +1,4 @@
 {
-  "__inputs": [
-    {
-      "description": "",
-      "label": "Scope-as-a-Service Prometheus",
-      "name": "DS_SCOPE-AS-A-SERVICE_PROMETHEUS",
-      "pluginId": "prometheus",
-      "pluginName": "Prometheus",
-      "type": "datasource"
-    }
-  ],
-  "__requires": [
-    {
-      "id": "graph",
-      "name": "Graph",
-      "type": "panel",
-      "version": ""
-    },
-    {
-      "id": "grafana",
-      "name": "Grafana",
-      "type": "grafana",
-      "version": "3.1.1"
-    },
-    {
-      "id": "prometheus",
-      "name": "Prometheus",
-      "type": "datasource",
-      "version": "1.0.0"
-    }
-  ],
   "annotations": {
     "list": []
   },
@@ -53,7 +23,7 @@
             "5xx": "#E24D42"
           },
           "bars": false,
-          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
+          "datasource": "Scope-as-a-Service Prometheus",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -158,7 +128,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
+          "datasource": "Scope-as-a-Service Prometheus",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -250,7 +220,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
+          "datasource": "Scope-as-a-Service Prometheus",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -355,7 +325,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
+          "datasource": "Scope-as-a-Service Prometheus",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -440,7 +410,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
+          "datasource": "Scope-as-a-Service Prometheus",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -517,7 +487,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
+          "datasource": "Scope-as-a-Service Prometheus",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -609,7 +579,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
+          "datasource": "Scope-as-a-Service Prometheus",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -686,7 +656,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "${DS_SCOPE-AS-A-SERVICE_PROMETHEUS}",
+          "datasource": "Scope-as-a-Service Prometheus",
           "editable": true,
           "error": false,
           "fill": 1,
