@@ -59,7 +59,7 @@ func searchPullRequests(client *github.Client, repo repository) ([]pullRequest, 
 	return results, nil
 }
 
-func assignPullRequest(client *github.Client, users map[string]*github.User, pr pullRequest, candidates []string) error {
+func assignPullRequest(client *github.Client, pr pullRequest, candidates []string) error {
 	contains := func(haystack []string, needle string) bool {
 		for _, item := range haystack {
 			if item == needle {
@@ -88,7 +88,7 @@ func assignPullRequest(client *github.Client, users map[string]*github.User, pr 
 	candidates = newCandidates
 
 	if len(candidates) > 0 {
-		assignee := users[candidates[rand.Intn(len(candidates))]]
+		assignee := candidates[rand.Intn(len(candidates))]
 
 		url := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/%d", pr.repo.owner, pr.repo.name, pr.id)
 		reqBody, err := json.Marshal(map[string]string{
@@ -153,21 +153,6 @@ func createClient(token string) *github.Client {
 	return github.NewClient(tc)
 }
 
-func getAllUsers(client *github.Client, repositories map[repository][]string) (map[string]*github.User, error) {
-	// return a mapping of usernames to Users for all users referenced by repositories config
-	result := make(map[string]*github.User)
-	for _, users := range repositories {
-		for _, username := range users {
-			user, _, err := client.Users.Get(username)
-			if err != nil {
-				return nil, err
-			}
-			result[username] = user
-		}
-	}
-	return result, nil
-}
-
 func loadConfig(path string) (*config, error) {
 	var conf config
 
@@ -218,11 +203,6 @@ func main() {
 	}
 
 	client := createClient(oauthToken)
-	users, err := getAllUsers(client, repositories)
-	if err != nil {
-		fmt.Printf("Unable to verify all given usernames: %v\n", err)
-		os.Exit(1)
-	}
 
 	for {
 		for repo, candidates := range repositories {
@@ -231,7 +211,7 @@ func main() {
 				fmt.Printf("error fetching PRs: %v\n", err)
 			}
 			for _, pr := range prs {
-				err := assignPullRequest(client, users, pr, candidates)
+				err := assignPullRequest(client, pr, candidates)
 				if err != nil {
 					fmt.Printf("error assigning to PR: %v\n", err)
 				}
