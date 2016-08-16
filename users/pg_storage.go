@@ -322,6 +322,7 @@ func (s pgStorage) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.probe_token",
 		"organizations.first_probe_update_at",
 		"organizations.created_at",
+		"organizations.feature_flags",
 	).
 		From("organizations").
 		Where("organizations.deleted_at is null").
@@ -640,7 +641,7 @@ func (s pgStorage) scanOrganization(row squirrel.RowScanner) (*organization, err
 	o := &organization{}
 	var externalID, name, probeToken sql.NullString
 	var firstProbeUpdateAt, createdAt pq.NullTime
-	if err := row.Scan(&o.ID, &externalID, &name, &probeToken, &firstProbeUpdateAt, &createdAt); err != nil {
+	if err := row.Scan(&o.ID, &externalID, &name, &probeToken, &firstProbeUpdateAt, &createdAt, pq.Array(&o.FeatureFlags)); err != nil {
 		return nil, err
 	}
 	o.ExternalID = externalID.String
@@ -700,6 +701,14 @@ func (s pgStorage) DeleteOrganization(externalID string) error {
 	_, err := s.Exec(
 		`update organizations set deleted_at = $1 where lower(external_id) = lower($2)`,
 		s.Now(), externalID,
+	)
+	return err
+}
+
+func (s pgStorage) AddFeatureFlag(externalID string, featureFlag string) error {
+	_, err := s.Exec(
+		`update organizations set feature_flags = feature_flags || $1 where lower(external_id) = lower($2)`,
+		pq.Array([]string{featureFlag}), externalID,
 	)
 	return err
 }

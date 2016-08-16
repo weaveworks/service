@@ -14,6 +14,7 @@ import (
 	"github.com/justinas/nosurf"
 	"github.com/weaveworks/scope/common/middleware"
 
+	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/common/logging"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/pardot"
@@ -22,6 +23,7 @@ import (
 var (
 	passwordHashingCost = 14
 	pardotClient        *pardot.Client
+	forceFeatureFlags   common.ArrayFlags
 )
 
 func main() {
@@ -42,6 +44,9 @@ func main() {
 		sendgridAPIKey   = flag.String("sendgrid-api-key", "", "Sendgrid API key.  Either email-uri or sendgrid-api-key must be provided.")
 		emailFromAddress = flag.String("email-from-address", "Weave Cloud <support@weave.works>", "From address for emails.")
 	)
+
+	flag.Var(&forceFeatureFlags, "force-feature-flags", "Force this feature flag to be on for all organisations.")
+	flag.Var(&forceFeatureFlags, "fff", "Force this feature flag to be on for all organisations.")
 
 	logins := login.NewProviders()
 	logins.Register("github", login.NewGithubProvider())
@@ -528,6 +533,7 @@ func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Req
 			ExternalID:         org.ExternalID,
 			Name:               org.Name,
 			FirstProbeUpdateAt: renderTime(org.FirstProbeUpdateAt),
+			FeatureFlags:       append(org.FeatureFlags, forceFeatureFlags...),
 		})
 	}
 
@@ -683,11 +689,12 @@ func csrf(handler http.Handler) http.Handler {
 }
 
 type orgView struct {
-	User               string `json:"user,omitempty"`
-	ExternalID         string `json:"id"`
-	Name               string `json:"name"`
-	ProbeToken         string `json:"probeToken,omitempty"`
-	FirstProbeUpdateAt string `json:"firstProbeUpdateAt,omitempty"`
+	User               string   `json:"user,omitempty"`
+	ExternalID         string   `json:"id"`
+	Name               string   `json:"name"`
+	ProbeToken         string   `json:"probeToken,omitempty"`
+	FirstProbeUpdateAt string   `json:"firstProbeUpdateAt,omitempty"`
+	FeatureFlags       []string `json:"featureFlags,omitempty"`
 }
 
 func (a *api) org(currentUser *user, w http.ResponseWriter, r *http.Request) {
@@ -701,6 +708,7 @@ func (a *api) org(currentUser *user, w http.ResponseWriter, r *http.Request) {
 				Name:               org.Name,
 				ProbeToken:         org.ProbeToken,
 				FirstProbeUpdateAt: renderTime(org.FirstProbeUpdateAt),
+				FeatureFlags:       append(org.FeatureFlags, forceFeatureFlags...),
 			})
 			return
 		}

@@ -93,7 +93,7 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToAnotherAccount(t *testing.
 		assert.Equal(t, "fran", found.Logins[0].ProviderID)
 	}
 
-	// Old user should not be assocaited anymore
+	// Old user should not be associated anymore
 	fran, err = storage.FindUserByID(fran.ID)
 	require.NoError(t, err)
 	assert.Len(t, fran.Logins, 0)

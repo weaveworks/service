@@ -419,6 +419,20 @@ func (s *memoryStorage) DeleteOrganization(externalID string) error {
 	return nil
 }
 
+func (s *memoryStorage) AddFeatureFlag(externalID string, featureFlag string) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	o, err := s.findOrganizationByExternalID(externalID)
+	if err == errNotFound {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	o.FeatureFlags = append(o.FeatureFlags, featureFlag)
+	return nil
+}
+
 func (s *memoryStorage) Close() error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()

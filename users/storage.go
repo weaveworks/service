@@ -75,6 +75,7 @@ type database interface {
 	OrganizationExists(externalID string) (bool, error)
 	GetOrganizationName(externalID string) (string, error)
 	DeleteOrganization(externalID string) error
+	AddFeatureFlag(externalID string, featureFlag string) error
 
 	Close() error
 }
@@ -286,6 +287,12 @@ func (t timedDatabase) GetOrganizationName(externalID string) (name string, err 
 func (t timedDatabase) DeleteOrganization(externalID string) error {
 	return t.timeRequest("DeleteOrganization", func() error {
 		return t.d.DeleteOrganization(externalID)
+	})
+}
+
+func (t timedDatabase) AddFeatureFlag(externalID string, featureFlag string) error {
+	return t.timeRequest("AddFeatureFlag", func() error {
+		return t.d.AddFeatureFlag(externalID, featureFlag)
 	})
 }
 

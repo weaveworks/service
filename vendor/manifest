@@ -684,8 +684,8 @@
 		{
 			"importpath": "github.com/lib/pq",
 			"repository": "https://github.com/lib/pq",
-			"vcs": "",
-			"revision": "83c4f410d0aed80a0f44bac6a576a7f2435791f3",
+			"vcs": "git",
+			"revision": "80f8150043c80fb52dee6bc863a709cdac7ec8f8",
 			"branch": "master"
 		},
 		{
