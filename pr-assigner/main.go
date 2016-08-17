@@ -222,12 +222,16 @@ func main() {
 	)
 	sig := make(chan os.Signal)
 
-	flag.StringVar(&oauthToken, "token", "", "An oauth token to access github.")
+	flag.StringVar(&oauthToken, "token", "", "An oauth token to access github. May alternately be passed as GITHUB_TOKEN env var.")
 	flag.StringVar(&confPath, "conf_path", "/etc/pr-assigner.json", "Where to find the config file.")
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
 	flag.DurationVar(&state.period, "period", time.Minute, "How often to poll github for new PRs.")
 	flag.StringVar(&httpListen, "listen", ":80", "host:port for HTTP server to listen on.")
 	flag.Parse()
+
+	if len(oauthToken) == 0 {
+		oauthToken = os.Getenv("GITHUB_TOKEN")
+	}
 
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
