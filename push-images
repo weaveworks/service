@@ -89,8 +89,13 @@ do
         echo "Pushing ${push_image}"
         docker push "${push_image}"
 
+        WCLOUD_ARGS=
+        if [ -n "${CIRCLECI}" ]; then
+            WCLOUD_ARGS="-u circle"
+        fi
+
         if [ "$DEPLOY" = 'true' ]; then
-            wcloud deploy "${push_image}"
+            wcloud deploy ${WCLOUD_ARGS} "${push_image}"
         fi
     else
         echo "Not pushing image for $push_image, because no changes in $c since commit $SINCE"
