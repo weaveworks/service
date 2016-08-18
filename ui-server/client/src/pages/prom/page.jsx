@@ -1,9 +1,12 @@
 /* eslint react/jsx-no-bind:0 */
 import React from 'react';
+import debug from 'debug';
 
 import { encodeURIs } from '../../common/request';
 import PrivatePage from '../../components/private-page';
 import { trackView } from '../../common/tracking';
+
+const log = debug('service:prom');
 
 export default class PromWrapperPage extends React.Component {
 
@@ -28,6 +31,7 @@ export default class PromWrapperPage extends React.Component {
       iframe.close();
     } catch (e) {
       // Security exception
+      log('Could not inject CSS into prom frame', e);
     }
   }
 
