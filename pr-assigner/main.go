@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -34,12 +35,15 @@ type pullRequest struct {
 }
 
 type config struct {
-	Repositories map[string][]string
+	Repositories map[string]candidateList
 }
+
+// implements sort.Interface lexiographically
+type candidateList []string
 
 type mainState struct {
 	client         *github.Client
-	repositories   map[repository][]string
+	repositories   map[repository]candidateList
 	period         time.Duration
 	cancelMainLoop chan bool
 }
@@ -51,6 +55,18 @@ var pullsAssigned = prometheus.NewCounterVec(
 	},
 	[]string{"repo", "user"},
 )
+
+func (list candidateList) Len() int {
+	return len(list)
+}
+
+func (list candidateList) Swap(i, j int) {
+	list[i], list[j] = list[j], list[i]
+}
+
+func (list candidateList) Less(i, j int) bool {
+	return list[i] < list[j]
+}
 
 func searchPullRequests(client *github.Client, repo repository) ([]pullRequest, error) {
 	prList, _, err := client.PullRequests.List(repo.owner, repo.name, &github.PullRequestListOptions{
@@ -80,33 +96,31 @@ func searchPullRequests(client *github.Client, repo repository) ([]pullRequest, 
 	return results, nil
 }
 
-func assignPullRequest(client *github.Client, pr pullRequest, candidates []string) error {
-	contains := func(haystack []string, needle string) bool {
-		for _, item := range haystack {
-			if item == needle {
-				return true
+func assignPullRequest(client *github.Client, pr pullRequest, candidates candidateList) error {
+	// contains returns whether haystack contains needle. haystack must be sorted.
+	contains := func(haystack candidateList, needle string) bool {
+		index := sort.Search(len(haystack), func(i int) bool { return haystack[i] >= needle })
+		return index < len(haystack) && haystack[index] == needle
+	}
+
+	// removeList returns a slice containing all elements of slice a which are not in slice b.
+	// b must be sorted.
+	removeList := func(a, b candidateList) candidateList {
+		result := candidateList{}
+		for _, v := range a {
+			if !contains(b, v) {
+				result = append(result, v)
 			}
 		}
-		return false
+		return result
 	}
 
 	if excludes, ok := pr.directives["exclude"]; ok {
-		var newCandidates []string
-		for _, candidate := range candidates {
-			if !contains(excludes, candidate) {
-				newCandidates = append(newCandidates, candidate)
-			}
-		}
-		candidates = newCandidates
+		sort.Sort(candidateList(excludes))
+		candidates = removeList(candidates, excludes)
 	}
 
-	var newCandidates []string
-	for _, candidate := range candidates {
-		if candidate != pr.owner {
-			newCandidates = append(newCandidates, candidate)
-		}
-	}
-	candidates = newCandidates
+	candidates = removeList(candidates, candidateList{pr.owner})
 
 	if len(candidates) == 0 {
 		return nil
@@ -196,13 +210,14 @@ func loadConfig(path string) (*config, error) {
 	return &conf, nil
 }
 
-func parseRepositories(conf *config) (map[repository][]string, error) {
-	result := map[repository][]string{}
+func parseRepositories(conf *config) (map[repository]candidateList, error) {
+	result := map[repository]candidateList{}
 	for repoPath, value := range conf.Repositories {
 		parts := strings.Split(repoPath, "/")
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("Bad repository name %v", repoPath)
 		}
+		sort.Sort(value)
 		result[repository{
 			owner: parts[0],
 			name:  parts[1],
