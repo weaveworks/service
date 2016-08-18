@@ -19,6 +19,7 @@ export default class Toolbar extends React.Component {
     super(props, context);
     this.handleClickAccount = this.handleClickAccount.bind(this);
     this.handleClickInstance = this.handleClickInstance.bind(this);
+    this.handleClickProm = this.handleClickProm.bind(this);
     this.handleClickSettings = this.handleClickSettings.bind(this);
     this.handleClickCreateInstance = this.handleClickCreateInstance.bind(this);
   }
@@ -35,6 +36,11 @@ export default class Toolbar extends React.Component {
 
   handleClickAccount() {
     const url = encodeURIs`/account/${this.props.orgId}`;
+    hashHistory.push(url);
+  }
+
+  handleClickProm() {
+    const url = encodeURIs`/prom/${this.props.orgId}`;
     hashHistory.push(url);
   }
 
@@ -89,10 +95,14 @@ export default class Toolbar extends React.Component {
       }
     };
 
-    const viewText = this.props.instance ? `View ${this.props.instance.name}` : 'Loading...';
+    const { instance } = this.props;
+    const viewText = instance ? `View ${instance.name}` : 'Loading...';
     const viewColor = this.isActive('app') ? Colors.text : Colors.text3;
     const settingsColor = this.isActive('org') ? Colors.text : Colors.text3;
     const accountColor = this.isActive('account') ? Colors.text : Colors.text3;
+    const promColor = this.isActive('prom') ? Colors.text : Colors.text3;
+    const hasProm = instance && instance.featureFlags
+      && instance.featureFlags.indexOf('frankenstein') > -1;
     const viewSelectorButton = (
       <FlatButton style={styles.toolbarButton}>
         <FontIcon className="fa fa-caret-down" color={Colors.text2}
@@ -123,6 +133,12 @@ export default class Toolbar extends React.Component {
                   style={{color: viewColor}}
                   onClick={this.handleClickInstance}
                   label={viewText} />
+                {hasProm && <FlatButton style={styles.toolbarButton}
+                  onClick={this.handleClickProm}>
+                    <FontIcon className="fa fa-area-chart" color={promColor}
+                      style={styles.toolbarButtonIcon} />
+                  </FlatButton>
+                }
                 <FlatButton style={styles.toolbarButton} onClick={this.handleClickSettings}>
                   <FontIcon className="fa fa-cog" color={settingsColor}
                     style={styles.toolbarButtonIcon} />
