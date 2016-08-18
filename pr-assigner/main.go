@@ -56,6 +56,10 @@ var pullsAssigned = prometheus.NewCounterVec(
 	[]string{"repo", "user"},
 )
 
+func init() {
+	prometheus.MustRegister(pullsAssigned)
+}
+
 func (list candidateList) Len() int {
 	return len(list)
 }
@@ -115,19 +119,32 @@ func assignPullRequest(client *github.Client, pr pullRequest, candidates candida
 		return result
 	}
 
+	logger := log.WithFields(log.Fields{
+		"repo":        pr.repo,
+		"pullrequest": pr,
+	})
+
+	logger.Debugf("Got candidates: %v", candidates)
+
 	if excludes, ok := pr.directives["exclude"]; ok {
+		logger.Debugf("Excluding: %v", excludes)
 		sort.Sort(candidateList(excludes))
 		candidates = removeList(candidates, excludes)
 	}
 
+	logger.Debugf("Excluding owner, %v", pr.owner)
 	candidates = removeList(candidates, candidateList{pr.owner})
 
+	logger.Debugf("Candidates after all excludes: %v", candidates)
+
 	if len(candidates) == 0 {
+		logger.Infof("No candidates to assign to")
 		return nil
 	}
 
 	assignee := candidates[rand.Intn(len(candidates))]
 
+	logger.Debugf("Assigning candidate %v", assignee)
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/%d", pr.repo.owner, pr.repo.name, pr.id)
 	reqBody, err := json.Marshal(struct {
 		Assignee string `json:"assignee"`
@@ -144,6 +161,7 @@ func assignPullRequest(client *github.Client, pr pullRequest, candidates candida
 	if _, err = client.Do(req, nil); err != nil {
 		return err
 	}
+	logger.Infof("Assigned user %v", assignee)
 	pullsAssigned.With(prometheus.Labels{
 		"repo": fmt.Sprintf("%s/%s", pr.repo.owner, pr.repo.name),
 		"user": assignee,
@@ -268,8 +286,6 @@ func main() {
 	go mainLoop(state)
 	defer close(state.cancelMainLoop)
 
-	prometheus.MustRegister(pullsAssigned)
-
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "pr-assigner running with config: %v\n", state.repositories)
 	})
@@ -306,10 +322,9 @@ func mainLoop(state mainState) {
 			logger.Infof("got %d eligible PRs", len(prs))
 			for _, pr := range prs {
 				if err := assignPullRequest(state.client, pr, candidates); err != nil {
-					temp := logger.WithFields(log.Fields{
+					logger.WithFields(log.Fields{
 						"pullrequest": pr,
-					})
-					temp.Errorf("error assigning to PR: %v", err)
+					}).Errorf("error assigning to PR: %v", err)
 				}
 			}
 		}
