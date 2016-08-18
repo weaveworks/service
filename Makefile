@@ -31,13 +31,15 @@ all: $(UPTODATE_FILES)
 AUTHFE_EXE := authfe/authfe
 USERS_EXE := users/users
 METRICS_EXE := metrics/metrics
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_RUN_EXE)
+PR_ASSIGNER_EXE := pr-assigner/pr-assigner
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_RUN_EXE) $(PR_ASSIGNER_EXE)
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
 $(AUTHFE_EXE): $(shell find authfe -name '*.go') $(shell find users/client -name '*.go') $(COMMON)
 $(USERS_EXE): $(shell find users -name '*.go') $(COMMON)
 $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
+$(PR_ASSIGNER_EXE): $(shell find pr-assigner -name '*.go') $(COMMON)
 
 # And now what goes into each image
 authfe/$(UPTODATE): $(AUTHFE_EXE)
@@ -52,6 +54,7 @@ monitoring/grafana/$(UPTODATE): monitoring/grafana/*
 monitoring/gfdatasource/$(UPTODATE): monitoring/gfdatasource/*
 monitoring/prometheus/$(UPTODATE): monitoring/prometheus/*
 monitoring/alertmanager/$(UPTODATE): monitoring/alertmanager/*
+pr-assigner/$(UPTODATE): $(PR_ASSIGNER_EXE)
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
