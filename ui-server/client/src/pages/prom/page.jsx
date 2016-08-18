@@ -26,9 +26,7 @@ export default class PromWrapperPage extends React.Component {
       '</style>';
     try {
       const iframe = this._iframe.contentDocument;
-      iframe.open();
-      iframe.write(css);
-      iframe.close();
+      iframe.querySelector('head').insertAdjacentHTML('beforeend', css);
     } catch (e) {
       // Security exception
       log('Could not inject CSS into prom frame', e);
