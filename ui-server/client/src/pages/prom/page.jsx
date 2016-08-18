@@ -1,14 +1,38 @@
 /* eslint react/jsx-no-bind:0 */
 import React from 'react';
+import debug from 'debug';
 
 import { encodeURIs } from '../../common/request';
 import PrivatePage from '../../components/private-page';
 import { trackView } from '../../common/tracking';
 
+const log = debug('service:prom');
+
 export default class PromWrapperPage extends React.Component {
+
+  constructor(props, context) {
+    super(props, context);
+    this.handleFrameLoad = this.handleFrameLoad.bind(this);
+  }
 
   componentDidMount() {
     trackView('Prom');
+  }
+
+  handleFrameLoad() {
+    const css = '' +
+      '<style type="text/css">' +
+      'body{ padding: 20px 20px 20px 20px; } nav{ display: none; }' +
+      '</style>';
+    try {
+      const iframe = this._iframe.contentDocument;
+      iframe.open();
+      iframe.write(css);
+      iframe.close();
+    } catch (e) {
+      // Security exception
+      log('Could not inject CSS into prom frame', e);
+    }
   }
 
   render() {
@@ -26,7 +50,8 @@ export default class PromWrapperPage extends React.Component {
 
     return (
       <PrivatePage page="prom" {...this.props.params}>
-        <iframe src={frameUrl} style={styles.iframe} />
+        <iframe ref={(c) => {this._iframe = c;}} src={frameUrl} style={styles.iframe}
+          onLoad={this.handleFrameLoad} />
       </PrivatePage>
     );
   }
