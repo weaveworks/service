@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -112,8 +111,12 @@ type orgCredCacheKey struct {
 	cookie, orgExternalID string
 }
 
-type orgCredCacheValue struct {
-	orgID, userID string
+// org is both the return type from the users api, and the type of entries we put in the cache.
+type organization struct {
+	OrganizationID string   `json:"organizationID"`
+	UserID         string   `json:"userID"`
+	FeatureFlags   []string `json::"featureFlags"`
+	AdminID        string   `json:"adminID,omitempty"`
 }
 
 func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string) (string, string, error) {
@@ -130,8 +133,8 @@ func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string
 		org, err := m.orgCredCache.Get(cacheKey)
 		authCacheCounter.WithLabelValues("org_cred_cache", hitOrMiss(err)).Inc()
 		if err == nil {
-			v := org.(orgCredCacheValue)
-			return v.orgID, v.userID, nil
+			v := org.(organization)
+			return v.OrganizationID, v.UserID, err
 		}
 	}
 
@@ -142,14 +145,11 @@ func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string
 		return "", "", err
 	}
 	lookupReq.AddCookie(authCookie)
-	orgID, userID, err := m.decodeOrg(m.doAuthenticateRequest(lookupReq))
+	org, err := m.doAuthenticateRequest(lookupReq)
 	if err == nil && m.orgCredCache != nil {
-		m.orgCredCache.Set(cacheKey, orgCredCacheValue{
-			orgID:  orgID,
-			userID: userID,
-		})
+		m.orgCredCache.Set(cacheKey, org)
 	}
-	return orgID, userID, err
+	return org.OrganizationID, org.UserID, err
 }
 
 func getAuthHeader(r *http.Request) (string, error) {
@@ -181,7 +181,7 @@ func (m *webAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
 		org, err := m.probeCredCache.Get(authHeader)
 		authCacheCounter.WithLabelValues("probe_cred_cache", hitOrMiss(err)).Inc()
 		if err == nil {
-			return org.(string), nil
+			return org.(organization).OrganizationID, nil
 		}
 	}
 
@@ -192,11 +192,11 @@ func (m *webAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
 		return "", err
 	}
 	lookupReq.Header.Set(AuthHeaderName, authHeader)
-	org, _, err := m.decodeOrg(m.doAuthenticateRequest(lookupReq))
+	org, err := m.doAuthenticateRequest(lookupReq)
 	if err == nil && m.probeCredCache != nil {
 		m.probeCredCache.Set(authHeader, org)
 	}
-	return org, err
+	return org.OrganizationID, err
 }
 
 func (m *webAuthenticator) AuthenticateAdmin(r *http.Request) (string, error) {
@@ -215,57 +215,37 @@ func (m *webAuthenticator) AuthenticateAdmin(r *http.Request) (string, error) {
 		return "", err
 	}
 	lookupReq.AddCookie(authCookie)
-	return m.decodeAdmin(m.doAuthenticateRequest(lookupReq))
+	org, err := m.doAuthenticateRequest(lookupReq)
+	if err != nil {
+		return "", err
+	}
+	if org.AdminID == "" {
+		return "", errors.New("empty AdminID")
+	}
+	return org.AdminID, nil
 }
 
-func (m *webAuthenticator) doAuthenticateRequest(r *http.Request) (io.ReadCloser, error) {
+func (m *webAuthenticator) doAuthenticateRequest(r *http.Request) (organization, error) {
 	// Contact the authorization server
 	res, err := m.client.Do(r)
 	if err != nil {
-		return nil, err
+		return organization{}, err
 	}
+	defer res.Body.Close()
 
 	// Parse the response
 	if res.StatusCode != http.StatusOK {
-		res.Body.Close()
-		return nil, &Unauthorized{res.StatusCode}
+		return organization{}, &Unauthorized{res.StatusCode}
 	}
-	return res.Body, nil
-}
 
-func (m *webAuthenticator) decodeOrg(body io.ReadCloser, err error) (string, string, error) {
-	if err != nil {
-		return "", "", err
+	var org organization
+	if err := json.NewDecoder(res.Body).Decode(&org); err != nil {
+		return organization{}, err
 	}
-	defer body.Close()
-	var authRes struct {
-		OrganizationID string `json:"organizationID"`
-		UserID         string `json:"userID"`
+	if org.OrganizationID == "" {
+		return organization{}, errors.New("empty OrganizationID")
 	}
-	if err := json.NewDecoder(body).Decode(&authRes); err != nil {
-		return "", "", err
-	}
-	if authRes.OrganizationID == "" {
-		return "", "", errors.New("empty OrganizationID")
-	}
-	return authRes.OrganizationID, authRes.UserID, nil
-}
-
-func (m *webAuthenticator) decodeAdmin(body io.ReadCloser, err error) (string, error) {
-	if err != nil {
-		return "", err
-	}
-	defer body.Close()
-	var authRes struct {
-		AdminID string `json:"adminID"`
-	}
-	if err := json.NewDecoder(body).Decode(&authRes); err != nil {
-		return "", err
-	}
-	if authRes.AdminID == "" {
-		return "", errors.New("empty AdminID")
-	}
-	return authRes.AdminID, nil
+	return org, nil
 }
 
 // AuthOrgMiddleware is a middleware.Interface for authentication organisations based on the

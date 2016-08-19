@@ -544,8 +544,9 @@ func (a *api) publicLookup(currentUser *user, w http.ResponseWriter, r *http.Req
 }
 
 type lookupOrgView struct {
-	OrganizationID string `json:"organizationID,omitempty"`
-	UserID         string `json:"userID,omitempty"`
+	OrganizationID string   `json:"organizationID,omitempty"`
+	UserID         string   `json:"userID,omitempty"`
+	FeatureFlags   []string `json:"featureFlags,omitempty"`
 }
 
 func (a *api) lookupOrg(currentUser *user, w http.ResponseWriter, r *http.Request) {
@@ -556,6 +557,7 @@ func (a *api) lookupOrg(currentUser *user, w http.ResponseWriter, r *http.Reques
 			renderJSON(w, http.StatusOK, lookupOrgView{
 				OrganizationID: org.ID,
 				UserID:         currentUser.ID,
+				FeatureFlags:   org.FeatureFlags,
 			})
 			return
 		}
@@ -590,7 +592,10 @@ func (a *api) lookupUsingToken(w http.ResponseWriter, r *http.Request) {
 
 	org, err := a.storage.FindOrganizationByProbeToken(token)
 	if err == nil {
-		renderJSON(w, http.StatusOK, lookupOrgView{OrganizationID: org.ID})
+		renderJSON(w, http.StatusOK, lookupOrgView{
+			OrganizationID: org.ID,
+			FeatureFlags:   org.FeatureFlags,
+		})
 		return
 	}
 
