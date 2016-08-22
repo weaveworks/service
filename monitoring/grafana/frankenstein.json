@@ -41,7 +41,7 @@
           "lines": true,
           "linewidth": 2,
           "links": [],
-          "nullPointMode": "connected",
+          "nullPointMode": "null as zero",
           "percentage": false,
           "pointradius": 5,
           "points": false,
@@ -52,17 +52,17 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_remote_storage_sent_samples_total{job=\"retrieval\"}[1m])",
+              "expr": "rate(prometheus_remote_storage_sent_samples_total{job=\"retrieval\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{result}}",
               "metric": "",
               "refId": "A",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Retrieval -> Distributor sent samples [rate-1m]",
+          "title": "Retrieval -> Distributor sent samples [rate-5m]",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -135,14 +135,14 @@
               "legendFormat": "{{instance}} - length",
               "metric": "",
               "refId": "A",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "prometheus_remote_storage_queue_capacity{job=\"retrieval\"}",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - capacity",
               "refId": "B",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
@@ -204,7 +204,7 @@
           "lines": true,
           "linewidth": 2,
           "links": [],
-          "nullPointMode": "connected",
+          "nullPointMode": "null as zero",
           "percentage": false,
           "pointradius": 5,
           "points": false,
@@ -215,16 +215,16 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_remote_storage_failed_batches_total{job=\"retrieval\"}[1m])",
+              "expr": "rate(prometheus_remote_storage_failed_batches_total{job=\"retrieval\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}}",
               "refId": "A",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Failed remote storage batches [rate-1m]",
+          "title": "Failed remote storage batches [rate-5m]",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -290,7 +290,7 @@
           "lines": true,
           "linewidth": 2,
           "links": [],
-          "nullPointMode": "connected",
+          "nullPointMode": "null as zero",
           "percentage": false,
           "pointradius": 5,
           "points": false,
@@ -301,16 +301,16 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_dynamo_request_duration_seconds_count{job=\"distributor\"}[1m])",
+              "expr": "rate(prometheus_dynamo_request_duration_seconds_count{job=\"distributor\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "DynamoDB requests [rate-1m]",
+          "title": "DynamoDB requests [rate-5m]",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -367,7 +367,7 @@
           "lines": true,
           "linewidth": 2,
           "links": [],
-          "nullPointMode": "connected",
+          "nullPointMode": "null as zero",
           "percentage": false,
           "pointradius": 5,
           "points": false,
@@ -378,17 +378,17 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_dynamo_consumed_capacity_total{job=\"distributor\"}[1m])",
+              "expr": "rate(prometheus_dynamo_consumed_capacity_total{job=\"distributor\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
               "refId": "A",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "DynamoDB used capacity [rate-1m]",
+          "title": "DynamoDB used capacity [rate-5m]",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -460,21 +460,21 @@
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 99th",
               "refId": "A",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 95th",
               "refId": "B",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 50th",
               "refId": "C",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
@@ -536,7 +536,7 @@
           "lines": true,
           "linewidth": 2,
           "links": [],
-          "nullPointMode": "connected",
+          "nullPointMode": "null as zero",
           "percentage": false,
           "pointradius": 5,
           "points": false,
@@ -547,16 +547,16 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_s3_request_duration_seconds_count{job=\"distributor\"}[1m])",
+              "expr": "rate(prometheus_s3_request_duration_seconds_count{job=\"distributor\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "S3 requests [rate-1m]",
+          "title": "S3 requests [rate-5m]",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -628,21 +628,21 @@
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 99th",
               "refId": "A",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "histogram_quantile(0.95, sum without (instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 95th",
               "refId": "B",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "histogram_quantile(0.5, sum without (instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 50th",
               "refId": "C",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
@@ -720,21 +720,21 @@
               "legendFormat": "{{status_code}} - 99th",
               "metric": "",
               "refId": "B",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_distributor_query_duration_seconds_bucket[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{status_code}} - 95th",
               "refId": "A",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_distributor_query_duration_seconds_bucket[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{status_code}} - 50th",
               "refId": "C",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
@@ -796,7 +796,7 @@
           "lines": true,
           "linewidth": 2,
           "links": [],
-          "nullPointMode": "connected",
+          "nullPointMode": "null as zero",
           "percentage": false,
           "pointradius": 5,
           "points": false,
@@ -807,16 +807,16 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_memcache_request_duration_seconds_count{job=\"distributor\"}[1m])",
+              "expr": "rate(prometheus_memcache_request_duration_seconds_count{job=\"distributor\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "refId": "A",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Memcache requests [rate-1m]",
+          "title": "Memcache requests [rate-5m]",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -884,16 +884,16 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(prometheus_memcache_hits_total{job=\"distributor\"}[1m])) / sum(rate(prometheus_memcache_requests_total{job=\"distributor\"}[1m]))",
+              "expr": "sum(rate(prometheus_memcache_hits_total{job=\"distributor\"}[5m])) / sum(rate(prometheus_memcache_requests_total{job=\"distributor\"}[5m]))",
               "intervalFactor": 2,
-              "legendFormat": "",
+              "legendFormat": "hit ratio",
               "refId": "A",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Memcache hit ratio [ratio-rate-1m]",
+          "title": "Memcache hit ratio [ratio-rate-5m]",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -966,7 +966,7 @@
               "legendFormat": "{{method}}: {{status_code}} - 99th",
               "metric": "",
               "refId": "A",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"distributor\"}[10m])))",
@@ -974,14 +974,14 @@
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} - 95th",
               "refId": "B",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"distributor\"}[10m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} - 50th",
               "refId": "C",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
@@ -1052,7 +1052,7 @@
           "lines": true,
           "linewidth": 2,
           "links": [],
-          "nullPointMode": "connected",
+          "nullPointMode": "null as zero",
           "percentage": false,
           "pointradius": 5,
           "points": false,
@@ -1063,16 +1063,16 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_dynamo_request_duration_seconds_count{job=\"ingester\"}[1m])",
+              "expr": "rate(prometheus_dynamo_request_duration_seconds_count{job=\"ingester\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "DynamoDB requests [rate-1m]",
+          "title": "DynamoDB requests [rate-5m]",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -1129,7 +1129,7 @@
           "lines": true,
           "linewidth": 2,
           "links": [],
-          "nullPointMode": "connected",
+          "nullPointMode": "null as zero",
           "percentage": false,
           "pointradius": 5,
           "points": false,
@@ -1140,17 +1140,17 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_dynamo_consumed_capacity_total{job=\"ingester\"}[1m])",
+              "expr": "rate(prometheus_dynamo_consumed_capacity_total{job=\"ingester\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
               "refId": "A",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Used DynamoDB capacity [rate-1m]",
+          "title": "Used DynamoDB capacity [rate-5m]",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -1222,21 +1222,21 @@
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 99th",
               "refId": "A",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 95th",
               "refId": "B",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 50th",
               "refId": "C",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
@@ -1309,16 +1309,16 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_s3_request_duration_seconds_count{job=\"ingester\"}[1m])",
+              "expr": "rate(prometheus_s3_request_duration_seconds_count{job=\"ingester\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "S3 requests [rate-1m]",
+          "title": "S3 requests [rate-5m]",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -1390,21 +1390,21 @@
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 99th",
               "refId": "A",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 95th",
               "refId": "B",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "histogram_quantile(0.50, sum without(instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 50th",
               "refId": "C",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
@@ -1477,16 +1477,16 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_memcache_request_duration_seconds_count{job=\"ingester\"}[1m])",
+              "expr": "rate(prometheus_memcache_request_duration_seconds_count{job=\"ingester\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "refId": "A",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Memcache requests [rate-1m]",
+          "title": "Memcache requests [rate-5m]",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -1559,21 +1559,21 @@
               "legendFormat": "{{method}}: {{status_code}} 99th",
               "metric": "",
               "refId": "A",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} 95th",
               "refId": "B",
-              "step": 600
+              "step": 240
             },
             {
               "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} 50th",
               "refId": "C",
-              "step": 600
+              "step": 240
             }
           ],
           "timeFrom": null,
