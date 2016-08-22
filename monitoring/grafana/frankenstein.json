@@ -48,7 +48,7 @@
           "renderer": "flot",
           "seriesOverrides": [],
           "span": 4,
-          "stack": false,
+          "stack": true,
           "steppedLine": false,
           "targets": [
             {
@@ -211,7 +211,7 @@
           "renderer": "flot",
           "seriesOverrides": [],
           "span": 4,
-          "stack": false,
+          "stack": true,
           "steppedLine": false,
           "targets": [
             {
@@ -297,7 +297,7 @@
           "renderer": "flot",
           "seriesOverrides": [],
           "span": 4,
-          "stack": false,
+          "stack": true,
           "steppedLine": false,
           "targets": [
             {
@@ -374,7 +374,7 @@
           "renderer": "flot",
           "seriesOverrides": [],
           "span": 4,
-          "stack": false,
+          "stack": true,
           "steppedLine": false,
           "targets": [
             {
@@ -456,10 +456,24 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "prometheus_dynamo_request_duration_seconds{job=\"distributor\"}",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"distributor\"}[5m])))",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}} - {{operation}}: {{quantile}}",
+              "legendFormat": "{{operation}}: 99th",
               "refId": "A",
+              "step": 600
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"distributor\"}[5m])))",
+              "intervalFactor": 2,
+              "legendFormat": "{{operation}}: 95th",
+              "refId": "B",
+              "step": 600
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"distributor\"}[5m])))",
+              "intervalFactor": 2,
+              "legendFormat": "{{operation}}: 50th",
+              "refId": "C",
               "step": 600
             }
           ],
@@ -529,7 +543,7 @@
           "renderer": "flot",
           "seriesOverrides": [],
           "span": 4,
-          "stack": false,
+          "stack": true,
           "steppedLine": false,
           "targets": [
             {
@@ -610,10 +624,24 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "prometheus_s3_request_duration_seconds{job=\"distributor\"}",
+              "expr": "histogram_quantile(0.99, sum without (instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"distributor\"}[5m])))",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}} - {{operation}}: {{status_code}} - {{quantile}}",
+              "legendFormat": "{{operation}}: {{status_code}} - 99th",
               "refId": "A",
+              "step": 600
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum without (instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"distributor\"}[5m])))",
+              "intervalFactor": 2,
+              "legendFormat": "{{operation}}: {{status_code}} - 95th",
+              "refId": "B",
+              "step": 600
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum without (instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"distributor\"}[5m])))",
+              "intervalFactor": 2,
+              "legendFormat": "{{operation}}: {{status_code}} - 50th",
+              "refId": "C",
               "step": 600
             }
           ],
@@ -687,10 +715,25 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "http_request_duration_microseconds{job=\"distributor\", handler=~\"query.*\"}",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prometheus_distributor_query_duration_seconds_bucket[5m])))",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}} - {{handler}} - {{quantile}}",
+              "legendFormat": "{{status_code}} - 99th",
+              "metric": "",
+              "refId": "B",
+              "step": 600
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_distributor_query_duration_seconds_bucket[5m])))",
+              "intervalFactor": 2,
+              "legendFormat": "{{status_code}} - 95th",
               "refId": "A",
+              "step": 600
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_distributor_query_duration_seconds_bucket[5m])))",
+              "intervalFactor": 2,
+              "legendFormat": "{{status_code}} - 50th",
+              "refId": "C",
               "step": 600
             }
           ],
@@ -709,7 +752,7 @@
           },
           "yaxes": [
             {
-              "format": "Ã‚Âµs",
+              "format": "Ãƒâ€šÃ‚Âµs",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -760,7 +803,7 @@
           "renderer": "flot",
           "seriesOverrides": [],
           "span": 4,
-          "stack": false,
+          "stack": true,
           "steppedLine": false,
           "targets": [
             {
@@ -841,9 +884,9 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_memcache_hits_total{job=\"distributor\"}[1m]) / rate(prometheus_memcache_requests_total{job=\"distributor\"}[1m])",
+              "expr": "sum(rate(prometheus_memcache_hits_total{job=\"distributor\"}[1m])) / sum(rate(prometheus_memcache_requests_total{job=\"distributor\"}[1m]))",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "",
               "refId": "A",
               "step": 600
             }
@@ -918,17 +961,32 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, rate(prometheus_memcache_request_duration_seconds_bucket{job=\"distributor\"}[10m]))",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"distributor\"}[10m])))",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
+              "legendFormat": "{{method}}: {{status_code}} - 99th",
               "metric": "",
               "refId": "A",
+              "step": 600
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"distributor\"}[10m])))",
+              "interval": "",
+              "intervalFactor": 2,
+              "legendFormat": "{{method}}: {{status_code}} - 95th",
+              "refId": "B",
+              "step": 600
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"distributor\"}[10m])))",
+              "intervalFactor": 2,
+              "legendFormat": "{{method}}: {{status_code}} - 50th",
+              "refId": "C",
               "step": 600
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Memcache 95th percentile latency",
+          "title": "Memcache latency",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -1001,7 +1059,7 @@
           "renderer": "flot",
           "seriesOverrides": [],
           "span": 4,
-          "stack": false,
+          "stack": true,
           "steppedLine": false,
           "targets": [
             {
@@ -1078,7 +1136,7 @@
           "renderer": "flot",
           "seriesOverrides": [],
           "span": 4,
-          "stack": false,
+          "stack": true,
           "steppedLine": false,
           "targets": [
             {
@@ -1160,10 +1218,24 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "prometheus_dynamo_request_duration_seconds{job=\"ingester\"}",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}} - {{operation}}: {{quantile}}",
+              "legendFormat": "{{operation}} - 99th",
               "refId": "A",
+              "step": 600
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
+              "intervalFactor": 2,
+              "legendFormat": "{{operation}} - 95th",
+              "refId": "B",
+              "step": 600
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
+              "intervalFactor": 2,
+              "legendFormat": "{{operation}} - 50th",
+              "refId": "C",
               "step": 600
             }
           ],
@@ -1226,14 +1298,14 @@
           "lines": true,
           "linewidth": 2,
           "links": [],
-          "nullPointMode": "connected",
+          "nullPointMode": "null as zero",
           "percentage": false,
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
           "seriesOverrides": [],
           "span": 6,
-          "stack": false,
+          "stack": true,
           "steppedLine": false,
           "targets": [
             {
@@ -1241,7 +1313,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -1314,11 +1386,25 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "prometheus_s3_request_duration_seconds{job=\"ingester\"}",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}} - {{operation}}: {{status_code}} - {{quantile}}",
+              "legendFormat": "{{operation}}: {{status_code}} - 99th",
               "refId": "A",
-              "step": 240
+              "step": 600
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
+              "intervalFactor": 2,
+              "legendFormat": "{{operation}}: {{status_code}} - 95th",
+              "refId": "B",
+              "step": 600
+            },
+            {
+              "expr": "histogram_quantile(0.50, sum without(instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
+              "intervalFactor": 2,
+              "legendFormat": "{{operation}}: {{status_code}} - 50th",
+              "refId": "C",
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -1387,7 +1473,7 @@
           "renderer": "flot",
           "seriesOverrides": [],
           "span": 6,
-          "stack": false,
+          "stack": true,
           "steppedLine": false,
           "targets": [
             {
@@ -1395,7 +1481,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 600
             }
           ],
           "timeFrom": null,
@@ -1468,17 +1554,31 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, rate(prometheus_memcache_request_duration_seconds_bucket{job=\"ingester\"}[10m]))",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
+              "legendFormat": "{{method}}: {{status_code}} 99th",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 600
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
+              "intervalFactor": 2,
+              "legendFormat": "{{method}}: {{status_code}} 95th",
+              "refId": "B",
+              "step": 600
+            },
+            {
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
+              "intervalFactor": 2,
+              "legendFormat": "{{method}}: {{status_code}} 50th",
+              "refId": "C",
+              "step": 600
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Memcache 95th percentile latency",
+          "title": "Memcache latency",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -1551,5 +1651,5 @@
   },
   "timezone": "utc",
   "title": "Frankenstein",
-  "version": 3
+  "version": 0
 }
