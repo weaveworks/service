@@ -1005,7 +1005,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_dynamo_request_duration_seconds_count{job=\"ingestor\"}[1m])",
+              "expr": "rate(prometheus_dynamo_request_duration_seconds_count{job=\"ingester\"}[1m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
@@ -1082,7 +1082,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_dynamo_consumed_capacity_total{job=\"ingestor\"}[1m])",
+              "expr": "rate(prometheus_dynamo_consumed_capacity_total{job=\"ingester\"}[1m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
@@ -1160,7 +1160,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "prometheus_dynamo_request_duration_seconds{job=\"ingestor\"}",
+              "expr": "prometheus_dynamo_request_duration_seconds{job=\"ingester\"}",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{quantile}}",
               "refId": "A",
@@ -1237,7 +1237,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_s3_request_duration_seconds_count{job=\"ingestor\"}[1m])",
+              "expr": "rate(prometheus_s3_request_duration_seconds_count{job=\"ingester\"}[1m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
@@ -1314,7 +1314,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "prometheus_s3_request_duration_seconds{job=\"ingestor\"}",
+              "expr": "prometheus_s3_request_duration_seconds{job=\"ingester\"}",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}} - {{quantile}}",
               "refId": "A",
@@ -1391,7 +1391,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_memcache_request_duration_seconds_count{job=\"ingestor\"}[1m])",
+              "expr": "rate(prometheus_memcache_request_duration_seconds_count{job=\"ingester\"}[1m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "refId": "A",
@@ -1468,7 +1468,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, rate(prometheus_memcache_request_duration_seconds_bucket{job=\"ingestor\"}[10m]))",
+              "expr": "histogram_quantile(0.95, rate(prometheus_memcache_request_duration_seconds_bucket{job=\"ingester\"}[10m]))",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "metric": "",
