@@ -508,7 +508,16 @@
               "show": true
             }
           ]
-        },
+        }
+      ],
+      "showTitle": true,
+      "title": "Distributor Query Stats"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
         {
           "aliasColors": {},
           "bars": false,
@@ -768,7 +777,15 @@
               "show": true
             }
           ]
-        },
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
         {
           "aliasColors": {},
           "bars": false,
@@ -1017,8 +1034,7 @@
           ]
         }
       ],
-      "showTitle": true,
-      "title": "Distributor Query Stats"
+      "title": "New row"
     },
     {
       "collapse": false,
@@ -1270,7 +1286,16 @@
               "show": true
             }
           ]
-        },
+        }
+      ],
+      "showTitle": true,
+      "title": "Ingester stats"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
         {
           "aliasColors": {},
           "bars": false,
@@ -1438,7 +1463,15 @@
               "show": true
             }
           ]
-        },
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
         {
           "aliasColors": {},
           "bars": false,
@@ -1609,8 +1642,7 @@
           ]
         }
       ],
-      "showTitle": true,
-      "title": "Ingester stats"
+      "title": "New row"
     }
   ],
   "schemaVersion": 12,
