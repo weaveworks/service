@@ -8,6 +8,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/tylerb/graceful"
+
 	"github.com/weaveworks/scope/common/xfer"
 	"github.com/weaveworks/service/common/logging"
 	users "github.com/weaveworks/service/users/client"
@@ -81,6 +83,7 @@ func newUIRequestLogger(orgIDHeader, userIDHeader string) logging.HTTPEventExtra
 func main() {
 	var (
 		listen              string
+		stopTimeout         time.Duration
 		logLevel            string
 		authType            string
 		authURL             string
@@ -91,6 +94,7 @@ func main() {
 		c Config
 	)
 	flag.StringVar(&listen, "listen", ":80", "HTTP server listen address")
+	flag.DurationVar(&stopTimeout, "stop.timeout", 5*time.Second, "How long to wait for remaining requests to finish during shutdown")
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
 	flag.StringVar(&authType, "authenticator", "web", "What authenticator to use: web | mock")
 	flag.StringVar(&authURL, "authenticator.url", "http://users:80", "Where to find web the authenticator service")
@@ -145,5 +149,9 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Infof("Listening on %s", listen)
-	log.Fatal(http.ListenAndServe(listen, r))
+	// block until stop signal is received, then wait stopTimeout for remaining conns
+	if err := graceful.RunWithErr(listen, stopTimeout, r); err != nil {
+		log.Fatal(err)
+	}
+	log.Info("Gracefully shut down")
 }
