@@ -849,12 +849,28 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/tylerb/graceful",
+			"repository": "https://github.com/tylerb/graceful",
+			"vcs": "git",
+			"revision": "842f31108f8d3512ce3176d00bf1a32db1d5e3af",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/ugorji/go/codec",
 			"repository": "https://github.com/ugorji/go",
 			"vcs": "",
 			"revision": "8bb56663530600b54f72c79871451ea5725b6763",
 			"branch": "master",
 			"path": "/codec"
+		},
+		{
+			"importpath": "github.com/urfave/negroni",
+			"repository": "https://github.com/urfave/negroni",
+			"vcs": "git",
+			"revision": "6edff56736fa7bd546812f149e8cdaae61e5a38f",
+			"branch": "master",
+			"notests": true
 		},
 		{
 			"importpath": "github.com/weaveworks/scope/common/instrument",
@@ -1141,6 +1157,14 @@
 			"repository": "https://gopkg.in/inf.v0",
 			"vcs": "git",
 			"revision": "3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "gopkg.in/tylerb/graceful.v1",
+			"repository": "https://gopkg.in/tylerb/graceful.v1",
+			"vcs": "git",
+			"revision": "842f31108f8d3512ce3176d00bf1a32db1d5e3af",
 			"branch": "master",
 			"notests": true
 		},
