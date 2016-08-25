@@ -94,10 +94,12 @@ func searchPullRequests(client *github.Client, repo repository) ([]pullRequest, 
 
 		// special case: treat WIP in the subject same as ignore directive
 		if strings.Contains(*prInfo.Title, "WIP") {
+			log.Infof("ignoring %v due to WIP in title", pr)
 			continue
 		}
 
 		if _, ignore := pr.directives["ignore"]; ignore {
+			log.Infof("ignoring %v due to ignore directive", pr)
 			continue
 		}
 		results = append(results, pr)
