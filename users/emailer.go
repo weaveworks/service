@@ -160,7 +160,7 @@ func (s smtpEmailer) GrantAccessEmail(inviter, invited *user, orgExternalID, org
 	data := map[string]interface{}{
 		"InviterName":      inviter.Email,
 		"OrganizationName": orgName,
-		"OrganizationURL":  organizationURL(orgExternalID, orgName),
+		"OrganizationURL":  organizationURL(s.domain, orgExternalID),
 	}
 	e.Text = s.templates.quietBytes("grant_access_email.text", data)
 	e.HTML = s.templates.quietBytes("grant_access_email.html", data)
@@ -216,7 +216,7 @@ func (s sendgridEmailer) GrantAccessEmail(inviter, invited *user, orgExternalID,
 	data := map[string]interface{}{
 		"InviterName":      inviter.Email,
 		"OrganizationName": orgName,
-		"OrganizationURL":  organizationURL(orgExternalID, orgName),
+		"OrganizationURL":  organizationURL(s.domain, orgExternalID),
 	}
 	mail.SetText(string(s.templates.quietBytes("grant_access_email.text", data)))
 	mail.SetHTML(string(s.templates.quietBytes("grant_access_email.html", data)))
