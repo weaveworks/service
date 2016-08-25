@@ -1,15 +1,19 @@
-package main
+package users
 
 import (
 	"regexp"
 	"time"
+
+	"github.com/weaveworks/service/users/tokens"
 )
 
 var (
 	orgExternalIDRegex = regexp.MustCompile(`\A[a-zA-Z0-9_-]+\z`)
 )
 
-type organization struct {
+// Organization (aka Instance) represents a database organization, and a UI
+// instance. (same thing)
+type Organization struct {
 	ID                 string
 	ExternalID         string
 	Name               string
@@ -19,8 +23,9 @@ type organization struct {
 	FeatureFlags       []string
 }
 
-func (o *organization) RegenerateProbeToken() error {
-	t, err := generateToken()
+// RegenerateProbeToken regenerates the organizations probe token
+func (o *Organization) RegenerateProbeToken() error {
+	t, err := tokens.Generate()
 	if err != nil {
 		return err
 	}
@@ -28,14 +33,15 @@ func (o *organization) RegenerateProbeToken() error {
 	return nil
 }
 
-func (o *organization) valid() error {
+// Valid check if the organization is valid. Good to call before saving.
+func (o *Organization) Valid() error {
 	switch {
 	case o.ExternalID == "":
-		return errOrgExternalIDCannotBeBlank
+		return ErrOrgExternalIDCannotBeBlank
 	case !orgExternalIDRegex.MatchString(o.ExternalID):
-		return errOrgExternalIDFormat
+		return ErrOrgExternalIDFormat
 	case o.Name == "":
-		return errOrgNameCannotBeBlank
+		return ErrOrgNameCannotBeBlank
 	}
 	return nil
 }

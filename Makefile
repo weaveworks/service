@@ -29,7 +29,7 @@ all: $(UPTODATE_FILES)
 
 # List of exes please
 AUTHFE_EXE := authfe/authfe
-USERS_EXE := users/users
+USERS_EXE := users/cmd/users/users
 METRICS_EXE := metrics/metrics
 PR_ASSIGNER_EXE := pr-assigner/pr-assigner
 EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_RUN_EXE) $(PR_ASSIGNER_EXE)
