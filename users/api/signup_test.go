@@ -117,7 +117,9 @@ func Test_Signup(t *testing.T) {
 	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 	firstLoginAt := user.FirstLoginAt
 	// Doesn't create an organization.
-	assert.Len(t, user.Organizations, 0)
+	organizations, err := db.ListOrganizationsForUserIDs(user.ID)
+	require.NoError(t, err)
+	assert.Len(t, organizations, 0)
 
 	// Subsequent Logins do not change their FirstLoginAt or organization
 	w = httptest.NewRecorder()
@@ -137,7 +139,9 @@ func Test_Signup(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 	assert.Equal(t, firstLoginAt, user.FirstLoginAt, "Second login should not have changed user's FirstLoginAt")
-	assert.Len(t, user.Organizations, 0)
+	organizations, err = db.ListOrganizationsForUserIDs(user.ID)
+	require.NoError(t, err)
+	assert.Len(t, organizations, 0)
 }
 
 func Test_Signup_WithInvalidJSON(t *testing.T) {
@@ -207,10 +211,12 @@ func Test_Signup_ViaOAuth(t *testing.T) {
 	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 
 	// User should have login set
-	if assert.Len(t, user.Logins, 1) {
-		assert.Equal(t, user.ID, user.Logins[0].UserID)
-		assert.Equal(t, "mock", user.Logins[0].Provider)
-		assert.Equal(t, "joe", user.Logins[0].ProviderID)
+	userLogins, err := db.ListLoginsForUserIDs(user.ID)
+	require.NoError(t, err)
+	if assert.Len(t, userLogins, 1) {
+		assert.Equal(t, user.ID, userLogins[0].UserID)
+		assert.Equal(t, "mock", userLogins[0].Provider)
+		assert.Equal(t, "joe", userLogins[0].ProviderID)
 	}
 }
 
@@ -223,7 +229,9 @@ func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 		"joe": {ID: "joe", Email: user.Email},
 	})
 	// User should not have any logins yet.
-	assert.Len(t, user.Logins, 0)
+	userLogins, err := db.ListLoginsForUserIDs(user.ID)
+	require.NoError(t, err)
+	assert.Len(t, userLogins, 0)
 
 	// Signup as an existing user via oauth, should match with existing user
 	w := httptest.NewRecorder()
@@ -247,10 +255,12 @@ func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 	assert.False(t, found.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 
 	// User should have a login set
-	if assert.Len(t, found.Logins, 1) {
-		assert.Equal(t, user.ID, found.Logins[0].UserID)
-		assert.Equal(t, "mock", found.Logins[0].Provider)
-		assert.Equal(t, "joe", found.Logins[0].ProviderID)
+	foundLogins, err := db.ListLoginsForUserIDs(found.ID)
+	require.NoError(t, err)
+	if assert.Len(t, foundLogins, 1) {
+		assert.Equal(t, user.ID, foundLogins[0].UserID)
+		assert.Equal(t, "mock", foundLogins[0].Provider)
+		assert.Equal(t, "joe", foundLogins[0].ProviderID)
 	}
 }
 
@@ -281,12 +291,12 @@ func Test_Signup_ViaOAuth_EmailChanged(t *testing.T) {
 	_, err := db.FindUserByEmail(newEmail)
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 
-	user, err = db.FindUserByID(user.ID)
+	userLogins, err := db.ListLoginsForUserIDs(user.ID)
 	require.NoError(t, err)
 	// User should have a login set
-	if assert.Len(t, user.Logins, 1) {
-		assert.Equal(t, user.ID, user.Logins[0].UserID)
-		assert.Equal(t, "mock", user.Logins[0].Provider)
-		assert.Equal(t, "joe", user.Logins[0].ProviderID)
+	if assert.Len(t, userLogins, 1) {
+		assert.Equal(t, user.ID, userLogins[0].UserID)
+		assert.Equal(t, "mock", userLogins[0].Provider)
+		assert.Equal(t, "joe", userLogins[0].ProviderID)
 	}
 }

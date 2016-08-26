@@ -18,6 +18,9 @@ import (
 type memoryStorage struct {
 	users         map[string]*users.User
 	organizations map[string]*users.Organization
+	memberships   map[string][]string
+	logins        map[string]*login.Login
+	apiTokens     map[string]*users.APIToken
 	mtx           sync.Mutex
 }
 
@@ -25,6 +28,9 @@ func newMemoryStorage() *memoryStorage {
 	return &memoryStorage{
 		users:         make(map[string]*users.User),
 		organizations: make(map[string]*users.Organization),
+		memberships:   make(map[string][]string),
+		logins:        make(map[string]*login.Login),
+		apiTokens:     make(map[string]*users.APIToken),
 	}
 }
 
@@ -47,8 +53,7 @@ func (s *memoryStorage) createUser(email string) (*users.User, error) {
 func (s *memoryStorage) AddLoginToUser(userID, provider, providerID string, session json.RawMessage) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	u, err := s.findUserByID(userID)
-	if err != nil {
+	if _, err := s.findUserByID(userID); err != nil {
 		return err
 	}
 
@@ -59,47 +64,69 @@ func (s *memoryStorage) AddLoginToUser(userID, provider, providerID string, sess
 	}
 
 	// Add it to this one (updating session if needed).
-	l := &login.Login{
+	s.logins[fmt.Sprintf("%s-%s", provider, providerID)] = &login.Login{
 		UserID:     userID,
 		Provider:   provider,
 		ProviderID: providerID,
+		Session:    session,
 		CreatedAt:  time.Now().UTC(),
 	}
-	found := false
-	for _, item := range u.Logins {
-		if item.Provider == provider && item.ProviderID == providerID {
-			l = item
-			found = true
-			break
-		}
-	}
-	l.Session = session
-
-	if !found {
-		u.Logins = append(u.Logins, l)
-	}
-
-	sort.Sort(login.LoginsByProvider(u.Logins))
 	return nil
 }
 
 func (s *memoryStorage) DetachLoginFromUser(userID, provider string) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	u, err := s.findUserByID(userID)
+	_, err := s.findUserByID(userID)
 	if err == users.ErrNotFound {
 		return nil
 	}
 	if err != nil {
 		return err
 	}
-	newLogins := []*login.Login{}
-	for _, a := range u.Logins {
-		if a.Provider != provider {
-			newLogins = append(newLogins, a)
+	newLogins := make(map[string]*login.Login)
+	for k, v := range s.logins {
+		if v.UserID != userID || v.Provider != provider {
+			newLogins[k] = v
 		}
 	}
-	u.Logins = newLogins
+	s.logins = newLogins
+	return nil
+}
+
+func (s *memoryStorage) CreateAPIToken(userID, description string) (*users.APIToken, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if _, err := s.findUserByID(userID); err != nil {
+		return nil, err
+	}
+	t := &users.APIToken{
+		ID:          fmt.Sprint(len(s.apiTokens)),
+		UserID:      userID,
+		Description: description,
+		CreatedAt:   time.Now().UTC(),
+	}
+	for exists := t.Token == ""; exists; {
+		if err := t.RegenerateToken(); err != nil {
+			return nil, err
+		}
+		_, exists = s.apiTokens[t.Token]
+	}
+	s.apiTokens[t.Token] = t
+	return t, nil
+}
+
+func (s *memoryStorage) DeleteAPIToken(userID, token string) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if _, err := s.findUserByID(userID); err != nil {
+		return err
+	}
+	existing, ok := s.apiTokens[token]
+	if !ok || existing.UserID != userID {
+		return nil
+	}
+	delete(s.apiTokens, token)
 	return nil
 }
 
@@ -121,28 +148,40 @@ func (s *memoryStorage) InviteUser(email, orgExternalID string) (*users.User, bo
 		return nil, false, err
 	}
 
-	if u.HasOrganization(orgExternalID) {
+	isMember, err := s.UserIsMemberOf(u.ID, orgExternalID)
+	if err != nil {
+		return nil, false, err
+	}
+	if isMember {
 		return u, false, nil
 	}
-	u.Organizations = append(u.Organizations, o)
+	s.memberships[o.ID] = append(s.memberships[o.ID], u.ID)
 	return u, created, nil
 }
 
 func (s *memoryStorage) RemoveUserFromOrganization(orgExternalID, email string) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	for _, user := range s.users {
-		if user.Email == email {
-			var newOrganizations []*users.Organization
-			for _, o := range user.Organizations {
-				if strings.ToLower(orgExternalID) != strings.ToLower(o.ExternalID) {
-					newOrganizations = append(newOrganizations, o)
-				}
-			}
-			user.Organizations = newOrganizations
-			break
+	o, err := s.findOrganizationByExternalID(orgExternalID)
+	if err != nil && err != users.ErrNotFound {
+		return nil
+	}
+	u, err := s.findUserByEmail(email)
+	if err != nil && err != users.ErrNotFound {
+		return nil
+	}
+
+	memberships, ok := s.memberships[o.ID]
+	if !ok {
+		return nil
+	}
+	var newMemberships []string
+	for _, m := range memberships {
+		if m != u.ID {
+			newMemberships = append(newMemberships, m)
 		}
 	}
+	s.memberships[o.ID] = newMemberships
 	return nil
 }
 
@@ -182,14 +221,39 @@ func (s *memoryStorage) FindUserByLogin(provider, providerID string) (*users.Use
 }
 
 func (s *memoryStorage) findUserByLogin(provider, providerID string) (*users.User, error) {
-	for _, user := range s.users {
-		for _, a := range user.Logins {
-			if a.Provider == provider && a.ProviderID == providerID {
-				return user, nil
-			}
+	for _, l := range s.logins {
+		if l.Provider == provider && l.ProviderID == providerID {
+			return s.findUserByID(l.UserID)
 		}
 	}
 	return nil, users.ErrNotFound
+}
+
+func (s *memoryStorage) FindUserByAPIToken(token string) (*users.User, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	t, ok := s.apiTokens[token]
+	if !ok {
+		return nil, users.ErrNotFound
+	}
+	return s.findUserByID(t.UserID)
+}
+
+func (s *memoryStorage) UserIsMemberOf(userID, orgExternalID string) (bool, error) {
+	o, err := s.findOrganizationByExternalID(orgExternalID)
+	if err == users.ErrNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	for _, m := range s.memberships[o.ID] {
+		if m == userID {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 type usersByCreatedAt []*users.User
@@ -198,14 +262,12 @@ func (u usersByCreatedAt) Len() int           { return len(u) }
 func (u usersByCreatedAt) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.Before(u[j].CreatedAt) }
 
-func (s *memoryStorage) ListUsers(fs ...Filter) ([]*users.User, error) {
+func (s *memoryStorage) ListUsers() ([]*users.User, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	users := []*users.User{}
 	for _, user := range s.users {
-		if s.applyFilters(user, fs) {
-			users = append(users, user)
-		}
+		users = append(users, user)
 	}
 	sort.Sort(usersByCreatedAt(users))
 	return users, nil
@@ -214,17 +276,79 @@ func (s *memoryStorage) ListUsers(fs ...Filter) ([]*users.User, error) {
 func (s *memoryStorage) ListOrganizationUsers(orgExternalID string) ([]*users.User, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	users := []*users.User{}
-	for _, user := range s.users {
-		for _, org := range user.Organizations {
-			if strings.ToLower(org.ExternalID) == strings.ToLower(orgExternalID) {
-				users = append(users, user)
+	o, err := s.findOrganizationByExternalID(orgExternalID)
+	if err != nil {
+		return nil, err
+	}
+	var users []*users.User
+	for _, m := range s.memberships[o.ID] {
+		u, err := s.findUserByID(m)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	sort.Sort(usersByCreatedAt(users))
+	return users, nil
+}
+
+type organizationsByCreatedAt []*users.Organization
+
+func (o organizationsByCreatedAt) Len() int           { return len(o) }
+func (o organizationsByCreatedAt) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
+func (o organizationsByCreatedAt) Less(i, j int) bool { return o[i].CreatedAt.Before(o[j].CreatedAt) }
+
+func (s *memoryStorage) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organization, error) {
+	orgIDs := map[string]struct{}{}
+	checkOrg := func(orgID string, members []string) {
+		for _, m := range members {
+			for _, userID := range userIDs {
+				if m == userID {
+					orgIDs[orgID] = struct{}{}
+					return
+				}
+			}
+		}
+	}
+	for orgID, members := range s.memberships {
+		checkOrg(orgID, members)
+	}
+	var orgs []*users.Organization
+	for orgID := range orgIDs {
+		o, ok := s.organizations[orgID]
+		if !ok {
+			return nil, users.ErrNotFound
+		}
+		orgs = append(orgs, o)
+	}
+	sort.Sort(organizationsByCreatedAt(orgs))
+	return orgs, nil
+}
+
+func (s *memoryStorage) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
+	var logins []*login.Login
+	for _, l := range s.logins {
+		for _, userID := range userIDs {
+			if l.UserID == userID {
+				logins = append(logins, l)
 				break
 			}
 		}
 	}
-	sort.Sort(usersByCreatedAt(users))
-	return users, nil
+	return logins, nil
+}
+
+func (s *memoryStorage) ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error) {
+	var tokens []*users.APIToken
+	for _, t := range s.apiTokens {
+		for _, userID := range userIDs {
+			if t.UserID == userID {
+				tokens = append(tokens, t)
+				break
+			}
+		}
+	}
+	return tokens, nil
 }
 
 func (s *memoryStorage) ApproveUser(id string) (*users.User, error) {
@@ -315,8 +439,7 @@ func (s *memoryStorage) findOrganizationByExternalID(externalID string) (*users.
 func (s *memoryStorage) CreateOrganization(ownerID, externalID, name string) (*users.Organization, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	user, err := s.findUserByID(ownerID)
-	if err != nil {
+	if _, err := s.findUserByID(ownerID); err != nil {
 		return nil, err
 	}
 	o := &users.Organization{
@@ -346,7 +469,7 @@ func (s *memoryStorage) CreateOrganization(ownerID, externalID, name string) (*u
 		}
 	}
 	s.organizations[o.ID] = o
-	user.Organizations = append(user.Organizations, o)
+	s.memberships[o.ID] = []string{ownerID}
 	return o, nil
 }
 
@@ -416,16 +539,7 @@ func (s *memoryStorage) DeleteOrganization(externalID string) error {
 		return err
 	}
 	delete(s.organizations, o.ID)
-
-	for _, user := range s.users {
-		var newOrganizations []*users.Organization
-		for _, org := range user.Organizations {
-			if org.ID != o.ID {
-				newOrganizations = append(newOrganizations, org)
-			}
-		}
-		user.Organizations = newOrganizations
-	}
+	delete(s.memberships, o.ID)
 	return nil
 }
 
@@ -447,13 +561,4 @@ func (s *memoryStorage) Close() error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	return nil
-}
-
-func (s *memoryStorage) applyFilters(item interface{}, fs []Filter) bool {
-	for _, f := range fs {
-		if !f.Item(item) {
-			return false
-		}
-	}
-	return true
 }

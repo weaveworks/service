@@ -19,20 +19,20 @@ func Test_Org(t *testing.T) {
 	user, org := getOrg(t)
 
 	// Check the user was added to the org
-	user, err := db.FindUserByID(user.ID)
+	organizations, err := db.ListOrganizationsForUserIDs(user.ID)
 	assert.NoError(t, err)
-	require.Len(t, user.Organizations, 1)
-	assert.Equal(t, org.ID, user.Organizations[0].ID, "user should have an organization id")
-	assert.Equal(t, org.ExternalID, user.Organizations[0].ExternalID, "user should have an organization external id")
-	assert.Equal(t, org.Name, user.Organizations[0].Name, "user should have an organization name")
-	assert.NotEqual(t, "", user.Organizations[0].ProbeToken, "user should have a probe token")
+	require.Len(t, organizations, 1)
+	assert.Equal(t, org.ID, organizations[0].ID, "user should have an organization id")
+	assert.Equal(t, org.ExternalID, organizations[0].ExternalID, "user should have an organization external id")
+	assert.Equal(t, org.Name, organizations[0].Name, "user should have an organization name")
+	assert.NotEqual(t, "", organizations[0].ProbeToken, "user should have a probe token")
 
-	org, err = db.FindOrganizationByProbeToken(user.Organizations[0].ProbeToken)
+	org, err = db.FindOrganizationByProbeToken(organizations[0].ProbeToken)
 	require.NoError(t, err)
 	require.NotNil(t, org.FirstProbeUpdateAt)
 
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "GET", "/api/users/org/"+user.Organizations[0].ExternalID, nil)
+	r := requestAs(t, user, "GET", "/api/users/org/"+organizations[0].ExternalID, nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
@@ -123,12 +123,12 @@ func Test_RenameOrganization(t *testing.T) {
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusNoContent, w.Code)
 
-		user, err := db.FindUserByID(user.ID)
+		organizations, err := db.ListOrganizationsForUserIDs(user.ID)
 		require.NoError(t, err)
-		if assert.Len(t, user.Organizations, 1) {
-			assert.Equal(t, org.ID, user.Organizations[0].ID)
-			assert.Equal(t, org.ExternalID, user.Organizations[0].ExternalID)
-			assert.Equal(t, "my-organization", user.Organizations[0].Name)
+		if assert.Len(t, organizations, 1) {
+			assert.Equal(t, org.ID, organizations[0].ID)
+			assert.Equal(t, org.ExternalID, organizations[0].ExternalID)
+			assert.Equal(t, "my-organization", organizations[0].Name)
 		}
 	}
 }
@@ -146,12 +146,12 @@ func Test_ReIDOrganization_NotAllowed(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), `{"errors":[{"message":"ID cannot be changed"}]}`)
 
-	user, err := db.FindUserByID(user.ID)
+	organizations, err := db.ListOrganizationsForUserIDs(user.ID)
 	require.NoError(t, err)
-	if assert.Len(t, user.Organizations, 1) {
-		assert.Equal(t, org.ID, user.Organizations[0].ID)
-		assert.Equal(t, org.ExternalID, user.Organizations[0].ExternalID)
-		assert.Equal(t, org.Name, user.Organizations[0].Name)
+	if assert.Len(t, organizations, 1) {
+		assert.Equal(t, org.ID, organizations[0].ID)
+		assert.Equal(t, org.ExternalID, organizations[0].ExternalID)
+		assert.Equal(t, org.Name, organizations[0].Name)
 	}
 }
 
@@ -171,12 +171,12 @@ func Test_RenameOrganization_Validation(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"errors":[{"message":%q}]}`, errMsg))
 
-		user, err := db.FindUserByID(user.ID)
+		organizations, err := db.ListOrganizationsForUserIDs(user.ID)
 		require.NoError(t, err)
-		if assert.Len(t, user.Organizations, 1) {
-			assert.Equal(t, org.ID, user.Organizations[0].ID)
-			assert.Equal(t, org.ExternalID, user.Organizations[0].ExternalID)
-			assert.Equal(t, org.Name, user.Organizations[0].Name)
+		if assert.Len(t, organizations, 1) {
+			assert.Equal(t, org.ID, organizations[0].ID)
+			assert.Equal(t, org.ExternalID, organizations[0].ExternalID)
+			assert.Equal(t, org.Name, organizations[0].Name)
 		}
 	}
 }
@@ -196,12 +196,12 @@ func Test_CustomExternalIDOrganization(t *testing.T) {
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusCreated, w.Code)
 
-	user, err := db.FindUserByID(user.ID)
+	organizations, err := db.ListOrganizationsForUserIDs(user.ID)
 	require.NoError(t, err)
-	if assert.Len(t, user.Organizations, 1) {
-		assert.NotEqual(t, "", user.Organizations[0].ID)
-		assert.Equal(t, "my-organization", user.Organizations[0].ExternalID)
-		assert.Equal(t, "my organization", user.Organizations[0].Name)
+	if assert.Len(t, organizations, 1) {
+		assert.NotEqual(t, "", organizations[0].ID)
+		assert.Equal(t, "my-organization", organizations[0].ExternalID)
+		assert.Equal(t, "my organization", organizations[0].Name)
 	}
 }
 
@@ -226,11 +226,11 @@ func Test_CustomExternalIDOrganization_Validation(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"errors":[{"message":%q}]}`, errMsg))
 
-		user, err := db.FindUserByID(user.ID)
+		organizations, err := db.ListOrganizationsForUserIDs(user.ID)
 		require.NoError(t, err)
-		if assert.Len(t, user.Organizations, 1) {
-			assert.Equal(t, otherOrg.ID, user.Organizations[0].ID)
-			assert.Equal(t, otherOrg.ExternalID, user.Organizations[0].ExternalID)
+		if assert.Len(t, organizations, 1) {
+			assert.Equal(t, otherOrg.ID, organizations[0].ID)
+			assert.Equal(t, otherOrg.ExternalID, organizations[0].ExternalID)
 		}
 	}
 }
@@ -303,15 +303,15 @@ func Test_Organization_CreateMultiple(t *testing.T) {
 	app.ServeHTTP(w, r2)
 	assert.Equal(t, http.StatusCreated, w.Code)
 
-	user, err := db.FindUserByID(user.ID)
+	organizations, err := db.ListOrganizationsForUserIDs(user.ID)
 	require.NoError(t, err)
-	if assert.Len(t, user.Organizations, 2) {
-		assert.NotEqual(t, "", user.Organizations[0].ID)
-		assert.Equal(t, "my-first-org", user.Organizations[0].ExternalID)
-		assert.Equal(t, "my first org", user.Organizations[0].Name)
-		assert.NotEqual(t, "", user.Organizations[1].ID)
-		assert.Equal(t, "my-second-org", user.Organizations[1].ExternalID)
-		assert.Equal(t, "my second org", user.Organizations[1].Name)
+	if assert.Len(t, organizations, 2) {
+		assert.NotEqual(t, "", organizations[0].ID)
+		assert.Equal(t, "my-first-org", organizations[0].ExternalID)
+		assert.Equal(t, "my first org", organizations[0].Name)
+		assert.NotEqual(t, "", organizations[1].ID)
+		assert.Equal(t, "my-second-org", organizations[1].ExternalID)
+		assert.Equal(t, "my second org", organizations[1].Name)
 	}
 }
 
@@ -360,16 +360,9 @@ func Test_Organization_Delete(t *testing.T) {
 	require.False(t, exists)
 
 	// Check the user no longer has the org
-	user, err = db.FindUserByID(user.ID)
+	isMember, err := db.UserIsMemberOf(user.ID, org.ExternalID)
 	require.NoError(t, err)
-	var found bool
-	for _, o := range user.Organizations {
-		if o.ID == org.ID {
-			found = true
-			break
-		}
-	}
-	assert.False(t, found, "Expected user not to have the deleted org any more")
+	assert.False(t, isMember, "Expected user not to have the deleted org any more")
 }
 
 func Test_Organization_Name(t *testing.T) {

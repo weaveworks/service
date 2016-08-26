@@ -61,9 +61,11 @@ func Test_InviteNonExistentUser(t *testing.T) {
 
 	fran, err := db.FindUserByEmail(franEmail)
 	require.NoError(t, err)
-	require.Len(t, fran.Organizations, 1)
-	assert.Equal(t, org.ID, fran.Organizations[0].ID)
 	assert.Equal(t, fran.Email, franEmail)
+	organizations, err := db.ListOrganizationsForUserIDs(fran.ID)
+	require.NoError(t, err)
+	require.Len(t, organizations, 1)
+	assert.Equal(t, org.ID, organizations[0].ID)
 
 	assertEmailSent(t, franEmail, "has invited you")
 }
@@ -81,10 +83,10 @@ func Test_InviteExistingUser(t *testing.T) {
 		"email":    fran.Email,
 	}, body)
 
-	fran, err := db.FindUserByEmail(fran.Email)
+	organizations, err := db.ListOrganizationsForUserIDs(fran.ID)
 	require.NoError(t, err)
-	require.Len(t, fran.Organizations, 1)
-	assert.Equal(t, org.ID, fran.Organizations[0].ID)
+	require.Len(t, organizations, 1)
+	assert.Equal(t, org.ID, organizations[0].ID)
 
 	assertEmailSent(t, fran.Email, "has granted you access")
 }
@@ -127,16 +129,18 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 	require.NoError(t, err)
 	fran, created, err := db.InviteUser(fran.Email, org.ExternalID)
 	require.NoError(t, err)
-	require.Len(t, fran.Organizations, 1)
-	assert.Equal(t, org.ID, fran.Organizations[0].ID)
+	organizations, err := db.ListOrganizationsForUserIDs(fran.ID)
+	require.NoError(t, err)
+	require.Len(t, organizations, 1)
+	assert.Equal(t, org.ID, organizations[0].ID)
 	assert.Equal(t, created, false)
 
 	requestInvite(t, user, org, fran.Email, http.StatusOK)
 
-	fran, err = db.FindUserByEmail(fran.Email)
+	organizations, err = db.ListOrganizationsForUserIDs(fran.ID)
 	require.NoError(t, err)
-	require.Len(t, fran.Organizations, 1)
-	assert.Equal(t, org.ID, fran.Organizations[0].ID)
+	require.Len(t, organizations, 1)
+	assert.Equal(t, org.ID, organizations[0].ID)
 
 	assertEmailSent(t, fran.Email, "has granted you access")
 }
@@ -151,9 +155,9 @@ func Test_Invite_UserToAnOrgIDontOwn(t *testing.T) {
 
 	requestInvite(t, user, otherOrg, otherUser.Email, http.StatusForbidden)
 
-	otherUser, err := db.FindUserByID(otherUser.ID)
+	organizations, err := db.ListOrganizationsForUserIDs(user.ID)
 	require.NoError(t, err)
-	require.Len(t, otherUser.Organizations, 0)
+	require.Len(t, organizations, 0)
 	assert.Len(t, sentEmails, 0)
 }
 
@@ -168,10 +172,10 @@ func Test_Invite_UserNotApproved(t *testing.T) {
 
 	requestInvite(t, user, org, fran.Email, http.StatusOK)
 
-	fran, err = db.FindUserByEmail(fran.Email)
+	organizations, err := db.ListOrganizationsForUserIDs(fran.ID)
 	require.NoError(t, err)
-	require.Len(t, fran.Organizations, 1)
-	assert.Equal(t, org.ID, fran.Organizations[0].ID)
+	require.Len(t, organizations, 1)
+	assert.Equal(t, org.ID, organizations[0].ID)
 
 	assertEmailSent(t, fran.Email, "has granted you access")
 }
@@ -185,10 +189,10 @@ func Test_Invite_UserInDifferentOrganization(t *testing.T) {
 
 	requestInvite(t, user, org, fran.Email, http.StatusOK)
 
-	fran, err := db.FindUserByEmail(fran.Email)
+	organizations, err := db.ListOrganizationsForUserIDs(fran.ID)
 	require.NoError(t, err)
-	require.Len(t, fran.Organizations, 2)
-	orgIDs := []string{fran.Organizations[0].ID, fran.Organizations[1].ID}
+	require.Len(t, organizations, 2)
+	orgIDs := []string{organizations[0].ID, organizations[1].ID}
 	assert.Contains(t, orgIDs, org.ID)
 
 	assertEmailSent(t, fran.Email, "has granted you access")
@@ -202,13 +206,15 @@ func Test_Invite_RemoveOtherUsersAccess(t *testing.T) {
 	otherUser := getApprovedUser(t)
 	otherUser, _, err := db.InviteUser(otherUser.Email, org.ExternalID)
 	require.NoError(t, err)
-	require.Len(t, otherUser.Organizations, 1)
+	organizations, err := db.ListOrganizationsForUserIDs(otherUser.ID)
+	require.NoError(t, err)
+	require.Len(t, organizations, 1)
 
 	requestOrgAs(t, user, "DELETE", org.ExternalID, otherUser.Email, nil, http.StatusNoContent)
 
-	otherUser, err = db.FindUserByID(otherUser.ID)
+	organizations, err = db.ListOrganizationsForUserIDs(otherUser.ID)
 	require.NoError(t, err)
-	require.Len(t, otherUser.Organizations, 0)
+	require.Len(t, organizations, 0)
 
 	body := requestOrgAs(t, user, "GET", org.ExternalID, "", nil, http.StatusOK)
 	assert.Equal(t, map[string]interface{}{
@@ -229,9 +235,9 @@ func Test_Invite_RemoveMyOwnAccess(t *testing.T) {
 
 	requestOrgAs(t, user, "DELETE", org.ExternalID, user.Email, nil, http.StatusNoContent)
 
-	user, err := db.FindUserByID(user.ID)
+	organizations, err := db.ListOrganizationsForUserIDs(user.ID)
 	require.NoError(t, err)
-	require.Len(t, user.Organizations, 0)
+	require.Len(t, organizations, 0)
 }
 
 func Test_Invite_RemoveAccess_Forbidden(t *testing.T) {
@@ -243,9 +249,9 @@ func Test_Invite_RemoveAccess_Forbidden(t *testing.T) {
 
 	requestOrgAs(t, user, "DELETE", otherOrg.ExternalID, otherUser.Email, nil, http.StatusForbidden)
 
-	otherUser, err := db.FindUserByID(otherUser.ID)
+	organizations, err := db.ListOrganizationsForUserIDs(otherUser.ID)
 	require.NoError(t, err)
-	require.Len(t, otherUser.Organizations, 1)
+	require.Len(t, organizations, 1)
 }
 
 func Test_Invite_RemoveAccess_NotFound(t *testing.T) {

@@ -109,42 +109,27 @@ func hitOrMiss(err error) string {
 }
 
 type orgCredCacheKey struct {
-	cookie, orgExternalID string
+	header, cookie, orgExternalID string
 }
 
 type orgCredCacheValue struct {
 	orgID, userID string
 }
 
-func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string) (string, string, error) {
-	// Extract Authorization cookie to inject it in the lookup request. If it were
-	// not set, don't even bother to do a lookup.
-	authCookie, err := r.Cookie(AuthCookieName)
-	if err != nil {
-		log.Error("authenticator: org: tried to authenticate request without credentials")
-		return "", "", &Unauthorized{http.StatusUnauthorized}
+func (m *webAuthenticator) lookupInOrgCacheOr(key orgCredCacheKey, f func() (string, string, error)) (string, string, error) {
+	if m.orgCredCache == nil {
+		return f()
+	}
+	org, err := m.orgCredCache.Get(key)
+	authCacheCounter.WithLabelValues("org_cred_cache", hitOrMiss(err)).Inc()
+	if err == nil {
+		v := org.(orgCredCacheValue)
+		return v.orgID, v.userID, nil
 	}
 
-	cacheKey := orgCredCacheKey{authCookie.Value, orgExternalID}
-	if m.orgCredCache != nil {
-		org, err := m.orgCredCache.Get(cacheKey)
-		authCacheCounter.WithLabelValues("org_cred_cache", hitOrMiss(err)).Inc()
-		if err == nil {
-			v := org.(orgCredCacheValue)
-			return v.orgID, v.userID, nil
-		}
-	}
-
-	url := fmt.Sprintf("%s/private/api/users/lookup/%s", m.url, url.QueryEscape(orgExternalID))
-	lookupReq, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Error("authenticator: cannot build lookup request: ", err)
-		return "", "", err
-	}
-	lookupReq.AddCookie(authCookie)
-	orgID, userID, err := m.decodeOrg(m.doAuthenticateRequest(lookupReq))
-	if err == nil && m.orgCredCache != nil {
-		m.orgCredCache.Set(cacheKey, orgCredCacheValue{
+	orgID, userID, err := f()
+	if err == nil {
+		m.orgCredCache.Set(key, orgCredCacheValue{
 			orgID:  orgID,
 			userID: userID,
 		})
@@ -152,9 +137,60 @@ func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string
 	return orgID, userID, err
 }
 
-func getAuthHeader(r *http.Request) (string, error) {
+func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string) (string, string, error) {
+	// Extract Authorization header to inject it in the lookup request. If
+	// it were not set, don't even bother to do a lookup.
+	authHeader, err := getAuthHeader(r, "Scope-User")
+	if err == nil {
+		return m.authenticateOrgViaHeader(r, orgExternalID, authHeader)
+	}
+
+	// Extract Authorization cookie to inject it in the lookup request. If it were
+	// not set, don't even bother to do a lookup.
+	authCookie, err := r.Cookie(AuthCookieName)
+	if err == nil {
+		return m.authenticateOrgViaCookie(r, orgExternalID, authCookie)
+	}
+
+	log.Error("authenticator: org: tried to authenticate request without credentials")
+	return "", "", &Unauthorized{http.StatusUnauthorized}
+}
+
+func (m *webAuthenticator) authenticateOrgViaCookie(r *http.Request, orgExternalID string, authCookie *http.Cookie) (string, string, error) {
+	return m.lookupInOrgCacheOr(
+		orgCredCacheKey{cookie: authCookie.Value, orgExternalID: orgExternalID},
+		func() (string, string, error) {
+			url := fmt.Sprintf("%s/private/api/users/lookup/%s", m.url, url.QueryEscape(orgExternalID))
+			lookupReq, err := http.NewRequest("GET", url, nil)
+			if err != nil {
+				log.Error("authenticator: cannot build lookup request: ", err)
+				return "", "", err
+			}
+			lookupReq.AddCookie(authCookie)
+			return m.decodeOrg(m.doAuthenticateRequest(lookupReq))
+		},
+	)
+}
+
+func (m *webAuthenticator) authenticateOrgViaHeader(r *http.Request, orgExternalID string, authHeader string) (string, string, error) {
+	return m.lookupInOrgCacheOr(
+		orgCredCacheKey{header: authHeader, orgExternalID: orgExternalID},
+		func() (string, string, error) {
+			url := fmt.Sprintf("%s/private/api/users/lookup/%s", m.url, url.QueryEscape(orgExternalID))
+			lookupReq, err := http.NewRequest("GET", url, nil)
+			if err != nil {
+				log.Error("authenticator: cannot build lookup request: ", err)
+				return "", "", err
+			}
+			lookupReq.Header.Set(AuthHeaderName, authHeader)
+			return m.decodeOrg(m.doAuthenticateRequest(lookupReq))
+		},
+	)
+}
+
+func getAuthHeader(r *http.Request, realm string) (string, error) {
 	authHeader := r.Header.Get(AuthHeaderName)
-	if strings.HasPrefix(authHeader, "Scope-Probe") {
+	if strings.HasPrefix(authHeader, realm) {
 		return authHeader, nil
 	}
 
@@ -162,18 +198,18 @@ func getAuthHeader(r *http.Request) (string, error) {
 	// ignoring the username and treating the password as the token.
 	_, token, ok := r.BasicAuth()
 	if ok {
-		return fmt.Sprintf("Scope-Probe token=%s", token), nil
+		return fmt.Sprintf("%s token=%s", realm, token), nil
 	}
 
-	log.Error("authenticator: probe: tried to authenticate request without credentials")
 	return "", &Unauthorized{http.StatusUnauthorized}
 }
 
 func (m *webAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
 	// Extract Authorization header to inject it in the lookup request. If
 	// it were not set, don't even bother to do a lookup.
-	authHeader, err := getAuthHeader(r)
+	authHeader, err := getAuthHeader(r, "Scope-Probe")
 	if err != nil {
+		log.Error("authenticator: probe: tried to authenticate request without credentials")
 		return "", err
 	}
 

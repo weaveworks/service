@@ -128,6 +128,52 @@ func (s PGStorage) DetachLoginFromUser(userID, provider string) error {
 	return err
 }
 
+// CreateAPIToken creates an api token for the user
+func (s PGStorage) CreateAPIToken(userID, description string) (*users.APIToken, error) {
+	t := &users.APIToken{
+		UserID:      userID,
+		Description: description,
+		CreatedAt:   s.Now(),
+	}
+
+	err := s.Transaction(func(tx *sql.Tx) error {
+		for exists := t.Token == ""; exists; {
+			if err := t.RegenerateToken(); err != nil {
+				return err
+			}
+			if err := tx.QueryRow(
+				`select exists(select 1 from api_tokens where token = $1 and deleted_at is null)`,
+				t.Token,
+			).Scan(&exists); err != nil {
+				return err
+			}
+		}
+
+		return tx.QueryRow(`insert into api_tokens
+			(user_id, token, description, created_at)
+			values (lower($1), $2, $3, $4) returning id`,
+			t.UserID, t.Token, t.Description, t.CreatedAt,
+		).Scan(&t.ID)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return t, err
+}
+
+// DeleteAPIToken deletes an api token for the user
+func (s PGStorage) DeleteAPIToken(userID, token string) error {
+	_, err := s.Exec(
+		`update api_tokens
+			set deleted_at = $3
+			where user_id = $1
+			and token = $2
+			and deleted_at is null`,
+		userID, token, s.Now(),
+	)
+	return err
+}
+
 // InviteUser invites the user, to join the organization. If they are already a
 // member this is a noop.
 func (s PGStorage) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
@@ -150,8 +196,9 @@ func (s PGStorage) InviteUser(email, orgExternalID string) (*users.User, bool, e
 			return err
 		}
 
-		if u.HasOrganization(orgExternalID) {
-			return nil
+		isMember, err := s.userIsMemberOf(tx, u.ID, orgExternalID)
+		if err != nil || isMember {
+			return err
 		}
 		if err = s.addUserToOrganization(tx, u.ID, o.ID); err == nil {
 			u, err = s.findUserByID(tx, u.ID)
@@ -205,12 +252,7 @@ func (s PGStorage) findUserByID(db squirrel.BaseRunner, id string) (*users.User,
 	if err != nil {
 		return nil, err
 	}
-	user.Organizations, err = s.listOrganizationsForUserIDs(db, id)
-	if err != nil {
-		return nil, err
-	}
-	user.Logins, err = s.listLoginsForUserIDs(db, id)
-	return user, err
+	return user, nil
 }
 
 // FindUserByEmail finds the user by email
@@ -228,12 +270,7 @@ func (s PGStorage) findUserByEmail(db squirrel.BaseRunner, email string) (*users
 	if err != nil {
 		return nil, err
 	}
-	user.Organizations, err = s.listOrganizationsForUserIDs(db, user.ID)
-	if err != nil {
-		return nil, err
-	}
-	user.Logins, err = s.listLoginsForUserIDs(db, user.ID)
-	return user, err
+	return user, nil
 }
 
 // FindUserByLogin finds the user by login
@@ -259,12 +296,46 @@ func (s PGStorage) findUserByLogin(db squirrel.BaseRunner, provider, providerID 
 	if err != nil {
 		return nil, err
 	}
-	user.Organizations, err = s.listOrganizationsForUserIDs(db, user.ID)
+	return user, nil
+}
+
+// FindUserByAPIToken finds a user by their api token
+func (s PGStorage) FindUserByAPIToken(token string) (*users.User, error) {
+	user, err := s.scanUser(
+		s.usersQuery().
+			Join("api_tokens on (api_tokens.user_id = users.id)").
+			Where(squirrel.Eq{"api_tokens.token": token}).
+			Where("api_tokens.deleted_at is null"),
+	)
+	if err == sql.ErrNoRows {
+		err = users.ErrNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
-	user.Logins, err = s.listLoginsForUserIDs(db, user.ID)
-	return user, err
+	return user, nil
+}
+
+// UserIsMemberOf checks if the user is a member of the organization
+func (s PGStorage) UserIsMemberOf(userID, orgExternalID string) (bool, error) {
+	return s.userIsMemberOf(s.DB, userID, orgExternalID)
+}
+
+func (s PGStorage) userIsMemberOf(db squirrel.BaseRunner, userID, orgExternalID string) (bool, error) {
+	rows, err := s.organizationsQuery().
+		Join("memberships on (organizations.id = memberships.organization_id)").
+		Where(squirrel.Eq{"memberships.user_id": userID, "organizations.external_id": orgExternalID}).
+		Where("memberships.deleted_at is null").
+		RunWith(db).
+		Query()
+	if err != nil {
+		return false, err
+	}
+	ok := rows.Next()
+	if rows.Err() != nil {
+		return false, rows.Err()
+	}
+	return ok, rows.Close()
 }
 
 func (s PGStorage) scanUsers(rows *sql.Rows) ([]*users.User, error) {
@@ -338,55 +409,36 @@ func (s PGStorage) organizationsQuery() squirrel.SelectBuilder {
 }
 
 // ListUsers lists users, with some filters.
-func (s PGStorage) ListUsers(fs ...Filter) ([]*users.User, error) {
-	rows, err := s.applyFilters(s.usersQuery(), fs).Query()
+func (s PGStorage) ListUsers() ([]*users.User, error) {
+	rows, err := s.usersQuery().Query()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
-	us, err := s.scanUsers(rows)
-	if err != nil {
-		return nil, err
-	}
-	if len(us) == 0 {
-		return us, nil
-	}
-
-	for _, user := range us {
-		user.Organizations, err = s.listOrganizationsForUserIDs(s.DB, user.ID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	userIDs := []string{}
-	usersByID := map[string]*users.User{}
-	for _, user := range us {
-		userIDs = append(userIDs, user.ID)
-		usersByID[user.ID] = user
-	}
-	logins, err := s.listLoginsForUserIDs(s.DB, userIDs...)
-	if err != nil {
-		return nil, err
-	}
-	for _, a := range logins {
-		if user, ok := usersByID[a.UserID]; ok {
-			user.Logins = append(user.Logins, a)
-		}
-	}
-
-	return us, err
+	return s.scanUsers(rows)
 }
 
 // ListOrganizationUsers lists all the users in an organization
 func (s PGStorage) ListOrganizationUsers(orgExternalID string) ([]*users.User, error) {
-	return s.ListUsers(newUsersOrganizationFilter([]string{orgExternalID}))
+	rows, err := s.usersQuery().
+		Join("memberships on (memberships.user_id = users.id)").
+		Join("organizations on (memberships.organization_id = organizations.id)").
+		Where(squirrel.Eq{
+			"organizations.external_id": orgExternalID,
+			"memberships.deleted_at":    nil,
+			"organizations.deleted_at":  nil,
+		}).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return s.scanUsers(rows)
 }
 
-func (s PGStorage) listOrganizationsForUserIDs(db squirrel.BaseRunner, userIDs ...string) ([]*users.Organization, error) {
+// ListOrganizationsForUserIDs lists the organizations these users belong to
+func (s PGStorage) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organization, error) {
 	rows, err := s.organizationsQuery().
-		RunWith(db).
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userIDs}).
 		Where("memberships.deleted_at is null").
@@ -401,7 +453,8 @@ func (s PGStorage) listOrganizationsForUserIDs(db squirrel.BaseRunner, userIDs .
 	return orgs, err
 }
 
-func (s PGStorage) listLoginsForUserIDs(db squirrel.BaseRunner, userIDs ...string) ([]*login.Login, error) {
+// ListLoginsForUserIDs lists the logins for these users
+func (s PGStorage) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
 	rows, err := s.Select(
 		"logins.user_id",
 		"logins.provider",
@@ -413,7 +466,6 @@ func (s PGStorage) listLoginsForUserIDs(db squirrel.BaseRunner, userIDs ...strin
 		Where(squirrel.Eq{"logins.user_id": userIDs}).
 		Where("logins.deleted_at is null").
 		OrderBy("logins.provider").
-		RunWith(db).
 		Query()
 	if err != nil {
 		return nil, err
@@ -438,6 +490,43 @@ func (s PGStorage) listLoginsForUserIDs(db squirrel.BaseRunner, userIDs ...strin
 		return nil, rows.Err()
 	}
 	return ls, err
+}
+
+// ListAPITokensForUserIDs lists the api tokens for these users
+func (s PGStorage) ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error) {
+	rows, err := s.Select(
+		"api_tokens.id",
+		"api_tokens.user_id",
+		"api_tokens.token",
+		"api_tokens.description",
+		"api_tokens.created_at",
+	).
+		From("api_tokens").
+		Where(squirrel.Eq{"api_tokens.user_id": userIDs}).
+		Where("api_tokens.deleted_at is null").
+		OrderBy("api_tokens.id asc").
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	ts := []*users.APIToken{}
+	for rows.Next() {
+		t := &users.APIToken{}
+		var userID, token, description sql.NullString
+		var createdAt pq.NullTime
+		if err := rows.Scan(&t.ID, &userID, &token, &description, &createdAt); err != nil {
+			return nil, err
+		}
+		t.UserID = userID.String
+		t.Token = token.String
+		t.Description = description.String
+		t.CreatedAt = createdAt.Time
+		ts = append(ts, t)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+	return ts, err
 }
 
 // ApproveUser approves a user. Sort of deprecated, as all users are
@@ -757,13 +846,6 @@ func (s PGStorage) Transaction(f func(*sql.Tx) error) error {
 		return err
 	}
 	return tx.Commit()
-}
-
-func (s PGStorage) applyFilters(q squirrel.SelectBuilder, fs []Filter) squirrel.SelectBuilder {
-	for _, f := range fs {
-		q = f.Select(q)
-	}
-	return q
 }
 
 // Truncate clears all the data in pg. Should only be used in tests!

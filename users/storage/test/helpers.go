@@ -24,19 +24,24 @@ func GetApprovedUser(t *testing.T, db storage.Database) *users.User {
 	return user
 }
 
-// GetOrg makes org with a random ExternalID and user for testing
-func GetOrg(t *testing.T, db storage.Database) (*users.User, *users.Organization) {
-	user := GetApprovedUser(t, db)
-
+// CreateOrgForUser creates a new random organization for this user
+func CreateOrgForUser(t *testing.T, db storage.Database, u *users.User) *users.Organization {
 	externalID, err := db.GenerateOrganizationExternalID()
 	require.NoError(t, err)
 
-	org, err := db.CreateOrganization(user.ID, externalID, externalID)
+	org, err := db.CreateOrganization(u.ID, externalID, externalID)
 	require.NoError(t, err)
 
 	assert.NotEqual(t, "", org.ID)
 	assert.NotEqual(t, "", org.ExternalID)
 	assert.Equal(t, org.ExternalID, org.Name)
 
+	return org
+}
+
+// GetOrg makes org with a random ExternalID and user for testing
+func GetOrg(t *testing.T, db storage.Database) (*users.User, *users.Organization) {
+	user := GetApprovedUser(t, db)
+	org := CreateOrgForUser(t, db, user)
 	return user, org
 }
