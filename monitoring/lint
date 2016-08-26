@@ -165,7 +165,11 @@ def lint_monitoring(directory):
 
   for json_file in glob('%s/grafana/*.json' % directory):
     with open(json_file, 'r') as stream:
-      data = json.load(stream)
+      try:
+        data = json.load(stream)
+      except ValueError as e:
+        yield "Invalid JSON file %r: %s" % (json_file, str(e))
+        continue
     warnings = chain(
       lint_is_json_sorted(json_file),
       lint_unique_panel_ids(json_file, data),
