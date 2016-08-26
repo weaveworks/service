@@ -371,17 +371,24 @@
           "steppedLine": false,
           "targets": [
             {
+              "expr": ":scope_authfe_request_duration_seconds:99quantile * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "99th quantile",
+              "refId": "A",
+              "step": 10
+            },
+            {
               "expr": ":scope_authfe_request_duration_seconds:95quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
-              "refId": "A",
+              "refId": "B",
               "step": 10
             },
             {
               "expr": ":scope_authfe_request_duration_seconds:50quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
-              "refId": "B",
+              "refId": "C",
               "step": 10
             }
           ],
@@ -574,17 +581,24 @@
           "steppedLine": false,
           "targets": [
             {
+              "expr": "job:scope_request_duration_seconds:99quantile{job=\"users\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "99th quantile",
+              "refId": "A",
+              "step": 10
+            },
+            {
               "expr": "job:scope_request_duration_seconds:95quantile{job=\"users\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
-              "refId": "A",
+              "refId": "B",
               "step": 10
             },
             {
               "expr": "job:scope_request_duration_seconds:50quantile{job=\"users\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
-              "refId": "B",
+              "refId": "C",
               "step": 10
             }
           ],
@@ -777,17 +791,24 @@
           "steppedLine": false,
           "targets": [
             {
+              "expr": "job:scope_request_duration_seconds:99quantile{job=\"collection\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "99th quantile",
+              "refId": "A",
+              "step": 10
+            },
+            {
               "expr": "job:scope_request_duration_seconds:95quantile{job=\"collection\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
-              "refId": "A",
+              "refId": "B",
               "step": 10
             },
             {
               "expr": "job:scope_request_duration_seconds:50quantile{job=\"collection\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
-              "refId": "B",
+              "refId": "C",
               "step": 10
             }
           ],
@@ -977,17 +998,24 @@
           "steppedLine": false,
           "targets": [
             {
+              "expr": "job:scope_request_duration_seconds:99quantile{job=\"query\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "99th quantile",
+              "refId": "A",
+              "step": 10
+            },
+            {
               "expr": "job:scope_request_duration_seconds:95quantile{job=\"query\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
-              "refId": "A",
+              "refId": "B",
               "step": 10
             },
             {
               "expr": "job:scope_request_duration_seconds:50quantile{job=\"query\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
-              "refId": "B",
+              "refId": "C",
               "step": 10
             }
           ],
@@ -1178,17 +1206,24 @@
           "steppedLine": false,
           "targets": [
             {
+              "expr": "job:scope_request_duration_seconds:99quantile{job=\"control\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "99th quantile",
+              "refId": "A",
+              "step": 10
+            },
+            {
               "expr": "job:scope_request_duration_seconds:95quantile{job=\"control\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
-              "refId": "A",
+              "refId": "B",
               "step": 10
             },
             {
               "expr": "job:scope_request_duration_seconds:50quantile{job=\"control\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
-              "refId": "B",
+              "refId": "C",
               "step": 10
             }
           ],
@@ -1378,17 +1413,24 @@
           "steppedLine": false,
           "targets": [
             {
+              "expr": "job_namespace:scope_request_duration_seconds:99quantile{job=\"demo\",namespace=\"extra\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "99th quantile",
+              "refId": "A",
+              "step": 10
+            },
+            {
               "expr": "job_namespace:scope_request_duration_seconds:95quantile{job=\"demo\",namespace=\"extra\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
-              "refId": "A",
+              "refId": "B",
               "step": 10
             },
             {
               "expr": "job_namespace:scope_request_duration_seconds:50quantile{job=\"demo\",namespace=\"extras\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
-              "refId": "B",
+              "refId": "C",
               "step": 10
             }
           ],
@@ -1551,17 +1593,24 @@
           "steppedLine": false,
           "targets": [
             {
+              "expr": "method:scope_sqs_request_latency:99quantile * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "99th quantile {{method}}",
+              "refId": "A",
+              "step": 10
+            },
+            {
               "expr": "method:scope_sqs_request_latency:95quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile {{method}}",
-              "refId": "A",
+              "refId": "B",
               "step": 10
             },
             {
               "expr": "method:scope_sqs_request_latency:50quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile {{method}}",
-              "refId": "B",
+              "refId": "C",
               "step": 10
             }
           ],
@@ -1751,17 +1800,24 @@
           "steppedLine": false,
           "targets": [
             {
+              "expr": "job:scope_request_duration_seconds:99quantile{job=\"pipe\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "99th quantile",
+              "refId": "A",
+              "step": 10
+            },
+            {
               "expr": "job:scope_request_duration_seconds:95quantile{job=\"pipe\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
-              "refId": "A",
+              "refId": "B",
               "step": 10
             },
             {
               "expr": "job:scope_request_duration_seconds:50quantile{job=\"pipe\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
-              "refId": "B",
+              "refId": "C",
               "step": 10
             }
           ],

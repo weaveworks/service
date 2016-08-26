@@ -163,17 +163,24 @@
           "steppedLine": false,
           "targets": [
             {
+              "expr": "job:scope_request_duration_seconds:99quantile * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "99th quantile",
+              "refId": "A",
+              "step": 10
+            },
+            {
               "expr": "job:scope_request_duration_seconds:95quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
-              "refId": "A",
+              "refId": "B",
               "step": 10
             },
             {
               "expr": "job:scope_request_duration_seconds:50quantile * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
-              "refId": "B",
+              "refId": "C",
               "step": 10
             }
           ],
@@ -360,7 +367,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job_route_status_code:scope_request_duration_seconds:95quantile{job=\"users\"} * 1e3",
+              "expr": "job_route_status_code:scope_request_duration_seconds:99quantile{job=\"users\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{route}} {{status_code}}",
               "refId": "A",
@@ -369,7 +376,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Users Latency by Endpoint (95th quantile)",
+          "title": "Users Latency by Endpoint (99th quantile)",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -522,10 +529,17 @@
           "steppedLine": false,
           "targets": [
             {
+              "expr": "job:scope_database_request_duration_seconds:99quantile{job=\"users\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "99th quantile",
+              "refId": "A",
+              "step": 10
+            },
+            {
               "expr": "job:scope_database_request_duration_seconds:95quantile{job=\"users\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
-              "refId": "A",
+              "refId": "B",
               "step": 10
             },
             {
@@ -691,7 +705,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job_method_status_code:scope_database_request_duration_seconds:95quantile{job=\"users\"} * 1e3",
+              "expr": "job_method_status_code:scope_database_request_duration_seconds:99quantile{job=\"users\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{method}} - {{status_code}}",
               "refId": "A",
@@ -700,7 +714,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Users DB Latency By Endpoint (95th Quantile)",
+          "title": "Users DB Latency By Endpoint (99th Quantile)",
           "tooltip": {
             "msResolution": true,
             "shared": true,
