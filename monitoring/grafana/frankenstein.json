@@ -7,7 +7,7 @@
   "hideControls": false,
   "id": null,
   "links": [],
-  "refresh": false,
+  "refresh": "10s",
   "rows": [
     {
       "collapse": false,
@@ -47,107 +47,22 @@
           "points": false,
           "renderer": "flot",
           "seriesOverrides": [],
-          "span": 4,
-          "stack": true,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "rate(prometheus_remote_storage_sent_samples_total{job=\"retrieval\"}[5m])",
-              "intervalFactor": 2,
-              "legendFormat": "{{instance}} - {{result}}",
-              "metric": "",
-              "refId": "A",
-              "step": 240
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "Retrieval -> Distributor sent samples [rate-5m]",
-          "tooltip": {
-            "msResolution": true,
-            "shared": true,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "show": true
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {
-            "threshold1": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "id": 2,
-          "isNew": true,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 2,
-          "links": [],
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "span": 4,
+          "span": 6,
           "stack": false,
           "steppedLine": false,
           "targets": [
             {
-              "expr": "prometheus_remote_storage_queue_length{job=\"retrieval\"}",
+              "expr": "sum(rate(prometheus_remote_storage_sent_batch_duration_seconds_count{namespace=\"frankenstein\"}[5m])) by (job, result)",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}} - length",
+              "legendFormat": "{{job}}: {{result}}",
               "metric": "",
               "refId": "A",
-              "step": 240
-            },
-            {
-              "expr": "prometheus_remote_storage_queue_capacity{job=\"retrieval\"}",
-              "intervalFactor": 2,
-              "legendFormat": "{{instance}} - capacity",
-              "refId": "B",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Remote storage queue length / capacity",
+          "title": "Retrieval -> Distributor sent batches [rate-5m]",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -210,21 +125,28 @@
           "points": false,
           "renderer": "flot",
           "seriesOverrides": [],
-          "span": 4,
+          "span": 6,
           "stack": true,
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_remote_storage_failed_batches_total{job=\"retrieval\"}[5m])",
+              "expr": "histogram_quantile(0.99, sum(prometheus_remote_storage_sent_batch_duration_seconds_bucket{namespace=\"frankenstein\"}) by (job, le))",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "{{job}} 99th",
               "refId": "A",
-              "step": 240
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.50, sum(prometheus_remote_storage_sent_batch_duration_seconds_bucket{namespace=\"frankenstein\"}) by (job, le))",
+              "intervalFactor": 2,
+              "legendFormat": "{{job}} 50th",
+              "refId": "B",
+              "step": 10
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Failed remote storage batches [rate-5m]",
+          "title": "Retrieval -> Distributor batch latency",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -276,6 +198,176 @@
             "threshold2": null,
             "threshold2Color": "rgba(234, 112, 112, 0.22)"
           },
+          "id": 25,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "null as zero",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(rate(prometheus_remote_storage_sent_samples_total[5m])) by (job, result)",
+              "intervalFactor": 2,
+              "legendFormat": "{{job}}: {{result}}",
+              "metric": "",
+              "refId": "A",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Retrieval -> Distributor sent samples [rate-5m]",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "sort": 0,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": 0,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 26,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(prometheus_remote_storage_queue_capacity{namespace=\"frankenstein\"}) by (job)",
+              "intervalFactor": 2,
+              "legendFormat": "{{job}}: queue capacity",
+              "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "sum(prometheus_remote_storage_queue_length{namespace=\"frankenstein\"}) by (job)",
+              "intervalFactor": 2,
+              "legendFormat": "{{job}}: queue length",
+              "refId": "B",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Retrieval -> Distributor Queue Capacity & Length",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "sort": 0,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
           "id": 4,
           "isNew": true,
           "legend": {
@@ -305,7 +397,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -383,7 +475,7 @@
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -460,21 +552,21 @@
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 99th",
               "refId": "A",
-              "step": 240
+              "step": 10
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 95th",
               "refId": "B",
-              "step": 240
+              "step": 10
             },
             {
               "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 50th",
               "refId": "C",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -560,7 +652,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -637,21 +729,21 @@
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 99th",
               "refId": "A",
-              "step": 240
+              "step": 10
             },
             {
               "expr": "histogram_quantile(0.95, sum without (instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 95th",
               "refId": "B",
-              "step": 240
+              "step": 10
             },
             {
               "expr": "histogram_quantile(0.5, sum without (instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 50th",
               "refId": "C",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -729,21 +821,21 @@
               "legendFormat": "{{status_code}} - 99th",
               "metric": "",
               "refId": "B",
-              "step": 240
+              "step": 10
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_distributor_query_duration_seconds_bucket[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{status_code}} - 95th",
               "refId": "A",
-              "step": 240
+              "step": 10
             },
             {
               "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_distributor_query_duration_seconds_bucket[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{status_code}} - 50th",
               "refId": "C",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -828,7 +920,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -905,7 +997,7 @@
               "intervalFactor": 2,
               "legendFormat": "hit ratio",
               "refId": "A",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -983,7 +1075,7 @@
               "legendFormat": "{{method}}: {{status_code}} - 99th",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 10
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"distributor\"}[10m])))",
@@ -991,14 +1083,14 @@
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} - 95th",
               "refId": "B",
-              "step": 240
+              "step": 10
             },
             {
               "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"distributor\"}[10m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} - 50th",
               "refId": "C",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -1083,7 +1175,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -1161,7 +1253,7 @@
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -1238,21 +1330,21 @@
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 99th",
               "refId": "A",
-              "step": 240
+              "step": 10
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 95th",
               "refId": "B",
-              "step": 240
+              "step": 10
             },
             {
               "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 50th",
               "refId": "C",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -1338,7 +1430,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -1415,21 +1507,21 @@
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 99th",
               "refId": "A",
-              "step": 240
+              "step": 10
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 95th",
               "refId": "B",
-              "step": 240
+              "step": 10
             },
             {
               "expr": "histogram_quantile(0.50, sum without(instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 50th",
               "refId": "C",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -1514,7 +1606,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "refId": "A",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -1592,21 +1684,21 @@
               "legendFormat": "{{method}}: {{status_code}} 99th",
               "metric": "",
               "refId": "A",
-              "step": 240
+              "step": 10
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} 95th",
               "refId": "B",
-              "step": 240
+              "step": 10
             },
             {
               "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} 50th",
               "refId": "C",
-              "step": 240
+              "step": 10
             }
           ],
           "timeFrom": null,
@@ -1653,7 +1745,7 @@
     "list": []
   },
   "time": {
-    "from": "now-24h",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
