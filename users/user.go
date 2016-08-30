@@ -1,4 +1,4 @@
-package main
+package users
 
 import (
 	"strings"
@@ -9,7 +9,14 @@ import (
 	"github.com/weaveworks/service/users/login"
 )
 
-type user struct {
+// FindUserByIDer is an interface of just FindUserByID, for loosely coupling
+// things to the storage.Database
+type FindUserByIDer interface {
+	FindUserByID(id string) (*User, error)
+}
+
+// User is what it's all about.
+type User struct {
 	ID             string          `json:"-"`
 	Email          string          `json:"email"`
 	Token          string          `json:"-"`
@@ -19,7 +26,7 @@ type user struct {
 	CreatedAt      time.Time       `json:"-"`
 	Admin          bool            `json:"-"`
 	Logins         []*login.Login  `json:"-"`
-	Organizations  []*organization `json:"-"`
+	Organizations  []*Organization `json:"-"`
 }
 
 func formatTimestamp(t time.Time) string {
@@ -29,23 +36,28 @@ func formatTimestamp(t time.Time) string {
 	return t.Format(time.Stamp)
 }
 
-func (u *user) FormatCreatedAt() string {
+// FormatCreatedAt formats the user's created at timestamp
+func (u *User) FormatCreatedAt() string {
 	return formatTimestamp(u.CreatedAt)
 }
 
-func (u *user) FormatApprovedAt() string {
+// FormatApprovedAt formats the user's approved at timestamp
+func (u *User) FormatApprovedAt() string {
 	return formatTimestamp(u.ApprovedAt)
 }
 
-func (u *user) FormatFirstLoginAt() string {
+// FormatFirstLoginAt formats the user's first login timestamp
+func (u *User) FormatFirstLoginAt() string {
 	return formatTimestamp(u.FirstLoginAt)
 }
 
-func (u *user) IsApproved() bool {
+// IsApproved checks if a user has been approved
+func (u *User) IsApproved() bool {
 	return !u.ApprovedAt.IsZero()
 }
 
-func (u *user) CompareToken(other string) bool {
+// CompareToken does a cryptographically-secure comparison of the user's login token
+func (u *User) CompareToken(other string) bool {
 	var (
 		token          string
 		tokenCreatedAt time.Time
@@ -60,41 +72,13 @@ func (u *user) CompareToken(other string) bool {
 	return time.Now().UTC().Sub(tokenCreatedAt) <= 72*time.Hour
 }
 
-func (u *user) HasOrganization(externalID string) bool {
+// HasOrganization checks if a user has access to an organization. For now the
+// logic is quite simple.
+func (u *User) HasOrganization(externalID string) bool {
 	for _, o := range u.Organizations {
 		if strings.ToLower(o.ExternalID) == strings.ToLower(externalID) {
 			return true
 		}
 	}
 	return false
-}
-
-func newUsersOrganizationFilter(s []string) filter {
-	return and{
-		inFilter{
-			SQLField: "organizations.external_id",
-			SQLJoins: []string{
-				"memberships on (memberships.user_id = users.id)",
-				"organizations on (memberships.organization_id = organizations.id)",
-			},
-			Value: s,
-			Allowed: func(i interface{}) bool {
-				if u, ok := i.(*user); ok {
-					for _, org := range u.Organizations {
-						for _, externalID := range s {
-							if org.ExternalID == externalID {
-								return true
-							}
-						}
-					}
-				}
-				return false
-			},
-		},
-		inFilter{
-			SQLField: "memberships.deleted_at",
-			Value:    nil,
-			Allowed:  func(i interface{}) bool { return true },
-		},
-	}
 }
