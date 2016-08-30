@@ -9,6 +9,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/tylerb/graceful"
 
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/common/logging"
@@ -26,6 +27,7 @@ func main() {
 	var (
 		logLevel           = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
 		port               = flag.Int("port", 80, "port to listen on")
+		stopTimeout        = flag.Duration("stop.timeout", 5*time.Second, "How long to wait for remaining requests to finish during shutdown")
 		domain             = flag.String("domain", "https://cloud.weave.works", "domain where scope service is runnning.")
 		databaseURI        = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
 		databaseMigrations = flag.String("database-migrations", "", "Path where the database migration files can be found")
@@ -76,9 +78,14 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 
 	logrus.Infof("Listening on port %d", *port)
-	http.Handle("/", api.New(*directLogin, emailer, sessions, db, logins, templates, pardotClient, forceFeatureFlags))
-	http.Handle("/metrics", makePrometheusHandler())
-	logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
+	mux := http.NewServeMux()
+
+	mux.Handle("/", api.New(*directLogin, emailer, sessions, db, logins, templates, pardotClient, forceFeatureFlags))
+	mux.Handle("/metrics", makePrometheusHandler())
+	if err := graceful.RunWithErr(fmt.Sprintf(":%d", *port), *stopTimeout, mux); err != nil {
+		logrus.Fatal(err)
+	}
+	logrus.Info("Gracefully shut down")
 }
 
 func makePrometheusHandler() http.Handler {
