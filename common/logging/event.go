@@ -45,6 +45,7 @@ func NewEventLogger(fluentHostPort string) (*EventLogger, error) {
 		FluentPort:   intPort,
 		FluentHost:   host,
 		AsyncConnect: true,
+		MaxRetry:     -1,
 	})
 	if err != nil {
 		return nil, err
