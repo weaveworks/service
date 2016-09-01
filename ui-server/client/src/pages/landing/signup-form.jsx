@@ -1,5 +1,5 @@
 import React from 'react';
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 
 import Form from './form';
 
@@ -7,7 +7,7 @@ export default class SignupForm extends React.Component {
 
   handleClickLogin(ev) {
     ev.preventDefault();
-    hashHistory.push('/login');
+    browserHistory.push('/login');
   }
 
   getConfirmation(email) {

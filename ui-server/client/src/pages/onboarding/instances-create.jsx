@@ -5,7 +5,7 @@ import FlatButton from 'material-ui/FlatButton';
 import RaisedButton from 'material-ui/RaisedButton';
 import TextField from 'material-ui/TextField';
 import { red900 } from 'material-ui/styles/colors';
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 
 import { getNewInstanceId } from '../../common/api';
 import { encodeURIs, postData } from '../../common/request';
@@ -74,7 +74,7 @@ export default class InstancesCreate extends React.Component {
 
   handleCancel() {
     if (this.props.params.first) {
-      hashHistory.push('/logout');
+      browserHistory.push('/logout');
     } else {
       window.history.back();
     }
@@ -101,7 +101,7 @@ export default class InstancesCreate extends React.Component {
 
     postData('/api/users/org', {name, id})
       .then(() => {
-        hashHistory.push(encodeURIs`/instances/select/${this.state.id}`);
+        browserHistory.push(encodeURIs`/instances/select/${this.state.id}`);
       }, resp => {
         const err = resp.errors[0];
         this.setState({

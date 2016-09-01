@@ -1,18 +1,18 @@
 import React from 'react';
 import FlatButton from 'material-ui/FlatButton';
 import { grey300 } from 'material-ui/styles/colors';
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 
 import { Logo } from './logo';
 
 export default class PublicPage extends React.Component {
 
   handleClickLogin() {
-    hashHistory.push('/login');
+    browserHistory.push('/login');
   }
 
   handleClickSignup() {
-    hashHistory.push('/signup');
+    browserHistory.push('/signup');
   }
 
   renderLinks(linkStyle) {

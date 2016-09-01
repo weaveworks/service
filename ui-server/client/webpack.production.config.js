@@ -14,6 +14,7 @@ module.exports = {
   },
 
   output: {
+    publicPath: '/', // absolute path for bundle
     path: __dirname + '/build/',
     filename: '[name].js'
   },

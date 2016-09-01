@@ -1,5 +1,5 @@
 import React from 'react';
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
@@ -49,7 +49,7 @@ export default class InstancesDelete extends React.Component {
   }
 
   handleDeleteSuccess() {
-    hashHistory.push('/instances/deleted');
+    browserHistory.push('/instances/deleted');
   }
 
   handleDeleteError(resp) {

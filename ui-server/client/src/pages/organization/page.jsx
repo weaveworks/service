@@ -3,7 +3,7 @@ import CircularProgress from 'material-ui/CircularProgress';
 import Paper from 'material-ui/Paper';
 import RaisedButton from 'material-ui/RaisedButton';
 import Snackbar from 'material-ui/Snackbar';
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 import sortBy from 'lodash/sortBy';
 import { grey200 } from 'material-ui/styles/colors';
 import { connect } from 'react-redux';
@@ -97,7 +97,7 @@ class OrganizationPage extends React.Component {
   }
 
   handleClickInstance() {
-    hashHistory.push(this.instanceUrl());
+    browserHistory.push(this.instanceUrl());
   }
 
   handleNameChange(name) {

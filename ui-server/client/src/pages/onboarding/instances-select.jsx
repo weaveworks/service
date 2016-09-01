@@ -2,7 +2,7 @@ import React from 'react';
 import CircularProgress from 'material-ui/CircularProgress';
 import RaisedButton from 'material-ui/RaisedButton';
 import { red900 } from 'material-ui/styles/colors';
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 
 import { encodeURIs } from '../../common/request';
 import { getProbes } from '../../common/api';
@@ -53,7 +53,7 @@ export default class InstancesSelect extends React.Component {
       url = encodeURIs`/org/${id}`;
     }
     if (this.mounted) {
-      hashHistory.push(url);
+      browserHistory.push(url);
     }
   }
 
@@ -62,7 +62,7 @@ export default class InstancesSelect extends React.Component {
     const { id } = this.props.params;
     const url = encodeURIs`/org/${id}`;
     if (this.mounted) {
-      hashHistory.push(url);
+      browserHistory.push(url);
     }
   }
 

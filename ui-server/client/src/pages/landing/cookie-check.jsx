@@ -2,7 +2,7 @@ import React from 'react';
 import CircularProgress from 'material-ui/CircularProgress';
 import RaisedButton from 'material-ui/RaisedButton';
 import { red900 } from 'material-ui/styles/colors';
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 
 import { encodeURIs } from '../../common/request';
 import { getOrganizations } from '../../common/api';
@@ -35,7 +35,7 @@ export default class CookieCheck extends React.Component {
       this.setState({
         activityText: 'Not logged in. Please wait for the login form to load...'
       });
-      hashHistory.push('/signup');
+      browserHistory.push('/signup');
     } else {
       const err = resp.errors[0];
       this.setState({
@@ -53,13 +53,13 @@ export default class CookieCheck extends React.Component {
   _handleLoginSuccess(resp) {
     if (resp.organizations && resp.organizations.length > 1) {
       // choose instance
-      hashHistory.push('/instances');
+      browserHistory.push('/instances');
     } else if (resp.organizations && resp.organizations.length === 1) {
       // only one instance -> go straight there
       const id = resp.organizations[0].id;
-      hashHistory.push(encodeURIs`/instances/select/${id}`);
+      browserHistory.push(encodeURIs`/instances/select/${id}`);
     } else {
-      hashHistory.push('/instances/create');
+      browserHistory.push('/instances/create');
     }
   }
 

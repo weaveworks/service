@@ -1,7 +1,7 @@
 import React from 'react';
 import { red900 } from 'material-ui/styles/colors';
 import List, { ListItem } from 'material-ui/List';
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 
 import { Box } from '../../components/box';
 import { encodeURIs } from '../../common/request';
@@ -29,7 +29,7 @@ export default class IntancesList extends React.Component {
 
   onClickNew(ev) {
     ev.preventDefault();
-    hashHistory.push('/instances/create');
+    browserHistory.push('/instances/create');
   }
 
   handleGetInstancesSuccess(resp) {
@@ -48,7 +48,7 @@ export default class IntancesList extends React.Component {
   }
 
   selectInstance(id) {
-    hashHistory.push(encodeURIs`/instances/select/${id}`);
+    browserHistory.push(encodeURIs`/instances/select/${id}`);
   }
 
   renderInstance(instance) {

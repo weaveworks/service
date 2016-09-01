@@ -1,5 +1,5 @@
 import React from 'react';
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 import CircularProgress from 'material-ui/CircularProgress';
 import { red900 } from 'material-ui/styles/colors';
 import RaisedButton from 'material-ui/RaisedButton';
@@ -58,11 +58,11 @@ export default class Login extends React.Component {
   _handleLoginSuccess(resp) {
     const { orgId } = this.props.params;
     if (orgId) {
-      hashHistory.push(encodeURIs`/instances/select/${orgId}`);
+      browserHistory.push(encodeURIs`/instances/select/${orgId}`);
     } else if (resp.firstLogin) {
-      hashHistory.push('/instances/create/first');
+      browserHistory.push('/instances/create/first');
     } else {
-      hashHistory.push('/');
+      browserHistory.push('/');
     }
   }
 
@@ -82,11 +82,11 @@ export default class Login extends React.Component {
   _handleCookieLookupError() {
     // neither token nor cookie worked, back to start
     trackException('Server returned Unauthorized for login link');
-    hashHistory.push('/login/unauthorized');
+    browserHistory.push('/login/unauthorized');
   }
 
   handleClickTryAgain() {
-    hashHistory.push('/');
+    browserHistory.push('/');
   }
 
   render() {

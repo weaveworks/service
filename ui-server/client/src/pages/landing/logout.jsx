@@ -1,5 +1,5 @@
 import React from 'react';
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 import CircularProgress from 'material-ui/CircularProgress';
 import { red900 } from 'material-ui/styles/colors';
 
@@ -31,13 +31,13 @@ export default class Logout extends React.Component {
   }
 
   _handleSuccess() {
-    hashHistory.push('/');
+    browserHistory.push('/');
   }
 
   _handleError(resp) {
     if (resp.status === 401) {
       // logout should not fail for Unauthorized
-      hashHistory.push('/');
+      browserHistory.push('/');
     } else {
       this.setState({
         activityText: '',
