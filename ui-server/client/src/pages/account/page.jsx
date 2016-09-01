@@ -1,5 +1,5 @@
 import React from 'react';
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 
 import RaisedButton from 'material-ui/RaisedButton';
 import List, { ListItem } from 'material-ui/List';
@@ -47,7 +47,7 @@ export default class AccountPage extends React.Component {
   }
 
   onClickLogout() {
-    hashHistory.push('/logout');
+    browserHistory.push('/logout');
   }
 
   render() {

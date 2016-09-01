@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import RaisedButton from 'material-ui/RaisedButton';
 import TextField from 'material-ui/TextField';
 import { grey100, grey500, lightBlue500 } from 'material-ui/styles/colors';
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 
 import { getLogins } from '../../common/api';
 import { postData } from '../../common/request';
@@ -50,13 +50,13 @@ export default class Form extends React.Component {
 
   _handleLoadAuthsError(resp) {
     trackException(resp);
-    hashHistory.push('/');
+    browserHistory.push('/');
   }
 
   _doLogin() {
     // for dev login button
     const loginUrl = `/login/${this.state.email}/${this.state.token}`;
-    hashHistory.push(loginUrl);
+    browserHistory.push(loginUrl);
   }
 
   componentDidMount() {

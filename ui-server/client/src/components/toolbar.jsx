@@ -5,7 +5,7 @@ import FontIcon from 'material-ui/FontIcon';
 import IconMenu from 'material-ui/IconMenu';
 import MenuItem from 'material-ui/MenuItem';
 import Paper from 'material-ui/Paper';
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 
 import { encodeURIs } from '../common/request';
 import Colors from '../common/colors';
@@ -26,27 +26,27 @@ export default class Toolbar extends React.Component {
 
   handleClickInstance() {
     const url = encodeURIs`/app/${this.props.orgId}`;
-    hashHistory.push(url);
+    browserHistory.push(url);
   }
 
   handleClickSettings() {
     const url = encodeURIs`/org/${this.props.orgId}`;
-    hashHistory.push(url);
+    browserHistory.push(url);
   }
 
   handleClickAccount() {
     const url = encodeURIs`/account/${this.props.orgId}`;
-    hashHistory.push(url);
+    browserHistory.push(url);
   }
 
   handleClickProm() {
     const url = encodeURIs`/prom/${this.props.orgId}`;
-    hashHistory.push(url);
+    browserHistory.push(url);
   }
 
   handleClickCreateInstance() {
     const url = encodeURIs`/instances/create`;
-    hashHistory.push(url);
+    browserHistory.push(url);
   }
 
   isActive(page) {

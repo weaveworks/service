@@ -1,4 +1,4 @@
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 
 import { trackException } from './tracking';
 import { encodeURIs, getData } from './request';
@@ -45,15 +45,15 @@ export function getInstance(id) {
             instance
           });
         } else {
-          hashHistory.push('/instances/error/notfound');
+          browserHistory.push('/instances/error/notfound');
         }
       })
       .catch(res => {
         // not logged in -> redirect
         if (res.status === 401) {
-          hashHistory.push('/login');
+          browserHistory.push('/login');
         } else if (res.status === 403) {
-          hashHistory.push('/login/forbidden');
+          browserHistory.push('/login/forbidden');
         } else {
           const err = res.errors[0];
           trackException(err.message);

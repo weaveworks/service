@@ -1,5 +1,5 @@
 import React from 'react';
-import { hashHistory } from 'react-router';
+import { browserHistory } from 'react-router';
 
 import { FlexContainer } from '../../components/flex-container';
 import PublicPage from '../../components/public-page';
@@ -32,7 +32,7 @@ export default class OnboardingPage extends React.Component {
       const err = resp.errors[0];
       trackException(err.message);
     }
-    hashHistory.push('/signup');
+    browserHistory.push('/signup');
   }
 
   render() {

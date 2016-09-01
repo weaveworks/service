@@ -20,7 +20,7 @@ import ReactDOM from 'react-dom';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 
-import { hashHistory, Router } from 'react-router';
+import { browserHistory, Router } from 'react-router';
 
 import { Provider } from 'react-redux';
 
@@ -46,7 +46,7 @@ const store = configureStore();
 ReactDOM.render(
   (<MuiThemeProvider muiTheme={getMuiTheme()}>
      <Provider store={store}>
-       <Router history={hashHistory}>{routes}</Router>
+       <Router history={browserHistory}>{routes}</Router>
     </Provider>
   </MuiThemeProvider>),
   document.getElementById(DOM_APP_EL_ID));
