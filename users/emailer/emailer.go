@@ -18,7 +18,7 @@ var ErrUnsupportedEmailProtocol = errors.New("Unsupported email protocol")
 
 func loginURL(email, rawToken, domain string) string {
 	return fmt.Sprintf(
-		"%s/#/login/%s/%s",
+		"%s/login/%s/%s",
 		domain,
 		url.QueryEscape(email),
 		url.QueryEscape(rawToken),
@@ -27,7 +27,7 @@ func loginURL(email, rawToken, domain string) string {
 
 func inviteURL(email, rawToken, domain, orgName string) string {
 	return fmt.Sprintf(
-		"%s/#/login/%s/%s/%s",
+		"%s/login/%s/%s/%s",
 		domain,
 		orgName,
 		url.QueryEscape(email),
@@ -36,7 +36,7 @@ func inviteURL(email, rawToken, domain, orgName string) string {
 }
 
 func organizationURL(domain, orgExternalID string) string {
-	return fmt.Sprintf("%s/#/org/%s", domain, orgExternalID)
+	return fmt.Sprintf("%s/org/%s", domain, orgExternalID)
 }
 
 // Emailer is the interface which emailers implement. There should be a method

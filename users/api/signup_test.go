@@ -19,7 +19,7 @@ import (
 )
 
 func findLoginLink(t *testing.T, e *email.Email) (url, token string) {
-	pattern := domain + `/#/login/[\w.%]+/([A-Za-z0-9%._=-]+)`
+	pattern := domain + `/login/[\w.%]+/([A-Za-z0-9%._=-]+)`
 	re := regexp.MustCompile(pattern)
 	matches := re.FindStringSubmatch(string(e.Text))
 	require.Len(t, matches, 2, fmt.Sprintf("Could not find Login Link in text: %q", e.Text))
@@ -35,7 +35,7 @@ func newLoginRequest(t *testing.T, e *email.Email) *http.Request {
 
 	u, err := url.Parse(loginLink)
 	require.NoError(t, err)
-	// convert email link /#/login/foo/bar to /api/users/login?email=foo&token=bar
+	// convert email link /login/foo/bar to /api/users/login?email=foo&token=bar
 	fragments := strings.Split(u.Fragment, "/")
 	params := url.Values{}
 	params.Set("email", fragments[2])
@@ -92,7 +92,7 @@ func Test_Signup(t *testing.T) {
 	// Login with the link
 	u, err := url.Parse(loginLink)
 	assert.NoError(t, err)
-	// convert email link /#/login/foo/bar to /api/users/login?email=foo&token=bar
+	// convert email link /login/foo/bar to /api/users/login?email=foo&token=bar
 	fragments := strings.Split(u.Fragment, "/")
 	params := url.Values{}
 	params.Set("email", fragments[2])
