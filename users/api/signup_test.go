@@ -36,7 +36,7 @@ func newLoginRequest(t *testing.T, e *email.Email) *http.Request {
 	u, err := url.Parse(loginLink)
 	require.NoError(t, err)
 	// convert email link /login/foo/bar to /api/users/login?email=foo&token=bar
-	fragments := strings.Split(u.Fragment, "/")
+	fragments := strings.Split(u.Path, "/")
 	params := url.Values{}
 	params.Set("email", fragments[2])
 	params.Set("token", fragments[3])
@@ -93,7 +93,7 @@ func Test_Signup(t *testing.T) {
 	u, err := url.Parse(loginLink)
 	assert.NoError(t, err)
 	// convert email link /login/foo/bar to /api/users/login?email=foo&token=bar
-	fragments := strings.Split(u.Fragment, "/")
+	fragments := strings.Split(u.Path, "/")
 	params := url.Values{}
 	params.Set("email", fragments[2])
 	params.Set("token", fragments[3])
