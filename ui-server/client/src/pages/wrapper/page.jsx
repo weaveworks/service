@@ -2,13 +2,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import CircularProgress from 'material-ui/CircularProgress';
-import debug from 'debug';
 
 import { getData, encodeURIs } from '../../common/request';
 import PrivatePage from '../../components/private-page';
 import { trackView } from '../../common/tracking';
-
-const log = debug('service:wrapper');
 
 export default class Wrapper extends React.Component {
 
@@ -23,40 +20,45 @@ export default class Wrapper extends React.Component {
     this._checkInstance = this._checkInstance.bind(this);
     this._handleInstanceError = this._handleInstanceError.bind(this);
     this._handleInstanceSuccess = this._handleInstanceSuccess.bind(this);
-    this._handleFrameLoad = this._handleFrameLoad.bind(this);
+    this.frameState = window.location.hash;
   }
 
   componentDidMount() {
     // check if scope instance is ready
     this._checkInstance();
+    // track internal view state
+    this.startFrameUrlTracker();
     trackView('Wrapper');
   }
 
-  componentDidUpdate() {
-    const iframe = ReactDOM.findDOMNode(this._iframe);
-    if (iframe) {
-      // periodically check iframe's URL and react to changes
-      clearInterval(this.frameStateChecker);
-      const target = iframe.contentWindow;
-
-      this.frameStateChecker = setInterval(() => {
-        if (this.frameState !== target.location.hash) {
-          this.frameState = target.location.hash;
-          this._onFrameStateChanged(this.frameState);
-        }
-      }, 1000);
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.params.orgId !== this.props.params.orgId) {
+      this._checkInstance();
     }
+  }
+
+  startFrameUrlTracker() {
+    // periodically check iframe's URL and react to changes
+    clearInterval(this.frameStateChecker);
+
+    this.frameStateChecker = setInterval(() => {
+      const iframe = ReactDOM.findDOMNode(this._iframe);
+      if (iframe) {
+        const target = iframe.contentWindow;
+        if (this.frameState !== target.location.hash) {
+          this._onFrameStateChanged(target.location.hash);
+        }
+      }
+    }, 1000);
   }
 
   componentWillUnmount() {
     clearInterval(this.frameStateChecker);
   }
 
-  _handleFrameLoad(err) {
-    log(err);
-  }
-
-  _onFrameStateChanged() {
+  _onFrameStateChanged(nextFrameState) {
+    window.location.hash = nextFrameState;
+    this.frameState = nextFrameState;
   }
 
   _checkInstance() {
@@ -65,7 +67,10 @@ export default class Wrapper extends React.Component {
   }
 
   _handleInstanceSuccess() {
-    const url = encodeURIs`/api/app/${this.props.params.orgId}/`;
+    let url = encodeURIs`/api/app/${this.props.params.orgId}/`;
+    if (this.frameState) {
+      url = `${url}${this.frameState}`;
+    }
     this.setState({
       activityText: '',
       frameBaseUrl: url

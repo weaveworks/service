@@ -4,6 +4,14 @@ import { browserHistory } from 'react-router';
 
 import { encodeURIs } from '../common/request';
 
+function addUrlState(url) {
+  const { hash } = window.location;
+  if (hash) {
+    return `${url}${hash}`;
+  }
+  return url;
+}
+
 export default class InstanceItem extends React.Component {
 
   constructor(props, context) {
@@ -12,8 +20,8 @@ export default class InstanceItem extends React.Component {
   }
 
   handleClick() {
-    const url = encodeURIs`/instances/select/${this.props.id}`;
-    browserHistory.push(url);
+    const url = encodeURIs`/app/${this.props.id}`;
+    browserHistory.push(addUrlState(url));
   }
 
   render() {
