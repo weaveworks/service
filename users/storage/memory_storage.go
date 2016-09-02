@@ -52,28 +52,33 @@ func (s *memoryStorage) AddLoginToUser(userID, provider, providerID string, sess
 		return err
 	}
 
-	// Remove any existing links to other user accounts
-	createdAt := time.Now().UTC()
-	for _, user := range s.users {
-		var newLogins []*login.Login
-		for _, a := range user.Logins {
-			if a.Provider == provider && a.ProviderID == providerID {
-				createdAt = a.CreatedAt
-			} else {
-				newLogins = append(newLogins, a)
-			}
-		}
-		user.Logins = newLogins
+	// Check if this login is attached to another user
+	existing, err := s.findUserByLogin(provider, providerID)
+	if err == nil && existing.ID != userID {
+		return users.AlreadyAttachedError{ID: existing.ID, Email: existing.Email}
 	}
 
 	// Add it to this one (updating session if needed).
-	u.Logins = append(u.Logins, &login.Login{
+	l := &login.Login{
 		UserID:     userID,
 		Provider:   provider,
 		ProviderID: providerID,
-		Session:    session,
-		CreatedAt:  createdAt,
-	})
+		CreatedAt:  time.Now().UTC(),
+	}
+	found := false
+	for _, item := range u.Logins {
+		if item.Provider == provider && item.ProviderID == providerID {
+			l = item
+			found = true
+			break
+		}
+	}
+	l.Session = session
+
+	if !found {
+		u.Logins = append(u.Logins, l)
+	}
+
 	sort.Sort(login.LoginsByProvider(u.Logins))
 	return nil
 }
@@ -173,6 +178,10 @@ func (s *memoryStorage) findUserByEmail(email string) (*users.User, error) {
 func (s *memoryStorage) FindUserByLogin(provider, providerID string) (*users.User, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
+	return s.findUserByLogin(provider, providerID)
+}
+
+func (s *memoryStorage) findUserByLogin(provider, providerID string) (*users.User, error) {
 	for _, user := range s.users {
 		for _, a := range user.Logins {
 			if a.Provider == provider && a.ProviderID == providerID {

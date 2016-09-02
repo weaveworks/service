@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -69,13 +70,31 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToAnotherAccount(t *testing.
 		"fran": {ID: "fran", Email: fran.Email},
 	})
 
-	// Hit the endpoint that the oauth login will redirect to (with our session)
+	// Hit the endpoint that the oauth login will redirect to (with our session), should fail initially
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=fran&state=state", nil)
 	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.False(t, hasCookie(w, sessions.CookieName))
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, map[string]interface{}{
+		"errors": []interface{}{
+			map[string]interface{}{
+				"message": fmt.Sprintf("Login is already attached to %q", fran.Email),
+				"email":   fran.Email,
+			},
+		},
+	}, body)
+	assert.Len(t, sentEmails, 0)
+
+	// Force the attach
+	w = httptest.NewRecorder()
+	r = requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=fran&state=state&force=true", nil)
+	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, hasCookie(w, sessions.CookieName))
-	body := map[string]interface{}{}
+	body = map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
 		"attach":     true,
