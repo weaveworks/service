@@ -8,6 +8,7 @@ const ACTION_TYPES = [
   'RECEIVE_ORGANIZATION_DATA',
   'RECEIVE_ORGANIZATIONS',
   'UPDATE_INSTANCE',
+  'UPDATE_SCOPE_VIEW_STATE',
 ];
 
 
@@ -24,6 +25,12 @@ export function updateInstance(instance) {
   };
 }
 
+export function updateScopeViewState(scopeViewState) {
+  return {
+    type: ActionTypes.UPDATE_SCOPE_VIEW_STATE,
+    scopeViewState
+  };
+}
 
 //
 // getData from the server Actions!

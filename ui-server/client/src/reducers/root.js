@@ -12,6 +12,7 @@ const error = debug('service:error');
 export const initialState = {
   email: '',
   instances: {},
+  scopeViewState: window.location.hash,
 };
 
 
@@ -36,6 +37,12 @@ export function rootReducer(state = initialState, action) {
     case ActionTypes.UPDATE_INSTANCE: {
       return Object.assign({}, state, {
         instances: mergeInstances(state.instances, [action.instance]),
+      });
+    }
+
+    case ActionTypes.UPDATE_SCOPE_VIEW_STATE: {
+      return Object.assign({}, state, {
+        scopeViewState: action.scopeViewState,
       });
     }
 
