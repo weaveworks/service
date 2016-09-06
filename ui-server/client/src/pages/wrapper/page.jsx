@@ -9,7 +9,7 @@ import PrivatePage from '../../components/private-page';
 import { trackView } from '../../common/tracking';
 import { updateScopeViewState } from '../../actions';
 
-export default class WrapperPage extends React.Component {
+class WrapperPage extends React.Component {
 
   constructor() {
     super();
