@@ -372,11 +372,14 @@ type publicLookupView struct {
 	Organizations []orgView `json:"organizations,omitempty"`
 }
 
-func (a *API) publicLookup(auth Authentication, w http.ResponseWriter, r *http.Request) {
-	view := publicLookupView{
-		Organizations: []orgView{},
+func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	organizations, err := a.db.ListOrganizationsForUserIDs(currentUser.ID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
 	}
-	for _, org := range auth.Organizations {
+	view := publicLookupView{Email: currentUser.Email}
+	for _, org := range organizations {
 		view.Organizations = append(view.Organizations, orgView{
 			ExternalID:         org.ExternalID,
 			Name:               org.Name,
@@ -384,10 +387,5 @@ func (a *API) publicLookup(auth Authentication, w http.ResponseWriter, r *http.R
 			FeatureFlags:       append(org.FeatureFlags, a.forceFeatureFlags...),
 		})
 	}
-
-	if auth.User != nil {
-		view.Email = auth.User.Email
-	}
-
 	render.JSON(w, http.StatusOK, view)
 }

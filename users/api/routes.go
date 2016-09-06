@@ -48,7 +48,7 @@ func (a *API) routes() http.Handler {
 		{"api_users_logout", "GET", "/api/users/logout", a.authenticateUser(a.logout)},
 
 		// This is the first endpoint the UI hits to see if the user is logged in.
-		{"api_users_lookup", "GET", "/api/users/lookup", a.authenticateAny(a.publicLookup)},
+		{"api_users_lookup", "GET", "/api/users/lookup", a.authenticateUser(a.publicLookup)},
 
 		// Listing and managing API tokens
 		{"api_users_tokens", "GET", "/api/users/tokens", a.authenticateUser(a.listAPITokens)},
