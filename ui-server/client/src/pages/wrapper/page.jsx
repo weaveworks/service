@@ -36,6 +36,14 @@ export default class WrapperPage extends React.Component {
     if (nextProps.params.orgId !== this.props.params.orgId) {
       this._checkInstance();
     }
+    if (this.props.scopeViewState && !window.location.hash) {
+      // copy view state to URL (needed when returning to this page)
+      window.location.hash = this.props.scopeViewState;
+    }
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.frameStateChecker);
   }
 
   startFrameUrlTracker() {
@@ -51,10 +59,6 @@ export default class WrapperPage extends React.Component {
         }
       }
     }, 1000);
-  }
-
-  componentWillUnmount() {
-    clearInterval(this.frameStateChecker);
   }
 
   _onFrameStateChanged(nextFrameState) {
