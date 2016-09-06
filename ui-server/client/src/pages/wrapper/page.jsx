@@ -2,15 +2,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import CircularProgress from 'material-ui/CircularProgress';
-import debug from 'debug';
+import { connect } from 'react-redux';
 
 import { getData, encodeURIs } from '../../common/request';
 import PrivatePage from '../../components/private-page';
 import { trackView } from '../../common/tracking';
+import { updateScopeViewState } from '../../actions';
 
-const log = debug('service:wrapper');
-
-export default class Wrapper extends React.Component {
+export default class WrapperPage extends React.Component {
 
   constructor() {
     super();
@@ -23,28 +22,23 @@ export default class Wrapper extends React.Component {
     this._checkInstance = this._checkInstance.bind(this);
     this._handleInstanceError = this._handleInstanceError.bind(this);
     this._handleInstanceSuccess = this._handleInstanceSuccess.bind(this);
-    this._handleFrameLoad = this._handleFrameLoad.bind(this);
   }
 
   componentDidMount() {
     // check if scope instance is ready
     this._checkInstance();
+    // track internal view state
+    this.startFrameUrlTracker();
     trackView('Wrapper');
   }
 
-  componentDidUpdate() {
-    const iframe = ReactDOM.findDOMNode(this._iframe);
-    if (iframe) {
-      // periodically check iframe's URL and react to changes
-      clearInterval(this.frameStateChecker);
-      const target = iframe.contentWindow;
-
-      this.frameStateChecker = setInterval(() => {
-        if (this.frameState !== target.location.hash) {
-          this.frameState = target.location.hash;
-          this._onFrameStateChanged(this.frameState);
-        }
-      }, 1000);
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.params.orgId !== this.props.params.orgId) {
+      this._checkInstance();
+    }
+    if (this.props.scopeViewState && !window.location.hash) {
+      // copy view state to URL (needed when returning to this page)
+      window.location.hash = this.props.scopeViewState;
     }
   }
 
@@ -52,11 +46,26 @@ export default class Wrapper extends React.Component {
     clearInterval(this.frameStateChecker);
   }
 
-  _handleFrameLoad(err) {
-    log(err);
+  startFrameUrlTracker() {
+    // periodically check iframe's URL and react to changes
+    clearInterval(this.frameStateChecker);
+
+    this.frameStateChecker = setInterval(() => {
+      const iframe = ReactDOM.findDOMNode(this._iframe);
+      if (iframe) {
+        const target = iframe.contentWindow;
+        if (this.props.scopeViewState !== target.location.hash) {
+          this._onFrameStateChanged(target.location.hash);
+        }
+      }
+    }, 1000);
   }
 
-  _onFrameStateChanged() {
+  _onFrameStateChanged(nextFrameState) {
+    // store in app
+    this.props.updateScopeViewState(nextFrameState);
+    // store in URL for reloads
+    window.location.hash = nextFrameState;
   }
 
   _checkInstance() {
@@ -65,7 +74,13 @@ export default class Wrapper extends React.Component {
   }
 
   _handleInstanceSuccess() {
-    const url = encodeURIs`/api/app/${this.props.params.orgId}/`;
+    let url = encodeURIs`/api/app/${this.props.params.orgId}/`;
+    // inject view state to iframe
+    if (this.props.scopeViewState) {
+      url = `${url}${this.props.scopeViewState}`;
+      // copy view state to URL (needed when returning to this page)
+      window.location.hash = this.props.scopeViewState;
+    }
     this.setState({
       activityText: '',
       frameBaseUrl: url
@@ -87,6 +102,7 @@ export default class Wrapper extends React.Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
+    // only re-render frame when base url changed
     return this.state.frameBaseUrl !== nextState.frameBaseUrl;
   }
 
@@ -121,3 +137,14 @@ export default class Wrapper extends React.Component {
     );
   }
 }
+
+function mapStateToProps(state) {
+  return {
+    scopeViewState: state.scopeViewState
+  };
+}
+
+export default connect(
+  mapStateToProps,
+  { updateScopeViewState }
+)(WrapperPage);

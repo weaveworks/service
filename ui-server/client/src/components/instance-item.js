@@ -12,7 +12,7 @@ export default class InstanceItem extends React.Component {
   }
 
   handleClick() {
-    const url = encodeURIs`/instances/select/${this.props.id}`;
+    const url = encodeURIs`/app/${this.props.id}`;
     browserHistory.push(url);
   }
 
