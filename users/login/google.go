@@ -3,7 +3,10 @@ package login
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+
+	"github.com/Sirupsen/logrus"
 
 	"golang.org/x/oauth2"
 	googleOauth "golang.org/x/oauth2/google"
@@ -110,6 +113,9 @@ func (g *google) Logout(session json.RawMessage) error {
 		return err
 	}
 	if response.StatusCode != http.StatusOK {
+		body, _ := ioutil.ReadAll(response.Body)
+		response.Body.Close()
+		logrus.Warningf("Error revoking google oauth token: %s %q", response.Status, body)
 		return fmt.Errorf("Error revoking google oauth token: %s", response.Status)
 	}
 	return nil

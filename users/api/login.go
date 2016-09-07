@@ -66,7 +66,11 @@ func (a *API) listAttachedLoginProviders(currentUser *users.User, w http.Respons
 			Name:    p.Name(),
 			LoginID: l.ProviderID,
 		}
-		v.Username, _ = p.Username(l.Session)
+		var err error
+		v.Username, err = p.Username(l.Session)
+		if err != nil {
+			logrus.Warningf("Failed fetching %q username for %s: %q", l.Provider, l.ProviderID, err)
+		}
 		view.Logins = append(view.Logins, v)
 	}
 	render.JSON(w, http.StatusOK, view)
