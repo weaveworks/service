@@ -97,7 +97,11 @@ func (g *github) Logout(session json.RawMessage) error {
 			password: g.Config.ClientSecret,
 		},
 	})
-	if response, err := client.Authorizations.Revoke(g.Config.ClientID, s.Token.AccessToken); err != nil {
+	response, err := client.Authorizations.Revoke(g.Config.ClientID, s.Token.AccessToken)
+	if response != nil {
+		defer response.Body.Close()
+	}
+	if err != nil {
 		if response == nil || response.StatusCode != http.StatusNotFound {
 			return err
 		}
