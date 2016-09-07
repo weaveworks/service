@@ -47,12 +47,13 @@ export default class Login extends React.Component {
     }
 
     let url = '/api/users/login';
+    const params = Object.assign({}, this.props.params, this.props.location.query);
     if (this.props.params.provider) {
       url = `/api/users/logins/${this.props.params.provider}/attach`;
+      params.force = true;
     }
 
-    getData(url, Object.assign({}, this.props.params, this.props.location.query))
-      .then(this._handleLoginSuccess, this._handleLoginError);
+    getData(url, params).then(this._handleLoginSuccess, this._handleLoginError);
   }
 
   _handleLoginSuccess(resp) {

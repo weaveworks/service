@@ -19,7 +19,7 @@ func errorStatusCode(err error) int {
 	}
 
 	switch err.(type) {
-	case users.MalformedInputError, users.ValidationError:
+	case users.MalformedInputError, users.ValidationError, users.AlreadyAttachedError:
 		return http.StatusBadRequest
 	}
 
@@ -34,10 +34,13 @@ func Error(w http.ResponseWriter, r *http.Request, err error) {
 	if code == http.StatusInternalServerError {
 		http.Error(w, `{"errors":[{"message":"An internal server error occurred"}]}`, http.StatusInternalServerError)
 	} else {
+		m := map[string]interface{}{}
+		if err, ok := err.(users.WithMetadata); ok {
+			m = err.Metadata()
+		}
+		m["message"] = err.Error()
 		JSON(w, code, map[string][]map[string]interface{}{
-			"errors": {
-				{"message": err.Error()},
-			},
+			"errors": {m},
 		})
 	}
 }

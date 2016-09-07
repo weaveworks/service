@@ -151,9 +151,27 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.db.AddLoginToUser(u.ID, providerID, id, authSession); err != nil {
-		logrus.Error(err)
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
-		return
+		existing, ok := err.(users.AlreadyAttachedError)
+		if !ok {
+			logrus.Error(err)
+			render.Error(w, r, users.ErrInvalidAuthenticationData)
+			return
+		}
+
+		if r.FormValue("force") != "true" {
+			render.Error(w, r, existing)
+			return
+		}
+		if err := a.db.DetachLoginFromUser(existing.ID, providerID); err != nil {
+			logrus.Error(err)
+			render.Error(w, r, users.ErrInvalidAuthenticationData)
+			return
+		}
+		if err := a.db.AddLoginToUser(u.ID, providerID, id, authSession); err != nil {
+			logrus.Error(err)
+			render.Error(w, r, users.ErrInvalidAuthenticationData)
+			return
+		}
 	}
 
 	view.FirstLogin = u.FirstLoginAt.IsZero()

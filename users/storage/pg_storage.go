@@ -82,39 +82,26 @@ func (s PGStorage) AddLoginToUser(userID, provider, providerID string, session j
 		values["session"] = sessionJSON
 	}
 	return s.Transaction(func(tx *sql.Tx) error {
-		// remove any attachments to other users this auth provider/account might
-		// have.
-		_, err := tx.Exec(
-			`update logins
-				set deleted_at = $1
-				where provider = $2
-				and provider_id = $3
-				and user_id != $4
-				and deleted_at is null`,
-			now, provider, providerID, userID,
-		)
-		if err != nil {
-			return err
-		}
-		var id string
-		err = tx.QueryRow(
-			`select id from logins
-				where provider = $1
-				and provider_id = $2
-				and user_id = $3
-				and deleted_at is null`,
-			provider, providerID, userID,
-		).Scan(&id)
+		// check that this is not already attached somewhere else
+		existing, err := s.findUserByLogin(tx, provider, providerID)
 		switch err {
 		case nil:
+			if existing.ID != userID {
+				return users.AlreadyAttachedError{ID: existing.ID, Email: existing.Email}
+			}
 			// User is already attached to this auth provider, just update the session
 			_, err = s.
 				Update("logins").
 				RunWith(tx).
-				Where(squirrel.Eq{"id": id}).
+				Where(squirrel.Eq{
+					"user_id":     userID,
+					"provider":    provider,
+					"provider_id": providerID,
+				}).
 				SetMap(values).
 				Exec()
-		case sql.ErrNoRows:
+		case users.ErrNotFound:
+			err = nil
 			// User is not attached to this auth provider, attach them
 			values["created_at"] = now
 			_, err = s.
@@ -251,14 +238,20 @@ func (s PGStorage) findUserByEmail(db squirrel.BaseRunner, email string) (*users
 
 // FindUserByLogin finds the user by login
 func (s PGStorage) FindUserByLogin(provider, providerID string) (*users.User, error) {
+	return s.findUserByLogin(s.DB, provider, providerID)
+}
+
+func (s PGStorage) findUserByLogin(db squirrel.BaseRunner, provider, providerID string) (*users.User, error) {
 	user, err := s.scanUser(
 		s.usersQuery().
+			RunWith(db).
 			Join("logins on (logins.user_id = users.id)").
 			Where(squirrel.Eq{
 				"logins.provider":    provider,
 				"logins.provider_id": providerID,
 			}).
-			Where("logins.deleted_at is null"),
+			Where("logins.deleted_at is null").
+			QueryRow(),
 	)
 	if err == sql.ErrNoRows {
 		err = users.ErrNotFound
@@ -266,11 +259,11 @@ func (s PGStorage) FindUserByLogin(provider, providerID string) (*users.User, er
 	if err != nil {
 		return nil, err
 	}
-	user.Organizations, err = s.listOrganizationsForUserIDs(s.DB, user.ID)
+	user.Organizations, err = s.listOrganizationsForUserIDs(db, user.ID)
 	if err != nil {
 		return nil, err
 	}
-	user.Logins, err = s.listLoginsForUserIDs(s.DB, user.ID)
+	user.Logins, err = s.listLoginsForUserIDs(db, user.ID)
 	return user, err
 }
 
