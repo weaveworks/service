@@ -55,5 +55,5 @@ func (a *API) deleteAPIToken(currentUser *users.User, w http.ResponseWriter, r *
 		render.Error(w, r, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }

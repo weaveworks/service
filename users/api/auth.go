@@ -9,14 +9,15 @@ import (
 	"github.com/weaveworks/service/users/render"
 )
 
-// Credentials are what gets parsed from ParseAuthHeader
+// Credentials are what gets parsed from ParseAuthorizationHeader
 type Credentials struct {
 	Realm  string
 	Params map[string]string
 }
 
-// ParseAuthHeader parses an auth header into Credentials, if possible.
-func ParseAuthHeader(header string) (*Credentials, bool) {
+// ParseAuthorizationHeader parses an auth header into Credentials, if possible.
+func ParseAuthorizationHeader(r *http.Request) (*Credentials, bool) {
+	header := r.Header.Get("Authorization")
 	for _, realm := range []string{"Basic", "Bearer"} {
 		prefix := realm + " "
 		if strings.HasPrefix(header, prefix) {
@@ -58,16 +59,6 @@ func (a *API) authenticateUser(handler func(*users.User, http.ResponseWriter, *h
 		func(auth Authentication, w http.ResponseWriter, r *http.Request) { handler(auth.User, w, r) },
 		Authenticator(a.cookieAuth),
 		Authenticator(a.apiTokenAuth),
-	)
-}
-
-// authenticateAny tries authenticating via all known methods
-func (a *API) authenticateAny(handler func(Authentication, http.ResponseWriter, *http.Request)) http.HandlerFunc {
-	return a.authenticateVia(
-		handler,
-		Authenticator(a.cookieAuth),
-		Authenticator(a.apiTokenAuth),
-		Authenticator(a.probeTokenAuth),
 	)
 }
 
@@ -125,7 +116,7 @@ func (a *API) cookieAuth(r *http.Request) (Authentication, error) {
 
 func (a *API) apiTokenAuth(r *http.Request) (Authentication, error) {
 	// try logging in by user token header
-	credentials, ok := ParseAuthHeader(r.Header.Get("Authorization"))
+	credentials, ok := ParseAuthorizationHeader(r)
 	if !ok || credentials.Realm != "Scope-User" {
 		return Authentication{}, users.ErrInvalidAuthenticationData
 	}
@@ -153,7 +144,7 @@ func (a *API) apiTokenAuth(r *http.Request) (Authentication, error) {
 
 func (a *API) probeTokenAuth(r *http.Request) (Authentication, error) {
 	// try logging in by probe token header
-	credentials, ok := ParseAuthHeader(r.Header.Get("Authorization"))
+	credentials, ok := ParseAuthorizationHeader(r)
 	if !ok || credentials.Realm != "Scope-Probe" {
 		return Authentication{}, users.ErrInvalidAuthenticationData
 	}

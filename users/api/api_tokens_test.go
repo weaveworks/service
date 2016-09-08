@@ -105,7 +105,7 @@ func Test_APITokens_CreateAndUseAPIToken(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := requestAs(t, user, "DELETE", "/api/users/tokens/"+token, nil)
 		app.ServeHTTP(w, r)
-		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, http.StatusNoContent, w.Code)
 		_, err := db.FindUserByAPIToken(token)
 		assert.EqualError(t, err, users.ErrNotFound.Error())
 	}

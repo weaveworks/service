@@ -2,14 +2,16 @@ package api_test
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/weaveworks/service/users/api"
 )
 
-func Test_parseAuthHeader(t *testing.T) {
+func Test_ParseAuthorizationHeader(t *testing.T) {
 	tests := []struct {
 		input  string
 		output *api.Credentials
@@ -23,7 +25,10 @@ func Test_parseAuthHeader(t *testing.T) {
 		{`APIKey apiKeyHere`, &api.Credentials{Realm: "APIKey", Params: map[string]string{"apiKeyHere": ""}}, true},
 	}
 	for _, test := range tests {
-		output, ok := api.ParseAuthHeader(test.input)
+		req, err := http.NewRequest("GET", "/", nil)
+		require.NoError(t, err)
+		req.Header.Set("Authorization", test.input)
+		output, ok := api.ParseAuthorizationHeader(req)
 		failMessage := fmt.Sprintf("%q => %#v, %v", test.input, output, ok)
 		if assert.Equal(t, test.ok, ok, failMessage) {
 			assert.Equal(t, test.output, output, failMessage)
