@@ -1,12 +1,9 @@
 package users
 
 import (
-	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-
-	"github.com/weaveworks/service/users/login"
 )
 
 // FindUserByIDer is an interface of just FindUserByID, for loosely coupling
@@ -17,16 +14,14 @@ type FindUserByIDer interface {
 
 // User is what it's all about.
 type User struct {
-	ID             string          `json:"-"`
-	Email          string          `json:"email"`
-	Token          string          `json:"-"`
-	TokenCreatedAt time.Time       `json:"-"`
-	ApprovedAt     time.Time       `json:"-"`
-	FirstLoginAt   time.Time       `json:"-"`
-	CreatedAt      time.Time       `json:"-"`
-	Admin          bool            `json:"-"`
-	Logins         []*login.Login  `json:"-"`
-	Organizations  []*Organization `json:"-"`
+	ID             string    `json:"-"`
+	Email          string    `json:"email"`
+	Token          string    `json:"-"`
+	TokenCreatedAt time.Time `json:"-"`
+	ApprovedAt     time.Time `json:"-"`
+	FirstLoginAt   time.Time `json:"-"`
+	CreatedAt      time.Time `json:"-"`
+	Admin          bool      `json:"-"`
 }
 
 func formatTimestamp(t time.Time) string {
@@ -70,15 +65,4 @@ func (u *User) CompareToken(other string) bool {
 		return false
 	}
 	return time.Now().UTC().Sub(tokenCreatedAt) <= 72*time.Hour
-}
-
-// HasOrganization checks if a user has access to an organization. For now the
-// logic is quite simple.
-func (u *User) HasOrganization(externalID string) bool {
-	for _, o := range u.Organizations {
-		if strings.ToLower(o.ExternalID) == strings.ToLower(externalID) {
-			return true
-		}
-	}
-	return false
 }

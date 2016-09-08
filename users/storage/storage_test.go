@@ -16,7 +16,9 @@ func Test_Storage_RemoveOtherUsersAccess(t *testing.T) {
 	otherUser := storagetest.GetApprovedUser(t, db)
 	otherUser, _, err := db.InviteUser(otherUser.Email, org.ExternalID)
 	require.NoError(t, err)
-	require.Len(t, otherUser.Organizations, 1)
+	otherUserOrganizations, err := db.ListOrganizationsForUserIDs(otherUser.ID)
+	require.NoError(t, err)
+	require.Len(t, otherUserOrganizations, 1)
 
 	orgUsers, err := db.ListOrganizationUsers(org.ExternalID)
 	require.NoError(t, err)

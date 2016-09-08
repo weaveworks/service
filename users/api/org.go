@@ -24,7 +24,12 @@ type orgView struct {
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orgExternalID := vars["orgExternalID"]
-	for _, org := range currentUser.Organizations {
+	organizations, err := a.db.ListOrganizationsForUserIDs(currentUser.ID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	for _, org := range organizations {
 		if strings.ToLower(org.ExternalID) == strings.ToLower(orgExternalID) {
 			render.JSON(w, http.StatusOK, orgView{
 				User:               currentUser.Email,
@@ -100,14 +105,23 @@ func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 
 func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	orgExternalID := mux.Vars(r)["orgExternalID"]
-	if !currentUser.HasOrganization(orgExternalID) {
-		if exists, err := a.db.OrganizationExists(orgExternalID); err != nil {
-			render.Error(w, r, err)
-			return
-		} else if exists {
-			w.WriteHeader(http.StatusForbidden)
-			return
-		}
+	exists, err := a.db.OrganizationExists(orgExternalID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	if !exists {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	isMember, err := a.db.UserIsMemberOf(currentUser.ID, orgExternalID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	if !isMember {
+		w.WriteHeader(http.StatusForbidden)
+		return
 	}
 	if err := a.db.DeleteOrganization(orgExternalID); err != nil {
 		render.Error(w, r, err)
@@ -219,7 +233,11 @@ func (a *API) deleteUser(currentUser *users.User, w http.ResponseWriter, r *http
 }
 
 func (a *API) userCanAccessOrg(currentUser *users.User, orgExternalID string) error {
-	if !currentUser.HasOrganization(orgExternalID) {
+	isMember, err := a.db.UserIsMemberOf(currentUser.ID, orgExternalID)
+	if err != nil {
+		return err
+	}
+	if !isMember {
 		if exists, err := a.db.OrganizationExists(orgExternalID); err != nil {
 			return err
 		} else if exists {

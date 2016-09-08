@@ -103,11 +103,11 @@ func Test_Lookup_ProbeToken(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{"organizationID": org.ID}, body)
 
-	user, err := db.FindUserByID(user.ID)
+	organizations, err := db.ListOrganizationsForUserIDs(user.ID)
 	require.NoError(t, err)
-	require.Len(t, user.Organizations, 1)
-	assert.NotNil(t, user.Organizations[0].FirstProbeUpdateAt)
-	assert.False(t, user.Organizations[0].FirstProbeUpdateAt.IsZero())
+	require.Len(t, organizations, 1)
+	assert.NotNil(t, organizations[0].FirstProbeUpdateAt)
+	assert.False(t, organizations[0].FirstProbeUpdateAt.IsZero())
 }
 
 func Test_Lookup_Admin(t *testing.T) {

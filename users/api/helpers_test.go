@@ -30,6 +30,10 @@ func getApprovedUser(t *testing.T) *users.User {
 	return storagetest.GetApprovedUser(t, db)
 }
 
+func createOrgForUser(t *testing.T, u *users.User) *users.Organization {
+	return storagetest.CreateOrgForUser(t, db, u)
+}
+
 func getOrg(t *testing.T) (*users.User, *users.Organization) {
 	return storagetest.GetOrg(t, db)
 }

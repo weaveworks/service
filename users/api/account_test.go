@@ -45,10 +45,12 @@ func Test_Account_AttachOauthAccount(t *testing.T) {
 	assert.Equal(t, user.ID, found.ID)
 
 	// User should have an login set
-	if assert.Len(t, found.Logins, 1) {
-		assert.Equal(t, user.ID, found.Logins[0].UserID)
-		assert.Equal(t, "mock", found.Logins[0].Provider)
-		assert.Equal(t, "joe", found.Logins[0].ProviderID)
+	logins, err := db.ListLoginsForUserIDs(found.ID)
+	require.NoError(t, err)
+	if assert.Len(t, logins, 1) {
+		assert.Equal(t, user.ID, logins[0].UserID)
+		assert.Equal(t, "mock", logins[0].Provider)
+		assert.Equal(t, "joe", logins[0].ProviderID)
 	}
 }
 
@@ -61,7 +63,9 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToAnotherAccount(t *testing.
 	require.NoError(t, db.AddLoginToUser(fran.ID, "mock", "fran", nil))
 	fran, err := db.FindUserByID(fran.ID)
 	require.NoError(t, err)
-	assert.Len(t, fran.Logins, 1)
+	franLogins, err := db.ListLoginsForUserIDs(fran.ID)
+	require.NoError(t, err)
+	assert.Len(t, franLogins, 1)
 
 	// Should be associated to another user
 
@@ -108,16 +112,18 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToAnotherAccount(t *testing.
 	assert.Equal(t, user.ID, found.ID)
 
 	// User should have the login set
-	if assert.Len(t, found.Logins, 1) {
-		assert.Equal(t, user.ID, found.Logins[0].UserID)
-		assert.Equal(t, "mock", found.Logins[0].Provider)
-		assert.Equal(t, "fran", found.Logins[0].ProviderID)
+	foundLogins, err := db.ListLoginsForUserIDs(found.ID)
+	require.NoError(t, err)
+	if assert.Len(t, foundLogins, 1) {
+		assert.Equal(t, user.ID, foundLogins[0].UserID)
+		assert.Equal(t, "mock", foundLogins[0].Provider)
+		assert.Equal(t, "fran", foundLogins[0].ProviderID)
 	}
 
 	// Old user should not be associated anymore
-	fran, err = db.FindUserByID(fran.ID)
+	foundLogins, err = db.ListLoginsForUserIDs(fran.ID)
 	require.NoError(t, err)
-	assert.Len(t, fran.Logins, 0)
+	assert.Len(t, foundLogins, 0)
 }
 
 func Test_Account_AttachOauthAccount_AlreadyAttachedToSameAccount(t *testing.T) {
@@ -130,7 +136,9 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToSameAccount(t *testing.T) 
 	assert.NoError(t, db.AddLoginToUser(user.ID, "mock", "joe", nil))
 	user, err := db.FindUserByID(user.ID)
 	assert.NoError(t, err)
-	assert.Len(t, user.Logins, 1)
+	userLogins, err := db.ListLoginsForUserIDs(user.ID)
+	assert.NoError(t, err)
+	assert.Len(t, userLogins, 1)
 
 	remoteEmail := "fran@example.com"
 	logins.Register("mock", MockLoginProvider{
@@ -158,10 +166,12 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToSameAccount(t *testing.T) 
 	assert.Equal(t, user.ID, found.ID)
 
 	// User should have the login set
-	if assert.Len(t, found.Logins, 1) {
-		assert.Equal(t, user.ID, found.Logins[0].UserID)
-		assert.Equal(t, "mock", found.Logins[0].Provider)
-		assert.Equal(t, "joe", found.Logins[0].ProviderID)
+	logins, err := db.ListLoginsForUserIDs(found.ID)
+	assert.NoError(t, err)
+	if assert.Len(t, logins, 1) {
+		assert.Equal(t, user.ID, logins[0].UserID)
+		assert.Equal(t, "mock", logins[0].Provider)
+		assert.Equal(t, "joe", logins[0].ProviderID)
 	}
 }
 
@@ -197,9 +207,9 @@ func Test_Account_ListAttachedLoginProviders(t *testing.T) {
 	// Listing when one attached
 	{
 		assert.NoError(t, db.AddLoginToUser(user.ID, "mock", "joe", json.RawMessage(`"joe"`)))
-		user, err := db.FindUserByID(user.ID)
+		logins, err := db.ListLoginsForUserIDs(user.ID)
 		assert.NoError(t, err)
-		assert.Len(t, user.Logins, 1)
+		assert.Len(t, logins, 1)
 
 		w := httptest.NewRecorder()
 		r := requestAs(t, user, "GET", "/api/users/attached_logins", nil)
@@ -241,9 +251,9 @@ func Test_Account_DetachOauthAccount(t *testing.T) {
 	assert.Len(t, w.Body.Bytes(), 0)
 
 	// User should have no more logins set
-	user, err := db.FindUserByID(user.ID)
+	userLogins, err := db.ListLoginsForUserIDs(user.ID)
 	require.NoError(t, err)
-	assert.Len(t, user.Logins, 0)
+	assert.Len(t, userLogins, 0)
 
 	// Provider session should have been revoked.
 	assert.Len(t, mockLoginProvider, 0)

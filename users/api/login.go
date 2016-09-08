@@ -55,7 +55,12 @@ type attachedLoginProviderView struct {
 // the /account page to determine which login providers are currently attached.
 func (a *API) listAttachedLoginProviders(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	view := attachedLoginProvidersView{}
-	for _, l := range currentUser.Logins {
+	logins, err := a.db.ListLoginsForUserIDs(currentUser.ID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	for _, l := range logins {
 		p, ok := a.logins.Get(l.Provider)
 		if !ok {
 			continue
@@ -202,7 +207,12 @@ func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter
 		return
 	}
 
-	for _, login := range currentUser.Logins {
+	logins, err := a.db.ListLoginsForUserIDs(currentUser.ID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	for _, login := range logins {
 		if login.Provider != providerID {
 			continue
 		}
@@ -363,18 +373,19 @@ type publicLookupView struct {
 }
 
 func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	existing := []orgView{}
-	for _, org := range currentUser.Organizations {
-		existing = append(existing, orgView{
+	organizations, err := a.db.ListOrganizationsForUserIDs(currentUser.ID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	view := publicLookupView{Email: currentUser.Email}
+	for _, org := range organizations {
+		view.Organizations = append(view.Organizations, orgView{
 			ExternalID:         org.ExternalID,
 			Name:               org.Name,
 			FirstProbeUpdateAt: render.Time(org.FirstProbeUpdateAt),
 			FeatureFlags:       append(org.FeatureFlags, a.forceFeatureFlags...),
 		})
 	}
-
-	render.JSON(w, http.StatusOK, publicLookupView{
-		Email:         currentUser.Email,
-		Organizations: existing,
-	})
+	render.JSON(w, http.StatusOK, view)
 }

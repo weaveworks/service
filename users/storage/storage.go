@@ -12,6 +12,7 @@ import (
 	"github.com/weaveworks/scope/common/instrument"
 
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/login"
 )
 
 var (
@@ -29,6 +30,9 @@ type Database interface {
 	users.FindUserByIDer
 	FindUserByEmail(email string) (*users.User, error)
 	FindUserByLogin(provider, id string) (*users.User, error)
+	FindUserByAPIToken(token string) (*users.User, error)
+
+	UserIsMemberOf(userID, orgExternalID string) (bool, error)
 
 	// AddLoginToUser adds an entry denoting this user is linked to a
 	// remote login. e.g. if a user logs in via github this maps our
@@ -40,14 +44,31 @@ type Database interface {
 	// user is linked to the remote login.
 	DetachLoginFromUser(userID, provider string) error
 
+	// Create an API Token for a user
+	CreateAPIToken(userID, description string) (*users.APIToken, error)
+
+	// Delete an API Token for a user
+	DeleteAPIToken(userID, token string) error
+
 	// Invite a user to access an existing organization.
 	InviteUser(email, orgExternalID string) (*users.User, bool, error)
 
 	// Remove a user from an organization. If they do not exist (or are not a member of the org), return success.
 	RemoveUserFromOrganization(orgExternalID, email string) error
 
-	ListUsers(...Filter) ([]*users.User, error)
+	ListUsers() ([]*users.User, error)
 	ListOrganizationUsers(orgExternalID string) ([]*users.User, error)
+
+	// ListOrganizationsForUserIDs lists all organizations these users have
+	// access to.
+	ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organization, error)
+
+	// ListLoginsForUserIDs lists all the logins associated with these users
+	ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error)
+
+	// ListAPITokensForUserIDs lists all the api tokens associated with these
+	// users
+	ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error)
 
 	// Approve the user for access. Should generate them a new organization.
 	ApproveUser(id string) (*users.User, error)
@@ -175,6 +196,24 @@ func (t TimedDatabase) FindUserByLogin(provider, id string) (u *users.User, err 
 	return
 }
 
+// FindUserByAPIToken finds a user by api token
+func (t TimedDatabase) FindUserByAPIToken(token string) (u *users.User, err error) {
+	t.timeRequest("FindUserByAPIToken", func() error {
+		u, err = t.d.FindUserByAPIToken(token)
+		return err
+	})
+	return
+}
+
+// UserIsMemberOf checks if the user is a member of the organization
+func (t TimedDatabase) UserIsMemberOf(userID, orgExternalID string) (b bool, err error) {
+	t.timeRequest("UserIsMemberOf", func() error {
+		b, err = t.d.UserIsMemberOf(userID, orgExternalID)
+		return err
+	})
+	return
+}
+
 // AddLoginToUser adds the login to the user
 func (t TimedDatabase) AddLoginToUser(userID, provider, id string, session json.RawMessage) error {
 	return t.timeRequest("AddLoginToUser", func() error {
@@ -186,6 +225,22 @@ func (t TimedDatabase) AddLoginToUser(userID, provider, id string, session json.
 func (t TimedDatabase) DetachLoginFromUser(userID, provider string) error {
 	return t.timeRequest("DetachLoginFromUser", func() error {
 		return t.d.DetachLoginFromUser(userID, provider)
+	})
+}
+
+// CreateAPIToken creates an API Token for a user
+func (t TimedDatabase) CreateAPIToken(userID, description string) (token *users.APIToken, err error) {
+	t.timeRequest("CreateAPIToken", func() error {
+		token, err = t.d.CreateAPIToken(userID, description)
+		return err
+	})
+	return
+}
+
+// DeleteAPIToken deletes an API Token for a user
+func (t TimedDatabase) DeleteAPIToken(userID, token string) error {
+	return t.timeRequest("DeleteAPIToken", func() error {
+		return t.d.DeleteAPIToken(userID, token)
 	})
 }
 
@@ -206,9 +261,9 @@ func (t TimedDatabase) RemoveUserFromOrganization(orgExternalID, email string) e
 }
 
 // ListUsers lists users with some filters applied
-func (t TimedDatabase) ListUsers(fs ...Filter) (us []*users.User, err error) {
+func (t TimedDatabase) ListUsers() (us []*users.User, err error) {
 	t.timeRequest("ListUsers", func() error {
-		us, err = t.d.ListUsers(fs...)
+		us, err = t.d.ListUsers()
 		return err
 	})
 	return
@@ -218,6 +273,33 @@ func (t TimedDatabase) ListUsers(fs ...Filter) (us []*users.User, err error) {
 func (t TimedDatabase) ListOrganizationUsers(orgExternalID string) (us []*users.User, err error) {
 	t.timeRequest("ListOrganizationUsers", func() error {
 		us, err = t.d.ListOrganizationUsers(orgExternalID)
+		return err
+	})
+	return
+}
+
+// ListOrganizationsForUserIDs lists the organizations these users belong to
+func (t TimedDatabase) ListOrganizationsForUserIDs(userIDs ...string) (os []*users.Organization, err error) {
+	t.timeRequest("ListOrganizationsForUserIDs", func() error {
+		os, err = t.d.ListOrganizationsForUserIDs(userIDs...)
+		return err
+	})
+	return
+}
+
+// ListLoginsForUserIDs lists the logins for these users
+func (t TimedDatabase) ListLoginsForUserIDs(userIDs ...string) (ls []*login.Login, err error) {
+	t.timeRequest("ListLoginsForUserIDs", func() error {
+		ls, err = t.d.ListLoginsForUserIDs(userIDs...)
+		return err
+	})
+	return
+}
+
+// ListAPITokensForUserIDs lists the api tokens for these users
+func (t TimedDatabase) ListAPITokensForUserIDs(userIDs ...string) (ts []*users.APIToken, err error) {
+	t.timeRequest("ListAPITokensForUserIDs", func() error {
+		ts, err = t.d.ListAPITokensForUserIDs(userIDs...)
 		return err
 	})
 	return

@@ -18,7 +18,12 @@ type lookupOrgView struct {
 func (a *API) lookupOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orgExternalID := vars["orgExternalID"]
-	for _, org := range currentUser.Organizations {
+	organizations, err := a.db.ListOrganizationsForUserIDs(currentUser.ID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	for _, org := range organizations {
 		if strings.ToLower(org.ExternalID) == strings.ToLower(orgExternalID) {
 			render.JSON(w, http.StatusOK, lookupOrgView{
 				OrganizationID: org.ID,
@@ -42,28 +47,6 @@ func (a *API) lookupAdmin(currentUser *users.User, w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusUnauthorized)
 }
 
-func (a *API) lookupUsingToken(w http.ResponseWriter, r *http.Request) {
-	credentials, ok := ParseAuthHeader(r.Header.Get("Authorization"))
-	if !ok || credentials.Realm != "Scope-Probe" {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	token, ok := credentials.Params["token"]
-	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	org, err := a.db.FindOrganizationByProbeToken(token)
-	if err == nil {
-		render.JSON(w, http.StatusOK, lookupOrgView{OrganizationID: org.ID})
-		return
-	}
-
-	if err != users.ErrInvalidAuthenticationData {
-		w.WriteHeader(http.StatusUnauthorized)
-	} else {
-		render.Error(w, r, err)
-	}
+func (a *API) lookupUsingToken(organization *users.Organization, w http.ResponseWriter, r *http.Request) {
+	render.JSON(w, http.StatusOK, lookupOrgView{OrganizationID: organization.ID})
 }
