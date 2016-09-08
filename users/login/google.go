@@ -113,10 +113,17 @@ func (g *google) Logout(session json.RawMessage) error {
 		return err
 	}
 	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
+	switch response.StatusCode {
+	case http.StatusOK:
+		return nil
+	case http.StatusBadRequest:
+		// Ignore bad requests here, as we'll just assume the revocation was successful.
 		body, _ := ioutil.ReadAll(response.Body)
 		logrus.Warningf("Error revoking google oauth token: %s %q", response.Status, body)
-		return fmt.Errorf("Error revoking google oauth token: %s", response.Status)
+		return nil
+	default:
+		body, _ := ioutil.ReadAll(response.Body)
+		logrus.Warningf("Error revoking google oauth token: %s %q", response.Status, body)
 	}
-	return nil
+	return fmt.Errorf("Error revoking google oauth token: %s", response.Status)
 }
