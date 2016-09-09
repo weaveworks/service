@@ -62,7 +62,7 @@ scrape_configs:
     in_cluster: true
     role: pod
 
-  # You can specify the following annotations (on services):
+  # You can specify the following annotations (on pods):
   #   prometheus.io.scrape: true - scrape this pod
   #   prometheus.io.port - scrape this port
   relabel_configs:
