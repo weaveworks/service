@@ -7,6 +7,7 @@ import (
 	"net/http/httputil"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -16,13 +17,32 @@ type proxy struct {
 	reverseProxy httputil.ReverseProxy
 }
 
+var proxyTransport http.RoundTripper = &http.Transport{
+	// No connection pooling, increases latency, but ensures fair load-balancing.
+	DisableKeepAlives: true,
+
+	// Rest are from http.DefaultTransport
+	Proxy: http.ProxyFromEnvironment,
+	/* Go 1.7 added field
+	DialContext: (&net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}).DialContext,
+	*/
+	TLSHandshakeTimeout:   10 * time.Second,
+	ExpectContinueTimeout: 1 * time.Second,
+}
+
 func newProxy(hostAndPort string) proxy {
 	// Make all transformations outside of the director since
 	// they are also required when proxying websockets
 	emptyDirector := func(*http.Request) {}
 	return proxy{
-		hostAndPort:  hostAndPort,
-		reverseProxy: httputil.ReverseProxy{Director: emptyDirector},
+		hostAndPort: hostAndPort,
+		reverseProxy: httputil.ReverseProxy{
+			Director:  emptyDirector,
+			Transport: proxyTransport,
+		},
 	}
 }
 
