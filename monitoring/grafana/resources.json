@@ -222,7 +222,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "(1 - (node_filesystem_free{job=\"monitoring/prom-node-exporter\",mountpoint=\"/\"} /  node_filesystem_size{job=\"monitoring/prom-node-exporter\",mountpoint=\"/\"})) * 100",
+              "expr": "(1 - (node_filesystem_free{job=\"monitoring/prom-node-exporter\",fstype=\"rootfs\"} / node_filesystem_size{job=\"monitoring/prom-node-exporter\",fstype=\"rootfs\"})) * 100",
               "intervalFactor": 2,
               "legendFormat": "{{node}}",
               "refId": "A",
