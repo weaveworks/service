@@ -52,9 +52,9 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "(count(max(node_cpu) by (cpu, instance)) by (instance) - sum(irate(node_cpu{mode=\"idle\"}[1m])) by (instance)) / count(max(node_cpu) by (cpu, instance)) by (instance) * 100",
+              "expr": "(count(max(node_cpu{job=\"monitoring/prom-node-exporter\"}) by (cpu, node)) by (node) - sum(irate(node_cpu{job=\"monitoring/prom-node-exporter\",mode=\"idle\"}[1m])) by (node)) / count(max(node_cpu{job=\"monitoring/prom-node-exporter\"}) by (cpu, node)) by (node) * 100",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "{{node}}",
               "refId": "A",
               "step": 4
             }
@@ -137,9 +137,9 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "(node_memory_MemTotal  - node_memory_MemFree) / node_memory_MemTotal * 100",
+              "expr": "(node_memory_MemTotal{job=\"monitoring/prom-node-exporter\"} - node_memory_MemFree{job=\"monitoring/prom-node-exporter\"}) / node_memory_MemTotal{job=\"monitoring/prom-node-exporter\"} * 100",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "{{node}}",
               "refId": "A",
               "step": 4
             }
@@ -222,9 +222,9 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "(1 - (node_filesystem_free{mountpoint=\"/\"} /  node_filesystem_size{mountpoint=\"/\"})) * 100",
+              "expr": "(1 - (node_filesystem_free{job=\"monitoring/prom-node-exporter\",mountpoint=\"/\"} /  node_filesystem_size{job=\"monitoring/prom-node-exporter\",mountpoint=\"/\"})) * 100",
               "intervalFactor": 2,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "{{node}}",
               "refId": "A",
               "step": 4
             }
