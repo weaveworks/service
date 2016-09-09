@@ -45,15 +45,9 @@ scrape_configs:
   - action: labelmap
     regex: ^__meta_kubernetes_service_label_(.+)$
     replacement: $1
-  - source_labels: [__meta_kubernetes_service_namespace]
-    action: replace
-    regex: ^(.+)$
-    target_label: namespace
-    replacement: $1
-  - source_labels: [__meta_kubernetes_service_name]
-    regex: ^(.+)$
+  - source_labels: [__meta_kubernetes_service_namespace, __meta_kubernetes_service_name]
+    separator: '/'
     target_label: job
-    replacement: $1
 
 - job_name: 'kubernetes-pods'
   kubernetes_sd_configs:

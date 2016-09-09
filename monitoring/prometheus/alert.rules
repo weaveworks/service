@@ -1,12 +1,12 @@
 # Define error rate
 job:scope_request_errors:rate1m =
-   (sum(rate(scope_request_duration_seconds_count{namespace="default",status_code=~"5.."}[1m])) by (job)) /
-   (sum(rate(scope_request_duration_seconds_count{namespace="default"}[1m])) by (job))
+   (sum(rate(scope_request_duration_seconds_count{status_code=~"5.."}[1m])) by (job)) /
+   (sum(rate(scope_request_duration_seconds_count[1m])) by (job))
 
 # Alert if there is a kubediff or terradiff
 
 ALERT Kubediff
-  IF          max(command_exit_code{job="kubediff"}) != 0
+  IF          max(command_exit_code{job="monitoring/kubediff"}) != 0
   FOR         2h
   LABELS      { severity="warning" }
   ANNOTATIONS {
@@ -15,7 +15,7 @@ ALERT Kubediff
   }
 
 ALERT Terradiff
-  IF          max(command_exit_code{job="terradiff"}) != 0
+  IF          max(command_exit_code{job="monitoring/terradiff"}) != 0
   FOR         2h
   LABELS      { severity="warning" }
   ANNOTATIONS {
@@ -26,7 +26,7 @@ ALERT Terradiff
 # For each service, an alert on error rate
 
 ALERT AuthFEErrorRate
-  IF          job:scope_request_errors:rate1m{job="authfe"} > 0.1
+  IF          job:scope_request_errors:rate1m{job="default/authfe"} > 0.1
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -35,7 +35,7 @@ ALERT AuthFEErrorRate
   }
 
 ALERT UsersErrorRate
-  IF          job:scope_request_errors:rate1m{job="users"} > 0.1
+  IF          job:scope_request_errors:rate1m{job="default/users"} > 0.1
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -44,7 +44,7 @@ ALERT UsersErrorRate
   }
 
 ALERT CollectionErrorRate
-  IF          job:scope_request_errors:rate1m{job="collection"} > 0.1
+  IF          job:scope_request_errors:rate1m{job="default/collection"} > 0.1
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -53,7 +53,7 @@ ALERT CollectionErrorRate
   }
 
 ALERT QueryErrorRate
-  IF          job:scope_request_errors:rate1m{job="query"} > 0.1
+  IF          job:scope_request_errors:rate1m{job="default/query"} > 0.1
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -73,7 +73,7 @@ ALERT AuthFELatency
   }
 
 ALERT UsersLatency
-  IF          job:scope_request_duration_seconds:95quantile{job="users"} > 5.0
+  IF          job:scope_request_duration_seconds:95quantile{job="default/users"} > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
@@ -82,7 +82,7 @@ ALERT UsersLatency
   }
 
 ALERT CollectionLatency
-  IF          job:scope_request_duration_seconds:95quantile{job="collection"} > 5.0
+  IF          job:scope_request_duration_seconds:95quantile{job="default/collection"} > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
@@ -91,7 +91,7 @@ ALERT CollectionLatency
   }
 
 ALERT QueryLatency
-  IF          job:scope_request_duration_seconds:95quantile{job="query"} > 5.0
+  IF          job:scope_request_duration_seconds:95quantile{job="default/query"} > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
@@ -102,7 +102,7 @@ ALERT QueryLatency
 # For each service, an alert if it's absent
 
 ALERT AuthFENoInstances
-  IF          absent(scope_request_duration_seconds_count{job="authfe"})
+  IF          absent(scope_request_duration_seconds_count{job="default/authfe"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -111,7 +111,7 @@ ALERT AuthFENoInstances
   }
 
 ALERT UsersNoInstances
-  IF          absent(scope_request_duration_seconds_count{job="users"})
+  IF          absent(scope_request_duration_seconds_count{job="default/users"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -120,7 +120,7 @@ ALERT UsersNoInstances
   }
 
 ALERT CollectionNoInstances
-  IF          absent(scope_request_duration_seconds_count{job="collection"})
+  IF          absent(scope_request_duration_seconds_count{job="default/collection"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -129,7 +129,7 @@ ALERT CollectionNoInstances
   }
 
 ALERT QueryNoInstances
-  IF          absent(scope_request_duration_seconds_count{job="query"})
+  IF          absent(scope_request_duration_seconds_count{job="default/query"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -140,7 +140,7 @@ ALERT QueryNoInstances
 # Deployment-related alerts
 
 ALERT DeploymentGenerationMismatch
-  IF          k8s_deployment_status_observedGeneration{job="kube-api-exporter"} != k8s_deployment_metadata_generation{job="kube-api-exporter"}
+  IF          k8s_deployment_status_observedGeneration{job="monitoring/kube-api-exporter"} != k8s_deployment_metadata_generation{job="monitoring/kube-api-exporter"}
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -149,7 +149,7 @@ ALERT DeploymentGenerationMismatch
   }
 
 ALERT DeploymentReplicasMismatch
-  IF          (k8s_deployment_spec_replicas{job="kube-api-exporter"} != k8s_deployment_status_availableReplicas{job="kube-api-exporter"}) or (k8s_deployment_spec_replicas{job="kube-api-exporter"} unless k8s_deployment_status_availableReplicas{job="kube-api-exporter"})
+  IF          (k8s_deployment_spec_replicas{job="monitoring/kube-api-exporter"} != k8s_deployment_status_availableReplicas{job="monitoring/kube-api-exporter"}) or (k8s_deployment_spec_replicas{job="monitoring/kube-api-exporter"} unless k8s_deployment_status_availableReplicas{job="monitoring/kube-api-exporter"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {

@@ -58,35 +58,35 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(nginx_http_requests_total{job=\"frontend\",status=~\"1..\"}[1m]))",
+              "expr": "sum(irate(nginx_http_requests_total{job=\"default/frontend\",status=~\"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(nginx_http_requests_total{job=\"frontend\",status=~\"2..\"}[1m]))",
+              "expr": "sum(irate(nginx_http_requests_total{job=\"default/frontend\",status=~\"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "sum(irate(nginx_http_requests_total{job=\"frontend\",status=~\"3..\"}[1m]))",
+              "expr": "sum(irate(nginx_http_requests_total{job=\"default/frontend\",status=~\"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
               "step": 10
             },
             {
-              "expr": "sum(irate(nginx_http_requests_total{job=\"frontend\",status=~\"4..\"}[1m]))",
+              "expr": "sum(irate(nginx_http_requests_total{job=\"default/frontend\",status=~\"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
               "step": 10
             },
             {
-              "expr": "sum(irate(nginx_http_requests_total{job=\"frontend\",status=~\"5..\"}[1m]))",
+              "expr": "sum(irate(nginx_http_requests_total{job=\"default/frontend\",status=~\"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
@@ -268,35 +268,35 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"authfe\",status_code =~ \"1..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/authfe\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"authfe\",status_code =~ \"2..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/authfe\",status_code =~ \"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"authfe\",status_code =~ \"3..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/authfe\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"authfe\",status_code =~ \"4..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/authfe\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"authfe\",status_code =~ \"5..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/authfe\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
@@ -475,14 +475,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"users\",status_code =~ \"1..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/users\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"users\",status_code =~ \"2..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/users\",status_code =~ \"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "metric": "",
@@ -490,21 +490,21 @@
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"users\",status_code =~ \"3..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/users\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"users\",status_code =~ \"4..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/users\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"users\",status_code =~ \"5..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/users\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
@@ -581,21 +581,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job:scope_request_duration_seconds:99quantile{job=\"users\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:99quantile{job=\"default/users\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "99th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "job:scope_request_duration_seconds:95quantile{job=\"users\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:95quantile{job=\"default/users\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "job:scope_request_duration_seconds:50quantile{job=\"users\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:50quantile{job=\"default/users\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "C",
@@ -686,35 +686,35 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"collection\",status_code =~ \"1..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/collection\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"collection\",status_code =~ \"2..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/collection\",status_code =~ \"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"collection\",status_code =~ \"3..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/collection\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"collection\",status_code =~ \"4..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/collection\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"collection\",status_code =~ \"5..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/collection\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
@@ -791,21 +791,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job:scope_request_duration_seconds:99quantile{job=\"collection\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:99quantile{job=\"default/collection\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "99th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "job:scope_request_duration_seconds:95quantile{job=\"collection\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:95quantile{job=\"default/collection\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "job:scope_request_duration_seconds:50quantile{job=\"collection\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:50quantile{job=\"default/collection\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "C",
@@ -895,35 +895,35 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"query\",status_code =~ \"1..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/query\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"query\",status_code =~ \"2..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/query\",status_code =~ \"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"query\",status_code =~ \"3..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/query\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"query\",status_code =~ \"4..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/query\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"query\",status_code =~ \"5..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/query\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
@@ -998,21 +998,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job:scope_request_duration_seconds:99quantile{job=\"query\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:99quantile{job=\"default/query\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "99th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "job:scope_request_duration_seconds:95quantile{job=\"query\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:95quantile{job=\"default/query\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "job:scope_request_duration_seconds:50quantile{job=\"query\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:50quantile{job=\"default/query\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "C",
@@ -1102,14 +1102,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"control\",status_code =~ \"1..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/control\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"control\",status_code =~ \"2..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/control\",status_code =~ \"2..\"}[1m]))",
               "hide": false,
               "intervalFactor": 2,
               "legendFormat": "2xx",
@@ -1117,21 +1117,21 @@
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"control\",status_code =~ \"3..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/control\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"control\",status_code =~ \"4..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/control\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"control\",status_code =~ \"5..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/control\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
@@ -1206,21 +1206,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job:scope_request_duration_seconds:99quantile{job=\"control\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:99quantile{job=\"default/control\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "99th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "job:scope_request_duration_seconds:95quantile{job=\"control\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:95quantile{job=\"default/control\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "job:scope_request_duration_seconds:50quantile{job=\"control\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:50quantile{job=\"default/control\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "C",
@@ -1310,35 +1310,35 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"extra\",job=\"demo\",status_code =~ \"1..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"extra/demo\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"extra\",job=\"demo\",status_code =~ \"2..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"extra/demo\",status_code =~ \"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"extra\",job=\"demo\",status_code =~ \"3..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"extra/demo\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"extra\",job=\"demo\",status_code =~ \"4..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"extra/demo\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"extra\",job=\"demo\",status_code =~ \"5..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"extra/demo\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
@@ -1413,21 +1413,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job_namespace:scope_request_duration_seconds:99quantile{job=\"demo\",namespace=\"extra\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:99quantile{job=\"extra/demo\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "99th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "job_namespace:scope_request_duration_seconds:95quantile{job=\"demo\",namespace=\"extra\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:95quantile{job=\"extra/demo\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "job_namespace:scope_request_duration_seconds:50quantile{job=\"demo\",namespace=\"extras\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:50quantile{job=\"extra/demo\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "C",
@@ -1697,35 +1697,35 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"pipe\",status_code =~ \"1..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/pipe\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"pipe\",status_code =~ \"2..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/pipe\",status_code =~ \"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"pipe\",status_code =~ \"3..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/pipe\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"pipe\",status_code =~ \"4..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/pipe\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
               "step": 10
             },
             {
-              "expr": "sum(irate(scope_request_duration_seconds_count{namespace=\"default\",job=\"pipe\",status_code =~ \"5..\"}[1m]))",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/pipe\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
@@ -1800,21 +1800,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job:scope_request_duration_seconds:99quantile{job=\"pipe\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:99quantile{job=\"default/pipe\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "99th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "job:scope_request_duration_seconds:95quantile{job=\"pipe\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:95quantile{job=\"default/pipe\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "job:scope_request_duration_seconds:50quantile{job=\"pipe\"} * 1e3",
+              "expr": "job:scope_request_duration_seconds:50quantile{job=\"default/pipe\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "C",
@@ -1898,7 +1898,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(consul_consul_rpc_query_counter{job=\"consul\"}[1m]))",
+              "expr": "sum(irate(consul_consul_rpc_query_counter{job=\"default/consul\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "QPS",
               "refId": "A",
@@ -1975,7 +1975,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "max(consul_consul_rpc_consistentRead_timer{job=\"consul\"}) by (quantile) * 1e3",
+              "expr": "max(consul_consul_rpc_consistentRead_timer{job=\"default/consul\"}) by (quantile) * 1e3",
               "intervalFactor": 2,
               "legendFormat": "{{quantile}} quantile",
               "refId": "A",
