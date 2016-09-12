@@ -45,6 +45,13 @@ export default class Toolbar extends React.Component {
   }
 
   handleClickCreateInstance() {
+    //
+    // This is usually called after a 1ms delay by the IconMenu component, but, in this case the
+    // MenuItem is being unmounted (its not on the create-instance page) before its timer has a
+    // chance to fire. ~_~
+    //
+    this.props.instancesMenuRequestChange(false);
+
     const url = encodeURIs`/instances/create`;
     browserHistory.push(url);
   }
