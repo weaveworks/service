@@ -1,18 +1,21 @@
 /* eslint react/jsx-no-bind:0 */
 import React from 'react';
 import debug from 'debug';
+import { connect } from 'react-redux';
 
 import { encodeURIs } from '../../common/request';
 import PrivatePage from '../../components/private-page';
+import { updateInstancesMenuOpen } from '../../actions';
 import { trackView } from '../../common/tracking';
 
 const log = debug('service:prom');
 
-export default class PromWrapperPage extends React.Component {
+class PromWrapperPage extends React.Component {
 
   constructor(props, context) {
     super(props, context);
     this.handleFrameLoad = this.handleFrameLoad.bind(this);
+    this.handleFrameFocus = this.handleFrameFocus.bind(this);
   }
 
   componentDidMount() {
@@ -31,6 +34,12 @@ export default class PromWrapperPage extends React.Component {
       // Security exception
       log('Could not inject CSS into prom frame', e);
     }
+
+    this._iframe.contentWindow.addEventListener('focus', this.handleFrameFocus, true);
+  }
+
+  handleFrameFocus() {
+    this.props.updateInstancesMenuOpen(false);
   }
 
   render() {
@@ -54,3 +63,6 @@ export default class PromWrapperPage extends React.Component {
     );
   }
 }
+
+
+export default connect(null, { updateInstancesMenuOpen })(PromWrapperPage);

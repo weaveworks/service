@@ -9,6 +9,7 @@ const ACTION_TYPES = [
   'RECEIVE_ORGANIZATIONS',
   'UPDATE_INSTANCE',
   'UPDATE_SCOPE_VIEW_STATE',
+  'UPDATE_INSTANCES_MENU_OPEN',
 ];
 
 
@@ -29,6 +30,13 @@ export function updateScopeViewState(scopeViewState) {
   return {
     type: ActionTypes.UPDATE_SCOPE_VIEW_STATE,
     scopeViewState
+  };
+}
+
+export function updateInstancesMenuOpen(open) {
+  return {
+    type: ActionTypes.UPDATE_INSTANCES_MENU_OPEN,
+    open
   };
 }
 

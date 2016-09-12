@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 
-import { getInstance } from '../actions';
+import { getInstance, updateInstancesMenuOpen } from '../actions';
 import Toolbar from './toolbar';
 
 class PrivatePage extends React.Component {
@@ -29,6 +29,8 @@ class PrivatePage extends React.Component {
       <div style={styles.backgroundContainer}>
         <Toolbar
           page={this.props.page}
+          instancesMenuOpen={this.props.instancesMenuOpen}
+          instancesMenuRequestChange={this.props.updateInstancesMenuOpen}
           instances={this.props.instanceList}
           instance={this.props.instance}
           user={this.props.email}
@@ -45,8 +47,9 @@ function mapStateToProps(state, ownProps) {
     instanceList: Object.keys(state.instances).map(k => state.instances[k]),
     instance: state.instances[ownProps.orgId],
     email: state.email,
+    instancesMenuOpen: state.instancesMenuOpen,
   };
 }
 
 
-export default connect(mapStateToProps, { getInstance })(PrivatePage);
+export default connect(mapStateToProps, { getInstance, updateInstancesMenuOpen })(PrivatePage);

@@ -95,7 +95,7 @@ export default class Toolbar extends React.Component {
       }
     };
 
-    const { instance } = this.props;
+    const { instance, instancesMenuOpen, instancesMenuRequestChange } = this.props;
     const viewText = instance ? `View ${instance.name}` : 'Loading...';
     const viewColor = this.isActive('app') ? Colors.text : Colors.text3;
     const settingsColor = this.isActive('org') ? Colors.text : Colors.text3;
@@ -120,6 +120,12 @@ export default class Toolbar extends React.Component {
             <div style={styles.toolbarCenter}>
               <div style={{position: 'relative'}}>
                 <IconMenu
+                  // don't animate onClose
+                  animated={false}
+                  // close immediately don't wait for 200ms.
+                  touchTapCloseDelay={1}
+                  open={instancesMenuOpen}
+                  onRequestChange={instancesMenuRequestChange}
                   iconButtonElement={viewSelectorButton}
                   anchorOrigin={{horizontal: 'left', vertical: 'top'}}
                   targetOrigin={{horizontal: 'left', vertical: 'top'}}>
