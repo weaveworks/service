@@ -7,7 +7,7 @@ import { connect } from 'react-redux';
 import { getData, encodeURIs } from '../../common/request';
 import PrivatePage from '../../components/private-page';
 import { trackView } from '../../common/tracking';
-import { updateScopeViewState, updateInstancesMenuOpen } from '../../actions';
+import { updateScopeViewState, focusFrame } from '../../actions';
 
 class WrapperPage extends React.Component {
 
@@ -76,7 +76,7 @@ class WrapperPage extends React.Component {
   }
 
   handleFrameFocus() {
-    this.props.updateInstancesMenuOpen(false);
+    this.props.focusFrame();
   }
 
   _checkInstance() {
@@ -157,5 +157,5 @@ function mapStateToProps(state) {
 
 export default connect(
   mapStateToProps,
-  { updateScopeViewState, updateInstancesMenuOpen }
+  { updateScopeViewState, focusFrame }
 )(WrapperPage);

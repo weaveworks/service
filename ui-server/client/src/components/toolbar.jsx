@@ -129,11 +129,12 @@ export default class Toolbar extends React.Component {
                   iconButtonElement={viewSelectorButton}
                   anchorOrigin={{horizontal: 'left', vertical: 'top'}}
                   targetOrigin={{horizontal: 'left', vertical: 'top'}}>
-                  {this.props.instances.map(ins => <InstanceItem key={ins.id} {...ins} />)}
-                  <Divider />
-                  <MenuItem
-                    style={{lineHeight: '24px', fontSize: 13, cursor: 'pointer'}}
-                    primaryText="Create new instance" onClick={this.handleClickCreateInstance} />
+                    {this.props.instances.map(ins => <InstanceItem key={ins.id} {...ins} />)}
+                    <Divider />
+                    <MenuItem
+                      style={{lineHeight: '24px', fontSize: 13, cursor: 'pointer'}}
+                      primaryText="Create new instance"
+                      onClick={this.handleClickCreateInstance} />
                 </IconMenu>
                 <FlatButton
                   style={{color: viewColor}}

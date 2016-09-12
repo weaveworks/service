@@ -47,7 +47,13 @@ export function rootReducer(state = initialState, action) {
       });
     }
 
-    case ActionTypes.UPDATE_INSTANCES_MENU_OPEN: {
+    case ActionTypes.FOCUS_FRAME: {
+      return Object.assign({}, state, {
+        instancesMenuOpen: false,
+      });
+    }
+
+    case ActionTypes.REQUEST_INSTANCES_MENU_CHANGE: {
       return Object.assign({}, state, {
         instancesMenuOpen: action.open,
       });

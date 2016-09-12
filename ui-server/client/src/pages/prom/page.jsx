@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 
 import { encodeURIs } from '../../common/request';
 import PrivatePage from '../../components/private-page';
-import { updateInstancesMenuOpen } from '../../actions';
+import { focusFrame } from '../../actions';
 import { trackView } from '../../common/tracking';
 
 const log = debug('service:prom');
@@ -39,7 +39,7 @@ class PromWrapperPage extends React.Component {
   }
 
   handleFrameFocus() {
-    this.props.updateInstancesMenuOpen(false);
+    this.props.focusFrame();
   }
 
   render() {
@@ -65,4 +65,4 @@ class PromWrapperPage extends React.Component {
 }
 
 
-export default connect(null, { updateInstancesMenuOpen })(PromWrapperPage);
+export default connect(null, { focusFrame })(PromWrapperPage);

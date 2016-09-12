@@ -5,11 +5,12 @@ import { trackException } from '../common/tracking';
 
 
 const ACTION_TYPES = [
+  'FOCUS_FRAME',
   'RECEIVE_ORGANIZATION_DATA',
   'RECEIVE_ORGANIZATIONS',
+  'REQUEST_INSTANCES_MENU_CHANGE',
   'UPDATE_INSTANCE',
   'UPDATE_SCOPE_VIEW_STATE',
-  'UPDATE_INSTANCES_MENU_OPEN',
 ];
 
 
@@ -33,9 +34,15 @@ export function updateScopeViewState(scopeViewState) {
   };
 }
 
-export function updateInstancesMenuOpen(open) {
+export function focusFrame() {
   return {
-    type: ActionTypes.UPDATE_INSTANCES_MENU_OPEN,
+    type: ActionTypes.FOCUS_FRAME,
+  };
+}
+
+export function requestInstancesMenuChange(open) {
+  return {
+    type: ActionTypes.REQUEST_INSTANCES_MENU_CHANGE,
     open
   };
 }

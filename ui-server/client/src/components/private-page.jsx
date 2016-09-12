@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 
-import { getInstance, updateInstancesMenuOpen } from '../actions';
+import { getInstance, requestInstancesMenuChange } from '../actions';
 import Toolbar from './toolbar';
 
 class PrivatePage extends React.Component {
@@ -30,7 +30,7 @@ class PrivatePage extends React.Component {
         <Toolbar
           page={this.props.page}
           instancesMenuOpen={this.props.instancesMenuOpen}
-          instancesMenuRequestChange={this.props.updateInstancesMenuOpen}
+          instancesMenuRequestChange={this.props.requestInstancesMenuChange}
           instances={this.props.instanceList}
           instance={this.props.instance}
           user={this.props.email}
@@ -52,4 +52,4 @@ function mapStateToProps(state, ownProps) {
 }
 
 
-export default connect(mapStateToProps, { getInstance, updateInstancesMenuOpen })(PrivatePage);
+export default connect(mapStateToProps, { getInstance, requestInstancesMenuChange })(PrivatePage);
