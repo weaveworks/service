@@ -13,6 +13,7 @@ export const initialState = {
   email: '',
   instances: {},
   scopeViewState: window.location.hash,
+  instancesMenuOpen: false,
 };
 
 
@@ -43,6 +44,18 @@ export function rootReducer(state = initialState, action) {
     case ActionTypes.UPDATE_SCOPE_VIEW_STATE: {
       return Object.assign({}, state, {
         scopeViewState: action.scopeViewState,
+      });
+    }
+
+    case ActionTypes.FOCUS_FRAME: {
+      return Object.assign({}, state, {
+        instancesMenuOpen: false,
+      });
+    }
+
+    case ActionTypes.REQUEST_INSTANCES_MENU_CHANGE: {
+      return Object.assign({}, state, {
+        instancesMenuOpen: action.open,
       });
     }
 

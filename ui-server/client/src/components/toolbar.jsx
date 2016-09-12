@@ -45,6 +45,13 @@ export default class Toolbar extends React.Component {
   }
 
   handleClickCreateInstance() {
+    //
+    // This is usually called after a 1ms delay by the IconMenu component, but, in this case the
+    // MenuItem is being unmounted (its not on the create-instance page) before its timer has a
+    // chance to fire. ~_~
+    //
+    this.props.instancesMenuRequestChange(false);
+
     const url = encodeURIs`/instances/create`;
     browserHistory.push(url);
   }
@@ -95,7 +102,7 @@ export default class Toolbar extends React.Component {
       }
     };
 
-    const { instance } = this.props;
+    const { instance, instancesMenuOpen, instancesMenuRequestChange } = this.props;
     const viewText = instance ? `View ${instance.name}` : 'Loading...';
     const viewColor = this.isActive('app') ? Colors.text : Colors.text3;
     const settingsColor = this.isActive('org') ? Colors.text : Colors.text3;
@@ -120,14 +127,21 @@ export default class Toolbar extends React.Component {
             <div style={styles.toolbarCenter}>
               <div style={{position: 'relative'}}>
                 <IconMenu
+                  // don't animate onClose
+                  animated={false}
+                  // close immediately don't wait for 200ms.
+                  touchTapCloseDelay={1}
+                  open={instancesMenuOpen}
+                  onRequestChange={instancesMenuRequestChange}
                   iconButtonElement={viewSelectorButton}
                   anchorOrigin={{horizontal: 'left', vertical: 'top'}}
                   targetOrigin={{horizontal: 'left', vertical: 'top'}}>
-                  {this.props.instances.map(ins => <InstanceItem key={ins.id} {...ins} />)}
-                  <Divider />
-                  <MenuItem
-                    style={{lineHeight: '24px', fontSize: 13, cursor: 'pointer'}}
-                    primaryText="Create new instance" onClick={this.handleClickCreateInstance} />
+                    {this.props.instances.map(ins => <InstanceItem key={ins.id} {...ins} />)}
+                    <Divider />
+                    <MenuItem
+                      style={{lineHeight: '24px', fontSize: 13, cursor: 'pointer'}}
+                      primaryText="Create new instance"
+                      onClick={this.handleClickCreateInstance} />
                 </IconMenu>
                 <FlatButton
                   style={{color: viewColor}}

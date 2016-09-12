@@ -7,7 +7,7 @@ import { connect } from 'react-redux';
 import { getData, encodeURIs } from '../../common/request';
 import PrivatePage from '../../components/private-page';
 import { trackView } from '../../common/tracking';
-import { updateScopeViewState } from '../../actions';
+import { updateScopeViewState, focusFrame } from '../../actions';
 
 class WrapperPage extends React.Component {
 
@@ -22,6 +22,9 @@ class WrapperPage extends React.Component {
     this._checkInstance = this._checkInstance.bind(this);
     this._handleInstanceError = this._handleInstanceError.bind(this);
     this._handleInstanceSuccess = this._handleInstanceSuccess.bind(this);
+
+    this.handleFrameFocus = this.handleFrameFocus.bind(this);
+    this.handleFrameLoad = this.handleFrameLoad.bind(this);
   }
 
   componentDidMount() {
@@ -66,6 +69,14 @@ class WrapperPage extends React.Component {
     this.props.updateScopeViewState(nextFrameState);
     // store in URL for reloads
     window.location.hash = nextFrameState;
+  }
+
+  handleFrameLoad() {
+    this._iframe.contentWindow.addEventListener('focus', this.handleFrameFocus, true);
+  }
+
+  handleFrameFocus() {
+    this.props.focusFrame();
   }
 
   _checkInstance() {
@@ -132,7 +143,7 @@ class WrapperPage extends React.Component {
           </div>
         </div>}
         {this.state.frameBaseUrl && <iframe ref={(c) => {this._iframe = c;}}
-          onLoad={this._handleFrameLoad} src={frameUrl} style={styles.iframe} />}
+          onLoad={this.handleFrameLoad} src={frameUrl} style={styles.iframe} />}
       </PrivatePage>
     );
   }
@@ -146,5 +157,5 @@ function mapStateToProps(state) {
 
 export default connect(
   mapStateToProps,
-  { updateScopeViewState }
+  { updateScopeViewState, focusFrame }
 )(WrapperPage);
