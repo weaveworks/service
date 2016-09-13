@@ -8,6 +8,7 @@ const ACTION_TYPES = [
   'FOCUS_FRAME',
   'RECEIVE_ORGANIZATION_DATA',
   'RECEIVE_ORGANIZATIONS',
+  'RECEIVE_ORGANIZATION_USERS',
   'REQUEST_INSTANCES_MENU_CHANGE',
   'UPDATE_INSTANCE',
   'UPDATE_SCOPE_VIEW_STATE',
@@ -87,6 +88,21 @@ export function getInstance(id) {
           type: ActionTypes.RECEIVE_ORGANIZATIONS,
           organizations: res.organizations,
           email: res.email,
+        });
+      })
+      .catch(trackException);
+  };
+}
+
+
+export function getOrganizationUsers(id) {
+  return (dispatch) => {
+    api.getOrganizationUsers(id)
+      .then(res => {
+        dispatch({
+          type: ActionTypes.RECEIVE_ORGANIZATION_USERS,
+          users: res.users,
+          orgId: id,
         });
       })
       .catch(trackException);

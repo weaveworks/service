@@ -2,25 +2,23 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { connect } from 'react-redux';
 import FlatButton from 'material-ui/FlatButton';
 import List, { ListItem } from 'material-ui/List';
 import RaisedButton from 'material-ui/RaisedButton';
 import Snackbar from 'material-ui/Snackbar';
 import TextField from 'material-ui/TextField';
-import debug from 'debug';
 
-import { getData, deleteData, postData, encodeURIs } from '../../common/request';
+import { getOrganizationUsers } from '../../actions';
+import { deleteData, postData, encodeURIs } from '../../common/request';
 import { Box } from '../../components/box';
 
-const error = debug('service:usersErr');
 
-
-export default class Users extends React.Component {
+class Users extends React.Component {
 
   constructor(props) {
     super(props);
     this.state = {
-      users: [],
       submitting: false,
       notices: null,
     };
@@ -34,7 +32,7 @@ export default class Users extends React.Component {
   }
 
   componentWillMount() {
-    this.getUsers();
+    this.props.getOrganizationUsers(this.props.instance.id);
   }
 
   getEmailField() {
@@ -42,24 +40,12 @@ export default class Users extends React.Component {
     return wrapperNode.getElementsByTagName('input')[0];
   }
 
-  getUsers() {
-    const url = encodeURIs`/api/users/org/${this.props.org}/users`;
-    getData(url)
-      .then(resp => {
-        this.setState({
-          users: resp.users
-        });
-      }, resp => {
-        error(resp);
-      });
-  }
-
   clearErrors() {
-    this.setState(Object.assign({}, this.state, {notices: null}));
+    this.setState({ notices: null });
   }
 
   doSubmit() {
-    const url = encodeURIs`/api/users/org/${this.props.org}/users`;
+    const url = encodeURIs`/api/users/org/${this.props.instance.id}/users`;
     const email = this.getEmailField().value;
 
     if (email) {
@@ -70,7 +56,7 @@ export default class Users extends React.Component {
       postData(url, { email })
         .then(() => {
           this.getEmailField().value = '';
-          this.getUsers();
+          this.props.getOrganizationUsers(this.props.instance.id);
           this.setState({
             notices: [{message: `Invitation sent to ${email}`}],
             submitting: false,
@@ -91,11 +77,11 @@ export default class Users extends React.Component {
   }
 
   handleDeleteTouchTap(user) {
-    const url = encodeURIs`/api/users/org/${this.props.org}/users/${user.email}`;
+    const url = encodeURIs`/api/users/org/${this.props.instance.id}/users/${user.email}`;
 
     deleteData(url)
       .then(() => {
-        this.getUsers();
+        this.props.getOrganizationUsers(this.props.instance.id);
         this.getEmailField().value = '';
       }, resp => {
         this.setState({
@@ -131,8 +117,6 @@ export default class Users extends React.Component {
   }
 
   render() {
-    const users = this.state.users.map(this.renderUser);
-
     const buttonStyle = {
       marginLeft: '2em'
     };
@@ -165,13 +149,18 @@ export default class Users extends React.Component {
             />
         </div>
         <h4>Current members</h4>
-        <Box>
+        {!this.props.instance.users && <span>
+          <span className="fa fa-circle-o-notch fa-spin" /> Loading...
+        </span>}
+        {this.props.instance.users && <Box>
           <List>
-            {users}
+            {this.props.instance.users.map(this.renderUser)}
           </List>
-        </Box>
+        </Box>}
       </div>
     );
   }
-
 }
+
+
+export default connect(null, { getOrganizationUsers })(Users);
