@@ -34,7 +34,7 @@ func setup(t *testing.T) {
 
 	logging.Setup("debug")
 	db = storagetest.Setup(t)
-	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", db)
+	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd")
 	templates := templates.MustNewEngine("../templates")
 	logins = login.NewProviders()
 

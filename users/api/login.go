@@ -111,14 +111,16 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			// If we have an existing session and an provider, we should use
 			// that. This means that we'll associate the provider (if we have
 			// one) with the logged in session.
-			u, err := a.sessions.Get(r)
+			userID, err := a.sessions.Get(r)
 			switch err {
 			case nil:
 				view.Attach = true
 			case users.ErrInvalidAuthenticationData:
-				err = users.ErrNotFound
+				return nil, users.ErrNotFound
+			default:
+				return nil, err
 			}
-			return u, err
+			return a.db.FindUserByID(userID)
 		},
 		func() (*users.User, error) {
 			// If the user has already attached this provider, this is a no-op, so we
@@ -190,7 +192,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.sessions.Set(w, u.ID, providerID); err != nil {
+	if err := a.sessions.Set(w, u.ID); err != nil {
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -346,7 +348,7 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.sessions.Set(w, u.ID, ""); err != nil {
+	if err := a.sessions.Set(w, u.ID); err != nil {
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -362,7 +364,7 @@ func (a *API) updateUserAtLogin(u *users.User) error {
 	return nil
 }
 
-func (a *API) logout(_ *users.User, w http.ResponseWriter, r *http.Request) {
+func (a *API) logout(w http.ResponseWriter, r *http.Request) {
 	a.sessions.Clear(w)
 	render.JSON(w, http.StatusOK, map[string]interface{}{})
 }

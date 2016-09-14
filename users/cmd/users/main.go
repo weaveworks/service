@@ -73,7 +73,7 @@ func main() {
 	emailer := emailer.MustNew(*emailURI, *sendgridAPIKey, *emailFromAddress, templates, *domain)
 	db := storage.MustNew(*databaseURI, *databaseMigrations)
 	defer db.Close()
-	sessions := sessions.MustNewStore(*sessionSecret, db)
+	sessions := sessions.MustNewStore(*sessionSecret)
 
 	logrus.Debug("Debug logging enabled")
 

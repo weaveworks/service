@@ -73,12 +73,12 @@ func (a *API) authenticateProbe(handler func(*users.Organization, http.ResponseW
 }
 
 // Authenticator implements Authenticator for functions
-type Authenticator func(r *http.Request) (Authentication, error)
+type Authenticator func(w http.ResponseWriter, r *http.Request) (Authentication, error)
 
 func (a *API) authenticateVia(handler func(Authentication, http.ResponseWriter, *http.Request), strategies ...Authenticator) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for _, s := range strategies {
-			auth, err := s(r)
+			auth, err := s(w, r)
 			if err != nil {
 				continue
 			}
@@ -97,14 +97,22 @@ func (a *API) authenticateVia(handler func(Authentication, http.ResponseWriter, 
 	})
 }
 
-func (a *API) cookieAuth(r *http.Request) (Authentication, error) {
+func (a *API) cookieAuth(w http.ResponseWriter, r *http.Request) (Authentication, error) {
 	// try logging in by cookie
-	u, err := a.sessions.Get(r)
+	userID, err := a.sessions.Get(r)
+	if err != nil {
+		return Authentication{}, err
+	}
+	u, err := a.db.FindUserByID(userID)
 	if err != nil {
 		return Authentication{}, err
 	}
 	organizations, err := a.db.ListOrganizationsForUserIDs(u.ID)
 	if err != nil {
+		return Authentication{}, err
+	}
+	// Update the cookie expiry:
+	if err := a.sessions.Set(w, userID); err != nil {
 		return Authentication{}, err
 	}
 	return Authentication{
@@ -114,7 +122,7 @@ func (a *API) cookieAuth(r *http.Request) (Authentication, error) {
 	}, nil
 }
 
-func (a *API) apiTokenAuth(r *http.Request) (Authentication, error) {
+func (a *API) apiTokenAuth(w http.ResponseWriter, r *http.Request) (Authentication, error) {
 	// try logging in by user token header
 	credentials, ok := ParseAuthorizationHeader(r)
 	if !ok || credentials.Realm != "Scope-User" {
@@ -142,7 +150,7 @@ func (a *API) apiTokenAuth(r *http.Request) (Authentication, error) {
 	}, nil
 }
 
-func (a *API) probeTokenAuth(r *http.Request) (Authentication, error) {
+func (a *API) probeTokenAuth(w http.ResponseWriter, r *http.Request) (Authentication, error) {
 	// try logging in by probe token header
 	credentials, ok := ParseAuthorizationHeader(r)
 	if !ok || credentials.Realm != "Scope-Probe" {

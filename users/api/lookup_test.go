@@ -32,7 +32,7 @@ func Test_Lookup_NotFound(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	cookie, err := sessionStore.Cookie("foouser", "")
+	cookie, err := sessionStore.Cookie("foouser")
 	assert.NoError(t, err)
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "/private/api/users/lookup/fooorg", nil)
@@ -76,7 +76,7 @@ func Test_PublicLookup_NotFound(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	cookie, err := sessionStore.Cookie("foouser", "")
+	cookie, err := sessionStore.Cookie("foouser")
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()

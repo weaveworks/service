@@ -29,9 +29,9 @@ func init() {
 
 // Authenticator is the client interface to the users service.
 type Authenticator interface {
-	AuthenticateOrg(r *http.Request, orgExternalID string) (string, string, error)
-	AuthenticateProbe(r *http.Request) (string, error)
-	AuthenticateAdmin(r *http.Request) (string, error)
+	AuthenticateOrg(w http.ResponseWriter, r *http.Request, orgExternalID string) (string, string, error)
+	AuthenticateProbe(w http.ResponseWriter, r *http.Request) (string, error)
+	AuthenticateAdmin(w http.ResponseWriter, r *http.Request) (string, error)
 }
 
 // Unauthorized is the error type returned when authorisation fails/
@@ -76,15 +76,15 @@ func MakeAuthenticator(kind, url string, opts AuthenticatorOptions) Authenticato
 
 type mockAuthenticator struct{}
 
-func (mockAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string) (string, string, error) {
+func (mockAuthenticator) AuthenticateOrg(w http.ResponseWriter, r *http.Request, orgExternalID string) (string, string, error) {
 	return "mockID", "mockUserID", nil
 }
 
-func (mockAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
+func (mockAuthenticator) AuthenticateProbe(w http.ResponseWriter, r *http.Request) (string, error) {
 	return "mockID", nil
 }
 
-func (mockAuthenticator) AuthenticateAdmin(r *http.Request) (string, error) {
+func (mockAuthenticator) AuthenticateAdmin(w http.ResponseWriter, r *http.Request) (string, error) {
 	return "mockID", nil
 }
 
@@ -137,26 +137,26 @@ func (m *webAuthenticator) lookupInOrgCacheOr(key orgCredCacheKey, f func() (str
 	return orgID, userID, err
 }
 
-func (m *webAuthenticator) AuthenticateOrg(r *http.Request, orgExternalID string) (string, string, error) {
+func (m *webAuthenticator) AuthenticateOrg(w http.ResponseWriter, r *http.Request, orgExternalID string) (string, string, error) {
 	// Extract Authorization header to inject it in the lookup request. If
 	// it were not set, don't even bother to do a lookup.
 	authHeader, err := getAuthHeader(r, "Scope-User")
 	if err == nil {
-		return m.authenticateOrgViaHeader(r, orgExternalID, authHeader)
+		return m.authenticateOrgViaHeader(w, r, orgExternalID, authHeader)
 	}
 
 	// Extract Authorization cookie to inject it in the lookup request. If it were
 	// not set, don't even bother to do a lookup.
 	authCookie, err := r.Cookie(AuthCookieName)
 	if err == nil {
-		return m.authenticateOrgViaCookie(r, orgExternalID, authCookie)
+		return m.authenticateOrgViaCookie(w, r, orgExternalID, authCookie)
 	}
 
 	log.Error("authenticator: org: tried to authenticate request without credentials")
 	return "", "", &Unauthorized{http.StatusUnauthorized}
 }
 
-func (m *webAuthenticator) authenticateOrgViaCookie(r *http.Request, orgExternalID string, authCookie *http.Cookie) (string, string, error) {
+func (m *webAuthenticator) authenticateOrgViaCookie(w http.ResponseWriter, r *http.Request, orgExternalID string, authCookie *http.Cookie) (string, string, error) {
 	return m.lookupInOrgCacheOr(
 		orgCredCacheKey{cookie: authCookie.Value, orgExternalID: orgExternalID},
 		func() (string, string, error) {
@@ -167,12 +167,12 @@ func (m *webAuthenticator) authenticateOrgViaCookie(r *http.Request, orgExternal
 				return "", "", err
 			}
 			lookupReq.AddCookie(authCookie)
-			return m.decodeOrg(m.doAuthenticateRequest(lookupReq))
+			return m.decodeOrg(m.doAuthenticateRequest(w, lookupReq))
 		},
 	)
 }
 
-func (m *webAuthenticator) authenticateOrgViaHeader(r *http.Request, orgExternalID string, authHeader string) (string, string, error) {
+func (m *webAuthenticator) authenticateOrgViaHeader(w http.ResponseWriter, r *http.Request, orgExternalID string, authHeader string) (string, string, error) {
 	return m.lookupInOrgCacheOr(
 		orgCredCacheKey{header: authHeader, orgExternalID: orgExternalID},
 		func() (string, string, error) {
@@ -183,7 +183,7 @@ func (m *webAuthenticator) authenticateOrgViaHeader(r *http.Request, orgExternal
 				return "", "", err
 			}
 			lookupReq.Header.Set(AuthHeaderName, authHeader)
-			return m.decodeOrg(m.doAuthenticateRequest(lookupReq))
+			return m.decodeOrg(m.doAuthenticateRequest(w, lookupReq))
 		},
 	)
 }
@@ -204,7 +204,7 @@ func getAuthHeader(r *http.Request, realm string) (string, error) {
 	return "", &Unauthorized{http.StatusUnauthorized}
 }
 
-func (m *webAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
+func (m *webAuthenticator) AuthenticateProbe(w http.ResponseWriter, r *http.Request) (string, error) {
 	// Extract Authorization header to inject it in the lookup request. If
 	// it were not set, don't even bother to do a lookup.
 	authHeader, err := getAuthHeader(r, "Scope-Probe")
@@ -228,14 +228,14 @@ func (m *webAuthenticator) AuthenticateProbe(r *http.Request) (string, error) {
 		return "", err
 	}
 	lookupReq.Header.Set(AuthHeaderName, authHeader)
-	org, _, err := m.decodeOrg(m.doAuthenticateRequest(lookupReq))
+	org, _, err := m.decodeOrg(m.doAuthenticateRequest(w, lookupReq))
 	if err == nil && m.probeCredCache != nil {
 		m.probeCredCache.Set(authHeader, org)
 	}
 	return org, err
 }
 
-func (m *webAuthenticator) AuthenticateAdmin(r *http.Request) (string, error) {
+func (m *webAuthenticator) AuthenticateAdmin(w http.ResponseWriter, r *http.Request) (string, error) {
 	// Extract Authorization cookie to inject it in the lookup request. If it were
 	// not set, don't even bother to do a lookup.
 	authCookie, err := r.Cookie(AuthCookieName)
@@ -251,10 +251,10 @@ func (m *webAuthenticator) AuthenticateAdmin(r *http.Request) (string, error) {
 		return "", err
 	}
 	lookupReq.AddCookie(authCookie)
-	return m.decodeAdmin(m.doAuthenticateRequest(lookupReq))
+	return m.decodeAdmin(m.doAuthenticateRequest(w, lookupReq))
 }
 
-func (m *webAuthenticator) doAuthenticateRequest(r *http.Request) (io.ReadCloser, error) {
+func (m *webAuthenticator) doAuthenticateRequest(w http.ResponseWriter, r *http.Request) (io.ReadCloser, error) {
 	// Contact the authorization server
 	res, err := m.client.Do(r)
 	if err != nil {
@@ -265,6 +265,11 @@ func (m *webAuthenticator) doAuthenticateRequest(r *http.Request) (io.ReadCloser
 	if res.StatusCode != http.StatusOK {
 		res.Body.Close()
 		return nil, &Unauthorized{res.StatusCode}
+	}
+
+	// Copy new cookies from the response
+	for _, c := range res.Cookies() {
+		http.SetCookie(w, c)
 	}
 	return res.Body, nil
 }
@@ -323,7 +328,7 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		organizationID, userID, err := a.Authenticator.AuthenticateOrg(r, orgExternalID)
+		organizationID, userID, err := a.Authenticator.AuthenticateOrg(w, r, orgExternalID)
 		if err != nil {
 			if unauth, ok := err.(*Unauthorized); ok {
 				log.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
@@ -350,7 +355,7 @@ type AuthProbeMiddleware struct {
 // Wrap implements middleware.Interface
 func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		organizationID, err := a.Authenticator.AuthenticateProbe(r)
+		organizationID, err := a.Authenticator.AuthenticateProbe(w, r)
 		if err != nil {
 			if unauth, ok := err.(*Unauthorized); ok {
 				log.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
@@ -376,7 +381,7 @@ type AuthAdminMiddleware struct {
 // Wrap implements middleware.Interface
 func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		adminID, err := a.Authenticator.AuthenticateAdmin(r)
+		adminID, err := a.Authenticator.AuthenticateAdmin(w, r)
 		if err != nil {
 			if unauth, ok := err.(*Unauthorized); ok {
 				log.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
