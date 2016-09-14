@@ -46,6 +46,30 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type listOrganizationsView struct {
+	Organizations []privateOrgView `json:"organizations"`
+}
+
+type privateOrgView struct {
+	ID string `json:"id"`
+}
+
+func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
+	organizations, err := a.db.ListOrganizations()
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+
+	view := listOrganizationsView{}
+	for _, org := range organizations {
+		view.Organizations = append(view.Organizations, privateOrgView{
+			ID: org.ID,
+		})
+	}
+	render.JSON(w, http.StatusOK, view)
+}
+
 func (a *API) pardotRefresh(w http.ResponseWriter, r *http.Request) {
 	users, err := a.db.ListUsers()
 	if err != nil {
