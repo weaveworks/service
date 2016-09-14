@@ -1,6 +1,6 @@
 {{.InviterName}} has granted you access to the "{{.OrganizationName}}" monitoring instance on Weave Cloud.
 
-View the "{{.OrganizationName}}" instance:
+View "{{.OrganizationName}}":
 
     {{.OrganizationURL}}
 
