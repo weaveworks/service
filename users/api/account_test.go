@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/weaveworks/service/users/sessions"
+	"github.com/weaveworks/service/users/client"
 )
 
 func Test_Account_AttachOauthAccount(t *testing.T) {
@@ -30,7 +30,7 @@ func Test_Account_AttachOauthAccount(t *testing.T) {
 	r := requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.True(t, hasCookie(w, sessions.CookieName))
+	assert.True(t, hasCookie(w, client.AuthCookieName))
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
@@ -79,7 +79,6 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToAnotherAccount(t *testing.
 	r := requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=fran&state=state", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.False(t, hasCookie(w, sessions.CookieName))
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
@@ -97,7 +96,7 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToAnotherAccount(t *testing.
 	r = requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=fran&state=state&force=true", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.True(t, hasCookie(w, sessions.CookieName))
+	assert.True(t, hasCookie(w, client.AuthCookieName))
 	body = map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
@@ -151,7 +150,7 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToSameAccount(t *testing.T) 
 	r := requestAs(t, user, "GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.True(t, hasCookie(w, sessions.CookieName))
+	assert.True(t, hasCookie(w, client.AuthCookieName))
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{

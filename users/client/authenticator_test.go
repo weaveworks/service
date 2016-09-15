@@ -63,7 +63,8 @@ func TestAuth(t *testing.T) {
 	{
 		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
 		req.Header.Set(client.AuthHeaderName, orgToken)
-		res, err := auth.AuthenticateProbe(req)
+		w := httptest.NewRecorder()
+		res, err := auth.AuthenticateProbe(w, req)
 		assert.NoError(t, err, "Unexpected error from authenticator")
 		assert.Equal(t, orgID, res, "Unexpected organization")
 	}
@@ -75,7 +76,8 @@ func TestAuth(t *testing.T) {
 			Name:  client.AuthCookieName,
 			Value: orgCookie,
 		})
-		res, user, err := auth.AuthenticateOrg(req, orgExternalID)
+		w := httptest.NewRecorder()
+		res, user, err := auth.AuthenticateOrg(w, req, orgExternalID)
 		assert.NoError(t, err, "Unexpected error from authenticator")
 		assert.Equal(t, orgID, res, "Unexpected organization")
 		assert.Equal(t, userID, user, "Unexpected user")
@@ -85,7 +87,8 @@ func TestAuth(t *testing.T) {
 	{
 		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
 		req.Header.Set(client.AuthHeaderName, "This is not the right value")
-		res, err := auth.AuthenticateProbe(req)
+		w := httptest.NewRecorder()
+		res, err := auth.AuthenticateProbe(w, req)
 		assert.Error(t, err, "Unexpected successful authentication")
 		assert.Equal(t, "", res, "Unexpected organization")
 	}
@@ -97,7 +100,8 @@ func TestAuth(t *testing.T) {
 			Name:  client.AuthCookieName,
 			Value: "Not the right cookie",
 		})
-		res, user, err := auth.AuthenticateOrg(req, orgExternalID)
+		w := httptest.NewRecorder()
+		res, user, err := auth.AuthenticateOrg(w, req, orgExternalID)
 		assert.Error(t, err, "Unexpected successful authentication")
 		assert.Equal(t, "", res, "Unexpected organization")
 		assert.Equal(t, "", user, "Unexpected user")

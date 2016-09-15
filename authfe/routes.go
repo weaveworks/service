@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/scope/common/middleware"
+
 	"github.com/weaveworks/service/common/logging"
 	users "github.com/weaveworks/service/users/client"
 )

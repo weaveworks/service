@@ -16,29 +16,13 @@ func Test_Sessions_EncodeDecode(t *testing.T) {
 
 	user := getApprovedUser(t)
 
-	encoded, err := sessionStore.Encode(user.ID, "")
+	encoded, err := sessionStore.Encode(user.ID)
 	require.NoError(t, err)
 
-	found, err := sessionStore.Decode(encoded)
+	foundID, err := sessionStore.Decode(encoded)
 	require.NoError(t, err)
 
-	assert.Equal(t, user.ID, found.ID)
-	assert.Equal(t, user.Email, found.Email)
-}
-
-func Test_Sessions_Unapproved(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	user, err := db.CreateUser("joe@weave.works")
-	require.NoError(t, err)
-
-	encoded, err := sessionStore.Encode(user.ID, "")
-	require.NoError(t, err)
-
-	found, err := sessionStore.Decode(encoded)
-	require.Equal(t, users.ErrInvalidAuthenticationData, err)
-	assert.Nil(t, found)
+	assert.Equal(t, user.ID, foundID)
 }
 
 func Test_Sessions_Get_NoCookie(t *testing.T) {
@@ -46,7 +30,7 @@ func Test_Sessions_Get_NoCookie(t *testing.T) {
 	defer cleanup(t)
 
 	r, _ := http.NewRequest("GET", "/", nil)
-	user, err := sessionStore.Get(r)
-	assert.Nil(t, user)
+	userID, err := sessionStore.Get(r)
 	assert.Equal(t, users.ErrInvalidAuthenticationData, err)
+	assert.Equal(t, "", userID)
 }

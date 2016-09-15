@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/sessions"
+	"github.com/weaveworks/service/users/client"
 )
 
 func findLoginLink(t *testing.T, e *email.Email) (url, token string) {
@@ -102,7 +102,7 @@ func Test_Signup(t *testing.T) {
 	r, _ = http.NewRequest("GET", path, nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.True(t, hasCookie(w, sessions.CookieName))
+	assert.True(t, hasCookie(w, client.AuthCookieName))
 	body = map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
@@ -194,7 +194,7 @@ func Test_Signup_ViaOAuth(t *testing.T) {
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.True(t, hasCookie(w, sessions.CookieName))
+	assert.True(t, hasCookie(w, client.AuthCookieName))
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
@@ -238,7 +238,7 @@ func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.True(t, hasCookie(w, sessions.CookieName))
+	assert.True(t, hasCookie(w, client.AuthCookieName))
 	assert.Len(t, sentEmails, 0)
 
 	found, err := db.FindUserByEmail(user.Email)
@@ -285,7 +285,7 @@ func Test_Signup_ViaOAuth_EmailChanged(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.True(t, hasCookie(w, sessions.CookieName))
+	assert.True(t, hasCookie(w, client.AuthCookieName))
 	assert.Len(t, sentEmails, 0)
 
 	_, err := db.FindUserByEmail(newEmail)
