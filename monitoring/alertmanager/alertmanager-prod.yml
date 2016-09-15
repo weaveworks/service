@@ -62,6 +62,7 @@ receivers:
     channel: cloud
     send_resolved: true
     username: prod-alert
+    text: "<!channel> {{ .CommonLabels.alertname }}: {{ .CommonAnnotations.summary }}"
 
 - name: 'service-alerts-critical'
   email_configs:
