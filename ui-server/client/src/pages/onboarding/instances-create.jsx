@@ -80,7 +80,9 @@ export default class InstancesCreate extends React.Component {
     }
   }
 
-  _handleSubmit() {
+  _handleSubmit(ev) {
+    ev.preventDefault();
+
     const { name, id } = this.state;
     const errorTextName = name ? '' : 'Name cannot be empty.';
     const errorTextId = id ? '' : 'ID cannot be empty.';
@@ -162,35 +164,37 @@ export default class InstancesCreate extends React.Component {
         <h2>
           {heading}
         </h2>
-        <div style={styles.form}>
-          <p>Let's start by creating a Weave Cloud instance for your cluster.
-            <br />Give your cluster a name:</p>
-          <TextField hintText="Provide a name"
-            disabled={this.state.submitting}
-            onChange={this.handleChangeName}
-            style={{verticalAlign: 'top', width: 400}}
-            value={this.state.name}
-            errorText={this.state.errorTextName} />
+        <form onSubmit={this._handleSubmit}>
+          <div style={styles.form}>
+            <p>Let's start by creating a Weave Cloud instance for your cluster.
+              <br />Give your cluster a name:</p>
+            <TextField hintText="Provide a name"
+              autoFocus
+              disabled={this.state.submitting}
+              onChange={this.handleChangeName}
+              style={{verticalAlign: 'top', width: 400}}
+              value={this.state.name}
+              errorText={this.state.errorTextName} />
 
-          <div style={styles.error}>
-            <p style={styles.errorLabel}>
-              <span className="fa fa-exclamation" style={styles.errorIcon}></span>
-              {this.state.errorText}
-            </p>
+            <div style={styles.error}>
+              <p style={styles.errorLabel}>
+                <span className="fa fa-exclamation" style={styles.errorIcon}></span>
+                {this.state.errorText}
+              </p>
+            </div>
+
+            <div style={styles.formHint}>
+              Your Weave Cloud instance will have the ID {this.state.id || '...'}
+            </div>
+
+            <div style={styles.formButtons}>
+              <RaisedButton primary label={submitText} style={styles.submit}
+                disabled={this.state.submitting || !this.state.id} onClick={this._handleSubmit} />
+              <FlatButton label="Cancel" style={styles.submit}
+                disabled={this.state.submitting} onClick={this.handleCancel} />
+            </div>
           </div>
-
-          <div style={styles.formHint}>
-            Your Weave Cloud instance will have the ID {this.state.id || '...'}
-          </div>
-
-          <div style={styles.formButtons}>
-            <RaisedButton primary label={submitText} style={styles.submit}
-              disabled={this.state.submitting || !this.state.id} onClick={this._handleSubmit} />
-            <FlatButton label="Cancel" style={styles.submit}
-              disabled={this.state.submitting} onClick={this.handleCancel} />
-          </div>
-
-        </div>
+        </form>
       </div>
     );
   }
