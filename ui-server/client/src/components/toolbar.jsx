@@ -44,14 +44,16 @@ export default class Toolbar extends React.Component {
     browserHistory.push(url);
   }
 
-  handleClickCreateInstance() {
+  componentWillUnmount() {
     //
-    // This is usually called after a 1ms delay by the IconMenu component, but, in this case the
-    // MenuItem is being unmounted (its not on the create-instance page) before its timer has a
-    // chance to fire. ~_~
+    // This is usually called after a 1ms delay by the IconMenu component, but, the way we do
+    // navigation doesn't give it a chance to run (gets unmounted+clearTimeout), so we call it
+    // explicitly.
     //
     this.props.instancesMenuRequestChange(false);
+  }
 
+  handleClickCreateInstance() {
     const url = encodeURIs`/instances/create`;
     browserHistory.push(url);
   }
@@ -125,7 +127,7 @@ export default class Toolbar extends React.Component {
               <Logo />
             </div>
             <div style={styles.toolbarCenter}>
-              <div style={{position: 'relative'}}>
+              <div style={{position: 'relative', display: 'flex'}}>
                 <IconMenu
                   // don't animate onClose
                   animated={false}

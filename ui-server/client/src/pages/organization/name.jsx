@@ -91,6 +91,12 @@ export default class Users extends React.Component {
     const styles = {
       button: {
         marginLeft: '0.5em'
+      },
+      labelContainer: {
+        display: 'flex'
+      },
+      label: {
+        flex: 1
       }
     };
 
@@ -103,7 +109,7 @@ export default class Users extends React.Component {
           onActionTouchTap={this.clearErrors}
           onRequestClose={this.clearErrors}
         />
-        {editing && <span style={styles.form}>
+        {editing && <span>
           <TextField
             onChange={this.handleChangeNameInput}
             value={this.state.editingName}
@@ -123,14 +129,16 @@ export default class Users extends React.Component {
             onClick={this.handleClickCancel}
             />
           </span>}
-        {!editing && <span>
-          {this.props.prefix} {this.state.editingName || this.props.name}
+        {!editing && <div style={styles.labelContainer}>
+          <div style={styles.label}>
+            {this.props.prefix} {this.state.editingName || this.props.name}
+          </div>
           <FlatButton
             label="Edit"
             style={styles.button}
             onClick={this.handleClickEdit}
             />
-          </span>}
+          </div>}
       </span>
     );
   }
