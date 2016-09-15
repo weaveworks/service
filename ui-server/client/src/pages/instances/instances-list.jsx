@@ -56,7 +56,8 @@ export default class IntancesList extends React.Component {
     return (
       <ListItem
         onClick={selectInstance}
-        style={{paddingRight: 64}}
+        title={instance.name}
+        style={{paddingRight: 64, maxWidth: '90vw', overflow: 'hidden'}}
         key={instance.id}
         primaryText={instance.name}
         secondaryText={instance.id}
