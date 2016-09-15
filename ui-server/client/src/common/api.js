@@ -17,6 +17,11 @@ export function getOrganizationData(id) {
   return getData(url);
 }
 
+export function getOrganizationUsers(id) {
+  const url = encodeURIs`/api/users/org/${id}/users`;
+  return getData(url);
+}
+
 export function getProbes(org) {
   if (org) {
     const url = encodeURIs`/api/app/${org}/api/probes`;

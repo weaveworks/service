@@ -1,5 +1,6 @@
 import debug from 'debug';
 import { ActionTypes } from '../actions';
+import sortBy from 'lodash/sortBy';
 
 
 const error = debug('service:error');
@@ -78,6 +79,15 @@ export function rootReducer(state = initialState, action) {
       return Object.assign({}, state, {
         email: action.email,
         instances: mergeInstances(state.instances, action.organizations),
+      });
+    }
+
+    case ActionTypes.RECEIVE_ORGANIZATION_USERS: {
+      return Object.assign({}, state, {
+        instances: mergeInstances(state.instances, [{
+          id: action.orgId,
+          users: sortBy(action.users, u => u.email.toLowerCase()),
+        }]),
       });
     }
 

@@ -46,7 +46,9 @@ class OrganizationPage extends React.Component {
   }
 
   componentDidMount() {
-    this._getOrganizationData(this.props.params.orgId);
+    if (this.props.params.orgId) {
+      this.props.getOrganizationData(this.props.params.orgId);
+    }
     this.loadProbes();
     trackView('Organization');
   }
@@ -72,12 +74,6 @@ class OrganizationPage extends React.Component {
 
   instanceUrl() {
     return encodeURIs`/app/${this.props.params.orgId}`;
-  }
-
-  _getOrganizationData(organization) {
-    if (organization) {
-      this.props.getOrganizationData(organization);
-    }
   }
 
   loadProbes() {
@@ -226,7 +222,7 @@ class OrganizationPage extends React.Component {
                     Weave Cloud instance.
                     You can also come back and do this later.
                   </p>
-                  <Users org={this.props.params.orgId} />
+                  <Users instance={this.props.instance} />
                 </div>
               </div>
             </Column>
