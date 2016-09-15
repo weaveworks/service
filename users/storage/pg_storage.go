@@ -408,7 +408,7 @@ func (s PGStorage) organizationsQuery() squirrel.SelectBuilder {
 		OrderBy("organizations.created_at")
 }
 
-// ListUsers lists users, with some filters.
+// ListUsers lists users
 func (s PGStorage) ListUsers() ([]*users.User, error) {
 	rows, err := s.usersQuery().Query()
 	if err != nil {
@@ -416,6 +416,16 @@ func (s PGStorage) ListUsers() ([]*users.User, error) {
 	}
 	defer rows.Close()
 	return s.scanUsers(rows)
+}
+
+// ListOrganizations lists organizations
+func (s PGStorage) ListOrganizations() ([]*users.Organization, error) {
+	rows, err := s.organizationsQuery().Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return s.scanOrganizations(rows)
 }
 
 // ListOrganizationUsers lists all the users in an organization

@@ -273,6 +273,17 @@ func (s *memoryStorage) ListUsers() ([]*users.User, error) {
 	return users, nil
 }
 
+func (s *memoryStorage) ListOrganizations() ([]*users.Organization, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	orgs := []*users.Organization{}
+	for _, org := range s.organizations {
+		orgs = append(orgs, org)
+	}
+	sort.Sort(organizationsByCreatedAt(orgs))
+	return orgs, nil
+}
+
 func (s *memoryStorage) ListOrganizationUsers(orgExternalID string) ([]*users.User, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()

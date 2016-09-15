@@ -57,6 +57,7 @@ type Database interface {
 	RemoveUserFromOrganization(orgExternalID, email string) error
 
 	ListUsers() ([]*users.User, error)
+	ListOrganizations() ([]*users.Organization, error)
 	ListOrganizationUsers(orgExternalID string) ([]*users.User, error)
 
 	// ListOrganizationsForUserIDs lists all organizations these users have
@@ -260,10 +261,19 @@ func (t TimedDatabase) RemoveUserFromOrganization(orgExternalID, email string) e
 	})
 }
 
-// ListUsers lists users with some filters applied
+// ListUsers lists users
 func (t TimedDatabase) ListUsers() (us []*users.User, err error) {
 	t.timeRequest("ListUsers", func() error {
 		us, err = t.d.ListUsers()
+		return err
+	})
+	return
+}
+
+// ListOrganizations lists organizations
+func (t TimedDatabase) ListOrganizations() (os []*users.Organization, err error) {
+	t.timeRequest("ListOrganizations", func() error {
+		os, err = t.d.ListOrganizations()
 		return err
 	})
 	return
