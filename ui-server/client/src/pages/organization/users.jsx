@@ -31,7 +31,7 @@ class Users extends React.Component {
     this.handleDeleteTouchTap = this.handleDeleteTouchTap.bind(this);
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.props.getOrganizationUsers(this.props.instance.id);
   }
 
