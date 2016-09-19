@@ -112,11 +112,12 @@ func (s pgDB) InviteUser(email, orgExternalID string) (*users.User, bool, error)
 		if err != nil || isMember {
 			return err
 		}
-		if err = s.addUserToOrganization(tx, u.ID, o.ID); err == nil {
-			u, err = s.findUserByID(tx, u.ID)
+		err = s.addUserToOrganization(tx, u.ID, o.ID)
+		if err != nil {
 			return err
 		}
-		return nil
+		u, err = s.findUserByID(tx, u.ID)
+		return err
 	})
 	if err != nil {
 		return nil, false, err
