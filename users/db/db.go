@@ -132,5 +132,5 @@ func MustNew(databaseURI, migrationsDir string) DB {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	return timed{db, users.DatabaseRequestDuration}
+	return traced{timed{db, users.DatabaseRequestDuration}}
 }
