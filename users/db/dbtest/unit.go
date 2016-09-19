@@ -5,6 +5,7 @@ package dbtest
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/weaveworks/service/common/logging"

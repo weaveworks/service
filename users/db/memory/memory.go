@@ -32,6 +32,17 @@ func New(_, _ string) (db.DB, error) {
 	}, nil
 }
 
+func (s *memoryDB) Truncate() error {
+	*s = memoryDB{
+		users:         make(map[string]*users.User),
+		organizations: make(map[string]*users.Organization),
+		memberships:   make(map[string][]string),
+		logins:        make(map[string]*login.Login),
+		apiTokens:     make(map[string]*users.APIToken),
+	}
+	return nil
+}
+
 func (s *memoryDB) Close() error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
