@@ -9,18 +9,18 @@ import (
 
 	"github.com/weaveworks/service/common/logging"
 	"github.com/weaveworks/service/users/api"
+	"github.com/weaveworks/service/users/db"
+	"github.com/weaveworks/service/users/db/dbtest"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/sessions"
-	"github.com/weaveworks/service/users/storage"
-	storagetest "github.com/weaveworks/service/users/storage/test"
 	"github.com/weaveworks/service/users/templates"
 )
 
 var (
 	sentEmails   []*email.Email
 	app          *api.API
-	db           storage.Database
+	database     db.DB
 	logins       *login.Providers
 	sessionStore sessions.Store
 	domain       = "http://fake.scope"
@@ -33,7 +33,7 @@ func setup(t *testing.T) {
 	var directLogin = false
 
 	logging.Setup("debug")
-	db = storagetest.Setup(t)
+	database = dbtest.Setup(t)
 	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd")
 	templates := templates.MustNewEngine("../templates")
 	logins = login.NewProviders()
@@ -44,12 +44,12 @@ func setup(t *testing.T) {
 		Domain:      domain,
 		FromAddress: "test@test.com",
 	}
-	app = api.New(directLogin, emailer, sessionStore, db, logins, templates, nil, nil)
+	app = api.New(directLogin, emailer, sessionStore, database, logins, templates, nil, nil)
 }
 
 func cleanup(t *testing.T) {
 	logins.Reset()
-	storagetest.Cleanup(t, db)
+	dbtest.Cleanup(t, database)
 }
 
 func testEmailSender(e *email.Email) error {

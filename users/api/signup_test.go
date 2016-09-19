@@ -72,7 +72,7 @@ func Test_Signup(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{"mailSent": true, "email": email}, body)
 	require.Len(t, sentEmails, 1)
-	user, err := db.FindUserByEmail(email)
+	user, err := database.FindUserByEmail(email)
 	require.NoError(t, err)
 	assert.Equal(t, []string{email}, sentEmails[0].To)
 	loginLink, emailToken := findLoginLink(t, sentEmails[0])
@@ -109,7 +109,7 @@ func Test_Signup(t *testing.T) {
 		"firstLogin": true,
 	}, body)
 
-	user, err = db.FindUserByEmail(email)
+	user, err = database.FindUserByEmail(email)
 	require.NoError(t, err)
 	// Invalidates their login token
 	assert.Equal(t, "", user.Token)
@@ -117,7 +117,7 @@ func Test_Signup(t *testing.T) {
 	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 	firstLoginAt := user.FirstLoginAt
 	// Doesn't create an organization.
-	organizations, err := db.ListOrganizationsForUserIDs(user.ID)
+	organizations, err := database.ListOrganizationsForUserIDs(user.ID)
 	require.NoError(t, err)
 	assert.Len(t, organizations, 0)
 
@@ -135,11 +135,11 @@ func Test_Signup(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{}, body)
 
-	user, err = db.FindUserByEmail(email)
+	user, err = database.FindUserByEmail(email)
 	require.NoError(t, err)
 	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 	assert.Equal(t, firstLoginAt, user.FirstLoginAt, "Second login should not have changed user's FirstLoginAt")
-	organizations, err = db.ListOrganizationsForUserIDs(user.ID)
+	organizations, err = database.ListOrganizationsForUserIDs(user.ID)
 	require.NoError(t, err)
 	assert.Len(t, organizations, 0)
 }
@@ -152,12 +152,12 @@ func Test_Signup_WithInvalidJSON(t *testing.T) {
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("POST", "/api/users/signup", strings.NewReader("this isn't json"))
 
-	_, err := db.FindUserByEmail(email)
+	_, err := database.FindUserByEmail(email)
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "invalid character 'h' in literal true (expecting 'r')")
-	_, err = db.FindUserByEmail(email)
+	_, err = database.FindUserByEmail(email)
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 }
 
@@ -169,12 +169,12 @@ func Test_Signup_WithBlankEmail(t *testing.T) {
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("POST", "/api/users/signup", jsonBody{}.Reader(t))
 
-	_, err := db.FindUserByEmail(email)
+	_, err := database.FindUserByEmail(email)
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "Email cannot be blank")
-	_, err = db.FindUserByEmail(email)
+	_, err = database.FindUserByEmail(email)
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 }
 
@@ -190,7 +190,7 @@ func Test_Signup_ViaOAuth(t *testing.T) {
 	// Signup as a new user via oauth, should *not* send welcome email
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
-	_, err := db.FindUserByEmail(email)
+	_, err := database.FindUserByEmail(email)
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -203,7 +203,7 @@ func Test_Signup_ViaOAuth(t *testing.T) {
 	}, body)
 	assert.Len(t, sentEmails, 0)
 
-	user, err := db.FindUserByEmail(email)
+	user, err := database.FindUserByEmail(email)
 	require.NoError(t, err)
 
 	assert.False(t, user.ApprovedAt.IsZero(), "user should be approved")
@@ -211,7 +211,7 @@ func Test_Signup_ViaOAuth(t *testing.T) {
 	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 
 	// User should have login set
-	userLogins, err := db.ListLoginsForUserIDs(user.ID)
+	userLogins, err := database.ListLoginsForUserIDs(user.ID)
 	require.NoError(t, err)
 	if assert.Len(t, userLogins, 1) {
 		assert.Equal(t, user.ID, userLogins[0].UserID)
@@ -229,7 +229,7 @@ func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 		"joe": {ID: "joe", Email: user.Email},
 	})
 	// User should not have any logins yet.
-	userLogins, err := db.ListLoginsForUserIDs(user.ID)
+	userLogins, err := database.ListLoginsForUserIDs(user.ID)
 	require.NoError(t, err)
 	assert.Len(t, userLogins, 0)
 
@@ -241,7 +241,7 @@ func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 	assert.True(t, hasCookie(w, client.AuthCookieName))
 	assert.Len(t, sentEmails, 0)
 
-	found, err := db.FindUserByEmail(user.Email)
+	found, err := database.FindUserByEmail(user.Email)
 	require.NoError(t, err)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
@@ -255,7 +255,7 @@ func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 	assert.False(t, found.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 
 	// User should have a login set
-	foundLogins, err := db.ListLoginsForUserIDs(found.ID)
+	foundLogins, err := database.ListLoginsForUserIDs(found.ID)
 	require.NoError(t, err)
 	if assert.Len(t, foundLogins, 1) {
 		assert.Equal(t, user.ID, foundLogins[0].UserID)
@@ -274,7 +274,7 @@ func Test_Signup_ViaOAuth_EmailChanged(t *testing.T) {
 	}
 	logins.Register("mock", provider)
 
-	require.NoError(t, db.AddLoginToUser(user.ID, "mock", "joe", nil))
+	require.NoError(t, database.AddLoginToUser(user.ID, "mock", "joe", nil))
 
 	// Change the remote email
 	newEmail := "fran@example.com"
@@ -288,10 +288,10 @@ func Test_Signup_ViaOAuth_EmailChanged(t *testing.T) {
 	assert.True(t, hasCookie(w, client.AuthCookieName))
 	assert.Len(t, sentEmails, 0)
 
-	_, err := db.FindUserByEmail(newEmail)
+	_, err := database.FindUserByEmail(newEmail)
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 
-	userLogins, err := db.ListLoginsForUserIDs(user.ID)
+	userLogins, err := database.ListLoginsForUserIDs(user.ID)
 	require.NoError(t, err)
 	// User should have a login set
 	if assert.Len(t, userLogins, 1) {

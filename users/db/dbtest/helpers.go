@@ -1,4 +1,4 @@
-package test
+package dbtest
 
 import (
 	"fmt"
@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/storage"
+	"github.com/weaveworks/service/users/db"
 )
 
 // GetApprovedUser makes a randomly named, approved user
-func GetApprovedUser(t *testing.T, db storage.Database) *users.User {
+func GetApprovedUser(t *testing.T, db db.DB) *users.User {
 	email := fmt.Sprintf("%d@weave.works", rand.Int63())
 	user, err := db.CreateUser(email)
 	require.NoError(t, err)
@@ -25,7 +25,7 @@ func GetApprovedUser(t *testing.T, db storage.Database) *users.User {
 }
 
 // CreateOrgForUser creates a new random organization for this user
-func CreateOrgForUser(t *testing.T, db storage.Database, u *users.User) *users.Organization {
+func CreateOrgForUser(t *testing.T, db db.DB, u *users.User) *users.Organization {
 	externalID, err := db.GenerateOrganizationExternalID()
 	require.NoError(t, err)
 
@@ -40,7 +40,7 @@ func CreateOrgForUser(t *testing.T, db storage.Database, u *users.User) *users.O
 }
 
 // GetOrg makes org with a random ExternalID and user for testing
-func GetOrg(t *testing.T, db storage.Database) (*users.User, *users.Organization) {
+func GetOrg(t *testing.T, db db.DB) (*users.User, *users.Organization) {
 	user := GetApprovedUser(t, db)
 	org := CreateOrgForUser(t, db, user)
 	return user, org

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/weaveworks/service/users"
-	storagetest "github.com/weaveworks/service/users/storage/test"
+	"github.com/weaveworks/service/users/db/dbtest"
 )
 
 // RequestAs makes a request as the given user.
@@ -27,15 +27,15 @@ func requestAs(t *testing.T, u *users.User, method, endpoint string, body io.Rea
 }
 
 func getApprovedUser(t *testing.T) *users.User {
-	return storagetest.GetApprovedUser(t, db)
+	return dbtest.GetApprovedUser(t, database)
 }
 
 func createOrgForUser(t *testing.T, u *users.User) *users.Organization {
-	return storagetest.CreateOrgForUser(t, db, u)
+	return dbtest.CreateOrgForUser(t, database, u)
 }
 
 func getOrg(t *testing.T) (*users.User, *users.Organization) {
-	return storagetest.GetOrg(t, db)
+	return dbtest.GetOrg(t, database)
 }
 
 type jsonBody map[string]interface{}

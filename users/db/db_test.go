@@ -1,19 +1,19 @@
-package storage_test
+package db_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	storagetest "github.com/weaveworks/service/users/storage/test"
+	"github.com/weaveworks/service/users/db/dbtest"
 )
 
-func Test_Storage_RemoveOtherUsersAccess(t *testing.T) {
-	db := storagetest.Setup(t)
-	defer storagetest.Cleanup(t, db)
+func Test_DB_RemoveOtherUsersAccess(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
 
-	_, org := storagetest.GetOrg(t, db)
-	otherUser := storagetest.GetApprovedUser(t, db)
+	_, org := dbtest.GetOrg(t, db)
+	otherUser := dbtest.GetApprovedUser(t, db)
 	otherUser, _, err := db.InviteUser(otherUser.Email, org.ExternalID)
 	require.NoError(t, err)
 	otherUserOrganizations, err := db.ListOrganizationsForUserIDs(otherUser.ID)
@@ -32,11 +32,11 @@ func Test_Storage_RemoveOtherUsersAccess(t *testing.T) {
 	require.Len(t, orgUsers, 1)
 }
 
-func Test_Storage_AddFeatureFlag(t *testing.T) {
-	db := storagetest.Setup(t)
-	defer storagetest.Cleanup(t, db)
+func Test_DB_AddFeatureFlag(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
 
-	_, org := storagetest.GetOrg(t, db)
+	_, org := dbtest.GetOrg(t, db)
 	err := db.AddFeatureFlag(org.ExternalID, "supercow")
 	require.NoError(t, err)
 

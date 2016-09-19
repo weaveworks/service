@@ -48,7 +48,7 @@ func Test_PublicLookup(t *testing.T) {
 	user, org := getOrg(t)
 
 	// Use the org, so that firstProbeUpdateAt is set.
-	org, err := db.FindOrganizationByProbeToken(org.ProbeToken)
+	org, err := database.FindOrganizationByProbeToken(org.ProbeToken)
 	require.NoError(t, err)
 	require.NotNil(t, org.FirstProbeUpdateAt)
 
@@ -103,7 +103,7 @@ func Test_Lookup_ProbeToken(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{"organizationID": org.ID}, body)
 
-	organizations, err := db.ListOrganizationsForUserIDs(user.ID)
+	organizations, err := database.ListOrganizationsForUserIDs(user.ID)
 	require.NoError(t, err)
 	require.Len(t, organizations, 1)
 	assert.NotNil(t, organizations[0].FirstProbeUpdateAt)
@@ -115,7 +115,7 @@ func Test_Lookup_Admin(t *testing.T) {
 	defer cleanup(t)
 
 	user := getApprovedUser(t)
-	require.NoError(t, db.SetUserAdmin(user.ID, true))
+	require.NoError(t, database.SetUserAdmin(user.ID, true))
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "GET", "/private/api/users/admin", nil)
