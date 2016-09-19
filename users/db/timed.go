@@ -171,14 +171,6 @@ func (t timed) ListAPITokensForUserIDs(userIDs ...string) (ts []*users.APIToken,
 	return
 }
 
-func (t timed) ApproveUser(id string) (u *users.User, err error) {
-	t.timeRequest("ApproveUser", func() error {
-		u, err = t.d.ApproveUser(id)
-		return err
-	})
-	return
-}
-
 func (t timed) SetUserAdmin(id string, value bool) error {
 	return t.timeRequest("SetUserAdmin", func() error {
 		return t.d.SetUserAdmin(id, value)

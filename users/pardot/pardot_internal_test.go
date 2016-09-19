@@ -24,7 +24,6 @@ const (
 
 type pardotProspect struct {
 	ServiceCreatedAt  string
-	ServiceApprovedAt string
 	ServiceLastAccess string
 }
 
@@ -99,15 +98,12 @@ func TestPardotClient(t *testing.T) {
 	defer client.Stop()
 
 	createdAt := time.Now()
-	approvedAt := createdAt.Add(48 * time.Hour)
 	client.UserCreated(userEmail, createdAt)
-	client.UserApproved(userEmail, approvedAt)
 	select {
 	case ps := <-prospects:
 		if !reflect.DeepEqual(ps, map[string]pardotProspect{
 			userEmail: {
-				ServiceCreatedAt:  strftime.Format("%Y-%m-%d", createdAt),
-				ServiceApprovedAt: strftime.Format("%Y-%m-%d", approvedAt),
+				ServiceCreatedAt: strftime.Format("%Y-%m-%d", createdAt),
 			},
 		}) {
 			t.Fatal("Wrong data: ", ps)

@@ -13,7 +13,7 @@ func Test_DB_RemoveOtherUsersAccess(t *testing.T) {
 	defer dbtest.Cleanup(t, db)
 
 	_, org := dbtest.GetOrg(t, db)
-	otherUser := dbtest.GetApprovedUser(t, db)
+	otherUser := dbtest.GetUser(t, db)
 	otherUser, _, err := db.InviteUser(otherUser.Email, org.ExternalID)
 	require.NoError(t, err)
 	otherUserOrganizations, err := db.ListOrganizationsForUserIDs(otherUser.ID)

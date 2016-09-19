@@ -185,12 +185,6 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		render.Error(w, r, err)
 		return
 	}
-	// Auto-approve all invited users
-	invitee, err = a.db.ApproveUser(invitee.ID)
-	if err != nil {
-		render.Error(w, r, err)
-		return
-	}
 	// We always do this so that the timing difference can't be used to infer a user's existence.
 	token, err := a.generateUserToken(invitee)
 	if err != nil {

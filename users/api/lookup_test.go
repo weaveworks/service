@@ -114,7 +114,7 @@ func Test_Lookup_Admin(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
+	user := getUser(t)
 	require.NoError(t, database.SetUserAdmin(user.ID, true))
 
 	w := httptest.NewRecorder()
@@ -131,7 +131,7 @@ func Test_Lookup_Admin_Unauthorized(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
+	user := getUser(t)
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "GET", "/private/api/users/admin", nil)

@@ -75,8 +75,8 @@ func requestAs(t *testing.T, u *users.User, method, endpoint string, body io.Rea
 	return r
 }
 
-func getApprovedUser(t *testing.T) *users.User {
-	return dbtest.GetApprovedUser(t, database)
+func getUser(t *testing.T) *users.User {
+	return dbtest.GetUser(t, database)
 }
 
 func createOrgForUser(t *testing.T, u *users.User) *users.Organization {

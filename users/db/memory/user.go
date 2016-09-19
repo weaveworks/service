@@ -188,24 +188,6 @@ func (d *DB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
 	return logins, nil
 }
 
-// ApproveUser approves a user. Sort of deprecated, as all users are
-// auto-approved now.
-func (d *DB) ApproveUser(id string) (*users.User, error) {
-	d.mtx.Lock()
-	defer d.mtx.Unlock()
-	user, err := d.findUserByID(id)
-	if err != nil {
-		return nil, err
-	}
-
-	if !user.ApprovedAt.IsZero() {
-		return user, nil
-	}
-
-	user.ApprovedAt = time.Now().UTC()
-	return user, err
-}
-
 // SetUserAdmin sets the admin flag of a user
 func (d *DB) SetUserAdmin(id string, value bool) error {
 	d.mtx.Lock()

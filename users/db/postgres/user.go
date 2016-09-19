@@ -19,7 +19,7 @@ func (d DB) CreateUser(email string) (*users.User, error) {
 
 func (d DB) createUser(q queryRower, email string) (*users.User, error) {
 	u := &users.User{Email: email, CreatedAt: d.Now()}
-	err := q.QueryRow("insert into users (email, created_at) values (lower($1), $2) returning id", email, u.CreatedAt).Scan(&u.ID)
+	err := q.QueryRow("insert into users (email, approved_at, created_at) values (lower($1), $2, $2) returning id", email, u.CreatedAt).Scan(&u.ID)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil, users.ErrNotFound
@@ -215,18 +215,16 @@ func (d DB) scanUser(row squirrel.RowScanner) (*users.User, error) {
 
 		createdAt,
 		firstLoginAt,
-		tokenCreatedAt,
-		approvedAt pq.NullTime
+		tokenCreatedAt pq.NullTime
 	)
 	if err := row.Scan(
-		&u.ID, &u.Email, &token, &tokenCreatedAt, &approvedAt, &createdAt,
+		&u.ID, &u.Email, &token, &tokenCreatedAt, &createdAt,
 		&u.Admin, &firstLoginAt,
 	); err != nil {
 		return nil, err
 	}
 	u.Token = token.String
 	u.TokenCreatedAt = tokenCreatedAt.Time
-	u.ApprovedAt = approvedAt.Time
 	u.CreatedAt = createdAt.Time
 	u.FirstLoginAt = firstLoginAt.Time
 	return u, nil
@@ -238,7 +236,6 @@ func (d DB) usersQuery() squirrel.SelectBuilder {
 		"users.email",
 		"users.token",
 		"users.token_created_at",
-		"users.approved_at",
 		"users.created_at",
 		"users.admin",
 		"users.first_login_at",
@@ -295,26 +292,6 @@ func (d DB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
 		return nil, rows.Err()
 	}
 	return ls, err
-}
-
-// ApproveUser approves a user. Sort of deprecated, as all users are
-// auto-approved now.
-func (d DB) ApproveUser(id string) (*users.User, error) {
-	var user *users.User
-	err := d.Transaction(func(tx *sql.Tx) error {
-		result, err := tx.Exec(`update users set approved_at = $2 where id = $1 and approved_at is null`, id, d.Now())
-		if err != nil {
-			return err
-		}
-
-		if _, err := result.RowsAffected(); err != nil {
-			return err
-		}
-
-		user, err = d.findUserByID(tx, id)
-		return err
-	})
-	return user, err
 }
 
 // SetUserAdmin sets the admin flag of a user

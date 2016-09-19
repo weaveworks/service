@@ -17,7 +17,7 @@ func Test_Account_AttachOauthAccount(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
+	user := getUser(t)
 
 	remoteEmail := "fran@example.com"
 	logins.Register("mock", MockLoginProvider{
@@ -58,8 +58,8 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToAnotherAccount(t *testing.
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
-	fran := getApprovedUser(t)
+	user := getUser(t)
+	fran := getUser(t)
 	require.NoError(t, database.AddLoginToUser(fran.ID, "mock", "fran", nil))
 	fran, err := database.FindUserByID(fran.ID)
 	require.NoError(t, err)
@@ -129,7 +129,7 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToSameAccount(t *testing.T) 
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
+	user := getUser(t)
 
 	// Should be associated to same user
 	assert.NoError(t, database.AddLoginToUser(user.ID, "mock", "joe", nil))
@@ -178,7 +178,7 @@ func Test_Account_ListAttachedLoginProviders(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
+	user := getUser(t)
 
 	logins.Register("mock", MockLoginProvider{
 		// Different remote email, to prevent auto-matching
@@ -235,7 +235,7 @@ func Test_Account_DetachOauthAccount(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
+	user := getUser(t)
 
 	mockLoginProvider := MockLoginProvider{"joe": {ID: "joe", Email: user.Email}}
 	logins.Register("mock", mockLoginProvider)

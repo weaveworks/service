@@ -75,7 +75,7 @@ func Test_InviteExistingUser(t *testing.T) {
 	defer cleanup(t)
 
 	user, org := getOrg(t)
-	fran := getApprovedUser(t)
+	fran := getUser(t)
 
 	body := requestInvite(t, user, org, fran.Email, http.StatusOK)
 	assert.Equal(t, map[string]interface{}{
@@ -149,8 +149,8 @@ func Test_Invite_UserToAnOrgIDontOwn(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
-	otherUser := getApprovedUser(t)
+	user := getUser(t)
+	otherUser := getUser(t)
 	_, otherOrg := getOrg(t)
 
 	requestInvite(t, user, otherOrg, otherUser.Email, http.StatusForbidden)
@@ -159,25 +159,6 @@ func Test_Invite_UserToAnOrgIDontOwn(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, organizations, 0)
 	assert.Len(t, sentEmails, 0)
-}
-
-func Test_Invite_UserNotApproved(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	user, org := getOrg(t)
-
-	fran, err := database.CreateUser("fran@weave.works")
-	require.NoError(t, err)
-
-	requestInvite(t, user, org, fran.Email, http.StatusOK)
-
-	organizations, err := database.ListOrganizationsForUserIDs(fran.ID)
-	require.NoError(t, err)
-	require.Len(t, organizations, 1)
-	assert.Equal(t, org.ID, organizations[0].ID)
-
-	assertEmailSent(t, fran.Email, "has granted you access")
 }
 
 func Test_Invite_UserInDifferentOrganization(t *testing.T) {
@@ -203,7 +184,7 @@ func Test_Invite_RemoveOtherUsersAccess(t *testing.T) {
 	defer cleanup(t)
 
 	user, org := getOrg(t)
-	otherUser := getApprovedUser(t)
+	otherUser := getUser(t)
 	otherUser, _, err := database.InviteUser(otherUser.Email, org.ExternalID)
 	require.NoError(t, err)
 	organizations, err := database.ListOrganizationsForUserIDs(otherUser.ID)

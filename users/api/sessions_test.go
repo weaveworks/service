@@ -14,7 +14,7 @@ func Test_Sessions_EncodeDecode(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
+	user := getUser(t)
 
 	encoded, err := sessionStore.Encode(user.ID)
 	require.NoError(t, err)

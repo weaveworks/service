@@ -107,11 +107,6 @@ func (t traced) ListAPITokensForUserIDs(userIDs ...string) (ts []*users.APIToken
 	return t.d.ListAPITokensForUserIDs(userIDs...)
 }
 
-func (t traced) ApproveUser(id string) (u *users.User, err error) {
-	defer func() { t.trace("ApproveUser", id, u, err) }()
-	return t.d.ApproveUser(id)
-}
-
 func (t traced) SetUserAdmin(id string, value bool) (err error) {
 	defer func() { t.trace("SetUserAdmin", id, value, err) }()
 	return t.d.SetUserAdmin(id, value)

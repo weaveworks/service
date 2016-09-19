@@ -73,7 +73,7 @@ func Test_ListOrganizationUsers(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	fran := getApprovedUser(t)
+	fran := getUser(t)
 	fran, _, err := database.InviteUser(fran.Email, org.ExternalID)
 	require.NoError(t, err)
 
@@ -90,7 +90,7 @@ func Test_RenameOrganization(t *testing.T) {
 	defer cleanup(t)
 
 	user, org := getOrg(t)
-	otherUser := getApprovedUser(t)
+	otherUser := getUser(t)
 	body := map[string]interface{}{"name": "my-organization"}
 
 	{
@@ -185,7 +185,7 @@ func Test_CustomExternalIDOrganization(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
+	user := getUser(t)
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "POST", "/api/users/org", jsonBody{
@@ -239,7 +239,7 @@ func Test_Organization_GenerateOrgExternalID(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
+	user := getUser(t)
 
 	// Generate a new org id
 	r := requestAs(t, user, "GET", "/api/users/generateOrgID", nil)
@@ -260,8 +260,8 @@ func Test_Organization_CheckIfExternalIDExists(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
-	otherUser := getApprovedUser(t)
+	user := getUser(t)
+	otherUser := getUser(t)
 
 	id, err := database.GenerateOrganizationExternalID()
 	require.NoError(t, err)
@@ -289,7 +289,7 @@ func Test_Organization_CreateMultiple(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
+	user := getUser(t)
 
 	r1 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-first-org", "name": "my first org"}.Reader(t))
 
@@ -319,8 +319,8 @@ func Test_Organization_Delete(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
-	otherUser := getApprovedUser(t)
+	user := getUser(t)
+	otherUser := getUser(t)
 
 	externalID, err := database.GenerateOrganizationExternalID()
 	require.NoError(t, err)
@@ -369,7 +369,7 @@ func Test_Organization_Name(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
+	user := getUser(t)
 	externalID, err := database.GenerateOrganizationExternalID()
 	name := "arbitrary name"
 	require.NoError(t, err)

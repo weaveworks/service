@@ -152,12 +152,6 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		a.pardotClient.UserCreated(u.Email, u.CreatedAt)
-		u, err = a.db.ApproveUser(u.ID)
-		if err != nil {
-			logrus.Error(err)
-			render.Error(w, r, users.ErrInvalidAuthenticationData)
-			return
-		}
 	}
 
 	if err := a.db.AddLoginToUser(u.ID, providerID, id, authSession); err != nil {
@@ -252,11 +246,8 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 	user, err := a.db.FindUserByEmail(view.Email)
 	if err == users.ErrNotFound {
 		user, err = a.db.CreateUser(view.Email)
-		// TODO(twilkie) I believe this is redundant, as Approve is also
-		// called below
 		if err == nil {
 			a.pardotClient.UserCreated(user.Email, user.CreatedAt)
-			user, err = a.db.ApproveUser(user.ID)
 		}
 	}
 	if err != nil {
@@ -270,13 +261,6 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, fmt.Errorf("Error sending login email: %s", err))
 		return
 	}
-
-	user, err = a.db.ApproveUser(user.ID)
-	if err != nil {
-		render.Error(w, r, fmt.Errorf("Error sending login email: %s", err))
-		return
-	}
-	a.pardotClient.UserApproved(user.Email, user.ApprovedAt)
 
 	if a.directLogin {
 		view.Token = token

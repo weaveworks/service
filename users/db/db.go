@@ -68,9 +68,6 @@ type DB interface {
 	// users
 	ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error)
 
-	// Approve the user for access. Should generate them a new organization.
-	ApproveUser(id string) (*users.User, error)
-
 	// Set the admin flag of a user
 	SetUserAdmin(id string, value bool) error
 
