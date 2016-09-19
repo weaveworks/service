@@ -90,12 +90,26 @@ export default class Users extends React.Component {
 
     const styles = {
       button: {
+        //
+        // We're in an h2 w/ fontSize: 36px which seems to muck up the vertical alignment of the
+        // button label. Theory: The nested div matui uses for the ripple layed inherits
+        // "-webkit-margin-before: 0.83em" from the h2.
+        //
+        fontSize: '14px',
         marginLeft: '0.5em'
+      },
+      labelContainer: {
+        display: 'flex'
+      },
+      label: {
+        flex: 1,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
       }
     };
-
+    const name = this.state.editingName || this.props.name;
     return (
-      <span>
+      <div>
         <Snackbar
           action="ok"
           open={Boolean(this.state.notices)}
@@ -103,7 +117,7 @@ export default class Users extends React.Component {
           onActionTouchTap={this.clearErrors}
           onRequestClose={this.clearErrors}
         />
-        {editing && <span style={styles.form}>
+        {editing && <div>
           <TextField
             onChange={this.handleChangeNameInput}
             value={this.state.editingName}
@@ -122,16 +136,18 @@ export default class Users extends React.Component {
             style={styles.button}
             onClick={this.handleClickCancel}
             />
-          </span>}
-        {!editing && <span>
-          {this.props.prefix} {this.state.editingName || this.props.name}
+          </div>}
+        {!editing && <div style={styles.labelContainer}>
+          <div style={styles.label} title={name}>
+            {this.props.prefix} {name}
+          </div>
           <FlatButton
             label="Edit"
             style={styles.button}
             onClick={this.handleClickEdit}
             />
-          </span>}
-      </span>
+          </div>}
+      </div>
     );
   }
 

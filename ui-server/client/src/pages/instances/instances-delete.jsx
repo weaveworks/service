@@ -82,6 +82,10 @@ export default class InstancesDelete extends React.Component {
 
   render() {
     const styles = {
+      label: {
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      },
       deleteError: {
         display: this.state.deleteErrorText ? 'block' : 'none'
       },
@@ -109,9 +113,11 @@ export default class InstancesDelete extends React.Component {
     ];
 
     return (
-      <div style={this.props.style}>
+      <div>
         <div style={styles.heading}>Delete this instance</div>
-        <p>You can delete this Weave Cloud instance for your cluster {instanceName}</p>
+        <p style={styles.label}>
+          You can delete this Weave Cloud instance for your cluster {instanceName}
+        </p>
         <div style={styles.deleteError}>
           <p style={styles.errorLabel}>
             {this.state.deleteErrorText}

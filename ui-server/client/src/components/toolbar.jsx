@@ -44,14 +44,16 @@ export default class Toolbar extends React.Component {
     browserHistory.push(url);
   }
 
-  handleClickCreateInstance() {
+  componentWillUnmount() {
     //
-    // This is usually called after a 1ms delay by the IconMenu component, but, in this case the
-    // MenuItem is being unmounted (its not on the create-instance page) before its timer has a
-    // chance to fire. ~_~
+    // This is usually called after a 1ms delay by the IconMenu component, but, the way we do
+    // navigation doesn't give it a chance to run (gets unmounted+clearTimeout), so we call it
+    // explicitly.
     //
     this.props.instancesMenuRequestChange(false);
+  }
 
+  handleClickCreateInstance() {
     const url = encodeURIs`/instances/create`;
     browserHistory.push(url);
   }
@@ -83,7 +85,12 @@ export default class Toolbar extends React.Component {
         top: 2
       },
       toolbarCenter: {
-        padding: 8
+        padding: 8,
+        position: 'relative',
+        display: 'flex',
+        // gotta set w/ overflowing things otherwise minWidth is something complicated like the
+        // size of the overflowing stuff.
+        minWidth: 0,
       },
       toolbarLeft: {
         top: 2,
@@ -99,6 +106,14 @@ export default class Toolbar extends React.Component {
         backgroundColor: '#e4e4ed',
         position: 'absolute',
         width: '100%'
+      },
+      buttonLabelStyle: {
+        // width fit the container
+        display: 'block',
+        // ellipsis!
+        textOverflow: 'ellipsis',
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
       }
     };
 
@@ -125,39 +140,39 @@ export default class Toolbar extends React.Component {
               <Logo />
             </div>
             <div style={styles.toolbarCenter}>
-              <div style={{position: 'relative'}}>
-                <IconMenu
-                  // don't animate onClose
-                  animated={false}
-                  // close immediately don't wait for 200ms.
-                  touchTapCloseDelay={1}
-                  open={instancesMenuOpen}
-                  onRequestChange={instancesMenuRequestChange}
-                  iconButtonElement={viewSelectorButton}
-                  anchorOrigin={{horizontal: 'left', vertical: 'top'}}
-                  targetOrigin={{horizontal: 'left', vertical: 'top'}}>
-                    {this.props.instances.map(ins => <InstanceItem key={ins.id} {...ins} />)}
-                    <Divider />
-                    <MenuItem
-                      style={{lineHeight: '24px', fontSize: 13, cursor: 'pointer'}}
-                      primaryText="Create new instance"
-                      onClick={this.handleClickCreateInstance} />
-                </IconMenu>
-                <FlatButton
-                  style={{color: viewColor}}
-                  onClick={this.handleClickInstance}
-                  label={viewText} />
-                {hasProm && <FlatButton style={styles.toolbarButton}
-                  onClick={this.handleClickProm}>
-                    <FontIcon className="fa fa-area-chart" color={promColor}
-                      style={styles.toolbarButtonIcon} />
-                  </FlatButton>
-                }
-                <FlatButton style={styles.toolbarButton} onClick={this.handleClickSettings}>
-                  <FontIcon className="fa fa-cog" color={settingsColor}
+              <IconMenu
+                // don't animate onClose
+                animated={false}
+                // close immediately don't wait for 200ms.
+                touchTapCloseDelay={1}
+                open={instancesMenuOpen}
+                onRequestChange={instancesMenuRequestChange}
+                iconButtonElement={viewSelectorButton}
+                anchorOrigin={{horizontal: 'left', vertical: 'top'}}
+                targetOrigin={{horizontal: 'left', vertical: 'top'}}>
+                  {this.props.instances.map(ins => <InstanceItem key={ins.id} {...ins} />)}
+                  <Divider />
+                  <MenuItem
+                    style={{lineHeight: '24px', fontSize: 13, cursor: 'pointer'}}
+                    primaryText="Create new instance"
+                    onClick={this.handleClickCreateInstance} />
+              </IconMenu>
+              <FlatButton
+                style={{color: viewColor}}
+                title={viewText}
+                labelStyle={styles.buttonLabelStyle}
+                onClick={this.handleClickInstance}
+                label={viewText} />
+              {hasProm && <FlatButton style={styles.toolbarButton}
+                onClick={this.handleClickProm}>
+                  <FontIcon className="fa fa-area-chart" color={promColor}
                     style={styles.toolbarButtonIcon} />
                 </FlatButton>
-              </div>
+              }
+              <FlatButton style={styles.toolbarButton} onClick={this.handleClickSettings}>
+                <FontIcon className="fa fa-cog" color={settingsColor}
+                  style={styles.toolbarButtonIcon} />
+              </FlatButton>
             </div>
             <div style={styles.toolbarRight}>
             <FlatButton style={styles.toolbarButton} labelStyle={{color: accountColor}}
