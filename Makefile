@@ -1,4 +1,4 @@
-.PHONY: all test users-integration-test clean client-lint images
+.PHONY: all test users-integration-test clean client-lint images ui-upload
 .DEFAULT_GOAL := all
 
 # Boiler plate for bulding Docker containers.
@@ -48,7 +48,7 @@ metrics/$(UPTODATE): $(METRICS_EXE)
 frontend-mt/$(UPTODATE): frontend-mt/default.conf frontend-mt/routes.conf frontend-mt/api.json frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
 ui-server/client/$(UPTODATE): ui-server/client/package.json ui-server/client/webpack.* ui-server/client/server.js ui-server/client/.eslintrc ui-server/client/.eslintignore ui-server/client/.babelrc
-ui-server/$(UPTODATE): ui-server/client/build/app.js
+ui-server/$(UPTODATE): ui-server/client/build/index.html
 build/$(UPTODATE): build/build.sh
 monitoring/grafana/$(UPTODATE): monitoring/grafana/*
 monitoring/gfdatasource/$(UPTODATE): monitoring/gfdatasource/*
@@ -104,7 +104,7 @@ client-lint: ui-server/client/$(UPTODATE) $(JS_FILES)
 		-v $(shell pwd)/ui-server/client/src:/home/weave/src \
 		$(IMAGE_PREFIX)/client npm run lint
 
-ui-server/client/build/app.js: ui-server/client/$(UPTODATE) $(JS_FILES) ui-server/client/src/html/index.html
+ui-server/client/build/index.html: ui-server/client/$(UPTODATE) $(JS_FILES) ui-server/client/src/html/index.html
 	mkdir -p ui-server/client/build
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/ui-server/client/src:/home/weave/src \
@@ -126,10 +126,14 @@ users-integration-test: $(USERS_UPTODATE)
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
 
+ui-upload: ui-server/client/build/index.html
+	AWS_ACCESS_KEY_ID=$$UI_BUCKET_KEY_ID \
+	AWS_SECRET_ACCESS_KEY=$$UI_BUCKET_KEY_SECRET \
+	aws s3 cp ui-server/client/build/ s3://static.weave.works/ --recursive --exclude index.html
+
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
 	rm -rf $(UPTODATE_FILES) $(EXES)
 	rm -rf ui-server/client/build
 	go clean ./...
-
 

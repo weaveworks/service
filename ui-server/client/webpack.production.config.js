@@ -14,9 +14,9 @@ module.exports = {
   },
 
   output: {
-    publicPath: '/', // absolute path for bundle
+    publicPath: 'https://static.cloud.weave.works/', // absolute path for bundle
     path: __dirname + '/build/',
-    filename: '[name].js'
+    filename: '[chunkhash].js'
   },
 
   module: {
@@ -42,7 +42,7 @@ module.exports = {
     new webpack.DefinePlugin({
       'process.env': {NODE_ENV: '"production"'}
     }),
-    new webpack.optimize.CommonsChunkPlugin('vendors', 'vendors.js'),
+    new webpack.optimize.CommonsChunkPlugin('vendors', '[chunkhash].js'),
     new webpack.optimize.OccurenceOrderPlugin(true),
     new webpack.optimize.UglifyJsPlugin({
       sourceMap: false,
