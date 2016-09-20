@@ -9,7 +9,8 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
-func (s pgDB) CreateAPIToken(userID, description string) (*users.APIToken, error) {
+// CreateAPIToken creates an api token for the user
+func (s DB) CreateAPIToken(userID, description string) (*users.APIToken, error) {
 	t := &users.APIToken{
 		UserID:      userID,
 		Description: description,
@@ -41,7 +42,8 @@ func (s pgDB) CreateAPIToken(userID, description string) (*users.APIToken, error
 	return t, err
 }
 
-func (s pgDB) DeleteAPIToken(userID, token string) error {
+// DeleteAPIToken deletes an api token for the user
+func (s DB) DeleteAPIToken(userID, token string) error {
 	_, err := s.Exec(
 		`update api_tokens
 			set deleted_at = $3
@@ -53,7 +55,8 @@ func (s pgDB) DeleteAPIToken(userID, token string) error {
 	return err
 }
 
-func (s pgDB) FindUserByAPIToken(token string) (*users.User, error) {
+// FindUserByAPIToken finds a user by their api token
+func (s DB) FindUserByAPIToken(token string) (*users.User, error) {
 	user, err := s.scanUser(
 		s.usersQuery().
 			Join("api_tokens on (api_tokens.user_id = users.id)").
@@ -69,7 +72,8 @@ func (s pgDB) FindUserByAPIToken(token string) (*users.User, error) {
 	return user, nil
 }
 
-func (s pgDB) ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error) {
+// ListAPITokensForUserIDs lists the api tokens for these users
+func (s DB) ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error) {
 	rows, err := s.Select(
 		"api_tokens.id",
 		"api_tokens.user_id",

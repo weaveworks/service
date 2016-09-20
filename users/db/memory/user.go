@@ -13,13 +13,14 @@ import (
 	"github.com/weaveworks/service/users/login"
 )
 
-func (s *memoryDB) CreateUser(email string) (*users.User, error) {
+// CreateUser creates a new user with the given email.
+func (s *DB) CreateUser(email string) (*users.User, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	return s.createUser(email)
 }
 
-func (s *memoryDB) createUser(email string) (*users.User, error) {
+func (s *DB) createUser(email string) (*users.User, error) {
 	u := &users.User{
 		ID:        fmt.Sprint(len(s.users)),
 		Email:     strings.ToLower(email),
@@ -29,7 +30,9 @@ func (s *memoryDB) createUser(email string) (*users.User, error) {
 	return u, nil
 }
 
-func (s *memoryDB) AddLoginToUser(userID, provider, providerID string, session json.RawMessage) error {
+// AddLoginToUser adds the given login to the specified user. If it is already
+// attached elsewhere, this will error.
+func (s *DB) AddLoginToUser(userID, provider, providerID string, session json.RawMessage) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	if _, err := s.findUserByID(userID); err != nil {
@@ -53,7 +56,9 @@ func (s *memoryDB) AddLoginToUser(userID, provider, providerID string, session j
 	return nil
 }
 
-func (s *memoryDB) DetachLoginFromUser(userID, provider string) error {
+// DetachLoginFromUser detaches the specified login from a user. e.g. if you
+// want to attach it to a different user, do this first.
+func (s *DB) DetachLoginFromUser(userID, provider string) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	_, err := s.findUserByID(userID)
@@ -73,7 +78,9 @@ func (s *memoryDB) DetachLoginFromUser(userID, provider string) error {
 	return nil
 }
 
-func (s *memoryDB) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
+// InviteUser invites the user, to join the organization. If they are already a
+// member this is a noop.
+func (s *DB) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	created := false
@@ -102,13 +109,14 @@ func (s *memoryDB) InviteUser(email, orgExternalID string) (*users.User, bool, e
 	return u, created, nil
 }
 
-func (s *memoryDB) FindUserByID(id string) (*users.User, error) {
+// FindUserByID finds the user by id
+func (s *DB) FindUserByID(id string) (*users.User, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	return s.findUserByID(id)
 }
 
-func (s *memoryDB) findUserByID(id string) (*users.User, error) {
+func (s *DB) findUserByID(id string) (*users.User, error) {
 	u, ok := s.users[id]
 	if !ok {
 		return nil, users.ErrNotFound
@@ -116,13 +124,14 @@ func (s *memoryDB) findUserByID(id string) (*users.User, error) {
 	return u, nil
 }
 
-func (s *memoryDB) FindUserByEmail(email string) (*users.User, error) {
+// FindUserByEmail finds the user by email
+func (s *DB) FindUserByEmail(email string) (*users.User, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	return s.findUserByEmail(email)
 }
 
-func (s *memoryDB) findUserByEmail(email string) (*users.User, error) {
+func (s *DB) findUserByEmail(email string) (*users.User, error) {
 	for _, user := range s.users {
 		if user.Email == email {
 			return user, nil
@@ -131,13 +140,14 @@ func (s *memoryDB) findUserByEmail(email string) (*users.User, error) {
 	return nil, users.ErrNotFound
 }
 
-func (s *memoryDB) FindUserByLogin(provider, providerID string) (*users.User, error) {
+// FindUserByLogin finds the user by login
+func (s *DB) FindUserByLogin(provider, providerID string) (*users.User, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	return s.findUserByLogin(provider, providerID)
 }
 
-func (s *memoryDB) findUserByLogin(provider, providerID string) (*users.User, error) {
+func (s *DB) findUserByLogin(provider, providerID string) (*users.User, error) {
 	for _, l := range s.logins {
 		if l.Provider == provider && l.ProviderID == providerID {
 			return s.findUserByID(l.UserID)
@@ -152,7 +162,8 @@ func (u usersByCreatedAt) Len() int           { return len(u) }
 func (u usersByCreatedAt) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.Before(u[j].CreatedAt) }
 
-func (s *memoryDB) ListUsers() ([]*users.User, error) {
+// ListUsers lists users
+func (s *DB) ListUsers() ([]*users.User, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	users := []*users.User{}
@@ -163,7 +174,8 @@ func (s *memoryDB) ListUsers() ([]*users.User, error) {
 	return users, nil
 }
 
-func (s *memoryDB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
+// ListLoginsForUserIDs lists the logins for these users
+func (s *DB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
 	var logins []*login.Login
 	for _, l := range s.logins {
 		for _, userID := range userIDs {
@@ -176,7 +188,9 @@ func (s *memoryDB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, erro
 	return logins, nil
 }
 
-func (s *memoryDB) ApproveUser(id string) (*users.User, error) {
+// ApproveUser approves a user. Sort of deprecated, as all users are
+// auto-approved now.
+func (s *DB) ApproveUser(id string) (*users.User, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	user, err := s.findUserByID(id)
@@ -192,8 +206,8 @@ func (s *memoryDB) ApproveUser(id string) (*users.User, error) {
 	return user, err
 }
 
-// Set the admin flag of a user
-func (s *memoryDB) SetUserAdmin(id string, value bool) error {
+// SetUserAdmin sets the admin flag of a user
+func (s *DB) SetUserAdmin(id string, value bool) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	user, ok := s.users[id]
@@ -204,7 +218,8 @@ func (s *memoryDB) SetUserAdmin(id string, value bool) error {
 	return nil
 }
 
-func (s *memoryDB) SetUserToken(id, token string) error {
+// SetUserToken updates the user's login token
+func (s *DB) SetUserToken(id, token string) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	var hashed []byte
@@ -224,7 +239,9 @@ func (s *memoryDB) SetUserToken(id, token string) error {
 	return nil
 }
 
-func (s *memoryDB) SetUserFirstLoginAt(id string) error {
+// SetUserFirstLoginAt is called the first time a user logs in, to set their
+// first_login_at field.
+func (s *DB) SetUserFirstLoginAt(id string) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	user, ok := s.users[id]

@@ -12,11 +12,12 @@ import (
 	"github.com/weaveworks/service/users/login"
 )
 
-func (s pgDB) CreateUser(email string) (*users.User, error) {
+// CreateUser creates a new user with the given email.
+func (s DB) CreateUser(email string) (*users.User, error) {
 	return s.createUser(s, email)
 }
 
-func (s pgDB) createUser(q queryRower, email string) (*users.User, error) {
+func (s DB) createUser(q queryRower, email string) (*users.User, error) {
 	u := &users.User{Email: email, CreatedAt: s.Now()}
 	err := q.QueryRow("insert into users (email, created_at) values (lower($1), $2) returning id", email, u.CreatedAt).Scan(&u.ID)
 	switch {
@@ -28,7 +29,9 @@ func (s pgDB) createUser(q queryRower, email string) (*users.User, error) {
 	return u, nil
 }
 
-func (s pgDB) AddLoginToUser(userID, provider, providerID string, session json.RawMessage) error {
+// AddLoginToUser adds the given login to the specified user. If it is already
+// attached elsewhere, this will error.
+func (s DB) AddLoginToUser(userID, provider, providerID string, session json.RawMessage) error {
 	now := s.Now()
 	values := map[string]interface{}{
 		"user_id":     userID,
@@ -75,7 +78,9 @@ func (s pgDB) AddLoginToUser(userID, provider, providerID string, session json.R
 	})
 }
 
-func (s pgDB) DetachLoginFromUser(userID, provider string) error {
+// DetachLoginFromUser detaches the specified login from a user. e.g. if you
+// want to attach it to a different user, do this first.
+func (s DB) DetachLoginFromUser(userID, provider string) error {
 	_, err := s.Exec(
 		`update logins
 			set deleted_at = $3
@@ -87,7 +92,9 @@ func (s pgDB) DetachLoginFromUser(userID, provider string) error {
 	return err
 }
 
-func (s pgDB) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
+// InviteUser invites the user, to join the organization. If they are already a
+// member this is a noop.
+func (s DB) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
 	var u *users.User
 	userCreated := false
 	err := s.Transaction(func(tx *sql.Tx) error {
@@ -124,11 +131,12 @@ func (s pgDB) InviteUser(email, orgExternalID string) (*users.User, bool, error)
 	return u, userCreated, nil
 }
 
-func (s pgDB) FindUserByID(id string) (*users.User, error) {
+// FindUserByID finds the user by id
+func (s DB) FindUserByID(id string) (*users.User, error) {
 	return s.findUserByID(s.DB, id)
 }
 
-func (s pgDB) findUserByID(db squirrel.BaseRunner, id string) (*users.User, error) {
+func (s DB) findUserByID(db squirrel.BaseRunner, id string) (*users.User, error) {
 	user, err := s.scanUser(
 		s.usersQuery().RunWith(db).Where(squirrel.Eq{"users.id": id}).QueryRow(),
 	)
@@ -141,11 +149,12 @@ func (s pgDB) findUserByID(db squirrel.BaseRunner, id string) (*users.User, erro
 	return user, nil
 }
 
-func (s pgDB) FindUserByEmail(email string) (*users.User, error) {
+// FindUserByEmail finds the user by email
+func (s DB) FindUserByEmail(email string) (*users.User, error) {
 	return s.findUserByEmail(s.DB, email)
 }
 
-func (s pgDB) findUserByEmail(db squirrel.BaseRunner, email string) (*users.User, error) {
+func (s DB) findUserByEmail(db squirrel.BaseRunner, email string) (*users.User, error) {
 	user, err := s.scanUser(
 		s.usersQuery().RunWith(db).Where("lower(users.email) = lower($1)", email).QueryRow(),
 	)
@@ -158,11 +167,12 @@ func (s pgDB) findUserByEmail(db squirrel.BaseRunner, email string) (*users.User
 	return user, nil
 }
 
-func (s pgDB) FindUserByLogin(provider, providerID string) (*users.User, error) {
+// FindUserByLogin finds the user by login
+func (s DB) FindUserByLogin(provider, providerID string) (*users.User, error) {
 	return s.findUserByLogin(s.DB, provider, providerID)
 }
 
-func (s pgDB) findUserByLogin(db squirrel.BaseRunner, provider, providerID string) (*users.User, error) {
+func (s DB) findUserByLogin(db squirrel.BaseRunner, provider, providerID string) (*users.User, error) {
 	user, err := s.scanUser(
 		s.usersQuery().
 			RunWith(db).
@@ -183,7 +193,7 @@ func (s pgDB) findUserByLogin(db squirrel.BaseRunner, provider, providerID strin
 	return user, nil
 }
 
-func (s pgDB) scanUsers(rows *sql.Rows) ([]*users.User, error) {
+func (s DB) scanUsers(rows *sql.Rows) ([]*users.User, error) {
 	users := []*users.User{}
 	for rows.Next() {
 		user, err := s.scanUser(rows)
@@ -198,7 +208,7 @@ func (s pgDB) scanUsers(rows *sql.Rows) ([]*users.User, error) {
 	return users, nil
 }
 
-func (s pgDB) scanUser(row squirrel.RowScanner) (*users.User, error) {
+func (s DB) scanUser(row squirrel.RowScanner) (*users.User, error) {
 	u := &users.User{}
 	var (
 		token sql.NullString
@@ -222,7 +232,7 @@ func (s pgDB) scanUser(row squirrel.RowScanner) (*users.User, error) {
 	return u, nil
 }
 
-func (s pgDB) usersQuery() squirrel.SelectBuilder {
+func (s DB) usersQuery() squirrel.SelectBuilder {
 	return s.Select(
 		"users.id",
 		"users.email",
@@ -238,7 +248,8 @@ func (s pgDB) usersQuery() squirrel.SelectBuilder {
 		OrderBy("users.created_at")
 }
 
-func (s pgDB) ListUsers() ([]*users.User, error) {
+// ListUsers lists users
+func (s DB) ListUsers() ([]*users.User, error) {
 	rows, err := s.usersQuery().Query()
 	if err != nil {
 		return nil, err
@@ -247,7 +258,8 @@ func (s pgDB) ListUsers() ([]*users.User, error) {
 	return s.scanUsers(rows)
 }
 
-func (s pgDB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
+// ListLoginsForUserIDs lists the logins for these users
+func (s DB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
 	rows, err := s.Select(
 		"logins.user_id",
 		"logins.provider",
@@ -285,7 +297,9 @@ func (s pgDB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
 	return ls, err
 }
 
-func (s pgDB) ApproveUser(id string) (*users.User, error) {
+// ApproveUser approves a user. Sort of deprecated, as all users are
+// auto-approved now.
+func (s DB) ApproveUser(id string) (*users.User, error) {
 	var user *users.User
 	err := s.Transaction(func(tx *sql.Tx) error {
 		result, err := tx.Exec(`update users set approved_at = $2 where id = $1 and approved_at is null`, id, s.Now())
@@ -303,7 +317,8 @@ func (s pgDB) ApproveUser(id string) (*users.User, error) {
 	return user, err
 }
 
-func (s pgDB) SetUserAdmin(id string, value bool) error {
+// SetUserAdmin sets the admin flag of a user
+func (s DB) SetUserAdmin(id string, value bool) error {
 	result, err := s.Exec(`
 		update users set admin = $2 where id = $1 and deleted_at is null
 	`, id, value,
@@ -321,7 +336,8 @@ func (s pgDB) SetUserAdmin(id string, value bool) error {
 	return nil
 }
 
-func (s pgDB) SetUserToken(id, token string) error {
+// SetUserToken updates the user's login token
+func (s DB) SetUserToken(id, token string) error {
 	var hashed []byte
 	if token != "" {
 		var err error
@@ -352,7 +368,9 @@ func (s pgDB) SetUserToken(id, token string) error {
 	return nil
 }
 
-func (s pgDB) SetUserFirstLoginAt(id string) error {
+// SetUserFirstLoginAt is called the first time a user logs in, to set their
+// first_login_at field.
+func (s DB) SetUserFirstLoginAt(id string) error {
 	result, err := s.Exec(`
 		update users set
 			first_login_at = $2

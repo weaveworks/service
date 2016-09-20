@@ -7,7 +7,8 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
-func (s *memoryDB) CreateAPIToken(userID, description string) (*users.APIToken, error) {
+// CreateAPIToken creates an api token for the user
+func (s *DB) CreateAPIToken(userID, description string) (*users.APIToken, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	if _, err := s.findUserByID(userID); err != nil {
@@ -29,7 +30,8 @@ func (s *memoryDB) CreateAPIToken(userID, description string) (*users.APIToken, 
 	return t, nil
 }
 
-func (s *memoryDB) DeleteAPIToken(userID, token string) error {
+// DeleteAPIToken deletes an api token for the user
+func (s *DB) DeleteAPIToken(userID, token string) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	if _, err := s.findUserByID(userID); err != nil {
@@ -43,7 +45,8 @@ func (s *memoryDB) DeleteAPIToken(userID, token string) error {
 	return nil
 }
 
-func (s *memoryDB) FindUserByAPIToken(token string) (*users.User, error) {
+// FindUserByAPIToken finds a user by their api token
+func (s *DB) FindUserByAPIToken(token string) (*users.User, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	t, ok := s.apiTokens[token]
@@ -53,7 +56,8 @@ func (s *memoryDB) FindUserByAPIToken(token string) (*users.User, error) {
 	return s.findUserByID(t.UserID)
 }
 
-func (s *memoryDB) ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error) {
+// ListAPITokensForUserIDs lists the api tokens for these users
+func (s *DB) ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error) {
 	var tokens []*users.APIToken
 	for _, t := range s.apiTokens {
 		for _, userID := range userIDs {

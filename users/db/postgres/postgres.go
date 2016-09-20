@@ -12,7 +12,8 @@ import (
 	"github.com/mattes/migrate/migrate"
 )
 
-type pgDB struct {
+// DB is a postgres db, for dev and production
+type DB struct {
 	*sql.DB
 	squirrel.StatementBuilderType
 	PasswordHashingCost int
@@ -32,7 +33,7 @@ type execQueryRower interface {
 }
 
 // New creates a new postgres DB
-func New(databaseURI, migrationsDir string, passwordHashingCost int) (*pgDB, error) {
+func New(databaseURI, migrationsDir string, passwordHashingCost int) (*DB, error) {
 	if migrationsDir != "" {
 		logrus.Infof("Running Database Migrations...")
 		if errs, ok := migrate.UpSync(databaseURI, migrationsDir); !ok {
@@ -43,7 +44,7 @@ func New(databaseURI, migrationsDir string, passwordHashingCost int) (*pgDB, err
 		}
 	}
 	db, err := sql.Open("postgres", databaseURI)
-	return &pgDB{
+	return &DB{
 		DB:                   db,
 		StatementBuilderType: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).RunWith(db),
 		PasswordHashingCost:  passwordHashingCost,
@@ -53,13 +54,13 @@ func New(databaseURI, migrationsDir string, passwordHashingCost int) (*pgDB, err
 // Now gives us the current time for Postgres. Postgres only stores times to
 // the microsecond, so we pre-truncate times so tests will match. We also
 // normalize to UTC, for sanity.
-func (s pgDB) Now() time.Time {
+func (s DB) Now() time.Time {
 	return time.Now().UTC().Truncate(time.Microsecond)
 }
 
 // Transaction runs the given function in a postgres transaction. If fn returns
 // an error the txn will be rolled back.
-func (s pgDB) Transaction(f func(*sql.Tx) error) error {
+func (s DB) Transaction(f func(*sql.Tx) error) error {
 	tx, err := s.Begin()
 	if err != nil {
 		return err
@@ -75,7 +76,7 @@ func (s pgDB) Transaction(f func(*sql.Tx) error) error {
 }
 
 // Truncate clears all the data in pg. Should only be used in tests!
-func (s pgDB) Truncate() error {
+func (s DB) Truncate() error {
 	return s.Transaction(func(tx *sql.Tx) error {
 		return mustExec(
 			tx,

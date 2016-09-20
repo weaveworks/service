@@ -7,7 +7,8 @@ import (
 	"github.com/weaveworks/service/users/login"
 )
 
-type memoryDB struct {
+// DB is an in-memory database for testing, and local development
+type DB struct {
 	users               map[string]*users.User
 	organizations       map[string]*users.Organization
 	memberships         map[string][]string
@@ -18,8 +19,8 @@ type memoryDB struct {
 }
 
 // New creates a new in-memory database
-func New(_, _ string, passwordHashingCost int) (*memoryDB, error) {
-	return &memoryDB{
+func New(_, _ string, passwordHashingCost int) (*DB, error) {
+	return &DB{
 		users:               make(map[string]*users.User),
 		organizations:       make(map[string]*users.Organization),
 		memberships:         make(map[string][]string),
@@ -29,8 +30,9 @@ func New(_, _ string, passwordHashingCost int) (*memoryDB, error) {
 	}, nil
 }
 
-func (s *memoryDB) Truncate() error {
-	*s = memoryDB{
+// Truncate clears all the data. Should only be used in tests!
+func (s *DB) Truncate() error {
+	*s = DB{
 		users:               make(map[string]*users.User),
 		organizations:       make(map[string]*users.Organization),
 		memberships:         make(map[string][]string),
@@ -41,8 +43,7 @@ func (s *memoryDB) Truncate() error {
 	return nil
 }
 
-func (s *memoryDB) Close() error {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
+// Close finishes using the db. Noop.
+func (s *DB) Close() error {
 	return nil
 }

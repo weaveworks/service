@@ -10,7 +10,9 @@ import (
 	"github.com/weaveworks/service/users/externalIDs"
 )
 
-func (s pgDB) RemoveUserFromOrganization(orgExternalID, email string) error {
+// RemoveUserFromOrganization removes the user from the organiation. If they
+// are not a member, this is a noop.
+func (s DB) RemoveUserFromOrganization(orgExternalID, email string) error {
 	_, err := s.Exec(`
 			update memberships set deleted_at = $1
 			where user_id in (
@@ -33,11 +35,12 @@ func (s pgDB) RemoveUserFromOrganization(orgExternalID, email string) error {
 	return err
 }
 
-func (s pgDB) UserIsMemberOf(userID, orgExternalID string) (bool, error) {
+// UserIsMemberOf checks if the user is a member of the organization
+func (s DB) UserIsMemberOf(userID, orgExternalID string) (bool, error) {
 	return s.userIsMemberOf(s.DB, userID, orgExternalID)
 }
 
-func (s pgDB) userIsMemberOf(db squirrel.BaseRunner, userID, orgExternalID string) (bool, error) {
+func (s DB) userIsMemberOf(db squirrel.BaseRunner, userID, orgExternalID string) (bool, error) {
 	rows, err := s.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userID, "organizations.external_id": orgExternalID}).
@@ -54,7 +57,7 @@ func (s pgDB) userIsMemberOf(db squirrel.BaseRunner, userID, orgExternalID strin
 	return ok, rows.Close()
 }
 
-func (s pgDB) organizationsQuery() squirrel.SelectBuilder {
+func (s DB) organizationsQuery() squirrel.SelectBuilder {
 	return s.Select(
 		"organizations.id",
 		"organizations.external_id",
@@ -69,7 +72,8 @@ func (s pgDB) organizationsQuery() squirrel.SelectBuilder {
 		OrderBy("organizations.created_at")
 }
 
-func (s pgDB) ListOrganizations() ([]*users.Organization, error) {
+// ListOrganizations lists organizations
+func (s DB) ListOrganizations() ([]*users.Organization, error) {
 	rows, err := s.organizationsQuery().Query()
 	if err != nil {
 		return nil, err
@@ -78,7 +82,8 @@ func (s pgDB) ListOrganizations() ([]*users.Organization, error) {
 	return s.scanOrganizations(rows)
 }
 
-func (s pgDB) ListOrganizationUsers(orgExternalID string) ([]*users.User, error) {
+// ListOrganizationUsers lists all the users in an organization
+func (s DB) ListOrganizationUsers(orgExternalID string) ([]*users.User, error) {
 	rows, err := s.usersQuery().
 		Join("memberships on (memberships.user_id = users.id)").
 		Join("organizations on (memberships.organization_id = organizations.id)").
@@ -95,7 +100,8 @@ func (s pgDB) ListOrganizationUsers(orgExternalID string) ([]*users.User, error)
 	return s.scanUsers(rows)
 }
 
-func (s pgDB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organization, error) {
+// ListOrganizationsForUserIDs lists the organizations these users belong to
+func (s DB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organization, error) {
 	rows, err := s.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userIDs}).
@@ -111,7 +117,7 @@ func (s pgDB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organizat
 	return orgs, err
 }
 
-func (s pgDB) addUserToOrganization(db execQueryRower, userID, organizationID string) error {
+func (s DB) addUserToOrganization(db execQueryRower, userID, organizationID string) error {
 	_, err := db.Exec(`
 			insert into memberships
 				(user_id, organization_id, created_at)
@@ -128,10 +134,12 @@ func (s pgDB) addUserToOrganization(db execQueryRower, userID, organizationID st
 	return err
 }
 
+// GenerateOrganizationExternalID returns an available organization external
+// id, e.g. creaky-door-97
 // TODO: There is a known issue, where as we fill up the database this will
 // gradually slow down (since the algorithm is quite naive). We should fix it
 // eventually.
-func (s pgDB) GenerateOrganizationExternalID() (string, error) {
+func (s DB) GenerateOrganizationExternalID() (string, error) {
 	var (
 		externalID string
 		err        error
@@ -146,7 +154,8 @@ func (s pgDB) GenerateOrganizationExternalID() (string, error) {
 	return externalID, err
 }
 
-func (s pgDB) CreateOrganization(ownerID, externalID, name string) (*users.Organization, error) {
+// CreateOrganization creates a new organization owned by the user
+func (s DB) CreateOrganization(ownerID, externalID, name string) (*users.Organization, error) {
 	o := &users.Organization{
 		ExternalID: externalID,
 		Name:       name,
@@ -192,7 +201,9 @@ func (s pgDB) CreateOrganization(ownerID, externalID, name string) (*users.Organ
 	return o, err
 }
 
-func (s pgDB) FindOrganizationByProbeToken(probeToken string) (*users.Organization, error) {
+// FindOrganizationByProbeToken looks up the organization matching a given
+// probe token.
+func (s DB) FindOrganizationByProbeToken(probeToken string) (*users.Organization, error) {
 	var o *users.Organization
 	var err error
 	err = s.Transaction(func(tx *sql.Tx) error {
@@ -215,7 +226,7 @@ func (s pgDB) FindOrganizationByProbeToken(probeToken string) (*users.Organizati
 	return o, err
 }
 
-func (s pgDB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
+func (s DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
 	orgs := []*users.Organization{}
 	for rows.Next() {
 		org, err := s.scanOrganization(rows)
@@ -230,7 +241,7 @@ func (s pgDB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
 	return orgs, nil
 }
 
-func (s pgDB) scanOrganization(row squirrel.RowScanner) (*users.Organization, error) {
+func (s DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, error) {
 	o := &users.Organization{}
 	var externalID, name, probeToken sql.NullString
 	var firstProbeUpdateAt, createdAt pq.NullTime
@@ -245,7 +256,8 @@ func (s pgDB) scanOrganization(row squirrel.RowScanner) (*users.Organization, er
 	return o, nil
 }
 
-func (s pgDB) RenameOrganization(externalID, name string) error {
+// RenameOrganization changes an organization's user-settable name
+func (s DB) RenameOrganization(externalID, name string) error {
 	if err := (&users.Organization{ExternalID: externalID, Name: name}).Valid(); err != nil {
 		return err
 	}
@@ -268,11 +280,13 @@ func (s pgDB) RenameOrganization(externalID, name string) error {
 	return nil
 }
 
-func (s pgDB) OrganizationExists(externalID string) (bool, error) {
+// OrganizationExists just returns a simple bool checking if an organization
+// exists
+func (s DB) OrganizationExists(externalID string) (bool, error) {
 	return s.organizationExists(s, externalID)
 }
 
-func (s pgDB) organizationExists(db queryRower, externalID string) (bool, error) {
+func (s DB) organizationExists(db queryRower, externalID string) (bool, error) {
 	var exists bool
 	err := db.QueryRow(
 		`select exists(select 1 from organizations where lower(external_id) = lower($1) and deleted_at is null)`,
@@ -281,7 +295,8 @@ func (s pgDB) organizationExists(db queryRower, externalID string) (bool, error)
 	return exists, err
 }
 
-func (s pgDB) GetOrganizationName(externalID string) (string, error) {
+// GetOrganizationName gets the name of an organization from it's external ID.
+func (s DB) GetOrganizationName(externalID string) (string, error) {
 	var name string
 	err := s.QueryRow(
 		`select name from organizations where lower(external_id) = lower($1) and deleted_at is null`,
@@ -290,7 +305,8 @@ func (s pgDB) GetOrganizationName(externalID string) (string, error) {
 	return name, err
 }
 
-func (s pgDB) DeleteOrganization(externalID string) error {
+// DeleteOrganization deletes an organization
+func (s DB) DeleteOrganization(externalID string) error {
 	_, err := s.Exec(
 		`update organizations set deleted_at = $1 where lower(external_id) = lower($2)`,
 		s.Now(), externalID,
@@ -298,7 +314,8 @@ func (s pgDB) DeleteOrganization(externalID string) error {
 	return err
 }
 
-func (s pgDB) AddFeatureFlag(externalID string, featureFlag string) error {
+// AddFeatureFlag adds a new feature flag to a organization.
+func (s DB) AddFeatureFlag(externalID string, featureFlag string) error {
 	_, err := s.Exec(
 		`update organizations set feature_flags = feature_flags || $1 where lower(external_id) = lower($2)`,
 		pq.Array([]string{featureFlag}), externalID,
