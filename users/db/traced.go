@@ -162,6 +162,11 @@ func (t traced) AddFeatureFlag(externalID string, featureFlag string) (err error
 	return t.d.AddFeatureFlag(externalID, featureFlag)
 }
 
+func (t traced) SetFeatureFlags(externalID string, featureFlags []string) (err error) {
+	defer func() { t.trace("SetFeatureFlags", externalID, featureFlags, err) }()
+	return t.d.SetFeatureFlags(externalID, featureFlags)
+}
+
 func (t traced) Close() (err error) {
 	defer func() { t.trace("Close", err) }()
 	return t.d.Close()

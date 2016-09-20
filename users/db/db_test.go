@@ -44,3 +44,21 @@ func Test_DB_AddFeatureFlag(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, org.FeatureFlags, []string{"supercow"})
 }
+
+func Test_DB_SetFeatureFlags(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
+
+	_, org := dbtest.GetOrg(t, db)
+
+	for _, flags := range [][]string{
+		{"supercow", "superchicken"},
+		{"superchicken"},
+	} {
+		err := db.SetFeatureFlags(org.ExternalID, flags)
+		require.NoError(t, err)
+		org, err = db.FindOrganizationByProbeToken(org.ProbeToken)
+		require.NoError(t, err)
+		require.Equal(t, flags, org.FeatureFlags)
+	}
+}

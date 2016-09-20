@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Weave Cloud - Organizations</title>
+  </head>
+  <body>
+    <h2>Organizations</h2>
+    {{with .}}
+    <table>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>CreatedAt</th>
+        <th>FirstProbeUpdateAt</th>
+        <th>Users</th>
+        <th>FeatureFlags</th>
+      </tr>
+      {{range .Organizations}}
+      <tr>
+        <td>{{.ExternalID}}</td>
+        <td>{{.Name}}</td>
+        <td>{{.FormatCreatedAt}}</td>
+        <td>{{.FormatFirstProbeUpdateAt}}</td>
+        <td>{{index $.OrganizationUsers .ExternalID}}</td>
+        <td>
+          <form action="organizations/{{.ExternalID}}/featureflags" method="POST">
+            <input type="hidden" name="redirect_to" value="../../organizations" />
+            <input type="text" name="feature_flags" value="{{range .FeatureFlags}}{{.}} {{end}}" />
+            <input type="submit" value="Save" />
+          </form>
+        </td>
+      </tr>
+      {{end}}
+    </table>
+    {{else}}
+    <p>No organizations.</p>
+    {{end}}
+  </body>
+</html>

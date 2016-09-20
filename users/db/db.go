@@ -90,6 +90,7 @@ type DB interface {
 	GetOrganizationName(externalID string) (string, error)
 	DeleteOrganization(externalID string) error
 	AddFeatureFlag(externalID string, featureFlag string) error
+	SetFeatureFlags(externalID string, featureFlags []string) error
 
 	Close() error
 }

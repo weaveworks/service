@@ -77,9 +77,10 @@ func (a *API) routes() http.Handler {
 		// Internal stuff for our internal usage, internally.
 		{"loadgen", "GET", "/loadgen", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintf(w, "OK") }},
 		{"root", "GET", "/", a.admin},
-		{"private_api_users", "GET", "/private/api/users", a.listUsers},
-		{"private_api_instances", "GET", "/private/api/organizations", a.listOrganizations},
+		{"private_api_organizations", "GET", "/private/api/organizations", a.listOrganizations},
+		{"private_api_organizations_orgExternalID_featureFlags", "POST", "/private/api/organizations/{orgExternalID}/featureflags", a.setOrgFeatureFlags},
 		{"private_api_pardot", "GET", "/private/api/pardot", a.pardotRefresh},
+		{"private_api_users", "GET", "/private/api/users", a.listUsers},
 		{"private_api_users_userID_admin", "POST", "/private/api/users/{userID}/admin", a.makeUserAdmin},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
