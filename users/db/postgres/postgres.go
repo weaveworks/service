@@ -80,14 +80,16 @@ func (s pgDB) Transaction(f func(*sql.Tx) error) error {
 
 // Truncate clears all the data in pg. Should only be used in tests!
 func (s pgDB) Truncate() error {
-	return mustExec(
-		s,
-		`truncate table traceable;`,
-		`truncate table users;`,
-		`truncate table logins;`,
-		`truncate table organizations;`,
-		`truncate table memberships;`,
-	)
+	return s.Transaction(func(tx *sql.Tx) error {
+		return mustExec(
+			tx,
+			`truncate table traceable;`,
+			`truncate table users;`,
+			`truncate table logins;`,
+			`truncate table organizations;`,
+			`truncate table memberships;`,
+		)
+	})
 }
 
 func mustExec(db squirrel.Execer, queries ...string) error {
