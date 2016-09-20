@@ -16,8 +16,6 @@ import (
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db"
-	_ "github.com/weaveworks/service/users/db/memory"
-	_ "github.com/weaveworks/service/users/db/postgres"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/pardot"

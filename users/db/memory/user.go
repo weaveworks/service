@@ -10,7 +10,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/login"
 )
 
@@ -211,7 +210,7 @@ func (s *memoryDB) SetUserToken(id, token string) error {
 	var hashed []byte
 	if token != "" {
 		var err error
-		hashed, err = bcrypt.GenerateFromPassword([]byte(token), db.PasswordHashingCost)
+		hashed, err = bcrypt.GenerateFromPassword([]byte(token), s.passwordHashingCost)
 		if err != nil {
 			return err
 		}

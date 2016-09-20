@@ -3,11 +3,12 @@ package db
 import (
 	"encoding/json"
 	"net/url"
-	"sync"
 
 	"github.com/Sirupsen/logrus"
 
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/db/memory"
+	"github.com/weaveworks/service/users/db/postgres"
 	"github.com/weaveworks/service/users/login"
 )
 
@@ -16,9 +17,6 @@ var (
 	// password. It should be high enough to be difficult, but low enough we can
 	// do it.
 	PasswordHashingCost = 14
-
-	drivers     = map[string]func(string, string) (DB, error){}
-	driversLock sync.Mutex
 )
 
 // DB is the interface for the database.
@@ -104,33 +102,23 @@ type Truncater interface {
 	Truncate() error
 }
 
-// Register is what drivers should call to make themselves available.
-func Register(scheme string, f func(string, string) (DB, error)) {
-	driversLock.Lock()
-	drivers[scheme] = f
-	driversLock.Unlock()
-}
-
 // MustNew creates a new database from the URI, or panics.
 func MustNew(databaseURI, migrationsDir string) DB {
 	u, err := url.Parse(databaseURI)
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	driversLock.Lock()
-	driver, ok := drivers[u.Scheme]
-	if !ok {
-		known := []string{}
-		for scheme := range drivers {
-			known = append(known, scheme)
-		}
-		logrus.Fatalf("Unknown database type: %s, have %q", u.Scheme, known)
+	var d DB
+	switch u.Scheme {
+	case "memory":
+		d, err = memory.New(databaseURI, migrationsDir, PasswordHashingCost)
+	case "postgres":
+		d, err = postgres.New(databaseURI, migrationsDir, PasswordHashingCost)
+	default:
+		logrus.Fatalf("Unknown database type: %s", u.Scheme)
 	}
-	defer driversLock.Unlock()
-
-	db, err := driver(databaseURI, migrationsDir)
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	return traced{timed{db, users.DatabaseRequestDuration}}
+	return traced{timed{d, users.DatabaseRequestDuration}}
 }

@@ -10,17 +10,12 @@ import (
 	_ "github.com/lib/pq"                         // Import the postgres sql driver
 	_ "github.com/mattes/migrate/driver/postgres" // Import the postgres migrations driver
 	"github.com/mattes/migrate/migrate"
-
-	"github.com/weaveworks/service/users/db"
 )
-
-func init() {
-	db.Register("postgres", New)
-}
 
 type pgDB struct {
 	*sql.DB
 	squirrel.StatementBuilderType
+	PasswordHashingCost int
 }
 
 type queryRower interface {
@@ -37,7 +32,7 @@ type execQueryRower interface {
 }
 
 // New creates a new postgres DB
-func New(databaseURI, migrationsDir string) (db.DB, error) {
+func New(databaseURI, migrationsDir string, passwordHashingCost int) (*pgDB, error) {
 	if migrationsDir != "" {
 		logrus.Infof("Running Database Migrations...")
 		if errs, ok := migrate.UpSync(databaseURI, migrationsDir); !ok {
@@ -51,6 +46,7 @@ func New(databaseURI, migrationsDir string) (db.DB, error) {
 	return &pgDB{
 		DB:                   db,
 		StatementBuilderType: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).RunWith(db),
+		PasswordHashingCost:  passwordHashingCost,
 	}, err
 }
 
@@ -92,9 +88,9 @@ func (s pgDB) Truncate() error {
 	})
 }
 
-func mustExec(db squirrel.Execer, queries ...string) error {
+func mustExec(e squirrel.Execer, queries ...string) error {
 	for _, q := range queries {
-		if _, err := db.Exec(q); err != nil {
+		if _, err := e.Exec(q); err != nil {
 			return err
 		}
 	}

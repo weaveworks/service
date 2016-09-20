@@ -9,7 +9,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/login"
 )
 
@@ -17,9 +16,9 @@ func (s pgDB) CreateUser(email string) (*users.User, error) {
 	return s.createUser(s, email)
 }
 
-func (s pgDB) createUser(db queryRower, email string) (*users.User, error) {
+func (s pgDB) createUser(q queryRower, email string) (*users.User, error) {
 	u := &users.User{Email: email, CreatedAt: s.Now()}
-	err := db.QueryRow("insert into users (email, created_at) values (lower($1), $2) returning id", email, u.CreatedAt).Scan(&u.ID)
+	err := q.QueryRow("insert into users (email, created_at) values (lower($1), $2) returning id", email, u.CreatedAt).Scan(&u.ID)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil, users.ErrNotFound
@@ -326,7 +325,7 @@ func (s pgDB) SetUserToken(id, token string) error {
 	var hashed []byte
 	if token != "" {
 		var err error
-		hashed, err = bcrypt.GenerateFromPassword([]byte(token), db.PasswordHashingCost)
+		hashed, err = bcrypt.GenerateFromPassword([]byte(token), s.PasswordHashingCost)
 		if err != nil {
 			return err
 		}
