@@ -5,12 +5,29 @@ import (
 	"math/rand"
 	"testing"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/weaveworks/service/common/logging"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 )
+
+// Setup sets up stuff for testing, creating a new database
+func Setup(t *testing.T) db.DB {
+	require.NoError(t, logging.Setup("debug"))
+	db.PasswordHashingCost = bcrypt.MinCost
+	database := db.MustNew(*databaseURI, *databaseMigrations)
+	require.NoError(t, database.(db.Truncater).Truncate())
+	return database
+}
+
+// Cleanup cleans up after a test
+func Cleanup(t *testing.T, database db.DB) {
+	require.NoError(t, database.Close())
+}
 
 // GetApprovedUser makes a randomly named, approved user
 func GetApprovedUser(t *testing.T, db db.DB) *users.User {
