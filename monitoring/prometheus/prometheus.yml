@@ -85,11 +85,6 @@ scrape_configs:
   relabel_configs:
   - target_label: __scheme__
     replacement: https
-  - source_labels: [__meta_kubernetes_node_label_kubernetes_io_hostname, __meta_kubernetes_node_port]
-    separator: ':'
-    target_label: __address__
-  - source_labels: [__meta_kubernetes_node_label_kubernetes_io_hostname]
-    target_label: instance
 
 # This scrape config gathers data from the api server
 - job_name: 'kubernetes-api'
