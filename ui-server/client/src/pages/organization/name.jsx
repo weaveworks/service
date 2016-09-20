@@ -92,7 +92,7 @@ export default class Users extends React.Component {
       button: {
         //
         // We're in an h2 w/ fontSize: 36px which seems to muck up the vertical alignment of the
-        // button label. Theory: The nested div matui uses for the ripple layed inherits
+        // button label. Theory: The nested div matui uses for the ripple layer inherits
         // "-webkit-margin-before: 0.83em" from the h2.
         //
         fontSize: '14px',
