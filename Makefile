@@ -129,7 +129,7 @@ users-integration-test: $(USERS_UPTODATE)
 ui-upload: ui-server/client/build/index.html
 	AWS_ACCESS_KEY_ID=$$UI_BUCKET_KEY_ID \
 	AWS_SECRET_ACCESS_KEY=$$UI_BUCKET_KEY_SECRET \
-	aws s3 cp ui-server/client/build/ s3://static.weave.works/ --recursive --exclude index.html
+	aws s3 cp ui-server/client/build/ s3://static.weave.works/service-ui/ --recursive --exclude index.html
 
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true

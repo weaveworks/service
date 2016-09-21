@@ -14,7 +14,9 @@ module.exports = {
   },
 
   output: {
-    publicPath: 'https://static.cloud.weave.works/', // absolute path for bundle
+    // absolute path for bundle
+    // we can't use the static.weave.works CNAME yet because of SSL issues
+    publicPath: 'https://s3.amazonaws.com/static.weave.works/service-ui/',
     path: __dirname + '/build/',
     filename: '[chunkhash].js'
   },
