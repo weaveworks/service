@@ -48,6 +48,14 @@ func routes(c Config) (http.Handler, error) {
 		}
 	}
 
+	probeAuth := middleware.Merge(
+		users.AuthProbeMiddleware{
+			Authenticator: c.authenticator,
+			OutputHeader:  c.outputHeader,
+		},
+		probeHTTPlogger,
+	)
+
 	r := newRouter()
 	for _, route := range []routable{
 		path{"/metrics", prometheus.Handler()},
@@ -99,13 +107,15 @@ func routes(c Config) (http.Handler, error) {
 				{"/config", newProxy(c.deployHost)},
 				{"/prom", newProxy(c.promHost)},
 			},
-			middleware.Merge(
-				users.AuthProbeMiddleware{
-					Authenticator: c.authenticator,
-					OutputHeader:  c.outputHeader,
-				},
-				probeHTTPlogger,
-			),
+			probeAuth,
+		},
+
+		prefix{
+			"/remote.Write",
+			[]path{
+				{"/", newProxy(c.promHost)},
+			},
+			probeAuth,
 		},
 
 		// For all admin functionality, authenticated using header credentials
