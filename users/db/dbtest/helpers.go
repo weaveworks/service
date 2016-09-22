@@ -29,13 +29,10 @@ func Cleanup(t *testing.T, database db.DB) {
 	require.NoError(t, database.Close())
 }
 
-// GetApprovedUser makes a randomly named, approved user
-func GetApprovedUser(t *testing.T, db db.DB) *users.User {
+// GetUser makes a randomly named user
+func GetUser(t *testing.T, db db.DB) *users.User {
 	email := fmt.Sprintf("%d@weave.works", rand.Int63())
 	user, err := db.CreateUser(email)
-	require.NoError(t, err)
-
-	user, err = db.ApproveUser(user.ID)
 	require.NoError(t, err)
 
 	return user
@@ -58,7 +55,7 @@ func CreateOrgForUser(t *testing.T, db db.DB, u *users.User) *users.Organization
 
 // GetOrg makes org with a random ExternalID and user for testing
 func GetOrg(t *testing.T, db db.DB) (*users.User, *users.Organization) {
-	user := GetApprovedUser(t, db)
+	user := GetUser(t, db)
 	org := CreateOrgForUser(t, db, user)
 	return user, org
 }

@@ -78,9 +78,6 @@ func Test_Signup(t *testing.T) {
 	loginLink, emailToken := findLoginLink(t, sentEmails[0])
 	assert.Contains(t, string(sentEmails[0].HTML), loginLink)
 
-	// Check they were immediately approved
-	assert.False(t, user.ApprovedAt.IsZero(), "user should be approved")
-
 	// Check the db one was hashed
 	assert.NotEqual(t, "", user.Token, "user should have a token set")
 	assert.NotEqual(t, user.Token, emailToken, "stored token should have been hashed")
@@ -206,7 +203,6 @@ func Test_Signup_ViaOAuth(t *testing.T) {
 	user, err := database.FindUserByEmail(email)
 	require.NoError(t, err)
 
-	assert.False(t, user.ApprovedAt.IsZero(), "user should be approved")
 	assert.Equal(t, "", user.Token, "user should not have a token set")
 	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 
@@ -224,7 +220,7 @@ func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
+	user := getUser(t)
 	logins.Register("mock", MockLoginProvider{
 		"joe": {ID: "joe", Email: user.Email},
 	})
@@ -250,7 +246,6 @@ func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 	}, body)
 
 	assert.Equal(t, user.ID, found.ID, "user id should match the existing")
-	assert.False(t, found.ApprovedAt.IsZero(), "user should be approved")
 	assert.Equal(t, user.Token, found.Token, "user should still have same token set")
 	assert.False(t, found.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 
@@ -268,7 +263,7 @@ func Test_Signup_ViaOAuth_EmailChanged(t *testing.T) {
 	// When a user has changed their remote email, but the remote user ID is the same.
 	setup(t)
 	defer cleanup(t)
-	user := getApprovedUser(t)
+	user := getUser(t)
 	provider := MockLoginProvider{
 		"joe": {ID: "joe", Email: user.Email},
 	}

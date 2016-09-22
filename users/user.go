@@ -18,7 +18,6 @@ type User struct {
 	Email          string    `json:"email"`
 	Token          string    `json:"-"`
 	TokenCreatedAt time.Time `json:"-"`
-	ApprovedAt     time.Time `json:"-"`
 	FirstLoginAt   time.Time `json:"-"`
 	CreatedAt      time.Time `json:"-"`
 	Admin          bool      `json:"-"`
@@ -36,19 +35,9 @@ func (u *User) FormatCreatedAt() string {
 	return formatTimestamp(u.CreatedAt)
 }
 
-// FormatApprovedAt formats the user's approved at timestamp
-func (u *User) FormatApprovedAt() string {
-	return formatTimestamp(u.ApprovedAt)
-}
-
 // FormatFirstLoginAt formats the user's first login timestamp
 func (u *User) FormatFirstLoginAt() string {
 	return formatTimestamp(u.FirstLoginAt)
-}
-
-// IsApproved checks if a user has been approved
-func (u *User) IsApproved() bool {
-	return !u.ApprovedAt.IsZero()
 }
 
 // CompareToken does a cryptographically-secure comparison of the user's login token

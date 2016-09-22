@@ -32,7 +32,6 @@ type apiResponse struct {
 type prospect struct {
 	Email             string
 	ServiceCreatedAt  time.Time
-	ServiceApprovedAt time.Time
 	ServiceLastAccess time.Time
 }
 
@@ -46,7 +45,6 @@ func (p1 prospect) merge(p2 prospect) prospect {
 
 	return prospect{
 		ServiceCreatedAt:  latest(p1.ServiceCreatedAt, p2.ServiceCreatedAt),
-		ServiceApprovedAt: latest(p1.ServiceApprovedAt, p2.ServiceApprovedAt),
 		ServiceLastAccess: latest(p1.ServiceLastAccess, p2.ServiceLastAccess),
 	}
 }
@@ -61,11 +59,9 @@ func (p1 prospect) MarshalJSON() ([]byte, error) {
 
 	encoded := struct {
 		ServiceCreatedAt  string `json:",omitempty"`
-		ServiceApprovedAt string `json:",omitempty"`
 		ServiceLastAccess string `json:",omitempty"`
 	}{
 		ServiceCreatedAt:  encode(p1.ServiceCreatedAt),
-		ServiceApprovedAt: encode(p1.ServiceApprovedAt),
 		ServiceLastAccess: encode(p1.ServiceLastAccess),
 	}
 	return json.Marshal(encoded)
@@ -207,22 +203,6 @@ func (c *Client) UserCreated(email string, createdAt time.Time) {
 	c.prospects = append(c.prospects, prospect{
 		Email:            email,
 		ServiceCreatedAt: createdAt,
-	})
-	c.cond.Broadcast()
-}
-
-// UserApproved should be called when users are approved.
-// This will trigger an immediate 'upload' to pardot, although
-// that upload will still happen in the background.
-func (c *Client) UserApproved(email string, approvedAt time.Time) {
-	if c == nil {
-		return
-	}
-	c.Lock()
-	defer c.Unlock()
-	c.prospects = append(c.prospects, prospect{
-		Email:             email,
-		ServiceApprovedAt: approvedAt,
 	})
 	c.cond.Broadcast()
 }

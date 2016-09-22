@@ -17,7 +17,7 @@ func Test_APITokens_CreateAndUseAPIToken(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user := getApprovedUser(t)
+	user := getUser(t)
 	org1 := createOrgForUser(t, user)
 	org2 := createOrgForUser(t, user)
 
