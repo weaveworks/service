@@ -11,7 +11,6 @@ import (
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/render"
-	"github.com/weaveworks/service/users/storage"
 	"github.com/weaveworks/service/users/tokens"
 )
 
@@ -266,7 +265,7 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// We always do this so that the timing difference can't be used to infer a user's existence.
-	token, err := generateUserToken(a.db, user)
+	token, err := a.generateUserToken(user)
 	if err != nil {
 		render.Error(w, r, fmt.Errorf("Error sending login email: %s", err))
 		return
@@ -293,12 +292,12 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, view)
 }
 
-func generateUserToken(db storage.Database, user *users.User) (string, error) {
+func (a *API) generateUserToken(user *users.User) (string, error) {
 	token, err := tokens.Generate()
 	if err != nil {
 		return "", err
 	}
-	if err := db.SetUserToken(user.ID, token); err != nil {
+	if err := a.db.SetUserToken(user.ID, token); err != nil {
 		return "", err
 	}
 	return token, nil

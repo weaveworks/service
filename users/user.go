@@ -7,7 +7,7 @@ import (
 )
 
 // FindUserByIDer is an interface of just FindUserByID, for loosely coupling
-// things to the storage.Database
+// things to the db.DB
 type FindUserByIDer interface {
 	FindUserByID(id string) (*User, error)
 }

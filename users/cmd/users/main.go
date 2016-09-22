@@ -15,11 +15,11 @@ import (
 	"github.com/weaveworks/service/common/logging"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
+	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/pardot"
 	"github.com/weaveworks/service/users/sessions"
-	"github.com/weaveworks/service/users/storage"
 	"github.com/weaveworks/service/users/templates"
 )
 
@@ -71,7 +71,7 @@ func main() {
 
 	templates := templates.MustNewEngine("templates")
 	emailer := emailer.MustNew(*emailURI, *sendgridAPIKey, *emailFromAddress, templates, *domain)
-	db := storage.MustNew(*databaseURI, *databaseMigrations)
+	db := db.MustNew(*databaseURI, *databaseMigrations)
 	defer db.Close()
 	sessions := sessions.MustNewStore(*sessionSecret)
 
