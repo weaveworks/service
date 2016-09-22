@@ -16,4 +16,4 @@ receivers:
     channel: cloud
     send_resolved: true
     username: dev-alert
-    text: "<!channel> {{ .CommonLabels.alertname }}: {{ .CommonAnnotations.summary }}"
+    text: "{{ .CommonLabels.alertname }}: {{ .CommonAnnotations.summary }}"
