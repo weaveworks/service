@@ -80,10 +80,16 @@ scrape_configs:
   # couldn't get prometheus to validate the kublet cert for scraping, so don't bother for now
   tls_config:
     insecure_skip_verify: true
+  bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
 
   relabel_configs:
   - target_label: __scheme__
     replacement: https
+  - source_labels: [__meta_kubernetes_node_label_kubernetes_io_hostname, __meta_kubernetes_node_port]
+    separator: ':'
+    target_label: __address__
+  - source_labels: [__meta_kubernetes_node_label_kubernetes_io_hostname]
+    target_label: instance
 
 # This scrape config gathers data from the api server
 - job_name: 'kubernetes-api'
