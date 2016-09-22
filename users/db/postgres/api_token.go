@@ -10,14 +10,14 @@ import (
 )
 
 // CreateAPIToken creates an api token for the user
-func (s DB) CreateAPIToken(userID, description string) (*users.APIToken, error) {
+func (d DB) CreateAPIToken(userID, description string) (*users.APIToken, error) {
 	t := &users.APIToken{
 		UserID:      userID,
 		Description: description,
-		CreatedAt:   s.Now(),
+		CreatedAt:   d.Now(),
 	}
 
-	err := s.Transaction(func(tx *sql.Tx) error {
+	err := d.Transaction(func(tx *sql.Tx) error {
 		for exists := t.Token == ""; exists; {
 			if err := t.RegenerateToken(); err != nil {
 				return err
@@ -43,22 +43,22 @@ func (s DB) CreateAPIToken(userID, description string) (*users.APIToken, error) 
 }
 
 // DeleteAPIToken deletes an api token for the user
-func (s DB) DeleteAPIToken(userID, token string) error {
-	_, err := s.Exec(
+func (d DB) DeleteAPIToken(userID, token string) error {
+	_, err := d.Exec(
 		`update api_tokens
 			set deleted_at = $3
 			where user_id = $1
 			and token = $2
 			and deleted_at is null`,
-		userID, token, s.Now(),
+		userID, token, d.Now(),
 	)
 	return err
 }
 
 // FindUserByAPIToken finds a user by their api token
-func (s DB) FindUserByAPIToken(token string) (*users.User, error) {
-	user, err := s.scanUser(
-		s.usersQuery().
+func (d DB) FindUserByAPIToken(token string) (*users.User, error) {
+	user, err := d.scanUser(
+		d.usersQuery().
 			Join("api_tokens on (api_tokens.user_id = users.id)").
 			Where(squirrel.Eq{"api_tokens.token": token}).
 			Where("api_tokens.deleted_at is null"),
@@ -73,8 +73,8 @@ func (s DB) FindUserByAPIToken(token string) (*users.User, error) {
 }
 
 // ListAPITokensForUserIDs lists the api tokens for these users
-func (s DB) ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error) {
-	rows, err := s.Select(
+func (d DB) ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error) {
+	rows, err := d.Select(
 		"api_tokens.id",
 		"api_tokens.user_id",
 		"api_tokens.token",

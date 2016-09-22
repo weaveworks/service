@@ -31,19 +31,19 @@ func New(_, _ string, passwordHashingCost int) (*DB, error) {
 }
 
 // Truncate clears all the data. Should only be used in tests!
-func (s *DB) Truncate() error {
-	*s = DB{
+func (d *DB) Truncate() error {
+	*d = DB{
 		users:               make(map[string]*users.User),
 		organizations:       make(map[string]*users.Organization),
 		memberships:         make(map[string][]string),
 		logins:              make(map[string]*login.Login),
 		apiTokens:           make(map[string]*users.APIToken),
-		passwordHashingCost: s.passwordHashingCost,
+		passwordHashingCost: d.passwordHashingCost,
 	}
 	return nil
 }
 
 // Close finishes using the db. Noop.
-func (s *DB) Close() error {
+func (d *DB) Close() error {
 	return nil
 }

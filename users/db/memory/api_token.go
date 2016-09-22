@@ -8,14 +8,14 @@ import (
 )
 
 // CreateAPIToken creates an api token for the user
-func (s *DB) CreateAPIToken(userID, description string) (*users.APIToken, error) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	if _, err := s.findUserByID(userID); err != nil {
+func (d *DB) CreateAPIToken(userID, description string) (*users.APIToken, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	if _, err := d.findUserByID(userID); err != nil {
 		return nil, err
 	}
 	t := &users.APIToken{
-		ID:          fmt.Sprint(len(s.apiTokens)),
+		ID:          fmt.Sprint(len(d.apiTokens)),
 		UserID:      userID,
 		Description: description,
 		CreatedAt:   time.Now().UTC(),
@@ -24,42 +24,42 @@ func (s *DB) CreateAPIToken(userID, description string) (*users.APIToken, error)
 		if err := t.RegenerateToken(); err != nil {
 			return nil, err
 		}
-		_, exists = s.apiTokens[t.Token]
+		_, exists = d.apiTokens[t.Token]
 	}
-	s.apiTokens[t.Token] = t
+	d.apiTokens[t.Token] = t
 	return t, nil
 }
 
 // DeleteAPIToken deletes an api token for the user
-func (s *DB) DeleteAPIToken(userID, token string) error {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	if _, err := s.findUserByID(userID); err != nil {
+func (d *DB) DeleteAPIToken(userID, token string) error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	if _, err := d.findUserByID(userID); err != nil {
 		return err
 	}
-	existing, ok := s.apiTokens[token]
+	existing, ok := d.apiTokens[token]
 	if !ok || existing.UserID != userID {
 		return nil
 	}
-	delete(s.apiTokens, token)
+	delete(d.apiTokens, token)
 	return nil
 }
 
 // FindUserByAPIToken finds a user by their api token
-func (s *DB) FindUserByAPIToken(token string) (*users.User, error) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	t, ok := s.apiTokens[token]
+func (d *DB) FindUserByAPIToken(token string) (*users.User, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	t, ok := d.apiTokens[token]
 	if !ok {
 		return nil, users.ErrNotFound
 	}
-	return s.findUserByID(t.UserID)
+	return d.findUserByID(t.UserID)
 }
 
 // ListAPITokensForUserIDs lists the api tokens for these users
-func (s *DB) ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error) {
+func (d *DB) ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error) {
 	var tokens []*users.APIToken
-	for _, t := range s.apiTokens {
+	for _, t := range d.apiTokens {
 		for _, userID := range userIDs {
 			if t.UserID == userID {
 				tokens = append(tokens, t)

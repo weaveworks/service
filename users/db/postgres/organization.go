@@ -12,8 +12,8 @@ import (
 
 // RemoveUserFromOrganization removes the user from the organiation. If they
 // are not a member, this is a noop.
-func (s DB) RemoveUserFromOrganization(orgExternalID, email string) error {
-	_, err := s.Exec(`
+func (d DB) RemoveUserFromOrganization(orgExternalID, email string) error {
+	_, err := d.Exec(`
 			update memberships set deleted_at = $1
 			where user_id in (
 					select id
@@ -28,7 +28,7 @@ func (s DB) RemoveUserFromOrganization(orgExternalID, email string) error {
 					   and deleted_at is null
 				)
 			  and deleted_at is null`,
-		s.Now(),
+		d.Now(),
 		email,
 		orgExternalID,
 	)
@@ -36,12 +36,12 @@ func (s DB) RemoveUserFromOrganization(orgExternalID, email string) error {
 }
 
 // UserIsMemberOf checks if the user is a member of the organization
-func (s DB) UserIsMemberOf(userID, orgExternalID string) (bool, error) {
-	return s.userIsMemberOf(s.DB, userID, orgExternalID)
+func (d DB) UserIsMemberOf(userID, orgExternalID string) (bool, error) {
+	return d.userIsMemberOf(d.DB, userID, orgExternalID)
 }
 
-func (s DB) userIsMemberOf(db squirrel.BaseRunner, userID, orgExternalID string) (bool, error) {
-	rows, err := s.organizationsQuery().
+func (d DB) userIsMemberOf(db squirrel.BaseRunner, userID, orgExternalID string) (bool, error) {
+	rows, err := d.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userID, "organizations.external_id": orgExternalID}).
 		Where("memberships.deleted_at is null").
@@ -57,8 +57,8 @@ func (s DB) userIsMemberOf(db squirrel.BaseRunner, userID, orgExternalID string)
 	return ok, rows.Close()
 }
 
-func (s DB) organizationsQuery() squirrel.SelectBuilder {
-	return s.Select(
+func (d DB) organizationsQuery() squirrel.SelectBuilder {
+	return d.Select(
 		"organizations.id",
 		"organizations.external_id",
 		"organizations.name",
@@ -73,18 +73,18 @@ func (s DB) organizationsQuery() squirrel.SelectBuilder {
 }
 
 // ListOrganizations lists organizations
-func (s DB) ListOrganizations() ([]*users.Organization, error) {
-	rows, err := s.organizationsQuery().Query()
+func (d DB) ListOrganizations() ([]*users.Organization, error) {
+	rows, err := d.organizationsQuery().Query()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return s.scanOrganizations(rows)
+	return d.scanOrganizations(rows)
 }
 
 // ListOrganizationUsers lists all the users in an organization
-func (s DB) ListOrganizationUsers(orgExternalID string) ([]*users.User, error) {
-	rows, err := s.usersQuery().
+func (d DB) ListOrganizationUsers(orgExternalID string) ([]*users.User, error) {
+	rows, err := d.usersQuery().
 		Join("memberships on (memberships.user_id = users.id)").
 		Join("organizations on (memberships.organization_id = organizations.id)").
 		Where(squirrel.Eq{
@@ -97,12 +97,12 @@ func (s DB) ListOrganizationUsers(orgExternalID string) ([]*users.User, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	return s.scanUsers(rows)
+	return d.scanUsers(rows)
 }
 
 // ListOrganizationsForUserIDs lists the organizations these users belong to
-func (s DB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organization, error) {
-	rows, err := s.organizationsQuery().
+func (d DB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organization, error) {
+	rows, err := d.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userIDs}).
 		Where("memberships.deleted_at is null").
@@ -110,21 +110,21 @@ func (s DB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organizatio
 	if err != nil {
 		return nil, err
 	}
-	orgs, err := s.scanOrganizations(rows)
+	orgs, err := d.scanOrganizations(rows)
 	if err != nil {
 		return nil, err
 	}
 	return orgs, err
 }
 
-func (s DB) addUserToOrganization(db execQueryRower, userID, organizationID string) error {
+func (d DB) addUserToOrganization(db execQueryRower, userID, organizationID string) error {
 	_, err := db.Exec(`
 			insert into memberships
 				(user_id, organization_id, created_at)
 				values ($1, $2, $3)`,
 		userID,
 		organizationID,
-		s.Now(),
+		d.Now(),
 	)
 	if err != nil {
 		if e, ok := err.(*pq.Error); ok && e.Constraint == "memberships_user_id_organization_id_idx" {
@@ -139,15 +139,15 @@ func (s DB) addUserToOrganization(db execQueryRower, userID, organizationID stri
 // TODO: There is a known issue, where as we fill up the database this will
 // gradually slow down (since the algorithm is quite naive). We should fix it
 // eventually.
-func (s DB) GenerateOrganizationExternalID() (string, error) {
+func (d DB) GenerateOrganizationExternalID() (string, error) {
 	var (
 		externalID string
 		err        error
 	)
-	err = s.Transaction(func(tx *sql.Tx) error {
+	err = d.Transaction(func(tx *sql.Tx) error {
 		for exists := true; exists; {
 			externalID = externalIDs.Generate()
-			exists, err = s.organizationExists(tx, externalID)
+			exists, err = d.organizationExists(tx, externalID)
 		}
 		return nil
 	})
@@ -155,18 +155,18 @@ func (s DB) GenerateOrganizationExternalID() (string, error) {
 }
 
 // CreateOrganization creates a new organization owned by the user
-func (s DB) CreateOrganization(ownerID, externalID, name string) (*users.Organization, error) {
+func (d DB) CreateOrganization(ownerID, externalID, name string) (*users.Organization, error) {
 	o := &users.Organization{
 		ExternalID: externalID,
 		Name:       name,
-		CreatedAt:  s.Now(),
+		CreatedAt:  d.Now(),
 	}
 	if err := o.Valid(); err != nil {
 		return nil, err
 	}
 
-	err := s.Transaction(func(tx *sql.Tx) error {
-		if exists, err := s.organizationExists(tx, o.ExternalID); err != nil {
+	err := d.Transaction(func(tx *sql.Tx) error {
+		if exists, err := d.organizationExists(tx, o.ExternalID); err != nil {
 			return err
 		} else if exists {
 			return users.ErrOrgExternalIDIsTaken
@@ -193,7 +193,7 @@ func (s DB) CreateOrganization(ownerID, externalID, name string) (*users.Organiz
 			return err
 		}
 
-		return s.addUserToOrganization(tx, ownerID, o.ID)
+		return d.addUserToOrganization(tx, ownerID, o.ID)
 	})
 	if err != nil {
 		return nil, err
@@ -203,15 +203,15 @@ func (s DB) CreateOrganization(ownerID, externalID, name string) (*users.Organiz
 
 // FindOrganizationByProbeToken looks up the organization matching a given
 // probe token.
-func (s DB) FindOrganizationByProbeToken(probeToken string) (*users.Organization, error) {
+func (d DB) FindOrganizationByProbeToken(probeToken string) (*users.Organization, error) {
 	var o *users.Organization
 	var err error
-	err = s.Transaction(func(tx *sql.Tx) error {
-		o, err = s.scanOrganization(
-			s.organizationsQuery().RunWith(tx).Where(squirrel.Eq{"organizations.probe_token": probeToken}).QueryRow(),
+	err = d.Transaction(func(tx *sql.Tx) error {
+		o, err = d.scanOrganization(
+			d.organizationsQuery().RunWith(tx).Where(squirrel.Eq{"organizations.probe_token": probeToken}).QueryRow(),
 		)
 		if err == nil && o.FirstProbeUpdateAt.IsZero() {
-			o.FirstProbeUpdateAt = s.Now()
+			o.FirstProbeUpdateAt = d.Now()
 			_, err = tx.Exec(`update organizations set first_probe_update_at = $2 where id = $1`, o.ID, o.FirstProbeUpdateAt)
 		}
 
@@ -226,10 +226,10 @@ func (s DB) FindOrganizationByProbeToken(probeToken string) (*users.Organization
 	return o, err
 }
 
-func (s DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
+func (d DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
 	orgs := []*users.Organization{}
 	for rows.Next() {
-		org, err := s.scanOrganization(rows)
+		org, err := d.scanOrganization(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -241,7 +241,7 @@ func (s DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
 	return orgs, nil
 }
 
-func (s DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, error) {
+func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, error) {
 	o := &users.Organization{}
 	var externalID, name, probeToken sql.NullString
 	var firstProbeUpdateAt, createdAt pq.NullTime
@@ -257,12 +257,12 @@ func (s DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 }
 
 // RenameOrganization changes an organization's user-settable name
-func (s DB) RenameOrganization(externalID, name string) error {
+func (d DB) RenameOrganization(externalID, name string) error {
 	if err := (&users.Organization{ExternalID: externalID, Name: name}).Valid(); err != nil {
 		return err
 	}
 
-	result, err := s.Exec(`
+	result, err := d.Exec(`
 		update organizations set name = $2
 		where lower(external_id) = lower($1) and deleted_at is null`,
 		externalID, name,
@@ -282,11 +282,11 @@ func (s DB) RenameOrganization(externalID, name string) error {
 
 // OrganizationExists just returns a simple bool checking if an organization
 // exists
-func (s DB) OrganizationExists(externalID string) (bool, error) {
-	return s.organizationExists(s, externalID)
+func (d DB) OrganizationExists(externalID string) (bool, error) {
+	return d.organizationExists(d, externalID)
 }
 
-func (s DB) organizationExists(db queryRower, externalID string) (bool, error) {
+func (d DB) organizationExists(db queryRower, externalID string) (bool, error) {
 	var exists bool
 	err := db.QueryRow(
 		`select exists(select 1 from organizations where lower(external_id) = lower($1) and deleted_at is null)`,
@@ -296,9 +296,9 @@ func (s DB) organizationExists(db queryRower, externalID string) (bool, error) {
 }
 
 // GetOrganizationName gets the name of an organization from it's external ID.
-func (s DB) GetOrganizationName(externalID string) (string, error) {
+func (d DB) GetOrganizationName(externalID string) (string, error) {
 	var name string
-	err := s.QueryRow(
+	err := d.QueryRow(
 		`select name from organizations where lower(external_id) = lower($1) and deleted_at is null`,
 		externalID,
 	).Scan(&name)
@@ -306,17 +306,17 @@ func (s DB) GetOrganizationName(externalID string) (string, error) {
 }
 
 // DeleteOrganization deletes an organization
-func (s DB) DeleteOrganization(externalID string) error {
-	_, err := s.Exec(
+func (d DB) DeleteOrganization(externalID string) error {
+	_, err := d.Exec(
 		`update organizations set deleted_at = $1 where lower(external_id) = lower($2)`,
-		s.Now(), externalID,
+		d.Now(), externalID,
 	)
 	return err
 }
 
 // AddFeatureFlag adds a new feature flag to a organization.
-func (s DB) AddFeatureFlag(externalID string, featureFlag string) error {
-	_, err := s.Exec(
+func (d DB) AddFeatureFlag(externalID string, featureFlag string) error {
+	_, err := d.Exec(
 		`update organizations set feature_flags = feature_flags || $1 where lower(external_id) = lower($2)`,
 		pq.Array([]string{featureFlag}), externalID,
 	)

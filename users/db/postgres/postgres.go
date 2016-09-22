@@ -32,7 +32,7 @@ type execQueryRower interface {
 	queryRower
 }
 
-// New creates a new postgres DB
+// New creates a new postgred DB
 func New(databaseURI, migrationsDir string, passwordHashingCost int) (*DB, error) {
 	if migrationsDir != "" {
 		logrus.Infof("Running Database Migrations...")
@@ -54,14 +54,14 @@ func New(databaseURI, migrationsDir string, passwordHashingCost int) (*DB, error
 // Now gives us the current time for Postgres. Postgres only stores times to
 // the microsecond, so we pre-truncate times so tests will match. We also
 // normalize to UTC, for sanity.
-func (s DB) Now() time.Time {
+func (d DB) Now() time.Time {
 	return time.Now().UTC().Truncate(time.Microsecond)
 }
 
 // Transaction runs the given function in a postgres transaction. If fn returns
 // an error the txn will be rolled back.
-func (s DB) Transaction(f func(*sql.Tx) error) error {
-	tx, err := s.Begin()
+func (d DB) Transaction(f func(*sql.Tx) error) error {
+	tx, err := d.Begin()
 	if err != nil {
 		return err
 	}
@@ -76,8 +76,8 @@ func (s DB) Transaction(f func(*sql.Tx) error) error {
 }
 
 // Truncate clears all the data in pg. Should only be used in tests!
-func (s DB) Truncate() error {
-	return s.Transaction(func(tx *sql.Tx) error {
+func (d DB) Truncate() error {
+	return d.Transaction(func(tx *sql.Tx) error {
 		return mustExec(
 			tx,
 			`truncate table traceable;`,

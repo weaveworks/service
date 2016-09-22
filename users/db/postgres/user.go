@@ -13,12 +13,12 @@ import (
 )
 
 // CreateUser creates a new user with the given email.
-func (s DB) CreateUser(email string) (*users.User, error) {
-	return s.createUser(s, email)
+func (d DB) CreateUser(email string) (*users.User, error) {
+	return d.createUser(d, email)
 }
 
-func (s DB) createUser(q queryRower, email string) (*users.User, error) {
-	u := &users.User{Email: email, CreatedAt: s.Now()}
+func (d DB) createUser(q queryRower, email string) (*users.User, error) {
+	u := &users.User{Email: email, CreatedAt: d.Now()}
 	err := q.QueryRow("insert into users (email, created_at) values (lower($1), $2) returning id", email, u.CreatedAt).Scan(&u.ID)
 	switch {
 	case err == sql.ErrNoRows:
@@ -31,8 +31,8 @@ func (s DB) createUser(q queryRower, email string) (*users.User, error) {
 
 // AddLoginToUser adds the given login to the specified user. If it is already
 // attached elsewhere, this will error.
-func (s DB) AddLoginToUser(userID, provider, providerID string, session json.RawMessage) error {
-	now := s.Now()
+func (d DB) AddLoginToUser(userID, provider, providerID string, session json.RawMessage) error {
+	now := d.Now()
 	values := map[string]interface{}{
 		"user_id":     userID,
 		"provider":    provider,
@@ -45,16 +45,16 @@ func (s DB) AddLoginToUser(userID, provider, providerID string, session json.Raw
 		}
 		values["session"] = sessionJSON
 	}
-	return s.Transaction(func(tx *sql.Tx) error {
+	return d.Transaction(func(tx *sql.Tx) error {
 		// check that this is not already attached somewhere else
-		existing, err := s.findUserByLogin(tx, provider, providerID)
+		existing, err := d.findUserByLogin(tx, provider, providerID)
 		switch err {
 		case nil:
 			if existing.ID != userID {
 				return users.AlreadyAttachedError{ID: existing.ID, Email: existing.Email}
 			}
 			// User is already attached to this auth provider, just update the session
-			_, err = s.
+			_, err = d.
 				Update("logins").
 				RunWith(tx).
 				Where(squirrel.Eq{
@@ -68,7 +68,7 @@ func (s DB) AddLoginToUser(userID, provider, providerID string, session json.Raw
 			err = nil
 			// User is not attached to this auth provider, attach them
 			values["created_at"] = now
-			_, err = s.
+			_, err = d.
 				Insert("logins").
 				RunWith(tx).
 				SetMap(values).
@@ -80,49 +80,49 @@ func (s DB) AddLoginToUser(userID, provider, providerID string, session json.Raw
 
 // DetachLoginFromUser detaches the specified login from a user. e.g. if you
 // want to attach it to a different user, do this first.
-func (s DB) DetachLoginFromUser(userID, provider string) error {
-	_, err := s.Exec(
+func (d DB) DetachLoginFromUser(userID, provider string) error {
+	_, err := d.Exec(
 		`update logins
 			set deleted_at = $3
 			where user_id = $1
 			and provider = $2
 			and deleted_at is null`,
-		userID, provider, s.Now(),
+		userID, provider, d.Now(),
 	)
 	return err
 }
 
 // InviteUser invites the user, to join the organization. If they are already a
 // member this is a noop.
-func (s DB) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
+func (d DB) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
 	var u *users.User
 	userCreated := false
-	err := s.Transaction(func(tx *sql.Tx) error {
-		o, err := s.scanOrganization(
-			s.organizationsQuery().RunWith(tx).Where("lower(organizations.external_id) = lower($1)", orgExternalID).QueryRow(),
+	err := d.Transaction(func(tx *sql.Tx) error {
+		o, err := d.scanOrganization(
+			d.organizationsQuery().RunWith(tx).Where("lower(organizations.external_id) = lower($1)", orgExternalID).QueryRow(),
 		)
 		if err != nil {
 			return err
 		}
 
-		u, err = s.findUserByEmail(tx, email)
+		u, err = d.findUserByEmail(tx, email)
 		if err == users.ErrNotFound {
-			u, err = s.createUser(tx, email)
+			u, err = d.createUser(tx, email)
 			userCreated = true
 		}
 		if err != nil {
 			return err
 		}
 
-		isMember, err := s.userIsMemberOf(tx, u.ID, orgExternalID)
+		isMember, err := d.userIsMemberOf(tx, u.ID, orgExternalID)
 		if err != nil || isMember {
 			return err
 		}
-		err = s.addUserToOrganization(tx, u.ID, o.ID)
+		err = d.addUserToOrganization(tx, u.ID, o.ID)
 		if err != nil {
 			return err
 		}
-		u, err = s.findUserByID(tx, u.ID)
+		u, err = d.findUserByID(tx, u.ID)
 		return err
 	})
 	if err != nil {
@@ -132,13 +132,13 @@ func (s DB) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
 }
 
 // FindUserByID finds the user by id
-func (s DB) FindUserByID(id string) (*users.User, error) {
-	return s.findUserByID(s.DB, id)
+func (d DB) FindUserByID(id string) (*users.User, error) {
+	return d.findUserByID(d.DB, id)
 }
 
-func (s DB) findUserByID(db squirrel.BaseRunner, id string) (*users.User, error) {
-	user, err := s.scanUser(
-		s.usersQuery().RunWith(db).Where(squirrel.Eq{"users.id": id}).QueryRow(),
+func (d DB) findUserByID(db squirrel.BaseRunner, id string) (*users.User, error) {
+	user, err := d.scanUser(
+		d.usersQuery().RunWith(db).Where(squirrel.Eq{"users.id": id}).QueryRow(),
 	)
 	if err == sql.ErrNoRows {
 		err = users.ErrNotFound
@@ -150,13 +150,13 @@ func (s DB) findUserByID(db squirrel.BaseRunner, id string) (*users.User, error)
 }
 
 // FindUserByEmail finds the user by email
-func (s DB) FindUserByEmail(email string) (*users.User, error) {
-	return s.findUserByEmail(s.DB, email)
+func (d DB) FindUserByEmail(email string) (*users.User, error) {
+	return d.findUserByEmail(d.DB, email)
 }
 
-func (s DB) findUserByEmail(db squirrel.BaseRunner, email string) (*users.User, error) {
-	user, err := s.scanUser(
-		s.usersQuery().RunWith(db).Where("lower(users.email) = lower($1)", email).QueryRow(),
+func (d DB) findUserByEmail(db squirrel.BaseRunner, email string) (*users.User, error) {
+	user, err := d.scanUser(
+		d.usersQuery().RunWith(db).Where("lower(users.email) = lower($1)", email).QueryRow(),
 	)
 	if err == sql.ErrNoRows {
 		err = users.ErrNotFound
@@ -168,13 +168,13 @@ func (s DB) findUserByEmail(db squirrel.BaseRunner, email string) (*users.User, 
 }
 
 // FindUserByLogin finds the user by login
-func (s DB) FindUserByLogin(provider, providerID string) (*users.User, error) {
-	return s.findUserByLogin(s.DB, provider, providerID)
+func (d DB) FindUserByLogin(provider, providerID string) (*users.User, error) {
+	return d.findUserByLogin(d.DB, provider, providerID)
 }
 
-func (s DB) findUserByLogin(db squirrel.BaseRunner, provider, providerID string) (*users.User, error) {
-	user, err := s.scanUser(
-		s.usersQuery().
+func (d DB) findUserByLogin(db squirrel.BaseRunner, provider, providerID string) (*users.User, error) {
+	user, err := d.scanUser(
+		d.usersQuery().
 			RunWith(db).
 			Join("logins on (logins.user_id = users.id)").
 			Where(squirrel.Eq{
@@ -193,10 +193,10 @@ func (s DB) findUserByLogin(db squirrel.BaseRunner, provider, providerID string)
 	return user, nil
 }
 
-func (s DB) scanUsers(rows *sql.Rows) ([]*users.User, error) {
+func (d DB) scanUsers(rows *sql.Rows) ([]*users.User, error) {
 	users := []*users.User{}
 	for rows.Next() {
-		user, err := s.scanUser(rows)
+		user, err := d.scanUser(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -208,7 +208,7 @@ func (s DB) scanUsers(rows *sql.Rows) ([]*users.User, error) {
 	return users, nil
 }
 
-func (s DB) scanUser(row squirrel.RowScanner) (*users.User, error) {
+func (d DB) scanUser(row squirrel.RowScanner) (*users.User, error) {
 	u := &users.User{}
 	var (
 		token sql.NullString
@@ -232,8 +232,8 @@ func (s DB) scanUser(row squirrel.RowScanner) (*users.User, error) {
 	return u, nil
 }
 
-func (s DB) usersQuery() squirrel.SelectBuilder {
-	return s.Select(
+func (d DB) usersQuery() squirrel.SelectBuilder {
+	return d.Select(
 		"users.id",
 		"users.email",
 		"users.token",
@@ -249,18 +249,18 @@ func (s DB) usersQuery() squirrel.SelectBuilder {
 }
 
 // ListUsers lists users
-func (s DB) ListUsers() ([]*users.User, error) {
-	rows, err := s.usersQuery().Query()
+func (d DB) ListUsers() ([]*users.User, error) {
+	rows, err := d.usersQuery().Query()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return s.scanUsers(rows)
+	return d.scanUsers(rows)
 }
 
 // ListLoginsForUserIDs lists the logins for these users
-func (s DB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
-	rows, err := s.Select(
+func (d DB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
+	rows, err := d.Select(
 		"logins.user_id",
 		"logins.provider",
 		"logins.provider_id",
@@ -299,10 +299,10 @@ func (s DB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
 
 // ApproveUser approves a user. Sort of deprecated, as all users are
 // auto-approved now.
-func (s DB) ApproveUser(id string) (*users.User, error) {
+func (d DB) ApproveUser(id string) (*users.User, error) {
 	var user *users.User
-	err := s.Transaction(func(tx *sql.Tx) error {
-		result, err := tx.Exec(`update users set approved_at = $2 where id = $1 and approved_at is null`, id, s.Now())
+	err := d.Transaction(func(tx *sql.Tx) error {
+		result, err := tx.Exec(`update users set approved_at = $2 where id = $1 and approved_at is null`, id, d.Now())
 		if err != nil {
 			return err
 		}
@@ -311,15 +311,15 @@ func (s DB) ApproveUser(id string) (*users.User, error) {
 			return err
 		}
 
-		user, err = s.findUserByID(tx, id)
+		user, err = d.findUserByID(tx, id)
 		return err
 	})
 	return user, err
 }
 
 // SetUserAdmin sets the admin flag of a user
-func (s DB) SetUserAdmin(id string, value bool) error {
-	result, err := s.Exec(`
+func (d DB) SetUserAdmin(id string, value bool) error {
+	result, err := d.Exec(`
 		update users set admin = $2 where id = $1 and deleted_at is null
 	`, id, value,
 	)
@@ -337,23 +337,23 @@ func (s DB) SetUserAdmin(id string, value bool) error {
 }
 
 // SetUserToken updates the user's login token
-func (s DB) SetUserToken(id, token string) error {
+func (d DB) SetUserToken(id, token string) error {
 	var hashed []byte
 	if token != "" {
 		var err error
-		hashed, err = bcrypt.GenerateFromPassword([]byte(token), s.PasswordHashingCost)
+		hashed, err = bcrypt.GenerateFromPassword([]byte(token), d.PasswordHashingCost)
 		if err != nil {
 			return err
 		}
 	}
-	result, err := s.Exec(`
+	result, err := d.Exec(`
 		update users set
 			token = $2,
 			token_created_at = $3
 		where id = $1 and deleted_at is null`,
 		id,
 		string(hashed),
-		s.Now(),
+		d.Now(),
 	)
 	if err != nil {
 		return err
@@ -370,15 +370,15 @@ func (s DB) SetUserToken(id, token string) error {
 
 // SetUserFirstLoginAt is called the first time a user logs in, to set their
 // first_login_at field.
-func (s DB) SetUserFirstLoginAt(id string) error {
-	result, err := s.Exec(`
+func (d DB) SetUserFirstLoginAt(id string) error {
+	result, err := d.Exec(`
 		update users set
 			first_login_at = $2
 		where id = $1
 			and first_login_at is null
 			and deleted_at is null`,
 		id,
-		s.Now(),
+		d.Now(),
 	)
 	if err != nil {
 		return err

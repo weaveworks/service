@@ -12,19 +12,19 @@ import (
 
 // RemoveUserFromOrganization removes the user from the organiation. If they
 // are not a member, this is a noop.
-func (s *DB) RemoveUserFromOrganization(orgExternalID, email string) error {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	o, err := s.findOrganizationByExternalID(orgExternalID)
+func (d *DB) RemoveUserFromOrganization(orgExternalID, email string) error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	o, err := d.findOrganizationByExternalID(orgExternalID)
 	if err != nil && err != users.ErrNotFound {
 		return nil
 	}
-	u, err := s.findUserByEmail(email)
+	u, err := d.findUserByEmail(email)
 	if err != nil && err != users.ErrNotFound {
 		return nil
 	}
 
-	memberships, ok := s.memberships[o.ID]
+	memberships, ok := d.memberships[o.ID]
 	if !ok {
 		return nil
 	}
@@ -34,13 +34,13 @@ func (s *DB) RemoveUserFromOrganization(orgExternalID, email string) error {
 			newMemberships = append(newMemberships, m)
 		}
 	}
-	s.memberships[o.ID] = newMemberships
+	d.memberships[o.ID] = newMemberships
 	return nil
 }
 
 // UserIsMemberOf checks if the user is a member of the organization
-func (s *DB) UserIsMemberOf(userID, orgExternalID string) (bool, error) {
-	o, err := s.findOrganizationByExternalID(orgExternalID)
+func (d *DB) UserIsMemberOf(userID, orgExternalID string) (bool, error) {
+	o, err := d.findOrganizationByExternalID(orgExternalID)
 	if err == users.ErrNotFound {
 		return false, nil
 	}
@@ -48,7 +48,7 @@ func (s *DB) UserIsMemberOf(userID, orgExternalID string) (bool, error) {
 		return false, err
 	}
 
-	for _, m := range s.memberships[o.ID] {
+	for _, m := range d.memberships[o.ID] {
 		if m == userID {
 			return true, nil
 		}
@@ -57,11 +57,11 @@ func (s *DB) UserIsMemberOf(userID, orgExternalID string) (bool, error) {
 }
 
 // ListOrganizations lists organizations
-func (s *DB) ListOrganizations() ([]*users.Organization, error) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
+func (d *DB) ListOrganizations() ([]*users.Organization, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
 	orgs := []*users.Organization{}
-	for _, org := range s.organizations {
+	for _, org := range d.organizations {
 		orgs = append(orgs, org)
 	}
 	sort.Sort(organizationsByCreatedAt(orgs))
@@ -69,16 +69,16 @@ func (s *DB) ListOrganizations() ([]*users.Organization, error) {
 }
 
 // ListOrganizationUsers lists all the users in an organization
-func (s *DB) ListOrganizationUsers(orgExternalID string) ([]*users.User, error) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	o, err := s.findOrganizationByExternalID(orgExternalID)
+func (d *DB) ListOrganizationUsers(orgExternalID string) ([]*users.User, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	o, err := d.findOrganizationByExternalID(orgExternalID)
 	if err != nil {
 		return nil, err
 	}
 	var users []*users.User
-	for _, m := range s.memberships[o.ID] {
-		u, err := s.findUserByID(m)
+	for _, m := range d.memberships[o.ID] {
+		u, err := d.findUserByID(m)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +95,7 @@ func (o organizationsByCreatedAt) Swap(i, j int)      { o[i], o[j] = o[j], o[i] 
 func (o organizationsByCreatedAt) Less(i, j int) bool { return o[i].CreatedAt.Before(o[j].CreatedAt) }
 
 // ListOrganizationsForUserIDs lists the organizations these users belong to
-func (s *DB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organization, error) {
+func (d *DB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organization, error) {
 	orgIDs := map[string]struct{}{}
 	checkOrg := func(orgID string, members []string) {
 		for _, m := range members {
@@ -107,12 +107,12 @@ func (s *DB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organizati
 			}
 		}
 	}
-	for orgID, members := range s.memberships {
+	for orgID, members := range d.memberships {
 		checkOrg(orgID, members)
 	}
 	var orgs []*users.Organization
 	for orgID := range orgIDs {
-		o, ok := s.organizations[orgID]
+		o, ok := d.organizations[orgID]
 		if !ok {
 			return nil, users.ErrNotFound
 		}
@@ -127,13 +127,13 @@ func (s *DB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organizati
 // TODO: There is a known issue, where as we fill up the database this will
 // gradually slow down (since the algorithm is quite naive). We should fix it
 // eventually.
-func (s *DB) GenerateOrganizationExternalID() (string, error) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
+func (d *DB) GenerateOrganizationExternalID() (string, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
 	var externalID string
 	for {
 		externalID = externalIDs.Generate()
-		_, err := s.findOrganizationByExternalID(externalID)
+		_, err := d.findOrganizationByExternalID(externalID)
 		if err != nil && err != users.ErrNotFound {
 			return "", err
 		}
@@ -142,8 +142,8 @@ func (s *DB) GenerateOrganizationExternalID() (string, error) {
 	return externalID, nil
 }
 
-func (s *DB) findOrganizationByExternalID(externalID string) (*users.Organization, error) {
-	for _, o := range s.organizations {
+func (d *DB) findOrganizationByExternalID(externalID string) (*users.Organization, error) {
+	for _, o := range d.organizations {
 		if strings.ToLower(o.ExternalID) == strings.ToLower(externalID) {
 			return o, nil
 		}
@@ -152,14 +152,14 @@ func (s *DB) findOrganizationByExternalID(externalID string) (*users.Organizatio
 }
 
 // CreateOrganization creates a new organization owned by the user
-func (s *DB) CreateOrganization(ownerID, externalID, name string) (*users.Organization, error) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	if _, err := s.findUserByID(ownerID); err != nil {
+func (d *DB) CreateOrganization(ownerID, externalID, name string) (*users.Organization, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	if _, err := d.findUserByID(ownerID); err != nil {
 		return nil, err
 	}
 	o := &users.Organization{
-		ID:         fmt.Sprint(len(s.organizations)),
+		ID:         fmt.Sprint(len(d.organizations)),
 		ExternalID: externalID,
 		Name:       name,
 		CreatedAt:  time.Now().UTC(),
@@ -167,7 +167,7 @@ func (s *DB) CreateOrganization(ownerID, externalID, name string) (*users.Organi
 	if err := o.Valid(); err != nil {
 		return nil, err
 	}
-	if exists, err := s.organizationExists(o.ExternalID); err != nil {
+	if exists, err := d.organizationExists(o.ExternalID); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, users.ErrOrgExternalIDIsTaken
@@ -177,24 +177,24 @@ func (s *DB) CreateOrganization(ownerID, externalID, name string) (*users.Organi
 			return nil, err
 		}
 		exists = false
-		for _, org := range s.organizations {
+		for _, org := range d.organizations {
 			if org.ProbeToken == o.ProbeToken {
 				exists = true
 				break
 			}
 		}
 	}
-	s.organizations[o.ID] = o
-	s.memberships[o.ID] = []string{ownerID}
+	d.organizations[o.ID] = o
+	d.memberships[o.ID] = []string{ownerID}
 	return o, nil
 }
 
 // FindOrganizationByProbeToken looks up the organization matching a given
 // probe token.
-func (s *DB) FindOrganizationByProbeToken(probeToken string) (*users.Organization, error) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	for _, o := range s.organizations {
+func (d *DB) FindOrganizationByProbeToken(probeToken string) (*users.Organization, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	for _, o := range d.organizations {
 		if o.ProbeToken == probeToken {
 			if o.FirstProbeUpdateAt.IsZero() {
 				o.FirstProbeUpdateAt = time.Now().UTC()
@@ -206,14 +206,14 @@ func (s *DB) FindOrganizationByProbeToken(probeToken string) (*users.Organizatio
 }
 
 // RenameOrganization changes an organization's user-settable name
-func (s *DB) RenameOrganization(externalID, name string) error {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
+func (d *DB) RenameOrganization(externalID, name string) error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
 	if err := (&users.Organization{ExternalID: externalID, Name: name}).Valid(); err != nil {
 		return err
 	}
 
-	o, err := s.findOrganizationByExternalID(externalID)
+	o, err := d.findOrganizationByExternalID(externalID)
 	if err != nil {
 		return err
 	}
@@ -224,14 +224,14 @@ func (s *DB) RenameOrganization(externalID, name string) error {
 
 // OrganizationExists just returns a simple bool checking if an organization
 // exists
-func (s *DB) OrganizationExists(externalID string) (bool, error) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	return s.organizationExists(externalID)
+func (d *DB) OrganizationExists(externalID string) (bool, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	return d.organizationExists(externalID)
 }
 
-func (s *DB) organizationExists(externalID string) (bool, error) {
-	if _, err := s.findOrganizationByExternalID(externalID); err == users.ErrNotFound {
+func (d *DB) organizationExists(externalID string) (bool, error) {
+	if _, err := d.findOrganizationByExternalID(externalID); err == users.ErrNotFound {
 		return false, nil
 	} else if err != nil {
 		return false, err
@@ -240,10 +240,10 @@ func (s *DB) organizationExists(externalID string) (bool, error) {
 }
 
 // GetOrganizationName gets the name of an organization from it's external ID.
-func (s *DB) GetOrganizationName(externalID string) (string, error) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	o, err := s.findOrganizationByExternalID(externalID)
+func (d *DB) GetOrganizationName(externalID string) (string, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	o, err := d.findOrganizationByExternalID(externalID)
 	if err != nil {
 		return "", err
 	}
@@ -251,26 +251,26 @@ func (s *DB) GetOrganizationName(externalID string) (string, error) {
 }
 
 // DeleteOrganization deletes an organization
-func (s *DB) DeleteOrganization(externalID string) error {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	o, err := s.findOrganizationByExternalID(externalID)
+func (d *DB) DeleteOrganization(externalID string) error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	o, err := d.findOrganizationByExternalID(externalID)
 	if err == users.ErrNotFound {
 		return nil
 	}
 	if err != nil {
 		return err
 	}
-	delete(s.organizations, o.ID)
-	delete(s.memberships, o.ID)
+	delete(d.organizations, o.ID)
+	delete(d.memberships, o.ID)
 	return nil
 }
 
 // AddFeatureFlag adds a new feature flag to an organization.
-func (s *DB) AddFeatureFlag(externalID string, featureFlag string) error {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	o, err := s.findOrganizationByExternalID(externalID)
+func (d *DB) AddFeatureFlag(externalID string, featureFlag string) error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	o, err := d.findOrganizationByExternalID(externalID)
 	if err == users.ErrNotFound {
 		return nil
 	}
