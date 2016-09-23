@@ -45,3 +45,13 @@ func (o *Organization) Valid() error {
 	}
 	return nil
 }
+
+// FormatCreatedAt formats the org's created at timestamp
+func (o *Organization) FormatCreatedAt() string {
+	return formatTimestamp(o.CreatedAt)
+}
+
+// FormatFirstProbeUpdateAt formats the org's first probe update at timestamp
+func (o *Organization) FormatFirstProbeUpdateAt() string {
+	return formatTimestamp(o.FirstProbeUpdateAt)
+}

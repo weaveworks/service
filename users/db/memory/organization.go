@@ -280,3 +280,18 @@ func (d *DB) AddFeatureFlag(externalID string, featureFlag string) error {
 	o.FeatureFlags = append(o.FeatureFlags, featureFlag)
 	return nil
 }
+
+// SetFeatureFlags sets all feature flags of an organization.
+func (d *DB) SetFeatureFlags(externalID string, featureFlags []string) error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	o, err := d.findOrganizationByExternalID(externalID)
+	if err == users.ErrNotFound {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	o.FeatureFlags = featureFlags
+	return nil
+}

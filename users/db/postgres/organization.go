@@ -322,3 +322,12 @@ func (d DB) AddFeatureFlag(externalID string, featureFlag string) error {
 	)
 	return err
 }
+
+// SetFeatureFlags sets all feature flags of an organization.
+func (d DB) SetFeatureFlags(externalID string, featureFlags []string) error {
+	_, err := d.Exec(
+		`update organizations set feature_flags = $1 where lower(external_id) = lower($2)`,
+		pq.Array(featureFlags), externalID,
+	)
+	return err
+}

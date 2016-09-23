@@ -247,6 +247,12 @@ func (t timed) AddFeatureFlag(externalID string, featureFlag string) error {
 	})
 }
 
+func (t timed) SetFeatureFlags(externalID string, featureFlags []string) error {
+	return t.timeRequest("SetFeatureFlags", func() error {
+		return t.d.SetFeatureFlags(externalID, featureFlags)
+	})
+}
+
 func (t timed) Close() error {
 	return t.timeRequest("Close", func() error {
 		return t.d.Close()
