@@ -156,3 +156,12 @@ ALERT DeploymentReplicasMismatch
     summary = "Deployment of {{$labels.exported_namespace}}/{{$labels.name}} failed",
     description = "Deployment of {{$labels.exported_namespace}}/{{$labels.name}} failed - observed replicas != intended replicas.",
   }
+
+ALERT PodRestartingTooMuch
+  IF          rate(k8s_pod_status_restartCount[1m]) > 1/(5*60)
+  FOR         1h
+  LABELS      { severity="warning" }
+  ANNOTATIONS {
+    summary = "Pod {{$labels.namespace}}/{{$label.name}} restarting too much.",
+    description = "Pod {{$labels.namespace}}/{{$label.name}} restarting too much.",
+  }
