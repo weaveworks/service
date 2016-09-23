@@ -17,7 +17,7 @@ func (d DB) CreateAPIToken(userID, description string) (*users.APIToken, error) 
 		CreatedAt:   d.Now(),
 	}
 
-	err := d.Transaction(func(tx *sql.Tx) error {
+	err := d.Transaction(func(tx DB) error {
 		for exists := t.Token == ""; exists; {
 			if err := t.RegenerateToken(); err != nil {
 				return err

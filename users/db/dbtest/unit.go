@@ -2,9 +2,31 @@
 
 package dbtest
 
-import "flag"
+import (
+	"flag"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
+
+	"github.com/weaveworks/service/common/logging"
+	"github.com/weaveworks/service/users/db"
+)
 
 var (
 	databaseURI        = flag.String("database-uri", "memory://", "Uri of a test database")
 	databaseMigrations = flag.String("database-migrations", "", "Path where the database migration files can be found")
 )
+
+// Setup sets up stuff for testing, creating a new database
+func Setup(t *testing.T) db.DB {
+	require.NoError(t, logging.Setup("debug"))
+	db.PasswordHashingCost = bcrypt.MinCost
+	database := db.MustNew(*databaseURI, *databaseMigrations)
+	return database
+}
+
+// Cleanup cleans up after a test
+func Cleanup(t *testing.T, database db.DB) {
+	require.NoError(t, database.Close())
+}

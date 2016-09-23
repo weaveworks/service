@@ -37,15 +37,10 @@ func (d DB) RemoveUserFromOrganization(orgExternalID, email string) error {
 
 // UserIsMemberOf checks if the user is a member of the organization
 func (d DB) UserIsMemberOf(userID, orgExternalID string) (bool, error) {
-	return d.userIsMemberOf(d.DB, userID, orgExternalID)
-}
-
-func (d DB) userIsMemberOf(db squirrel.BaseRunner, userID, orgExternalID string) (bool, error) {
 	rows, err := d.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userID, "organizations.external_id": orgExternalID}).
 		Where("memberships.deleted_at is null").
-		RunWith(db).
 		Query()
 	if err != nil {
 		return false, err
@@ -117,8 +112,8 @@ func (d DB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organizatio
 	return orgs, err
 }
 
-func (d DB) addUserToOrganization(db execQueryRower, userID, organizationID string) error {
-	_, err := db.Exec(`
+func (d DB) addUserToOrganization(userID, organizationID string) error {
+	_, err := d.Exec(`
 			insert into memberships
 				(user_id, organization_id, created_at)
 				values ($1, $2, $3)`,
@@ -144,10 +139,10 @@ func (d DB) GenerateOrganizationExternalID() (string, error) {
 		externalID string
 		err        error
 	)
-	err = d.Transaction(func(tx *sql.Tx) error {
+	err = d.Transaction(func(tx DB) error {
 		for exists := true; exists; {
 			externalID = externalIDs.Generate()
-			exists, err = d.organizationExists(tx, externalID)
+			exists, err = tx.OrganizationExists(externalID)
 		}
 		return nil
 	})
@@ -165,8 +160,8 @@ func (d DB) CreateOrganization(ownerID, externalID, name string) (*users.Organiz
 		return nil, err
 	}
 
-	err := d.Transaction(func(tx *sql.Tx) error {
-		if exists, err := d.organizationExists(tx, o.ExternalID); err != nil {
+	err := d.Transaction(func(tx DB) error {
+		if exists, err := tx.OrganizationExists(o.ExternalID); err != nil {
 			return err
 		} else if exists {
 			return users.ErrOrgExternalIDIsTaken
@@ -193,7 +188,7 @@ func (d DB) CreateOrganization(ownerID, externalID, name string) (*users.Organiz
 			return err
 		}
 
-		return d.addUserToOrganization(tx, ownerID, o.ID)
+		return tx.addUserToOrganization(ownerID, o.ID)
 	})
 	if err != nil {
 		return nil, err
@@ -206,9 +201,9 @@ func (d DB) CreateOrganization(ownerID, externalID, name string) (*users.Organiz
 func (d DB) FindOrganizationByProbeToken(probeToken string) (*users.Organization, error) {
 	var o *users.Organization
 	var err error
-	err = d.Transaction(func(tx *sql.Tx) error {
-		o, err = d.scanOrganization(
-			d.organizationsQuery().RunWith(tx).Where(squirrel.Eq{"organizations.probe_token": probeToken}).QueryRow(),
+	err = d.Transaction(func(tx DB) error {
+		o, err = tx.scanOrganization(
+			tx.organizationsQuery().Where(squirrel.Eq{"organizations.probe_token": probeToken}).QueryRow(),
 		)
 		if err == nil && o.FirstProbeUpdateAt.IsZero() {
 			o.FirstProbeUpdateAt = d.Now()
@@ -283,12 +278,8 @@ func (d DB) RenameOrganization(externalID, name string) error {
 // OrganizationExists just returns a simple bool checking if an organization
 // exists
 func (d DB) OrganizationExists(externalID string) (bool, error) {
-	return d.organizationExists(d, externalID)
-}
-
-func (d DB) organizationExists(db queryRower, externalID string) (bool, error) {
 	var exists bool
-	err := db.QueryRow(
+	err := d.QueryRow(
 		`select exists(select 1 from organizations where lower(external_id) = lower($1) and deleted_at is null)`,
 		externalID,
 	).Scan(&exists)

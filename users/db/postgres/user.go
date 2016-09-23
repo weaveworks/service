@@ -14,12 +14,8 @@ import (
 
 // CreateUser creates a new user with the given email.
 func (d DB) CreateUser(email string) (*users.User, error) {
-	return d.createUser(d, email)
-}
-
-func (d DB) createUser(q queryRower, email string) (*users.User, error) {
 	u := &users.User{Email: email, CreatedAt: d.Now()}
-	err := q.QueryRow("insert into users (email, approved_at, created_at) values (lower($1), $2, $2) returning id", email, u.CreatedAt).Scan(&u.ID)
+	err := d.QueryRow("insert into users (email, approved_at, created_at) values (lower($1), $2, $2) returning id", email, u.CreatedAt).Scan(&u.ID)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil, users.ErrNotFound
@@ -45,18 +41,17 @@ func (d DB) AddLoginToUser(userID, provider, providerID string, session json.Raw
 		}
 		values["session"] = sessionJSON
 	}
-	return d.Transaction(func(tx *sql.Tx) error {
+	return d.Transaction(func(tx DB) error {
 		// check that this is not already attached somewhere else
-		existing, err := d.findUserByLogin(tx, provider, providerID)
+		existing, err := tx.FindUserByLogin(provider, providerID)
 		switch err {
 		case nil:
 			if existing.ID != userID {
 				return users.AlreadyAttachedError{ID: existing.ID, Email: existing.Email}
 			}
 			// User is already attached to this auth provider, just update the session
-			_, err = d.
+			_, err = tx.
 				Update("logins").
-				RunWith(tx).
 				Where(squirrel.Eq{
 					"user_id":     userID,
 					"provider":    provider,
@@ -68,9 +63,8 @@ func (d DB) AddLoginToUser(userID, provider, providerID string, session json.Raw
 			err = nil
 			// User is not attached to this auth provider, attach them
 			values["created_at"] = now
-			_, err = d.
+			_, err = tx.
 				Insert("logins").
-				RunWith(tx).
 				SetMap(values).
 				Exec()
 		}
@@ -97,32 +91,32 @@ func (d DB) DetachLoginFromUser(userID, provider string) error {
 func (d DB) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
 	var u *users.User
 	userCreated := false
-	err := d.Transaction(func(tx *sql.Tx) error {
-		o, err := d.scanOrganization(
-			d.organizationsQuery().RunWith(tx).Where("lower(organizations.external_id) = lower($1)", orgExternalID).QueryRow(),
+	err := d.Transaction(func(tx DB) error {
+		o, err := tx.scanOrganization(
+			tx.organizationsQuery().Where("lower(organizations.external_id) = lower($1)", orgExternalID).QueryRow(),
 		)
 		if err != nil {
 			return err
 		}
 
-		u, err = d.findUserByEmail(tx, email)
+		u, err = tx.FindUserByEmail(email)
 		if err == users.ErrNotFound {
-			u, err = d.createUser(tx, email)
+			u, err = tx.CreateUser(email)
 			userCreated = true
 		}
 		if err != nil {
 			return err
 		}
 
-		isMember, err := d.userIsMemberOf(tx, u.ID, orgExternalID)
+		isMember, err := tx.UserIsMemberOf(u.ID, orgExternalID)
 		if err != nil || isMember {
 			return err
 		}
-		err = d.addUserToOrganization(tx, u.ID, o.ID)
+		err = tx.addUserToOrganization(u.ID, o.ID)
 		if err != nil {
 			return err
 		}
-		u, err = d.findUserByID(tx, u.ID)
+		u, err = tx.FindUserByID(u.ID)
 		return err
 	})
 	if err != nil {
@@ -133,12 +127,8 @@ func (d DB) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
 
 // FindUserByID finds the user by id
 func (d DB) FindUserByID(id string) (*users.User, error) {
-	return d.findUserByID(d.DB, id)
-}
-
-func (d DB) findUserByID(db squirrel.BaseRunner, id string) (*users.User, error) {
 	user, err := d.scanUser(
-		d.usersQuery().RunWith(db).Where(squirrel.Eq{"users.id": id}).QueryRow(),
+		d.usersQuery().Where(squirrel.Eq{"users.id": id}).QueryRow(),
 	)
 	if err == sql.ErrNoRows {
 		err = users.ErrNotFound
@@ -151,12 +141,8 @@ func (d DB) findUserByID(db squirrel.BaseRunner, id string) (*users.User, error)
 
 // FindUserByEmail finds the user by email
 func (d DB) FindUserByEmail(email string) (*users.User, error) {
-	return d.findUserByEmail(d.DB, email)
-}
-
-func (d DB) findUserByEmail(db squirrel.BaseRunner, email string) (*users.User, error) {
 	user, err := d.scanUser(
-		d.usersQuery().RunWith(db).Where("lower(users.email) = lower($1)", email).QueryRow(),
+		d.usersQuery().Where("lower(users.email) = lower($1)", email).QueryRow(),
 	)
 	if err == sql.ErrNoRows {
 		err = users.ErrNotFound
@@ -169,13 +155,8 @@ func (d DB) findUserByEmail(db squirrel.BaseRunner, email string) (*users.User, 
 
 // FindUserByLogin finds the user by login
 func (d DB) FindUserByLogin(provider, providerID string) (*users.User, error) {
-	return d.findUserByLogin(d.DB, provider, providerID)
-}
-
-func (d DB) findUserByLogin(db squirrel.BaseRunner, provider, providerID string) (*users.User, error) {
 	user, err := d.scanUser(
 		d.usersQuery().
-			RunWith(db).
 			Join("logins on (logins.user_id = users.id)").
 			Where(squirrel.Eq{
 				"logins.provider":    provider,

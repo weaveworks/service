@@ -166,8 +166,3 @@ func (t traced) Close() (err error) {
 	defer func() { t.trace("Close", err) }()
 	return t.d.Close()
 }
-
-func (t traced) Truncate() (err error) {
-	defer func() { t.trace("Truncate", err) }()
-	return t.d.(Truncater).Truncate()
-}

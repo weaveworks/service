@@ -94,11 +94,6 @@ type DB interface {
 	Close() error
 }
 
-// Truncater is used in testing, but is not part of the normal db interface
-type Truncater interface {
-	Truncate() error
-}
-
 // MustNew creates a new database from the URI, or panics.
 func MustNew(databaseURI, migrationsDir string) DB {
 	u, err := url.Parse(databaseURI)
