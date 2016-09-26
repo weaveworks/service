@@ -102,12 +102,13 @@ func main() {
 	flag.DurationVar(&authCacheExpiration, "auth.cache.expiration", 30*time.Second, "How long to keep entries in the auth client.")
 	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
 	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
-	flag.StringVar(&c.collectionHost, "collection", "collection.scope.svc.cluster.local:80", "Hostname & port for collection service")
-	flag.StringVar(&c.queryHost, "query", "query.scope.svc.cluster.local:80", "Hostname & port for query service")
-	flag.StringVar(&c.controlHost, "control", "control.scope.svc.cluster.local:80", "Hostname & port for control service")
-	flag.StringVar(&c.pipeHost, "pipe", "pipe.scope.svc.cluster.local:80", "Hostname & port for pipe service")
 	flag.StringVar(&c.deployHost, "deploy", "api.deploy.svc.cluster.local:80", "Hostname & port for deploy service")
 	flag.StringVar(&c.promHost, "prom", "distributor.prism.svc.cluster.local:80", "Hostname & port for prom service")
+	// Required args
+	flag.StringVar(&c.collectionHost, "collection", "", "Hostname & port for collection service (required)")
+	flag.StringVar(&c.queryHost, "query", "", "Hostname & port for query service (required)")
+	flag.StringVar(&c.controlHost, "control", "", "Hostname & port for control service (required)")
+	flag.StringVar(&c.pipeHost, "pipe", "", "Hostname & port for pipe service (required)")
 
 	// For Admin routers
 	flag.StringVar(&c.grafanaHost, "grafana", "grafana.monitoring.svc.cluster.local:80", "Hostname & port for grafana")
@@ -122,6 +123,26 @@ func main() {
 
 	if err := logging.Setup(logLevel); err != nil {
 		log.Fatalf("Error configuring logging: %v", err)
+		return
+	}
+
+	if c.collectionHost == "" {
+		log.Fatal("Must specify a collection host")
+		return
+	}
+
+	if c.queryHost == "" {
+		log.Fatal("Must specify a query host")
+		return
+	}
+
+	if c.controlHost == "" {
+		log.Fatal("Must specify a control host")
+		return
+	}
+
+	if c.pipeHost == "" {
+		log.Fatal("Must specify a pipe host")
 		return
 	}
 
