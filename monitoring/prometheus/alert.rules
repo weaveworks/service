@@ -44,7 +44,7 @@ ALERT UsersErrorRate
   }
 
 ALERT CollectionErrorRate
-  IF          job:scope_request_errors:rate1m{job=~"(default|scope)/collection"} > 0.1
+  IF          job:scope_request_errors:rate1m{job="scope/collection"} > 0.1
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -53,7 +53,7 @@ ALERT CollectionErrorRate
   }
 
 ALERT QueryErrorRate
-  IF          job:scope_request_errors:rate1m{job=~"(default|scope)/query"} > 0.1
+  IF          job:scope_request_errors:rate1m{job="scope/query"} > 0.1
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -82,7 +82,7 @@ ALERT UsersLatency
   }
 
 ALERT CollectionLatency
-  IF          job:scope_request_duration_seconds:95quantile{job=~"(default|scope)/collection"} > 5.0
+  IF          job:scope_request_duration_seconds:95quantile{job="scope/collection"} > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
@@ -91,7 +91,7 @@ ALERT CollectionLatency
   }
 
 ALERT QueryLatency
-  IF          job:scope_request_duration_seconds:95quantile{job=~"(default|scope)/query"} > 5.0
+  IF          job:scope_request_duration_seconds:95quantile{job="scope/query"} > 5.0
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
@@ -120,7 +120,7 @@ ALERT UsersNoInstances
   }
 
 ALERT CollectionNoInstances
-  IF          absent(scope_request_duration_seconds_count{job=~"(default|scope)/collection"})
+  IF          absent(scope_request_duration_seconds_count{job="scope/collection"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
@@ -129,7 +129,7 @@ ALERT CollectionNoInstances
   }
 
 ALERT QueryNoInstances
-  IF          absent(scope_request_duration_seconds_count{job=~"(default|scope)/query"})
+  IF          absent(scope_request_duration_seconds_count{job="scope/query"})
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
