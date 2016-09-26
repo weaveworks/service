@@ -104,7 +104,7 @@ client-lint: ui-server/client/$(UPTODATE) $(JS_FILES)
 		-v $(shell pwd)/ui-server/client/src:/home/weave/src \
 		$(IMAGE_PREFIX)/client npm run lint
 
-ui-server/client/build/index.html: ui-server/client/$(UPTODATE) $(JS_FILES) ui-server/client/src/html/index.html
+ui-server/client/build/index.html: ui-server/client/$(UPTODATE) $(JS_FILES) ui-server/client/src/html/index.html ui-server/client/webpack.production.config.js
 	mkdir -p ui-server/client/build
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/ui-server/client/src:/home/weave/src \
