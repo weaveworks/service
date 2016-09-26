@@ -102,23 +102,23 @@ func main() {
 	flag.DurationVar(&authCacheExpiration, "auth.cache.expiration", 30*time.Second, "How long to keep entries in the auth client.")
 	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
 	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
-	flag.StringVar(&c.deployHost, "deploy", "api.deploy.svc.cluster.local:80", "Hostname & port for deploy service")
-	flag.StringVar(&c.promHost, "prom", "distributor.prism.svc.cluster.local:80", "Hostname & port for prom service")
+
 	// Required args
+	flag.StringVar(&c.deployHost, "deploy", "", "Hostname & port for deploy service (required)")
+	flag.StringVar(&c.promHost, "prom", "", "Hostname & port for prom service (required)")
 	flag.StringVar(&c.collectionHost, "collection", "", "Hostname & port for collection service (required)")
 	flag.StringVar(&c.queryHost, "query", "", "Hostname & port for query service (required)")
 	flag.StringVar(&c.controlHost, "control", "", "Hostname & port for control service (required)")
 	flag.StringVar(&c.pipeHost, "pipe", "", "Hostname & port for pipe service (required)")
-
 	// For Admin routers
-	flag.StringVar(&c.grafanaHost, "grafana", "grafana.monitoring.svc.cluster.local:80", "Hostname & port for grafana")
-	flag.StringVar(&c.scopeHost, "scope", "scope.kube-system.svc.cluster.local:80", "Hostname & port for scope")
-	flag.StringVar(&c.usersHost, "users", "users.default.svc.cluster.local", "Hostname & port for users")
-	flag.StringVar(&c.kubediffHost, "kubediff", "kubediff.monitoring.svc.cluster.local", "Hostname & port for kubediff")
-	flag.StringVar(&c.terradiffHost, "terradiff", "terradiff.monitoring.svc.cluster.local", "Hostname & port for terradiff")
-	flag.StringVar(&c.alertmanagerHost, "alertmanager", "alertmanager.monitoring.svc.cluster.local", "Hostname & port for alertmanager")
-	flag.StringVar(&c.prometheusHost, "prometheus", "prometheus.monitoring.svc.cluster.local", "Hostname & port for prometheus")
-	flag.StringVar(&c.kubedashHost, "kubedash", "kubernetes-dashboard.kube-system.svc.cluster.local", "Hostname & port for kubedash")
+	flag.StringVar(&c.grafanaHost, "grafana", "", "Hostname & port for grafana (required)")
+	flag.StringVar(&c.scopeHost, "scope", "", "Hostname & port for scope (required)")
+	flag.StringVar(&c.usersHost, "users", "", "Hostname & port for users (required)")
+	flag.StringVar(&c.kubediffHost, "kubediff", "", "Hostname & port for kubediff (required)")
+	flag.StringVar(&c.terradiffHost, "terradiff", "", "Hostname & port for terradiff (required)")
+	flag.StringVar(&c.alertmanagerHost, "alertmanager", "", "Hostname & port for alertmanager (required)")
+	flag.StringVar(&c.prometheusHost, "prometheus", "", "Hostname & port for prometheus (required)")
+	flag.StringVar(&c.kubedashHost, "kubedash", "", "Hostname & port for kubedash (required)")
 	flag.Parse()
 
 	if err := logging.Setup(logLevel); err != nil {
@@ -126,25 +126,17 @@ func main() {
 		return
 	}
 
-	if c.collectionHost == "" {
-		log.Fatal("Must specify a collection host")
-		return
-	}
-
-	if c.queryHost == "" {
-		log.Fatal("Must specify a query host")
-		return
-	}
-
-	if c.controlHost == "" {
-		log.Fatal("Must specify a control host")
-		return
-	}
-
-	if c.pipeHost == "" {
-		log.Fatal("Must specify a pipe host")
-		return
-	}
+	hostFlags := []string{"deploy", "prom", "query", "control", "pipe", "grafana", "scope", "users", "kubediff", "terradiff", "alertmanager", "prometheus", "kubedash"}
+	flag.VisitAll(func(thisFlag *flag.Flag) {
+		for _, hostFlag := range hostFlags {
+			if thisFlag.Name == hostFlag {
+				if thisFlag.Value.String() == "" {
+					log.Fatalf("Must specify a %s host", hostFlag)
+				}
+				return
+			}
+		}
+	})
 
 	authOptions := users.AuthenticatorOptions{}
 	if authCacheSize > 0 {
