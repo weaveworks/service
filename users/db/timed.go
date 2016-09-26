@@ -258,7 +258,3 @@ func (t timed) Close() error {
 		return t.d.Close()
 	})
 }
-
-func (t timed) Truncate() error {
-	return t.d.(Truncater).Truncate()
-}

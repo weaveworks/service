@@ -14,42 +14,38 @@ import (
 
 // DB is a postgres db, for dev and production
 type DB struct {
-	*sql.DB
+	dbProxy
 	squirrel.StatementBuilderType
 	PasswordHashingCost int
 }
 
-type queryRower interface {
-	QueryRow(query string, args ...interface{}) *sql.Row
-}
-
-type execer interface {
+type dbProxy interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
-}
-
-type execQueryRower interface {
-	execer
-	queryRower
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
+	Prepare(query string) (*sql.Stmt, error)
 }
 
 // New creates a new postgred DB
-func New(databaseURI, migrationsDir string, passwordHashingCost int) (*DB, error) {
+func New(databaseURI, migrationsDir string, passwordHashingCost int) (DB, error) {
 	if migrationsDir != "" {
 		logrus.Infof("Running Database Migrations...")
 		if errs, ok := migrate.UpSync(databaseURI, migrationsDir); !ok {
 			for _, err := range errs {
 				logrus.Error(err)
 			}
-			return nil, errors.New("Database migrations failed")
+			return DB{}, errors.New("Database migrations failed")
 		}
 	}
 	db, err := sql.Open("postgres", databaseURI)
-	return &DB{
-		DB:                   db,
-		StatementBuilderType: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).RunWith(db),
+	return DB{
+		dbProxy:              db,
+		StatementBuilderType: statementBuilder(db),
 		PasswordHashingCost:  passwordHashingCost,
 	}, err
 }
+
+var statementBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).RunWith
 
 // Now gives us the current time for Postgres. Postgres only stores times to
 // the microsecond, so we pre-truncate times so tests will match. We also
@@ -60,12 +56,22 @@ func (d DB) Now() time.Time {
 
 // Transaction runs the given function in a postgres transaction. If fn returns
 // an error the txn will be rolled back.
-func (d DB) Transaction(f func(*sql.Tx) error) error {
-	tx, err := d.Begin()
+func (d DB) Transaction(f func(DB) error) error {
+	if _, ok := d.dbProxy.(*sql.Tx); ok {
+		// Already in a nested transaction
+		return f(d)
+	}
+
+	tx, err := d.dbProxy.(*sql.DB).Begin()
 	if err != nil {
 		return err
 	}
-	if err = f(tx); err != nil {
+	err = f(DB{
+		dbProxy:              tx,
+		StatementBuilderType: statementBuilder(tx),
+		PasswordHashingCost:  d.PasswordHashingCost,
+	})
+	if err != nil {
 		// Rollback error is ignored as we already have one in progress
 		if err2 := tx.Rollback(); err2 != nil {
 			logrus.Warn("transaction rollback: %v (ignored)", err2)
@@ -75,25 +81,12 @@ func (d DB) Transaction(f func(*sql.Tx) error) error {
 	return tx.Commit()
 }
 
-// Truncate clears all the data in pg. Should only be used in tests!
-func (d DB) Truncate() error {
-	return d.Transaction(func(tx *sql.Tx) error {
-		return mustExec(
-			tx,
-			`truncate table traceable;`,
-			`truncate table users;`,
-			`truncate table logins;`,
-			`truncate table organizations;`,
-			`truncate table memberships;`,
-		)
-	})
-}
-
-func mustExec(e squirrel.Execer, queries ...string) error {
-	for _, q := range queries {
-		if _, err := e.Exec(q); err != nil {
-			return err
-		}
+// Close finishes using the db
+func (d DB) Close() error {
+	if db, ok := d.dbProxy.(interface {
+		Close() error
+	}); ok {
+		return db.Close()
 	}
 	return nil
 }
