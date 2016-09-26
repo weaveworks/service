@@ -107,7 +107,7 @@ func main() {
 	flag.StringVar(&c.controlHost, "control", "control.default.svc.cluster.local:80", "Hostname & port for control service")
 	flag.StringVar(&c.pipeHost, "pipe", "pipe.default.svc.cluster.local:80", "Hostname & port for pipe service")
 	flag.StringVar(&c.deployHost, "deploy", "api.deploy.svc.cluster.local:80", "Hostname & port for deploy service")
-	flag.StringVar(&c.promHost, "prom", "distributor.frankenstein.svc.cluster.local:80", "Hostname & port for prom service")
+	flag.StringVar(&c.promHost, "prom", "distributor.prism.svc.cluster.local:80", "Hostname & port for prom service")
 
 	// For Admin routers
 	flag.StringVar(&c.grafanaHost, "grafana", "grafana.monitoring.svc.cluster.local:80", "Hostname & port for grafana")
