@@ -59,7 +59,4 @@ deployment:
           export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/'$CIRCLE_BRANCH'?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=1' | jq -r '.[0].vcs_revision')
           echo Last successful build was commit $LAST_BUILD_COMMIT
           ./push-images --and-deploy --if-changed-since $LAST_BUILD_COMMIT
-  ui_upload:
-    branch: master
-    commands:
       - make ui-upload
