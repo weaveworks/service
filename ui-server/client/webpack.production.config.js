@@ -14,9 +14,11 @@ module.exports = {
   },
 
   output: {
-    publicPath: '/', // absolute path for bundle
+    // absolute path for bundle
+    // we can't use the static.weave.works CNAME yet because of SSL issues
+    publicPath: 'https://s3.amazonaws.com/static.weave.works/service-ui/',
     path: __dirname + '/build/',
-    filename: '[name].js'
+    filename: '[chunkhash].js'
   },
 
   module: {
@@ -42,7 +44,7 @@ module.exports = {
     new webpack.DefinePlugin({
       'process.env': {NODE_ENV: '"production"'}
     }),
-    new webpack.optimize.CommonsChunkPlugin('vendors', 'vendors.js'),
+    new webpack.optimize.CommonsChunkPlugin('vendors', '[chunkhash].js'),
     new webpack.optimize.OccurenceOrderPlugin(true),
     new webpack.optimize.UglifyJsPlugin({
       sourceMap: false,
