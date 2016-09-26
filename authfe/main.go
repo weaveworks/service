@@ -16,11 +16,6 @@ import (
 	users "github.com/weaveworks/service/users/client"
 )
 
-type hostFlag struct {
-	dest *string
-	name string
-}
-
 const (
 	sessionCookieKey = "_weaveclientid"
 	userIDHeader     = "X-Scope-UserID"
@@ -109,7 +104,10 @@ func main() {
 	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
 	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
 
-	hostFlags := []hostFlag{
+	hostFlags := []struct {
+		dest *string
+		name string
+	}{
 		{&c.promHost, "prom"},
 		{&c.collectionHost, "collection"},
 		{&c.queryHost, "query"},
