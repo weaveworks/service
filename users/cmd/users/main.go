@@ -18,7 +18,7 @@ import (
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/login"
-	"github.com/weaveworks/service/users/pardot"
+	"github.com/weaveworks/service/users/marketing"
 	"github.com/weaveworks/service/users/sessions"
 	"github.com/weaveworks/service/users/templates"
 )
@@ -60,11 +60,14 @@ func main() {
 		return
 	}
 
-	var pardotClient *pardot.Client
+	var marketingQueues []*marketing.Queue
 	if *pardotEmail != "" {
-		pardotClient = pardot.NewClient(pardot.APIURL,
+		pardotClient := marketing.NewPardotClient(marketing.PardotAPIURL,
 			*pardotEmail, *pardotPassword, *pardotUserKey)
-		defer pardotClient.Stop()
+		queue := marketing.NewQueue(pardotClient)
+		defer queue.Stop()
+
+		marketingQueues = append(marketingQueues, queue)
 	}
 
 	rand.Seed(time.Now().UnixNano())
@@ -80,7 +83,7 @@ func main() {
 	logrus.Infof("Listening on port %d", *port)
 	mux := http.NewServeMux()
 
-	mux.Handle("/", api.New(*directLogin, emailer, sessions, db, logins, templates, pardotClient, forceFeatureFlags))
+	mux.Handle("/", api.New(*directLogin, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags))
 	mux.Handle("/metrics", makePrometheusHandler())
 	if err := graceful.RunWithErr(fmt.Sprintf(":%d", *port), *stopTimeout, mux); err != nil {
 		logrus.Fatal(err)

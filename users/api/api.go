@@ -6,7 +6,7 @@ import (
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/login"
-	"github.com/weaveworks/service/users/pardot"
+	"github.com/weaveworks/service/users/marketing"
 	"github.com/weaveworks/service/users/sessions"
 	"github.com/weaveworks/service/users/templates"
 )
@@ -19,7 +19,7 @@ type API struct {
 	logins            *login.Providers
 	templates         templates.Engine
 	emailer           emailer.Emailer
-	pardotClient      *pardot.Client
+	marketingQueues   []*marketing.Queue
 	forceFeatureFlags []string
 	http.Handler
 }
@@ -32,7 +32,7 @@ func New(
 	db db.DB,
 	logins *login.Providers,
 	templates templates.Engine,
-	pardotClient *pardot.Client,
+	marketingQueues []*marketing.Queue,
 	forceFeatureFlags []string,
 ) *API {
 	a := &API{
@@ -42,7 +42,7 @@ func New(
 		logins:            logins,
 		templates:         templates,
 		emailer:           emailer,
-		pardotClient:      pardotClient,
+		marketingQueues:   marketingQueues,
 		forceFeatureFlags: forceFeatureFlags,
 	}
 	a.Handler = a.routes()

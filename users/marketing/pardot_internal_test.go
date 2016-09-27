@@ -1,4 +1,4 @@
-package pardot
+package marketing
 
 import (
 	"encoding/json"

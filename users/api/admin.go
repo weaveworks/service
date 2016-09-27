@@ -24,7 +24,7 @@ func (a *API) admin(w http.ResponseWriter, r *http.Request) {
 		<ul>
 			<li><a href="private/api/users">Users</a></li>
 			<li><a href="private/api/organizations">Organizations</a></li>
-			<li><a href="private/api/pardot">Sync User-Creation with Pardot</a></li>
+			<li><a href="private/api/marketing_refresh">Sync User-Creation with marketing integrations</a></li>
 		</ul>
 	</body>
 </html>
@@ -162,7 +162,7 @@ func (a *API) setOrgFeatureFlags(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirectTo, http.StatusFound)
 }
 
-func (a *API) pardotRefresh(w http.ResponseWriter, r *http.Request) {
+func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
 	users, err := a.db.ListUsers()
 	if err != nil {
 		render.Error(w, r, err)
@@ -170,8 +170,10 @@ func (a *API) pardotRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, user := range users {
-		// tell pardot about the users
-		a.pardotClient.UserCreated(user.Email, user.CreatedAt)
+		for _, queue := range a.marketingQueues {
+			// tell pardot about the users
+			queue.UserCreated(user.Email, user.CreatedAt)
+		}
 	}
 }
 
