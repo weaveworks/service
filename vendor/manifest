@@ -263,6 +263,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/FrenchBen/goketo",
+			"repository": "https://github.com/FrenchBen/goketo",
+			"vcs": "git",
+			"revision": "52bbc2368902e807c4fb8f30ad5384f26450e9b0",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/Masterminds/squirrel",
 			"repository": "https://github.com/Masterminds/squirrel",
 			"vcs": "",
@@ -613,6 +621,14 @@
 			"vcs": "",
 			"revision": "2efbe75097a505e2789f7e39cb9da067b5be8e3e",
 			"branch": "master"
+		},
+		{
+			"importpath": "github.com/jinzhu/now",
+			"repository": "https://github.com/jinzhu/now",
+			"vcs": "git",
+			"revision": "d9861969c7a7e84746d341c09020c2ef8a617f8f",
+			"branch": "master",
+			"notests": true
 		},
 		{
 			"importpath": "github.com/jmoiron/sqlx",

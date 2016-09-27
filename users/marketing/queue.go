@@ -4,6 +4,8 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -26,9 +28,9 @@ func init() {
 }
 
 type prospect struct {
-	Email             string
-	ServiceCreatedAt  time.Time
-	ServiceLastAccess time.Time
+	Email             string    `json:"email"`
+	ServiceCreatedAt  time.Time `json:"createdAt"`
+	ServiceLastAccess time.Time `json:"lastAccess"`
 }
 
 func (p1 prospect) merge(p2 prospect) prospect {
@@ -45,7 +47,7 @@ func (p1 prospect) merge(p2 prospect) prospect {
 	}
 }
 
-// Client for pardot.
+// Queue for sending updates to marketing.
 type Queue struct {
 	sync.Mutex
 	cond   *sync.Cond
@@ -66,7 +68,7 @@ type client interface {
 	batchUpsertProspect(prospects []prospect) error
 }
 
-// NewClient makes a new pardot client.
+// NewQueue makes a new marketing queue.
 func NewQueue(client client) *Queue {
 	queue := &Queue{
 		client: client,
@@ -115,12 +117,22 @@ func (c *Queue) waitForStuffToDo() {
 }
 
 func (c *Queue) push() {
-	hits, prospects := c.swap()
-	for email, timestamp := range hits {
-		prospects = append(prospects, prospect{
+	accesses, creations := c.swap()
+
+	prospectsByEmail := map[string]prospect{}
+	for _, prospect := range creations {
+		prospectsByEmail[prospect.Email] = prospect
+	}
+	for email, timestamp := range accesses {
+		prospectsByEmail[email] = prospectsByEmail[email].merge(prospect{
 			Email:             email,
 			ServiceLastAccess: timestamp,
 		})
+	}
+
+	prospects := []prospect{}
+	for _, prospect := range prospects {
+		prospects = append(prospects, prospect)
 	}
 
 	name := c.client.name()
@@ -132,10 +144,10 @@ func (c *Queue) push() {
 		}
 		err := c.client.batchUpsertProspect(prospects[i:end])
 		if err != nil {
-			rpcDurations.WithLabelValues(name, "failed").Observe(end - i)
+			prospectsSent.WithLabelValues(name, "failed").Observe(float64(end - i))
 			log.Printf("Error pushing prospects: %v", err)
 		} else {
-			rpcDurations.WithLabelValues(name, "success").Observe(end - i)
+			prospectsSent.WithLabelValues(name, "success").Observe(float64(end - i))
 		}
 		i = end
 	}

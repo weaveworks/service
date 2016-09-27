@@ -20,34 +20,7 @@ const (
 	batchUpsertPath = "/api/prospect/version/3/do/batchUpsert"
 )
 
-type apiResponse struct {
-	APIKey  string `xml:"api_key"`
-	ErrText string `xml:"err"`
-}
-
-func (p1 prospect) MarshalJSON() ([]byte, error) {
-	encode := func(t time.Time) string {
-		if t.IsZero() {
-			return ""
-		}
-		return strftime.Format("%Y-%m-%d", t)
-	}
-
-	encoded := struct {
-		ServiceCreatedAt  string `json:",omitempty"`
-		ServiceLastAccess string `json:",omitempty"`
-	}{
-		ServiceCreatedAt:  encode(p1.ServiceCreatedAt),
-		ServiceLastAccess: encode(p1.ServiceLastAccess),
-	}
-	return json.Marshal(encoded)
-}
-
-type batchProspectRequest struct {
-	Prospects map[string]prospect `json:"prospects"`
-}
-
-// Client for pardot.
+// PardotClient is a client for pardot.
 type PardotClient struct {
 	apiURL                   string
 	client                   http.Client
@@ -55,7 +28,7 @@ type PardotClient struct {
 	apikey                   string
 }
 
-// NewClient makes a new pardot client.
+// NewPardotClient makes a new pardot client.
 func NewPardotClient(apiURL, email, password, userkey string) *PardotClient {
 	return &PardotClient{
 		apiURL:   apiURL,
@@ -63,6 +36,10 @@ func NewPardotClient(apiURL, email, password, userkey string) *PardotClient {
 		password: password,
 		userkey:  userkey,
 	}
+}
+
+func (*PardotClient) name() string {
+	return "pardot"
 }
 
 func (c *PardotClient) updateAPIKey() error {
@@ -75,7 +52,10 @@ func (c *PardotClient) updateAPIKey() error {
 		return err
 	}
 
-	var apiResponse apiResponse
+	var apiResponse struct {
+		APIKey  string `xml:"api_key"`
+		ErrText string `xml:"err"`
+	}
 	if err := xml.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
 		return err
 	}
@@ -87,15 +67,13 @@ func (c *PardotClient) updateAPIKey() error {
 }
 
 func (c *PardotClient) batchUpsertProspect(prospects []prospect) error {
-	if err := c.updateAPIKey(); err != nil {
-		return err
+	request := struct {
+		Prospects map[string]interface{} `json:"prospects"`
+	}{
+		Prospects: map[string]interface{}{},
 	}
-
-	request := batchProspectRequest{
-		Prospects: map[string]prospect{},
-	}
-	for _, p := range prospects {
-		request.Prospects[p.Email] = request.Prospects[p.Email].merge(p)
+	for _, prospect := range prospects {
+		request.Prospects[prospect.Email] = pardotProspect(prospect)
 	}
 	jsonRequest := bytes.Buffer{}
 	if err := json.NewEncoder(&jsonRequest).Encode(request); err != nil {
@@ -110,7 +88,10 @@ func (c *PardotClient) batchUpsertProspect(prospects []prospect) error {
 	if err != nil {
 		return err
 	}
-	var apiResponse apiResponse
+	var apiResponse struct {
+		APIKey  string `xml:"api_key"`
+		ErrText string `xml:"err"`
+	}
 	if err := xml.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
 		return err
 	}
@@ -118,4 +99,21 @@ func (c *PardotClient) batchUpsertProspect(prospects []prospect) error {
 		return fmt.Errorf("Pardot API error: %s", apiResponse.ErrText)
 	}
 	return nil
+}
+
+func pardotProspect(p prospect) interface{} {
+	encode := func(t time.Time) string {
+		if t.IsZero() {
+			return ""
+		}
+		return strftime.Format("%Y-%m-%d", t)
+	}
+
+	return struct {
+		ServiceCreatedAt  string `json:",omitempty"`
+		ServiceLastAccess string `json:",omitempty"`
+	}{
+		ServiceCreatedAt:  encode(p.ServiceCreatedAt),
+		ServiceLastAccess: encode(p.ServiceLastAccess),
+	}
 }
