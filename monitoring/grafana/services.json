@@ -465,11 +465,11 @@
           "linewidth": 2,
           "links": [
             {
-              "type": "dashboard",
+              "dashUri": "file/users.json",
               "dashboard": "Users Service Dashboard",
               "keepTime": true,
-              "dashUri": "file/users.json",
-              "title": "Users Service Dashboard"
+              "title": "Users Service Dashboard",
+              "type": "dashboard"
             }
           ],
           "nullPointMode": "connected",
@@ -579,11 +579,11 @@
           "linewidth": 2,
           "links": [
             {
-              "type": "dashboard",
+              "dashUri": "file/users.json",
               "dashboard": "Users Service Dashboard",
               "keepTime": true,
-              "dashUri": "file/users.json",
-              "title": "Users Service Dashboard"
+              "title": "Users Service Dashboard",
+              "type": "dashboard"
             }
           ],
           "nullPointMode": "connected",
