@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	// APIURL is the default URL for the pardot API
+	// PardotAPIURL is the default URL for the pardot API
 	PardotAPIURL    = "https://pi.pardot.com"
 	loginPath       = "/api/login/version/3"
 	batchUpsertPath = "/api/prospect/version/3/do/batchUpsert"
@@ -42,6 +42,11 @@ func (*PardotClient) name() string {
 	return "pardot"
 }
 
+type apiResponse struct {
+	APIKey  string `xml:"api_key"`
+	ErrText string `xml:"err"`
+}
+
 func (c *PardotClient) updateAPIKey() error {
 	body := fmt.Sprintf("email=%s&password=%s&user_key=%s",
 		url.QueryEscape(c.email),
@@ -52,10 +57,7 @@ func (c *PardotClient) updateAPIKey() error {
 		return err
 	}
 
-	var apiResponse struct {
-		APIKey  string `xml:"api_key"`
-		ErrText string `xml:"err"`
-	}
+	var apiResponse apiResponse
 	if err := xml.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
 		return err
 	}
@@ -68,12 +70,12 @@ func (c *PardotClient) updateAPIKey() error {
 
 func (c *PardotClient) batchUpsertProspect(prospects []prospect) error {
 	request := struct {
-		Prospects map[string]interface{} `json:"prospects"`
+		Prospects map[string]pardotProspect `json:"prospects"`
 	}{
-		Prospects: map[string]interface{}{},
+		Prospects: map[string]pardotProspect{},
 	}
 	for _, prospect := range prospects {
-		request.Prospects[prospect.Email] = pardotProspect(prospect)
+		request.Prospects[prospect.Email] = toPardotProspect(prospect)
 	}
 	jsonRequest := bytes.Buffer{}
 	if err := json.NewEncoder(&jsonRequest).Encode(request); err != nil {
@@ -88,10 +90,7 @@ func (c *PardotClient) batchUpsertProspect(prospects []prospect) error {
 	if err != nil {
 		return err
 	}
-	var apiResponse struct {
-		APIKey  string `xml:"api_key"`
-		ErrText string `xml:"err"`
-	}
+	var apiResponse apiResponse
 	if err := xml.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
 		return err
 	}
@@ -101,7 +100,12 @@ func (c *PardotClient) batchUpsertProspect(prospects []prospect) error {
 	return nil
 }
 
-func pardotProspect(p prospect) interface{} {
+type pardotProspect struct {
+	ServiceCreatedAt  string
+	ServiceLastAccess string
+}
+
+func toPardotProspect(p prospect) pardotProspect {
 	encode := func(t time.Time) string {
 		if t.IsZero() {
 			return ""
@@ -109,10 +113,7 @@ func pardotProspect(p prospect) interface{} {
 		return strftime.Format("%Y-%m-%d", t)
 	}
 
-	return struct {
-		ServiceCreatedAt  string `json:",omitempty"`
-		ServiceLastAccess string `json:",omitempty"`
-	}{
+	return pardotProspect{
 		ServiceCreatedAt:  encode(p.ServiceCreatedAt),
 		ServiceLastAccess: encode(p.ServiceLastAccess),
 	}

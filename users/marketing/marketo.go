@@ -11,7 +11,7 @@ type MarketoClient struct {
 	client *goketo.Client
 }
 
-// NewClient makes a new pardot client.
+// NewMarketoClient makes a new marketo client.
 func NewMarketoClient(clientID, clientSecret, clientEndpoint string) (*MarketoClient, error) {
 	client, err := goketo.NewAuthClient(clientID, clientSecret, clientEndpoint)
 	if err != nil {

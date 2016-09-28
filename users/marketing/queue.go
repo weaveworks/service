@@ -131,7 +131,7 @@ func (c *Queue) push() {
 	}
 
 	prospects := []prospect{}
-	for _, prospect := range prospects {
+	for _, prospect := range prospectsByEmail {
 		prospects = append(prospects, prospect)
 	}
 
