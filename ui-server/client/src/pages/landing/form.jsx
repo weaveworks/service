@@ -7,8 +7,7 @@ import { browserHistory } from 'react-router';
 
 import { getLogins } from '../../common/api';
 import { postData } from '../../common/request';
-import { trackEvent, trackException, trackTiming, trackView,
-  PardotSignupIFrame } from '../../common/tracking';
+import { trackEvent, trackException, trackTiming, trackView } from '../../common/tracking';
 import ErrorMessage from '../../components/error-message';
 import LoginVia from './login-via';
 
@@ -249,7 +248,6 @@ export default class Form extends React.Component {
         <div style={styles.devLink}>
           <button onClick={this._doLogin}>Developer login link</button>
         </div>
-        {submitSuccess && <PardotSignupIFrame email={this.state.email} />}
       </div>
     );
   }
