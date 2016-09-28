@@ -6,9 +6,6 @@ import (
 	"github.com/FrenchBen/goketo"
 )
 
-// MarketoURL is a url, for marketo.
-const MarketoURL = ""
-
 // MarketoClient is a client for marketo.
 type MarketoClient struct {
 	client *goketo.Client
