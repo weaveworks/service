@@ -165,3 +165,12 @@ ALERT PodRestartingTooMuch
     summary = "Pod {{$labels.namespace}}/{{$label.name}} restarting too much.",
     description = "Pod {{$labels.namespace}}/{{$label.name}} restarting too much.",
   }
+
+ALERT ApiServerDown
+  IF          sum(up{job="kubernetes-api"}) < 1
+  FOR         5m
+  LABELS      { severity="warning" }
+  ANNOTATIONS {
+    summary = "Kubernetes API server down for 5m",
+    description = "Kubernetes API server down for 5m",
+  }
