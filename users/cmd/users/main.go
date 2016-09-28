@@ -39,6 +39,9 @@ func main() {
 		pardotPassword = flag.String("pardot-password", "", "Password of Pardot account.")
 		pardotUserKey  = flag.String("pardot-userkey", "", "User key of Pardot account.")
 
+		marketoClientID = flag.String("marketo-client-id", "", "Client ID of Marketo account.  If not supplied marketo integration will be disabled.")
+		marketoSecret   = flag.String("marketo-secret", "", "Secret for Marketo account.")
+
 		sendgridAPIKey   = flag.String("sendgrid-api-key", "", "Sendgrid API key.  Either email-uri or sendgrid-api-key must be provided.")
 		emailFromAddress = flag.String("email-from-address", "Weave Cloud <support@weave.works>", "From address for emails.")
 
@@ -66,8 +69,18 @@ func main() {
 			*pardotEmail, *pardotPassword, *pardotUserKey)
 		queue := marketing.NewQueue(pardotClient)
 		defer queue.Stop()
-
 		marketingQueues = append(marketingQueues, queue)
+	}
+
+	if *marketoClientID != "" {
+		marketoClient, err := marketing.NewMarketoClient(*marketoClientID, *marketoSecret, marketing.MarketoURL)
+		if err != nil {
+			logrus.Warningf("Failed to initialise Marketo client: %v", err)
+		} else {
+			queue := marketing.NewQueue(marketoClient)
+			defer queue.Stop()
+			marketingQueues = append(marketingQueues, queue)
+		}
 	}
 
 	rand.Seed(time.Now().UnixNano())
