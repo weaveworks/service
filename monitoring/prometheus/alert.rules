@@ -171,6 +171,6 @@ ALERT ApiServerDown
   FOR         5m
   LABELS      { severity="warning" }
   ANNOTATIONS {
-    summary = "Kubernetes API server down for 15m",
-    description = "Kubernetes API server down for 15m",
+    summary = "Kubernetes API server down for 5m",
+    description = "Kubernetes API server down for 5m",
   }
