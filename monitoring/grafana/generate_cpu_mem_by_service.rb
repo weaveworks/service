@@ -50,40 +50,40 @@ services = %w(
 def template(rows)
   # Set the ids on each panel
   rows.each_with_index { |row, rowIndex|
-    row["panels"].each_with_index { |panel, panelIndex|
-      panel["id"] = ((rowIndex+1)*10) + panelIndex
+    row[:panels].each_with_index { |panel, panelIndex|
+      panel[:id] = ((rowIndex+1)*10) + panelIndex
     }
   }
 
 
   # Return the big template
   {
-    "annotations" =>  {
-      "list" =>  []
+    "annotations":  {
+      "list":  []
     },
-    "id" =>  nil,
-    "title" =>  "CPU & Memory Usage by Service",
-    "tags" =>  [],
-    "style" =>  "dark",
-    "timezone" =>  "utc",
-    "editable" => true,
-    "gnetId" => nil,
-    "hideControls" => false,
-    "links" => [],
-    "refresh" => "10s",
-    "rows" => rows,
-    "schemaVersion" => 12,
-    "sharedCrosshair" => false,
-    "templating" => {
-      "list" => []
+    "id":  nil,
+    "title":  "CPU & Memory Usage by Service",
+    "tags":  [],
+    "style":  "dark",
+    "timezone":  "utc",
+    "editable": true,
+    "gnetId": nil,
+    "hideControls": false,
+    "links": [],
+    "refresh": "10s",
+    "rows": rows,
+    "schemaVersion": 12,
+    "sharedCrosshair": false,
+    "templating": {
+      "list": []
     },
-    "time" => {
-      "from" => "now-1h",
-      "to" => "now"
+    "time": {
+      "from": "now-1h",
+      "to": "now"
     },
-    "timepicker" => {
-      "now" => true,
-      "refresh_intervals" => [
+    "timepicker": {
+      "now": true,
+      "refresh_intervals": [
         "5s",
         "10s",
         "30s",
@@ -95,7 +95,7 @@ def template(rows)
         "2h",
         "1d"
       ],
-      "time_options" => [
+      "time_options": [
         "5m",
         "15m",
         "1h",
@@ -107,172 +107,174 @@ def template(rows)
         "30d"
       ]
     },
-    "version" => 9
+    "version": 9
   }
 end
 
 def row(namespace, name)
   {
-    "collapse" => false,
-    "editable" => true,
-    "height" => "250px",
-    "panels" => [
+    "collapse": false,
+    "editable": true,
+    "height": "250px",
+    "panels": [
       {
-        "bars" =>  false,
+        "aliasColors": {},
+        "bars": false,
         "datasource": "Scope-as-a-Service Prometheus",
-        "editable" =>  true,
-        "error" =>  false,
-        "fill" =>  1,
-        "grid" =>  {
-          "threshold1" =>  nil,
-          "threshold1Color" =>  "rgba(216, 200, 27, 0.27)",
-          "threshold2" =>  nil,
-          "threshold2Color" =>  "rgba(234, 112, 112, 0.22)"
+        "editable": true,
+        "error": false,
+        "fill": 1,
+        "grid": {
+          "threshold1": nil,
+          "threshold1Color": "rgba(216, 200, 27, 0.27)",
+          "threshold2": nil,
+          "threshold2Color": "rgba(234, 112, 112, 0.22)"
         },
-        "isNew" =>  true,
-        "legend" =>  {
-          "avg" =>  false,
-          "current" =>  false,
-          "max" =>  false,
-          "min" =>  false,
-          "show" =>  true,
-          "total" =>  false,
-          "values" =>  false
+        "id": 20,
+        "isNew": true,
+        "legend": {
+          "avg": false,
+          "current": false,
+          "max": false,
+          "min": false,
+          "show": true,
+          "total": false,
+          "values": false
         },
-        "lines" =>  true,
-        "linewidth" =>  2,
-        "links" =>  [],
-        "nilPointMode" =>  "connected",
-        "percentage" =>  false,
-        "pointradius" =>  5,
-        "points" =>  false,
-        "renderer" =>  "flot",
-        "seriesOverrides" =>  [],
-        "span" =>  6,
-        "stack" =>  false,
-        "steppedLine" =>  false,
-        "targets" =>  [
+        "lines": true,
+        "linewidth": 2,
+        "links": [],
+        "nilPointMode": "connected",
+        "nullPointMode": "connected",
+        "percentage": false,
+        "pointradius": 5,
+        "points": false,
+        "renderer": "flot",
+        "seriesOverrides": [],
+        "span": 6,
+        "stack": false,
+        "steppedLine": false,
+        "targets": [
           {
-            "expr" =>  "sum(irate(container_cpu_usage_seconds_total{job=\"kubernetes-api\",io_kubernetes_pod_namespace=\"#{namespace}\",io_kubernetes_pod_name=~\"#{name}-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
-            "intervalFactor" =>  2,
-            "legendFormat" =>  "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
-            "refId" =>  "A",
-            "step" =>  10
+            "expr": "sum(irate(container_cpu_usage_seconds_total{job=\"cadvisor\",io_kubernetes_pod_namespace=\"#{namespace}\",io_kubernetes_pod_name=~\"#{name}-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+            "intervalFactor": 2,
+            "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
+            "refId": "A",
+            "step": 10
           }
         ],
-        "timeFrom" =>  nil,
-        "timeShift" =>  nil,
-        "title" =>  "#{namespace}/#{name} CPU Usage",
-        "tooltip" =>  {
-          "msResolution" =>  true,
-          "shared" =>  true,
-          "sort" =>  0,
-          "value_type" =>  "cumulative"
+        "timeFrom": nil,
+        "timeShift": nil,
+        "title": "#{namespace}/#{name} CPU Usage",
+        "tooltip": {
+          "msResolution": true,
+          "shared": true,
+          "sort": 0,
+          "value_type": "cumulative"
         },
-        "type" =>  "graph",
-        "xaxis" =>  {
-          "show" =>  true
+        "type": "graph",
+        "xaxis": {
+          "show": true
         },
-        "yaxes" =>  [
+        "yaxes": [
           {
-            "format" =>  "short",
-            "label" =>  nil,
-            "logBase" =>  1,
-            "max" =>  100,
-            "min" =>  0,
-            "show" =>  true
+            "format": "percentunit",
+            "label": nil,
+            "logBase": 1,
+            "max": 1,
+            "min": 0,
+            "show": true
           },
           {
-            "format" =>  "short",
-            "label" =>  nil,
-            "logBase" =>  1,
-            "max" =>  nil,
-            "min" =>  nil,
-            "show" =>  true
+            "format": "short",
+            "label": nil,
+            "logBase": 1,
+            "max": nil,
+            "min": nil,
+            "show": true
           }
-        ],
-        "nullPointMode" =>  "connected",
-        "aliasColors" =>  {}
+        ]
       },
       {
-        "bars" =>  false,
+        "aliasColors": {},
+        "bars": false,
         "datasource": "Scope-as-a-Service Prometheus",
-        "editable" =>  true,
-        "error" =>  false,
-        "fill" =>  1,
-        "grid" =>  {
-          "threshold1" =>  nil,
-          "threshold1Color" =>  "rgba(216, 200, 27, 0.27)",
-          "threshold2" =>  nil,
-          "threshold2Color" =>  "rgba(234, 112, 112, 0.22)"
+        "editable": true,
+        "error": false,
+        "fill": 1,
+        "grid": {
+          "threshold1": nil,
+          "threshold1Color": "rgba(216, 200, 27, 0.27)",
+          "threshold2": nil,
+          "threshold2Color": "rgba(234, 112, 112, 0.22)"
         },
-        "isNew" =>  true,
-        "legend" =>  {
-          "avg" =>  false,
-          "current" =>  false,
-          "max" =>  false,
-          "min" =>  false,
-          "show" =>  true,
-          "total" =>  false,
-          "values" =>  false
+        "id": 21,
+        "isNew": true,
+        "legend": {
+          "avg": false,
+          "current": false,
+          "max": false,
+          "min": false,
+          "show": true,
+          "total": false,
+          "values": false
         },
-        "lines" =>  true,
-        "linewidth" =>  2,
-        "links" =>  [],
-        "nilPointMode" =>  "connected",
-        "percentage" =>  false,
-        "pointradius" =>  5,
-        "points" =>  false,
-        "renderer" =>  "flot",
-        "seriesOverrides" =>  [],
-        "span" =>  6,
-        "stack" =>  false,
-        "steppedLine" =>  false,
-        "targets" =>  [
+        "lines": true,
+        "linewidth": 2,
+        "links": [],
+        "nilPointMode": "connected",
+        "nullPointMode": "connected",
+        "percentage": false,
+        "pointradius": 5,
+        "points": false,
+        "renderer": "flot",
+        "seriesOverrides": [],
+        "span": 6,
+        "stack": false,
+        "steppedLine": false,
+        "targets": [
           {
-            "expr" =>  "sum(container_memory_usage_bytes{job=\"kubernetes-api\",io_kubernetes_pod_namespace=\"#{namespace}\",io_kubernetes_pod_name=~\"#{name}-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
-            "intervalFactor" =>  2,
-            "legendFormat" =>  "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
-            "refId" =>  "A",
-            "step" =>  10
+            "expr": "sum(container_memory_usage_bytes{job=\"cadvisor\",io_kubernetes_pod_namespace=\"#{namespace}\",io_kubernetes_pod_name=~\"#{name}-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+            "intervalFactor": 2,
+            "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
+            "refId": "A",
+            "step": 10
           }
         ],
-        "timeFrom" =>  nil,
-        "timeShift" =>  nil,
-        "title" =>  "#{namespace}/#{name} Memory Usage",
-        "tooltip" =>  {
-          "msResolution" =>  true,
-          "shared" =>  true,
-          "sort" =>  0,
-          "value_type" =>  "cumulative"
+        "timeFrom": nil,
+        "timeShift": nil,
+        "title": "#{namespace}/#{name} Memory Usage",
+        "tooltip": {
+          "msResolution": true,
+          "shared": true,
+          "sort": 0,
+          "value_type": "cumulative"
         },
-        "type" =>  "graph",
-        "xaxis" =>  {
-          "show" =>  true
+        "type": "graph",
+        "xaxis": {
+          "show": true
         },
-        "yaxes" =>  [
+        "yaxes": [
           {
-            "format" =>  "short",
-            "label" =>  nil,
-            "logBase" =>  1,
-            "max" =>  nil,
-            "min" =>  0,
-            "show" =>  true
+            "format": "bytes",
+            "label": nil,
+            "logBase": 1,
+            "max": nil,
+            "min": 0,
+            "show": true
           },
           {
-            "format" =>  "short",
-            "label" =>  nil,
-            "logBase" =>  1,
-            "max" =>  nil,
-            "min" =>  nil,
-            "show" =>  true
+            "format": "short",
+            "label": nil,
+            "logBase": 1,
+            "max": nil,
+            "min": nil,
+            "show": true
           }
-        ],
-        "nullPointMode" =>  "connected",
-        "aliasColors" =>  {}
+        ]
       }
     ],
-    "title" => "#{namespace}/#{name}"
+    "title": "#{namespace}/#{name}"
   }
 end
 
