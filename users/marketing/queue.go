@@ -1,10 +1,10 @@
 package marketing
 
 import (
-	"log"
 	"sync"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -41,7 +41,13 @@ func (p1 prospect) merge(p2 prospect) prospect {
 		return t2
 	}
 
+	email := p1.Email
+	if email == "" {
+		email = p2.Email
+	}
+
 	return prospect{
+		Email:             email,
 		ServiceCreatedAt:  latest(p1.ServiceCreatedAt, p2.ServiceCreatedAt),
 		ServiceLastAccess: latest(p1.ServiceLastAccess, p2.ServiceLastAccess),
 	}
@@ -136,7 +142,7 @@ func (c *Queue) push() {
 	}
 
 	name := c.client.name()
-	log.Printf("Pushing %d prospect updates to %s", len(prospects), name)
+	log.Infof("Pushing %d prospect updates to %s", len(prospects), name)
 	for i := 0; i < len(prospects); {
 		end := i + batchSize
 		if end > len(prospects) {
@@ -145,7 +151,7 @@ func (c *Queue) push() {
 		err := c.client.batchUpsertProspect(prospects[i:end])
 		if err != nil {
 			prospectsSent.WithLabelValues(name, "failed").Observe(float64(end - i))
-			log.Printf("Error pushing prospects: %v", err)
+			log.Errorf("Error pushing prospects: %v", err)
 		} else {
 			prospectsSent.WithLabelValues(name, "success").Observe(float64(end - i))
 		}

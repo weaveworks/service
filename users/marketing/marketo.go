@@ -2,8 +2,10 @@ package marketing
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/FrenchBen/goketo"
+	log "github.com/Sirupsen/logrus"
 )
 
 // MarketoClient is a client for marketo.
@@ -26,20 +28,68 @@ func (*MarketoClient) name() string {
 	return "marketo"
 }
 
+type marketoResponse struct {
+	RequestID string `json:"requestId"`
+	Success   bool   `json:"success"`
+	Errors    []struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	} `json:"errors"`
+}
+
+type marketoProspect struct {
+	Email      string     `json:"email"`
+	CreatedAt  *time.Time `json:"weaveCloudCreatedAt,omitempty"`
+	LastAccess *time.Time `json:"weaveCloudLastActive,omitempty"`
+}
+
+func (m *marketoResponse) Error() string {
+	err, _ := json.Marshal(m.Errors)
+	return string(err)
+}
+
+func nilTime(t time.Time) *time.Time {
+	if t.IsZero() {
+		return nil
+	}
+	return &t
+}
+
 func (c *MarketoClient) batchUpsertProspect(prospects []prospect) error {
 	leads := struct {
-		ProgramName string     `json:"programName"`
-		LookupField string     `json:"lookupField"`
-		Input       []prospect `json:"input"`
+		ProgramName string            `json:"programName"`
+		LookupField string            `json:"lookupField"`
+		Input       []marketoProspect `json:"input"`
 	}{
 		ProgramName: "Weave Cloud",
 		LookupField: "email",
-		Input:       prospects,
+		Input:       []marketoProspect{},
 	}
-	data, err := json.Marshal(leads)
+	for _, p := range prospects {
+		leads.Input = append(leads.Input, marketoProspect{
+			Email:      p.Email,
+			CreatedAt:  nilTime(p.ServiceCreatedAt),
+			LastAccess: nilTime(p.ServiceLastAccess),
+		})
+	}
+	req, err := json.Marshal(leads)
 	if err != nil {
 		return err
 	}
-	_, err = c.client.Post("leads/push.json", data)
-	return err
+	log.Debugf("Marketo request: %s", string(req))
+	resp, err := c.client.Post("leads/push.json", req)
+	if err != nil {
+		return err
+	}
+	log.Debugf("Marketo response: %s", string(resp))
+
+	var marketoResponse marketoResponse
+	if err := json.Unmarshal(resp, &marketoResponse); err != nil {
+		return err
+	}
+
+	if !marketoResponse.Success {
+		return &marketoResponse
+	}
+	return nil
 }
