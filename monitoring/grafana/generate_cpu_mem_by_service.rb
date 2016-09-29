@@ -162,7 +162,7 @@ def row(namespace, name)
         "steppedLine": false,
         "targets": [
           {
-            "expr": "sum(irate(container_cpu_usage_seconds_total{job=\"kubernetes-nodes\",io_kubernetes_pod_namespace=\"#{namespace}\",io_kubernetes_pod_name=~\"#{name}-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+            "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"#{namespace}\",io_kubernetes_pod_name=~\"#{name}-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
             "intervalFactor": 2,
             "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
             "refId": "A",
@@ -240,7 +240,7 @@ def row(namespace, name)
         "steppedLine": false,
         "targets": [
           {
-            "expr": "sum(container_memory_usage_bytes{job=\"kubernetes-nodes\",io_kubernetes_pod_namespace=\"#{namespace}\",io_kubernetes_pod_name=~\"#{name}-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+            "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"#{namespace}\",io_kubernetes_pod_name=~\"#{name}-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
             "intervalFactor": 2,
             "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
             "refId": "A",
