@@ -102,18 +102,3 @@ scrape_configs:
   tls_config:
     ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
   bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-
-# This scrape config gathers data from cadvisor on each node
-- job_name: 'cadvisor'
-  kubernetes_sd_configs:
-  - api_servers:
-    - 'https://kubernetes.default.svc.cluster.local'
-    in_cluster: true
-    role: node
-
-  relabel_configs:
-  - source_labels: [__address__]
-    action: replace
-    target_label: __address__
-    regex: ^(.+)(?::\d+)$
-    replacement: $1:4194
