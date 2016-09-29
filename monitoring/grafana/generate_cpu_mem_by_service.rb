@@ -1,5 +1,11 @@
 #!/usr/bin/env ruby
 # vim:set ft=ruby:
+#
+# Requires Ruby 2.2+
+#
+# Generate `monitoring/grafana/cpu_mem_by_service.json` with:
+#   $ cd monitoring/grafana  # only to make following command shorter
+#   $ ./generate_cpu_mem_by_service.rb | jq -S . > cpu_mem_by_service.json
 
 require 'json'
 
@@ -156,7 +162,7 @@ def row(namespace, name)
         "steppedLine": false,
         "targets": [
           {
-            "expr": "sum(irate(container_cpu_usage_seconds_total{job=\"cadvisor\",io_kubernetes_pod_namespace=\"#{namespace}\",io_kubernetes_pod_name=~\"#{name}-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+            "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"#{namespace}\",io_kubernetes_pod_name=~\"#{name}-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
             "intervalFactor": 2,
             "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
             "refId": "A",
@@ -234,7 +240,7 @@ def row(namespace, name)
         "steppedLine": false,
         "targets": [
           {
-            "expr": "sum(container_memory_usage_bytes{job=\"cadvisor\",io_kubernetes_pod_namespace=\"#{namespace}\",io_kubernetes_pod_name=~\"#{name}-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+            "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"#{namespace}\",io_kubernetes_pod_name=~\"#{name}-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
             "intervalFactor": 2,
             "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
             "refId": "A",
