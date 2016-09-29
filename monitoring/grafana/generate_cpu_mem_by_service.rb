@@ -1,5 +1,11 @@
 #!/usr/bin/env ruby
 # vim:set ft=ruby:
+#
+# Requires Ruby 2.2+
+#
+# Generate `monitoring/grafana/cpu_mem_by_service.json` with:
+#   $ cd monitoring/grafana  # only to make following command shorter
+#   $ ./generate_cpu_mem_by_service.rb | jq -S . > cpu_mem_by_service.json
 
 require 'json'
 
