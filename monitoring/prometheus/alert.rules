@@ -61,6 +61,15 @@ ALERT QueryErrorRate
     description = "The query service has an error rate (response code >= 500) of {{$value}} errors per second.",
   }
 
+ALERT PipeErrorRate
+  IF          job:scope_request_errors:rate1m{job="scope/pipe"} > 0.1
+  FOR         5m
+  LABELS      { severity="critical" }
+  ANNOTATIONS {
+    summary = "pipe service: high error rate",
+    description = "The pipe service has an error rate (response code >= 500) of {{$value}} errors per second.",
+  }
+
 # For each service, an alert on latency
 
 ALERT AuthFELatency
