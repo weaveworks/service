@@ -151,9 +151,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			render.Error(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
-		for _, queue := range a.marketingQueues {
-			queue.UserCreated(u.Email, u.CreatedAt)
-		}
+		a.marketingQueues.UserCreated(u.Email, u.CreatedAt)
 	}
 
 	if err := a.db.AddLoginToUser(u.ID, providerID, id, authSession); err != nil {
@@ -249,9 +247,7 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 	if err == users.ErrNotFound {
 		user, err = a.db.CreateUser(view.Email)
 		if err == nil {
-			for _, queue := range a.marketingQueues {
-				queue.UserCreated(user.Email, user.CreatedAt)
-			}
+			a.marketingQueues.UserCreated(user.Email, user.CreatedAt)
 		}
 	}
 	if err != nil {

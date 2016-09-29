@@ -64,7 +64,7 @@ func main() {
 		return
 	}
 
-	var marketingQueues []*marketing.Queue
+	var marketingQueues marketing.Queues
 	if *pardotEmail != "" {
 		pardotClient := marketing.NewPardotClient(marketing.PardotAPIURL,
 			*pardotEmail, *pardotPassword, *pardotUserKey)

@@ -161,10 +161,10 @@ func (c *Queue) push() {
 
 func (c *Queue) swap() (map[string]time.Time, []prospect) {
 	c.Lock()
-	defer c.Unlock()
 	defer func() {
 		c.hits = map[string]time.Time{}
 		c.prospects = []prospect{}
+		c.Unlock()
 	}()
 	return c.hits, c.prospects
 }
@@ -196,4 +196,18 @@ func (c *Queue) UserCreated(email string, createdAt time.Time) {
 		ServiceCreatedAt: createdAt,
 	})
 	c.cond.Broadcast()
+}
+
+type Queues []*Queue
+
+func (qs Queues) UserAccess(email string, hitAt time.Time) {
+	for _, q := range qs {
+		q.UserAccess(email, hitAt)
+	}
+}
+
+func (qs Queues) UserCreated(email string, createdAt time.Time) {
+	for _, q := range qs {
+		q.UserCreated(email, createdAt)
+	}
 }

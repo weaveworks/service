@@ -170,10 +170,7 @@ func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, user := range users {
-		for _, queue := range a.marketingQueues {
-			// tell pardot about the users
-			queue.UserCreated(user.Email, user.CreatedAt)
-		}
+		a.marketingQueues.UserCreated(user.Email, user.CreatedAt)
 	}
 }
 

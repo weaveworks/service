@@ -19,7 +19,7 @@ type API struct {
 	logins            *login.Providers
 	templates         templates.Engine
 	emailer           emailer.Emailer
-	marketingQueues   []*marketing.Queue
+	marketingQueues   marketing.Queues
 	forceFeatureFlags []string
 	http.Handler
 }
@@ -32,7 +32,7 @@ func New(
 	db db.DB,
 	logins *login.Providers,
 	templates templates.Engine,
-	marketingQueues []*marketing.Queue,
+	marketingQueues marketing.Queues,
 	forceFeatureFlags []string,
 ) *API {
 	a := &API{
