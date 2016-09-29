@@ -77,9 +77,11 @@ scrape_configs:
     in_cluster: true
     role: node
 
-  # couldn't get prometheus to validate the kublet cert for scraping, so don't bother for now
-  tls_config:
-    insecure_skip_verify: true
+  # Couldn't get prometheus to validate the kubelet cert for scraping, so
+  # don't bother for now
+  #jml temporarily disabling to confirm error message for blog post
+  #tls_config:
+  #  insecure_skip_verify: true
   bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
 
   relabel_configs:
