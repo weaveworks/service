@@ -36,7 +36,9 @@ authfe/authfe
 kubediff/vendor/github.com/tomwilkie/prom-run/prom-run
 pr-assigner/pr-assigner
 client/build/*
+ui-server/client/build-local/*
 ui-server/build/*
+ui-server/ui-server-local/build-local/*
 
 Vagrantfile.local
 .dir-locals.el
