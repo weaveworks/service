@@ -198,14 +198,17 @@ func (c *Queue) UserCreated(email string, createdAt time.Time) {
 	c.cond.Broadcast()
 }
 
+// Queues is a list of Queue; it handles the fanout.
 type Queues []*Queue
 
+// UserAccess calls UserAccess on each Queue.
 func (qs Queues) UserAccess(email string, hitAt time.Time) {
 	for _, q := range qs {
 		q.UserAccess(email, hitAt)
 	}
 }
 
+// UserCreated calls UserCreated on each Queue.
 func (qs Queues) UserCreated(email string, createdAt time.Time) {
 	for _, q := range qs {
 		q.UserCreated(email, createdAt)
