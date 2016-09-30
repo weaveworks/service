@@ -1,4 +1,4 @@
-package pardot
+package marketing
 
 import (
 	"encoding/json"
@@ -21,11 +21,6 @@ const (
 	userkey   = "apikey"
 	userEmail = "baz@bar.com"
 )
-
-type pardotProspect struct {
-	ServiceCreatedAt  string
-	ServiceLastAccess string
-}
 
 func TestPardotClient(t *testing.T) {
 	prospects := make(chan map[string]pardotProspect)
@@ -94,11 +89,12 @@ func TestPardotClient(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	client := NewClient(ts.URL, email, password, userkey)
-	defer client.Stop()
+	client := NewPardotClient(ts.URL, email, password, userkey)
+	queue := NewQueue(client)
+	defer queue.Stop()
 
 	createdAt := time.Now()
-	client.UserCreated(userEmail, createdAt)
+	queue.UserCreated(userEmail, createdAt)
 	select {
 	case ps := <-prospects:
 		if !reflect.DeepEqual(ps, map[string]pardotProspect{

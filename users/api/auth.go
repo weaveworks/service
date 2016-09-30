@@ -84,9 +84,9 @@ func (a *API) authenticateVia(handler func(Authentication, http.ResponseWriter, 
 			}
 			if auth.User != nil {
 				// User actions always go through this endpoint because authfe checks the
-				// authentication endpoint every time. We use this to tell pardot about
+				// authentication endpoint every time. We use this to tell marketing about
 				// login activity.
-				a.pardotClient.UserAccess(auth.User.Email, time.Now())
+				a.marketingQueues.UserAccess(auth.User.Email, time.Now())
 			}
 			handler(auth, w, r)
 			return

@@ -18,7 +18,7 @@ import (
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/login"
-	"github.com/weaveworks/service/users/pardot"
+	"github.com/weaveworks/service/users/marketing"
 	"github.com/weaveworks/service/users/sessions"
 	"github.com/weaveworks/service/users/templates"
 )
@@ -38,6 +38,10 @@ func main() {
 		pardotEmail    = flag.String("pardot-email", "", "Email of Pardot account.  If not supplied pardot integration will be disabled.")
 		pardotPassword = flag.String("pardot-password", "", "Password of Pardot account.")
 		pardotUserKey  = flag.String("pardot-userkey", "", "User key of Pardot account.")
+
+		marketoClientID = flag.String("marketo-client-id", "", "Client ID of Marketo account.  If not supplied marketo integration will be disabled.")
+		marketoSecret   = flag.String("marketo-secret", "", "Secret for Marketo account.")
+		marketoEndpoint = flag.String("marketo-endpoint", "", "REST API endpoint for Marketo.")
 
 		sendgridAPIKey   = flag.String("sendgrid-api-key", "", "Sendgrid API key.  Either email-uri or sendgrid-api-key must be provided.")
 		emailFromAddress = flag.String("email-from-address", "Weave Cloud <support@weave.works>", "From address for emails.")
@@ -60,11 +64,24 @@ func main() {
 		return
 	}
 
-	var pardotClient *pardot.Client
+	var marketingQueues marketing.Queues
 	if *pardotEmail != "" {
-		pardotClient = pardot.NewClient(pardot.APIURL,
+		pardotClient := marketing.NewPardotClient(marketing.PardotAPIURL,
 			*pardotEmail, *pardotPassword, *pardotUserKey)
-		defer pardotClient.Stop()
+		queue := marketing.NewQueue(pardotClient)
+		defer queue.Stop()
+		marketingQueues = append(marketingQueues, queue)
+	}
+
+	if *marketoClientID != "" {
+		marketoClient, err := marketing.NewMarketoClient(*marketoClientID, *marketoSecret, *marketoEndpoint)
+		if err != nil {
+			logrus.Warningf("Failed to initialise Marketo client: %v", err)
+		} else {
+			queue := marketing.NewQueue(marketoClient)
+			defer queue.Stop()
+			marketingQueues = append(marketingQueues, queue)
+		}
 	}
 
 	rand.Seed(time.Now().UnixNano())
@@ -80,7 +97,7 @@ func main() {
 	logrus.Infof("Listening on port %d", *port)
 	mux := http.NewServeMux()
 
-	mux.Handle("/", api.New(*directLogin, emailer, sessions, db, logins, templates, pardotClient, forceFeatureFlags))
+	mux.Handle("/", api.New(*directLogin, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags))
 	mux.Handle("/metrics", makePrometheusHandler())
 	if err := graceful.RunWithErr(fmt.Sprintf(":%d", *port), *stopTimeout, mux); err != nil {
 		logrus.Fatal(err)
