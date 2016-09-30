@@ -49,6 +49,7 @@ frontend-mt/$(UPTODATE): frontend-mt/default.conf frontend-mt/routes.conf fronte
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
 ui-server/client/$(UPTODATE): ui-server/client/package.json ui-server/client/webpack.* ui-server/client/server.js ui-server/client/.eslintrc ui-server/client/.eslintignore ui-server/client/.babelrc
 ui-server/$(UPTODATE): ui-server/client/build/index.html
+ui-server/ui-server-local/$(UPTODATE): ui-server/ui-server-local/build-local
 build/$(UPTODATE): build/build.sh
 monitoring/grafana/$(UPTODATE): monitoring/grafana/*
 monitoring/gfdatasource/$(UPTODATE): monitoring/gfdatasource/*
@@ -111,6 +112,18 @@ ui-server/client/build/index.html: ui-server/client/$(UPTODATE) $(JS_FILES) ui-s
 		-v $(shell pwd)/ui-server/client/build:/home/weave/build \
 		$(IMAGE_PREFIX)/client npm run build
 	cp -p ui-server/client/src/images/* ui-server/client/build
+
+ui-server/client/build-local/index.html: ui-server/client/$(UPTODATE) $(JS_FILES) ui-server/client/src/html/index.html
+	mkdir -p ui-server/client/build-local
+	$(SUDO) docker run $(RM) -ti \
+		-v $(shell pwd)/ui-server/client/src:/home/weave/src \
+		-v $(shell pwd)/ui-server/client/build-local:/home/weave/build-local \
+		$(IMAGE_PREFIX)/client npm run build-local
+	cp -p ui-server/client/src/images/* ui-server/client/build-local
+
+ui-server/ui-server-local/build-local: ui-server/client/build-local/index.html
+	# copy the results into the docker build context
+	cp -r ui-server/client/build-local ui-server/ui-server-local/
 
 # Test and misc stuff
 users-integration-test: $(USERS_UPTODATE)

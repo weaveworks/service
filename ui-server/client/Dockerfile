@@ -4,4 +4,4 @@ COPY package.json /home/weave/
 ENV NPM_CONFIG_LOGLEVEL=warn NPM_CONFIG_PROGRESS=false
 # Don't install optional developer tools
 RUN npm install --no-optional
-COPY webpack.local.config.js webpack.production.config.js .eslintignore .eslintrc .babelrc /home/weave/
+COPY webpack.local.config.js webpack.localimage.config.js webpack.production.config.js .eslintignore .eslintrc .babelrc /home/weave/
