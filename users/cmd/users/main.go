@@ -33,6 +33,7 @@ func main() {
 		databaseMigrations = flag.String("database-migrations", "", "Path where the database migration files can be found")
 		emailURI           = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Either email-uri or sendgrid-api-key must be provided. For local development, you can set this to: log://, which will log all emails.")
 		sessionSecret      = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
+		sessionKey         = flag.String("session-key", "", "Key used encrypt sessions (default is no encryption)")
 		directLogin        = flag.Bool("direct-login", false, "Send login token in the signup response (DEV only)")
 
 		pardotEmail    = flag.String("pardot-email", "", "Email of Pardot account.  If not supplied pardot integration will be disabled.")
@@ -90,7 +91,7 @@ func main() {
 	emailer := emailer.MustNew(*emailURI, *sendgridAPIKey, *emailFromAddress, templates, *domain)
 	db := db.MustNew(*databaseURI, *databaseMigrations)
 	defer db.Close()
-	sessions := sessions.MustNewStore(*sessionSecret)
+	sessions := sessions.MustNewStore(*sessionSecret, *sessionKey)
 
 	logrus.Debug("Debug logging enabled")
 

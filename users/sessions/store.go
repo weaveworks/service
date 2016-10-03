@@ -16,21 +16,25 @@ const (
 )
 
 // MustNewStore creates a new session store, or panics.
-func MustNewStore(validationSecret string) Store {
-	secretBytes := []byte(validationSecret)
+func MustNewStore(sessionSecret, sessionKey string) Store {
+	secretBytes := []byte(sessionSecret)
 	if len(secretBytes) != 64 {
 		logrus.Fatal("session-secret must be 64 bytes")
 	}
+	keyBytes := []byte(sessionKey)
+	if len(keyBytes) == 0 {
+		keyBytes = nil
+	} else if len(keyBytes) != 32 {
+		logrus.Fatal("session-key must be 32 bytes")
+	}
 
 	return Store{
-		secret:  validationSecret,
-		encoder: securecookie.New(secretBytes, nil).SetSerializer(securecookie.JSONEncoder{}),
+		encoder: securecookie.New(secretBytes, keyBytes).SetSerializer(securecookie.JSONEncoder{}),
 	}
 }
 
 // Store is a session store. It manages reading and writing from cookies.
 type Store struct {
-	secret  string
 	encoder *securecookie.SecureCookie
 }
 
