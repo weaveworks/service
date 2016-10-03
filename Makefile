@@ -1,8 +1,6 @@
 .PHONY: all test users-integration-test clean client-lint images ui-upload
 .DEFAULT_GOAL := all
 
-ENV := dev
-
 # Boiler plate for bulding Docker containers.
 # All this must go at top of file I'm afraid.
 IMAGE_PREFIX := quay.io/weaveworks
@@ -111,7 +109,7 @@ ui-server/client/build/index.html: ui-server/client/$(UPTODATE) $(JS_FILES) ui-s
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/ui-server/client/src:/home/weave/src \
 		-v $(shell pwd)/ui-server/client/build:/home/weave/build \
-		$(IMAGE_PREFIX)/client npm run build-$(ENV)
+		$(IMAGE_PREFIX)/client npm run build-production
 	cp -p ui-server/client/src/images/* ui-server/client/build
 
 # Test and misc stuff
