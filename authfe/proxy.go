@@ -12,6 +12,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+const defaultPort = "80"
+
 type proxy struct {
 	hostAndPort  string
 	reverseProxy httputil.ReverseProxy
@@ -77,8 +79,13 @@ func (p proxy) proxyWS(w http.ResponseWriter, r *http.Request) {
 	wsConnections.Inc()
 	defer wsConnections.Dec()
 
+	address := p.hostAndPort
+	if !strings.Contains(address, ":") {
+		address = address + ":" + defaultPort
+	}
+
 	// Connect to target
-	targetConn, err := net.Dial("tcp", p.hostAndPort)
+	targetConn, err := net.Dial("tcp", address)
 	if err != nil {
 		log.Errorf("proxy: websocket: error dialing backend %q: %v", p.hostAndPort, err)
 		w.WriteHeader(http.StatusInternalServerError)
