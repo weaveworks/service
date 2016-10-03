@@ -42,7 +42,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-MONITORING_COMPONENTS="monitoring/prometheus monitoring/grafana monitoring/gfdatasource monitoring/loadgen monitoring/alertmanager monitoring/fluentd-loggly"
+MONITORING_COMPONENTS="monitoring/prometheus monitoring/grafana monitoring/gfdatasource monitoring/alertmanager monitoring/fluentd-loggly"
 
 COMPONENTS="$@"
 if [ "${COMPONENTS}" == "" ]

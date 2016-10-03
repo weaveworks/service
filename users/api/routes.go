@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -75,7 +74,6 @@ func (a *API) routes() http.Handler {
 		{"private_api_users_lookup", "GET", "/private/api/users/lookup", a.authenticateProbe(a.lookupUsingToken)},
 
 		// Internal stuff for our internal usage, internally.
-		{"loadgen", "GET", "/loadgen", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintf(w, "OK") }},
 		{"root", "GET", "/", a.admin},
 		{"private_api_organizations", "GET", "/private/api/organizations", a.listOrganizations},
 		{"private_api_organizations_orgExternalID_featureFlags", "POST", "/private/api/organizations/{orgExternalID}/featureflags", a.setOrgFeatureFlags},
