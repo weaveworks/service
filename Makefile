@@ -109,7 +109,7 @@ ui-server/client/build/index.html: ui-server/client/$(UPTODATE) $(JS_FILES) ui-s
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/ui-server/client/src:/home/weave/src \
 		-v $(shell pwd)/ui-server/client/build:/home/weave/build \
-		$(IMAGE_PREFIX)/client npm run build
+		$(IMAGE_PREFIX)/client npm run build-production
 	cp -p ui-server/client/src/images/* ui-server/client/build
 
 # Test and misc stuff
