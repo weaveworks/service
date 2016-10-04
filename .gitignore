@@ -33,6 +33,7 @@ coverage.html
 .uptodate
 users/cmd/users/users
 authfe/authfe
+config/cmd/config/config
 kubediff/vendor/github.com/tomwilkie/prom-run/prom-run
 pr-assigner/pr-assigner
 client/build/*
