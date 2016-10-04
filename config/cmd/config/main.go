@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tylerb/graceful"
 
 	"github.com/weaveworks/service/common/logging"
@@ -27,6 +28,7 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 	logrus.Infof("Listening on port %d", *port)
 	mux := http.NewServeMux()
+	mux.Handle("/metrics", prometheus.Handler())
 	if err := graceful.RunWithErr(fmt.Sprintf(":%d", *port), *stopTimeout, mux); err != nil {
 		logrus.Fatal(err)
 	}
