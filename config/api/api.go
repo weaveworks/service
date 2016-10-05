@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -34,12 +35,27 @@ func New() *API {
 	return a
 }
 
+func (a *API) admin(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "text/html")
+	fmt.Fprintf(w, `
+<!doctype html>
+<html>
+	<head><title>Config service</title></head>
+	<body>
+		<h1>Config service</h1>
+	</body>
+</html>
+`)
+}
+
 func (a *API) routes() http.Handler {
 	r := mux.NewRouter()
 	for _, route := range []struct {
 		name, method, path string
 		handler            http.HandlerFunc
-	}{} {
+	}{
+		{"root", "GET", "/", a.admin},
+	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
 	return middleware.Merge(
