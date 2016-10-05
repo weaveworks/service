@@ -15,23 +15,24 @@ import (
 
 // Config is all the config we need to build the routes
 type Config struct {
-	authenticator    users.Authenticator
-	eventLogger      *logging.EventLogger
-	outputHeader     string
-	collectionHost   string
-	queryHost        string
-	controlHost      string
-	pipeHost         string
-	deployHost       string
-	grafanaHost      string
-	scopeHost        string
-	usersHost        string
-	kubediffHost     string
-	terradiffHost    string
-	alertmanagerHost string
-	prometheusHost   string
-	kubedashHost     string
-	promHost         string
+	authenticator     users.Authenticator
+	eventLogger       *logging.EventLogger
+	outputHeader      string
+	collectionHost    string
+	queryHost         string
+	controlHost       string
+	pipeHost          string
+	deployHost        string
+	grafanaHost       string
+	scopeHost         string
+	usersHost         string
+	kubediffHost      string
+	terradiffHost     string
+	alertmanagerHost  string
+	prometheusHost    string
+	kubedashHost      string
+	promHost          string
+	compareImagesHost string
 }
 
 func routes(c Config) (http.Handler, error) {
@@ -120,6 +121,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/alertmanager", newProxy(c.alertmanagerHost)},
 				{"/prometheus", newProxy(c.prometheusHost)},
 				{"/kubedash", trimPrefix("/admin/kubedash", newProxy(c.kubedashHost))},
+				{"/compare-images", trimPrefix("/admin/compare-images", newProxy(c.compareImagesHost))},
 				{"/", http.HandlerFunc(adminRoot)},
 			},
 			users.AuthAdminMiddleware{
