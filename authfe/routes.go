@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io"
+	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"regexp"
@@ -8,10 +10,13 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/scope/common/middleware"
+	"github.com/weaveworks/scope/common/xfer"
 
 	"github.com/weaveworks/service/common/logging"
 	users "github.com/weaveworks/service/users/client"
 )
+
+const maxAnalyticsPayloadSize = 16 * 1024 // bytes
 
 // Config is all the config we need to build the routes
 type Config struct {
@@ -44,9 +49,75 @@ type Config struct {
 	apiInfo             string
 }
 
+var noopHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusNoContent)
+})
+
+func newProbeRequestLogger(orgIDHeader string) logging.HTTPEventExtractor {
+	return func(r *http.Request) (logging.Event, bool) {
+		event := logging.Event{
+			ID:             r.URL.Path,
+			Product:        "scope-probe",
+			Version:        r.Header.Get(xfer.ScopeProbeVersionHeader),
+			UserAgent:      r.UserAgent(),
+			ClientID:       r.Header.Get(xfer.ScopeProbeIDHeader),
+			OrganizationID: r.Header.Get(orgIDHeader),
+		}
+		return event, true
+	}
+}
+
+func newUIRequestLogger(orgIDHeader, userIDHeader string) logging.HTTPEventExtractor {
+	return func(r *http.Request) (logging.Event, bool) {
+		sessionCookie, err := r.Cookie(sessionCookieKey)
+		var sessionID string
+		if err == nil {
+			sessionID = sessionCookie.Value
+		}
+
+		event := logging.Event{
+			ID:             r.URL.Path,
+			SessionID:      sessionID,
+			Product:        "scope-ui",
+			UserAgent:      r.UserAgent(),
+			OrganizationID: r.Header.Get(orgIDHeader),
+			UserID:         r.Header.Get(userIDHeader),
+		}
+		return event, true
+	}
+}
+
+func newAnalyticsLogger(orgIDHeader, userIDHeader string) logging.HTTPEventExtractor {
+	return func(r *http.Request) (logging.Event, bool) {
+		sessionCookie, err := r.Cookie(sessionCookieKey)
+		var sessionID string
+		if err == nil {
+			sessionID = sessionCookie.Value
+		}
+
+		values, err := ioutil.ReadAll(&io.LimitedReader{
+			R: r.Body,
+			N: maxAnalyticsPayloadSize,
+		})
+		if err != nil {
+			return logging.Event{}, false
+		}
+
+		event := logging.Event{
+			ID:             r.URL.Path,
+			SessionID:      sessionID,
+			Product:        "scope-ui",
+			UserAgent:      r.UserAgent(),
+			OrganizationID: r.Header.Get(orgIDHeader),
+			UserID:         r.Header.Get(userIDHeader),
+			Values:         string(values),
+		}
+		return event, true
+	}
+}
+
 func routes(c Config) (http.Handler, error) {
-	probeHTTPlogger := middleware.Identity
-	uiHTTPlogger := middleware.Identity
+	probeHTTPlogger, uiHTTPlogger, analyticsLogger := middleware.Identity, middleware.Identity, middleware.Identity
 	if c.eventLogger != nil {
 		probeHTTPlogger = logging.HTTPEventLogger{
 			Extractor: newProbeRequestLogger(c.outputHeader),
@@ -56,6 +127,21 @@ func routes(c Config) (http.Handler, error) {
 			Extractor: newUIRequestLogger(c.outputHeader, userIDHeader),
 			Logger:    c.eventLogger,
 		}
+		analyticsLogger = logging.HTTPEventLogger{
+			Extractor: newAnalyticsLogger(c.outputHeader, userIDHeader),
+			Logger:    c.eventLogger,
+		}
+	}
+
+	authOrgMiddleware := users.AuthOrgMiddleware{
+		Authenticator: c.authenticator,
+		OrgExternalID: func(r *http.Request) (string, bool) {
+			v, ok := mux.Vars(r)["orgExternalID"]
+			return v, ok
+		},
+		OutputHeader:       c.outputHeader,
+		UserIDHeader:       userIDHeader,
+		FeatureFlagsHeader: featureFlagsHeader,
 	}
 
 	billingAuthMiddleware := users.AuthOrgMiddleware{
@@ -114,19 +200,15 @@ func routes(c Config) (http.Handler, error) {
 				).Wrap(newProxy(c.queryHost))},
 			},
 			middleware.Merge(
-				users.AuthOrgMiddleware{
-					Authenticator: c.authenticator,
-					OrgExternalID: func(r *http.Request) (string, bool) {
-						v, ok := mux.Vars(r)["orgExternalID"]
-						return v, ok
-					},
-					OutputHeader:       c.outputHeader,
-					UserIDHeader:       userIDHeader,
-					FeatureFlagsHeader: featureFlagsHeader,
-				},
+				authOrgMiddleware,
 				middleware.PathRewrite(regexp.MustCompile("^/api/app/[^/]+"), ""),
 				uiHTTPlogger,
 			),
+		},
+
+		path{
+			"/api/analytics",
+			middleware.Merge(authOrgMiddleware, analyticsLogger).Wrap(noopHandler),
 		},
 
 		// For all probe <-> app communication, authenticated using header credentials

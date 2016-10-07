@@ -52,6 +52,12 @@
       "type": "STRING",
       "mode": "NULLABLE",
       "description": "Client generated session id."
+    },
+    {
+      "name": "values",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "Arbitrary JSON encoded values from the UI."
     }
 ]
 

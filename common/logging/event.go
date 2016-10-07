@@ -22,6 +22,7 @@ type Event struct {
 	ClientID       string `msg:"client_id"`
 	OrganizationID string `msg:"org_id"`
 	UserID         string `msg:"user_id"`
+	Values         string `msg:"values"`
 }
 
 // EventLogger logs events to the analytics system
