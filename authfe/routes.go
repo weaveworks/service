@@ -38,7 +38,6 @@ type Config struct {
 func routes(c Config) (http.Handler, error) {
 	probeHTTPlogger := middleware.Identity
 	uiHTTPlogger := middleware.Identity
-	usersHTTPlogger := middleware.Identity
 	if c.eventLogger != nil {
 		probeHTTPlogger = logging.HTTPEventLogger{
 			Extractor: newProbeRequestLogger(c.outputHeader),
@@ -46,10 +45,6 @@ func routes(c Config) (http.Handler, error) {
 		}
 		uiHTTPlogger = logging.HTTPEventLogger{
 			Extractor: newUIRequestLogger(c.outputHeader, userIDHeader),
-			Logger:    c.eventLogger,
-		}
-		usersHTTPlogger = logging.HTTPEventLogger{
-			Extractor: newUsersRequestLogger(),
 			Logger:    c.eventLogger,
 		}
 	}
@@ -64,7 +59,7 @@ func routes(c Config) (http.Handler, error) {
 			[]path{
 				{"/", newProxy(c.usersHost)},
 			},
-			usersHTTPlogger,
+			uiHTTPlogger,
 		},
 
 		// For all ui <-> app communication, authenticated using cookie credentials

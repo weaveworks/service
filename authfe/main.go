@@ -60,17 +60,6 @@ func newProbeRequestLogger(orgIDHeader string) logging.HTTPEventExtractor {
 	}
 }
 
-func newUsersRequestLogger() logging.HTTPEventExtractor {
-	return func(r *http.Request) (logging.Event, bool) {
-		event := logging.Event{
-			ID:        r.URL.Path,
-			Product:   "scope-ui",
-			UserAgent: r.UserAgent(),
-		}
-		return event, true
-	}
-}
-
 func newUIRequestLogger(orgIDHeader, userIDHeader string) logging.HTTPEventExtractor {
 	return func(r *http.Request) (logging.Event, bool) {
 		sessionCookie, err := r.Cookie(sessionCookieKey)
