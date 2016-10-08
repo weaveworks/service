@@ -84,7 +84,9 @@ func (a *API) routes() http.Handler {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
 	return middleware.Merge(
-		middleware.Logging,
+		middleware.Log{
+			LogSuccess: a.logSuccess,
+		},
 		middleware.Instrument{
 			RouteMatcher: r,
 			Duration:     users.RequestDuration,
