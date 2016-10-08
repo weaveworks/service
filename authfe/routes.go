@@ -138,7 +138,7 @@ func routes(c Config) (http.Handler, error) {
 			RouteMatcher: r,
 			Duration:     requestDuration,
 		},
-		middleware.Logging,
+		middleware.LogFailed,
 	).Wrap(r), nil
 }
 
