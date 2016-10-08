@@ -50,7 +50,7 @@ func setup(t *testing.T) {
 		Domain:      domain,
 		FromAddress: "test@test.com",
 	}
-	app = api.New(directLogin, emailer, sessionStore, database, logins, templates, nil, nil)
+	app = api.New(directLogin, true, emailer, sessionStore, database, logins, templates, nil, nil)
 }
 
 func cleanup(t *testing.T) {
