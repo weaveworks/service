@@ -53,6 +53,15 @@ func routes(c Config) (http.Handler, error) {
 	for _, route := range []routable{
 		path{"/metrics", prometheus.Handler()},
 
+		// unauthenticated users service communication
+		prefix{
+			"/api/users",
+			[]path{
+				{"/", newProxy(c.usersHost)},
+			},
+			uiHTTPlogger,
+		},
+
 		// For all ui <-> app communication, authenticated using cookie credentials
 		prefix{
 			"/api/app/{orgExternalID}",
@@ -159,6 +168,7 @@ type routable interface {
 	Add(*mux.Router)
 }
 
+// A path routable says "map this path to this handler"
 type path struct {
 	path    string
 	handler http.Handler
@@ -168,6 +178,8 @@ func (p path) Add(r *mux.Router) {
 	r.Path(p.path).Name(middleware.MakeLabelValue(p.path)).Handler(p.handler)
 }
 
+// A prefix routable says "for each of these path routables, add this path prefix
+// and (optionally) wrap the handlers with this middleware.
 type prefix struct {
 	prefix string
 	routes []path
