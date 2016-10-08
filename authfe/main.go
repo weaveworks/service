@@ -96,6 +96,7 @@ func main() {
 	flag.StringVar(&listen, "listen", ":80", "HTTP server listen address")
 	flag.DurationVar(&stopTimeout, "stop.timeout", 5*time.Second, "How long to wait for remaining requests to finish during shutdown")
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
+	flag.BoolVar(&c.logSuccess, "log.success", false, "Log successful requests.")
 	flag.StringVar(&authType, "authenticator", "web", "What authenticator to use: web | mock")
 	flag.StringVar(&authURL, "authenticator.url", "http://users:80", "Where to find web the authenticator service")
 	flag.IntVar(&authCacheSize, "auth.cache.size", 0, "How many entries to cache in the auth client.")
@@ -104,6 +105,7 @@ func main() {
 	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
 	flag.StringVar(&c.deployHost, "deploy", "api.deploy.svc.cluster.local:80", "Hostname & port for deploy service")
 	flag.StringVar(&c.promHost, "prom", "distributor.prism.svc.cluster.local:80", "Hostname & port for prom service")
+
 	// Required args
 	flag.StringVar(&c.collectionHost, "collection", "", "Hostname & port for collection service (required)")
 	flag.StringVar(&c.queryHost, "query", "", "Hostname & port for query service (required)")

@@ -26,6 +26,7 @@ import (
 func main() {
 	var (
 		logLevel           = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
+		logSuccess         = flag.Bool("log.success", false, "Log successful requests.")
 		port               = flag.Int("port", 80, "port to listen on")
 		stopTimeout        = flag.Duration("stop.timeout", 5*time.Second, "How long to wait for remaining requests to finish during shutdown")
 		domain             = flag.String("domain", "https://cloud.weave.works", "domain where scope service is runnning.")
@@ -97,7 +98,7 @@ func main() {
 	logrus.Infof("Listening on port %d", *port)
 	mux := http.NewServeMux()
 
-	mux.Handle("/", api.New(*directLogin, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags))
+	mux.Handle("/", api.New(*directLogin, *logSuccess, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags))
 	mux.Handle("/metrics", makePrometheusHandler())
 	if err := graceful.RunWithErr(fmt.Sprintf(":%d", *port), *stopTimeout, mux); err != nil {
 		logrus.Fatal(err)

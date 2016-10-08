@@ -33,6 +33,7 @@ type Config struct {
 	kubedashHost      string
 	promHost          string
 	compareImagesHost string
+	logSuccess        bool
 }
 
 func routes(c Config) (http.Handler, error) {
@@ -138,7 +139,9 @@ func routes(c Config) (http.Handler, error) {
 			RouteMatcher: r,
 			Duration:     requestDuration,
 		},
-		middleware.LogFailed,
+		middleware.Log{
+			LogSuccess: c.logSuccess,
+		},
 	).Wrap(r), nil
 }
 
