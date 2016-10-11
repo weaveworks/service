@@ -32,7 +32,7 @@ func main() {
 		domain             = flag.String("domain", "https://cloud.weave.works", "domain where scope service is runnning.")
 		databaseURI        = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
 		databaseMigrations = flag.String("database-migrations", "", "Path where the database migration files can be found")
-		emailURI           = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Either email-uri or sendgrid-api-key must be provided. For local development, you can set this to: log://, which will log all emails.")
+		emailURI           = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Email-uri must be provided. For local development, you can set this to: log://, which will log all emails.")
 		sessionSecret      = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
 		directLogin        = flag.Bool("direct-login", false, "Send login token in the signup response (DEV only)")
 
@@ -44,7 +44,6 @@ func main() {
 		marketoSecret   = flag.String("marketo-secret", "", "Secret for Marketo account.")
 		marketoEndpoint = flag.String("marketo-endpoint", "", "REST API endpoint for Marketo.")
 
-		sendgridAPIKey   = flag.String("sendgrid-api-key", "", "Sendgrid API key.  Either email-uri or sendgrid-api-key must be provided.")
 		emailFromAddress = flag.String("email-from-address", "Weave Cloud <support@weave.works>", "From address for emails.")
 
 		forceFeatureFlags common.ArrayFlags
@@ -88,7 +87,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	templates := templates.MustNewEngine("templates")
-	emailer := emailer.MustNew(*emailURI, *sendgridAPIKey, *emailFromAddress, templates, *domain)
+	emailer := emailer.MustNew(*emailURI, *emailFromAddress, templates, *domain)
 	db := db.MustNew(*databaseURI, *databaseMigrations)
 	defer db.Close()
 	sessions := sessions.MustNewStore(*sessionSecret)

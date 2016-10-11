@@ -606,20 +606,6 @@
 			"branch": "master"
 		},
 		{
-			"importpath": "github.com/sendgrid/sendgrid-go",
-			"repository": "https://github.com/sendgrid/sendgrid-go",
-			"vcs": "",
-			"revision": "0490f154a6f08e1cf80a4b1fb82d47c276a06653",
-			"branch": "master"
-		},
-		{
-			"importpath": "github.com/sendgrid/smtpapi-go",
-			"repository": "https://github.com/sendgrid/smtpapi-go",
-			"vcs": "",
-			"revision": "08102729bcf72bfe74dde6c0da8e0423e94090ca",
-			"branch": "master"
-		},
-		{
 			"importpath": "github.com/shurcooL/sanitized_anchor_name",
 			"repository": "https://github.com/shurcooL/sanitized_anchor_name",
 			"vcs": "",
