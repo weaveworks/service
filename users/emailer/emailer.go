@@ -7,7 +7,6 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/jordan-wright/email"
-	"github.com/sendgrid/sendgrid-go"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/templates"
@@ -48,39 +47,30 @@ type Emailer interface {
 }
 
 // MustNew creates a new emailer, from the URI, or panics.
-func MustNew(emailURI, sendgridAPIKey, fromAddress string, templates templates.Engine, domain string) Emailer {
-	if (emailURI == "") == (sendgridAPIKey == "") {
-		logrus.Fatal("Must provide one of -email-uri or -sendgrid-api-key")
+func MustNew(emailURI, fromAddress string, templates templates.Engine, domain string) Emailer {
+	if emailURI == "" {
+		logrus.Fatal("Must -email-uri")
 	}
-	if emailURI != "" {
-		var sender func(*email.Email) error
-		u, err := url.Parse(emailURI)
-		if err != nil {
-			logrus.Fatal(fmt.Errorf("Error parsing -email-uri: %s", err))
-		}
-		switch u.Scheme {
-		case "smtp":
-			sender, err = smtpEmailSender(u)
-		case "log":
-			sender = logEmailSender()
-		default:
-			err = ErrUnsupportedEmailProtocol
-		}
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		return SMTPEmailer{
-			Templates:   templates,
-			Sender:      sender,
-			Domain:      domain,
-			FromAddress: fromAddress,
-		}
+	var sender func(*email.Email) error
+	u, err := url.Parse(emailURI)
+	if err != nil {
+		logrus.Fatal(fmt.Errorf("Error parsing -email-uri: %s", err))
 	}
-	client := sendgrid.NewSendGridClientWithApiKey(sendgridAPIKey)
-	return sendgridEmailer{
-		templates:   templates,
-		client:      client,
-		domain:      domain,
-		fromAddress: fromAddress,
+	switch u.Scheme {
+	case "smtp":
+		sender, err = smtpEmailSender(u)
+	case "log":
+		sender = logEmailSender()
+	default:
+		err = ErrUnsupportedEmailProtocol
+	}
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	return SMTPEmailer{
+		Templates:   templates,
+		Sender:      sender,
+		Domain:      domain,
+		FromAddress: fromAddress,
 	}
 }
