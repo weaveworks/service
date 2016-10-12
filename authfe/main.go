@@ -125,6 +125,9 @@ func main() {
 		{&c.prometheusHost, "prometheus"},
 		{&c.kubedashHost, "kubedash"},
 		{&c.compareImagesHost, "compare-images"},
+		{&c.uiServerHost, "ui-server"},
+		{&c.demoHost, "demo"},
+		{&c.launchGeneratorHost, "launch-generator"},
 	}
 
 	for _, hostFlag := range hostFlags {
