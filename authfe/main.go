@@ -123,6 +123,7 @@ func main() {
 		{&c.terradiffHost, "terradiff"},
 		{&c.alertmanagerHost, "alertmanager"},
 		{&c.prometheusHost, "prometheus"},
+		{&c.kubedashHost, "kubedash"},
 		{&c.compareImagesHost, "compare-images"},
 	}
 
