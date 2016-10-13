@@ -105,6 +105,12 @@ func main() {
 	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
 	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
 
+	// Temporary ignored optional args
+	var ignored string
+	flag.StringVar(&ignored, "ui-server", "", "ignored")
+	flag.StringVar(&ignored, "demo", "", "ignored")
+	flag.StringVar(&ignored, "launch-generator", "", "ignored")
+
 	hostFlags := []struct {
 		dest *string
 		name string
