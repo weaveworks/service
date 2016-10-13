@@ -1,6 +1,6 @@
 FROM alpine:3.4
 MAINTAINER Weaveworks Inc <help@weave.works>
 WORKDIR /
-COPY cmd/config/config /
+COPY cmd/configs/configs /
 EXPOSE 80
-ENTRYPOINT ["/config"]
+ENTRYPOINT ["/configs"]

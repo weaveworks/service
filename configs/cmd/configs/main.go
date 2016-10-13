@@ -11,7 +11,7 @@ import (
 	"github.com/tylerb/graceful"
 
 	"github.com/weaveworks/service/common/logging"
-	"github.com/weaveworks/service/config/api"
+	"github.com/weaveworks/service/configs/api"
 )
 
 func main() {

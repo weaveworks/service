@@ -12,7 +12,7 @@ import (
 
 var (
 	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "config", // XXX: Should this be 'scope'?
+		Namespace: "configs", // XXX: Should this be 'scope'?
 		Name:      "request_duration_seconds",
 		Help:      "Time (in seconds) spent serving HTTP requests.",
 		Buckets:   prometheus.DefBuckets,
@@ -23,7 +23,7 @@ func init() {
 	prometheus.MustRegister(requestDuration)
 }
 
-// API implements the config api.
+// API implements the configs api.
 type API struct {
 	http.Handler
 }
@@ -40,9 +40,9 @@ func (a *API) admin(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `
 <!doctype html>
 <html>
-	<head><title>Config service</title></head>
+	<head><title>configs :: configuration service</title></head>
 	<body>
-		<h1>Config service</h1>
+		<h1>configs :: configuration service</h1>
 	</body>
 </html>
 `)

@@ -29,23 +29,23 @@ all: $(UPTODATE_FILES)
 
 # List of exes please
 AUTHFE_EXE := authfe/authfe
-CONFIG_EXE := config/cmd/config/config
+CONFIGS_EXE := configs/cmd/configs/configs
 USERS_EXE := users/cmd/users/users
 METRICS_EXE := metrics/metrics
 PR_ASSIGNER_EXE := pr-assigner/pr-assigner
-EXES = $(AUTHFE_EXE) $(CONFIG_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_RUN_EXE) $(PR_ASSIGNER_EXE)
+EXES = $(AUTHFE_EXE) $(CONFIGS_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_RUN_EXE) $(PR_ASSIGNER_EXE)
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
 $(AUTHFE_EXE): $(shell find authfe -name '*.go') $(shell find users/client -name '*.go') $(COMMON)
-$(CONFIG_EXE): $(shell find config -name '*.go') $(COMMON)
+$(CONFIGS_EXE): $(shell find configs -name '*.go') $(COMMON)
 $(USERS_EXE): $(shell find users -name '*.go') $(COMMON)
 $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
 $(PR_ASSIGNER_EXE): $(shell find pr-assigner -name '*.go') $(COMMON)
 
 # And now what goes into each image
 authfe/$(UPTODATE): $(AUTHFE_EXE)
-config/$(UPTODATE): $(CONFIG_EXE)
+configs/$(UPTODATE): $(CONFIGS_EXE)
 users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/templates/*
 metrics/$(UPTODATE): $(METRICS_EXE)
 frontend-mt/$(UPTODATE): frontend-mt/default.conf frontend-mt/routes.conf frontend-mt/api.json frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
