@@ -25,12 +25,13 @@ func init() {
 
 // API implements the configs api.
 type API struct {
+	logSuccess bool
 	http.Handler
 }
 
 // New creates a new API
-func New() *API {
-	a := &API{}
+func New(logSuccess bool) *API {
+	a := &API{logSuccess: logSuccess}
 	a.Handler = a.routes()
 	return a
 }
@@ -59,7 +60,9 @@ func (a *API) routes() http.Handler {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
 	return middleware.Merge(
-		middleware.Logging,
+		middleware.Log{
+			LogSuccess: a.logSuccess,
+		},
 		middleware.Instrument{
 			RouteMatcher: r,
 			Duration:     requestDuration,

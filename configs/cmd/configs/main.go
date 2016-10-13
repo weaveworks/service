@@ -12,13 +12,17 @@ import (
 
 	"github.com/weaveworks/service/common/logging"
 	"github.com/weaveworks/service/configs/api"
+	"github.com/weaveworks/service/configs/db"
 )
 
 func main() {
 	var (
-		logLevel    = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
-		port        = flag.Int("port", 80, "port to listen on")
-		stopTimeout = flag.Duration("stop.timeout", 5*time.Second, "How long to wait for remaining requests to finish during shutdown")
+		logLevel           = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
+		logSuccess         = flag.Bool("log.success", false, "Log successful requests.")
+		port               = flag.Int("port", 80, "port to listen on")
+		stopTimeout        = flag.Duration("stop.timeout", 5*time.Second, "How long to wait for remaining requests to finish during shutdown")
+		databaseURI        = flag.String("database-uri", "postgres://postgres@configs-db.weave.local/configs?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
+		databaseMigrations = flag.String("database-migrations", "", "Path where the database migration files can be found")
 	)
 	flag.Parse()
 	if err := logging.Setup(*logLevel); err != nil {
@@ -26,10 +30,13 @@ func main() {
 		return
 	}
 
+	db := db.MustNew(*databaseURI, *databaseMigrations)
+	defer db.Close()
+
 	logrus.Debug("Debug logging enabled")
 	logrus.Infof("Listening on port %d", *port)
 	mux := http.NewServeMux()
-	mux.Handle("/", api.New())
+	mux.Handle("/", api.New(*logSuccess))
 	mux.Handle("/metrics", prometheus.Handler())
 	if err := graceful.RunWithErr(fmt.Sprintf(":%d", *port), *stopTimeout, mux); err != nil {
 		logrus.Fatal(err)
