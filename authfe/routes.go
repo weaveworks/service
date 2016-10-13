@@ -15,25 +15,28 @@ import (
 
 // Config is all the config we need to build the routes
 type Config struct {
-	authenticator     users.Authenticator
-	eventLogger       *logging.EventLogger
-	outputHeader      string
-	collectionHost    string
-	queryHost         string
-	controlHost       string
-	pipeHost          string
-	deployHost        string
-	grafanaHost       string
-	scopeHost         string
-	usersHost         string
-	kubediffHost      string
-	terradiffHost     string
-	alertmanagerHost  string
-	prometheusHost    string
-	kubedashHost      string
-	promHost          string
-	compareImagesHost string
-	logSuccess        bool
+	authenticator       users.Authenticator
+	eventLogger         *logging.EventLogger
+	outputHeader        string
+	collectionHost      string
+	queryHost           string
+	controlHost         string
+	pipeHost            string
+	deployHost          string
+	grafanaHost         string
+	scopeHost           string
+	usersHost           string
+	kubediffHost        string
+	terradiffHost       string
+	alertmanagerHost    string
+	prometheusHost      string
+	kubedashHost        string
+	promHost            string
+	compareImagesHost   string
+	uiServerHost        string
+	demoHost            string
+	launchGeneratorHost string
+	logSuccess          bool
 }
 
 func routes(c Config) (http.Handler, error) {
@@ -53,15 +56,6 @@ func routes(c Config) (http.Handler, error) {
 	r := newRouter()
 	for _, route := range []routable{
 		path{"/metrics", prometheus.Handler()},
-
-		// unauthenticated users service communication
-		prefix{
-			"/api/users",
-			[]path{
-				{"/", newProxy(c.usersHost)},
-			},
-			uiHTTPlogger,
-		},
 
 		// For all ui <-> app communication, authenticated using cookie credentials
 		prefix{
@@ -138,6 +132,23 @@ func routes(c Config) (http.Handler, error) {
 				Authenticator: c.authenticator,
 				OutputHeader:  c.outputHeader,
 			},
+		},
+
+		// unauthenticated communication
+		prefix{
+			"/",
+			[]path{
+				{"/api/users", newProxy(c.usersHost)},
+				{"/launch/k8s", newProxy(c.launchGeneratorHost)},
+
+				// rewrite /demo/* to /* and send it to demo
+				{"/demo/", middleware.PathRewrite(regexp.MustCompile("/demo/(.*)"), "/$1").
+					Wrap(newProxy(c.demoHost))},
+
+				// final wildcard match to static content
+				{"/", newProxy(c.uiServerHost)},
+			},
+			uiHTTPlogger,
 		},
 	} {
 		route.Add(r)
