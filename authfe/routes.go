@@ -37,6 +37,7 @@ type Config struct {
 	demoHost            string
 	launchGeneratorHost string
 	logSuccess          bool
+	apiInfo             string
 }
 
 func routes(c Config) (http.Handler, error) {
@@ -66,6 +67,9 @@ func routes(c Config) (http.Handler, error) {
 	r := newRouter()
 	for _, route := range []routable{
 		path{"/metrics", prometheus.Handler()},
+
+		// special case static version info
+		path{"/api", parseAPIInfo(c.apiInfo)},
 
 		// For all ui <-> app communication, authenticated using cookie credentials
 		prefix{
