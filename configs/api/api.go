@@ -10,6 +10,11 @@ import (
 	"github.com/weaveworks/scope/common/middleware"
 )
 
+const (
+	defaultUserIDHeader = "X-Scope-UserID"
+	defaultOrgIDHeader  = "X-Scope-OrgID"
+)
+
 var (
 	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "configs", // XXX: Should this be 'scope'?
@@ -25,13 +30,35 @@ func init() {
 
 // API implements the configs api.
 type API struct {
-	logSuccess bool
 	http.Handler
+	Config
 }
 
+// Config describes the configuration for the configs API.
+type Config struct {
+	LogSuccess   bool
+	UserIDHeader string
+	OrgIDHeader  string
+}
+
+// DefaultConfig returns the default configuration.
+func DefaultConfig() Config {
+	return Config{
+		LogSuccess:   false,
+		UserIDHeader: defaultUserIDHeader,
+		OrgIDHeader:  defaultOrgIDHeader,
+	}
+}
+
+// UserID is how users are identified.
+type UserID string
+
+// OrgID is how organizations are identified.
+type OrgID string
+
 // New creates a new API
-func New(logSuccess bool) *API {
-	a := &API{logSuccess: logSuccess}
+func New(config Config) *API {
+	a := &API{Config: config}
 	a.Handler = a.routes()
 	return a
 }
@@ -56,13 +83,13 @@ func (a *API) routes() http.Handler {
 		handler            http.HandlerFunc
 	}{
 		{"root", "GET", "/", a.admin},
-		{"get_config", "GET", "/api/configs/{subsystem}", a.getConfig},
+		{"get_user_config", "GET", "/api/configs/user/{userID}/{subsystem}", a.getUserConfig},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
 	return middleware.Merge(
 		middleware.Log{
-			LogSuccess: a.logSuccess,
+			LogSuccess: a.LogSuccess,
 		},
 		middleware.Instrument{
 			RouteMatcher: r,
@@ -72,6 +99,17 @@ func (a *API) routes() http.Handler {
 }
 
 // getConfig returns the requested configuration.
-func (a *API) getConfig(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusUnauthorized)
+func (a *API) getUserConfig(w http.ResponseWriter, r *http.Request) {
+	actualUserID := r.Header.Get(a.UserIDHeader)
+	if actualUserID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	vars := mux.Vars(r)
+	requestedUserID := vars["userID"]
+	if requestedUserID != actualUserID {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	w.WriteHeader(http.StatusNotFound)
 }
