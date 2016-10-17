@@ -53,6 +53,16 @@ func routes(c Config) (http.Handler, error) {
 		}
 	}
 
+	// middleware to set header to disable caching if path == "/" exactly
+	noCacheOnRoot := middleware.Func(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/" {
+				w.Header().Set("Cache-Control", "no-cache")
+			}
+			next.ServeHTTP(w, r)
+		})
+	})
+
 	r := newRouter()
 	for _, route := range []routable{
 		path{"/metrics", prometheus.Handler()},
@@ -75,8 +85,10 @@ func routes(c Config) (http.Handler, error) {
 				// /ui/index.html etc, as we never want to expose the root of a services
 				// to the outside world - they can get at the debug info and metrics that
 				// way.
-				{"/", middleware.PathRewrite(regexp.MustCompile("(.*)"), "/ui$1").
-					Wrap(newProxy(c.queryHost))},
+				{"/", middleware.Merge(
+					noCacheOnRoot,
+					middleware.PathRewrite(regexp.MustCompile("(.*)"), "/ui$1"),
+				).Wrap(newProxy(c.queryHost))},
 			},
 			middleware.Merge(
 				users.AuthOrgMiddleware{
@@ -146,7 +158,7 @@ func routes(c Config) (http.Handler, error) {
 					Wrap(newProxy(c.demoHost))},
 
 				// final wildcard match to static content
-				{"/", newProxy(c.uiServerHost)},
+				{"/", noCacheOnRoot.Wrap(newProxy(c.uiServerHost))},
 			},
 			uiHTTPlogger,
 		},
