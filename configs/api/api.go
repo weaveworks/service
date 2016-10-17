@@ -103,32 +103,35 @@ func (a *API) routes() http.Handler {
 	).Wrap(r)
 }
 
-// getConfig returns the requested configuration.
-func (a *API) getUserConfig(w http.ResponseWriter, r *http.Request) {
-	actualUserID := r.Header.Get(a.UserIDHeader)
-	if actualUserID == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+// authorize checks whether the given header provides access to entity.
+func authorize(r *http.Request, header, entityID string) (string, int) {
+	token := r.Header.Get(header)
+	if token == "" {
+		return "", http.StatusUnauthorized
 	}
 	vars := mux.Vars(r)
-	requestedUserID := vars["userID"]
-	if requestedUserID != actualUserID {
-		w.WriteHeader(http.StatusForbidden)
+	entity := vars[entityID]
+	if token != entity {
+		return "", http.StatusForbidden
+	}
+	return entity, 0
+}
+
+// getUserConfig returns the requested configuration.
+func (a *API) getUserConfig(w http.ResponseWriter, r *http.Request) {
+	_, code := authorize(r, a.UserIDHeader, "userID")
+	if code != 0 {
+		w.WriteHeader(code)
 		return
 	}
 	w.WriteHeader(http.StatusNotFound)
 }
 
+// getOrgConfig returns the request configuration.
 func (a *API) getOrgConfig(w http.ResponseWriter, r *http.Request) {
-	actualOrgID := r.Header.Get(a.OrgIDHeader)
-	if actualOrgID == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-	vars := mux.Vars(r)
-	requestedOrgID := vars["orgID"]
-	if requestedOrgID != actualOrgID {
-		w.WriteHeader(http.StatusForbidden)
+	_, code := authorize(r, a.OrgIDHeader, "orgID")
+	if code != 0 {
+		w.WriteHeader(code)
 		return
 	}
 	w.WriteHeader(http.StatusNotFound)
