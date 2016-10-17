@@ -23,7 +23,8 @@ func Test_GetUserConfig_Anonymous(t *testing.T) {
 	defer cleanup(t)
 
 	userID := makeUserID()
-	w := request(t, "GET", fmt.Sprintf("/api/configs/user/%s/made-up-service", userID), nil)
+	subsystem := makeSubsystem()
+	w := request(t, "GET", fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem), nil)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
@@ -33,7 +34,8 @@ func Test_GetUserConfig_Unauthorized(t *testing.T) {
 
 	userID1 := makeUserID()
 	userID2 := makeUserID()
-	w := requestAs(t, userID1, "GET", fmt.Sprintf("/api/configs/user/%s/made-up-service", userID2), nil)
+	subsystem := makeSubsystem()
+	w := requestAs(t, userID1, "GET", fmt.Sprintf("/api/configs/user/%s/%s", userID2, subsystem), nil)
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
@@ -43,6 +45,7 @@ func Test_GetUserConfig_NotFound(t *testing.T) {
 	defer cleanup(t)
 
 	userID := makeUserID()
-	w := requestAs(t, userID, "GET", fmt.Sprintf("/api/configs/user/%s/made-up-service", userID), nil)
+	subsystem := makeSubsystem()
+	w := requestAs(t, userID, "GET", fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem), nil)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }

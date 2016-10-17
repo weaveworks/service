@@ -62,3 +62,9 @@ func makeOrgID() api.OrgID {
 	counter++
 	return api.OrgID(fmt.Sprintf("org%d", counter))
 }
+
+// makeSubsystem makes an arbitrary name for a subsystem.
+func makeSubsystem() api.Subsystem {
+	counter++
+	return api.Subsystem(fmt.Sprintf("subsystem%d", counter))
+}

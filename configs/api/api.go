@@ -56,6 +56,10 @@ type UserID string
 // OrgID is how organizations are identified.
 type OrgID string
 
+// Subsystem is the name of a subsystem that has configuration. e.g. "deploy",
+// "prism".
+type Subsystem string
+
 // New creates a new API
 func New(config Config) *API {
 	a := &API{Config: config}
