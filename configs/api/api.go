@@ -56,6 +56,7 @@ func (a *API) routes() http.Handler {
 		handler            http.HandlerFunc
 	}{
 		{"root", "GET", "/", a.admin},
+		{"get_config", "GET", "/api/configs/{subsystem}", a.getConfig},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
@@ -68,4 +69,9 @@ func (a *API) routes() http.Handler {
 			Duration:     requestDuration,
 		},
 	).Wrap(r)
+}
+
+// getConfig returns the requested configuration.
+func (a *API) getConfig(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusUnauthorized)
 }
