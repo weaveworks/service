@@ -88,6 +88,7 @@ func (a *API) routes() http.Handler {
 	}{
 		{"root", "GET", "/", a.admin},
 		{"get_user_config", "GET", "/api/configs/user/{userID}/{subsystem}", a.getUserConfig},
+		{"get_org_config", "GET", "/api/configs/org/{orgID}/{subsystem}", a.getOrgConfig},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
@@ -112,6 +113,21 @@ func (a *API) getUserConfig(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	requestedUserID := vars["userID"]
 	if requestedUserID != actualUserID {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	w.WriteHeader(http.StatusNotFound)
+}
+
+func (a *API) getOrgConfig(w http.ResponseWriter, r *http.Request) {
+	actualOrgID := r.Header.Get(a.OrgIDHeader)
+	if actualOrgID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	vars := mux.Vars(r)
+	requestedOrgID := vars["orgID"]
+	if requestedOrgID != actualOrgID {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}

@@ -41,12 +41,22 @@ func request(t *testing.T, method, urlStr string, body io.Reader) *httptest.Resp
 	return w
 }
 
-// requestAs makes a request to the configs API as the given user.
-func requestAs(t *testing.T, userID api.UserID, method, urlStr string, body io.Reader) *httptest.ResponseRecorder {
+// requestAsUser makes a request to the configs API as the given user.
+func requestAsUser(t *testing.T, userID api.UserID, method, urlStr string, body io.Reader) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()
 	r, err := http.NewRequest(method, urlStr, body)
 	require.NoError(t, err)
 	r.Header.Add(app.UserIDHeader, string(userID))
+	app.ServeHTTP(w, r)
+	return w
+}
+
+// requestAsOrg makes a request to the configs API as the given user.
+func requestAsOrg(t *testing.T, userID api.OrgID, method, urlStr string, body io.Reader) *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest(method, urlStr, body)
+	require.NoError(t, err)
+	r.Header.Add(app.OrgIDHeader, string(userID))
 	app.ServeHTTP(w, r)
 	return w
 }
