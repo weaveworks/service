@@ -117,6 +117,20 @@ ui-server/client/build/index.html: $(WEBPACK_DEPS) ui-server/client/webpack.prod
 	cp -p ui-server/client/src/images/* ui-server/client/build
 
 # Test and misc stuff
+configs-integration-test: $(CONFIGS_UPTODATE)
+	DB_CONTAINER="$$(docker run -d quay.io/weaveworks/configs-db)"; \
+	docker run $(RM) \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-v $(shell pwd)/configs/db/migrations:/migrations \
+		--workdir /go/src/github.com/weaveworks/service/configs \
+		--link "$$DB_CONTAINER":configs-db.weave.local \
+		golang:1.6.2 \
+		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
+	status=$$?; \
+	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
+	exit $$status
+
+# Test and misc stuff
 users-integration-test: $(USERS_UPTODATE)
 	DB_CONTAINER="$$(docker run -d quay.io/weaveworks/users-db)"; \
 	docker run $(RM) \

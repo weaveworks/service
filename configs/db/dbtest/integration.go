@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/weaveworks/service/common/logging"
 	"github.com/weaveworks/service/configs/db"
@@ -16,7 +15,7 @@ import (
 )
 
 var (
-	databaseURI        = flag.String("database-uri", "postgres://postgres@configs-db.weave.local/users_test?sslmode=disable", "Uri of a test database")
+	databaseURI        = flag.String("database-uri", "postgres://postgres@configs-db.weave.local/configs_test?sslmode=disable", "Uri of a test database")
 	databaseMigrations = flag.String("database-migrations", "/migrations", "Path where the database migration files can be found")
 
 	done        chan error
@@ -27,7 +26,7 @@ var (
 func Setup(t *testing.T) db.DB {
 	require.NoError(t, logging.Setup("debug"))
 	// Don't use db.MustNew, here so we can do a transaction around the whole test, to rollback.
-	pg, err := postgres.New(*databaseURI, *databaseMigrations, bcrypt.MinCost)
+	pg, err := postgres.New(*databaseURI, *databaseMigrations)
 	require.NoError(t, err)
 
 	newDB := make(chan db.DB)
