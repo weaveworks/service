@@ -115,6 +115,54 @@ func Test_PostUserConfig_UpdatesConfig(t *testing.T) {
 	}
 }
 
+// Different subsystems can have different configurations.
+func Test_PostUserConfig_MultipleSubsystems(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	userID := makeUserID()
+	subsystem1 := makeSubsystem()
+	subsystem2 := makeSubsystem()
+	content1 := jsonObject{"arbitrary1": "config1"}
+	content2 := jsonObject{"arbitrary2": "config2"}
+	endpoint1 := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem1)
+	endpoint2 := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem2)
+	requestAsUser(t, userID, "POST", endpoint1, content1.Reader(t))
+	requestAsUser(t, userID, "POST", endpoint2, content2.Reader(t))
+	{
+		w := requestAsUser(t, userID, "GET", endpoint1, nil)
+		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content1)
+	}
+	{
+		w := requestAsUser(t, userID, "GET", endpoint2, nil)
+		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+	}
+}
+
+// Different users can have different configurations.
+func Test_PostUserConfig_MultipleUsers(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	userID1 := makeUserID()
+	userID2 := makeUserID()
+	subsystem := makeSubsystem()
+	content1 := jsonObject{"arbitrary1": "config1"}
+	content2 := jsonObject{"arbitrary2": "config2"}
+	endpoint1 := fmt.Sprintf("/api/configs/user/%s/%s", userID1, subsystem)
+	endpoint2 := fmt.Sprintf("/api/configs/user/%s/%s", userID2, subsystem)
+	requestAsUser(t, userID1, "POST", endpoint1, content1.Reader(t))
+	requestAsUser(t, userID2, "POST", endpoint2, content2.Reader(t))
+	{
+		w := requestAsUser(t, userID1, "GET", endpoint1, nil)
+		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content1)
+	}
+	{
+		w := requestAsUser(t, userID2, "GET", endpoint2, nil)
+		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+	}
+}
+
 // configs returns 401 to requests without authentication.
 func Test_GetOrgConfig_Anonymous(t *testing.T) {
 	setup(t)
