@@ -69,22 +69,32 @@ func requestAsOrg(t *testing.T, userID configs.OrgID, method, urlStr string, bod
 	return w
 }
 
+// makeString makes a string, guaranteed to be unique within a test.
+func makeString(pattern string) string {
+	counter++
+	return fmt.Sprintf(pattern, counter)
+}
+
 // makeUserID makes an arbitrary user ID. Guaranteed to be unique within a test.
 func makeUserID() configs.UserID {
-	counter++
-	return configs.UserID(fmt.Sprintf("user%d", counter))
+	return configs.UserID(makeString("user%d"))
 }
 
 // makeOrgID makes an arbitrary organization ID. Guaranteed to be unique within a test.
 func makeOrgID() configs.OrgID {
-	counter++
-	return configs.OrgID(fmt.Sprintf("org%d", counter))
+	return configs.OrgID(makeString("org%d"))
 }
 
 // makeSubsystem makes an arbitrary name for a subsystem.
 func makeSubsystem() configs.Subsystem {
-	counter++
-	return configs.Subsystem(fmt.Sprintf("subsystem%d", counter))
+	return configs.Subsystem(makeString("subsystem%d"))
+}
+
+// makeConfig makes some arbitrary configuration.
+func makeConfig() configs.Config {
+	arbitraryKey := makeString("key%d")
+	arbitraryValue := makeString("value%d")
+	return configs.Config{arbitraryKey: arbitraryValue}
 }
 
 type jsonObject map[string]interface{}

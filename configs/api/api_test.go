@@ -82,7 +82,7 @@ func Test_PostUserConfig_CreatesConfig(t *testing.T) {
 
 	userID := makeUserID()
 	subsystem := makeSubsystem()
-	content := jsonObject{"arbitrary": "config"}
+	content := jsonObject(makeConfig())
 	endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
 	{
 		w := requestAsUser(t, userID, "POST", endpoint, content.Reader(t))
@@ -101,8 +101,8 @@ func Test_PostUserConfig_UpdatesConfig(t *testing.T) {
 
 	userID := makeUserID()
 	subsystem := makeSubsystem()
-	content1 := jsonObject{"arbitrary1": "config1"}
-	content2 := jsonObject{"arbitrary2": "config2"}
+	content1 := jsonObject(makeConfig())
+	content2 := jsonObject(makeConfig())
 	endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
 	{
 		requestAsUser(t, userID, "POST", endpoint, content1.Reader(t))
@@ -123,8 +123,8 @@ func Test_PostUserConfig_MultipleSubsystems(t *testing.T) {
 	userID := makeUserID()
 	subsystem1 := makeSubsystem()
 	subsystem2 := makeSubsystem()
-	content1 := jsonObject{"arbitrary1": "config1"}
-	content2 := jsonObject{"arbitrary2": "config2"}
+	content1 := jsonObject(makeConfig())
+	content2 := jsonObject(makeConfig())
 	endpoint1 := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem1)
 	endpoint2 := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem2)
 	requestAsUser(t, userID, "POST", endpoint1, content1.Reader(t))
@@ -147,8 +147,8 @@ func Test_PostUserConfig_MultipleUsers(t *testing.T) {
 	userID1 := makeUserID()
 	userID2 := makeUserID()
 	subsystem := makeSubsystem()
-	content1 := jsonObject{"arbitrary1": "config1"}
-	content2 := jsonObject{"arbitrary2": "config2"}
+	content1 := jsonObject(makeConfig())
+	content2 := jsonObject(makeConfig())
 	endpoint1 := fmt.Sprintf("/api/configs/user/%s/%s", userID1, subsystem)
 	endpoint2 := fmt.Sprintf("/api/configs/user/%s/%s", userID2, subsystem)
 	requestAsUser(t, userID1, "POST", endpoint1, content1.Reader(t))
