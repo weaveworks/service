@@ -25,9 +25,9 @@ func (d *DB) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (
 }
 
 // SetUserConfig sets configuration for a user.
-func (d *DB) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) (bool, error) {
+func (d *DB) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) error {
 	d.last = cfg
-	return true, nil
+	return nil
 }
 
 // Close finishes using the db. Noop.

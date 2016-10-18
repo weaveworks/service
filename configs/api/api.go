@@ -169,19 +169,13 @@ func (a *API) setUserConfig(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	subsystem := configs.Subsystem(vars["subsystem"])
-	created, err := a.db.SetUserConfig(userID, subsystem, cfg)
-	if err != nil {
+	if err := a.db.SetUserConfig(userID, subsystem, cfg); err != nil {
 		// XXX: Untested
 		log.Errorf("Error storing config: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if created {
-		w.WriteHeader(http.StatusCreated)
-	} else {
-		// XXX: Untested
-		w.WriteHeader(http.StatusNoContent)
-	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // getOrgConfig returns the request configuration.

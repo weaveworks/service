@@ -33,12 +33,10 @@ func (t timed) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem)
 	return
 }
 
-func (t timed) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) (created bool, err error) {
-	t.timeRequest("SetUserConfig", func() error {
-		created, err = t.d.SetUserConfig(userID, subsystem, cfg)
-		return err
+func (t timed) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) (err error) {
+	return t.timeRequest("SetUserConfig", func() error {
+		return t.d.SetUserConfig(userID, subsystem, cfg)
 	})
-	return
 }
 
 func (t timed) Close() error {

@@ -28,6 +28,7 @@ func Test_GetUserConfig_Anonymous(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
+// configs returns 403 when a user tries to get config for a different user.
 func Test_GetUserConfig_Unauthorized(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
@@ -62,6 +63,7 @@ func Test_PostUserConfig_Anonymous(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
+// configs returns 403 when a user tries to set config for a different user.
 func Test_PostUserConfig_Unauthorized(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
@@ -73,6 +75,7 @@ func Test_PostUserConfig_Unauthorized(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
+// Posting to a configuration sets it so that you can get it again.
 func Test_PostUserConfig_CreatesConfig(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
@@ -83,11 +86,32 @@ func Test_PostUserConfig_CreatesConfig(t *testing.T) {
 	endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
 	{
 		w := requestAsUser(t, userID, "POST", endpoint, content.Reader(t))
-		assert.Equal(t, http.StatusCreated, w.Code)
+		assert.Equal(t, http.StatusNoContent, w.Code)
 	}
 	{
 		w := requestAsUser(t, userID, "GET", endpoint, nil)
 		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content)
+	}
+}
+
+// Posting to a configuration sets it so that you can get it again.
+func Test_PostUserConfig_UpdatesConfig(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	userID := makeUserID()
+	subsystem := makeSubsystem()
+	content1 := jsonObject{"arbitrary1": "config1"}
+	content2 := jsonObject{"arbitrary2": "config2"}
+	endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
+	{
+		requestAsUser(t, userID, "POST", endpoint, content1.Reader(t))
+		w := requestAsUser(t, userID, "POST", endpoint, content2.Reader(t))
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	}
+	{
+		w := requestAsUser(t, userID, "GET", endpoint, nil)
+		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
 	}
 }
 

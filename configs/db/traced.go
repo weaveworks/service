@@ -19,7 +19,7 @@ func (t traced) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem
 	return t.d.GetUserConfig(userID, subsystem)
 }
 
-func (t traced) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) (created bool, err error) {
+func (t traced) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) (err error) {
 	defer func() { t.trace("SetUserConfig", userID, subsystem, cfg, err) }()
 	return t.d.SetUserConfig(userID, subsystem, cfg)
 }

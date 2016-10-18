@@ -9,5 +9,5 @@ CREATE TABLE IF NOT EXISTS configs (
   type text NOT NULL,
   subsystem text NOT NULL,
   config jsonb NOT NULL,
-  PRIMARY KEY (id, type)
+  PRIMARY KEY (id, type, subsystem)
 ) inherits(traceable);
