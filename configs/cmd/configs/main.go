@@ -36,8 +36,12 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 	logrus.Infof("Listening on port %d", *port)
 	mux := http.NewServeMux()
-	config := api.DefaultConfig()
-	config.LogSuccess = *logSuccess
+	config := api.Config{
+		LogSuccess:   *logSuccess,
+		Database:     db,
+		UserIDHeader: api.DefaultUserIDHeader,
+		OrgIDHeader:  api.DefaultOrgIDHeader,
+	}
 	mux.Handle("/", api.New(config))
 	mux.Handle("/metrics", prometheus.Handler())
 	if err := graceful.RunWithErr(fmt.Sprintf(":%d", *port), *stopTimeout, mux); err != nil {

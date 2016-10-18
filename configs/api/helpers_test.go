@@ -1,6 +1,8 @@
 package api_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/weaveworks/service/configs"
 	"github.com/weaveworks/service/configs/api"
 	"github.com/weaveworks/service/configs/db"
 	"github.com/weaveworks/service/configs/db/dbtest"
@@ -22,8 +25,13 @@ var (
 
 // setup sets up the environment for the tests.
 func setup(t *testing.T) {
-	app = api.New(api.DefaultConfig())
 	database = dbtest.Setup(t)
+	app = api.New(api.Config{
+		Database:     database,
+		LogSuccess:   false,
+		UserIDHeader: api.DefaultUserIDHeader,
+		OrgIDHeader:  api.DefaultOrgIDHeader,
+	})
 	counter = 0
 }
 
@@ -42,7 +50,7 @@ func request(t *testing.T, method, urlStr string, body io.Reader) *httptest.Resp
 }
 
 // requestAsUser makes a request to the configs API as the given user.
-func requestAsUser(t *testing.T, userID api.UserID, method, urlStr string, body io.Reader) *httptest.ResponseRecorder {
+func requestAsUser(t *testing.T, userID configs.UserID, method, urlStr string, body io.Reader) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()
 	r, err := http.NewRequest(method, urlStr, body)
 	require.NoError(t, err)
@@ -52,7 +60,7 @@ func requestAsUser(t *testing.T, userID api.UserID, method, urlStr string, body 
 }
 
 // requestAsOrg makes a request to the configs API as the given user.
-func requestAsOrg(t *testing.T, userID api.OrgID, method, urlStr string, body io.Reader) *httptest.ResponseRecorder {
+func requestAsOrg(t *testing.T, userID configs.OrgID, method, urlStr string, body io.Reader) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()
 	r, err := http.NewRequest(method, urlStr, body)
 	require.NoError(t, err)
@@ -62,19 +70,34 @@ func requestAsOrg(t *testing.T, userID api.OrgID, method, urlStr string, body io
 }
 
 // makeUserID makes an arbitrary user ID. Guaranteed to be unique within a test.
-func makeUserID() api.UserID {
+func makeUserID() configs.UserID {
 	counter++
-	return api.UserID(fmt.Sprintf("user%d", counter))
+	return configs.UserID(fmt.Sprintf("user%d", counter))
 }
 
 // makeOrgID makes an arbitrary organization ID. Guaranteed to be unique within a test.
-func makeOrgID() api.OrgID {
+func makeOrgID() configs.OrgID {
 	counter++
-	return api.OrgID(fmt.Sprintf("org%d", counter))
+	return configs.OrgID(fmt.Sprintf("org%d", counter))
 }
 
 // makeSubsystem makes an arbitrary name for a subsystem.
-func makeSubsystem() api.Subsystem {
+func makeSubsystem() configs.Subsystem {
 	counter++
-	return api.Subsystem(fmt.Sprintf("subsystem%d", counter))
+	return configs.Subsystem(fmt.Sprintf("subsystem%d", counter))
+}
+
+type jsonObject map[string]interface{}
+
+func (j jsonObject) Reader(t *testing.T) io.Reader {
+	b, err := json.Marshal(j)
+	require.NoError(t, err)
+	return bytes.NewReader(b)
+}
+
+func parseJSON(t *testing.T, b []byte) jsonObject {
+	var f jsonObject
+	err := json.Unmarshal(b, &f)
+	require.NoError(t, err)
+	return f
 }

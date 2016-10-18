@@ -10,6 +10,7 @@ import (
 	_ "github.com/lib/pq"                         // Import the postgres sql driver
 	_ "github.com/mattes/migrate/driver/postgres" // Import the postgres migrations driver
 	"github.com/mattes/migrate/migrate"
+	"github.com/weaveworks/service/configs"
 )
 
 // DB is a postgres db, for dev and production
@@ -44,6 +45,16 @@ func New(databaseURI, migrationsDir string) (DB, error) {
 }
 
 var statementBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).RunWith
+
+// GetUserConfig gets a user's configuration.
+func (d DB) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (configs.Config, error) {
+	return map[string]interface{}{}, nil
+}
+
+// SetUserConfig sets a user's configuration.
+func (d DB) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) (bool, error) {
+	return false, nil
+}
 
 // Now gives us the current time for Postgres. Postgres only stores times to
 // the microsecond, so we pre-truncate times so tests will match. We also

@@ -39,7 +39,9 @@ func Test_GetUserConfig_Unauthorized(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
-// configs returns 404 if there's no such subsystem.
+// configs returns an empty configuration when there's no config for that
+// subsystem. We don't distinguish between "no such subsystem" and "no config
+// for this subsystem yet".
 func Test_GetUserConfig_NotFound(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
@@ -47,7 +49,48 @@ func Test_GetUserConfig_NotFound(t *testing.T) {
 	userID := makeUserID()
 	subsystem := makeSubsystem()
 	w := requestAsUser(t, userID, "GET", fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem), nil)
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, parseJSON(t, w.Body.Bytes()), jsonObject{})
+}
+
+// configs returns 401 to requests without authentication.
+func Test_PostUserConfig_Anonymous(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	userID := makeUserID()
+	subsystem := makeSubsystem()
+	w := request(t, "POST", fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem), nil)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func Test_PostUserConfig_Unauthorized(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	userID1 := makeUserID()
+	userID2 := makeUserID()
+	subsystem := makeSubsystem()
+	w := requestAsUser(t, userID1, "POST", fmt.Sprintf("/api/configs/user/%s/%s", userID2, subsystem), nil)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func Test_PostUserConfig_CreatesConfig(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	userID := makeUserID()
+	subsystem := makeSubsystem()
+	content := jsonObject{"arbitrary": "config"}
+	endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
+	{
+		w := requestAsUser(t, userID, "POST", endpoint, content.Reader(t))
+		assert.Equal(t, http.StatusCreated, w.Code)
+	}
+	{
+		w := requestAsUser(t, userID, "GET", endpoint, nil)
+		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content)
+	}
 }
 
 // configs returns 401 to requests without authentication.

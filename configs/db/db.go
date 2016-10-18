@@ -5,6 +5,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 
+	"github.com/weaveworks/service/configs"
 	"github.com/weaveworks/service/configs/db/memory"
 	"github.com/weaveworks/service/configs/db/postgres"
 	"github.com/weaveworks/service/users" // For instrumentation.
@@ -12,6 +13,8 @@ import (
 
 // DB is the interface for the database.
 type DB interface {
+	GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (configs.Config, error)
+	SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) (bool, error)
 	Close() error
 }
 
