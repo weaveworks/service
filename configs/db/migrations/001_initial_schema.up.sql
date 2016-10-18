@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS traceable (
 CREATE TABLE IF NOT EXISTS configs (
   id text NOT NULL,
   type text NOT NULL,
-  conf jsonb NOT NULL,
+  subsystem text NOT NULL,
+  config jsonb NOT NULL,
   PRIMARY KEY (id, type)
 ) inherits(traceable);

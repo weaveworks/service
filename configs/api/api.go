@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -133,7 +134,10 @@ func (a *API) getUserConfig(w http.ResponseWriter, r *http.Request) {
 	subsystem := configs.Subsystem(vars["subsystem"])
 
 	cfg, err := a.db.GetUserConfig(userID, subsystem)
-	if err != nil {
+	if err == sql.ErrNoRows {
+		http.Error(w, "No configuration", http.StatusNotFound)
+		return
+	} else if err != nil {
 		// XXX: Untested
 		log.Errorf("Error getting config: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

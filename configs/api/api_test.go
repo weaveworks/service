@@ -39,9 +39,8 @@ func Test_GetUserConfig_Unauthorized(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
-// configs returns an empty configuration when there's no config for that
-// subsystem. We don't distinguish between "no such subsystem" and "no config
-// for this subsystem yet".
+// configs returns 404 if there's never been any configuration for that
+// subsystem.
 func Test_GetUserConfig_NotFound(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
@@ -49,8 +48,7 @@ func Test_GetUserConfig_NotFound(t *testing.T) {
 	userID := makeUserID()
 	subsystem := makeSubsystem()
 	w := requestAsUser(t, userID, "GET", fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem), nil)
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, parseJSON(t, w.Body.Bytes()), jsonObject{})
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 // configs returns 401 to requests without authentication.

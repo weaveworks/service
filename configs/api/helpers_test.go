@@ -98,6 +98,6 @@ func (j jsonObject) Reader(t *testing.T) io.Reader {
 func parseJSON(t *testing.T, b []byte) jsonObject {
 	var f jsonObject
 	err := json.Unmarshal(b, &f)
-	require.NoError(t, err)
+	require.NoError(t, err, "Could not unmarshal JSON: %v", string(b))
 	return f
 }

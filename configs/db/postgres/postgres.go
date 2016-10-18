@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -26,7 +27,7 @@ type dbProxy interface {
 	Prepare(query string) (*sql.Stmt, error)
 }
 
-// New creates a new postgred DB
+// New creates a new postgres DB
 func New(databaseURI, migrationsDir string) (DB, error) {
 	if migrationsDir != "" {
 		logrus.Infof("Running Database Migrations...")
@@ -48,12 +49,41 @@ var statementBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Doll
 
 // GetUserConfig gets a user's configuration.
 func (d DB) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (configs.Config, error) {
-	return map[string]interface{}{}, nil
+	// XXX: constant for type
+	// XXX: tests for deleted at
+	var cfg configs.Config
+	var cfgBytes []byte
+	err := d.Select("config").
+		From("configs").
+		Where(squirrel.Eq{
+			"deleted_at": nil,
+			"type":       "user",
+			"subsystem":  string(subsystem),
+			"id":         string(userID),
+		}).QueryRow().Scan(&cfgBytes)
+	if err == sql.ErrNoRows {
+		return cfg, err
+	} else if err != nil {
+		return cfg, err
+	}
+	err = json.Unmarshal(cfgBytes, &cfg)
+	return cfg, err
 }
 
 // SetUserConfig sets a user's configuration.
 func (d DB) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) (bool, error) {
-	return false, nil
+	cfgBytes, err := json.Marshal(cfg)
+	if err != nil {
+		return false, err
+	}
+	err = d.Transaction(func(tx DB) error {
+		_, err := d.Insert("configs").
+			Columns("id", "type", "subsystem", "config").
+			Values(string(userID), "user", string(subsystem), cfgBytes).
+			Exec()
+		return err
+	})
+	return true, err
 }
 
 // Now gives us the current time for Postgres. Postgres only stores times to
