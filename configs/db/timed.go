@@ -39,6 +39,20 @@ func (t timed) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem,
 	})
 }
 
+func (t timed) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (cfg configs.Config, err error) {
+	t.timeRequest("GetOrgConfig", func() error {
+		cfg, err = t.d.GetOrgConfig(orgID, subsystem)
+		return err
+	})
+	return
+}
+
+func (t timed) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg configs.Config) (err error) {
+	return t.timeRequest("SetOrgConfig", func() error {
+		return t.d.SetOrgConfig(orgID, subsystem, cfg)
+	})
+}
+
 func (t timed) Close() error {
 	return t.timeRequest("Close", func() error {
 		return t.d.Close()

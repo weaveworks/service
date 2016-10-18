@@ -99,6 +99,35 @@ func (d DB) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cf
 	})
 }
 
+// GetOrgConfig gets a org's configuration.
+func (d DB) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (configs.Config, error) {
+	// XXX: constant for type
+	return d.findConfig(string(orgID), "org", string(subsystem))
+}
+
+// SetOrgConfig sets a org's configuration.
+func (d DB) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg configs.Config) error {
+	cfgBytes, err := json.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	return d.Transaction(func(tx DB) error {
+		_, err := d.findConfig(string(orgID), "org", string(subsystem))
+		if err == sql.ErrNoRows {
+			_, err := d.Insert("configs").
+				Columns("id", "type", "subsystem", "config").
+				Values(string(orgID), "org", string(subsystem), cfgBytes).
+				Exec()
+			return err
+		}
+		_, err = d.Update("configs").
+			Where(configMatches(string(orgID), "org", string(subsystem))).
+			Set("config", cfgBytes).
+			Exec()
+		return err
+	})
+}
+
 // Now gives us the current time for Postgres. Postgres only stores times to
 // the microsecond, so we pre-truncate times so tests will match. We also
 // normalize to UTC, for sanity.

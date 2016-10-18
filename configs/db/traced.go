@@ -24,6 +24,16 @@ func (t traced) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem
 	return t.d.SetUserConfig(userID, subsystem, cfg)
 }
 
+func (t traced) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (cfg configs.Config, err error) {
+	defer func() { t.trace("GetOrgConfig", orgID, subsystem, cfg, err) }()
+	return t.d.GetOrgConfig(orgID, subsystem)
+}
+
+func (t traced) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg configs.Config) (err error) {
+	defer func() { t.trace("SetOrgConfig", orgID, subsystem, cfg, err) }()
+	return t.d.SetOrgConfig(orgID, subsystem, cfg)
+}
+
 func (t traced) Close() (err error) {
 	defer func() { t.trace("Close", err) }()
 	return t.d.Close()

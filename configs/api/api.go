@@ -80,6 +80,7 @@ func (a *API) routes() http.Handler {
 		{"get_user_config", "GET", "/api/configs/user/{userID}/{subsystem}", a.getUserConfig},
 		{"set_user_config", "POST", "/api/configs/user/{userID}/{subsystem}", a.setUserConfig},
 		{"get_org_config", "GET", "/api/configs/org/{orgID}/{subsystem}", a.getOrgConfig},
+		{"set_org_config", "POST", "/api/configs/org/{orgID}/{subsystem}", a.setOrgConfig},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
@@ -180,10 +181,55 @@ func (a *API) setUserConfig(w http.ResponseWriter, r *http.Request) {
 
 // getOrgConfig returns the request configuration.
 func (a *API) getOrgConfig(w http.ResponseWriter, r *http.Request) {
-	_, code := authorize(r, a.OrgIDHeader, "orgID")
+	orgID, code := a.authorizeOrg(r)
 	if code != 0 {
 		w.WriteHeader(code)
 		return
 	}
-	w.WriteHeader(http.StatusNotFound)
+	vars := mux.Vars(r)
+	subsystem := configs.Subsystem(vars["subsystem"])
+
+	cfg, err := a.db.GetOrgConfig(orgID, subsystem)
+	if err == sql.ErrNoRows {
+		http.Error(w, "No configuration", http.StatusNotFound)
+		return
+	} else if err != nil {
+		// XXX: Untested
+		log.Errorf("Error getting config: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(cfg); err != nil {
+		// XXX: Untested
+		log.Errorf("Error encoding config: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (a *API) setOrgConfig(w http.ResponseWriter, r *http.Request) {
+	orgID, code := a.authorizeOrg(r)
+	if code != 0 {
+		w.WriteHeader(code)
+		return
+	}
+	var cfg configs.Config
+	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+		// XXX: Untested
+		log.Errorf("Error decoding json body: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	vars := mux.Vars(r)
+	subsystem := configs.Subsystem(vars["subsystem"])
+	if err := a.db.SetOrgConfig(orgID, subsystem, cfg); err != nil {
+		// XXX: Untested
+		log.Errorf("Error storing config: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

@@ -195,3 +195,114 @@ func Test_GetOrgConfig_NotFound(t *testing.T) {
 	w := requestAsOrg(t, orgID, "GET", fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem), nil)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
+
+// configs returns 401 to requests without authentication.
+func Test_PostOrgConfig_Anonymous(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	orgID := makeOrgID()
+	subsystem := makeSubsystem()
+	w := request(t, "POST", fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem), nil)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+// configs returns 403 when a user tries to set config for a different user.
+func Test_PostOrgConfig_Unauthorized(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	orgID1 := makeOrgID()
+	orgID2 := makeOrgID()
+	subsystem := makeSubsystem()
+	w := requestAsOrg(t, orgID1, "POST", fmt.Sprintf("/api/configs/org/%s/%s", orgID2, subsystem), nil)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+// Posting to a configuration sets it so that you can get it again.
+func Test_PostOrgConfig_CreatesConfig(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	orgID := makeOrgID()
+	subsystem := makeSubsystem()
+	content := jsonObject(makeConfig())
+	endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+	{
+		w := requestAsOrg(t, orgID, "POST", endpoint, content.Reader(t))
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	}
+	{
+		w := requestAsOrg(t, orgID, "GET", endpoint, nil)
+		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content)
+	}
+}
+
+// Posting to a configuration sets it so that you can get it again.
+func Test_PostOrgConfig_UpdatesConfig(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	orgID := makeOrgID()
+	subsystem := makeSubsystem()
+	content1 := jsonObject(makeConfig())
+	content2 := jsonObject(makeConfig())
+	endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+	{
+		requestAsOrg(t, orgID, "POST", endpoint, content1.Reader(t))
+		w := requestAsOrg(t, orgID, "POST", endpoint, content2.Reader(t))
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	}
+	{
+		w := requestAsOrg(t, orgID, "GET", endpoint, nil)
+		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+	}
+}
+
+// Different subsystems can have different configurations.
+func Test_PostOrgConfig_MultipleSubsystems(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	orgID := makeOrgID()
+	subsystem1 := makeSubsystem()
+	subsystem2 := makeSubsystem()
+	content1 := jsonObject(makeConfig())
+	content2 := jsonObject(makeConfig())
+	endpoint1 := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem1)
+	endpoint2 := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem2)
+	requestAsOrg(t, orgID, "POST", endpoint1, content1.Reader(t))
+	requestAsOrg(t, orgID, "POST", endpoint2, content2.Reader(t))
+	{
+		w := requestAsOrg(t, orgID, "GET", endpoint1, nil)
+		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content1)
+	}
+	{
+		w := requestAsOrg(t, orgID, "GET", endpoint2, nil)
+		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+	}
+}
+
+// Different users can have different configurations.
+func Test_PostOrgConfig_MultipleOrgs(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	orgID1 := makeOrgID()
+	orgID2 := makeOrgID()
+	subsystem := makeSubsystem()
+	content1 := jsonObject(makeConfig())
+	content2 := jsonObject(makeConfig())
+	endpoint1 := fmt.Sprintf("/api/configs/org/%s/%s", orgID1, subsystem)
+	endpoint2 := fmt.Sprintf("/api/configs/org/%s/%s", orgID2, subsystem)
+	requestAsOrg(t, orgID1, "POST", endpoint1, content1.Reader(t))
+	requestAsOrg(t, orgID2, "POST", endpoint2, content2.Reader(t))
+	{
+		w := requestAsOrg(t, orgID1, "GET", endpoint1, nil)
+		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content1)
+	}
+	{
+		w := requestAsOrg(t, orgID2, "GET", endpoint2, nil)
+		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+	}
+}

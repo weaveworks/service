@@ -15,6 +15,8 @@ import (
 type DB interface {
 	GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (configs.Config, error)
 	SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) error
+	GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (configs.Config, error)
+	SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg configs.Config) error
 	Close() error
 }
 
