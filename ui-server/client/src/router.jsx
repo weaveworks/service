@@ -1,5 +1,5 @@
 import React from 'react';
-import { Redirect, Route, IndexRoute } from 'react-router';
+import { Redirect, Route, IndexRedirect, IndexRoute } from 'react-router';
 
 import AccountPage from './pages/account/page';
 import InstancesCreate from './pages/onboarding/instances-create';
@@ -18,6 +18,9 @@ import LoginForm from './pages/landing/login-form';
 import Logout from './pages/landing/logout';
 import SignupForm from './pages/landing/signup-form';
 import WrapperPage from './pages/wrapper/page';
+import SettingsPage from './pages/settings/page';
+import AccountSettings from './pages/settings/account/page';
+import BillingSettings from './pages/settings/billing/page';
 import RouterComponent from './components/router';
 
 export default function getRoutes() {
@@ -36,6 +39,13 @@ export default function getRoutes() {
         <Route path="select/:id" component={InstancesSelect} />
         <Route path="deleted" component={InstancesDeleted} />
         <Route path="error/:error" component={InstancesError} />
+      </Route>
+      <Route name="billing" path="settings/billing/:orgId" component={SettingsPage}>
+        <Route path="*" component={BillingSettings} />
+      </Route>
+      <Route name="settings" path="settings/:orgId" component={SettingsPage}>
+        <IndexRedirect to="account" />
+        <Route path="account" component={AccountSettings} />
       </Route>
 
       {/* Sign up/Log in */}

@@ -35,8 +35,17 @@ export default class Toolbar extends React.Component {
   }
 
   handleClickAccount() {
-    const url = encodeURIs`/account/${this.props.orgId}`;
+    let url = encodeURIs`/account/${this.props.orgId}`;
+    if (this.hasFeatureFlag('billing')) {
+      url = encodeURIs`/settings/${this.props.orgId}/account`;
+    }
     browserHistory.push(url);
+  }
+
+  hasFeatureFlag(flag) {
+    const { instance } = this.props;
+    return instance && instance.featureFlags
+      && instance.featureFlags.indexOf(flag) > -1;
   }
 
   handleClickProm() {
@@ -123,8 +132,7 @@ export default class Toolbar extends React.Component {
     const settingsColor = this.isActive('org') ? Colors.text : Colors.text3;
     const accountColor = this.isActive('account') ? Colors.text : Colors.text3;
     const promColor = this.isActive('prom') ? Colors.text : Colors.text3;
-    const hasProm = instance && instance.featureFlags
-      && instance.featureFlags.indexOf('cortex') > -1;
+    const hasProm = this.hasFeatureFlag('cortex');
     const viewSelectorButton = (
       <FlatButton style={styles.toolbarButton}>
         <FontIcon className="fa fa-caret-down" color={Colors.text2}

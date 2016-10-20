@@ -128,6 +128,7 @@ func main() {
 		{&c.kubedashHost, "kubedash"},
 		{&c.compareImagesHost, "compare-images"},
 		{&c.uiServerHost, "ui-server"},
+		{&c.billingUIHost, "billing-ui"},
 		{&c.demoHost, "demo"},
 		{&c.launchGeneratorHost, "launch-generator"},
 	}

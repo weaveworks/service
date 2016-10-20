@@ -34,6 +34,7 @@ type Config struct {
 	promHost            string
 	compareImagesHost   string
 	uiServerHost        string
+	billingUIHost       string
 	demoHost            string
 	launchGeneratorHost string
 	logSuccess          bool
@@ -152,6 +153,27 @@ func routes(c Config) (http.Handler, error) {
 				Authenticator: c.authenticator,
 				OutputHeader:  c.outputHeader,
 			},
+		},
+
+		// billing UI needs authentication
+		path{"/billing/app.js", trimPrefix("/billing", newProxy(c.billingUIHost))},
+		prefix{
+			"/billing",
+			[]path{
+				{"/{orgExternalID}/", trimPrefix("/billing", newProxy(c.billingUIHost))},
+			},
+			middleware.Merge(
+				users.AuthOrgMiddleware{
+					Authenticator: c.authenticator,
+					OrgExternalID: func(r *http.Request) (string, bool) {
+						v, ok := mux.Vars(r)["orgExternalID"]
+						return v, ok
+					},
+					OutputHeader: c.outputHeader,
+					UserIDHeader: userIDHeader,
+				},
+				uiHTTPlogger,
+			),
 		},
 
 		// unauthenticated communication
