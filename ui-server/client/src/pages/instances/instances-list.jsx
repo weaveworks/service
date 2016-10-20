@@ -3,7 +3,7 @@ import { red900 } from 'material-ui/styles/colors';
 import List, { ListItem } from 'material-ui/List';
 import { browserHistory } from 'react-router';
 
-import { Box } from '../../components/box';
+import Box from '../../components/box';
 import { encodeURIs } from '../../common/request';
 import { getOrganizations } from '../../common/api';
 import { trackException } from '../../common/tracking';

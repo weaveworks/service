@@ -11,7 +11,7 @@ import TextField from 'material-ui/TextField';
 
 import { getOrganizationUsers } from '../../actions';
 import { deleteData, postData, encodeURIs } from '../../common/request';
-import { Box } from '../../components/box';
+import Box from '../../components/box';
 
 
 class Users extends React.Component {

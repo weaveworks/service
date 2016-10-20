@@ -30,6 +30,22 @@ export function getProbes(org) {
   return Promise.reject();
 }
 
+export function getPrometheusMetricNames(org) {
+  if (org) {
+    const url = encodeURIs`/api/app/${org}/api/prom/api/v1/label/__name__/values`;
+    return getData(url);
+  }
+  return Promise.reject();
+}
+
+export function getPrometheusQuery(org, query) {
+  if (org) {
+    const url = encodeURIs`/api/app/${org}/api/prom/api/v1/query?query=${query}`;
+    return getData(url);
+  }
+  return Promise.reject();
+}
+
 export function getLogins() {
   const url = '/api/users/logins';
   return getData(url);

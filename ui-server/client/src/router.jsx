@@ -11,6 +11,9 @@ import InstancesSelect from './pages/onboarding/instances-select';
 import OnboardingPage from './pages/onboarding/page';
 import OrganizationPage from './pages/organization/page';
 import PromPage from './pages/prom/page';
+import PromCheck from './pages/prom/prom-check';
+import PromSetup from './pages/prom/prom-setup';
+import PromWrapper from './pages/prom/prom-wrapper';
 import LandingPage from './pages/landing/page';
 import CookieCheck from './pages/landing/cookie-check';
 import Login from './pages/landing/login';
@@ -29,7 +32,11 @@ export default function getRoutes() {
 
       {/* Logged in */}
       <Route name="wrapper" path="app/:orgId" component={WrapperPage} />
-      <Route name="prom" path="prom/:orgId" component={PromPage} />
+      <Route name="prom" path="prom/:orgId" component={PromPage}>
+        <IndexRoute component={PromCheck} />
+        <Route path="setup" component={PromSetup} />
+        <Route path="wrapper" component={PromWrapper} />
+      </Route>
       <Route name="organization" path="org/:orgId" component={OrganizationPage} />
       <Route name="account" path="account/:orgId" component={AccountPage} />
       <Route name="instance" path="instance/:orgId" component={InstancesPage} />

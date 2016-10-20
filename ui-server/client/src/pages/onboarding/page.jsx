@@ -1,7 +1,7 @@
 import React from 'react';
 import { browserHistory } from 'react-router';
 
-import { FlexContainer } from '../../components/flex-container';
+import FlexContainer from '../../components/flex-container';
 import PublicPage from '../../components/public-page';
 import { trackException } from '../../common/tracking';
 import { getOrganizations } from '../../common/api';

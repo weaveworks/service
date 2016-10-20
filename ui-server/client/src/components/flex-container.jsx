@@ -1,6 +1,6 @@
 import React from 'react';
 
-export class FlexContainer extends React.Component {
+export default class FlexContainer extends React.Component {
   render() {
     const styles = Object.assign({
       display: 'flex',
