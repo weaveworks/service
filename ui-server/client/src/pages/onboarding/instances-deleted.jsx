@@ -36,7 +36,7 @@ export default class IntancesPicker extends React.Component {
         </h2>
         <p>
           <span className="fa fa-check" style={styles.confirmationIcon}></span>
-          You have no longer access to the deleted instance.
+          You no longer have access to the deleted instance.
         </p>
         <div style={styles.heading}>
           Instances
