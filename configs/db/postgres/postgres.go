@@ -14,6 +14,11 @@ import (
 	"github.com/weaveworks/service/configs"
 )
 
+const (
+	orgType  = "org"
+	userType = "user"
+)
+
 // DB is a postgres db, for dev and production
 type DB struct {
 	dbProxy
@@ -48,6 +53,7 @@ func New(databaseURI, migrationsDir string) (DB, error) {
 var statementBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).RunWith
 
 func configMatches(id, entityType, subsystem string) squirrel.Eq {
+	// TODO: Tests for deleted_at requirement.
 	return squirrel.Eq{
 		"deleted_at": nil,
 		"type":       entityType,
@@ -59,7 +65,6 @@ func configMatches(id, entityType, subsystem string) squirrel.Eq {
 func (d DB) findConfig(id, entityType, subsystem string) (configs.Config, error) {
 	var cfg configs.Config
 	var cfgBytes []byte
-	// XXX: tests for deleted at
 	err := d.Select("config").
 		From("configs").
 		Where(configMatches(id, entityType, subsystem)).QueryRow().Scan(&cfgBytes)
@@ -94,24 +99,22 @@ func (d DB) upsertConfig(id, entityType string, subsystem configs.Subsystem, cfg
 
 // GetUserConfig gets a user's configuration.
 func (d DB) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (configs.Config, error) {
-	// XXX: constant for type
-	return d.findConfig(string(userID), "user", string(subsystem))
+	return d.findConfig(string(userID), userType, string(subsystem))
 }
 
 // SetUserConfig sets a user's configuration.
 func (d DB) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) error {
-	return d.upsertConfig(string(userID), "user", subsystem, cfg)
+	return d.upsertConfig(string(userID), userType, subsystem, cfg)
 }
 
 // GetOrgConfig gets a org's configuration.
 func (d DB) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (configs.Config, error) {
-	// XXX: constant for type
-	return d.findConfig(string(orgID), "org", string(subsystem))
+	return d.findConfig(string(orgID), orgType, string(subsystem))
 }
 
 // SetOrgConfig sets a org's configuration.
 func (d DB) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg configs.Config) error {
-	return d.upsertConfig(string(orgID), "org", subsystem, cfg)
+	return d.upsertConfig(string(orgID), orgType, subsystem, cfg)
 }
 
 // Now gives us the current time for Postgres. Postgres only stores times to
