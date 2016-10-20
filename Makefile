@@ -29,20 +29,23 @@ all: $(UPTODATE_FILES)
 
 # List of exes please
 AUTHFE_EXE := authfe/authfe
+CONFIGS_EXE := configs/cmd/configs/configs
 USERS_EXE := users/cmd/users/users
 METRICS_EXE := metrics/metrics
 PR_ASSIGNER_EXE := pr-assigner/pr-assigner
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_RUN_EXE) $(PR_ASSIGNER_EXE)
+EXES = $(AUTHFE_EXE) $(CONFIGS_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_RUN_EXE) $(PR_ASSIGNER_EXE)
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
 $(AUTHFE_EXE): $(shell find authfe -name '*.go') $(shell find users/client -name '*.go') $(COMMON)
+$(CONFIGS_EXE): $(shell find configs -name '*.go') $(COMMON)
 $(USERS_EXE): $(shell find users -name '*.go') $(COMMON)
 $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
 $(PR_ASSIGNER_EXE): $(shell find pr-assigner -name '*.go') $(COMMON)
 
 # And now what goes into each image
 authfe/$(UPTODATE): $(AUTHFE_EXE)
+configs/$(UPTODATE): $(CONFIGS_EXE)
 users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/templates/*
 metrics/$(UPTODATE): $(METRICS_EXE)
 frontend-mt/$(UPTODATE): frontend-mt/default.conf frontend-mt/routes.conf frontend-mt/api.json frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
@@ -112,6 +115,20 @@ ui-server/client/build/index.html: $(WEBPACK_DEPS) ui-server/client/webpack.prod
 		-v $(shell pwd)/ui-server/client/build:/home/weave/build \
 		$(IMAGE_PREFIX)/client npm run build-production
 	cp -p ui-server/client/src/images/* ui-server/client/build
+
+# Test and misc stuff
+configs-integration-test: $(CONFIGS_UPTODATE)
+	DB_CONTAINER="$$(docker run -d quay.io/weaveworks/configs-db)"; \
+	docker run $(RM) \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-v $(shell pwd)/configs/db/migrations:/migrations \
+		--workdir /go/src/github.com/weaveworks/service/configs \
+		--link "$$DB_CONTAINER":configs-db.weave.local \
+		golang:1.6.2 \
+		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
+	status=$$?; \
+	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
+	exit $$status
 
 # Test and misc stuff
 users-integration-test: $(USERS_UPTODATE)

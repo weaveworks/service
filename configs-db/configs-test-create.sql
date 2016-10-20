@@ -1,0 +1,1 @@
+CREATE DATABASE configs_test WITH ENCODING = 'UTF-8';
