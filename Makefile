@@ -103,6 +103,8 @@ endif
 JS_FILES=$(shell find ui-server/client/src -name '*.jsx' -or -name '*.js')
 WEBPACK_DEPS = ui-server/client/$(UPTODATE) $(JS_FILES) ui-server/client/src/html/index.html ui-server/client/.eslintignore ui-server/client/.eslintrc ui-server/client/.babelrc
 
+ui-server/client/$(UPTODATE): $(JS_FILES)
+
 client-lint: ui-server/client/$(UPTODATE) $(JS_FILES)
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/ui-server/client/src:/home/weave/src \
