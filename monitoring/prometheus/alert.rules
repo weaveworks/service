@@ -153,8 +153,8 @@ ALERT DeploymentGenerationMismatch
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
-    summary = "Deployment of {{$labels.exported_namespace}}/{{$labels.name}} failed",
-    description = "Deployment of {{$labels.exported_namespace}}/{{$labels.name}} failed - observed generation != intended generation.",
+    summary = "Deployment of {{$labels.namespace}}/{{$labels.name}} failed",
+    description = "Deployment of {{$labels.namespace}}/{{$labels.name}} failed - observed generation != intended generation.",
   }
 
 ALERT DeploymentReplicasMismatch
@@ -162,8 +162,8 @@ ALERT DeploymentReplicasMismatch
   FOR         5m
   LABELS      { severity="critical" }
   ANNOTATIONS {
-    summary = "Deployment of {{$labels.exported_namespace}}/{{$labels.name}} failed",
-    description = "Deployment of {{$labels.exported_namespace}}/{{$labels.name}} failed - observed replicas != intended replicas.",
+    summary = "Deployment of {{$labels.namespace}}/{{$labels.name}} failed",
+    description = "Deployment of {{$labels.namespace}}/{{$labels.name}} failed - observed replicas != intended replicas.",
   }
 
 ALERT PodRestartingTooMuch
