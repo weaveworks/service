@@ -23,6 +23,13 @@ job:scope_request_duration_seconds:95quantile =
 job:scope_request_duration_seconds:50quantile =
    histogram_quantile(0.5, sum(rate(scope_request_duration_seconds_bucket{ws="false"}[5m])) by (job,le))
 
+# Rules for Prism dashboard
+job:prism_request_duration_seconds:99quantile =
+   histogram_quantile(0.99, sum(rate(prism_request_duration_seconds_bucket{ws="false"}[5m])) by (job,le))
+job:prism_request_duration_seconds:95quantile =
+   histogram_quantile(0.95, sum(rate(prism_request_duration_seconds_bucket{ws="false"}[5m])) by (job,le))
+job:prism_request_duration_seconds:50quantile =
+   histogram_quantile(0.5, sum(rate(prism_request_duration_seconds_bucket{ws="false"}[5m])) by (job,le))
 
 # Nginx
 :nginx_http_request_duration_seconds:50quantile =

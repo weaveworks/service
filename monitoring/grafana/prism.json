@@ -15,7 +15,13 @@
       "height": "250px",
       "panels": [
         {
-          "aliasColors": {},
+          "aliasColors": {
+            "1xx": "#EAB839",
+            "2xx": "#7EB26D",
+            "3xx": "#6ED0E0",
+            "4xx": "#EF843C",
+            "5xx": "#E24D42"
+          },
           "bars": false,
           "datasource": "Scope-as-a-Service Prometheus",
           "editable": true,
@@ -27,256 +33,7 @@
             "threshold2": null,
             "threshold2Color": "rgba(234, 112, 112, 0.22)"
           },
-          "id": 1,
-          "isNew": true,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 2,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "span": 6,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "sum(rate(prometheus_remote_storage_sent_batch_duration_seconds_count{job=\"prism/dev-retrieval\"}[5m])) by (job, result)",
-              "intervalFactor": 2,
-              "legendFormat": "{{job}}: {{result}}",
-              "metric": "",
-              "refId": "A",
-              "step": 10
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "Retrieval -> Distributor sent batches [rate-5m]",
-          "tooltip": {
-            "msResolution": true,
-            "shared": true,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "show": true
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {
-            "threshold1": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "id": 3,
-          "isNew": true,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 2,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "span": 6,
-          "stack": true,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "histogram_quantile(0.99, sum(prometheus_remote_storage_sent_batch_duration_seconds_bucket{job=\"prism/dev-retrieval\"}) by (job, le))",
-              "intervalFactor": 2,
-              "legendFormat": "{{job}} 99th",
-              "refId": "A",
-              "step": 10
-            },
-            {
-              "expr": "histogram_quantile(0.50, sum(prometheus_remote_storage_sent_batch_duration_seconds_bucket{job=\"prism/dev-retrieval\"}) by (job, le))",
-              "intervalFactor": 2,
-              "legendFormat": "{{job}} 50th",
-              "refId": "B",
-              "step": 10
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "Retrieval -> Distributor batch latency",
-          "tooltip": {
-            "msResolution": true,
-            "shared": true,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "show": true
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        }
-      ],
-      "showTitle": true,
-      "title": "Retrieval Stats"
-    },
-    {
-      "collapse": false,
-      "editable": true,
-      "height": "250px",
-      "panels": [
-        {
-          "aliasColors": {},
-          "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {
-            "threshold1": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "id": 25,
-          "isNew": true,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 2,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "span": 6,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "sum(rate(prometheus_remote_storage_sent_samples_total{job=\"prism/dev-retrieval\"}[5m])) by (job, result)",
-              "intervalFactor": 2,
-              "legendFormat": "{{job}}: {{result}}",
-              "metric": "",
-              "refId": "A",
-              "step": 10
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "Retrieval -> Distributor sent samples [rate-5m]",
-          "tooltip": {
-            "msResolution": true,
-            "shared": true,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "show": true
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "datasource": "Scope-as-a-Service Prometheus",
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {
-            "threshold1": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "id": 26,
+          "id": 27,
           "isNew": true,
           "legend": {
             "avg": false,
@@ -301,23 +58,251 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(prometheus_remote_storage_queue_capacity{job=\"prism/dev-retrieval\"}) by (job)",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/authfe\",status_code =~ \"1..\",route=~\"api_prom.*\"}[1m]))",
               "intervalFactor": 2,
-              "legendFormat": "{{job}}: queue capacity",
+              "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(prometheus_remote_storage_queue_length{job=\"prism/dev-retrieval\"}) by (job)",
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/authfe\",status_code =~ \"2..\",route=~\"api_prom.*\"}[1m]))",
               "intervalFactor": 2,
-              "legendFormat": "{{job}}: queue length",
+              "legendFormat": "2xx",
               "refId": "B",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/authfe\",status_code =~ \"3..\",route=~\"api_prom.*\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "3xx",
+              "refId": "C",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/authfe\",status_code =~ \"4..\",route=~\"api_prom.*\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "4xx",
+              "refId": "D",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(scope_request_duration_seconds_count{job=\"default/authfe\",status_code =~ \"5..\",route=~\"api_prom.*\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "5xx",
+              "refId": "E",
               "step": 10
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Retrieval -> Distributor Queue Capacity & Length",
+          "title": "Prism QPS (according to authfe)",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "sort": 0,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": 0,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 28,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "route:scope_authfe_request_duration_seconds:99quantile{route=~\"api_prom.*\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "99th quantile",
+              "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "route:scope_authfe_request_duration_seconds:95quantile{route=~\"api_prom.*\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "95th quantile",
+              "refId": "B",
+              "step": 10
+            },
+            {
+              "expr": "route:scope_authfe_request_duration_seconds:50quantile{route=~\"api_prom.*\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "50th quantile",
+              "refId": "C",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Prism Latency (according to authfe)",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "sort": 0,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "ms",
+              "label": "",
+              "logBase": 1,
+              "max": null,
+              "min": 0,
+              "show": true
+            },
+            {
+              "format": "short",
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": false
+            }
+          ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {
+            "1xx": "#EAB839",
+            "2xx": "#7EB26D",
+            "3xx": "#6ED0E0",
+            "4xx": "#EF843C",
+            "5xx": "#E24D42"
+          },
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 29,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"1..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "1xx",
+              "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"2..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "2xx",
+              "refId": "B",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"3..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "3xx",
+              "refId": "C",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"4..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "4xx",
+              "refId": "D",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"5..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "5xx",
+              "refId": "E",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Distributor QPS",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -334,7 +319,308 @@
               "label": null,
               "logBase": 1,
               "max": null,
+              "min": 0,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
               "min": null,
+              "show": true
+            }
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 30,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "job:prism_request_duration_seconds:99quantile{job=\"prism/distributor\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "99th quantile",
+              "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "job:prism_request_duration_seconds:95quantile{job=\"prism/distributor\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "95th quantile",
+              "refId": "B",
+              "step": 10
+            },
+            {
+              "expr": "job:prism_request_duration_seconds:50quantile{job=\"prism/distributor\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "50th quantile",
+              "refId": "C",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Distributor Latency",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "sort": 0,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "ms",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": 0,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {
+            "1xx": "#EAB839",
+            "2xx": "#7EB26D",
+            "3xx": "#6ED0E0",
+            "4xx": "#EF843C",
+            "5xx": "#E24D42"
+          },
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 31,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"1..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "1xx",
+              "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"2..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "2xx",
+              "refId": "B",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"3..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "3xx",
+              "refId": "C",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"4..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "4xx",
+              "refId": "D",
+              "step": 10
+            },
+            {
+              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"5..\"}[1m]))",
+              "intervalFactor": 2,
+              "legendFormat": "5xx",
+              "refId": "E",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Ingester QPS",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "sort": 0,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": 0,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 32,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "job:prism_request_duration_seconds:99quantile{job=\"prism/ingester\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "99th quantile",
+              "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "job:prism_request_duration_seconds:95quantile{job=\"prism/ingester\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "95th quantile",
+              "refId": "B",
+              "step": 10
+            },
+            {
+              "expr": "job:prism_request_duration_seconds:50quantile{job=\"prism/ingester\"} * 1e3",
+              "intervalFactor": 2,
+              "legendFormat": "50th quantile",
+              "refId": "C",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Ingester Latency",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "sort": 0,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "ms",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": 0,
               "show": true
             },
             {
@@ -397,7 +683,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 10
+              "step": 20
             }
           ],
           "timeFrom": null,
@@ -475,7 +761,7 @@
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
               "refId": "A",
-              "step": 10
+              "step": 20
             }
           ],
           "timeFrom": null,
@@ -552,21 +838,21 @@
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 99th",
               "refId": "A",
-              "step": 10
+              "step": 20
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 95th",
               "refId": "B",
-              "step": 10
+              "step": 20
             },
             {
               "expr": "histogram_quantile(0.5, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 50th",
               "refId": "C",
-              "step": 10
+              "step": 20
             }
           ],
           "timeFrom": null,
@@ -652,7 +938,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 10
+              "step": 20
             }
           ],
           "timeFrom": null,
@@ -729,21 +1015,21 @@
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 99th",
               "refId": "A",
-              "step": 10
+              "step": 20
             },
             {
               "expr": "histogram_quantile(0.95, sum without (instance) (rate(prism_s3_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 95th",
               "refId": "B",
-              "step": 10
+              "step": 20
             },
             {
               "expr": "histogram_quantile(0.5, sum without (instance) (rate(prism_s3_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 50th",
               "refId": "C",
-              "step": 10
+              "step": 20
             }
           ],
           "timeFrom": null,
@@ -821,21 +1107,21 @@
               "legendFormat": "{{status_code}} - 99th",
               "metric": "",
               "refId": "B",
-              "step": 10
+              "step": 20
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_distributor_query_duration_seconds_bucket[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{status_code}} - 95th",
               "refId": "A",
-              "step": 10
+              "step": 20
             },
             {
               "expr": "histogram_quantile(0.5, sum without(instance) (rate(prism_distributor_query_duration_seconds_bucket[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{status_code}} - 50th",
               "refId": "C",
-              "step": 10
+              "step": 20
             }
           ],
           "timeFrom": null,
@@ -920,7 +1206,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "refId": "A",
-              "step": 10
+              "step": 20
             }
           ],
           "timeFrom": null,
@@ -997,7 +1283,7 @@
               "intervalFactor": 2,
               "legendFormat": "hit ratio",
               "refId": "A",
-              "step": 10
+              "step": 20
             }
           ],
           "timeFrom": null,
@@ -1075,7 +1361,7 @@
               "legendFormat": "{{method}}: {{status_code}} - 99th",
               "metric": "",
               "refId": "A",
-              "step": 10
+              "step": 20
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_memcache_request_duration_seconds_bucket{job=\"prism/distributor\"}[10m])))",
@@ -1083,14 +1369,14 @@
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} - 95th",
               "refId": "B",
-              "step": 10
+              "step": 20
             },
             {
               "expr": "histogram_quantile(0.5, sum without(instance) (rate(prism_memcache_request_duration_seconds_bucket{job=\"prism/distributor\"}[10m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} - 50th",
               "refId": "C",
-              "step": 10
+              "step": 20
             }
           ],
           "timeFrom": null,
@@ -1175,7 +1461,7 @@
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
-              "step": 10
+              "step": 20
             }
           ],
           "timeFrom": null,
@@ -1253,7 +1539,7 @@
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
               "refId": "A",
-              "step": 10
+              "step": 20
             }
           ],
           "timeFrom": null,
@@ -1330,21 +1616,21 @@
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 99th",
               "refId": "A",
-              "step": 10
+              "step": 20
             },
             {
               "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 95th",
               "refId": "B",
-              "step": 10
+              "step": 20
             },
             {
               "expr": "histogram_quantile(0.5, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 50th",
               "refId": "C",
-              "step": 10
+              "step": 20
             }
           ],
           "timeFrom": null,
@@ -1721,6 +2007,347 @@
               "logBase": 1,
               "max": null,
               "min": 0,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 1,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "null as zero",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(rate(prometheus_remote_storage_sent_batch_duration_seconds_count{job=\"prism/dev-retrieval\"}[5m])) by (job, result)",
+              "intervalFactor": 2,
+              "legendFormat": "{{job}}: {{result}}",
+              "metric": "",
+              "refId": "A",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Retrieval -> Distributor sent batches [rate-5m]",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "sort": 0,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": 0,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 3,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "null as zero",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": true,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, sum(prometheus_remote_storage_sent_batch_duration_seconds_bucket{job=\"prism/dev-retrieval\"}) by (job, le))",
+              "intervalFactor": 2,
+              "legendFormat": "{{job}} 99th",
+              "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "histogram_quantile(0.50, sum(prometheus_remote_storage_sent_batch_duration_seconds_bucket{job=\"prism/dev-retrieval\"}) by (job, le))",
+              "intervalFactor": 2,
+              "legendFormat": "{{job}} 50th",
+              "refId": "B",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Retrieval -> Distributor batch latency",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "sort": 0,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": 0,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        }
+      ],
+      "showTitle": true,
+      "title": "Retrieval Stats"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "250px",
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 25,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "null as zero",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(rate(prometheus_remote_storage_sent_samples_total{job=\"prism/dev-retrieval\"}[5m])) by (job, result)",
+              "intervalFactor": 2,
+              "legendFormat": "{{job}}: {{result}}",
+              "metric": "",
+              "refId": "A",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Retrieval -> Distributor sent samples [rate-5m]",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "sort": 0,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": 0,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "Scope-as-a-Service Prometheus",
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 26,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 6,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(prometheus_remote_storage_queue_capacity{job=\"prism/dev-retrieval\"}) by (job)",
+              "intervalFactor": 2,
+              "legendFormat": "{{job}}: queue capacity",
+              "refId": "A",
+              "step": 10
+            },
+            {
+              "expr": "sum(prometheus_remote_storage_queue_length{job=\"prism/dev-retrieval\"}) by (job)",
+              "intervalFactor": 2,
+              "legendFormat": "{{job}}: queue length",
+              "refId": "B",
+              "step": 10
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Retrieval -> Distributor Queue Capacity & Length",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "sort": 0,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
               "show": true
             },
             {
