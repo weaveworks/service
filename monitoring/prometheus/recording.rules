@@ -31,6 +31,14 @@ job:prism_request_duration_seconds:95quantile =
 job:prism_request_duration_seconds:50quantile =
    histogram_quantile(0.5, sum(rate(prism_request_duration_seconds_bucket{ws="false"}[5m])) by (job,le))
 
+job_method:prism_request_duration_seconds:99quantile =
+   histogram_quantile(0.99, sum(rate(prism_request_duration_seconds_bucket{ws="false"}[5m])) by (job,method,le))
+job_method:prism_request_duration_seconds:95quantile =
+   histogram_quantile(0.95, sum(rate(prism_request_duration_seconds_bucket{ws="false"}[5m])) by (job,method,le))
+job_method:prism_request_duration_seconds:50quantile =
+   histogram_quantile(0.5, sum(rate(prism_request_duration_seconds_bucket{ws="false"}[5m])) by (job,method,le))
+
+
 # Nginx
 :nginx_http_request_duration_seconds:50quantile =
    histogram_quantile(0.5, sum(irate(nginx_http_request_duration_seconds_bucket{job="default/frontend"}[1m])) by (le))
