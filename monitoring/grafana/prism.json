@@ -52,7 +52,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(prism_remote_storage_sent_batch_duration_seconds_count{job=\"prism/dev-retrieval\"}[5m])) by (job, result)",
+              "expr": "sum(rate(prometheus_remote_storage_sent_batch_duration_seconds_count{job=\"prism/dev-retrieval\"}[5m])) by (job, result)",
               "intervalFactor": 2,
               "legendFormat": "{{job}}: {{result}}",
               "metric": "",
@@ -130,14 +130,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(prism_remote_storage_sent_batch_duration_seconds_bucket{job=\"prism/dev-retrieval\"}) by (job, le))",
+              "expr": "histogram_quantile(0.99, sum(prometheus_remote_storage_sent_batch_duration_seconds_bucket{job=\"prism/dev-retrieval\"}) by (job, le))",
               "intervalFactor": 2,
               "legendFormat": "{{job}} 99th",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.50, sum(prism_remote_storage_sent_batch_duration_seconds_bucket{job=\"prism/dev-retrieval\"}) by (job, le))",
+              "expr": "histogram_quantile(0.50, sum(prometheus_remote_storage_sent_batch_duration_seconds_bucket{job=\"prism/dev-retrieval\"}) by (job, le))",
               "intervalFactor": 2,
               "legendFormat": "{{job}} 50th",
               "refId": "B",
@@ -223,7 +223,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(prism_remote_storage_sent_samples_total{job=\"prism/dev-retrieval\"}[5m])) by (job, result)",
+              "expr": "sum(rate(prometheus_remote_storage_sent_samples_total{job=\"prism/dev-retrieval\"}[5m])) by (job, result)",
               "intervalFactor": 2,
               "legendFormat": "{{job}}: {{result}}",
               "metric": "",
@@ -301,14 +301,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(prism_remote_storage_queue_capacity{job=\"prism/dev-retrieval\"}) by (job)",
+              "expr": "sum(prometheus_remote_storage_queue_capacity{job=\"prism/dev-retrieval\"}) by (job)",
               "intervalFactor": 2,
               "legendFormat": "{{job}}: queue capacity",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(prism_remote_storage_queue_length{job=\"prism/dev-retrieval\"}) by (job)",
+              "expr": "sum(prometheus_remote_storage_queue_length{job=\"prism/dev-retrieval\"}) by (job)",
               "intervalFactor": 2,
               "legendFormat": "{{job}}: queue length",
               "refId": "B",
