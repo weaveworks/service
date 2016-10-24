@@ -52,7 +52,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(prometheus_remote_storage_sent_batch_duration_seconds_count{job=\"prism/dev-retrieval\"}[5m])) by (job, result)",
+              "expr": "sum(rate(prism_remote_storage_sent_batch_duration_seconds_count{job=\"prism/dev-retrieval\"}[5m])) by (job, result)",
               "intervalFactor": 2,
               "legendFormat": "{{job}}: {{result}}",
               "metric": "",
@@ -130,14 +130,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(prometheus_remote_storage_sent_batch_duration_seconds_bucket{job=\"prism/dev-retrieval\"}) by (job, le))",
+              "expr": "histogram_quantile(0.99, sum(prism_remote_storage_sent_batch_duration_seconds_bucket{job=\"prism/dev-retrieval\"}) by (job, le))",
               "intervalFactor": 2,
               "legendFormat": "{{job}} 99th",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.50, sum(prometheus_remote_storage_sent_batch_duration_seconds_bucket{job=\"prism/dev-retrieval\"}) by (job, le))",
+              "expr": "histogram_quantile(0.50, sum(prism_remote_storage_sent_batch_duration_seconds_bucket{job=\"prism/dev-retrieval\"}) by (job, le))",
               "intervalFactor": 2,
               "legendFormat": "{{job}} 50th",
               "refId": "B",
@@ -223,7 +223,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(prometheus_remote_storage_sent_samples_total{job=\"prism/dev-retrieval\"}[5m])) by (job, result)",
+              "expr": "sum(rate(prism_remote_storage_sent_samples_total{job=\"prism/dev-retrieval\"}[5m])) by (job, result)",
               "intervalFactor": 2,
               "legendFormat": "{{job}}: {{result}}",
               "metric": "",
@@ -301,14 +301,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(prometheus_remote_storage_queue_capacity{job=\"prism/dev-retrieval\"}) by (job)",
+              "expr": "sum(prism_remote_storage_queue_capacity{job=\"prism/dev-retrieval\"}) by (job)",
               "intervalFactor": 2,
               "legendFormat": "{{job}}: queue capacity",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(prometheus_remote_storage_queue_length{job=\"prism/dev-retrieval\"}) by (job)",
+              "expr": "sum(prism_remote_storage_queue_length{job=\"prism/dev-retrieval\"}) by (job)",
               "intervalFactor": 2,
               "legendFormat": "{{job}}: queue length",
               "refId": "B",
@@ -393,7 +393,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_dynamo_request_duration_seconds_count{job=\"prism/distributor\"}[5m])",
+              "expr": "rate(prism_dynamo_request_duration_seconds_count{job=\"prism/distributor\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
@@ -470,7 +470,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_dynamo_consumed_capacity_total{job=\"prism/distributor\"}[5m])",
+              "expr": "rate(prism_dynamo_consumed_capacity_total{job=\"prism/distributor\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
@@ -548,21 +548,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 99th",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 95th",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 50th",
               "refId": "C",
@@ -648,7 +648,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_s3_request_duration_seconds_count{job=\"prism/distributor\"}[5m])",
+              "expr": "rate(prism_s3_request_duration_seconds_count{job=\"prism/distributor\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
@@ -725,21 +725,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without (instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
+              "expr": "histogram_quantile(0.99, sum without (instance) (rate(prism_s3_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 99th",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum without (instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
+              "expr": "histogram_quantile(0.95, sum without (instance) (rate(prism_s3_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 95th",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum without (instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
+              "expr": "histogram_quantile(0.5, sum without (instance) (rate(prism_s3_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 50th",
               "refId": "C",
@@ -816,7 +816,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prometheus_distributor_query_duration_seconds_bucket[5m])))",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prism_distributor_query_duration_seconds_bucket[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{status_code}} - 99th",
               "metric": "",
@@ -824,14 +824,14 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_distributor_query_duration_seconds_bucket[5m])))",
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_distributor_query_duration_seconds_bucket[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{status_code}} - 95th",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_distributor_query_duration_seconds_bucket[5m])))",
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prism_distributor_query_duration_seconds_bucket[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{status_code}} - 50th",
               "refId": "C",
@@ -916,7 +916,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_memcache_request_duration_seconds_count{job=\"prism/distributor\"}[5m])",
+              "expr": "rate(prism_memcache_request_duration_seconds_count{job=\"prism/distributor\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "refId": "A",
@@ -993,7 +993,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(prometheus_memcache_hits_total{job=\"prism/distributor\"}[5m])) / sum(rate(prometheus_memcache_requests_total{job=\"prism/distributor\"}[5m]))",
+              "expr": "sum(rate(prism_memcache_hits_total{job=\"prism/distributor\"}[5m])) / sum(rate(prism_memcache_requests_total{job=\"prism/distributor\"}[5m]))",
               "intervalFactor": 2,
               "legendFormat": "hit ratio",
               "refId": "A",
@@ -1070,7 +1070,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"prism/distributor\"}[10m])))",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prism_memcache_request_duration_seconds_bucket{job=\"prism/distributor\"}[10m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} - 99th",
               "metric": "",
@@ -1078,7 +1078,7 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"prism/distributor\"}[10m])))",
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_memcache_request_duration_seconds_bucket{job=\"prism/distributor\"}[10m])))",
               "interval": "",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} - 95th",
@@ -1086,7 +1086,7 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"prism/distributor\"}[10m])))",
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prism_memcache_request_duration_seconds_bucket{job=\"prism/distributor\"}[10m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} - 50th",
               "refId": "C",
@@ -1171,7 +1171,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_dynamo_request_duration_seconds_count{job=\"prism/ingester\"}[5m])",
+              "expr": "rate(prism_dynamo_request_duration_seconds_count{job=\"prism/ingester\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
@@ -1248,7 +1248,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_dynamo_consumed_capacity_total{job=\"prism/ingester\"}[5m])",
+              "expr": "rate(prism_dynamo_consumed_capacity_total{job=\"prism/ingester\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
@@ -1326,21 +1326,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 99th",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 95th",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_dynamo_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 50th",
               "refId": "C",
@@ -1426,7 +1426,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_s3_request_duration_seconds_count{job=\"prism/ingester\"}[5m])",
+              "expr": "rate(prism_s3_request_duration_seconds_count{job=\"prism/ingester\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
@@ -1503,21 +1503,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prism_s3_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 99th",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_s3_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 95th",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.50, sum without(instance) (rate(prometheus_s3_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.50, sum without(instance) (rate(prism_s3_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 50th",
               "refId": "C",
@@ -1602,7 +1602,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prometheus_memcache_request_duration_seconds_count{job=\"prism/ingester\"}[5m])",
+              "expr": "rate(prism_memcache_request_duration_seconds_count{job=\"prism/ingester\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "refId": "A",
@@ -1679,7 +1679,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prism_memcache_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} 99th",
               "metric": "",
@@ -1687,14 +1687,14 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_memcache_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} 95th",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prometheus_memcache_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prism_memcache_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} 50th",
               "refId": "C",
