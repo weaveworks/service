@@ -48,7 +48,7 @@ authfe/$(UPTODATE): $(AUTHFE_EXE)
 configs/$(UPTODATE): $(CONFIGS_EXE)
 users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/templates/*
 metrics/$(UPTODATE): $(METRICS_EXE)
-frontend-mt/$(UPTODATE): frontend-mt/default.conf frontend-mt/routes.conf frontend-mt/api.json frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
+frontend-mt/$(UPTODATE): frontend-mt/default.conf frontend-mt/routes.conf frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
 ui-server/client/$(UPTODATE): ui-server/client/package.json ui-server/client/webpack.* ui-server/client/server.js ui-server/client/.eslintrc ui-server/client/.eslintignore ui-server/client/.babelrc
 ui-server/$(UPTODATE): ui-server/client/build/index.html

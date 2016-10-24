@@ -104,6 +104,7 @@ func main() {
 	flag.DurationVar(&authCacheExpiration, "auth.cache.expiration", 30*time.Second, "How long to keep entries in the auth client.")
 	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
 	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
+	flag.StringVar(&c.apiInfo, "api.info", "scopeservice:0.1", "Version info for the api to serve, in format ID:VERSION")
 
 	hostFlags := []struct {
 		dest *string

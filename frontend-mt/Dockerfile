@@ -12,6 +12,5 @@ COPY routes.conf /etc/nginx/
 COPY pki/scope.weave.works.crt /tls/scope.weave.works.crt
 COPY pki/cloud.weave.works.crt /tls/cloud.weave.works.crt
 COPY dhparam.pem /tls/dhparam.pem
-COPY api.json /home/weave/
 EXPOSE 80 443
 CMD ["nginx", "-g", "daemon off;"]
