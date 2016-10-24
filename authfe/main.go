@@ -129,6 +129,8 @@ func main() {
 		{&c.compareImagesHost, "compare-images"},
 		{&c.uiServerHost, "ui-server"},
 		{&c.billingUIHost, "billing-ui"},
+		{&c.billingAPIHost, "billing-api"},
+		{&c.billingUsageHost, "billing-usage"},
 		{&c.demoHost, "demo"},
 		{&c.launchGeneratorHost, "launch-generator"},
 	}

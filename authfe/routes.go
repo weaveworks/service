@@ -35,6 +35,8 @@ type Config struct {
 	compareImagesHost   string
 	uiServerHost        string
 	billingUIHost       string
+	billingAPIHost      string
+	billingUsageHost    string
 	demoHost            string
 	launchGeneratorHost string
 	logSuccess          bool
@@ -175,6 +177,34 @@ func routes(c Config) (http.Handler, error) {
 				uiHTTPlogger,
 			),
 		},
+		prefix{
+			"/api/billing",
+			[]path{
+				{"/payments/authTokens/{orgExternalID}", newProxy(c.billingAPIHost)},
+				{"/accounts/{orgExternalID}", newProxy(c.billingAPIHost)},
+				{"/accounts", newProxy(c.billingAPIHost)},
+				{"/usage/{orgExternalID}", newProxy(c.billingUsageHost)},
+			},
+			middleware.Merge(
+				users.AuthOrgMiddleware{
+					Authenticator: c.authenticator,
+					OrgExternalID: func(r *http.Request) (string, bool) {
+						if r.Method == "POST" {
+							r.ParseForm()
+							_, ok := r.Form["id"]
+							return r.FormValue("id"), ok
+						}
+						v, ok := mux.Vars(r)["orgExternalID"]
+						return v, ok
+					},
+					OutputHeader: c.outputHeader,
+					UserIDHeader: userIDHeader,
+				},
+				middleware.PathRewrite(regexp.MustCompile("^/api/billing"), ""),
+				uiHTTPlogger,
+			),
+		},
+		path{"/api/billing/payments/authTokens", trimPrefix("/api/billing", newProxy(c.billingAPIHost))},
 
 		// unauthenticated communication
 		prefix{
