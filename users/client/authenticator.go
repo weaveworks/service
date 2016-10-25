@@ -29,8 +29,8 @@ func init() {
 
 // Authenticator is the client interface to the users service.
 type Authenticator interface {
-	AuthenticateOrg(w http.ResponseWriter, r *http.Request, orgExternalID string) (string, string, error)
-	AuthenticateProbe(w http.ResponseWriter, r *http.Request) (string, error)
+	AuthenticateOrg(w http.ResponseWriter, r *http.Request, orgExternalID string) (string, string, []string, error)
+	AuthenticateProbe(w http.ResponseWriter, r *http.Request) (string, []string, error)
 	AuthenticateAdmin(w http.ResponseWriter, r *http.Request) (string, error)
 }
 
@@ -76,12 +76,12 @@ func MakeAuthenticator(kind, url string, opts AuthenticatorOptions) Authenticato
 
 type mockAuthenticator struct{}
 
-func (mockAuthenticator) AuthenticateOrg(w http.ResponseWriter, r *http.Request, orgExternalID string) (string, string, error) {
-	return "mockID", "mockUserID", nil
+func (mockAuthenticator) AuthenticateOrg(w http.ResponseWriter, r *http.Request, orgExternalID string) (string, string, []string, error) {
+	return "mockID", "mockUserID", nil, nil
 }
 
-func (mockAuthenticator) AuthenticateProbe(w http.ResponseWriter, r *http.Request) (string, error) {
-	return "mockID", nil
+func (mockAuthenticator) AuthenticateProbe(w http.ResponseWriter, r *http.Request) (string, []string, error) {
+	return "mockID", nil, nil
 }
 
 func (mockAuthenticator) AuthenticateAdmin(w http.ResponseWriter, r *http.Request) (string, error) {
@@ -114,9 +114,10 @@ type orgCredCacheKey struct {
 
 type orgCredCacheValue struct {
 	orgID, userID string
+	featureFlags  []string
 }
 
-func (m *webAuthenticator) lookupInOrgCacheOr(key orgCredCacheKey, f func() (string, string, error)) (string, string, error) {
+func (m *webAuthenticator) lookupInOrgCacheOr(key orgCredCacheKey, f func() (string, string, []string, error)) (string, string, []string, error) {
 	if m.orgCredCache == nil {
 		return f()
 	}
@@ -124,20 +125,21 @@ func (m *webAuthenticator) lookupInOrgCacheOr(key orgCredCacheKey, f func() (str
 	authCacheCounter.WithLabelValues("org_cred_cache", hitOrMiss(err)).Inc()
 	if err == nil {
 		v := org.(orgCredCacheValue)
-		return v.orgID, v.userID, nil
+		return v.orgID, v.userID, v.featureFlags, nil
 	}
 
-	orgID, userID, err := f()
+	orgID, userID, featureFlags, err := f()
 	if err == nil {
 		m.orgCredCache.Set(key, orgCredCacheValue{
-			orgID:  orgID,
-			userID: userID,
+			orgID:        orgID,
+			userID:       userID,
+			featureFlags: featureFlags,
 		})
 	}
-	return orgID, userID, err
+	return orgID, userID, featureFlags, err
 }
 
-func (m *webAuthenticator) AuthenticateOrg(w http.ResponseWriter, r *http.Request, orgExternalID string) (string, string, error) {
+func (m *webAuthenticator) AuthenticateOrg(w http.ResponseWriter, r *http.Request, orgExternalID string) (string, string, []string, error) {
 	// Extract Authorization header to inject it in the lookup request. If
 	// it were not set, don't even bother to do a lookup.
 	authHeader, err := getAuthHeader(r, "Scope-User")
@@ -153,18 +155,18 @@ func (m *webAuthenticator) AuthenticateOrg(w http.ResponseWriter, r *http.Reques
 	}
 
 	log.Error("authenticator: org: tried to authenticate request without credentials")
-	return "", "", &Unauthorized{http.StatusUnauthorized}
+	return "", "", nil, &Unauthorized{http.StatusUnauthorized}
 }
 
-func (m *webAuthenticator) authenticateOrgViaCookie(w http.ResponseWriter, r *http.Request, orgExternalID string, authCookie *http.Cookie) (string, string, error) {
+func (m *webAuthenticator) authenticateOrgViaCookie(w http.ResponseWriter, r *http.Request, orgExternalID string, authCookie *http.Cookie) (string, string, []string, error) {
 	return m.lookupInOrgCacheOr(
 		orgCredCacheKey{cookie: authCookie.Value, orgExternalID: orgExternalID},
-		func() (string, string, error) {
+		func() (string, string, []string, error) {
 			url := fmt.Sprintf("%s/private/api/users/lookup/%s", m.url, url.QueryEscape(orgExternalID))
 			lookupReq, err := http.NewRequest("GET", url, nil)
 			if err != nil {
 				log.Error("authenticator: cannot build lookup request: ", err)
-				return "", "", err
+				return "", "", nil, err
 			}
 			lookupReq.AddCookie(authCookie)
 			return m.decodeOrg(m.doAuthenticateRequest(w, lookupReq))
@@ -172,15 +174,15 @@ func (m *webAuthenticator) authenticateOrgViaCookie(w http.ResponseWriter, r *ht
 	)
 }
 
-func (m *webAuthenticator) authenticateOrgViaHeader(w http.ResponseWriter, r *http.Request, orgExternalID string, authHeader string) (string, string, error) {
+func (m *webAuthenticator) authenticateOrgViaHeader(w http.ResponseWriter, r *http.Request, orgExternalID string, authHeader string) (string, string, []string, error) {
 	return m.lookupInOrgCacheOr(
 		orgCredCacheKey{header: authHeader, orgExternalID: orgExternalID},
-		func() (string, string, error) {
+		func() (string, string, []string, error) {
 			url := fmt.Sprintf("%s/private/api/users/lookup/%s", m.url, url.QueryEscape(orgExternalID))
 			lookupReq, err := http.NewRequest("GET", url, nil)
 			if err != nil {
 				log.Error("authenticator: cannot build lookup request: ", err)
-				return "", "", err
+				return "", "", nil, err
 			}
 			lookupReq.Header.Set(AuthHeaderName, authHeader)
 			return m.decodeOrg(m.doAuthenticateRequest(w, lookupReq))
@@ -204,20 +206,26 @@ func getAuthHeader(r *http.Request, realm string) (string, error) {
 	return "", &Unauthorized{http.StatusUnauthorized}
 }
 
-func (m *webAuthenticator) AuthenticateProbe(w http.ResponseWriter, r *http.Request) (string, error) {
+type probeCredCacheValue struct {
+	orgID        string
+	featureFlags []string
+}
+
+func (m *webAuthenticator) AuthenticateProbe(w http.ResponseWriter, r *http.Request) (string, []string, error) {
 	// Extract Authorization header to inject it in the lookup request. If
 	// it were not set, don't even bother to do a lookup.
 	authHeader, err := getAuthHeader(r, "Scope-Probe")
 	if err != nil {
 		log.Error("authenticator: probe: tried to authenticate request without credentials")
-		return "", err
+		return "", nil, err
 	}
 
 	if m.probeCredCache != nil {
 		org, err := m.probeCredCache.Get(authHeader)
 		authCacheCounter.WithLabelValues("probe_cred_cache", hitOrMiss(err)).Inc()
 		if err == nil {
-			return org.(string), nil
+			v := org.(probeCredCacheValue)
+			return v.orgID, v.featureFlags, nil
 		}
 	}
 
@@ -225,14 +233,14 @@ func (m *webAuthenticator) AuthenticateProbe(w http.ResponseWriter, r *http.Requ
 	lookupReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Error("authenticator: cannot build lookup request: ", err)
-		return "", err
+		return "", nil, err
 	}
 	lookupReq.Header.Set(AuthHeaderName, authHeader)
-	org, _, err := m.decodeOrg(m.doAuthenticateRequest(w, lookupReq))
+	orgID, _, featureFlags, err := m.decodeOrg(m.doAuthenticateRequest(w, lookupReq))
 	if err == nil && m.probeCredCache != nil {
-		m.probeCredCache.Set(authHeader, org)
+		m.probeCredCache.Set(authHeader, probeCredCacheValue{orgID: orgID, featureFlags: featureFlags})
 	}
-	return org, err
+	return orgID, featureFlags, err
 }
 
 func (m *webAuthenticator) AuthenticateAdmin(w http.ResponseWriter, r *http.Request) (string, error) {
@@ -274,22 +282,23 @@ func (m *webAuthenticator) doAuthenticateRequest(w http.ResponseWriter, r *http.
 	return res.Body, nil
 }
 
-func (m *webAuthenticator) decodeOrg(body io.ReadCloser, err error) (string, string, error) {
+func (m *webAuthenticator) decodeOrg(body io.ReadCloser, err error) (string, string, []string, error) {
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 	defer body.Close()
 	var authRes struct {
-		OrganizationID string `json:"organizationID"`
-		UserID         string `json:"userID"`
+		OrganizationID string   `json:"organizationID"`
+		UserID         string   `json:"userID"`
+		FeatureFlags   []string `json:"featureFlags"`
 	}
 	if err := json.NewDecoder(body).Decode(&authRes); err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 	if authRes.OrganizationID == "" {
-		return "", "", errors.New("empty OrganizationID")
+		return "", "", nil, errors.New("empty OrganizationID")
 	}
-	return authRes.OrganizationID, authRes.UserID, nil
+	return authRes.OrganizationID, authRes.UserID, authRes.FeatureFlags, nil
 }
 
 func (m *webAuthenticator) decodeAdmin(body io.ReadCloser, err error) (string, error) {
@@ -312,10 +321,12 @@ func (m *webAuthenticator) decodeAdmin(body io.ReadCloser, err error) (string, e
 // AuthOrgMiddleware is a middleware.Interface for authentication organisations based on the
 // cookie and an org name in the path
 type AuthOrgMiddleware struct {
-	Authenticator Authenticator
-	OrgExternalID func(*http.Request) (string, bool)
-	OutputHeader  string
-	UserIDHeader  string
+	Authenticator       Authenticator
+	OrgExternalID       func(*http.Request) (string, bool)
+	OutputHeader        string
+	UserIDHeader        string
+	FeatureFlagsHeader  string
+	RequireFeatureFlags []string
 }
 
 // Wrap implements middleware.Interface
@@ -328,7 +339,7 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		organizationID, userID, err := a.Authenticator.AuthenticateOrg(w, r, orgExternalID)
+		organizationID, userID, featureFlags, err := a.Authenticator.AuthenticateOrg(w, r, orgExternalID)
 		if err != nil {
 			if unauth, ok := err.(*Unauthorized); ok {
 				log.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
@@ -340,22 +351,31 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
+		if !hasFeatureAllFlags(a.RequireFeatureFlags, featureFlags) {
+			log.Infof("proxy: missing feature flags: %v", a.RequireFeatureFlags)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
 		r.Header.Add(a.OutputHeader, organizationID)
 		r.Header.Add(a.UserIDHeader, userID)
+		r.Header.Add(a.FeatureFlagsHeader, strings.Join(featureFlags, " "))
 		next.ServeHTTP(w, r)
 	})
 }
 
 // AuthProbeMiddleware is a middleware.Interface for authentication probes based on the headers
 type AuthProbeMiddleware struct {
-	Authenticator Authenticator
-	OutputHeader  string
+	Authenticator       Authenticator
+	OutputHeader        string
+	FeatureFlagsHeader  string
+	RequireFeatureFlags []string
 }
 
 // Wrap implements middleware.Interface
 func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		organizationID, err := a.Authenticator.AuthenticateProbe(w, r)
+		organizationID, featureFlags, err := a.Authenticator.AuthenticateProbe(w, r)
 		if err != nil {
 			if unauth, ok := err.(*Unauthorized); ok {
 				log.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
@@ -367,9 +387,32 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
+		if !hasFeatureAllFlags(a.RequireFeatureFlags, featureFlags) {
+			log.Infof("proxy: missing feature flags: %v", a.RequireFeatureFlags)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
 		r.Header.Add(a.OutputHeader, organizationID)
+		r.Header.Add(a.FeatureFlagsHeader, strings.Join(featureFlags, " "))
 		next.ServeHTTP(w, r)
 	})
+}
+
+func hasFeatureAllFlags(needles, haystack []string) bool {
+	for _, f := range needles {
+		found := false
+		for _, has := range haystack {
+			if f == has {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }
 
 // AuthAdminMiddleware is a middleware.Interface for authentication probes based on the headers

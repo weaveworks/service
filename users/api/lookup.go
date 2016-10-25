@@ -11,8 +11,9 @@ import (
 )
 
 type lookupOrgView struct {
-	OrganizationID string `json:"organizationID,omitempty"`
-	UserID         string `json:"userID,omitempty"`
+	OrganizationID string   `json:"organizationID,omitempty"`
+	UserID         string   `json:"userID,omitempty"`
+	FeatureFlags   []string `json:"featureFlags,omitempty"`
 }
 
 func (a *API) lookupOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -28,6 +29,7 @@ func (a *API) lookupOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 			render.JSON(w, http.StatusOK, lookupOrgView{
 				OrganizationID: org.ID,
 				UserID:         currentUser.ID,
+				FeatureFlags:   org.FeatureFlags,
 			})
 			return
 		}
@@ -48,5 +50,5 @@ func (a *API) lookupAdmin(currentUser *users.User, w http.ResponseWriter, r *htt
 }
 
 func (a *API) lookupUsingToken(organization *users.Organization, w http.ResponseWriter, r *http.Request) {
-	render.JSON(w, http.StatusOK, lookupOrgView{OrganizationID: organization.ID})
+	render.JSON(w, http.StatusOK, lookupOrgView{OrganizationID: organization.ID, FeatureFlags: organization.FeatureFlags})
 }

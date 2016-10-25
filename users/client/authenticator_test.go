@@ -1,9 +1,10 @@
 package client_test
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gorilla/mux"
@@ -21,6 +22,10 @@ const (
 	userID        = "user12346"
 )
 
+var (
+	featureFlags = []string{"a", "b"}
+)
+
 func dummyServer() *httptest.Server {
 	serverHandler := mux.NewRouter()
 	serverHandler.Methods("GET").Path("/private/api/users/lookup/{orgExternalID}").
@@ -31,9 +36,14 @@ func dummyServer() *httptest.Server {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
+			j, _ := json.Marshal(map[string]interface{}{
+				"organizationID": orgID,
+				"userID":         userID,
+				"featureFlags":   featureFlags,
+			})
 			if localOrgExternalID == orgExternalID && orgCookie == localOrgCookie.Value {
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintf(w, `{ "organizationID": "%s", "userID": "%s" }`, orgID, userID)
+				w.Write(j)
 				return
 			}
 			w.WriteHeader(http.StatusUnauthorized)
@@ -43,9 +53,13 @@ func dummyServer() *httptest.Server {
 	serverHandler.Methods("GET").Path("/private/api/users/lookup").
 		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			localAuthToken := r.Header.Get(client.AuthHeaderName)
+			j, _ := json.Marshal(map[string]interface{}{
+				"organizationID": orgID,
+				"featureFlags":   featureFlags,
+			})
 			if orgToken == localAuthToken {
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintf(w, `{ "organizationID": "%s" }`, orgID)
+				w.Write(j)
 				return
 			}
 			w.WriteHeader(http.StatusUnauthorized)
@@ -64,9 +78,10 @@ func TestAuth(t *testing.T) {
 		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
 		req.Header.Set(client.AuthHeaderName, orgToken)
 		w := httptest.NewRecorder()
-		res, err := auth.AuthenticateProbe(w, req)
+		gotOrgID, gotFeatureFlags, err := auth.AuthenticateProbe(w, req)
 		assert.NoError(t, err, "Unexpected error from authenticator")
-		assert.Equal(t, orgID, res, "Unexpected organization")
+		assert.Equal(t, orgID, gotOrgID, "Unexpected organization")
+		assert.Equal(t, featureFlags, gotFeatureFlags, "Unexpected featureFlags")
 	}
 
 	// Test we can auth based on cookies
@@ -77,10 +92,11 @@ func TestAuth(t *testing.T) {
 			Value: orgCookie,
 		})
 		w := httptest.NewRecorder()
-		res, user, err := auth.AuthenticateOrg(w, req, orgExternalID)
+		gotOrgID, user, gotFeatureFlags, err := auth.AuthenticateOrg(w, req, orgExternalID)
 		assert.NoError(t, err, "Unexpected error from authenticator")
-		assert.Equal(t, orgID, res, "Unexpected organization")
+		assert.Equal(t, orgID, gotOrgID, "Unexpected organization")
 		assert.Equal(t, userID, user, "Unexpected user")
+		assert.Equal(t, featureFlags, gotFeatureFlags, "Unexpected organization")
 	}
 
 	// Test denying access for headers
@@ -88,9 +104,10 @@ func TestAuth(t *testing.T) {
 		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
 		req.Header.Set(client.AuthHeaderName, "This is not the right value")
 		w := httptest.NewRecorder()
-		res, err := auth.AuthenticateProbe(w, req)
+		gotOrgID, gotFeatureFlags, err := auth.AuthenticateProbe(w, req)
 		assert.Error(t, err, "Unexpected successful authentication")
-		assert.Equal(t, "", res, "Unexpected organization")
+		assert.Equal(t, "", gotOrgID, "Unexpected organization")
+		assert.Len(t, gotFeatureFlags, 0, "Unexpected organization")
 	}
 
 	// Test denying access for cookies
@@ -101,10 +118,11 @@ func TestAuth(t *testing.T) {
 			Value: "Not the right cookie",
 		})
 		w := httptest.NewRecorder()
-		res, user, err := auth.AuthenticateOrg(w, req, orgExternalID)
+		gotOrgID, user, gotFeatureFlags, err := auth.AuthenticateOrg(w, req, orgExternalID)
 		assert.Error(t, err, "Unexpected successful authentication")
-		assert.Equal(t, "", res, "Unexpected organization")
+		assert.Equal(t, "", gotOrgID, "Unexpected organization")
 		assert.Equal(t, "", user, "Unexpected user")
+		assert.Len(t, gotFeatureFlags, 0, "Unexpected organization")
 	}
 }
 
@@ -114,13 +132,15 @@ func TestMiddleware(t *testing.T) {
 	auth := client.MakeAuthenticator("web", server.URL, client.AuthenticatorOptions{})
 
 	var (
-		body       = []byte("OK")
-		headerName = "X-Some-Header"
+		body                   = []byte("OK")
+		headerName             = "X-Some-Header"
+		featureFlagsHeaderName = "X-FeatureFlags"
 	)
 
 	testMiddleware := func(mw middleware.Interface, req *http.Request) *httptest.ResponseRecorder {
 		wrapper := mw.Wrap(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, r.Header.Get(headerName), orgID, "")
+			assert.Equal(t, r.Header.Get(featureFlagsHeaderName), strings.Join(featureFlags, " "), "")
 			w.WriteHeader(http.StatusOK)
 			w.Write(body)
 		}))
@@ -134,8 +154,9 @@ func TestMiddleware(t *testing.T) {
 		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
 		req.Header.Set(client.AuthHeaderName, orgToken)
 		mw := client.AuthProbeMiddleware{
-			Authenticator: auth,
-			OutputHeader:  headerName,
+			Authenticator:      auth,
+			OutputHeader:       headerName,
+			FeatureFlagsHeader: featureFlagsHeaderName,
 		}
 		result := testMiddleware(mw, req)
 		assert.Equal(t, result.Code, http.StatusOK, "")
@@ -150,9 +171,10 @@ func TestMiddleware(t *testing.T) {
 			Value: orgCookie,
 		})
 		mw := client.AuthOrgMiddleware{
-			Authenticator: auth,
-			OrgExternalID: func(*http.Request) (string, bool) { return orgExternalID, true },
-			OutputHeader:  headerName,
+			Authenticator:      auth,
+			OrgExternalID:      func(*http.Request) (string, bool) { return orgExternalID, true },
+			OutputHeader:       headerName,
+			FeatureFlagsHeader: featureFlagsHeaderName,
 		}
 		result := testMiddleware(mw, req)
 		assert.Equal(t, result.Code, http.StatusOK, "")
@@ -180,9 +202,25 @@ func TestMiddleware(t *testing.T) {
 			Value: "Not the right cookie",
 		})
 		mw := client.AuthOrgMiddleware{
-			Authenticator: auth,
-			OrgExternalID: func(*http.Request) (string, bool) { return orgExternalID, true },
-			OutputHeader:  headerName,
+			Authenticator:      auth,
+			OrgExternalID:      func(*http.Request) (string, bool) { return orgExternalID, true },
+			OutputHeader:       headerName,
+			FeatureFlagsHeader: featureFlagsHeaderName,
+		}
+		result := testMiddleware(mw, req)
+		assert.Equal(t, result.Code, http.StatusUnauthorized, "")
+		assert.Equal(t, result.Body.Bytes(), []byte(nil), "")
+	}
+
+	// Test denying access for feature flags
+	{
+		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
+		req.Header.Set(client.AuthHeaderName, orgToken)
+		mw := client.AuthProbeMiddleware{
+			Authenticator:       auth,
+			OutputHeader:        headerName,
+			FeatureFlagsHeader:  featureFlagsHeaderName,
+			RequireFeatureFlags: []string{"foo"},
 		}
 		result := testMiddleware(mw, req)
 		assert.Equal(t, result.Code, http.StatusUnauthorized, "")

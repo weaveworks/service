@@ -101,8 +101,9 @@ func routes(c Config) (http.Handler, error) {
 						v, ok := mux.Vars(r)["orgExternalID"]
 						return v, ok
 					},
-					OutputHeader: c.outputHeader,
-					UserIDHeader: userIDHeader,
+					OutputHeader:       c.outputHeader,
+					UserIDHeader:       userIDHeader,
+					FeatureFlagsHeader: featureFlagsHeader,
 				},
 				middleware.PathRewrite(regexp.MustCompile("^/api/app/[^/]+"), ""),
 				uiHTTPlogger,
@@ -122,8 +123,9 @@ func routes(c Config) (http.Handler, error) {
 			},
 			middleware.Merge(
 				users.AuthProbeMiddleware{
-					Authenticator: c.authenticator,
-					OutputHeader:  c.outputHeader,
+					Authenticator:      c.authenticator,
+					OutputHeader:       c.outputHeader,
+					FeatureFlagsHeader: featureFlagsHeader,
 				},
 				probeHTTPlogger,
 			),
