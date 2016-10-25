@@ -70,16 +70,8 @@ func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func isWSHandshakeRequest(req *http.Request) bool {
-	if strings.ToLower(req.Header.Get("Upgrade")) == "websocket" {
-		// Connection header values can be of form "foo, bar, ..."
-		parts := strings.Split(strings.ToLower(req.Header.Get("Connection")), ",")
-		for _, part := range parts {
-			if strings.TrimSpace(part) == "upgrade" {
-				return true
-			}
-		}
-	}
-	return false
+	return strings.ToLower(req.Header.Get("Upgrade")) == "websocket" &&
+		strings.ToLower(req.Header.Get("Connection")) == "upgrade"
 }
 
 func (p proxy) proxyWS(w http.ResponseWriter, r *http.Request) {
