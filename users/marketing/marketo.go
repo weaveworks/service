@@ -58,6 +58,10 @@ func nilTime(t time.Time) *time.Time {
 }
 
 func (c *MarketoClient) batchUpsertProspect(prospects []prospect) error {
+	if err := c.client.RefreshToken(); err != nil {
+		return err
+	}
+
 	leads := struct {
 		ProgramName string            `json:"programName"`
 		LookupField string            `json:"lookupField"`
