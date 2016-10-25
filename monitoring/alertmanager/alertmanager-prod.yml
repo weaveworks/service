@@ -40,9 +40,12 @@ route:
   # overwritten on each.
 
   routes:
+  - receiver: service-alerts-warning
+    continue: true
   - match:
       severity: critical
     receiver: service-alerts-critical
+    continue: true
 
 # Inhibition rules allow to mute a set of alerts given that another alert is
 # firing. We use this to mute any warning-level notifications if the same
