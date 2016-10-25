@@ -587,7 +587,7 @@
               "step": 10
             },
             {
-              "expr": "job_method:prism_request_duration_seconds:95quantile{job=\"prism/distributor\",method\"GET\"} * 1e3",
+              "expr": "job_method:prism_request_duration_seconds:95quantile{job=\"prism/distributor\",method=\"GET\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "B",
