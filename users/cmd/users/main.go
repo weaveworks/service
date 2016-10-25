@@ -43,6 +43,7 @@ func main() {
 		marketoClientID = flag.String("marketo-client-id", "", "Client ID of Marketo account.  If not supplied marketo integration will be disabled.")
 		marketoSecret   = flag.String("marketo-secret", "", "Secret for Marketo account.")
 		marketoEndpoint = flag.String("marketo-endpoint", "", "REST API endpoint for Marketo.")
+		marketoProgram  = flag.String("marketo-program", "2016_00_Website_WeaveCloud", "Program name to add leads to (for Marketo).")
 
 		emailFromAddress = flag.String("email-from-address", "Weave Cloud <support@weave.works>", "From address for emails.")
 
@@ -74,7 +75,7 @@ func main() {
 	}
 
 	if *marketoClientID != "" {
-		marketoClient, err := marketing.NewMarketoClient(*marketoClientID, *marketoSecret, *marketoEndpoint)
+		marketoClient, err := marketing.NewMarketoClient(*marketoClientID, *marketoSecret, *marketoEndpoint, *marketoProgram)
 		if err != nil {
 			logrus.Warningf("Failed to initialise Marketo client: %v", err)
 		} else {

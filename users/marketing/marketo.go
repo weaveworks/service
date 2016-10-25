@@ -10,17 +10,19 @@ import (
 
 // MarketoClient is a client for marketo.
 type MarketoClient struct {
-	client *goketo.Client
+	client      *goketo.Client
+	programName string
 }
 
 // NewMarketoClient makes a new marketo client.
-func NewMarketoClient(clientID, clientSecret, clientEndpoint string) (*MarketoClient, error) {
+func NewMarketoClient(clientID, clientSecret, clientEndpoint, programName string) (*MarketoClient, error) {
 	client, err := goketo.NewAuthClient(clientID, clientSecret, clientEndpoint)
 	if err != nil {
 		return nil, err
 	}
 	return &MarketoClient{
-		client: client,
+		client:      client,
+		programName: programName,
 	}, nil
 }
 
@@ -61,7 +63,7 @@ func (c *MarketoClient) batchUpsertProspect(prospects []prospect) error {
 		LookupField string            `json:"lookupField"`
 		Input       []marketoProspect `json:"input"`
 	}{
-		ProgramName: "Weave Cloud",
+		ProgramName: c.programName,
 		LookupField: "email",
 		Input:       []marketoProspect{},
 	}
