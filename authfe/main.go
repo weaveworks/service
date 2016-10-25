@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	sessionCookieKey = "_weaveclientid"
-	userIDHeader     = "X-Scope-UserID"
+	sessionCookieKey   = "_weaveclientid"
+	userIDHeader       = "X-Scope-UserID"
+	featureFlagsHeader = "X-FeatureFlags"
 )
 
 var (
