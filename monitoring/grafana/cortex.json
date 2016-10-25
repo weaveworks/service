@@ -95,7 +95,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Prism QPS (according to authfe)",
+          "title": "Cortex QPS (according to authfe)",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -184,7 +184,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Prism Latency (according to authfe)",
+          "title": "Cortex Latency (according to authfe)",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -265,35 +265,35 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"1..\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"2..\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"3..\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"4..\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"5..\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
@@ -370,21 +370,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job:prism_request_duration_seconds:99quantile{job=\"prism/distributor\"} * 1e3",
+              "expr": "job:cortex_request_duration_seconds:99quantile{job=\"cortex/distributor\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "99th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "job:prism_request_duration_seconds:95quantile{job=\"prism/distributor\"} * 1e3",
+              "expr": "job:cortex_request_duration_seconds:95quantile{job=\"cortex/distributor\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "job:prism_request_duration_seconds:50quantile{job=\"prism/distributor\"} * 1e3",
+              "expr": "job:cortex_request_duration_seconds:50quantile{job=\"cortex/distributor\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "C",
@@ -475,35 +475,35 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"1..\",method=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"1..\",method=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"2..\",method=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"2..\",method=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"3..\",method=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"3..\",method=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"4..\",method=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"4..\",method=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"5..\",method=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"5..\",method=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
@@ -580,21 +580,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job_method:prism_request_duration_seconds:99quantile{job=\"prism/distributor\",method=\"GET\"} * 1e3",
+              "expr": "job_method:cortex_request_duration_seconds:99quantile{job=\"cortex/distributor\",method=\"GET\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "99th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "job_method:prism_request_duration_seconds:95quantile{job=\"prism/distributor\",method=\"GET\"} * 1e3",
+              "expr": "job_method:cortex_request_duration_seconds:95quantile{job=\"cortex/distributor\",method=\"GET\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "job_method:prism_request_duration_seconds:50quantile{job=\"prism/distributor\",method=\"GET\"} * 1e3",
+              "expr": "job_method:cortex_request_duration_seconds:50quantile{job=\"cortex/distributor\",method=\"GET\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "C",
@@ -686,35 +686,35 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"1..\",method!=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"1..\",method!=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"2..\",method!=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"2..\",method!=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"3..\",method!=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"3..\",method!=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"4..\",method!=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"4..\",method!=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/distributor\",status_code =~ \"5..\",method!=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/distributor\",status_code =~ \"5..\",method!=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
@@ -791,21 +791,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job_method:prism_request_duration_seconds:99quantile{job=\"prism/distributor\",method!=\"GET\"} * 1e3",
+              "expr": "job_method:cortex_request_duration_seconds:99quantile{job=\"cortex/distributor\",method!=\"GET\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "99th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "job_method:prism_request_duration_seconds:95quantile{job=\"prism/distributor\",method!=\"GET\"} * 1e3",
+              "expr": "job_method:cortex_request_duration_seconds:95quantile{job=\"cortex/distributor\",method!=\"GET\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "job_method:prism_request_duration_seconds:50quantile{job=\"prism/distributor\",method!=\"GET\"} * 1e3",
+              "expr": "job_method:cortex_request_duration_seconds:50quantile{job=\"cortex/distributor\",method!=\"GET\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "C",
@@ -897,35 +897,35 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"1..\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"1..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"2..\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"2..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"3..\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"3..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"4..\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"4..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"5..\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"5..\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
@@ -1002,21 +1002,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job:prism_request_duration_seconds:99quantile{job=\"prism/ingester\"} * 1e3",
+              "expr": "job:cortex_request_duration_seconds:99quantile{job=\"cortex/ingester\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "99th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "job:prism_request_duration_seconds:95quantile{job=\"prism/ingester\"} * 1e3",
+              "expr": "job:cortex_request_duration_seconds:95quantile{job=\"cortex/ingester\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "job:prism_request_duration_seconds:50quantile{job=\"prism/ingester\"} * 1e3",
+              "expr": "job:cortex_request_duration_seconds:50quantile{job=\"cortex/ingester\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "C",
@@ -1107,35 +1107,35 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"1..\",method=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"1..\",method=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"2..\",method=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"2..\",method=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"3..\",method=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"3..\",method=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"4..\",method=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"4..\",method=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"5..\",method=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"5..\",method=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
@@ -1212,21 +1212,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job_method:prism_request_duration_seconds:99quantile{job=\"prism/ingester\",method=\"GET\"} * 1e3",
+              "expr": "job_method:cortex_request_duration_seconds:99quantile{job=\"cortex/ingester\",method=\"GET\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "99th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "job_method:prism_request_duration_seconds:95quantile{job=\"prism/ingester\",method=\"GET\"} * 1e3",
+              "expr": "job_method:cortex_request_duration_seconds:95quantile{job=\"cortex/ingester\",method=\"GET\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "job_method:prism_request_duration_seconds:50quantile{job=\"prism/ingester\",method=\"GET\"} * 1e3",
+              "expr": "job_method:cortex_request_duration_seconds:50quantile{job=\"cortex/ingester\",method=\"GET\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "C",
@@ -1318,35 +1318,35 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"1..\",method!=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"1..\",method!=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "1xx",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"2..\",method!=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"2..\",method!=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "2xx",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"3..\",method!=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"3..\",method!=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "3xx",
               "refId": "C",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"4..\",method!=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"4..\",method!=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "4xx",
               "refId": "D",
               "step": 10
             },
             {
-              "expr": "sum(irate(prism_request_duration_seconds_count{job=\"prism/ingester\",status_code =~ \"5..\",method!=\"GET\"}[1m]))",
+              "expr": "sum(irate(cortex_request_duration_seconds_count{job=\"cortex/ingester\",status_code =~ \"5..\",method!=\"GET\"}[1m]))",
               "intervalFactor": 2,
               "legendFormat": "5xx",
               "refId": "E",
@@ -1423,21 +1423,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "job_method:prism_request_duration_seconds:99quantile{job=\"prism/ingester\",method!=\"GET\"} * 1e3",
+              "expr": "job_method:cortex_request_duration_seconds:99quantile{job=\"cortex/ingester\",method!=\"GET\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "99th quantile",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "job_method:prism_request_duration_seconds:95quantile{job=\"prism/ingester\",method!=\"GET\"} * 1e3",
+              "expr": "job_method:cortex_request_duration_seconds:95quantile{job=\"cortex/ingester\",method!=\"GET\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "95th quantile",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "job_method:prism_request_duration_seconds:50quantile{job=\"prism/ingester\",method!=\"GET\"} * 1e3",
+              "expr": "job_method:cortex_request_duration_seconds:50quantile{job=\"cortex/ingester\",method!=\"GET\"} * 1e3",
               "intervalFactor": 2,
               "legendFormat": "50th quantile",
               "refId": "C",
@@ -1523,7 +1523,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prism_dynamo_request_duration_seconds_count{job=\"prism/distributor\"}[5m])",
+              "expr": "rate(cortex_dynamo_request_duration_seconds_count{job=\"cortex/distributor\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
@@ -1600,7 +1600,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prism_dynamo_consumed_capacity_total{job=\"prism/distributor\"}[5m])",
+              "expr": "rate(cortex_dynamo_consumed_capacity_total{job=\"cortex/distributor\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
@@ -1678,21 +1678,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(cortex_dynamo_request_duration_seconds_bucket{job=\"cortex/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 99th",
               "refId": "A",
               "step": 20
             },
             {
-              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(cortex_dynamo_request_duration_seconds_bucket{job=\"cortex/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 95th",
               "refId": "B",
               "step": 20
             },
             {
-              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(cortex_dynamo_request_duration_seconds_bucket{job=\"cortex/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: 50th",
               "refId": "C",
@@ -1778,7 +1778,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prism_s3_request_duration_seconds_count{job=\"prism/distributor\"}[5m])",
+              "expr": "rate(cortex_s3_request_duration_seconds_count{job=\"cortex/distributor\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
@@ -1855,21 +1855,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without (instance) (rate(prism_s3_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
+              "expr": "histogram_quantile(0.99, sum without (instance) (rate(cortex_s3_request_duration_seconds_bucket{job=\"cortex/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 99th",
               "refId": "A",
               "step": 20
             },
             {
-              "expr": "histogram_quantile(0.95, sum without (instance) (rate(prism_s3_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
+              "expr": "histogram_quantile(0.95, sum without (instance) (rate(cortex_s3_request_duration_seconds_bucket{job=\"cortex/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 95th",
               "refId": "B",
               "step": 20
             },
             {
-              "expr": "histogram_quantile(0.5, sum without (instance) (rate(prism_s3_request_duration_seconds_bucket{job=\"prism/distributor\"}[5m])))",
+              "expr": "histogram_quantile(0.5, sum without (instance) (rate(cortex_s3_request_duration_seconds_bucket{job=\"cortex/distributor\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 50th",
               "refId": "C",
@@ -1946,7 +1946,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prism_distributor_query_duration_seconds_bucket[5m])))",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(cortex_distributor_query_duration_seconds_bucket[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{status_code}} - 99th",
               "metric": "",
@@ -1954,14 +1954,14 @@
               "step": 20
             },
             {
-              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_distributor_query_duration_seconds_bucket[5m])))",
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(cortex_distributor_query_duration_seconds_bucket[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{status_code}} - 95th",
               "refId": "A",
               "step": 20
             },
             {
-              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prism_distributor_query_duration_seconds_bucket[5m])))",
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(cortex_distributor_query_duration_seconds_bucket[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{status_code}} - 50th",
               "refId": "C",
@@ -2046,7 +2046,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prism_memcache_request_duration_seconds_count{job=\"prism/distributor\"}[5m])",
+              "expr": "rate(cortex_memcache_request_duration_seconds_count{job=\"cortex/distributor\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "refId": "A",
@@ -2123,7 +2123,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(prism_memcache_hits_total{job=\"prism/distributor\"}[5m])) / sum(rate(prism_memcache_requests_total{job=\"prism/distributor\"}[5m]))",
+              "expr": "sum(rate(cortex_memcache_hits_total{job=\"cortex/distributor\"}[5m])) / sum(rate(cortex_memcache_requests_total{job=\"cortex/distributor\"}[5m]))",
               "intervalFactor": 2,
               "legendFormat": "hit ratio",
               "refId": "A",
@@ -2200,7 +2200,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prism_memcache_request_duration_seconds_bucket{job=\"prism/distributor\"}[10m])))",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(cortex_memcache_request_duration_seconds_bucket{job=\"cortex/distributor\"}[10m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} - 99th",
               "metric": "",
@@ -2208,7 +2208,7 @@
               "step": 20
             },
             {
-              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_memcache_request_duration_seconds_bucket{job=\"prism/distributor\"}[10m])))",
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(cortex_memcache_request_duration_seconds_bucket{job=\"cortex/distributor\"}[10m])))",
               "interval": "",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} - 95th",
@@ -2216,7 +2216,7 @@
               "step": 20
             },
             {
-              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prism_memcache_request_duration_seconds_bucket{job=\"prism/distributor\"}[10m])))",
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(cortex_memcache_request_duration_seconds_bucket{job=\"cortex/distributor\"}[10m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} - 50th",
               "refId": "C",
@@ -2301,7 +2301,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prism_dynamo_request_duration_seconds_count{job=\"prism/ingester\"}[5m])",
+              "expr": "rate(cortex_dynamo_request_duration_seconds_count{job=\"cortex/ingester\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
@@ -2378,7 +2378,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prism_dynamo_consumed_capacity_total{job=\"prism/ingester\"}[5m])",
+              "expr": "rate(cortex_dynamo_consumed_capacity_total{job=\"cortex/ingester\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}",
               "metric": "",
@@ -2456,21 +2456,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(cortex_dynamo_request_duration_seconds_bucket{job=\"cortex/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 99th",
               "refId": "A",
               "step": 20
             },
             {
-              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(cortex_dynamo_request_duration_seconds_bucket{job=\"cortex/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 95th",
               "refId": "B",
               "step": 20
             },
             {
-              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prism_dynamo_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(cortex_dynamo_request_duration_seconds_bucket{job=\"cortex/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}} - 50th",
               "refId": "C",
@@ -2556,7 +2556,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prism_s3_request_duration_seconds_count{job=\"prism/ingester\"}[5m])",
+              "expr": "rate(cortex_s3_request_duration_seconds_count{job=\"cortex/ingester\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{operation}}: {{status_code}}",
               "refId": "A",
@@ -2633,21 +2633,21 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prism_s3_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(cortex_s3_request_duration_seconds_bucket{job=\"cortex/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 99th",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_s3_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(cortex_s3_request_duration_seconds_bucket{job=\"cortex/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 95th",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.50, sum without(instance) (rate(prism_s3_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.50, sum without(instance) (rate(cortex_s3_request_duration_seconds_bucket{job=\"cortex/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{operation}}: {{status_code}} - 50th",
               "refId": "C",
@@ -2732,7 +2732,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(prism_memcache_request_duration_seconds_count{job=\"prism/ingester\"}[5m])",
+              "expr": "rate(cortex_memcache_request_duration_seconds_count{job=\"cortex/ingester\"}[5m])",
               "intervalFactor": 2,
               "legendFormat": "{{instance}} - {{method}}: {{status_code}}",
               "refId": "A",
@@ -2809,7 +2809,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without(instance) (rate(prism_memcache_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.99, sum without(instance) (rate(cortex_memcache_request_duration_seconds_bucket{job=\"cortex/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} 99th",
               "metric": "",
@@ -2817,14 +2817,14 @@
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.95, sum without(instance) (rate(prism_memcache_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.95, sum without(instance) (rate(cortex_memcache_request_duration_seconds_bucket{job=\"cortex/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} 95th",
               "refId": "B",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.5, sum without(instance) (rate(prism_memcache_request_duration_seconds_bucket{job=\"prism/ingester\"}[5m])))",
+              "expr": "histogram_quantile(0.5, sum without(instance) (rate(cortex_memcache_request_duration_seconds_bucket{job=\"cortex/ingester\"}[5m])))",
               "intervalFactor": 2,
               "legendFormat": "{{method}}: {{status_code}} 50th",
               "refId": "C",
@@ -2909,7 +2909,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(prometheus_remote_storage_sent_batch_duration_seconds_count{job=\"prism/dev-retrieval\"}[5m])) by (job, result)",
+              "expr": "sum(rate(prometheus_remote_storage_sent_batch_duration_seconds_count{job=\"cortex/dev-retrieval\"}[5m])) by (job, result)",
               "intervalFactor": 2,
               "legendFormat": "{{job}}: {{result}}",
               "metric": "",
@@ -2987,14 +2987,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(prometheus_remote_storage_sent_batch_duration_seconds_bucket{job=\"prism/dev-retrieval\"}) by (job, le))",
+              "expr": "histogram_quantile(0.99, sum(prometheus_remote_storage_sent_batch_duration_seconds_bucket{job=\"cortex/dev-retrieval\"}) by (job, le))",
               "intervalFactor": 2,
               "legendFormat": "{{job}} 99th",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "histogram_quantile(0.50, sum(prometheus_remote_storage_sent_batch_duration_seconds_bucket{job=\"prism/dev-retrieval\"}) by (job, le))",
+              "expr": "histogram_quantile(0.50, sum(prometheus_remote_storage_sent_batch_duration_seconds_bucket{job=\"cortex/dev-retrieval\"}) by (job, le))",
               "intervalFactor": 2,
               "legendFormat": "{{job}} 50th",
               "refId": "B",
@@ -3080,7 +3080,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(prometheus_remote_storage_sent_samples_total{job=\"prism/dev-retrieval\"}[5m])) by (job, result)",
+              "expr": "sum(rate(prometheus_remote_storage_sent_samples_total{job=\"cortex/dev-retrieval\"}[5m])) by (job, result)",
               "intervalFactor": 2,
               "legendFormat": "{{job}}: {{result}}",
               "metric": "",
@@ -3158,14 +3158,14 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(prometheus_remote_storage_queue_capacity{job=\"prism/dev-retrieval\"}) by (job)",
+              "expr": "sum(prometheus_remote_storage_queue_capacity{job=\"cortex/dev-retrieval\"}) by (job)",
               "intervalFactor": 2,
               "legendFormat": "{{job}}: queue capacity",
               "refId": "A",
               "step": 10
             },
             {
-              "expr": "sum(prometheus_remote_storage_queue_length{job=\"prism/dev-retrieval\"}) by (job)",
+              "expr": "sum(prometheus_remote_storage_queue_length{job=\"cortex/dev-retrieval\"}) by (job)",
               "intervalFactor": 2,
               "legendFormat": "{{job}}: queue length",
               "refId": "B",
@@ -3245,6 +3245,6 @@
     ]
   },
   "timezone": "utc",
-  "title": "Prism",
+  "title": "Cortex",
   "version": 0
 }

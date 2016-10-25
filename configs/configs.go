@@ -7,7 +7,7 @@ type UserID string
 type OrgID string
 
 // Subsystem is the name of a subsystem that has configuration. e.g. "deploy",
-// "prism".
+// "cortex".
 type Subsystem string
 
 // Config is a configuration of a subsystem.
