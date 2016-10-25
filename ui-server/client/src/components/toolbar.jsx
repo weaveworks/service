@@ -124,7 +124,7 @@ export default class Toolbar extends React.Component {
     const accountColor = this.isActive('account') ? Colors.text : Colors.text3;
     const promColor = this.isActive('prom') ? Colors.text : Colors.text3;
     const hasProm = instance && instance.featureFlags
-      && instance.featureFlags.indexOf('prism') > -1;
+      && instance.featureFlags.indexOf('cortex') > -1;
     const viewSelectorButton = (
       <FlatButton style={styles.toolbarButton}>
         <FontIcon className="fa fa-caret-down" color={Colors.text2}

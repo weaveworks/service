@@ -4317,7 +4317,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"consul-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"consul-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -4326,7 +4326,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/consul CPU Usage",
+          "title": "cortex/consul CPU Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -4395,7 +4395,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"consul-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"consul-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -4404,7 +4404,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/consul Memory Usage",
+          "title": "cortex/consul Memory Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -4435,7 +4435,7 @@
           ]
         }
       ],
-      "title": "prism/consul"
+      "title": "cortex/consul"
     },
     {
       "collapse": false,
@@ -4481,7 +4481,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"dev-grafana-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"dev-grafana-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -4490,7 +4490,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/dev-grafana CPU Usage",
+          "title": "cortex/dev-grafana CPU Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -4559,7 +4559,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"dev-grafana-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"dev-grafana-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -4568,7 +4568,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/dev-grafana Memory Usage",
+          "title": "cortex/dev-grafana Memory Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -4599,7 +4599,7 @@
           ]
         }
       ],
-      "title": "prism/dev-grafana"
+      "title": "cortex/dev-grafana"
     },
     {
       "collapse": false,
@@ -4645,7 +4645,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"dev-retrieval-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"dev-retrieval-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -4654,7 +4654,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/dev-retrieval CPU Usage",
+          "title": "cortex/dev-retrieval CPU Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -4723,7 +4723,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"dev-retrieval-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"dev-retrieval-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -4732,7 +4732,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/dev-retrieval Memory Usage",
+          "title": "cortex/dev-retrieval Memory Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -4763,7 +4763,7 @@
           ]
         }
       ],
-      "title": "prism/dev-retrieval"
+      "title": "cortex/dev-retrieval"
     },
     {
       "collapse": false,
@@ -4809,7 +4809,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"distributor-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"distributor-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -4818,7 +4818,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/distributor CPU Usage",
+          "title": "cortex/distributor CPU Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -4887,7 +4887,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"distributor-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"distributor-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -4896,7 +4896,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/distributor Memory Usage",
+          "title": "cortex/distributor Memory Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -4927,7 +4927,7 @@
           ]
         }
       ],
-      "title": "prism/distributor"
+      "title": "cortex/distributor"
     },
     {
       "collapse": false,
@@ -4973,7 +4973,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"ingester-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"ingester-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -4982,7 +4982,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/ingester CPU Usage",
+          "title": "cortex/ingester CPU Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -5051,7 +5051,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"ingester-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"ingester-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -5060,7 +5060,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/ingester Memory Usage",
+          "title": "cortex/ingester Memory Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -5091,7 +5091,7 @@
           ]
         }
       ],
-      "title": "prism/ingester"
+      "title": "cortex/ingester"
     },
     {
       "collapse": false,
@@ -5137,7 +5137,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"memcached-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"memcached-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -5146,7 +5146,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/memcached CPU Usage",
+          "title": "cortex/memcached CPU Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -5215,7 +5215,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"memcached-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"memcached-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -5224,7 +5224,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/memcached Memory Usage",
+          "title": "cortex/memcached Memory Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -5255,7 +5255,7 @@
           ]
         }
       ],
-      "title": "prism/memcached"
+      "title": "cortex/memcached"
     },
     {
       "collapse": false,
@@ -5301,7 +5301,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"prod-grafana-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"prod-grafana-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -5310,7 +5310,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/prod-grafana CPU Usage",
+          "title": "cortex/prod-grafana CPU Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -5379,7 +5379,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"prod-grafana-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"prod-grafana-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -5388,7 +5388,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/prod-grafana Memory Usage",
+          "title": "cortex/prod-grafana Memory Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -5419,7 +5419,7 @@
           ]
         }
       ],
-      "title": "prism/prod-grafana"
+      "title": "cortex/prod-grafana"
     },
     {
       "collapse": false,
@@ -5465,7 +5465,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"prod-retrieval-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(irate(container_cpu_usage_seconds_total{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"prod-retrieval-.*\"}[1m])) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -5474,7 +5474,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/prod-retrieval CPU Usage",
+          "title": "cortex/prod-retrieval CPU Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -5543,7 +5543,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"prism\",io_kubernetes_pod_name=~\"prod-retrieval-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
+              "expr": "sum(container_memory_usage_bytes{job=~\"kubernetes-(api|nodes)\",io_kubernetes_pod_namespace=\"cortex\",io_kubernetes_pod_name=~\"prod-retrieval-.*\"}) by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)",
               "intervalFactor": 2,
               "legendFormat": "{{io_kubernetes_pod_namespace}}/{{io_kubernetes_pod_name}}",
               "refId": "A",
@@ -5552,7 +5552,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "prism/prod-retrieval Memory Usage",
+          "title": "cortex/prod-retrieval Memory Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -5583,7 +5583,7 @@
           ]
         }
       ],
-      "title": "prism/prod-retrieval"
+      "title": "cortex/prod-retrieval"
     },
     {
       "collapse": false,

@@ -36,14 +36,14 @@ services = %w(
   monitoring/kubediff
   monitoring/prometheus
   monitoring/terradiff
-  prism/consul
-  prism/dev-grafana
-  prism/dev-retrieval
-  prism/distributor
-  prism/ingester
-  prism/memcached
-  prism/prod-grafana
-  prism/prod-retrieval
+  cortex/consul
+  cortex/dev-grafana
+  cortex/dev-retrieval
+  cortex/distributor
+  cortex/ingester
+  cortex/memcached
+  cortex/prod-grafana
+  cortex/prod-retrieval
   scope/collection
   scope/consul
   scope/control
