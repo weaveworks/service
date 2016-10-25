@@ -171,8 +171,10 @@ func routes(c Config) (http.Handler, error) {
 						v, ok := mux.Vars(r)["orgExternalID"]
 						return v, ok
 					},
-					OutputHeader: c.outputHeader,
-					UserIDHeader: userIDHeader,
+					OutputHeader:        c.outputHeader,
+					UserIDHeader:        userIDHeader,
+					FeatureFlagsHeader:  featureFlagsHeader,
+					RequireFeatureFlags: []string{"billing"},
 				},
 				uiHTTPlogger,
 			),
@@ -189,16 +191,13 @@ func routes(c Config) (http.Handler, error) {
 				users.AuthOrgMiddleware{
 					Authenticator: c.authenticator,
 					OrgExternalID: func(r *http.Request) (string, bool) {
-						if r.Method == "POST" {
-							r.ParseForm()
-							_, ok := r.Form["id"]
-							return r.FormValue("id"), ok
-						}
 						v, ok := mux.Vars(r)["orgExternalID"]
 						return v, ok
 					},
-					OutputHeader: c.outputHeader,
-					UserIDHeader: userIDHeader,
+					OutputHeader:        c.outputHeader,
+					UserIDHeader:        userIDHeader,
+					FeatureFlagsHeader:  featureFlagsHeader,
+					RequireFeatureFlags: []string{"billing"},
 				},
 				middleware.PathRewrite(regexp.MustCompile("^/api/billing"), ""),
 				uiHTTPlogger,
