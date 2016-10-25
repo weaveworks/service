@@ -183,3 +183,12 @@ ALERT ApiServerDown
     summary = "Kubernetes API server down for 5m",
     description = "Kubernetes API server down for 5m",
   }
+
+ALERT MarketingFail
+  IF          sum(rate(marketing_prospects_sent_count{job="default/users",status="failed"}[5m])) / sum(rate(marketing_prospects_sent_count{job="default/users"}[5m])) > 0.1
+  FOR         1h
+  LABELS      { severity="warning" }
+  ANNOTATIONS {
+    summary = "We're failing to push prospects to marketing.",
+    description = "We're failing to push prospects to marketing.",
+  }
