@@ -57,10 +57,10 @@
 		},
 		{
 			"importpath": "github.com/FrenchBen/goketo",
-			"repository": "https://github.com/FrenchBen/goketo",
+			"repository": "https://github.com/tomwilkie/goketo",
 			"vcs": "git",
-			"revision": "52bbc2368902e807c4fb8f30ad5384f26450e9b0",
-			"branch": "master",
+			"revision": "2b567cbcb0b9a330bca9eaf01897ae7cd833d4b4",
+			"branch": "refresh-token",
 			"notests": true
 		},
 		{
