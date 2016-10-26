@@ -68,6 +68,8 @@ func routes(c Config) (http.Handler, error) {
 	for _, route := range []routable{
 		path{"/metrics", prometheus.Handler()},
 
+		// demo service paths get rewritten to remove /demo/ prefix, so trailing slash is required
+		path{"/demo", redirect("/demo/")},
 		// special case static version info
 		path{"/api", parseAPIInfo(c.apiInfo)},
 
@@ -194,6 +196,12 @@ func newRouter() *mux.Router {
 
 func trimPrefix(regex string, handler http.Handler) http.Handler {
 	return middleware.PathRewrite(regexp.MustCompile("^"+regex), "").Wrap(handler)
+}
+
+func redirect(dest string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, dest, 302)
+	})
 }
 
 type routable interface {
