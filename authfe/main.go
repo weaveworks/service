@@ -107,6 +107,10 @@ func main() {
 	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
 	flag.StringVar(&c.apiInfo, "api.info", "scopeservice:0.1", "Version info for the api to serve, in format ID:VERSION")
 
+	// temporary, to allow configs to mention this argument before it
+	// becomes mandatory
+	_ = flag.String("flux", "", "Hostname and port for Flux service (unused)")
+
 	hostFlags := []struct {
 		dest *string
 		name string
