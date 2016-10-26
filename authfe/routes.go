@@ -57,6 +57,18 @@ func routes(c Config) (http.Handler, error) {
 		}
 	}
 
+	billingAuthMiddleware := users.AuthOrgMiddleware{
+		Authenticator: c.authenticator,
+		OrgExternalID: func(r *http.Request) (string, bool) {
+			v, ok := mux.Vars(r)["orgExternalID"]
+			return v, ok
+		},
+		OutputHeader:        c.outputHeader,
+		UserIDHeader:        userIDHeader,
+		FeatureFlagsHeader:  featureFlagsHeader,
+		RequireFeatureFlags: []string{"billing"},
+	}
+
 	// middleware to set header to disable caching if path == "/" exactly
 	noCacheOnRoot := middleware.Func(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -165,17 +177,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/{orgExternalID}/", trimPrefix("/billing", newProxy(c.billingUIHost))},
 			},
 			middleware.Merge(
-				users.AuthOrgMiddleware{
-					Authenticator: c.authenticator,
-					OrgExternalID: func(r *http.Request) (string, bool) {
-						v, ok := mux.Vars(r)["orgExternalID"]
-						return v, ok
-					},
-					OutputHeader:        c.outputHeader,
-					UserIDHeader:        userIDHeader,
-					FeatureFlagsHeader:  featureFlagsHeader,
-					RequireFeatureFlags: []string{"billing"},
-				},
+				billingAuthMiddleware,
 				uiHTTPlogger,
 			),
 		},
@@ -184,25 +186,16 @@ func routes(c Config) (http.Handler, error) {
 			[]path{
 				{"/payments/authTokens/{orgExternalID}", newProxy(c.billingAPIHost)},
 				{"/accounts/{orgExternalID}", newProxy(c.billingAPIHost)},
-				{"/accounts", newProxy(c.billingAPIHost)},
 				{"/usage/{orgExternalID}", newProxy(c.billingUsageHost)},
 			},
 			middleware.Merge(
-				users.AuthOrgMiddleware{
-					Authenticator: c.authenticator,
-					OrgExternalID: func(r *http.Request) (string, bool) {
-						v, ok := mux.Vars(r)["orgExternalID"]
-						return v, ok
-					},
-					OutputHeader:        c.outputHeader,
-					UserIDHeader:        userIDHeader,
-					FeatureFlagsHeader:  featureFlagsHeader,
-					RequireFeatureFlags: []string{"billing"},
-				},
+				billingAuthMiddleware,
 				middleware.PathRewrite(regexp.MustCompile("^/api/billing"), ""),
 				uiHTTPlogger,
 			),
 		},
+		// These billing api endpoints have no orgExternalID, so we can't do authorization on them.
+		path{"/accounts", trimPrefix("/api/billing", newProxy(c.billingAPIHost))},
 		path{"/api/billing/payments/authTokens", trimPrefix("/api/billing", newProxy(c.billingAPIHost))},
 
 		// unauthenticated communication
