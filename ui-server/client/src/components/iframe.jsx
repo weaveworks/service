@@ -18,7 +18,7 @@ class IFrame extends React.Component {
   }
 
   handleFrameFocus() {
-    this.props.dispatch(focusFrame);
+    this.props.dispatch(focusFrame());
   }
 
   render() {
