@@ -1,9 +1,10 @@
 /* eslint react/jsx-no-bind:0 */
 import React from 'react';
+import { connect } from 'react-redux';
 
 import { focusFrame } from '../actions';
 
-export default class IFrame extends React.Component {
+class IFrame extends React.Component {
 
   constructor() {
     super();
@@ -17,7 +18,7 @@ export default class IFrame extends React.Component {
   }
 
   handleFrameFocus() {
-    focusFrame();
+    this.props.dispatch(focusFrame);
   }
 
   render() {
@@ -36,3 +37,5 @@ export default class IFrame extends React.Component {
     );
   }
 }
+
+export default connect()(IFrame);
