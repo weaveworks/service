@@ -20,14 +20,17 @@ export default class SettingsPage extends React.Component {
     const styles = {
       container: {
         marginTop: 32
+      },
+      flexContainer: {
+        justifyContent: 'center',
       }
     };
 
     return (
       <PrivatePage page="settings" {...this.props.params}>
         <div style={styles.container}>
-          <FlexContainer style={styles.container}>
-            <Column width="200">
+          <FlexContainer style={styles.flexContainer}>
+            <Column width="224">
               <Menu>
                 <MenuSection title="Settings">
                   <MenuLink to={encodeURIs`/settings/${this.props.params.orgId}/account`}>
