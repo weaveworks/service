@@ -170,7 +170,7 @@ func routes(c Config) (http.Handler, error) {
 		},
 
 		// billing UI needs authentication
-		path{"/billing/app.js", trimPrefix("/billing", newProxy(c.billingUIHost))},
+		path{"/billing/{jsfile}.js", trimPrefix("/billing", newProxy(c.billingUIHost))},
 		prefix{
 			"/billing",
 			[]path{
