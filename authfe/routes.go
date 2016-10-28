@@ -34,6 +34,9 @@ type Config struct {
 	promHost            string
 	compareImagesHost   string
 	uiServerHost        string
+	billingUIHost       string
+	billingAPIHost      string
+	billingUsageHost    string
 	demoHost            string
 	launchGeneratorHost string
 	logSuccess          bool
@@ -52,6 +55,18 @@ func routes(c Config) (http.Handler, error) {
 			Extractor: newUIRequestLogger(c.outputHeader, userIDHeader),
 			Logger:    c.eventLogger,
 		}
+	}
+
+	billingAuthMiddleware := users.AuthOrgMiddleware{
+		Authenticator: c.authenticator,
+		OrgExternalID: func(r *http.Request) (string, bool) {
+			v, ok := mux.Vars(r)["orgExternalID"]
+			return v, ok
+		},
+		OutputHeader:        c.outputHeader,
+		UserIDHeader:        userIDHeader,
+		FeatureFlagsHeader:  featureFlagsHeader,
+		RequireFeatureFlags: []string{"billing"},
 	}
 
 	// middleware to set header to disable caching if path == "/" exactly
@@ -153,6 +168,35 @@ func routes(c Config) (http.Handler, error) {
 				OutputHeader:  c.outputHeader,
 			},
 		},
+
+		// billing UI needs authentication
+		path{"/billing/{jsfile}.js", trimPrefix("/billing", newProxy(c.billingUIHost))},
+		prefix{
+			"/billing",
+			[]path{
+				{"/{orgExternalID}/", trimPrefix("/billing", newProxy(c.billingUIHost))},
+			},
+			middleware.Merge(
+				billingAuthMiddleware,
+				uiHTTPlogger,
+			),
+		},
+		prefix{
+			"/api/billing",
+			[]path{
+				{"/payments/authTokens/{orgExternalID}", newProxy(c.billingAPIHost)},
+				{"/accounts/{orgExternalID}", newProxy(c.billingAPIHost)},
+				{"/usage/{orgExternalID}", newProxy(c.billingUsageHost)},
+			},
+			middleware.Merge(
+				billingAuthMiddleware,
+				middleware.PathRewrite(regexp.MustCompile("^/api/billing"), ""),
+				uiHTTPlogger,
+			),
+		},
+		// These billing api endpoints have no orgExternalID, so we can't do authorization on them.
+		path{"/accounts", trimPrefix("/api/billing", newProxy(c.billingAPIHost))},
+		path{"/api/billing/payments/authTokens", trimPrefix("/api/billing", newProxy(c.billingAPIHost))},
 
 		// unauthenticated communication
 		prefix{
