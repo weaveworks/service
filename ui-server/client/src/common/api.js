@@ -35,6 +35,14 @@ export function getLogins() {
   return getData(url);
 }
 
+export function getPrometheusMetricNames(org) {
+  if (org) {
+    const url = encodeURIs`/api/app/${org}/api/prom/api/v1/label/__name__/values`;
+    return getData(url);
+  }
+  return Promise.reject();
+}
+
 export function getInstance(id) {
   return new Promise((resolve) => {
     // implies a cookie check

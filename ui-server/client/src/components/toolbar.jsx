@@ -7,6 +7,7 @@ import MenuItem from 'material-ui/MenuItem';
 import Paper from 'material-ui/Paper';
 import { browserHistory } from 'react-router';
 
+import { getPrometheusMetricNames } from '../common/api';
 import { encodeURIs } from '../common/request';
 import Colors from '../common/colors';
 
@@ -22,6 +23,24 @@ export default class Toolbar extends React.Component {
     this.handleClickProm = this.handleClickProm.bind(this);
     this.handleClickSettings = this.handleClickSettings.bind(this);
     this.handleClickCreateInstance = this.handleClickCreateInstance.bind(this);
+    this.prometheusDataTimer = null;
+    this.state = {
+      prometheusDataSeen: false
+    };
+  }
+
+  componentDidMount() {
+    this.getPrometheusData();
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.prometheusDataTimer);
+    //
+    // This is usually called after a 1ms delay by the IconMenu component, but, the way we do
+    // navigation doesn't give it a chance to run (gets unmounted+clearTimeout), so we call it
+    // explicitly.
+    //
+    this.props.instancesMenuRequestChange(false);
   }
 
   handleClickInstance() {
@@ -42,6 +61,25 @@ export default class Toolbar extends React.Component {
     browserHistory.push(url);
   }
 
+  getPrometheusData() {
+    getPrometheusMetricNames(this.props.orgId)
+      .then(res => {
+        if (res.data && res.data.length > 0) {
+          // once data is seen, dont try again
+          this.setState({ prometheusDataSeen: true });
+        }
+      })
+      .catch(() => {}) // silently fail if prom is not found
+      .then(() => {
+        // keep looking until prom data is seen
+        if (!this.state.prometheusDataSeen) {
+          this.prometheusDataTimer = setTimeout(() => {
+            this.getPrometheusData();
+          }, 10 * 1000);
+        }
+      });
+  }
+
   hasFeatureFlag(flag) {
     const { instance } = this.props;
     return instance && instance.featureFlags
@@ -51,15 +89,6 @@ export default class Toolbar extends React.Component {
   handleClickProm() {
     const url = encodeURIs`/prom/${this.props.orgId}`;
     browserHistory.push(url);
-  }
-
-  componentWillUnmount() {
-    //
-    // This is usually called after a 1ms delay by the IconMenu component, but, the way we do
-    // navigation doesn't give it a chance to run (gets unmounted+clearTimeout), so we call it
-    // explicitly.
-    //
-    this.props.instancesMenuRequestChange(false);
   }
 
   handleClickCreateInstance() {
@@ -132,7 +161,7 @@ export default class Toolbar extends React.Component {
     const settingsColor = this.isActive('org') ? Colors.text : Colors.text3;
     const accountColor = this.isActive('account') ? Colors.text : Colors.text3;
     const promColor = this.isActive('prom') ? Colors.text : Colors.text3;
-    const hasProm = this.hasFeatureFlag('cortex');
+    const hasProm = this.hasFeatureFlag('cortex') || this.state.prometheusDataSeen;
     const viewSelectorButton = (
       <FlatButton style={styles.toolbarButton}>
         <FontIcon className="fa fa-caret-down" color={Colors.text2}
