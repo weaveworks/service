@@ -111,6 +111,19 @@ if (process.env.USE_MOCK_BACKEND) {
   });
   app.use('/api/users', usersProxy);
 
+  // Proxy to local Prometheus
+  var promProxy = proxy({
+    target: 'http://localhost:9090',
+    pathRewrite: function(path) {
+      if (path.indexOf('prom') > -1) {
+        // /api/app/icy-snow-65/api/prom/graph -> /graph
+        return '/' + path.split('/').slice(6).join('/');
+      }
+      return path;
+    }
+  });
+  app.use(['/**/prom', '/static', '/api/v1', '/graph'], promProxy);
+
   // Proxy to local Scope
   var backendProxy = proxy({
     ws: true,
