@@ -195,7 +195,7 @@ func routes(c Config) (http.Handler, error) {
 			),
 		},
 		// These billing api endpoints have no orgExternalID, so we can't do authorization on them.
-		path{"/accounts", trimPrefix("/api/billing", newProxy(c.billingAPIHost))},
+		path{"/api/billing/accounts", trimPrefix("/api/billing", newProxy(c.billingAPIHost))},
 		path{"/api/billing/payments/authTokens", trimPrefix("/api/billing", newProxy(c.billingAPIHost))},
 
 		// unauthenticated communication
