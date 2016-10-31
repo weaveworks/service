@@ -163,10 +163,14 @@ func routes(c Config) (http.Handler, error) {
 				{"/compare-images", trimPrefix("/admin/compare-images", newProxy(c.compareImagesHost))},
 				{"/", http.HandlerFunc(adminRoot)},
 			},
-			users.AuthAdminMiddleware{
-				Authenticator: c.authenticator,
-				OutputHeader:  c.outputHeader,
-			},
+			middleware.Merge(
+				// If not logged in, prompt user to log in instead of 401ing
+				middleware.ErrorHandler{401, redirect("/login")},
+				users.AuthAdminMiddleware{
+					Authenticator: c.authenticator,
+					OutputHeader:  c.outputHeader,
+				},
+			),
 		},
 
 		// billing UI needs authentication
