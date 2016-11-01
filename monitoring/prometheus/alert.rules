@@ -196,7 +196,7 @@ ALERT MarketingFail
 # Cortex alerts
 
 ALERT CortexIngesterUnhealthy
-  IF          max without(instance) (cortex_ring_ingesters{job="cortex/distributor", state="unhealthy"}) > 1
+  IF          max without(instance) (cortex_ring_ingesters{job="cortex/distributor", state="unhealthy"}) > 0
   FOR         15m
   LABELS      { severity="warning" }
   ANNOTATIONS {
