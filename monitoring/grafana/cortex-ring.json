@@ -213,7 +213,7 @@
       "30d"
     ]
   },
-  "timezone": "browser",
+  "timezone": "utc",
   "title": "Cortex (ring stats)",
   "version": 0
 }
