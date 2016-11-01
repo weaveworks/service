@@ -10,14 +10,16 @@ export class PromCheck extends React.Component {
   componentWillReceiveProps(nextProps) {
     const { instance, params } = nextProps;
     // routing based on prometheus metrics seen
-    if (instance && instance.prometheusMetricNames && instance.prometheusMetricNames.length > 0) {
-      // we got data, route to wrapper
-      const url = encodeURIs`/prom/${params.orgId}/wrapper`;
-      browserHistory.push(url);
-    } else {
-      // redirect to setup page if no prometheus data found
-      const url = encodeURIs`/prom/${params.orgId}/setup`;
-      browserHistory.push(url);
+    if (instance && typeof instance.prometheusJobs !== 'undefined') {
+      if (instance.prometheusJobs !== null) {
+        // we got data, route to wrapper
+        const url = encodeURIs`/prom/${params.orgId}/wrapper`;
+        browserHistory.push(url);
+      } else {
+        // redirect to setup page if no prometheus data found
+        const url = encodeURIs`/prom/${params.orgId}/setup`;
+        browserHistory.push(url);
+      }
     }
   }
 
