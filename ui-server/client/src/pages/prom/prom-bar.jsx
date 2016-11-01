@@ -81,17 +81,18 @@ const makeDocumentationItems = (orgId) => [{
   text: 'Prometheus Query Examples',
   href: 'https://prometheus.io/docs/querying/examples/',
   description: 'Learn about the flexible query language to leverage things like dimensionality'
-}, {
-  text: 'How to set up System Queries',
-  action: null,
-  description: 'Learn how to configure Prometheus so that queries are automatically detected'
 }];
 
 function renderDocumentation(items) {
   const style = {
-    cursor: 'pointer',
-    textDecoration: 'underline',
-    fontSize: '0.9em'
+    icon: {
+      textDecoration: 'underline',
+    },
+    item: {
+      cursor: 'pointer',
+      textDecoration: 'underline',
+      fontSize: '0.9em'
+    }
   };
   return items.map(({action, description, href, relativeHref, text}) => {
     const Tag = href ? 'a' : 'span';
@@ -101,9 +102,11 @@ function renderDocumentation(items) {
 
     return (
       <div key={href || relativeHref || text}>
-        <Tag onClick={handleClick} target={href} href={href} style={style}
+        <Tag onClick={handleClick} target={href} href={href} style={style.item}
           title={description}>
           {text}
+          &nbsp;
+          {href && <span className="fa fa-external-link" style={style.icon} />}
         </Tag>
       </div>
     );
