@@ -53,10 +53,6 @@ logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_
 ui-server/client/$(UPTODATE): ui-server/client/package.json ui-server/client/webpack.* ui-server/client/server.js ui-server/client/.eslintrc ui-server/client/.eslintignore ui-server/client/.babelrc
 ui-server/$(UPTODATE): ui-server/client/build/index.html
 build/$(UPTODATE): build/build.sh
-monitoring/grafana/$(UPTODATE): monitoring/grafana/*
-monitoring/gfdatasource/$(UPTODATE): monitoring/gfdatasource/*
-monitoring/prometheus/$(UPTODATE): monitoring/prometheus/*
-monitoring/alertmanager/$(UPTODATE): monitoring/alertmanager/*
 pr-assigner/$(UPTODATE): $(PR_ASSIGNER_EXE)
 
 # All the boiler plate for building golang follows:
@@ -91,7 +87,6 @@ $(EXES): build/$(UPTODATE)
 
 lint: build/$(UPTODATE)
 	./tools/lint .
-	./monitoring/lint
 	./tools/shell-lint .
 
 test: build/$(UPTODATE)
