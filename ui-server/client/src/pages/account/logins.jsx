@@ -4,7 +4,7 @@ import merge from 'lodash/merge';
 import FlatButton from 'material-ui/FlatButton';
 import List, { ListItem } from 'material-ui/List';
 
-import { Box } from '../../components/box';
+import Box from '../../components/box';
 import { getData, postData, encodeURIs } from '../../common/request';
 import { trackException } from '../../common/tracking';
 

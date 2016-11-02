@@ -1,7 +1,7 @@
 import React from 'react';
 
-import { FlexContainer } from '../../components/flex-container';
-import { Column } from '../../components/column';
+import FlexContainer from '../../components/flex-container';
+import Column from '../../components/column';
 import InstancesList from '../instances/instances-list';
 import PrivatePage from '../../components/private-page';
 import { trackView } from '../../common/tracking';

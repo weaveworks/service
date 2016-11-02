@@ -1,68 +1,76 @@
 /* eslint react/jsx-no-bind:0 */
 import React from 'react';
-import debug from 'debug';
 import { connect } from 'react-redux';
+import _get from 'lodash/get';
 
-import { encodeURIs } from '../../common/request';
-import PrivatePage from '../../components/private-page';
-import { focusFrame } from '../../actions';
+import { getPrometheusMetricNames, getPrometheusQuery } from '../../common/api';
+import { receivePrometheusError, receivePrometheusInstances, receivePrometheusJobs,
+  receivePrometheusMetricNames } from '../../actions';
 import { trackView } from '../../common/tracking';
+import PrivatePage from '../../components/private-page';
 
-const log = debug('service:prom');
 
-class PromWrapperPage extends React.Component {
+// Singleton status timer that makes sure to dispatch only when instance is unchanged
+let currentOrg = null;
+let checkPrometheusTimer = null;
+const TIMER_DELAY = 10 * 1000;
 
-  constructor(props, context) {
-    super(props, context);
-    this.handleFrameLoad = this.handleFrameLoad.bind(this);
-    this.handleFrameFocus = this.handleFrameFocus.bind(this);
-  }
+/**
+ * Run a couple of status queries in series
+ */
+function checkPrometheus(orgId, dispatch) {
+  clearTimeout(checkPrometheusTimer);
+  currentOrg = orgId;
+
+  getPrometheusMetricNames(orgId)
+    .then(res => {
+      if (orgId === currentOrg) {
+        dispatch(receivePrometheusMetricNames(orgId, res.data));
+      }
+    })
+    .then(() => getPrometheusQuery(orgId, 'count(count by (job)(up))'))
+    .then(res => {
+      if (orgId === currentOrg) {
+        dispatch(receivePrometheusJobs(orgId, _get(res, ['data', 'result', 0, 'value', 1])));
+      }
+    })
+    .then(() => getPrometheusQuery(orgId, 'count(count by (instance)(up))'))
+    .then(res => {
+      if (orgId === currentOrg) {
+        dispatch(receivePrometheusInstances(orgId, _get(res, ['data', 'result', 0, 'value', 1])));
+      }
+    })
+    .catch(() => {
+      if (orgId === currentOrg) {
+        dispatch(receivePrometheusError(orgId));
+      }
+    })
+    .then(() => {
+      checkPrometheusTimer = setTimeout(() => {
+        checkPrometheus(orgId, dispatch);
+      }, TIMER_DELAY);
+    });
+}
+
+
+class PromPage extends React.Component {
 
   componentDidMount() {
     trackView('Prom');
+    checkPrometheus(this.props.params.orgId, this.props.dispatch);
   }
 
-  handleFrameLoad() {
-    const css = '' +
-      '<style type="text/css">' +
-      'body{ padding: 20px 20px 20px 20px; } nav{ display: none; }' +
-      '</style>';
-    try {
-      const iframe = this._iframe.contentDocument;
-      iframe.querySelector('head').insertAdjacentHTML('beforeend', css);
-    } catch (e) {
-      // Security exception
-      log('Could not inject CSS into prom frame', e);
-    }
-
-    this._iframe.contentWindow.addEventListener('focus', this.handleFrameFocus, true);
-  }
-
-  handleFrameFocus() {
-    this.props.focusFrame();
+  componentWillUnmount() {
+    clearTimeout(checkPrometheusTimer);
   }
 
   render() {
-    const styles = {
-      iframe: {
-        display: 'block',
-        border: 'none',
-        height: 'calc(100vh - 56px)',
-        width: '100%'
-      }
-    };
-
-    const { orgId } = this.props.params;
-    const frameUrl = encodeURIs`/api/app/${orgId}/api/prom/graph`;
-
     return (
       <PrivatePage page="prom" {...this.props.params}>
-        <iframe ref={(c) => {this._iframe = c;}} src={frameUrl} style={styles.iframe}
-          onLoad={this.handleFrameLoad} />
+        {this.props.children}
       </PrivatePage>
     );
   }
 }
 
-
-export default connect(null, { focusFrame })(PromWrapperPage);
+export default connect()(PromPage);

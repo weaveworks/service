@@ -1,7 +1,7 @@
 import React from 'react';
 import { grey200 } from 'material-ui/styles/colors';
 
-import { FlexContainer } from '../../components/flex-container';
+import FlexContainer from '../../components/flex-container';
 import PublicPage from '../../components/public-page';
 
 export default class LandingPage extends React.Component {

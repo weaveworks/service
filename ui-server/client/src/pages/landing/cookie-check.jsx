@@ -1,13 +1,16 @@
 import React from 'react';
-import CircularProgress from 'material-ui/CircularProgress';
 import RaisedButton from 'material-ui/RaisedButton';
 import { red900 } from 'material-ui/styles/colors';
 import { browserHistory } from 'react-router';
 
+import Activity from '../../components/activity';
 import { encodeURIs } from '../../common/request';
 import { getOrganizations } from '../../common/api';
 import { trackException, trackView } from '../../common/tracking';
 
+/**
+ * Checking for cookie, then doing primary routing
+ */
 export default class CookieCheck extends React.Component {
 
   constructor(props) {
@@ -75,21 +78,11 @@ export default class CookieCheck extends React.Component {
         opacity: 0.6,
         color: red900
       },
-
-      activity: {
-        textAlign: 'center',
-        display: this.state.activityText ? 'block' : 'none',
-        fontSize: '85%',
-        opacity: 0.6
-      }
     };
 
     return (
       <div>
-        <div style={styles.activity}>
-          <CircularProgress mode="indeterminate" />
-          <p>{this.state.activityText}.</p>
-        </div>
+        <Activity message={this.state.activityText} />
         <div style={styles.error}>
           <h3>Weave Cloud is not available. Please try again later.</h3>
           <p>{this.state.errorText}</p>

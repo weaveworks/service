@@ -115,7 +115,7 @@ if (process.env.USE_MOCK_BACKEND) {
   var promProxy = proxy({
     target: 'http://localhost:9090',
     pathRewrite: function(path) {
-      if (path.indexOf('prom') > -1) {
+      if (path.indexOf('prom/') > -1) {
         // /api/app/icy-snow-65/api/prom/graph -> /graph
         return '/' + path.split('/').slice(6).join('/');
       }

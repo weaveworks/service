@@ -6,8 +6,8 @@ import List, { ListItem } from 'material-ui/List';
 import Avatar from 'material-ui/Avatar';
 import FontIcon from 'material-ui/FontIcon';
 
-import { FlexContainer } from '../../components/flex-container';
-import { Column } from '../../components/column';
+import FlexContainer from '../../components/flex-container';
+import Column from '../../components/column';
 import Logins from './logins';
 import PrivatePage from '../../components/private-page';
 import { trackView, trackException } from '../../common/tracking';

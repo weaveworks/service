@@ -9,6 +9,10 @@ const ACTION_TYPES = [
   'RECEIVE_ORGANIZATION_DATA',
   'RECEIVE_ORGANIZATIONS',
   'RECEIVE_ORGANIZATION_USERS',
+  'RECEIVE_PROMETHEUS_ERROR',
+  'RECEIVE_PROMETHEUS_INSTANCES',
+  'RECEIVE_PROMETHEUS_JOBS',
+  'RECEIVE_PROMETHEUS_METRIC_NAMES',
   'REQUEST_INSTANCES_MENU_CHANGE',
   'UPDATE_INSTANCE',
   'UPDATE_SCOPE_VIEW_STATE',
@@ -94,6 +98,36 @@ export function getInstance(id) {
   };
 }
 
+export function receivePrometheusError(orgId) {
+  return {
+    type: ActionTypes.RECEIVE_PROMETHEUS_ERROR,
+    orgId
+  };
+}
+
+export function receivePrometheusInstances(orgId, prometheusInstances) {
+  return {
+    type: ActionTypes.RECEIVE_PROMETHEUS_INSTANCES,
+    prometheusInstances,
+    orgId
+  };
+}
+
+export function receivePrometheusJobs(orgId, prometheusJobs) {
+  return {
+    type: ActionTypes.RECEIVE_PROMETHEUS_JOBS,
+    prometheusJobs,
+    orgId
+  };
+}
+
+export function receivePrometheusMetricNames(orgId, prometheusMetricNames) {
+  return {
+    type: ActionTypes.RECEIVE_PROMETHEUS_METRIC_NAMES,
+    prometheusMetricNames,
+    orgId
+  };
+}
 
 export function getOrganizationUsers(id) {
   return (dispatch) => {

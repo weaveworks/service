@@ -91,6 +91,43 @@ export function rootReducer(state = initialState, action) {
       });
     }
 
+    case ActionTypes.RECEIVE_PROMETHEUS_ERROR: {
+      return Object.assign({}, state, {
+        instances: mergeInstances(state.instances, [{
+          id: action.orgId,
+          prometheusInstances: null,
+          prometheusJobs: null
+        }]),
+      });
+    }
+
+    case ActionTypes.RECEIVE_PROMETHEUS_INSTANCES: {
+      return Object.assign({}, state, {
+        instances: mergeInstances(state.instances, [{
+          id: action.orgId,
+          prometheusInstances: action.prometheusInstances,
+        }]),
+      });
+    }
+
+    case ActionTypes.RECEIVE_PROMETHEUS_JOBS: {
+      return Object.assign({}, state, {
+        instances: mergeInstances(state.instances, [{
+          id: action.orgId,
+          prometheusJobs: action.prometheusJobs,
+        }]),
+      });
+    }
+
+    case ActionTypes.RECEIVE_PROMETHEUS_METRIC_NAMES: {
+      return Object.assign({}, state, {
+        instances: mergeInstances(state.instances, [{
+          id: action.orgId,
+          prometheusMetricNames: action.prometheusMetricNames,
+        }]),
+      });
+    }
+
     default: {
       error('Why are we here at default?');
       return state;

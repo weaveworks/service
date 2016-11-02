@@ -1,6 +1,6 @@
 import React from 'react';
 
-export class Column extends React.Component {
+export default class Column extends React.Component {
   render() {
     const styles = Object.assign({
       margin: '0 36px'
@@ -9,7 +9,7 @@ export class Column extends React.Component {
     if (this.props.width) {
       styles.width = `${this.props.width}px`;
     } else {
-      styles.flex = 1;
+      styles.flex = this.props.style ? this.props.style.flex : 1;
       if (this.props.minWidth) {
         styles.minWidth = `${this.props.minWidth}px`;
       }
