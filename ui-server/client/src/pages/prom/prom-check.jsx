@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import { encodeURIs } from '../../common/request';
 import Activity from '../../components/activity';
 
-export class PromCheck extends React.Component {
+class PromCheck extends React.Component {
   componentWillReceiveProps(nextProps) {
     const { instance, params } = nextProps;
     // routing based on prometheus metrics seen

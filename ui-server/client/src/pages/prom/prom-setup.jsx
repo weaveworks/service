@@ -13,7 +13,7 @@ import Column from '../../components/column';
 import FlexContainer from '../../components/flex-container';
 import PromStatus from './prom-status';
 
-export class PromSetup extends React.Component {
+class PromSetup extends React.Component {
 
   constructor() {
     super();

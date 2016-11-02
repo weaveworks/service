@@ -53,7 +53,7 @@ function checkPrometheus(orgId, dispatch) {
 }
 
 
-export class PromPage extends React.Component {
+class PromPage extends React.Component {
 
   componentDidMount() {
     trackView('Prom');

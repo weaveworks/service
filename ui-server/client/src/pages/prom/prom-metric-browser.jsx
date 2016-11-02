@@ -45,7 +45,7 @@ export default class PromMetricBrowser extends React.Component {
       // auto-expand single prefix metric
       const suffix = Object.values(names)[0].name;
       this.props.onClickMetricPrefix(`${prefix}${DELIMITER}${suffix}`);
-    } else if (Object.keys(names).length > 0) {
+    } else if (Object.keys(names).length > 1) {
       this.props.onClickMetricPrefix(`${prefix}${DELIMITER}`);
     } else {
       this.props.onClickMetricPrefix(prefix);

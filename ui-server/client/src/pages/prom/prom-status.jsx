@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import Metric from '../../components/metric';
 import PromConnection from './prom-connection';
 
-export class PromStatus extends React.Component {
+class PromStatus extends React.Component {
 
   render() {
     const styles = {
