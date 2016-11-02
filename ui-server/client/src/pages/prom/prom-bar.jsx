@@ -31,32 +31,32 @@ const NODE_QUERIES = [{
 
 const K8S_QUERIES = [{
   label: 'CPU usage in % by pod',
-  query: 'sum(irate(container_cpu_usage_seconds_total{job="kubernetes-nodes",'
-    + 'io_kubernetes_pod_namespace="monitoring",io_kubernetes_pod_name=~"prometheus-.*"}[1m]))'
-    + ' by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)'
+  query: 'sum by(instance, job)'
+    + ' (rate(container_cpu_user_seconds_total{pod_name=~".+",job="kubernetes-nodes"}[1m])) + '
+    + 'sum by(instance, job)'
+    + ' (rate(container_cpu_system_seconds_total{pod_name=~".+",job="kubernetes-nodes"}[1m]))'
 }, {
   label: 'Memory usage by pod',
-  query: 'sum(container_memory_usage_bytes{job="kubernetes-nodes",'
-    + 'io_kubernetes_pod_namespace="monitoring",io_kubernetes_pod_name=~"prometheus-.*"})'
-    + ' by (io_kubernetes_pod_namespace,io_kubernetes_pod_name)'
+  query: 'sum by(instance, job)'
+    + ' (container_memory_usage_bytes{pod_name=~".+",job="kubernetes-nodes"})'
 }];
 
 const NET_QUERIES = [{
   label: 'IP address space exhaustion in %',
-  query: 'scalar(sum(weave_ips{state="local-used"}))'
-    + ' / scalar(topk(1, weave_ips{state="total"})) * 100'
+  query: 'sum without(instance, state) (weave_ips{state="local-used"})'
+    + ' / max without(instance) (weave_max_ips) * 100'
 }, {
   label: 'Number of local DNS entries per each host',
   query: 'weave_dns_entries{state="local"}'
 }, {
   label: 'Connection termination rate per second',
-  query: 'sum(rate(weave_connection_termination_count[5m]))'
+  query: 'sum without(instance) (rate(weave_connection_terminations_total[5m]))'
 }, {
   label: 'Number of blocked connections per transport-layer protocol',
-  query: 'sum(weavenpc_blocked_connections_total) by (protocol)'
+  query: 'sum by(protocol, job) (weavenpc_blocked_connections_total)'
 }, {
   label: 'Frequent protocol-dport combinations of blocked connections',
-  query: 'topk(10, sum(weavenpc_blocked_connections_total) by (protocol, dport))'
+  query: 'topk(10, sum by(job, protocol, dport) (weavenpc_blocked_connections_total))'
 }];
 
 const SYSTEM_QUERIES = [{
