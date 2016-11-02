@@ -192,3 +192,14 @@ ALERT MarketingFail
     summary = "We're failing to push prospects to marketing.",
     description = "We're failing to push prospects to marketing.",
   }
+
+# Cortex alerts
+
+ALERT CortexIngesterUnhealthy
+  IF          max without(instance) (cortex_ring_ingesters{job="cortex/distributor", state="unhealthy"}) > 0
+  FOR         15m
+  LABELS      { severity="warning" }
+  ANNOTATIONS {
+    summary = "Cortex has {{ $value }} unhealthy ingesters!",
+    description = "Cortex has {{ $value }} unhealthy ingesters!",
+  }
