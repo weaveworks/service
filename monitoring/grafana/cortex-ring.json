@@ -53,7 +53,7 @@
             {
               "expr": "max(cortex_ring_ingester_ownership_percent{job=\"cortex/distributor\"}) by (ingester)",
               "intervalFactor": 2,
-              "legendFormat": "",
+              "legendFormat": "{{ingester}}",
               "refId": "A",
               "step": 60
             }
@@ -77,7 +77,7 @@
               "label": "",
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
@@ -130,6 +130,7 @@
             {
               "expr": "cortex_ring_ingesters{job=\"cortex/distributor\"}",
               "intervalFactor": 2,
+              "legendFormat": "{{state}}",
               "refId": "A",
               "step": 60
             }
@@ -153,7 +154,7 @@
               "label": null,
               "logBase": 1,
               "max": null,
-              "min": null,
+              "min": 0,
               "show": true
             },
             {
