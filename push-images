@@ -42,15 +42,10 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-MONITORING_COMPONENTS="monitoring/prometheus monitoring/grafana monitoring/gfdatasource monitoring/alertmanager monitoring/fluentd-loggly"
-
 COMPONENTS="$@"
 if [ "${COMPONENTS}" == "" ]
 then
-    COMPONENTS="authfe ui-server frontend-mt users metrics logging pr-assigner $MONITORING_COMPONENTS"
-elif [ "${COMPONENTS}" == "monitoring" ] # Special case
-then
-    COMPONENTS="$MONITORING_COMPONENTS"
+    COMPONENTS="authfe ui-server frontend-mt users metrics logging pr-assigner"
 fi
 echo "Using components: ${COMPONENTS}"
 

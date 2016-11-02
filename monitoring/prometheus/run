@@ -1,6 +1,0 @@
-#!/bin/sh
-
-prometheus \
-	-config.file=/etc/prometheus/prometheus.yml \
-	-storage.local.path=/prometheus/data \
-	-web.listen-address=:80 "$@"
