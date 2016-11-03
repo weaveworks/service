@@ -39,7 +39,8 @@ export default class PromMetricBrowser extends React.Component {
 
   handleClickPrefix(prefix) {
     // check if this was the end of a namespace
-    const nextPrefix = `${this.props.prefix}${prefix}${DELIMITER}`;
+    const oldPrefix = this.props.prefixes.join('');
+    const nextPrefix = `${oldPrefix}${prefix}${DELIMITER}`;
     const names = getNextNames(this.props.metrics, nextPrefix);
     if (Object.keys(names).length === 1) {
       // auto-expand single prefix metric
@@ -53,7 +54,8 @@ export default class PromMetricBrowser extends React.Component {
   }
 
   render() {
-    const { metrics, prefix, onClickClearPrefix } = this.props;
+    const { metrics, prefixes, onClickClearPrefix } = this.props;
+    const prefix = prefixes.join('');
     const names = getNextNames(metrics, prefix);
     const styles = {
       container: {

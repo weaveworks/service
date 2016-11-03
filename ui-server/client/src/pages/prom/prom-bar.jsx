@@ -118,7 +118,7 @@ export class PromBar extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      metricPrefix: '',
+      metricPrefixes: [],
       systemQueries: SYSTEM_QUERIES
     };
 
@@ -145,14 +145,16 @@ export class PromBar extends React.Component {
   }
 
   handleClickMetricPrefix(nextPrefix) {
-    let { metricPrefix } = this.state;
-    metricPrefix = `${metricPrefix}${nextPrefix}`;
-    this.setState({ metricPrefix });
-    this.props.setExpressionField(metricPrefix);
+    let { metricPrefixes } = this.state;
+    metricPrefixes = [...metricPrefixes, nextPrefix];
+    this.setState({ metricPrefixes });
+    this.props.setExpressionField(metricPrefixes.join(''));
   }
 
   handleClickClearPrefix() {
-    this.setState({ metricPrefix: '' });
+    const metricPrefixes = this.state.metricPrefixes.slice();
+    metricPrefixes.pop();
+    this.setState({ metricPrefixes });
   }
 
   render() {
@@ -199,7 +201,7 @@ export class PromBar extends React.Component {
             onClickClearPrefix={this.handleClickClearPrefix}
             onClickMetricPrefix={this.handleClickMetricPrefix}
             metrics={metricNames}
-            prefix={this.state.metricPrefix} />
+            prefixes={this.state.metricPrefixes} />
         </Column>
         <Column width={220}>
           <Box>
