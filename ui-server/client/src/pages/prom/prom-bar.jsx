@@ -8,7 +8,7 @@ import Box from '../../components/box';
 import Column from '../../components/column';
 import FlexContainer from '../../components/flex-container';
 import PromStatus from './prom-status';
-import PromMetricBrowser from './prom-metric-browser';
+import PromMetricBrowser, { DELIMITER } from './prom-metric-browser';
 import PromSystemQueries from './prom-system-queries';
 
 const NODE_QUERIES = [{
@@ -148,7 +148,7 @@ export class PromBar extends React.Component {
     let { metricPrefixes } = this.state;
     metricPrefixes = [...metricPrefixes, nextPrefix];
     this.setState({ metricPrefixes });
-    this.props.setExpressionField(metricPrefixes.join(''));
+    this.props.setExpressionField(metricPrefixes.join(DELIMITER));
   }
 
   handleClickClearPrefix() {
