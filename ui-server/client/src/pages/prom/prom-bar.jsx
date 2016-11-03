@@ -73,10 +73,14 @@ const SYSTEM_QUERIES = [{
   queries: NET_QUERIES
 }];
 
-const makeDocumentationItems = (orgId) => [{
+const makeDocumentationItems = (orgId, cmp) => [{
   text: 'Set up Prometheus',
   relativeHref: encodeURIs`/prom/${orgId}/setup`,
   description: 'Steps to set up a local Prometheus that sends data to Weave Cloud'
+}, {
+  text: 'Run Prometheus Test Query',
+  action: cmp.handleClickTestQuery,
+  description: 'Run test query on Prometheus'
 }, {
   text: 'Prometheus Query Examples',
   href: 'https://prometheus.io/docs/querying/examples/',
@@ -126,6 +130,7 @@ export class PromBar extends React.Component {
     this.handleClickClearPrefix = this.handleClickClearPrefix.bind(this);
     this.handleClickMetricPrefix = this.handleClickMetricPrefix.bind(this);
     this.handleClickSetup = this.handleClickSetup.bind(this);
+    this.handleClickTestQuery = this.handleClickTestQuery.bind(this);
   }
 
   renderSystemQueries(systemQueries) {
@@ -161,6 +166,11 @@ export class PromBar extends React.Component {
   handleClickSetup() {
     const url = encodeURIs`/prom/${this.props.orgId}/setup`;
     browserHistory.push(url);
+  }
+
+  handleClickTestQuery() {
+    this.props.setExpressionField('sum(up) by (job)');
+    this.props.clickFrameExecuteButton();
   }
 
   render() {
@@ -215,7 +225,7 @@ export class PromBar extends React.Component {
           <Box>
             <PromStatus orgId={this.props.orgId} />
             <div style={styles.documentation}>
-              {renderDocumentation(makeDocumentationItems(this.props.orgId))}
+              {renderDocumentation(makeDocumentationItems(this.props.orgId, this))}
             </div>
           </Box>
         </Column>
