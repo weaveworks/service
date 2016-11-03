@@ -103,6 +103,20 @@ class PromSetup extends React.Component {
             </Box>
             <p>Once Prometheus is sending data to Weave Cloud,
               the connection status on the right side should change to green.</p>
+            <div style={styles.step}>
+              <span style={styles.circle}>3</span>
+              <h3>Set up system queries</h3>
+              <p>
+                Weave Cloud provides you with a list of frequently used queries.
+                To get these to work, you need to have the following Prometheus
+                exporters configured:
+              </p>
+              <ul>
+                <li>Node exporter</li>
+                <li>Kubernetes exporter</li>
+                <li>Weave Net</li>
+              </ul>
+            </div>
           </div>
         </Column>
         <Column width={300}>

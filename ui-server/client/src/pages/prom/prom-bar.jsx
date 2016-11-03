@@ -125,6 +125,7 @@ export class PromBar extends React.Component {
     this.handleClickSystemQuery = this.handleClickSystemQuery.bind(this);
     this.handleClickClearPrefix = this.handleClickClearPrefix.bind(this);
     this.handleClickMetricPrefix = this.handleClickMetricPrefix.bind(this);
+    this.handleClickSetup = this.handleClickSetup.bind(this);
   }
 
   renderSystemQueries(systemQueries) {
@@ -155,6 +156,11 @@ export class PromBar extends React.Component {
     const metricPrefixes = this.state.metricPrefixes.slice();
     metricPrefixes.pop();
     this.setState({ metricPrefixes });
+  }
+
+  handleClickSetup() {
+    const url = encodeURIs`/prom/${this.props.orgId}/setup`;
+    browserHistory.push(url);
   }
 
   render() {
@@ -189,6 +195,8 @@ export class PromBar extends React.Component {
           <div style={styles.categories}>
             {this.state.systemQueries.map(sq => <PromSystemQueries
               key={sq.prefix}
+              metricNames={metricNames}
+              onClickSetup={this.handleClickSetup}
               onClickCategory={this.handleClickCategory}
               onClickQuery={this.handleClickSystemQuery}
               active={activeCategory}
