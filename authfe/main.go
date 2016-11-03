@@ -137,7 +137,7 @@ func main() {
 	}
 
 	for _, hostFlag := range hostFlags {
-		flag.StringVar(hostFlag.dest, hostFlag.name, "", fmt.Sprintf("Hostname & port for %s service (required)", hostFlag.name))
+		flag.StringVar(hostFlag.dest, hostFlag.name, "", fmt.Sprintf("Hostname & port for %s service", hostFlag.name))
 	}
 
 	flag.Parse()
@@ -149,7 +149,7 @@ func main() {
 
 	for _, hostFlag := range hostFlags {
 		if *hostFlag.dest == "" {
-			log.Fatalf("Must specify a %s host", hostFlag.name)
+			log.Warningf("Host for %s not given; will not be proxied", hostFlag.name)
 		}
 	}
 
