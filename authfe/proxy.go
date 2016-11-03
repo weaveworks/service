@@ -47,6 +47,11 @@ func newProxy(hostAndPort string) proxy {
 }
 
 func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if p.hostAndPort == "" {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
+
 	// Tweak request before sending
 	r.Host = p.hostAndPort
 	r.URL.Host = p.hostAndPort
