@@ -1,6 +1,7 @@
 import zipObject from 'lodash/zipObject';
-import * as api from '../common/api';
 
+import * as api from '../common/api';
+import { katacodaPostInstance } from '../common/integrations';
 import { trackException } from '../common/tracking';
 
 
@@ -65,6 +66,7 @@ export function getOrganizationData(id) {
           type: ActionTypes.RECEIVE_ORGANIZATION_DATA,
           org
         });
+        katacodaPostInstance(org);
       })
       .catch(trackException);
   };
