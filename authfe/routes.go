@@ -211,6 +211,7 @@ func routes(c Config) (http.Handler, error) {
 			[]path{
 				{"/api/users", newProxy(c.usersHost)},
 				{"/launch/k8s", newProxy(c.launchGeneratorHost)},
+				{"/k8s", newProxy(c.launchGeneratorHost)},
 
 				// rewrite /demo/* to /* and send it to demo
 				{"/demo/", middleware.PathRewrite(regexp.MustCompile("/demo/(.*)"), "/$1").
