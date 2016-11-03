@@ -3,16 +3,16 @@ import React from 'react';
 import Colors from '../../common/colors';
 import PromMetricBrowserPrefix from './prom-metric-browser-prefix';
 
-const DELIMITER = '_';
+export const DELIMITER = '_';
 
-function getNextNames(metrics, prefix) {
+export function getNextNames(metrics, prefix) {
   let names = metrics;
 
   // remove current prefix
   if (prefix) {
     names = names
       .filter(name => name.indexOf(prefix) === 0)
-      .map(name => name.substr(prefix.length));
+      .map(name => name.substr(prefix.length + 1));
   }
 
   // find next names
@@ -20,10 +20,10 @@ function getNextNames(metrics, prefix) {
   names.forEach(name => {
     const nextPrefix = name.split(DELIMITER)[0];
     if (nextPrefix) {
-      namesMap[nextPrefix] = {
-        count: namesMap[nextPrefix] ? namesMap[nextPrefix].count + 1 : 1,
-        name
-      };
+      if (!namesMap[nextPrefix]) {
+        namesMap[nextPrefix] = [];
+      }
+      namesMap[nextPrefix] = [...namesMap[nextPrefix], name];
     }
   });
 
@@ -38,22 +38,12 @@ export default class PromMetricBrowser extends React.Component {
   }
 
   handleClickPrefix(prefix) {
-    // check if this was the end of a namespace
-    const nextPrefix = `${this.props.prefix}${prefix}${DELIMITER}`;
-    const names = getNextNames(this.props.metrics, nextPrefix);
-    if (Object.keys(names).length === 1) {
-      // auto-expand single prefix metric
-      const suffix = Object.values(names)[0].name;
-      this.props.onClickMetricPrefix(`${prefix}${DELIMITER}${suffix}`);
-    } else if (Object.keys(names).length > 1) {
-      this.props.onClickMetricPrefix(`${prefix}${DELIMITER}`);
-    } else {
-      this.props.onClickMetricPrefix(prefix);
-    }
+    this.props.onClickMetricPrefix(prefix);
   }
 
   render() {
-    const { metrics, prefix, onClickClearPrefix } = this.props;
+    const { metrics, prefixes, onClickClearPrefix } = this.props;
+    const prefix = prefixes.join(DELIMITER);
     const names = getNextNames(metrics, prefix);
     const styles = {
       container: {
@@ -84,7 +74,7 @@ export default class PromMetricBrowser extends React.Component {
             <span key={name}>
               <PromMetricBrowserPrefix
                 prefix={name}
-                count={names[name].count}
+                count={names[name].length}
                 onClickPrefix={this.handleClickPrefix} />
               {index < arr.length - 1 && ', '}
             </span>

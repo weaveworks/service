@@ -8,7 +8,7 @@ import Box from '../../components/box';
 import Column from '../../components/column';
 import FlexContainer from '../../components/flex-container';
 import PromStatus from './prom-status';
-import PromMetricBrowser from './prom-metric-browser';
+import PromMetricBrowser, { DELIMITER } from './prom-metric-browser';
 import PromSystemQueries from './prom-system-queries';
 
 const NODE_QUERIES = [{
@@ -73,10 +73,14 @@ const SYSTEM_QUERIES = [{
   queries: NET_QUERIES
 }];
 
-const makeDocumentationItems = (orgId) => [{
+const makeDocumentationItems = (orgId, cmp) => [{
   text: 'Set up Prometheus',
   relativeHref: encodeURIs`/prom/${orgId}/setup`,
   description: 'Steps to set up a local Prometheus that sends data to Weave Cloud'
+}, {
+  text: 'Run Prometheus Test Query',
+  action: cmp.handleClickTestQuery,
+  description: 'Run test query on Prometheus'
 }, {
   text: 'Prometheus Query Examples',
   href: 'https://prometheus.io/docs/querying/examples/',
@@ -118,13 +122,15 @@ export class PromBar extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      metricPrefix: '',
+      metricPrefixes: [],
       systemQueries: SYSTEM_QUERIES
     };
 
     this.handleClickSystemQuery = this.handleClickSystemQuery.bind(this);
     this.handleClickClearPrefix = this.handleClickClearPrefix.bind(this);
     this.handleClickMetricPrefix = this.handleClickMetricPrefix.bind(this);
+    this.handleClickSetup = this.handleClickSetup.bind(this);
+    this.handleClickTestQuery = this.handleClickTestQuery.bind(this);
   }
 
   renderSystemQueries(systemQueries) {
@@ -145,14 +151,26 @@ export class PromBar extends React.Component {
   }
 
   handleClickMetricPrefix(nextPrefix) {
-    let { metricPrefix } = this.state;
-    metricPrefix = `${metricPrefix}${nextPrefix}`;
-    this.setState({ metricPrefix });
-    this.props.setExpressionField(metricPrefix);
+    let { metricPrefixes } = this.state;
+    metricPrefixes = [...metricPrefixes, nextPrefix];
+    this.setState({ metricPrefixes });
+    this.props.setExpressionField(metricPrefixes.join(DELIMITER));
   }
 
   handleClickClearPrefix() {
-    this.setState({ metricPrefix: '' });
+    const metricPrefixes = this.state.metricPrefixes.slice();
+    metricPrefixes.pop();
+    this.setState({ metricPrefixes });
+  }
+
+  handleClickSetup() {
+    const url = encodeURIs`/prom/${this.props.orgId}/setup`;
+    browserHistory.push(url);
+  }
+
+  handleClickTestQuery() {
+    this.props.setExpressionField('sum(up) by (job)');
+    this.props.clickFrameExecuteButton();
   }
 
   render() {
@@ -187,6 +205,8 @@ export class PromBar extends React.Component {
           <div style={styles.categories}>
             {this.state.systemQueries.map(sq => <PromSystemQueries
               key={sq.prefix}
+              metricNames={metricNames}
+              onClickSetup={this.handleClickSetup}
               onClickCategory={this.handleClickCategory}
               onClickQuery={this.handleClickSystemQuery}
               active={activeCategory}
@@ -199,13 +219,13 @@ export class PromBar extends React.Component {
             onClickClearPrefix={this.handleClickClearPrefix}
             onClickMetricPrefix={this.handleClickMetricPrefix}
             metrics={metricNames}
-            prefix={this.state.metricPrefix} />
+            prefixes={this.state.metricPrefixes} />
         </Column>
         <Column width={220}>
           <Box>
             <PromStatus orgId={this.props.orgId} />
             <div style={styles.documentation}>
-              {renderDocumentation(makeDocumentationItems(this.props.orgId))}
+              {renderDocumentation(makeDocumentationItems(this.props.orgId, this))}
             </div>
           </Box>
         </Column>
