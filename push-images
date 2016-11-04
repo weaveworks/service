@@ -45,7 +45,7 @@ done
 COMPONENTS="$@"
 if [ "${COMPONENTS}" == "" ]
 then
-    COMPONENTS="authfe ui-server frontend-mt users metrics logging pr-assigner"
+    COMPONENTS="authfe frontend-mt users metrics logging pr-assigner"
 fi
 echo "Using components: ${COMPONENTS}"
 
