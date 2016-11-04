@@ -7,7 +7,7 @@ import InstancesList from '../instances/instances-list';
 export default class IntancesPicker extends React.Component {
 
   componentDidMount() {
-    trackView('InstancePicker');
+    trackView('InstanceDeleted');
   }
 
   render() {
