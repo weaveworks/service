@@ -123,6 +123,6 @@ users-integration-test: $(USERS_UPTODATE)
 
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
-	rm -rf $(UPTODATE_FILES) $(EXES)"
+	rm -rf $(UPTODATE_FILES) $(EXES)
 	go clean ./...
 
