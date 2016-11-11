@@ -14,8 +14,8 @@ const (
 )
 
 var (
-	prospectsSent = prometheus.NewSummaryVec(
-		prometheus.SummaryOpts{
+	prospectsSent = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
 			Name: "marketing_prospects_sent",
 			Help: "Marketing prospects sent.",
 		},
@@ -150,10 +150,10 @@ func (c *Queue) push() {
 		}
 		err := c.client.batchUpsertProspect(prospects[i:end])
 		if err != nil {
-			prospectsSent.WithLabelValues(name, "failed").Observe(float64(end - i))
+			prospectsSent.WithLabelValues(name, "failed").Add(float64(end - i))
 			log.Errorf("Error pushing prospects: %v", err)
 		} else {
-			prospectsSent.WithLabelValues(name, "success").Observe(float64(end - i))
+			prospectsSent.WithLabelValues(name, "success").Add(float64(end - i))
 		}
 		i = end
 	}
