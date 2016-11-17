@@ -221,6 +221,21 @@ func (d DB) FindOrganizationByProbeToken(probeToken string) (*users.Organization
 	return o, err
 }
 
+// FindOrganizationByID looks up the organization matching a given
+// external ID.
+func (d DB) FindOrganizationByID(externalID string) (*users.Organization, error) {
+	o, err := d.scanOrganization(
+		d.organizationsQuery().Where(squirrel.Eq{"organizations.external_id": externalID}).QueryRow(),
+	)
+	if err == sql.ErrNoRows {
+		return nil, users.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return o, nil
+}
+
 func (d DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
 	orgs := []*users.Organization{}
 	for rows.Next() {

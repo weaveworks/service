@@ -82,6 +82,7 @@ type listOrganizationsView struct {
 
 type privateOrgView struct {
 	ID                 string   `json:"id"`
+	InternalID         string   `json:"internal_id"`
 	Name               string   `json:"name"`
 	CreatedAt          string   `json:"created_at"`
 	FirstProbeUpdateAt string   `json:"first_probe_update_at,omitempty"`
@@ -101,6 +102,7 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 		for _, org := range organizations {
 			view.Organizations = append(view.Organizations, privateOrgView{
 				ID:                 org.ExternalID,
+				InternalID:         org.ID,
 				Name:               org.Name,
 				CreatedAt:          org.FormatCreatedAt(),
 				FirstProbeUpdateAt: org.FormatFirstProbeUpdateAt(),
@@ -131,6 +133,30 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 			logrus.Warn("list organizations: %v", err)
 		}
 	}
+}
+
+func (a *API) adminShowOrganization(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	orgExternalID, ok := vars["orgExternalID"]
+	if !ok {
+		render.Error(w, r, users.ErrNotFound)
+		return
+	}
+
+	org, err := a.db.FindOrganizationByID(orgExternalID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+
+	render.JSON(w, http.StatusOK, privateOrgView{
+		ID:                 org.ExternalID,
+		InternalID:         org.ID,
+		Name:               org.Name,
+		CreatedAt:          org.FormatCreatedAt(),
+		FirstProbeUpdateAt: org.FormatFirstProbeUpdateAt(),
+		FeatureFlags:       org.FeatureFlags,
+	})
 }
 
 func (a *API) setOrgFeatureFlags(w http.ResponseWriter, r *http.Request) {
