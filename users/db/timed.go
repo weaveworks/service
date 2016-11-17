@@ -213,6 +213,14 @@ func (t timed) FindOrganizationByProbeToken(probeToken string) (o *users.Organiz
 	return
 }
 
+func (t timed) FindOrganizationByID(externalID string) (o *users.Organization, err error) {
+	t.timeRequest("FindOrganizationByID", func() error {
+		o, err = t.d.FindOrganizationByID(externalID)
+		return err
+	})
+	return
+}
+
 func (t timed) RenameOrganization(externalID, name string) error {
 	return t.timeRequest("RenameOrganization", func() error {
 		return t.d.RenameOrganization(externalID, name)

@@ -85,6 +85,7 @@ type DB interface {
 	// ExternalID must match the ExternalID regex.
 	CreateOrganization(ownerID, externalID, name string) (*users.Organization, error)
 	FindOrganizationByProbeToken(probeToken string) (*users.Organization, error)
+	FindOrganizationByID(externalID string) (*users.Organization, error)
 	RenameOrganization(externalID, newName string) error
 	OrganizationExists(externalID string) (bool, error)
 	GetOrganizationName(externalID string) (string, error)

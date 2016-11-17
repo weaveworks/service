@@ -76,6 +76,7 @@ func (a *API) routes() http.Handler {
 		// Internal stuff for our internal usage, internally.
 		{"root", "GET", "/", a.admin},
 		{"private_api_organizations", "GET", "/private/api/organizations", a.listOrganizations},
+		{"private_api_organizations_orgExternalID", "GET", "/private/api/organizations/{orgExternalID}", a.adminShowOrganization},
 		{"private_api_organizations_orgExternalID_featureFlags", "POST", "/private/api/organizations/{orgExternalID}/featureflags", a.setOrgFeatureFlags},
 		{"private_api_pardot", "GET", "/private/api/marketing_refresh", a.marketingRefresh},
 		{"private_api_users", "GET", "/private/api/users", a.listUsers},

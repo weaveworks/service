@@ -137,6 +137,11 @@ func (t traced) FindOrganizationByProbeToken(probeToken string) (o *users.Organi
 	return t.d.FindOrganizationByProbeToken(probeToken)
 }
 
+func (t traced) FindOrganizationByID(externalID string) (o *users.Organization, err error) {
+	defer func() { t.trace("FindOrganizationByID", externalID, o, err) }()
+	return t.d.FindOrganizationByID(externalID)
+}
+
 func (t traced) RenameOrganization(externalID, name string) (err error) {
 	defer func() { t.trace("RenameOrganization", externalID, name, err) }()
 	return t.d.RenameOrganization(externalID, name)

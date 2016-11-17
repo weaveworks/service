@@ -205,6 +205,19 @@ func (d *DB) FindOrganizationByProbeToken(probeToken string) (*users.Organizatio
 	return nil, users.ErrNotFound
 }
 
+// FindOrganizationByID looks up the organization matching a given
+// external id.
+func (d *DB) FindOrganizationByID(externalID string) (*users.Organization, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	for _, o := range d.organizations {
+		if o.ExternalID == externalID {
+			return o, nil
+		}
+	}
+	return nil, users.ErrNotFound
+}
+
 // RenameOrganization changes an organization's user-settable name
 func (d *DB) RenameOrganization(externalID, name string) error {
 	d.mtx.Lock()
