@@ -117,6 +117,30 @@ func (d DB) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg c
 	return d.upsertConfig(string(orgID), orgType, subsystem, cfg)
 }
 
+// GetCortexConfigs gets the configs that haven't been evaluated since the given time.
+func (d DB) GetCortexConfigs(since time.Duration) ([]configs.CortexConfig, error) {
+	q := d.Select("configs.id", "configs.config").
+		From("configs").
+		Where(squirrel.Eq{"configs.subsystem": "cortex"}).
+		Where("to_timestamp(configs.config ->> 'last_evaluated', 'YYYY-MM-DDTHH:MI:SS.MS') >= (now() - interval '1 second' * ?)", since.Seconds())
+	rows, err := q.Query()
+	if err != nil {
+		return nil, err
+	}
+	cfgs := []configs.CortexConfig{}
+	for rows.Next() {
+		var orgID configs.OrgID
+		cfg := configs.CortexConfig{}
+		err := rows.Scan(&orgID, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.OrgID = orgID
+		cfgs = append(cfgs, cfg)
+	}
+	return cfgs, nil
+}
+
 // Now gives us the current time for Postgres. Postgres only stores times to
 // the microsecond, so we pre-truncate times so tests will match. We also
 // normalize to UTC, for sanity.

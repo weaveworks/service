@@ -1,6 +1,8 @@
 package db
 
 import (
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/scope/common/instrument"
 	"github.com/weaveworks/service/configs"
@@ -51,6 +53,14 @@ func (t timed) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cf
 	return t.timeRequest("SetOrgConfig", func() error {
 		return t.d.SetOrgConfig(orgID, subsystem, cfg)
 	})
+}
+
+func (t timed) GetCortexConfigs(since time.Duration) (cfgs []configs.CortexConfig, err error) {
+	t.timeRequest("GetCortexConfigs", func() error {
+		cfgs, err = t.d.GetCortexConfigs(since)
+		return err
+	})
+	return
 }
 
 func (t timed) Close() error {

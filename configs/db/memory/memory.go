@@ -2,6 +2,7 @@ package memory
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/weaveworks/service/configs"
 )
@@ -60,6 +61,21 @@ func (d *DB) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg 
 	org[subsystem] = cfg
 	d.orgCfgs[orgID] = org
 	return nil
+}
+
+// GetCortexConfigs returns all the configurations for cortex that haven't
+// been evaluated since the given time.
+func (d *DB) GetCortexConfigs(since time.Duration) ([]configs.CortexConfig, error) {
+	cfgs := []configs.CortexConfig{}
+	for org, subsystems := range d.orgCfgs {
+		cortex := subsystems["cortex"]
+		for _, cfg := range cortex {
+			cortexCfg := cfg.(configs.CortexConfig)
+			cortexCfg.OrgID = org
+			cfgs = append(cfgs, cortexCfg)
+		}
+	}
+	return cfgs, nil
 }
 
 // Close finishes using the db. Noop.

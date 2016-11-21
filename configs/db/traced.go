@@ -1,6 +1,8 @@
 package db
 
 import (
+	"time"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/weaveworks/service/configs"
 )
@@ -32,6 +34,11 @@ func (t traced) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (
 func (t traced) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg configs.Config) (err error) {
 	defer func() { t.trace("SetOrgConfig", orgID, subsystem, cfg, err) }()
 	return t.d.SetOrgConfig(orgID, subsystem, cfg)
+}
+
+func (t traced) GetCortexConfigs(since time.Duration) (cfgs []configs.CortexConfig, err error) {
+	defer func() { t.trace("GetCortexConfigs", since, cfgs, err) }()
+	return t.d.GetCortexConfigs(since)
 }
 
 func (t traced) Close() (err error) {

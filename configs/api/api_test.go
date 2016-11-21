@@ -1,11 +1,16 @@
 package api_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/weaveworks/service/configs"
+	"github.com/weaveworks/service/configs/api"
 )
 
 // The root page returns 200 OK.
@@ -305,4 +310,17 @@ func Test_PostOrgConfig_MultipleOrgs(t *testing.T) {
 		w := requestAsOrg(t, orgID2, "GET", endpoint2, nil)
 		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
 	}
+}
+
+func Test_GetCortexConfigs_Empty(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	noConfigs := api.CortexConfigsView{Configs: []configs.CortexConfig{}}
+	endpoint := fmt.Sprintf("/private/api/configs/cortex?since=15m")
+	w := request(t, "GET", endpoint, nil)
+	var foundConfigs api.CortexConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &foundConfigs)
+	require.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, foundConfigs, noConfigs)
 }

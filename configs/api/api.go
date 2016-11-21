@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -81,6 +82,9 @@ func (a *API) routes() http.Handler {
 		{"set_user_config", "POST", "/api/configs/user/{userID}/{subsystem}", a.setUserConfig},
 		{"get_org_config", "GET", "/api/configs/org/{orgID}/{subsystem}", a.getOrgConfig},
 		{"set_org_config", "POST", "/api/configs/org/{orgID}/{subsystem}", a.setOrgConfig},
+
+		// Internal stuff for our internal usage, internally.
+		{"private_get_cortex_configs", "GET", "/private/api/configs/cortex", a.getCortexConfigs},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
@@ -232,4 +236,34 @@ func (a *API) setOrgConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// CortexConfigsView is exposed only for tests.
+type CortexConfigsView struct {
+	Configs []configs.CortexConfig `json:"configs"`
+}
+
+func (a *API) getCortexConfigs(w http.ResponseWriter, r *http.Request) {
+	duration, err := time.ParseDuration(r.FormValue("since"))
+	if err != nil {
+		log.Infof("Invalid duration: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	cfgs, err := a.db.GetCortexConfigs(duration)
+	if err != nil {
+		// XXX: Untested
+		log.Errorf("Error getting configs: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	cfgsView := CortexConfigsView{cfgs}
+	if err := json.NewEncoder(w).Encode(cfgsView); err != nil {
+		// XXX: Untested
+		log.Errorf("Error encoding config: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
