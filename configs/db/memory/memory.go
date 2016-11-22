@@ -67,6 +67,7 @@ func (d *DB) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg 
 // been evaluated since the given time.
 func (d *DB) GetCortexConfigs(since time.Duration) ([]*configs.CortexConfig, error) {
 	cfgs := []*configs.CortexConfig{}
+	threshold := time.Now().Add(-since)
 	for org, subsystems := range d.orgCfgs {
 		cfg, ok := subsystems["cortex"]
 		if !ok {
@@ -75,6 +76,9 @@ func (d *DB) GetCortexConfigs(since time.Duration) ([]*configs.CortexConfig, err
 		cortex, err := cfg.ToCortexConfig()
 		if err != nil {
 			return nil, err
+		}
+		if cortex.LastEvaluated.After(threshold) {
+			continue
 		}
 		cortex.OrgID = org
 		cfgs = append(cfgs, cortex)

@@ -121,7 +121,8 @@ func (d DB) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg c
 func (d DB) GetCortexConfigs(since time.Duration) ([]*configs.CortexConfig, error) {
 	q := d.Select("configs.id", "configs.config").
 		From("configs").
-		Where(squirrel.Eq{"configs.subsystem": "cortex"})
+		Where(squirrel.Eq{"configs.subsystem": "cortex"}).
+		Where("NOT (configs.config ?? 'last_evaluated') OR ((configs.config ->> 'last_evaluated')::timestamptz <= (now() - interval '1 second' * ?))", since.Seconds())
 	rows, err := q.Query()
 	if err != nil {
 		return nil, err
