@@ -240,7 +240,7 @@ func (a *API) setOrgConfig(w http.ResponseWriter, r *http.Request) {
 
 // CortexConfigsView is exposed only for tests.
 type CortexConfigsView struct {
-	Configs []configs.CortexConfig `json:"configs"`
+	Configs []*configs.CortexConfig `json:"configs"`
 }
 
 func (a *API) getCortexConfigs(w http.ResponseWriter, r *http.Request) {

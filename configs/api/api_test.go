@@ -1,10 +1,12 @@
 package api_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -316,11 +318,40 @@ func Test_GetCortexConfigs_Empty(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	noConfigs := api.CortexConfigsView{Configs: []configs.CortexConfig{}}
-	endpoint := fmt.Sprintf("/private/api/configs/cortex?since=15m")
-	w := request(t, "GET", endpoint, nil)
+	noConfigs := api.CortexConfigsView{Configs: []*configs.CortexConfig{}}
+	w := request(t, "GET", "/private/api/configs/cortex?since=15m", nil)
 	var foundConfigs api.CortexConfigsView
 	err := json.Unmarshal(w.Body.Bytes(), &foundConfigs)
 	require.NoError(t, err, "Could not unmarshal JSON")
-	assert.Equal(t, foundConfigs, noConfigs)
+	assert.Equal(t, noConfigs, foundConfigs)
+}
+
+func Test_GetCortexConfigs_NullEvaluatedTime(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	orgID := makeOrgID()
+	subsystem := "cortex"
+	content := configs.CortexConfig{
+		RulesFiles: map[string]string{
+			"recording.rules": "foo",
+		},
+	}
+	b, err := json.Marshal(content)
+	require.NoError(t, err)
+	{
+		endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+		w := requestAsOrg(t, orgID, "POST", endpoint, bytes.NewReader(b))
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	}
+	w := request(t, "GET", "/private/api/configs/cortex?since=15m", nil)
+	var foundConfigs api.CortexConfigsView
+	err = json.Unmarshal(w.Body.Bytes(), &foundConfigs)
+	require.NoError(t, err, "Could not unmarshal JSON")
+	// Server includes OrgID, which not necessarily part of what's uploaded.
+	content.OrgID = orgID
+	// We need to do this because time.Time doesn't roundtrip to JSON.
+	content.LastEvaluated = content.LastEvaluated.In(time.UTC)
+	assert.Equal(t, api.CortexConfigsView{Configs: []*configs.CortexConfig{&content}}, foundConfigs)
+	assert.Equal(t, content, *foundConfigs.Configs[0])
 }

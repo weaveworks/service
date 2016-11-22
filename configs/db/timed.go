@@ -55,7 +55,7 @@ func (t timed) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cf
 	})
 }
 
-func (t timed) GetCortexConfigs(since time.Duration) (cfgs []configs.CortexConfig, err error) {
+func (t timed) GetCortexConfigs(since time.Duration) (cfgs []*configs.CortexConfig, err error) {
 	t.timeRequest("GetCortexConfigs", func() error {
 		cfgs, err = t.d.GetCortexConfigs(since)
 		return err

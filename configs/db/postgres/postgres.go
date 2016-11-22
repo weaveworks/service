@@ -118,27 +118,47 @@ func (d DB) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg c
 }
 
 // GetCortexConfigs gets the configs that haven't been evaluated since the given time.
-func (d DB) GetCortexConfigs(since time.Duration) ([]configs.CortexConfig, error) {
+func (d DB) GetCortexConfigs(since time.Duration) ([]*configs.CortexConfig, error) {
 	q := d.Select("configs.id", "configs.config").
 		From("configs").
-		Where(squirrel.Eq{"configs.subsystem": "cortex"}).
-		Where("to_timestamp(configs.config ->> 'last_evaluated', 'YYYY-MM-DDTHH:MI:SS.MS') >= (now() - interval '1 second' * ?)", since.Seconds())
+		Where(squirrel.Eq{"configs.subsystem": "cortex"})
 	rows, err := q.Query()
 	if err != nil {
 		return nil, err
 	}
-	cfgs := []configs.CortexConfig{}
+	defer rows.Close()
+	return scanCortexConfigs(rows)
+}
+
+// scanCortexConfigs scans CortexConfigs from rows.
+func scanCortexConfigs(rows *sql.Rows) ([]*configs.CortexConfig, error) {
+	configs := []*configs.CortexConfig{}
 	for rows.Next() {
-		var orgID configs.OrgID
-		cfg := configs.CortexConfig{}
-		err := rows.Scan(&orgID, &cfg)
+		cfg, err := scanCortexConfig(rows)
 		if err != nil {
 			return nil, err
 		}
-		cfg.OrgID = orgID
-		cfgs = append(cfgs, cfg)
+		configs = append(configs, cfg)
 	}
-	return cfgs, nil
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+	return configs, nil
+}
+
+// scanCortexConfig scans a CortexConfig from a row.
+func scanCortexConfig(row squirrel.RowScanner) (*configs.CortexConfig, error) {
+	c := configs.CortexConfig{}
+	var orgID configs.OrgID
+	var cfgBytes []byte
+	if err := row.Scan(&orgID, &cfgBytes); err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(cfgBytes, &c); err != nil {
+		return nil, err
+	}
+	c.OrgID = orgID
+	return &c, nil
 }
 
 // Now gives us the current time for Postgres. Postgres only stores times to

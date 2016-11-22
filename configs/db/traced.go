@@ -36,7 +36,7 @@ func (t traced) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, c
 	return t.d.SetOrgConfig(orgID, subsystem, cfg)
 }
 
-func (t traced) GetCortexConfigs(since time.Duration) (cfgs []configs.CortexConfig, err error) {
+func (t traced) GetCortexConfigs(since time.Duration) (cfgs []*configs.CortexConfig, err error) {
 	defer func() { t.trace("GetCortexConfigs", since, cfgs, err) }()
 	return t.d.GetCortexConfigs(since)
 }

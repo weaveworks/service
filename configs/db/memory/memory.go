@@ -65,15 +65,19 @@ func (d *DB) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg 
 
 // GetCortexConfigs returns all the configurations for cortex that haven't
 // been evaluated since the given time.
-func (d *DB) GetCortexConfigs(since time.Duration) ([]configs.CortexConfig, error) {
-	cfgs := []configs.CortexConfig{}
+func (d *DB) GetCortexConfigs(since time.Duration) ([]*configs.CortexConfig, error) {
+	cfgs := []*configs.CortexConfig{}
 	for org, subsystems := range d.orgCfgs {
-		cortex := subsystems["cortex"]
-		for _, cfg := range cortex {
-			cortexCfg := cfg.(configs.CortexConfig)
-			cortexCfg.OrgID = org
-			cfgs = append(cfgs, cortexCfg)
+		cfg, ok := subsystems["cortex"]
+		if !ok {
+			continue
 		}
+		cortex, err := cfg.ToCortexConfig()
+		if err != nil {
+			return nil, err
+		}
+		cortex.OrgID = org
+		cfgs = append(cfgs, cortex)
 	}
 	return cfgs, nil
 }
