@@ -90,7 +90,7 @@ func Test_PostUserConfig_CreatesConfig(t *testing.T) {
 	}
 	{
 		w := requestAsUser(t, userID, "GET", endpoint, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content)
+		assert.Equal(t, content, parseJSON(t, w.Body.Bytes()))
 	}
 }
 
@@ -111,7 +111,7 @@ func Test_PostUserConfig_UpdatesConfig(t *testing.T) {
 	}
 	{
 		w := requestAsUser(t, userID, "GET", endpoint, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
 	}
 }
 
@@ -131,11 +131,11 @@ func Test_PostUserConfig_MultipleSubsystems(t *testing.T) {
 	requestAsUser(t, userID, "POST", endpoint2, content2.Reader(t))
 	{
 		w := requestAsUser(t, userID, "GET", endpoint1, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content1)
+		assert.Equal(t, content1, parseJSON(t, w.Body.Bytes()))
 	}
 	{
 		w := requestAsUser(t, userID, "GET", endpoint2, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
 	}
 }
 
@@ -155,11 +155,11 @@ func Test_PostUserConfig_MultipleUsers(t *testing.T) {
 	requestAsUser(t, userID2, "POST", endpoint2, content2.Reader(t))
 	{
 		w := requestAsUser(t, userID1, "GET", endpoint1, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content1)
+		assert.Equal(t, content1, parseJSON(t, w.Body.Bytes()))
 	}
 	{
 		w := requestAsUser(t, userID2, "GET", endpoint2, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
 	}
 }
 
@@ -234,7 +234,7 @@ func Test_PostOrgConfig_CreatesConfig(t *testing.T) {
 	}
 	{
 		w := requestAsOrg(t, orgID, "GET", endpoint, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content)
+		assert.Equal(t, content, parseJSON(t, w.Body.Bytes()))
 	}
 }
 
@@ -255,7 +255,7 @@ func Test_PostOrgConfig_UpdatesConfig(t *testing.T) {
 	}
 	{
 		w := requestAsOrg(t, orgID, "GET", endpoint, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
 	}
 }
 
@@ -275,11 +275,11 @@ func Test_PostOrgConfig_MultipleSubsystems(t *testing.T) {
 	requestAsOrg(t, orgID, "POST", endpoint2, content2.Reader(t))
 	{
 		w := requestAsOrg(t, orgID, "GET", endpoint1, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content1)
+		assert.Equal(t, content1, parseJSON(t, w.Body.Bytes()))
 	}
 	{
 		w := requestAsOrg(t, orgID, "GET", endpoint2, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
 	}
 }
 
@@ -299,10 +299,10 @@ func Test_PostOrgConfig_MultipleOrgs(t *testing.T) {
 	requestAsOrg(t, orgID2, "POST", endpoint2, content2.Reader(t))
 	{
 		w := requestAsOrg(t, orgID1, "GET", endpoint1, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content1)
+		assert.Equal(t, content1, parseJSON(t, w.Body.Bytes()))
 	}
 	{
 		w := requestAsOrg(t, orgID2, "GET", endpoint2, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
 	}
 }
