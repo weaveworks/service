@@ -117,6 +117,28 @@ func (d DB) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg c
 	return d.upsertConfig(string(orgID), orgType, subsystem, cfg)
 }
 
+// GetAllOrgConfigs gets all of the organization configs for a subsystem.
+func (d DB) GetAllOrgConfigs(subsystem configs.Subsystem) ([]*configs.Config, error) {
+	return nil, nil
+}
+
+// GetOrgConfigs gets all of the organization configs for a subsystem that
+// have changed recently.
+func (d DB) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) ([]*configs.Config, error) {
+	return nil, nil
+}
+
+// GetAllUserConfigs gets all of the user configs for a subsystem.
+func (d DB) GetAllUserConfigs(subsystem configs.Subsystem) ([]*configs.Config, error) {
+	return nil, nil
+}
+
+// GetUserConfigs gets all of the user configs for a subsystem that have
+// changed recently.
+func (d DB) GetUserConfigs(subsystem configs.Subsystem, since time.Duration) ([]*configs.Config, error) {
+	return nil, nil
+}
+
 // Now gives us the current time for Postgres. Postgres only stores times to
 // the microsecond, so we pre-truncate times so tests will match. We also
 // normalize to UTC, for sanity.

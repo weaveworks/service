@@ -1,6 +1,8 @@
 package db
 
 import (
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/scope/common/instrument"
 	"github.com/weaveworks/service/configs"
@@ -51,6 +53,38 @@ func (t timed) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cf
 	return t.timeRequest("SetOrgConfig", func() error {
 		return t.d.SetOrgConfig(orgID, subsystem, cfg)
 	})
+}
+
+func (t timed) GetAllOrgConfigs(subsystem configs.Subsystem) (cfgs []*configs.Config, err error) {
+	t.timeRequest("GetAllOrgConfigs", func() error {
+		cfgs, err = t.d.GetAllOrgConfigs(subsystem)
+		return err
+	})
+	return
+}
+
+func (t timed) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (cfgs []*configs.Config, err error) {
+	t.timeRequest("GetOrgConfigs", func() error {
+		cfgs, err = t.d.GetOrgConfigs(subsystem, since)
+		return err
+	})
+	return
+}
+
+func (t timed) GetAllUserConfigs(subsystem configs.Subsystem) (cfgs []*configs.Config, err error) {
+	t.timeRequest("GetAllUserConfigs", func() error {
+		cfgs, err = t.d.GetAllUserConfigs(subsystem)
+		return err
+	})
+	return
+}
+
+func (t timed) GetUserConfigs(subsystem configs.Subsystem, since time.Duration) (cfgs []*configs.Config, err error) {
+	t.timeRequest("GetUserConfigs", func() error {
+		cfgs, err = t.d.GetUserConfigs(subsystem, since)
+		return err
+	})
+	return
 }
 
 func (t timed) Close() error {

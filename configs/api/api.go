@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -81,6 +82,9 @@ func (a *API) routes() http.Handler {
 		{"set_user_config", "POST", "/api/configs/user/{userID}/{subsystem}", a.setUserConfig},
 		{"get_org_config", "GET", "/api/configs/org/{orgID}/{subsystem}", a.getOrgConfig},
 		{"set_org_config", "POST", "/api/configs/org/{orgID}/{subsystem}", a.setOrgConfig},
+		// Internal APIs.
+		{"private_get_user_configs", "GET", "/private/api/configs/user/{subsystem}", a.getUserConfigs},
+		{"private_get_org_configs", "GET", "/private/api/configs/org/{subsystem}", a.getOrgConfigs},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
@@ -232,4 +236,78 @@ func (a *API) setOrgConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type configsView struct {
+	Configs []*configs.Config `json:"configs"`
+}
+
+func (a *API) getOrgConfigs(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	subsystem := configs.Subsystem(vars["subsystem"])
+
+	var cfgs []*configs.Config
+	var err error
+	rawSince := r.FormValue("since")
+	if rawSince == "" {
+		cfgs, err = a.db.GetAllOrgConfigs(subsystem)
+	} else {
+		since, err := time.ParseDuration(rawSince)
+		if err != nil {
+			log.Infof("Invalid duration: %v", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		cfgs, err = a.db.GetOrgConfigs(subsystem, since)
+	}
+
+	if err != nil {
+		// XXX: Untested
+		log.Errorf("Error getting configs: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	view := configsView{Configs: cfgs}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(view); err != nil {
+		// XXX: Untested
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (a *API) getUserConfigs(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	subsystem := configs.Subsystem(vars["subsystem"])
+
+	var cfgs []*configs.Config
+	var err error
+	rawSince := r.FormValue("since")
+	if rawSince == "" {
+		cfgs, err = a.db.GetAllUserConfigs(subsystem)
+	} else {
+		since, err := time.ParseDuration(rawSince)
+		if err != nil {
+			log.Infof("Invalid duration: %v", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		cfgs, err = a.db.GetUserConfigs(subsystem, since)
+	}
+
+	if err != nil {
+		// XXX: Untested
+		log.Errorf("Error getting configs: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	view := configsView{Configs: cfgs}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(view); err != nil {
+		// XXX: Untested
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

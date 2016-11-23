@@ -2,6 +2,7 @@ package db
 
 import (
 	"net/url"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 
@@ -17,6 +18,12 @@ type DB interface {
 	SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) error
 	GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (configs.Config, error)
 	SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg configs.Config) error
+
+	GetAllOrgConfigs(subsystem configs.Subsystem) ([]*configs.Config, error)
+	GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) ([]*configs.Config, error)
+	GetAllUserConfigs(subsystem configs.Subsystem) ([]*configs.Config, error)
+	GetUserConfigs(subsystem configs.Subsystem, since time.Duration) ([]*configs.Config, error)
+
 	Close() error
 }
 
