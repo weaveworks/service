@@ -162,6 +162,17 @@ func scanCortexConfig(row squirrel.RowScanner) (*configs.CortexConfig, error) {
 	return &c, nil
 }
 
+// TouchCortexConfig updates the last evaluated time to now.
+func (d DB) TouchCortexConfig(orgID configs.OrgID) error {
+	return d.Transaction(func(tx DB) error {
+		_, err := d.Update("configs").
+			Where(configMatches(string(orgID), orgType, "cortex")).
+			Set("config", "config || json_build_object('last_evaluated', now()::text)").
+			Exec()
+		return err
+	})
+}
+
 // Now gives us the current time for Postgres. Postgres only stores times to
 // the microsecond, so we pre-truncate times so tests will match. We also
 // normalize to UTC, for sanity.

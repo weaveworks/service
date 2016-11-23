@@ -86,6 +86,17 @@ func (d *DB) GetCortexConfigs(since time.Duration) ([]*configs.CortexConfig, err
 	return cfgs, nil
 }
 
+// TouchCortexConfig sets the last evaluated time to now.
+func (d *DB) TouchCortexConfig(orgID configs.OrgID) error {
+	now := time.Now()
+	c, ok := d.orgCfgs[orgID]["cortex"]
+	if !ok {
+		return sql.ErrNoRows
+	}
+	c["last_evaluated"] = now
+	return nil
+}
+
 // Close finishes using the db. Noop.
 func (d *DB) Close() error {
 	return nil

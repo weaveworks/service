@@ -20,6 +20,7 @@ type DB interface {
 	SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg configs.Config) error
 
 	GetCortexConfigs(since time.Duration) ([]*configs.CortexConfig, error)
+	TouchCortexConfig(orgID configs.OrgID) error
 
 	Close() error
 }

@@ -85,6 +85,7 @@ func (a *API) routes() http.Handler {
 
 		// Internal stuff for our internal usage, internally.
 		{"private_get_cortex_configs", "GET", "/private/api/configs/cortex", a.getCortexConfigs},
+		{"private_touch_cortex_config", "POST", "/private/api/configs/cortex/{orgID}", a.touchCortexConfig},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
@@ -266,4 +267,16 @@ func (a *API) getCortexConfigs(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (a *API) touchCortexConfig(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	orgID := configs.OrgID(vars["orgID"])
+	err := a.db.TouchCortexConfig(orgID)
+	if err != nil {
+		log.Errorf("Could not mark Cortex config as evaluated: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

@@ -63,6 +63,12 @@ func (t timed) GetCortexConfigs(since time.Duration) (cfgs []*configs.CortexConf
 	return
 }
 
+func (t timed) TouchCortexConfig(orgID configs.OrgID) (err error) {
+	return t.timeRequest("TouchCortexConfig", func() error {
+		return t.d.TouchCortexConfig(orgID)
+	})
+}
+
 func (t timed) Close() error {
 	return t.timeRequest("Close", func() error {
 		return t.d.Close()

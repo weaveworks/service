@@ -414,3 +414,36 @@ func Test_GetCortexConfigs_OldEnough(t *testing.T) {
 	assert.Equal(t, api.CortexConfigsView{Configs: []*configs.CortexConfig{&content}}, foundConfigs)
 	assert.Equal(t, content, *foundConfigs.Configs[0])
 }
+
+func Test_TouchCortexConfig(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	orgID := makeOrgID()
+	subsystem := "cortex"
+	duration := 15 * time.Minute
+	content := configs.CortexConfig{
+		RulesFiles: map[string]string{
+			"recording.rules": "foo",
+		},
+		LastEvaluated: time.Now().Add(-2 * duration).In(time.UTC),
+	}
+	b, err := json.Marshal(content)
+	require.NoError(t, err)
+	{
+		endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+		w := requestAsOrg(t, orgID, "POST", endpoint, bytes.NewReader(b))
+		require.Equal(t, http.StatusNoContent, w.Code)
+	}
+	{
+		endpoint := fmt.Sprintf("/private/api/configs/cortex/%s", orgID)
+		w := request(t, "POST", endpoint, nil)
+		require.Equal(t, http.StatusNoContent, w.Code)
+	}
+	endpoint := fmt.Sprintf("/private/api/configs/cortex?since=%s", duration.String())
+	w := request(t, "GET", endpoint, nil)
+	var foundConfigs api.CortexConfigsView
+	err = json.Unmarshal(w.Body.Bytes(), &foundConfigs)
+	require.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.CortexConfigsView{Configs: []*configs.CortexConfig{}}, foundConfigs)
+}

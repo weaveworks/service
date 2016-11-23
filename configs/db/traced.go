@@ -41,6 +41,11 @@ func (t traced) GetCortexConfigs(since time.Duration) (cfgs []*configs.CortexCon
 	return t.d.GetCortexConfigs(since)
 }
 
+func (t traced) TouchCortexConfig(orgID configs.OrgID) (err error) {
+	defer func() { t.trace("TouchCortexConfig", orgID) }()
+	return t.d.TouchCortexConfig(orgID)
+}
+
 func (t traced) Close() (err error) {
 	defer func() { t.trace("Close", err) }()
 	return t.d.Close()
