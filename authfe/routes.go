@@ -8,6 +8,8 @@ import (
 	"regexp"
 
 	"github.com/gorilla/mux"
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/scope/common/middleware"
 	"github.com/weaveworks/scope/common/xfer"
@@ -309,6 +311,9 @@ func routes(c Config) (http.Handler, error) {
 	}
 
 	return middleware.Merge(
+		middleware.Func(func(handler http.Handler) http.Handler {
+			return nethttp.Middleware(opentracing.GlobalTracer(), handler)
+		}),
 		middleware.Instrument{
 			RouteMatcher: r,
 			Duration:     requestDuration,
