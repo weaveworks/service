@@ -11,6 +11,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/scope/common/xfer"
@@ -354,6 +356,9 @@ func routes(c Config) (http.Handler, error) {
 
 	return middleware.Merge(
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
+		middleware.Func(func(handler http.Handler) http.Handler {
+			return nethttp.Middleware(opentracing.GlobalTracer(), handler)
+		}),
 		middleware.Instrument{
 			RouteMatcher: r,
 			Duration:     requestDuration,
