@@ -1,11 +1,17 @@
 package api_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/weaveworks/service/configs"
+	"github.com/weaveworks/service/configs/api"
 )
 
 // The root page returns 200 OK.
@@ -90,7 +96,7 @@ func Test_PostUserConfig_CreatesConfig(t *testing.T) {
 	}
 	{
 		w := requestAsUser(t, userID, "GET", endpoint, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content)
+		assert.Equal(t, content, parseJSON(t, w.Body.Bytes()))
 	}
 }
 
@@ -111,7 +117,7 @@ func Test_PostUserConfig_UpdatesConfig(t *testing.T) {
 	}
 	{
 		w := requestAsUser(t, userID, "GET", endpoint, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
 	}
 }
 
@@ -131,11 +137,11 @@ func Test_PostUserConfig_MultipleSubsystems(t *testing.T) {
 	requestAsUser(t, userID, "POST", endpoint2, content2.Reader(t))
 	{
 		w := requestAsUser(t, userID, "GET", endpoint1, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content1)
+		assert.Equal(t, content1, parseJSON(t, w.Body.Bytes()))
 	}
 	{
 		w := requestAsUser(t, userID, "GET", endpoint2, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
 	}
 }
 
@@ -155,11 +161,11 @@ func Test_PostUserConfig_MultipleUsers(t *testing.T) {
 	requestAsUser(t, userID2, "POST", endpoint2, content2.Reader(t))
 	{
 		w := requestAsUser(t, userID1, "GET", endpoint1, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content1)
+		assert.Equal(t, content1, parseJSON(t, w.Body.Bytes()))
 	}
 	{
 		w := requestAsUser(t, userID2, "GET", endpoint2, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
 	}
 }
 
@@ -234,7 +240,7 @@ func Test_PostOrgConfig_CreatesConfig(t *testing.T) {
 	}
 	{
 		w := requestAsOrg(t, orgID, "GET", endpoint, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content)
+		assert.Equal(t, content, parseJSON(t, w.Body.Bytes()))
 	}
 }
 
@@ -255,7 +261,7 @@ func Test_PostOrgConfig_UpdatesConfig(t *testing.T) {
 	}
 	{
 		w := requestAsOrg(t, orgID, "GET", endpoint, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
 	}
 }
 
@@ -275,11 +281,11 @@ func Test_PostOrgConfig_MultipleSubsystems(t *testing.T) {
 	requestAsOrg(t, orgID, "POST", endpoint2, content2.Reader(t))
 	{
 		w := requestAsOrg(t, orgID, "GET", endpoint1, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content1)
+		assert.Equal(t, content1, parseJSON(t, w.Body.Bytes()))
 	}
 	{
 		w := requestAsOrg(t, orgID, "GET", endpoint2, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
 	}
 }
 
@@ -299,10 +305,190 @@ func Test_PostOrgConfig_MultipleOrgs(t *testing.T) {
 	requestAsOrg(t, orgID2, "POST", endpoint2, content2.Reader(t))
 	{
 		w := requestAsOrg(t, orgID1, "GET", endpoint1, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content1)
+		assert.Equal(t, content1, parseJSON(t, w.Body.Bytes()))
 	}
 	{
 		w := requestAsOrg(t, orgID2, "GET", endpoint2, nil)
-		assert.Equal(t, parseJSON(t, w.Body.Bytes()), content2)
+		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
 	}
+}
+
+// GetAllOrgConfigs returns an empty list of configs if there aren't any.
+func Test_GetAllOrgConfigs_Empty(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	subsystem := makeSubsystem()
+	endpoint := fmt.Sprintf("/private/api/configs/org/%s", subsystem)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.OrgConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.OrgConfigsView{Configs: map[configs.OrgID]configs.Config{}}, found)
+}
+
+// GetAllOrgConfigs returns all created configs.
+func Test_GetAllOrgConfigs(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	orgID := makeOrgID()
+	subsystem := makeSubsystem()
+	config := makeConfig()
+	content := jsonObject(config)
+	{
+		endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+		w := requestAsOrg(t, orgID, "POST", endpoint, content.Reader(t))
+		require.Equal(t, http.StatusNoContent, w.Code)
+	}
+	endpoint := fmt.Sprintf("/private/api/configs/org/%s", subsystem)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.OrgConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.OrgConfigsView{Configs: map[configs.OrgID]configs.Config{
+		orgID: config,
+	}}, found)
+}
+
+func Test_GetOrgConfigs_IncludesNewerConfigs(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	orgID := makeOrgID()
+	subsystem := makeSubsystem()
+	config := makeConfig()
+	content := jsonObject(config)
+	{
+		endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+		w := requestAsOrg(t, orgID, "POST", endpoint, content.Reader(t))
+		require.Equal(t, http.StatusNoContent, w.Code)
+	}
+	// XXX: Race condition. Could conceivably take longer than an hour to go
+	// from creating organization to running the query.
+	duration := 1 * time.Hour
+	endpoint := fmt.Sprintf("/private/api/configs/org/%s?since=%s", subsystem, duration)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.OrgConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.OrgConfigsView{Configs: map[configs.OrgID]configs.Config{
+		orgID: config,
+	}}, found)
+}
+
+func Test_GetOrgConfigs_ExcludesOlderConfigs(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	subsystem := makeSubsystem()
+	{
+		orgID := makeOrgID()
+		content := jsonObject(makeConfig())
+		endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+		w := requestAsOrg(t, orgID, "POST", endpoint, content.Reader(t))
+		require.Equal(t, http.StatusNoContent, w.Code)
+	}
+	timeCreated := time.Now()
+	duration := time.Now().Sub(timeCreated)
+	endpoint := fmt.Sprintf("/private/api/configs/org/%s?since=%s", subsystem, duration)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.OrgConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.OrgConfigsView{Configs: map[configs.OrgID]configs.Config{}}, found)
+}
+
+// GetAllUserConfigs returns an empty list of configs if there aren't any.
+func Test_GetAllUserConfigs_Empty(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	subsystem := makeSubsystem()
+	endpoint := fmt.Sprintf("/private/api/configs/user/%s", subsystem)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.UserConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.UserConfigsView{Configs: map[configs.UserID]configs.Config{}}, found)
+}
+
+// GetAllUserConfigs returns all created configs.
+func Test_GetAllUserConfigs(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	userID := makeUserID()
+	subsystem := makeSubsystem()
+	config := makeConfig()
+	content := jsonObject(config)
+	{
+		endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
+		w := requestAsUser(t, userID, "POST", endpoint, content.Reader(t))
+		require.Equal(t, http.StatusNoContent, w.Code)
+	}
+	endpoint := fmt.Sprintf("/private/api/configs/user/%s", subsystem)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.UserConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.UserConfigsView{Configs: map[configs.UserID]configs.Config{
+		userID: config,
+	}}, found)
+}
+
+func Test_GetUserConfigs_IncludesNewerConfigs(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	userID := makeUserID()
+	subsystem := makeSubsystem()
+	config := makeConfig()
+	content := jsonObject(config)
+	{
+		endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
+		w := requestAsUser(t, userID, "POST", endpoint, content.Reader(t))
+		require.Equal(t, http.StatusNoContent, w.Code)
+	}
+	// XXX: Race condition. Could conceivably take longer than an hour to go
+	// from creating user to running the query.
+	duration := 1 * time.Hour
+	endpoint := fmt.Sprintf("/private/api/configs/user/%s?since=%s", subsystem, duration)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.UserConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.UserConfigsView{Configs: map[configs.UserID]configs.Config{
+		userID: config,
+	}}, found)
+}
+
+func Test_GetUserConfigs_ExcludesOlderConfigs(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	subsystem := makeSubsystem()
+	{
+		userID := makeUserID()
+		content := jsonObject(makeConfig())
+		endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
+		w := requestAsUser(t, userID, "POST", endpoint, content.Reader(t))
+		require.Equal(t, http.StatusNoContent, w.Code)
+	}
+	timeCreated := time.Now()
+	duration := time.Now().Sub(timeCreated)
+	endpoint := fmt.Sprintf("/private/api/configs/user/%s?since=%s", subsystem, duration)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.UserConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.UserConfigsView{Configs: map[configs.UserID]configs.Config{}}, found)
 }
