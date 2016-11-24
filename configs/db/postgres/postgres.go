@@ -52,13 +52,22 @@ func New(databaseURI, migrationsDir string) (DB, error) {
 
 var statementBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).RunWith
 
-func configMatches(id, entityType, subsystem string) squirrel.Eq {
+func configMatches(id, entityType, subsystem string) squirrel.Sqlizer {
 	// TODO: Tests for deleted_at requirement.
+	return squirrel.And{
+		configsMatch(entityType, subsystem),
+		squirrel.Eq{
+			"id": id,
+		},
+	}
+}
+
+// configsMatch returns a matcher for configs of a particular type.
+func configsMatch(entityType, subsystem string) squirrel.Sqlizer {
 	return squirrel.Eq{
 		"deleted_at": nil,
 		"type":       entityType,
 		"subsystem":  subsystem,
-		"id":         id,
 	}
 }
 
@@ -73,6 +82,30 @@ func (d DB) findConfig(id, entityType, subsystem string) (configs.Config, error)
 	}
 	err = json.Unmarshal(cfgBytes, &cfg)
 	return cfg, err
+}
+
+func (d DB) findConfigs(filter squirrel.Sqlizer) (map[string]configs.Config, error) {
+	rows, err := d.Select("id", "config").From("configs").Where(filter).Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	cfgs := map[string]configs.Config{}
+	for rows.Next() {
+		var cfgBytes []byte
+		var entityID string
+		err = rows.Scan(&entityID, &cfgBytes)
+		if err != nil {
+			return nil, err
+		}
+		var cfg configs.Config
+		err = json.Unmarshal(cfgBytes, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfgs[entityID] = cfg
+	}
+	return cfgs, nil
 }
 
 func (d DB) upsertConfig(id, entityType string, subsystem configs.Subsystem, cfg configs.Config) error {
@@ -117,26 +150,52 @@ func (d DB) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg c
 	return d.upsertConfig(string(orgID), orgType, subsystem, cfg)
 }
 
+// toOrgConfigs = mapKeys configs.OrgID
+func toOrgConfigs(rawCfgs map[string]configs.Config) map[configs.OrgID]configs.Config {
+	cfgs := map[configs.OrgID]configs.Config{}
+	for entityID, cfg := range rawCfgs {
+		cfgs[configs.OrgID(entityID)] = cfg
+	}
+	return cfgs
+}
+
 // GetAllOrgConfigs gets all of the organization configs for a subsystem.
-func (d DB) GetAllOrgConfigs(subsystem configs.Subsystem) ([]*configs.Config, error) {
-	return nil, nil
+func (d DB) GetAllOrgConfigs(subsystem configs.Subsystem) (map[configs.OrgID]configs.Config, error) {
+	rawCfgs, err := d.findConfigs(configsMatch(orgType, string(subsystem)))
+	if err != nil {
+		return nil, err
+	}
+	return toOrgConfigs(rawCfgs), nil
 }
 
 // GetOrgConfigs gets all of the organization configs for a subsystem that
 // have changed recently.
-func (d DB) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) ([]*configs.Config, error) {
-	return nil, nil
+func (d DB) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.OrgID]configs.Config, error) {
+	return map[configs.OrgID]configs.Config{}, nil
+}
+
+// toUserConfigs = mapKeys configs.UserID
+func toUserConfigs(rawCfgs map[string]configs.Config) map[configs.UserID]configs.Config {
+	cfgs := map[configs.UserID]configs.Config{}
+	for entityID, cfg := range rawCfgs {
+		cfgs[configs.UserID(entityID)] = cfg
+	}
+	return cfgs
 }
 
 // GetAllUserConfigs gets all of the user configs for a subsystem.
-func (d DB) GetAllUserConfigs(subsystem configs.Subsystem) ([]*configs.Config, error) {
-	return nil, nil
+func (d DB) GetAllUserConfigs(subsystem configs.Subsystem) (map[configs.UserID]configs.Config, error) {
+	rawCfgs, err := d.findConfigs(configsMatch(userType, string(subsystem)))
+	if err != nil {
+		return nil, err
+	}
+	return toUserConfigs(rawCfgs), nil
 }
 
 // GetUserConfigs gets all of the user configs for a subsystem that have
 // changed recently.
-func (d DB) GetUserConfigs(subsystem configs.Subsystem, since time.Duration) ([]*configs.Config, error) {
-	return nil, nil
+func (d DB) GetUserConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.UserID]configs.Config, error) {
+	return map[configs.UserID]configs.Config{}, nil
 }
 
 // Now gives us the current time for Postgres. Postgres only stores times to

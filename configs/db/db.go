@@ -19,10 +19,10 @@ type DB interface {
 	GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (configs.Config, error)
 	SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg configs.Config) error
 
-	GetAllOrgConfigs(subsystem configs.Subsystem) ([]*configs.Config, error)
-	GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) ([]*configs.Config, error)
-	GetAllUserConfigs(subsystem configs.Subsystem) ([]*configs.Config, error)
-	GetUserConfigs(subsystem configs.Subsystem, since time.Duration) ([]*configs.Config, error)
+	GetAllOrgConfigs(subsystem configs.Subsystem) (map[configs.OrgID]configs.Config, error)
+	GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.OrgID]configs.Config, error)
+	GetAllUserConfigs(subsystem configs.Subsystem) (map[configs.UserID]configs.Config, error)
+	GetUserConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.UserID]configs.Config, error)
 
 	Close() error
 }

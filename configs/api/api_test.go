@@ -1,11 +1,16 @@
 package api_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/weaveworks/service/configs"
+	"github.com/weaveworks/service/configs/api"
 )
 
 // The root page returns 200 OK.
@@ -305,4 +310,84 @@ func Test_PostOrgConfig_MultipleOrgs(t *testing.T) {
 		w := requestAsOrg(t, orgID2, "GET", endpoint2, nil)
 		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
 	}
+}
+
+// GetAllOrgConfigs returns an empty list of configs if there aren't any.
+func Test_GetAllOrgConfigs_Empty(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	subsystem := makeSubsystem()
+	endpoint := fmt.Sprintf("/private/api/configs/org/%s", subsystem)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.OrgConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.OrgConfigsView{Configs: map[configs.OrgID]configs.Config{}}, found)
+}
+
+// GetAllOrgConfigs returns all created configs.
+func Test_GetAllOrgConfigs(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	orgID := makeOrgID()
+	subsystem := makeSubsystem()
+	config := makeConfig()
+	content := jsonObject(config)
+	{
+		endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+		w := requestAsOrg(t, orgID, "POST", endpoint, content.Reader(t))
+		require.Equal(t, http.StatusNoContent, w.Code)
+	}
+	endpoint := fmt.Sprintf("/private/api/configs/org/%s", subsystem)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.OrgConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.OrgConfigsView{Configs: map[configs.OrgID]configs.Config{
+		orgID: config,
+	}}, found)
+}
+
+// GetAllUserConfigs returns an empty list of configs if there aren't any.
+func Test_GetAllUserConfigs_Empty(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	subsystem := makeSubsystem()
+	endpoint := fmt.Sprintf("/private/api/configs/user/%s", subsystem)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.UserConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.UserConfigsView{Configs: map[configs.UserID]configs.Config{}}, found)
+}
+
+// GetAllUserConfigs returns all created configs.
+func Test_GetAllUserConfigs(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	userID := makeUserID()
+	subsystem := makeSubsystem()
+	config := makeConfig()
+	content := jsonObject(config)
+	{
+		endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
+		w := requestAsUser(t, userID, "POST", endpoint, content.Reader(t))
+		require.Equal(t, http.StatusNoContent, w.Code)
+	}
+	endpoint := fmt.Sprintf("/private/api/configs/user/%s", subsystem)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.UserConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.UserConfigsView{Configs: map[configs.UserID]configs.Config{
+		userID: config,
+	}}, found)
 }

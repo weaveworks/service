@@ -238,15 +238,17 @@ func (a *API) setOrgConfig(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-type configsView struct {
-	Configs []*configs.Config `json:"configs"`
+// OrgConfigsView renders multiple configurations.
+// Exposed only for tests.
+type OrgConfigsView struct {
+	Configs map[configs.OrgID]configs.Config `json:"configs"`
 }
 
 func (a *API) getOrgConfigs(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	subsystem := configs.Subsystem(vars["subsystem"])
 
-	var cfgs []*configs.Config
+	var cfgs map[configs.OrgID]configs.Config
 	var err error
 	rawSince := r.FormValue("since")
 	if rawSince == "" {
@@ -268,7 +270,7 @@ func (a *API) getOrgConfigs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	view := configsView{Configs: cfgs}
+	view := OrgConfigsView{Configs: cfgs}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(view); err != nil {
 		// XXX: Untested
@@ -277,11 +279,17 @@ func (a *API) getOrgConfigs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// UserConfigsView renders multiple configurations.
+// Exposed only for tests.
+type UserConfigsView struct {
+	Configs map[configs.UserID]configs.Config `json:"configs"`
+}
+
 func (a *API) getUserConfigs(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	subsystem := configs.Subsystem(vars["subsystem"])
 
-	var cfgs []*configs.Config
+	var cfgs map[configs.UserID]configs.Config
 	var err error
 	rawSince := r.FormValue("since")
 	if rawSince == "" {
@@ -303,7 +311,7 @@ func (a *API) getUserConfigs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	view := configsView{Configs: cfgs}
+	view := UserConfigsView{Configs: cfgs}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(view); err != nil {
 		// XXX: Untested
