@@ -51,8 +51,11 @@ func newProxy(hostAndPort string) proxy {
 }
 
 func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	r, ht := nethttp.TraceRequest(opentracing.GlobalTracer(), r)
-	defer ht.Finish()
+	if !isWSHandshakeRequest(r) {
+		var ht *nethttp.Tracer
+		r, ht = nethttp.TraceRequest(opentracing.GlobalTracer(), r)
+		defer ht.Finish()
+	}
 
 	if p.hostAndPort == "" {
 		w.WriteHeader(http.StatusNotImplemented)
