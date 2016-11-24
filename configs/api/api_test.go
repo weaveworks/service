@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -352,6 +353,56 @@ func Test_GetAllOrgConfigs(t *testing.T) {
 	}}, found)
 }
 
+func Test_GetOrgConfigs_IncludesNewerConfigs(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	orgID := makeOrgID()
+	subsystem := makeSubsystem()
+	config := makeConfig()
+	content := jsonObject(config)
+	{
+		endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+		w := requestAsOrg(t, orgID, "POST", endpoint, content.Reader(t))
+		require.Equal(t, http.StatusNoContent, w.Code)
+	}
+	// XXX: Race condition. Could conceivably take longer than an hour to go
+	// from creating organization to running the query.
+	duration := 1 * time.Hour
+	endpoint := fmt.Sprintf("/private/api/configs/org/%s?since=%s", subsystem, duration)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.OrgConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.OrgConfigsView{Configs: map[configs.OrgID]configs.Config{
+		orgID: config,
+	}}, found)
+}
+
+func Test_GetOrgConfigs_ExcludesOlderConfigs(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	subsystem := makeSubsystem()
+	{
+		orgID := makeOrgID()
+		content := jsonObject(makeConfig())
+		endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+		w := requestAsOrg(t, orgID, "POST", endpoint, content.Reader(t))
+		require.Equal(t, http.StatusNoContent, w.Code)
+	}
+	timeCreated := time.Now()
+	duration := time.Now().Sub(timeCreated)
+	endpoint := fmt.Sprintf("/private/api/configs/org/%s?since=%s", subsystem, duration)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.OrgConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.OrgConfigsView{Configs: map[configs.OrgID]configs.Config{}}, found)
+}
+
 // GetAllUserConfigs returns an empty list of configs if there aren't any.
 func Test_GetAllUserConfigs_Empty(t *testing.T) {
 	setup(t)
@@ -390,4 +441,54 @@ func Test_GetAllUserConfigs(t *testing.T) {
 	assert.Equal(t, api.UserConfigsView{Configs: map[configs.UserID]configs.Config{
 		userID: config,
 	}}, found)
+}
+
+func Test_GetUserConfigs_IncludesNewerConfigs(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	userID := makeUserID()
+	subsystem := makeSubsystem()
+	config := makeConfig()
+	content := jsonObject(config)
+	{
+		endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
+		w := requestAsUser(t, userID, "POST", endpoint, content.Reader(t))
+		require.Equal(t, http.StatusNoContent, w.Code)
+	}
+	// XXX: Race condition. Could conceivably take longer than an hour to go
+	// from creating user to running the query.
+	duration := 1 * time.Hour
+	endpoint := fmt.Sprintf("/private/api/configs/user/%s?since=%s", subsystem, duration)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.UserConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.UserConfigsView{Configs: map[configs.UserID]configs.Config{
+		userID: config,
+	}}, found)
+}
+
+func Test_GetUserConfigs_ExcludesOlderConfigs(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	subsystem := makeSubsystem()
+	{
+		userID := makeUserID()
+		content := jsonObject(makeConfig())
+		endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
+		w := requestAsUser(t, userID, "POST", endpoint, content.Reader(t))
+		require.Equal(t, http.StatusNoContent, w.Code)
+	}
+	timeCreated := time.Now()
+	duration := time.Now().Sub(timeCreated)
+	endpoint := fmt.Sprintf("/private/api/configs/user/%s?since=%s", subsystem, duration)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.UserConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.UserConfigsView{Configs: map[configs.UserID]configs.Config{}}, found)
 }

@@ -171,7 +171,15 @@ func (d DB) GetAllOrgConfigs(subsystem configs.Subsystem) (map[configs.OrgID]con
 // GetOrgConfigs gets all of the organization configs for a subsystem that
 // have changed recently.
 func (d DB) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.OrgID]configs.Config, error) {
-	return map[configs.OrgID]configs.Config{}, nil
+	threshold := d.Now().Add(-since)
+	rawCfgs, err := d.findConfigs(squirrel.And{
+		configsMatch(orgType, string(subsystem)),
+		squirrel.Gt{"updated_at": threshold},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return toOrgConfigs(rawCfgs), nil
 }
 
 // toUserConfigs = mapKeys configs.UserID
@@ -195,7 +203,15 @@ func (d DB) GetAllUserConfigs(subsystem configs.Subsystem) (map[configs.UserID]c
 // GetUserConfigs gets all of the user configs for a subsystem that have
 // changed recently.
 func (d DB) GetUserConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.UserID]configs.Config, error) {
-	return map[configs.UserID]configs.Config{}, nil
+	threshold := d.Now().Add(-since)
+	rawCfgs, err := d.findConfigs(squirrel.And{
+		configsMatch(userType, string(subsystem)),
+		squirrel.Gt{"updated_at": threshold},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return toUserConfigs(rawCfgs), nil
 }
 
 // Now gives us the current time for Postgres. Postgres only stores times to
