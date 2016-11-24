@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/http"
 	"regexp"
 	"time"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tylerb/graceful"
 
-	"github.com/weaveworks/scope/common/xfer"
 	"github.com/weaveworks/service/common/logging"
 	users "github.com/weaveworks/service/users/client"
 )
@@ -46,40 +44,6 @@ func init() {
 	prometheus.MustRegister(requestDuration)
 	prometheus.MustRegister(wsConnections)
 	prometheus.MustRegister(wsRequestCount)
-}
-
-func newProbeRequestLogger(orgIDHeader string) logging.HTTPEventExtractor {
-	return func(r *http.Request) (logging.Event, bool) {
-		event := logging.Event{
-			ID:             r.URL.Path,
-			Product:        "scope-probe",
-			Version:        r.Header.Get(xfer.ScopeProbeVersionHeader),
-			UserAgent:      r.UserAgent(),
-			ClientID:       r.Header.Get(xfer.ScopeProbeIDHeader),
-			OrganizationID: r.Header.Get(orgIDHeader),
-		}
-		return event, true
-	}
-}
-
-func newUIRequestLogger(orgIDHeader, userIDHeader string) logging.HTTPEventExtractor {
-	return func(r *http.Request) (logging.Event, bool) {
-		sessionCookie, err := r.Cookie(sessionCookieKey)
-		var sessionID string
-		if err == nil {
-			sessionID = sessionCookie.Value
-		}
-
-		event := logging.Event{
-			ID:             r.URL.Path,
-			SessionID:      sessionID,
-			Product:        "scope-ui",
-			UserAgent:      r.UserAgent(),
-			OrganizationID: r.Header.Get(orgIDHeader),
-			UserID:         r.Header.Get(userIDHeader),
-		}
-		return event, true
-	}
 }
 
 func main() {
