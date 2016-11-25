@@ -12,6 +12,7 @@ import (
 
 	gorillaws "github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/net/websocket"
 )
 
@@ -39,12 +40,12 @@ func TestProxyWebSocket(t *testing.T) {
 	// the Proxy to explicitly do it).
 	// This serves as a regression test for "App-mapper proxy leaks file descriptors" https://github.com/weaveworks/service/issues/253
 	proxyURL, err := url.Parse(proxyServer.URL)
-	assert.NoError(t, err, "Cannot parse URL")
+	require.NoError(t, err, "Cannot parse URL")
 	ws, _, err := gorillaws.DefaultDialer.Dial(
 		fmt.Sprintf("ws://%s/foo/bar", proxyURL.Host),
 		http.Header{"Origin": {"http://example.com"}},
 	)
-	assert.NoError(t, err, "Cannot dial WS")
+	require.NoError(t, err, "Cannot dial WS")
 
 	// We should receive back exactly what we send
 	messageToSend := []byte("This is a test message")
