@@ -10,8 +10,6 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/opentracing-contrib/go-stdlib/nethttp"
-	"github.com/opentracing/opentracing-go"
 )
 
 const defaultPort = "80"
@@ -21,20 +19,18 @@ type proxy struct {
 	reverseProxy httputil.ReverseProxy
 }
 
-var proxyTransport http.RoundTripper = &nethttp.Transport{
-	&http.Transport{
-		// No connection pooling, increases latency, but ensures fair load-balancing.
-		DisableKeepAlives: true,
+var proxyTransport http.RoundTripper = &http.Transport{
+	// No connection pooling, increases latency, but ensures fair load-balancing.
+	DisableKeepAlives: true,
 
-		// Rest are from http.DefaultTransport
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	},
+	// Rest are from http.DefaultTransport
+	Proxy: http.ProxyFromEnvironment,
+	DialContext: (&net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}).DialContext,
+	TLSHandshakeTimeout:   10 * time.Second,
+	ExpectContinueTimeout: 1 * time.Second,
 }
 
 func newProxy(hostAndPort string) proxy {
@@ -51,12 +47,6 @@ func newProxy(hostAndPort string) proxy {
 }
 
 func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !isWSHandshakeRequest(r) {
-		var ht *nethttp.Tracer
-		r, ht = nethttp.TraceRequest(opentracing.GlobalTracer(), r)
-		defer ht.Finish()
-	}
-
 	if p.hostAndPort == "" {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
