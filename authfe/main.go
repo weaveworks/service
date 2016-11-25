@@ -98,7 +98,6 @@ func main() {
 		{&c.billingUsageHost, "billing-usage"},
 		{&c.demoHost, "demo"},
 		{&c.launchGeneratorHost, "launch-generator"},
-		{&c.distributorHost, "distributor-host"},
 	}
 
 	for _, hostFlag := range hostFlags {
