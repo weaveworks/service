@@ -88,6 +88,7 @@ func main() {
 		{&c.usersHost, "users"},
 		{&c.kubediffHost, "kubediff"},
 		{&c.terradiffHost, "terradiff"},
+		{&c.ansiblediffHost, "ansiblediff"},
 		{&c.alertmanagerHost, "alertmanager"},
 		{&c.prometheusHost, "prometheus"},
 		{&c.kubedashHost, "kubedash"},
