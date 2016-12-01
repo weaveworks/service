@@ -6,7 +6,19 @@ import (
 
 	"github.com/FrenchBen/goketo"
 	log "github.com/Sirupsen/logrus"
+	"github.com/prometheus/client_golang/prometheus"
 )
+
+var (
+	marketoLeadsSkipped = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "marketo_leads_skipped",
+		Help: "Marketo leads skipped.",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(marketoLeadsSkipped)
+}
 
 // MarketoClient is a client for marketo.
 type MarketoClient struct {
@@ -30,6 +42,7 @@ func (*MarketoClient) name() string {
 	return "marketo"
 }
 
+// {"requestId":"8a40#158ba043d2a","result":[{"status":"skipped","reasons":[{"code":"1007","message":"Multiple lead match lookup criteria"}]}],"success":true}
 type marketoResponse struct {
 	RequestID string `json:"requestId"`
 	Success   bool   `json:"success"`
@@ -37,12 +50,19 @@ type marketoResponse struct {
 		Code    string `json:"code"`
 		Message string `json:"message"`
 	} `json:"errors"`
+	Results []struct {
+		Status  string `json:"status"`
+		Reasons []struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"reasons"`
+	} `json:"result"`
 }
 
 type marketoProspect struct {
-	Email      string     `json:"email"`
-	CreatedAt  *time.Time `json:"weaveCloudCreatedAt,omitempty"`
-	LastAccess *time.Time `json:"weaveCloudLastActive,omitempty"`
+	Email      string `json:"email"`
+	CreatedAt  string `json:"Weave_Cloud_Created_On__c,omitempty"`
+	LastAccess string `json:"Weave_Cloud_Last_Active__c,omitempty"`
 }
 
 func (m *marketoResponse) Error() string {
@@ -50,11 +70,11 @@ func (m *marketoResponse) Error() string {
 	return string(err)
 }
 
-func nilTime(t time.Time) *time.Time {
+func nilTime(t time.Time) string {
 	if t.IsZero() {
-		return nil
+		return ""
 	}
-	return &t
+	return t.Format("2006-01-02")
 }
 
 func (c *MarketoClient) batchUpsertProspect(prospects []prospect) error {
@@ -92,6 +112,13 @@ func (c *MarketoClient) batchUpsertProspect(prospects []prospect) error {
 	var marketoResponse marketoResponse
 	if err := json.Unmarshal(resp, &marketoResponse); err != nil {
 		return err
+	}
+
+	for _, result := range marketoResponse.Results {
+		if result.Status == "skipped" {
+			marketoLeadsSkipped.Add(1)
+			log.Infof("Marketo skipped prospect: %v", result.Reasons)
+		}
 	}
 
 	if !marketoResponse.Success {
