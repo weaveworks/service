@@ -11,8 +11,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tylerb/graceful"
 
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/common"
-	"github.com/weaveworks/service/common/logging"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db"

@@ -12,7 +12,7 @@ import (
 	"github.com/weaveworks/scope/common/middleware"
 	"github.com/weaveworks/scope/common/xfer"
 
-	"github.com/weaveworks/service/common/logging"
+	"github.com/weaveworks/common/logging"
 	users "github.com/weaveworks/service/users/client"
 )
 

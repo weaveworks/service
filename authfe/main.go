@@ -10,7 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tylerb/graceful"
 
-	"github.com/weaveworks/service/common/logging"
+	"github.com/weaveworks/common/logging"
 	users "github.com/weaveworks/service/users/client"
 )
 
