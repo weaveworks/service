@@ -18,7 +18,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/google/go-github/github"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/weaveworks/service/common/logging"
+	"github.com/weaveworks/common/logging"
 	"golang.org/x/oauth2"
 )
 

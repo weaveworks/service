@@ -676,6 +676,15 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/weaveworks/common/logging",
+			"repository": "https://github.com/weaveworks/common",
+			"vcs": "git",
+			"revision": "0952c4cc0a0b3776001e6ff50a4555178dbbf264",
+			"branch": "master",
+			"path": "/logging",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/weaveworks/scope/common/instrument",
 			"repository": "https://github.com/weaveworks/scope",
 			"vcs": "git",

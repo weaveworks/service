@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/weaveworks/service/common/logging"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/configs/db"
 )
 

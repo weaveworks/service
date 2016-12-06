@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/weaveworks/service/common/logging"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users/db"
 )
 
