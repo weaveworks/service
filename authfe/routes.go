@@ -278,6 +278,7 @@ func routes(c Config) (http.Handler, error) {
 			"/api/billing",
 			[]path{
 				{"/payments/authTokens/{orgExternalID}", newProxy(c.billingAPIHost)},
+				{"/payments/{orgExternalID}", newProxy(c.billingAPIHost)},
 				{"/accounts/{orgExternalID}", newProxy(c.billingAPIHost)},
 				{"/usage/{orgExternalID}", newProxy(c.billingUsageHost)},
 			},
