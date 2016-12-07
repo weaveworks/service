@@ -27,7 +27,7 @@ func formatTimestamp(t time.Time) string {
 	if t.IsZero() {
 		return ""
 	}
-	return t.Format(time.Stamp)
+	return t.Format(time.RFC3339)
 }
 
 // FormatCreatedAt formats the user's created at timestamp
