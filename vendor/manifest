@@ -685,6 +685,15 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/weaveworks/common/middleware",
+			"repository": "https://github.com/weaveworks/common",
+			"vcs": "git",
+			"revision": "cc20acf03ebf74be0facaae4259dff6cde01ce77",
+			"branch": "master",
+			"path": "/middleware",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/weaveworks/scope/common/instrument",
 			"repository": "https://github.com/weaveworks/scope",
 			"vcs": "git",
