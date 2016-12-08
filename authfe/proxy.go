@@ -10,6 +10,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/weaveworks/common/middleware"
 )
 
 const defaultPort = "80"
@@ -64,7 +65,7 @@ func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("Forwarding %s %s to %s", r.Method, r.RequestURI, p.hostAndPort)
 
 	// Detect whether we should do websockets
-	if isWSHandshakeRequest(r) {
+	if middleware.IsWSHandshakeRequest(r) {
 		log.Debugf("proxy: detected websocket handshake")
 		p.proxyWS(w, r)
 		return
@@ -72,19 +73,6 @@ func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Proxy request
 	p.reverseProxy.ServeHTTP(w, r)
-}
-
-func isWSHandshakeRequest(req *http.Request) bool {
-	if strings.ToLower(req.Header.Get("Upgrade")) == "websocket" {
-		// Connection header values can be of form "foo, bar, ..."
-		parts := strings.Split(strings.ToLower(req.Header.Get("Connection")), ",")
-		for _, part := range parts {
-			if strings.TrimSpace(part) == "upgrade" {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 func (p proxy) proxyWS(w http.ResponseWriter, r *http.Request) {
