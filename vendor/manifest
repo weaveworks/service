@@ -78,6 +78,14 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/armon/go-proxyproto",
+			"repository": "https://github.com/armon/go-proxyproto",
+			"vcs": "git",
+			"revision": "3daa90aec0039a806299b9078f4422fee950f33c",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/beorn7/perks/quantile",
 			"repository": "https://github.com/beorn7/perks",
 			"vcs": "",

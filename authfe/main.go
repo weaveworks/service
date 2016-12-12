@@ -3,10 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net"
+	"net/http"
 	"regexp"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/armon/go-proxyproto"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tylerb/graceful"
 
@@ -18,6 +21,7 @@ const (
 	sessionCookieKey   = "_weaveclientid"
 	userIDHeader       = "X-Scope-UserID"
 	featureFlagsHeader = "X-FeatureFlags"
+	proxyTimeout       = 30 * time.Second
 )
 
 var (
@@ -141,9 +145,26 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	log.Infof("Listening on %s", listen)
+	listener, err := net.Listen("tcp", listen)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	server := &graceful.Server{
+		Timeout: stopTimeout,
+		Server: &http.Server{
+			Handler: r,
+		},
+	}
+	proxyListener := &proxyproto.Listener{
+		Listener:           listener,
+		ProxyHeaderTimeout: proxyTimeout,
+	}
+
 	// block until stop signal is received, then wait stopTimeout for remaining conns
-	if err := graceful.RunWithErr(listen, stopTimeout, r); err != nil {
+	if err := server.Serve(proxyListener); err != nil {
 		log.Fatal(err)
 	}
 	log.Info("Gracefully shut down")

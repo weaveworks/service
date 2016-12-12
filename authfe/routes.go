@@ -65,7 +65,7 @@ func newProbeRequestLogger(orgIDHeader string) HTTPEventExtractor {
 			UserAgent:      r.UserAgent(),
 			ClientID:       r.Header.Get(xfer.ScopeProbeIDHeader),
 			OrganizationID: r.Header.Get(orgIDHeader),
-			IPAddress:      r.Header.Get(xForwardedFor),
+			IPAddress:      r.RemoteAddr,
 		}
 		return event, true
 	}
@@ -86,7 +86,7 @@ func newUIRequestLogger(orgIDHeader, userIDHeader string) HTTPEventExtractor {
 			UserAgent:      r.UserAgent(),
 			OrganizationID: r.Header.Get(orgIDHeader),
 			UserID:         r.Header.Get(userIDHeader),
-			IPAddress:      r.Header.Get(xForwardedFor),
+			IPAddress:      r.RemoteAddr,
 		}
 		return event, true
 	}
@@ -116,7 +116,7 @@ func newAnalyticsLogger(orgIDHeader, userIDHeader string) HTTPEventExtractor {
 			OrganizationID: r.Header.Get(orgIDHeader),
 			UserID:         r.Header.Get(userIDHeader),
 			Values:         string(values),
-			IPAddress:      r.Header.Get(xForwardedFor),
+			IPAddress:      r.RemoteAddr,
 		}
 		return event, true
 	}
