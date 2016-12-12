@@ -58,6 +58,12 @@
       "type": "STRING",
       "mode": "NULLABLE",
       "description": "Arbitrary JSON encoded values from the UI."
+    },
+    {
+      "name": "ip_address",
+      "type": "STRING",
+      "mode": "NULLABLE",
+      "description": "IP address the request originated from."
     }
 ]
 

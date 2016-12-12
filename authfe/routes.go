@@ -12,7 +12,6 @@ import (
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/scope/common/xfer"
 
-	"github.com/weaveworks/common/logging"
 	users "github.com/weaveworks/service/users/client"
 )
 
@@ -21,7 +20,7 @@ const maxAnalyticsPayloadSize = 16 * 1024 // bytes
 // Config is all the config we need to build the routes
 type Config struct {
 	authenticator       users.Authenticator
-	eventLogger         *logging.EventLogger
+	eventLogger         *EventLogger
 	outputHeader        string
 	collectionHost      string
 	queryHost           string
@@ -54,42 +53,44 @@ var noopHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) 
 	w.WriteHeader(http.StatusNoContent)
 })
 
-func newProbeRequestLogger(orgIDHeader string) logging.HTTPEventExtractor {
-	return func(r *http.Request) (logging.Event, bool) {
-		event := logging.Event{
+func newProbeRequestLogger(orgIDHeader string) HTTPEventExtractor {
+	return func(r *http.Request) (Event, bool) {
+		event := Event{
 			ID:             r.URL.Path,
 			Product:        "scope-probe",
 			Version:        r.Header.Get(xfer.ScopeProbeVersionHeader),
 			UserAgent:      r.UserAgent(),
 			ClientID:       r.Header.Get(xfer.ScopeProbeIDHeader),
 			OrganizationID: r.Header.Get(orgIDHeader),
+			IPAddress:      r.RemoteAddr,
 		}
 		return event, true
 	}
 }
 
-func newUIRequestLogger(orgIDHeader, userIDHeader string) logging.HTTPEventExtractor {
-	return func(r *http.Request) (logging.Event, bool) {
+func newUIRequestLogger(orgIDHeader, userIDHeader string) HTTPEventExtractor {
+	return func(r *http.Request) (Event, bool) {
 		sessionCookie, err := r.Cookie(sessionCookieKey)
 		var sessionID string
 		if err == nil {
 			sessionID = sessionCookie.Value
 		}
 
-		event := logging.Event{
+		event := Event{
 			ID:             r.URL.Path,
 			SessionID:      sessionID,
 			Product:        "scope-ui",
 			UserAgent:      r.UserAgent(),
 			OrganizationID: r.Header.Get(orgIDHeader),
 			UserID:         r.Header.Get(userIDHeader),
+			IPAddress:      r.RemoteAddr,
 		}
 		return event, true
 	}
 }
 
-func newAnalyticsLogger(orgIDHeader, userIDHeader string) logging.HTTPEventExtractor {
-	return func(r *http.Request) (logging.Event, bool) {
+func newAnalyticsLogger(orgIDHeader, userIDHeader string) HTTPEventExtractor {
+	return func(r *http.Request) (Event, bool) {
 		sessionCookie, err := r.Cookie(sessionCookieKey)
 		var sessionID string
 		if err == nil {
@@ -101,10 +102,10 @@ func newAnalyticsLogger(orgIDHeader, userIDHeader string) logging.HTTPEventExtra
 			N: maxAnalyticsPayloadSize,
 		})
 		if err != nil {
-			return logging.Event{}, false
+			return Event{}, false
 		}
 
-		event := logging.Event{
+		event := Event{
 			ID:             r.URL.Path,
 			SessionID:      sessionID,
 			Product:        "scope-ui",
@@ -112,6 +113,7 @@ func newAnalyticsLogger(orgIDHeader, userIDHeader string) logging.HTTPEventExtra
 			OrganizationID: r.Header.Get(orgIDHeader),
 			UserID:         r.Header.Get(userIDHeader),
 			Values:         string(values),
+			IPAddress:      r.RemoteAddr,
 		}
 		return event, true
 	}
@@ -120,15 +122,15 @@ func newAnalyticsLogger(orgIDHeader, userIDHeader string) logging.HTTPEventExtra
 func routes(c Config) (http.Handler, error) {
 	probeHTTPlogger, uiHTTPlogger, analyticsLogger := middleware.Identity, middleware.Identity, middleware.Identity
 	if c.eventLogger != nil {
-		probeHTTPlogger = logging.HTTPEventLogger{
+		probeHTTPlogger = HTTPEventLogger{
 			Extractor: newProbeRequestLogger(c.outputHeader),
 			Logger:    c.eventLogger,
 		}
-		uiHTTPlogger = logging.HTTPEventLogger{
+		uiHTTPlogger = HTTPEventLogger{
 			Extractor: newUIRequestLogger(c.outputHeader, userIDHeader),
 			Logger:    c.eventLogger,
 		}
-		analyticsLogger = logging.HTTPEventLogger{
+		analyticsLogger = HTTPEventLogger{
 			Extractor: newAnalyticsLogger(c.outputHeader, userIDHeader),
 			Logger:    c.eventLogger,
 		}
@@ -320,6 +322,14 @@ func routes(c Config) (http.Handler, error) {
 		},
 		middleware.Log{
 			LogSuccess: c.logSuccess,
+		},
+		middleware.Redirect{
+			Matches: []middleware.Match{
+				{Host: "scope.weave.works"},
+				{Scheme: "http", Host: "cloud.weave.works"},
+			},
+			RedirectHost:   "cloud.weave.works",
+			RedirectScheme: "https",
 		},
 	).Wrap(r), nil
 }

@@ -78,6 +78,14 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/armon/go-proxyproto",
+			"repository": "https://github.com/armon/go-proxyproto",
+			"vcs": "git",
+			"revision": "3daa90aec0039a806299b9078f4422fee950f33c",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/beorn7/perks/quantile",
 			"repository": "https://github.com/beorn7/perks",
 			"vcs": "",
@@ -696,7 +704,7 @@
 			"importpath": "github.com/weaveworks/common/logging",
 			"repository": "https://github.com/weaveworks/common",
 			"vcs": "git",
-			"revision": "0952c4cc0a0b3776001e6ff50a4555178dbbf264",
+			"revision": "47586092c53f421eab6b55d00faac434f8f9b80e",
 			"branch": "master",
 			"path": "/logging",
 			"notests": true
@@ -705,7 +713,7 @@
 			"importpath": "github.com/weaveworks/common/middleware",
 			"repository": "https://github.com/weaveworks/common",
 			"vcs": "git",
-			"revision": "cc20acf03ebf74be0facaae4259dff6cde01ce77",
+			"revision": "acd27591e1a32d9f54d4d6c69a02a285b9a197f4",
 			"branch": "master",
 			"path": "/middleware",
 			"notests": true
