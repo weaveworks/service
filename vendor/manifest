@@ -705,7 +705,7 @@
 			"importpath": "github.com/weaveworks/common/middleware",
 			"repository": "https://github.com/weaveworks/common",
 			"vcs": "git",
-			"revision": "cc20acf03ebf74be0facaae4259dff6cde01ce77",
+			"revision": "acd27591e1a32d9f54d4d6c69a02a285b9a197f4",
 			"branch": "master",
 			"path": "/middleware",
 			"notests": true
