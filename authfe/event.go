@@ -1,4 +1,4 @@
-package logging
+package main
 
 import (
 	"fmt"
@@ -22,6 +22,7 @@ type Event struct {
 	ClientID       string `msg:"client_id"`
 	OrganizationID string `msg:"org_id"`
 	UserID         string `msg:"user_id"`
+	IPAddress      string `msg:"ip_address"`
 	Values         string `msg:"values"`
 }
 

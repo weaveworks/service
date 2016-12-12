@@ -130,7 +130,7 @@ func main() {
 
 	if fluentHost != "" {
 		var err error
-		c.eventLogger, err = logging.NewEventLogger(fluentHost)
+		c.eventLogger, err = NewEventLogger(fluentHost)
 		if err != nil {
 			log.Fatalf("Error setting up event logging: %v", err)
 		}

@@ -696,7 +696,7 @@
 			"importpath": "github.com/weaveworks/common/logging",
 			"repository": "https://github.com/weaveworks/common",
 			"vcs": "git",
-			"revision": "0952c4cc0a0b3776001e6ff50a4555178dbbf264",
+			"revision": "47586092c53f421eab6b55d00faac434f8f9b80e",
 			"branch": "master",
 			"path": "/logging",
 			"notests": true
