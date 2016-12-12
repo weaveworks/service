@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
-	"github.com/weaveworks/scope/common/middleware"
+	"github.com/weaveworks/common/middleware"
 
 	"github.com/weaveworks/service/users/client"
 )

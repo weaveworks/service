@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/weaveworks/scope/common/instrument"
+	"github.com/weaveworks/common/instrument"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
@@ -31,12 +32,12 @@ func (t timed) errorCode(err error) string {
 	}
 }
 
-func (t timed) timeRequest(method string, f func() error) error {
-	return instrument.TimeRequestHistogramStatus(method, t.Duration, t.errorCode, f)
+func (t timed) timeRequest(method string, f func(context.Context) error) error {
+	return instrument.TimeRequestHistogramStatus(context.TODO(), method, t.Duration, t.errorCode, f)
 }
 
 func (t timed) CreateUser(email string) (u *users.User, err error) {
-	t.timeRequest("CreateUser", func() error {
+	t.timeRequest("CreateUser", func(_ context.Context) error {
 		u, err = t.d.CreateUser(email)
 		return err
 	})
@@ -44,7 +45,7 @@ func (t timed) CreateUser(email string) (u *users.User, err error) {
 }
 
 func (t timed) FindUserByID(id string) (u *users.User, err error) {
-	t.timeRequest("FindUserByID", func() error {
+	t.timeRequest("FindUserByID", func(_ context.Context) error {
 		u, err = t.d.FindUserByID(id)
 		return err
 	})
@@ -52,7 +53,7 @@ func (t timed) FindUserByID(id string) (u *users.User, err error) {
 }
 
 func (t timed) FindUserByEmail(email string) (u *users.User, err error) {
-	t.timeRequest("FindUserByEmail", func() error {
+	t.timeRequest("FindUserByEmail", func(_ context.Context) error {
 		u, err = t.d.FindUserByEmail(email)
 		return err
 	})
@@ -60,7 +61,7 @@ func (t timed) FindUserByEmail(email string) (u *users.User, err error) {
 }
 
 func (t timed) FindUserByLogin(provider, id string) (u *users.User, err error) {
-	t.timeRequest("FindUserByLogin", func() error {
+	t.timeRequest("FindUserByLogin", func(_ context.Context) error {
 		u, err = t.d.FindUserByLogin(provider, id)
 		return err
 	})
@@ -68,7 +69,7 @@ func (t timed) FindUserByLogin(provider, id string) (u *users.User, err error) {
 }
 
 func (t timed) FindUserByAPIToken(token string) (u *users.User, err error) {
-	t.timeRequest("FindUserByAPIToken", func() error {
+	t.timeRequest("FindUserByAPIToken", func(_ context.Context) error {
 		u, err = t.d.FindUserByAPIToken(token)
 		return err
 	})
@@ -76,7 +77,7 @@ func (t timed) FindUserByAPIToken(token string) (u *users.User, err error) {
 }
 
 func (t timed) UserIsMemberOf(userID, orgExternalID string) (b bool, err error) {
-	t.timeRequest("UserIsMemberOf", func() error {
+	t.timeRequest("UserIsMemberOf", func(_ context.Context) error {
 		b, err = t.d.UserIsMemberOf(userID, orgExternalID)
 		return err
 	})
@@ -84,19 +85,19 @@ func (t timed) UserIsMemberOf(userID, orgExternalID string) (b bool, err error) 
 }
 
 func (t timed) AddLoginToUser(userID, provider, id string, session json.RawMessage) error {
-	return t.timeRequest("AddLoginToUser", func() error {
+	return t.timeRequest("AddLoginToUser", func(_ context.Context) error {
 		return t.d.AddLoginToUser(userID, provider, id, session)
 	})
 }
 
 func (t timed) DetachLoginFromUser(userID, provider string) error {
-	return t.timeRequest("DetachLoginFromUser", func() error {
+	return t.timeRequest("DetachLoginFromUser", func(_ context.Context) error {
 		return t.d.DetachLoginFromUser(userID, provider)
 	})
 }
 
 func (t timed) CreateAPIToken(userID, description string) (token *users.APIToken, err error) {
-	t.timeRequest("CreateAPIToken", func() error {
+	t.timeRequest("CreateAPIToken", func(_ context.Context) error {
 		token, err = t.d.CreateAPIToken(userID, description)
 		return err
 	})
@@ -104,13 +105,13 @@ func (t timed) CreateAPIToken(userID, description string) (token *users.APIToken
 }
 
 func (t timed) DeleteAPIToken(userID, token string) error {
-	return t.timeRequest("DeleteAPIToken", func() error {
+	return t.timeRequest("DeleteAPIToken", func(_ context.Context) error {
 		return t.d.DeleteAPIToken(userID, token)
 	})
 }
 
 func (t timed) InviteUser(email, orgExternalID string) (u *users.User, created bool, err error) {
-	t.timeRequest("InviteUser", func() error {
+	t.timeRequest("InviteUser", func(_ context.Context) error {
 		u, created, err = t.d.InviteUser(email, orgExternalID)
 		return err
 	})
@@ -118,13 +119,13 @@ func (t timed) InviteUser(email, orgExternalID string) (u *users.User, created b
 }
 
 func (t timed) RemoveUserFromOrganization(orgExternalID, email string) error {
-	return t.timeRequest("RemoveUserFromOrganization", func() error {
+	return t.timeRequest("RemoveUserFromOrganization", func(_ context.Context) error {
 		return t.d.RemoveUserFromOrganization(orgExternalID, email)
 	})
 }
 
 func (t timed) ListUsers() (us []*users.User, err error) {
-	t.timeRequest("ListUsers", func() error {
+	t.timeRequest("ListUsers", func(_ context.Context) error {
 		us, err = t.d.ListUsers()
 		return err
 	})
@@ -132,7 +133,7 @@ func (t timed) ListUsers() (us []*users.User, err error) {
 }
 
 func (t timed) ListOrganizations() (os []*users.Organization, err error) {
-	t.timeRequest("ListOrganizations", func() error {
+	t.timeRequest("ListOrganizations", func(_ context.Context) error {
 		os, err = t.d.ListOrganizations()
 		return err
 	})
@@ -140,7 +141,7 @@ func (t timed) ListOrganizations() (os []*users.Organization, err error) {
 }
 
 func (t timed) ListOrganizationUsers(orgExternalID string) (us []*users.User, err error) {
-	t.timeRequest("ListOrganizationUsers", func() error {
+	t.timeRequest("ListOrganizationUsers", func(_ context.Context) error {
 		us, err = t.d.ListOrganizationUsers(orgExternalID)
 		return err
 	})
@@ -148,7 +149,7 @@ func (t timed) ListOrganizationUsers(orgExternalID string) (us []*users.User, er
 }
 
 func (t timed) ListOrganizationsForUserIDs(userIDs ...string) (os []*users.Organization, err error) {
-	t.timeRequest("ListOrganizationsForUserIDs", func() error {
+	t.timeRequest("ListOrganizationsForUserIDs", func(_ context.Context) error {
 		os, err = t.d.ListOrganizationsForUserIDs(userIDs...)
 		return err
 	})
@@ -156,7 +157,7 @@ func (t timed) ListOrganizationsForUserIDs(userIDs ...string) (os []*users.Organ
 }
 
 func (t timed) ListLoginsForUserIDs(userIDs ...string) (ls []*login.Login, err error) {
-	t.timeRequest("ListLoginsForUserIDs", func() error {
+	t.timeRequest("ListLoginsForUserIDs", func(_ context.Context) error {
 		ls, err = t.d.ListLoginsForUserIDs(userIDs...)
 		return err
 	})
@@ -164,7 +165,7 @@ func (t timed) ListLoginsForUserIDs(userIDs ...string) (ls []*login.Login, err e
 }
 
 func (t timed) ListAPITokensForUserIDs(userIDs ...string) (ts []*users.APIToken, err error) {
-	t.timeRequest("ListAPITokensForUserIDs", func() error {
+	t.timeRequest("ListAPITokensForUserIDs", func(_ context.Context) error {
 		ts, err = t.d.ListAPITokensForUserIDs(userIDs...)
 		return err
 	})
@@ -172,25 +173,25 @@ func (t timed) ListAPITokensForUserIDs(userIDs ...string) (ts []*users.APIToken,
 }
 
 func (t timed) SetUserAdmin(id string, value bool) error {
-	return t.timeRequest("SetUserAdmin", func() error {
+	return t.timeRequest("SetUserAdmin", func(_ context.Context) error {
 		return t.d.SetUserAdmin(id, value)
 	})
 }
 
 func (t timed) SetUserToken(id, token string) error {
-	return t.timeRequest("SetUserToken", func() error {
+	return t.timeRequest("SetUserToken", func(_ context.Context) error {
 		return t.d.SetUserToken(id, token)
 	})
 }
 
 func (t timed) SetUserFirstLoginAt(id string) error {
-	return t.timeRequest("SetUserFirstLoginAt", func() error {
+	return t.timeRequest("SetUserFirstLoginAt", func(_ context.Context) error {
 		return t.d.SetUserFirstLoginAt(id)
 	})
 }
 
 func (t timed) GenerateOrganizationExternalID() (s string, err error) {
-	t.timeRequest("GenerateOrganizationExternalID", func() error {
+	t.timeRequest("GenerateOrganizationExternalID", func(_ context.Context) error {
 		s, err = t.d.GenerateOrganizationExternalID()
 		return err
 	})
@@ -198,7 +199,7 @@ func (t timed) GenerateOrganizationExternalID() (s string, err error) {
 }
 
 func (t timed) CreateOrganization(ownerID, externalID, name string) (o *users.Organization, err error) {
-	t.timeRequest("CreateOrganization", func() error {
+	t.timeRequest("CreateOrganization", func(_ context.Context) error {
 		o, err = t.d.CreateOrganization(ownerID, externalID, name)
 		return err
 	})
@@ -206,7 +207,7 @@ func (t timed) CreateOrganization(ownerID, externalID, name string) (o *users.Or
 }
 
 func (t timed) FindOrganizationByProbeToken(probeToken string) (o *users.Organization, err error) {
-	t.timeRequest("FindOrganizationByProbeToken", func() error {
+	t.timeRequest("FindOrganizationByProbeToken", func(_ context.Context) error {
 		o, err = t.d.FindOrganizationByProbeToken(probeToken)
 		return err
 	})
@@ -214,7 +215,7 @@ func (t timed) FindOrganizationByProbeToken(probeToken string) (o *users.Organiz
 }
 
 func (t timed) FindOrganizationByID(externalID string) (o *users.Organization, err error) {
-	t.timeRequest("FindOrganizationByID", func() error {
+	t.timeRequest("FindOrganizationByID", func(_ context.Context) error {
 		o, err = t.d.FindOrganizationByID(externalID)
 		return err
 	})
@@ -222,13 +223,13 @@ func (t timed) FindOrganizationByID(externalID string) (o *users.Organization, e
 }
 
 func (t timed) RenameOrganization(externalID, name string) error {
-	return t.timeRequest("RenameOrganization", func() error {
+	return t.timeRequest("RenameOrganization", func(_ context.Context) error {
 		return t.d.RenameOrganization(externalID, name)
 	})
 }
 
 func (t timed) OrganizationExists(externalID string) (b bool, err error) {
-	t.timeRequest("OrganizationExists", func() error {
+	t.timeRequest("OrganizationExists", func(_ context.Context) error {
 		b, err = t.d.OrganizationExists(externalID)
 		return err
 	})
@@ -236,7 +237,7 @@ func (t timed) OrganizationExists(externalID string) (b bool, err error) {
 }
 
 func (t timed) GetOrganizationName(externalID string) (name string, err error) {
-	t.timeRequest("GetOrganizationName", func() error {
+	t.timeRequest("GetOrganizationName", func(_ context.Context) error {
 		name, err = t.d.GetOrganizationName(externalID)
 		return err
 	})
@@ -244,25 +245,25 @@ func (t timed) GetOrganizationName(externalID string) (name string, err error) {
 }
 
 func (t timed) DeleteOrganization(externalID string) error {
-	return t.timeRequest("DeleteOrganization", func() error {
+	return t.timeRequest("DeleteOrganization", func(_ context.Context) error {
 		return t.d.DeleteOrganization(externalID)
 	})
 }
 
 func (t timed) AddFeatureFlag(externalID string, featureFlag string) error {
-	return t.timeRequest("AddFeatureFlag", func() error {
+	return t.timeRequest("AddFeatureFlag", func(_ context.Context) error {
 		return t.d.AddFeatureFlag(externalID, featureFlag)
 	})
 }
 
 func (t timed) SetFeatureFlags(externalID string, featureFlags []string) error {
-	return t.timeRequest("SetFeatureFlags", func() error {
+	return t.timeRequest("SetFeatureFlags", func(_ context.Context) error {
 		return t.d.SetFeatureFlags(externalID, featureFlags)
 	})
 }
 
 func (t timed) Close() error {
-	return t.timeRequest("Close", func() error {
+	return t.timeRequest("Close", func(_ context.Context) error {
 		return t.d.Close()
 	})
 }

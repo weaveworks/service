@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/weaveworks/scope/common/middleware"
+	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/scope/common/xfer"
 
 	"github.com/weaveworks/common/logging"

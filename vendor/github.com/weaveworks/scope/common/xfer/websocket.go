@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/ugorji/go/codec"
 
-	"github.com/weaveworks/scope/common/mtime"
+	"github.com/weaveworks/common/mtime"
 )
 
 const (
@@ -167,10 +167,10 @@ func (p *pingingWebsocket) Close() error {
 // IsExpectedWSCloseError returns boolean indicating whether the error is a
 // clean disconnection.
 func IsExpectedWSCloseError(err error) bool {
-	return websocket.IsCloseError(
-		err,
+	return err == io.EOF || err == io.ErrClosedPipe || websocket.IsCloseError(err,
 		websocket.CloseNormalClosure,
 		websocket.CloseGoingAway,
 		websocket.CloseNoStatusReceived,
+		websocket.CloseAbnormalClosure,
 	)
 }
