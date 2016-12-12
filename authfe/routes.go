@@ -15,10 +15,7 @@ import (
 	users "github.com/weaveworks/service/users/client"
 )
 
-const (
-	maxAnalyticsPayloadSize = 16 * 1024 // bytes
-	xForwardedFor           = "X-Forwarded-For"
-)
+const maxAnalyticsPayloadSize = 16 * 1024 // bytes
 
 // Config is all the config we need to build the routes
 type Config struct {
