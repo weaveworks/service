@@ -3,10 +3,12 @@ package main
 import (
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"path/filepath"
 	"regexp"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/common/middleware"
@@ -53,8 +55,17 @@ var noopHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) 
 	w.WriteHeader(http.StatusNoContent)
 })
 
+func mustSplitHostname(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		log.Errorf("Error splitting '%s': %v", r.RemoteAddr, err)
+	}
+	return host
+}
+
 func newProbeRequestLogger(orgIDHeader string) HTTPEventExtractor {
 	return func(r *http.Request) (Event, bool) {
+
 		event := Event{
 			ID:             r.URL.Path,
 			Product:        "scope-probe",
@@ -62,7 +73,7 @@ func newProbeRequestLogger(orgIDHeader string) HTTPEventExtractor {
 			UserAgent:      r.UserAgent(),
 			ClientID:       r.Header.Get(xfer.ScopeProbeIDHeader),
 			OrganizationID: r.Header.Get(orgIDHeader),
-			IPAddress:      r.RemoteAddr,
+			IPAddress:      mustSplitHostname(r),
 		}
 		return event, true
 	}
@@ -83,7 +94,7 @@ func newUIRequestLogger(orgIDHeader, userIDHeader string) HTTPEventExtractor {
 			UserAgent:      r.UserAgent(),
 			OrganizationID: r.Header.Get(orgIDHeader),
 			UserID:         r.Header.Get(userIDHeader),
-			IPAddress:      r.RemoteAddr,
+			IPAddress:      mustSplitHostname(r),
 		}
 		return event, true
 	}
@@ -113,7 +124,7 @@ func newAnalyticsLogger(orgIDHeader, userIDHeader string) HTTPEventExtractor {
 			OrganizationID: r.Header.Get(orgIDHeader),
 			UserID:         r.Header.Get(userIDHeader),
 			Values:         string(values),
-			IPAddress:      r.RemoteAddr,
+			IPAddress:      mustSplitHostname(r),
 		}
 		return event, true
 	}
@@ -255,7 +266,10 @@ func routes(c Config) (http.Handler, error) {
 			},
 			middleware.Merge(
 				// If not logged in, prompt user to log in instead of 401ing
-				middleware.ErrorHandler{401, redirect("/login")},
+				middleware.ErrorHandler{
+					Code:    401,
+					Handler: redirect("/login"),
+				},
 				users.AuthAdminMiddleware{
 					Authenticator: c.authenticator,
 					OutputHeader:  c.outputHeader,
