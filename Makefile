@@ -48,7 +48,6 @@ authfe/$(UPTODATE): $(AUTHFE_EXE)
 configs/$(UPTODATE): $(CONFIGS_EXE)
 users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/templates/*
 metrics/$(UPTODATE): $(METRICS_EXE)
-frontend-mt/$(UPTODATE): frontend-mt/default.conf frontend-mt/routes.conf frontend-mt/pki/scope.weave.works.crt frontend-mt/dhparam.pem
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
 build/$(UPTODATE): build/build.sh
 pr-assigner/$(UPTODATE): $(PR_ASSIGNER_EXE)
