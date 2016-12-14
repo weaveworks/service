@@ -279,6 +279,11 @@ func routes(c Config) (http.Handler, error) {
 
 		// billing UI needs authentication
 		path{"/billing/{jsfile}.js", trimPrefix("/billing", newProxy(c.billingUIHost))},
+		// Fonts
+		path{"/billing/{wofffile}.woff", trimPrefix("/billing", newProxy(c.billingUIHost))},
+		path{"/billing/{ttffile}.ttf", trimPrefix("/billing", newProxy(c.billingUIHost))},
+		path{"/billing/{svgfile}.svg", trimPrefix("/billing", newProxy(c.billingUIHost))},
+		path{"/billing/{eotfile}.eot", trimPrefix("/billing", newProxy(c.billingUIHost))},
 		path{"/billing/callback/register", trimPrefix("/billing", newProxy(c.billingUIHost))},
 		prefix{
 			"/billing",
