@@ -21,7 +21,6 @@ if [ "$IMAGE_REPOSITORY" == "$BUILD_IMAGE_REPO" ]; then \
 fi
 
 SINCE=false
-DEPLOY=false
 while [ $# -gt 0 ]; do
     case "${1:-}" in
         --if-changed-since=*)
@@ -31,10 +30,6 @@ while [ $# -gt 0 ]; do
         --if-changed-since)
             SINCE=${2:-HEAD~1}
             shift 2
-            ;;
-        --and-deploy)
-            DEPLOY=true
-            shift 1
             ;;
         *)
             break
@@ -83,15 +78,6 @@ do
         fi
         echo "Pushing ${push_image}"
         docker push "${push_image}"
-
-        WCLOUD_ARGS=
-        if [ -n "${CIRCLECI}" ]; then
-            WCLOUD_ARGS="-u circle"
-        fi
-
-        if [ "$DEPLOY" = 'true' ]; then
-            wcloud deploy ${WCLOUD_ARGS} "${push_image}"
-        fi
     else
         echo "Not pushing image for $push_image, because no changes in $c since commit $SINCE"
     fi
