@@ -290,6 +290,9 @@ func routes(c Config) (http.Handler, error) {
 				uiHTTPlogger,
 			),
 		},
+		// These billing api endpoints have no orgExternalID, so we can't do authorization on them.
+		path{"/api/billing/accounts", trimPrefix("/api/billing", newProxy(c.billingAPIHost))},
+		path{"/api/billing/payments/authTokens", trimPrefix("/api/billing", newProxy(c.billingAPIHost))},
 		prefix{
 			"/api/billing",
 			[]path{
@@ -304,9 +307,6 @@ func routes(c Config) (http.Handler, error) {
 				uiHTTPlogger,
 			),
 		},
-		// These billing api endpoints have no orgExternalID, so we can't do authorization on them.
-		path{"/api/billing/accounts", trimPrefix("/api/billing", newProxy(c.billingAPIHost))},
-		path{"/api/billing/payments/authTokens", trimPrefix("/api/billing", newProxy(c.billingAPIHost))},
 
 		// unauthenticated communication
 		prefix{
