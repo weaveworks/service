@@ -13,15 +13,16 @@ import (
 
 // API implements the users api.
 type API struct {
-	directLogin       bool
-	logSuccess        bool
-	sessions          sessions.Store
-	db                db.DB
-	logins            *login.Providers
-	templates         templates.Engine
-	emailer           emailer.Emailer
-	marketingQueues   marketing.Queues
-	forceFeatureFlags []string
+	directLogin        bool
+	logSuccess         bool
+	sessions           sessions.Store
+	db                 db.DB
+	logins             *login.Providers
+	templates          templates.Engine
+	emailer            emailer.Emailer
+	marketingQueues    marketing.Queues
+	forceFeatureFlags  []string
+	marketoMunchkinKey string
 	http.Handler
 }
 
@@ -35,17 +36,19 @@ func New(
 	templates templates.Engine,
 	marketingQueues marketing.Queues,
 	forceFeatureFlags []string,
+	marketoMunchkinKey string,
 ) *API {
 	a := &API{
-		directLogin:       directLogin,
-		logSuccess:        logSuccess,
-		sessions:          sessions,
-		db:                db,
-		logins:            logins,
-		templates:         templates,
-		emailer:           emailer,
-		marketingQueues:   marketingQueues,
-		forceFeatureFlags: forceFeatureFlags,
+		directLogin:        directLogin,
+		logSuccess:         logSuccess,
+		sessions:           sessions,
+		db:                 db,
+		logins:             logins,
+		templates:          templates,
+		emailer:            emailer,
+		marketingQueues:    marketingQueues,
+		forceFeatureFlags:  forceFeatureFlags,
+		marketoMunchkinKey: marketoMunchkinKey,
 	}
 	a.Handler = a.routes()
 	return a

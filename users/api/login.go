@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -355,6 +357,17 @@ func (a *API) logout(w http.ResponseWriter, r *http.Request) {
 type publicLookupView struct {
 	Email         string    `json:"email,omitempty"`
 	Organizations []orgView `json:"organizations,omitempty"`
+	MunchkinHash  string    `json:"munchkin_hash"`
+}
+
+// MunchkinHash caclulates the hash for Marketo's Munchkin tracking code.
+// See http://developers.marketo.com/javascript-api/lead-tracking/api-reference/#munchkin_associatelead for details.
+// Public for testing.
+func (a *API) MunchkinHash(email string) string {
+	h := sha1.New()
+	h.Write([]byte(a.marketoMunchkinKey))
+	h.Write([]byte(email))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -363,7 +376,10 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 		render.Error(w, r, err)
 		return
 	}
-	view := publicLookupView{Email: currentUser.Email}
+	view := publicLookupView{
+		Email:        currentUser.Email,
+		MunchkinHash: a.MunchkinHash(currentUser.Email),
+	}
 	for _, org := range organizations {
 		view.Organizations = append(view.Organizations, orgView{
 			ExternalID:         org.ExternalID,

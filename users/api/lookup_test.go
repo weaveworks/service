@@ -61,7 +61,8 @@ func Test_PublicLookup(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, user.Email, body["email"])
 	assert.Equal(t, map[string]interface{}{
-		"email": user.Email,
+		"email":         user.Email,
+		"munchkin_hash": app.MunchkinHash(user.Email),
 		"organizations": []interface{}{
 			map[string]interface{}{
 				"id":                 org.ExternalID,
