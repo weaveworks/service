@@ -40,10 +40,11 @@ func main() {
 		pardotPassword = flag.String("pardot-password", "", "Password of Pardot account.")
 		pardotUserKey  = flag.String("pardot-userkey", "", "User key of Pardot account.")
 
-		marketoClientID = flag.String("marketo-client-id", "", "Client ID of Marketo account.  If not supplied marketo integration will be disabled.")
-		marketoSecret   = flag.String("marketo-secret", "", "Secret for Marketo account.")
-		marketoEndpoint = flag.String("marketo-endpoint", "", "REST API endpoint for Marketo.")
-		marketoProgram  = flag.String("marketo-program", "2016_00_Website_WeaveCloud", "Program name to add leads to (for Marketo).")
+		marketoClientID    = flag.String("marketo-client-id", "", "Client ID of Marketo account.  If not supplied marketo integration will be disabled.")
+		marketoSecret      = flag.String("marketo-secret", "", "Secret for Marketo account.")
+		marketoEndpoint    = flag.String("marketo-endpoint", "", "REST API endpoint for Marketo.")
+		marketoProgram     = flag.String("marketo-program", "2016_00_Website_WeaveCloud", "Program name to add leads to (for Marketo).")
+		marketoMunchkinKey = flag.String("marketo-munchkin-key", "", "Secret key for Marketo munchkin.")
 
 		emailFromAddress = flag.String("email-from-address", "Weave Cloud <support@weave.works>", "From address for emails.")
 
@@ -98,7 +99,7 @@ func main() {
 	logrus.Infof("Listening on port %d", *port)
 	mux := http.NewServeMux()
 
-	mux.Handle("/", api.New(*directLogin, *logSuccess, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags))
+	mux.Handle("/", api.New(*directLogin, *logSuccess, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey))
 	mux.Handle("/metrics", makePrometheusHandler())
 	if err := graceful.RunWithErr(fmt.Sprintf(":%d", *port), *stopTimeout, mux); err != nil {
 		logrus.Fatal(err)
