@@ -10,6 +10,8 @@ import (
 	_ "github.com/lib/pq"                         // Import the postgres sql driver
 	_ "github.com/mattes/migrate/driver/postgres" // Import the postgres migrations driver
 	"github.com/mattes/migrate/migrate"
+
+	"github.com/weaveworks/service/users"
 )
 
 // DB is a postgres db, for dev and production
@@ -79,6 +81,36 @@ func (d DB) Transaction(f func(DB) error) error {
 		return err
 	}
 	return tx.Commit()
+}
+
+// ListMemberships lists memberships list memberships
+func (d DB) ListMemberships() ([]users.Membership, error) {
+	rows, err := d.dbProxy.Query(`
+	SELECT
+		memberships.user_id,
+		memberships.organization_id
+	FROM memberships
+	WHERE memberships.deleted_at is null
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	memberships := []users.Membership{}
+	for rows.Next() {
+		membership := users.Membership{}
+		if err := rows.Scan(
+			&membership.UserID, &membership.OrganizationID,
+		); err != nil {
+			return nil, err
+		}
+		memberships = append(memberships, membership)
+	}
+	if rows.Err() != nil {
+		return nil, err
+	}
+	return memberships, nil
 }
 
 // Close finishes using the db

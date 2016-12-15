@@ -23,6 +23,12 @@ type Organization struct {
 	FeatureFlags       []string
 }
 
+// Membership represents a users membership of an organization.
+type Membership struct {
+	UserID         string
+	OrganizationID string
+}
+
 // RegenerateProbeToken regenerates the organizations probe token
 func (o *Organization) RegenerateProbeToken() error {
 	t, err := tokens.Generate()

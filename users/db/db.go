@@ -93,6 +93,8 @@ type DB interface {
 	AddFeatureFlag(externalID string, featureFlag string) error
 	SetFeatureFlags(externalID string, featureFlags []string) error
 
+	ListMemberships() ([]users.Membership, error)
+
 	Close() error
 }
 

@@ -30,6 +30,22 @@ func New(_, _ string, passwordHashingCost int) (*DB, error) {
 	}, nil
 }
 
+// ListMemberships lists memberships list memberships
+func (d *DB) ListMemberships() ([]users.Membership, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	memberships := []users.Membership{}
+	for orgID, userIDs := range d.memberships {
+		for _, userID := range userIDs {
+			memberships = append(memberships, users.Membership{
+				UserID:         userID,
+				OrganizationID: orgID,
+			})
+		}
+	}
+	return memberships, nil
+}
+
 // Close finishes using the db. Noop.
 func (d *DB) Close() error {
 	return nil
