@@ -57,7 +57,7 @@ func configMatches(id, entityType, subsystem string) squirrel.Sqlizer {
 	return squirrel.And{
 		configsMatch(entityType, subsystem),
 		squirrel.Eq{
-			"id": id,
+			"owner_id": id,
 		},
 	}
 }
@@ -66,7 +66,7 @@ func configMatches(id, entityType, subsystem string) squirrel.Sqlizer {
 func configsMatch(entityType, subsystem string) squirrel.Sqlizer {
 	return squirrel.Eq{
 		"deleted_at": nil,
-		"type":       entityType,
+		"owner_type": entityType,
 		"subsystem":  subsystem,
 	}
 }
@@ -85,7 +85,7 @@ func (d DB) findConfig(id, entityType, subsystem string) (configs.Config, error)
 }
 
 func (d DB) findConfigs(filter squirrel.Sqlizer) (map[string]configs.Config, error) {
-	rows, err := d.Select("id", "config").From("configs").Where(filter).Query()
+	rows, err := d.Select("owner_id", "config").From("configs").Where(filter).Query()
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (d DB) upsertConfig(id, entityType string, subsystem configs.Subsystem, cfg
 		_, err := d.findConfig(id, entityType, string(subsystem))
 		if err == sql.ErrNoRows {
 			_, err := d.Insert("configs").
-				Columns("id", "type", "subsystem", "config").
+				Columns("owner_id", "owner_type", "subsystem", "config").
 				Values(id, entityType, string(subsystem), cfgBytes).
 				Exec()
 			return err
