@@ -87,8 +87,8 @@ func (d DB) Transaction(f func(DB) error) error {
 func (d DB) ListMemberships() ([]users.Membership, error) {
 	rows, err := d.dbProxy.Query(`
 	SELECT
-		memberships.user_id as UserID,
-		memberships.organization_id as InstanceID
+		memberships.user_id,
+		memberships.organization_id
 	FROM memberships
 	WHERE memberships.deleted_at is null
 	`)
