@@ -262,6 +262,14 @@ func (t timed) SetFeatureFlags(externalID string, featureFlags []string) error {
 	})
 }
 
+func (t timed) ListMemberships() (memberships []users.Membership, err error) {
+	t.timeRequest("ListMemberships", func(_ context.Context) error {
+		memberships, err = t.d.ListMemberships()
+		return err
+	})
+	return
+}
+
 func (t timed) Close() error {
 	return t.timeRequest("Close", func(_ context.Context) error {
 		return t.d.Close()

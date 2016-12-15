@@ -3,12 +3,10 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
-	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
-	"net/url"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -18,15 +16,11 @@ import (
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
 	"golang.org/x/net/context"
+
+	"github.com/weaveworks/service/users/db"
 )
 
 var (
-	dbRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "scope",
-		Name:      "database_request_duration_seconds",
-		Help:      "Time spent (in seconds) doing database requests.",
-		Buckets:   prometheus.DefBuckets,
-	}, []string{"method", "status_code"})
 	postRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "scope",
 		Name:      "post_request_duration_seconds",
@@ -35,26 +29,26 @@ var (
 	}, []string{"method", "status_code"})
 )
 
-type user struct {
-	ID        *string
-	Email     *string
-	CreatedAt *time.Time
+func init() {
+	prometheus.MustRegister(postRequestDuration)
 }
 
-type membership struct {
+type bqUser struct {
+	ID        string
+	Email     string
+	CreatedAt time.Time
+}
+
+type bqInstance struct {
+	ID         string
+	ExternalID string
+	Name       string
+	CreatedAt  time.Time
+}
+
+type bqMembership struct {
 	UserID     string
 	InstanceID string
-}
-
-type instance struct {
-	ID        *string
-	Name      *string
-	CreatedAt *time.Time
-}
-
-func init() {
-	prometheus.MustRegister(dbRequestDuration)
-	prometheus.MustRegister(postRequestDuration)
 }
 
 func main() {
@@ -71,20 +65,7 @@ func main() {
 		return
 	}
 
-	u, err := url.Parse(*databaseURI)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	if u.Scheme != "postgres" {
-		log.Fatal(databaseURI)
-		return
-	}
-	db, err := sql.Open(u.Scheme, *databaseURI)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
+	d := db.MustNew(*databaseURI, "")
 
 	// Use certifi certificates
 	certPool, err := gocertifi.CACerts()
@@ -113,18 +94,14 @@ func main() {
 
 		for _, getter := range []struct {
 			ty  string
-			get func(*sql.DB) ([]interface{}, error)
+			get func(db.DB) ([]interface{}, error)
 		}{
 			{"users", getUsers},
 			{"memberships", getMemberships},
 			{"instances", getInstances},
 		} {
-			var objs []interface{}
-			if err := instrument.TimeRequestHistogram(ctx, getter.ty, dbRequestDuration, func(_ context.Context) error {
-				var err error
-				objs, err = getter.get(db)
-				return err
-			}); err != nil {
+			objs, err := getter.get(d)
+			if err != nil {
 				log.Printf("Error getting %s: %v", getter.ty, err)
 				continue
 			}
@@ -141,96 +118,55 @@ func main() {
 	}
 }
 
-func getUsers(db *sql.DB) ([]interface{}, error) {
-	rows, err := db.Query(`
-SELECT
-	users.id as ID,
-	users.email as Email,
-	users.created_at as CreatedAt
-FROM users
-WHERE users.deleted_at is null
-ORDER BY users.created_at`)
+func getUsers(d db.DB) ([]interface{}, error) {
+	users, err := d.ListUsers()
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	users := []interface{}{}
-	for rows.Next() {
-		user := user{}
-		if err := rows.Scan(
-			&user.ID, &user.Email, &user.CreatedAt,
-		); err != nil {
-			return nil, err
+	results := []interface{}{}
+	for _, user := range users {
+		result := bqUser{
+			ID:        user.ID,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt,
 		}
-		users = append(users, user)
+		results = append(results, result)
 	}
-	if rows.Err() != nil {
-		return nil, err
-	}
-
-	return users, nil
+	return results, nil
 }
 
-func getMemberships(db *sql.DB) ([]interface{}, error) {
-	rows, err := db.Query(`
-SELECT
-	memberships.user_id as UserID,
-	memberships.organization_id as InstanceID
-FROM memberships
-WHERE memberships.deleted_at is null
-`)
+func getMemberships(d db.DB) ([]interface{}, error) {
+	memberships, err := d.ListMemberships()
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	memberships := []interface{}{}
-	for rows.Next() {
-		membership := membership{}
-		if err := rows.Scan(
-			&membership.UserID, &membership.InstanceID,
-		); err != nil {
-			return nil, err
+	results := []interface{}{}
+	for _, membership := range memberships {
+		result := bqMembership{
+			UserID:     membership.UserID,
+			InstanceID: membership.OrganizationID,
 		}
-		memberships = append(memberships, membership)
+		results = append(results, result)
 	}
-	if rows.Err() != nil {
-		return nil, err
-	}
-
-	return memberships, nil
+	return results, nil
 }
 
-func getInstances(db *sql.DB) ([]interface{}, error) {
-	rows, err := db.Query(`
-SELECT
-	organizations.id as ID,
-	organizations.name as Name,
-	organizations.created_at as CreatedAt
-FROM organizations
-WHERE organizations.deleted_at is null
-`)
+func getInstances(d db.DB) ([]interface{}, error) {
+	instances, err := d.ListOrganizations()
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	instances := []interface{}{}
-	for rows.Next() {
-		instance := instance{}
-		if err := rows.Scan(
-			&instance.ID, &instance.Name, &instance.CreatedAt,
-		); err != nil {
-			return nil, err
+	results := []interface{}{}
+	for _, instance := range instances {
+		result := bqInstance{
+			ID:         instance.ID,
+			ExternalID: instance.ExternalID,
+			Name:       instance.Name,
+			CreatedAt:  instance.CreatedAt,
 		}
-		instances = append(instances, instance)
+		results = append(results, result)
 	}
-	if rows.Err() != nil {
-		return nil, err
-	}
-
-	return instances, nil
+	return results, nil
 }
 
 func post(client http.Client, objs []interface{}, endpoint string) error {
