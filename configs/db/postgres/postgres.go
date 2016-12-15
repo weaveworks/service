@@ -71,12 +71,15 @@ func configsMatch(entityType, subsystem string) squirrel.Sqlizer {
 	}
 }
 
-func (d DB) findConfig(id, entityType, subsystem string) (configs.Config, error) {
+func (d DB) findConfig(entityId, entityType, subsystem string) (configs.Config, error) {
 	var cfg configs.Config
 	var cfgBytes []byte
 	err := d.Select("config").
 		From("configs").
-		Where(configMatches(id, entityType, subsystem)).QueryRow().Scan(&cfgBytes)
+		Where(configMatches(entityId, entityType, subsystem)).
+		OrderBy("id DESC").
+		Limit(1).
+		QueryRow().Scan(&cfgBytes)
 	if err != nil {
 		return cfg, err
 	}
@@ -108,23 +111,15 @@ func (d DB) findConfigs(filter squirrel.Sqlizer) (map[string]configs.Config, err
 	return cfgs, nil
 }
 
-func (d DB) upsertConfig(id, entityType string, subsystem configs.Subsystem, cfg configs.Config) error {
+func (d DB) insertConfig(id, entityType string, subsystem configs.Subsystem, cfg configs.Config) error {
 	cfgBytes, err := json.Marshal(cfg)
 	if err != nil {
 		return err
 	}
 	return d.Transaction(func(tx DB) error {
-		_, err := d.findConfig(id, entityType, string(subsystem))
-		if err == sql.ErrNoRows {
-			_, err := d.Insert("configs").
-				Columns("owner_id", "owner_type", "subsystem", "config").
-				Values(id, entityType, string(subsystem), cfgBytes).
-				Exec()
-			return err
-		}
-		_, err = d.Update("configs").
-			Where(configMatches(id, entityType, string(subsystem))).
-			Set("config", cfgBytes).
+		_, err := d.Insert("configs").
+			Columns("owner_id", "owner_type", "subsystem", "config").
+			Values(id, entityType, string(subsystem), cfgBytes).
 			Exec()
 		return err
 	})
@@ -137,7 +132,7 @@ func (d DB) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (c
 
 // SetUserConfig sets a user's configuration.
 func (d DB) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) error {
-	return d.upsertConfig(string(userID), userType, subsystem, cfg)
+	return d.insertConfig(string(userID), userType, subsystem, cfg)
 }
 
 // GetOrgConfig gets a org's configuration.
@@ -147,7 +142,7 @@ func (d DB) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (conf
 
 // SetOrgConfig sets a org's configuration.
 func (d DB) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg configs.Config) error {
-	return d.upsertConfig(string(orgID), orgType, subsystem, cfg)
+	return d.insertConfig(string(orgID), orgType, subsystem, cfg)
 }
 
 // toOrgConfigs = mapKeys configs.OrgID
