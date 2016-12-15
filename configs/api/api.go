@@ -25,7 +25,7 @@ const (
 
 var (
 	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "configs", // XXX: Should this be 'scope'?
+		Namespace: "configs",
 		Name:      "request_duration_seconds",
 		Help:      "Time (in seconds) spent serving HTTP requests.",
 		Buckets:   prometheus.DefBuckets,
