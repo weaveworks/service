@@ -56,7 +56,7 @@ func (t timed) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cf
 	})
 }
 
-func (t timed) GetAllOrgConfigs(subsystem configs.Subsystem) (cfgs map[configs.OrgID]configs.Config, err error) {
+func (t timed) GetAllOrgConfigs(subsystem configs.Subsystem) (cfgs map[configs.OrgID]configs.ConfigView, err error) {
 	t.timeRequest("GetAllOrgConfigs", func(_ context.Context) error {
 		cfgs, err = t.d.GetAllOrgConfigs(subsystem)
 		return err
@@ -64,7 +64,7 @@ func (t timed) GetAllOrgConfigs(subsystem configs.Subsystem) (cfgs map[configs.O
 	return
 }
 
-func (t timed) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (cfgs map[configs.OrgID]configs.Config, err error) {
+func (t timed) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (cfgs map[configs.OrgID]configs.ConfigView, err error) {
 	t.timeRequest("GetOrgConfigs", func(_ context.Context) error {
 		cfgs, err = t.d.GetOrgConfigs(subsystem, since)
 		return err
@@ -72,7 +72,7 @@ func (t timed) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (
 	return
 }
 
-func (t timed) GetAllUserConfigs(subsystem configs.Subsystem) (cfgs map[configs.UserID]configs.Config, err error) {
+func (t timed) GetAllUserConfigs(subsystem configs.Subsystem) (cfgs map[configs.UserID]configs.ConfigView, err error) {
 	t.timeRequest("GetAllUserConfigs", func(_ context.Context) error {
 		cfgs, err = t.d.GetAllUserConfigs(subsystem)
 		return err
@@ -80,7 +80,7 @@ func (t timed) GetAllUserConfigs(subsystem configs.Subsystem) (cfgs map[configs.
 	return
 }
 
-func (t timed) GetUserConfigs(subsystem configs.Subsystem, since time.Duration) (cfgs map[configs.UserID]configs.Config, err error) {
+func (t timed) GetUserConfigs(subsystem configs.Subsystem, since time.Duration) (cfgs map[configs.UserID]configs.ConfigView, err error) {
 	t.timeRequest("GetUserConfigs", func(_ context.Context) error {
 		cfgs, err = t.d.GetUserConfigs(subsystem, since)
 		return err

@@ -71,15 +71,15 @@ func configsMatch(entityType, subsystem string) squirrel.Sqlizer {
 	}
 }
 
-func (d DB) findConfig(entityId, entityType, subsystem string) (configs.ConfigView, error) {
+func (d DB) findConfig(entityID, entityType, subsystem string) (configs.ConfigView, error) {
 	var cfgView configs.ConfigView
 	var cfgBytes []byte
-	err := d.Select("config").
+	err := d.Select("id", "config").
 		From("configs").
-		Where(configMatches(entityId, entityType, subsystem)).
+		Where(configMatches(entityID, entityType, subsystem)).
 		OrderBy("id DESC").
 		Limit(1).
-		QueryRow().Scan(&cfgBytes)
+		QueryRow().Scan(&cfgView.ID, &cfgBytes)
 	if err != nil {
 		return cfgView, err
 	}
@@ -87,8 +87,8 @@ func (d DB) findConfig(entityId, entityType, subsystem string) (configs.ConfigVi
 	return cfgView, err
 }
 
-func (d DB) findConfigs(filter squirrel.Sqlizer) (map[string]configs.Config, error) {
-	rows, err := d.Select("owner_id", "config").
+func (d DB) findConfigs(filter squirrel.Sqlizer) (map[string]configs.ConfigView, error) {
+	rows, err := d.Select("id", "owner_id", "config").
 		Options("DISTINCT ON (id)").
 		From("configs").
 		Where(filter).
@@ -98,16 +98,16 @@ func (d DB) findConfigs(filter squirrel.Sqlizer) (map[string]configs.Config, err
 		return nil, err
 	}
 	defer rows.Close()
-	cfgs := map[string]configs.Config{}
+	cfgs := map[string]configs.ConfigView{}
 	for rows.Next() {
+		var cfg configs.ConfigView
 		var cfgBytes []byte
 		var entityID string
-		err = rows.Scan(&entityID, &cfgBytes)
+		err = rows.Scan(&cfg.ID, &entityID, &cfgBytes)
 		if err != nil {
 			return nil, err
 		}
-		var cfg configs.Config
-		err = json.Unmarshal(cfgBytes, &cfg)
+		err = json.Unmarshal(cfgBytes, &cfg.Config)
 		if err != nil {
 			return nil, err
 		}
@@ -149,8 +149,8 @@ func (d DB) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg c
 }
 
 // toOrgConfigs = mapKeys configs.OrgID
-func toOrgConfigs(rawCfgs map[string]configs.Config) map[configs.OrgID]configs.Config {
-	cfgs := map[configs.OrgID]configs.Config{}
+func toOrgConfigs(rawCfgs map[string]configs.ConfigView) map[configs.OrgID]configs.ConfigView {
+	cfgs := map[configs.OrgID]configs.ConfigView{}
 	for entityID, cfg := range rawCfgs {
 		cfgs[configs.OrgID(entityID)] = cfg
 	}
@@ -158,7 +158,7 @@ func toOrgConfigs(rawCfgs map[string]configs.Config) map[configs.OrgID]configs.C
 }
 
 // GetAllOrgConfigs gets all of the organization configs for a subsystem.
-func (d DB) GetAllOrgConfigs(subsystem configs.Subsystem) (map[configs.OrgID]configs.Config, error) {
+func (d DB) GetAllOrgConfigs(subsystem configs.Subsystem) (map[configs.OrgID]configs.ConfigView, error) {
 	rawCfgs, err := d.findConfigs(configsMatch(orgType, string(subsystem)))
 	if err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func (d DB) GetAllOrgConfigs(subsystem configs.Subsystem) (map[configs.OrgID]con
 
 // GetOrgConfigs gets all of the organization configs for a subsystem that
 // have changed recently.
-func (d DB) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.OrgID]configs.Config, error) {
+func (d DB) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.OrgID]configs.ConfigView, error) {
 	threshold := d.Now().Add(-since)
 	rawCfgs, err := d.findConfigs(squirrel.And{
 		configsMatch(orgType, string(subsystem)),
@@ -181,8 +181,8 @@ func (d DB) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (map
 }
 
 // toUserConfigs = mapKeys configs.UserID
-func toUserConfigs(rawCfgs map[string]configs.Config) map[configs.UserID]configs.Config {
-	cfgs := map[configs.UserID]configs.Config{}
+func toUserConfigs(rawCfgs map[string]configs.ConfigView) map[configs.UserID]configs.ConfigView {
+	cfgs := map[configs.UserID]configs.ConfigView{}
 	for entityID, cfg := range rawCfgs {
 		cfgs[configs.UserID(entityID)] = cfg
 	}
@@ -190,7 +190,7 @@ func toUserConfigs(rawCfgs map[string]configs.Config) map[configs.UserID]configs
 }
 
 // GetAllUserConfigs gets all of the user configs for a subsystem.
-func (d DB) GetAllUserConfigs(subsystem configs.Subsystem) (map[configs.UserID]configs.Config, error) {
+func (d DB) GetAllUserConfigs(subsystem configs.Subsystem) (map[configs.UserID]configs.ConfigView, error) {
 	rawCfgs, err := d.findConfigs(configsMatch(userType, string(subsystem)))
 	if err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ func (d DB) GetAllUserConfigs(subsystem configs.Subsystem) (map[configs.UserID]c
 
 // GetUserConfigs gets all of the user configs for a subsystem that have
 // changed recently.
-func (d DB) GetUserConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.UserID]configs.Config, error) {
+func (d DB) GetUserConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.UserID]configs.ConfigView, error) {
 	threshold := d.Now().Add(-since)
 	rawCfgs, err := d.findConfigs(squirrel.And{
 		configsMatch(userType, string(subsystem)),

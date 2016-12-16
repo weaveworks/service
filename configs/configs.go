@@ -20,5 +20,6 @@ type Config map[string]interface{}
 
 // ConfigView is what users get when they get a config.
 type ConfigView struct {
+	ID     ID     `json:"id"`
 	Config Config `json:"config"`
 }

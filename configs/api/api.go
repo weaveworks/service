@@ -241,14 +241,14 @@ func (a *API) setOrgConfig(w http.ResponseWriter, r *http.Request) {
 // OrgConfigsView renders multiple configurations.
 // Exposed only for tests.
 type OrgConfigsView struct {
-	Configs map[configs.OrgID]configs.Config `json:"configs"`
+	Configs map[configs.OrgID]configs.ConfigView `json:"configs"`
 }
 
 func (a *API) getOrgConfigs(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	subsystem := configs.Subsystem(vars["subsystem"])
 
-	var cfgs map[configs.OrgID]configs.Config
+	var cfgs map[configs.OrgID]configs.ConfigView
 	var err error
 	rawSince := r.FormValue("since")
 	if rawSince == "" {
@@ -282,14 +282,14 @@ func (a *API) getOrgConfigs(w http.ResponseWriter, r *http.Request) {
 // UserConfigsView renders multiple configurations.
 // Exposed only for tests.
 type UserConfigsView struct {
-	Configs map[configs.UserID]configs.Config `json:"configs"`
+	Configs map[configs.UserID]configs.ConfigView `json:"configs"`
 }
 
 func (a *API) getUserConfigs(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	subsystem := configs.Subsystem(vars["subsystem"])
 
-	var cfgs map[configs.UserID]configs.Config
+	var cfgs map[configs.UserID]configs.ConfigView
 	var err error
 	rawSince := r.FormValue("since")
 	if rawSince == "" {
