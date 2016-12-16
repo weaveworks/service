@@ -121,13 +121,11 @@ func (d DB) insertConfig(id, entityType string, subsystem configs.Subsystem, cfg
 	if err != nil {
 		return err
 	}
-	return d.Transaction(func(tx DB) error {
-		_, err := d.Insert("configs").
-			Columns("owner_id", "owner_type", "subsystem", "config").
-			Values(id, entityType, string(subsystem), cfgBytes).
-			Exec()
-		return err
-	})
+	_, err = d.Insert("configs").
+		Columns("owner_id", "owner_type", "subsystem", "config").
+		Values(id, entityType, string(subsystem), cfgBytes).
+		Exec()
+	return err
 }
 
 // GetUserConfig gets a user's configuration.
