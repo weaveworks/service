@@ -28,7 +28,7 @@ func (t timed) timeRequest(method string, f func(context.Context) error) error {
 	return instrument.TimeRequestHistogramStatus(context.TODO(), method, t.Duration, t.errorCode, f)
 }
 
-func (t timed) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (cfg configs.Config, err error) {
+func (t timed) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (cfg configs.ConfigView, err error) {
 	t.timeRequest("GetUserConfig", func(_ context.Context) error {
 		cfg, err = t.d.GetUserConfig(userID, subsystem)
 		return err
@@ -42,7 +42,7 @@ func (t timed) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem,
 	})
 }
 
-func (t timed) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (cfg configs.Config, err error) {
+func (t timed) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (cfg configs.ConfigView, err error) {
 	t.timeRequest("GetOrgConfig", func(_ context.Context) error {
 		cfg, err = t.d.GetOrgConfig(orgID, subsystem)
 		return err

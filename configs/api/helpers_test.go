@@ -111,3 +111,11 @@ func parseJSON(t *testing.T, b []byte) jsonObject {
 	require.NoError(t, err, "Could not unmarshal JSON: %v", string(b))
 	return f
 }
+
+// parseConfigView parses a ConfigView from JSON.
+func parseConfigView(t *testing.T, b []byte) configs.ConfigView {
+	var x configs.ConfigView
+	err := json.Unmarshal(b, &x)
+	require.NoError(t, err, "Could not unmarshal JSON: %v", string(b))
+	return x
+}

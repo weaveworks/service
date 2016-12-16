@@ -16,7 +16,7 @@ func (t traced) trace(name string, args ...interface{}) {
 	logrus.Debugf("%s: %#v", name, args)
 }
 
-func (t traced) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (cfg configs.Config, err error) {
+func (t traced) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (cfg configs.ConfigView, err error) {
 	defer func() { t.trace("GetUserConfig", userID, subsystem, cfg, err) }()
 	return t.d.GetUserConfig(userID, subsystem)
 }
@@ -26,7 +26,7 @@ func (t traced) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem
 	return t.d.SetUserConfig(userID, subsystem, cfg)
 }
 
-func (t traced) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (cfg configs.Config, err error) {
+func (t traced) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (cfg configs.ConfigView, err error) {
 	defer func() { t.trace("GetOrgConfig", orgID, subsystem, cfg, err) }()
 	return t.d.GetOrgConfig(orgID, subsystem)
 }

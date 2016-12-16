@@ -14,9 +14,9 @@ import (
 
 // DB is the interface for the database.
 type DB interface {
-	GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (configs.Config, error)
+	GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (configs.ConfigView, error)
 	SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) error
-	GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (configs.Config, error)
+	GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (configs.ConfigView, error)
 	SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg configs.Config) error
 
 	GetAllOrgConfigs(subsystem configs.Subsystem) (map[configs.OrgID]configs.Config, error)

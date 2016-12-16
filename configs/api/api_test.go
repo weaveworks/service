@@ -88,15 +88,19 @@ func Test_PostUserConfig_CreatesConfig(t *testing.T) {
 
 	userID := makeUserID()
 	subsystem := makeSubsystem()
-	content := jsonObject(makeConfig())
+	config := makeConfig()
+	content := jsonObject(config)
 	endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
 	{
 		w := requestAsUser(t, userID, "POST", endpoint, content.Reader(t))
 		assert.Equal(t, http.StatusNoContent, w.Code)
 	}
 	{
+		view := configs.ConfigView{
+			Config: config,
+		}
 		w := requestAsUser(t, userID, "GET", endpoint, nil)
-		assert.Equal(t, content, parseJSON(t, w.Body.Bytes()))
+		assert.Equal(t, view, parseConfigView(t, w.Body.Bytes()))
 	}
 }
 
@@ -108,7 +112,8 @@ func Test_PostUserConfig_UpdatesConfig(t *testing.T) {
 	userID := makeUserID()
 	subsystem := makeSubsystem()
 	content1 := jsonObject(makeConfig())
-	content2 := jsonObject(makeConfig())
+	config2 := makeConfig()
+	content2 := jsonObject(config2)
 	endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
 	{
 		requestAsUser(t, userID, "POST", endpoint, content1.Reader(t))
@@ -116,8 +121,11 @@ func Test_PostUserConfig_UpdatesConfig(t *testing.T) {
 		assert.Equal(t, http.StatusNoContent, w.Code)
 	}
 	{
+		view := configs.ConfigView{
+			Config: config2,
+		}
 		w := requestAsUser(t, userID, "GET", endpoint, nil)
-		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
+		assert.Equal(t, view, parseConfigView(t, w.Body.Bytes()))
 	}
 }
 
@@ -129,19 +137,27 @@ func Test_PostUserConfig_MultipleSubsystems(t *testing.T) {
 	userID := makeUserID()
 	subsystem1 := makeSubsystem()
 	subsystem2 := makeSubsystem()
-	content1 := jsonObject(makeConfig())
-	content2 := jsonObject(makeConfig())
+	config1 := makeConfig()
+	config2 := makeConfig()
+	content1 := jsonObject(config1)
+	content2 := jsonObject(config2)
 	endpoint1 := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem1)
 	endpoint2 := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem2)
 	requestAsUser(t, userID, "POST", endpoint1, content1.Reader(t))
 	requestAsUser(t, userID, "POST", endpoint2, content2.Reader(t))
 	{
+		view1 := configs.ConfigView{
+			Config: config1,
+		}
 		w := requestAsUser(t, userID, "GET", endpoint1, nil)
-		assert.Equal(t, content1, parseJSON(t, w.Body.Bytes()))
+		assert.Equal(t, view1, parseConfigView(t, w.Body.Bytes()))
 	}
 	{
+		view2 := configs.ConfigView{
+			Config: config2,
+		}
 		w := requestAsUser(t, userID, "GET", endpoint2, nil)
-		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
+		assert.Equal(t, view2, parseConfigView(t, w.Body.Bytes()))
 	}
 }
 
@@ -153,19 +169,27 @@ func Test_PostUserConfig_MultipleUsers(t *testing.T) {
 	userID1 := makeUserID()
 	userID2 := makeUserID()
 	subsystem := makeSubsystem()
-	content1 := jsonObject(makeConfig())
-	content2 := jsonObject(makeConfig())
+	config1 := makeConfig()
+	content1 := jsonObject(config1)
+	config2 := makeConfig()
+	content2 := jsonObject(config2)
 	endpoint1 := fmt.Sprintf("/api/configs/user/%s/%s", userID1, subsystem)
 	endpoint2 := fmt.Sprintf("/api/configs/user/%s/%s", userID2, subsystem)
 	requestAsUser(t, userID1, "POST", endpoint1, content1.Reader(t))
 	requestAsUser(t, userID2, "POST", endpoint2, content2.Reader(t))
 	{
+		view1 := configs.ConfigView{
+			Config: config1,
+		}
 		w := requestAsUser(t, userID1, "GET", endpoint1, nil)
-		assert.Equal(t, content1, parseJSON(t, w.Body.Bytes()))
+		assert.Equal(t, view1, parseConfigView(t, w.Body.Bytes()))
 	}
 	{
+		view2 := configs.ConfigView{
+			Config: config2,
+		}
 		w := requestAsUser(t, userID2, "GET", endpoint2, nil)
-		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
+		assert.Equal(t, view2, parseConfigView(t, w.Body.Bytes()))
 	}
 }
 
@@ -232,15 +256,19 @@ func Test_PostOrgConfig_CreatesConfig(t *testing.T) {
 
 	orgID := makeOrgID()
 	subsystem := makeSubsystem()
-	content := jsonObject(makeConfig())
+	config := makeConfig()
+	content := jsonObject(config)
 	endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
 	{
 		w := requestAsOrg(t, orgID, "POST", endpoint, content.Reader(t))
 		assert.Equal(t, http.StatusNoContent, w.Code)
 	}
 	{
+		view := configs.ConfigView{
+			Config: config,
+		}
 		w := requestAsOrg(t, orgID, "GET", endpoint, nil)
-		assert.Equal(t, content, parseJSON(t, w.Body.Bytes()))
+		assert.Equal(t, view, parseConfigView(t, w.Body.Bytes()))
 	}
 }
 
@@ -251,8 +279,9 @@ func Test_PostOrgConfig_UpdatesConfig(t *testing.T) {
 
 	orgID := makeOrgID()
 	subsystem := makeSubsystem()
+	config2 := makeConfig()
 	content1 := jsonObject(makeConfig())
-	content2 := jsonObject(makeConfig())
+	content2 := jsonObject(config2)
 	endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
 	{
 		requestAsOrg(t, orgID, "POST", endpoint, content1.Reader(t))
@@ -260,8 +289,11 @@ func Test_PostOrgConfig_UpdatesConfig(t *testing.T) {
 		assert.Equal(t, http.StatusNoContent, w.Code)
 	}
 	{
+		view2 := configs.ConfigView{
+			Config: config2,
+		}
 		w := requestAsOrg(t, orgID, "GET", endpoint, nil)
-		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
+		assert.Equal(t, view2, parseConfigView(t, w.Body.Bytes()))
 	}
 }
 
@@ -273,19 +305,27 @@ func Test_PostOrgConfig_MultipleSubsystems(t *testing.T) {
 	orgID := makeOrgID()
 	subsystem1 := makeSubsystem()
 	subsystem2 := makeSubsystem()
-	content1 := jsonObject(makeConfig())
-	content2 := jsonObject(makeConfig())
+	config1 := makeConfig()
+	config2 := makeConfig()
+	content1 := jsonObject(config1)
+	content2 := jsonObject(config2)
 	endpoint1 := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem1)
 	endpoint2 := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem2)
 	requestAsOrg(t, orgID, "POST", endpoint1, content1.Reader(t))
 	requestAsOrg(t, orgID, "POST", endpoint2, content2.Reader(t))
 	{
+		view1 := configs.ConfigView{
+			Config: config1,
+		}
 		w := requestAsOrg(t, orgID, "GET", endpoint1, nil)
-		assert.Equal(t, content1, parseJSON(t, w.Body.Bytes()))
+		assert.Equal(t, view1, parseConfigView(t, w.Body.Bytes()))
 	}
 	{
+		view2 := configs.ConfigView{
+			Config: config2,
+		}
 		w := requestAsOrg(t, orgID, "GET", endpoint2, nil)
-		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
+		assert.Equal(t, view2, parseConfigView(t, w.Body.Bytes()))
 	}
 }
 
@@ -297,19 +337,27 @@ func Test_PostOrgConfig_MultipleOrgs(t *testing.T) {
 	orgID1 := makeOrgID()
 	orgID2 := makeOrgID()
 	subsystem := makeSubsystem()
-	content1 := jsonObject(makeConfig())
-	content2 := jsonObject(makeConfig())
+	config1 := makeConfig()
+	config2 := makeConfig()
+	content1 := jsonObject(config1)
+	content2 := jsonObject(config2)
 	endpoint1 := fmt.Sprintf("/api/configs/org/%s/%s", orgID1, subsystem)
 	endpoint2 := fmt.Sprintf("/api/configs/org/%s/%s", orgID2, subsystem)
 	requestAsOrg(t, orgID1, "POST", endpoint1, content1.Reader(t))
 	requestAsOrg(t, orgID2, "POST", endpoint2, content2.Reader(t))
 	{
+		view1 := configs.ConfigView{
+			Config: config1,
+		}
 		w := requestAsOrg(t, orgID1, "GET", endpoint1, nil)
-		assert.Equal(t, content1, parseJSON(t, w.Body.Bytes()))
+		assert.Equal(t, view1, parseConfigView(t, w.Body.Bytes()))
 	}
 	{
+		view2 := configs.ConfigView{
+			Config: config2,
+		}
 		w := requestAsOrg(t, orgID2, "GET", endpoint2, nil)
-		assert.Equal(t, content2, parseJSON(t, w.Body.Bytes()))
+		assert.Equal(t, view2, parseConfigView(t, w.Body.Bytes()))
 	}
 }
 

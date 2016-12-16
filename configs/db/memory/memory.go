@@ -27,12 +27,14 @@ func New(_, _ string) (*DB, error) {
 }
 
 // GetUserConfig gets the user's configuration.
-func (d *DB) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (configs.Config, error) {
+func (d *DB) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (configs.ConfigView, error) {
 	c, ok := d.userCfgs[userID][subsystem]
 	if !ok {
-		return nil, sql.ErrNoRows
+		return configs.ConfigView{}, sql.ErrNoRows
 	}
-	return c.cfg, nil
+	return configs.ConfigView{
+		Config: c.cfg,
+	}, nil
 }
 
 // SetUserConfig sets configuration for a user.
@@ -48,12 +50,14 @@ func (d *DB) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, c
 }
 
 // GetOrgConfig gets the org's configuration.
-func (d *DB) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (configs.Config, error) {
+func (d *DB) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (configs.ConfigView, error) {
 	c, ok := d.orgCfgs[orgID][subsystem]
 	if !ok {
-		return nil, sql.ErrNoRows
+		return configs.ConfigView{}, sql.ErrNoRows
 	}
-	return c.cfg, nil
+	return configs.ConfigView{
+		Config: c.cfg,
+	}, nil
 }
 
 // SetOrgConfig sets configuration for a org.

@@ -71,8 +71,8 @@ func configsMatch(entityType, subsystem string) squirrel.Sqlizer {
 	}
 }
 
-func (d DB) findConfig(entityId, entityType, subsystem string) (configs.Config, error) {
-	var cfg configs.Config
+func (d DB) findConfig(entityId, entityType, subsystem string) (configs.ConfigView, error) {
+	var cfgView configs.ConfigView
 	var cfgBytes []byte
 	err := d.Select("config").
 		From("configs").
@@ -81,10 +81,10 @@ func (d DB) findConfig(entityId, entityType, subsystem string) (configs.Config, 
 		Limit(1).
 		QueryRow().Scan(&cfgBytes)
 	if err != nil {
-		return cfg, err
+		return cfgView, err
 	}
-	err = json.Unmarshal(cfgBytes, &cfg)
-	return cfg, err
+	err = json.Unmarshal(cfgBytes, &cfgView.Config)
+	return cfgView, err
 }
 
 func (d DB) findConfigs(filter squirrel.Sqlizer) (map[string]configs.Config, error) {
@@ -131,7 +131,7 @@ func (d DB) insertConfig(id, entityType string, subsystem configs.Subsystem, cfg
 }
 
 // GetUserConfig gets a user's configuration.
-func (d DB) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (configs.Config, error) {
+func (d DB) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (configs.ConfigView, error) {
 	return d.findConfig(string(userID), userType, string(subsystem))
 }
 
@@ -141,7 +141,7 @@ func (d DB) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cf
 }
 
 // GetOrgConfig gets a org's configuration.
-func (d DB) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (configs.Config, error) {
+func (d DB) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (configs.ConfigView, error) {
 	return d.findConfig(string(orgID), orgType, string(subsystem))
 }
 
