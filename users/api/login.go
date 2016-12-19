@@ -83,9 +83,11 @@ func (a *API) listAttachedLoginProviders(currentUser *users.User, w http.Respons
 }
 
 type attachLoginProviderView struct {
-	FirstLogin  bool `json:"firstLogin,omitempty"`
-	UserCreated bool `json:"userCreated,omitempty"`
-	Attach      bool `json:"attach,omitempty"`
+	FirstLogin   bool   `json:"firstLogin,omitempty"`
+	UserCreated  bool   `json:"userCreated,omitempty"`
+	Attach       bool   `json:"attach,omitempty"`
+	Email        string `json:"email"`
+	MunchkinHash string `json:"munchkinHash"`
 }
 
 func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
@@ -181,6 +183,8 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	}
 
 	view.FirstLogin = u.FirstLoginAt.IsZero()
+	view.Email = email
+	view.MunchkinHash = a.MunchkinHash(email)
 
 	if err := a.updateUserAtLogin(u); err != nil {
 		render.Error(w, r, err)
@@ -290,7 +294,9 @@ func (a *API) generateUserToken(user *users.User) (string, error) {
 }
 
 type loginView struct {
-	FirstLogin bool `json:"firstLogin,omitempty"`
+	FirstLogin   bool   `json:"firstLogin,omitempty"`
+	Email        string `json:"email"`
+	MunchkinHash string `json:"munchkinHash"`
 }
 
 func (a *API) login(w http.ResponseWriter, r *http.Request) {
@@ -337,7 +343,11 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
-	render.JSON(w, http.StatusOK, loginView{FirstLogin: firstLogin})
+	render.JSON(w, http.StatusOK, loginView{
+		FirstLogin:   firstLogin,
+		Email:        email,
+		MunchkinHash: a.MunchkinHash(email),
+	})
 }
 
 func (a *API) updateUserAtLogin(u *users.User) error {
