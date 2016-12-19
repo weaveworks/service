@@ -34,8 +34,10 @@ func Test_Account_AttachOauthAccount(t *testing.T) {
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
-		"attach":     true,
-		"firstLogin": true,
+		"attach":       true,
+		"firstLogin":   true,
+		"email":        remoteEmail,
+		"munchkinHash": app.MunchkinHash(remoteEmail),
 	}, body)
 	assert.Len(t, sentEmails, 0)
 
@@ -100,8 +102,10 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToAnotherAccount(t *testing.
 	body = map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
-		"attach":     true,
-		"firstLogin": true,
+		"attach":       true,
+		"firstLogin":   true,
+		"email":        fran.Email,
+		"munchkinHash": app.MunchkinHash(fran.Email),
 	}, body)
 	assert.Len(t, sentEmails, 0)
 
@@ -154,8 +158,10 @@ func Test_Account_AttachOauthAccount_AlreadyAttachedToSameAccount(t *testing.T) 
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
-		"attach":     true,
-		"firstLogin": true,
+		"attach":       true,
+		"firstLogin":   true,
+		"email":        remoteEmail,
+		"munchkinHash": app.MunchkinHash(remoteEmail),
 	}, body)
 	assert.Len(t, sentEmails, 0)
 

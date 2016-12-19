@@ -103,7 +103,9 @@ func Test_Signup(t *testing.T) {
 	body = map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
-		"firstLogin": true,
+		"firstLogin":   true,
+		"email":        user.Email,
+		"munchkinHash": app.MunchkinHash(user.Email),
 	}, body)
 
 	user, err = database.FindUserByEmail(email)
@@ -130,7 +132,10 @@ func Test_Signup(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	body = map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, map[string]interface{}{}, body)
+	assert.Equal(t, map[string]interface{}{
+		"email":        user.Email,
+		"munchkinHash": app.MunchkinHash(user.Email),
+	}, body)
 
 	user, err = database.FindUserByEmail(email)
 	require.NoError(t, err)
@@ -195,8 +200,10 @@ func Test_Signup_ViaOAuth(t *testing.T) {
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
-		"firstLogin":  true,
-		"userCreated": true,
+		"firstLogin":   true,
+		"userCreated":  true,
+		"email":        email,
+		"munchkinHash": app.MunchkinHash(email),
 	}, body)
 	assert.Len(t, sentEmails, 0)
 
@@ -242,7 +249,9 @@ func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
-		"firstLogin": true,
+		"firstLogin":   true,
+		"email":        user.Email,
+		"munchkinHash": app.MunchkinHash(user.Email),
 	}, body)
 
 	assert.Equal(t, user.ID, found.ID, "user id should match the existing")
