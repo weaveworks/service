@@ -98,7 +98,7 @@ func (d *DB) InviteUser(email, orgExternalID string) (*users.User, bool, error) 
 		return nil, false, err
 	}
 
-	isMember, err := d.UserIsMemberOf(u.ID, orgExternalID)
+	isMember, err := d.userIsMemberOf(u.ID, orgExternalID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -176,6 +176,8 @@ func (d *DB) ListUsers() ([]*users.User, error) {
 
 // ListLoginsForUserIDs lists the logins for these users
 func (d *DB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
 	var logins []*login.Login
 	for _, l := range d.logins {
 		for _, userID := range userIDs {
