@@ -103,6 +103,7 @@ func main() {
 		{&c.billingUsageHost, "billing-usage"},
 		{&c.demoHost, "demo"},
 		{&c.launchGeneratorHost, "launch-generator"},
+		{&c.uiMetricsHost, "ui-metrics"},
 	}
 
 	for _, hostFlag := range hostFlags {
