@@ -40,6 +40,12 @@ func (d *DB) RemoveUserFromOrganization(orgExternalID, email string) error {
 
 // UserIsMemberOf checks if the user is a member of the organization
 func (d *DB) UserIsMemberOf(userID, orgExternalID string) (bool, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	return d.userIsMemberOf(userID, orgExternalID)
+}
+
+func (d *DB) userIsMemberOf(userID, orgExternalID string) (bool, error) {
 	o, err := d.findOrganizationByExternalID(orgExternalID)
 	if err == users.ErrNotFound {
 		return false, nil
@@ -96,6 +102,8 @@ func (o organizationsByCreatedAt) Less(i, j int) bool { return o[i].CreatedAt.Be
 
 // ListOrganizationsForUserIDs lists the organizations these users belong to
 func (d *DB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organization, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
 	orgIDs := map[string]struct{}{}
 	checkOrg := func(orgID string, members []string) {
 		for _, m := range members {

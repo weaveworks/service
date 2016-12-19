@@ -58,6 +58,8 @@ func (d *DB) FindUserByAPIToken(token string) (*users.User, error) {
 
 // ListAPITokensForUserIDs lists the api tokens for these users
 func (d *DB) ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
 	var tokens []*users.APIToken
 	for _, t := range d.apiTokens {
 		for _, userID := range userIDs {
