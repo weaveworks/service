@@ -66,8 +66,8 @@
 		{
 			"importpath": "github.com/Masterminds/squirrel",
 			"repository": "https://github.com/Masterminds/squirrel",
-			"vcs": "",
-			"revision": "4ad55e2a1f1b46756cf47381a90ed7f4df1ec80d",
+			"vcs": "git",
+			"revision": "20f192218cf52a73397fa2df45bdda720f3e47c8",
 			"branch": "v1"
 		},
 		{

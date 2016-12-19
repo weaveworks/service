@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
+	"strconv"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -25,7 +25,7 @@ const (
 
 var (
 	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "configs", // XXX: Should this be 'scope'?
+		Namespace: "configs",
 		Name:      "request_duration_seconds",
 		Help:      "Time (in seconds) spent serving HTTP requests.",
 		Buckets:   prometheus.DefBuckets,
@@ -241,26 +241,26 @@ func (a *API) setOrgConfig(w http.ResponseWriter, r *http.Request) {
 // OrgConfigsView renders multiple configurations.
 // Exposed only for tests.
 type OrgConfigsView struct {
-	Configs map[configs.OrgID]configs.Config `json:"configs"`
+	Configs map[configs.OrgID]configs.ConfigView `json:"configs"`
 }
 
 func (a *API) getOrgConfigs(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	subsystem := configs.Subsystem(vars["subsystem"])
 
-	var cfgs map[configs.OrgID]configs.Config
+	var cfgs map[configs.OrgID]configs.ConfigView
 	var err error
 	rawSince := r.FormValue("since")
 	if rawSince == "" {
 		cfgs, err = a.db.GetAllOrgConfigs(subsystem)
 	} else {
-		since, err := time.ParseDuration(rawSince)
+		since, err := strconv.ParseUint(rawSince, 10, 0)
 		if err != nil {
-			log.Infof("Invalid duration: %v", err)
+			log.Infof("Invalid config ID: %v", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		cfgs, err = a.db.GetOrgConfigs(subsystem, since)
+		cfgs, err = a.db.GetOrgConfigs(subsystem, configs.ID(since))
 	}
 
 	if err != nil {
@@ -282,26 +282,26 @@ func (a *API) getOrgConfigs(w http.ResponseWriter, r *http.Request) {
 // UserConfigsView renders multiple configurations.
 // Exposed only for tests.
 type UserConfigsView struct {
-	Configs map[configs.UserID]configs.Config `json:"configs"`
+	Configs map[configs.UserID]configs.ConfigView `json:"configs"`
 }
 
 func (a *API) getUserConfigs(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	subsystem := configs.Subsystem(vars["subsystem"])
 
-	var cfgs map[configs.UserID]configs.Config
+	var cfgs map[configs.UserID]configs.ConfigView
 	var err error
 	rawSince := r.FormValue("since")
 	if rawSince == "" {
 		cfgs, err = a.db.GetAllUserConfigs(subsystem)
 	} else {
-		since, err := time.ParseDuration(rawSince)
+		since, err := strconv.ParseUint(rawSince, 10, 0)
 		if err != nil {
-			log.Infof("Invalid duration: %v", err)
+			log.Infof("Invalid config ID: %v", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		cfgs, err = a.db.GetUserConfigs(subsystem, since)
+		cfgs, err = a.db.GetUserConfigs(subsystem, configs.ID(since))
 	}
 
 	if err != nil {

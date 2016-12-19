@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/Sirupsen/logrus"
@@ -57,7 +56,7 @@ func configMatches(id, entityType, subsystem string) squirrel.Sqlizer {
 	return squirrel.And{
 		configsMatch(entityType, subsystem),
 		squirrel.Eq{
-			"id": id,
+			"owner_id": id,
 		},
 	}
 }
@@ -66,40 +65,48 @@ func configMatches(id, entityType, subsystem string) squirrel.Sqlizer {
 func configsMatch(entityType, subsystem string) squirrel.Sqlizer {
 	return squirrel.Eq{
 		"deleted_at": nil,
-		"type":       entityType,
+		"owner_type": entityType,
 		"subsystem":  subsystem,
 	}
 }
 
-func (d DB) findConfig(id, entityType, subsystem string) (configs.Config, error) {
-	var cfg configs.Config
+func (d DB) findConfig(entityID, entityType, subsystem string) (configs.ConfigView, error) {
+	var cfgView configs.ConfigView
 	var cfgBytes []byte
-	err := d.Select("config").
+	err := d.Select("id", "config").
 		From("configs").
-		Where(configMatches(id, entityType, subsystem)).QueryRow().Scan(&cfgBytes)
+		Where(configMatches(entityID, entityType, subsystem)).
+		OrderBy("id DESC").
+		Limit(1).
+		QueryRow().Scan(&cfgView.ID, &cfgBytes)
 	if err != nil {
-		return cfg, err
+		return cfgView, err
 	}
-	err = json.Unmarshal(cfgBytes, &cfg)
-	return cfg, err
+	err = json.Unmarshal(cfgBytes, &cfgView.Config)
+	return cfgView, err
 }
 
-func (d DB) findConfigs(filter squirrel.Sqlizer) (map[string]configs.Config, error) {
-	rows, err := d.Select("id", "config").From("configs").Where(filter).Query()
+func (d DB) findConfigs(filter squirrel.Sqlizer) (map[string]configs.ConfigView, error) {
+	rows, err := d.Select("id", "owner_id", "config").
+		Options("DISTINCT ON (id)").
+		From("configs").
+		Where(filter).
+		OrderBy("id DESC").
+		Query()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	cfgs := map[string]configs.Config{}
+	cfgs := map[string]configs.ConfigView{}
 	for rows.Next() {
+		var cfg configs.ConfigView
 		var cfgBytes []byte
 		var entityID string
-		err = rows.Scan(&entityID, &cfgBytes)
+		err = rows.Scan(&cfg.ID, &entityID, &cfgBytes)
 		if err != nil {
 			return nil, err
 		}
-		var cfg configs.Config
-		err = json.Unmarshal(cfgBytes, &cfg)
+		err = json.Unmarshal(cfgBytes, &cfg.Config)
 		if err != nil {
 			return nil, err
 		}
@@ -108,51 +115,41 @@ func (d DB) findConfigs(filter squirrel.Sqlizer) (map[string]configs.Config, err
 	return cfgs, nil
 }
 
-func (d DB) upsertConfig(id, entityType string, subsystem configs.Subsystem, cfg configs.Config) error {
+func (d DB) insertConfig(id, entityType string, subsystem configs.Subsystem, cfg configs.Config) error {
 	cfgBytes, err := json.Marshal(cfg)
 	if err != nil {
 		return err
 	}
-	return d.Transaction(func(tx DB) error {
-		_, err := d.findConfig(id, entityType, string(subsystem))
-		if err == sql.ErrNoRows {
-			_, err := d.Insert("configs").
-				Columns("id", "type", "subsystem", "config").
-				Values(id, entityType, string(subsystem), cfgBytes).
-				Exec()
-			return err
-		}
-		_, err = d.Update("configs").
-			Where(configMatches(id, entityType, string(subsystem))).
-			Set("config", cfgBytes).
-			Exec()
-		return err
-	})
+	_, err = d.Insert("configs").
+		Columns("owner_id", "owner_type", "subsystem", "config").
+		Values(id, entityType, string(subsystem), cfgBytes).
+		Exec()
+	return err
 }
 
 // GetUserConfig gets a user's configuration.
-func (d DB) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (configs.Config, error) {
+func (d DB) GetUserConfig(userID configs.UserID, subsystem configs.Subsystem) (configs.ConfigView, error) {
 	return d.findConfig(string(userID), userType, string(subsystem))
 }
 
 // SetUserConfig sets a user's configuration.
 func (d DB) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, cfg configs.Config) error {
-	return d.upsertConfig(string(userID), userType, subsystem, cfg)
+	return d.insertConfig(string(userID), userType, subsystem, cfg)
 }
 
 // GetOrgConfig gets a org's configuration.
-func (d DB) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (configs.Config, error) {
+func (d DB) GetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem) (configs.ConfigView, error) {
 	return d.findConfig(string(orgID), orgType, string(subsystem))
 }
 
 // SetOrgConfig sets a org's configuration.
 func (d DB) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg configs.Config) error {
-	return d.upsertConfig(string(orgID), orgType, subsystem, cfg)
+	return d.insertConfig(string(orgID), orgType, subsystem, cfg)
 }
 
 // toOrgConfigs = mapKeys configs.OrgID
-func toOrgConfigs(rawCfgs map[string]configs.Config) map[configs.OrgID]configs.Config {
-	cfgs := map[configs.OrgID]configs.Config{}
+func toOrgConfigs(rawCfgs map[string]configs.ConfigView) map[configs.OrgID]configs.ConfigView {
+	cfgs := map[configs.OrgID]configs.ConfigView{}
 	for entityID, cfg := range rawCfgs {
 		cfgs[configs.OrgID(entityID)] = cfg
 	}
@@ -160,7 +157,7 @@ func toOrgConfigs(rawCfgs map[string]configs.Config) map[configs.OrgID]configs.C
 }
 
 // GetAllOrgConfigs gets all of the organization configs for a subsystem.
-func (d DB) GetAllOrgConfigs(subsystem configs.Subsystem) (map[configs.OrgID]configs.Config, error) {
+func (d DB) GetAllOrgConfigs(subsystem configs.Subsystem) (map[configs.OrgID]configs.ConfigView, error) {
 	rawCfgs, err := d.findConfigs(configsMatch(orgType, string(subsystem)))
 	if err != nil {
 		return nil, err
@@ -170,11 +167,10 @@ func (d DB) GetAllOrgConfigs(subsystem configs.Subsystem) (map[configs.OrgID]con
 
 // GetOrgConfigs gets all of the organization configs for a subsystem that
 // have changed recently.
-func (d DB) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.OrgID]configs.Config, error) {
-	threshold := d.Now().Add(-since)
+func (d DB) GetOrgConfigs(subsystem configs.Subsystem, since configs.ID) (map[configs.OrgID]configs.ConfigView, error) {
 	rawCfgs, err := d.findConfigs(squirrel.And{
 		configsMatch(orgType, string(subsystem)),
-		squirrel.Gt{"updated_at": threshold},
+		squirrel.Gt{"id": since},
 	})
 	if err != nil {
 		return nil, err
@@ -183,8 +179,8 @@ func (d DB) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (map
 }
 
 // toUserConfigs = mapKeys configs.UserID
-func toUserConfigs(rawCfgs map[string]configs.Config) map[configs.UserID]configs.Config {
-	cfgs := map[configs.UserID]configs.Config{}
+func toUserConfigs(rawCfgs map[string]configs.ConfigView) map[configs.UserID]configs.ConfigView {
+	cfgs := map[configs.UserID]configs.ConfigView{}
 	for entityID, cfg := range rawCfgs {
 		cfgs[configs.UserID(entityID)] = cfg
 	}
@@ -192,7 +188,7 @@ func toUserConfigs(rawCfgs map[string]configs.Config) map[configs.UserID]configs
 }
 
 // GetAllUserConfigs gets all of the user configs for a subsystem.
-func (d DB) GetAllUserConfigs(subsystem configs.Subsystem) (map[configs.UserID]configs.Config, error) {
+func (d DB) GetAllUserConfigs(subsystem configs.Subsystem) (map[configs.UserID]configs.ConfigView, error) {
 	rawCfgs, err := d.findConfigs(configsMatch(userType, string(subsystem)))
 	if err != nil {
 		return nil, err
@@ -202,23 +198,15 @@ func (d DB) GetAllUserConfigs(subsystem configs.Subsystem) (map[configs.UserID]c
 
 // GetUserConfigs gets all of the user configs for a subsystem that have
 // changed recently.
-func (d DB) GetUserConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.UserID]configs.Config, error) {
-	threshold := d.Now().Add(-since)
+func (d DB) GetUserConfigs(subsystem configs.Subsystem, since configs.ID) (map[configs.UserID]configs.ConfigView, error) {
 	rawCfgs, err := d.findConfigs(squirrel.And{
 		configsMatch(userType, string(subsystem)),
-		squirrel.Gt{"updated_at": threshold},
+		squirrel.Gt{"id": since},
 	})
 	if err != nil {
 		return nil, err
 	}
 	return toUserConfigs(rawCfgs), nil
-}
-
-// Now gives us the current time for Postgres. Postgres only stores times to
-// the microsecond, so we pre-truncate times so tests will match. We also
-// normalize to UTC, for sanity.
-func (d DB) Now() time.Time {
-	return time.Now().UTC().Truncate(time.Microsecond)
 }
 
 // Transaction runs the given function in a postgres transaction. If fn returns
