@@ -357,7 +357,7 @@ func (a *API) logout(w http.ResponseWriter, r *http.Request) {
 type publicLookupView struct {
 	Email         string    `json:"email,omitempty"`
 	Organizations []orgView `json:"organizations,omitempty"`
-	MunchkinHash  string    `json:"munchkin_hash"`
+	MunchkinHash  string    `json:"munchkinHash"`
 }
 
 // MunchkinHash caclulates the hash for Marketo's Munchkin tracking code.
