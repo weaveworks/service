@@ -47,6 +47,7 @@ type Config struct {
 	billingUsageHost    string
 	demoHost            string
 	launchGeneratorHost string
+	uiMetricsHost       string
 	logSuccess          bool
 	apiInfo             string
 }
@@ -223,6 +224,12 @@ func routes(c Config) (http.Handler, error) {
 		path{
 			"/api/analytics",
 			middleware.Merge(authOrgMiddleware, analyticsLogger).Wrap(noopHandler),
+		},
+
+		// Forward requests (unauthenticated) to the ui-metrics job.
+		path{
+			"/api/ui/metrics",
+			newProxy(c.uiMetricsHost),
 		},
 
 		// For all probe <-> app communication, authenticated using header credentials
