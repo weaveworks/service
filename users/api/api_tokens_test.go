@@ -86,8 +86,8 @@ func Test_APITokens_CreateAndUseAPIToken(t *testing.T) {
 
 		// It should give access to all instances
 		assert.Equal(t, map[string]interface{}{
-			"email":         user.Email,
-			"munchkin_hash": app.MunchkinHash(user.Email),
+			"email":        user.Email,
+			"munchkinHash": app.MunchkinHash(user.Email),
 			"organizations": []interface{}{
 				map[string]interface{}{
 					"id":   org1.ExternalID,
