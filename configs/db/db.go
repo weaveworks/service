@@ -2,7 +2,6 @@ package db
 
 import (
 	"net/url"
-	"time"
 
 	"github.com/Sirupsen/logrus"
 
@@ -20,9 +19,9 @@ type DB interface {
 	SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg configs.Config) error
 
 	GetAllOrgConfigs(subsystem configs.Subsystem) (map[configs.OrgID]configs.ConfigView, error)
-	GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.OrgID]configs.ConfigView, error)
+	GetOrgConfigs(subsystem configs.Subsystem, since configs.ID) (map[configs.OrgID]configs.ConfigView, error)
 	GetAllUserConfigs(subsystem configs.Subsystem) (map[configs.UserID]configs.ConfigView, error)
-	GetUserConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.UserID]configs.ConfigView, error)
+	GetUserConfigs(subsystem configs.Subsystem, since configs.ID) (map[configs.UserID]configs.ConfigView, error)
 
 	Close() error
 }

@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/Sirupsen/logrus"
@@ -168,11 +167,10 @@ func (d DB) GetAllOrgConfigs(subsystem configs.Subsystem) (map[configs.OrgID]con
 
 // GetOrgConfigs gets all of the organization configs for a subsystem that
 // have changed recently.
-func (d DB) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.OrgID]configs.ConfigView, error) {
-	threshold := d.Now().Add(-since)
+func (d DB) GetOrgConfigs(subsystem configs.Subsystem, since configs.ID) (map[configs.OrgID]configs.ConfigView, error) {
 	rawCfgs, err := d.findConfigs(squirrel.And{
 		configsMatch(orgType, string(subsystem)),
-		squirrel.Gt{"updated_at": threshold},
+		squirrel.Gt{"id": since},
 	})
 	if err != nil {
 		return nil, err
@@ -200,23 +198,15 @@ func (d DB) GetAllUserConfigs(subsystem configs.Subsystem) (map[configs.UserID]c
 
 // GetUserConfigs gets all of the user configs for a subsystem that have
 // changed recently.
-func (d DB) GetUserConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.UserID]configs.ConfigView, error) {
-	threshold := d.Now().Add(-since)
+func (d DB) GetUserConfigs(subsystem configs.Subsystem, since configs.ID) (map[configs.UserID]configs.ConfigView, error) {
 	rawCfgs, err := d.findConfigs(squirrel.And{
 		configsMatch(userType, string(subsystem)),
-		squirrel.Gt{"updated_at": threshold},
+		squirrel.Gt{"id": since},
 	})
 	if err != nil {
 		return nil, err
 	}
 	return toUserConfigs(rawCfgs), nil
-}
-
-// Now gives us the current time for Postgres. Postgres only stores times to
-// the microsecond, so we pre-truncate times so tests will match. We also
-// normalize to UTC, for sanity.
-func (d DB) Now() time.Time {
-	return time.Now().UTC().Truncate(time.Microsecond)
 }
 
 // Transaction runs the given function in a postgres transaction. If fn returns

@@ -1,8 +1,6 @@
 package db
 
 import (
-	"time"
-
 	"github.com/Sirupsen/logrus"
 	"github.com/weaveworks/service/configs"
 )
@@ -41,7 +39,7 @@ func (t traced) GetAllOrgConfigs(subsystem configs.Subsystem) (cfgs map[configs.
 	return t.d.GetAllOrgConfigs(subsystem)
 }
 
-func (t traced) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (cfgs map[configs.OrgID]configs.ConfigView, err error) {
+func (t traced) GetOrgConfigs(subsystem configs.Subsystem, since configs.ID) (cfgs map[configs.OrgID]configs.ConfigView, err error) {
 	defer func() { t.trace("GetOrgConfigs", subsystem, since, cfgs, err) }()
 	return t.d.GetOrgConfigs(subsystem, since)
 }
@@ -51,7 +49,7 @@ func (t traced) GetAllUserConfigs(subsystem configs.Subsystem) (cfgs map[configs
 	return t.d.GetAllUserConfigs(subsystem)
 }
 
-func (t traced) GetUserConfigs(subsystem configs.Subsystem, since time.Duration) (cfgs map[configs.UserID]configs.ConfigView, err error) {
+func (t traced) GetUserConfigs(subsystem configs.Subsystem, since configs.ID) (cfgs map[configs.UserID]configs.ConfigView, err error) {
 	defer func() { t.trace("GetUserConfigs", subsystem, since, cfgs, err) }()
 	return t.d.GetUserConfigs(subsystem, since)
 }

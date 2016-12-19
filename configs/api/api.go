@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
+	"strconv"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -254,13 +254,13 @@ func (a *API) getOrgConfigs(w http.ResponseWriter, r *http.Request) {
 	if rawSince == "" {
 		cfgs, err = a.db.GetAllOrgConfigs(subsystem)
 	} else {
-		since, err := time.ParseDuration(rawSince)
+		since, err := strconv.ParseUint(rawSince, 10, 0)
 		if err != nil {
-			log.Infof("Invalid duration: %v", err)
+			log.Infof("Invalid config ID: %v", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		cfgs, err = a.db.GetOrgConfigs(subsystem, since)
+		cfgs, err = a.db.GetOrgConfigs(subsystem, configs.ID(since))
 	}
 
 	if err != nil {
@@ -295,13 +295,13 @@ func (a *API) getUserConfigs(w http.ResponseWriter, r *http.Request) {
 	if rawSince == "" {
 		cfgs, err = a.db.GetAllUserConfigs(subsystem)
 	} else {
-		since, err := time.ParseDuration(rawSince)
+		since, err := strconv.ParseUint(rawSince, 10, 0)
 		if err != nil {
-			log.Infof("Invalid duration: %v", err)
+			log.Infof("Invalid config ID: %v", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		cfgs, err = a.db.GetUserConfigs(subsystem, since)
+		cfgs, err = a.db.GetUserConfigs(subsystem, configs.ID(since))
 	}
 
 	if err != nil {

@@ -2,15 +2,13 @@ package memory
 
 import (
 	"database/sql"
-	"time"
 
 	"github.com/weaveworks/service/configs"
 )
 
 type config struct {
-	lastTouched time.Time
-	cfg         configs.Config
-	id          configs.ID
+	cfg configs.Config
+	id  configs.ID
 }
 
 func (c config) toView() configs.ConfigView {
@@ -53,7 +51,7 @@ func (d *DB) SetUserConfig(userID configs.UserID, subsystem configs.Subsystem, c
 		user = map[configs.Subsystem]config{}
 	}
 	d.id++
-	user[subsystem] = config{lastTouched: time.Now(), cfg: cfg, id: configs.ID(d.id)}
+	user[subsystem] = config{cfg: cfg, id: configs.ID(d.id)}
 	d.userCfgs[userID] = user
 	return nil
 }
@@ -75,7 +73,7 @@ func (d *DB) SetOrgConfig(orgID configs.OrgID, subsystem configs.Subsystem, cfg 
 		org = map[configs.Subsystem]config{}
 	}
 	d.id++
-	org[subsystem] = config{lastTouched: time.Now(), cfg: cfg, id: configs.ID(d.id)}
+	org[subsystem] = config{cfg: cfg, id: configs.ID(d.id)}
 	d.orgCfgs[orgID] = org
 	return nil
 }
@@ -94,12 +92,11 @@ func (d *DB) GetAllOrgConfigs(subsystem configs.Subsystem) (map[configs.OrgID]co
 
 // GetOrgConfigs gets all of the organization configs for a subsystem that
 // have changed recently.
-func (d *DB) GetOrgConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.OrgID]configs.ConfigView, error) {
-	threshold := time.Now().Add(-since)
+func (d *DB) GetOrgConfigs(subsystem configs.Subsystem, since configs.ID) (map[configs.OrgID]configs.ConfigView, error) {
 	cfgs := map[configs.OrgID]configs.ConfigView{}
 	for org, subsystems := range d.orgCfgs {
 		c, ok := subsystems[subsystem]
-		if ok && c.lastTouched.After(threshold) {
+		if ok && c.id > since {
 			cfgs[org] = c.toView()
 		}
 	}
@@ -120,12 +117,11 @@ func (d *DB) GetAllUserConfigs(subsystem configs.Subsystem) (map[configs.UserID]
 
 // GetUserConfigs gets all of the user configs for a subsystem that have
 // changed recently.
-func (d *DB) GetUserConfigs(subsystem configs.Subsystem, since time.Duration) (map[configs.UserID]configs.ConfigView, error) {
-	threshold := time.Now().Add(-since)
+func (d *DB) GetUserConfigs(subsystem configs.Subsystem, since configs.ID) (map[configs.UserID]configs.ConfigView, error) {
 	cfgs := map[configs.UserID]configs.ConfigView{}
 	for user, subsystems := range d.userCfgs {
 		c, ok := subsystems[subsystem]
-		if ok && c.lastTouched.After(threshold) {
+		if ok && c.id > since {
 			cfgs[user] = c.toView()
 		}
 	}
