@@ -101,6 +101,21 @@ func Test_PostUserConfig_CreatesConfig(t *testing.T) {
 	}
 }
 
+// postUserConfig posts a user config.
+func postUserConfig(t *testing.T, userID configs.UserID, subsystem configs.Subsystem, config configs.Config) configs.ConfigView {
+	endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
+	w := requestAsUser(t, userID, "POST", endpoint, jsonObject(config).Reader(t))
+	require.Equal(t, http.StatusNoContent, w.Code)
+	return getUserConfig(t, userID, subsystem)
+}
+
+// getUserConfig gets a user config.
+func getUserConfig(t *testing.T, userID configs.UserID, subsystem configs.Subsystem) configs.ConfigView {
+	endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
+	w := requestAsUser(t, userID, "GET", endpoint, nil)
+	return parseConfigView(t, w.Body.Bytes())
+}
+
 // Posting to a configuration sets it so that you can get it again.
 func Test_PostUserConfig_UpdatesConfig(t *testing.T) {
 	setup(t)
@@ -108,23 +123,11 @@ func Test_PostUserConfig_UpdatesConfig(t *testing.T) {
 
 	userID := makeUserID()
 	subsystem := makeSubsystem()
-	content1 := jsonObject(makeConfig())
+	view1 := postUserConfig(t, userID, subsystem, makeConfig())
 	config2 := makeConfig()
-	content2 := jsonObject(config2)
-	endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
-	requestAsUser(t, userID, "POST", endpoint, content1.Reader(t))
-	w := requestAsUser(t, userID, "GET", endpoint, nil)
-	id := parseConfigView(t, w.Body.Bytes()).ID
-	{
-		w := requestAsUser(t, userID, "POST", endpoint, content2.Reader(t))
-		assert.Equal(t, http.StatusNoContent, w.Code)
-	}
-	{
-		w := requestAsUser(t, userID, "GET", endpoint, nil)
-		view := parseConfigView(t, w.Body.Bytes())
-		assert.True(t, view.ID > id, "%v > %v", view.ID, id)
-		assert.Equal(t, config2, view.Config)
-	}
+	view2 := postUserConfig(t, userID, subsystem, config2)
+	assert.True(t, view2.ID > view1.ID, "%v > %v", view2.ID, view1.ID)
+	assert.Equal(t, config2, view2.Config)
 }
 
 // Different subsystems can have different configurations.
@@ -135,22 +138,13 @@ func Test_PostUserConfig_MultipleSubsystems(t *testing.T) {
 	userID := makeUserID()
 	subsystem1 := makeSubsystem()
 	subsystem2 := makeSubsystem()
-	config1 := makeConfig()
-	config2 := makeConfig()
-	content1 := jsonObject(config1)
-	content2 := jsonObject(config2)
-	endpoint1 := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem1)
-	endpoint2 := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem2)
-	requestAsUser(t, userID, "POST", endpoint1, content1.Reader(t))
-	requestAsUser(t, userID, "POST", endpoint2, content2.Reader(t))
-	{
-		w := requestAsUser(t, userID, "GET", endpoint1, nil)
-		assert.Equal(t, config1, parseConfigView(t, w.Body.Bytes()).Config)
-	}
-	{
-		w := requestAsUser(t, userID, "GET", endpoint2, nil)
-		assert.Equal(t, config2, parseConfigView(t, w.Body.Bytes()).Config)
-	}
+	config1 := postUserConfig(t, userID, subsystem1, makeConfig())
+	config2 := postUserConfig(t, userID, subsystem2, makeConfig())
+	foundConfig1 := getUserConfig(t, userID, subsystem1)
+	assert.Equal(t, config1, foundConfig1)
+	foundConfig2 := getUserConfig(t, userID, subsystem2)
+	assert.Equal(t, config2, foundConfig2)
+	assert.True(t, config2.ID > config1.ID, "%v > %v", config2.ID, config1.ID)
 }
 
 // Different users can have different configurations.
@@ -161,22 +155,29 @@ func Test_PostUserConfig_MultipleUsers(t *testing.T) {
 	userID1 := makeUserID()
 	userID2 := makeUserID()
 	subsystem := makeSubsystem()
-	config1 := makeConfig()
-	content1 := jsonObject(config1)
-	config2 := makeConfig()
-	content2 := jsonObject(config2)
-	endpoint1 := fmt.Sprintf("/api/configs/user/%s/%s", userID1, subsystem)
-	endpoint2 := fmt.Sprintf("/api/configs/user/%s/%s", userID2, subsystem)
-	requestAsUser(t, userID1, "POST", endpoint1, content1.Reader(t))
-	requestAsUser(t, userID2, "POST", endpoint2, content2.Reader(t))
-	{
-		w := requestAsUser(t, userID1, "GET", endpoint1, nil)
-		assert.Equal(t, config1, parseConfigView(t, w.Body.Bytes()).Config)
-	}
-	{
-		w := requestAsUser(t, userID2, "GET", endpoint2, nil)
-		assert.Equal(t, config2, parseConfigView(t, w.Body.Bytes()).Config)
-	}
+	config1 := postUserConfig(t, userID1, subsystem, makeConfig())
+	config2 := postUserConfig(t, userID2, subsystem, makeConfig())
+
+	foundConfig1 := getUserConfig(t, userID1, subsystem)
+	assert.Equal(t, config1, foundConfig1)
+	foundConfig2 := getUserConfig(t, userID2, subsystem)
+	assert.Equal(t, config2, foundConfig2)
+	assert.True(t, config2.ID > config1.ID, "%v > %v", config2.ID, config1.ID)
+}
+
+// postOrgConfig posts a user config.
+func postOrgConfig(t *testing.T, orgID configs.OrgID, subsystem configs.Subsystem, config configs.Config) configs.ConfigView {
+	endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+	w := requestAsOrg(t, orgID, "POST", endpoint, jsonObject(config).Reader(t))
+	require.Equal(t, http.StatusNoContent, w.Code)
+	return getOrgConfig(t, orgID, subsystem)
+}
+
+// getOrgConfig gets a user config.
+func getOrgConfig(t *testing.T, orgID configs.OrgID, subsystem configs.Subsystem) configs.ConfigView {
+	endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+	w := requestAsOrg(t, orgID, "GET", endpoint, nil)
+	return parseConfigView(t, w.Body.Bytes())
 }
 
 // configs returns 401 to requests without authentication.
@@ -262,23 +263,11 @@ func Test_PostOrgConfig_UpdatesConfig(t *testing.T) {
 
 	orgID := makeOrgID()
 	subsystem := makeSubsystem()
+	view1 := postOrgConfig(t, orgID, subsystem, makeConfig())
 	config2 := makeConfig()
-	content1 := jsonObject(makeConfig())
-	content2 := jsonObject(config2)
-	endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
-	requestAsOrg(t, orgID, "POST", endpoint, content1.Reader(t))
-	w := requestAsOrg(t, orgID, "GET", endpoint, nil)
-	id := parseConfigView(t, w.Body.Bytes()).ID
-	{
-		w := requestAsOrg(t, orgID, "POST", endpoint, content2.Reader(t))
-		assert.Equal(t, http.StatusNoContent, w.Code)
-	}
-	{
-		w := requestAsOrg(t, orgID, "GET", endpoint, nil)
-		view := parseConfigView(t, w.Body.Bytes())
-		assert.True(t, view.ID > id, "%v > %v", view.ID, id)
-		assert.Equal(t, config2, parseConfigView(t, w.Body.Bytes()).Config)
-	}
+	view2 := postOrgConfig(t, orgID, subsystem, config2)
+	assert.True(t, view2.ID > view1.ID, "%v > %v", view2.ID, view1.ID)
+	assert.Equal(t, config2, view2.Config)
 }
 
 // Different subsystems can have different configurations.
@@ -289,22 +278,13 @@ func Test_PostOrgConfig_MultipleSubsystems(t *testing.T) {
 	orgID := makeOrgID()
 	subsystem1 := makeSubsystem()
 	subsystem2 := makeSubsystem()
-	config1 := makeConfig()
-	config2 := makeConfig()
-	content1 := jsonObject(config1)
-	content2 := jsonObject(config2)
-	endpoint1 := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem1)
-	endpoint2 := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem2)
-	requestAsOrg(t, orgID, "POST", endpoint1, content1.Reader(t))
-	requestAsOrg(t, orgID, "POST", endpoint2, content2.Reader(t))
-	{
-		w := requestAsOrg(t, orgID, "GET", endpoint1, nil)
-		assert.Equal(t, config1, parseConfigView(t, w.Body.Bytes()).Config)
-	}
-	{
-		w := requestAsOrg(t, orgID, "GET", endpoint2, nil)
-		assert.Equal(t, config2, parseConfigView(t, w.Body.Bytes()).Config)
-	}
+	config1 := postOrgConfig(t, orgID, subsystem1, makeConfig())
+	config2 := postOrgConfig(t, orgID, subsystem2, makeConfig())
+	foundConfig1 := getOrgConfig(t, orgID, subsystem1)
+	assert.Equal(t, config1, foundConfig1)
+	foundConfig2 := getOrgConfig(t, orgID, subsystem2)
+	assert.Equal(t, config2, foundConfig2)
+	assert.True(t, config2.ID > config1.ID, "%v > %v", config2.ID, config1.ID)
 }
 
 // Different users can have different configurations.
@@ -315,22 +295,14 @@ func Test_PostOrgConfig_MultipleOrgs(t *testing.T) {
 	orgID1 := makeOrgID()
 	orgID2 := makeOrgID()
 	subsystem := makeSubsystem()
-	config1 := makeConfig()
-	config2 := makeConfig()
-	content1 := jsonObject(config1)
-	content2 := jsonObject(config2)
-	endpoint1 := fmt.Sprintf("/api/configs/org/%s/%s", orgID1, subsystem)
-	endpoint2 := fmt.Sprintf("/api/configs/org/%s/%s", orgID2, subsystem)
-	requestAsOrg(t, orgID1, "POST", endpoint1, content1.Reader(t))
-	requestAsOrg(t, orgID2, "POST", endpoint2, content2.Reader(t))
-	{
-		w := requestAsOrg(t, orgID1, "GET", endpoint1, nil)
-		assert.Equal(t, config1, parseConfigView(t, w.Body.Bytes()).Config)
-	}
-	{
-		w := requestAsOrg(t, orgID2, "GET", endpoint2, nil)
-		assert.Equal(t, config2, parseConfigView(t, w.Body.Bytes()).Config)
-	}
+	config1 := postOrgConfig(t, orgID1, subsystem, makeConfig())
+	config2 := postOrgConfig(t, orgID2, subsystem, makeConfig())
+
+	foundConfig1 := getOrgConfig(t, orgID1, subsystem)
+	assert.Equal(t, config1, foundConfig1)
+	foundConfig2 := getOrgConfig(t, orgID2, subsystem)
+	assert.Equal(t, config2, foundConfig2)
+	assert.True(t, config2.ID > config1.ID, "%v > %v", config2.ID, config1.ID)
 }
 
 // GetAllOrgConfigs returns an empty list of configs if there aren't any.
