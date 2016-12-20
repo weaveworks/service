@@ -209,6 +209,7 @@ func getAuthHeader(r *http.Request, realm string) (string, error) {
 type probeCredCacheValue struct {
 	orgID        string
 	featureFlags []string
+	err          error
 }
 
 func (m *webAuthenticator) AuthenticateProbe(w http.ResponseWriter, r *http.Request) (string, []string, error) {
@@ -225,7 +226,7 @@ func (m *webAuthenticator) AuthenticateProbe(w http.ResponseWriter, r *http.Requ
 		authCacheCounter.WithLabelValues("probe_cred_cache", hitOrMiss(err)).Inc()
 		if err == nil {
 			v := org.(probeCredCacheValue)
-			return v.orgID, v.featureFlags, nil
+			return v.orgID, v.featureFlags, v.err
 		}
 	}
 
@@ -237,8 +238,8 @@ func (m *webAuthenticator) AuthenticateProbe(w http.ResponseWriter, r *http.Requ
 	}
 	lookupReq.Header.Set(AuthHeaderName, authHeader)
 	orgID, _, featureFlags, err := m.decodeOrg(m.doAuthenticateRequest(w, lookupReq))
-	if err == nil && m.probeCredCache != nil {
-		m.probeCredCache.Set(authHeader, probeCredCacheValue{orgID: orgID, featureFlags: featureFlags})
+	if m.probeCredCache != nil {
+		m.probeCredCache.Set(authHeader, probeCredCacheValue{orgID: orgID, featureFlags: featureFlags, err: err})
 	}
 	return orgID, featureFlags, err
 }
