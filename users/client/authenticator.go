@@ -238,10 +238,18 @@ func (m *webAuthenticator) AuthenticateProbe(w http.ResponseWriter, r *http.Requ
 	}
 	lookupReq.Header.Set(AuthHeaderName, authHeader)
 	orgID, _, featureFlags, err := m.decodeOrg(m.doAuthenticateRequest(w, lookupReq))
-	if m.probeCredCache != nil {
+	if isUnauthorized(err) && m.probeCredCache != nil {
 		m.probeCredCache.Set(authHeader, probeCredCacheValue{orgID: orgID, featureFlags: featureFlags, err: err})
 	}
 	return orgID, featureFlags, err
+}
+
+func isUnauthorized(err error) bool {
+	unauthorized, ok := err.(*Unauthorized)
+	if !ok {
+		return false
+	}
+	return unauthorized.httpStatus == http.StatusUnauthorized
 }
 
 func (m *webAuthenticator) AuthenticateAdmin(w http.ResponseWriter, r *http.Request) (string, error) {
