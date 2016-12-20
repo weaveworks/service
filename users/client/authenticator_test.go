@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -26,10 +28,25 @@ var (
 	featureFlags = []string{"a", "b"}
 )
 
-func dummyServer() *httptest.Server {
+type dummyServer struct {
+	*httptest.Server
+
+	failRequests int32
+	probeLookups int32
+	orgLookups   int32
+}
+
+func newDummyServer() *dummyServer {
+	d := &dummyServer{}
 	serverHandler := mux.NewRouter()
 	serverHandler.Methods("GET").Path("/private/api/users/lookup/{orgExternalID}").
 		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			atomic.AddInt32(&d.orgLookups, 1)
+			if atomic.LoadInt32(&d.failRequests) != 0 {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
 			localOrgExternalID := mux.Vars(r)["orgExternalID"]
 			localOrgCookie, err := r.Cookie(client.AuthCookieName)
 			if err != nil {
@@ -52,6 +69,12 @@ func dummyServer() *httptest.Server {
 
 	serverHandler.Methods("GET").Path("/private/api/users/lookup").
 		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			atomic.AddInt32(&d.probeLookups, 1)
+			if atomic.LoadInt32(&d.failRequests) != 0 {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
 			localAuthToken := r.Header.Get(client.AuthHeaderName)
 			j, _ := json.Marshal(map[string]interface{}{
 				"organizationID": orgID,
@@ -65,11 +88,12 @@ func dummyServer() *httptest.Server {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		})
-	return httptest.NewServer(serverHandler)
+	d.Server = httptest.NewServer(serverHandler)
+	return d
 }
 
 func TestAuth(t *testing.T) {
-	server := dummyServer()
+	server := newDummyServer()
 	defer server.Close()
 	auth := client.MakeAuthenticator("web", server.URL, client.AuthenticatorOptions{})
 
@@ -102,7 +126,7 @@ func TestAuth(t *testing.T) {
 	// Test denying access for headers
 	{
 		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
-		req.Header.Set(client.AuthHeaderName, "This is not the right value")
+		req.Header.Set(client.AuthHeaderName, "Scope-Probe This is not the right value")
 		w := httptest.NewRecorder()
 		gotOrgID, gotFeatureFlags, err := auth.AuthenticateProbe(w, req)
 		assert.Error(t, err, "Unexpected successful authentication")
@@ -126,8 +150,58 @@ func TestAuth(t *testing.T) {
 	}
 }
 
+func TestAuthCache(t *testing.T) {
+	server := newDummyServer()
+	defer server.Close()
+	auth := client.MakeAuthenticator("web", server.URL, client.AuthenticatorOptions{
+		CredCacheEnabled:         true,
+		ProbeCredCacheSize:       1,
+		OrgCredCacheSize:         1,
+		ProbeCredCacheExpiration: time.Minute,
+		OrgCredCacheExpiration:   time.Minute,
+	})
+
+	// Test denying access should be cached
+	{
+		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
+		req.Header.Set(client.AuthHeaderName, "Scope-Probe This is not the right value")
+		w := httptest.NewRecorder()
+		gotOrgID, gotFeatureFlags, err := auth.AuthenticateProbe(w, req)
+		assert.Error(t, err, "Unexpected successful authentication")
+		assert.Equal(t, "", gotOrgID, "Unexpected organization")
+		assert.Len(t, gotFeatureFlags, 0, "Unexpected organization")
+		assert.Equal(t, int32(1), atomic.LoadInt32(&server.probeLookups), "Unexpected number of probe lookups")
+
+		gotOrgID, gotFeatureFlags, err = auth.AuthenticateProbe(w, req)
+		assert.Error(t, err, "Unexpected successful authentication")
+		assert.Equal(t, "", gotOrgID, "Unexpected organization")
+		assert.Len(t, gotFeatureFlags, 0, "Unexpected organization")
+		assert.Equal(t, int32(1), atomic.LoadInt32(&server.probeLookups), "Unexpected number of probe lookups")
+	}
+
+	// Test other errors are not cached
+	{
+		atomic.StoreInt32(&server.failRequests, 1)
+
+		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
+		req.Header.Set(client.AuthHeaderName, "Scope-Probe This is a different but not the right value")
+		w := httptest.NewRecorder()
+		gotOrgID, gotFeatureFlags, err := auth.AuthenticateProbe(w, req)
+		assert.Error(t, err, "Unexpected successful authentication")
+		assert.Equal(t, "", gotOrgID, "Unexpected organization")
+		assert.Len(t, gotFeatureFlags, 0, "Unexpected organization")
+		assert.Equal(t, int32(2), atomic.LoadInt32(&server.probeLookups), "Unexpected number of probe lookups")
+
+		gotOrgID, gotFeatureFlags, err = auth.AuthenticateProbe(w, req)
+		assert.Error(t, err, "Unexpected successful authentication")
+		assert.Equal(t, "", gotOrgID, "Unexpected organization")
+		assert.Len(t, gotFeatureFlags, 0, "Unexpected organization")
+		assert.Equal(t, int32(3), atomic.LoadInt32(&server.probeLookups), "Unexpected number of probe lookups")
+	}
+}
+
 func TestMiddleware(t *testing.T) {
-	server := dummyServer()
+	server := newDummyServer()
 	defer server.Close()
 	auth := client.MakeAuthenticator("web", server.URL, client.AuthenticatorOptions{})
 
