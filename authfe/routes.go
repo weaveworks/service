@@ -226,11 +226,6 @@ func routes(c Config) (http.Handler, error) {
 			),
 		},
 
-		path{
-			"/api/analytics",
-			middleware.Merge(authOrgMiddleware, analyticsLogger).Wrap(noopHandler),
-		},
-
 		// Forward requests (unauthenticated) to the ui-metrics job.
 		path{
 			"/api/ui/metrics",
