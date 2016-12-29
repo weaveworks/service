@@ -52,3 +52,11 @@ func (a *API) lookupAdmin(currentUser *users.User, w http.ResponseWriter, r *htt
 func (a *API) lookupUsingToken(organization *users.Organization, w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, lookupOrgView{OrganizationID: organization.ID, FeatureFlags: organization.FeatureFlags})
 }
+
+type lookupUserView struct {
+	UserID string `json:"userID,omitempty"`
+}
+
+func (a *API) lookupUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	render.JSON(w, http.StatusOK, lookupUserView{UserID: currentUser.ID})
+}

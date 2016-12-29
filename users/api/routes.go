@@ -72,6 +72,7 @@ func (a *API) routes() http.Handler {
 		{"private_api_users_admin", "GET", "/private/api/users/admin", a.authenticateUser(a.lookupAdmin)},
 		{"private_api_users_lookup_orgExternalID", "GET", "/private/api/users/lookup/{orgExternalID}", a.authenticateUser(a.lookupOrg)},
 		{"private_api_users_lookup", "GET", "/private/api/users/lookup", a.authenticateProbe(a.lookupUsingToken)},
+		{"private_api_users_lookup", "GET", "/private/api/users/lookupUser", a.authenticateUser(a.lookupUser)},
 
 		// Internal stuff for our internal usage, internally.
 		{"root", "GET", "/", a.admin},
