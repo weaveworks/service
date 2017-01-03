@@ -159,6 +159,11 @@ func routes(c Config) (http.Handler, error) {
 		FeatureFlagsHeader: featureFlagsHeader,
 	}
 
+	authUserMiddleware := users.AuthUserMiddleware{
+		Authenticator: c.authenticator,
+		UserIDHeader:  userIDHeader,
+	}
+
 	billingAuthMiddleware := users.AuthOrgMiddleware{
 		Authenticator: c.authenticator,
 		OrgExternalID: func(r *http.Request) (string, bool) {
@@ -221,15 +226,15 @@ func routes(c Config) (http.Handler, error) {
 			),
 		},
 
-		path{
-			"/api/analytics",
-			middleware.Merge(authOrgMiddleware, analyticsLogger).Wrap(noopHandler),
-		},
-
 		// Forward requests (unauthenticated) to the ui-metrics job.
 		path{
 			"/api/ui/metrics",
 			newProxy(c.uiMetricsHost),
+		},
+
+		path{
+			"/api/ui/analytics",
+			middleware.Merge(authUserMiddleware, analyticsLogger).Wrap(noopHandler),
 		},
 
 		// For all probe <-> app communication, authenticated using header credentials
