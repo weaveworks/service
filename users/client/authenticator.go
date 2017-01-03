@@ -285,7 +285,7 @@ func (m *webAuthenticator) AuthenticateUser(w http.ResponseWriter, r *http.Reque
 		return "", &Unauthorized{http.StatusUnauthorized}
 	}
 
-	url := fmt.Sprintf("%s/private/api/users/lookupUser", m.url)
+	url := fmt.Sprintf("%s/private/api/users/lookup_user", m.url)
 	lookupReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Error("authenticator: cannot build lookup request: ", err)
