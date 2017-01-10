@@ -77,8 +77,12 @@ type Authenticator func(w http.ResponseWriter, r *http.Request) (Authentication,
 
 func (a *API) authenticateVia(handler func(Authentication, http.ResponseWriter, *http.Request), strategies ...Authenticator) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var (
+			auth Authentication
+			err  error
+		)
 		for _, s := range strategies {
-			auth, err := s(w, r)
+			auth, err = s(w, r)
 			if err != nil {
 				continue
 			}
@@ -92,7 +96,11 @@ func (a *API) authenticateVia(handler func(Authentication, http.ResponseWriter, 
 			return
 		}
 
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		// convert not found errors, which we expect, into invalid auth
+		if err == users.ErrNotFound {
+			err = users.ErrInvalidAuthenticationData
+		}
+		render.Error(w, r, err)
 		return
 	})
 }
