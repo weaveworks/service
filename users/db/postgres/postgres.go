@@ -40,8 +40,10 @@ func New(databaseURI, migrationsDir string, passwordHashingCost int) (DB, error)
 		"max_open_conns": 0,
 		"max_idle_conns": 0,
 	}
+	query := u.Query()
 	for k := range intOptions {
-		if valStr := u.Query().Get(k); valStr != "" {
+		if valStr := query.Get(k); valStr != "" {
+			query.Del(k) // Delete these options so lib/pq doesn't panic
 			val, err := strconv.ParseInt(valStr, 10, 32)
 			if err != nil {
 				return DB{}, errors.Wrapf(err, "parsing %s", k)
@@ -49,6 +51,8 @@ func New(databaseURI, migrationsDir string, passwordHashingCost int) (DB, error)
 			intOptions[k] = int(val)
 		}
 	}
+	u.RawQuery = query.Encode()
+	databaseURI = u.String()
 
 	if migrationsDir != "" {
 		logrus.Infof("Running Database Migrations...")
