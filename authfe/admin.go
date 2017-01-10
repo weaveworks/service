@@ -17,7 +17,9 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 		<h2>Monitoring</h2>
 		<ul>
 			<li><a href="/admin/scope/">Scope</a></li>
-			<li><a href="/admin/grafana/">Grafana</a></li>
+			<li><a href="/admin/grafana/">Grafana (local)</a></li>
+			<li><a href="/admin/dev-grafana/">Grafana (Cortex, Dev)</a></li>
+			<li><a href="/admin/prod-grafana/">Grafana (Cortex, Prod)</a></li>
 			<li><a href="/admin/alertmanager/">Alert Manager</a></li>
 			<li><a href="/admin/prometheus/">Prometheus</a></li>
 			<li><a href="/admin/kubediff/">Kubediff</a></li>
