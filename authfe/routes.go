@@ -31,6 +31,8 @@ type Config struct {
 	deployHost          string
 	fluxHost            string
 	grafanaHost         string
+	devGrafanaHost      string
+	prodGrafanaHost     string
 	scopeHost           string
 	usersHost           string
 	kubediffHost        string
@@ -264,6 +266,8 @@ func routes(c Config) (http.Handler, error) {
 			"/admin",
 			[]path{
 				{"/grafana", trimPrefix("/admin/grafana", newProxy(c.grafanaHost))},
+				{"/dev-grafana", trimPrefix("/admin/dev-grafana", newProxy(c.devGrafanaHost))},
+				{"/prod-grafana", trimPrefix("/admin/prod-grafana", newProxy(c.prodGrafanaHost))},
 				{"/scope", trimPrefix("/admin/scope", newProxy(c.scopeHost))},
 				{"/users", trimPrefix("/admin/users", newProxy(c.usersHost))},
 				{"/kubediff", trimPrefix("/admin/kubediff", newProxy(c.kubediffHost))},

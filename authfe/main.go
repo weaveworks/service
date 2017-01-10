@@ -88,6 +88,8 @@ func main() {
 		{&c.pipeHost, "pipe"},
 		// For Admin routers
 		{&c.grafanaHost, "grafana"},
+		{&c.devGrafanaHost, "dev-grafana"},
+		{&c.prodGrafanaHost, "prod-grafana"},
 		{&c.scopeHost, "scope"},
 		{&c.usersHost, "users"},
 		{&c.kubediffHost, "kubediff"},
