@@ -2,7 +2,8 @@ package postgres
 
 import (
 	"database/sql"
-	"errors"
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -10,6 +11,7 @@ import (
 	_ "github.com/lib/pq"                         // Import the postgres sql driver
 	_ "github.com/mattes/migrate/driver/postgres" // Import the postgres migrations driver
 	"github.com/mattes/migrate/migrate"
+	"github.com/pkg/errors"
 
 	"github.com/weaveworks/service/users"
 )
@@ -30,6 +32,24 @@ type dbProxy interface {
 
 // New creates a new postgred DB
 func New(databaseURI, migrationsDir string, passwordHashingCost int) (DB, error) {
+	u, err := url.Parse(databaseURI)
+	if err != nil {
+		return DB{}, err
+	}
+	intOptions := map[string]int{
+		"max_open_conns": 0,
+		"max_idle_conns": 0,
+	}
+	for k := range intOptions {
+		if valStr := u.Query().Get(k); valStr != "" {
+			val, err := strconv.ParseInt(valStr, 10, 32)
+			if err != nil {
+				return DB{}, errors.Wrapf(err, "parsing %s", k)
+			}
+			intOptions[k] = int(val)
+		}
+	}
+
 	if migrationsDir != "" {
 		logrus.Infof("Running Database Migrations...")
 		if errs, ok := migrate.UpSync(databaseURI, migrationsDir); !ok {
@@ -40,6 +60,12 @@ func New(databaseURI, migrationsDir string, passwordHashingCost int) (DB, error)
 		}
 	}
 	db, err := sql.Open("postgres", databaseURI)
+	if err != nil {
+		return DB{}, err
+	}
+	db.SetMaxOpenConns(intOptions["max_open_conns"])
+	db.SetMaxIdleConns(intOptions["max_idle_conns"])
+
 	return DB{
 		dbProxy:              db,
 		StatementBuilderType: statementBuilder(db),
