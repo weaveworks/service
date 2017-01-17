@@ -74,6 +74,7 @@ func main() {
 	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
 	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
 	flag.StringVar(&c.apiInfo, "api.info", "scopeservice:0.1", "Version info for the api to serve, in format ID:VERSION")
+	flag.StringVar(&c.targetOrigin, "hostname", "", "Hostname through which this server is accessed, for same-origin checks (CSRF protection)")
 
 	hostFlags := []struct {
 		dest *string

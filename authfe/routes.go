@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"regexp"
 
@@ -52,6 +53,7 @@ type Config struct {
 	uiMetricsHost       string
 	logSuccess          bool
 	apiInfo             string
+	targetOrigin        string
 }
 
 var noopHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -351,6 +353,7 @@ func routes(c Config) (http.Handler, error) {
 	}
 
 	return middleware.Merge(
+		originCheckerMiddleware{expectedTarget: c.targetOrigin},
 		middleware.Instrument{
 			RouteMatcher: r,
 			Duration:     requestDuration,
@@ -367,6 +370,42 @@ func routes(c Config) (http.Handler, error) {
 			RedirectScheme: "https",
 		},
 	).Wrap(r), nil
+}
+
+type originCheckerMiddleware struct {
+	expectedTarget string
+}
+
+func (o originCheckerMiddleware) Wrap(next http.Handler) http.Handler {
+	if o.expectedTarget == "" {
+		// Nothing to check against
+		return next
+	}
+
+	headerMatchesTarget := func(headerName string, r *http.Request) bool {
+		if headerValue := r.Header.Get(headerName); headerValue != "" {
+			url, err := url.Parse(headerValue)
+			if err != nil {
+				log.Warnf("originCheckerMiddleware: Cannot parse %s header: %v", headerName, err)
+				return false
+			}
+			return url.Host == o.expectedTarget
+		}
+		// If the header is missing we intentionally consider it a match
+		// Some legitimate requests come without headers, e.g: Scope probe requests and non-js browser requests
+		return true
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Debugf("originCheckerMiddleware: URL %s, Method %s, Origin: %q, Referer: %q, expectedTarget: %q",
+			r.URL, r.Method, r.Header.Get("Origin"), r.Referer(), o.expectedTarget)
+		// Verify that origin or referer headers (when present) match the expected target
+		if !headerMatchesTarget("Origin", r) || !headerMatchesTarget("Referer", r) {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // Gorilla Router with sensible defaults, namely:
