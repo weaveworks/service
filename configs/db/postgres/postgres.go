@@ -88,10 +88,10 @@ func (d DB) findConfig(entityID, entityType, subsystem string) (configs.ConfigVi
 
 func (d DB) findConfigs(filter squirrel.Sqlizer) (map[string]configs.ConfigView, error) {
 	rows, err := d.Select("id", "owner_id", "config").
-		Options("DISTINCT ON (id)").
+		Options("DISTINCT ON (owner_id)").
 		From("configs").
 		Where(filter).
-		OrderBy("id DESC").
+		OrderBy("owner_id, id DESC").
 		Query()
 	if err != nil {
 		return nil, err

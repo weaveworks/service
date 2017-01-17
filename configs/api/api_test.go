@@ -164,7 +164,7 @@ func Test_PostUserConfig_MultipleUsers(t *testing.T) {
 	assert.True(t, config2.ID > config1.ID, "%v > %v", config2.ID, config1.ID)
 }
 
-// postOrgConfig posts a user config.
+// postOrgConfig posts an organisation config.
 func postOrgConfig(t *testing.T, orgID configs.OrgID, subsystem configs.Subsystem, config configs.Config) configs.ConfigView {
 	endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
 	w := requestAsOrg(t, orgID, "POST", endpoint, jsonObject(config).Reader(t))
@@ -172,7 +172,7 @@ func postOrgConfig(t *testing.T, orgID configs.OrgID, subsystem configs.Subsyste
 	return getOrgConfig(t, orgID, subsystem)
 }
 
-// getOrgConfig gets a user config.
+// getOrgConfig gets an organisation config.
 func getOrgConfig(t *testing.T, orgID configs.OrgID, subsystem configs.Subsystem) configs.ConfigView {
 	endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
 	w := requestAsOrg(t, orgID, "GET", endpoint, nil)
@@ -344,6 +344,28 @@ func Test_GetAllOrgConfigs(t *testing.T) {
 	assert.NoError(t, err, "Could not unmarshal JSON")
 	assert.Equal(t, api.OrgConfigsView{Configs: map[configs.OrgID]configs.ConfigView{
 		orgID: view,
+	}}, found)
+}
+
+// GetAllOrgConfigs returns the *newest* versions of all created configs.
+func Test_GetAllOrgConfigs_Newest(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	orgID := makeOrgID()
+	subsystem := makeSubsystem()
+	postOrgConfig(t, orgID, subsystem, makeConfig())
+	postOrgConfig(t, orgID, subsystem, makeConfig())
+	lastCreated := postOrgConfig(t, orgID, subsystem, makeConfig())
+
+	endpoint := fmt.Sprintf("/private/api/configs/org/%s", subsystem)
+	w := request(t, "GET", endpoint, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var found api.OrgConfigsView
+	err := json.Unmarshal(w.Body.Bytes(), &found)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, api.OrgConfigsView{Configs: map[configs.OrgID]configs.ConfigView{
+		orgID: lastCreated,
 	}}, found)
 }
 
