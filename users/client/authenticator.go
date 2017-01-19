@@ -243,7 +243,7 @@ func (m *webAuthenticator) AuthenticateProbe(w http.ResponseWriter, r *http.Requ
 	}
 	lookupReq.Header.Set(AuthHeaderName, authHeader)
 	orgID, _, featureFlags, err := m.decodeOrg(m.doAuthenticateRequest(w, lookupReq))
-	if isUnauthorized(err) && m.probeCredCache != nil {
+	if m.probeCredCache != nil && (err == nil || isUnauthorized(err)) {
 		m.probeCredCache.Set(authHeader, probeCredCacheValue{orgID: orgID, featureFlags: featureFlags, err: err})
 	}
 	return orgID, featureFlags, err
