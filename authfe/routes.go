@@ -211,6 +211,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/config", newProxy(c.deployHost)},
 				{"/api/flux", trimPrefix("/api/flux", newProxy(c.fluxHost))},
 				{"/api/prom", newProxy(c.promHost)},
+				{"/analytics", analyticsLogger.Wrap(noopHandler)},
 				{"/api", newProxy(c.queryHost)},
 
 				// Catch-all forward to query service, which is a Scope instance that we
