@@ -399,13 +399,18 @@ func (o originCheckerMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Debugf("originCheckerMiddleware: URL %s, Method %s, Origin: %q, Referer: %q, expectedTarget: %q",
 			r.URL, r.Method, r.Header.Get("Origin"), r.Referer(), o.expectedTarget)
+
 		// Verify that origin or referer headers (when present) match the expected target
-		if !headerMatchesTarget("Origin", r) || !headerMatchesTarget("Referer", r) {
+		if !isSafeMethod(r.Method) && (!headerMatchesTarget("Origin", r) || !headerMatchesTarget("Referer", r)) {
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func isSafeMethod(method string) bool {
+	return method == http.MethodGet || r.Method == http.MethodHead
 }
 
 // Gorilla Router with sensible defaults, namely:
