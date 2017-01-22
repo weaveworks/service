@@ -82,7 +82,9 @@ func main() {
 	}{
 		{&c.deployHost, "deploy"},
 		{&c.fluxHost, "flux"},
-		{&c.promHost, "prom"},
+		{&c.promHost, "prom"}, // for backwards compatibility
+		{&c.promDistributorHost, "prom-distributor"},
+		{&c.promQuerierHost, "prom-querier"},
 		{&c.collectionHost, "collection"},
 		{&c.queryHost, "query"},
 		{&c.controlHost, "control"},

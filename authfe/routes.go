@@ -42,7 +42,6 @@ type Config struct {
 	alertmanagerHost    string
 	prometheusHost      string
 	kubedashHost        string
-	promHost            string
 	compareImagesHost   string
 	uiServerHost        string
 	billingUIHost       string
@@ -54,6 +53,9 @@ type Config struct {
 	logSuccess          bool
 	apiInfo             string
 	targetOrigin        string
+	promHost            string // for backwards compatibility
+	promDistributorHost string
+	promQuerierHost     string
 }
 
 var noopHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -66,6 +68,14 @@ func mustSplitHostname(r *http.Request) string {
 		log.Errorf("Error splitting '%s': %v", r.RemoteAddr, err)
 	}
 	return host
+}
+
+// ifEmpty(a,b) returns b iff a is empty
+func ifEmpty(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
 }
 
 func newProbeRequestLogger(orgIDHeader string) HTTPEventExtractor {
@@ -210,7 +220,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/deploy", newProxy(c.deployHost)},
 				{"/api/config", newProxy(c.deployHost)},
 				{"/api/flux", trimPrefix("/api/flux", newProxy(c.fluxHost))},
-				{"/api/prom", newProxy(c.promHost)},
+				{"/api/prom", newProxy(ifEmpty(c.promHost, c.promQuerierHost))},
 				{"/api", newProxy(c.queryHost)},
 
 				// Catch-all forward to query service, which is a Scope instance that we
@@ -251,7 +261,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/deploy", newProxy(c.deployHost)},
 				{"/config", newProxy(c.deployHost)},
 				{"/flux", trimPrefix("/api/flux", newProxy(c.fluxHost))},
-				{"/prom", newProxy(c.promHost)},
+				{"/prom", newProxy(ifEmpty(c.promHost, c.promDistributorHost))},
 			},
 			middleware.Merge(
 				users.AuthProbeMiddleware{
@@ -279,7 +289,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/prometheus", newProxy(c.prometheusHost)},
 				{"/kubedash", trimPrefix("/admin/kubedash", newProxy(c.kubedashHost))},
 				{"/compare-images", trimPrefix("/admin/compare-images", newProxy(c.compareImagesHost))},
-				{"/cortex/ring", trimPrefix("/admin/cortex", newProxy(c.promHost))},
+				{"/cortex/ring", trimPrefix("/admin/cortex", newProxy(c.promDistributorHost))},
 				{"/", http.HandlerFunc(adminRoot)},
 			},
 			middleware.Merge(
