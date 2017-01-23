@@ -58,11 +58,7 @@ func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.URL.Host = p.hostAndPort
 	r.URL.Scheme = "http"
 
-	// Ensure the URL is not incorrectly munged by go.
-	r.URL.Opaque = r.RequestURI
-	r.URL.RawQuery = ""
-
-	log.Debugf("Forwarding %s %s to %s", r.Method, r.RequestURI, p.hostAndPort)
+	log.Debugf("Forwarding %s %s to %s, final URL: %s", r.Method, r.RequestURI, p.hostAndPort, r.URL)
 
 	// Detect whether we should do websockets
 	if middleware.IsWSHandshakeRequest(r) {
