@@ -221,7 +221,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/pipe", newProxy(c.pipeHost)},
 				{"/api/deploy", newProxy(c.deployHost)},
 				{"/api/config", newProxy(c.deployHost)},
-				{"/api/flux", trimPrefix("/api/flux", newProxy(c.fluxHost))},
+				{"/api/flux", newProxy(c.fluxHost)},
 				{"/api/prom", newProxy(ifEmpty(c.promHost, c.promQuerierHost))},
 				{"/api", newProxy(c.queryHost)},
 
@@ -262,7 +262,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/pipe", newProxy(c.pipeHost)},
 				{"/deploy", newProxy(c.deployHost)},
 				{"/config", newProxy(c.deployHost)},
-				{"/flux", trimPrefix("/api/flux", newProxy(c.fluxHost))},
+				{"/flux", newProxy(c.fluxHost)},
 				{"/prom", newProxy(ifEmpty(c.promHost, c.promDistributorHost))},
 			},
 			middleware.Merge(
