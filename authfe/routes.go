@@ -262,8 +262,9 @@ func routes(c Config) (http.Handler, error) {
 				{"/pipe", newProxy(c.pipeHost)},
 				{"/deploy", newProxy(c.deployHost)},
 				{"/config", newProxy(c.deployHost)},
-				{"/flux", newProxy(c.fluxHost)},
-				{"/prom", newProxy(ifEmpty(c.promHost, c.promDistributorHost))},
+				{"/flux", trimPrefix("/api/flux", newProxy(c.fluxHost))},
+				{"/prom/push", newProxy(ifEmpty(c.promHost, c.promDistributorHost))},
+				{"/prom", newProxy(ifEmpty(c.promHost, c.promQuerierHost))},
 			},
 			middleware.Merge(
 				users.AuthProbeMiddleware{
