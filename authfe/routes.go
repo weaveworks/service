@@ -44,6 +44,7 @@ type Config struct {
 	alertmanagerHost    string
 	prometheusHost      string
 	kubedashHost        string
+	configsHost         string
 	compareImagesHost   string
 	uiServerHost        string
 	billingUIHost       string
@@ -220,6 +221,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/control", newProxy(c.controlHost)},
 				{"/api/pipe", newProxy(c.pipeHost)},
 				{"/api/deploy", newProxy(c.deployHost)},
+				{"/api/configs", newProxy(c.configsHost)},
 				{"/api/config", newProxy(c.deployHost)},
 				{"/api/flux", newProxy(c.fluxHost)},
 				{"/api/prom", newProxy(ifEmpty(c.promHost, c.promQuerierHost))},
@@ -261,6 +263,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/control", newProxy(c.controlHost)},
 				{"/pipe", newProxy(c.pipeHost)},
 				{"/deploy", newProxy(c.deployHost)},
+				{"/configs", newProxy(c.configsHost)},
 				{"/config", newProxy(c.deployHost)},
 				{"/flux", newProxy(c.fluxHost)},
 				{"/prom/push", newProxy(ifEmpty(c.promHost, c.promDistributorHost))},

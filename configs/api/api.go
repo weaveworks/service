@@ -78,10 +78,10 @@ func (a *API) routes() http.Handler {
 		handler            http.HandlerFunc
 	}{
 		{"root", "GET", "/", a.admin},
-		{"get_user_config", "GET", "/api/configs/user/{userID}/{subsystem}", a.getUserConfig},
-		{"set_user_config", "POST", "/api/configs/user/{userID}/{subsystem}", a.setUserConfig},
-		{"get_org_config", "GET", "/api/configs/org/{orgID}/{subsystem}", a.getOrgConfig},
-		{"set_org_config", "POST", "/api/configs/org/{orgID}/{subsystem}", a.setOrgConfig},
+		{"get_user_config", "GET", "/api/configs/user/{subsystem}", a.getUserConfig},
+		{"set_user_config", "POST", "/api/configs/user/{subsystem}", a.setUserConfig},
+		{"get_org_config", "GET", "/api/configs/org/{subsystem}", a.getOrgConfig},
+		{"set_org_config", "POST", "/api/configs/org/{subsystem}", a.setOrgConfig},
 		// Internal APIs.
 		{"private_get_user_configs", "GET", "/private/api/configs/user/{subsystem}", a.getUserConfigs},
 		{"private_get_org_configs", "GET", "/private/api/configs/org/{subsystem}", a.getOrgConfigs},
@@ -105,12 +105,7 @@ func authorize(r *http.Request, header, entityID string) (string, int) {
 	if token == "" {
 		return "", http.StatusUnauthorized
 	}
-	vars := mux.Vars(r)
-	entity := vars[entityID]
-	if token != entity {
-		return "", http.StatusForbidden
-	}
-	return entity, 0
+	return token, 0
 }
 
 // authorizeUser checks whether the user in the headers matches the userID in
