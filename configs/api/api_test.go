@@ -27,22 +27,9 @@ func Test_GetUserConfig_Anonymous(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	userID := makeUserID()
 	subsystem := makeSubsystem()
-	w := request(t, "GET", fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem), nil)
+	w := request(t, "GET", fmt.Sprintf("/api/configs/user/%s", subsystem), nil)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-// configs returns 403 when a user tries to get config for a different user.
-func Test_GetUserConfig_Unauthorized(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	userID1 := makeUserID()
-	userID2 := makeUserID()
-	subsystem := makeSubsystem()
-	w := requestAsUser(t, userID1, "GET", fmt.Sprintf("/api/configs/user/%s/%s", userID2, subsystem), nil)
-	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
 // configs returns 404 if there's never been any configuration for that
@@ -53,7 +40,7 @@ func Test_GetUserConfig_NotFound(t *testing.T) {
 
 	userID := makeUserID()
 	subsystem := makeSubsystem()
-	w := requestAsUser(t, userID, "GET", fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem), nil)
+	w := requestAsUser(t, userID, "GET", fmt.Sprintf("/api/configs/user/%s", subsystem), nil)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
@@ -62,22 +49,9 @@ func Test_PostUserConfig_Anonymous(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	userID := makeUserID()
 	subsystem := makeSubsystem()
-	w := request(t, "POST", fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem), nil)
+	w := request(t, "POST", fmt.Sprintf("/api/configs/user/%s", subsystem), nil)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-// configs returns 403 when a user tries to set config for a different user.
-func Test_PostUserConfig_Unauthorized(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	userID1 := makeUserID()
-	userID2 := makeUserID()
-	subsystem := makeSubsystem()
-	w := requestAsUser(t, userID1, "POST", fmt.Sprintf("/api/configs/user/%s/%s", userID2, subsystem), nil)
-	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
 // Posting to a configuration sets it so that you can get it again.
@@ -89,7 +63,7 @@ func Test_PostUserConfig_CreatesConfig(t *testing.T) {
 	subsystem := makeSubsystem()
 	config := makeConfig()
 	content := jsonObject(config)
-	endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
+	endpoint := fmt.Sprintf("/api/configs/user/%s", subsystem)
 	{
 		w := requestAsUser(t, userID, "POST", endpoint, content.Reader(t))
 		assert.Equal(t, http.StatusNoContent, w.Code)
@@ -102,7 +76,7 @@ func Test_PostUserConfig_CreatesConfig(t *testing.T) {
 
 // postUserConfig posts a user config.
 func postUserConfig(t *testing.T, userID configs.UserID, subsystem configs.Subsystem, config configs.Config) configs.ConfigView {
-	endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
+	endpoint := fmt.Sprintf("/api/configs/user/%s", subsystem)
 	w := requestAsUser(t, userID, "POST", endpoint, jsonObject(config).Reader(t))
 	require.Equal(t, http.StatusNoContent, w.Code)
 	return getUserConfig(t, userID, subsystem)
@@ -110,7 +84,7 @@ func postUserConfig(t *testing.T, userID configs.UserID, subsystem configs.Subsy
 
 // getUserConfig gets a user config.
 func getUserConfig(t *testing.T, userID configs.UserID, subsystem configs.Subsystem) configs.ConfigView {
-	endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
+	endpoint := fmt.Sprintf("/api/configs/user/%s", subsystem)
 	w := requestAsUser(t, userID, "GET", endpoint, nil)
 	return parseConfigView(t, w.Body.Bytes())
 }
@@ -166,7 +140,7 @@ func Test_PostUserConfig_MultipleUsers(t *testing.T) {
 
 // postOrgConfig posts an organisation config.
 func postOrgConfig(t *testing.T, orgID configs.OrgID, subsystem configs.Subsystem, config configs.Config) configs.ConfigView {
-	endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+	endpoint := fmt.Sprintf("/api/configs/org/%s", subsystem)
 	w := requestAsOrg(t, orgID, "POST", endpoint, jsonObject(config).Reader(t))
 	require.Equal(t, http.StatusNoContent, w.Code)
 	return getOrgConfig(t, orgID, subsystem)
@@ -174,7 +148,7 @@ func postOrgConfig(t *testing.T, orgID configs.OrgID, subsystem configs.Subsyste
 
 // getOrgConfig gets an organisation config.
 func getOrgConfig(t *testing.T, orgID configs.OrgID, subsystem configs.Subsystem) configs.ConfigView {
-	endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+	endpoint := fmt.Sprintf("/api/configs/org/%s", subsystem)
 	w := requestAsOrg(t, orgID, "GET", endpoint, nil)
 	return parseConfigView(t, w.Body.Bytes())
 }
@@ -184,21 +158,9 @@ func Test_GetOrgConfig_Anonymous(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	orgID := makeOrgID()
 	subsystem := makeSubsystem()
-	w := request(t, "GET", fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem), nil)
+	w := request(t, "GET", fmt.Sprintf("/api/configs/org/%s", subsystem), nil)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func Test_GetOrgConfig_Unauthorized(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	orgID1 := makeOrgID()
-	orgID2 := makeOrgID()
-	subsystem := makeSubsystem()
-	w := requestAsOrg(t, orgID1, "GET", fmt.Sprintf("/api/configs/org/%s/%s", orgID2, subsystem), nil)
-	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
 // configs returns 404 if there's no such subsystem.
@@ -208,7 +170,7 @@ func Test_GetOrgConfig_NotFound(t *testing.T) {
 
 	orgID := makeOrgID()
 	subsystem := makeSubsystem()
-	w := requestAsOrg(t, orgID, "GET", fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem), nil)
+	w := requestAsOrg(t, orgID, "GET", fmt.Sprintf("/api/configs/org/%s", subsystem), nil)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
@@ -217,22 +179,9 @@ func Test_PostOrgConfig_Anonymous(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	orgID := makeOrgID()
 	subsystem := makeSubsystem()
-	w := request(t, "POST", fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem), nil)
+	w := request(t, "POST", fmt.Sprintf("/api/configs/org/%s", subsystem), nil)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-// configs returns 403 when a user tries to set config for a different user.
-func Test_PostOrgConfig_Unauthorized(t *testing.T) {
-	setup(t)
-	defer cleanup(t)
-
-	orgID1 := makeOrgID()
-	orgID2 := makeOrgID()
-	subsystem := makeSubsystem()
-	w := requestAsOrg(t, orgID1, "POST", fmt.Sprintf("/api/configs/org/%s/%s", orgID2, subsystem), nil)
-	assert.Equal(t, http.StatusForbidden, w.Code)
 }
 
 // Posting to a configuration sets it so that you can get it again.
@@ -244,7 +193,7 @@ func Test_PostOrgConfig_CreatesConfig(t *testing.T) {
 	subsystem := makeSubsystem()
 	config := makeConfig()
 	content := jsonObject(config)
-	endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
+	endpoint := fmt.Sprintf("/api/configs/org/%s", subsystem)
 	{
 		w := requestAsOrg(t, orgID, "POST", endpoint, content.Reader(t))
 		assert.Equal(t, http.StatusNoContent, w.Code)
@@ -327,15 +276,7 @@ func Test_GetAllOrgConfigs(t *testing.T) {
 	orgID := makeOrgID()
 	subsystem := makeSubsystem()
 	config := makeConfig()
-	content := jsonObject(config)
-	var view configs.ConfigView
-	{
-		endpoint := fmt.Sprintf("/api/configs/org/%s/%s", orgID, subsystem)
-		w := requestAsOrg(t, orgID, "POST", endpoint, content.Reader(t))
-		require.Equal(t, http.StatusNoContent, w.Code)
-		w = requestAsOrg(t, orgID, "GET", endpoint, content.Reader(t))
-		view = parseConfigView(t, w.Body.Bytes())
-	}
+	view := postOrgConfig(t, orgID, subsystem, config)
 	endpoint := fmt.Sprintf("/private/api/configs/org/%s", subsystem)
 	w := request(t, "GET", endpoint, nil)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -413,15 +354,7 @@ func Test_GetAllUserConfigs(t *testing.T) {
 	userID := makeUserID()
 	subsystem := makeSubsystem()
 	config := makeConfig()
-	content := jsonObject(config)
-	var view configs.ConfigView
-	{
-		endpoint := fmt.Sprintf("/api/configs/user/%s/%s", userID, subsystem)
-		w := requestAsUser(t, userID, "POST", endpoint, content.Reader(t))
-		require.Equal(t, http.StatusNoContent, w.Code)
-		w = requestAsUser(t, userID, "GET", endpoint, content.Reader(t))
-		view = parseConfigView(t, w.Body.Bytes())
-	}
+	view := postUserConfig(t, userID, subsystem, config)
 	endpoint := fmt.Sprintf("/private/api/configs/user/%s", subsystem)
 	w := request(t, "GET", endpoint, nil)
 	assert.Equal(t, http.StatusOK, w.Code)
