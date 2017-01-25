@@ -156,46 +156,6 @@
 			"path": "/spew"
 		},
 		{
-			"importpath": "github.com/docker/docker/pkg/mount",
-			"repository": "https://github.com/docker/docker",
-			"vcs": "",
-			"revision": "fc364751840e2e54e358d0b46efc9790c6fd9d19",
-			"branch": "master",
-			"path": "/pkg/mount"
-		},
-		{
-			"importpath": "github.com/docker/docker/pkg/units",
-			"repository": "https://github.com/docker/docker",
-			"vcs": "",
-			"revision": "fc364751840e2e54e358d0b46efc9790c6fd9d19",
-			"branch": "master",
-			"path": "/pkg/units"
-		},
-		{
-			"importpath": "github.com/docker/libcontainer/cgroups",
-			"repository": "https://github.com/docker/libcontainer",
-			"vcs": "",
-			"revision": "83a102cc68a09d890cce3b6c2e5c14c49e6373a0",
-			"branch": "master",
-			"path": "/cgroups"
-		},
-		{
-			"importpath": "github.com/docker/libcontainer/configs",
-			"repository": "https://github.com/docker/libcontainer",
-			"vcs": "",
-			"revision": "83a102cc68a09d890cce3b6c2e5c14c49e6373a0",
-			"branch": "master",
-			"path": "/configs"
-		},
-		{
-			"importpath": "github.com/docker/libcontainer/system",
-			"repository": "https://github.com/docker/libcontainer",
-			"vcs": "",
-			"revision": "83a102cc68a09d890cce3b6c2e5c14c49e6373a0",
-			"branch": "master",
-			"path": "/system"
-		},
-		{
 			"importpath": "github.com/emicklei/go-restful",
 			"repository": "https://github.com/emicklei/go-restful",
 			"vcs": "",
@@ -266,10 +226,19 @@
 		{
 			"importpath": "github.com/golang/protobuf/proto",
 			"repository": "https://github.com/golang/protobuf",
-			"vcs": "",
-			"revision": "5baca1b63153b1a82014546382edbdd302b138b6",
+			"vcs": "git",
+			"revision": "8ee79997227bf9b34611aee7946ae64735e6fd93",
 			"branch": "master",
 			"path": "/proto"
+		},
+		{
+			"importpath": "github.com/golang/protobuf/protoc-gen-go/descriptor",
+			"repository": "https://github.com/golang/protobuf",
+			"vcs": "git",
+			"revision": "8ee79997227bf9b34611aee7946ae64735e6fd93",
+			"branch": "master",
+			"path": "/protoc-gen-go/descriptor",
+			"notests": true
 		},
 		{
 			"importpath": "github.com/golang/protobuf/ptypes/any",
@@ -400,6 +369,15 @@
 			"vcs": "git",
 			"revision": "2d1e4548da234d9cb742cc3628556fef86aafbac",
 			"branch": "master"
+		},
+		{
+			"importpath": "github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc",
+			"repository": "https://github.com/grpc-ecosystem/grpc-opentracing",
+			"vcs": "git",
+			"revision": "eb0e1ee84df4fe3e193db1c53e042c1c66ee31d5",
+			"branch": "master",
+			"path": "/go/otgrpc",
+			"notests": true
 		},
 		{
 			"importpath": "github.com/hailocab/go-hostpool",
@@ -545,6 +523,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/mwitkow/go-grpc-middleware",
+			"repository": "https://github.com/mwitkow/go-grpc-middleware",
+			"vcs": "git",
+			"revision": "3e23ca7fd796e946de34f19c1a30742057a244b3",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/opentracing-contrib/go-stdlib",
 			"repository": "https://github.com/weaveworks/go-stdlib",
 			"vcs": "git",
@@ -638,6 +624,14 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/sercand/kuberesolver",
+			"repository": "https://github.com/sercand/kuberesolver",
+			"vcs": "git",
+			"revision": "2f561e34ecb6206fcad82f0c5842379188d8db40",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/shurcooL/sanitized_anchor_name",
 			"repository": "https://github.com/shurcooL/sanitized_anchor_name",
 			"vcs": "",
@@ -675,6 +669,15 @@
 			"path": "/require"
 		},
 		{
+			"importpath": "github.com/stretchr/testify/suite",
+			"repository": "https://github.com/stretchr/testify",
+			"vcs": "git",
+			"revision": "2402e8e7a02fc811447d11f881aa9746cdc57983",
+			"branch": "master",
+			"path": "/suite",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/tinylib/msgp/msgp",
 			"repository": "https://github.com/tinylib/msgp",
 			"vcs": "git",
@@ -708,39 +711,20 @@
 			"notests": true
 		},
 		{
-			"importpath": "github.com/weaveworks/common/instrument",
+			"importpath": "github.com/weaveworks/common",
 			"repository": "https://github.com/weaveworks/common",
 			"vcs": "git",
-			"revision": "cc20acf03ebf74be0facaae4259dff6cde01ce77",
+			"revision": "f7d1a7f7b792ff618d2afe2c3f2b3f38dac8bef0",
 			"branch": "master",
-			"path": "/instrument",
 			"notests": true
 		},
 		{
-			"importpath": "github.com/weaveworks/common/logging",
-			"repository": "https://github.com/weaveworks/common",
+			"importpath": "github.com/weaveworks/docker/pkg/mflag",
+			"repository": "https://github.com/weaveworks/docker",
 			"vcs": "git",
-			"revision": "47586092c53f421eab6b55d00faac434f8f9b80e",
+			"revision": "5761d8b342f0d6352f591968fbe20b4298c4de22",
 			"branch": "master",
-			"path": "/logging",
-			"notests": true
-		},
-		{
-			"importpath": "github.com/weaveworks/common/middleware",
-			"repository": "https://github.com/weaveworks/common",
-			"vcs": "git",
-			"revision": "acd27591e1a32d9f54d4d6c69a02a285b9a197f4",
-			"branch": "master",
-			"path": "/middleware",
-			"notests": true
-		},
-		{
-			"importpath": "github.com/weaveworks/common/mtime",
-			"repository": "https://github.com/weaveworks/common",
-			"vcs": "git",
-			"revision": "cc20acf03ebf74be0facaae4259dff6cde01ce77",
-			"branch": "master",
-			"path": "/mtime",
+			"path": "/pkg/mflag",
 			"notests": true
 		},
 		{
@@ -880,6 +864,15 @@
 			"notests": true
 		},
 		{
+			"importpath": "golang.org/x/tools/cover",
+			"repository": "https://go.googlesource.com/tools",
+			"vcs": "git",
+			"revision": "721f218496963f33ebc9fbc5cdbdeed007ad9c49",
+			"branch": "master",
+			"path": "/cover",
+			"notests": true
+		},
+		{
 			"importpath": "google.golang.org/api",
 			"repository": "https://code.googlesource.com/google-api-go-client",
 			"vcs": "git",
@@ -907,7 +900,7 @@
 			"importpath": "google.golang.org/grpc",
 			"repository": "https://github.com/grpc/grpc-go",
 			"vcs": "git",
-			"revision": "8213ee577a465c1f314d85748fb29e4eeed59baf",
+			"revision": "50955793b0183f9de69bd78e2ec251cf20aab121",
 			"branch": "master",
 			"notests": true
 		},

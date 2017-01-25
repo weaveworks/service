@@ -100,7 +100,7 @@ configs-integration-test: $(CONFIGS_UPTODATE)
 		-v $(shell pwd)/configs/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/configs \
 		--link "$$DB_CONTAINER":configs-db.weave.local \
-		golang:1.6.2 \
+		golang:1.7.4 \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
@@ -114,7 +114,7 @@ users-integration-test: $(USERS_UPTODATE)
 		-v $(shell pwd)/users/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/users \
 		--link "$$DB_CONTAINER":users-db.weave.local \
-		golang:1.6.2 \
+		golang:1.7.4 \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \

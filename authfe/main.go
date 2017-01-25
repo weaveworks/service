@@ -85,6 +85,8 @@ func main() {
 		{&c.promHost, "prom"}, // for backwards compatibility
 		{&c.promDistributorHost, "prom-distributor"},
 		{&c.promQuerierHost, "prom-querier"},
+		{&c.promDistributorHostGRPC, "prom-distributor-grpc"},
+		{&c.promQuerierHostGRPC, "prom-querier-grpc"},
 		{&c.configsHost, "configs"},
 		{&c.collectionHost, "collection"},
 		{&c.queryHost, "query"},
