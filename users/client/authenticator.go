@@ -13,6 +13,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/bluele/gcache"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/weaveworks/common/user"
 )
 
 var (
@@ -407,7 +408,7 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 		r.Header.Add(a.OutputHeader, organizationID)
 		r.Header.Add(a.UserIDHeader, userID)
 		r.Header.Add(a.FeatureFlagsHeader, strings.Join(featureFlags, " "))
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(user.WithID(r.Context(), organizationID)))
 	})
 }
 
@@ -442,7 +443,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 
 		r.Header.Add(a.OutputHeader, organizationID)
 		r.Header.Add(a.FeatureFlagsHeader, strings.Join(featureFlags, " "))
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(user.WithID(r.Context(), organizationID)))
 	})
 }
 
@@ -484,7 +485,7 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 		}
 
 		r.Header.Add(a.OutputHeader, adminID)
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(user.WithID(r.Context(), adminID)))
 	})
 }
 

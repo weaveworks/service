@@ -14,9 +14,10 @@ import (
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/scope/common/xfer"
-
 	users "github.com/weaveworks/service/users/client"
 )
 
@@ -59,6 +60,9 @@ type Config struct {
 	promHost            string // for backwards compatibility
 	promDistributorHost string
 	promQuerierHost     string
+
+	promDistributorHostGRPC string
+	promQuerierHostGRPC     string
 }
 
 var noopHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -203,6 +207,27 @@ func routes(c Config) (http.Handler, error) {
 		})
 	})
 
+	var cortexQuerierClient, cortexDistributorClient http.Handler
+	if c.promQuerierHostGRPC == "" {
+		cortexQuerierClient = newProxy(ifEmpty(c.promHost, c.promQuerierHost))
+	} else {
+		var err error
+		cortexQuerierClient, err = httpgrpc.NewClient(c.promQuerierHostGRPC)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if c.promDistributorHostGRPC == "" {
+		cortexDistributorClient = newProxy(ifEmpty(c.promHost, c.promDistributorHost))
+	} else {
+		var err error
+		cortexDistributorClient, err = httpgrpc.NewClient(c.promDistributorHostGRPC)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	r := newRouter()
 	for _, route := range []routable{
 		path{"/metrics", prometheus.Handler()},
@@ -224,7 +249,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/configs", newProxy(c.configsHost)},
 				{"/api/config", newProxy(c.deployHost)},
 				{"/api/flux", newProxy(c.fluxHost)},
-				{"/api/prom", newProxy(ifEmpty(c.promHost, c.promQuerierHost))},
+				{"/api/prom", cortexQuerierClient},
 				{"/api", newProxy(c.queryHost)},
 
 				// Catch-all forward to query service, which is a Scope instance that we
@@ -266,8 +291,8 @@ func routes(c Config) (http.Handler, error) {
 				{"/configs", newProxy(c.configsHost)},
 				{"/config", newProxy(c.deployHost)},
 				{"/flux", newProxy(c.fluxHost)},
-				{"/prom/push", newProxy(ifEmpty(c.promHost, c.promDistributorHost))},
-				{"/prom", newProxy(ifEmpty(c.promHost, c.promQuerierHost))},
+				{"/prom/push", cortexDistributorClient},
+				{"/prom", cortexQuerierClient},
 			},
 			middleware.Merge(
 				users.AuthProbeMiddleware{
