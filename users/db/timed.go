@@ -198,9 +198,9 @@ func (t timed) GenerateOrganizationExternalID() (s string, err error) {
 	return
 }
 
-func (t timed) CreateOrganization(ownerID, externalID, name string) (o *users.Organization, err error) {
+func (t timed) CreateOrganization(ownerID, externalID, name, token string) (o *users.Organization, err error) {
 	t.timeRequest("CreateOrganization", func(_ context.Context) error {
-		o, err = t.d.CreateOrganization(ownerID, externalID, name)
+		o, err = t.d.CreateOrganization(ownerID, externalID, name, token)
 		return err
 	})
 	return

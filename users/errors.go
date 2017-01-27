@@ -47,4 +47,5 @@ var (
 	ErrOrgExternalIDCannotBeBlank = ValidationErrorf("ID cannot be blank")
 	ErrOrgExternalIDFormat        = ValidationErrorf("ID can only contain letters, numbers, hyphen, and underscore")
 	ErrOrgNameCannotBeBlank       = ValidationErrorf("Name cannot be blank")
+	ErrOrgTokenIsTaken            = errors.New("Token already taken")
 )

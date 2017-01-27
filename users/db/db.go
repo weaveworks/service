@@ -82,8 +82,9 @@ type DB interface {
 	GenerateOrganizationExternalID() (string, error)
 
 	// Create a new organization owned by the user. ExternalID and name cannot be blank.
-	// ExternalID must match the ExternalID regex.
-	CreateOrganization(ownerID, externalID, name string) (*users.Organization, error)
+	// ExternalID must match the ExternalID regex.  If token is blank, a random one will
+	// be chosen.
+	CreateOrganization(ownerID, externalID, name, token string) (*users.Organization, error)
 	FindOrganizationByProbeToken(probeToken string) (*users.Organization, error)
 	FindOrganizationByID(externalID string) (*users.Organization, error)
 	RenameOrganization(externalID, newName string) error

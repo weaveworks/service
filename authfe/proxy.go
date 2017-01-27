@@ -23,7 +23,7 @@ type proxy struct {
 }
 
 var proxyTransport http.RoundTripper = &nethttp.Transport{
-	&http.Transport{
+	Transport: &http.Transport{
 		// No connection pooling, increases latency, but ensures fair load-balancing.
 		DisableKeepAlives: true,
 

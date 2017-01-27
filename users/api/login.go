@@ -186,7 +186,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	view.Email = email
 	view.MunchkinHash = a.MunchkinHash(email)
 
-	if err := a.updateUserAtLogin(u); err != nil {
+	if err := a.UpdateUserAtLogin(u); err != nil {
 		render.Error(w, r, err)
 		return
 	}
@@ -230,7 +230,8 @@ func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter
 	w.WriteHeader(http.StatusNoContent)
 }
 
-type signupView struct {
+// SignupView is both the input and output from Signup.  Eugh.
+type SignupView struct {
 	MailSent bool   `json:"mailSent"`
 	Email    string `json:"email,omitempty"`
 	Token    string `json:"token,omitempty"`
@@ -238,15 +239,24 @@ type signupView struct {
 
 func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	var view signupView
+	var view SignupView
 	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
 		render.Error(w, r, users.MalformedInputError(err))
 		return
 	}
+
+	if _, err := a.Signup(&view); err != nil {
+		render.Error(w, r, err)
+	}
+
+	render.JSON(w, http.StatusOK, view)
+}
+
+// Signup creates a new user
+func (a *API) Signup(view *SignupView) (*users.User, error) {
 	view.MailSent = false
 	if view.Email == "" {
-		render.Error(w, r, users.ValidationErrorf("Email cannot be blank"))
-		return
+		return nil, users.ValidationErrorf("Email cannot be blank")
 	}
 
 	user, err := a.db.FindUserByEmail(view.Email)
@@ -257,15 +267,13 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err != nil {
-		render.Error(w, r, err)
-		return
+		return nil, err
 	}
 
 	// We always do this so that the timing difference can't be used to infer a user's existence.
 	token, err := a.generateUserToken(user)
 	if err != nil {
-		render.Error(w, r, fmt.Errorf("Error sending login email: %s", err))
-		return
+		return nil, fmt.Errorf("Error sending login email: %s", err)
 	}
 
 	if a.directLogin {
@@ -274,12 +282,11 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 
 	err = a.emailer.LoginEmail(user, token)
 	if err != nil {
-		render.Error(w, r, fmt.Errorf("Error sending login email: %s", err))
-		return
+		return nil, fmt.Errorf("Error sending login email: %s", err)
 	}
 
 	view.MailSent = true
-	render.JSON(w, http.StatusOK, view)
+	return user, nil
 }
 
 func (a *API) generateUserToken(user *users.User) (string, error) {
@@ -334,7 +341,7 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	firstLogin := u.FirstLoginAt.IsZero()
-	if err := a.updateUserAtLogin(u); err != nil {
+	if err := a.UpdateUserAtLogin(u); err != nil {
 		render.Error(w, r, err)
 		return
 	}
@@ -350,7 +357,8 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (a *API) updateUserAtLogin(u *users.User) error {
+// UpdateUserAtLogin sets u.FirstLoginAt if not already set
+func (a *API) UpdateUserAtLogin(u *users.User) error {
 	if u.FirstLoginAt.IsZero() {
 		if err := a.db.SetUserFirstLoginAt(u.ID); err != nil {
 			return err
@@ -366,7 +374,7 @@ func (a *API) logout(w http.ResponseWriter, r *http.Request) {
 
 type publicLookupView struct {
 	Email         string    `json:"email,omitempty"`
-	Organizations []orgView `json:"organizations,omitempty"`
+	Organizations []OrgView `json:"organizations,omitempty"`
 	MunchkinHash  string    `json:"munchkinHash"`
 }
 
@@ -391,7 +399,7 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 		MunchkinHash: a.MunchkinHash(currentUser.Email),
 	}
 	for _, org := range organizations {
-		view.Organizations = append(view.Organizations, orgView{
+		view.Organizations = append(view.Organizations, OrgView{
 			ExternalID:         org.ExternalID,
 			Name:               org.Name,
 			FirstProbeUpdateAt: render.Time(org.FirstProbeUpdateAt),

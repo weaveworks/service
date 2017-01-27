@@ -48,6 +48,12 @@ func main() {
 
 		emailFromAddress = flag.String("email-from-address", "Weave Cloud <support@weave.works>", "From address for emails.")
 
+		localTestUserCreate        = flag.Bool("local-test-user.create", false, "Create a test user (for local deployments only.)")
+		localTestUserEmail         = flag.String("local-test-user.email", "test@test", "Email for test user (for local deployments only.)")
+		localTestUserInstanceID    = flag.String("local-test-user.instance-id", "local-test", "Instance ID for test user (for local deployments only.)")
+		localTestUserInstanceName  = flag.String("local-test-user.instance-name", "Local Test Instance", "Instance name for test user (for local deployments only.)")
+		localTestUserInstanceToken = flag.String("local-test-user.instance-token", "local-test-token", "Instance token for test user (for local deployments only.)")
+
 		forceFeatureFlags common.ArrayFlags
 	)
 
@@ -98,13 +104,43 @@ func main() {
 
 	logrus.Infof("Listening on port %d", *port)
 	mux := http.NewServeMux()
+	api := api.New(*directLogin, *logSuccess, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey)
 
-	mux.Handle("/", api.New(*directLogin, *logSuccess, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey))
+	if *localTestUserCreate {
+		makeLocalTestUser(api, *localTestUserEmail, *localTestUserInstanceID,
+			*localTestUserInstanceName, *localTestUserInstanceToken)
+	}
+
+	mux.Handle("/", api)
 	mux.Handle("/metrics", makePrometheusHandler())
 	if err := graceful.RunWithErr(fmt.Sprintf(":%d", *port), *stopTimeout, mux); err != nil {
 		logrus.Fatal(err)
 	}
 	logrus.Info("Gracefully shut down")
+}
+
+func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string) {
+	user, err := a.Signup(&api.SignupView{
+		Email: email,
+	})
+	if err != nil {
+		logrus.Errorf("Error creating local test user: %v", err)
+		return
+	}
+
+	if err := a.UpdateUserAtLogin(user); err != nil {
+		logrus.Errorf("Error updating user first login at: %v", err)
+		return
+	}
+
+	if err := a.CreateOrg(user, api.OrgView{
+		ExternalID: instanceID,
+		Name:       instanceName,
+		ProbeToken: token,
+	}); err != nil {
+		logrus.Errorf("Error creating local test instance: %v", err)
+		return
+	}
 }
 
 func makePrometheusHandler() http.Handler {
