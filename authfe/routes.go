@@ -393,11 +393,14 @@ func routes(c Config) (http.Handler, error) {
 		route.Add(r)
 	}
 
+	sameOrigin := http.Header{}
+	sameOrigin.Add("X-Frame-Options", "SAMEORIGIN")
 	return middleware.Merge(
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler)
 		}),
+		middleware.HeaderAdder{sameOrigin},
 		middleware.Instrument{
 			RouteMatcher: r,
 			Duration:     requestDuration,
