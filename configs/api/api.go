@@ -9,9 +9,9 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/weaveworks/common/middleware"
+	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/configs"
 	"github.com/weaveworks/service/configs/db"
 )
@@ -22,19 +22,6 @@ const (
 	// DefaultOrgIDHeader is the default OrgID header.
 	DefaultOrgIDHeader = "X-Scope-OrgID"
 )
-
-var (
-	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "configs",
-		Name:      "request_duration_seconds",
-		Help:      "Time (in seconds) spent serving HTTP requests.",
-		Buckets:   prometheus.DefBuckets,
-	}, []string{"method", "route", "status_code", "ws"})
-)
-
-func init() {
-	prometheus.MustRegister(requestDuration)
-}
 
 // API implements the configs api.
 type API struct {
@@ -94,7 +81,7 @@ func (a *API) routes() http.Handler {
 		},
 		middleware.Instrument{
 			RouteMatcher: r,
-			Duration:     requestDuration,
+			Duration:     common.RequestDuration,
 		},
 	).Wrap(r)
 }

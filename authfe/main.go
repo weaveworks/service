@@ -14,6 +14,7 @@ import (
 	"github.com/tylerb/graceful"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/common"
 	users "github.com/weaveworks/service/users/client"
 )
 
@@ -25,19 +26,13 @@ const (
 )
 
 var (
-	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "scope",
-		Name:      "request_duration_seconds",
-		Help:      "Time (in seconds) spent serving HTTP requests.",
-		Buckets:   prometheus.DefBuckets,
-	}, []string{"method", "route", "status_code", "ws"})
 	wsConnections = prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace: "scope",
+		Namespace: common.PrometheusNamespace,
 		Name:      "websocket_connection_count",
 		Help:      "Number of currently active websocket connections.",
 	})
 	wsRequestCount = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "scope",
+		Namespace: common.PrometheusNamespace,
 		Name:      "websocket_request_count",
 		Help:      "Total number of websocket requests received.",
 	})
@@ -45,7 +40,6 @@ var (
 )
 
 func init() {
-	prometheus.MustRegister(requestDuration)
 	prometheus.MustRegister(wsConnections)
 	prometheus.MustRegister(wsRequestCount)
 }

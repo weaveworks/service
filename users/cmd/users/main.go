@@ -13,7 +13,6 @@ import (
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/common"
-	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
@@ -108,7 +107,5 @@ func main() {
 }
 
 func makePrometheusHandler() http.Handler {
-	prometheus.MustRegister(users.RequestDuration)
-	prometheus.MustRegister(users.DatabaseRequestDuration)
 	return prometheus.Handler()
 }

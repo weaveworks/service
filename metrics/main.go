@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/common"
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users/db"
@@ -22,7 +23,7 @@ import (
 
 var (
 	postRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "scope",
+		Namespace: common.PrometheusNamespace,
 		Name:      "post_request_duration_seconds",
 		Help:      "Time spent (in seconds) doing post requests.",
 		Buckets:   prometheus.DefBuckets,

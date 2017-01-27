@@ -6,6 +6,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 
+	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/memory"
 	"github.com/weaveworks/service/users/db/postgres"
@@ -116,5 +117,5 @@ func MustNew(databaseURI, migrationsDir string) DB {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	return traced{timed{d, users.DatabaseRequestDuration}}
+	return traced{timed{d, common.DatabaseRequestDuration}}
 }
