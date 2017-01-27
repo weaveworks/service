@@ -46,18 +46,19 @@ func init() {
 
 func main() {
 	var (
-		listen              string
-		stopTimeout         time.Duration
-		logLevel            string
-		authType            string
-		authURL             string
-		authCacheSize       int
-		authCacheExpiration time.Duration
-		fluentHost          string
+		listen, privateListen string
+		stopTimeout           time.Duration
+		logLevel              string
+		authType              string
+		authURL               string
+		authCacheSize         int
+		authCacheExpiration   time.Duration
+		fluentHost            string
 
 		c Config
 	)
 	flag.StringVar(&listen, "listen", ":80", "HTTP server listen address")
+	flag.StringVar(&privateListen, "private-listen", ":8080", "HTTP server listen address (private endpoints)")
 	flag.DurationVar(&stopTimeout, "stop.timeout", 5*time.Second, "How long to wait for remaining requests to finish during shutdown")
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
 	flag.BoolVar(&c.logSuccess, "log.success", false, "Log successful requests.")
@@ -144,13 +145,30 @@ func main() {
 		defer c.eventLogger.Close()
 	}
 
-	r, err := routes(c)
+	log.Infof("Listening on %s for private endpoints", privateListen)
+	privListener, err := net.Listen("tcp", privateListen)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	privRouter, err := privateRoutes()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go func() {
+		if err := http.Serve(privListener, privRouter); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	log.Infof("Listening on %s", listen)
 	listener, err := net.Listen("tcp", listen)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	r, err := routes(c)
 	if err != nil {
 		log.Fatal(err)
 	}
