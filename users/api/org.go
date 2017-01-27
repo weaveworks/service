@@ -71,7 +71,10 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 	}
 	// Don't allow users to specify their own token.
 	view.ProbeToken = ""
-	if err := a.CreateOrg(currentUser, view); err != nil {
+	if err := a.CreateOrg(currentUser, view); err == users.ErrOrgTokenIsTaken {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	} else if err != nil {
 		render.Error(w, r, err)
 		return
 	}
