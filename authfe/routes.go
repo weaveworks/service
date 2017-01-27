@@ -13,7 +13,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/middleware"
@@ -231,8 +230,6 @@ func routes(c Config) (http.Handler, error) {
 
 	r := newRouter()
 	for _, route := range []routable{
-		path{"/metrics", prometheus.Handler()},
-
 		// demo service paths get rewritten to remove /demo/ prefix, so trailing slash is required
 		path{"/demo", redirect("/demo/")},
 		// special case static version info
