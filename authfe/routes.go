@@ -25,44 +25,46 @@ const maxAnalyticsPayloadSize = 16 * 1024 // bytes
 
 // Config is all the config we need to build the routes
 type Config struct {
-	authenticator       users.Authenticator
-	eventLogger         *EventLogger
-	outputHeader        string
+	authenticator users.Authenticator
+	eventLogger   *EventLogger
+	outputHeader  string
+	logSuccess    bool
+	apiInfo       string
+	targetOrigin  string
+
+	// User-visible services - keep alphabetically sorted pls
 	collectionHost      string
 	queryHost           string
 	controlHost         string
 	pipeHost            string
-	deployHost          string
 	fluxHost            string
-	grafanaHost         string
-	devGrafanaHost      string
-	prodGrafanaHost     string
-	scopeHost           string
-	usersHost           string
-	kubediffHost        string
-	terradiffHost       string
-	ansiblediffHost     string
-	alertmanagerHost    string
-	prometheusHost      string
-	kubedashHost        string
 	configsHost         string
-	compareImagesHost   string
-	uiServerHost        string
 	billingUIHost       string
 	billingAPIHost      string
 	billingUsageHost    string
 	demoHost            string
 	launchGeneratorHost string
 	uiMetricsHost       string
-	logSuccess          bool
-	apiInfo             string
-	targetOrigin        string
-	promHost            string // for backwards compatibility
-	promDistributorHost string
-	promQuerierHost     string
+	uiServerHost        string
 
+	// Admin services - keep alphabetically sorted pls
+	alertmanagerHost        string
+	ansiblediffHost         string
+	devGrafanaHost          string
+	compareImagesHost       string
+	grafanaHost             string
+	kubedashHost            string
+	kubediffHost            string
+	lokiHost                string
+	prodGrafanaHost         string
+	promDistributorHost     string
 	promDistributorHostGRPC string
+	prometheusHost          string
+	promQuerierHost         string
 	promQuerierHostGRPC     string
+	scopeHost               string
+	terradiffHost           string
+	usersHost               string
 }
 
 var noopHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -209,7 +211,7 @@ func routes(c Config) (http.Handler, error) {
 
 	var cortexQuerierClient, cortexDistributorClient http.Handler
 	if c.promQuerierHostGRPC == "" {
-		cortexQuerierClient = newProxy(ifEmpty(c.promHost, c.promQuerierHost))
+		cortexQuerierClient = newProxy(c.promQuerierHost)
 	} else {
 		var err error
 		cortexQuerierClient, err = httpgrpc.NewClient(c.promQuerierHostGRPC)
@@ -219,7 +221,7 @@ func routes(c Config) (http.Handler, error) {
 	}
 
 	if c.promDistributorHostGRPC == "" {
-		cortexDistributorClient = newProxy(ifEmpty(c.promHost, c.promDistributorHost))
+		cortexDistributorClient = newProxy(c.promDistributorHost)
 	} else {
 		var err error
 		cortexDistributorClient, err = httpgrpc.NewClient(c.promDistributorHostGRPC)
@@ -243,9 +245,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/topology", newProxy(c.queryHost)},
 				{"/api/control", newProxy(c.controlHost)},
 				{"/api/pipe", newProxy(c.pipeHost)},
-				{"/api/deploy", newProxy(c.deployHost)},
 				{"/api/configs", newProxy(c.configsHost)},
-				{"/api/config", newProxy(c.deployHost)},
 				{"/api/flux", newProxy(c.fluxHost)},
 				{"/api/prom", cortexQuerierClient},
 				{"/api", newProxy(c.queryHost)},
@@ -285,9 +285,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/report", newProxy(c.collectionHost)},
 				{"/control", newProxy(c.controlHost)},
 				{"/pipe", newProxy(c.pipeHost)},
-				{"/deploy", newProxy(c.deployHost)},
 				{"/configs", newProxy(c.configsHost)},
-				{"/config", newProxy(c.deployHost)},
 				{"/flux", newProxy(c.fluxHost)},
 				{"/prom/push", cortexDistributorClient},
 				{"/prom", cortexQuerierClient},
@@ -319,6 +317,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/kubedash", trimPrefix("/admin/kubedash", newProxy(c.kubedashHost))},
 				{"/compare-images", trimPrefix("/admin/compare-images", newProxy(c.compareImagesHost))},
 				{"/cortex/ring", trimPrefix("/admin/cortex", cortexDistributorClient)},
+				{"/loki", trimPrefix("/admin/loki", newProxy(c.lokiHost))},
 				{"/", http.HandlerFunc(adminRoot)},
 			},
 			middleware.Merge(
