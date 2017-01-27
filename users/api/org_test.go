@@ -275,7 +275,7 @@ func Test_Organization_CheckIfExternalIDExists(t *testing.T) {
 	}
 
 	// Create the org so it exists
-	_, err = database.CreateOrganization(otherUser.ID, id, id)
+	_, err = database.CreateOrganization(otherUser.ID, id, id, "")
 	require.NoError(t, err)
 
 	{
@@ -335,7 +335,7 @@ func Test_Organization_Delete(t *testing.T) {
 	}
 
 	// Create the org so it exists
-	org, err := database.CreateOrganization(user.ID, externalID, externalID)
+	org, err := database.CreateOrganization(user.ID, externalID, externalID, "")
 	require.NoError(t, err)
 
 	// Should 401 because otherUser doesn't have access
@@ -374,7 +374,7 @@ func Test_Organization_Name(t *testing.T) {
 	name := "arbitrary name"
 	require.NoError(t, err)
 
-	_, err = database.CreateOrganization(user.ID, externalID, name)
+	_, err = database.CreateOrganization(user.ID, externalID, name, "")
 	require.NoError(t, err)
 
 	foundName, err := database.GetOrganizationName(externalID)

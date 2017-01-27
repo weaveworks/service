@@ -127,9 +127,9 @@ func (t traced) GenerateOrganizationExternalID() (s string, err error) {
 	return t.d.GenerateOrganizationExternalID()
 }
 
-func (t traced) CreateOrganization(ownerID, externalID, name string) (o *users.Organization, err error) {
-	defer func() { t.trace("CreateOrganization", ownerID, externalID, name, o, err) }()
-	return t.d.CreateOrganization(ownerID, externalID, name)
+func (t traced) CreateOrganization(ownerID, externalID, name, token string) (o *users.Organization, err error) {
+	defer func() { t.trace("CreateOrganization", ownerID, externalID, name, token, o, err) }()
+	return t.d.CreateOrganization(ownerID, externalID, name, token)
 }
 
 func (t traced) FindOrganizationByProbeToken(probeToken string) (o *users.Organization, err error) {

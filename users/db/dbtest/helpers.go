@@ -26,7 +26,7 @@ func CreateOrgForUser(t *testing.T, db db.DB, u *users.User) *users.Organization
 	externalID, err := db.GenerateOrganizationExternalID()
 	require.NoError(t, err)
 
-	org, err := db.CreateOrganization(u.ID, externalID, externalID)
+	org, err := db.CreateOrganization(u.ID, externalID, externalID, "")
 	require.NoError(t, err)
 
 	assert.NotEqual(t, "", org.ID)

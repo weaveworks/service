@@ -12,7 +12,8 @@ import (
 	"github.com/weaveworks/service/users/render"
 )
 
-type orgView struct {
+// OrgView describes an organisation
+type OrgView struct {
 	User               string   `json:"user,omitempty"`
 	ExternalID         string   `json:"id"`
 	Name               string   `json:"name"`
@@ -31,7 +32,7 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 	}
 	for _, org := range organizations {
 		if strings.ToLower(org.ExternalID) == strings.ToLower(orgExternalID) {
-			render.JSON(w, http.StatusOK, orgView{
+			render.JSON(w, http.StatusOK, OrgView{
 				User:               currentUser.Email,
 				ExternalID:         org.ExternalID,
 				Name:               org.Name,
@@ -58,29 +59,37 @@ func (a *API) generateOrgExternalID(currentUser *users.User, w http.ResponseWrit
 		render.Error(w, r, err)
 		return
 	}
-	render.JSON(w, http.StatusOK, orgView{Name: externalID, ExternalID: externalID})
+	render.JSON(w, http.StatusOK, OrgView{Name: externalID, ExternalID: externalID})
 }
 
 func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	var view orgView
-	err := json.NewDecoder(r.Body).Decode(&view)
-	switch {
-	case err != nil:
+	var view OrgView
+	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
 		render.Error(w, r, users.MalformedInputError(err))
 		return
 	}
-
-	if _, err := a.db.CreateOrganization(currentUser.ID, view.ExternalID, view.Name); err != nil {
+	// Don't allow users to specify their own token.
+	view.ProbeToken = ""
+	if err := a.CreateOrg(currentUser, view); err == users.ErrOrgTokenIsTaken {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	} else if err != nil {
 		render.Error(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
 }
 
+// CreateOrg creates an organisation
+func (a *API) CreateOrg(currentUser *users.User, view OrgView) error {
+	_, err := a.db.CreateOrganization(currentUser.ID, view.ExternalID, view.Name, view.ProbeToken)
+	return err
+}
+
 func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	var view orgView
+	var view OrgView
 	err := json.NewDecoder(r.Body).Decode(&view)
 	switch {
 	case err != nil:
@@ -163,7 +172,7 @@ func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWrit
 
 func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	var view signupView
+	var view SignupView
 	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
 		render.Error(w, r, users.MalformedInputError(err))
 		return

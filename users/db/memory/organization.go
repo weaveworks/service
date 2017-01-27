@@ -160,7 +160,7 @@ func (d *DB) findOrganizationByExternalID(externalID string) (*users.Organizatio
 }
 
 // CreateOrganization creates a new organization owned by the user
-func (d *DB) CreateOrganization(ownerID, externalID, name string) (*users.Organization, error) {
+func (d *DB) CreateOrganization(ownerID, externalID, name, token string) (*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if _, err := d.findUserByID(ownerID); err != nil {
@@ -180,9 +180,13 @@ func (d *DB) CreateOrganization(ownerID, externalID, name string) (*users.Organi
 	} else if exists {
 		return nil, users.ErrOrgExternalIDIsTaken
 	}
-	for exists := o.ProbeToken == ""; exists; {
-		if err := o.RegenerateProbeToken(); err != nil {
-			return nil, err
+	for exists := true; exists; {
+		if token != "" {
+			o.ProbeToken = token
+		} else {
+			if err := o.RegenerateProbeToken(); err != nil {
+				return nil, err
+			}
 		}
 		exists = false
 		for _, org := range d.organizations {
@@ -190,6 +194,9 @@ func (d *DB) CreateOrganization(ownerID, externalID, name string) (*users.Organi
 				exists = true
 				break
 			}
+		}
+		if token != "" && exists {
+			return nil, users.ErrOrgTokenIsTaken
 		}
 	}
 	d.organizations[o.ID] = o

@@ -150,7 +150,7 @@ func (d DB) GenerateOrganizationExternalID() (string, error) {
 }
 
 // CreateOrganization creates a new organization owned by the user
-func (d DB) CreateOrganization(ownerID, externalID, name string) (*users.Organization, error) {
+func (d DB) CreateOrganization(ownerID, externalID, name, token string) (*users.Organization, error) {
 	o := &users.Organization{
 		ExternalID: externalID,
 		Name:       name,
@@ -167,15 +167,23 @@ func (d DB) CreateOrganization(ownerID, externalID, name string) (*users.Organiz
 			return users.ErrOrgExternalIDIsTaken
 		}
 
-		for exists := o.ProbeToken == ""; exists; {
-			if err := o.RegenerateProbeToken(); err != nil {
-				return err
+		for exists := true; exists; {
+			if token != "" {
+				o.ProbeToken = token
+			} else {
+				if err := o.RegenerateProbeToken(); err != nil {
+					return err
+				}
 			}
+
 			if err := tx.QueryRow(
 				`select exists(select 1 from organizations where probe_token = $1 and deleted_at is null)`,
 				o.ProbeToken,
 			).Scan(&exists); err != nil {
 				return err
+			}
+			if token != "" && exists {
+				return users.ErrOrgTokenIsTaken
 			}
 		}
 
