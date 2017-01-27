@@ -7,7 +7,7 @@ import (
 	"github.com/justinas/nosurf"
 	"github.com/weaveworks/common/middleware"
 
-	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/common"
 )
 
 func (a *API) routes() http.Handler {
@@ -91,7 +91,7 @@ func (a *API) routes() http.Handler {
 		},
 		middleware.Instrument{
 			RouteMatcher: r,
-			Duration:     users.RequestDuration,
+			Duration:     common.RequestDuration,
 		},
 		middleware.Func(csrf),
 	).Wrap(r)

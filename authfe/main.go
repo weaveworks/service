@@ -40,7 +40,6 @@ var (
 )
 
 func init() {
-	prometheus.MustRegister(common.RequestDuration)
 	prometheus.MustRegister(wsConnections)
 	prometheus.MustRegister(wsRequestCount)
 }

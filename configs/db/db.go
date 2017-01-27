@@ -5,10 +5,10 @@ import (
 
 	"github.com/Sirupsen/logrus"
 
+	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/configs"
 	"github.com/weaveworks/service/configs/db/memory"
 	"github.com/weaveworks/service/configs/db/postgres"
-	"github.com/weaveworks/service/users" // For instrumentation.
 )
 
 // DB is the interface for the database.
@@ -47,5 +47,5 @@ func MustNew(databaseURI, migrationsDir string) DB {
 	}
 	// XXX: Current instrumentation doesn't provide a way to distinguish
 	// between backend databases (e.g. configs, users).
-	return traced{timed{d, users.DatabaseRequestDuration}}
+	return traced{timed{d, common.DatabaseRequestDuration}}
 }

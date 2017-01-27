@@ -9,9 +9,9 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/weaveworks/common/middleware"
+	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/configs"
 	"github.com/weaveworks/service/configs/db"
 )
@@ -22,10 +22,6 @@ const (
 	// DefaultOrgIDHeader is the default OrgID header.
 	DefaultOrgIDHeader = "X-Scope-OrgID"
 )
-
-func init() {
-	prometheus.MustRegister(common.RequestDuration)
-}
 
 // API implements the configs api.
 type API struct {
@@ -85,7 +81,7 @@ func (a *API) routes() http.Handler {
 		},
 		middleware.Instrument{
 			RouteMatcher: r,
-			Duration:     requestDuration,
+			Duration:     common.RequestDuration,
 		},
 	).Wrap(r)
 }

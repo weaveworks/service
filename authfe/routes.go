@@ -18,6 +18,7 @@ import (
 	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/scope/common/xfer"
+	"github.com/weaveworks/service/common"
 	users "github.com/weaveworks/service/users/client"
 )
 
@@ -400,7 +401,7 @@ func routes(c Config) (http.Handler, error) {
 		}),
 		middleware.Instrument{
 			RouteMatcher: r,
-			Duration:     requestDuration,
+			Duration:     common.RequestDuration,
 		},
 		middleware.Log{
 			LogSuccess: c.logSuccess,
