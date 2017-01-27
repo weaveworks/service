@@ -69,6 +69,8 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		render.Error(w, r, users.MalformedInputError(err))
 		return
 	}
+	// Don't allow users to specify their own token.
+	view.ProbeToken = ""
 	if err := a.CreateOrg(currentUser, view); err != nil {
 		render.Error(w, r, err)
 		return
