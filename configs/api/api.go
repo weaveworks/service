@@ -23,17 +23,8 @@ const (
 	DefaultOrgIDHeader = "X-Scope-OrgID"
 )
 
-var (
-	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "configs",
-		Name:      "request_duration_seconds",
-		Help:      "Time (in seconds) spent serving HTTP requests.",
-		Buckets:   prometheus.DefBuckets,
-	}, []string{"method", "route", "status_code", "ws"})
-)
-
 func init() {
-	prometheus.MustRegister(requestDuration)
+	prometheus.MustRegister(common.RequestDuration)
 }
 
 // API implements the configs api.

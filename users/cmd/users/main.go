@@ -108,7 +108,7 @@ func main() {
 }
 
 func makePrometheusHandler() http.Handler {
-	prometheus.MustRegister(users.RequestDuration)
-	prometheus.MustRegister(users.DatabaseRequestDuration)
+	prometheus.MustRegister(common.RequestDuration)
+	prometheus.MustRegister(common.DatabaseRequestDuration)
 	return prometheus.Handler()
 }

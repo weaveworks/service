@@ -14,11 +14,12 @@ import (
 	"github.com/bluele/gcache"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/common"
 )
 
 var (
 	authCacheCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "scope",
+		Namespace: common.PrometheusNamespace,
 		Name:      "auth_cache",
 		Help:      "Reports fetches that miss local cache.",
 	}, []string{"cache", "result"})
