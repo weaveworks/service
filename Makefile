@@ -87,7 +87,7 @@ lint: build/$(UPTODATE)
 	./tools/shell-lint .
 
 test: build/$(UPTODATE)
-	./tools/test -no-go-get
+	./tools/test -netgo
 
 endif
 
