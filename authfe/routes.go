@@ -320,7 +320,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/prometheus", newProxy(c.prometheusHost)},
 				{"/kubedash", trimPrefix("/admin/kubedash", newProxy(c.kubedashHost))},
 				{"/compare-images", trimPrefix("/admin/compare-images", newProxy(c.compareImagesHost))},
-				{"/cortex/ring", trimPrefix("/admin/cortex", newProxy(c.promDistributorHost))},
+				{"/cortex/ring", trimPrefix("/admin/cortex", cortexDistributorClient)},
 				{"/", http.HandlerFunc(adminRoot)},
 			},
 			middleware.Merge(
