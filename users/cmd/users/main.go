@@ -132,6 +132,11 @@ func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string
 		return
 	}
 
+	if err := a.MakeUserAdmin(user.ID, true); err != nil {
+		logrus.Errorf("Error making user an admin: %v", err)
+		return
+	}
+
 	if err := a.CreateOrg(user, api.OrgView{
 		ExternalID: instanceID,
 		Name:       instanceName,

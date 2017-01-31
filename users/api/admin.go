@@ -208,7 +208,7 @@ func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	admin := r.URL.Query().Get("admin") == "true"
-	if err := a.db.SetUserAdmin(userID, admin); err != nil {
+	if err := a.MakeUserAdmin(userID, admin); err != nil {
 		render.Error(w, r, err)
 		return
 	}
@@ -217,4 +217,9 @@ func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
 		redirectTo = "/private/api/users"
 	}
 	http.Redirect(w, r, redirectTo, http.StatusFound)
+}
+
+// MakeUserAdmin makes a user an admin
+func (a *API) MakeUserAdmin(userID string, admin bool) error {
+	return a.db.SetUserAdmin(userID, admin)
 }
