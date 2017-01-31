@@ -410,7 +410,7 @@ func (o originCheckerMiddleware) Wrap(next http.Handler) http.Handler {
 }
 
 func isSafeMethod(method string) bool {
-	return method == http.MethodGet || r.Method == http.MethodHead
+	return method == http.MethodGet || method == http.MethodHead
 }
 
 // Gorilla Router with sensible defaults, namely:
