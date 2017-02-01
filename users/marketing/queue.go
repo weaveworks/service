@@ -142,7 +142,7 @@ func (c *Queue) push() {
 	}
 
 	name := c.client.name()
-	log.Infof("Pushing %d prospect updates to %s", len(prospects), name)
+	log.Debugf("Pushing %d prospect updates to %s", len(prospects), name)
 	for i := 0; i < len(prospects); {
 		end := i + batchSize
 		if end > len(prospects) {
