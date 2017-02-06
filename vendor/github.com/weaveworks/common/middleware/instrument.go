@@ -16,7 +16,8 @@ type Instrument struct {
 	RouteMatcher interface {
 		Match(*http.Request, *mux.RouteMatch) bool
 	}
-	Duration *prometheus.HistogramVec
+	Duration    *prometheus.HistogramVec
+	MaxDuration *MaximumVec
 }
 
 // IsWSHandshakeRequest returns true if the given request is a websocket handshake request.
@@ -46,6 +47,9 @@ func (i Instrument) Wrap(next http.Handler) http.Handler {
 			took   = time.Since(begin)
 		)
 		i.Duration.WithLabelValues(r.Method, route, status, isWS).Observe(took.Seconds())
+		if i.MaxDuration != nil {
+			i.MaxDuration.WithLabelValues(r.Method, route, status, isWS).Observe(took.Seconds())
+		}
 	})
 }
 

@@ -401,6 +401,7 @@ func routes(c Config) (http.Handler, error) {
 		middleware.Instrument{
 			RouteMatcher: r,
 			Duration:     common.RequestDuration,
+			MaxDuration:  common.MaxRequestDuration,
 		},
 		middleware.Log{
 			LogSuccess: c.logSuccess,

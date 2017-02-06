@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/weaveworks/common/middleware"
 )
 
 const (
@@ -18,6 +19,13 @@ var (
 		Buckets:   prometheus.DefBuckets,
 	}, []string{"method", "route", "status_code", "ws"})
 
+	// MaxRequestDuration records the maximum request duration.
+	MaxRequestDuration = middleware.NewMaximumVec(prometheus.GaugeOpts{
+		Namespace: PrometheusNamespace,
+		Name:      "request_duration_max_seconds",
+		Help:      "Maximum time (in seconds) spent serving HTTP requests.",
+	}, []string{"method", "route", "status_code", "ws"})
+
 	// DatabaseRequestDuration is our standard database histogram vector.
 	DatabaseRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: PrometheusNamespace,
@@ -30,4 +38,5 @@ var (
 func init() {
 	prometheus.MustRegister(RequestDuration)
 	prometheus.MustRegister(DatabaseRequestDuration)
+	prometheus.MustRegister(MaxRequestDuration)
 }
