@@ -690,15 +690,15 @@
 		{
 			"importpath": "github.com/prometheus/client_golang/prometheus",
 			"repository": "https://github.com/prometheus/client_golang",
-			"vcs": "",
-			"revision": "449ccefff16c8e2b7229f6be1921ba22f62461fe",
+			"vcs": "git",
+			"revision": "c317fb74746eac4fc65fe3909195f4cf67c5562a",
 			"branch": "master",
 			"path": "/prometheus"
 		},
 		{
 			"importpath": "github.com/prometheus/client_model/go",
 			"repository": "https://github.com/prometheus/client_model",
-			"vcs": "",
+			"vcs": "git",
 			"revision": "fa8ad6fec33561be4280a8f0514318c79d7f6cb6",
 			"branch": "master",
 			"path": "/go"
@@ -706,8 +706,8 @@
 		{
 			"importpath": "github.com/prometheus/common/expfmt",
 			"repository": "https://github.com/prometheus/common",
-			"vcs": "",
-			"revision": "4fdc91a58c9d3696b982e8a680f4997403132d44",
+			"vcs": "git",
+			"revision": "dd2f054febf4a6c00f2343686efb775948a8bff4",
 			"branch": "master",
 			"path": "/expfmt"
 		},
@@ -722,8 +722,8 @@
 		{
 			"importpath": "github.com/prometheus/common/model",
 			"repository": "https://github.com/prometheus/common",
-			"vcs": "",
-			"revision": "4fdc91a58c9d3696b982e8a680f4997403132d44",
+			"vcs": "git",
+			"revision": "dd2f054febf4a6c00f2343686efb775948a8bff4",
 			"branch": "master",
 			"path": "/model"
 		},
