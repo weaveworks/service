@@ -20,7 +20,7 @@ var (
 	}, []string{"method", "route", "status_code", "ws"})
 
 	// MaxRequestDuration is the maximum time of a request.
-	MaxRequestDuration = middleware.NewMaximumVec(prometheus.GaugeOpts{
+	MaxRequestDuration = middleware.NewMaximumVec(prometheus.SummaryOpts{
 		Namespace: PrometheusNamespace,
 		Name:      "request_duration_max_seconds",
 		Help:      "Maximum time (in seconds) spent serving HTTP requests.",

@@ -2,10 +2,8 @@ package middleware
 
 import (
 	"math"
-	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
-	dto "github.com/prometheus/client_model/go"
 )
 
 var (
@@ -15,31 +13,24 @@ var (
 // Maximum observes a maximum. Private because it requires label names
 // it its constructor, which is odd for a metric.
 type Maximum struct {
-	currentBits uint64
+	prometheus.Summary
 
 	desc        *prometheus.Desc
 	labelValues []string
 }
 
 // NewMaximum makes a new maximum.
-func NewMaximum(opts prometheus.GaugeOpts) Maximum {
+func NewMaximum(opts prometheus.SummaryOpts, labelValues []string) Maximum {
 	desc := prometheus.NewDesc(
 		prometheus.BuildFQName(opts.Namespace, opts.Subsystem, opts.Name),
 		opts.Help,
 		nil,
 		opts.ConstLabels,
 	)
+	opts.Objectives = map[float64]float64{1.0: 0.0}
+	summary := prometheus.NewSummary(opts)
 	return Maximum{
-		currentBits: math.Float64bits(lowest),
-		desc:        desc,
-		labelValues: nil,
-	}
-}
-
-// newMaximum makes a new Maximum.
-func newMaximum(desc *prometheus.Desc, labelValues []string) Maximum {
-	return Maximum{
-		currentBits: math.Float64bits(lowest),
+		Summary:     summary,
 		desc:        desc,
 		labelValues: labelValues,
 	}
@@ -50,45 +41,13 @@ func (m Maximum) Desc() *prometheus.Desc {
 	return m.desc
 }
 
-// Write implements Metric.
-func (m Maximum) Write(out *dto.Metric) error {
-	current := math.Float64frombits(atomic.LoadUint64(&m.currentBits))
-	metric := prometheus.MustNewConstMetric(m.desc, prometheus.GaugeValue, current, m.labelValues...)
-	return metric.Write(out)
-}
-
-// Observe value, which might possibly be larger than the last value we observed.
-func (m *Maximum) Observe(value float64) {
-	for {
-		oldBits := atomic.LoadUint64(&m.currentBits)
-		current := math.Float64frombits(oldBits)
-		if current >= value {
-			return
-		}
-		newBits := math.Float64bits(value)
-		if atomic.CompareAndSwapUint64(&m.currentBits, oldBits, newBits) {
-			return
-		}
-	}
-}
-
-// Reset the value to the lowest possible.
-func (m *Maximum) Reset() {
-	atomic.StoreUint64(&m.currentBits, math.Float64bits(lowest))
-}
-
-// Current maximum.
-func (m *Maximum) Current() float64 {
-	return math.Float64frombits(atomic.LoadUint64(&m.currentBits))
-}
-
 // MaximumVec is a vector of maximums.
 type MaximumVec struct {
 	*prometheus.MetricVec
 }
 
 // NewMaximumVec makes a new MaximumVec.
-func NewMaximumVec(opts prometheus.GaugeOpts, labelNames []string) *MaximumVec {
+func NewMaximumVec(opts prometheus.SummaryOpts, labelNames []string) *MaximumVec {
 	desc := prometheus.NewDesc(
 		prometheus.BuildFQName(opts.Namespace, opts.Subsystem, opts.Name),
 		opts.Help,
@@ -97,16 +56,10 @@ func NewMaximumVec(opts prometheus.GaugeOpts, labelNames []string) *MaximumVec {
 	)
 	return &MaximumVec{
 		MetricVec: prometheus.NewMetricVec(desc, func(lvs ...string) prometheus.Metric {
-			m := newMaximum(desc, lvs)
+			m := NewMaximum(opts, lvs)
 			return &m
 		}),
 	}
-}
-
-// Collect implements Collector.
-func (mv *MaximumVec) Collect(ch chan<- prometheus.Metric) {
-	mv.MetricVec.Collect(ch)
-	mv.MetricVec.Reset()
 }
 
 // GetMetricWithLabelValues gets a Maximum metric.
