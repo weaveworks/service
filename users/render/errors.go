@@ -16,6 +16,10 @@ func errorStatusCode(err error) int {
 		return http.StatusNotFound
 	case err == users.ErrInvalidAuthenticationData:
 		return http.StatusUnauthorized
+	case err == users.ErrLoginNotFound:
+		return http.StatusUnauthorized
+	case err == users.ErrProviderParameters:
+		return http.StatusUnprocessableEntity
 	}
 
 	switch err.(type) {

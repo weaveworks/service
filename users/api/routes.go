@@ -81,6 +81,7 @@ func (a *API) routes() http.Handler {
 		{"private_api_pardot", "GET", "/private/api/marketing_refresh", a.marketingRefresh},
 		{"private_api_users", "GET", "/private/api/users", a.listUsers},
 		{"private_api_users_userID_admin", "POST", "/private/api/users/{userID}/admin", a.makeUserAdmin},
+		{"private_api_users_userID_logins_provider_token", "GET", "/private/api/users/{userID}/logins/{provider}/token", a.getUserToken},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
