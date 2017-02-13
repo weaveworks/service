@@ -65,29 +65,32 @@ func MakeAuthenticator(kind, url string, opts AuthenticatorOptions) Authenticato
 	case "mock":
 		return &mockAuthenticator{}
 	case "web":
+		client := &http.Client{
+			Transport: &nethttp.Transport{
+				RoundTripper: &http.Transport{
+					// Rest are from http.DefaultTransport
+					Proxy: http.ProxyFromEnvironment,
+					DialContext: (&net.Dialer{
+						Timeout:   30 * time.Second,
+						KeepAlive: 30 * time.Second,
+					}).DialContext,
+					TLSHandshakeTimeout:   10 * time.Second,
+					ExpectContinueTimeout: 1 * time.Second,
+				},
+			},
+		}
+
 		if opts.CredCacheEnabled {
 			return &webAuthenticator{
 				url:            url,
 				probeCredCache: gcache.New(opts.ProbeCredCacheSize).LRU().Expiration(opts.ProbeCredCacheExpiration).Build(),
 				orgCredCache:   gcache.New(opts.OrgCredCacheSize).LRU().Expiration(opts.OrgCredCacheExpiration).Build(),
-				client: &http.Client{
-					Transport: &nethttp.Transport{
-						RoundTripper: &http.Transport{
-							// Rest are from http.DefaultTransport
-							Proxy: http.ProxyFromEnvironment,
-							DialContext: (&net.Dialer{
-								Timeout:   30 * time.Second,
-								KeepAlive: 30 * time.Second,
-							}).DialContext,
-							TLSHandshakeTimeout:   10 * time.Second,
-							ExpectContinueTimeout: 1 * time.Second,
-						},
-					},
-				},
+				client:         client,
 			}
 		}
 		return &webAuthenticator{
-			url: url,
+			url:    url,
+			client: client,
 		}
 	default:
 		log.Fatal("Incorrect authenticator type: ", kind)
