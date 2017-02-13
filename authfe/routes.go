@@ -1,17 +1,21 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"path/filepath"
 	"regexp"
+	"strconv"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"github.com/justinas/nosurf"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 
@@ -413,6 +417,7 @@ func routes(c Config) (http.Handler, error) {
 
 	return middleware.Merge(
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
+		middleware.Func(csfrTokenMiddleware),
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler)
 		}),
@@ -420,6 +425,60 @@ func routes(c Config) (http.Handler, error) {
 	).Wrap(r), nil
 }
 
+// Takes care of setting and verifying anti-CSFR tokens
+// * Injects the CSFR token in html responses, as a toplevel window property
+//   (so that the JS code can include it in all its requests).
+// * Sets the CSFR token in cookie.
+// * Checks them against each other.
+// It complements static origin checking
+func csfrTokenMiddleware(next http.Handler) http.Handler {
+	h := nosurf.New(injectTokenInHTMLResponses(next))
+	h.SetBaseCookie(http.Cookie{
+		MaxAge:   nosurf.MaxAge,
+		HttpOnly: true,
+		Path:     "/",
+	})
+	// Disable token verification until header-setting is deployed in the javascript code
+	// (and html caching expires).
+	// TODO: re-enable it
+	h.ExemptFunc(func(r *http.Request) bool { return true })
+	return h
+}
+
+func injectTokenInHTMLResponses(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rec := httptest.NewRecorder()
+		next.ServeHTTP(rec, r)
+		responseHeader := w.Header()
+
+		// Copy the original headers
+		for k, v := range rec.Header() {
+			responseHeader[k] = v
+		}
+
+		responseBody := rec.Body.Bytes()
+
+		if w.Header().Get("Content-Type") == "text/html" {
+			newHead := `</head><script language="javascript">window.__WEAVEWORKS_CSRF_TOKEN = "` + nosurf.Token(r) + `";</script>`
+			responseBody = bytes.Replace(responseBody, []byte("</head>"), []byte(newHead), -1)
+			// Adjust content length if present
+			if responseHeader.Get("Content-Type") != "" {
+				responseHeader.Set("Content-Length", strconv.Itoa(len(responseBody)))
+			}
+			// Disable caching. The token needs to be reloaded every
+			// time the cookie changes.
+			responseHeader.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			responseHeader.Set("Pragma", "no-cache")
+			responseHeader.Set("Expires", "0")
+		}
+
+		// Finally, write the response body
+		w.Write(responseBody)
+	})
+}
+
+// Checks Origin and Referer headers against the expected target of the site
+// to protect against CSFR attacks.
 type originCheckerMiddleware struct {
 	expectedTarget string
 }
