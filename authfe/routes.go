@@ -472,7 +472,8 @@ func injectTokenInHTMLResponses(next http.Handler) http.Handler {
 			responseHeader.Set("Expires", "0")
 		}
 
-		// Finally, write the response body
+		// Finally, write the response
+		w.WriteHeader(rec.Code)
 		w.Write(responseBody)
 	})
 }
