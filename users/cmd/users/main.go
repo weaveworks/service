@@ -8,10 +8,14 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tylerb/graceful"
+	"github.com/weaveworks-experiments/loki/pkg/client"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db"
@@ -110,8 +114,18 @@ func main() {
 			*localTestUserInstanceName, *localTestUserInstanceToken)
 	}
 
-	mux.Handle("/", api)
+	tracer, err := loki.NewTracer()
+	if err != nil {
+		logrus.Fatalf("Error configuring tracing: %v", err)
+		return
+	}
+	opentracing.InitGlobalTracer(tracer)
+
+	mux.Handle("/", middleware.Func(func(handler http.Handler) http.Handler {
+		return nethttp.Middleware(opentracing.GlobalTracer(), handler)
+	}).Wrap(api))
 	mux.Handle("/metrics", makePrometheusHandler())
+	mux.Handle("/traces", loki.Handler())
 	if err := graceful.RunWithErr(fmt.Sprintf(":%d", *port), *stopTimeout, mux); err != nil {
 		logrus.Fatal(err)
 	}
