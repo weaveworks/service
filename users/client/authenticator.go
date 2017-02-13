@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,7 +13,10 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/bluele/gcache"
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common"
 )
@@ -61,15 +65,32 @@ func MakeAuthenticator(kind, url string, opts AuthenticatorOptions) Authenticato
 	case "mock":
 		return &mockAuthenticator{}
 	case "web":
+		client := &http.Client{
+			Transport: &nethttp.Transport{
+				RoundTripper: &http.Transport{
+					// Rest are from http.DefaultTransport
+					Proxy: http.ProxyFromEnvironment,
+					DialContext: (&net.Dialer{
+						Timeout:   30 * time.Second,
+						KeepAlive: 30 * time.Second,
+					}).DialContext,
+					TLSHandshakeTimeout:   10 * time.Second,
+					ExpectContinueTimeout: 1 * time.Second,
+				},
+			},
+		}
+
 		if opts.CredCacheEnabled {
 			return &webAuthenticator{
 				url:            url,
 				probeCredCache: gcache.New(opts.ProbeCredCacheSize).LRU().Expiration(opts.ProbeCredCacheExpiration).Build(),
 				orgCredCache:   gcache.New(opts.OrgCredCacheSize).LRU().Expiration(opts.OrgCredCacheExpiration).Build(),
+				client:         client,
 			}
 		}
 		return &webAuthenticator{
-			url: url,
+			url:    url,
+			client: client,
 		}
 	default:
 		log.Fatal("Incorrect authenticator type: ", kind)
@@ -97,9 +118,10 @@ func (mockAuthenticator) AuthenticateUser(w http.ResponseWriter, r *http.Request
 
 type webAuthenticator struct {
 	url            string
-	client         http.Client
+	client         *http.Client
 	probeCredCache gcache.Cache
 	orgCredCache   gcache.Cache
+	transport      http.RoundTripper
 }
 
 // Constants exported for testing
@@ -176,6 +198,7 @@ func (m *webAuthenticator) authenticateOrgViaCookie(w http.ResponseWriter, r *ht
 				return "", "", nil, err
 			}
 			lookupReq.AddCookie(authCookie)
+			lookupReq = lookupReq.WithContext(r.Context())
 			return m.decodeOrg(m.doAuthenticateRequest(w, lookupReq))
 		},
 	)
@@ -192,6 +215,7 @@ func (m *webAuthenticator) authenticateOrgViaHeader(w http.ResponseWriter, r *ht
 				return "", "", nil, err
 			}
 			lookupReq.Header.Set(AuthHeaderName, authHeader)
+			lookupReq = lookupReq.WithContext(r.Context())
 			return m.decodeOrg(m.doAuthenticateRequest(w, lookupReq))
 		},
 	)
@@ -244,6 +268,7 @@ func (m *webAuthenticator) AuthenticateProbe(w http.ResponseWriter, r *http.Requ
 		return "", nil, err
 	}
 	lookupReq.Header.Set(AuthHeaderName, authHeader)
+	lookupReq = lookupReq.WithContext(r.Context())
 	orgID, _, featureFlags, err := m.decodeOrg(m.doAuthenticateRequest(w, lookupReq))
 	if m.probeCredCache != nil && (err == nil || isUnauthorized(err)) {
 		m.probeCredCache.Set(authHeader, probeCredCacheValue{orgID: orgID, featureFlags: featureFlags, err: err})
@@ -275,6 +300,7 @@ func (m *webAuthenticator) AuthenticateAdmin(w http.ResponseWriter, r *http.Requ
 		return "", err
 	}
 	lookupReq.AddCookie(authCookie)
+	lookupReq = lookupReq.WithContext(r.Context())
 	return m.decodeAdmin(m.doAuthenticateRequest(w, lookupReq))
 }
 
@@ -294,10 +320,15 @@ func (m *webAuthenticator) AuthenticateUser(w http.ResponseWriter, r *http.Reque
 		return "", err
 	}
 	lookupReq.AddCookie(authCookie)
+	lookupReq = lookupReq.WithContext(r.Context())
 	return m.decodeUser(m.doAuthenticateRequest(w, lookupReq))
 }
 
 func (m *webAuthenticator) doAuthenticateRequest(w http.ResponseWriter, r *http.Request) (io.ReadCloser, error) {
+	var ht *nethttp.Tracer
+	r, ht = nethttp.TraceRequest(opentracing.GlobalTracer(), r)
+	defer ht.Finish()
+
 	// Contact the authorization server
 	res, err := m.client.Do(r)
 	if err != nil {
