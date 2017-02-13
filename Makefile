@@ -107,7 +107,7 @@ configs-integration-test: $(CONFIGS_UPTODATE)
 
 # Test and misc stuff
 users-integration-test: $(USERS_UPTODATE)
-	DB_CONTAINER="$$(docker run -d quay.io/weaveworks/users-db)"; \
+	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=users_test' postgres:9.4)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-v $(shell pwd)/users/db/migrations:/migrations \

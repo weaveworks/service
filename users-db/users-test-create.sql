@@ -1,1 +1,0 @@
-CREATE DATABASE users_test WITH ENCODING = 'UTF-8';
