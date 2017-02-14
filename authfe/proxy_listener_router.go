@@ -16,14 +16,14 @@ type proxyListener struct {
 	c      chan net.Conn
 }
 
-func NewProxyListenerRouter(original net.Listener) *proxyListenerRouter {
+func newProxyListenerRouter(original net.Listener) *proxyListenerRouter {
 	return &proxyListenerRouter{
 		listeners: map[int]*proxyListener{},
 		original:  original,
 	}
 }
 
-func (p *proxyListenerRouter) ListenerForPort(port int) net.Listener {
+func (p *proxyListenerRouter) listenerForPort(port int) net.Listener {
 	listener := &proxyListener{
 		parent: p,
 		c:      make(chan net.Conn),
