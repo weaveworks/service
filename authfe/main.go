@@ -54,6 +54,7 @@ func main() {
 		authCacheSize         int
 		authCacheExpiration   time.Duration
 		fluentHost            string
+		redirectHTTPS         bool
 
 		c Config
 	)
@@ -69,7 +70,8 @@ func main() {
 	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
 	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
 	flag.StringVar(&c.apiInfo, "api.info", "scopeservice:0.1", "Version info for the api to serve, in format ID:VERSION")
-	flag.StringVar(&c.targetOrigin, "hostname", "", "Hostname through which this server is accessed, for same-origin checks (CSRF protection)")
+	flag.StringVar(&c.targetOrigin, "hostname", "", "Hostname through which this server is accessed, for same-origin checks (CSRF protection) and HTTPS redirects")
+	flag.BoolVar(&redirectHTTPS, "redirect-https", false, "Redirect all HTTP traffic to HTTPS")
 
 	hostFlags := []struct {
 		dest *string
@@ -180,9 +182,25 @@ func main() {
 			Handler: r,
 		},
 	}
-	proxyListener := &proxyproto.Listener{
+	var proxyListener net.Listener = &proxyproto.Listener{
 		Listener:           listener,
 		ProxyHeaderTimeout: proxyTimeout,
+	}
+
+	if redirectHTTPS {
+		// We use a custom listened router to ensure only connections on port 443 get
+		// through to the real router - everything else gets redirected.
+		proxyListenerRouter := NewProxyListenerRouter(proxyListener)
+		proxyListener = proxyListenerRouter.ListenerForPort(443)
+		redirectServer := &http.Server{
+			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				url := r.URL
+				url.Host = c.targetOrigin
+				url.Scheme = "https"
+				http.Redirect(w, r, url.String(), http.StatusMovedPermanently)
+			}),
+		}
+		go redirectServer.Serve(proxyListenerRouter)
 	}
 
 	// block until stop signal is received, then wait stopTimeout for remaining conns

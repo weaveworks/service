@@ -405,14 +405,6 @@ func routes(c Config) (http.Handler, error) {
 		middleware.Log{
 			LogSuccess: c.logSuccess,
 		},
-		middleware.Redirect{
-			Matches: []middleware.Match{
-				{Host: "scope.weave.works"},
-				{Scheme: "http", Host: "cloud.weave.works"},
-			},
-			RedirectHost:   "cloud.weave.works",
-			RedirectScheme: "https",
-		},
 	).Wrap(r), nil
 }
 
