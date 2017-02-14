@@ -93,7 +93,7 @@ endif
 
 # Test and misc stuff
 configs-integration-test: $(CONFIGS_UPTODATE)
-	DB_CONTAINER="$$(docker run -d quay.io/weaveworks/configs-db)"; \
+	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=configs_test' postgres:9.6)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-v $(shell pwd)/configs/db/migrations:/migrations \
