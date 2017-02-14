@@ -390,22 +390,28 @@ func routes(c Config) (http.Handler, error) {
 		route.Add(r)
 	}
 
-	sameOrigin := http.Header{}
-	sameOrigin.Add("X-Frame-Options", "SAMEORIGIN")
 	return middleware.Merge(
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler)
 		}),
+		commonMiddleWare(c.logSuccess, r),
+	).Wrap(r), nil
+}
+
+func commonMiddleWare(logSuccess bool, routeMatcher *mux.Router) middleware.Interface {
+	sameOrigin := http.Header{}
+	sameOrigin.Add("X-Frame-Options", "SAMEORIGIN")
+	return middleware.Merge(
 		middleware.HeaderAdder{sameOrigin},
 		middleware.Instrument{
-			RouteMatcher: r,
+			RouteMatcher: routeMatcher,
 			Duration:     common.RequestDuration,
 		},
 		middleware.Log{
-			LogSuccess: c.logSuccess,
+			LogSuccess: logSuccess,
 		},
-	).Wrap(r), nil
+	)
 }
 
 type originCheckerMiddleware struct {

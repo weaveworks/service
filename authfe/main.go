@@ -188,17 +188,19 @@ func main() {
 	}
 
 	if redirectHTTPS {
-		// We use a custom listened router to ensure only connections on port 443 get
+		// We use a custom listener router to ensure only connections on port 443 get
 		// through to the real router - everything else gets redirected.
 		proxyListenerRouter := newProxyListenerRouter(proxyListener)
 		proxyListener = proxyListenerRouter.listenerForPort(443)
 		redirectServer := &http.Server{
-			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				url := r.URL
-				url.Host = c.targetOrigin
-				url.Scheme = "https"
-				http.Redirect(w, r, url.String(), http.StatusMovedPermanently)
-			}),
+			Handler: commonMiddleWare(c.logSuccess, nil).Wrap(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					url := r.URL
+					url.Host = c.targetOrigin
+					url.Scheme = "https"
+					http.Redirect(w, r, url.String(), http.StatusMovedPermanently)
+				}),
+			),
 		}
 		go redirectServer.Serve(proxyListenerRouter)
 	}
