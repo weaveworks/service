@@ -13,6 +13,7 @@ import (
 	"github.com/jordan-wright/email"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/client"
@@ -72,7 +73,7 @@ func Test_Signup(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{"mailSent": true, "email": email}, body)
 	require.Len(t, sentEmails, 1)
-	user, err := database.FindUserByEmail(email)
+	user, err := database.FindUserByEmail(context.Background(), email)
 	require.NoError(t, err)
 	assert.Equal(t, []string{email}, sentEmails[0].To)
 	loginLink, emailToken := findLoginLink(t, sentEmails[0])
@@ -108,7 +109,7 @@ func Test_Signup(t *testing.T) {
 		"munchkinHash": app.MunchkinHash(user.Email),
 	}, body)
 
-	user, err = database.FindUserByEmail(email)
+	user, err = database.FindUserByEmail(context.Background(), email)
 	require.NoError(t, err)
 	// Invalidates their login token
 	assert.Equal(t, "", user.Token)
@@ -116,7 +117,7 @@ func Test_Signup(t *testing.T) {
 	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 	firstLoginAt := user.FirstLoginAt
 	// Doesn't create an organization.
-	organizations, err := database.ListOrganizationsForUserIDs(user.ID)
+	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
 	assert.Len(t, organizations, 0)
 
@@ -137,11 +138,11 @@ func Test_Signup(t *testing.T) {
 		"munchkinHash": app.MunchkinHash(user.Email),
 	}, body)
 
-	user, err = database.FindUserByEmail(email)
+	user, err = database.FindUserByEmail(context.Background(), email)
 	require.NoError(t, err)
 	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 	assert.Equal(t, firstLoginAt, user.FirstLoginAt, "Second login should not have changed user's FirstLoginAt")
-	organizations, err = database.ListOrganizationsForUserIDs(user.ID)
+	organizations, err = database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
 	assert.Len(t, organizations, 0)
 }
@@ -154,12 +155,12 @@ func Test_Signup_WithInvalidJSON(t *testing.T) {
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("POST", "/api/users/signup", strings.NewReader("this isn't json"))
 
-	_, err := database.FindUserByEmail(email)
+	_, err := database.FindUserByEmail(context.Background(), email)
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "invalid character 'h' in literal true (expecting 'r')")
-	_, err = database.FindUserByEmail(email)
+	_, err = database.FindUserByEmail(context.Background(), email)
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 }
 
@@ -171,12 +172,12 @@ func Test_Signup_WithBlankEmail(t *testing.T) {
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("POST", "/api/users/signup", jsonBody{}.Reader(t))
 
-	_, err := database.FindUserByEmail(email)
+	_, err := database.FindUserByEmail(context.Background(), email)
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "Email cannot be blank")
-	_, err = database.FindUserByEmail(email)
+	_, err = database.FindUserByEmail(context.Background(), email)
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 }
 
@@ -192,7 +193,7 @@ func Test_Signup_ViaOAuth(t *testing.T) {
 	// Signup as a new user via oauth, should *not* send welcome email
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
-	_, err := database.FindUserByEmail(email)
+	_, err := database.FindUserByEmail(context.Background(), email)
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -207,14 +208,14 @@ func Test_Signup_ViaOAuth(t *testing.T) {
 	}, body)
 	assert.Len(t, sentEmails, 0)
 
-	user, err := database.FindUserByEmail(email)
+	user, err := database.FindUserByEmail(context.Background(), email)
 	require.NoError(t, err)
 
 	assert.Equal(t, "", user.Token, "user should not have a token set")
 	assert.False(t, user.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 
 	// User should have login set
-	userLogins, err := database.ListLoginsForUserIDs(user.ID)
+	userLogins, err := database.ListLoginsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
 	if assert.Len(t, userLogins, 1) {
 		assert.Equal(t, user.ID, userLogins[0].UserID)
@@ -232,7 +233,7 @@ func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 		"joe": {ID: "joe", Email: user.Email},
 	})
 	// User should not have any logins yet.
-	userLogins, err := database.ListLoginsForUserIDs(user.ID)
+	userLogins, err := database.ListLoginsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
 	assert.Len(t, userLogins, 0)
 
@@ -244,7 +245,7 @@ func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 	assert.True(t, hasCookie(w, client.AuthCookieName))
 	assert.Len(t, sentEmails, 0)
 
-	found, err := database.FindUserByEmail(user.Email)
+	found, err := database.FindUserByEmail(context.Background(), user.Email)
 	require.NoError(t, err)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
@@ -259,7 +260,7 @@ func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 	assert.False(t, found.FirstLoginAt.IsZero(), "Login should have set user's FirstLoginAt")
 
 	// User should have a login set
-	foundLogins, err := database.ListLoginsForUserIDs(found.ID)
+	foundLogins, err := database.ListLoginsForUserIDs(context.Background(), found.ID)
 	require.NoError(t, err)
 	if assert.Len(t, foundLogins, 1) {
 		assert.Equal(t, user.ID, foundLogins[0].UserID)
@@ -278,7 +279,7 @@ func Test_Signup_ViaOAuth_EmailChanged(t *testing.T) {
 	}
 	logins.Register("mock", provider)
 
-	require.NoError(t, database.AddLoginToUser(user.ID, "mock", "joe", nil))
+	require.NoError(t, database.AddLoginToUser(context.Background(), user.ID, "mock", "joe", nil))
 
 	// Change the remote email
 	newEmail := "fran@example.com"
@@ -292,10 +293,10 @@ func Test_Signup_ViaOAuth_EmailChanged(t *testing.T) {
 	assert.True(t, hasCookie(w, client.AuthCookieName))
 	assert.Len(t, sentEmails, 0)
 
-	_, err := database.FindUserByEmail(newEmail)
+	_, err := database.FindUserByEmail(context.Background(), newEmail)
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 
-	userLogins, err := database.ListLoginsForUserIDs(user.ID)
+	userLogins, err := database.ListLoginsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
 	// User should have a login set
 	if assert.Len(t, userLogins, 1) {

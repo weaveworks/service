@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 )
@@ -38,7 +39,7 @@ func Test_APITokens_CreateAndUseAPIToken(t *testing.T) {
 		assert.Equal(t, http.StatusCreated, w.Code)
 		body := map[string]interface{}{}
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-		tokens, err := database.ListAPITokensForUserIDs(user.ID)
+		tokens, err := database.ListAPITokensForUserIDs(context.Background(), user.ID)
 		require.NoError(t, err)
 		require.Len(t, tokens, 1)
 		assert.Equal(t, map[string]interface{}{
@@ -48,7 +49,7 @@ func Test_APITokens_CreateAndUseAPIToken(t *testing.T) {
 	}
 
 	// Refresh the user
-	tokens, err := database.ListAPITokensForUserIDs(user.ID)
+	tokens, err := database.ListAPITokensForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
 	require.Len(t, tokens, 1)
 	token := tokens[0].Token
@@ -107,7 +108,7 @@ func Test_APITokens_CreateAndUseAPIToken(t *testing.T) {
 		r := requestAs(t, user, "DELETE", "/api/users/tokens/"+token, nil)
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusNoContent, w.Code)
-		_, err := database.FindUserByAPIToken(token)
+		_, err := database.FindUserByAPIToken(context.Background(), token)
 		assert.EqualError(t, err, users.ErrNotFound.Error())
 	}
 
@@ -122,7 +123,7 @@ func Test_APITokens_CreateAndUseAPIToken(t *testing.T) {
 	}
 
 	// Refresh the user (should have no more tokens)
-	tokens, err = database.ListAPITokensForUserIDs(user.ID)
+	tokens, err = database.ListAPITokensForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
 	require.Len(t, tokens, 0)
 

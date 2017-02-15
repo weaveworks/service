@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users/db"
@@ -28,5 +29,5 @@ func Setup(t *testing.T) db.DB {
 
 // Cleanup cleans up after a test
 func Cleanup(t *testing.T, database db.DB) {
-	require.NoError(t, database.Close())
+	require.NoError(t, database.Close(context.Background()))
 }

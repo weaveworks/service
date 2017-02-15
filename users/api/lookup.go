@@ -19,7 +19,7 @@ type lookupOrgView struct {
 func (a *API) lookupOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orgExternalID := vars["orgExternalID"]
-	organizations, err := a.db.ListOrganizationsForUserIDs(currentUser.ID)
+	organizations, err := a.db.ListOrganizationsForUserIDs(r.Context(), currentUser.ID)
 	if err != nil {
 		render.Error(w, r, err)
 		return

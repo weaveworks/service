@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tylerb/graceful"
 	"github.com/weaveworks-experiments/loki/pkg/client"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/middleware"
@@ -100,7 +101,7 @@ func main() {
 	templates := templates.MustNewEngine("templates")
 	emailer := emailer.MustNew(*emailURI, *emailFromAddress, templates, *domain)
 	db := db.MustNew(*databaseURI, *databaseMigrations)
-	defer db.Close()
+	defer db.Close(context.Background())
 	sessions := sessions.MustNewStore(*sessionSecret)
 
 	logrus.Debug("Debug logging enabled")
@@ -133,7 +134,8 @@ func main() {
 }
 
 func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string) {
-	user, err := a.Signup(&api.SignupView{
+	ctx := context.Background()
+	user, err := a.Signup(ctx, &api.SignupView{
 		Email: email,
 	})
 	if err != nil {
@@ -141,17 +143,17 @@ func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string
 		return
 	}
 
-	if err := a.UpdateUserAtLogin(user); err != nil {
+	if err := a.UpdateUserAtLogin(ctx, user); err != nil {
 		logrus.Errorf("Error updating user first login at: %v", err)
 		return
 	}
 
-	if err := a.MakeUserAdmin(user.ID, true); err != nil {
+	if err := a.MakeUserAdmin(ctx, user.ID, true); err != nil {
 		logrus.Errorf("Error making user an admin: %v", err)
 		return
 	}
 
-	if err := a.CreateOrg(user, api.OrgView{
+	if err := a.CreateOrg(ctx, user, api.OrgView{
 		ExternalID: instanceID,
 		Name:       instanceName,
 		ProbeToken: token,

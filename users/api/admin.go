@@ -8,6 +8,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/render"
@@ -44,7 +45,7 @@ type privateUserView struct {
 }
 
 func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := a.db.ListUsers()
+	users, err := a.db.ListUsers(r.Context())
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -90,7 +91,7 @@ type privateOrgView struct {
 }
 
 func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
-	organizations, err := a.db.ListOrganizations()
+	organizations, err := a.db.ListOrganizations(r.Context())
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -113,7 +114,7 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 	default: // render.FormatHTML
 		orgUsers := map[string]int{}
 		for _, org := range organizations {
-			us, err := a.db.ListOrganizationUsers(org.ExternalID)
+			us, err := a.db.ListOrganizationUsers(r.Context(), org.ExternalID)
 			if err != nil {
 				render.Error(w, r, err)
 				return
@@ -143,7 +144,7 @@ func (a *API) adminShowOrganization(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	org, err := a.db.FindOrganizationByID(orgExternalID)
+	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -177,7 +178,7 @@ func (a *API) setOrgFeatureFlags(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Strings(sortedFlags)
 
-	if err := a.db.SetFeatureFlags(orgExternalID, sortedFlags); err != nil {
+	if err := a.db.SetFeatureFlags(r.Context(), orgExternalID, sortedFlags); err != nil {
 		render.Error(w, r, err)
 		return
 	}
@@ -189,7 +190,7 @@ func (a *API) setOrgFeatureFlags(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
-	users, err := a.db.ListUsers()
+	users, err := a.db.ListUsers(r.Context())
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -208,7 +209,7 @@ func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	admin := r.URL.Query().Get("admin") == "true"
-	if err := a.MakeUserAdmin(userID, admin); err != nil {
+	if err := a.MakeUserAdmin(r.Context(), userID, admin); err != nil {
 		render.Error(w, r, err)
 		return
 	}
@@ -220,6 +221,6 @@ func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 // MakeUserAdmin makes a user an admin
-func (a *API) MakeUserAdmin(userID string, admin bool) error {
-	return a.db.SetUserAdmin(userID, admin)
+func (a *API) MakeUserAdmin(ctx context.Context, userID string, admin bool) error {
+	return a.db.SetUserAdmin(ctx, userID, admin)
 }

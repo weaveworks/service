@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 )
@@ -59,10 +60,10 @@ func Test_InviteNonExistentUser(t *testing.T) {
 		"email":    franEmail,
 	}, body)
 
-	fran, err := database.FindUserByEmail(franEmail)
+	fran, err := database.FindUserByEmail(context.Background(), franEmail)
 	require.NoError(t, err)
 	assert.Equal(t, fran.Email, franEmail)
-	organizations, err := database.ListOrganizationsForUserIDs(fran.ID)
+	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
 	require.Len(t, organizations, 1)
 	assert.Equal(t, org.ID, organizations[0].ID)
@@ -83,7 +84,7 @@ func Test_InviteExistingUser(t *testing.T) {
 		"email":    fran.Email,
 	}, body)
 
-	organizations, err := database.ListOrganizationsForUserIDs(fran.ID)
+	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
 	require.Len(t, organizations, 1)
 	assert.Equal(t, org.ID, organizations[0].ID)
@@ -125,11 +126,11 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	fran, err := database.CreateUser("fran@weave.works")
+	fran, err := database.CreateUser(context.Background(), "fran@weave.works")
 	require.NoError(t, err)
-	fran, created, err := database.InviteUser(fran.Email, org.ExternalID)
+	fran, created, err := database.InviteUser(context.Background(), fran.Email, org.ExternalID)
 	require.NoError(t, err)
-	organizations, err := database.ListOrganizationsForUserIDs(fran.ID)
+	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
 	require.Len(t, organizations, 1)
 	assert.Equal(t, org.ID, organizations[0].ID)
@@ -137,7 +138,7 @@ func Test_Invite_UserAlreadyInSameOrganization(t *testing.T) {
 
 	requestInvite(t, user, org, fran.Email, http.StatusOK)
 
-	organizations, err = database.ListOrganizationsForUserIDs(fran.ID)
+	organizations, err = database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
 	require.Len(t, organizations, 1)
 	assert.Equal(t, org.ID, organizations[0].ID)
@@ -155,7 +156,7 @@ func Test_Invite_UserToAnOrgIDontOwn(t *testing.T) {
 
 	requestInvite(t, user, otherOrg, otherUser.Email, http.StatusForbidden)
 
-	organizations, err := database.ListOrganizationsForUserIDs(user.ID)
+	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
 	require.Len(t, organizations, 0)
 	assert.Len(t, sentEmails, 0)
@@ -170,7 +171,7 @@ func Test_Invite_UserInDifferentOrganization(t *testing.T) {
 
 	requestInvite(t, user, org, fran.Email, http.StatusOK)
 
-	organizations, err := database.ListOrganizationsForUserIDs(fran.ID)
+	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)
 	require.Len(t, organizations, 2)
 	orgIDs := []string{organizations[0].ID, organizations[1].ID}
@@ -185,15 +186,15 @@ func Test_Invite_RemoveOtherUsersAccess(t *testing.T) {
 
 	user, org := getOrg(t)
 	otherUser := getUser(t)
-	otherUser, _, err := database.InviteUser(otherUser.Email, org.ExternalID)
+	otherUser, _, err := database.InviteUser(context.Background(), otherUser.Email, org.ExternalID)
 	require.NoError(t, err)
-	organizations, err := database.ListOrganizationsForUserIDs(otherUser.ID)
+	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), otherUser.ID)
 	require.NoError(t, err)
 	require.Len(t, organizations, 1)
 
 	requestOrgAs(t, user, "DELETE", org.ExternalID, otherUser.Email, nil, http.StatusNoContent)
 
-	organizations, err = database.ListOrganizationsForUserIDs(otherUser.ID)
+	organizations, err = database.ListOrganizationsForUserIDs(context.Background(), otherUser.ID)
 	require.NoError(t, err)
 	require.Len(t, organizations, 0)
 
@@ -216,7 +217,7 @@ func Test_Invite_RemoveMyOwnAccess(t *testing.T) {
 
 	requestOrgAs(t, user, "DELETE", org.ExternalID, user.Email, nil, http.StatusNoContent)
 
-	organizations, err := database.ListOrganizationsForUserIDs(user.ID)
+	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
 	require.Len(t, organizations, 0)
 }
@@ -230,7 +231,7 @@ func Test_Invite_RemoveAccess_Forbidden(t *testing.T) {
 
 	requestOrgAs(t, user, "DELETE", otherOrg.ExternalID, otherUser.Email, nil, http.StatusForbidden)
 
-	organizations, err := database.ListOrganizationsForUserIDs(otherUser.ID)
+	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), otherUser.ID)
 	require.NoError(t, err)
 	require.Len(t, organizations, 1)
 }

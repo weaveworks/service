@@ -19,7 +19,7 @@ func (a *API) listAPITokens(currentUser *users.User, w http.ResponseWriter, r *h
 		view apiTokensView
 		err  error
 	)
-	view.APITokens, err = a.db.ListAPITokensForUserIDs(currentUser.ID)
+	view.APITokens, err = a.db.ListAPITokensForUserIDs(r.Context(), currentUser.ID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -42,7 +42,7 @@ func (a *API) createAPIToken(currentUser *users.User, w http.ResponseWriter, r *
 		return
 	}
 
-	token, err := a.db.CreateAPIToken(currentUser.ID, view.Description)
+	token, err := a.db.CreateAPIToken(r.Context(), currentUser.ID, view.Description)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -51,7 +51,7 @@ func (a *API) createAPIToken(currentUser *users.User, w http.ResponseWriter, r *
 }
 
 func (a *API) deleteAPIToken(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	if err := a.db.DeleteAPIToken(currentUser.ID, mux.Vars(r)["token"]); err != nil {
+	if err := a.db.DeleteAPIToken(r.Context(), currentUser.ID, mux.Vars(r)["token"]); err != nil {
 		render.Error(w, r, err)
 		return
 	}
