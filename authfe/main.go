@@ -70,7 +70,7 @@ func main() {
 	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
 	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
 	flag.StringVar(&c.apiInfo, "api.info", "scopeservice:0.1", "Version info for the api to serve, in format ID:VERSION")
-	flag.StringVar(&c.targetOrigin, "hostname", "", "Hostname through which this server is accessed, for same-origin checks (CSRF protection) and HTTPS redirects")
+	flag.StringVar(&c.targetOrigin, "hostname", "", "Hostname through which this server is accessed, for same-origin checks (CSRF protection)")
 	flag.BoolVar(&redirectHTTPS, "redirect-https", false, "Redirect all HTTP traffic to HTTPS")
 
 	hostFlags := []struct {
@@ -196,7 +196,7 @@ func main() {
 			Handler: commonMiddleWare(c.logSuccess, nil).Wrap(
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					url := r.URL
-					url.Host = c.targetOrigin
+					url.Host = r.Host
 					url.Scheme = "https"
 					http.Redirect(w, r, url.String(), http.StatusMovedPermanently)
 				}),

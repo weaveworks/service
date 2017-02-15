@@ -5,6 +5,8 @@ import (
 	"sync"
 )
 
+// proxyListenerRouter is a net.Listener which can route net.Conns to different
+// 'sub' listeners based on port.
 type proxyListenerRouter struct {
 	mtx       sync.Mutex
 	listeners map[int]*proxyListener
