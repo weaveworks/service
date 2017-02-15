@@ -47,6 +47,19 @@ func newMetricVec(desc *Desc, newMetric func(lvs ...string) Metric) *MetricVec {
 	}
 }
 
+// NewMetricVec returns an initialized MetricVec. The concrete value is
+// returned for embedding into another struct.
+// XXX: Added by jml to enable an experimental maximum metric.
+func NewMetricVec(desc *Desc, newMetric func(lvs ...string) Metric) *MetricVec {
+	return &MetricVec{
+		children:    map[uint64][]metricWithLabelValues{},
+		desc:        desc,
+		newMetric:   newMetric,
+		hashAdd:     hashAdd,
+		hashAddByte: hashAddByte,
+	}
+}
+
 // metricWithLabelValues provides the metric and its label values for
 // disambiguation on hash collision.
 type metricWithLabelValues struct {

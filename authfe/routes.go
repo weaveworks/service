@@ -407,6 +407,7 @@ func commonMiddleWare(logSuccess bool, routeMatcher *mux.Router) middleware.Inte
 		middleware.Instrument{
 			RouteMatcher: routeMatcher,
 			Duration:     common.RequestDuration,
+			MaxDuration:  common.MaxRequestDuration,
 		},
 		middleware.Log{
 			LogSuccess: logSuccess,
