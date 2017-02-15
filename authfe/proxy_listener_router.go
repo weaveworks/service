@@ -3,6 +3,9 @@ package main
 import (
 	"net"
 	"sync"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/armon/go-proxyproto"
 )
 
 // proxyListenerRouter is a net.Listener which can route net.Conns to different
@@ -44,13 +47,16 @@ func (p *proxyListenerRouter) Accept() (net.Conn, error) {
 			return nil, err
 		}
 
-		localAddr := conn.LocalAddr().(*net.TCPAddr)
-		p.mtx.Lock()
-		listener, ok := p.listeners[localAddr.Port]
-		p.mtx.Unlock()
-		if ok {
-			listener.c <- conn
-			continue
+		// Check this is a proxy proto connection
+		if proxyConn, ok := conn.(*proxyproto.Conn); ok {
+			localAddr := proxyConn.DstAddr().(*net.TCPAddr)
+			p.mtx.Lock()
+			listener, ok := p.listeners[localAddr.Port]
+			p.mtx.Unlock()
+			if ok {
+				listener.c <- conn
+				continue
+			}
 		}
 
 		return conn, nil

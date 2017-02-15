@@ -96,10 +96,10 @@
 		},
 		{
 			"importpath": "github.com/armon/go-proxyproto",
-			"repository": "https://github.com/armon/go-proxyproto",
+			"repository": "https://github.com/weaveworks/go-proxyproto",
 			"vcs": "git",
-			"revision": "3daa90aec0039a806299b9078f4422fee950f33c",
-			"branch": "master",
+			"revision": "50b4985199960e434024d364559916ca531a01be",
+			"branch": "expose-dstaddr",
 			"notests": true
 		},
 		{
