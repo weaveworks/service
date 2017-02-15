@@ -399,7 +399,7 @@ func routes(c Config) (http.Handler, error) {
 	).Wrap(r), nil
 }
 
-func commonMiddleWare(logSuccess bool, routeMatcher *mux.Router) middleware.Interface {
+func commonMiddleWare(logSuccess bool, routeMatcher middleware.RouteMatcher) middleware.Interface {
 	sameOrigin := http.Header{}
 	sameOrigin.Add("X-Frame-Options", "SAMEORIGIN")
 	return middleware.Merge(
