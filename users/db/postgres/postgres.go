@@ -12,6 +12,7 @@ import (
 	_ "github.com/mattes/migrate/driver/postgres" // Import the postgres migrations driver
 	"github.com/mattes/migrate/migrate"
 	"github.com/pkg/errors"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 )
@@ -114,7 +115,7 @@ func (d DB) Transaction(f func(DB) error) error {
 }
 
 // ListMemberships lists memberships list memberships
-func (d DB) ListMemberships() ([]users.Membership, error) {
+func (d DB) ListMemberships(_ context.Context) ([]users.Membership, error) {
 	rows, err := d.dbProxy.Query(`
 	SELECT
 		memberships.user_id,
@@ -144,7 +145,7 @@ func (d DB) ListMemberships() ([]users.Membership, error) {
 }
 
 // Close finishes using the db
-func (d DB) Close() error {
+func (d DB) Close(_ context.Context) error {
 	if db, ok := d.dbProxy.(interface {
 		Close() error
 	}); ok {

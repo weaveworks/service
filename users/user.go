@@ -4,12 +4,13 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/net/context"
 )
 
 // FindUserByIDer is an interface of just FindUserByID, for loosely coupling
 // things to the db.DB
 type FindUserByIDer interface {
-	FindUserByID(id string) (*User, error)
+	FindUserByID(ctx context.Context, id string) (*User, error)
 }
 
 // User is what it's all about.

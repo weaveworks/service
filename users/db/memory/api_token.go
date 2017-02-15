@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/weaveworks/service/users"
 )
 
 // CreateAPIToken creates an api token for the user
-func (d *DB) CreateAPIToken(userID, description string) (*users.APIToken, error) {
+func (d *DB) CreateAPIToken(_ context.Context, userID, description string) (*users.APIToken, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if _, err := d.findUserByID(userID); err != nil {
@@ -31,7 +33,7 @@ func (d *DB) CreateAPIToken(userID, description string) (*users.APIToken, error)
 }
 
 // DeleteAPIToken deletes an api token for the user
-func (d *DB) DeleteAPIToken(userID, token string) error {
+func (d *DB) DeleteAPIToken(ctx context.Context, userID, token string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if _, err := d.findUserByID(userID); err != nil {
@@ -46,7 +48,7 @@ func (d *DB) DeleteAPIToken(userID, token string) error {
 }
 
 // FindUserByAPIToken finds a user by their api token
-func (d *DB) FindUserByAPIToken(token string) (*users.User, error) {
+func (d *DB) FindUserByAPIToken(_ context.Context, token string) (*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	t, ok := d.apiTokens[token]
@@ -57,7 +59,7 @@ func (d *DB) FindUserByAPIToken(token string) (*users.User, error) {
 }
 
 // ListAPITokensForUserIDs lists the api tokens for these users
-func (d *DB) ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error) {
+func (d *DB) ListAPITokensForUserIDs(_ context.Context, userIDs ...string) ([]*users.APIToken, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	var tokens []*users.APIToken

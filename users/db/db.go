@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/Sirupsen/logrus"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/users"
@@ -23,81 +24,81 @@ var (
 // DB is the interface for the database.
 type DB interface {
 	// Create a user. The driver should set ID to some default only when it is "".
-	CreateUser(email string) (*users.User, error)
+	CreateUser(ctx context.Context, email string) (*users.User, error)
 
 	users.FindUserByIDer
-	FindUserByEmail(email string) (*users.User, error)
-	FindUserByLogin(provider, id string) (*users.User, error)
-	FindUserByAPIToken(token string) (*users.User, error)
+	FindUserByEmail(ctx context.Context, email string) (*users.User, error)
+	FindUserByLogin(ctx context.Context, provider, id string) (*users.User, error)
+	FindUserByAPIToken(ctx context.Context, token string) (*users.User, error)
 
-	UserIsMemberOf(userID, orgExternalID string) (bool, error)
+	UserIsMemberOf(ctx context.Context, userID, orgExternalID string) (bool, error)
 
 	// AddLoginToUser adds an entry denoting this user is linked to a
 	// remote login. e.g. if a user logs in via github this maps our
 	// account to the github account.
 	// Note: Must be idempotent!
-	AddLoginToUser(userID, provider, id string, session json.RawMessage) error
+	AddLoginToUser(ctx context.Context, userID, provider, id string, session json.RawMessage) error
 
 	// DetachLoginFromUser removes all entries an entry denoting this
 	// user is linked to the remote login.
-	DetachLoginFromUser(userID, provider string) error
+	DetachLoginFromUser(ctx context.Context, userID, provider string) error
 
 	// Create an API Token for a user
-	CreateAPIToken(userID, description string) (*users.APIToken, error)
+	CreateAPIToken(ctx context.Context, userID, description string) (*users.APIToken, error)
 
 	// Delete an API Token for a user
-	DeleteAPIToken(userID, token string) error
+	DeleteAPIToken(ctx context.Context, userID, token string) error
 
 	// Invite a user to access an existing organization.
-	InviteUser(email, orgExternalID string) (*users.User, bool, error)
+	InviteUser(ctx context.Context, email, orgExternalID string) (*users.User, bool, error)
 
-	// Remove a user from an organization. If they do not exist (or are not a member of the org), return success.
-	RemoveUserFromOrganization(orgExternalID, email string) error
+	// Remove a user from an organization. If they do not exist (ctx context.Context, or are not a member of the org), return success.
+	RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) error
 
-	ListUsers() ([]*users.User, error)
-	ListOrganizations() ([]*users.Organization, error)
-	ListOrganizationUsers(orgExternalID string) ([]*users.User, error)
+	ListUsers(ctx context.Context) ([]*users.User, error)
+	ListOrganizations(ctx context.Context) ([]*users.Organization, error)
+	ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error)
 
 	// ListOrganizationsForUserIDs lists all organizations these users have
 	// access to.
-	ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organization, error)
+	ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error)
 
 	// ListLoginsForUserIDs lists all the logins associated with these users
-	ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error)
+	ListLoginsForUserIDs(ctx context.Context, userIDs ...string) ([]*login.Login, error)
 
 	// ListAPITokensForUserIDs lists all the api tokens associated with these
 	// users
-	ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error)
+	ListAPITokensForUserIDs(ctx context.Context, userIDs ...string) ([]*users.APIToken, error)
 
 	// Set the admin flag of a user
-	SetUserAdmin(id string, value bool) error
+	SetUserAdmin(ctx context.Context, id string, value bool) error
 
 	// Update the user's login token. Setting the token to "" should disable the
 	// user's token.
-	SetUserToken(id, token string) error
+	SetUserToken(ctx context.Context, id, token string) error
 
-	// Update the user's first login timestamp. Should be called the first time a user logs in (i.e. if FirstLoginAt.IsZero())
-	SetUserFirstLoginAt(id string) error
+	// Update the user's first login timestamp. Should be called the first time a user logs in (ctx context.Context, i.e. if FirstLoginAt.IsZero())
+	SetUserFirstLoginAt(ctx context.Context, id string) error
 
 	// GenerateOrganizationExternalID generates a new, available organization ExternalID
-	GenerateOrganizationExternalID() (string, error)
+	GenerateOrganizationExternalID(ctx context.Context) (string, error)
 
 	// Create a new organization owned by the user. ExternalID and name cannot be blank.
 	// ExternalID must match the ExternalID regex.  If token is blank, a random one will
 	// be chosen.
-	CreateOrganization(ownerID, externalID, name, token string) (*users.Organization, error)
-	FindOrganizationByProbeToken(probeToken string) (*users.Organization, error)
-	FindOrganizationByID(externalID string) (*users.Organization, error)
-	RenameOrganization(externalID, newName string) error
-	OrganizationExists(externalID string) (bool, error)
-	GetOrganizationName(externalID string) (string, error)
-	DeleteOrganization(externalID string) error
-	AddFeatureFlag(externalID string, featureFlag string) error
-	SetFeatureFlags(externalID string, featureFlags []string) error
+	CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (*users.Organization, error)
+	FindOrganizationByProbeToken(ctx context.Context, probeToken string) (*users.Organization, error)
+	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)
+	RenameOrganization(ctx context.Context, externalID, newName string) error
+	OrganizationExists(ctx context.Context, externalID string) (bool, error)
+	GetOrganizationName(ctx context.Context, externalID string) (string, error)
+	DeleteOrganization(ctx context.Context, externalID string) error
+	AddFeatureFlag(ctx context.Context, externalID string, featureFlag string) error
+	SetFeatureFlags(ctx context.Context, externalID string, featureFlags []string) error
 
-	ListMemberships() ([]users.Membership, error)
+	ListMemberships(ctx context.Context) ([]users.Membership, error)
 
-	Close() error
+	Close(ctx context.Context) error
 }
 
 // MustNew creates a new database from the URI, or panics.

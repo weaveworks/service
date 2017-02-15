@@ -32,246 +32,246 @@ func (t timed) errorCode(err error) string {
 	}
 }
 
-func (t timed) timeRequest(method string, f func(context.Context) error) error {
-	return instrument.TimeRequestHistogramStatus(context.TODO(), method, t.Duration, t.errorCode, f)
+func (t timed) timeRequest(ctx context.Context, method string, f func(context.Context) error) error {
+	return instrument.TimeRequestHistogramStatus(ctx, method, t.Duration, t.errorCode, f)
 }
 
-func (t timed) CreateUser(email string) (u *users.User, err error) {
-	t.timeRequest("CreateUser", func(_ context.Context) error {
-		u, err = t.d.CreateUser(email)
+func (t timed) CreateUser(ctx context.Context, email string) (u *users.User, err error) {
+	t.timeRequest(ctx, "CreateUser", func(ctx context.Context) error {
+		u, err = t.d.CreateUser(ctx, email)
 		return err
 	})
 	return
 }
 
-func (t timed) FindUserByID(id string) (u *users.User, err error) {
-	t.timeRequest("FindUserByID", func(_ context.Context) error {
-		u, err = t.d.FindUserByID(id)
+func (t timed) FindUserByID(ctx context.Context, id string) (u *users.User, err error) {
+	t.timeRequest(ctx, "FindUserByID", func(ctx context.Context) error {
+		u, err = t.d.FindUserByID(ctx, id)
 		return err
 	})
 	return
 }
 
-func (t timed) FindUserByEmail(email string) (u *users.User, err error) {
-	t.timeRequest("FindUserByEmail", func(_ context.Context) error {
-		u, err = t.d.FindUserByEmail(email)
+func (t timed) FindUserByEmail(ctx context.Context, email string) (u *users.User, err error) {
+	t.timeRequest(ctx, "FindUserByEmail", func(ctx context.Context) error {
+		u, err = t.d.FindUserByEmail(ctx, email)
 		return err
 	})
 	return
 }
 
-func (t timed) FindUserByLogin(provider, id string) (u *users.User, err error) {
-	t.timeRequest("FindUserByLogin", func(_ context.Context) error {
-		u, err = t.d.FindUserByLogin(provider, id)
+func (t timed) FindUserByLogin(ctx context.Context, provider, id string) (u *users.User, err error) {
+	t.timeRequest(ctx, "FindUserByLogin", func(ctx context.Context) error {
+		u, err = t.d.FindUserByLogin(ctx, provider, id)
 		return err
 	})
 	return
 }
 
-func (t timed) FindUserByAPIToken(token string) (u *users.User, err error) {
-	t.timeRequest("FindUserByAPIToken", func(_ context.Context) error {
-		u, err = t.d.FindUserByAPIToken(token)
+func (t timed) FindUserByAPIToken(ctx context.Context, token string) (u *users.User, err error) {
+	t.timeRequest(ctx, "FindUserByAPIToken", func(ctx context.Context) error {
+		u, err = t.d.FindUserByAPIToken(ctx, token)
 		return err
 	})
 	return
 }
 
-func (t timed) UserIsMemberOf(userID, orgExternalID string) (b bool, err error) {
-	t.timeRequest("UserIsMemberOf", func(_ context.Context) error {
-		b, err = t.d.UserIsMemberOf(userID, orgExternalID)
+func (t timed) UserIsMemberOf(ctx context.Context, userID, orgExternalID string) (b bool, err error) {
+	t.timeRequest(ctx, "UserIsMemberOf", func(ctx context.Context) error {
+		b, err = t.d.UserIsMemberOf(ctx, userID, orgExternalID)
 		return err
 	})
 	return
 }
 
-func (t timed) AddLoginToUser(userID, provider, id string, session json.RawMessage) error {
-	return t.timeRequest("AddLoginToUser", func(_ context.Context) error {
-		return t.d.AddLoginToUser(userID, provider, id, session)
+func (t timed) AddLoginToUser(ctx context.Context, userID, provider, id string, session json.RawMessage) error {
+	return t.timeRequest(ctx, "AddLoginToUser", func(ctx context.Context) error {
+		return t.d.AddLoginToUser(ctx, userID, provider, id, session)
 	})
 }
 
-func (t timed) DetachLoginFromUser(userID, provider string) error {
-	return t.timeRequest("DetachLoginFromUser", func(_ context.Context) error {
-		return t.d.DetachLoginFromUser(userID, provider)
+func (t timed) DetachLoginFromUser(ctx context.Context, userID, provider string) error {
+	return t.timeRequest(ctx, "DetachLoginFromUser", func(ctx context.Context) error {
+		return t.d.DetachLoginFromUser(ctx, userID, provider)
 	})
 }
 
-func (t timed) CreateAPIToken(userID, description string) (token *users.APIToken, err error) {
-	t.timeRequest("CreateAPIToken", func(_ context.Context) error {
-		token, err = t.d.CreateAPIToken(userID, description)
+func (t timed) CreateAPIToken(ctx context.Context, userID, description string) (token *users.APIToken, err error) {
+	t.timeRequest(ctx, "CreateAPIToken", func(ctx context.Context) error {
+		token, err = t.d.CreateAPIToken(ctx, userID, description)
 		return err
 	})
 	return
 }
 
-func (t timed) DeleteAPIToken(userID, token string) error {
-	return t.timeRequest("DeleteAPIToken", func(_ context.Context) error {
-		return t.d.DeleteAPIToken(userID, token)
+func (t timed) DeleteAPIToken(ctx context.Context, userID, token string) error {
+	return t.timeRequest(ctx, "DeleteAPIToken", func(ctx context.Context) error {
+		return t.d.DeleteAPIToken(ctx, userID, token)
 	})
 }
 
-func (t timed) InviteUser(email, orgExternalID string) (u *users.User, created bool, err error) {
-	t.timeRequest("InviteUser", func(_ context.Context) error {
-		u, created, err = t.d.InviteUser(email, orgExternalID)
+func (t timed) InviteUser(ctx context.Context, email, orgExternalID string) (u *users.User, created bool, err error) {
+	t.timeRequest(ctx, "InviteUser", func(ctx context.Context) error {
+		u, created, err = t.d.InviteUser(ctx, email, orgExternalID)
 		return err
 	})
 	return
 }
 
-func (t timed) RemoveUserFromOrganization(orgExternalID, email string) error {
-	return t.timeRequest("RemoveUserFromOrganization", func(_ context.Context) error {
-		return t.d.RemoveUserFromOrganization(orgExternalID, email)
+func (t timed) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) error {
+	return t.timeRequest(ctx, "RemoveUserFromOrganization", func(ctx context.Context) error {
+		return t.d.RemoveUserFromOrganization(ctx, orgExternalID, email)
 	})
 }
 
-func (t timed) ListUsers() (us []*users.User, err error) {
-	t.timeRequest("ListUsers", func(_ context.Context) error {
-		us, err = t.d.ListUsers()
+func (t timed) ListUsers(ctx context.Context) (us []*users.User, err error) {
+	t.timeRequest(ctx, "ListUsers", func(ctx context.Context) error {
+		us, err = t.d.ListUsers(ctx)
 		return err
 	})
 	return
 }
 
-func (t timed) ListOrganizations() (os []*users.Organization, err error) {
-	t.timeRequest("ListOrganizations", func(_ context.Context) error {
-		os, err = t.d.ListOrganizations()
+func (t timed) ListOrganizations(ctx context.Context) (os []*users.Organization, err error) {
+	t.timeRequest(ctx, "ListOrganizations", func(ctx context.Context) error {
+		os, err = t.d.ListOrganizations(ctx)
 		return err
 	})
 	return
 }
 
-func (t timed) ListOrganizationUsers(orgExternalID string) (us []*users.User, err error) {
-	t.timeRequest("ListOrganizationUsers", func(_ context.Context) error {
-		us, err = t.d.ListOrganizationUsers(orgExternalID)
+func (t timed) ListOrganizationUsers(ctx context.Context, orgExternalID string) (us []*users.User, err error) {
+	t.timeRequest(ctx, "ListOrganizationUsers", func(ctx context.Context) error {
+		us, err = t.d.ListOrganizationUsers(ctx, orgExternalID)
 		return err
 	})
 	return
 }
 
-func (t timed) ListOrganizationsForUserIDs(userIDs ...string) (os []*users.Organization, err error) {
-	t.timeRequest("ListOrganizationsForUserIDs", func(_ context.Context) error {
-		os, err = t.d.ListOrganizationsForUserIDs(userIDs...)
+func (t timed) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) (os []*users.Organization, err error) {
+	t.timeRequest(ctx, "ListOrganizationsForUserIDs", func(ctx context.Context) error {
+		os, err = t.d.ListOrganizationsForUserIDs(ctx, userIDs...)
 		return err
 	})
 	return
 }
 
-func (t timed) ListLoginsForUserIDs(userIDs ...string) (ls []*login.Login, err error) {
-	t.timeRequest("ListLoginsForUserIDs", func(_ context.Context) error {
-		ls, err = t.d.ListLoginsForUserIDs(userIDs...)
+func (t timed) ListLoginsForUserIDs(ctx context.Context, userIDs ...string) (ls []*login.Login, err error) {
+	t.timeRequest(ctx, "ListLoginsForUserIDs", func(ctx context.Context) error {
+		ls, err = t.d.ListLoginsForUserIDs(ctx, userIDs...)
 		return err
 	})
 	return
 }
 
-func (t timed) ListAPITokensForUserIDs(userIDs ...string) (ts []*users.APIToken, err error) {
-	t.timeRequest("ListAPITokensForUserIDs", func(_ context.Context) error {
-		ts, err = t.d.ListAPITokensForUserIDs(userIDs...)
+func (t timed) ListAPITokensForUserIDs(ctx context.Context, userIDs ...string) (ts []*users.APIToken, err error) {
+	t.timeRequest(ctx, "ListAPITokensForUserIDs", func(ctx context.Context) error {
+		ts, err = t.d.ListAPITokensForUserIDs(ctx, userIDs...)
 		return err
 	})
 	return
 }
 
-func (t timed) SetUserAdmin(id string, value bool) error {
-	return t.timeRequest("SetUserAdmin", func(_ context.Context) error {
-		return t.d.SetUserAdmin(id, value)
+func (t timed) SetUserAdmin(ctx context.Context, id string, value bool) error {
+	return t.timeRequest(ctx, "SetUserAdmin", func(ctx context.Context) error {
+		return t.d.SetUserAdmin(ctx, id, value)
 	})
 }
 
-func (t timed) SetUserToken(id, token string) error {
-	return t.timeRequest("SetUserToken", func(_ context.Context) error {
-		return t.d.SetUserToken(id, token)
+func (t timed) SetUserToken(ctx context.Context, id, token string) error {
+	return t.timeRequest(ctx, "SetUserToken", func(ctx context.Context) error {
+		return t.d.SetUserToken(ctx, id, token)
 	})
 }
 
-func (t timed) SetUserFirstLoginAt(id string) error {
-	return t.timeRequest("SetUserFirstLoginAt", func(_ context.Context) error {
-		return t.d.SetUserFirstLoginAt(id)
+func (t timed) SetUserFirstLoginAt(ctx context.Context, id string) error {
+	return t.timeRequest(ctx, "SetUserFirstLoginAt", func(ctx context.Context) error {
+		return t.d.SetUserFirstLoginAt(ctx, id)
 	})
 }
 
-func (t timed) GenerateOrganizationExternalID() (s string, err error) {
-	t.timeRequest("GenerateOrganizationExternalID", func(_ context.Context) error {
-		s, err = t.d.GenerateOrganizationExternalID()
+func (t timed) GenerateOrganizationExternalID(ctx context.Context) (s string, err error) {
+	t.timeRequest(ctx, "GenerateOrganizationExternalID", func(ctx context.Context) error {
+		s, err = t.d.GenerateOrganizationExternalID(ctx)
 		return err
 	})
 	return
 }
 
-func (t timed) CreateOrganization(ownerID, externalID, name, token string) (o *users.Organization, err error) {
-	t.timeRequest("CreateOrganization", func(_ context.Context) error {
-		o, err = t.d.CreateOrganization(ownerID, externalID, name, token)
+func (t timed) CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (o *users.Organization, err error) {
+	t.timeRequest(ctx, "CreateOrganization", func(ctx context.Context) error {
+		o, err = t.d.CreateOrganization(ctx, ownerID, externalID, name, token)
 		return err
 	})
 	return
 }
 
-func (t timed) FindOrganizationByProbeToken(probeToken string) (o *users.Organization, err error) {
-	t.timeRequest("FindOrganizationByProbeToken", func(_ context.Context) error {
-		o, err = t.d.FindOrganizationByProbeToken(probeToken)
+func (t timed) FindOrganizationByProbeToken(ctx context.Context, probeToken string) (o *users.Organization, err error) {
+	t.timeRequest(ctx, "FindOrganizationByProbeToken", func(ctx context.Context) error {
+		o, err = t.d.FindOrganizationByProbeToken(ctx, probeToken)
 		return err
 	})
 	return
 }
 
-func (t timed) FindOrganizationByID(externalID string) (o *users.Organization, err error) {
-	t.timeRequest("FindOrganizationByID", func(_ context.Context) error {
-		o, err = t.d.FindOrganizationByID(externalID)
+func (t timed) FindOrganizationByID(ctx context.Context, externalID string) (o *users.Organization, err error) {
+	t.timeRequest(ctx, "FindOrganizationByID", func(ctx context.Context) error {
+		o, err = t.d.FindOrganizationByID(ctx, externalID)
 		return err
 	})
 	return
 }
 
-func (t timed) RenameOrganization(externalID, name string) error {
-	return t.timeRequest("RenameOrganization", func(_ context.Context) error {
-		return t.d.RenameOrganization(externalID, name)
+func (t timed) RenameOrganization(ctx context.Context, externalID, name string) error {
+	return t.timeRequest(ctx, "RenameOrganization", func(ctx context.Context) error {
+		return t.d.RenameOrganization(ctx, externalID, name)
 	})
 }
 
-func (t timed) OrganizationExists(externalID string) (b bool, err error) {
-	t.timeRequest("OrganizationExists", func(_ context.Context) error {
-		b, err = t.d.OrganizationExists(externalID)
+func (t timed) OrganizationExists(ctx context.Context, externalID string) (b bool, err error) {
+	t.timeRequest(ctx, "OrganizationExists", func(ctx context.Context) error {
+		b, err = t.d.OrganizationExists(ctx, externalID)
 		return err
 	})
 	return
 }
 
-func (t timed) GetOrganizationName(externalID string) (name string, err error) {
-	t.timeRequest("GetOrganizationName", func(_ context.Context) error {
-		name, err = t.d.GetOrganizationName(externalID)
+func (t timed) GetOrganizationName(ctx context.Context, externalID string) (name string, err error) {
+	t.timeRequest(ctx, "GetOrganizationName", func(ctx context.Context) error {
+		name, err = t.d.GetOrganizationName(ctx, externalID)
 		return err
 	})
 	return
 }
 
-func (t timed) DeleteOrganization(externalID string) error {
-	return t.timeRequest("DeleteOrganization", func(_ context.Context) error {
-		return t.d.DeleteOrganization(externalID)
+func (t timed) DeleteOrganization(ctx context.Context, externalID string) error {
+	return t.timeRequest(ctx, "DeleteOrganization", func(ctx context.Context) error {
+		return t.d.DeleteOrganization(ctx, externalID)
 	})
 }
 
-func (t timed) AddFeatureFlag(externalID string, featureFlag string) error {
-	return t.timeRequest("AddFeatureFlag", func(_ context.Context) error {
-		return t.d.AddFeatureFlag(externalID, featureFlag)
+func (t timed) AddFeatureFlag(ctx context.Context, externalID string, featureFlag string) error {
+	return t.timeRequest(ctx, "AddFeatureFlag", func(ctx context.Context) error {
+		return t.d.AddFeatureFlag(ctx, externalID, featureFlag)
 	})
 }
 
-func (t timed) SetFeatureFlags(externalID string, featureFlags []string) error {
-	return t.timeRequest("SetFeatureFlags", func(_ context.Context) error {
-		return t.d.SetFeatureFlags(externalID, featureFlags)
+func (t timed) SetFeatureFlags(ctx context.Context, externalID string, featureFlags []string) error {
+	return t.timeRequest(ctx, "SetFeatureFlags", func(ctx context.Context) error {
+		return t.d.SetFeatureFlags(ctx, externalID, featureFlags)
 	})
 }
 
-func (t timed) ListMemberships() (memberships []users.Membership, err error) {
-	t.timeRequest("ListMemberships", func(_ context.Context) error {
-		memberships, err = t.d.ListMemberships()
+func (t timed) ListMemberships(ctx context.Context) (memberships []users.Membership, err error) {
+	t.timeRequest(ctx, "ListMemberships", func(ctx context.Context) error {
+		memberships, err = t.d.ListMemberships(ctx)
 		return err
 	})
 	return
 }
 
-func (t timed) Close() error {
-	return t.timeRequest("Close", func(_ context.Context) error {
-		return t.d.Close()
+func (t timed) Close(ctx context.Context) error {
+	return t.timeRequest(ctx, "Close", func(ctx context.Context) error {
+		return t.d.Close(ctx)
 	})
 }

@@ -6,13 +6,15 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/externalIDs"
 )
 
 // RemoveUserFromOrganization removes the user from the organiation. If they
 // are not a member, this is a noop.
-func (d *DB) RemoveUserFromOrganization(orgExternalID, email string) error {
+func (d *DB) RemoveUserFromOrganization(_ context.Context, orgExternalID, email string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	o, err := d.findOrganizationByExternalID(orgExternalID)
@@ -39,7 +41,7 @@ func (d *DB) RemoveUserFromOrganization(orgExternalID, email string) error {
 }
 
 // UserIsMemberOf checks if the user is a member of the organization
-func (d *DB) UserIsMemberOf(userID, orgExternalID string) (bool, error) {
+func (d *DB) UserIsMemberOf(_ context.Context, userID, orgExternalID string) (bool, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	return d.userIsMemberOf(userID, orgExternalID)
@@ -63,7 +65,7 @@ func (d *DB) userIsMemberOf(userID, orgExternalID string) (bool, error) {
 }
 
 // ListOrganizations lists organizations
-func (d *DB) ListOrganizations() ([]*users.Organization, error) {
+func (d *DB) ListOrganizations(_ context.Context) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	orgs := []*users.Organization{}
@@ -75,7 +77,7 @@ func (d *DB) ListOrganizations() ([]*users.Organization, error) {
 }
 
 // ListOrganizationUsers lists all the users in an organization
-func (d *DB) ListOrganizationUsers(orgExternalID string) ([]*users.User, error) {
+func (d *DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	o, err := d.findOrganizationByExternalID(orgExternalID)
@@ -101,7 +103,7 @@ func (o organizationsByCreatedAt) Swap(i, j int)      { o[i], o[j] = o[j], o[i] 
 func (o organizationsByCreatedAt) Less(i, j int) bool { return o[i].CreatedAt.Before(o[j].CreatedAt) }
 
 // ListOrganizationsForUserIDs lists the organizations these users belong to
-func (d *DB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organization, error) {
+func (d *DB) ListOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	orgIDs := map[string]struct{}{}
@@ -135,7 +137,7 @@ func (d *DB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organizati
 // TODO: There is a known issue, where as we fill up the database this will
 // gradually slow down (since the algorithm is quite naive). We should fix it
 // eventually.
-func (d *DB) GenerateOrganizationExternalID() (string, error) {
+func (d *DB) GenerateOrganizationExternalID(_ context.Context) (string, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	var externalID string
@@ -160,7 +162,7 @@ func (d *DB) findOrganizationByExternalID(externalID string) (*users.Organizatio
 }
 
 // CreateOrganization creates a new organization owned by the user
-func (d *DB) CreateOrganization(ownerID, externalID, name, token string) (*users.Organization, error) {
+func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, token string) (*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if _, err := d.findUserByID(ownerID); err != nil {
@@ -206,7 +208,7 @@ func (d *DB) CreateOrganization(ownerID, externalID, name, token string) (*users
 
 // FindOrganizationByProbeToken looks up the organization matching a given
 // probe token.
-func (d *DB) FindOrganizationByProbeToken(probeToken string) (*users.Organization, error) {
+func (d *DB) FindOrganizationByProbeToken(_ context.Context, probeToken string) (*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	for _, o := range d.organizations {
@@ -222,7 +224,7 @@ func (d *DB) FindOrganizationByProbeToken(probeToken string) (*users.Organizatio
 
 // FindOrganizationByID looks up the organization matching a given
 // external id.
-func (d *DB) FindOrganizationByID(externalID string) (*users.Organization, error) {
+func (d *DB) FindOrganizationByID(_ context.Context, externalID string) (*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	for _, o := range d.organizations {
@@ -234,7 +236,7 @@ func (d *DB) FindOrganizationByID(externalID string) (*users.Organization, error
 }
 
 // RenameOrganization changes an organization's user-settable name
-func (d *DB) RenameOrganization(externalID, name string) error {
+func (d *DB) RenameOrganization(_ context.Context, externalID, name string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if err := (&users.Organization{ExternalID: externalID, Name: name}).Valid(); err != nil {
@@ -252,7 +254,7 @@ func (d *DB) RenameOrganization(externalID, name string) error {
 
 // OrganizationExists just returns a simple bool checking if an organization
 // exists
-func (d *DB) OrganizationExists(externalID string) (bool, error) {
+func (d *DB) OrganizationExists(_ context.Context, externalID string) (bool, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	return d.organizationExists(externalID)
@@ -268,7 +270,7 @@ func (d *DB) organizationExists(externalID string) (bool, error) {
 }
 
 // GetOrganizationName gets the name of an organization from it's external ID.
-func (d *DB) GetOrganizationName(externalID string) (string, error) {
+func (d *DB) GetOrganizationName(_ context.Context, externalID string) (string, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	o, err := d.findOrganizationByExternalID(externalID)
@@ -279,7 +281,7 @@ func (d *DB) GetOrganizationName(externalID string) (string, error) {
 }
 
 // DeleteOrganization deletes an organization
-func (d *DB) DeleteOrganization(externalID string) error {
+func (d *DB) DeleteOrganization(_ context.Context, externalID string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	o, err := d.findOrganizationByExternalID(externalID)
@@ -295,7 +297,7 @@ func (d *DB) DeleteOrganization(externalID string) error {
 }
 
 // AddFeatureFlag adds a new feature flag to an organization.
-func (d *DB) AddFeatureFlag(externalID string, featureFlag string) error {
+func (d *DB) AddFeatureFlag(_ context.Context, externalID string, featureFlag string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	o, err := d.findOrganizationByExternalID(externalID)
@@ -310,7 +312,7 @@ func (d *DB) AddFeatureFlag(externalID string, featureFlag string) error {
 }
 
 // SetFeatureFlags sets all feature flags of an organization.
-func (d *DB) SetFeatureFlags(externalID string, featureFlags []string) error {
+func (d *DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags []string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	o, err := d.findOrganizationByExternalID(externalID)

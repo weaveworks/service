@@ -5,6 +5,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/externalIDs"
@@ -12,7 +13,7 @@ import (
 
 // RemoveUserFromOrganization removes the user from the organiation. If they
 // are not a member, this is a noop.
-func (d DB) RemoveUserFromOrganization(orgExternalID, email string) error {
+func (d DB) RemoveUserFromOrganization(_ context.Context, orgExternalID, email string) error {
 	_, err := d.Exec(`
 			update memberships set deleted_at = $1
 			where user_id in (
@@ -36,7 +37,7 @@ func (d DB) RemoveUserFromOrganization(orgExternalID, email string) error {
 }
 
 // UserIsMemberOf checks if the user is a member of the organization
-func (d DB) UserIsMemberOf(userID, orgExternalID string) (bool, error) {
+func (d DB) UserIsMemberOf(_ context.Context, userID, orgExternalID string) (bool, error) {
 	rows, err := d.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userID, "organizations.external_id": orgExternalID}).
@@ -68,7 +69,7 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 }
 
 // ListOrganizations lists organizations
-func (d DB) ListOrganizations() ([]*users.Organization, error) {
+func (d DB) ListOrganizations(_ context.Context) ([]*users.Organization, error) {
 	rows, err := d.organizationsQuery().Query()
 	if err != nil {
 		return nil, err
@@ -78,7 +79,7 @@ func (d DB) ListOrganizations() ([]*users.Organization, error) {
 }
 
 // ListOrganizationUsers lists all the users in an organization
-func (d DB) ListOrganizationUsers(orgExternalID string) ([]*users.User, error) {
+func (d DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*users.User, error) {
 	rows, err := d.usersQuery().
 		Join("memberships on (memberships.user_id = users.id)").
 		Join("organizations on (memberships.organization_id = organizations.id)").
@@ -96,7 +97,7 @@ func (d DB) ListOrganizationUsers(orgExternalID string) ([]*users.User, error) {
 }
 
 // ListOrganizationsForUserIDs lists the organizations these users belong to
-func (d DB) ListOrganizationsForUserIDs(userIDs ...string) ([]*users.Organization, error) {
+func (d DB) ListOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
 	rows, err := d.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userIDs}).
@@ -134,7 +135,7 @@ func (d DB) addUserToOrganization(userID, organizationID string) error {
 // TODO: There is a known issue, where as we fill up the database this will
 // gradually slow down (since the algorithm is quite naive). We should fix it
 // eventually.
-func (d DB) GenerateOrganizationExternalID() (string, error) {
+func (d DB) GenerateOrganizationExternalID(ctx context.Context) (string, error) {
 	var (
 		externalID string
 		err        error
@@ -142,7 +143,7 @@ func (d DB) GenerateOrganizationExternalID() (string, error) {
 	err = d.Transaction(func(tx DB) error {
 		for exists := true; exists; {
 			externalID = externalIDs.Generate()
-			exists, err = tx.OrganizationExists(externalID)
+			exists, err = tx.OrganizationExists(ctx, externalID)
 		}
 		return nil
 	})
@@ -150,7 +151,7 @@ func (d DB) GenerateOrganizationExternalID() (string, error) {
 }
 
 // CreateOrganization creates a new organization owned by the user
-func (d DB) CreateOrganization(ownerID, externalID, name, token string) (*users.Organization, error) {
+func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (*users.Organization, error) {
 	o := &users.Organization{
 		ExternalID: externalID,
 		Name:       name,
@@ -161,7 +162,7 @@ func (d DB) CreateOrganization(ownerID, externalID, name, token string) (*users.
 	}
 
 	err := d.Transaction(func(tx DB) error {
-		if exists, err := tx.OrganizationExists(o.ExternalID); err != nil {
+		if exists, err := tx.OrganizationExists(ctx, o.ExternalID); err != nil {
 			return err
 		} else if exists {
 			return users.ErrOrgExternalIDIsTaken
@@ -206,7 +207,7 @@ func (d DB) CreateOrganization(ownerID, externalID, name, token string) (*users.
 
 // FindOrganizationByProbeToken looks up the organization matching a given
 // probe token.
-func (d DB) FindOrganizationByProbeToken(probeToken string) (*users.Organization, error) {
+func (d DB) FindOrganizationByProbeToken(_ context.Context, probeToken string) (*users.Organization, error) {
 	var o *users.Organization
 	var err error
 	err = d.Transaction(func(tx DB) error {
@@ -231,7 +232,7 @@ func (d DB) FindOrganizationByProbeToken(probeToken string) (*users.Organization
 
 // FindOrganizationByID looks up the organization matching a given
 // external ID.
-func (d DB) FindOrganizationByID(externalID string) (*users.Organization, error) {
+func (d DB) FindOrganizationByID(_ context.Context, externalID string) (*users.Organization, error) {
 	o, err := d.scanOrganization(
 		d.organizationsQuery().Where(squirrel.Eq{"organizations.external_id": externalID}).QueryRow(),
 	)
@@ -275,7 +276,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 }
 
 // RenameOrganization changes an organization's user-settable name
-func (d DB) RenameOrganization(externalID, name string) error {
+func (d DB) RenameOrganization(_ context.Context, externalID, name string) error {
 	if err := (&users.Organization{ExternalID: externalID, Name: name}).Valid(); err != nil {
 		return err
 	}
@@ -300,7 +301,7 @@ func (d DB) RenameOrganization(externalID, name string) error {
 
 // OrganizationExists just returns a simple bool checking if an organization
 // exists
-func (d DB) OrganizationExists(externalID string) (bool, error) {
+func (d DB) OrganizationExists(_ context.Context, externalID string) (bool, error) {
 	var exists bool
 	err := d.QueryRow(
 		`select exists(select 1 from organizations where lower(external_id) = lower($1) and deleted_at is null)`,
@@ -310,7 +311,7 @@ func (d DB) OrganizationExists(externalID string) (bool, error) {
 }
 
 // GetOrganizationName gets the name of an organization from it's external ID.
-func (d DB) GetOrganizationName(externalID string) (string, error) {
+func (d DB) GetOrganizationName(_ context.Context, externalID string) (string, error) {
 	var name string
 	err := d.QueryRow(
 		`select name from organizations where lower(external_id) = lower($1) and deleted_at is null`,
@@ -320,7 +321,7 @@ func (d DB) GetOrganizationName(externalID string) (string, error) {
 }
 
 // DeleteOrganization deletes an organization
-func (d DB) DeleteOrganization(externalID string) error {
+func (d DB) DeleteOrganization(_ context.Context, externalID string) error {
 	_, err := d.Exec(
 		`update organizations set deleted_at = $1 where lower(external_id) = lower($2)`,
 		d.Now(), externalID,
@@ -329,7 +330,7 @@ func (d DB) DeleteOrganization(externalID string) error {
 }
 
 // AddFeatureFlag adds a new feature flag to a organization.
-func (d DB) AddFeatureFlag(externalID string, featureFlag string) error {
+func (d DB) AddFeatureFlag(_ context.Context, externalID string, featureFlag string) error {
 	_, err := d.Exec(
 		`update organizations set feature_flags = feature_flags || $1 where lower(external_id) = lower($2)`,
 		pq.Array([]string{featureFlag}), externalID,
@@ -338,7 +339,7 @@ func (d DB) AddFeatureFlag(externalID string, featureFlag string) error {
 }
 
 // SetFeatureFlags sets all feature flags of an organization.
-func (d DB) SetFeatureFlags(externalID string, featureFlags []string) error {
+func (d DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags []string) error {
 	_, err := d.Exec(
 		`update organizations set feature_flags = $1 where lower(external_id) = lower($2)`,
 		pq.Array(featureFlags), externalID,
