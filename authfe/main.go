@@ -54,6 +54,7 @@ func main() {
 		authCacheSize         int
 		authCacheExpiration   time.Duration
 		fluentHost            string
+		redirectHTTPS         bool
 
 		c Config
 	)
@@ -70,6 +71,7 @@ func main() {
 	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
 	flag.StringVar(&c.apiInfo, "api.info", "scopeservice:0.1", "Version info for the api to serve, in format ID:VERSION")
 	flag.StringVar(&c.targetOrigin, "hostname", "", "Hostname through which this server is accessed, for same-origin checks (CSRF protection)")
+	flag.BoolVar(&redirectHTTPS, "redirect-https", false, "Redirect all HTTP traffic to HTTPS")
 
 	hostFlags := []struct {
 		dest *string
@@ -146,6 +148,17 @@ func main() {
 		defer c.eventLogger.Close()
 	}
 
+	// We run up to 3 HTTP servers on 2 ports, listening in various ways:
+	//
+	// - one on port 8080 of this pod, for metrics and traces
+	// - one or two on port 80, routed based on the destination port on the ELB -
+	//   (discovered using proxy protocol):
+	//   - port 443 serving "real traffic"
+	//   - on all other ports redirecting to SSL
+	//
+	// If the HTTP redirect is disabled, then the "real traffic" server will serve
+	// traffic for all ports on the ELB.
+
 	log.Infof("Listening on %s for private endpoints", privateListen)
 	privListener, err := net.Listen("tcp", privateListen)
 	if err != nil {
@@ -180,9 +193,27 @@ func main() {
 			Handler: r,
 		},
 	}
-	proxyListener := &proxyproto.Listener{
+	var proxyListener net.Listener = &proxyproto.Listener{
 		Listener:           listener,
 		ProxyHeaderTimeout: proxyTimeout,
+	}
+
+	if redirectHTTPS {
+		// We use a custom listener router to ensure only connections on port 443 get
+		// through to the real router - everything else gets redirected.
+		proxyListenerRouter := newProxyListenerRouter(proxyListener)
+		proxyListener = proxyListenerRouter.listenerForPort(443)
+		redirectServer := &http.Server{
+			Handler: commonMiddleWare(c.logSuccess, nil).Wrap(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					url := r.URL
+					url.Host = r.Host
+					url.Scheme = "https"
+					http.Redirect(w, r, url.String(), http.StatusMovedPermanently)
+				}),
+			),
+		}
+		go redirectServer.Serve(proxyListenerRouter)
 	}
 
 	// block until stop signal is received, then wait stopTimeout for remaining conns
