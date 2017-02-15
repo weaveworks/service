@@ -148,6 +148,17 @@ func main() {
 		defer c.eventLogger.Close()
 	}
 
+	// We run up to 3 HTTP servers on 2 ports, listening in various ways:
+	//
+	// - one on port 8080 of this pod, for metrics and traces
+	// - one or two on port 80, routed based on the destination port on the ELB -
+	//   (discovered using proxy protocol):
+	//   - port 443 serving "real traffic"
+	//   - on all other ports redirecting to SSL
+	//
+	// If the HTTP redirect is disabled, then the "real traffic" server will serve
+	// traffic for all ports on the ELB.
+
 	log.Infof("Listening on %s for private endpoints", privateListen)
 	privListener, err := net.Listen("tcp", privateListen)
 	if err != nil {
