@@ -4,7 +4,6 @@ import (
 	"net"
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/armon/go-proxyproto"
 )
 
