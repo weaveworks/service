@@ -5,12 +5,13 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 )
 
 // CreateAPIToken creates an api token for the user
-func (d DB) CreateAPIToken(userID, description string) (*users.APIToken, error) {
+func (d DB) CreateAPIToken(_ context.Context, userID, description string) (*users.APIToken, error) {
 	t := &users.APIToken{
 		UserID:      userID,
 		Description: description,
@@ -43,7 +44,7 @@ func (d DB) CreateAPIToken(userID, description string) (*users.APIToken, error) 
 }
 
 // DeleteAPIToken deletes an api token for the user
-func (d DB) DeleteAPIToken(userID, token string) error {
+func (d DB) DeleteAPIToken(_ context.Context, userID, token string) error {
 	_, err := d.Exec(
 		`update api_tokens
 			set deleted_at = $3
@@ -56,7 +57,7 @@ func (d DB) DeleteAPIToken(userID, token string) error {
 }
 
 // FindUserByAPIToken finds a user by their api token
-func (d DB) FindUserByAPIToken(token string) (*users.User, error) {
+func (d DB) FindUserByAPIToken(_ context.Context, token string) (*users.User, error) {
 	user, err := d.scanUser(
 		d.usersQuery().
 			Join("api_tokens on (api_tokens.user_id = users.id)").
@@ -73,7 +74,7 @@ func (d DB) FindUserByAPIToken(token string) (*users.User, error) {
 }
 
 // ListAPITokensForUserIDs lists the api tokens for these users
-func (d DB) ListAPITokensForUserIDs(userIDs ...string) ([]*users.APIToken, error) {
+func (d DB) ListAPITokensForUserIDs(_ context.Context, userIDs ...string) ([]*users.APIToken, error) {
 	rows, err := d.Select(
 		"api_tokens.id",
 		"api_tokens.user_id",

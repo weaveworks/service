@@ -91,36 +91,37 @@ func main() {
 	}()
 
 	for ticker := time.Tick(*period); ; <-ticker {
-		ctx := context.Background()
+		instrument.TimeRequestHistogram(context.Background(), "Metrics upload", postRequestDuration, func(ctx context.Context) error {
+			for _, getter := range []struct {
+				ty  string
+				get func(context.Context, db.DB) ([]interface{}, error)
+			}{
+				{"users", getUsers},
+				{"memberships", getMemberships},
+				{"instances", getInstances},
+			} {
+				objs, err := getter.get(ctx, d)
+				if err != nil {
+					log.Printf("Error getting %s: %v", getter.ty, err)
+					continue
+				}
 
-		for _, getter := range []struct {
-			ty  string
-			get func(db.DB) ([]interface{}, error)
-		}{
-			{"users", getUsers},
-			{"memberships", getMemberships},
-			{"instances", getInstances},
-		} {
-			objs, err := getter.get(d)
-			if err != nil {
-				log.Printf("Error getting %s: %v", getter.ty, err)
-				continue
+				if err := instrument.TimeRequestHistogram(ctx, getter.ty, postRequestDuration, func(_ context.Context) error {
+					return post(client, objs, *endpoint+getter.ty)
+				}); err != nil {
+					log.Printf("Error posting %s: %v", getter.ty, err)
+					continue
+				}
+
+				log.Printf("Uploaded %d %s to %s", len(objs), getter.ty, *endpoint+getter.ty)
 			}
-
-			if err := instrument.TimeRequestHistogram(ctx, getter.ty, postRequestDuration, func(_ context.Context) error {
-				return post(client, objs, *endpoint+getter.ty)
-			}); err != nil {
-				log.Printf("Error posting %s: %v", getter.ty, err)
-				continue
-			}
-
-			log.Printf("Uploaded %d %s to %s", len(objs), getter.ty, *endpoint+getter.ty)
-		}
+			return nil
+		})
 	}
 }
 
-func getUsers(d db.DB) ([]interface{}, error) {
-	users, err := d.ListUsers()
+func getUsers(ctx context.Context, d db.DB) ([]interface{}, error) {
+	users, err := d.ListUsers(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -136,8 +137,8 @@ func getUsers(d db.DB) ([]interface{}, error) {
 	return results, nil
 }
 
-func getMemberships(d db.DB) ([]interface{}, error) {
-	memberships, err := d.ListMemberships()
+func getMemberships(ctx context.Context, d db.DB) ([]interface{}, error) {
+	memberships, err := d.ListMemberships(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -152,8 +153,8 @@ func getMemberships(d db.DB) ([]interface{}, error) {
 	return results, nil
 }
 
-func getInstances(d db.DB) ([]interface{}, error) {
-	instances, err := d.ListOrganizations()
+func getInstances(ctx context.Context, d db.DB) ([]interface{}, error) {
+	instances, err := d.ListOrganizations(ctx)
 	if err != nil {
 		return nil, err
 	}

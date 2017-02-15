@@ -7,13 +7,14 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
 )
 
 // CreateUser creates a new user with the given email.
-func (d DB) CreateUser(email string) (*users.User, error) {
+func (d DB) CreateUser(_ context.Context, email string) (*users.User, error) {
 	u := &users.User{Email: email, CreatedAt: d.Now()}
 	err := d.QueryRow("insert into users (email, approved_at, created_at) values (lower($1), $2, $2) returning id", email, u.CreatedAt).Scan(&u.ID)
 	switch {
@@ -27,7 +28,7 @@ func (d DB) CreateUser(email string) (*users.User, error) {
 
 // AddLoginToUser adds the given login to the specified user. If it is already
 // attached elsewhere, this will error.
-func (d DB) AddLoginToUser(userID, provider, providerID string, session json.RawMessage) error {
+func (d DB) AddLoginToUser(ctx context.Context, userID, provider, providerID string, session json.RawMessage) error {
 	now := d.Now()
 	values := map[string]interface{}{
 		"user_id":     userID,
@@ -43,7 +44,7 @@ func (d DB) AddLoginToUser(userID, provider, providerID string, session json.Raw
 	}
 	return d.Transaction(func(tx DB) error {
 		// check that this is not already attached somewhere else
-		existing, err := tx.FindUserByLogin(provider, providerID)
+		existing, err := tx.FindUserByLogin(ctx, provider, providerID)
 		switch err {
 		case nil:
 			if existing.ID != userID {
@@ -74,7 +75,7 @@ func (d DB) AddLoginToUser(userID, provider, providerID string, session json.Raw
 
 // DetachLoginFromUser detaches the specified login from a user. e.g. if you
 // want to attach it to a different user, do this first.
-func (d DB) DetachLoginFromUser(userID, provider string) error {
+func (d DB) DetachLoginFromUser(_ context.Context, userID, provider string) error {
 	_, err := d.Exec(
 		`update logins
 			set deleted_at = $3
@@ -88,7 +89,7 @@ func (d DB) DetachLoginFromUser(userID, provider string) error {
 
 // InviteUser invites the user, to join the organization. If they are already a
 // member this is a noop.
-func (d DB) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
+func (d DB) InviteUser(ctx context.Context, email, orgExternalID string) (*users.User, bool, error) {
 	var u *users.User
 	userCreated := false
 	err := d.Transaction(func(tx DB) error {
@@ -99,16 +100,16 @@ func (d DB) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
 			return err
 		}
 
-		u, err = tx.FindUserByEmail(email)
+		u, err = tx.FindUserByEmail(ctx, email)
 		if err == users.ErrNotFound {
-			u, err = tx.CreateUser(email)
+			u, err = tx.CreateUser(ctx, email)
 			userCreated = true
 		}
 		if err != nil {
 			return err
 		}
 
-		isMember, err := tx.UserIsMemberOf(u.ID, orgExternalID)
+		isMember, err := tx.UserIsMemberOf(ctx, u.ID, orgExternalID)
 		if err != nil || isMember {
 			return err
 		}
@@ -116,7 +117,7 @@ func (d DB) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
 		if err != nil {
 			return err
 		}
-		u, err = tx.FindUserByID(u.ID)
+		u, err = tx.FindUserByID(ctx, u.ID)
 		return err
 	})
 	if err != nil {
@@ -126,7 +127,7 @@ func (d DB) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
 }
 
 // FindUserByID finds the user by id
-func (d DB) FindUserByID(id string) (*users.User, error) {
+func (d DB) FindUserByID(_ context.Context, id string) (*users.User, error) {
 	user, err := d.scanUser(
 		d.usersQuery().Where(squirrel.Eq{"users.id": id}).QueryRow(),
 	)
@@ -140,7 +141,7 @@ func (d DB) FindUserByID(id string) (*users.User, error) {
 }
 
 // FindUserByEmail finds the user by email
-func (d DB) FindUserByEmail(email string) (*users.User, error) {
+func (d DB) FindUserByEmail(_ context.Context, email string) (*users.User, error) {
 	user, err := d.scanUser(
 		d.usersQuery().Where("lower(users.email) = lower($1)", email).QueryRow(),
 	)
@@ -154,7 +155,7 @@ func (d DB) FindUserByEmail(email string) (*users.User, error) {
 }
 
 // FindUserByLogin finds the user by login
-func (d DB) FindUserByLogin(provider, providerID string) (*users.User, error) {
+func (d DB) FindUserByLogin(_ context.Context, provider, providerID string) (*users.User, error) {
 	user, err := d.scanUser(
 		d.usersQuery().
 			Join("logins on (logins.user_id = users.id)").
@@ -227,7 +228,7 @@ func (d DB) usersQuery() squirrel.SelectBuilder {
 }
 
 // ListUsers lists users
-func (d DB) ListUsers() ([]*users.User, error) {
+func (d DB) ListUsers(_ context.Context) ([]*users.User, error) {
 	rows, err := d.usersQuery().Query()
 	if err != nil {
 		return nil, err
@@ -237,7 +238,7 @@ func (d DB) ListUsers() ([]*users.User, error) {
 }
 
 // ListLoginsForUserIDs lists the logins for these users
-func (d DB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
+func (d DB) ListLoginsForUserIDs(_ context.Context, userIDs ...string) ([]*login.Login, error) {
 	rows, err := d.Select(
 		"logins.user_id",
 		"logins.provider",
@@ -276,7 +277,7 @@ func (d DB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
 }
 
 // SetUserAdmin sets the admin flag of a user
-func (d DB) SetUserAdmin(id string, value bool) error {
+func (d DB) SetUserAdmin(_ context.Context, id string, value bool) error {
 	result, err := d.Exec(`
 		update users set admin = $2 where id = $1 and deleted_at is null
 	`, id, value,
@@ -295,7 +296,7 @@ func (d DB) SetUserAdmin(id string, value bool) error {
 }
 
 // SetUserToken updates the user's login token
-func (d DB) SetUserToken(id, token string) error {
+func (d DB) SetUserToken(_ context.Context, id, token string) error {
 	var hashed []byte
 	if token != "" {
 		var err error
@@ -328,7 +329,7 @@ func (d DB) SetUserToken(id, token string) error {
 
 // SetUserFirstLoginAt is called the first time a user logs in, to set their
 // first_login_at field.
-func (d DB) SetUserFirstLoginAt(id string) error {
+func (d DB) SetUserFirstLoginAt(_ context.Context, id string) error {
 	result, err := d.Exec(`
 		update users set
 			first_login_at = $2

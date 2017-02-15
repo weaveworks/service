@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/render"
@@ -25,7 +26,7 @@ type OrgView struct {
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orgExternalID := vars["orgExternalID"]
-	organizations, err := a.db.ListOrganizationsForUserIDs(currentUser.ID)
+	organizations, err := a.db.ListOrganizationsForUserIDs(r.Context(), currentUser.ID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -43,7 +44,7 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 			return
 		}
 	}
-	if exists, err := a.db.OrganizationExists(orgExternalID); err != nil {
+	if exists, err := a.db.OrganizationExists(r.Context(), orgExternalID); err != nil {
 		render.Error(w, r, err)
 		return
 	} else if exists {
@@ -54,7 +55,7 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 }
 
 func (a *API) generateOrgExternalID(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	externalID, err := a.db.GenerateOrganizationExternalID()
+	externalID, err := a.db.GenerateOrganizationExternalID(r.Context())
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -71,7 +72,7 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 	}
 	// Don't allow users to specify their own token.
 	view.ProbeToken = ""
-	if err := a.CreateOrg(currentUser, view); err == users.ErrOrgTokenIsTaken {
+	if err := a.CreateOrg(r.Context(), currentUser, view); err == users.ErrOrgTokenIsTaken {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	} else if err != nil {
@@ -82,8 +83,8 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 }
 
 // CreateOrg creates an organisation
-func (a *API) CreateOrg(currentUser *users.User, view OrgView) error {
-	_, err := a.db.CreateOrganization(currentUser.ID, view.ExternalID, view.Name, view.ProbeToken)
+func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgView) error {
+	_, err := a.db.CreateOrganization(ctx, currentUser.ID, view.ExternalID, view.Name, view.ProbeToken)
 	return err
 }
 
@@ -101,11 +102,11 @@ func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 	}
 
 	orgExternalID := mux.Vars(r)["orgExternalID"]
-	if err := a.userCanAccessOrg(currentUser, orgExternalID); err != nil {
+	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
 		render.Error(w, r, err)
 		return
 	}
-	if err := a.db.RenameOrganization(orgExternalID, view.Name); err != nil {
+	if err := a.db.RenameOrganization(r.Context(), orgExternalID, view.Name); err != nil {
 		render.Error(w, r, err)
 		return
 	}
@@ -114,7 +115,7 @@ func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 
 func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	orgExternalID := mux.Vars(r)["orgExternalID"]
-	exists, err := a.db.OrganizationExists(orgExternalID)
+	exists, err := a.db.OrganizationExists(r.Context(), orgExternalID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -123,7 +124,7 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	isMember, err := a.db.UserIsMemberOf(currentUser.ID, orgExternalID)
+	isMember, err := a.db.UserIsMemberOf(r.Context(), currentUser.ID, orgExternalID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -132,7 +133,7 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-	if err := a.db.DeleteOrganization(orgExternalID); err != nil {
+	if err := a.db.DeleteOrganization(r.Context(), orgExternalID); err != nil {
 		render.Error(w, r, err)
 		return
 	}
@@ -150,12 +151,12 @@ type organizationUserView struct {
 
 func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	orgExternalID := mux.Vars(r)["orgExternalID"]
-	if err := a.userCanAccessOrg(currentUser, orgExternalID); err != nil {
+	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
 		render.Error(w, r, err)
 		return
 	}
 
-	users, err := a.db.ListOrganizationUsers(orgExternalID)
+	users, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -184,23 +185,23 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	}
 
 	orgExternalID := mux.Vars(r)["orgExternalID"]
-	if err := a.userCanAccessOrg(currentUser, orgExternalID); err != nil {
+	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
 		render.Error(w, r, err)
 		return
 	}
 
-	invitee, created, err := a.db.InviteUser(view.Email, orgExternalID)
+	invitee, created, err := a.db.InviteUser(r.Context(), view.Email, orgExternalID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
 	}
 	// We always do this so that the timing difference can't be used to infer a user's existence.
-	token, err := a.generateUserToken(invitee)
+	token, err := a.generateUserToken(r.Context(), invitee)
 	if err != nil {
 		render.Error(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
-	orgName, err := a.db.GetOrganizationName(orgExternalID)
+	orgName, err := a.db.GetOrganizationName(r.Context(), orgExternalID)
 	if err != nil {
 		render.Error(w, r, fmt.Errorf("Error getting organization name: %s", err))
 	}
@@ -223,25 +224,25 @@ func (a *API) deleteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	vars := mux.Vars(r)
 	orgExternalID := vars["orgExternalID"]
 	userEmail := vars["userEmail"]
-	if err := a.userCanAccessOrg(currentUser, orgExternalID); err != nil {
+	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
 		render.Error(w, r, err)
 		return
 	}
 
-	if err := a.db.RemoveUserFromOrganization(orgExternalID, userEmail); err != nil {
+	if err := a.db.RemoveUserFromOrganization(r.Context(), orgExternalID, userEmail); err != nil {
 		render.Error(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (a *API) userCanAccessOrg(currentUser *users.User, orgExternalID string) error {
-	isMember, err := a.db.UserIsMemberOf(currentUser.ID, orgExternalID)
+func (a *API) userCanAccessOrg(ctx context.Context, currentUser *users.User, orgExternalID string) error {
+	isMember, err := a.db.UserIsMemberOf(ctx, currentUser.ID, orgExternalID)
 	if err != nil {
 		return err
 	}
 	if !isMember {
-		if exists, err := a.db.OrganizationExists(orgExternalID); err != nil {
+		if exists, err := a.db.OrganizationExists(ctx, orgExternalID); err != nil {
 			return err
 		} else if exists {
 			return users.ErrForbidden

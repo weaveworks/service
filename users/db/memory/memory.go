@@ -3,6 +3,8 @@ package memory
 import (
 	"sync"
 
+	"golang.org/x/net/context"
+
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
 )
@@ -31,7 +33,7 @@ func New(_, _ string, passwordHashingCost int) (*DB, error) {
 }
 
 // ListMemberships lists memberships list memberships
-func (d *DB) ListMemberships() ([]users.Membership, error) {
+func (d *DB) ListMemberships(_ context.Context) ([]users.Membership, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	memberships := []users.Membership{}
@@ -47,6 +49,6 @@ func (d *DB) ListMemberships() ([]users.Membership, error) {
 }
 
 // Close finishes using the db. Noop.
-func (d *DB) Close() error {
+func (d *DB) Close(_ context.Context) error {
 	return nil
 }

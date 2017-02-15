@@ -9,6 +9,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
@@ -56,7 +57,7 @@ type attachedLoginProviderView struct {
 // the /account page to determine which login providers are currently attached.
 func (a *API) listAttachedLoginProviders(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	view := attachedLoginProvidersView{}
-	logins, err := a.db.ListLoginsForUserIDs(currentUser.ID)
+	logins, err := a.db.ListLoginsForUserIDs(r.Context(), currentUser.ID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -123,16 +124,16 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			default:
 				return nil, err
 			}
-			return a.db.FindUserByID(userID)
+			return a.db.FindUserByID(r.Context(), userID)
 		},
 		func() (*users.User, error) {
 			// If the user has already attached this provider, this is a no-op, so we
 			// can just log them in with it.
-			return a.db.FindUserByLogin(providerID, id)
+			return a.db.FindUserByLogin(r.Context(), providerID, id)
 		},
 		func() (*users.User, error) {
 			// Match based on the user's email
-			return a.db.FindUserByEmail(email)
+			return a.db.FindUserByEmail(r.Context(), email)
 		},
 	} {
 		u, err = f()
@@ -149,7 +150,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		// No matching user found, this must be a first-time-login with this
 		// provider, so we'll create an account for them.
 		view.UserCreated = true
-		u, err = a.db.CreateUser(email)
+		u, err = a.db.CreateUser(r.Context(), email)
 		if err != nil {
 			logrus.Error(err)
 			render.Error(w, r, users.ErrInvalidAuthenticationData)
@@ -158,7 +159,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		a.marketingQueues.UserCreated(u.Email, u.CreatedAt)
 	}
 
-	if err := a.db.AddLoginToUser(u.ID, providerID, id, authSession); err != nil {
+	if err := a.db.AddLoginToUser(r.Context(), u.ID, providerID, id, authSession); err != nil {
 		existing, ok := err.(users.AlreadyAttachedError)
 		if !ok {
 			logrus.Error(err)
@@ -170,12 +171,12 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			render.Error(w, r, existing)
 			return
 		}
-		if err := a.db.DetachLoginFromUser(existing.ID, providerID); err != nil {
+		if err := a.db.DetachLoginFromUser(r.Context(), existing.ID, providerID); err != nil {
 			logrus.Error(err)
 			render.Error(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
-		if err := a.db.AddLoginToUser(u.ID, providerID, id, authSession); err != nil {
+		if err := a.db.AddLoginToUser(r.Context(), u.ID, providerID, id, authSession); err != nil {
 			logrus.Error(err)
 			render.Error(w, r, users.ErrInvalidAuthenticationData)
 			return
@@ -186,7 +187,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	view.Email = email
 	view.MunchkinHash = a.MunchkinHash(email)
 
-	if err := a.UpdateUserAtLogin(u); err != nil {
+	if err := a.UpdateUserAtLogin(r.Context(), u); err != nil {
 		render.Error(w, r, err)
 		return
 	}
@@ -208,7 +209,7 @@ func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter
 		return
 	}
 
-	logins, err := a.db.ListLoginsForUserIDs(currentUser.ID)
+	logins, err := a.db.ListLoginsForUserIDs(r.Context(), currentUser.ID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -223,7 +224,7 @@ func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter
 		}
 	}
 
-	if err := a.db.DetachLoginFromUser(currentUser.ID, providerID); err != nil {
+	if err := a.db.DetachLoginFromUser(r.Context(), currentUser.ID, providerID); err != nil {
 		render.Error(w, r, err)
 		return
 	}
@@ -245,7 +246,7 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := a.Signup(&view); err != nil {
+	if _, err := a.Signup(r.Context(), &view); err != nil {
 		render.Error(w, r, err)
 	}
 
@@ -253,15 +254,15 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 }
 
 // Signup creates a new user
-func (a *API) Signup(view *SignupView) (*users.User, error) {
+func (a *API) Signup(ctx context.Context, view *SignupView) (*users.User, error) {
 	view.MailSent = false
 	if view.Email == "" {
 		return nil, users.ValidationErrorf("Email cannot be blank")
 	}
 
-	user, err := a.db.FindUserByEmail(view.Email)
+	user, err := a.db.FindUserByEmail(ctx, view.Email)
 	if err == users.ErrNotFound {
-		user, err = a.db.CreateUser(view.Email)
+		user, err = a.db.CreateUser(ctx, view.Email)
 		if err == nil {
 			a.marketingQueues.UserCreated(user.Email, user.CreatedAt)
 		}
@@ -271,7 +272,7 @@ func (a *API) Signup(view *SignupView) (*users.User, error) {
 	}
 
 	// We always do this so that the timing difference can't be used to infer a user's existence.
-	token, err := a.generateUserToken(user)
+	token, err := a.generateUserToken(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("Error sending login email: %s", err)
 	}
@@ -289,12 +290,12 @@ func (a *API) Signup(view *SignupView) (*users.User, error) {
 	return user, nil
 }
 
-func (a *API) generateUserToken(user *users.User) (string, error) {
+func (a *API) generateUserToken(ctx context.Context, user *users.User) (string, error) {
 	token, err := tokens.Generate()
 	if err != nil {
 		return "", err
 	}
-	if err := a.db.SetUserToken(user.ID, token); err != nil {
+	if err := a.db.SetUserToken(ctx, user.ID, token); err != nil {
 		return "", err
 	}
 	return token, nil
@@ -318,7 +319,7 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := a.db.FindUserByEmail(email)
+	u, err := a.db.FindUserByEmail(r.Context(), email)
 	if err == users.ErrNotFound {
 		err = nil
 	}
@@ -334,14 +335,14 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.db.SetUserToken(u.ID, ""); err != nil {
+	if err := a.db.SetUserToken(r.Context(), u.ID, ""); err != nil {
 		logrus.Error(err)
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
 
 	firstLogin := u.FirstLoginAt.IsZero()
-	if err := a.UpdateUserAtLogin(u); err != nil {
+	if err := a.UpdateUserAtLogin(r.Context(), u); err != nil {
 		render.Error(w, r, err)
 		return
 	}
@@ -358,9 +359,9 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateUserAtLogin sets u.FirstLoginAt if not already set
-func (a *API) UpdateUserAtLogin(u *users.User) error {
+func (a *API) UpdateUserAtLogin(ctx context.Context, u *users.User) error {
 	if u.FirstLoginAt.IsZero() {
-		if err := a.db.SetUserFirstLoginAt(u.ID); err != nil {
+		if err := a.db.SetUserFirstLoginAt(ctx, u.ID); err != nil {
 			return err
 		}
 	}
@@ -389,7 +390,7 @@ func (a *API) MunchkinHash(email string) string {
 }
 
 func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	organizations, err := a.db.ListOrganizationsForUserIDs(currentUser.ID)
+	organizations, err := a.db.ListOrganizationsForUserIDs(r.Context(), currentUser.ID)
 	if err != nil {
 		render.Error(w, r, err)
 		return

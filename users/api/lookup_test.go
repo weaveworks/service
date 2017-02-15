@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/context"
 )
 
 func Test_Lookup(t *testing.T) {
@@ -48,7 +49,7 @@ func Test_PublicLookup(t *testing.T) {
 	user, org := getOrg(t)
 
 	// Use the org, so that firstProbeUpdateAt is set.
-	org, err := database.FindOrganizationByProbeToken(org.ProbeToken)
+	org, err := database.FindOrganizationByProbeToken(context.Background(), org.ProbeToken)
 	require.NoError(t, err)
 	require.NotNil(t, org.FirstProbeUpdateAt)
 
@@ -104,7 +105,7 @@ func Test_Lookup_ProbeToken(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{"organizationID": org.ID}, body)
 
-	organizations, err := database.ListOrganizationsForUserIDs(user.ID)
+	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
 	require.Len(t, organizations, 1)
 	assert.NotNil(t, organizations[0].FirstProbeUpdateAt)
@@ -116,7 +117,7 @@ func Test_Lookup_Admin(t *testing.T) {
 	defer cleanup(t)
 
 	user := getUser(t)
-	require.NoError(t, database.SetUserAdmin(user.ID, true))
+	require.NoError(t, database.SetUserAdmin(context.Background(), user.ID, true))
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "GET", "/private/api/users/admin", nil)

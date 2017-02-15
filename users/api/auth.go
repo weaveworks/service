@@ -111,11 +111,11 @@ func (a *API) cookieAuth(w http.ResponseWriter, r *http.Request) (Authentication
 	if err != nil {
 		return Authentication{}, err
 	}
-	u, err := a.db.FindUserByID(userID)
+	u, err := a.db.FindUserByID(r.Context(), userID)
 	if err != nil {
 		return Authentication{}, err
 	}
-	organizations, err := a.db.ListOrganizationsForUserIDs(u.ID)
+	organizations, err := a.db.ListOrganizationsForUserIDs(r.Context(), u.ID)
 	if err != nil {
 		return Authentication{}, err
 	}
@@ -142,12 +142,12 @@ func (a *API) apiTokenAuth(w http.ResponseWriter, r *http.Request) (Authenticati
 		return Authentication{}, users.ErrInvalidAuthenticationData
 	}
 
-	u, err := a.db.FindUserByAPIToken(token)
+	u, err := a.db.FindUserByAPIToken(r.Context(), token)
 	if err != nil {
 		return Authentication{}, err
 	}
 
-	organizations, err := a.db.ListOrganizationsForUserIDs(u.ID)
+	organizations, err := a.db.ListOrganizationsForUserIDs(r.Context(), u.ID)
 	if err != nil {
 		return Authentication{}, err
 	}
@@ -170,7 +170,7 @@ func (a *API) probeTokenAuth(w http.ResponseWriter, r *http.Request) (Authentica
 		return Authentication{}, users.ErrInvalidAuthenticationData
 	}
 
-	o, err := a.db.FindOrganizationByProbeToken(token)
+	o, err := a.db.FindOrganizationByProbeToken(r.Context(), token)
 	if err != nil {
 		return Authentication{}, err
 	}

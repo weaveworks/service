@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
 )
 
 // CreateUser creates a new user with the given email.
-func (d *DB) CreateUser(email string) (*users.User, error) {
+func (d *DB) CreateUser(_ context.Context, email string) (*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	return d.createUser(email)
@@ -32,7 +33,7 @@ func (d *DB) createUser(email string) (*users.User, error) {
 
 // AddLoginToUser adds the given login to the specified user. If it is already
 // attached elsewhere, this will error.
-func (d *DB) AddLoginToUser(userID, provider, providerID string, session json.RawMessage) error {
+func (d *DB) AddLoginToUser(_ context.Context, userID, provider, providerID string, session json.RawMessage) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if _, err := d.findUserByID(userID); err != nil {
@@ -58,7 +59,7 @@ func (d *DB) AddLoginToUser(userID, provider, providerID string, session json.Ra
 
 // DetachLoginFromUser detaches the specified login from a user. e.g. if you
 // want to attach it to a different user, do this first.
-func (d *DB) DetachLoginFromUser(userID, provider string) error {
+func (d *DB) DetachLoginFromUser(_ context.Context, userID, provider string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	_, err := d.findUserByID(userID)
@@ -80,7 +81,7 @@ func (d *DB) DetachLoginFromUser(userID, provider string) error {
 
 // InviteUser invites the user, to join the organization. If they are already a
 // member this is a noop.
-func (d *DB) InviteUser(email, orgExternalID string) (*users.User, bool, error) {
+func (d *DB) InviteUser(_ context.Context, email, orgExternalID string) (*users.User, bool, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	created := false
@@ -110,7 +111,7 @@ func (d *DB) InviteUser(email, orgExternalID string) (*users.User, bool, error) 
 }
 
 // FindUserByID finds the user by id
-func (d *DB) FindUserByID(id string) (*users.User, error) {
+func (d *DB) FindUserByID(_ context.Context, id string) (*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	return d.findUserByID(id)
@@ -125,7 +126,7 @@ func (d *DB) findUserByID(id string) (*users.User, error) {
 }
 
 // FindUserByEmail finds the user by email
-func (d *DB) FindUserByEmail(email string) (*users.User, error) {
+func (d *DB) FindUserByEmail(_ context.Context, email string) (*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	return d.findUserByEmail(email)
@@ -141,7 +142,7 @@ func (d *DB) findUserByEmail(email string) (*users.User, error) {
 }
 
 // FindUserByLogin finds the user by login
-func (d *DB) FindUserByLogin(provider, providerID string) (*users.User, error) {
+func (d *DB) FindUserByLogin(_ context.Context, provider, providerID string) (*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	return d.findUserByLogin(provider, providerID)
@@ -163,7 +164,7 @@ func (u usersByCreatedAt) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.Before(u[j].CreatedAt) }
 
 // ListUsers lists users
-func (d *DB) ListUsers() ([]*users.User, error) {
+func (d *DB) ListUsers(_ context.Context) ([]*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	users := []*users.User{}
@@ -175,7 +176,7 @@ func (d *DB) ListUsers() ([]*users.User, error) {
 }
 
 // ListLoginsForUserIDs lists the logins for these users
-func (d *DB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
+func (d *DB) ListLoginsForUserIDs(_ context.Context, userIDs ...string) ([]*login.Login, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	var logins []*login.Login
@@ -191,7 +192,7 @@ func (d *DB) ListLoginsForUserIDs(userIDs ...string) ([]*login.Login, error) {
 }
 
 // SetUserAdmin sets the admin flag of a user
-func (d *DB) SetUserAdmin(id string, value bool) error {
+func (d *DB) SetUserAdmin(_ context.Context, id string, value bool) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	user, ok := d.users[id]
@@ -203,7 +204,7 @@ func (d *DB) SetUserAdmin(id string, value bool) error {
 }
 
 // SetUserToken updates the user's login token
-func (d *DB) SetUserToken(id, token string) error {
+func (d *DB) SetUserToken(_ context.Context, id, token string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	var hashed []byte
@@ -225,7 +226,7 @@ func (d *DB) SetUserToken(id, token string) error {
 
 // SetUserFirstLoginAt is called the first time a user logs in, to set their
 // first_login_at field.
-func (d *DB) SetUserFirstLoginAt(id string) error {
+func (d *DB) SetUserFirstLoginAt(_ context.Context, id string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	user, ok := d.users[id]

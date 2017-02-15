@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -324,7 +324,7 @@ func (m *webAuthenticator) AuthenticateUser(w http.ResponseWriter, r *http.Reque
 	return m.decodeUser(m.doAuthenticateRequest(w, lookupReq))
 }
 
-func (m *webAuthenticator) doAuthenticateRequest(w http.ResponseWriter, r *http.Request) (io.ReadCloser, error) {
+func (m *webAuthenticator) doAuthenticateRequest(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 	var ht *nethttp.Tracer
 	r, ht = nethttp.TraceRequest(opentracing.GlobalTracer(), r)
 	defer ht.Finish()
@@ -334,10 +334,10 @@ func (m *webAuthenticator) doAuthenticateRequest(w http.ResponseWriter, r *http.
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
 
 	// Parse the response
 	if res.StatusCode != http.StatusOK {
-		res.Body.Close()
 		return nil, &Unauthorized{res.StatusCode}
 	}
 
@@ -345,20 +345,20 @@ func (m *webAuthenticator) doAuthenticateRequest(w http.ResponseWriter, r *http.
 	for _, c := range res.Cookies() {
 		http.SetCookie(w, c)
 	}
-	return res.Body, nil
+
+	return ioutil.ReadAll(res.Body)
 }
 
-func (m *webAuthenticator) decodeOrg(body io.ReadCloser, err error) (string, string, []string, error) {
+func (m *webAuthenticator) decodeOrg(buf []byte, err error) (string, string, []string, error) {
 	if err != nil {
 		return "", "", nil, err
 	}
-	defer body.Close()
 	var authRes struct {
 		OrganizationID string   `json:"organizationID"`
 		UserID         string   `json:"userID"`
 		FeatureFlags   []string `json:"featureFlags"`
 	}
-	if err := json.NewDecoder(body).Decode(&authRes); err != nil {
+	if err := json.Unmarshal(buf, &authRes); err != nil {
 		return "", "", nil, err
 	}
 	if authRes.OrganizationID == "" {
@@ -367,15 +367,14 @@ func (m *webAuthenticator) decodeOrg(body io.ReadCloser, err error) (string, str
 	return authRes.OrganizationID, authRes.UserID, authRes.FeatureFlags, nil
 }
 
-func (m *webAuthenticator) decodeAdmin(body io.ReadCloser, err error) (string, error) {
+func (m *webAuthenticator) decodeAdmin(buf []byte, err error) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer body.Close()
 	var authRes struct {
 		AdminID string `json:"adminID"`
 	}
-	if err := json.NewDecoder(body).Decode(&authRes); err != nil {
+	if err := json.Unmarshal(buf, &authRes); err != nil {
 		return "", err
 	}
 	if authRes.AdminID == "" {
@@ -384,15 +383,14 @@ func (m *webAuthenticator) decodeAdmin(body io.ReadCloser, err error) (string, e
 	return authRes.AdminID, nil
 }
 
-func (m *webAuthenticator) decodeUser(body io.ReadCloser, err error) (string, error) {
+func (m *webAuthenticator) decodeUser(buf []byte, err error) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer body.Close()
 	var authRes struct {
 		UserID string `json:"userID"`
 	}
-	if err := json.NewDecoder(body).Decode(&authRes); err != nil {
+	if err := json.Unmarshal(buf, &authRes); err != nil {
 		return "", err
 	}
 	return authRes.UserID, nil
