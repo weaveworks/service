@@ -94,13 +94,13 @@ func main() {
 		instrument.TimeRequestHistogram(context.Background(), "Metrics upload", postRequestDuration, func(ctx context.Context) error {
 			for _, getter := range []struct {
 				ty  string
-				get func(db.DB, context.Context) ([]interface{}, error)
+				get func(context.Context, db.DB) ([]interface{}, error)
 			}{
 				{"users", getUsers},
 				{"memberships", getMemberships},
 				{"instances", getInstances},
 			} {
-				objs, err := getter.get(d, ctx)
+				objs, err := getter.get(ctx, d)
 				if err != nil {
 					log.Printf("Error getting %s: %v", getter.ty, err)
 					continue
@@ -120,7 +120,7 @@ func main() {
 	}
 }
 
-func getUsers(d db.DB, ctx context.Context) ([]interface{}, error) {
+func getUsers(ctx context.Context, d db.DB) ([]interface{}, error) {
 	users, err := d.ListUsers(ctx)
 	if err != nil {
 		return nil, err
@@ -137,7 +137,7 @@ func getUsers(d db.DB, ctx context.Context) ([]interface{}, error) {
 	return results, nil
 }
 
-func getMemberships(d db.DB, ctx context.Context) ([]interface{}, error) {
+func getMemberships(ctx context.Context, d db.DB) ([]interface{}, error) {
 	memberships, err := d.ListMemberships(ctx)
 	if err != nil {
 		return nil, err
@@ -153,7 +153,7 @@ func getMemberships(d db.DB, ctx context.Context) ([]interface{}, error) {
 	return results, nil
 }
 
-func getInstances(d db.DB, ctx context.Context) ([]interface{}, error) {
+func getInstances(ctx context.Context, d db.DB) ([]interface{}, error) {
 	instances, err := d.ListOrganizations(ctx)
 	if err != nil {
 		return nil, err
