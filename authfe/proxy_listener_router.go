@@ -76,11 +76,10 @@ func (p *proxyListener) Accept() (net.Conn, error) {
 // Close closes the listener.
 // Any blocked Accept operations will be unblocked and return errors.
 func (p *proxyListener) Close() error {
-	return nil
+	return p.parent.Close()
 }
 
 // Addr returns the listener's network address.
 func (p proxyListener) Addr() net.Addr {
 	return p.parent.Addr()
-
 }
