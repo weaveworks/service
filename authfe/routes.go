@@ -456,6 +456,12 @@ func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
 
 func injectTokenInHTMLResponses(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Only consider non-websocket GET methods
+		if r.Method != http.MethodGet || middleware.IsWSHandshakeRequest(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		rec := httptest.NewRecorder()
 		next.ServeHTTP(rec, r)
 		responseHeader := w.Header()
