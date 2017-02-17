@@ -71,7 +71,7 @@ func main() {
 	flag.StringVar(&c.apiInfo, "api.info", "scopeservice:0.1", "Version info for the api to serve, in format ID:VERSION")
 	flag.StringVar(&c.targetOrigin, "hostname", "", "Hostname through which this server is accessed, for same-origin checks (CSRF protection)")
 	flag.BoolVar(&c.redirectHTTPS, "redirect-https", false, "Redirect all HTTP traffic to HTTPS")
-	flag.IntVar(&c.hstsMaxAge, "htst-max-age", 0, "Max Age in seconds for HSTS header - zero means no header.  Header will only be send if redirect-https is true.")
+	flag.IntVar(&c.hstsMaxAge, "hsts-max-age", 0, "Max Age in seconds for HSTS header - zero means no header.  Header will only be send if redirect-https is true.")
 
 	hostFlags := []struct {
 		dest *string
