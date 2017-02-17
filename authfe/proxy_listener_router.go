@@ -59,6 +59,13 @@ func (p *proxyListenerRouter) loop() {
 
 		go func(proxyConn *proxyproto.Conn) {
 			localAddr := proxyConn.DstAddr().(*net.TCPAddr)
+
+			// Can happen if proxyProto fails to read the header
+			if localAddr == nil {
+				p.conns <- proxyConn
+				return
+			}
+
 			p.mtx.Lock()
 			listener, ok := p.listeners[localAddr.Port]
 			p.mtx.Unlock()
