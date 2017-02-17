@@ -256,6 +256,29 @@ func routes(c Config) (http.Handler, error) {
 	}
 
 	r := newRouter()
+
+	// For all probe <-> app communication, authenticated using header credentials
+	probeRoute := prefix{
+		"/api",
+		[]path{
+			{"/report", newProxy(c.collectionHost)},
+			{"/control", newProxy(c.controlHost)},
+			{"/pipe", newProxy(c.pipeHost)},
+			{"/configs", newProxy(c.configsHost)},
+			{"/flux", newProxy(c.fluxHost)},
+			{"/prom/push", cortexDistributorClient},
+			{"/prom", cortexQuerierClient},
+		},
+		middleware.Merge(
+			users.AuthProbeMiddleware{
+				Authenticator:      c.authenticator,
+				OutputHeader:       c.outputHeader,
+				FeatureFlagsHeader: featureFlagsHeader,
+			},
+			probeHTTPlogger,
+		),
+	}
+
 	for _, route := range []routable{
 		// demo service paths get rewritten to remove /demo/ prefix, so trailing slash is required
 		path{"/demo", redirect("/demo/")},
@@ -303,27 +326,8 @@ func routes(c Config) (http.Handler, error) {
 			middleware.Merge(authUserMiddleware, analyticsLogger).Wrap(noopHandler),
 		},
 
-		// For all probe <-> app communication, authenticated using header credentials
-		prefix{
-			"/api",
-			[]path{
-				{"/report", newProxy(c.collectionHost)},
-				{"/control", newProxy(c.controlHost)},
-				{"/pipe", newProxy(c.pipeHost)},
-				{"/configs", newProxy(c.configsHost)},
-				{"/flux", newProxy(c.fluxHost)},
-				{"/prom/push", cortexDistributorClient},
-				{"/prom", cortexQuerierClient},
-			},
-			middleware.Merge(
-				users.AuthProbeMiddleware{
-					Authenticator:      c.authenticator,
-					OutputHeader:       c.outputHeader,
-					FeatureFlagsHeader: featureFlagsHeader,
-				},
-				probeHTTPlogger,
-			),
-		},
+		// Probes
+		probeRoute,
 
 		// For all admin functionality, authenticated using header credentials
 		prefix{
@@ -417,7 +421,7 @@ func routes(c Config) (http.Handler, error) {
 
 	return middleware.Merge(
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
-		middleware.Func(csfrTokenMiddleware),
+		csrfTokenVerifier{exemptPaths: probeRoute.AbsolutePaths()},
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler)
 		}),
@@ -425,21 +429,26 @@ func routes(c Config) (http.Handler, error) {
 	).Wrap(r), nil
 }
 
-// Takes care of setting and verifying anti-CSFR tokens
-// * Injects the CSFR token in html responses, as a toplevel window property
+// Takes care of setting and verifying anti-CSRF tokens
+// * Injects the CSRF token in html responses, by replacing the the $__CSRF_TOKEN_PLACEHOLDER__ string
 //   (so that the JS code can include it in all its requests).
-// * Sets the CSFR token in cookie.
+// * Sets the CSRF token in cookie.
 // * Checks them against each other.
 // It complements static origin checking
-func csfrTokenMiddleware(next http.Handler) http.Handler {
+type csrfTokenVerifier struct {
+	exemptPaths []string
+}
+
+func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
 	h := nosurf.New(injectTokenInHTMLResponses(next))
 	h.SetBaseCookie(http.Cookie{
 		MaxAge:   nosurf.MaxAge,
 		HttpOnly: true,
 		Path:     "/",
 	})
-	// Disable token verification until header-setting is deployed in the javascript code
-	// (and html caching expires).
+	h.ExemptPaths(c.exemptPaths...)
+	// Disable token verification for all requests
+	// until header-setting is deployed in the javascript code (and html caching expires).
 	// TODO: re-enable it
 	h.ExemptFunc(func(r *http.Request) bool { return true })
 	return h
@@ -459,8 +468,7 @@ func injectTokenInHTMLResponses(next http.Handler) http.Handler {
 		responseBody := rec.Body.Bytes()
 
 		if w.Header().Get("Content-Type") == "text/html" {
-			newHead := `</head><script language="javascript">window.__WEAVEWORKS_CSRF_TOKEN = "` + nosurf.Token(r) + `";</script>`
-			responseBody = bytes.Replace(responseBody, []byte("</head>"), []byte(newHead), -1)
+			responseBody = bytes.Replace(responseBody, []byte("$__CSRF_TOKEN_PLACEHOLDER__"), []byte(nosurf.Token(r)), -1)
 			// Adjust content length if present
 			if responseHeader.Get("Content-Type") != "" {
 				responseHeader.Set("Content-Length", strconv.Itoa(len(responseBody)))
@@ -479,7 +487,7 @@ func injectTokenInHTMLResponses(next http.Handler) http.Handler {
 }
 
 // Checks Origin and Referer headers against the expected target of the site
-// to protect against CSFR attacks.
+// to protect against CSRF attacks.
 type originCheckerMiddleware struct {
 	expectedTarget string
 }
@@ -575,4 +583,13 @@ func (p prefix) Add(r *mux.Router) {
 				p.mid.Wrap(route.handler),
 			)
 	}
+}
+
+// this should probably be moved to "routable" if/when we accept nested prefixes
+func (p prefix) AbsolutePaths() []string {
+	var result []string
+	for _, path := range p.routes {
+		result = append(result, filepath.Clean(p.prefix+"/"+path.path))
+	}
+	return result
 }
