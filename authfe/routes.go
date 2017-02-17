@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -31,6 +32,8 @@ type Config struct {
 	logSuccess    bool
 	apiInfo       string
 	targetOrigin  string
+	redirectHTTPS bool
+	hstsMaxAge    int
 
 	// User-visible services - keep alphabetically sorted pls
 	collectionHost      string
@@ -65,6 +68,24 @@ type Config struct {
 	scopeHost               string
 	terradiffHost           string
 	usersHost               string
+}
+
+func (c Config) commonMiddleWare(routeMatcher middleware.RouteMatcher) middleware.Interface {
+	extraHeaders := http.Header{}
+	extraHeaders.Add("X-Frame-Options", "SAMEORIGIN")
+	if c.redirectHTTPS && c.hstsMaxAge > 0 {
+		extraHeaders.Add("Strict-Transport-Security", fmt.Sprintf("max-age=%d; includeSubDomains", c.hstsMaxAge))
+	}
+	return middleware.Merge(
+		middleware.HeaderAdder{extraHeaders},
+		middleware.Instrument{
+			RouteMatcher: routeMatcher,
+			Duration:     common.RequestDuration,
+		},
+		middleware.Log{
+			LogSuccess: c.logSuccess,
+		},
+	)
 }
 
 var noopHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -395,23 +416,8 @@ func routes(c Config) (http.Handler, error) {
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler)
 		}),
-		commonMiddleWare(c.logSuccess, r),
+		c.commonMiddleWare(r),
 	).Wrap(r), nil
-}
-
-func commonMiddleWare(logSuccess bool, routeMatcher middleware.RouteMatcher) middleware.Interface {
-	sameOrigin := http.Header{}
-	sameOrigin.Add("X-Frame-Options", "SAMEORIGIN")
-	return middleware.Merge(
-		middleware.HeaderAdder{sameOrigin},
-		middleware.Instrument{
-			RouteMatcher: routeMatcher,
-			Duration:     common.RequestDuration,
-		},
-		middleware.Log{
-			LogSuccess: logSuccess,
-		},
-	)
 }
 
 type originCheckerMiddleware struct {

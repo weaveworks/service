@@ -54,7 +54,6 @@ func main() {
 		authCacheSize         int
 		authCacheExpiration   time.Duration
 		fluentHost            string
-		redirectHTTPS         bool
 
 		c Config
 	)
@@ -71,7 +70,8 @@ func main() {
 	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
 	flag.StringVar(&c.apiInfo, "api.info", "scopeservice:0.1", "Version info for the api to serve, in format ID:VERSION")
 	flag.StringVar(&c.targetOrigin, "hostname", "", "Hostname through which this server is accessed, for same-origin checks (CSRF protection)")
-	flag.BoolVar(&redirectHTTPS, "redirect-https", false, "Redirect all HTTP traffic to HTTPS")
+	flag.BoolVar(&c.redirectHTTPS, "redirect-https", false, "Redirect all HTTP traffic to HTTPS")
+	flag.IntVar(&c.hstsMaxAge, "htst-max-age", 0, "Max Age in seconds for HSTS header - zero means no header.  Header will only be send if redirect-https is true.")
 
 	hostFlags := []struct {
 		dest *string
@@ -198,13 +198,13 @@ func main() {
 		ProxyHeaderTimeout: proxyTimeout,
 	}
 
-	if redirectHTTPS {
+	if c.redirectHTTPS {
 		// We use a custom listener router to ensure only connections on port 443 get
 		// through to the real router - everything else gets redirected.
 		proxyListenerRouter := newProxyListenerRouter(proxyListener)
 		proxyListener = proxyListenerRouter.listenerForPort(443)
 		redirectServer := &http.Server{
-			Handler: commonMiddleWare(c.logSuccess, nil).Wrap(
+			Handler: c.commonMiddleWare(nil).Wrap(
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					url := r.URL
 					url.Host = r.Host
