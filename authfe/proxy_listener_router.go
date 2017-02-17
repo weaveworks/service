@@ -13,6 +13,10 @@ type proxyListenerRouter struct {
 	mtx       sync.Mutex
 	listeners map[int]*proxyListener
 	original  net.Listener
+
+	conns  chan net.Conn
+	errs   chan error
+	closed chan struct{}
 }
 
 type proxyListener struct {
@@ -21,9 +25,56 @@ type proxyListener struct {
 }
 
 func newProxyListenerRouter(original net.Listener) *proxyListenerRouter {
-	return &proxyListenerRouter{
+	p := &proxyListenerRouter{
 		listeners: map[int]*proxyListener{},
 		original:  original,
+		conns:     make(chan net.Conn),
+		errs:      make(chan error),
+		closed:    make(chan struct{}),
+	}
+	go p.loop()
+	return p
+}
+
+func (p *proxyListenerRouter) loop() {
+	for {
+		select {
+		case <-p.closed:
+			return
+		default:
+		}
+
+		conn, err := p.original.Accept()
+		if err != nil {
+			p.errs <- err
+			continue
+		}
+
+		// Check this is a proxy proto connection
+		proxyConn, ok := conn.(*proxyproto.Conn)
+		if !ok {
+			p.conns <- conn
+			continue
+		}
+
+		go func(proxyConn *proxyproto.Conn) {
+			localAddr := proxyConn.DstAddr().(*net.TCPAddr)
+
+			// Can happen if proxyProto fails to read the header
+			if localAddr == nil {
+				p.conns <- proxyConn
+				return
+			}
+
+			p.mtx.Lock()
+			listener, ok := p.listeners[localAddr.Port]
+			p.mtx.Unlock()
+			if ok {
+				listener.c <- proxyConn
+			} else {
+				p.conns <- proxyConn
+			}
+		}(proxyConn)
 	}
 }
 
@@ -40,31 +91,18 @@ func (p *proxyListenerRouter) listenerForPort(port int) net.Listener {
 
 // Accept waits for and returns the next connection to the listener.
 func (p *proxyListenerRouter) Accept() (net.Conn, error) {
-	for {
-		conn, err := p.original.Accept()
-		if err != nil {
-			return nil, err
-		}
-
-		// Check this is a proxy proto connection
-		if proxyConn, ok := conn.(*proxyproto.Conn); ok {
-			localAddr := proxyConn.DstAddr().(*net.TCPAddr)
-			p.mtx.Lock()
-			listener, ok := p.listeners[localAddr.Port]
-			p.mtx.Unlock()
-			if ok {
-				listener.c <- conn
-				continue
-			}
-		}
-
+	select {
+	case conn := <-p.conns:
 		return conn, nil
+	case err := <-p.errs:
+		return nil, err
 	}
 }
 
 // Close closes the listener.
 // Any blocked Accept operations will be unblocked and return errors.
 func (p *proxyListenerRouter) Close() error {
+	close(p.closed)
 	return p.original.Close()
 }
 
