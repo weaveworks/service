@@ -31,9 +31,12 @@ type Config struct {
 	outputHeader  string
 	logSuccess    bool
 	apiInfo       string
+
+	// Security-related flags
 	targetOrigin  string
 	redirectHTTPS bool
 	hstsMaxAge    int
+	sendCSPHeader bool
 
 	// User-visible services - keep alphabetically sorted pls
 	collectionHost      string
@@ -75,7 +78,9 @@ func (c Config) commonMiddleWare(routeMatcher middleware.RouteMatcher) middlewar
 	extraHeaders.Add("X-Frame-Options", "SAMEORIGIN")
 	extraHeaders.Add("X-XSS-Protection", "1; mode=block")
 	extraHeaders.Add("X-Content-Type-Options", "nosniff")
-	extraHeaders.Add("Content-Security-Policy", "default-src https:")
+	if c.sendCSPHeader {
+		extraHeaders.Add("Content-Security-Policy", "default-src https:")
+	}
 	if c.redirectHTTPS && c.hstsMaxAge > 0 {
 		extraHeaders.Add("Strict-Transport-Security", fmt.Sprintf("max-age=%d; includeSubDomains", c.hstsMaxAge))
 	}
