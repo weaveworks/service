@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/justinas/nosurf"
 	"github.com/weaveworks/common/middleware"
 
 	"github.com/weaveworks/service/common"
@@ -93,21 +92,5 @@ func (a *API) routes() http.Handler {
 			RouteMatcher: r,
 			Duration:     common.RequestDuration,
 		},
-		middleware.Func(csrf),
 	).Wrap(r)
-}
-
-// Make csrf stuff (via nosurf) available in this handler, and set the csrf
-// token cookie in any responses.
-func csrf(handler http.Handler) http.Handler {
-	h := nosurf.New(handler)
-	h.SetBaseCookie(http.Cookie{
-		MaxAge:   nosurf.MaxAge,
-		HttpOnly: true,
-		Path:     "/",
-	})
-	// We don't use nosurf's csrf checking. We only use it to generate & compare
-	// tokens.
-	h.ExemptFunc(func(r *http.Request) bool { return true })
-	return h
 }

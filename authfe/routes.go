@@ -1,17 +1,22 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"path/filepath"
 	"regexp"
+	"strconv"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"github.com/justinas/nosurf"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 
@@ -252,6 +257,29 @@ func routes(c Config) (http.Handler, error) {
 	}
 
 	r := newRouter()
+
+	// For all probe <-> app communication, authenticated using header credentials
+	probeRoute := prefix{
+		"/api",
+		[]path{
+			{"/report", newProxy(c.collectionHost)},
+			{"/control", newProxy(c.controlHost)},
+			{"/pipe", newProxy(c.pipeHost)},
+			{"/configs", newProxy(c.configsHost)},
+			{"/flux", newProxy(c.fluxHost)},
+			{"/prom/push", cortexDistributorClient},
+			{"/prom", cortexQuerierClient},
+		},
+		middleware.Merge(
+			users.AuthProbeMiddleware{
+				Authenticator:      c.authenticator,
+				OutputHeader:       c.outputHeader,
+				FeatureFlagsHeader: featureFlagsHeader,
+			},
+			probeHTTPlogger,
+		),
+	}
+
 	for _, route := range []routable{
 		// demo service paths get rewritten to remove /demo/ prefix, so trailing slash is required
 		path{"/demo", redirect("/demo/")},
@@ -299,27 +327,8 @@ func routes(c Config) (http.Handler, error) {
 			middleware.Merge(authUserMiddleware, analyticsLogger).Wrap(noopHandler),
 		},
 
-		// For all probe <-> app communication, authenticated using header credentials
-		prefix{
-			"/api",
-			[]path{
-				{"/report", newProxy(c.collectionHost)},
-				{"/control", newProxy(c.controlHost)},
-				{"/pipe", newProxy(c.pipeHost)},
-				{"/configs", newProxy(c.configsHost)},
-				{"/flux", newProxy(c.fluxHost)},
-				{"/prom/push", cortexDistributorClient},
-				{"/prom", cortexQuerierClient},
-			},
-			middleware.Merge(
-				users.AuthProbeMiddleware{
-					Authenticator:      c.authenticator,
-					OutputHeader:       c.outputHeader,
-					FeatureFlagsHeader: featureFlagsHeader,
-				},
-				probeHTTPlogger,
-			),
-		},
+		// Probes
+		probeRoute,
 
 		// For all admin functionality, authenticated using header credentials
 		prefix{
@@ -413,6 +422,7 @@ func routes(c Config) (http.Handler, error) {
 
 	return middleware.Merge(
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
+		csrfTokenVerifier{exemptPaths: probeRoute.AbsolutePaths()},
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler)
 		}),
@@ -420,6 +430,75 @@ func routes(c Config) (http.Handler, error) {
 	).Wrap(r), nil
 }
 
+// Takes care of setting and verifying anti-CSRF tokens
+// * Injects the CSRF token in html responses, by replacing the the $__CSRF_TOKEN_PLACEHOLDER__ string
+//   (so that the JS code can include it in all its requests).
+// * Sets the CSRF token in cookie.
+// * Checks them against each other.
+// It complements static origin checking
+type csrfTokenVerifier struct {
+	exemptPaths []string
+}
+
+func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
+	h := nosurf.New(injectTokenInHTMLResponses(next))
+	h.SetBaseCookie(http.Cookie{
+		MaxAge:   nosurf.MaxAge,
+		HttpOnly: true,
+		Path:     "/",
+	})
+	// Make errors a bit more descriptive than a plain 400
+	h.SetFailureHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "CSRF token mismatch", http.StatusBadRequest)
+	}))
+	h.ExemptPaths(c.exemptPaths...)
+	// Disable token verification for all requests
+	// until header-setting is deployed in the javascript code (and html caching expires).
+	// TODO: re-enable it
+	h.ExemptFunc(func(r *http.Request) bool { return true })
+	return h
+}
+
+func injectTokenInHTMLResponses(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Only consider non-websocket GET methods
+		if r.Method != http.MethodGet || middleware.IsWSHandshakeRequest(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		rec := httptest.NewRecorder()
+		next.ServeHTTP(rec, r)
+		responseHeader := w.Header()
+
+		// Copy the original headers
+		for k, v := range rec.Header() {
+			responseHeader[k] = v
+		}
+
+		responseBody := rec.Body.Bytes()
+
+		if mtype, _, err := mime.ParseMediaType(responseHeader.Get("Content-Type")); err == nil && mtype == "text/html" {
+			responseBody = bytes.Replace(responseBody, []byte("$__CSRF_TOKEN_PLACEHOLDER__"), []byte(nosurf.Token(r)), -1)
+			// Adjust content length if present
+			if responseHeader.Get("Content-Length") != "" {
+				responseHeader.Set("Content-Length", strconv.Itoa(len(responseBody)))
+			}
+			// Disable caching. The token needs to be reloaded every
+			// time the cookie changes.
+			responseHeader.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			responseHeader.Set("Pragma", "no-cache")
+			responseHeader.Set("Expires", "0")
+		}
+
+		// Finally, write the response
+		w.WriteHeader(rec.Code)
+		w.Write(responseBody)
+	})
+}
+
+// Checks Origin and Referer headers against the expected target of the site
+// to protect against CSRF attacks.
 type originCheckerMiddleware struct {
 	expectedTarget string
 }
@@ -515,4 +594,13 @@ func (p prefix) Add(r *mux.Router) {
 				p.mid.Wrap(route.handler),
 			)
 	}
+}
+
+// this should probably be moved to "routable" if/when we accept nested prefixes
+func (p prefix) AbsolutePaths() []string {
+	var result []string
+	for _, path := range p.routes {
+		result = append(result, filepath.Clean(p.prefix+"/"+path.path))
+	}
+	return result
 }
