@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -477,10 +478,10 @@ func injectTokenInHTMLResponses(next http.Handler) http.Handler {
 
 		responseBody := rec.Body.Bytes()
 
-		if w.Header().Get("Content-Type") == "text/html" {
+		if mtype, _, err := mime.ParseMediaType(responseHeader.Get("Content-Type")); err == nil && mtype == "text/html" {
 			responseBody = bytes.Replace(responseBody, []byte("$__CSRF_TOKEN_PLACEHOLDER__"), []byte(nosurf.Token(r)), -1)
 			// Adjust content length if present
-			if responseHeader.Get("Content-Type") != "" {
+			if responseHeader.Get("Content-Length") != "" {
 				responseHeader.Set("Content-Length", strconv.Itoa(len(responseBody)))
 			}
 			// Disable caching. The token needs to be reloaded every
