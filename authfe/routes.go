@@ -446,6 +446,10 @@ func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
 		HttpOnly: true,
 		Path:     "/",
 	})
+	// Make errors a bit more descriptive than a plain 400
+	h.SetFailureHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "CSRF token mismatch", http.StatusBadRequest)
+	}))
 	h.ExemptPaths(c.exemptPaths...)
 	// Disable token verification for all requests
 	// until header-setting is deployed in the javascript code (and html caching expires).
