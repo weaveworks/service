@@ -42,6 +42,7 @@ type Config struct {
 	redirectHTTPS bool
 	hstsMaxAge    int
 	sendCSPHeader bool
+	secureCookie  bool
 
 	// User-visible services - keep alphabetically sorted pls
 	collectionHost      string
@@ -430,7 +431,7 @@ func routes(c Config) (http.Handler, error) {
 
 	return middleware.Merge(
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
-		csrfTokenVerifier{exemptPaths: probeRoute.AbsolutePaths()},
+		csrfTokenVerifier{exemptPaths: probeRoute.AbsolutePaths(), secure: c.secureCookie},
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler)
 		}),
@@ -446,6 +447,7 @@ func routes(c Config) (http.Handler, error) {
 // It complements static origin checking
 type csrfTokenVerifier struct {
 	exemptPaths []string
+	secure      bool
 }
 
 func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
@@ -454,6 +456,7 @@ func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
 		MaxAge:   nosurf.MaxAge,
 		HttpOnly: true,
 		Path:     "/",
+		Secure:   c.secure,
 	})
 	// Make errors a bit more descriptive than a plain 400
 	h.SetFailureHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
