@@ -39,6 +39,7 @@ func main() {
 		emailURI           = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Email-uri must be provided. For local development, you can set this to: log://, which will log all emails.")
 		sessionSecret      = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
 		directLogin        = flag.Bool("direct-login", false, "Send login token in the signup response (DEV only)")
+		secureCookie       = flag.Bool("secure-cookie", false, "Set secure flag on cookies (so they only get used on HTTPS connections.)")
 
 		pardotEmail    = flag.String("pardot-email", "", "Email of Pardot account.  If not supplied pardot integration will be disabled.")
 		pardotPassword = flag.String("pardot-password", "", "Password of Pardot account.")
@@ -102,7 +103,7 @@ func main() {
 	emailer := emailer.MustNew(*emailURI, *emailFromAddress, templates, *domain)
 	db := db.MustNew(*databaseURI, *databaseMigrations)
 	defer db.Close(context.Background())
-	sessions := sessions.MustNewStore(*sessionSecret)
+	sessions := sessions.MustNewStore(*sessionSecret, *secureCookie)
 
 	logrus.Debug("Debug logging enabled")
 
