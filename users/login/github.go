@@ -21,7 +21,7 @@ func NewGithubProvider() Provider {
 			name: "Github",
 			Config: oauth2.Config{
 				Endpoint: githubOauth.Endpoint,
-				Scopes:   []string{"user:email"},
+				Scopes:   []string{"user:email", "repo", "write:public_key", "read:public_key"},
 			},
 		},
 	}

@@ -142,6 +142,10 @@ func main() {
 		authOptions.ProbeCredCacheExpiration = authCacheExpiration
 	}
 	c.authenticator = users.MakeAuthenticator(authType, authURL, authOptions)
+	c.ghIntegration = &users.TokenRequester{
+		URL:          authURL,
+		UserIDHeader: userIDHeader,
+	}
 
 	if fluentHost != "" {
 		var err error

@@ -10,7 +10,10 @@ import (
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
 
+	"encoding/json"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/client"
+	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/render"
 )
 
@@ -218,6 +221,74 @@ func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
 		redirectTo = "/private/api/users"
 	}
 	http.Redirect(w, r, redirectTo, http.StatusFound)
+}
+
+func (a *API) getUserToken(w http.ResponseWriter, r *http.Request) {
+	// Get User ID from path
+	vars := mux.Vars(r)
+	userID, ok := vars["userID"]
+	if !ok {
+		render.Error(w, r, users.ErrProviderParameters)
+		return
+	}
+	provider, ok := vars["provider"]
+	if !ok {
+		render.Error(w, r, users.ErrProviderParameters)
+		return
+	}
+
+	// Does user exist?
+	_, err := a.db.FindUserByID(r.Context(), userID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+
+	// Get logins for user
+	logins, err := a.db.ListLoginsForUserIDs(r.Context(), userID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	l, err := getSpecificLogin(provider, logins)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+
+	// Parse session information to get token
+	tok, err := parseTokenFromSession(l.Session)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	render.JSON(w, 200, client.ProviderToken{
+		Token: tok,
+	})
+	return
+}
+
+func getSpecificLogin(login string, logins []*login.Login) (*login.Login, error) {
+	for _, l := range logins {
+		if l.Provider == login {
+			return l, nil
+		}
+	}
+	return nil, users.ErrLoginNotFound
+}
+
+func parseTokenFromSession(session json.RawMessage) (string, error) {
+	b, err := session.MarshalJSON()
+	if err != nil {
+		return "", err
+	}
+	var sess struct {
+		Token struct {
+			AccessToken string `json:"access_token"`
+		} `json:"token"`
+	}
+	err = json.Unmarshal(b, &sess)
+	return sess.Token.AccessToken, err
 }
 
 // MakeUserAdmin makes a user an admin

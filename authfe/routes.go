@@ -32,6 +32,7 @@ const maxAnalyticsPayloadSize = 16 * 1024 // bytes
 // Config is all the config we need to build the routes
 type Config struct {
 	authenticator users.Authenticator
+	ghIntegration users.Integration
 	eventLogger   *EventLogger
 	outputHeader  string
 	logSuccess    bool
@@ -234,6 +235,10 @@ func routes(c Config) (http.Handler, error) {
 		RequireFeatureFlags: []string{"billing"},
 	}
 
+	fluxGHTokenMiddleware := users.GHIntegrationMiddleware{
+		T: c.ghIntegration,
+	}
+
 	// middleware to set header to disable caching if path == "/" exactly
 	noCacheOnRoot := middleware.Func(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -304,6 +309,9 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/control", newProxy(c.controlHost)},
 				{"/api/pipe", newProxy(c.pipeHost)},
 				{"/api/configs", newProxy(c.configsHost)},
+				// API to insert deploy key requires GH token. Insert token with middleware.
+				{"/api/flux/v5/integrations/github",
+					fluxGHTokenMiddleware.Wrap(newProxy(c.fluxHost))},
 				{"/api/flux", newProxy(c.fluxHost)},
 				{"/api/prom", cortexQuerierClient},
 				{"/api", newProxy(c.queryHost)},
