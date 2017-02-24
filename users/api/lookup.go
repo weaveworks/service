@@ -10,17 +10,8 @@ import (
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/render"
 	"github.com/weaveworks/service/users/sessions"
+	"github.com/weaveworks/service/users/tokens"
 )
-
-type lookupOrgRequest struct {
-	Cookie, OrgExternalID string
-}
-
-type lookupOrgResponse struct {
-	OrganizationID string   `json:"organizationID,omitempty"`
-	UserID         string   `json:"userID,omitempty"`
-	FeatureFlags   []string `json:"featureFlags,omitempty"`
-}
 
 func (a *API) lookupOrgHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := sessions.Extract(r)
@@ -28,10 +19,9 @@ func (a *API) lookupOrgHandler(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err)
 		return
 	}
+	orgExternalID := mux.Vars(r)["orgExternalID"]
 
-	vars := mux.Vars(r)
-	orgExternalID := vars["orgExternalID"]
-	view, err := a.lookupOrg(r.Context(), &lookupOrgRequest{cookie, orgExternalID})
+	view, err := a.LookupOrg(r.Context(), &users.LookupOrgRequest{cookie, orgExternalID})
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -40,19 +30,22 @@ func (a *API) lookupOrgHandler(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, view)
 }
 
-func (a *API) lookupOrg(ctx context.Context, req *lookupOrgRequest) (*lookupOrgResponse, error) {
+func (a *API) LookupOrg(ctx context.Context, req *users.LookupOrgRequest) (*users.LookupOrgResponse, error) {
 	session, err := a.sessions.Decode(req.Cookie)
 	if err != nil {
 		return nil, err
 	}
 
 	organizations, err := a.db.ListOrganizationsForUserIDs(ctx, session.UserID)
+	if err == users.ErrNotFound {
+		err = users.ErrInvalidAuthenticationData
+	}
 	if err != nil {
 		return nil, err
 	}
 	for _, org := range organizations {
 		if strings.ToLower(org.ExternalID) == strings.ToLower(req.OrgExternalID) {
-			return &lookupOrgResponse{
+			return &users.LookupOrgResponse{
 				OrganizationID: org.ID,
 				UserID:         session.UserID,
 				FeatureFlags:   org.FeatureFlags,
@@ -62,26 +55,96 @@ func (a *API) lookupOrg(ctx context.Context, req *lookupOrgRequest) (*lookupOrgR
 	return nil, users.ErrInvalidAuthenticationData
 }
 
-type lookupAdminView struct {
-	AdminID string `json:"adminID,omitempty"`
-}
-
-func (a *API) lookupAdmin(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	if currentUser.Admin {
-		render.JSON(w, http.StatusOK, lookupAdminView{AdminID: currentUser.ID})
+func (a *API) lookupAdminHandler(w http.ResponseWriter, r *http.Request) {
+	cookie, err := sessions.Extract(r)
+	if err != nil {
+		render.Error(w, r, err)
 		return
 	}
-	w.WriteHeader(http.StatusUnauthorized)
+
+	view, err := a.LookupAdmin(r.Context(), &users.LookupAdminRequest{
+		Cookie: cookie,
+	})
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+
+	render.JSON(w, http.StatusOK, view)
 }
 
-func (a *API) lookupUsingToken(organization *users.Organization, w http.ResponseWriter, r *http.Request) {
-	render.JSON(w, http.StatusOK, lookupOrgResponse{OrganizationID: organization.ID, FeatureFlags: organization.FeatureFlags})
+func (a *API) LookupAdmin(ctx context.Context, req *users.LookupAdminRequest) (*users.LookupAdminResponse, error) {
+	session, err := a.sessions.Decode(req.Cookie)
+	if err != nil {
+		return nil, err
+	}
+	u, err := a.db.FindUserByID(ctx, session.UserID)
+	if err == users.ErrNotFound {
+		err = users.ErrInvalidAuthenticationData
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !u.Admin {
+		return nil, users.ErrInvalidAuthenticationData
+	}
+	return &users.LookupAdminResponse{
+		AdminID: u.ID,
+	}, nil
 }
 
-type lookupUserView struct {
-	UserID string `json:"userID,omitempty"`
+func (a *API) lookupUsingTokenHandler(w http.ResponseWriter, r *http.Request) {
+	token, ok := tokens.ExtractToken(r)
+	if !ok {
+		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		return
+	}
+
+	view, err := a.LookupUsingToken(r.Context(), &users.LookupUsingTokenRequest{
+		Token: token,
+	})
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+
+	render.JSON(w, http.StatusOK, view)
 }
 
-func (a *API) lookupUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	render.JSON(w, http.StatusOK, lookupUserView{UserID: currentUser.ID})
+func (a *API) LookupUsingToken(ctx context.Context, req *users.LookupUsingTokenRequest) (*users.LookupUsingTokenResponse, error) {
+	o, err := a.db.FindOrganizationByProbeToken(ctx, req.Token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &users.LookupUsingTokenResponse{
+		OrganizationID: o.ID,
+		FeatureFlags:   o.FeatureFlags,
+	}, nil
+}
+
+func (a *API) lookupUserHandler(w http.ResponseWriter, r *http.Request) {
+	cookie, err := sessions.Extract(r)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+
+	view, err := a.LookupUser(r.Context(), &users.LookupUserRequest{
+		Cookie: cookie,
+	})
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+
+	render.JSON(w, http.StatusOK, view)
+}
+
+func (a *API) LookupUser(ctx context.Context, req *users.LookupUserRequest) (*users.LookupUserResponse, error) {
+	session, err := a.sessions.Decode(req.Cookie)
+	if err != nil {
+		return nil, err
+	}
+	return &users.LookupUserResponse{session.UserID}, nil
 }

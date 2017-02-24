@@ -11,9 +11,15 @@ import (
 	"github.com/tylerb/graceful"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/configs/api"
 	"github.com/weaveworks/service/configs/db"
 )
+
+func init() {
+	prometheus.MustRegister(common.RequestDuration)
+	prometheus.MustRegister(common.DatabaseRequestDuration)
+}
 
 func main() {
 	var (

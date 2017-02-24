@@ -1,4 +1,4 @@
-package client_test
+package client
 
 import (
 	"encoding/json"
@@ -11,9 +11,11 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
-	"github.com/weaveworks/common/middleware"
+	"golang.org/x/net/context"
 
-	"github.com/weaveworks/service/users/client"
+	"github.com/weaveworks/common/middleware"
+	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/tokens"
 )
 
 const (
@@ -48,7 +50,7 @@ func newDummyServer() *dummyServer {
 			}
 
 			localOrgExternalID := mux.Vars(r)["orgExternalID"]
-			localOrgCookie, err := r.Cookie(client.AuthCookieName)
+			localOrgCookie, err := r.Cookie(AuthCookieName)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
@@ -75,7 +77,11 @@ func newDummyServer() *dummyServer {
 				return
 			}
 
-			localAuthToken := r.Header.Get(client.AuthHeaderName)
+			localAuthToken, ok := tokens.ExtractToken(r)
+			if !ok {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
 			j, _ := json.Marshal(map[string]interface{}{
 				"organizationID": orgID,
 				"featureFlags":   featureFlags,
@@ -95,87 +101,82 @@ func newDummyServer() *dummyServer {
 func TestAuth(t *testing.T) {
 	server := newDummyServer()
 	defer server.Close()
-	auth := client.MakeAuthenticator("web", server.URL, client.AuthenticatorOptions{})
+	auth, err := New("web", server.URL, CachingClientConfig{})
+	assert.NoError(t, err)
 
 	// Test we can auth based on the headers
 	{
-		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
-		req.Header.Set(client.AuthHeaderName, orgToken)
-		w := httptest.NewRecorder()
-		gotOrgID, gotFeatureFlags, err := auth.AuthenticateProbe(w, req)
+		response, err := auth.LookupUsingToken(context.Background(), &users.LookupUsingTokenRequest{
+			Token: orgToken,
+		})
 		assert.NoError(t, err, "Unexpected error from authenticator")
-		assert.Equal(t, orgID, gotOrgID, "Unexpected organization")
-		assert.Equal(t, featureFlags, gotFeatureFlags, "Unexpected featureFlags")
+		assert.Equal(t, orgID, response.OrganizationID, "Unexpected organization")
+		assert.Equal(t, featureFlags, response.FeatureFlags, "Unexpected featureFlags")
 	}
 
 	// Test we can auth based on cookies
 	{
-		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
-		req.AddCookie(&http.Cookie{
-			Name:  client.AuthCookieName,
-			Value: orgCookie,
+		response, err := auth.LookupOrg(context.Background(), &users.LookupOrgRequest{
+			Cookie:        orgCookie,
+			OrgExternalID: orgExternalID,
 		})
-		w := httptest.NewRecorder()
-		gotOrgID, user, gotFeatureFlags, err := auth.AuthenticateOrg(w, req, orgExternalID)
 		assert.NoError(t, err, "Unexpected error from authenticator")
-		assert.Equal(t, orgID, gotOrgID, "Unexpected organization")
-		assert.Equal(t, userID, user, "Unexpected user")
-		assert.Equal(t, featureFlags, gotFeatureFlags, "Unexpected organization")
+		assert.Equal(t, orgID, response.OrganizationID, "Unexpected organization")
+		assert.Equal(t, userID, response.UserID, "Unexpected user")
+		assert.Equal(t, featureFlags, response.FeatureFlags, "Unexpected organization")
 	}
 
 	// Test denying access for headers
 	{
-		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
-		req.Header.Set(client.AuthHeaderName, "Scope-Probe This is not the right value")
-		w := httptest.NewRecorder()
-		gotOrgID, gotFeatureFlags, err := auth.AuthenticateProbe(w, req)
+		response, err := auth.LookupUsingToken(context.Background(), &users.LookupUsingTokenRequest{
+			Token: "This is not the right value",
+		})
 		assert.Error(t, err, "Unexpected successful authentication")
-		assert.Equal(t, "", gotOrgID, "Unexpected organization")
-		assert.Len(t, gotFeatureFlags, 0, "Unexpected organization")
+		assert.Equal(t, "", response.OrganizationID, "Unexpected organization")
+		assert.Len(t, response.FeatureFlags, 0, "Unexpected organization")
 	}
 
 	// Test denying access for cookies
 	{
-		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
-		req.AddCookie(&http.Cookie{
-			Name:  client.AuthCookieName,
-			Value: "Not the right cookie",
+		response, err := auth.LookupOrg(context.Background(), &users.LookupOrgRequest{
+			Cookie:        "Not the right cookie",
+			OrgExternalID: orgExternalID,
 		})
-		w := httptest.NewRecorder()
-		gotOrgID, user, gotFeatureFlags, err := auth.AuthenticateOrg(w, req, orgExternalID)
 		assert.Error(t, err, "Unexpected successful authentication")
-		assert.Equal(t, "", gotOrgID, "Unexpected organization")
-		assert.Equal(t, "", user, "Unexpected user")
-		assert.Len(t, gotFeatureFlags, 0, "Unexpected organization")
+		assert.Equal(t, "", response.OrganizationID, "Unexpected organization")
+		assert.Equal(t, "", response.UserID, "Unexpected user")
+		assert.Len(t, response.FeatureFlags, 0, "Unexpected organization")
 	}
 }
 
 func TestAuthCache(t *testing.T) {
 	server := newDummyServer()
 	defer server.Close()
-	auth := client.MakeAuthenticator("web", server.URL, client.AuthenticatorOptions{
+	auth, err := New("web", server.URL, CachingClientConfig{
 		CredCacheEnabled:         true,
 		ProbeCredCacheSize:       1,
 		OrgCredCacheSize:         1,
 		ProbeCredCacheExpiration: time.Minute,
 		OrgCredCacheExpiration:   time.Minute,
 	})
+	assert.NoError(t, err)
 
 	// Test denying access should be cached
 	{
-		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
-		req.Header.Set(client.AuthHeaderName, "Scope-Probe This is not the right value")
-		w := httptest.NewRecorder()
-		gotOrgID, gotFeatureFlags, err := auth.AuthenticateProbe(w, req)
+		response, err := auth.LookupUsingToken(context.Background(), &users.LookupUsingTokenRequest{
+			Token: "This is not the right value",
+		})
 		assert.Error(t, err, "Unexpected successful authentication")
-		assert.Equal(t, "", gotOrgID, "Unexpected organization")
-		assert.Len(t, gotFeatureFlags, 0, "Unexpected organization")
+		assert.Equal(t, "", response.OrganizationID, "Unexpected organization")
+		assert.Len(t, response.FeatureFlags, 0, "Unexpected organization")
 		assert.Equal(t, int32(1), atomic.LoadInt32(&server.probeLookups), "Unexpected number of probe lookups")
 
-		gotOrgID, gotFeatureFlags, err = auth.AuthenticateProbe(w, req)
+		response, err = auth.LookupUsingToken(context.Background(), &users.LookupUsingTokenRequest{
+			Token: "This is not the right value",
+		})
 		assert.Error(t, err, "Unexpected successful authentication")
-		assert.Equal(t, "", gotOrgID, "Unexpected organization")
-		assert.Len(t, gotFeatureFlags, 0, "Unexpected organization")
+		assert.Equal(t, "", response.OrganizationID, "Unexpected organization")
+		assert.Len(t, response.FeatureFlags, 0, "Unexpected organization")
 		assert.Equal(t, int32(1), atomic.LoadInt32(&server.probeLookups), "Unexpected number of probe lookups")
 	}
 
@@ -183,19 +184,20 @@ func TestAuthCache(t *testing.T) {
 	{
 		atomic.StoreInt32(&server.failRequests, 1)
 
-		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
-		req.Header.Set(client.AuthHeaderName, "Scope-Probe This is a different but not the right value")
-		w := httptest.NewRecorder()
-		gotOrgID, gotFeatureFlags, err := auth.AuthenticateProbe(w, req)
+		response, err := auth.LookupUsingToken(context.Background(), &users.LookupUsingTokenRequest{
+			Token: "This is a different but not right value",
+		})
 		assert.Error(t, err, "Unexpected successful authentication")
-		assert.Equal(t, "", gotOrgID, "Unexpected organization")
-		assert.Len(t, gotFeatureFlags, 0, "Unexpected organization")
+		assert.Equal(t, "", response.OrganizationID, "Unexpected organization")
+		assert.Len(t, response.FeatureFlags, 0, "Unexpected organization")
 		assert.Equal(t, int32(2), atomic.LoadInt32(&server.probeLookups), "Unexpected number of probe lookups")
 
-		gotOrgID, gotFeatureFlags, err = auth.AuthenticateProbe(w, req)
+		response, err = auth.LookupUsingToken(context.Background(), &users.LookupUsingTokenRequest{
+			Token: "This is a different but not right value",
+		})
 		assert.Error(t, err, "Unexpected successful authentication")
-		assert.Equal(t, "", gotOrgID, "Unexpected organization")
-		assert.Len(t, gotFeatureFlags, 0, "Unexpected organization")
+		assert.Equal(t, "", response.OrganizationID, "Unexpected organization")
+		assert.Len(t, response.FeatureFlags, 0, "Unexpected organization")
 		assert.Equal(t, int32(3), atomic.LoadInt32(&server.probeLookups), "Unexpected number of probe lookups")
 	}
 }
@@ -203,7 +205,8 @@ func TestAuthCache(t *testing.T) {
 func TestMiddleware(t *testing.T) {
 	server := newDummyServer()
 	defer server.Close()
-	auth := client.MakeAuthenticator("web", server.URL, client.AuthenticatorOptions{})
+	auth, err := New("web", server.URL, CachingClientConfig{})
+	assert.NoError(t, err)
 
 	var (
 		body                   = []byte("OK")
@@ -226,9 +229,9 @@ func TestMiddleware(t *testing.T) {
 	// Test we can auth based on the headers
 	{
 		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
-		req.Header.Set(client.AuthHeaderName, orgToken)
-		mw := client.AuthProbeMiddleware{
-			Authenticator:      auth,
+		req.Header.Set(tokens.AuthHeaderName, tokens.Prefix+orgToken)
+		mw := AuthProbeMiddleware{
+			UsersClient:        auth,
 			OutputHeader:       headerName,
 			FeatureFlagsHeader: featureFlagsHeaderName,
 		}
@@ -241,11 +244,11 @@ func TestMiddleware(t *testing.T) {
 	{
 		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
 		req.AddCookie(&http.Cookie{
-			Name:  client.AuthCookieName,
+			Name:  AuthCookieName,
 			Value: orgCookie,
 		})
-		mw := client.AuthOrgMiddleware{
-			Authenticator:      auth,
+		mw := AuthOrgMiddleware{
+			UsersClient:        auth,
 			OrgExternalID:      func(*http.Request) (string, bool) { return orgExternalID, true },
 			OutputHeader:       headerName,
 			FeatureFlagsHeader: featureFlagsHeaderName,
@@ -258,10 +261,10 @@ func TestMiddleware(t *testing.T) {
 	// Test denying access for headers
 	{
 		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
-		req.Header.Set(client.AuthHeaderName, "This is not the right value")
-		mw := client.AuthProbeMiddleware{
-			Authenticator: auth,
-			OutputHeader:  headerName,
+		req.Header.Set(tokens.AuthHeaderName, "This is not the right value")
+		mw := AuthProbeMiddleware{
+			UsersClient:  auth,
+			OutputHeader: headerName,
 		}
 		result := testMiddleware(mw, req)
 		assert.Equal(t, result.Code, http.StatusUnauthorized, "")
@@ -272,11 +275,11 @@ func TestMiddleware(t *testing.T) {
 	{
 		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
 		req.AddCookie(&http.Cookie{
-			Name:  client.AuthCookieName,
+			Name:  AuthCookieName,
 			Value: "Not the right cookie",
 		})
-		mw := client.AuthOrgMiddleware{
-			Authenticator:      auth,
+		mw := AuthOrgMiddleware{
+			UsersClient:        auth,
 			OrgExternalID:      func(*http.Request) (string, bool) { return orgExternalID, true },
 			OutputHeader:       headerName,
 			FeatureFlagsHeader: featureFlagsHeaderName,
@@ -289,9 +292,9 @@ func TestMiddleware(t *testing.T) {
 	// Test denying access for feature flags
 	{
 		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
-		req.Header.Set(client.AuthHeaderName, orgToken)
-		mw := client.AuthProbeMiddleware{
-			Authenticator:       auth,
+		req.Header.Set(tokens.AuthHeaderName, orgToken)
+		mw := AuthProbeMiddleware{
+			UsersClient:         auth,
 			OutputHeader:        headerName,
 			FeatureFlagsHeader:  featureFlagsHeaderName,
 			RequireFeatureFlags: []string{"foo"},

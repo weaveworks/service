@@ -4,9 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/weaveworks/common/middleware"
-
-	"github.com/weaveworks/service/common"
 )
 
 func (a *API) routes() http.Handler {
@@ -63,10 +60,10 @@ func (a *API) routes() http.Handler {
 
 		// The users service client (i.e. our other services) use these to
 		// authenticate the admin/user/probe.
-		{"private_api_users_admin", "GET", "/private/api/users/admin", a.authenticateUser(a.lookupAdmin)},
+		{"private_api_users_admin", "GET", "/private/api/users/admin", a.lookupAdminHandler},
 		{"private_api_users_lookup_orgExternalID", "GET", "/private/api/users/lookup/{orgExternalID}", a.lookupOrgHandler},
-		{"private_api_users_lookup", "GET", "/private/api/users/lookup", a.authenticateProbe(a.lookupUsingToken)},
-		{"private_api_users_lookup_user", "GET", "/private/api/users/lookup_user", a.authenticateUser(a.lookupUser)},
+		{"private_api_users_lookup", "GET", "/private/api/users/lookup", a.lookupUsingTokenHandler},
+		{"private_api_users_lookup_user", "GET", "/private/api/users/lookup_user", a.lookupUserHandler},
 
 		// Internal stuff for our internal usage, internally.
 		{"root", "GET", "/", a.admin},
@@ -80,13 +77,5 @@ func (a *API) routes() http.Handler {
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
-	return middleware.Merge(
-		middleware.Log{
-			LogSuccess: a.logSuccess,
-		},
-		middleware.Instrument{
-			RouteMatcher: r,
-			Duration:     common.RequestDuration,
-		},
-	).Wrap(r)
+	return r
 }

@@ -42,6 +42,7 @@ var (
 func init() {
 	prometheus.MustRegister(wsConnections)
 	prometheus.MustRegister(wsRequestCount)
+	prometheus.MustRegister(common.RequestDuration)
 }
 
 func main() {
@@ -133,7 +134,7 @@ func main() {
 		}
 	}
 
-	authOptions := users.AuthenticatorOptions{}
+	authOptions := users.CachingClientConfig{}
 	if authCacheSize > 0 {
 		authOptions.CredCacheEnabled = true
 		authOptions.OrgCredCacheSize = authCacheSize
@@ -141,7 +142,12 @@ func main() {
 		authOptions.OrgCredCacheExpiration = authCacheExpiration
 		authOptions.ProbeCredCacheExpiration = authCacheExpiration
 	}
-	c.authenticator = users.MakeAuthenticator(authType, authURL, authOptions)
+	var err error
+	c.authenticator, err = users.New(authType, authURL, authOptions)
+	if err != nil {
+		log.Fatalf("Error making users client: %v", err)
+		return
+	}
 	c.ghIntegration = &users.TokenRequester{
 		URL:          authURL,
 		UserIDHeader: userIDHeader,

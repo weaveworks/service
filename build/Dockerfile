@@ -1,5 +1,5 @@
-FROM golang:1.7.3
-RUN apt-get update && apt-get install -y python-requests python-yaml file jq shellcheck && \
+FROM golang:1.8.0
+RUN apt-get update && apt-get install -y python-requests python-yaml file jq shellcheck unzip && \
 	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN go clean -i net && \
 	go install -tags netgo std && \
@@ -10,7 +10,18 @@ RUN go get -tags netgo \
 		github.com/kisielk/errcheck \
 		github.com/mjibson/esc \
 		github.com/client9/misspell/cmd/misspell \
-		gopkg.in/mvdan/sh.v1/cmd/shfmt && \
+		gopkg.in/mvdan/sh.v1/cmd/shfmt \
+		github.com/golang/protobuf/protoc-gen-go \
+		github.com/gogo/protobuf/protoc-gen-gogoslick \
+		github.com/gogo/protobuf/gogoproto && \
 	rm -rf /go/pkg/ /go/src/
+RUN mkdir protoc && \
+	cd protoc && \
+	curl -O -L https://github.com/google/protobuf/releases/download/v3.1.0/protoc-3.1.0-linux-x86_64.zip && \
+	unzip protoc-3.1.0-linux-x86_64.zip && \
+	cp bin/protoc /usr/bin/ && \
+	chmod o+x /usr/bin/protoc && \
+	cd .. && \
+	rm -rf protoc
 COPY build.sh /
 ENTRYPOINT ["/build.sh"]

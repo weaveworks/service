@@ -2,22 +2,19 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"math/rand"
 	"net/http"
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/opentracing-contrib/go-stdlib/nethttp"
-	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/tylerb/graceful"
 	"github.com/weaveworks-experiments/loki/pkg/client"
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/common/logging"
-	"github.com/weaveworks/common/middleware"
+	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common"
+	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
@@ -27,12 +24,16 @@ import (
 	"github.com/weaveworks/service/users/templates"
 )
 
+func init() {
+	prometheus.MustRegister(common.DatabaseRequestDuration)
+}
+
 func main() {
 	var (
 		logLevel           = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
 		logSuccess         = flag.Bool("log.success", false, "Log successful requests.")
 		port               = flag.Int("port", 80, "port to listen on")
-		stopTimeout        = flag.Duration("stop.timeout", 5*time.Second, "How long to wait for remaining requests to finish during shutdown")
+		grpcPort           = flag.Int("grpc-port", 4772, "grpc port to listen on")
 		domain             = flag.String("domain", "https://cloud.weave.works", "domain where scope service is runnning.")
 		databaseURI        = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
 		databaseMigrations = flag.String("database-migrations", "", "Path where the database migration files can be found")
@@ -107,8 +108,6 @@ func main() {
 
 	logrus.Debug("Debug logging enabled")
 
-	logrus.Infof("Listening on port %d", *port)
-	mux := http.NewServeMux()
 	api := api.New(*directLogin, *logSuccess, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey)
 
 	if *localTestUserCreate {
@@ -116,22 +115,20 @@ func main() {
 			*localTestUserInstanceName, *localTestUserInstanceToken)
 	}
 
-	tracer, err := loki.NewTracer()
-	if err != nil {
-		logrus.Fatalf("Error configuring tracing: %v", err)
-		return
-	}
-	opentracing.InitGlobalTracer(tracer)
+	logrus.Infof("Listening on port %d", *port)
+	s := server.New(server.Config{
+		MetricsNamespace: common.PrometheusNamespace,
+		LogSuccess:       *logSuccess,
+		HTTPListenPort:   *port,
+		GRPCListenPort:   *grpcPort,
+	})
+	s.HTTP.Handle("/metrics", makePrometheusHandler())
+	s.HTTP.Handle("/traces", loki.Handler())
+	s.HTTP.PathPrefix("/").Handler(api)
 
-	mux.Handle("/", middleware.Func(func(handler http.Handler) http.Handler {
-		return nethttp.Middleware(opentracing.GlobalTracer(), handler)
-	}).Wrap(api))
-	mux.Handle("/metrics", makePrometheusHandler())
-	mux.Handle("/traces", loki.Handler())
-	if err := graceful.RunWithErr(fmt.Sprintf(":%d", *port), *stopTimeout, mux); err != nil {
-		logrus.Fatal(err)
-	}
-	logrus.Info("Gracefully shut down")
+	users.RegisterUsersServer(s.GRPC, api)
+
+	s.Run()
 }
 
 func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string) {

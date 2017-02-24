@@ -24,15 +24,16 @@ import (
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/scope/common/xfer"
 	"github.com/weaveworks/service/common"
-	users "github.com/weaveworks/service/users/client"
+	"github.com/weaveworks/service/users"
+	users_client "github.com/weaveworks/service/users/client"
 )
 
 const maxAnalyticsPayloadSize = 16 * 1024 // bytes
 
 // Config is all the config we need to build the routes
 type Config struct {
-	authenticator users.Authenticator
-	ghIntegration users.Integration
+	authenticator users.UsersClient
+	ghIntegration users_client.Integration
 	eventLogger   *EventLogger
 	outputHeader  string
 	logSuccess    bool
@@ -207,8 +208,8 @@ func routes(c Config) (http.Handler, error) {
 		}
 	}
 
-	authOrgMiddleware := users.AuthOrgMiddleware{
-		Authenticator: c.authenticator,
+	authOrgMiddleware := users_client.AuthOrgMiddleware{
+		UsersClient: c.authenticator,
 		OrgExternalID: func(r *http.Request) (string, bool) {
 			v, ok := mux.Vars(r)["orgExternalID"]
 			return v, ok
@@ -218,13 +219,13 @@ func routes(c Config) (http.Handler, error) {
 		FeatureFlagsHeader: featureFlagsHeader,
 	}
 
-	authUserMiddleware := users.AuthUserMiddleware{
-		Authenticator: c.authenticator,
-		UserIDHeader:  userIDHeader,
+	authUserMiddleware := users_client.AuthUserMiddleware{
+		UsersClient:  c.authenticator,
+		UserIDHeader: userIDHeader,
 	}
 
-	billingAuthMiddleware := users.AuthOrgMiddleware{
-		Authenticator: c.authenticator,
+	billingAuthMiddleware := users_client.AuthOrgMiddleware{
+		UsersClient: c.authenticator,
 		OrgExternalID: func(r *http.Request) (string, bool) {
 			v, ok := mux.Vars(r)["orgExternalID"]
 			return v, ok
@@ -235,7 +236,7 @@ func routes(c Config) (http.Handler, error) {
 		RequireFeatureFlags: []string{"billing"},
 	}
 
-	fluxGHTokenMiddleware := users.GHIntegrationMiddleware{
+	fluxGHTokenMiddleware := users_client.GHIntegrationMiddleware{
 		T: c.ghIntegration,
 	}
 
@@ -285,8 +286,8 @@ func routes(c Config) (http.Handler, error) {
 			{"/prom", cortexQuerierClient},
 		},
 		middleware.Merge(
-			users.AuthProbeMiddleware{
-				Authenticator:      c.authenticator,
+			users_client.AuthProbeMiddleware{
+				UsersClient:        c.authenticator,
 				OutputHeader:       c.outputHeader,
 				FeatureFlagsHeader: featureFlagsHeader,
 			},
@@ -373,9 +374,9 @@ func routes(c Config) (http.Handler, error) {
 					Code:    401,
 					Handler: redirect("/login"),
 				},
-				users.AuthAdminMiddleware{
-					Authenticator: c.authenticator,
-					OutputHeader:  c.outputHeader,
+				users_client.AuthAdminMiddleware{
+					UsersClient:  c.authenticator,
+					OutputHeader: c.outputHeader,
 				},
 			),
 		},
