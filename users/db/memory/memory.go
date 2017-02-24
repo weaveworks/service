@@ -15,7 +15,6 @@ type DB struct {
 	organizations       map[string]*users.Organization
 	memberships         map[string][]string
 	logins              map[string]*login.Login
-	apiTokens           map[string]*users.APIToken
 	passwordHashingCost int
 	mtx                 sync.Mutex
 }
@@ -27,7 +26,6 @@ func New(_, _ string, passwordHashingCost int) (*DB, error) {
 		organizations:       make(map[string]*users.Organization),
 		memberships:         make(map[string][]string),
 		logins:              make(map[string]*login.Login),
-		apiTokens:           make(map[string]*users.APIToken),
 		passwordHashingCost: passwordHashingCost,
 	}, nil
 }
