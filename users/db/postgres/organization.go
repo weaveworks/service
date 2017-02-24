@@ -207,17 +207,12 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 // FindOrganizationByProbeToken looks up the organization matching a given
 // probe token.
 func (d DB) FindOrganizationByProbeToken(_ context.Context, probeToken string) (*users.Organization, error) {
-	var o *users.Organization
-	var err error
-	err = d.Transaction(func(tx DB) error {
-		o, err = tx.scanOrganization(
-			tx.organizationsQuery().Where(squirrel.Eq{"organizations.probe_token": probeToken}).QueryRow(),
-		)
-		if err == sql.ErrNoRows {
-			err = users.ErrNotFound
-		}
-		return err
-	})
+	o, err := d.scanOrganization(
+		d.organizationsQuery().Where(squirrel.Eq{"organizations.probe_token": probeToken}).QueryRow(),
+	)
+	if err == sql.ErrNoRows {
+		err = users.ErrNotFound
+	}
 	if err != nil {
 		o = nil
 	}
