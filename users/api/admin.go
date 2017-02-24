@@ -85,12 +85,11 @@ type listOrganizationsView struct {
 }
 
 type privateOrgView struct {
-	ID                 string   `json:"id"`
-	InternalID         string   `json:"internal_id"`
-	Name               string   `json:"name"`
-	CreatedAt          string   `json:"created_at"`
-	FirstProbeUpdateAt string   `json:"first_probe_update_at,omitempty"`
-	FeatureFlags       []string `json:"feature_flags,omitempty"`
+	ID           string   `json:"id"`
+	InternalID   string   `json:"internal_id"`
+	Name         string   `json:"name"`
+	CreatedAt    string   `json:"created_at"`
+	FeatureFlags []string `json:"feature_flags,omitempty"`
 }
 
 func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
@@ -105,12 +104,11 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 		view := listOrganizationsView{}
 		for _, org := range organizations {
 			view.Organizations = append(view.Organizations, privateOrgView{
-				ID:                 org.ExternalID,
-				InternalID:         org.ID,
-				Name:               org.Name,
-				CreatedAt:          org.FormatCreatedAt(),
-				FirstProbeUpdateAt: org.FormatFirstProbeUpdateAt(),
-				FeatureFlags:       org.FeatureFlags,
+				ID:           org.ExternalID,
+				InternalID:   org.ID,
+				Name:         org.Name,
+				CreatedAt:    org.FormatCreatedAt(),
+				FeatureFlags: org.FeatureFlags,
 			})
 		}
 		render.JSON(w, http.StatusOK, view)
@@ -154,12 +152,11 @@ func (a *API) adminShowOrganization(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.JSON(w, http.StatusOK, privateOrgView{
-		ID:                 org.ExternalID,
-		InternalID:         org.ID,
-		Name:               org.Name,
-		CreatedAt:          org.FormatCreatedAt(),
-		FirstProbeUpdateAt: org.FormatFirstProbeUpdateAt(),
-		FeatureFlags:       org.FeatureFlags,
+		ID:           org.ExternalID,
+		InternalID:   org.ID,
+		Name:         org.Name,
+		CreatedAt:    org.FormatCreatedAt(),
+		FeatureFlags: org.FeatureFlags,
 	})
 }
 

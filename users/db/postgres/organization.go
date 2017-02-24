@@ -59,7 +59,6 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.external_id",
 		"organizations.name",
 		"organizations.probe_token",
-		"organizations.first_probe_update_at",
 		"organizations.created_at",
 		"organizations.feature_flags",
 	).
@@ -214,11 +213,6 @@ func (d DB) FindOrganizationByProbeToken(_ context.Context, probeToken string) (
 		o, err = tx.scanOrganization(
 			tx.organizationsQuery().Where(squirrel.Eq{"organizations.probe_token": probeToken}).QueryRow(),
 		)
-		if err == nil && o.FirstProbeUpdateAt.IsZero() {
-			o.FirstProbeUpdateAt = d.Now()
-			_, err = tx.Exec(`update organizations set first_probe_update_at = $2 where id = $1`, o.ID, o.FirstProbeUpdateAt)
-		}
-
 		if err == sql.ErrNoRows {
 			err = users.ErrNotFound
 		}
@@ -263,14 +257,13 @@ func (d DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
 func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, error) {
 	o := &users.Organization{}
 	var externalID, name, probeToken sql.NullString
-	var firstProbeUpdateAt, createdAt pq.NullTime
-	if err := row.Scan(&o.ID, &externalID, &name, &probeToken, &firstProbeUpdateAt, &createdAt, pq.Array(&o.FeatureFlags)); err != nil {
+	var createdAt pq.NullTime
+	if err := row.Scan(&o.ID, &externalID, &name, &probeToken, &createdAt, pq.Array(&o.FeatureFlags)); err != nil {
 		return nil, err
 	}
 	o.ExternalID = externalID.String
 	o.Name = name.String
 	o.ProbeToken = probeToken.String
-	o.FirstProbeUpdateAt = firstProbeUpdateAt.Time
 	o.CreatedAt = createdAt.Time
 	return o, nil
 }

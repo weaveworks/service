@@ -14,13 +14,12 @@ var (
 // Organization (aka Instance) represents a database organization, and a UI
 // instance. (same thing)
 type Organization struct {
-	ID                 string
-	ExternalID         string
-	Name               string
-	ProbeToken         string
-	FirstProbeUpdateAt time.Time
-	CreatedAt          time.Time
-	FeatureFlags       []string
+	ID           string
+	ExternalID   string
+	Name         string
+	ProbeToken   string
+	CreatedAt    time.Time
+	FeatureFlags []string
 }
 
 // Membership represents a users membership of an organization.
@@ -55,9 +54,4 @@ func (o *Organization) Valid() error {
 // FormatCreatedAt formats the org's created at timestamp
 func (o *Organization) FormatCreatedAt() string {
 	return formatTimestamp(o.CreatedAt)
-}
-
-// FormatFirstProbeUpdateAt formats the org's first probe update at timestamp
-func (o *Organization) FormatFirstProbeUpdateAt() string {
-	return formatTimestamp(o.FirstProbeUpdateAt)
 }

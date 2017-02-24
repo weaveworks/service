@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -48,11 +47,6 @@ func Test_PublicLookup(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	// Use the org, so that firstProbeUpdateAt is set.
-	org, err := database.FindOrganizationByProbeToken(context.Background(), org.ProbeToken)
-	require.NoError(t, err)
-	require.NotNil(t, org.FirstProbeUpdateAt)
-
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "GET", "/api/users/lookup", nil)
 
@@ -66,9 +60,8 @@ func Test_PublicLookup(t *testing.T) {
 		"munchkinHash": app.MunchkinHash(user.Email),
 		"organizations": []interface{}{
 			map[string]interface{}{
-				"id":                 org.ExternalID,
-				"name":               org.Name,
-				"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
+				"id":   org.ExternalID,
+				"name": org.Name,
 			},
 		},
 	}, body)
@@ -108,8 +101,6 @@ func Test_Lookup_ProbeToken(t *testing.T) {
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
 	require.Len(t, organizations, 1)
-	assert.NotNil(t, organizations[0].FirstProbeUpdateAt)
-	assert.False(t, organizations[0].FirstProbeUpdateAt.IsZero())
 }
 
 func Test_Lookup_Admin(t *testing.T) {

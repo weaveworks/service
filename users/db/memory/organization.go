@@ -213,9 +213,6 @@ func (d *DB) FindOrganizationByProbeToken(_ context.Context, probeToken string) 
 	defer d.mtx.Unlock()
 	for _, o := range d.organizations {
 		if o.ProbeToken == probeToken {
-			if o.FirstProbeUpdateAt.IsZero() {
-				o.FirstProbeUpdateAt = time.Now().UTC()
-			}
 			return o, nil
 		}
 	}

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,7 +29,6 @@ func Test_Org(t *testing.T) {
 
 	org, err = database.FindOrganizationByProbeToken(context.Background(), organizations[0].ProbeToken)
 	require.NoError(t, err)
-	require.NotNil(t, org.FirstProbeUpdateAt)
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "GET", "/api/users/org/"+organizations[0].ExternalID, nil)
@@ -39,11 +37,10 @@ func Test_Org(t *testing.T) {
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
-		"user":               user.Email,
-		"id":                 org.ExternalID,
-		"name":               org.Name,
-		"probeToken":         org.ProbeToken,
-		"firstProbeUpdateAt": org.FirstProbeUpdateAt.UTC().Format(time.RFC3339),
+		"user":       user.Email,
+		"id":         org.ExternalID,
+		"name":       org.Name,
+		"probeToken": org.ProbeToken,
 	}, body)
 }
 
