@@ -69,7 +69,7 @@ func (a *API) routes() http.Handler {
 		// The users service client (i.e. our other services) use these to
 		// authenticate the admin/user/probe.
 		{"private_api_users_admin", "GET", "/private/api/users/admin", a.authenticateUser(a.lookupAdmin)},
-		{"private_api_users_lookup_orgExternalID", "GET", "/private/api/users/lookup/{orgExternalID}", a.authenticateUser(a.lookupOrg)},
+		{"private_api_users_lookup_orgExternalID", "GET", "/private/api/users/lookup/{orgExternalID}", a.lookupOrgHandler},
 		{"private_api_users_lookup", "GET", "/private/api/users/lookup", a.authenticateProbe(a.lookupUsingToken)},
 		{"private_api_users_lookup_user", "GET", "/private/api/users/lookup_user", a.authenticateUser(a.lookupUser)},
 

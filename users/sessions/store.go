@@ -45,14 +45,23 @@ type Session struct {
 
 // Get fetches the current session for this request.
 func (s Store) Get(r *http.Request) (Session, error) {
+	value, err := Extract(r)
+	if err != nil {
+		return Session{}, err
+	}
+	return s.Decode(value)
+}
+
+// Extract the encoded session from a request.
+func Extract(r *http.Request) (string, error) {
 	cookie, err := r.Cookie(client.AuthCookieName)
 	if err == http.ErrNoCookie {
 		err = users.ErrInvalidAuthenticationData
 	}
 	if err != nil {
-		return Session{}, err
+		return "", err
 	}
-	return s.Decode(cookie.Value)
+	return cookie.Value, nil
 }
 
 // Decode converts an encoded session into a user ID.
