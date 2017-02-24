@@ -54,7 +54,6 @@ func (a *API) authenticateUser(handler func(*users.User, http.ResponseWriter, *h
 	return a.authenticateUserVia(
 		handler,
 		UserAuthenticator(a.cookieAuth),
-		UserAuthenticator(a.apiTokenAuth),
 	)
 }
 
@@ -145,26 +144,6 @@ func (a *API) cookieAuth(w http.ResponseWriter, r *http.Request) (*users.User, e
 			return nil, err
 		}
 	}
-	return u, nil
-}
-
-func (a *API) apiTokenAuth(w http.ResponseWriter, r *http.Request) (*users.User, error) {
-	// try logging in by user token header
-	credentials, ok := ParseAuthorizationHeader(r)
-	if !ok || credentials.Realm != "Scope-User" {
-		return nil, users.ErrInvalidAuthenticationData
-	}
-
-	token, ok := credentials.Params["token"]
-	if !ok {
-		return nil, users.ErrInvalidAuthenticationData
-	}
-
-	u, err := a.db.FindUserByAPIToken(r.Context(), token)
-	if err != nil {
-		return nil, err
-	}
-
 	return u, nil
 }
 

@@ -68,14 +68,6 @@ func (t timed) FindUserByLogin(ctx context.Context, provider, id string) (u *use
 	return
 }
 
-func (t timed) FindUserByAPIToken(ctx context.Context, token string) (u *users.User, err error) {
-	t.timeRequest(ctx, "FindUserByAPIToken", func(ctx context.Context) error {
-		u, err = t.d.FindUserByAPIToken(ctx, token)
-		return err
-	})
-	return
-}
-
 func (t timed) UserIsMemberOf(ctx context.Context, userID, orgExternalID string) (b bool, err error) {
 	t.timeRequest(ctx, "UserIsMemberOf", func(ctx context.Context) error {
 		b, err = t.d.UserIsMemberOf(ctx, userID, orgExternalID)
@@ -93,20 +85,6 @@ func (t timed) AddLoginToUser(ctx context.Context, userID, provider, id string, 
 func (t timed) DetachLoginFromUser(ctx context.Context, userID, provider string) error {
 	return t.timeRequest(ctx, "DetachLoginFromUser", func(ctx context.Context) error {
 		return t.d.DetachLoginFromUser(ctx, userID, provider)
-	})
-}
-
-func (t timed) CreateAPIToken(ctx context.Context, userID, description string) (token *users.APIToken, err error) {
-	t.timeRequest(ctx, "CreateAPIToken", func(ctx context.Context) error {
-		token, err = t.d.CreateAPIToken(ctx, userID, description)
-		return err
-	})
-	return
-}
-
-func (t timed) DeleteAPIToken(ctx context.Context, userID, token string) error {
-	return t.timeRequest(ctx, "DeleteAPIToken", func(ctx context.Context) error {
-		return t.d.DeleteAPIToken(ctx, userID, token)
 	})
 }
 
@@ -159,14 +137,6 @@ func (t timed) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...strin
 func (t timed) ListLoginsForUserIDs(ctx context.Context, userIDs ...string) (ls []*login.Login, err error) {
 	t.timeRequest(ctx, "ListLoginsForUserIDs", func(ctx context.Context) error {
 		ls, err = t.d.ListLoginsForUserIDs(ctx, userIDs...)
-		return err
-	})
-	return
-}
-
-func (t timed) ListAPITokensForUserIDs(ctx context.Context, userIDs ...string) (ts []*users.APIToken, err error) {
-	t.timeRequest(ctx, "ListAPITokensForUserIDs", func(ctx context.Context) error {
-		ts, err = t.d.ListAPITokensForUserIDs(ctx, userIDs...)
 		return err
 	})
 	return

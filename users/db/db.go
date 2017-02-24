@@ -29,7 +29,6 @@ type DB interface {
 	users.FindUserByIDer
 	FindUserByEmail(ctx context.Context, email string) (*users.User, error)
 	FindUserByLogin(ctx context.Context, provider, id string) (*users.User, error)
-	FindUserByAPIToken(ctx context.Context, token string) (*users.User, error)
 
 	UserIsMemberOf(ctx context.Context, userID, orgExternalID string) (bool, error)
 
@@ -42,12 +41,6 @@ type DB interface {
 	// DetachLoginFromUser removes all entries an entry denoting this
 	// user is linked to the remote login.
 	DetachLoginFromUser(ctx context.Context, userID, provider string) error
-
-	// Create an API Token for a user
-	CreateAPIToken(ctx context.Context, userID, description string) (*users.APIToken, error)
-
-	// Delete an API Token for a user
-	DeleteAPIToken(ctx context.Context, userID, token string) error
 
 	// Invite a user to access an existing organization.
 	InviteUser(ctx context.Context, email, orgExternalID string) (*users.User, bool, error)
@@ -65,10 +58,6 @@ type DB interface {
 
 	// ListLoginsForUserIDs lists all the logins associated with these users
 	ListLoginsForUserIDs(ctx context.Context, userIDs ...string) ([]*login.Login, error)
-
-	// ListAPITokensForUserIDs lists all the api tokens associated with these
-	// users
-	ListAPITokensForUserIDs(ctx context.Context, userIDs ...string) ([]*users.APIToken, error)
 
 	// Set the admin flag of a user
 	SetUserAdmin(ctx context.Context, id string, value bool) error

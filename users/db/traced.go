@@ -39,11 +39,6 @@ func (t traced) FindUserByLogin(ctx context.Context, provider, id string) (u *us
 	return t.d.FindUserByLogin(ctx, provider, id)
 }
 
-func (t traced) FindUserByAPIToken(ctx context.Context, token string) (u *users.User, err error) {
-	defer func() { t.trace("FindUserByAPIToken", token, u, err) }()
-	return t.d.FindUserByAPIToken(ctx, token)
-}
-
 func (t traced) UserIsMemberOf(ctx context.Context, userID, orgExternalID string) (b bool, err error) {
 	defer func() { t.trace("UserIsMemberOf", userID, orgExternalID, b, err) }()
 	return t.d.UserIsMemberOf(ctx, userID, orgExternalID)
@@ -57,16 +52,6 @@ func (t traced) AddLoginToUser(ctx context.Context, userID, provider, id string,
 func (t traced) DetachLoginFromUser(ctx context.Context, userID, provider string) (err error) {
 	defer func() { t.trace("DetachLoginFromUser", userID, provider, err) }()
 	return t.d.DetachLoginFromUser(ctx, userID, provider)
-}
-
-func (t traced) CreateAPIToken(ctx context.Context, userID, description string) (token *users.APIToken, err error) {
-	defer func() { t.trace("CreateAPIToken", userID, description, token, err) }()
-	return t.d.CreateAPIToken(ctx, userID, description)
-}
-
-func (t traced) DeleteAPIToken(ctx context.Context, userID, token string) (err error) {
-	defer func() { t.trace("DeleteAPIToken", userID, token, err) }()
-	return t.d.DeleteAPIToken(ctx, userID, token)
 }
 
 func (t traced) InviteUser(ctx context.Context, email, orgExternalID string) (u *users.User, created bool, err error) {
@@ -102,11 +87,6 @@ func (t traced) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...stri
 func (t traced) ListLoginsForUserIDs(ctx context.Context, userIDs ...string) (ls []*login.Login, err error) {
 	defer func() { t.trace("ListLoginsForUserIDs", userIDs, ls, err) }()
 	return t.d.ListLoginsForUserIDs(ctx, userIDs...)
-}
-
-func (t traced) ListAPITokensForUserIDs(ctx context.Context, userIDs ...string) (ts []*users.APIToken, err error) {
-	defer func() { t.trace("ListAPITokensForUserIDs", userIDs, ts, err) }()
-	return t.d.ListAPITokensForUserIDs(ctx, userIDs...)
 }
 
 func (t traced) SetUserAdmin(ctx context.Context, id string, value bool) (err error) {
