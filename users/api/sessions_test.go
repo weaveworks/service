@@ -19,10 +19,10 @@ func Test_Sessions_EncodeDecode(t *testing.T) {
 	encoded, err := sessionStore.Encode(user.ID)
 	require.NoError(t, err)
 
-	foundID, err := sessionStore.Decode(encoded)
+	foundSession, err := sessionStore.Decode(encoded)
 	require.NoError(t, err)
 
-	assert.Equal(t, user.ID, foundID)
+	assert.Equal(t, user.ID, foundSession.UserID)
 }
 
 func Test_Sessions_Get_NoCookie(t *testing.T) {
@@ -30,7 +30,7 @@ func Test_Sessions_Get_NoCookie(t *testing.T) {
 	defer cleanup(t)
 
 	r, _ := http.NewRequest("GET", "/", nil)
-	userID, err := sessionStore.Get(r)
+	session, err := sessionStore.Get(r)
 	assert.Equal(t, users.ErrInvalidAuthenticationData, err)
-	assert.Equal(t, "", userID)
+	assert.Equal(t, "", session.UserID)
 }

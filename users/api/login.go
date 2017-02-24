@@ -115,7 +115,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			// If we have an existing session and an provider, we should use
 			// that. This means that we'll associate the provider (if we have
 			// one) with the logged in session.
-			userID, err := a.sessions.Get(r)
+			session, err := a.sessions.Get(r)
 			switch err {
 			case nil:
 				view.Attach = true
@@ -124,7 +124,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			default:
 				return nil, err
 			}
-			return a.db.FindUserByID(r.Context(), userID)
+			return a.db.FindUserByID(r.Context(), session.UserID)
 		},
 		func() (*users.User, error) {
 			// If the user has already attached this provider, this is a no-op, so we

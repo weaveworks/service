@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	sessionDuration = 1440 * time.Hour
+	// SessionDuration is the duration used to set expiration session cookies
+	SessionDuration = 1440 * time.Hour
 )
 
 // MustNewStore creates a new session store, or panics.
@@ -36,39 +37,40 @@ type Store struct {
 	secure  bool
 }
 
-type session struct {
+// Session is the decoded representation of a session cookie
+type Session struct {
 	UserID    string
 	CreatedAt time.Time
 }
 
 // Get fetches the current session for this request.
-func (s Store) Get(r *http.Request) (string, error) {
+func (s Store) Get(r *http.Request) (Session, error) {
 	cookie, err := r.Cookie(client.AuthCookieName)
 	if err == http.ErrNoCookie {
 		err = users.ErrInvalidAuthenticationData
 	}
 	if err != nil {
-		return "", err
+		return Session{}, err
 	}
 	return s.Decode(cookie.Value)
 }
 
 // Decode converts an encoded session into a user ID.
-func (s Store) Decode(encoded string) (string, error) {
+func (s Store) Decode(encoded string) (Session, error) {
 	// Parse and validate the encoded session
-	var session session
+	var session Session
 	if err := s.encoder.Decode(client.AuthCookieName, encoded, &session); err != nil {
-		return "", users.ErrInvalidAuthenticationData
+		return Session{}, users.ErrInvalidAuthenticationData
 	}
 	// Check the session hasn't expired
-	if session.CreatedAt.IsZero() || time.Now().UTC().Sub(session.CreatedAt) > sessionDuration {
-		return "", users.ErrInvalidAuthenticationData
+	if session.CreatedAt.IsZero() || time.Now().UTC().Sub(session.CreatedAt) > SessionDuration {
+		return Session{}, users.ErrInvalidAuthenticationData
 	}
 	// Lookup the user by encoded id
 	if session.UserID == "" {
-		return "", users.ErrInvalidAuthenticationData
+		return Session{}, users.ErrInvalidAuthenticationData
 	}
-	return session.UserID, nil
+	return session, nil
 }
 
 // Set stores the session with the given userID for the user.
@@ -101,15 +103,15 @@ func (s Store) Cookie(userID string) (*http.Cookie, error) {
 		Value:    value,
 		Path:     "/",
 		HttpOnly: true,
-		Expires:  time.Now().UTC().Add(sessionDuration),
-		MaxAge:   int(sessionDuration / time.Second),
+		Expires:  time.Now().UTC().Add(SessionDuration),
+		MaxAge:   int(SessionDuration / time.Second),
 		Secure:   s.secure,
 	}, err
 }
 
 // Encode converts the session data into a session string
 func (s Store) Encode(userID string) (string, error) {
-	return s.encoder.Encode(client.AuthCookieName, session{
+	return s.encoder.Encode(client.AuthCookieName, Session{
 		UserID:    userID,
 		CreatedAt: time.Now().UTC(),
 	})
