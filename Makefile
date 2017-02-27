@@ -94,7 +94,7 @@ lint: build/$(UPTODATE)
 	./tools/lint .
 
 test: build/$(UPTODATE)
-	./tools/test -netgo
+	./tools/test -netgo -no-race
 
 endif
 

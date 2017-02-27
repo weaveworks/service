@@ -30,6 +30,7 @@ func (a *API) lookupOrgHandler(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, view)
 }
 
+// LookupOrg authenticates a cookie for access to an org by extenal ID.
 func (a *API) LookupOrg(ctx context.Context, req *users.LookupOrgRequest) (*users.LookupOrgResponse, error) {
 	session, err := a.sessions.Decode(req.Cookie)
 	if err != nil {
@@ -73,6 +74,7 @@ func (a *API) lookupAdminHandler(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, view)
 }
 
+// LookupAdmin authenticates a cookie for admin access.
 func (a *API) LookupAdmin(ctx context.Context, req *users.LookupAdminRequest) (*users.LookupAdminResponse, error) {
 	session, err := a.sessions.Decode(req.Cookie)
 	if err != nil {
@@ -111,6 +113,7 @@ func (a *API) lookupUsingTokenHandler(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, view)
 }
 
+// LookupUsingToken authenticates a token for access to an org.
 func (a *API) LookupUsingToken(ctx context.Context, req *users.LookupUsingTokenRequest) (*users.LookupUsingTokenResponse, error) {
 	o, err := a.db.FindOrganizationByProbeToken(ctx, req.Token)
 	if err != nil {
@@ -141,6 +144,7 @@ func (a *API) lookupUserHandler(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, view)
 }
 
+// LookupUser authenticates a cookie.
 func (a *API) LookupUser(ctx context.Context, req *users.LookupUserRequest) (*users.LookupUserResponse, error) {
 	session, err := a.sessions.Decode(req.Cookie)
 	if err != nil {
