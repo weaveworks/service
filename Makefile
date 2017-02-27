@@ -47,6 +47,7 @@ $(CONFIGS_EXE): $(shell find configs -name '*.go') $(COMMON)
 $(USERS_EXE): $(shell find users -name '*.go') $(COMMON) users/users.pb.go
 $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
 $(PR_ASSIGNER_EXE): $(shell find pr-assigner -name '*.go') $(COMMON)
+test: users/users.pb.go
 
 # And now what goes into each image
 authfe/$(UPTODATE): $(AUTHFE_EXE)
