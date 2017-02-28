@@ -4,6 +4,9 @@ import (
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 
 	"github.com/weaveworks/service/users"
 )
@@ -28,6 +31,14 @@ func errorStatusCode(err error) int {
 	}
 
 	return http.StatusInternalServerError
+}
+
+var GRPCErrorInterceptor grpc.UnaryServerInterceptor = func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	resp, err := handler(ctx, req)
+	if err != nil {
+		return nil, grpc.Errorf(codes.Code(errorStatusCode(err)), err.Error())
+	}
+	return resp, nil
 }
 
 // Error renders a specific error to the API

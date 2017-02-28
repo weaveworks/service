@@ -10,6 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks-experiments/loki/pkg/client"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
@@ -18,9 +19,10 @@ import (
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
-	"github.com/weaveworks/service/users/grpc"
+	grpc_server "github.com/weaveworks/service/users/grpc"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/marketing"
+	"github.com/weaveworks/service/users/render"
 	"github.com/weaveworks/service/users/sessions"
 	"github.com/weaveworks/service/users/templates"
 )
@@ -109,7 +111,7 @@ func main() {
 
 	logrus.Debug("Debug logging enabled")
 
-	grpcServer := grpc.New(sessions, db)
+	grpcServer := grpc_server.New(sessions, db)
 	api := api.New(*directLogin, *logSuccess, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey, grpcServer)
 
 	if *localTestUserCreate {
@@ -123,6 +125,7 @@ func main() {
 		LogSuccess:       *logSuccess,
 		HTTPListenPort:   *port,
 		GRPCListenPort:   *grpcPort,
+		GRPCMiddleware:   []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
 	})
 	if err != nil {
 		logrus.Fatalf("Failed to create server: %v", err)

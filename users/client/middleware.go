@@ -53,7 +53,7 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 				log.Infof("unauthorized request: %d", unauth.httpStatus)
 				w.WriteHeader(http.StatusUnauthorized)
 			} else {
-				log.Errorf("error contacting authenticator: %v", err)
+				log.Errorf("authenticator error: %v", err)
 				w.WriteHeader(http.StatusBadGateway)
 			}
 			return
@@ -98,7 +98,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 				log.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
 				w.WriteHeader(http.StatusUnauthorized)
 			} else {
-				log.Errorf("proxy: error contacting authenticator: %v", err)
+				log.Errorf("proxy: authenticator error: %v", err)
 				w.WriteHeader(http.StatusBadGateway)
 			}
 			return
@@ -156,7 +156,7 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 				log.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
 				w.WriteHeader(http.StatusUnauthorized)
 			} else {
-				log.Errorf("proxy: error contacting authenticator: %v", err)
+				log.Errorf("proxy: authenticator error: %v", err)
 				w.WriteHeader(http.StatusBadGateway)
 			}
 			return
@@ -194,7 +194,7 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 				log.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
 				w.WriteHeader(http.StatusUnauthorized)
 			} else {
-				log.Errorf("proxy: error contacting authenticator: %v", err)
+				log.Errorf("proxy: authenticator error: %v", err)
 				w.WriteHeader(http.StatusBadGateway)
 			}
 			return
