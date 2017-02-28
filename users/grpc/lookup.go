@@ -15,6 +15,7 @@ type usersServer struct {
 	db       db.DB
 }
 
+// New makes a new users.UsersServer
 func New(sessions sessions.Store, db db.DB) users.UsersServer {
 	return &usersServer{
 		sessions: sessions,
