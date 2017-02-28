@@ -7,13 +7,13 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 option (gogoproto.populate_all) = true;
 
 service Users {
-    // LookupOrg authenticates a cookie for access to an org by extenal ID.
+    // LookupOrg authenticates & authorizes a cookie for access to an org by extenal ID.
     rpc LookupOrg(LookupOrgRequest) returns (LookupOrgResponse) {};
 
-    // LookupUsingToken authenticates a token for access to an org.
+    // LookupUsingToken authenticates & authorizes a token for access to an org.
     rpc LookupUsingToken(LookupUsingTokenRequest) returns (LookupUsingTokenResponse) {};
 
-    // LookupAdmin authenticates a cookie for admin access.
+    // LookupAdmin authenticates & authorizes a cookie for admin access.
     rpc LookupAdmin(LookupAdminRequest) returns (LookupAdminResponse) {};
 
     // LookupUser authenticates a cookie.

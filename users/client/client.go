@@ -16,30 +16,17 @@ import (
 // New is a factory for Authenticators
 func New(kind, address string, opts CachingClientConfig) (users.UsersClient, error) {
 	var client users.UsersClient
+	var err error
 	switch kind {
 	case "mock":
 		client = mockClient{}
 	case "web":
 		client = newWebClient(address)
 	case "grpc":
-		service, namespace, port, err := httpgrpc.ParseKubernetesAddress(address)
+		client, err = newGRPCClient(address)
 		if err != nil {
 			return nil, err
 		}
-		balancer := kuberesolver.NewWithNamespace(namespace)
-		conn, err := grpc.Dial(
-			fmt.Sprintf("kubernetes://%s:%s", service, port),
-			balancer.DialOption(),
-			grpc.WithInsecure(),
-			grpc.WithUnaryInterceptor(
-				otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer()),
-			),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		client = users.NewUsersClient(conn)
 	default:
 		log.Fatal("Incorrect authenticator type: ", kind)
 		return nil, nil
@@ -48,4 +35,24 @@ func New(kind, address string, opts CachingClientConfig) (users.UsersClient, err
 		client = newCachingClient(opts, client)
 	}
 	return client, nil
+}
+
+func newGRPCClient(address string) (users.UsersClient, error) {
+	service, namespace, port, err := httpgrpc.ParseKubernetesAddress(address)
+	if err != nil {
+		return nil, err
+	}
+	balancer := kuberesolver.NewWithNamespace(namespace)
+	conn, err := grpc.Dial(
+		fmt.Sprintf("kubernetes://%s:%s", service, port),
+		balancer.DialOption(),
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(
+			otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer()),
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return users.NewUsersClient(conn), nil
 }
