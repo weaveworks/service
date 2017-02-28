@@ -116,16 +116,20 @@ func main() {
 	}
 
 	logrus.Infof("Listening on port %d", *port)
-	s := server.New(server.Config{
+	s, err := server.New(server.Config{
 		MetricsNamespace: common.PrometheusNamespace,
 		LogSuccess:       *logSuccess,
 		HTTPListenPort:   *port,
 		GRPCListenPort:   *grpcPort,
 	})
+	if err != nil {
+		logrus.Fatalf("Failed to create server: %v", err)
+		return
+	}
+
 	s.HTTP.Handle("/metrics", makePrometheusHandler())
 	s.HTTP.Handle("/traces", loki.Handler())
 	s.HTTP.PathPrefix("/").Handler(api)
-
 	users.RegisterUsersServer(s.GRPC, api)
 
 	s.Run()
