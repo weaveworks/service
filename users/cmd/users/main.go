@@ -18,6 +18,7 @@ import (
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
+	"github.com/weaveworks/service/users/grpc"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/marketing"
 	"github.com/weaveworks/service/users/sessions"
@@ -108,7 +109,8 @@ func main() {
 
 	logrus.Debug("Debug logging enabled")
 
-	api := api.New(*directLogin, *logSuccess, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey)
+	grpcServer := grpc.New(sessions, db)
+	api := api.New(*directLogin, *logSuccess, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey, grpcServer)
 
 	if *localTestUserCreate {
 		makeLocalTestUser(api, *localTestUserEmail, *localTestUserInstanceID,
@@ -130,7 +132,7 @@ func main() {
 	s.HTTP.Handle("/metrics", makePrometheusHandler())
 	s.HTTP.Handle("/traces", loki.Handler())
 	s.HTTP.PathPrefix("/").Handler(api)
-	users.RegisterUsersServer(s.GRPC, api)
+	users.RegisterUsersServer(s.GRPC, grpcServer)
 
 	s.Run()
 }
