@@ -401,10 +401,9 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 	}
 	for _, org := range organizations {
 		view.Organizations = append(view.Organizations, OrgView{
-			ExternalID:         org.ExternalID,
-			Name:               org.Name,
-			FirstProbeUpdateAt: render.Time(org.FirstProbeUpdateAt),
-			FeatureFlags:       append(org.FeatureFlags, a.forceFeatureFlags...),
+			ExternalID:   org.ExternalID,
+			Name:         org.Name,
+			FeatureFlags: append(org.FeatureFlags, a.forceFeatureFlags...),
 		})
 	}
 	render.JSON(w, http.StatusOK, view)
