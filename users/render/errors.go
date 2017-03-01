@@ -33,6 +33,7 @@ func errorStatusCode(err error) int {
 	return http.StatusInternalServerError
 }
 
+// GRPCErrorInterceptor turns users errors into gRPC errors.
 var GRPCErrorInterceptor grpc.UnaryServerInterceptor = func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	resp, err := handler(ctx, req)
 	if err != nil {
