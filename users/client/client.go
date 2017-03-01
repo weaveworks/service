@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"strconv"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
@@ -10,9 +11,11 @@ import (
 	"github.com/sercand/kuberesolver"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/render"
 )
 
 // New is a factory for Authenticators
@@ -61,9 +64,22 @@ func newGRPCClient(address string) (users.UsersClient, error) {
 }
 
 var errorInterceptor grpc.UnaryClientInterceptor = func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	var md metadata.MD
+	opts = append(opts, grpc.Trailer(&md))
 	err := invoker(ctx, method, req, reply, cc, opts...)
-	if err != nil {
-		return &Unauthorized{int(grpc.Code(err))}
+
+	if codes, ok := md[render.UsersErrorCode]; err != nil && ok {
+		if len(codes) != 1 {
+			return err
+		}
+		code, convErr := strconv.Atoi(codes[0])
+		if convErr != nil {
+			return err
+		}
+		return &Unauthorized{
+			httpStatus: code,
+		}
 	}
-	return nil
+
+	return err
 }

@@ -2,13 +2,18 @@ package render
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/weaveworks/service/users"
+)
+
+const (
+	UsersErrorCode = "users-error-code"
 )
 
 func errorStatusCode(err error) int {
@@ -37,9 +42,12 @@ func errorStatusCode(err error) int {
 var GRPCErrorInterceptor grpc.UnaryServerInterceptor = func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	resp, err := handler(ctx, req)
 	if err != nil {
-		return nil, grpc.Errorf(codes.Code(errorStatusCode(err)), err.Error())
+		errMetadata := metadata.Pairs(
+			UsersErrorCode, strconv.Itoa(errorStatusCode(err)),
+		)
+		grpc.SetTrailer(ctx, errMetadata)
 	}
-	return resp, nil
+	return resp, err
 }
 
 // Error renders a specific error to the API

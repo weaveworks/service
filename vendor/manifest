@@ -1039,8 +1039,8 @@
 			"importpath": "github.com/weaveworks/common",
 			"repository": "https://github.com/weaveworks/common",
 			"vcs": "git",
-			"revision": "05f151d3e6913ab6de368e2198ba46f5f8b7468f",
-			"branch": "graceful-server",
+			"revision": "e98b8731b7f6bf047812df22631b7b424b45bbf1",
+			"branch": "master",
 			"notests": true
 		},
 		{

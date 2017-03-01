@@ -32,14 +32,14 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orgExternalID, ok := a.OrgExternalID(r)
 		if !ok {
-			log.Infof("invalid request - no org id: %s", r.RequestURI)
+			log.Errorf("Invalid request, no org id: %s", r.RequestURI)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			log.Infof("unauthorised request - no auth cookie: %v", err)
+			log.Errorf("Unauthorised request, no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -49,18 +49,12 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 			OrgExternalID: orgExternalID,
 		})
 		if err != nil {
-			if unauth, ok := err.(*Unauthorized); ok {
-				log.Infof("unauthorized request: %d", unauth.httpStatus)
-				w.WriteHeader(http.StatusUnauthorized)
-			} else {
-				log.Errorf("authenticator error: %v", err)
-				w.WriteHeader(http.StatusBadGateway)
-			}
+			handleError(err, w)
 			return
 		}
 
 		if !hasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
-			log.Infof("proxy: missing feature flags: %v", a.RequireFeatureFlags)
+			log.Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -85,7 +79,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, ok := tokens.ExtractToken(r)
 		if !ok {
-			log.Infof("unauthorised request - no token")
+			log.Errorf("Unauthorised request, no token")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -94,18 +88,12 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 			Token: token,
 		})
 		if err != nil {
-			if unauth, ok := err.(*Unauthorized); ok {
-				log.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
-				w.WriteHeader(http.StatusUnauthorized)
-			} else {
-				log.Errorf("proxy: authenticator error: %v", err)
-				w.WriteHeader(http.StatusBadGateway)
-			}
+			handleError(err, w)
 			return
 		}
 
 		if !hasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
-			log.Infof("proxy: missing feature flags: %v", a.RequireFeatureFlags)
+			log.Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -143,7 +131,7 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			log.Infof("unauthorised request - no auth cookie: %v", err)
+			log.Errorf("Unauthorised request, no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -152,13 +140,7 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 			Cookie: authCookie.Value,
 		})
 		if err != nil {
-			if unauth, ok := err.(*Unauthorized); ok {
-				log.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
-				w.WriteHeader(http.StatusUnauthorized)
-			} else {
-				log.Errorf("proxy: authenticator error: %v", err)
-				w.WriteHeader(http.StatusBadGateway)
-			}
+			handleError(err, w)
 			return
 		}
 
@@ -190,17 +172,21 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 			Cookie: authCookie.Value,
 		})
 		if err != nil {
-			if unauth, ok := err.(*Unauthorized); ok {
-				log.Infof("proxy: unauthorized request: %d", unauth.httpStatus)
-				w.WriteHeader(http.StatusUnauthorized)
-			} else {
-				log.Errorf("proxy: authenticator error: %v", err)
-				w.WriteHeader(http.StatusBadGateway)
-			}
+			handleError(err, w)
 			return
 		}
 
 		r.Header.Add(a.UserIDHeader, response.UserID)
 		next.ServeHTTP(w, r.WithContext(user.WithID(r.Context(), response.UserID)))
 	})
+}
+
+func handleError(err error, w http.ResponseWriter) {
+	if unauth, ok := err.(*Unauthorized); ok {
+		log.Errorf("Error from users svc: %v (%d)", unauth.Error(), unauth.httpStatus)
+		w.WriteHeader(http.StatusUnauthorized)
+	} else {
+		log.Errorf("Error talking to users svc: %v", err)
+		w.WriteHeader(http.StatusBadGateway)
+	}
 }
