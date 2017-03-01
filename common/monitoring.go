@@ -26,8 +26,3 @@ var (
 		Buckets:   prometheus.DefBuckets,
 	}, []string{"method", "status_code"})
 )
-
-func init() {
-	prometheus.MustRegister(RequestDuration)
-	prometheus.MustRegister(DatabaseRequestDuration)
-}

@@ -3,6 +3,14 @@ package tokens
 import (
 	"crypto/rand"
 	"encoding/base32"
+	"net/http"
+	"strings"
+)
+
+// Exported for testing
+const (
+	AuthHeaderName = "Authorization"
+	Prefix         = "Scope-Probe token="
 )
 
 var (
@@ -26,4 +34,17 @@ func Generate() (string, error) {
 		return "", err
 	}
 	return zbase32.EncodeToString(randomData), nil
+}
+
+// ExtractToken extracts an auth token from a request, if possible.
+func ExtractToken(r *http.Request) (string, bool) {
+	authHeader := r.Header.Get(AuthHeaderName)
+	if strings.HasPrefix(authHeader, Prefix) {
+		return strings.TrimPrefix(authHeader, Prefix), true
+	}
+
+	// To allow grafana to talk to the service, we also accept basic auth,
+	// ignoring the username and treating the password as the token.
+	_, token, ok := r.BasicAuth()
+	return token, ok
 }

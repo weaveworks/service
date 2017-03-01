@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package users;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.populate_all) = true;
+
+service Users {
+    // LookupOrg authenticates & authorizes a cookie for access to an org by extenal ID.
+    rpc LookupOrg(LookupOrgRequest) returns (LookupOrgResponse) {};
+
+    // LookupUsingToken authenticates & authorizes a token for access to an org.
+    rpc LookupUsingToken(LookupUsingTokenRequest) returns (LookupUsingTokenResponse) {};
+
+    // LookupAdmin authenticates & authorizes a cookie for admin access.
+    rpc LookupAdmin(LookupAdminRequest) returns (LookupAdminResponse) {};
+
+    // LookupUser authenticates a cookie.
+    rpc LookupUser(LookupUserRequest) returns (LookupUserResponse) {};
+}
+
+message LookupOrgRequest {
+    string Cookie = 1;
+    string OrgExternalID = 2;
+}
+
+message LookupOrgResponse {
+    string OrganizationID = 1 [(gogoproto.jsontag) = "organizationID,omitempty"];
+    string UserID = 2 [(gogoproto.jsontag) = "userID,omitempty"];
+    repeated string FeatureFlags = 3  [(gogoproto.jsontag) = "featureFlags,omitempty"];
+}
+
+message LookupUsingTokenRequest {
+    string Token = 1;
+}
+
+message LookupUsingTokenResponse {
+    string OrganizationID = 1 [(gogoproto.jsontag) = "organizationID,omitempty"];
+    repeated string FeatureFlags = 2 [(gogoproto.jsontag) = "featureFlags,omitempty"];
+}
+
+message LookupAdminRequest {
+    string Cookie = 1;
+}
+
+message LookupAdminResponse {
+    string AdminID = 1 [(gogoproto.jsontag) = "adminID,omitempty"];
+}
+
+message LookupUserRequest {
+    string Cookie = 1;
+}
+
+message LookupUserResponse {
+    string UserID = 1 [(gogoproto.jsontag) = "userID,omitempty"];
+}

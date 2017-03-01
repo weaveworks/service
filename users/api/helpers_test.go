@@ -18,6 +18,7 @@ import (
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/dbtest"
 	"github.com/weaveworks/service/users/emailer"
+	"github.com/weaveworks/service/users/grpc"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/sessions"
 	"github.com/weaveworks/service/users/templates"
@@ -50,7 +51,8 @@ func setup(t *testing.T) {
 		Domain:      domain,
 		FromAddress: "test@test.com",
 	}
-	app = api.New(directLogin, true, emailer, sessionStore, database, logins, templates, nil, nil, "")
+	grpcServer := grpc.New(sessionStore, database)
+	app = api.New(directLogin, true, emailer, sessionStore, database, logins, templates, nil, nil, "", grpcServer)
 }
 
 func cleanup(t *testing.T) {

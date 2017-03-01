@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/login"
@@ -23,6 +24,7 @@ type API struct {
 	marketingQueues    marketing.Queues
 	forceFeatureFlags  []string
 	marketoMunchkinKey string
+	grpc               users.UsersServer
 	http.Handler
 }
 
@@ -37,6 +39,7 @@ func New(
 	marketingQueues marketing.Queues,
 	forceFeatureFlags []string,
 	marketoMunchkinKey string,
+	grpc users.UsersServer,
 ) *API {
 	a := &API{
 		directLogin:        directLogin,
@@ -49,6 +52,7 @@ func New(
 		marketingQueues:    marketingQueues,
 		forceFeatureFlags:  forceFeatureFlags,
 		marketoMunchkinKey: marketoMunchkinKey,
+		grpc:               grpc,
 	}
 	a.Handler = a.routes()
 	return a

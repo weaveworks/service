@@ -267,6 +267,16 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/gogo/protobuf/gogoproto",
+			"repository": "https://github.com/gogo/protobuf",
+			"vcs": "git",
+			"revision": "3ea128ab69017b2bb9720f38a32e2dcfc22c0546",
+			"branch": "master",
+			"path": "/gogoproto",
+			"notests": true,
+			"allfiles": true
+		},
+		{
 			"importpath": "github.com/gogo/protobuf/proto",
 			"repository": "https://github.com/gogo/protobuf",
 			"vcs": "git",
@@ -274,6 +284,16 @@
 			"branch": "master",
 			"path": "/proto",
 			"notests": true
+		},
+		{
+			"importpath": "github.com/gogo/protobuf/protoc-gen-gogo/descriptor",
+			"repository": "https://github.com/gogo/protobuf",
+			"vcs": "git",
+			"revision": "3ea128ab69017b2bb9720f38a32e2dcfc22c0546",
+			"branch": "master",
+			"path": "protoc-gen-gogo/descriptor",
+			"notests": true,
+			"allfiles": true
 		},
 		{
 			"importpath": "github.com/gogo/protobuf/sortkeys",
@@ -1019,7 +1039,7 @@
 			"importpath": "github.com/weaveworks/common",
 			"repository": "https://github.com/weaveworks/common",
 			"vcs": "git",
-			"revision": "4eff86322deba6458a7c00fbd8f2e10cefbc27a5",
+			"revision": "e98b8731b7f6bf047812df22631b7b424b45bbf1",
 			"branch": "master",
 			"notests": true
 		},

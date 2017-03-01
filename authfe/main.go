@@ -42,6 +42,7 @@ var (
 func init() {
 	prometheus.MustRegister(wsConnections)
 	prometheus.MustRegister(wsRequestCount)
+	prometheus.MustRegister(common.RequestDuration)
 }
 
 func main() {
@@ -62,7 +63,7 @@ func main() {
 	flag.DurationVar(&stopTimeout, "stop.timeout", 5*time.Second, "How long to wait for remaining requests to finish during shutdown")
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
 	flag.BoolVar(&c.logSuccess, "log.success", false, "Log successful requests.")
-	flag.StringVar(&authType, "authenticator", "web", "What authenticator to use: web | mock")
+	flag.StringVar(&authType, "authenticator", "web", "What authenticator to use: web | grpc | mock")
 	flag.StringVar(&authURL, "authenticator.url", "http://users:80", "Where to find web the authenticator service")
 	flag.IntVar(&authCacheSize, "auth.cache.size", 0, "How many entries to cache in the auth client.")
 	flag.DurationVar(&authCacheExpiration, "auth.cache.expiration", 30*time.Second, "How long to keep entries in the auth client.")
@@ -133,7 +134,7 @@ func main() {
 		}
 	}
 
-	authOptions := users.AuthenticatorOptions{}
+	authOptions := users.CachingClientConfig{}
 	if authCacheSize > 0 {
 		authOptions.CredCacheEnabled = true
 		authOptions.OrgCredCacheSize = authCacheSize
@@ -141,7 +142,12 @@ func main() {
 		authOptions.OrgCredCacheExpiration = authCacheExpiration
 		authOptions.ProbeCredCacheExpiration = authCacheExpiration
 	}
-	c.authenticator = users.MakeAuthenticator(authType, authURL, authOptions)
+	var err error
+	c.authenticator, err = users.New(authType, authURL, authOptions)
+	if err != nil {
+		log.Fatalf("Error making users client: %v", err)
+		return
+	}
 	c.ghIntegration = &users.TokenRequester{
 		URL:          authURL,
 		UserIDHeader: userIDHeader,

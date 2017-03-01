@@ -2,12 +2,12 @@ package api
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/render"
 	"github.com/weaveworks/service/users/sessions"
+	"github.com/weaveworks/service/users/tokens"
 )
 
 const (
@@ -18,35 +18,6 @@ const (
 type Credentials struct {
 	Realm  string
 	Params map[string]string
-}
-
-// ParseAuthorizationHeader parses an auth header into Credentials, if possible.
-func ParseAuthorizationHeader(r *http.Request) (*Credentials, bool) {
-	header := r.Header.Get("Authorization")
-	for _, realm := range []string{"Basic", "Bearer"} {
-		prefix := realm + " "
-		if strings.HasPrefix(header, prefix) {
-			k := strings.ToLower(realm)
-			return &Credentials{
-				Realm:  realm,
-				Params: map[string]string{k: strings.TrimPrefix(header, prefix)},
-			}, true
-		}
-	}
-	i := strings.IndexByte(header, ' ')
-	if i == -1 {
-		return nil, false
-	}
-
-	c := &Credentials{Realm: header[:i], Params: map[string]string{}}
-	for _, field := range strings.Split(header[i+1:], ",") {
-		if i := strings.IndexByte(field, '='); i == -1 {
-			c.Params[field] = ""
-		} else {
-			c.Params[field[:i]] = field[i+1:]
-		}
-	}
-	return c, true
 }
 
 // authenticateUser authenticates a user, passing that directly to the handler
@@ -148,13 +119,7 @@ func (a *API) cookieAuth(w http.ResponseWriter, r *http.Request) (*users.User, e
 }
 
 func (a *API) probeTokenAuth(w http.ResponseWriter, r *http.Request) (*users.Organization, error) {
-	// try logging in by probe token header
-	credentials, ok := ParseAuthorizationHeader(r)
-	if !ok || credentials.Realm != "Scope-Probe" {
-		return nil, users.ErrInvalidAuthenticationData
-	}
-
-	token, ok := credentials.Params["token"]
+	token, ok := tokens.ExtractToken(r)
 	if !ok {
 		return nil, users.ErrInvalidAuthenticationData
 	}

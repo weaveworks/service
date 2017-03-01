@@ -27,6 +27,11 @@ images:
 
 all: $(UPTODATE_FILES)
 
+# Generating proto code is automated.
+PROTO_DEFS := $(shell find . -type f -name "*.proto" ! -path "./tools/*" ! -path "./vendor/*")
+PROTO_GOS := $(patsubst %.proto,%.pb.go,$(PROTO_DEFS))
+users/users.pb.go: users/users.proto
+
 # List of exes please
 AUTHFE_EXE := authfe/authfe
 CONFIGS_EXE := configs/cmd/configs/configs
@@ -37,11 +42,12 @@ EXES = $(AUTHFE_EXE) $(CONFIGS_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_RUN_EXE) 
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
-$(AUTHFE_EXE): $(shell find authfe -name '*.go') $(shell find users/client -name '*.go') $(COMMON)
+$(AUTHFE_EXE): $(shell find authfe -name '*.go') $(shell find users/client -name '*.go') $(COMMON) users/users.pb.go
 $(CONFIGS_EXE): $(shell find configs -name '*.go') $(COMMON)
-$(USERS_EXE): $(shell find users -name '*.go') $(COMMON)
+$(USERS_EXE): $(shell find users -name '*.go') $(COMMON) users/users.pb.go
 $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
 $(PR_ASSIGNER_EXE): $(shell find pr-assigner -name '*.go') $(COMMON)
+test: users/users.pb.go
 
 # And now what goes into each image
 authfe/$(UPTODATE): $(AUTHFE_EXE)
@@ -68,7 +74,7 @@ NETGO_CHECK = @strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
-$(EXES) lint test: build/$(UPTODATE)
+$(EXES) $(PROTO_GOS) lint test: build/$(UPTODATE)
 	@mkdir -p $(shell pwd)/.pkg
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
@@ -82,11 +88,14 @@ $(EXES): build/$(UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
+%.pb.go: build/$(UPTODATE)
+	protoc -I ./vendor:./$(@D) --gogoslick_out=plugins=grpc:./$(@D) ./$(patsubst %.pb.go,%.proto,$@)
+
 lint: build/$(UPTODATE)
 	./tools/lint .
 
 test: build/$(UPTODATE)
-	./tools/test -netgo
+	./tools/test -netgo -no-race
 
 endif
 
@@ -99,7 +108,7 @@ configs-integration-test: $(CONFIGS_UPTODATE)
 		-v $(shell pwd)/configs/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/configs \
 		--link "$$DB_CONTAINER":configs-db.weave.local \
-		golang:1.7.4 \
+		golang:1.8.0 \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
@@ -113,7 +122,7 @@ users-integration-test: $(USERS_UPTODATE)
 		-v $(shell pwd)/users/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/users \
 		--link "$$DB_CONTAINER":users-db.weave.local \
-		golang:1.7.4 \
+		golang:1.8.0 \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \

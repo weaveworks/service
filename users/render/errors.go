@@ -2,10 +2,19 @@ package render
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/Sirupsen/logrus"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/weaveworks/service/users"
+)
+
+const (
+	// UsersErrorCode is the key in the gRPC metadata that contains the real error code.
+	UsersErrorCode = "users-error-code"
 )
 
 func errorStatusCode(err error) int {
@@ -28,6 +37,18 @@ func errorStatusCode(err error) int {
 	}
 
 	return http.StatusInternalServerError
+}
+
+// GRPCErrorInterceptor turns users errors into gRPC errors.
+var GRPCErrorInterceptor grpc.UnaryServerInterceptor = func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	resp, err := handler(ctx, req)
+	if err != nil {
+		errMetadata := metadata.Pairs(
+			UsersErrorCode, strconv.Itoa(errorStatusCode(err)),
+		)
+		grpc.SetTrailer(ctx, errMetadata)
+	}
+	return resp, err
 }
 
 // Error renders a specific error to the API
