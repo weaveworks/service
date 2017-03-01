@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	// UsersErrorCode is the key in the gRPC metadata that contains the real error code.
 	UsersErrorCode = "users-error-code"
 )
 
