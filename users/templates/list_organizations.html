@@ -11,7 +11,6 @@
         <th>ID</th>
         <th>Name</th>
         <th>CreatedAt</th>
-        <th>FirstProbeUpdateAt</th>
         <th>Users</th>
         <th>FeatureFlags</th>
       </tr>
@@ -20,7 +19,6 @@
         <td>{{.ExternalID}}</td>
         <td>{{.Name}}</td>
         <td>{{.FormatCreatedAt}}</td>
-        <td>{{.FormatFirstProbeUpdateAt}}</td>
         <td>{{index $.OrganizationUsers .ExternalID}}</td>
         <td>
           <form action="organizations/{{.ExternalID}}/featureflags" method="POST">
