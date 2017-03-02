@@ -64,6 +64,7 @@ type Config struct {
 	// Admin services - keep alphabetically sorted pls
 	alertmanagerHost        string
 	ansiblediffHost         string
+	billingAdminHost        string
 	devGrafanaHost          string
 	compareImagesHost       string
 	grafanaHost             string
