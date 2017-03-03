@@ -85,11 +85,12 @@ type listOrganizationsView struct {
 }
 
 type privateOrgView struct {
-	ID           string   `json:"id"`
-	InternalID   string   `json:"internal_id"`
-	Name         string   `json:"name"`
-	CreatedAt    string   `json:"created_at"`
-	FeatureFlags []string `json:"feature_flags,omitempty"`
+	ID           string        `json:"id"`
+	InternalID   string        `json:"internal_id"`
+	Name         string        `json:"name"`
+	CreatedAt    string        `json:"created_at"`
+	FeatureFlags []string      `json:"feature_flags,omitempty"`
+	Users        []*users.User `json:"users,omitempty"`
 }
 
 func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
@@ -151,12 +152,19 @@ func (a *API) adminShowOrganization(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	users, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+
 	render.JSON(w, http.StatusOK, privateOrgView{
 		ID:           org.ExternalID,
 		InternalID:   org.ID,
 		Name:         org.Name,
 		CreatedAt:    org.FormatCreatedAt(),
 		FeatureFlags: org.FeatureFlags,
+		Users:        users,
 	})
 }
 
