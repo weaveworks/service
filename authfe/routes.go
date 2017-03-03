@@ -358,7 +358,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/prod-grafana", trimPrefix("/admin/prod-grafana", newProxy(c.prodGrafanaHost))},
 				{"/scope", trimPrefix("/admin/scope", newProxy(c.scopeHost))},
 				{"/users", trimPrefix("/admin/users", newProxy(c.usersHost))},
-				{"/billing-admin", trimPrefix("/admin/billing-admin", newProxy(c.billingAdminHost))},
+				{"/billing-admin", newProxy(c.billingAdminHost)},
 				{"/kubediff", trimPrefix("/admin/kubediff", newProxy(c.kubediffHost))},
 				{"/terradiff", trimPrefix("/admin/terradiff", newProxy(c.terradiffHost))},
 				{"/ansiblediff", trimPrefix("/admin/ansiblediff", newProxy(c.ansiblediffHost))},
