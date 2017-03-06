@@ -8,7 +8,6 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/weaveworks-experiments/loki/pkg/client"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
@@ -132,9 +131,7 @@ func main() {
 		return
 	}
 
-	s.HTTP.Handle("/metrics", makePrometheusHandler())
-	s.HTTP.Handle("/traces", loki.Handler())
-	s.HTTP.PathPrefix("/").Handler(api)
+	api.RegisterRoutes(s.HTTP)
 	users.RegisterUsersServer(s.GRPC, grpcServer)
 
 	s.Run()
