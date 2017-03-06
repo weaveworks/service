@@ -17,7 +17,7 @@
       {{range .Users}}
       <tr>
         <td>{{.ID}}</td>
-        <td>{{.Email}}</td>
+        <td><div style="max-width: 640px; overflow: hidden; text-overflow: ellipsis; white-space; nowrap;">{{.Email}}</div></td>
         <td>{{.FormatCreatedAt}}</td>
         <td>{{.FormatFirstLoginAt}}</td>
         <td>
