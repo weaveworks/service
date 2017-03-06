@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"net/url"
 	"strconv"
@@ -12,7 +13,6 @@ import (
 	_ "github.com/mattes/migrate/driver/postgres" // Import the postgres migrations driver
 	"github.com/mattes/migrate/migrate"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 )

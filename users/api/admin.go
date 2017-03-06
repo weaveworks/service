@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sort"
@@ -8,7 +9,6 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"golang.org/x/net/context"
 
 	"encoding/json"
 	"github.com/weaveworks/service/users"

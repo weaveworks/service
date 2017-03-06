@@ -1,10 +1,10 @@
 package users
 
 import (
+	"context"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/net/context"
 )
 
 // FindUserByIDer is an interface of just FindUserByID, for loosely coupling

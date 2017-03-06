@@ -1,13 +1,13 @@
 package dbtest
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"

@@ -1,10 +1,10 @@
 package db_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users/db/dbtest"
 )

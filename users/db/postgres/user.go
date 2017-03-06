@@ -1,13 +1,13 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"

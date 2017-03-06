@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -8,7 +9,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"

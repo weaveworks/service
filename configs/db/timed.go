@@ -1,10 +1,11 @@
 package db
 
 import (
+	"context"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/service/configs"
-	"golang.org/x/net/context"
 )
 
 // timed adds prometheus timings to another database implementation

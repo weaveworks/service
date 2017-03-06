@@ -1,9 +1,8 @@
 package grpc
 
 import (
+	"context"
 	"strings"
-
-	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"

@@ -1,12 +1,11 @@
 package memory
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/externalIDs"

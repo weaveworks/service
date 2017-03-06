@@ -1,11 +1,11 @@
 package db
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/common/instrument"
-	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"

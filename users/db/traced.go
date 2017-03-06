@@ -1,10 +1,10 @@
 package db
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/Sirupsen/logrus"
-	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"

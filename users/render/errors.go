@@ -1,11 +1,11 @@
 package render
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
 	"github.com/Sirupsen/logrus"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
