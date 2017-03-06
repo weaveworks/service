@@ -6,8 +6,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (a *API) routes() http.Handler {
-	r := mux.NewRouter()
+// RegisterRoutes registers the users API HTTP routes to the provided Router.
+func (a *API) RegisterRoutes(r *mux.Router) {
 	for _, route := range []struct {
 		name, method, path string
 		handler            http.HandlerFunc
@@ -77,5 +77,4 @@ func (a *API) routes() http.Handler {
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
-	return r
 }

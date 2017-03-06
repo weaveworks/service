@@ -3,6 +3,8 @@ package api
 import (
 	"net/http"
 
+	"github.com/gorilla/mux"
+
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
@@ -54,6 +56,9 @@ func New(
 		marketoMunchkinKey: marketoMunchkinKey,
 		grpc:               grpc,
 	}
-	a.Handler = a.routes()
+
+	r := mux.NewRouter()
+	a.RegisterRoutes(r)
+	a.Handler = r
 	return a
 }

@@ -3,11 +3,14 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/weaveworks/service/users/client"
-	"github.com/weaveworks/service/users/db/memory"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gorilla/mux"
+
+	"github.com/weaveworks/service/users/client"
+	"github.com/weaveworks/service/users/db/memory"
 )
 
 var (
@@ -23,7 +26,9 @@ func TestAdmin_GetUserToken(t *testing.T) {
 		db: db,
 	}
 
-	ts := httptest.NewServer(a.routes())
+	r := mux.NewRouter()
+	a.RegisterRoutes(r)
+	ts := httptest.NewServer(r)
 	defer ts.Close()
 
 	res, err := http.Get(fmt.Sprintf("%s/private/api/users/%v/logins/github/token", ts.URL, usr.ID))
@@ -50,7 +55,9 @@ func TestAPI_GetUserTokenNoUser(t *testing.T) {
 		db: db,
 	}
 
-	ts := httptest.NewServer(a.routes())
+	r := mux.NewRouter()
+	a.RegisterRoutes(r)
+	ts := httptest.NewServer(r)
 	defer ts.Close()
 
 	res, err := http.Get(fmt.Sprintf("%s/private/api/users/%v/logins/github/token", ts.URL, "unknown"))
@@ -70,7 +77,9 @@ func TestAPI_GetUserTokenNoToken(t *testing.T) {
 		db: db,
 	}
 
-	ts := httptest.NewServer(a.routes())
+	r := mux.NewRouter()
+	a.RegisterRoutes(r)
+	ts := httptest.NewServer(r)
 	defer ts.Close()
 
 	res, err := http.Get(fmt.Sprintf("%s/private/api/users/%v/logins/github/token", ts.URL, usr.ID))
