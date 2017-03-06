@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// RegisterRoutes registers the users API HTTP routes to the provided Router.
 func (a *API) RegisterRoutes(r *mux.Router) {
 	for _, route := range []struct {
 		name, method, path string
