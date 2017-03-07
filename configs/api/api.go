@@ -32,7 +32,6 @@ type API struct {
 
 // Config describes the configuration for the configs API.
 type Config struct {
-	LogSuccess   bool
 	Database     db.DB
 	UserIDHeader string
 	OrgIDHeader  string
@@ -76,9 +75,7 @@ func (a *API) routes() http.Handler {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
 	return middleware.Merge(
-		middleware.Log{
-			LogSuccess: a.LogSuccess,
-		},
+		middleware.Log{},
 		middleware.Instrument{
 			RouteMatcher: r,
 			Duration:     common.RequestDuration,

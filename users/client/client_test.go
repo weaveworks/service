@@ -210,7 +210,7 @@ func TestMiddleware(t *testing.T) {
 
 	var (
 		body                   = []byte("OK")
-		headerName             = "X-Some-Header"
+		headerName             = "X-Scope-OrgID"
 		featureFlagsHeaderName = "X-FeatureFlags"
 	)
 
@@ -232,7 +232,6 @@ func TestMiddleware(t *testing.T) {
 		req.Header.Set(tokens.AuthHeaderName, tokens.Prefix+orgToken)
 		mw := AuthProbeMiddleware{
 			UsersClient:        auth,
-			OutputHeader:       headerName,
 			FeatureFlagsHeader: featureFlagsHeaderName,
 		}
 		result := testMiddleware(mw, req)
@@ -250,7 +249,6 @@ func TestMiddleware(t *testing.T) {
 		mw := AuthOrgMiddleware{
 			UsersClient:        auth,
 			OrgExternalID:      func(*http.Request) (string, bool) { return orgExternalID, true },
-			OutputHeader:       headerName,
 			FeatureFlagsHeader: featureFlagsHeaderName,
 		}
 		result := testMiddleware(mw, req)
@@ -263,8 +261,7 @@ func TestMiddleware(t *testing.T) {
 		req, _ := http.NewRequest("GET", "http://example.com/request?arg1=foo&arg2=bar", nil)
 		req.Header.Set(tokens.AuthHeaderName, "This is not the right value")
 		mw := AuthProbeMiddleware{
-			UsersClient:  auth,
-			OutputHeader: headerName,
+			UsersClient: auth,
 		}
 		result := testMiddleware(mw, req)
 		assert.Equal(t, result.Code, http.StatusUnauthorized, "")
@@ -281,7 +278,6 @@ func TestMiddleware(t *testing.T) {
 		mw := AuthOrgMiddleware{
 			UsersClient:        auth,
 			OrgExternalID:      func(*http.Request) (string, bool) { return orgExternalID, true },
-			OutputHeader:       headerName,
 			FeatureFlagsHeader: featureFlagsHeaderName,
 		}
 		result := testMiddleware(mw, req)
@@ -295,7 +291,6 @@ func TestMiddleware(t *testing.T) {
 		req.Header.Set(tokens.AuthHeaderName, orgToken)
 		mw := AuthProbeMiddleware{
 			UsersClient:         auth,
-			OutputHeader:        headerName,
 			FeatureFlagsHeader:  featureFlagsHeaderName,
 			RequireFeatureFlags: []string{"foo"},
 		}

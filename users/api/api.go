@@ -17,7 +17,6 @@ import (
 // API implements the users api.
 type API struct {
 	directLogin        bool
-	logSuccess         bool
 	sessions           sessions.Store
 	db                 db.DB
 	logins             *login.Providers
@@ -32,7 +31,7 @@ type API struct {
 
 // New creates a new API
 func New(
-	directLogin, logSuccess bool,
+	directLogin bool,
 	emailer emailer.Emailer,
 	sessions sessions.Store,
 	db db.DB,
@@ -45,7 +44,6 @@ func New(
 ) *API {
 	a := &API{
 		directLogin:        directLogin,
-		logSuccess:         logSuccess,
 		sessions:           sessions,
 		db:                 db,
 		logins:             logins,

@@ -33,7 +33,6 @@ func init() {
 func main() {
 	var (
 		logLevel           = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
-		logSuccess         = flag.Bool("log.success", false, "Log successful requests.")
 		port               = flag.Int("port", 80, "port to listen on")
 		grpcPort           = flag.Int("grpc-port", 4772, "grpc port to listen on")
 		domain             = flag.String("domain", "https://cloud.weave.works", "domain where scope service is runnning.")
@@ -111,7 +110,7 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 
 	grpcServer := grpc_server.New(sessions, db)
-	api := api.New(*directLogin, *logSuccess, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey, grpcServer)
+	api := api.New(*directLogin, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey, grpcServer)
 
 	if *localTestUserCreate {
 		makeLocalTestUser(api, *localTestUserEmail, *localTestUserInstanceID,
@@ -121,7 +120,6 @@ func main() {
 	logrus.Infof("Listening on port %d", *port)
 	s, err := server.New(server.Config{
 		MetricsNamespace: common.PrometheusNamespace,
-		LogSuccess:       *logSuccess,
 		HTTPListenPort:   *port,
 		GRPCListenPort:   *grpcPort,
 		GRPCMiddleware:   []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
@@ -130,6 +128,7 @@ func main() {
 		logrus.Fatalf("Failed to create server: %v", err)
 		return
 	}
+	defer s.Shutdown()
 
 	api.RegisterRoutes(s.HTTP)
 	users.RegisterUsersServer(s.GRPC, grpcServer)

@@ -22,6 +22,7 @@ import (
 
 	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/middleware"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/scope/common/xfer"
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/users"
@@ -35,8 +36,6 @@ type Config struct {
 	authenticator users.UsersClient
 	ghIntegration users_client.Integration
 	eventLogger   *EventLogger
-	outputHeader  string
-	logSuccess    bool
 	apiInfo       string
 
 	// Security-related flags
@@ -99,9 +98,7 @@ func (c Config) commonMiddleWare(routeMatcher middleware.RouteMatcher) middlewar
 			RouteMatcher: routeMatcher,
 			Duration:     common.RequestDuration,
 		},
-		middleware.Log{
-			LogSuccess: c.logSuccess,
-		},
+		middleware.Log{},
 	)
 }
 
@@ -125,8 +122,12 @@ func ifEmpty(a, b string) string {
 	return b
 }
 
-func newProbeRequestLogger(orgIDHeader string) HTTPEventExtractor {
+func newProbeRequestLogger() HTTPEventExtractor {
 	return func(r *http.Request) (Event, bool) {
+		orgID, err := user.Extract(r.Context())
+		if err != nil {
+			return Event{}, false
+		}
 
 		event := Event{
 			ID:             r.URL.Path,
@@ -134,19 +135,24 @@ func newProbeRequestLogger(orgIDHeader string) HTTPEventExtractor {
 			Version:        r.Header.Get(xfer.ScopeProbeVersionHeader),
 			UserAgent:      r.UserAgent(),
 			ClientID:       r.Header.Get(xfer.ScopeProbeIDHeader),
-			OrganizationID: r.Header.Get(orgIDHeader),
+			OrganizationID: orgID,
 			IPAddress:      mustSplitHostname(r),
 		}
 		return event, true
 	}
 }
 
-func newUIRequestLogger(orgIDHeader, userIDHeader string) HTTPEventExtractor {
+func newUIRequestLogger(userIDHeader string) HTTPEventExtractor {
 	return func(r *http.Request) (Event, bool) {
 		sessionCookie, err := r.Cookie(sessionCookieKey)
 		var sessionID string
 		if err == nil {
 			sessionID = sessionCookie.Value
+		}
+
+		orgID, err := user.Extract(r.Context())
+		if err != nil {
+			return Event{}, false
 		}
 
 		event := Event{
@@ -154,7 +160,7 @@ func newUIRequestLogger(orgIDHeader, userIDHeader string) HTTPEventExtractor {
 			SessionID:      sessionID,
 			Product:        "scope-ui",
 			UserAgent:      r.UserAgent(),
-			OrganizationID: r.Header.Get(orgIDHeader),
+			OrganizationID: orgID,
 			UserID:         r.Header.Get(userIDHeader),
 			IPAddress:      mustSplitHostname(r),
 		}
@@ -162,12 +168,17 @@ func newUIRequestLogger(orgIDHeader, userIDHeader string) HTTPEventExtractor {
 	}
 }
 
-func newAnalyticsLogger(orgIDHeader, userIDHeader string) HTTPEventExtractor {
+func newAnalyticsLogger(userIDHeader string) HTTPEventExtractor {
 	return func(r *http.Request) (Event, bool) {
 		sessionCookie, err := r.Cookie(sessionCookieKey)
 		var sessionID string
 		if err == nil {
 			sessionID = sessionCookie.Value
+		}
+
+		orgID, err := user.Extract(r.Context())
+		if err != nil {
+			return Event{}, false
 		}
 
 		values, err := ioutil.ReadAll(&io.LimitedReader{
@@ -183,7 +194,7 @@ func newAnalyticsLogger(orgIDHeader, userIDHeader string) HTTPEventExtractor {
 			SessionID:      sessionID,
 			Product:        "scope-ui",
 			UserAgent:      r.UserAgent(),
-			OrganizationID: r.Header.Get(orgIDHeader),
+			OrganizationID: orgID,
 			UserID:         r.Header.Get(userIDHeader),
 			Values:         string(values),
 			IPAddress:      mustSplitHostname(r),
@@ -196,15 +207,15 @@ func routes(c Config) (http.Handler, error) {
 	probeHTTPlogger, uiHTTPlogger, analyticsLogger := middleware.Identity, middleware.Identity, middleware.Identity
 	if c.eventLogger != nil {
 		probeHTTPlogger = HTTPEventLogger{
-			Extractor: newProbeRequestLogger(c.outputHeader),
+			Extractor: newProbeRequestLogger(),
 			Logger:    c.eventLogger,
 		}
 		uiHTTPlogger = HTTPEventLogger{
-			Extractor: newUIRequestLogger(c.outputHeader, userIDHeader),
+			Extractor: newUIRequestLogger(userIDHeader),
 			Logger:    c.eventLogger,
 		}
 		analyticsLogger = HTTPEventLogger{
-			Extractor: newAnalyticsLogger(c.outputHeader, userIDHeader),
+			Extractor: newAnalyticsLogger(userIDHeader),
 			Logger:    c.eventLogger,
 		}
 	}
@@ -215,14 +226,12 @@ func routes(c Config) (http.Handler, error) {
 			v, ok := mux.Vars(r)["orgExternalID"]
 			return v, ok
 		},
-		OutputHeader:       c.outputHeader,
 		UserIDHeader:       userIDHeader,
 		FeatureFlagsHeader: featureFlagsHeader,
 	}
 
 	authUserMiddleware := users_client.AuthUserMiddleware{
-		UsersClient:  c.authenticator,
-		UserIDHeader: userIDHeader,
+		UsersClient: c.authenticator,
 	}
 
 	billingAuthMiddleware := users_client.AuthOrgMiddleware{
@@ -231,7 +240,6 @@ func routes(c Config) (http.Handler, error) {
 			v, ok := mux.Vars(r)["orgExternalID"]
 			return v, ok
 		},
-		OutputHeader:        c.outputHeader,
 		UserIDHeader:        userIDHeader,
 		FeatureFlagsHeader:  featureFlagsHeader,
 		RequireFeatureFlags: []string{"billing"},
@@ -289,7 +297,6 @@ func routes(c Config) (http.Handler, error) {
 		middleware.Merge(
 			users_client.AuthProbeMiddleware{
 				UsersClient:        c.authenticator,
-				OutputHeader:       c.outputHeader,
 				FeatureFlagsHeader: featureFlagsHeader,
 			},
 			probeHTTPlogger,
@@ -377,8 +384,7 @@ func routes(c Config) (http.Handler, error) {
 					Handler: redirect("/login"),
 				},
 				users_client.AuthAdminMiddleware{
-					UsersClient:  c.authenticator,
-					OutputHeader: c.outputHeader,
+					UsersClient: c.authenticator,
 				},
 			),
 		},

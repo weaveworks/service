@@ -24,7 +24,6 @@ func init() {
 func main() {
 	var (
 		logLevel           = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
-		logSuccess         = flag.Bool("log.success", false, "Log successful requests.")
 		port               = flag.Int("port", 80, "port to listen on")
 		stopTimeout        = flag.Duration("stop.timeout", 5*time.Second, "How long to wait for remaining requests to finish during shutdown")
 		databaseURI        = flag.String("database-uri", "postgres://postgres@configs-db.weave.local/configs?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
@@ -43,7 +42,6 @@ func main() {
 	logrus.Infof("Listening on port %d", *port)
 	mux := http.NewServeMux()
 	config := api.Config{
-		LogSuccess:   *logSuccess,
 		Database:     db,
 		UserIDHeader: api.DefaultUserIDHeader,
 		OrgIDHeader:  api.DefaultOrgIDHeader,
