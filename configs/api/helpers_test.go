@@ -28,7 +28,6 @@ func setup(t *testing.T) {
 	database = dbtest.Setup(t)
 	app = api.New(api.Config{
 		Database:     database,
-		LogSuccess:   false,
 		UserIDHeader: api.DefaultUserIDHeader,
 		OrgIDHeader:  api.DefaultOrgIDHeader,
 	})
