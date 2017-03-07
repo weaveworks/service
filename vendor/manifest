@@ -1039,7 +1039,7 @@
 			"importpath": "github.com/weaveworks/common",
 			"repository": "https://github.com/weaveworks/common",
 			"vcs": "git",
-			"revision": "e98b8731b7f6bf047812df22631b7b424b45bbf1",
+			"revision": "7f3a36b04c07e159b0ed739fb684b29682688133",
 			"branch": "master",
 			"notests": true
 		},

@@ -19,9 +19,9 @@ const (
 // AuthOrgMiddleware is a middleware.Interface for authentication organisations based on the
 // cookie and an org name in the path
 type AuthOrgMiddleware struct {
-	UsersClient         users.UsersClient
-	OrgExternalID       func(*http.Request) (string, bool)
-	OutputHeader        string
+	UsersClient   users.UsersClient
+	OrgExternalID func(*http.Request) (string, bool)
+
 	UserIDHeader        string
 	FeatureFlagsHeader  string
 	RequireFeatureFlags []string
@@ -59,17 +59,18 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		r.Header.Add(a.OutputHeader, response.OrganizationID)
 		r.Header.Add(a.UserIDHeader, response.UserID)
 		r.Header.Add(a.FeatureFlagsHeader, strings.Join(response.FeatureFlags, " "))
-		next.ServeHTTP(w, r.WithContext(user.WithID(r.Context(), response.OrganizationID)))
+
+		r = r.WithContext(user.Inject(r.Context(), response.OrganizationID))
+		user.InjectIntoHTTPRequest(r.Context(), r)
+		next.ServeHTTP(w, r)
 	})
 }
 
 // AuthProbeMiddleware is a middleware.Interface for authentication probes based on the headers
 type AuthProbeMiddleware struct {
 	UsersClient         users.UsersClient
-	OutputHeader        string
 	FeatureFlagsHeader  string
 	RequireFeatureFlags []string
 }
@@ -98,9 +99,11 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		r.Header.Add(a.OutputHeader, response.OrganizationID)
 		r.Header.Add(a.FeatureFlagsHeader, strings.Join(response.FeatureFlags, " "))
-		next.ServeHTTP(w, r.WithContext(user.WithID(r.Context(), response.OrganizationID)))
+
+		r = r.WithContext(user.Inject(r.Context(), response.OrganizationID))
+		user.InjectIntoHTTPRequest(r.Context(), r)
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -122,8 +125,7 @@ func hasFeatureAllFlags(needles, haystack []string) bool {
 
 // AuthAdminMiddleware is a middleware.Interface for authentication probes based on the headers
 type AuthAdminMiddleware struct {
-	UsersClient  users.UsersClient
-	OutputHeader string
+	UsersClient users.UsersClient
 }
 
 // Wrap implements middleware.Interface
@@ -144,8 +146,9 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		r.Header.Add(a.OutputHeader, response.AdminID)
-		next.ServeHTTP(w, r.WithContext(user.WithID(r.Context(), response.AdminID)))
+		r = r.WithContext(user.Inject(r.Context(), response.AdminID))
+		user.InjectIntoHTTPRequest(r.Context(), r)
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -153,7 +156,6 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 // cookie (and not to any specific org)
 type AuthUserMiddleware struct {
 	UsersClient         users.UsersClient
-	UserIDHeader        string
 	FeatureFlagsHeader  string
 	RequireFeatureFlags []string
 }
@@ -176,8 +178,9 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		r.Header.Add(a.UserIDHeader, response.UserID)
-		next.ServeHTTP(w, r.WithContext(user.WithID(r.Context(), response.UserID)))
+		r = r.WithContext(user.Inject(r.Context(), response.UserID))
+		user.InjectIntoHTTPRequest(r.Context(), r)
+		next.ServeHTTP(w, r)
 	})
 }
 

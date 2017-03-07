@@ -62,13 +62,11 @@ func main() {
 	flag.StringVar(&privateListen, "private-listen", ":8080", "HTTP server listen address (private endpoints)")
 	flag.DurationVar(&stopTimeout, "stop.timeout", 5*time.Second, "How long to wait for remaining requests to finish during shutdown")
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
-	flag.BoolVar(&c.logSuccess, "log.success", false, "Log successful requests.")
 	flag.StringVar(&authType, "authenticator", "web", "What authenticator to use: web | grpc | mock")
 	flag.StringVar(&authURL, "authenticator.url", "http://users:80", "Where to find web the authenticator service")
 	flag.IntVar(&authCacheSize, "auth.cache.size", 0, "How many entries to cache in the auth client.")
 	flag.DurationVar(&authCacheExpiration, "auth.cache.expiration", 30*time.Second, "How long to keep entries in the auth client.")
 	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
-	flag.StringVar(&c.outputHeader, "output.header", "X-Scope-OrgID", "Name of header containing org id on forwarded requests")
 	flag.StringVar(&c.apiInfo, "api.info", "scopeservice:0.1", "Version info for the api to serve, in format ID:VERSION")
 
 	// Security-related flags
