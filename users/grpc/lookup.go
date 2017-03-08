@@ -73,10 +73,12 @@ func (a *usersServer) LookupAdmin(ctx context.Context, req *users.LookupAdminReq
 // LookupUsingToken authenticates a token for access to an org.
 func (a *usersServer) LookupUsingToken(ctx context.Context, req *users.LookupUsingTokenRequest) (*users.LookupUsingTokenResponse, error) {
 	o, err := a.db.FindOrganizationByProbeToken(ctx, req.Token)
+	if err == users.ErrNotFound {
+		err = users.ErrInvalidAuthenticationData
+	}
 	if err != nil {
 		return nil, err
 	}
-
 	return &users.LookupUsingTokenResponse{
 		OrganizationID: o.ID,
 		FeatureFlags:   o.FeatureFlags,
