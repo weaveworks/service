@@ -289,8 +289,10 @@ func routes(c Config) (http.Handler, error) {
 			{"/report", newProxy(c.collectionHost)},
 			{"/control", newProxy(c.controlHost)},
 			{"/pipe", newProxy(c.pipeHost)},
+			// TODO: Remove this once all Weaveworks clients are updated
 			{"/configs", newProxy(c.configsHost)},
 			{"/flux", newProxy(c.fluxHost)},
+			{"/prom/configs", newProxy(c.configsHost)},
 			{"/prom/push", cortexDistributorClient},
 			{"/prom", cortexQuerierClient},
 		},
@@ -317,11 +319,13 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/topology", newProxy(c.queryHost)},
 				{"/api/control", newProxy(c.controlHost)},
 				{"/api/pipe", newProxy(c.pipeHost)},
+				// TODO: Remove this once the UI client is updated
 				{"/api/configs", newProxy(c.configsHost)},
 				// API to insert deploy key requires GH token. Insert token with middleware.
 				{"/api/flux/v5/integrations/github",
 					fluxGHTokenMiddleware.Wrap(newProxy(c.fluxHost))},
 				{"/api/flux", newProxy(c.fluxHost)},
+				{"/api/prom/configs", newProxy(c.configsHost)},
 				{"/api/prom", cortexQuerierClient},
 				{"/api", newProxy(c.queryHost)},
 
