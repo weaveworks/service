@@ -448,7 +448,7 @@ func routes(c Config) (http.Handler, error) {
 
 	return middleware.Merge(
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
-		csrfTokenVerifier{exemptPaths: probeRoute.AbsolutePaths(), secure: c.secureCookie},
+		csrfTokenVerifier{exemptPrefixes: probeRoute.AbsolutePrefixes(), secure: c.secureCookie},
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler)
 		}),
@@ -463,8 +463,8 @@ func routes(c Config) (http.Handler, error) {
 // * Checks them against each other.
 // It complements static origin checking
 type csrfTokenVerifier struct {
-	exemptPaths []string
-	secure      bool
+	exemptPrefixes []string
+	secure         bool
 }
 
 func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
@@ -479,11 +479,9 @@ func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
 	h.SetFailureHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "CSRF token mismatch", http.StatusBadRequest)
 	}))
-	h.ExemptPaths(c.exemptPaths...)
-	// Disable token verification for all requests
-	// until header-setting is deployed in the javascript code (and html caching expires).
-	// TODO: re-enable it
-	h.ExemptFunc(func(r *http.Request) bool { return true })
+	for _, prefix := range c.exemptPrefixes {
+		h.ExemptRegexp(fmt.Sprintf("^%s.*$", prefix))
+	}
 	return h
 }
 
@@ -625,10 +623,10 @@ func (p prefix) Add(r *mux.Router) {
 }
 
 // this should probably be moved to "routable" if/when we accept nested prefixes
-func (p prefix) AbsolutePaths() []string {
+func (p prefix) AbsolutePrefixes() []string {
 	var result []string
 	for _, path := range p.routes {
-		result = append(result, filepath.Clean(p.prefix+"/"+path.path))
+		result = append(result, filepath.Clean(filepath.Join(p.prefix, path.path)))
 	}
 	return result
 }
