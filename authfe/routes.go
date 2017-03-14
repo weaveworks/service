@@ -480,7 +480,7 @@ func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
 		http.Error(w, "CSRF token mismatch", http.StatusBadRequest)
 	}))
 	for _, prefix := range c.exemptPrefixes {
-		h.ExemptGlob(prefix + "*")
+		h.ExemptRegexp(fmt.Sprintf("^%s.*$", prefix))
 	}
 	return h
 }
