@@ -289,9 +289,6 @@ func routes(c Config) (http.Handler, error) {
 			{"/report", newProxy(c.collectionHost)},
 			{"/control", newProxy(c.controlHost)},
 			{"/pipe", newProxy(c.pipeHost)},
-			// TODO: Remove this once this change has been deployed to
-			// production and service-conf#670 has been merged.
-			{"/configs", newProxy(c.configsHost)},
 			{"/flux", newProxy(c.fluxHost)},
 			{"/prom/configs", newProxy(c.configsHost)},
 			{"/prom/push", cortexDistributorClient},
@@ -320,9 +317,6 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/topology", newProxy(c.queryHost)},
 				{"/api/control", newProxy(c.controlHost)},
 				{"/api/pipe", newProxy(c.pipeHost)},
-				// TODO: Remove this once service-ui#334 has been merged and
-				// deployed to production.
-				{"/api/configs", newProxy(c.configsHost)},
 				// API to insert deploy key requires GH token. Insert token with middleware.
 				{"/api/flux/v5/integrations/github",
 					fluxGHTokenMiddleware.Wrap(newProxy(c.fluxHost))},
