@@ -71,6 +71,7 @@ type Config struct {
 	kubediffHost            string
 	lokiHost                string
 	prodGrafanaHost         string
+	promAlertmanagerHost    string
 	promDistributorHost     string
 	promDistributorHostGRPC string
 	prometheusHost          string
@@ -321,6 +322,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/flux/v5/integrations/github",
 					fluxGHTokenMiddleware.Wrap(newProxy(c.fluxHost))},
 				{"/api/flux", newProxy(c.fluxHost)},
+				{"/api/prom/alertmanager", newProxy(c.promAlertmanagerHost)},
 				{"/api/prom/configs", newProxy(c.configsHost)},
 				{"/api/prom", cortexQuerierClient},
 				{"/api", newProxy(c.queryHost)},
