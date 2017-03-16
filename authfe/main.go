@@ -91,6 +91,7 @@ func main() {
 		{&c.fluxHost, "flux"},
 		{&c.launchGeneratorHost, "launch-generator"},
 		{&c.pipeHost, "pipe"},
+		{&c.promAlertmanagerHost, "prom-alertmanager"},
 		{&c.promDistributorHost, "prom-distributor"},
 		{&c.promDistributorHostGRPC, "prom-distributor-grpc"},
 		{&c.promQuerierHost, "prom-querier"},
