@@ -37,6 +37,7 @@ type Config struct {
 	ghIntegration users_client.Integration
 	eventLogger   *EventLogger
 	apiInfo       string
+	externalUI    bool
 
 	// Security-related flags
 	targetOrigin  string
@@ -304,6 +305,12 @@ func routes(c Config) (http.Handler, error) {
 		),
 	}
 
+	// Internal version of the UI is served from the /internal/ prefix on ui-server
+	var uiServerHandler http.Handler = newProxy(c.uiServerHost)
+	if !c.externalUI {
+		uiServerHandler = addPrefix("/internal", uiServerHandler)
+	}
+
 	for _, route := range []routable{
 		// demo service paths get rewritten to remove /demo/ prefix, so trailing slash is required
 		path{"/demo", redirect("/demo/")},
@@ -440,7 +447,7 @@ func routes(c Config) (http.Handler, error) {
 					Wrap(newProxy(c.demoHost))},
 
 				// final wildcard match to static content
-				{"/", noCacheOnRoot.Wrap(newProxy(c.uiServerHost))},
+				{"/", noCacheOnRoot.Wrap(uiServerHandler)},
 			},
 			uiHTTPlogger,
 		},
@@ -579,6 +586,10 @@ func newRouter() *mux.Router {
 
 func trimPrefix(regex string, handler http.Handler) http.Handler {
 	return middleware.PathRewrite(regexp.MustCompile("^"+regex), "").Wrap(handler)
+}
+
+func addPrefix(prefix string, handler http.Handler) http.Handler {
+	return middleware.PathRewrite(regexp.MustCompile("^"), prefix).Wrap(handler)
 }
 
 func redirect(dest string) http.Handler {
