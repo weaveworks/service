@@ -23,6 +23,7 @@
         <td>
           <form action="organizations/{{.ExternalID}}/featureflags" method="POST">
             <input type="hidden" name="redirect_to" value="../../organizations" />
+            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
             <input type="text" name="feature_flags" value="{{range .FeatureFlags}}{{.}} {{end}}" />
             <input type="submit" value="Save" />
           </form>

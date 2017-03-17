@@ -23,11 +23,13 @@
         <td>
           {{if .Admin}}
           <form action="users/{{.ID}}/admin?admin=false" method="POST">
+            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
             <input type="hidden" name="redirect_to" value="../../users" />
             <input type="submit" value="Clear Admin" />
           </form>
           {{else}}
           <form action="users/{{.ID}}/admin?admin=true" method="POST">
+            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
             <input type="hidden" name="redirect_to" value="../../users" />
             <input type="submit" value="Make Admin" />
           </form>
