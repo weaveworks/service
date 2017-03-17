@@ -455,9 +455,15 @@ func routes(c Config) (http.Handler, error) {
 		route.Add(r)
 	}
 
+	// Do not check for csfr tokens in requests from:
+	// * probes (they cannot be attacked)
+	// * the admin alert manager, incorporating tokens would require forking it
+	//   and we don't see alert-silencing as very security-sensitive.
+	csfrExemptPrefixes := probeRoute.AbsolutePrefixes()
+	csfrExemptPrefixes = append(csfrExemptPrefixes, "/admin/alertmanager")
 	return middleware.Merge(
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
-		csrfTokenVerifier{exemptPrefixes: probeRoute.AbsolutePrefixes(), secure: c.secureCookie},
+		csrfTokenVerifier{exemptPrefixes: csfrExemptPrefixes, secure: c.secureCookie},
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler)
 		}),
