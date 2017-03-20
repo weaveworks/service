@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -483,7 +484,15 @@ type csrfTokenVerifier struct {
 }
 
 func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
-	h := nosurf.New(injectTokenInHTMLResponses(next))
+	h := nosurf.New(injectTokenInHTMLResponses(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// NoSurf might have parsed the body for us already; if so,
+		// copy that back into Body.
+		if r.PostForm != nil {
+			r.Body = ioutil.NopCloser(strings.NewReader(r.PostForm.Encode()))
+		}
+
+		next.ServeHTTP(w, r)
+	})))
 	h.SetBaseCookie(http.Cookie{
 		MaxAge:   nosurf.MaxAge,
 		HttpOnly: true,

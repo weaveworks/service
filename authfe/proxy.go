@@ -2,7 +2,6 @@ package main
 
 import (
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -43,13 +42,6 @@ func newProxy(hostAndPort string) proxy {
 	return proxy{
 		hostAndPort: hostAndPort,
 		reverseProxy: httputil.ReverseProxy{
-			Director: func(r *http.Request) {
-				// NoSurf might have parsed the body for us already; if so,
-				// copy that back into Body.
-				if r.PostForm != nil {
-					r.Body = ioutil.NopCloser(strings.NewReader(r.PostForm.Encode()))
-				}
-			},
 			Transport: proxyTransport,
 		},
 	}
