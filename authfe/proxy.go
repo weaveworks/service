@@ -39,9 +39,13 @@ var proxyTransport http.RoundTripper = &nethttp.Transport{
 }
 
 func newProxy(hostAndPort string) proxy {
+	// Make all transformations outside of the director since
+	// they are also required when proxying websockets
+	emptyDirector := func(*http.Request) {}
 	return proxy{
 		hostAndPort: hostAndPort,
 		reverseProxy: httputil.ReverseProxy{
+			Director:  emptyDirector,
 			Transport: proxyTransport,
 		},
 	}
