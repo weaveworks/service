@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -39,13 +40,16 @@ var proxyTransport http.RoundTripper = &nethttp.Transport{
 }
 
 func newProxy(hostAndPort string) proxy {
-	// Make all transformations outside of the director since
-	// they are also required when proxying websockets
-	emptyDirector := func(*http.Request) {}
 	return proxy{
 		hostAndPort: hostAndPort,
 		reverseProxy: httputil.ReverseProxy{
-			Director:  emptyDirector,
+			Director: func(r *http.Request) {
+				// NoSurf might have parsed the body for us already; if so,
+				// copy that back into Body.
+				if r.PostForm != nil {
+					r.Body = ioutil.NopCloser(strings.NewReader(r.PostForm.Encode()))
+				}
+			},
 			Transport: proxyTransport,
 		},
 	}
