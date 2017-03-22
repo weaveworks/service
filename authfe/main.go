@@ -52,6 +52,7 @@ func main() {
 		logLevel              string
 		authType              string
 		authURL               string
+		authHttpURL           string
 		authCacheSize         int
 		authCacheExpiration   time.Duration
 		fluentHost            string
@@ -63,7 +64,8 @@ func main() {
 	flag.DurationVar(&stopTimeout, "stop.timeout", 5*time.Second, "How long to wait for remaining requests to finish during shutdown")
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
 	flag.StringVar(&authType, "authenticator", "web", "What authenticator to use: web | grpc | mock")
-	flag.StringVar(&authURL, "authenticator.url", "http://users:80", "Where to find web the authenticator service")
+	flag.StringVar(&authURL, "authenticator.url", "users:4772", "Where to find web the authenticator service")
+	flag.StringVar(&authHttpURL, "authenticator.httpUrl", "http://users:80", "Where to find the authenticator's http service")
 	flag.IntVar(&authCacheSize, "auth.cache.size", 0, "How many entries to cache in the auth client.")
 	flag.DurationVar(&authCacheExpiration, "auth.cache.expiration", 30*time.Second, "How long to keep entries in the auth client.")
 	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
@@ -150,7 +152,7 @@ func main() {
 		return
 	}
 	c.ghIntegration = &users.TokenRequester{
-		URL:          authURL,
+		URL:          authHttpURL,
 		UserIDHeader: userIDHeader,
 	}
 
