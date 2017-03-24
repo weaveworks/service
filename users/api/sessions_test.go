@@ -31,6 +31,6 @@ func Test_Sessions_Get_NoCookie(t *testing.T) {
 
 	r, _ := http.NewRequest("GET", "/", nil)
 	session, err := sessionStore.Get(r)
-	assert.Equal(t, users.ErrInvalidAuthenticationData, err)
+	assert.IsType(t, users.NewInvalidAuthenticationDataError(nil), err)
 	assert.Equal(t, "", session.UserID)
 }

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -63,7 +64,7 @@ func (a *API) authenticateUserVia(handler func(*users.User, http.ResponseWriter,
 
 		// convert not found errors, which we expect, into invalid auth
 		if err == users.ErrNotFound {
-			err = users.ErrInvalidAuthenticationData
+			err = users.NewInvalidAuthenticationDataError(err)
 		}
 		render.Error(w, r, err)
 		return
@@ -87,7 +88,7 @@ func (a *API) authenticateInstanceVia(handler func(*users.Organization, http.Res
 
 		// convert not found errors, which we expect, into invalid auth
 		if err == users.ErrNotFound {
-			err = users.ErrInvalidAuthenticationData
+			err = users.NewInvalidAuthenticationDataError(err)
 		}
 		render.Error(w, r, err)
 		return
@@ -121,7 +122,7 @@ func (a *API) cookieAuth(w http.ResponseWriter, r *http.Request) (*users.User, e
 func (a *API) probeTokenAuth(w http.ResponseWriter, r *http.Request) (*users.Organization, error) {
 	token, ok := tokens.ExtractToken(r)
 	if !ok {
-		return nil, users.ErrInvalidAuthenticationData
+		return nil, users.NewInvalidAuthenticationDataError(fmt.Errorf("token extraction failure"))
 	}
 
 	o, err := a.db.FindOrganizationByProbeToken(r.Context(), token)

@@ -37,7 +37,7 @@ func (a MockLoginProvider) Login(r *http.Request) (id, email string, session jso
 	code := r.FormValue("code")
 	u, ok := a[code]
 	if !ok {
-		return "", "", nil, users.ErrInvalidAuthenticationData
+		return "", "", nil, users.NewInvalidAuthenticationDataError(fmt.Errorf("code form value not found"))
 	}
 	session, err = json.Marshal(u.ID)
 	if err != nil {

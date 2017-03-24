@@ -42,7 +42,6 @@ var (
 	ErrForbidden                  = errors.New("Forbidden found")
 	ErrNotFound                   = errors.New("Not found")
 	ErrEmailIsTaken               = ValidationErrorf("Email is already taken")
-	ErrInvalidAuthenticationData  = errors.New("Invalid authentication data")
 	ErrOrgExternalIDIsTaken       = ValidationErrorf("ID is already taken")
 	ErrOrgExternalIDCannotBeBlank = ValidationErrorf("ID cannot be blank")
 	ErrOrgExternalIDFormat        = ValidationErrorf("ID can only contain letters, numbers, hyphen, and underscore")
@@ -51,3 +50,20 @@ var (
 	ErrLoginNotFound              = errors.New("no login for this user")
 	ErrProviderParameters         = errors.New("Must pass provider and userID")
 )
+
+type InvalidAuthenticationDataError struct {
+	cause error
+}
+
+func NewInvalidAuthenticationDataError(cause error) error {
+	return InvalidAuthenticationDataError{cause}
+}
+
+func (iad InvalidAuthenticationDataError) Error() string {
+	switch iad.cause {
+	case nil:
+		return fmt.Sprintf("Invalid authentication data")
+	default:
+		return fmt.Sprintf("Invalid authentication data: %v", iad.cause)
+	}
+}

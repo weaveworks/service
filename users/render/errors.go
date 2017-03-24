@@ -23,8 +23,6 @@ func errorStatusCode(err error) int {
 		return http.StatusForbidden
 	case err == users.ErrNotFound:
 		return http.StatusNotFound
-	case err == users.ErrInvalidAuthenticationData:
-		return http.StatusUnauthorized
 	case err == users.ErrLoginNotFound:
 		return http.StatusUnauthorized
 	case err == users.ErrProviderParameters:
@@ -32,6 +30,8 @@ func errorStatusCode(err error) int {
 	}
 
 	switch err.(type) {
+	case users.InvalidAuthenticationDataError:
+		return http.StatusUnauthorized
 	case users.MalformedInputError, users.ValidationError, users.AlreadyAttachedError:
 		return http.StatusBadRequest
 	}
@@ -58,6 +58,9 @@ func Error(w http.ResponseWriter, r *http.Request, err error) {
 	code := errorStatusCode(err)
 	if code == http.StatusInternalServerError {
 		http.Error(w, `{"errors":[{"message":"An internal server error occurred"}]}`, http.StatusInternalServerError)
+	} else if _, ok := err.(users.InvalidAuthenticationDataError); ok {
+		// This particular error contains sensitive cause information that must not be returned to the client
+		http.Error(w, `{"errors":[{"message":"Invalid authentication data"}]}`, code)
 	} else {
 		m := map[string]interface{}{}
 		if err, ok := err.(users.WithMetadata); ok {

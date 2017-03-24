@@ -98,7 +98,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	provider, ok := a.logins.Get(providerID)
 	if !ok {
 		logrus.Errorf("Login provider not found: %q", providerID)
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		render.Error(w, r, users.NewInvalidAuthenticationDataError(fmt.Errorf("login provider not found: %q", providerID)))
 		return
 	}
 
@@ -116,10 +116,10 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			// that. This means that we'll associate the provider (if we have
 			// one) with the logged in session.
 			session, err := a.sessions.Get(r)
-			switch err {
+			switch err.(type) {
 			case nil:
 				view.Attach = true
-			case users.ErrInvalidAuthenticationData:
+			case users.InvalidAuthenticationDataError:
 				return nil, users.ErrNotFound
 			default:
 				return nil, err
@@ -141,7 +141,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			break
 		} else if err != users.ErrNotFound {
 			logrus.Error(err)
-			render.Error(w, r, users.ErrInvalidAuthenticationData)
+			render.Error(w, r, users.NewInvalidAuthenticationDataError(err))
 			return
 		}
 	}
@@ -153,7 +153,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		u, err = a.db.CreateUser(r.Context(), email)
 		if err != nil {
 			logrus.Error(err)
-			render.Error(w, r, users.ErrInvalidAuthenticationData)
+			render.Error(w, r, users.NewInvalidAuthenticationDataError(err))
 			return
 		}
 		a.marketingQueues.UserCreated(u.Email, u.CreatedAt)
@@ -163,7 +163,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		existing, ok := err.(users.AlreadyAttachedError)
 		if !ok {
 			logrus.Error(err)
-			render.Error(w, r, users.ErrInvalidAuthenticationData)
+			render.Error(w, r, users.NewInvalidAuthenticationDataError(err))
 			return
 		}
 
@@ -173,12 +173,12 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		}
 		if err := a.db.DetachLoginFromUser(r.Context(), existing.ID, providerID); err != nil {
 			logrus.Error(err)
-			render.Error(w, r, users.ErrInvalidAuthenticationData)
+			render.Error(w, r, users.NewInvalidAuthenticationDataError(err))
 			return
 		}
 		if err := a.db.AddLoginToUser(r.Context(), u.ID, providerID, id, authSession); err != nil {
 			logrus.Error(err)
-			render.Error(w, r, users.ErrInvalidAuthenticationData)
+			render.Error(w, r, users.NewInvalidAuthenticationDataError(err))
 			return
 		}
 	}
@@ -193,7 +193,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.sessions.Set(w, u.ID); err != nil {
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		render.Error(w, r, users.NewInvalidAuthenticationDataError(err))
 		return
 	}
 
@@ -325,19 +325,19 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		logrus.Error(err)
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		render.Error(w, r, users.NewInvalidAuthenticationDataError(err))
 		return
 	}
 
 	// We always do this so that the timing difference can't be used to infer a user's existence.
 	if !u.CompareToken(token) {
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		render.Error(w, r, users.NewInvalidAuthenticationDataError(fmt.Errorf("token comparison failure")))
 		return
 	}
 
 	if err := a.db.SetUserToken(r.Context(), u.ID, ""); err != nil {
 		logrus.Error(err)
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		render.Error(w, r, users.NewInvalidAuthenticationDataError(err))
 		return
 	}
 
@@ -348,7 +348,7 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.sessions.Set(w, u.ID); err != nil {
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		render.Error(w, r, users.NewInvalidAuthenticationDataError(err))
 		return
 	}
 	render.JSON(w, http.StatusOK, loginView{

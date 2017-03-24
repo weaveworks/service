@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"fmt"
 	"strings"
 
 	"golang.org/x/net/context"
@@ -32,7 +33,7 @@ func (a *usersServer) LookupOrg(ctx context.Context, req *users.LookupOrgRequest
 
 	organizations, err := a.db.ListOrganizationsForUserIDs(ctx, session.UserID)
 	if err == users.ErrNotFound {
-		err = users.ErrInvalidAuthenticationData
+		err = users.NewInvalidAuthenticationDataError(fmt.Errorf("userID %v not found", session.UserID))
 	}
 	if err != nil {
 		return nil, err
@@ -46,7 +47,8 @@ func (a *usersServer) LookupOrg(ctx context.Context, req *users.LookupOrgRequest
 			}, nil
 		}
 	}
-	return nil, users.ErrInvalidAuthenticationData
+	return nil, users.NewInvalidAuthenticationDataError(
+		fmt.Errorf("userID %v not in organization %v", session.UserID, req.OrgExternalID))
 }
 
 // LookupAdmin authenticates a cookie for admin access.
@@ -57,13 +59,13 @@ func (a *usersServer) LookupAdmin(ctx context.Context, req *users.LookupAdminReq
 	}
 	u, err := a.db.FindUserByID(ctx, session.UserID)
 	if err == users.ErrNotFound {
-		err = users.ErrInvalidAuthenticationData
+		err = users.NewInvalidAuthenticationDataError(fmt.Errorf("userID %v not found", session.UserID))
 	}
 	if err != nil {
 		return nil, err
 	}
 	if !u.Admin {
-		return nil, users.ErrInvalidAuthenticationData
+		return nil, users.NewInvalidAuthenticationDataError(fmt.Errorf("userID %v not an admin", session.UserID))
 	}
 	return &users.LookupAdminResponse{
 		AdminID: u.ID,
@@ -74,7 +76,7 @@ func (a *usersServer) LookupAdmin(ctx context.Context, req *users.LookupAdminReq
 func (a *usersServer) LookupUsingToken(ctx context.Context, req *users.LookupUsingTokenRequest) (*users.LookupUsingTokenResponse, error) {
 	o, err := a.db.FindOrganizationByProbeToken(ctx, req.Token)
 	if err == users.ErrNotFound {
-		err = users.ErrInvalidAuthenticationData
+		err = users.NewInvalidAuthenticationDataError(fmt.Errorf("no organization for probe token %v", req.Token))
 	}
 	if err != nil {
 		return nil, err

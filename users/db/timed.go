@@ -25,7 +25,10 @@ func (t timed) errorCode(err error) string {
 		return "404"
 	case users.ErrEmailIsTaken:
 		return "400"
-	case users.ErrInvalidAuthenticationData:
+	}
+
+	switch err.(type) {
+	case users.InvalidAuthenticationDataError:
 		return "401"
 	default:
 		return "500"

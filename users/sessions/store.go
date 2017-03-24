@@ -1,6 +1,7 @@
 package sessions
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -56,7 +57,7 @@ func (s Store) Get(r *http.Request) (Session, error) {
 func Extract(r *http.Request) (string, error) {
 	cookie, err := r.Cookie(client.AuthCookieName)
 	if err == http.ErrNoCookie {
-		err = users.ErrInvalidAuthenticationData
+		err = users.NewInvalidAuthenticationDataError(err)
 	}
 	if err != nil {
 		return "", err
@@ -69,15 +70,15 @@ func (s Store) Decode(encoded string) (Session, error) {
 	// Parse and validate the encoded session
 	var session Session
 	if err := s.encoder.Decode(client.AuthCookieName, encoded, &session); err != nil {
-		return Session{}, users.ErrInvalidAuthenticationData
+		return Session{}, users.NewInvalidAuthenticationDataError(err)
 	}
 	// Check the session hasn't expired
 	if session.CreatedAt.IsZero() || time.Now().UTC().Sub(session.CreatedAt) > SessionDuration {
-		return Session{}, users.ErrInvalidAuthenticationData
+		return Session{}, users.NewInvalidAuthenticationDataError(fmt.Errorf("session for userID %v expired", session.UserID))
 	}
 	// Lookup the user by encoded id
 	if session.UserID == "" {
-		return Session{}, users.ErrInvalidAuthenticationData
+		return Session{}, users.NewInvalidAuthenticationDataError(fmt.Errorf("empty session userID"))
 	}
 	return session, nil
 }

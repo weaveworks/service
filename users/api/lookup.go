@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -49,7 +50,7 @@ func (a *API) lookupAdminHandler(w http.ResponseWriter, r *http.Request) {
 func (a *API) lookupUsingTokenHandler(w http.ResponseWriter, r *http.Request) {
 	token, ok := tokens.ExtractToken(r)
 	if !ok {
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		render.Error(w, r, users.NewInvalidAuthenticationDataError(fmt.Errorf("token extraction failure")))
 		return
 	}
 
