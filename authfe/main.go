@@ -93,6 +93,7 @@ func main() {
 		{&c.demoHost, "demo"},
 		{&c.fluxHost, "flux"},
 		{&c.launchGeneratorHost, "launch-generator"},
+		{&c.peerDiscoveryHost, "peer-discovery"},
 		{&c.pipeHost, "pipe"},
 		{&c.promAlertmanagerHost, "prom-alertmanager"},
 		{&c.promDistributorHost, "prom-distributor"},
