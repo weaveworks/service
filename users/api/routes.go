@@ -58,13 +58,6 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_users_org_orgExternalID_inviteUser", "POST", "/api/users/org/{orgExternalID}/users", a.authenticateUser(a.inviteUser)},
 		{"api_users_org_orgExternalID_deleteUser", "DELETE", "/api/users/org/{orgExternalID}/users/{userEmail}", a.authenticateUser(a.deleteUser)},
 
-		// The users service client (i.e. our other services) use these to
-		// authenticate the admin/user/probe.
-		{"private_api_users_admin", "GET", "/private/api/users/admin", a.lookupAdminHandler},
-		{"private_api_users_lookup_orgExternalID", "GET", "/private/api/users/lookup/{orgExternalID}", a.lookupOrgHandler},
-		{"private_api_users_lookup", "GET", "/private/api/users/lookup", a.lookupUsingTokenHandler},
-		{"private_api_users_lookup_user", "GET", "/private/api/users/lookup_user", a.lookupUserHandler},
-
 		// Internal stuff for our internal usage, internally.
 		{"root", "GET", "/", a.admin},
 		{"private_api_organizations", "GET", "/private/api/organizations", a.listOrganizations},
