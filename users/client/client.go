@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"net/url"
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
@@ -41,19 +42,34 @@ func New(kind, address string, opts CachingClientConfig) (users.UsersClient, err
 }
 
 func newGRPCClient(address string) (users.UsersClient, error) {
-	service, namespace, port, err := httpgrpc.ParseKubernetesAddress(address)
+	var dialOptions []grpc.DialOption
+
+	u, err := url.Parse(address)
 	if err != nil {
 		return nil, err
+	} else if u.Scheme == "direct" {
+		address = u.Host
+	} else if service, namespace, port, err := httpgrpc.ParseKubernetesAddress(address); err != nil {
+		return nil, err
+	} else {
+		balancer := kuberesolver.NewWithNamespace(namespace)
+		address = fmt.Sprintf("kubernetes://%s:%s", service, port)
+		dialOptions = append(dialOptions, balancer.DialOption())
 	}
-	balancer := kuberesolver.NewWithNamespace(namespace)
-	conn, err := grpc.Dial(
-		fmt.Sprintf("kubernetes://%s:%s", service, port),
-		balancer.DialOption(),
+
+	fmt.Println(address)
+
+	dialOptions = append(dialOptions,
 		grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(
 			otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer()),
 			errorInterceptor,
 		)),
+	)
+
+	conn, err := grpc.Dial(
+		address,
+		dialOptions...,
 	)
 	if err != nil {
 		return nil, err
