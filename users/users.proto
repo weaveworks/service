@@ -3,6 +3,7 @@ syntax = "proto3";
 package users;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "google/protobuf/timestamp.proto";
 
 option (gogoproto.populate_all) = true;
 
@@ -18,6 +19,8 @@ service Users {
 
     // LookupUser authenticates a cookie.
     rpc LookupUser(LookupUserRequest) returns (LookupUserResponse) {};
+
+    rpc GetOrganizations(GetOrganizationsRequest) returns (GetOrganizationsResponse) {};
 }
 
 message LookupOrgRequest {
@@ -28,7 +31,7 @@ message LookupOrgRequest {
 message LookupOrgResponse {
     string OrganizationID = 1 [(gogoproto.jsontag) = "organizationID,omitempty"];
     string UserID = 2 [(gogoproto.jsontag) = "userID,omitempty"];
-    repeated string FeatureFlags = 3  [(gogoproto.jsontag) = "featureFlags,omitempty"];
+    repeated string FeatureFlags = 3 [(gogoproto.jsontag) = "featureFlags,omitempty"];
 }
 
 message LookupUsingTokenRequest {
@@ -54,4 +57,20 @@ message LookupUserRequest {
 
 message LookupUserResponse {
     string UserID = 1 [(gogoproto.jsontag) = "userID,omitempty"];
+}
+
+message GetOrganizationsRequest {
+}
+
+message GetOrganizationsResponse {
+    repeated Organization Organizations = 1 [(gogoproto.nullable) = false];
+}
+
+message Organization {
+    string ID = 1;
+    string ExternalID = 2;
+    string Name = 3;
+    string ProbeToken = 4;
+    google.protobuf.Timestamp CreatedAt = 5 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+    repeated string FeatureFlags = 6;
 }

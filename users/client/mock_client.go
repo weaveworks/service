@@ -37,3 +37,7 @@ func (mockClient) LookupUser(ctx context.Context, in *users.LookupUserRequest, o
 		UserID: "mockUserID",
 	}, nil
 }
+
+func (mockClient) GetOrganizations(ctx context.Context, in *users.GetOrganizationsRequest, opts ...grpc.CallOption) (*users.GetOrganizationsResponse, error) {
+	return &users.GetOrganizationsResponse{}, nil
+}

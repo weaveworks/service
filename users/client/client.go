@@ -25,8 +25,6 @@ func New(kind, address string, opts CachingClientConfig) (users.UsersClient, err
 	switch kind {
 	case "mock":
 		client = mockClient{}
-	case "web":
-		client = newWebClient(address)
 	case "grpc":
 		client, err = newGRPCClient(address)
 		if err != nil {

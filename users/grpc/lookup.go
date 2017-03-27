@@ -93,3 +93,20 @@ func (a *usersServer) LookupUser(ctx context.Context, req *users.LookupUserReque
 	}
 	return &users.LookupUserResponse{session.UserID}, nil
 }
+
+func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrganizationsRequest) (*users.GetOrganizationsResponse, error) {
+	organizations, err := a.db.ListOrganizations(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &users.GetOrganizationsResponse{}
+	for _, org := range organizations {
+		result.Organizations = append(result.Organizations, users.Organization{
+			ExternalID: org.ExternalID,
+			ID:         org.ID,
+			Name:       org.Name,
+		})
+	}
+	return result, nil
+}
