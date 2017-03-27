@@ -47,7 +47,9 @@ func newGRPCClient(address string) (users.UsersClient, error) {
 	u, err := url.Parse(address)
 	if err != nil {
 		return nil, err
-	} else if u.Scheme == "direct" {
+	}
+
+	if u.Scheme == "direct" {
 		address = u.Host
 	} else if service, namespace, port, err := httpgrpc.ParseKubernetesAddress(address); err != nil {
 		return nil, err

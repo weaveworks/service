@@ -97,7 +97,9 @@ func (c Config) commonMiddleWare(routeMatcher middleware.RouteMatcher) middlewar
 		extraHeaders.Add("Strict-Transport-Security", fmt.Sprintf("max-age=%d; includeSubDomains", c.hstsMaxAge))
 	}
 	return middleware.Merge(
-		middleware.HeaderAdder{extraHeaders},
+		middleware.HeaderAdder{
+			Header: extraHeaders,
+		},
 		middleware.Instrument{
 			RouteMatcher: routeMatcher,
 			Duration:     common.RequestDuration,

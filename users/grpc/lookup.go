@@ -91,7 +91,9 @@ func (a *usersServer) LookupUser(ctx context.Context, req *users.LookupUserReque
 	if err != nil {
 		return nil, err
 	}
-	return &users.LookupUserResponse{session.UserID}, nil
+	return &users.LookupUserResponse{
+		UserID: session.UserID,
+	}, nil
 }
 
 func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrganizationsRequest) (*users.GetOrganizationsResponse, error) {
