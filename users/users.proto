@@ -21,6 +21,7 @@ service Users {
     rpc LookupUser(LookupUserRequest) returns (LookupUserResponse) {};
 
     rpc GetOrganizations(GetOrganizationsRequest) returns (GetOrganizationsResponse) {};
+    rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse) {};
 }
 
 message LookupOrgRequest {
@@ -64,6 +65,14 @@ message GetOrganizationsRequest {
 
 message GetOrganizationsResponse {
     repeated Organization Organizations = 1 [(gogoproto.nullable) = false];
+}
+
+message GetOrganizationRequest {
+    string ExternalID = 1;
+}
+
+message GetOrganizationResponse {
+    Organization Organization = 1 [(gogoproto.nullable) = false];
 }
 
 message Organization {

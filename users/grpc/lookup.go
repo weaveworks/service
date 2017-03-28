@@ -105,10 +105,31 @@ func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrgani
 	result := &users.GetOrganizationsResponse{}
 	for _, org := range organizations {
 		result.Organizations = append(result.Organizations, users.Organization{
-			ExternalID: org.ExternalID,
-			ID:         org.ID,
-			Name:       org.Name,
+			ID:           org.ID,
+			ExternalID:   org.ExternalID,
+			Name:         org.Name,
+			ProbeToken:   org.ProbeToken,
+			CreatedAt:    org.CreatedAt,
+			FeatureFlags: org.FeatureFlags,
 		})
 	}
 	return result, nil
+}
+
+func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganizationRequest) (*users.GetOrganizationResponse, error) {
+	organization, err := a.db.FindOrganizationByID(ctx, req.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &users.GetOrganizationResponse{
+		Organization: users.Organization{
+			ID:           organization.ID,
+			ExternalID:   organization.ExternalID,
+			Name:         organization.Name,
+			ProbeToken:   organization.ProbeToken,
+			CreatedAt:    organization.CreatedAt,
+			FeatureFlags: organization.FeatureFlags,
+		},
+	}, nil
 }
