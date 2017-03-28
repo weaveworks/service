@@ -86,7 +86,6 @@ func main() {
 		// User-visible services - keep alphabetically sorted pls.
 		{&c.billingAPIHost, "billing-api"},
 		{&c.billingUIHost, "billing-ui"},
-		{&c.billingUsageHost, "billing-usage"},
 		{&c.collectionHost, "collection"},
 		{&c.configsHost, "configs"},
 		{&c.controlHost, "control"},
@@ -107,7 +106,6 @@ func main() {
 		// Admin services - keep alphabetically sorted pls.
 		{&c.alertmanagerHost, "alertmanager"},
 		{&c.ansiblediffHost, "ansiblediff"},
-		{&c.billingAdminHost, "billing-admin"},
 		{&c.compareImagesHost, "compare-images"},
 		{&c.devGrafanaHost, "dev-grafana"},
 		{&c.grafanaHost, "grafana"},

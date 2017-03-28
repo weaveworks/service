@@ -56,7 +56,6 @@ type Config struct {
 	configsHost         string
 	billingUIHost       string
 	billingAPIHost      string
-	billingUsageHost    string
 	demoHost            string
 	launchGeneratorHost string
 	peerDiscoveryHost   string
@@ -66,7 +65,6 @@ type Config struct {
 	// Admin services - keep alphabetically sorted pls
 	alertmanagerHost        string
 	ansiblediffHost         string
-	billingAdminHost        string
 	devGrafanaHost          string
 	compareImagesHost       string
 	grafanaHost             string
@@ -378,7 +376,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/prod-grafana", trimPrefix("/admin/prod-grafana", newProxy(c.prodGrafanaHost))},
 				{"/scope", trimPrefix("/admin/scope", newProxy(c.scopeHost))},
 				{"/users", trimPrefix("/admin/users", newProxy(c.usersHost))},
-				{"/billing-admin", newProxy(c.billingAdminHost)},
+				{"/billing-admin", newProxy(c.billingAPIHost)},
 				{"/kubediff", trimPrefix("/admin/kubediff", newProxy(c.kubediffHost))},
 				{"/terradiff", trimPrefix("/admin/terradiff", newProxy(c.terradiffHost))},
 				{"/ansiblediff", trimPrefix("/admin/ansiblediff", newProxy(c.ansiblediffHost))},
@@ -421,19 +419,18 @@ func routes(c Config) (http.Handler, error) {
 			),
 		},
 		// These billing api endpoints have no orgExternalID, so we can't do authorization on them.
-		path{"/api/billing/accounts", trimPrefix("/api/billing", newProxy(c.billingAPIHost))},
-		path{"/api/billing/payments/authTokens", trimPrefix("/api/billing", newProxy(c.billingAPIHost))},
+		path{"/api/billing/accounts", newProxy(c.billingAPIHost)},
+		path{"/api/billing/payments/authTokens", newProxy(c.billingAPIHost)},
 		prefix{
 			"/api/billing",
 			[]path{
 				{"/payments/authTokens/{orgExternalID}", newProxy(c.billingAPIHost)},
 				{"/payments/{orgExternalID}", newProxy(c.billingAPIHost)},
 				{"/accounts/{orgExternalID}", newProxy(c.billingAPIHost)},
-				{"/usage/{orgExternalID}", newProxy(c.billingUsageHost)},
+				{"/usage/{orgExternalID}", newProxy(c.billingAPIHost)},
 			},
 			middleware.Merge(
 				billingAuthMiddleware,
-				middleware.PathRewrite(regexp.MustCompile("^/api/billing"), ""),
 				uiHTTPlogger,
 			),
 		},
