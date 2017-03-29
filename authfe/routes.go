@@ -335,7 +335,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/prom/alertmanager", newProxy(c.promAlertmanagerHost)},
 				{"/api/prom/configs", newProxy(c.configsHost)},
 				{"/api/prom", cortexQuerierClient},
-				{"/api/weavenet/peerui", newProxy(c.peerDiscoveryHost)},
+				{"/api/weavenet/peer", newProxy(c.peerDiscoveryHost)},
 				{"/api", newProxy(c.queryHost)},
 
 				// Catch-all forward to query service, which is a Scope instance that we
