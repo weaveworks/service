@@ -292,7 +292,7 @@ func (d DB) RenameOrganization(_ context.Context, externalID, name string) error
 func (d DB) OrganizationExists(_ context.Context, externalID string) (bool, error) {
 	var exists bool
 	err := d.QueryRow(
-		`select exists(select 1 from organizations where lower(external_id) = lower($1) and deleted_at is null)`,
+		`select exists(select 1 from organizations where lower(external_id) = lower($1))`,
 		externalID,
 	).Scan(&exists)
 	return exists, err

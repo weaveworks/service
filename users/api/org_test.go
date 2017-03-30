@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
+
+	"github.com/weaveworks/service/users"
 )
 
 func Test_Org(t *testing.T) {
@@ -273,7 +275,17 @@ func Test_Organization_CheckIfExternalIDExists(t *testing.T) {
 	}
 
 	// Create the org so it exists
-	_, err = database.CreateOrganization(context.Background(), otherUser.ID, id, id, "")
+	org, err := database.CreateOrganization(context.Background(), otherUser.ID, id, id, "")
+	require.NoError(t, err)
+
+	{
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	}
+
+	// Delete the org and check it still exists
+	err = database.DeleteOrganization(context.Background(), org.ExternalID)
 	require.NoError(t, err)
 
 	{
@@ -353,9 +365,8 @@ func Test_Organization_Delete(t *testing.T) {
 	}
 
 	// Check the org no longer exists
-	exists, err := database.OrganizationExists(context.Background(), org.ExternalID)
-	require.NoError(t, err)
-	require.False(t, exists)
+	_, err = database.FindOrganizationByID(context.Background(), org.ExternalID)
+	require.EqualError(t, err, users.ErrNotFound.Error())
 
 	// Check the user no longer has the org
 	isMember, err := database.UserIsMemberOf(context.Background(), user.ID, org.ExternalID)

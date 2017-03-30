@@ -259,6 +259,11 @@ func (d *DB) OrganizationExists(_ context.Context, externalID string) (bool, err
 
 func (d *DB) organizationExists(externalID string) (bool, error) {
 	if _, err := d.findOrganizationByExternalID(externalID); err == users.ErrNotFound {
+		for _, deleted := range d.deletedOrganizations {
+			if strings.ToLower(deleted.ExternalID) == strings.ToLower(externalID) {
+				return true, nil
+			}
+		}
 		return false, nil
 	} else if err != nil {
 		return false, err
@@ -288,6 +293,7 @@ func (d *DB) DeleteOrganization(_ context.Context, externalID string) error {
 	if err != nil {
 		return err
 	}
+	d.deletedOrganizations[o.ID] = o
 	delete(d.organizations, o.ID)
 	delete(d.memberships, o.ID)
 	return nil
