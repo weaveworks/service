@@ -294,6 +294,7 @@ func routes(c Config) (http.Handler, error) {
 			{"/control", newProxy(c.controlHost)},
 			{"/pipe", newProxy(c.pipeHost)},
 			{"/flux", newProxy(c.fluxHost)},
+			{"/prom/alertmanager", newProxy(c.promAlertmanagerHost)},
 			{"/prom/configs", newProxy(c.configsHost)},
 			{"/prom/push", cortexDistributorClient},
 			{"/prom", cortexQuerierClient},
