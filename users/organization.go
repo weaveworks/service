@@ -2,7 +2,6 @@ package users
 
 import (
 	"regexp"
-	"time"
 
 	"github.com/weaveworks/service/users/tokens"
 )
@@ -10,17 +9,6 @@ import (
 var (
 	orgExternalIDRegex = regexp.MustCompile(`\A[a-zA-Z0-9_-]+\z`)
 )
-
-// Organization (aka Instance) represents a database organization, and a UI
-// instance. (same thing)
-type Organization struct {
-	ID           string
-	ExternalID   string
-	Name         string
-	ProbeToken   string
-	CreatedAt    time.Time
-	FeatureFlags []string
-}
 
 // Membership represents a users membership of an organization.
 type Membership struct {

@@ -91,5 +91,45 @@ func (a *usersServer) LookupUser(ctx context.Context, req *users.LookupUserReque
 	if err != nil {
 		return nil, err
 	}
-	return &users.LookupUserResponse{session.UserID}, nil
+	return &users.LookupUserResponse{
+		UserID: session.UserID,
+	}, nil
+}
+
+func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrganizationsRequest) (*users.GetOrganizationsResponse, error) {
+	organizations, err := a.db.ListOrganizations(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &users.GetOrganizationsResponse{}
+	for _, org := range organizations {
+		result.Organizations = append(result.Organizations, users.Organization{
+			ID:           org.ID,
+			ExternalID:   org.ExternalID,
+			Name:         org.Name,
+			ProbeToken:   org.ProbeToken,
+			CreatedAt:    org.CreatedAt,
+			FeatureFlags: org.FeatureFlags,
+		})
+	}
+	return result, nil
+}
+
+func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganizationRequest) (*users.GetOrganizationResponse, error) {
+	organization, err := a.db.FindOrganizationByID(ctx, req.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &users.GetOrganizationResponse{
+		Organization: users.Organization{
+			ID:           organization.ID,
+			ExternalID:   organization.ExternalID,
+			Name:         organization.Name,
+			ProbeToken:   organization.ProbeToken,
+			CreatedAt:    organization.CreatedAt,
+			FeatureFlags: organization.FeatureFlags,
+		},
+	}, nil
 }

@@ -1,7 +1,8 @@
 package client
 
 import (
-	"encoding/json"
+	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -9,12 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/render"
 	"github.com/weaveworks/service/users/tokens"
 )
 
@@ -31,78 +34,77 @@ var (
 )
 
 type dummyServer struct {
-	*httptest.Server
+	URL string
+	users.UsersServer
+	grpcServer *grpc.Server
 
 	failRequests int32
 	probeLookups int32
 	orgLookups   int32
 }
 
-func newDummyServer() *dummyServer {
-	d := &dummyServer{}
-	serverHandler := mux.NewRouter()
-	serverHandler.Methods("GET").Path("/private/api/users/lookup/{orgExternalID}").
-		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			atomic.AddInt32(&d.orgLookups, 1)
-			if atomic.LoadInt32(&d.failRequests) != 0 {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+// LookupOrg authenticates a cookie for access to an org by extenal ID.
+func (d *dummyServer) LookupOrg(ctx context.Context, req *users.LookupOrgRequest) (*users.LookupOrgResponse, error) {
+	atomic.AddInt32(&d.orgLookups, 1)
+	if atomic.LoadInt32(&d.failRequests) != 0 {
+		return nil, errors.New("fake error")
+	}
 
-			localOrgExternalID := mux.Vars(r)["orgExternalID"]
-			localOrgCookie, err := r.Cookie(AuthCookieName)
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			j, _ := json.Marshal(map[string]interface{}{
-				"organizationID": orgID,
-				"userID":         userID,
-				"featureFlags":   featureFlags,
-			})
-			if localOrgExternalID == orgExternalID && orgCookie == localOrgCookie.Value {
-				w.WriteHeader(http.StatusOK)
-				w.Write(j)
-				return
-			}
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		})
+	if req.OrgExternalID != orgExternalID || orgCookie != req.Cookie {
+		return nil, users.ErrInvalidAuthenticationData
+	}
 
-	serverHandler.Methods("GET").Path("/private/api/users/lookup").
-		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			atomic.AddInt32(&d.probeLookups, 1)
-			if atomic.LoadInt32(&d.failRequests) != 0 {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+	return &users.LookupOrgResponse{
+		OrganizationID: orgID,
+		UserID:         userID,
+		FeatureFlags:   featureFlags,
+	}, nil
+}
 
-			localAuthToken, ok := tokens.ExtractToken(r)
-			if !ok {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-			j, _ := json.Marshal(map[string]interface{}{
-				"organizationID": orgID,
-				"featureFlags":   featureFlags,
-			})
-			if orgToken == localAuthToken {
-				w.WriteHeader(http.StatusOK)
-				w.Write(j)
-				return
-			}
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		})
-	d.Server = httptest.NewServer(serverHandler)
-	return d
+// LookupUsingToken authenticates a token for access to an org.
+func (d *dummyServer) LookupUsingToken(ctx context.Context, req *users.LookupUsingTokenRequest) (*users.LookupUsingTokenResponse, error) {
+	atomic.AddInt32(&d.probeLookups, 1)
+	if atomic.LoadInt32(&d.failRequests) != 0 {
+		return nil, errors.New("fake error")
+	}
+
+	if orgToken != req.Token {
+		return nil, users.ErrInvalidAuthenticationData
+	}
+
+	return &users.LookupUsingTokenResponse{
+		OrganizationID: orgID,
+		FeatureFlags:   featureFlags,
+	}, nil
+}
+
+func (d *dummyServer) Close() {
+	d.grpcServer.GracefulStop()
+}
+
+func newDummyServer() (*dummyServer, error) {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, err
+	}
+
+	d := &dummyServer{
+		grpcServer: grpc.NewServer(grpc.UnaryInterceptor(render.GRPCErrorInterceptor)),
+		URL:        "direct://" + lis.Addr().String(),
+	}
+
+	users.RegisterUsersServer(d.grpcServer, d)
+	go d.grpcServer.Serve(lis)
+
+	return d, nil
 }
 
 func TestAuth(t *testing.T) {
-	server := newDummyServer()
+	server, err := newDummyServer()
+	require.NoError(t, err)
 	defer server.Close()
-	auth, err := New("web", server.URL, CachingClientConfig{})
-	assert.NoError(t, err)
+	auth, err := New("grpc", server.URL, CachingClientConfig{})
+	require.NoError(t, err)
 
 	// Test we can auth based on the headers
 	{
@@ -131,9 +133,8 @@ func TestAuth(t *testing.T) {
 		response, err := auth.LookupUsingToken(context.Background(), &users.LookupUsingTokenRequest{
 			Token: "This is not the right value",
 		})
-		assert.Error(t, err, "Unexpected successful authentication")
-		assert.Equal(t, "", response.OrganizationID, "Unexpected organization")
-		assert.Len(t, response.FeatureFlags, 0, "Unexpected organization")
+		require.Error(t, err, "Unexpected successful authentication")
+		require.Nil(t, response)
 	}
 
 	// Test denying access for cookies
@@ -142,24 +143,23 @@ func TestAuth(t *testing.T) {
 			Cookie:        "Not the right cookie",
 			OrgExternalID: orgExternalID,
 		})
-		assert.Error(t, err, "Unexpected successful authentication")
-		assert.Equal(t, "", response.OrganizationID, "Unexpected organization")
-		assert.Equal(t, "", response.UserID, "Unexpected user")
-		assert.Len(t, response.FeatureFlags, 0, "Unexpected organization")
+		require.Error(t, err, "Unexpected successful authentication")
+		require.Nil(t, response)
 	}
 }
 
 func TestAuthCache(t *testing.T) {
-	server := newDummyServer()
+	server, err := newDummyServer()
+	require.NoError(t, err)
 	defer server.Close()
-	auth, err := New("web", server.URL, CachingClientConfig{
+	auth, err := New("grpc", server.URL, CachingClientConfig{
 		CredCacheEnabled:         true,
 		ProbeCredCacheSize:       1,
 		OrgCredCacheSize:         1,
 		ProbeCredCacheExpiration: time.Minute,
 		OrgCredCacheExpiration:   time.Minute,
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Test denying access should be cached
 	{
@@ -167,16 +167,14 @@ func TestAuthCache(t *testing.T) {
 			Token: "This is not the right value",
 		})
 		assert.Error(t, err, "Unexpected successful authentication")
-		assert.Equal(t, "", response.OrganizationID, "Unexpected organization")
-		assert.Len(t, response.FeatureFlags, 0, "Unexpected organization")
+		assert.Nil(t, response)
 		assert.Equal(t, int32(1), atomic.LoadInt32(&server.probeLookups), "Unexpected number of probe lookups")
 
 		response, err = auth.LookupUsingToken(context.Background(), &users.LookupUsingTokenRequest{
 			Token: "This is not the right value",
 		})
 		assert.Error(t, err, "Unexpected successful authentication")
-		assert.Equal(t, "", response.OrganizationID, "Unexpected organization")
-		assert.Len(t, response.FeatureFlags, 0, "Unexpected organization")
+		assert.Nil(t, response)
 		assert.Equal(t, int32(1), atomic.LoadInt32(&server.probeLookups), "Unexpected number of probe lookups")
 	}
 
@@ -188,25 +186,24 @@ func TestAuthCache(t *testing.T) {
 			Token: "This is a different but not right value",
 		})
 		assert.Error(t, err, "Unexpected successful authentication")
-		assert.Equal(t, "", response.OrganizationID, "Unexpected organization")
-		assert.Len(t, response.FeatureFlags, 0, "Unexpected organization")
+		assert.Nil(t, response)
 		assert.Equal(t, int32(2), atomic.LoadInt32(&server.probeLookups), "Unexpected number of probe lookups")
 
 		response, err = auth.LookupUsingToken(context.Background(), &users.LookupUsingTokenRequest{
 			Token: "This is a different but not right value",
 		})
 		assert.Error(t, err, "Unexpected successful authentication")
-		assert.Equal(t, "", response.OrganizationID, "Unexpected organization")
-		assert.Len(t, response.FeatureFlags, 0, "Unexpected organization")
+		assert.Nil(t, response)
 		assert.Equal(t, int32(3), atomic.LoadInt32(&server.probeLookups), "Unexpected number of probe lookups")
 	}
 }
 
 func TestMiddleware(t *testing.T) {
-	server := newDummyServer()
+	server, err := newDummyServer()
+	require.NoError(t, err)
 	defer server.Close()
-	auth, err := New("web", server.URL, CachingClientConfig{})
-	assert.NoError(t, err)
+	auth, err := New("grpc", server.URL, CachingClientConfig{})
+	require.NoError(t, err)
 
 	var (
 		body                   = []byte("OK")
