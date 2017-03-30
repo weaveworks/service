@@ -106,6 +106,8 @@ func main() {
 		// Admin services - keep alphabetically sorted pls.
 		{&c.alertmanagerHost, "alertmanager"},
 		{&c.ansiblediffHost, "ansiblediff"},
+		{&c.billingAggregatorHost, "billing-aggregator"},
+		{&c.billingUploaderHost, "billing-uploader"},
 		{&c.compareImagesHost, "compare-images"},
 		{&c.devGrafanaHost, "dev-grafana"},
 		{&c.grafanaHost, "grafana"},

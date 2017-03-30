@@ -65,8 +65,10 @@ type Config struct {
 	// Admin services - keep alphabetically sorted pls
 	alertmanagerHost        string
 	ansiblediffHost         string
-	devGrafanaHost          string
+	billingAggregatorHost   string
+	billingUploaderHost     string
 	compareImagesHost       string
+	devGrafanaHost          string
 	grafanaHost             string
 	kubedashHost            string
 	kubediffHost            string
@@ -75,9 +77,9 @@ type Config struct {
 	promAlertmanagerHost    string
 	promDistributorHost     string
 	promDistributorHostGRPC string
-	prometheusHost          string
 	promQuerierHost         string
 	promQuerierHostGRPC     string
+	prometheusHost          string
 	scopeHost               string
 	terradiffHost           string
 	usersHost               string
@@ -376,7 +378,9 @@ func routes(c Config) (http.Handler, error) {
 				{"/prod-grafana", trimPrefix("/admin/prod-grafana", newProxy(c.prodGrafanaHost))},
 				{"/scope", trimPrefix("/admin/scope", newProxy(c.scopeHost))},
 				{"/users", trimPrefix("/admin/users", newProxy(c.usersHost))},
-				{"/billing-admin", newProxy(c.billingAPIHost)},
+				{"/billing/admin", trimPrefix("/admin/billing/admin", newProxy(c.billingAPIHost))},
+				{"/billing/aggregator", trimPrefix("/admin/billing/aggregator", newProxy(c.billingAggregatorHost))},
+				{"/billing/uploader", trimPrefix("/admin/billing/uploader", newProxy(c.billingUploaderHost))},
 				{"/kubediff", trimPrefix("/admin/kubediff", newProxy(c.kubediffHost))},
 				{"/terradiff", trimPrefix("/admin/terradiff", newProxy(c.terradiffHost))},
 				{"/ansiblediff", trimPrefix("/admin/ansiblediff", newProxy(c.ansiblediffHost))},
