@@ -11,22 +11,24 @@ import (
 
 // DB is an in-memory database for testing, and local development
 type DB struct {
-	users               map[string]*users.User
-	organizations       map[string]*users.Organization
-	memberships         map[string][]string
-	logins              map[string]*login.Login
-	passwordHashingCost int
-	mtx                 sync.Mutex
+	users                map[string]*users.User
+	organizations        map[string]*users.Organization
+	deletedOrganizations map[string]*users.Organization
+	memberships          map[string][]string
+	logins               map[string]*login.Login
+	passwordHashingCost  int
+	mtx                  sync.Mutex
 }
 
 // New creates a new in-memory database
 func New(_, _ string, passwordHashingCost int) (*DB, error) {
 	return &DB{
-		users:               make(map[string]*users.User),
-		organizations:       make(map[string]*users.Organization),
-		memberships:         make(map[string][]string),
-		logins:              make(map[string]*login.Login),
-		passwordHashingCost: passwordHashingCost,
+		users:                make(map[string]*users.User),
+		organizations:        make(map[string]*users.Organization),
+		deletedOrganizations: make(map[string]*users.Organization),
+		memberships:          make(map[string][]string),
+		logins:               make(map[string]*login.Login),
+		passwordHashingCost:  passwordHashingCost,
 	}, nil
 }
 
