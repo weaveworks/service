@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -18,8 +20,27 @@ import (
 const defaultPort = "80"
 
 type proxy struct {
-	hostAndPort  string
+	// You should set this
+	name string
+
+	// Flag-set stuff
+	hostAndPort string
+	readOnly    bool
+
+	// Internally used stuff
+	sync.Once
 	reverseProxy httputil.ReverseProxy
+}
+
+func (p *proxy) RegisterFlags(f *flag.FlagSet) {
+	f.StringVar(&p.hostAndPort, p.name, "", fmt.Sprintf("Hostname & port for %s service", p.name))
+	f.BoolVar(&p.readOnly, p.name+"-readonly", false, fmt.Sprintf("Make %s service, read-only (will only accept GETs)", p.name))
+}
+
+var readOnlyMethods = []string{
+	http.MethodGet,
+	http.MethodHead,
+	http.MethodOptions,
 }
 
 var proxyTransport http.RoundTripper = &nethttp.Transport{
@@ -38,20 +59,15 @@ var proxyTransport http.RoundTripper = &nethttp.Transport{
 	},
 }
 
-func newProxy(hostAndPort string) proxy {
-	// Make all transformations outside of the director since
-	// they are also required when proxying websockets
-	emptyDirector := func(*http.Request) {}
-	return proxy{
-		hostAndPort: hostAndPort,
-		reverseProxy: httputil.ReverseProxy{
-			Director:  emptyDirector,
+func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	p.Once.Do(func() {
+		// Make all transformations outside of the director since
+		// they are also required when proxying websockets
+		p.reverseProxy = httputil.ReverseProxy{
+			Director:  func(*http.Request) {},
 			Transport: proxyTransport,
-		},
-	}
-}
-
-func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+		}
+	})
 	if !middleware.IsWSHandshakeRequest(r) {
 		var ht *nethttp.Tracer
 		r, ht = nethttp.TraceRequest(opentracing.GlobalTracer(), r)
@@ -61,6 +77,20 @@ func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if p.hostAndPort == "" {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
+	}
+
+	if p.readOnly {
+		accepted := false
+		for _, method := range readOnlyMethods {
+			accepted = (method == r.Method)
+			if accepted {
+				break
+			}
+		}
+		if !accepted {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
 	}
 
 	// Tweak request before sending
@@ -81,7 +111,7 @@ func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p.reverseProxy.ServeHTTP(w, r)
 }
 
-func (p proxy) proxyWS(w http.ResponseWriter, r *http.Request) {
+func (p *proxy) proxyWS(w http.ResponseWriter, r *http.Request) {
 	wsRequestCount.Inc()
 	wsConnections.Inc()
 	defer wsConnections.Dec()

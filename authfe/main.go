@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net"
 	"net/http"
 	"regexp"
@@ -80,8 +79,8 @@ func main() {
 	flag.BoolVar(&c.secureCookie, "secure-cookie", false, "Send CRSF cookie as HTTPS only.")
 
 	hostFlags := []struct {
-		dest *string
-		name string
+		proxy **proxy
+		name  string
 	}{
 		// User-visible services - keep alphabetically sorted pls.
 		{&c.billingAPIHost, "billing-api"},
@@ -122,7 +121,9 @@ func main() {
 	}
 
 	for _, hostFlag := range hostFlags {
-		flag.StringVar(hostFlag.dest, hostFlag.name, "", fmt.Sprintf("Hostname & port for %s service", hostFlag.name))
+		p := &proxy{name: hostFlag.name}
+		p.RegisterFlags(flag.CommandLine)
+		*hostFlag.proxy = p
 	}
 
 	flag.Parse()
@@ -133,8 +134,9 @@ func main() {
 	}
 
 	for _, hostFlag := range hostFlags {
-		if *hostFlag.dest == "" {
-			log.Warningf("Host for %s not given; will not be proxied", hostFlag.name)
+		p := *hostFlag.proxy
+		if p.hostAndPort == "" {
+			log.Warningf("Host for %s not given; will not be proxied", p.name)
 		}
 	}
 

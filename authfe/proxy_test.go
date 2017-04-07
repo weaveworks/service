@@ -29,7 +29,7 @@ func TestProxyWebSocket(t *testing.T) {
 	// Setup a proxy server pointing at the websocket server
 	wsURL, err := url.Parse(wsServer.URL)
 	assert.NoError(t, err, "Cannot parse URL")
-	proxyServer := httptest.NewServer(newProxy(wsURL.Host))
+	proxyServer := httptest.NewServer(&proxy{hostAndPort: wsURL.Host})
 	defer proxyServer.Close()
 
 	// Establish a websocket connection with the proxy
@@ -77,10 +77,39 @@ func TestProxyGet(t *testing.T) {
 	// Setup a proxy server pointing at the server
 	serverURL, err := url.Parse(server.URL)
 	assert.NoError(t, err, "Cannot parse URL")
-	proxyServer := httptest.NewServer(newProxy(serverURL.Host))
+	proxyServer := httptest.NewServer(&proxy{hostAndPort: serverURL.Host})
 	defer proxyServer.Close()
 
-	_, err = http.Get(fmt.Sprintf("http://%s%s", serverURL.Host, expectedURI))
+	_, err = http.Get(fmt.Sprintf("%s%s", proxyServer.URL, expectedURI))
 	assert.NoError(t, err, "Failed to get URL")
 	assert.True(t, atomic.LoadUint32(&handlerCalled) == 1, "Server wasn't called")
+}
+
+func TestProxyReadOnly(t *testing.T) {
+	expectedURI := "/foo"
+
+	// Use a super simple server as the target
+	handlerCalled := uint32(0)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, r.RequestURI, expectedURI)
+		atomic.StoreUint32(&handlerCalled, 1)
+	}))
+	defer server.Close()
+
+	// Setup a proxy server pointing at the server
+	serverURL, err := url.Parse(server.URL)
+	assert.NoError(t, err, "Cannot parse URL")
+	proxyServer := httptest.NewServer(&proxy{hostAndPort: serverURL.Host, readOnly: true})
+	defer proxyServer.Close()
+
+	// Gets should be allowed
+	_, err = http.Get(fmt.Sprintf("%s%s", proxyServer.URL, expectedURI))
+	assert.NoError(t, err, "Failed to get URL")
+	assert.True(t, atomic.LoadUint32(&handlerCalled) == 1, "Server wasn't called")
+
+	// Posts should not be allowed
+	resp, err := http.Post(fmt.Sprintf("%s%s", proxyServer.URL, expectedURI), "", nil)
+	assert.NoError(t, err, "Failed to get URL")
+	assert.Equal(t, resp.StatusCode, http.StatusServiceUnavailable)
+	assert.True(t, atomic.LoadUint32(&handlerCalled) == 1, "Server was called")
 }
