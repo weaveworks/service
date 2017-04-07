@@ -29,7 +29,8 @@ func TestProxyWebSocket(t *testing.T) {
 	// Setup a proxy server pointing at the websocket server
 	wsURL, err := url.Parse(wsServer.URL)
 	assert.NoError(t, err, "Cannot parse URL")
-	proxyServer := httptest.NewServer(&proxy{hostAndPort: wsURL.Host})
+	proxy, _ := newProxy(proxyConfig{hostAndPort: wsURL.Host, protocol: "http"})
+	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
 	// Establish a websocket connection with the proxy
@@ -77,7 +78,8 @@ func TestProxyGet(t *testing.T) {
 	// Setup a proxy server pointing at the server
 	serverURL, err := url.Parse(server.URL)
 	assert.NoError(t, err, "Cannot parse URL")
-	proxyServer := httptest.NewServer(&proxy{hostAndPort: serverURL.Host})
+	proxy, _ := newProxy(proxyConfig{hostAndPort: serverURL.Host, protocol: "http"})
+	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
 	_, err = http.Get(fmt.Sprintf("%s%s", proxyServer.URL, expectedURI))
@@ -99,7 +101,8 @@ func TestProxyReadOnly(t *testing.T) {
 	// Setup a proxy server pointing at the server
 	serverURL, err := url.Parse(server.URL)
 	assert.NoError(t, err, "Cannot parse URL")
-	proxyServer := httptest.NewServer(&proxy{hostAndPort: serverURL.Host, readOnly: true})
+	proxy, _ := newProxy(proxyConfig{hostAndPort: serverURL.Host, protocol: "http", readOnly: true})
+	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
 	// Gets should be allowed

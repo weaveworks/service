@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"net"
@@ -14,27 +13,30 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
+	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/middleware"
 )
 
 const defaultPort = "80"
 
-type proxy struct {
-	// You should set this
-	name string
-
-	// Flag-set stuff
-	hostAndPort string
-	readOnly    bool
-
-	// Internally used stuff
-	sync.Once
-	reverseProxy httputil.ReverseProxy
+func newProxy(cfg proxyConfig) (http.Handler, error) {
+	switch cfg.protocol {
+	case "grpc":
+		return httpgrpc.NewClient(cfg.hostAndPort)
+	case "http":
+		// Make all transformations outside of the director since
+		// they are also required when proxying websockets
+		return &httpProxy{cfg, httputil.ReverseProxy{
+			Director:  func(*http.Request) {},
+			Transport: proxyTransport,
+		}}, nil
+	}
+	return nil, fmt.Errorf("Unknown protocol %q for service %s", cfg.protocol, cfg.name)
 }
 
-func (p *proxy) RegisterFlags(f *flag.FlagSet) {
-	f.StringVar(&p.hostAndPort, p.name, "", fmt.Sprintf("Hostname & port for %s service", p.name))
-	f.BoolVar(&p.readOnly, p.name+"-readonly", false, fmt.Sprintf("Make %s service, read-only (will only accept GETs)", p.name))
+type httpProxy struct {
+	proxyConfig
+	reverseProxy httputil.ReverseProxy
 }
 
 var readOnlyMethods = []string{
@@ -59,15 +61,7 @@ var proxyTransport http.RoundTripper = &nethttp.Transport{
 	},
 }
 
-func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	p.Once.Do(func() {
-		// Make all transformations outside of the director since
-		// they are also required when proxying websockets
-		p.reverseProxy = httputil.ReverseProxy{
-			Director:  func(*http.Request) {},
-			Transport: proxyTransport,
-		}
-	})
+func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !middleware.IsWSHandshakeRequest(r) {
 		var ht *nethttp.Tracer
 		r, ht = nethttp.TraceRequest(opentracing.GlobalTracer(), r)
@@ -111,7 +105,7 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p.reverseProxy.ServeHTTP(w, r)
 }
 
-func (p *proxy) proxyWS(w http.ResponseWriter, r *http.Request) {
+func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {
 	wsRequestCount.Inc()
 	wsConnections.Inc()
 	defer wsConnections.Dec()

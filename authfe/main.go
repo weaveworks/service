@@ -46,126 +46,55 @@ func init() {
 
 func main() {
 	var (
-		listen, privateListen string
-		stopTimeout           time.Duration
-		logLevel              string
-		authType              string
-		authURL               string
-		authHTTPURL           string
-		authCacheSize         int
-		authCacheExpiration   time.Duration
-		fluentHost            string
-
-		c Config
+		cfg Config
 	)
-	flag.StringVar(&listen, "listen", ":80", "HTTP server listen address")
-	flag.StringVar(&privateListen, "private-listen", ":8080", "HTTP server listen address (private endpoints)")
-	flag.DurationVar(&stopTimeout, "stop.timeout", 5*time.Second, "How long to wait for remaining requests to finish during shutdown")
-	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
-	flag.StringVar(&authType, "authenticator", "web", "What authenticator to use: web | grpc | mock")
-	flag.StringVar(&authURL, "authenticator.url", "users:4772", "Where to find web the authenticator service")
-	flag.StringVar(&authHTTPURL, "authenticator.httpurl", "http://users:80", "Where to find the authenticator's http service")
-	flag.IntVar(&authCacheSize, "auth.cache.size", 0, "How many entries to cache in the auth client.")
-	flag.DurationVar(&authCacheExpiration, "auth.cache.expiration", 30*time.Second, "How long to keep entries in the auth client.")
-	flag.StringVar(&fluentHost, "fluent", "", "Hostname & port for fluent")
-	flag.StringVar(&c.apiInfo, "api.info", "scopeservice:0.1", "Version info for the api to serve, in format ID:VERSION")
-	flag.BoolVar(&c.externalUI, "externalUI", true, "Point to externally hosted static UI assets")
-
-	// Security-related flags
-	flag.StringVar(&c.targetOrigin, "hostname", "", "Hostname through which this server is accessed, for same-origin checks (CSRF protection)")
-	flag.BoolVar(&c.redirectHTTPS, "redirect-https", false, "Redirect all HTTP traffic to HTTPS")
-	flag.IntVar(&c.hstsMaxAge, "hsts-max-age", 0, "Max Age in seconds for HSTS header - zero means no header.  Header will only be send if redirect-https is true.")
-	flag.BoolVar(&c.sendCSPHeader, "send-csp-header", false, "Send \"Content-Security-Policy: default-src https:\" in all responses.")
-	flag.BoolVar(&c.secureCookie, "secure-cookie", false, "Send CRSF cookie as HTTPS only.")
-
-	hostFlags := []struct {
-		proxy **proxy
-		name  string
-	}{
-		// User-visible services - keep alphabetically sorted pls.
-		{&c.billingAPIHost, "billing-api"},
-		{&c.billingUIHost, "billing-ui"},
-		{&c.collectionHost, "collection"},
-		{&c.configsHost, "configs"},
-		{&c.controlHost, "control"},
-		{&c.demoHost, "demo"},
-		{&c.fluxHost, "flux"},
-		{&c.launchGeneratorHost, "launch-generator"},
-		{&c.peerDiscoveryHost, "peer-discovery"},
-		{&c.pipeHost, "pipe"},
-		{&c.promAlertmanagerHost, "prom-alertmanager"},
-		{&c.promDistributorHost, "prom-distributor"},
-		{&c.promDistributorHostGRPC, "prom-distributor-grpc"},
-		{&c.promQuerierHost, "prom-querier"},
-		{&c.promQuerierHostGRPC, "prom-querier-grpc"},
-		{&c.queryHost, "query"},
-		{&c.uiMetricsHost, "ui-metrics"},
-		{&c.uiServerHost, "ui-server"},
-
-		// Admin services - keep alphabetically sorted pls.
-		{&c.alertmanagerHost, "alertmanager"},
-		{&c.ansiblediffHost, "ansiblediff"},
-		{&c.billingAggregatorHost, "billing-aggregator"},
-		{&c.billingUploaderHost, "billing-uploader"},
-		{&c.compareImagesHost, "compare-images"},
-		{&c.devGrafanaHost, "dev-grafana"},
-		{&c.grafanaHost, "grafana"},
-		{&c.kubedashHost, "kubedash"},
-		{&c.kubediffHost, "kubediff"},
-		{&c.lokiHost, "loki"},
-		{&c.prodGrafanaHost, "prod-grafana"},
-		{&c.prometheusHost, "prometheus"},
-		{&c.scopeHost, "scope"},
-		{&c.terradiffHost, "terradiff"},
-		{&c.usersHost, "users"},
-	}
-
-	for _, hostFlag := range hostFlags {
-		p := &proxy{name: hostFlag.name}
-		p.RegisterFlags(flag.CommandLine)
-		*hostFlag.proxy = p
-	}
-
+	cfg.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 
-	if err := logging.Setup(logLevel); err != nil {
+	if err := logging.Setup(cfg.logLevel); err != nil {
 		log.Fatalf("Error configuring logging: %v", err)
 		return
 	}
 
-	for _, hostFlag := range hostFlags {
-		p := *hostFlag.proxy
-		if p.hostAndPort == "" {
-			log.Warningf("Host for %s not given; will not be proxied", p.name)
+	// Initialize all the proxies
+	for name, proxyCfg := range cfg.proxies() {
+		if proxyCfg.hostAndPort == "" {
+			log.Warningf("Host for %s not given; will not be proxied", name)
+			continue
 		}
+		handler, err := newProxy(*proxyCfg)
+		if err != nil {
+			log.Fatal(err)
+		}
+		proxyCfg.Handler = handler
 	}
 
 	authOptions := users.CachingClientConfig{}
-	if authCacheSize > 0 {
+	if cfg.authCacheSize > 0 {
 		authOptions.CredCacheEnabled = true
-		authOptions.OrgCredCacheSize = authCacheSize
-		authOptions.ProbeCredCacheSize = authCacheSize
-		authOptions.OrgCredCacheExpiration = authCacheExpiration
-		authOptions.ProbeCredCacheExpiration = authCacheExpiration
+		authOptions.OrgCredCacheSize = cfg.authCacheSize
+		authOptions.ProbeCredCacheSize = cfg.authCacheSize
+		authOptions.OrgCredCacheExpiration = cfg.authCacheExpiration
+		authOptions.ProbeCredCacheExpiration = cfg.authCacheExpiration
 	}
-	var err error
-	c.authenticator, err = users.New(authType, authURL, authOptions)
+	authenticator, err := users.New(cfg.authType, cfg.authURL, authOptions)
 	if err != nil {
 		log.Fatalf("Error making users client: %v", err)
 		return
 	}
-	c.ghIntegration = &users.TokenRequester{
-		URL:          authHTTPURL,
+	ghIntegration := &users.TokenRequester{
+		URL:          cfg.authHTTPURL,
 		UserIDHeader: userIDHeader,
 	}
 
-	if fluentHost != "" {
+	var eventLogger *EventLogger
+	if cfg.fluentHost != "" {
 		var err error
-		c.eventLogger, err = NewEventLogger(fluentHost)
+		eventLogger, err = NewEventLogger(cfg.fluentHost)
 		if err != nil {
 			log.Fatalf("Error setting up event logging: %v", err)
 		}
-		defer c.eventLogger.Close()
+		defer eventLogger.Close()
 	}
 
 	// We run up to 3 HTTP servers on 2 ports, listening in various ways:
@@ -179,8 +108,8 @@ func main() {
 	// If the HTTP redirect is disabled, then the "real traffic" server will serve
 	// traffic for all ports on the ELB.
 
-	log.Infof("Listening on %s for private endpoints", privateListen)
-	privListener, err := net.Listen("tcp", privateListen)
+	log.Infof("Listening on %s for private endpoints", cfg.privateListen)
+	privListener, err := net.Listen("tcp", cfg.privateListen)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -196,19 +125,19 @@ func main() {
 		}
 	}()
 
-	log.Infof("Listening on %s", listen)
-	listener, err := net.Listen("tcp", listen)
+	log.Infof("Listening on %s", cfg.listen)
+	listener, err := net.Listen("tcp", cfg.listen)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	r, err := routes(c)
+	r, err := routes(cfg, authenticator, ghIntegration, eventLogger)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	server := &graceful.Server{
-		Timeout: stopTimeout,
+		Timeout: cfg.stopTimeout,
 		Server: &http.Server{
 			Handler: r,
 		},
@@ -218,13 +147,13 @@ func main() {
 		ProxyHeaderTimeout: proxyTimeout,
 	}
 
-	if c.redirectHTTPS {
+	if cfg.redirectHTTPS {
 		// We use a custom listener router to ensure only connections on port 443 get
 		// through to the real router - everything else gets redirected.
 		proxyListenerRouter := newProxyListenerRouter(proxyListener)
 		proxyListener = proxyListenerRouter.listenerForPort(443)
 		redirectServer := &http.Server{
-			Handler: c.commonMiddleWare(nil).Wrap(
+			Handler: cfg.commonMiddleWare(nil).Wrap(
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					url := r.URL
 					url.Host = r.Host

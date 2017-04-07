@@ -21,7 +21,6 @@ import (
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 
-	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/scope/common/xfer"
@@ -31,59 +30,6 @@ import (
 )
 
 const maxAnalyticsPayloadSize = 16 * 1024 // bytes
-
-// Config is all the config we need to build the routes
-type Config struct {
-	authenticator users.UsersClient
-	ghIntegration users_client.Integration
-	eventLogger   *EventLogger
-	apiInfo       string
-	externalUI    bool
-
-	// Security-related flags
-	targetOrigin  string
-	redirectHTTPS bool
-	hstsMaxAge    int
-	sendCSPHeader bool
-	secureCookie  bool
-
-	// User-visible services - keep alphabetically sorted pls
-	collectionHost      *proxy
-	queryHost           *proxy
-	controlHost         *proxy
-	pipeHost            *proxy
-	fluxHost            *proxy
-	configsHost         *proxy
-	billingUIHost       *proxy
-	billingAPIHost      *proxy
-	demoHost            *proxy
-	launchGeneratorHost *proxy
-	peerDiscoveryHost   *proxy
-	uiMetricsHost       *proxy
-	uiServerHost        *proxy
-
-	// Admin services - keep alphabetically sorted pls
-	alertmanagerHost        *proxy
-	ansiblediffHost         *proxy
-	billingAggregatorHost   *proxy
-	billingUploaderHost     *proxy
-	compareImagesHost       *proxy
-	devGrafanaHost          *proxy
-	grafanaHost             *proxy
-	kubedashHost            *proxy
-	kubediffHost            *proxy
-	lokiHost                *proxy
-	prodGrafanaHost         *proxy
-	promAlertmanagerHost    *proxy
-	promDistributorHost     *proxy
-	promDistributorHostGRPC *proxy
-	promQuerierHost         *proxy
-	promQuerierHostGRPC     *proxy
-	prometheusHost          *proxy
-	scopeHost               *proxy
-	terradiffHost           *proxy
-	usersHost               *proxy
-}
 
 func (c Config) commonMiddleWare(routeMatcher middleware.RouteMatcher) middleware.Interface {
 	extraHeaders := http.Header{}
@@ -209,25 +155,25 @@ func newAnalyticsLogger(userIDHeader string) HTTPEventExtractor {
 	}
 }
 
-func routes(c Config) (http.Handler, error) {
+func routes(c Config, authenticator users.UsersClient, ghIntegration *users_client.TokenRequester, eventLogger *EventLogger) (http.Handler, error) {
 	probeHTTPlogger, uiHTTPlogger, analyticsLogger := middleware.Identity, middleware.Identity, middleware.Identity
-	if c.eventLogger != nil {
+	if eventLogger != nil {
 		probeHTTPlogger = HTTPEventLogger{
 			Extractor: newProbeRequestLogger(),
-			Logger:    c.eventLogger,
+			Logger:    eventLogger,
 		}
 		uiHTTPlogger = HTTPEventLogger{
 			Extractor: newUIRequestLogger(userIDHeader),
-			Logger:    c.eventLogger,
+			Logger:    eventLogger,
 		}
 		analyticsLogger = HTTPEventLogger{
 			Extractor: newAnalyticsLogger(userIDHeader),
-			Logger:    c.eventLogger,
+			Logger:    eventLogger,
 		}
 	}
 
 	authOrgMiddleware := users_client.AuthOrgMiddleware{
-		UsersClient: c.authenticator,
+		UsersClient: authenticator,
 		OrgExternalID: func(r *http.Request) (string, bool) {
 			v, ok := mux.Vars(r)["orgExternalID"]
 			return v, ok
@@ -237,11 +183,11 @@ func routes(c Config) (http.Handler, error) {
 	}
 
 	authUserMiddleware := users_client.AuthUserMiddleware{
-		UsersClient: c.authenticator,
+		UsersClient: authenticator,
 	}
 
 	billingAuthMiddleware := users_client.AuthOrgMiddleware{
-		UsersClient: c.authenticator,
+		UsersClient: authenticator,
 		OrgExternalID: func(r *http.Request) (string, bool) {
 			v, ok := mux.Vars(r)["orgExternalID"]
 			return v, ok
@@ -252,7 +198,7 @@ func routes(c Config) (http.Handler, error) {
 	}
 
 	fluxGHTokenMiddleware := users_client.GHIntegrationMiddleware{
-		T: c.ghIntegration,
+		T: ghIntegration,
 	}
 
 	// middleware to set header to disable caching if path == "/" exactly
@@ -264,27 +210,6 @@ func routes(c Config) (http.Handler, error) {
 			next.ServeHTTP(w, r)
 		})
 	})
-
-	var cortexQuerierClient, cortexDistributorClient http.Handler
-	if c.promQuerierHostGRPC.hostAndPort == "" {
-		cortexQuerierClient = c.promQuerierHost
-	} else {
-		var err error
-		cortexQuerierClient, err = httpgrpc.NewClient(c.promQuerierHostGRPC.hostAndPort)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if c.promDistributorHostGRPC.hostAndPort == "" {
-		cortexDistributorClient = c.promDistributorHost
-	} else {
-		var err error
-		cortexDistributorClient, err = httpgrpc.NewClient(c.promDistributorHostGRPC.hostAndPort)
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	r := newRouter()
 
@@ -298,13 +223,13 @@ func routes(c Config) (http.Handler, error) {
 			{"/flux", c.fluxHost},
 			{"/prom/alertmanager", c.promAlertmanagerHost},
 			{"/prom/configs", c.configsHost},
-			{"/prom/push", cortexDistributorClient},
-			{"/prom", cortexQuerierClient},
+			{"/prom/push", c.promDistributorHost},
+			{"/prom", c.promQuerierHost},
 			{"/net/peer", c.peerDiscoveryHost},
 		},
 		middleware.Merge(
 			users_client.AuthProbeMiddleware{
-				UsersClient:        c.authenticator,
+				UsersClient:        authenticator,
 				FeatureFlagsHeader: featureFlagsHeader,
 			},
 			probeHTTPlogger,
@@ -337,7 +262,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/flux", c.fluxHost},
 				{"/api/prom/alertmanager", c.promAlertmanagerHost},
 				{"/api/prom/configs", c.configsHost},
-				{"/api/prom", cortexQuerierClient},
+				{"/api/prom", c.promQuerierHost},
 				{"/api/net/peer", c.peerDiscoveryHost},
 				{"/api", c.queryHost},
 
@@ -391,7 +316,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/prometheus", c.prometheusHost},
 				{"/kubedash", trimPrefix("/admin/kubedash", c.kubedashHost)},
 				{"/compare-images", trimPrefix("/admin/compare-images", c.compareImagesHost)},
-				{"/cortex/ring", trimPrefix("/admin/cortex", cortexDistributorClient)},
+				{"/cortex/ring", trimPrefix("/admin/cortex", c.promDistributorHost)},
 				{"/loki", trimPrefix("/admin/loki", c.lokiHost)},
 				{"/", http.HandlerFunc(adminRoot)},
 			},
@@ -402,7 +327,7 @@ func routes(c Config) (http.Handler, error) {
 					Handler: redirect("/login"),
 				},
 				users_client.AuthAdminMiddleware{
-					UsersClient: c.authenticator,
+					UsersClient: authenticator,
 				},
 			),
 		},
