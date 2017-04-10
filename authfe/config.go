@@ -103,6 +103,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 	}
 }
 
+// RegisterFlags registers all the authfe flags with a flagset
 func (c *Config) RegisterFlags(f *flag.FlagSet) *Config {
 	f.StringVar(&c.apiInfo, "api.info", "scopeservice:0.1", "Version info for the api to serve, in format ID:VERSION")
 	f.DurationVar(&c.authCacheExpiration, "auth.cache.expiration", 30*time.Second, "How long to keep entries in the auth client.")
