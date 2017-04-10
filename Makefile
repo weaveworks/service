@@ -52,7 +52,6 @@ authfe/$(UPTODATE): $(AUTHFE_EXE)
 users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/templates/*
 metrics/$(UPTODATE): $(METRICS_EXE)
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
-build/$(UPTODATE): build/build.sh
 pr-assigner/$(UPTODATE): $(PR_ASSIGNER_EXE)
 
 # All the boiler plate for building golang follows:
@@ -71,27 +70,28 @@ NETGO_CHECK = @strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
-$(EXES) $(PROTO_GOS) lint test: build/$(UPTODATE)
+$(EXES) $(PROTO_GOS) lint test:
 	@mkdir -p $(shell pwd)/.pkg
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-e SRC_NAME=github.com/weaveworks/service \
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
-		$(IMAGE_PREFIX)/build $@
+		quay.io/weaveworks/build-golang:1.8.0-stretch $@
 
 else
 
-$(EXES): build/$(UPTODATE)
+$(EXES):
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
-%.pb.go: build/$(UPTODATE)
+%.pb.go:
 	protoc -I ./vendor:./$(@D) --gogoslick_out=plugins=grpc:./$(@D) ./$(patsubst %.pb.go,%.proto,$@)
 
-lint: build/$(UPTODATE)
+lint:
 	./tools/lint .
 
-test: build/$(UPTODATE)
+test:
 	./tools/test -netgo -no-race
 
 endif
