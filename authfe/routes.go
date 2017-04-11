@@ -300,7 +300,7 @@ func routes(c Config) (http.Handler, error) {
 			{"/prom/configs", newProxy(c.configsHost)},
 			{"/prom/push", cortexDistributorClient},
 			{"/prom", cortexQuerierClient},
-			{"/weavenet/peer", newProxy(c.peerDiscoveryHost)},
+			{"/net/peer", newProxy(c.peerDiscoveryHost)},
 		},
 		middleware.Merge(
 			users_client.AuthProbeMiddleware{
@@ -338,7 +338,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/api/prom/alertmanager", newProxy(c.promAlertmanagerHost)},
 				{"/api/prom/configs", newProxy(c.configsHost)},
 				{"/api/prom", cortexQuerierClient},
-				{"/api/weavenet/peer", newProxy(c.peerDiscoveryHost)},
+				{"/api/net/peer", newProxy(c.peerDiscoveryHost)},
 				{"/api", newProxy(c.queryHost)},
 
 				// Catch-all forward to query service, which is a Scope instance that we
