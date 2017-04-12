@@ -126,18 +126,17 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) *Config {
 	f.StringVar(&c.targetOrigin, "hostname", "", "Hostname through which this server is accessed, for same-origin checks (CSRF protection)")
 
 	for name, proxyCfg := range c.proxies() {
-		proxyCfg.name = name
-		proxyCfg.RegisterFlags(f)
+		proxyCfg.RegisterFlags(name, f)
 	}
 
 	return c
 }
 
 type proxyConfig struct {
-	// You should set this
+	// Determines the names of the flags
 	name string
 
-	// Flag-set stuff
+	// Values set by flags.
 	hostAndPort string
 	protocol    string
 	readOnly    bool
@@ -146,8 +145,9 @@ type proxyConfig struct {
 	http.Handler
 }
 
-func (p *proxyConfig) RegisterFlags(f *flag.FlagSet) {
-	f.StringVar(&p.hostAndPort, p.name, "", fmt.Sprintf("Hostname & port for %s service", p.name))
-	f.StringVar(&p.protocol, p.name+".protocol", "http", fmt.Sprintf("Protocol to connect to this %s service via (Must be: http or grpc)", p.name))
-	f.BoolVar(&p.readOnly, p.name+".readonly", false, fmt.Sprintf("Make %s service, read-only (will only accept GETs)", p.name))
+func (p *proxyConfig) RegisterFlags(name string, f *flag.FlagSet) {
+	p.name = name
+	f.StringVar(&p.hostAndPort, name, "", fmt.Sprintf("Hostname & port for %s service", name))
+	f.StringVar(&p.protocol, name+".protocol", "http", fmt.Sprintf("Protocol to connect to this %s service via (Must be: http or grpc)", name))
+	f.BoolVar(&p.readOnly, name+".readonly", false, fmt.Sprintf("Make %s service, read-only (will only accept GETs)", name))
 }
