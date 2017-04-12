@@ -58,9 +58,8 @@ func main() {
 
 	// Initialize all the proxies
 	for name, proxyCfg := range cfg.proxies() {
-		if proxyCfg.hostAndPort == "" {
+		if proxyCfg.hostAndPort == "" && proxyCfg.grpcHost == "" {
 			log.Warningf("Host for %s not given; will not be proxied", name)
-			continue
 		}
 		handler, err := newProxy(*proxyCfg)
 		if err != nil {
