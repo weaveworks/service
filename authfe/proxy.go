@@ -43,9 +43,9 @@ type httpProxy struct {
 }
 
 var readOnlyMethods = map[string]struct{}{
-	http.MethodGet:     struct{}{},
-	http.MethodHead:    struct{}{},
-	http.MethodOptions: struct{}{},
+	http.MethodGet:     {},
+	http.MethodHead:    {},
+	http.MethodOptions: {},
 }
 
 var proxyTransport http.RoundTripper = &nethttp.Transport{
