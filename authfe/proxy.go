@@ -39,10 +39,10 @@ type httpProxy struct {
 	reverseProxy httputil.ReverseProxy
 }
 
-var readOnlyMethods = []string{
-	http.MethodGet,
-	http.MethodHead,
-	http.MethodOptions,
+var readOnlyMethods = map[string]struct{}{
+	http.MethodGet:     struct{}{},
+	http.MethodHead:    struct{}{},
+	http.MethodOptions: struct{}{},
 }
 
 var proxyTransport http.RoundTripper = &nethttp.Transport{
@@ -74,14 +74,8 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if p.readOnly {
-		accepted := false
-		for _, method := range readOnlyMethods {
-			accepted = (method == r.Method)
-			if accepted {
-				break
-			}
-		}
-		if !accepted {
+		_, ok := readOnlyMethods[r.Method]
+		if !ok {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
