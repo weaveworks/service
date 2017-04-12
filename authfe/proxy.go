@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -12,14 +13,39 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
+	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/middleware"
 )
 
 const defaultPort = "80"
 
-type proxy struct {
-	hostAndPort  string
+func newProxy(cfg proxyConfig) (http.Handler, error) {
+	if cfg.grpcHost != "" {
+		return httpgrpc.NewClient(cfg.grpcHost)
+	}
+	switch cfg.protocol {
+	case "grpc":
+		return httpgrpc.NewClient(cfg.hostAndPort)
+	case "http":
+		// Make all transformations outside of the director since
+		// they are also required when proxying websockets
+		return &httpProxy{cfg, httputil.ReverseProxy{
+			Director:  func(*http.Request) {},
+			Transport: proxyTransport,
+		}}, nil
+	}
+	return nil, fmt.Errorf("Unknown protocol %q for service %s", cfg.protocol, cfg.name)
+}
+
+type httpProxy struct {
+	proxyConfig
 	reverseProxy httputil.ReverseProxy
+}
+
+var readOnlyMethods = map[string]struct{}{
+	http.MethodGet:     {},
+	http.MethodHead:    {},
+	http.MethodOptions: {},
 }
 
 var proxyTransport http.RoundTripper = &nethttp.Transport{
@@ -38,20 +64,7 @@ var proxyTransport http.RoundTripper = &nethttp.Transport{
 	},
 }
 
-func newProxy(hostAndPort string) proxy {
-	// Make all transformations outside of the director since
-	// they are also required when proxying websockets
-	emptyDirector := func(*http.Request) {}
-	return proxy{
-		hostAndPort: hostAndPort,
-		reverseProxy: httputil.ReverseProxy{
-			Director:  emptyDirector,
-			Transport: proxyTransport,
-		},
-	}
-}
-
-func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !middleware.IsWSHandshakeRequest(r) {
 		var ht *nethttp.Tracer
 		r, ht = nethttp.TraceRequest(opentracing.GlobalTracer(), r)
@@ -61,6 +74,14 @@ func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if p.hostAndPort == "" {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
+	}
+
+	if p.readOnly {
+		_, ok := readOnlyMethods[r.Method]
+		if !ok {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
 	}
 
 	// Tweak request before sending
@@ -81,7 +102,7 @@ func (p proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p.reverseProxy.ServeHTTP(w, r)
 }
 
-func (p proxy) proxyWS(w http.ResponseWriter, r *http.Request) {
+func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {
 	wsRequestCount.Inc()
 	wsConnections.Inc()
 	defer wsConnections.Dec()

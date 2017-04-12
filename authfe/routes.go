@@ -21,7 +21,6 @@ import (
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 
-	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/scope/common/xfer"
@@ -31,59 +30,6 @@ import (
 )
 
 const maxAnalyticsPayloadSize = 16 * 1024 // bytes
-
-// Config is all the config we need to build the routes
-type Config struct {
-	authenticator users.UsersClient
-	ghIntegration users_client.Integration
-	eventLogger   *EventLogger
-	apiInfo       string
-	externalUI    bool
-
-	// Security-related flags
-	targetOrigin  string
-	redirectHTTPS bool
-	hstsMaxAge    int
-	sendCSPHeader bool
-	secureCookie  bool
-
-	// User-visible services - keep alphabetically sorted pls
-	collectionHost      string
-	queryHost           string
-	controlHost         string
-	pipeHost            string
-	fluxHost            string
-	configsHost         string
-	billingUIHost       string
-	billingAPIHost      string
-	demoHost            string
-	launchGeneratorHost string
-	peerDiscoveryHost   string
-	uiMetricsHost       string
-	uiServerHost        string
-
-	// Admin services - keep alphabetically sorted pls
-	alertmanagerHost        string
-	ansiblediffHost         string
-	billingAggregatorHost   string
-	billingUploaderHost     string
-	compareImagesHost       string
-	devGrafanaHost          string
-	grafanaHost             string
-	kubedashHost            string
-	kubediffHost            string
-	lokiHost                string
-	prodGrafanaHost         string
-	promAlertmanagerHost    string
-	promDistributorHost     string
-	promDistributorHostGRPC string
-	promQuerierHost         string
-	promQuerierHostGRPC     string
-	prometheusHost          string
-	scopeHost               string
-	terradiffHost           string
-	usersHost               string
-}
 
 func (c Config) commonMiddleWare(routeMatcher middleware.RouteMatcher) middleware.Interface {
 	extraHeaders := http.Header{}
@@ -209,25 +155,25 @@ func newAnalyticsLogger(userIDHeader string) HTTPEventExtractor {
 	}
 }
 
-func routes(c Config) (http.Handler, error) {
+func routes(c Config, authenticator users.UsersClient, ghIntegration *users_client.TokenRequester, eventLogger *EventLogger) (http.Handler, error) {
 	probeHTTPlogger, uiHTTPlogger, analyticsLogger := middleware.Identity, middleware.Identity, middleware.Identity
-	if c.eventLogger != nil {
+	if eventLogger != nil {
 		probeHTTPlogger = HTTPEventLogger{
 			Extractor: newProbeRequestLogger(),
-			Logger:    c.eventLogger,
+			Logger:    eventLogger,
 		}
 		uiHTTPlogger = HTTPEventLogger{
 			Extractor: newUIRequestLogger(userIDHeader),
-			Logger:    c.eventLogger,
+			Logger:    eventLogger,
 		}
 		analyticsLogger = HTTPEventLogger{
 			Extractor: newAnalyticsLogger(userIDHeader),
-			Logger:    c.eventLogger,
+			Logger:    eventLogger,
 		}
 	}
 
 	authOrgMiddleware := users_client.AuthOrgMiddleware{
-		UsersClient: c.authenticator,
+		UsersClient: authenticator,
 		OrgExternalID: func(r *http.Request) (string, bool) {
 			v, ok := mux.Vars(r)["orgExternalID"]
 			return v, ok
@@ -237,11 +183,11 @@ func routes(c Config) (http.Handler, error) {
 	}
 
 	authUserMiddleware := users_client.AuthUserMiddleware{
-		UsersClient: c.authenticator,
+		UsersClient: authenticator,
 	}
 
 	billingAuthMiddleware := users_client.AuthOrgMiddleware{
-		UsersClient: c.authenticator,
+		UsersClient: authenticator,
 		OrgExternalID: func(r *http.Request) (string, bool) {
 			v, ok := mux.Vars(r)["orgExternalID"]
 			return v, ok
@@ -252,7 +198,7 @@ func routes(c Config) (http.Handler, error) {
 	}
 
 	fluxGHTokenMiddleware := users_client.GHIntegrationMiddleware{
-		T: c.ghIntegration,
+		T: ghIntegration,
 	}
 
 	// middleware to set header to disable caching if path == "/" exactly
@@ -265,46 +211,25 @@ func routes(c Config) (http.Handler, error) {
 		})
 	})
 
-	var cortexQuerierClient, cortexDistributorClient http.Handler
-	if c.promQuerierHostGRPC == "" {
-		cortexQuerierClient = newProxy(c.promQuerierHost)
-	} else {
-		var err error
-		cortexQuerierClient, err = httpgrpc.NewClient(c.promQuerierHostGRPC)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if c.promDistributorHostGRPC == "" {
-		cortexDistributorClient = newProxy(c.promDistributorHost)
-	} else {
-		var err error
-		cortexDistributorClient, err = httpgrpc.NewClient(c.promDistributorHostGRPC)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	r := newRouter()
 
 	// For all probe <-> app communication, authenticated using header credentials
 	probeRoute := prefix{
 		"/api",
 		[]path{
-			{"/report", newProxy(c.collectionHost)},
-			{"/control", newProxy(c.controlHost)},
-			{"/pipe", newProxy(c.pipeHost)},
-			{"/flux", newProxy(c.fluxHost)},
-			{"/prom/alertmanager", newProxy(c.promAlertmanagerHost)},
-			{"/prom/configs", newProxy(c.configsHost)},
-			{"/prom/push", cortexDistributorClient},
-			{"/prom", cortexQuerierClient},
-			{"/net/peer", newProxy(c.peerDiscoveryHost)},
+			{"/report", c.collectionHost},
+			{"/control", c.controlHost},
+			{"/pipe", c.pipeHost},
+			{"/flux", c.fluxHost},
+			{"/prom/alertmanager", c.promAlertmanagerHost},
+			{"/prom/configs", c.configsHost},
+			{"/prom/push", c.promDistributorHost},
+			{"/prom", c.promQuerierHost},
+			{"/net/peer", c.peerDiscoveryHost},
 		},
 		middleware.Merge(
 			users_client.AuthProbeMiddleware{
-				UsersClient:        c.authenticator,
+				UsersClient:        authenticator,
 				FeatureFlagsHeader: featureFlagsHeader,
 			},
 			probeHTTPlogger,
@@ -312,7 +237,7 @@ func routes(c Config) (http.Handler, error) {
 	}
 
 	// Internal version of the UI is served from the /internal/ prefix on ui-server
-	var uiServerHandler http.Handler = newProxy(c.uiServerHost)
+	var uiServerHandler http.Handler = c.uiServerHost
 	if !c.externalUI {
 		uiServerHandler = addPrefix("/internal", uiServerHandler)
 	}
@@ -327,19 +252,19 @@ func routes(c Config) (http.Handler, error) {
 		prefix{
 			"/api/app/{orgExternalID}",
 			[]path{
-				{"/api/report", newProxy(c.queryHost)},
-				{"/api/topology", newProxy(c.queryHost)},
-				{"/api/control", newProxy(c.controlHost)},
-				{"/api/pipe", newProxy(c.pipeHost)},
+				{"/api/report", c.queryHost},
+				{"/api/topology", c.queryHost},
+				{"/api/control", c.controlHost},
+				{"/api/pipe", c.pipeHost},
 				// API to insert deploy key requires GH token. Insert token with middleware.
 				{"/api/flux/v5/integrations/github",
-					fluxGHTokenMiddleware.Wrap(newProxy(c.fluxHost))},
-				{"/api/flux", newProxy(c.fluxHost)},
-				{"/api/prom/alertmanager", newProxy(c.promAlertmanagerHost)},
-				{"/api/prom/configs", newProxy(c.configsHost)},
-				{"/api/prom", cortexQuerierClient},
-				{"/api/net/peer", newProxy(c.peerDiscoveryHost)},
-				{"/api", newProxy(c.queryHost)},
+					fluxGHTokenMiddleware.Wrap(c.fluxHost)},
+				{"/api/flux", c.fluxHost},
+				{"/api/prom/alertmanager", c.promAlertmanagerHost},
+				{"/api/prom/configs", c.configsHost},
+				{"/api/prom", c.promQuerierHost},
+				{"/api/net/peer", c.peerDiscoveryHost},
+				{"/api", c.queryHost},
 
 				// Catch-all forward to query service, which is a Scope instance that we
 				// use to serve the Scope UI.  Note we forward /index.html to
@@ -349,7 +274,7 @@ func routes(c Config) (http.Handler, error) {
 				{"/", middleware.Merge(
 					noCacheOnRoot,
 					middleware.PathRewrite(regexp.MustCompile("(.*)"), "/ui$1"),
-				).Wrap(newProxy(c.queryHost))},
+				).Wrap(c.queryHost)},
 			},
 			middleware.Merge(
 				authOrgMiddleware,
@@ -361,7 +286,7 @@ func routes(c Config) (http.Handler, error) {
 		// Forward requests (unauthenticated) to the ui-metrics job.
 		path{
 			"/api/ui/metrics",
-			newProxy(c.uiMetricsHost),
+			c.uiMetricsHost,
 		},
 
 		path{
@@ -376,23 +301,23 @@ func routes(c Config) (http.Handler, error) {
 		prefix{
 			"/admin",
 			[]path{
-				{"/grafana", trimPrefix("/admin/grafana", newProxy(c.grafanaHost))},
-				{"/dev-grafana", trimPrefix("/admin/dev-grafana", newProxy(c.devGrafanaHost))},
-				{"/prod-grafana", trimPrefix("/admin/prod-grafana", newProxy(c.prodGrafanaHost))},
-				{"/scope", trimPrefix("/admin/scope", newProxy(c.scopeHost))},
-				{"/users", trimPrefix("/admin/users", newProxy(c.usersHost))},
-				{"/billing/admin", trimPrefix("/admin/billing/admin", newProxy(c.billingAPIHost))},
-				{"/billing/aggregator", trimPrefix("/admin/billing/aggregator", newProxy(c.billingAggregatorHost))},
-				{"/billing/uploader", trimPrefix("/admin/billing/uploader", newProxy(c.billingUploaderHost))},
-				{"/kubediff", trimPrefix("/admin/kubediff", newProxy(c.kubediffHost))},
-				{"/terradiff", trimPrefix("/admin/terradiff", newProxy(c.terradiffHost))},
-				{"/ansiblediff", trimPrefix("/admin/ansiblediff", newProxy(c.ansiblediffHost))},
-				{"/alertmanager", newProxy(c.alertmanagerHost)},
-				{"/prometheus", newProxy(c.prometheusHost)},
-				{"/kubedash", trimPrefix("/admin/kubedash", newProxy(c.kubedashHost))},
-				{"/compare-images", trimPrefix("/admin/compare-images", newProxy(c.compareImagesHost))},
-				{"/cortex/ring", trimPrefix("/admin/cortex", cortexDistributorClient)},
-				{"/loki", trimPrefix("/admin/loki", newProxy(c.lokiHost))},
+				{"/grafana", trimPrefix("/admin/grafana", c.grafanaHost)},
+				{"/dev-grafana", trimPrefix("/admin/dev-grafana", c.devGrafanaHost)},
+				{"/prod-grafana", trimPrefix("/admin/prod-grafana", c.prodGrafanaHost)},
+				{"/scope", trimPrefix("/admin/scope", c.scopeHost)},
+				{"/users", trimPrefix("/admin/users", c.usersHost)},
+				{"/billing/admin", trimPrefix("/admin/billing/admin", c.billingAPIHost)},
+				{"/billing/aggregator", trimPrefix("/admin/billing/aggregator", c.billingAggregatorHost)},
+				{"/billing/uploader", trimPrefix("/admin/billing/uploader", c.billingUploaderHost)},
+				{"/kubediff", trimPrefix("/admin/kubediff", c.kubediffHost)},
+				{"/terradiff", trimPrefix("/admin/terradiff", c.terradiffHost)},
+				{"/ansiblediff", trimPrefix("/admin/ansiblediff", c.ansiblediffHost)},
+				{"/alertmanager", c.alertmanagerHost},
+				{"/prometheus", c.prometheusHost},
+				{"/kubedash", trimPrefix("/admin/kubedash", c.kubedashHost)},
+				{"/compare-images", trimPrefix("/admin/compare-images", c.compareImagesHost)},
+				{"/cortex/ring", trimPrefix("/admin/cortex", c.promDistributorHost)},
+				{"/loki", trimPrefix("/admin/loki", c.lokiHost)},
 				{"/", http.HandlerFunc(adminRoot)},
 			},
 			middleware.Merge(
@@ -402,23 +327,23 @@ func routes(c Config) (http.Handler, error) {
 					Handler: redirect("/login"),
 				},
 				users_client.AuthAdminMiddleware{
-					UsersClient: c.authenticator,
+					UsersClient: authenticator,
 				},
 			),
 		},
 
 		// billing UI needs authentication
-		path{"/billing/{jsfile}.js", trimPrefix("/billing", newProxy(c.billingUIHost))},
+		path{"/billing/{jsfile}.js", trimPrefix("/billing", c.billingUIHost)},
 		// Fonts
-		path{"/billing/{wofffile}.woff", trimPrefix("/billing", newProxy(c.billingUIHost))},
-		path{"/billing/{ttffile}.ttf", trimPrefix("/billing", newProxy(c.billingUIHost))},
-		path{"/billing/{svgfile}.svg", trimPrefix("/billing", newProxy(c.billingUIHost))},
-		path{"/billing/{eotfile}.eot", trimPrefix("/billing", newProxy(c.billingUIHost))},
-		path{"/billing/callback/register", trimPrefix("/billing", newProxy(c.billingUIHost))},
+		path{"/billing/{wofffile}.woff", trimPrefix("/billing", c.billingUIHost)},
+		path{"/billing/{ttffile}.ttf", trimPrefix("/billing", c.billingUIHost)},
+		path{"/billing/{svgfile}.svg", trimPrefix("/billing", c.billingUIHost)},
+		path{"/billing/{eotfile}.eot", trimPrefix("/billing", c.billingUIHost)},
+		path{"/billing/callback/register", trimPrefix("/billing", c.billingUIHost)},
 		prefix{
 			"/billing",
 			[]path{
-				{"/{orgExternalID}/", trimPrefix("/billing", newProxy(c.billingUIHost))},
+				{"/{orgExternalID}/", trimPrefix("/billing", c.billingUIHost)},
 			},
 			middleware.Merge(
 				billingAuthMiddleware,
@@ -426,15 +351,15 @@ func routes(c Config) (http.Handler, error) {
 			),
 		},
 		// These billing api endpoints have no orgExternalID, so we can't do authorization on them.
-		path{"/api/billing/accounts", newProxy(c.billingAPIHost)},
-		path{"/api/billing/payments/authTokens", newProxy(c.billingAPIHost)},
+		path{"/api/billing/accounts", c.billingAPIHost},
+		path{"/api/billing/payments/authTokens", c.billingAPIHost},
 		prefix{
 			"/api/billing",
 			[]path{
-				{"/payments/authTokens/{orgExternalID}", newProxy(c.billingAPIHost)},
-				{"/payments/{orgExternalID}", newProxy(c.billingAPIHost)},
-				{"/accounts/{orgExternalID}", newProxy(c.billingAPIHost)},
-				{"/usage/{orgExternalID}", newProxy(c.billingAPIHost)},
+				{"/payments/authTokens/{orgExternalID}", c.billingAPIHost},
+				{"/payments/{orgExternalID}", c.billingAPIHost},
+				{"/accounts/{orgExternalID}", c.billingAPIHost},
+				{"/usage/{orgExternalID}", c.billingAPIHost},
 			},
 			middleware.Merge(
 				billingAuthMiddleware,
@@ -446,13 +371,12 @@ func routes(c Config) (http.Handler, error) {
 		prefix{
 			"/",
 			[]path{
-				{"/api/users", newProxy(c.usersHost)},
-				{"/launch/k8s", newProxy(c.launchGeneratorHost)},
-				{"/k8s", newProxy(c.launchGeneratorHost)},
+				{"/api/users", c.usersHost},
+				{"/launch/k8s", c.launchGeneratorHost},
+				{"/k8s", c.launchGeneratorHost},
 
 				// rewrite /demo/* to /* and send it to demo
-				{"/demo/", middleware.PathRewrite(regexp.MustCompile("/demo/(.*)"), "/$1").
-					Wrap(newProxy(c.demoHost))},
+				{"/demo/", middleware.PathRewrite(regexp.MustCompile("/demo/(.*)"), "/$1").Wrap(c.demoHost)},
 
 				// final wildcard match to static content
 				{"/", noCacheOnRoot.Wrap(uiServerHandler)},
