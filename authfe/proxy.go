@@ -20,6 +20,9 @@ import (
 const defaultPort = "80"
 
 func newProxy(cfg proxyConfig) (http.Handler, error) {
+	if cfg.grpcHost != "" {
+		return httpgrpc.NewClient(cfg.grpcHost)
+	}
 	switch cfg.protocol {
 	case "grpc":
 		return httpgrpc.NewClient(cfg.hostAndPort)

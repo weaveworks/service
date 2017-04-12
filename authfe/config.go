@@ -140,6 +140,7 @@ type proxyConfig struct {
 	hostAndPort string
 	protocol    string
 	readOnly    bool
+	grpcHost    string
 
 	// Set this based on the flags
 	http.Handler
@@ -150,4 +151,5 @@ func (p *proxyConfig) RegisterFlags(name string, f *flag.FlagSet) {
 	f.StringVar(&p.hostAndPort, name, "", fmt.Sprintf("Hostname & port for %s service", name))
 	f.StringVar(&p.protocol, name+".protocol", "http", fmt.Sprintf("Protocol to connect to this %s service via (Must be: http or grpc)", name))
 	f.BoolVar(&p.readOnly, name+".readonly", false, fmt.Sprintf("Make %s service, read-only (will only accept GETs)", name))
+	f.StringVar(&p.grpcHost, name+"-grpc", "", fmt.Sprintf("Use gRPC for %s, instead of protocol (backwards compat)", name))
 }
