@@ -7,7 +7,6 @@ SLOW=
 NO_GO_GET=true
 TAGS=
 PARALLEL=
-RACE="-race -covermode=atomic"
 TIMEOUT=1m
 
 usage() {
@@ -58,7 +57,7 @@ if [ -n "$SLOW" ] || [ -n "$CIRCLECI" ]; then
 fi
 
 if [ -n "$SLOW" ]; then
-    GO_TEST_ARGS=("${GO_TEST_ARGS[@]}" ${RACE})
+    GO_TEST_ARGS=("${GO_TEST_ARGS[@]}" -race -covermode=atomic)
 
     # shellcheck disable=SC2153
     if [ -n "$COVERDIR" ]; then
@@ -85,7 +84,7 @@ fi
 # If running on circle, use the scheduler to work out what tests to run on what shard
 if [ -n "$CIRCLECI" ] && [ -z "$NO_SCHEDULER" ] && [ -x "$DIR/sched" ]; then
     PREFIX=$(go list -e ./ | sed -e 's/\//-/g')
-    TESTDIRS=($(echo "${TESTDIRS[@]}" | "$DIR/sched" sched "$PREFIX-$CIRCLE_BUILD_NUM" "$CIRCLE_NODE_TOTAL" "$CIRCLE_NODE_INDEX"))
+    TESTDIRS=($(echo "${TESTDIRS[@]}" | "$DIR/sched" sched "$PREFIX-$CIRCLE_PROJECT_USERNAME-$CIRCLE_PROJECT_REPONAME-$CIRCLE_BUILD_NUM" "$CIRCLE_NODE_TOTAL" "$CIRCLE_NODE_INDEX"))
     echo "${TESTDIRS[@]}"
 fi
 
@@ -102,15 +101,18 @@ run_test() {
 
     local GO_TEST_ARGS_RUN=("${GO_TEST_ARGS[@]}")
     if [ -n "$SLOW" ]; then
-        local COVERPKGS=$( (
+        local COVERPKGS
+        COVERPKGS=$( (
             go list "$dir"
             go list -f '{{join .Deps "\n"}}' "$dir" | grep -v "vendor" | grep "^$PACKAGE_BASE/"
         ) | paste -s -d, -)
-        local output=$(mktemp "$coverdir/unit.XXXXXXXXXX")
+        local output
+        output=$(mktemp "$coverdir/unit.XXXXXXXXXX")
         local GO_TEST_ARGS_RUN=("${GO_TEST_ARGS[@]}" -coverprofile=$output -coverpkg=$COVERPKGS)
     fi
 
-    local START=$(date +%s)
+    local START
+    START=$(date +%s)
     if ! go test "${GO_TEST_ARGS_RUN[@]}" "$dir"; then
         fail=1
     fi
