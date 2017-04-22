@@ -1122,8 +1122,8 @@
 		{
 			"importpath": "golang.org/x/net/context",
 			"repository": "https://go.googlesource.com/net",
-			"vcs": "",
-			"revision": "c764672d0ee39ffd83cfcb375804d3181302b62b",
+			"vcs": "git",
+			"revision": "0b588ed7a0cd59c271d128ec8c429c1c1607e8ab",
 			"branch": "master",
 			"path": "/context"
 		},
