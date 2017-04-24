@@ -49,6 +49,7 @@ type Config struct {
 	billingAggregatorHost proxyConfig
 	billingUploaderHost   proxyConfig
 	compareImagesHost     proxyConfig
+	compareRevisionsHost  proxyConfig
 	devGrafanaHost        proxyConfig
 	grafanaHost           proxyConfig
 	kubedashHost          proxyConfig
@@ -90,6 +91,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"billing-aggregator": &c.billingAggregatorHost,
 		"billing-uploader":   &c.billingUploaderHost,
 		"compare-images":     &c.compareImagesHost,
+		"compare-revisions":  &c.compareRevisionsHost,
 		"dev-grafana":        &c.devGrafanaHost,
 		"grafana":            &c.grafanaHost,
 		"kubedash":           &c.kubedashHost,
