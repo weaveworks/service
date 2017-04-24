@@ -14,13 +14,6 @@ machine:
 dependencies:
   cache_directories:
     - "~/docker"
-  post:
-    - mkdir -p $(dirname $SRCDIR)
-    - cp -r $(pwd)/ $SRCDIR
-    - |
-        cd $SRCDIR/build && \
-        ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile && \
-        touch .uptodate
 
 test:
   override:
