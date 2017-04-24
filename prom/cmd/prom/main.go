@@ -10,6 +10,7 @@ import (
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/cortex/util"
+	"github.com/weaveworks/service/prom/db"
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 	util.RegisterFlags(&serverConfig, &dbConfig)
 	flag.Parse()
 
-	db, err := dynamoClientFromURL(dbConfig.DynamoDB.URL)
+	db, err := db.MustNew()
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
