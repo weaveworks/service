@@ -37,7 +37,8 @@ AUTHFE_EXE := authfe/authfe
 USERS_EXE := users/cmd/users/users
 METRICS_EXE := metrics/metrics
 PR_ASSIGNER_EXE := pr-assigner/pr-assigner
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_RUN_EXE) $(PR_ASSIGNER_EXE)
+PROM_EXE := prom/prom
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_EXE) $(PR_ASSIGNER_EXE)
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
@@ -45,6 +46,7 @@ $(AUTHFE_EXE): $(shell find authfe -name '*.go') $(shell find users/client -name
 $(USERS_EXE): $(shell find users -name '*.go') $(COMMON) users/users.pb.go
 $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
 $(PR_ASSIGNER_EXE): $(shell find pr-assigner -name '*.go') $(COMMON)
+$(PROM_EXE): $(shell find prom -name '*.go') $(COMMON)
 test: users/users.pb.go
 
 # And now what goes into each image
@@ -54,6 +56,7 @@ metrics/$(UPTODATE): $(METRICS_EXE)
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
 build/$(UPTODATE): build/build.sh
 pr-assigner/$(UPTODATE): $(PR_ASSIGNER_EXE)
+prom/$(UPTODATE): $(PROM_EXE)
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
