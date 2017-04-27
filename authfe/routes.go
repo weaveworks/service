@@ -259,6 +259,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/api/flux", c.fluxHost},
 				{"/api/prom/alertmanager", c.promAlertmanagerHost},
 				{"/api/prom/configs", c.configsHost},
+				{"/api/prom/notebooks", c.promServiceHost},
 				{"/api/prom", c.promQuerierHost},
 				{"/api/net/peer", c.peerDiscoveryHost},
 				{"/api", c.queryHost},
