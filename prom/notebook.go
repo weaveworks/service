@@ -1,18 +1,23 @@
 package prom
 
+import (
+	"time"
+
+	"github.com/satori/go.uuid"
+)
+
 // Notebook describes a collection of query entries for an instance
 type Notebook struct {
-	ID        string          `json:"id"`
+	ID        uuid.UUID       `json:"id"`
 	OrgID     string          `json:"org_id"`
 	AuthorID  string          `json:"author"`
-	UpdatedAt int             `json:"updatedAt"`
-	Entries   []NotebookEntry `json:"entries"`
+	UpdatedAt time.Time       `json:"updatedAt"`
 	Title     string          `json:"title"`
+	Entries   []NotebookEntry `json:"entries"`
 }
 
 // NotebookEntry describes a query for an instance
 type NotebookEntry struct {
-	ID         string  `json:"id"`
 	Query      string  `json:"query"`
 	QueryEnd   float32 `json:"queryEnd"`
 	QueryRange string  `json:"queryRange"`

@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS notebooks (
-  id            text PRIMARY KEY NOT NULL,
+  id            UUID PRIMARY KEY NOT NULL,
   org_id        text,
   title         text,
   entries       json,

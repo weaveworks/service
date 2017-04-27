@@ -1,10 +1,10 @@
 package memory
 
 import (
-	"database/sql"
-
 	"github.com/weaveworks/service/prom"
 )
+
+var currentID = 1
 
 // DB is an in-memory database for testing, and local development
 type DB struct {
@@ -20,11 +20,22 @@ func New(_, _ string) (*DB, error) {
 	}, nil
 }
 
-// GetAllNotebooks returns all notebooks for instance
+// CreateNotebook creates a notebook for the instance
+func (d DB) CreateNotebook(notebook prom.Notebook) error {
+	notebooks, ok := d.notebooks[notebook.OrgID]
+	if !ok {
+		notebooks = []prom.Notebook{}
+	}
+	notebooks = append(notebooks, notebook)
+	d.notebooks[notebook.OrgID] = notebooks
+	return nil
+}
+
+// GetAllNotebooks returns all notebooks for the instance
 func (d DB) GetAllNotebooks(orgID string) ([]prom.Notebook, error) {
 	notebooks, ok := d.notebooks[orgID]
 	if !ok {
-		return nil, sql.ErrNoRows
+		return []prom.Notebook{}, nil
 	}
 	return notebooks, nil
 }

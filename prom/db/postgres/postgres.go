@@ -44,6 +44,20 @@ func New(uri, migrationsDir string) (DB, error) {
 
 var statementBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).RunWith
 
+// CreateNotebook returns all notebooks for instance
+func (d DB) CreateNotebook(notebook prom.Notebook) error {
+	entriesBytes, err := json.Marshal(notebook.Entries)
+	if err != nil {
+		return err
+	}
+	_, err = d.Insert("notebooks").
+		Columns("org_id", "title", "author_id", "updated_at", "entries").
+		Values(notebook.OrgID, notebook.Title, notebook.AuthorID, notebook.UpdatedAt, entriesBytes).
+		Exec()
+
+	return err
+}
+
 // GetAllNotebooks returns all notebooks for instance
 func (d DB) GetAllNotebooks(orgID string) ([]prom.Notebook, error) {
 	rows, err := d.Select("id", "org_id", "title", "author_id", "updated_at", "entries").

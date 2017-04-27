@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	db "github.com/weaveworks/service/prom/db/dynamo"
+	"github.com/weaveworks/service/prom/db"
 )
 
 // API implements the users api.
@@ -13,8 +13,8 @@ type API struct {
 	http.Handler
 }
 
-// NewAPI creates a new API.
-func NewAPI(database db.DB) *API {
+// New creates a new API.
+func New(database db.DB) *API {
 	a := &API{db: database}
 	r := mux.NewRouter()
 	a.RegisterRoutes(r)
@@ -29,6 +29,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		handler            http.HandlerFunc
 	}{
 		{"api_get_all_notebooks", "GET", "/api/prom/notebooks", a.getAllNotebooks},
+		{"api_create_notebook", "POST", "/api/prom/notebooks", a.createNotebook},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
