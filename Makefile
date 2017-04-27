@@ -38,7 +38,7 @@ USERS_EXE := users/cmd/users/users
 METRICS_EXE := metrics/metrics
 PR_ASSIGNER_EXE := pr-assigner/pr-assigner
 PROM_EXE := prom/prom
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_EXE) $(PR_ASSIGNER_EXE)
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PR_ASSIGNER_EXE) $(PROM_EXE)
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
