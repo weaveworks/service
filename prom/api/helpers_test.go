@@ -11,14 +11,12 @@ import (
 	"github.com/weaveworks/service/prom/api"
 	"github.com/weaveworks/service/prom/db"
 	"github.com/weaveworks/service/prom/db/dbtest"
-	"github.com/weaveworks/service/users/sessions"
 )
 
 var (
-	app          *api.API
-	database     db.DB
-	counter      int
-	sessionStore sessions.Store
+	app      *api.API
+	database db.DB
+	counter  int
 )
 
 // setup sets up the environment for the tests.
@@ -53,22 +51,3 @@ func requestAsUser(t *testing.T, orgID, userID, method, urlStr string, body io.R
 	app.ServeHTTP(w, r)
 	return w
 }
-
-// // RequestAs makes a request as the given user.
-// func requestAs(t *testing.T, userID string, method, urlStr string, body io.Reader) *httptest.ResponseRecorder {
-// 	cookie, err := sessionStore.Cookie(userID)
-// 	assert.NoError(t, err)
-
-// 	w := httptest.NewRecorder()
-// 	r, err := http.NewRequest(method, urlStr, body)
-// 	r.AddCookie(cookie)
-// 	require.NoError(t, err)
-// 	app.ServeHTTP(w, r)
-// 	return w
-
-// 	// r, err := http.NewRequest(method, endpoint, body)
-// 	// require.NoError(t, err)
-
-// 	// r.AddCookie(cookie)
-// 	// return r
-// }

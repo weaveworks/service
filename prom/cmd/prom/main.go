@@ -6,7 +6,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/weaveworks/common/server"
-	"github.com/weaveworks/cortex/util"
 	"github.com/weaveworks/service/prom/api"
 	"github.com/weaveworks/service/prom/db"
 )
@@ -18,8 +17,9 @@ func main() {
 		}
 		dbConfig db.Config
 	)
-	util.RegisterFlags(&serverConfig, &dbConfig)
-	flag.Parse()
+
+	serverConfig.RegisterFlags(flag.CommandLine)
+	dbConfig.RegisterFlags(flag.CommandLine)
 
 	db, err := db.New(dbConfig)
 	if err != nil {
