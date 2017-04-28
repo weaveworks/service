@@ -59,7 +59,15 @@ pr-assigner/$(UPTODATE): $(PR_ASSIGNER_EXE)
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
 BUILD_IN_CONTAINER := true
 RM := --rm
-GO_FLAGS := -ldflags "-extldflags \"-static\" -linkmode=external -s -w" -i
+GO_FLAGS := -ldflags "-extldflags \"-static\" -linkmode=external -s -w" -tags netgo -i
+NETGO_CHECK = @strings $@ | grep cgo_stub\\\.go >/dev/null || { \
+	rm $@; \
+	echo "\nYour go standard library was built without the 'netgo' build tag."; \
+	echo "To fix that, run"; \
+	echo "    sudo go clean -i net"; \
+	echo "    sudo go install -tags netgo std"; \
+	false; \
+}
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
@@ -75,6 +83,7 @@ else
 
 $(EXES): build/$(UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
+	$(NETGO_CHECK)
 
 %.pb.go: build/$(UPTODATE)
 	protoc -I ./vendor:./$(@D) --gogoslick_out=plugins=grpc:./$(@D) ./$(patsubst %.pb.go,%.proto,$@)
@@ -83,7 +92,7 @@ lint: build/$(UPTODATE)
 	./tools/lint .
 
 test: build/$(UPTODATE)
-	./tools/test -no-race
+	./tools/test -netgo -no-race
 
 endif
 
