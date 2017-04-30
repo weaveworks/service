@@ -332,14 +332,14 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			),
 		},
 
-		// billing UI needs authentication
+		// unauthenticated billing UI gubbins - JS, fonts, etc
 		path{"/billing/{jsfile}.js", trimPrefix("/billing", c.billingUIHost)},
-		// Fonts
 		path{"/billing/{wofffile}.woff", trimPrefix("/billing", c.billingUIHost)},
 		path{"/billing/{ttffile}.ttf", trimPrefix("/billing", c.billingUIHost)},
 		path{"/billing/{svgfile}.svg", trimPrefix("/billing", c.billingUIHost)},
 		path{"/billing/{eotfile}.eot", trimPrefix("/billing", c.billingUIHost)},
 		path{"/billing/callback/register", trimPrefix("/billing", c.billingUIHost)},
+		// actual billing UI needs authentication/authorization
 		prefix{
 			"/billing",
 			[]path{
@@ -353,6 +353,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		// These billing api endpoints have no orgExternalID, so we can't do authorization on them.
 		path{"/api/billing/accounts", c.billingAPIHost},
 		path{"/api/billing/payments/authTokens", c.billingAPIHost},
+		// The main billing api requires authorization.
 		prefix{
 			"/api/billing",
 			[]path{
