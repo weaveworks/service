@@ -387,20 +387,20 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		route.Add(r)
 	}
 
-	// Do not check for csfr tokens in requests from:
+	// Do not check for csrf tokens in requests from:
 	// * probes (they cannot be attacked)
 	// * the admin alert manager, incorporating tokens would require forking it
 	//   and we don't see alert-silencing as very security-sensitive.
 	// * the Cortex alert manager, incorporating tokens would require forking it
 	//   (see https://github.com/weaveworks/service-ui/issues/461#issuecomment-299458350)
 	//   and we don't see alert-silencing as very security-sensitive.
-	csfrExemptPrefixes := probeRoute.AbsolutePrefixes()
-	csfrExemptPrefixes = append(csfrExemptPrefixes, "/admin/alertmanager")
+	csrfExemptPrefixes := probeRoute.AbsolutePrefixes()
+	csrfExemptPrefixes = append(csrfExemptPrefixes, "/admin/alertmanager")
 	// Regex copy-pasted from users/organization.go
-	csfrExemptPrefixes = append(csfrExemptPrefixes, `/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`)
+	csrfExemptPrefixes = append(csrfExemptPrefixes, `/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`)
 	return middleware.Merge(
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
-		csrfTokenVerifier{exemptPrefixes: csfrExemptPrefixes, secure: c.secureCookie},
+		csrfTokenVerifier{exemptPrefixes: csrfExemptPrefixes, secure: c.secureCookie},
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler)
 		}),
