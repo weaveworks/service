@@ -33,6 +33,7 @@ coverage.html
 .uptodate
 users/users.pb.go
 users/cmd/users/users
+prom/cmd/prom/prom
 authfe/authfe
 configs/cmd/configs/configs
 kubediff/vendor/github.com/tomwilkie/prom-run/prom-run

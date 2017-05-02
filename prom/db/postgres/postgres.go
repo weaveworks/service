@@ -9,6 +9,9 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/mattes/migrate/migrate"
 	"github.com/weaveworks/service/prom"
+
+	_ "github.com/lib/pq"                         // Import the postgres sql driver
+	_ "github.com/mattes/migrate/driver/postgres" // Import the postgres migrations driver
 )
 
 // DB is a postgres db, for dev and production
