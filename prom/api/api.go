@@ -28,8 +28,11 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		name, method, path string
 		handler            http.HandlerFunc
 	}{
-		{"api_get_all_notebooks", "GET", "/api/prom/notebooks", a.getAllNotebooks},
+		{"api_list_notebooks", "GET", "/api/prom/notebooks", a.listNotebooks},
 		{"api_create_notebook", "POST", "/api/prom/notebooks", a.createNotebook},
+
+		{"api_get_notebook", "GET", "/api/prom/notebooks/{notebookID}", a.getNotebook},
+		{"api_update_notebook", "PUT", "/api/prom/notebooks/{notebookID}", a.updateNotebook},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}

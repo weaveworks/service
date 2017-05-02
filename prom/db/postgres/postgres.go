@@ -47,22 +47,8 @@ func New(uri, migrationsDir string) (DB, error) {
 
 var statementBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).RunWith
 
-// CreateNotebook returns all notebooks for instance
-func (d DB) CreateNotebook(notebook prom.Notebook) error {
-	entriesBytes, err := json.Marshal(notebook.Entries)
-	if err != nil {
-		return err
-	}
-	_, err = d.Insert("notebooks").
-		Columns("id", "org_id", "title", "author_id", "updated_at", "entries").
-		Values(notebook.ID, notebook.OrgID, notebook.Title, notebook.AuthorID, notebook.UpdatedAt, entriesBytes).
-		Exec()
-
-	return err
-}
-
-// GetAllNotebooks returns all notebooks for instance
-func (d DB) GetAllNotebooks(orgID string) ([]prom.Notebook, error) {
+// ListNotebooks returns all notebooks
+func (d DB) ListNotebooks(orgID string) ([]prom.Notebook, error) {
 	rows, err := d.Select("id", "org_id", "title", "author_id", "updated_at", "entries").
 		From("notebooks").
 		Where(squirrel.Eq{"org_id": orgID}).
@@ -89,6 +75,63 @@ func (d DB) GetAllNotebooks(orgID string) ([]prom.Notebook, error) {
 	}
 
 	return notebooks, nil
+}
+
+// GetNotebook returns the notebook with the same ID
+func (d DB) GetNotebook(ID, orgID string) (prom.Notebook, error) {
+	var notebook prom.Notebook
+	var entriesBytes []byte
+
+	err := d.Select("id", "org_id", "title", "author_id", "updated_at", "entries").
+		From("notebooks").
+		Where(squirrel.Eq{"id": ID}, squirrel.Eq{"org_id": orgID}).
+		QueryRow().
+		Scan(&notebook.ID, &notebook.OrgID, &notebook.Title, &notebook.AuthorID, &notebook.UpdatedAt, &entriesBytes)
+	if err != nil {
+		return prom.Notebook{}, err
+	}
+
+	err = json.Unmarshal(entriesBytes, &notebook.Entries)
+	if err != nil {
+		return prom.Notebook{}, err
+	}
+
+	return notebook, nil
+}
+
+// CreateNotebook creates a notebook
+func (d DB) CreateNotebook(notebook prom.Notebook) error {
+	entriesBytes, err := json.Marshal(notebook.Entries)
+	if err != nil {
+		return err
+	}
+	_, err = d.Insert("notebooks").
+		Columns("id", "org_id", "title", "author_id", "updated_at", "entries").
+		Values(notebook.ID, notebook.OrgID, notebook.Title, notebook.AuthorID, notebook.UpdatedAt, entriesBytes).
+		Exec()
+
+	return err
+}
+
+// UpdateNotebook updates a notebook
+func (d DB) UpdateNotebook(ID, orgID string, notebook prom.Notebook) error {
+	entriesBytes, err := json.Marshal(notebook.Entries)
+	if err != nil {
+		return err
+	}
+	_, err = d.Update("notebooks").
+		SetMap(
+			map[string]interface{}{
+				"title":      notebook.Title,
+				"author_id":  notebook.AuthorID,
+				"updated_at": notebook.UpdatedAt,
+				"entries":    entriesBytes,
+			},
+		).
+		Where(squirrel.Eq{"id": ID}, squirrel.Eq{"org_id": orgID}).
+		Exec()
+
+	return err
 }
 
 // Close finishes using the db

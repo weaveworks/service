@@ -1,6 +1,8 @@
 package memory
 
 import (
+	"errors"
+
 	"github.com/weaveworks/service/prom"
 )
 
@@ -20,7 +22,31 @@ func New(_, _ string) (*DB, error) {
 	}, nil
 }
 
-// CreateNotebook creates a notebook for the instance
+// ListNotebooks returns all notebooks for the instance
+func (d DB) ListNotebooks(orgID string) ([]prom.Notebook, error) {
+	notebooks, ok := d.notebooks[orgID]
+	if !ok {
+		return []prom.Notebook{}, nil
+	}
+	return notebooks, nil
+}
+
+// GetNotebook returns all notebooks for the instance
+func (d DB) GetNotebook(ID, orgID string) (prom.Notebook, error) {
+	notebooks, ok := d.notebooks[orgID]
+	if !ok {
+		return prom.Notebook{}, errors.New("Org not found")
+	}
+
+	for _, notebook := range notebooks {
+		if notebook.ID.String() == ID {
+			return notebook, nil
+		}
+	}
+	return prom.Notebook{}, errors.New("Notebook not found")
+}
+
+// CreateNotebook creates a notebook
 func (d DB) CreateNotebook(notebook prom.Notebook) error {
 	notebooks, ok := d.notebooks[notebook.OrgID]
 	if !ok {
@@ -31,13 +57,25 @@ func (d DB) CreateNotebook(notebook prom.Notebook) error {
 	return nil
 }
 
-// GetAllNotebooks returns all notebooks for the instance
-func (d DB) GetAllNotebooks(orgID string) ([]prom.Notebook, error) {
+// UpdateNotebook updates a notebook
+func (d DB) UpdateNotebook(ID, orgID string, update prom.Notebook) error {
 	notebooks, ok := d.notebooks[orgID]
 	if !ok {
-		return []prom.Notebook{}, nil
+		notebooks = []prom.Notebook{}
 	}
-	return notebooks, nil
+
+	var updatedNotebooks []prom.Notebook
+	for _, notebook := range notebooks {
+		if notebook.ID.String() == ID {
+			notebook.Title = update.Title
+			notebook.AuthorID = update.AuthorID
+			notebook.UpdatedAt = update.UpdatedAt
+			notebook.Entries = update.Entries
+		}
+		updatedNotebooks = append(updatedNotebooks, notebook)
+	}
+	d.notebooks[orgID] = updatedNotebooks
+	return nil
 }
 
 // Close finishes using the db. Noop.
