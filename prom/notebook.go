@@ -18,8 +18,8 @@ type Notebook struct {
 
 // NotebookEntry describes a query for an instance
 type NotebookEntry struct {
-	Query      string  `json:"query"`
-	QueryEnd   float32 `json:"queryEnd"`
-	QueryRange string  `json:"queryRange"`
-	Type       string  `json:"type"`
+	Query      string `json:"query"`
+	QueryEnd   string `json:"queryEnd"`
+	QueryRange string `json:"queryRange"`
+	Type       string `json:"type"`
 }
