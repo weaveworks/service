@@ -20,6 +20,7 @@ func main() {
 
 	serverConfig.RegisterFlags(flag.CommandLine)
 	dbConfig.RegisterFlags(flag.CommandLine)
+	flag.Parse()
 
 	db, err := db.New(dbConfig)
 	if err != nil {
