@@ -4,5 +4,5 @@ CREATE TABLE IF NOT EXISTS notebooks (
   title         text,
   entries       json,
   author_id     text,
-  updated_at    timestamp with time zone,
+  updated_at    timestamp with time zone
 );
