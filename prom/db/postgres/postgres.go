@@ -54,8 +54,8 @@ func (d DB) CreateNotebook(notebook prom.Notebook) error {
 		return err
 	}
 	_, err = d.Insert("notebooks").
-		Columns("org_id", "title", "author_id", "updated_at", "entries").
-		Values(notebook.OrgID, notebook.Title, notebook.AuthorID, notebook.UpdatedAt, entriesBytes).
+		Columns("id", "org_id", "title", "author_id", "updated_at", "entries").
+		Values(notebook.ID, notebook.OrgID, notebook.Title, notebook.AuthorID, notebook.UpdatedAt, entriesBytes).
 		Exec()
 
 	return err
