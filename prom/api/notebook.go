@@ -157,3 +157,33 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+// deleteNotebook deletes the notebook with the id
+func (a *API) deleteNotebook(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	notebookID, ok := vars["notebookID"]
+	if !ok {
+		log.Error("Missing notebookID var")
+		http.Error(w, "Missing notebookID", http.StatusBadRequest)
+		return
+	}
+
+	orgID, _, err := user.ExtractFromHTTPRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	err = a.db.DeleteNotebook(notebookID, orgID)
+	if err != nil {
+		log.Errorf("Error deleting notebook: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := w.Write([]byte("OK")); err != nil {
+		log.Errorf("Error returning response: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}

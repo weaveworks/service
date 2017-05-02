@@ -61,7 +61,7 @@ func (d DB) CreateNotebook(notebook prom.Notebook) error {
 func (d DB) UpdateNotebook(ID, orgID string, update prom.Notebook) error {
 	notebooks, ok := d.notebooks[orgID]
 	if !ok {
-		notebooks = []prom.Notebook{}
+		return errors.New("Org not found")
 	}
 
 	var updatedNotebooks []prom.Notebook
@@ -73,6 +73,23 @@ func (d DB) UpdateNotebook(ID, orgID string, update prom.Notebook) error {
 			notebook.Entries = update.Entries
 		}
 		updatedNotebooks = append(updatedNotebooks, notebook)
+	}
+	d.notebooks[orgID] = updatedNotebooks
+	return nil
+}
+
+// DeleteNotebook deletes a notebook
+func (d DB) DeleteNotebook(ID, orgID string) error {
+	notebooks, ok := d.notebooks[orgID]
+	if !ok {
+		return errors.New("Org not found")
+	}
+
+	var updatedNotebooks []prom.Notebook
+	for _, notebook := range notebooks {
+		if notebook.ID.String() != ID {
+			updatedNotebooks = append(updatedNotebooks, notebook)
+		}
 	}
 	d.notebooks[orgID] = updatedNotebooks
 	return nil

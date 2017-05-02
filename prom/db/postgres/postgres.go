@@ -134,6 +134,14 @@ func (d DB) UpdateNotebook(ID, orgID string, notebook prom.Notebook) error {
 	return err
 }
 
+// DeleteNotebook deletes a notebook
+func (d DB) DeleteNotebook(ID, orgID string) error {
+	_, err := d.Delete("notebooks").
+		Where(squirrel.Eq{"id": ID}, squirrel.Eq{"org_id": orgID}).
+		Exec()
+	return err
+}
+
 // Close finishes using the db
 func (d DB) Close() error {
 	if db, ok := d.dbProxy.(interface {

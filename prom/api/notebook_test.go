@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
@@ -194,4 +195,29 @@ func TestAPI_updateNotebook(t *testing.T) {
 	assert.Equal(t, notebook.Entries[0].QueryEnd, "77.7")
 	assert.Equal(t, notebook.Entries[0].QueryRange, "7h")
 	assert.Equal(t, notebook.Entries[0].Type, "new")
+}
+
+func TestAPI_deleteNotebook(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	notebookID := uuid.NewV4()
+	notebookEntry := prom.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
+	notebook := prom.Notebook{
+		ID:        notebookID,
+		OrgID:     "org1",
+		AuthorID:  "user1",
+		UpdatedAt: time.Now(),
+		Title:     "Test notebook",
+		Entries:   []prom.NotebookEntry{notebookEntry},
+	}
+	database.CreateNotebook(notebook)
+
+	// Make request to update notebook with ID notebookID2
+	w := requestAsUser(t, "org1", "user1", "DELETE", fmt.Sprintf("/api/prom/notebooks/%s", notebookID), nil)
+	assert.Equal(t, w.Code, http.StatusOK)
+
+	// Check it was deleted in the DB
+	notebook, err := database.GetNotebook(notebookID.String(), "org1")
+	assert.Error(t, err, "Could not fetch notebook from DB")
 }
