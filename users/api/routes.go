@@ -59,14 +59,14 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_users_org_orgExternalID_deleteUser", "DELETE", "/api/users/org/{orgExternalID}/users/{userEmail}", a.authenticateUser(a.deleteUser)},
 
 		// Internal stuff for our internal usage, internally.
-		{"root", "GET", "/", a.admin},
-		{"private_api_organizations", "GET", "/private/api/organizations", a.listOrganizations},
-		{"private_api_organizations_orgExternalID", "GET", "/private/api/organizations/{orgExternalID}", a.adminShowOrganization},
-		{"private_api_organizations_orgExternalID_featureFlags", "POST", "/private/api/organizations/{orgExternalID}/featureflags", a.setOrgFeatureFlags},
-		{"private_api_pardot", "GET", "/private/api/marketing_refresh", a.marketingRefresh},
-		{"private_api_users", "GET", "/private/api/users", a.listUsers},
-		{"private_api_users_userID_admin", "POST", "/private/api/users/{userID}/admin", a.makeUserAdmin},
-		{"private_api_users_userID_logins_provider_token", "GET", "/private/api/users/{userID}/logins/{provider}/token", a.getUserToken},
+		{"root", "GET", "/admin/users", a.admin},
+		{"admin_users_organizations", "GET", "/admin/users/organizations", a.listOrganizations},
+		{"admin_users_organizations_orgExternalID", "GET", "/admin/users/organizations/{orgExternalID}", a.adminShowOrganization},
+		{"admin_users_organizations_orgExternalID_featureFlags", "POST", "/admin/users/organizations/{orgExternalID}/featureflags", a.setOrgFeatureFlags},
+		{"admin_users_pardot", "GET", "/admin/users/marketing_refresh", a.marketingRefresh},
+		{"admin_users_users", "GET", "/admin/users/users", a.listUsers},
+		{"admin_users_users_userID_admin", "POST", "/admin/users/users/{userID}/admin", a.makeUserAdmin},
+		{"admin_users_users_userID_logins_provider_token", "GET", "/admin/users/users/{userID}/logins/{provider}/token", a.getUserToken},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}

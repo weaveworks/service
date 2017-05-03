@@ -30,7 +30,7 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 
 		<h2>Management</h2>
 		<ul>
-			<li><a href="/admin/users/">Users Service</a></li>
+			<li><a href="/admin/users">Users Service</a></li>
 			<li><a href="/admin/kubedash/">Kubernetes Dashboard</a></li>
 			<li><a href="/admin/compare-images/">Compare Images</a></li>
 			<li><a href="/admin/compare-revisions/">Compare Revisions</a></li>

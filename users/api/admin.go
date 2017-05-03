@@ -26,9 +26,9 @@ func (a *API) admin(w http.ResponseWriter, r *http.Request) {
 	<body>
 		<h1>User service</h1>
 		<ul>
-			<li><a href="private/api/users">Users</a></li>
-			<li><a href="private/api/organizations">Organizations</a></li>
-			<li><a href="private/api/marketing_refresh">Sync User-Creation with marketing integrations</a></li>
+			<li><a href="/admin/users/users">Users</a></li>
+			<li><a href="/admin/users/organizations">Organizations</a></li>
+			<li><a href="/admin/users/marketing_refresh">Sync User-Creation with marketing integrations</a></li>
 		</ul>
 	</body>
 </html>
@@ -192,7 +192,7 @@ func (a *API) setOrgFeatureFlags(w http.ResponseWriter, r *http.Request) {
 	}
 	redirectTo := r.FormValue("redirect_to")
 	if redirectTo == "" {
-		redirectTo = "/private/api/organizations"
+		redirectTo = "/admin/users/organizations"
 	}
 	http.Redirect(w, r, redirectTo, http.StatusFound)
 }
@@ -223,7 +223,7 @@ func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 	redirectTo := r.FormValue("redirect_to")
 	if redirectTo == "" {
-		redirectTo = "/private/api/users"
+		redirectTo = "/admin/users/users"
 	}
 	http.Redirect(w, r, redirectTo, http.StatusFound)
 }
