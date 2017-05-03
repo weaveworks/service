@@ -76,7 +76,7 @@ func ifEmpty(a, b string) string {
 
 func newProbeRequestLogger() HTTPEventExtractor {
 	return func(r *http.Request) (Event, bool) {
-		orgID, err := user.Extract(r.Context())
+		orgID, err := user.ExtractOrgID(r.Context())
 		if err != nil {
 			return Event{}, false
 		}
@@ -102,7 +102,7 @@ func newUIRequestLogger(userIDHeader string) HTTPEventExtractor {
 			sessionID = sessionCookie.Value
 		}
 
-		orgID, err := user.Extract(r.Context())
+		orgID, err := user.ExtractOrgID(r.Context())
 		if err != nil {
 			return Event{}, false
 		}
@@ -128,7 +128,7 @@ func newAnalyticsLogger(userIDHeader string) HTTPEventExtractor {
 			sessionID = sessionCookie.Value
 		}
 
-		orgID, err := user.Extract(r.Context())
+		orgID, err := user.ExtractOrgID(r.Context())
 		if err != nil {
 			return Event{}, false
 		}

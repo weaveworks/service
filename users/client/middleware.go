@@ -62,8 +62,8 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 		r.Header.Add(a.UserIDHeader, response.UserID)
 		r.Header.Add(a.FeatureFlagsHeader, strings.Join(response.FeatureFlags, " "))
 
-		r = r.WithContext(user.Inject(r.Context(), response.OrganizationID))
-		user.InjectIntoHTTPRequest(r.Context(), r)
+		r = r.WithContext(user.InjectOrgID(r.Context(), response.OrganizationID))
+		user.InjectOrgIDIntoHTTPRequest(r.Context(), r)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -101,8 +101,8 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 
 		r.Header.Add(a.FeatureFlagsHeader, strings.Join(response.FeatureFlags, " "))
 
-		r = r.WithContext(user.Inject(r.Context(), response.OrganizationID))
-		user.InjectIntoHTTPRequest(r.Context(), r)
+		r = r.WithContext(user.InjectOrgID(r.Context(), response.OrganizationID))
+		user.InjectOrgIDIntoHTTPRequest(r.Context(), r)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -146,8 +146,8 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		r = r.WithContext(user.Inject(r.Context(), response.AdminID))
-		user.InjectIntoHTTPRequest(r.Context(), r)
+		r = r.WithContext(user.InjectOrgID(r.Context(), response.AdminID))
+		user.InjectOrgIDIntoHTTPRequest(r.Context(), r)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -178,8 +178,8 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		r = r.WithContext(user.Inject(r.Context(), response.UserID))
-		user.InjectIntoHTTPRequest(r.Context(), r)
+		r = r.WithContext(user.InjectOrgID(r.Context(), response.UserID))
+		user.InjectOrgIDIntoHTTPRequest(r.Context(), r)
 		next.ServeHTTP(w, r)
 	})
 }
