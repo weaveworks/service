@@ -44,11 +44,16 @@ func (a *OAuth) Flags(flags *flag.FlagSet) {
 // Link is a map of attributes for a link rendered into the UI. When the user
 // clicks it, it kicks off the remote authorization flow.
 func (a *OAuth) Link(r *http.Request) (Link, bool) {
+	token := csrfToken(r)
+	if token == "" {
+		// Do not allow linking accounts if the anti CSRF token isn't set
+		return Link{}, false
+	}
 	return Link{
 		ID: strings.ToLower(a.name),
 		Href: a.Config.AuthCodeURL(
 			a.encodeState(map[string]string{
-				"token": nosurf.Token(r),
+				"token": token,
 			}),
 		),
 		Label: a.name,
@@ -99,5 +104,19 @@ func (a *OAuth) verifyState(r *http.Request) bool {
 	if err != nil {
 		return false
 	}
-	return nosurf.VerifyToken(nosurf.Token(r), state["token"])
+	return nosurf.VerifyToken(csrfToken(r), state["token"])
+}
+
+// csrfToken extracts the anti-CSRF token from the cookie injected by authfe.
+// We cannot simply use nosurf.Token() since it assumes that the CSRFHandler was invoked
+func csrfToken(r *http.Request) string {
+	tokenCookie, err := r.Cookie(nosurf.CookieName)
+	if err != nil {
+		return ""
+	}
+	decoded, err := base64.StdEncoding.DecodeString(tokenCookie.Value)
+	if err != nil {
+		return ""
+	}
+	return string(decoded)
 }

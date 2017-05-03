@@ -35,9 +35,9 @@ func NewGoogleProvider() Provider {
 }
 
 func (g *google) Link(r *http.Request) (Link, bool) {
-	l, _ := g.OAuth.Link(r)
+	l, ok := g.OAuth.Link(r)
 	l.BackgroundColor = "#dd4b39"
-	return l, true
+	return l, ok
 }
 
 // Login converts a user to a db ID
