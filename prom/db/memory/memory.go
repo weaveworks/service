@@ -31,6 +31,17 @@ func (d DB) ListNotebooks(orgID string) ([]prom.Notebook, error) {
 	return notebooks, nil
 }
 
+// CreateNotebook creates a notebook
+func (d DB) CreateNotebook(notebook prom.Notebook) error {
+	notebooks, ok := d.notebooks[notebook.OrgID]
+	if !ok {
+		notebooks = []prom.Notebook{}
+	}
+	notebooks = append(notebooks, notebook)
+	d.notebooks[notebook.OrgID] = notebooks
+	return nil
+}
+
 // GetNotebook returns all notebooks for the instance
 func (d DB) GetNotebook(ID, orgID string) (prom.Notebook, error) {
 	notebooks, ok := d.notebooks[orgID]
@@ -44,17 +55,6 @@ func (d DB) GetNotebook(ID, orgID string) (prom.Notebook, error) {
 		}
 	}
 	return prom.Notebook{}, errors.New("Notebook not found")
-}
-
-// CreateNotebook creates a notebook
-func (d DB) CreateNotebook(notebook prom.Notebook) error {
-	notebooks, ok := d.notebooks[notebook.OrgID]
-	if !ok {
-		notebooks = []prom.Notebook{}
-	}
-	notebooks = append(notebooks, notebook)
-	d.notebooks[notebook.OrgID] = notebooks
-	return nil
 }
 
 // UpdateNotebook updates a notebook

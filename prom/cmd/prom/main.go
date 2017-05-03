@@ -26,7 +26,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
-	a := api.New(db)
 
 	server, err := server.New(serverConfig)
 	if err != nil {
@@ -34,6 +33,7 @@ func main() {
 	}
 	defer server.Shutdown()
 
+	a := api.New(db)
 	a.RegisterRoutes(server.HTTP)
 	server.Run()
 }

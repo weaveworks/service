@@ -8,18 +8,18 @@ import (
 	"testing"
 	"time"
 
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/weaveworks/service/prom"
 	"github.com/weaveworks/service/prom/api"
-
-	"github.com/satori/go.uuid"
 )
 
 func TestAPI_listNotebooks(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
+	// Create notebooks in database
 	notebookEntry := prom.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	notebooks := []prom.Notebook{
 		{
@@ -48,6 +48,7 @@ func TestAPI_listNotebooks(t *testing.T) {
 		database.CreateNotebook(notebook)
 	}
 
+	// List all notebooks and check result
 	var result []prom.Notebook
 	w := requestAsUser(t, "org1", "user1", "GET", "/api/prom/notebooks", nil)
 	err := json.Unmarshal(w.Body.Bytes(), &result)
@@ -104,6 +105,7 @@ func TestAPI_getNotebook(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
+	// Create notebook in database
 	notebookID := uuid.NewV4()
 	notebookEntry := prom.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	notebook := prom.Notebook{
@@ -138,10 +140,10 @@ func TestAPI_updateNotebook(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
+	// Create notebooks in database
 	notebookID1 := uuid.NewV4()
 	notebookID2 := uuid.NewV4()
 	notebookID3 := uuid.NewV4()
-
 	notebookEntry := prom.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	notebooks := []prom.Notebook{
 		{
@@ -201,6 +203,7 @@ func TestAPI_deleteNotebook(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
+	// Create notebook in database
 	notebookID := uuid.NewV4()
 	notebookEntry := prom.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	notebook := prom.Notebook{

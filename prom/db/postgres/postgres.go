@@ -77,6 +77,20 @@ func (d DB) ListNotebooks(orgID string) ([]prom.Notebook, error) {
 	return notebooks, nil
 }
 
+// CreateNotebook creates a notebook
+func (d DB) CreateNotebook(notebook prom.Notebook) error {
+	entriesBytes, err := json.Marshal(notebook.Entries)
+	if err != nil {
+		return err
+	}
+	_, err = d.Insert("notebooks").
+		Columns("id", "org_id", "title", "author_id", "updated_at", "entries").
+		Values(notebook.ID, notebook.OrgID, notebook.Title, notebook.AuthorID, notebook.UpdatedAt, entriesBytes).
+		Exec()
+
+	return err
+}
+
 // GetNotebook returns the notebook with the same ID
 func (d DB) GetNotebook(ID, orgID string) (prom.Notebook, error) {
 	var notebook prom.Notebook
@@ -97,20 +111,6 @@ func (d DB) GetNotebook(ID, orgID string) (prom.Notebook, error) {
 	}
 
 	return notebook, nil
-}
-
-// CreateNotebook creates a notebook
-func (d DB) CreateNotebook(notebook prom.Notebook) error {
-	entriesBytes, err := json.Marshal(notebook.Entries)
-	if err != nil {
-		return err
-	}
-	_, err = d.Insert("notebooks").
-		Columns("id", "org_id", "title", "author_id", "updated_at", "entries").
-		Values(notebook.ID, notebook.OrgID, notebook.Title, notebook.AuthorID, notebook.UpdatedAt, entriesBytes).
-		Exec()
-
-	return err
 }
 
 // UpdateNotebook updates a notebook
