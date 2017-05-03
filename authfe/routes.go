@@ -305,7 +305,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/dev-grafana", trimPrefix("/admin/dev-grafana", c.devGrafanaHost)},
 				{"/prod-grafana", trimPrefix("/admin/prod-grafana", c.prodGrafanaHost)},
 				{"/scope", trimPrefix("/admin/scope", c.scopeHost)},
-				{"/users", trimPrefix("/admin/users", c.usersHost)},
+				{"/users", c.usersHost},
 				{"/billing/admin", trimPrefix("/admin/billing/admin", c.billingAPIHost)},
 				{"/billing/aggregator", trimPrefix("/admin/billing/aggregator", c.billingAggregatorHost)},
 				{"/billing/uploader", trimPrefix("/admin/billing/uploader", c.billingUploaderHost)},

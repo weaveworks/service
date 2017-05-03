@@ -31,7 +31,7 @@ func TestAdmin_GetUserToken(t *testing.T) {
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
-	res, err := http.Get(fmt.Sprintf("%s/private/api/users/%v/logins/github/token", ts.URL, usr.ID))
+	res, err := http.Get(fmt.Sprintf("%s/admin/users/users/%v/logins/github/token", ts.URL, usr.ID))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestAPI_GetUserTokenNoUser(t *testing.T) {
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
-	res, err := http.Get(fmt.Sprintf("%s/private/api/users/%v/logins/github/token", ts.URL, "unknown"))
+	res, err := http.Get(fmt.Sprintf("%s/admin/users/users/%v/logins/github/token", ts.URL, "unknown"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestAPI_GetUserTokenNoToken(t *testing.T) {
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
-	res, err := http.Get(fmt.Sprintf("%s/private/api/users/%v/logins/github/token", ts.URL, usr.ID))
+	res, err := http.Get(fmt.Sprintf("%s/admin/users/users/%v/logins/github/token", ts.URL, usr.ID))
 	if err != nil {
 		t.Fatal(err)
 	}

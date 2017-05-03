@@ -46,7 +46,7 @@ func (t *TokenRequester) TokenForUser(r *http.Request, provider string) (token s
 	if err != nil {
 		return
 	}
-	u.Path = fmt.Sprintf("/private/api/users/%s/logins/%s/token", userID, provider)
+	u.Path = fmt.Sprintf("/admin/users/users/%s/logins/%s/token", userID, provider)
 
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
