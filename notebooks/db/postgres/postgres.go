@@ -8,7 +8,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/Sirupsen/logrus"
 	"github.com/mattes/migrate/migrate"
-	"github.com/weaveworks/service/prom"
+	"github.com/weaveworks/service/notebooks"
 
 	_ "github.com/lib/pq"                         // Import the postgres sql driver
 	_ "github.com/mattes/migrate/driver/postgres" // Import the postgres migrations driver
@@ -48,7 +48,7 @@ func New(uri, migrationsDir string) (DB, error) {
 var statementBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).RunWith
 
 // ListNotebooks returns all notebooks
-func (d DB) ListNotebooks(orgID string) ([]prom.Notebook, error) {
+func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
 	rows, err := d.Select("id", "org_id", "title", "author_id", "updated_at", "entries").
 		From("notebooks").
 		Where(squirrel.Eq{"org_id": orgID}).
@@ -59,9 +59,9 @@ func (d DB) ListNotebooks(orgID string) ([]prom.Notebook, error) {
 	}
 	defer rows.Close()
 
-	notebooks := []prom.Notebook{}
+	notebooks := []notebooks.Notebook{}
 	for rows.Next() {
-		var notebook prom.Notebook
+		var notebook notebooks.Notebook
 		var entriesBytes []byte
 		err = rows.Scan(&notebook.ID, &notebook.OrgID, &notebook.Title, &notebook.AuthorID, &notebook.UpdatedAt, &entriesBytes)
 		if err != nil {
@@ -78,7 +78,7 @@ func (d DB) ListNotebooks(orgID string) ([]prom.Notebook, error) {
 }
 
 // CreateNotebook creates a notebook
-func (d DB) CreateNotebook(notebook prom.Notebook) error {
+func (d DB) CreateNotebook(notebook notebooks.Notebook) error {
 	entriesBytes, err := json.Marshal(notebook.Entries)
 	if err != nil {
 		return err
@@ -92,8 +92,8 @@ func (d DB) CreateNotebook(notebook prom.Notebook) error {
 }
 
 // GetNotebook returns the notebook with the same ID
-func (d DB) GetNotebook(ID, orgID string) (prom.Notebook, error) {
-	var notebook prom.Notebook
+func (d DB) GetNotebook(ID, orgID string) (notebooks.Notebook, error) {
+	var notebook notebooks.Notebook
 	var entriesBytes []byte
 
 	err := d.Select("id", "org_id", "title", "author_id", "updated_at", "entries").
@@ -102,19 +102,19 @@ func (d DB) GetNotebook(ID, orgID string) (prom.Notebook, error) {
 		QueryRow().
 		Scan(&notebook.ID, &notebook.OrgID, &notebook.Title, &notebook.AuthorID, &notebook.UpdatedAt, &entriesBytes)
 	if err != nil {
-		return prom.Notebook{}, err
+		return notebooks.Notebook{}, err
 	}
 
 	err = json.Unmarshal(entriesBytes, &notebook.Entries)
 	if err != nil {
-		return prom.Notebook{}, err
+		return notebooks.Notebook{}, err
 	}
 
 	return notebook, nil
 }
 
 // UpdateNotebook updates a notebook
-func (d DB) UpdateNotebook(ID, orgID string, notebook prom.Notebook) error {
+func (d DB) UpdateNotebook(ID, orgID string, notebook notebooks.Notebook) error {
 	entriesBytes, err := json.Marshal(notebook.Entries)
 	if err != nil {
 		return err

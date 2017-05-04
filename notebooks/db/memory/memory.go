@@ -3,69 +3,69 @@ package memory
 import (
 	"errors"
 
-	"github.com/weaveworks/service/prom"
+	"github.com/weaveworks/service/notebooks"
 )
 
 var currentID = 1
 
 // DB is an in-memory database for testing, and local development
 type DB struct {
-	notebooks map[string][]prom.Notebook
+	notebooks map[string][]notebooks.Notebook
 	id        uint
 }
 
 // New creates a new in-memory database
 func New(_, _ string) (*DB, error) {
 	return &DB{
-		notebooks: map[string][]prom.Notebook{},
+		notebooks: map[string][]notebooks.Notebook{},
 		id:        0,
 	}, nil
 }
 
 // ListNotebooks returns all notebooks for the instance
-func (d DB) ListNotebooks(orgID string) ([]prom.Notebook, error) {
-	notebooks, ok := d.notebooks[orgID]
+func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
+	ns, ok := d.notebooks[orgID]
 	if !ok {
-		return []prom.Notebook{}, nil
+		return []notebooks.Notebook{}, nil
 	}
-	return notebooks, nil
+	return ns, nil
 }
 
 // CreateNotebook creates a notebook
-func (d DB) CreateNotebook(notebook prom.Notebook) error {
-	notebooks, ok := d.notebooks[notebook.OrgID]
+func (d DB) CreateNotebook(notebook notebooks.Notebook) error {
+	ns, ok := d.notebooks[notebook.OrgID]
 	if !ok {
-		notebooks = []prom.Notebook{}
+		ns = []notebooks.Notebook{}
 	}
-	notebooks = append(notebooks, notebook)
-	d.notebooks[notebook.OrgID] = notebooks
+	ns = append(ns, notebook)
+	d.notebooks[notebook.OrgID] = ns
 	return nil
 }
 
 // GetNotebook returns all notebooks for the instance
-func (d DB) GetNotebook(ID, orgID string) (prom.Notebook, error) {
-	notebooks, ok := d.notebooks[orgID]
+func (d DB) GetNotebook(ID, orgID string) (notebooks.Notebook, error) {
+	ns, ok := d.notebooks[orgID]
 	if !ok {
-		return prom.Notebook{}, errors.New("Org not found")
+		return notebooks.Notebook{}, errors.New("Org not found")
 	}
 
-	for _, notebook := range notebooks {
+	for _, notebook := range ns {
 		if notebook.ID.String() == ID {
 			return notebook, nil
 		}
 	}
-	return prom.Notebook{}, errors.New("Notebook not found")
+	return notebooks.Notebook{}, errors.New("Notebook not found")
 }
 
 // UpdateNotebook updates a notebook
-func (d DB) UpdateNotebook(ID, orgID string, update prom.Notebook) error {
-	notebooks, ok := d.notebooks[orgID]
+func (d DB) UpdateNotebook(ID, orgID string, update notebooks.Notebook) error {
+	ns, ok := d.notebooks[orgID]
 	if !ok {
 		return errors.New("Org not found")
 	}
 
-	var updatedNotebooks []prom.Notebook
-	for _, notebook := range notebooks {
+	var updatedNotebooks []notebooks.Notebook
+	for _, notebook := range ns {
 		if notebook.ID.String() == ID {
 			notebook.Title = update.Title
 			notebook.AuthorID = update.AuthorID
@@ -80,13 +80,13 @@ func (d DB) UpdateNotebook(ID, orgID string, update prom.Notebook) error {
 
 // DeleteNotebook deletes a notebook
 func (d DB) DeleteNotebook(ID, orgID string) error {
-	notebooks, ok := d.notebooks[orgID]
+	ns, ok := d.notebooks[orgID]
 	if !ok {
 		return errors.New("Org not found")
 	}
 
-	var updatedNotebooks []prom.Notebook
-	for _, notebook := range notebooks {
+	var updatedNotebooks []notebooks.Notebook
+	for _, notebook := range ns {
 		if notebook.ID.String() != ID {
 			updatedNotebooks = append(updatedNotebooks, notebook)
 		}

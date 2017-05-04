@@ -6,14 +6,14 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/weaveworks/common/server"
-	"github.com/weaveworks/service/prom/api"
-	"github.com/weaveworks/service/prom/db"
+	"github.com/weaveworks/service/notebooks/api"
+	"github.com/weaveworks/service/notebooks/db"
 )
 
 func main() {
 	var (
 		serverConfig = server.Config{
-			MetricsNamespace: "prom",
+			MetricsNamespace: "notebooks",
 		}
 		dbConfig db.Config
 	)

@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/weaveworks/service/prom/db"
+	"github.com/weaveworks/service/notebooks/db"
 )
 
 // API implements the users api.

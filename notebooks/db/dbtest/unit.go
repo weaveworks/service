@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/weaveworks/common/logging"
-	"github.com/weaveworks/service/prom/db"
+	"github.com/weaveworks/service/notebooks/db"
 )
 
 // Setup sets up stuff for testing, creating a new database

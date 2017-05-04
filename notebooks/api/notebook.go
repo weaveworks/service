@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/user"
-	"github.com/weaveworks/service/prom"
+	"github.com/weaveworks/service/notebooks"
 
 	"github.com/satori/go.uuid"
 )
@@ -39,8 +39,8 @@ func (a *API) listNotebooks(w http.ResponseWriter, r *http.Request) {
 
 // NotebookWriteView describes the structure the user can write to
 type NotebookWriteView struct {
-	Title   string               `json:"title"`
-	Entries []prom.NotebookEntry `json:"entries"`
+	Title   string                    `json:"title"`
+	Entries []notebooks.NotebookEntry `json:"entries"`
 }
 
 // createNotebook creates a notebook
@@ -58,7 +58,7 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notebook := prom.Notebook{
+	notebook := notebooks.Notebook{
 		ID:        uuid.NewV4(),
 		OrgID:     orgID,
 		AuthorID:  r.Header.Get("X-Scope-UserID"),
@@ -136,7 +136,7 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notebook := prom.Notebook{
+	notebook := notebooks.Notebook{
 		AuthorID:  r.Header.Get("X-Scope-UserID"),
 		UpdatedAt: time.Now(),
 		Title:     input.Title,

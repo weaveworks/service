@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/weaveworks/service/prom"
-	"github.com/weaveworks/service/prom/db/memory"
-	"github.com/weaveworks/service/prom/db/postgres"
+	"github.com/weaveworks/service/notebooks"
+	"github.com/weaveworks/service/notebooks/db/memory"
+	"github.com/weaveworks/service/notebooks/db/postgres"
 )
 
 // Config configures the database.
@@ -24,11 +24,11 @@ func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
 
 // DB is the interface for the database.
 type DB interface {
-	ListNotebooks(orgID string) ([]prom.Notebook, error)
-	CreateNotebook(notebook prom.Notebook) error
+	ListNotebooks(orgID string) ([]notebooks.Notebook, error)
+	CreateNotebook(notebook notebooks.Notebook) error
 
-	GetNotebook(ID, orgID string) (prom.Notebook, error)
-	UpdateNotebook(ID, orgID string, notebook prom.Notebook) error
+	GetNotebook(ID, orgID string) (notebooks.Notebook, error)
+	UpdateNotebook(ID, orgID string, notebook notebooks.Notebook) error
 	DeleteNotebook(ID, orgID string) error
 
 	Close() error

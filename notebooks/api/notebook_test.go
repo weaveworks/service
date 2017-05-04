@@ -11,8 +11,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/weaveworks/service/prom"
-	"github.com/weaveworks/service/prom/api"
+	"github.com/weaveworks/service/notebooks"
+	"github.com/weaveworks/service/notebooks/api"
 )
 
 func TestAPI_listNotebooks(t *testing.T) {
@@ -20,28 +20,28 @@ func TestAPI_listNotebooks(t *testing.T) {
 	defer cleanup(t)
 
 	// Create notebooks in database
-	notebookEntry := prom.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
-	notebooks := []prom.Notebook{
+	notebookEntry := notebooks.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
+	notebooks := []notebooks.Notebook{
 		{
 			OrgID:     "org1",
 			AuthorID:  "user1",
 			UpdatedAt: time.Now(),
 			Title:     "Test notebook 1",
-			Entries:   []prom.NotebookEntry{notebookEntry},
+			Entries:   []notebooks.NotebookEntry{notebookEntry},
 		},
 		{
 			OrgID:     "org1",
 			AuthorID:  "user2",
 			UpdatedAt: time.Now(),
 			Title:     "Test notebook 2",
-			Entries:   []prom.NotebookEntry{notebookEntry},
+			Entries:   []notebooks.NotebookEntry{notebookEntry},
 		},
 		{
 			OrgID:     "org2",
 			AuthorID:  "user1",
 			UpdatedAt: time.Now(),
 			Title:     "Other org notebook",
-			Entries:   []prom.NotebookEntry{notebookEntry},
+			Entries:   []notebooks.NotebookEntry{notebookEntry},
 		},
 	}
 	for _, notebook := range notebooks {
@@ -49,7 +49,7 @@ func TestAPI_listNotebooks(t *testing.T) {
 	}
 
 	// List all notebooks and check result
-	var result []prom.Notebook
+	var result []notebooks.Notebook
 	w := requestAsUser(t, "org1", "user1", "GET", "/api/prom/notebooks", nil)
 	err := json.Unmarshal(w.Body.Bytes(), &result)
 	assert.NoError(t, err, "Could not unmarshal JSON")
@@ -59,13 +59,13 @@ func TestAPI_listNotebooks(t *testing.T) {
 	assert.Equal(t, result[0].OrgID, "org1")
 	assert.Equal(t, result[0].AuthorID, "user1")
 	assert.Equal(t, result[0].Title, "Test notebook 1")
-	assert.Equal(t, result[0].Entries, []prom.NotebookEntry{notebookEntry})
+	assert.Equal(t, result[0].Entries, []notebooks.NotebookEntry{notebookEntry})
 	assert.NotEmpty(t, result[0].UpdatedAt)
 
 	assert.Equal(t, result[1].OrgID, "org1")
 	assert.Equal(t, result[1].AuthorID, "user2")
 	assert.Equal(t, result[1].Title, "Test notebook 2")
-	assert.Equal(t, result[1].Entries, []prom.NotebookEntry{notebookEntry})
+	assert.Equal(t, result[1].Entries, []notebooks.NotebookEntry{notebookEntry})
 	assert.NotEmpty(t, result[1].UpdatedAt)
 }
 
@@ -73,17 +73,17 @@ func TestAPI_createNotebook(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	notebookEntry := prom.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
+	notebookEntry := notebooks.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	data := api.NotebookWriteView{
 		Title:   "New notebook",
-		Entries: []prom.NotebookEntry{notebookEntry},
+		Entries: []notebooks.NotebookEntry{notebookEntry},
 	}
 
 	b, err := json.Marshal(data)
 	require.NoError(t, err)
 
 	// Make request to create notebook
-	var result prom.Notebook
+	var result notebooks.Notebook
 	w := requestAsUser(t, "org1", "user1", "POST", "/api/prom/notebooks", bytes.NewReader(b))
 	err = json.Unmarshal(w.Body.Bytes(), &result)
 	assert.NoError(t, err, "Could not unmarshal JSON")
@@ -93,7 +93,7 @@ func TestAPI_createNotebook(t *testing.T) {
 	assert.Equal(t, result.OrgID, "org1")
 	assert.Equal(t, result.AuthorID, "user1")
 	assert.Equal(t, result.Title, "New notebook")
-	assert.Equal(t, result.Entries, []prom.NotebookEntry{notebookEntry})
+	assert.Equal(t, result.Entries, []notebooks.NotebookEntry{notebookEntry})
 
 	// Check it was created in the DB
 	notebook, err := database.GetNotebook(result.ID.String(), result.OrgID)
@@ -107,18 +107,18 @@ func TestAPI_getNotebook(t *testing.T) {
 
 	// Create notebook in database
 	notebookID := uuid.NewV4()
-	notebookEntry := prom.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
-	notebook := prom.Notebook{
+	notebookEntry := notebooks.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
+	notebook := notebooks.Notebook{
 		ID:        notebookID,
 		OrgID:     "org1",
 		AuthorID:  "user1",
 		UpdatedAt: time.Now(),
 		Title:     "Test notebook",
-		Entries:   []prom.NotebookEntry{notebookEntry},
+		Entries:   []notebooks.NotebookEntry{notebookEntry},
 	}
 	database.CreateNotebook(notebook)
 
-	var result prom.Notebook
+	var result notebooks.Notebook
 	w := requestAsUser(t, "org1", "user1", "GET", fmt.Sprintf("/api/prom/notebooks/%s", notebookID), nil)
 	err := json.Unmarshal(w.Body.Bytes(), &result)
 	assert.NoError(t, err, "Could not unmarshal JSON")
@@ -144,15 +144,15 @@ func TestAPI_updateNotebook(t *testing.T) {
 	notebookID1 := uuid.NewV4()
 	notebookID2 := uuid.NewV4()
 	notebookID3 := uuid.NewV4()
-	notebookEntry := prom.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
-	notebooks := []prom.Notebook{
+	notebookEntry := notebooks.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
+	notebooks := []notebooks.Notebook{
 		{
 			ID:        notebookID1,
 			OrgID:     "org1",
 			AuthorID:  "user1",
 			UpdatedAt: time.Now(),
 			Title:     "Test notebook 1",
-			Entries:   []prom.NotebookEntry{notebookEntry},
+			Entries:   []notebooks.NotebookEntry{notebookEntry},
 		},
 		{
 			ID:        notebookID2,
@@ -160,7 +160,7 @@ func TestAPI_updateNotebook(t *testing.T) {
 			AuthorID:  "user2",
 			UpdatedAt: time.Now(),
 			Title:     "Test notebook 2",
-			Entries:   []prom.NotebookEntry{notebookEntry},
+			Entries:   []notebooks.NotebookEntry{notebookEntry},
 		},
 		{
 			ID:        notebookID3,
@@ -168,23 +168,23 @@ func TestAPI_updateNotebook(t *testing.T) {
 			AuthorID:  "user1",
 			UpdatedAt: time.Now(),
 			Title:     "Other org notebook",
-			Entries:   []prom.NotebookEntry{notebookEntry},
+			Entries:   []notebooks.NotebookEntry{notebookEntry},
 		},
 	}
 	for _, notebook := range notebooks {
 		database.CreateNotebook(notebook)
 	}
 
-	updatedNotebookEntry := prom.NotebookEntry{Query: "updatedMetric{}", QueryEnd: "77.7", QueryRange: "7h", Type: "new"}
+	updatedNotebookEntry := notebooks.NotebookEntry{Query: "updatedMetric{}", QueryEnd: "77.7", QueryRange: "7h", Type: "new"}
 	data := api.NotebookWriteView{
 		Title:   "Updated notebook",
-		Entries: []prom.NotebookEntry{updatedNotebookEntry},
+		Entries: []notebooks.NotebookEntry{updatedNotebookEntry},
 	}
 	b, err := json.Marshal(data)
 	require.NoError(t, err)
 
 	// Make request to update notebook with ID notebookID2
-	var result prom.Notebook
+	var result notebooks.Notebook
 	w := requestAsUser(t, "org1", "user1", "PUT", fmt.Sprintf("/api/prom/notebooks/%s", notebookID2), bytes.NewReader(b))
 	err = json.Unmarshal(w.Body.Bytes(), &result)
 	assert.NoError(t, err, "Could not unmarshal JSON")
@@ -205,14 +205,14 @@ func TestAPI_deleteNotebook(t *testing.T) {
 
 	// Create notebook in database
 	notebookID := uuid.NewV4()
-	notebookEntry := prom.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
-	notebook := prom.Notebook{
+	notebookEntry := notebooks.NotebookEntry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
+	notebook := notebooks.Notebook{
 		ID:        notebookID,
 		OrgID:     "org1",
 		AuthorID:  "user1",
 		UpdatedAt: time.Now(),
 		Title:     "Test notebook",
-		Entries:   []prom.NotebookEntry{notebookEntry},
+		Entries:   []notebooks.NotebookEntry{notebookEntry},
 	}
 	database.CreateNotebook(notebook)
 

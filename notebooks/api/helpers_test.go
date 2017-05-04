@@ -8,9 +8,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/weaveworks/common/user"
-	"github.com/weaveworks/service/prom/api"
-	"github.com/weaveworks/service/prom/db"
-	"github.com/weaveworks/service/prom/db/dbtest"
+	"github.com/weaveworks/service/notebooks/api"
+	"github.com/weaveworks/service/notebooks/db"
+	"github.com/weaveworks/service/notebooks/db/dbtest"
 )
 
 var (
