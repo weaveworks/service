@@ -39,8 +39,8 @@ func (a *API) listNotebooks(w http.ResponseWriter, r *http.Request) {
 
 // NotebookWriteView describes the structure the user can write to
 type NotebookWriteView struct {
-	Title   string                    `json:"title"`
-	Entries []notebooks.NotebookEntry `json:"entries"`
+	Title   string            `json:"title"`
+	Entries []notebooks.Entry `json:"entries"`
 }
 
 // createNotebook creates a notebook

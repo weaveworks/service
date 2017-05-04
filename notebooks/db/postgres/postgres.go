@@ -59,7 +59,7 @@ func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
 	}
 	defer rows.Close()
 
-	notebooks := []notebooks.Notebook{}
+	ns := []notebooks.Notebook{}
 	for rows.Next() {
 		var notebook notebooks.Notebook
 		var entriesBytes []byte
@@ -71,10 +71,10 @@ func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
 		if err != nil {
 			return nil, err
 		}
-		notebooks = append(notebooks, notebook)
+		ns = append(ns, notebook)
 	}
 
-	return notebooks, nil
+	return ns, nil
 }
 
 // CreateNotebook creates a notebook
