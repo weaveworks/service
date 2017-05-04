@@ -102,10 +102,7 @@ func newUIRequestLogger(userIDHeader string) HTTPEventExtractor {
 			sessionID = sessionCookie.Value
 		}
 
-		orgID, err := user.ExtractOrgID(r.Context())
-		if err != nil {
-			return Event{}, false
-		}
+		orgID, _ := user.ExtractOrgID(r.Context())
 
 		event := Event{
 			ID:             r.URL.Path,
