@@ -28,9 +28,9 @@ func NewGithubProvider() Provider {
 }
 
 func (g *github) Link(r *http.Request) (Link, bool) {
-	l, _ := g.OAuth.Link(r)
+	l, ok := g.OAuth.Link(r)
 	l.BackgroundColor = "#444444"
-	return l, true
+	return l, ok
 }
 
 // Login converts a user to a db ID
