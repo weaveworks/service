@@ -317,7 +317,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/kubedash", trimPrefix("/admin/kubedash", c.kubedashHost)},
 				{"/compare-images", trimPrefix("/admin/compare-images", c.compareImagesHost)},
 				{"/compare-revisions", trimPrefix("/admin/compare-revisions", c.compareRevisionsHost)},
-				{"/cortex/alertmanager/status", trimPrefix("/admin/cortex/alertmanager/status", c.promAlertmanagerHost)},
+				{"/cortex/alertmanager/status", trimPrefix("/admin/cortex/alertmanager", c.promAlertmanagerHost)},
 				{"/cortex/ring", trimPrefix("/admin/cortex", c.promDistributorHost)},
 				{"/loki", trimPrefix("/admin/loki", c.lokiHost)},
 				{"/", http.HandlerFunc(adminRoot)},
