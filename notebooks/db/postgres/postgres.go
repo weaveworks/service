@@ -58,6 +58,7 @@ func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
 		"created_at",
 		"updated_by",
 		"updated_at",
+		"version",
 		"title",
 		"entries",
 	).
@@ -80,6 +81,7 @@ func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
 			&notebook.CreatedAt,
 			&notebook.UpdatedBy,
 			&notebook.UpdatedAt,
+			&notebook.Version,
 			&notebook.Title,
 			&entriesBytes,
 		)
@@ -102,13 +104,16 @@ func (d DB) CreateNotebook(notebook notebooks.Notebook) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	newID := uuid.NewV4().String()
+	newVersion := uuid.NewV4().String()
 	_, err = d.Insert("notebooks").
 		Columns(
 			"id",
 			"org_id",
 			"created_by",
 			"updated_by",
+			"version",
 			"title",
 			"entries",
 		).
@@ -117,6 +122,7 @@ func (d DB) CreateNotebook(notebook notebooks.Notebook) (string, error) {
 			notebook.OrgID,
 			notebook.CreatedBy,
 			notebook.UpdatedBy,
+			newVersion,
 			notebook.Title,
 			entriesBytes,
 		).
@@ -137,6 +143,7 @@ func (d DB) GetNotebook(ID, orgID string) (notebooks.Notebook, error) {
 		"created_at",
 		"updated_by",
 		"updated_at",
+		"version",
 		"title",
 		"entries",
 	).
@@ -150,6 +157,7 @@ func (d DB) GetNotebook(ID, orgID string) (notebooks.Notebook, error) {
 			&notebook.CreatedAt,
 			&notebook.UpdatedBy,
 			&notebook.UpdatedAt,
+			&notebook.Version,
 			&notebook.Title,
 			&entriesBytes,
 		)
@@ -171,11 +179,14 @@ func (d DB) UpdateNotebook(ID, orgID string, notebook notebooks.Notebook) error 
 	if err != nil {
 		return err
 	}
+
+	newVersion := uuid.NewV4()
 	_, err = d.Update("notebooks").
 		SetMap(
 			map[string]interface{}{
 				"updated_by": notebook.UpdatedBy,
 				"updated_at": squirrel.Expr("now()"),
+				"version":    newVersion,
 				"title":      notebook.Title,
 				"entries":    entriesBytes,
 			},

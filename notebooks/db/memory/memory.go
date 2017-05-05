@@ -40,6 +40,7 @@ func (d DB) CreateNotebook(notebook notebooks.Notebook) (string, error) {
 	notebook.ID = uuid.NewV4()
 	notebook.CreatedAt = time.Now()
 	notebook.UpdatedAt = time.Now()
+	notebook.Version = uuid.NewV4()
 
 	d.notebooks[notebook.ID.String()] = notebook
 	return notebook.ID.String(), nil
@@ -65,6 +66,7 @@ func (d DB) UpdateNotebook(ID, orgID string, update notebooks.Notebook) error {
 
 		notebook.UpdatedBy = update.UpdatedBy
 		notebook.UpdatedAt = time.Now()
+		notebook.Version = uuid.NewV4()
 		notebook.Title = update.Title
 		notebook.Entries = update.Entries
 

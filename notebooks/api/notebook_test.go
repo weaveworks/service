@@ -100,6 +100,7 @@ func TestAPI_createNotebook(t *testing.T) {
 
 	assert.NotEmpty(t, result.ID)
 	assert.NotEmpty(t, result.UpdatedAt)
+	assert.NotEmpty(t, result.Version)
 	assert.Equal(t, result.OrgID, "org1")
 	assert.Equal(t, result.CreatedBy, "user1")
 	assert.Equal(t, result.UpdatedBy, "user1")
@@ -170,6 +171,8 @@ func TestAPI_updateNotebook(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &createResult)
 	assert.NoError(t, err, "Could not unmarshal JSON")
 
+	firstVersion := createResult.Version
+
 	// Create update request
 	updatedNotebookEntry := notebooks.Entry{Query: "updatedMetric{}", QueryEnd: "77.7", QueryRange: "7h", Type: "new"}
 	data := api.NotebookWriteView{
@@ -181,7 +184,7 @@ func TestAPI_updateNotebook(t *testing.T) {
 
 	// Make request to update notebook with ID notebookID2
 	var result notebooks.Notebook
-	w = requestAsUser(t, "org1", "user1", "PUT", fmt.Sprintf("/api/prom/notebooks/%s", createResult.ID), bytes.NewReader(b))
+	w = requestAsUser(t, "org1", "user1", "PUT", fmt.Sprintf("/api/prom/notebooks/%s?version=%s", createResult.ID, createResult.Version), bytes.NewReader(b))
 	err = json.Unmarshal(w.Body.Bytes(), &result)
 	assert.NoError(t, err, "Could not unmarshal JSON")
 
@@ -189,6 +192,7 @@ func TestAPI_updateNotebook(t *testing.T) {
 	// TODO: UpdatedTime not tested because of transaction
 	assert.Equal(t, result.ID, createResult.ID)
 	assert.Equal(t, result.Title, "Updated notebook")
+	assert.NotEqual(t, result.Version, firstVersion)
 
 	// Check the update is persistent
 	var getResult notebooks.Notebook
@@ -197,6 +201,7 @@ func TestAPI_updateNotebook(t *testing.T) {
 	assert.NoError(t, err, "Could not unmarshal JSON")
 
 	assert.Equal(t, getResult.Title, "Updated notebook")
+	assert.Equal(t, getResult.Version, result.Version)
 	assert.Equal(t, getResult.Entries[0].Query, "updatedMetric{}")
 	assert.Equal(t, getResult.Entries[0].QueryEnd, "77.7")
 	assert.Equal(t, getResult.Entries[0].QueryRange, "7h")

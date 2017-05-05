@@ -16,6 +16,7 @@ type Notebook struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	Title     string    `json:"title"`
 	Entries   []Entry   `json:"entries"`
+	Version   uuid.UUID `json:"version"`
 }
 
 // Entry describes a PromQL query for a notebook

@@ -132,6 +132,13 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Missing notebookID", http.StatusBadRequest)
 		return
 	}
+	vals := r.URL.Query()
+	version, ok := vals["version"]
+	if !ok {
+		log.Error("Missing version val")
+		http.Error(w, "Missing version query parameter", http.StatusBadRequest)
+		return
+	}
 
 	orgID, _, err := user.ExtractFromHTTPRequest(r)
 	if err != nil {
@@ -139,13 +146,26 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fetch the current notebook to get the version
+	currentNotebook, err := a.db.GetNotebook(notebookID, orgID)
+	if err != nil {
+		log.Errorf("Error fetching new notebook: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if version[0] != currentNotebook.Version.String() {
+		log.Error("Notebook version mismatch")
+		http.Error(w, "Notebook version mismatch", http.StatusInternalServerError)
+		return
+	}
+
+	// Create the notebook update
 	var input NotebookWriteView
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		log.Errorf("Error decoding json body: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	notebook := notebooks.Notebook{
 		UpdatedBy: r.Header.Get("X-Scope-UserID"),
 		Title:     input.Title,
@@ -159,7 +179,7 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch the notebook to include updated timestamps
+	// Fetch the updated notebook which includes updated timestamps
 	notebook, err = a.db.GetNotebook(notebookID, orgID)
 	if err != nil {
 		log.Errorf("Error fetching new notebook: %v", err)

@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS notebooks (
   created_at    timestamp with time zone default current_timestamp,
   updated_by    text,
   updated_at    timestamp with time zone default current_timestamp,
+  version       UUID NOT NULL,
   title         text,
   entries       json
 );
