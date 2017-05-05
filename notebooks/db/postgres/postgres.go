@@ -49,7 +49,16 @@ var statementBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Doll
 
 // ListNotebooks returns all notebooks
 func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
-	rows, err := d.Select("id", "org_id", "title", "author_id", "updated_at", "entries").
+	rows, err := d.Select(
+		"id",
+		"org_id",
+		"created_by",
+		"created_at",
+		"updated_by",
+		"updated_at",
+		"title",
+		"entries",
+	).
 		From("notebooks").
 		Where(squirrel.Eq{"org_id": orgID}).
 		OrderBy("updated_at DESC").
@@ -63,7 +72,16 @@ func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
 	for rows.Next() {
 		var notebook notebooks.Notebook
 		var entriesBytes []byte
-		err = rows.Scan(&notebook.ID, &notebook.OrgID, &notebook.Title, &notebook.AuthorID, &notebook.UpdatedAt, &entriesBytes)
+		err = rows.Scan(
+			&notebook.ID,
+			&notebook.OrgID,
+			&notebook.CreatedBy,
+			&notebook.CreatedAt,
+			&notebook.UpdatedBy,
+			&notebook.UpdatedAt,
+			&notebook.Title,
+			&entriesBytes,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -84,8 +102,22 @@ func (d DB) CreateNotebook(notebook notebooks.Notebook) error {
 		return err
 	}
 	_, err = d.Insert("notebooks").
-		Columns("id", "org_id", "title", "author_id", "updated_at", "entries").
-		Values(notebook.ID, notebook.OrgID, notebook.Title, notebook.AuthorID, notebook.UpdatedAt, entriesBytes).
+		Columns(
+			"id",
+			"org_id",
+			"created_by",
+			"updated_by",
+			"title",
+			"entries",
+		).
+		Values(
+			notebook.ID,
+			notebook.OrgID,
+			notebook.CreatedBy,
+			notebook.UpdatedBy,
+			notebook.Title,
+			entriesBytes,
+		).
 		Exec()
 
 	return err
@@ -96,11 +128,29 @@ func (d DB) GetNotebook(ID, orgID string) (notebooks.Notebook, error) {
 	var notebook notebooks.Notebook
 	var entriesBytes []byte
 
-	err := d.Select("id", "org_id", "title", "author_id", "updated_at", "entries").
+	err := d.Select(
+		"id",
+		"org_id",
+		"created_by",
+		"created_at",
+		"updated_by",
+		"updated_at",
+		"title",
+		"entries",
+	).
 		From("notebooks").
 		Where(squirrel.Eq{"id": ID}, squirrel.Eq{"org_id": orgID}).
 		QueryRow().
-		Scan(&notebook.ID, &notebook.OrgID, &notebook.Title, &notebook.AuthorID, &notebook.UpdatedAt, &entriesBytes)
+		Scan(
+			&notebook.ID,
+			&notebook.OrgID,
+			&notebook.CreatedBy,
+			&notebook.CreatedAt,
+			&notebook.UpdatedBy,
+			&notebook.UpdatedAt,
+			&notebook.Title,
+			&entriesBytes,
+		)
 	if err != nil {
 		return notebooks.Notebook{}, err
 	}
@@ -122,9 +172,9 @@ func (d DB) UpdateNotebook(ID, orgID string, notebook notebooks.Notebook) error 
 	_, err = d.Update("notebooks").
 		SetMap(
 			map[string]interface{}{
+				"updated_by": notebook.UpdatedBy,
+				"updated_at": squirrel.Expr("now()"),
 				"title":      notebook.Title,
-				"author_id":  notebook.AuthorID,
-				"updated_at": notebook.UpdatedAt,
 				"entries":    entriesBytes,
 			},
 		).

@@ -2,6 +2,7 @@ package memory
 
 import (
 	"errors"
+	"time"
 
 	"github.com/weaveworks/service/notebooks"
 )
@@ -67,9 +68,9 @@ func (d DB) UpdateNotebook(ID, orgID string, update notebooks.Notebook) error {
 	var updatedNotebooks []notebooks.Notebook
 	for _, notebook := range ns {
 		if notebook.ID.String() == ID {
+			notebook.UpdatedBy = update.UpdatedBy
+			notebook.UpdatedAt = time.Now()
 			notebook.Title = update.Title
-			notebook.AuthorID = update.AuthorID
-			notebook.UpdatedAt = update.UpdatedAt
 			notebook.Entries = update.Entries
 		}
 		updatedNotebooks = append(updatedNotebooks, notebook)

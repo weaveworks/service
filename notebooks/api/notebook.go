@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -58,11 +57,12 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID := r.Header.Get("X-Scope-UserID")
 	notebook := notebooks.Notebook{
 		ID:        uuid.NewV4(),
 		OrgID:     orgID,
-		AuthorID:  r.Header.Get("X-Scope-UserID"),
-		UpdatedAt: time.Now(),
+		CreatedBy: userID,
+		UpdatedBy: userID,
 		Title:     input.Title,
 		Entries:   input.Entries,
 	}
@@ -137,8 +137,7 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	notebook := notebooks.Notebook{
-		AuthorID:  r.Header.Get("X-Scope-UserID"),
-		UpdatedAt: time.Now(),
+		UpdatedBy: r.Header.Get("X-Scope-UserID"),
 		Title:     input.Title,
 		Entries:   input.Entries,
 	}

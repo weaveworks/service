@@ -10,7 +10,9 @@ import (
 type Notebook struct {
 	ID        uuid.UUID `json:"id"`
 	OrgID     string    `json:"org_id"`
-	AuthorID  string    `json:"author"`
+	CreatedBy string    `json:"createdBy"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedBy string    `json:"updatedBy"`
 	UpdatedAt time.Time `json:"updatedAt"`
 	Title     string    `json:"title"`
 	Entries   []Entry   `json:"entries"`
