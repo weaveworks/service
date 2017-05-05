@@ -59,7 +59,7 @@ type Config struct {
 	promAlertmanagerHost  proxyConfig
 	promDistributorHost   proxyConfig
 	promQuerierHost       proxyConfig
-	promServiceHost       proxyConfig
+	promNotebooksHost     proxyConfig
 	prometheusHost        proxyConfig
 	scopeHost             proxyConfig
 	terradiffHost         proxyConfig
@@ -82,7 +82,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"prom-alertmanager": &c.promAlertmanagerHost,
 		"prom-distributor":  &c.promDistributorHost,
 		"prom-querier":      &c.promQuerierHost,
-		"prom-service":      &c.promServiceHost,
+		"prom-notebooks":    &c.promNotebooksHost,
 		"query":             &c.queryHost,
 		"ui-metrics":        &c.uiMetricsHost,
 		"ui-server":         &c.uiServerHost,
