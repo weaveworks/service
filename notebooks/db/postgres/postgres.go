@@ -192,7 +192,7 @@ func (d DB) DeleteNotebook(ID, orgID string) error {
 	return err
 }
 
-// Close finishes using the db
+// Close the database
 func (d DB) Close() error {
 	if db, ok := d.dbProxy.(interface {
 		Close() error
