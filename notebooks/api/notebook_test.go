@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"testing"
 
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/weaveworks/service/notebooks"
@@ -105,10 +104,8 @@ func TestAPI_getNotebook(t *testing.T) {
 	defer cleanup(t)
 
 	// Create notebook in database
-	notebookID := uuid.NewV4()
 	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	notebook := notebooks.Notebook{
-		ID:        notebookID,
 		OrgID:     "org1",
 		CreatedBy: "user1",
 		UpdatedBy: "user1",
@@ -140,13 +137,9 @@ func TestAPI_updateNotebook(t *testing.T) {
 	defer cleanup(t)
 
 	// Create notebooks in database
-	notebookID1 := uuid.NewV4()
-	notebookID2 := uuid.NewV4()
-	notebookID3 := uuid.NewV4()
 	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	ns := []notebooks.Notebook{
 		{
-			ID:        notebookID1,
 			OrgID:     "org1",
 			CreatedBy: "user1",
 			UpdatedBy: "user1",
@@ -154,7 +147,6 @@ func TestAPI_updateNotebook(t *testing.T) {
 			Entries:   []notebooks.Entry{notebookEntry},
 		},
 		{
-			ID:        notebookID2,
 			OrgID:     "org1",
 			CreatedBy: "user2",
 			UpdatedBy: "user2",
@@ -162,7 +154,6 @@ func TestAPI_updateNotebook(t *testing.T) {
 			Entries:   []notebooks.Entry{notebookEntry},
 		},
 		{
-			ID:        notebookID3,
 			OrgID:     "org2",
 			CreatedBy: "user1",
 			UpdatedBy: "user1",
@@ -203,10 +194,8 @@ func TestAPI_deleteNotebook(t *testing.T) {
 	defer cleanup(t)
 
 	// Create notebook in database
-	notebookID := uuid.NewV4()
 	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	notebook := notebooks.Notebook{
-		ID:        notebookID,
 		OrgID:     "org1",
 		CreatedBy: "user1",
 		UpdatedBy: "user1",

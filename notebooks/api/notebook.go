@@ -9,8 +9,6 @@ import (
 
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/notebooks"
-
-	"github.com/satori/go.uuid"
 )
 
 // NotebooksView describes a collection of notebooks
@@ -64,7 +62,6 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Header.Get("X-Scope-UserID")
 	notebook := notebooks.Notebook{
-		ID:        uuid.NewV4(),
 		OrgID:     orgID,
 		CreatedBy: userID,
 		UpdatedBy: userID,
