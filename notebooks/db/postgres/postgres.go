@@ -63,7 +63,6 @@ func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
 	).
 		From("notebooks").
 		Where(squirrel.Eq{"org_id": orgID}).
-		OrderBy("updated_at DESC").
 		Query()
 	if err != nil {
 		return nil, err
@@ -103,7 +102,7 @@ func (d DB) CreateNotebook(notebook notebooks.Notebook) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	newID := uuid.NewV4()
+	newID := uuid.NewV4().String()
 	_, err = d.Insert("notebooks").
 		Columns(
 			"id",
@@ -123,7 +122,7 @@ func (d DB) CreateNotebook(notebook notebooks.Notebook) (string, error) {
 		).
 		Exec()
 
-	return "", err
+	return newID, err
 }
 
 // GetNotebook returns the notebook with the same ID
@@ -193,6 +192,32 @@ func (d DB) DeleteNotebook(ID, orgID string) error {
 		Where(squirrel.Eq{"id": ID}, squirrel.Eq{"org_id": orgID}).
 		Exec()
 	return err
+}
+
+// Transaction runs the given function in a postgres transaction. If fn returns
+// an error the txn will be rolled back.
+func (d DB) Transaction(f func(DB) error) error {
+	if _, ok := d.dbProxy.(*sql.Tx); ok {
+		// Already in a nested transaction
+		return f(d)
+	}
+
+	tx, err := d.dbProxy.(*sql.DB).Begin()
+	if err != nil {
+		return err
+	}
+	err = f(DB{
+		dbProxy:              tx,
+		StatementBuilderType: statementBuilder(tx),
+	})
+	if err != nil {
+		// Rollback error is ignored as we already have one in progress
+		if err2 := tx.Rollback(); err2 != nil {
+			logrus.Warn("transaction rollback: %v (ignored)", err2)
+		}
+		return err
+	}
+	return tx.Commit()
 }
 
 // Close the database

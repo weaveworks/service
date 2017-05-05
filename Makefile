@@ -1,4 +1,4 @@
-.PHONY: all test users-integration-test clean client-lint images ui-upload
+.PHONY: all test notebooks-integration-test users-integration-test clean client-lint images ui-upload
 .DEFAULT_GOAL := all
 
 # Boiler plate for bulding Docker containers.
@@ -101,6 +101,19 @@ endif
 
 
 # Test and misc stuff
+notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
+	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=notebooks_test' postgres:9.4)"; \
+	docker run $(RM) \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-v $(shell pwd)/notebooks/db/migrations:/migrations \
+		--workdir /go/src/github.com/weaveworks/service/notebooks \
+		--link "$$DB_CONTAINER":configs-db.weave.local \
+		golang:1.8.0 \
+		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
+	status=$$?; \
+	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
+	exit $$status
+
 users-integration-test: $(USERS_UPTODATE)
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=users_test' postgres:9.4)"; \
 	docker run $(RM) \
