@@ -4,6 +4,8 @@ import (
 	"errors"
 	"time"
 
+	"sort"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/weaveworks/service/notebooks"
 )
@@ -24,6 +26,13 @@ func New(_, _ string) (*DB, error) {
 	}, nil
 }
 
+// ByUpdatedAtDesc sorts by UpdatedAt desc
+type ByUpdatedAtDesc []notebooks.Notebook
+
+func (ns ByUpdatedAtDesc) Len() int           { return len(ns) }
+func (ns ByUpdatedAtDesc) Swap(i, j int)      { ns[i], ns[j] = ns[j], ns[i] }
+func (ns ByUpdatedAtDesc) Less(i, j int) bool { return ns[i].UpdatedAt.After(ns[j].UpdatedAt) }
+
 // ListNotebooks returns all notebooks for the instance
 func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
 	ns := []notebooks.Notebook{}
@@ -32,17 +41,18 @@ func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
 			ns = append(ns, notebook)
 		}
 	}
+	sort.Sort(ByUpdatedAtDesc(ns))
 	return ns, nil
 }
 
 // CreateNotebook creates a notebook
-func (d DB) CreateNotebook(notebook notebooks.Notebook) error {
+func (d DB) CreateNotebook(notebook notebooks.Notebook) (string, error) {
 	notebook.ID = uuid.NewV4()
 	notebook.CreatedAt = time.Now()
 	notebook.UpdatedAt = time.Now()
 
 	d.notebooks[notebook.ID.String()] = notebook
-	return nil
+	return notebook.ID.String(), nil
 }
 
 // GetNotebook returns all notebooks for the instance
@@ -68,7 +78,7 @@ func (d DB) UpdateNotebook(ID, orgID string, update notebooks.Notebook) error {
 		notebook.Title = update.Title
 		notebook.Entries = update.Entries
 
-		d.notebooks[orgID] = notebook
+		d.notebooks[ID] = notebook
 		return nil
 	}
 	return errors.New("Notebook not found")

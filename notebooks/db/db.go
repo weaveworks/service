@@ -25,7 +25,7 @@ func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
 // DB is the interface for the database.
 type DB interface {
 	ListNotebooks(orgID string) ([]notebooks.Notebook, error)
-	CreateNotebook(notebook notebooks.Notebook) error
+	CreateNotebook(notebook notebooks.Notebook) (string, error)
 
 	GetNotebook(ID, orgID string) (notebooks.Notebook, error)
 	UpdateNotebook(ID, orgID string, notebook notebooks.Notebook) error

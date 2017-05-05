@@ -69,9 +69,17 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 		Entries:   input.Entries,
 	}
 
-	err = a.db.CreateNotebook(notebook)
+	id, err := a.db.CreateNotebook(notebook)
 	if err != nil {
 		log.Errorf("Error creating notebook: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Fetch new notebook to include generated ID and update timestamps
+	notebook, err = a.db.GetNotebook(id, orgID)
+	if err != nil {
+		log.Errorf("Error fetching new notebook: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -147,6 +155,14 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 	err = a.db.UpdateNotebook(notebookID, orgID, notebook)
 	if err != nil {
 		log.Errorf("Error updating notebook: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Fetch the notebook to include updated timestamps
+	notebook, err = a.db.GetNotebook(notebookID, orgID)
+	if err != nil {
+		log.Errorf("Error fetching new notebook: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

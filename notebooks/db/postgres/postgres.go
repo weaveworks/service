@@ -10,6 +10,8 @@ import (
 	"github.com/mattes/migrate/migrate"
 	"github.com/weaveworks/service/notebooks"
 
+	uuid "github.com/satori/go.uuid"
+
 	_ "github.com/lib/pq"                         // Import the postgres sql driver
 	_ "github.com/mattes/migrate/driver/postgres" // Import the postgres migrations driver
 )
@@ -96,11 +98,12 @@ func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
 }
 
 // CreateNotebook creates a notebook
-func (d DB) CreateNotebook(notebook notebooks.Notebook) error {
+func (d DB) CreateNotebook(notebook notebooks.Notebook) (string, error) {
 	entriesBytes, err := json.Marshal(notebook.Entries)
 	if err != nil {
-		return err
+		return "", err
 	}
+	newID := uuid.NewV4()
 	_, err = d.Insert("notebooks").
 		Columns(
 			"id",
@@ -111,7 +114,7 @@ func (d DB) CreateNotebook(notebook notebooks.Notebook) error {
 			"entries",
 		).
 		Values(
-			notebook.ID,
+			newID,
 			notebook.OrgID,
 			notebook.CreatedBy,
 			notebook.UpdatedBy,
@@ -120,7 +123,7 @@ func (d DB) CreateNotebook(notebook notebooks.Notebook) error {
 		).
 		Exec()
 
-	return err
+	return "", err
 }
 
 // GetNotebook returns the notebook with the same ID
