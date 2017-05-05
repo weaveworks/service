@@ -390,8 +390,12 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	// * probes (they cannot be attacked)
 	// * the admin alert manager, incorporating tokens would require forking it
 	//   and we don't see alert-silencing as very security-sensitive.
+	// * the Cortex alert manager, incorporating tokens would require forking it
+	//   (see https://github.com/weaveworks/service-ui/issues/461#issuecomment-299458350)
+	//   and we don't see alert-silencing as very security-sensitive.
 	csfrExemptPrefixes := probeRoute.AbsolutePrefixes()
 	csfrExemptPrefixes = append(csfrExemptPrefixes, "/admin/alertmanager")
+	csfrExemptPrefixes = append(csfrExemptPrefixes, "/api/prom/alertmanager")
 	return middleware.Merge(
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
 		csrfTokenVerifier{exemptPrefixes: csfrExemptPrefixes, secure: c.secureCookie},
