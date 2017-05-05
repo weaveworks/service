@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -21,52 +20,52 @@ func TestAPI_listNotebooks(t *testing.T) {
 
 	// Create notebooks in database
 	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
-	notebooks := []notebooks.Notebook{
+	ns := []notebooks.Notebook{
 		{
 			OrgID:     "org1",
-			AuthorID:  "user1",
-			UpdatedAt: time.Now(),
+			CreatedBy: "user1",
+			UpdatedBy: "user1",
 			Title:     "Test notebook 1",
 			Entries:   []notebooks.Entry{notebookEntry},
 		},
 		{
 			OrgID:     "org1",
-			AuthorID:  "user2",
-			UpdatedAt: time.Now(),
+			CreatedBy: "user2",
+			UpdatedBy: "user2",
 			Title:     "Test notebook 2",
 			Entries:   []notebooks.Entry{notebookEntry},
 		},
 		{
 			OrgID:     "org2",
-			AuthorID:  "user1",
-			UpdatedAt: time.Now(),
+			CreatedBy: "user1",
+			UpdatedBy: "user1",
 			Title:     "Other org notebook",
 			Entries:   []notebooks.Entry{notebookEntry},
 		},
 	}
-	for _, notebook := range notebooks {
+	for _, notebook := range ns {
 		database.CreateNotebook(notebook)
 	}
 
 	// List all notebooks and check result
-	var result []notebooks.Notebook
+	var result api.NotebooksView
 	w := requestAsUser(t, "org1", "user1", "GET", "/api/prom/notebooks", nil)
 	err := json.Unmarshal(w.Body.Bytes(), &result)
 	assert.NoError(t, err, "Could not unmarshal JSON")
 
-	assert.Len(t, result, 2)
+	assert.Len(t, result.Notebooks, 2)
 
-	assert.Equal(t, result[0].OrgID, "org1")
-	assert.Equal(t, result[0].AuthorID, "user1")
-	assert.Equal(t, result[0].Title, "Test notebook 1")
-	assert.Equal(t, result[0].Entries, []notebooks.Entry{notebookEntry})
-	assert.NotEmpty(t, result[0].UpdatedAt)
+	assert.Equal(t, result.Notebooks[0].OrgID, "org1")
+	assert.Equal(t, result.Notebooks[0].CreatedBy, "user1")
+	assert.Equal(t, result.Notebooks[0].Title, "Test notebook 1")
+	assert.Equal(t, result.Notebooks[0].Entries, []notebooks.Entry{notebookEntry})
+	assert.NotEmpty(t, result.Notebooks[0].UpdatedAt)
 
-	assert.Equal(t, result[1].OrgID, "org1")
-	assert.Equal(t, result[1].AuthorID, "user2")
-	assert.Equal(t, result[1].Title, "Test notebook 2")
-	assert.Equal(t, result[1].Entries, []notebooks.Entry{notebookEntry})
-	assert.NotEmpty(t, result[1].UpdatedAt)
+	assert.Equal(t, result.Notebooks[1].OrgID, "org1")
+	assert.Equal(t, result.Notebooks[1].CreatedBy, "user2")
+	assert.Equal(t, result.Notebooks[1].Title, "Test notebook 2")
+	assert.Equal(t, result.Notebooks[1].Entries, []notebooks.Entry{notebookEntry})
+	assert.NotEmpty(t, result.Notebooks[1].UpdatedAt)
 }
 
 func TestAPI_createNotebook(t *testing.T) {
@@ -91,7 +90,7 @@ func TestAPI_createNotebook(t *testing.T) {
 	assert.NotEmpty(t, result.ID)
 	assert.NotEmpty(t, result.UpdatedAt)
 	assert.Equal(t, result.OrgID, "org1")
-	assert.Equal(t, result.AuthorID, "user1")
+	assert.Equal(t, result.CreatedBy, "user1")
 	assert.Equal(t, result.Title, "New notebook")
 	assert.Equal(t, result.Entries, []notebooks.Entry{notebookEntry})
 
@@ -111,8 +110,8 @@ func TestAPI_getNotebook(t *testing.T) {
 	notebook := notebooks.Notebook{
 		ID:        notebookID,
 		OrgID:     "org1",
-		AuthorID:  "user1",
-		UpdatedAt: time.Now(),
+		CreatedBy: "user1",
+		UpdatedBy: "user1",
 		Title:     "Test notebook",
 		Entries:   []notebooks.Entry{notebookEntry},
 	}
@@ -125,7 +124,7 @@ func TestAPI_getNotebook(t *testing.T) {
 
 	assert.Equal(t, result.ID, notebookID)
 	assert.Equal(t, result.OrgID, "org1")
-	assert.Equal(t, result.AuthorID, "user1")
+	assert.Equal(t, result.CreatedBy, "user1")
 	assert.NotEmpty(t, result.UpdatedAt)
 	assert.Equal(t, result.Title, "Test notebook")
 
@@ -145,33 +144,33 @@ func TestAPI_updateNotebook(t *testing.T) {
 	notebookID2 := uuid.NewV4()
 	notebookID3 := uuid.NewV4()
 	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
-	notebooks := []notebooks.Notebook{
+	ns := []notebooks.Notebook{
 		{
 			ID:        notebookID1,
 			OrgID:     "org1",
-			AuthorID:  "user1",
-			UpdatedAt: time.Now(),
+			CreatedBy: "user1",
+			UpdatedBy: "user1",
 			Title:     "Test notebook 1",
 			Entries:   []notebooks.Entry{notebookEntry},
 		},
 		{
 			ID:        notebookID2,
 			OrgID:     "org1",
-			AuthorID:  "user2",
-			UpdatedAt: time.Now(),
+			CreatedBy: "user2",
+			UpdatedBy: "user2",
 			Title:     "Test notebook 2",
 			Entries:   []notebooks.Entry{notebookEntry},
 		},
 		{
 			ID:        notebookID3,
 			OrgID:     "org2",
-			AuthorID:  "user1",
-			UpdatedAt: time.Now(),
+			CreatedBy: "user1",
+			UpdatedBy: "user1",
 			Title:     "Other org notebook",
 			Entries:   []notebooks.Entry{notebookEntry},
 		},
 	}
-	for _, notebook := range notebooks {
+	for _, notebook := range ns {
 		database.CreateNotebook(notebook)
 	}
 
@@ -209,8 +208,8 @@ func TestAPI_deleteNotebook(t *testing.T) {
 	notebook := notebooks.Notebook{
 		ID:        notebookID,
 		OrgID:     "org1",
-		AuthorID:  "user1",
-		UpdatedAt: time.Now(),
+		CreatedBy: "user1",
+		UpdatedBy: "user1",
 		Title:     "Test notebook",
 		Entries:   []notebooks.Entry{notebookEntry},
 	}

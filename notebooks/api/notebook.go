@@ -13,6 +13,11 @@ import (
 	"github.com/satori/go.uuid"
 )
 
+// NotebooksView describes a collection of notebooks
+type NotebooksView struct {
+	Notebooks []notebooks.Notebook
+}
+
 // listNotebooks returns all of the notebooks for an instance
 func (a *API) listNotebooks(w http.ResponseWriter, r *http.Request) {
 	orgID, _, err := user.ExtractFromHTTPRequest(r)
@@ -21,7 +26,7 @@ func (a *API) listNotebooks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notebooks, err := a.db.ListNotebooks(orgID)
+	ns, err := a.db.ListNotebooks(orgID)
 	if err != nil {
 		log.Errorf("Error getting notebooks: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -29,7 +34,7 @@ func (a *API) listNotebooks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(notebooks); err != nil {
+	if err := json.NewEncoder(w).Encode(NotebooksView{ns}); err != nil {
 		log.Errorf("Error encoding notebooks: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
