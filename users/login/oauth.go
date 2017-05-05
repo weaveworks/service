@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 
 	"github.com/justinas/nosurf"
@@ -108,15 +109,17 @@ func (a *OAuth) verifyState(r *http.Request) bool {
 }
 
 // csrfToken extracts the anti-CSRF token from the cookie injected by authfe.
-// We cannot simply use nosurf.Token() since it assumes that the CSRFHandler was invoked
 func csrfToken(r *http.Request) string {
-	tokenCookie, err := r.Cookie(nosurf.CookieName)
-	if err != nil {
-		return ""
+	// We cannot simply use nosurf.Token() since it assumes that the CSRFHandler is being invoked
+	// and nosurf doesn't provide another way to extract the Token directly, so we hack
+	// our way around by invoking a phony handler.
+	var token string
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		token = nosurf.Token(r)
 	}
-	decoded, err := base64.StdEncoding.DecodeString(tokenCookie.Value)
-	if err != nil {
-		return ""
-	}
-	return string(decoded)
+	phonyCSRFHandler := nosurf.New(http.HandlerFunc(handler))
+	phonyCSRFHandler.ExemptFunc(func(r *http.Request) bool { return true })
+	phonyResposeWriter := httptest.NewRecorder()
+	phonyCSRFHandler.ServeHTTP(phonyResposeWriter, r)
+	return token
 }
