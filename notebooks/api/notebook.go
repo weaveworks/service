@@ -110,8 +110,7 @@ func (a *API) getNotebook(w http.ResponseWriter, r *http.Request) {
 
 	notebook, err := a.db.GetNotebook(notebookID, orgID)
 	if err != nil {
-		log.Errorf("Error getting notebook: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
@@ -154,7 +153,6 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if version[0] != currentNotebook.Version.String() {
-		log.Error("Notebook version mismatch")
 		http.Error(w, "Notebook version mismatch", http.StatusBadRequest)
 		return
 	}
