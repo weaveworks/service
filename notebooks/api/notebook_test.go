@@ -171,7 +171,7 @@ func TestAPI_updateNotebook(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &createResult)
 	assert.NoError(t, err, "Could not unmarshal JSON")
 
-	firstVersion := createResult.Version
+	initialVersion := createResult.Version
 
 	// Create update request
 	updatedNotebookEntry := notebooks.Entry{Query: "updatedMetric{}", QueryEnd: "77.7", QueryRange: "7h", Type: "new"}
@@ -182,7 +182,7 @@ func TestAPI_updateNotebook(t *testing.T) {
 	b, err = json.Marshal(data)
 	require.NoError(t, err)
 
-	// Make request to update notebook with ID notebookID2
+	// Make request to update notebook
 	var result notebooks.Notebook
 	w = requestAsUser(t, "org1", "user1", "PUT", fmt.Sprintf("/api/prom/notebooks/%s?version=%s", createResult.ID, createResult.Version), bytes.NewReader(b))
 	err = json.Unmarshal(w.Body.Bytes(), &result)
@@ -192,7 +192,7 @@ func TestAPI_updateNotebook(t *testing.T) {
 	// TODO: UpdatedTime not tested because of transaction
 	assert.Equal(t, result.ID, createResult.ID)
 	assert.Equal(t, result.Title, "Updated notebook")
-	assert.NotEqual(t, result.Version, firstVersion)
+	assert.NotEqual(t, result.Version, initialVersion)
 
 	// Check the update is persistent
 	var getResult notebooks.Notebook
@@ -206,6 +206,48 @@ func TestAPI_updateNotebook(t *testing.T) {
 	assert.Equal(t, getResult.Entries[0].QueryEnd, "77.7")
 	assert.Equal(t, getResult.Entries[0].QueryRange, "7h")
 	assert.Equal(t, getResult.Entries[0].Type, "new")
+}
+
+func TestAPI_updateNotebook_wrongVersion(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	// Create notebook
+	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
+	notebook := api.NotebookWriteView{
+		Title:   "Test notebook",
+		Entries: []notebooks.Entry{notebookEntry},
+	}
+
+	var createResult notebooks.Notebook
+	b, err := json.Marshal(notebook)
+	require.NoError(t, err)
+	w := requestAsUser(t, "org1", "user1", "POST", "/api/prom/notebooks", bytes.NewReader(b))
+	err = json.Unmarshal(w.Body.Bytes(), &createResult)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+
+	initialVersion := createResult.Version
+
+	// Create update request
+	updatedNotebookEntry := notebooks.Entry{Query: "updatedMetric{}", QueryEnd: "77.7", QueryRange: "7h", Type: "new"}
+	data := api.NotebookWriteView{
+		Title:   "Updated notebook",
+		Entries: []notebooks.Entry{updatedNotebookEntry},
+	}
+	b, err = json.Marshal(data)
+	require.NoError(t, err)
+
+	// Make request to update notebook with wrong version
+	w = requestAsUser(t, "org1", "user1", "PUT", fmt.Sprintf("/api/prom/notebooks/%s?version=%s", createResult.ID, "invalid-version"), bytes.NewReader(b))
+	assert.Equal(t, w.Code, 400)
+
+	// Check the update did not happen
+	var getResult notebooks.Notebook
+	w = requestAsUser(t, "org1", "user1", "GET", fmt.Sprintf("/api/prom/notebooks/%s", createResult.ID), nil)
+	err = json.Unmarshal(w.Body.Bytes(), &getResult)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	assert.Equal(t, getResult.Title, "Test notebook")
+	assert.Equal(t, getResult.Version, initialVersion)
 }
 
 func TestAPI_deleteNotebook(t *testing.T) {
