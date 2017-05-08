@@ -64,7 +64,6 @@ func (d DB) UpdateNotebook(ID, orgID string, update notebooks.Notebook, version 
 			return errors.New("Notebook not found")
 		}
 
-		// Check the version
 		if version != notebook.Version.String() {
 			return notebooks.ErrNotebookVersionMismatch
 		}
