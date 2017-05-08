@@ -18,7 +18,7 @@ type NotebooksView struct {
 
 // listNotebooks returns all of the notebooks for an instance
 func (a *API) listNotebooks(w http.ResponseWriter, r *http.Request) {
-	orgID, _, err := user.ExtractFromHTTPRequest(r)
+	orgID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -47,7 +47,7 @@ type NotebookWriteView struct {
 
 // createNotebook creates a notebook
 func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
-	orgID, _, err := user.ExtractFromHTTPRequest(r)
+	orgID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -60,7 +60,12 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Header.Get("X-Scope-UserID")
+	userID, _, err := user.ExtractUserIDFromHTTPRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	notebook := notebooks.Notebook{
 		OrgID:     orgID,
 		CreatedBy: userID,
@@ -102,7 +107,7 @@ func (a *API) getNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orgID, _, err := user.ExtractFromHTTPRequest(r)
+	orgID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -139,7 +144,7 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orgID, _, err := user.ExtractFromHTTPRequest(r)
+	orgID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -164,8 +169,15 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	userID, _, err := user.ExtractUserIDFromHTTPRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	notebook := notebooks.Notebook{
-		UpdatedBy: r.Header.Get("X-Scope-UserID"),
+		UpdatedBy: userID,
 		Title:     input.Title,
 		Entries:   input.Entries,
 	}
@@ -203,7 +215,7 @@ func (a *API) deleteNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orgID, _, err := user.ExtractFromHTTPRequest(r)
+	orgID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
