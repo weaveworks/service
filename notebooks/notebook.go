@@ -6,7 +6,7 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-// Notebook describes a collection of PromQL queires
+// Notebook describes a collection of PromQL queries
 type Notebook struct {
 	ID        uuid.UUID `json:"id"`
 	OrgID     string    `json:"org_id"`
