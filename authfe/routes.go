@@ -37,7 +37,7 @@ func (c Config) commonMiddleWare(routeMatcher middleware.RouteMatcher) middlewar
 	extraHeaders.Add("X-XSS-Protection", "1; mode=block")
 	extraHeaders.Add("X-Content-Type-Options", "nosniff")
 	if c.sendCSPHeader {
-		extraHeaders.Add("Content-Security-Policy", "default-src https:")
+		extraHeaders.Add("Content-Security-Policy", "default-src https: 'unsafe-inline'")
 	}
 	if c.redirectHTTPS && c.hstsMaxAge > 0 {
 		extraHeaders.Add("Strict-Transport-Security", fmt.Sprintf("max-age=%d; includeSubDomains", c.hstsMaxAge))
