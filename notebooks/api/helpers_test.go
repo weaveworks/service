@@ -38,8 +38,8 @@ func requestAsUser(t *testing.T, orgID, userID, method, urlStr string, body io.R
 	require.NoError(t, err)
 
 	// inject org ID and set userID header
-	r = r.WithContext(user.Inject(r.Context(), orgID))
-	user.InjectIntoHTTPRequest(r.Context(), r)
+	r = r.WithContext(user.InjectOrgID(r.Context(), orgID))
+	user.InjectOrgIDIntoHTTPRequest(r.Context(), r)
 	r.Header.Set("X-Scope-UserID", userID)
 
 	app.ServeHTTP(w, r)
