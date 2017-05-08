@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,6 +13,14 @@ import (
 	"github.com/weaveworks/service/notebooks"
 	"github.com/weaveworks/service/notebooks/api"
 )
+
+func makeNotebookRequest(t *testing.T, orgID, userID, method, url string, data []byte) (*httptest.ResponseRecorder, notebooks.Notebook) {
+	var result notebooks.Notebook
+	w := requestAsUser(t, orgID, userID, method, url, bytes.NewReader(data))
+	err := json.Unmarshal(w.Body.Bytes(), &result)
+	assert.NoError(t, err, "Could not unmarshal JSON")
+	return w, result
+}
 
 func TestAPI_listNotebooks(t *testing.T) {
 	setup(t)
@@ -91,13 +100,9 @@ func TestAPI_createNotebook(t *testing.T) {
 
 	b, err := json.Marshal(data)
 	require.NoError(t, err)
+	w, result := makeNotebookRequest(t, "org1", "user1", "POST", "/api/prom/notebooks", b)
 
-	// Make request to create notebook
-	var result notebooks.Notebook
-	w := requestAsUser(t, "org1", "user1", "POST", "/api/prom/notebooks", bytes.NewReader(b))
-	err = json.Unmarshal(w.Body.Bytes(), &result)
-	assert.NoError(t, err, "Could not unmarshal JSON")
-
+	assert.Equal(t, w.Code, 200)
 	assert.NotEmpty(t, result.ID)
 	assert.NotEmpty(t, result.UpdatedAt)
 	assert.NotEmpty(t, result.Version)
@@ -108,10 +113,8 @@ func TestAPI_createNotebook(t *testing.T) {
 	assert.Equal(t, result.Entries, []notebooks.Entry{notebookEntry})
 
 	// Check it was created
-	var getResult notebooks.Notebook
-	w = requestAsUser(t, "org1", "user1", "GET", fmt.Sprintf("/api/prom/notebooks/%s", result.ID.String()), nil)
-	err = json.Unmarshal(w.Body.Bytes(), &getResult)
-	assert.NoError(t, err, "Could not unmarshal JSON")
+	w, getResult := makeNotebookRequest(t, "org1", "user1", "GET", fmt.Sprintf("/api/prom/notebooks/%s", result.ID.String()), nil)
+	assert.Equal(t, w.Code, 200)
 	assert.Equal(t, result, getResult)
 }
 
@@ -125,19 +128,12 @@ func TestAPI_getNotebook(t *testing.T) {
 		Title:   "Test notebook",
 		Entries: []notebooks.Entry{notebookEntry},
 	}
-
-	var createResult notebooks.Notebook
 	b, err := json.Marshal(notebook)
 	require.NoError(t, err)
-	w := requestAsUser(t, "org1", "user1", "POST", "/api/prom/notebooks", bytes.NewReader(b))
-	err = json.Unmarshal(w.Body.Bytes(), &createResult)
-	assert.NoError(t, err, "Could not unmarshal JSON")
+	_, createResult := makeNotebookRequest(t, "org1", "user1", "POST", "/api/prom/notebooks", b)
 
-	// Get notebook
-	var result notebooks.Notebook
-	w = requestAsUser(t, "org1", "user1", "GET", fmt.Sprintf("/api/prom/notebooks/%s", createResult.ID), nil)
-	err = json.Unmarshal(w.Body.Bytes(), &result)
-	assert.NoError(t, err, "Could not unmarshal JSON")
+	w, result := makeNotebookRequest(t, "org1", "user1", "GET", fmt.Sprintf("/api/prom/notebooks/%s", createResult.ID), nil)
+	assert.Equal(t, w.Code, 200)
 
 	// Check individual fields as some are updated by the database
 	assert.Equal(t, result.ID, createResult.ID)
@@ -172,14 +168,9 @@ func TestAPI_updateNotebook(t *testing.T) {
 		Title:   "Test notebook",
 		Entries: []notebooks.Entry{notebookEntry},
 	}
-
-	var createResult notebooks.Notebook
 	b, err := json.Marshal(notebook)
 	require.NoError(t, err)
-	w := requestAsUser(t, "org1", "user1", "POST", "/api/prom/notebooks", bytes.NewReader(b))
-	err = json.Unmarshal(w.Body.Bytes(), &createResult)
-	assert.NoError(t, err, "Could not unmarshal JSON")
-
+	_, createResult := makeNotebookRequest(t, "org1", "user1", "POST", "/api/prom/notebooks", b)
 	initialVersion := createResult.Version
 
 	// Create update request
@@ -191,11 +182,8 @@ func TestAPI_updateNotebook(t *testing.T) {
 	b, err = json.Marshal(data)
 	require.NoError(t, err)
 
-	// Make request to update notebook
-	var result notebooks.Notebook
-	w = requestAsUser(t, "org1", "user1", "PUT", fmt.Sprintf("/api/prom/notebooks/%s?version=%s", createResult.ID, createResult.Version), bytes.NewReader(b))
-	err = json.Unmarshal(w.Body.Bytes(), &result)
-	assert.NoError(t, err, "Could not unmarshal JSON")
+	w, result := makeNotebookRequest(t, "org1", "user1", "PUT", fmt.Sprintf("/api/prom/notebooks/%s?version=%s", createResult.ID, createResult.Version), b)
+	assert.Equal(t, w.Code, 200)
 
 	// Check individual fields as some fields have changed
 	// TODO: UpdatedTime not tested because of transaction
@@ -204,11 +192,9 @@ func TestAPI_updateNotebook(t *testing.T) {
 	assert.NotEqual(t, result.Version, initialVersion)
 
 	// Check the update is persistent
-	var getResult notebooks.Notebook
-	w = requestAsUser(t, "org1", "user1", "GET", fmt.Sprintf("/api/prom/notebooks/%s", createResult.ID), nil)
-	err = json.Unmarshal(w.Body.Bytes(), &getResult)
-	assert.NoError(t, err, "Could not unmarshal JSON")
+	w, getResult := makeNotebookRequest(t, "org1", "user1", "GET", fmt.Sprintf("/api/prom/notebooks/%s", createResult.ID), nil)
 
+	assert.Equal(t, w.Code, 200)
 	assert.Equal(t, getResult.Title, "Updated notebook")
 	assert.Equal(t, getResult.Version, result.Version)
 	assert.Equal(t, getResult.Entries[0].Query, "updatedMetric{}")
@@ -227,14 +213,9 @@ func TestAPI_updateNotebook_wrongVersion(t *testing.T) {
 		Title:   "Test notebook",
 		Entries: []notebooks.Entry{notebookEntry},
 	}
-
-	var createResult notebooks.Notebook
 	b, err := json.Marshal(notebook)
 	require.NoError(t, err)
-	w := requestAsUser(t, "org1", "user1", "POST", "/api/prom/notebooks", bytes.NewReader(b))
-	err = json.Unmarshal(w.Body.Bytes(), &createResult)
-	assert.NoError(t, err, "Could not unmarshal JSON")
-
+	w, createResult := makeNotebookRequest(t, "org1", "user1", "POST", "/api/prom/notebooks", b)
 	initialVersion := createResult.Version
 
 	// Create update request
@@ -251,10 +232,8 @@ func TestAPI_updateNotebook_wrongVersion(t *testing.T) {
 	assert.Equal(t, w.Code, 400)
 
 	// Check the update did not happen
-	var getResult notebooks.Notebook
-	w = requestAsUser(t, "org1", "user1", "GET", fmt.Sprintf("/api/prom/notebooks/%s", createResult.ID), nil)
-	err = json.Unmarshal(w.Body.Bytes(), &getResult)
-	assert.NoError(t, err, "Could not unmarshal JSON")
+	w, getResult := makeNotebookRequest(t, "org1", "user1", "GET", fmt.Sprintf("/api/prom/notebooks/%s", createResult.ID), nil)
+	assert.Equal(t, w.Code, 200)
 	assert.Equal(t, getResult.Title, "Test notebook")
 	assert.Equal(t, getResult.Version, initialVersion)
 }
@@ -269,13 +248,9 @@ func TestAPI_deleteNotebook(t *testing.T) {
 		Title:   "Test notebook",
 		Entries: []notebooks.Entry{notebookEntry},
 	}
-
-	var createResult notebooks.Notebook
 	b, err := json.Marshal(notebook)
 	require.NoError(t, err)
-	w := requestAsUser(t, "org1", "user1", "POST", "/api/prom/notebooks", bytes.NewReader(b))
-	err = json.Unmarshal(w.Body.Bytes(), &createResult)
-	assert.NoError(t, err, "Could not unmarshal JSON")
+	w, createResult := makeNotebookRequest(t, "org1", "user1", "POST", "/api/prom/notebooks", b)
 
 	// Make request to update notebook with ID notebookID2
 	w = requestAsUser(t, "org1", "user1", "DELETE", fmt.Sprintf("/api/prom/notebooks/%s", createResult.ID), nil)
