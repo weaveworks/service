@@ -2,6 +2,7 @@ package memory
 
 import (
 	"errors"
+	"sort"
 	"time"
 
 	uuid "github.com/satori/go.uuid"
@@ -24,6 +25,13 @@ func New(_, _ string) (*DB, error) {
 	}, nil
 }
 
+// ByTitle allow you to sort notebooks by name (for test purposes)
+type ByTitle []notebooks.Notebook
+
+func (ns ByTitle) Len() int           { return len(ns) }
+func (ns ByTitle) Swap(i, j int)      { ns[i], ns[j] = ns[j], ns[i] }
+func (ns ByTitle) Less(i, j int) bool { return ns[i].Title < ns[j].Title }
+
 // ListNotebooks returns all notebooks for the instance
 func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
 	ns := []notebooks.Notebook{}
@@ -32,6 +40,7 @@ func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
 			ns = append(ns, notebook)
 		}
 	}
+	sort.Sort(ByTitle(ns))
 	return ns, nil
 }
 
