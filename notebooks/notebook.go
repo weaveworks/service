@@ -1,9 +1,15 @@
 package notebooks
 
 import (
+	"errors"
 	"time"
 
 	"github.com/satori/go.uuid"
+)
+
+// Errors
+var (
+	ErrNotebookVersionMismatch = errors.New("notebook version mismatch")
 )
 
 // Notebook describes a collection of PromQL queries

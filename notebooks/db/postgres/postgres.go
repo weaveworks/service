@@ -174,7 +174,17 @@ func (d DB) GetNotebook(ID, orgID string) (notebooks.Notebook, error) {
 }
 
 // UpdateNotebook updates a notebook
-func (d DB) UpdateNotebook(ID, orgID string, notebook notebooks.Notebook) error {
+func (d DB) UpdateNotebook(ID, orgID string, notebook notebooks.Notebook, version string) error {
+	// Fetch the current notebook and check the version
+	currentNotebook, err := d.GetNotebook(ID, orgID)
+	if err != nil {
+		logrus.Errorf("Error fetching current notebook: %v", err)
+		return err
+	}
+	if version != currentNotebook.Version.String() {
+		return notebooks.ErrNotebookVersionMismatch
+	}
+
 	entriesBytes, err := json.Marshal(notebook.Entries)
 	if err != nil {
 		return err

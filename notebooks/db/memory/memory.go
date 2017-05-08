@@ -58,10 +58,15 @@ func (d DB) GetNotebook(ID, orgID string) (notebooks.Notebook, error) {
 }
 
 // UpdateNotebook updates a notebook
-func (d DB) UpdateNotebook(ID, orgID string, update notebooks.Notebook) error {
+func (d DB) UpdateNotebook(ID, orgID string, update notebooks.Notebook, version string) error {
 	if notebook, ok := d.notebooks[ID]; ok {
 		if notebook.OrgID != orgID {
 			return errors.New("Notebook not found")
+		}
+
+		// Check the version
+		if version != notebook.Version.String() {
+			return notebooks.ErrNotebookVersionMismatch
 		}
 
 		notebook.UpdatedBy = update.UpdatedBy

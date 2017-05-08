@@ -28,7 +28,7 @@ type DB interface {
 	CreateNotebook(notebook notebooks.Notebook) (string, error)
 
 	GetNotebook(ID, orgID string) (notebooks.Notebook, error)
-	UpdateNotebook(ID, orgID string, notebook notebooks.Notebook) error
+	UpdateNotebook(ID, orgID string, notebook notebooks.Notebook, version string) error
 	DeleteNotebook(ID, orgID string) error
 
 	Close() error

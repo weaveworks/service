@@ -150,18 +150,6 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch the current notebook to get the version
-	currentNotebook, err := a.db.GetNotebook(notebookID, orgID)
-	if err != nil {
-		log.Errorf("Error fetching new notebook: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if version[0] != currentNotebook.Version.String() {
-		http.Error(w, "Notebook version mismatch", http.StatusConflict)
-		return
-	}
-
 	// Create the notebook update
 	var input NotebookWriteView
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -182,8 +170,11 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		Entries:   input.Entries,
 	}
 
-	err = a.db.UpdateNotebook(notebookID, orgID, notebook)
-	if err != nil {
+	err = a.db.UpdateNotebook(notebookID, orgID, notebook, version[0])
+	if err == notebooks.ErrNotebookVersionMismatch {
+		http.Error(w, "Notebook version mismatch", http.StatusConflict)
+		return
+	} else if err != nil {
 		log.Errorf("Error updating notebook: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
