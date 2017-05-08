@@ -153,6 +153,15 @@ func TestAPI_getNotebook(t *testing.T) {
 	assert.Equal(t, result.Entries[0].Type, "graph")
 }
 
+func TestAPI_getNotebook_doesNotExist(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	// Get non-existent notebook
+	w := requestAsUser(t, "org1", "user1", "GET", "/api/prom/notebooks/1", nil)
+	assert.Equal(t, w.Code, 404)
+}
+
 func TestAPI_updateNotebook(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
