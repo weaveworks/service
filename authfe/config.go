@@ -55,11 +55,11 @@ type Config struct {
 	kubedashHost          proxyConfig
 	kubediffHost          proxyConfig
 	lokiHost              proxyConfig
+	notebooksHost         proxyConfig
 	prodGrafanaHost       proxyConfig
 	promAlertmanagerHost  proxyConfig
 	promDistributorHost   proxyConfig
 	promQuerierHost       proxyConfig
-	promNotebooksHost     proxyConfig
 	prometheusHost        proxyConfig
 	scopeHost             proxyConfig
 	terradiffHost         proxyConfig
@@ -77,12 +77,12 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"demo":              &c.demoHost,
 		"flux":              &c.fluxHost,
 		"launch-generator":  &c.launchGeneratorHost,
+		"notebooks":         &c.notebooksHost,
 		"peer-discovery":    &c.peerDiscoveryHost,
 		"pipe":              &c.pipeHost,
 		"prom-alertmanager": &c.promAlertmanagerHost,
 		"prom-distributor":  &c.promDistributorHost,
 		"prom-querier":      &c.promQuerierHost,
-		"prom-notebooks":    &c.promNotebooksHost,
 		"query":             &c.queryHost,
 		"ui-metrics":        &c.uiMetricsHost,
 		"ui-server":         &c.uiServerHost,
