@@ -158,7 +158,7 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if version[0] != currentNotebook.Version.String() {
-		http.Error(w, "Notebook version mismatch", http.StatusBadRequest)
+		http.Error(w, "Notebook version mismatch", http.StatusConflict)
 		return
 	}
 

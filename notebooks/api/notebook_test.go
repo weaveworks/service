@@ -229,7 +229,7 @@ func TestAPI_updateNotebook_wrongVersion(t *testing.T) {
 
 	// Make request to update notebook with wrong version
 	w = requestAsUser(t, "org1", "user1", "PUT", fmt.Sprintf("/api/prom/notebooks/%s?version=%s", createResult.ID, "invalid-version"), bytes.NewReader(b))
-	assert.Equal(t, w.Code, 400)
+	assert.Equal(t, w.Code, 409)
 
 	// Check the update did not happen
 	w, getResult := makeNotebookRequest(t, "org1", "user1", "GET", fmt.Sprintf("/api/prom/notebooks/%s", createResult.ID), nil)
