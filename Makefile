@@ -1,4 +1,4 @@
-.PHONY: all test users-integration-test clean client-lint images ui-upload
+.PHONY: all test notebooks-integration-test users-integration-test clean client-lint images ui-upload
 .DEFAULT_GOAL := all
 
 # Boiler plate for bulding Docker containers.
@@ -37,7 +37,8 @@ AUTHFE_EXE := authfe/authfe
 USERS_EXE := users/cmd/users/users
 METRICS_EXE := metrics/metrics
 PR_ASSIGNER_EXE := pr-assigner/pr-assigner
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PROM_RUN_EXE) $(PR_ASSIGNER_EXE)
+NOTEBOOKS_EXE := notebooks/cmd/notebooks/notebooks
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PR_ASSIGNER_EXE) $(NOTEBOOKS_EXE)
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
@@ -45,6 +46,7 @@ $(AUTHFE_EXE): $(shell find authfe -name '*.go') $(shell find users/client -name
 $(USERS_EXE): $(shell find users -name '*.go') $(COMMON) users/users.pb.go
 $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
 $(PR_ASSIGNER_EXE): $(shell find pr-assigner -name '*.go') $(COMMON)
+$(NOTEBOOKS_EXE): $(shell find notebooks -name '*.go') $(COMMON)
 test: users/users.pb.go
 
 # And now what goes into each image
@@ -54,6 +56,7 @@ metrics/$(UPTODATE): $(METRICS_EXE)
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
 build/$(UPTODATE): build/build.sh
 pr-assigner/$(UPTODATE): $(PR_ASSIGNER_EXE)
+notebooks/$(UPTODATE): $(NOTEBOOKS_EXE)
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
@@ -98,6 +101,19 @@ endif
 
 
 # Test and misc stuff
+notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
+	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=notebooks_test' postgres:9.4)"; \
+	docker run $(RM) \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-v $(shell pwd)/notebooks/db/migrations:/migrations \
+		--workdir /go/src/github.com/weaveworks/service/notebooks \
+		--link "$$DB_CONTAINER":configs-db.weave.local \
+		golang:1.8.0 \
+		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
+	status=$$?; \
+	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
+	exit $$status
+
 users-integration-test: $(USERS_UPTODATE)
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=users_test' postgres:9.4)"; \
 	docker run $(RM) \
