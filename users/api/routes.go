@@ -66,6 +66,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"admin_users_pardot", "GET", "/admin/users/marketing_refresh", a.marketingRefresh},
 		{"admin_users_users", "GET", "/admin/users/users", a.listUsers},
 		{"admin_users_users_userID_admin", "POST", "/admin/users/users/{userID}/admin", a.makeUserAdmin},
+		{"admin_users_users_userID_become", "POST", "/admin/users/users/{userID}/become", a.becomeUser},
 		{"admin_users_users_userID_logins_provider_token", "GET", "/admin/users/users/{userID}/logins/{provider}/token", a.getUserToken},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
