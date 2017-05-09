@@ -396,7 +396,8 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	//   and we don't see alert-silencing as very security-sensitive.
 	csfrExemptPrefixes := probeRoute.AbsolutePrefixes()
 	csfrExemptPrefixes = append(csfrExemptPrefixes, "/admin/alertmanager")
-	csfrExemptPrefixes = append(csfrExemptPrefixes, "/api/prom/alertmanager")
+	// Regex copy-pasted from users/organization.go
+	csfrExemptPrefixes = append(csfrExemptPrefixes, `/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`)
 	return middleware.Merge(
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
 		csrfTokenVerifier{exemptPrefixes: csfrExemptPrefixes, secure: c.secureCookie},
