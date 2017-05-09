@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -10,7 +11,6 @@ import (
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
 
-	"encoding/json"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/client"
 	"github.com/weaveworks/service/users/login"
@@ -226,6 +226,26 @@ func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
 		redirectTo = "/admin/users/users"
 	}
 	http.Redirect(w, r, redirectTo, http.StatusFound)
+}
+
+func (a *API) becomeUser(w http.ResponseWriter, r *http.Request) {
+	logrus.Info(r)
+	vars := mux.Vars(r)
+	userID, ok := vars["userID"]
+	if !ok {
+		render.Error(w, r, users.ErrNotFound)
+		return
+	}
+	u, err := a.db.FindUserByID(r.Context(), userID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	if err := a.sessions.Set(w, u.ID); err != nil {
+		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		return
+	}
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func (a *API) getUserToken(w http.ResponseWriter, r *http.Request) {

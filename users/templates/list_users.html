@@ -35,6 +35,12 @@
           </form>
           {{end}}
         </td>
+        <td>
+          <form action="users/{{.ID}}/become" method="POST">
+            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+            <input type="submit" value="Become User" />
+          </form>
+        </td>
       </tr>
       {{end}}
     </table>
