@@ -332,14 +332,17 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			),
 		},
 
-		// billing UI needs authentication
+		// unauthenticated billing UI gubbins - JS, fonts, etc
 		path{"/billing/{jsfile}.js", trimPrefix("/billing", c.billingUIHost)},
-		// Fonts
 		path{"/billing/{wofffile}.woff", trimPrefix("/billing", c.billingUIHost)},
 		path{"/billing/{ttffile}.ttf", trimPrefix("/billing", c.billingUIHost)},
 		path{"/billing/{svgfile}.svg", trimPrefix("/billing", c.billingUIHost)},
 		path{"/billing/{eotfile}.eot", trimPrefix("/billing", c.billingUIHost)},
+		// Nobody knows what this is for.  We believe it is important.
+		// And we hope that it is ok (and indeed there are good
+		// reasons) for it to be unauthenticated.
 		path{"/billing/callback/register", trimPrefix("/billing", c.billingUIHost)},
+		// actual billing UI needs authentication/authorization
 		prefix{
 			"/billing",
 			[]path{
@@ -353,6 +356,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		// These billing api endpoints have no orgExternalID, so we can't do authorization on them.
 		path{"/api/billing/accounts", c.billingAPIHost},
 		path{"/api/billing/payments/authTokens", c.billingAPIHost},
+		// The main billing api requires authorization.
 		prefix{
 			"/api/billing",
 			[]path{
@@ -387,20 +391,20 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		route.Add(r)
 	}
 
-	// Do not check for csfr tokens in requests from:
+	// Do not check for csrf tokens in requests from:
 	// * probes (they cannot be attacked)
 	// * the admin alert manager, incorporating tokens would require forking it
 	//   and we don't see alert-silencing as very security-sensitive.
 	// * the Cortex alert manager, incorporating tokens would require forking it
 	//   (see https://github.com/weaveworks/service-ui/issues/461#issuecomment-299458350)
 	//   and we don't see alert-silencing as very security-sensitive.
-	csfrExemptPrefixes := probeRoute.AbsolutePrefixes()
-	csfrExemptPrefixes = append(csfrExemptPrefixes, "/admin/alertmanager")
+	csrfExemptPrefixes := probeRoute.AbsolutePrefixes()
+	csrfExemptPrefixes = append(csrfExemptPrefixes, "/admin/alertmanager")
 	// Regex copy-pasted from users/organization.go
-	csfrExemptPrefixes = append(csfrExemptPrefixes, `/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`)
+	csrfExemptPrefixes = append(csrfExemptPrefixes, `/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`)
 	return middleware.Merge(
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
-		csrfTokenVerifier{exemptPrefixes: csfrExemptPrefixes, secure: c.secureCookie},
+		csrfTokenVerifier{exemptPrefixes: csrfExemptPrefixes, secure: c.secureCookie},
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler)
 		}),
