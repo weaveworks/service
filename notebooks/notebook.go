@@ -28,6 +28,7 @@ type Notebook struct {
 
 // Entry describes a PromQL query for a notebook
 type Entry struct {
+	ID         string      `json:"id"`
 	Query      string      `json:"query"`
 	QueryEnd   json.Number `json:"queryEnd"`
 	QueryRange string      `json:"queryRange"`

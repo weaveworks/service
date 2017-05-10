@@ -27,7 +27,7 @@ func TestAPI_listNotebooks(t *testing.T) {
 	defer cleanup(t)
 
 	// Create notebooks
-	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
+	notebookEntry := notebooks.Entry{ID: "1", Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 
 	ns := []struct {
 		orgID    string
@@ -92,7 +92,7 @@ func TestAPI_createNotebook(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
+	notebookEntry := notebooks.Entry{ID: "1", Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	data := api.NotebookWriteView{
 		Title:   "New notebook",
 		Entries: []notebooks.Entry{notebookEntry},
@@ -123,7 +123,7 @@ func TestAPI_getNotebook(t *testing.T) {
 	defer cleanup(t)
 
 	// Create notebook
-	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
+	notebookEntry := notebooks.Entry{ID: "1", Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	notebook := api.NotebookWriteView{
 		Title:   "Test notebook",
 		Entries: []notebooks.Entry{notebookEntry},
@@ -143,6 +143,7 @@ func TestAPI_getNotebook(t *testing.T) {
 	assert.Equal(t, result.Title, "Test notebook")
 
 	assert.Len(t, result.Entries, 1)
+	assert.Equal(t, result.Entries[0].ID, "1")
 	assert.Equal(t, result.Entries[0].Query, "metric{}")
 	assert.Equal(t, result.Entries[0].QueryEnd.String(), "1000.1")
 	assert.Equal(t, result.Entries[0].QueryRange, "1h")
@@ -163,7 +164,7 @@ func TestAPI_updateNotebook(t *testing.T) {
 	defer cleanup(t)
 
 	// Create notebook
-	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
+	notebookEntry := notebooks.Entry{ID: "1", Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	notebook := api.NotebookWriteView{
 		Title:   "Test notebook",
 		Entries: []notebooks.Entry{notebookEntry},
@@ -174,7 +175,7 @@ func TestAPI_updateNotebook(t *testing.T) {
 	initialVersion := createResult.Version
 
 	// Create update request
-	updatedNotebookEntry := notebooks.Entry{Query: "updatedMetric{}", QueryEnd: "77.7", QueryRange: "7h", Type: "new"}
+	updatedNotebookEntry := notebooks.Entry{ID: "1", Query: "updatedMetric{}", QueryEnd: "77.7", QueryRange: "7h", Type: "new"}
 	data := api.NotebookWriteView{
 		Title:   "Updated notebook",
 		Entries: []notebooks.Entry{updatedNotebookEntry},
@@ -197,6 +198,7 @@ func TestAPI_updateNotebook(t *testing.T) {
 	assert.Equal(t, w.Code, 200)
 	assert.Equal(t, getResult.Title, "Updated notebook")
 	assert.Equal(t, getResult.Version, result.Version)
+	assert.Equal(t, getResult.Entries[0].ID, "1")
 	assert.Equal(t, getResult.Entries[0].Query, "updatedMetric{}")
 	assert.Equal(t, getResult.Entries[0].QueryEnd.String(), "77.7")
 	assert.Equal(t, getResult.Entries[0].QueryRange, "7h")
@@ -208,7 +210,7 @@ func TestAPI_updateNotebook_wrongVersion(t *testing.T) {
 	defer cleanup(t)
 
 	// Create notebook
-	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
+	notebookEntry := notebooks.Entry{ID: "1", Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	notebook := api.NotebookWriteView{
 		Title:   "Test notebook",
 		Entries: []notebooks.Entry{notebookEntry},
@@ -219,7 +221,7 @@ func TestAPI_updateNotebook_wrongVersion(t *testing.T) {
 	initialVersion := createResult.Version
 
 	// Create update request
-	updatedNotebookEntry := notebooks.Entry{Query: "updatedMetric{}", QueryEnd: "77.7", QueryRange: "7h", Type: "new"}
+	updatedNotebookEntry := notebooks.Entry{ID: "1", Query: "updatedMetric{}", QueryEnd: "77.7", QueryRange: "7h", Type: "new"}
 	data := api.NotebookWriteView{
 		Title:   "Updated notebook",
 		Entries: []notebooks.Entry{updatedNotebookEntry},
@@ -243,7 +245,7 @@ func TestAPI_deleteNotebook(t *testing.T) {
 	defer cleanup(t)
 
 	// Create notebook in database
-	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
+	notebookEntry := notebooks.Entry{ID: "1", Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	notebook := api.NotebookWriteView{
 		Title:   "Test notebook",
 		Entries: []notebooks.Entry{notebookEntry},
