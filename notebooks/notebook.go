@@ -1,6 +1,7 @@
 package notebooks
 
 import (
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -27,8 +28,8 @@ type Notebook struct {
 
 // Entry describes a PromQL query for a notebook
 type Entry struct {
-	Query      string `json:"query"`
-	QueryEnd   string `json:"queryEnd"`
-	QueryRange string `json:"queryRange"`
-	Type       string `json:"type"`
+	Query      string      `json:"query"`
+	QueryEnd   json.Number `json:"queryEnd"`
+	QueryRange string      `json:"queryRange"`
+	Type       string      `json:"type"`
 }

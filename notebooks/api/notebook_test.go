@@ -144,7 +144,7 @@ func TestAPI_getNotebook(t *testing.T) {
 
 	assert.Len(t, result.Entries, 1)
 	assert.Equal(t, result.Entries[0].Query, "metric{}")
-	assert.Equal(t, result.Entries[0].QueryEnd, "1000.1")
+	assert.Equal(t, result.Entries[0].QueryEnd.String(), "1000.1")
 	assert.Equal(t, result.Entries[0].QueryRange, "1h")
 	assert.Equal(t, result.Entries[0].Type, "graph")
 }
@@ -198,7 +198,7 @@ func TestAPI_updateNotebook(t *testing.T) {
 	assert.Equal(t, getResult.Title, "Updated notebook")
 	assert.Equal(t, getResult.Version, result.Version)
 	assert.Equal(t, getResult.Entries[0].Query, "updatedMetric{}")
-	assert.Equal(t, getResult.Entries[0].QueryEnd, "77.7")
+	assert.Equal(t, getResult.Entries[0].QueryEnd.String(), "77.7")
 	assert.Equal(t, getResult.Entries[0].QueryRange, "7h")
 	assert.Equal(t, getResult.Entries[0].Type, "new")
 }
