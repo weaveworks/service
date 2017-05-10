@@ -13,7 +13,7 @@ import (
 
 // NotebooksView describes a collection of notebooks
 type NotebooksView struct {
-	Notebooks []notebooks.Notebook
+	Notebooks []notebooks.Notebook `json:"notebooks"`
 }
 
 // listNotebooks returns all of the notebooks for an instance
