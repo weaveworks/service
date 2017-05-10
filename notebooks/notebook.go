@@ -15,7 +15,7 @@ var (
 // Notebook describes a collection of PromQL queries
 type Notebook struct {
 	ID        uuid.UUID `json:"id"`
-	OrgID     string    `json:"org_id"`
+	OrgID     string    `json:"orgId"`
 	CreatedBy string    `json:"createdBy"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedBy string    `json:"updatedBy"`
