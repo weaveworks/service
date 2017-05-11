@@ -224,6 +224,25 @@ func Test_Signup_ViaOAuth(t *testing.T) {
 	}
 }
 
+// Test the case where the Provider fails to return an email address
+func Test_Signup_ProviderBlankEmail(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	email := ""
+	logins.Register("mock", MockLoginProvider{
+		"joe": {ID: "joe", Email: email},
+	})
+
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
+	_, err := database.FindUserByEmail(context.Background(), email)
+	assert.EqualError(t, err, users.ErrNotFound.Error())
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid authentication data")
+}
+
 func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {
 	setup(t)
 	defer cleanup(t)

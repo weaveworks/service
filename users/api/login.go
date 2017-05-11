@@ -107,6 +107,11 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err)
 		return
 	}
+	if email == "" {
+		logrus.Errorf("Login provider returned blank email: %q", providerID)
+		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		return
+	}
 
 	// Try and find an existing user to attach this login to.
 	var u *users.User
