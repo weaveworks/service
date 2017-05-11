@@ -219,9 +219,5 @@ func (a *API) deleteNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := w.Write([]byte("OK")); err != nil {
-		log.Errorf("Error returning response: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	w.WriteHeader(http.StatusNoContent)
 }

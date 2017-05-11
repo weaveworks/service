@@ -254,9 +254,9 @@ func TestAPI_deleteNotebook(t *testing.T) {
 
 	// Make request to update notebook with ID notebookID2
 	w = requestAsUser(t, "org1", "user1", "DELETE", fmt.Sprintf("/api/prom/notebooks/%s", createResult.ID), nil)
-	assert.Equal(t, w.Code, http.StatusOK)
+	assert.Equal(t, w.Code, http.StatusNoContent)
 
 	// Check it was deleted
 	w = requestAsUser(t, "org1", "user1", "GET", fmt.Sprintf("/api/prom/notebooks/%s", createResult.ID), nil)
-	assert.Equal(t, w.Code, 404)
+	assert.Equal(t, w.Code, http.StatusNotFound)
 }
