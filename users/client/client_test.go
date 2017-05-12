@@ -27,6 +27,7 @@ const (
 	orgToken      = "Scope-Probe token=token123"
 	orgCookie     = "cookie123"
 	userID        = "user12346"
+	userEmail     = "user@example.org"
 )
 
 var (
@@ -41,6 +42,7 @@ type dummyServer struct {
 	failRequests int32
 	probeLookups int32
 	orgLookups   int32
+	userLookups  int32
 }
 
 // LookupOrg authenticates a cookie for access to an org by extenal ID.
@@ -75,6 +77,20 @@ func (d *dummyServer) LookupUsingToken(ctx context.Context, req *users.LookupUsi
 	return &users.LookupUsingTokenResponse{
 		OrganizationID: orgID,
 		FeatureFlags:   featureFlags,
+	}, nil
+}
+
+func (d *dummyServer) GetUser(ctx context.Context, req *users.GetUserRequest) (*users.GetUserResponse, error) {
+	atomic.AddInt32(&d.userLookups, 1)
+	if atomic.LoadInt32(&d.failRequests) != 0 {
+		return nil, errors.New("fake error")
+	}
+
+	return &users.GetUserResponse{
+		User: users.User{
+			ID:    userID,
+			Email: userEmail,
+		},
 	}, nil
 }
 
@@ -153,11 +169,13 @@ func TestAuthCache(t *testing.T) {
 	require.NoError(t, err)
 	defer server.Close()
 	auth, err := New("grpc", server.URL, CachingClientConfig{
-		CredCacheEnabled:         true,
+		CacheEnabled:             true,
 		ProbeCredCacheSize:       1,
 		OrgCredCacheSize:         1,
+		UserCacheSize:            1,
 		ProbeCredCacheExpiration: time.Minute,
 		OrgCredCacheExpiration:   time.Minute,
+		UserCacheExpiration:      time.Minute,
 	})
 	require.NoError(t, err)
 
@@ -195,6 +213,27 @@ func TestAuthCache(t *testing.T) {
 		assert.Error(t, err, "Unexpected successful authentication")
 		assert.Nil(t, response)
 		assert.Equal(t, int32(3), atomic.LoadInt32(&server.probeLookups), "Unexpected number of probe lookups")
+	}
+
+	// Test GetUser cache
+	{
+		atomic.StoreInt32(&server.failRequests, 0)
+
+		response, err := auth.GetUser(context.Background(), &users.GetUserRequest{
+			UserID: userID,
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, response.User.ID, "user12346")
+		assert.Equal(t, response.User.Email, "user@example.org")
+		assert.Equal(t, int32(1), atomic.LoadInt32(&server.userLookups), "Unexpected number of user lookups")
+
+		response, err = auth.GetUser(context.Background(), &users.GetUserRequest{
+			UserID: userID,
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, response.User.ID, "user12346")
+		assert.Equal(t, response.User.Email, "user@example.org")
+		assert.Equal(t, int32(1), atomic.LoadInt32(&server.userLookups), "Unexpected number of user lookups")
 	}
 }
 

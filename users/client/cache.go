@@ -27,17 +27,20 @@ func init() {
 
 // CachingClientConfig control behaviour of the authenticator client.
 type CachingClientConfig struct {
-	CredCacheEnabled         bool
+	CacheEnabled             bool
 	ProbeCredCacheSize       int
 	OrgCredCacheSize         int
+	UserCacheSize            int
 	ProbeCredCacheExpiration time.Duration
 	OrgCredCacheExpiration   time.Duration
+	UserCacheExpiration      time.Duration
 }
 
 type cachingClient struct {
 	users.UsersClient
 	probeCredCache gcache.Cache
 	orgCredCache   gcache.Cache
+	userCache      gcache.Cache
 }
 
 func newCachingClient(cfg CachingClientConfig, client users.UsersClient) *cachingClient {
@@ -45,6 +48,7 @@ func newCachingClient(cfg CachingClientConfig, client users.UsersClient) *cachin
 		UsersClient:    client,
 		probeCredCache: gcache.New(cfg.ProbeCredCacheSize).LRU().Expiration(cfg.ProbeCredCacheExpiration).Build(),
 		orgCredCache:   gcache.New(cfg.OrgCredCacheSize).LRU().Expiration(cfg.OrgCredCacheExpiration).Build(),
+		userCache:      gcache.New(cfg.UserCacheSize).LRU().Expiration(cfg.UserCacheExpiration).Build(),
 	}
 }
 
@@ -89,6 +93,24 @@ func (c *cachingClient) LookupUsingToken(ctx context.Context, in *users.LookupUs
 		c.probeCredCache.Set(*in, cacheValue{out, err})
 	}
 	return out, err
+}
+
+func (c *cachingClient) GetUser(ctx context.Context, in *users.GetUserRequest, opts ...grpc.CallOption) (*users.GetUserResponse, error) {
+	if c.userCache == nil {
+		return c.UsersClient.GetUser(ctx, in, opts...)
+	}
+
+	out, err := c.userCache.Get(*in)
+	authCacheCounter.WithLabelValues("user_cache", hitOrMiss(err)).Inc()
+	if err == nil {
+		return out.(*users.GetUserResponse), nil
+	}
+
+	out, err = c.UsersClient.GetUser(ctx, in, opts...)
+	if err == nil {
+		c.userCache.Set(*in, out)
+	}
+	return out.(*users.GetUserResponse), err
 }
 
 func hitOrMiss(err error) string {

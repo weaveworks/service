@@ -45,3 +45,12 @@ func (mockClient) GetOrganizations(ctx context.Context, in *users.GetOrganizatio
 func (mockClient) GetOrganization(ctx context.Context, in *users.GetOrganizationRequest, opts ...grpc.CallOption) (*users.GetOrganizationResponse, error) {
 	return &users.GetOrganizationResponse{}, nil
 }
+
+func (mockClient) GetUser(ctx context.Context, in *users.GetUserRequest, opts ...grpc.CallOption) (*users.GetUserResponse, error) {
+	return &users.GetUserResponse{
+		User: users.User{
+			ID:    "1",
+			Email: "mock-user@example.org",
+		},
+	}, nil
+}

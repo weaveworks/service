@@ -11,6 +11,7 @@ import (
 	"github.com/weaveworks/service/notebooks/api"
 	"github.com/weaveworks/service/notebooks/db"
 	"github.com/weaveworks/service/notebooks/db/dbtest"
+	users "github.com/weaveworks/service/users/client"
 )
 
 var (
@@ -22,7 +23,8 @@ var (
 // setup sets up the environment for the tests.
 func setup(t *testing.T) {
 	database = dbtest.Setup(t)
-	app = api.New(database)
+	mockUsersClient, _ := users.New("mock", "", users.CachingClientConfig{})
+	app = api.New(database, mockUsersClient)
 	counter = 0
 }
 

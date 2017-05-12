@@ -35,7 +35,7 @@ func New(kind, address string, opts CachingClientConfig) (users.UsersClient, err
 		log.Fatal("Incorrect authenticator type: ", kind)
 		return nil, nil
 	}
-	if opts.CredCacheEnabled {
+	if opts.CacheEnabled {
 		client = newCachingClient(opts, client)
 	}
 	return client, nil

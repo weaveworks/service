@@ -3,9 +3,11 @@ package notebooks
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
 	"time"
 
 	"github.com/satori/go.uuid"
+	"github.com/weaveworks/service/users"
 )
 
 // Errors
@@ -15,15 +17,26 @@ var (
 
 // Notebook describes a collection of PromQL queries
 type Notebook struct {
-	ID        uuid.UUID `json:"id"`
-	OrgID     string    `json:"orgId"`
-	CreatedBy string    `json:"createdBy"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedBy string    `json:"updatedBy"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	Title     string    `json:"title"`
-	Entries   []Entry   `json:"entries"`
-	Version   uuid.UUID `json:"version"`
+	ID             uuid.UUID `json:"id"`
+	OrgID          string    `json:"-"`
+	CreatedBy      string    `json:"-"`
+	CreatedAt      time.Time `json:"-"`
+	UpdatedBy      string    `json:"-"`
+	UpdatedByEmail string    `json:"updatedByEmail"` // resolved with ResolveUser
+	UpdatedAt      time.Time `json:"updatedAt"`
+	Title          string    `json:"title"`
+	Entries        []Entry   `json:"entries"`
+	Version        uuid.UUID `json:"version"`
+}
+
+// ResolveUser uses the UserClient to fill in details about the user such as email address
+func (n *Notebook) ResolveUser(r *http.Request, usersClient users.UsersClient) error {
+	userResponse, err := usersClient.GetUser(r.Context(), &users.GetUserRequest{UserID: n.UpdatedBy})
+	if err != nil {
+		return err
+	}
+	n.UpdatedByEmail = userResponse.User.Email
+	return nil
 }
 
 // Entry describes a PromQL query for a notebook

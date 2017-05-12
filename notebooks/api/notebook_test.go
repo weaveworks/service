@@ -75,17 +75,25 @@ func TestAPI_listNotebooks(t *testing.T) {
 	assert.Len(t, result.Notebooks, 2)
 
 	// Assert notebooks in descending UpdatedAt (creation time)
-	assert.Equal(t, result.Notebooks[0].OrgID, "org1")
-	assert.Equal(t, result.Notebooks[0].CreatedBy, "user1")
 	assert.Equal(t, result.Notebooks[0].Title, "Test notebook 1")
 	assert.Equal(t, result.Notebooks[0].Entries, []notebooks.Entry{notebookEntry})
+	assert.Equal(t, result.Notebooks[0].UpdatedByEmail, "mock-user@example.org")
 	assert.NotEmpty(t, result.Notebooks[0].UpdatedAt)
 
-	assert.Equal(t, result.Notebooks[1].OrgID, "org1")
-	assert.Equal(t, result.Notebooks[1].CreatedBy, "user2")
+	// Internal fields (ids)
+	assert.Empty(t, result.Notebooks[0].OrgID)
+	assert.Empty(t, result.Notebooks[0].CreatedBy)
+	assert.Empty(t, result.Notebooks[0].UpdatedBy)
+
 	assert.Equal(t, result.Notebooks[1].Title, "Test notebook 2")
 	assert.Equal(t, result.Notebooks[1].Entries, []notebooks.Entry{notebookEntry})
+	assert.Equal(t, result.Notebooks[1].UpdatedByEmail, "mock-user@example.org")
 	assert.NotEmpty(t, result.Notebooks[1].UpdatedAt)
+
+	// Internal fields (ids)
+	assert.Empty(t, result.Notebooks[1].OrgID)
+	assert.Empty(t, result.Notebooks[1].CreatedBy)
+	assert.Empty(t, result.Notebooks[1].UpdatedBy)
 }
 
 func TestAPI_createNotebook(t *testing.T) {
@@ -106,11 +114,14 @@ func TestAPI_createNotebook(t *testing.T) {
 	assert.NotEmpty(t, result.ID)
 	assert.NotEmpty(t, result.UpdatedAt)
 	assert.NotEmpty(t, result.Version)
-	assert.Equal(t, result.OrgID, "org1")
-	assert.Equal(t, result.CreatedBy, "user1")
-	assert.Equal(t, result.UpdatedBy, "user1")
 	assert.Equal(t, result.Title, "New notebook")
 	assert.Equal(t, result.Entries, []notebooks.Entry{notebookEntry})
+	assert.Equal(t, result.UpdatedByEmail, "mock-user@example.org")
+
+	// Internal fields (ids)
+	assert.Empty(t, result.OrgID)
+	assert.Empty(t, result.CreatedBy)
+	assert.Empty(t, result.UpdatedBy)
 
 	// Check it was created
 	w, getResult := makeNotebookRequest(t, "org1", "user1", "GET", fmt.Sprintf("/api/prom/notebooks/%s", result.ID.String()), nil)
@@ -137,10 +148,14 @@ func TestAPI_getNotebook(t *testing.T) {
 
 	// Check individual fields as some are updated by the database
 	assert.Equal(t, result.ID, createResult.ID)
-	assert.Equal(t, result.OrgID, "org1")
-	assert.Equal(t, result.CreatedBy, "user1")
-	assert.NotEmpty(t, result.UpdatedAt)
 	assert.Equal(t, result.Title, "Test notebook")
+	assert.Equal(t, result.UpdatedByEmail, "mock-user@example.org")
+	assert.NotEmpty(t, result.UpdatedAt)
+
+	// Internal fields (ids)
+	assert.Empty(t, result.OrgID)
+	assert.Empty(t, result.CreatedBy)
+	assert.Empty(t, result.UpdatedBy)
 
 	assert.Len(t, result.Entries, 1)
 	assert.Equal(t, result.Entries[0].Query, "metric{}")

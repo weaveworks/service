@@ -31,8 +31,19 @@ func (a *API) listNotebooks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	resolvedNotebooks := []notebooks.Notebook{}
+	for _, n := range ns {
+		err = n.ResolveUser(r, a.usersClient)
+		if err != nil {
+			log.Errorf("Error resolving notebook user: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		resolvedNotebooks = append(resolvedNotebooks, n)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(NotebooksView{ns}); err != nil {
+	if err := json.NewEncoder(w).Encode(NotebooksView{resolvedNotebooks}); err != nil {
 		log.Errorf("Error encoding notebooks: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -89,6 +100,13 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = notebook.ResolveUser(r, a.usersClient)
+	if err != nil {
+		log.Errorf("Error resolving notebook user: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(notebook); err != nil {
 		log.Errorf("Error encoding notebooks: %v", err)
@@ -116,6 +134,13 @@ func (a *API) getNotebook(w http.ResponseWriter, r *http.Request) {
 	notebook, err := a.db.GetNotebook(notebookID, orgID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	err = notebook.ResolveUser(r, a.usersClient)
+	if err != nil {
+		log.Errorf("Error resolving notebook user: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -184,6 +209,13 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 	notebook, err = a.db.GetNotebook(notebookID, orgID)
 	if err != nil {
 		log.Errorf("Error fetching new notebook: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = notebook.ResolveUser(r, a.usersClient)
+	if err != nil {
+		log.Errorf("Error resolving notebook user: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
