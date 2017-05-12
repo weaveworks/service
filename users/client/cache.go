@@ -96,21 +96,21 @@ func (c *cachingClient) LookupUsingToken(ctx context.Context, in *users.LookupUs
 }
 
 func (c *cachingClient) GetUser(ctx context.Context, in *users.GetUserRequest, opts ...grpc.CallOption) (*users.GetUserResponse, error) {
-	if c.orgCredCache == nil {
+	if c.userCache == nil {
 		return c.UsersClient.GetUser(ctx, in, opts...)
 	}
 
-	org, err := c.orgCredCache.Get(*in)
+	out, err := c.userCache.Get(*in)
 	authCacheCounter.WithLabelValues("user_cache", hitOrMiss(err)).Inc()
 	if err == nil {
-		return org.(cacheValue).out.(*users.GetUserResponse), org.(cacheValue).err
+		return out.(*users.GetUserResponse), nil
 	}
 
-	out, err := c.UsersClient.GetUser(ctx, in, opts...)
-	if err == nil || isUnauthorized(err) {
-		c.orgCredCache.Set(*in, cacheValue{out, err})
+	out, err = c.UsersClient.GetUser(ctx, in, opts...)
+	if err == nil {
+		c.userCache.Set(*in, out)
 	}
-	return out, err
+	return out.(*users.GetUserResponse), err
 }
 
 func hitOrMiss(err error) string {
