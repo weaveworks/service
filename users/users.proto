@@ -96,11 +96,11 @@ message GetUserResponse {
 }
 
 message User {
-    string ID = 1;
-    string Email = 2;
-    string Token = 3;
-    google.protobuf.Timestamp TokenCreatedAt = 4 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
-    google.protobuf.Timestamp FirstLoginAt = 5 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
-    google.protobuf.Timestamp CreatedAt = 6 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
-    bool Admin = 7;
+    string ID = 1 [(gogoproto.jsontag) = "-"];
+    string Email = 2 [(gogoproto.jsontag) = "email"];
+    string Token = 3 [(gogoproto.jsontag) = "-"];
+    google.protobuf.Timestamp TokenCreatedAt = 4 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "-"];
+    google.protobuf.Timestamp FirstLoginAt = 5 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "-"];
+    google.protobuf.Timestamp CreatedAt = 6 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "-"];
+    bool Admin = 7 [(gogoproto.jsontag) = "-"];
 }
