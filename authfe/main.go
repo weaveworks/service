@@ -73,8 +73,10 @@ func main() {
 		authOptions.CacheEnabled = true
 		authOptions.OrgCredCacheSize = cfg.authCacheSize
 		authOptions.ProbeCredCacheSize = cfg.authCacheSize
+		authOptions.UserCacheSize = cfg.authCacheSize
 		authOptions.OrgCredCacheExpiration = cfg.authCacheExpiration
 		authOptions.ProbeCredCacheExpiration = cfg.authCacheExpiration
+		authOptions.UserCacheExpiration = cfg.authCacheExpiration
 	}
 	authenticator, err := users.New(cfg.authType, cfg.authURL, authOptions)
 	if err != nil {
