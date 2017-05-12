@@ -153,11 +153,13 @@ func TestAuthCache(t *testing.T) {
 	require.NoError(t, err)
 	defer server.Close()
 	auth, err := New("grpc", server.URL, CachingClientConfig{
-		CredCacheEnabled:         true,
+		CacheEnabled:             true,
 		ProbeCredCacheSize:       1,
 		OrgCredCacheSize:         1,
+		UserCacheSize:            1,
 		ProbeCredCacheExpiration: time.Minute,
 		OrgCredCacheExpiration:   time.Minute,
+		UserCacheExpiration:      time.Minute,
 	})
 	require.NoError(t, err)
 

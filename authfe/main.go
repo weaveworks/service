@@ -70,7 +70,7 @@ func main() {
 
 	authOptions := users.CachingClientConfig{}
 	if cfg.authCacheSize > 0 {
-		authOptions.CredCacheEnabled = true
+		authOptions.CacheEnabled = true
 		authOptions.OrgCredCacheSize = cfg.authCacheSize
 		authOptions.ProbeCredCacheSize = cfg.authCacheSize
 		authOptions.OrgCredCacheExpiration = cfg.authCacheExpiration

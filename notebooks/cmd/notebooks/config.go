@@ -2,12 +2,15 @@ package main
 
 import (
 	"flag"
+	"time"
 )
 
 // Config for the notebooks service
 type Config struct {
-	usersServiceType string
-	usersServiceURL  string
+	usersServiceType     string
+	usersServiceURL      string
+	usersCacheSize       int
+	usersCacheExpiration time.Duration
 }
 
 // RegisterFlags for the notebooks service

@@ -36,8 +36,17 @@ func main() {
 	}
 	defer server.Shutdown()
 
-	authOptions := users.CachingClientConfig{}
-	usersClient, err := users.New(cfg.usersServiceType, cfg.usersServiceURL, authOptions)
+	usersOptions := users.CachingClientConfig{}
+	if cfg.usersCacheSize > 0 {
+		usersOptions.CacheEnabled = true
+		usersOptions.OrgCredCacheSize = cfg.usersCacheSize
+		usersOptions.ProbeCredCacheSize = cfg.usersCacheSize
+		usersOptions.UserCacheSize = cfg.usersCacheSize
+		usersOptions.OrgCredCacheExpiration = cfg.usersCacheExpiration
+		usersOptions.ProbeCredCacheExpiration = cfg.usersCacheExpiration
+		usersOptions.UserCacheExpiration = cfg.usersCacheExpiration
+	}
+	usersClient, err := users.New(cfg.usersServiceType, cfg.usersServiceURL, usersOptions)
 	if err != nil {
 		log.Fatalf("Error making users client: %v", err)
 		return
