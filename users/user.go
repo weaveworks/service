@@ -13,17 +13,6 @@ type FindUserByIDer interface {
 	FindUserByID(ctx context.Context, id string) (*User, error)
 }
 
-// User is what it's all about.
-type User struct {
-	ID             string    `json:"-"`
-	Email          string    `json:"email"`
-	Token          string    `json:"-"`
-	TokenCreatedAt time.Time `json:"-"`
-	FirstLoginAt   time.Time `json:"-"`
-	CreatedAt      time.Time `json:"-"`
-	Admin          bool      `json:"-"`
-}
-
 func formatTimestamp(t time.Time) string {
 	if t.IsZero() {
 		return ""

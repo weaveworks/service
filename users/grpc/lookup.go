@@ -133,3 +133,17 @@ func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganiz
 		},
 	}, nil
 }
+
+func (a *usersServer) GetUser(ctx context.Context, req *users.GetUserRequest) (*users.GetUserResponse, error) {
+	user, err := a.db.FindUserByID(ctx, req.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &users.GetUserResponse{
+		User: users.User{
+			ID:    user.ID,
+			Email: user.Email,
+		},
+	}, nil
+}
