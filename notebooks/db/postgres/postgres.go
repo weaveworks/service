@@ -61,6 +61,9 @@ func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
 		"version",
 		"title",
 		"entries",
+		"query_end",
+		"query_range",
+		"trailing_now",
 	).
 		From("notebooks").
 		Where(squirrel.Eq{"org_id": orgID}).
@@ -84,6 +87,9 @@ func (d DB) ListNotebooks(orgID string) ([]notebooks.Notebook, error) {
 			&notebook.Version,
 			&notebook.Title,
 			&entriesBytes,
+			&notebook.QueryEnd,
+			&notebook.QueryRange,
+			&notebook.TrailingNow,
 		)
 		if err != nil {
 			return nil, err
@@ -116,6 +122,9 @@ func (d DB) CreateNotebook(notebook notebooks.Notebook) (string, error) {
 			"version",
 			"title",
 			"entries",
+			"query_end",
+			"query_range",
+			"trailing_now",
 		).
 		Values(
 			newID,
@@ -125,6 +134,9 @@ func (d DB) CreateNotebook(notebook notebooks.Notebook) (string, error) {
 			newVersion,
 			notebook.Title,
 			entriesBytes,
+			notebook.QueryEnd,
+			notebook.QueryRange,
+			notebook.TrailingNow,
 		).
 		Exec()
 
@@ -146,6 +158,9 @@ func (d DB) GetNotebook(ID, orgID string) (notebooks.Notebook, error) {
 		"version",
 		"title",
 		"entries",
+		"query_end",
+		"query_range",
+		"trailing_now",
 	).
 		From("notebooks").
 		Where(squirrel.Eq{"id": ID}, squirrel.Eq{"org_id": orgID}).
@@ -160,6 +175,9 @@ func (d DB) GetNotebook(ID, orgID string) (notebooks.Notebook, error) {
 			&notebook.Version,
 			&notebook.Title,
 			&entriesBytes,
+			&notebook.QueryEnd,
+			&notebook.QueryRange,
+			&notebook.TrailingNow,
 		)
 	if err != nil {
 		return notebooks.Notebook{}, err
@@ -194,11 +212,14 @@ func (d DB) UpdateNotebook(ID, orgID string, notebook notebooks.Notebook, versio
 	_, err = d.Update("notebooks").
 		SetMap(
 			map[string]interface{}{
-				"updated_by": notebook.UpdatedBy,
-				"updated_at": squirrel.Expr("now()"),
-				"version":    newVersion,
-				"title":      notebook.Title,
-				"entries":    entriesBytes,
+				"updated_by":   notebook.UpdatedBy,
+				"updated_at":   squirrel.Expr("now()"),
+				"version":      newVersion,
+				"title":        notebook.Title,
+				"entries":      entriesBytes,
+				"query_end":    notebook.QueryEnd,
+				"query_range":  notebook.QueryRange,
+				"trailing_now": notebook.TrailingNow,
 			},
 		).
 		Where(squirrel.Eq{"id": ID}, squirrel.Eq{"org_id": orgID}).
