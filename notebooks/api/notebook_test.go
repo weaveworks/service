@@ -45,7 +45,6 @@ func TestAPI_listNotebooks(t *testing.T) {
 		{
 			orgID:  "org1",
 			userID: "user2",
-
 			notebook: api.NotebookWriteView{
 				Title:   "Test notebook 2",
 				Entries: []notebooks.Entry{notebookEntry},
@@ -102,8 +101,11 @@ func TestAPI_createNotebook(t *testing.T) {
 
 	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	data := api.NotebookWriteView{
-		Title:   "New notebook",
-		Entries: []notebooks.Entry{notebookEntry},
+		Title:       "New notebook",
+		Entries:     []notebooks.Entry{notebookEntry},
+		QueryEnd:    "1000000.1",
+		QueryRange:  "1h",
+		TrailingNow: true,
 	}
 
 	b, err := json.Marshal(data)
@@ -117,6 +119,9 @@ func TestAPI_createNotebook(t *testing.T) {
 	assert.Equal(t, result.Title, "New notebook")
 	assert.Equal(t, result.Entries, []notebooks.Entry{notebookEntry})
 	assert.Equal(t, result.UpdatedByEmail, "mock-user@example.org")
+	assert.Equal(t, result.QueryEnd, json.Number("1000000.1"))
+	assert.Equal(t, result.QueryRange, "1h")
+	assert.Equal(t, result.TrailingNow, true)
 
 	// Internal fields (ids)
 	assert.Empty(t, result.OrgID)
@@ -136,8 +141,11 @@ func TestAPI_getNotebook(t *testing.T) {
 	// Create notebook
 	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	notebook := api.NotebookWriteView{
-		Title:   "Test notebook",
-		Entries: []notebooks.Entry{notebookEntry},
+		Title:       "Test notebook",
+		Entries:     []notebooks.Entry{notebookEntry},
+		QueryEnd:    "1000000.1",
+		QueryRange:  "1h",
+		TrailingNow: true,
 	}
 	b, err := json.Marshal(notebook)
 	require.NoError(t, err)
@@ -150,6 +158,9 @@ func TestAPI_getNotebook(t *testing.T) {
 	assert.Equal(t, result.ID, createResult.ID)
 	assert.Equal(t, result.Title, "Test notebook")
 	assert.Equal(t, result.UpdatedByEmail, "mock-user@example.org")
+	assert.Equal(t, result.QueryEnd, json.Number("1000000.1"))
+	assert.Equal(t, result.QueryRange, "1h")
+	assert.Equal(t, result.TrailingNow, true)
 	assert.NotEmpty(t, result.UpdatedAt)
 
 	// Internal fields (ids)
@@ -180,8 +191,11 @@ func TestAPI_updateNotebook(t *testing.T) {
 	// Create notebook
 	notebookEntry := notebooks.Entry{Query: "metric{}", QueryEnd: "1000.1", QueryRange: "1h", Type: "graph"}
 	notebook := api.NotebookWriteView{
-		Title:   "Test notebook",
-		Entries: []notebooks.Entry{notebookEntry},
+		Title:       "Test notebook",
+		Entries:     []notebooks.Entry{notebookEntry},
+		QueryEnd:    "1000000.1",
+		QueryRange:  "1h",
+		TrailingNow: true,
 	}
 	b, err := json.Marshal(notebook)
 	require.NoError(t, err)
@@ -191,8 +205,11 @@ func TestAPI_updateNotebook(t *testing.T) {
 	// Create update request
 	updatedNotebookEntry := notebooks.Entry{Query: "updatedMetric{}", QueryEnd: "77.7", QueryRange: "7h", Type: "new"}
 	data := api.NotebookWriteView{
-		Title:   "Updated notebook",
-		Entries: []notebooks.Entry{updatedNotebookEntry},
+		Title:       "Updated notebook",
+		Entries:     []notebooks.Entry{updatedNotebookEntry},
+		QueryEnd:    "2000000.1",
+		QueryRange:  "2h",
+		TrailingNow: false,
 	}
 	b, err = json.Marshal(data)
 	require.NoError(t, err)
@@ -212,6 +229,10 @@ func TestAPI_updateNotebook(t *testing.T) {
 	assert.Equal(t, w.Code, 200)
 	assert.Equal(t, getResult.Title, "Updated notebook")
 	assert.Equal(t, getResult.Version, result.Version)
+	assert.Equal(t, getResult.QueryEnd, json.Number("2000000.1"))
+	assert.Equal(t, getResult.QueryRange, "2h")
+	assert.Equal(t, getResult.TrailingNow, false)
+
 	assert.Equal(t, getResult.Entries[0].Query, "updatedMetric{}")
 	assert.Equal(t, getResult.Entries[0].QueryEnd.String(), "77.7")
 	assert.Equal(t, getResult.Entries[0].QueryRange, "7h")
