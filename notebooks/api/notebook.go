@@ -52,8 +52,11 @@ func (a *API) listNotebooks(w http.ResponseWriter, r *http.Request) {
 
 // NotebookWriteView describes the structure the user can write to
 type NotebookWriteView struct {
-	Title   string            `json:"title"`
-	Entries []notebooks.Entry `json:"entries"`
+	Title       string            `json:"title"`
+	Entries     []notebooks.Entry `json:"entries"`
+	QueryEnd    json.Number       `json:"queryEnd"`
+	QueryRange  string            `json:"queryRange"`
+	TrailingNow bool              `json:"trailingNow"`
 }
 
 // createNotebook creates a notebook
@@ -78,11 +81,14 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	notebook := notebooks.Notebook{
-		OrgID:     orgID,
-		CreatedBy: userID,
-		UpdatedBy: userID,
-		Title:     input.Title,
-		Entries:   input.Entries,
+		OrgID:       orgID,
+		CreatedBy:   userID,
+		UpdatedBy:   userID,
+		Title:       input.Title,
+		Entries:     input.Entries,
+		QueryEnd:    input.QueryEnd,
+		QueryRange:  input.QueryRange,
+		TrailingNow: input.TrailingNow,
 	}
 
 	id, err := a.db.CreateNotebook(notebook)
@@ -190,9 +196,12 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	notebook := notebooks.Notebook{
-		UpdatedBy: userID,
-		Title:     input.Title,
-		Entries:   input.Entries,
+		UpdatedBy:   userID,
+		Title:       input.Title,
+		Entries:     input.Entries,
+		QueryEnd:    input.QueryEnd,
+		QueryRange:  input.QueryRange,
+		TrailingNow: input.TrailingNow,
 	}
 
 	err = a.db.UpdateNotebook(notebookID, orgID, notebook, version[0])

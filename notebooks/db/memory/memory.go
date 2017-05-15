@@ -82,6 +82,9 @@ func (d DB) UpdateNotebook(ID, orgID string, update notebooks.Notebook, version 
 		notebook.Version = uuid.NewV4()
 		notebook.Title = update.Title
 		notebook.Entries = update.Entries
+		notebook.QueryEnd = update.QueryEnd
+		notebook.QueryRange = update.QueryRange
+		notebook.TrailingNow = update.TrailingNow
 
 		d.notebooks[ID] = notebook
 		return nil

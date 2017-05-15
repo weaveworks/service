@@ -17,16 +17,19 @@ var (
 
 // Notebook describes a collection of PromQL queries
 type Notebook struct {
-	ID             uuid.UUID `json:"id"`
-	OrgID          string    `json:"-"`
-	CreatedBy      string    `json:"-"`
-	CreatedAt      time.Time `json:"-"`
-	UpdatedBy      string    `json:"-"`
-	UpdatedByEmail string    `json:"updatedByEmail"` // resolved with ResolveUser
-	UpdatedAt      time.Time `json:"updatedAt"`
-	Title          string    `json:"title"`
-	Entries        []Entry   `json:"entries"`
-	Version        uuid.UUID `json:"version"`
+	ID             uuid.UUID   `json:"id"`
+	OrgID          string      `json:"-"`
+	CreatedBy      string      `json:"-"`
+	CreatedAt      time.Time   `json:"-"`
+	UpdatedBy      string      `json:"-"`
+	UpdatedByEmail string      `json:"updatedByEmail"` // resolved with ResolveUser
+	UpdatedAt      time.Time   `json:"updatedAt"`
+	Title          string      `json:"title"`
+	Entries        []Entry     `json:"entries"`
+	QueryEnd       json.Number `json:"queryEnd"`
+	QueryRange     string      `json:"queryRange"`
+	TrailingNow    bool        `json:"trailingNow"`
+	Version        uuid.UUID   `json:"version"`
 }
 
 // ResolveUser uses the UserClient to fill in details about the user such as email address
