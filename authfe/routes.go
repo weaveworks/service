@@ -125,11 +125,6 @@ func newAnalyticsLogger(userIDHeader string) HTTPEventExtractor {
 			sessionID = sessionCookie.Value
 		}
 
-		orgID, err := user.ExtractOrgID(r.Context())
-		if err != nil {
-			return Event{}, false
-		}
-
 		values, err := ioutil.ReadAll(&io.LimitedReader{
 			R: r.Body,
 			N: maxAnalyticsPayloadSize,
@@ -139,14 +134,13 @@ func newAnalyticsLogger(userIDHeader string) HTTPEventExtractor {
 		}
 
 		event := Event{
-			ID:             r.URL.Path,
-			SessionID:      sessionID,
-			Product:        "scope-ui",
-			UserAgent:      r.UserAgent(),
-			OrganizationID: orgID,
-			UserID:         r.Header.Get(userIDHeader),
-			Values:         string(values),
-			IPAddress:      mustSplitHostname(r),
+			ID:        r.URL.Path,
+			SessionID: sessionID,
+			Product:   "scope-ui",
+			UserAgent: r.UserAgent(),
+			UserID:    r.Header.Get(userIDHeader),
+			Values:    string(values),
+			IPAddress: mustSplitHostname(r),
 		}
 		return event, true
 	}
@@ -180,7 +174,8 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	}
 
 	authUserMiddleware := users_client.AuthUserMiddleware{
-		UsersClient: authenticator,
+		UsersClient:  authenticator,
+		UserIDHeader: userIDHeader,
 	}
 
 	billingAuthMiddleware := users_client.AuthOrgMiddleware{
