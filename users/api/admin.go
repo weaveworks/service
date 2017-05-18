@@ -142,36 +142,6 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *API) adminShowOrganization(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	orgExternalID, ok := vars["orgExternalID"]
-	if !ok {
-		render.Error(w, r, users.ErrNotFound)
-		return
-	}
-
-	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
-	if err != nil {
-		render.Error(w, r, err)
-		return
-	}
-
-	users, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID)
-	if err != nil {
-		render.Error(w, r, err)
-		return
-	}
-
-	render.JSON(w, http.StatusOK, privateOrgView{
-		ID:           org.ExternalID,
-		InternalID:   org.ID,
-		Name:         org.Name,
-		CreatedAt:    org.FormatCreatedAt(),
-		FeatureFlags: org.FeatureFlags,
-		Users:        users,
-	})
-}
-
 func (a *API) setOrgFeatureFlags(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orgExternalID, ok := vars["orgExternalID"]
