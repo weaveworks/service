@@ -212,11 +212,12 @@ func (a *API) setOrgFlag(w http.ResponseWriter, r *http.Request) {
 	value := r.FormValue("value") == "on"
 
 	var err error
-	if flag == "DenyUIFeatures" {
+	switch flag {
+	case "DenyUIFeatures":
 		err = a.db.SetOrganizationDenyUIFeatures(r.Context(), orgExternalID, value)
-	} else if flag == "DenyTokenAuth" {
+	case "DenyTokenAuth":
 		err = a.db.SetOrganizationDenyTokenAuth(r.Context(), orgExternalID, value)
-	} else {
+	default:
 		render.Error(w, r, users.ErrForbidden)
 		return
 	}
