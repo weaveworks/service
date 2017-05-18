@@ -236,9 +236,6 @@ func changeOrg(d *DB, externalID string, toWrap func(*users.Organization) error)
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	o, err := d.findOrganizationByExternalID(externalID)
-	if err == users.ErrNotFound {
-		return nil
-	}
 	if err != nil {
 		return err
 	}
@@ -293,12 +290,17 @@ func (d *DB) GetOrganizationName(_ context.Context, externalID string) (string, 
 
 // DeleteOrganization deletes an organization
 func (d *DB) DeleteOrganization(_ context.Context, externalID string) error {
-	return changeOrg(d, externalID, func(o *users.Organization) error {
-		d.deletedOrganizations[o.ID] = o
-		delete(d.organizations, o.ID)
-		delete(d.memberships, o.ID)
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	o, err := d.findOrganizationByExternalID(externalID)
+	if err == users.ErrNotFound {
 		return nil
-	})
+	}
+
+	d.deletedOrganizations[o.ID] = o
+	delete(d.organizations, o.ID)
+	delete(d.memberships, o.ID)
+	return nil
 }
 
 // AddFeatureFlag adds a new feature flag to an organization.
