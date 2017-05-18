@@ -169,12 +169,10 @@ func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, to
 		return nil, err
 	}
 	o := &users.Organization{
-		ID:             fmt.Sprint(len(d.organizations)),
-		ExternalID:     externalID,
-		Name:           name,
-		CreatedAt:      time.Now().UTC(),
-		DenyUIFeatures: false,
-		DenyTokenAuth:  false,
+		ID:         fmt.Sprint(len(d.organizations)),
+		ExternalID: externalID,
+		Name:       name,
+		CreatedAt:  time.Now().UTC(),
 	}
 	if err := o.Valid(); err != nil {
 		return nil, err
