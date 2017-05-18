@@ -171,6 +171,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		},
 		UserIDHeader:       userIDHeader,
 		FeatureFlagsHeader: featureFlagsHeader,
+		AuthorizeFor:       "features",
 	}
 
 	authUserMiddleware := users_client.AuthUserMiddleware{
@@ -187,6 +188,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		UserIDHeader:        userIDHeader,
 		FeatureFlagsHeader:  featureFlagsHeader,
 		RequireFeatureFlags: []string{"billing"},
+		AuthorizeFor:        "billing",
 	}
 
 	fluxGHTokenMiddleware := users_client.GHIntegrationMiddleware{

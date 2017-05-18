@@ -39,6 +39,10 @@ func (a *usersServer) LookupOrg(ctx context.Context, req *users.LookupOrgRequest
 	}
 	for _, org := range organizations {
 		if strings.ToLower(org.ExternalID) == strings.ToLower(req.OrgExternalID) {
+			if org.DenyUIFeatures && req.AuthorizeFor == "features" {
+				return nil, users.ErrOrgUIFeaturesDisabled
+			}
+
 			return &users.LookupOrgResponse{
 				OrganizationID: org.ID,
 				UserID:         session.UserID,
@@ -78,6 +82,9 @@ func (a *usersServer) LookupUsingToken(ctx context.Context, req *users.LookupUsi
 	}
 	if err != nil {
 		return nil, err
+	}
+	if o.DenyTokenAuth {
+		return nil, users.ErrOrgTokenAuthDisabled
 	}
 	return &users.LookupUsingTokenResponse{
 		OrganizationID: o.ID,

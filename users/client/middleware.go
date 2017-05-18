@@ -25,6 +25,9 @@ type AuthOrgMiddleware struct {
 	UserIDHeader        string
 	FeatureFlagsHeader  string
 	RequireFeatureFlags []string
+
+	// What access we wish to authorise the user for
+	AuthorizeFor string
 }
 
 // Wrap implements middleware.Interface
@@ -47,6 +50,7 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 		response, err := a.UsersClient.LookupOrg(r.Context(), &users.LookupOrgRequest{
 			Cookie:        authCookie.Value,
 			OrgExternalID: orgExternalID,
+			AuthorizeFor:  a.AuthorizeFor,
 		})
 		if err != nil {
 			handleError(err, w)
