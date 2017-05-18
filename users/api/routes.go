@@ -63,7 +63,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"admin_users_organizations", "GET", "/admin/users/organizations", a.listOrganizations},
 		{"admin_users_organizations_orgExternalID", "GET", "/admin/users/organizations/{orgExternalID}", a.adminShowOrganization},
 		{"admin_users_organizations_orgExternalID_featureFlags", "POST", "/admin/users/organizations/{orgExternalID}/featureflags", a.setOrgFeatureFlags},
-		{"admin_users_organizations_orgExternalID_flags", "POST", "/admin/users/organizations/{orgExternalID}/setFlag", a.setOrgFlag},
+		{"admin_users_organizations_orgExternalID_setFlag", "POST", "/admin/users/organizations/{orgExternalID}/setFlag", a.setOrgFlag},
 		{"admin_users_pardot", "GET", "/admin/users/marketing_refresh", a.marketingRefresh},
 		{"admin_users_users", "GET", "/admin/users/users", a.listUsers},
 		{"admin_users_users_userID_admin", "POST", "/admin/users/users/{userID}/admin", a.makeUserAdmin},
