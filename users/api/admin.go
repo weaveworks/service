@@ -226,11 +226,7 @@ func (a *API) setOrgFlag(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err)
 		return
 	}
-	redirectTo := r.FormValue("redirect_to")
-	if redirectTo == "" {
-		redirectTo = "/admin/users/organizations"
-	}
-	http.Redirect(w, r, redirectTo, http.StatusFound)
+	http.Redirect(w, r, "/admin/users/organizations", http.StatusFound)
 }
 
 func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
