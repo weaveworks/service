@@ -218,7 +218,7 @@ func (a *API) setOrgFlag(w http.ResponseWriter, r *http.Request) {
 	case "DenyTokenAuth":
 		err = a.db.SetOrganizationDenyTokenAuth(r.Context(), orgExternalID, value)
 	default:
-		render.Error(w, r, users.ErrForbidden)
+		err = users.ValidationErrorf("Invalid flag %v", flag)
 		return
 	}
 
