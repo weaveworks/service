@@ -85,12 +85,14 @@ type listOrganizationsView struct {
 }
 
 type privateOrgView struct {
-	ID           string        `json:"id"`
-	InternalID   string        `json:"internal_id"`
-	Name         string        `json:"name"`
-	CreatedAt    string        `json:"created_at"`
-	FeatureFlags []string      `json:"feature_flags,omitempty"`
-	Users        []*users.User `json:"users,omitempty"`
+	ID             string        `json:"id"`
+	InternalID     string        `json:"internal_id"`
+	Name           string        `json:"name"`
+	CreatedAt      string        `json:"created_at"`
+	FeatureFlags   []string      `json:"feature_flags,omitempty"`
+	Users          []*users.User `json:"users,omitempty"`
+	DenyUIFeatures bool          `json:"deny_ui_features"`
+	DenyTokenAuth  bool          `json:"deny_token_auth"`
 }
 
 func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
@@ -105,11 +107,13 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 		view := listOrganizationsView{}
 		for _, org := range organizations {
 			view.Organizations = append(view.Organizations, privateOrgView{
-				ID:           org.ExternalID,
-				InternalID:   org.ID,
-				Name:         org.Name,
-				CreatedAt:    org.FormatCreatedAt(),
-				FeatureFlags: org.FeatureFlags,
+				ID:             org.ExternalID,
+				InternalID:     org.ID,
+				Name:           org.Name,
+				CreatedAt:      org.FormatCreatedAt(),
+				FeatureFlags:   org.FeatureFlags,
+				DenyUIFeatures: org.DenyUIFeatures,
+				DenyTokenAuth:  org.DenyTokenAuth,
 			})
 		}
 		render.JSON(w, http.StatusOK, view)
@@ -187,6 +191,37 @@ func (a *API) setOrgFeatureFlags(w http.ResponseWriter, r *http.Request) {
 	sort.Strings(sortedFlags)
 
 	if err := a.db.SetFeatureFlags(r.Context(), orgExternalID, sortedFlags); err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	redirectTo := r.FormValue("redirect_to")
+	if redirectTo == "" {
+		redirectTo = "/admin/users/organizations"
+	}
+	http.Redirect(w, r, redirectTo, http.StatusFound)
+}
+
+func (a *API) setOrgFlag(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	orgExternalID, ok := vars["orgExternalID"]
+	if !ok {
+		render.Error(w, r, users.ErrNotFound)
+		return
+	}
+	flag := r.FormValue("flag")
+	value := r.FormValue("value") == "on"
+
+	var err error
+	if flag == "DenyUIFeatures" {
+		err = a.db.SetOrganizationDenyUIFeatures(r.Context(), orgExternalID, value)
+	} else if flag == "DenyTokenAuth" {
+		err = a.db.SetOrganizationDenyTokenAuth(r.Context(), orgExternalID, value)
+	} else {
+		render.Error(w, r, users.ErrForbidden)
+		return
+	}
+
+	if err != nil {
 		render.Error(w, r, err)
 		return
 	}

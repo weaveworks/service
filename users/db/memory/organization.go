@@ -169,10 +169,12 @@ func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, to
 		return nil, err
 	}
 	o := &users.Organization{
-		ID:         fmt.Sprint(len(d.organizations)),
-		ExternalID: externalID,
-		Name:       name,
-		CreatedAt:  time.Now().UTC(),
+		ID:             fmt.Sprint(len(d.organizations)),
+		ExternalID:     externalID,
+		Name:           name,
+		CreatedAt:      time.Now().UTC(),
+		DenyUIFeatures: false,
+		DenyTokenAuth:  false,
 	}
 	if err := o.Valid(); err != nil {
 		return nil, err
@@ -313,6 +315,22 @@ func (d *DB) AddFeatureFlag(_ context.Context, externalID string, featureFlag st
 func (d *DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags []string) error {
 	return changeOrg(d, externalID, func(o *users.Organization) error {
 		o.FeatureFlags = featureFlags
+		return nil
+	})
+}
+
+// SetOrganizationDenyUIFeatures sets the "deny UI features" flag on an organization
+func (d *DB) SetOrganizationDenyUIFeatures(_ context.Context, externalID string, value bool) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.DenyUIFeatures = value
+		return nil
+	})
+}
+
+// SetOrganizationDenyTokenAuth sets the "deny token auth" flag on an organization
+func (d *DB) SetOrganizationDenyTokenAuth(_ context.Context, externalID string, value bool) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.DenyTokenAuth = value
 		return nil
 	})
 }
