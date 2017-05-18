@@ -142,53 +142,38 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *API) setOrgFeatureFlags(w http.ResponseWriter, r *http.Request) {
+func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orgExternalID, ok := vars["orgExternalID"]
 	if !ok {
 		render.Error(w, r, users.ErrNotFound)
 		return
 	}
-
-	uniqueFlags := map[string]struct{}{}
-	for _, f := range strings.Fields(r.FormValue("feature_flags")) {
-		uniqueFlags[f] = struct{}{}
-	}
-	var sortedFlags []string
-	for f := range uniqueFlags {
-		sortedFlags = append(sortedFlags, f)
-	}
-	sort.Strings(sortedFlags)
-
-	if err := a.db.SetFeatureFlags(r.Context(), orgExternalID, sortedFlags); err != nil {
-		render.Error(w, r, err)
-		return
-	}
-	redirectTo := r.FormValue("redirect_to")
-	if redirectTo == "" {
-		redirectTo = "/admin/users/organizations"
-	}
-	http.Redirect(w, r, redirectTo, http.StatusFound)
-}
-
-func (a *API) setOrgFlag(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	orgExternalID, ok := vars["orgExternalID"]
-	if !ok {
-		render.Error(w, r, users.ErrNotFound)
-		return
-	}
-	flag := r.FormValue("flag")
-	value := r.FormValue("value") == "on"
+	field := r.FormValue("field")
+	value := r.FormValue("value")
 
 	var err error
-	switch flag {
+	switch field {
 	case "DenyUIFeatures":
-		err = a.db.SetOrganizationDenyUIFeatures(r.Context(), orgExternalID, value)
+		deny := value == "on"
+		err = a.db.SetOrganizationDenyUIFeatures(r.Context(), orgExternalID, deny)
 	case "DenyTokenAuth":
-		err = a.db.SetOrganizationDenyTokenAuth(r.Context(), orgExternalID, value)
+		deny := value == "on"
+		err = a.db.SetOrganizationDenyTokenAuth(r.Context(), orgExternalID, deny)
+	case "FeatureFlags":
+		uniqueFlags := map[string]struct{}{}
+		for _, f := range strings.Fields(value) {
+			uniqueFlags[f] = struct{}{}
+		}
+		var sortedFlags []string
+		for f := range uniqueFlags {
+			sortedFlags = append(sortedFlags, f)
+		}
+		sort.Strings(sortedFlags)
+
+		err = a.db.SetFeatureFlags(r.Context(), orgExternalID, sortedFlags)
 	default:
-		err = users.ValidationErrorf("Invalid flag %v", flag)
+		err = users.ValidationErrorf("Invalid field %v", field)
 		return
 	}
 
@@ -196,6 +181,7 @@ func (a *API) setOrgFlag(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err)
 		return
 	}
+
 	http.Redirect(w, r, "/admin/users/organizations", http.StatusFound)
 }
 
