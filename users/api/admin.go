@@ -80,21 +80,6 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type listOrganizationsView struct {
-	Organizations []privateOrgView `json:"organizations"`
-}
-
-type privateOrgView struct {
-	ID             string        `json:"id"`
-	InternalID     string        `json:"internal_id"`
-	Name           string        `json:"name"`
-	CreatedAt      string        `json:"created_at"`
-	FeatureFlags   []string      `json:"feature_flags,omitempty"`
-	Users          []*users.User `json:"users,omitempty"`
-	DenyUIFeatures bool          `json:"deny_ui_features"`
-	DenyTokenAuth  bool          `json:"deny_token_auth"`
-}
-
 func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 	organizations, err := a.db.ListOrganizations(r.Context())
 	if err != nil {
@@ -102,43 +87,26 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	switch render.Format(r) {
-	case render.FormatJSON:
-		view := listOrganizationsView{}
-		for _, org := range organizations {
-			view.Organizations = append(view.Organizations, privateOrgView{
-				ID:             org.ExternalID,
-				InternalID:     org.ID,
-				Name:           org.Name,
-				CreatedAt:      org.FormatCreatedAt(),
-				FeatureFlags:   org.FeatureFlags,
-				DenyUIFeatures: org.DenyUIFeatures,
-				DenyTokenAuth:  org.DenyTokenAuth,
-			})
-		}
-		render.JSON(w, http.StatusOK, view)
-	default: // render.FormatHTML
-		orgUsers := map[string]int{}
-		for _, org := range organizations {
-			us, err := a.db.ListOrganizationUsers(r.Context(), org.ExternalID)
-			if err != nil {
-				render.Error(w, r, err)
-				return
-			}
-			orgUsers[org.ExternalID] = len(us)
-		}
-
-		b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
-			"Organizations":     organizations,
-			"OrganizationUsers": orgUsers,
-		})
+	orgUsers := map[string]int{}
+	for _, org := range organizations {
+		us, err := a.db.ListOrganizationUsers(r.Context(), org.ExternalID)
 		if err != nil {
 			render.Error(w, r, err)
 			return
 		}
-		if _, err := w.Write(b); err != nil {
-			logrus.Warn("list organizations: %v", err)
-		}
+		orgUsers[org.ExternalID] = len(us)
+	}
+
+	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
+		"Organizations":     organizations,
+		"OrganizationUsers": orgUsers,
+	})
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	if _, err := w.Write(b); err != nil {
+		logrus.Warn("list organizations: %v", err)
 	}
 }
 
