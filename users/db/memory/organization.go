@@ -296,7 +296,9 @@ func (d *DB) DeleteOrganization(_ context.Context, externalID string) error {
 	if err == users.ErrNotFound {
 		return nil
 	}
-
+	if err != nil {
+		return err
+	}
 	d.deletedOrganizations[o.ID] = o
 	delete(d.organizations, o.ID)
 	delete(d.memberships, o.ID)
