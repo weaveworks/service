@@ -69,16 +69,19 @@ do
     # NB this only works if the code is in directories named for the
     # components, of course.
     image=$(basename $c)
-    push_image="${IMAGE_REPOSITORY}/${image}:${IMAGE_TAG}"
-    if [ "$SINCE" = 'false' ] || ! git diff --quiet "$SINCE" -- "$c"/; then
-        build_image="${BUILD_IMAGE_REPO}/${image}:${IMAGE_TAG}"
-        if [ "$IMAGE_REPOSITORY" != "$BUILD_IMAGE_REPO" ]; then
-            echo "Tagging built image ${build_image} for pushing as ${push_image}"
-            docker tag -f "${build_image}" "${push_image}"
-        fi
-        echo "Pushing ${push_image}"
-        docker push "${push_image}"
-    else
-        echo "Not pushing image for $push_image, because no changes in $c since commit $SINCE"
-    fi
+    for tag in "${IMAGE_TAG}" latest
+    do
+	push_image="${IMAGE_REPOSITORY}/${image}:${tag}"
+	if [ "$SINCE" = 'false' ] || ! git diff --quiet "$SINCE" -- "$c"/; then
+            build_image="${BUILD_IMAGE_REPO}/${image}:${IMAGE_TAG}"
+            if [ "$IMAGE_REPOSITORY" != "$BUILD_IMAGE_REPO" ]; then
+		echo "Tagging built image ${build_image} for pushing as ${push_image}"
+		docker tag -f "${build_image}" "${push_image}"
+            fi
+            echo "Pushing ${push_image}"
+            docker push "${push_image}"
+	else
+            echo "Not pushing image for $push_image, because no changes in $c since commit $SINCE"
+	fi
+     done
 done
