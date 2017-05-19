@@ -12,6 +12,8 @@
         <th>Name</th>
         <th>CreatedAt</th>
         <th>Users</th>
+        <th>DenyUIFeatures</th>
+        <th>DenyTokenAuth</th>
         <th>FeatureFlags</th>
       </tr>
       {{range .Organizations}}
@@ -21,10 +23,26 @@
         <td>{{.FormatCreatedAt}}</td>
         <td>{{index $.OrganizationUsers .ExternalID}}</td>
         <td>
-          <form action="organizations/{{.ExternalID}}/featureflags" method="POST">
-            <input type="hidden" name="redirect_to" value="../../organizations" />
+          <form action="organizations/{{.ExternalID}}" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-            <input type="text" name="feature_flags" value="{{range .FeatureFlags}}{{.}} {{end}}" />
+            <input type="hidden" name="field" value="DenyUIFeatures">
+            <input type="checkbox" name="value" {{if .DenyUIFeatures}}checked {{end}}/>
+            <input type="submit" value="Save" />
+          </form>
+        </td>
+        <td>
+          <form action="organizations/{{.ExternalID}}" method="POST">
+            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+            <input type="hidden" name="field" value="DenyTokenAuth">
+            <input type="checkbox" name="value" {{if .DenyTokenAuth}}checked {{end}}/>
+            <input type="submit" value="Save" />
+          </form>
+        </td>
+        <td>
+          <form action="organizations/{{.ExternalID}}" method="POST">
+            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+            <input type="hidden" name="field" value="FeatureFlags">
+            <input type="text" name="value" value="{{range .FeatureFlags}}{{.}} {{end}}" />
             <input type="submit" value="Save" />
           </form>
         </td>

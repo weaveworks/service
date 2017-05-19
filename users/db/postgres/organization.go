@@ -61,6 +61,8 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.probe_token",
 		"organizations.created_at",
 		"organizations.feature_flags",
+		"organizations.deny_ui_features",
+		"organizations.deny_token_auth",
 	).
 		From("organizations").
 		Where("organizations.deleted_at is null").
@@ -253,13 +255,17 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o := &users.Organization{}
 	var externalID, name, probeToken sql.NullString
 	var createdAt pq.NullTime
-	if err := row.Scan(&o.ID, &externalID, &name, &probeToken, &createdAt, pq.Array(&o.FeatureFlags)); err != nil {
+	var denyUIFeatures, denyTokenAuth bool
+	if err := row.Scan(&o.ID, &externalID, &name, &probeToken, &createdAt, pq.Array(&o.FeatureFlags), &denyUIFeatures, &denyTokenAuth); err != nil {
 		return nil, err
 	}
 	o.ExternalID = externalID.String
 	o.Name = name.String
 	o.ProbeToken = probeToken.String
 	o.CreatedAt = createdAt.Time
+	o.DenyUIFeatures = denyUIFeatures
+	o.DenyTokenAuth = denyTokenAuth
+
 	return o, nil
 }
 
@@ -334,6 +340,24 @@ func (d DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags [
 	_, err := d.Exec(
 		`update organizations set feature_flags = $1 where lower(external_id) = lower($2)`,
 		pq.Array(featureFlags), externalID,
+	)
+	return err
+}
+
+// SetOrganizationDenyUIFeatures sets the "deny UI features" flag on an organization
+func (d DB) SetOrganizationDenyUIFeatures(_ context.Context, externalID string, value bool) error {
+	_, err := d.Exec(
+		`update organizations set deny_ui_features = $1 where lower(external_id) = lower($2)`,
+		value, externalID,
+	)
+	return err
+}
+
+// SetOrganizationDenyTokenAuth sets the "deny token auth" flag on an organization
+func (d DB) SetOrganizationDenyTokenAuth(_ context.Context, externalID string, value bool) error {
+	_, err := d.Exec(
+		`update organizations set deny_token_auth = $1 where lower(external_id) = lower($2)`,
+		value, externalID,
 	)
 	return err
 }

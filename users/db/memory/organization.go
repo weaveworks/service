@@ -232,21 +232,27 @@ func (d *DB) FindOrganizationByID(_ context.Context, externalID string) (*users.
 	return nil, users.ErrNotFound
 }
 
-// RenameOrganization changes an organization's user-settable name
-func (d *DB) RenameOrganization(_ context.Context, externalID, name string) error {
+func changeOrg(d *DB, externalID string, toWrap func(*users.Organization) error) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	if err := (&users.Organization{ExternalID: externalID, Name: name}).Valid(); err != nil {
-		return err
-	}
-
 	o, err := d.findOrganizationByExternalID(externalID)
 	if err != nil {
 		return err
 	}
 
-	o.Name = name
-	return nil
+	return toWrap(o)
+}
+
+// RenameOrganization changes an organization's user-settable name
+func (d *DB) RenameOrganization(_ context.Context, externalID, name string) error {
+	if err := (&users.Organization{ExternalID: externalID, Name: name}).Valid(); err != nil {
+		return err
+	}
+
+	return changeOrg(d, externalID, func(o *users.Organization) error {
+		o.Name = name
+		return nil
+	})
 }
 
 // OrganizationExists just returns a simple bool checking if an organization
@@ -301,30 +307,32 @@ func (d *DB) DeleteOrganization(_ context.Context, externalID string) error {
 
 // AddFeatureFlag adds a new feature flag to an organization.
 func (d *DB) AddFeatureFlag(_ context.Context, externalID string, featureFlag string) error {
-	d.mtx.Lock()
-	defer d.mtx.Unlock()
-	o, err := d.findOrganizationByExternalID(externalID)
-	if err == users.ErrNotFound {
+	return changeOrg(d, externalID, func(o *users.Organization) error {
+		o.FeatureFlags = append(o.FeatureFlags, featureFlag)
 		return nil
-	}
-	if err != nil {
-		return err
-	}
-	o.FeatureFlags = append(o.FeatureFlags, featureFlag)
-	return nil
+	})
 }
 
 // SetFeatureFlags sets all feature flags of an organization.
 func (d *DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags []string) error {
-	d.mtx.Lock()
-	defer d.mtx.Unlock()
-	o, err := d.findOrganizationByExternalID(externalID)
-	if err == users.ErrNotFound {
+	return changeOrg(d, externalID, func(o *users.Organization) error {
+		o.FeatureFlags = featureFlags
 		return nil
-	}
-	if err != nil {
-		return err
-	}
-	o.FeatureFlags = featureFlags
-	return nil
+	})
+}
+
+// SetOrganizationDenyUIFeatures sets the "deny UI features" flag on an organization
+func (d *DB) SetOrganizationDenyUIFeatures(_ context.Context, externalID string, value bool) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.DenyUIFeatures = value
+		return nil
+	})
+}
+
+// SetOrganizationDenyTokenAuth sets the "deny token auth" flag on an organization
+func (d *DB) SetOrganizationDenyTokenAuth(_ context.Context, externalID string, value bool) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.DenyTokenAuth = value
+		return nil
+	})
 }

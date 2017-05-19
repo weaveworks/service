@@ -85,6 +85,8 @@ message Organization {
     string ProbeToken = 4;
     google.protobuf.Timestamp CreatedAt = 5 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
     repeated string FeatureFlags = 6;
+    bool DenyUIFeatures = 7;
+    bool DenyTokenAuth = 8;
 }
 
 message GetUserRequest {

@@ -80,19 +80,6 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type listOrganizationsView struct {
-	Organizations []privateOrgView `json:"organizations"`
-}
-
-type privateOrgView struct {
-	ID           string        `json:"id"`
-	InternalID   string        `json:"internal_id"`
-	Name         string        `json:"name"`
-	CreatedAt    string        `json:"created_at"`
-	FeatureFlags []string      `json:"feature_flags,omitempty"`
-	Users        []*users.User `json:"users,omitempty"`
-}
-
 func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 	organizations, err := a.db.ListOrganizations(r.Context())
 	if err != nil {
@@ -100,101 +87,70 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	switch render.Format(r) {
-	case render.FormatJSON:
-		view := listOrganizationsView{}
-		for _, org := range organizations {
-			view.Organizations = append(view.Organizations, privateOrgView{
-				ID:           org.ExternalID,
-				InternalID:   org.ID,
-				Name:         org.Name,
-				CreatedAt:    org.FormatCreatedAt(),
-				FeatureFlags: org.FeatureFlags,
-			})
-		}
-		render.JSON(w, http.StatusOK, view)
-	default: // render.FormatHTML
-		orgUsers := map[string]int{}
-		for _, org := range organizations {
-			us, err := a.db.ListOrganizationUsers(r.Context(), org.ExternalID)
-			if err != nil {
-				render.Error(w, r, err)
-				return
-			}
-			orgUsers[org.ExternalID] = len(us)
-		}
-
-		b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
-			"Organizations":     organizations,
-			"OrganizationUsers": orgUsers,
-		})
+	orgUsers := map[string]int{}
+	for _, org := range organizations {
+		us, err := a.db.ListOrganizationUsers(r.Context(), org.ExternalID)
 		if err != nil {
 			render.Error(w, r, err)
 			return
 		}
-		if _, err := w.Write(b); err != nil {
-			logrus.Warn("list organizations: %v", err)
-		}
-	}
-}
-
-func (a *API) adminShowOrganization(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	orgExternalID, ok := vars["orgExternalID"]
-	if !ok {
-		render.Error(w, r, users.ErrNotFound)
-		return
+		orgUsers[org.ExternalID] = len(us)
 	}
 
-	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
-	if err != nil {
-		render.Error(w, r, err)
-		return
-	}
-
-	users, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID)
-	if err != nil {
-		render.Error(w, r, err)
-		return
-	}
-
-	render.JSON(w, http.StatusOK, privateOrgView{
-		ID:           org.ExternalID,
-		InternalID:   org.ID,
-		Name:         org.Name,
-		CreatedAt:    org.FormatCreatedAt(),
-		FeatureFlags: org.FeatureFlags,
-		Users:        users,
+	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
+		"Organizations":     organizations,
+		"OrganizationUsers": orgUsers,
 	})
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	if _, err := w.Write(b); err != nil {
+		logrus.Warn("list organizations: %v", err)
+	}
 }
 
-func (a *API) setOrgFeatureFlags(w http.ResponseWriter, r *http.Request) {
+func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orgExternalID, ok := vars["orgExternalID"]
 	if !ok {
 		render.Error(w, r, users.ErrNotFound)
 		return
 	}
+	field := r.FormValue("field")
+	value := r.FormValue("value")
 
-	uniqueFlags := map[string]struct{}{}
-	for _, f := range strings.Fields(r.FormValue("feature_flags")) {
-		uniqueFlags[f] = struct{}{}
-	}
-	var sortedFlags []string
-	for f := range uniqueFlags {
-		sortedFlags = append(sortedFlags, f)
-	}
-	sort.Strings(sortedFlags)
+	var err error
+	switch field {
+	case "DenyUIFeatures":
+		deny := value == "on"
+		err = a.db.SetOrganizationDenyUIFeatures(r.Context(), orgExternalID, deny)
+	case "DenyTokenAuth":
+		deny := value == "on"
+		err = a.db.SetOrganizationDenyTokenAuth(r.Context(), orgExternalID, deny)
+	case "FeatureFlags":
+		uniqueFlags := map[string]struct{}{}
+		for _, f := range strings.Fields(value) {
+			uniqueFlags[f] = struct{}{}
+		}
+		var sortedFlags []string
+		for f := range uniqueFlags {
+			sortedFlags = append(sortedFlags, f)
+		}
+		sort.Strings(sortedFlags)
 
-	if err := a.db.SetFeatureFlags(r.Context(), orgExternalID, sortedFlags); err != nil {
+		err = a.db.SetFeatureFlags(r.Context(), orgExternalID, sortedFlags)
+	default:
+		err = users.ValidationErrorf("Invalid field %v", field)
+		return
+	}
+
+	if err != nil {
 		render.Error(w, r, err)
 		return
 	}
-	redirectTo := r.FormValue("redirect_to")
-	if redirectTo == "" {
-		redirectTo = "/admin/users/organizations"
-	}
-	http.Redirect(w, r, redirectTo, http.StatusFound)
+
+	http.Redirect(w, r, "/admin/users/organizations", http.StatusFound)
 }
 
 func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
