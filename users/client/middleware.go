@@ -156,7 +156,7 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 // cookie (and not to any specific org)
 type AuthUserMiddleware struct {
 	UsersClient         users.UsersClient
-	FeatureFlagsHeader  string
+	UserIDHeader        string
 	RequireFeatureFlags []string
 }
 
@@ -178,8 +178,7 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		r = r.WithContext(user.InjectOrgID(r.Context(), response.UserID))
-		user.InjectOrgIDIntoHTTPRequest(r.Context(), r)
+		r.Header.Add(a.UserIDHeader, response.UserID)
 		next.ServeHTTP(w, r)
 	})
 }
