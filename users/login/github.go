@@ -2,6 +2,7 @@ package login
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -63,6 +64,9 @@ func (g *github) Login(r *http.Request) (string, string, json.RawMessage, error)
 		if *e.Primary && *e.Verified {
 			email = *e.Email
 		}
+	}
+	if email == "" {
+		return "", "", nil, errors.New("Github account primary email address not verified")
 	}
 
 	session, err := json.Marshal(oauthUserSession{Token: tok})
