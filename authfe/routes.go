@@ -351,6 +351,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		// These billing api endpoints have no orgExternalID, so we can't do authorization on them.
 		path{"/api/billing/accounts", c.billingAPIHost},
 		path{"/api/billing/payments/authTokens", c.billingAPIHost},
+		path{"/api/billing/payments/{paymentID}", c.billingAPIHost},
 		// The main billing api requires authorization.
 		prefix{
 			"/api/billing",
