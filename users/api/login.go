@@ -406,9 +406,11 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 	}
 	for _, org := range organizations {
 		view.Organizations = append(view.Organizations, OrgView{
-			ExternalID:   org.ExternalID,
-			Name:         org.Name,
-			FeatureFlags: append(org.FeatureFlags, a.forceFeatureFlags...),
+			ExternalID:     org.ExternalID,
+			Name:           org.Name,
+			FeatureFlags:   append(org.FeatureFlags, a.forceFeatureFlags...),
+			DenyUIFeatures: org.DenyUIFeatures,
+			DenyTokenAuth:  org.DenyTokenAuth,
 		})
 	}
 	render.JSON(w, http.StatusOK, view)
