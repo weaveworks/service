@@ -169,9 +169,9 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			v, ok := mux.Vars(r)["orgExternalID"]
 			return v, ok
 		},
-		UserIDHeader:       userIDHeader,
-		FeatureFlagsHeader: featureFlagsHeader,
-		AuthorizeFor:       "features",
+		UserIDHeader:           userIDHeader,
+		FeatureFlagsHeader:     featureFlagsHeader,
+		AuthorizeForUIFeatures: true,
 	}
 
 	authUserMiddleware := users_client.AuthUserMiddleware{
@@ -188,7 +188,6 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		UserIDHeader:        userIDHeader,
 		FeatureFlagsHeader:  featureFlagsHeader,
 		RequireFeatureFlags: []string{"billing"},
-		AuthorizeFor:        "billing",
 	}
 
 	fluxGHTokenMiddleware := users_client.GHIntegrationMiddleware{

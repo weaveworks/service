@@ -39,7 +39,7 @@ func (a *usersServer) LookupOrg(ctx context.Context, req *users.LookupOrgRequest
 	}
 	for _, org := range organizations {
 		if strings.ToLower(org.ExternalID) == strings.ToLower(req.OrgExternalID) {
-			if org.DenyUIFeatures && req.AuthorizeFor == "features" {
+			if org.DenyUIFeatures && req.AuthorizeForUIFeatures {
 				return nil, users.ErrOrgUIFeaturesDisabled
 			}
 
