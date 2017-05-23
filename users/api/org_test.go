@@ -39,10 +39,12 @@ func Test_Org(t *testing.T) {
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
-		"user":       user.Email,
-		"id":         org.ExternalID,
-		"name":       org.Name,
-		"probeToken": org.ProbeToken,
+		"user":           user.Email,
+		"id":             org.ExternalID,
+		"name":           org.Name,
+		"probeToken":     org.ProbeToken,
+		"denyUIFeatures": org.DenyUIFeatures,
+		"denyTokenAuth":  org.DenyTokenAuth,
 	}, body)
 }
 
@@ -60,10 +62,12 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
-		"user":       user.Email,
-		"id":         org.ExternalID,
-		"name":       org.Name,
-		"probeToken": org.ProbeToken,
+		"user":           user.Email,
+		"id":             org.ExternalID,
+		"name":           org.Name,
+		"probeToken":     org.ProbeToken,
+		"denyUIFeatures": org.DenyUIFeatures,
+		"denyTokenAuth":  org.DenyTokenAuth,
 	}, body)
 }
 
@@ -246,12 +250,12 @@ func Test_Organization_GenerateOrgExternalID(t *testing.T) {
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	body := map[string]string{}
+	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.NotEqual(t, "", body["id"])
 
 	// Check it's available
-	exists, err := database.OrganizationExists(context.Background(), body["id"])
+	exists, err := database.OrganizationExists(context.Background(), body["id"].(string))
 	require.NoError(t, err)
 	assert.False(t, exists)
 }

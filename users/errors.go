@@ -50,4 +50,6 @@ var (
 	ErrOrgTokenIsTaken            = errors.New("Token already taken")
 	ErrLoginNotFound              = errors.New("no login for this user")
 	ErrProviderParameters         = errors.New("Must pass provider and userID")
+	ErrOrgUIFeaturesDisabled      = errors.New("Access to UI features is prohibited for this instance")
+	ErrOrgTokenAuthDisabled       = errors.New("Token-based access to this instance is prohibited")
 )

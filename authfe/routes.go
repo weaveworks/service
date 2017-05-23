@@ -169,8 +169,9 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			v, ok := mux.Vars(r)["orgExternalID"]
 			return v, ok
 		},
-		UserIDHeader:       userIDHeader,
-		FeatureFlagsHeader: featureFlagsHeader,
+		UserIDHeader:           userIDHeader,
+		FeatureFlagsHeader:     featureFlagsHeader,
+		AuthorizeForUIFeatures: true,
 	}
 
 	authUserMiddleware := users_client.AuthUserMiddleware{

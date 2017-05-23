@@ -30,6 +30,7 @@ service Users {
 message LookupOrgRequest {
     string Cookie = 1;
     string OrgExternalID = 2;
+    bool AuthorizeForUIFeatures = 3;
 }
 
 message LookupOrgResponse {
