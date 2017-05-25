@@ -347,9 +347,18 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				uiHTTPlogger,
 			),
 		},
-		// These billing api endpoints have no orgExternalID, so we can't do authorization on them.
-		path{"/api/billing/accounts", c.billingAPIHost},
-		path{"/api/billing/payments/authTokens", c.billingAPIHost},
+		// These billing api endpoints have no orgExternalID, so we can't do full authorization on them.
+		prefix{
+			"/api/billing",
+			[]path{
+				{"/accounts", c.billingAPIHost},
+				{"/payments/authTokens", c.billingAPIHost},
+			},
+			middleware.Merge(
+				authUserMiddleware,
+				uiHTTPlogger,
+			),
+		},
 		// The main billing api requires authorization.
 		prefix{
 			"/api/billing",
