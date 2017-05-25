@@ -328,16 +328,14 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			),
 		},
 
-		// unauthenticated billing UI gubbins - JS, fonts, etc
+		// unauthenticated billing UI gubbins - JS, fonts, static pages, etc
 		path{"/billing/{jsfile}.js", trimPrefix("/billing", c.billingUIHost)},
 		path{"/billing/{wofffile}.woff", trimPrefix("/billing", c.billingUIHost)},
 		path{"/billing/{ttffile}.ttf", trimPrefix("/billing", c.billingUIHost)},
 		path{"/billing/{svgfile}.svg", trimPrefix("/billing", c.billingUIHost)},
 		path{"/billing/{eotfile}.eot", trimPrefix("/billing", c.billingUIHost)},
-		// Nobody knows what this is for.  We believe it is important.
-		// And we hope that it is ok (and indeed there are good
-		// reasons) for it to be unauthenticated.
 		path{"/billing/callback/register", trimPrefix("/billing", c.billingUIHost)},
+
 		// actual billing UI needs authentication/authorization
 		prefix{
 			"/billing",
