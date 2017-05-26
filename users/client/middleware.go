@@ -186,9 +186,14 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 }
 
 func handleError(err error, w http.ResponseWriter) {
-	if unauth, ok := err.(*Unauthorized); ok {
-		log.Errorf("Error from users svc: %v (%d)", unauth.Error(), unauth.httpStatus)
-		w.WriteHeader(http.StatusUnauthorized)
+	if gErr, ok := err.(*GRPCHTTPError); ok {
+		switch gErr.httpStatus {
+		case http.StatusUnauthorized, http.StatusPaymentRequired:
+			w.WriteHeader(gErr.httpStatus)
+		default:
+			log.Errorf("Error from users svc: %v (%d)", gErr.Error(), gErr.httpStatus)
+			w.WriteHeader(http.StatusUnauthorized)
+		}
 	} else {
 		log.Errorf("Error talking to users svc: %v", err)
 		w.WriteHeader(http.StatusBadGateway)

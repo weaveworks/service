@@ -18,11 +18,11 @@ func (err *APIError) Error() string {
 	return fmt.Sprintf("%s (%s)", err.Status, err.Body)
 }
 
-// Unauthorized is the error type returned when authorisation fails/
-type Unauthorized struct {
+// GRPCHTTPError is the error type returned for non-2XX responses
+type GRPCHTTPError struct {
 	httpStatus int
 }
 
-func (u Unauthorized) Error() string {
-	return http.StatusText(u.httpStatus)
+func (e GRPCHTTPError) Error() string {
+	return http.StatusText(e.httpStatus)
 }

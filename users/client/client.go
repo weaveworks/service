@@ -92,7 +92,7 @@ var errorInterceptor grpc.UnaryClientInterceptor = func(ctx context.Context, met
 		if convErr != nil {
 			return err
 		}
-		return &Unauthorized{
+		return &GRPCHTTPError{
 			httpStatus: code,
 		}
 	}

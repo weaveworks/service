@@ -28,9 +28,9 @@ func errorStatusCode(err error) int {
 	case err == users.ErrLoginNotFound:
 		return http.StatusUnauthorized
 	case err == users.ErrOrgUIFeaturesDisabled:
-		return http.StatusUnauthorized
+		return http.StatusPaymentRequired
 	case err == users.ErrOrgTokenAuthDisabled:
-		return http.StatusUnauthorized
+		return http.StatusPaymentRequired
 	case err == users.ErrProviderParameters:
 		return http.StatusUnprocessableEntity
 	}

@@ -70,7 +70,7 @@ func (c *cachingClient) LookupOrg(ctx context.Context, in *users.LookupOrgReques
 	}
 
 	out, err := c.UsersClient.LookupOrg(ctx, in, opts...)
-	if err == nil || isUnauthorized(err) {
+	if err == nil || isErrorCachable(err) {
 		c.orgCredCache.Set(*in, cacheValue{out, err})
 	}
 	return out, err
@@ -89,7 +89,7 @@ func (c *cachingClient) LookupUsingToken(ctx context.Context, in *users.LookupUs
 	}
 
 	out, err := c.UsersClient.LookupUsingToken(ctx, in, opts...)
-	if err == nil || isUnauthorized(err) {
+	if err == nil || isErrorCachable(err) {
 		c.probeCredCache.Set(*in, cacheValue{out, err})
 	}
 	return out, err
@@ -120,10 +120,17 @@ func hitOrMiss(err error) string {
 	return "miss"
 }
 
-func isUnauthorized(err error) bool {
-	unauthorized, ok := err.(*Unauthorized)
+func isErrorCachable(err error) bool {
+	gError, ok := err.(*GRPCHTTPError)
 	if !ok {
 		return false
 	}
-	return unauthorized.httpStatus == http.StatusUnauthorized
+	switch gError.httpStatus {
+	case http.StatusUnauthorized:
+		return true
+	case http.StatusPaymentRequired:
+		return true
+	default:
+		return false
+	}
 }
