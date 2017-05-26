@@ -55,7 +55,7 @@ func Test_DB_SetFeatureFlags(t *testing.T) {
 	for _, flags := range [][]string{
 		{"supercow", "superchicken"},
 		{"superchicken"},
-		nil,
+		{},
 	} {
 		err := db.SetFeatureFlags(context.Background(), org.ExternalID, flags)
 		require.NoError(t, err)
