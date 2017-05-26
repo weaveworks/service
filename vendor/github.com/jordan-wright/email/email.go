@@ -5,11 +5,14 @@ package email
 import (
 	"bufio"
 	"bytes"
+	"crypto/rand"
+	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
+	"math"
+	"math/big"
 	"mime"
 	"mime/multipart"
 	"mime/quotedprintable"
@@ -20,6 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
 )
 
 const (
@@ -58,12 +62,27 @@ func NewEmail() *Email {
 	return &Email{Headers: textproto.MIMEHeader{}}
 }
 
+// trimReader is a custom io.Reader that will trim any leading
+// whitespace, as this can cause email imports to fail.
+type trimReader struct {
+	rd io.Reader
+}
+
+// Read trims off any unicode whitespace from the originating reader
+func (tr trimReader) Read(buf []byte) (int, error) {
+	n, err := tr.rd.Read(buf)
+	t := bytes.TrimLeftFunc(buf[:n], unicode.IsSpace)
+	n = copy(buf, t)
+	return n, err
+}
+
 // NewEmailFromReader reads a stream of bytes from an io.Reader, r,
 // and returns an email struct containing the parsed data.
 // This function expects the data in RFC 5322 format.
 func NewEmailFromReader(r io.Reader) (*Email, error) {
 	e := NewEmail()
-	tp := textproto.NewReader(bufio.NewReader(r))
+	s := trimReader{rd: r}
+	tp := textproto.NewReader(bufio.NewReader(s))
 	// Parse the main headers
 	hdrs, err := tp.ReadMIMEHeader()
 	if err != nil {
@@ -220,7 +239,7 @@ func (e *Email) AttachFile(filename string) (a *Attachment, err error) {
 //
 // "e"'s fields To, Cc, From, Subject will be used unless they are present in
 // e.Headers. Unless set in e.Headers, "Date" will filled with the current time.
-func (e *Email) msgHeaders() textproto.MIMEHeader {
+func (e *Email) msgHeaders() (textproto.MIMEHeader, error) {
 	res := make(textproto.MIMEHeader, len(e.Headers)+4)
 	if e.Headers != nil {
 		for _, h := range []string{"To", "Cc", "From", "Subject", "Date", "Message-Id"} {
@@ -240,7 +259,11 @@ func (e *Email) msgHeaders() textproto.MIMEHeader {
 		res.Set("Subject", e.Subject)
 	}
 	if _, ok := res["Message-Id"]; !ok {
-		res.Set("Message-Id", generateMessageID())
+		id, err := generateMessageID()
+		if err != nil {
+			return nil, err
+		}
+		res.Set("Message-Id", id)
 	}
 	// Date and From are required headers.
 	if _, ok := res["From"]; !ok {
@@ -257,7 +280,7 @@ func (e *Email) msgHeaders() textproto.MIMEHeader {
 			res[field] = vals
 		}
 	}
-	return res
+	return res, nil
 }
 
 // Bytes converts the Email object to a []byte representation, including all needed MIMEHeaders, boundaries, etc.
@@ -265,7 +288,10 @@ func (e *Email) Bytes() ([]byte, error) {
 	// TODO: better guess buffer size
 	buff := bytes.NewBuffer(make([]byte, 0, 4096))
 
-	headers := e.msgHeaders()
+	headers, err := e.msgHeaders()
+	if err != nil {
+		return nil, err
+	}
 	w := multipart.NewWriter(buff)
 	// TODO: determine the content type based on message/attachment mix.
 	headers.Set("Content-Type", "multipart/mixed;\r\n boundary="+w.Boundary())
@@ -360,6 +386,79 @@ func (e *Email) Send(addr string, a smtp.Auth) error {
 	return smtp.SendMail(addr, a, from.Address, to, raw)
 }
 
+// SendWithTLS sends an email with an optional TLS config.
+// This is helpful if you need to connect to a host that is used an untrusted
+// certificate.
+func (e *Email) SendWithTLS(addr string, a smtp.Auth, t *tls.Config) error {
+	// Merge the To, Cc, and Bcc fields
+	to := make([]string, 0, len(e.To)+len(e.Cc)+len(e.Bcc))
+	to = append(append(append(to, e.To...), e.Cc...), e.Bcc...)
+	for i := 0; i < len(to); i++ {
+		addr, err := mail.ParseAddress(to[i])
+		if err != nil {
+			return err
+		}
+		to[i] = addr.Address
+	}
+	// Check to make sure there is at least one recipient and one "From" address
+	if e.From == "" || len(to) == 0 {
+		return errors.New("Must specify at least one From address and one To address")
+	}
+	from, err := mail.ParseAddress(e.From)
+	if err != nil {
+		return err
+	}
+	raw, err := e.Bytes()
+	if err != nil {
+		return err
+	}
+	// Taken from the standard library
+	// https://github.com/golang/go/blob/master/src/net/smtp/smtp.go#L300
+	c, err := smtp.Dial(addr)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	if err = c.Hello("localhost"); err != nil {
+		return err
+	}
+	// Use TLS if available
+	if ok, _ := c.Extension("STARTTLS"); ok {
+		if err = c.StartTLS(t); err != nil {
+			return err
+		}
+	}
+
+	if a != nil {
+		if ok, _ := c.Extension("AUTH"); ok {
+			if err = c.Auth(a); err != nil {
+				return err
+			}
+		}
+	}
+	if err = c.Mail(from.Address); err != nil {
+		return err
+	}
+	for _, addr := range to {
+		if err = c.Rcpt(addr); err != nil {
+			return err
+		}
+	}
+	w, err := c.Data()
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(raw)
+	if err != nil {
+		return err
+	}
+	err = w.Close()
+	if err != nil {
+		return err
+	}
+	return c.Quit()
+}
+
 // Attachment is a struct representing an email attachment.
 // Based on the mime/multipart.FileHeader struct, Attachment contains the name, MIMEHeader, and content of the attachment in question
 type Attachment struct {
@@ -411,6 +510,8 @@ func headerToBytes(buff *bytes.Buffer, header textproto.MIMEHeader) {
 	}
 }
 
+var maxBigInt = big.NewInt(math.MaxInt64)
+
 // generateMessageID generates and returns a string suitable for an RFC 2822
 // compliant Message-ID, e.g.:
 // <1444789264909237300.3464.1819418242800517193@DESKTOP01>
@@ -418,18 +519,20 @@ func headerToBytes(buff *bytes.Buffer, header textproto.MIMEHeader) {
 // The following parameters are used to generate a Message-ID:
 // - The nanoseconds since Epoch
 // - The calling PID
-// - A pseudo-random int64
+// - A cryptographically random int64
 // - The sending hostname
-func generateMessageID() string {
+func generateMessageID() (string, error) {
 	t := time.Now().UnixNano()
 	pid := os.Getpid()
-	r := rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
-	rint := r.Int63()
+	rint, err := rand.Int(rand.Reader, maxBigInt)
+	if err != nil {
+		return "", err
+	}
 	h, err := os.Hostname()
 	// If we can't get the hostname, we'll use localhost
 	if err != nil {
 		h = "localhost.localdomain"
 	}
 	msgid := fmt.Sprintf("<%d.%d.%d@%s>", t, pid, rint, h)
-	return msgid
+	return msgid, nil
 }

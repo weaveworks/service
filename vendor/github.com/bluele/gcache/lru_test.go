@@ -2,9 +2,10 @@ package gcache_test
 
 import (
 	"fmt"
-	"github.com/bluele/gcache"
 	"testing"
 	"time"
+
+	"github.com/bluele/gcache"
 )
 
 func evictedFuncForLRU(key, value interface{}) {
@@ -63,4 +64,12 @@ func TestLRUEvictItem(t *testing.T) {
 			t.Errorf("Unexpected error: %v", err)
 		}
 	}
+}
+
+func TestLRUGetIFPresent(t *testing.T) {
+	testGetIFPresent(t, gcache.TYPE_LRU)
+}
+
+func TestLRUGetALL(t *testing.T) {
+	testGetALL(t, gcache.TYPE_LRU)
 }

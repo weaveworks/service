@@ -1,0 +1,22 @@
+[[dependencies]]
+  branch = "expose-dstaddr"
+  name = "github.com/armon/go-proxyproto"
+  source = "github.com/weaveworks/go-proxyproto"
+
+# google/go-github have added contexts to their API.  Pin version until we
+# can update.
+[[dependencies]]
+  name = "github.com/google/go-github"
+  revision = "a68a8707f3c18a3a47bb0975ca29a9239792dc01"
+
+# justinas/nosurf API has changed.  Pin it until we can figure it out.
+[[dependencies]]
+  name = "github.com/justinas/nosurf"
+  revision = "2e708f28095ba17463e41438bbfd53abae8b6794"
+
+# github.com/opentracing-contrib/go-stdlib doesn't support hijacking until
+# https://github.com/opentracing-contrib/go-stdlib/pull/11 is merged.
+[[dependencies]]
+  name = "github.com/opentracing-contrib/go-stdlib"
+  source = "github.com/weaveworks/go-stdlib"
+  branch = "hijack"
