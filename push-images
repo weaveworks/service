@@ -37,10 +37,11 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-COMPONENTS="$@"
-if [ "${COMPONENTS}" == "" ]
-then
-    COMPONENTS="authfe users metrics logging pr-assigner notebooks"
+
+if [ $# = 0 ]; then
+    COMPONENTS=( "$@" )
+else
+    COMPONENTS=(authfe users metrics logging pr-assigner notebooks)
 fi
 echo "Using components: ${COMPONENTS}"
 
@@ -52,9 +53,9 @@ do
         echo "Component $c does not have a corresponding directory"
         exit 1
     fi
-    image=$(basename $c)
+    image=$(basename "$c")
     build_image="${BUILD_IMAGE_REPO}/${image}:${IMAGE_TAG}"
-    if ! docker inspect ${build_image} >/dev/null; then
+    if ! docker inspect "${build_image}" >/dev/null; then
         echo "Expected image ${build_image} to exist, given the working directory state:" >&2
         echo "    ${IMAGE_TAG}" >&2
         echo "and the components to push:" >&2
@@ -68,7 +69,7 @@ for c in ${COMPONENTS}
 do
     # NB this only works if the code is in directories named for the
     # components, of course.
-    image=$(basename $c)
+    image=$(basename "$c")
     push_image="${IMAGE_REPOSITORY}/${image}:${IMAGE_TAG}"
     if [ "$SINCE" = 'false' ] || ! git diff --quiet "$SINCE" -- "$c"/; then
         build_image="${BUILD_IMAGE_REPO}/${image}:${IMAGE_TAG}"
