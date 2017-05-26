@@ -1,5 +1,13 @@
-FROM golang:1.8.0
-RUN apt-get update && apt-get install -y python-requests python-yaml file jq shellcheck unzip && \
+FROM golang:1.8.3-stretch
+RUN apt-get update && apt-get install -y \
+		python-requests \
+		python-yaml \
+		file \
+		jq \
+		shellcheck \
+		unzip \
+		protobuf-compiler \
+		libprotobuf-dev && \
 	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN go clean -i net && \
 	go install -tags netgo std && \
@@ -10,7 +18,6 @@ RUN go get -tags netgo \
 		github.com/kisielk/errcheck \
 		github.com/mjibson/esc \
 		github.com/client9/misspell/cmd/misspell \
-		github.com/golang/protobuf/protoc-gen-go \
 		github.com/gogo/protobuf/protoc-gen-gogoslick \
 		github.com/gogo/protobuf/gogoproto && \
 	rm -rf /go/pkg/ /go/src/
