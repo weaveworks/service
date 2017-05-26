@@ -375,7 +375,7 @@ memo = "ba2d4975194c3e70fcef8f7357fb73cf51c76169683dfe60b26a6c44a30c2f12"
   branch = "master"
   name = "github.com/weaveworks/common"
   packages = ["errors","httpgrpc","instrument","logging","mflag","mflagext","middleware","mtime","server","signals","user"]
-  revision = "24f2e5d050274ab32e87fcb6a67de563e5e5d4fe"
+  revision = "a36e5542cbee7adc186bd69f4e13ea60cfeb8e49"
 
 [[projects]]
   branch = "master"
