@@ -13,3 +13,10 @@
 [[dependencies]]
   name = "github.com/justinas/nosurf"
   revision = "2e708f28095ba17463e41438bbfd53abae8b6794"
+
+# github.com/opentracing-contrib/go-stdlib doesn't support hijacking until
+# https://github.com/opentracing-contrib/go-stdlib/pull/11 is merged.
+[[dependencies]]
+  name = "github.com/opentracing-contrib/go-stdlib"
+  source = "github.com/weaveworks/go-stdlib"
+  branch = "hijack"

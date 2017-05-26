@@ -10,7 +10,6 @@ import (
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
-	"github.com/opentracing/opentracing-go/log"
 )
 
 type contextKey int
@@ -97,7 +96,7 @@ type closeTracker struct {
 
 func (c closeTracker) Close() error {
 	err := c.ReadCloser.Close()
-	c.sp.LogFields(log.String("event", "ClosedBody"))
+	c.sp.LogEvent("Closed body")
 	c.sp.Finish()
 	return err
 }
@@ -198,81 +197,54 @@ func (h *Tracer) clientTrace() *httptrace.ClientTrace {
 
 func (h *Tracer) getConn(hostPort string) {
 	ext.HTTPUrl.Set(h.sp, hostPort)
-	h.sp.LogFields(log.String("event", "GetConn"))
+	h.sp.LogEvent("Get conn")
 }
 
 func (h *Tracer) gotConn(info httptrace.GotConnInfo) {
 	h.sp.SetTag("net/http.reused", info.Reused)
 	h.sp.SetTag("net/http.was_idle", info.WasIdle)
-	h.sp.LogFields(log.String("event", "GotConn"))
+	h.sp.LogEvent("Got conn")
 }
 
 func (h *Tracer) putIdleConn(error) {
-	h.sp.LogFields(log.String("event", "PutIdleConn"))
+	h.sp.LogEvent("Put idle conn")
 }
 
 func (h *Tracer) gotFirstResponseByte() {
-	h.sp.LogFields(log.String("event", "GotFirstResponseByte"))
+	h.sp.LogEvent("Got first response byte")
 }
 
 func (h *Tracer) got100Continue() {
-	h.sp.LogFields(log.String("event", "Got100Continue"))
+	h.sp.LogEvent("Got 100 continue")
 }
 
 func (h *Tracer) dnsStart(info httptrace.DNSStartInfo) {
-	h.sp.LogFields(
-		log.String("event", "DNSStart"),
-		log.String("host", info.Host),
-	)
+	h.sp.LogEventWithPayload("DNS start", info.Host)
 }
 
 func (h *Tracer) dnsDone(httptrace.DNSDoneInfo) {
-	h.sp.LogFields(log.String("event", "DNSDone"))
+	h.sp.LogEvent("DNS done")
 }
 
 func (h *Tracer) connectStart(network, addr string) {
-	h.sp.LogFields(
-		log.String("event", "ConnectStart"),
-		log.String("network", network),
-		log.String("addr", addr),
-	)
+	h.sp.LogEventWithPayload("Connect start", network+":"+addr)
 }
 
 func (h *Tracer) connectDone(network, addr string, err error) {
-	if err != nil {
-		h.sp.LogFields(
-			log.String("message", "ConnectDone"),
-			log.String("network", network),
-			log.String("addr", addr),
-			log.String("event", "error"),
-			log.Error(err),
-		)
-	} else {
-		h.sp.LogFields(
-			log.String("event", "ConnectDone"),
-			log.String("network", network),
-			log.String("addr", addr),
-		)
-	}
+	h.sp.LogEventWithPayload("Connect done", network+":"+addr)
 }
 
 func (h *Tracer) wroteHeaders() {
-	h.sp.LogFields(log.String("event", "WroteHeaders"))
+	h.sp.LogEvent("Wrote headers")
 }
 
 func (h *Tracer) wait100Continue() {
-	h.sp.LogFields(log.String("event", "Wait100Continue"))
+	h.sp.LogEvent("Wait 100 continue")
 }
 
 func (h *Tracer) wroteRequest(info httptrace.WroteRequestInfo) {
 	if info.Err != nil {
-		h.sp.LogFields(
-			log.String("message", "WroteRequest"),
-			log.String("event", "error"),
-			log.Error(info.Err),
-		)
 		ext.Error.Set(h.sp, true)
-	} else {
-		h.sp.LogFields(log.String("event", "WroteRequest"))
 	}
+	h.sp.LogEvent("Wrote request")
 }
