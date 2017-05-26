@@ -2,8 +2,9 @@ package gcache_test
 
 import (
 	"fmt"
-	gcache "github.com/bluele/gcache"
 	"testing"
+
+	gcache "github.com/bluele/gcache"
 )
 
 func buildSimpleCache(size int) gcache.Cache {
@@ -60,4 +61,12 @@ func TestSimpleEvictItem(t *testing.T) {
 			t.Errorf("Unexpected error: %v", err)
 		}
 	}
+}
+
+func TestSimpleGetIFPresent(t *testing.T) {
+	testGetIFPresent(t, gcache.TYPE_SIMPLE)
+}
+
+func TestSimpleGetALL(t *testing.T) {
+	testGetALL(t, gcache.TYPE_SIMPLE)
 }

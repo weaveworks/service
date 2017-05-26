@@ -2,8 +2,10 @@ package gcache_test
 
 import (
 	"fmt"
-	"github.com/bluele/gcache"
 	"testing"
+	"time"
+
+	"github.com/bluele/gcache"
 )
 
 func buildARCache(size int) gcache.Cache {
@@ -16,6 +18,15 @@ func buildARCache(size int) gcache.Cache {
 func buildLoadingARCache(size int) gcache.Cache {
 	return gcache.New(size).
 		ARC().
+		LoaderFunc(loader).
+		EvictedFunc(evictedFuncForARC).
+		Build()
+}
+
+func buildLoadingARCacheWithExpiration(size int, ep time.Duration) gcache.Cache {
+	return gcache.New(size).
+		ARC().
+		Expiration(ep).
 		LoaderFunc(loader).
 		EvictedFunc(evictedFuncForARC).
 		Build()
@@ -39,13 +50,21 @@ func TestLoadingARCGet(t *testing.T) {
 }
 
 func TestARCLength(t *testing.T) {
-	gc := buildLoadingARCache(1000)
+	gc := buildLoadingARCacheWithExpiration(2, time.Millisecond)
 	gc.Get("test1")
 	gc.Get("test2")
+	gc.Get("test3")
 	length := gc.Len()
 	expectedLength := 2
-	if gc.Len() != expectedLength {
-		t.Errorf("Expected length is %v, not %v", length, expectedLength)
+	if length != expectedLength {
+		t.Errorf("Expected length is %v, not %v", expectedLength, length)
+	}
+	time.Sleep(time.Millisecond)
+	gc.Get("test4")
+	length = gc.Len()
+	expectedLength = 1
+	if length != expectedLength {
+		t.Errorf("Expected length is %v, not %v", expectedLength, length)
 	}
 }
 
@@ -60,4 +79,12 @@ func TestARCEvictItem(t *testing.T) {
 			t.Errorf("Unexpected error: %v", err)
 		}
 	}
+}
+
+func TestARCGetIFPresent(t *testing.T) {
+	testGetIFPresent(t, gcache.TYPE_ARC)
+}
+
+func TestARCGetALL(t *testing.T) {
+	testGetALL(t, gcache.TYPE_ARC)
 }
