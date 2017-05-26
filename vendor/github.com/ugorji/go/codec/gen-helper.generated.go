@@ -1,4 +1,4 @@
-/* // +build ignore */
+// //+build ignore
 
 // Copyright (c) 2012-2015 Ugorji Nwoke. All rights reserved.
 // Use of this source code is governed by a MIT license found in the LICENSE file.
@@ -17,7 +17,7 @@ import (
 
 // This file is used to generate helper code for codecgen.
 // The values here i.e. genHelper(En|De)coder are not to be used directly by
-// library users. They WILL change continuously and without notice.
+// library users. They WILL change continously and without notice.
 //
 // To help enforce this, we create an unexported type with exported members.
 // The only way to get the type is via the one exported type that we control (somewhat).
@@ -84,11 +84,6 @@ func (f genHelperEncoder) EncBinaryMarshal(iv encoding.BinaryMarshaler) {
 }
 
 // FOR USE BY CODECGEN ONLY. IT *WILL* CHANGE WITHOUT NOTICE. *DO NOT USE*
-func (f genHelperEncoder) EncRaw(iv Raw) {
-	f.e.raw(iv)
-}
-
-// FOR USE BY CODECGEN ONLY. IT *WILL* CHANGE WITHOUT NOTICE. *DO NOT USE*
 func (f genHelperEncoder) TimeRtidIfBinc() uintptr {
 	if _, ok := f.e.hh.(*BincHandle); ok {
 		return timeTypId
@@ -119,15 +114,6 @@ func (f genHelperEncoder) EncExt(v interface{}) (r bool) {
 	}
 	return false
 }
-
-// FOR USE BY CODECGEN ONLY. IT *WILL* CHANGE WITHOUT NOTICE. *DO NOT USE*
-func (f genHelperEncoder) EncSendContainerState(c containerState) {
-	if f.e.cr != nil {
-		f.e.cr.sendContainerState(c)
-	}
-}
-
-// ---------------- DECODER FOLLOWS -----------------
 
 // FOR USE BY CODECGEN ONLY. IT *WILL* CHANGE WITHOUT NOTICE. *DO NOT USE*
 func (f genHelperDecoder) DecBasicHandle() *BasicHandle {
@@ -181,8 +167,11 @@ func (f genHelperDecoder) DecTextUnmarshal(tm encoding.TextUnmarshaler) {
 // FOR USE BY CODECGEN ONLY. IT *WILL* CHANGE WITHOUT NOTICE. *DO NOT USE*
 func (f genHelperDecoder) DecJSONUnmarshal(tm jsonUnmarshaler) {
 	// bs := f.dd.DecodeBytes(f.d.b[:], true, true)
-	// grab the bytes to be read, as UnmarshalJSON needs the full JSON so as to unmarshal it itself.
-	fnerr := tm.UnmarshalJSON(f.d.nextValueBytes())
+	f.d.r.track()
+	f.d.swallow()
+	bs := f.d.r.stopTrack()
+	// fmt.Printf(">>>>>> CODECGEN JSON: %s\n", bs)
+	fnerr := tm.UnmarshalJSON(bs)
 	if fnerr != nil {
 		panic(fnerr)
 	}
@@ -194,11 +183,6 @@ func (f genHelperDecoder) DecBinaryUnmarshal(bm encoding.BinaryUnmarshaler) {
 	if fnerr != nil {
 		panic(fnerr)
 	}
-}
-
-// FOR USE BY CODECGEN ONLY. IT *WILL* CHANGE WITHOUT NOTICE. *DO NOT USE*
-func (f genHelperDecoder) DecRaw() []byte {
-	return f.d.raw()
 }
 
 // FOR USE BY CODECGEN ONLY. IT *WILL* CHANGE WITHOUT NOTICE. *DO NOT USE*
@@ -233,11 +217,4 @@ func (f genHelperDecoder) DecExt(v interface{}) (r bool) {
 // FOR USE BY CODECGEN ONLY. IT *WILL* CHANGE WITHOUT NOTICE. *DO NOT USE*
 func (f genHelperDecoder) DecInferLen(clen, maxlen, unit int) (rvlen int, truncated bool) {
 	return decInferLen(clen, maxlen, unit)
-}
-
-// FOR USE BY CODECGEN ONLY. IT *WILL* CHANGE WITHOUT NOTICE. *DO NOT USE*
-func (f genHelperDecoder) DecSendContainerState(c containerState) {
-	if f.d.cr != nil {
-		f.d.cr.sendContainerState(c)
-	}
 }

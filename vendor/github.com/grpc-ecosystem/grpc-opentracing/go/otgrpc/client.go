@@ -39,10 +39,6 @@ func OpenTracingClientInterceptor(tracer opentracing.Tracer, optFuncs ...Option)
 		if parent := opentracing.SpanFromContext(ctx); parent != nil {
 			parentCtx = parent.Context()
 		}
-		if otgrpcOpts.inclusionFunc != nil &&
-			!otgrpcOpts.inclusionFunc(parentCtx, method, req, resp) {
-			return invoker(ctx, method, req, resp, cc, opts...)
-		}
 		clientSpan := tracer.StartSpan(
 			method,
 			opentracing.ChildOf(parentCtx),
@@ -50,11 +46,9 @@ func OpenTracingClientInterceptor(tracer opentracing.Tracer, optFuncs ...Option)
 			gRPCComponentTag,
 		)
 		defer clientSpan.Finish()
-		md, ok := metadata.FromOutgoingContext(ctx)
+		md, ok := metadata.FromContext(ctx)
 		if !ok {
 			md = metadata.New(nil)
-		} else {
-			md = md.Copy()
 		}
 		mdWriter := metadataReaderWriter{md}
 		err = tracer.Inject(clientSpan.Context(), opentracing.HTTPHeaders, mdWriter)
@@ -62,7 +56,7 @@ func OpenTracingClientInterceptor(tracer opentracing.Tracer, optFuncs ...Option)
 		if err != nil {
 			clientSpan.LogFields(log.String("event", "Tracer.Inject() failed"), log.Error(err))
 		}
-		ctx = metadata.NewOutgoingContext(ctx, md)
+		ctx = metadata.NewContext(ctx, md)
 		if otgrpcOpts.logPayloads {
 			clientSpan.LogFields(log.Object("gRPC request", req))
 		}
@@ -72,8 +66,8 @@ func OpenTracingClientInterceptor(tracer opentracing.Tracer, optFuncs ...Option)
 				clientSpan.LogFields(log.Object("gRPC response", resp))
 			}
 		} else {
-			SetSpanTags(clientSpan, err, true)
-			clientSpan.LogFields(log.String("event", "error"), log.String("message", err.Error()))
+			clientSpan.LogFields(log.String("event", "gRPC error"), log.Error(err))
+			ext.Error.Set(clientSpan, true)
 		}
 		if otgrpcOpts.decorator != nil {
 			otgrpcOpts.decorator(clientSpan, method, req, resp, err)

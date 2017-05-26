@@ -17,5 +17,4 @@ func configureTransport(t1 *http.Transport) (*Transport, error) {
 
 func transportExpectContinueTimeout(t1 *http.Transport) time.Duration {
 	return 0
-
 }

@@ -7,24 +7,21 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"sync"
+	"time"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/mwitkow/go-grpc-middleware"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sercand/kuberesolver"
 	"golang.org/x/net/context"
-	spb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/status"
 
 	"github.com/weaveworks/common/middleware"
 )
+
+const dialTimeout = 5 * time.Second
 
 // Server implements HTTPServer.  HTTPServer is a generated interface that gRPC
 // servers must implement.
@@ -55,10 +52,7 @@ func (s Server) Handle(ctx context.Context, r *HTTPRequest) (*HTTPResponse, erro
 		Headers: fromHeader(recorder.Header()),
 		Body:    recorder.Body.Bytes(),
 	}
-	if recorder.Code/100 == 5 {
-		return nil, errorFromHTTPResponse(resp)
-	}
-	return resp, err
+	return resp, nil
 }
 
 // Client is a http.Handler that forwards the request over gRPC.
@@ -71,72 +65,76 @@ type Client struct {
 	conn      *grpc.ClientConn
 }
 
-// ParseURL deals with direct:// style URLs, as well as kubernetes:// urls.
-// For backwards compatibility it treats URLs without schems as kubernetes://.
-func ParseURL(unparsed string) (string, []grpc.DialOption, error) {
-	parsed, err := url.Parse(unparsed)
+// ParseKubernetesAddress splits up an address of the form <service>(.<namespace>):<port>
+// into its consistuent parts.  Namespace will be "default" if missing.
+func ParseKubernetesAddress(address string) (service, namespace, port string, err error) {
+	host, port, err := net.SplitHostPort(address)
 	if err != nil {
-		return "", nil, err
+		return "", "", "", err
 	}
-
-	scheme, host := parsed.Scheme, parsed.Host
-	if !strings.Contains(unparsed, "://") {
-		scheme, host = "kubernetes", unparsed
+	parts := strings.SplitN(host, ".", 2)
+	service, namespace = parts[0], "default"
+	if len(parts) == 2 {
+		namespace = parts[1]
 	}
-
-	switch scheme {
-	case "direct":
-		return host, nil, err
-
-	case "kubernetes":
-		host, port, err := net.SplitHostPort(host)
-		if err != nil {
-			return "", nil, err
-		}
-		parts := strings.SplitN(host, ".", 2)
-		service, namespace := parts[0], "default"
-		if len(parts) == 2 {
-			namespace = parts[1]
-		}
-		balancer := kuberesolver.NewWithNamespace(namespace)
-		address := fmt.Sprintf("kubernetes://%s:%s", service, port)
-		dialOptions := []grpc.DialOption{balancer.DialOption()}
-		return address, dialOptions, nil
-
-	default:
-		return "", nil, fmt.Errorf("unrecognised scheme: %s", parsed.Scheme)
-	}
+	return service, namespace, port, nil
 }
 
 // NewClient makes a new Client, given a kubernetes service address.
 func NewClient(address string) (*Client, error) {
-	address, dialOptions, err := ParseURL(address)
+	service, namespace, port, err := ParseKubernetesAddress(address)
 	if err != nil {
 		return nil, err
 	}
+	return &Client{
+		service:   service,
+		namespace: namespace,
+		port:      port,
+	}, nil
+}
 
-	dialOptions = append(
-		dialOptions,
+func (c *Client) connect(ctx context.Context) error {
+	c.mtx.RLock()
+	connected := c.conn != nil
+	c.mtx.RUnlock()
+	if connected {
+		return nil
+	}
+
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	if c.conn != nil {
+		return nil
+	}
+
+	balancer := kuberesolver.NewWithNamespace(c.namespace)
+	ctxDeadline, cancel := context.WithTimeout(ctx, dialTimeout)
+	defer cancel()
+	conn, err := grpc.DialContext(
+		ctxDeadline,
+		fmt.Sprintf("kubernetes://%s:%s", c.service, c.port),
+		balancer.DialOption(),
 		grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(
 			otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer()),
 			middleware.ClientUserHeaderInterceptor,
 		)),
 	)
-
-	conn, err := grpc.Dial(address, dialOptions...)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	return &Client{
-		client: NewHTTPClient(conn),
-		conn:   conn,
-	}, nil
+	c.client = NewHTTPClient(conn)
+	c.conn = conn
+	return nil
 }
 
 // ServeHTTP implements http.Handler
 func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if err := c.connect(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -151,14 +149,8 @@ func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := c.client.Handle(r.Context(), req)
 	if err != nil {
-		// Some errors will actually contain a valid resp, just need to unpack it
-		var ok bool
-		resp, ok = httpResponseFromError(err)
-
-		if !ok {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	toHeader(resp.Headers, w.Header())
@@ -167,40 +159,6 @@ func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-}
-
-func errorFromHTTPResponse(resp *HTTPResponse) error {
-	a, err := ptypes.MarshalAny(resp)
-	if err != nil {
-		return err
-	}
-
-	return status.ErrorProto(&spb.Status{
-		Code:    resp.Code,
-		Message: string(resp.Body),
-		Details: []*any.Any{a},
-	})
-}
-
-func httpResponseFromError(err error) (*HTTPResponse, bool) {
-	s, ok := status.FromError(err)
-	if !ok {
-		fmt.Println("not status")
-		return nil, false
-	}
-
-	status := s.Proto()
-	if len(status.Details) != 1 {
-		return nil, false
-	}
-
-	var resp HTTPResponse
-	if err := ptypes.UnmarshalAny(status.Details[0], &resp); err != nil {
-		log.Errorf("Got error containing non-response: %v", err)
-		return nil, false
-	}
-
-	return &resp, true
 }
 
 func toHeader(hs []*Header, header http.Header) {

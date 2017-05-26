@@ -13,11 +13,8 @@ import (
 	"github.com/fatih/color"
 	_ "github.com/mattes/migrate/driver/bash"
 	_ "github.com/mattes/migrate/driver/cassandra"
-	_ "github.com/mattes/migrate/driver/crate"
 	_ "github.com/mattes/migrate/driver/mysql"
-	_ "github.com/mattes/migrate/driver/neo4j"
 	_ "github.com/mattes/migrate/driver/postgres"
-	_ "github.com/mattes/migrate/driver/ql"
 	_ "github.com/mattes/migrate/driver/sqlite3"
 	"github.com/mattes/migrate/file"
 	"github.com/mattes/migrate/migrate"
@@ -161,8 +158,7 @@ func main() {
 		fmt.Println(version)
 
 	default:
-		helpCmd()
-		os.Exit(1)
+		fallthrough
 	case "help":
 		helpCmd()
 	}
@@ -176,31 +172,31 @@ func writePipe(pipe chan interface{}) (ok bool) {
 			case item, more := <-pipe:
 				if !more {
 					return okFlag
-				}
-				switch item.(type) {
+				} else {
+					switch item.(type) {
 
-				case string:
-					fmt.Println(item.(string))
+					case string:
+						fmt.Println(item.(string))
 
-				case error:
-					c := color.New(color.FgRed)
-					c.Printf("%s\n\n", item.(error).Error())
-					okFlag = false
-
-				case file.File:
-					f := item.(file.File)
-					if f.Direction == direction.Up {
-						c := color.New(color.FgGreen)
-						c.Print(">")
-					} else if f.Direction == direction.Down {
+					case error:
 						c := color.New(color.FgRed)
-						c.Print("<")
-					}
-					fmt.Printf(" %s\n", f.FileName)
+						c.Println(item.(error).Error(), "\n")
+						okFlag = false
 
-				default:
-					text := fmt.Sprint(item)
-					fmt.Println(text)
+					case file.File:
+						f := item.(file.File)
+						c := color.New(color.FgBlue)
+						if f.Direction == direction.Up {
+							c.Print(">")
+						} else if f.Direction == direction.Down {
+							c.Print("<")
+						}
+						fmt.Printf(" %s\n", f.FileName)
+
+					default:
+						text := fmt.Sprint(item)
+						fmt.Println(text)
+					}
 				}
 			}
 		}

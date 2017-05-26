@@ -33,7 +33,7 @@ func OpenTracingServerInterceptor(tracer opentracing.Tracer, optFuncs ...Option)
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (resp interface{}, err error) {
-		md, ok := metadata.FromIncomingContext(ctx)
+		md, ok := metadata.FromContext(ctx)
 		if !ok {
 			md = metadata.New(nil)
 		}
@@ -42,10 +42,6 @@ func OpenTracingServerInterceptor(tracer opentracing.Tracer, optFuncs ...Option)
 			// TODO: establish some sort of error reporting mechanism here. We
 			// don't know where to put such an error and must rely on Tracer
 			// implementations to do something appropriate for the time being.
-		}
-		if otgrpcOpts.inclusionFunc != nil &&
-			!otgrpcOpts.inclusionFunc(spanContext, info.FullMethod, req, nil) {
-			return handler(ctx, req)
 		}
 		serverSpan := tracer.StartSpan(
 			info.FullMethod,
@@ -64,8 +60,8 @@ func OpenTracingServerInterceptor(tracer opentracing.Tracer, optFuncs ...Option)
 				serverSpan.LogFields(log.Object("gRPC response", resp))
 			}
 		} else {
-			SetSpanTags(serverSpan, err, false)
-			serverSpan.LogFields(log.String("event", "error"), log.String("message", err.Error()))
+			ext.Error.Set(serverSpan, true)
+			serverSpan.LogFields(log.String("event", "gRPC error"), log.Error(err))
 		}
 		if otgrpcOpts.decorator != nil {
 			otgrpcOpts.decorator(serverSpan, info.FullMethod, req, resp, err)
