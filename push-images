@@ -37,11 +37,11 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-if [ $# = 0 ]; then
+COMPONENTS=(authfe users metrics logging pr-assigner notebooks)
+if [ $# -gt 0 ]; then
     COMPONENTS=("$@")
-else
-    COMPONENTS=(authfe users metrics logging pr-assigner notebooks)
 fi
+
 echo "Using components: ${COMPONENTS[*]}"
 
 IMAGE_TAG=$(./tools/image-tag)
