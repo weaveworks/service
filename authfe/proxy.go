@@ -13,7 +13,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
-	"github.com/weaveworks/common/httpgrpc"
+	httpgrpc_server "github.com/weaveworks/common/httpgrpc/server"
 	"github.com/weaveworks/common/middleware"
 )
 
@@ -21,11 +21,11 @@ const defaultPort = "80"
 
 func newProxy(cfg proxyConfig) (http.Handler, error) {
 	if cfg.grpcHost != "" {
-		return httpgrpc.NewClient(cfg.grpcHost)
+		return httpgrpc_server.NewClient(cfg.grpcHost)
 	}
 	switch cfg.protocol {
 	case "grpc":
-		return httpgrpc.NewClient(cfg.hostAndPort)
+		return httpgrpc_server.NewClient(cfg.hostAndPort)
 	case "http":
 		// Make all transformations outside of the director since
 		// they are also required when proxying websockets

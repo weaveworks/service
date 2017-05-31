@@ -1,19 +1,14 @@
 package client
 
 import (
-	"strconv"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/mwitkow/go-grpc-middleware"
 	"github.com/opentracing/opentracing-go"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 
-	"github.com/weaveworks/common/httpgrpc"
+	httpgrpc_server "github.com/weaveworks/common/httpgrpc/server"
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/render"
 )
 
 // New is a factory for Authenticators
@@ -39,7 +34,7 @@ func New(kind, address string, opts CachingClientConfig) (users.UsersClient, err
 }
 
 func newGRPCClient(address string) (users.UsersClient, error) {
-	address, dialOptions, err := httpgrpc.ParseURL(address)
+	address, dialOptions, err := httpgrpc_server.ParseURL(address)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +43,6 @@ func newGRPCClient(address string) (users.UsersClient, error) {
 		grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(
 			otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer()),
-			errorInterceptor,
 		)),
 	)
 
@@ -60,25 +54,4 @@ func newGRPCClient(address string) (users.UsersClient, error) {
 		return nil, err
 	}
 	return users.NewUsersClient(conn), nil
-}
-
-var errorInterceptor grpc.UnaryClientInterceptor = func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-	var md metadata.MD
-	opts = append(opts, grpc.Trailer(&md))
-	err := invoker(ctx, method, req, reply, cc, opts...)
-
-	if codes, ok := md[render.UsersErrorCode]; err != nil && ok {
-		if len(codes) != 1 {
-			return err
-		}
-		code, convErr := strconv.Atoi(codes[0])
-		if convErr != nil {
-			return err
-		}
-		return &GRPCHTTPError{
-			httpStatus: code,
-		}
-	}
-
-	return err
 }

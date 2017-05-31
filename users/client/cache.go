@@ -9,6 +9,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
+	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/users"
 )
@@ -121,11 +122,11 @@ func hitOrMiss(err error) string {
 }
 
 func isErrorCachable(err error) bool {
-	gError, ok := err.(*GRPCHTTPError)
+	errResp, ok := httpgrpc.HTTPResponseFromError(err)
 	if !ok {
 		return false
 	}
-	switch gError.httpStatus {
+	switch errResp.Code {
 	case http.StatusUnauthorized:
 		return true
 	case http.StatusPaymentRequired:

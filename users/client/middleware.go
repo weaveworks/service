@@ -6,6 +6,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
+	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/tokens"
@@ -186,12 +187,12 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 }
 
 func handleError(err error, w http.ResponseWriter) {
-	if gErr, ok := err.(*GRPCHTTPError); ok {
-		switch gErr.httpStatus {
+	if errResp, ok := httpgrpc.HTTPResponseFromError(err); ok {
+		switch errResp.Code {
 		case http.StatusUnauthorized, http.StatusPaymentRequired:
-			w.WriteHeader(gErr.httpStatus)
+			w.WriteHeader(int(errResp.Code))
 		default:
-			log.Errorf("Error from users svc: %v (%d)", gErr.Error(), gErr.httpStatus)
+			log.Errorf("Error from users svc: %v (%d)", string(errResp.Body), errResp.Code)
 			w.WriteHeader(http.StatusUnauthorized)
 		}
 	} else {
