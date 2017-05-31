@@ -2,7 +2,6 @@ package gcache
 
 import (
 	"errors"
-	"github.com/bluele/gcache/singleflight"
 	"sync"
 	"time"
 )
@@ -14,42 +13,53 @@ const (
 	TYPE_ARC    = "arc"
 )
 
-var NotFoundKeyError = errors.New("Not found error.")
+var KeyNotFoundError = errors.New("Key not found.")
 
 type Cache interface {
-	Set(interface{}, interface{})
+	Set(interface{}, interface{}) error
+	SetWithExpire(interface{}, interface{}, time.Duration) error
 	Get(interface{}) (interface{}, error)
+	GetIFPresent(interface{}) (interface{}, error)
+	GetALL() map[interface{}]interface{}
+	get(interface{}, bool) (interface{}, error)
 	Remove(interface{}) bool
 	Purge()
 	Keys() []interface{}
 	Len() int
-	gc()
+
+	statsAccessor
 }
 
 type baseCache struct {
-	size        int
-	loaderFunc  *LoaderFunc
-	evictedFunc *EvictedFunc
-	addedFunc   *AddedFunc
-	expiration  *time.Duration
-	mu          sync.RWMutex
-	loadGroup   singleflight.Group
+	size            int
+	loaderFunc      LoaderFunc
+	evictedFunc     EvictedFunc
+	addedFunc       AddedFunc
+	deserializeFunc DeserializeFunc
+	serializeFunc   SerializeFunc
+	expiration      *time.Duration
+	mu              sync.RWMutex
+	loadGroup       Group
+	*stats
 }
 
-type LoaderFunc func(interface{}) (interface{}, error)
-
-type EvictedFunc func(interface{}, interface{})
-
-type AddedFunc func(interface{}, interface{})
+type (
+	LoaderFunc      func(interface{}) (interface{}, error)
+	EvictedFunc     func(interface{}, interface{})
+	AddedFunc       func(interface{}, interface{})
+	DeserializeFunc func(interface{}, interface{}) (interface{}, error)
+	SerializeFunc   func(interface{}, interface{}) (interface{}, error)
+)
 
 type CacheBuilder struct {
-	tp          string
-	size        int
-	loaderFunc  *LoaderFunc
-	evictedFunc *EvictedFunc
-	addedFunc   *AddedFunc
-	expiration  *time.Duration
-	gcInterval  *time.Duration
+	tp              string
+	size            int
+	loaderFunc      LoaderFunc
+	evictedFunc     EvictedFunc
+	addedFunc       AddedFunc
+	expiration      *time.Duration
+	deserializeFunc DeserializeFunc
+	serializeFunc   SerializeFunc
 }
 
 func New(size int) *CacheBuilder {
@@ -62,13 +72,10 @@ func New(size int) *CacheBuilder {
 	}
 }
 
+// Set a loader function.
+// loaderFunc: create a new value with this function if cached value is expired.
 func (cb *CacheBuilder) LoaderFunc(loaderFunc LoaderFunc) *CacheBuilder {
-	cb.loaderFunc = &loaderFunc
-	return cb
-}
-
-func (cb *CacheBuilder) EnableGC(interval time.Duration) *CacheBuilder {
-	cb.gcInterval = &interval
+	cb.loaderFunc = loaderFunc
 	return cb
 }
 
@@ -94,12 +101,22 @@ func (cb *CacheBuilder) ARC() *CacheBuilder {
 }
 
 func (cb *CacheBuilder) EvictedFunc(evictedFunc EvictedFunc) *CacheBuilder {
-	cb.evictedFunc = &evictedFunc
+	cb.evictedFunc = evictedFunc
 	return cb
 }
 
 func (cb *CacheBuilder) AddedFunc(addedFunc AddedFunc) *CacheBuilder {
-	cb.addedFunc = &addedFunc
+	cb.addedFunc = addedFunc
+	return cb
+}
+
+func (cb *CacheBuilder) DeserializeFunc(deserializeFunc DeserializeFunc) *CacheBuilder {
+	cb.deserializeFunc = deserializeFunc
+	return cb
+}
+
+func (cb *CacheBuilder) SerializeFunc(serializeFunc SerializeFunc) *CacheBuilder {
+	cb.serializeFunc = serializeFunc
 	return cb
 }
 
@@ -109,20 +126,7 @@ func (cb *CacheBuilder) Expiration(expiration time.Duration) *CacheBuilder {
 }
 
 func (cb *CacheBuilder) Build() Cache {
-	cache := cb.build()
-	if cb.gcInterval != nil {
-		go func() {
-			t := time.NewTicker(*cb.gcInterval)
-			for {
-				select {
-				case <-t.C:
-					go cache.gc()
-				}
-			}
-			t.Stop()
-		}()
-	}
-	return cache
+	return cb.build()
 }
 
 func (cb *CacheBuilder) build() Cache {
@@ -145,16 +149,19 @@ func buildCache(c *baseCache, cb *CacheBuilder) {
 	c.loaderFunc = cb.loaderFunc
 	c.expiration = cb.expiration
 	c.addedFunc = cb.addedFunc
+	c.deserializeFunc = cb.deserializeFunc
+	c.serializeFunc = cb.serializeFunc
 	c.evictedFunc = cb.evictedFunc
+	c.stats = &stats{}
 }
 
 // load a new value using by specified key.
-func (c *baseCache) load(key interface{}, cb func(interface{}, error) (interface{}, error)) (interface{}, error) {
-	v, err := c.loadGroup.Do(key, func() (interface{}, error) {
-		return cb((*c.loaderFunc)(key))
-	})
+func (c *baseCache) load(key interface{}, cb func(interface{}, error) (interface{}, error), isWait bool) (interface{}, bool, error) {
+	v, called, err := c.loadGroup.Do(key, func() (interface{}, error) {
+		return cb(c.loaderFunc(key))
+	}, isWait)
 	if err != nil {
-		return nil, err
+		return nil, called, err
 	}
-	return v, nil
+	return v, called, nil
 }

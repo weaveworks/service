@@ -1,15 +1,12 @@
 package client
 
 import (
-	"fmt"
-	"net/url"
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/mwitkow/go-grpc-middleware"
 	"github.com/opentracing/opentracing-go"
-	"github.com/sercand/kuberesolver"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -42,24 +39,10 @@ func New(kind, address string, opts CachingClientConfig) (users.UsersClient, err
 }
 
 func newGRPCClient(address string) (users.UsersClient, error) {
-	var dialOptions []grpc.DialOption
-
-	u, err := url.Parse(address)
+	address, dialOptions, err := httpgrpc.ParseURL(address)
 	if err != nil {
 		return nil, err
 	}
-
-	if u.Scheme == "direct" {
-		address = u.Host
-	} else if service, namespace, port, err := httpgrpc.ParseKubernetesAddress(address); err != nil {
-		return nil, err
-	} else {
-		balancer := kuberesolver.NewWithNamespace(namespace)
-		address = fmt.Sprintf("kubernetes://%s:%s", service, port)
-		dialOptions = append(dialOptions, balancer.DialOption())
-	}
-
-	fmt.Println(address)
 
 	dialOptions = append(dialOptions,
 		grpc.WithInsecure(),
