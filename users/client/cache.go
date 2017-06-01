@@ -127,9 +127,7 @@ func isErrorCachable(err error) bool {
 		return false
 	}
 	switch errResp.Code {
-	case http.StatusUnauthorized:
-		return true
-	case http.StatusPaymentRequired:
+	case http.StatusUnauthorized, http.StatusPaymentRequired:
 		return true
 	default:
 		return false

@@ -12,20 +12,16 @@ import (
 )
 
 func errorStatusCode(err error) int {
-	switch {
-	case err == users.ErrForbidden:
+	switch err {
+	case users.ErrForbidden:
 		return http.StatusForbidden
-	case err == users.ErrNotFound:
+	case users.ErrNotFound:
 		return http.StatusNotFound
-	case err == users.ErrInvalidAuthenticationData:
+	case users.ErrInvalidAuthenticationData, users.ErrLoginNotFound:
 		return http.StatusUnauthorized
-	case err == users.ErrLoginNotFound:
-		return http.StatusUnauthorized
-	case err == users.ErrOrgUIFeaturesDisabled:
+	case users.ErrOrgUIFeaturesDisabled, users.ErrOrgTokenAuthDisabled:
 		return http.StatusPaymentRequired
-	case err == users.ErrOrgTokenAuthDisabled:
-		return http.StatusPaymentRequired
-	case err == users.ErrProviderParameters:
+	case users.ErrProviderParameters:
 		return http.StatusUnprocessableEntity
 	}
 
@@ -34,6 +30,7 @@ func errorStatusCode(err error) int {
 		return http.StatusBadRequest
 	}
 
+	// Just incase there's something sensitive in the error
 	return http.StatusInternalServerError
 }
 

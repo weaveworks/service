@@ -189,8 +189,13 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 func handleError(err error, w http.ResponseWriter) {
 	if errResp, ok := httpgrpc.HTTPResponseFromError(err); ok {
 		switch errResp.Code {
-		case http.StatusUnauthorized, http.StatusPaymentRequired:
-			w.WriteHeader(int(errResp.Code))
+		case http.StatusUnauthorized:
+			// If clients can tell the difference between invalid login, and login not
+			// found, our API has a user membership check vulnerability
+			// To prevent this, don't send on the actual message.
+			http.Error(w, "Unauthorized", int(errResp.Code))
+		case http.StatusPaymentRequired:
+			http.Error(w, string(errResp.Body), int(errResp.Code))
 		default:
 			log.Errorf("Error from users svc: %v (%d)", string(errResp.Body), errResp.Code)
 			w.WriteHeader(http.StatusUnauthorized)
