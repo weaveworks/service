@@ -196,7 +196,8 @@ func (d DB) UpdateNotebook(ID, orgID string, notebook notebooks.Notebook, versio
 	// Fetch the current notebook and check the version
 	currentNotebook, err := d.GetNotebook(ID, orgID)
 	if err != nil {
-		log.Errorf("Error fetching current notebook: %v", err)
+		// Matches how 'logging.With' would do it.
+		log.WithField("orgID", orgID).Errorf("Error fetching current notebook: %v", err)
 		return err
 	}
 	if version != currentNotebook.Version.String() {

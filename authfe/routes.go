@@ -15,12 +15,12 @@ import (
 	"strconv"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/justinas/nosurf"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/scope/common/xfer"
@@ -61,7 +61,7 @@ var noopHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) 
 func mustSplitHostname(r *http.Request) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		log.Errorf("Error splitting '%s': %v", r.RemoteAddr, err)
+		logging.With(r.Context()).Errorf("Error splitting '%s': %v", r.RemoteAddr, err)
 	}
 	return host
 }
@@ -470,7 +470,7 @@ func (o originCheckerMiddleware) Wrap(next http.Handler) http.Handler {
 		if headerValue := r.Header.Get(headerName); headerValue != "" {
 			url, err := url.Parse(headerValue)
 			if err != nil {
-				log.Warnf("originCheckerMiddleware: Cannot parse %s header: %v", headerName, err)
+				logging.With(r.Context()).Warnf("originCheckerMiddleware: Cannot parse %s header: %v", headerName, err)
 				return false
 			}
 			return url.Host == o.expectedTarget
@@ -481,7 +481,7 @@ func (o originCheckerMiddleware) Wrap(next http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Debugf("originCheckerMiddleware: URL %s, Method %s, Origin: %q, Referer: %q, expectedTarget: %q",
+		logging.With(r.Context()).Debugf("originCheckerMiddleware: URL %s, Method %s, Origin: %q, Referer: %q, expectedTarget: %q",
 			r.URL, r.Method, r.Header.Get("Origin"), r.Referer(), o.expectedTarget)
 
 		// Verify that origin or referer headers (when present) match the expected target

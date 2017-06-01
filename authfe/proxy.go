@@ -14,6 +14,7 @@ import (
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	httpgrpc_server "github.com/weaveworks/common/httpgrpc/server"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/middleware"
 )
 
@@ -89,11 +90,11 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.URL.Host = p.hostAndPort
 	r.URL.Scheme = "http"
 
-	log.Debugf("Forwarding %s %s to %s, final URL: %s", r.Method, r.RequestURI, p.hostAndPort, r.URL)
+	logging.With(r.Context()).Debugf("Forwarding %s %s to %s, final URL: %s", r.Method, r.RequestURI, p.hostAndPort, r.URL)
 
 	// Detect whether we should do websockets
 	if middleware.IsWSHandshakeRequest(r) {
-		log.Debugf("proxy: detected websocket handshake")
+		logging.With(r.Context()).Debugf("proxy: detected websocket handshake")
 		p.proxyWS(w, r)
 		return
 	}
@@ -115,7 +116,7 @@ func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {
 	// Connect to target
 	targetConn, err := net.Dial("tcp", address)
 	if err != nil {
-		log.Errorf("proxy: websocket: error dialing backend %q: %v", p.hostAndPort, err)
+		logging.With(r.Context()).Errorf("proxy: websocket: error dialing backend %q: %v", p.hostAndPort, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -124,33 +125,33 @@ func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {
 	// Hijack the connection to copy raw data back to our client
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
-		log.Errorf("proxy: websocket: error casting to Hijacker on request to %q", p.hostAndPort)
+		logging.With(r.Context()).Errorf("proxy: websocket: error casting to Hijacker on request to %q", p.hostAndPort)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	clientConn, _, err := hijacker.Hijack()
 	if err != nil {
-		log.Errorf("proxy: websocket: Hijack error: %v", err)
+		logging.With(r.Context()).Errorf("proxy: websocket: Hijack error: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer clientConn.Close()
 
 	// Forward current request to the target host since it was received before hijacking
-	log.Debugf("proxy: websocket: writing original request to %s%s", p.hostAndPort, r.URL.Opaque)
+	logging.With(r.Context()).Debugf("proxy: websocket: writing original request to %s%s", p.hostAndPort, r.URL.Opaque)
 	if err := r.Write(targetConn); err != nil {
-		log.Errorf("proxy: websocket: error copying request to target: %v", err)
+		logging.With(r.Context()).Errorf("proxy: websocket: error copying request to target: %v", err)
 		return
 	}
 
 	// Copy websocket payload back and forth between our client and the target host
 	var wg sync.WaitGroup
 	wg.Add(2)
-	log.Debugf("proxy: websocket: spawning copiers")
+	logging.With(r.Context()).Debugf("proxy: websocket: spawning copiers")
 	go copyStream(clientConn, targetConn, &wg, "proxy: websocket: \"server2client\"")
 	go copyStream(targetConn, clientConn, &wg, "proxy: websocket: \"client2server\"")
 	wg.Wait()
-	log.Debugf("proxy: websocket: connection closed")
+	logging.With(r.Context()).Debugf("proxy: websocket: connection closed")
 }
 
 type closeWriter interface {

@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
 
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/render"
@@ -76,7 +76,7 @@ func (a *API) listAttachedLoginProviders(currentUser *users.User, w http.Respons
 		var err error
 		v.Username, err = p.Username(l.Session)
 		if err != nil {
-			log.Warningf("Failed fetching %q username for %s: %q", l.Provider, l.ProviderID, err)
+			logging.With(r.Context()).Warningf("Failed fetching %q username for %s: %q", l.Provider, l.ProviderID, err)
 		}
 		view.Logins = append(view.Logins, v)
 	}
@@ -97,7 +97,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	providerID := vars["provider"]
 	provider, ok := a.logins.Get(providerID)
 	if !ok {
-		log.Errorf("Login provider not found: %q", providerID)
+		logging.With(r.Context()).Errorf("Login provider not found: %q", providerID)
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -108,7 +108,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if email == "" {
-		log.Errorf("Login provider returned blank email: %q", providerID)
+		logging.With(r.Context()).Errorf("Login provider returned blank email: %q", providerID)
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -145,7 +145,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			break
 		} else if err != users.ErrNotFound {
-			log.Error(err)
+			logging.With(r.Context()).Error(err)
 			render.Error(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
@@ -157,7 +157,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		view.UserCreated = true
 		u, err = a.db.CreateUser(r.Context(), email)
 		if err != nil {
-			log.Error(err)
+			logging.With(r.Context()).Error(err)
 			render.Error(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
@@ -167,7 +167,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	if err := a.db.AddLoginToUser(r.Context(), u.ID, providerID, id, authSession); err != nil {
 		existing, ok := err.(users.AlreadyAttachedError)
 		if !ok {
-			log.Error(err)
+			logging.With(r.Context()).Error(err)
 			render.Error(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
@@ -177,12 +177,12 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := a.db.DetachLoginFromUser(r.Context(), existing.ID, providerID); err != nil {
-			log.Error(err)
+			logging.With(r.Context()).Error(err)
 			render.Error(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
 		if err := a.db.AddLoginToUser(r.Context(), u.ID, providerID, id, authSession); err != nil {
-			log.Error(err)
+			logging.With(r.Context()).Error(err)
 			render.Error(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
@@ -329,7 +329,7 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 		err = nil
 	}
 	if err != nil {
-		log.Error(err)
+		logging.With(r.Context()).Error(err)
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -341,7 +341,7 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.db.SetUserToken(r.Context(), u.ID, ""); err != nil {
-		log.Error(err)
+		logging.With(r.Context()).Error(err)
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}

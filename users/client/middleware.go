@@ -4,9 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
-
 	"github.com/weaveworks/common/httpgrpc"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/tokens"
@@ -34,14 +33,14 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		orgExternalID, ok := a.OrgExternalID(r)
 		if !ok {
-			log.Errorf("Invalid request, no org id: %s", r.RequestURI)
+			logging.With(r.Context()).Errorf("Invalid request, no org id: %s", r.RequestURI)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			log.Errorf("Unauthorised request, no auth cookie: %v", err)
+			logging.With(r.Context()).Errorf("Unauthorised request, no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -52,12 +51,12 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 			AuthorizeForUIFeatures: a.AuthorizeForUIFeatures,
 		})
 		if err != nil {
-			handleError(err, w)
+			handleError(err, w, r)
 			return
 		}
 
 		if !hasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
-			log.Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
+			logging.With(r.Context()).Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -83,7 +82,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, ok := tokens.ExtractToken(r)
 		if !ok {
-			log.Errorf("Unauthorised request, no token")
+			logging.With(r.Context()).Errorf("Unauthorised request, no token")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -92,12 +91,12 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 			Token: token,
 		})
 		if err != nil {
-			handleError(err, w)
+			handleError(err, w, r)
 			return
 		}
 
 		if !hasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
-			log.Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
+			logging.With(r.Context()).Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -136,7 +135,7 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			log.Errorf("Unauthorised request, no auth cookie: %v", err)
+			logging.With(r.Context()).Errorf("Unauthorised request, no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -145,7 +144,7 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 			Cookie: authCookie.Value,
 		})
 		if err != nil {
-			handleError(err, w)
+			handleError(err, w, r)
 			return
 		}
 
@@ -168,7 +167,7 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			log.Infof("unauthorised request - no auth cookie: %v", err)
+			logging.With(r.Context()).Infof("unauthorised request - no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -177,7 +176,7 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 			Cookie: authCookie.Value,
 		})
 		if err != nil {
-			handleError(err, w)
+			handleError(err, w, r)
 			return
 		}
 
@@ -186,7 +185,7 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 	})
 }
 
-func handleError(err error, w http.ResponseWriter) {
+func handleError(err error, w http.ResponseWriter, r *http.Request) {
 	if errResp, ok := httpgrpc.HTTPResponseFromError(err); ok {
 		switch errResp.Code {
 		case http.StatusUnauthorized:
@@ -197,11 +196,11 @@ func handleError(err error, w http.ResponseWriter) {
 		case http.StatusPaymentRequired:
 			http.Error(w, string(errResp.Body), int(errResp.Code))
 		default:
-			log.Errorf("Error from users svc: %v (%d)", string(errResp.Body), errResp.Code)
+			logging.With(r.Context()).Errorf("Error from users svc: %v (%d)", string(errResp.Body), errResp.Code)
 			w.WriteHeader(http.StatusUnauthorized)
 		}
 	} else {
-		log.Errorf("Error talking to users svc: %v", err)
+		logging.With(r.Context()).Errorf("Error talking to users svc: %v", err)
 		w.WriteHeader(http.StatusBadGateway)
 	}
 }

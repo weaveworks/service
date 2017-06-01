@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/notebooks"
 )
@@ -26,7 +26,7 @@ func (a *API) listNotebooks(w http.ResponseWriter, r *http.Request) {
 
 	ns, err := a.db.ListNotebooks(orgID)
 	if err != nil {
-		log.Errorf("Error getting notebooks: %v", err)
+		logging.With(r.Context()).Errorf("Error getting notebooks: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -35,7 +35,7 @@ func (a *API) listNotebooks(w http.ResponseWriter, r *http.Request) {
 	for _, n := range ns {
 		err = n.ResolveUser(r, a.usersClient)
 		if err != nil {
-			log.Errorf("Error resolving notebook user: %v", err)
+			logging.With(r.Context()).Errorf("Error resolving notebook user: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -44,7 +44,7 @@ func (a *API) listNotebooks(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(NotebooksView{resolvedNotebooks}); err != nil {
-		log.Errorf("Error encoding notebooks: %v", err)
+		logging.With(r.Context()).Errorf("Error encoding notebooks: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -69,7 +69,7 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 
 	var input NotebookWriteView
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		log.Errorf("Error decoding json body: %v", err)
+		logging.With(r.Context()).Errorf("Error decoding json body: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -93,7 +93,7 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 
 	id, err := a.db.CreateNotebook(notebook)
 	if err != nil {
-		log.Errorf("Error creating notebook: %v", err)
+		logging.With(r.Context()).Errorf("Error creating notebook: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -101,21 +101,21 @@ func (a *API) createNotebook(w http.ResponseWriter, r *http.Request) {
 	// Fetch new notebook to include generated ID and update timestamps
 	notebook, err = a.db.GetNotebook(id, orgID)
 	if err != nil {
-		log.Errorf("Error fetching new notebook: %v", err)
+		logging.With(r.Context()).Errorf("Error fetching new notebook: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = notebook.ResolveUser(r, a.usersClient)
 	if err != nil {
-		log.Errorf("Error resolving notebook user: %v", err)
+		logging.With(r.Context()).Errorf("Error resolving notebook user: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(notebook); err != nil {
-		log.Errorf("Error encoding notebooks: %v", err)
+		logging.With(r.Context()).Errorf("Error encoding notebooks: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -126,7 +126,7 @@ func (a *API) getNotebook(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	notebookID, ok := vars["notebookID"]
 	if !ok {
-		log.Error("Missing notebookID var")
+		logging.With(r.Context()).Error("Missing notebookID var")
 		http.Error(w, "Missing notebookID", http.StatusBadRequest)
 		return
 	}
@@ -145,14 +145,14 @@ func (a *API) getNotebook(w http.ResponseWriter, r *http.Request) {
 
 	err = notebook.ResolveUser(r, a.usersClient)
 	if err != nil {
-		log.Errorf("Error resolving notebook user: %v", err)
+		logging.With(r.Context()).Errorf("Error resolving notebook user: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(notebook); err != nil {
-		log.Errorf("Error encoding notebook: %v", err)
+		logging.With(r.Context()).Errorf("Error encoding notebook: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -163,14 +163,14 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	notebookID, ok := vars["notebookID"]
 	if !ok {
-		log.Error("Missing notebookID var")
+		logging.With(r.Context()).Error("Missing notebookID var")
 		http.Error(w, "Missing notebookID", http.StatusBadRequest)
 		return
 	}
 	vals := r.URL.Query()
 	version, ok := vals["version"]
 	if !ok {
-		log.Error("Missing version val")
+		logging.With(r.Context()).Error("Missing version val")
 		http.Error(w, "Missing version query parameter", http.StatusBadRequest)
 		return
 	}
@@ -184,7 +184,7 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 	// Create the notebook update
 	var input NotebookWriteView
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		log.Errorf("Error decoding json body: %v", err)
+		logging.With(r.Context()).Errorf("Error decoding json body: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -209,7 +209,7 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Notebook version mismatch", http.StatusConflict)
 		return
 	} else if err != nil {
-		log.Errorf("Error updating notebook: %v", err)
+		logging.With(r.Context()).Errorf("Error updating notebook: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -217,21 +217,21 @@ func (a *API) updateNotebook(w http.ResponseWriter, r *http.Request) {
 	// Fetch the updated notebook which includes updated timestamps
 	notebook, err = a.db.GetNotebook(notebookID, orgID)
 	if err != nil {
-		log.Errorf("Error fetching new notebook: %v", err)
+		logging.With(r.Context()).Errorf("Error fetching new notebook: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = notebook.ResolveUser(r, a.usersClient)
 	if err != nil {
-		log.Errorf("Error resolving notebook user: %v", err)
+		logging.With(r.Context()).Errorf("Error resolving notebook user: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(notebook); err != nil {
-		log.Errorf("Error encoding notebooks: %v", err)
+		logging.With(r.Context()).Errorf("Error encoding notebooks: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -242,7 +242,7 @@ func (a *API) deleteNotebook(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	notebookID, ok := vars["notebookID"]
 	if !ok {
-		log.Error("Missing notebookID var")
+		logging.With(r.Context()).Error("Missing notebookID var")
 		http.Error(w, "Missing notebookID", http.StatusBadRequest)
 		return
 	}
@@ -255,7 +255,7 @@ func (a *API) deleteNotebook(w http.ResponseWriter, r *http.Request) {
 
 	err = a.db.DeleteNotebook(notebookID, orgID)
 	if err != nil {
-		log.Errorf("Error deleting notebook: %v", err)
+		logging.With(r.Context()).Errorf("Error deleting notebook: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
