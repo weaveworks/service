@@ -7,10 +7,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
 
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/client"
 	"github.com/weaveworks/service/users/login"
@@ -75,7 +75,7 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if _, err := w.Write(b); err != nil {
-			logrus.Warn("list users: %v", err)
+			logging.With(r.Context()).Warn("list users: %v", err)
 		}
 	}
 }
@@ -106,7 +106,7 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := w.Write(b); err != nil {
-		logrus.Warn("list organizations: %v", err)
+		logging.With(r.Context()).Warn("list organizations: %v", err)
 	}
 }
 
@@ -185,7 +185,7 @@ func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) becomeUser(w http.ResponseWriter, r *http.Request) {
-	logrus.Info(r)
+	logging.With(r.Context()).Info(r)
 	vars := mux.Vars(r)
 	userID, ok := vars["userID"]
 	if !ok {

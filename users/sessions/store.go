@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/securecookie"
 
 	"github.com/weaveworks/service/users"
@@ -20,7 +20,7 @@ const (
 func MustNewStore(validationSecret string, secure bool) Store {
 	secretBytes := []byte(validationSecret)
 	if len(secretBytes) != 64 {
-		logrus.Fatal("session-secret must be 64 bytes")
+		log.Fatal("session-secret must be 64 bytes")
 	}
 
 	return Store{

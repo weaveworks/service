@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/url"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/common"
@@ -96,7 +96,7 @@ type DB interface {
 func MustNew(databaseURI, migrationsDir string) DB {
 	u, err := url.Parse(databaseURI)
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 	var d DB
 	switch u.Scheme {
@@ -105,10 +105,10 @@ func MustNew(databaseURI, migrationsDir string) DB {
 	case "postgres":
 		d, err = postgres.New(databaseURI, migrationsDir, PasswordHashingCost)
 	default:
-		logrus.Fatalf("Unknown database type: %s", u.Scheme)
+		log.Fatalf("Unknown database type: %s", u.Scheme)
 	}
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 	return traced{timed{d, common.DatabaseRequestDuration}}
 }

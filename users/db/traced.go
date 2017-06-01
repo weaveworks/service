@@ -3,7 +3,7 @@ package db
 import (
 	"encoding/json"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
@@ -16,7 +16,7 @@ type traced struct {
 }
 
 func (t traced) trace(name string, args ...interface{}) {
-	logrus.Debugf("%s: %#v", name, args)
+	log.Debugf("%s: %#v", name, args)
 }
 
 func (t traced) CreateUser(ctx context.Context, email string) (u *users.User, err error) {

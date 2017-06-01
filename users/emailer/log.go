@@ -1,7 +1,7 @@
 package emailer
 
 import (
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/jordan-wright/email"
 )
 
@@ -12,7 +12,7 @@ func logEmailSender() func(e *email.Email) error {
 		if body == "" {
 			body = string(e.HTML)
 		}
-		logrus.Infof("[Email] From: %q, To: %q, Subject: %q, Body:\n%s", e.From, e.To, e.Subject, body)
+		log.Infof("[Email] From: %q, To: %q, Subject: %q, Body:\n%s", e.From, e.To, e.Subject, body)
 		return nil
 	}
 }

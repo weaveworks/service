@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	text "text/template"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
 // ErrTemplateNotFound is for when a template is not found. Usually this means
@@ -30,11 +30,11 @@ type Executor interface {
 func MustNewEngine(dir string) Engine {
 	h, err := html.ParseGlob(filepath.Join(dir, "*.html"))
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 	t, err := text.ParseGlob(filepath.Join(dir, "*.text"))
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 
 	return &extensionsTemplateEngine{h, t}
@@ -82,7 +82,7 @@ func (l *extensionsTemplateEngine) Bytes(templateName string, data interface{}) 
 func (l *extensionsTemplateEngine) QuietBytes(name string, data interface{}) []byte {
 	b, err := l.Bytes(name, data)
 	if err != nil {
-		logrus.Error(err)
+		log.Error(err)
 	}
 	return b
 }

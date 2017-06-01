@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	_ "github.com/lib/pq"                         // Import the postgres sql driver
 	_ "github.com/mattes/migrate/driver/postgres" // Import the postgres migrations driver
 	"github.com/mattes/migrate/migrate"
@@ -56,10 +56,10 @@ func New(databaseURI, migrationsDir string, passwordHashingCost int) (DB, error)
 	databaseURI = u.String()
 
 	if migrationsDir != "" {
-		logrus.Infof("Running Database Migrations...")
+		log.Infof("Running Database Migrations...")
 		if errs, ok := migrate.UpSync(databaseURI, migrationsDir); !ok {
 			for _, err := range errs {
-				logrus.Error(err)
+				log.Error(err)
 			}
 			return DB{}, errors.New("Database migrations failed")
 		}
@@ -107,7 +107,7 @@ func (d DB) Transaction(f func(DB) error) error {
 	if err != nil {
 		// Rollback error is ignored as we already have one in progress
 		if err2 := tx.Rollback(); err2 != nil {
-			logrus.Warn("transaction rollback: %v (ignored)", err2)
+			log.Warn("transaction rollback: %v (ignored)", err2)
 		}
 		return err
 	}

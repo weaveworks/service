@@ -3,11 +3,11 @@ package render
 import (
 	"net/http"
 
-	"github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
 	"github.com/weaveworks/common/httpgrpc"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
 )
 
@@ -45,7 +45,7 @@ var GRPCErrorInterceptor grpc.UnaryServerInterceptor = func(ctx context.Context,
 
 // Error renders a specific error to the API
 func Error(w http.ResponseWriter, r *http.Request, err error) {
-	logrus.Errorf("%s %s: %v", r.Method, r.URL.Path, err)
+	logging.With(r.Context()).Errorf("%s %s: %v", r.Method, r.URL.Path, err)
 
 	code := errorStatusCode(err)
 	if code == http.StatusInternalServerError {
