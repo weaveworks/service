@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -77,7 +77,7 @@ func main() {
 	flag.Parse()
 
 	if err := logging.Setup(*logLevel); err != nil {
-		logrus.Fatalf("Error configuring logging: %v", err)
+		log.Fatalf("Error configuring logging: %v", err)
 		return
 	}
 
@@ -93,7 +93,7 @@ func main() {
 	if *marketoClientID != "" {
 		marketoClient, err := marketing.NewMarketoClient(*marketoClientID, *marketoSecret, *marketoEndpoint, *marketoProgram)
 		if err != nil {
-			logrus.Warningf("Failed to initialise Marketo client: %v", err)
+			log.Warningf("Failed to initialise Marketo client: %v", err)
 		} else {
 			queue := marketing.NewQueue(marketoClient)
 			defer queue.Stop()
@@ -109,7 +109,7 @@ func main() {
 	defer db.Close(context.Background())
 	sessions := sessions.MustNewStore(*sessionSecret, *secureCookie)
 
-	logrus.Debug("Debug logging enabled")
+	log.Debug("Debug logging enabled")
 
 	grpcServer := grpc_server.New(sessions, db)
 	api := api.New(*directLogin, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey, grpcServer)
@@ -120,7 +120,7 @@ func main() {
 			strings.Split(*localTestUserInstanceFeatureFlags, ","))
 	}
 
-	logrus.Infof("Listening on port %d", *port)
+	log.Infof("Listening on port %d", *port)
 	s, err := server.New(server.Config{
 		MetricsNamespace: common.PrometheusNamespace,
 		HTTPListenPort:   *port,
@@ -128,7 +128,7 @@ func main() {
 		GRPCMiddleware:   []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
 	})
 	if err != nil {
-		logrus.Fatalf("Failed to create server: %v", err)
+		log.Fatalf("Failed to create server: %v", err)
 		return
 	}
 	defer s.Shutdown()
@@ -145,17 +145,17 @@ func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string
 		Email: email,
 	})
 	if err != nil {
-		logrus.Errorf("Error creating local test user: %v", err)
+		log.Errorf("Error creating local test user: %v", err)
 		return
 	}
 
 	if err := a.UpdateUserAtLogin(ctx, user); err != nil {
-		logrus.Errorf("Error updating user first login at: %v", err)
+		log.Errorf("Error updating user first login at: %v", err)
 		return
 	}
 
 	if err := a.MakeUserAdmin(ctx, user.ID, true); err != nil {
-		logrus.Errorf("Error making user an admin: %v", err)
+		log.Errorf("Error making user an admin: %v", err)
 		return
 	}
 
@@ -165,7 +165,7 @@ func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string
 		ProbeToken:   token,
 		FeatureFlags: featureFlags,
 	}); err != nil {
-		logrus.Errorf("Error creating local test instance: %v", err)
+		log.Errorf("Error creating local test instance: %v", err)
 		return
 	}
 }

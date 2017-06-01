@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
 // Time renders a timestamp into a string, in the format the user expects.
@@ -22,6 +22,6 @@ func Time(t time.Time) string {
 func JSON(w http.ResponseWriter, status int, data interface{}) {
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		logrus.Error(err)
+		log.Error(err)
 	}
 }

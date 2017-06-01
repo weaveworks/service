@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/jordan-wright/email"
 
 	"github.com/weaveworks/service/users"
@@ -49,12 +49,12 @@ type Emailer interface {
 // MustNew creates a new emailer, from the URI, or panics.
 func MustNew(emailURI, fromAddress string, templates templates.Engine, domain string) Emailer {
 	if emailURI == "" {
-		logrus.Fatal("Must -email-uri")
+		log.Fatal("Must -email-uri")
 	}
 	var sender func(*email.Email) error
 	u, err := url.Parse(emailURI)
 	if err != nil {
-		logrus.Fatal(fmt.Errorf("Error parsing -email-uri: %s", err))
+		log.Fatal(fmt.Errorf("Error parsing -email-uri: %s", err))
 	}
 	switch u.Scheme {
 	case "smtp":
@@ -65,7 +65,7 @@ func MustNew(emailURI, fromAddress string, templates templates.Engine, domain st
 		err = ErrUnsupportedEmailProtocol
 	}
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 	return SMTPEmailer{
 		Templates:   templates,

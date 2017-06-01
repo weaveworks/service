@@ -6,7 +6,7 @@ import (
 	"errors"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/mattes/migrate/migrate"
 	"github.com/weaveworks/service/notebooks"
 
@@ -32,10 +32,10 @@ type dbProxy interface {
 // New creates a new postgres DB
 func New(uri, migrationsDir string) (DB, error) {
 	if migrationsDir != "" {
-		logrus.Infof("Running Database Migrations...")
+		log.Infof("Running Database Migrations...")
 		if errs, ok := migrate.UpSync(uri, migrationsDir); !ok {
 			for _, err := range errs {
-				logrus.Error(err)
+				log.Error(err)
 			}
 			return DB{}, errors.New("Database migrations failed")
 		}
@@ -196,7 +196,7 @@ func (d DB) UpdateNotebook(ID, orgID string, notebook notebooks.Notebook, versio
 	// Fetch the current notebook and check the version
 	currentNotebook, err := d.GetNotebook(ID, orgID)
 	if err != nil {
-		logrus.Errorf("Error fetching current notebook: %v", err)
+		log.Errorf("Error fetching current notebook: %v", err)
 		return err
 	}
 	if version != currentNotebook.Version.String() {
@@ -255,7 +255,7 @@ func (d DB) Transaction(f func(DB) error) error {
 	if err != nil {
 		// Rollback error is ignored as we already have one in progress
 		if err2 := tx.Rollback(); err2 != nil {
-			logrus.Warn("transaction rollback: %v (ignored)", err2)
+			log.Warn("transaction rollback: %v (ignored)", err2)
 		}
 		return err
 	}
