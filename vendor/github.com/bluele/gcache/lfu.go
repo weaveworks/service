@@ -129,24 +129,21 @@ func (c *LFUCache) get(key interface{}, onLoad bool) (interface{}, error) {
 }
 
 func (c *LFUCache) getValue(key interface{}, onLoad bool) (interface{}, error) {
-	c.mu.RLock()
+	c.mu.Lock()
 	item, ok := c.items[key]
-	c.mu.RUnlock()
-
 	if ok {
 		if !item.IsExpired(nil) {
-			c.mu.Lock()
 			c.increment(item)
+			v := item.value
 			c.mu.Unlock()
 			if !onLoad {
 				c.stats.IncrHitCount()
 			}
-			return item.value, nil
+			return v, nil
 		}
-		c.mu.Lock()
 		c.removeItem(item)
-		c.mu.Unlock()
 	}
+	c.mu.Unlock()
 	if !onLoad {
 		c.stats.IncrMissCount()
 	}
@@ -154,18 +151,22 @@ func (c *LFUCache) getValue(key interface{}, onLoad bool) (interface{}, error) {
 }
 
 func (c *LFUCache) getWithLoader(key interface{}, isWait bool) (interface{}, error) {
-	if c.loaderFunc == nil {
+	if c.loaderExpireFunc == nil {
 		return nil, KeyNotFoundError
 	}
-	value, _, err := c.load(key, func(v interface{}, e error) (interface{}, error) {
+	value, _, err := c.load(key, func(v interface{}, expiration *time.Duration, e error) (interface{}, error) {
 		if e != nil {
 			return nil, e
 		}
 		c.mu.Lock()
-		_, err := c.set(key, v)
 		defer c.mu.Unlock()
+		item, err := c.set(key, v)
 		if err != nil {
 			return nil, err
+		}
+		if expiration != nil {
+			t := time.Now().Add(*expiration)
+			item.(*lfuItem).expiration = &t
 		}
 		return v, nil
 	}, isWait)
