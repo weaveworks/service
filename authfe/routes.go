@@ -163,18 +163,26 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		}
 	}
 
-	authOrgMiddleware := func(flags ...string) middleware.Interface {
-		return users_client.AuthOrgMiddleware{
-			UsersClient: authenticator,
-			OrgExternalID: func(r *http.Request) (string, bool) {
-				v, ok := mux.Vars(r)["orgExternalID"]
-				return v, ok
-			},
-			UserIDHeader:           userIDHeader,
-			FeatureFlagsHeader:     featureFlagsHeader,
-			AuthorizeForUIFeatures: true,
-			RequireFeatureFlags:    flags,
-		}
+	authOrgMiddleware := users_client.AuthOrgMiddleware{
+		UsersClient: authenticator,
+		OrgExternalID: func(r *http.Request) (string, bool) {
+			v, ok := mux.Vars(r)["orgExternalID"]
+			return v, ok
+		},
+		UserIDHeader:           userIDHeader,
+		FeatureFlagsHeader:     featureFlagsHeader,
+		AuthorizeForUIFeatures: true,
+	}
+
+	billingAuthMiddleware := users_client.AuthOrgMiddleware{
+		UsersClient: authenticator,
+		OrgExternalID: func(r *http.Request) (string, bool) {
+			v, ok := mux.Vars(r)["orgExternalID"]
+			return v, ok
+		},
+		UserIDHeader:        userIDHeader,
+		FeatureFlagsHeader:  featureFlagsHeader,
+		RequireFeatureFlags: []string{"billing"},
 	}
 
 	authUserMiddleware := users_client.AuthUserMiddleware{
@@ -261,7 +269,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				).Wrap(c.queryHost)},
 			},
 			middleware.Merge(
-				authOrgMiddleware(),
+				authOrgMiddleware,
 				middleware.PathRewrite(regexp.MustCompile("^/api/app/[^/]+"), ""),
 				uiHTTPlogger,
 			),
@@ -270,9 +278,9 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		// The billing API requires authentication & authorization.
 		prefix{
 			"/api/billing/{orgExternalID}",
-			[]path{{"/", c.billingUIHost}},
+			[]path{{"/", c.billingAPIHost}},
 			middleware.Merge(
-				authOrgMiddleware("billing"),
+				billingAuthMiddleware,
 				uiHTTPlogger,
 			),
 		},
