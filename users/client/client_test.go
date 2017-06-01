@@ -317,8 +317,8 @@ func TestMiddleware(t *testing.T) {
 			FeatureFlagsHeader: featureFlagsHeaderName,
 		}
 		result := testMiddleware(mw, req)
-		assert.Equal(t, result.Code, http.StatusUnauthorized, "")
-		assert.Equal(t, result.Body.Bytes(), []byte(nil), "")
+		assert.Equal(t, result.Code, http.StatusUnauthorized)
+		assert.Equal(t, result.Body.String(), "Unauthorized\n")
 	}
 
 	// Test denying access for feature flags
@@ -331,7 +331,7 @@ func TestMiddleware(t *testing.T) {
 			RequireFeatureFlags: []string{"foo"},
 		}
 		result := testMiddleware(mw, req)
-		assert.Equal(t, result.Code, http.StatusUnauthorized, "")
-		assert.Equal(t, result.Body.Bytes(), []byte(nil), "")
+		assert.Equal(t, result.Code, http.StatusUnauthorized)
+		assert.Equal(t, result.Body.String(), "Unauthorized\n")
 	}
 }

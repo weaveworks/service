@@ -6,6 +6,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
+	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/tokens"
@@ -186,9 +187,19 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 }
 
 func handleError(err error, w http.ResponseWriter) {
-	if unauth, ok := err.(*Unauthorized); ok {
-		log.Errorf("Error from users svc: %v (%d)", unauth.Error(), unauth.httpStatus)
-		w.WriteHeader(http.StatusUnauthorized)
+	if errResp, ok := httpgrpc.HTTPResponseFromError(err); ok {
+		switch errResp.Code {
+		case http.StatusUnauthorized:
+			// If clients can tell the difference between invalid login, and login not
+			// found, our API has a user membership check vulnerability
+			// To prevent this, don't send on the actual message.
+			http.Error(w, "Unauthorized", int(errResp.Code))
+		case http.StatusPaymentRequired:
+			http.Error(w, string(errResp.Body), int(errResp.Code))
+		default:
+			log.Errorf("Error from users svc: %v (%d)", string(errResp.Body), errResp.Code)
+			w.WriteHeader(http.StatusUnauthorized)
+		}
 	} else {
 		log.Errorf("Error talking to users svc: %v", err)
 		w.WriteHeader(http.StatusBadGateway)

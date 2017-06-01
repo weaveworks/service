@@ -2,32 +2,26 @@ package render
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 
+	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/service/users"
 )
 
-const (
-	// UsersErrorCode is the key in the gRPC metadata that contains the real error code.
-	UsersErrorCode = "users-error-code"
-)
-
 func errorStatusCode(err error) int {
-	switch {
-	case err == users.ErrForbidden:
+	switch err {
+	case users.ErrForbidden:
 		return http.StatusForbidden
-	case err == users.ErrNotFound:
+	case users.ErrNotFound:
 		return http.StatusNotFound
-	case err == users.ErrInvalidAuthenticationData:
+	case users.ErrInvalidAuthenticationData, users.ErrLoginNotFound:
 		return http.StatusUnauthorized
-	case err == users.ErrLoginNotFound:
-		return http.StatusUnauthorized
-	case err == users.ErrProviderParameters:
+	case users.ErrOrgUIFeaturesDisabled, users.ErrOrgTokenAuthDisabled:
+		return http.StatusPaymentRequired
+	case users.ErrProviderParameters:
 		return http.StatusUnprocessableEntity
 	}
 
@@ -36,6 +30,7 @@ func errorStatusCode(err error) int {
 		return http.StatusBadRequest
 	}
 
+	// Just incase there's something sensitive in the error
 	return http.StatusInternalServerError
 }
 
@@ -43,10 +38,7 @@ func errorStatusCode(err error) int {
 var GRPCErrorInterceptor grpc.UnaryServerInterceptor = func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	resp, err := handler(ctx, req)
 	if err != nil {
-		errMetadata := metadata.Pairs(
-			UsersErrorCode, strconv.Itoa(errorStatusCode(err)),
-		)
-		grpc.SetTrailer(ctx, errMetadata)
+		err = httpgrpc.Errorf(errorStatusCode(err), err.Error())
 	}
 	return resp, err
 }
