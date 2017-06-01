@@ -53,6 +53,7 @@ func main() {
 		marketoEndpoint    = flag.String("marketo-endpoint", "", "REST API endpoint for Marketo.")
 		marketoProgram     = flag.String("marketo-program", "2016_00_Website_WeaveCloud", "Program name to add leads to (for Marketo).")
 		marketoMunchkinKey = flag.String("marketo-munchkin-key", "", "Secret key for Marketo munchkin.")
+		intercomHashKey    = flag.String("intercom-hash-key", "", "Secret key for Intercom user hash.")
 
 		emailFromAddress = flag.String("email-from-address", "Weave Cloud <support@weave.works>", "From address for emails.")
 
@@ -112,7 +113,7 @@ func main() {
 	logrus.Debug("Debug logging enabled")
 
 	grpcServer := grpc_server.New(sessions, db)
-	api := api.New(*directLogin, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey, grpcServer)
+	api := api.New(*directLogin, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey, *intercomHashKey, grpcServer)
 
 	if *localTestUserCreate {
 		makeLocalTestUser(api, *localTestUserEmail, *localTestUserInstanceID,

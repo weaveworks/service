@@ -2,6 +2,7 @@ package api
 
 import (
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -382,6 +383,7 @@ type publicLookupView struct {
 	Email         string    `json:"email,omitempty"`
 	Organizations []OrgView `json:"organizations,omitempty"`
 	MunchkinHash  string    `json:"munchkinHash"`
+	IntercomHash  string    `json:"intercomHash"`
 }
 
 // MunchkinHash caclulates the hash for Marketo's Munchkin tracking code.
@@ -390,6 +392,15 @@ type publicLookupView struct {
 func (a *API) MunchkinHash(email string) string {
 	h := sha1.New()
 	h.Write([]byte(a.marketoMunchkinKey))
+	h.Write([]byte(email))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// IntercomHash caclulates the hash for Intercom's user verification.
+// See https://docs.intercom.com/configure-intercom-for-your-product-or-site/staying-secure/enable-identity-verification-on-your-web-product for details.
+func (a *API) IntercomHash(email string) string {
+	h := sha256.New()
+	h.Write([]byte(a.intercomHashKey))
 	h.Write([]byte(email))
 	return hex.EncodeToString(h.Sum(nil))
 }
@@ -403,6 +414,7 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 	view := publicLookupView{
 		Email:        currentUser.Email,
 		MunchkinHash: a.MunchkinHash(currentUser.Email),
+		IntercomHash: a.IntercomHash(currentUser.Email),
 	}
 	for _, org := range organizations {
 		view.Organizations = append(view.Organizations, OrgView{

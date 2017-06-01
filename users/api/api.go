@@ -25,6 +25,7 @@ type API struct {
 	marketingQueues    marketing.Queues
 	forceFeatureFlags  []string
 	marketoMunchkinKey string
+	intercomHashKey    string
 	grpc               users.UsersServer
 	http.Handler
 }
@@ -40,6 +41,7 @@ func New(
 	marketingQueues marketing.Queues,
 	forceFeatureFlags []string,
 	marketoMunchkinKey string,
+	intercomHashKey string,
 	grpc users.UsersServer,
 ) *API {
 	a := &API{
@@ -52,6 +54,7 @@ func New(
 		marketingQueues:    marketingQueues,
 		forceFeatureFlags:  forceFeatureFlags,
 		marketoMunchkinKey: marketoMunchkinKey,
+		intercomHashKey:    intercomHashKey,
 		grpc:               grpc,
 	}
 
