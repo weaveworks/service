@@ -163,31 +163,23 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		}
 	}
 
-	authOrgMiddleware := users_client.AuthOrgMiddleware{
-		UsersClient: authenticator,
-		OrgExternalID: func(r *http.Request) (string, bool) {
-			v, ok := mux.Vars(r)["orgExternalID"]
-			return v, ok
-		},
-		UserIDHeader:           userIDHeader,
-		FeatureFlagsHeader:     featureFlagsHeader,
-		AuthorizeForUIFeatures: true,
+	authOrgMiddleware := func(flags ...string) middleware.Interface {
+		return users_client.AuthOrgMiddleware{
+			UsersClient: authenticator,
+			OrgExternalID: func(r *http.Request) (string, bool) {
+				v, ok := mux.Vars(r)["orgExternalID"]
+				return v, ok
+			},
+			UserIDHeader:           userIDHeader,
+			FeatureFlagsHeader:     featureFlagsHeader,
+			AuthorizeForUIFeatures: true,
+			RequireFeatureFlags:    flags,
+		}
 	}
 
 	authUserMiddleware := users_client.AuthUserMiddleware{
 		UsersClient:  authenticator,
 		UserIDHeader: userIDHeader,
-	}
-
-	billingAuthMiddleware := users_client.AuthOrgMiddleware{
-		UsersClient: authenticator,
-		OrgExternalID: func(r *http.Request) (string, bool) {
-			v, ok := mux.Vars(r)["orgExternalID"]
-			return v, ok
-		},
-		UserIDHeader:        userIDHeader,
-		FeatureFlagsHeader:  featureFlagsHeader,
-		RequireFeatureFlags: []string{"billing"},
 	}
 
 	fluxGHTokenMiddleware := users_client.GHIntegrationMiddleware{
@@ -236,8 +228,6 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	}
 
 	for _, route := range []routable{
-		// demo service paths get rewritten to remove /demo/ prefix, so trailing slash is required
-		path{"/demo", redirect("/demo/")},
 		// special case static version info
 		path{"/api", parseAPIInfo(c.apiInfo)},
 
@@ -271,16 +261,20 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				).Wrap(c.queryHost)},
 			},
 			middleware.Merge(
-				authOrgMiddleware,
+				authOrgMiddleware(),
 				middleware.PathRewrite(regexp.MustCompile("^/api/app/[^/]+"), ""),
 				uiHTTPlogger,
 			),
 		},
 
-		// Forward requests (unauthenticated) to the ui-metrics job.
-		path{
-			"/api/ui/metrics",
-			c.uiMetricsHost,
+		// The billing API requires authentication & authorization.
+		prefix{
+			"/api/billing/{orgExternalID}",
+			[]path{{"/", c.billingUIHost}},
+			middleware.Merge(
+				authOrgMiddleware("billing"),
+				uiHTTPlogger,
+			),
 		},
 
 		path{
@@ -328,57 +322,26 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			),
 		},
 
-		// unauthenticated billing UI gubbins - JS, fonts, etc
-		path{"/billing/{jsfile}.js", trimPrefix("/billing", c.billingUIHost)},
-		path{"/billing/{wofffile}.woff", trimPrefix("/billing", c.billingUIHost)},
-		path{"/billing/{ttffile}.ttf", trimPrefix("/billing", c.billingUIHost)},
-		path{"/billing/{svgfile}.svg", trimPrefix("/billing", c.billingUIHost)},
-		path{"/billing/{eotfile}.eot", trimPrefix("/billing", c.billingUIHost)},
-		// Nobody knows what this is for.  We believe it is important.
-		// And we hope that it is ok (and indeed there are good
-		// reasons) for it to be unauthenticated.
-		path{"/billing/callback/register", trimPrefix("/billing", c.billingUIHost)},
-		// actual billing UI needs authentication/authorization
-		prefix{
-			"/billing",
-			[]path{
-				{"/{orgExternalID}/", trimPrefix("/billing", c.billingUIHost)},
-			},
-			middleware.Merge(
-				billingAuthMiddleware,
-				uiHTTPlogger,
-			),
-		},
-		// These billing api endpoints have no orgExternalID, so we can't do authorization on them.
-		path{"/api/billing/accounts", c.billingAPIHost},
-		path{"/api/billing/payments/authTokens", c.billingAPIHost},
-		// The main billing api requires authorization.
-		prefix{
-			"/api/billing",
-			[]path{
-				{"/payments/authTokens/{orgExternalID}", c.billingAPIHost},
-				{"/payments/{orgExternalID}", c.billingAPIHost},
-				{"/accounts/{orgExternalID}", c.billingAPIHost},
-				{"/usage/{orgExternalID}", c.billingAPIHost},
-			},
-			middleware.Merge(
-				billingAuthMiddleware,
-				uiHTTPlogger,
-			),
-		},
-
 		// unauthenticated communication
 		prefix{
 			"/",
 			[]path{
+				// Users service does its own auth.
 				{"/api/users", c.usersHost},
+
+				// Launch generator routes.
 				{"/launch/k8s", c.launchGeneratorHost},
 				{"/k8s", c.launchGeneratorHost},
 
-				// rewrite /demo/* to /* and send it to demo
+				// Demo service paths get rewritten to remove /demo/ prefix, so trailing
+				// slash is required. We then rewrite /demo/* to /* and send it to demo.
+				{"/demo", redirect("/demo/")},
 				{"/demo/", middleware.PathRewrite(regexp.MustCompile("/demo/(.*)"), "/$1").Wrap(c.demoHost)},
 
-				// final wildcard match to static content
+				// Forward requests (unauthenticated) to the ui-metrics job.
+				{"/api/ui/metrics", c.uiMetricsHost},
+
+				// Final wildcard match to static content
 				{"/", noCacheOnRoot.Wrap(uiServerHandler)},
 			},
 			uiHTTPlogger,
