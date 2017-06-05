@@ -236,6 +236,9 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	}
 
 	for _, route := range []routable{
+		// special case /demo redirect, which can't be inside a prefix{} rule as otherwise it matches /demo/
+		path{"/demo", redirect("/demo/")},
+
 		// special case static version info
 		path{"/api", parseAPIInfo(c.apiInfo)},
 
@@ -342,8 +345,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/k8s", c.launchGeneratorHost},
 
 				// Demo service paths get rewritten to remove /demo/ prefix.
-				// We match both /demo and /demo/... using the same regex
-				{"/demo", middleware.PathRewrite(regexp.MustCompile("/demo/?(.*)"), "/$1").Wrap(c.demoHost)},
+				{"/demo", middleware.PathRewrite(regexp.MustCompile("/demo/(.*)"), "/$1").Wrap(c.demoHost)},
 
 				// Forward requests (unauthenticated) to the ui-metrics job.
 				{"/api/ui/metrics", c.uiMetricsHost},
