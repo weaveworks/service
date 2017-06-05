@@ -341,11 +341,9 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/launch/k8s", c.launchGeneratorHost},
 				{"/k8s", c.launchGeneratorHost},
 
-				// Demo service paths get rewritten to remove /demo/ prefix, so trailing
-				// slash is required. We then rewrite /demo/* to /* and send it to demo.
-				// Note that we need to match on /demo/ first since these are prefix matches
-				{"/demo/", middleware.PathRewrite(regexp.MustCompile("/demo/(.*)"), "/$1").Wrap(c.demoHost)},
-				{"/demo", redirect("/demo/")},
+				// Demo service paths get rewritten to remove /demo/ prefix.
+				// We match both /demo and /demo/... using the same regex
+				{"/demo", middleware.PathRewrite(regexp.MustCompile("/demo/?(.*)"), "/$1").Wrap(c.demoHost)},
 
 				// Forward requests (unauthenticated) to the ui-metrics job.
 				{"/api/ui/metrics", c.uiMetricsHost},
