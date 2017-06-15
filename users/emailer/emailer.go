@@ -35,7 +35,7 @@ func inviteURL(email, rawToken, domain, orgName string) string {
 }
 
 func organizationURL(domain, orgExternalID string) string {
-	return fmt.Sprintf("%s/org/%s", domain, orgExternalID)
+	return fmt.Sprintf("%s/instances/%s", domain, orgExternalID)
 }
 
 // Emailer is the interface which emailers implement. There should be a method
