@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/hmac"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/hex"
@@ -399,8 +400,7 @@ func (a *API) MunchkinHash(email string) string {
 // IntercomHash caclulates the hash for Intercom's user verification.
 // See https://docs.intercom.com/configure-intercom-for-your-product-or-site/staying-secure/enable-identity-verification-on-your-web-product for details.
 func (a *API) IntercomHash(email string) string {
-	h := sha256.New()
-	h.Write([]byte(a.intercomHashKey))
+	h := hmac.New(sha256.New, []byte(a.intercomHashKey))
 	h.Write([]byte(email))
 	return hex.EncodeToString(h.Sum(nil))
 }
