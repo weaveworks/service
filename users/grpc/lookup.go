@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"fmt"
 	"strings"
 
 	"golang.org/x/net/context"
@@ -112,12 +113,14 @@ func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrgani
 	result := &users.GetOrganizationsResponse{}
 	for _, org := range organizations {
 		result.Organizations = append(result.Organizations, users.Organization{
-			ID:           org.ID,
-			ExternalID:   org.ExternalID,
-			Name:         org.Name,
-			ProbeToken:   org.ProbeToken,
-			CreatedAt:    org.CreatedAt,
-			FeatureFlags: org.FeatureFlags,
+			ID:             org.ID,
+			ExternalID:     org.ExternalID,
+			Name:           org.Name,
+			ProbeToken:     org.ProbeToken,
+			CreatedAt:      org.CreatedAt,
+			FeatureFlags:   org.FeatureFlags,
+			DenyUIFeatures: org.DenyUIFeatures,
+			DenyTokenAuth:  org.DenyTokenAuth,
 		})
 	}
 	return result, nil
@@ -131,14 +134,32 @@ func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganiz
 
 	return &users.GetOrganizationResponse{
 		Organization: users.Organization{
-			ID:           organization.ID,
-			ExternalID:   organization.ExternalID,
-			Name:         organization.Name,
-			ProbeToken:   organization.ProbeToken,
-			CreatedAt:    organization.CreatedAt,
-			FeatureFlags: organization.FeatureFlags,
+			ID:             organization.ID,
+			ExternalID:     organization.ExternalID,
+			Name:           organization.Name,
+			ProbeToken:     organization.ProbeToken,
+			CreatedAt:      organization.CreatedAt,
+			FeatureFlags:   organization.FeatureFlags,
+			DenyUIFeatures: organization.DenyUIFeatures,
+			DenyTokenAuth:  organization.DenyTokenAuth,
 		},
 	}, nil
+}
+
+func (a *usersServer) SetOrganizationFlag(ctx context.Context, req *users.SetOrganizationFlagRequest) (*users.SetOrganizationFlagResponse, error) {
+	var err error
+	switch req.Flag {
+	case "DenyUIFeatures":
+		err = a.db.SetOrganizationDenyUIFeatures(ctx, req.ExternalID, req.Value)
+	case "DenyTokenAuth":
+		err = a.db.SetOrganizationDenyTokenAuth(ctx, req.ExternalID, req.Value)
+	default:
+		err = fmt.Errorf("Invalid flag: %v", req.Flag)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &users.SetOrganizationFlagResponse{}, nil
 }
 
 func (a *usersServer) GetUser(ctx context.Context, req *users.GetUserRequest) (*users.GetUserResponse, error) {

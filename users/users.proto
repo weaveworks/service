@@ -22,6 +22,7 @@ service Users {
 
     rpc GetOrganizations(GetOrganizationsRequest) returns (GetOrganizationsResponse) {};
     rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse) {};
+    rpc SetOrganizationFlag(SetOrganizationFlagRequest) returns (SetOrganizationFlagResponse) {};
 
     // GetUser returns details for a user
     rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
@@ -88,6 +89,16 @@ message Organization {
     repeated string FeatureFlags = 6;
     bool DenyUIFeatures = 7;
     bool DenyTokenAuth = 8;
+}
+
+message SetOrganizationFlagRequest {
+  string ExternalID = 1;
+  string Flag = 2;
+  bool Value = 3;
+}
+
+message SetOrganizationFlagResponse {
+
 }
 
 message GetUserRequest {
