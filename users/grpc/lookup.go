@@ -24,6 +24,22 @@ func New(sessions sessions.Store, db db.DB) users.UsersServer {
 	}
 }
 
+func authorizeAction(action users.AuthorizedAction, org *users.Organization) error {
+	// TODO: Rename DenyUIFeatures & DenyTokenAuth https://github.com/weaveworks/service/issues/1256
+	switch action {
+	case users.INSTANCE_DATA_ACCESS:
+		if org.DenyUIFeatures {
+			return users.ErrInstanceDataAccessDenied
+		}
+	case users.INSTANCE_DATA_UPLOAD:
+		if org.DenyTokenAuth {
+			return users.ErrInstanceDataUploadDenied
+		}
+	}
+	// TODO: Future - consider switching to default-deny
+	return nil
+}
+
 // LookupOrg authenticates a cookie for access to an org by extenal ID.
 func (a *usersServer) LookupOrg(ctx context.Context, req *users.LookupOrgRequest) (*users.LookupOrgResponse, error) {
 	session, err := a.sessions.Decode(req.Cookie)
@@ -40,8 +56,9 @@ func (a *usersServer) LookupOrg(ctx context.Context, req *users.LookupOrgRequest
 	}
 	for _, org := range organizations {
 		if strings.ToLower(org.ExternalID) == strings.ToLower(req.OrgExternalID) {
-			if org.DenyUIFeatures && req.AuthorizeForUIFeatures {
-				return nil, users.ErrOrgUIFeaturesDisabled
+			err := authorizeAction(req.AuthorizeFor, org)
+			if err != nil {
+				return nil, err
 			}
 
 			return &users.LookupOrgResponse{
@@ -84,8 +101,9 @@ func (a *usersServer) LookupUsingToken(ctx context.Context, req *users.LookupUsi
 	if err != nil {
 		return nil, err
 	}
-	if o.DenyTokenAuth {
-		return nil, users.ErrOrgTokenAuthDisabled
+	err = authorizeAction(req.AuthorizeFor, o)
+	if err != nil {
+		return nil, err
 	}
 	return &users.LookupUsingTokenResponse{
 		OrganizationID: o.ID,

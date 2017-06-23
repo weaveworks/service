@@ -169,9 +169,9 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			v, ok := mux.Vars(r)["orgExternalID"]
 			return v, ok
 		},
-		UserIDHeader:           userIDHeader,
-		FeatureFlagsHeader:     featureFlagsHeader,
-		AuthorizeForUIFeatures: true,
+		UserIDHeader:       userIDHeader,
+		FeatureFlagsHeader: featureFlagsHeader,
+		AuthorizeFor:       users.INSTANCE_DATA_ACCESS,
 	}
 
 	billingAuthMiddleware := users_client.AuthOrgMiddleware{
@@ -221,6 +221,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			users_client.AuthProbeMiddleware{
 				UsersClient:        authenticator,
 				FeatureFlagsHeader: featureFlagsHeader,
+				AuthorizeFor:       users.INSTANCE_DATA_UPLOAD,
 			},
 			probeHTTPlogger,
 		),
@@ -239,6 +240,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			users_client.AuthProbeMiddleware{
 				UsersClient:        authenticator,
 				FeatureFlagsHeader: featureFlagsHeader,
+				AuthorizeFor:       users.INSTANCE_DATA_ACCESS,
 			},
 			probeHTTPlogger,
 		),
