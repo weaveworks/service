@@ -54,3 +54,7 @@ func (mockClient) GetUser(ctx context.Context, in *users.GetUserRequest, opts ..
 		},
 	}, nil
 }
+
+func (mockClient) SetOrganizationFlag(ctx context.Context, in *users.SetOrganizationFlagRequest, opts ...grpc.CallOption) (*users.SetOrganizationFlagResponse, error) {
+	return &users.SetOrganizationFlagResponse{}, nil
+}
