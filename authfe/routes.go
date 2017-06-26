@@ -23,7 +23,6 @@ import (
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/scope/common/xfer"
-	. "github.com/weaveworks/service/authfe/routing"
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/users"
 	users_client "github.com/weaveworks/service/users/client"
@@ -209,7 +208,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	// Routes authenticated using header credentials
 	dataUploadRoutes := MiddlewarePrefix{
 		"/api",
-		[]PrefixMatchable{
+		[]PrefixRoutable{
 			Prefix{"/report", c.collectionHost},
 			Prefix{"/prom/push", c.promDistributorHost},
 			Prefix{"/net/peer", c.peerDiscoveryHost},
@@ -298,7 +297,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		// The billing API requires authentication & authorization.
 		MiddlewarePrefix{
 			"/api/billing/{orgExternalID}",
-			[]PrefixMatchable{
+			[]PrefixRoutable{
 				Prefix{"/", c.billingAPIHost},
 			},
 			middleware.Merge(
@@ -376,7 +375,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			uiHTTPlogger,
 		},
 	} {
-		route.Add(r)
+		route.RegisterRoutes(r)
 	}
 
 	// Do not check for csrf tokens in requests from:
