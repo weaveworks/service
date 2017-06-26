@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -163,15 +162,15 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		}
 	}
 
-	authOrgMiddleware := users_client.AuthOrgMiddleware{
+	authUserOrgDataAccessMiddleware := users_client.AuthOrgMiddleware{
 		UsersClient: authenticator,
 		OrgExternalID: func(r *http.Request) (string, bool) {
 			v, ok := mux.Vars(r)["orgExternalID"]
 			return v, ok
 		},
-		UserIDHeader:           userIDHeader,
-		FeatureFlagsHeader:     featureFlagsHeader,
-		AuthorizeForUIFeatures: true,
+		UserIDHeader:       userIDHeader,
+		FeatureFlagsHeader: featureFlagsHeader,
+		AuthorizeFor:       users.INSTANCE_DATA_ACCESS,
 	}
 
 	billingAuthMiddleware := users_client.AuthOrgMiddleware{
@@ -206,24 +205,41 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 
 	r := newRouter()
 
-	// For all probe <-> app communication, authenticated using header credentials
-	probeRoute := prefix{
+	// Routes authenticated using header credentials
+	dataUploadRoutes := MiddlewarePrefix{
 		"/api",
-		[]path{
-			{"/report", c.collectionHost},
-			{"/control", c.controlHost},
-			{"/pipe", c.pipeHost},
-			{"/flux", c.fluxHost},
-			{"/prom/alertmanager", c.promAlertmanagerHost},
-			{"/prom/configs", c.configsHost},
-			{"/prom/push", c.promDistributorHost},
-			{"/prom", c.promQuerierHost},
-			{"/net/peer", c.peerDiscoveryHost},
+		[]PrefixRoutable{
+			Prefix{"/report", c.collectionHost},
+			Prefix{"/prom/push", c.promDistributorHost},
+			Prefix{"/net/peer", c.peerDiscoveryHost},
+			PrefixMethods{"/flux", []string{"POST", "PATCH"}, c.fluxHost},
+			PrefixMethods{"/prom/alertmanager/alerts", []string{"POST"}, c.promAlertmanagerHost},
+			PrefixMethods{"/prom/alertmanager/v1/alerts", []string{"POST"}, c.promAlertmanagerHost},
 		},
 		middleware.Merge(
 			users_client.AuthProbeMiddleware{
 				UsersClient:        authenticator,
 				FeatureFlagsHeader: featureFlagsHeader,
+				AuthorizeFor:       users.INSTANCE_DATA_UPLOAD,
+			},
+			probeHTTPlogger,
+		),
+	}
+	dataAccessRoutes := MiddlewarePrefix{
+		"/api",
+		Matchables([]Prefix{
+			{"/control", c.controlHost},
+			{"/pipe", c.pipeHost},
+			{"/flux", c.fluxHost},
+			{"/prom/alertmanager", c.promAlertmanagerHost},
+			{"/prom/configs", c.configsHost},
+			{"/prom", c.promQuerierHost},
+		}),
+		middleware.Merge(
+			users_client.AuthProbeMiddleware{
+				UsersClient:        authenticator,
+				FeatureFlagsHeader: featureFlagsHeader,
+				AuthorizeFor:       users.INSTANCE_DATA_ACCESS,
 			},
 			probeHTTPlogger,
 		),
@@ -235,17 +251,17 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		uiServerHandler = addPrefix("/internal", uiServerHandler)
 	}
 
-	for _, route := range []routable{
+	for _, route := range []Routable{
 		// special case /demo redirect, which can't be inside a prefix{} rule as otherwise it matches /demo/
-		path{"/demo", redirect("/demo/")},
+		Path{"/demo", redirect("/demo/")},
 
 		// special case static version info
-		path{"/api", parseAPIInfo(c.apiInfo)},
+		Path{"/api", parseAPIInfo(c.apiInfo)},
 
 		// For all ui <-> app communication, authenticated using cookie credentials
-		prefix{
+		MiddlewarePrefix{
 			"/api/app/{orgExternalID}",
-			[]path{
+			Matchables([]Prefix{
 				{"/api/report", c.queryHost},
 				{"/api/topology", c.queryHost},
 				{"/api/control", c.controlHost},
@@ -270,36 +286,39 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 					noCacheOnRoot,
 					middleware.PathRewrite(regexp.MustCompile("(.*)"), "/ui$1"),
 				).Wrap(c.queryHost)},
-			},
+			}),
 			middleware.Merge(
-				authOrgMiddleware,
+				authUserOrgDataAccessMiddleware,
 				middleware.PathRewrite(regexp.MustCompile("^/api/app/[^/]+"), ""),
 				uiHTTPlogger,
 			),
 		},
 
 		// The billing API requires authentication & authorization.
-		prefix{
+		MiddlewarePrefix{
 			"/api/billing/{orgExternalID}",
-			[]path{{"/", c.billingAPIHost}},
+			[]PrefixRoutable{
+				Prefix{"/", c.billingAPIHost},
+			},
 			middleware.Merge(
 				billingAuthMiddleware,
 				uiHTTPlogger,
 			),
 		},
 
-		path{
+		Path{
 			"/api/ui/analytics",
 			middleware.Merge(authUserMiddleware, analyticsLogger).Wrap(noopHandler),
 		},
 
-		// Probes
-		probeRoute,
+		// Token-based auth
+		dataUploadRoutes,
+		dataAccessRoutes,
 
 		// For all admin functionality, authenticated using header credentials
-		prefix{
+		MiddlewarePrefix{
 			"/admin",
-			[]path{
+			Matchables([]Prefix{
 				{"/grafana", trimPrefix("/admin/grafana", c.grafanaHost)},
 				{"/dev-grafana", trimPrefix("/admin/dev-grafana", c.devGrafanaHost)},
 				{"/prod-grafana", trimPrefix("/admin/prod-grafana", c.prodGrafanaHost)},
@@ -320,7 +339,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/cortex/ring", trimPrefix("/admin/cortex", c.promDistributorHost)},
 				{"/loki", trimPrefix("/admin/loki", c.lokiHost)},
 				{"/", http.HandlerFunc(adminRoot)},
-			},
+			}),
 			middleware.Merge(
 				// If not logged in, prompt user to log in instead of 401ing
 				middleware.ErrorHandler{
@@ -334,9 +353,9 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		},
 
 		// unauthenticated communication
-		prefix{
+		MiddlewarePrefix{
 			"/",
-			[]path{
+			Matchables([]Prefix{
 				// Users service does its own auth.
 				{"/api/users", c.usersHost},
 
@@ -352,11 +371,11 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 
 				// Final wildcard match to static content
 				{"/", noCacheOnRoot.Wrap(uiServerHandler)},
-			},
+			}),
 			uiHTTPlogger,
 		},
 	} {
-		route.Add(r)
+		route.RegisterRoutes(r)
 	}
 
 	// Do not check for csrf tokens in requests from:
@@ -366,7 +385,8 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	// * the Cortex alert manager, incorporating tokens would require forking it
 	//   (see https://github.com/weaveworks/service-ui/issues/461#issuecomment-299458350)
 	//   and we don't see alert-silencing as very security-sensitive.
-	csrfExemptPrefixes := probeRoute.AbsolutePrefixes()
+	csrfExemptPrefixes := dataUploadRoutes.AbsolutePrefixes()
+	csrfExemptPrefixes = append(csrfExemptPrefixes, dataAccessRoutes.AbsolutePrefixes()...)
 	csrfExemptPrefixes = append(csrfExemptPrefixes, "/admin/alertmanager")
 	// Regex copy-pasted from users/organization.go
 	csrfExemptPrefixes = append(csrfExemptPrefixes, `/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`)
@@ -519,50 +539,4 @@ func redirect(dest string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, dest, 302)
 	})
-}
-
-type routable interface {
-	Add(*mux.Router)
-}
-
-// A path routable says "map this path to this handler"
-type path struct {
-	path    string
-	handler http.Handler
-}
-
-func (p path) Add(r *mux.Router) {
-	r.Path(p.path).Name(middleware.MakeLabelValue(p.path)).Handler(p.handler)
-}
-
-// A prefix routable says "for each of these path routables, add this path prefix
-// and (optionally) wrap the handlers with this middleware.
-type prefix struct {
-	prefix string
-	routes []path
-	mid    middleware.Interface
-}
-
-func (p prefix) Add(r *mux.Router) {
-	if p.mid == nil {
-		p.mid = middleware.Identity
-	}
-	for _, route := range p.routes {
-		path := filepath.Join(p.prefix, route.path)
-		r.
-			PathPrefix(path).
-			Name(middleware.MakeLabelValue(path)).
-			Handler(
-				p.mid.Wrap(route.handler),
-			)
-	}
-}
-
-// this should probably be moved to "routable" if/when we accept nested prefixes
-func (p prefix) AbsolutePrefixes() []string {
-	var result []string
-	for _, path := range p.routes {
-		result = append(result, filepath.Clean(filepath.Join(p.prefix, path.path)))
-	}
-	return result
 }

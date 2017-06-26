@@ -28,10 +28,19 @@ service Users {
     rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
 }
 
+enum AuthorizedAction {
+    OTHER       = 0;
+    INSTANCE_DATA_ACCESS = 1;
+    INSTANCE_DATA_UPLOAD = 2;
+}
+
 message LookupOrgRequest {
+    reserved 3;
+
     string Cookie = 1;
     string OrgExternalID = 2;
-    bool AuthorizeForUIFeatures = 3;
+
+    AuthorizedAction AuthorizeFor = 4;
 }
 
 message LookupOrgResponse {
@@ -42,6 +51,7 @@ message LookupOrgResponse {
 
 message LookupUsingTokenRequest {
     string Token = 1;
+    AuthorizedAction AuthorizeFor = 2;
 }
 
 message LookupUsingTokenResponse {
