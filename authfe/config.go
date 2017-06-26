@@ -36,6 +36,7 @@ type Config struct {
 	controlHost         proxyConfig
 	demoHost            proxyConfig
 	fluxHost            proxyConfig
+	fluxV6Host          proxyConfig
 	launchGeneratorHost proxyConfig
 	peerDiscoveryHost   proxyConfig
 	pipeHost            proxyConfig
@@ -76,6 +77,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"control":           &c.controlHost,
 		"demo":              &c.demoHost,
 		"flux":              &c.fluxHost,
+		"flux-v6":           &c.fluxV6Host,
 		"launch-generator":  &c.launchGeneratorHost,
 		"notebooks":         &c.notebooksHost,
 		"peer-discovery":    &c.peerDiscoveryHost,
