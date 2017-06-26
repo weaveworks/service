@@ -19,7 +19,7 @@ func errorStatusCode(err error) int {
 		return http.StatusNotFound
 	case users.ErrInvalidAuthenticationData, users.ErrLoginNotFound:
 		return http.StatusUnauthorized
-	case users.ErrOrgUIFeaturesDisabled, users.ErrOrgTokenAuthDisabled:
+	case users.ErrInstanceDataAccessDenied, users.ErrInstanceDataUploadDenied:
 		return http.StatusPaymentRequired
 	case users.ErrProviderParameters:
 		return http.StatusUnprocessableEntity
