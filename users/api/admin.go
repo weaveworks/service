@@ -87,19 +87,8 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orgUsers := map[string]int{}
-	for _, org := range organizations {
-		us, err := a.db.ListOrganizationUsers(r.Context(), org.ExternalID)
-		if err != nil {
-			render.Error(w, r, err)
-			return
-		}
-		orgUsers[org.ExternalID] = len(us)
-	}
-
 	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
-		"Organizations":     organizations,
-		"OrganizationUsers": orgUsers,
+		"Organizations": organizations,
 	})
 	if err != nil {
 		render.Error(w, r, err)
