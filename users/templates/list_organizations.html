@@ -1,11 +1,19 @@
 <!doctype html>
 <html>
+  {{with .}}
   <head>
-    <title>Weave Cloud - Organizations</title>
+    {{if .UserEmail}}
+    <title>Weave Cloud - Organizations for {{.UserEmail}}</title>
+    {{else}}
+    <title>Weave Cloud - All Organizations</title>
+    {{end}}
   </head>
   <body>
-    <h2>Organizations</h2>
-    {{with .}}
+    {{if .UserEmail}}
+    <h2>Organizations for User {{.UserEmail}}</h2>
+    {{else}}
+    <h2>All Organizations</h2>
+    {{end}}
     <table>
       <tr>
         <th>ID</th>

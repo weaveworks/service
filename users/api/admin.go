@@ -99,6 +99,37 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *API) listOrganizationsForUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID, ok := vars["userID"]
+	if !ok {
+		render.Error(w, r, users.ErrNotFound)
+		return
+	}
+	user, err := a.db.FindUserByID(r.Context(), userID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	organizations, err := a.db.ListOrganizationsForUserIDs(r.Context(), userID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+
+	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
+		"Organizations": organizations,
+		"UserEmail":     user.Email,
+	})
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	if _, err := w.Write(b); err != nil {
+		logging.With(r.Context()).Warn("list organizations: %v", err)
+	}
+}
+
 func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orgExternalID, ok := vars["orgExternalID"]
