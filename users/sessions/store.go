@@ -102,6 +102,29 @@ func (s Store) Clear(w http.ResponseWriter) {
 		MaxAge:   -1,
 		Secure:   s.secure,
 	})
+	// Also ensure impersonation cookie removed
+	s.SetImpersonation(w, false)
+}
+
+// If cookieShouldExist is true, will request creation of impersonation cookie
+// If cookieShouldExist is false, will request removal of impersonation cookie
+// Whether or not cookie already exists makes no difference to behaviour
+func (s Store) SetImpersonation(w http.ResponseWriter, cookieShouldExist bool) {
+	cookie := http.Cookie{
+		Name:     client.ImpersonationCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   s.secure,
+	}
+	if cookieShouldExist {
+		// Leave Expiry & MaxAge default initialialised to create cookie
+	} else {
+		// Adjust Expiry & MaxAge so cookie is deleted
+		cookie.Expires = time.Now().UTC().Add(-1 * time.Second)
+		cookie.MaxAge = -1
+	}
+	http.SetCookie(w, &cookie)
 }
 
 // Cookie creates the http cookie to set for this user's session.

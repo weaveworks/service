@@ -67,8 +67,14 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 		}
 		render.JSON(w, http.StatusOK, view)
 	default: // render.FormatHTML
+		atttnImpersonating := ""
+		atttnCookie, _ := r.Cookie(client.ImpersonationCookieName)
+		if atttnCookie != nil {
+			atttnImpersonating = "atttn"
+		}
 		b, err := a.templates.Bytes("list_users.html", map[string]interface{}{
-			"Users": users,
+			"Users":              users,
+			"AtttnImpersonating": atttnImpersonating,
 		})
 		if err != nil {
 			render.Error(w, r, err)
@@ -221,6 +227,7 @@ func (a *API) becomeUser(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
+	a.sessions.SetImpersonation(w, true)
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
