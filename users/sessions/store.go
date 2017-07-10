@@ -106,8 +106,9 @@ func (s Store) Clear(w http.ResponseWriter) {
 	s.SetImpersonation(w, false)
 }
 
-// If cookieShouldExist is true, will request creation of impersonation cookie
-// If cookieShouldExist is false, will request removal of impersonation cookie
+// SetImpersonation arranges for impersonation cookie to be stored or deleted
+// - if cookieShouldExist is true, will request creation of impersonation cookie
+// - if cookieShouldExist is false, will request removal of impersonation cookie
 // Whether or not cookie already exists makes no difference to behaviour
 func (s Store) SetImpersonation(w http.ResponseWriter, cookieShouldExist bool) {
 	cookie := http.Cookie{
