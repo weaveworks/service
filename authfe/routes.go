@@ -212,7 +212,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			Prefix{"/report", c.collectionHost},
 			Prefix{"/prom/push", c.promDistributorHost},
 			Prefix{"/net/peer", c.peerDiscoveryHost},
-			PrefixMethods{"/flux/v6", []string{"POST", "PATCH"}, c.fluxV6Host}, // NB uses same as below until we have config in place
+			PrefixMethods{"/flux/v6", []string{"POST", "PATCH"}, c.fluxV6Host},
 			PrefixMethods{"/flux", []string{"POST", "PATCH"}, c.fluxHost},
 			PrefixMethods{"/prom/alertmanager/alerts", []string{"POST"}, c.promAlertmanagerHost},
 			PrefixMethods{"/prom/alertmanager/v1/alerts", []string{"POST"}, c.promAlertmanagerHost},
@@ -271,8 +271,10 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				// API to insert deploy key requires GH token. Insert token with middleware.
 				{"/api/flux/v5/integrations/github",
 					fluxGHTokenMiddleware.Wrap(c.fluxHost)},
+				{"/api/flux/v6/integrations/github",
+					fluxGHTokenMiddleware.Wrap(c.fluxV6Host)},
 				// While we transition to newer Flux API
-				{"/api/flux/v6", c.fluxV6Host}, // NB uses same as below until we have config in place
+				{"/api/flux/v6", c.fluxV6Host},
 				{"/api/flux", c.fluxHost},
 				{"/api/prom/alertmanager", c.promAlertmanagerHost},
 				{"/api/prom/configs", c.configsHost},
