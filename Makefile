@@ -38,7 +38,8 @@ USERS_EXE := users/cmd/users/users
 METRICS_EXE := metrics/metrics
 PR_ASSIGNER_EXE := pr-assigner/pr-assigner
 NOTEBOOKS_EXE := notebooks/cmd/notebooks/notebooks
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PR_ASSIGNER_EXE) $(NOTEBOOKS_EXE)
+SERVICE_UI_KICKER_EXE := service-ui-kicker/service-ui-kicker
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PR_ASSIGNER_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE)
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
@@ -47,6 +48,7 @@ $(USERS_EXE): $(shell find users -name '*.go') $(COMMON) users/users.pb.go
 $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
 $(PR_ASSIGNER_EXE): $(shell find pr-assigner -name '*.go') $(COMMON)
 $(NOTEBOOKS_EXE): $(shell find notebooks -name '*.go') $(COMMON)
+$(SERVICE_UI_KICKER_EXE): $(shell find service-ui-kicker -name '*.go') $(COMMON)
 test: users/users.pb.go
 
 # And now what goes into each image
@@ -57,6 +59,7 @@ logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_
 build/$(UPTODATE): build/build.sh
 pr-assigner/$(UPTODATE): $(PR_ASSIGNER_EXE)
 notebooks/$(UPTODATE): $(NOTEBOOKS_EXE)
+service-ui-kicker/$(UPTODATE): $(SERVICE_UI_KICKER_EXE)
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
