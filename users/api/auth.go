@@ -36,6 +36,19 @@ func (a *API) authenticateProbe(handler func(*users.Organization, http.ResponseW
 	)
 }
 
+// authenticateWebhook authenticates a request by a matching a header against a set of known tokens
+func (a *API) authenticateWebhook(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("x-webhook-token")
+		_, ok := a.webhookTokens[token]
+		if ok {
+			handler(w, r)
+		} else {
+			render.Error(w, r, users.ErrForbidden)
+		}
+	}
+}
+
 // UserAuthenticator can authenticate user requests
 type UserAuthenticator func(w http.ResponseWriter, r *http.Request) (*users.User, error)
 

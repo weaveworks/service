@@ -65,10 +65,12 @@ func main() {
 		localTestUserInstanceFeatureFlags = flag.String("local-test-user.instance-feature-flags", "", "Comma-separated feature flags for the test user (for local deployments only.)")
 
 		forceFeatureFlags common.ArrayFlags
+		webhookTokens     common.ArrayFlags
 	)
 
 	flag.Var(&forceFeatureFlags, "force-feature-flags", "Force this feature flag to be on for all organisations.")
 	flag.Var(&forceFeatureFlags, "fff", "Force this feature flag to be on for all organisations.")
+	flag.Var(&webhookTokens, "webhook-token", "Secret tokens used to validate webhooks from external services (e.g. Marketo).")
 
 	logins := login.NewProviders()
 	logins.Register("github", login.NewGithubProvider())
@@ -102,6 +104,11 @@ func main() {
 		}
 	}
 
+	webhookTokenMap := make(map[string]struct{})
+	for _, value := range webhookTokens {
+		webhookTokenMap[value] = struct{}{}
+	}
+
 	rand.Seed(time.Now().UnixNano())
 
 	templates := templates.MustNewEngine("templates")
@@ -113,7 +120,7 @@ func main() {
 	log.Debug("Debug logging enabled")
 
 	grpcServer := grpc_server.New(sessions, db)
-	api := api.New(*directLogin, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey, *intercomHashKey, grpcServer)
+	api := api.New(*directLogin, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey, *intercomHashKey, grpcServer, webhookTokenMap)
 
 	if *localTestUserCreate {
 		makeLocalTestUser(api, *localTestUserEmail, *localTestUserInstanceID,
