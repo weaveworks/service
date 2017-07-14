@@ -39,7 +39,7 @@ type WithMetadata interface {
 
 // These are specific instances of errors the users application deals with.
 var (
-	ErrForbidden                  = errors.New("Forbidden found")
+	ErrForbidden                  = errors.New("Forbidden")
 	ErrNotFound                   = errors.New("Not found")
 	ErrEmailIsTaken               = ValidationErrorf("Email is already taken")
 	ErrInvalidAuthenticationData  = errors.New("Invalid authentication data")

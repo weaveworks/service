@@ -26,6 +26,7 @@ type API struct {
 	forceFeatureFlags  []string
 	marketoMunchkinKey string
 	intercomHashKey    string
+	webhookTokens      map[string]struct{}
 	grpc               users.UsersServer
 	http.Handler
 }
@@ -43,6 +44,8 @@ func New(
 	marketoMunchkinKey string,
 	intercomHashKey string,
 	grpc users.UsersServer,
+	webhookTokens map[string]struct{},
+
 ) *API {
 	a := &API{
 		directLogin:        directLogin,
@@ -55,6 +58,7 @@ func New(
 		forceFeatureFlags:  forceFeatureFlags,
 		marketoMunchkinKey: marketoMunchkinKey,
 		intercomHashKey:    intercomHashKey,
+		webhookTokens:      webhookTokens,
 		grpc:               grpc,
 	}
 

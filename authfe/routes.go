@@ -394,8 +394,11 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	csrfExemptPrefixes := dataUploadRoutes.AbsolutePrefixes()
 	csrfExemptPrefixes = append(csrfExemptPrefixes, dataAccessRoutes.AbsolutePrefixes()...)
 	csrfExemptPrefixes = append(csrfExemptPrefixes, "/admin/alertmanager")
-	// Regex copy-pasted from users/organization.go
-	csrfExemptPrefixes = append(csrfExemptPrefixes, `/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`)
+	csrfExemptPrefixes = append(
+		csrfExemptPrefixes,
+		`/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`, // Regex copy-pasted from users/organization.go
+		"/api/users/signup_webhook",                     // Validated by explicit token in the users service
+	)
 	return middleware.Merge(
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
 		csrfTokenVerifier{exemptPrefixes: csrfExemptPrefixes, secure: c.secureCookie},
