@@ -449,3 +449,10 @@ memo = "02975c7409be9b2b77a41dd4a02f2d623e33b9973440ef606cd68839c64d3dd9"
   packages = [".","codes","credentials","grpclb/grpc_lb_v1","grpclog","internal","keepalive","metadata","naming","peer","stats","status","tap","transport"]
   revision = "d2e1b51f33ff8c5e4a15560ff049d200e83726c5"
   version = "v1.3.0"
+
+[solve-meta]
+  analyzer-name = "dep"
+  analyzer-version = 1
+  inputs-digest = "02975c7409be9b2b77a41dd4a02f2d623e33b9973440ef606cd68839c64d3dd9"
+  solver-name = "gps-cdcl"
+  solver-version = 1
