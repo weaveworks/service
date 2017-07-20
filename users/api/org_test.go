@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/lib/pq"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
@@ -89,13 +91,18 @@ func Test_ListOrganizationUsers(t *testing.T) {
 	assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"users":[{"email":%q,"self":true},{"email":%q}]}`, user.Email, fran.Email))
 }
 
+const (
+	orgName100 = "A Different Org Name 234567890 234567890 234567890 234567890 234567890 234567890 234567890 234567890"
+	orgName101 = "A DIFFERENT ORG NAME 234567890 234567890 234567890 234567890 234567890 234567890 234567890 2345678901"
+)
+
 func Test_RenameOrganization(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	user, org := getOrg(t)
 	otherUser := getUser(t)
-	body := map[string]interface{}{"name": "my-organization"}
+	body := map[string]interface{}{"name": orgName100}
 
 	{
 		w := httptest.NewRecorder()
@@ -116,7 +123,7 @@ func Test_RenameOrganization(t *testing.T) {
 		r := requestAs(t, otherUser, "PUT", "/api/users/org/not-found-org", jsonBody(body).Reader(t))
 
 		app.ServeHTTP(w, r)
-
+		assert.Equal(t, http.StatusNotFound, w.Code)
 	}
 
 	// Should update my org
@@ -132,8 +139,20 @@ func Test_RenameOrganization(t *testing.T) {
 		if assert.Len(t, organizations, 1) {
 			assert.Equal(t, org.ID, organizations[0].ID)
 			assert.Equal(t, org.ExternalID, organizations[0].ExternalID)
-			assert.Equal(t, "my-organization", organizations[0].Name)
+			assert.Equal(t, orgName100, organizations[0].Name)
 		}
+	}
+
+	// Should reject rename as new name exceeds maximum size
+	{
+		body101 := map[string]interface{}{"name": orgName101}
+		w := httptest.NewRecorder()
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody(body101).Reader(t))
+
+		app.ServeHTTP(w, r)
+
+		// Exact code not critical, but important it's 4xx not 5xx
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	}
 }
 
@@ -384,12 +403,24 @@ func Test_Organization_Name(t *testing.T) {
 
 	user := getUser(t)
 	externalID, err := database.GenerateOrganizationExternalID(context.Background())
-	name := "arbitrary name"
 	require.NoError(t, err)
 
-	_, err = database.CreateOrganization(context.Background(), user.ID, externalID, name, "")
+	_, err = database.CreateOrganization(context.Background(), user.ID, externalID, orgName100, "")
 	require.NoError(t, err)
 
 	foundName, err := database.GetOrganizationName(context.Background(), externalID)
-	assert.Equal(t, name, foundName)
+	assert.Equal(t, orgName100, foundName)
+}
+
+func Test_Organization_Overlong_Name(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	{
+		user := getUser(t)
+		externalID, err := database.GenerateOrganizationExternalID(context.Background())
+		require.NoError(t, err)
+
+		_, err = database.CreateOrganization(context.Background(), user.ID, externalID, orgName101, "")
+		assert.IsType(t, &pq.Error{}, err)
+	}
 }
