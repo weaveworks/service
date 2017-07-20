@@ -375,6 +375,10 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				// Forward requests (unauthenticated) to the ui-metrics job.
 				{"/api/ui/metrics", c.uiMetricsHost},
 
+				// Forward requests to the service-ui-kicker job.
+				// There is authentication done inside service-ui-kicker itself to ensure requests came from github
+				{"/service-ui-kicker", c.serviceUIKickerHost},
+
 				// Final wildcard match to static content
 				{"/", noCacheOnRoot.Wrap(uiServerHandler)},
 			}),

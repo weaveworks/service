@@ -63,6 +63,7 @@ type Config struct {
 	promQuerierHost       proxyConfig
 	prometheusHost        proxyConfig
 	scopeHost             proxyConfig
+	serviceUIKickerHost   proxyConfig
 	terradiffHost         proxyConfig
 	usersHost             proxyConfig
 }
@@ -104,6 +105,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"prod-grafana":       &c.prodGrafanaHost,
 		"prometheus":         &c.prometheusHost,
 		"scope":              &c.scopeHost,
+		"service-ui-kicker":  &c.serviceUIKickerHost,
 		"terradiff":          &c.terradiffHost,
 		"users":              &c.usersHost,
 	}
