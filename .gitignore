@@ -40,6 +40,7 @@ kubediff/vendor/github.com/tomwilkie/prom-run/prom-run
 pr-assigner/pr-assigner
 client/build/*
 ui-server/build/*
+service-ui-kicker/service-ui-kicker
 
 Vagrantfile.local
 .dir-locals.el
