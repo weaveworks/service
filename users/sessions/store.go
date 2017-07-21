@@ -39,8 +39,9 @@ type Store struct {
 
 // Session is the decoded representation of a session cookie
 type Session struct {
-	UserID    string
-	CreatedAt time.Time
+	UserID              string
+	CreatedAt           time.Time
+	ImpersonatingUserID string // Empty for common case where user is not being impersonated
 }
 
 // Get fetches the current session for this request.
@@ -83,10 +84,11 @@ func (s Store) Decode(encoded string) (Session, error) {
 }
 
 // Set stores the session with the given userID for the user.
-func (s Store) Set(w http.ResponseWriter, userID string) error {
-	cookie, err := s.Cookie(userID)
+func (s Store) Set(w http.ResponseWriter, userID string, impersonatingUserID string) error {
+	cookie, err := s.Cookie(userID, impersonatingUserID)
 	if err == nil {
 		http.SetCookie(w, cookie)
+		s.decideImpersonationCookie(w, impersonatingUserID != "")
 	}
 	return err
 }
@@ -102,15 +104,16 @@ func (s Store) Clear(w http.ResponseWriter) {
 		MaxAge:   -1,
 		Secure:   s.secure,
 	})
-	// Also ensure impersonation cookie removed
-	s.SetImpersonation(w, false)
+	// Also ens => cannot be impersonatingure impersonation cookie removed
+	s.decideImpersonationCookie(w, false)
 }
 
-// SetImpersonation arranges for impersonation cookie to be stored or deleted
+// decideImpersonationCookie arranges for impersonation cookie to be stored or deleted
 // - if cookieShouldExist is true, will request creation of impersonation cookie
 // - if cookieShouldExist is false, will request removal of impersonation cookie
-// Whether or not cookie already exists makes no difference to behaviour
-func (s Store) SetImpersonation(w http.ResponseWriter, cookieShouldExist bool) {
+// Whether or not cookie already exists makes no differen#ce to behaviour
+// Note even when cookie exists, contents will be zero-length string
+func (s Store) decideImpersonationCookie(w http.ResponseWriter, cookieShouldExist bool) {
 	cookie := http.Cookie{
 		Name:     client.ImpersonationCookieName,
 		Value:    "",
@@ -119,9 +122,11 @@ func (s Store) SetImpersonation(w http.ResponseWriter, cookieShouldExist bool) {
 		Secure:   s.secure,
 	}
 	if cookieShouldExist {
-		// Leave Expiry & MaxAge default initialialised to create cookie
+		// Give impersonation cookie same expiry as session cookie
+		cookie.Expires = time.Now().UTC().Add(SessionDuration)
+		cookie.MaxAge = int(SessionDuration / time.Second)
 	} else {
-		// Adjust Expiry & MaxAge so cookie is deleted
+		// Tweak Expiry & MaxAge to arrange deletion of impersonation cookie
 		cookie.Expires = time.Now().UTC().Add(-1 * time.Second)
 		cookie.MaxAge = -1
 	}
@@ -129,8 +134,8 @@ func (s Store) SetImpersonation(w http.ResponseWriter, cookieShouldExist bool) {
 }
 
 // Cookie creates the http cookie to set for this user's session.
-func (s Store) Cookie(userID string) (*http.Cookie, error) {
-	value, err := s.Encode(userID)
+func (s Store) Cookie(userID string, impersonatingUserID string) (*http.Cookie, error) {
+	value, err := s.Encode(userID, impersonatingUserID)
 	return &http.Cookie{
 		Name:     client.AuthCookieName,
 		Value:    value,
@@ -143,9 +148,10 @@ func (s Store) Cookie(userID string) (*http.Cookie, error) {
 }
 
 // Encode converts the session data into a session string
-func (s Store) Encode(userID string) (string, error) {
+func (s Store) Encode(userID string, impersonatingUserID string) (string, error) {
 	return s.encoder.Encode(client.AuthCookieName, Session{
-		UserID:    userID,
-		CreatedAt: time.Now().UTC(),
+		UserID:              userID,
+		CreatedAt:           time.Now().UTC(),
+		ImpersonatingUserID: impersonatingUserID,
 	})
 }

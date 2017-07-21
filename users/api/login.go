@@ -199,11 +199,11 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.sessions.Set(w, u.ID); err != nil {
+	impersonatingUserID := "" // Logging in via provider credentials => cannot be impersonating
+	if err := a.sessions.Set(w, u.ID, impersonatingUserID); err != nil {
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
-	a.sessions.SetImpersonation(w, false) // Logging in via provider credentials is not impersonation
 
 	render.JSON(w, http.StatusOK, view)
 }
@@ -355,11 +355,11 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.sessions.Set(w, u.ID); err != nil {
+	impersonatingUserID := "" // Direct login => cannot be impersonating
+	if err := a.sessions.Set(w, u.ID, impersonatingUserID); err != nil {
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
-	a.sessions.SetImpersonation(w, false) // straight login is NOT impersonation
 	render.JSON(w, http.StatusOK, loginView{
 		FirstLogin:   firstLogin,
 		Email:        email,

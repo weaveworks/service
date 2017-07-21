@@ -14,7 +14,7 @@ import (
 // Constants exported for testing
 const (
 	AuthCookieName          = "_weave_scope_session"
-	ImpersonationCookieName = "_weave_scope_impersonation" // atttn investigate unit testing
+	ImpersonationCookieName = "_weave_scope_impersonation"
 )
 
 // AuthOrgMiddleware is a middleware.Interface for authentication organisations based on the
