@@ -228,7 +228,7 @@ func (a *API) becomeUser(w http.ResponseWriter, r *http.Request) {
 		// No existing impersonation ... store current user is impersonator
 		impersonatingUserID = session.UserID
 	}
-	if err := a.sessions.Set(w, u.ID, impersonatingUserID); err != nil {
+	if err := a.sessions.Set(w, r, u.ID, impersonatingUserID); err != nil {
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
