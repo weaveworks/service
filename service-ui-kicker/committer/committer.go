@@ -73,7 +73,7 @@ func PushUpdatedFile(ctx context.Context, version string) error {
 	}
 
 	commitMsg := fmt.Sprintf("Bump Scope version to %s", version)
-	if err := execGitCommand(ctx, tmpdir, "commit", "-a", "-m", commitMsg); err != nil {
+	if err := execGitCommand(ctx, tmpdir, "commit", "--author=\"weaveworksbot <team+gitbot@weave.works>\"", "-a", "-m", commitMsg); err != nil {
 		return errors.Wrapf(err, "commit failed")
 	}
 
