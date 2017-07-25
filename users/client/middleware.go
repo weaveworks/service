@@ -14,6 +14,11 @@ import (
 // Constants exported for testing
 const (
 	AuthCookieName = "_weave_scope_session"
+
+	// Impersonation cookie present only when there is an impersonation - absence implies user is real
+	// It only ever contains an empty string
+	// If creation/deletion needed, will happen at same time as session cookie is operated on
+	ImpersonationCookieName = "_weave_cloud_impersonation"
 )
 
 // AuthOrgMiddleware is a middleware.Interface for authentication organisations based on the

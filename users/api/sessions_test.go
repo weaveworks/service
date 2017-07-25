@@ -16,7 +16,8 @@ func Test_Sessions_EncodeDecode(t *testing.T) {
 
 	user := getUser(t)
 
-	encoded, err := sessionStore.Encode(user.ID)
+	impersonatingUserID := "" // this test doesn't involve impersonation
+	encoded, err := sessionStore.Encode(user.ID, impersonatingUserID)
 	require.NoError(t, err)
 
 	foundSession, err := sessionStore.Decode(encoded)

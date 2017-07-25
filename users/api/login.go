@@ -199,7 +199,8 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.sessions.Set(w, u.ID); err != nil {
+	impersonatingUserID := "" // Logging in via provider credentials => cannot be impersonating
+	if err := a.sessions.Set(w, r, u.ID, impersonatingUserID); err != nil {
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -354,7 +355,8 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.sessions.Set(w, u.ID); err != nil {
+	impersonatingUserID := "" // Direct login => cannot be impersonating
+	if err := a.sessions.Set(w, r, u.ID, impersonatingUserID); err != nil {
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -376,7 +378,7 @@ func (a *API) UpdateUserAtLogin(ctx context.Context, u *users.User) error {
 }
 
 func (a *API) logout(w http.ResponseWriter, r *http.Request) {
-	a.sessions.Clear(w)
+	a.sessions.Clear(w, r)
 	render.JSON(w, http.StatusOK, map[string]interface{}{})
 }
 
