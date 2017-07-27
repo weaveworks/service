@@ -1,4 +1,4 @@
-# Collecting Docker Log Files with Fluentd and Bigquery
+# Collecting Events with Fluentd and Bigquery
 This directory contains the source files needed to make a Docker image
 that sets up a [Fluentd](http://www.fluentd.org/) daemon which listens on port 24224 for events
 and sends them to an instance of [BigQuery](https://cloud.google.com/bigquery/).
