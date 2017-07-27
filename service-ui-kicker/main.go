@@ -19,7 +19,7 @@ import (
 
 const (
 	secretEnv = "WEBHOOK_SECRET"
-	scopeRepo = "git@github.com:weaveworks/scope.git"
+	scopeRepo = "https://github.com/weaveworks/scope.git"
 )
 
 var path = flag.String("path", "/webhooks", "webhook path for payload URL")
