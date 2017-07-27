@@ -1,6 +1,6 @@
 # Collecting Docker Log Files with Fluentd and Bigquery
 This directory contains the source files needed to make a Docker image
-that collects Docker container log files using [Fluentd](http://www.fluentd.org/)
+that sets up a [Fluentd](http://www.fluentd.org/) daemon which listens on port 24224 for events
 and sends them to an instance of [BigQuery](https://cloud.google.com/bigquery/).
-This image is designed to be used as part of the [Kubernetes](https://github.com/kubernetes/kubernetes)
-cluster bring up process.
+
+This is currently used [in authfe](https://github.com/weaveworks/service/blob/9fe4b77f78090b9b8714b751fd57bfc706f0f054/authfe/routes.go#L153)
