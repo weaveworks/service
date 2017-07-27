@@ -17,7 +17,10 @@ import (
 	"gopkg.in/go-playground/webhooks.v3/github"
 )
 
-const secretEnv = "WEBHOOK_SECRET"
+const (
+	secretEnv = "WEBHOOK_SECRET"
+	scopeRepo = "git@github.com:weaveworks/scope.git"
+)
 
 var path = flag.String("path", "/webhooks", "webhook path for payload URL")
 var port = flag.Int("port", 80, "webhook port for payload URL")
@@ -53,7 +56,7 @@ func main() {
 		log.Fatalf("Webhook secret %s not set\n", secretEnv)
 	}
 	hook := github.New(&github.Config{Secret: secret})
-	hs := handler.New()
+	hs := handler.New(scopeRepo)
 
 	go func() {
 		log.Info("Start waiting for new tasks...")

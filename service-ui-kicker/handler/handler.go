@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"os/exec"
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
@@ -16,9 +17,22 @@ type HookServer struct {
 }
 
 // New returns new hook server
-func New() *HookServer {
+func New(repo string) *HookServer {
+	latest := getLastSha(repo)
+	log.Infof("Set the latest version for hook server to %q", latest)
 	tasks := make(chan string, 8)
-	return &HookServer{tasks: tasks}
+	return &HookServer{latest: latest, tasks: tasks}
+}
+
+// getLastSha returns last sha for master branch repository repo
+func getLastSha(repo string) string {
+	out, err := exec.Command("git", "ls-remote", repo, "refs/heads/master").CombinedOutput()
+	if err != nil {
+		log.Errorf("Cannot get last sha in repo %s: %s", repo, err)
+		return ""
+	}
+
+	return string(out[:40])
 }
 
 // Tasks returns channel of tasks
