@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
 	"time"
 
 	"github.com/pkg/errors"
@@ -14,28 +13,21 @@ import (
 
 const (
 	serviceUIRepo = "git@github.com:weaveworks/service-ui.git"
-	packageFile   = "client/package.json"
+	packagePath   = "client"
 	commitTimeout = 1 * time.Minute
 )
 
-func editScopeVersion(file string, version string) error {
-	weaveScopeLink := fmt.Sprintf("https://s3.amazonaws.com/weaveworks-js-modules/weave-scope/%s/weave-scope.tgz", version)
-	// Edit json file with jq instead of encoding/json package to preserve key order
+// yarnUpdateScopeVersion updates package.json and yarn.lock files to specified version of weave-scope
+// `yarn add package-name@version` installs a specific version of a package from the registry
+func yarnUpdateScopeVersion(version string) error {
+	weaveScopePackage := fmt.Sprintf("weave-scope@https://s3.amazonaws.com/weaveworks-js-modules/weave-scope/%s/weave-scope.tgz", version)
 
-	app := "jq"
-	arg := fmt.Sprintf(`.dependencies."weave-scope" = "%s"`, weaveScopeLink)
-	cmd := exec.Command(app, arg, file)
-
+	cmd := exec.Command("yarn", "add", weaveScopePackage)
+	cmd.Dir = packagePath
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Wrapf(err, "jq failed: %s", out)
+		return errors.Wrapf(err, "yarn add failed: %s", out)
 	}
-
-	content := out
-	if err = ioutil.WriteFile(file, content, 0666); err != nil {
-		return errors.Wrapf(err, "cannot write new content to file %s", file)
-	}
-
 	return nil
 }
 
@@ -67,9 +59,8 @@ func PushUpdatedFile(ctx context.Context, version string) error {
 		return errors.Wrapf(err, "clone failed")
 	}
 
-	pathToFile := path.Join(tmpdir, packageFile)
-	if err := editScopeVersion(pathToFile, version); err != nil {
-		return errors.Wrapf(err, "cannot edit file %s", pathToFile)
+	if err := yarnUpdateScopeVersion(version); err != nil {
+		return errors.Wrapf(err, "cannot update weave-scope to version %s", version)
 	}
 
 	commitMsg := fmt.Sprintf("Bump Scope version to %s", version)
