@@ -15,7 +15,7 @@ import (
 const (
 	serviceUIRepo = "git@github.com:weaveworks/service-ui.git"
 	packagePath   = "client"
-	commitTimeout = 1 * time.Minute
+	commitTimeout = 10 * time.Minute
 )
 
 // yarnUpdateScopeVersion updates package.json and yarn.lock files to specified version of weave-scope
