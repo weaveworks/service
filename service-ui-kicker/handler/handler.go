@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"bytes"
 	"os/exec"
+	"strings"
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
@@ -26,13 +28,17 @@ func New(repo string) *HookServer {
 
 // getLastSha returns last sha for master branch repository repo
 func getLastSha(repo string) string {
-	out, err := exec.Command("git", "ls-remote", repo, "refs/heads/master").CombinedOutput()
-	if err != nil {
-		log.Errorf("Cannot get last sha in repo %s: %s", repo, err)
+	cmd := exec.Command("git", "ls-remote", repo, "refs/heads/master")
+	stdout := bytes.NewBuffer(nil)
+	stderr := bytes.NewBuffer(nil)
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	if err := cmd.Run(); err != nil {
+		log.Errorf("Cannot get last sha in repo %s: %s\n stdout: %s, stderr: %s", repo, err, stdout.String(), stderr.String())
 		return ""
 	}
 
-	return string(out[:40])
+	return strings.Fields(stdout.String())[0]
 }
 
 // Tasks returns channel of tasks
