@@ -20,6 +20,7 @@ import (
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/grpc"
 	"github.com/weaveworks/service/users/login"
+	"github.com/weaveworks/service/users/marketing"
 	"github.com/weaveworks/service/users/sessions"
 	"github.com/weaveworks/service/users/templates"
 )
@@ -43,6 +44,7 @@ func setup(t *testing.T) {
 	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", false)
 	templates := templates.MustNewEngine("../templates")
 	logins = login.NewProviders()
+	mixpanelClient := marketing.NewMixpanelClient("")
 
 	sentEmails = nil
 	emailer := emailer.SMTPEmailer{
@@ -52,7 +54,7 @@ func setup(t *testing.T) {
 		FromAddress: "test@test.com",
 	}
 	grpcServer := grpc.New(sessionStore, database)
-	app = api.New(directLogin, emailer, sessionStore, database, logins, templates, nil, nil, "", "", grpcServer, make(map[string]struct{}))
+	app = api.New(directLogin, emailer, sessionStore, database, logins, templates, nil, nil, "", "", grpcServer, make(map[string]struct{}), mixpanelClient)
 }
 
 func cleanup(t *testing.T) {

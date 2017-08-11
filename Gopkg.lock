@@ -172,6 +172,12 @@ memo = "29f986ab5c4c496d87ccb56f71af885c3b743b495b23de361126e9480b0d2938"
 
 [[projects]]
   branch = "master"
+  name = "github.com/dukex/mixpanel"
+  packages = ["."]
+  revision = "53bfdf679eecb9731ac23f01a89d8a6904f09037"
+
+[[projects]]
+  branch = "master"
   name = "github.com/jehiah/go-strftime"
   packages = ["."]
   revision = "2efbe75097a505e2789f7e39cb9da067b5be8e3e"

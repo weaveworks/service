@@ -28,6 +28,7 @@ type API struct {
 	intercomHashKey    string
 	webhookTokens      map[string]struct{}
 	grpc               users.UsersServer
+	mixpanel           *marketing.MixpanelClient
 	http.Handler
 }
 
@@ -45,6 +46,7 @@ func New(
 	intercomHashKey string,
 	grpc users.UsersServer,
 	webhookTokens map[string]struct{},
+	mixpanelClient *marketing.MixpanelClient,
 
 ) *API {
 	a := &API{
@@ -60,6 +62,7 @@ func New(
 		intercomHashKey:    intercomHashKey,
 		webhookTokens:      webhookTokens,
 		grpc:               grpc,
+		mixpanel:           mixpanelClient,
 	}
 
 	r := mux.NewRouter()
