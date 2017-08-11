@@ -194,6 +194,14 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	view.Email = email
 	view.MunchkinHash = a.MunchkinHash(email)
 
+	if a.mixpanel != nil {
+		go func() {
+			if err := a.mixpanel.TrackLogin(email, view.FirstLogin); err != nil {
+				logging.With(r.Context()).Error(err)
+			}
+		}()
+	}
+
 	if err := a.UpdateUserAtLogin(r.Context(), u); err != nil {
 		render.Error(w, r, err)
 		return
@@ -295,9 +303,11 @@ func (a *API) Signup(ctx context.Context, view *SignupView) (*users.User, error)
 	}
 
 	if a.mixpanel != nil {
-		if err := a.mixpanel.TrackSignup(view.Email); err != nil {
-			logging.With(ctx).Error(err)
-		}
+		go func() {
+			if err := a.mixpanel.TrackSignup(view.Email); err != nil {
+				logging.With(ctx).Error(err)
+			}
+		}()
 	}
 
 	view.MailSent = true
