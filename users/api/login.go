@@ -294,6 +294,12 @@ func (a *API) Signup(ctx context.Context, view *SignupView) (*users.User, error)
 		return nil, fmt.Errorf("Error sending login email: %s", err)
 	}
 
+	if a.mixpanel != nil {
+		if err := a.mixpanel.TrackSignup(view.Email); err != nil {
+			logging.With(ctx).Error(err)
+		}
+	}
+
 	view.MailSent = true
 	return user, nil
 }
@@ -360,6 +366,15 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
+	// Track mixpanel event https://github.com/weaveworks/service/issues/1301
+	if a.mixpanel != nil {
+		go func() {
+			if err := a.mixpanel.TrackLogin(email, firstLogin); err != nil {
+				logging.With(r.Context()).Error(err)
+			}
+		}()
+	}
+
 	render.JSON(w, http.StatusOK, loginView{
 		FirstLogin:   firstLogin,
 		Email:        email,

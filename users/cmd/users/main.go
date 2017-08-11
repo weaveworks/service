@@ -9,9 +9,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common"
@@ -25,6 +22,8 @@ import (
 	"github.com/weaveworks/service/users/render"
 	"github.com/weaveworks/service/users/sessions"
 	"github.com/weaveworks/service/users/templates"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 func init() {
@@ -54,6 +53,7 @@ func main() {
 		marketoProgram     = flag.String("marketo-program", "2016_00_Website_WeaveCloud", "Program name to add leads to (for Marketo).")
 		marketoMunchkinKey = flag.String("marketo-munchkin-key", "", "Secret key for Marketo munchkin.")
 		intercomHashKey    = flag.String("intercom-hash-key", "", "Secret key for Intercom user hash.")
+		mixpanelToken      = flag.String("mixpanel-token", "", "Mixpanel project API token")
 
 		emailFromAddress = flag.String("email-from-address", "Weave Cloud <support@weave.works>", "From address for emails.")
 
@@ -104,6 +104,11 @@ func main() {
 		}
 	}
 
+	var mixpanelClient *marketing.MixpanelClient
+	if *mixpanelToken != "" {
+		mixpanelClient = marketing.NewMixpanelClient(*mixpanelToken)
+	}
+
 	webhookTokenMap := make(map[string]struct{})
 	for _, value := range webhookTokens {
 		webhookTokenMap[value] = struct{}{}
@@ -120,7 +125,7 @@ func main() {
 	log.Debug("Debug logging enabled")
 
 	grpcServer := grpc_server.New(sessions, db)
-	api := api.New(*directLogin, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey, *intercomHashKey, grpcServer, webhookTokenMap)
+	api := api.New(*directLogin, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey, *intercomHashKey, grpcServer, webhookTokenMap, mixpanelClient)
 
 	if *localTestUserCreate {
 		makeLocalTestUser(api, *localTestUserEmail, *localTestUserInstanceID,
