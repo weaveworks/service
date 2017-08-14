@@ -196,8 +196,14 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 
 	if a.mixpanel != nil {
 		go func() {
+			ctx := r.Context()
+			if view.UserCreated {
+				if err := a.mixpanel.TrackSignup(email); err != nil {
+					logging.With(ctx).Error(err)
+				}
+			}
 			if err := a.mixpanel.TrackLogin(email, view.FirstLogin); err != nil {
-				logging.With(r.Context()).Error(err)
+				logging.With(ctx).Error(err)
 			}
 		}()
 	}
@@ -277,8 +283,10 @@ func (a *API) Signup(ctx context.Context, view *SignupView) (*users.User, error)
 	}
 
 	user, err := a.db.FindUserByEmail(ctx, view.Email)
+	created := false
 	if err == users.ErrNotFound {
 		user, err = a.db.CreateUser(ctx, view.Email)
+		created = true
 		if err == nil {
 			a.marketingQueues.UserCreated(user.Email, user.CreatedAt)
 		}
@@ -302,7 +310,7 @@ func (a *API) Signup(ctx context.Context, view *SignupView) (*users.User, error)
 		return nil, fmt.Errorf("Error sending login email: %s", err)
 	}
 
-	if a.mixpanel != nil {
+	if a.mixpanel != nil && created {
 		go func() {
 			if err := a.mixpanel.TrackSignup(view.Email); err != nil {
 				logging.With(ctx).Error(err)
