@@ -93,6 +93,7 @@ type attachLoginProviderView struct {
 	MunchkinHash string `json:"munchkinHash"`
 }
 
+// attachLoginProvider is used for oauth login or signup
 func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	view := attachLoginProviderView{}
 	vars := mux.Vars(r)
@@ -196,8 +197,14 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 
 	if a.mixpanel != nil {
 		go func() {
+			ctx := r.Context()
+			if view.UserCreated {
+				if err := a.mixpanel.TrackSignup(email); err != nil {
+					logging.With(ctx).Error(err)
+				}
+			}
 			if err := a.mixpanel.TrackLogin(email, view.FirstLogin); err != nil {
-				logging.With(r.Context()).Error(err)
+				logging.With(ctx).Error(err)
 			}
 		}()
 	}
@@ -269,7 +276,8 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, view)
 }
 
-// Signup creates a new user
+// Signup creates a new user (but will also allow an existing user to log in)
+// NB: this is used only for email signups, not oauth signups
 func (a *API) Signup(ctx context.Context, view *SignupView) (*users.User, error) {
 	view.MailSent = false
 	if view.Email == "" {
@@ -281,6 +289,13 @@ func (a *API) Signup(ctx context.Context, view *SignupView) (*users.User, error)
 		user, err = a.db.CreateUser(ctx, view.Email)
 		if err == nil {
 			a.marketingQueues.UserCreated(user.Email, user.CreatedAt)
+			if a.mixpanel != nil {
+				go func() {
+					if err := a.mixpanel.TrackSignup(view.Email); err != nil {
+						logging.With(ctx).Error(err)
+					}
+				}()
+			}
 		}
 	}
 	if err != nil {
@@ -300,14 +315,6 @@ func (a *API) Signup(ctx context.Context, view *SignupView) (*users.User, error)
 	err = a.emailer.LoginEmail(user, token)
 	if err != nil {
 		return nil, fmt.Errorf("Error sending login email: %s", err)
-	}
-
-	if a.mixpanel != nil {
-		go func() {
-			if err := a.mixpanel.TrackSignup(view.Email); err != nil {
-				logging.With(ctx).Error(err)
-			}
-		}()
 	}
 
 	view.MailSent = true
@@ -331,6 +338,8 @@ type loginView struct {
 	MunchkinHash string `json:"munchkinHash"`
 }
 
+// login validates a login request from a link we sent the user by email
+// NB: this is used only for email signups, not oauth signups
 func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	token := r.FormValue("token")
