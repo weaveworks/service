@@ -93,6 +93,7 @@ type attachLoginProviderView struct {
 	MunchkinHash string `json:"munchkinHash"`
 }
 
+// attachLoginProvider is used for oauth login or signup
 func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	view := attachLoginProviderView{}
 	vars := mux.Vars(r)
@@ -275,7 +276,8 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, view)
 }
 
-// Signup creates a new user
+// Signup creates a new user (but will also allow an existing user to log in)
+// NB: this is used only for email signups, not oauth signups
 func (a *API) Signup(ctx context.Context, view *SignupView) (*users.User, error) {
 	view.MailSent = false
 	if view.Email == "" {
@@ -339,6 +341,8 @@ type loginView struct {
 	MunchkinHash string `json:"munchkinHash"`
 }
 
+// login validates a login request from a link we sent the user by email
+// NB: this is used only for email signups, not oauth signups
 func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	token := r.FormValue("token")
