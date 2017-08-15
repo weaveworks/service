@@ -285,12 +285,17 @@ func (a *API) Signup(ctx context.Context, view *SignupView) (*users.User, error)
 	}
 
 	user, err := a.db.FindUserByEmail(ctx, view.Email)
-	created := false
 	if err == users.ErrNotFound {
 		user, err = a.db.CreateUser(ctx, view.Email)
-		created = true
 		if err == nil {
 			a.marketingQueues.UserCreated(user.Email, user.CreatedAt)
+			if a.mixpanel != nil {
+				go func() {
+					if err := a.mixpanel.TrackSignup(view.Email); err != nil {
+						logging.With(ctx).Error(err)
+					}
+				}()
+			}
 		}
 	}
 	if err != nil {
@@ -310,14 +315,6 @@ func (a *API) Signup(ctx context.Context, view *SignupView) (*users.User, error)
 	err = a.emailer.LoginEmail(user, token)
 	if err != nil {
 		return nil, fmt.Errorf("Error sending login email: %s", err)
-	}
-
-	if a.mixpanel != nil && created {
-		go func() {
-			if err := a.mixpanel.TrackSignup(view.Email); err != nil {
-				logging.With(ctx).Error(err)
-			}
-		}()
 	}
 
 	view.MailSent = true
