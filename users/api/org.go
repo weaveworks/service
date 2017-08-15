@@ -22,6 +22,8 @@ type OrgView struct {
 	FeatureFlags   []string `json:"featureFlags,omitempty"`
 	DenyUIFeatures bool     `json:"denyUIFeatures"`
 	DenyTokenAuth  bool     `json:"denyTokenAuth"`
+	Platform       string   `json:"platform"`
+	Environment    string   `json:"environment"`
 }
 
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -42,6 +44,8 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 				FeatureFlags:   append(org.FeatureFlags, a.forceFeatureFlags...),
 				DenyUIFeatures: org.DenyUIFeatures,
 				DenyTokenAuth:  org.DenyTokenAuth,
+				Environment:    org.Environment,
+				Platform:       org.Platform,
 			})
 			return
 		}
@@ -113,6 +117,12 @@ func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// PatchInstance accepts requests to update certain properties of an instance
+func (a *API) PatchInstance(currentUser *users.User, w http.ResponseWriter, r *http.Request) error {
+	defer r.Body.Close()
+	// TODO use jsonpatch, but accept only changes to name, platform & environment
 }
 
 func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
