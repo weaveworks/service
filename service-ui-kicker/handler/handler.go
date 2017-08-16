@@ -55,7 +55,8 @@ func (hs *HookServer) HandlePush(payload interface{}, header webhooks.Header) {
 	hs.mu.Lock()
 	defer hs.mu.Unlock()
 	hs.latest = pl.HeadCommit.ID
-	log.Infof("Push to weaveworks/scope master, set latest version of weave-scope to %v", pl.HeadCommit.ID)
+	log.Infof("Push to weaveworks/scope master detected, latest version of weave-scope is %v", pl.HeadCommit.ID)
+	log.Info("Waiting till the build finishes successfully")
 }
 
 // HandleStatus handles GitHub Commit status updated from the API
