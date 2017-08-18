@@ -3,7 +3,7 @@ MAINTAINER scope@weave.works
 USER root
 RUN \
     apk add --no-cache --update g++ make ruby-dev && \
-    gem install bigdecimal fluent-plugin-bigquery 'fluent-plugin-prometheus: 0.3.0' && \
+    gem install bigdecimal 'fluent-plugin-bigquery: 0.4.4' 'fluent-plugin-prometheus: 0.3.0' && \
     apk del --no-cache g++ make ruby-dev
 COPY schema_service_events.json /bigquery/
 COPY fluent-dev.conf /fluentd/etc/
