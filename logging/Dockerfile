@@ -8,3 +8,4 @@ RUN \
 COPY schema_service_events.json /bigquery/
 COPY fluent.conf /fluentd/etc/
 COPY fluent-dev.conf /fluentd/etc/
+USER fluent
