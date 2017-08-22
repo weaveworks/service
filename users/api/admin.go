@@ -48,7 +48,12 @@ type privateUserView struct {
 }
 
 func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := a.db.ListUsers(r.Context())
+	admin := r.FormValue("admin")
+	adminOnly := false
+	if admin == "true" {
+		adminOnly = true
+	}
+	users, err := a.db.ListUsers(r.Context(), adminOnly)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -174,7 +179,7 @@ func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
-	users, err := a.db.ListUsers(r.Context())
+	users, err := a.db.ListUsers(r.Context(), false)
 	if err != nil {
 		render.Error(w, r, err)
 		return

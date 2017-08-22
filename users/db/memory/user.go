@@ -164,12 +164,14 @@ func (u usersByCreatedAt) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.Before(u[j].CreatedAt) }
 
 // ListUsers lists users
-func (d *DB) ListUsers(_ context.Context) ([]*users.User, error) {
+func (d *DB) ListUsers(_ context.Context, adminOnly bool) ([]*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	users := []*users.User{}
 	for _, user := range d.users {
-		users = append(users, user)
+		if !adminOnly || user.Admin {
+			users = append(users, user)
+		}
 	}
 	sort.Sort(usersByCreatedAt(users))
 	return users, nil

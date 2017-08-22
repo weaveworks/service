@@ -228,8 +228,12 @@ func (d DB) usersQuery() squirrel.SelectBuilder {
 }
 
 // ListUsers lists users
-func (d DB) ListUsers(_ context.Context) ([]*users.User, error) {
-	rows, err := d.usersQuery().Query()
+func (d DB) ListUsers(_ context.Context, adminOnly bool) ([]*users.User, error) {
+	q := d.usersQuery()
+	if adminOnly {
+		q = q.Where("users.admin = true")
+	}
+	rows, err := q.Query()
 	if err != nil {
 		return nil, err
 	}

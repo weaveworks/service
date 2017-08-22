@@ -102,9 +102,9 @@ func (t timed) RemoveUserFromOrganization(ctx context.Context, orgExternalID, em
 	})
 }
 
-func (t timed) ListUsers(ctx context.Context) (us []*users.User, err error) {
+func (t timed) ListUsers(ctx context.Context, adminOnly bool) (us []*users.User, err error) {
 	t.timeRequest(ctx, "ListUsers", func(ctx context.Context) error {
-		us, err = t.d.ListUsers(ctx)
+		us, err = t.d.ListUsers(ctx, adminOnly)
 		return err
 	})
 	return

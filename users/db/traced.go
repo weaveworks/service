@@ -64,9 +64,9 @@ func (t traced) RemoveUserFromOrganization(ctx context.Context, orgExternalID, e
 	return t.d.RemoveUserFromOrganization(ctx, orgExternalID, email)
 }
 
-func (t traced) ListUsers(ctx context.Context) (us []*users.User, err error) {
+func (t traced) ListUsers(ctx context.Context, adminOnly bool) (us []*users.User, err error) {
 	defer func() { t.trace("ListUsers", us, err) }()
-	return t.d.ListUsers(ctx)
+	return t.d.ListUsers(ctx, adminOnly)
 }
 
 func (t traced) ListOrganizations(ctx context.Context) (os []*users.Organization, err error) {
