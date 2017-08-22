@@ -25,7 +25,6 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 			<li><a href="/admin/kubediff/">Kubediff</a></li>
 			<li><a href="/admin/ansiblediff/">Ansiblediff</a></li>
 			<li><a href="/admin/terradiff/">Terradiff</a></li>
-			<li><a href="/admin/loki/">Loki</a></li>
 		</ul>
 
 		<h2>Management</h2>
