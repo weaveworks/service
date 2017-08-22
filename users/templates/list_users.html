@@ -1,20 +1,35 @@
 <!doctype html>
 <html>
   <head>
-    <title>Weave Cloud - Users</title>
+    <title>Users – Weave Cloud</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
   </head>
   <body>
-    <h2>Accounts</h2>
-    <a href="users?admin=true">Admins only</a> <a href="users">All users</a>
+    <header class="mdl-layout__header mdl-color--grey-100 mdl-color-text--grey-600 is-casting-shadow">
+        <div class="mdl-layout__header-row">
+            <span class="mdl-layout-title">
+				<div class="material-icons">mood</div>
+                Users
+            </span>
+        </div>
+    </header>
+    <div class="mdl-grid">
+        <p><a href="users?admin=true">Admins only</a> or <a href="users">All users</a></p>
+    </div>
     {{with .}}
-    <table>
-      <tr>
-        <th>ID</th>
-        <th>Email</th>
-        <th>CreatedAt</th>
-        <th>FirstLoginAt</th>
-        <th>Admin</th>
-      </tr>
+    <div class="mdl-grid">
+    <table class="mdl-data-table mdl-js-data-table">
+        <thead>
+        <tr>
+            <th class="mdl-data-table__cell--non-numeric">ID</th>
+            <th class="mdl-data-table__cell--non-numeric">Email</th>
+            <th class="mdl-data-table__cell--non-numeric">CreatedAt</th>
+            <th class="mdl-data-table__cell--non-numeric">FirstLoginAt</th>
+            <th class="mdl-data-table__cell--non-numeric">Admin</th>
+        </tr>
+        </thead>
       {{range .Users}}
       <tr>
         <td>{{.ID}}</td>
@@ -26,20 +41,23 @@
           <form action="users/{{.ID}}/admin?admin=false" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
             <input type="hidden" name="redirect_to" value="../../users" />
-            <input type="submit" value="Clear Admin" />
+            <input class="mdl-button mdl-js-button mdl-button--raised"
+                   type="submit" value="Clear Admin" />
           </form>
           {{else}}
           <form action="users/{{.ID}}/admin?admin=true" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
             <input type="hidden" name="redirect_to" value="../../users" />
-            <input type="submit" value="Make Admin" />
+            <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent"
+                   type="submit" value="Make Admin" />
           </form>
           {{end}}
         </td>
         <td>
           <form action="users/{{.ID}}/become" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-            <input type="submit" value="Become User" />
+            <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+                   type="submit" value="Become User" />
           </form>
         </td>
         <td>
@@ -48,8 +66,7 @@
       </tr>
       {{end}}
     </table>
-    {{else}}
-    <p>No users.</p>
+    </div>
     {{end}}
   </body>
 </html>

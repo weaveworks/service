@@ -74,6 +74,11 @@ func (t traced) ListOrganizations(ctx context.Context) (os []*users.Organization
 	return t.d.ListOrganizations(ctx)
 }
 
+func (t traced) SearchOrganizations(ctx context.Context, query string, page int32) (os []*users.Organization, err error) {
+	defer func() { t.trace("SearchOrganizations", os, err) }()
+	return t.d.SearchOrganizations(ctx, query, page)
+}
+
 func (t traced) ListOrganizationUsers(ctx context.Context, orgExternalID string) (us []*users.User, err error) {
 	defer func() { t.trace("ListOrganizationUsers", orgExternalID, us, err) }()
 	return t.d.ListOrganizationUsers(ctx, orgExternalID)

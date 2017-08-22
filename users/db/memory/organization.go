@@ -67,14 +67,25 @@ func (d *DB) userIsMemberOf(userID, orgExternalID string) (bool, error) {
 
 // ListOrganizations lists organizations
 func (d *DB) ListOrganizations(_ context.Context) ([]*users.Organization, error) {
+	return d.searchOrganizations(""), nil
+}
+
+// SearchOrganizations searches for organizations
+func (d *DB) SearchOrganizations(_ context.Context, query string, page int32) ([]*users.Organization, error) {
+	return d.searchOrganizations(query), nil
+}
+
+func (d *DB) searchOrganizations(query string) []*users.Organization {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	orgs := []*users.Organization{}
 	for _, org := range d.organizations {
-		orgs = append(orgs, org)
+		if strings.Contains(org.Name, query) {
+			orgs = append(orgs, org)
+		}
 	}
 	sort.Sort(organizationsByCreatedAt(orgs))
-	return orgs, nil
+	return orgs
 }
 
 // ListOrganizationUsers lists all the users in an organization
