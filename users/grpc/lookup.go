@@ -123,7 +123,7 @@ func (a *usersServer) LookupUser(ctx context.Context, req *users.LookupUserReque
 }
 
 func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrganizationsRequest) (*users.GetOrganizationsResponse, error) {
-	organizations, err := a.db.ListOrganizations(ctx)
+	organizations, err := a.db.SearchOrganizations(ctx, req.Query, req.PageNumber)
 	if err != nil {
 		return nil, err
 	}

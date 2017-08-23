@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
@@ -10,6 +11,9 @@ import (
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/externalIDs"
 )
+
+// Page size for SearchOrganizations
+const searchResultsPerPage = 30
 
 // RemoveUserFromOrganization removes the user from the organiation. If they
 // are not a member, this is a noop.
@@ -72,6 +76,24 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 // ListOrganizations lists organizations
 func (d DB) ListOrganizations(_ context.Context) ([]*users.Organization, error) {
 	rows, err := d.organizationsQuery().Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return d.scanOrganizations(rows)
+}
+
+// SearchOrganizations searches for organizations and returns results in pages.
+// Query can be empty to return all the organizations paginated.
+func (d DB) SearchOrganizations(_ context.Context, query string, page int32) ([]*users.Organization, error) {
+	q := d.organizationsQuery().
+		Limit(searchResultsPerPage).
+		Offset(uint64((page - 1) * searchResultsPerPage))
+	if query != "" {
+		q = q.Where("organizations.external_id LIKE ?", fmt.Sprint("%", query, "%"))
+	}
+
+	rows, err := q.Query()
 	if err != nil {
 		return nil, err
 	}

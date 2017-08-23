@@ -1,39 +1,72 @@
 <!doctype html>
 <html>
-  {{with .}}
+{{with .}}
   <head>
     {{if .UserEmail}}
-    <title>Weave Cloud - Organizations for {{.UserEmail}}</title>
+    <title>Organizations for {{.UserEmail}} – Weave Cloud</title>
     {{else}}
-    <title>Weave Cloud - All Organizations</title>
+    <title>Organizations – Weave Cloud</title>
     {{end}}
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
   </head>
   <body>
-    {{if .UserEmail}}
-    <h2>Organizations for User {{.UserEmail}}</h2>
-    {{else}}
-    <h2>All Organizations</h2>
+    <header class="mdl-layout__header mdl-color--grey-100 mdl-color-text--grey-600 is-casting-shadow">
+        <div class="mdl-layout__header-row">
+            <span class="mdl-layout-title">
+				<div class="material-icons">domain</div>
+                {{if .UserEmail}}
+                Organizations for User {{.UserEmail}}
+                {{else}}
+                Organizations
+                {{end}}
+            </span>
+            <div class="mdl-layout-spacer"></div>
+            {{if not .UserEmail}}
+            <form action="" method="GET">
+                <input type="hidden" name="page" value="{{.Page}}" />
+                <label class="mdl-button mdl-js-button mdl-button--icon" for="query">
+                    <i class="material-icons">search</i>
+                </label>
+                <div class="mdl-textfield mdl-js-textfield">
+                    <input class="mdl-textfield__input" type="text" name="query" id="query" value="{{.Query}}">
+                    <label class="mdl-textfield__label" for="query">Search for InstanceID</label>
+                </div>
+            </form>
+            {{end}}
+        </div>
+    </header>
+    {{if .Query}}
+    <div class="mdl-grid">
+        <p>Displaying results for «{{.Query}}» <a href="organizations">show all</a></p>
+    </div>
     {{end}}
-    <table>
-      <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>CreatedAt</th>
-        <th>DenyUIFeatures</th>
-        <th>DenyTokenAuth</th>
-        <th>FeatureFlags</th>
-      </tr>
+    <div class="mdl-grid">
+    <table class="mdl-data-table mdl-js-data-table">
+      <thead>
+          <tr>
+            <th class="mdl-data-table__cell--non-numeric">InstanceID</th>
+            <th class="mdl-data-table__cell--non-numeric">Name</th>
+            <th class="mdl-data-table__cell--non-numeric">CreatedAt</th>
+            <th class="mdl-data-table__cell--non-numeric">DenyUIFeatures</th>
+            <th class="mdl-data-table__cell--non-numeric">DenyTokenAuth</th>
+            <th class="mdl-data-table__cell--non-numeric">FeatureFlags</th>
+          </tr>
+      </thead>
+      <tbody>
       {{range .Organizations}}
       <tr>
         <td>{{.ExternalID}}</td>
-        <td>{{.Name}}</td>
+        <td style="max-width:300px;text-overflow:ellipsis;overflow:hidden" title="{{.Name}}">{{.Name}}</td>
         <td>{{.FormatCreatedAt}}</td>
         <td>
           <form action="organizations/{{.ExternalID}}" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
             <input type="hidden" name="field" value="DenyUIFeatures">
             <input type="checkbox" name="value" {{if .DenyUIFeatures}}checked {{end}}/>
-            <input type="submit" value="Save" />
+            <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+                   type="submit" value="Save" />
           </form>
         </td>
         <td>
@@ -41,7 +74,8 @@
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
             <input type="hidden" name="field" value="DenyTokenAuth">
             <input type="checkbox" name="value" {{if .DenyTokenAuth}}checked {{end}}/>
-            <input type="submit" value="Save" />
+            <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+                   type="submit" value="Save" />
           </form>
         </td>
         <td>
@@ -49,14 +83,27 @@
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
             <input type="hidden" name="field" value="FeatureFlags">
             <input type="text" name="value" value="{{range .FeatureFlags}}{{.}} {{end}}" />
-            <input type="submit" value="Save" />
+            <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+                   type="submit" value="Save" />
           </form>
         </td>
       </tr>
       {{end}}
+      </tbody>
     </table>
-    {{else}}
-    <p>No organizations.</p>
+    </div>
+    <div class="mdl-grid">
+        <div class="mdl-layout-spacer"></div>
+        Displaying {{len .Organizations}} organizations on this page<br/>
+    </div>
+    {{if not .UserEmail}}
+    <div class="mdl-grid">
+        <div class="mdl-layout-spacer"></div>
+        <a href="?query={{.Query}}&page={{.NextPage}}" class="mdl-button mdl-js-button mdl-button--raised">
+            Next page
+        </a>
+    </div>
     {{end}}
   </body>
+{{end}}
 </html>

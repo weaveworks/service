@@ -76,6 +76,8 @@ message LookupUserResponse {
 }
 
 message GetOrganizationsRequest {
+  string Query = 1;
+  int32 PageNumber = 2;
 }
 
 message GetOrganizationsResponse {

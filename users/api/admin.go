@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -85,8 +86,13 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
-	organizations, err := a.db.ListOrganizations(r.Context())
+func (a *API) searchOrganizations(w http.ResponseWriter, r *http.Request) {
+	query := r.FormValue("query")
+	page, _ := strconv.ParseInt(r.FormValue("page"), 10, 32)
+	if page <= 0 {
+		page = 1
+	}
+	organizations, err := a.db.SearchOrganizations(r.Context(), query, int32(page))
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -94,6 +100,9 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 
 	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
 		"Organizations": organizations,
+		"Query":         query,
+		"Page":          page,
+		"NextPage":      page + 1,
 	})
 	if err != nil {
 		render.Error(w, r, err)
@@ -197,7 +206,7 @@ func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, users.ErrNotFound)
 		return
 	}
-	admin := r.URL.Query().Get("admin") == "true"
+	admin := r.FormValue("admin") == "true"
 	if err := a.MakeUserAdmin(r.Context(), userID, admin); err != nil {
 		render.Error(w, r, err)
 		return
