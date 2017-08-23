@@ -112,7 +112,7 @@ type organizationsByCreatedAt []*users.Organization
 
 func (o organizationsByCreatedAt) Len() int           { return len(o) }
 func (o organizationsByCreatedAt) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
-func (o organizationsByCreatedAt) Less(i, j int) bool { return o[i].CreatedAt.Before(o[j].CreatedAt) }
+func (o organizationsByCreatedAt) Less(i, j int) bool { return o[i].CreatedAt.After(o[j].CreatedAt) }
 
 // ListOrganizationsForUserIDs lists the organizations these users belong to
 func (d *DB) ListOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {

@@ -224,7 +224,7 @@ func (d DB) usersQuery() squirrel.SelectBuilder {
 	).
 		From("users").
 		Where("users.deleted_at is null").
-		OrderBy("users.created_at")
+		OrderBy("users.created_at DESC")
 }
 
 // ListUsers lists users

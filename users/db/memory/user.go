@@ -161,7 +161,7 @@ type usersByCreatedAt []*users.User
 
 func (u usersByCreatedAt) Len() int           { return len(u) }
 func (u usersByCreatedAt) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
-func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.Before(u[j].CreatedAt) }
+func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.After(u[j].CreatedAt) }
 
 // ListUsers lists users
 func (d *DB) ListUsers(_ context.Context, adminOnly bool) ([]*users.User, error) {
