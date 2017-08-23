@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/login"
 )
 
@@ -102,25 +103,17 @@ func (t timed) RemoveUserFromOrganization(ctx context.Context, orgExternalID, em
 	})
 }
 
-func (t timed) ListUsers(ctx context.Context, adminOnly bool) (us []*users.User, err error) {
+func (t timed) ListUsers(ctx context.Context, f filter.User) (us []*users.User, err error) {
 	t.timeRequest(ctx, "ListUsers", func(ctx context.Context) error {
-		us, err = t.d.ListUsers(ctx, adminOnly)
+		us, err = t.d.ListUsers(ctx, f)
 		return err
 	})
 	return
 }
 
-func (t timed) SearchOrganizations(ctx context.Context, query string, page int32) (os []*users.Organization, err error) {
+func (t timed) ListOrganizations(ctx context.Context, f filter.Organization) (os []*users.Organization, err error) {
 	t.timeRequest(ctx, "ListOrganizations", func(ctx context.Context) error {
-		os, err = t.d.SearchOrganizations(ctx, query, page)
-		return err
-	})
-	return
-}
-
-func (t timed) ListOrganizations(ctx context.Context) (os []*users.Organization, err error) {
-	t.timeRequest(ctx, "ListOrganizations", func(ctx context.Context) error {
-		os, err = t.d.ListOrganizations(ctx)
+		os, err = t.d.ListOrganizations(ctx, f)
 		return err
 	})
 	return

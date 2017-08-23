@@ -9,6 +9,7 @@ import (
 
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/db/memory"
 	"github.com/weaveworks/service/users/db/postgres"
 	"github.com/weaveworks/service/users/login"
@@ -48,9 +49,8 @@ type DB interface {
 	// Remove a user from an organization. If they do not exist (ctx context.Context, or are not a member of the org), return success.
 	RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) error
 
-	ListUsers(ctx context.Context, adminOnly bool) ([]*users.User, error)
-	ListOrganizations(ctx context.Context) ([]*users.Organization, error)
-	SearchOrganizations(_ context.Context, query string, page int32) ([]*users.Organization, error)
+	ListUsers(ctx context.Context, f filter.User) ([]*users.User, error)
+	ListOrganizations(ctx context.Context, f filter.Organization) ([]*users.Organization, error)
 	ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error)
 
 	// ListOrganizationsForUserIDs lists all organizations these users have

@@ -31,6 +31,9 @@ type dbProxy interface {
 	Prepare(query string) (*sql.Stmt, error)
 }
 
+// Page size for paginated listings
+const resultsPerPage = 30
+
 // New creates a new postgred DB
 func New(databaseURI, migrationsDir string, passwordHashingCost int) (DB, error) {
 	u, err := url.Parse(databaseURI)

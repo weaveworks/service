@@ -7,6 +7,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/login"
 )
 
@@ -64,19 +65,14 @@ func (t traced) RemoveUserFromOrganization(ctx context.Context, orgExternalID, e
 	return t.d.RemoveUserFromOrganization(ctx, orgExternalID, email)
 }
 
-func (t traced) ListUsers(ctx context.Context, adminOnly bool) (us []*users.User, err error) {
+func (t traced) ListUsers(ctx context.Context, f filter.User) (us []*users.User, err error) {
 	defer func() { t.trace("ListUsers", us, err) }()
-	return t.d.ListUsers(ctx, adminOnly)
+	return t.d.ListUsers(ctx, f)
 }
 
-func (t traced) ListOrganizations(ctx context.Context) (os []*users.Organization, err error) {
+func (t traced) ListOrganizations(ctx context.Context, f filter.Organization) (os []*users.Organization, err error) {
 	defer func() { t.trace("ListOrganizations", os, err) }()
-	return t.d.ListOrganizations(ctx)
-}
-
-func (t traced) SearchOrganizations(ctx context.Context, query string, page int32) (os []*users.Organization, err error) {
-	defer func() { t.trace("SearchOrganizations", os, err) }()
-	return t.d.SearchOrganizations(ctx, query, page)
+	return t.d.ListOrganizations(ctx, f)
 }
 
 func (t traced) ListOrganizationUsers(ctx context.Context, orgExternalID string) (us []*users.User, err error) {

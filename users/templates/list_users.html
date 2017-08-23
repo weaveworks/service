@@ -7,17 +7,39 @@
     <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
   </head>
   <body>
+  <form action="users" method="GET">
+    <input type="hidden" name="page" value="1" />
     <header class="mdl-layout__header mdl-color--grey-100 mdl-color-text--grey-600 is-casting-shadow">
         <div class="mdl-layout__header-row">
             <span class="mdl-layout-title">
 				<div class="material-icons">mood</div>
                 Users
             </span>
+            <div class="mdl-layout-spacer"></div>
+            <div style="margin-right:2.5em">
+                <label class="mdl-checkbox mdl-js-checkbox" for="admin">
+                    <input type="checkbox" onclick="this.form.submit();" value="true" id="admin" name="admin" class="mdl-checkbox__input" {{if .Admin}}checked{{end}} />
+                    <span class="mdl-checkbox__label">Admin only</span>
+                </label>
+            </div>
+            <label class="mdl-button mdl-js-button mdl-button--icon" for="query">
+                <i class="material-icons">search</i>
+            </label>
+            <div class="mdl-textfield mdl-js-textfield">
+                <input class="mdl-textfield__input" type="text" name="query" id="query" value="{{.Query}}">
+                <label class="mdl-textfield__label" for="query">Search for Email</label>
+            </div>
         </div>
     </header>
-    <div class="mdl-grid">
-        <p><a href="users?admin=true">Admins only</a> or <a href="users">All users</a></p>
-    </div>
+    </form>
+      <div class="mdl-grid">
+          <p>
+              Page {{.Page}}
+              {{if .Query}}
+              – Displaying results for «{{.Query}}» <a href="users">show all</a>
+              {{end}}
+          </p>
+      </div>
     {{with .}}
     <div class="mdl-grid">
     <table class="mdl-data-table mdl-js-data-table">
@@ -37,21 +59,18 @@
         <td>{{.FormatCreatedAt}}</td>
         <td>{{.FormatFirstLoginAt}}</td>
         <td>
-          {{if .Admin}}
-          <form action="users/{{.ID}}/admin?admin=false" method="POST">
-            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+          <form action="users/{{.ID}}/admin" method="POST">
+            <input type="hidden" name="admin" value="{{if .Admin}}false{{else}}true{{end}}" />
+            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__" />
             <input type="hidden" name="redirect_to" value="../../users" />
-            <input class="mdl-button mdl-js-button mdl-button--raised"
-                   type="submit" value="Clear Admin" />
+            {{if .Admin}}
+              <input class="mdl-button mdl-js-button mdl-button--raised"
+                     type="submit" value="Clear Admin" />
+            {{else}}
+              <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent"
+                     type="submit" value="Make Admin" />
+            {{end}}
           </form>
-          {{else}}
-          <form action="users/{{.ID}}/admin?admin=true" method="POST">
-            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-            <input type="hidden" name="redirect_to" value="../../users" />
-            <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent"
-                   type="submit" value="Make Admin" />
-          </form>
-          {{end}}
         </td>
         <td>
           <form action="users/{{.ID}}/become" method="POST">
@@ -67,6 +86,16 @@
       {{end}}
     </table>
     </div>
+      <div class="mdl-grid">
+          <div class="mdl-layout-spacer"></div>
+          Displaying {{len .Users}} users on this page<br/>
+      </div>
+      <div class="mdl-grid">
+          <div class="mdl-layout-spacer"></div>
+          <a href="?query={{.Query}}&admin={{.Admin}}&page={{.NextPage}}" class="mdl-button mdl-js-button mdl-button--raised">
+              Next page
+          </a>
+      </div>
     {{end}}
   </body>
 </html>

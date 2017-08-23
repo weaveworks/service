@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -14,6 +13,7 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/client"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/render"
 )
@@ -49,12 +49,8 @@ type privateUserView struct {
 }
 
 func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
-	admin := r.FormValue("admin")
-	adminOnly := false
-	if admin == "true" {
-		adminOnly = true
-	}
-	users, err := a.db.ListUsers(r.Context(), adminOnly)
+	f := filter.NewUser(r)
+	users, err := a.db.ListUsers(r.Context(), f)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -74,7 +70,11 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, http.StatusOK, view)
 	default: // render.FormatHTML
 		b, err := a.templates.Bytes("list_users.html", map[string]interface{}{
-			"Users": users,
+			"Users":    users,
+			"Query":    f.Query,
+			"Admin":    f.AdminOnly,
+			"Page":     f.Page,
+			"NextPage": f.Page + 1,
 		})
 		if err != nil {
 			render.Error(w, r, err)
@@ -86,13 +86,9 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *API) searchOrganizations(w http.ResponseWriter, r *http.Request) {
-	query := r.FormValue("query")
-	page, _ := strconv.ParseInt(r.FormValue("page"), 10, 32)
-	if page <= 0 {
-		page = 1
-	}
-	organizations, err := a.db.SearchOrganizations(r.Context(), query, int32(page))
+func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
+	f := filter.NewOrganization(r)
+	organizations, err := a.db.ListOrganizations(r.Context(), f)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -100,9 +96,9 @@ func (a *API) searchOrganizations(w http.ResponseWriter, r *http.Request) {
 
 	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
 		"Organizations": organizations,
-		"Query":         query,
-		"Page":          page,
-		"NextPage":      page + 1,
+		"Query":         f.Query,
+		"Page":          f.Page,
+		"NextPage":      f.Page + 1,
 	})
 	if err != nil {
 		render.Error(w, r, err)
@@ -188,7 +184,7 @@ func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
-	users, err := a.db.ListUsers(r.Context(), false)
+	users, err := a.db.ListUsers(r.Context(), filter.User{})
 	if err != nil {
 		render.Error(w, r, err)
 		return

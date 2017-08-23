@@ -8,6 +8,7 @@ import (
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/sessions"
 )
 
@@ -123,7 +124,7 @@ func (a *usersServer) LookupUser(ctx context.Context, req *users.LookupUserReque
 }
 
 func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrganizationsRequest) (*users.GetOrganizationsResponse, error) {
-	organizations, err := a.db.SearchOrganizations(ctx, req.Query, req.PageNumber)
+	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{Query: req.Query, Page: req.PageNumber})
 	if err != nil {
 		return nil, err
 	}

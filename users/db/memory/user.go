@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/login"
 )
 
@@ -164,12 +165,12 @@ func (u usersByCreatedAt) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.Before(u[j].CreatedAt) }
 
 // ListUsers lists users
-func (d *DB) ListUsers(_ context.Context, adminOnly bool) ([]*users.User, error) {
+func (d *DB) ListUsers(_ context.Context, f filter.User) ([]*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	users := []*users.User{}
 	for _, user := range d.users {
-		if !adminOnly || user.Admin {
+		if strings.Contains(user.Email, f.Query) && (!f.AdminOnly || user.Admin) {
 			users = append(users, user)
 		}
 	}
