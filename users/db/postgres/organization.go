@@ -68,7 +68,7 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 	).
 		From("organizations").
 		Where("organizations.deleted_at is null").
-		OrderBy("organizations.created_at")
+		OrderBy("organizations.created_at DESC")
 }
 
 // ListOrganizations lists organizations

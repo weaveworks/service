@@ -88,7 +88,7 @@ func Test_ListOrganizationUsers(t *testing.T) {
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"users":[{"email":%q,"self":true},{"email":%q}]}`, user.Email, fran.Email))
+	assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"users":[{"email":%q},{"email":%q,"self":true}]}`, fran.Email, user.Email))
 }
 
 const (
@@ -340,11 +340,11 @@ func Test_Organization_CreateMultiple(t *testing.T) {
 	require.NoError(t, err)
 	if assert.Len(t, organizations, 2) {
 		assert.NotEqual(t, "", organizations[0].ID)
-		assert.Equal(t, "my-first-org", organizations[0].ExternalID)
-		assert.Equal(t, "my first org", organizations[0].Name)
+		assert.Equal(t, "my-second-org", organizations[0].ExternalID)
+		assert.Equal(t, "my second org", organizations[0].Name)
 		assert.NotEqual(t, "", organizations[1].ID)
-		assert.Equal(t, "my-second-org", organizations[1].ExternalID)
-		assert.Equal(t, "my second org", organizations[1].Name)
+		assert.Equal(t, "my-first-org", organizations[1].ExternalID)
+		assert.Equal(t, "my first org", organizations[1].Name)
 	}
 }
 
