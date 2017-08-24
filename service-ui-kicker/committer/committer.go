@@ -23,7 +23,7 @@ const (
 func yarnUpdateScopeVersion(version string, path string) error {
 	weaveScopePackage := fmt.Sprintf("weave-scope@https://s3.amazonaws.com/weaveworks-js-modules/weave-scope/%s/weave-scope.tgz", version)
 
-	cmd := exec.Command("yarn", "add", weaveScopePackage)
+	cmd := exec.Command("yarn", "add", "--ignore-engines", weaveScopePackage)
 	cmd.Dir = path
 	out, err := cmd.CombinedOutput()
 	if err != nil {
