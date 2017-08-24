@@ -3,6 +3,7 @@ package postgres
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
@@ -10,6 +11,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/login"
 )
 
@@ -228,10 +230,16 @@ func (d DB) usersQuery() squirrel.SelectBuilder {
 }
 
 // ListUsers lists users
-func (d DB) ListUsers(_ context.Context, adminOnly bool) ([]*users.User, error) {
+func (d DB) ListUsers(_ context.Context, f filter.User) ([]*users.User, error) {
 	q := d.usersQuery()
-	if adminOnly {
+	if f.AdminOnly {
 		q = q.Where("users.admin = true")
+	}
+	if f.Query != "" {
+		q = q.Where("users.email LIKE ?", fmt.Sprint("%", f.Query, "%"))
+	}
+	if f.Page > 0 {
+		q = q.Limit(resultsPerPage).Offset(uint64((f.Page - 1) * resultsPerPage))
 	}
 	rows, err := q.Query()
 	if err != nil {

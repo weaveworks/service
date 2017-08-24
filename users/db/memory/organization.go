@@ -6,10 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	"golang.org/x/net/context"
 
-	"github.com/lib/pq"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/externalIDs"
 )
 
@@ -66,26 +67,17 @@ func (d *DB) userIsMemberOf(userID, orgExternalID string) (bool, error) {
 }
 
 // ListOrganizations lists organizations
-func (d *DB) ListOrganizations(_ context.Context) ([]*users.Organization, error) {
-	return d.searchOrganizations(""), nil
-}
-
-// SearchOrganizations searches for organizations
-func (d *DB) SearchOrganizations(_ context.Context, query string, page int32) ([]*users.Organization, error) {
-	return d.searchOrganizations(query), nil
-}
-
-func (d *DB) searchOrganizations(query string) []*users.Organization {
+func (d *DB) ListOrganizations(_ context.Context, f filter.Organization) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	orgs := []*users.Organization{}
 	for _, org := range d.organizations {
-		if strings.Contains(org.Name, query) {
+		if strings.Contains(org.Name, f.Query) {
 			orgs = append(orgs, org)
 		}
 	}
 	sort.Sort(organizationsByCreatedAt(orgs))
-	return orgs
+	return orgs, nil
 }
 
 // ListOrganizationUsers lists all the users in an organization
