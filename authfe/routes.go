@@ -234,7 +234,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			{"/flux/{flux_vsn:v[345]}", c.fluxHost},
 			{"/flux", c.fluxV6Host},
 			{"/prom/alertmanager", c.promAlertmanagerHost},
-			{"/prom/configs", c.configsHost},
+			{"/prom/configs", c.promConfigsHost},
 			{"/prom", c.promQuerierHost},
 		}),
 		middleware.Merge(
@@ -263,36 +263,38 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		// For all ui <-> app communication, authenticated using cookie credentials
 		MiddlewarePrefix{
 			"/api/app/{orgExternalID}",
-			Matchables([]Prefix{
-				{"/api/report", c.queryHost},
-				{"/api/topology", c.queryHost},
-				{"/api/control", c.controlHost},
-				{"/api/pipe", c.pipeHost},
+			[]PrefixRoutable{
+				Prefix{"/api/report", c.queryHost},
+				Prefix{"/api/topology", c.queryHost},
+				Prefix{"/api/control", c.controlHost},
+				Prefix{"/api/pipe", c.pipeHost},
 				// API to insert deploy key requires GH token. Insert token with middleware.
-				{"/api/flux/v5/integrations/github",
+				Prefix{"/api/flux/v5/integrations/github",
 					fluxGHTokenMiddleware.Wrap(c.fluxHost)},
-				{"/api/flux/{flux_vsn}/integrations/github",
+				Prefix{"/api/flux/{flux_vsn}/integrations/github",
 					fluxGHTokenMiddleware.Wrap(c.fluxV6Host)},
 				// While we transition to newer Flux API
-				{"/api/flux/{flux_vsn:v[345]}", c.fluxHost},
-				{"/api/flux", c.fluxV6Host},
-				{"/api/prom/alertmanager", c.promAlertmanagerHost},
-				{"/api/prom/configs", c.configsHost},
-				{"/api/prom/notebooks", c.notebooksHost},
-				{"/api/prom", c.promQuerierHost},
-				{"/api/net/peer", c.peerDiscoveryHost},
-				{"/api", c.queryHost},
+				Prefix{"/api/flux/{flux_vsn:v[345]}", c.fluxHost},
+				Prefix{"/api/flux", c.fluxV6Host},
+				Prefix{"/api/prom/alertmanager", c.promAlertmanagerHost},
+				Prefix{"/api/prom/configs", c.promConfigsHost},
+				Prefix{"/api/prom/notebooks", c.notebooksHost},
+				Prefix{"/api/prom", c.promQuerierHost},
+				Prefix{"/api/net/peer", c.peerDiscoveryHost},
+				Prefix{"/api/notification/config", c.notificationConfigHost},
+				PrefixMethods{"/api/notification/events", []string{"GET"}, c.notificationConfigHost},
+				Prefix{"/api", c.queryHost},
 
 				// Catch-all forward to query service, which is a Scope instance that we
 				// use to serve the Scope UI.  Note we forward /index.html to
 				// /ui/index.html etc, as we never want to expose the root of a services
 				// to the outside world - they can get at the debug info and metrics that
 				// way.
-				{"/", middleware.Merge(
+				Prefix{"/", middleware.Merge(
 					noCacheOnRoot,
 					middleware.PathRewrite(regexp.MustCompile("(.*)"), "/ui$1"),
 				).Wrap(c.queryHost)},
-			}),
+			},
 			middleware.Merge(
 				authUserOrgDataAccessMiddleware,
 				middleware.PathRewrite(regexp.MustCompile("^/api/app/[^/]+"), ""),
