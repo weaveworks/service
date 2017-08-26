@@ -276,6 +276,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				// While we transition to newer Flux API
 				Prefix{"/api/flux/{flux_vsn:v[345]}", c.fluxHost},
 				Prefix{"/api/flux", c.fluxV6Host},
+
 				Prefix{"/api/prom/alertmanager", c.promAlertmanagerHost},
 				Prefix{"/api/prom/configs", c.promConfigsHost},
 				Prefix{"/api/prom/notebooks", c.notebooksHost},
