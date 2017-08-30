@@ -276,7 +276,6 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				// While we transition to newer Flux API
 				Prefix{"/api/flux/{flux_vsn:v[345]}", c.fluxHost},
 				Prefix{"/api/flux", c.fluxV6Host},
-
 				Prefix{"/api/prom/alertmanager", c.promAlertmanagerHost},
 				Prefix{"/api/prom/configs", c.promConfigsHost},
 				Prefix{"/api/prom/notebooks", c.notebooksHost},
@@ -284,6 +283,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				Prefix{"/api/net/peer", c.peerDiscoveryHost},
 				Prefix{"/api/notification/config", c.notificationConfigHost},
 				PrefixMethods{"/api/notification/events", []string{"GET"}, c.notificationConfigHost},
+				Prefix{"/api/notification/sender", c.notificationSenderHost},
 				Prefix{"/api", c.queryHost},
 
 				// Catch-all forward to query service, which is a Scope instance that we
