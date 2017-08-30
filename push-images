@@ -37,7 +37,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-COMPONENTS=(authfe users metrics logging pr-assigner notebooks service-ui-kicker)
+COMPONENTS=(authfe users metrics logging notebooks service-ui-kicker)
 if [ $# -gt 0 ]; then
     COMPONENTS=("$@")
 fi
