@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/weaveworks/common/mtime"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/render"
@@ -84,7 +85,7 @@ func (a *API) getOrgStatus(currentUser *users.User, w http.ResponseWriter, r *ht
 	}
 
 	if org.FirstConnectedAt == nil && connected {
-		now := time.Now()
+		now := mtime.Now()
 		err := a.db.SetOrganizationFirstConnectedAt(r.Context(), orgExternalID, &now)
 		if err != nil {
 			render.Error(w, r, err)
