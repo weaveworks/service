@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/render"
@@ -15,8 +16,8 @@ import (
 
 // OrgStatusView describes an organisation service status
 type getOrgStatusView struct {
-	Connected        bool      `json:"connected"`
-	FirstConnectedAt time.Time `json:"firstConnectedAt"`
+	Connected        bool       `json:"connected"`
+	FirstConnectedAt *time.Time `json:"firstConnectedAt"`
 
 	Flux  fluxStatus  `json:"flux"`
 	Scope scopeStatus `json:"scope"`
@@ -28,6 +29,7 @@ type fluxStatus struct {
 	Fluxsvc fluxsvcStatus `json:"fluxsvc"`
 	Fluxd   fluxdStatus   `json:"fluxd"`
 	Git     fluxGitStatus `json:"git"`
+	Error   string        `json:"error,omitempty"`
 }
 
 type fluxsvcStatus struct {
@@ -47,24 +49,26 @@ type fluxGitStatus struct {
 }
 
 type scopeStatus struct {
-	NumberOfProbes int64 `json:"numberOfProbes"`
+	NumberOfProbes int    `json:"numberOfProbes"`
+	Error          string `json:"error,omitempty"`
 }
 
 type promStatus struct {
-	NumberOfMetrics int64 `json:"numberOfMetrics"`
+	NumberOfMetrics int    `json:"numberOfMetrics"`
+	Error           string `json:"error,omitempty"`
 }
 
 type netStatus struct {
-	NumberOfPeers int64 `json:"numberOfPeers"`
+	NumberOfPeers int    `json:"numberOfPeers"`
+	Error         string `json:"error,omitempty"`
 }
 
 func (a *API) getOrgStatus(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	orgID, ctx, err := user.ExtractOrgIDFromHTTPRequest(r)
-	if err != nil {
-		render.Error(w, r, err)
-	}
+	vars := mux.Vars(r)
+	orgExternalID := vars["orgExternalID"]
+	r = r.WithContext(user.InjectOrgID(r.Context(), orgExternalID))
 
-	status, err := getServiceStatus(ctx)
+	status, err := a.getServiceStatus(r.Context())
 	if err != nil {
 		render.Error(w, r, err)
 	}
@@ -74,18 +78,18 @@ func (a *API) getOrgStatus(currentUser *users.User, w http.ResponseWriter, r *ht
 		status.prom.NumberOfMetrics > 0 ||
 		status.net.NumberOfPeers > 0)
 
-	org, err := a.db.FindOrganizationByID(context.Background(), orgID)
+	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
 	if err != nil {
 		render.Error(w, r, err)
 	}
 
 	if org.FirstConnectedAt == nil && connected {
 		now := time.Now()
-		err := a.db.SetOrganizationFirstConnectedAt(orgId, now)
+		err := a.db.SetOrganizationFirstConnectedAt(r.Context(), orgExternalID, &now)
 		if err != nil {
 			render.Error(w, r, err)
 		}
-		org.FirstConnectedAt = now
+		org.FirstConnectedAt = &now
 	}
 
 	render.JSON(w, http.StatusOK, getOrgStatusView{
@@ -105,63 +109,104 @@ type serviceStatus struct {
 	net   netStatus
 }
 
-func getServiceStatus(ctx context.Context) (serviceStatus, error) {
-	// Get flux status.
-	fluxStatusAPI := url.Parse(a.fluxURI)
-	fluxStatusAPI.Path = "/api/flux/v6/status"
-	fluxStatusData, err := makeRequest(ctx, fluxStatusAPI.String())
-	if err != nil {
-		return false, err
+func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
+	var netClient = &http.Client{
+		Timeout: time.Second * 10,
 	}
-	if flux, ok := fluxStatusData.(fluxStatus); !ok {
-		return false, fmt.Errorf("Could not decode flux data")
+
+	// Get flux status.
+	var fluxError error
+	fluxStatusAPI, err := url.Parse(a.fluxURI)
+	if err != nil {
+		fluxError = err
+	}
+	fluxStatusAPI.Path = "/api/flux/v6/status"
+	fluxStatusResp, err := makeRequest(ctx, netClient, fluxStatusAPI.String())
+	if err != nil {
+		fluxError = err
+	}
+	defer fluxStatusResp.Body.Close()
+	var flux fluxStatus
+	err = json.NewDecoder(fluxStatusResp.Body).Decode(&flux)
+	if err != nil {
+		fluxError = fmt.Errorf("Could not decode flux data")
+	}
+	if fluxError != nil {
+		flux.Error = fluxError.Error()
 	}
 
 	// Get scope status.
-	scopeStatusAPI := url.Parse(a.scopeQueryURI)
-	scopeStatusAPI.Path = "/api/probes"
-	scopeStatusData, err := makeRequest(ctx, scopeStatusAPI.String())
+	var scopeError error
+	scopeStatusAPI, err := url.Parse(a.scopeQueryURI)
 	if err != nil {
-		return false, err
+		scopeError = err
 	}
-	type probesType []interface{}
-	if probes, ok := scopeStatusData.(probesType); !ok {
-		return false, fmt.Errorf("Could not decode scope data")
+	scopeStatusAPI.Path = "/api/probes"
+	scopeStatusResp, err := makeRequest(ctx, netClient, scopeStatusAPI.String())
+	if err != nil {
+		scopeError = err
+	}
+	defer fluxStatusResp.Body.Close()
+	var probes []interface{}
+	err = json.NewDecoder(scopeStatusResp.Body).Decode(&probes)
+	if err != nil {
+		scopeError = fmt.Errorf("Could not decode scope data")
 	}
 	scope := scopeStatus{
 		NumberOfProbes: len(probes),
 	}
+	if scopeError != nil {
+		scope.Error = scopeError.Error()
+	}
 
 	// Get prom status.
-	promStatusAPI := url.Parse(a.promQuerierURI)
-	promStatusAPI.Path = "/api/prom/api/v1/label/__name__/values"
-	promStatusData, err := makeRequest(ctx, promStatusAPI.String())
+	var promError error
+	promStatusAPI, err := url.Parse(a.promQuerierURI)
 	if err != nil {
-		return false, err
+		promError = err
 	}
-	type metricsType struct {
+	promStatusAPI.Path = "/api/prom/api/v1/label/__name__/values"
+	promStatusResp, err := makeRequest(ctx, netClient, promStatusAPI.String())
+	if err != nil {
+		promError = err
+	}
+	defer promStatusResp.Body.Close()
+	var metrics struct {
 		Data []interface{} `json:"data"`
 	}
-	if metrics, ok := promStatusData.(metricsType); !ok {
-		return false, fmt.Errorf("Could not decode prom data")
+	err = json.NewDecoder(promStatusResp.Body).Decode(&metrics)
+	if err != nil {
+		promError = fmt.Errorf("Could not decode prom data")
 	}
 	prom := promStatus{
 		NumberOfMetrics: len(metrics.Data),
 	}
+	if promError != nil {
+		prom.Error = promError.Error()
+	}
 
 	// Get net status.
-	netStatusAPI := url.Parse(a.netQueryURI)
-	netStatusAPI.Path = "/api/probes"
-	netStatusData, err := makeRequest(ctx, netStatusAPI.String())
+	var netError error
+	netStatusAPI, err := url.Parse(a.peerDiscoveryURI)
 	if err != nil {
-		return false, err
+		netError = err
 	}
-	type peersType []interface{}
-	if peers, ok := netStatusData.(peersType); !ok {
-		return false, fmt.Errorf("Could not decode net data")
+	netStatusAPI.Path = "/api/net/peer"
+	netStatusResp, err := makeRequest(ctx, netClient, netStatusAPI.String())
+	if err != nil {
+		netError = err
+	}
+	defer netStatusResp.Body.Close()
+	var peers []interface{}
+	err = json.NewDecoder(netStatusResp.Body).Decode(&peers)
+	if err != nil {
+		netError = fmt.Errorf("Could not decode net data")
 	}
 	net := netStatus{
 		NumberOfPeers: len(peers),
+	}
+	if netError != nil {
+		net.Error = netError.Error()
 	}
 
 	return serviceStatus{
@@ -169,10 +214,10 @@ func getServiceStatus(ctx context.Context) (serviceStatus, error) {
 		scope: scope,
 		prom:  prom,
 		net:   net,
-	}
+	}, nil
 }
 
-func makeRequest(ctx context.Context, url string) (interface{}, error) {
+func makeRequest(ctx context.Context, netClient *http.Client, url string) (*http.Response, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -183,16 +228,9 @@ func makeRequest(ctx context.Context, url string) (interface{}, error) {
 		return nil, err
 	}
 
-	resp, err := http.Client.Do(req)
+	resp, err := netClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-
-	var data interface{}
-	err = json.NewDecoder(r.Body).Decode(data)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
+	return resp, nil
 }

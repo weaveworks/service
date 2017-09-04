@@ -3,6 +3,7 @@ package db
 import (
 	"encoding/json"
 	"net/url"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -87,7 +88,7 @@ type DB interface {
 	SetFeatureFlags(ctx context.Context, externalID string, featureFlags []string) error
 	SetOrganizationDenyUIFeatures(ctx context.Context, externalID string, value bool) error
 	SetOrganizationDenyTokenAuth(ctx context.Context, externalID string, value bool) error
-	SetOrganizationFirstConnectedAt(ctx context.Context, externalID string, value bool) error
+	SetOrganizationFirstConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 
 	ListMemberships(ctx context.Context) ([]users.Membership, error)
 
