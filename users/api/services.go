@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"time"
 
 	"golang.org/x/net/context"
@@ -19,7 +18,7 @@ import (
 	"github.com/weaveworks/service/users/render"
 )
 
-type getOrgStatusView struct {
+type getOrgServiceStatusView struct {
 	Connected        bool       `json:"connected"`
 	FirstConnectedAt *time.Time `json:"firstConnectedAt"`
 
@@ -67,7 +66,7 @@ type netStatus struct {
 	Error         string `json:"error,omitempty"`
 }
 
-func (a *API) getOrgStatus(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orgExternalID := vars["orgExternalID"]
 	r = r.WithContext(user.InjectOrgID(r.Context(), orgExternalID))
@@ -96,7 +95,7 @@ func (a *API) getOrgStatus(currentUser *users.User, w http.ResponseWriter, r *ht
 		org.FirstConnectedAt = &now
 	}
 
-	render.JSON(w, http.StatusOK, getOrgStatusView{
+	render.JSON(w, http.StatusOK, getOrgServiceStatusView{
 		Connected:        connected,
 		FirstConnectedAt: org.FirstConnectedAt,
 		Flux:             status.flux,
@@ -116,7 +115,7 @@ type serviceStatus struct {
 func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 	// Get flux status.
 	var fluxError error
-	resp, err := makeRequest(ctx, "flux", a.fluxURI, "/api/flux/v6/status")
+	resp, err := makeRequest(ctx, "flux", a.fluxStatusAPI)
 	if err != nil {
 		fluxError = err
 	}
@@ -134,7 +133,7 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 
 	// Get scope status.
 	var scopeError error
-	resp, err = makeRequest(ctx, "scope", a.scopeQueryURI, "/api/probes")
+	resp, err = makeRequest(ctx, "scope", a.scopeProbesAPI)
 	if err != nil {
 		scopeError = err
 	}
@@ -155,7 +154,7 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 
 	// Get prom status.
 	var promError error
-	resp, err = makeRequest(ctx, "prom", a.promQuerierURI, "/api/prom/api/v1/label/__name__/values")
+	resp, err = makeRequest(ctx, "prom", a.promMetricsAPI)
 	if err != nil {
 		promError = err
 	}
@@ -178,7 +177,7 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 
 	// Get net status.
 	var netError error
-	resp, err = makeRequest(ctx, "net", a.peerDiscoveryURI, "/api/net/peer")
+	resp, err = makeRequest(ctx, "net", a.netPeersAPI)
 	if err != nil {
 		netError = err
 	}
@@ -205,10 +204,6 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 	}, nil
 }
 
-var netClient = &http.Client{
-	Timeout: time.Second * 10,
-}
-
 var serviceStatusRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 	Namespace: "service_status",
 	Name:      "request_duration_seconds",
@@ -229,20 +224,18 @@ func timeRequest(ctx context.Context, serviceName string, f func(context.Context
 	return instrument.TimeRequestHistogramStatus(ctx, serviceName, serviceStatusRequestDuration, errorCode, f)
 }
 
-func makeRequest(ctx context.Context, serviceName, host, path string) (*http.Response, error) {
+var netClient = &http.Client{
+	Timeout: time.Second * 10,
+}
+
+func makeRequest(ctx context.Context, serviceName string, url string) (*http.Response, error) {
 	var resp *http.Response
 	err := timeRequest(ctx, serviceName, func(ctx context.Context) error {
-		statusAPI, err := url.Parse(host)
-		if err != nil {
-			return err
-		}
-		statusAPI.Path = path
-		url := statusAPI.String()
-
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
 			return err
 		}
+
 		err = user.InjectOrgIDIntoHTTPRequest(ctx, req)
 		if err != nil {
 			return err

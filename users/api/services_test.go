@@ -78,11 +78,16 @@ func MockServices(config *mockServicesConfig) *httptest.Server {
 	}))
 }
 
-func Test_GetOrgStatus(t *testing.T) {
+func Test_GetOrgServiceStatus(t *testing.T) {
 	now := time.Now()
 	cfg := &mockServicesConfig{}
 	mockServices := MockServices(cfg)
-	setupWithMockServices(t, mockServices.URL)
+	setupWithMockServices(t,
+		mockServices.URL+"/api/flux/v6/status",
+		mockServices.URL+"/api/probes",
+		mockServices.URL+"/api/prom/api/v1/label/__name__/values",
+		mockServices.URL+"/api/net/peer",
+	)
 	defer cleanup(t)
 
 	user, org := getOrg(t)

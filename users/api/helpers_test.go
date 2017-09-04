@@ -35,10 +35,10 @@ var (
 )
 
 func setup(t *testing.T) {
-	setupWithMockServices(t, "")
+	setupWithMockServices(t, "", "", "", "")
 }
 
-func setupWithMockServices(t *testing.T, mockServicesURL string) {
+func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, promAPI, netAPI string) {
 	db.PasswordHashingCost = bcrypt.MinCost
 
 	var directLogin = false
@@ -72,10 +72,10 @@ func setupWithMockServices(t *testing.T, mockServicesURL string) {
 		grpcServer,
 		make(map[string]struct{}),
 		mixpanelClient,
-		mockServicesURL,
-		mockServicesURL,
-		mockServicesURL,
-		mockServicesURL,
+		fluxAPI,
+		scopeAPI,
+		promAPI,
+		netAPI,
 	)
 }
 

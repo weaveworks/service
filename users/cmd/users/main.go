@@ -43,10 +43,10 @@ func main() {
 		directLogin        = flag.Bool("direct-login", false, "Send login token in the signup response (DEV only)")
 		secureCookie       = flag.Bool("secure-cookie", false, "Set secure flag on cookies (so they only get used on HTTPS connections.)")
 
-		fluxURI          = flag.String("flux-uri", "", "Hostname and port for flux V6 service.")
-		scopeQueryURI    = flag.String("scope-query-uri", "", "Hostname and port for scope query.")
-		promQuerierURI   = flag.String("prom-querier-uri", "", "Hostname and port for cortex querier.")
-		peerDiscoveryURI = flag.String("peer-discovery-uri", "", "Hostname and port for peer discovery.")
+		fluxStatusAPI  = flag.String("flux-status-api", "", "Hostname and port for flux V6 service. e.g. http://fluxsvc.flux.svc.cluster.local:80/api/flux/v6/status")
+		scopeProbesAPI = flag.String("scope-probes-api", "", "Hostname and port for scope query. e.g. http://query.scope.svc.cluster.local:80/api/probes")
+		promMetricsAPI = flag.String("prom-metrics-api", "", "Hostname and port for cortex querier. e.g. http://querier.cortex.svc.cluster.local:80/api/prom/api/v1/label/__name__/values")
+		netPeersAPI    = flag.String("net-peers-api", "", "Hostname and port for peer discovery. e.g. http://discovery.service-net.svc.cluster.local:80/api/net/peers")
 
 		pardotEmail    = flag.String("pardot-email", "", "Email of Pardot account.  If not supplied pardot integration will be disabled.")
 		pardotPassword = flag.String("pardot-password", "", "Password of Pardot account.")
@@ -144,11 +144,10 @@ func main() {
 		grpcServer,
 		webhookTokenMap,
 		mixpanelClient,
-		serviceClient,
-		fluxURI,
-		promQuerierURI,
-		scopeQueryURI,
-		peerDiscoveryURI,
+		*fluxStatusAPI,
+		*scopeProbesAPI,
+		*promMetricsAPI,
+		*netPeersAPI,
 	)
 
 	if *localTestUserCreate {
