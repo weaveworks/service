@@ -1,15 +1,18 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"time"
 
+	"golang.org/x/net/context"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/mtime"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/users"
@@ -113,7 +116,7 @@ type serviceStatus struct {
 func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 	// Get flux status.
 	var fluxError error
-	resp, err := makeRequest(ctx, a.fluxURI, "/api/flux/v6/status")
+	resp, err := makeRequest(ctx, "flux", a.fluxURI, "/api/flux/v6/status")
 	if err != nil {
 		fluxError = err
 	}
@@ -131,7 +134,7 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 
 	// Get scope status.
 	var scopeError error
-	resp, err = makeRequest(ctx, a.scopeQueryURI, "/api/probes")
+	resp, err = makeRequest(ctx, "scope", a.scopeQueryURI, "/api/probes")
 	if err != nil {
 		scopeError = err
 	}
@@ -152,7 +155,7 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 
 	// Get prom status.
 	var promError error
-	resp, err = makeRequest(ctx, a.promQuerierURI, "/api/prom/api/v1/label/__name__/values")
+	resp, err = makeRequest(ctx, "prom", a.promQuerierURI, "/api/prom/api/v1/label/__name__/values")
 	if err != nil {
 		promError = err
 	}
@@ -175,7 +178,7 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 
 	// Get net status.
 	var netError error
-	resp, err = makeRequest(ctx, a.peerDiscoveryURI, "/api/net/peer")
+	resp, err = makeRequest(ctx, "net", a.peerDiscoveryURI, "/api/net/peer")
 	if err != nil {
 		netError = err
 	}
@@ -206,27 +209,50 @@ var netClient = &http.Client{
 	Timeout: time.Second * 10,
 }
 
-func makeRequest(ctx context.Context, host string, path string) (*http.Response, error) {
-	statusAPI, err := url.Parse(host)
-	if err != nil {
-		return nil, err
-	}
-	statusAPI.Path = path
-	url := statusAPI.String()
+var serviceStatusRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	Namespace: "service_status",
+	Name:      "request_duration_seconds",
+	Help:      "Time spent (in seconds) doing service status requests.",
+	Buckets:   prometheus.DefBuckets,
+}, []string{"service_name", "status_code"})
 
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
+func errorCode(err error) string {
+	switch err {
+	case nil:
+		return "200"
+	default:
+		return "500"
 	}
+}
 
-	err = user.InjectOrgIDIntoHTTPRequest(ctx, req)
-	if err != nil {
-		return nil, err
-	}
+func timeRequest(ctx context.Context, serviceName string, f func(context.Context) error) error {
+	return instrument.TimeRequestHistogramStatus(ctx, serviceName, serviceStatusRequestDuration, errorCode, f)
+}
 
-	resp, err := netClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
+func makeRequest(ctx context.Context, serviceName, host, path string) (*http.Response, error) {
+	var resp *http.Response
+	err := timeRequest(ctx, serviceName, func(ctx context.Context) error {
+		statusAPI, err := url.Parse(host)
+		if err != nil {
+			return err
+		}
+		statusAPI.Path = path
+		url := statusAPI.String()
+
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return err
+		}
+		err = user.InjectOrgIDIntoHTTPRequest(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		resp, err = netClient.Do(req)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return resp, err
 }
