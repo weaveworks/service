@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/weaveworks/common/mtime"
 	"github.com/weaveworks/common/user"
@@ -15,7 +16,6 @@ import (
 	"github.com/weaveworks/service/users/render"
 )
 
-// OrgStatusView describes an organisation service status
 type getOrgStatusView struct {
 	Connected        bool       `json:"connected"`
 	FirstConnectedAt *time.Time `json:"firstConnectedAt"`
@@ -111,26 +111,19 @@ type serviceStatus struct {
 }
 
 func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
-	var netClient = &http.Client{
-		Timeout: time.Second * 10,
-	}
-
 	// Get flux status.
 	var fluxError error
-	fluxStatusAPI, err := url.Parse(a.fluxURI)
+	resp, err := makeRequest(ctx, a.fluxURI, "/api/flux/v6/status")
 	if err != nil {
 		fluxError = err
 	}
-	fluxStatusAPI.Path = "/api/flux/v6/status"
-	fluxStatusResp, err := makeRequest(ctx, netClient, fluxStatusAPI.String())
-	if err != nil {
-		fluxError = err
-	}
-	defer fluxStatusResp.Body.Close()
+	defer resp.Body.Close()
+
 	var flux fluxStatus
-	err = json.NewDecoder(fluxStatusResp.Body).Decode(&flux)
+	err = json.NewDecoder(resp.Body).Decode(&flux)
 	if err != nil {
 		fluxError = fmt.Errorf("Could not decode flux data")
+		log.Errorf("Could not decode flux data: %s", err)
 	}
 	if fluxError != nil {
 		flux.Error = fluxError.Error()
@@ -138,20 +131,17 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 
 	// Get scope status.
 	var scopeError error
-	scopeStatusAPI, err := url.Parse(a.scopeQueryURI)
+	resp, err = makeRequest(ctx, a.scopeQueryURI, "/api/probes")
 	if err != nil {
 		scopeError = err
 	}
-	scopeStatusAPI.Path = "/api/probes"
-	scopeStatusResp, err := makeRequest(ctx, netClient, scopeStatusAPI.String())
-	if err != nil {
-		scopeError = err
-	}
-	defer fluxStatusResp.Body.Close()
+	defer resp.Body.Close()
+
 	var probes []interface{}
-	err = json.NewDecoder(scopeStatusResp.Body).Decode(&probes)
+	err = json.NewDecoder(resp.Body).Decode(&probes)
 	if err != nil {
 		scopeError = fmt.Errorf("Could not decode scope data")
+		log.Errorf("Could not decode scope data: %s", err)
 	}
 	scope := scopeStatus{
 		NumberOfProbes: len(probes),
@@ -162,22 +152,19 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 
 	// Get prom status.
 	var promError error
-	promStatusAPI, err := url.Parse(a.promQuerierURI)
+	resp, err = makeRequest(ctx, a.promQuerierURI, "/api/prom/api/v1/label/__name__/values")
 	if err != nil {
 		promError = err
 	}
-	promStatusAPI.Path = "/api/prom/api/v1/label/__name__/values"
-	promStatusResp, err := makeRequest(ctx, netClient, promStatusAPI.String())
-	if err != nil {
-		promError = err
-	}
-	defer promStatusResp.Body.Close()
+	defer resp.Body.Close()
+
 	var metrics struct {
 		Data []interface{} `json:"data"`
 	}
-	err = json.NewDecoder(promStatusResp.Body).Decode(&metrics)
+	err = json.NewDecoder(resp.Body).Decode(&metrics)
 	if err != nil {
 		promError = fmt.Errorf("Could not decode prom data")
+		log.Errorf("Could not decode prom data: %s", err)
 	}
 	prom := promStatus{
 		NumberOfMetrics: len(metrics.Data),
@@ -188,20 +175,17 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 
 	// Get net status.
 	var netError error
-	netStatusAPI, err := url.Parse(a.peerDiscoveryURI)
+	resp, err = makeRequest(ctx, a.peerDiscoveryURI, "/api/net/peer")
 	if err != nil {
 		netError = err
 	}
-	netStatusAPI.Path = "/api/net/peer"
-	netStatusResp, err := makeRequest(ctx, netClient, netStatusAPI.String())
-	if err != nil {
-		netError = err
-	}
-	defer netStatusResp.Body.Close()
+	defer resp.Body.Close()
+
 	var peers []interface{}
-	err = json.NewDecoder(netStatusResp.Body).Decode(&peers)
+	err = json.NewDecoder(resp.Body).Decode(&peers)
 	if err != nil {
 		netError = fmt.Errorf("Could not decode net data")
+		log.Errorf("Could not decode net data: %s", err)
 	}
 	net := netStatus{
 		NumberOfPeers: len(peers),
@@ -218,7 +202,18 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 	}, nil
 }
 
-func makeRequest(ctx context.Context, netClient *http.Client, url string) (*http.Response, error) {
+var netClient = &http.Client{
+	Timeout: time.Second * 10,
+}
+
+func makeRequest(ctx context.Context, host string, path string) (*http.Response, error) {
+	statusAPI, err := url.Parse(host)
+	if err != nil {
+		return nil, err
+	}
+	statusAPI.Path = path
+	url := statusAPI.String()
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err

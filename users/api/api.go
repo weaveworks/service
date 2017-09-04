@@ -30,8 +30,8 @@ type API struct {
 	grpc               users.UsersServer
 	mixpanel           *marketing.MixpanelClient
 	fluxURI            string
-	promQuerierURI     string
 	scopeQueryURI      string
+	promQuerierURI     string
 	peerDiscoveryURI   string
 	http.Handler
 }
@@ -52,8 +52,8 @@ func New(
 	webhookTokens map[string]struct{},
 	mixpanelClient *marketing.MixpanelClient,
 	fluxURI string,
-	promQuerierURI string,
 	scopeQueryURI string,
+	promQuerierURI string,
 	peerDiscoveryURI string,
 ) *API {
 	a := &API{
@@ -71,8 +71,8 @@ func New(
 		grpc:               grpc,
 		mixpanel:           mixpanelClient,
 		fluxURI:            fluxURI,
-		promQuerierURI:     promQuerierURI,
 		scopeQueryURI:      scopeQueryURI,
+		promQuerierURI:     promQuerierURI,
 		peerDiscoveryURI:   peerDiscoveryURI,
 	}
 

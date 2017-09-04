@@ -44,8 +44,8 @@ func main() {
 		secureCookie       = flag.Bool("secure-cookie", false, "Set secure flag on cookies (so they only get used on HTTPS connections.)")
 
 		fluxURI          = flag.String("flux-uri", "", "Hostname and port for flux V6 service.")
-		promQuerierURI   = flag.String("prom-querier-uri", "", "Hostname and port for cortex querier.")
 		scopeQueryURI    = flag.String("scope-query-uri", "", "Hostname and port for scope query.")
+		promQuerierURI   = flag.String("prom-querier-uri", "", "Hostname and port for cortex querier.")
 		peerDiscoveryURI = flag.String("peer-discovery-uri", "", "Hostname and port for peer discovery.")
 
 		pardotEmail    = flag.String("pardot-email", "", "Email of Pardot account.  If not supplied pardot integration will be disabled.")
