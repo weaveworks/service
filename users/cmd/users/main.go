@@ -43,6 +43,11 @@ func main() {
 		directLogin        = flag.Bool("direct-login", false, "Send login token in the signup response (DEV only)")
 		secureCookie       = flag.Bool("secure-cookie", false, "Set secure flag on cookies (so they only get used on HTTPS connections.)")
 
+		fluxURI          = flag.String("flux-uri", "", "Hostname and port for flux V6 service.")
+		promQuerierURI   = flag.String("prom-querier-uri", "", "Hostname and port for cortex querier.")
+		scopeQueryURI    = flag.String("scope-query-uri", "", "Hostname and port for scope query.")
+		peerDiscoveryURI = flag.String("peer-discovery-uri", "", "Hostname and port for peer discovery.")
+
 		pardotEmail    = flag.String("pardot-email", "", "Email of Pardot account.  If not supplied pardot integration will be disabled.")
 		pardotPassword = flag.String("pardot-password", "", "Password of Pardot account.")
 		pardotUserKey  = flag.String("pardot-userkey", "", "User key of Pardot account.")
@@ -125,7 +130,26 @@ func main() {
 	log.Debug("Debug logging enabled")
 
 	grpcServer := grpc_server.New(sessions, db)
-	api := api.New(*directLogin, emailer, sessions, db, logins, templates, marketingQueues, forceFeatureFlags, *marketoMunchkinKey, *intercomHashKey, grpcServer, webhookTokenMap, mixpanelClient)
+	api := api.New(
+		*directLogin,
+		emailer,
+		sessions,
+		db,
+		logins,
+		templates,
+		marketingQueues,
+		forceFeatureFlags,
+		*marketoMunchkinKey,
+		*intercomHashKey,
+		grpcServer,
+		webhookTokenMap,
+		mixpanelClient,
+		serviceClient,
+		fluxURI,
+		promQuerierURI,
+		scopeQueryURI,
+		peerDiscoveryURI,
+	)
 
 	if *localTestUserCreate {
 		makeLocalTestUser(api, *localTestUserEmail, *localTestUserInstanceID,

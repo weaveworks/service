@@ -29,6 +29,10 @@ type API struct {
 	webhookTokens      map[string]struct{}
 	grpc               users.UsersServer
 	mixpanel           *marketing.MixpanelClient
+	fluxURI            string
+	promQuerierURI     string
+	scopeQueryURI      string
+	peerDiscoveryURI   string
 	http.Handler
 }
 
@@ -47,7 +51,10 @@ func New(
 	grpc users.UsersServer,
 	webhookTokens map[string]struct{},
 	mixpanelClient *marketing.MixpanelClient,
-
+	fluxURI string,
+	promQuerierURI string,
+	scopeQueryURI string,
+	peerDiscoveryURI string,
 ) *API {
 	a := &API{
 		directLogin:        directLogin,
@@ -63,6 +70,10 @@ func New(
 		webhookTokens:      webhookTokens,
 		grpc:               grpc,
 		mixpanel:           mixpanelClient,
+		fluxURI:            fluxURI,
+		promQuerierURI:     promQuerierURI,
+		scopeQueryURI:      scopeQueryURI,
+		peerDiscoveryURI:   peerDiscoveryURI,
 	}
 
 	r := mux.NewRouter()
