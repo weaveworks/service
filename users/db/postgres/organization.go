@@ -374,7 +374,7 @@ func (d DB) SetOrganizationDenyTokenAuth(_ context.Context, externalID string, v
 }
 
 // SetOrganizationFirstConnectedAt sets the first time an organisation has been connected
-func (d DB) SetOrganizationFirstConnectedAt(_ context.Context, externalID string, value time.Time) error {
+func (d DB) SetOrganizationFirstConnectedAt(_ context.Context, externalID string, value *time.Time) error {
 	_, err := d.Exec(
 		`update organizations set first_connected_at = $1 where lower(external_id) = lower($2)`,
 		value, externalID,

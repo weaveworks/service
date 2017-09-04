@@ -367,3 +367,11 @@ func (d *DB) SetOrganizationDenyTokenAuth(_ context.Context, externalID string, 
 		return nil
 	})
 }
+
+// SetOrganizationFirstConnectedAt sets the first time an organisation has been connected
+func (d *DB) SetOrganizationFirstConnectedAt(_ context.Context, externalID string, value *time.Time) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.FirstConnectedAt = value
+		return nil
+	})
+}
