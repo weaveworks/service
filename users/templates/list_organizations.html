@@ -31,7 +31,7 @@
                 </label>
                 <div class="mdl-textfield mdl-js-textfield">
                     <input class="mdl-textfield__input" type="text" name="query" id="query" value="{{.Query}}">
-                    <label class="mdl-textfield__label" for="query">Search for InstanceID</label>
+                    <label class="mdl-textfield__label" for="query">Search for InstanceID or ID</label>
                 </div>
             </form>
             {{end}}
@@ -49,9 +49,10 @@
     <table class="mdl-data-table mdl-js-data-table">
       <thead>
           <tr>
+            <th class="mdl-data-table__cell--non-numeric">ID</th>
             <th class="mdl-data-table__cell--non-numeric">InstanceID</th>
             <th class="mdl-data-table__cell--non-numeric">Name</th>
-            <th class="mdl-data-table__cell--non-numeric">CreatedAt</th>
+            <th class="mdl-data-table__cell--non-numeric">CreatedAt ▼</th>
             <th class="mdl-data-table__cell--non-numeric">DenyUIFeatures</th>
             <th class="mdl-data-table__cell--non-numeric">DenyTokenAuth</th>
             <th class="mdl-data-table__cell--non-numeric">FeatureFlags</th>
@@ -60,6 +61,7 @@
       <tbody>
       {{range .Organizations}}
       <tr>
+        <td>{{.ID}}</td>
         <td>{{.ExternalID}}</td>
         <td style="max-width:300px;text-overflow:ellipsis;overflow:hidden" title="{{.Name}}">{{.Name}}</td>
         <td>{{.FormatCreatedAt}}</td>
