@@ -206,8 +206,8 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 }
 
 var serviceStatusRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-	Namespace: "service_status",
-	Name:      "request_duration_seconds",
+	Namespace: "users",
+	Name:      "get_service_status_request_duration_seconds",
 	Help:      "Time spent (in seconds) doing service status requests.",
 	Buckets:   prometheus.DefBuckets,
 }, []string{"service_name", "status_code"})
