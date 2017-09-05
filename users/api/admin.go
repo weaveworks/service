@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 
@@ -86,6 +87,36 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *API) listUsersForOrganization(w http.ResponseWriter, r *http.Request) {
+	orgID, ok := mux.Vars(r)["orgExternalID"]
+	if !ok {
+		render.Error(w, r, users.ErrNotFound)
+		return
+	}
+	_, err := a.db.FindOrganizationByID(r.Context(), orgID)
+	if err != nil {
+		render.Error(w, r, users.ErrNotFound)
+		return
+	}
+	users, err := a.db.ListOrganizationUsers(r.Context(), orgID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+
+	b, err := a.templates.Bytes("list_users.html", map[string]interface{}{
+		"Users":         users,
+		"OrgExternalID": orgID,
+	})
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	if _, err := w.Write(b); err != nil {
+		logging.With(r.Context()).Warn("list users: %v", err)
+	}
+}
+
 func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 	f := filter.NewOrganization(r)
 	organizations, err := a.db.ListOrganizations(r.Context(), f)
@@ -99,6 +130,7 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 		"Query":         f.Query,
 		"Page":          f.Page,
 		"NextPage":      f.Page + 1,
+		"Message":       r.FormValue("msg"),
 	})
 	if err != nil {
 		render.Error(w, r, err)
@@ -180,7 +212,8 @@ func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/admin/users/organizations", http.StatusFound)
+	msg := fmt.Sprintf("Saved `%s` for %s", field, orgExternalID)
+	http.Redirect(w, r, "/admin/users/organizations?msg="+url.QueryEscape(msg), http.StatusFound)
 }
 
 func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
