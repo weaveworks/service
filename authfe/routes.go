@@ -283,6 +283,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				Prefix{"/api/net/peer", c.peerDiscoveryHost},
 				Prefix{"/api/notification/config", c.notificationConfigHost},
 				PrefixMethods{"/api/notification/events", []string{"GET"}, c.notificationConfigHost},
+				Prefix{"/api/notification/sender", c.notificationSenderHost},
 				Prefix{"/api", c.queryHost},
 
 				// Catch-all forward to query service, which is a Scope instance that we

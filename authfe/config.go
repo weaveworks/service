@@ -38,6 +38,7 @@ type Config struct {
 	fluxV6Host             proxyConfig
 	launchGeneratorHost    proxyConfig
 	notificationConfigHost proxyConfig
+	notificationSenderHost proxyConfig
 	peerDiscoveryHost      proxyConfig
 	pipeHost               proxyConfig
 	promConfigsHost        proxyConfig
@@ -82,6 +83,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"launch-generator":     &c.launchGeneratorHost,
 		"notebooks":            &c.notebooksHost,
 		"notification-configs": &c.notificationConfigHost,
+		"notification-sender":  &c.notificationSenderHost,
 		"peer-discovery":       &c.peerDiscoveryHost,
 		"pipe":                 &c.pipeHost,
 		"prom-alertmanager":    &c.promAlertmanagerHost,
