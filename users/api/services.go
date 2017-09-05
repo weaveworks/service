@@ -115,49 +115,40 @@ type serviceStatus struct {
 
 func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 	// Get flux status.
-	var fluxError error
+	var flux fluxStatus
 	resp, err := makeRequest(ctx, "flux", a.fluxStatusAPI)
 	if err != nil {
-		fluxError = err
+		flux.Error = err.Error()
 	}
 	defer resp.Body.Close()
 
-	var flux fluxStatus
 	err = json.NewDecoder(resp.Body).Decode(&flux)
 	if err != nil {
-		fluxError = fmt.Errorf("Could not decode flux data")
+		flux.Error = "Could not decode flux data"
 		log.Errorf("Could not decode flux data: %s", err)
-	}
-	if fluxError != nil {
-		flux.Error = fluxError.Error()
 	}
 
 	// Get scope status.
-	var scopeError error
+	var scope scopeStatus
 	resp, err = makeRequest(ctx, "scope", a.scopeProbesAPI)
 	if err != nil {
-		scopeError = err
+		scope.Error = err.Error()
 	}
 	defer resp.Body.Close()
 
 	var probes []interface{}
 	err = json.NewDecoder(resp.Body).Decode(&probes)
 	if err != nil {
-		scopeError = fmt.Errorf("Could not decode scope data")
+		scope.Error = "Could not decode scope data"
 		log.Errorf("Could not decode scope data: %s", err)
 	}
-	scope := scopeStatus{
-		NumberOfProbes: len(probes),
-	}
-	if scopeError != nil {
-		scope.Error = scopeError.Error()
-	}
+	scope.NumberOfProbes = len(probes)
 
 	// Get prom status.
-	var promError error
+	var prom promStatus
 	resp, err = makeRequest(ctx, "prom", a.promMetricsAPI)
 	if err != nil {
-		promError = err
+		prom.Error = err.Error()
 	}
 	defer resp.Body.Close()
 
@@ -166,36 +157,26 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 	}
 	err = json.NewDecoder(resp.Body).Decode(&metrics)
 	if err != nil {
-		promError = fmt.Errorf("Could not decode prom data")
+		prom.Error = "Could not decode prom data"
 		log.Errorf("Could not decode prom data: %s", err)
 	}
-	prom := promStatus{
-		NumberOfMetrics: len(metrics.Data),
-	}
-	if promError != nil {
-		prom.Error = promError.Error()
-	}
+	prom.NumberOfMetrics = len(metrics.Data)
 
 	// Get net status.
-	var netError error
+	var net netStatus
 	resp, err = makeRequest(ctx, "net", a.netPeersAPI)
 	if err != nil {
-		netError = err
+		net.Error = err.Error()
 	}
 	defer resp.Body.Close()
 
 	var peers []interface{}
 	err = json.NewDecoder(resp.Body).Decode(&peers)
 	if err != nil {
-		netError = fmt.Errorf("Could not decode net data")
+		net.Error = "Could not decode net data"
 		log.Errorf("Could not decode net data: %s", err)
 	}
-	net := netStatus{
-		NumberOfPeers: len(peers),
-	}
-	if netError != nil {
-		net.Error = netError.Error()
-	}
+	net.NumberOfPeers = len(peers)
 
 	return serviceStatus{
 		flux:  flux,
