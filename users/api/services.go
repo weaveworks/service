@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/net/context"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/net/context"
+
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/mtime"
 	"github.com/weaveworks/common/user"
