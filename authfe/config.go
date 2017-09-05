@@ -29,20 +29,21 @@ type Config struct {
 	targetOrigin  string
 
 	// User-visible services - keep alphabetically sorted pls
-	billingAPIHost      proxyConfig
-	billingUIHost       proxyConfig
-	collectionHost      proxyConfig
-	configsHost         proxyConfig
-	controlHost         proxyConfig
-	demoHost            proxyConfig
-	fluxHost            proxyConfig
-	fluxV6Host          proxyConfig
-	launchGeneratorHost proxyConfig
-	peerDiscoveryHost   proxyConfig
-	pipeHost            proxyConfig
-	queryHost           proxyConfig
-	uiMetricsHost       proxyConfig
-	uiServerHost        proxyConfig
+	billingAPIHost         proxyConfig
+	billingUIHost          proxyConfig
+	collectionHost         proxyConfig
+	controlHost            proxyConfig
+	demoHost               proxyConfig
+	fluxHost               proxyConfig
+	fluxV6Host             proxyConfig
+	launchGeneratorHost    proxyConfig
+	notificationConfigHost proxyConfig
+	peerDiscoveryHost      proxyConfig
+	pipeHost               proxyConfig
+	promConfigsHost        proxyConfig
+	queryHost              proxyConfig
+	uiMetricsHost          proxyConfig
+	uiServerHost           proxyConfig
 
 	// Admin services - keep alphabetically sorted pls
 	alertmanagerHost      proxyConfig
@@ -71,24 +72,25 @@ type Config struct {
 func (c *Config) proxies() map[string]*proxyConfig {
 	return map[string]*proxyConfig{
 		// User-visible services - keep alphabetically sorted pls.
-		"billing-api":       &c.billingAPIHost,
-		"billing-ui":        &c.billingUIHost,
-		"collection":        &c.collectionHost,
-		"configs":           &c.configsHost,
-		"control":           &c.controlHost,
-		"demo":              &c.demoHost,
-		"flux":              &c.fluxHost,
-		"flux-v6":           &c.fluxV6Host,
-		"launch-generator":  &c.launchGeneratorHost,
-		"notebooks":         &c.notebooksHost,
-		"peer-discovery":    &c.peerDiscoveryHost,
-		"pipe":              &c.pipeHost,
-		"prom-alertmanager": &c.promAlertmanagerHost,
-		"prom-distributor":  &c.promDistributorHost,
-		"prom-querier":      &c.promQuerierHost,
-		"query":             &c.queryHost,
-		"ui-metrics":        &c.uiMetricsHost,
-		"ui-server":         &c.uiServerHost,
+		"billing-api":          &c.billingAPIHost,
+		"billing-ui":           &c.billingUIHost,
+		"collection":           &c.collectionHost,
+		"control":              &c.controlHost,
+		"demo":                 &c.demoHost,
+		"flux":                 &c.fluxHost,
+		"flux-v6":              &c.fluxV6Host,
+		"launch-generator":     &c.launchGeneratorHost,
+		"notebooks":            &c.notebooksHost,
+		"notification-configs": &c.notificationConfigHost,
+		"peer-discovery":       &c.peerDiscoveryHost,
+		"pipe":                 &c.pipeHost,
+		"prom-alertmanager":    &c.promAlertmanagerHost,
+		"prom-configs":         &c.promConfigsHost,
+		"prom-distributor":     &c.promDistributorHost,
+		"prom-querier":         &c.promQuerierHost,
+		"query":                &c.queryHost,
+		"ui-metrics":           &c.uiMetricsHost,
+		"ui-server":            &c.uiServerHost,
 
 		// Admin services - keep alphabetically sorted pls.
 		"alertmanager":       &c.alertmanagerHost,
@@ -108,6 +110,10 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"service-ui-kicker":  &c.serviceUIKickerHost,
 		"terradiff":          &c.terradiffHost,
 		"users":              &c.usersHost,
+
+		// For backwards compatibility - remove this once command line flags are updated.
+		// Giving the same pointer to flag twice will make them aliases of each other.
+		"configs": &c.promConfigsHost,
 	}
 }
 
