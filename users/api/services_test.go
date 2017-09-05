@@ -110,8 +110,8 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 		assert.Equal(t, map[string]interface{}{
-			"connected":        false,
-			"firstConnectedAt": nil,
+			"connected":            false,
+			"firstSeenConnectedAt": nil,
 			"flux": map[string]interface{}{
 				"fluxsvc": map[string]interface{}{},
 				"fluxd": map[string]interface{}{
@@ -153,8 +153,8 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 		assert.Equal(t, map[string]interface{}{
-			"connected":        false,
-			"firstConnectedAt": nil,
+			"connected":            false,
+			"firstSeenConnectedAt": nil,
 			"flux": map[string]interface{}{
 				"fluxsvc": map[string]interface{}{},
 				"fluxd": map[string]interface{}{
@@ -195,8 +195,8 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 		assert.Equal(t, map[string]interface{}{
-			"connected":        true,
-			"firstConnectedAt": now.Format("2006-01-02T15:04:05.000000000-07:00"),
+			"connected":            true,
+			"firstSeenConnectedAt": now.Format("2006-01-02T15:04:05.000000000-07:00"),
 			"flux": map[string]interface{}{
 				"fluxsvc": map[string]interface{}{},
 				"fluxd": map[string]interface{}{
@@ -236,8 +236,8 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 		assert.Equal(t, map[string]interface{}{
-			"connected":        false, // Now false but firstConnectedAt still set.
-			"firstConnectedAt": now.Format("2006-01-02T15:04:05.000000000-07:00"),
+			"connected":            false, // Now false but firstSeenConnectedAt still set.
+			"firstSeenConnectedAt": now.Format("2006-01-02T15:04:05.000000000-07:00"),
 			"flux": map[string]interface{}{
 				"fluxsvc": map[string]interface{}{},
 				"fluxd": map[string]interface{}{

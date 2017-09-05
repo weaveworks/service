@@ -246,9 +246,9 @@ func (t timed) SetOrganizationDenyTokenAuth(ctx context.Context, externalID stri
 	})
 }
 
-func (t timed) SetOrganizationFirstConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
-	return t.timeRequest(ctx, "SetOrganizationFirstConnectedAt", func(ctx context.Context) error {
-		return t.d.SetOrganizationFirstConnectedAt(ctx, externalID, value)
+func (t timed) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
+	return t.timeRequest(ctx, "SetOrganizationFirstSeenConnectedAt", func(ctx context.Context) error {
+		return t.d.SetOrganizationFirstSeenConnectedAt(ctx, externalID, value)
 	})
 }
 

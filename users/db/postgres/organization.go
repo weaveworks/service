@@ -66,7 +66,7 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.feature_flags",
 		"organizations.deny_ui_features",
 		"organizations.deny_token_auth",
-		"organizations.first_connected_at",
+		"organizations.first_seen_connected_at",
 	).
 		From("organizations").
 		Where("organizations.deleted_at is null").
@@ -373,10 +373,10 @@ func (d DB) SetOrganizationDenyTokenAuth(_ context.Context, externalID string, v
 	return err
 }
 
-// SetOrganizationFirstConnectedAt sets the first time an organisation has been connected
-func (d DB) SetOrganizationFirstConnectedAt(_ context.Context, externalID string, value *time.Time) error {
+// SetOrganizationFirstSeenConnectedAt sets the first time an organisation has been connected
+func (d DB) SetOrganizationFirstSeenConnectedAt(_ context.Context, externalID string, value *time.Time) error {
 	_, err := d.Exec(
-		`update organizations set first_connected_at = $1 where lower(external_id) = lower($2)`,
+		`update organizations set first_seen_connected_at = $1 where lower(external_id) = lower($2)`,
 		value, externalID,
 	)
 	return err

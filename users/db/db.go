@@ -88,7 +88,7 @@ type DB interface {
 	SetFeatureFlags(ctx context.Context, externalID string, featureFlags []string) error
 	SetOrganizationDenyUIFeatures(ctx context.Context, externalID string, value bool) error
 	SetOrganizationDenyTokenAuth(ctx context.Context, externalID string, value bool) error
-	SetOrganizationFirstConnectedAt(ctx context.Context, externalID string, value *time.Time) error
+	SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 
 	ListMemberships(ctx context.Context) ([]users.Membership, error)
 

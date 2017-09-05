@@ -20,8 +20,8 @@ import (
 )
 
 type getOrgServiceStatusView struct {
-	Connected        bool       `json:"connected"`
-	FirstConnectedAt *time.Time `json:"firstConnectedAt"`
+	Connected            bool       `json:"connected"`
+	FirstSeenConnectedAt *time.Time `json:"firstSeenConnectedAt"`
 
 	Flux  fluxStatus  `json:"flux"`
 	Scope scopeStatus `json:"scope"`
@@ -87,22 +87,22 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 		render.Error(w, r, err)
 	}
 
-	if org.FirstConnectedAt == nil && connected {
+	if org.FirstSeenConnectedAt == nil && connected {
 		now := mtime.Now()
-		err := a.db.SetOrganizationFirstConnectedAt(r.Context(), orgExternalID, &now)
+		err := a.db.SetOrganizationFirstSeenConnectedAt(r.Context(), orgExternalID, &now)
 		if err != nil {
 			render.Error(w, r, err)
 		}
-		org.FirstConnectedAt = &now
+		org.FirstSeenConnectedAt = &now
 	}
 
 	render.JSON(w, http.StatusOK, getOrgServiceStatusView{
-		Connected:        connected,
-		FirstConnectedAt: org.FirstConnectedAt,
-		Flux:             status.flux,
-		Scope:            status.scope,
-		Prom:             status.prom,
-		Net:              status.net,
+		Connected:            connected,
+		FirstSeenConnectedAt: org.FirstSeenConnectedAt,
+		Flux:                 status.flux,
+		Scope:                status.scope,
+		Prom:                 status.prom,
+		Net:                  status.net,
 	})
 }
 

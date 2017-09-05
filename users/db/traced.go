@@ -166,9 +166,9 @@ func (t traced) SetOrganizationDenyTokenAuth(ctx context.Context, externalID str
 	return t.d.SetOrganizationDenyTokenAuth(ctx, externalID, value)
 }
 
-func (t traced) SetOrganizationFirstConnectedAt(ctx context.Context, externalID string, value *time.Time) (err error) {
-	defer func() { t.trace("SetOrganizationFirstConnectedAt", externalID, value, err) }()
-	return t.d.SetOrganizationFirstConnectedAt(ctx, externalID, value)
+func (t traced) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) (err error) {
+	defer func() { t.trace("SetOrganizationFirstSeenConnectedAt", externalID, value, err) }()
+	return t.d.SetOrganizationFirstSeenConnectedAt(ctx, externalID, value)
 }
 
 func (t traced) ListMemberships(ctx context.Context) (ms []users.Membership, err error) {
