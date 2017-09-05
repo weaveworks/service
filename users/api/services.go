@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/net/context"
@@ -212,12 +213,17 @@ var serviceStatusRequestDuration = prometheus.NewHistogramVec(prometheus.Histogr
 }, []string{"service_name", "status_code"})
 
 func errorCode(err error) string {
-	switch err {
-	case nil:
+	if err == nil {
 		return "200"
-	default:
-		return "500"
 	}
+
+	str := err.Error()
+	if strings.HasPrefix(str, "Unexpected status code: ") {
+		if ss := strings.Split(str, "Unexpected status code: "); len(ss) > 1 {
+			return ss[1]
+		}
+	}
+	return "500"
 }
 
 func timeRequest(ctx context.Context, serviceName string, f func(context.Context) error) error {
@@ -244,6 +250,9 @@ func makeRequest(ctx context.Context, serviceName string, url string) (*http.Res
 		resp, err = netClient.Do(req)
 		if err != nil {
 			return err
+		}
+		if resp.StatusCode != 200 {
+			return fmt.Errorf("Unexpected status code: %d", resp.StatusCode)
 		}
 		return nil
 	})
