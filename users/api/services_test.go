@@ -12,7 +12,8 @@ import (
 )
 
 type mockServicesConfig struct {
-	Flux struct {
+	AcceptedOrgID string
+	Flux          struct {
 		Online    bool
 		Connected bool
 	}
@@ -33,6 +34,12 @@ type mockServicesConfig struct {
 // MockServices handles all service endpoints in one server for testing purposes.
 func MockServices(config *mockServicesConfig) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		orgID := r.Header.Get("X-Scope-OrgID")
+		if orgID != config.AcceptedOrgID {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
 		var resp interface{}
 		switch r.RequestURI {
 		case "/api/flux/v6/status":
@@ -91,6 +98,7 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 	defer cleanup(t)
 
 	user, org := getOrg(t)
+	cfg.AcceptedOrgID = org.ExternalID
 	body := map[string]interface{}{}
 
 	// Test when services are down.
