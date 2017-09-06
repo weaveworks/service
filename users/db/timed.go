@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/common/instrument"
@@ -242,6 +243,12 @@ func (t timed) SetOrganizationDenyUIFeatures(ctx context.Context, externalID str
 func (t timed) SetOrganizationDenyTokenAuth(ctx context.Context, externalID string, value bool) error {
 	return t.timeRequest(ctx, "SetOrganizationDenyTokenAuth", func(ctx context.Context) error {
 		return t.d.SetOrganizationDenyTokenAuth(ctx, externalID, value)
+	})
+}
+
+func (t timed) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
+	return t.timeRequest(ctx, "SetOrganizationFirstSeenConnectedAt", func(ctx context.Context) error {
+		return t.d.SetOrganizationFirstSeenConnectedAt(ctx, externalID, value)
 	})
 }
 

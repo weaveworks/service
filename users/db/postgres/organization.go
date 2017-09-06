@@ -3,6 +3,7 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
@@ -65,6 +66,7 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.feature_flags",
 		"organizations.deny_ui_features",
 		"organizations.deny_token_auth",
+		"organizations.first_seen_connected_at",
 	).
 		From("organizations").
 		Where("organizations.deleted_at is null").
@@ -265,8 +267,9 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o := &users.Organization{}
 	var externalID, name, probeToken sql.NullString
 	var createdAt pq.NullTime
+	var firstSeenConnectedAt *time.Time
 	var denyUIFeatures, denyTokenAuth bool
-	if err := row.Scan(&o.ID, &externalID, &name, &probeToken, &createdAt, pq.Array(&o.FeatureFlags), &denyUIFeatures, &denyTokenAuth); err != nil {
+	if err := row.Scan(&o.ID, &externalID, &name, &probeToken, &createdAt, pq.Array(&o.FeatureFlags), &denyUIFeatures, &denyTokenAuth, &firstSeenConnectedAt); err != nil {
 		return nil, err
 	}
 	o.ExternalID = externalID.String
@@ -275,6 +278,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.CreatedAt = createdAt.Time
 	o.DenyUIFeatures = denyUIFeatures
 	o.DenyTokenAuth = denyTokenAuth
+	o.FirstSeenConnectedAt = firstSeenConnectedAt
 
 	return o, nil
 }
@@ -367,6 +371,15 @@ func (d DB) SetOrganizationDenyUIFeatures(_ context.Context, externalID string, 
 func (d DB) SetOrganizationDenyTokenAuth(_ context.Context, externalID string, value bool) error {
 	_, err := d.Exec(
 		`update organizations set deny_token_auth = $1 where lower(external_id) = lower($2)`,
+		value, externalID,
+	)
+	return err
+}
+
+// SetOrganizationFirstSeenConnectedAt sets the first time an organisation has been connected
+func (d DB) SetOrganizationFirstSeenConnectedAt(_ context.Context, externalID string, value *time.Time) error {
+	_, err := d.Exec(
+		`update organizations set first_seen_connected_at = $1 where lower(external_id) = lower($2)`,
 		value, externalID,
 	)
 	return err
