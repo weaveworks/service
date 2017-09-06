@@ -78,7 +78,8 @@ func (d DB) ListOrganizations(_ context.Context, f filter.Organization) ([]*user
 		q = q.Limit(resultsPerPage).Offset(uint64((f.Page - 1) * resultsPerPage))
 	}
 	if f.Query != "" {
-		q = q.Where("organizations.external_id LIKE ?", fmt.Sprint("%", f.Query, "%"))
+		q = q.Where("organizations.external_id LIKE ? OR organizations.id = ?",
+			fmt.Sprint("%", f.Query, "%"), f.Query)
 	}
 	rows, err := q.Query()
 	if err != nil {
