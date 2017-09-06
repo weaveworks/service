@@ -72,11 +72,7 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 	orgExternalID := vars["orgExternalID"]
 	r = r.WithContext(user.InjectOrgID(r.Context(), orgExternalID))
 
-	status, err := a.getServiceStatus(r.Context())
-	if err != nil {
-		render.Error(w, r, err)
-	}
-
+	status := a.getServiceStatus(r.Context())
 	connected := (status.flux.Fluxd.Connected ||
 		status.scope.NumberOfProbes > 0 ||
 		status.prom.NumberOfMetrics > 0 ||
@@ -85,6 +81,7 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
 	if err != nil {
 		render.Error(w, r, err)
+		return
 	}
 
 	if org.FirstSeenConnectedAt == nil && connected {
@@ -92,6 +89,7 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 		err := a.db.SetOrganizationFirstSeenConnectedAt(r.Context(), orgExternalID, &now)
 		if err != nil {
 			render.Error(w, r, err)
+			return
 		}
 		org.FirstSeenConnectedAt = &now
 	}
@@ -113,7 +111,7 @@ type serviceStatus struct {
 	net   netStatus
 }
 
-func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
+func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 	// Get flux status.
 	var flux fluxStatus
 	resp, err := doRequest(ctx, "flux", a.fluxStatusAPI)
@@ -183,7 +181,7 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 		scope: scope,
 		prom:  prom,
 		net:   net,
-	}, nil
+	}
 }
 
 var serviceStatusRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
