@@ -20,6 +20,11 @@ import (
 )
 
 type getOrgServiceStatusView struct {
+	// Connected is true when at least one service is connected.
+	// - Flux is connected if fluxd is reporting it is connected.
+	// - Scope is connected if there is at least one probe.
+	// - Prom is connected if there is at least one metric.
+	// - Net is connected if there is at least one peer.
 	Connected            bool       `json:"connected"`
 	FirstSeenConnectedAt *time.Time `json:"firstSeenConnectedAt"`
 
