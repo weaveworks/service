@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -117,69 +118,91 @@ type serviceStatus struct {
 }
 
 func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
-	// Get flux status.
 	var flux fluxStatus
-	resp, err := doRequest(ctx, "flux", a.fluxStatusAPI)
-	if err != nil {
-		flux.Error = err.Error()
-	}
-	defer resp.Body.Close()
+	var scope scopeStatus
+	var prom promStatus
+	var net netStatus
 
-	err = json.NewDecoder(resp.Body).Decode(&flux)
-	if err != nil {
-		flux.Error = "Could not decode flux data"
-		log.Errorf("Could not decode flux data: %s", err)
-	}
+	var wg sync.WaitGroup
+	wg.Add(4)
+
+	// Get flux status.
+	go func() {
+		defer wg.Done()
+
+		resp, err := doRequest(ctx, "flux", a.fluxStatusAPI)
+		if err != nil {
+			flux.Error = err.Error()
+		}
+		defer resp.Body.Close()
+
+		err = json.NewDecoder(resp.Body).Decode(&flux)
+		if err != nil {
+			flux.Error = "Could not decode flux data"
+			log.Errorf("Could not decode flux data: %s", err)
+		}
+	}()
 
 	// Get scope status.
-	var scope scopeStatus
-	resp, err = doRequest(ctx, "scope", a.scopeProbesAPI)
-	if err != nil {
-		scope.Error = err.Error()
-	}
-	defer resp.Body.Close()
+	go func() {
+		defer wg.Done()
 
-	var probes []interface{}
-	err = json.NewDecoder(resp.Body).Decode(&probes)
-	if err != nil {
-		scope.Error = "Could not decode scope data"
-		log.Errorf("Could not decode scope data: %s", err)
-	}
-	scope.NumberOfProbes = len(probes)
+		resp, err := doRequest(ctx, "scope", a.scopeProbesAPI)
+		if err != nil {
+			scope.Error = err.Error()
+		}
+		defer resp.Body.Close()
+
+		var probes []interface{}
+		err = json.NewDecoder(resp.Body).Decode(&probes)
+		if err != nil {
+			scope.Error = "Could not decode scope data"
+			log.Errorf("Could not decode scope data: %s", err)
+		}
+		scope.NumberOfProbes = len(probes)
+	}()
 
 	// Get prom status.
-	var prom promStatus
-	resp, err = doRequest(ctx, "prom", a.promMetricsAPI)
-	if err != nil {
-		prom.Error = err.Error()
-	}
-	defer resp.Body.Close()
+	go func() {
+		defer wg.Done()
 
-	var metrics struct {
-		Data []interface{} `json:"data"`
-	}
-	err = json.NewDecoder(resp.Body).Decode(&metrics)
-	if err != nil {
-		prom.Error = "Could not decode prom data"
-		log.Errorf("Could not decode prom data: %s", err)
-	}
-	prom.NumberOfMetrics = len(metrics.Data)
+		resp, err := doRequest(ctx, "prom", a.promMetricsAPI)
+		if err != nil {
+			prom.Error = err.Error()
+		}
+		defer resp.Body.Close()
+
+		var metrics struct {
+			Data []interface{} `json:"data"`
+		}
+		err = json.NewDecoder(resp.Body).Decode(&metrics)
+		if err != nil {
+			prom.Error = "Could not decode prom data"
+			log.Errorf("Could not decode prom data: %s", err)
+		}
+		prom.NumberOfMetrics = len(metrics.Data)
+	}()
 
 	// Get net status.
-	var net netStatus
-	resp, err = doRequest(ctx, "net", a.netPeersAPI)
-	if err != nil {
-		net.Error = err.Error()
-	}
-	defer resp.Body.Close()
+	go func() {
+		defer wg.Done()
 
-	var peers []interface{}
-	err = json.NewDecoder(resp.Body).Decode(&peers)
-	if err != nil {
-		net.Error = "Could not decode net data"
-		log.Errorf("Could not decode net data: %s", err)
-	}
-	net.NumberOfPeers = len(peers)
+		resp, err := doRequest(ctx, "net", a.netPeersAPI)
+		if err != nil {
+			net.Error = err.Error()
+		}
+		defer resp.Body.Close()
+
+		var peers []interface{}
+		err = json.NewDecoder(resp.Body).Decode(&peers)
+		if err != nil {
+			net.Error = "Could not decode net data"
+			log.Errorf("Could not decode net data: %s", err)
+		}
+		net.NumberOfPeers = len(peers)
+	}()
+
+	wg.Wait()
 
 	return serviceStatus{
 		flux:  flux,
