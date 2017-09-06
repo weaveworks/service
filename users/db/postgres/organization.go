@@ -265,7 +265,8 @@ func (d DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
 func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, error) {
 	o := &users.Organization{}
 	var externalID, name, probeToken sql.NullString
-	var createdAt, firstSeenConnectedAt pq.NullTime
+	var createdAt pq.NullTime
+	var firstSeenConnectedAt *time.Time
 	var denyUIFeatures, denyTokenAuth bool
 	if err := row.Scan(&o.ID, &externalID, &name, &probeToken, &createdAt, pq.Array(&o.FeatureFlags), &denyUIFeatures, &denyTokenAuth, &firstSeenConnectedAt); err != nil {
 		return nil, err
@@ -276,7 +277,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.CreatedAt = createdAt.Time
 	o.DenyUIFeatures = denyUIFeatures
 	o.DenyTokenAuth = denyTokenAuth
-	o.FirstSeenConnectedAt = &firstSeenConnectedAt.Time
+	o.FirstSeenConnectedAt = firstSeenConnectedAt
 
 	return o, nil
 }
