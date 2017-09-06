@@ -101,6 +101,8 @@ message Organization {
     repeated string FeatureFlags = 6;
     bool DenyUIFeatures = 7;
     bool DenyTokenAuth = 8;
+    string Platform = 9;
+    string Environment = 10;
 }
 
 message SetOrganizationFlagRequest {
