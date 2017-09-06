@@ -127,7 +127,7 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 
 	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
 		"Organizations": organizations,
-		"Query":         f.Query,
+		"Query":         r.FormValue("query"),
 		"Page":          f.Page,
 		"NextPage":      f.Page + 1,
 		"Message":       r.FormValue("msg"),

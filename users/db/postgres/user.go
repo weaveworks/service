@@ -3,7 +3,6 @@ package postgres
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
@@ -232,15 +231,8 @@ func (d DB) usersQuery() squirrel.SelectBuilder {
 // ListUsers lists users
 func (d DB) ListUsers(_ context.Context, f filter.User) ([]*users.User, error) {
 	q := d.usersQuery()
-	if f.AdminOnly {
-		q = q.Where("users.admin = true")
-	}
-	if f.Query != "" {
-		q = q.Where("users.email LIKE ?", fmt.Sprint("%", f.Query, "%"))
-	}
-	if f.Page > 0 {
-		q = q.Limit(resultsPerPage).Offset(uint64((f.Page - 1) * resultsPerPage))
-	}
+	q = f.ExtendQuery(q)
+
 	rows, err := q.Query()
 	if err != nil {
 		return nil, err

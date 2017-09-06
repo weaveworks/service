@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -76,13 +75,8 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 // ListOrganizations lists organizations
 func (d DB) ListOrganizations(_ context.Context, f filter.Organization) ([]*users.Organization, error) {
 	q := d.organizationsQuery()
-	if f.Page > 0 {
-		q = q.Limit(resultsPerPage).Offset(uint64((f.Page - 1) * resultsPerPage))
-	}
-	if f.Query != "" {
-		q = q.Where("organizations.external_id LIKE ? OR organizations.id = ?",
-			fmt.Sprint("%", f.Query, "%"), f.Query)
-	}
+	q = f.ExtendQuery(q)
+
 	rows, err := q.Query()
 	if err != nil {
 		return nil, err

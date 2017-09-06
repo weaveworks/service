@@ -72,7 +72,14 @@ func (d *DB) ListOrganizations(_ context.Context, f filter.Organization) ([]*use
 	defer d.mtx.Unlock()
 	orgs := []*users.Organization{}
 	for _, org := range d.organizations {
-		if strings.Contains(org.Name, f.Query) {
+		if f.ID != "" && org.ID != f.ID {
+			continue
+		}
+		if f.Instance != "" && org.ExternalID != f.Instance {
+			continue
+		}
+
+		if strings.Contains(org.Name, f.Search) {
 			orgs = append(orgs, org)
 		}
 	}
