@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -21,34 +20,14 @@ import (
 	"github.com/weaveworks/service/users/render"
 )
 
-// jsonTime marshalls time.Time to time.RFC3339 instead of time.RFC3339Nano
-type jsonTime struct {
-	time.Time
-}
-
-// MarshalJSON implements the json.Marshaler interface.
-func (t *jsonTime) MarshalJSON() ([]byte, error) {
-	// Copied from https://golang.org/src/time/time.go?s=36257:36300#L1199
-	if y := t.Year(); y < 0 || y >= 10000 {
-		// RFC 3339 is clear that years are 4 digits exactly.
-		// See golang.org/issue/4556#c15 for more discussion.
-		return nil, errors.New("Time.MarshalJSON: year outside of range [0,9999]")
-	}
-	b := make([]byte, 0, len(time.RFC3339)+2)
-	b = append(b, '"')
-	b = t.AppendFormat(b, time.RFC3339)
-	b = append(b, '"')
-	return b, nil
-}
-
 type getOrgServiceStatusView struct {
 	// Connected is true when at least one service is connected.
 	// - Flux is connected if fluxd is reporting it is connected.
 	// - Scope is connected if there is at least one probe.
 	// - Prom is connected if there is at least one metric.
 	// - Net is connected if there is at least one peer.
-	Connected            bool      `json:"connected"`
-	FirstSeenConnectedAt *jsonTime `json:"firstSeenConnectedAt"`
+	Connected            bool       `json:"connected"`
+	FirstSeenConnectedAt *time.Time `json:"firstSeenConnectedAt"`
 
 	Flux  fluxStatus  `json:"flux"`
 	Scope scopeStatus `json:"scope"`
@@ -121,13 +100,9 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 		org.FirstSeenConnectedAt = &now
 	}
 
-	var t *jsonTime
-	if org.FirstSeenConnectedAt != nil {
-		t = &jsonTime{*org.FirstSeenConnectedAt}
-	}
 	render.JSON(w, http.StatusOK, getOrgServiceStatusView{
 		Connected:            connected,
-		FirstSeenConnectedAt: t,
+		FirstSeenConnectedAt: org.FirstSeenConnectedAt,
 		Flux:                 status.flux,
 		Scope:                status.scope,
 		Prom:                 status.prom,

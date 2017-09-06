@@ -86,7 +86,7 @@ func MockServices(config *mockServicesConfig) *httptest.Server {
 }
 
 func Test_GetOrgServiceStatus(t *testing.T) {
-	now := time.Now()
+	now := time.Date(2017, 1, 1, 1, 1, 0, 0, time.UTC)
 	cfg := &mockServicesConfig{}
 	mockServices := MockServices(cfg)
 	setupWithMockServices(t,
