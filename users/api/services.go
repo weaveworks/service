@@ -116,7 +116,7 @@ type serviceStatus struct {
 func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 	// Get flux status.
 	var flux fluxStatus
-	resp, err := makeRequest(ctx, "flux", a.fluxStatusAPI)
+	resp, err := doRequest(ctx, "flux", a.fluxStatusAPI)
 	if err != nil {
 		flux.Error = err.Error()
 	}
@@ -130,7 +130,7 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 
 	// Get scope status.
 	var scope scopeStatus
-	resp, err = makeRequest(ctx, "scope", a.scopeProbesAPI)
+	resp, err = doRequest(ctx, "scope", a.scopeProbesAPI)
 	if err != nil {
 		scope.Error = err.Error()
 	}
@@ -146,7 +146,7 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 
 	// Get prom status.
 	var prom promStatus
-	resp, err = makeRequest(ctx, "prom", a.promMetricsAPI)
+	resp, err = doRequest(ctx, "prom", a.promMetricsAPI)
 	if err != nil {
 		prom.Error = err.Error()
 	}
@@ -164,7 +164,7 @@ func (a *API) getServiceStatus(ctx context.Context) (serviceStatus, error) {
 
 	// Get net status.
 	var net netStatus
-	resp, err = makeRequest(ctx, "net", a.netPeersAPI)
+	resp, err = doRequest(ctx, "net", a.netPeersAPI)
 	if err != nil {
 		net.Error = err.Error()
 	}
@@ -215,7 +215,7 @@ var netClient = &http.Client{
 	Timeout: time.Second * 10,
 }
 
-func makeRequest(ctx context.Context, serviceName string, url string) (*http.Response, error) {
+func doRequest(ctx context.Context, serviceName string, url string) (*http.Response, error) {
 	var resp *http.Response
 	err := timeRequest(ctx, serviceName, func(ctx context.Context) error {
 		req, err := http.NewRequest("GET", url, nil)
