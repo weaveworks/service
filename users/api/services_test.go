@@ -194,7 +194,7 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 		assert.Equal(t, map[string]interface{}{
 			"connected":            true,
-			"firstSeenConnectedAt": now.Format("2006-01-02T15:04:05.000000000-07:00"),
+			"firstSeenConnectedAt": now.Format(time.RFC3339Nano),
 			"flux": map[string]interface{}{
 				"fluxsvc": map[string]interface{}{},
 				"fluxd": map[string]interface{}{
@@ -234,7 +234,7 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 		assert.Equal(t, map[string]interface{}{
 			"connected":            false, // Now false but firstSeenConnectedAt still set.
-			"firstSeenConnectedAt": now.Format("2006-01-02T15:04:05.000000000-07:00"),
+			"firstSeenConnectedAt": now.Format(time.RFC3339Nano),
 			"flux": map[string]interface{}{
 				"fluxsvc": map[string]interface{}{},
 				"fluxd": map[string]interface{}{
