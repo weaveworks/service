@@ -41,9 +41,9 @@ type fluxsvcStatus struct {
 }
 
 type fluxdStatus struct {
-	Connected bool      `json:"connected"`
-	Last      time.Time `json:"last,omitempty"`
-	Version   string    `json:"version,omitempty"`
+	Connected bool       `json:"connected"`
+	Last      *time.Time `json:"last,omitempty"`
+	Version   string     `json:"version,omitempty"`
 }
 
 type fluxGitStatus struct {

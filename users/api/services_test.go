@@ -116,7 +116,6 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 				"fluxsvc": map[string]interface{}{},
 				"fluxd": map[string]interface{}{
 					"connected": false,
-					"last":      "0001-01-01T00:00:00Z",
 				},
 				"git": map[string]interface{}{
 					"configured": false,
@@ -159,7 +158,6 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 				"fluxsvc": map[string]interface{}{},
 				"fluxd": map[string]interface{}{
 					"connected": false,
-					"last":      "0001-01-01T00:00:00Z",
 				},
 				"git": map[string]interface{}{
 					"configured": false,
@@ -201,7 +199,6 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 				"fluxsvc": map[string]interface{}{},
 				"fluxd": map[string]interface{}{
 					"connected": true,
-					"last":      "0001-01-01T00:00:00Z",
 				},
 				"git": map[string]interface{}{
 					"configured": false,
@@ -242,7 +239,6 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 				"fluxsvc": map[string]interface{}{},
 				"fluxd": map[string]interface{}{
 					"connected": false,
-					"last":      "0001-01-01T00:00:00Z",
 				},
 				"git": map[string]interface{}{
 					"configured": false,
