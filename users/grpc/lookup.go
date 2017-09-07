@@ -132,14 +132,15 @@ func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrgani
 	result := &users.GetOrganizationsResponse{}
 	for _, org := range organizations {
 		result.Organizations = append(result.Organizations, users.Organization{
-			ID:             org.ID,
-			ExternalID:     org.ExternalID,
-			Name:           org.Name,
-			ProbeToken:     org.ProbeToken,
-			CreatedAt:      org.CreatedAt,
-			FeatureFlags:   org.FeatureFlags,
-			DenyUIFeatures: org.DenyUIFeatures,
-			DenyTokenAuth:  org.DenyTokenAuth,
+			ID:                   org.ID,
+			ExternalID:           org.ExternalID,
+			Name:                 org.Name,
+			ProbeToken:           org.ProbeToken,
+			CreatedAt:            org.CreatedAt,
+			FeatureFlags:         org.FeatureFlags,
+			DenyUIFeatures:       org.DenyUIFeatures,
+			DenyTokenAuth:        org.DenyTokenAuth,
+			FirstSeenConnectedAt: org.FirstSeenConnectedAt,
 		})
 	}
 	return result, nil
@@ -153,14 +154,15 @@ func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganiz
 
 	return &users.GetOrganizationResponse{
 		Organization: users.Organization{
-			ID:             organization.ID,
-			ExternalID:     organization.ExternalID,
-			Name:           organization.Name,
-			ProbeToken:     organization.ProbeToken,
-			CreatedAt:      organization.CreatedAt,
-			FeatureFlags:   organization.FeatureFlags,
-			DenyUIFeatures: organization.DenyUIFeatures,
-			DenyTokenAuth:  organization.DenyTokenAuth,
+			ID:                   organization.ID,
+			ExternalID:           organization.ExternalID,
+			Name:                 organization.Name,
+			ProbeToken:           organization.ProbeToken,
+			CreatedAt:            organization.CreatedAt,
+			FeatureFlags:         organization.FeatureFlags,
+			DenyUIFeatures:       organization.DenyUIFeatures,
+			DenyTokenAuth:        organization.DenyTokenAuth,
+			FirstSeenConnectedAt: organization.FirstSeenConnectedAt,
 		},
 	}, nil
 }
