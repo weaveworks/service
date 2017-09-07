@@ -131,19 +131,7 @@ func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrgani
 
 	result := &users.GetOrganizationsResponse{}
 	for _, org := range organizations {
-		result.Organizations = append(result.Organizations, users.Organization{
-			ID:                   org.ID,
-			ExternalID:           org.ExternalID,
-			Name:                 org.Name,
-			ProbeToken:           org.ProbeToken,
-			CreatedAt:            org.CreatedAt,
-			FeatureFlags:         org.FeatureFlags,
-			DenyUIFeatures:       org.DenyUIFeatures,
-			DenyTokenAuth:        org.DenyTokenAuth,
-			FirstSeenConnectedAt: org.FirstSeenConnectedAt,
-			Platform:             org.Platform,
-			Environment:          org.Environment,
-		})
+		result.Organizations = append(result.Organizations, *org)
 	}
 	return result, nil
 }
