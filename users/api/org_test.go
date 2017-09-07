@@ -41,12 +41,13 @@ func Test_Org(t *testing.T) {
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
-		"user":           user.Email,
-		"id":             org.ExternalID,
-		"name":           org.Name,
-		"probeToken":     org.ProbeToken,
-		"denyUIFeatures": org.DenyUIFeatures,
-		"denyTokenAuth":  org.DenyTokenAuth,
+		"user":                 user.Email,
+		"id":                   org.ExternalID,
+		"name":                 org.Name,
+		"probeToken":           org.ProbeToken,
+		"denyUIFeatures":       org.DenyUIFeatures,
+		"denyTokenAuth":        org.DenyTokenAuth,
+		"firstSeenConnectedAt": nil,
 	}, body)
 }
 
@@ -64,12 +65,13 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, map[string]interface{}{
-		"user":           user.Email,
-		"id":             org.ExternalID,
-		"name":           org.Name,
-		"probeToken":     org.ProbeToken,
-		"denyUIFeatures": org.DenyUIFeatures,
-		"denyTokenAuth":  org.DenyTokenAuth,
+		"user":                 user.Email,
+		"id":                   org.ExternalID,
+		"name":                 org.Name,
+		"probeToken":           org.ProbeToken,
+		"denyUIFeatures":       org.DenyUIFeatures,
+		"denyTokenAuth":        org.DenyTokenAuth,
+		"firstSeenConnectedAt": nil,
 	}, body)
 }
 
