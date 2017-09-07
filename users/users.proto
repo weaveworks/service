@@ -20,6 +20,8 @@ service Users {
     // LookupUser authenticates a cookie.
     rpc LookupUser(LookupUserRequest) returns (LookupUserResponse) {};
 
+    // GetOrganizations returns a list of all organizations by default. See
+    // GetOrganizationsRequest for more details.
     rpc GetOrganizations(GetOrganizationsRequest) returns (GetOrganizationsResponse) {};
     rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse) {};
     rpc SetOrganizationFlag(SetOrganizationFlagRequest) returns (SetOrganizationFlagResponse) {};
@@ -75,9 +77,15 @@ message LookupUserResponse {
     string UserID = 1 [(gogoproto.jsontag) = "userID,omitempty"];
 }
 
+// GetOrganizationRequest requests a list of organizations.
 message GetOrganizationsRequest {
-  string Query = 1;
-  int32 PageNumber = 2;
+    // Query restricts the organizations returned. If specified, will find
+    // only organizations that have Query as a substring of internal ID (e.g.
+    // '432') or external ID (e.g. 'foo-bar-11').
+    string Query = 1;
+    // If 0 or less, return everything. Otherwise, return a single page of
+    // implementation-dependent results (currently 30).
+    int32 PageNumber = 2;
 }
 
 message GetOrganizationsResponse {
