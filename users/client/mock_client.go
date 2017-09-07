@@ -42,6 +42,10 @@ func (mockClient) GetOrganizations(ctx context.Context, in *users.GetOrganizatio
 	return &users.GetOrganizationsResponse{}, nil
 }
 
+func (mockClient) GetBillableOrganizations(ctx context.Context, in *users.GetBillableOrganizationsRequest, opts ...grpc.CallOption) (*users.GetBillableOrganizationsResponse, error) {
+	return &users.GetBillableOrganizationsResponse{}, nil
+}
+
 func (mockClient) GetOrganization(ctx context.Context, in *users.GetOrganizationRequest, opts ...grpc.CallOption) (*users.GetOrganizationResponse, error) {
 	return &users.GetOrganizationResponse{}, nil
 }

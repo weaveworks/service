@@ -23,6 +23,11 @@ service Users {
     // GetOrganizations returns a list of all organizations by default. See
     // GetOrganizationsRequest for more details.
     rpc GetOrganizations(GetOrganizationsRequest) returns (GetOrganizationsResponse) {};
+    // GetBillableOrganizations returns all of the organizations that are past
+    // their trial period and have billing enabled. Currently knows nothing
+    // about payment status, so will include organizations that are well past
+    // their trial period but haven't provided credit card details.
+    rpc GetBillableOrganizations(GetBillableOrganizationsRequest) returns (GetBillableOrganizationsResponse) {};
     rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse) {};
     rpc SetOrganizationFlag(SetOrganizationFlagRequest) returns (SetOrganizationFlagResponse) {};
 
@@ -89,6 +94,17 @@ message GetOrganizationsRequest {
 }
 
 message GetOrganizationsResponse {
+    repeated Organization Organizations = 1 [(gogoproto.nullable) = false];
+}
+
+// An organization is billable if its trial period has expired.
+message GetBillableOrganizationsRequest {
+    // The current time for the purposes of determining whether the trial
+    // period has expired.
+    google.protobuf.Timestamp Now = 1 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+message GetBillableOrganizationsResponse {
     repeated Organization Organizations = 1 [(gogoproto.nullable) = false];
 }
 

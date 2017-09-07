@@ -6,6 +6,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/filter"
@@ -131,6 +132,33 @@ func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrgani
 
 	result := &users.GetOrganizationsResponse{}
 	for _, org := range organizations {
+		result.Organizations = append(result.Organizations, *org)
+	}
+	return result, nil
+}
+
+func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.GetBillableOrganizationsRequest) (*users.GetBillableOrganizationsResponse, error) {
+	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{})
+	if err != nil {
+		return nil, err
+	}
+
+	result := &users.GetBillableOrganizationsResponse{}
+	for _, org := range organizations {
+		// TODO: Move this filtering into the database layer.
+		if !org.HasFeatureFlag("billing") {
+			// While billing is in development, just pretend this doesn't exist.
+			continue
+		}
+		trialExpires, err := org.TrialExpiry()
+		if err != nil {
+			logging.With(ctx).Error("Failed to determine trial expiry date", err)
+			continue
+		}
+		if trialExpires.After(req.Now) {
+			// Still in trial period, so not billable.
+			continue
+		}
 		result.Organizations = append(result.Organizations, *org)
 	}
 	return result, nil
