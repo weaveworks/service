@@ -27,21 +27,16 @@ def run_backfill():
 
     print("Connecting to postgres database...")
     conn_string = "host={} dbname={} user={} password={}".format(DB_HOST, DB_NAME, DB_USER, DB_PASS)
-    conn = psycopg2.connect(conn_string)
-    cur = conn.cursor()
-
-    print("Running backfill...")
-    for org_id, first in query.fetch_data():
-        if first:
-            print("Setting orgID '{}' first_seen_connected_at to '{}'".format(org_id, first))
-            sql = "UPDATE organizations SET first_seen_connected_at = '%s' WHERE id = '%s'"
-            cur.execute(sql, (first, org_id))
-
-    print("Committing...")
-    conn.commit()
-    print("Closing database connection...")
-    cur.close()
-    conn.close()
+    with psycopg2.connect(conn_string) as conn:
+        with conn.cursor() as cur:
+            print("Running backfill...")
+            for org_id, first in query.fetch_data():
+                if first:
+                    print("Setting orgID '{}' first_seen_connected_at to '{}'".format(org_id, first))
+                    sql = "UPDATE organizations SET first_seen_connected_at = '%s' WHERE id = '%s'"
+                    cur.execute(sql, (first, org_id))
+            print("Committing...")
+            conn.commit()
     print("Backfill complete.")
 
 if __name__ == "__main__":
