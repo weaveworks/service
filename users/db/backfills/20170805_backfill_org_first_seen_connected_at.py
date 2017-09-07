@@ -14,6 +14,7 @@ SELECT org_id, MIN(dt) as first
     WHERE event = "/api/report" OR event = "/api/prom/push" OR event LIKE "/api/flux/v_/daemon"
     GROUP BY org_id
 """
+SET_FIRST_CONNECTED_SQL = "UPDATE organizations SET first_seen_connected_at = '%s' WHERE id = '%s'"
 
 def run_backfill():
     client = bigquery.Client(project='weaveworks-bi')
@@ -33,8 +34,7 @@ def run_backfill():
             for org_id, first in query.fetch_data():
                 if first:
                     print("Setting orgID '{}' first_seen_connected_at to '{}'".format(org_id, first))
-                    sql = "UPDATE organizations SET first_seen_connected_at = '%s' WHERE id = '%s'"
-                    cur.execute(sql, (first, org_id))
+                    cur.execute(SET_FIRST_CONNECTED_SQL, (first, org_id))
             print("Committing...")
             conn.commit()
     print("Backfill complete.")
