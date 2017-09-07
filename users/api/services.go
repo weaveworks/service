@@ -8,12 +8,12 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/common/instrument"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/mtime"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/users"
@@ -157,7 +157,7 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 		err = json.NewDecoder(resp.Body).Decode(&flux)
 		if err != nil {
 			flux.Error = "Could not decode flux data"
-			log.Errorf("Could not decode flux data: %s", err)
+			logging.With(ctx).Errorf("Could not decode flux data: %s", err)
 			return
 		}
 	}()
@@ -177,7 +177,7 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 		err = json.NewDecoder(resp.Body).Decode(&probes)
 		if err != nil {
 			scope.Error = "Could not decode scope data"
-			log.Errorf("Could not decode scope data: %s", err)
+			logging.With(ctx).Errorf("Could not decode scope data: %s", err)
 			return
 		}
 		scope.NumberOfProbes = len(probes)
@@ -200,7 +200,7 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 		err = json.NewDecoder(resp.Body).Decode(&metrics)
 		if err != nil {
 			prom.Error = "Could not decode prom data"
-			log.Errorf("Could not decode prom data: %s", err)
+			logging.With(ctx).Errorf("Could not decode prom data: %s", err)
 			return
 		}
 		prom.NumberOfMetrics = len(metrics.Data)
@@ -221,7 +221,7 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 		err = json.NewDecoder(resp.Body).Decode(&peers)
 		if err != nil {
 			net.Error = "Could not decode net data"
-			log.Errorf("Could not decode net data: %s", err)
+			logging.With(ctx).Errorf("Could not decode net data: %s", err)
 			return
 		}
 		net.NumberOfPeers = len(peers)
