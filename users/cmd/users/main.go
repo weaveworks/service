@@ -28,6 +28,7 @@ import (
 
 func init() {
 	prometheus.MustRegister(common.DatabaseRequestDuration)
+	prometheus.MustRegister(api.ServiceStatusRequestDuration)
 }
 
 func main() {
