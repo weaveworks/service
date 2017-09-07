@@ -98,7 +98,7 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 	defer cleanup(t)
 
 	user, org := getOrg(t)
-	cfg.AcceptedOrgID = org.ExternalID
+	cfg.AcceptedOrgID = org.ID
 	body := map[string]interface{}{}
 
 	// Test when services are down.
@@ -121,19 +121,19 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 					"configured": false,
 					"config":     nil,
 				},
-				"error": "Could not decode flux data",
+				"error": "Unexpected status code: 500",
 			},
 			"scope": map[string]interface{}{
 				"numberOfProbes": float64(0),
-				"error":          "Could not decode scope data",
+				"error":          "Unexpected status code: 500",
 			},
 			"prom": map[string]interface{}{
 				"numberOfMetrics": float64(0),
-				"error":           "Could not decode prom data",
+				"error":           "Unexpected status code: 500",
 			},
 			"net": map[string]interface{}{
 				"numberOfPeers": float64(0),
-				"error":         "Could not decode net data",
+				"error":         "Unexpected status code: 500",
 			},
 		}, body)
 	}

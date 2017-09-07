@@ -74,21 +74,38 @@ type netStatus struct {
 }
 
 func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	orgExternalID := vars["orgExternalID"]
-	r = r.WithContext(user.InjectOrgID(r.Context(), orgExternalID))
-
-	status := a.getServiceStatus(r.Context())
-	connected := (status.flux.Fluxd.Connected ||
-		status.scope.NumberOfProbes > 0 ||
-		status.prom.NumberOfMetrics > 0 ||
-		status.net.NumberOfPeers > 0)
+	orgExternalID := mux.Vars(r)["orgExternalID"]
+	exists, err := a.db.OrganizationExists(r.Context(), orgExternalID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	if !exists {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	isMember, err := a.db.UserIsMemberOf(r.Context(), currentUser.ID, orgExternalID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	if !isMember {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
 
 	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
 	}
+	r = r.WithContext(user.InjectOrgID(r.Context(), org.ID))
+
+	status := a.getServiceStatus(r.Context())
+	connected := (status.flux.Fluxd.Connected ||
+		status.scope.NumberOfProbes > 0 ||
+		status.prom.NumberOfMetrics > 0 ||
+		status.net.NumberOfPeers > 0)
 
 	if org.FirstSeenConnectedAt == nil && connected {
 		now := mtime.Now()
@@ -133,6 +150,7 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 		resp, err := doRequest(ctx, "flux", a.fluxStatusAPI)
 		if err != nil {
 			flux.Error = err.Error()
+			return
 		}
 		defer resp.Body.Close()
 
@@ -140,6 +158,7 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 		if err != nil {
 			flux.Error = "Could not decode flux data"
 			log.Errorf("Could not decode flux data: %s", err)
+			return
 		}
 	}()
 
@@ -150,6 +169,7 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 		resp, err := doRequest(ctx, "scope", a.scopeProbesAPI)
 		if err != nil {
 			scope.Error = err.Error()
+			return
 		}
 		defer resp.Body.Close()
 
@@ -158,6 +178,7 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 		if err != nil {
 			scope.Error = "Could not decode scope data"
 			log.Errorf("Could not decode scope data: %s", err)
+			return
 		}
 		scope.NumberOfProbes = len(probes)
 	}()
@@ -169,6 +190,7 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 		resp, err := doRequest(ctx, "prom", a.promMetricsAPI)
 		if err != nil {
 			prom.Error = err.Error()
+			return
 		}
 		defer resp.Body.Close()
 
@@ -179,6 +201,7 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 		if err != nil {
 			prom.Error = "Could not decode prom data"
 			log.Errorf("Could not decode prom data: %s", err)
+			return
 		}
 		prom.NumberOfMetrics = len(metrics.Data)
 	}()
@@ -190,6 +213,7 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 		resp, err := doRequest(ctx, "net", a.netPeersAPI)
 		if err != nil {
 			net.Error = err.Error()
+			return
 		}
 		defer resp.Body.Close()
 
@@ -198,6 +222,7 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 		if err != nil {
 			net.Error = "Could not decode net data"
 			log.Errorf("Could not decode net data: %s", err)
+			return
 		}
 		net.NumberOfPeers = len(peers)
 	}()
