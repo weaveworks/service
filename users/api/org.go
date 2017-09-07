@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
@@ -15,13 +16,14 @@ import (
 
 // OrgView describes an organisation
 type OrgView struct {
-	User           string   `json:"user,omitempty"`
-	ExternalID     string   `json:"id"`
-	Name           string   `json:"name"`
-	ProbeToken     string   `json:"probeToken,omitempty"`
-	FeatureFlags   []string `json:"featureFlags,omitempty"`
-	DenyUIFeatures bool     `json:"denyUIFeatures"`
-	DenyTokenAuth  bool     `json:"denyTokenAuth"`
+	User                 string     `json:"user,omitempty"`
+	ExternalID           string     `json:"id"`
+	Name                 string     `json:"name"`
+	ProbeToken           string     `json:"probeToken,omitempty"`
+	FeatureFlags         []string   `json:"featureFlags,omitempty"`
+	DenyUIFeatures       bool       `json:"denyUIFeatures"`
+	DenyTokenAuth        bool       `json:"denyTokenAuth"`
+	FirstSeenConnectedAt *time.Time `json:"firstSeenConnectedAt"`
 }
 
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -35,13 +37,14 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 	for _, org := range organizations {
 		if strings.ToLower(org.ExternalID) == strings.ToLower(orgExternalID) {
 			render.JSON(w, http.StatusOK, OrgView{
-				User:           currentUser.Email,
-				ExternalID:     org.ExternalID,
-				Name:           org.Name,
-				ProbeToken:     org.ProbeToken,
-				FeatureFlags:   append(org.FeatureFlags, a.forceFeatureFlags...),
-				DenyUIFeatures: org.DenyUIFeatures,
-				DenyTokenAuth:  org.DenyTokenAuth,
+				User:                 currentUser.Email,
+				ExternalID:           org.ExternalID,
+				Name:                 org.Name,
+				ProbeToken:           org.ProbeToken,
+				FeatureFlags:         append(org.FeatureFlags, a.forceFeatureFlags...),
+				DenyUIFeatures:       org.DenyUIFeatures,
+				DenyTokenAuth:        org.DenyTokenAuth,
+				FirstSeenConnectedAt: org.FirstSeenConnectedAt,
 			})
 			return
 		}
