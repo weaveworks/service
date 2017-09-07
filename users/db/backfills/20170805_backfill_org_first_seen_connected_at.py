@@ -27,16 +27,16 @@ def run_backfill():
     print("BigQuery query complete.")
 
     print("Connecting to postgres database...")
-    conn_string = "host={} dbname={} user={} password={}".format(DB_HOST, DB_NAME, DB_USER, DB_PASS)
-    with psycopg2.connect(conn_string) as conn:
+    dsn = "host={} dbname={} user={} password={}".format(DB_HOST, DB_NAME, DB_USER, DB_PASS)
+    conn = psycopg2.connect(dsn)
+    with conn:
         with conn.cursor() as cur:
             print("Running backfill...")
             for org_id, first in query.fetch_data():
                 if first:
                     print("Setting orgID '{}' first_seen_connected_at to '{}'".format(org_id, first))
                     cur.execute(SET_FIRST_CONNECTED_SQL, (first, org_id))
-            print("Committing...")
-            conn.commit()
+    conn.close()
     print("Backfill complete.")
 
 if __name__ == "__main__":
