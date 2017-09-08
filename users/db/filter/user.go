@@ -9,32 +9,37 @@ import (
 )
 
 // User defines a filter for listing users.
+// Supported filters
+// - is:admin
 type User struct {
-	AdminOnly bool
-	Query     string
-	Page      int32
+	Admin bool
+
+	Search string
+	Page   int32
 }
 
 // NewUser extracts filter values from the request.
 func NewUser(r *http.Request) User {
+	q := parseQuery(r.FormValue("query"))
 	return User{
-		AdminOnly: r.FormValue("admin") == "true",
-		Query:     r.FormValue("query"),
-		Page:      pageValue(r),
+		Admin:  q.filters["admin"] == "true",
+		Search: strings.Join(q.search, " "),
+		Page:   pageValue(r),
 	}
 }
 
 // ExtendQuery applies the filter to the query builder.
 func (u User) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	if u.AdminOnly {
-		b = b.Where("users.admin = true")
-	}
-	if u.Query != "" {
-		b = b.Where("lower(userggs.email) LIKE ?",
-			fmt.Sprint("%", strings.ToLower(u.Query), "%"))
-	}
 	if u.Page > 0 {
 		b = b.Limit(resultsPerPage).Offset(uint64((u.Page - 1) * resultsPerPage))
+	}
+	if u.Search != "" {
+		b = b.Where("lower(users.email) LIKE ?",
+			fmt.Sprint("%", strings.ToLower(u.Search), "%"))
+	}
+
+	if u.Admin {
+		b = b.Where("users.admin = true")
 	}
 
 	return b
