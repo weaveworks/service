@@ -124,7 +124,7 @@ func (a *usersServer) LookupUser(ctx context.Context, req *users.LookupUserReque
 }
 
 func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrganizationsRequest) (*users.GetOrganizationsResponse, error) {
-	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{Query: req.Query, Page: req.PageNumber})
+	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{Search: req.Query, Page: req.PageNumber})
 	if err != nil {
 		return nil, err
 	}
