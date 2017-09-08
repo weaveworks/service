@@ -299,17 +299,32 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	return o, nil
 }
 
-// RenameOrganization changes an organization's user-settable name
-func (d DB) RenameOrganization(_ context.Context, externalID, name string) error {
-	if err := (&users.Organization{ExternalID: externalID, Name: name}).Valid(); err != nil {
+// UpdateOrganization changes an organization's user-settable name
+func (d DB) UpdateOrganization(_ context.Context, externalID string, update users.OrgWriteView) error {
+	// Create org for validation and add update fields to setFields
+	org := &users.Organization{ExternalID: externalID}
+	setFields := map[string]interface{}{}
+	if update.Name != nil {
+		org.Name = *update.Name
+		setFields["name"] = *update.Name
+	}
+	if update.Platform != nil {
+		org.Platform = *update.Platform
+		setFields["platform"] = *update.Platform
+	}
+	if update.Environment != nil {
+		org.Environment = *update.Environment
+		setFields["environment"] = *update.Environment
+	}
+
+	if err := org.Valid(); err != nil {
 		return err
 	}
 
-	result, err := d.Exec(`
-		update organizations set name = $2
-		where lower(external_id) = lower($1) and deleted_at is null`,
-		externalID, name,
-	)
+	result, err := d.Update("organizations").
+		SetMap(setFields).
+		Where("lower(external_id) = lower($1) and deleted_at is null").
+		Exec()
 	if err != nil {
 		return err
 	}
@@ -397,15 +412,6 @@ func (d DB) SetOrganizationFirstSeenConnectedAt(_ context.Context, externalID st
 	_, err := d.Exec(
 		`update organizations set first_seen_connected_at = $1 where lower(external_id) = lower($2)`,
 		value, externalID,
-	)
-	return err
-}
-
-// SetOrganizationPlatformEnvironment sets the organisation platform and environment
-func (d DB) SetOrganizationPlatformEnvironment(_ context.Context, externalID, platform, environment string) error {
-	_, err := d.Exec(
-		`update organizations set platform = $1, environment = $2 where lower(external_id) = lower($3)`,
-		platform, environment, externalID,
 	)
 	return err
 }

@@ -126,9 +126,9 @@ func (t traced) FindOrganizationByID(ctx context.Context, externalID string) (o 
 	return t.d.FindOrganizationByID(ctx, externalID)
 }
 
-func (t traced) RenameOrganization(ctx context.Context, externalID, name string) (err error) {
-	defer func() { t.trace("RenameOrganization", externalID, name, err) }()
-	return t.d.RenameOrganization(ctx, externalID, name)
+func (t traced) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) (err error) {
+	defer func() { t.trace("UpdateOrganization", externalID, update, err) }()
+	return t.d.UpdateOrganization(ctx, externalID, update)
 }
 
 func (t traced) OrganizationExists(ctx context.Context, externalID string) (b bool, err error) {
@@ -169,11 +169,6 @@ func (t traced) SetOrganizationDenyTokenAuth(ctx context.Context, externalID str
 func (t traced) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) (err error) {
 	defer func() { t.trace("SetOrganizationFirstSeenConnectedAt", externalID, value, err) }()
 	return t.d.SetOrganizationFirstSeenConnectedAt(ctx, externalID, value)
-}
-
-func (t traced) SetOrganizationPlatformEnvironment(ctx context.Context, externalID, platform, environment string) (err error) {
-	defer func() { t.trace("SetOrganizationPlatformEnvironment", externalID, platform, environment, err) }()
-	return t.d.SetOrganizationPlatformEnvironment(ctx, externalID, platform, environment)
 }
 
 func (t traced) ListMemberships(ctx context.Context) (ms []users.Membership, err error) {

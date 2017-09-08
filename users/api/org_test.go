@@ -100,8 +100,8 @@ func Test_ListOrganizationUsers(t *testing.T) {
 const (
 	orgName100     = "A Different Org Name 234567890 234567890 234567890 234567890 234567890 234567890 234567890 234567890"
 	orgName101     = "A DIFFERENT ORG NAME 234567890 234567890 234567890 234567890 234567890 234567890 234567890 2345678901"
-	platform100    = "a_new_platform"
-	environment100 = "a_new_environment"
+	platform100    = "kubernetes"
+	environment100 = "minikube"
 )
 
 func Test_UpdateOrganization(t *testing.T) {
@@ -176,9 +176,9 @@ func Test_ReIDOrganization_NotAllowed(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody{"id": "my-organization"}.Reader(t))
 
+	// All non-writeable fields are filtered out.
 	app.ServeHTTP(w, r)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), `{"errors":[{"message":"ID cannot be changed"}]}`)
+	assert.Equal(t, http.StatusNoContent, w.Code)
 
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
@@ -189,21 +189,36 @@ func Test_ReIDOrganization_NotAllowed(t *testing.T) {
 	}
 }
 
-func Test_RenameOrganization_Validation(t *testing.T) {
+func Test_UpdateOrganization_Validation(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	user, org := getOrg(t)
 
-	for name, errMsg := range map[string]string{
-		"": "Name cannot be blank",
-	} {
+	tests := []struct {
+		name        string
+		platform    string
+		environment string
+		errMsg      string
+	}{
+		{"", "", "", "Name cannot be blank"},
+		{"Test", "invalid", "minikube", "Platform is invalid"},
+		{"Test", "kubernetes", "invalid", "Environment is invalid"},
+		{"Test", "kubernetes", "", "Environment is required with platform"},
+		{"Test", "", "minikube", "Platform is required with environment"},
+	}
+
+	for _, tc := range tests {
 		w := httptest.NewRecorder()
-		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody{"name": name}.Reader(t))
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody{
+			"name":        tc.name,
+			"platform":    tc.platform,
+			"environment": tc.environment,
+		}.Reader(t))
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"errors":[{"message":%q}]}`, errMsg))
+		assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"errors":[{"message":%q}]}`, tc.errMsg))
 
 		organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 		require.NoError(t, err)

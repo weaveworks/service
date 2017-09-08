@@ -99,27 +99,19 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 
 func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	var view OrgView
-	err := json.NewDecoder(r.Body).Decode(&view)
+	var update users.OrgWriteView
+	err := json.NewDecoder(r.Body).Decode(&update)
 	switch {
 	case err != nil:
 		render.Error(w, r, users.MalformedInputError(err))
 		return
-	case view.ExternalID != "":
-		render.Error(w, r, users.ValidationErrorf("ID cannot be changed"))
-		return
 	}
-
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
 		render.Error(w, r, err)
 		return
 	}
-	if err := a.db.RenameOrganization(r.Context(), orgExternalID, view.Name); err != nil {
-		render.Error(w, r, err)
-		return
-	}
-	if err := a.db.SetOrganizationPlatformEnvironment(r.Context(), orgExternalID, view.Platform, view.Environment); err != nil {
+	if err := a.db.UpdateOrganization(r.Context(), orgExternalID, update); err != nil {
 		render.Error(w, r, err)
 		return
 	}

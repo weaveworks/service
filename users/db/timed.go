@@ -194,9 +194,9 @@ func (t timed) FindOrganizationByID(ctx context.Context, externalID string) (o *
 	return
 }
 
-func (t timed) RenameOrganization(ctx context.Context, externalID, name string) error {
-	return t.timeRequest(ctx, "RenameOrganization", func(ctx context.Context) error {
-		return t.d.RenameOrganization(ctx, externalID, name)
+func (t timed) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error {
+	return t.timeRequest(ctx, "UpdateOrganization", func(ctx context.Context) error {
+		return t.d.UpdateOrganization(ctx, externalID, update)
 	})
 }
 
@@ -249,12 +249,6 @@ func (t timed) SetOrganizationDenyTokenAuth(ctx context.Context, externalID stri
 func (t timed) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
 	return t.timeRequest(ctx, "SetOrganizationFirstSeenConnectedAt", func(ctx context.Context) error {
 		return t.d.SetOrganizationFirstSeenConnectedAt(ctx, externalID, value)
-	})
-}
-
-func (t timed) SetOrganizationPlatformEnvironment(ctx context.Context, externalID, platform, environment string) error {
-	return t.timeRequest(ctx, "SetOrganizationPlatformEnvironment", func(ctx context.Context) error {
-		return t.d.SetOrganizationPlatformEnvironment(ctx, externalID, platform, environment)
 	})
 }
 
