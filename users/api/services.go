@@ -29,10 +29,10 @@ type getOrgServiceStatusView struct {
 	Connected            bool       `json:"connected"`
 	FirstSeenConnectedAt *time.Time `json:"firstSeenConnectedAt"`
 
-	Flux  fluxStatus  `json:"flux"`
-	Scope scopeStatus `json:"scope"`
-	Prom  promStatus  `json:"prom"`
-	Net   netStatus   `json:"net"`
+	Flux      fluxStatus  `json:"flux"`
+	Scope     scopeStatus `json:"scope"`
+	Prom      promStatus  `json:"prom"`
+	Discovery netStatus   `json:"discovery"`
 }
 
 type fluxStatus struct {
@@ -123,7 +123,7 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 		Flux:                 status.flux,
 		Scope:                status.scope,
 		Prom:                 status.prom,
-		Net:                  status.net,
+		Discovery:            status.net,
 	})
 }
 

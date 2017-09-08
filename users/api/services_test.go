@@ -51,7 +51,7 @@ func MockServices(config *mockServicesConfig) *httptest.Server {
 				}
 			}
 		case "/api/probes":
-			if config.Net.Online {
+			if config.Scope.Online {
 				probes := []interface{}{}
 				for i := 0; i < config.Scope.NumberOfProbes; i++ {
 					probes = append(probes, struct{}{})
@@ -131,7 +131,7 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 				"numberOfMetrics": float64(0),
 				"error":           "Unexpected status code: 500",
 			},
-			"net": map[string]interface{}{
+			"discovery": map[string]interface{}{
 				"numberOfPeers": float64(0),
 				"error":         "Unexpected status code: 500",
 			},
@@ -170,7 +170,7 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 			"prom": map[string]interface{}{
 				"numberOfMetrics": float64(0),
 			},
-			"net": map[string]interface{}{
+			"discovery": map[string]interface{}{
 				"numberOfPeers": float64(0),
 			},
 		}, body)
@@ -211,7 +211,7 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 			"prom": map[string]interface{}{
 				"numberOfMetrics": float64(4),
 			},
-			"net": map[string]interface{}{
+			"discovery": map[string]interface{}{
 				"numberOfPeers": float64(2),
 			},
 		}, body)
@@ -251,7 +251,7 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 			"prom": map[string]interface{}{
 				"numberOfMetrics": float64(0),
 			},
-			"net": map[string]interface{}{
+			"discovery": map[string]interface{}{
 				"numberOfPeers": float64(0),
 			},
 		}, body)
