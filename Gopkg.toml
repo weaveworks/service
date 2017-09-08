@@ -15,3 +15,7 @@
   name = "github.com/opentracing-contrib/go-stdlib"
   source = "github.com/weaveworks/go-stdlib"
   branch = "hijack"
+
+[[constraint]]
+  name = "github.com/justinas/nosurf"
+  revision = "cbe5fdb4a426586632a1ff60eca311bd286220f5"
