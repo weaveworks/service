@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -19,9 +20,17 @@ type Organization struct {
 
 // NewOrganization extracts filter values from the request.
 func NewOrganization(r *http.Request) Organization {
+	query := parseQuery(r.FormValue("query"))
 	o := Organization{}
-	o.Search = parseQuery(r, &o)
+
+	// Copy filters over to the organization's fields.
+	// No error checking because we don't care, empty fields are fine.
+	bs, _ := json.Marshal(query.filters)
+	json.Unmarshal(bs, &o)
+
+	o.Search = strings.Join(query.search, " ")
 	o.Page = pageValue(r)
+
 	return o
 }
 

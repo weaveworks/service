@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,6 +14,11 @@ const (
 	resultsPerPage = 30
 )
 
+type query struct {
+	filters map[string]string
+	search  []string
+}
+
 // pageValue extracts the `page` form value of the request. It also
 // clamps it to (1, ∞).
 func pageValue(r *http.Request) int32 {
@@ -26,26 +30,17 @@ func pageValue(r *http.Request) int32 {
 }
 
 // parseQuery extracts filters from the `query` form value.
-// It unmarshals the filters of the form `key:value` to the
-// fields of `dst` and returns the global search term.
-func parseQuery(r *http.Request, dst interface{}) string {
-	query := r.FormValue("query")
-
-	parts := strings.Fields(query)
-	search := []string{}
-	filters := map[string]string{}
-	for _, p := range parts {
+// It returns a map of `key:value` filters and a list of search terms
+func parseQuery(qs string) query {
+	q := query{filters: map[string]string{}}
+	for _, p := range strings.Fields(qs) {
 		if strings.Contains(p, queryFilterDelim) {
 			kv := strings.SplitN(p, queryFilterDelim, 2)
-			filters[kv[0]] = kv[1]
+			q.filters[kv[0]] = kv[1]
 		} else {
-			search = append(search, p)
+			q.search = append(q.search, p)
 		}
 	}
 
-	// Copy over to dst
-	bs, _ := json.Marshal(filters)
-	json.Unmarshal(bs, &dst)
-
-	return strings.Join(search, " ")
+	return q
 }
