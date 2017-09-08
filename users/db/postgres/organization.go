@@ -211,6 +211,11 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 	if err != nil {
 		return nil, err
 	}
+	trialExpiry, err := users.CalculateTrialExpiry(o.CreatedAt, []string{})
+	if err != nil {
+		panic(fmt.Sprintf("Could not calculate trial expiry: %v", err))
+	}
+	o.TrialExpiresAt = trialExpiry
 	return o, err
 }
 
@@ -290,6 +295,12 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.Platform = platform.String
 	o.Environment = environment.String
 
+	// TODO: Store trial expiry in the database, rather than deriving from these fields
+	trialExpiry, err := users.CalculateTrialExpiry(o.CreatedAt, o.FeatureFlags)
+	if err != nil {
+		return nil, err
+	}
+	o.TrialExpiresAt = trialExpiry
 	return o, nil
 }
 

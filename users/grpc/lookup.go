@@ -6,7 +6,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/filter"
@@ -150,12 +149,7 @@ func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.G
 			// While billing is in development, just pretend this doesn't exist.
 			continue
 		}
-		trialExpires, err := org.TrialExpiry()
-		if err != nil {
-			logging.With(ctx).Error("Failed to determine trial expiry date", err)
-			continue
-		}
-		if trialExpires.After(req.Now) {
+		if org.TrialExpiresAt.After(req.Now) {
 			// Still in trial period, so not billable.
 			continue
 		}

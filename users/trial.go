@@ -17,20 +17,20 @@ const (
 	defaultTrialLength int    = 30
 )
 
-// TrialExpiry returns the date when the organization's free trial period
-// expires.
-func (o *Organization) TrialExpiry() (time.Time, error) {
-	length, err := o.parseTrialLength()
+// CalculateTrialExpiry returns the date when an organization's free trial
+// period expires.
+func CalculateTrialExpiry(createdAt time.Time, featureFlags []string) (time.Time, error) {
+	length, err := parseTrialLength(featureFlags)
 	if err != nil {
 		return time.Time{}, err
 	}
-	return o.CreatedAt.UTC().Add(length), nil
+	return createdAt.UTC().Add(length), nil
 }
 
-func (o *Organization) parseTrialLength() (time.Duration, error) {
+func parseTrialLength(featureFlags []string) (time.Duration, error) {
 	var days = defaultTrialLength
-	for _, rawFlag := range o.FeatureFlags {
-		flag, value := o.parseMachineFlag(rawFlag)
+	for _, rawFlag := range featureFlags {
+		flag, value := parseMachineFlag(rawFlag)
 		if flag == trialFlag {
 			var err error
 			days, err = strconv.Atoi(value)
@@ -42,7 +42,7 @@ func (o *Organization) parseTrialLength() (time.Duration, error) {
 	return time.Duration(days*24) * time.Hour, nil
 }
 
-func (o *Organization) parseMachineFlag(flag string) (string, string) {
+func parseMachineFlag(flag string) (string, string) {
 	s := strings.Split(flag, "=")
 	if len(s) == 2 {
 		return s[0], s[1]

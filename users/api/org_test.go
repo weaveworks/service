@@ -26,10 +26,11 @@ func Test_Org(t *testing.T) {
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	assert.NoError(t, err)
 	require.Len(t, organizations, 1)
-	assert.Equal(t, org.ID, organizations[0].ID, "user should have an organization id")
-	assert.Equal(t, org.ExternalID, organizations[0].ExternalID, "user should have an organization external id")
-	assert.Equal(t, org.Name, organizations[0].Name, "user should have an organization name")
-	assert.NotEqual(t, "", organizations[0].ProbeToken, "user should have a probe token")
+	assert.Equal(t, org.ID, organizations[0].ID, "organization should have an id")
+	assert.Equal(t, org.ExternalID, organizations[0].ExternalID, "organization should have an external id")
+	assert.Equal(t, org.Name, organizations[0].Name, "organization should have a name")
+	assert.Equal(t, org.TrialExpiresAt, organizations[0].TrialExpiresAt, "organization should have a trial expiry")
+	assert.NotEqual(t, "", organizations[0].ProbeToken, "organization should have a probe token")
 
 	org, err = database.FindOrganizationByProbeToken(context.Background(), organizations[0].ProbeToken)
 	require.NoError(t, err)
@@ -40,6 +41,8 @@ func Test_Org(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	trialExpiresAt, err := org.TrialExpiresAt.MarshalText()
+	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
 		"user":                 user.Email,
 		"id":                   org.ExternalID,
@@ -50,6 +53,7 @@ func Test_Org(t *testing.T) {
 		"firstSeenConnectedAt": nil,
 		"platform":             org.Platform,
 		"environment":          org.Environment,
+		"trialExpiresAt":       string(trialExpiresAt),
 	}, body)
 }
 
@@ -66,6 +70,8 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	trialExpiresAt, err := org.TrialExpiresAt.MarshalText()
+	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
 		"user":                 user.Email,
 		"id":                   org.ExternalID,
@@ -76,6 +82,7 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 		"firstSeenConnectedAt": nil,
 		"platform":             org.Platform,
 		"environment":          org.Environment,
+		"trialExpiresAt":       string(trialExpiresAt),
 	}, body)
 }
 

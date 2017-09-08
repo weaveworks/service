@@ -128,6 +128,8 @@ message Organization {
     google.protobuf.Timestamp FirstSeenConnectedAt = 9 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
     string Platform = 10;
     string Environment = 11;
+    // When the organization's trial period expires.
+    google.protobuf.Timestamp TrialExpiresAt = 12 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
 }
 
 message SetOrganizationFlagRequest {
