@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -10,28 +9,26 @@ import (
 )
 
 // Organization defines a filter for listing organizations.
+// Supported filters
+// - id:<organization-id>
+// - instance:<external-id>
 type Organization struct {
-	Instance string `json:"instance,omitempty"`
-	ID       string `json:"id,omitempty"`
+	ID       string
+	Instance string
 
-	Search string `json:"-"`
-	Page   int32  `json:"-"`
+	Search string
+	Page   int32
 }
 
 // NewOrganization extracts filter values from the request.
 func NewOrganization(r *http.Request) Organization {
-	query := parseQuery(r.FormValue("query"))
-	o := Organization{}
-
-	// Copy filters over to the organization's fields.
-	// No error checking because we don't care, empty fields are fine.
-	bs, _ := json.Marshal(query.filters)
-	json.Unmarshal(bs, &o)
-
-	o.Search = strings.Join(query.search, " ")
-	o.Page = pageValue(r)
-
-	return o
+	q := parseQuery(r.FormValue("query"))
+	return Organization{
+		ID:       q.filters["id"],
+		Instance: q.filters["instance"],
+		Search:   strings.Join(q.search, " "),
+		Page:     pageValue(r),
+	}
 }
 
 // ExtendQuery applies the filter to the query builder.
