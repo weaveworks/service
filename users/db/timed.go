@@ -252,6 +252,12 @@ func (t timed) SetOrganizationFirstSeenConnectedAt(ctx context.Context, external
 	})
 }
 
+func (t timed) SetOrganizationPlatformEnvironment(ctx context.Context, externalID, platform, environment string) error {
+	return t.timeRequest(ctx, "SetOrganizationPlatformEnvironment", func(ctx context.Context) error {
+		return t.d.SetOrganizationPlatformEnvironment(ctx, externalID, platform, environment)
+	})
+}
+
 func (t timed) ListMemberships(ctx context.Context) (memberships []users.Membership, err error) {
 	t.timeRequest(ctx, "ListMemberships", func(ctx context.Context) error {
 		memberships, err = t.d.ListMemberships(ctx)

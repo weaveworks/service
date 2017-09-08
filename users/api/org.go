@@ -24,6 +24,8 @@ type OrgView struct {
 	DenyUIFeatures       bool       `json:"denyUIFeatures"`
 	DenyTokenAuth        bool       `json:"denyTokenAuth"`
 	FirstSeenConnectedAt *time.Time `json:"firstSeenConnectedAt"`
+	Platform             string     `json:"platform"`
+	Environment          string     `json:"environment"`
 }
 
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -45,6 +47,8 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 				DenyUIFeatures:       org.DenyUIFeatures,
 				DenyTokenAuth:        org.DenyTokenAuth,
 				FirstSeenConnectedAt: org.FirstSeenConnectedAt,
+				Platform:             org.Platform,
+				Environment:          org.Environment,
 			})
 			return
 		}
@@ -112,6 +116,10 @@ func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		return
 	}
 	if err := a.db.RenameOrganization(r.Context(), orgExternalID, view.Name); err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	if err := a.db.SetOrganizationPlatformEnvironment(r.Context(), orgExternalID, view.Platform, view.Environment); err != nil {
 		render.Error(w, r, err)
 		return
 	}

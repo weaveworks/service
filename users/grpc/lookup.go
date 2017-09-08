@@ -141,6 +141,8 @@ func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrgani
 			DenyUIFeatures:       org.DenyUIFeatures,
 			DenyTokenAuth:        org.DenyTokenAuth,
 			FirstSeenConnectedAt: org.FirstSeenConnectedAt,
+			Platform:             org.Platform,
+			Environment:          org.Environment,
 		})
 	}
 	return result, nil
@@ -163,6 +165,8 @@ func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganiz
 			DenyUIFeatures:       organization.DenyUIFeatures,
 			DenyTokenAuth:        organization.DenyTokenAuth,
 			FirstSeenConnectedAt: organization.FirstSeenConnectedAt,
+			Platform:             organization.Platform,
+			Environment:          organization.Environment,
 		},
 	}, nil
 }

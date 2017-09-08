@@ -89,6 +89,7 @@ type DB interface {
 	SetOrganizationDenyUIFeatures(ctx context.Context, externalID string, value bool) error
 	SetOrganizationDenyTokenAuth(ctx context.Context, externalID string, value bool) error
 	SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error
+	SetOrganizationPlatformEnvironment(ctx context.Context, externalID, platform, environment string) error
 
 	ListMemberships(ctx context.Context) ([]users.Membership, error)
 

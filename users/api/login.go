@@ -460,6 +460,8 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 			DenyUIFeatures:       org.DenyUIFeatures,
 			DenyTokenAuth:        org.DenyTokenAuth,
 			FirstSeenConnectedAt: org.FirstSeenConnectedAt,
+			Platform:             org.Platform,
+			Environment:          org.Environment,
 		})
 	}
 	render.JSON(w, http.StatusOK, view)

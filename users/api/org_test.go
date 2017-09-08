@@ -48,6 +48,8 @@ func Test_Org(t *testing.T) {
 		"denyUIFeatures":       org.DenyUIFeatures,
 		"denyTokenAuth":        org.DenyTokenAuth,
 		"firstSeenConnectedAt": nil,
+		"platform":             org.Platform,
+		"environment":          org.Environment,
 	}, body)
 }
 
@@ -72,6 +74,8 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 		"denyUIFeatures":       org.DenyUIFeatures,
 		"denyTokenAuth":        org.DenyTokenAuth,
 		"firstSeenConnectedAt": nil,
+		"platform":             org.Platform,
+		"environment":          org.Environment,
 	}, body)
 }
 
@@ -94,18 +98,21 @@ func Test_ListOrganizationUsers(t *testing.T) {
 }
 
 const (
-	orgName100 = "A Different Org Name 234567890 234567890 234567890 234567890 234567890 234567890 234567890 234567890"
-	orgName101 = "A DIFFERENT ORG NAME 234567890 234567890 234567890 234567890 234567890 234567890 234567890 2345678901"
+	orgName100     = "A Different Org Name 234567890 234567890 234567890 234567890 234567890 234567890 234567890 234567890"
+	orgName101     = "A DIFFERENT ORG NAME 234567890 234567890 234567890 234567890 234567890 234567890 234567890 2345678901"
+	platform100    = "a_new_platform"
+	environment100 = "a_new_environment"
 )
 
-func Test_RenameOrganization(t *testing.T) {
+func Test_UpdateOrganization(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	user, org := getOrg(t)
 	otherUser := getUser(t)
-	body := map[string]interface{}{"name": orgName100}
+	body := map[string]interface{}{"name": orgName100, "platform": platform100, "environment": environment100}
 
+	// Invalid auth
 	{
 		w := httptest.NewRecorder()
 		r := requestAs(t, otherUser, "PUT", "/api/users/org/"+org.ExternalID, jsonBody(body).Reader(t))
@@ -142,6 +149,8 @@ func Test_RenameOrganization(t *testing.T) {
 			assert.Equal(t, org.ID, organizations[0].ID)
 			assert.Equal(t, org.ExternalID, organizations[0].ExternalID)
 			assert.Equal(t, orgName100, organizations[0].Name)
+			assert.Equal(t, platform100, organizations[0].Platform)
+			assert.Equal(t, environment100, organizations[0].Environment)
 		}
 	}
 

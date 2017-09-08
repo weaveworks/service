@@ -102,6 +102,8 @@ message Organization {
     bool DenyUIFeatures = 7;
     bool DenyTokenAuth = 8;
     google.protobuf.Timestamp FirstSeenConnectedAt = 9 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+    string Platform = 10;
+    string Environment = 11;
 }
 
 message SetOrganizationFlagRequest {

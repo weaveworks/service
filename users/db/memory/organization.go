@@ -375,3 +375,12 @@ func (d *DB) SetOrganizationFirstSeenConnectedAt(_ context.Context, externalID s
 		return nil
 	})
 }
+
+// SetOrganizationPlatformEnvironment sets the organisation platform and environment
+func (d *DB) SetOrganizationPlatformEnvironment(_ context.Context, externalID, platform, environment string) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.Platform = platform
+		org.Environment = environment
+		return nil
+	})
+}
