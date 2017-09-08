@@ -237,7 +237,8 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 	}
 }
 
-var serviceStatusRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+// ServiceStatusRequestDuration instruments service status requests.
+var ServiceStatusRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 	Namespace: "users",
 	Name:      "get_service_status_request_duration_seconds",
 	Help:      "Time spent (in seconds) doing service status requests.",
@@ -259,7 +260,7 @@ func errorCode(err error) string {
 }
 
 func timeRequest(ctx context.Context, serviceName string, f func(context.Context) error) error {
-	return instrument.TimeRequestHistogramStatus(ctx, serviceName, serviceStatusRequestDuration, errorCode, f)
+	return instrument.TimeRequestHistogramStatus(ctx, serviceName, ServiceStatusRequestDuration, errorCode, f)
 }
 
 var netClient = &http.Client{
