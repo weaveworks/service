@@ -29,14 +29,19 @@ func pageValue(r *http.Request) int32 {
 	return int32(page)
 }
 
-// parseQuery extracts filters from the `query` form value.
-// It returns a map of `key:value` filters and a list of search terms
+// parseQuery extracts filters and search from the `query` form value.
+// It supports `<key>:<value>` for exact matches as well as `is:<key>`
+// for boolean toggles.
 func parseQuery(qs string) query {
 	q := query{filters: map[string]string{}}
 	for _, p := range strings.Fields(qs) {
 		if strings.Contains(p, queryFilterDelim) {
 			kv := strings.SplitN(p, queryFilterDelim, 2)
-			q.filters[kv[0]] = kv[1]
+			if kv[0] == "is" {
+				q.filters[kv[1]] = "true"
+			} else {
+				q.filters[kv[0]] = kv[1]
+			}
 		} else {
 			q.search = append(q.search, p)
 		}

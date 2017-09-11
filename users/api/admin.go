@@ -72,8 +72,7 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 	default: // render.FormatHTML
 		b, err := a.templates.Bytes("list_users.html", map[string]interface{}{
 			"Users":    users,
-			"Query":    f.Query,
-			"Admin":    f.AdminOnly,
+			"Query":    r.FormValue("query"),
 			"Page":     f.Page,
 			"NextPage": f.Page + 1,
 		})

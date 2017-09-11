@@ -26,18 +26,12 @@
             </span>
             <div class="mdl-layout-spacer"></div>
             {{if not .OrgExternalID}}
-            <div style="margin-right:2.5em">
-                <label class="mdl-checkbox mdl-js-checkbox" for="admin">
-                    <input type="checkbox" onclick="this.form.submit();" value="true" id="admin" name="admin" class="mdl-checkbox__input" {{if .Admin}}checked{{end}} />
-                    <span class="mdl-checkbox__label">Admin only</span>
-                </label>
-            </div>
             <label class="mdl-button mdl-js-button mdl-button--icon" for="query">
                 <i class="material-icons">search</i>
             </label>
             <div class="mdl-textfield mdl-js-textfield">
                 <input class="mdl-textfield__input" type="text" name="query" id="query" value="{{.Query}}">
-                <label class="mdl-textfield__label" for="query">Search for Email</label>
+                <label class="mdl-textfield__label" for="query">is:admin</label>
             </div>
             {{end}}
         </div>
@@ -110,7 +104,7 @@
       {{if .Page}}
       <div class="mdl-grid">
           <div class="mdl-layout-spacer"></div>
-          <a href="users?query={{.Query}}&admin={{.Admin}}&page={{.NextPage}}" class="mdl-button mdl-js-button mdl-button--raised">
+          <a href="users?query={{.Query}}&page={{.NextPage}}" class="mdl-button mdl-js-button mdl-button--raised">
               Next page
           </a>
       </div>
