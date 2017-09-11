@@ -49,7 +49,3 @@ func parseMachineFlag(flag string) (string, string) {
 	}
 	return "", ""
 }
-
-func days(duration time.Duration) float64 {
-	return duration.Hours() / 24.0
-}
