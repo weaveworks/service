@@ -428,3 +428,12 @@ func (d DB) SetOrganizationFirstSeenConnectedAt(_ context.Context, externalID st
 	)
 	return err
 }
+
+// SetOrganizationZuoraAccount sets the account number and time it was created at.
+func (d DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number string, createdAt *time.Time) error {
+	_, err := d.Exec(
+		`update organizations set zuora_account_number = $1, zuora_account_created_at = $2 where lower(external_id) = lower($3)`,
+		number, createdAt, externalID,
+	)
+	return err
+}

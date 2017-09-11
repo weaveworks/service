@@ -17,7 +17,7 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
-// DB is a postgres db, for dev and production
+// DB is a postgres db, for dev and production, it implements db.DB
 type DB struct {
 	dbProxy
 	squirrel.StatementBuilderType

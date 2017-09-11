@@ -3,6 +3,7 @@ package grpc
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -174,6 +175,28 @@ func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetT
 	return result, nil
 }
 
+func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users.GetDelinquentOrganizationsRequest) (*users.GetDelinquentOrganizationsResponse, error) {
+	// While billing is in development, only pick orgs with ff `billing`
+	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{FeatureFlags: []string{"billing"}})
+	if err != nil {
+		return nil, err
+	}
+
+	result := &users.GetDelinquentOrganizationsResponse{}
+	for _, org := range organizations {
+		// TODO: Move this filtering into the database layer.
+		if org.IsTrial(req.Now) {
+			continue
+		}
+		// Not Zuora account means the organization hasn't supplied means for payment
+		if org.ZuoraAccountNumber != "" {
+			continue
+		}
+		result.Organizations = append(result.Organizations, *org)
+	}
+	return result, nil
+}
+
 func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganizationRequest) (*users.GetOrganizationResponse, error) {
 	organization, err := a.db.FindOrganizationByID(ctx, req.ExternalID)
 	if err != nil {
@@ -182,17 +205,19 @@ func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganiz
 
 	return &users.GetOrganizationResponse{
 		Organization: users.Organization{
-			ID:                   organization.ID,
-			ExternalID:           organization.ExternalID,
-			Name:                 organization.Name,
-			ProbeToken:           organization.ProbeToken,
-			CreatedAt:            organization.CreatedAt,
-			FeatureFlags:         organization.FeatureFlags,
-			DenyUIFeatures:       organization.DenyUIFeatures,
-			DenyTokenAuth:        organization.DenyTokenAuth,
-			FirstSeenConnectedAt: organization.FirstSeenConnectedAt,
-			Platform:             organization.Platform,
-			Environment:          organization.Environment,
+			ID:                    organization.ID,
+			ExternalID:            organization.ExternalID,
+			Name:                  organization.Name,
+			ProbeToken:            organization.ProbeToken,
+			CreatedAt:             organization.CreatedAt,
+			FeatureFlags:          organization.FeatureFlags,
+			DenyUIFeatures:        organization.DenyUIFeatures,
+			DenyTokenAuth:         organization.DenyTokenAuth,
+			FirstSeenConnectedAt:  organization.FirstSeenConnectedAt,
+			Platform:              organization.Platform,
+			Environment:           organization.Environment,
+			ZuoraAccountNumber:    organization.ZuoraAccountNumber,
+			ZuoraAccountCreatedAt: organization.ZuoraAccountCreatedAt,
 		},
 	}, nil
 }
@@ -211,6 +236,20 @@ func (a *usersServer) SetOrganizationFlag(ctx context.Context, req *users.SetOrg
 		return nil, err
 	}
 	return &users.SetOrganizationFlagResponse{}, nil
+}
+
+func (a *usersServer) SetOrganizationZuoraAccount(ctx context.Context, req *users.SetOrganizationZuoraAccountRequest) (*users.SetOrganizationZuoraAccountResponse, error) {
+	var createdAt time.Time
+	if req.CreatedAt == nil {
+		createdAt = time.Now()
+	} else {
+		createdAt = *req.CreatedAt
+	}
+	err := a.db.SetOrganizationZuoraAccount(ctx, req.ExternalID, req.Number, &createdAt)
+	if err != nil {
+		return nil, err
+	}
+	return &users.SetOrganizationZuoraAccountResponse{}, nil
 }
 
 func (a *usersServer) GetUser(ctx context.Context, req *users.GetUserRequest) (*users.GetUserResponse, error) {

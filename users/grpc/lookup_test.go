@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,31 +42,71 @@ func Test_SetOrganizationFlag(t *testing.T) {
 	assert.False(t, org.DenyUIFeatures)
 	assert.False(t, org.DenyTokenAuth)
 
-	_, err := server.SetOrganizationFlag(
+	server.SetOrganizationFlag(
 		ctx, &users.SetOrganizationFlagRequest{
 			ExternalID: org.ExternalID,
 			Flag:       "DenyUIFeatures",
 			Value:      true,
 		})
-	require.NoError(t, err)
 	resp, _ := server.GetOrganization(ctx, &users.GetOrganizationRequest{ExternalID: org.ExternalID})
 	require.True(t, resp.Organization.DenyUIFeatures)
 
-	_, err = server.SetOrganizationFlag(
+	server.SetOrganizationFlag(
 		ctx, &users.SetOrganizationFlagRequest{
 			ExternalID: org.ExternalID,
 			Flag:       "DenyTokenAuth",
 			Value:      true,
 		})
-	require.NoError(t, err)
 	resp, _ = server.GetOrganization(ctx, &users.GetOrganizationRequest{ExternalID: org.ExternalID})
 	require.True(t, resp.Organization.DenyTokenAuth)
 
-	_, err = server.SetOrganizationFlag(
+	server.SetOrganizationFlag(
 		ctx, &users.SetOrganizationFlagRequest{
 			ExternalID: org.ExternalID,
 			Flag:       "",
 			Value:      true,
 		})
-	require.Error(t, err)
+}
+
+func Test_SetOrganizationAccountNumber(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	_, org := dbtest.GetOrg(t, database)
+
+	// initial state
+	assert.Nil(t, org.ZuoraAccountCreatedAt)
+	assert.Empty(t, org.ZuoraAccountNumber)
+
+	// set number, automatically sets createdAt
+	server.SetOrganizationZuoraAccount(
+		ctx, &users.SetOrganizationZuoraAccountRequest{
+			ExternalID: org.ExternalID,
+			Number:     "Wfirst-set",
+		})
+	ts := time.Now()
+	resp, _ := server.GetOrganization(ctx, &users.GetOrganizationRequest{ExternalID: org.ExternalID})
+	assert.Equal(t, "Wfirst-set", resp.Organization.ZuoraAccountNumber)
+	assert.True(t, resp.Organization.ZuoraAccountCreatedAt.Before(ts))
+
+	// update number, also updates createdAt
+	server.SetOrganizationZuoraAccount(
+		ctx, &users.SetOrganizationZuoraAccountRequest{
+			ExternalID: org.ExternalID,
+			Number:     "Wupdate",
+		})
+	resp, _ = server.GetOrganization(ctx, &users.GetOrganizationRequest{ExternalID: org.ExternalID})
+	assert.Equal(t, "Wupdate", resp.Organization.ZuoraAccountNumber)
+	assert.True(t, resp.Organization.ZuoraAccountCreatedAt.After(ts))
+
+	// explicitly set createdAt
+	createdAt := time.Now()
+	server.SetOrganizationZuoraAccount(
+		ctx, &users.SetOrganizationZuoraAccountRequest{
+			ExternalID: org.ExternalID,
+			Number:     "Wexplicit-date",
+			CreatedAt:  &createdAt,
+		})
+	resp, _ = server.GetOrganization(ctx, &users.GetOrganizationRequest{ExternalID: org.ExternalID})
+	assert.Equal(t, "Wexplicit-date", resp.Organization.ZuoraAccountNumber)
+	assert.True(t, resp.Organization.ZuoraAccountCreatedAt.Equal(createdAt))
 }

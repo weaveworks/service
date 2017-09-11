@@ -171,6 +171,11 @@ func (t traced) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externa
 	return t.d.SetOrganizationFirstSeenConnectedAt(ctx, externalID, value)
 }
 
+func (t traced) SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) (err error) {
+	defer func() { t.trace("SetOrganizationZuoraAccount", externalID, number, createdAt, err) }()
+	return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)
+}
+
 func (t traced) ListMemberships(ctx context.Context) (ms []users.Membership, err error) {
 	defer func() { t.trace("ListMemberships", err) }()
 	return t.d.ListMemberships(ctx)

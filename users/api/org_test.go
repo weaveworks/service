@@ -44,16 +44,18 @@ func Test_Org(t *testing.T) {
 	trialExpiresAt, err := org.TrialExpiresAt.MarshalText()
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"user":                 user.Email,
-		"id":                   org.ExternalID,
-		"name":                 org.Name,
-		"probeToken":           org.ProbeToken,
-		"denyUIFeatures":       org.DenyUIFeatures,
-		"denyTokenAuth":        org.DenyTokenAuth,
-		"firstSeenConnectedAt": nil,
-		"platform":             org.Platform,
-		"environment":          org.Environment,
-		"trialExpiresAt":       string(trialExpiresAt),
+		"user":                  user.Email,
+		"id":                    org.ExternalID,
+		"name":                  org.Name,
+		"probeToken":            org.ProbeToken,
+		"denyUIFeatures":        org.DenyUIFeatures,
+		"denyTokenAuth":         org.DenyTokenAuth,
+		"firstSeenConnectedAt":  nil,
+		"platform":              org.Platform,
+		"environment":           org.Environment,
+		"trialExpiresAt":        string(trialExpiresAt),
+		"zuoraAccountNumber":    "",
+		"zuoraAccountCreatedAt": nil,
 	}, body)
 }
 
@@ -83,6 +85,8 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 		"platform":             org.Platform,
 		"environment":          org.Environment,
 		"trialExpiresAt":       string(trialExpiresAt),
+		"zuoraAccountNumber":    "",
+		"zuoraAccountCreatedAt": nil,
 	}, body)
 }
 

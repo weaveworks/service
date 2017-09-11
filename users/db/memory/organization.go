@@ -408,3 +408,12 @@ func (d *DB) SetOrganizationFirstSeenConnectedAt(_ context.Context, externalID s
 		return nil
 	})
 }
+
+// SetOrganizationZuoraAccount sets the account number and time it was created at.
+func (d *DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number string, createdAt *time.Time) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.ZuoraAccountNumber = number
+		org.ZuoraAccountCreatedAt = createdAt
+		return nil
+	})
+}

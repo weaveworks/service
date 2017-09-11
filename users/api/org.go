@@ -16,17 +16,19 @@ import (
 
 // OrgView describes an organisation
 type OrgView struct {
-	User                 string     `json:"user,omitempty"`
-	ExternalID           string     `json:"id"`
-	Name                 string     `json:"name"`
-	ProbeToken           string     `json:"probeToken,omitempty"`
-	FeatureFlags         []string   `json:"featureFlags,omitempty"`
-	DenyUIFeatures       bool       `json:"denyUIFeatures"`
-	DenyTokenAuth        bool       `json:"denyTokenAuth"`
-	FirstSeenConnectedAt *time.Time `json:"firstSeenConnectedAt"`
-	Platform             string     `json:"platform"`
-	Environment          string     `json:"environment"`
-	TrialExpiresAt       time.Time  `json:"trialExpiresAt"`
+	User                  string     `json:"user,omitempty"`
+	ExternalID            string     `json:"id"`
+	Name                  string     `json:"name"`
+	ProbeToken            string     `json:"probeToken,omitempty"`
+	FeatureFlags          []string   `json:"featureFlags,omitempty"`
+	DenyUIFeatures        bool       `json:"denyUIFeatures"`
+	DenyTokenAuth         bool       `json:"denyTokenAuth"`
+	FirstSeenConnectedAt  *time.Time `json:"firstSeenConnectedAt"`
+	Platform              string     `json:"platform"`
+	Environment           string     `json:"environment"`
+	TrialExpiresAt        time.Time  `json:"trialExpiresAt"`
+	ZuoraAccountNumber    string     `json:"zuoraAccountNumber"`
+	ZuoraAccountCreatedAt *time.Time `json:"zuoraAccountCreatedAt"`
 }
 
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {

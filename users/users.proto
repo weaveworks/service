@@ -31,8 +31,16 @@ service Users {
     // GetTrialOrganizations returns all organizations that are currently in their
     // trial period.
     rpc GetTrialOrganizations(GetTrialOrganizationsRequest) returns (GetTrialOrganizationsResponse) {};
+    // GetDelinquentOrganizations returns all organizations that are beyond their
+    // trial period and haven't yet supplied any payment method. We determine this
+    // by means of having a Zuora account.
+    rpc GetDelinquentOrganizations(GetDelinquentOrganizationsRequest) returns (GetDelinquentOrganizationsResponse) {};
     rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse) {};
     rpc SetOrganizationFlag(SetOrganizationFlagRequest) returns (SetOrganizationFlagResponse) {};
+    // SetOrganizationZuoraAccount updates zuora account information. It should only
+    // be called when changed which denotes that an account has been created. If you
+    // omit `ZuoraAccountCreatedAt` it will be automatically updated to now.
+    rpc SetOrganizationZuoraAccount(SetOrganizationZuoraAccountRequest) returns (SetOrganizationZuoraAccountResponse) {};
 
     // GetUser returns details for a user
     rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
@@ -121,6 +129,18 @@ message GetTrialOrganizationsResponse {
     repeated Organization Organizations = 1 [(gogoproto.nullable) = false];
 }
 
+// An organization is delinquent if its trial period is expired and no
+// associated payment account exists.
+message GetDelinquentOrganizationsRequest {
+    // The current time for the purposes of determining whether the trial
+    // period has expired.
+    google.protobuf.Timestamp Now = 1 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+message GetDelinquentOrganizationsResponse {
+    repeated Organization Organizations = 1 [(gogoproto.nullable) = false];
+}
+
 message GetOrganizationRequest {
     string ExternalID = 1;
 }
@@ -143,6 +163,17 @@ message Organization {
     string Environment = 11;
     // When the organization's trial period expires.
     google.protobuf.Timestamp TrialExpiresAt = 12 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+    string ZuoraAccountNumber = 13;
+    google.protobuf.Timestamp ZuoraAccountCreatedAt = 14 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+}
+
+message SetOrganizationZuoraAccountRequest {
+    string ExternalID = 1;
+    string Number = 2;
+    google.protobuf.Timestamp CreatedAt = 3 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+}
+
+message SetOrganizationZuoraAccountResponse {
 }
 
 message SetOrganizationFlagRequest {

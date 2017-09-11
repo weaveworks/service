@@ -252,6 +252,12 @@ func (t timed) SetOrganizationFirstSeenConnectedAt(ctx context.Context, external
 	})
 }
 
+func (t timed) SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error {
+	return t.timeRequest(ctx, "SetOrganizationZuoraAccount", func(ctx context.Context) error {
+		return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)
+	})
+}
+
 func (t timed) ListMemberships(ctx context.Context) (memberships []users.Membership, err error) {
 	t.timeRequest(ctx, "ListMemberships", func(ctx context.Context) error {
 		memberships, err = t.d.ListMemberships(ctx)
