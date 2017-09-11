@@ -278,17 +278,25 @@ func changeOrg(d *DB, externalID string, toWrap func(*users.Organization) error)
 	return toWrap(o)
 }
 
-// RenameOrganization changes an organization's user-settable name
-func (d *DB) RenameOrganization(_ context.Context, externalID, name string) error {
-	if len(name) > organizationMaxLength {
+// UpdateOrganization changes an organization's user-settable name
+func (d *DB) UpdateOrganization(_ context.Context, externalID string, update users.OrgWriteView) error {
+	if update.Name != nil && len(*update.Name) > organizationMaxLength {
 		return &errorOrgNameLengthConstraint
 	}
-	if err := (&users.Organization{ExternalID: externalID, Name: name}).Valid(); err != nil {
-		return err
-	}
-
 	return changeOrg(d, externalID, func(o *users.Organization) error {
-		o.Name = name
+		if update.Name != nil {
+			o.Name = *update.Name
+		}
+		if update.Platform != nil {
+			o.Platform = *update.Platform
+		}
+		if update.Environment != nil {
+			o.Environment = *update.Environment
+		}
+
+		if err := o.Valid(); err != nil {
+			return err
+		}
 		return nil
 	})
 }

@@ -126,9 +126,9 @@ func (t traced) FindOrganizationByID(ctx context.Context, externalID string) (o 
 	return t.d.FindOrganizationByID(ctx, externalID)
 }
 
-func (t traced) RenameOrganization(ctx context.Context, externalID, name string) (err error) {
-	defer func() { t.trace("RenameOrganization", externalID, name, err) }()
-	return t.d.RenameOrganization(ctx, externalID, name)
+func (t traced) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) (err error) {
+	defer func() { t.trace("UpdateOrganization", externalID, update, err) }()
+	return t.d.UpdateOrganization(ctx, externalID, update)
 }
 
 func (t traced) OrganizationExists(ctx context.Context, externalID string) (b bool, err error) {

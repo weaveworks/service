@@ -24,6 +24,8 @@ type OrgView struct {
 	DenyUIFeatures       bool       `json:"denyUIFeatures"`
 	DenyTokenAuth        bool       `json:"denyTokenAuth"`
 	FirstSeenConnectedAt *time.Time `json:"firstSeenConnectedAt"`
+	Platform             string     `json:"platform"`
+	Environment          string     `json:"environment"`
 }
 
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -45,6 +47,8 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 				DenyUIFeatures:       org.DenyUIFeatures,
 				DenyTokenAuth:        org.DenyTokenAuth,
 				FirstSeenConnectedAt: org.FirstSeenConnectedAt,
+				Platform:             org.Platform,
+				Environment:          org.Environment,
 			})
 			return
 		}
@@ -95,23 +99,19 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 
 func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	var view OrgView
-	err := json.NewDecoder(r.Body).Decode(&view)
+	var update users.OrgWriteView
+	err := json.NewDecoder(r.Body).Decode(&update)
 	switch {
 	case err != nil:
 		render.Error(w, r, users.MalformedInputError(err))
 		return
-	case view.ExternalID != "":
-		render.Error(w, r, users.ValidationErrorf("ID cannot be changed"))
-		return
 	}
-
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
 		render.Error(w, r, err)
 		return
 	}
-	if err := a.db.RenameOrganization(r.Context(), orgExternalID, view.Name); err != nil {
+	if err := a.db.UpdateOrganization(r.Context(), orgExternalID, update); err != nil {
 		render.Error(w, r, err)
 		return
 	}

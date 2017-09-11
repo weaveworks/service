@@ -194,9 +194,9 @@ func (t timed) FindOrganizationByID(ctx context.Context, externalID string) (o *
 	return
 }
 
-func (t timed) RenameOrganization(ctx context.Context, externalID, name string) error {
-	return t.timeRequest(ctx, "RenameOrganization", func(ctx context.Context) error {
-		return t.d.RenameOrganization(ctx, externalID, name)
+func (t timed) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error {
+	return t.timeRequest(ctx, "UpdateOrganization", func(ctx context.Context) error {
+		return t.d.UpdateOrganization(ctx, externalID, update)
 	})
 }
 

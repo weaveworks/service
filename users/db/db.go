@@ -80,7 +80,7 @@ type DB interface {
 	CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (*users.Organization, error)
 	FindOrganizationByProbeToken(ctx context.Context, probeToken string) (*users.Organization, error)
 	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)
-	RenameOrganization(ctx context.Context, externalID, newName string) error
+	UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error
 	OrganizationExists(ctx context.Context, externalID string) (bool, error)
 	GetOrganizationName(ctx context.Context, externalID string) (string, error)
 	DeleteOrganization(ctx context.Context, externalID string) error

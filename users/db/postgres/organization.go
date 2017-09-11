@@ -66,6 +66,8 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.deny_ui_features",
 		"organizations.deny_token_auth",
 		"organizations.first_seen_connected_at",
+		"organizations.platform",
+		"organizations.environment",
 	).
 		From("organizations").
 		Where("organizations.deleted_at is null").
@@ -259,11 +261,23 @@ func (d DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
 
 func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, error) {
 	o := &users.Organization{}
-	var externalID, name, probeToken sql.NullString
+	var externalID, name, probeToken, platform, environment sql.NullString
 	var createdAt pq.NullTime
 	var firstSeenConnectedAt *time.Time
 	var denyUIFeatures, denyTokenAuth bool
-	if err := row.Scan(&o.ID, &externalID, &name, &probeToken, &createdAt, pq.Array(&o.FeatureFlags), &denyUIFeatures, &denyTokenAuth, &firstSeenConnectedAt); err != nil {
+	if err := row.Scan(
+		&o.ID,
+		&externalID,
+		&name,
+		&probeToken,
+		&createdAt,
+		pq.Array(&o.FeatureFlags),
+		&denyUIFeatures,
+		&denyTokenAuth,
+		&firstSeenConnectedAt,
+		&platform,
+		&environment,
+	); err != nil {
 		return nil, err
 	}
 	o.ExternalID = externalID.String
@@ -273,21 +287,45 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.DenyUIFeatures = denyUIFeatures
 	o.DenyTokenAuth = denyTokenAuth
 	o.FirstSeenConnectedAt = firstSeenConnectedAt
+	o.Platform = platform.String
+	o.Environment = environment.String
 
 	return o, nil
 }
 
-// RenameOrganization changes an organization's user-settable name
-func (d DB) RenameOrganization(_ context.Context, externalID, name string) error {
-	if err := (&users.Organization{ExternalID: externalID, Name: name}).Valid(); err != nil {
+// UpdateOrganization changes an organization's user-settable name
+func (d DB) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error {
+	// Get org for validation and add update fields to setFields
+	org, err := d.FindOrganizationByID(ctx, externalID)
+	if err != nil {
+		return err
+	}
+	setFields := map[string]interface{}{}
+	if update.Name != nil {
+		org.Name = *update.Name
+		setFields["name"] = *update.Name
+	}
+	if update.Platform != nil {
+		org.Platform = *update.Platform
+		setFields["platform"] = *update.Platform
+	}
+	if update.Environment != nil {
+		org.Environment = *update.Environment
+		setFields["environment"] = *update.Environment
+	}
+
+	if len(setFields) == 0 {
+		return nil
+	}
+
+	if err := org.Valid(); err != nil {
 		return err
 	}
 
-	result, err := d.Exec(`
-		update organizations set name = $2
-		where lower(external_id) = lower($1) and deleted_at is null`,
-		externalID, name,
-	)
+	result, err := d.Update("organizations").
+		SetMap(setFields).
+		Where(squirrel.Expr("lower(external_id) = lower(?) and deleted_at is null", externalID)).
+		Exec()
 	if err != nil {
 		return err
 	}
