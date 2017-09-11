@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/Masterminds/squirrel"
