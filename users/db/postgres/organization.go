@@ -300,9 +300,12 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 }
 
 // UpdateOrganization changes an organization's user-settable name
-func (d DB) UpdateOrganization(_ context.Context, externalID string, update users.OrgWriteView) error {
-	// Create org for validation and add update fields to setFields
-	org := &users.Organization{ExternalID: externalID}
+func (d DB) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error {
+	// Get org for validation and add update fields to setFields
+	org, err := d.FindOrganizationByID(ctx, externalID)
+	if err != nil {
+		return err
+	}
 	setFields := map[string]interface{}{}
 	if update.Name != nil {
 		org.Name = *update.Name
@@ -317,13 +320,17 @@ func (d DB) UpdateOrganization(_ context.Context, externalID string, update user
 		setFields["environment"] = *update.Environment
 	}
 
+	if len(setFields) == 0 {
+		return nil
+	}
+
 	if err := org.Valid(); err != nil {
 		return err
 	}
 
 	result, err := d.Update("organizations").
 		SetMap(setFields).
-		Where("lower(external_id) = lower($1) and deleted_at is null").
+		Where(squirrel.Expr("lower(external_id) = lower(?) and deleted_at is null", externalID)).
 		Exec()
 	if err != nil {
 		return err

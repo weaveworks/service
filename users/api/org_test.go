@@ -98,10 +98,10 @@ func Test_ListOrganizationUsers(t *testing.T) {
 }
 
 const (
-	orgName100     = "A Different Org Name 234567890 234567890 234567890 234567890 234567890 234567890 234567890 234567890"
-	orgName101     = "A DIFFERENT ORG NAME 234567890 234567890 234567890 234567890 234567890 234567890 234567890 2345678901"
-	platform100    = "kubernetes"
-	environment100 = "minikube"
+	orgName100  = "A Different Org Name 234567890 234567890 234567890 234567890 234567890 234567890 234567890 234567890"
+	orgName101  = "A DIFFERENT ORG NAME 234567890 234567890 234567890 234567890 234567890 234567890 234567890 2345678901"
+	platform    = "kubernetes"
+	environment = "minikube"
 )
 
 func Test_UpdateOrganization(t *testing.T) {
@@ -110,7 +110,7 @@ func Test_UpdateOrganization(t *testing.T) {
 
 	user, org := getOrg(t)
 	otherUser := getUser(t)
-	body := map[string]interface{}{"name": orgName100, "platform": platform100, "environment": environment100}
+	body := map[string]interface{}{"name": orgName100, "platform": platform, "environment": environment}
 
 	// Invalid auth
 	{
@@ -149,8 +149,8 @@ func Test_UpdateOrganization(t *testing.T) {
 			assert.Equal(t, org.ID, organizations[0].ID)
 			assert.Equal(t, org.ExternalID, organizations[0].ExternalID)
 			assert.Equal(t, orgName100, organizations[0].Name)
-			assert.Equal(t, platform100, organizations[0].Platform)
-			assert.Equal(t, environment100, organizations[0].Environment)
+			assert.Equal(t, platform, organizations[0].Platform)
+			assert.Equal(t, environment, organizations[0].Environment)
 		}
 	}
 
