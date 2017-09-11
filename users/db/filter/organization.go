@@ -12,9 +12,11 @@ import (
 // Supported filters
 // - id:<organization-id>
 // - instance:<external-id>
+// - has:<feature-flag>
 type Organization struct {
-	ID       string
-	Instance string
+	ID           string
+	Instance     string
+	FeatureFlags []string
 
 	Search string
 	Page   int32
@@ -24,10 +26,11 @@ type Organization struct {
 func NewOrganization(r *http.Request) Organization {
 	q := parseQuery(r.FormValue("query"))
 	return Organization{
-		ID:       q.filters["id"],
-		Instance: q.filters["instance"],
-		Search:   strings.Join(q.search, " "),
-		Page:     pageValue(r),
+		ID:           q.filters["id"],
+		Instance:     q.filters["instance"],
+		FeatureFlags: q.flags,
+		Search:       strings.Join(q.search, " "),
+		Page:         pageValue(r),
 	}
 }
 
@@ -41,6 +44,11 @@ func (o Organization) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuild
 			fmt.Sprint("%", strings.ToLower(o.Search), "%"))
 	}
 
+	// AND all feature flags (I'm certain there is a better way to do this)
+	for _, f := range o.FeatureFlags {
+		b = b.Where("?=ANY(feature_flags)", f)
+	}
+
 	where := squirrel.Eq{}
 	if o.ID != "" {
 		where["id"] = o.ID
@@ -48,5 +56,6 @@ func (o Organization) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuild
 	if o.Instance != "" {
 		where["external_id"] = o.Instance
 	}
+
 	return b.Where(where)
 }

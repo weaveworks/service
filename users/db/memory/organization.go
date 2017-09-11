@@ -71,6 +71,8 @@ func (d *DB) ListOrganizations(_ context.Context, f filter.Organization) ([]*use
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	orgs := []*users.Organization{}
+
+ORG:
 	for _, org := range d.organizations {
 		if f.ID != "" && org.ID != f.ID {
 			continue
@@ -78,10 +80,21 @@ func (d *DB) ListOrganizations(_ context.Context, f filter.Organization) ([]*use
 		if f.Instance != "" && org.ExternalID != f.Instance {
 			continue
 		}
-
-		if strings.Contains(org.Name, f.Search) {
-			orgs = append(orgs, org)
+		if f.Search != "" && !strings.Contains(org.Name, f.Search) {
+			continue
 		}
+
+	WANT:
+		for _, wantflag := range f.FeatureFlags {
+			for _, hasflag := range org.FeatureFlags {
+				if hasflag == wantflag {
+					continue WANT
+				}
+			}
+			continue ORG
+		}
+
+		orgs = append(orgs, org)
 	}
 	sort.Sort(organizationsByCreatedAt(orgs))
 	return orgs, nil
