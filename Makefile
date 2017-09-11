@@ -111,7 +111,7 @@ notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
 		-v $(shell pwd)/notebooks/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/notebooks \
 		--link "$$DB_CONTAINER":configs-db.weave.local \
-		golang:1.8.0 \
+		golang:1.8.3-stretch \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
@@ -124,7 +124,7 @@ users-integration-test: $(USERS_UPTODATE)
 		-v $(shell pwd)/users/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/users \
 		--link "$$DB_CONTAINER":users-db.weave.local \
-		golang:1.8.0 \
+		golang:1.8.3-stretch \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \

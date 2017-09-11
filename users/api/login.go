@@ -456,6 +456,7 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 		view.Organizations = append(view.Organizations, OrgView{
 			ExternalID:           org.ExternalID,
 			Name:                 org.Name,
+			ProbeToken:           org.ProbeToken,
 			FeatureFlags:         append(org.FeatureFlags, a.forceFeatureFlags...),
 			DenyUIFeatures:       org.DenyUIFeatures,
 			DenyTokenAuth:        org.DenyTokenAuth,
