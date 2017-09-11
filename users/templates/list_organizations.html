@@ -78,7 +78,14 @@
         <td>{{.ExternalID}}</td>
         <td style="max-width:300px;text-overflow:ellipsis;overflow:hidden" title="{{.Name}}">{{.Name}}</td>
         <td>{{.FormatCreatedAt}}</td>
-        <td>{{.FirstSeenConnectedAt}}</td>
+        <td>{{if .FirstSeenConnectedAt}}{{.FirstSeenConnectedAt}}{{ else }}
+            <form action="organizations/{{.ExternalID}}" method="POST">
+                <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+                <input type="hidden" name="field" value="FirstSeenConnectedAt">
+                <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent"
+                type="submit" value="Onboard" />
+            </form>
+        {{ end }}</td>
         <td>
           <form action="organizations/{{.ExternalID}}" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">

@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
@@ -183,6 +184,9 @@ func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	switch field {
+	case "FirstSeenConnectedAt":
+		now := time.Now()
+		err = a.db.SetOrganizationFirstSeenConnectedAt(r.Context(), orgExternalID, &now)
 	case "DenyUIFeatures":
 		deny := value == "on"
 		err = a.db.SetOrganizationDenyUIFeatures(r.Context(), orgExternalID, deny)
