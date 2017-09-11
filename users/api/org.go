@@ -26,6 +26,7 @@ type OrgView struct {
 	FirstSeenConnectedAt *time.Time `json:"firstSeenConnectedAt"`
 	Platform             string     `json:"platform"`
 	Environment          string     `json:"environment"`
+	TrialExpiresAt       time.Time  `json:"trialExpiresAt"`
 }
 
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -49,6 +50,7 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 				FirstSeenConnectedAt: org.FirstSeenConnectedAt,
 				Platform:             org.Platform,
 				Environment:          org.Environment,
+				TrialExpiresAt:       org.TrialExpiresAt,
 			})
 			return
 		}

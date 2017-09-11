@@ -89,3 +89,13 @@ func (o *Organization) Valid() error {
 func (o *Organization) FormatCreatedAt() string {
 	return formatTimestamp(o.CreatedAt)
 }
+
+// HasFeatureFlag returns true if the organization has the given feature flag.
+func (o *Organization) HasFeatureFlag(needle string) bool {
+	for _, f := range o.FeatureFlags {
+		if f == needle {
+			return true
+		}
+	}
+	return false
+}

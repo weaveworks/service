@@ -236,6 +236,11 @@ func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, to
 			return nil, users.ErrOrgTokenIsTaken
 		}
 	}
+	trialExpiry, err := users.CalculateTrialExpiry(o.CreatedAt, []string{})
+	if err != nil {
+		panic(fmt.Sprintf("Could not calculate trial expiry: %v", err))
+	}
+	o.TrialExpiresAt = trialExpiry
 	d.organizations[o.ID] = o
 	d.memberships[o.ID] = []string{ownerID}
 	return o, nil
