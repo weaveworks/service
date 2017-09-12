@@ -69,6 +69,8 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.first_seen_connected_at",
 		"organizations.platform",
 		"organizations.environment",
+		"organizations.zuora_account_number",
+		"organizations.zuora_account_created_at",
 	).
 		From("organizations").
 		Where("organizations.deleted_at is null").
@@ -149,7 +151,7 @@ func (d DB) GenerateOrganizationExternalID(ctx context.Context) (string, error) 
 	var (
 		externalID string
 		err        error
-		terr	error
+		terr       error
 	)
 	err = d.Transaction(func(tx DB) error {
 		for exists := true; exists; {
@@ -176,9 +178,11 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 	}
 
 	err := d.Transaction(func(tx DB) error {
-		if exists, err := tx.OrganizationExists(ctx, o.ExternalID); err != nil {
+		exists, err := tx.OrganizationExists(ctx, o.ExternalID)
+		if err != nil {
 			return err
-		} else if exists {
+		}
+		if exists {
 			return users.ErrOrgExternalIDIsTaken
 		}
 
@@ -202,7 +206,7 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 			}
 		}
 
-		err := tx.QueryRow(`insert into organizations
+		err = tx.QueryRow(`insert into organizations
 			(external_id, name, probe_token, created_at)
 			values (lower($1), $2, $3, $4) returning id`,
 			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt,
@@ -271,9 +275,9 @@ func (d DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
 
 func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, error) {
 	o := &users.Organization{}
-	var externalID, name, probeToken, platform, environment sql.NullString
+	var externalID, name, probeToken, platform, environment, zuoraAccountNumber sql.NullString
 	var createdAt pq.NullTime
-	var firstSeenConnectedAt *time.Time
+	var firstSeenConnectedAt, zuoraAccountCreatedAt *time.Time
 	var denyUIFeatures, denyTokenAuth bool
 	if err := row.Scan(
 		&o.ID,
@@ -287,6 +291,8 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&firstSeenConnectedAt,
 		&platform,
 		&environment,
+		&zuoraAccountNumber,
+		&zuoraAccountCreatedAt,
 	); err != nil {
 		return nil, err
 	}
@@ -299,6 +305,8 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.FirstSeenConnectedAt = firstSeenConnectedAt
 	o.Platform = platform.String
 	o.Environment = environment.String
+	o.ZuoraAccountNumber = zuoraAccountNumber.String
+	o.ZuoraAccountCreatedAt = zuoraAccountCreatedAt
 
 	// TODO: Store trial expiry in the database, rather than deriving from these fields
 	trialExpiry, err := users.CalculateTrialExpiry(o.CreatedAt, o.FeatureFlags)
@@ -360,7 +368,7 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 func (d DB) OrganizationExists(_ context.Context, externalID string) (bool, error) {
 	var exists bool
 	err := d.QueryRow(
-		`select exists(select 1 from organizations where lower(external_id) = lower($1)) and deleted_at is null`,
+		`select exists(select 1 from organizations where lower(external_id) = lower($1) and deleted_at is null)`,
 		externalID,
 	).Scan(&exists)
 	return exists, err

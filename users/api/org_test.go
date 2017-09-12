@@ -344,14 +344,14 @@ func Test_Organization_CheckIfExternalIDExists(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	}
 
-	// Delete the org and check it still exists
+	// Delete the org and check it is no longer available
 	err = database.DeleteOrganization(context.Background(), org.ExternalID)
 	require.NoError(t, err)
 
 	{
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, r)
-		assert.Equal(t, http.StatusForbidden, w.Code)
+		assert.Equal(t, http.StatusNotFound, w.Code)
 	}
 }
 
