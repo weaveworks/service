@@ -147,7 +147,7 @@ func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.G
 	result := &users.GetBillableOrganizationsResponse{}
 	for _, org := range organizations {
 		// TODO: Move this filtering into the database layer.
-		if org.IsTrial(req.Now) {
+		if org.InTrialPeriod(req.Now) {
 			// Still in trial period, so not billable.
 			continue
 		}
@@ -166,7 +166,7 @@ func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetT
 	result := &users.GetTrialOrganizationsResponse{}
 	for _, org := range organizations {
 		// TODO: Move this filtering into the database layer.
-		if !org.IsTrial(req.Now) {
+		if !org.InTrialPeriod(req.Now) {
 			continue
 		}
 		result.Organizations = append(result.Organizations, *org)

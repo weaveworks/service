@@ -28,7 +28,7 @@ func NewOrganization(r *http.Request) Organization {
 	return Organization{
 		ID:           q.filters["id"],
 		Instance:     q.filters["instance"],
-		FeatureFlags: q.flags,
+		FeatureFlags: q.featureFlags,
 		Search:       strings.Join(q.search, " "),
 		Page:         pageValue(r),
 	}
@@ -44,7 +44,7 @@ func (o Organization) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuild
 			fmt.Sprint("%", strings.ToLower(o.Search), "%"))
 	}
 
-	// AND all feature flags (I'm certain there is a better way to do this)
+	// `AND` all feature flags
 	for _, f := range o.FeatureFlags {
 		b = b.Where("?=ANY(feature_flags)", f)
 	}

@@ -55,8 +55,8 @@ func (o *Organization) RegenerateProbeToken() error {
 	return nil
 }
 
-// IsTrial determines whether this organization is within its trial period.
-func (o *Organization) IsTrial(now time.Time) bool {
+// InTrialPeriod determines whether this organization is within its trial period.
+func (o *Organization) InTrialPeriod(now time.Time) bool {
 	return o.TrialExpiresAt.After(now)
 }
 

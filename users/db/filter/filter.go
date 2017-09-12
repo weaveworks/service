@@ -15,9 +15,9 @@ const (
 )
 
 type query struct {
-	filters map[string]string
-	flags   []string
-	search  []string
+	filters      map[string]string
+	featureFlags []string
+	search       []string
 }
 
 // pageValue extracts the `page` form value of the request. It also
@@ -42,7 +42,7 @@ func parseQuery(qs string) query {
 			case "is":
 				q.filters[kv[1]] = "true"
 			case "has":
-				q.flags = append(q.flags, kv[1])
+				q.featureFlags = append(q.featureFlags, kv[1])
 			default:
 				q.filters[kv[0]] = kv[1]
 			}
