@@ -185,7 +185,7 @@ func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users
 	result := &users.GetDelinquentOrganizationsResponse{}
 	for _, org := range organizations {
 		// TODO: Move this filtering into the database layer.
-		if org.IsTrial(req.Now) {
+		if org.InTrialPeriod(req.Now) {
 			continue
 		}
 		// Not Zuora account means the organization hasn't supplied means for payment
