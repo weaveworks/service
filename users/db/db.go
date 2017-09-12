@@ -82,6 +82,7 @@ type DB interface {
 	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)
 	UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error
 	OrganizationExists(ctx context.Context, externalID string) (bool, error)
+	ExternalIDUsed(ctx context.Context, externalID string) (bool, error)
 	GetOrganizationName(ctx context.Context, externalID string) (string, error)
 	DeleteOrganization(ctx context.Context, externalID string) error
 	AddFeatureFlag(ctx context.Context, externalID string, featureFlag string) error

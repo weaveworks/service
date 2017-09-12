@@ -136,6 +136,11 @@ func (t traced) OrganizationExists(ctx context.Context, externalID string) (b bo
 	return t.d.OrganizationExists(ctx, externalID)
 }
 
+func (t traced) ExternalIDUsed(ctx context.Context, externalID string) (b bool, err error) {
+	defer func() { t.trace("ExternalIDUsed", externalID, b, err) }()
+	return t.d.ExternalIDUsed(ctx, externalID)
+}
+
 func (t traced) GetOrganizationName(ctx context.Context, externalID string) (name string, err error) {
 	defer func() { t.trace("GetOrganizationName", externalID, name, err) }()
 	return t.d.GetOrganizationName(ctx, externalID)
