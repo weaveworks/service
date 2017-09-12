@@ -356,7 +356,7 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 func (d DB) OrganizationExists(_ context.Context, externalID string) (bool, error) {
 	var exists bool
 	err := d.QueryRow(
-		`select exists(select 1 from organizations where lower(external_id) = lower($1))`,
+		`select exists(select 1 from organizations where lower(external_id) = lower($1)) and deleted_at is null`,
 		externalID,
 	).Scan(&exists)
 	return exists, err
@@ -384,7 +384,7 @@ func (d DB) DeleteOrganization(_ context.Context, externalID string) error {
 // AddFeatureFlag adds a new feature flag to a organization.
 func (d DB) AddFeatureFlag(_ context.Context, externalID string, featureFlag string) error {
 	_, err := d.Exec(
-		`update organizations set feature_flags = feature_flags || $1 where lower(external_id) = lower($2)`,
+		`update organizations set feature_flags = feature_flags || $1 where lower(external_id) = lower($2) and deleted_at is null`,
 		pq.Array([]string{featureFlag}), externalID,
 	)
 	return err
@@ -396,7 +396,7 @@ func (d DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags [
 		featureFlags = make([]string, 0)
 	}
 	_, err := d.Exec(
-		`update organizations set feature_flags = $1 where lower(external_id) = lower($2)`,
+		`update organizations set feature_flags = $1 where lower(external_id) = lower($2) and deleted_at is null`,
 		pq.Array(featureFlags), externalID,
 	)
 	return err
@@ -405,7 +405,7 @@ func (d DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags [
 // SetOrganizationDenyUIFeatures sets the "deny UI features" flag on an organization
 func (d DB) SetOrganizationDenyUIFeatures(_ context.Context, externalID string, value bool) error {
 	_, err := d.Exec(
-		`update organizations set deny_ui_features = $1 where lower(external_id) = lower($2)`,
+		`update organizations set deny_ui_features = $1 where lower(external_id) = lower($2) and deleted_at is null`,
 		value, externalID,
 	)
 	return err
@@ -414,7 +414,7 @@ func (d DB) SetOrganizationDenyUIFeatures(_ context.Context, externalID string, 
 // SetOrganizationDenyTokenAuth sets the "deny token auth" flag on an organization
 func (d DB) SetOrganizationDenyTokenAuth(_ context.Context, externalID string, value bool) error {
 	_, err := d.Exec(
-		`update organizations set deny_token_auth = $1 where lower(external_id) = lower($2)`,
+		`update organizations set deny_token_auth = $1 where lower(external_id) = lower($2) and deleted_at is null`,
 		value, externalID,
 	)
 	return err
@@ -423,7 +423,7 @@ func (d DB) SetOrganizationDenyTokenAuth(_ context.Context, externalID string, v
 // SetOrganizationFirstSeenConnectedAt sets the first time an organisation has been connected
 func (d DB) SetOrganizationFirstSeenConnectedAt(_ context.Context, externalID string, value *time.Time) error {
 	_, err := d.Exec(
-		`update organizations set first_seen_connected_at = $1 where lower(external_id) = lower($2)`,
+		`update organizations set first_seen_connected_at = $1 where lower(external_id) = lower($2) and deleted_at is null`,
 		value, externalID,
 	)
 	return err
@@ -432,7 +432,7 @@ func (d DB) SetOrganizationFirstSeenConnectedAt(_ context.Context, externalID st
 // SetOrganizationZuoraAccount sets the account number and time it was created at.
 func (d DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number string, createdAt *time.Time) error {
 	_, err := d.Exec(
-		`update organizations set zuora_account_number = $1, zuora_account_created_at = $2 where lower(external_id) = lower($3)`,
+		`update organizations set zuora_account_number = $1, zuora_account_created_at = $2 where lower(external_id) = lower($3) and deleted_at is null`,
 		number, createdAt, externalID,
 	)
 	return err
