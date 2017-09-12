@@ -149,11 +149,15 @@ func (d DB) GenerateOrganizationExternalID(ctx context.Context) (string, error) 
 	var (
 		externalID string
 		err        error
+		terr	error
 	)
 	err = d.Transaction(func(tx DB) error {
 		for exists := true; exists; {
 			externalID = externalIDs.Generate()
-			exists, err = tx.OrganizationExists(ctx, externalID)
+			exists, terr = tx.OrganizationExists(ctx, externalID)
+			if terr != nil {
+				return terr
+			}
 		}
 		return nil
 	})
