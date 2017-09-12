@@ -7,6 +7,12 @@ import (
 	"github.com/weaveworks/service/users/tokens"
 )
 
+const (
+	// DefaultTrialLength is how long an organization has as a free trial
+	// period before we start charging for it.
+	DefaultTrialLength = 30 * 24 * time.Hour
+)
+
 var (
 	orgExternalIDRegex = regexp.MustCompile(`\A[a-zA-Z0-9_-]+\z`)
 	// Must be kept in sync with service-ui/client/src/content/environments.json

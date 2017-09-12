@@ -213,11 +213,13 @@ func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, to
 	if len(name) > organizationMaxLength {
 		return nil, &errorOrgNameLengthConstraint
 	}
+	now := time.Now().UTC()
 	o := &users.Organization{
-		ID:         fmt.Sprint(len(d.organizations)),
-		ExternalID: externalID,
-		Name:       name,
-		CreatedAt:  time.Now().UTC(),
+		ID:             fmt.Sprint(len(d.organizations)),
+		ExternalID:     externalID,
+		Name:           name,
+		CreatedAt:      now,
+		TrialExpiresAt: now.Add(users.DefaultTrialLength),
 	}
 	if err := o.Valid(); err != nil {
 		return nil, err
@@ -246,11 +248,6 @@ func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, to
 			return nil, users.ErrOrgTokenIsTaken
 		}
 	}
-	trialExpiry, err := users.CalculateTrialExpiry(o.CreatedAt, []string{})
-	if err != nil {
-		panic(fmt.Sprintf("Could not calculate trial expiry: %v", err))
-	}
-	o.TrialExpiresAt = trialExpiry
 	d.organizations[o.ID] = o
 	d.memberships[o.ID] = []string{ownerID}
 	return o, nil
