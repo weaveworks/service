@@ -28,6 +28,9 @@ service Users {
     // about payment status, so will include organizations that are well past
     // their trial period but haven't provided credit card details.
     rpc GetBillableOrganizations(GetBillableOrganizationsRequest) returns (GetBillableOrganizationsResponse) {};
+    // GetTrialOrganizations returns all organizations that are currently in their
+    // trial period.
+    rpc GetTrialOrganizations(GetTrialOrganizationsRequest) returns (GetTrialOrganizationsResponse) {};
     rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse) {};
     rpc SetOrganizationFlag(SetOrganizationFlagRequest) returns (SetOrganizationFlagResponse) {};
 
@@ -105,6 +108,16 @@ message GetBillableOrganizationsRequest {
 }
 
 message GetBillableOrganizationsResponse {
+    repeated Organization Organizations = 1 [(gogoproto.nullable) = false];
+}
+
+message GetTrialOrganizationsRequest {
+    // The current time for the purposes of determining whether the trial
+    // period has expired.
+    google.protobuf.Timestamp Now = 1 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+message GetTrialOrganizationsResponse {
     repeated Organization Organizations = 1 [(gogoproto.nullable) = false];
 }
 

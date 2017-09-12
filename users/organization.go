@@ -2,6 +2,7 @@ package users
 
 import (
 	"regexp"
+	"time"
 
 	"github.com/weaveworks/service/users/tokens"
 )
@@ -52,6 +53,11 @@ func (o *Organization) RegenerateProbeToken() error {
 	}
 	o.ProbeToken = t
 	return nil
+}
+
+// InTrialPeriod determines whether this organization is within its trial period.
+func (o *Organization) InTrialPeriod(now time.Time) bool {
+	return o.TrialExpiresAt.After(now)
 }
 
 // Valid check if the organization is valid. Good to call before saving.

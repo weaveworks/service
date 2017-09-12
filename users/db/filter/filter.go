@@ -15,8 +15,9 @@ const (
 )
 
 type query struct {
-	filters map[string]string
-	search  []string
+	filters      map[string]string
+	featureFlags []string
+	search       []string
 }
 
 // pageValue extracts the `page` form value of the request. It also
@@ -31,15 +32,18 @@ func pageValue(r *http.Request) int32 {
 
 // parseQuery extracts filters and search from the `query` form value.
 // It supports `<key>:<value>` for exact matches as well as `is:<key>`
-// for boolean toggles.
+// for boolean toggles, and `has:<feature>` for feature flags.
 func parseQuery(qs string) query {
 	q := query{filters: map[string]string{}}
 	for _, p := range strings.Fields(qs) {
 		if strings.Contains(p, queryFilterDelim) {
 			kv := strings.SplitN(p, queryFilterDelim, 2)
-			if kv[0] == "is" {
+			switch kv[0] {
+			case "is":
 				q.filters[kv[1]] = "true"
-			} else {
+			case "has":
+				q.featureFlags = append(q.featureFlags, kv[1])
+			default:
 				q.filters[kv[0]] = kv[1]
 			}
 		} else {
