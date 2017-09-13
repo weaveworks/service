@@ -48,14 +48,10 @@ func (o Organization) Matches(org users.Organization) bool {
 	if o.Search != "" && !strings.Contains(org.Name, o.Search) {
 		return false
 	}
-WANT:
 	for _, wantFlag := range o.FeatureFlags {
-		for _, hasFlag := range org.FeatureFlags {
-			if hasFlag == wantFlag {
-				continue WANT
-			}
+		if !org.HasFeatureFlag(wantFlag) {
+			return false
 		}
-		return false
 	}
 	return true
 }
