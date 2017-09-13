@@ -58,7 +58,7 @@ func (h Has) Matches(o users.Organization) bool {
 // Supported filters
 // - id:<organization-id>
 // - instance:<external-id>
-// - has:<feature-flag>
+// - feature:<feature-flag>
 type Organization struct {
 	ID           string
 	Instance     string

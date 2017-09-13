@@ -32,7 +32,7 @@ func pageValue(r *http.Request) int32 {
 
 // parseQuery extracts filters and search from the `query` form value.
 // It supports `<key>:<value>` for exact matches as well as `is:<key>`
-// for boolean toggles, and `has:<feature>` for feature flags.
+// for boolean toggles, and `feature:<feature>` for feature flags.
 func parseQuery(qs string) query {
 	q := query{filters: map[string]string{}}
 	for _, p := range strings.Fields(qs) {
@@ -41,7 +41,7 @@ func parseQuery(qs string) query {
 			switch kv[0] {
 			case "is":
 				q.filters[kv[1]] = "true"
-			case "has":
+			case "feature":
 				q.featureFlags = append(q.featureFlags, kv[1])
 			default:
 				q.filters[kv[0]] = kv[1]
