@@ -116,3 +116,157 @@ func Test_SetOrganizationZuoraAccount(t *testing.T) {
 	assert.Equal(t, "Wexplicit-date", resp.Organization.ZuoraAccountNumber)
 	assert.True(t, resp.Organization.ZuoraAccountCreatedAt.Equal(createdAt))
 }
+
+// Test_GetBillableOrganizations_NotExpired shows that we don't return
+// organizations from GetBillableOrganizations that have yet to expire their
+// trial period.
+func Test_GetBillableOrganizations_NotExpired(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	org := makeBillingOrganization(t)
+
+	now := org.TrialExpiresAt.Add(-5 * 24 * time.Hour)
+	{
+		resp, err := server.GetBillableOrganizations(ctx, &users.GetBillableOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization(nil), resp.Organizations)
+	}
+	// Giving an organization a Zuora account doesn't make it billable.
+	org = setZuoraAccount(t, org, "Wwhatever")
+	{
+		resp, err := server.GetBillableOrganizations(ctx, &users.GetBillableOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization(nil), resp.Organizations)
+	}
+}
+
+// Test_GetBillableOrganizations_Expired shows that we return organizations
+// that have expired their trial period, because they might have a Zuora
+// account and thus be billable.
+func Test_GetBillableOrganizations_Expired(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	org := makeBillingOrganization(t)
+
+	now := org.TrialExpiresAt.Add(5 * 24 * time.Hour)
+	{
+		resp, err := server.GetBillableOrganizations(ctx, &users.GetBillableOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization{*org}, resp.Organizations)
+	}
+	// Giving an organization a Zuora account doesn't make it less billable.
+	org = setZuoraAccount(t, org, "Wwhatever")
+	{
+		resp, err := server.GetBillableOrganizations(ctx, &users.GetBillableOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization{*org}, resp.Organizations)
+	}
+}
+
+// Test_GetTrialOrganizations_NotExpired shows GetTrialOrganizations returns
+// organizations that have yet to reach the end of their trial period.
+func Test_GetTrialOrganizations_NotExpired(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	org := makeBillingOrganization(t)
+
+	now := org.TrialExpiresAt.Add(-5 * 24 * time.Hour)
+	{
+		resp, err := server.GetTrialOrganizations(ctx, &users.GetTrialOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization{*org}, resp.Organizations)
+	}
+	org = setZuoraAccount(t, org, "Wwhatever")
+	{
+		resp, err := server.GetTrialOrganizations(ctx, &users.GetTrialOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization{*org}, resp.Organizations)
+	}
+}
+
+// Test_GetTrialOrganizations_NotExpired shows GetTrialOrganizations returns
+// organizations that have yet to reach the end of their trial period.
+func Test_GetTrialOrganizations_Expired(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	org := makeBillingOrganization(t)
+
+	now := org.TrialExpiresAt.Add(5 * 24 * time.Hour)
+	{
+		resp, err := server.GetTrialOrganizations(ctx, &users.GetTrialOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization(nil), resp.Organizations)
+	}
+	org = setZuoraAccount(t, org, "Wwhatever")
+	{
+		resp, err := server.GetTrialOrganizations(ctx, &users.GetTrialOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization(nil), resp.Organizations)
+	}
+}
+
+// Test_GetDelinquentOrganizations shows that GetDelinquentOrganizations never
+// returns organizations that are still in their trial period.
+func Test_GetDelinquentOrganizations_NotExpired(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	org := makeBillingOrganization(t)
+
+	now := org.TrialExpiresAt.Add(-5 * 24 * time.Hour)
+	{
+		resp, err := server.GetDelinquentOrganizations(ctx, &users.GetDelinquentOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization(nil), resp.Organizations)
+	}
+	org = setZuoraAccount(t, org, "Wwhatever")
+	{
+		resp, err := server.GetDelinquentOrganizations(ctx, &users.GetDelinquentOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization(nil), resp.Organizations)
+	}
+}
+
+// Test_GetDelinquentOrganizations_Expired shows that
+// GetDelinquentOrganizations only returns organizations that have no zuora
+// account and aren't in their trial period.
+func Test_GetDelinquentOrganizations_Expired(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	org := makeBillingOrganization(t)
+
+	now := org.TrialExpiresAt.Add(5 * 24 * time.Hour)
+	{
+		resp, err := server.GetDelinquentOrganizations(ctx, &users.GetDelinquentOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization{*org}, resp.Organizations)
+	}
+	org = setZuoraAccount(t, org, "Wwhatever")
+	{
+		resp, err := server.GetDelinquentOrganizations(ctx, &users.GetDelinquentOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization(nil), resp.Organizations)
+	}
+}
+
+// setZuoraAccount sets a Zuora account.
+func setZuoraAccount(t *testing.T, org *users.Organization, account string) *users.Organization {
+	_, err := server.SetOrganizationZuoraAccount(
+		ctx, &users.SetOrganizationZuoraAccountRequest{
+			ExternalID: org.ExternalID,
+			Number:     account,
+		})
+	require.NoError(t, err)
+	newOrg, err := database.FindOrganizationByID(ctx, org.ExternalID)
+	require.NoError(t, err)
+	return newOrg
+}
+
+// makeBillingOrganization makes an organization that has billing enabled.
+// Won't be necessary after we remove the billing feature flag.
+func makeBillingOrganization(t *testing.T) *users.Organization {
+	_, org := dbtest.GetOrg(t, database)
+	database.AddFeatureFlag(ctx, org.ExternalID, billingFlag)
+	newOrg, err := database.FindOrganizationByID(ctx, org.ExternalID)
+	require.NoError(t, err)
+	return newOrg
+}

@@ -74,7 +74,15 @@ NETGO_CHECK = @strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
-$(EXES) $(PROTO_GOS) lint test: build/$(UPTODATE)
+$(PROTO_GOS) lint: build/$(UPTODATE)
+	@mkdir -p $(shell pwd)/.pkg
+	$(SUDO) docker run $(RM) -ti \
+		-v $(shell pwd)/.pkg:/go/pkg \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
+		$(IMAGE_PREFIX)/build $@
+
+$(EXES) test: build/$(UPTODATE) users/users.pb.go
 	@mkdir -p $(shell pwd)/.pkg
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
@@ -84,7 +92,7 @@ $(EXES) $(PROTO_GOS) lint test: build/$(UPTODATE)
 
 else
 
-$(EXES): build/$(UPTODATE)
+$(EXES): build/$(UPTODATE) users/users.pb.go
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
@@ -94,7 +102,7 @@ $(EXES): build/$(UPTODATE)
 lint: build/$(UPTODATE)
 	./tools/lint .
 
-test: build/$(UPTODATE)
+test: build/$(UPTODATE) users/users.pb.go
 	./tools/test -netgo -no-race
 
 endif
@@ -114,7 +122,7 @@ notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
 
-users-integration-test: $(USERS_UPTODATE)
+users-integration-test: $(USERS_UPTODATE) users/users.pb.go
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=users_test' postgres:9.4)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \

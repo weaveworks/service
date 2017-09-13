@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -71,6 +70,7 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.environment",
 		"organizations.zuora_account_number",
 		"organizations.zuora_account_created_at",
+		"organizations.trial_expires_at",
 	).
 		From("organizations").
 		Where("organizations.deleted_at is null").
@@ -168,10 +168,12 @@ func (d DB) GenerateOrganizationExternalID(ctx context.Context) (string, error) 
 
 // CreateOrganization creates a new organization owned by the user
 func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (*users.Organization, error) {
+	now := d.Now()
 	o := &users.Organization{
-		ExternalID: externalID,
-		Name:       name,
-		CreatedAt:  d.Now(),
+		ExternalID:     externalID,
+		Name:           name,
+		CreatedAt:      now,
+		TrialExpiresAt: now.Add(users.DefaultTrialLength),
 	}
 	if err := o.Valid(); err != nil {
 		return nil, err
@@ -207,9 +209,9 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 		}
 
 		err = tx.QueryRow(`insert into organizations
-			(external_id, name, probe_token, created_at)
-			values (lower($1), $2, $3, $4) returning id`,
-			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt,
+			(external_id, name, probe_token, created_at, trial_expires_at)
+			values (lower($1), $2, $3, $4, $5) returning id`,
+			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt, o.TrialExpiresAt,
 		).Scan(&o.ID)
 		if err != nil {
 			return err
@@ -220,11 +222,6 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 	if err != nil {
 		return nil, err
 	}
-	trialExpiry, err := users.CalculateTrialExpiry(o.CreatedAt, []string{})
-	if err != nil {
-		panic(fmt.Sprintf("Could not calculate trial expiry: %v", err))
-	}
-	o.TrialExpiresAt = trialExpiry
 	return o, err
 }
 
@@ -278,6 +275,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	var externalID, name, probeToken, platform, environment, zuoraAccountNumber sql.NullString
 	var createdAt pq.NullTime
 	var firstSeenConnectedAt, zuoraAccountCreatedAt *time.Time
+	var trialExpiry time.Time
 	var denyUIFeatures, denyTokenAuth bool
 	if err := row.Scan(
 		&o.ID,
@@ -293,6 +291,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&environment,
 		&zuoraAccountNumber,
 		&zuoraAccountCreatedAt,
+		&trialExpiry,
 	); err != nil {
 		return nil, err
 	}
@@ -307,12 +306,6 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.Environment = environment.String
 	o.ZuoraAccountNumber = zuoraAccountNumber.String
 	o.ZuoraAccountCreatedAt = zuoraAccountCreatedAt
-
-	// TODO: Store trial expiry in the database, rather than deriving from these fields
-	trialExpiry, err := users.CalculateTrialExpiry(o.CreatedAt, o.FeatureFlags)
-	if err != nil {
-		return nil, err
-	}
 	o.TrialExpiresAt = trialExpiry
 	return o, nil
 }

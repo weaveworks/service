@@ -72,29 +72,10 @@ func (d *DB) ListOrganizations(_ context.Context, f filter.Organization) ([]*use
 	defer d.mtx.Unlock()
 	orgs := []*users.Organization{}
 
-ORG:
 	for _, org := range d.organizations {
-		if f.ID != "" && org.ID != f.ID {
-			continue
+		if f.Matches(*org) {
+			orgs = append(orgs, org)
 		}
-		if f.Instance != "" && org.ExternalID != f.Instance {
-			continue
-		}
-		if f.Search != "" && !strings.Contains(org.Name, f.Search) {
-			continue
-		}
-
-	WANT:
-		for _, wantflag := range f.FeatureFlags {
-			for _, hasflag := range org.FeatureFlags {
-				if hasflag == wantflag {
-					continue WANT
-				}
-			}
-			continue ORG
-		}
-
-		orgs = append(orgs, org)
 	}
 	sort.Sort(organizationsByCreatedAt(orgs))
 	return orgs, nil
@@ -213,11 +194,13 @@ func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, to
 	if len(name) > organizationMaxLength {
 		return nil, &errorOrgNameLengthConstraint
 	}
+	now := time.Now().UTC()
 	o := &users.Organization{
-		ID:         fmt.Sprint(len(d.organizations)),
-		ExternalID: externalID,
-		Name:       name,
-		CreatedAt:  time.Now().UTC(),
+		ID:             fmt.Sprint(len(d.organizations)),
+		ExternalID:     externalID,
+		Name:           name,
+		CreatedAt:      now,
+		TrialExpiresAt: now.Add(users.DefaultTrialLength),
 	}
 	if err := o.Valid(); err != nil {
 		return nil, err
@@ -246,11 +229,6 @@ func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, to
 			return nil, users.ErrOrgTokenIsTaken
 		}
 	}
-	trialExpiry, err := users.CalculateTrialExpiry(o.CreatedAt, []string{})
-	if err != nil {
-		panic(fmt.Sprintf("Could not calculate trial expiry: %v", err))
-	}
-	o.TrialExpiresAt = trialExpiry
 	d.organizations[o.ID] = o
 	d.memberships[o.ID] = []string{ownerID}
 	return o, nil
