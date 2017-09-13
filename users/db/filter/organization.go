@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/weaveworks/service/users"
 )
 
 // Organization defines a filter for listing organizations.
@@ -34,7 +35,34 @@ func NewOrganization(r *http.Request) Organization {
 	}
 }
 
+// Matches says whether the given organization matches this filter.
+//
+// Must be kept in sync with ExtendQuery.
+func (o Organization) Matches(org users.Organization) bool {
+	if o.ID != "" && org.ID != o.ID {
+		return false
+	}
+	if o.Instance != "" && org.ExternalID != o.Instance {
+		return false
+	}
+	if o.Search != "" && !strings.Contains(org.Name, o.Search) {
+		return false
+	}
+WANT:
+	for _, wantFlag := range o.FeatureFlags {
+		for _, hasFlag := range org.FeatureFlags {
+			if hasFlag == wantFlag {
+				continue WANT
+			}
+		}
+		return false
+	}
+	return true
+}
+
 // ExtendQuery applies the filter to the query builder.
+//
+// Must be kept in sync with Matches.
 func (o Organization) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
 	if o.Page > 0 {
 		b = b.Limit(resultsPerPage).Offset(uint64((o.Page - 1) * resultsPerPage))
