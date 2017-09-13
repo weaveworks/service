@@ -144,18 +144,16 @@ func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrgani
 
 func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.GetBillableOrganizationsRequest) (*users.GetBillableOrganizationsResponse, error) {
 	// While billing is in development, only pick orgs with ff `billing`
-	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{FeatureFlags: []string{billingFlag}})
+	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{
+		FeatureFlags: []string{billingFlag},
+		Extra:        filter.TrialExpiredBy{When: req.Now},
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	result := &users.GetBillableOrganizationsResponse{}
 	for _, org := range organizations {
-		// TODO: Move this filtering into the database layer.
-		if org.InTrialPeriod(req.Now) {
-			// Still in trial period, so not billable.
-			continue
-		}
 		result.Organizations = append(result.Organizations, *org)
 	}
 	return result, nil
@@ -163,17 +161,16 @@ func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.G
 
 func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetTrialOrganizationsRequest) (*users.GetTrialOrganizationsResponse, error) {
 	// While billing is in development, only pick orgs with ff `billing`
-	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{FeatureFlags: []string{billingFlag}})
+	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{
+		FeatureFlags: []string{billingFlag},
+		Extra:        filter.TrialActiveAt{When: req.Now},
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	result := &users.GetTrialOrganizationsResponse{}
 	for _, org := range organizations {
-		// TODO: Move this filtering into the database layer.
-		if !org.InTrialPeriod(req.Now) {
-			continue
-		}
 		result.Organizations = append(result.Organizations, *org)
 	}
 	return result, nil
@@ -183,7 +180,10 @@ func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users
 	// While billing is in development, only pick orgs with ff `billing`
 	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{
 		FeatureFlags: []string{billingFlag},
-		Extra:        filter.ZuoraAccount{Has: false},
+		Extra: filter.And(
+			filter.ZuoraAccount{Has: false},
+			filter.TrialExpiredBy{When: req.Now},
+		),
 	})
 	if err != nil {
 		return nil, err
@@ -191,10 +191,6 @@ func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users
 
 	result := &users.GetDelinquentOrganizationsResponse{}
 	for _, org := range organizations {
-		// TODO: Move this filtering into the database layer.
-		if org.InTrialPeriod(req.Now) {
-			continue
-		}
 		result.Organizations = append(result.Organizations, *org)
 	}
 	return result, nil

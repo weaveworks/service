@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/weaveworks/service/users"
@@ -38,6 +39,47 @@ func (z ZuoraAccount) Matches(o users.Organization) bool {
 		return o.ZuoraAccountNumber != ""
 	}
 	return o.ZuoraAccountNumber == ""
+}
+
+// TrialExpiredBy filters for organizations whose trials had expired by a
+// given date.
+type TrialExpiredBy struct {
+	// When: Has the trial expired by this time?
+	When time.Time
+}
+
+// ExtendQuery extends a query to filter by trial expiry.
+//
+// Must be kept in sync with Matches.
+func (t TrialExpiredBy) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	return b.Where("organizations.trial_expires_at < ?", t.When)
+}
+
+// Matches checks whether an organization matches this filter.
+//
+// Must be kept in sync with ExtendQuery.
+func (t TrialExpiredBy) Matches(o users.Organization) bool {
+	return o.TrialExpiresAt.Before(t.When)
+}
+
+// TrialActiveAt filters for organizations whose trials were active at given
+// date.
+type TrialActiveAt struct {
+	When time.Time
+}
+
+// ExtendQuery extends a query to filter by trial expiry.
+//
+// Must be kept in sync with Matches.
+func (t TrialActiveAt) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	return b.Where("organizations.trial_expires_at > ?", t.When)
+}
+
+// Matches checks whether an organization matches this filter.
+//
+// Must be kept in sync with ExtendQuery.
+func (t TrialActiveAt) Matches(o users.Organization) bool {
+	return o.TrialExpiresAt.After(t.When)
 }
 
 // And combines many filters.
