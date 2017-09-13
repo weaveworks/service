@@ -181,7 +181,10 @@ func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetT
 
 func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users.GetDelinquentOrganizationsRequest) (*users.GetDelinquentOrganizationsResponse, error) {
 	// While billing is in development, only pick orgs with ff `billing`
-	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{FeatureFlags: []string{billingFlag}})
+	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{
+		FeatureFlags: []string{billingFlag},
+		ZuoraAccount: filter.Absent,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -190,10 +193,6 @@ func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users
 	for _, org := range organizations {
 		// TODO: Move this filtering into the database layer.
 		if org.InTrialPeriod(req.Now) {
-			continue
-		}
-		// Not Zuora account means the organization hasn't supplied means for payment
-		if org.ZuoraAccountNumber != "" {
 			continue
 		}
 		result.Organizations = append(result.Organizations, *org)

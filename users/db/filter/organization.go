@@ -9,6 +9,51 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
+const (
+	// Ignored is for when we don't care if a boolean value is true or false
+	Ignored = Has(iota)
+	// Absent is for when we only want things with the boolean value set to false
+	Absent
+	// Present is for when we only want things with the boolean value set to true.
+	Present
+)
+
+// Has is for when we want to check whether an organization has a field set.
+// XXX: jml doesn't like the name 'Has' -- any suggestions?
+type Has uint8
+
+// ExtendQuery returns a new query that filters by whether the column is set or not.
+//
+// Must be kept in sync with Matches.
+func (h Has) ExtendQuery(b squirrel.SelectBuilder, column string) squirrel.SelectBuilder {
+	switch h {
+	case Ignored:
+		return b
+	case Absent:
+		return b.Where(map[string]interface{}{column: nil})
+	case Present:
+		return b.Where(fmt.Sprintf("%s IS NOT NULL", column))
+	default:
+		panic(fmt.Sprintf("Unrecognized state: %#v", h))
+	}
+}
+
+// Matches checks whether the organization matches this filter.
+//
+// Must be kept in sync with ExtendQuery.
+func (h Has) Matches(o users.Organization) bool {
+	switch h {
+	case Ignored:
+		return true
+	case Absent:
+		return o.ZuoraAccountNumber == ""
+	case Present:
+		return o.ZuoraAccountNumber != ""
+	default:
+		panic(fmt.Sprintf("Unrecognized state: %#v", h))
+	}
+}
+
 // Organization defines a filter for listing organizations.
 // Supported filters
 // - id:<organization-id>
@@ -18,6 +63,7 @@ type Organization struct {
 	ID           string
 	Instance     string
 	FeatureFlags []string
+	ZuoraAccount Has
 
 	Search string
 	Page   int32
@@ -32,6 +78,7 @@ func NewOrganization(r *http.Request) Organization {
 		FeatureFlags: q.featureFlags,
 		Search:       strings.Join(q.search, " "),
 		Page:         pageValue(r),
+		ZuoraAccount: Ignored,
 	}
 }
 
@@ -53,6 +100,9 @@ func (o Organization) Matches(org users.Organization) bool {
 			return false
 		}
 	}
+	if !o.ZuoraAccount.Matches(org) {
+		return false
+	}
 	return true
 }
 
@@ -72,6 +122,8 @@ func (o Organization) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuild
 	for _, f := range o.FeatureFlags {
 		b = b.Where("?=ANY(feature_flags)", f)
 	}
+
+	b = o.ZuoraAccount.ExtendQuery(b, "zuora_account_number")
 
 	where := squirrel.Eq{}
 	if o.ID != "" {
