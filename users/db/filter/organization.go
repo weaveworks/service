@@ -78,7 +78,7 @@ func NewOrganization(r *http.Request) Organization {
 		FeatureFlags: q.featureFlags,
 		Search:       strings.Join(q.search, " "),
 		Page:         pageValue(r),
-		ZuoraAccount: Ignored,
+		ZuoraAccount: q.zuora,
 	}
 }
 
