@@ -208,6 +208,14 @@ func (t timed) OrganizationExists(ctx context.Context, externalID string) (b boo
 	return
 }
 
+func (t timed) ExternalIDUsed(ctx context.Context, externalID string) (b bool, err error) {
+	t.timeRequest(ctx, "ExternalIDUsed", func(ctx context.Context) error {
+		b, err = t.d.ExternalIDUsed(ctx, externalID)
+		return err
+	})
+	return
+}
+
 func (t timed) GetOrganizationName(ctx context.Context, externalID string) (name string, err error) {
 	t.timeRequest(ctx, "GetOrganizationName", func(ctx context.Context) error {
 		name, err = t.d.GetOrganizationName(ctx, externalID)
@@ -249,6 +257,12 @@ func (t timed) SetOrganizationDenyTokenAuth(ctx context.Context, externalID stri
 func (t timed) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
 	return t.timeRequest(ctx, "SetOrganizationFirstSeenConnectedAt", func(ctx context.Context) error {
 		return t.d.SetOrganizationFirstSeenConnectedAt(ctx, externalID, value)
+	})
+}
+
+func (t timed) SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error {
+	return t.timeRequest(ctx, "SetOrganizationZuoraAccount", func(ctx context.Context) error {
+		return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)
 	})
 }
 

@@ -165,15 +165,12 @@ func (d *DB) GenerateOrganizationExternalID(_ context.Context) (string, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	var externalID string
-	for {
+	var err error
+	for used := true; used && err == nil; {
 		externalID = externalIDs.Generate()
-		_, err := d.findOrganizationByExternalID(externalID)
-		if err != nil && err != users.ErrNotFound {
-			return "", err
-		}
-		break
+		used, err = d.organizationExists(externalID, true)
 	}
-	return externalID, nil
+	return externalID, err
 }
 
 func (d *DB) findOrganizationByExternalID(externalID string) (*users.Organization, error) {
@@ -225,7 +222,7 @@ func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, to
 	if err := o.Valid(); err != nil {
 		return nil, err
 	}
-	if exists, err := d.organizationExists(o.ExternalID); err != nil {
+	if exists, err := d.organizationExists(o.ExternalID, true); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, users.ErrOrgExternalIDIsTaken
@@ -324,14 +321,24 @@ func (d *DB) UpdateOrganization(_ context.Context, externalID string, update use
 func (d *DB) OrganizationExists(_ context.Context, externalID string) (bool, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	return d.organizationExists(externalID)
+	return d.organizationExists(externalID, false)
 }
 
-func (d *DB) organizationExists(externalID string) (bool, error) {
+// ExternalIDUsed returns true if the given `externalID` has ever been in use for
+// an organization.
+func (d DB) ExternalIDUsed(_ context.Context, externalID string) (bool, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	return d.organizationExists(externalID, true)
+}
+
+func (d *DB) organizationExists(externalID string, includeDeleted bool) (bool, error) {
 	if _, err := d.findOrganizationByExternalID(externalID); err == users.ErrNotFound {
-		for _, deleted := range d.deletedOrganizations {
-			if strings.ToLower(deleted.ExternalID) == strings.ToLower(externalID) {
-				return true, nil
+		if includeDeleted {
+			for _, deleted := range d.deletedOrganizations {
+				if strings.ToLower(deleted.ExternalID) == strings.ToLower(externalID) {
+					return true, nil
+				}
 			}
 		}
 		return false, nil
@@ -405,6 +412,15 @@ func (d *DB) SetOrganizationDenyTokenAuth(_ context.Context, externalID string, 
 func (d *DB) SetOrganizationFirstSeenConnectedAt(_ context.Context, externalID string, value *time.Time) error {
 	return changeOrg(d, externalID, func(org *users.Organization) error {
 		org.FirstSeenConnectedAt = value
+		return nil
+	})
+}
+
+// SetOrganizationZuoraAccount sets the account number and time it was created at.
+func (d *DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number string, createdAt *time.Time) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.ZuoraAccountNumber = number
+		org.ZuoraAccountCreatedAt = createdAt
 		return nil
 	})
 }

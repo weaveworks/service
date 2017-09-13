@@ -136,6 +136,11 @@ func (t traced) OrganizationExists(ctx context.Context, externalID string) (b bo
 	return t.d.OrganizationExists(ctx, externalID)
 }
 
+func (t traced) ExternalIDUsed(ctx context.Context, externalID string) (b bool, err error) {
+	defer func() { t.trace("ExternalIDUsed", externalID, b, err) }()
+	return t.d.ExternalIDUsed(ctx, externalID)
+}
+
 func (t traced) GetOrganizationName(ctx context.Context, externalID string) (name string, err error) {
 	defer func() { t.trace("GetOrganizationName", externalID, name, err) }()
 	return t.d.GetOrganizationName(ctx, externalID)
@@ -169,6 +174,11 @@ func (t traced) SetOrganizationDenyTokenAuth(ctx context.Context, externalID str
 func (t traced) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) (err error) {
 	defer func() { t.trace("SetOrganizationFirstSeenConnectedAt", externalID, value, err) }()
 	return t.d.SetOrganizationFirstSeenConnectedAt(ctx, externalID, value)
+}
+
+func (t traced) SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) (err error) {
+	defer func() { t.trace("SetOrganizationZuoraAccount", externalID, number, createdAt, err) }()
+	return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)
 }
 
 func (t traced) ListMemberships(ctx context.Context) (ms []users.Membership, err error) {

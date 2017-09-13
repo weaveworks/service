@@ -82,6 +82,7 @@ type DB interface {
 	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)
 	UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error
 	OrganizationExists(ctx context.Context, externalID string) (bool, error)
+	ExternalIDUsed(ctx context.Context, externalID string) (bool, error)
 	GetOrganizationName(ctx context.Context, externalID string) (string, error)
 	DeleteOrganization(ctx context.Context, externalID string) error
 	AddFeatureFlag(ctx context.Context, externalID string, featureFlag string) error
@@ -89,6 +90,7 @@ type DB interface {
 	SetOrganizationDenyUIFeatures(ctx context.Context, externalID string, value bool) error
 	SetOrganizationDenyTokenAuth(ctx context.Context, externalID string, value bool) error
 	SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error
+	SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error
 
 	ListMemberships(ctx context.Context) ([]users.Membership, error)
 

@@ -16,17 +16,19 @@ import (
 
 // OrgView describes an organisation
 type OrgView struct {
-	User                 string     `json:"user,omitempty"`
-	ExternalID           string     `json:"id"`
-	Name                 string     `json:"name"`
-	ProbeToken           string     `json:"probeToken,omitempty"`
-	FeatureFlags         []string   `json:"featureFlags,omitempty"`
-	DenyUIFeatures       bool       `json:"denyUIFeatures"`
-	DenyTokenAuth        bool       `json:"denyTokenAuth"`
-	FirstSeenConnectedAt *time.Time `json:"firstSeenConnectedAt"`
-	Platform             string     `json:"platform"`
-	Environment          string     `json:"environment"`
-	TrialExpiresAt       time.Time  `json:"trialExpiresAt"`
+	User                  string     `json:"user,omitempty"`
+	ExternalID            string     `json:"id"`
+	Name                  string     `json:"name"`
+	ProbeToken            string     `json:"probeToken,omitempty"`
+	FeatureFlags          []string   `json:"featureFlags,omitempty"`
+	DenyUIFeatures        bool       `json:"denyUIFeatures"`
+	DenyTokenAuth         bool       `json:"denyTokenAuth"`
+	FirstSeenConnectedAt  *time.Time `json:"firstSeenConnectedAt"`
+	Platform              string     `json:"platform"`
+	Environment           string     `json:"environment"`
+	TrialExpiresAt        time.Time  `json:"trialExpiresAt"`
+	ZuoraAccountNumber    string     `json:"zuoraAccountNumber"`
+	ZuoraAccountCreatedAt *time.Time `json:"zuoraAccountCreatedAt"`
 }
 
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -38,7 +40,7 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 		return
 	}
 	for _, org := range organizations {
-		if strings.ToLower(org.ExternalID) == strings.ToLower(orgExternalID) {
+		if org.ExternalID == strings.ToLower(orgExternalID) {
 			render.JSON(w, http.StatusOK, OrgView{
 				User:                 currentUser.Email,
 				ExternalID:           org.ExternalID,
@@ -55,6 +57,8 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 			return
 		}
 	}
+
+	// If the organization exists but we just don't have access to it, tell the client
 	if exists, err := a.db.OrganizationExists(r.Context(), orgExternalID); err != nil {
 		render.Error(w, r, err)
 		return

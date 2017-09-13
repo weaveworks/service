@@ -44,16 +44,18 @@ func Test_Org(t *testing.T) {
 	trialExpiresAt, err := org.TrialExpiresAt.MarshalText()
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"user":                 user.Email,
-		"id":                   org.ExternalID,
-		"name":                 org.Name,
-		"probeToken":           org.ProbeToken,
-		"denyUIFeatures":       org.DenyUIFeatures,
-		"denyTokenAuth":        org.DenyTokenAuth,
-		"firstSeenConnectedAt": nil,
-		"platform":             org.Platform,
-		"environment":          org.Environment,
-		"trialExpiresAt":       string(trialExpiresAt),
+		"user":                  user.Email,
+		"id":                    org.ExternalID,
+		"name":                  org.Name,
+		"probeToken":            org.ProbeToken,
+		"denyUIFeatures":        org.DenyUIFeatures,
+		"denyTokenAuth":         org.DenyTokenAuth,
+		"firstSeenConnectedAt":  nil,
+		"platform":              org.Platform,
+		"environment":           org.Environment,
+		"trialExpiresAt":        string(trialExpiresAt),
+		"zuoraAccountNumber":    "",
+		"zuoraAccountCreatedAt": nil,
 	}, body)
 }
 
@@ -73,16 +75,18 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 	trialExpiresAt, err := org.TrialExpiresAt.MarshalText()
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"user":                 user.Email,
-		"id":                   org.ExternalID,
-		"name":                 org.Name,
-		"probeToken":           org.ProbeToken,
-		"denyUIFeatures":       org.DenyUIFeatures,
-		"denyTokenAuth":        org.DenyTokenAuth,
-		"firstSeenConnectedAt": nil,
-		"platform":             org.Platform,
-		"environment":          org.Environment,
-		"trialExpiresAt":       string(trialExpiresAt),
+		"user":                  user.Email,
+		"id":                    org.ExternalID,
+		"name":                  org.Name,
+		"probeToken":            org.ProbeToken,
+		"denyUIFeatures":        org.DenyUIFeatures,
+		"denyTokenAuth":         org.DenyTokenAuth,
+		"firstSeenConnectedAt":  nil,
+		"platform":              org.Platform,
+		"environment":           org.Environment,
+		"trialExpiresAt":        string(trialExpiresAt),
+		"zuoraAccountNumber":    "",
+		"zuoraAccountCreatedAt": nil,
 	}, body)
 }
 
@@ -340,14 +344,14 @@ func Test_Organization_CheckIfExternalIDExists(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	}
 
-	// Delete the org and check it still exists
+	// Delete the org and check it is no longer available
 	err = database.DeleteOrganization(context.Background(), org.ExternalID)
 	require.NoError(t, err)
 
 	{
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, r)
-		assert.Equal(t, http.StatusForbidden, w.Code)
+		assert.Equal(t, http.StatusNotFound, w.Code)
 	}
 }
 

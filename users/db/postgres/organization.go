@@ -69,6 +69,8 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.first_seen_connected_at",
 		"organizations.platform",
 		"organizations.environment",
+		"organizations.zuora_account_number",
+		"organizations.zuora_account_created_at",
 	).
 		From("organizations").
 		Where("organizations.deleted_at is null").
@@ -149,11 +151,15 @@ func (d DB) GenerateOrganizationExternalID(ctx context.Context) (string, error) 
 	var (
 		externalID string
 		err        error
+		terr       error
 	)
 	err = d.Transaction(func(tx DB) error {
-		for exists := true; exists; {
+		for used := true; used; {
 			externalID = externalIDs.Generate()
-			exists, err = tx.OrganizationExists(ctx, externalID)
+			used, terr = tx.ExternalIDUsed(ctx, externalID)
+			if terr != nil {
+				return terr
+			}
 		}
 		return nil
 	})
@@ -172,9 +178,11 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 	}
 
 	err := d.Transaction(func(tx DB) error {
-		if exists, err := tx.OrganizationExists(ctx, o.ExternalID); err != nil {
+		used, err := tx.ExternalIDUsed(ctx, o.ExternalID)
+		if err != nil {
 			return err
-		} else if exists {
+		}
+		if used {
 			return users.ErrOrgExternalIDIsTaken
 		}
 
@@ -198,7 +206,7 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 			}
 		}
 
-		err := tx.QueryRow(`insert into organizations
+		err = tx.QueryRow(`insert into organizations
 			(external_id, name, probe_token, created_at)
 			values (lower($1), $2, $3, $4) returning id`,
 			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt,
@@ -267,9 +275,9 @@ func (d DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
 
 func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, error) {
 	o := &users.Organization{}
-	var externalID, name, probeToken, platform, environment sql.NullString
+	var externalID, name, probeToken, platform, environment, zuoraAccountNumber sql.NullString
 	var createdAt pq.NullTime
-	var firstSeenConnectedAt *time.Time
+	var firstSeenConnectedAt, zuoraAccountCreatedAt *time.Time
 	var denyUIFeatures, denyTokenAuth bool
 	if err := row.Scan(
 		&o.ID,
@@ -283,6 +291,8 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&firstSeenConnectedAt,
 		&platform,
 		&environment,
+		&zuoraAccountNumber,
+		&zuoraAccountCreatedAt,
 	); err != nil {
 		return nil, err
 	}
@@ -295,6 +305,8 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.FirstSeenConnectedAt = firstSeenConnectedAt
 	o.Platform = platform.String
 	o.Environment = environment.String
+	o.ZuoraAccountNumber = zuoraAccountNumber.String
+	o.ZuoraAccountCreatedAt = zuoraAccountCreatedAt
 
 	// TODO: Store trial expiry in the database, rather than deriving from these fields
 	trialExpiry, err := users.CalculateTrialExpiry(o.CreatedAt, o.FeatureFlags)
@@ -336,7 +348,7 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 
 	result, err := d.Update("organizations").
 		SetMap(setFields).
-		Where(squirrel.Expr("lower(external_id) = lower(?) and deleted_at is null", externalID)).
+		Where(squirrel.Expr("external_id = lower(?) and deleted_at is null", externalID)).
 		Exec()
 	if err != nil {
 		return err
@@ -352,21 +364,32 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 }
 
 // OrganizationExists just returns a simple bool checking if an organization
-// exists
+// exists. It exists if it hasn't been deleted.
 func (d DB) OrganizationExists(_ context.Context, externalID string) (bool, error) {
 	var exists bool
 	err := d.QueryRow(
-		`select exists(select 1 from organizations where lower(external_id) = lower($1))`,
+		`select exists(select 1 from organizations where external_id = lower($1) and deleted_at is null)`,
 		externalID,
 	).Scan(&exists)
 	return exists, err
 }
 
-// GetOrganizationName gets the name of an organization from it's external ID.
+// ExternalIDUsed returns true if the given `externalID` has ever been in use for
+// an organization.
+func (d DB) ExternalIDUsed(_ context.Context, externalID string) (bool, error) {
+	var exists bool
+	err := d.QueryRow(
+		`select exists(select 1 from organizations where external_id = lower($1))`,
+		externalID,
+	).Scan(&exists)
+	return exists, err
+}
+
+// GetOrganizationName gets the name of an organization from its external ID.
 func (d DB) GetOrganizationName(_ context.Context, externalID string) (string, error) {
 	var name string
 	err := d.QueryRow(
-		`select name from organizations where lower(external_id) = lower($1) and deleted_at is null`,
+		`select name from organizations where external_id = lower($1) and deleted_at is null`,
 		externalID,
 	).Scan(&name)
 	return name, err
@@ -375,7 +398,7 @@ func (d DB) GetOrganizationName(_ context.Context, externalID string) (string, e
 // DeleteOrganization deletes an organization
 func (d DB) DeleteOrganization(_ context.Context, externalID string) error {
 	_, err := d.Exec(
-		`update organizations set deleted_at = $1 where lower(external_id) = lower($2)`,
+		`update organizations set deleted_at = $1 where external_id = lower($2) and deleted_at is null`,
 		d.Now(), externalID,
 	)
 	return err
@@ -384,7 +407,7 @@ func (d DB) DeleteOrganization(_ context.Context, externalID string) error {
 // AddFeatureFlag adds a new feature flag to a organization.
 func (d DB) AddFeatureFlag(_ context.Context, externalID string, featureFlag string) error {
 	_, err := d.Exec(
-		`update organizations set feature_flags = feature_flags || $1 where lower(external_id) = lower($2)`,
+		`update organizations set feature_flags = feature_flags || $1 where external_id = lower($2) and deleted_at is null`,
 		pq.Array([]string{featureFlag}), externalID,
 	)
 	return err
@@ -396,7 +419,7 @@ func (d DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags [
 		featureFlags = make([]string, 0)
 	}
 	_, err := d.Exec(
-		`update organizations set feature_flags = $1 where lower(external_id) = lower($2)`,
+		`update organizations set feature_flags = $1 where external_id = lower($2) and deleted_at is null`,
 		pq.Array(featureFlags), externalID,
 	)
 	return err
@@ -405,7 +428,7 @@ func (d DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags [
 // SetOrganizationDenyUIFeatures sets the "deny UI features" flag on an organization
 func (d DB) SetOrganizationDenyUIFeatures(_ context.Context, externalID string, value bool) error {
 	_, err := d.Exec(
-		`update organizations set deny_ui_features = $1 where lower(external_id) = lower($2)`,
+		`update organizations set deny_ui_features = $1 where external_id = lower($2) and deleted_at is null`,
 		value, externalID,
 	)
 	return err
@@ -414,7 +437,7 @@ func (d DB) SetOrganizationDenyUIFeatures(_ context.Context, externalID string, 
 // SetOrganizationDenyTokenAuth sets the "deny token auth" flag on an organization
 func (d DB) SetOrganizationDenyTokenAuth(_ context.Context, externalID string, value bool) error {
 	_, err := d.Exec(
-		`update organizations set deny_token_auth = $1 where lower(external_id) = lower($2)`,
+		`update organizations set deny_token_auth = $1 where external_id = lower($2) and deleted_at is null`,
 		value, externalID,
 	)
 	return err
@@ -423,8 +446,17 @@ func (d DB) SetOrganizationDenyTokenAuth(_ context.Context, externalID string, v
 // SetOrganizationFirstSeenConnectedAt sets the first time an organisation has been connected
 func (d DB) SetOrganizationFirstSeenConnectedAt(_ context.Context, externalID string, value *time.Time) error {
 	_, err := d.Exec(
-		`update organizations set first_seen_connected_at = $1 where lower(external_id) = lower($2)`,
+		`update organizations set first_seen_connected_at = $1 where external_id = lower($2) and deleted_at is null`,
 		value, externalID,
+	)
+	return err
+}
+
+// SetOrganizationZuoraAccount sets the account number and time it was created at.
+func (d DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number string, createdAt *time.Time) error {
+	_, err := d.Exec(
+		`update organizations set zuora_account_number = $1, zuora_account_created_at = $2 where external_id = lower($3) and deleted_at is null`,
+		number, createdAt, externalID,
 	)
 	return err
 }
