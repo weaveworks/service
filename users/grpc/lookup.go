@@ -183,7 +183,7 @@ func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users
 	// While billing is in development, only pick orgs with ff `billing`
 	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{
 		FeatureFlags: []string{billingFlag},
-		ZuoraAccount: filter.ZuoraAccount{Has: filter.Absent},
+		Extra:        filter.ZuoraAccount{Has: false},
 	})
 	if err != nil {
 		return nil, err

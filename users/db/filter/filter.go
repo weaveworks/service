@@ -18,7 +18,7 @@ type query struct {
 	filters      map[string]string
 	featureFlags []string
 	search       []string
-	zuora        ZuoraAccount
+	extra        OrganizationFilter
 }
 
 // pageValue extracts the `page` form value of the request. It also
@@ -35,7 +35,10 @@ func pageValue(r *http.Request) int32 {
 // It supports `<key>:<value>` for exact matches as well as `is:<key>`
 // for boolean toggles, and `feature:<feature>` for feature flags.
 func parseQuery(qs string) query {
-	q := query{filters: map[string]string{}}
+	q := query{
+		filters: map[string]string{},
+	}
+	extras := []OrganizationFilter{}
 	for _, p := range strings.Fields(qs) {
 		if strings.Contains(p, queryFilterDelim) {
 			kv := strings.SplitN(p, queryFilterDelim, 2)
@@ -47,12 +50,12 @@ func parseQuery(qs string) query {
 			case "has":
 				switch kv[1] {
 				case "zuora":
-					q.zuora = ZuoraAccount{Present}
+					extras = append(extras, ZuoraAccount{true})
 				}
 			case "!has":
 				switch kv[1] {
 				case "zuora":
-					q.zuora = ZuoraAccount{Absent}
+					extras = append(extras, ZuoraAccount{false})
 				}
 			default:
 				q.filters[kv[0]] = kv[1]
@@ -62,5 +65,6 @@ func parseQuery(qs string) query {
 		}
 	}
 
+	q.extra = And(extras...)
 	return q
 }

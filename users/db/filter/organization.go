@@ -9,57 +9,63 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
-const (
-	// Ignored is for when we don't care if a boolean value is true or false
-	Ignored = Has(iota)
-	// Absent is for when we only want things with the boolean value set to false
-	Absent
-	// Present is for when we only want things with the boolean value set to true.
-	Present
-)
-
-// Has is for when we want to check whether an organization has a field set.
-// XXX: jml doesn't like the name 'Has' -- any suggestions?
-type Has uint8
-
-// extendQuery returns a new query that filters by whether the column is set or not.
-func extendQuery(b squirrel.SelectBuilder, h Has, column string) squirrel.SelectBuilder {
-	switch h {
-	case Ignored:
-		return b
-	case Absent:
-		return b.Where(map[string]interface{}{column: nil})
-	case Present:
-		return b.Where(fmt.Sprintf("%s IS NOT NULL", column))
-	default:
-		panic(fmt.Sprintf("Unrecognized state: %#v", h))
-	}
+// OrganizationFilter filters organizations.
+type OrganizationFilter interface {
+	// ExtendQuery extends a query to filter by something.
+	ExtendQuery(squirrel.SelectBuilder) squirrel.SelectBuilder
+	// Matches checks whether an organization matches this filter.
+	Matches(users.Organization) bool
 }
 
 // ZuoraAccount filters an organization based on whether or not there's a Zuora account.
 type ZuoraAccount struct {
-	Has Has
+	Has bool
 }
 
 // ExtendQuery extends a query to filter by Zuora account.
 func (z ZuoraAccount) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return extendQuery(b, z.Has, "zuora_account_number")
+	if z.Has {
+		return b.Where("zuora_account_number IS NOT NULL")
+	}
+	return b.Where(map[string]interface{}{"zuora_account_number": nil})
 }
 
 // Matches checks whether the organization matches this filter.
 //
 // Must be kept in sync with ExtendQuery.
 func (z ZuoraAccount) Matches(o users.Organization) bool {
-	switch z.Has {
-	case Ignored:
-		return true
-	case Absent:
-		return o.ZuoraAccountNumber == ""
-	case Present:
+	if z.Has {
 		return o.ZuoraAccountNumber != ""
-	default:
-		panic(fmt.Sprintf("Unrecognized state: %#v", z.Has))
 	}
+	return o.ZuoraAccountNumber == ""
+}
+
+// And combines many filters.
+func And(filters ...OrganizationFilter) OrganizationFilter {
+	return andFilter{filters: filters}
+}
+
+// AndFilter combines many filters
+type andFilter struct {
+	filters []OrganizationFilter
+}
+
+// ExtendQuery extends a query to filter by all the filters in this AndFilter.
+func (a andFilter) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	for _, f := range a.filters {
+		b = f.ExtendQuery(b)
+	}
+	return b
+}
+
+// Matches all the filters in this AndFilter.
+func (a andFilter) Matches(o users.Organization) bool {
+	for _, f := range a.filters {
+		if !f.Matches(o) {
+			return false
+		}
+	}
+	return true
 }
 
 // Organization defines a filter for listing organizations.
@@ -71,7 +77,7 @@ type Organization struct {
 	ID           string
 	Instance     string
 	FeatureFlags []string
-	ZuoraAccount ZuoraAccount
+	Extra        OrganizationFilter
 
 	Search string
 	Page   int32
@@ -86,7 +92,7 @@ func NewOrganization(r *http.Request) Organization {
 		FeatureFlags: q.featureFlags,
 		Search:       strings.Join(q.search, " "),
 		Page:         pageValue(r),
-		ZuoraAccount: q.zuora,
+		Extra:        q.extra,
 	}
 }
 
@@ -108,7 +114,7 @@ func (o Organization) Matches(org users.Organization) bool {
 			return false
 		}
 	}
-	if !o.ZuoraAccount.Matches(org) {
+	if o.Extra != nil && !o.Extra.Matches(org) {
 		return false
 	}
 	return true
@@ -131,7 +137,9 @@ func (o Organization) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuild
 		b = b.Where("?=ANY(feature_flags)", f)
 	}
 
-	b = o.ZuoraAccount.ExtendQuery(b)
+	if o.Extra != nil {
+		b = o.Extra.ExtendQuery(b)
+	}
 
 	where := squirrel.Eq{}
 	if o.ID != "" {
