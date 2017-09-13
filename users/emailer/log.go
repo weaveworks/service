@@ -5,7 +5,7 @@ import (
 	"github.com/jordan-wright/email"
 )
 
-// Takes a uri of the form log://, and just logs all emails, instead of sending them.
+// logEmailSender just logs all emails, instead of sending them.
 func logEmailSender() func(e *email.Email) error {
 	return func(e *email.Email) error {
 		body := string(e.Text)

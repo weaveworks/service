@@ -286,6 +286,12 @@ func (d *DB) UpdateOrganization(_ context.Context, externalID string, update use
 		if update.Environment != nil {
 			o.Environment = *update.Environment
 		}
+		if update.TrialExpiredNotifiedAt != nil {
+			o.TrialExpiredNotifiedAt = update.TrialExpiredNotifiedAt
+		}
+		if update.TrialPendingExpiryNotifiedAt != nil {
+			o.TrialPendingExpiryNotifiedAt = update.TrialPendingExpiryNotifiedAt
+		}
 
 		if err := o.Valid(); err != nil {
 			return err

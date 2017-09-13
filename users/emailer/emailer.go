@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/jordan-wright/email"
@@ -15,38 +16,18 @@ import (
 // ErrUnsupportedEmailProtocol is the error when an email protocol is unsupported.
 var ErrUnsupportedEmailProtocol = errors.New("Unsupported email protocol")
 
-func loginURL(email, rawToken, domain string) string {
-	return fmt.Sprintf(
-		"%s/login/%s/%s",
-		domain,
-		url.QueryEscape(email),
-		url.QueryEscape(rawToken),
-	)
-}
-
-func inviteURL(email, rawToken, domain, orgName string) string {
-	return fmt.Sprintf(
-		"%s/login/%s/%s/%s",
-		domain,
-		orgName,
-		url.QueryEscape(email),
-		url.QueryEscape(rawToken),
-	)
-}
-
-func organizationURL(domain, orgExternalID string) string {
-	return fmt.Sprintf("%s/instances/%s", domain, orgExternalID)
-}
-
 // Emailer is the interface which emailers implement. There should be a method
 // for each type of email we send.
 type Emailer interface {
 	LoginEmail(u *users.User, token string) error
 	InviteEmail(inviter, invited *users.User, orgExternalID, orgName, token string) error
 	GrantAccessEmail(inviter, invited *users.User, orgExternalID, orgName string) error
+	TrialExpiredEmail(members []*users.User, orgExternalID, orgName string) error
+	TrialPendingExpiryEmail(memebrs []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
 }
 
-// MustNew creates a new emailer, from the URI, or panics.
+// MustNew creates a new Emailer, from the URI, or panics.
+// Supports scheme smtp:// and log:// in `emailURI`.
 func MustNew(emailURI, fromAddress string, templates templates.Engine, domain string) Emailer {
 	if emailURI == "" {
 		log.Fatal("Must -email-uri")
@@ -73,4 +54,39 @@ func MustNew(emailURI, fromAddress string, templates templates.Engine, domain st
 		Domain:      domain,
 		FromAddress: fromAddress,
 	}
+}
+
+func loginURL(email, rawToken, domain string) string {
+	return fmt.Sprintf(
+		"%s/login/%s/%s",
+		domain,
+		url.QueryEscape(email),
+		url.QueryEscape(rawToken),
+	)
+}
+
+func inviteURL(email, rawToken, domain, orgName string) string {
+	return fmt.Sprintf(
+		"%s/login/%s/%s/%s",
+		domain,
+		orgName,
+		url.QueryEscape(email),
+		url.QueryEscape(rawToken),
+	)
+}
+
+func organizationURL(domain, orgExternalID string) string {
+	return fmt.Sprintf("%s/instances/%s", domain, orgExternalID)
+}
+
+func billingURL(domain, orgExternalID string) string {
+	return fmt.Sprintf("%s/org/%s/billing", domain, orgExternalID)
+}
+
+func collectEmails(users []*users.User) []string {
+	e := []string{}
+	for _, u := range users {
+		e = append(e, u.Email)
+	}
+	return e
 }

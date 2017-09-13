@@ -1,4 +1,4 @@
-{{.InviterName}} has invited you to join "{{.OrganizationName}}" on Weave Cloud.
+{{.InviterName}} has invited you to join «{{.OrganizationName}}» on Weave Cloud.
 
 Click this link to log in to Weave Cloud:
 

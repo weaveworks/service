@@ -74,3 +74,11 @@ func (mockClient) SetOrganizationFlag(ctx context.Context, in *users.SetOrganiza
 func (mockClient) SetOrganizationZuoraAccount(ctx context.Context, in *users.SetOrganizationZuoraAccountRequest, opts ...grpc.CallOption) (*users.SetOrganizationZuoraAccountResponse, error) {
 	return &users.SetOrganizationZuoraAccountResponse{}, nil
 }
+
+func (mockClient) NotifyTrialPendingExpiry(ctx context.Context, in *users.NotifyTrialPendingExpiryRequest, opts ...grpc.CallOption) (*users.NotifyTrialPendingExpiryResponse, error) {
+	return &users.NotifyTrialPendingExpiryResponse{}, nil
+}
+
+func (mockClient) NotifyTrialExpired(ctx context.Context, in *users.NotifyTrialExpiredRequest, opts ...grpc.CallOption) (*users.NotifyTrialExpiredResponse, error) {
+	return &users.NotifyTrialExpiredResponse{}, nil
+}

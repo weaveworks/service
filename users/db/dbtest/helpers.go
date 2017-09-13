@@ -3,6 +3,7 @@ package dbtest
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,12 +28,13 @@ func CreateOrgForUser(t *testing.T, db db.DB, u *users.User) *users.Organization
 	externalID, err := db.GenerateOrganizationExternalID(context.Background())
 	require.NoError(t, err)
 
-	org, err := db.CreateOrganization(context.Background(), u.ID, externalID, externalID, "")
+	name := strings.Replace(externalID, "-", " ", -1)
+	org, err := db.CreateOrganization(context.Background(), u.ID, externalID, name, "")
 	require.NoError(t, err)
 
 	assert.NotEqual(t, "", org.ID)
-	assert.NotEqual(t, "", org.ExternalID)
-	assert.Equal(t, org.ExternalID, org.Name)
+	assert.NotEqual(t, "", org.Name)
+	assert.Equal(t, externalID, org.ExternalID)
 
 	return org
 }

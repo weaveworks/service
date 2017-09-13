@@ -10,6 +10,7 @@ import (
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/filter"
+	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/sessions"
 )
 
@@ -21,13 +22,15 @@ const (
 type usersServer struct {
 	sessions sessions.Store
 	db       db.DB
+	emailer  emailer.Emailer
 }
 
 // New makes a new users.UsersServer
-func New(sessions sessions.Store, db db.DB) users.UsersServer {
+func New(sessions sessions.Store, db db.DB, emailer emailer.Emailer) users.UsersServer {
 	return &usersServer{
 		sessions: sessions,
 		db:       db,
+		emailer:  emailer,
 	}
 }
 
@@ -47,7 +50,7 @@ func authorizeAction(action users.AuthorizedAction, org *users.Organization) err
 	return nil
 }
 
-// LookupOrg authenticates a cookie for access to an org by extenal ID.
+// LookupOrg authenticates a cookie for access to an org by external ID.
 func (a *usersServer) LookupOrg(ctx context.Context, req *users.LookupOrgRequest) (*users.LookupOrgResponse, error) {
 	session, err := a.sessions.Decode(req.Cookie)
 	if err != nil {
@@ -276,4 +279,52 @@ func (a *usersServer) GetUser(ctx context.Context, req *users.GetUserRequest) (*
 			Email: user.Email,
 		},
 	}, nil
+}
+
+func (a *usersServer) NotifyTrialPendingExpiry(ctx context.Context, req *users.NotifyTrialPendingExpiryRequest) (*users.NotifyTrialPendingExpiryResponse, error) {
+	// Make sure the organization exists
+	org, err := a.db.FindOrganizationByID(ctx, req.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Notify all users
+	members, err := a.db.ListOrganizationUsers(ctx, req.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+	err = a.emailer.TrialPendingExpiryEmail(members, req.ExternalID, org.Name, org.TrialExpiresAt)
+	if err != nil {
+		return nil, err
+	}
+
+	// Persist sent date in db
+	now := time.Now()
+	a.db.UpdateOrganization(ctx, req.ExternalID, users.OrgWriteView{TrialPendingExpiryNotifiedAt: &now})
+
+	return &users.NotifyTrialPendingExpiryResponse{}, nil
+}
+
+func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyTrialExpiredRequest) (*users.NotifyTrialExpiredResponse, error) {
+	// Make sure the organization exists
+	org, err := a.db.FindOrganizationByID(ctx, req.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Notify all users
+	members, err := a.db.ListOrganizationUsers(ctx, req.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+	err = a.emailer.TrialExpiredEmail(members, req.ExternalID, org.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	// Persist sent date in db
+	now := time.Now()
+	a.db.UpdateOrganization(ctx, req.ExternalID, users.OrgWriteView{TrialExpiredNotifiedAt: &now})
+
+	return &users.NotifyTrialExpiredResponse{}, nil
 }
