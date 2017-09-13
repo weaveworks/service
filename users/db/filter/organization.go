@@ -22,10 +22,8 @@ const (
 // XXX: jml doesn't like the name 'Has' -- any suggestions?
 type Has uint8
 
-// ExtendQuery returns a new query that filters by whether the column is set or not.
-//
-// Must be kept in sync with Matches.
-func (h Has) ExtendQuery(b squirrel.SelectBuilder, column string) squirrel.SelectBuilder {
+// extendQuery returns a new query that filters by whether the column is set or not.
+func extendQuery(b squirrel.SelectBuilder, h Has, column string) squirrel.SelectBuilder {
 	switch h {
 	case Ignored:
 		return b
@@ -38,11 +36,21 @@ func (h Has) ExtendQuery(b squirrel.SelectBuilder, column string) squirrel.Selec
 	}
 }
 
+// ZuoraAccount filters an organization based on whether or not there's a Zuora account.
+type ZuoraAccount struct {
+	Has Has
+}
+
+// ExtendQuery extends a query to filter by Zuora account.
+func (z ZuoraAccount) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	return extendQuery(b, z.Has, "zuora_account_number")
+}
+
 // Matches checks whether the organization matches this filter.
 //
 // Must be kept in sync with ExtendQuery.
-func (h Has) Matches(o users.Organization) bool {
-	switch h {
+func (z ZuoraAccount) Matches(o users.Organization) bool {
+	switch z.Has {
 	case Ignored:
 		return true
 	case Absent:
@@ -50,7 +58,7 @@ func (h Has) Matches(o users.Organization) bool {
 	case Present:
 		return o.ZuoraAccountNumber != ""
 	default:
-		panic(fmt.Sprintf("Unrecognized state: %#v", h))
+		panic(fmt.Sprintf("Unrecognized state: %#v", z.Has))
 	}
 }
 
@@ -63,7 +71,7 @@ type Organization struct {
 	ID           string
 	Instance     string
 	FeatureFlags []string
-	ZuoraAccount Has
+	ZuoraAccount ZuoraAccount
 
 	Search string
 	Page   int32
@@ -123,7 +131,7 @@ func (o Organization) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuild
 		b = b.Where("?=ANY(feature_flags)", f)
 	}
 
-	b = o.ZuoraAccount.ExtendQuery(b, "zuora_account_number")
+	b = o.ZuoraAccount.ExtendQuery(b)
 
 	where := squirrel.Eq{}
 	if o.ID != "" {

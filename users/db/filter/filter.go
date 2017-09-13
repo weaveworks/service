@@ -18,7 +18,7 @@ type query struct {
 	filters      map[string]string
 	featureFlags []string
 	search       []string
-	zuora        Has
+	zuora        ZuoraAccount
 }
 
 // pageValue extracts the `page` form value of the request. It also
@@ -47,12 +47,12 @@ func parseQuery(qs string) query {
 			case "has":
 				switch kv[1] {
 				case "zuora":
-					q.zuora = Present
+					q.zuora = ZuoraAccount{Present}
 				}
 			case "!has":
 				switch kv[1] {
 				case "zuora":
-					q.zuora = Absent
+					q.zuora = ZuoraAccount{Absent}
 				}
 			default:
 				q.filters[kv[0]] = kv[1]
