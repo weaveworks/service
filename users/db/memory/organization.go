@@ -73,7 +73,7 @@ func (d *DB) ListOrganizations(_ context.Context, f filter.Organization) ([]*use
 	orgs := []*users.Organization{}
 
 	for _, org := range d.organizations {
-		if f.Matches(*org) {
+		if f.MatchesOrg(*org) {
 			orgs = append(orgs, org)
 		}
 	}

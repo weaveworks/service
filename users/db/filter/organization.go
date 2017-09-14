@@ -18,8 +18,8 @@ var (
 type Organization interface {
 	// ExtendQuery extends a query to filter by something.
 	ExtendQuery(squirrel.SelectBuilder) squirrel.SelectBuilder
-	// Matches checks whether an organization matches this filter.
-	Matches(users.Organization) bool
+	// MatchesOrg checks whether an organization matches this filter.
+	MatchesOrg(users.Organization) bool
 }
 
 // ZuoraAccount filters an organization based on whether or not there's a Zuora account.
@@ -33,10 +33,8 @@ func (z ZuoraAccount) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuild
 	return b.Where(map[string]interface{}{"zuora_account_number": nil})
 }
 
-// Matches checks whether the organization matches this filter.
-//
-// Must be kept in sync with ExtendQuery.
-func (z ZuoraAccount) Matches(o users.Organization) bool {
+// MatchesOrg checks whether the organization matches this filter.
+func (z ZuoraAccount) MatchesOrg(o users.Organization) bool {
 	if bool(z) {
 		return o.ZuoraAccountNumber != ""
 	}
@@ -48,16 +46,12 @@ func (z ZuoraAccount) Matches(o users.Organization) bool {
 type TrialExpiredBy time.Time
 
 // ExtendQuery extends a query to filter by trial expiry.
-//
-// Must be kept in sync with Matches.
 func (t TrialExpiredBy) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
 	return b.Where("organizations.trial_expires_at < ?", time.Time(t))
 }
 
-// Matches checks whether an organization matches this filter.
-//
-// Must be kept in sync with ExtendQuery.
-func (t TrialExpiredBy) Matches(o users.Organization) bool {
+// MatchesOrg checks whether an organization matches this filter.
+func (t TrialExpiredBy) MatchesOrg(o users.Organization) bool {
 	return o.TrialExpiresAt.Before(time.Time(t))
 }
 
@@ -66,16 +60,12 @@ func (t TrialExpiredBy) Matches(o users.Organization) bool {
 type TrialActiveAt time.Time
 
 // ExtendQuery extends a query to filter by trial expiry.
-//
-// Must be kept in sync with Matches.
 func (t TrialActiveAt) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
 	return b.Where("organizations.trial_expires_at > ?", time.Time(t))
 }
 
-// Matches checks whether an organization matches this filter.
-//
-// Must be kept in sync with ExtendQuery.
-func (t TrialActiveAt) Matches(o users.Organization) bool {
+// MatchesOrg checks whether an organization matches this filter.
+func (t TrialActiveAt) MatchesOrg(o users.Organization) bool {
 	return o.TrialExpiresAt.After(time.Time(t))
 }
 
@@ -83,16 +73,12 @@ func (t TrialActiveAt) Matches(o users.Organization) bool {
 type HasFeatureFlag string
 
 // ExtendQuery extends a query to filter by feature flag.
-//
-// Must be kept in sync with Matches.
 func (f HasFeatureFlag) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
 	return b.Where("?=ANY(feature_flags)", string(f))
 }
 
-// Matches checks whether an organization matches this filter.
-//
-// Must be kept in sync with ExtendQuery.
-func (f HasFeatureFlag) Matches(o users.Organization) bool {
+// MatchesOrg checks whether an organization matches this filter.
+func (f HasFeatureFlag) MatchesOrg(o users.Organization) bool {
 	return o.HasFeatureFlag(string(f))
 }
 
@@ -100,16 +86,12 @@ func (f HasFeatureFlag) Matches(o users.Organization) bool {
 type ID string
 
 // ExtendQuery extends a query to filter by ID.
-//
-// Must be kept in sync with Matches.
 func (i ID) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
 	return b.Where(map[string]string{"id": string(i)})
 }
 
-// Matches checks whether an organization matches this filter.
-//
-// Must be kept in sync with ExtendQuery.
-func (i ID) Matches(o users.Organization) bool {
+// MatchesOrg checks whether an organization matches this filter.
+func (i ID) MatchesOrg(o users.Organization) bool {
 	return o.ID == string(i)
 }
 
@@ -117,16 +99,12 @@ func (i ID) Matches(o users.Organization) bool {
 type ExternalID string
 
 // ExtendQuery extends a query to filter by ID.
-//
-// Must be kept in sync with Matches.
 func (e ExternalID) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
 	return b.Where(map[string]string{"external_id": string(e)})
 }
 
-// Matches checks whether an organization matches this filter.
-//
-// Must be kept in sync with ExtendQuery.
-func (e ExternalID) Matches(o users.Organization) bool {
+// MatchesOrg checks whether an organization matches this filter.
+func (e ExternalID) MatchesOrg(o users.Organization) bool {
 	return o.ExternalID == string(e)
 }
 
@@ -139,10 +117,8 @@ func (s SearchName) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder
 		fmt.Sprint("%", strings.ToLower(string(s)), "%"))
 }
 
-// Matches checks whether an organization matches this filter.
-//
-// Must be kept in sync with ExtendQuery.
-func (s SearchName) Matches(o users.Organization) bool {
+// MatchesOrg checks whether an organization matches this filter.
+func (s SearchName) MatchesOrg(o users.Organization) bool {
 	return strings.Contains(o.Name, string(s))
 }
 
@@ -162,10 +138,10 @@ func (a andFilter) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder 
 	return b
 }
 
-// Matches all the filters in this AndFilter.
-func (a andFilter) Matches(o users.Organization) bool {
+// MatchesOrg all the filters in this AndFilter.
+func (a andFilter) MatchesOrg(o users.Organization) bool {
 	for _, f := range a {
-		if !f.Matches(o) {
+		if !f.MatchesOrg(o) {
 			return false
 		}
 	}
@@ -175,17 +151,15 @@ func (a andFilter) Matches(o users.Organization) bool {
 // Page shows only a single page of results.
 type Page int32 // XXX: Should be uint64
 
-// Matches says whether the given organization matches this filter.
+// MatchesOrg says whether the given organization matches this filter.
 //
 // We don't implement pagination for queries against the in-memory database,
 // so just lets everything through.
-func (p Page) Matches(org users.Organization) bool {
+func (p Page) MatchesOrg(org users.Organization) bool {
 	return true
 }
 
 // ExtendQuery applies the filter to the query builder.
-//
-// Must be kept in sync with Matches.
 func (p Page) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
 	page := int32(p)
 	if page > 0 {
