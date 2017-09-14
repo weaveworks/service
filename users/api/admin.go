@@ -237,8 +237,7 @@ func (a *API) setOrganizationFeatureFlags(ctx context.Context, orgExternalID str
 	}
 	sort.Strings(sortedFlags)
 
-	// Keep track whether we are enabling the billing flag post-creation
-	var err error
+	// Keep track whether we are about to enable the billing flag
 	var billingEngaged bool
 	var orgName string
 	if _, ok := uniqueFlags[users.BillingFeatureFlag]; ok {
@@ -250,7 +249,7 @@ func (a *API) setOrganizationFeatureFlags(ctx context.Context, orgExternalID str
 		billingEngaged = !org.HasFeatureFlag(users.BillingFeatureFlag)
 	}
 
-	err = a.db.SetFeatureFlags(ctx, orgExternalID, sortedFlags)
+	err := a.db.SetFeatureFlags(ctx, orgExternalID, sortedFlags)
 	if err != nil {
 		return err
 	}
