@@ -8,4 +8,3 @@ RUN \
 COPY schema_service_events.json /bigquery/
 # fluent.conf is copied by a Dockerfile Build Trigger
 COPY fluent-dev.conf /fluentd/etc/
-USER fluent
