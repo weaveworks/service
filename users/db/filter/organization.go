@@ -125,8 +125,8 @@ type Organization struct {
 	Page   int32
 }
 
-// NewOrganization extracts filter values from the request.
-func NewOrganization(r *http.Request) Organization {
+// NewOrganizationFromRequest extracts filter values from the request.
+func NewOrganizationFromRequest(r *http.Request) Organization {
 	q := parseQuery(r.FormValue("query"))
 	return Organization{
 		ID:           q.filters["id"],

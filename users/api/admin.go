@@ -118,7 +118,7 @@ func (a *API) listUsersForOrganization(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
-	f := filter.NewOrganization(r)
+	f := filter.NewOrganizationFromRequest(r)
 	organizations, err := a.db.ListOrganizations(r.Context(), f)
 	if err != nil {
 		render.Error(w, r, err)
