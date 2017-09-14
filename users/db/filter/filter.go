@@ -56,8 +56,12 @@ func parseQuery(qs string) query {
 				case "zuora":
 					extras = append(extras, ZuoraAccount(false))
 				}
+			case "id":
+				extras = append(extras, ID(kv[1]))
+			case "instance":
+				extras = append(extras, ExternalID(kv[1]))
 			default:
-				q.filters[kv[0]] = kv[1]
+				q.search = append(q.search, p)
 			}
 		} else {
 			q.search = append(q.search, p)

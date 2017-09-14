@@ -92,6 +92,40 @@ func (f HasFeatureFlag) Matches(o users.Organization) bool {
 	return o.HasFeatureFlag(string(f))
 }
 
+// ID filters for organizations with exactly this ID.
+type ID string
+
+// ExtendQuery extends a query to filter by ID.
+//
+// Must be kept in sync with Matches.
+func (i ID) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	return b.Where(map[string]string{"id": string(i)})
+}
+
+// Matches checks whether an organization matches this filter.
+//
+// Must be kept in sync with ExtendQuery.
+func (i ID) Matches(o users.Organization) bool {
+	return o.ID == string(i)
+}
+
+// ExternalID filters for organizations with exactly this external ID.
+type ExternalID string
+
+// ExtendQuery extends a query to filter by ID.
+//
+// Must be kept in sync with Matches.
+func (e ExternalID) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	return b.Where(map[string]string{"external_id": string(e)})
+}
+
+// Matches checks whether an organization matches this filter.
+//
+// Must be kept in sync with ExtendQuery.
+func (e ExternalID) Matches(o users.Organization) bool {
+	return o.ExternalID == string(e)
+}
+
 // And combines many filters.
 func And(filters ...OrganizationFilter) OrganizationFilter {
 	return andFilter(filters)
@@ -124,9 +158,7 @@ func (a andFilter) Matches(o users.Organization) bool {
 // - instance:<external-id>
 // - feature:<feature-flag>
 type Organization struct {
-	ID       string
-	Instance string
-	Extra    OrganizationFilter
+	Extra OrganizationFilter
 
 	Search string
 	Page   int32
@@ -136,11 +168,9 @@ type Organization struct {
 func NewOrganizationFromRequest(r *http.Request) Organization {
 	q := parseQuery(r.FormValue("query"))
 	return Organization{
-		ID:       q.filters["id"],
-		Instance: q.filters["instance"],
-		Search:   strings.Join(q.search, " "),
-		Page:     pageValue(r),
-		Extra:    q.extra,
+		Search: strings.Join(q.search, " "),
+		Page:   pageValue(r),
+		Extra:  q.extra,
 	}
 }
 
@@ -148,12 +178,6 @@ func NewOrganizationFromRequest(r *http.Request) Organization {
 //
 // Must be kept in sync with ExtendQuery.
 func (o Organization) Matches(org users.Organization) bool {
-	if o.ID != "" && org.ID != o.ID {
-		return false
-	}
-	if o.Instance != "" && org.ExternalID != o.Instance {
-		return false
-	}
 	if o.Search != "" && !strings.Contains(org.Name, o.Search) {
 		return false
 	}
@@ -178,14 +202,5 @@ func (o Organization) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuild
 	if o.Extra != nil {
 		b = o.Extra.ExtendQuery(b)
 	}
-
-	where := squirrel.Eq{}
-	if o.ID != "" {
-		where["id"] = o.ID
-	}
-	if o.Instance != "" {
-		where["external_id"] = o.Instance
-	}
-
-	return b.Where(where)
+	return b
 }
