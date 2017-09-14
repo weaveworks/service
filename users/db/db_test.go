@@ -78,7 +78,7 @@ func Test_DB_ListByFeatureFlag(t *testing.T) {
 
 	ctx := context.Background()
 	flag := "foo"
-	filterForFlag := filter.Organization{FeatureFlags: []string{flag}}
+	filterForFlag := filter.HasFeatureFlag(flag)
 	{
 		orgsWithFlag, err := db.ListOrganizations(ctx, filterForFlag)
 		require.NoError(t, err)

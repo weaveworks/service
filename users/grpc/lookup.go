@@ -130,7 +130,13 @@ func (a *usersServer) LookupUser(ctx context.Context, req *users.LookupUserReque
 }
 
 func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrganizationsRequest) (*users.GetOrganizationsResponse, error) {
-	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{Search: req.Query, Page: req.PageNumber})
+	fs := []filter.Filter{
+		filter.Page(req.PageNumber),
+	}
+	if req.Query != "" {
+		fs = append(fs, filter.SearchName(req.Query))
+	}
+	organizations, err := a.db.ListOrganizations(ctx, filter.And(fs...))
 	if err != nil {
 		return nil, err
 	}
@@ -144,10 +150,13 @@ func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrgani
 
 func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.GetBillableOrganizationsRequest) (*users.GetBillableOrganizationsResponse, error) {
 	// While billing is in development, only pick orgs with ff `billing`
-	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{
-		FeatureFlags: []string{billingFlag},
-		Extra:        filter.TrialExpiredBy{When: req.Now},
-	})
+	organizations, err := a.db.ListOrganizations(
+		ctx,
+		filter.And(
+			filter.TrialExpiredBy(req.Now),
+			filter.HasFeatureFlag(billingFlag),
+		),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -161,10 +170,13 @@ func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.G
 
 func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetTrialOrganizationsRequest) (*users.GetTrialOrganizationsResponse, error) {
 	// While billing is in development, only pick orgs with ff `billing`
-	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{
-		FeatureFlags: []string{billingFlag},
-		Extra:        filter.TrialActiveAt{When: req.Now},
-	})
+	organizations, err := a.db.ListOrganizations(
+		ctx,
+		filter.And(
+			filter.TrialActiveAt(req.Now),
+			filter.HasFeatureFlag(billingFlag),
+		),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -178,13 +190,14 @@ func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetT
 
 func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users.GetDelinquentOrganizationsRequest) (*users.GetDelinquentOrganizationsResponse, error) {
 	// While billing is in development, only pick orgs with ff `billing`
-	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{
-		FeatureFlags: []string{billingFlag},
-		Extra: filter.And(
-			filter.ZuoraAccount{Has: false},
-			filter.TrialExpiredBy{When: req.Now},
+	organizations, err := a.db.ListOrganizations(
+		ctx,
+		filter.And(
+			filter.ZuoraAccount(false),
+			filter.TrialExpiredBy(req.Now),
+			filter.HasFeatureFlag(billingFlag),
 		),
-	})
+	)
 	if err != nil {
 		return nil, err
 	}

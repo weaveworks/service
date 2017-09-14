@@ -1,9 +1,11 @@
 package filter
 
 import (
-	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/Masterminds/squirrel"
+	"github.com/weaveworks/service/users"
 )
 
 const (
@@ -14,57 +16,128 @@ const (
 	resultsPerPage = 30
 )
 
-type query struct {
-	filters      map[string]string
-	featureFlags []string
-	search       []string
-	extra        OrganizationFilter
+var (
+	// All includes everything.
+	All = And()
+)
+
+// Filter filters things.
+type Filter interface {
+	// ExtendQuery extends a query to filter by something.
+	ExtendQuery(squirrel.SelectBuilder) squirrel.SelectBuilder
 }
 
-// pageValue extracts the `page` form value of the request. It also
+// And combines many filters.
+func And(filters ...Filter) AndFilter {
+	return AndFilter(filters)
+}
+
+// AndFilter combines many filters
+type AndFilter []Filter
+
+// ExtendQuery extends a query to filter by all the filters in this AndFilter.
+func (a AndFilter) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	for _, f := range a {
+		b = f.ExtendQuery(b)
+	}
+	return b
+}
+
+// MatchesOrg matches all the filters in this AndFilter.
+func (a AndFilter) MatchesOrg(o users.Organization) bool {
+	for _, f := range a {
+		orgMatcher := f.(Organization)
+		if !orgMatcher.MatchesOrg(o) {
+			return false
+		}
+	}
+	return true
+}
+
+// MatchesUser matches all the filters in this AndFilter.
+func (a AndFilter) MatchesUser(u users.User) bool {
+	for _, f := range a {
+		userMatcher := f.(User)
+		if !userMatcher.MatchesUser(u) {
+			return false
+		}
+	}
+	return true
+}
+
+// Page shows only a single page of results.
+type Page uint64
+
+// MatchesOrg says whether the given organization matches this filter.
+//
+// We don't implement pagination for queries against the in-memory database,
+// so just lets everything through.
+func (p Page) MatchesOrg(_ users.Organization) bool {
+	return true
+}
+
+// MatchesUser says whether the given user matches this filter.
+//
+// We don't implement pagination for queries against the in-memory database,
+// so just lets everything through.
+func (p Page) MatchesUser(_ users.User) bool {
+	return true
+}
+
+// ExtendQuery applies the filter to the query builder.
+func (p Page) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	page := uint64(p)
+	if page > 0 {
+		b = b.Limit(resultsPerPage).Offset((page - 1) * resultsPerPage)
+	}
+	return b
+}
+
+// ParsePageValue parses the `page` form value of the request. It also
 // clamps it to (1, ∞).
-func pageValue(r *http.Request) int32 {
-	page, _ := strconv.ParseInt(r.FormValue("page"), 10, 32)
+func ParsePageValue(pageStr string) uint64 {
+	page, _ := strconv.ParseInt(pageStr, 10, 32)
 	if page <= 0 {
 		page = 1
 	}
-	return int32(page)
+	return uint64(page)
 }
 
-// parseQuery extracts filters and search from the `query` form value.
-// It supports `<key>:<value>` for exact matches as well as `is:<key>`
+// ParseOrgQuery extracts filters and search from the `query` form
+// value. It supports `<key>:<value>` for exact matches as well as `is:<key>`
 // for boolean toggles, and `feature:<feature>` for feature flags.
-func parseQuery(qs string) query {
-	q := query{
-		filters: map[string]string{},
-	}
-	extras := []OrganizationFilter{}
+func ParseOrgQuery(qs string) Organization {
+	filters := []Filter{}
+	search := []string{}
 	for _, p := range strings.Fields(qs) {
 		if strings.Contains(p, queryFilterDelim) {
 			kv := strings.SplitN(p, queryFilterDelim, 2)
 			switch kv[0] {
-			case "is":
-				q.filters[kv[1]] = "true"
 			case "feature":
-				q.featureFlags = append(q.featureFlags, kv[1])
+				filters = append(filters, HasFeatureFlag(kv[1]))
 			case "has":
 				switch kv[1] {
 				case "zuora":
-					extras = append(extras, ZuoraAccount{true})
+					filters = append(filters, ZuoraAccount(true))
 				}
 			case "!has":
 				switch kv[1] {
 				case "zuora":
-					extras = append(extras, ZuoraAccount{false})
+					filters = append(filters, ZuoraAccount(false))
 				}
+			case "id":
+				filters = append(filters, ID(kv[1]))
+			case "instance":
+				filters = append(filters, ExternalID(kv[1]))
 			default:
-				q.filters[kv[0]] = kv[1]
+				search = append(search, p)
 			}
 		} else {
-			q.search = append(q.search, p)
+			search = append(search, p)
 		}
 	}
-
-	q.extra = And(extras...)
-	return q
+	if len(search) > 0 {
+		filters = append(filters, SearchName(strings.Join(search, " ")))
+	}
+	return And(filters...)
 }

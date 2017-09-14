@@ -170,7 +170,7 @@ func (d *DB) ListUsers(_ context.Context, f filter.User) ([]*users.User, error) 
 	defer d.mtx.Unlock()
 	users := []*users.User{}
 	for _, user := range d.users {
-		if strings.Contains(user.Email, f.Search) && (!f.Admin || user.Admin) {
+		if f.MatchesUser(*user) {
 			users = append(users, user)
 		}
 	}
