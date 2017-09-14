@@ -2,71 +2,68 @@ package filter
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/weaveworks/service/users"
 )
 
-// User defines a filter for listing users.
-// Supported filters
-// - is:admin
-type User struct {
-	Admin bool
-
-	Search string
-	Page   int32
+// UserFilter filters users.
+type UserFilter interface {
+	Filter
+	// MatchesUser checks whether a user matches this filter.
+	MatchesUser(users.User) bool
 }
 
-// NewUser extracts filter values from the request.
-func NewUser(r *http.Request) User {
-	q := parseUserQuery(r.FormValue("query"))
-	return User{
-		Admin:  q.filters["admin"] == "true",
-		Search: strings.Join(q.search, " "),
-		Page:   ParsePageValue(r.FormValue("page")),
-	}
+// SearchEmail finds users whose email contains the given string.
+type SearchEmail string
+
+// MatchesUser users whose email addresses contain the given string.
+func (s SearchEmail) MatchesUser(u users.User) bool {
+	return strings.Contains(u.Email, string(s))
 }
 
-// ExtendQuery applies the filter to the query builder.
-func (u User) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	if u.Page > 0 {
-		b = b.Limit(resultsPerPage).Offset(uint64((u.Page - 1) * resultsPerPage))
-	}
-	if u.Search != "" {
-		b = b.Where("lower(users.email) LIKE ?",
-			fmt.Sprint("%", strings.ToLower(u.Search), "%"))
-	}
-
-	if u.Admin {
-		b = b.Where("users.admin = true")
-	}
-
-	return b
+// ExtendQuery extends a query to also filter for emails that contain the given string.
+func (s SearchEmail) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	return b.Where("lower(users.email) LIKE ?",
+		fmt.Sprint("%", strings.ToLower(string(s)), "%"))
 }
 
-type userQuery struct {
-	filters map[string]string
-	search  []string
+// Admin finds users who are admins (or who aren't).
+type Admin bool
+
+// MatchesUser users with the right admin status.
+func (a Admin) MatchesUser(u users.User) bool {
+	return u.Admin == bool(a)
 }
 
-// parseUserQuery extracts filters and search from the 'query' form value.
-func parseUserQuery(qs string) userQuery {
-	q := userQuery{
-		filters: map[string]string{},
-	}
+// ExtendQuery extends a query to filter for admin status.
+func (a Admin) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	return b.Where("users.admin = ?", bool(a))
+}
+
+// ParseUserQuery extracts filters and search from the 'query' form value.
+func ParseUserQuery(qs string) UserFilter {
+	filters := []Filter{}
+	search := []string{}
 	for _, p := range strings.Fields(qs) {
 		if strings.Contains(p, queryFilterDelim) {
 			kv := strings.SplitN(p, queryFilterDelim, 2)
 			switch kv[0] {
 			case "is":
-				q.filters[kv[1]] = "true"
+				switch kv[1] {
+				case "admin":
+					filters = append(filters, Admin(true))
+				}
 			default:
-				q.search = append(q.search, p)
+				search = append(search, p)
 			}
 		} else {
-			q.search = append(q.search, p)
+			search = append(search, p)
 		}
 	}
-	return q
+	if len(search) > 0 {
+		filters = append(filters, SearchEmail(strings.Join(search, " ")))
+	}
+	return And(filters...)
 }

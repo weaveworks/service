@@ -104,7 +104,7 @@ func (t timed) RemoveUserFromOrganization(ctx context.Context, orgExternalID, em
 	})
 }
 
-func (t timed) ListUsers(ctx context.Context, f filter.User) (us []*users.User, err error) {
+func (t timed) ListUsers(ctx context.Context, f filter.UserFilter) (us []*users.User, err error) {
 	t.timeRequest(ctx, "ListUsers", func(ctx context.Context) error {
 		us, err = t.d.ListUsers(ctx, f)
 		return err

@@ -9,15 +9,9 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
-var (
-	// AllOrganizations includes all organizations.
-	AllOrganizations = And()
-)
-
 // Organization filters organizations.
 type Organization interface {
-	// ExtendQuery extends a query to filter by something.
-	ExtendQuery(squirrel.SelectBuilder) squirrel.SelectBuilder
+	Filter
 	// MatchesOrg checks whether an organization matches this filter.
 	MatchesOrg(users.Organization) bool
 }
@@ -120,50 +114,4 @@ func (s SearchName) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder
 // MatchesOrg checks whether an organization matches this filter.
 func (s SearchName) MatchesOrg(o users.Organization) bool {
 	return strings.Contains(o.Name, string(s))
-}
-
-// And combines many filters.
-func And(filters ...Organization) Organization {
-	return andFilter(filters)
-}
-
-// AndFilter combines many filters
-type andFilter []Organization
-
-// ExtendQuery extends a query to filter by all the filters in this AndFilter.
-func (a andFilter) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	for _, f := range a {
-		b = f.ExtendQuery(b)
-	}
-	return b
-}
-
-// MatchesOrg all the filters in this AndFilter.
-func (a andFilter) MatchesOrg(o users.Organization) bool {
-	for _, f := range a {
-		if !f.MatchesOrg(o) {
-			return false
-		}
-	}
-	return true
-}
-
-// Page shows only a single page of results.
-type Page int32 // XXX: Should be uint64
-
-// MatchesOrg says whether the given organization matches this filter.
-//
-// We don't implement pagination for queries against the in-memory database,
-// so just lets everything through.
-func (p Page) MatchesOrg(org users.Organization) bool {
-	return true
-}
-
-// ExtendQuery applies the filter to the query builder.
-func (p Page) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	page := int32(p)
-	if page > 0 {
-		b = b.Limit(resultsPerPage).Offset(uint64((page - 1) * resultsPerPage))
-	}
-	return b
 }

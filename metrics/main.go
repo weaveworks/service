@@ -155,7 +155,7 @@ func getMemberships(ctx context.Context, d db.DB) ([]interface{}, error) {
 }
 
 func getInstances(ctx context.Context, d db.DB) ([]interface{}, error) {
-	instances, err := d.ListOrganizations(ctx, filter.AllOrganizations)
+	instances, err := d.ListOrganizations(ctx, filter.All)
 	if err != nil {
 		return nil, err
 	}

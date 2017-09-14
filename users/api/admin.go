@@ -51,7 +51,9 @@ type privateUserView struct {
 }
 
 func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
-	f := filter.NewUser(r)
+	page := filter.ParsePageValue(r.FormValue("page"))
+	query := r.FormValue("query")
+	f := filter.And(filter.ParseUserQuery(query), filter.Page(page))
 	users, err := a.db.ListUsers(r.Context(), f)
 	if err != nil {
 		render.Error(w, r, err)
@@ -74,8 +76,8 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 		b, err := a.templates.Bytes("list_users.html", map[string]interface{}{
 			"Users":    users,
 			"Query":    r.FormValue("query"),
-			"Page":     f.Page,
-			"NextPage": f.Page + 1,
+			"Page":     page,
+			"NextPage": page + 1,
 		})
 		if err != nil {
 			render.Error(w, r, err)
@@ -222,7 +224,7 @@ func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
-	users, err := a.db.ListUsers(r.Context(), filter.User{})
+	users, err := a.db.ListUsers(r.Context(), filter.All)
 	if err != nil {
 		render.Error(w, r, err)
 		return

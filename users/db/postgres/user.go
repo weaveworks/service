@@ -229,7 +229,7 @@ func (d DB) usersQuery() squirrel.SelectBuilder {
 }
 
 // ListUsers lists users
-func (d DB) ListUsers(_ context.Context, f filter.User) ([]*users.User, error) {
+func (d DB) ListUsers(_ context.Context, f filter.UserFilter) ([]*users.User, error) {
 	q := d.usersQuery()
 	q = f.ExtendQuery(q)
 
