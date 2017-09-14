@@ -96,8 +96,8 @@ message LookupUserResponse {
 // GetOrganizationRequest requests a list of organizations.
 message GetOrganizationsRequest {
     // Query restricts the organizations returned. If specified, will find
-    // only organizations that have Query as a substring of internal ID (e.g.
-    // '432') or external ID (e.g. 'foo-bar-11').
+    // only organizations that have Query as a substring of the organization
+    // name.
     string Query = 1;
     // If 0 or less, return everything. Otherwise, return a single page of
     // implementation-dependent results (currently 30).
