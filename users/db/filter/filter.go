@@ -57,7 +57,7 @@ func (a AndFilter) MatchesOrg(o users.Organization) bool {
 // MatchesUser matches all the filters in this AndFilter.
 func (a AndFilter) MatchesUser(u users.User) bool {
 	for _, f := range a {
-		userMatcher := f.(UserFilter)
+		userMatcher := f.(User)
 		if !userMatcher.MatchesUser(u) {
 			return false
 		}

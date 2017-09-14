@@ -8,8 +8,8 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
-// UserFilter filters users.
-type UserFilter interface {
+// User filters users.
+type User interface {
 	Filter
 	// MatchesUser checks whether a user matches this filter.
 	MatchesUser(users.User) bool
@@ -43,7 +43,7 @@ func (a Admin) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
 }
 
 // ParseUserQuery extracts filters and search from the 'query' form value.
-func ParseUserQuery(qs string) UserFilter {
+func ParseUserQuery(qs string) User {
 	filters := []Filter{}
 	search := []string{}
 	for _, p := range strings.Fields(qs) {
