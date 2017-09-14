@@ -23,6 +23,9 @@ type SMTPEmailer struct {
 	FromAddress string
 }
 
+// Date format to use in email templates
+const dateFormat = "January 2 2006"
+
 // Takes a uri of the form smtp://username:password@hostname:port
 func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 	host, port, err := net.SplitHostPort(u.Host)
@@ -92,7 +95,25 @@ func (s SMTPEmailer) GrantAccessEmail(inviter, invited *users.User, orgExternalI
 	return s.Sender(e)
 }
 
-// TrialExpiredEmail notifies all members of the organization.
+// TrialPendingExpiryEmail notifies all members of the organization that
+// their trial is about to expire.
+func (s SMTPEmailer) TrialPendingExpiryEmail(members []*users.User, orgExternalID, orgName string, trialExpiresAt time.Time) error {
+	e := email.NewEmail()
+	e.From = s.FromAddress
+	e.To = collectEmails(members)
+	e.Subject = "Your Weave Cloud trial expires soon!"
+	data := map[string]interface{}{
+		"OrganizationName": orgName,
+		"BillingURL":       billingURL(s.Domain, orgExternalID),
+		"TrialExpiresAt":   trialExpiresAt.Format(dateFormat),
+	}
+	e.Text = s.Templates.QuietBytes("trial_pending_expiry_email.text", data)
+
+	return s.Sender(e)
+}
+
+// TrialExpiredEmail notifies all members of the organization that
+// their trial has expired.
 func (s SMTPEmailer) TrialExpiredEmail(members []*users.User, orgExternalID, orgName string) error {
 	e := email.NewEmail()
 	e.From = s.FromAddress
@@ -107,19 +128,20 @@ func (s SMTPEmailer) TrialExpiredEmail(members []*users.User, orgExternalID, org
 	return s.Sender(e)
 }
 
-// TrialPendingExpiryEmail notifies all members of the organization.
-func (s SMTPEmailer) TrialPendingExpiryEmail(members []*users.User, orgExternalID, orgName string, trialExpiresAt time.Time) error {
+// TrialExtendedEmail notifies all members of the organization that the trial
+// period has been extended.
+func (s SMTPEmailer) TrialExtendedEmail(members []*users.User, orgExternalID, orgName string, trialExpiresAt time.Time) error {
 	e := email.NewEmail()
 	e.From = s.FromAddress
 	e.To = collectEmails(members)
-	e.Subject = "Your Weave Cloud trial expires soon!"
+	e.Subject = "Your trial period has just been extended!"
 	data := map[string]interface{}{
 		"OrganizationName": orgName,
 		"BillingURL":       billingURL(s.Domain, orgExternalID),
-		"TrialExpiresAt":   trialExpiresAt.Format("January 2 2006"),
+		"TrialExpiresAt":   trialExpiresAt.Format(dateFormat),
 		"DaysLeft":         int16(math.Ceil(trialExpiresAt.Sub(time.Now()).Hours() / 24)),
 	}
-	e.Text = s.Templates.QuietBytes("trial_pending_expiry_email.text", data)
+	e.Text = s.Templates.QuietBytes("trial_extended_email.text", data)
 
 	return s.Sender(e)
 }

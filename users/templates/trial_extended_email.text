@@ -1,0 +1,13 @@
+Good news, we have extended your trial period.
+
+Once your trial period will end on {{.TrialExpiresAt}} you will
+be billed monthly. Make sure you add a payment method to make sure
+the transition runs smoothly:
+
+    {{.BillingURL}}
+
+If you have any questions or issues, feel free to get in touch via
+help@weave.works or join our Slack channel #weave-community by going to
+https://weaveworks.github.io/community-slack/
+
+Thanks, the Weaveworks team

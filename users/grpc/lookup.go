@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	billingFlag = "billing"
+	BillingFlag = "billing"
 )
 
 // usersServer implements users.UsersServer
@@ -157,7 +157,7 @@ func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.G
 		ctx,
 		filter.And(
 			filter.TrialExpiredBy(req.Now),
-			filter.HasFeatureFlag(billingFlag),
+			filter.HasFeatureFlag(BillingFlag),
 		),
 	)
 	if err != nil {
@@ -177,7 +177,7 @@ func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetT
 		ctx,
 		filter.And(
 			filter.TrialActiveAt(req.Now),
-			filter.HasFeatureFlag(billingFlag),
+			filter.HasFeatureFlag(BillingFlag),
 		),
 	)
 	if err != nil {
@@ -198,7 +198,7 @@ func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users
 		filter.And(
 			filter.ZuoraAccount(false),
 			filter.TrialExpiredBy(req.Now),
-			filter.HasFeatureFlag(billingFlag),
+			filter.HasFeatureFlag(BillingFlag),
 		),
 	)
 	if err != nil {

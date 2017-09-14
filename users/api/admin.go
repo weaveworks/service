@@ -16,6 +16,7 @@ import (
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/client"
 	"github.com/weaveworks/service/users/db/filter"
+	"github.com/weaveworks/service/users/grpc"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/render"
 )
@@ -198,17 +199,7 @@ func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
 		deny := value == "on"
 		err = a.db.SetOrganizationDenyTokenAuth(r.Context(), orgExternalID, deny)
 	case "FeatureFlags":
-		uniqueFlags := map[string]struct{}{}
-		for _, f := range strings.Fields(value) {
-			uniqueFlags[f] = struct{}{}
-		}
-		var sortedFlags []string
-		for f := range uniqueFlags {
-			sortedFlags = append(sortedFlags, f)
-		}
-		sort.Strings(sortedFlags)
-
-		err = a.db.SetFeatureFlags(r.Context(), orgExternalID, sortedFlags)
+		err = a.setOrganizationFeatureFlags(r.Context(), orgExternalID, strings.Fields(value))
 	default:
 		err = users.ValidationErrorf("Invalid field %v", field)
 		return
@@ -233,6 +224,58 @@ func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
 	for _, user := range users {
 		a.marketingQueues.UserCreated(user.Email, user.CreatedAt)
 	}
+}
+
+// setOrganizationFeatureFlags updates feature flags of an organization.
+func (a *API) setOrganizationFeatureFlags(ctx context.Context, orgExternalID string, flags []string) error {
+	uniqueFlags := map[string]struct{}{}
+	for _, f := range flags {
+		uniqueFlags[f] = struct{}{}
+	}
+	var sortedFlags []string
+	for f := range uniqueFlags {
+		sortedFlags = append(sortedFlags, f)
+	}
+	sort.Strings(sortedFlags)
+
+	// Keep track whether we are enabling the billing flag post-creation
+	var err error
+	var billingEngaged bool
+	var orgName string
+	if _, ok := uniqueFlags[grpc.BillingFlag]; ok {
+		org, err := a.db.FindOrganizationByID(ctx, orgExternalID)
+		if err != nil {
+			return err
+		}
+		orgName = org.Name
+		billingEngaged = !org.HasFeatureFlag(grpc.BillingFlag)
+	}
+
+	err = a.db.SetFeatureFlags(ctx, orgExternalID, sortedFlags)
+	if err != nil {
+		return err
+	}
+
+	// For post-creation enabling of billing, we gift another trial period
+	// starting today and send members an email
+	if billingEngaged {
+		expires := time.Now().Add(users.DefaultTrialLength)
+		err = a.db.UpdateOrganization(ctx, orgExternalID, users.OrgWriteView{TrialExpiresAt: &expires})
+		if err != nil {
+			return err
+		}
+
+		members, err := a.db.ListOrganizationUsers(ctx, orgExternalID)
+		if err != nil {
+			return err
+		}
+		err = a.emailer.TrialExtendedEmail(members, orgExternalID, orgName, expires)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
