@@ -122,7 +122,7 @@ func main() {
 }
 
 func getUsers(ctx context.Context, d db.DB) ([]interface{}, error) {
-	users, err := d.ListUsers(ctx, filter.User{})
+	users, err := d.ListUsers(ctx, filter.All)
 	if err != nil {
 		return nil, err
 	}
