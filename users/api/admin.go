@@ -118,7 +118,9 @@ func (a *API) listUsersForOrganization(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
-	f := filter.NewOrganizationFromRequest(r)
+	page := filter.ParsePageValue(r.FormValue("page"))
+	query := r.FormValue("query")
+	f := filter.And(filter.ParseOrgQuery(query), filter.Page(page))
 	organizations, err := a.db.ListOrganizations(r.Context(), f)
 	if err != nil {
 		render.Error(w, r, err)
@@ -128,8 +130,8 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
 		"Organizations": organizations,
 		"Query":         r.FormValue("query"),
-		"Page":          f.Page,
-		"NextPage":      f.Page + 1,
+		"Page":          page,
+		"NextPage":      page + 1,
 		"Message":       r.FormValue("msg"),
 	})
 	if err != nil {

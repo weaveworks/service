@@ -2,7 +2,6 @@ package filter
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -197,19 +196,6 @@ func (p Page) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
 // - feature:<feature-flag>
 type Organization struct {
 	Extra OrganizationFilter
-
-	Page int32
-}
-
-// NewOrganizationFromRequest extracts filter values from the request.
-func NewOrganizationFromRequest(r *http.Request) Organization {
-	filters := parseOrgQuery(r.FormValue("query"))
-	page := pageValue(r)
-	filters = And(filters, Page(page))
-	return Organization{
-		Page:  pageValue(r),
-		Extra: filters,
-	}
 }
 
 // Matches says whether the given organization matches this filter.

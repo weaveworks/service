@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"net/http"
 	"strconv"
 	"strings"
 )
@@ -14,20 +13,20 @@ const (
 	resultsPerPage = 30
 )
 
-// pageValue extracts the `page` form value of the request. It also
+// ParsePageValue parses the `page` form value of the request. It also
 // clamps it to (1, ∞).
-func pageValue(r *http.Request) int32 {
-	page, _ := strconv.ParseInt(r.FormValue("page"), 10, 32)
+func ParsePageValue(pageStr string) int32 {
+	page, _ := strconv.ParseInt(pageStr, 10, 32)
 	if page <= 0 {
 		page = 1
 	}
 	return int32(page)
 }
 
-// parseOrganizationQuery extracts filters and search from the `query` form
+// ParseOrgQuery extracts filters and search from the `query` form
 // value. It supports `<key>:<value>` for exact matches as well as `is:<key>`
 // for boolean toggles, and `feature:<feature>` for feature flags.
-func parseOrgQuery(qs string) OrganizationFilter {
+func ParseOrgQuery(qs string) OrganizationFilter {
 	filters := []OrganizationFilter{}
 	search := []string{}
 	for _, p := range strings.Fields(qs) {

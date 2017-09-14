@@ -24,7 +24,7 @@ func NewUser(r *http.Request) User {
 	return User{
 		Admin:  q.filters["admin"] == "true",
 		Search: strings.Join(q.search, " "),
-		Page:   pageValue(r),
+		Page:   ParsePageValue(r.FormValue("page")),
 	}
 }
 
