@@ -9,6 +9,11 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
+var (
+	// AllOrganizations includes all organizations.
+	AllOrganizations = And()
+)
+
 // OrganizationFilter filters organizations.
 type OrganizationFilter interface {
 	// ExtendQuery extends a query to filter by something.
@@ -185,35 +190,6 @@ func (p Page) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
 	page := int32(p)
 	if page > 0 {
 		b = b.Limit(resultsPerPage).Offset(uint64((page - 1) * resultsPerPage))
-	}
-	return b
-}
-
-// Organization defines a filter for listing organizations.
-// Supported filters
-// - id:<organization-id>
-// - instance:<external-id>
-// - feature:<feature-flag>
-type Organization struct {
-	Extra OrganizationFilter
-}
-
-// Matches says whether the given organization matches this filter.
-//
-// Must be kept in sync with ExtendQuery.
-func (o Organization) Matches(org users.Organization) bool {
-	if o.Extra != nil {
-		return o.Extra.Matches(org)
-	}
-	return true
-}
-
-// ExtendQuery applies the filter to the query builder.
-//
-// Must be kept in sync with Matches.
-func (o Organization) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	if o.Extra != nil {
-		b = o.Extra.ExtendQuery(b)
 	}
 	return b
 }
