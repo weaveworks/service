@@ -19,13 +19,11 @@ type OrganizationFilter interface {
 }
 
 // ZuoraAccount filters an organization based on whether or not there's a Zuora account.
-type ZuoraAccount struct {
-	Has bool
-}
+type ZuoraAccount bool
 
 // ExtendQuery extends a query to filter by Zuora account.
 func (z ZuoraAccount) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	if z.Has {
+	if bool(z) {
 		return b.Where("zuora_account_number IS NOT NULL")
 	}
 	return b.Where(map[string]interface{}{"zuora_account_number": nil})
@@ -35,7 +33,7 @@ func (z ZuoraAccount) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuild
 //
 // Must be kept in sync with ExtendQuery.
 func (z ZuoraAccount) Matches(o users.Organization) bool {
-	if z.Has {
+	if bool(z) {
 		return o.ZuoraAccountNumber != ""
 	}
 	return o.ZuoraAccountNumber == ""
@@ -43,77 +41,68 @@ func (z ZuoraAccount) Matches(o users.Organization) bool {
 
 // TrialExpiredBy filters for organizations whose trials had expired by a
 // given date.
-type TrialExpiredBy struct {
-	// When: Has the trial expired by this time?
-	When time.Time
-}
+type TrialExpiredBy time.Time
 
 // ExtendQuery extends a query to filter by trial expiry.
 //
 // Must be kept in sync with Matches.
 func (t TrialExpiredBy) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where("organizations.trial_expires_at < ?", t.When)
+	return b.Where("organizations.trial_expires_at < ?", time.Time(t))
 }
 
 // Matches checks whether an organization matches this filter.
 //
 // Must be kept in sync with ExtendQuery.
 func (t TrialExpiredBy) Matches(o users.Organization) bool {
-	return o.TrialExpiresAt.Before(t.When)
+	return o.TrialExpiresAt.Before(time.Time(t))
 }
 
 // TrialActiveAt filters for organizations whose trials were active at given
 // date.
-type TrialActiveAt struct {
-	When time.Time
-}
+type TrialActiveAt time.Time
 
 // ExtendQuery extends a query to filter by trial expiry.
 //
 // Must be kept in sync with Matches.
 func (t TrialActiveAt) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where("organizations.trial_expires_at > ?", t.When)
+	return b.Where("organizations.trial_expires_at > ?", time.Time(t))
 }
 
 // Matches checks whether an organization matches this filter.
 //
 // Must be kept in sync with ExtendQuery.
 func (t TrialActiveAt) Matches(o users.Organization) bool {
-	return o.TrialExpiresAt.After(t.When)
+	return o.TrialExpiresAt.After(time.Time(t))
 }
 
 // HasFeatureFlag filters for organizations that has the given feature flag.
-type HasFeatureFlag struct {
-	Flag string
-}
+type HasFeatureFlag string
 
 // ExtendQuery extends a query to filter by feature flag.
 //
 // Must be kept in sync with Matches.
 func (f HasFeatureFlag) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where("?=ANY(feature_flags)", f.Flag)
+	return b.Where("?=ANY(feature_flags)", string(f))
 }
 
 // Matches checks whether an organization matches this filter.
 //
 // Must be kept in sync with ExtendQuery.
 func (f HasFeatureFlag) Matches(o users.Organization) bool {
-	return o.HasFeatureFlag(f.Flag)
+	return o.HasFeatureFlag(string(f))
 }
 
 // And combines many filters.
 func And(filters ...OrganizationFilter) OrganizationFilter {
-	return andFilter{filters: filters}
+	return andFilter(filters)
 }
 
 // AndFilter combines many filters
-type andFilter struct {
-	filters []OrganizationFilter
-}
+type andFilter []OrganizationFilter
 
 // ExtendQuery extends a query to filter by all the filters in this AndFilter.
 func (a andFilter) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	for _, f := range a.filters {
+	for _, f := range a {
 		b = f.ExtendQuery(b)
 	}
 	return b
@@ -121,7 +110,7 @@ func (a andFilter) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder 
 
 // Matches all the filters in this AndFilter.
 func (a andFilter) Matches(o users.Organization) bool {
-	for _, f := range a.filters {
+	for _, f := range a {
 		if !f.Matches(o) {
 			return false
 		}

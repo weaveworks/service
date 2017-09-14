@@ -46,16 +46,16 @@ func parseQuery(qs string) query {
 			case "is":
 				q.filters[kv[1]] = "true"
 			case "feature":
-				extras = append(extras, HasFeatureFlag{kv[1]})
+				extras = append(extras, HasFeatureFlag(kv[1]))
 			case "has":
 				switch kv[1] {
 				case "zuora":
-					extras = append(extras, ZuoraAccount{true})
+					extras = append(extras, ZuoraAccount(true))
 				}
 			case "!has":
 				switch kv[1] {
 				case "zuora":
-					extras = append(extras, ZuoraAccount{false})
+					extras = append(extras, ZuoraAccount(false))
 				}
 			default:
 				q.filters[kv[0]] = kv[1]
