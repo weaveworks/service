@@ -166,7 +166,7 @@ type Organization struct {
 
 // NewOrganizationFromRequest extracts filter values from the request.
 func NewOrganizationFromRequest(r *http.Request) Organization {
-	q := parseQuery(r.FormValue("query"))
+	q := parseOrgQuery(r.FormValue("query"))
 	return Organization{
 		Search: strings.Join(q.search, " "),
 		Page:   pageValue(r),

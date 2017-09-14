@@ -20,7 +20,7 @@ type User struct {
 
 // NewUser extracts filter values from the request.
 func NewUser(r *http.Request) User {
-	q := parseQuery(r.FormValue("query"))
+	q := parseUserQuery(r.FormValue("query"))
 	return User{
 		Admin:  q.filters["admin"] == "true",
 		Search: strings.Join(q.search, " "),
@@ -43,4 +43,30 @@ func (u User) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
 	}
 
 	return b
+}
+
+type userQuery struct {
+	filters map[string]string
+	search  []string
+}
+
+// parseUserQuery extracts filters and search from the 'query' form value.
+func parseUserQuery(qs string) userQuery {
+	q := userQuery{
+		filters: map[string]string{},
+	}
+	for _, p := range strings.Fields(qs) {
+		if strings.Contains(p, queryFilterDelim) {
+			kv := strings.SplitN(p, queryFilterDelim, 2)
+			switch kv[0] {
+			case "is":
+				q.filters[kv[1]] = "true"
+			default:
+				q.search = append(q.search, p)
+			}
+		} else {
+			q.search = append(q.search, p)
+		}
+	}
+	return q
 }

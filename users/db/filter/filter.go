@@ -14,10 +14,9 @@ const (
 	resultsPerPage = 30
 )
 
-type query struct {
-	filters map[string]string
-	search  []string
-	extra   OrganizationFilter
+type orgQuery struct {
+	search []string
+	extra  OrganizationFilter
 }
 
 // pageValue extracts the `page` form value of the request. It also
@@ -30,20 +29,16 @@ func pageValue(r *http.Request) int32 {
 	return int32(page)
 }
 
-// parseQuery extracts filters and search from the `query` form value.
-// It supports `<key>:<value>` for exact matches as well as `is:<key>`
+// parseOrganizationQuery extracts filters and search from the `query` form
+// value. It supports `<key>:<value>` for exact matches as well as `is:<key>`
 // for boolean toggles, and `feature:<feature>` for feature flags.
-func parseQuery(qs string) query {
-	q := query{
-		filters: map[string]string{},
-	}
+func parseOrgQuery(qs string) orgQuery {
+	q := orgQuery{}
 	extras := []OrganizationFilter{}
 	for _, p := range strings.Fields(qs) {
 		if strings.Contains(p, queryFilterDelim) {
 			kv := strings.SplitN(p, queryFilterDelim, 2)
 			switch kv[0] {
-			case "is":
-				q.filters[kv[1]] = "true"
 			case "feature":
 				extras = append(extras, HasFeatureFlag(kv[1]))
 			case "has":
