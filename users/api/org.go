@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
@@ -15,13 +16,19 @@ import (
 
 // OrgView describes an organisation
 type OrgView struct {
-	User           string   `json:"user,omitempty"`
-	ExternalID     string   `json:"id"`
-	Name           string   `json:"name"`
-	ProbeToken     string   `json:"probeToken,omitempty"`
-	FeatureFlags   []string `json:"featureFlags,omitempty"`
-	DenyUIFeatures bool     `json:"denyUIFeatures"`
-	DenyTokenAuth  bool     `json:"denyTokenAuth"`
+	User                  string     `json:"user,omitempty"`
+	ExternalID            string     `json:"id"`
+	Name                  string     `json:"name"`
+	ProbeToken            string     `json:"probeToken,omitempty"`
+	FeatureFlags          []string   `json:"featureFlags,omitempty"`
+	DenyUIFeatures        bool       `json:"denyUIFeatures"`
+	DenyTokenAuth         bool       `json:"denyTokenAuth"`
+	FirstSeenConnectedAt  *time.Time `json:"firstSeenConnectedAt"`
+	Platform              string     `json:"platform"`
+	Environment           string     `json:"environment"`
+	TrialExpiresAt        time.Time  `json:"trialExpiresAt"`
+	ZuoraAccountNumber    string     `json:"zuoraAccountNumber"`
+	ZuoraAccountCreatedAt *time.Time `json:"zuoraAccountCreatedAt"`
 }
 
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -33,19 +40,25 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 		return
 	}
 	for _, org := range organizations {
-		if strings.ToLower(org.ExternalID) == strings.ToLower(orgExternalID) {
+		if org.ExternalID == strings.ToLower(orgExternalID) {
 			render.JSON(w, http.StatusOK, OrgView{
-				User:           currentUser.Email,
-				ExternalID:     org.ExternalID,
-				Name:           org.Name,
-				ProbeToken:     org.ProbeToken,
-				FeatureFlags:   append(org.FeatureFlags, a.forceFeatureFlags...),
-				DenyUIFeatures: org.DenyUIFeatures,
-				DenyTokenAuth:  org.DenyTokenAuth,
+				User:                 currentUser.Email,
+				ExternalID:           org.ExternalID,
+				Name:                 org.Name,
+				ProbeToken:           org.ProbeToken,
+				FeatureFlags:         append(org.FeatureFlags, a.forceFeatureFlags...),
+				DenyUIFeatures:       org.DenyUIFeatures,
+				DenyTokenAuth:        org.DenyTokenAuth,
+				FirstSeenConnectedAt: org.FirstSeenConnectedAt,
+				Platform:             org.Platform,
+				Environment:          org.Environment,
+				TrialExpiresAt:       org.TrialExpiresAt,
 			})
 			return
 		}
 	}
+
+	// If the organization exists but we just don't have access to it, tell the client
 	if exists, err := a.db.OrganizationExists(r.Context(), orgExternalID); err != nil {
 		render.Error(w, r, err)
 		return
@@ -92,23 +105,19 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 
 func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	var view OrgView
-	err := json.NewDecoder(r.Body).Decode(&view)
+	var update users.OrgWriteView
+	err := json.NewDecoder(r.Body).Decode(&update)
 	switch {
 	case err != nil:
 		render.Error(w, r, users.MalformedInputError(err))
 		return
-	case view.ExternalID != "":
-		render.Error(w, r, users.ValidationErrorf("ID cannot be changed"))
-		return
 	}
-
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
 		render.Error(w, r, err)
 		return
 	}
-	if err := a.db.RenameOrganization(r.Context(), orgExternalID, view.Name); err != nil {
+	if err := a.db.UpdateOrganization(r.Context(), orgExternalID, update); err != nil {
 		render.Error(w, r, err)
 		return
 	}

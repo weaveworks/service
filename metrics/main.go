@@ -19,6 +19,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users/db"
+	"github.com/weaveworks/service/users/db/filter"
 )
 
 var (
@@ -121,7 +122,7 @@ func main() {
 }
 
 func getUsers(ctx context.Context, d db.DB) ([]interface{}, error) {
-	users, err := d.ListUsers(ctx)
+	users, err := d.ListUsers(ctx, filter.User{})
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +155,7 @@ func getMemberships(ctx context.Context, d db.DB) ([]interface{}, error) {
 }
 
 func getInstances(ctx context.Context, d db.DB) ([]interface{}, error) {
-	instances, err := d.ListOrganizations(ctx)
+	instances, err := d.ListOrganizations(ctx, filter.Organization{})
 	if err != nil {
 		return nil, err
 	}

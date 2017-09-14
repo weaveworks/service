@@ -35,6 +35,10 @@ var (
 )
 
 func setup(t *testing.T) {
+	setupWithMockServices(t, "", "", "", "")
+}
+
+func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, promAPI, netAPI string) {
 	db.PasswordHashingCost = bcrypt.MinCost
 
 	var directLogin = false
@@ -54,7 +58,25 @@ func setup(t *testing.T) {
 		FromAddress: "test@test.com",
 	}
 	grpcServer := grpc.New(sessionStore, database)
-	app = api.New(directLogin, emailer, sessionStore, database, logins, templates, nil, nil, "", "", grpcServer, make(map[string]struct{}), mixpanelClient)
+	app = api.New(
+		directLogin,
+		emailer,
+		sessionStore,
+		database,
+		logins,
+		templates,
+		nil,
+		nil,
+		"",
+		"",
+		grpcServer,
+		make(map[string]struct{}),
+		mixpanelClient,
+		fluxAPI,
+		scopeAPI,
+		promAPI,
+		netAPI,
+	)
 }
 
 func cleanup(t *testing.T) {

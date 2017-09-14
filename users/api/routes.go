@@ -54,6 +54,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_users_org_orgExternalID", "GET", "/api/users/org/{orgExternalID}", a.authenticateUser(a.org)},
 		{"api_users_org_orgExternalID_update", "PUT", "/api/users/org/{orgExternalID}", a.authenticateUser(a.updateOrg)},
 		{"api_users_org_orgExternalID_delete", "DELETE", "/api/users/org/{orgExternalID}", a.authenticateUser(a.deleteOrg)},
+		{"api_users_org_service_status", "GET", "/api/users/org/{orgExternalID}/status", a.authenticateUser(a.getOrgServiceStatus)},
 
 		// Used to list and manage organization access (invites)
 		{"api_users_org_orgExternalID_users", "GET", "/api/users/org/{orgExternalID}/users", a.authenticateUser(a.listOrganizationUsers)},
@@ -63,6 +64,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		// Internal stuff for our internal usage, internally.
 		{"root", "GET", "/admin/users", a.admin},
 		{"admin_users_organizations", "GET", "/admin/users/organizations", a.listOrganizations},
+		{"admin_users_organizations_orgExternalID_users", "GET", "/admin/users/organizations/{orgExternalID}/users", a.listUsersForOrganization},
 		{"admin_users_organizations_orgExternalID", "POST", "/admin/users/organizations/{orgExternalID}", a.changeOrgField},
 		{"admin_users_pardot", "GET", "/admin/users/marketing_refresh", a.marketingRefresh},
 		{"admin_users_users", "GET", "/admin/users/users", a.listUsers},

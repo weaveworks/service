@@ -3,12 +3,14 @@ package db
 import (
 	"encoding/json"
 	"net/url"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/db/memory"
 	"github.com/weaveworks/service/users/db/postgres"
 	"github.com/weaveworks/service/users/login"
@@ -48,8 +50,8 @@ type DB interface {
 	// Remove a user from an organization. If they do not exist (ctx context.Context, or are not a member of the org), return success.
 	RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) error
 
-	ListUsers(ctx context.Context) ([]*users.User, error)
-	ListOrganizations(ctx context.Context) ([]*users.Organization, error)
+	ListUsers(ctx context.Context, f filter.User) ([]*users.User, error)
+	ListOrganizations(ctx context.Context, f filter.Organization) ([]*users.Organization, error)
 	ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error)
 
 	// ListOrganizationsForUserIDs lists all organizations these users have
@@ -78,14 +80,17 @@ type DB interface {
 	CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (*users.Organization, error)
 	FindOrganizationByProbeToken(ctx context.Context, probeToken string) (*users.Organization, error)
 	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)
-	RenameOrganization(ctx context.Context, externalID, newName string) error
+	UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error
 	OrganizationExists(ctx context.Context, externalID string) (bool, error)
+	ExternalIDUsed(ctx context.Context, externalID string) (bool, error)
 	GetOrganizationName(ctx context.Context, externalID string) (string, error)
 	DeleteOrganization(ctx context.Context, externalID string) error
 	AddFeatureFlag(ctx context.Context, externalID string, featureFlag string) error
 	SetFeatureFlags(ctx context.Context, externalID string, featureFlags []string) error
 	SetOrganizationDenyUIFeatures(ctx context.Context, externalID string, value bool) error
 	SetOrganizationDenyTokenAuth(ctx context.Context, externalID string, value bool) error
+	SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error
+	SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error
 
 	ListMemberships(ctx context.Context) ([]users.Membership, error)
 

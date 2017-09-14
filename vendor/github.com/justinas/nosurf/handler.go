@@ -60,16 +60,14 @@ type CSRFHandler struct {
 }
 
 func defaultFailureHandler(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "", FailureCode)
+	http.Error(w, http.StatusText(FailureCode), FailureCode)
 }
 
 // Extracts the "sent" token from the request
 // and returns an unmasked version of it
 func extractToken(r *http.Request) []byte {
-	var sentToken string
-
 	// Prefer the header over form value
-	sentToken = r.Header.Get(HeaderName)
+	sentToken := r.Header.Get(HeaderName)
 
 	// Then POST values
 	if len(sentToken) == 0 {
@@ -108,6 +106,7 @@ func NewPure(handler http.Handler) http.Handler {
 }
 
 func (h *CSRFHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	r = addNosurfContext(r)
 	defer ctxClear(r)
 	w.Header().Add("Vary", "Cookie")
 

@@ -2,12 +2,14 @@ package db
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/common/instrument"
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/login"
 )
 
@@ -102,17 +104,17 @@ func (t timed) RemoveUserFromOrganization(ctx context.Context, orgExternalID, em
 	})
 }
 
-func (t timed) ListUsers(ctx context.Context) (us []*users.User, err error) {
+func (t timed) ListUsers(ctx context.Context, f filter.User) (us []*users.User, err error) {
 	t.timeRequest(ctx, "ListUsers", func(ctx context.Context) error {
-		us, err = t.d.ListUsers(ctx)
+		us, err = t.d.ListUsers(ctx, f)
 		return err
 	})
 	return
 }
 
-func (t timed) ListOrganizations(ctx context.Context) (os []*users.Organization, err error) {
+func (t timed) ListOrganizations(ctx context.Context, f filter.Organization) (os []*users.Organization, err error) {
 	t.timeRequest(ctx, "ListOrganizations", func(ctx context.Context) error {
-		os, err = t.d.ListOrganizations(ctx)
+		os, err = t.d.ListOrganizations(ctx, f)
 		return err
 	})
 	return
@@ -192,15 +194,23 @@ func (t timed) FindOrganizationByID(ctx context.Context, externalID string) (o *
 	return
 }
 
-func (t timed) RenameOrganization(ctx context.Context, externalID, name string) error {
-	return t.timeRequest(ctx, "RenameOrganization", func(ctx context.Context) error {
-		return t.d.RenameOrganization(ctx, externalID, name)
+func (t timed) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error {
+	return t.timeRequest(ctx, "UpdateOrganization", func(ctx context.Context) error {
+		return t.d.UpdateOrganization(ctx, externalID, update)
 	})
 }
 
 func (t timed) OrganizationExists(ctx context.Context, externalID string) (b bool, err error) {
 	t.timeRequest(ctx, "OrganizationExists", func(ctx context.Context) error {
 		b, err = t.d.OrganizationExists(ctx, externalID)
+		return err
+	})
+	return
+}
+
+func (t timed) ExternalIDUsed(ctx context.Context, externalID string) (b bool, err error) {
+	t.timeRequest(ctx, "ExternalIDUsed", func(ctx context.Context) error {
+		b, err = t.d.ExternalIDUsed(ctx, externalID)
 		return err
 	})
 	return
@@ -241,6 +251,18 @@ func (t timed) SetOrganizationDenyUIFeatures(ctx context.Context, externalID str
 func (t timed) SetOrganizationDenyTokenAuth(ctx context.Context, externalID string, value bool) error {
 	return t.timeRequest(ctx, "SetOrganizationDenyTokenAuth", func(ctx context.Context) error {
 		return t.d.SetOrganizationDenyTokenAuth(ctx, externalID, value)
+	})
+}
+
+func (t timed) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
+	return t.timeRequest(ctx, "SetOrganizationFirstSeenConnectedAt", func(ctx context.Context) error {
+		return t.d.SetOrganizationFirstSeenConnectedAt(ctx, externalID, value)
+	})
+}
+
+func (t timed) SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error {
+	return t.timeRequest(ctx, "SetOrganizationZuoraAccount", func(ctx context.Context) error {
+		return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)
 	})
 }
 

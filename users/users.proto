@@ -20,9 +20,27 @@ service Users {
     // LookupUser authenticates a cookie.
     rpc LookupUser(LookupUserRequest) returns (LookupUserResponse) {};
 
+    // GetOrganizations returns a list of all organizations by default. See
+    // GetOrganizationsRequest for more details.
     rpc GetOrganizations(GetOrganizationsRequest) returns (GetOrganizationsResponse) {};
+    // GetBillableOrganizations returns all of the organizations that are past
+    // their trial period and have billing enabled. Currently knows nothing
+    // about payment status, so will include organizations that are well past
+    // their trial period but haven't provided credit card details.
+    rpc GetBillableOrganizations(GetBillableOrganizationsRequest) returns (GetBillableOrganizationsResponse) {};
+    // GetTrialOrganizations returns all organizations that are currently in their
+    // trial period.
+    rpc GetTrialOrganizations(GetTrialOrganizationsRequest) returns (GetTrialOrganizationsResponse) {};
+    // GetDelinquentOrganizations returns all organizations that are beyond their
+    // trial period and haven't yet supplied any payment method. We determine this
+    // by means of having a Zuora account.
+    rpc GetDelinquentOrganizations(GetDelinquentOrganizationsRequest) returns (GetDelinquentOrganizationsResponse) {};
     rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse) {};
     rpc SetOrganizationFlag(SetOrganizationFlagRequest) returns (SetOrganizationFlagResponse) {};
+    // SetOrganizationZuoraAccount updates zuora account information. It should only
+    // be called when changed which denotes that an account has been created. If you
+    // omit `ZuoraAccountCreatedAt` it will be automatically updated to now.
+    rpc SetOrganizationZuoraAccount(SetOrganizationZuoraAccountRequest) returns (SetOrganizationZuoraAccountResponse) {};
 
     // GetUser returns details for a user
     rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
@@ -75,10 +93,51 @@ message LookupUserResponse {
     string UserID = 1 [(gogoproto.jsontag) = "userID,omitempty"];
 }
 
+// GetOrganizationRequest requests a list of organizations.
 message GetOrganizationsRequest {
+    // Query restricts the organizations returned. If specified, will find
+    // only organizations that have Query as a substring of internal ID (e.g.
+    // '432') or external ID (e.g. 'foo-bar-11').
+    string Query = 1;
+    // If 0 or less, return everything. Otherwise, return a single page of
+    // implementation-dependent results (currently 30).
+    int32 PageNumber = 2;
 }
 
 message GetOrganizationsResponse {
+    repeated Organization Organizations = 1 [(gogoproto.nullable) = false];
+}
+
+// An organization is billable if its trial period has expired.
+message GetBillableOrganizationsRequest {
+    // The current time for the purposes of determining whether the trial
+    // period has expired.
+    google.protobuf.Timestamp Now = 1 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+message GetBillableOrganizationsResponse {
+    repeated Organization Organizations = 1 [(gogoproto.nullable) = false];
+}
+
+message GetTrialOrganizationsRequest {
+    // The current time for the purposes of determining whether the trial
+    // period has expired.
+    google.protobuf.Timestamp Now = 1 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+message GetTrialOrganizationsResponse {
+    repeated Organization Organizations = 1 [(gogoproto.nullable) = false];
+}
+
+// An organization is delinquent if its trial period is expired and no
+// associated payment account exists.
+message GetDelinquentOrganizationsRequest {
+    // The current time for the purposes of determining whether the trial
+    // period has expired.
+    google.protobuf.Timestamp Now = 1 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+message GetDelinquentOrganizationsResponse {
     repeated Organization Organizations = 1 [(gogoproto.nullable) = false];
 }
 
@@ -99,6 +158,22 @@ message Organization {
     repeated string FeatureFlags = 6;
     bool DenyUIFeatures = 7;
     bool DenyTokenAuth = 8;
+    google.protobuf.Timestamp FirstSeenConnectedAt = 9 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+    string Platform = 10;
+    string Environment = 11;
+    // When the organization's trial period expires.
+    google.protobuf.Timestamp TrialExpiresAt = 12 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+    string ZuoraAccountNumber = 13;
+    google.protobuf.Timestamp ZuoraAccountCreatedAt = 14 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+}
+
+message SetOrganizationZuoraAccountRequest {
+    string ExternalID = 1;
+    string Number = 2;
+    google.protobuf.Timestamp CreatedAt = 3 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+}
+
+message SetOrganizationZuoraAccountResponse {
 }
 
 message SetOrganizationFlagRequest {

@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
@@ -13,6 +15,7 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/client"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/render"
 )
@@ -48,7 +51,8 @@ type privateUserView struct {
 }
 
 func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := a.db.ListUsers(r.Context())
+	f := filter.NewUser(r)
+	users, err := a.db.ListUsers(r.Context(), f)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -68,7 +72,10 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, http.StatusOK, view)
 	default: // render.FormatHTML
 		b, err := a.templates.Bytes("list_users.html", map[string]interface{}{
-			"Users": users,
+			"Users":    users,
+			"Query":    r.FormValue("query"),
+			"Page":     f.Page,
+			"NextPage": f.Page + 1,
 		})
 		if err != nil {
 			render.Error(w, r, err)
@@ -80,8 +87,39 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *API) listUsersForOrganization(w http.ResponseWriter, r *http.Request) {
+	orgID, ok := mux.Vars(r)["orgExternalID"]
+	if !ok {
+		render.Error(w, r, users.ErrNotFound)
+		return
+	}
+	_, err := a.db.FindOrganizationByID(r.Context(), orgID)
+	if err != nil {
+		render.Error(w, r, users.ErrNotFound)
+		return
+	}
+	users, err := a.db.ListOrganizationUsers(r.Context(), orgID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+
+	b, err := a.templates.Bytes("list_users.html", map[string]interface{}{
+		"Users":         users,
+		"OrgExternalID": orgID,
+	})
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	if _, err := w.Write(b); err != nil {
+		logging.With(r.Context()).Warn("list users: %v", err)
+	}
+}
+
 func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
-	organizations, err := a.db.ListOrganizations(r.Context())
+	f := filter.NewOrganization(r)
+	organizations, err := a.db.ListOrganizations(r.Context(), f)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -89,6 +127,10 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 
 	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
 		"Organizations": organizations,
+		"Query":         r.FormValue("query"),
+		"Page":          f.Page,
+		"NextPage":      f.Page + 1,
+		"Message":       r.FormValue("msg"),
 	})
 	if err != nil {
 		render.Error(w, r, err)
@@ -142,6 +184,9 @@ func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	switch field {
+	case "FirstSeenConnectedAt":
+		now := time.Now()
+		err = a.db.SetOrganizationFirstSeenConnectedAt(r.Context(), orgExternalID, &now)
 	case "DenyUIFeatures":
 		deny := value == "on"
 		err = a.db.SetOrganizationDenyUIFeatures(r.Context(), orgExternalID, deny)
@@ -170,11 +215,12 @@ func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/admin/users/organizations", http.StatusFound)
+	msg := fmt.Sprintf("Saved `%s` for %s", field, orgExternalID)
+	http.Redirect(w, r, "/admin/users/organizations?msg="+url.QueryEscape(msg), http.StatusFound)
 }
 
 func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
-	users, err := a.db.ListUsers(r.Context())
+	users, err := a.db.ListUsers(r.Context(), filter.User{})
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -192,7 +238,7 @@ func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, users.ErrNotFound)
 		return
 	}
-	admin := r.URL.Query().Get("admin") == "true"
+	admin := r.FormValue("admin") == "true"
 	if err := a.MakeUserAdmin(r.Context(), userID, admin); err != nil {
 		render.Error(w, r, err)
 		return

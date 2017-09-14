@@ -1,7 +1,6 @@
-FROM alpine:3.6
+FROM node:8.4.0-alpine
 MAINTAINER Weaveworks Inc <help@weave.works>
-RUN apk add --no-cache nodejs-npm git openssh
-RUN npm install -g yarn
+RUN apk add --no-cache python make gcc g++ git openssh
 RUN git config --global user.email "team+gitbot@weave.works"
 ENV GIT_SSH_COMMAND "ssh -oStrictHostKeyChecking=no"
 WORKDIR /

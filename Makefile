@@ -36,17 +36,15 @@ users/users.pb.go: users/users.proto
 AUTHFE_EXE := authfe/authfe
 USERS_EXE := users/cmd/users/users
 METRICS_EXE := metrics/metrics
-PR_ASSIGNER_EXE := pr-assigner/pr-assigner
 NOTEBOOKS_EXE := notebooks/cmd/notebooks/notebooks
 SERVICE_UI_KICKER_EXE := service-ui-kicker/service-ui-kicker
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(PR_ASSIGNER_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE)
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE)
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
 $(AUTHFE_EXE): $(shell find authfe -name '*.go') $(shell find users/client -name '*.go') $(COMMON) users/users.pb.go
 $(USERS_EXE): $(shell find users -name '*.go') $(COMMON) users/users.pb.go
 $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
-$(PR_ASSIGNER_EXE): $(shell find pr-assigner -name '*.go') $(COMMON)
 $(NOTEBOOKS_EXE): $(shell find notebooks -name '*.go') $(COMMON)
 $(SERVICE_UI_KICKER_EXE): $(shell find service-ui-kicker -name '*.go') $(COMMON)
 test: users/users.pb.go
@@ -57,7 +55,6 @@ users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/template
 metrics/$(UPTODATE): $(METRICS_EXE)
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
 build/$(UPTODATE): build/build.sh
-pr-assigner/$(UPTODATE): $(PR_ASSIGNER_EXE)
 notebooks/$(UPTODATE): $(NOTEBOOKS_EXE)
 service-ui-kicker/$(UPTODATE): $(SERVICE_UI_KICKER_EXE)
 
@@ -77,7 +74,15 @@ NETGO_CHECK = @strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
-$(EXES) $(PROTO_GOS) lint test: build/$(UPTODATE)
+$(PROTO_GOS) lint: build/$(UPTODATE)
+	@mkdir -p $(shell pwd)/.pkg
+	$(SUDO) docker run $(RM) -ti \
+		-v $(shell pwd)/.pkg:/go/pkg \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
+		$(IMAGE_PREFIX)/build $@
+
+$(EXES) test: build/$(UPTODATE) users/users.pb.go
 	@mkdir -p $(shell pwd)/.pkg
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
@@ -87,7 +92,7 @@ $(EXES) $(PROTO_GOS) lint test: build/$(UPTODATE)
 
 else
 
-$(EXES): build/$(UPTODATE)
+$(EXES): build/$(UPTODATE) users/users.pb.go
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
@@ -97,7 +102,7 @@ $(EXES): build/$(UPTODATE)
 lint: build/$(UPTODATE)
 	./tools/lint .
 
-test: build/$(UPTODATE)
+test: build/$(UPTODATE) users/users.pb.go
 	./tools/test -netgo -no-race
 
 endif
@@ -111,20 +116,20 @@ notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
 		-v $(shell pwd)/notebooks/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/notebooks \
 		--link "$$DB_CONTAINER":configs-db.weave.local \
-		golang:1.8.0 \
+		golang:1.8.3-stretch \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
 
-users-integration-test: $(USERS_UPTODATE)
+users-integration-test: $(USERS_UPTODATE) users/users.pb.go
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=users_test' postgres:9.4)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-v $(shell pwd)/users/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/users \
 		--link "$$DB_CONTAINER":users-db.weave.local \
-		golang:1.8.0 \
+		golang:1.8.3-stretch \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \

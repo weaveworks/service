@@ -2,11 +2,13 @@ package db
 
 import (
 	"encoding/json"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/login"
 )
 
@@ -64,14 +66,14 @@ func (t traced) RemoveUserFromOrganization(ctx context.Context, orgExternalID, e
 	return t.d.RemoveUserFromOrganization(ctx, orgExternalID, email)
 }
 
-func (t traced) ListUsers(ctx context.Context) (us []*users.User, err error) {
+func (t traced) ListUsers(ctx context.Context, f filter.User) (us []*users.User, err error) {
 	defer func() { t.trace("ListUsers", us, err) }()
-	return t.d.ListUsers(ctx)
+	return t.d.ListUsers(ctx, f)
 }
 
-func (t traced) ListOrganizations(ctx context.Context) (os []*users.Organization, err error) {
+func (t traced) ListOrganizations(ctx context.Context, f filter.Organization) (os []*users.Organization, err error) {
 	defer func() { t.trace("ListOrganizations", os, err) }()
-	return t.d.ListOrganizations(ctx)
+	return t.d.ListOrganizations(ctx, f)
 }
 
 func (t traced) ListOrganizationUsers(ctx context.Context, orgExternalID string) (us []*users.User, err error) {
@@ -124,14 +126,19 @@ func (t traced) FindOrganizationByID(ctx context.Context, externalID string) (o 
 	return t.d.FindOrganizationByID(ctx, externalID)
 }
 
-func (t traced) RenameOrganization(ctx context.Context, externalID, name string) (err error) {
-	defer func() { t.trace("RenameOrganization", externalID, name, err) }()
-	return t.d.RenameOrganization(ctx, externalID, name)
+func (t traced) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) (err error) {
+	defer func() { t.trace("UpdateOrganization", externalID, update, err) }()
+	return t.d.UpdateOrganization(ctx, externalID, update)
 }
 
 func (t traced) OrganizationExists(ctx context.Context, externalID string) (b bool, err error) {
 	defer func() { t.trace("OrganizationExists", externalID, b, err) }()
 	return t.d.OrganizationExists(ctx, externalID)
+}
+
+func (t traced) ExternalIDUsed(ctx context.Context, externalID string) (b bool, err error) {
+	defer func() { t.trace("ExternalIDUsed", externalID, b, err) }()
+	return t.d.ExternalIDUsed(ctx, externalID)
 }
 
 func (t traced) GetOrganizationName(ctx context.Context, externalID string) (name string, err error) {
@@ -162,6 +169,16 @@ func (t traced) SetOrganizationDenyUIFeatures(ctx context.Context, externalID st
 func (t traced) SetOrganizationDenyTokenAuth(ctx context.Context, externalID string, value bool) (err error) {
 	defer func() { t.trace("SetOrganizationDenyTokenAuth", externalID, value, err) }()
 	return t.d.SetOrganizationDenyTokenAuth(ctx, externalID, value)
+}
+
+func (t traced) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) (err error) {
+	defer func() { t.trace("SetOrganizationFirstSeenConnectedAt", externalID, value, err) }()
+	return t.d.SetOrganizationFirstSeenConnectedAt(ctx, externalID, value)
+}
+
+func (t traced) SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) (err error) {
+	defer func() { t.trace("SetOrganizationZuoraAccount", externalID, number, createdAt, err) }()
+	return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)
 }
 
 func (t traced) ListMemberships(ctx context.Context) (ms []users.Membership, err error) {

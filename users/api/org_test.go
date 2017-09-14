@@ -26,10 +26,11 @@ func Test_Org(t *testing.T) {
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	assert.NoError(t, err)
 	require.Len(t, organizations, 1)
-	assert.Equal(t, org.ID, organizations[0].ID, "user should have an organization id")
-	assert.Equal(t, org.ExternalID, organizations[0].ExternalID, "user should have an organization external id")
-	assert.Equal(t, org.Name, organizations[0].Name, "user should have an organization name")
-	assert.NotEqual(t, "", organizations[0].ProbeToken, "user should have a probe token")
+	assert.Equal(t, org.ID, organizations[0].ID, "organization should have an id")
+	assert.Equal(t, org.ExternalID, organizations[0].ExternalID, "organization should have an external id")
+	assert.Equal(t, org.Name, organizations[0].Name, "organization should have a name")
+	assert.Equal(t, org.TrialExpiresAt, organizations[0].TrialExpiresAt, "organization should have a trial expiry")
+	assert.NotEqual(t, "", organizations[0].ProbeToken, "organization should have a probe token")
 
 	org, err = database.FindOrganizationByProbeToken(context.Background(), organizations[0].ProbeToken)
 	require.NoError(t, err)
@@ -40,13 +41,21 @@ func Test_Org(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	trialExpiresAt, err := org.TrialExpiresAt.MarshalText()
+	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"user":           user.Email,
-		"id":             org.ExternalID,
-		"name":           org.Name,
-		"probeToken":     org.ProbeToken,
-		"denyUIFeatures": org.DenyUIFeatures,
-		"denyTokenAuth":  org.DenyTokenAuth,
+		"user":                  user.Email,
+		"id":                    org.ExternalID,
+		"name":                  org.Name,
+		"probeToken":            org.ProbeToken,
+		"denyUIFeatures":        org.DenyUIFeatures,
+		"denyTokenAuth":         org.DenyTokenAuth,
+		"firstSeenConnectedAt":  nil,
+		"platform":              org.Platform,
+		"environment":           org.Environment,
+		"trialExpiresAt":        string(trialExpiresAt),
+		"zuoraAccountNumber":    "",
+		"zuoraAccountCreatedAt": nil,
 	}, body)
 }
 
@@ -63,13 +72,21 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	trialExpiresAt, err := org.TrialExpiresAt.MarshalText()
+	assert.NoError(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"user":           user.Email,
-		"id":             org.ExternalID,
-		"name":           org.Name,
-		"probeToken":     org.ProbeToken,
-		"denyUIFeatures": org.DenyUIFeatures,
-		"denyTokenAuth":  org.DenyTokenAuth,
+		"user":                  user.Email,
+		"id":                    org.ExternalID,
+		"name":                  org.Name,
+		"probeToken":            org.ProbeToken,
+		"denyUIFeatures":        org.DenyUIFeatures,
+		"denyTokenAuth":         org.DenyTokenAuth,
+		"firstSeenConnectedAt":  nil,
+		"platform":              org.Platform,
+		"environment":           org.Environment,
+		"trialExpiresAt":        string(trialExpiresAt),
+		"zuoraAccountNumber":    "",
+		"zuoraAccountCreatedAt": nil,
 	}, body)
 }
 
@@ -88,22 +105,25 @@ func Test_ListOrganizationUsers(t *testing.T) {
 
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"users":[{"email":%q,"self":true},{"email":%q}]}`, user.Email, fran.Email))
+	assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"users":[{"email":%q},{"email":%q,"self":true}]}`, fran.Email, user.Email))
 }
 
 const (
-	orgName100 = "A Different Org Name 234567890 234567890 234567890 234567890 234567890 234567890 234567890 234567890"
-	orgName101 = "A DIFFERENT ORG NAME 234567890 234567890 234567890 234567890 234567890 234567890 234567890 2345678901"
+	orgName100  = "A Different Org Name 234567890 234567890 234567890 234567890 234567890 234567890 234567890 234567890"
+	orgName101  = "A DIFFERENT ORG NAME 234567890 234567890 234567890 234567890 234567890 234567890 234567890 2345678901"
+	platform    = "kubernetes"
+	environment = "minikube"
 )
 
-func Test_RenameOrganization(t *testing.T) {
+func Test_UpdateOrganization(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	user, org := getOrg(t)
 	otherUser := getUser(t)
-	body := map[string]interface{}{"name": orgName100}
+	body := map[string]interface{}{"name": orgName100, "platform": platform, "environment": environment}
 
+	// Invalid auth
 	{
 		w := httptest.NewRecorder()
 		r := requestAs(t, otherUser, "PUT", "/api/users/org/"+org.ExternalID, jsonBody(body).Reader(t))
@@ -140,6 +160,8 @@ func Test_RenameOrganization(t *testing.T) {
 			assert.Equal(t, org.ID, organizations[0].ID)
 			assert.Equal(t, org.ExternalID, organizations[0].ExternalID)
 			assert.Equal(t, orgName100, organizations[0].Name)
+			assert.Equal(t, platform, organizations[0].Platform)
+			assert.Equal(t, environment, organizations[0].Environment)
 		}
 	}
 
@@ -165,9 +187,9 @@ func Test_ReIDOrganization_NotAllowed(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody{"id": "my-organization"}.Reader(t))
 
+	// All non-writeable fields are filtered out.
 	app.ServeHTTP(w, r)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), `{"errors":[{"message":"ID cannot be changed"}]}`)
+	assert.Equal(t, http.StatusNoContent, w.Code)
 
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
@@ -178,21 +200,36 @@ func Test_ReIDOrganization_NotAllowed(t *testing.T) {
 	}
 }
 
-func Test_RenameOrganization_Validation(t *testing.T) {
+func Test_UpdateOrganization_Validation(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	user, org := getOrg(t)
 
-	for name, errMsg := range map[string]string{
-		"": "Name cannot be blank",
-	} {
+	tests := []struct {
+		name        string
+		platform    string
+		environment string
+		errMsg      string
+	}{
+		{"", "", "", "Name cannot be blank"},
+		{"Test", "invalid", "minikube", "Platform is invalid"},
+		{"Test", "kubernetes", "invalid", "Environment is invalid"},
+		{"Test", "kubernetes", "", "Environment is required with platform"},
+		{"Test", "", "minikube", "Platform is required with environment"},
+	}
+
+	for _, tc := range tests {
 		w := httptest.NewRecorder()
-		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody{"name": name}.Reader(t))
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody{
+			"name":        tc.name,
+			"platform":    tc.platform,
+			"environment": tc.environment,
+		}.Reader(t))
 
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"errors":[{"message":%q}]}`, errMsg))
+		assert.Contains(t, w.Body.String(), fmt.Sprintf(`{"errors":[{"message":%q}]}`, tc.errMsg))
 
 		organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 		require.NoError(t, err)
@@ -307,14 +344,14 @@ func Test_Organization_CheckIfExternalIDExists(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	}
 
-	// Delete the org and check it still exists
+	// Delete the org and check it is no longer available
 	err = database.DeleteOrganization(context.Background(), org.ExternalID)
 	require.NoError(t, err)
 
 	{
 		w := httptest.NewRecorder()
 		app.ServeHTTP(w, r)
-		assert.Equal(t, http.StatusForbidden, w.Code)
+		assert.Equal(t, http.StatusNotFound, w.Code)
 	}
 }
 
@@ -340,11 +377,11 @@ func Test_Organization_CreateMultiple(t *testing.T) {
 	require.NoError(t, err)
 	if assert.Len(t, organizations, 2) {
 		assert.NotEqual(t, "", organizations[0].ID)
-		assert.Equal(t, "my-first-org", organizations[0].ExternalID)
-		assert.Equal(t, "my first org", organizations[0].Name)
+		assert.Equal(t, "my-second-org", organizations[0].ExternalID)
+		assert.Equal(t, "my second org", organizations[0].Name)
 		assert.NotEqual(t, "", organizations[1].ID)
-		assert.Equal(t, "my-second-org", organizations[1].ExternalID)
-		assert.Equal(t, "my second org", organizations[1].Name)
+		assert.Equal(t, "my-first-org", organizations[1].ExternalID)
+		assert.Equal(t, "my first org", organizations[1].Name)
 	}
 }
 

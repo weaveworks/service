@@ -42,6 +42,18 @@ func (mockClient) GetOrganizations(ctx context.Context, in *users.GetOrganizatio
 	return &users.GetOrganizationsResponse{}, nil
 }
 
+func (mockClient) GetBillableOrganizations(ctx context.Context, in *users.GetBillableOrganizationsRequest, opts ...grpc.CallOption) (*users.GetBillableOrganizationsResponse, error) {
+	return &users.GetBillableOrganizationsResponse{}, nil
+}
+
+func (mockClient) GetTrialOrganizations(ctx context.Context, in *users.GetTrialOrganizationsRequest, opts ...grpc.CallOption) (*users.GetTrialOrganizationsResponse, error) {
+	return &users.GetTrialOrganizationsResponse{}, nil
+}
+
+func (mockClient) GetDelinquentOrganizations(ctx context.Context, in *users.GetDelinquentOrganizationsRequest, opts ...grpc.CallOption) (*users.GetDelinquentOrganizationsResponse, error) {
+	return &users.GetDelinquentOrganizationsResponse{}, nil
+}
+
 func (mockClient) GetOrganization(ctx context.Context, in *users.GetOrganizationRequest, opts ...grpc.CallOption) (*users.GetOrganizationResponse, error) {
 	return &users.GetOrganizationResponse{}, nil
 }
@@ -57,4 +69,8 @@ func (mockClient) GetUser(ctx context.Context, in *users.GetUserRequest, opts ..
 
 func (mockClient) SetOrganizationFlag(ctx context.Context, in *users.SetOrganizationFlagRequest, opts ...grpc.CallOption) (*users.SetOrganizationFlagResponse, error) {
 	return &users.SetOrganizationFlagResponse{}, nil
+}
+
+func (mockClient) SetOrganizationZuoraAccount(ctx context.Context, in *users.SetOrganizationZuoraAccountRequest, opts ...grpc.CallOption) (*users.SetOrganizationZuoraAccountResponse, error) {
+	return &users.SetOrganizationZuoraAccountResponse{}, nil
 }

@@ -10,6 +10,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/login"
 )
 
@@ -224,12 +225,15 @@ func (d DB) usersQuery() squirrel.SelectBuilder {
 	).
 		From("users").
 		Where("users.deleted_at is null").
-		OrderBy("users.created_at")
+		OrderBy("users.created_at DESC")
 }
 
 // ListUsers lists users
-func (d DB) ListUsers(_ context.Context) ([]*users.User, error) {
-	rows, err := d.usersQuery().Query()
+func (d DB) ListUsers(_ context.Context, f filter.User) ([]*users.User, error) {
+	q := d.usersQuery()
+	q = f.ExtendQuery(q)
+
+	rows, err := q.Query()
 	if err != nil {
 		return nil, err
 	}
