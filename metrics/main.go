@@ -42,10 +42,13 @@ type bqUser struct {
 }
 
 type bqInstance struct {
-	ID         string
-	ExternalID string
-	Name       string
-	CreatedAt  time.Time
+	ID                   string
+	ExternalID           string
+	Name                 string
+	CreatedAt            time.Time
+	FirstSeenConnectedAt *time.Time
+	Platform             string
+	Environment          string
 }
 
 type bqMembership struct {
@@ -162,10 +165,13 @@ func getInstances(ctx context.Context, d db.DB) ([]interface{}, error) {
 	results := []interface{}{}
 	for _, instance := range instances {
 		result := bqInstance{
-			ID:         instance.ID,
-			ExternalID: instance.ExternalID,
-			Name:       instance.Name,
-			CreatedAt:  instance.CreatedAt,
+			ID:                   instance.ID,
+			ExternalID:           instance.ExternalID,
+			Name:                 instance.Name,
+			CreatedAt:            instance.CreatedAt,
+			FirstSeenConnectedAt: instance.FirstSeenConnectedAt,
+			Platform:             instance.Platform,
+			Environment:          instance.Environment,
 		}
 		results = append(results, result)
 	}
