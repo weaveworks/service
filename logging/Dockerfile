@@ -6,6 +6,6 @@ RUN \
     gem install bigdecimal 'fluent-plugin-bigquery: 0.4.4' 'fluent-plugin-prometheus: 0.3.0' && \
     apk del --no-cache g++ make ruby-dev
 COPY schema_service_events.json /bigquery/
-COPY fluent.conf /fluentd/etc/
+# fluent.conf is copied by a Dockerfile Build Trigger
 COPY fluent-dev.conf /fluentd/etc/
 USER fluent
