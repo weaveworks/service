@@ -126,6 +126,22 @@ func (e ExternalID) Matches(o users.Organization) bool {
 	return o.ExternalID == string(e)
 }
 
+// SearchName finds organizations that have names that contain a string.
+type SearchName string
+
+// ExtendQuery extends a query to filter by having names that match our search.
+func (s SearchName) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	return b.Where("lower(organizations.name) LIKE ?",
+		fmt.Sprint("%", strings.ToLower(string(s)), "%"))
+}
+
+// Matches checks whether an organization matches this filter.
+//
+// Must be kept in sync with ExtendQuery.
+func (s SearchName) Matches(o users.Organization) bool {
+	return strings.Contains(o.Name, string(s))
+}
+
 // And combines many filters.
 func And(filters ...OrganizationFilter) OrganizationFilter {
 	return andFilter(filters)
@@ -160,17 +176,15 @@ func (a andFilter) Matches(o users.Organization) bool {
 type Organization struct {
 	Extra OrganizationFilter
 
-	Search string
-	Page   int32
+	Page int32
 }
 
 // NewOrganizationFromRequest extracts filter values from the request.
 func NewOrganizationFromRequest(r *http.Request) Organization {
 	q := parseOrgQuery(r.FormValue("query"))
 	return Organization{
-		Search: strings.Join(q.search, " "),
-		Page:   pageValue(r),
-		Extra:  q.extra,
+		Page:  pageValue(r),
+		Extra: q.extra,
 	}
 }
 
@@ -178,11 +192,8 @@ func NewOrganizationFromRequest(r *http.Request) Organization {
 //
 // Must be kept in sync with ExtendQuery.
 func (o Organization) Matches(org users.Organization) bool {
-	if o.Search != "" && !strings.Contains(org.Name, o.Search) {
-		return false
-	}
-	if o.Extra != nil && !o.Extra.Matches(org) {
-		return false
+	if o.Extra != nil {
+		return o.Extra.Matches(org)
 	}
 	return true
 }
@@ -193,10 +204,6 @@ func (o Organization) Matches(org users.Organization) bool {
 func (o Organization) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
 	if o.Page > 0 {
 		b = b.Limit(resultsPerPage).Offset(uint64((o.Page - 1) * resultsPerPage))
-	}
-	if o.Search != "" {
-		b = b.Where("lower(organizations.name) LIKE ?",
-			fmt.Sprint("%", strings.ToLower(o.Search), "%"))
 	}
 
 	if o.Extra != nil {

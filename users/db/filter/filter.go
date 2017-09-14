@@ -62,7 +62,7 @@ func parseOrgQuery(qs string) orgQuery {
 			q.search = append(q.search, p)
 		}
 	}
-
+	extras = append(extras, SearchName(strings.Join(q.search, " ")))
 	q.extra = And(extras...)
 	return q
 }
