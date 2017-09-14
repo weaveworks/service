@@ -341,7 +341,7 @@ func setZuoraAccount(t *testing.T, org *users.Organization, account string) *use
 // Won't be necessary after we remove the billing feature flag.
 func makeBillingOrganization(t *testing.T) *users.Organization {
 	_, org := dbtest.GetOrg(t, database)
-	database.AddFeatureFlag(ctx, org.ExternalID, BillingFlag)
+	database.AddFeatureFlag(ctx, org.ExternalID, users.BillingFeatureFlag)
 	newOrg, err := database.FindOrganizationByID(ctx, org.ExternalID)
 	require.NoError(t, err)
 	return newOrg

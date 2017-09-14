@@ -11,6 +11,8 @@ const (
 	// TrialDuration is how long an organization has a free trial
 	// period before we start charging for it.
 	TrialDuration = 30 * 24 * time.Hour
+
+	BillingFeatureFlag = "billing"
 )
 
 var (

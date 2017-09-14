@@ -16,7 +16,6 @@ import (
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/client"
 	"github.com/weaveworks/service/users/db/filter"
-	"github.com/weaveworks/service/users/grpc"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/render"
 )
@@ -242,13 +241,13 @@ func (a *API) setOrganizationFeatureFlags(ctx context.Context, orgExternalID str
 	var err error
 	var billingEngaged bool
 	var orgName string
-	if _, ok := uniqueFlags[grpc.BillingFlag]; ok {
+	if _, ok := uniqueFlags[users.BillingFeatureFlag]; ok {
 		org, err := a.db.FindOrganizationByID(ctx, orgExternalID)
 		if err != nil {
 			return err
 		}
 		orgName = org.Name
-		billingEngaged = !org.HasFeatureFlag(grpc.BillingFlag)
+		billingEngaged = !org.HasFeatureFlag(users.BillingFeatureFlag)
 	}
 
 	err = a.db.SetFeatureFlags(ctx, orgExternalID, sortedFlags)
