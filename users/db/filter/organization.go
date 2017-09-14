@@ -82,6 +82,25 @@ func (t TrialActiveAt) Matches(o users.Organization) bool {
 	return o.TrialExpiresAt.After(t.When)
 }
 
+// HasFeatureFlag filters for organizations that has the given feature flag.
+type HasFeatureFlag struct {
+	Flag string
+}
+
+// ExtendQuery extends a query to filter by feature flag.
+//
+// Must be kept in sync with Matches.
+func (f HasFeatureFlag) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	return b.Where("?=ANY(feature_flags)", f.Flag)
+}
+
+// Matches checks whether an organization matches this filter.
+//
+// Must be kept in sync with ExtendQuery.
+func (f HasFeatureFlag) Matches(o users.Organization) bool {
+	return o.HasFeatureFlag(f.Flag)
+}
+
 // And combines many filters.
 func And(filters ...OrganizationFilter) OrganizationFilter {
 	return andFilter{filters: filters}
@@ -116,10 +135,9 @@ func (a andFilter) Matches(o users.Organization) bool {
 // - instance:<external-id>
 // - feature:<feature-flag>
 type Organization struct {
-	ID           string
-	Instance     string
-	FeatureFlags []string
-	Extra        OrganizationFilter
+	ID       string
+	Instance string
+	Extra    OrganizationFilter
 
 	Search string
 	Page   int32
@@ -129,12 +147,11 @@ type Organization struct {
 func NewOrganizationFromRequest(r *http.Request) Organization {
 	q := parseQuery(r.FormValue("query"))
 	return Organization{
-		ID:           q.filters["id"],
-		Instance:     q.filters["instance"],
-		FeatureFlags: q.featureFlags,
-		Search:       strings.Join(q.search, " "),
-		Page:         pageValue(r),
-		Extra:        q.extra,
+		ID:       q.filters["id"],
+		Instance: q.filters["instance"],
+		Search:   strings.Join(q.search, " "),
+		Page:     pageValue(r),
+		Extra:    q.extra,
 	}
 }
 
@@ -150,11 +167,6 @@ func (o Organization) Matches(org users.Organization) bool {
 	}
 	if o.Search != "" && !strings.Contains(org.Name, o.Search) {
 		return false
-	}
-	for _, wantFlag := range o.FeatureFlags {
-		if !org.HasFeatureFlag(wantFlag) {
-			return false
-		}
 	}
 	if o.Extra != nil && !o.Extra.Matches(org) {
 		return false
@@ -172,11 +184,6 @@ func (o Organization) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuild
 	if o.Search != "" {
 		b = b.Where("lower(organizations.name) LIKE ?",
 			fmt.Sprint("%", strings.ToLower(o.Search), "%"))
-	}
-
-	// `AND` all feature flags
-	for _, f := range o.FeatureFlags {
-		b = b.Where("?=ANY(feature_flags)", f)
 	}
 
 	if o.Extra != nil {

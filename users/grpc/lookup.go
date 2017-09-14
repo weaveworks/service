@@ -145,8 +145,10 @@ func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrgani
 func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.GetBillableOrganizationsRequest) (*users.GetBillableOrganizationsResponse, error) {
 	// While billing is in development, only pick orgs with ff `billing`
 	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{
-		FeatureFlags: []string{billingFlag},
-		Extra:        filter.TrialExpiredBy{When: req.Now},
+		Extra: filter.And(
+			filter.TrialExpiredBy{When: req.Now},
+			filter.HasFeatureFlag{Flag: billingFlag},
+		),
 	})
 	if err != nil {
 		return nil, err
@@ -162,8 +164,10 @@ func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.G
 func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetTrialOrganizationsRequest) (*users.GetTrialOrganizationsResponse, error) {
 	// While billing is in development, only pick orgs with ff `billing`
 	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{
-		FeatureFlags: []string{billingFlag},
-		Extra:        filter.TrialActiveAt{When: req.Now},
+		Extra: filter.And(
+			filter.TrialActiveAt{When: req.Now},
+			filter.HasFeatureFlag{Flag: billingFlag},
+		),
 	})
 	if err != nil {
 		return nil, err
@@ -179,10 +183,10 @@ func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetT
 func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users.GetDelinquentOrganizationsRequest) (*users.GetDelinquentOrganizationsResponse, error) {
 	// While billing is in development, only pick orgs with ff `billing`
 	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{
-		FeatureFlags: []string{billingFlag},
 		Extra: filter.And(
 			filter.ZuoraAccount{Has: false},
 			filter.TrialExpiredBy{When: req.Now},
+			filter.HasFeatureFlag{Flag: billingFlag},
 		),
 	})
 	if err != nil {
