@@ -138,7 +138,7 @@ func Test_NotifyTrialPendingExpiry(t *testing.T) {
 		assert.Equal(t, "Your Weave Cloud trial expires soon!", e.Subject)
 		assert.Equal(t, "from@weave.test", e.From)
 		assert.Contains(t, string(e.Text), org.Name)
-		expiresAt := org.CreatedAt.Add(users.DefaultTrialLength).Format("January 2 2006")
+		expiresAt := org.CreatedAt.Add(users.TrialDuration).Format("January 2 2006")
 		text := string(e.Text)
 		assert.Contains(t, text, expiresAt)
 		assert.Contains(t, text, fmt.Sprintf("https://weave.test/org/%s/billing", org.ExternalID))
@@ -157,7 +157,6 @@ func Test_NotifyTrialPendingExpiry(t *testing.T) {
 
 	// verify database changes
 	newOrg, err := database.FindOrganizationByID(ctx, org.ExternalID)
-	fmt.Printf("NEW %#v\n", newOrg)
 	assert.NoError(t, err)
 	assert.Nil(t, newOrg.TrialExpiredNotifiedAt)
 	assert.NotNil(t, newOrg.TrialPendingExpiryNotifiedAt)

@@ -175,7 +175,7 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 		ExternalID:     externalID,
 		Name:           name,
 		CreatedAt:      now,
-		TrialExpiresAt: now.Add(users.DefaultTrialLength),
+		TrialExpiresAt: now.Add(users.TrialDuration),
 	}
 	if err := o.Valid(); err != nil {
 		return nil, err

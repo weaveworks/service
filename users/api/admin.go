@@ -259,7 +259,7 @@ func (a *API) setOrganizationFeatureFlags(ctx context.Context, orgExternalID str
 	// For post-creation enabling of billing, we gift another trial period
 	// starting today and send members an email
 	if billingEngaged {
-		expires := time.Now().Add(users.DefaultTrialLength)
+		expires := time.Now().Add(users.TrialDuration)
 		err = a.db.UpdateOrganization(ctx, orgExternalID, users.OrgWriteView{TrialExpiresAt: &expires})
 		if err != nil {
 			return err
