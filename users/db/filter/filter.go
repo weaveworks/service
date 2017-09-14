@@ -66,7 +66,7 @@ func (a AndFilter) MatchesUser(u users.User) bool {
 }
 
 // Page shows only a single page of results.
-type Page int32 // XXX: Should be uint64
+type Page uint64
 
 // MatchesOrg says whether the given organization matches this filter.
 //
@@ -86,21 +86,21 @@ func (p Page) MatchesUser(_ users.User) bool {
 
 // ExtendQuery applies the filter to the query builder.
 func (p Page) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	page := int32(p)
+	page := uint64(p)
 	if page > 0 {
-		b = b.Limit(resultsPerPage).Offset(uint64((page - 1) * resultsPerPage))
+		b = b.Limit(resultsPerPage).Offset((page - 1) * resultsPerPage)
 	}
 	return b
 }
 
 // ParsePageValue parses the `page` form value of the request. It also
 // clamps it to (1, ∞).
-func ParsePageValue(pageStr string) int32 {
+func ParsePageValue(pageStr string) uint64 {
 	page, _ := strconv.ParseInt(pageStr, 10, 32)
 	if page <= 0 {
 		page = 1
 	}
-	return int32(page)
+	return uint64(page)
 }
 
 // ParseOrgQuery extracts filters and search from the `query` form
