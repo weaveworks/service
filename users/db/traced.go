@@ -71,7 +71,7 @@ func (t traced) ListUsers(ctx context.Context, f filter.User) (us []*users.User,
 	return t.d.ListUsers(ctx, f)
 }
 
-func (t traced) ListOrganizations(ctx context.Context, f filter.OrganizationFilter) (os []*users.Organization, err error) {
+func (t traced) ListOrganizations(ctx context.Context, f filter.Organization) (os []*users.Organization, err error) {
 	defer func() { t.trace("ListOrganizations", os, err) }()
 	return t.d.ListOrganizations(ctx, f)
 }

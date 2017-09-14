@@ -67,7 +67,7 @@ func (d *DB) userIsMemberOf(userID, orgExternalID string) (bool, error) {
 }
 
 // ListOrganizations lists organizations
-func (d *DB) ListOrganizations(_ context.Context, f filter.OrganizationFilter) ([]*users.Organization, error) {
+func (d *DB) ListOrganizations(_ context.Context, f filter.Organization) ([]*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	orgs := []*users.Organization{}

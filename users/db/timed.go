@@ -112,7 +112,7 @@ func (t timed) ListUsers(ctx context.Context, f filter.User) (us []*users.User, 
 	return
 }
 
-func (t timed) ListOrganizations(ctx context.Context, f filter.OrganizationFilter) (os []*users.Organization, err error) {
+func (t timed) ListOrganizations(ctx context.Context, f filter.Organization) (os []*users.Organization, err error) {
 	t.timeRequest(ctx, "ListOrganizations", func(ctx context.Context) error {
 		os, err = t.d.ListOrganizations(ctx, f)
 		return err

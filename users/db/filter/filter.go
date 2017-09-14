@@ -26,8 +26,8 @@ func ParsePageValue(pageStr string) int32 {
 // ParseOrgQuery extracts filters and search from the `query` form
 // value. It supports `<key>:<value>` for exact matches as well as `is:<key>`
 // for boolean toggles, and `feature:<feature>` for feature flags.
-func ParseOrgQuery(qs string) OrganizationFilter {
-	filters := []OrganizationFilter{}
+func ParseOrgQuery(qs string) Organization {
+	filters := []Organization{}
 	search := []string{}
 	for _, p := range strings.Fields(qs) {
 		if strings.Contains(p, queryFilterDelim) {

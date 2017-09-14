@@ -14,8 +14,8 @@ var (
 	AllOrganizations = And()
 )
 
-// OrganizationFilter filters organizations.
-type OrganizationFilter interface {
+// Organization filters organizations.
+type Organization interface {
 	// ExtendQuery extends a query to filter by something.
 	ExtendQuery(squirrel.SelectBuilder) squirrel.SelectBuilder
 	// Matches checks whether an organization matches this filter.
@@ -147,12 +147,12 @@ func (s SearchName) Matches(o users.Organization) bool {
 }
 
 // And combines many filters.
-func And(filters ...OrganizationFilter) OrganizationFilter {
+func And(filters ...Organization) Organization {
 	return andFilter(filters)
 }
 
 // AndFilter combines many filters
-type andFilter []OrganizationFilter
+type andFilter []Organization
 
 // ExtendQuery extends a query to filter by all the filters in this AndFilter.
 func (a andFilter) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
