@@ -286,6 +286,9 @@ func (d *DB) UpdateOrganization(_ context.Context, externalID string, update use
 		if update.Environment != nil {
 			o.Environment = *update.Environment
 		}
+		if update.TrialExpiresAt != nil {
+			o.TrialExpiresAt = *update.TrialExpiresAt
+		}
 		if update.TrialExpiredNotifiedAt != nil {
 			o.TrialExpiredNotifiedAt = update.TrialExpiredNotifiedAt
 		}

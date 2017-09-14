@@ -47,9 +47,10 @@ type Membership struct {
 // OrgWriteView represents an update for an organization with optional fields.
 // A nil field is not updating the value for the organization.
 type OrgWriteView struct {
-	Name        *string
-	Platform    *string
-	Environment *string
+	Name           *string
+	Platform       *string
+	Environment    *string
+	TrialExpiresAt *time.Time
 
 	// These time values are nullable in the database but cannot be set to NULL
 	// through this struct.
@@ -98,6 +99,10 @@ func (o *Organization) Valid() error {
 	_, ok = environments[o.Environment]
 	if o.Environment != "" && !ok {
 		return ErrOrgEnvironmentInvalid
+	}
+
+	if o.TrialExpiresAt.IsZero() {
+		return ErrOrgTrialExpiresInvalid
 	}
 
 	return nil

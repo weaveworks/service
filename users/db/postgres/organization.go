@@ -337,6 +337,10 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 		org.Environment = *update.Environment
 		setFields["environment"] = *update.Environment
 	}
+	if update.TrialExpiresAt != nil {
+		org.TrialExpiresAt = *update.TrialExpiresAt
+		setFields["trial_expires_at"] = *update.TrialExpiresAt
+	}
 	if update.TrialPendingExpiryNotifiedAt != nil {
 		org.TrialPendingExpiryNotifiedAt = update.TrialPendingExpiryNotifiedAt
 		setFields["trial_pending_expiry_notified_at"] = *update.TrialPendingExpiryNotifiedAt
