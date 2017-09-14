@@ -15,10 +15,9 @@ const (
 )
 
 type query struct {
-	filters      map[string]string
-	featureFlags []string
-	search       []string
-	extra        OrganizationFilter
+	filters map[string]string
+	search  []string
+	extra   OrganizationFilter
 }
 
 // pageValue extracts the `page` form value of the request. It also
