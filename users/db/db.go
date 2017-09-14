@@ -51,7 +51,7 @@ type DB interface {
 	RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) error
 
 	ListUsers(ctx context.Context, f filter.User) ([]*users.User, error)
-	ListOrganizations(ctx context.Context, f filter.Organization) ([]*users.Organization, error)
+	ListOrganizations(ctx context.Context, f filter.OrganizationFilter) ([]*users.Organization, error)
 	ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error)
 
 	// ListOrganizationsForUserIDs lists all organizations these users have

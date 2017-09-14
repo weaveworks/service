@@ -78,7 +78,7 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 }
 
 // ListOrganizations lists organizations
-func (d DB) ListOrganizations(_ context.Context, f filter.Organization) ([]*users.Organization, error) {
+func (d DB) ListOrganizations(_ context.Context, f filter.OrganizationFilter) ([]*users.Organization, error) {
 	q := d.organizationsQuery()
 	q = f.ExtendQuery(q)
 
