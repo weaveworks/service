@@ -168,6 +168,28 @@ func (a andFilter) Matches(o users.Organization) bool {
 	return true
 }
 
+// Page shows only a single page of results.
+type Page int32 // XXX: Should be uint64
+
+// Matches says whether the given organization matches this filter.
+//
+// We don't implement pagination for queries against the in-memory database,
+// so just lets everything through.
+func (p Page) Matches(org users.Organization) bool {
+	return true
+}
+
+// ExtendQuery applies the filter to the query builder.
+//
+// Must be kept in sync with Matches.
+func (p Page) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	page := int32(p)
+	if page > 0 {
+		b = b.Limit(resultsPerPage).Offset(uint64((page - 1) * resultsPerPage))
+	}
+	return b
+}
+
 // Organization defines a filter for listing organizations.
 // Supported filters
 // - id:<organization-id>
@@ -182,6 +204,8 @@ type Organization struct {
 // NewOrganizationFromRequest extracts filter values from the request.
 func NewOrganizationFromRequest(r *http.Request) Organization {
 	filters := parseOrgQuery(r.FormValue("query"))
+	page := pageValue(r)
+	filters = And(filters, Page(page))
 	return Organization{
 		Page:  pageValue(r),
 		Extra: filters,
@@ -202,10 +226,6 @@ func (o Organization) Matches(org users.Organization) bool {
 //
 // Must be kept in sync with Matches.
 func (o Organization) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	if o.Page > 0 {
-		b = b.Limit(resultsPerPage).Offset(uint64((o.Page - 1) * resultsPerPage))
-	}
-
 	if o.Extra != nil {
 		b = o.Extra.ExtendQuery(b)
 	}

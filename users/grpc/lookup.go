@@ -130,13 +130,14 @@ func (a *usersServer) LookupUser(ctx context.Context, req *users.LookupUserReque
 }
 
 func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrganizationsRequest) (*users.GetOrganizationsResponse, error) {
-	f := filter.And()
+	fs := []filter.OrganizationFilter{
+		filter.Page(req.PageNumber),
+	}
 	if req.Query != "" {
-		f = filter.SearchName(req.Query)
+		fs = append(fs, filter.SearchName(req.Query))
 	}
 	organizations, err := a.db.ListOrganizations(ctx, filter.Organization{
-		Page:  req.PageNumber,
-		Extra: f,
+		Extra: filter.And(fs...),
 	})
 	if err != nil {
 		return nil, err
