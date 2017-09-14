@@ -39,7 +39,7 @@ func (a Admin) MatchesUser(u users.User) bool {
 
 // ExtendQuery extends a query to filter for admin status.
 func (a Admin) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where("users.admin = ?", bool(a))
+	return b.Where(squirrel.Eq{"users.admin": bool(a)})
 }
 
 // ParseUserQuery extracts filters and search from the 'query' form value.

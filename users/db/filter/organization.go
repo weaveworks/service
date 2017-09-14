@@ -41,7 +41,7 @@ type TrialExpiredBy time.Time
 
 // ExtendQuery extends a query to filter by trial expiry.
 func (t TrialExpiredBy) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where("organizations.trial_expires_at < ?", time.Time(t))
+	return b.Where(squirrel.Lt{"organizations.trial_expires_at": time.Time(t)})
 }
 
 // MatchesOrg checks whether an organization matches this filter.
@@ -55,7 +55,7 @@ type TrialActiveAt time.Time
 
 // ExtendQuery extends a query to filter by trial expiry.
 func (t TrialActiveAt) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where("organizations.trial_expires_at > ?", time.Time(t))
+	return b.Where(squirrel.Gt{"organizations.trial_expires_at": time.Time(t)})
 }
 
 // MatchesOrg checks whether an organization matches this filter.
@@ -81,7 +81,7 @@ type ID string
 
 // ExtendQuery extends a query to filter by ID.
 func (i ID) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where(map[string]string{"id": string(i)})
+	return b.Where(squirrel.Eq{"id": string(i)})
 }
 
 // MatchesOrg checks whether an organization matches this filter.
@@ -94,7 +94,7 @@ type ExternalID string
 
 // ExtendQuery extends a query to filter by ID.
 func (e ExternalID) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where(map[string]string{"external_id": string(e)})
+	return b.Where(squirrel.Eq{"external_id": string(e)})
 }
 
 // MatchesOrg checks whether an organization matches this filter.
