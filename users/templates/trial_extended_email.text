@@ -1,6 +1,6 @@
 Hi,
 
-Thank you for trying out Weave Cloud! There are just {{.TrialLeft}} left of your trial period.
+Thank you for trying out Weave Cloud! There are just {{.TrialLeft}} left of your trial period for «{{.OrganizationName}}».
 
 Weave Cloud can help you automate, control and monitor your orchestrated applications. If you haven't had a chance to look at it recently, now is a great time to give it another try!
 
