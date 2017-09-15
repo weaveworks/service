@@ -12,6 +12,10 @@ const (
 	// period before we start charging for it.
 	TrialDuration = 30 * 24 * time.Hour
 
+	// TrialExtensionDuration is the extension period if billing is
+	// enabled for an existing customer
+	TrialExtensionDuration = 15 * 24 * time.Hour
+
 	// BillingFeatureFlag enables billing for an organization
 	BillingFeatureFlag = "billing"
 )
