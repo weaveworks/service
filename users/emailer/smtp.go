@@ -117,7 +117,7 @@ func (s SMTPEmailer) TrialPendingExpiryEmail(members []*users.User, orgExternalI
 		"OrganizationName": orgName,
 		"BillingURL":       billingURL(s.Domain, orgExternalID),
 		"TrialExpiresAt":   trialExpiresAt.Format("January 2 2006"),
-		"DaysLeft":         uint16(math.Ceil(trialExpiresAt.Sub(time.Now()).Hours() / 24)),
+		"DaysLeft":         int16(math.Ceil(trialExpiresAt.Sub(time.Now()).Hours() / 24)),
 	}
 	e.Text = s.Templates.QuietBytes("trial_pending_expiry_email.text", data)
 
