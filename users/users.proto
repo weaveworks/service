@@ -50,7 +50,7 @@ service Users {
     rpc NotifyTrialPendingExpiry(NotifyTrialPendingExpiryRequest) returns (NotifyTrialPendingExpiryResponse) {};
 
     // NotifyTrialExpired sends a "Trial expired" notification to this user
-    // and records/ the date sent.
+    // and records the date sent.
     rpc NotifyTrialExpired(NotifyTrialExpiredRequest) returns (NotifyTrialExpiredResponse) {};
 }
 
