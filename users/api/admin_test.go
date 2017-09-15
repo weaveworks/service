@@ -42,9 +42,9 @@ func TestAPI_ChangeOrgField_FeatureFlags(t *testing.T) {
 
 	newOrg, _ := database.FindOrganizationByID(ctx, org.ExternalID)
 	assert.False(t, prevExpires.Equal(newOrg.TrialExpiresAt))
-	newOrg.HasFeatureFlag("billing")
-	newOrg.HasFeatureFlag("foo")
-	newOrg.HasFeatureFlag("moo")
+	assert.True(t, newOrg.HasFeatureFlag("billing"))
+	assert.True(t, newOrg.HasFeatureFlag("foo"))
+	assert.True(t, newOrg.HasFeatureFlag("moo"))
 }
 
 func TestAPI_GetUserToken(t *testing.T) {

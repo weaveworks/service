@@ -2,6 +2,7 @@ package emailer_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/jordan-wright/email"
 	"github.com/stretchr/testify/assert"
@@ -9,7 +10,6 @@ import (
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/templates"
-	"time"
 )
 
 func createEmailer(sender func(*email.Email) error) emailer.SMTPEmailer {
