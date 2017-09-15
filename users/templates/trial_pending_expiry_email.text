@@ -1,14 +1,15 @@
-Your Weave Cloud trial for «{{.OrganizationName}}» is set to expire on
-{{.TrialExpiresAt}}.
+Hi,
 
-If you would like to continue using Weave Cloud, please
-add a payment method:
+Your free trial of Weave Cloud for «{{.OrganizationName}}» is almost finished. It will expire in {{.DaysLeft}} days, on {{.TrialExpiresAt}}.
+
+Your Weave Cloud trial for «{{.OrganizationName}}» is set to expire on {{.TrialExpiresAt}}.
+
+To continue your subscription please add a payment method:
 
     {{.BillingURL}}
 
-If you have any questions or issues, feel free to get in touch via
-help@weave.works or join our Slack channel #weave-community
-(https://weaveworks.github.io/community-slack/)
+If you have any questions or issues, feel free to get in touch via help@weave.works or join our Slack channel #weave-community (https://weaveworks.github.io/community-slack/)
 
-Thanks, the Weaveworks team
+Thanks,
 
+The Weaveworks team

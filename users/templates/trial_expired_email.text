@@ -1,13 +1,13 @@
-Unfortunately, your Weave Cloud trial for «{{.OrganizationName}}»
-has just expired.
+Hi,
 
-If you would like to continue using Weave Cloud, please
-add a payment method:
+Your free trial of Weave Cloud for «{{.OrganizationName}}» has now come to an end.
+
+But don't worry, to continue using Weave Cloud just add a payment method:
 
     {{.BillingURL}}
 
-If you have any questions or issues, feel free to get in touch via
-help@weave.works or join our Slack channel #weave-community by going to
-https://weaveworks.github.io/community-slack/
+If you have any questions or issues, feel free to get in touch via help@weave.works or join our Slack channel #weave-community by going to https://weaveworks.github.io/community-slack/
 
-Thanks, the Weaveworks team
+Thanks,
+
+The Weaveworks team

@@ -139,8 +139,10 @@ func Test_NotifyTrialPendingExpiry(t *testing.T) {
 		assert.Equal(t, "from@weave.test", e.From)
 		assert.Contains(t, string(e.Text), org.Name)
 		expiresAt := org.CreatedAt.Add(users.DefaultTrialLength).Format("January 2 2006")
-		assert.Contains(t, string(e.Text), expiresAt)
-		assert.Contains(t, string(e.Text), fmt.Sprintf("https://weave.test/org/%s/billing", org.ExternalID))
+		text := string(e.Text)
+		assert.Contains(t, text, expiresAt)
+		assert.Contains(t, text, fmt.Sprintf("https://weave.test/org/%s/billing", org.ExternalID))
+		assert.Contains(t, text, "in 30 days")
 		sent = true
 		return nil
 	}
