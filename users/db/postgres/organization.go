@@ -71,6 +71,8 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.zuora_account_number",
 		"organizations.zuora_account_created_at",
 		"organizations.trial_expires_at",
+		"organizations.trial_pending_expiry_notified_at",
+		"organizations.trial_expired_notified_at",
 	).
 		From("organizations").
 		Where("organizations.deleted_at is null").
@@ -276,6 +278,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	var createdAt pq.NullTime
 	var firstSeenConnectedAt, zuoraAccountCreatedAt *time.Time
 	var trialExpiry time.Time
+	var trialExpiredNotifiedAt, trialPendingExpiryNotifiedAt *time.Time
 	var denyUIFeatures, denyTokenAuth bool
 	if err := row.Scan(
 		&o.ID,
@@ -292,6 +295,8 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&zuoraAccountNumber,
 		&zuoraAccountCreatedAt,
 		&trialExpiry,
+		&trialPendingExpiryNotifiedAt,
+		&trialExpiredNotifiedAt,
 	); err != nil {
 		return nil, err
 	}
@@ -307,6 +312,8 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.ZuoraAccountNumber = zuoraAccountNumber.String
 	o.ZuoraAccountCreatedAt = zuoraAccountCreatedAt
 	o.TrialExpiresAt = trialExpiry
+	o.TrialPendingExpiryNotifiedAt = trialPendingExpiryNotifiedAt
+	o.TrialExpiredNotifiedAt = trialExpiredNotifiedAt
 	return o, nil
 }
 
@@ -329,6 +336,14 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 	if update.Environment != nil {
 		org.Environment = *update.Environment
 		setFields["environment"] = *update.Environment
+	}
+	if update.TrialPendingExpiryNotifiedAt != nil {
+		org.TrialPendingExpiryNotifiedAt = update.TrialPendingExpiryNotifiedAt
+		setFields["trial_pending_expiry_notified_at"] = *update.TrialPendingExpiryNotifiedAt
+	}
+	if update.TrialExpiredNotifiedAt != nil {
+		org.TrialExpiredNotifiedAt = update.TrialExpiredNotifiedAt
+		setFields["trial_expired_notified_at"] = *update.TrialExpiredNotifiedAt
 	}
 
 	if len(setFields) == 0 {

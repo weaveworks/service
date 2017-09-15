@@ -45,10 +45,16 @@ type Membership struct {
 }
 
 // OrgWriteView represents an update for an organization with optional fields.
+// A nil field is not updating the value for the organization.
 type OrgWriteView struct {
 	Name        *string
 	Platform    *string
 	Environment *string
+
+	// These time values are nullable in the database but cannot be set to NULL
+	// through this struct.
+	TrialPendingExpiryNotifiedAt *time.Time
+	TrialExpiredNotifiedAt       *time.Time
 }
 
 // RegenerateProbeToken regenerates the organizations probe token

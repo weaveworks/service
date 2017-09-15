@@ -57,7 +57,7 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, promAPI, netAPI stri
 		Domain:      domain,
 		FromAddress: "test@test.com",
 	}
-	grpcServer := grpc.New(sessionStore, database)
+	grpcServer := grpc.New(sessionStore, database, nil)
 	app = api.New(
 		directLogin,
 		emailer,

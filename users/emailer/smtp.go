@@ -2,9 +2,11 @@ package emailer
 
 import (
 	"fmt"
+	"math"
 	"net"
 	"net/smtp"
 	"net/url"
+	"time"
 
 	"github.com/jordan-wright/email"
 
@@ -12,7 +14,8 @@ import (
 	"github.com/weaveworks/service/users/templates"
 )
 
-// SMTPEmailer is an emailer which sends over SMTP. It is exposed for testing. Generally you'll initialize it with emailer.MustNew("smtp://...", ...)
+// SMTPEmailer is an emailer which sends over SMTP. It is exposed for testing.
+// Implements Emailer, see MustNew() for instantiation.
 type SMTPEmailer struct {
 	Templates   templates.Engine
 	Sender      func(*email.Email) error
@@ -86,5 +89,37 @@ func (s SMTPEmailer) GrantAccessEmail(inviter, invited *users.User, orgExternalI
 	}
 	e.Text = s.Templates.QuietBytes("grant_access_email.text", data)
 	e.HTML = s.Templates.QuietBytes("grant_access_email.html", data)
+	return s.Sender(e)
+}
+
+// TrialExpiredEmail notifies all members of the organization.
+func (s SMTPEmailer) TrialExpiredEmail(members []*users.User, orgExternalID, orgName string) error {
+	e := email.NewEmail()
+	e.From = s.FromAddress
+	e.To = collectEmails(members)
+	e.Subject = "Your Weave Cloud trial expired"
+	data := map[string]interface{}{
+		"OrganizationName": orgName,
+		"BillingURL":       billingURL(s.Domain, orgExternalID),
+	}
+	e.Text = s.Templates.QuietBytes("trial_expired_email.text", data)
+
+	return s.Sender(e)
+}
+
+// TrialPendingExpiryEmail notifies all members of the organization.
+func (s SMTPEmailer) TrialPendingExpiryEmail(members []*users.User, orgExternalID, orgName string, trialExpiresAt time.Time) error {
+	e := email.NewEmail()
+	e.From = s.FromAddress
+	e.To = collectEmails(members)
+	e.Subject = "Your Weave Cloud trial expires soon!"
+	data := map[string]interface{}{
+		"OrganizationName": orgName,
+		"BillingURL":       billingURL(s.Domain, orgExternalID),
+		"TrialExpiresAt":   trialExpiresAt.Format("January 2 2006"),
+		"DaysLeft":         int16(math.Ceil(trialExpiresAt.Sub(time.Now()).Hours() / 24)),
+	}
+	e.Text = s.Templates.QuietBytes("trial_pending_expiry_email.text", data)
+
 	return s.Sender(e)
 }

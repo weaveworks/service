@@ -2,17 +2,21 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/jordan-wright/email"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/dbtest"
+	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/sessions"
+	"github.com/weaveworks/service/users/templates"
 )
 
 var (
@@ -20,13 +24,20 @@ var (
 	sessionStore sessions.Store
 	server       users.UsersServer
 	ctx          context.Context
+	smtp         emailer.SMTPEmailer
 )
 
 func setup(t *testing.T) {
 	logging.Setup("debug")
 	database = dbtest.Setup(t)
 	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", false)
-	server = New(sessionStore, database)
+	templates := templates.MustNewEngine("../templates")
+	smtp = emailer.SMTPEmailer{
+		Templates:   templates,
+		Domain:      "https://weave.test",
+		FromAddress: "from@weave.test",
+	}
+	server = New(sessionStore, database, &smtp)
 	ctx = context.Background()
 }
 
@@ -115,6 +126,72 @@ func Test_SetOrganizationZuoraAccount(t *testing.T) {
 	resp, _ = server.GetOrganization(ctx, &users.GetOrganizationRequest{ExternalID: org.ExternalID})
 	assert.Equal(t, "Wexplicit-date", resp.Organization.ZuoraAccountNumber)
 	assert.True(t, resp.Organization.ZuoraAccountCreatedAt.Equal(createdAt))
+}
+
+func Test_NotifyTrialPendingExpiry(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	_, org := dbtest.GetOrg(t, database)
+
+	var sent bool
+	smtp.Sender = func(e *email.Email) error {
+		assert.Equal(t, "Your Weave Cloud trial expires soon!", e.Subject)
+		assert.Equal(t, "from@weave.test", e.From)
+		assert.Contains(t, string(e.Text), org.Name)
+		expiresAt := org.CreatedAt.Add(users.DefaultTrialLength).Format("January 2 2006")
+		text := string(e.Text)
+		assert.Contains(t, text, expiresAt)
+		assert.Contains(t, text, fmt.Sprintf("https://weave.test/org/%s/billing", org.ExternalID))
+		assert.Contains(t, text, "in 30 days")
+		sent = true
+		return nil
+	}
+
+	// defaults
+	assert.Nil(t, org.TrialExpiredNotifiedAt)
+	assert.Nil(t, org.TrialPendingExpiryNotifiedAt)
+
+	_, err := server.NotifyTrialPendingExpiry(ctx, &users.NotifyTrialPendingExpiryRequest{ExternalID: org.ExternalID})
+	assert.NoError(t, err)
+	assert.True(t, sent, "email has not been sent")
+
+	// verify database changes
+	newOrg, err := database.FindOrganizationByID(ctx, org.ExternalID)
+	fmt.Printf("NEW %#v\n", newOrg)
+	assert.NoError(t, err)
+	assert.Nil(t, newOrg.TrialExpiredNotifiedAt)
+	assert.NotNil(t, newOrg.TrialPendingExpiryNotifiedAt)
+}
+
+func Test_NotifyTrialExpired(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	_, org := dbtest.GetOrg(t, database)
+
+	var sent bool
+	smtp.Sender = func(e *email.Email) error {
+		assert.Equal(t, "Your Weave Cloud trial expired", e.Subject)
+		assert.Equal(t, "from@weave.test", e.From)
+		assert.Len(t, e.To, 1)
+		assert.Contains(t, string(e.Text), org.Name)
+		assert.Contains(t, string(e.Text), fmt.Sprintf("https://weave.test/org/%s/billing", org.ExternalID))
+		sent = true
+		return nil
+	}
+
+	// defaults
+	assert.Nil(t, org.TrialExpiredNotifiedAt)
+	assert.Nil(t, org.TrialPendingExpiryNotifiedAt)
+
+	_, err := server.NotifyTrialExpired(ctx, &users.NotifyTrialExpiredRequest{ExternalID: org.ExternalID})
+	assert.NoError(t, err)
+	assert.True(t, sent, "email has not been sent")
+
+	// verify database changes
+	newOrg, err := database.FindOrganizationByID(ctx, org.ExternalID)
+	assert.NoError(t, err)
+	assert.NotNil(t, newOrg.TrialExpiredNotifiedAt)
+	assert.Nil(t, newOrg.TrialPendingExpiryNotifiedAt)
 }
 
 // Test_GetBillableOrganizations_NotExpired shows that we don't return

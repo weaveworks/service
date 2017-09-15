@@ -44,6 +44,14 @@ service Users {
 
     // GetUser returns details for a user
     rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
+
+    // NotifyTrialPendingExpiry sends a "Trial expiring soon" notification
+    // to this user and records the date sent.
+    rpc NotifyTrialPendingExpiry(NotifyTrialPendingExpiryRequest) returns (NotifyTrialPendingExpiryResponse) {};
+
+    // NotifyTrialExpired sends a "Trial expired" notification to this user
+    // and records the date sent.
+    rpc NotifyTrialExpired(NotifyTrialExpiredRequest) returns (NotifyTrialExpiredResponse) {};
 }
 
 enum AuthorizedAction {
@@ -165,6 +173,10 @@ message Organization {
     google.protobuf.Timestamp TrialExpiresAt = 12 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
     string ZuoraAccountNumber = 13;
     google.protobuf.Timestamp ZuoraAccountCreatedAt = 14 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+    // When we sent a «trial expiring soon» notification at
+    google.protobuf.Timestamp TrialPendingExpiryNotifiedAt = 15 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+    // When we sent a «trial expired» notification at
+    google.protobuf.Timestamp TrialExpiredNotifiedAt = 16 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
 }
 
 message SetOrganizationZuoraAccountRequest {
@@ -202,4 +214,18 @@ message User {
     google.protobuf.Timestamp FirstLoginAt = 5 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "-"];
     google.protobuf.Timestamp CreatedAt = 6 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "-"];
     bool Admin = 7 [(gogoproto.jsontag) = "-"];
+}
+
+message NotifyTrialPendingExpiryRequest {
+    string ExternalID = 1;
+}
+
+message NotifyTrialPendingExpiryResponse {
+}
+
+message NotifyTrialExpiredRequest {
+    string ExternalID = 1;
+}
+
+message NotifyTrialExpiredResponse {
 }
