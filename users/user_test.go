@@ -1,4 +1,4 @@
-package api_test
+package users_test
 
 import (
 	"testing"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
-
 	"github.com/weaveworks/service/users"
 )
 

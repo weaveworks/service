@@ -25,7 +25,7 @@ func TestAPI_ChangeOrgField_FeatureFlags(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, org := dbtest.GetOrg(t, database)
+	_, org := dbtest.GetOrg(t, database)
 
 	prevExpires := org.TrialExpiresAt
 	assert.False(t, org.HasFeatureFlag("billing"))
@@ -39,10 +39,9 @@ func TestAPI_ChangeOrgField_FeatureFlags(t *testing.T) {
 	assert.Equal(t, http.StatusOK, r.StatusCode)
 
 	assert.Len(t, sentEmails, 1)
-	assert.Equal(t, user.Email, sentEmails[0].To[0])
 
 	newOrg, _ := database.FindOrganizationByID(ctx, org.ExternalID)
-	assert.True(t, prevExpires.Before(newOrg.TrialExpiresAt))
+	assert.False(t, prevExpires.Equal(newOrg.TrialExpiresAt))
 	newOrg.HasFeatureFlag("billing")
 	newOrg.HasFeatureFlag("foo")
 	newOrg.HasFeatureFlag("moo")
