@@ -1,13 +1,16 @@
-Good news, we have extended your trial period.
+Hi,
 
-Once your trial period will end on {{.TrialExpiresAt}} you will
-be billed monthly. Make sure you add a payment method to make sure
-the transition runs smoothly:
+Thank you for trying out Weave Cloud! There are just {{.TrialLeft}} left of your trial period.
+
+Weave Cloud can help you automate, control and monitor your orchestrated applications. If you haven't had a chance to look at it recently, now is a great time to give it another try!
+
+Your free trial period ends on {{.TrialExpiresAt}}. To continue your subscription please add a payment method:
 
     {{.BillingURL}}
 
-If you have any questions or issues, feel free to get in touch via
-help@weave.works or join our Slack channel #weave-community by going to
-https://weaveworks.github.io/community-slack/
+If you have any questions or issues, feel free to get in touch via help@weave.works or join our Slack channel #weave-community by going to https://weaveworks.github.io/community-slack/
 
-Thanks, the Weaveworks team
+Thanks,
+
+The Weaveworks team
+

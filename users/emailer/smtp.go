@@ -106,6 +106,7 @@ func (s SMTPEmailer) TrialPendingExpiryEmail(members []*users.User, orgExternalI
 		"OrganizationName": orgName,
 		"BillingURL":       billingURL(s.Domain, orgExternalID),
 		"TrialExpiresAt":   trialExpiresAt.Format(dateFormat),
+		"TrialLeft":        trialLeft(trialExpiresAt),
 	}
 	e.Text = s.Templates.QuietBytes("trial_pending_expiry_email.text", data)
 
@@ -131,17 +132,26 @@ func (s SMTPEmailer) TrialExpiredEmail(members []*users.User, orgExternalID, org
 // TrialExtendedEmail notifies all members of the organization that the trial
 // period has been extended.
 func (s SMTPEmailer) TrialExtendedEmail(members []*users.User, orgExternalID, orgName string, trialExpiresAt time.Time) error {
-	e := email.NewEmail()
-	e.From = s.FromAddress
-	e.To = collectEmails(members)
-	e.Subject = "Your trial period has just been extended!"
+	left := trialLeft(trialExpiresAt)
 	data := map[string]interface{}{
 		"OrganizationName": orgName,
 		"BillingURL":       billingURL(s.Domain, orgExternalID),
 		"TrialExpiresAt":   trialExpiresAt.Format(dateFormat),
-		"DaysLeft":         int16(math.Ceil(trialExpiresAt.Sub(time.Now()).Hours() / 24)),
+		"TrialLeft":        left,
 	}
+	e := email.NewEmail()
+	e.From = s.FromAddress
+	e.To = collectEmails(members)
+	e.Subject = fmt.Sprintf("%s left of your free trial", left)
 	e.Text = s.Templates.QuietBytes("trial_extended_email.text", data)
 
 	return s.Sender(e)
+}
+
+func trialLeft(expires time.Time) string {
+	days := int16(math.Ceil(expires.Sub(time.Now()).Hours() / 24))
+	if days == 1 {
+		return "1 day"
+	}
+	return fmt.Sprintf("%d days", days)
 }
