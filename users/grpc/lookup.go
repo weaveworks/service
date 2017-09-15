@@ -231,6 +231,7 @@ func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganiz
 			FirstSeenConnectedAt:  organization.FirstSeenConnectedAt,
 			Platform:              organization.Platform,
 			Environment:           organization.Environment,
+			TrialExpiresAt:        organization.TrialExpiresAt,
 			ZuoraAccountNumber:    organization.ZuoraAccountNumber,
 			ZuoraAccountCreatedAt: organization.ZuoraAccountCreatedAt,
 		},
