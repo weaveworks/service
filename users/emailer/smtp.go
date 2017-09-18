@@ -69,13 +69,12 @@ func (s SMTPEmailer) InviteEmail(inviter, invited *users.User, orgExternalID, or
 	e.To = []string{invited.Email}
 	e.Subject = "You've been invited to Weave Cloud"
 	data := map[string]interface{}{
-		"InviterName":      inviter.Email,
 		"LoginURL":         inviteURL(invited.Email, token, s.Domain, orgExternalID),
 		"RootURL":          s.Domain,
 		"OrganizationName": orgName,
 	}
-	e.Text = s.Templates.QuietBytes("invite_email.text", data)
-	e.HTML = s.Templates.QuietBytes("invite_email.html", data)
+	e.Text = s.Templates.QuietBytes("login_email.text", data)
+	e.HTML = s.Templates.QuietBytes("login_email.html", data)
 	return s.Sender(e)
 }
 
