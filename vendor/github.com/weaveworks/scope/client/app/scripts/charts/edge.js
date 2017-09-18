@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import classNames from 'classnames';
 
 import { enterEdge, leaveEdge } from '../actions/app-actions';
-import { NODE_BASE_SIZE } from '../constants/styles';
+import { encodeIdAttribute, decodeIdAttribute } from '../utils/dom-utils';
 
 class Edge extends React.Component {
 
@@ -14,45 +14,33 @@ class Edge extends React.Component {
   }
 
   render() {
-    const {
-      id,
-      path,
-      highlighted,
-      blurred,
-      focused,
-      scale,
-      source,
-      target
-    } = this.props;
-    const className = classNames('edge', { highlighted, blurred, focused });
-    const thickness = (scale * 0.01) * NODE_BASE_SIZE;
-    const strokeWidth = focused ? thickness * 3 : thickness;
+    const { id, path, highlighted, focused, thickness, source, target } = this.props;
     const shouldRenderMarker = (focused || highlighted) && (source !== target);
-    // Draws the edge so that its thickness reflects the zoom scale.
-    // Edge shadow is always made 10x thicker than the edge itself.
+    const className = classNames('edge', { highlighted });
+
     return (
       <g
-        id={id} className={className}
+        id={encodeIdAttribute(id)} className={className}
         onMouseEnter={this.handleMouseEnter}
         onMouseLeave={this.handleMouseLeave}
       >
-        <path className="shadow" d={path} style={{ strokeWidth: 10 * strokeWidth }} />
+        <path className="shadow" d={path} style={{ strokeWidth: 10 * thickness }} />
         <path
           className="link"
           d={path}
           markerEnd={shouldRenderMarker ? 'url(#end-arrow)' : null}
-          style={{ strokeWidth }}
+          style={{ strokeWidth: thickness }}
         />
       </g>
     );
   }
 
   handleMouseEnter(ev) {
-    this.props.enterEdge(ev.currentTarget.id);
+    this.props.enterEdge(decodeIdAttribute(ev.currentTarget.id));
   }
 
   handleMouseLeave(ev) {
-    this.props.leaveEdge(ev.currentTarget.id);
+    this.props.leaveEdge(decodeIdAttribute(ev.currentTarget.id));
   }
 }
 

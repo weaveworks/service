@@ -2,9 +2,11 @@ import { is, fromJS } from 'immutable';
 import expect from 'expect';
 
 import { TABLE_VIEW_MODE } from '../../constants/naming';
-// Root reducer test suite using Jasmine matchers
 import { constructEdgeId } from '../../utils/layouter-utils';
+import { highlightedEdgeIdsSelector } from '../../selectors/graph-view/decorators';
 
+
+// Root reducer test suite using Jasmine matchers
 describe('RootReducer', () => {
   const ActionTypes = require('../../constants/action-types').default;
   const reducer = require('../root').default;
@@ -14,7 +16,8 @@ describe('RootReducer', () => {
   // TODO maybe extract those to topology-utils tests?
   const activeTopologyOptionsSelector = topologySelectors.activeTopologyOptionsSelector;
   const getAdjacentNodes = topologyUtils.getAdjacentNodes;
-  const isTopologyEmpty = topologyUtils.isTopologyEmpty;
+  const isNodesDisplayEmpty = topologyUtils.isNodesDisplayEmpty;
+  const isTopologyNodeCountZero = topologyUtils.isTopologyNodeCountZero;
   const getUrlState = require('../../utils/router-utils').getUrlState;
 
   // fixtures
@@ -273,7 +276,33 @@ describe('RootReducer', () => {
       name: 'Topo2',
       stats: {
         node_count: 0
+      },
+      sub_topologies: [{
+        url: '/topo2-sub',
+        name: 'topo 2 sub'
+      }]
+    }]
+  };
+
+  const ReceiveTopologiesHiddenAction = {
+    type: ActionTypes.RECEIVE_TOPOLOGIES,
+    topologies: [{
+      url: '/topo1',
+      name: 'Topo1',
+      stats: {
+        node_count: 1
       }
+    }, {
+      hide_if_empty: true,
+      url: '/topo2',
+      name: 'Topo2',
+      stats: { node_count: 0, filtered_nodes: 0 },
+      sub_topologies: [{
+        url: '/topo2-sub',
+        name: 'topo 2 sub',
+        hide_if_empty: true,
+        stats: { node_count: 0, filtered_nodes: 0 },
+      }]
     }]
   };
 
@@ -362,7 +391,7 @@ describe('RootReducer', () => {
 
     // other topology w/o options dont return options, but keep in app state
     nextState = reducer(nextState, ClickTopology2Action);
-    expect(activeTopologyOptionsSelector(nextState)).toNotExist();
+    expect(activeTopologyOptionsSelector(nextState).size).toEqual(0);
     expect(getUrlState(nextState).topologyOptions.topo1.option1).toEqual(['off']);
   });
 
@@ -512,8 +541,6 @@ describe('RootReducer', () => {
 
     nextState = reducer(nextState, OpenWebsocketAction);
     expect(nextState.get('websocketClosed')).toBeFalsy();
-    // opened socket clears nodes
-    expect(nextState.get('nodes').toJS()).toEqual({});
   });
 
   // adjacency test
@@ -534,17 +561,61 @@ describe('RootReducer', () => {
 
   // empty topology
 
-  it('detects that the topology is empty', () => {
+  it('detects that the nodes display is empty', () => {
     let nextState = initialState;
     nextState = reducer(nextState, ReceiveTopologiesAction);
     nextState = reducer(nextState, ClickTopologyAction);
-    expect(isTopologyEmpty(nextState)).toBeFalsy();
+    expect(isNodesDisplayEmpty(nextState)).toBeTruthy();
+
+    nextState = reducer(nextState, ReceiveNodesDeltaAction);
+    expect(isNodesDisplayEmpty(nextState)).toBeFalsy();
 
     nextState = reducer(nextState, ClickTopology2Action);
-    expect(isTopologyEmpty(nextState)).toBeTruthy();
+    expect(isNodesDisplayEmpty(nextState)).toBeTruthy();
+
+    nextState = reducer(nextState, ReceiveNodesDeltaAction);
+    expect(isNodesDisplayEmpty(nextState)).toBeFalsy();
+  });
+
+  it('detects that the topo stats are empty', () => {
+    let nextState = initialState;
+    nextState = reducer(nextState, ReceiveTopologiesAction);
+    nextState = reducer(nextState, ClickTopologyAction);
+    expect(isTopologyNodeCountZero(nextState)).toBeFalsy();
+
+    nextState = reducer(nextState, ReceiveNodesDeltaAction);
+    expect(isTopologyNodeCountZero(nextState)).toBeFalsy();
+
+    nextState = reducer(nextState, ClickTopology2Action);
+    expect(isTopologyNodeCountZero(nextState)).toBeTruthy();
 
     nextState = reducer(nextState, ClickTopologyAction);
-    expect(isTopologyEmpty(nextState)).toBeFalsy();
+    expect(isTopologyNodeCountZero(nextState)).toBeFalsy();
+  });
+
+  it('keeps hidden topology visible if selected', () => {
+    let nextState = initialState;
+    nextState = reducer(nextState, ReceiveTopologiesAction);
+    nextState = reducer(nextState, ClickTopology2Action);
+    nextState = reducer(nextState, ReceiveTopologiesHiddenAction);
+    expect(nextState.get('currentTopologyId')).toEqual('topo2');
+    expect(nextState.get('topologies').toJS().length).toEqual(2);
+  });
+
+  it('keeps hidden topology visible if sub_topology selected', () => {
+    let nextState = initialState;
+    nextState = reducer(nextState, ReceiveTopologiesAction);
+    nextState = reducer(nextState, { type: ActionTypes.CLICK_TOPOLOGY, topologyId: 'topo2-sub' });
+    nextState = reducer(nextState, ReceiveTopologiesHiddenAction);
+    expect(nextState.get('currentTopologyId')).toEqual('topo2-sub');
+    expect(nextState.get('topologies').toJS().length).toEqual(2);
+  });
+
+  it('hides hidden topology if not selected', () => {
+    let nextState = initialState;
+    nextState = reducer(nextState, ClickTopologyAction);
+    nextState = reducer(nextState, ReceiveTopologiesHiddenAction);
+    expect(nextState.get('topologies').toJS().length).toEqual(1);
   });
 
   // selection of relatives
@@ -673,7 +744,7 @@ describe('RootReducer', () => {
       edgeId: constructEdgeId('abc123', 'def456')
     };
     const nextState = reducer(initialState, action);
-    expect(nextState.get('highlightedEdgeIds').toJS()).toEqual([
+    expect(highlightedEdgeIdsSelector(nextState).toJS()).toEqual([
       constructEdgeId('abc123', 'def456'),
       constructEdgeId('def456', 'abc123')
     ]);

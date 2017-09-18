@@ -18,3 +18,29 @@
 export function modulo(i, n) {
   return ((i % n) + n) % n;
 }
+
+function euclideanDistance(pointA, pointB) {
+  const dx = pointA.get('x') - pointB.get('x');
+  const dy = pointA.get('y') - pointB.get('y');
+  return Math.sqrt((dx * dx) + (dy * dy));
+}
+
+// This could be solved in O(N log N) (see https://en.wikipedia.org/wiki/Closest_pair_of_points_problem),
+// but this brute-force O(N^2) should be good enough for a reasonable number of nodes.
+export function minEuclideanDistanceBetweenPoints(points) {
+  let minDistance = Infinity;
+  points.forEach((pointA, idA) => {
+    points.forEach((pointB, idB) => {
+      const distance = euclideanDistance(pointA, pointB);
+      if (idA !== idB && distance < minDistance) {
+        minDistance = distance;
+      }
+    });
+  });
+  return minDistance;
+}
+
+// A linear mapping [a, b] -> [0, 1] (maps value x=a into 0 and x=b into 1).
+export function linearGradientValue(x, [a, b]) {
+  return (x - a) / (b - a);
+}

@@ -63,21 +63,22 @@ func mapEqual(m, n ps.Map, equalf func(a, b interface{}) bool) bool {
 
 // very similar to ps.Map.String() but with keys sorted
 func mapToString(m ps.Map) string {
-	keys := []string{}
-	if m != nil {
-		for _, k := range m.Keys() {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-	}
-
 	buf := bytes.NewBufferString("{")
-	for _, key := range keys {
+	for _, key := range mapKeys(m) {
 		val, _ := m.Lookup(key)
 		fmt.Fprintf(buf, "%s: %s,\n", key, val)
 	}
 	fmt.Fprintf(buf, "}")
 	return buf.String()
+}
+
+func mapKeys(m ps.Map) []string {
+	if m == nil {
+		return nil
+	}
+	keys := m.Keys()
+	sort.Strings(keys)
+	return keys
 }
 
 // constants from https://github.com/ugorji/go/blob/master/codec/helper.go#L207
@@ -124,7 +125,7 @@ func mapRead(decoder *codec.Decoder, decodeValue func(isNil bool) interface{}) p
 // undocumented internal APIs apply.
 func mapWrite(m ps.Map, encoder *codec.Encoder, encodeValue func(*codec.Encoder, interface{})) {
 	z, r := codec.GenHelperEncoder(encoder)
-	if m == nil {
+	if m == nil || m.IsNil() {
 		r.EncodeNil()
 		return
 	}

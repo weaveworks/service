@@ -5,7 +5,6 @@ import (
 
 	"github.com/weaveworks/common/mtime"
 	"github.com/weaveworks/scope/probe/docker"
-	"github.com/weaveworks/scope/probe/endpoint"
 	"github.com/weaveworks/scope/probe/kubernetes"
 	"github.com/weaveworks/scope/report"
 )
@@ -63,10 +62,6 @@ func ColorConnected(r Renderer) Renderer {
 			void := struct{}{}
 
 			for id, node := range input {
-				if len(node.Adjacency) == 0 {
-					continue
-				}
-
 				for _, adj := range node.Adjacency {
 					if adj != id {
 						connected[id] = void
@@ -220,8 +215,23 @@ func Complement(f FilterFunc) FilterFunc {
 // FilterUnconnected produces a renderer that filters unconnected nodes
 // from the given renderer
 func FilterUnconnected(r Renderer) Renderer {
-	return MakeFilter(
+	return MakeFilterPseudo(
 		func(node report.Node) bool {
+			_, ok := node.Latest.Lookup(IsConnected)
+			return ok
+		},
+		ColorConnected(r),
+	)
+}
+
+// FilterUnconnectedPseudo produces a renderer that filters
+// unconnected pseudo nodes from the given renderer
+func FilterUnconnectedPseudo(r Renderer) Renderer {
+	return MakeFilterPseudo(
+		func(node report.Node) bool {
+			if !IsPseudoTopology(node) {
+				return true
+			}
 			_, ok := node.Latest.Lookup(IsConnected)
 			return ok
 		},
@@ -240,32 +250,6 @@ func IsRunning(n report.Node) bool {
 
 // IsStopped checks if the node is *not* a running docker container
 var IsStopped = Complement(IsRunning)
-
-func nonProcspiedFilter(node report.Node) bool {
-	_, ok := node.Latest.Lookup(endpoint.Procspied)
-	return ok
-}
-
-func nonEBPFFilter(node report.Node) bool {
-	_, ok := node.Latest.Lookup(endpoint.EBPF)
-	return ok
-}
-
-// FilterNonProcspied removes endpoints which were not found in procspy.
-func FilterNonProcspied(r Renderer) Renderer {
-	return MakeFilter(nonProcspiedFilter, r)
-}
-
-// FilterNonEBPF removes endpoints which were not found via eBPF.
-func FilterNonEBPF(r Renderer) Renderer {
-	return MakeFilter(nonEBPFFilter, r)
-}
-
-// FilterNonProcspiedNorEBPF removes endpoints which were not found in procspy
-// nor via eBPF.
-func FilterNonProcspiedNorEBPF(r Renderer) Renderer {
-	return MakeFilter(AnyFilterFunc(nonProcspiedFilter, nonEBPFFilter), r)
-}
 
 // IsApplication checks if the node is an "application" node
 func IsApplication(n report.Node) bool {
@@ -322,12 +306,6 @@ func IsNotPseudo(n report.Node) bool {
 	return n.Topology != Pseudo || strings.HasSuffix(n.ID, TheInternetID) || strings.HasPrefix(n.ID, ServiceNodeIDPrefix)
 }
 
-// IsPseudoTopology returns true if the node is in a pseudo topology,
-// mimicing the check performed by MakeFilter() instead of the more complex check in IsNotPseudo()
-func IsPseudoTopology(n report.Node) bool {
-	return n.Topology == Pseudo
-}
-
 // IsNamespace checks if the node is a pod/service in the specified namespace
 func IsNamespace(namespace string) FilterFunc {
 	return func(n report.Node) bool {
@@ -346,6 +324,17 @@ func IsNamespace(namespace string) FilterFunc {
 		return namespace == gotNamespace
 	}
 }
+
+// IsTopology checks if the node is from a particular report topology
+func IsTopology(topology string) FilterFunc {
+	return func(n report.Node) bool {
+		return n.Topology == topology
+	}
+}
+
+// IsPseudoTopology returns true if the node is in a pseudo topology,
+// mimicing the check performed by MakeFilter() instead of the more complex check in IsNotPseudo()
+var IsPseudoTopology = IsTopology(Pseudo)
 
 var systemContainerNames = map[string]struct{}{
 	"weavescope": {},

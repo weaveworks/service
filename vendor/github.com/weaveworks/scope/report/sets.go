@@ -1,10 +1,7 @@
 package report
 
 import (
-	"bytes"
-	"fmt"
 	"reflect"
-	"sort"
 
 	"github.com/ugorji/go/codec"
 	"github.com/weaveworks/ps"
@@ -17,11 +14,11 @@ type Sets struct {
 }
 
 // EmptySets is an empty Sets.  Starts with this.
-var EmptySets = Sets{ps.NewMap()}
+var emptySets = Sets{ps.NewMap()}
 
 // MakeSets returns EmptySets
 func MakeSets() Sets {
-	return EmptySets
+	return emptySets
 }
 
 // Keys returns the keys for this set
@@ -35,7 +32,7 @@ func (s Sets) Keys() []string {
 // Add the given value to the Sets.
 func (s Sets) Add(key string, value StringSet) Sets {
 	if s.psMap == nil {
-		s = EmptySets
+		s = emptySets
 	}
 	if existingValue, ok := s.psMap.Lookup(key); ok {
 		value = value.Merge(existingValue.(StringSet))
@@ -48,22 +45,24 @@ func (s Sets) Add(key string, value StringSet) Sets {
 // Delete the given set from the Sets.
 func (s Sets) Delete(key string) Sets {
 	if s.psMap == nil {
-		return EmptySets
+		return emptySets
 	}
-	return Sets{
-		psMap: s.psMap.Delete(key),
+	psMap := s.psMap.Delete(key)
+	if psMap.IsNil() {
+		return emptySets
 	}
+	return Sets{psMap: psMap}
 }
 
 // Lookup returns the sets stored under key.
 func (s Sets) Lookup(key string) (StringSet, bool) {
 	if s.psMap == nil {
-		return EmptyStringSet, false
+		return MakeStringSet(), false
 	}
 	if value, ok := s.psMap.Lookup(key); ok {
 		return value.(StringSet), true
 	}
-	return EmptyStringSet, false
+	return MakeStringSet(), false
 }
 
 // Size returns the number of elements
@@ -103,48 +102,13 @@ func (s Sets) Merge(other Sets) Sets {
 	return Sets{result}
 }
 
-// Copy is a noop
-func (s Sets) Copy() Sets {
-	return s
-}
-
 func (s Sets) String() string {
-	if s.psMap == nil {
-		s = EmptySets
-	}
-	keys := []string{}
-	for _, k := range s.psMap.Keys() {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	buf := bytes.NewBufferString("{")
-	for _, key := range keys {
-		val, _ := s.psMap.Lookup(key)
-		fmt.Fprintf(buf, "%s: %v, ", key, val)
-	}
-	fmt.Fprintf(buf, "}")
-	return buf.String()
+	return mapToString(s.psMap)
 }
 
 // DeepEqual tests equality with other Sets
 func (s Sets) DeepEqual(t Sets) bool {
-	if s.Size() != t.Size() {
-		return false
-	}
-	if s.Size() == 0 {
-		return true
-	}
-
-	equal := true
-	s.psMap.ForEach(func(k string, val interface{}) {
-		if otherValue, ok := t.psMap.Lookup(k); !ok {
-			equal = false
-		} else {
-			equal = equal && reflect.DeepEqual(val, otherValue)
-		}
-	})
-	return equal
+	return mapEqual(s.psMap, t.psMap, reflect.DeepEqual)
 }
 
 // CodecEncodeSelf implements codec.Selfer

@@ -2,7 +2,6 @@ package render
 
 import (
 	"github.com/weaveworks/scope/probe/docker"
-	"github.com/weaveworks/scope/probe/endpoint"
 	"github.com/weaveworks/scope/probe/process"
 	"github.com/weaveworks/scope/report"
 )
@@ -23,19 +22,25 @@ func renderProcesses(rpt report.Report) bool {
 }
 
 // EndpointRenderer is a Renderer which produces a renderable endpoint graph.
-var EndpointRenderer = FilterNonProcspiedNorEBPF(SelectEndpoint)
+var EndpointRenderer = SelectEndpoint
 
 // ProcessRenderer is a Renderer which produces a renderable process
 // graph by merging the endpoint graph and the process topology.
 var ProcessRenderer = ConditionalRenderer(renderProcesses,
-	ColorConnected(MakeReduce(
+	MakeReduce(
 		MakeMap(
 			MapEndpoint2Process,
 			EndpointRenderer,
 		),
 		SelectProcess,
-	)),
+	),
 )
+
+// ColorConnectedProcessRenderer colors connected nodes from
+// ProcessRenderer. Since the process topology views only show
+// connected processes, we need this info to determine whether
+// processes appearing in a details panel are linkable.
+var ColorConnectedProcessRenderer = ColorConnected(ProcessRenderer)
 
 // processWithContainerNameRenderer is a Renderer which produces a process
 // graph enriched with container names where appropriate
@@ -82,7 +87,7 @@ var ProcessNameRenderer = ConditionalRenderer(renderProcesses,
 
 // MapEndpoint2Pseudo makes internet of host pesudo nodes from a endpoint node.
 func MapEndpoint2Pseudo(n report.Node, local report.Networks) report.Nodes {
-	addr, ok := n.Latest.Lookup(endpoint.Addr)
+	_, addr, _, ok := report.ParseEndpointNodeID(n.ID)
 	if !ok {
 		return report.Nodes{}
 	}
@@ -115,6 +120,13 @@ func MapEndpoint2Process(n report.Node, local report.Networks) report.Nodes {
 
 	pid, timestamp, ok := n.Latest.LookupEntry(process.PID)
 	if !ok {
+		return report.Nodes{}
+	}
+
+	if len(n.Adjacency) > 1 {
+		// We cannot be sure that the pid is associated with all the
+		// connections. It is better to drop such an endpoint than
+		// risk rendering bogus connections.
 		return report.Nodes{}
 	}
 

@@ -5,12 +5,27 @@ import ZoomableCanvas from './zoomable-canvas';
 import NodesResourcesLayer from './nodes-resources/node-resources-layer';
 import { layersTopologyIdsSelector } from '../selectors/resource-view/layout';
 import {
-  resourcesZoomLimitsSelector,
+  resourcesLimitsSelector,
   resourcesZoomStateSelector,
 } from '../selectors/resource-view/zoom';
+import { clickBackground } from '../actions/app-actions';
+
+import { CONTENT_COVERING } from '../constants/naming';
 
 
 class NodesResources extends React.Component {
+  constructor(props, context) {
+    super(props, context);
+
+    this.handleMouseClick = this.handleMouseClick.bind(this);
+  }
+
+  handleMouseClick() {
+    if (this.props.selectedNodeId) {
+      this.props.clickBackground();
+    }
+  }
+
   renderLayers(transform) {
     return this.props.layersTopologyIds.map((topologyId, index) => (
       <NodesResourcesLayer
@@ -26,8 +41,9 @@ class NodesResources extends React.Component {
     return (
       <div className="nodes-resources">
         <ZoomableCanvas
-          bounded forwardTransform fixVertical
-          zoomLimitsSelector={resourcesZoomLimitsSelector}
+          onClick={this.handleMouseClick}
+          fixVertical boundContent={CONTENT_COVERING}
+          limitsSelector={resourcesLimitsSelector}
           zoomStateSelector={resourcesZoomStateSelector}>
           {transform => this.renderLayers(transform)}
         </ZoomableCanvas>
@@ -38,10 +54,12 @@ class NodesResources extends React.Component {
 
 function mapStateToProps(state) {
   return {
+    selectedNodeId: state.get('selectedNodeId'),
     layersTopologyIds: layersTopologyIdsSelector(state),
   };
 }
 
 export default connect(
-  mapStateToProps
+  mapStateToProps,
+  { clickBackground }
 )(NodesResources);

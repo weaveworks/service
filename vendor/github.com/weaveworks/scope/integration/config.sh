@@ -28,6 +28,29 @@ weave_on() {
     DOCKER_HOST=tcp://$host:$DOCKER_PORT CHECKPOINT_DISABLE=true "$WEAVE" "$@"
 }
 
+weave_proxy_on() {
+    local host=$1
+    shift 1
+    [ -z "$DEBUG" ] || greyly echo "Weave proxy on $host: $*" >&2
+    DOCKER_PORT=12375 docker_on "$host" "$@"
+}
+
+server_on() {
+    local host=$1
+    local name=${2:-nginx}
+    weave_proxy_on "$1" run -d --name "$name" nginx
+}
+
+client_on() {
+    local host=$1
+    local name=${2:-client}
+    local server=${3:-nginx}
+    weave_proxy_on "$1" run -d --name "$name" alpine /bin/sh -c "while true; do \
+        wget http://$server.weave.local:80/ -O - >/dev/null || true; \
+        sleep 1; \
+    done"
+}
+
 scope_end_suite() {
     end_suite
     for host in $HOSTS; do
@@ -102,32 +125,6 @@ has_connection_by_id() {
 
     echo "Failed to find edge $from -> $to after $timeout secs"
     assert "curl -s http://$host:4040/api/topology/${view}?system=show |  jq -r '.nodes[\"$from_id\"].adjacency | contains([\"$to_id\"])'" true
-}
-
-# this checks if ebpf is true on all endpoints on a given host
-endpoints_have_ebpf() {
-    local host="$1"
-    local timeout="${2:-60}"
-    local number_of_endpoints=-1
-    local have_ebpf=-1
-    local report
-
-    for i in $(seq "$timeout"); do
-        report=$(curl -s "http://${host}:4040/api/report")
-        number_of_endpoints=$(echo "${report}" | jq -r '.Endpoint.nodes | length')
-        have_ebpf=$(echo "${report}" | jq -r '.Endpoint.nodes[].latest.eBPF | select(.value != null) | contains({"value": "true"})' | wc -l)
-        if [[ "$number_of_endpoints" -gt 0 && "$have_ebpf" -gt 0 && "$number_of_endpoints" -eq "$have_ebpf" ]]; then
-            echo "Found ${number_of_endpoints} endpoints with ebpf enabled"
-            assert "echo '$have_ebpf'" "$number_of_endpoints"
-            return
-        fi
-        sleep 1
-    done
-
-    echo "Only ${have_ebpf} endpoints of ${number_of_endpoints} have ebpf enabled, should be equal"
-    echo "Example of one endpoint:"
-    echo "${report}" | jq -r '[.Endpoint.nodes[]][0]'
-    assert "echo '$have_ebpf" "$number_of_endpoints"
 }
 
 has_connection() {
