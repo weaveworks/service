@@ -175,7 +175,7 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 		ExternalID:     externalID,
 		Name:           name,
 		CreatedAt:      now,
-		TrialExpiresAt: now.Add(users.DefaultTrialLength),
+		TrialExpiresAt: now.Add(users.TrialDuration),
 	}
 	if err := o.Valid(); err != nil {
 		return nil, err
@@ -337,6 +337,10 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 		org.Environment = *update.Environment
 		setFields["environment"] = *update.Environment
 	}
+	if update.TrialExpiresAt != nil {
+		org.TrialExpiresAt = *update.TrialExpiresAt
+		setFields["trial_expires_at"] = *update.TrialExpiresAt
+	}
 	if update.TrialPendingExpiryNotifiedAt != nil {
 		org.TrialPendingExpiryNotifiedAt = update.TrialPendingExpiryNotifiedAt
 		setFields["trial_pending_expiry_notified_at"] = *update.TrialPendingExpiryNotifiedAt
@@ -424,7 +428,7 @@ func (d DB) AddFeatureFlag(_ context.Context, externalID string, featureFlag str
 // SetFeatureFlags sets all feature flags of an organization.
 func (d DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags []string) error {
 	if featureFlags == nil {
-		featureFlags = make([]string, 0)
+		featureFlags = []string{}
 	}
 	_, err := d.Exec(
 		`update organizations set feature_flags = $1 where external_id = lower($2) and deleted_at is null`,

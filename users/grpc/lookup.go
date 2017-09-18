@@ -14,10 +14,6 @@ import (
 	"github.com/weaveworks/service/users/sessions"
 )
 
-const (
-	billingFlag = "billing"
-)
-
 // usersServer implements users.UsersServer
 type usersServer struct {
 	sessions sessions.Store
@@ -157,7 +153,7 @@ func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.G
 		ctx,
 		filter.And(
 			filter.TrialExpiredBy(req.Now),
-			filter.HasFeatureFlag(billingFlag),
+			filter.HasFeatureFlag(users.BillingFeatureFlag),
 		),
 	)
 	if err != nil {
@@ -172,12 +168,11 @@ func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.G
 }
 
 func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetTrialOrganizationsRequest) (*users.GetTrialOrganizationsResponse, error) {
-	// While billing is in development, only pick orgs with ff `billing`
 	organizations, err := a.db.ListOrganizations(
 		ctx,
 		filter.And(
 			filter.TrialActiveAt(req.Now),
-			filter.HasFeatureFlag(billingFlag),
+			filter.HasFeatureFlag(users.BillingFeatureFlag),
 		),
 	)
 	if err != nil {
@@ -198,7 +193,7 @@ func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users
 		filter.And(
 			filter.ZuoraAccount(false),
 			filter.TrialExpiredBy(req.Now),
-			filter.HasFeatureFlag(billingFlag),
+			filter.HasFeatureFlag(users.BillingFeatureFlag),
 		),
 	)
 	if err != nil {

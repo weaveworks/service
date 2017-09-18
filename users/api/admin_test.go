@@ -1,111 +1,120 @@
-package api
+package api_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
+	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
 
+	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/client"
-	"github.com/weaveworks/service/users/db/memory"
+	"github.com/weaveworks/service/users/db/dbtest"
 )
 
 var (
 	ghToken   = "e12eb509a297f56dcc77c86ec9e44369080698a6"
 	ghSession = []byte(`{"token": {"expiry": "0001-01-01T00:00:00Z", "token_type": "bearer", "access_token": "` + ghToken + `"}}`)
+	ctx       = context.Background()
 )
 
-func TestAdmin_GetUserToken(t *testing.T) {
-	db, _ := memory.New("", "", 1)
-	usr, _ := db.CreateUser(nil, "test@test")
-	db.AddLoginToUser(nil, usr.ID, "github", "12345", ghSession)
-	a := API{
-		db: db,
-	}
+func TestAPI_ChangeOrgField_FeatureFlags(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
 
-	r := mux.NewRouter()
-	a.RegisterRoutes(r)
-	ts := httptest.NewServer(r)
-	defer ts.Close()
+	_, org := dbtest.GetOrg(t, database)
 
-	res, err := http.Get(fmt.Sprintf("%s/admin/users/users/%v/logins/github/token", ts.URL, usr.ID))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		t.Fatalf("Expecting StatusOK, got %v", res.StatusCode)
-	}
+	// Set trial expiration to trigger extension and notifications
+	prevExpires := time.Now()
+	database.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{TrialExpiresAt: &prevExpires})
+
+	assert.False(t, org.HasFeatureFlag("billing"))
+
+	ts := httptest.NewServer(app.Handler)
+	r, err := http.PostForm(
+		fmt.Sprintf("%s/admin/users/organizations/%s", ts.URL, org.ExternalID),
+		url.Values{"field": {"FeatureFlags"}, "value": {"foo billing moo"}},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, r.StatusCode)
+
+	assert.Len(t, sentEmails, 1)
+
+	newOrg, _ := database.FindOrganizationByID(ctx, org.ExternalID)
+	assert.True(t, prevExpires.Before(newOrg.TrialExpiresAt))
+	assert.True(t, newOrg.HasFeatureFlag("billing"))
+	assert.True(t, newOrg.HasFeatureFlag("foo"))
+	assert.True(t, newOrg.HasFeatureFlag("moo"))
+}
+
+func TestAPI_ChangeOrgField_NeverShrinkTrialPeriod(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	_, org := dbtest.GetOrg(t, database)
+
+	// way in the future to make sure a possible extension does not go past it
+	prevExpires := time.Now().Add(12 * 30 * 24 * time.Hour).Truncate(1 * time.Second)
+	database.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{TrialExpiresAt: &prevExpires})
+
+	ts := httptest.NewServer(app.Handler)
+	r, err := http.PostForm(
+		fmt.Sprintf("%s/admin/users/organizations/%s", ts.URL, org.ExternalID),
+		url.Values{"field": {"FeatureFlags"}, "value": {"foo billing moo"}},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, r.StatusCode)
+
+	assert.Len(t, sentEmails, 0)
+	newOrg, _ := database.FindOrganizationByID(ctx, org.ExternalID)
+	assert.True(t, prevExpires.Equal(newOrg.TrialExpiresAt))
+}
+
+func TestAPI_GetUserToken(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	usr, _ := database.CreateUser(ctx, "test@test")
+	database.AddLoginToUser(ctx, usr.ID, "github", "12345", ghSession)
+
+	w := httptest.NewRecorder()
+	r := requestAs(t, usr, "GET",
+		fmt.Sprintf("/admin/users/users/%v/logins/github/token", usr.ID), nil)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
 	var tok client.ProviderToken
-	err = json.NewDecoder(res.Body).Decode(&tok)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if tok.Token != ghToken {
-		t.Fatalf("Expecting db to return token, got %v", tok.Token)
-	}
+	err := json.NewDecoder(w.Body).Decode(&tok)
+	assert.NoError(t, err)
+	assert.Equal(t, ghToken, tok.Token)
 }
 
-func TestAPI_GetUserTokenNoUser(t *testing.T) {
-	db, _ := memory.New("", "", 1)
-	a := API{
-		db: db,
-	}
+func TestAPI_GetUserToken_NoUser(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
 
-	r := mux.NewRouter()
-	a.RegisterRoutes(r)
-	ts := httptest.NewServer(r)
-	defer ts.Close()
-
-	res, err := http.Get(fmt.Sprintf("%s/admin/users/users/%v/logins/github/token", ts.URL, "unknown"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusNotFound {
-		t.Fatalf("Expecting StatusNotFound, got %v", res.StatusCode)
-	}
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest("GET",
+		fmt.Sprintf("%s/admin/users/users/%v/logins/github/token", domain, "unknown"), nil)
+	app.ServeHTTP(w, r)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
-func TestAPI_GetUserTokenNoToken(t *testing.T) {
-	db, _ := memory.New("", "", 1)
-	usr, _ := db.CreateUser(nil, "test@test")
-	a := API{
-		db: db,
-	}
+func TestAPI_GetUserToken_NoToken(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
 
-	r := mux.NewRouter()
-	a.RegisterRoutes(r)
-	ts := httptest.NewServer(r)
-	defer ts.Close()
+	usr, _ := database.CreateUser(ctx, "test@test")
 
-	res, err := http.Get(fmt.Sprintf("%s/admin/users/users/%v/logins/github/token", ts.URL, usr.ID))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusUnauthorized {
-		t.Fatalf("Expecting StatusUnauthorized, got %v", res.StatusCode)
-	}
-}
-
-func TestAPI_GetUserTokenInvalidRouteNoUser(t *testing.T) {
-	a := API{}
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		a.getUserToken(w, r)
-	}))
-	defer ts.Close()
-
-	res, err := http.Get(ts.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusUnprocessableEntity {
-		t.Fatalf("Expecting StatusUnprocessableEntity, got %v", res.StatusCode)
-	}
+	w := httptest.NewRecorder()
+	r := requestAs(t, usr, "GET",
+		fmt.Sprintf("/admin/users/users/%v/logins/github/token", usr.ID), nil)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }

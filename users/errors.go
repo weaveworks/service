@@ -51,6 +51,7 @@ var (
 	ErrOrgEnvironmentInvalid      = ValidationErrorf("Environment is invalid")
 	ErrOrgPlatformRequired        = ValidationErrorf("Platform is required with environment")
 	ErrOrgEnvironmentRequired     = ValidationErrorf("Environment is required with platform")
+	ErrOrgTrialExpiresInvalid     = ValidationErrorf("Trial has no expiration set")
 	ErrOrgTokenIsTaken            = errors.New("Token already taken")
 	ErrLoginNotFound              = errors.New("no login for this user")
 	ErrProviderParameters         = errors.New("Must pass provider and userID")

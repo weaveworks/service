@@ -8,9 +8,16 @@ import (
 )
 
 const (
-	// DefaultTrialLength is how long an organization has as a free trial
+	// TrialDuration is how long an organization has a free trial
 	// period before we start charging for it.
-	DefaultTrialLength = 30 * 24 * time.Hour
+	TrialDuration = 30 * 24 * time.Hour
+
+	// TrialExtensionDuration is the extension period if billing is
+	// enabled for an existing customer
+	TrialExtensionDuration = 15 * 24 * time.Hour
+
+	// BillingFeatureFlag enables billing for an organization
+	BillingFeatureFlag = "billing"
 )
 
 var (
@@ -47,9 +54,10 @@ type Membership struct {
 // OrgWriteView represents an update for an organization with optional fields.
 // A nil field is not updating the value for the organization.
 type OrgWriteView struct {
-	Name        *string
-	Platform    *string
-	Environment *string
+	Name           *string
+	Platform       *string
+	Environment    *string
+	TrialExpiresAt *time.Time
 
 	// These time values are nullable in the database but cannot be set to NULL
 	// through this struct.
@@ -98,6 +106,10 @@ func (o *Organization) Valid() error {
 	_, ok = environments[o.Environment]
 	if o.Environment != "" && !ok {
 		return ErrOrgEnvironmentInvalid
+	}
+
+	if o.TrialExpiresAt.IsZero() {
+		return ErrOrgTrialExpiresInvalid
 	}
 
 	return nil

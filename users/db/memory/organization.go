@@ -200,7 +200,7 @@ func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, to
 		ExternalID:     externalID,
 		Name:           name,
 		CreatedAt:      now,
-		TrialExpiresAt: now.Add(users.DefaultTrialLength),
+		TrialExpiresAt: now.Add(users.TrialDuration),
 	}
 	if err := o.Valid(); err != nil {
 		return nil, err
@@ -285,6 +285,9 @@ func (d *DB) UpdateOrganization(_ context.Context, externalID string, update use
 		}
 		if update.Environment != nil {
 			o.Environment = *update.Environment
+		}
+		if update.TrialExpiresAt != nil {
+			o.TrialExpiresAt = *update.TrialExpiresAt
 		}
 		if update.TrialExpiredNotifiedAt != nil {
 			o.TrialExpiredNotifiedAt = update.TrialExpiredNotifiedAt

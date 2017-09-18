@@ -22,8 +22,9 @@ type Emailer interface {
 	LoginEmail(u *users.User, token string) error
 	InviteEmail(inviter, invited *users.User, orgExternalID, orgName, token string) error
 	GrantAccessEmail(inviter, invited *users.User, orgExternalID, orgName string) error
-	TrialExpiredEmail(members []*users.User, orgExternalID, orgName string) error
+	TrialExtendedEmail(members []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
 	TrialPendingExpiryEmail(memebrs []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
+	TrialExpiredEmail(members []*users.User, orgExternalID, orgName string) error
 }
 
 // MustNew creates a new Emailer, from the URI, or panics.

@@ -1,13 +1,12 @@
-package api_test
+package users_test
 
 import (
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/weaveworks/service/users"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Test_User_CompareToken(t *testing.T) {

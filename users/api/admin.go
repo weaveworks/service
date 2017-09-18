@@ -198,17 +198,7 @@ func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
 		deny := value == "on"
 		err = a.db.SetOrganizationDenyTokenAuth(r.Context(), orgExternalID, deny)
 	case "FeatureFlags":
-		uniqueFlags := map[string]struct{}{}
-		for _, f := range strings.Fields(value) {
-			uniqueFlags[f] = struct{}{}
-		}
-		var sortedFlags []string
-		for f := range uniqueFlags {
-			sortedFlags = append(sortedFlags, f)
-		}
-		sort.Strings(sortedFlags)
-
-		err = a.db.SetFeatureFlags(r.Context(), orgExternalID, sortedFlags)
+		err = a.setOrganizationFeatureFlags(r.Context(), orgExternalID, strings.Fields(value))
 	default:
 		err = users.ValidationErrorf("Invalid field %v", field)
 		return
@@ -233,6 +223,62 @@ func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
 	for _, user := range users {
 		a.marketingQueues.UserCreated(user.Email, user.CreatedAt)
 	}
+}
+
+// setOrganizationFeatureFlags updates feature flags of an organization.
+func (a *API) setOrganizationFeatureFlags(ctx context.Context, orgExternalID string, flags []string) error {
+	uniqueFlags := map[string]struct{}{}
+	for _, f := range flags {
+		uniqueFlags[f] = struct{}{}
+	}
+	var sortedFlags []string
+	for f := range uniqueFlags {
+		sortedFlags = append(sortedFlags, f)
+	}
+	sort.Strings(sortedFlags)
+
+	// Keep track whether we are about to enable the billing flag
+	var orgName string
+	var orgTrialExpires time.Time
+	billingEngaged := false
+	if _, ok := uniqueFlags[users.BillingFeatureFlag]; ok {
+		org, err := a.db.FindOrganizationByID(ctx, orgExternalID)
+		if err != nil {
+			return err
+		}
+		orgName = org.Name
+		orgTrialExpires = org.TrialExpiresAt
+		billingEngaged = !org.HasFeatureFlag(users.BillingFeatureFlag)
+	}
+
+	err := a.db.SetFeatureFlags(ctx, orgExternalID, sortedFlags)
+	if err != nil {
+		return err
+	}
+
+	// For post-creation enabling of billing, we extend the trial period
+	// starting today and send members an email
+	if billingEngaged {
+		expires := time.Now().Add(users.TrialExtensionDuration)
+		// We only modify the trial period if it actually adds days
+		if expires.Truncate(24 * time.Hour).After(orgTrialExpires) {
+			err = a.db.UpdateOrganization(ctx, orgExternalID, users.OrgWriteView{TrialExpiresAt: &expires})
+			if err != nil {
+				return err
+			}
+
+			members, err := a.db.ListOrganizationUsers(ctx, orgExternalID)
+			if err != nil {
+				return err
+			}
+			err = a.emailer.TrialExtendedEmail(members, orgExternalID, orgName, expires)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
