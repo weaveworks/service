@@ -223,12 +223,6 @@
   revision = "91f10e40ba0dd2d0bf9f93ec1d4077711a78df88"
 
 [[projects]]
-  name = "github.com/mattes/migrate"
-  packages = ["driver","driver/postgres","file","migrate","migrate/direction","pipe"]
-  revision = "7dde43471463c0ee6a4183e1b5a8239ae2aa3122"
-  version = "v1.3.1"
-
-[[projects]]
   name = "github.com/mattn/go-colorable"
   packages = ["."]
   revision = "d228849504861217f796da67fae4f6e347643f15"
@@ -463,9 +457,15 @@
   revision = "a5141d656b4d528788fe140307fe2468bfdbd212"
   version = "v3.2.0"
 
+[[projects]]
+  name = "gopkg.in/mattes/migrate.v1"
+  packages = ["driver","driver/postgres","file","migrate","migrate/direction","pipe"]
+  revision = "afc973c4e5a6b746217c2d3950fcd110ed1ba349"
+  version = "v1.3.2"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c2277a724e6c809c5f9e4b66be61e2b5e07729de48b14db6dbb8bf496548bc55"
+  inputs-digest = "512a94a707498456d5204ab7231b63f43bf4cbbdc6a7e7315dea7a46b4403cf8"
   solver-name = "gps-cdcl"
   solver-version = 1
