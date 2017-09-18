@@ -317,10 +317,6 @@ type ApkBinary struct {
 	// matching the output of the sha1sum command.
 	Sha1 string `json:"sha1,omitempty"`
 
-	// Sha256: A sha256 hash of the APK payload, encoded as a hex string and
-	// matching the output of the sha256sum command.
-	Sha256 string `json:"sha256,omitempty"`
-
 	// ForceSendFields is a list of field names (e.g. "Sha1") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
@@ -1700,10 +1696,6 @@ type ProductPurchase struct {
 	// androidpublisher service.
 	Kind string `json:"kind,omitempty"`
 
-	// OrderId: The order id associated with the purchase of the inapp
-	// product.
-	OrderId string `json:"orderId,omitempty"`
-
 	// PurchaseState: The purchase state of the order. Possible values are:
 	//
 	// - Purchased
@@ -2022,8 +2014,7 @@ type SubscriptionPurchase struct {
 	// - User cancelled the subscription
 	// - Subscription was cancelled by the system, for example because of a
 	// billing problem
-	// - Subscription was replaced with a new subscription
-	CancelReason *int64 `json:"cancelReason,omitempty"`
+	CancelReason int64 `json:"cancelReason,omitempty"`
 
 	// CountryCode: ISO 3166-1 alpha-2 billing country/region code of the
 	// user at the time the subscription was granted.
@@ -2041,16 +2032,11 @@ type SubscriptionPurchase struct {
 	// androidpublisher service.
 	Kind string `json:"kind,omitempty"`
 
-	// OrderId: The order id of the latest recurring order associated with
-	// the purchase of the subscription.
-	OrderId string `json:"orderId,omitempty"`
-
 	// PaymentState: The payment state of the subscription. Possible values
 	// are:
 	// - Payment pending
 	// - Payment received
-	// - Free trial
-	PaymentState *int64 `json:"paymentState,omitempty"`
+	PaymentState int64 `json:"paymentState,omitempty"`
 
 	// PriceAmountMicros: Price of the subscription, not including tax.
 	// Price is expressed in micro-units, where 1,000,000 micro-units
@@ -4339,13 +4325,17 @@ func (c *EditsApksListCall) Do(opts ...googleapi.CallOption) (*ApksListResponse,
 // method id "androidpublisher.edits.apks.upload":
 
 type EditsApksUploadCall struct {
-	s             *Service
-	packageNameid string
-	editId        string
-	urlParams_    gensupport.URLParams
-	mediaInfo_    *gensupport.MediaInfo
-	ctx_          context.Context
-	header_       http.Header
+	s                *Service
+	packageNameid    string
+	editId           string
+	urlParams_       gensupport.URLParams
+	media_           io.Reader
+	mediaBuffer_     *gensupport.MediaBuffer
+	mediaType_       string
+	mediaSize_       int64 // mediaSize, if known.  Used only for calls to progressUpdater_.
+	progressUpdater_ googleapi.ProgressUpdater
+	ctx_             context.Context
+	header_          http.Header
 }
 
 // Upload:
@@ -4365,7 +4355,12 @@ func (r *EditsApksService) Upload(packageNameid string, editId string) *EditsApk
 // supplied.
 // At most one of Media and ResumableMedia may be set.
 func (c *EditsApksUploadCall) Media(r io.Reader, options ...googleapi.MediaOption) *EditsApksUploadCall {
-	c.mediaInfo_ = gensupport.NewInfoFromMedia(r, options)
+	opts := googleapi.ProcessMediaOptions(options)
+	chunkSize := opts.ChunkSize
+	if !opts.ForceEmptyContentType {
+		r, c.mediaType_ = gensupport.DetermineContentType(r, opts.ContentType)
+	}
+	c.media_, c.mediaBuffer_ = gensupport.PrepareUpload(r, chunkSize)
 	return c
 }
 
@@ -4380,7 +4375,11 @@ func (c *EditsApksUploadCall) Media(r io.Reader, options ...googleapi.MediaOptio
 // supersede any context previously provided to the Context method.
 func (c *EditsApksUploadCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *EditsApksUploadCall {
 	c.ctx_ = ctx
-	c.mediaInfo_ = gensupport.NewInfoFromResumableMedia(r, size, mediaType)
+	rdr := gensupport.ReaderAtToReader(r, size)
+	rdr, c.mediaType_ = gensupport.DetermineContentType(rdr, mediaType)
+	c.mediaBuffer_ = gensupport.NewMediaBuffer(rdr, googleapi.DefaultUploadChunkSize)
+	c.media_ = nil
+	c.mediaSize_ = size
 	return c
 }
 
@@ -4389,7 +4388,7 @@ func (c *EditsApksUploadCall) ResumableMedia(ctx context.Context, r io.ReaderAt,
 // not slow down the upload operation. This should only be called when
 // using ResumableMedia (as opposed to Media).
 func (c *EditsApksUploadCall) ProgressUpdater(pu googleapi.ProgressUpdater) *EditsApksUploadCall {
-	c.mediaInfo_.SetProgressUpdater(pu)
+	c.progressUpdater_ = pu
 	return c
 }
 
@@ -4429,16 +4428,27 @@ func (c *EditsApksUploadCall) doRequest(alt string) (*http.Response, error) {
 	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	urls := googleapi.ResolveRelative(c.s.BasePath, "{packageName}/edits/{editId}/apks")
-	if c.mediaInfo_ != nil {
+	if c.media_ != nil || c.mediaBuffer_ != nil {
 		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
+		protocol := "multipart"
+		if c.mediaBuffer_ != nil {
+			protocol = "resumable"
+		}
+		c.urlParams_.Set("uploadType", protocol)
 	}
 	if body == nil {
 		body = new(bytes.Buffer)
 		reqHeaders.Set("Content-Type", "application/json")
 	}
-	body, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
-	defer cleanup()
+	if c.media_ != nil {
+		combined, ctype := gensupport.CombineBodyMedia(body, "application/json", c.media_, c.mediaType_)
+		defer combined.Close()
+		reqHeaders.Set("Content-Type", ctype)
+		body = combined
+	}
+	if c.mediaBuffer_ != nil && c.mediaType_ != "" {
+		reqHeaders.Set("X-Upload-Content-Type", c.mediaType_)
+	}
 	urls += "?" + c.urlParams_.Encode()
 	req, _ := http.NewRequest("POST", urls, body)
 	req.Header = reqHeaders
@@ -4475,10 +4485,20 @@ func (c *EditsApksUploadCall) Do(opts ...googleapi.CallOption) (*Apk, error) {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, err
 	}
-	rx := c.mediaInfo_.ResumableUpload(res.Header.Get("Location"))
-	if rx != nil {
-		rx.Client = c.s.client
-		rx.UserAgent = c.s.userAgent()
+	if c.mediaBuffer_ != nil {
+		loc := res.Header.Get("Location")
+		rx := &gensupport.ResumableUpload{
+			Client:    c.s.client,
+			UserAgent: c.s.userAgent(),
+			URI:       loc,
+			Media:     c.mediaBuffer_,
+			MediaType: c.mediaType_,
+			Callback: func(curr int64) {
+				if c.progressUpdater_ != nil {
+					c.progressUpdater_(curr, c.mediaSize_)
+				}
+			},
+		}
 		ctx := c.ctx_
 		if ctx == nil {
 			ctx = context.TODO()
@@ -4562,7 +4582,11 @@ type EditsDeobfuscationfilesUploadCall struct {
 	apkVersionCode        int64
 	deobfuscationFileType string
 	urlParams_            gensupport.URLParams
-	mediaInfo_            *gensupport.MediaInfo
+	media_                io.Reader
+	mediaBuffer_          *gensupport.MediaBuffer
+	mediaType_            string
+	mediaSize_            int64 // mediaSize, if known.  Used only for calls to progressUpdater_.
+	progressUpdater_      googleapi.ProgressUpdater
 	ctx_                  context.Context
 	header_               http.Header
 }
@@ -4587,7 +4611,12 @@ func (r *EditsDeobfuscationfilesService) Upload(packageNameid string, editId str
 // supplied.
 // At most one of Media and ResumableMedia may be set.
 func (c *EditsDeobfuscationfilesUploadCall) Media(r io.Reader, options ...googleapi.MediaOption) *EditsDeobfuscationfilesUploadCall {
-	c.mediaInfo_ = gensupport.NewInfoFromMedia(r, options)
+	opts := googleapi.ProcessMediaOptions(options)
+	chunkSize := opts.ChunkSize
+	if !opts.ForceEmptyContentType {
+		r, c.mediaType_ = gensupport.DetermineContentType(r, opts.ContentType)
+	}
+	c.media_, c.mediaBuffer_ = gensupport.PrepareUpload(r, chunkSize)
 	return c
 }
 
@@ -4602,7 +4631,11 @@ func (c *EditsDeobfuscationfilesUploadCall) Media(r io.Reader, options ...google
 // supersede any context previously provided to the Context method.
 func (c *EditsDeobfuscationfilesUploadCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *EditsDeobfuscationfilesUploadCall {
 	c.ctx_ = ctx
-	c.mediaInfo_ = gensupport.NewInfoFromResumableMedia(r, size, mediaType)
+	rdr := gensupport.ReaderAtToReader(r, size)
+	rdr, c.mediaType_ = gensupport.DetermineContentType(rdr, mediaType)
+	c.mediaBuffer_ = gensupport.NewMediaBuffer(rdr, googleapi.DefaultUploadChunkSize)
+	c.media_ = nil
+	c.mediaSize_ = size
 	return c
 }
 
@@ -4611,7 +4644,7 @@ func (c *EditsDeobfuscationfilesUploadCall) ResumableMedia(ctx context.Context, 
 // not slow down the upload operation. This should only be called when
 // using ResumableMedia (as opposed to Media).
 func (c *EditsDeobfuscationfilesUploadCall) ProgressUpdater(pu googleapi.ProgressUpdater) *EditsDeobfuscationfilesUploadCall {
-	c.mediaInfo_.SetProgressUpdater(pu)
+	c.progressUpdater_ = pu
 	return c
 }
 
@@ -4651,16 +4684,27 @@ func (c *EditsDeobfuscationfilesUploadCall) doRequest(alt string) (*http.Respons
 	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	urls := googleapi.ResolveRelative(c.s.BasePath, "{packageName}/edits/{editId}/apks/{apkVersionCode}/deobfuscationFiles/{deobfuscationFileType}")
-	if c.mediaInfo_ != nil {
+	if c.media_ != nil || c.mediaBuffer_ != nil {
 		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
+		protocol := "multipart"
+		if c.mediaBuffer_ != nil {
+			protocol = "resumable"
+		}
+		c.urlParams_.Set("uploadType", protocol)
 	}
 	if body == nil {
 		body = new(bytes.Buffer)
 		reqHeaders.Set("Content-Type", "application/json")
 	}
-	body, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
-	defer cleanup()
+	if c.media_ != nil {
+		combined, ctype := gensupport.CombineBodyMedia(body, "application/json", c.media_, c.mediaType_)
+		defer combined.Close()
+		reqHeaders.Set("Content-Type", ctype)
+		body = combined
+	}
+	if c.mediaBuffer_ != nil && c.mediaType_ != "" {
+		reqHeaders.Set("X-Upload-Content-Type", c.mediaType_)
+	}
 	urls += "?" + c.urlParams_.Encode()
 	req, _ := http.NewRequest("POST", urls, body)
 	req.Header = reqHeaders
@@ -4699,10 +4743,20 @@ func (c *EditsDeobfuscationfilesUploadCall) Do(opts ...googleapi.CallOption) (*D
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, err
 	}
-	rx := c.mediaInfo_.ResumableUpload(res.Header.Get("Location"))
-	if rx != nil {
-		rx.Client = c.s.client
-		rx.UserAgent = c.s.userAgent()
+	if c.mediaBuffer_ != nil {
+		loc := res.Header.Get("Location")
+		rx := &gensupport.ResumableUpload{
+			Client:    c.s.client,
+			UserAgent: c.s.userAgent(),
+			URI:       loc,
+			Media:     c.mediaBuffer_,
+			MediaType: c.mediaType_,
+			Callback: func(curr int64) {
+				if c.progressUpdater_ != nil {
+					c.progressUpdater_(curr, c.mediaSize_)
+				}
+			},
+		}
 		ctx := c.ctx_
 		if ctx == nil {
 			ctx = context.TODO()
@@ -5762,7 +5816,11 @@ type EditsExpansionfilesUploadCall struct {
 	apkVersionCode    int64
 	expansionFileType string
 	urlParams_        gensupport.URLParams
-	mediaInfo_        *gensupport.MediaInfo
+	media_            io.Reader
+	mediaBuffer_      *gensupport.MediaBuffer
+	mediaType_        string
+	mediaSize_        int64 // mediaSize, if known.  Used only for calls to progressUpdater_.
+	progressUpdater_  googleapi.ProgressUpdater
 	ctx_              context.Context
 	header_           http.Header
 }
@@ -5787,7 +5845,12 @@ func (r *EditsExpansionfilesService) Upload(packageNameid string, editId string,
 // supplied.
 // At most one of Media and ResumableMedia may be set.
 func (c *EditsExpansionfilesUploadCall) Media(r io.Reader, options ...googleapi.MediaOption) *EditsExpansionfilesUploadCall {
-	c.mediaInfo_ = gensupport.NewInfoFromMedia(r, options)
+	opts := googleapi.ProcessMediaOptions(options)
+	chunkSize := opts.ChunkSize
+	if !opts.ForceEmptyContentType {
+		r, c.mediaType_ = gensupport.DetermineContentType(r, opts.ContentType)
+	}
+	c.media_, c.mediaBuffer_ = gensupport.PrepareUpload(r, chunkSize)
 	return c
 }
 
@@ -5802,7 +5865,11 @@ func (c *EditsExpansionfilesUploadCall) Media(r io.Reader, options ...googleapi.
 // supersede any context previously provided to the Context method.
 func (c *EditsExpansionfilesUploadCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *EditsExpansionfilesUploadCall {
 	c.ctx_ = ctx
-	c.mediaInfo_ = gensupport.NewInfoFromResumableMedia(r, size, mediaType)
+	rdr := gensupport.ReaderAtToReader(r, size)
+	rdr, c.mediaType_ = gensupport.DetermineContentType(rdr, mediaType)
+	c.mediaBuffer_ = gensupport.NewMediaBuffer(rdr, googleapi.DefaultUploadChunkSize)
+	c.media_ = nil
+	c.mediaSize_ = size
 	return c
 }
 
@@ -5811,7 +5878,7 @@ func (c *EditsExpansionfilesUploadCall) ResumableMedia(ctx context.Context, r io
 // not slow down the upload operation. This should only be called when
 // using ResumableMedia (as opposed to Media).
 func (c *EditsExpansionfilesUploadCall) ProgressUpdater(pu googleapi.ProgressUpdater) *EditsExpansionfilesUploadCall {
-	c.mediaInfo_.SetProgressUpdater(pu)
+	c.progressUpdater_ = pu
 	return c
 }
 
@@ -5851,16 +5918,27 @@ func (c *EditsExpansionfilesUploadCall) doRequest(alt string) (*http.Response, e
 	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	urls := googleapi.ResolveRelative(c.s.BasePath, "{packageName}/edits/{editId}/apks/{apkVersionCode}/expansionFiles/{expansionFileType}")
-	if c.mediaInfo_ != nil {
+	if c.media_ != nil || c.mediaBuffer_ != nil {
 		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
+		protocol := "multipart"
+		if c.mediaBuffer_ != nil {
+			protocol = "resumable"
+		}
+		c.urlParams_.Set("uploadType", protocol)
 	}
 	if body == nil {
 		body = new(bytes.Buffer)
 		reqHeaders.Set("Content-Type", "application/json")
 	}
-	body, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
-	defer cleanup()
+	if c.media_ != nil {
+		combined, ctype := gensupport.CombineBodyMedia(body, "application/json", c.media_, c.mediaType_)
+		defer combined.Close()
+		reqHeaders.Set("Content-Type", ctype)
+		body = combined
+	}
+	if c.mediaBuffer_ != nil && c.mediaType_ != "" {
+		reqHeaders.Set("X-Upload-Content-Type", c.mediaType_)
+	}
 	urls += "?" + c.urlParams_.Encode()
 	req, _ := http.NewRequest("POST", urls, body)
 	req.Header = reqHeaders
@@ -5899,10 +5977,20 @@ func (c *EditsExpansionfilesUploadCall) Do(opts ...googleapi.CallOption) (*Expan
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, err
 	}
-	rx := c.mediaInfo_.ResumableUpload(res.Header.Get("Location"))
-	if rx != nil {
-		rx.Client = c.s.client
-		rx.UserAgent = c.s.userAgent()
+	if c.mediaBuffer_ != nil {
+		loc := res.Header.Get("Location")
+		rx := &gensupport.ResumableUpload{
+			Client:    c.s.client,
+			UserAgent: c.s.userAgent(),
+			URI:       loc,
+			Media:     c.mediaBuffer_,
+			MediaType: c.mediaType_,
+			Callback: func(curr int64) {
+				if c.progressUpdater_ != nil {
+					c.progressUpdater_(curr, c.mediaSize_)
+				}
+			},
+		}
 		ctx := c.ctx_
 		if ctx == nil {
 			ctx = context.TODO()
@@ -6521,15 +6609,19 @@ func (c *EditsImagesListCall) Do(opts ...googleapi.CallOption) (*ImagesListRespo
 // method id "androidpublisher.edits.images.upload":
 
 type EditsImagesUploadCall struct {
-	s             *Service
-	packageNameid string
-	editId        string
-	language      string
-	imageType     string
-	urlParams_    gensupport.URLParams
-	mediaInfo_    *gensupport.MediaInfo
-	ctx_          context.Context
-	header_       http.Header
+	s                *Service
+	packageNameid    string
+	editId           string
+	language         string
+	imageType        string
+	urlParams_       gensupport.URLParams
+	media_           io.Reader
+	mediaBuffer_     *gensupport.MediaBuffer
+	mediaType_       string
+	mediaSize_       int64 // mediaSize, if known.  Used only for calls to progressUpdater_.
+	progressUpdater_ googleapi.ProgressUpdater
+	ctx_             context.Context
+	header_          http.Header
 }
 
 // Upload: Uploads a new image and adds it to the list of images for the
@@ -6552,7 +6644,12 @@ func (r *EditsImagesService) Upload(packageNameid string, editId string, languag
 // supplied.
 // At most one of Media and ResumableMedia may be set.
 func (c *EditsImagesUploadCall) Media(r io.Reader, options ...googleapi.MediaOption) *EditsImagesUploadCall {
-	c.mediaInfo_ = gensupport.NewInfoFromMedia(r, options)
+	opts := googleapi.ProcessMediaOptions(options)
+	chunkSize := opts.ChunkSize
+	if !opts.ForceEmptyContentType {
+		r, c.mediaType_ = gensupport.DetermineContentType(r, opts.ContentType)
+	}
+	c.media_, c.mediaBuffer_ = gensupport.PrepareUpload(r, chunkSize)
 	return c
 }
 
@@ -6567,7 +6664,11 @@ func (c *EditsImagesUploadCall) Media(r io.Reader, options ...googleapi.MediaOpt
 // supersede any context previously provided to the Context method.
 func (c *EditsImagesUploadCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *EditsImagesUploadCall {
 	c.ctx_ = ctx
-	c.mediaInfo_ = gensupport.NewInfoFromResumableMedia(r, size, mediaType)
+	rdr := gensupport.ReaderAtToReader(r, size)
+	rdr, c.mediaType_ = gensupport.DetermineContentType(rdr, mediaType)
+	c.mediaBuffer_ = gensupport.NewMediaBuffer(rdr, googleapi.DefaultUploadChunkSize)
+	c.media_ = nil
+	c.mediaSize_ = size
 	return c
 }
 
@@ -6576,7 +6677,7 @@ func (c *EditsImagesUploadCall) ResumableMedia(ctx context.Context, r io.ReaderA
 // not slow down the upload operation. This should only be called when
 // using ResumableMedia (as opposed to Media).
 func (c *EditsImagesUploadCall) ProgressUpdater(pu googleapi.ProgressUpdater) *EditsImagesUploadCall {
-	c.mediaInfo_.SetProgressUpdater(pu)
+	c.progressUpdater_ = pu
 	return c
 }
 
@@ -6616,16 +6717,27 @@ func (c *EditsImagesUploadCall) doRequest(alt string) (*http.Response, error) {
 	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	urls := googleapi.ResolveRelative(c.s.BasePath, "{packageName}/edits/{editId}/listings/{language}/{imageType}")
-	if c.mediaInfo_ != nil {
+	if c.media_ != nil || c.mediaBuffer_ != nil {
 		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
+		protocol := "multipart"
+		if c.mediaBuffer_ != nil {
+			protocol = "resumable"
+		}
+		c.urlParams_.Set("uploadType", protocol)
 	}
 	if body == nil {
 		body = new(bytes.Buffer)
 		reqHeaders.Set("Content-Type", "application/json")
 	}
-	body, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
-	defer cleanup()
+	if c.media_ != nil {
+		combined, ctype := gensupport.CombineBodyMedia(body, "application/json", c.media_, c.mediaType_)
+		defer combined.Close()
+		reqHeaders.Set("Content-Type", ctype)
+		body = combined
+	}
+	if c.mediaBuffer_ != nil && c.mediaType_ != "" {
+		reqHeaders.Set("X-Upload-Content-Type", c.mediaType_)
+	}
 	urls += "?" + c.urlParams_.Encode()
 	req, _ := http.NewRequest("POST", urls, body)
 	req.Header = reqHeaders
@@ -6664,10 +6776,20 @@ func (c *EditsImagesUploadCall) Do(opts ...googleapi.CallOption) (*ImagesUploadR
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, err
 	}
-	rx := c.mediaInfo_.ResumableUpload(res.Header.Get("Location"))
-	if rx != nil {
-		rx.Client = c.s.client
-		rx.UserAgent = c.s.userAgent()
+	if c.mediaBuffer_ != nil {
+		loc := res.Header.Get("Location")
+		rx := &gensupport.ResumableUpload{
+			Client:    c.s.client,
+			UserAgent: c.s.userAgent(),
+			URI:       loc,
+			Media:     c.mediaBuffer_,
+			MediaType: c.mediaType_,
+			Callback: func(curr int64) {
+				if c.progressUpdater_ != nil {
+					c.progressUpdater_(curr, c.mediaSize_)
+				}
+			},
+		}
 		ctx := c.ctx_
 		if ctx == nil {
 			ctx = context.TODO()
@@ -10779,10 +10901,7 @@ func (r *PurchasesVoidedpurchasesService) List(packageName string) *PurchasesVoi
 // milliseconds since the Epoch, of the newest voided in-app product
 // purchase that you want to see in the response. The value of this
 // parameter cannot be greater than the current time and is ignored if a
-// pagination token is set. Default value is current time. Note: This
-// filter is applied on the time at which the record is seen as voided
-// by our systems and not the actual voided time returned in the
-// response.
+// pagination token is set. Default value is current time.
 func (c *PurchasesVoidedpurchasesListCall) EndTime(endTime int64) *PurchasesVoidedpurchasesListCall {
 	c.urlParams_.Set("endTime", fmt.Sprint(endTime))
 	return c
@@ -10804,10 +10923,7 @@ func (c *PurchasesVoidedpurchasesListCall) StartIndex(startIndex int64) *Purchas
 // milliseconds since the Epoch, of the oldest voided in-app product
 // purchase that you want to see in the response. The value of this
 // parameter cannot be older than 30 days and is ignored if a pagination
-// token is set. Default value is current time minus 30 days. Note: This
-// filter is applied on the time at which the record is seen as voided
-// by our systems and not the actual voided time returned in the
-// response.
+// token is set. Default value is current time minus 30 days.
 func (c *PurchasesVoidedpurchasesListCall) StartTime(startTime int64) *PurchasesVoidedpurchasesListCall {
 	c.urlParams_.Set("startTime", fmt.Sprint(startTime))
 	return c
@@ -10921,7 +11037,7 @@ func (c *PurchasesVoidedpurchasesListCall) Do(opts ...googleapi.CallOption) (*Vo
 	//   ],
 	//   "parameters": {
 	//     "endTime": {
-	//       "description": "The time, in milliseconds since the Epoch, of the newest voided in-app product purchase that you want to see in the response. The value of this parameter cannot be greater than the current time and is ignored if a pagination token is set. Default value is current time. Note: This filter is applied on the time at which the record is seen as voided by our systems and not the actual voided time returned in the response.",
+	//       "description": "The time, in milliseconds since the Epoch, of the newest voided in-app product purchase that you want to see in the response. The value of this parameter cannot be greater than the current time and is ignored if a pagination token is set. Default value is current time.",
 	//       "format": "int64",
 	//       "location": "query",
 	//       "type": "string"
@@ -10943,7 +11059,7 @@ func (c *PurchasesVoidedpurchasesListCall) Do(opts ...googleapi.CallOption) (*Vo
 	//       "type": "integer"
 	//     },
 	//     "startTime": {
-	//       "description": "The time, in milliseconds since the Epoch, of the oldest voided in-app product purchase that you want to see in the response. The value of this parameter cannot be older than 30 days and is ignored if a pagination token is set. Default value is current time minus 30 days. Note: This filter is applied on the time at which the record is seen as voided by our systems and not the actual voided time returned in the response.",
+	//       "description": "The time, in milliseconds since the Epoch, of the oldest voided in-app product purchase that you want to see in the response. The value of this parameter cannot be older than 30 days and is ignored if a pagination token is set. Default value is current time minus 30 days.",
 	//       "format": "int64",
 	//       "location": "query",
 	//       "type": "string"

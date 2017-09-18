@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	apiv1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/types"
 
 	"github.com/weaveworks/scope/common/xfer"
 	"github.com/weaveworks/scope/probe/controls"
@@ -24,74 +24,77 @@ var (
 	pod1UID     = "a1b2c3d4e5"
 	pod2UID     = "f6g7h8i9j0"
 	serviceUID  = "service1234"
-	podTypeMeta = metav1.TypeMeta{
+	podTypeMeta = unversioned.TypeMeta{
 		Kind:       "Pod",
 		APIVersion: "v1",
 	}
-	apiPod1 = apiv1.Pod{
+	apiPod1 = api.Pod{
 		TypeMeta: podTypeMeta,
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: api.ObjectMeta{
 			Name:              "pong-a",
 			UID:               types.UID(pod1UID),
 			Namespace:         "ping",
-			CreationTimestamp: metav1.Now(),
+			CreationTimestamp: unversioned.Now(),
 			Labels:            map[string]string{"ponger": "true"},
 		},
-		Status: apiv1.PodStatus{
+		Status: api.PodStatus{
 			HostIP: "1.2.3.4",
-			ContainerStatuses: []apiv1.ContainerStatus{
+			ContainerStatuses: []api.ContainerStatus{
 				{ContainerID: "container1"},
 				{ContainerID: "container2"},
 			},
 		},
-		Spec: apiv1.PodSpec{
-			NodeName:    nodeName,
-			HostNetwork: true,
+		Spec: api.PodSpec{
+			NodeName: nodeName,
+			SecurityContext: &api.PodSecurityContext{
+				HostNetwork: true,
+			},
 		},
 	}
-	apiPod2 = apiv1.Pod{
+	apiPod2 = api.Pod{
 		TypeMeta: podTypeMeta,
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: api.ObjectMeta{
 			Name:              "pong-b",
 			UID:               types.UID(pod2UID),
 			Namespace:         "ping",
-			CreationTimestamp: metav1.Now(),
+			CreationTimestamp: unversioned.Now(),
 			Labels:            map[string]string{"ponger": "true"},
 		},
-		Status: apiv1.PodStatus{
+		Status: api.PodStatus{
 			HostIP: "1.2.3.4",
-			ContainerStatuses: []apiv1.ContainerStatus{
+			ContainerStatuses: []api.ContainerStatus{
 				{ContainerID: "container3"},
 				{ContainerID: "container4"},
 			},
 		},
-		Spec: apiv1.PodSpec{
-			NodeName: nodeName,
+		Spec: api.PodSpec{
+			NodeName:        nodeName,
+			SecurityContext: &api.PodSecurityContext{},
 		},
 	}
-	apiService1 = apiv1.Service{
-		TypeMeta: metav1.TypeMeta{
+	apiService1 = api.Service{
+		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
 		},
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: api.ObjectMeta{
 			Name:              "pongservice",
 			UID:               types.UID(serviceUID),
 			Namespace:         "ping",
-			CreationTimestamp: metav1.Now(),
+			CreationTimestamp: unversioned.Now(),
 		},
-		Spec: apiv1.ServiceSpec{
-			Type:           apiv1.ServiceTypeLoadBalancer,
+		Spec: api.ServiceSpec{
+			Type:           api.ServiceTypeLoadBalancer,
 			ClusterIP:      "10.0.1.1",
 			LoadBalancerIP: "10.0.1.2",
-			Ports: []apiv1.ServicePort{
+			Ports: []api.ServicePort{
 				{Protocol: "TCP", Port: 6379},
 			},
 			Selector: map[string]string{"ponger": "true"},
 		},
-		Status: apiv1.ServiceStatus{
-			LoadBalancer: apiv1.LoadBalancerStatus{
-				Ingress: []apiv1.LoadBalancerIngress{
+		Status: api.ServiceStatus{
+			LoadBalancer: api.LoadBalancerStatus{
+				Ingress: []api.LoadBalancerIngress{
 					{IP: "10.0.1.2"},
 				},
 			},
@@ -136,12 +139,6 @@ func (c *mockClient) WalkServices(f func(kubernetes.Service) error) error {
 func (c *mockClient) WalkDaemonSets(f func(kubernetes.DaemonSet) error) error {
 	return nil
 }
-func (c *mockClient) WalkStatefulSets(f func(kubernetes.StatefulSet) error) error {
-	return nil
-}
-func (c *mockClient) WalkCronJobs(f func(kubernetes.CronJob) error) error {
-	return nil
-}
 func (c *mockClient) WalkDeployments(f func(kubernetes.Deployment) error) error {
 	return nil
 }
@@ -151,7 +148,7 @@ func (c *mockClient) WalkReplicaSets(f func(kubernetes.ReplicaSet) error) error 
 func (c *mockClient) WalkReplicationControllers(f func(kubernetes.ReplicationController) error) error {
 	return nil
 }
-func (*mockClient) WalkNodes(f func(*apiv1.Node) error) error {
+func (*mockClient) WalkNodes(f func(*api.Node) error) error {
 	return nil
 }
 func (*mockClient) WatchPods(func(kubernetes.Event, kubernetes.Pod)) {}
@@ -200,7 +197,7 @@ func TestReporter(t *testing.T) {
 	pod2ID := report.MakePodNodeID(pod2UID)
 	serviceID := report.MakeServiceNodeID(serviceUID)
 	hr := controls.NewDefaultHandlerRegistry()
-	rpt, _ := kubernetes.NewReporter(newMockClient(), nil, "", "foo", nil, hr, "", 0).Report()
+	rpt, _ := kubernetes.NewReporter(newMockClient(), nil, "", "foo", nil, hr, 0).Report()
 
 	// Reporter should have added the following pods
 	for _, pod := range []struct {
@@ -261,13 +258,13 @@ func TestTagger(t *testing.T) {
 	}))
 
 	hr := controls.NewDefaultHandlerRegistry()
-	rpt, err := kubernetes.NewReporter(newMockClient(), nil, "", "", nil, hr, "", 0).Tag(rpt)
+	rpt, err := kubernetes.NewReporter(newMockClient(), nil, "", "", nil, hr, 0).Tag(rpt)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
 	have, ok := rpt.Container.Nodes["container1"].Parents.Lookup(report.Pod)
-	want := report.MakeStringSet(report.MakePodNodeID("123456"))
+	want := report.EmptyStringSet.Add(report.MakePodNodeID("123456"))
 	if !ok || !reflect.DeepEqual(have, want) {
 		t.Errorf("Expected container to have pod parent %v %v", have, want)
 	}
@@ -290,7 +287,7 @@ func TestReporterGetLogs(t *testing.T) {
 	client := newMockClient()
 	pipes := mockPipeClient{}
 	hr := controls.NewDefaultHandlerRegistry()
-	reporter := kubernetes.NewReporter(client, pipes, "", "", nil, hr, "", 0)
+	reporter := kubernetes.NewReporter(client, pipes, "", "", nil, hr, 0)
 
 	// Should error on invalid IDs
 	{

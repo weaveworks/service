@@ -8,9 +8,7 @@ import { clickCloseDetails, clickShowTopologyForNode } from '../actions/app-acti
 import { brightenColor, getNeutralColor, getNodeColorDark } from '../utils/color-utils';
 import { isGenericTable, isPropertyList } from '../utils/node-details-utils';
 import { resetDocumentTitle, setDocumentTitle } from '../utils/title-utils';
-import { timestampsEqual } from '../utils/time-utils';
 
-import Overlay from './overlay';
 import MatchedText from './matched-text';
 import NodeDetailsControls from './node-details/node-details-controls';
 import NodeDetailsGenericTable from './node-details/node-details-generic-table';
@@ -69,11 +67,7 @@ class NodeDetails extends React.Component {
             onClick={this.handleShowTopologyForNode}>
             <span>Show in <span>{this.props.topologyId.replace(/-/g, ' ')}</span></span>
           </span>}
-          <span
-            title="Close details"
-            className="fa fa-close close-details"
-            onClick={this.handleClickClose}
-          />
+          <span title="Close details" className="fa fa-close" onClick={this.handleClickClose} />
         </div>
       </div>
     );
@@ -140,7 +134,6 @@ class NodeDetails extends React.Component {
             Details will become available here when it communicates again.
           </p>
         </div>
-        <Overlay faded={this.props.transitioning} />
       </div>
     );
   }
@@ -158,7 +151,7 @@ class NodeDetails extends React.Component {
   }
 
   renderDetails() {
-    const { details, nodeControlStatus, nodeMatches = makeMap(), topologyId } = this.props;
+    const { details, nodeControlStatus, nodeMatches = makeMap() } = this.props;
     const showControls = details.controls && details.controls.length > 0;
     const nodeColor = getNodeColorDark(details.rank, details.label, details.pseudo);
     const {error, pending} = nodeControlStatus ? nodeControlStatus.toJS() : {};
@@ -199,18 +192,15 @@ class NodeDetails extends React.Component {
         <div className="node-details-content">
           {details.metrics && <div className="node-details-content-section">
             <div className="node-details-content-section-header">Status</div>
-            <NodeDetailsHealth
-              metrics={details.metrics}
-              topologyId={topologyId}
-              />
+            <NodeDetailsHealth metrics={details.metrics} />
           </div>}
           {details.metadata && <div className="node-details-content-section">
             <div className="node-details-content-section-header">Info</div>
             <NodeDetailsInfo rows={details.metadata} matches={nodeMatches.get('metadata')} />
           </div>}
 
-          {details.connections && details.connections.filter(cs => cs.connections.length > 0)
-            .map(connections => (<div className="node-details-content-section" key={connections.id}>
+          {details.connections && details.connections.map(connections => (
+            <div className="node-details-content-section" key={connections.id}>
               <NodeDetailsTable
                 {...connections}
                 nodes={connections.connections}
@@ -251,8 +241,6 @@ class NodeDetails extends React.Component {
             />
           </CloudFeature>
         </div>
-
-        <Overlay faded={this.props.transitioning} />
       </div>
     );
   }
@@ -292,7 +280,6 @@ class NodeDetails extends React.Component {
 function mapStateToProps(state, ownProps) {
   const currentTopologyId = state.get('currentTopologyId');
   return {
-    transitioning: !timestampsEqual(state.get('pausedAt'), ownProps.timestamp),
     nodeMatches: state.getIn(['searchNodeMatches', currentTopologyId, ownProps.id]),
     nodes: state.get('nodes'),
     selectedNodeId: state.get('selectedNodeId'),

@@ -2,6 +2,7 @@ package host
 
 import (
 	"fmt"
+	"net"
 	"runtime"
 	"sync"
 	"time"
@@ -85,7 +86,20 @@ func NewReporter(hostID, hostName, probeID, version string, pipes controls.PipeC
 func (*Reporter) Name() string { return "Host" }
 
 // GetLocalNetworks is exported for mocking
-var GetLocalNetworks = report.GetLocalNetworks
+var GetLocalNetworks = func() ([]*net.IPNet, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil, err
+	}
+	localNets := report.Networks{}
+	for _, addr := range addrs {
+		// Not all addrs are IPNets.
+		if ipNet, ok := addr.(*net.IPNet); ok {
+			localNets = append(localNets, ipNet)
+		}
+	}
+	return localNets, nil
+}
 
 // Report implements Reporter.
 func (r *Reporter) Report() (report.Report, error) {
@@ -133,7 +147,7 @@ func (r *Reporter) Report() (report.Report, error) {
 			Uptime:                uptime.String(),
 			ScopeVersion:          r.version,
 		}).
-			WithSets(report.MakeSets().
+			WithSets(report.EmptySets.
 				Add(LocalNetworks, report.MakeStringSet(localCIDRs...)),
 			).
 			WithMetrics(metrics).

@@ -40,7 +40,7 @@ type clientTuple struct {
 // Publisher is something which can send a stream of data somewhere, probably
 // to a remote collector.
 type Publisher interface {
-	Publish(io.Reader, bool) error
+	Publish(io.Reader) error
 	Stop()
 }
 
@@ -51,7 +51,7 @@ type MultiAppClient interface {
 	PipeConnection(appID, pipeID string, pipe xfer.Pipe) error
 	PipeClose(appID, pipeID string) error
 	Stop()
-	Publish(io.Reader, bool) error
+	Publish(io.Reader) error
 }
 
 // NewMultiAppClient creates a new MultiAppClient.
@@ -103,9 +103,7 @@ func (c *multiClient) Set(hostname string, urls []url.URL) {
 	hostIDs := report.MakeIDList()
 	for tuple := range clients {
 		hostIDs = hostIDs.Add(tuple.ID)
-		if client, ok := c.clients[tuple.ID]; ok {
-			client.ReTarget(tuple.AppClient.Target())
-		} else {
+		if _, ok := c.clients[tuple.ID]; !ok {
 			c.clients[tuple.ID] = tuple.AppClient
 			if !c.noControls {
 				tuple.AppClient.ControlConnection()
@@ -165,25 +163,17 @@ func (c *multiClient) Stop() {
 // underlying publishers sequentially. To do that, it needs to drain the
 // reader, and recreate new readers for each publisher. Note that it will
 // publish to one endpoint for each unique ID. Failed publishes don't count.
-func (c *multiClient) Publish(r io.Reader, shortcut bool) error {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-
-	if len(c.clients) <= 1 { // optimisation
-		for _, c := range c.clients {
-			return c.Publish(r, shortcut)
-		}
-		return nil
-	}
-
+func (c *multiClient) Publish(r io.Reader) error {
 	buf, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
 	}
 
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
 	errs := []string{}
 	for _, c := range c.clients {
-		if err := c.Publish(bytes.NewReader(buf), shortcut); err != nil {
+		if err := c.Publish(bytes.NewReader(buf)); err != nil {
 			errs = append(errs, err.Error())
 		}
 	}

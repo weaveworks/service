@@ -17,11 +17,6 @@ class CloudFeature extends React.Component {
       });
     }
 
-    // also show if not in weave cloud?
-    if (this.props.alwaysShow) {
-      return React.cloneElement(React.Children.only(this.props.children));
-    }
-
     return null;
   }
 }

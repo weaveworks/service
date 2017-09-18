@@ -2,7 +2,6 @@ package report_test
 
 import (
 	"fmt"
-	"sort"
 	"testing"
 
 	"github.com/weaveworks/scope/report"
@@ -41,7 +40,6 @@ func TestMakeNodeSet(t *testing.T) {
 		set := report.MakeNodeSet(inputs...)
 		var have []string
 		set.ForEach(func(node report.Node) { have = append(have, node.ID) })
-		sort.Strings(have)
 		if !reflect.DeepEqual(testcase.wants, have) {
 			t.Errorf("%#v: want %#v, have %#v", testcase.inputs, testcase.wants, have)
 		}
@@ -76,9 +74,9 @@ func TestNodeSetAdd(t *testing.T) {
 			want:  report.NodeSet{},
 		},
 		{
-			input: report.MakeNodeSet(),
+			input: report.EmptyNodeSet,
 			nodes: []report.Node{},
-			want:  report.MakeNodeSet(),
+			want:  report.EmptyNodeSet,
 		},
 		{
 			input: report.MakeNodeSet(report.MakeNode("a")),
@@ -86,7 +84,7 @@ func TestNodeSetAdd(t *testing.T) {
 			want:  report.MakeNodeSet(report.MakeNode("a")),
 		},
 		{
-			input: report.MakeNodeSet(),
+			input: report.EmptyNodeSet,
 			nodes: []report.Node{report.MakeNode("a")},
 			want:  report.MakeNodeSet(report.MakeNode("a")),
 		},
@@ -146,7 +144,7 @@ func TestNodeSetAdd(t *testing.T) {
 }
 
 func BenchmarkNodeSetAdd(b *testing.B) {
-	n := report.MakeNodeSet()
+	n := report.EmptyNodeSet
 	for i := 0; i < 600; i++ {
 		n = n.Add(
 			report.MakeNodeWith(fmt.Sprint(i), map[string]string{
@@ -181,9 +179,9 @@ func TestNodeSetDelete(t *testing.T) {
 			want:  report.NodeSet{},
 		},
 		{
-			input: report.MakeNodeSet(),
+			input: report.EmptyNodeSet,
 			nodes: []string{},
-			want:  report.MakeNodeSet(),
+			want:  report.EmptyNodeSet,
 		},
 		{
 			input: report.MakeNodeSet(report.MakeNode("a")),
@@ -191,19 +189,19 @@ func TestNodeSetDelete(t *testing.T) {
 			want:  report.MakeNodeSet(report.MakeNode("a")),
 		},
 		{
-			input: report.MakeNodeSet(),
+			input: report.EmptyNodeSet,
 			nodes: []string{"a"},
-			want:  report.MakeNodeSet(),
+			want:  report.EmptyNodeSet,
 		},
 		{
 			input: report.MakeNodeSet(report.MakeNode("a")),
 			nodes: []string{"a"},
-			want:  report.MakeNodeSet(),
+			want:  report.EmptyNodeSet,
 		},
 		{
 			input: report.MakeNodeSet(report.MakeNode("b")),
 			nodes: []string{"a", "b"},
-			want:  report.MakeNodeSet(),
+			want:  report.EmptyNodeSet,
 		},
 		{
 			input: report.MakeNodeSet(report.MakeNode("a")),
@@ -233,14 +231,14 @@ func TestNodeSetMerge(t *testing.T) {
 		want  report.NodeSet
 	}{
 		{input: report.NodeSet{}, other: report.NodeSet{}, want: report.NodeSet{}},
-		{input: report.MakeNodeSet(), other: report.MakeNodeSet(), want: report.MakeNodeSet()},
+		{input: report.EmptyNodeSet, other: report.EmptyNodeSet, want: report.EmptyNodeSet},
 		{
 			input: report.MakeNodeSet(report.MakeNode("a")),
-			other: report.MakeNodeSet(),
+			other: report.EmptyNodeSet,
 			want:  report.MakeNodeSet(report.MakeNode("a")),
 		},
 		{
-			input: report.MakeNodeSet(),
+			input: report.EmptyNodeSet,
 			other: report.MakeNodeSet(report.MakeNode("a")),
 			want:  report.MakeNodeSet(report.MakeNode("a")),
 		},

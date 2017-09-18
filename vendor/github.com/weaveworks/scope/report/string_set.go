@@ -8,7 +8,8 @@ import (
 // method to add strings.
 type StringSet []string
 
-var emptyStringSet StringSet
+// EmptyStringSet is an empty string set.
+var EmptyStringSet StringSet
 
 // MakeStringSet makes a new StringSet with the given strings.
 func MakeStringSet(strs ...string) StringSet {
@@ -36,7 +37,7 @@ func (s StringSet) Contains(str string) bool {
 
 // Intersection returns the intersections of a and b
 func (s StringSet) Intersection(b StringSet) StringSet {
-	result, i, j := emptyStringSet, 0, 0
+	result, i, j := EmptyStringSet, 0, 0
 	for i < len(s) && j < len(b) {
 		if s[i] == b[j] {
 			result = result.Add(s[i])
@@ -63,6 +64,21 @@ func (s StringSet) Add(strs ...string) StringSet {
 		s = append(s, "")
 		copy(s[i+1:], s[i:])
 		s[i] = str
+	}
+	return s
+}
+
+// Remove removes the strings from the StringSet. Remove is the only valid way
+// to shrink a StringSet. Remove returns the StringSet to enable chaining.
+func (s StringSet) Remove(strs ...string) StringSet {
+	for _, str := range strs {
+		i := sort.Search(len(s), func(i int) bool { return s[i] >= str })
+		if i >= len(s) || s[i] != str {
+			// The list does not have the element.
+			continue
+		}
+		// has the element, remove it.
+		s = append(s[:i], s[i+1:]...)
 	}
 	return s
 }
@@ -96,4 +112,14 @@ func (s StringSet) Merge(other StringSet) StringSet {
 			j++
 		}
 	}
+}
+
+// Copy returns a value copy of the StringSet.
+func (s StringSet) Copy() StringSet {
+	if s == nil {
+		return s
+	}
+	result := make(StringSet, len(s))
+	copy(result, s)
+	return result
 }

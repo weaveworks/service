@@ -13,10 +13,11 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/armon/go-metrics"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/weaveworks/go-checkpoint"
+	"github.com/weaveworks/weave/common"
 
 	"github.com/weaveworks/common/network"
 	"github.com/weaveworks/common/sanitize"
-	"github.com/weaveworks/go-checkpoint"
 	"github.com/weaveworks/scope/common/hostname"
 	"github.com/weaveworks/scope/common/weave"
 	"github.com/weaveworks/scope/common/xfer"
@@ -32,7 +33,6 @@ import (
 	"github.com/weaveworks/scope/probe/plugins"
 	"github.com/weaveworks/scope/probe/process"
 	"github.com/weaveworks/scope/report"
-	"github.com/weaveworks/weave/common"
 )
 
 const (
@@ -42,6 +42,7 @@ const (
 
 var (
 	pluginAPIVersion = "1"
+	dockerEndpoint   = "unix:///var/run/docker.sock"
 )
 
 func checkNewScopeVersion(flags probeFlags) {
@@ -198,6 +199,7 @@ func probeMain(flags probeFlags, targets []appclient.Target) {
 			CollectStats:           true,
 			HostID:                 hostID,
 			HandlerRegistry:        handlerRegistry,
+			DockerEndpoint:         dockerEndpoint,
 			NoCommandLineArguments: flags.noCommandLineArguments,
 			NoEnvironmentVariables: flags.noEnvironmentVariables,
 		}
@@ -215,7 +217,7 @@ func probeMain(flags probeFlags, targets []appclient.Target) {
 	if flags.kubernetesEnabled {
 		if client, err := kubernetes.NewClient(flags.kubernetesClientConfig); err == nil {
 			defer client.Stop()
-			reporter := kubernetes.NewReporter(client, clients, probeID, hostID, p, handlerRegistry, flags.kubernetesNodeName, flags.kubernetesKubeletPort)
+			reporter := kubernetes.NewReporter(client, clients, probeID, hostID, p, handlerRegistry, flags.kubernetesKubeletPort)
 			defer reporter.Stop()
 			p.AddReporter(reporter)
 			p.AddTagger(reporter)
@@ -234,7 +236,7 @@ func probeMain(flags probeFlags, targets []appclient.Target) {
 
 	if flags.weaveEnabled {
 		client := weave.NewClient(sanitize.URL("http://", 6784, "")(flags.weaveAddr))
-		weave, err := overlay.NewWeave(hostID, client)
+		weave, err := overlay.NewWeave(hostID, client, dockerEndpoint)
 		if err != nil {
 			log.Errorf("Weave: failed to start client: %v", err)
 		} else {

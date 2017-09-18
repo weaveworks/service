@@ -445,7 +445,7 @@ var Files = map[string]string{
 				<div class="buttons">
 					<a class="run" title="Run this code [shift-enter]">Run</a>
 					<a class="fmt" title="Format this code">Format</a>
-					{{if not $.GoogleCN}}
+					{{if $.Share}}
 					<a class="share" title="Share this code">Share</a>
 					{{end}}
 				</div>
@@ -496,9 +496,7 @@ var Files = map[string]string{
 <a href="/pkg/">Packages</a>
 <a href="/project/">The Project</a>
 <a href="/help/">Help</a>
-{{if not .GoogleCN}}
 <a href="/blog/">Blog</a>
-{{end}}
 {{if .Playground}}
 <a id="playgroundButton" href="http://play.golang.org/" title="Show Go Playground">Play</a>
 {{end}}
@@ -521,7 +519,7 @@ func main() {
 	<div class="buttons">
 		<a class="run" title="Run this code [shift-enter]">Run</a>
 		<a class="fmt" title="Format this code">Format</a>
-		{{if not $.GoogleCN}}
+		{{if $.Share}}
 		<a class="share" title="Share this code">Share</a>
 		{{end}}
 	</div>
@@ -531,21 +529,11 @@ func main() {
 <div id="page"{{if .Title}} class="wide"{{end}}>
 <div class="container">
 
-{{if or .Title .SrcPath}}
-  <h1>
-    {{html .Title}}
-    {{html .SrcPath | srcBreadcrumb}}
-  </h1>
+{{with .Title}}
+  <h1>{{html .}}</h1>
 {{end}}
-
 {{with .Subtitle}}
   <h2>{{html .}}</h2>
-{{end}}
-
-{{with .SrcPath}}
-  <h2>
-    Documentation: {{html . | srcToPkgLink}}
-  </h2>
 {{end}}
 
 {{/* The Table of Contents is automatically inserted in this <div>.
@@ -561,7 +549,7 @@ Except as <a href="https://developers.google.com/site-policies#restrictions">not
 the content of this page is licensed under the
 Creative Commons Attribution 3.0 License,
 and code is licensed under a <a href="/LICENSE">BSD license</a>.<br>
-<a href="/doc/tos.html">Terms of Service</a> |
+<a href="/doc/tos.html">Terms of Service</a> | 
 <a href="http://www.google.com/intl/en/policies/privacy/">Privacy Policy</a>
 </div>
 
@@ -3007,9 +2995,6 @@ h4,
 h1 {
 	font-size: 28px;
 	line-height: 1;
-}
-h1 .text-muted {
-	color:#777;
 }
 h2 {
 	font-size: 20px;

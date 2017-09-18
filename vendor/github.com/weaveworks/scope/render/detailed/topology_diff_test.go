@@ -79,22 +79,6 @@ func TestTopoDiff(t *testing.T) {
 				Update: []detailed.NodeSummary{nodeap},
 			},
 		},
-		{
-			label: "no previous nodes",
-			have:  detailed.TopoDiff(nil, nodes(nodea)),
-			want: detailed.Diff{
-				Add:   []detailed.NodeSummary{nodea},
-				Reset: true,
-			},
-		},
-		{
-			label: "empty previous nodes",
-			have:  detailed.TopoDiff(nodes(), nodes(nodea)),
-			want: detailed.Diff{
-				Add:   []detailed.NodeSummary{nodea},
-				Reset: false,
-			},
-		},
 	} {
 		sort.Strings(c.have.Remove)
 		sort.Sort(ByID(c.have.Add))

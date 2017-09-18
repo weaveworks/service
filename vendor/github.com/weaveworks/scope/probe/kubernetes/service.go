@@ -2,9 +2,8 @@ package kubernetes
 
 import (
 	"github.com/weaveworks/scope/report"
-
-	"k8s.io/apimachinery/pkg/labels"
-	apiv1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/labels"
 )
 
 // These constants are keys used in node metadata
@@ -21,12 +20,12 @@ type Service interface {
 }
 
 type service struct {
-	*apiv1.Service
+	*api.Service
 	Meta
 }
 
 // NewService creates a new Service
-func NewService(s *apiv1.Service) Service {
+func NewService(s *api.Service) Service {
 	return &service{Service: s, Meta: meta{s.ObjectMeta}}
 }
 

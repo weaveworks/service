@@ -960,9 +960,6 @@ type CustomDataSource struct {
 	// source.
 	ProfilesLinked []string `json:"profilesLinked,omitempty"`
 
-	// Schema: Collection of schema headers of the custom data source.
-	Schema []string `json:"schema,omitempty"`
-
 	// SelfLink: Link for this Analytics custom data source.
 	SelfLink string `json:"selfLink,omitempty"`
 
@@ -972,7 +969,6 @@ type CustomDataSource struct {
 	// Updated: Time this custom data source was last modified.
 	Updated string `json:"updated,omitempty"`
 
-	// UploadType: Upload type of the custom data source.
 	UploadType string `json:"uploadType,omitempty"`
 
 	// WebPropertyId: Web property ID of the form UA-XXXXX-YY to which this
@@ -3477,8 +3473,7 @@ type LinkedForeignAccount struct {
 	// Status: The status of this foreign account link.
 	Status string `json:"status,omitempty"`
 
-	// Type: The type of the foreign account. For example, `ADWORDS_LINKS`,
-	// `DBM_LINKS`, `MCC_LINKS` or `OPTIMIZE`.
+	// Type: The type of the foreign account. For example `ADWORDS_LINKS`.
 	Type string `json:"type,omitempty"`
 
 	// WebPropertyId: Web property ID of the form UA-XXXXX-YY to which this
@@ -5080,9 +5075,6 @@ type Upload struct {
 	// Status: Upload status. Possible values: PENDING, COMPLETED, FAILED,
 	// DELETING, DELETED.
 	Status string `json:"status,omitempty"`
-
-	// UploadTime: Time this file is uploaded.
-	UploadTime string `json:"uploadTime,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
 	// server.
@@ -16348,7 +16340,11 @@ type ManagementUploadsUploadDataCall struct {
 	webPropertyId      string
 	customDataSourceId string
 	urlParams_         gensupport.URLParams
-	mediaInfo_         *gensupport.MediaInfo
+	media_             io.Reader
+	mediaBuffer_       *gensupport.MediaBuffer
+	mediaType_         string
+	mediaSize_         int64 // mediaSize, if known.  Used only for calls to progressUpdater_.
+	progressUpdater_   googleapi.ProgressUpdater
 	ctx_               context.Context
 	header_            http.Header
 }
@@ -16371,7 +16367,12 @@ func (r *ManagementUploadsService) UploadData(accountId string, webPropertyId st
 // supplied.
 // At most one of Media and ResumableMedia may be set.
 func (c *ManagementUploadsUploadDataCall) Media(r io.Reader, options ...googleapi.MediaOption) *ManagementUploadsUploadDataCall {
-	c.mediaInfo_ = gensupport.NewInfoFromMedia(r, options)
+	opts := googleapi.ProcessMediaOptions(options)
+	chunkSize := opts.ChunkSize
+	if !opts.ForceEmptyContentType {
+		r, c.mediaType_ = gensupport.DetermineContentType(r, opts.ContentType)
+	}
+	c.media_, c.mediaBuffer_ = gensupport.PrepareUpload(r, chunkSize)
 	return c
 }
 
@@ -16386,7 +16387,11 @@ func (c *ManagementUploadsUploadDataCall) Media(r io.Reader, options ...googleap
 // supersede any context previously provided to the Context method.
 func (c *ManagementUploadsUploadDataCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *ManagementUploadsUploadDataCall {
 	c.ctx_ = ctx
-	c.mediaInfo_ = gensupport.NewInfoFromResumableMedia(r, size, mediaType)
+	rdr := gensupport.ReaderAtToReader(r, size)
+	rdr, c.mediaType_ = gensupport.DetermineContentType(rdr, mediaType)
+	c.mediaBuffer_ = gensupport.NewMediaBuffer(rdr, googleapi.DefaultUploadChunkSize)
+	c.media_ = nil
+	c.mediaSize_ = size
 	return c
 }
 
@@ -16395,7 +16400,7 @@ func (c *ManagementUploadsUploadDataCall) ResumableMedia(ctx context.Context, r 
 // not slow down the upload operation. This should only be called when
 // using ResumableMedia (as opposed to Media).
 func (c *ManagementUploadsUploadDataCall) ProgressUpdater(pu googleapi.ProgressUpdater) *ManagementUploadsUploadDataCall {
-	c.mediaInfo_.SetProgressUpdater(pu)
+	c.progressUpdater_ = pu
 	return c
 }
 
@@ -16435,16 +16440,27 @@ func (c *ManagementUploadsUploadDataCall) doRequest(alt string) (*http.Response,
 	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	urls := googleapi.ResolveRelative(c.s.BasePath, "management/accounts/{accountId}/webproperties/{webPropertyId}/customDataSources/{customDataSourceId}/uploads")
-	if c.mediaInfo_ != nil {
+	if c.media_ != nil || c.mediaBuffer_ != nil {
 		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
+		protocol := "multipart"
+		if c.mediaBuffer_ != nil {
+			protocol = "resumable"
+		}
+		c.urlParams_.Set("uploadType", protocol)
 	}
 	if body == nil {
 		body = new(bytes.Buffer)
 		reqHeaders.Set("Content-Type", "application/json")
 	}
-	body, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
-	defer cleanup()
+	if c.media_ != nil {
+		combined, ctype := gensupport.CombineBodyMedia(body, "application/json", c.media_, c.mediaType_)
+		defer combined.Close()
+		reqHeaders.Set("Content-Type", ctype)
+		body = combined
+	}
+	if c.mediaBuffer_ != nil && c.mediaType_ != "" {
+		reqHeaders.Set("X-Upload-Content-Type", c.mediaType_)
+	}
 	urls += "?" + c.urlParams_.Encode()
 	req, _ := http.NewRequest("POST", urls, body)
 	req.Header = reqHeaders
@@ -16482,10 +16498,20 @@ func (c *ManagementUploadsUploadDataCall) Do(opts ...googleapi.CallOption) (*Upl
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, err
 	}
-	rx := c.mediaInfo_.ResumableUpload(res.Header.Get("Location"))
-	if rx != nil {
-		rx.Client = c.s.client
-		rx.UserAgent = c.s.userAgent()
+	if c.mediaBuffer_ != nil {
+		loc := res.Header.Get("Location")
+		rx := &gensupport.ResumableUpload{
+			Client:    c.s.client,
+			UserAgent: c.s.userAgent(),
+			URI:       loc,
+			Media:     c.mediaBuffer_,
+			MediaType: c.mediaType_,
+			Callback: func(curr int64) {
+				if c.progressUpdater_ != nil {
+					c.progressUpdater_(curr, c.mediaSize_)
+				}
+			},
+		}
 		ctx := c.ctx_
 		if ctx == nil {
 			ctx = context.TODO()

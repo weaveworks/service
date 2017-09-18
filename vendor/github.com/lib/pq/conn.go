@@ -27,12 +27,12 @@ var (
 	ErrNotSupported              = errors.New("pq: Unsupported command")
 	ErrInFailedTransaction       = errors.New("pq: Could not complete operation in a failed transaction")
 	ErrSSLNotSupported           = errors.New("pq: SSL is not enabled on the server")
-	ErrSSLKeyHasWorldPermissions = errors.New("pq: Private key file has group or world access. Permissions should be u=rw (0600) or less")
-	ErrCouldNotDetectUsername    = errors.New("pq: Could not detect default username. Please provide one explicitly")
+	ErrSSLKeyHasWorldPermissions = errors.New("pq: Private key file has group or world access. Permissions should be u=rw (0600) or less.")
+	ErrCouldNotDetectUsername    = errors.New("pq: Could not detect default username. Please provide one explicitly.")
 
 	errUnexpectedReady = errors.New("unexpected ReadyForQuery")
 	errNoRowsAffected  = errors.New("no RowsAffected available after the empty statement")
-	errNoLastInsertID  = errors.New("no LastInsertId available after the empty statement")
+	errNoLastInsertId  = errors.New("no LastInsertId available after the empty statement")
 )
 
 type Driver struct{}
@@ -131,7 +131,7 @@ type conn struct {
 }
 
 // Handle driver-side settings in parsed connection string.
-func (cn *conn) handleDriverSettings(o values) (err error) {
+func (c *conn) handleDriverSettings(o values) (err error) {
 	boolSetting := func(key string, val *bool) error {
 		if value, ok := o[key]; ok {
 			if value == "yes" {
@@ -145,18 +145,18 @@ func (cn *conn) handleDriverSettings(o values) (err error) {
 		return nil
 	}
 
-	err = boolSetting("disable_prepared_binary_result", &cn.disablePreparedBinaryResult)
+	err = boolSetting("disable_prepared_binary_result", &c.disablePreparedBinaryResult)
 	if err != nil {
 		return err
 	}
-	err = boolSetting("binary_parameters", &cn.binaryParameters)
+	err = boolSetting("binary_parameters", &c.binaryParameters)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (cn *conn) handlePgpass(o values) {
+func (c *conn) handlePgpass(o values) {
 	// if a password was supplied, do not process .pgpass
 	if _, ok := o["password"]; ok {
 		return
@@ -229,10 +229,10 @@ func (cn *conn) handlePgpass(o values) {
 	}
 }
 
-func (cn *conn) writeBuf(b byte) *writeBuf {
-	cn.scratch[0] = b
+func (c *conn) writeBuf(b byte) *writeBuf {
+	c.scratch[0] = b
 	return &writeBuf{
-		buf: cn.scratch[:5],
+		buf: c.scratch[:5],
 		pos: 1,
 	}
 }
@@ -310,8 +310,9 @@ func DialOpen(d Dialer, name string) (_ driver.Conn, err error) {
 		u, err := userCurrent()
 		if err != nil {
 			return nil, err
+		} else {
+			o["user"] = u
 		}
-		o["user"] = u
 	}
 
 	cn := &conn{
@@ -505,17 +506,13 @@ func (cn *conn) checkIsInTransaction(intxn bool) {
 }
 
 func (cn *conn) Begin() (_ driver.Tx, err error) {
-	return cn.begin("")
-}
-
-func (cn *conn) begin(mode string) (_ driver.Tx, err error) {
 	if cn.bad {
 		return nil, driver.ErrBadConn
 	}
 	defer cn.errRecover(&err)
 
 	cn.checkIsInTransaction(false)
-	_, commandTag, err := cn.simpleExec("BEGIN" + mode)
+	_, commandTag, err := cn.simpleExec("BEGIN")
 	if err != nil {
 		return nil, err
 	}
@@ -697,7 +694,7 @@ var emptyRows noRows
 var _ driver.Result = noRows{}
 
 func (noRows) LastInsertId() (int64, error) {
-	return 0, errNoLastInsertID
+	return 0, errNoLastInsertId
 }
 
 func (noRows) RowsAffected() (int64, error) {
@@ -839,15 +836,16 @@ func (cn *conn) query(query string, args []driver.Value) (_ *rows, err error) {
 		rows.colNames, rows.colFmts, rows.colTyps = cn.readPortalDescribeResponse()
 		cn.postExecuteWorkaround()
 		return rows, nil
+	} else {
+		st := cn.prepareTo(query, "")
+		st.exec(args)
+		return &rows{
+			cn:       cn,
+			colNames: st.colNames,
+			colTyps:  st.colTyps,
+			colFmts:  st.colFmts,
+		}, nil
 	}
-	st := cn.prepareTo(query, "")
-	st.exec(args)
-	return &rows{
-		cn:       cn,
-		colNames: st.colNames,
-		colTyps:  st.colTyps,
-		colFmts:  st.colFmts,
-	}, nil
 }
 
 // Implement the optional "Execer" interface for one-shot queries
@@ -874,16 +872,17 @@ func (cn *conn) Exec(query string, args []driver.Value) (res driver.Result, err 
 		cn.postExecuteWorkaround()
 		res, _, err = cn.readExecuteResponse("Execute")
 		return res, err
+	} else {
+		// Use the unnamed statement to defer planning until bind
+		// time, or else value-based selectivity estimates cannot be
+		// used.
+		st := cn.prepareTo(query, "")
+		r, err := st.Exec(args)
+		if err != nil {
+			panic(err)
+		}
+		return r, err
 	}
-	// Use the unnamed statement to defer planning until bind
-	// time, or else value-based selectivity estimates cannot be
-	// used.
-	st := cn.prepareTo(query, "")
-	r, err := st.Exec(args)
-	if err != nil {
-		panic(err)
-	}
-	return r, err
 }
 
 func (cn *conn) send(m *writeBuf) {
@@ -1144,10 +1143,10 @@ const formatText format = 0
 const formatBinary format = 1
 
 // One result-column format code with the value 1 (i.e. all binary).
-var colFmtDataAllBinary = []byte{0, 1, 0, 1}
+var colFmtDataAllBinary []byte = []byte{0, 1, 0, 1}
 
 // No result-column format codes (i.e. all text).
-var colFmtDataAllText = []byte{0, 0}
+var colFmtDataAllText []byte = []byte{0, 0}
 
 type stmt struct {
 	cn         *conn
@@ -1336,12 +1335,7 @@ func (rs *rows) Close() error {
 		switch err {
 		case nil:
 		case io.EOF:
-			// rs.Next can return io.EOF on both 'Z' (ready for query) and 'T' (row
-			// description, used with HasNextResultSet). We need to fetch messages until
-			// we hit a 'Z', which is done by waiting for done to be set.
-			if rs.done {
-				return nil
-			}
+			return nil
 		default:
 			return err
 		}
@@ -1512,7 +1506,7 @@ func (cn *conn) sendBinaryModeQuery(query string, args []driver.Value) {
 	cn.send(b)
 }
 
-func (cn *conn) processParameterStatus(r *readBuf) {
+func (c *conn) processParameterStatus(r *readBuf) {
 	var err error
 
 	param := r.string()
@@ -1523,13 +1517,13 @@ func (cn *conn) processParameterStatus(r *readBuf) {
 		var minor int
 		_, err = fmt.Sscanf(r.string(), "%d.%d.%d", &major1, &major2, &minor)
 		if err == nil {
-			cn.parameterStatus.serverVersion = major1*10000 + major2*100 + minor
+			c.parameterStatus.serverVersion = major1*10000 + major2*100 + minor
 		}
 
 	case "TimeZone":
-		cn.parameterStatus.currentLocation, err = time.LoadLocation(r.string())
+		c.parameterStatus.currentLocation, err = time.LoadLocation(r.string())
 		if err != nil {
-			cn.parameterStatus.currentLocation = nil
+			c.parameterStatus.currentLocation = nil
 		}
 
 	default:
@@ -1537,8 +1531,8 @@ func (cn *conn) processParameterStatus(r *readBuf) {
 	}
 }
 
-func (cn *conn) processReadyForQuery(r *readBuf) {
-	cn.txnStatus = transactionStatus(r.byte())
+func (c *conn) processReadyForQuery(r *readBuf) {
+	c.txnStatus = transactionStatus(r.byte())
 }
 
 func (cn *conn) readReadyForQuery() {
@@ -1553,9 +1547,9 @@ func (cn *conn) readReadyForQuery() {
 	}
 }
 
-func (cn *conn) processBackendKeyData(r *readBuf) {
-	cn.processID = r.int32()
-	cn.secretKey = r.int32()
+func (c *conn) processBackendKeyData(r *readBuf) {
+	c.processID = r.int32()
+	c.secretKey = r.int32()
 }
 
 func (cn *conn) readParseResponse() {

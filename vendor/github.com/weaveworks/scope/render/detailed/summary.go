@@ -6,6 +6,7 @@ import (
 
 	"github.com/weaveworks/scope/probe/awsecs"
 	"github.com/weaveworks/scope/probe/docker"
+	"github.com/weaveworks/scope/probe/endpoint"
 	"github.com/weaveworks/scope/probe/host"
 	"github.com/weaveworks/scope/probe/kubernetes"
 	"github.com/weaveworks/scope/probe/overlay"
@@ -68,8 +69,7 @@ var renderers = map[string]func(NodeSummary, report.Node) (NodeSummary, bool){
 	report.Service:        podGroupNodeSummary,
 	report.Deployment:     podGroupNodeSummary,
 	report.DaemonSet:      podGroupNodeSummary,
-	report.StatefulSet:    podGroupNodeSummary,
-	report.CronJob:        podGroupNodeSummary,
+	report.ReplicaSet:     podGroupNodeSummary,
 	report.ECSTask:        ecsTaskNodeSummary,
 	report.ECSService:     ecsServiceNodeSummary,
 	report.SwarmService:   swarmServiceNodeSummary,
@@ -90,10 +90,9 @@ var primaryAPITopology = map[string]string{
 	report.Container:      "containers",
 	report.ContainerImage: "containers-by-image",
 	report.Pod:            "pods",
-	report.Deployment:     "kube-controllers",
-	report.DaemonSet:      "kube-controllers",
-	report.StatefulSet:    "kube-controllers",
-	report.CronJob:        "kube-controllers",
+	report.ReplicaSet:     "replica-sets",
+	report.Deployment:     "deployments",
+	report.DaemonSet:      "daemonsets",
 	report.Service:        "services",
 	report.ECSTask:        "ecs-tasks",
 	report.ECSService:     "ecs-services",
@@ -102,22 +101,19 @@ var primaryAPITopology = map[string]string{
 }
 
 // MakeNodeSummary summarizes a node, if possible.
-func MakeNodeSummary(rc report.RenderContext, n report.Node) (NodeSummary, bool) {
-	r := rc.Report
+func MakeNodeSummary(r report.Report, n report.Node) (NodeSummary, bool) {
 	if renderer, ok := renderers[n.Topology]; ok {
 		// Skip (and don't fall through to fallback) if renderer maps to nil
 		if renderer != nil {
-			summary, b := renderer(baseNodeSummary(r, n), n)
-			return RenderMetricURLs(summary, n, rc.MetricsGraphURL), b
+			return renderer(baseNodeSummary(r, n), n)
 		}
-	} else if _, ok := rc.Topology(n.Topology); ok {
+	} else if _, ok := r.Topology(n.Topology); ok {
 		summary := baseNodeSummary(r, n)
 		summary.Label = n.ID // This is unlikely to look very good, but is a reasonable fallback
 		return summary, true
 	}
 	if strings.HasPrefix(n.Topology, "group:") {
-		summary, b := groupNodeSummary(baseNodeSummary(r, n), r, n)
-		return RenderMetricURLs(summary, n, rc.MetricsGraphURL), b
+		return groupNodeSummary(baseNodeSummary(r, n), r, n)
 	}
 	return NodeSummary{}, false
 }
@@ -168,7 +164,7 @@ func pseudoNodeSummary(base NodeSummary, n report.Node) (NodeSummary, bool) {
 	}
 
 	// try rendering it as an uncontained node
-	if strings.HasPrefix(n.ID, render.UncontainedIDPrefix) {
+	if strings.HasPrefix(n.ID, render.MakePseudoNodeID(render.UncontainedID)) {
 		base.Label = render.UncontainedMajor
 		base.LabelMinor = report.ExtractHostID(n)
 		base.Shape = report.Square
@@ -177,7 +173,7 @@ func pseudoNodeSummary(base NodeSummary, n report.Node) (NodeSummary, bool) {
 	}
 
 	// try rendering it as an unmanaged node
-	if strings.HasPrefix(n.ID, render.UnmanagedIDPrefix) {
+	if strings.HasPrefix(n.ID, render.MakePseudoNodeID(render.UnmanagedID)) {
 		base.Label = render.UnmanagedMajor
 		base.Shape = report.Square
 		base.Stack = true
@@ -186,7 +182,7 @@ func pseudoNodeSummary(base NodeSummary, n report.Node) (NodeSummary, bool) {
 	}
 
 	// try rendering it as an endpoint
-	if _, addr, _, ok := report.ParseEndpointNodeID(n.ID); ok {
+	if addr, ok := n.Latest.Lookup(endpoint.Addr); ok {
 		base.Label = addr
 		base.Shape = report.Circle
 		return base, true
@@ -262,25 +258,13 @@ func podNodeSummary(base NodeSummary, n report.Node) (NodeSummary, bool) {
 	return base, true
 }
 
-var podGroupNodeTypeName = map[string]string{
-	report.Deployment:  "Deployment",
-	report.DaemonSet:   "DaemonSet",
-	report.StatefulSet: "StatefulSet",
-	report.CronJob:     "CronJob",
-}
-
 func podGroupNodeSummary(base NodeSummary, n report.Node) (NodeSummary, bool) {
 	base = addKubernetesLabelAndRank(base, n)
 	base.Stack = true
 
 	// NB: pods are the highest aggregation level for which we display
 	// counts.
-	count := pluralize(n.Counters, report.Pod, "pod", "pods")
-	if typeName, ok := podGroupNodeTypeName[n.Topology]; ok {
-		base.LabelMinor = fmt.Sprintf("%s of %s", typeName, count)
-	} else {
-		base.LabelMinor = count
-	}
+	base.LabelMinor = pluralize(n.Counters, report.Pod, "pod", "pods")
 
 	return base, true
 }
@@ -353,14 +337,13 @@ func groupNodeSummary(base NodeSummary, r report.Report, n report.Node) (NodeSum
 }
 
 func pluralize(counters report.Counters, key, singular, plural string) string {
-	c, ok := counters.Lookup(key)
-	if !ok {
-		c = 0
+	if c, ok := counters.Lookup(key); ok {
+		if c == 1 {
+			return fmt.Sprintf("%d %s", c, singular)
+		}
+		return fmt.Sprintf("%d %s", c, plural)
 	}
-	if c == 1 {
-		return fmt.Sprintf("%d %s", c, singular)
-	}
-	return fmt.Sprintf("%d %s", c, plural)
+	return ""
 }
 
 type nodeSummariesByID []NodeSummary
@@ -373,11 +356,11 @@ func (s nodeSummariesByID) Less(i, j int) bool { return s[i].ID < s[j].ID }
 type NodeSummaries map[string]NodeSummary
 
 // Summaries converts RenderableNodes into a set of NodeSummaries
-func Summaries(rc report.RenderContext, rns report.Nodes) NodeSummaries {
+func Summaries(r report.Report, rns report.Nodes) NodeSummaries {
 
 	result := NodeSummaries{}
 	for id, node := range rns {
-		if summary, ok := MakeNodeSummary(rc, node); ok {
+		if summary, ok := MakeNodeSummary(r, node); ok {
 			for i, m := range summary.Metrics {
 				summary.Metrics[i] = m.Summary()
 			}

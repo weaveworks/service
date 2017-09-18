@@ -33,12 +33,8 @@ while [ $# -gt 0 ]; do
             shift 1
             ;;
         "-netgo")
-            TAGS="netgo"
+            TAGS="-tags netgo"
             shift 1
-            ;;
-        "-tags")
-            TAGS="$2"
-            shift 2
             ;;
         "-p")
             PARALLEL=true
@@ -55,7 +51,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-GO_TEST_ARGS=(-tags "${TAGS[@]}" -cpu 4 -timeout $TIMEOUT)
+GO_TEST_ARGS=($TAGS -cpu 4 -timeout $TIMEOUT)
 
 if [ -n "$SLOW" ] || [ -n "$CIRCLECI" ]; then
     SLOW=true
@@ -78,7 +74,7 @@ fail=0
 
 if [ -z "$TESTDIRS" ]; then
     # NB: Relies on paths being prefixed with './'.
-    TESTDIRS=($(git ls-files -- '*_test.go' | grep -vE '^(vendor|experimental)/' | xargs -n1 dirname | sort -u | sed -e 's|^|./|'))
+    TESTDIRS=($(git ls-files -- '*_test.go' | grep -vE '^(vendor|prog|experimental)/' | xargs -n1 dirname | sort -u | sed -e 's|^|./|'))
 else
     # TESTDIRS on the right side is not really an array variable, it
     # is just a string with spaces, but it is written like that to
@@ -101,7 +97,7 @@ go test -i "${GO_TEST_ARGS[@]}" "${TESTDIRS[@]}"
 run_test() {
     local dir=$1
     if [ -z "$NO_GO_GET" ]; then
-        go get -t -tags "${TAGS[@]}" "$dir"
+        go get -t "$TAGS" "$dir"
     fi
 
     local GO_TEST_ARGS_RUN=("${GO_TEST_ARGS[@]}")

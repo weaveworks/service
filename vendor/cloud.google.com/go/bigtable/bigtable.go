@@ -28,7 +28,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
-	gtransport "google.golang.org/api/transport/grpc"
+	"google.golang.org/api/transport"
 	btpb "google.golang.org/genproto/googleapis/bigtable/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -53,15 +53,9 @@ func NewClient(ctx context.Context, project, instance string, opts ...option.Cli
 		return nil, err
 	}
 	// Default to a small connection pool that can be overridden.
-	o = append(o,
-		option.WithGRPCConnectionPool(4),
-		// Set the max size to correspond to server-side limits.
-		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(100<<20), grpc.MaxCallRecvMsgSize(100<<20))),
-		// TODO(grpc/grpc-go#1388) using connection pool without WithBlock
-		// can cause RPCs to fail randomly. We can delete this after the issue is fixed.
-		option.WithGRPCDialOption(grpc.WithBlock()))
+	o = append(o, option.WithGRPCConnectionPool(4))
 	o = append(o, opts...)
-	conn, err := gtransport.Dial(ctx, o...)
+	conn, err := transport.DialGRPC(ctx, o...)
 	if err != nil {
 		return nil, fmt.Errorf("dialing: %v", err)
 	}
@@ -79,7 +73,7 @@ func (c *Client) Close() error {
 }
 
 var (
-	idempotentRetryCodes  = []codes.Code{codes.DeadlineExceeded, codes.Unavailable, codes.Aborted}
+	idempotentRetryCodes  = []codes.Code{codes.DeadlineExceeded, codes.Unavailable, codes.Aborted,codes.Internal}
 	isIdempotentRetryCode = make(map[codes.Code]bool)
 	retryOptions          = []gax.CallOption{
 		gax.WithDelayTimeoutSettings(100*time.Millisecond, 2000*time.Millisecond, 1.2),
@@ -126,7 +120,7 @@ func (c *Client) Open(table string) *Table {
 // By default, the yielded rows will contain all values in all cells.
 // Use RowFilter to limit the cells returned.
 func (t *Table) ReadRows(ctx context.Context, arg RowSet, f func(Row) bool, opts ...ReadOption) error {
-	ctx = mergeOutgoingMetadata(ctx, t.md)
+	ctx = mergeMetadata(ctx, t.md)
 
 	var prevRowKey string
 	err := gax.Invoke(ctx, func(ctx context.Context) error {
@@ -216,17 +210,13 @@ func decodeFamilyProto(r Row, row string, f *btpb.Family) {
 	}
 }
 
-// RowSet is a set of rows to be read. It is satisfied by RowList, RowRange and RowRangeList.
-// The serialized size of the RowSet must be no larger than 1MiB.
+// RowSet is a set of rows to be read. It is satisfied by RowList and RowRange.
 type RowSet interface {
 	proto() *btpb.RowSet
 
 	// retainRowsAfter returns a new RowSet that does not include the
 	// given row key or any row key lexicographically less than it.
 	retainRowsAfter(lastRowKey string) RowSet
-
-	// Valid reports whether this set can cover at least one row.
-	valid() bool
 }
 
 // RowList is a sequence of row keys.
@@ -248,10 +238,6 @@ func (r RowList) retainRowsAfter(lastRowKey string) RowSet {
 		}
 	}
 	return retryKeys
-}
-
-func (r RowList) valid() bool {
-	return len(r) > 0
 }
 
 // A RowRange is a half-open interval [Start, Limit) encompassing
@@ -301,7 +287,7 @@ func (r RowRange) proto() *btpb.RowSet {
 }
 
 func (r RowRange) retainRowsAfter(lastRowKey string) RowSet {
-	if lastRowKey == "" || lastRowKey < r.start {
+	if lastRowKey == "" {
 		return r
 	}
 	// Set the beginning of the range to the row after the last scanned.
@@ -310,46 +296,6 @@ func (r RowRange) retainRowsAfter(lastRowKey string) RowSet {
 		return InfiniteRange(start)
 	}
 	return NewRange(start, r.limit)
-}
-
-func (r RowRange) valid() bool {
-	return r.start < r.limit
-}
-
-// RowRangeList is a sequence of RowRanges representing the union of the ranges.
-type RowRangeList []RowRange
-
-func (r RowRangeList) proto() *btpb.RowSet {
-	ranges := make([]*btpb.RowRange, len(r))
-	for i, rr := range r {
-		// RowRange.proto() returns a RowSet with a single element RowRange array
-		ranges[i] = rr.proto().RowRanges[0]
-	}
-	return &btpb.RowSet{RowRanges: ranges}
-}
-
-func (r RowRangeList) retainRowsAfter(lastRowKey string) RowSet {
-	if lastRowKey == "" {
-		return r
-	}
-	// Return a list of any range that has not yet been completely processed
-	var ranges RowRangeList
-	for _, rr := range r {
-		retained := rr.retainRowsAfter(lastRowKey)
-		if retained.valid() {
-			ranges = append(ranges, retained.(RowRange))
-		}
-	}
-	return ranges
-}
-
-func (r RowRangeList) valid() bool {
-	for _, rr := range r {
-		if rr.valid() {
-			return true
-		}
-	}
-	return false
 }
 
 // SingleRow returns a RowSet for reading a single row.
@@ -398,9 +344,6 @@ type ReadOption interface {
 }
 
 // RowFilter returns a ReadOption that applies f to the contents of read rows.
-//
-// If multiple RowFilters are provided, only the last is used. To combine filters,
-// use ChainFilters or InterleaveFilters instead.
 func RowFilter(f Filter) ReadOption { return rowFilter{f} }
 
 type rowFilter struct{ f Filter }
@@ -430,7 +373,7 @@ func mutationsAreRetryable(muts []*btpb.Mutation) bool {
 
 // Apply applies a Mutation to a specific row.
 func (t *Table) Apply(ctx context.Context, row string, m *Mutation, opts ...ApplyOption) error {
-	ctx = mergeOutgoingMetadata(ctx, t.md)
+	ctx = mergeMetadata(ctx, t.md)
 	after := func(res proto.Message) {
 		for _, o := range opts {
 			o.after(res)
@@ -581,7 +524,7 @@ type entryErr struct {
 	Err   error
 }
 
-// ApplyBulk applies multiple Mutations, up to a maximum of 100,000.
+// ApplyBulk applies multiple Mutations.
 // Each mutation is individually applied atomically,
 // but the set of mutations may be applied in any order.
 //
@@ -592,7 +535,7 @@ type entryErr struct {
 //
 // Conditional mutations cannot be applied in bulk and providing one will result in an error.
 func (t *Table) ApplyBulk(ctx context.Context, rowKeys []string, muts []*Mutation, opts ...ApplyOption) ([]error, error) {
-	ctx = mergeOutgoingMetadata(ctx, t.md)
+	ctx = mergeMetadata(ctx, t.md)
 	if len(rowKeys) != len(muts) {
 		return nil, fmt.Errorf("mismatched rowKeys and mutation array lengths: %d, %d", len(rowKeys), len(muts))
 	}
@@ -721,13 +664,13 @@ func (ts Timestamp) TruncateToMilliseconds() Timestamp {
 	if ts == ServerTime {
 		return ts
 	}
-	return ts - ts%1000
+	return ts - ts % 1000
 }
 
 // ApplyReadModifyWrite applies a ReadModifyWrite to a specific row.
 // It returns the newly written cells.
 func (t *Table) ApplyReadModifyWrite(ctx context.Context, row string, m *ReadModifyWrite) (Row, error) {
-	ctx = mergeOutgoingMetadata(ctx, t.md)
+	ctx = mergeMetadata(ctx, t.md)
 	req := &btpb.ReadModifyWriteRowRequest{
 		TableName: t.c.fullTableName(t.table),
 		RowKey:    []byte(row),
@@ -784,9 +727,9 @@ func (m *ReadModifyWrite) Increment(family, column string, delta int64) {
 	})
 }
 
-// mergeOutgoingMetadata returns a context populated by the existing outgoing metadata,
-// if any, joined with internal metadata.
-func mergeOutgoingMetadata(ctx context.Context, md metadata.MD) context.Context {
-	mdCopy, _ := metadata.FromOutgoingContext(ctx)
-	return metadata.NewOutgoingContext(ctx, metadata.Join(mdCopy, md))
+// mergeMetadata returns a context populated by the existing metadata, if any,
+// joined with internal metadata.
+func mergeMetadata(ctx context.Context, md metadata.MD) context.Context {
+	mdCopy, _ := metadata.FromContext(ctx)
+	return metadata.NewContext(ctx, metadata.Join(mdCopy, md))
 }

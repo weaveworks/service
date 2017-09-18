@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -28,7 +27,9 @@ const (
 	containersByHostnameID = "containers-by-hostname"
 	containersByImageID    = "containers-by-image"
 	podsID                 = "pods"
-	kubeControllersID      = "kube-controllers"
+	replicaSetsID          = "replica-sets"
+	deploymentsID          = "deployments"
+	daemonsetsID           = "daemonsets"
 	servicesID             = "services"
 	hostsID                = "hosts"
 	weaveID                = "weave"
@@ -51,7 +52,7 @@ var (
 
 // namespaceFilters generates a namespace selector option group based on the given namespaces
 func namespaceFilters(namespaces []string, noneLabel string) APITopologyOptionGroup {
-	options := APITopologyOptionGroup{ID: "namespace", Default: "", SelectType: "union", NoneLabel: noneLabel}
+	options := APITopologyOptionGroup{ID: "namespace", Default: "none", SelectType: "union", NoneLabel: noneLabel}
 	for _, namespace := range namespaces {
 		options.Options = append(options.Options, APITopologyOption{
 			Value: namespace, Label: namespace, filter: render.IsNamespace(namespace), filterPseudo: false,
@@ -96,7 +97,7 @@ func updateSwarmFilters(rpt report.Report, topologies []APITopologyDesc) []APITo
 
 func updateKubeFilters(rpt report.Report, topologies []APITopologyDesc) []APITopologyDesc {
 	namespaces := map[string]struct{}{}
-	for _, t := range []report.Topology{rpt.Pod, rpt.Service, rpt.Deployment} {
+	for _, t := range []report.Topology{rpt.Pod, rpt.Service, rpt.Deployment, rpt.ReplicaSet} {
 		for _, n := range t.Nodes {
 			if state, ok := n.Latest.Lookup(kubernetes.State); ok && state == kubernetes.StateDeleted {
 				continue
@@ -118,7 +119,7 @@ func updateKubeFilters(rpt report.Report, topologies []APITopologyDesc) []APITop
 	sort.Strings(ns)
 	topologies = append([]APITopologyDesc{}, topologies...) // Make a copy so we can make changes safely
 	for i, t := range topologies {
-		if t.id == containersID || t.id == podsID || t.id == servicesID || t.id == kubeControllersID {
+		if t.id == containersID || t.id == podsID || t.id == servicesID || t.id == deploymentsID || t.id == replicaSetsID || t.id == daemonsetsID {
 			topologies[i] = mergeTopologyFilters(t, []APITopologyOptionGroup{
 				namespaceFilters(ns, "All Namespaces"),
 			})
@@ -215,7 +216,7 @@ func MakeRegistry() *Registry {
 		},
 		APITopologyDesc{
 			id:       containersID,
-			renderer: render.FilterUnconnectedPseudo(render.ContainerWithImageNameRenderer),
+			renderer: render.ContainerWithImageNameRenderer,
 			Name:     "Containers",
 			Rank:     2,
 			Options:  containerFilters,
@@ -223,44 +224,60 @@ func MakeRegistry() *Registry {
 		APITopologyDesc{
 			id:       containersByHostnameID,
 			parent:   containersID,
-			renderer: render.FilterUnconnectedPseudo(render.ContainerHostnameRenderer),
+			renderer: render.ContainerHostnameRenderer,
 			Name:     "by DNS name",
 			Options:  containerFilters,
 		},
 		APITopologyDesc{
 			id:       containersByImageID,
 			parent:   containersID,
-			renderer: render.FilterUnconnectedPseudo(render.ContainerImageRenderer),
+			renderer: render.ContainerImageRenderer,
 			Name:     "by image",
 			Options:  containerFilters,
 		},
 		APITopologyDesc{
 			id:          podsID,
-			renderer:    render.FilterUnconnectedPseudo(render.PodRenderer),
+			renderer:    render.PodRenderer,
 			Name:        "Pods",
 			Rank:        3,
 			Options:     []APITopologyOptionGroup{unmanagedFilter},
 			HideIfEmpty: true,
 		},
 		APITopologyDesc{
-			id:          kubeControllersID,
+			id:          replicaSetsID,
 			parent:      podsID,
-			renderer:    render.FilterUnconnectedPseudo(render.KubeControllerRenderer),
-			Name:        "controllers",
+			renderer:    render.ReplicaSetRenderer,
+			Name:        "replica sets",
+			Options:     []APITopologyOptionGroup{unmanagedFilter},
+			HideIfEmpty: true,
+		},
+		APITopologyDesc{
+			id:          deploymentsID,
+			parent:      podsID,
+			renderer:    render.DeploymentRenderer,
+			Name:        "deployments",
+			Options:     []APITopologyOptionGroup{unmanagedFilter},
+			HideIfEmpty: true,
+		},
+		APITopologyDesc{
+			id:          daemonsetsID,
+			parent:      podsID,
+			renderer:    render.DaemonSetRenderer,
+			Name:        "daemonsets",
 			Options:     []APITopologyOptionGroup{unmanagedFilter},
 			HideIfEmpty: true,
 		},
 		APITopologyDesc{
 			id:          servicesID,
 			parent:      podsID,
-			renderer:    render.FilterUnconnectedPseudo(render.PodServiceRenderer),
+			renderer:    render.PodServiceRenderer,
 			Name:        "services",
 			Options:     []APITopologyOptionGroup{unmanagedFilter},
 			HideIfEmpty: true,
 		},
 		APITopologyDesc{
 			id:          ecsTasksID,
-			renderer:    render.FilterUnconnectedPseudo(render.ECSTaskRenderer),
+			renderer:    render.ECSTaskRenderer,
 			Name:        "Tasks",
 			Rank:        3,
 			Options:     []APITopologyOptionGroup{unmanagedFilter},
@@ -269,14 +286,14 @@ func MakeRegistry() *Registry {
 		APITopologyDesc{
 			id:          ecsServicesID,
 			parent:      ecsTasksID,
-			renderer:    render.FilterUnconnectedPseudo(render.ECSServiceRenderer),
+			renderer:    render.ECSServiceRenderer,
 			Name:        "services",
 			Options:     []APITopologyOptionGroup{unmanagedFilter},
 			HideIfEmpty: true,
 		},
 		APITopologyDesc{
 			id:          swarmServicesID,
-			renderer:    render.FilterUnconnectedPseudo(render.SwarmServiceRenderer),
+			renderer:    render.SwarmServiceRenderer,
 			Name:        "services",
 			Rank:        3,
 			Options:     []APITopologyOptionGroup{unmanagedFilter},
@@ -284,14 +301,14 @@ func MakeRegistry() *Registry {
 		},
 		APITopologyDesc{
 			id:       hostsID,
-			renderer: render.FilterUnconnectedPseudo(render.HostRenderer),
+			renderer: render.HostRenderer,
 			Name:     "Hosts",
 			Rank:     4,
 		},
 		APITopologyDesc{
 			id:       weaveID,
 			parent:   hostsID,
-			renderer: render.FilterUnconnectedPseudo(render.WeaveRenderer),
+			renderer: render.WeaveRenderer,
 			Name:     "Weave Net",
 		},
 	)
@@ -325,7 +342,7 @@ func (a byName) Less(i, j int) bool { return a[i].Name < a[j].Name }
 type APITopologyOptionGroup struct {
 	ID string `json:"id"`
 	// Default value for the UI to adopt. NOT used as the default if the value is omitted, allowing "" as a distinct value.
-	Default string              `json:"defaultValue"`
+	Default string              `json:"defaultValue,omitempty"`
 	Options []APITopologyOption `json:"options,omitempty"`
 	// SelectType describes how options can be picked. Currently defined values:
 	//   "one": Default if empty. Exactly one option may be picked from the list.
@@ -397,19 +414,6 @@ type topologyStats struct {
 	FilteredNodes      int `json:"filtered_nodes"`
 }
 
-// deserializeTimestamp converts the ISO8601 query param into a proper timestamp.
-func deserializeTimestamp(timestamp string) time.Time {
-	if timestamp != "" {
-		result, err := time.Parse(time.RFC3339, timestamp)
-		if err != nil {
-			log.Errorf("Error parsing timestamp '%s' - make sure the time format is correct", timestamp)
-		}
-		return result
-	}
-	// Default to current time if no timestamp is provided.
-	return time.Now()
-}
-
 // AddContainerFilters adds to the default Registry (topologyRegistry)'s containerFilters
 func AddContainerFilters(newFilters ...APITopologyOption) {
 	topologyRegistry.AddContainerFilters(newFilters...)
@@ -472,8 +476,7 @@ func (r *Registry) walk(f func(APITopologyDesc)) {
 // makeTopologyList returns a handler that yields an APITopologyList.
 func (r *Registry) makeTopologyList(rep Reporter) CtxHandlerFunc {
 	return func(ctx context.Context, w http.ResponseWriter, req *http.Request) {
-		timestamp := deserializeTimestamp(req.URL.Query().Get("timestamp"))
-		report, err := rep.Report(ctx, timestamp)
+		report, err := rep.Report(ctx)
 		if err != nil {
 			respondWith(w, http.StatusInternalServerError, err)
 			return
@@ -556,19 +559,16 @@ func captureReporter(rep Reporter, f reporterHandler) CtxHandlerFunc {
 	}
 }
 
-type rendererHandler func(context.Context, render.Renderer, render.Decorator, report.RenderContext, http.ResponseWriter, *http.Request)
+type rendererHandler func(context.Context, render.Renderer, render.Decorator, report.Report, http.ResponseWriter, *http.Request)
 
 func (r *Registry) captureRenderer(rep Reporter, f rendererHandler) CtxHandlerFunc {
 	return func(ctx context.Context, w http.ResponseWriter, req *http.Request) {
-		var (
-			topologyID = mux.Vars(req)["topology"]
-			timestamp  = deserializeTimestamp(req.URL.Query().Get("timestamp"))
-		)
+		topologyID := mux.Vars(req)["topology"]
 		if _, ok := r.get(topologyID); !ok {
 			http.NotFound(w, req)
 			return
 		}
-		rpt, err := rep.Report(ctx, timestamp)
+		rpt, err := rep.Report(ctx)
 		if err != nil {
 			respondWith(w, http.StatusInternalServerError, err)
 			return
@@ -579,6 +579,6 @@ func (r *Registry) captureRenderer(rep Reporter, f rendererHandler) CtxHandlerFu
 			respondWith(w, http.StatusInternalServerError, err)
 			return
 		}
-		f(ctx, renderer, decorator, RenderContextForReporter(rep, rpt), w, req)
+		f(ctx, renderer, decorator, rpt, w, req)
 	}
 }

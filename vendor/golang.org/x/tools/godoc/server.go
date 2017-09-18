@@ -312,13 +312,13 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		info.TypeInfoIndex[ti.Name] = i
 	}
 
-	info.GoogleCN = googleCN(r)
+	info.Share = allowShare(r)
 	h.p.ServePage(w, Page{
 		Title:    title,
 		Tabtitle: tabtitle,
 		Subtitle: subtitle,
 		Body:     applyTemplate(h.p.PackageHTML, "packageHTML", info),
-		GoogleCN: info.GoogleCN,
+		Share:    info.Share,
 	})
 }
 
@@ -579,11 +579,10 @@ func (p *Presentation) serveTextFile(w http.ResponseWriter, r *http.Request, abs
 	fmt.Fprintf(&buf, `<p><a href="/%s?m=text">View as plain text</a></p>`, htmlpkg.EscapeString(relpath))
 
 	p.ServePage(w, Page{
-		Title:    title,
-		SrcPath:  relpath,
+		Title:    title + " " + relpath,
 		Tabtitle: relpath,
 		Body:     buf.Bytes(),
-		GoogleCN: googleCN(r),
+		Share:    allowShare(r),
 	})
 }
 
@@ -650,11 +649,10 @@ func (p *Presentation) serveDirectory(w http.ResponseWriter, r *http.Request, ab
 	}
 
 	p.ServePage(w, Page{
-		Title:    "Directory",
-		SrcPath:  relpath,
+		Title:    "Directory " + relpath,
 		Tabtitle: relpath,
 		Body:     applyTemplate(p.DirlistHTML, "dirlistHTML", list),
-		GoogleCN: googleCN(r),
+		Share:    allowShare(r),
 	})
 }
 
@@ -683,7 +681,7 @@ func (p *Presentation) ServeHTMLDoc(w http.ResponseWriter, r *http.Request, absp
 	page := Page{
 		Title:    meta.Title,
 		Subtitle: meta.Subtitle,
-		GoogleCN: googleCN(r),
+		Share:    allowShare(r),
 	}
 
 	// evaluate as template if indicated

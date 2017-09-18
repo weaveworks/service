@@ -74,7 +74,7 @@ func TestReportPostHandler(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		report, err := c.Report(ctx, time.Now())
+		report, err := c.Report(ctx)
 		if err != nil {
 			t.Error(err)
 		}

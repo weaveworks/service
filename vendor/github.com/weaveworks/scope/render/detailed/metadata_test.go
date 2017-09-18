@@ -23,7 +23,7 @@ func TestNodeMetadata(t *testing.T) {
 				docker.ContainerID:            fixture.ClientContainerID,
 				docker.LabelPrefix + "label1": "label1value",
 				docker.ContainerStateHuman:    docker.StateRunning,
-			}).WithTopology(report.Container).WithSets(report.MakeSets().
+			}).WithTopology(report.Container).WithSets(report.EmptySets.
 				Add(docker.ContainerIPs, report.MakeStringSet("10.10.10.0/24", "10.10.10.1/24")),
 			),
 			want: []report.MetadataRow{
@@ -45,5 +45,31 @@ func TestNodeMetadata(t *testing.T) {
 		if !reflect.DeepEqual(input.want, have) {
 			t.Errorf("%s: %s", input.name, test.Diff(input.want, have))
 		}
+	}
+}
+
+func TestMetadataRowCopy(t *testing.T) {
+	var (
+		row = report.MetadataRow{
+			ID:       "id",
+			Value:    "value",
+			Priority: 1,
+			Datatype: "datatype",
+		}
+		cp = row.Copy()
+	)
+
+	// copy should be identical
+	if !reflect.DeepEqual(row, cp) {
+		t.Error(test.Diff(row, cp))
+	}
+
+	// changing the copy should not change the original
+	cp.ID = ""
+	cp.Value = ""
+	cp.Priority = 2
+	cp.Datatype = ""
+	if row.ID != "id" || row.Value != "value" || row.Priority != 1 || row.Datatype != "datatype" {
+		t.Errorf("Expected changing the copy not to modify the original")
 	}
 }

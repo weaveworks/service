@@ -42,11 +42,11 @@ export const layerVerticalPositionByTopologyIdSelector = createSelector(
   ],
   (topologiesIds) => {
     let yPositions = makeMap();
-    let yCumulative = RESOURCES_LAYER_PADDING;
+    let currentY = RESOURCES_LAYER_PADDING;
 
     topologiesIds.forEach((topologyId) => {
-      yCumulative -= RESOURCES_LAYER_HEIGHT + RESOURCES_LAYER_PADDING;
-      yPositions = yPositions.set(topologyId, yCumulative);
+      currentY -= RESOURCES_LAYER_HEIGHT + RESOURCES_LAYER_PADDING;
+      yPositions = yPositions.set(topologyId, currentY);
     });
 
     return yPositions;

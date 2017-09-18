@@ -3,12 +3,9 @@ package squirrel
 import (
 	"bytes"
 	"database/sql"
-	"errors"
 	"fmt"
-	"io"
-	"strings"
-
 	"github.com/lann/builder"
+	"strings"
 )
 
 type insertData struct {
@@ -20,7 +17,6 @@ type insertData struct {
 	Columns           []string
 	Values            [][]interface{}
 	Suffixes          exprs
-	Select            *SelectBuilder
 }
 
 func (d *insertData) Exec() (sql.Result, error) {
@@ -50,11 +46,11 @@ func (d *insertData) QueryRow() RowScanner {
 
 func (d *insertData) ToSql() (sqlStr string, args []interface{}, err error) {
 	if len(d.Into) == 0 {
-		err = errors.New("insert statements must specify a table")
+		err = fmt.Errorf("insert statements must specify a table")
 		return
 	}
-	if len(d.Values) == 0 && d.Select == nil {
-		err = errors.New("insert statements must have at least one set of values or select clause")
+	if len(d.Values) == 0 {
+		err = fmt.Errorf("insert statements must have at least one set of values")
 		return
 	}
 
@@ -82,30 +78,7 @@ func (d *insertData) ToSql() (sqlStr string, args []interface{}, err error) {
 		sql.WriteString(") ")
 	}
 
-	if d.Select != nil {
-		args, err = d.appendSelectToSQL(sql, args)
-	} else {
-		args, err = d.appendValuesToSQL(sql, args)
-	}
-	if err != nil {
-		return
-	}
-
-	if len(d.Suffixes) > 0 {
-		sql.WriteString(" ")
-		args, _ = d.Suffixes.AppendToSql(sql, " ", args)
-	}
-
-	sqlStr, err = d.PlaceholderFormat.ReplacePlaceholders(sql.String())
-	return
-}
-
-func (d *insertData) appendValuesToSQL(w io.Writer, args []interface{}) ([]interface{}, error) {
-	if len(d.Values) == 0 {
-		return args, errors.New("values for insert statements are not set")
-	}
-
-	io.WriteString(w, "VALUES ")
+	sql.WriteString("VALUES ")
 
 	valuesStrings := make([]string, len(d.Values))
 	for r, row := range d.Values {
@@ -122,26 +95,15 @@ func (d *insertData) appendValuesToSQL(w io.Writer, args []interface{}) ([]inter
 		}
 		valuesStrings[r] = fmt.Sprintf("(%s)", strings.Join(valueStrings, ","))
 	}
+	sql.WriteString(strings.Join(valuesStrings, ","))
 
-	io.WriteString(w, strings.Join(valuesStrings, ","))
-
-	return args, nil
-}
-
-func (d *insertData) appendSelectToSQL(w io.Writer, args []interface{}) ([]interface{}, error) {
-	if d.Select == nil {
-		return args, errors.New("select clause for insert statements are not set")
+	if len(d.Suffixes) > 0 {
+		sql.WriteString(" ")
+		args, _ = d.Suffixes.AppendToSql(sql, " ", args)
 	}
 
-	selectClause, sArgs, err := d.Select.ToSql()
-	if err != nil {
-		return args, err
-	}
-
-	io.WriteString(w, selectClause)
-	args = append(args, sArgs...)
-
-	return args, nil
+	sqlStr, err = d.PlaceholderFormat.ReplacePlaceholders(sql.String())
+	return
 }
 
 // Builder
@@ -242,10 +204,4 @@ func (b InsertBuilder) SetMap(clauses map[string]interface{}) InsertBuilder {
 	b = builder.Set(b, "Columns", cols).(InsertBuilder)
 	b = builder.Set(b, "Values", [][]interface{}{vals}).(InsertBuilder)
 	return b
-}
-
-// Select set Select clause for insert query
-// If Values and Select are used, then Select has higher priority
-func (b InsertBuilder) Select(sb SelectBuilder) InsertBuilder {
-	return builder.Set(b, "Select", &sb).(InsertBuilder)
 }

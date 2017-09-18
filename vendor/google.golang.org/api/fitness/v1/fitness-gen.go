@@ -709,7 +709,7 @@ type DataSource struct {
 	//
 	//
 	// When any of the optional fields that comprise of the data stream ID
-	// are blank, they will be omitted from the data stream ID. The minimum
+	// are blank, they will be omitted from the data stream ID. The minnimum
 	// viable data stream ID would be: type:dataType.name:developer project
 	// number
 	//

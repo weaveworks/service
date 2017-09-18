@@ -14,26 +14,20 @@ import { NODE_BASE_SIZE } from '../constants/styles';
 import NodeShapeStack from './node-shape-stack';
 import NodeNetworksOverlay from './node-networks-overlay';
 import {
+  NodeShapeCloud,
   NodeShapeCircle,
-  NodeShapeTriangle,
   NodeShapeSquare,
-  NodeShapePentagon,
   NodeShapeHexagon,
   NodeShapeHeptagon,
-  NodeShapeOctagon,
-  NodeShapeCloud,
 } from './node-shapes';
 
 
 const labelWidth = 1.2 * NODE_BASE_SIZE;
 const nodeShapes = {
   circle: NodeShapeCircle,
-  triangle: NodeShapeTriangle,
-  square: NodeShapeSquare,
-  pentagon: NodeShapePentagon,
   hexagon: NodeShapeHexagon,
   heptagon: NodeShapeHeptagon,
-  octagon: NodeShapeOctagon,
+  square: NodeShapeSquare,
   cloud: NodeShapeCloud,
 };
 

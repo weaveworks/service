@@ -21,7 +21,6 @@ import (
 
 	"cloud.google.com/go/pubsub/apiv1"
 	"golang.org/x/net/context"
-	"google.golang.org/api/iterator"
 	pubsubpb "google.golang.org/genproto/googleapis/pubsub/v1"
 )
 
@@ -105,24 +104,6 @@ func ExampleSubscriberClient_GetSubscription() {
 	_ = resp
 }
 
-func ExampleSubscriberClient_UpdateSubscription() {
-	ctx := context.Background()
-	c, err := pubsub.NewSubscriberClient(ctx)
-	if err != nil {
-		// TODO: Handle error.
-	}
-
-	req := &pubsubpb.UpdateSubscriptionRequest{
-	// TODO: Fill request struct fields.
-	}
-	resp, err := c.UpdateSubscription(ctx, req)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	// TODO: Use resp.
-	_ = resp
-}
-
 func ExampleSubscriberClient_ListSubscriptions() {
 	ctx := context.Background()
 	c, err := pubsub.NewSubscriberClient(ctx)
@@ -136,11 +117,9 @@ func ExampleSubscriberClient_ListSubscriptions() {
 	it := c.ListSubscriptions(ctx, req)
 	for {
 		resp, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
 		if err != nil {
 			// TODO: Handle error.
+			break
 		}
 		// TODO: Use resp.
 		_ = resp
@@ -261,98 +240,4 @@ func ExampleSubscriberClient_ModifyPushConfig() {
 	if err != nil {
 		// TODO: Handle error.
 	}
-}
-
-func ExampleSubscriberClient_ListSnapshots() {
-	ctx := context.Background()
-	c, err := pubsub.NewSubscriberClient(ctx)
-	if err != nil {
-		// TODO: Handle error.
-	}
-
-	req := &pubsubpb.ListSnapshotsRequest{
-	// TODO: Fill request struct fields.
-	}
-	it := c.ListSnapshots(ctx, req)
-	for {
-		resp, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			// TODO: Handle error.
-		}
-		// TODO: Use resp.
-		_ = resp
-	}
-}
-
-func ExampleSubscriberClient_CreateSnapshot() {
-	ctx := context.Background()
-	c, err := pubsub.NewSubscriberClient(ctx)
-	if err != nil {
-		// TODO: Handle error.
-	}
-
-	req := &pubsubpb.CreateSnapshotRequest{
-	// TODO: Fill request struct fields.
-	}
-	resp, err := c.CreateSnapshot(ctx, req)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	// TODO: Use resp.
-	_ = resp
-}
-
-func ExampleSubscriberClient_UpdateSnapshot() {
-	ctx := context.Background()
-	c, err := pubsub.NewSubscriberClient(ctx)
-	if err != nil {
-		// TODO: Handle error.
-	}
-
-	req := &pubsubpb.UpdateSnapshotRequest{
-	// TODO: Fill request struct fields.
-	}
-	resp, err := c.UpdateSnapshot(ctx, req)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	// TODO: Use resp.
-	_ = resp
-}
-
-func ExampleSubscriberClient_DeleteSnapshot() {
-	ctx := context.Background()
-	c, err := pubsub.NewSubscriberClient(ctx)
-	if err != nil {
-		// TODO: Handle error.
-	}
-
-	req := &pubsubpb.DeleteSnapshotRequest{
-	// TODO: Fill request struct fields.
-	}
-	err = c.DeleteSnapshot(ctx, req)
-	if err != nil {
-		// TODO: Handle error.
-	}
-}
-
-func ExampleSubscriberClient_Seek() {
-	ctx := context.Background()
-	c, err := pubsub.NewSubscriberClient(ctx)
-	if err != nil {
-		// TODO: Handle error.
-	}
-
-	req := &pubsubpb.SeekRequest{
-	// TODO: Fill request struct fields.
-	}
-	resp, err := c.Seek(ctx, req)
-	if err != nil {
-		// TODO: Handle error.
-	}
-	// TODO: Use resp.
-	_ = resp
 }

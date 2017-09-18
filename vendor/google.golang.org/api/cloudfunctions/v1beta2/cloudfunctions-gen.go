@@ -221,9 +221,6 @@ type CloudFunction struct {
 	// via URL.
 	HttpsTrigger *HTTPSTrigger `json:"httpsTrigger,omitempty"`
 
-	// Labels: Labels associated with this Cloud Function.
-	Labels map[string]string `json:"labels,omitempty"`
-
 	// LatestOperation: Output only. Name of the most recent operation
 	// modifying the function. If
 	// the function status is `DEPLOYING` or `DELETING`, then it points to
@@ -248,29 +245,6 @@ type CloudFunction struct {
 	// defined.
 	SourceRepository *SourceRepository `json:"sourceRepository,omitempty"`
 
-	// SourceRepositoryUrl: The URL pointing to the hosted repository where
-	// the function is defined.
-	// There are supported Cloud Source Repository URLs in the
-	// following
-	// formats:
-	//
-	// To refer to a specific
-	// commit:
-	// `https://source.developers.google.com/projects/*/repos/*/revis
-	// ions/*/paths/*`
-	// To refer to a moveable alias
-	// (branch):
-	// `https://source.developers.google.com/projects/*/repos/*/ali
-	// ases/movable/*/paths/*`
-	// In particular, to refer to HEAD use `master` moveable alias.
-	// To refer to a specific fixed alias
-	// (tag):
-	// `https://source.developers.google.com/projects/*/repos/*/aliase
-	// s/fixed/*/paths/*`
-	//
-	// You may omit `paths/*` if you want to use the main directory.
-	SourceRepositoryUrl string `json:"sourceRepositoryUrl,omitempty"`
-
 	// Status: Output only. Status of the function deployment.
 	//
 	// Possible values:
@@ -293,12 +267,6 @@ type CloudFunction struct {
 	// UpdateTime: Output only. The last update timestamp of a Cloud
 	// Function.
 	UpdateTime string `json:"updateTime,omitempty"`
-
-	// VersionId: Output only.
-	// The version identifier of the Cloud Function. Each deployment
-	// attempt
-	// results in a new version of a function being created.
-	VersionId int64 `json:"versionId,omitempty,string"`
 
 	// ServerResponse contains the HTTP response code and headers from the
 	// server.
@@ -348,9 +316,6 @@ type EventTrigger struct {
 	//      `providers/firebase.database/eventTypes/data.write`
 	EventType string `json:"eventType,omitempty"`
 
-	// FailurePolicy: Specifies policy for failed executions.
-	FailurePolicy *FailurePolicy `json:"failurePolicy,omitempty"`
-
 	// Resource: Which instance of the source's service should send events.
 	// E.g. for Pub/Sub
 	// this would be a Pub/Sub topic at `projects/*/topics/*`. For Google
@@ -361,15 +326,6 @@ type EventTrigger struct {
 	// of the
 	// project (`projects/*`)
 	Resource string `json:"resource,omitempty"`
-
-	// Service: The hostname of the service that should be observed.
-	//
-	// If no string is provided, the default service implementing the API
-	// will
-	// be used. For example, `storage.googleapis.com` is the default for
-	// all
-	// event types in the 'google.storage` namespace.
-	Service string `json:"service,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "EventType") to
 	// unconditionally include in API requests. By default, fields with
@@ -390,38 +346,6 @@ type EventTrigger struct {
 
 func (s *EventTrigger) MarshalJSON() ([]byte, error) {
 	type noMethod EventTrigger
-	raw := noMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// FailurePolicy: Describes the policy in case of function's execution
-// failure.
-// If empty, then defaults to ignoring failures (i.e. not retrying
-// them).
-type FailurePolicy struct {
-	// Retry: If specified, then the function will be retried in case of a
-	// failure.
-	Retry *Retry `json:"retry,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Retry") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Retry") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *FailurePolicy) MarshalJSON() ([]byte, error) {
-	type noMethod FailurePolicy
 	raw := noMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -619,8 +543,8 @@ func (s *Location) MarshalJSON() ([]byte, error) {
 type Operation struct {
 	// Done: If the value is `false`, it means the operation is still in
 	// progress.
-	// If `true`, the operation is completed, and either `error` or
-	// `response` is
+	// If true, the operation is completed, and either `error` or `response`
+	// is
 	// available.
 	Done bool `json:"done,omitempty"`
 
@@ -707,11 +631,6 @@ type OperationMetadataV1Beta2 struct {
 	//   "DELETE_FUNCTION" - Triggered by DeleteFunction call.
 	Type string `json:"type,omitempty"`
 
-	// VersionId: Version id of the function created or updated by an API
-	// call.
-	// This field is only pupulated for Create and Update operations.
-	VersionId int64 `json:"versionId,omitempty,string"`
-
 	// ForceSendFields is a list of field names (e.g. "Request") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
@@ -733,16 +652,6 @@ func (s *OperationMetadataV1Beta2) MarshalJSON() ([]byte, error) {
 	type noMethod OperationMetadataV1Beta2
 	raw := noMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// Retry: Describes the retry policy in case of function's execution
-// failure.
-// A function execution will be retried on any failure.
-// A failed execution will be retried up to 7 days with an exponential
-// backoff
-// (capped at 10 seconds).
-// Retried execution is charged as any other execution.
-type Retry struct {
 }
 
 // SourceRepository: Describes the location of the function source in a
@@ -840,7 +749,7 @@ func (s *SourceRepository) MarshalJSON() ([]byte, error) {
 // arbitrary
 // information about the error. There is a predefined set of error
 // detail types
-// in the package `google.rpc` that can be used for common error
+// in the package `google.rpc` which can be used for common error
 // conditions.
 //
 // # Language mapping
@@ -896,9 +805,9 @@ type Status struct {
 	// google.rpc.Code.
 	Code int64 `json:"code,omitempty"`
 
-	// Details: A list of messages that carry the error details.  There is a
-	// common set of
-	// message types for APIs to use.
+	// Details: A list of messages that carry the error details.  There will
+	// be a
+	// common set of message types for APIs to use.
 	Details []googleapi.RawMessage `json:"details,omitempty"`
 
 	// Message: A developer-facing error message, which should be in
@@ -1089,18 +998,9 @@ type OperationsListCall struct {
 // server doesn't support this method, it returns
 // `UNIMPLEMENTED`.
 //
-// NOTE: the `name` binding allows API services to override the
+// NOTE: the `name` binding below allows API services to override the
 // binding
 // to use different resource name schemes, such as `users/*/operations`.
-// To
-// override the binding, API services can add a binding such
-// as
-// "/v1/{name=users/*}/operations" to their service configuration.
-// For backwards compatibility, the default name includes the
-// operations
-// collection id, however overriding users must ensure the name
-// binding
-// is the parent resource, without the operations collection id.
 func (r *OperationsService) List() *OperationsListCall {
 	c := &OperationsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	return c
@@ -1113,8 +1013,8 @@ func (c *OperationsListCall) Filter(filter string) *OperationsListCall {
 	return c
 }
 
-// Name sets the optional parameter "name": The name of the operation's
-// parent resource.
+// Name sets the optional parameter "name": The name of the operation
+// collection.
 func (c *OperationsListCall) Name(name string) *OperationsListCall {
 	c.urlParams_.Set("name", name)
 	return c
@@ -1225,7 +1125,7 @@ func (c *OperationsListCall) Do(opts ...googleapi.CallOption) (*ListOperationsRe
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists operations that match the specified filter in the request. If the\nserver doesn't support this method, it returns `UNIMPLEMENTED`.\n\nNOTE: the `name` binding allows API services to override the binding\nto use different resource name schemes, such as `users/*/operations`. To\noverride the binding, API services can add a binding such as\n`\"/v1/{name=users/*}/operations\"` to their service configuration.\nFor backwards compatibility, the default name includes the operations\ncollection id, however overriding users must ensure the name binding\nis the parent resource, without the operations collection id.",
+	//   "description": "Lists operations that match the specified filter in the request. If the\nserver doesn't support this method, it returns `UNIMPLEMENTED`.\n\nNOTE: the `name` binding below allows API services to override the binding\nto use different resource name schemes, such as `users/*/operations`.",
 	//   "flatPath": "v1beta2/operations",
 	//   "httpMethod": "GET",
 	//   "id": "cloudfunctions.operations.list",
@@ -1237,7 +1137,7 @@ func (c *OperationsListCall) Do(opts ...googleapi.CallOption) (*ListOperationsRe
 	//       "type": "string"
 	//     },
 	//     "name": {
-	//       "description": "The name of the operation's parent resource.",
+	//       "description": "The name of the operation collection.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },

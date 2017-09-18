@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/rpc"
 	"net/url"
@@ -20,24 +19,22 @@ import (
 )
 
 const (
-	httpClientTimeout = 12 * time.Second // a bit less than default app.window
+	httpClientTimeout = 4 * time.Second
 	initialBackoff    = 1 * time.Second
 	maxBackoff        = 60 * time.Second
 )
 
-// AppClient is a client to an app, dealing with report publishing, controls and pipes.
+// AppClient is a client to an app for dealing with controls.
 type AppClient interface {
 	Details() (xfer.Details, error)
 	ControlConnection()
 	PipeConnection(string, xfer.Pipe)
 	PipeClose(string) error
-	Publish(io.Reader, bool) error
-	Target() url.URL
-	ReTarget(url.URL)
+	Publish(r io.Reader) error
 	Stop()
 }
 
-// appClient is a client to an app, dealing with report publishing, controls and pipes.
+// appClient is a client to an app for dealing with controls.
 type appClient struct {
 	ProbeConfig
 
@@ -87,14 +84,10 @@ func NewAppClient(pc ProbeConfig, hostname string, target url.URL, control xfer.
 }
 
 func (c *appClient) url(path string) string {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
 	return c.target.String() + path
 }
 
 func (c *appClient) wsURL(path string) string {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
 	output := c.target //copy the url
 	if output.Scheme == "https" {
 		output.Scheme = "wss"
@@ -145,23 +138,6 @@ func (c *appClient) retainGoroutine() bool {
 
 func (c *appClient) releaseGoroutine() {
 	c.backgroundWait.Done()
-}
-
-func (c *appClient) Target() url.URL {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	return c.target
-}
-
-// Re-target the appClient, publishing to a new URL. Note that control
-// and pipe websocket connections are left untouched since we don't
-// want to disrupt them just because there's some load-balancing going
-// on. They *will* however pick up the new URL when terminating
-// (e.g. due to errors or when the connection drops).
-func (c *appClient) ReTarget(target url.URL) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	c.target = target
 }
 
 // Stop stops the appClient.
@@ -216,16 +192,7 @@ func (c *appClient) doWithBackoff(msg string, f func() (bool, error)) {
 			backoff = initialBackoff
 			continue
 		}
-		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-			// The timeout period itself serves as a backoff that
-			// prevents thrashing. Hence there is no need to introduce
-			// further delays. Moreover, any delays between publishing
-			// reports that exceed the app.window (defaults to 15s)
-			// cause the UI to display no data, which is debilitating.
-			log.Errorf("Error doing %s for %s: %v", msg, c.hostname, err)
-			backoff = initialBackoff
-			continue
-		}
+
 		log.Errorf("Error doing %s for %s, backing off %s: %v", msg, c.hostname, backoff, err)
 		select {
 		case <-time.After(backoff):
@@ -321,25 +288,13 @@ func (c *appClient) startPublishing() {
 }
 
 // Publish implements Publisher
-func (c *appClient) Publish(r io.Reader, shortcut bool) error {
+func (c *appClient) Publish(r io.Reader) error {
 	// Lazily start the background publishing loop.
 	c.publishLoop.Do(c.startPublishing)
-	// enqueue report
 	select {
 	case c.readers <- r:
 	default:
-		log.Warnf("Dropping report to %s", c.hostname)
-		if shortcut {
-			return nil
-		}
-		// drop an old report to make way for new one
-		c.mtx.Lock()
-		defer c.mtx.Unlock()
-		select {
-		case <-c.readers:
-		default:
-		}
-		c.readers <- r
+		log.Errorf("Dropping report to %s", c.hostname)
 	}
 	return nil
 }

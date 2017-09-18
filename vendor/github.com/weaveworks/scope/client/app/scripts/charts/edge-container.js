@@ -2,10 +2,10 @@ import React from 'react';
 import { Motion, spring } from 'react-motion';
 import { Map as makeMap } from 'immutable';
 import { line, curveBasis } from 'd3-shape';
-import { each, times, constant } from 'lodash';
+import { each, omit, times, constant } from 'lodash';
 
 import { NODES_SPRING_ANIMATION_CONFIG } from '../constants/animation';
-import { NODE_BASE_SIZE, EDGE_WAYPOINTS_CAP } from '../constants/styles';
+import { EDGE_WAYPOINTS_CAP } from '../constants/styles';
 import Edge from './edge';
 
 
@@ -14,8 +14,8 @@ const spline = line()
   .x(d => d.x)
   .y(d => d.y);
 
-const transformedEdge = (props, path, thickness) => (
-  <Edge {...props} path={spline(path)} thickness={thickness} />
+const transformedEdge = (props, path) => (
+  <Edge {...props} path={spline(path)} />
 );
 
 // Converts a waypoints map of the format { x0: 11, y0: 22, x1: 33, y1: 44 }
@@ -45,11 +45,7 @@ const waypointsArrayToMap = (waypointsArray) => {
 export default class EdgeContainer extends React.PureComponent {
   constructor(props, context) {
     super(props, context);
-
-    this.state = {
-      waypointsMap: makeMap(),
-      thickness: 1,
-    };
+    this.state = { waypointsMap: makeMap() };
   }
 
   componentWillMount() {
@@ -63,31 +59,21 @@ export default class EdgeContainer extends React.PureComponent {
     if (this.props.isAnimated && nextProps.waypoints !== this.props.waypoints) {
       this.prepareWaypointsForMotion(nextProps.waypoints);
     }
-    // Edge thickness will reflect the zoom scale.
-    const baseScale = (nextProps.scale * 0.01) * NODE_BASE_SIZE;
-    const thickness = (nextProps.focused ? 3 : 1) * baseScale;
-    this.setState({ thickness });
   }
 
   render() {
-    const { isAnimated, waypoints, scale, ...forwardedProps } = this.props;
+    const { isAnimated, waypoints } = this.props;
+    const forwardedProps = omit(this.props, 'isAnimated', 'waypoints');
 
     if (!isAnimated) {
-      return transformedEdge(forwardedProps, waypoints.toJS(), this.state.thickness);
+      return transformedEdge(forwardedProps, waypoints.toJS());
     }
 
     return (
       // For the Motion interpolation to work, the waypoints need to be in a map format like
       // { x0: 11, y0: 22, x1: 33, y1: 44 } that we convert to the array format when rendering.
-      <Motion
-        style={{
-          thickness: spring(this.state.thickness, NODES_SPRING_ANIMATION_CONFIG),
-          ...this.state.waypointsMap.toJS(),
-        }}
-      >
-        {({ thickness, ...interpolatedWaypoints}) => transformedEdge(
-          forwardedProps, waypointsMapToArray(interpolatedWaypoints), thickness
-        )}
+      <Motion style={this.state.waypointsMap.toJS()}>
+        {interpolated => transformedEdge(forwardedProps, waypointsMapToArray(interpolated))}
       </Motion>
     );
   }

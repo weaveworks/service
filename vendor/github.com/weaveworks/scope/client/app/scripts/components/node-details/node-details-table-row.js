@@ -1,15 +1,12 @@
 import React from 'react';
 import classNames from 'classnames';
-import { groupBy, mapValues } from 'lodash';
-import { intersperse } from '../../utils/array-utils';
-
 
 import NodeDetailsTableNodeLink from './node-details-table-node-link';
-import NodeDetailsTableNodeMetricLink from './node-details-table-node-metric-link';
+import NodeDetailsTableNodeMetric from './node-details-table-node-metric';
 import { formatDataType } from '../../utils/string-utils';
 
 function getValuesForNode(node) {
-  let values = {};
+  const values = {};
   ['metrics', 'metadata'].forEach((collection) => {
     if (node[collection]) {
       node[collection].forEach((field) => {
@@ -20,34 +17,27 @@ function getValuesForNode(node) {
     }
   });
 
-  if (node.parents) {
-    const byTopologyId = groupBy(node.parents, parent => parent.topologyId);
-    const relativesByTopologyId = mapValues(byTopologyId, (relatives, topologyId) => ({
-      id: topologyId,
-      label: topologyId,
-      value: relatives.map(relative => relative.label).join(', '),
+  (node.parents || []).forEach((p) => {
+    values[p.topologyId] = {
+      id: p.topologyId,
+      label: p.topologyId,
+      value: p.label,
+      relative: p,
       valueType: 'relatives',
-      relatives,
-    }));
-
-    values = {
-      ...values,
-      ...relativesByTopologyId,
     };
-  }
+  });
 
   return values;
 }
 
-
-function renderValues(node, columns = [], columnStyles = [], timestamp = null, topologyId = null) {
+function renderValues(node, columns = [], columnStyles = []) {
   const fields = getValuesForNode(node);
-  return columns.map(({ id }, i) => {
+  return columns.map(({id}, i) => {
     const field = fields[id];
     const style = columnStyles[i];
     if (field) {
       if (field.valueType === 'metadata') {
-        const { value, title } = formatDataType(field, timestamp);
+        const {value, title} = formatDataType(field);
         return (
           <td
             className="node-details-table-node-value truncate"
@@ -65,42 +55,17 @@ function renderValues(node, columns = [], columnStyles = [], timestamp = null, t
             title={field.value}
             style={style}
             key={field.id}>
-            {intersperse(field.relatives.map(relative =>
-              <NodeDetailsTableNodeLink
-                key={relative.id}
-                linkable
-                nodeId={relative.id}
-                {...relative}
-              />
-            ), ' ')}
+            {<NodeDetailsTableNodeLink linkable nodeId={field.relative.id} {...field.relative} />}
           </td>
         );
       }
-      // valueType === 'metrics'
-      return (
-        <NodeDetailsTableNodeMetricLink
-          style={style} key={field.id} topologyId={topologyId} {...field} />
-      );
+      return <NodeDetailsTableNodeMetric style={style} key={field.id} {...field} />;
     }
     // empty cell to complete the row for proper hover
-    return (
-      <td className="node-details-table-node-value" style={style} key={id} />
-    );
+    return <td className="node-details-table-node-value" style={style} key={id} />;
   });
 }
 
-/**
- * Table row children may react to onClick events but the row
- * itself does detect a click by looking at onMouseUp. To stop
- * the bubbling of clicks on child elements we need to dismiss
- * the onMouseUp event.
- */
-export const dismissRowClickProps = {
-  onMouseUp: (ev) => {
-    ev.preventDefault();
-    ev.stopPropagation();
-  }
-};
 
 export default class NodeDetailsTableRow extends React.Component {
   constructor(props, context) {
@@ -155,9 +120,9 @@ export default class NodeDetailsTableRow extends React.Component {
   }
 
   render() {
-    const { node, nodeIdKey, topologyId, columns, onClick, colStyles, timestamp } = this.props;
+    const { node, nodeIdKey, topologyId, columns, onClick, colStyles } = this.props;
     const [firstColumnStyle, ...columnStyles] = colStyles;
-    const values = renderValues(node, columns, columnStyles, timestamp, topologyId);
+    const values = renderValues(node, columns, columnStyles);
     const nodeId = node[nodeIdKey];
 
     const className = classNames('node-details-table-node', {

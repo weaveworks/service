@@ -88,7 +88,7 @@ build() {
     ## Inject the version numbers and build the distributables
     ## (library versions?)
     sed -i.tmp "s/SCRIPT_VERSION=\"[^\"]*\"/SCRIPT_VERSION=\"$VERSION\"/" ./scope
-    make SUDO="$SUDO" SCOPE_VERSION="$VERSION" DOCKERHUB_USER="$DOCKERHUB_USER" realclean all
+    make SUDO="$SUDO" SCOPE_VERSION="$VERSION" DOCKERHUB_USER="$DOCKERHUB_USER"
 
     if make tests SUDO="$SUDO"; then
         echo -e '\u2713 Tests pass'
@@ -161,11 +161,19 @@ draft() {
 }
 
 publish() {
+    local IMAGES="scope cloud-agent"
     setup
     cd "$PWD"/"$RELEASE_DIR"
 
     if [ "$RELEASE_TYPE" = 'PRERELEASE' ]; then
-        push_images
+        echo "== Tagging and pushing images on docker hub as user $DOCKERHUB_USER"
+        for IMAGE in $IMAGES; do
+            $SUDO docker tag "$DOCKERHUB_USER/$IMAGE" "$DOCKERHUB_USER/$IMAGE:$VERSION"
+            $SUDO docker push "$DOCKERHUB_USER/$IMAGE:$VERSION"
+            $SUDO docker tag "$DOCKERHUB_USER/$IMAGE:$VERSION" "$DOCKERHUB_USER/$IMAGE:latest_release"
+            $SUDO docker push "$DOCKERHUB_USER/$IMAGE:latest_release"
+        done
+        echo "** Docker images tagged and pushed"
 
         echo "== Publishing pre-release on GitHub"
 
@@ -195,7 +203,14 @@ publish() {
         fi
         echo '** Sanity checks OK for publishing tag' "$LATEST_TAG" as "$DOCKERHUB_USER/scope:$VERSION"
 
-        push_images
+        echo "== Tagging and pushing images on docker hub as user $DOCKERHUB_USER"
+        for IMAGE in $IMAGES; do
+            $SUDO docker tag "$DOCKERHUB_USER/$IMAGE" "$DOCKERHUB_USER/$IMAGE:$VERSION"
+            $SUDO docker push "$DOCKERHUB_USER/$IMAGE:$VERSION"
+            $SUDO docker tag "$DOCKERHUB_USER/$IMAGE:$VERSION" "$DOCKERHUB_USER/$IMAGE:latest_release"
+            $SUDO docker push "$DOCKERHUB_USER/$IMAGE:latest_release"
+        done
+        echo "** Docker images tagged and pushed"
 
         echo "== Publishing release on GitHub"
 
@@ -230,19 +245,6 @@ publish() {
         echo -e "\thttps://github.com/$GITHUB_USER/scope/releases/$LATEST_TAG"
         echo -e "\thttps://github.com/$GITHUB_USER/scope/releases/latest_release"
     fi
-}
-
-push_images() {
-    echo "== Tagging and pushing images on docker hub and quay.io as user $DOCKERHUB_USER"
-    for IMAGE in "scope" "cloud-agent"; do
-        $SUDO docker tag "$DOCKERHUB_USER/$IMAGE" "$DOCKERHUB_USER/$IMAGE:$VERSION"
-        $SUDO docker push "$DOCKERHUB_USER/$IMAGE:$VERSION"
-        $SUDO docker tag "$DOCKERHUB_USER/$IMAGE:$VERSION" "$DOCKERHUB_USER/$IMAGE:latest_release"
-        $SUDO docker push "$DOCKERHUB_USER/$IMAGE:latest_release"
-        $SUDO docker tag "$DOCKERHUB_USER/$IMAGE:$VERSION" "quay.io/$DOCKERHUB_USER/$IMAGE:$VERSION"
-        $SUDO docker push "quay.io/$DOCKERHUB_USER/$IMAGE:$VERSION"
-    done
-    echo "** Docker images tagged and pushed"
 }
 
 usage() {

@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	"strings"
-
 	"github.com/lann/builder"
+	"strings"
 )
 
 type deleteData struct {
@@ -75,6 +74,7 @@ func (d *deleteData) ToSql() (sqlStr string, args []interface{}, err error) {
 	sqlStr, err = d.PlaceholderFormat.ReplacePlaceholders(sql.String())
 	return
 }
+
 
 // Builder
 

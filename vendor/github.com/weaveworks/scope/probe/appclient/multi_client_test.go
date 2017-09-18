@@ -26,18 +26,11 @@ func (c *mockClient) ControlConnection() {
 	c.count++
 }
 
-func (c *mockClient) Target() url.URL {
-	return url.URL{}
-}
-
-func (c *mockClient) ReTarget(_ url.URL) {
-}
-
 func (c *mockClient) Stop() {
 	c.stopped++
 }
 
-func (c *mockClient) Publish(io.Reader, bool) error {
+func (c *mockClient) Publish(io.Reader) error {
 	c.publish++
 	return nil
 }
@@ -106,7 +99,7 @@ func TestMultiClientPublish(t *testing.T) {
 	mp.Set("b", []url.URL{{Host: "b2"}, {Host: "b3"}})
 
 	for i := 1; i < 10; i++ {
-		if err := mp.Publish(&bytes.Buffer{}, false); err != nil {
+		if err := mp.Publish(&bytes.Buffer{}); err != nil {
 			t.Error(err)
 		}
 		if want, have := 3*i, sum(); want != have {

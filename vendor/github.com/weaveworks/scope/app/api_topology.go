@@ -29,27 +29,27 @@ type APINode struct {
 }
 
 // Full topology.
-func handleTopology(ctx context.Context, renderer render.Renderer, decorator render.Decorator, rc report.RenderContext, w http.ResponseWriter, r *http.Request) {
+func handleTopology(ctx context.Context, renderer render.Renderer, decorator render.Decorator, report report.Report, w http.ResponseWriter, r *http.Request) {
 	respondWith(w, http.StatusOK, APITopology{
-		Nodes: detailed.Summaries(rc, renderer.Render(rc.Report, decorator)),
+		Nodes: detailed.Summaries(report, renderer.Render(report, decorator)),
 	})
 }
 
 // Individual nodes.
-func handleNode(ctx context.Context, renderer render.Renderer, decorator render.Decorator, rc report.RenderContext, w http.ResponseWriter, r *http.Request) {
+func handleNode(ctx context.Context, renderer render.Renderer, decorator render.Decorator, report report.Report, w http.ResponseWriter, r *http.Request) {
 	var (
 		vars             = mux.Vars(r)
 		topologyID       = vars["topology"]
 		nodeID           = vars["id"]
 		preciousRenderer = render.PreciousNodeRenderer{PreciousNodeID: nodeID, Renderer: renderer}
-		rendered         = preciousRenderer.Render(rc.Report, decorator)
+		rendered         = preciousRenderer.Render(report, decorator)
 		node, ok         = rendered[nodeID]
 	)
 	if !ok {
 		http.NotFound(w, r)
 		return
 	}
-	respondWith(w, http.StatusOK, APINode{Node: detailed.MakeNode(topologyID, rc, rendered, node)})
+	respondWith(w, http.StatusOK, APINode{Node: detailed.MakeNode(topologyID, report, rendered, node)})
 }
 
 // Websocket for the full topology.
@@ -93,37 +93,26 @@ func handleWebsocket(
 	}(conn)
 
 	var (
-		previousTopo     detailed.NodeSummaries
-		tick             = time.Tick(loop)
-		wait             = make(chan struct{}, 1)
-		topologyID       = mux.Vars(r)["topology"]
-		startReportingAt = deserializeTimestamp(r.Form.Get("timestamp"))
-		channelOpenedAt  = time.Now()
+		previousTopo detailed.NodeSummaries
+		tick         = time.Tick(loop)
+		wait         = make(chan struct{}, 1)
+		topologyID   = mux.Vars(r)["topology"]
 	)
-
 	rep.WaitOn(ctx, wait)
 	defer rep.UnWait(ctx, wait)
 
 	for {
-		// We measure how much time has passed since the channel was opened
-		// and add it to the initial report timestamp to get the timestamp
-		// of the snapshot we want to report right now.
-		// NOTE: Multiplying `timestampDelta` by a constant factor here
-		// would have an effect of fast-forward, which is something we
-		// might be interested in implementing in the future.
-		timestampDelta := time.Since(channelOpenedAt)
-		reportTimestamp := startReportingAt.Add(timestampDelta)
-		re, err := rep.Report(ctx, reportTimestamp)
+		report, err := rep.Report(ctx)
 		if err != nil {
 			log.Errorf("Error generating report: %v", err)
 			return
 		}
-		renderer, decorator, err := topologyRegistry.RendererForTopology(topologyID, r.Form, re)
+		renderer, decorator, err := topologyRegistry.RendererForTopology(topologyID, r.Form, report)
 		if err != nil {
 			log.Errorf("Error generating report: %v", err)
 			return
 		}
-		newTopo := detailed.Summaries(RenderContextForReporter(rep, re), renderer.Render(re, decorator))
+		newTopo := detailed.Summaries(report, renderer.Render(report, decorator))
 		diff := detailed.TopoDiff(previousTopo, newTopo)
 		previousTopo = newTopo
 

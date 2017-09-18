@@ -1,14 +1,12 @@
 import React from 'react';
-import { connect } from 'react-redux';
 import { Map as makeMap } from 'immutable';
 
 import MatchedText from '../matched-text';
 import ShowMore from '../show-more';
 import { formatDataType } from '../../utils/string-utils';
-import { getSerializedTimeTravelTimestamp } from '../../utils/web-api-utils';
 
+export default class NodeDetailsInfo extends React.Component {
 
-class NodeDetailsInfo extends React.Component {
   constructor(props, context) {
     super(props, context);
     this.state = {
@@ -23,7 +21,7 @@ class NodeDetailsInfo extends React.Component {
   }
 
   render() {
-    const { timestamp, matches = makeMap() } = this.props;
+    const { matches = makeMap() } = this.props;
     let rows = (this.props.rows || []);
     let notShown = 0;
 
@@ -41,7 +39,7 @@ class NodeDetailsInfo extends React.Component {
     return (
       <div className="node-details-info">
         {rows.map((field) => {
-          const { value, title } = formatDataType(field, timestamp);
+          const { value, title } = formatDataType(field);
           return (
             <div className="node-details-info-field" key={field.id}>
               <div className="node-details-info-field-label truncate" title={field.label}>
@@ -63,11 +61,3 @@ class NodeDetailsInfo extends React.Component {
     );
   }
 }
-
-function mapStateToProps(state) {
-  return {
-    timestamp: getSerializedTimeTravelTimestamp(state),
-  };
-}
-
-export default connect(mapStateToProps)(NodeDetailsInfo);

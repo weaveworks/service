@@ -170,11 +170,8 @@ func TraceID128Bit(val bool) TracerOption {
 }
 
 // ClientServerSameSpan allows to place client-side and server-side annotations
-// for a RPC call in the same span (Zipkin V1 behavior) or different spans
-// (more in line with other tracing solutions). By default this Tracer
-// uses shared host spans (so client-side and server-side in the same span).
-// If using separate spans you might run into trouble with Zipkin V1 as clock
-// skew issues can't be remedied at Zipkin server side.
+// for a RPC call in the same span (Zipkin V1 behavior). By default this Tracer
+// uses single host spans (so client-side and server-side in separate spans).
 func ClientServerSameSpan(val bool) TracerOption {
 	return func(opts *TracerOptions) error {
 		opts.clientServerSameSpan = val
@@ -227,7 +224,7 @@ func NewTracer(recorder SpanRecorder, options ...TracerOption) (opentracing.Trac
 		logger:               &nopLogger{},
 		debugAssertSingleGoroutine: false,
 		debugAssertUseAfterFinish:  false,
-		clientServerSameSpan:       true,
+		clientServerSameSpan:       false,
 		debugMode:                  false,
 		traceID128Bit:              false,
 		maxLogsPerSpan:             10000,

@@ -14,8 +14,7 @@ RUN apt-get update && \
       unzip && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN pip install attrs pyhcl
-RUN curl -fsSLo shfmt https://github.com/mvdan/sh/releases/download/v1.3.0/shfmt_v1.3.0_linux_amd64 && \
-	echo "b1925c2c405458811f0c227266402cf1868b4de529f114722c2e3a5af4ac7bb2  shfmt" | sha256sum -c && \
+RUN curl -fsSL -o shfmt https://github.com/mvdan/sh/releases/download/v1.3.0/shfmt_v1.3.0_linux_amd64 && \
 	chmod +x shfmt && \
 	mv shfmt /usr/bin
 RUN go clean -i net && \

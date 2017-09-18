@@ -10,12 +10,11 @@ type Diff struct {
 	Add    []NodeSummary `json:"add"`
 	Update []NodeSummary `json:"update"`
 	Remove []string      `json:"remove"`
-	Reset  bool          `json:"reset,omitempty"`
 }
 
 // TopoDiff gives you the diff to get from A to B.
 func TopoDiff(a, b NodeSummaries) Diff {
-	diff := Diff{Reset: a == nil}
+	diff := Diff{}
 
 	notSeen := map[string]struct{}{}
 	for k := range a {

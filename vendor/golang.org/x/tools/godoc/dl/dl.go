@@ -32,12 +32,13 @@ import (
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/memcache"
+	"google.golang.org/appengine/user"
 )
 
 const (
-	edgeCacheBaseURL = "https://redirector.gvt1.com/edgedl/go/"
-	cacheKey         = "download_list_3" // increment if listTemplateData changes
-	cacheDuration    = time.Hour
+	gcsBaseURL    = "https://storage.googleapis.com/golang/"
+	cacheKey      = "download_list_3" // increment if listTemplateData changes
+	cacheDuration = time.Hour
 )
 
 func RegisterHandlers(mux *http.ServeMux) {
@@ -133,7 +134,7 @@ func (f File) Highlight() bool {
 }
 
 func (f File) URL() string {
-	return edgeCacheBaseURL + f.Filename
+	return gcsBaseURL + f.Filename
 }
 
 type Release struct {
@@ -150,7 +151,7 @@ type Feature struct {
 	File
 	fileRE *regexp.Regexp
 
-	Platform     string // "Microsoft Windows", "Apple macOS", "Linux"
+	Platform     string // "Microsoft Windows", "Mac OS X", "Linux"
 	Requirements string // "Windows XP and above, 64-bit Intel Processor"
 }
 
@@ -159,12 +160,12 @@ type Feature struct {
 var featuredFiles = []Feature{
 	{
 		Platform:     "Microsoft Windows",
-		Requirements: "Windows XP SP2 or later, Intel 64-bit processor",
+		Requirements: "Windows XP or later, Intel 64-bit processor",
 		fileRE:       regexp.MustCompile(`\.windows-amd64\.msi$`),
 	},
 	{
-		Platform:     "Apple macOS",
-		Requirements: "macOS 10.8 or later, Intel 64-bit processor",
+		Platform:     "Apple OS X",
+		Requirements: "OS X 10.8 or later, Intel 64-bit processor",
 		fileRE:       regexp.MustCompile(`\.darwin-amd64(-osx10\.8)?\.pkg$`),
 	},
 	{
@@ -182,6 +183,7 @@ var featuredFiles = []Feature{
 type listTemplateData struct {
 	Featured                  []Feature
 	Stable, Unstable, Archive []Release
+	LoginURL                  string
 }
 
 var (
@@ -214,6 +216,11 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 		d.Stable, d.Unstable, d.Archive = filesToReleases(fs)
 		if len(d.Stable) > 0 {
 			d.Featured = filesToFeatured(d.Stable[0].Files)
+		}
+
+		d.LoginURL, _ = user.LoginURL(c, "/dl")
+		if user.Current(c) != nil {
+			d.LoginURL, _ = user.LogoutURL(c, "/dl")
 		}
 
 		item := &memcache.Item{Key: cacheKey, Object: &d, Expiration: cacheDuration}
@@ -479,15 +486,15 @@ func pretty(s string) string {
 }
 
 var prettyStrings = map[string]string{
-	"darwin":  "macOS",
+	"darwin":  "OS X",
 	"freebsd": "FreeBSD",
 	"linux":   "Linux",
 	"windows": "Windows",
 
-	"386":    "x86",
-	"amd64":  "x86-64",
+	"386":   "32-bit",
+	"amd64": "64-bit",
+
 	"armv6l": "ARMv6",
-	"arm64":  "ARMv8",
 
 	"archive":   "Archive",
 	"installer": "Installer",

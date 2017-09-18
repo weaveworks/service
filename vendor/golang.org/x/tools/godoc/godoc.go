@@ -79,13 +79,11 @@ func (p *Presentation) initFuncMap() {
 		"sanitize":     sanitizeFunc,
 
 		// support for URL attributes
-		"pkgLink":       pkgLinkFunc,
-		"srcLink":       srcLinkFunc,
-		"posLink_url":   newPosLink_urlFunc(srcPosLinkFunc),
-		"docLink":       docLinkFunc,
-		"queryLink":     queryLinkFunc,
-		"srcBreadcrumb": srcBreadcrumbFunc,
-		"srcToPkgLink":  srcToPkgLinkFunc,
+		"pkgLink":     pkgLinkFunc,
+		"srcLink":     srcLinkFunc,
+		"posLink_url": newPosLink_urlFunc(srcPosLinkFunc),
+		"docLink":     docLinkFunc,
+		"queryLink":   queryLinkFunc,
 
 		// formatting of Examples
 		"example_html":   p.example_htmlFunc,
@@ -421,9 +419,9 @@ func sanitizeFunc(src string) string {
 }
 
 type PageInfo struct {
-	Dirname  string // directory containing the package
-	Err      error  // error or nil
-	GoogleCN bool   // page is being served from golang.google.cn
+	Dirname string // directory containing the package
+	Err     error  // error or nil
+	Share   bool   // show share button on examples
 
 	Mode PageInfoMode // display metadata from query string
 
@@ -459,48 +457,6 @@ func pkgLinkFunc(path string) string {
 	path = strings.TrimPrefix(path, "src/")
 	path = strings.TrimPrefix(path, "pkg/")
 	return "pkg/" + path
-}
-
-// srcToPkgLinkFunc builds an <a> tag linking to the package
-// documentation of relpath.
-func srcToPkgLinkFunc(relpath string) string {
-	relpath = pkgLinkFunc(relpath)
-	relpath = pathpkg.Dir(relpath)
-	if relpath == "pkg" {
-		return `<a href="/pkg">Index</a>`
-	}
-	return fmt.Sprintf(`<a href="/%s">%s</a>`, relpath, relpath[len("pkg/"):])
-}
-
-// srcBreadcrumbFun converts each segment of relpath to a HTML <a>.
-// Each segment links to its corresponding src directories.
-func srcBreadcrumbFunc(relpath string) string {
-	segments := strings.Split(relpath, "/")
-	var buf bytes.Buffer
-	var selectedSegment string
-	var selectedIndex int
-
-	if strings.HasSuffix(relpath, "/") {
-		// relpath is a directory ending with a "/".
-		// Selected segment is the segment before the last slash.
-		selectedIndex = len(segments) - 2
-		selectedSegment = segments[selectedIndex] + "/"
-	} else {
-		selectedIndex = len(segments) - 1
-		selectedSegment = segments[selectedIndex]
-	}
-
-	for i := range segments[:selectedIndex] {
-		buf.WriteString(fmt.Sprintf(`<a href="/%s">%s</a>/`,
-			strings.Join(segments[:i+1], "/"),
-			segments[i],
-		))
-	}
-
-	buf.WriteString(`<span class="text-muted">`)
-	buf.WriteString(selectedSegment)
-	buf.WriteString(`</span>`)
-	return buf.String()
 }
 
 func newPosLink_urlFunc(srcPosLinkFunc func(s string, line, low, high int) string) func(info *PageInfo, n interface{}) string {
@@ -680,8 +636,8 @@ func (p *Presentation) example_htmlFunc(info *PageInfo, funcName string) string 
 
 		err := p.ExampleHTML.Execute(&buf, struct {
 			Name, Doc, Code, Play, Output string
-			GoogleCN                      bool
-		}{eg.Name, eg.Doc, code, play, out, info.GoogleCN})
+			Share                         bool
+		}{eg.Name, eg.Doc, code, play, out, info.Share})
 		if err != nil {
 			log.Print(err)
 		}

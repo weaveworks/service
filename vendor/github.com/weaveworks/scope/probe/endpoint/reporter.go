@@ -11,6 +11,11 @@ import (
 
 // Node metadata keys.
 const (
+	Addr            = "addr" // typically IPv4
+	Port            = "port"
+	Conntracked     = "conntracked"
+	EBPF            = "eBPF"
+	Procspied       = "procspied"
 	ReverseDNSNames = "reverse_dns_names"
 	SnoopedDNSNames = "snooped_dns_names"
 )

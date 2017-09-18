@@ -3,11 +3,8 @@ package endpoint
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"regexp"
 	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 
@@ -27,30 +24,27 @@ type ebpfConnection struct {
 	pid              int
 }
 
+type eventTracker interface {
+	handleConnection(ev tracer.EventType, tuple fourTuple, pid int, networkNamespace string)
+	walkConnections(f func(ebpfConnection))
+	feedInitialConnections(ci procspy.ConnIter, seenTuples map[string]fourTuple, processesWaitingInAccept []int, hostNodeID string)
+	isReadyToHandleConnections() bool
+	isDead() bool
+	stop()
+}
+
+var ebpfTracker *EbpfTracker
+
 // EbpfTracker contains the sets of open and closed TCP connections.
 // Closed connections are kept in the `closedConnections` slice for one iteration of `walkConnections`.
 type EbpfTracker struct {
 	sync.Mutex
-	tracer          *tracer.Tracer
-	ready           bool
-	stopping        bool
-	dead            bool
-	lastTimestampV4 uint64
+	tracer                   *tracer.Tracer
+	readyToHandleConnections bool
+	dead                     bool
 
-	// debugBPF specifies if EbpfTracker must be started in debug mode. This
-	// allows to easily debug issues like:
-	// https://github.com/weaveworks/scope/issues/2650
-	//
-	// Scope could be started this way:
-	//   $ sudo WEAVESCOPE_DOCKER_ARGS="-e SCOPE_DEBUG_BPF=1" ./scope launch
-	//
-	// Then, EbpfTracker could be tricked into restarting with:
-	//   $ echo stop | sudo tee /proc/$(pidof scope-probe)/root/var/run/scope/debug-bpf
-	debugBPF bool
-
-	openConnections   map[fourTuple]ebpfConnection
+	openConnections   map[string]ebpfConnection
 	closedConnections []ebpfConnection
-	closedDuringInit  map[fourTuple]struct{}
 }
 
 var releaseRegex = regexp.MustCompile(`^(\d+)\.(\d+).*$`)
@@ -87,76 +81,56 @@ func isKernelSupported() error {
 	return nil
 }
 
-func newEbpfTracker() (*EbpfTracker, error) {
+func newEbpfTracker() (eventTracker, error) {
 	if err := isKernelSupported(); err != nil {
 		return nil, fmt.Errorf("kernel not supported: %v", err)
 	}
 
-	var debugBPF bool
-	if os.Getenv("SCOPE_DEBUG_BPF") != "" {
-		log.Infof("ebpf tracker started in debug mode")
-		debugBPF = true
-	}
-
-	tracker := &EbpfTracker{
-		debugBPF: debugBPF,
-	}
-	if err := tracker.restart(); err != nil {
+	t, err := tracer.NewTracer(tcpEventCbV4, tcpEventCbV6, lostCb)
+	if err != nil {
 		return nil, err
 	}
 
+	tracker := &EbpfTracker{
+		openConnections: map[string]ebpfConnection{},
+		tracer:          t,
+	}
+
+	ebpfTracker = tracker
 	return tracker, nil
 }
 
-// TCPEventV4 handles IPv4 TCP events from the eBPF tracer
-func (t *EbpfTracker) TCPEventV4(e tracer.TcpV4) {
-	if t.debugBPF {
-		debugBPFFile := "/var/run/scope/debug-bpf"
-		b, err := ioutil.ReadFile("/var/run/scope/debug-bpf")
-		if err == nil && strings.TrimSpace(string(b[:])) == "stop" {
-			os.Remove(debugBPFFile)
-			log.Warnf("ebpf tracker stopped as requested by user")
-			t.stop()
-			return
-		}
-	}
+var lastTimestampV4 uint64
 
-	if t.lastTimestampV4 > e.Timestamp {
+func tcpEventCbV4(e tracer.TcpV4) {
+	if lastTimestampV4 > e.Timestamp {
 		// A kernel bug can cause the timestamps to be wrong (e.g. on Ubuntu with Linux 4.4.0-47.68)
 		// Upgrading the kernel will fix the problem. For further info see:
 		// https://github.com/iovisor/bcc/issues/790#issuecomment-263704235
 		// https://github.com/weaveworks/scope/issues/2334
-		log.Errorf("tcp tracer received event with timestamp %v even though the last timestamp was %v. Stopping the eBPF tracker.", e.Timestamp, t.lastTimestampV4)
-		t.stop()
-		return
+		log.Errorf("tcp tracer received event with timestamp %v even though the last timestamp was %v. Stopping the eBPF tracker.", e.Timestamp, lastTimestampV4)
+		ebpfTracker.dead = true
+		ebpfTracker.stop()
 	}
 
-	t.lastTimestampV4 = e.Timestamp
+	lastTimestampV4 = e.Timestamp
 
 	if e.Type == tracer.EventFdInstall {
-		t.handleFdInstall(e.Type, int(e.Pid), int(e.Fd))
+		ebpfTracker.handleFdInstall(e.Type, int(e.Pid), int(e.Fd))
 	} else {
 		tuple := fourTuple{e.SAddr.String(), e.DAddr.String(), e.SPort, e.DPort}
-		t.handleConnection(e.Type, tuple, int(e.Pid), strconv.Itoa(int(e.NetNS)))
+		ebpfTracker.handleConnection(e.Type, tuple, int(e.Pid), strconv.Itoa(int(e.NetNS)))
 	}
 }
 
-// TCPEventV6 handles IPv6 TCP events from the eBPF tracer. This is
-// currently a no-op.
-func (t *EbpfTracker) TCPEventV6(e tracer.TcpV6) {
+func tcpEventCbV6(e tracer.TcpV6) {
 	// TODO: IPv6 not supported in Scope
 }
 
-// LostV4 handles IPv4 TCP event misses from the eBPF tracer.
-func (t *EbpfTracker) LostV4(count uint64) {
+func lostCb(count uint64) {
 	log.Errorf("tcp tracer lost %d events. Stopping the eBPF tracker", count)
-	t.stop()
-}
-
-// LostV6 handles IPv4 TCP event misses from the eBPF tracer. This is
-// currently a no-op.
-func (t *EbpfTracker) LostV6(count uint64) {
-	// TODO: IPv6 not supported in Scope
+	ebpfTracker.dead = true
+	ebpfTracker.stop()
 }
 
 func tupleFromPidFd(pid int, fd int) (tuple fourTuple, netns string, ok bool) {
@@ -209,23 +183,20 @@ func tupleFromPidFd(pid int, fd int) (tuple fourTuple, netns string, ok bool) {
 }
 
 func (t *EbpfTracker) handleFdInstall(ev tracer.EventType, pid int, fd int) {
-	if !process.IsProcInAccept("/proc", strconv.Itoa(pid)) {
-		t.tracer.RemoveFdInstallWatcher(uint32(pid))
-	}
 	tuple, netns, ok := tupleFromPidFd(pid, fd)
 	log.Debugf("EbpfTracker: got fd-install event: pid=%d fd=%d -> tuple=%s netns=%s ok=%v", pid, fd, tuple, netns, ok)
 	if !ok {
 		return
 	}
-
-	t.Lock()
-	defer t.Unlock()
-
-	t.openConnections[tuple] = ebpfConnection{
+	conn := ebpfConnection{
 		incoming:         true,
 		tuple:            tuple,
 		pid:              pid,
 		networkNamespace: netns,
+	}
+	t.openConnections[tuple.String()] = conn
+	if !process.IsProcInAccept("/proc", strconv.Itoa(pid)) {
+		t.tracer.RemoveFdInstallWatcher(uint32(pid))
 	}
 }
 
@@ -233,33 +204,36 @@ func (t *EbpfTracker) handleConnection(ev tracer.EventType, tuple fourTuple, pid
 	t.Lock()
 	defer t.Unlock()
 
+	if !t.isReadyToHandleConnections() {
+		return
+	}
+
 	log.Debugf("handleConnection(%v, [%v:%v --> %v:%v], pid=%v, netNS=%v)",
 		ev, tuple.fromAddr, tuple.fromPort, tuple.toAddr, tuple.toPort, pid, networkNamespace)
 
 	switch ev {
 	case tracer.EventConnect:
-		t.openConnections[tuple] = ebpfConnection{
+		conn := ebpfConnection{
 			incoming:         false,
 			tuple:            tuple,
 			pid:              pid,
 			networkNamespace: networkNamespace,
 		}
+		t.openConnections[tuple.String()] = conn
 	case tracer.EventAccept:
-		t.openConnections[tuple] = ebpfConnection{
+		conn := ebpfConnection{
 			incoming:         true,
 			tuple:            tuple,
 			pid:              pid,
 			networkNamespace: networkNamespace,
 		}
+		t.openConnections[tuple.String()] = conn
 	case tracer.EventClose:
-		if !t.ready {
-			t.closedDuringInit[tuple] = struct{}{}
-		}
-		if deadConn, ok := t.openConnections[tuple]; ok {
-			delete(t.openConnections, tuple)
+		if deadConn, ok := t.openConnections[tuple.String()]; ok {
+			delete(t.openConnections, tuple.String())
 			t.closedConnections = append(t.closedConnections, deadConn)
 		} else {
-			log.Debugf("EbpfTracker: unmatched close event: %s pid=%d netns=%s", tuple, pid, networkNamespace)
+			log.Debugf("EbpfTracker: unmatched close event: %s pid=%d netns=%s", tuple.String(), pid, networkNamespace)
 		}
 	default:
 		log.Debugf("EbpfTracker: unknown event: %s (%d)", ev, ev)
@@ -282,77 +256,48 @@ func (t *EbpfTracker) walkConnections(f func(ebpfConnection)) {
 }
 
 func (t *EbpfTracker) feedInitialConnections(conns procspy.ConnIter, seenTuples map[string]fourTuple, processesWaitingInAccept []int, hostNodeID string) {
-	t.Lock()
+	t.readyToHandleConnections = true
 	for conn := conns.Next(); conn != nil; conn = conns.Next() {
-		tuple, namespaceID, incoming := connectionTuple(conn, seenTuples)
-		if _, ok := t.closedDuringInit[tuple]; !ok {
-			if _, ok := t.openConnections[tuple]; !ok {
-				t.openConnections[tuple] = ebpfConnection{
-					incoming:         incoming,
-					tuple:            tuple,
-					pid:              int(conn.Proc.PID),
-					networkNamespace: namespaceID,
-				}
+		var (
+			namespaceID string
+			tuple       = fourTuple{
+				conn.LocalAddress.String(),
+				conn.RemoteAddress.String(),
+				conn.LocalPort,
+				conn.RemotePort,
 			}
+		)
+
+		if conn.Proc.NetNamespaceID > 0 {
+			namespaceID = strconv.FormatUint(conn.Proc.NetNamespaceID, 10)
+		}
+
+		// We can use a port-heuristic to guess the direction.
+		// We assume that tuple.fromPort < tuple.toPort is a connect event (outgoing)
+		canonical, ok := seenTuples[tuple.key()]
+		if (ok && canonical != tuple) || (!ok && tuple.fromPort < tuple.toPort) {
+			t.handleConnection(tracer.EventConnect, tuple, int(conn.Proc.PID), namespaceID)
+		} else {
+			t.handleConnection(tracer.EventAccept, tuple, int(conn.Proc.PID), namespaceID)
 		}
 	}
-	t.closedDuringInit = nil
-	t.ready = true
-	t.Unlock()
-
 	for _, p := range processesWaitingInAccept {
 		t.tracer.AddFdInstallWatcher(uint32(p))
 		log.Debugf("EbpfTracker: install fd-install watcher: pid=%d", p)
 	}
 }
 
+func (t *EbpfTracker) isReadyToHandleConnections() bool {
+	return t.readyToHandleConnections
+}
+
 func (t *EbpfTracker) isDead() bool {
-	t.Lock()
-	defer t.Unlock()
 	return t.dead
 }
 
 func (t *EbpfTracker) stop() {
-	t.Lock()
-	alreadyDead := t.dead || t.stopping
-	t.stopping = true
-	t.Unlock()
-
-	// Do not call tracer.Stop() in this thread, otherwise tracer.Stop() will
-	// deadlock waiting for this thread to pick up the next event.
-	go func() {
-		if !alreadyDead && t.tracer != nil {
-			t.tracer.Stop()
-			t.tracer = nil
-		}
-
-		// Only advertise the tracer as dead after the tracer is fully stopped so that
-		// restart() is not called in parallel in another thread.
-		t.Lock()
-		t.stopping = false
-		t.dead = true
-		t.Unlock()
-	}()
-}
-
-func (t *EbpfTracker) restart() error {
-	t.Lock()
-	defer t.Unlock()
-
-	t.dead = false
-	t.ready = false
-
-	t.openConnections = map[fourTuple]ebpfConnection{}
-	t.closedDuringInit = map[fourTuple]struct{}{}
-	t.closedConnections = []ebpfConnection{}
-
-	tracer, err := tracer.NewTracer(t)
-	if err != nil {
-		return err
+	if t.tracer != nil {
+		t.tracer.Stop()
 	}
-
-	t.tracer = tracer
-	tracer.Start()
-
-	return nil
+	t.dead = true
 }

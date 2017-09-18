@@ -4,11 +4,10 @@ import (
 	"fmt"
 
 	"github.com/weaveworks/scope/report"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	apiv1 "k8s.io/client-go/pkg/api/v1"
-	apiv1beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/labels"
 )
 
 // These constants are keys used in node metadata
@@ -25,14 +24,14 @@ type ReplicaSet interface {
 }
 
 type replicaSet struct {
-	*apiv1beta1.ReplicaSet
+	*extensions.ReplicaSet
 	Meta
 	parents report.Sets
-	Node    *apiv1.Node
+	Node    *api.Node
 }
 
 // NewReplicaSet creates a new ReplicaSet
-func NewReplicaSet(r *apiv1beta1.ReplicaSet) ReplicaSet {
+func NewReplicaSet(r *extensions.ReplicaSet) ReplicaSet {
 	return &replicaSet{
 		ReplicaSet: r,
 		Meta:       meta{r.ObjectMeta},
@@ -41,7 +40,7 @@ func NewReplicaSet(r *apiv1beta1.ReplicaSet) ReplicaSet {
 }
 
 func (r *replicaSet) Selector() (labels.Selector, error) {
-	selector, err := metav1.LabelSelectorAsSelector(r.Spec.Selector)
+	selector, err := unversioned.LabelSelectorAsSelector(r.Spec.Selector)
 	if err != nil {
 		return nil, err
 	}

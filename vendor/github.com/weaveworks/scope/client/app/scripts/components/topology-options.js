@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { Set as makeSet, Map as makeMap } from 'immutable';
+import { Map as makeMap } from 'immutable';
 import includes from 'lodash/includes';
 
 import { trackMixpanelEvent } from '../utils/tracking-utils';
@@ -49,15 +49,12 @@ class TopologyOptions extends React.Component {
         // Add it to the array if it's not selected
         nextOptions = selectedActiveOptions.concat(value);
       }
-      // Since the user is clicking an option, remove the highlighting from the none option,
-      // unless they are removing the last option. In that case, default to the none label.
-      // Note that since the other ids are potentially user-controlled (eg. k8s namespaces),
-      // the only string we can use for the none option is the empty string '',
-      // since that can't collide.
+      // Since the user is clicking an option, remove the highlighting from the 'none' option,
+      // unless they are removing the last option. In that case, default to the 'none' label.
       if (nextOptions.length === 0) {
-        nextOptions = [''];
+        nextOptions = ['none'];
       } else {
-        nextOptions = nextOptions.filter(o => o !== '');
+        nextOptions = nextOptions.filter(o => o !== 'none');
       }
     }
     this.trackOptionClick(optionId, nextOptions);
@@ -65,7 +62,7 @@ class TopologyOptions extends React.Component {
   }
 
   handleNoneClick(optionId, value, topologyId) {
-    const nextOptions = [''];
+    const nextOptions = ['none'];
     this.trackOptionClick(optionId, nextOptions);
     this.props.changeTopologyOption(optionId, nextOptions, topologyId);
   }
@@ -73,29 +70,11 @@ class TopologyOptions extends React.Component {
   renderOption(option) {
     const { activeOptions, currentTopologyId } = this.props;
     const optionId = option.get('id');
-
-    // Make the active value be the intersection of the available options
-    // and the active selection and use the default value if there is no
-    // overlap. It seems intuitive that active selection would always be a
-    // subset of available option, but the exception can happen when going
-    // back in time (making available options change, while not touching
-    // the selection).
-    // TODO: This logic should probably be made consistent with how topology
-    // selection is handled when time travelling, especially when the name-
-    // spaces are brought under category selection.
-    // TODO: Consider extracting this into a global selector.
-    let activeValue = option.get('defaultValue');
-    if (activeOptions && activeOptions.has(optionId)) {
-      const activeSelection = makeSet(activeOptions.get(optionId));
-      const availableOptions = makeSet(option.get('options').map(o => o.get('value')));
-      const intersection = activeSelection.intersect(availableOptions);
-      if (!intersection.isEmpty()) {
-        activeValue = intersection.toJS();
-      }
-    }
-
+    const activeValue = activeOptions && activeOptions.has(optionId)
+      ? activeOptions.get(optionId)
+      : option.get('defaultValue');
     const noneItem = makeMap({
-      value: '',
+      value: 'none',
       label: option.get('noneLabel')
     });
     return (

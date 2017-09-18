@@ -38,16 +38,15 @@ export const NODE_BASE_SIZE = 100;
 export const EDGE_WAYPOINTS_CAP = 10;
 
 export const CANVAS_MARGINS = {
-  [GRAPH_VIEW_MODE]: { top: 160, left: 80, right: 80, bottom: 150 },
-  [TABLE_VIEW_MODE]: { top: 220, left: 40, right: 40, bottom: 30 },
+  [GRAPH_VIEW_MODE]: { top: 160, left: 40, right: 40, bottom: 150 },
+  [TABLE_VIEW_MODE]: { top: 160, left: 40, right: 40, bottom: 30 },
   [RESOURCE_VIEW_MODE]: { top: 140, left: 210, right: 40, bottom: 150 },
 };
 
 // Node details table constants
 export const NODE_DETAILS_TABLE_CW = {
   XS: '32px',
-  // 6 chars wide with our current font choices, (pids can be 6, ports only 5).
-  S: '56px',
+  S: '50px',
   M: '70px',
   L: '85px',
   XL: '120px',

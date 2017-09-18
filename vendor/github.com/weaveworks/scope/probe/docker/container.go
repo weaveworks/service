@@ -303,7 +303,7 @@ func (c *container) NetworkInfo(localAddrs []net.IP) report.Sets {
 	// Treat all Docker IPs as local scoped.
 	ipsWithScopes := addScopeToIPs(c.hostID, ipv4s)
 
-	return report.MakeSets().
+	return report.EmptySets.
 		Add(ContainerNetworks, report.MakeStringSet(networks...)).
 		Add(ContainerPorts, c.ports(localAddrs)).
 		Add(ContainerIPs, report.MakeStringSet(ipv4s...)).
@@ -388,7 +388,7 @@ func (c *container) getBaseNode() report.Node {
 		ContainerCommand:  c.getSanitizedCommand(),
 		ImageID:           c.Image(),
 		ContainerHostname: c.Hostname(),
-	}).WithParents(report.MakeSets().
+	}).WithParents(report.EmptySets.
 		Add(report.ContainerImage, report.MakeStringSet(report.MakeContainerImageNodeID(c.Image()))),
 	)
 	result = result.AddPrefixPropertyList(LabelPrefix, c.container.Config.Labels)
