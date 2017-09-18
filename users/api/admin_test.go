@@ -8,9 +8,11 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/client"
 	"github.com/weaveworks/service/users/db/dbtest"
 )
@@ -27,7 +29,10 @@ func TestAPI_ChangeOrgField_FeatureFlags(t *testing.T) {
 
 	_, org := dbtest.GetOrg(t, database)
 
-	prevExpires := org.TrialExpiresAt
+	// Set trial expiration to trigger extension and notifications
+	prevExpires := time.Now()
+	database.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{TrialExpiresAt: &prevExpires})
+
 	assert.False(t, org.HasFeatureFlag("billing"))
 
 	ts := httptest.NewServer(app.Handler)
@@ -41,10 +46,33 @@ func TestAPI_ChangeOrgField_FeatureFlags(t *testing.T) {
 	assert.Len(t, sentEmails, 1)
 
 	newOrg, _ := database.FindOrganizationByID(ctx, org.ExternalID)
-	assert.False(t, prevExpires.Equal(newOrg.TrialExpiresAt))
+	assert.True(t, prevExpires.Before(newOrg.TrialExpiresAt))
 	assert.True(t, newOrg.HasFeatureFlag("billing"))
 	assert.True(t, newOrg.HasFeatureFlag("foo"))
 	assert.True(t, newOrg.HasFeatureFlag("moo"))
+}
+
+func TestAPI_ChangeOrgField_NeverShrinkTrialPeriod(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	_, org := dbtest.GetOrg(t, database)
+
+	// way in the future to make sure a possible extension does not go past it
+	prevExpires := time.Now().Add(12 * 30 * 24 * time.Hour).Truncate(1 * time.Second)
+	database.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{TrialExpiresAt: &prevExpires})
+
+	ts := httptest.NewServer(app.Handler)
+	r, err := http.PostForm(
+		fmt.Sprintf("%s/admin/users/organizations/%s", ts.URL, org.ExternalID),
+		url.Values{"field": {"FeatureFlags"}, "value": {"foo billing moo"}},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, r.StatusCode)
+
+	assert.Len(t, sentEmails, 0)
+	newOrg, _ := database.FindOrganizationByID(ctx, org.ExternalID)
+	assert.True(t, prevExpires.Equal(newOrg.TrialExpiresAt))
 }
 
 func TestAPI_GetUserToken(t *testing.T) {

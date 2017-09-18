@@ -238,14 +238,16 @@ func (a *API) setOrganizationFeatureFlags(ctx context.Context, orgExternalID str
 	sort.Strings(sortedFlags)
 
 	// Keep track whether we are about to enable the billing flag
-	var billingEngaged bool
 	var orgName string
+	var orgTrialExpires time.Time
+	billingEngaged := false
 	if _, ok := uniqueFlags[users.BillingFeatureFlag]; ok {
 		org, err := a.db.FindOrganizationByID(ctx, orgExternalID)
 		if err != nil {
 			return err
 		}
 		orgName = org.Name
+		orgTrialExpires = org.TrialExpiresAt
 		billingEngaged = !org.HasFeatureFlag(users.BillingFeatureFlag)
 	}
 
@@ -258,18 +260,21 @@ func (a *API) setOrganizationFeatureFlags(ctx context.Context, orgExternalID str
 	// starting today and send members an email
 	if billingEngaged {
 		expires := time.Now().Add(users.TrialExtensionDuration)
-		err = a.db.UpdateOrganization(ctx, orgExternalID, users.OrgWriteView{TrialExpiresAt: &expires})
-		if err != nil {
-			return err
-		}
+		// We only modify the trial period if it actually adds days
+		if expires.Truncate(24 * time.Hour).After(orgTrialExpires) {
+			err = a.db.UpdateOrganization(ctx, orgExternalID, users.OrgWriteView{TrialExpiresAt: &expires})
+			if err != nil {
+				return err
+			}
 
-		members, err := a.db.ListOrganizationUsers(ctx, orgExternalID)
-		if err != nil {
-			return err
-		}
-		err = a.emailer.TrialExtendedEmail(members, orgExternalID, orgName, expires)
-		if err != nil {
-			return err
+			members, err := a.db.ListOrganizationUsers(ctx, orgExternalID)
+			if err != nil {
+				return err
+			}
+			err = a.emailer.TrialExtendedEmail(members, orgExternalID, orgName, expires)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
