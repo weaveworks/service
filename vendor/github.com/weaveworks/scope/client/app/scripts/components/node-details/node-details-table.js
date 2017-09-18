@@ -1,15 +1,17 @@
 import React from 'react';
 import classNames from 'classnames';
+import { connect } from 'react-redux';
 import { find, get, union, sortBy, groupBy, concat, debounce } from 'lodash';
 
 import { NODE_DETAILS_DATA_ROWS_DEFAULT_LIMIT } from '../../constants/limits';
+import { TABLE_ROW_FOCUS_DEBOUNCE_INTERVAL } from '../../constants/timer';
 
 import ShowMore from '../show-more';
 import NodeDetailsTableRow from './node-details-table-row';
 import NodeDetailsTableHeaders from './node-details-table-headers';
 import { ipToPaddedString } from '../../utils/string-utils';
 import { moveElement, insertElement } from '../../utils/array-utils';
-import { TABLE_ROW_FOCUS_DEBOUNCE_INTERVAL } from '../../constants/timer';
+import { getSerializedTimeTravelTimestamp } from '../../utils/web-api-utils';
 import {
   isIP, isNumber, defaultSortDesc, getTableColumnsStyles
 } from '../../utils/node-details-utils';
@@ -106,6 +108,9 @@ function sortNodes(nodes, getValue, sortedDesc) {
 function getSortedNodes(nodes, sortedByHeader, sortedDesc) {
   const getValue = getValueForSortedBy(sortedByHeader);
   const withAndWithoutValues = groupBy(nodes, (n) => {
+    if (!n || n.valueEmpty) {
+      return 'withoutValues';
+    }
     const v = getValue(n);
     return v !== null && v !== undefined ? 'withValues' : 'withoutValues';
   });
@@ -125,13 +130,12 @@ function minHeightConstraint(height = 0) {
 }
 
 
-export default class NodeDetailsTable extends React.Component {
-
+class NodeDetailsTable extends React.Component {
   constructor(props, context) {
     super(props, context);
 
     this.state = {
-      limit: props.limit || NODE_DETAILS_DATA_ROWS_DEFAULT_LIMIT,
+      limit: props.limit,
       sortedDesc: this.props.sortedDesc,
       sortedBy: this.props.sortedBy
     };
@@ -154,7 +158,7 @@ export default class NodeDetailsTable extends React.Component {
   }
 
   handleLimitClick() {
-    const limit = this.state.limit ? 0 : NODE_DETAILS_DATA_ROWS_DEFAULT_LIMIT;
+    const limit = this.state.limit ? 0 : this.props.limit;
     this.setState({ limit });
   }
 
@@ -198,11 +202,13 @@ export default class NodeDetailsTable extends React.Component {
   }
 
   render() {
-    const { nodeIdKey, columns, topologyId, onClickRow, onMouseEnter, onMouseLeave } = this.props;
+    const { nodeIdKey, columns, topologyId, onClickRow,
+      onMouseEnter, onMouseLeave, timestamp } = this.props;
 
     const sortedBy = this.state.sortedBy || getDefaultSortedBy(columns, this.props.nodes);
     const sortedByHeader = this.getColumnHeaders().find(h => h.id === sortedBy);
-    const sortedDesc = this.state.sortedDesc || defaultSortDesc(sortedByHeader);
+    const sortedDesc = (this.state.sortedDesc === null) ?
+      defaultSortDesc(sortedByHeader) : this.state.sortedDesc;
 
     let nodes = getSortedNodes(this.props.nodes, sortedByHeader, sortedDesc);
 
@@ -223,11 +229,16 @@ export default class NodeDetailsTable extends React.Component {
       }
     }
 
-    const limited = nodes && this.state.limit > 0 && nodes.length > this.state.limit;
-    const expanded = this.state.limit === 0;
-    const notShown = nodes.length - this.state.limit;
+    // If we are 1 over the limit, we still show the row. We never display
+    // "+1" but only "+2" and up.
+    const limit = this.state.limit > 0 && nodes.length === this.state.limit + 1
+      ? nodes.length
+      : this.state.limit;
+    const limited = nodes && limit > 0 && nodes.length > limit;
+    const expanded = limit === 0;
+    const notShown = nodes.length - limit;
     if (nodes && limited) {
-      nodes = nodes.slice(0, this.state.limit);
+      nodes = nodes.slice(0, limit);
     }
 
     const className = classNames('node-details-table-wrapper-wrapper', this.props.className);
@@ -264,6 +275,7 @@ export default class NodeDetailsTable extends React.Component {
                   onClick={onClickRow}
                   onMouseEnter={this.onMouseEnterRow}
                   onMouseLeave={this.onMouseLeaveRow}
+                  timestamp={timestamp}
                   topologyId={topologyId} />
               ))}
               {minHeightConstraint(tableContentMinHeightConstraint)}
@@ -283,7 +295,16 @@ export default class NodeDetailsTable extends React.Component {
 
 NodeDetailsTable.defaultProps = {
   nodeIdKey: 'id',  // key to identify a node in a row (used for topology links)
+  limit: NODE_DETAILS_DATA_ROWS_DEFAULT_LIMIT,
   onSortChange: () => {},
   sortedDesc: null,
   sortedBy: null,
 };
+
+function mapStateToProps(state) {
+  return {
+    timestamp: getSerializedTimeTravelTimestamp(state),
+  };
+}
+
+export default connect(mapStateToProps)(NodeDetailsTable);

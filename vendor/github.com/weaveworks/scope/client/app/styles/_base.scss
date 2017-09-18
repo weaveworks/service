@@ -9,6 +9,13 @@
     url("../../node_modules/materialize-css/fonts/roboto/Roboto-Regular.ttf");
 }
 
+// TODO: Remove this line once Service UI CONFIGURE button stops being added to Scope.
+.scope-wrapper .setup-nav-button { display: none; }
+
+a {
+  text-decoration: none;
+}
+
 .browsehappy {
   margin: 0.2em 0;
   background: #ccc;
@@ -35,8 +42,33 @@
   transition: opacity .5s $base-ease;
 }
 
+.blinkable {
+  animation: blinking 1.5s infinite $base-ease;
+}
+
 .hang-around {
   transition-delay: .5s;
+}
+
+// From https://stackoverflow.com/a/18294634
+.grabbable {
+    cursor: move; /* fallback if grab cursor is unsupported */
+    cursor: grab;
+    cursor: -moz-grab;
+    cursor: -webkit-grab;
+}
+.grabbing {
+    cursor: grabbing;
+    cursor: -moz-grabbing;
+    cursor: -webkit-grabbing;
+}
+
+.fully-pannable {
+  width: 100%;
+  height: 100%;
+  @extend .grabbable;
+
+  &.panning { @extend .grabbing; }
 }
 
 .shadow-2 {
@@ -47,14 +79,62 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.19), 0 6px 10px rgba(0, 0, 0, 0.23);
 }
 
+.overlay {
+  @extend .hideable;
+
+  background-color: white;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1000;
+
+  &.faded {
+    // NOTE: Not sure if we should block the pointer events here..
+    pointer-events: all;
+    cursor: wait;
+    opacity: 0.5;
+  }
+}
+
 .overlay-wrapper {
+  align-items: center;
   background-color: fade-out($background-average-color, 0.1);
   border-radius: 4px;
   color: $text-tertiary-color;
   display: flex;
   font-size: 0.7rem;
+  justify-content: center;
   padding: 5px;
   position: absolute;
+  bottom: 11px;
+
+  a {
+    @extend .btn-opacity;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: $text-secondary-color;
+    cursor: pointer;
+    padding: 1px 3px;
+
+    .fa {
+      font-size: 150%;
+      position: relative;
+      top: 2px;
+    }
+
+    &:hover, &.selected {
+      border: 1px solid $text-tertiary-color;
+    }
+
+    &.active {
+      & > * { @extend .blinkable; }
+      border: 1px solid $text-tertiary-color;
+    }
+  }
 }
 
 .btn-opacity {
@@ -118,41 +198,51 @@
     margin-bottom: 12px;
     font-weight: 400;
   }
+
+  &.time-travel-open {
+    .details-wrapper {
+      margin-top: $timeline-height + 15px;
+    }
+  }
 }
 
 .header {
+  padding: 15px 10px 0;
   pointer-events: none;
-
-  position: absolute;
-  top: 32px;
   width: 100%;
-  height: 80px;
-  z-index: 20;
-  display: flex;
 
-  .logo {
-    margin: -10px 0 0 64px;
-    height: 64px;
-    width: 250px;
+  .selectors {
+    display: flex;
+    position: relative;
+    > * { z-index: 20; }
+
+    .time-control { z-index: 2001; }
+
+    .logo {
+      margin: -16px 0 0 64px;
+      height: 64px;
+      width: 250px;
+    }
   }
+}
+
+
+.rc-slider {
+  .rc-slider-step { cursor: pointer; }
+  .rc-slider-track { background-color: $text-tertiary-color; }
+  .rc-slider-rail { background-color: $border-light-color; }
+  .rc-slider-handle { border-color: $text-tertiary-color; }
 }
 
 .footer {
   @extend .overlay-wrapper;
-  bottom: 11px;
   right: 43px;
-
-  a {
-    @extend .btn-opacity;
-    color: $text-secondary-color;
-    cursor: pointer;
-  }
 
   &-status {
     margin-right: 1em;
   }
 
-  &-label {
+  &-label, .pause-text {
     text-transform: uppercase;
     margin: 0 0.25em;
   }
@@ -162,33 +252,12 @@
     text-transform: uppercase;
   }
 
-  &-icon {
-    margin-left: 0.5em;
-    padding: 4px 3px;
-    color: $text-color;
-    position: relative;
-    top: -1px;
-    border: 1px solid transparent;
-    border-radius: 4px;
-
-    &:hover {
-      border: 1px solid $text-tertiary-color;
-    }
-
-    .fa {
-      font-size: 150%;
-      position: relative;
-      top: 2px;
-    }
-
-    &-active {
-      border: 1px solid $text-tertiary-color;
-      animation: blinking 1.5s infinite $base-ease;
-    }
+  &-tools {
+    display: flex;
   }
 
-  &-icon &-label {
-    margin-right: 0.5em;
+  &-icon {
+    margin-left: 0.5em;
   }
 
   .tooltip {
@@ -197,8 +266,108 @@
   }
 }
 
+.time-travel {
+  position: relative;
+  margin-bottom: 15px;
+  z-index: 2001;
+
+  transition: all .15s $base-ease;
+  overflow: hidden;
+  height: 0;
+
+  &.visible {
+    height: $timeline-height + 35px;
+    margin-bottom: 15px;
+    margin-top: -5px;
+  }
+
+  .button {
+    padding: 2px;
+    pointer-events: all;
+  }
+
+  .time-travel-timeline {
+    align-items: center;
+    display: flex;
+    height: $timeline-height;
+
+    svg {
+      @extend .fully-pannable;
+      background-color: rgba(255, 255, 255, 0.85);
+      box-shadow: inset 0 0 7px #aaa;
+      pointer-events: all;
+      margin: 0 7px;
+
+      .available-range {
+        fill: #888;
+        fill-opacity: 0.1;
+      }
+
+      .timestamp-label {
+        margin-left: 2px;
+        padding: 3px;
+
+        &[disabled] {
+          color: #aaa;
+          cursor: inherit;
+        }
+      }
+    }
+
+    &:before, &:after {
+      content: '';
+      position: absolute;
+      display: block;
+      left: 50%;
+      border: 1px solid white;
+      border-top: 0;
+      border-bottom: 0;
+      background-color: red;
+      margin-left: -1px;
+      width: 3px;
+    }
+
+    &:before {
+      top: 0;
+      height: $timeline-height;
+    }
+
+    &:after {
+      top: $timeline-height;
+      height: 9px;
+      opacity: 0.15;
+    }
+  }
+
+  &-timestamp {
+    background-color: $background-lighter-color;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 2px 8px;
+    pointer-events: all;
+    margin: 8px 0 25px 50%;
+    transform: translateX(-50%);
+    opacity: 0.8;
+    display: inline-block;
+
+    input {
+      border: 0;
+      background-color: transparent;
+      font-size: 1rem;
+      width: 165px;
+      font-family: "Roboto", sans-serif;
+      text-align: center;
+      outline: 0;
+    }
+  }
+}
+
+.zoomable-canvas svg {
+  @extend .fully-pannable;
+}
+
 .topologies {
-  margin: 8px 4px;
+  margin: 0 4px;
   display: flex;
 
   .topologies-item {
@@ -256,6 +425,15 @@
 
 }
 
+.nodes-chart-overlay {
+  pointer-events: none;
+  opacity: 0;
+
+  &.active {
+    opacity: $node-elements-in-background-opacity;
+  }
+}
+
 .nodes-chart, .nodes-resources {
 
   &-error, &-loading {
@@ -279,10 +457,13 @@
       opacity: 0.25;
       font-size: 320px;
     }
+
+    li { padding-top: 5px; }
   }
 
-  &-loading &-error-icon-container {
-    animation: blinking 2.0s infinite $base-ease;
+  // Make watermarks blink only if actually shown (otherwise the FF performance decreses weirdly).
+  &-loading:not(.hide) &-error-icon-container {
+    @extend .blinkable;
   }
 
   &-loading {
@@ -310,8 +491,7 @@
     fill: $text-secondary-color;
   }
 
-  .nodes-chart-nodes .node {
-    transition: opacity .2s $base-ease;
+  .nodes-chart-elements .node {
     text-align: center;
 
     .node-label {
@@ -405,16 +585,6 @@
   }
 
   .edge {
-    transition: opacity .5s $base-ease;
-
-    &.blurred {
-      opacity: $edge-opacity-blurred;
-    }
-
-    &.focused {
-      animation: focusing 1.5s ease-in-out;
-    }
-
     .link {
       fill: none;
       stroke: $edge-color;
@@ -475,7 +645,6 @@
       fill: none;
       stroke-opacity: 1;
       stroke-width: $node-border-stroke-width;
-      transition: stroke-opacity 0.333s $base-ease, fill 0.333s $base-ease;
     }
 
     &.metrics .border {
@@ -545,9 +714,9 @@
     display: flex;
     z-index: 1024;
     right: $details-window-padding-left;
-    top: 24px;
+    top: 100px;
     bottom: 48px;
-    transition: transform 0.33333s cubic-bezier(0,0,0.21,1);
+    transition: transform 0.33333s cubic-bezier(0,0,0.21,1), margin-top .15s $base-ease;
   }
 }
 
@@ -579,6 +748,10 @@
     top: 6px;
     right: 8px;
 
+    .close-details {
+      position: relative;
+      z-index: 1024;
+    }
 
     > span {
       @extend .btn-opacity;
@@ -695,8 +868,8 @@
       color: $white;
 
       &-icon {
+        @extend .blinkable;
         margin-right: 0.5em;
-        animation: blinking 2.0s infinite $base-ease;
       }
     }
   }
@@ -768,17 +941,45 @@
     &-item {
       padding: 8px 16px;
       width: 33%;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
 
       &-label {
         color: $text-secondary-color;
         text-transform: uppercase;
         font-size: 80%;
+
+        .fa {
+          margin-left: 0.5em;
+        }
       }
 
-      &-value {
-        color: $text-secondary-color;
-        font-size: 150%;
-        padding-bottom: 0.5em;
+      &-sparkline {
+        margin-top: auto;
+      }
+
+      &-placeholder {
+        font-size: 200%;
+        opacity: 0.2;
+        margin-bottom: 0.2em;
+      }
+    }
+
+    &-link-item {
+      @extend .btn-opacity;
+      cursor: pointer;
+      opacity: $link-opacity-default;
+      width: 33%;
+      display: flex;
+      color: inherit;
+
+      .label {
+        text-transform: uppercase;
+      }
+
+      .node-details-health-item {
+        width: auto;
       }
     }
   }
@@ -925,6 +1126,14 @@
         text-align: right;
       }
 
+      &-metric-link {
+        @extend .btn-opacity;
+        text-decoration: underline;
+        cursor: pointer;
+        opacity: $link-opacity-default;
+        color: $text-color;
+      }
+
       &-value-scalar {
         // width: 2em;
         text-align: right;
@@ -999,12 +1208,14 @@
 
 .node-resources {
   &-metric-box {
+    @extend .palable;
+    cursor: pointer;
     fill: rgba(150, 150, 150, 0.4);
 
     &-info {
       background-color: rgba(white, 0.6);
       border-radius: 2px;
-      cursor: default;
+      cursor: inherit;
       padding: 5px;
 
       .wrapper {
@@ -1272,9 +1483,9 @@
   }
 }
 
-.topology-option, .metric-selector, .network-selector, .view-mode-selector {
+.topology-option, .metric-selector, .network-selector, .view-mode-selector, .time-control {
   color: $text-secondary-color;
-  margin: 6px 0;
+  margin-bottom: 6px;
 
   &:last-child {
     margin-bottom: 0;
@@ -1318,8 +1529,11 @@
   }
 }
 
-.view-mode-selector {
-  margin-top: 8px;
+.metric-selector {
+  margin-top: 6px;
+}
+
+.view-mode-selector, .time-control {
   margin-left: 20px;
   min-width: 161px;
 
@@ -1350,6 +1564,36 @@
   }
 }
 
+.time-control {
+  position: absolute;
+  right: 20px;
+
+  &-controls {
+    align-items: center;
+    justify-content: flex-end;
+    display: flex;
+  }
+
+  &-spinner {
+    display: inline-block;
+    margin-right: 15px;
+    margin-top: 3px;
+
+    .fa {
+      color: $text-secondary-color;
+      font-size: 125%;
+    }
+  }
+
+  &-info {
+    @extend .blinkable;
+    display: block;
+    margin-top: 5px;
+    text-align: right;
+    pointer-events: all;
+  }
+}
+
 .topology-option {
   &-action {
     &-selected {
@@ -1358,7 +1602,7 @@
   }
 }
 
-.view-mode-selector-wrapper {
+.view-mode-selector-wrapper, .time-control-wrapper {
   .label { margin-left: 4px; }
   .fa {
     margin-left: 0;
@@ -1409,9 +1653,9 @@
 
 .sidebar {
   position: fixed;
-  bottom: 12px;
-  left: 12px;
-  padding: 4px;
+  bottom: 11px;
+  left: 11px;
+  padding: 5px;
   font-size: .7rem;
   border-radius: 8px;
   border: 1px solid transparent;
@@ -1434,7 +1678,7 @@
 
   &-wrapper {
     flex: 0 1 20%;
-    margin: 8px;
+    margin: 0 8px;
     text-align: right;
   }
 
@@ -1570,16 +1814,6 @@
     font-size: 80%;
     position: relative;
     top: -1px;
-  }
-}
-
-@keyframes focusing {
-  0% {
-    opacity: 0;
-  } 33% {
-    opacity: 0.2;
-  } 100% {
-    opacity: 1;
   }
 }
 
@@ -1760,27 +1994,16 @@
 
 .zoom-control {
   @extend .overlay-wrapper;
-  align-items: center;
   flex-direction: column;
-  padding: 10px 10px 5px;
+  padding: 5px 7px 0;
   bottom: 50px;
   right: 40px;
 
-  .zoom-in, .zoom-out {
-    @extend .btn-opacity;
-    color: $text-secondary-color;
-    cursor: pointer;
-    font-size: 150%;
-  }
+  a:hover { border-color: transparent; }
 
   .rc-slider {
-    margin: 10px 0;
+    margin: 5px 0;
     height: 60px;
-
-    .rc-slider-step { cursor: pointer; }
-    .rc-slider-track { background-color: $text-tertiary-color; }
-    .rc-slider-rail { background-color: $border-light-color; }
-    .rc-slider-handle { border-color: $text-tertiary-color; }
   }
 }
 
@@ -1820,6 +2043,9 @@
 //
 
 .nodes-grid {
+  // TODO: Would be good to have relative positioning here.
+  position: absolute;
+  top: 0;
 
   tr {
     border-radius: 6px;

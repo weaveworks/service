@@ -1,12 +1,16 @@
 /* eslint-disable import/no-webpack-loader-syntax, import/no-unresolved */
 import debug from 'debug';
 import { size, each, includes, isEqual } from 'lodash';
-import { fromJS, is as isDeepEqual, List as makeList, Map as makeMap,
-  OrderedMap as makeOrderedMap, Set as makeSet } from 'immutable';
+import {
+  fromJS,
+  is as isDeepEqual,
+  List as makeList,
+  Map as makeMap,
+  OrderedMap as makeOrderedMap,
+} from 'immutable';
 
 import ActionTypes from '../constants/action-types';
 import {
-  EDGE_ID_SEPARATOR,
   GRAPH_VIEW_MODE,
   TABLE_VIEW_MODE,
 } from '../constants/naming';
@@ -14,11 +18,12 @@ import {
   graphExceedsComplexityThreshSelector,
   isResourceViewModeSelector,
 } from '../selectors/topology';
+import { isPausedSelector } from '../selectors/time-travel';
 import { activeTopologyZoomCacheKeyPathSelector } from '../selectors/zooming';
+import { nowInSecondsPrecision, timestampsEqual } from '../utils/time-utils';
 import { applyPinnedSearches } from '../utils/search-utils';
 import {
   findTopologyById,
-  getAdjacentNodes,
   setTopologyUrlsById,
   updateTopologyIds,
   filterHiddenTopologies,
@@ -36,6 +41,7 @@ const topologySorter = topology => topology.get('rank');
 // Initial values
 
 export const initialState = makeMap({
+  capabilities: makeMap(),
   contrastMode: false,
   controlPipes: makeOrderedMap(), // pipeId -> controlPipe
   controlStatus: makeMap(),
@@ -46,9 +52,6 @@ export const initialState = makeMap({
   forceRelayout: false,
   gridSortedBy: null,
   gridSortedDesc: null,
-  // TODO: Calculate these sets from selectors instead.
-  highlightedEdgeIds: makeSet(),
-  highlightedNodeIds: makeSet(),
   hostname: '...',
   hoveredMetricType: null,
   initialNodesLoaded: false,
@@ -61,6 +64,7 @@ export const initialState = makeMap({
   nodesByTopology: makeMap(), // topologyId -> nodes
   // class of metric, e.g. 'cpu', rather than 'host_cpu' or 'process_cpu'.
   // allows us to keep the same metric "type" selected when the topology changes.
+  pausedAt: null,
   pinnedMetricType: null,
   pinnedNetwork: null,
   plugins: makeList(),
@@ -71,14 +75,15 @@ export const initialState = makeMap({
   selectedNetwork: null,
   selectedNodeId: null,
   showingHelp: false,
+  showingTimeTravel: false,
   showingTroubleshootingMenu: false,
   showingNetworks: false,
+  timeTravelTransitioning: false,
   topologies: makeList(),
   topologiesLoaded: false,
   topologyOptions: makeOrderedMap(), // topologyId -> options
   topologyUrlsById: makeOrderedMap(), // topologyId -> topologyUrl
   topologyViewMode: GRAPH_VIEW_MODE,
-  updatePausedAt: null, // Date
   version: '...',
   versionUpdate: null,
   viewport: makeMap(),
@@ -107,19 +112,19 @@ function calcSelectType(topology) {
 // adds ID field to topology (based on last part of URL path) and save urls in
 // map for easy lookup
 function processTopologies(state, nextTopologies) {
+  // add IDs to topology objects in-place
+  const topologiesWithId = updateTopologyIds(nextTopologies);
   // filter out hidden topos
-  const visibleTopologies = filterHiddenTopologies(nextTopologies);
+  const visibleTopologies = filterHiddenTopologies(topologiesWithId, state.get('currentTopology'));
   // set `selectType` field for topology and sub_topologies options (recursive).
   const topologiesWithSelectType = visibleTopologies.map(calcSelectType);
-  // add IDs to topology objects in-place
-  const topologiesWithId = updateTopologyIds(topologiesWithSelectType);
   // cache URLs by ID
   state = state.set('topologyUrlsById',
-    setTopologyUrlsById(state.get('topologyUrlsById'), topologiesWithId));
+    setTopologyUrlsById(state.get('topologyUrlsById'), topologiesWithSelectType));
 
-  const topologiesWithFullnames = addTopologyFullname(topologiesWithId);
+  const topologiesWithFullnames = addTopologyFullname(topologiesWithSelectType);
   const immNextTopologies = fromJS(topologiesWithFullnames).sortBy(topologySorter);
-  return state.mergeDeepIn(['topologies'], immNextTopologies);
+  return state.set('topologies', immNextTopologies);
 }
 
 function setTopology(state, topologyId) {
@@ -169,14 +174,37 @@ function closeAllNodeDetails(state) {
   return state;
 }
 
-function resumeUpdate(state) {
-  return state.set('updatePausedAt', null);
-}
-
 function clearNodes(state) {
   return state
     .update('nodes', nodes => nodes.clear())
     .set('nodesLoaded', false);
+}
+
+// TODO: These state changes should probably be calculated from selectors.
+function updateStateFromNodes(state) {
+  // Apply pinned searches, filters nodes that dont match.
+  state = applyPinnedSearches(state);
+
+  // In case node or edge disappears before mouseleave event.
+  const nodesIds = state.get('nodes').keySeq();
+  if (!nodesIds.contains(state.get('mouseOverNodeId'))) {
+    state = state.set('mouseOverNodeId', null);
+  }
+  if (!nodesIds.some(nodeId => includes(state.get('mouseOverEdgeId'), nodeId))) {
+    state = state.set('mouseOverEdgeId', null);
+  }
+
+  // Update the nodes cache only if we're not in the resource view mode, as we
+  // intentionally want to keep it static before we figure how to keep it up-to-date.
+  if (!isResourceViewModeSelector(state)) {
+    const nodesForCurrentTopologyKey = ['nodesByTopology', state.get('currentTopologyId')];
+    state = state.setIn(nodesForCurrentTopologyKey, state.get('nodes'));
+  }
+
+  // Clear the error.
+  state = state.set('errorUrl', null);
+
+  return state;
 }
 
 export function rootReducer(state = initialState, action) {
@@ -190,13 +218,12 @@ export function rootReducer(state = initialState, action) {
     }
 
     case ActionTypes.CHANGE_TOPOLOGY_OPTION: {
-      state = resumeUpdate(state);
       // set option on parent topology
       const topology = findTopologyById(state.get('topologies'), action.topologyId);
       if (topology) {
         const topologyId = topology.get('parentId') || topology.get('id');
         const optionKey = ['topologyOptions', topologyId, action.option];
-        const currentOption = state.getIn(['topologyOptions', topologyId, action.option]);
+        const currentOption = state.getIn(optionKey);
 
         if (!isEqual(currentOption, action.value)) {
           state = clearNodes(state);
@@ -275,17 +302,13 @@ export function rootReducer(state = initialState, action) {
           {
             id: action.nodeId,
             label: action.label,
+            topologyId: action.topologyId || state.get('currentTopologyId'),
             origin,
-            topologyId: state.get('currentTopologyId')
           }
         );
         state = state.set('selectedNodeId', action.nodeId);
       }
       return state;
-    }
-
-    case ActionTypes.CLICK_PAUSE_UPDATE: {
-      return state.set('updatePausedAt', new Date());
     }
 
     case ActionTypes.CLICK_RELATIVE: {
@@ -307,13 +330,7 @@ export function rootReducer(state = initialState, action) {
       return state;
     }
 
-    case ActionTypes.CLICK_RESUME_UPDATE: {
-      return resumeUpdate(state);
-    }
-
     case ActionTypes.CLICK_SHOW_TOPOLOGY_FOR_NODE: {
-      state = resumeUpdate(state);
-
       state = state.update('nodeDetails',
         nodeDetails => nodeDetails.filter((v, k) => k === action.nodeId));
       state = state.update('controlPipes', controlPipes => controlPipes.clear());
@@ -328,10 +345,10 @@ export function rootReducer(state = initialState, action) {
     }
 
     case ActionTypes.CLICK_TOPOLOGY: {
-      state = resumeUpdate(state);
       state = closeAllNodeDetails(state);
 
-      if (action.topologyId !== state.get('currentTopologyId')) {
+      const currentTopologyId = state.get('currentTopologyId');
+      if (action.topologyId !== currentTopologyId) {
         state = setTopology(state, action.topologyId);
         state = clearNodes(state);
       }
@@ -339,11 +356,51 @@ export function rootReducer(state = initialState, action) {
       return state;
     }
 
+    //
+    // time control
+    //
+
+    case ActionTypes.RESUME_TIME: {
+      state = state.set('timeTravelTransitioning', true);
+      state = state.set('showingTimeTravel', false);
+      return state.set('pausedAt', null);
+    }
+
+    case ActionTypes.PAUSE_TIME_AT_NOW: {
+      state = state.set('showingTimeTravel', false);
+      state = state.set('timeTravelTransitioning', false);
+      return state.set('pausedAt', nowInSecondsPrecision());
+    }
+
+    case ActionTypes.START_TIME_TRAVEL: {
+      state = state.set('showingTimeTravel', true);
+      state = state.set('timeTravelTransitioning', false);
+      return state.set('pausedAt', nowInSecondsPrecision());
+    }
+
+    case ActionTypes.JUMP_TO_TIME: {
+      return state.set('pausedAt', action.timestamp);
+    }
+
+    case ActionTypes.TIME_TRAVEL_START_TRANSITION: {
+      return state.set('timeTravelTransitioning', true);
+    }
+
+    case ActionTypes.FINISH_TIME_TRAVEL_TRANSITION: {
+      state = state.set('timeTravelTransitioning', false);
+      return clearNodes(state);
+    }
+
+    //
+    // websockets
+    //
+
+    case ActionTypes.OPEN_WEBSOCKET: {
+      return state.set('websocketClosed', false);
+    }
+
     case ActionTypes.CLOSE_WEBSOCKET: {
-      if (!state.get('websocketClosed')) {
-        state = state.set('websocketClosed', true);
-      }
-      return state;
+      return state.set('websocketClosed', true);
     }
 
     //
@@ -419,71 +476,19 @@ export function rootReducer(state = initialState, action) {
     }
 
     case ActionTypes.ENTER_EDGE: {
-      // highlight adjacent nodes
-      state = state.update('highlightedNodeIds', (highlightedNodeIds) => {
-        highlightedNodeIds = highlightedNodeIds.clear();
-        return highlightedNodeIds.union(action.edgeId.split(EDGE_ID_SEPARATOR));
-      });
-
-      // highlight edge
-      state = state.update('highlightedEdgeIds', (highlightedEdgeIds) => {
-        highlightedEdgeIds = highlightedEdgeIds.clear();
-        highlightedEdgeIds = highlightedEdgeIds.add(action.edgeId);
-        const opposite = action.edgeId.split(EDGE_ID_SEPARATOR).reverse().join(EDGE_ID_SEPARATOR);
-        highlightedEdgeIds = highlightedEdgeIds.add(opposite);
-        return highlightedEdgeIds;
-      });
-
-      return state;
+      return state.set('mouseOverEdgeId', action.edgeId);
     }
 
     case ActionTypes.ENTER_NODE: {
-      const nodeId = action.nodeId;
-      const adjacentNodes = getAdjacentNodes(state, nodeId);
-
-      state = state.set('mouseOverNodeId', nodeId);
-
-      // highlight adjacent nodes
-      state = state.update('highlightedNodeIds', (highlightedNodeIds) => {
-        highlightedNodeIds = highlightedNodeIds.clear();
-        highlightedNodeIds = highlightedNodeIds.add(nodeId);
-        return highlightedNodeIds.union(adjacentNodes);
-      });
-
-      // highlight edge
-      state = state.update('highlightedEdgeIds', (highlightedEdgeIds) => {
-        highlightedEdgeIds = highlightedEdgeIds.clear();
-        if (adjacentNodes.size > 0) {
-          // all neighbour combinations because we dont know which direction exists
-          highlightedEdgeIds = highlightedEdgeIds.union(adjacentNodes.flatMap(adjacentId => [
-            [adjacentId, nodeId].join(EDGE_ID_SEPARATOR),
-            [nodeId, adjacentId].join(EDGE_ID_SEPARATOR)
-          ]));
-        }
-        return highlightedEdgeIds;
-      });
-
-      return state;
+      return state.set('mouseOverNodeId', action.nodeId);
     }
 
     case ActionTypes.LEAVE_EDGE: {
-      state = state.update('highlightedEdgeIds', highlightedEdgeIds => highlightedEdgeIds.clear());
-      state = state.update('highlightedNodeIds', highlightedNodeIds => highlightedNodeIds.clear());
-      return state;
+      return state.set('mouseOverEdgeId', null);
     }
 
     case ActionTypes.LEAVE_NODE: {
-      state = state.set('mouseOverNodeId', null);
-      state = state.update('highlightedEdgeIds', highlightedEdgeIds => highlightedEdgeIds.clear());
-      state = state.update('highlightedNodeIds', highlightedNodeIds => highlightedNodeIds.clear());
-      return state;
-    }
-
-    case ActionTypes.OPEN_WEBSOCKET: {
-      // flush nodes cache after re-connect
-      state = state.update('nodes', nodes => nodes.clear());
-      state = state.set('websocketClosed', false);
-      return state;
+      return state.set('mouseOverNodeId', null);
     }
 
     case ActionTypes.DO_CONTROL_ERROR: {
@@ -539,16 +544,21 @@ export function rootReducer(state = initialState, action) {
     }
 
     case ActionTypes.RECEIVE_NODE_DETAILS: {
+      // Ignore the update if paused and the timestamp didn't change.
+      const setTimestamp = state.getIn(['nodeDetails', action.details.id, 'timestamp']);
+      if (isPausedSelector(state) && timestampsEqual(action.requestTimestamp, setTimestamp)) {
+        return state;
+      }
+
       state = state.set('errorUrl', null);
 
       // disregard if node is not selected anymore
       if (state.hasIn(['nodeDetails', action.details.id])) {
-        state = state.updateIn(['nodeDetails', action.details.id], (obj) => {
-          const result = Object.assign({}, obj);
-          result.notFound = false;
-          result.details = action.details;
-          return result;
-        });
+        state = state.updateIn(['nodeDetails', action.details.id], obj => ({ ...obj,
+          notFound: false,
+          timestamp: action.requestTimestamp,
+          details: action.details,
+        }));
       }
       return state;
     }
@@ -567,27 +577,23 @@ export function rootReducer(state = initialState, action) {
     }
 
     case ActionTypes.RECEIVE_NODES_DELTA: {
-      const emptyMessage = !action.delta.add && !action.delta.remove
-        && !action.delta.update;
-
-      if (!emptyMessage) {
-        log('RECEIVE_NODES_DELTA',
-          'remove', size(action.delta.remove),
-          'update', size(action.delta.update),
-          'add', size(action.delta.add));
+      // Ignore periodic nodes updates after the first load when paused.
+      if (state.get('nodesLoaded') && state.get('pausedAt')) {
+        return state;
       }
 
-      state = state.set('errorUrl', null);
+      log('RECEIVE_NODES_DELTA',
+        'remove', size(action.delta.remove),
+        'update', size(action.delta.update),
+        'add', size(action.delta.add),
+        'reset', action.delta.reset);
 
-      // nodes that no longer exist
+      if (action.delta.reset) {
+        state = state.set('nodes', makeMap());
+      }
+
+      // remove nodes that no longer exist
       each(action.delta.remove, (nodeId) => {
-        // in case node disappears before mouseleave event
-        if (state.get('mouseOverNodeId') === nodeId) {
-          state = state.set('mouseOverNodeId', null);
-        }
-        if (state.hasIn(['nodes', nodeId]) && includes(state.get('mouseOverEdgeId'), nodeId)) {
-          state = state.set('mouseOverEdgeId', null);
-        }
         state = state.deleteIn(['nodes', nodeId]);
       });
 
@@ -606,17 +612,14 @@ export function rootReducer(state = initialState, action) {
         state = state.setIn(['nodes', node.id], fromJS(node));
       });
 
-      // apply pinned searches, filters nodes that dont match
-      state = applyPinnedSearches(state);
+      return updateStateFromNodes(state);
+    }
 
-      // Update the nodes cache only if we're not in the resource view mode, as we
-      // intentionally want to keep it static before we figure how to keep it up-to-date.
-      if (!isResourceViewModeSelector(state)) {
-        const nodesForCurrentTopologyKey = ['nodesByTopology', state.get('currentTopologyId')];
-        state = state.setIn(nodesForCurrentTopologyKey, state.get('nodes'));
-      }
-
-      return state;
+    case ActionTypes.RECEIVE_NODES: {
+      state = state.set('timeTravelTransitioning', false);
+      state = state.set('nodes', fromJS(action.nodes));
+      state = state.set('nodesLoaded', true);
+      return updateStateFromNodes(state);
     }
 
     case ActionTypes.RECEIVE_NODES_FOR_TOPOLOGY: {
@@ -625,11 +628,10 @@ export function rootReducer(state = initialState, action) {
 
     case ActionTypes.RECEIVE_NOT_FOUND: {
       if (state.hasIn(['nodeDetails', action.nodeId])) {
-        state = state.updateIn(['nodeDetails', action.nodeId], (obj) => {
-          const result = Object.assign({}, obj);
-          result.notFound = true;
-          return result;
-        });
+        state = state.updateIn(['nodeDetails', action.nodeId], obj => ({ ...obj,
+          timestamp: action.requestTimestamp,
+          notFound: true,
+        }));
       }
       return state;
     }
@@ -657,10 +659,11 @@ export function rootReducer(state = initialState, action) {
       state = state.set('errorUrl', null);
 
       return state.merge({
+        capabilities: action.capabilities,
         hostname: action.hostname,
-        version: action.version,
         plugins: action.plugins,
-        versionUpdate: action.newVersion
+        version: action.version,
+        versionUpdate: action.newVersion,
       });
     }
 
@@ -738,8 +741,7 @@ export function rootReducer(state = initialState, action) {
     }
 
     case ActionTypes.SHUTDOWN: {
-      state = clearNodes(state);
-      return state.set('nodesLoaded', false);
+      return clearNodes(state);
     }
 
     case ActionTypes.REQUEST_SERVICE_IMAGES: {

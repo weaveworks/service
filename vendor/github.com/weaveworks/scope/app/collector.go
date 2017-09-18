@@ -1,9 +1,7 @@
 package app
 
 import (
-	"compress/gzip"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ugorji/go/codec"
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/common/mtime"
@@ -31,9 +28,27 @@ const reportQuantisationInterval = 3 * time.Second
 // Reporter is something that can produce reports on demand. It's a convenient
 // interface for parts of the app, and several experimental components.
 type Reporter interface {
-	Report(context.Context) (report.Report, error)
+	Report(context.Context, time.Time) (report.Report, error)
+	HasHistoricReports() bool
 	WaitOn(context.Context, chan struct{})
 	UnWait(context.Context, chan struct{})
+}
+
+// WebReporter is a reporter that creates reports whose data is eventually
+// displayed on websites. It carries fields that will be forwarded to the
+// report.RenderContext
+type WebReporter struct {
+	Reporter
+	MetricsGraphURL string
+}
+
+// RenderContextForReporter creates the rendering context for the given reporter.
+func RenderContextForReporter(rep Reporter, r report.Report) report.RenderContext {
+	rc := report.RenderContext{Report: r}
+	if wrep, ok := rep.(WebReporter); ok {
+		rc.MetricsGraphURL = wrep.MetricsGraphURL
+	}
+	return rc
 }
 
 // Adder is something that can accept reports. It's a convenient interface for
@@ -121,14 +136,14 @@ func (c *collector) Add(_ context.Context, rpt report.Report, _ []byte) error {
 
 // Report returns a merged report over all added reports. It implements
 // Reporter.
-func (c *collector) Report(_ context.Context) (report.Report, error) {
+func (c *collector) Report(_ context.Context, timestamp time.Time) (report.Report, error) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
 	// If the oldest report is still within range,
 	// and there is a cached report, return that.
 	if c.cached != nil && len(c.reports) > 0 {
-		oldest := mtime.Now().Add(-c.window)
+		oldest := timestamp.Add(-c.window)
 		if c.timestamps[0].After(oldest) {
 			return *c.cached, nil
 		}
@@ -140,6 +155,12 @@ func (c *collector) Report(_ context.Context) (report.Report, error) {
 	rpt := c.merger.Merge(c.reports).Upgrade()
 	c.cached = &rpt
 	return rpt, nil
+}
+
+// HasHistoricReports indicates whether the collector contains reports
+// older than now-app.window.
+func (c *collector) HasHistoricReports() bool {
+	return false
 }
 
 // remove reports older than the app.window
@@ -194,7 +215,15 @@ type StaticCollector report.Report
 
 // Report returns a merged report over all added reports. It implements
 // Reporter.
-func (c StaticCollector) Report(context.Context) (report.Report, error) { return report.Report(c), nil }
+func (c StaticCollector) Report(context.Context, time.Time) (report.Report, error) {
+	return report.Report(c), nil
+}
+
+// HasHistoricReports indicates whether the collector contains reports
+// older than now-app.window.
+func (c StaticCollector) HasHistoricReports() bool {
+	return false
+}
 
 // Add adds a report to the collector's internal state. It implements Adder.
 func (c StaticCollector) Add(context.Context, report.Report, []byte) error { return nil }
@@ -234,7 +263,7 @@ func NewFileCollector(path string, window time.Duration) (Collector, error) {
 			}
 			timestamps = append(timestamps, t)
 
-			rpt, err := readReport(p)
+			rpt, err := report.MakeFromFile(p)
 			if err != nil {
 				return err
 			}
@@ -265,49 +294,6 @@ func timestampFromFilepath(path string) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("filename '%s' is not a number (representing nanoseconds since epoch): %v", name, err)
 	}
 	return time.Unix(0, nanosecondsSinceEpoch), nil
-}
-
-func readReport(path string) (rpt report.Report, _ error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return rpt, err
-	}
-	defer f.Close()
-
-	var (
-		handle  codec.Handle
-		gzipped bool
-	)
-	fileType := filepath.Ext(path)
-	if fileType == ".gz" {
-		gzipped = true
-		fileType = filepath.Ext(strings.TrimSuffix(path, fileType))
-	}
-	switch fileType {
-	case ".json":
-		handle = &codec.JsonHandle{}
-	case ".msgpack":
-		handle = &codec.MsgpackHandle{}
-	default:
-		return rpt, fmt.Errorf("Unsupported file extension: %v", fileType)
-	}
-
-	var buf []byte
-	if gzipped {
-		r, err := gzip.NewReader(f)
-		if err != nil {
-			return rpt, err
-		}
-		buf, err = ioutil.ReadAll(r)
-	} else {
-		buf, err = ioutil.ReadAll(f)
-	}
-	if err != nil {
-		return rpt, err
-	}
-	err = rpt.ReadBytes(buf, handle)
-
-	return rpt, err
 }
 
 func replay(a Adder, timestamps []time.Time, reports []report.Report) {

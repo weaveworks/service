@@ -1,8 +1,10 @@
 import { endsWith } from 'lodash';
-import { Set as makeSet, List as makeList } from 'immutable';
+import { Set as makeSet, List as makeList, Map as makeMap } from 'immutable';
 
+import { isPausedSelector } from '../selectors/time-travel';
 import { isResourceViewModeSelector } from '../selectors/topology';
 import { pinnedMetricSelector } from '../selectors/node-metric';
+import { shownNodesSelector, shownResourceTopologyIdsSelector } from '../selectors/node-filters';
 
 //
 // top priority first
@@ -10,8 +12,8 @@ import { pinnedMetricSelector } from '../selectors/node-metric';
 const TOPOLOGY_DISPLAY_PRIORITY = [
   'ecs-services',
   'ecs-tasks',
+  'kube-controllers',
   'services',
-  'deployments',
   'replica-sets',
   'pods',
   'containers',
@@ -124,24 +126,32 @@ export function setTopologyUrlsById(topologyUrlsById, topologies) {
   return urlMap;
 }
 
-export function filterHiddenTopologies(topologies) {
+export function filterHiddenTopologies(topologies, currentTopology) {
+  currentTopology = currentTopology || makeMap();
   return topologies.filter(t => (!t.hide_if_empty || t.stats.node_count > 0 ||
-                               t.stats.filtered_nodes > 0));
+                               t.stats.filtered_nodes > 0 || t.id === currentTopology.get('id') ||
+                               t.id === currentTopology.get('parentId')));
 }
 
 export function getCurrentTopologyOptions(state) {
   return state.getIn(['currentTopology', 'options']);
 }
 
-export function isTopologyEmpty(state) {
-  // Consider a topology in the resource view empty if it has no pinned metric.
-  const resourceViewEmpty = isResourceViewModeSelector(state) && !pinnedMetricSelector(state);
-  // Otherwise (in graph and table view), we only look at the node count.
+export function isTopologyNodeCountZero(state) {
   const nodeCount = state.getIn(['currentTopology', 'stats', 'node_count'], 0);
-  const nodesEmpty = nodeCount === 0 && state.get('nodes').size === 0;
-  return resourceViewEmpty || nodesEmpty;
+  // If we are browsing the past, assume there would normally be some nodes at different times.
+  // If we are in the resource view, don't rely on these stats at all (for now).
+  return nodeCount === 0 && !isPausedSelector(state) && !isResourceViewModeSelector(state);
 }
 
+export function isNodesDisplayEmpty(state) {
+  // Consider a topology in the resource view empty if it has no pinned metric.
+  if (isResourceViewModeSelector(state)) {
+    return !pinnedMetricSelector(state) || shownResourceTopologyIdsSelector(state).isEmpty();
+  }
+  // Otherwise (in graph and table view), we only look at the nodes content.
+  return shownNodesSelector(state).isEmpty();
+}
 
 export function getAdjacentNodes(state, originNodeId) {
   let adjacentNodes = makeSet();

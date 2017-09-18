@@ -1,14 +1,18 @@
 package kubernetes
 
 import (
+	"strconv"
+
 	"github.com/weaveworks/scope/report"
-	"k8s.io/kubernetes/pkg/api"
+
+	apiv1 "k8s.io/client-go/pkg/api/v1"
 )
 
 // These constants are keys used in node metadata
 const (
 	State           = "kubernetes_state"
 	IsInHostNetwork = "kubernetes_is_in_host_network"
+	RestartCount    = "kubernetes_restart_count"
 
 	StateDeleted = "deleted"
 )
@@ -19,17 +23,18 @@ type Pod interface {
 	AddParent(topology, id string)
 	NodeName() string
 	GetNode(probeID string) report.Node
+	RestartCount() uint
 }
 
 type pod struct {
-	*api.Pod
+	*apiv1.Pod
 	Meta
 	parents report.Sets
-	Node    *api.Node
+	Node    *apiv1.Node
 }
 
 // NewPod creates a new Pod
-func NewPod(p *api.Pod) Pod {
+func NewPod(p *apiv1.Pod) Pod {
 	return &pod{
 		Pod:     p,
 		Meta:    meta{p.ObjectMeta},
@@ -57,14 +62,23 @@ func (p *pod) NodeName() string {
 	return p.Spec.NodeName
 }
 
+func (p *pod) RestartCount() uint {
+	count := uint(0)
+	for _, cs := range p.Status.ContainerStatuses {
+		count += uint(cs.RestartCount)
+	}
+	return count
+}
+
 func (p *pod) GetNode(probeID string) report.Node {
 	latests := map[string]string{
 		State: p.State(),
 		IP:    p.Status.PodIP,
 		report.ControlProbeID: probeID,
+		RestartCount:          strconv.FormatUint(uint64(p.RestartCount()), 10),
 	}
 
-	if sc := p.Pod.Spec.SecurityContext; sc != nil && sc.HostNetwork {
+	if p.Pod.Spec.HostNetwork {
 		latests[IsInHostNetwork] = "true"
 	}
 

@@ -18,16 +18,17 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tylerb/graceful"
-	"github.com/weaveworks/go-checkpoint"
-	"github.com/weaveworks/weave/common"
 
 	billing "github.com/weaveworks/billing-client"
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/common/network"
+	"github.com/weaveworks/go-checkpoint"
 	"github.com/weaveworks/scope/app"
 	"github.com/weaveworks/scope/app/multitenant"
 	"github.com/weaveworks/scope/common/weave"
+	"github.com/weaveworks/scope/common/xfer"
 	"github.com/weaveworks/scope/probe/docker"
+	"github.com/weaveworks/weave/common"
 )
 
 const (
@@ -50,7 +51,7 @@ func init() {
 }
 
 // Router creates the mux for all the various app components.
-func router(collector app.Collector, controlRouter app.ControlRouter, pipeRouter app.PipeRouter, externalUI bool) http.Handler {
+func router(collector app.Collector, controlRouter app.ControlRouter, pipeRouter app.PipeRouter, externalUI bool, capabilities map[string]bool, metricsGraphURL string) http.Handler {
 	router := mux.NewRouter().SkipClean(true)
 
 	// We pull in the http.DefaultServeMux to get the pprof routes
@@ -60,7 +61,7 @@ func router(collector app.Collector, controlRouter app.ControlRouter, pipeRouter
 	app.RegisterReportPostHandler(collector, router)
 	app.RegisterControlRoutes(router, controlRouter)
 	app.RegisterPipeRoutes(router, pipeRouter)
-	app.RegisterTopologyRoutes(router, collector)
+	app.RegisterTopologyRoutes(router, app.WebReporter{Reporter: collector, MetricsGraphURL: metricsGraphURL}, capabilities)
 
 	uiHandler := http.FileServer(GetFS(externalUI))
 	router.PathPrefix("/ui").Name("static").Handler(
@@ -90,7 +91,8 @@ func awsConfigFromURL(url *url.URL) (*aws.Config, error) {
 	return config, nil
 }
 
-func collectorFactory(userIDer multitenant.UserIDer, collectorURL, s3URL, natsHostname, memcachedHostname string, memcachedTimeout time.Duration, memcachedService string, memcachedExpiration time.Duration, memcachedCompressionLevel int, window time.Duration, createTables bool) (app.Collector, error) {
+func collectorFactory(userIDer multitenant.UserIDer, collectorURL, s3URL, natsHostname string,
+	memcacheConfig multitenant.MemcacheConfig, window time.Duration, createTables bool) (app.Collector, error) {
 	if collectorURL == "local" {
 		return app.NewCollector(window), nil
 	}
@@ -120,17 +122,8 @@ func collectorFactory(userIDer multitenant.UserIDer, collectorURL, s3URL, natsHo
 		tableName := strings.TrimPrefix(parsed.Path, "/")
 		s3Store := multitenant.NewS3Client(s3Config, bucketName)
 		var memcacheClient *multitenant.MemcacheClient
-		if memcachedHostname != "" {
-			memcacheClient = multitenant.NewMemcacheClient(
-				multitenant.MemcacheConfig{
-					Host:             memcachedHostname,
-					Timeout:          memcachedTimeout,
-					Expiration:       memcachedExpiration,
-					UpdateInterval:   memcacheUpdateInterval,
-					Service:          memcachedService,
-					CompressionLevel: memcachedCompressionLevel,
-				},
-			)
+		if memcacheConfig.Host != "" {
+			memcacheClient = multitenant.NewMemcacheClient(memcacheConfig)
 		}
 		awsCollector, err := multitenant.NewAWSCollector(
 			multitenant.AWSCollectorConfig{
@@ -237,8 +230,15 @@ func appMain(flags appFlags) {
 	}
 
 	collector, err := collectorFactory(
-		userIDer, flags.collectorURL, flags.s3URL, flags.natsHostname, flags.memcachedHostname,
-		flags.memcachedTimeout, flags.memcachedService, flags.memcachedExpiration, flags.memcachedCompressionLevel,
+		userIDer, flags.collectorURL, flags.s3URL, flags.natsHostname,
+		multitenant.MemcacheConfig{
+			Host:             flags.memcachedHostname,
+			Timeout:          flags.memcachedTimeout,
+			Expiration:       flags.memcachedExpiration,
+			UpdateInterval:   memcacheUpdateInterval,
+			Service:          flags.memcachedService,
+			CompressionLevel: flags.memcachedCompressionLevel,
+		},
 		flags.window, flags.awsCreateTables)
 	if err != nil {
 		log.Fatalf("Error creating collector: %v", err)
@@ -294,7 +294,10 @@ func appMain(flags appFlags) {
 		}
 	}
 
-	handler := router(collector, controlRouter, pipeRouter, flags.externalUI)
+	capabilities := map[string]bool{
+		xfer.HistoricReportsCapability: collector.HasHistoricReports(),
+	}
+	handler := router(collector, controlRouter, pipeRouter, flags.externalUI, capabilities, flags.metricsGraphURL)
 	if flags.logHTTP {
 		handler = middleware.Log{
 			LogRequestHeaders: flags.logHTTPHeaders,

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/PuerkitoBio/ghost/handlers"
 	log "github.com/Sirupsen/logrus"
@@ -90,10 +91,10 @@ func gzipHandler(h http.HandlerFunc) http.HandlerFunc {
 }
 
 // RegisterTopologyRoutes registers the various topology routes with a http mux.
-func RegisterTopologyRoutes(router *mux.Router, r Reporter) {
+func RegisterTopologyRoutes(router *mux.Router, r Reporter, capabilities map[string]bool) {
 	get := router.Methods("GET").Subrouter()
 	get.HandleFunc("/api",
-		gzipHandler(requestContextDecorator(apiHandler(r))))
+		gzipHandler(requestContextDecorator(apiHandler(r, capabilities))))
 	get.HandleFunc("/api/topology",
 		gzipHandler(requestContextDecorator(topologyRegistry.makeTopologyList(r))))
 	get.
@@ -177,9 +178,9 @@ func NewVersion(version, downloadURL string) {
 	}
 }
 
-func apiHandler(rep Reporter) CtxHandlerFunc {
+func apiHandler(rep Reporter, capabilities map[string]bool) CtxHandlerFunc {
 	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		report, err := rep.Report(ctx)
+		report, err := rep.Report(ctx, time.Now())
 		if err != nil {
 			respondWith(w, http.StatusInternalServerError, err)
 			return
@@ -187,11 +188,12 @@ func apiHandler(rep Reporter) CtxHandlerFunc {
 		newVersion.Lock()
 		defer newVersion.Unlock()
 		respondWith(w, http.StatusOK, xfer.Details{
-			ID:         UniqueID,
-			Version:    Version,
-			Hostname:   hostname.Get(),
-			Plugins:    report.Plugins,
-			NewVersion: newVersion.NewVersionInfo,
+			ID:           UniqueID,
+			Version:      Version,
+			Hostname:     hostname.Get(),
+			Plugins:      report.Plugins,
+			Capabilities: capabilities,
+			NewVersion:   newVersion.NewVersionInfo,
 		})
 	}
 }
