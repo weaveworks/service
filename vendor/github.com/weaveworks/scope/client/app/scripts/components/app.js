@@ -1,6 +1,5 @@
 import debug from 'debug';
 import React from 'react';
-import classNames from 'classnames';
 import { connect } from 'react-redux';
 import { debounce } from 'lodash';
 
@@ -13,8 +12,7 @@ import Search from './search';
 import Status from './status';
 import Topologies from './topologies';
 import TopologyOptions from './topology-options';
-import Overlay from './overlay';
-import { getApiDetails } from '../utils/web-api-utils';
+import { getApiDetails, getTopologies } from '../utils/web-api-utils';
 import {
   focusSearch,
   pinNextMetric,
@@ -28,12 +26,9 @@ import {
   setResourceView,
   shutdown,
   setViewportDimensions,
-  getTopologiesWithInitialPoll,
 } from '../actions/app-actions';
 import Details from './details';
 import Nodes from './nodes';
-import TimeTravel from './time-travel';
-import TimeControl from './time-control';
 import ViewModeSelector from './view-mode-selector';
 import NetworkSelector from './networks-selector';
 import DebugToolbar, { showingDebugToolbar, toggleDebugToolbar } from './debug-toolbar';
@@ -41,6 +36,7 @@ import { getRouter, getUrlState } from '../utils/router-utils';
 import { trackMixpanelEvent } from '../utils/tracking-utils';
 import { availableNetworksSelector } from '../selectors/node-networks';
 import {
+  activeTopologyOptionsSelector,
   isResourceViewModeSelector,
   isTableViewModeSelector,
   isGraphViewModeSelector,
@@ -76,7 +72,7 @@ class App extends React.Component {
     if (!this.props.routeSet || process.env.WEAVE_CLOUD) {
       // dont request topologies when already done via router.
       // If running as a component, always request topologies when the app mounts.
-      this.props.dispatch(getTopologiesWithInitialPoll());
+      getTopologies(this.props.activeTopologyOptions, this.props.dispatch, true);
     }
     getApiDetails(this.props.dispatch);
   }
@@ -167,15 +163,12 @@ class App extends React.Component {
   }
 
   render() {
-    const { isTableViewMode, isGraphViewMode, isResourceViewMode, showingDetails,
-      showingHelp, showingNetworkSelector, showingTroubleshootingMenu,
-      timeTravelTransitioning, showingTimeTravel } = this.props;
-
-    const className = classNames('scope-app', { 'time-travel-open': showingTimeTravel });
+    const { isTableViewMode, isGraphViewMode, isResourceViewMode, showingDetails, showingHelp,
+      showingNetworkSelector, showingTroubleshootingMenu } = this.props;
     const isIframe = window !== window.top;
 
     return (
-      <div className={className} ref={this.saveAppRef}>
+      <div className="scope-app" ref={this.saveAppRef}>
         {showingDebugToolbar() && <DebugToolbar />}
 
         {showingHelp && <HelpPanel />}
@@ -185,18 +178,14 @@ class App extends React.Component {
         {showingDetails && <Details />}
 
         <div className="header">
-          <TimeTravel />
-          <div className="selectors">
-            <div className="logo">
-              {!isIframe && <svg width="100%" height="100%" viewBox="0 0 1089 217">
-                <Logo />
-              </svg>}
-            </div>
-            <Search />
-            <Topologies />
-            <ViewModeSelector />
-            <TimeControl />
+          <div className="logo">
+            {!isIframe && <svg width="100%" height="100%" viewBox="0 0 1089 217">
+              <Logo />
+            </svg>}
           </div>
+          <Search />
+          <Topologies />
+          <ViewModeSelector />
         </div>
 
         <Nodes />
@@ -208,8 +197,6 @@ class App extends React.Component {
         </Sidebar>
 
         <Footer />
-
-        <Overlay faded={timeTravelTransitioning} />
       </div>
     );
   }
@@ -218,6 +205,7 @@ class App extends React.Component {
 
 function mapStateToProps(state) {
   return {
+    activeTopologyOptions: activeTopologyOptionsSelector(state),
     currentTopology: state.get('currentTopology'),
     isResourceViewMode: isResourceViewModeSelector(state),
     isTableViewMode: isTableViewModeSelector(state),
@@ -228,12 +216,10 @@ function mapStateToProps(state) {
     searchQuery: state.get('searchQuery'),
     showingDetails: state.get('nodeDetails').size > 0,
     showingHelp: state.get('showingHelp'),
-    showingTimeTravel: state.get('showingTimeTravel'),
     showingTroubleshootingMenu: state.get('showingTroubleshootingMenu'),
     showingNetworkSelector: availableNetworksSelector(state).count() > 0,
     showingTerminal: state.get('controlPipes').size > 0,
     topologyViewMode: state.get('topologyViewMode'),
-    timeTravelTransitioning: state.get('timeTravelTransitioning'),
     urlState: getUrlState(state)
   };
 }

@@ -30,11 +30,17 @@ func (e *stringLatestEntry) Equal(e2 *stringLatestEntry) bool {
 // StringLatestMap holds latest string instances.
 type StringLatestMap struct{ ps.Map }
 
-var emptyStringLatestMap = StringLatestMap{ps.NewMap()}
+// EmptyStringLatestMap is an empty StringLatestMap. Start with this.
+var EmptyStringLatestMap = StringLatestMap{ps.NewMap()}
 
 // MakeStringLatestMap makes an empty StringLatestMap.
 func MakeStringLatestMap() StringLatestMap {
-	return emptyStringLatestMap
+	return EmptyStringLatestMap
+}
+
+// Copy is a noop, as StringLatestMaps are immutable.
+func (m StringLatestMap) Copy() StringLatestMap {
+	return m
 }
 
 // Size returns the number of elements.
@@ -85,6 +91,14 @@ func (m StringLatestMap) Set(key string, timestamp time.Time, value string) Stri
 		m.Map = ps.NewMap()
 	}
 	return StringLatestMap{m.Map.Set(key, &stringLatestEntry{Timestamp: timestamp, Value: value})}
+}
+
+// Delete the value for the given key.
+func (m StringLatestMap) Delete(key string) StringLatestMap {
+	if m.Map == nil {
+		return m
+	}
+	return StringLatestMap{m.Map.Delete(key)}
 }
 
 // ForEach executes fn on each key value pair in the map.
@@ -156,11 +170,17 @@ func (e *nodeControlDataLatestEntry) Equal(e2 *nodeControlDataLatestEntry) bool 
 // NodeControlDataLatestMap holds latest NodeControlData instances.
 type NodeControlDataLatestMap struct{ ps.Map }
 
-var emptyNodeControlDataLatestMap = NodeControlDataLatestMap{ps.NewMap()}
+// EmptyNodeControlDataLatestMap is an empty NodeControlDataLatestMap. Start with this.
+var EmptyNodeControlDataLatestMap = NodeControlDataLatestMap{ps.NewMap()}
 
 // MakeNodeControlDataLatestMap makes an empty NodeControlDataLatestMap.
 func MakeNodeControlDataLatestMap() NodeControlDataLatestMap {
-	return emptyNodeControlDataLatestMap
+	return EmptyNodeControlDataLatestMap
+}
+
+// Copy is a noop, as NodeControlDataLatestMaps are immutable.
+func (m NodeControlDataLatestMap) Copy() NodeControlDataLatestMap {
+	return m
 }
 
 // Size returns the number of elements.
@@ -211,6 +231,14 @@ func (m NodeControlDataLatestMap) Set(key string, timestamp time.Time, value Nod
 		m.Map = ps.NewMap()
 	}
 	return NodeControlDataLatestMap{m.Map.Set(key, &nodeControlDataLatestEntry{Timestamp: timestamp, Value: value})}
+}
+
+// Delete the value for the given key.
+func (m NodeControlDataLatestMap) Delete(key string) NodeControlDataLatestMap {
+	if m.Map == nil {
+		return m
+	}
+	return NodeControlDataLatestMap{m.Map.Delete(key)}
 }
 
 // ForEach executes fn on each key value pair in the map.

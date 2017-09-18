@@ -92,9 +92,6 @@ type Client interface {
 }
 
 func newDockerClient(endpoint string) (Client, error) {
-	if endpoint == "" {
-		return docker_client.NewClientFromEnv()
-	}
 	return docker_client.NewClient(endpoint)
 }
 

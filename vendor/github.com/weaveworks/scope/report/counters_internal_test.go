@@ -11,7 +11,7 @@ import (
 )
 
 func TestCountersAdd(t *testing.T) {
-	have := MakeCounters().
+	have := EmptyCounters.
 		Add("foo", 1).
 		Add("foo", 2)
 	if v, ok := have.Lookup("foo"); !ok || v != 3 {
@@ -23,14 +23,14 @@ func TestCountersAdd(t *testing.T) {
 }
 
 func TestCountersDeepEquals(t *testing.T) {
-	want := MakeCounters().
+	want := EmptyCounters.
 		Add("foo", 3)
-	have := MakeCounters().
+	have := EmptyCounters.
 		Add("foo", 3)
 	if !reflect.DeepEqual(want, have) {
 		t.Errorf(test.Diff(want, have))
 	}
-	notequal := MakeCounters().
+	notequal := EmptyCounters.
 		Add("foo", 4)
 	if reflect.DeepEqual(want, notequal) {
 		t.Errorf(test.Diff(want, have))
@@ -59,34 +59,34 @@ func TestCountersMerge(t *testing.T) {
 		a, b, want Counters
 	}{
 		"Empty a": {
-			a: MakeCounters(),
-			b: MakeCounters().
+			a: EmptyCounters,
+			b: EmptyCounters.
 				Add("foo", 1),
-			want: MakeCounters().
+			want: EmptyCounters.
 				Add("foo", 1),
 		},
 		"Empty b": {
-			a: MakeCounters().
+			a: EmptyCounters.
 				Add("foo", 1),
-			b: MakeCounters(),
-			want: MakeCounters().
+			b: EmptyCounters,
+			want: EmptyCounters.
 				Add("foo", 1),
 		},
 		"Disjoin a & b": {
-			a: MakeCounters().
+			a: EmptyCounters.
 				Add("foo", 1),
-			b: MakeCounters().
+			b: EmptyCounters.
 				Add("bar", 2),
-			want: MakeCounters().
+			want: EmptyCounters.
 				Add("foo", 1).
 				Add("bar", 2),
 		},
 		"Overlapping a & b": {
-			a: MakeCounters().
+			a: EmptyCounters.
 				Add("foo", 1),
-			b: MakeCounters().
+			b: EmptyCounters.
 				Add("foo", 2),
-			want: MakeCounters().
+			want: EmptyCounters.
 				Add("foo", 3),
 		},
 	} {
@@ -97,7 +97,7 @@ func TestCountersMerge(t *testing.T) {
 }
 
 func TestCountersEncoding(t *testing.T) {
-	want := MakeCounters().
+	want := EmptyCounters.
 		Add("foo", 1).
 		Add("bar", 2)
 
@@ -111,7 +111,7 @@ func TestCountersEncoding(t *testing.T) {
 			encoder := codec.NewEncoder(buf, h)
 			want.CodecEncodeSelf(encoder)
 			decoder := codec.NewDecoder(buf, h)
-			have := MakeCounters()
+			have := EmptyCounters
 			have.CodecDecodeSelf(decoder)
 			if !reflect.DeepEqual(want, have) {
 				t.Error(test.Diff(want, have))
@@ -132,7 +132,7 @@ func TestCountersString(t *testing.T) {
 	}
 
 	{
-		have := MakeCounters().String()
+		have := EmptyCounters.String()
 		want := `{}`
 		if want != have {
 			t.Errorf("Expected: %s, Got %s", want, have)
@@ -140,7 +140,7 @@ func TestCountersString(t *testing.T) {
 	}
 
 	{
-		have := MakeCounters().
+		have := EmptyCounters.
 			Add("foo", 1).
 			Add("bar", 2).String()
 

@@ -6,8 +6,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-
-	"github.com/weaveworks/common/logging"
 )
 
 const gRPC = "gRPC"
@@ -16,11 +14,10 @@ const gRPC = "gRPC"
 var ServerLoggingInterceptor = func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	begin := time.Now()
 	resp, err := handler(ctx, req)
-	entry := logging.With(ctx).WithFields(log.Fields{"method": info.FullMethod, "duration": time.Since(begin)})
 	if err != nil {
-		entry.WithError(err).Warn(gRPC)
+		log.Warnf("%s %s (%v) %s", gRPC, info.FullMethod, err, time.Since(begin))
 	} else {
-		entry.Debugf("%s (success)", gRPC)
+		log.Debugf("%s %s (success) %s", gRPC, info.FullMethod, time.Since(begin))
 	}
 	return resp, err
 }

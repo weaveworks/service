@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
-	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -24,10 +23,8 @@ const (
 
 // DNSSnooper is a snopper of DNS queries
 type DNSSnooper struct {
-	stop       chan struct{}
-	pcapHandle *pcap.Handle
-	// gcache is goroutine-safe, but the cached values aren't
-	reverseDNSMutex     sync.RWMutex
+	stop                chan struct{}
+	pcapHandle          *pcap.Handle
 	reverseDNSCache     gcache.Cache
 	decodingErrorCounts map[string]uint64 // for limiting
 }
@@ -104,11 +101,10 @@ func (s *DNSSnooper) CachedNamesForIP(ip string) []string {
 	if err != nil {
 		return result
 	}
-	s.reverseDNSMutex.RLock()
+
 	for domain := range domains.(map[string]struct{}) {
 		result = append(result, domain)
 	}
-	s.reverseDNSMutex.RUnlock()
 
 	return result
 }
@@ -276,9 +272,7 @@ func (s *DNSSnooper) processDNSMessage(dns *layers.DNS) {
 			s.reverseDNSCache.Set(ip, map[string]struct{}{newDomain: {}})
 		} else {
 			// TODO: Be smarter about the expiration of entries with pre-existing associated domains
-			s.reverseDNSMutex.Lock()
 			existingDomains.(map[string]struct{})[newDomain] = struct{}{}
-			s.reverseDNSMutex.Unlock()
 		}
 	}
 }

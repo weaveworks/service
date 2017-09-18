@@ -20,8 +20,6 @@ const (
 	Deployment     = "deployment"
 	ReplicaSet     = "replica_set"
 	DaemonSet      = "daemon_set"
-	StatefulSet    = "stateful_set"
-	CronJob        = "cron_job"
 	ContainerImage = "container_image"
 	Host           = "host"
 	Overlay        = "overlay"
@@ -31,12 +29,9 @@ const (
 
 	// Shapes used for different nodes
 	Circle   = "circle"
-	Triangle = "triangle"
 	Square   = "square"
-	Pentagon = "pentagon"
-	Hexagon  = "hexagon"
 	Heptagon = "heptagon"
-	Octagon  = "octagon"
+	Hexagon  = "hexagon"
 	Cloud    = "cloud"
 
 	// Used when counting the number of containers
@@ -84,16 +79,6 @@ type Report struct {
 	// Metadata includes things like DaemonSet id, name etc. Edges are not
 	// present.
 	DaemonSet Topology
-
-	// StatefulSet nodes represent all Kubernetes Stateful Sets running on hosts running probes.
-	// Metadata includes things like Stateful Set id, name, etc. Edges are not
-	// present.
-	StatefulSet Topology
-
-	// CronJob nodes represent all Kubernetes Cron Jobs running on hosts running probes.
-	// Metadata includes things like Cron Job id, name, etc. Edges are not
-	// present.
-	CronJob Topology
 
 	// ContainerImages nodes represent all Docker containers images on
 	// hosts running probes. Metadata includes things like image id, name etc.
@@ -148,12 +133,6 @@ type Report struct {
 	ID string `deepequal:"skip"`
 }
 
-// RenderContext carries contextual data that is needed when rendering parts of the report.
-type RenderContext struct {
-	Report
-	MetricsGraphURL string
-}
-
 // MakeReport makes a clean report, ready to Merge() other reports into.
 func MakeReport() Report {
 	return Report{
@@ -188,20 +167,12 @@ func MakeReport() Report {
 			WithLabel("deployment", "deployments"),
 
 		ReplicaSet: MakeTopology().
-			WithShape(Triangle).
+			WithShape(Heptagon).
 			WithLabel("replica set", "replica sets"),
 
 		DaemonSet: MakeTopology().
-			WithShape(Pentagon).
+			WithShape(Heptagon).
 			WithLabel("daemonset", "daemonsets"),
-
-		StatefulSet: MakeTopology().
-			WithShape(Octagon).
-			WithLabel("stateful set", "stateful sets"),
-
-		CronJob: MakeTopology().
-			WithShape(Triangle).
-			WithLabel("cron job", "cron jobs"),
 
 		Overlay: MakeTopology().
 			WithShape(Circle).
@@ -238,8 +209,6 @@ func (r *Report) TopologyMap() map[string]*Topology {
 		Deployment:     &r.Deployment,
 		ReplicaSet:     &r.ReplicaSet,
 		DaemonSet:      &r.DaemonSet,
-		StatefulSet:    &r.StatefulSet,
-		CronJob:        &r.CronJob,
 		Host:           &r.Host,
 		Overlay:        &r.Overlay,
 		ECSTask:        &r.ECSTask,
@@ -303,8 +272,6 @@ func (r *Report) WalkPairedTopologies(o *Report, f func(*Topology, *Topology)) {
 	f(&r.Deployment, &o.Deployment)
 	f(&r.ReplicaSet, &o.ReplicaSet)
 	f(&r.DaemonSet, &o.DaemonSet)
-	f(&r.StatefulSet, &o.StatefulSet)
-	f(&r.CronJob, &o.CronJob)
 	f(&r.Host, &o.Host)
 	f(&r.Overlay, &o.Overlay)
 	f(&r.ECSTask, &o.ECSTask)

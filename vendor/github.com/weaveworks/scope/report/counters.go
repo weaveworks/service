@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"sort"
 
 	"github.com/ugorji/go/codec"
 	"github.com/weaveworks/ps"
@@ -14,17 +15,23 @@ type Counters struct {
 	psMap ps.Map
 }
 
-var emptyCounters = Counters{ps.NewMap()}
+// EmptyCounters is the set of empty counters.
+var EmptyCounters = Counters{ps.NewMap()}
 
 // MakeCounters returns EmptyCounters
 func MakeCounters() Counters {
-	return emptyCounters
+	return EmptyCounters
+}
+
+// Copy is a noop
+func (c Counters) Copy() Counters {
+	return c
 }
 
 // Add value to the counter 'key'
 func (c Counters) Add(key string, value int) Counters {
 	if c.psMap == nil {
-		c = emptyCounters
+		c = EmptyCounters
 	}
 	if existingValue, ok := c.psMap.Lookup(key); ok {
 		value += existingValue.(int)
@@ -80,22 +87,53 @@ func (c Counters) Merge(other Counters) Counters {
 	return Counters{output}
 }
 
+// ForEach calls f for each k/v pair of counters. Keys are iterated in
+// lexicographical order.
+func (c Counters) ForEach(f func(key string, val int)) {
+	if c.psMap != nil {
+		keys := c.psMap.Keys()
+		sort.Strings(keys)
+		for _, key := range keys {
+			if val, ok := c.psMap.Lookup(key); ok {
+				f(key, val.(int))
+			}
+		}
+	}
+}
+
 // String serializes Counters into a string.
 func (c Counters) String() string {
 	buf := bytes.NewBufferString("{")
 	prefix := ""
-	for _, key := range mapKeys(c.psMap) {
-		val, _ := c.psMap.Lookup(key)
-		fmt.Fprintf(buf, "%s%s: %d", prefix, key, val.(int))
+	c.ForEach(func(k string, v int) {
+		fmt.Fprintf(buf, "%s%s: %d", prefix, k, v)
 		prefix = ", "
-	}
+	})
 	fmt.Fprintf(buf, "}")
 	return buf.String()
 }
 
 // DeepEqual tests equality with other Counters
 func (c Counters) DeepEqual(d Counters) bool {
-	return mapEqual(c.psMap, d.psMap, reflect.DeepEqual)
+	if (c.psMap == nil) != (d.psMap == nil) {
+		return false
+	} else if c.psMap == nil && d.psMap == nil {
+		return true
+	}
+
+	if c.psMap.Size() != d.psMap.Size() {
+		return false
+	}
+
+	equal := true
+	c.psMap.ForEach(func(k string, val interface{}) {
+		if otherValue, ok := d.psMap.Lookup(k); !ok {
+			equal = false
+		} else {
+			equal = equal && reflect.DeepEqual(val, otherValue)
+		}
+	})
+	return equal
 }
 
 func (c Counters) fromIntermediate(in map[string]int) Counters {

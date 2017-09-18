@@ -50,7 +50,6 @@ docker/weaveutil
 docker/runsvinit
 extras/fixprobe/fixprobe
 extras/fixprobe/*.json
-extras/copyreport/copyreport
 *sublime-project
 *sublime-workspace
 *npm-debug.log

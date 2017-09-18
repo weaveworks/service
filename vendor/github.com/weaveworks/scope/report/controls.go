@@ -56,11 +56,16 @@ type NodeControls struct {
 	Controls  StringSet
 }
 
-var emptyNodeControls = NodeControls{Controls: MakeStringSet()}
-
 // MakeNodeControls makes a new NodeControls
 func MakeNodeControls() NodeControls {
-	return emptyNodeControls
+	return NodeControls{
+		Controls: MakeStringSet(),
+	}
+}
+
+// Copy is a noop, as NodeControls is immutable
+func (nc NodeControls) Copy() NodeControls {
+	return nc
 }
 
 // Merge returns the newest of the two NodeControls; it does not take the union

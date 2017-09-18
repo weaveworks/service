@@ -2,8 +2,10 @@ package render
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/weaveworks/scope/probe/docker"
+	"github.com/weaveworks/scope/probe/endpoint"
 	"github.com/weaveworks/scope/report"
 )
 
@@ -15,9 +17,6 @@ const (
 	// Topology for IPs so we can differentiate them at the end
 	IP = "IP"
 )
-
-// UncontainedIDPrefix is the prefix of uncontained pseudo nodes
-var UncontainedIDPrefix = MakePseudoNodeID(UncontainedID)
 
 // ContainerRenderer is a Renderer which produces a renderable container
 // graph by merging the process graph and the container topology.
@@ -33,91 +32,114 @@ var ContainerRenderer = MakeFilter(
 	MakeReduce(
 		MakeMap(
 			MapProcess2Container,
-			ColorConnectedProcessRenderer,
+			ProcessRenderer,
 		),
-		ConnectionJoin(MapContainer2IP, SelectContainer),
+
+		// This mapper brings in short lived connections by joining with container IPs.
+		// We need to be careful to ensure we only include each edge once.  Edges brought in
+		// by the above renders will have a pid, so its enough to filter out any nodes with
+		// pids.
+		ShortLivedConnectionJoin(SelectContainer, MapContainer2IP),
+
+		SelectContainer,
 	),
 )
 
-var mapEndpoint2IP = MakeMap(endpoint2IP, SelectEndpoint)
-
 const originalNodeID = "original_node_id"
+const originalNodeTopology = "original_node_topology"
 
-// ConnectionJoin joins the given renderer with connections from the
-// endpoints topology, using the toIPs function to extract IPs from
+// ShortLivedConnectionJoin joins the given renderer with short lived connections
+// from the endpoints topology, using the toIPs function to extract IPs from
 // the nodes.
-func ConnectionJoin(toIPs func(report.Node) []string, r Renderer) Renderer {
+func ShortLivedConnectionJoin(r Renderer, toIPs func(report.Node) []string) Renderer {
 	nodeToIP := func(n report.Node, _ report.Networks) report.Nodes {
 		result := report.Nodes{}
 		for _, ip := range toIPs(n) {
-			result[ip] = report.MakeNode(ip).
+			result[ip] = NewDerivedNode(ip, n).
 				WithTopology(IP).
 				WithLatests(map[string]string{
-					originalNodeID: n.ID,
+					originalNodeID:       n.ID,
+					originalNodeTopology: n.Topology,
 				}).
 				WithCounters(map[string]int{IP: 1})
 		}
 		return result
 	}
 
-	return MakeReduce(
-		MakeMap(
-			ipToNode,
-			MakeReduce(
-				MakeMap(nodeToIP, r),
-				mapEndpoint2IP,
-			),
-		),
-		r,
-	)
-}
+	ipToNode := func(n report.Node, _ report.Networks) report.Nodes {
+		// If an IP is shared between multiple nodes, we can't
+		// reliably attribute an connection based on its IP
+		if count, _ := n.Counters.Lookup(IP); count > 1 {
+			return report.Nodes{}
+		}
 
-func ipToNode(n report.Node, _ report.Networks) report.Nodes {
-	// propagate non-IP nodes
-	if n.Topology != IP {
-		return report.Nodes{n.ID: n}
-	}
-	// If an IP is shared between multiple nodes, we can't reliably
-	// attribute an connection based on its IP
-	if count, _ := n.Counters.Lookup(IP); count > 1 {
-		return report.Nodes{}
-	}
-	// If this node is not of the original type, exclude it.  This
-	// excludes all the nodes we've dragged in from endpoint that we
-	// failed to join to a node.
-	id, ok := n.Latest.Lookup(originalNodeID)
-	if !ok {
-		return report.Nodes{}
-	}
+		// Propagate the internet and service pseudo nodes
+		if strings.HasSuffix(n.ID, TheInternetID) || strings.HasPrefix(n.ID, ServiceNodeIDPrefix) {
+			return report.Nodes{n.ID: n}
+		}
 
-	return report.Nodes{id: NewDerivedNode(id, n)}
-}
+		// If this node is not of the original type, exclude it.
+		// This excludes all the nodes we've dragged in from endpoint
+		// that we failed to join to a node.
+		id, ok := n.Latest.Lookup(originalNodeID)
+		if !ok {
+			return report.Nodes{}
+		}
+		topology, ok := n.Latest.Lookup(originalNodeTopology)
+		if !ok {
+			return report.Nodes{}
+		}
 
-// endpoint2IP maps endpoint nodes to their IP address, for joining
-// with container nodes.
-func endpoint2IP(m report.Node, local report.Networks) report.Nodes {
-	scope, addr, port, ok := report.ParseEndpointNodeID(m.ID)
-	if !ok {
-		return report.Nodes{}
-	}
-
-	// Nodes without a hostid may be pseudo nodes
-	if _, ok := m.Latest.Lookup(report.HostNodeID); !ok {
-		if externalNode, ok := NewDerivedExternalNode(m, addr, local); ok {
-			return report.Nodes{externalNode.ID: externalNode}
+		return report.Nodes{
+			id: NewDerivedNode(id, n).
+				WithTopology(topology),
 		}
 	}
 
-	// We also allow for joining on ip:port pairs.  This is useful for
-	// connections to the host IPs which have been port mapped to a
-	// container can only be unambiguously identified with the port.
-	// So we need to emit two nodes, for two different cases.
-	id := report.MakeScopedEndpointNodeID(scope, addr, "")
-	idWithPort := report.MakeScopedEndpointNodeID(scope, addr, port)
-	return report.Nodes{
-		id:         NewDerivedNode(id, m).WithTopology(IP),
-		idWithPort: NewDerivedNode(idWithPort, m).WithTopology(IP),
+	// MapEndpoint2IP maps endpoint nodes to their IP address, for joining
+	// with container nodes.  We drop endpoint nodes with pids, as they
+	// will be joined to containers through the process topology, and we
+	// don't want to double count edges.
+	endpoint2IP := func(m report.Node, local report.Networks) report.Nodes {
+		// Don't include procspied connections, to prevent double counting
+		_, ok := m.Latest.Lookup(endpoint.Procspied)
+		if ok {
+			return report.Nodes{}
+		}
+		scope, addr, port, ok := report.ParseEndpointNodeID(m.ID)
+		if !ok {
+			return report.Nodes{}
+		}
+
+		if externalNode, ok := NewDerivedExternalNode(m, addr, local); ok {
+			return report.Nodes{externalNode.ID: externalNode}
+		}
+
+		// We also allow for joining on ip:port pairs.  This is useful
+		// for connections to the host IPs which have been port
+		// mapped to a container can only be unambiguously identified with the port.
+		// So we need to emit two nodes, for two different cases.
+		id := report.MakeScopedEndpointNodeID(scope, addr, "")
+		idWithPort := report.MakeScopedEndpointNodeID(scope, addr, port)
+		return report.Nodes{
+			id:         NewDerivedNode(id, m).WithTopology(IP),
+			idWithPort: NewDerivedNode(idWithPort, m).WithTopology(IP),
+		}
 	}
+
+	return FilterUnconnected(MakeMap(
+		ipToNode,
+		MakeReduce(
+			MakeMap(
+				nodeToIP,
+				r,
+			),
+			MakeMap(
+				endpoint2IP,
+				SelectEndpoint,
+			),
+		),
+	))
 }
 
 // FilterEmpty is a Renderer which filters out nodes which have no children
@@ -351,7 +373,7 @@ func MapContainerImage2Name(n report.Node, _ report.Networks) report.Nodes {
 	n.ID = report.MakeContainerImageNodeID(imageNameWithoutVersion)
 
 	if imageID, ok := report.ParseContainerImageNodeID(n.ID); ok {
-		n.Sets = n.Sets.Add(docker.ImageID, report.MakeStringSet(imageID))
+		n.Sets = n.Sets.Add(docker.ImageID, report.EmptyStringSet.Add(imageID))
 	}
 
 	return report.Nodes{n.ID: n}

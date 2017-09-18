@@ -1,4 +1,4 @@
-.PHONY: all deps static clean realclean client-lint client-test client-sync backend frontend shell lint ui-upload
+.PHONY: all deps static clean client-lint client-test client-sync backend frontend shell lint ui-upload
 
 # If you can use Docker without being root, you can `make SUDO= <target>`
 SUDO=$(shell docker info >/dev/null 2>&1 || echo "sudo -E")
@@ -75,7 +75,7 @@ $(SCOPE_EXPORT): docker/Dockerfile.scope $(CLOUD_AGENT_EXPORT) docker/$(RUNSVINI
 
 $(RUNSVINIT): vendor/runsvinit/*.go
 
-$(SCOPE_EXE): $(shell find ./ -path ./vendor -prune -o -type f -name '*.go') prog/staticui/staticui.go prog/externalui/externalui.go $(CODECGEN_TARGETS)
+$(SCOPE_EXE): $(shell find ./ -path ./vendor -prune -o -type f -name *.go) prog/staticui/staticui.go prog/externalui/externalui.go $(CODECGEN_TARGETS)
 
 report/report.codecgen.go: $(call GET_CODECGEN_DEPS,report/)
 render/render.codecgen.go: $(call GET_CODECGEN_DEPS,render/)
@@ -123,8 +123,8 @@ $(RUNSVINIT): $(SCOPE_BACKEND_BUILD_UPTODATE)
 shell: $(SCOPE_BACKEND_BUILD_UPTODATE)
 	/bin/bash
 
-tests: $(SCOPE_BACKEND_BUILD_UPTODATE) $(CODECGEN_TARGETS) prog/staticui/staticui.go prog/externalui/externalui.go
-	./tools/test -no-go-get -tags $(GO_BUILD_TAGS)
+tests: $(SCOPE_BACKEND_BUILD_UPTODATE) $(CODECGEN_TARGETS)
+	./tools/test -no-go-get
 
 lint: $(SCOPE_BACKEND_BUILD_UPTODATE)
 	./tools/lint
@@ -144,51 +144,45 @@ ifeq ($(BUILD_IN_CONTAINER),true)
 
 client/build/index.html: $(shell find client/app -type f) $(SCOPE_UI_BUILD_UPTODATE)
 	mkdir -p client/build
-	if test "true" != "$(SCOPE_SKIP_UI_ASSETS)"; then \
-		$(SUDO) docker run $(RM) $(RUN_FLAGS) -v $(shell pwd)/client/app:/home/weave/app \
-			-v $(shell pwd)/client/build:/home/weave/build \
-			$(SCOPE_UI_BUILD_IMAGE) yarn run build; \
-	fi
+	$(SUDO) docker run $(RM) $(RUN_FLAGS) -v $(shell pwd)/client/app:/home/weave/app \
+		-v $(shell pwd)/client/build:/home/weave/build \
+		$(SCOPE_UI_BUILD_IMAGE) npm run build
 
 client/build-external/index.html: $(shell find client/app -type f) $(SCOPE_UI_BUILD_UPTODATE)
-	mkdir -p client/build-external
-	if test "true" != "$(SCOPE_SKIP_UI_ASSETS)"; then \
-		$(SUDO) docker run $(RM) $(RUN_FLAGS) -v $(shell pwd)/client/app:/home/weave/app \
-			-v $(shell pwd)/client/build-external:/home/weave/build-external \
-			$(SCOPE_UI_BUILD_IMAGE) yarn run build-external; \
-	fi
+	mkdir -p client/build
+	$(SUDO) docker run $(RM) $(RUN_FLAGS) -v $(shell pwd)/client/app:/home/weave/app \
+		-v $(shell pwd)/client/build-external:/home/weave/build-external \
+		$(SCOPE_UI_BUILD_IMAGE) npm run build-external
 
 client-test: $(shell find client/app/scripts -type f) $(SCOPE_UI_BUILD_UPTODATE)
 	$(SUDO) docker run $(RM) $(RUN_FLAGS) -v $(shell pwd)/client/app:/home/weave/app \
 		-v $(shell pwd)/client/test:/home/weave/test \
-		$(SCOPE_UI_BUILD_IMAGE) yarn test
+		$(SCOPE_UI_BUILD_IMAGE) npm test
 
 client-lint: $(SCOPE_UI_BUILD_UPTODATE)
 	$(SUDO) docker run $(RM) $(RUN_FLAGS) -v $(shell pwd)/client/app:/home/weave/app \
 		-v $(shell pwd)/client/test:/home/weave/test \
-		$(SCOPE_UI_BUILD_IMAGE) yarn run lint
+		$(SCOPE_UI_BUILD_IMAGE) npm run lint
 
 client-start: $(SCOPE_UI_BUILD_UPTODATE)
 	$(SUDO) docker run $(RM) $(RUN_FLAGS) --net=host -v $(shell pwd)/client/app:/home/weave/app \
 		-v $(shell pwd)/client/build:/home/weave/build -e WEBPACK_SERVER_HOST \
-		$(SCOPE_UI_BUILD_IMAGE) yarn start
+		$(SCOPE_UI_BUILD_IMAGE) npm start
 
 tmp/weave-scope.tgz: $(shell find client/app -type f) $(SCOPE_UI_BUILD_UPTODATE)
 	$(sudo) docker run $(RUN_FLAGS) \
 	-v $(shell pwd)/client/app:/home/weave/app \
 	-v $(shell pwd)/tmp:/home/weave/tmp \
 	$(SCOPE_UI_BUILD_IMAGE) \
-	yarn run bundle
+	npm run bundle
 
 else
 
 client/build/index.html:
-	mkdir -p client/build
-	if test "true" != "$(SCOPE_SKIP_UI_ASSETS)"; then cd client && yarn run build; fi
+	cd client && npm run build
 
 client/build-external/index.html:
-	mkdir -p client/build-external
-	if test "true" != "$(SCOPE_SKIP_UI_ASSETS)"; then cd client && yarn run build-external; fi
+	cd client && npm run build-external
 
 endif
 
@@ -210,34 +204,17 @@ ui-pkg-upload: tmp/weave-scope.tgz
 	AWS_SECRET_ACCESS_KEY=$$UI_BUCKET_KEY_SECRET \
 	aws s3 cp tmp/weave-scope.tgz s3://weaveworks-js-modules/weave-scope/$(shell echo $(SCOPE_VERSION))/weave-scope.tgz
 
-# We don't rmi images here; rm'ing the .uptodate files is enough to
-# get the build images rebuilt, and rm'ing the scope exe is enough to
-# get the main images rebuilt.
-#
-# rmi'ng images is desirable sometimes. Invoke `realclean` for that.
 clean:
 	$(GO) clean ./...
+# Don't actually rmi the build images - rm'ing the .uptodate files is enough to ensure
+# we rebuild the images, and rmi'ing the images causes us to have to redownload a lot of stuff.
+# $(SUDO) docker rmi $(SCOPE_UI_BUILD_IMAGE) $(SCOPE_BACKEND_BUILD_IMAGE) >/dev/null 2>&1 || true
 	rm -rf $(SCOPE_EXPORT) $(SCOPE_UI_BUILD_UPTODATE) $(SCOPE_BACKEND_BUILD_UPTODATE) \
 		$(SCOPE_EXE) $(RUNSVINIT) prog/staticui/staticui.go prog/externalui/externalui.go client/build/*.js client/build-external/*.js docker/weave .pkg \
 		$(CODECGEN_TARGETS) $(CODECGEN_DIR)/bin
 
 clean-codecgen:
 	rm -rf $(CODECGEN_TARGETS) $(CODECGEN_DIR)/bin
-
-# clean + rmi
-#
-# Removal of the main images ensures that a subsequent build rebuilds
-# all their layers, in particular layers installing packages.
-# Crucially, we also remove the *base* images, so their latest
-# versions will be pulled.
-#
-# Doing this is important for release builds.
-realclean: clean
-	$(SUDO) docker rmi -f $(SCOPE_UI_BUILD_IMAGE) $(SCOPE_BACKEND_BUILD_IMAGE) \
-		$(DOCKERHUB_USER)/scope $(DOCKERHUB_USER)/cloud-agent \
-		$(DOCKERHUB_USER)/scope:$(IMAGE_TAG) $(DOCKERHUB_USER)/cloud-agent:$(IMAGE_TAG) \
-		weaveworks/weaveexec:$(WEAVENET_VERSION) \
-		ubuntu:yakkety alpine:3.5 node:6.9.0 2>/dev/null || true
 
 # Dependencies are intentionally build without enforcing any tags
 # since they are build on the host

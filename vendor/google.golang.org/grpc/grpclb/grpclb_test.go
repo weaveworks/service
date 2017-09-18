@@ -1,32 +1,44 @@
 /*
  *
- * Copyright 2016 gRPC authors.
+ * Copyright 2016, Google Inc.
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     * Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following disclaimer
+ * in the documentation and/or other materials provided with the
+ * distribution.
+ *     * Neither the name of Google Inc. nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
 
-//go:generate protoc --go_out=plugins=:. grpc_lb_v1/messages/messages.proto
-//go:generate protoc --go_out=Mgrpc_lb_v1/messages/messages.proto=google.golang.org/grpc/grpclb/grpc_lb_v1/messages,plugins=grpc:. grpc_lb_v1/service/service.proto
-
-// Package grpclb_test is currently used only for grpclb testing.
-package grpclb_test
+package grpclb
 
 import (
 	"errors"
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -37,8 +49,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
-	lbmpb "google.golang.org/grpc/grpclb/grpc_lb_v1/messages"
-	lbspb "google.golang.org/grpc/grpclb/grpc_lb_v1/service"
+	lbpb "google.golang.org/grpc/grpclb/grpc_lb_v1"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/naming"
 	testpb "google.golang.org/grpc/test/grpc_testing"
@@ -48,11 +59,6 @@ var (
 	lbsn    = "bar.com"
 	besn    = "foo.com"
 	lbToken = "iamatoken"
-
-	// Resolver replaces localhost with fakeName in Next().
-	// Dialer replaces fakeName with localhost when dialing.
-	// This will test that custom dialer is passed from Dial to grpclb.
-	fakeName = "fake.Name"
 )
 
 type testWatcher struct {
@@ -75,9 +81,6 @@ func (w *testWatcher) Next() (updates []*naming.Update, err error) {
 			break
 		}
 		if u != nil {
-			// Resolver replaces localhost with fakeName in Next().
-			// Custom dialer will replace fakeName with localhost when dialing.
-			u.Addr = strings.Replace(u.Addr, "localhost", fakeName, 1)
 			updates = append(updates, u)
 		}
 	}
@@ -113,8 +116,8 @@ func (r *testNameResolver) Resolve(target string) (naming.Watcher, error) {
 		r.w.update <- &naming.Update{
 			Op:   naming.Add,
 			Addr: addr,
-			Metadata: &naming.AddrMetadataGRPCLB{
-				AddrType:   naming.GRPCLB,
+			Metadata: &grpc.AddrMetadataGRPCLB{
+				AddrType:   grpc.GRPCLB,
 				ServerName: lbsn,
 			},
 		}
@@ -132,9 +135,8 @@ func (r *testNameResolver) inject(updates []*naming.Update) {
 }
 
 type serverNameCheckCreds struct {
-	mu       sync.Mutex
-	sn       string
 	expected string
+	sn       string
 }
 
 func (c *serverNameCheckCreds) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
@@ -145,8 +147,6 @@ func (c *serverNameCheckCreds) ServerHandshake(rawConn net.Conn) (net.Conn, cred
 	return rawConn, nil, nil
 }
 func (c *serverNameCheckCreds) ClientHandshake(ctx context.Context, addr string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	b := make([]byte, len(c.expected))
 	if _, err := rawConn.Read(b); err != nil {
 		fmt.Printf("Failed to read the server name from the server %v", err)
@@ -159,41 +159,28 @@ func (c *serverNameCheckCreds) ClientHandshake(ctx context.Context, addr string,
 	return rawConn, nil, nil
 }
 func (c *serverNameCheckCreds) Info() credentials.ProtocolInfo {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	return credentials.ProtocolInfo{}
 }
 func (c *serverNameCheckCreds) Clone() credentials.TransportCredentials {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	return &serverNameCheckCreds{
 		expected: c.expected,
 	}
 }
 func (c *serverNameCheckCreds) OverrideServerName(s string) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.expected = s
 	return nil
 }
 
-// fakeNameDialer replaces fakeName with localhost when dialing.
-// This will test that custom dialer is passed from Dial to grpclb.
-func fakeNameDialer(addr string, timeout time.Duration) (net.Conn, error) {
-	addr = strings.Replace(addr, fakeName, "localhost", 1)
-	return net.DialTimeout("tcp", addr, timeout)
-}
-
 type remoteBalancer struct {
-	sls       []*lbmpb.ServerList
+	sls       []*lbpb.ServerList
 	intervals []time.Duration
 	statsDura time.Duration
 	done      chan struct{}
 	mu        sync.Mutex
-	stats     lbmpb.ClientStats
+	stats     lbpb.ClientStats
 }
 
-func newRemoteBalancer(sls []*lbmpb.ServerList, intervals []time.Duration) *remoteBalancer {
+func newRemoteBalancer(sls []*lbpb.ServerList, intervals []time.Duration) *remoteBalancer {
 	return &remoteBalancer{
 		sls:       sls,
 		intervals: intervals,
@@ -205,7 +192,7 @@ func (b *remoteBalancer) stop() {
 	close(b.done)
 }
 
-func (b *remoteBalancer) BalanceLoad(stream lbspb.LoadBalancer_BalanceLoadServer) error {
+func (b *remoteBalancer) BalanceLoad(stream *loadBalancerBalanceLoadServer) error {
 	req, err := stream.Recv()
 	if err != nil {
 		return err
@@ -214,10 +201,10 @@ func (b *remoteBalancer) BalanceLoad(stream lbspb.LoadBalancer_BalanceLoadServer
 	if initReq.Name != besn {
 		return grpc.Errorf(codes.InvalidArgument, "invalid service name: %v", initReq.Name)
 	}
-	resp := &lbmpb.LoadBalanceResponse{
-		LoadBalanceResponseType: &lbmpb.LoadBalanceResponse_InitialResponse{
-			InitialResponse: &lbmpb.InitialLoadBalanceResponse{
-				ClientStatsReportInterval: &lbmpb.Duration{
+	resp := &lbpb.LoadBalanceResponse{
+		LoadBalanceResponseType: &lbpb.LoadBalanceResponse_InitialResponse{
+			InitialResponse: &lbpb.InitialLoadBalanceResponse{
+				ClientStatsReportInterval: &lbpb.Duration{
 					Seconds: int64(b.statsDura.Seconds()),
 					Nanos:   int32(b.statsDura.Nanoseconds() - int64(b.statsDura.Seconds())*1e9),
 				},
@@ -230,7 +217,7 @@ func (b *remoteBalancer) BalanceLoad(stream lbspb.LoadBalancer_BalanceLoadServer
 	go func() {
 		for {
 			var (
-				req *lbmpb.LoadBalanceRequest
+				req *lbpb.LoadBalanceRequest
 				err error
 			)
 			if req, err = stream.Recv(); err != nil {
@@ -248,8 +235,8 @@ func (b *remoteBalancer) BalanceLoad(stream lbspb.LoadBalancer_BalanceLoadServer
 	}()
 	for k, v := range b.sls {
 		time.Sleep(b.intervals[k])
-		resp = &lbmpb.LoadBalanceResponse{
-			LoadBalanceResponseType: &lbmpb.LoadBalanceResponse_ServerList{
+		resp = &lbpb.LoadBalanceResponse{
+			LoadBalanceResponseType: &lbpb.LoadBalanceResponse_ServerList{
 				ServerList: v,
 			},
 		}
@@ -330,7 +317,10 @@ func newLoadBalancer(numberOfBackends int) (tss *testServers, cleanup func(), er
 			return
 		}
 		beIPs = append(beIPs, beLis.Addr().(*net.TCPAddr).IP)
-		bePorts = append(bePorts, beLis.Addr().(*net.TCPAddr).Port)
+
+		beAddr := strings.Split(beLis.Addr().String(), ":")
+		bePort, _ := strconv.Atoi(beAddr[1])
+		bePorts = append(bePorts, bePort)
 
 		beListeners = append(beListeners, beLis)
 	}
@@ -351,7 +341,7 @@ func newLoadBalancer(numberOfBackends int) (tss *testServers, cleanup func(), er
 		return
 	}
 	ls = newRemoteBalancer(nil, nil)
-	lbspb.RegisterLoadBalancerServer(lb, ls)
+	registerLoadBalancerServer(lb, ls)
 	go func() {
 		lb.Serve(lbLis)
 	}()
@@ -380,26 +370,26 @@ func TestGRPCLB(t *testing.T) {
 	}
 	defer cleanup()
 
-	be := &lbmpb.Server{
+	be := &lbpb.Server{
 		IpAddress:        tss.beIPs[0],
 		Port:             int32(tss.bePorts[0]),
 		LoadBalanceToken: lbToken,
 	}
-	var bes []*lbmpb.Server
+	var bes []*lbpb.Server
 	bes = append(bes, be)
-	sl := &lbmpb.ServerList{
+	sl := &lbpb.ServerList{
 		Servers: bes,
 	}
-	tss.ls.sls = []*lbmpb.ServerList{sl}
+	tss.ls.sls = []*lbpb.ServerList{sl}
 	tss.ls.intervals = []time.Duration{0}
 	creds := serverNameCheckCreds{
 		expected: besn,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	cc, err := grpc.DialContext(ctx, besn,
-		grpc.WithBalancer(grpc.NewGRPCLBBalancer(&testNameResolver{addrs: []string{tss.lbAddr}})),
-		grpc.WithBlock(), grpc.WithTransportCredentials(&creds), grpc.WithDialer(fakeNameDialer))
+	cc, err := grpc.DialContext(ctx, besn, grpc.WithBalancer(grpc.NewGRPCLBBalancer(&testNameResolver{
+		addrs: []string{tss.lbAddr},
+	})), grpc.WithBlock(), grpc.WithTransportCredentials(&creds))
 	if err != nil {
 		t.Fatalf("Failed to dial to the backend %v", err)
 	}
@@ -416,8 +406,8 @@ func TestDropRequest(t *testing.T) {
 		t.Fatalf("failed to create new load balancer: %v", err)
 	}
 	defer cleanup()
-	tss.ls.sls = []*lbmpb.ServerList{{
-		Servers: []*lbmpb.Server{{
+	tss.ls.sls = []*lbpb.ServerList{{
+		Servers: []*lbpb.Server{{
 			IpAddress:            tss.beIPs[0],
 			Port:                 int32(tss.bePorts[0]),
 			LoadBalanceToken:     lbToken,
@@ -435,9 +425,9 @@ func TestDropRequest(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	cc, err := grpc.DialContext(ctx, besn,
-		grpc.WithBalancer(grpc.NewGRPCLBBalancer(&testNameResolver{addrs: []string{tss.lbAddr}})),
-		grpc.WithBlock(), grpc.WithTransportCredentials(&creds), grpc.WithDialer(fakeNameDialer))
+	cc, err := grpc.DialContext(ctx, besn, grpc.WithBalancer(grpc.NewGRPCLBBalancer(&testNameResolver{
+		addrs: []string{tss.lbAddr},
+	})), grpc.WithBlock(), grpc.WithTransportCredentials(&creds))
 	if err != nil {
 		t.Fatalf("Failed to dial to the backend %v", err)
 	}
@@ -468,27 +458,27 @@ func TestDropRequestFailedNonFailFast(t *testing.T) {
 		t.Fatalf("failed to create new load balancer: %v", err)
 	}
 	defer cleanup()
-	be := &lbmpb.Server{
+	be := &lbpb.Server{
 		IpAddress:            tss.beIPs[0],
 		Port:                 int32(tss.bePorts[0]),
 		LoadBalanceToken:     lbToken,
 		DropForLoadBalancing: true,
 	}
-	var bes []*lbmpb.Server
+	var bes []*lbpb.Server
 	bes = append(bes, be)
-	sl := &lbmpb.ServerList{
+	sl := &lbpb.ServerList{
 		Servers: bes,
 	}
-	tss.ls.sls = []*lbmpb.ServerList{sl}
+	tss.ls.sls = []*lbpb.ServerList{sl}
 	tss.ls.intervals = []time.Duration{0}
 	creds := serverNameCheckCreds{
 		expected: besn,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	cc, err := grpc.DialContext(ctx, besn,
-		grpc.WithBalancer(grpc.NewGRPCLBBalancer(&testNameResolver{addrs: []string{tss.lbAddr}})),
-		grpc.WithBlock(), grpc.WithTransportCredentials(&creds), grpc.WithDialer(fakeNameDialer))
+	cc, err := grpc.DialContext(ctx, besn, grpc.WithBalancer(grpc.NewGRPCLBBalancer(&testNameResolver{
+		addrs: []string{tss.lbAddr},
+	})), grpc.WithBlock(), grpc.WithTransportCredentials(&creds))
 	if err != nil {
 		t.Fatalf("Failed to dial to the backend %v", err)
 	}
@@ -497,6 +487,66 @@ func TestDropRequestFailedNonFailFast(t *testing.T) {
 	defer cancel()
 	if _, err := testC.EmptyCall(ctx, &testpb.Empty{}, grpc.FailFast(false)); grpc.Code(err) != codes.DeadlineExceeded {
 		t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, %s", testC, err, codes.DeadlineExceeded)
+	}
+	cc.Close()
+}
+
+func TestServerExpiration(t *testing.T) {
+	tss, cleanup, err := newLoadBalancer(1)
+	if err != nil {
+		t.Fatalf("failed to create new load balancer: %v", err)
+	}
+	defer cleanup()
+	be := &lbpb.Server{
+		IpAddress:        tss.beIPs[0],
+		Port:             int32(tss.bePorts[0]),
+		LoadBalanceToken: lbToken,
+	}
+	var bes []*lbpb.Server
+	bes = append(bes, be)
+	exp := &lbpb.Duration{
+		Seconds: 0,
+		Nanos:   100000000, // 100ms
+	}
+	var sls []*lbpb.ServerList
+	sl := &lbpb.ServerList{
+		Servers:            bes,
+		ExpirationInterval: exp,
+	}
+	sls = append(sls, sl)
+	sl = &lbpb.ServerList{
+		Servers: bes,
+	}
+	sls = append(sls, sl)
+	var intervals []time.Duration
+	intervals = append(intervals, 0)
+	intervals = append(intervals, 500*time.Millisecond)
+	tss.ls.sls = sls
+	tss.ls.intervals = intervals
+	creds := serverNameCheckCreds{
+		expected: besn,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cc, err := grpc.DialContext(ctx, besn, grpc.WithBalancer(grpc.NewGRPCLBBalancer(&testNameResolver{
+		addrs: []string{tss.lbAddr},
+	})), grpc.WithBlock(), grpc.WithTransportCredentials(&creds))
+	if err != nil {
+		t.Fatalf("Failed to dial to the backend %v", err)
+	}
+	testC := testpb.NewTestServiceClient(cc)
+	if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}); err != nil {
+		t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
+	}
+	// Sleep and wake up when the first server list gets expired.
+	time.Sleep(150 * time.Millisecond)
+	if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}); grpc.Code(err) != codes.Unavailable {
+		t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, %s", testC, err, codes.Unavailable)
+	}
+	// A non-failfast rpc should be succeeded after the second server list is received from
+	// the remote load balancer.
+	if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.FailFast(false)); err != nil {
+		t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
 	}
 	cc.Close()
 }
@@ -514,17 +564,17 @@ func TestBalancerDisconnects(t *testing.T) {
 		}
 		defer cleanup()
 
-		be := &lbmpb.Server{
+		be := &lbpb.Server{
 			IpAddress:        tss.beIPs[0],
 			Port:             int32(tss.bePorts[0]),
 			LoadBalanceToken: lbToken,
 		}
-		var bes []*lbmpb.Server
+		var bes []*lbpb.Server
 		bes = append(bes, be)
-		sl := &lbmpb.ServerList{
+		sl := &lbpb.ServerList{
 			Servers: bes,
 		}
-		tss.ls.sls = []*lbmpb.ServerList{sl}
+		tss.ls.sls = []*lbpb.ServerList{sl}
 		tss.ls.intervals = []time.Duration{0}
 
 		lbAddrs = append(lbAddrs, tss.lbAddr)
@@ -539,16 +589,14 @@ func TestBalancerDisconnects(t *testing.T) {
 	resolver := &testNameResolver{
 		addrs: lbAddrs[:2],
 	}
-	cc, err := grpc.DialContext(ctx, besn,
-		grpc.WithBalancer(grpc.NewGRPCLBBalancer(resolver)),
-		grpc.WithBlock(), grpc.WithTransportCredentials(&creds), grpc.WithDialer(fakeNameDialer))
+	cc, err := grpc.DialContext(ctx, besn, grpc.WithBalancer(grpc.NewGRPCLBBalancer(resolver)), grpc.WithBlock(), grpc.WithTransportCredentials(&creds))
 	if err != nil {
 		t.Fatalf("Failed to dial to the backend %v", err)
 	}
 	testC := testpb.NewTestServiceClient(cc)
 	var previousTrailer string
 	trailer := metadata.MD{}
-	if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.Trailer(&trailer), grpc.FailFast(false)); err != nil {
+	if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.Trailer(&trailer)); err != nil {
 		t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
 	} else {
 		previousTrailer = trailer[testmdkey][0]
@@ -557,7 +605,7 @@ func TestBalancerDisconnects(t *testing.T) {
 	// When lbs[0] is stopped, lbs[1] should be used.
 	lbs[0].Stop()
 	for {
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.Trailer(&trailer), grpc.FailFast(false)); err != nil {
+		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.Trailer(&trailer)); err != nil {
 			t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
 		} else if trailer[testmdkey][0] != previousTrailer {
 			// A new backend server should receive the request.
@@ -571,8 +619,8 @@ func TestBalancerDisconnects(t *testing.T) {
 	resolver.inject([]*naming.Update{
 		{Op: naming.Add,
 			Addr: lbAddrs[2],
-			Metadata: &naming.AddrMetadataGRPCLB{
-				AddrType:   naming.GRPCLB,
+			Metadata: &grpc.AddrMetadataGRPCLB{
+				AddrType:   grpc.GRPCLB,
 				ServerName: lbsn,
 			},
 		},
@@ -580,7 +628,7 @@ func TestBalancerDisconnects(t *testing.T) {
 	// Stop lbs[1]. Now lbs[0] and lbs[1] are all stopped. lbs[2] should be used.
 	lbs[1].Stop()
 	for {
-		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.Trailer(&trailer), grpc.FailFast(false)); err != nil {
+		if _, err := testC.EmptyCall(context.Background(), &testpb.Empty{}, grpc.Trailer(&trailer)); err != nil {
 			t.Fatalf("%v.EmptyCall(_, _) = _, %v, want _, <nil>", testC, err)
 		} else if trailer[testmdkey][0] != previousTrailer {
 			// A new backend server should receive the request.
@@ -605,21 +653,21 @@ func (failPreRPCCred) RequireTransportSecurity() bool {
 	return false
 }
 
-func checkStats(stats *lbmpb.ClientStats, expected *lbmpb.ClientStats) error {
+func checkStats(stats *lbpb.ClientStats, expected *lbpb.ClientStats) error {
 	if !proto.Equal(stats, expected) {
 		return fmt.Errorf("stats not equal: got %+v, want %+v", stats, expected)
 	}
 	return nil
 }
 
-func runAndGetStats(t *testing.T, dropForLoadBalancing, dropForRateLimiting bool, runRPCs func(*grpc.ClientConn)) lbmpb.ClientStats {
+func runAndGetStats(t *testing.T, dropForLoadBalancing, dropForRateLimiting bool, runRPCs func(*grpc.ClientConn)) lbpb.ClientStats {
 	tss, cleanup, err := newLoadBalancer(3)
 	if err != nil {
 		t.Fatalf("failed to create new load balancer: %v", err)
 	}
 	defer cleanup()
-	tss.ls.sls = []*lbmpb.ServerList{{
-		Servers: []*lbmpb.Server{{
+	tss.ls.sls = []*lbpb.ServerList{{
+		Servers: []*lbpb.Server{{
 			IpAddress:            tss.beIPs[2],
 			Port:                 int32(tss.bePorts[2]),
 			LoadBalanceToken:     lbToken,
@@ -633,10 +681,9 @@ func runAndGetStats(t *testing.T, dropForLoadBalancing, dropForRateLimiting bool
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	cc, err := grpc.DialContext(ctx, besn,
-		grpc.WithBalancer(grpc.NewGRPCLBBalancer(&testNameResolver{addrs: []string{tss.lbAddr}})),
-		grpc.WithTransportCredentials(&creds), grpc.WithPerRPCCredentials(failPreRPCCred{}),
-		grpc.WithBlock(), grpc.WithDialer(fakeNameDialer))
+	cc, err := grpc.DialContext(ctx, besn, grpc.WithBalancer(grpc.NewGRPCLBBalancer(&testNameResolver{
+		addrs: []string{tss.lbAddr},
+	})), grpc.WithBlock(), grpc.WithTransportCredentials(&creds), grpc.WithPerRPCCredentials(failPreRPCCred{}))
 	if err != nil {
 		t.Fatalf("Failed to dial to the backend %v", err)
 	}
@@ -664,7 +711,7 @@ func TestGRPCLBStatsUnarySuccess(t *testing.T) {
 		}
 	})
 
-	if err := checkStats(&stats, &lbmpb.ClientStats{
+	if err := checkStats(&stats, &lbpb.ClientStats{
 		NumCallsStarted:               int64(countRPC),
 		NumCallsFinished:              int64(countRPC),
 		NumCallsFinishedKnownReceived: int64(countRPC),
@@ -690,7 +737,7 @@ func TestGRPCLBStatsUnaryDropLoadBalancing(t *testing.T) {
 		}
 	})
 
-	if err := checkStats(&stats, &lbmpb.ClientStats{
+	if err := checkStats(&stats, &lbpb.ClientStats{
 		NumCallsStarted:                          int64(countRPC + c),
 		NumCallsFinished:                         int64(countRPC + c),
 		NumCallsFinishedWithDropForLoadBalancing: int64(countRPC + 1),
@@ -717,7 +764,7 @@ func TestGRPCLBStatsUnaryDropRateLimiting(t *testing.T) {
 		}
 	})
 
-	if err := checkStats(&stats, &lbmpb.ClientStats{
+	if err := checkStats(&stats, &lbpb.ClientStats{
 		NumCallsStarted:                         int64(countRPC + c),
 		NumCallsFinished:                        int64(countRPC + c),
 		NumCallsFinishedWithDropForRateLimiting: int64(countRPC + 1),
@@ -739,7 +786,7 @@ func TestGRPCLBStatsUnaryFailedToSend(t *testing.T) {
 		}
 	})
 
-	if err := checkStats(&stats, &lbmpb.ClientStats{
+	if err := checkStats(&stats, &lbpb.ClientStats{
 		NumCallsStarted:                        int64(countRPC),
 		NumCallsFinished:                       int64(countRPC),
 		NumCallsFinishedWithClientFailedToSend: int64(countRPC - 1),
@@ -775,7 +822,7 @@ func TestGRPCLBStatsStreamingSuccess(t *testing.T) {
 		}
 	})
 
-	if err := checkStats(&stats, &lbmpb.ClientStats{
+	if err := checkStats(&stats, &lbpb.ClientStats{
 		NumCallsStarted:               int64(countRPC),
 		NumCallsFinished:              int64(countRPC),
 		NumCallsFinishedKnownReceived: int64(countRPC),
@@ -801,7 +848,7 @@ func TestGRPCLBStatsStreamingDropLoadBalancing(t *testing.T) {
 		}
 	})
 
-	if err := checkStats(&stats, &lbmpb.ClientStats{
+	if err := checkStats(&stats, &lbpb.ClientStats{
 		NumCallsStarted:                          int64(countRPC + c),
 		NumCallsFinished:                         int64(countRPC + c),
 		NumCallsFinishedWithDropForLoadBalancing: int64(countRPC + 1),
@@ -828,7 +875,7 @@ func TestGRPCLBStatsStreamingDropRateLimiting(t *testing.T) {
 		}
 	})
 
-	if err := checkStats(&stats, &lbmpb.ClientStats{
+	if err := checkStats(&stats, &lbpb.ClientStats{
 		NumCallsStarted:                         int64(countRPC + c),
 		NumCallsFinished:                        int64(countRPC + c),
 		NumCallsFinishedWithDropForRateLimiting: int64(countRPC + 1),
@@ -856,7 +903,7 @@ func TestGRPCLBStatsStreamingFailedToSend(t *testing.T) {
 		}
 	})
 
-	if err := checkStats(&stats, &lbmpb.ClientStats{
+	if err := checkStats(&stats, &lbpb.ClientStats{
 		NumCallsStarted:                        int64(countRPC),
 		NumCallsFinished:                       int64(countRPC),
 		NumCallsFinishedWithClientFailedToSend: int64(countRPC - 1),

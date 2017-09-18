@@ -146,7 +146,9 @@ type ErrorContext struct {
 	// For a logged exception this would be the source line where
 	// the
 	// exception is logged, usually close to the place where it was
-	// caught.
+	// caught. This value is in contrast to
+	// `Exception.cause_location`,
+	// which describes the source line where the exception was thrown.
 	ReportLocation *SourceLocation `json:"reportLocation,omitempty"`
 
 	// SourceReferences: Source code that was used to build the executable

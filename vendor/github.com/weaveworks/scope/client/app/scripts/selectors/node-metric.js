@@ -23,7 +23,6 @@ export const availableMetricsSelector = createSelector(
       return nodes
         .valueSeq()
         .flatMap(n => n.get('metrics', makeList()))
-        .filter(m => !m.get('valueEmpty'))
         .map(m => makeMap({ id: m.get('id'), label: m.get('label') }))
         .toSet()
         .toList()

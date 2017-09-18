@@ -65,13 +65,11 @@ func MakeSingletonMetric(t time.Time, v float64) Metric {
 
 }
 
-var emptyMetric = Metric{}
-
 // MakeMetric makes a new Metric from unique samples incrementally ordered in
 // time.
 func MakeMetric(samples []Sample) Metric {
 	if len(samples) < 1 {
-		return emptyMetric
+		return Metric{}
 	}
 
 	var (

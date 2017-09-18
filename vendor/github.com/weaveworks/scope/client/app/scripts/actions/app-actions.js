@@ -1,24 +1,28 @@
 import debug from 'debug';
-import { find } from 'lodash';
-import { fromJS } from 'immutable';
+import find from 'lodash/find';
 
 import ActionTypes from '../constants/action-types';
 import { saveGraph } from '../utils/file-utils';
 import { updateRoute } from '../utils/router-utils';
 import {
+  bufferDeltaUpdate,
+  resumeUpdate,
+  resetUpdateBuffer,
+} from '../utils/update-buffer-utils';
+import {
   doControlRequest,
   getAllNodes,
   getResourceViewNodesSnapshot,
+  getNodesDelta,
   getNodeDetails,
   getTopologies,
   deletePipe,
   stopPolling,
   teardownWebsockets,
-  getNodes,
 } from '../utils/web-api-utils';
+import { getCurrentTopologyUrl } from '../utils/topology-utils';
 import { storageSet } from '../utils/storage-utils';
 import { loadTheme } from '../utils/contrast-utils';
-import { isPausedSelector } from '../selectors/time-travel';
 import {
   availableMetricTypesSelector,
   nextPinnedMetricTypeSelector,
@@ -26,19 +30,18 @@ import {
   pinnedMetricSelector,
 } from '../selectors/node-metric';
 import {
+  activeTopologyOptionsSelector,
   isResourceViewModeSelector,
   resourceViewAvailableSelector,
 } from '../selectors/topology';
-
 import {
   GRAPH_VIEW_MODE,
   TABLE_VIEW_MODE,
   RESOURCE_VIEW_MODE,
-} from '../constants/naming';
+ } from '../constants/naming';
 
 
 const log = debug('scope:app-actions');
-
 
 export function showHelp() {
   return { type: ActionTypes.SHOW_HELP };
@@ -208,8 +211,21 @@ export function changeTopologyOption(option, value, topologyId, addOrRemove) {
     });
     updateRoute(getState);
     // update all request workers with new options
-    getTopologies(getState, dispatch);
-    getNodes(getState, dispatch);
+    resetUpdateBuffer();
+    const state = getState();
+    getTopologies(activeTopologyOptionsSelector(state), dispatch);
+    getNodesDelta(
+      getCurrentTopologyUrl(state),
+      activeTopologyOptionsSelector(state),
+      dispatch
+    );
+    getNodeDetails(
+      state.get('topologyUrlsById'),
+      state.get('currentTopologyId'),
+      activeTopologyOptionsSelector(state),
+      state.get('nodeDetails'),
+      dispatch
+    );
   };
 }
 
@@ -228,8 +244,6 @@ export function clickCloseDetails(nodeId) {
       type: ActionTypes.CLICK_CLOSE_DETAILS,
       nodeId
     });
-    // Pull the most recent details for the next details panel that comes into focus.
-    getNodeDetails(getState, dispatch);
     updateRoute(getState);
   };
 }
@@ -320,37 +334,35 @@ export function setResourceView() {
         const firstAvailableMetricType = availableMetricTypesSelector(state).first();
         dispatch(pinMetric(firstAvailableMetricType));
       }
-      getResourceViewNodesSnapshot(getState(), dispatch);
+      getResourceViewNodesSnapshot(getState, dispatch);
       updateRoute(getState);
     }
   };
 }
 
-export function clickNode(nodeId, label, origin, topologyId = null) {
+export function clickNode(nodeId, label, origin) {
   return (dispatch, getState) => {
     dispatch({
       type: ActionTypes.CLICK_NODE,
       origin,
       label,
-      nodeId,
-      topologyId,
+      nodeId
     });
     updateRoute(getState);
-    getNodeDetails(getState, dispatch);
+    const state = getState();
+    getNodeDetails(
+      state.get('topologyUrlsById'),
+      state.get('currentTopologyId'),
+      activeTopologyOptionsSelector(state),
+      state.get('nodeDetails'),
+      dispatch
+    );
   };
 }
 
-export function pauseTimeAtNow() {
-  return (dispatch, getState) => {
-    dispatch({
-      type: ActionTypes.PAUSE_TIME_AT_NOW
-    });
-    if (!getState().get('nodesLoaded')) {
-      getNodes(getState, dispatch);
-      if (isResourceViewModeSelector(getState())) {
-        getResourceViewNodesSnapshot(getState(), dispatch);
-      }
-    }
+export function clickPauseUpdate() {
+  return {
+    type: ActionTypes.CLICK_PAUSE_UPDATE
   };
 }
 
@@ -364,7 +376,23 @@ export function clickRelative(nodeId, topologyId, label, origin) {
       topologyId
     });
     updateRoute(getState);
-    getNodeDetails(getState, dispatch);
+    const state = getState();
+    getNodeDetails(
+      state.get('topologyUrlsById'),
+      state.get('currentTopologyId'),
+      activeTopologyOptionsSelector(state),
+      state.get('nodeDetails'),
+      dispatch
+    );
+  };
+}
+
+export function clickResumeUpdate() {
+  return (dispatch, getState) => {
+    dispatch({
+      type: ActionTypes.CLICK_RESUME_UPDATE
+    });
+    resumeUpdate(getState);
   };
 }
 
@@ -372,13 +400,19 @@ function updateTopology(dispatch, getState) {
   const state = getState();
   // If we're in the resource view, get the snapshot of all the relevant node topologies.
   if (isResourceViewModeSelector(state)) {
-    getResourceViewNodesSnapshot(state, dispatch);
+    getResourceViewNodesSnapshot(getState, dispatch);
   }
   updateRoute(getState);
+  // update all request workers with new options
+  resetUpdateBuffer();
   // NOTE: This is currently not needed for our static resource
   // view, but we'll need it here later and it's simpler to just
   // keep it than to redo the nodes delta updating logic.
-  getNodes(getState, dispatch);
+  getNodesDelta(
+    getCurrentTopologyUrl(state),
+    activeTopologyOptionsSelector(state),
+    dispatch
+  );
 }
 
 export function clickShowTopologyForNode(topologyId, nodeId) {
@@ -463,7 +497,7 @@ export function focusSearch() {
     // the nodes delta. The solution would be to implement deeper
     // search selectors with per-node caching instead of per-topology.
     setTimeout(() => {
-      getAllNodes(getState(), dispatch);
+      getAllNodes(getState, dispatch);
     }, 1200);
   };
 }
@@ -540,97 +574,32 @@ export function receiveControlSuccess(nodeId) {
   };
 }
 
-export function receiveNodeDetails(details, requestTimestamp) {
+export function receiveNodeDetails(details) {
   return {
     type: ActionTypes.RECEIVE_NODE_DETAILS,
-    requestTimestamp,
     details
   };
 }
 
 export function receiveNodesDelta(delta) {
   return (dispatch, getState) => {
-    if (!isPausedSelector(getState())) {
-      // Allow css-animation to run smoothly by scheduling it to run on the
-      // next tick after any potentially expensive canvas re-draws have been
-      // completed.
-      setTimeout(() => dispatch({ type: ActionTypes.SET_RECEIVED_NODES_DELTA }), 0);
+    //
+    // allow css-animation to run smoothly by scheduling it to run on the
+    // next tick after any potentially expensive canvas re-draws have been
+    // completed.
+    //
+    setTimeout(() => dispatch({ type: ActionTypes.SET_RECEIVED_NODES_DELTA }), 0);
 
-      // When moving in time, we will consider the transition complete
-      // only when the first batch of nodes delta has been received. We
-      // do that because we want to keep the previous state blurred instead
-      // of transitioning over an empty state like when switching topologies.
-      if (getState().get('timeTravelTransitioning')) {
-        dispatch({ type: ActionTypes.FINISH_TIME_TRAVEL_TRANSITION });
-      }
-
-      const hasChanges = delta.add || delta.update || delta.remove || delta.reset;
-      if (hasChanges) {
+    if (delta.add || delta.update || delta.remove) {
+      const state = getState();
+      if (state.get('updatePausedAt') !== null) {
+        bufferDeltaUpdate(delta);
+      } else {
         dispatch({
           type: ActionTypes.RECEIVE_NODES_DELTA,
           delta
         });
       }
-    }
-  };
-}
-
-export function resumeTime() {
-  return (dispatch, getState) => {
-    if (isPausedSelector(getState())) {
-      dispatch({
-        type: ActionTypes.RESUME_TIME
-      });
-      // After unpausing, all of the following calls will re-activate polling.
-      getTopologies(getState, dispatch);
-      getNodes(getState, dispatch, true);
-      if (isResourceViewModeSelector(getState())) {
-        getResourceViewNodesSnapshot(getState(), dispatch);
-      }
-    }
-  };
-}
-
-export function startTimeTravel() {
-  return (dispatch, getState) => {
-    dispatch({
-      type: ActionTypes.START_TIME_TRAVEL
-    });
-    if (!getState().get('nodesLoaded')) {
-      getNodes(getState, dispatch);
-      if (isResourceViewModeSelector(getState())) {
-        getResourceViewNodesSnapshot(getState(), dispatch);
-      }
-    } else {
-      // Get most recent details before freezing the state.
-      getNodeDetails(getState, dispatch);
-    }
-  };
-}
-
-export function receiveNodes(nodes) {
-  return {
-    type: ActionTypes.RECEIVE_NODES,
-    nodes,
-  };
-}
-
-export function timeTravelStartTransition() {
-  return {
-    type: ActionTypes.TIME_TRAVEL_START_TRANSITION,
-  };
-}
-
-export function jumpToTime(timestamp) {
-  return (dispatch, getState) => {
-    dispatch({
-      type: ActionTypes.JUMP_TO_TIME,
-      timestamp,
-    });
-    getTopologies(getState, dispatch);
-    getNodes(getState, dispatch);
-    if (isResourceViewModeSelector(getState())) {
-      getResourceViewNodesSnapshot(getState(), dispatch);
     }
   };
 }
@@ -650,15 +619,26 @@ export function receiveTopologies(topologies) {
       type: ActionTypes.RECEIVE_TOPOLOGIES,
       topologies
     });
-    getNodes(getState, dispatch);
-    // Populate search matches on first load
     const state = getState();
+    getNodesDelta(
+      getCurrentTopologyUrl(state),
+      activeTopologyOptionsSelector(state),
+      dispatch
+    );
+    getNodeDetails(
+      state.get('topologyUrlsById'),
+      state.get('currentTopologyId'),
+      activeTopologyOptionsSelector(state),
+      state.get('nodeDetails'),
+      dispatch
+    );
+    // Populate search matches on first load
     if (firstLoad && state.get('searchQuery')) {
       dispatch(focusSearch());
     }
     // Fetch all the relevant nodes once on first load
     if (firstLoad && isResourceViewModeSelector(state)) {
-      getResourceViewNodesSnapshot(state, dispatch);
+      getResourceViewNodesSnapshot(getState, dispatch);
     }
   };
 }
@@ -666,11 +646,9 @@ export function receiveTopologies(topologies) {
 export function receiveApiDetails(apiDetails) {
   return {
     type: ActionTypes.RECEIVE_API_DETAILS,
-    capabilities: fromJS(apiDetails.capabilities),
     hostname: apiDetails.hostname,
     version: apiDetails.version,
-    newVersion: apiDetails.newVersion,
-    plugins: apiDetails.plugins,
+    plugins: apiDetails.plugins
   };
 }
 
@@ -737,11 +715,10 @@ export function receiveError(errorUrl) {
   };
 }
 
-export function receiveNotFound(nodeId, requestTimestamp) {
+export function receiveNotFound(nodeId) {
   return {
-    type: ActionTypes.RECEIVE_NOT_FOUND,
-    requestTimestamp,
     nodeId,
+    type: ActionTypes.RECEIVE_NOT_FOUND
   };
 }
 
@@ -755,12 +732,6 @@ export function setContrastMode(enabled) {
   };
 }
 
-export function getTopologiesWithInitialPoll() {
-  return (dispatch, getState) => {
-    getTopologies(getState, dispatch, true);
-  };
-}
-
 export function route(urlState) {
   return (dispatch, getState) => {
     dispatch({
@@ -768,14 +739,25 @@ export function route(urlState) {
       type: ActionTypes.ROUTE_TOPOLOGY
     });
     // update all request workers with new options
-    getTopologies(getState, dispatch);
-    getNodes(getState, dispatch);
+    const state = getState();
+    getTopologies(activeTopologyOptionsSelector(state), dispatch);
+    getNodesDelta(
+      getCurrentTopologyUrl(state),
+      activeTopologyOptionsSelector(state),
+      dispatch
+    );
+    getNodeDetails(
+      state.get('topologyUrlsById'),
+      state.get('currentTopologyId'),
+      activeTopologyOptionsSelector(state),
+      state.get('nodeDetails'),
+      dispatch
+    );
     // If we are landing on the resource view page, we need to fetch not only all the
     // nodes for the current topology, but also the nodes of all the topologies that make
     // the layers in the resource view.
-    const state = getState();
     if (isResourceViewModeSelector(state)) {
-      getResourceViewNodesSnapshot(state, dispatch);
+      getResourceViewNodesSnapshot(getState, dispatch);
     }
   };
 }
@@ -805,16 +787,10 @@ export function changeInstance() {
 }
 
 export function shutdown() {
-  return (dispatch) => {
-    stopPolling();
-    teardownWebsockets();
-    // Exit the time travel mode before unmounting the app.
-    dispatch({
-      type: ActionTypes.RESUME_TIME
-    });
-    dispatch({
-      type: ActionTypes.SHUTDOWN
-    });
+  stopPolling();
+  teardownWebsockets();
+  return {
+    type: ActionTypes.SHUTDOWN
   };
 }
 

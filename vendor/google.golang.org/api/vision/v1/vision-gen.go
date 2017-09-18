@@ -49,9 +49,6 @@ const basePath = "https://vision.googleapis.com/"
 const (
 	// View and manage your data across Google Cloud Platform services
 	CloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
-
-	// Apply machine learning models to understand and label images
-	CloudVisionScope = "https://www.googleapis.com/auth/cloud-vision"
 )
 
 func New(client *http.Client) (*Service, error) {
@@ -848,9 +845,13 @@ func (s *DominantColorsAnnotation) MarshalJSON() ([]byte, error) {
 
 // EntityAnnotation: Set of detected entity features.
 type EntityAnnotation struct {
-	// BoundingPoly: Image region to which this entity belongs. Not
-	// produced
-	// for `LABEL_DETECTION` features.
+	// BoundingPoly: Image region to which this entity belongs. Currently
+	// not produced
+	// for `LABEL_DETECTION` features. For `TEXT_DETECTION` (OCR),
+	// `boundingPoly`s
+	// are produced for the entire text detected in an image region,
+	// followed by
+	// `boundingPoly`s for each word within the detected text.
 	BoundingPoly *BoundingPoly `json:"boundingPoly,omitempty"`
 
 	// Confidence: The accuracy of the entity detection in an image.
@@ -1503,6 +1504,10 @@ func (s *Landmark) MarshalJSON() ([]byte, error) {
 //     assert (0.0, -170.0) == NormalizeLatLng(180.0, 10.0)
 //     assert (-90.0, 10.0) == NormalizeLatLng(270.0, 10.0)
 //     assert (90.0, 10.0) == NormalizeLatLng(-270.0, 10.0)
+//
+// The code in logs/storage/validator/logs_validator_traits.cc treats
+// this type
+// as if it were annotated as ST_LOCATION.
 type LatLng struct {
 	// Latitude: The latitude in degrees. It must be in the range [-90.0,
 	// +90.0].
@@ -1912,7 +1917,7 @@ func (s *SafeSearchAnnotation) MarshalJSON() ([]byte, error) {
 // arbitrary
 // information about the error. There is a predefined set of error
 // detail types
-// in the package `google.rpc` that can be used for common error
+// in the package `google.rpc` which can be used for common error
 // conditions.
 //
 // # Language mapping
@@ -1945,7 +1950,7 @@ func (s *SafeSearchAnnotation) MarshalJSON() ([]byte, error) {
 //
 // - Workflow errors. A typical workflow has multiple steps. Each step
 // may
-//     have a `Status` message for error reporting.
+//     have a `Status` message for error reporting purpose.
 //
 // - Batch operations. If a client uses batch request and batch
 // response, the
@@ -1968,9 +1973,9 @@ type Status struct {
 	// google.rpc.Code.
 	Code int64 `json:"code,omitempty"`
 
-	// Details: A list of messages that carry the error details.  There is a
-	// common set of
-	// message types for APIs to use.
+	// Details: A list of messages that carry the error details.  There will
+	// be a
+	// common set of message types for APIs to use.
 	Details []googleapi.RawMessage `json:"details,omitempty"`
 
 	// Message: A developer-facing error message, which should be in
@@ -2262,7 +2267,8 @@ func (s *WebEntity) UnmarshalJSON(data []byte) error {
 
 // WebImage: Metadata for online images.
 type WebImage struct {
-	// Score: (Deprecated) Overall relevancy score for the image.
+	// Score: Overall relevancy score for the image.
+	// Not normalized and not comparable across different image queries.
 	Score float64 `json:"score,omitempty"`
 
 	// Url: The result image URL.
@@ -2307,7 +2313,8 @@ func (s *WebImage) UnmarshalJSON(data []byte) error {
 
 // WebPage: Metadata for web pages.
 type WebPage struct {
-	// Score: (Deprecated) Overall relevancy score for the web page.
+	// Score: Overall relevancy score for the web page.
+	// Not normalized and not comparable across different image queries.
 	Score float64 `json:"score,omitempty"`
 
 	// Url: The result web page URL.
@@ -2517,8 +2524,7 @@ func (c *ImagesAnnotateCall) Do(opts ...googleapi.CallOption) (*BatchAnnotateIma
 	//     "$ref": "BatchAnnotateImagesResponse"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/cloud-vision"
+	//     "https://www.googleapis.com/auth/cloud-platform"
 	//   ]
 	// }
 

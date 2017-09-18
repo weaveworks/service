@@ -1,25 +1,27 @@
-package gcache
+package gcache_test
 
 import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/bluele/gcache"
 )
 
 func evictedFuncForLRU(key, value interface{}) {
 	fmt.Printf("[LRU] Key:%v Value:%v will evicted.\n", key, value)
 }
 
-func buildLRUCache(size int) Cache {
-	return New(size).
+func buildLRUCache(size int) gcache.Cache {
+	return gcache.New(size).
 		LRU().
 		EvictedFunc(evictedFuncForLRU).
 		Expiration(time.Second).
 		Build()
 }
 
-func buildLoadingLRUCache(size int, loader LoaderFunc) Cache {
-	return New(size).
+func buildLoadingLRUCache(size int, loader gcache.LoaderFunc) gcache.Cache {
+	return gcache.New(size).
 		LRU().
 		LoaderFunc(loader).
 		EvictedFunc(evictedFuncForLRU).
@@ -65,9 +67,9 @@ func TestLRUEvictItem(t *testing.T) {
 }
 
 func TestLRUGetIFPresent(t *testing.T) {
-	testGetIFPresent(t, TYPE_LRU)
+	testGetIFPresent(t, gcache.TYPE_LRU)
 }
 
 func TestLRUGetALL(t *testing.T) {
-	testGetALL(t, TYPE_LRU)
+	testGetALL(t, gcache.TYPE_LRU)
 }

@@ -1,6 +1,6 @@
 {
  "kind": "discovery#restDescription",
- "etag": "\"YWOzh2SDasdU84ArJnpYek-OMdg/rBU1z2tHcOAAx8ktsJNBvusBoYw\"",
+ "etag": "\"jQLIOHBVnDZie4rQHGH1WJF-INE/rBU1z2tHcOAAx8ktsJNBvusBoYw\"",
  "discoveryVersion": "v1",
  "id": "taskqueue:v1beta2",
  "name": "taskqueue",
@@ -20,7 +20,7 @@
  "basePath": "/taskqueue/v1beta2/projects/",
  "rootUrl": "https://www.googleapis.com/",
  "servicePath": "taskqueue/v1beta2/projects/",
- "batchPath": "batch/taskqueue/v1beta2",
+ "batchPath": "batch",
  "parameters": {
   "alt": {
    "type": "string",

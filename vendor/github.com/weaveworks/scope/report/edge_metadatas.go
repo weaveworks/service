@@ -1,8 +1,10 @@
 package report
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 
 	"github.com/ugorji/go/codec"
@@ -15,17 +17,23 @@ type EdgeMetadatas struct {
 	psMap ps.Map
 }
 
-var emptyEdgeMetadatas = EdgeMetadatas{ps.NewMap()}
+// EmptyEdgeMetadatas is the set of empty EdgeMetadatas.
+var EmptyEdgeMetadatas = EdgeMetadatas{ps.NewMap()}
 
 // MakeEdgeMetadatas returns EmptyEdgeMetadatas
 func MakeEdgeMetadatas() EdgeMetadatas {
-	return emptyEdgeMetadatas
+	return EmptyEdgeMetadatas
+}
+
+// Copy is a noop
+func (c EdgeMetadatas) Copy() EdgeMetadatas {
+	return c
 }
 
 // Add value to the counter 'key'
 func (c EdgeMetadatas) Add(key string, value EdgeMetadata) EdgeMetadatas {
 	if c.psMap == nil {
-		c = emptyEdgeMetadatas
+		c = EmptyEdgeMetadatas
 	}
 	if existingValue, ok := c.psMap.Lookup(key); ok {
 		value = value.Merge(existingValue.(EdgeMetadata))
@@ -101,12 +109,42 @@ func (c EdgeMetadatas) ForEach(fn func(k string, v EdgeMetadata)) {
 }
 
 func (c EdgeMetadatas) String() string {
-	return mapToString(c.psMap)
+	keys := []string{}
+	if c.psMap == nil {
+		c = EmptyEdgeMetadatas
+	}
+	for _, k := range c.psMap.Keys() {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	buf := bytes.NewBufferString("{")
+	for _, key := range keys {
+		val, _ := c.psMap.Lookup(key)
+		fmt.Fprintf(buf, "%s: %v, ", key, val)
+	}
+	fmt.Fprintf(buf, "}")
+	return buf.String()
 }
 
 // DeepEqual tests equality with other Counters
 func (c EdgeMetadatas) DeepEqual(d EdgeMetadatas) bool {
-	return mapEqual(c.psMap, d.psMap, reflect.DeepEqual)
+	if c.Size() != d.Size() {
+		return false
+	}
+	if c.Size() == 0 {
+		return true
+	}
+
+	equal := true
+	c.psMap.ForEach(func(k string, val interface{}) {
+		if otherValue, ok := d.psMap.Lookup(k); !ok {
+			equal = false
+		} else {
+			equal = equal && reflect.DeepEqual(val, otherValue)
+		}
+	})
+	return equal
 }
 
 // CodecEncodeSelf implements codec.Selfer

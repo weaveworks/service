@@ -10,7 +10,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/bluele/gcache"
@@ -298,13 +297,12 @@ func (c *awsCollector) getReports(ctx context.Context, reportKeys []string) ([]r
 	return reports, nil
 }
 
-func (c *awsCollector) Report(ctx context.Context, timestamp time.Time) (report.Report, error) {
+func (c *awsCollector) Report(ctx context.Context) (report.Report, error) {
 	var (
-		end         = timestamp
-		start       = end.Add(-c.window)
-		rowStart    = start.UnixNano() / time.Hour.Nanoseconds()
-		rowEnd      = end.UnixNano() / time.Hour.Nanoseconds()
-		userid, err = c.userIDer(ctx)
+		now              = time.Now()
+		start            = now.Add(-c.window)
+		rowStart, rowEnd = start.UnixNano() / time.Hour.Nanoseconds(), now.UnixNano() / time.Hour.Nanoseconds()
+		userid, err      = c.userIDer(ctx)
 	)
 	if err != nil {
 		return report.MakeReport(), err
@@ -313,12 +311,12 @@ func (c *awsCollector) Report(ctx context.Context, timestamp time.Time) (report.
 	// Queries will only every span 2 rows max.
 	var reportKeys []string
 	if rowStart != rowEnd {
-		reportKeys1, err := c.getReportKeys(ctx, userid, rowStart, start, end)
+		reportKeys1, err := c.getReportKeys(ctx, userid, rowStart, start, now)
 		if err != nil {
 			return report.MakeReport(), err
 		}
 
-		reportKeys2, err := c.getReportKeys(ctx, userid, rowEnd, start, end)
+		reportKeys2, err := c.getReportKeys(ctx, userid, rowEnd, start, now)
 		if err != nil {
 			return report.MakeReport(), err
 		}
@@ -326,22 +324,18 @@ func (c *awsCollector) Report(ctx context.Context, timestamp time.Time) (report.
 		reportKeys = append(reportKeys, reportKeys1...)
 		reportKeys = append(reportKeys, reportKeys2...)
 	} else {
-		if reportKeys, err = c.getReportKeys(ctx, userid, rowEnd, start, end); err != nil {
+		if reportKeys, err = c.getReportKeys(ctx, userid, rowEnd, start, now); err != nil {
 			return report.MakeReport(), err
 		}
 	}
 
-	log.Debugf("Fetching %d reports from %v to %v", len(reportKeys), start, end)
+	log.Debugf("Fetching %d reports from %v to %v", len(reportKeys), start, now)
 	reports, err := c.getReports(ctx, reportKeys)
 	if err != nil {
 		return report.MakeReport(), err
 	}
 
 	return c.merger.Merge(reports).Upgrade(), nil
-}
-
-func (c *awsCollector) HasHistoricReports() bool {
-	return true
 }
 
 // calculateDynamoKeys generates the row & column keys for Dynamo.
@@ -358,47 +352,6 @@ func calculateReportKey(rowKey, colKey string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%x/%s", rowKeyHash.Sum(nil), colKey), nil
-}
-
-func (c *awsCollector) putItemInDynamo(rowKey, colKey, reportKey string) (*dynamodb.PutItemOutput, error) {
-	// Back off on ProvisionedThroughputExceededException
-	const (
-		maxRetries            = 5
-		throuputExceededError = "ProvisionedThroughputExceededException"
-	)
-	var (
-		resp    *dynamodb.PutItemOutput
-		err     error
-		retries = 0
-		backoff = 50 * time.Millisecond
-	)
-	for {
-		resp, err = c.db.PutItem(&dynamodb.PutItemInput{
-			TableName: aws.String(c.tableName),
-			Item: map[string]*dynamodb.AttributeValue{
-				hourField: {
-					S: aws.String(rowKey),
-				},
-				tsField: {
-					N: aws.String(colKey),
-				},
-				reportField: {
-					S: aws.String(reportKey),
-				},
-			},
-			ReturnConsumedCapacity: aws.String(dynamodb.ReturnConsumedCapacityTotal),
-		})
-		if err != nil && retries < maxRetries {
-			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == throuputExceededError {
-				time.Sleep(backoff)
-				retries++
-				backoff *= 2
-				continue
-			}
-		}
-		break
-	}
-	return resp, err
 }
 
 func (c *awsCollector) Add(ctx context.Context, rep report.Report, buf []byte) error {
@@ -438,10 +391,23 @@ func (c *awsCollector) Add(ctx context.Context, rep report.Report, buf []byte) e
 	var resp *dynamodb.PutItemOutput
 	err = instrument.TimeRequestHistogram(ctx, "DynamoDB.PutItem", dynamoRequestDuration, func(_ context.Context) error {
 		var err error
-		resp, err = c.putItemInDynamo(rowKey, colKey, reportKey)
+		resp, err = c.db.PutItem(&dynamodb.PutItemInput{
+			TableName: aws.String(c.tableName),
+			Item: map[string]*dynamodb.AttributeValue{
+				hourField: {
+					S: aws.String(rowKey),
+				},
+				tsField: {
+					N: aws.String(colKey),
+				},
+				reportField: {
+					S: aws.String(reportKey),
+				},
+			},
+			ReturnConsumedCapacity: aws.String(dynamodb.ReturnConsumedCapacityTotal),
+		})
 		return err
 	})
-
 	if resp.ConsumedCapacity != nil {
 		dynamoConsumedCapacity.WithLabelValues("PutItem").
 			Add(float64(*resp.ConsumedCapacity.CapacityUnits))

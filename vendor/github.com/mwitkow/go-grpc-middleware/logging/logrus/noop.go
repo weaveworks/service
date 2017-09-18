@@ -3,7 +3,7 @@ package grpc_logrus
 import (
 	"io/ioutil"
 
-	"github.com/sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 )
 
 var (

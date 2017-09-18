@@ -2,7 +2,6 @@ package endpoint
 
 import (
 	"strconv"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/weaveworks/scope/probe/endpoint/procspy"
@@ -28,28 +27,40 @@ type connectionTrackerConfig struct {
 type connectionTracker struct {
 	conf            connectionTrackerConfig
 	flowWalker      flowWalker // Interface
-	ebpfTracker     *EbpfTracker
+	ebpfTracker     eventTracker
 	reverseResolver *reverseResolver
+}
 
-	// time of the previous ebpf failure, or zero if it didn't fail
-	ebpfLastFailureTime time.Time
+func newProcfsConnectionTracker(conf connectionTrackerConfig) connectionTracker {
+	if conf.WalkProc && conf.Scanner == nil {
+		conf.Scanner = procspy.NewConnectionScanner(conf.ProcessCache)
+	}
+	return connectionTracker{
+		conf:            conf,
+		flowWalker:      newConntrackFlowWalker(conf.UseConntrack, conf.ProcRoot, conf.BufferSize),
+		ebpfTracker:     nil,
+		reverseResolver: newReverseResolver(),
+	}
 }
 
 func newConnectionTracker(conf connectionTrackerConfig) connectionTracker {
+	if !conf.UseEbpfConn {
+		// ebpf off, use proc scanning for connection tracking
+		return newProcfsConnectionTracker(conf)
+	}
+	et, err := newEbpfTracker()
+	if err != nil {
+		// ebpf failed, fallback to proc scanning for connection tracking
+		log.Warnf("Error setting up the eBPF tracker, falling back to proc scanning: %v", err)
+		return newProcfsConnectionTracker(conf)
+	}
 	ct := connectionTracker{
 		conf:            conf,
+		flowWalker:      nil,
+		ebpfTracker:     et,
 		reverseResolver: newReverseResolver(),
 	}
-	if conf.UseEbpfConn {
-		et, err := newEbpfTracker()
-		if err == nil {
-			ct.ebpfTracker = et
-			go ct.getInitialState()
-			return ct
-		}
-		log.Warnf("Error setting up the eBPF tracker, falling back to proc scanning: %v", err)
-	}
-	ct.useProcfs()
+	go ct.getInitialState()
 	return ct
 }
 
@@ -72,16 +83,6 @@ func flowToTuple(f flow) (ft fourTuple) {
 	return ft
 }
 
-func (t *connectionTracker) useProcfs() {
-	t.ebpfTracker = nil
-	if t.conf.WalkProc && t.conf.Scanner == nil {
-		t.conf.Scanner = procspy.NewConnectionScanner(t.conf.ProcessCache, t.conf.SpyProcs)
-	}
-	if t.flowWalker == nil {
-		t.flowWalker = newConntrackFlowWalker(t.conf.UseConntrack, t.conf.ProcRoot, t.conf.BufferSize)
-	}
-}
-
 // ReportConnections calls trackers according to the configuration.
 func (t *connectionTracker) ReportConnections(rpt *report.Report) {
 	hostNodeID := report.MakeHostNodeID(t.conf.HostID)
@@ -91,76 +92,77 @@ func (t *connectionTracker) ReportConnections(rpt *report.Report) {
 			t.performEbpfTrack(rpt, hostNodeID)
 			return
 		}
-
-		// We only restart the EbpfTracker if the failures are not too frequent to
-		// avoid repeatitive restarts.
-
-		ebpfLastFailureTime := t.ebpfLastFailureTime
-		t.ebpfLastFailureTime = time.Now()
-
-		if ebpfLastFailureTime.After(time.Now().Add(-5 * time.Minute)) {
-			// Multiple failures in the last 5 minutes, fall back to proc parsing
-			log.Warnf("ebpf tracker died again, gently falling back to proc scanning")
-			t.useProcfs()
-		} else {
-			// Tolerable failure rate, restart the tracker
-			log.Warnf("ebpf tracker died, restarting it")
-			err := t.ebpfTracker.restart()
-			if err == nil {
-				go t.getInitialState()
-				t.performEbpfTrack(rpt, hostNodeID)
-				return
-			}
-			log.Warnf("could not restart ebpf tracker, falling back to proc scanning: %v", err)
-			t.useProcfs()
+		log.Warnf("ebpf tracker died, gently falling back to proc scanning")
+		if t.conf.WalkProc && t.conf.Scanner == nil {
+			t.conf.Scanner = procspy.NewConnectionScanner(t.conf.ProcessCache)
 		}
+		if t.flowWalker == nil {
+			t.flowWalker = newConntrackFlowWalker(t.conf.UseConntrack, t.conf.ProcRoot, t.conf.BufferSize, "--any-nat")
+		}
+		t.ebpfTracker = nil
 	}
 
-	// consult the flowWalker for short-lived (conntracked) connections
+	// seenTuples contains information about connections seen by conntrack and it will be passed to the /proc parser
 	seenTuples := map[string]fourTuple{}
+	if t.flowWalker != nil {
+		t.performFlowWalk(rpt, &seenTuples)
+	}
+	// if eBPF was enabled but failed to initialize, Scanner will be nil.
+	// We can't recover from this, so don't walk proc in that case.
+	// TODO: implement fallback
+	if t.conf.WalkProc && t.conf.Scanner != nil {
+		t.performWalkProc(rpt, hostNodeID, &seenTuples)
+	}
+}
+
+func (t *connectionTracker) performFlowWalk(rpt *report.Report, seenTuples *map[string]fourTuple) {
+	// Consult the flowWalker for short-lived connections
+	extraNodeInfo := map[string]string{
+		Conntracked: "true",
+	}
 	t.flowWalker.walkFlows(func(f flow, alive bool) {
 		tuple := flowToTuple(f)
-		seenTuples[tuple.key()] = tuple
-		t.addConnection(rpt, false, tuple, "", nil, nil)
+		(*seenTuples)[tuple.key()] = tuple
+		t.addConnection(rpt, tuple, "", extraNodeInfo, extraNodeInfo)
 	})
-
-	if t.conf.WalkProc && t.conf.Scanner != nil {
-		t.performWalkProc(rpt, hostNodeID, seenTuples)
-	}
 }
 
-func (t *connectionTracker) existingFlows() map[string]fourTuple {
-	seenTuples := map[string]fourTuple{}
-	if !t.conf.UseConntrack {
-		// log.Warnf("Not using conntrack: disabled")
-	} else if err := IsConntrackSupported(t.conf.ProcRoot); err != nil {
-		log.Warnf("Not using conntrack: not supported by the kernel: %s", err)
-	} else if existingFlows, err := existingConnections([]string{"--any-nat"}); err != nil {
-		log.Errorf("conntrack existingConnections error: %v", err)
-	} else {
-		for _, f := range existingFlows {
-			tuple := flowToTuple(f)
-			seenTuples[tuple.key()] = tuple
-		}
-	}
-	return seenTuples
-}
-
-func (t *connectionTracker) performWalkProc(rpt *report.Report, hostNodeID string, seenTuples map[string]fourTuple) error {
-	conns, err := t.conf.Scanner.Connections()
+func (t *connectionTracker) performWalkProc(rpt *report.Report, hostNodeID string, seenTuples *map[string]fourTuple) error {
+	conns, err := t.conf.Scanner.Connections(t.conf.SpyProcs)
 	if err != nil {
 		return err
 	}
 	for conn := conns.Next(); conn != nil; conn = conns.Next() {
-		tuple, namespaceID, incoming := connectionTuple(conn, seenTuples)
-		var toNodeInfo, fromNodeInfo map[string]string
-		if conn.Proc.PID > 0 {
-			fromNodeInfo = map[string]string{
-				process.PID:       strconv.FormatUint(uint64(conn.Proc.PID), 10),
-				report.HostNodeID: hostNodeID,
+		var (
+			namespaceID string
+			tuple       = fourTuple{
+				conn.LocalAddress.String(),
+				conn.RemoteAddress.String(),
+				conn.LocalPort,
+				conn.RemotePort,
 			}
+			toNodeInfo   = map[string]string{Procspied: "true"}
+			fromNodeInfo = map[string]string{Procspied: "true"}
+		)
+		if conn.Proc.PID > 0 {
+			fromNodeInfo[process.PID] = strconv.FormatUint(uint64(conn.Proc.PID), 10)
+			fromNodeInfo[report.HostNodeID] = hostNodeID
 		}
-		t.addConnection(rpt, incoming, tuple, namespaceID, fromNodeInfo, toNodeInfo)
+
+		if conn.Proc.NetNamespaceID > 0 {
+			namespaceID = strconv.FormatUint(conn.Proc.NetNamespaceID, 10)
+		}
+
+		// If we've already seen this connection, we should know the direction
+		// (or have already figured it out), so we normalize and use the
+		// canonical direction. Otherwise, we can use a port-heuristic to guess
+		// the direction.
+		canonical, ok := (*seenTuples)[tuple.key()]
+		if (ok && canonical != tuple) || (!ok && tuple.fromPort < tuple.toPort) {
+			tuple.reverse()
+			toNodeInfo, fromNodeInfo = fromNodeInfo, toNodeInfo
+		}
+		t.addConnection(rpt, tuple, namespaceID, fromNodeInfo, toNodeInfo)
 	}
 	return nil
 }
@@ -173,12 +175,21 @@ func (t *connectionTracker) getInitialState() {
 	processCache = process.NewCachingWalker(walker)
 	processCache.Tick()
 
-	scanner := procspy.NewSyncConnectionScanner(processCache, t.conf.SpyProcs)
+	scanner := procspy.NewSyncConnectionScanner(processCache)
+	seenTuples := map[string]fourTuple{}
+	// Consult the flowWalker to get the initial state
+	if err := IsConntrackSupported(t.conf.ProcRoot); t.conf.UseConntrack && err != nil {
+		log.Warnf("Not using conntrack: not supported by the kernel: %s", err)
+	} else if existingFlows, err := existingConnections([]string{"--any-nat"}); err != nil {
+		log.Errorf("conntrack existingConnections error: %v", err)
+	} else {
+		for _, f := range existingFlows {
+			tuple := flowToTuple(f)
+			seenTuples[tuple.key()] = tuple
+		}
+	}
 
-	// Consult conntrack to get the initial state
-	seenTuples := t.existingFlows()
-
-	conns, err := scanner.Connections()
+	conns, err := scanner.Connections(t.conf.SpyProcs)
 	if err != nil {
 		log.Errorf("Error initializing ebpfTracker while scanning /proc, continuing without initial connections: %s", err)
 	}
@@ -196,23 +207,28 @@ func (t *connectionTracker) getInitialState() {
 
 func (t *connectionTracker) performEbpfTrack(rpt *report.Report, hostNodeID string) error {
 	t.ebpfTracker.walkConnections(func(e ebpfConnection) {
-		var toNodeInfo, fromNodeInfo map[string]string
-		if e.pid > 0 {
-			fromNodeInfo = map[string]string{
-				process.PID:       strconv.Itoa(e.pid),
-				report.HostNodeID: hostNodeID,
-			}
+		fromNodeInfo := map[string]string{
+			EBPF: "true",
 		}
-		t.addConnection(rpt, e.incoming, e.tuple, e.networkNamespace, fromNodeInfo, toNodeInfo)
+		toNodeInfo := map[string]string{
+			EBPF: "true",
+		}
+		if e.pid > 0 {
+			fromNodeInfo[process.PID] = strconv.Itoa(e.pid)
+			fromNodeInfo[report.HostNodeID] = hostNodeID
+		}
+
+		if e.incoming {
+			t.addConnection(rpt, reverse(e.tuple), e.networkNamespace, toNodeInfo, fromNodeInfo)
+		} else {
+			t.addConnection(rpt, e.tuple, e.networkNamespace, fromNodeInfo, toNodeInfo)
+		}
+
 	})
 	return nil
 }
 
-func (t *connectionTracker) addConnection(rpt *report.Report, incoming bool, ft fourTuple, namespaceID string, extraFromNode, extraToNode map[string]string) {
-	if incoming {
-		ft = reverse(ft)
-		extraFromNode, extraToNode = extraToNode, extraFromNode
-	}
+func (t *connectionTracker) addConnection(rpt *report.Report, ft fourTuple, namespaceID string, extraFromNode, extraToNode map[string]string) {
 	var (
 		fromNode = t.makeEndpointNode(namespaceID, ft.fromAddr, ft.fromPort, extraFromNode)
 		toNode   = t.makeEndpointNode(namespaceID, ft.toAddr, ft.toPort, extraToNode)
@@ -223,7 +239,9 @@ func (t *connectionTracker) addConnection(rpt *report.Report, incoming bool, ft 
 
 func (t *connectionTracker) makeEndpointNode(namespaceID string, addr string, port uint16, extra map[string]string) report.Node {
 	portStr := strconv.Itoa(int(port))
-	node := report.MakeNodeWith(report.MakeEndpointNodeID(t.conf.HostID, namespaceID, addr, portStr), nil)
+	node := report.MakeNodeWith(
+		report.MakeEndpointNodeID(t.conf.HostID, namespaceID, addr, portStr),
+		map[string]string{Addr: addr, Port: portStr})
 	if names := t.conf.DNSSnooper.CachedNamesForIP(addr); len(names) > 0 {
 		node = node.WithSet(SnoopedDNSNames, report.MakeStringSet(names...))
 	}
@@ -245,24 +263,4 @@ func (t *connectionTracker) Stop() error {
 	}
 	t.reverseResolver.stop()
 	return nil
-}
-
-func connectionTuple(conn *procspy.Connection, seenTuples map[string]fourTuple) (fourTuple, string, bool) {
-	namespaceID := ""
-	tuple := fourTuple{
-		conn.LocalAddress.String(),
-		conn.RemoteAddress.String(),
-		conn.LocalPort,
-		conn.RemotePort,
-	}
-	if conn.Proc.NetNamespaceID > 0 {
-		namespaceID = strconv.FormatUint(conn.Proc.NetNamespaceID, 10)
-	}
-
-	// If we've already seen this connection, we should know the direction
-	// (or have already figured it out), so we normalize and use the
-	// canonical direction. Otherwise, we can use a port-heuristic to guess
-	// the direction.
-	canonical, ok := seenTuples[tuple.key()]
-	return tuple, namespaceID, (ok && canonical != tuple) || (!ok && tuple.fromPort < tuple.toPort)
 }

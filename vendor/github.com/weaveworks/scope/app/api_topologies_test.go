@@ -9,8 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/ugorji/go/codec"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	apiv1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api"
 
 	"github.com/weaveworks/common/test"
 	"github.com/weaveworks/scope/app"
@@ -183,14 +182,14 @@ func getTestContainerLabelFilterTopologySummary(t *testing.T, exclude bool) (det
 		return nil, err
 	}
 
-	return detailed.Summaries(report.RenderContext{Report: fixture.Report}, renderer.Render(fixture.Report, decorator)), nil
+	return detailed.Summaries(fixture.Report, renderer.Render(fixture.Report, decorator)), nil
 }
 
 func TestAPITopologyAddsKubernetes(t *testing.T) {
 	router := mux.NewRouter()
 	c := app.NewCollector(1 * time.Minute)
 	app.RegisterReportPostHandler(c, router)
-	app.RegisterTopologyRoutes(router, c, map[string]bool{"foo_capability": true})
+	app.RegisterTopologyRoutes(router, c)
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
@@ -206,21 +205,21 @@ func TestAPITopologyAddsKubernetes(t *testing.T) {
 	// Enable the kubernetes topologies
 	rpt := report.MakeReport()
 	rpt.Pod = report.MakeTopology()
-	rpt.Pod.Nodes[fixture.ClientPodNodeID] = kubernetes.NewPod(&apiv1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
+	rpt.Pod.Nodes[fixture.ClientPodNodeID] = kubernetes.NewPod(&api.Pod{
+		ObjectMeta: api.ObjectMeta{
 			Name:      "pong-a",
 			Namespace: "ping",
 			Labels:    map[string]string{"ponger": "true"},
 		},
-		Status: apiv1.PodStatus{
+		Status: api.PodStatus{
 			HostIP: "1.2.3.4",
-			ContainerStatuses: []apiv1.ContainerStatus{
+			ContainerStatuses: []api.ContainerStatus{
 				{ContainerID: "container1"},
 				{ContainerID: "container2"},
 			},
 		},
-		Spec: apiv1.PodSpec{
-			SecurityContext: &apiv1.PodSecurityContext{},
+		Spec: api.PodSpec{
+			SecurityContext: &api.PodSecurityContext{},
 		},
 	}).GetNode("")
 	buf := &bytes.Buffer{}

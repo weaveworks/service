@@ -1,28 +1,30 @@
-package gcache
+package gcache_test
 
 import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/bluele/gcache"
 )
 
-func buildARCache(size int) Cache {
-	return New(size).
+func buildARCache(size int) gcache.Cache {
+	return gcache.New(size).
 		ARC().
 		EvictedFunc(evictedFuncForARC).
 		Build()
 }
 
-func buildLoadingARCache(size int) Cache {
-	return New(size).
+func buildLoadingARCache(size int) gcache.Cache {
+	return gcache.New(size).
 		ARC().
 		LoaderFunc(loader).
 		EvictedFunc(evictedFuncForARC).
 		Build()
 }
 
-func buildLoadingARCacheWithExpiration(size int, ep time.Duration) Cache {
-	return New(size).
+func buildLoadingARCacheWithExpiration(size int, ep time.Duration) gcache.Cache {
+	return gcache.New(size).
 		ARC().
 		Expiration(ep).
 		LoaderFunc(loader).
@@ -80,9 +82,9 @@ func TestARCEvictItem(t *testing.T) {
 }
 
 func TestARCGetIFPresent(t *testing.T) {
-	testGetIFPresent(t, TYPE_ARC)
+	testGetIFPresent(t, gcache.TYPE_ARC)
 }
 
 func TestARCGetALL(t *testing.T) {
-	testGetALL(t, TYPE_ARC)
+	testGetALL(t, gcache.TYPE_ARC)
 }

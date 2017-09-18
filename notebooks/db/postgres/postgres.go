@@ -7,13 +7,13 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	log "github.com/Sirupsen/logrus"
+	"github.com/mattes/migrate/migrate"
 	"github.com/weaveworks/service/notebooks"
-	"gopkg.in/mattes/migrate.v1/migrate"
 
 	uuid "github.com/satori/go.uuid"
 
-	_ "github.com/lib/pq"                          // Import the postgres sql driver
-	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // Import the postgres migrations driver
+	_ "github.com/lib/pq"                         // Import the postgres sql driver
+	_ "github.com/mattes/migrate/driver/postgres" // Import the postgres migrations driver
 )
 
 // DB is a postgres db, for dev and production

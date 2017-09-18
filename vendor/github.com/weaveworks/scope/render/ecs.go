@@ -6,20 +6,32 @@ import (
 
 // ECSTaskRenderer is a Renderer for Amazon ECS tasks.
 var ECSTaskRenderer = ConditionalRenderer(renderECSTopologies,
-	renderParents(
-		report.Container, []string{report.ECSTask}, UnmanagedID,
-		MakeFilter(
-			IsRunning,
-			ContainerWithImageNameRenderer,
+	MakeMap(
+		PropagateSingleMetrics(report.Container),
+		MakeReduce(
+			MakeMap(
+				Map2Parent(report.ECSTask, UnmanagedID, nil),
+				MakeFilter(
+					IsRunning,
+					ContainerWithImageNameRenderer,
+				),
+			),
+			SelectECSTask,
 		),
 	),
 )
 
 // ECSServiceRenderer is a Renderer for Amazon ECS services.
 var ECSServiceRenderer = ConditionalRenderer(renderECSTopologies,
-	renderParents(
-		report.ECSTask, []string{report.ECSService}, "",
-		ECSTaskRenderer,
+	MakeMap(
+		PropagateSingleMetrics(report.ECSTask),
+		MakeReduce(
+			MakeMap(
+				Map2Parent(report.ECSService, "", nil),
+				ECSTaskRenderer,
+			),
+			SelectECSService,
+		),
 	),
 )
 

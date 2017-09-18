@@ -1,6 +1,7 @@
 package overlay
 
 import (
+	"bytes"
 	"fmt"
 	"regexp"
 	"strings"
@@ -12,6 +13,8 @@ import (
 	"github.com/weaveworks/scope/probe/docker"
 	"github.com/weaveworks/scope/probe/host"
 	"github.com/weaveworks/scope/report"
+
+	docker_client "github.com/fsouza/go-dockerclient"
 )
 
 // Keys for use in Node
@@ -51,6 +54,9 @@ const (
 )
 
 var (
+	// NewDockerClientStub is used for testing
+	NewDockerClientStub = newDockerClient
+
 	containerNotRunningRE = regexp.MustCompile(`Container .* is not running\n`)
 
 	containerMetadata = report.MetadataTemplates{
@@ -139,30 +145,52 @@ var (
 	}
 )
 
+// DockerClient is used for testing
+type DockerClient interface {
+	CreateExec(docker_client.CreateExecOptions) (*docker_client.Exec, error)
+	StartExec(string, docker_client.StartExecOptions) error
+	InspectContainer(id string) (*docker_client.Container, error)
+}
+
+func newDockerClient(endpoint string) (DockerClient, error) {
+	return docker_client.NewClient(endpoint)
+}
+
 // Weave represents a single Weave router, presumably on the same host
 // as the probe. It is both a Reporter and a Tagger: it produces an Overlay
 // topology, and (in theory) can tag existing topologies with foreign keys to
 // overlay -- though I'm not sure what that would look like in practice right
 // now.
 type Weave struct {
-	client weave.Client
-	hostID string
+	client       weave.Client
+	dockerClient DockerClient
+	hostID       string
 
-	mtx         sync.RWMutex
-	statusCache weave.Status
-	psCache     map[string]weave.PSEntry
+	mtx                sync.RWMutex
+	statusCache        weave.Status
+	psCache            map[string]weave.PSEntry
+	proxyRunningCache  bool
+	proxyAddressCache  string
+	pluginRunningCache bool
 
-	backoff   backoff.Interface
-	psBackoff backoff.Interface
+	backoff       backoff.Interface
+	psBackoff     backoff.Interface
+	proxyBackoff  backoff.Interface
+	pluginBackoff backoff.Interface
 }
 
 // NewWeave returns a new Weave tagger based on the Weave router at
 // address. The address should be an IP or FQDN, no port.
-func NewWeave(hostID string, client weave.Client) (*Weave, error) {
+func NewWeave(hostID string, client weave.Client, dockerEndpoint string) (*Weave, error) {
+	dockerClient, err := NewDockerClientStub(dockerEndpoint)
+	if err != nil {
+		return nil, err
+	}
 	w := &Weave{
-		client:  client,
-		hostID:  hostID,
-		psCache: map[string]weave.PSEntry{},
+		client:       client,
+		dockerClient: dockerClient,
+		hostID:       hostID,
+		psCache:      map[string]weave.PSEntry{},
 	}
 
 	w.backoff = backoff.New(w.status, "collecting weave status")
@@ -172,6 +200,14 @@ func NewWeave(hostID string, client weave.Client) (*Weave, error) {
 	w.psBackoff = backoff.New(w.ps, "collecting weave ps")
 	w.psBackoff.SetInitialBackoff(10 * time.Second)
 	go w.psBackoff.Start()
+
+	w.proxyBackoff = backoff.New(w.proxyStatus, "collecting weave proxy status")
+	w.proxyBackoff.SetInitialBackoff(10 * time.Second)
+	go w.proxyBackoff.Start()
+
+	w.pluginBackoff = backoff.New(w.pluginStatus, "collecting weave plugin status")
+	w.pluginBackoff.SetInitialBackoff(10 * time.Second)
+	go w.pluginBackoff.Start()
 
 	return w, nil
 }
@@ -183,6 +219,8 @@ func (*Weave) Name() string { return "Weave" }
 func (w *Weave) Stop() {
 	w.backoff.Stop()
 	w.psBackoff.Stop()
+	w.proxyBackoff.Stop()
+	w.pluginBackoff.Stop()
 }
 
 func (w *Weave) ps() (bool, error) {
@@ -211,6 +249,78 @@ func (w *Weave) status() (bool, error) {
 		w.statusCache = status
 	}
 	return false, err
+}
+
+func filterContainerNotFound(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	switch err.(type) {
+	case *docker_client.Error:
+		// This is really ugly, but this error comes from the client in some cases
+		// and there is no other way to distinguish it :(
+		dockerError := err.(*docker_client.Error)
+		if containerNotRunningRE.MatchString(dockerError.Message) {
+			return nil
+		}
+	case *docker_client.ContainerNotRunning:
+		return nil
+	case *docker_client.NoSuchContainer:
+		return nil
+	}
+
+	return err
+}
+
+func (w *Weave) proxyStatus() (bool, error) {
+	update := func(running bool, address string) {
+		w.mtx.Lock()
+		defer w.mtx.Unlock()
+		w.proxyRunningCache = running
+		w.proxyAddressCache = address
+	}
+
+	exec, err := w.dockerClient.CreateExec(docker_client.CreateExecOptions{
+		AttachStdout: true,
+		Cmd:          []string{"curl", "-s", "--unix-socket", "status.sock", "http:/status"},
+		Container:    "weaveproxy",
+	})
+	if err != nil {
+		update(false, "")
+		return false, filterContainerNotFound(err)
+	}
+	out := bytes.NewBuffer(nil)
+	err = w.dockerClient.StartExec(exec.ID, docker_client.StartExecOptions{
+		OutputStream: out,
+	})
+	if err != nil {
+		update(true, "")
+		return false, filterContainerNotFound(err)
+	}
+
+	update(true, out.String())
+
+	return false, nil
+}
+
+func (w *Weave) pluginStatus() (bool, error) {
+	update := func(running bool) {
+		w.mtx.Lock()
+		defer w.mtx.Unlock()
+
+		w.pluginRunningCache = running
+	}
+
+	c, err := w.dockerClient.InspectContainer("weaveplugin")
+	if err != nil {
+		update(false)
+		return false, filterContainerNotFound(err)
+	}
+
+	update(c.State.Running)
+
+	return false, nil
 }
 
 // Tag implements Tagger.
@@ -352,20 +462,17 @@ func (w *Weave) addCurrentPeerInfo(latests map[string]string, node report.Node) 
 		latests[WeaveDNSEntryCount] = fmt.Sprintf("%d", dnsEntryCount)
 	}
 	latests[WeaveProxyStatus] = "not running"
-	if w.statusCache.Proxy != nil {
+	if w.proxyRunningCache {
 		latests[WeaveProxyStatus] = "running"
-		latests[WeaveProxyAddress] = ""
-		if len(w.statusCache.Proxy.Addresses) > 0 {
-			latests[WeaveProxyAddress] = w.statusCache.Proxy.Addresses[0]
-		}
+		latests[WeaveProxyAddress] = w.proxyAddressCache
 	}
 	latests[WeavePluginStatus] = "not running"
-	if w.statusCache.Plugin != nil {
+	if w.pluginRunningCache {
 		latests[WeavePluginStatus] = "running"
-		latests[WeavePluginDriver] = w.statusCache.Plugin.DriverName
+		latests[WeavePluginDriver] = "weave"
 	}
 	node = node.AddPrefixMulticolumnTable(WeaveConnectionsMulticolumnTablePrefix, getConnectionsTable(w.statusCache.Router))
-	node = node.WithParents(report.MakeSets().Add(report.Host, report.MakeStringSet(w.hostID)))
+	node = node.WithParents(report.EmptySets.Add(report.Host, report.MakeStringSet(w.hostID)))
 
 	return latests, node
 }

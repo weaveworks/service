@@ -70,7 +70,7 @@ func (c *ARC) SetWithExpire(key, value interface{}, expiration time.Duration) er
 		return err
 	}
 
-	t := c.clock.Now().Add(expiration)
+	t := time.Now().Add(expiration)
 	item.(*arcItem).expiration = &t
 	return nil
 }
@@ -89,7 +89,6 @@ func (c *ARC) set(key, value interface{}) (interface{}, error) {
 		item.value = value
 	} else {
 		item = &arcItem{
-			clock: c.clock,
 			key:   key,
 			value: value,
 		}
@@ -97,7 +96,7 @@ func (c *ARC) set(key, value interface{}) (interface{}, error) {
 	}
 
 	if c.expiration != nil {
-		t := c.clock.Now().Add(*c.expiration)
+		t := time.Now().Add(*c.expiration)
 		item.expiration = &t
 	}
 
@@ -244,7 +243,7 @@ func (c *ARC) getWithLoader(key interface{}, isWait bool) (interface{}, error) {
 			return nil, err
 		}
 		if expiration != nil {
-			t := c.clock.Now().Add(*expiration)
+			t := time.Now().Add(*expiration)
 			item.(*arcItem).expiration = &t
 		}
 		return v, nil
@@ -344,7 +343,7 @@ func (it *arcItem) IsExpired(now *time.Time) bool {
 		return false
 	}
 	if now == nil {
-		t := it.clock.Now()
+		t := time.Now()
 		now = &t
 	}
 	return it.expiration.Before(*now)
@@ -356,7 +355,6 @@ type arcList struct {
 }
 
 type arcItem struct {
-	clock      Clock
 	key        interface{}
 	value      interface{}
 	expiration *time.Time

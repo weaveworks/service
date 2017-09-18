@@ -39,25 +39,11 @@ func MakeReduce(renderers ...Renderer) Renderer {
 
 // Render produces a set of Nodes given a Report.
 func (r *Reduce) Render(rpt report.Report, dct Decorator) report.Nodes {
-	l := len(*r)
-	switch l {
-	case 0:
-		return report.Nodes{}
-	}
-	c := make(chan report.Nodes, l)
+	result := report.Nodes{}
 	for _, renderer := range *r {
-		renderer := renderer // Pike!!
-		go func() {
-			c <- renderer.Render(rpt, dct)
-		}()
+		result = result.Merge(renderer.Render(rpt, dct))
 	}
-	for ; l > 1; l-- {
-		left, right := <-c, <-c
-		go func() {
-			c <- left.Merge(right)
-		}()
-	}
-	return <-c
+	return result
 }
 
 // Stats implements Renderer
@@ -95,7 +81,8 @@ func (m *Map) Render(rpt report.Report, dct Decorator) report.Nodes {
 	// Rewrite all the nodes according to the map function
 	for _, inRenderable := range input {
 		for _, outRenderable := range m.MapFunc(inRenderable, localNetworks) {
-			if existing, ok := output[outRenderable.ID]; ok {
+			existing, ok := output[outRenderable.ID]
+			if ok {
 				outRenderable = outRenderable.Merge(existing)
 			}
 
@@ -109,7 +96,9 @@ func (m *Map) Render(rpt report.Report, dct Decorator) report.Nodes {
 	for outNodeID, inAdjacency := range adjacencies {
 		outAdjacency := report.MakeIDList()
 		for _, inAdjacent := range inAdjacency {
-			outAdjacency = outAdjacency.Merge(mapped[inAdjacent])
+			for _, outAdjacent := range mapped[inAdjacent] {
+				outAdjacency = outAdjacency.Add(outAdjacent)
+			}
 		}
 		outNode := output[outNodeID]
 		outNode.Adjacency = outAdjacency

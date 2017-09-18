@@ -32,6 +32,12 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+var (
+	iamProjectPathTemplate        = gax.MustCompilePathTemplate("projects/{project}")
+	iamServiceAccountPathTemplate = gax.MustCompilePathTemplate("projects/{project}/serviceAccounts/{service_account}")
+	iamKeyPathTemplate            = gax.MustCompilePathTemplate("projects/{project}/serviceAccounts/{service_account}/keys/{key}")
+)
+
 // IamCallOptions contains the retry settings for each method of IamClient.
 type IamCallOptions struct {
 	ListServiceAccounts     []gax.CallOption
@@ -53,7 +59,10 @@ type IamCallOptions struct {
 func defaultIamClientOptions() []option.ClientOption {
 	return []option.ClientOption{
 		option.WithEndpoint("iam.googleapis.com:443"),
-		option.WithScopes(DefaultAuthScopes()...),
+		option.WithScopes(
+			"https://www.googleapis.com/auth/cloud-platform",
+			"https://www.googleapis.com/auth/iam",
+		),
 	}
 }
 
@@ -63,6 +72,17 @@ func defaultIamCallOptions() *IamCallOptions {
 			gax.WithRetry(func() gax.Retryer {
 				return gax.OnCodes([]codes.Code{
 					codes.DeadlineExceeded,
+					codes.Unavailable,
+				}, gax.Backoff{
+					Initial:    100 * time.Millisecond,
+					Max:        60000 * time.Millisecond,
+					Multiplier: 1.3,
+				})
+			}),
+		},
+		{"default", "non_idempotent"}: {
+			gax.WithRetry(func() gax.Retryer {
+				return gax.OnCodes([]codes.Code{
 					codes.Unavailable,
 				}, gax.Backoff{
 					Initial:    100 * time.Millisecond,
@@ -102,7 +122,7 @@ type IamClient struct {
 	CallOptions *IamCallOptions
 
 	// The metadata to be sent with each request.
-	xGoogHeader []string
+	xGoogHeader string
 }
 
 // NewIamClient creates a new iam client.
@@ -113,16 +133,16 @@ type IamClient struct {
 // of to an individual end user. It is used to authenticate calls
 // to a Google API.
 //
-// To create a service account, specify the project_id and account_id
-// for the account.  The account_id is unique within the project, and used
+// To create a service account, specify the `project_id` and `account_id`
+// for the account.  The `account_id` is unique within the project, and used
 // to generate the service account email address and a stable
-// unique_id.
+// `unique_id`.
 //
 // All other methods can identify accounts using the format
-// projects/{project}/serviceAccounts/{account}.
-// Using - as a wildcard for the project will infer the project from
-// the account. The account value can be the email address or the
-// unique_id of the service account.
+// `projects/{project}/serviceAccounts/{account}`.
+// Using `-` as a wildcard for the project will infer the project from
+// the account. The `account` value can be the `email` address or the
+// `unique_id` of the service account.
 func NewIamClient(ctx context.Context, opts ...option.ClientOption) (*IamClient, error) {
 	conn, err := transport.DialGRPC(ctx, append(defaultIamClientOptions(), opts...)...)
 	if err != nil {
@@ -134,7 +154,7 @@ func NewIamClient(ctx context.Context, opts ...option.ClientOption) (*IamClient,
 
 		iamClient: adminpb.NewIAMClient(conn),
 	}
-	c.setGoogleClientInfo()
+	c.SetGoogleClientInfo()
 	return c, nil
 }
 
@@ -149,49 +169,54 @@ func (c *IamClient) Close() error {
 	return c.conn.Close()
 }
 
-// setGoogleClientInfo sets the name and version of the application in
+// SetGoogleClientInfo sets the name and version of the application in
 // the `x-goog-api-client` header passed on each request. Intended for
 // use by Google-written clients.
-func (c *IamClient) setGoogleClientInfo(keyval ...string) {
+func (c *IamClient) SetGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", version.Go()}, keyval...)
-	kv = append(kv, "gapic", version.Repo, "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeader = []string{gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", version.Repo, "gax", gax.Version, "grpc", "")
+	c.xGoogHeader = gax.XGoogHeader(kv...)
 }
 
 // IamProjectPath returns the path for the project resource.
 func IamProjectPath(project string) string {
-	return "" +
-		"projects/" +
-		project +
-		""
+	path, err := iamProjectPathTemplate.Render(map[string]string{
+		"project": project,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return path
 }
 
 // IamServiceAccountPath returns the path for the service account resource.
 func IamServiceAccountPath(project, serviceAccount string) string {
-	return "" +
-		"projects/" +
-		project +
-		"/serviceAccounts/" +
-		serviceAccount +
-		""
+	path, err := iamServiceAccountPathTemplate.Render(map[string]string{
+		"project":         project,
+		"service_account": serviceAccount,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return path
 }
 
 // IamKeyPath returns the path for the key resource.
 func IamKeyPath(project, serviceAccount, key string) string {
-	return "" +
-		"projects/" +
-		project +
-		"/serviceAccounts/" +
-		serviceAccount +
-		"/keys/" +
-		key +
-		""
+	path, err := iamKeyPathTemplate.Render(map[string]string{
+		"project":         project,
+		"service_account": serviceAccount,
+		"key":             key,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return path
 }
 
 // ListServiceAccounts lists [ServiceAccounts][google.iam.admin.v1.ServiceAccount] for a project.
-func (c *IamClient) ListServiceAccounts(ctx context.Context, req *adminpb.ListServiceAccountsRequest, opts ...gax.CallOption) *ServiceAccountIterator {
+func (c *IamClient) ListServiceAccounts(ctx context.Context, req *adminpb.ListServiceAccountsRequest) *ServiceAccountIterator {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.ListServiceAccounts[0:len(c.CallOptions.ListServiceAccounts):len(c.CallOptions.ListServiceAccounts)], opts...)
 	it := &ServiceAccountIterator{}
 	it.InternalFetch = func(pageSize int, pageToken string) ([]*adminpb.ServiceAccount, string, error) {
 		var resp *adminpb.ListServiceAccountsResponse
@@ -201,11 +226,11 @@ func (c *IamClient) ListServiceAccounts(ctx context.Context, req *adminpb.ListSe
 		} else {
 			req.PageSize = int32(pageSize)
 		}
-		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		err := gax.Invoke(ctx, func(ctx context.Context) error {
 			var err error
-			resp, err = c.iamClient.ListServiceAccounts(ctx, req, settings.GRPC...)
+			resp, err = c.iamClient.ListServiceAccounts(ctx, req)
 			return err
-		}, opts...)
+		}, c.CallOptions.ListServiceAccounts...)
 		if err != nil {
 			return nil, "", err
 		}
@@ -224,15 +249,14 @@ func (c *IamClient) ListServiceAccounts(ctx context.Context, req *adminpb.ListSe
 }
 
 // GetServiceAccount gets a [ServiceAccount][google.iam.admin.v1.ServiceAccount].
-func (c *IamClient) GetServiceAccount(ctx context.Context, req *adminpb.GetServiceAccountRequest, opts ...gax.CallOption) (*adminpb.ServiceAccount, error) {
+func (c *IamClient) GetServiceAccount(ctx context.Context, req *adminpb.GetServiceAccountRequest) (*adminpb.ServiceAccount, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.GetServiceAccount[0:len(c.CallOptions.GetServiceAccount):len(c.CallOptions.GetServiceAccount)], opts...)
 	var resp *adminpb.ServiceAccount
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.iamClient.GetServiceAccount(ctx, req, settings.GRPC...)
+		resp, err = c.iamClient.GetServiceAccount(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.GetServiceAccount...)
 	if err != nil {
 		return nil, err
 	}
@@ -241,15 +265,14 @@ func (c *IamClient) GetServiceAccount(ctx context.Context, req *adminpb.GetServi
 
 // CreateServiceAccount creates a [ServiceAccount][google.iam.admin.v1.ServiceAccount]
 // and returns it.
-func (c *IamClient) CreateServiceAccount(ctx context.Context, req *adminpb.CreateServiceAccountRequest, opts ...gax.CallOption) (*adminpb.ServiceAccount, error) {
+func (c *IamClient) CreateServiceAccount(ctx context.Context, req *adminpb.CreateServiceAccountRequest) (*adminpb.ServiceAccount, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.CreateServiceAccount[0:len(c.CallOptions.CreateServiceAccount):len(c.CallOptions.CreateServiceAccount)], opts...)
 	var resp *adminpb.ServiceAccount
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.iamClient.CreateServiceAccount(ctx, req, settings.GRPC...)
+		resp, err = c.iamClient.CreateServiceAccount(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.CreateServiceAccount...)
 	if err != nil {
 		return nil, err
 	}
@@ -259,17 +282,16 @@ func (c *IamClient) CreateServiceAccount(ctx context.Context, req *adminpb.Creat
 // UpdateServiceAccount updates a [ServiceAccount][google.iam.admin.v1.ServiceAccount].
 //
 // Currently, only the following fields are updatable:
-// display_name .
-// The etag is mandatory.
-func (c *IamClient) UpdateServiceAccount(ctx context.Context, req *adminpb.ServiceAccount, opts ...gax.CallOption) (*adminpb.ServiceAccount, error) {
+// `display_name` .
+// The `etag` is mandatory.
+func (c *IamClient) UpdateServiceAccount(ctx context.Context, req *adminpb.ServiceAccount) (*adminpb.ServiceAccount, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.UpdateServiceAccount[0:len(c.CallOptions.UpdateServiceAccount):len(c.CallOptions.UpdateServiceAccount)], opts...)
 	var resp *adminpb.ServiceAccount
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.iamClient.UpdateServiceAccount(ctx, req, settings.GRPC...)
+		resp, err = c.iamClient.UpdateServiceAccount(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.UpdateServiceAccount...)
 	if err != nil {
 		return nil, err
 	}
@@ -277,27 +299,25 @@ func (c *IamClient) UpdateServiceAccount(ctx context.Context, req *adminpb.Servi
 }
 
 // DeleteServiceAccount deletes a [ServiceAccount][google.iam.admin.v1.ServiceAccount].
-func (c *IamClient) DeleteServiceAccount(ctx context.Context, req *adminpb.DeleteServiceAccountRequest, opts ...gax.CallOption) error {
+func (c *IamClient) DeleteServiceAccount(ctx context.Context, req *adminpb.DeleteServiceAccountRequest) error {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.DeleteServiceAccount[0:len(c.CallOptions.DeleteServiceAccount):len(c.CallOptions.DeleteServiceAccount)], opts...)
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		_, err = c.iamClient.DeleteServiceAccount(ctx, req, settings.GRPC...)
+		_, err = c.iamClient.DeleteServiceAccount(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.DeleteServiceAccount...)
 	return err
 }
 
 // ListServiceAccountKeys lists [ServiceAccountKeys][google.iam.admin.v1.ServiceAccountKey].
-func (c *IamClient) ListServiceAccountKeys(ctx context.Context, req *adminpb.ListServiceAccountKeysRequest, opts ...gax.CallOption) (*adminpb.ListServiceAccountKeysResponse, error) {
+func (c *IamClient) ListServiceAccountKeys(ctx context.Context, req *adminpb.ListServiceAccountKeysRequest) (*adminpb.ListServiceAccountKeysResponse, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.ListServiceAccountKeys[0:len(c.CallOptions.ListServiceAccountKeys):len(c.CallOptions.ListServiceAccountKeys)], opts...)
 	var resp *adminpb.ListServiceAccountKeysResponse
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.iamClient.ListServiceAccountKeys(ctx, req, settings.GRPC...)
+		resp, err = c.iamClient.ListServiceAccountKeys(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.ListServiceAccountKeys...)
 	if err != nil {
 		return nil, err
 	}
@@ -306,15 +326,14 @@ func (c *IamClient) ListServiceAccountKeys(ctx context.Context, req *adminpb.Lis
 
 // GetServiceAccountKey gets the [ServiceAccountKey][google.iam.admin.v1.ServiceAccountKey]
 // by key id.
-func (c *IamClient) GetServiceAccountKey(ctx context.Context, req *adminpb.GetServiceAccountKeyRequest, opts ...gax.CallOption) (*adminpb.ServiceAccountKey, error) {
+func (c *IamClient) GetServiceAccountKey(ctx context.Context, req *adminpb.GetServiceAccountKeyRequest) (*adminpb.ServiceAccountKey, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.GetServiceAccountKey[0:len(c.CallOptions.GetServiceAccountKey):len(c.CallOptions.GetServiceAccountKey)], opts...)
 	var resp *adminpb.ServiceAccountKey
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.iamClient.GetServiceAccountKey(ctx, req, settings.GRPC...)
+		resp, err = c.iamClient.GetServiceAccountKey(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.GetServiceAccountKey...)
 	if err != nil {
 		return nil, err
 	}
@@ -323,15 +342,14 @@ func (c *IamClient) GetServiceAccountKey(ctx context.Context, req *adminpb.GetSe
 
 // CreateServiceAccountKey creates a [ServiceAccountKey][google.iam.admin.v1.ServiceAccountKey]
 // and returns it.
-func (c *IamClient) CreateServiceAccountKey(ctx context.Context, req *adminpb.CreateServiceAccountKeyRequest, opts ...gax.CallOption) (*adminpb.ServiceAccountKey, error) {
+func (c *IamClient) CreateServiceAccountKey(ctx context.Context, req *adminpb.CreateServiceAccountKeyRequest) (*adminpb.ServiceAccountKey, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.CreateServiceAccountKey[0:len(c.CallOptions.CreateServiceAccountKey):len(c.CallOptions.CreateServiceAccountKey)], opts...)
 	var resp *adminpb.ServiceAccountKey
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.iamClient.CreateServiceAccountKey(ctx, req, settings.GRPC...)
+		resp, err = c.iamClient.CreateServiceAccountKey(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.CreateServiceAccountKey...)
 	if err != nil {
 		return nil, err
 	}
@@ -339,27 +357,25 @@ func (c *IamClient) CreateServiceAccountKey(ctx context.Context, req *adminpb.Cr
 }
 
 // DeleteServiceAccountKey deletes a [ServiceAccountKey][google.iam.admin.v1.ServiceAccountKey].
-func (c *IamClient) DeleteServiceAccountKey(ctx context.Context, req *adminpb.DeleteServiceAccountKeyRequest, opts ...gax.CallOption) error {
+func (c *IamClient) DeleteServiceAccountKey(ctx context.Context, req *adminpb.DeleteServiceAccountKeyRequest) error {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.DeleteServiceAccountKey[0:len(c.CallOptions.DeleteServiceAccountKey):len(c.CallOptions.DeleteServiceAccountKey)], opts...)
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		_, err = c.iamClient.DeleteServiceAccountKey(ctx, req, settings.GRPC...)
+		_, err = c.iamClient.DeleteServiceAccountKey(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.DeleteServiceAccountKey...)
 	return err
 }
 
 // SignBlob signs a blob using a service account's system-managed private key.
-func (c *IamClient) SignBlob(ctx context.Context, req *adminpb.SignBlobRequest, opts ...gax.CallOption) (*adminpb.SignBlobResponse, error) {
+func (c *IamClient) SignBlob(ctx context.Context, req *adminpb.SignBlobRequest) (*adminpb.SignBlobResponse, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.SignBlob[0:len(c.CallOptions.SignBlob):len(c.CallOptions.SignBlob)], opts...)
 	var resp *adminpb.SignBlobResponse
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.iamClient.SignBlob(ctx, req, settings.GRPC...)
+		resp, err = c.iamClient.SignBlob(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.SignBlob...)
 	if err != nil {
 		return nil, err
 	}
@@ -368,15 +384,14 @@ func (c *IamClient) SignBlob(ctx context.Context, req *adminpb.SignBlobRequest, 
 
 // getIamPolicy returns the IAM access control policy for a
 // [ServiceAccount][google.iam.admin.v1.ServiceAccount].
-func (c *IamClient) getIamPolicy(ctx context.Context, req *iampb.GetIamPolicyRequest, opts ...gax.CallOption) (*iampb.Policy, error) {
+func (c *IamClient) getIamPolicy(ctx context.Context, req *iampb.GetIamPolicyRequest) (*iampb.Policy, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.GetIamPolicy[0:len(c.CallOptions.GetIamPolicy):len(c.CallOptions.GetIamPolicy)], opts...)
 	var resp *iampb.Policy
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.iamClient.GetIamPolicy(ctx, req, settings.GRPC...)
+		resp, err = c.iamClient.GetIamPolicy(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.GetIamPolicy...)
 	if err != nil {
 		return nil, err
 	}
@@ -385,15 +400,14 @@ func (c *IamClient) getIamPolicy(ctx context.Context, req *iampb.GetIamPolicyReq
 
 // setIamPolicy sets the IAM access control policy for a
 // [ServiceAccount][google.iam.admin.v1.ServiceAccount].
-func (c *IamClient) setIamPolicy(ctx context.Context, req *iampb.SetIamPolicyRequest, opts ...gax.CallOption) (*iampb.Policy, error) {
+func (c *IamClient) setIamPolicy(ctx context.Context, req *iampb.SetIamPolicyRequest) (*iampb.Policy, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.SetIamPolicy[0:len(c.CallOptions.SetIamPolicy):len(c.CallOptions.SetIamPolicy)], opts...)
 	var resp *iampb.Policy
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.iamClient.SetIamPolicy(ctx, req, settings.GRPC...)
+		resp, err = c.iamClient.SetIamPolicy(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.SetIamPolicy...)
 	if err != nil {
 		return nil, err
 	}
@@ -402,15 +416,14 @@ func (c *IamClient) setIamPolicy(ctx context.Context, req *iampb.SetIamPolicyReq
 
 // TestIamPermissions tests the specified permissions against the IAM access control policy
 // for a [ServiceAccount][google.iam.admin.v1.ServiceAccount].
-func (c *IamClient) TestIamPermissions(ctx context.Context, req *iampb.TestIamPermissionsRequest, opts ...gax.CallOption) (*iampb.TestIamPermissionsResponse, error) {
+func (c *IamClient) TestIamPermissions(ctx context.Context, req *iampb.TestIamPermissionsRequest) (*iampb.TestIamPermissionsResponse, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.TestIamPermissions[0:len(c.CallOptions.TestIamPermissions):len(c.CallOptions.TestIamPermissions)], opts...)
 	var resp *iampb.TestIamPermissionsResponse
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.iamClient.TestIamPermissions(ctx, req, settings.GRPC...)
+		resp, err = c.iamClient.TestIamPermissions(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.TestIamPermissions...)
 	if err != nil {
 		return nil, err
 	}
@@ -420,15 +433,14 @@ func (c *IamClient) TestIamPermissions(ctx context.Context, req *iampb.TestIamPe
 // QueryGrantableRoles queries roles that can be granted on a particular resource.
 // A role is grantable if it can be used as the role in a binding for a policy
 // for that resource.
-func (c *IamClient) QueryGrantableRoles(ctx context.Context, req *adminpb.QueryGrantableRolesRequest, opts ...gax.CallOption) (*adminpb.QueryGrantableRolesResponse, error) {
+func (c *IamClient) QueryGrantableRoles(ctx context.Context, req *adminpb.QueryGrantableRolesRequest) (*adminpb.QueryGrantableRolesResponse, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.QueryGrantableRoles[0:len(c.CallOptions.QueryGrantableRoles):len(c.CallOptions.QueryGrantableRoles)], opts...)
 	var resp *adminpb.QueryGrantableRolesResponse
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.iamClient.QueryGrantableRoles(ctx, req, settings.GRPC...)
+		resp, err = c.iamClient.QueryGrantableRoles(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.QueryGrantableRoles...)
 	if err != nil {
 		return nil, err
 	}

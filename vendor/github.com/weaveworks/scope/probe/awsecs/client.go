@@ -240,7 +240,7 @@ func (c ecsClientImpl) getTasks(taskARNs []string) {
 	}
 
 	for _, task := range resp.Tasks {
-		if task != nil && task.TaskArn != nil {
+		if task.TaskArn != nil {
 			c.taskCache.Set(*task.TaskArn, newECSTask(task))
 		}
 	}

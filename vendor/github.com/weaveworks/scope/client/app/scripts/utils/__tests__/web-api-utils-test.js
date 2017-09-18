@@ -1,8 +1,6 @@
-import moment from 'moment';
-import { Map as makeMap, OrderedMap as makeOrderedMap } from 'immutable';
 
-import { buildUrlQuery, basePath, getApiPath, getWebsocketUrl } from '../web-api-utils';
-
+import {OrderedMap as makeOrderedMap} from 'immutable';
+import { buildOptionsQuery, basePath, getApiPath, getWebsocketUrl } from '../web-api-utils';
 
 describe('WebApiUtils', () => {
   describe('basePath', () => {
@@ -23,26 +21,16 @@ describe('WebApiUtils', () => {
     });
   });
 
-  describe('buildUrlQuery', () => {
-    let state = makeMap();
-
+  describe('buildOptionsQuery', () => {
     it('should handle empty options', () => {
-      expect(buildUrlQuery(makeOrderedMap([]), state)).toBe('');
+      expect(buildOptionsQuery(makeOrderedMap({}))).toBe('');
     });
 
     it('should combine multiple options', () => {
-      expect(buildUrlQuery(makeOrderedMap([
+      expect(buildOptionsQuery(makeOrderedMap([
         ['foo', 2],
         ['bar', 4]
-      ]), state)).toBe('foo=2&bar=4');
-    });
-
-    it('should combine multiple options with a timestamp', () => {
-      state = state.set('pausedAt', moment('2015-06-14T21:12:05.275Z'));
-      expect(buildUrlQuery(makeOrderedMap([
-        ['foo', 2],
-        ['bar', 4]
-      ]), state)).toBe('foo=2&bar=4&timestamp=2015-06-14T21:12:05.275Z');
+      ]))).toBe('foo=2&bar=4');
     });
   });
 

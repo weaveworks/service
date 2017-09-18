@@ -7,6 +7,7 @@ import (
 	"github.com/weaveworks/common/mtime"
 
 	"github.com/weaveworks/scope/probe/docker"
+	"github.com/weaveworks/scope/probe/endpoint"
 	"github.com/weaveworks/scope/probe/host"
 	"github.com/weaveworks/scope/render"
 	"github.com/weaveworks/scope/report"
@@ -50,16 +51,32 @@ var (
 	rpt = report.Report{
 		Endpoint: report.Topology{
 			Nodes: report.Nodes{
-				randomEndpointNodeID: report.MakeNode(randomEndpointNodeID).
-					WithTopology(report.Endpoint).WithAdjacent(serverEndpointNodeID),
+				randomEndpointNodeID: report.MakeNodeWith(randomEndpointNodeID, map[string]string{
+					endpoint.Addr:        randomIP,
+					endpoint.Port:        randomPort,
+					endpoint.Conntracked: "true",
+				}).
+					WithAdjacent(serverEndpointNodeID).WithTopology(report.Endpoint),
 
-				serverEndpointNodeID: report.MakeNode(serverEndpointNodeID).
+				serverEndpointNodeID: report.MakeNodeWith(serverEndpointNodeID, map[string]string{
+					endpoint.Addr:        serverIP,
+					endpoint.Port:        serverPort,
+					endpoint.Conntracked: "true",
+				}).
 					WithTopology(report.Endpoint),
 
-				container1EndpointNodeID: report.MakeNode(container1EndpointNodeID).
-					WithTopology(report.Endpoint).WithAdjacent(duplicatedEndpointNodeID),
+				container1EndpointNodeID: report.MakeNodeWith(container1EndpointNodeID, map[string]string{
+					endpoint.Addr:        container1IP,
+					endpoint.Port:        container1Port,
+					endpoint.Conntracked: "true",
+				}).
+					WithAdjacent(duplicatedEndpointNodeID).WithTopology(report.Endpoint),
 
-				duplicatedEndpointNodeID: report.MakeNode(duplicatedEndpointNodeID).
+				duplicatedEndpointNodeID: report.MakeNodeWith(duplicatedEndpointNodeID, map[string]string{
+					endpoint.Addr:        duplicatedIP,
+					endpoint.Port:        duplicatedPort,
+					endpoint.Conntracked: "true",
+				}).
 					WithTopology(report.Endpoint),
 			},
 		},
@@ -70,7 +87,7 @@ var (
 					docker.ContainerName: container1Name,
 					report.HostNodeID:    serverHostNodeID,
 				}).
-					WithSets(report.MakeSets().
+					WithSets(report.EmptySets.
 						Add(docker.ContainerIPs, report.MakeStringSet(container1IP)).
 						Add(docker.ContainerIPsWithScopes, report.MakeStringSet(report.MakeAddressNodeID("", container1IP))).
 						Add(docker.ContainerPorts, report.MakeStringSet(fmt.Sprintf("%s:%s->%s/tcp", serverIP, serverPort, serverPort))),
@@ -80,7 +97,7 @@ var (
 					docker.ContainerName: container2Name,
 					report.HostNodeID:    serverHostNodeID,
 				}).
-					WithSets(report.MakeSets().
+					WithSets(report.EmptySets.
 						Add(docker.ContainerIPs, report.MakeStringSet(container2IP)).
 						Add(docker.ContainerIPsWithScopes, report.MakeStringSet(report.MakeAddressNodeID("", container2IP))),
 					).WithTopology(report.Container),
@@ -89,7 +106,7 @@ var (
 					docker.ContainerName: pauseContainerName,
 					report.HostNodeID:    serverHostNodeID,
 				}).
-					WithSets(report.MakeSets().
+					WithSets(report.EmptySets.
 						Add(docker.ContainerIPs, report.MakeStringSet(pauseContainerIP)).
 						Add(docker.ContainerIPsWithScopes, report.MakeStringSet(report.MakeAddressNodeID("", pauseContainerIP))),
 					).WithTopology(report.Container).WithLatest(report.DoesNotMakeConnections, mtime.Now(), ""),
@@ -100,7 +117,7 @@ var (
 				serverHostNodeID: report.MakeNodeWith(serverHostNodeID, map[string]string{
 					report.HostNodeID: serverHostNodeID,
 				}).
-					WithSets(report.MakeSets().
+					WithSets(report.EmptySets.
 						Add(host.LocalNetworks, report.MakeStringSet("192.168.0.0/16")),
 					).WithTopology(report.Host),
 			},

@@ -3,6 +3,7 @@ package report
 import (
 	"bytes"
 	"fmt"
+	"sort"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ugorji/go/codec"
@@ -17,19 +18,17 @@ type NodeSet struct {
 	psMap ps.Map
 }
 
-var emptyNodeSet = NodeSet{ps.NewMap()}
+// EmptyNodeSet is the empty set of nodes.
+var EmptyNodeSet = NodeSet{ps.NewMap()}
 
 // MakeNodeSet makes a new NodeSet with the given nodes.
 func MakeNodeSet(nodes ...Node) NodeSet {
-	return emptyNodeSet.Add(nodes...)
+	return EmptyNodeSet.Add(nodes...)
 }
 
 // Add adds the nodes to the NodeSet. Add is the only valid way to grow a
 // NodeSet. Add returns the NodeSet to enable chaining.
 func (n NodeSet) Add(nodes ...Node) NodeSet {
-	if len(nodes) == 0 {
-		return n
-	}
 	result := n.psMap
 	if result == nil {
 		result = ps.NewMap()
@@ -51,7 +50,7 @@ func (n NodeSet) Delete(ids ...string) NodeSet {
 		result = result.Delete(id)
 	}
 	if result.Size() == 0 {
-		return emptyNodeSet
+		return EmptyNodeSet
 	}
 	return NodeSet{result}
 }
@@ -86,6 +85,16 @@ func (n NodeSet) Lookup(key string) (Node, bool) {
 	return Node{}, false
 }
 
+// Keys is a list of all the keys in this set.
+func (n NodeSet) Keys() []string {
+	if n.psMap == nil {
+		return nil
+	}
+	k := n.psMap.Keys()
+	sort.Strings(k)
+	return k
+}
+
 // Size is the number of nodes in the set
 func (n NodeSet) Size() int {
 	if n.psMap == nil {
@@ -94,19 +103,38 @@ func (n NodeSet) Size() int {
 	return n.psMap.Size()
 }
 
-// ForEach executes f for each node in the set.
+// ForEach executes f for each node in the set. Nodes are traversed in sorted
+// order.
 func (n NodeSet) ForEach(f func(Node)) {
-	if n.psMap != nil {
-		n.psMap.ForEach(func(_ string, val interface{}) {
+	for _, key := range n.Keys() {
+		if val, ok := n.psMap.Lookup(key); ok {
 			f(val.(Node))
-		})
+		}
 	}
 }
 
+// Copy is a noop
+func (n NodeSet) Copy() NodeSet {
+	return n
+}
+
 func (n NodeSet) String() string {
+	keys := []string{}
+	if n.psMap == nil {
+		n = EmptyNodeSet
+	}
+	psMap := n.psMap
+	if psMap == nil {
+		psMap = ps.NewMap()
+	}
+	for _, k := range psMap.Keys() {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
 	buf := bytes.NewBufferString("{")
-	for _, key := range mapKeys(n.psMap) {
-		val, _ := n.psMap.Lookup(key)
+	for _, key := range keys {
+		val, _ := psMap.Lookup(key)
 		fmt.Fprintf(buf, "%s: %s, ", key, spew.Sdump(val))
 	}
 	fmt.Fprintf(buf, "}")
@@ -114,8 +142,28 @@ func (n NodeSet) String() string {
 }
 
 // DeepEqual tests equality with other NodeSets
-func (n NodeSet) DeepEqual(o NodeSet) bool {
-	return mapEqual(n.psMap, o.psMap, reflect.DeepEqual)
+func (n NodeSet) DeepEqual(i interface{}) bool {
+	d, ok := i.(NodeSet)
+	if !ok {
+		return false
+	}
+
+	if n.Size() != d.Size() {
+		return false
+	}
+	if n.Size() == 0 {
+		return true
+	}
+
+	equal := true
+	n.psMap.ForEach(func(k string, val interface{}) {
+		if otherValue, ok := d.psMap.Lookup(k); !ok {
+			equal = false
+		} else {
+			equal = equal && reflect.DeepEqual(val, otherValue)
+		}
+	})
+	return equal
 }
 
 func (n NodeSet) toIntermediate() []Node {

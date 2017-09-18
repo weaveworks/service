@@ -1341,8 +1341,8 @@ type IpConfiguration struct {
 	// Kind: This is always sql#ipConfiguration.
 	Kind string `json:"kind,omitempty"`
 
-	// RequireSsl: Whether SSL connections over IP should be enforced or
-	// not.
+	// RequireSsl: Whether the mysqld should default to 'REQUIRE X509' for
+	// users connecting over IP.
 	RequireSsl bool `json:"requireSsl,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "AuthorizedNetworks")

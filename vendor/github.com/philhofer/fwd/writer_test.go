@@ -29,7 +29,7 @@ func (c chunkedWriter) Write(p []byte) (int, error) {
 	return n, nil
 }
 
-// analogous to Write(), but w/ str
+// analagous to Write(), but w/ str
 func (c chunkedWriter) WriteString(s string) (int, error) {
 	l := len(s)
 	n := 0

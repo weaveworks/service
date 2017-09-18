@@ -702,9 +702,7 @@ LOOP:
 			switch state {
 			case 0:
 				state = 2
-				if storeBytes {
-					d.bs = append(d.bs, b)
-				}
+				// do not add sign to the slice ...
 				b, eof = r.readn1eof()
 				continue
 			case 6: // typ = jsonNumFloat
@@ -717,9 +715,7 @@ LOOP:
 			case 0:
 				state = 2
 				n.neg = true
-				if storeBytes {
-					d.bs = append(d.bs, b)
-				}
+				// do not add sign to the slice ...
 				b, eof = r.readn1eof()
 				continue
 			case 6: // typ = jsonNumFloat
@@ -985,28 +981,16 @@ func (d *jsonDecDriver) appendStringAsBytes() {
 		d.tok = b
 	}
 
-	if d.tok != '"' {
-		// d.d.errorf("json: expect char '%c' but got char '%c'", '"', d.tok)
-		// handle non-string scalar: null, true, false or a number
-		switch d.tok {
-		case 'n':
-			d.readStrIdx(10, 13) // ull
-			d.bs = d.bs[:0]
-		case 'f':
-			d.readStrIdx(5, 9) // alse
-			d.bs = d.bs[:5]
-			copy(d.bs, "false")
-		case 't':
-			d.readStrIdx(1, 4) // rue
-			d.bs = d.bs[:4]
-			copy(d.bs, "true")
-		default:
-			// try to parse a valid number
-			d.decNum(true)
-		}
+	// handle null as a string
+	if d.tok == 'n' {
+		d.readStrIdx(10, 13) // ull
+		d.bs = d.bs[:0]
 		return
 	}
 
+	if d.tok != '"' {
+		d.d.errorf("json: expect char '%c' but got char '%c'", '"', d.tok)
+	}
 	d.tok = 0
 
 	v := d.bs[:0]
@@ -1175,7 +1159,6 @@ func (d *jsonDecDriver) DecodeNaked() {
 type JsonHandle struct {
 	textEncodingType
 	BasicHandle
-
 	// RawBytesExt, if configured, is used to encode and decode raw bytes in a custom way.
 	// If not configured, raw bytes are encoded to/from base64 text.
 	RawBytesExt InterfaceExt

@@ -17,7 +17,7 @@
 package monitoring
 
 import (
-	emptypb "github.com/golang/protobuf/ptypes/empty"
+	google_protobuf "github.com/golang/protobuf/ptypes/empty"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	monitoredrespb "google.golang.org/genproto/googleapis/api/monitoredres"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
@@ -25,12 +25,10 @@ import (
 
 import (
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"net"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -40,8 +38,6 @@ import (
 	status "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
-	gstatus "google.golang.org/grpc/status"
 )
 
 var _ = io.EOF
@@ -63,11 +59,7 @@ type mockGroupServer struct {
 	resps []proto.Message
 }
 
-func (s *mockGroupServer) ListGroups(ctx context.Context, req *monitoringpb.ListGroupsRequest) (*monitoringpb.ListGroupsResponse, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockGroupServer) ListGroups(_ context.Context, req *monitoringpb.ListGroupsRequest) (*monitoringpb.ListGroupsResponse, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -75,11 +67,7 @@ func (s *mockGroupServer) ListGroups(ctx context.Context, req *monitoringpb.List
 	return s.resps[0].(*monitoringpb.ListGroupsResponse), nil
 }
 
-func (s *mockGroupServer) GetGroup(ctx context.Context, req *monitoringpb.GetGroupRequest) (*monitoringpb.Group, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockGroupServer) GetGroup(_ context.Context, req *monitoringpb.GetGroupRequest) (*monitoringpb.Group, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -87,11 +75,7 @@ func (s *mockGroupServer) GetGroup(ctx context.Context, req *monitoringpb.GetGro
 	return s.resps[0].(*monitoringpb.Group), nil
 }
 
-func (s *mockGroupServer) CreateGroup(ctx context.Context, req *monitoringpb.CreateGroupRequest) (*monitoringpb.Group, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockGroupServer) CreateGroup(_ context.Context, req *monitoringpb.CreateGroupRequest) (*monitoringpb.Group, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -99,11 +83,7 @@ func (s *mockGroupServer) CreateGroup(ctx context.Context, req *monitoringpb.Cre
 	return s.resps[0].(*monitoringpb.Group), nil
 }
 
-func (s *mockGroupServer) UpdateGroup(ctx context.Context, req *monitoringpb.UpdateGroupRequest) (*monitoringpb.Group, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockGroupServer) UpdateGroup(_ context.Context, req *monitoringpb.UpdateGroupRequest) (*monitoringpb.Group, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -111,23 +91,15 @@ func (s *mockGroupServer) UpdateGroup(ctx context.Context, req *monitoringpb.Upd
 	return s.resps[0].(*monitoringpb.Group), nil
 }
 
-func (s *mockGroupServer) DeleteGroup(ctx context.Context, req *monitoringpb.DeleteGroupRequest) (*emptypb.Empty, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockGroupServer) DeleteGroup(_ context.Context, req *monitoringpb.DeleteGroupRequest) (*google_protobuf.Empty, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
 	}
-	return s.resps[0].(*emptypb.Empty), nil
+	return s.resps[0].(*google_protobuf.Empty), nil
 }
 
-func (s *mockGroupServer) ListGroupMembers(ctx context.Context, req *monitoringpb.ListGroupMembersRequest) (*monitoringpb.ListGroupMembersResponse, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockGroupServer) ListGroupMembers(_ context.Context, req *monitoringpb.ListGroupMembersRequest) (*monitoringpb.ListGroupMembersResponse, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -150,11 +122,7 @@ type mockMetricServer struct {
 	resps []proto.Message
 }
 
-func (s *mockMetricServer) ListMonitoredResourceDescriptors(ctx context.Context, req *monitoringpb.ListMonitoredResourceDescriptorsRequest) (*monitoringpb.ListMonitoredResourceDescriptorsResponse, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockMetricServer) ListMonitoredResourceDescriptors(_ context.Context, req *monitoringpb.ListMonitoredResourceDescriptorsRequest) (*monitoringpb.ListMonitoredResourceDescriptorsResponse, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -162,11 +130,7 @@ func (s *mockMetricServer) ListMonitoredResourceDescriptors(ctx context.Context,
 	return s.resps[0].(*monitoringpb.ListMonitoredResourceDescriptorsResponse), nil
 }
 
-func (s *mockMetricServer) GetMonitoredResourceDescriptor(ctx context.Context, req *monitoringpb.GetMonitoredResourceDescriptorRequest) (*monitoredrespb.MonitoredResourceDescriptor, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockMetricServer) GetMonitoredResourceDescriptor(_ context.Context, req *monitoringpb.GetMonitoredResourceDescriptorRequest) (*monitoredrespb.MonitoredResourceDescriptor, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -174,11 +138,7 @@ func (s *mockMetricServer) GetMonitoredResourceDescriptor(ctx context.Context, r
 	return s.resps[0].(*monitoredrespb.MonitoredResourceDescriptor), nil
 }
 
-func (s *mockMetricServer) ListMetricDescriptors(ctx context.Context, req *monitoringpb.ListMetricDescriptorsRequest) (*monitoringpb.ListMetricDescriptorsResponse, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockMetricServer) ListMetricDescriptors(_ context.Context, req *monitoringpb.ListMetricDescriptorsRequest) (*monitoringpb.ListMetricDescriptorsResponse, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -186,11 +146,7 @@ func (s *mockMetricServer) ListMetricDescriptors(ctx context.Context, req *monit
 	return s.resps[0].(*monitoringpb.ListMetricDescriptorsResponse), nil
 }
 
-func (s *mockMetricServer) GetMetricDescriptor(ctx context.Context, req *monitoringpb.GetMetricDescriptorRequest) (*metricpb.MetricDescriptor, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockMetricServer) GetMetricDescriptor(_ context.Context, req *monitoringpb.GetMetricDescriptorRequest) (*metricpb.MetricDescriptor, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -198,11 +154,7 @@ func (s *mockMetricServer) GetMetricDescriptor(ctx context.Context, req *monitor
 	return s.resps[0].(*metricpb.MetricDescriptor), nil
 }
 
-func (s *mockMetricServer) CreateMetricDescriptor(ctx context.Context, req *monitoringpb.CreateMetricDescriptorRequest) (*metricpb.MetricDescriptor, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockMetricServer) CreateMetricDescriptor(_ context.Context, req *monitoringpb.CreateMetricDescriptorRequest) (*metricpb.MetricDescriptor, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -210,23 +162,15 @@ func (s *mockMetricServer) CreateMetricDescriptor(ctx context.Context, req *moni
 	return s.resps[0].(*metricpb.MetricDescriptor), nil
 }
 
-func (s *mockMetricServer) DeleteMetricDescriptor(ctx context.Context, req *monitoringpb.DeleteMetricDescriptorRequest) (*emptypb.Empty, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockMetricServer) DeleteMetricDescriptor(_ context.Context, req *monitoringpb.DeleteMetricDescriptorRequest) (*google_protobuf.Empty, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
 	}
-	return s.resps[0].(*emptypb.Empty), nil
+	return s.resps[0].(*google_protobuf.Empty), nil
 }
 
-func (s *mockMetricServer) ListTimeSeries(ctx context.Context, req *monitoringpb.ListTimeSeriesRequest) (*monitoringpb.ListTimeSeriesResponse, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockMetricServer) ListTimeSeries(_ context.Context, req *monitoringpb.ListTimeSeriesRequest) (*monitoringpb.ListTimeSeriesResponse, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -234,16 +178,12 @@ func (s *mockMetricServer) ListTimeSeries(ctx context.Context, req *monitoringpb
 	return s.resps[0].(*monitoringpb.ListTimeSeriesResponse), nil
 }
 
-func (s *mockMetricServer) CreateTimeSeries(ctx context.Context, req *monitoringpb.CreateTimeSeriesRequest) (*emptypb.Empty, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockMetricServer) CreateTimeSeries(_ context.Context, req *monitoringpb.CreateTimeSeriesRequest) (*google_protobuf.Empty, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
 	}
-	return s.resps[0].(*emptypb.Empty), nil
+	return s.resps[0].(*google_protobuf.Empty), nil
 }
 
 // clientOpt is the option tests should use to connect to the test server.
@@ -327,8 +267,8 @@ func TestGroupServiceListGroups(t *testing.T) {
 }
 
 func TestGroupServiceListGroupsError(t *testing.T) {
-	errCode := codes.PermissionDenied
-	mockGroup.err = gstatus.Error(errCode, "test error")
+	errCode := codes.Internal
+	mockGroup.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = GroupProjectPath("[PROJECT]")
 	var request = &monitoringpb.ListGroupsRequest{
@@ -342,9 +282,7 @@ func TestGroupServiceListGroupsError(t *testing.T) {
 
 	resp, err := c.ListGroups(context.Background(), request).Next()
 
-	if st, ok := gstatus.FromError(err); !ok {
-		t.Errorf("got error %v, expected grpc error", err)
-	} else if c := st.Code(); c != errCode {
+	if c := grpc.Code(err); c != errCode {
 		t.Errorf("got error code %q, want %q", c, errCode)
 	}
 	_ = resp
@@ -394,8 +332,8 @@ func TestGroupServiceGetGroup(t *testing.T) {
 }
 
 func TestGroupServiceGetGroupError(t *testing.T) {
-	errCode := codes.PermissionDenied
-	mockGroup.err = gstatus.Error(errCode, "test error")
+	errCode := codes.Internal
+	mockGroup.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = GroupGroupPath("[PROJECT]", "[GROUP]")
 	var request = &monitoringpb.GetGroupRequest{
@@ -409,9 +347,7 @@ func TestGroupServiceGetGroupError(t *testing.T) {
 
 	resp, err := c.GetGroup(context.Background(), request)
 
-	if st, ok := gstatus.FromError(err); !ok {
-		t.Errorf("got error %v, expected grpc error", err)
-	} else if c := st.Code(); c != errCode {
+	if c := grpc.Code(err); c != errCode {
 		t.Errorf("got error code %q, want %q", c, errCode)
 	}
 	_ = resp
@@ -463,8 +399,8 @@ func TestGroupServiceCreateGroup(t *testing.T) {
 }
 
 func TestGroupServiceCreateGroupError(t *testing.T) {
-	errCode := codes.PermissionDenied
-	mockGroup.err = gstatus.Error(errCode, "test error")
+	errCode := codes.Internal
+	mockGroup.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = GroupProjectPath("[PROJECT]")
 	var group *monitoringpb.Group = &monitoringpb.Group{}
@@ -480,9 +416,7 @@ func TestGroupServiceCreateGroupError(t *testing.T) {
 
 	resp, err := c.CreateGroup(context.Background(), request)
 
-	if st, ok := gstatus.FromError(err); !ok {
-		t.Errorf("got error %v, expected grpc error", err)
-	} else if c := st.Code(); c != errCode {
+	if c := grpc.Code(err); c != errCode {
 		t.Errorf("got error code %q, want %q", c, errCode)
 	}
 	_ = resp
@@ -532,8 +466,8 @@ func TestGroupServiceUpdateGroup(t *testing.T) {
 }
 
 func TestGroupServiceUpdateGroupError(t *testing.T) {
-	errCode := codes.PermissionDenied
-	mockGroup.err = gstatus.Error(errCode, "test error")
+	errCode := codes.Internal
+	mockGroup.err = grpc.Errorf(errCode, "test error")
 
 	var group *monitoringpb.Group = &monitoringpb.Group{}
 	var request = &monitoringpb.UpdateGroupRequest{
@@ -547,15 +481,13 @@ func TestGroupServiceUpdateGroupError(t *testing.T) {
 
 	resp, err := c.UpdateGroup(context.Background(), request)
 
-	if st, ok := gstatus.FromError(err); !ok {
-		t.Errorf("got error %v, expected grpc error", err)
-	} else if c := st.Code(); c != errCode {
+	if c := grpc.Code(err); c != errCode {
 		t.Errorf("got error code %q, want %q", c, errCode)
 	}
 	_ = resp
 }
 func TestGroupServiceDeleteGroup(t *testing.T) {
-	var expectedResponse *emptypb.Empty = &emptypb.Empty{}
+	var expectedResponse *google_protobuf.Empty = &google_protobuf.Empty{}
 
 	mockGroup.err = nil
 	mockGroup.reqs = nil
@@ -585,8 +517,8 @@ func TestGroupServiceDeleteGroup(t *testing.T) {
 }
 
 func TestGroupServiceDeleteGroupError(t *testing.T) {
-	errCode := codes.PermissionDenied
-	mockGroup.err = gstatus.Error(errCode, "test error")
+	errCode := codes.Internal
+	mockGroup.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = GroupGroupPath("[PROJECT]", "[GROUP]")
 	var request = &monitoringpb.DeleteGroupRequest{
@@ -600,9 +532,7 @@ func TestGroupServiceDeleteGroupError(t *testing.T) {
 
 	err = c.DeleteGroup(context.Background(), request)
 
-	if st, ok := gstatus.FromError(err); !ok {
-		t.Errorf("got error %v, expected grpc error", err)
-	} else if c := st.Code(); c != errCode {
+	if c := grpc.Code(err); c != errCode {
 		t.Errorf("got error code %q, want %q", c, errCode)
 	}
 }
@@ -658,8 +588,8 @@ func TestGroupServiceListGroupMembers(t *testing.T) {
 }
 
 func TestGroupServiceListGroupMembersError(t *testing.T) {
-	errCode := codes.PermissionDenied
-	mockGroup.err = gstatus.Error(errCode, "test error")
+	errCode := codes.Internal
+	mockGroup.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = GroupGroupPath("[PROJECT]", "[GROUP]")
 	var request = &monitoringpb.ListGroupMembersRequest{
@@ -673,9 +603,7 @@ func TestGroupServiceListGroupMembersError(t *testing.T) {
 
 	resp, err := c.ListGroupMembers(context.Background(), request).Next()
 
-	if st, ok := gstatus.FromError(err); !ok {
-		t.Errorf("got error %v, expected grpc error", err)
-	} else if c := st.Code(); c != errCode {
+	if c := grpc.Code(err); c != errCode {
 		t.Errorf("got error code %q, want %q", c, errCode)
 	}
 	_ = resp
@@ -730,8 +658,8 @@ func TestMetricServiceListMonitoredResourceDescriptors(t *testing.T) {
 }
 
 func TestMetricServiceListMonitoredResourceDescriptorsError(t *testing.T) {
-	errCode := codes.PermissionDenied
-	mockMetric.err = gstatus.Error(errCode, "test error")
+	errCode := codes.Internal
+	mockMetric.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = MetricProjectPath("[PROJECT]")
 	var request = &monitoringpb.ListMonitoredResourceDescriptorsRequest{
@@ -745,9 +673,7 @@ func TestMetricServiceListMonitoredResourceDescriptorsError(t *testing.T) {
 
 	resp, err := c.ListMonitoredResourceDescriptors(context.Background(), request).Next()
 
-	if st, ok := gstatus.FromError(err); !ok {
-		t.Errorf("got error %v, expected grpc error", err)
-	} else if c := st.Code(); c != errCode {
+	if c := grpc.Code(err); c != errCode {
 		t.Errorf("got error code %q, want %q", c, errCode)
 	}
 	_ = resp
@@ -795,8 +721,8 @@ func TestMetricServiceGetMonitoredResourceDescriptor(t *testing.T) {
 }
 
 func TestMetricServiceGetMonitoredResourceDescriptorError(t *testing.T) {
-	errCode := codes.PermissionDenied
-	mockMetric.err = gstatus.Error(errCode, "test error")
+	errCode := codes.Internal
+	mockMetric.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = MetricMonitoredResourceDescriptorPath("[PROJECT]", "[MONITORED_RESOURCE_DESCRIPTOR]")
 	var request = &monitoringpb.GetMonitoredResourceDescriptorRequest{
@@ -810,9 +736,7 @@ func TestMetricServiceGetMonitoredResourceDescriptorError(t *testing.T) {
 
 	resp, err := c.GetMonitoredResourceDescriptor(context.Background(), request)
 
-	if st, ok := gstatus.FromError(err); !ok {
-		t.Errorf("got error %v, expected grpc error", err)
-	} else if c := st.Code(); c != errCode {
+	if c := grpc.Code(err); c != errCode {
 		t.Errorf("got error code %q, want %q", c, errCode)
 	}
 	_ = resp
@@ -867,8 +791,8 @@ func TestMetricServiceListMetricDescriptors(t *testing.T) {
 }
 
 func TestMetricServiceListMetricDescriptorsError(t *testing.T) {
-	errCode := codes.PermissionDenied
-	mockMetric.err = gstatus.Error(errCode, "test error")
+	errCode := codes.Internal
+	mockMetric.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = MetricProjectPath("[PROJECT]")
 	var request = &monitoringpb.ListMetricDescriptorsRequest{
@@ -882,9 +806,7 @@ func TestMetricServiceListMetricDescriptorsError(t *testing.T) {
 
 	resp, err := c.ListMetricDescriptors(context.Background(), request).Next()
 
-	if st, ok := gstatus.FromError(err); !ok {
-		t.Errorf("got error %v, expected grpc error", err)
-	} else if c := st.Code(); c != errCode {
+	if c := grpc.Code(err); c != errCode {
 		t.Errorf("got error code %q, want %q", c, errCode)
 	}
 	_ = resp
@@ -934,8 +856,8 @@ func TestMetricServiceGetMetricDescriptor(t *testing.T) {
 }
 
 func TestMetricServiceGetMetricDescriptorError(t *testing.T) {
-	errCode := codes.PermissionDenied
-	mockMetric.err = gstatus.Error(errCode, "test error")
+	errCode := codes.Internal
+	mockMetric.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = MetricMetricDescriptorPath("[PROJECT]", "[METRIC_DESCRIPTOR]")
 	var request = &monitoringpb.GetMetricDescriptorRequest{
@@ -949,9 +871,7 @@ func TestMetricServiceGetMetricDescriptorError(t *testing.T) {
 
 	resp, err := c.GetMetricDescriptor(context.Background(), request)
 
-	if st, ok := gstatus.FromError(err); !ok {
-		t.Errorf("got error %v, expected grpc error", err)
-	} else if c := st.Code(); c != errCode {
+	if c := grpc.Code(err); c != errCode {
 		t.Errorf("got error code %q, want %q", c, errCode)
 	}
 	_ = resp
@@ -1003,8 +923,8 @@ func TestMetricServiceCreateMetricDescriptor(t *testing.T) {
 }
 
 func TestMetricServiceCreateMetricDescriptorError(t *testing.T) {
-	errCode := codes.PermissionDenied
-	mockMetric.err = gstatus.Error(errCode, "test error")
+	errCode := codes.Internal
+	mockMetric.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = MetricProjectPath("[PROJECT]")
 	var metricDescriptor *metricpb.MetricDescriptor = &metricpb.MetricDescriptor{}
@@ -1020,15 +940,13 @@ func TestMetricServiceCreateMetricDescriptorError(t *testing.T) {
 
 	resp, err := c.CreateMetricDescriptor(context.Background(), request)
 
-	if st, ok := gstatus.FromError(err); !ok {
-		t.Errorf("got error %v, expected grpc error", err)
-	} else if c := st.Code(); c != errCode {
+	if c := grpc.Code(err); c != errCode {
 		t.Errorf("got error code %q, want %q", c, errCode)
 	}
 	_ = resp
 }
 func TestMetricServiceDeleteMetricDescriptor(t *testing.T) {
-	var expectedResponse *emptypb.Empty = &emptypb.Empty{}
+	var expectedResponse *google_protobuf.Empty = &google_protobuf.Empty{}
 
 	mockMetric.err = nil
 	mockMetric.reqs = nil
@@ -1058,8 +976,8 @@ func TestMetricServiceDeleteMetricDescriptor(t *testing.T) {
 }
 
 func TestMetricServiceDeleteMetricDescriptorError(t *testing.T) {
-	errCode := codes.PermissionDenied
-	mockMetric.err = gstatus.Error(errCode, "test error")
+	errCode := codes.Internal
+	mockMetric.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = MetricMetricDescriptorPath("[PROJECT]", "[METRIC_DESCRIPTOR]")
 	var request = &monitoringpb.DeleteMetricDescriptorRequest{
@@ -1073,9 +991,7 @@ func TestMetricServiceDeleteMetricDescriptorError(t *testing.T) {
 
 	err = c.DeleteMetricDescriptor(context.Background(), request)
 
-	if st, ok := gstatus.FromError(err); !ok {
-		t.Errorf("got error %v, expected grpc error", err)
-	} else if c := st.Code(); c != errCode {
+	if c := grpc.Code(err); c != errCode {
 		t.Errorf("got error code %q, want %q", c, errCode)
 	}
 }
@@ -1135,8 +1051,8 @@ func TestMetricServiceListTimeSeries(t *testing.T) {
 }
 
 func TestMetricServiceListTimeSeriesError(t *testing.T) {
-	errCode := codes.PermissionDenied
-	mockMetric.err = gstatus.Error(errCode, "test error")
+	errCode := codes.Internal
+	mockMetric.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = MetricProjectPath("[PROJECT]")
 	var filter string = "filter-1274492040"
@@ -1156,15 +1072,13 @@ func TestMetricServiceListTimeSeriesError(t *testing.T) {
 
 	resp, err := c.ListTimeSeries(context.Background(), request).Next()
 
-	if st, ok := gstatus.FromError(err); !ok {
-		t.Errorf("got error %v, expected grpc error", err)
-	} else if c := st.Code(); c != errCode {
+	if c := grpc.Code(err); c != errCode {
 		t.Errorf("got error code %q, want %q", c, errCode)
 	}
 	_ = resp
 }
 func TestMetricServiceCreateTimeSeries(t *testing.T) {
-	var expectedResponse *emptypb.Empty = &emptypb.Empty{}
+	var expectedResponse *google_protobuf.Empty = &google_protobuf.Empty{}
 
 	mockMetric.err = nil
 	mockMetric.reqs = nil
@@ -1196,8 +1110,8 @@ func TestMetricServiceCreateTimeSeries(t *testing.T) {
 }
 
 func TestMetricServiceCreateTimeSeriesError(t *testing.T) {
-	errCode := codes.PermissionDenied
-	mockMetric.err = gstatus.Error(errCode, "test error")
+	errCode := codes.Internal
+	mockMetric.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = MetricProjectPath("[PROJECT]")
 	var timeSeries []*monitoringpb.TimeSeries = nil
@@ -1213,9 +1127,7 @@ func TestMetricServiceCreateTimeSeriesError(t *testing.T) {
 
 	err = c.CreateTimeSeries(context.Background(), request)
 
-	if st, ok := gstatus.FromError(err); !ok {
-		t.Errorf("got error %v, expected grpc error", err)
-	} else if c := st.Code(); c != errCode {
+	if c := grpc.Code(err); c != errCode {
 		t.Errorf("got error code %q, want %q", c, errCode)
 	}
 }

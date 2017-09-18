@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -126,7 +127,7 @@ func TestTranslateURL(t *testing.T) {
 		}
 		got := ft.req.URL.Query()
 		test.want.Add("alt", "json")
-		if !testutil.Equal(got, test.want) {
+		if !reflect.DeepEqual(got, test.want) {
 			t.Errorf("Translate(%s, %v, %+v):\ngot  %s\nwant %s",
 				test.target, test.inputs, test.opts, got, test.want)
 		}
@@ -158,8 +159,9 @@ func TestTranslateOneInput(t *testing.T) {
 		// https://www.youtube.com/watch?v=x1sQkEfAdfY
 		{"Le singe est sur la branche", language.French,
 			"The monkey is on the branch", language.English},
-		{"The cat is on the chair", language.English,
-			"Le chat est sur la chaise", language.French},
+		// https://www.youtube.com/watch?v=akbflkF_1zY
+		{"I will not buy this record, it is scratched", language.English,
+			"Nem fogok vásárolni ezt a lemezt, azt karcos", language.Hungarian},
 	} {
 		// Provide source and format.
 		tr := translate(test.input, test.target, &Options{Source: test.source, Format: Text})

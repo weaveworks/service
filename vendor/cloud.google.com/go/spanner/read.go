@@ -45,26 +45,24 @@ func errEarlyReadEnd() error {
 
 // stream is the internal fault tolerant method for streaming data from
 // Cloud Spanner.
-func stream(ctx context.Context, rpc func(ct context.Context, resumeToken []byte) (streamingReceiver, error), setTimestamp func(time.Time), release func(error)) *RowIterator {
+func stream(ctx context.Context, rpc func(ct context.Context, resumeToken []byte) (streamingReceiver, error), release func(time.Time, error)) *RowIterator {
 	ctx, cancel := context.WithCancel(ctx)
 	return &RowIterator{
-		streamd:      newResumableStreamDecoder(ctx, rpc),
-		rowd:         &partialResultSetDecoder{},
-		setTimestamp: setTimestamp,
-		release:      release,
-		cancel:       cancel,
+		streamd: newResumableStreamDecoder(ctx, rpc),
+		rowd:    &partialResultSetDecoder{},
+		release: release,
+		cancel:  cancel,
 	}
 }
 
 // RowIterator is an iterator over Rows.
 type RowIterator struct {
-	streamd      *resumableStreamDecoder
-	rowd         *partialResultSetDecoder
-	setTimestamp func(time.Time)
-	release      func(error)
-	cancel       func()
-	err          error
-	rows         []*Row
+	streamd *resumableStreamDecoder
+	rowd    *partialResultSetDecoder
+	release func(time.Time, error)
+	cancel  func()
+	err     error
+	rows    []*Row
 }
 
 // Next returns the next result. Its second return value is iterator.Done if
@@ -78,10 +76,6 @@ func (r *RowIterator) Next() (*Row, error) {
 		r.rows, r.err = r.rowd.add(r.streamd.get())
 		if r.err != nil {
 			return nil, r.err
-		}
-		if !r.rowd.ts.IsZero() && r.setTimestamp != nil {
-			r.setTimestamp(r.rowd.ts)
-			r.setTimestamp = nil
 		}
 	}
 	if len(r.rows) > 0 {
@@ -100,7 +94,7 @@ func (r *RowIterator) Next() (*Row, error) {
 }
 
 // Do calls the provided function once in sequence for each row in the iteration.  If the
-// function returns a non-nil error, Do immediately returns that error.
+// function returns a non-nil error, Do immediately returns that value.
 //
 // If there are no rows in the iterator, Do will return nil without calling the
 // provided function.
@@ -129,7 +123,7 @@ func (r *RowIterator) Stop() {
 		r.cancel()
 	}
 	if r.release != nil {
-		r.release(r.err)
+		r.release(r.rowd.ts, r.err)
 		if r.err == nil {
 			r.err = spannerErrorf(codes.FailedPrecondition, "Next called after Stop")
 		}
@@ -203,7 +197,7 @@ func (q *partialResultQueue) clear() {
 	*q = partialResultQueue{}
 }
 
-// dump retrieves all items from partialResultQueue and return them in a slice.
+// dump retrives all items from partialResultQueue and return them in a slice.
 // It is used only in tests.
 func (q *partialResultQueue) dump() []*sppb.PartialResultSet {
 	var dq []*sppb.PartialResultSet
@@ -365,7 +359,7 @@ func (d *resumableStreamDecoder) next() bool {
 			// Do context check here so that even gRPC failed to do
 			// so, resumableStreamDecoder can still break the loop
 			// as expected.
-			d.err = errContextCanceled(d.ctx, d.err)
+			d.err = errContextCanceled(d.err)
 			d.changeState(aborted)
 		default:
 		}
@@ -543,7 +537,7 @@ func (p *partialResultSetDecoder) yield(chunked, last bool) *Row {
 
 // yieldTx returns transaction information via caller supplied callback.
 func errChunkedEmptyRow() error {
-	return spannerErrorf(codes.FailedPrecondition, "got invalid chunked PartialResultSet with empty Row")
+	return spannerErrorf(codes.FailedPrecondition, "partialResultSetDecoder gets chunked empty row")
 }
 
 // add tries to merge a new PartialResultSet into buffered Row. It returns
@@ -617,7 +611,7 @@ func (p *partialResultSetDecoder) isMergeable(a *proto3.Value) bool {
 // errIncompatibleMergeTypes returns error for incompatible protobuf types
 // that cannot be merged by partialResultSetDecoder.
 func errIncompatibleMergeTypes(a, b *proto3.Value) error {
-	return spannerErrorf(codes.FailedPrecondition, "incompatible type in chunked PartialResultSet. expected (%T), got (%T)", a.Kind, b.Kind)
+	return spannerErrorf(codes.FailedPrecondition, "partialResultSetDecoder merge(%T,%T) - incompatible types", a.Kind, b.Kind)
 }
 
 // errUnsupportedMergeType returns error for protobuf type that cannot be

@@ -1493,9 +1493,7 @@ type File struct {
 	// files.
 	HasAugmentedPermissions bool `json:"hasAugmentedPermissions,omitempty"`
 
-	// HasThumbnail: Whether this file has a thumbnail. This does not
-	// indicate whether the requesting app has access to the thumbnail. To
-	// check access, look for the presence of the thumbnailLink field.
+	// HasThumbnail: Whether this file has a thumbnail.
 	HasThumbnail bool `json:"hasThumbnail,omitempty"`
 
 	// HeadRevisionId: The ID of the file's head revision. This field is
@@ -1589,10 +1587,6 @@ type File struct {
 	// On insert, if no folders are provided, the file will be placed in the
 	// default root folder.
 	Parents []*ParentReference `json:"parents,omitempty"`
-
-	// PermissionIds: List of permission IDs for users with access to this
-	// file.
-	PermissionIds []string `json:"permissionIds,omitempty"`
 
 	// Permissions: The list of permissions for users with access to this
 	// file. Not populated for Team Drive files.
@@ -2310,11 +2304,11 @@ type Permission struct {
 	// currently allowed, though more may be supported in the future.
 	AdditionalRoles []string `json:"additionalRoles,omitempty"`
 
-	// AuthKey: Deprecated.
+	// AuthKey: The authkey parameter required for this permission.
 	AuthKey string `json:"authKey,omitempty"`
 
-	// Deleted: Whether the account associated with this permission has been
-	// deleted. This field only pertains to user and group permissions.
+	// Deleted: Whether the account of the permission has been deleted. This
+	// field only pertains to user and group permissions.
 	Deleted bool `json:"deleted,omitempty"`
 
 	// Domain: The domain name of the entity this permission refers to. This
@@ -2834,8 +2828,8 @@ func (s *StartPageToken) MarshalJSON() ([]byte, error) {
 type TeamDrive struct {
 	// BackgroundImageFile: An image file and cropping parameters from which
 	// a background image for this Team Drive is set. This is a write only
-	// field; it can only be set on drive.teamdrives.update requests that
-	// don't set themeId. When specified, all fields of the
+	// field that can only be set on a drive.teamdrives.update request that
+	// does not set themeId. When specified, all fields of the
 	// backgroundImageFile must be set.
 	BackgroundImageFile *TeamDriveBackgroundImageFile `json:"backgroundImageFile,omitempty"`
 
@@ -2865,8 +2859,8 @@ type TeamDrive struct {
 	// color will be set. The set of possible teamDriveThemes can be
 	// retrieved from a drive.about.get response. When not specified on a
 	// drive.teamdrives.insert request, a random theme is chosen from which
-	// the background image and color are set. This is a write-only field;
-	// it can only be set on requests that don't set colorRgb or
+	// the background image and color are set. This is a write only field
+	// that can only be set on a request that does not set colorRgb or
 	// backgroundImageFile.
 	ThemeId string `json:"themeId,omitempty"`
 
@@ -2900,32 +2894,32 @@ func (s *TeamDrive) MarshalJSON() ([]byte, error) {
 
 // TeamDriveBackgroundImageFile: An image file and cropping parameters
 // from which a background image for this Team Drive is set. This is a
-// write only field; it can only be set on drive.teamdrives.update
-// requests that don't set themeId. When specified, all fields of the
+// write only field that can only be set on a drive.teamdrives.update
+// request that does not set themeId. When specified, all fields of the
 // backgroundImageFile must be set.
 type TeamDriveBackgroundImageFile struct {
 	// Id: The ID of an image file in Drive to use for the background image.
 	Id string `json:"id,omitempty"`
 
-	// Width: The width of the cropped image in the closed range of 0 to 1.
-	// This value represents the width of the cropped image divided by the
-	// width of the entire image. The height is computed by applying a width
-	// to height aspect ratio of 80 to 9. The resulting image must be at
-	// least 1280 pixels wide and 144 pixels high.
+	// Width: The width of the cropped image in the closed range of 0 to 1,
+	// which is the width of the cropped image divided by the width of the
+	// entire image. The height is computed by applying a width to height
+	// aspect ratio of 80 to 9. The resulting image must be at least 1280
+	// pixels wide and 144 pixels high.
 	Width float64 `json:"width,omitempty"`
 
 	// XCoordinate: The X coordinate of the upper left corner of the
 	// cropping area in the background image. This is a value in the closed
-	// range of 0 to 1. This value represents the horizontal distance from
-	// the left side of the entire image to the left side of the cropping
-	// area divided by the width of the entire image.
+	// range of 0 to 1 which is the horizontal distance from the left side
+	// of the entire image to the left side of the cropping area divided by
+	// the width of the entire image.
 	XCoordinate float64 `json:"xCoordinate,omitempty"`
 
 	// YCoordinate: The Y coordinate of the upper left corner of the
 	// cropping area in the background image. This is a value in the closed
-	// range of 0 to 1. This value represents the vertical distance from the
-	// top side of the entire image to the top side of the cropping area
-	// divided by the height of the entire image.
+	// range of 0 to 1 which is the vertical distance from the top side of
+	// the entire image to the top side of the cropping area divided by the
+	// height of the entire image.
 	YCoordinate float64 `json:"yCoordinate,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Id") to
@@ -6628,8 +6622,7 @@ type FilesExportCall struct {
 }
 
 // Export: Exports a Google Doc to the requested MIME type and returns
-// the exported content. Please note that the exported content is
-// limited to 10MB.
+// the exported content.
 func (r *FilesService) Export(fileId string, mimeType string) *FilesExportCall {
 	c := &FilesExportCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.fileId = fileId
@@ -6722,7 +6715,7 @@ func (c *FilesExportCall) Do(opts ...googleapi.CallOption) error {
 	}
 	return nil
 	// {
-	//   "description": "Exports a Google Doc to the requested MIME type and returns the exported content. Please note that the exported content is limited to 10MB.",
+	//   "description": "Exports a Google Doc to the requested MIME type and returns the exported content.",
 	//   "httpMethod": "GET",
 	//   "id": "drive.files.export",
 	//   "parameterOrder": [
@@ -7153,12 +7146,16 @@ func (c *FilesGetCall) Do(opts ...googleapi.CallOption) (*File, error) {
 // method id "drive.files.insert":
 
 type FilesInsertCall struct {
-	s          *Service
-	file       *File
-	urlParams_ gensupport.URLParams
-	mediaInfo_ *gensupport.MediaInfo
-	ctx_       context.Context
-	header_    http.Header
+	s                *Service
+	file             *File
+	urlParams_       gensupport.URLParams
+	media_           io.Reader
+	mediaBuffer_     *gensupport.MediaBuffer
+	mediaType_       string
+	mediaSize_       int64 // mediaSize, if known.  Used only for calls to progressUpdater_.
+	progressUpdater_ googleapi.ProgressUpdater
+	ctx_             context.Context
+	header_          http.Header
 }
 
 // Insert: Insert a new file.
@@ -7247,7 +7244,12 @@ func (c *FilesInsertCall) Visibility(visibility string) *FilesInsertCall {
 // supplied.
 // At most one of Media and ResumableMedia may be set.
 func (c *FilesInsertCall) Media(r io.Reader, options ...googleapi.MediaOption) *FilesInsertCall {
-	c.mediaInfo_ = gensupport.NewInfoFromMedia(r, options)
+	opts := googleapi.ProcessMediaOptions(options)
+	chunkSize := opts.ChunkSize
+	if !opts.ForceEmptyContentType {
+		r, c.mediaType_ = gensupport.DetermineContentType(r, opts.ContentType)
+	}
+	c.media_, c.mediaBuffer_ = gensupport.PrepareUpload(r, chunkSize)
 	return c
 }
 
@@ -7262,7 +7264,11 @@ func (c *FilesInsertCall) Media(r io.Reader, options ...googleapi.MediaOption) *
 // supersede any context previously provided to the Context method.
 func (c *FilesInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *FilesInsertCall {
 	c.ctx_ = ctx
-	c.mediaInfo_ = gensupport.NewInfoFromResumableMedia(r, size, mediaType)
+	rdr := gensupport.ReaderAtToReader(r, size)
+	rdr, c.mediaType_ = gensupport.DetermineContentType(rdr, mediaType)
+	c.mediaBuffer_ = gensupport.NewMediaBuffer(rdr, googleapi.DefaultUploadChunkSize)
+	c.media_ = nil
+	c.mediaSize_ = size
 	return c
 }
 
@@ -7271,7 +7277,7 @@ func (c *FilesInsertCall) ResumableMedia(ctx context.Context, r io.ReaderAt, siz
 // not slow down the upload operation. This should only be called when
 // using ResumableMedia (as opposed to Media).
 func (c *FilesInsertCall) ProgressUpdater(pu googleapi.ProgressUpdater) *FilesInsertCall {
-	c.mediaInfo_.SetProgressUpdater(pu)
+	c.progressUpdater_ = pu
 	return c
 }
 
@@ -7316,16 +7322,27 @@ func (c *FilesInsertCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders.Set("Content-Type", "application/json")
 	c.urlParams_.Set("alt", alt)
 	urls := googleapi.ResolveRelative(c.s.BasePath, "files")
-	if c.mediaInfo_ != nil {
+	if c.media_ != nil || c.mediaBuffer_ != nil {
 		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
+		protocol := "multipart"
+		if c.mediaBuffer_ != nil {
+			protocol = "resumable"
+		}
+		c.urlParams_.Set("uploadType", protocol)
 	}
 	if body == nil {
 		body = new(bytes.Buffer)
 		reqHeaders.Set("Content-Type", "application/json")
 	}
-	body, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
-	defer cleanup()
+	if c.media_ != nil {
+		combined, ctype := gensupport.CombineBodyMedia(body, "application/json", c.media_, c.mediaType_)
+		defer combined.Close()
+		reqHeaders.Set("Content-Type", ctype)
+		body = combined
+	}
+	if c.mediaBuffer_ != nil && c.mediaType_ != "" {
+		reqHeaders.Set("X-Upload-Content-Type", c.mediaType_)
+	}
 	urls += "?" + c.urlParams_.Encode()
 	req, _ := http.NewRequest("POST", urls, body)
 	req.Header = reqHeaders
@@ -7358,10 +7375,20 @@ func (c *FilesInsertCall) Do(opts ...googleapi.CallOption) (*File, error) {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, err
 	}
-	rx := c.mediaInfo_.ResumableUpload(res.Header.Get("Location"))
-	if rx != nil {
-		rx.Client = c.s.client
-		rx.UserAgent = c.s.userAgent()
+	if c.mediaBuffer_ != nil {
+		loc := res.Header.Get("Location")
+		rx := &gensupport.ResumableUpload{
+			Client:    c.s.client,
+			UserAgent: c.s.userAgent(),
+			URI:       loc,
+			Media:     c.mediaBuffer_,
+			MediaType: c.mediaType_,
+			Callback: func(curr int64) {
+				if c.progressUpdater_ != nil {
+					c.progressUpdater_(curr, c.mediaSize_)
+				}
+			},
+		}
 		ctx := c.ctx_
 		if ctx == nil {
 			ctx = context.TODO()
@@ -7544,12 +7571,12 @@ func (c *FilesListCall) MaxResults(maxResults int64) *FilesListCall {
 // OrderBy sets the optional parameter "orderBy": A comma-separated list
 // of sort keys. Valid keys are 'createdDate', 'folder',
 // 'lastViewedByMeDate', 'modifiedByMeDate', 'modifiedDate',
-// 'quotaBytesUsed', 'recency', 'sharedWithMeDate', 'starred', 'title',
-// and 'title_natural'. Each key sorts ascending by default, but may be
-// reversed with the 'desc' modifier. Example usage:
-// ?orderBy=folder,modifiedDate desc,title. Please note that there is a
-// current limitation for users with approximately one million files in
-// which the requested sort order is ignored.
+// 'quotaBytesUsed', 'recency', 'sharedWithMeDate', 'starred', and
+// 'title'. Each key sorts ascending by default, but may be reversed
+// with the 'desc' modifier. Example usage: ?orderBy=folder,modifiedDate
+// desc,title. Please note that there is a current limitation for users
+// with approximately one million files in which the requested sort
+// order is ignored.
 func (c *FilesListCall) OrderBy(orderBy string) *FilesListCall {
 	c.urlParams_.Set("orderBy", orderBy)
 	return c
@@ -7729,7 +7756,7 @@ func (c *FilesListCall) Do(opts ...googleapi.CallOption) (*FileList, error) {
 	//       "type": "integer"
 	//     },
 	//     "orderBy": {
-	//       "description": "A comma-separated list of sort keys. Valid keys are 'createdDate', 'folder', 'lastViewedByMeDate', 'modifiedByMeDate', 'modifiedDate', 'quotaBytesUsed', 'recency', 'sharedWithMeDate', 'starred', 'title', and 'title_natural'. Each key sorts ascending by default, but may be reversed with the 'desc' modifier. Example usage: ?orderBy=folder,modifiedDate desc,title. Please note that there is a current limitation for users with approximately one million files in which the requested sort order is ignored.",
+	//       "description": "A comma-separated list of sort keys. Valid keys are 'createdDate', 'folder', 'lastViewedByMeDate', 'modifiedByMeDate', 'modifiedDate', 'quotaBytesUsed', 'recency', 'sharedWithMeDate', 'starred', and 'title'. Each key sorts ascending by default, but may be reversed with the 'desc' modifier. Example usage: ?orderBy=folder,modifiedDate desc,title. Please note that there is a current limitation for users with approximately one million files in which the requested sort order is ignored.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -8586,13 +8613,17 @@ func (c *FilesUntrashCall) Do(opts ...googleapi.CallOption) (*File, error) {
 // method id "drive.files.update":
 
 type FilesUpdateCall struct {
-	s          *Service
-	fileId     string
-	file       *File
-	urlParams_ gensupport.URLParams
-	mediaInfo_ *gensupport.MediaInfo
-	ctx_       context.Context
-	header_    http.Header
+	s                *Service
+	fileId           string
+	file             *File
+	urlParams_       gensupport.URLParams
+	media_           io.Reader
+	mediaBuffer_     *gensupport.MediaBuffer
+	mediaType_       string
+	mediaSize_       int64 // mediaSize, if known.  Used only for calls to progressUpdater_.
+	progressUpdater_ googleapi.ProgressUpdater
+	ctx_             context.Context
+	header_          http.Header
 }
 
 // Update: Updates file metadata and/or content.
@@ -8730,7 +8761,12 @@ func (c *FilesUpdateCall) UseContentAsIndexableText(useContentAsIndexableText bo
 // supplied.
 // At most one of Media and ResumableMedia may be set.
 func (c *FilesUpdateCall) Media(r io.Reader, options ...googleapi.MediaOption) *FilesUpdateCall {
-	c.mediaInfo_ = gensupport.NewInfoFromMedia(r, options)
+	opts := googleapi.ProcessMediaOptions(options)
+	chunkSize := opts.ChunkSize
+	if !opts.ForceEmptyContentType {
+		r, c.mediaType_ = gensupport.DetermineContentType(r, opts.ContentType)
+	}
+	c.media_, c.mediaBuffer_ = gensupport.PrepareUpload(r, chunkSize)
 	return c
 }
 
@@ -8745,7 +8781,11 @@ func (c *FilesUpdateCall) Media(r io.Reader, options ...googleapi.MediaOption) *
 // supersede any context previously provided to the Context method.
 func (c *FilesUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *FilesUpdateCall {
 	c.ctx_ = ctx
-	c.mediaInfo_ = gensupport.NewInfoFromResumableMedia(r, size, mediaType)
+	rdr := gensupport.ReaderAtToReader(r, size)
+	rdr, c.mediaType_ = gensupport.DetermineContentType(rdr, mediaType)
+	c.mediaBuffer_ = gensupport.NewMediaBuffer(rdr, googleapi.DefaultUploadChunkSize)
+	c.media_ = nil
+	c.mediaSize_ = size
 	return c
 }
 
@@ -8754,7 +8794,7 @@ func (c *FilesUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, siz
 // not slow down the upload operation. This should only be called when
 // using ResumableMedia (as opposed to Media).
 func (c *FilesUpdateCall) ProgressUpdater(pu googleapi.ProgressUpdater) *FilesUpdateCall {
-	c.mediaInfo_.SetProgressUpdater(pu)
+	c.progressUpdater_ = pu
 	return c
 }
 
@@ -8799,16 +8839,27 @@ func (c *FilesUpdateCall) doRequest(alt string) (*http.Response, error) {
 	reqHeaders.Set("Content-Type", "application/json")
 	c.urlParams_.Set("alt", alt)
 	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}")
-	if c.mediaInfo_ != nil {
+	if c.media_ != nil || c.mediaBuffer_ != nil {
 		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
+		protocol := "multipart"
+		if c.mediaBuffer_ != nil {
+			protocol = "resumable"
+		}
+		c.urlParams_.Set("uploadType", protocol)
 	}
 	if body == nil {
 		body = new(bytes.Buffer)
 		reqHeaders.Set("Content-Type", "application/json")
 	}
-	body, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
-	defer cleanup()
+	if c.media_ != nil {
+		combined, ctype := gensupport.CombineBodyMedia(body, "application/json", c.media_, c.mediaType_)
+		defer combined.Close()
+		reqHeaders.Set("Content-Type", ctype)
+		body = combined
+	}
+	if c.mediaBuffer_ != nil && c.mediaType_ != "" {
+		reqHeaders.Set("X-Upload-Content-Type", c.mediaType_)
+	}
 	urls += "?" + c.urlParams_.Encode()
 	req, _ := http.NewRequest("PUT", urls, body)
 	req.Header = reqHeaders
@@ -8844,10 +8895,20 @@ func (c *FilesUpdateCall) Do(opts ...googleapi.CallOption) (*File, error) {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return nil, err
 	}
-	rx := c.mediaInfo_.ResumableUpload(res.Header.Get("Location"))
-	if rx != nil {
-		rx.Client = c.s.client
-		rx.UserAgent = c.s.userAgent()
+	if c.mediaBuffer_ != nil {
+		loc := res.Header.Get("Location")
+		rx := &gensupport.ResumableUpload{
+			Client:    c.s.client,
+			UserAgent: c.s.userAgent(),
+			URI:       loc,
+			Media:     c.mediaBuffer_,
+			MediaType: c.mediaType_,
+			Callback: func(curr int64) {
+				if c.progressUpdater_ != nil {
+					c.progressUpdater_(curr, c.mediaSize_)
+				}
+			},
+		}
 		ctx := c.ctx_
 		if ctx == nil {
 			ctx = context.TODO()
@@ -12014,12 +12075,16 @@ func (c *RealtimeGetCall) Do(opts ...googleapi.CallOption) error {
 // method id "drive.realtime.update":
 
 type RealtimeUpdateCall struct {
-	s          *Service
-	fileId     string
-	urlParams_ gensupport.URLParams
-	mediaInfo_ *gensupport.MediaInfo
-	ctx_       context.Context
-	header_    http.Header
+	s                *Service
+	fileId           string
+	urlParams_       gensupport.URLParams
+	media_           io.Reader
+	mediaBuffer_     *gensupport.MediaBuffer
+	mediaType_       string
+	mediaSize_       int64 // mediaSize, if known.  Used only for calls to progressUpdater_.
+	progressUpdater_ googleapi.ProgressUpdater
+	ctx_             context.Context
+	header_          http.Header
 }
 
 // Update: Overwrites the Realtime API data model associated with this
@@ -12050,7 +12115,12 @@ func (c *RealtimeUpdateCall) BaseRevision(baseRevision string) *RealtimeUpdateCa
 // supplied.
 // At most one of Media and ResumableMedia may be set.
 func (c *RealtimeUpdateCall) Media(r io.Reader, options ...googleapi.MediaOption) *RealtimeUpdateCall {
-	c.mediaInfo_ = gensupport.NewInfoFromMedia(r, options)
+	opts := googleapi.ProcessMediaOptions(options)
+	chunkSize := opts.ChunkSize
+	if !opts.ForceEmptyContentType {
+		r, c.mediaType_ = gensupport.DetermineContentType(r, opts.ContentType)
+	}
+	c.media_, c.mediaBuffer_ = gensupport.PrepareUpload(r, chunkSize)
 	return c
 }
 
@@ -12065,7 +12135,11 @@ func (c *RealtimeUpdateCall) Media(r io.Reader, options ...googleapi.MediaOption
 // supersede any context previously provided to the Context method.
 func (c *RealtimeUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, size int64, mediaType string) *RealtimeUpdateCall {
 	c.ctx_ = ctx
-	c.mediaInfo_ = gensupport.NewInfoFromResumableMedia(r, size, mediaType)
+	rdr := gensupport.ReaderAtToReader(r, size)
+	rdr, c.mediaType_ = gensupport.DetermineContentType(rdr, mediaType)
+	c.mediaBuffer_ = gensupport.NewMediaBuffer(rdr, googleapi.DefaultUploadChunkSize)
+	c.media_ = nil
+	c.mediaSize_ = size
 	return c
 }
 
@@ -12074,7 +12148,7 @@ func (c *RealtimeUpdateCall) ResumableMedia(ctx context.Context, r io.ReaderAt, 
 // not slow down the upload operation. This should only be called when
 // using ResumableMedia (as opposed to Media).
 func (c *RealtimeUpdateCall) ProgressUpdater(pu googleapi.ProgressUpdater) *RealtimeUpdateCall {
-	c.mediaInfo_.SetProgressUpdater(pu)
+	c.progressUpdater_ = pu
 	return c
 }
 
@@ -12114,16 +12188,27 @@ func (c *RealtimeUpdateCall) doRequest(alt string) (*http.Response, error) {
 	var body io.Reader = nil
 	c.urlParams_.Set("alt", alt)
 	urls := googleapi.ResolveRelative(c.s.BasePath, "files/{fileId}/realtime")
-	if c.mediaInfo_ != nil {
+	if c.media_ != nil || c.mediaBuffer_ != nil {
 		urls = strings.Replace(urls, "https://www.googleapis.com/", "https://www.googleapis.com/upload/", 1)
-		c.urlParams_.Set("uploadType", c.mediaInfo_.UploadType())
+		protocol := "multipart"
+		if c.mediaBuffer_ != nil {
+			protocol = "resumable"
+		}
+		c.urlParams_.Set("uploadType", protocol)
 	}
 	if body == nil {
 		body = new(bytes.Buffer)
 		reqHeaders.Set("Content-Type", "application/json")
 	}
-	body, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
-	defer cleanup()
+	if c.media_ != nil {
+		combined, ctype := gensupport.CombineBodyMedia(body, "application/json", c.media_, c.mediaType_)
+		defer combined.Close()
+		reqHeaders.Set("Content-Type", ctype)
+		body = combined
+	}
+	if c.mediaBuffer_ != nil && c.mediaType_ != "" {
+		reqHeaders.Set("X-Upload-Content-Type", c.mediaType_)
+	}
 	urls += "?" + c.urlParams_.Encode()
 	req, _ := http.NewRequest("PUT", urls, body)
 	req.Header = reqHeaders
@@ -12144,10 +12229,20 @@ func (c *RealtimeUpdateCall) Do(opts ...googleapi.CallOption) error {
 	if err := googleapi.CheckResponse(res); err != nil {
 		return err
 	}
-	rx := c.mediaInfo_.ResumableUpload(res.Header.Get("Location"))
-	if rx != nil {
-		rx.Client = c.s.client
-		rx.UserAgent = c.s.userAgent()
+	if c.mediaBuffer_ != nil {
+		loc := res.Header.Get("Location")
+		rx := &gensupport.ResumableUpload{
+			Client:    c.s.client,
+			UserAgent: c.s.userAgent(),
+			URI:       loc,
+			Media:     c.mediaBuffer_,
+			MediaType: c.mediaType_,
+			Callback: func(curr int64) {
+				if c.progressUpdater_ != nil {
+					c.progressUpdater_(curr, c.mediaSize_)
+				}
+			},
+		}
 		ctx := c.ctx_
 		if ctx == nil {
 			ctx = context.TODO()

@@ -15,8 +15,6 @@
 package bigquery
 
 import (
-	"errors"
-
 	"golang.org/x/net/context"
 	bq "google.golang.org/api/bigquery/v2"
 )
@@ -48,7 +46,7 @@ type QueryConfig struct {
 	CreateDisposition TableCreateDisposition
 
 	// WriteDisposition specifies how existing data in the destination table is treated.
-	// The default is WriteEmpty.
+	// The default is WriteAppend.
 	WriteDisposition TableWriteDisposition
 
 	// DisableQueryCache prevents results being fetched from the query cache.
@@ -90,9 +88,6 @@ type QueryConfig struct {
 	// UseStandardSQL causes the query to use standard SQL.
 	// The default is false (using legacy SQL).
 	UseStandardSQL bool
-
-	// UseLegacySQL causes the query to use legacy SQL.
-	UseLegacySQL bool
 
 	// Parameters is a list of query parameters. The presence of parameters
 	// implies the use of standard SQL.
@@ -137,7 +132,7 @@ func (q *Query) Run(ctx context.Context) (*Job, error) {
 	if err := q.QueryConfig.populateJobQueryConfig(job.Configuration.Query); err != nil {
 		return nil, err
 	}
-	j, err := q.client.insertJob(ctx, &insertJobConf{job: job})
+	j, err := q.client.service.insertJob(ctx, q.client.projectID, &insertJobConf{job: job})
 	if err != nil {
 		return nil, err
 	}
@@ -182,19 +177,11 @@ func (q *QueryConfig) populateJobQueryConfig(conf *bq.JobConfigurationQuery) err
 	if q.MaxBytesBilled >= 1 {
 		conf.MaximumBytesBilled = q.MaxBytesBilled
 	}
-	if q.UseStandardSQL && q.UseLegacySQL {
-		return errors.New("bigquery: cannot provide both UseStandardSQL and UseLegacySQL")
-	}
-	if len(q.Parameters) > 0 && q.UseLegacySQL {
-		return errors.New("bigquery: cannot provide both Parameters (implying standard SQL) and UseLegacySQL")
-	}
 	if q.UseStandardSQL || len(q.Parameters) > 0 {
 		conf.UseLegacySql = false
 		conf.ForceSendFields = append(conf.ForceSendFields, "UseLegacySql")
 	}
-	if q.UseLegacySQL {
-		conf.UseLegacySql = true
-	}
+
 	if q.Dst != nil && !q.Dst.implicitTable() {
 		conf.DestinationTable = q.Dst.tableRefProto()
 	}
@@ -206,14 +193,4 @@ func (q *QueryConfig) populateJobQueryConfig(conf *bq.JobConfigurationQuery) err
 		conf.QueryParameters = append(conf.QueryParameters, qp)
 	}
 	return nil
-}
-
-// Read submits a query for execution and returns the results via a RowIterator.
-// It is a shorthand for Query.Run followed by Job.Read.
-func (q *Query) Read(ctx context.Context) (*RowIterator, error) {
-	job, err := q.Run(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return job.Read(ctx)
 }

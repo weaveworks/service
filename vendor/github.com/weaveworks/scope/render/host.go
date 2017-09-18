@@ -13,7 +13,7 @@ var HostRenderer = MakeReduce(
 	),
 	MakeMap(
 		MapX2Host,
-		ColorConnectedProcessRenderer,
+		ProcessRenderer,
 	),
 	MakeMap(
 		MapX2Host,
@@ -35,31 +35,25 @@ var HostRenderer = MakeReduce(
 // If this function is given a node without a hostname
 // (including other pseudo nodes), it will drop the node.
 //
-// Otherwise, this function will produce nodes with the correct ID
-// format for a host, but without any Major or Minor labels.  It does
-// not have enough info to do that, and the resulting graph must be
-// merged with a host graph to get that info.
+// Otherwise, this function will produce a node with the correct ID
+// format for a container, but without any Major or Minor labels.
+// It does not have enough info to do that, and the resulting graph
+// must be merged with a container graph to get that info.
 func MapX2Host(n report.Node, _ report.Networks) report.Nodes {
-	// Don't propagate pseudo nodes - we do this in MapEndpoint2Host
+	// Don't propagate all pseudo nodes - we do this in MapEndpoint2Host
 	if n.Topology == Pseudo {
 		return report.Nodes{}
 	}
-
-	hostIDs, ok := n.Parents.Lookup(report.Host)
+	hostNodeID, timestamp, ok := n.Latest.LookupEntry(report.HostNodeID)
 	if !ok {
 		return report.Nodes{}
 	}
-
-	result := report.Nodes{}
-	children := report.MakeNodeSet(n)
-	for _, id := range hostIDs {
-		node := NewDerivedNode(id, n).WithTopology(report.Host)
-		node.Counters = node.Counters.Add(n.Topology, 1)
-		node.Children = children
-		result[id] = node
-	}
-
-	return result
+	id := report.MakeHostNodeID(report.ExtractHostID(n))
+	result := NewDerivedNode(id, n).WithTopology(report.Host)
+	result.Latest = result.Latest.Set(report.HostNodeID, timestamp, hostNodeID)
+	result.Counters = result.Counters.Add(n.Topology, 1)
+	result.Children = report.MakeNodeSet(n)
+	return report.Nodes{id: result}
 }
 
 // MapEndpoint2Host takes nodes from the endpoint topology and produces
