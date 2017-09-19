@@ -446,7 +446,7 @@ func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
 	})
 	// Make errors a bit more descriptive than a plain 400
 	h.SetFailureHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "CSRF token mismatch", http.StatusBadRequest)
+		http.Error(w, "CSRF token mismatch: "+nosurf.Reason(r).Error(), http.StatusBadRequest)
 	}))
 	for _, prefix := range c.exemptPrefixes {
 		h.ExemptRegexp(fmt.Sprintf("^%s.*$", prefix))
