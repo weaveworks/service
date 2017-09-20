@@ -35,9 +35,10 @@ func (g *github) Link(r *http.Request) (Link, bool) {
 }
 
 // Login converts a user to a db ID
-func (g *github) Login(r *http.Request) (string, string, json.RawMessage, error) {
-	if !g.verifyState(r) {
-		return "", "", nil, fmt.Errorf("oauth state value did not match")
+func (g *github) Login(r *http.Request) (string, string, json.RawMessage, map[string]string, error) {
+	state, ok := g.verifyState(r)
+	if !ok {
+		return "", "", nil, nil, fmt.Errorf("oauth state value did not match")
 	}
 
 	// Use the authorization code that is pushed to the redirect URL.
@@ -47,18 +48,18 @@ func (g *github) Login(r *http.Request) (string, string, json.RawMessage, error)
 	config := g.oauthConfig(r)
 	tok, err := config.Exchange(oauth2.NoContext, r.FormValue("code"))
 	if err != nil {
-		return "", "", nil, err
+		return "", "", nil, nil, err
 	}
 
 	oauthClient := config.Client(oauth2.NoContext, tok)
 	client := gClient.NewClient(oauthClient)
 	user, _, err := client.Users.Get("")
 	if err != nil {
-		return "", "", nil, err
+		return "", "", nil, nil, err
 	}
 	emails, _, err := client.Users.ListEmails(nil)
 	if err != nil {
-		return "", "", nil, err
+		return "", "", nil, nil, err
 	}
 	var email string
 	for _, e := range emails {
@@ -67,11 +68,11 @@ func (g *github) Login(r *http.Request) (string, string, json.RawMessage, error)
 		}
 	}
 	if email == "" {
-		return "", "", nil, errors.New("Github account primary email address not verified")
+		return "", "", nil, nil, errors.New("Github account primary email address not verified")
 	}
 
 	session, err := json.Marshal(oauthUserSession{Token: tok})
-	return fmt.Sprint(*user.ID), email, session, err
+	return fmt.Sprint(*user.ID), email, session, state, err
 }
 
 // Username fetches a user's username on the remote service, for displaying *which* account this is linked with.

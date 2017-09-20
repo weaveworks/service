@@ -86,11 +86,12 @@ func (a *API) listAttachedLoginProviders(currentUser *users.User, w http.Respons
 }
 
 type attachLoginProviderView struct {
-	FirstLogin   bool   `json:"firstLogin,omitempty"`
-	UserCreated  bool   `json:"userCreated,omitempty"`
-	Attach       bool   `json:"attach,omitempty"`
-	Email        string `json:"email"`
-	MunchkinHash string `json:"munchkinHash"`
+	FirstLogin   bool              `json:"firstLogin,omitempty"`
+	UserCreated  bool              `json:"userCreated,omitempty"`
+	Attach       bool              `json:"attach,omitempty"`
+	Email        string            `json:"email"`
+	MunchkinHash string            `json:"munchkinHash"`
+	OAuthState   map[string]string `json:"oauthState"`
 }
 
 // attachLoginProvider is used for oauth login or signup
@@ -105,7 +106,8 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, email, authSession, err := provider.Login(r)
+	id, email, authSession, state, err := provider.Login(r)
+	view.OAuthState = state
 	if err != nil {
 		render.Error(w, r, err)
 		return

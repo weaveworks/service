@@ -41,9 +41,10 @@ func (g *google) Link(r *http.Request) (Link, bool) {
 }
 
 // Login converts a user to a db ID
-func (g *google) Login(r *http.Request) (string, string, json.RawMessage, error) {
-	if !g.verifyState(r) {
-		return "", "", nil, fmt.Errorf("oauth state value did not match")
+func (g *google) Login(r *http.Request) (string, string, json.RawMessage, map[string]string, error) {
+	state, ok := g.verifyState(r)
+	if !ok {
+		return "", "", nil, nil, fmt.Errorf("oauth state value did not match")
 	}
 
 	// Use the authorization code that is pushed to the redirect URL.
@@ -53,21 +54,21 @@ func (g *google) Login(r *http.Request) (string, string, json.RawMessage, error)
 	config := g.oauthConfig(r)
 	tok, err := config.Exchange(oauth2.NoContext, r.FormValue("code"))
 	if err != nil {
-		return "", "", nil, err
+		return "", "", nil, nil, err
 	}
 
 	person, err := g.person(tok)
 	if err != nil {
-		return "", "", nil, err
+		return "", "", nil, nil, err
 	}
 
 	email, err := g.personEmail(person)
 	if err != nil {
-		return "", "", nil, err
+		return "", "", nil, nil, err
 	}
 
 	session, err := json.Marshal(oauthUserSession{Token: tok})
-	return person.Id, email, session, err
+	return person.Id, email, session, state, err
 }
 
 // Username fetches a user's username on the remote service, for displaying *which* account this is linked with.
