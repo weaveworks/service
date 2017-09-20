@@ -68,7 +68,7 @@ func Test_InviteNonExistentUser(t *testing.T) {
 	require.Len(t, organizations, 1)
 	assert.Equal(t, org.ID, organizations[0].ID)
 
-	assertEmailSent(t, franEmail, "Welcome to Weave Cloud")
+	assertEmailSent(t, franEmail, "has invited you")
 }
 
 func Test_InviteExistingUser(t *testing.T) {
