@@ -44,12 +44,13 @@ func (g *github) Login(r *http.Request) (string, string, json.RawMessage, error)
 	// NewTransportWithCode will do the handshake to retrieve
 	// an access token and initiate a Transport that is
 	// authorized and authenticated by the retrieved token.
-	tok, err := g.Config.Exchange(oauth2.NoContext, r.FormValue("code"))
+	config := g.oauthConfig(r)
+	tok, err := config.Exchange(oauth2.NoContext, r.FormValue("code"))
 	if err != nil {
 		return "", "", nil, err
 	}
 
-	oauthClient := g.Config.Client(oauth2.NoContext, tok)
+	oauthClient := config.Client(oauth2.NoContext, tok)
 	client := gClient.NewClient(oauthClient)
 	user, _, err := client.Users.Get("")
 	if err != nil {
