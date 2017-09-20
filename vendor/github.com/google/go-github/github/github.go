@@ -39,9 +39,10 @@ const (
 	headerRateReset     = "X-RateLimit-Reset"
 	headerOTP           = "X-GitHub-OTP"
 
-	mediaTypeV3      = "application/vnd.github.v3+json"
-	defaultMediaType = "application/octet-stream"
-	mediaTypeV3SHA   = "application/vnd.github.v3.sha"
+	mediaTypeV3                = "application/vnd.github.v3+json"
+	defaultMediaType           = "application/octet-stream"
+	mediaTypeV3SHA             = "application/vnd.github.v3.sha"
+	mediaTypeOrgPermissionRepo = "application/vnd.github.v3.repository+json"
 
 	// Media Type values to access preview APIs
 
@@ -50,10 +51,6 @@ const (
 
 	// https://developer.github.com/changes/2014-12-09-new-attributes-for-stars-api/
 	mediaTypeStarringPreview = "application/vnd.github.v3.star+json"
-
-	// https://developer.github.com/changes/2015-06-24-api-enhancements-for-working-with-organization-permissions/
-	mediaTypeOrgPermissionPreview     = "application/vnd.github.ironman-preview+json"
-	mediaTypeOrgPermissionRepoPreview = "application/vnd.github.ironman-preview.repository+json"
 
 	// https://developer.github.com/changes/2015-11-11-protected-branches-api/
 	mediaTypeProtectedBranchesPreview = "application/vnd.github.loki-preview+json"
@@ -69,6 +66,15 @@ const (
 
 	// https://developer.github.com/changes/2016-02-19-source-import-preview-api/
 	mediaTypeImportPreview = "application/vnd.github.barred-rock-preview"
+
+	// https://developer.github.com/changes/2016-05-12-reactions-api-preview/
+	mediaTypeReactionsPreview = "application/vnd.github.squirrel-girl-preview"
+
+	// https://developer.github.com/changes/2016-04-01-squash-api-preview/
+	mediaTypeSquashPreview = "application/vnd.github.polaris-preview+json"
+
+	// https://developer.github.com/changes/2016-04-04-git-signing-api-preview/
+	mediaTypeGitSigningPreview = "application/vnd.github.cryptographer-preview+json"
 )
 
 // A Client manages communication with the GitHub API.
@@ -107,6 +113,7 @@ type Client struct {
 	Users          *UsersService
 	Licenses       *LicensesService
 	Migrations     *MigrationService
+	Reactions      *ReactionsService
 }
 
 // ListOptions specifies the optional parameters to various List methods that
@@ -171,6 +178,7 @@ func NewClient(httpClient *http.Client) *Client {
 	c.Users = &UsersService{client: c}
 	c.Licenses = &LicensesService{client: c}
 	c.Migrations = &MigrationService{client: c}
+	c.Reactions = &ReactionsService{client: c}
 	return c
 }
 
@@ -430,6 +438,10 @@ type ErrorResponse struct {
 		Reason    string     `json:"reason,omitempty"`
 		CreatedAt *Timestamp `json:"created_at,omitempty"`
 	} `json:"block,omitempty"`
+	// Most errors will also include a documentation_url field pointing
+	// to some content that might help you resolve the error, see
+	// https://developer.github.com/v3/#client-errors
+	DocumentationURL string `json:"documentation_url,omitempty"`
 }
 
 func (r *ErrorResponse) Error() string {
@@ -485,6 +497,9 @@ These are the possible validation error codes:
         the formatting of a field is invalid
     already_exists:
         another resource has the same valid as this field
+    custom:
+        some resources return this (e.g. github.User.CreateKey()), additional
+        information is set in the Message field of the Error
 
 GitHub API docs: http://developer.github.com/v3/#client-errors
 */
@@ -492,6 +507,7 @@ type Error struct {
 	Resource string `json:"resource"` // resource on which the error occurred
 	Field    string `json:"field"`    // field on which the error occurred
 	Code     string `json:"code"`     // validation error code
+	Message  string `json:"message"`  // Message describing the error. Errors with Code == "custom" will always have this set.
 }
 
 func (e *Error) Error() string {
