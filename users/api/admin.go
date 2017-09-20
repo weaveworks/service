@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"golang.org/x/net/context"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"

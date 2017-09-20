@@ -5,13 +5,12 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/sessions"
+	"golang.org/x/net/context"
 )
 
 // usersServer implements users.UsersServer

@@ -2,6 +2,7 @@ package gcache
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -31,6 +32,7 @@ type Cache interface {
 }
 
 type baseCache struct {
+	clock            Clock
 	size             int
 	loaderExpireFunc LoaderExpireFunc
 	evictedFunc      EvictedFunc
@@ -53,6 +55,7 @@ type (
 )
 
 type CacheBuilder struct {
+	clock            Clock
 	tp               string
 	size             int
 	loaderExpireFunc LoaderExpireFunc
@@ -68,9 +71,15 @@ func New(size int) *CacheBuilder {
 		panic("gcache: size <= 0")
 	}
 	return &CacheBuilder{
-		tp:   TYPE_SIMPLE,
-		size: size,
+		clock: NewRealClock(),
+		tp:    TYPE_SIMPLE,
+		size:  size,
 	}
+}
+
+func (cb *CacheBuilder) Clock(clock Clock) *CacheBuilder {
+	cb.clock = clock
+	return cb
 }
 
 // Set a loader function.
@@ -157,6 +166,7 @@ func (cb *CacheBuilder) build() Cache {
 }
 
 func buildCache(c *baseCache, cb *CacheBuilder) {
+	c.clock = cb.clock
 	c.size = cb.size
 	c.loaderExpireFunc = cb.loaderExpireFunc
 	c.expiration = cb.expiration
@@ -169,7 +179,12 @@ func buildCache(c *baseCache, cb *CacheBuilder) {
 
 // load a new value using by specified key.
 func (c *baseCache) load(key interface{}, cb func(interface{}, *time.Duration, error) (interface{}, error), isWait bool) (interface{}, bool, error) {
-	v, called, err := c.loadGroup.Do(key, func() (interface{}, error) {
+	v, called, err := c.loadGroup.Do(key, func() (v interface{}, e error) {
+		defer func() {
+			if r := recover(); r != nil {
+				e = fmt.Errorf("Loader panics: %v", r)
+			}
+		}()
 		return cb(c.loaderExpireFunc(key))
 	}, isWait)
 	if err != nil {

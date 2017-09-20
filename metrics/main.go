@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"flag"
@@ -16,7 +17,6 @@ import (
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/common"
-	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/filter"

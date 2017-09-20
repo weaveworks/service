@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -10,7 +11,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"golang.org/x/net/context"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
