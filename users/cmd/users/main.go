@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"math/rand"
-	"net/http"
 	"strings"
 	"time"
 
@@ -159,10 +158,11 @@ func main() {
 
 	log.Infof("Listening on port %d", *port)
 	s, err := server.New(server.Config{
-		MetricsNamespace: common.PrometheusNamespace,
-		HTTPListenPort:   *port,
-		GRPCListenPort:   *grpcPort,
-		GRPCMiddleware:   []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
+		MetricsNamespace:        common.PrometheusNamespace,
+		HTTPListenPort:          *port,
+		GRPCListenPort:          *grpcPort,
+		GRPCMiddleware:          []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
+		RegisterInstrumentation: true,
 	})
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
@@ -205,8 +205,4 @@ func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string
 		log.Errorf("Error creating local test instance: %v", err)
 		return
 	}
-}
-
-func makePrometheusHandler() http.Handler {
-	return prometheus.Handler()
 }
