@@ -7,7 +7,7 @@
 # can update.
 [[constraint]]
   name = "github.com/google/go-github"
-  revision = "a68a8707f3c18a3a47bb0975ca29a9239792dc01"
+  revision = "a8b8751f9d056ab7f60ab6d9caba15db9d701b09"
 
 # github.com/opentracing-contrib/go-stdlib doesn't support hijacking until
 # https://github.com/opentracing-contrib/go-stdlib/pull/11 is merged.
