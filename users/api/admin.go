@@ -84,7 +84,7 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if _, err := w.Write(b); err != nil {
-			logging.With(r.Context()).Warn("list users: %v", err)
+			logging.With(r.Context()).Warnf("list users: %v", err)
 		}
 	}
 }
@@ -115,7 +115,7 @@ func (a *API) listUsersForOrganization(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := w.Write(b); err != nil {
-		logging.With(r.Context()).Warn("list users: %v", err)
+		logging.With(r.Context()).Warnf("list users: %v", err)
 	}
 }
 
@@ -141,7 +141,7 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := w.Write(b); err != nil {
-		logging.With(r.Context()).Warn("list organizations: %v", err)
+		logging.With(r.Context()).Warnf("list organizations: %v", err)
 	}
 }
 
@@ -172,7 +172,7 @@ func (a *API) listOrganizationsForUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := w.Write(b); err != nil {
-		logging.With(r.Context()).Warn("list organizations: %v", err)
+		logging.With(r.Context()).Warnf("list organizations: %v", err)
 	}
 }
 
@@ -262,6 +262,7 @@ func (a *API) setOrganizationFeatureFlags(ctx context.Context, orgExternalID str
 		expires := time.Now().Add(users.TrialExtensionDuration)
 		// We only modify the trial period if it actually adds days
 		if expires.Truncate(24 * time.Hour).After(orgTrialExpires) {
+			logging.With(ctx).Infof("Extending trial period from %q to %q for organization %s", orgTrialExpires, expires, orgExternalID)
 			err = a.db.UpdateOrganization(ctx, orgExternalID, users.OrgWriteView{TrialExpiresAt: &expires})
 			if err != nil {
 				return err
