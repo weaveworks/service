@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/weaveworks/service/users"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/weaveworks/service/users"
 )
 
 func Test_User_CompareToken(t *testing.T) {
