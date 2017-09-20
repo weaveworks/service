@@ -109,6 +109,7 @@ func (s SMTPEmailer) TrialPendingExpiryEmail(members []*users.User, orgExternalI
 		"TrialLeft":        trialLeft(trialExpiresAt),
 	}
 	e.Text = s.Templates.QuietBytes("trial_pending_expiry_email.text", data)
+	e.HTML = s.Templates.QuietBytes("trial_pending_expiry_email.html", data)
 
 	return s.Sender(e)
 }
@@ -125,6 +126,7 @@ func (s SMTPEmailer) TrialExpiredEmail(members []*users.User, orgExternalID, org
 		"BillingURL":       billingURL(s.Domain, orgExternalID),
 	}
 	e.Text = s.Templates.QuietBytes("trial_expired_email.text", data)
+	e.HTML = s.Templates.QuietBytes("trial_expired_email.html", data)
 
 	return s.Sender(e)
 }
@@ -144,6 +146,7 @@ func (s SMTPEmailer) TrialExtendedEmail(members []*users.User, orgExternalID, or
 	e.To = collectEmails(members)
 	e.Subject = fmt.Sprintf("%s left of your free trial", left)
 	e.Text = s.Templates.QuietBytes("trial_extended_email.text", data)
+	e.HTML = s.Templates.QuietBytes("trial_extended_email.html", data)
 
 	return s.Sender(e)
 }
