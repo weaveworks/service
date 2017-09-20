@@ -3,12 +3,12 @@
 package dbtest
 
 import (
+	"context"
 	"flag"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/net/context"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users/db"

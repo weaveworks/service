@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"math/rand"
 	"net/http"
@@ -22,7 +23,6 @@ import (
 	"github.com/weaveworks/service/users/render"
 	"github.com/weaveworks/service/users/sessions"
 	"github.com/weaveworks/service/users/templates"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 

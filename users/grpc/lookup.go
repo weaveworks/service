@@ -1,11 +1,10 @@
 package grpc
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"

@@ -1,12 +1,12 @@
 package client
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/bluele/gcache"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
 	"github.com/weaveworks/common/httpgrpc"
