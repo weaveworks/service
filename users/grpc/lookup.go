@@ -1,7 +1,6 @@
 package grpc
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/sessions"
+	"golang.org/x/net/context"
 )
 
 // usersServer implements users.UsersServer
