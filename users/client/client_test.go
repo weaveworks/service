@@ -1,7 +1,6 @@
 package client
 
 import (
-	"context"
 	"errors"
 	"net"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
 	"github.com/weaveworks/common/middleware"
