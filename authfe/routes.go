@@ -333,7 +333,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/prod-grafana", trimPrefix("/admin/prod-grafana", c.prodGrafanaHost)},
 				{"/scope", trimPrefix("/admin/scope", c.scopeHost)},
 				{"/users", c.usersHost},
-				{"/billing/admin", trimPrefix("/admin/billing/admin", c.billingAPIHost)},
+				{"/billing/organizations", trimPrefix("/admin/billing/organizations", c.billingAPIHost)},
 				{"/billing/aggregator", trimPrefix("/admin/billing/aggregator", c.billingAggregatorHost)},
 				{"/billing/enforcer", trimPrefix("/admin/billing/enforcer", c.billingEnforcerHost)},
 				{"/billing/uploader", trimPrefix("/admin/billing/uploader", c.billingUploaderHost)},

@@ -39,7 +39,7 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 			<li><a href="/admin/cortex/alertmanager/status">Cortex Alertmanager Status</a></li>
 			<li>Billing
 				<ul>
-					<li><a href="/admin/billing/admin">Admin</a></li>
+					<li><a href="/admin/billing/organizations">Organizations</a></li>
 					<li><a href="/admin/billing/aggregator">Aggregator</a></li>
 					<li><a href="/admin/billing/uploader">Uploader</a></li>
 					<li><a href="/admin/billing/enforcer">Enforcer</a></li>
