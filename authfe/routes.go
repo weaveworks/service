@@ -335,6 +335,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/users", c.usersHost},
 				{"/billing/admin", trimPrefix("/admin/billing/admin", c.billingAPIHost)},
 				{"/billing/aggregator", trimPrefix("/admin/billing/aggregator", c.billingAggregatorHost)},
+				{"/billing/enforcer", trimPrefix("/admin/billing/enforcer", c.billingEnforcerHost)},
 				{"/billing/uploader", trimPrefix("/admin/billing/uploader", c.billingUploaderHost)},
 				{"/kubediff", trimPrefix("/admin/kubediff", c.kubediffHost)},
 				{"/terradiff", trimPrefix("/admin/terradiff", c.terradiffHost)},
