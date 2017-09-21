@@ -404,11 +404,12 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	//   and we don't see alert-silencing as very security-sensitive.
 	csrfExemptPrefixes := dataUploadRoutes.AbsolutePrefixes()
 	csrfExemptPrefixes = append(csrfExemptPrefixes, dataAccessRoutes.AbsolutePrefixes()...)
-	csrfExemptPrefixes = append(csrfExemptPrefixes, "/admin/alertmanager")
-	csrfExemptPrefixes = append(csrfExemptPrefixes, "/service-ui-kicker")
-	csrfExemptPrefixes = append(csrfExemptPrefixes, "/api/ui/metrics")
 	csrfExemptPrefixes = append(
 		csrfExemptPrefixes,
+		"/admin/alertmanager",
+		"/service-ui-kicker",
+		"/api/ui/metrics",
+		"/github-receiver",
 		`/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`, // Regex copy-pasted from users/organization.go
 		"/api/users/signup_webhook",                     // Validated by explicit token in the users service
 	)
