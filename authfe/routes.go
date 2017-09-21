@@ -402,6 +402,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	csrfExemptPrefixes = append(csrfExemptPrefixes, dataAccessRoutes.AbsolutePrefixes()...)
 	csrfExemptPrefixes = append(csrfExemptPrefixes, "/admin/alertmanager")
 	csrfExemptPrefixes = append(csrfExemptPrefixes, "/service-ui-kicker")
+	csrfExemptPrefixes = append(csrfExemptPrefixes, "/api/ui/metrics")
 	csrfExemptPrefixes = append(
 		csrfExemptPrefixes,
 		`/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`, // Regex copy-pasted from users/organization.go
