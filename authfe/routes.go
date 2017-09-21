@@ -402,6 +402,8 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	// * the Cortex alert manager, incorporating tokens would require forking it
 	//   (see https://github.com/weaveworks/service-ui/issues/461#issuecomment-299458350)
 	//   and we don't see alert-silencing as very security-sensitive.
+	// * incoming webhooks (service-ui-kicker and github-receiver), as these are validated
+	//   by checking HMAC integrity
 	csrfExemptPrefixes := dataUploadRoutes.AbsolutePrefixes()
 	csrfExemptPrefixes = append(csrfExemptPrefixes, dataAccessRoutes.AbsolutePrefixes()...)
 	csrfExemptPrefixes = append(
