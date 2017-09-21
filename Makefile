@@ -38,7 +38,8 @@ USERS_EXE := users/cmd/users/users
 METRICS_EXE := metrics/metrics
 NOTEBOOKS_EXE := notebooks/cmd/notebooks/notebooks
 SERVICE_UI_KICKER_EXE := service-ui-kicker/service-ui-kicker
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE)
+GITHUB_RECEIVER_EXE := github-receiver/github-receiver
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) $(GITHUB_RECEIVER_EXE)
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
@@ -47,6 +48,7 @@ $(USERS_EXE): $(shell find users -name '*.go') $(COMMON) users/users.pb.go
 $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
 $(NOTEBOOKS_EXE): $(shell find notebooks -name '*.go') $(COMMON)
 $(SERVICE_UI_KICKER_EXE): $(shell find service-ui-kicker -name '*.go') $(COMMON)
+$(GITHUB_RECEIVER_EXE): $(shell find github-receiver -name '*.go') $(COMMON)
 test: users/users.pb.go
 
 # And now what goes into each image
@@ -57,6 +59,7 @@ logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_
 build/$(UPTODATE): build/build.sh
 notebooks/$(UPTODATE): $(NOTEBOOKS_EXE)
 service-ui-kicker/$(UPTODATE): $(SERVICE_UI_KICKER_EXE)
+github-receiver/$(UPTODATE): $(GITHUB_RECEIVER_EXE)
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
@@ -140,4 +143,3 @@ clean:
 	rm -rf $(UPTODATE_FILES) $(EXES)
 	rm -f users/users.pb.go
 	go clean ./...
-
