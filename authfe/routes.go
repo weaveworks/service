@@ -382,6 +382,10 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				// There is authentication done inside service-ui-kicker itself to ensure requests came from github
 				{"/service-ui-kicker", c.serviceUIKickerHost},
 
+				// Forward Github WebHooks to github-receiver.
+				// There is authentication done inside github-receiver itself to ensure requests came from github
+				{"/github-receiver", c.githubReceiverHost},
+
 				// Final wildcard match to static content
 				{"/", noCacheOnRoot.Wrap(uiServerHandler)},
 			}),

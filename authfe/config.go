@@ -36,6 +36,7 @@ type Config struct {
 	demoHost               proxyConfig
 	fluxHost               proxyConfig
 	fluxV6Host             proxyConfig
+	githubReceiverHost     proxyConfig
 	launchGeneratorHost    proxyConfig
 	notificationConfigHost proxyConfig
 	notificationSenderHost proxyConfig
@@ -80,6 +81,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"demo":                 &c.demoHost,
 		"flux":                 &c.fluxHost,
 		"flux-v6":              &c.fluxV6Host,
+		"github-receiver":      &c.githubReceiverHost,
 		"launch-generator":     &c.launchGeneratorHost,
 		"notebooks":            &c.notebooksHost,
 		"notification-configs": &c.notificationConfigHost,
