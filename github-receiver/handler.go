@@ -31,5 +31,12 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 	}
-	log.Printf("received webhook: %T\n%s", hook, github.Stringify(hook))
+
+	switch hook := hook.(type) {
+	case *github.PushEvent:
+		log.Println("received push event:", *hook.Repo.SSHURL, *hook.Ref)
+	default:
+		log.Printf("received webhook: %T\n%s", hook, github.Stringify(hook))
+	}
+
 }
