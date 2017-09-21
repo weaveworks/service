@@ -22,13 +22,13 @@ func makeHandler(u string, s []byte) *handler {
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	payload, err := github.ValidatePayload(r, h.secret)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error(err)
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 	hook, err := github.ParseWebHook(github.WebHookType(r), payload)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error(err)
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 	}
 

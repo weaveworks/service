@@ -5,6 +5,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/service/common"
 )
 
 func main() {
@@ -12,7 +13,7 @@ func main() {
 		fluxSvcURL    = flag.String("flux-svc-url", "fluxsvc.flux.svc.cluster.local.:80", "Flux service base URL")
 		webhookSecret = flag.String("webhook-secret", "", "Github App webhook secret")
 		cfg           = server.Config{
-			MetricsNamespace: "github-receiver",
+			MetricsNamespace: common.PrometheusNamespace,
 		}
 	)
 	cfg.RegisterFlags(flag.CommandLine)
