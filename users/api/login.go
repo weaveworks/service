@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/render"
@@ -91,7 +92,7 @@ type attachLoginProviderView struct {
 	Attach       bool              `json:"attach,omitempty"`
 	Email        string            `json:"email"`
 	MunchkinHash string            `json:"munchkinHash"`
-	OAuthState   map[string]string `json:"oauthState"`
+	QueryParams  map[string]string `json:"queryParams,omitempty"`
 }
 
 // attachLoginProvider is used for oauth login or signup
@@ -107,7 +108,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, email, authSession, state, err := provider.Login(r)
-	view.OAuthState = state
+	view.QueryParams = state
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -256,44 +257,51 @@ func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// SignupView is both the input and output from Signup.  Eugh.
-type SignupView struct {
+type SignupRequest struct {
+	Email string `json:"email,omitempty"`
+	// QueryParams are url query params from the login page, we pass them on because they are used for tracking
+	QueryParams map[string]string `json:"queryParams,omitempty"`
+}
+
+type SignupResponse struct {
 	MailSent bool   `json:"mailSent"`
 	Email    string `json:"email,omitempty"`
 	Token    string `json:"token,omitempty"`
+	// QueryParams are url query params from the login page, we pass them on because they are used for tracking
+	QueryParams map[string]string `json:"queryParams,omitempty"`
 }
 
 func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	var view SignupView
-	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
+	var input SignupRequest
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		render.Error(w, r, users.MalformedInputError(err))
 		return
 	}
 
-	if _, err := a.Signup(r.Context(), &view); err != nil {
+	resp, _, err := a.Signup(r.Context(), input)
+	if err != nil {
 		render.Error(w, r, err)
 	}
 
-	render.JSON(w, http.StatusOK, view)
+	render.JSON(w, http.StatusOK, resp)
 }
 
 // Signup creates a new user (but will also allow an existing user to log in)
 // NB: this is used only for email signups, not oauth signups
-func (a *API) Signup(ctx context.Context, view *SignupView) (*users.User, error) {
-	view.MailSent = false
-	if view.Email == "" {
-		return nil, users.ValidationErrorf("Email cannot be blank")
+func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *users.User, error) {
+	if req.Email == "" {
+		return nil, nil, users.ValidationErrorf("Email cannot be blank")
 	}
 
-	user, err := a.db.FindUserByEmail(ctx, view.Email)
+	user, err := a.db.FindUserByEmail(ctx, req.Email)
 	if err == users.ErrNotFound {
-		user, err = a.db.CreateUser(ctx, view.Email)
+		user, err = a.db.CreateUser(ctx, req.Email)
 		if err == nil {
 			a.marketingQueues.UserCreated(user.Email, user.CreatedAt)
 			if a.mixpanel != nil {
 				go func() {
-					if err := a.mixpanel.TrackSignup(view.Email); err != nil {
+					if err := a.mixpanel.TrackSignup(req.Email); err != nil {
 						logging.With(ctx).Error(err)
 					}
 				}()
@@ -301,26 +309,31 @@ func (a *API) Signup(ctx context.Context, view *SignupView) (*users.User, error)
 		}
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// We always do this so that the timing difference can't be used to infer a user's existence.
 	token, err := a.generateUserToken(ctx, user)
 	if err != nil {
-		return nil, fmt.Errorf("Error sending login email: %s", err)
+		return nil, nil, fmt.Errorf("Error sending login email: %s", err)
 	}
 
+	resp := SignupResponse{
+		Email:    req.Email,
+		MailSent: false,
+	}
 	if a.directLogin {
-		view.Token = token
+		resp.Token = token
+		resp.QueryParams = req.QueryParams
 	}
 
-	err = a.emailer.LoginEmail(user, token)
+	err = a.emailer.LoginEmail(user, token, req.QueryParams)
 	if err != nil {
-		return nil, fmt.Errorf("Error sending login email: %s", err)
+		return nil, nil, fmt.Errorf("Error sending login email: %s", err)
 	}
 
-	view.MailSent = true
-	return user, nil
+	resp.MailSent = true
+	return &resp, user, nil
 }
 
 func (a *API) generateUserToken(ctx context.Context, user *users.User) (string, error) {
@@ -334,10 +347,11 @@ func (a *API) generateUserToken(ctx context.Context, user *users.User) (string, 
 	return token, nil
 }
 
-type loginView struct {
-	FirstLogin   bool   `json:"firstLogin,omitempty"`
-	Email        string `json:"email"`
-	MunchkinHash string `json:"munchkinHash"`
+type loginResponse struct {
+	FirstLogin   bool              `json:"firstLogin,omitempty"`
+	Email        string            `json:"email"`
+	MunchkinHash string            `json:"munchkinHash"`
+	QueryParams  map[string]string `json:"queryParams,omitempty"`
 }
 
 // login validates a login request from a link we sent the user by email
@@ -395,11 +409,15 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 			}
 		}()
 	}
+	queryParams := common.FlattenQueryParams(r.URL.Query())
+	delete(queryParams, "email")
+	delete(queryParams, "token")
 
-	render.JSON(w, http.StatusOK, loginView{
+	render.JSON(w, http.StatusOK, loginResponse{
 		FirstLogin:   firstLogin,
 		Email:        email,
 		MunchkinHash: a.MunchkinHash(email),
+		QueryParams:  queryParams,
 	})
 }
 

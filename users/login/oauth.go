@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/justinas/nosurf"
+	"github.com/weaveworks/service/common"
 	"golang.org/x/oauth2"
 	"net/url"
 )
@@ -78,11 +79,8 @@ func (a *OAuth) Link(r *http.Request) (Link, bool) {
 		// Do not allow linking accounts if the anti CSRF token isn't set
 		return Link{}, false
 	}
-	state := make(map[string]string)
 	// pass on any query parameters (ignoring duplicate keys)
-	for key, values := range r.URL.Query() {
-		state[key] = values[0]
-	}
+	state := common.FlattenQueryParams(r.URL.Query())
 	state["token"] = token
 
 	config := a.oauthConfig(r)

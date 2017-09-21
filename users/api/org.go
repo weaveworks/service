@@ -184,7 +184,7 @@ func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWrit
 
 func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	var view SignupView
+	var view SignupResponse
 	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
 		render.Error(w, r, users.MalformedInputError(err))
 		return

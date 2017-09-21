@@ -48,13 +48,13 @@ func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 }
 
 // LoginEmail sends the login email
-func (s SMTPEmailer) LoginEmail(u *users.User, token string) error {
+func (s SMTPEmailer) LoginEmail(u *users.User, token string, queryParams map[string]string) error {
 	e := email.NewEmail()
 	e.From = s.FromAddress
 	e.To = []string{u.Email}
 	e.Subject = "Login to Weave Cloud"
 	data := map[string]interface{}{
-		"LoginURL": loginURL(u.Email, token, s.Domain),
+		"LoginURL": loginURL(u.Email, token, s.Domain, queryParams),
 		"RootURL":  s.Domain,
 	}
 	e.Text = s.Templates.QuietBytes("login_email.text", data)
