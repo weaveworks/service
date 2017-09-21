@@ -49,7 +49,7 @@ type NotificationListOptions struct {
 // ListNotifications lists all notifications for the authenticated user.
 //
 // GitHub API Docs: https://developer.github.com/v3/activity/notifications/#list-your-notifications
-func (s *ActivityService) ListNotifications(opt *NotificationListOptions) ([]Notification, *Response, error) {
+func (s *ActivityService) ListNotifications(opt *NotificationListOptions) ([]*Notification, *Response, error) {
 	u := fmt.Sprintf("notifications")
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -61,7 +61,7 @@ func (s *ActivityService) ListNotifications(opt *NotificationListOptions) ([]Not
 		return nil, nil, err
 	}
 
-	var notifications []Notification
+	var notifications []*Notification
 	resp, err := s.client.Do(req, &notifications)
 	if err != nil {
 		return nil, resp, err
@@ -74,7 +74,7 @@ func (s *ActivityService) ListNotifications(opt *NotificationListOptions) ([]Not
 // for the authenticated user.
 //
 // GitHub API Docs: https://developer.github.com/v3/activity/notifications/#list-your-notifications-in-a-repository
-func (s *ActivityService) ListRepositoryNotifications(owner, repo string, opt *NotificationListOptions) ([]Notification, *Response, error) {
+func (s *ActivityService) ListRepositoryNotifications(owner, repo string, opt *NotificationListOptions) ([]*Notification, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/notifications", owner, repo)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -86,7 +86,7 @@ func (s *ActivityService) ListRepositoryNotifications(owner, repo string, opt *N
 		return nil, nil, err
 	}
 
-	var notifications []Notification
+	var notifications []*Notification
 	resp, err := s.client.Do(req, &notifications)
 	if err != nil {
 		return nil, resp, err
@@ -96,20 +96,17 @@ func (s *ActivityService) ListRepositoryNotifications(owner, repo string, opt *N
 }
 
 type markReadOptions struct {
-	LastReadAt time.Time `url:"last_read_at,omitempty"`
+	LastReadAt time.Time `json:"last_read_at,omitempty"`
 }
 
 // MarkNotificationsRead marks all notifications up to lastRead as read.
 //
 // GitHub API Docs: https://developer.github.com/v3/activity/notifications/#mark-as-read
 func (s *ActivityService) MarkNotificationsRead(lastRead time.Time) (*Response, error) {
-	u := fmt.Sprintf("notifications")
-	u, err := addOptions(u, markReadOptions{lastRead})
-	if err != nil {
-		return nil, err
+	opts := &markReadOptions{
+		LastReadAt: lastRead,
 	}
-
-	req, err := s.client.NewRequest("PUT", u, nil)
+	req, err := s.client.NewRequest("PUT", "notifications", opts)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +119,11 @@ func (s *ActivityService) MarkNotificationsRead(lastRead time.Time) (*Response, 
 //
 // GitHub API Docs: https://developer.github.com/v3/activity/notifications/#mark-notifications-as-read-in-a-repository
 func (s *ActivityService) MarkRepositoryNotificationsRead(owner, repo string, lastRead time.Time) (*Response, error) {
-	u := fmt.Sprintf("repos/%v/%v/notifications", owner, repo)
-	u, err := addOptions(u, markReadOptions{lastRead})
-	if err != nil {
-		return nil, err
+	opts := &markReadOptions{
+		LastReadAt: lastRead,
 	}
-
-	req, err := s.client.NewRequest("PUT", u, nil)
+	u := fmt.Sprintf("repos/%v/%v/notifications", owner, repo)
+	req, err := s.client.NewRequest("PUT", u, opts)
 	if err != nil {
 		return nil, err
 	}

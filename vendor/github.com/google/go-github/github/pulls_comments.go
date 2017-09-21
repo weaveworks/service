@@ -54,7 +54,7 @@ type PullRequestListCommentsOptions struct {
 // the repository.
 //
 // GitHub API docs: https://developer.github.com/v3/pulls/comments/#list-comments-on-a-pull-request
-func (s *PullRequestsService) ListComments(owner string, repo string, number int, opt *PullRequestListCommentsOptions) ([]PullRequestComment, *Response, error) {
+func (s *PullRequestsService) ListComments(owner string, repo string, number int, opt *PullRequestListCommentsOptions) ([]*PullRequestComment, *Response, error) {
 	var u string
 	if number == 0 {
 		u = fmt.Sprintf("repos/%v/%v/pulls/comments", owner, repo)
@@ -74,13 +74,13 @@ func (s *PullRequestsService) ListComments(owner string, repo string, number int
 	// TODO: remove custom Accept header when this API fully launches.
 	req.Header.Set("Accept", mediaTypeReactionsPreview)
 
-	comments := new([]PullRequestComment)
-	resp, err := s.client.Do(req, comments)
+	var comments []*PullRequestComment
+	resp, err := s.client.Do(req, &comments)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *comments, resp, err
+	return comments, resp, nil
 }
 
 // GetComment fetches the specified pull request comment.

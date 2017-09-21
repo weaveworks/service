@@ -35,7 +35,7 @@ func (r RepositoryComment) String() string {
 // ListComments lists all the comments for the repository.
 //
 // GitHub API docs: http://developer.github.com/v3/repos/comments/#list-commit-comments-for-a-repository
-func (s *RepositoriesService) ListComments(owner, repo string, opt *ListOptions) ([]RepositoryComment, *Response, error) {
+func (s *RepositoriesService) ListComments(owner, repo string, opt *ListOptions) ([]*RepositoryComment, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/comments", owner, repo)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -50,19 +50,19 @@ func (s *RepositoriesService) ListComments(owner, repo string, opt *ListOptions)
 	// TODO: remove custom Accept header when this API fully launches.
 	req.Header.Set("Accept", mediaTypeReactionsPreview)
 
-	comments := new([]RepositoryComment)
-	resp, err := s.client.Do(req, comments)
+	var comments []*RepositoryComment
+	resp, err := s.client.Do(req, &comments)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *comments, resp, err
+	return comments, resp, nil
 }
 
 // ListCommitComments lists all the comments for a given commit SHA.
 //
 // GitHub API docs: http://developer.github.com/v3/repos/comments/#list-comments-for-a-single-commit
-func (s *RepositoriesService) ListCommitComments(owner, repo, sha string, opt *ListOptions) ([]RepositoryComment, *Response, error) {
+func (s *RepositoriesService) ListCommitComments(owner, repo, sha string, opt *ListOptions) ([]*RepositoryComment, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/commits/%v/comments", owner, repo, sha)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -77,13 +77,13 @@ func (s *RepositoriesService) ListCommitComments(owner, repo, sha string, opt *L
 	// TODO: remove custom Accept header when this API fully launches.
 	req.Header.Set("Accept", mediaTypeReactionsPreview)
 
-	comments := new([]RepositoryComment)
-	resp, err := s.client.Do(req, comments)
+	var comments []*RepositoryComment
+	resp, err := s.client.Do(req, &comments)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *comments, resp, err
+	return comments, resp, nil
 }
 
 // CreateComment creates a comment for the given commit.

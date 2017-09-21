@@ -15,7 +15,7 @@ type UserEmail struct {
 // ListEmails lists all email addresses for the authenticated user.
 //
 // GitHub API docs: http://developer.github.com/v3/users/emails/#list-email-addresses-for-a-user
-func (s *UsersService) ListEmails(opt *ListOptions) ([]UserEmail, *Response, error) {
+func (s *UsersService) ListEmails(opt *ListOptions) ([]*UserEmail, *Response, error) {
 	u := "user/emails"
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -27,32 +27,32 @@ func (s *UsersService) ListEmails(opt *ListOptions) ([]UserEmail, *Response, err
 		return nil, nil, err
 	}
 
-	emails := new([]UserEmail)
-	resp, err := s.client.Do(req, emails)
+	var emails []*UserEmail
+	resp, err := s.client.Do(req, &emails)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *emails, resp, err
+	return emails, resp, nil
 }
 
 // AddEmails adds email addresses of the authenticated user.
 //
 // GitHub API docs: http://developer.github.com/v3/users/emails/#add-email-addresses
-func (s *UsersService) AddEmails(emails []string) ([]UserEmail, *Response, error) {
+func (s *UsersService) AddEmails(emails []string) ([]*UserEmail, *Response, error) {
 	u := "user/emails"
 	req, err := s.client.NewRequest("POST", u, emails)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	e := new([]UserEmail)
-	resp, err := s.client.Do(req, e)
+	var e []*UserEmail
+	resp, err := s.client.Do(req, &e)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *e, resp, err
+	return e, resp, nil
 }
 
 // DeleteEmails deletes email addresses from authenticated user.

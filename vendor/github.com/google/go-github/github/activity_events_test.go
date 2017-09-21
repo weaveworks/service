@@ -31,7 +31,7 @@ func TestActivityService_ListEvents(t *testing.T) {
 		t.Errorf("Activities.ListEvents returned error: %v", err)
 	}
 
-	want := []Event{{ID: String("1")}, {ID: String("2")}}
+	want := []*Event{{ID: String("1")}, {ID: String("2")}}
 	if !reflect.DeepEqual(events, want) {
 		t.Errorf("Activities.ListEvents returned %+v, want %+v", events, want)
 	}
@@ -55,7 +55,7 @@ func TestActivityService_ListRepositoryEvents(t *testing.T) {
 		t.Errorf("Activities.ListRepositoryEvents returned error: %v", err)
 	}
 
-	want := []Event{{ID: String("1")}, {ID: String("2")}}
+	want := []*Event{{ID: String("1")}, {ID: String("2")}}
 	if !reflect.DeepEqual(events, want) {
 		t.Errorf("Activities.ListRepositoryEvents returned %+v, want %+v", events, want)
 	}
@@ -75,7 +75,7 @@ func TestActivityService_ListIssueEventsForRepository(t *testing.T) {
 		testFormValues(t, r, values{
 			"page": "2",
 		})
-		fmt.Fprint(w, `[{"id":"1"},{"id":"2"}]`)
+		fmt.Fprint(w, `[{"id":1},{"id":2}]`)
 	})
 
 	opt := &ListOptions{Page: 2}
@@ -84,7 +84,7 @@ func TestActivityService_ListIssueEventsForRepository(t *testing.T) {
 		t.Errorf("Activities.ListIssueEventsForRepository returned error: %v", err)
 	}
 
-	want := []Event{{ID: String("1")}, {ID: String("2")}}
+	want := []*IssueEvent{{ID: Int(1)}, {ID: Int(2)}}
 	if !reflect.DeepEqual(events, want) {
 		t.Errorf("Activities.ListIssueEventsForRepository returned %+v, want %+v", events, want)
 	}
@@ -113,7 +113,7 @@ func TestActivityService_ListEventsForRepoNetwork(t *testing.T) {
 		t.Errorf("Activities.ListEventsForRepoNetwork returned error: %v", err)
 	}
 
-	want := []Event{{ID: String("1")}, {ID: String("2")}}
+	want := []*Event{{ID: String("1")}, {ID: String("2")}}
 	if !reflect.DeepEqual(events, want) {
 		t.Errorf("Activities.ListEventsForRepoNetwork returned %+v, want %+v", events, want)
 	}
@@ -142,7 +142,7 @@ func TestActivityService_ListEventsForOrganization(t *testing.T) {
 		t.Errorf("Activities.ListEventsForOrganization returned error: %v", err)
 	}
 
-	want := []Event{{ID: String("1")}, {ID: String("2")}}
+	want := []*Event{{ID: String("1")}, {ID: String("2")}}
 	if !reflect.DeepEqual(events, want) {
 		t.Errorf("Activities.ListEventsForOrganization returned %+v, want %+v", events, want)
 	}
@@ -171,7 +171,7 @@ func TestActivityService_ListEventsPerformedByUser_all(t *testing.T) {
 		t.Errorf("Events.ListPerformedByUser returned error: %v", err)
 	}
 
-	want := []Event{{ID: String("1")}, {ID: String("2")}}
+	want := []*Event{{ID: String("1")}, {ID: String("2")}}
 	if !reflect.DeepEqual(events, want) {
 		t.Errorf("Events.ListPerformedByUser returned %+v, want %+v", events, want)
 	}
@@ -191,7 +191,7 @@ func TestActivityService_ListEventsPerformedByUser_publicOnly(t *testing.T) {
 		t.Errorf("Events.ListPerformedByUser returned error: %v", err)
 	}
 
-	want := []Event{{ID: String("1")}, {ID: String("2")}}
+	want := []*Event{{ID: String("1")}, {ID: String("2")}}
 	if !reflect.DeepEqual(events, want) {
 		t.Errorf("Events.ListPerformedByUser returned %+v, want %+v", events, want)
 	}
@@ -220,7 +220,7 @@ func TestActivityService_ListEventsReceivedByUser_all(t *testing.T) {
 		t.Errorf("Events.ListReceivedByUser returned error: %v", err)
 	}
 
-	want := []Event{{ID: String("1")}, {ID: String("2")}}
+	want := []*Event{{ID: String("1")}, {ID: String("2")}}
 	if !reflect.DeepEqual(events, want) {
 		t.Errorf("Events.ListReceivedUser returned %+v, want %+v", events, want)
 	}
@@ -240,7 +240,7 @@ func TestActivityService_ListEventsReceivedByUser_publicOnly(t *testing.T) {
 		t.Errorf("Events.ListReceivedByUser returned error: %v", err)
 	}
 
-	want := []Event{{ID: String("1")}, {ID: String("2")}}
+	want := []*Event{{ID: String("1")}, {ID: String("2")}}
 	if !reflect.DeepEqual(events, want) {
 		t.Errorf("Events.ListReceivedByUser returned %+v, want %+v", events, want)
 	}
@@ -269,13 +269,13 @@ func TestActivityService_ListUserEventsForOrganization(t *testing.T) {
 		t.Errorf("Activities.ListUserEventsForOrganization returned error: %v", err)
 	}
 
-	want := []Event{{ID: String("1")}, {ID: String("2")}}
+	want := []*Event{{ID: String("1")}, {ID: String("2")}}
 	if !reflect.DeepEqual(events, want) {
 		t.Errorf("Activities.ListUserEventsForOrganization returned %+v, want %+v", events, want)
 	}
 }
 
-func TestActivity_EventPayload_typed(t *testing.T) {
+func TestActivityService_EventPayload_typed(t *testing.T) {
 	raw := []byte(`{"type": "PushEvent","payload":{"push_id": 1}}`)
 	var event *Event
 	if err := json.Unmarshal(raw, &event); err != nil {
@@ -291,7 +291,7 @@ func TestActivity_EventPayload_typed(t *testing.T) {
 // TestEvent_Payload_untyped checks that unrecognized events are parsed to an
 // interface{} value (instead of being discarded or throwing an error), for
 // forward compatibility with new event types.
-func TestActivity_EventPayload_untyped(t *testing.T) {
+func TestActivityService_EventPayload_untyped(t *testing.T) {
 	raw := []byte(`{"type": "UnrecognizedEvent","payload":{"field": "val"}}`)
 	var event *Event
 	if err := json.Unmarshal(raw, &event); err != nil {
@@ -299,6 +299,19 @@ func TestActivity_EventPayload_untyped(t *testing.T) {
 	}
 
 	want := map[string]interface{}{"field": "val"}
+	if !reflect.DeepEqual(event.Payload(), want) {
+		t.Errorf("Event Payload returned %+v, want %+v", event.Payload(), want)
+	}
+}
+
+func TestActivityService_EventPayload_installation(t *testing.T) {
+	raw := []byte(`{"type": "PullRequestEvent","payload":{"installation":{"id":1}}}`)
+	var event *Event
+	if err := json.Unmarshal(raw, &event); err != nil {
+		t.Fatalf("Unmarshal Event returned error: %v", err)
+	}
+
+	want := &PullRequestEvent{Installation: &Installation{ID: Int(1)}}
 	if !reflect.DeepEqual(event.Payload(), want) {
 		t.Errorf("Event Payload returned %+v, want %+v", event.Payload(), want)
 	}

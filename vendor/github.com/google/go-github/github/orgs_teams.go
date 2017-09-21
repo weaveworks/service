@@ -5,7 +5,10 @@
 
 package github
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // Team represents a team within a GitHub organization.  Teams are used to
 // manage access to an organization's repositories.
@@ -41,10 +44,25 @@ func (t Team) String() string {
 	return Stringify(t)
 }
 
+// Invitation represents a team member's invitation status.
+type Invitation struct {
+	ID    *int    `json:"id,omitempty"`
+	Login *string `json:"login,omitempty"`
+	Email *string `json:"email,omitempty"`
+	// Role can be one of the values - 'direct_member', 'admin', 'billing_manager', 'hiring_manager', or 'reinstate'.
+	Role      *string    `json:"role,omitempty"`
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+	Inviter   *User      `json:"inviter,omitempty"`
+}
+
+func (i Invitation) String() string {
+	return Stringify(i)
+}
+
 // ListTeams lists all of the teams for an organization.
 //
 // GitHub API docs: http://developer.github.com/v3/orgs/teams/#list-teams
-func (s *OrganizationsService) ListTeams(org string, opt *ListOptions) ([]Team, *Response, error) {
+func (s *OrganizationsService) ListTeams(org string, opt *ListOptions) ([]*Team, *Response, error) {
 	u := fmt.Sprintf("orgs/%v/teams", org)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -56,13 +74,13 @@ func (s *OrganizationsService) ListTeams(org string, opt *ListOptions) ([]Team, 
 		return nil, nil, err
 	}
 
-	teams := new([]Team)
-	resp, err := s.client.Do(req, teams)
+	var teams []*Team
+	resp, err := s.client.Do(req, &teams)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *teams, resp, err
+	return teams, resp, nil
 }
 
 // GetTeam fetches a team by ID.
@@ -149,7 +167,7 @@ type OrganizationListTeamMembersOptions struct {
 // team.
 //
 // GitHub API docs: http://developer.github.com/v3/orgs/teams/#list-team-members
-func (s *OrganizationsService) ListTeamMembers(team int, opt *OrganizationListTeamMembersOptions) ([]User, *Response, error) {
+func (s *OrganizationsService) ListTeamMembers(team int, opt *OrganizationListTeamMembersOptions) ([]*User, *Response, error) {
 	u := fmt.Sprintf("teams/%v/members", team)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -161,13 +179,13 @@ func (s *OrganizationsService) ListTeamMembers(team int, opt *OrganizationListTe
 		return nil, nil, err
 	}
 
-	members := new([]User)
-	resp, err := s.client.Do(req, members)
+	var members []*User
+	resp, err := s.client.Do(req, &members)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *members, resp, err
+	return members, resp, nil
 }
 
 // IsTeamMember checks if a user is a member of the specified team.
@@ -188,7 +206,7 @@ func (s *OrganizationsService) IsTeamMember(team int, user string) (bool, *Respo
 // ListTeamRepos lists the repositories that the specified team has access to.
 //
 // GitHub API docs: http://developer.github.com/v3/orgs/teams/#list-team-repos
-func (s *OrganizationsService) ListTeamRepos(team int, opt *ListOptions) ([]Repository, *Response, error) {
+func (s *OrganizationsService) ListTeamRepos(team int, opt *ListOptions) ([]*Repository, *Response, error) {
 	u := fmt.Sprintf("teams/%v/repos", team)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -200,13 +218,13 @@ func (s *OrganizationsService) ListTeamRepos(team int, opt *ListOptions) ([]Repo
 		return nil, nil, err
 	}
 
-	repos := new([]Repository)
-	resp, err := s.client.Do(req, repos)
+	var repos []*Repository
+	resp, err := s.client.Do(req, &repos)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *repos, resp, err
+	return repos, resp, nil
 }
 
 // IsTeamRepo checks if a team manages the specified repository.  If the
@@ -277,7 +295,7 @@ func (s *OrganizationsService) RemoveTeamRepo(team int, owner string, repo strin
 
 // ListUserTeams lists a user's teams
 // GitHub API docs: https://developer.github.com/v3/orgs/teams/#list-user-teams
-func (s *OrganizationsService) ListUserTeams(opt *ListOptions) ([]Team, *Response, error) {
+func (s *OrganizationsService) ListUserTeams(opt *ListOptions) ([]*Team, *Response, error) {
 	u := "user/teams"
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -289,13 +307,13 @@ func (s *OrganizationsService) ListUserTeams(opt *ListOptions) ([]Team, *Respons
 		return nil, nil, err
 	}
 
-	teams := new([]Team)
-	resp, err := s.client.Do(req, teams)
+	var teams []*Team
+	resp, err := s.client.Do(req, &teams)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *teams, resp, err
+	return teams, resp, nil
 }
 
 // GetTeamMembership returns the membership status for a user in a team.
@@ -376,4 +394,33 @@ func (s *OrganizationsService) RemoveTeamMembership(team int, user string) (*Res
 	}
 
 	return s.client.Do(req, nil)
+}
+
+// ListPendingTeamInvitations get pending invitaion list in team.
+// Warning: The API may change without advance notice during the preview period.
+// Preview features are not supported for production use.
+//
+// GitHub API docs: https://developer.github.com/v3/orgs/teams/#list-pending-team-invitations
+func (s *OrganizationsService) ListPendingTeamInvitations(team int, opt *ListOptions) ([]*Invitation, *Response, error) {
+	u := fmt.Sprintf("teams/%v/invitations", team)
+	u, err := addOptions(u, opt)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, err := s.client.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeOrgMembershipPreview)
+
+	var pendingInvitations []*Invitation
+	resp, err := s.client.Do(req, &pendingInvitations)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return pendingInvitations, resp, nil
 }
