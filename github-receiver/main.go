@@ -13,7 +13,8 @@ func main() {
 		fluxSvcURL    = flag.String("flux-svc-url", "fluxsvc.flux.svc.cluster.local.:80", "Flux service base URL")
 		webhookSecret = flag.String("webhook-secret", "", "Github App webhook secret")
 		cfg           = server.Config{
-			MetricsNamespace: common.PrometheusNamespace,
+			MetricsNamespace:        common.PrometheusNamespace,
+			RegisterInstrumentation: true,
 		}
 	)
 	cfg.RegisterFlags(flag.CommandLine)
