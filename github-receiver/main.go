@@ -30,7 +30,7 @@ func main() {
 	defer server.Shutdown()
 
 	server.HTTP.Handle(
-		"/webhook",
+		"/github-receiver/webhook",
 		makeHandler(*fluxSvcURL, []byte(*webhookSecret)),
 	).Methods("POST").Name("receive_webhook")
 	server.Run()
