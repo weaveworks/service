@@ -402,13 +402,16 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	// * the Cortex alert manager, incorporating tokens would require forking it
 	//   (see https://github.com/weaveworks/service-ui/issues/461#issuecomment-299458350)
 	//   and we don't see alert-silencing as very security-sensitive.
+	// * incoming webhooks (service-ui-kicker and github-receiver), as these are validated
+	//   by checking HMAC integrity
 	csrfExemptPrefixes := dataUploadRoutes.AbsolutePrefixes()
 	csrfExemptPrefixes = append(csrfExemptPrefixes, dataAccessRoutes.AbsolutePrefixes()...)
-	csrfExemptPrefixes = append(csrfExemptPrefixes, "/admin/alertmanager")
-	csrfExemptPrefixes = append(csrfExemptPrefixes, "/service-ui-kicker")
-	csrfExemptPrefixes = append(csrfExemptPrefixes, "/api/ui/metrics")
 	csrfExemptPrefixes = append(
 		csrfExemptPrefixes,
+		"/admin/alertmanager",
+		"/service-ui-kicker",
+		"/api/ui/metrics",
+		"/github-receiver",
 		`/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`, // Regex copy-pasted from users/organization.go
 		"/api/users/signup_webhook",                     // Validated by explicit token in the users service
 	)
