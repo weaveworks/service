@@ -29,7 +29,7 @@ func TestRepositoriesService_ListCollaborators(t *testing.T) {
 		t.Errorf("Repositories.ListCollaborators returned error: %v", err)
 	}
 
-	want := []User{{ID: Int(1)}, {ID: Int(2)}}
+	want := []*User{{ID: Int(1)}, {ID: Int(2)}}
 	if !reflect.DeepEqual(users, want) {
 		t.Errorf("Repositories.ListCollaborators returned %+v, want %+v", users, want)
 	}
@@ -94,6 +94,7 @@ func TestRepositoriesService_AddCollaborator(t *testing.T) {
 		json.NewDecoder(r.Body).Decode(v)
 
 		testMethod(t, r, "PUT")
+		testHeader(t, r, "Accept", mediaTypeRepositoryInvitationsPreview)
 		if !reflect.DeepEqual(v, opt) {
 			t.Errorf("Request body = %+v, want %+v", v, opt)
 		}
