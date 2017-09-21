@@ -8,7 +8,7 @@ import (
 
 func main() {
 	var (
-		fluxSvcUrl    = flag.String("flux-svc-url", "fluxsvc.flux.svc.cluster.local.:80", "Flux service base URL")
+		fluxSvcURL    = flag.String("flux-svc-url", "fluxsvc.flux.svc.cluster.local.:80", "Flux service base URL")
 		webhookSecret = flag.String("webhook-secret", "", "Github App webhook secret")
 	)
 	flag.Parse()
@@ -17,6 +17,6 @@ func main() {
 		log.Fatal("webhook secret not set")
 	}
 
-	http.Handle("/webhook", makeHandler(*fluxSvcUrl, []byte(*webhookSecret)))
+	http.Handle("/webhook", makeHandler(*fluxSvcURL, []byte(*webhookSecret)))
 	http.ListenAndServe(":80", nil)
 }

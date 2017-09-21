@@ -8,13 +8,13 @@ import (
 )
 
 type handler struct {
-	fluxSvcUrl string
+	fluxSvcURL string
 	secret     []byte
 }
 
 func makeHandler(u string, s []byte) *handler {
 	return &handler{
-		fluxSvcUrl: u,
+		fluxSvcURL: u,
 		secret:     s,
 	}
 }
