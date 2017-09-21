@@ -51,6 +51,7 @@ type Config struct {
 	alertmanagerHost      proxyConfig
 	ansiblediffHost       proxyConfig
 	billingAggregatorHost proxyConfig
+	billingEnforcerHost   proxyConfig
 	billingUploaderHost   proxyConfig
 	compareImagesHost     proxyConfig
 	compareRevisionsHost  proxyConfig
@@ -100,6 +101,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"alertmanager":       &c.alertmanagerHost,
 		"ansiblediff":        &c.ansiblediffHost,
 		"billing-aggregator": &c.billingAggregatorHost,
+		"billing-enforcer":   &c.billingEnforcerHost,
 		"billing-uploader":   &c.billingUploaderHost,
 		"compare-images":     &c.compareImagesHost,
 		"compare-revisions":  &c.compareRevisionsHost,
