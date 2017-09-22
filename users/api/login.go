@@ -257,12 +257,14 @@ func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// SignupRequest is the message sent to initiate a signup request
 type SignupRequest struct {
 	Email string `json:"email,omitempty"`
 	// QueryParams are url query params from the login page, we pass them on because they are used for tracking
 	QueryParams map[string]string `json:"queryParams,omitempty"`
 }
 
+// SignupResponse is the message sent as the result of a signup request
 type SignupResponse struct {
 	MailSent bool   `json:"mailSent"`
 	Email    string `json:"email,omitempty"`

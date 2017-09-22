@@ -58,18 +58,18 @@ func MustNew(emailURI, fromAddress string, templates templates.Engine, domain st
 }
 
 func loginURL(email, rawToken, domain string, queryParams map[string]string) string {
-	loginUrl, _ := url.Parse(fmt.Sprintf(
+	out, _ := url.ParseRequestURI(fmt.Sprintf(
 		"%s/login/%s/%s",
 		domain,
 		url.PathEscape(email),
 		url.PathEscape(rawToken),
 	))
-	q := loginUrl.Query()
+	q := out.Query()
 	for key, value := range queryParams {
 		q.Set(key, value)
 	}
-	loginUrl.RawQuery = q.Encode()
-	return loginUrl.String()
+	out.RawQuery = q.Encode()
+	return out.String()
 }
 
 func inviteURL(email, rawToken, domain, orgName string) string {
