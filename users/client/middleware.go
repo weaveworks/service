@@ -69,9 +69,7 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 		r.Header.Add(a.UserIDHeader, response.UserID)
 		r.Header.Add(a.FeatureFlagsHeader, strings.Join(response.FeatureFlags, " "))
 
-		r = r.WithContext(user.InjectOrgID(r.Context(), response.OrganizationID))
-		user.InjectOrgIDIntoHTTPRequest(r.Context(), r)
-		next.ServeHTTP(w, r)
+		finishRequest(next, w, r, response.OrganizationID)
 	})
 }
 
@@ -109,9 +107,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 
 		r.Header.Add(a.FeatureFlagsHeader, strings.Join(response.FeatureFlags, " "))
 
-		r = r.WithContext(user.InjectOrgID(r.Context(), response.OrganizationID))
-		user.InjectOrgIDIntoHTTPRequest(r.Context(), r)
-		next.ServeHTTP(w, r)
+		finishRequest(next, w, r, response.OrganizationID)
 	})
 }
 
@@ -154,9 +150,7 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		r = r.WithContext(user.InjectOrgID(r.Context(), response.AdminID))
-		user.InjectOrgIDIntoHTTPRequest(r.Context(), r)
-		next.ServeHTTP(w, r)
+		finishRequest(next, w, r, response.AdminID)
 	})
 }
 
@@ -189,6 +183,15 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 		r.Header.Add(a.UserIDHeader, response.UserID)
 		next.ServeHTTP(w, r)
 	})
+}
+
+func finishRequest(next http.Handler, w http.ResponseWriter, r *http.Request, orgID string) {
+	r = r.WithContext(user.InjectOrgID(r.Context(), orgID))
+	if err := user.InjectOrgIDIntoHTTPRequest(r.Context(), r); err != nil {
+		handleError(err, w, r)
+	} else {
+		next.ServeHTTP(w, r)
+	}
 }
 
 func handleError(err error, w http.ResponseWriter, r *http.Request) {
