@@ -55,10 +55,7 @@ func Test_InviteNonExistentUser(t *testing.T) {
 	franEmail := "fran@weave.works"
 
 	body := requestInvite(t, user, org, franEmail, http.StatusOK)
-	assert.Equal(t, map[string]interface{}{
-		"mailSent": true,
-		"email":    franEmail,
-	}, body)
+	assert.Equal(t, map[string]interface{}{"email": franEmail}, body)
 
 	fran, err := database.FindUserByEmail(context.Background(), franEmail)
 	require.NoError(t, err)
@@ -79,10 +76,7 @@ func Test_InviteExistingUser(t *testing.T) {
 	fran := getUser(t)
 
 	body := requestInvite(t, user, org, fran.Email, http.StatusOK)
-	assert.Equal(t, map[string]interface{}{
-		"mailSent": true,
-		"email":    fran.Email,
-	}, body)
+	assert.Equal(t, map[string]interface{}{"email": fran.Email}, body)
 
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), fran.ID)
 	require.NoError(t, err)

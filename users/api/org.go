@@ -189,7 +189,6 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		render.Error(w, r, users.MalformedInputError(err))
 		return
 	}
-	view.MailSent = false
 	if view.Email == "" {
 		render.Error(w, r, users.ValidationErrorf("Email cannot be blank"))
 		return
@@ -226,7 +225,6 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		render.Error(w, r, fmt.Errorf("Error sending invite email: %s", err))
 		return
 	}
-	view.MailSent = true
 
 	render.JSON(w, http.StatusOK, view)
 }

@@ -266,9 +266,8 @@ type SignupRequest struct {
 
 // SignupResponse is the message sent as the result of a signup request
 type SignupResponse struct {
-	MailSent bool   `json:"mailSent"`
-	Email    string `json:"email,omitempty"`
-	Token    string `json:"token,omitempty"`
+	Email string `json:"email,omitempty"`
+	Token string `json:"token,omitempty"`
 	// QueryParams are url query params from the login page, we pass them on because they are used for tracking
 	QueryParams map[string]string `json:"queryParams,omitempty"`
 }
@@ -321,8 +320,7 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 	}
 
 	resp := SignupResponse{
-		Email:    req.Email,
-		MailSent: false,
+		Email: req.Email,
 	}
 	if a.directLogin {
 		resp.Token = token
@@ -334,7 +332,6 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 		return nil, nil, fmt.Errorf("Error sending login email: %s", err)
 	}
 
-	resp.MailSent = true
 	return &resp, user, nil
 }
 
