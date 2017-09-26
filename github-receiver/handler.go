@@ -2,10 +2,12 @@ package main
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/google/go-github/github"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
+	"github.com/weaveworks/flux/api/v9"
 	"github.com/weaveworks/service/common"
 	fluxhttp "github.com/weaveworks/service/flux-api/http"
 )
@@ -50,9 +52,15 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch hook := hook.(type) {
 	case *github.PushEvent:
 		instID := r.FormValue("instance")
+
+		update := v9.GitUpdate{
+			URL:    *hook.Repo.SSHURL,
+			Branch: strings.TrimPrefix(*hook.Ref, "refs/heads/"),
+		}
+
 		client := common.NewJSONClient(http.DefaultClient)
 
-		err := client.Post(r.Context(), "", h.makeNotifyURL(instID), nil, nil)
+		err := client.Post(r.Context(), "", h.makeNotifyURL(instID), update, nil)
 		if err != nil {
 			log.Error(err)
 		}
