@@ -14,9 +14,7 @@ import (
 // methods of the GitHub API.
 //
 // GitHub API docs: http://developer.github.com/v3/gists/
-type GistsService struct {
-	client *Client
-}
+type GistsService service
 
 // Gist represents a GitHub's gist.
 type Gist struct {
@@ -44,12 +42,40 @@ type GistFilename string
 type GistFile struct {
 	Size     *int    `json:"size,omitempty"`
 	Filename *string `json:"filename,omitempty"`
+	Language *string `json:"language,omitempty"`
+	Type     *string `json:"type,omitempty"`
 	RawURL   *string `json:"raw_url,omitempty"`
 	Content  *string `json:"content,omitempty"`
 }
 
 func (g GistFile) String() string {
 	return Stringify(g)
+}
+
+// GistCommit represents a commit on a gist.
+type GistCommit struct {
+	URL          *string      `json:"url,omitempty"`
+	Version      *string      `json:"version,omitempty"`
+	User         *User        `json:"user,omitempty"`
+	ChangeStatus *CommitStats `json:"change_status,omitempty"`
+	CommitedAt   *Timestamp   `json:"commited_at,omitempty"`
+}
+
+func (gc GistCommit) String() string {
+	return Stringify(gc)
+}
+
+// GistFork represents a fork of a gist.
+type GistFork struct {
+	URL       *string    `json:"url,omitempty"`
+	User      *User      `json:"user,omitempty"`
+	ID        *string    `json:"id,omitempty"`
+	CreatedAt *Timestamp `json:"created_at,omitempty"`
+	UpdatedAt *Timestamp `json:"updated_at,omitempty"`
+}
+
+func (gf GistFork) String() string {
+	return Stringify(gf)
 }
 
 // GistListOptions specifies the optional parameters to the
@@ -67,7 +93,7 @@ type GistListOptions struct {
 // user.
 //
 // GitHub API docs: http://developer.github.com/v3/gists/#list-gists
-func (s *GistsService) List(user string, opt *GistListOptions) ([]Gist, *Response, error) {
+func (s *GistsService) List(user string, opt *GistListOptions) ([]*Gist, *Response, error) {
 	var u string
 	if user != "" {
 		u = fmt.Sprintf("users/%v/gists", user)
@@ -84,19 +110,19 @@ func (s *GistsService) List(user string, opt *GistListOptions) ([]Gist, *Respons
 		return nil, nil, err
 	}
 
-	gists := new([]Gist)
-	resp, err := s.client.Do(req, gists)
+	var gists []*Gist
+	resp, err := s.client.Do(req, &gists)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *gists, resp, err
+	return gists, resp, nil
 }
 
 // ListAll lists all public gists.
 //
 // GitHub API docs: http://developer.github.com/v3/gists/#list-gists
-func (s *GistsService) ListAll(opt *GistListOptions) ([]Gist, *Response, error) {
+func (s *GistsService) ListAll(opt *GistListOptions) ([]*Gist, *Response, error) {
 	u, err := addOptions("gists/public", opt)
 	if err != nil {
 		return nil, nil, err
@@ -107,19 +133,19 @@ func (s *GistsService) ListAll(opt *GistListOptions) ([]Gist, *Response, error) 
 		return nil, nil, err
 	}
 
-	gists := new([]Gist)
-	resp, err := s.client.Do(req, gists)
+	var gists []*Gist
+	resp, err := s.client.Do(req, &gists)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *gists, resp, err
+	return gists, resp, nil
 }
 
 // ListStarred lists starred gists of authenticated user.
 //
 // GitHub API docs: http://developer.github.com/v3/gists/#list-gists
-func (s *GistsService) ListStarred(opt *GistListOptions) ([]Gist, *Response, error) {
+func (s *GistsService) ListStarred(opt *GistListOptions) ([]*Gist, *Response, error) {
 	u, err := addOptions("gists/starred", opt)
 	if err != nil {
 		return nil, nil, err
@@ -130,13 +156,13 @@ func (s *GistsService) ListStarred(opt *GistListOptions) ([]Gist, *Response, err
 		return nil, nil, err
 	}
 
-	gists := new([]Gist)
-	resp, err := s.client.Do(req, gists)
+	var gists []*Gist
+	resp, err := s.client.Do(req, &gists)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *gists, resp, err
+	return gists, resp, nil
 }
 
 // Get a single gist.
@@ -211,6 +237,25 @@ func (s *GistsService) Edit(id string, gist *Gist) (*Gist, *Response, error) {
 	return g, resp, err
 }
 
+// ListCommits lists commits of a gist.
+//
+// Github API docs: https://developer.github.com/v3/gists/#list-gist-commits
+func (s *GistsService) ListCommits(id string) ([]*GistCommit, *Response, error) {
+	u := fmt.Sprintf("gists/%v/commits", id)
+	req, err := s.client.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var gistCommits []*GistCommit
+	resp, err := s.client.Do(req, &gistCommits)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return gistCommits, resp, nil
+}
+
 // Delete a gist.
 //
 // GitHub API docs: http://developer.github.com/v3/gists/#delete-a-gist
@@ -278,4 +323,23 @@ func (s *GistsService) Fork(id string) (*Gist, *Response, error) {
 	}
 
 	return g, resp, err
+}
+
+// ListForks lists forks of a gist.
+//
+// Github API docs: https://developer.github.com/v3/gists/#list-gist-forks
+func (s *GistsService) ListForks(id string) ([]*GistFork, *Response, error) {
+	u := fmt.Sprintf("gists/%v/forks", id)
+	req, err := s.client.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var gistForks []*GistFork
+	resp, err := s.client.Do(req, &gistForks)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return gistForks, resp, nil
 }

@@ -32,7 +32,7 @@ func TestRepositoriesService_ListReleases(t *testing.T) {
 	if err != nil {
 		t.Errorf("Repositories.ListReleases returned error: %v", err)
 	}
-	want := []RepositoryRelease{{ID: Int(1)}}
+	want := []*RepositoryRelease{{ID: Int(1)}}
 	if !reflect.DeepEqual(releases, want) {
 		t.Errorf("Repositories.ListReleases returned %+v, want %+v", releases, want)
 	}
@@ -44,7 +44,7 @@ func TestRepositoriesService_GetRelease(t *testing.T) {
 
 	mux.HandleFunc("/repos/o/r/releases/1", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
-		fmt.Fprint(w, `{"id":1}`)
+		fmt.Fprint(w, `{"id":1,"author":{"login":"l"}}`)
 	})
 
 	release, resp, err := client.Repositories.GetRelease("o", "r", 1)
@@ -52,7 +52,7 @@ func TestRepositoriesService_GetRelease(t *testing.T) {
 		t.Errorf("Repositories.GetRelease returned error: %v\n%v", err, resp.Body)
 	}
 
-	want := &RepositoryRelease{ID: Int(1)}
+	want := &RepositoryRelease{ID: Int(1), Author: &User{Login: String("l")}}
 	if !reflect.DeepEqual(release, want) {
 		t.Errorf("Repositories.GetRelease returned %+v, want %+v", release, want)
 	}
@@ -182,7 +182,7 @@ func TestRepositoriesService_ListReleaseAssets(t *testing.T) {
 	if err != nil {
 		t.Errorf("Repositories.ListReleaseAssets returned error: %v", err)
 	}
-	want := []ReleaseAsset{{ID: Int(1)}}
+	want := []*ReleaseAsset{{ID: Int(1)}}
 	if !reflect.DeepEqual(assets, want) {
 		t.Errorf("Repositories.ListReleaseAssets returned %+v, want %+v", assets, want)
 	}

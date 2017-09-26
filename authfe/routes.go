@@ -333,8 +333,9 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/prod-grafana", trimPrefix("/admin/prod-grafana", c.prodGrafanaHost)},
 				{"/scope", trimPrefix("/admin/scope", c.scopeHost)},
 				{"/users", c.usersHost},
-				{"/billing/admin", trimPrefix("/admin/billing/admin", c.billingAPIHost)},
+				{"/billing/organizations", trimPrefix("/admin/billing/organizations", c.billingAPIHost)},
 				{"/billing/aggregator", trimPrefix("/admin/billing/aggregator", c.billingAggregatorHost)},
+				{"/billing/enforcer", trimPrefix("/admin/billing/enforcer", c.billingEnforcerHost)},
 				{"/billing/uploader", trimPrefix("/admin/billing/uploader", c.billingUploaderHost)},
 				{"/kubediff", trimPrefix("/admin/kubediff", c.kubediffHost)},
 				{"/terradiff", trimPrefix("/admin/terradiff", c.terradiffHost)},
@@ -382,6 +383,10 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				// There is authentication done inside service-ui-kicker itself to ensure requests came from github
 				{"/service-ui-kicker", c.serviceUIKickerHost},
 
+				// Forward Github WebHooks to github-receiver.
+				// There is authentication done inside github-receiver itself to ensure requests came from github
+				{"/github-receiver", c.githubReceiverHost},
+
 				// Final wildcard match to static content
 				{"/", noCacheOnRoot.Wrap(uiServerHandler)},
 			}),
@@ -398,12 +403,16 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	// * the Cortex alert manager, incorporating tokens would require forking it
 	//   (see https://github.com/weaveworks/service-ui/issues/461#issuecomment-299458350)
 	//   and we don't see alert-silencing as very security-sensitive.
+	// * incoming webhooks (service-ui-kicker and github-receiver), as these are validated
+	//   by checking HMAC integrity
 	csrfExemptPrefixes := dataUploadRoutes.AbsolutePrefixes()
 	csrfExemptPrefixes = append(csrfExemptPrefixes, dataAccessRoutes.AbsolutePrefixes()...)
-	csrfExemptPrefixes = append(csrfExemptPrefixes, "/admin/alertmanager")
-	csrfExemptPrefixes = append(csrfExemptPrefixes, "/service-ui-kicker")
 	csrfExemptPrefixes = append(
 		csrfExemptPrefixes,
+		"/admin/alertmanager",
+		"/service-ui-kicker",
+		"/api/ui/metrics",
+		"/github-receiver",
 		`/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`, // Regex copy-pasted from users/organization.go
 		"/api/users/signup_webhook",                     // Validated by explicit token in the users service
 	)

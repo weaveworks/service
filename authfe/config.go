@@ -36,6 +36,7 @@ type Config struct {
 	demoHost               proxyConfig
 	fluxHost               proxyConfig
 	fluxV6Host             proxyConfig
+	githubReceiverHost     proxyConfig
 	launchGeneratorHost    proxyConfig
 	notificationConfigHost proxyConfig
 	notificationSenderHost proxyConfig
@@ -50,6 +51,7 @@ type Config struct {
 	alertmanagerHost      proxyConfig
 	ansiblediffHost       proxyConfig
 	billingAggregatorHost proxyConfig
+	billingEnforcerHost   proxyConfig
 	billingUploaderHost   proxyConfig
 	compareImagesHost     proxyConfig
 	compareRevisionsHost  proxyConfig
@@ -80,6 +82,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"demo":                 &c.demoHost,
 		"flux":                 &c.fluxHost,
 		"flux-v6":              &c.fluxV6Host,
+		"github-receiver":      &c.githubReceiverHost,
 		"launch-generator":     &c.launchGeneratorHost,
 		"notebooks":            &c.notebooksHost,
 		"notification-configs": &c.notificationConfigHost,
@@ -98,6 +101,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"alertmanager":       &c.alertmanagerHost,
 		"ansiblediff":        &c.ansiblediffHost,
 		"billing-aggregator": &c.billingAggregatorHost,
+		"billing-enforcer":   &c.billingEnforcerHost,
 		"billing-uploader":   &c.billingUploaderHost,
 		"compare-images":     &c.compareImagesHost,
 		"compare-revisions":  &c.compareRevisionsHost,

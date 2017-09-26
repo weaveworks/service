@@ -42,7 +42,7 @@ func (r RepoStatus) String() string {
 // reference.  ref can be a SHA, a branch name, or a tag name.
 //
 // GitHub API docs: http://developer.github.com/v3/repos/statuses/#list-statuses-for-a-specific-ref
-func (s *RepositoriesService) ListStatuses(owner, repo, ref string, opt *ListOptions) ([]RepoStatus, *Response, error) {
+func (s *RepositoriesService) ListStatuses(owner, repo, ref string, opt *ListOptions) ([]*RepoStatus, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/commits/%v/statuses", owner, repo, ref)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -54,13 +54,13 @@ func (s *RepositoriesService) ListStatuses(owner, repo, ref string, opt *ListOpt
 		return nil, nil, err
 	}
 
-	statuses := new([]RepoStatus)
-	resp, err := s.client.Do(req, statuses)
+	var statuses []*RepoStatus
+	resp, err := s.client.Do(req, &statuses)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *statuses, resp, err
+	return statuses, resp, nil
 }
 
 // CreateStatus creates a new status for a repository at the specified

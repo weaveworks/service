@@ -11,9 +11,7 @@ import "fmt"
 // GitHub API.
 //
 // GitHub API docs: http://developer.github.com/v3/gitignore/
-type GitignoresService struct {
-	client *Client
-}
+type GitignoresService service
 
 // Gitignore represents a .gitignore file as returned by the GitHub API.
 type Gitignore struct {
@@ -34,13 +32,13 @@ func (s GitignoresService) List() ([]string, *Response, error) {
 		return nil, nil, err
 	}
 
-	availableTemplates := new([]string)
-	resp, err := s.client.Do(req, availableTemplates)
+	var availableTemplates []string
+	resp, err := s.client.Do(req, &availableTemplates)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *availableTemplates, resp, err
+	return availableTemplates, resp, nil
 }
 
 // Get a Gitignore by name.

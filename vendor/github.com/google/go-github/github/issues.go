@@ -14,12 +14,16 @@ import (
 // methods of the GitHub API.
 //
 // GitHub API docs: http://developer.github.com/v3/issues/
-type IssuesService struct {
-	client *Client
-}
+type IssuesService service
 
 // Issue represents a GitHub issue on a repository.
+//
+// Note: As far as the GitHub API is concerned, every pull request is an issue,
+// but not every issue is a pull request. Some endpoints, events, and webhooks
+// may also return pull requests via this struct. If PullRequestLinks is nil,
+// this is an issue, and if PullRequestLinks is not nil, this is a pull request.
 type Issue struct {
+	ID               *int              `json:"id,omitempty"`
 	Number           *int              `json:"number,omitempty"`
 	State            *string           `json:"state,omitempty"`
 	Title            *string           `json:"title,omitempty"`
@@ -37,6 +41,7 @@ type Issue struct {
 	PullRequestLinks *PullRequestLinks `json:"pull_request,omitempty"`
 	Repository       *Repository       `json:"repository,omitempty"`
 	Reactions        *Reactions        `json:"reactions,omitempty"`
+	Assignees        []*User           `json:"assignees,omitempty"`
 
 	// TextMatches is only populated from search results that request text matches
 	// See: search.go and https://developer.github.com/v3/search/#text-match-metadata
@@ -57,6 +62,7 @@ type IssueRequest struct {
 	Assignee  *string   `json:"assignee,omitempty"`
 	State     *string   `json:"state,omitempty"`
 	Milestone *int      `json:"milestone,omitempty"`
+	Assignees *[]string `json:"assignees,omitempty"`
 }
 
 // IssueListOptions specifies the optional parameters to the IssuesService.List
@@ -102,7 +108,7 @@ type PullRequestLinks struct {
 // repositories.
 //
 // GitHub API docs: http://developer.github.com/v3/issues/#list-issues
-func (s *IssuesService) List(all bool, opt *IssueListOptions) ([]Issue, *Response, error) {
+func (s *IssuesService) List(all bool, opt *IssueListOptions) ([]*Issue, *Response, error) {
 	var u string
 	if all {
 		u = "issues"
@@ -116,12 +122,12 @@ func (s *IssuesService) List(all bool, opt *IssueListOptions) ([]Issue, *Respons
 // authenticated user.
 //
 // GitHub API docs: http://developer.github.com/v3/issues/#list-issues
-func (s *IssuesService) ListByOrg(org string, opt *IssueListOptions) ([]Issue, *Response, error) {
+func (s *IssuesService) ListByOrg(org string, opt *IssueListOptions) ([]*Issue, *Response, error) {
 	u := fmt.Sprintf("orgs/%v/issues", org)
 	return s.listIssues(u, opt)
 }
 
-func (s *IssuesService) listIssues(u string, opt *IssueListOptions) ([]Issue, *Response, error) {
+func (s *IssuesService) listIssues(u string, opt *IssueListOptions) ([]*Issue, *Response, error) {
 	u, err := addOptions(u, opt)
 	if err != nil {
 		return nil, nil, err
@@ -135,13 +141,13 @@ func (s *IssuesService) listIssues(u string, opt *IssueListOptions) ([]Issue, *R
 	// TODO: remove custom Accept header when this API fully launches.
 	req.Header.Set("Accept", mediaTypeReactionsPreview)
 
-	issues := new([]Issue)
-	resp, err := s.client.Do(req, issues)
+	var issues []*Issue
+	resp, err := s.client.Do(req, &issues)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *issues, resp, err
+	return issues, resp, nil
 }
 
 // IssueListByRepoOptions specifies the optional parameters to the
@@ -187,7 +193,7 @@ type IssueListByRepoOptions struct {
 // ListByRepo lists the issues for the specified repository.
 //
 // GitHub API docs: http://developer.github.com/v3/issues/#list-issues-for-a-repository
-func (s *IssuesService) ListByRepo(owner string, repo string, opt *IssueListByRepoOptions) ([]Issue, *Response, error) {
+func (s *IssuesService) ListByRepo(owner string, repo string, opt *IssueListByRepoOptions) ([]*Issue, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/issues", owner, repo)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -202,13 +208,13 @@ func (s *IssuesService) ListByRepo(owner string, repo string, opt *IssueListByRe
 	// TODO: remove custom Accept header when this API fully launches.
 	req.Header.Set("Accept", mediaTypeReactionsPreview)
 
-	issues := new([]Issue)
-	resp, err := s.client.Do(req, issues)
+	var issues []*Issue
+	resp, err := s.client.Do(req, &issues)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *issues, resp, err
+	return issues, resp, nil
 }
 
 // Get a single issue.
@@ -281,9 +287,6 @@ func (s *IssuesService) Lock(owner string, repo string, number int) (*Response, 
 		return nil, err
 	}
 
-	// TODO: remove custom Accept header when this API fully launches.
-	req.Header.Set("Accept", mediaTypeIssueLockingPreview)
-
 	return s.client.Do(req, nil)
 }
 
@@ -296,9 +299,6 @@ func (s *IssuesService) Unlock(owner string, repo string, number int) (*Response
 	if err != nil {
 		return nil, err
 	}
-
-	// TODO: remove custom Accept header when this API fully launches.
-	req.Header.Set("Accept", mediaTypeIssueLockingPreview)
 
 	return s.client.Do(req, nil)
 }

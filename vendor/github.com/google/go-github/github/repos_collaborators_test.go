@@ -29,7 +29,7 @@ func TestRepositoriesService_ListCollaborators(t *testing.T) {
 		t.Errorf("Repositories.ListCollaborators returned error: %v", err)
 	}
 
-	want := []User{{ID: Int(1)}, {ID: Int(2)}}
+	want := []*User{{ID: Int(1)}, {ID: Int(2)}}
 	if !reflect.DeepEqual(users, want) {
 		t.Errorf("Repositories.ListCollaborators returned %+v, want %+v", users, want)
 	}
@@ -83,6 +83,33 @@ func TestRepositoriesService_IsCollaborator_invalidUser(t *testing.T) {
 	testURLParseError(t, err)
 }
 
+func TestRepositoryService_GetPermissionLevel(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/repos/o/r/collaborators/u/permission", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		testHeader(t, r, "Accept", mediaTypeOrgMembershipPreview)
+		fmt.Fprintf(w, `{"permission":"admin","user":{"login":"u"}}`)
+	})
+
+	rpl, _, err := client.Repositories.GetPermissionLevel("o", "r", "u")
+	if err != nil {
+		t.Errorf("Repositories.GetPermissionLevel returned error: %v", err)
+	}
+
+	want := &RepositoryPermissionLevel{
+		Permission: String("admin"),
+		User: &User{
+			Login: String("u"),
+		},
+	}
+
+	if !reflect.DeepEqual(rpl, want) {
+		t.Errorf("Repositories.GetPermissionLevel returned %+v, want %+v", rpl, want)
+	}
+}
+
 func TestRepositoriesService_AddCollaborator(t *testing.T) {
 	setup()
 	defer teardown()
@@ -94,6 +121,7 @@ func TestRepositoriesService_AddCollaborator(t *testing.T) {
 		json.NewDecoder(r.Body).Decode(v)
 
 		testMethod(t, r, "PUT")
+		testHeader(t, r, "Accept", mediaTypeRepositoryInvitationsPreview)
 		if !reflect.DeepEqual(v, opt) {
 			t.Errorf("Request body = %+v, want %+v", v, opt)
 		}

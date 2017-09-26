@@ -40,12 +40,11 @@ func TestIssuesService_List_all(t *testing.T) {
 		ListOptions{Page: 1, PerPage: 2},
 	}
 	issues, _, err := client.Issues.List(true, opt)
-
 	if err != nil {
 		t.Errorf("Issues.List returned error: %v", err)
 	}
 
-	want := []Issue{{Number: Int(1)}}
+	want := []*Issue{{Number: Int(1)}}
 	if !reflect.DeepEqual(issues, want) {
 		t.Errorf("Issues.List returned %+v, want %+v", issues, want)
 	}
@@ -66,7 +65,7 @@ func TestIssuesService_List_owned(t *testing.T) {
 		t.Errorf("Issues.List returned error: %v", err)
 	}
 
-	want := []Issue{{Number: Int(1)}}
+	want := []*Issue{{Number: Int(1)}}
 	if !reflect.DeepEqual(issues, want) {
 		t.Errorf("Issues.List returned %+v, want %+v", issues, want)
 	}
@@ -87,7 +86,7 @@ func TestIssuesService_ListByOrg(t *testing.T) {
 		t.Errorf("Issues.ListByOrg returned error: %v", err)
 	}
 
-	want := []Issue{{Number: Int(1)}}
+	want := []*Issue{{Number: Int(1)}}
 	if !reflect.DeepEqual(issues, want) {
 		t.Errorf("Issues.List returned %+v, want %+v", issues, want)
 	}
@@ -129,7 +128,7 @@ func TestIssuesService_ListByRepo(t *testing.T) {
 		t.Errorf("Issues.ListByOrg returned error: %v", err)
 	}
 
-	want := []Issue{{Number: Int(1)}}
+	want := []*Issue{{Number: Int(1)}}
 	if !reflect.DeepEqual(issues, want) {
 		t.Errorf("Issues.List returned %+v, want %+v", issues, want)
 	}
@@ -252,7 +251,6 @@ func TestIssuesService_Lock(t *testing.T) {
 
 	mux.HandleFunc("/repos/o/r/issues/1/lock", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "PUT")
-		testHeader(t, r, "Accept", mediaTypeIssueLockingPreview)
 
 		w.WriteHeader(http.StatusNoContent)
 	})
@@ -268,7 +266,6 @@ func TestIssuesService_Unlock(t *testing.T) {
 
 	mux.HandleFunc("/repos/o/r/issues/1/lock", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "DELETE")
-		testHeader(t, r, "Accept", mediaTypeIssueLockingPreview)
 
 		w.WriteHeader(http.StatusNoContent)
 	})

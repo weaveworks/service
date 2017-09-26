@@ -11,7 +11,7 @@ import "fmt"
 // fetch followers for the authenticated user.
 //
 // GitHub API docs: http://developer.github.com/v3/users/followers/#list-followers-of-a-user
-func (s *UsersService) ListFollowers(user string, opt *ListOptions) ([]User, *Response, error) {
+func (s *UsersService) ListFollowers(user string, opt *ListOptions) ([]*User, *Response, error) {
 	var u string
 	if user != "" {
 		u = fmt.Sprintf("users/%v/followers", user)
@@ -28,20 +28,20 @@ func (s *UsersService) ListFollowers(user string, opt *ListOptions) ([]User, *Re
 		return nil, nil, err
 	}
 
-	users := new([]User)
-	resp, err := s.client.Do(req, users)
+	var users []*User
+	resp, err := s.client.Do(req, &users)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *users, resp, err
+	return users, resp, nil
 }
 
 // ListFollowing lists the people that a user is following.  Passing the empty
 // string will list people the authenticated user is following.
 //
 // GitHub API docs: http://developer.github.com/v3/users/followers/#list-users-followed-by-another-user
-func (s *UsersService) ListFollowing(user string, opt *ListOptions) ([]User, *Response, error) {
+func (s *UsersService) ListFollowing(user string, opt *ListOptions) ([]*User, *Response, error) {
 	var u string
 	if user != "" {
 		u = fmt.Sprintf("users/%v/following", user)
@@ -58,13 +58,13 @@ func (s *UsersService) ListFollowing(user string, opt *ListOptions) ([]User, *Re
 		return nil, nil, err
 	}
 
-	users := new([]User)
-	resp, err := s.client.Do(req, users)
+	var users []*User
+	resp, err := s.client.Do(req, &users)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *users, resp, err
+	return users, resp, nil
 }
 
 // IsFollowing checks if "user" is following "target".  Passing the empty

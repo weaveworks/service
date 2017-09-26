@@ -37,10 +37,15 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 			<li><a href="/admin/compare-revisions/">Compare Revisions</a></li>
 			<li><a href="/admin/cortex/ring">Cortex Ring</a></li>
 			<li><a href="/admin/cortex/alertmanager/status">Cortex Alertmanager Status</a></li>
-			<li><a href="/admin/billing/admin">Billing Admin</a></li>
-			<li><a href="/admin/billing/aggregator">Billing Aggregator</a></li>
-			<li><a href="/admin/billing/uploader">Billing Uploader</a></li>
-			<li><a href="/admin/billing/admin/invoice-verify">Invoice Verifier</a></li>
+			<li>Billing
+				<ul>
+					<li><a href="/admin/billing/organizations">Organizations</a></li>
+					<li><a href="/admin/billing/aggregator">Aggregator</a></li>
+					<li><a href="/admin/billing/uploader">Uploader</a></li>
+					<li><a href="/admin/billing/enforcer">Enforcer</a></li>
+					<li><a href="/admin/billing/admin/invoice-verify">Invoice Verifier</a></li>
+				</ul>
+			</li>
 		</ul>
 	</body>
 </html>
