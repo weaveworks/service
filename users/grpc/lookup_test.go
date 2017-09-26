@@ -50,8 +50,8 @@ func Test_SetOrganizationFlag(t *testing.T) {
 	defer cleanup(t)
 	_, org := dbtest.GetOrg(t, database)
 
-	assert.False(t, org.DenyUIFeatures)
-	assert.False(t, org.DenyTokenAuth)
+	assert.False(t, org.RefuseDataAccess)
+	assert.False(t, org.RefuseDataUpload)
 
 	_, err := server.SetOrganizationFlag(
 		ctx, &users.SetOrganizationFlagRequest{
@@ -61,7 +61,7 @@ func Test_SetOrganizationFlag(t *testing.T) {
 		})
 	require.NoError(t, err)
 	resp, _ := server.GetOrganization(ctx, &users.GetOrganizationRequest{ExternalID: org.ExternalID})
-	require.True(t, resp.Organization.DenyUIFeatures)
+	require.True(t, resp.Organization.RefuseDataAccess)
 
 	_, err = server.SetOrganizationFlag(
 		ctx, &users.SetOrganizationFlagRequest{
@@ -71,7 +71,7 @@ func Test_SetOrganizationFlag(t *testing.T) {
 		})
 	require.NoError(t, err)
 	resp, _ = server.GetOrganization(ctx, &users.GetOrganizationRequest{ExternalID: org.ExternalID})
-	require.True(t, resp.Organization.DenyTokenAuth)
+	require.True(t, resp.Organization.RefuseDataUpload)
 
 	_, err = server.SetOrganizationFlag(
 		ctx, &users.SetOrganizationFlagRequest{

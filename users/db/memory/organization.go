@@ -382,7 +382,7 @@ func (d *DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags 
 // SetOrganizationRefuseDataAccess sets the "deny UI features" flag on an organization
 func (d *DB) SetOrganizationRefuseDataAccess(_ context.Context, externalID string, value bool) error {
 	return changeOrg(d, externalID, func(org *users.Organization) error {
-		org.DenyUIFeatures = value
+		org.RefuseDataAccess = value
 		return nil
 	})
 }
@@ -390,7 +390,7 @@ func (d *DB) SetOrganizationRefuseDataAccess(_ context.Context, externalID strin
 // SetOrganizationRefuseDataUpload sets the "deny token auth" flag on an organization
 func (d *DB) SetOrganizationRefuseDataUpload(_ context.Context, externalID string, value bool) error {
 	return changeOrg(d, externalID, func(org *users.Organization) error {
-		org.DenyTokenAuth = value
+		org.RefuseDataUpload = value
 		return nil
 	})
 }

@@ -458,10 +458,10 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 			Name:                 org.Name,
 			ProbeToken:           org.ProbeToken,
 			FeatureFlags:         append(org.FeatureFlags, a.forceFeatureFlags...),
-			RefuseDataAccess:     org.DenyUIFeatures,
-			RefuseDataUpload:     org.DenyTokenAuth,
-			DenyUIFeatures:       org.DenyUIFeatures, // TODO(rndstr): remove once rename refactor done
-			DenyTokenAuth:        org.DenyTokenAuth,  // TODO(rndstr): remove once rename refactor done
+			RefuseDataAccess:     org.RefuseDataAccess,
+			RefuseDataUpload:     org.RefuseDataUpload,
+			DenyUIFeatures:       org.RefuseDataAccess, // TODO(rndstr): remove once rename refactor done
+			DenyTokenAuth:        org.RefuseDataUpload,  // TODO(rndstr): remove once rename refactor done
 			FirstSeenConnectedAt: org.FirstSeenConnectedAt,
 			Platform:             org.Platform,
 			Environment:          org.Environment,

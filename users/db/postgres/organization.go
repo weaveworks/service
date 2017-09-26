@@ -304,8 +304,8 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.Name = name.String
 	o.ProbeToken = probeToken.String
 	o.CreatedAt = createdAt.Time
-	o.DenyUIFeatures = refuseDataAccess
-	o.DenyTokenAuth = refuseDataUpload
+	o.RefuseDataAccess = refuseDataAccess
+	o.RefuseDataUpload = refuseDataUpload
 	o.FirstSeenConnectedAt = firstSeenConnectedAt
 	o.Platform = platform.String
 	o.Environment = environment.String
