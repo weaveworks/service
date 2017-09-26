@@ -51,8 +51,7 @@ func (g *google) Login(r *http.Request) (string, string, json.RawMessage, map[st
 	// NewTransportWithCode will do the handshake to retrieve
 	// an access token and initiate a Transport that is
 	// authorized and authenticated by the retrieved token.
-	config := g.oauthConfig(r)
-	tok, err := config.Exchange(oauth2.NoContext, r.FormValue("code"))
+	tok, err := g.Config.Exchange(oauth2.NoContext, r.FormValue("code"))
 	if err != nil {
 		return "", "", nil, nil, err
 	}

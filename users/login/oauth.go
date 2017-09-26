@@ -14,7 +14,6 @@ import (
 	"github.com/justinas/nosurf"
 	"github.com/weaveworks/service/common"
 	"golang.org/x/oauth2"
-	"net/url"
 )
 
 // OAuth authenticates users via generic oauth. It should probably be embedded
@@ -22,10 +21,6 @@ import (
 type OAuth struct {
 	name string
 	oauth2.Config
-
-	// RedirectFromRequest alters the RedirectURL based on the incoming HTTP request
-	// used for local development only
-	RedirectFromRequest bool
 }
 
 // Oauth providers will need to store some session data for each user.
@@ -46,29 +41,6 @@ func (a *OAuth) Flags(flags *flag.FlagSet) {
 	flag.StringVar(&a.Config.Endpoint.AuthURL, name+"-auth-url", a.Config.Endpoint.AuthURL, "The URL to redirect users to begin the "+a.name+" OAuth flow")
 	flag.StringVar(&a.Config.Endpoint.TokenURL, name+"-token-url", a.Config.Endpoint.TokenURL, "The URL request "+a.name+" OAuth tokens from")
 	flag.StringVar(&a.Config.RedirectURL, name+"-redirect-url", a.Config.RedirectURL, "The URL to redirect users after going through the "+a.name+" OAuth flow")
-	flag.BoolVar(&a.RedirectFromRequest, name+"-redirect-from-request", a.RedirectFromRequest, "Rewrite the hostname & scheme of the redirect URL from the incoming HTTP request (Development only)")
-}
-
-// oauthConfig allows us to be more permissive with oauth redirects in local development
-func (a *OAuth) oauthConfig(r *http.Request) oauth2.Config {
-	if a.RedirectFromRequest {
-		referer, refererParseErr := url.ParseRequestURI(r.Referer())
-		redirURL, redirectParseErr := url.ParseRequestURI(a.Config.RedirectURL)
-		if refererParseErr == nil && redirectParseErr == nil {
-			redirURL.Host = referer.Host
-			redirURL.Scheme = referer.Scheme
-
-			return oauth2.Config{
-				ClientID:     a.Config.ClientID,
-				ClientSecret: a.Config.ClientSecret,
-				Endpoint:     a.Config.Endpoint,
-				Scopes:       a.Config.Scopes,
-
-				RedirectURL: redirURL.String(),
-			}
-		}
-	}
-	return a.Config
 }
 
 // Link is a map of attributes for a link rendered into the UI. When the user
@@ -83,10 +55,9 @@ func (a *OAuth) Link(r *http.Request) (Link, bool) {
 	state := common.FlattenQueryParams(r.URL.Query())
 	state["token"] = token
 
-	config := a.oauthConfig(r)
 	return Link{
 		ID: strings.ToLower(a.name),
-		Href: config.AuthCodeURL(
+		Href: a.Config.AuthCodeURL(
 			a.encodeState(state),
 		),
 		Label: a.name,
