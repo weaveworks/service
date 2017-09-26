@@ -107,8 +107,8 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, email, authSession, state, err := provider.Login(r)
-	view.QueryParams = state
+	id, email, authSession, extraState, err := provider.Login(r)
+	view.QueryParams = extraState
 	if err != nil {
 		render.Error(w, r, err)
 		return

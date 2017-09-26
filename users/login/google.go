@@ -42,7 +42,7 @@ func (g *google) Link(r *http.Request) (Link, bool) {
 
 // Login converts a user to a db ID
 func (g *google) Login(r *http.Request) (string, string, json.RawMessage, map[string]string, error) {
-	state, ok := g.verifyState(r)
+	extraState, ok := g.verifyState(r)
 	if !ok {
 		return "", "", nil, nil, fmt.Errorf("oauth state value did not match")
 	}
@@ -68,7 +68,7 @@ func (g *google) Login(r *http.Request) (string, string, json.RawMessage, map[st
 	}
 
 	session, err := json.Marshal(oauthUserSession{Token: tok})
-	return person.Id, email, session, state, err
+	return person.Id, email, session, extraState, err
 }
 
 // Username fetches a user's username on the remote service, for displaying *which* account this is linked with.
