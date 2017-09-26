@@ -56,7 +56,7 @@ func Test_SetOrganizationFlag(t *testing.T) {
 	_, err := server.SetOrganizationFlag(
 		ctx, &users.SetOrganizationFlagRequest{
 			ExternalID: org.ExternalID,
-			Flag:       "DenyUIFeatures",
+			Flag:       "RefuseDataAccess",
 			Value:      true,
 		})
 	require.NoError(t, err)
@@ -66,7 +66,7 @@ func Test_SetOrganizationFlag(t *testing.T) {
 	_, err = server.SetOrganizationFlag(
 		ctx, &users.SetOrganizationFlagRequest{
 			ExternalID: org.ExternalID,
-			Flag:       "DenyTokenAuth",
+			Flag:       "RefuseDataUpload",
 			Value:      true,
 		})
 	require.NoError(t, err)

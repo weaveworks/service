@@ -63,8 +63,8 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.probe_token",
 		"organizations.created_at",
 		"organizations.feature_flags",
-		"organizations.deny_ui_features",
-		"organizations.deny_token_auth",
+		"organizations.refuse_data_access",
+		"organizations.refuse_data_upload",
 		"organizations.first_seen_connected_at",
 		"organizations.platform",
 		"organizations.environment",
@@ -279,7 +279,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	var firstSeenConnectedAt, zuoraAccountCreatedAt *time.Time
 	var trialExpiry time.Time
 	var trialExpiredNotifiedAt, trialPendingExpiryNotifiedAt *time.Time
-	var denyUIFeatures, denyTokenAuth bool
+	var refuseDataAccess, refuseDataUpload bool
 	if err := row.Scan(
 		&o.ID,
 		&externalID,
@@ -287,8 +287,8 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&probeToken,
 		&createdAt,
 		pq.Array(&o.FeatureFlags),
-		&denyUIFeatures,
-		&denyTokenAuth,
+		&refuseDataAccess,
+		&refuseDataUpload,
 		&firstSeenConnectedAt,
 		&platform,
 		&environment,
@@ -304,8 +304,8 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.Name = name.String
 	o.ProbeToken = probeToken.String
 	o.CreatedAt = createdAt.Time
-	o.DenyUIFeatures = denyUIFeatures
-	o.DenyTokenAuth = denyTokenAuth
+	o.DenyUIFeatures = refuseDataAccess
+	o.DenyTokenAuth = refuseDataUpload
 	o.FirstSeenConnectedAt = firstSeenConnectedAt
 	o.Platform = platform.String
 	o.Environment = environment.String
@@ -437,19 +437,19 @@ func (d DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags [
 	return err
 }
 
-// SetOrganizationDenyUIFeatures sets the "deny UI features" flag on an organization
-func (d DB) SetOrganizationDenyUIFeatures(_ context.Context, externalID string, value bool) error {
+// SetOrganizationRefuseDataAccess sets the "deny UI features" flag on an organization
+func (d DB) SetOrganizationRefuseDataAccess(_ context.Context, externalID string, value bool) error {
 	_, err := d.Exec(
-		`update organizations set deny_ui_features = $1 where external_id = lower($2) and deleted_at is null`,
+		`update organizations set refuse_data_access = $1 where external_id = lower($2) and deleted_at is null`,
 		value, externalID,
 	)
 	return err
 }
 
-// SetOrganizationDenyTokenAuth sets the "deny token auth" flag on an organization
-func (d DB) SetOrganizationDenyTokenAuth(_ context.Context, externalID string, value bool) error {
+// SetOrganizationRefuseDataUpload sets the "deny token auth" flag on an organization
+func (d DB) SetOrganizationRefuseDataUpload(_ context.Context, externalID string, value bool) error {
 	_, err := d.Exec(
-		`update organizations set deny_token_auth = $1 where external_id = lower($2) and deleted_at is null`,
+		`update organizations set refuse_data_upload = $1 where external_id = lower($2) and deleted_at is null`,
 		value, externalID,
 	)
 	return err

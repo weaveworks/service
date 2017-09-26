@@ -161,14 +161,14 @@ func (t traced) SetFeatureFlags(ctx context.Context, externalID string, featureF
 	return t.d.SetFeatureFlags(ctx, externalID, featureFlags)
 }
 
-func (t traced) SetOrganizationDenyUIFeatures(ctx context.Context, externalID string, value bool) (err error) {
-	defer func() { t.trace("SetOrganizationDenyUIFeatures", externalID, value, err) }()
-	return t.d.SetOrganizationDenyUIFeatures(ctx, externalID, value)
+func (t traced) SetOrganizationRefuseDataAccess(ctx context.Context, externalID string, value bool) (err error) {
+	defer func() { t.trace("SetOrganizationRefuseDataAccess", externalID, value, err) }()
+	return t.d.SetOrganizationRefuseDataAccess(ctx, externalID, value)
 }
 
-func (t traced) SetOrganizationDenyTokenAuth(ctx context.Context, externalID string, value bool) (err error) {
-	defer func() { t.trace("SetOrganizationDenyTokenAuth", externalID, value, err) }()
-	return t.d.SetOrganizationDenyTokenAuth(ctx, externalID, value)
+func (t traced) SetOrganizationRefuseDataUpload(ctx context.Context, externalID string, value bool) (err error) {
+	defer func() { t.trace("SetOrganizationRefuseDataUpload", externalID, value, err) }()
+	return t.d.SetOrganizationRefuseDataUpload(ctx, externalID, value)
 }
 
 func (t traced) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) (err error) {

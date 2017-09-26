@@ -235,10 +235,12 @@ func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganiz
 func (a *usersServer) SetOrganizationFlag(ctx context.Context, req *users.SetOrganizationFlagRequest) (*users.SetOrganizationFlagResponse, error) {
 	var err error
 	switch req.Flag {
-	case "DenyUIFeatures":
-		err = a.db.SetOrganizationDenyUIFeatures(ctx, req.ExternalID, req.Value)
-	case "DenyTokenAuth":
-		err = a.db.SetOrganizationDenyTokenAuth(ctx, req.ExternalID, req.Value)
+	case "DenyUIAccess": // TODO(rndstr): remove once rename refactor done
+	case "RefuseDataAccess":
+		err = a.db.SetOrganizationRefuseDataAccess(ctx, req.ExternalID, req.Value)
+	case "DenyTokenAuth": // TODO(rndstr): remove once rename refactor done
+	case "RefuseDataUpload":
+		err = a.db.SetOrganizationRefuseDataUpload(ctx, req.ExternalID, req.Value)
 	default:
 		err = fmt.Errorf("Invalid flag: %v", req.Flag)
 	}

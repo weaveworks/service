@@ -48,8 +48,10 @@ func Test_Org(t *testing.T) {
 		"id":                    org.ExternalID,
 		"name":                  org.Name,
 		"probeToken":            org.ProbeToken,
-		"denyUIFeatures":        org.DenyUIFeatures,
-		"denyTokenAuth":         org.DenyTokenAuth,
+		"denyUIFeatures":        org.DenyUIFeatures, // TODO(rndstr): remove once rename refactor done
+		"denyTokenAuth":         org.DenyTokenAuth,  // TODO(rndstr): remove once rename refactor done
+		"refuseDataAccess":      org.DenyUIFeatures,
+		"refuseDataUpload":      org.DenyTokenAuth,
 		"firstSeenConnectedAt":  nil,
 		"platform":              org.Platform,
 		"environment":           org.Environment,
@@ -79,8 +81,10 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 		"id":                    org.ExternalID,
 		"name":                  org.Name,
 		"probeToken":            org.ProbeToken,
-		"denyUIFeatures":        org.DenyUIFeatures,
-		"denyTokenAuth":         org.DenyTokenAuth,
+		"refuseDataAccess":      org.DenyUIFeatures,
+		"refuseDataUpload":      org.DenyTokenAuth,
+		"denyUIFeatures":        org.DenyUIFeatures, // TODO(rndstr): remove once rename refactor done
+		"denyTokenAuth":         org.DenyTokenAuth,  // TODO(rndstr): remove once rename refactor done
 		"firstSeenConnectedAt":  nil,
 		"platform":              org.Platform,
 		"environment":           org.Environment,

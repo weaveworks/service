@@ -87,8 +87,8 @@ type DB interface {
 	DeleteOrganization(ctx context.Context, externalID string) error
 	AddFeatureFlag(ctx context.Context, externalID string, featureFlag string) error
 	SetFeatureFlags(ctx context.Context, externalID string, featureFlags []string) error
-	SetOrganizationDenyUIFeatures(ctx context.Context, externalID string, value bool) error
-	SetOrganizationDenyTokenAuth(ctx context.Context, externalID string, value bool) error
+	SetOrganizationRefuseDataAccess(ctx context.Context, externalID string, value bool) error
+	SetOrganizationRefuseDataUpload(ctx context.Context, externalID string, value bool) error
 	SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error
 

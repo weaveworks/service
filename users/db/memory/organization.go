@@ -379,16 +379,16 @@ func (d *DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags 
 	})
 }
 
-// SetOrganizationDenyUIFeatures sets the "deny UI features" flag on an organization
-func (d *DB) SetOrganizationDenyUIFeatures(_ context.Context, externalID string, value bool) error {
+// SetOrganizationRefuseDataAccess sets the "deny UI features" flag on an organization
+func (d *DB) SetOrganizationRefuseDataAccess(_ context.Context, externalID string, value bool) error {
 	return changeOrg(d, externalID, func(org *users.Organization) error {
 		org.DenyUIFeatures = value
 		return nil
 	})
 }
 
-// SetOrganizationDenyTokenAuth sets the "deny token auth" flag on an organization
-func (d *DB) SetOrganizationDenyTokenAuth(_ context.Context, externalID string, value bool) error {
+// SetOrganizationRefuseDataUpload sets the "deny token auth" flag on an organization
+func (d *DB) SetOrganizationRefuseDataUpload(_ context.Context, externalID string, value bool) error {
 	return changeOrg(d, externalID, func(org *users.Organization) error {
 		org.DenyTokenAuth = value
 		return nil
