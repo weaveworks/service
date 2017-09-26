@@ -283,9 +283,9 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 	resp, _, err := a.Signup(r.Context(), input)
 	if err != nil {
 		render.Error(w, r, err)
+	} else {
+		render.JSON(w, http.StatusOK, resp)
 	}
-
-	render.JSON(w, http.StatusOK, resp)
 }
 
 // Signup creates a new user (but will also allow an existing user to log in)
@@ -323,6 +323,7 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 		Email: req.Email,
 	}
 	if a.directLogin {
+		// This path is enabled for local development only
 		resp.Token = token
 		resp.QueryParams = req.QueryParams
 	}

@@ -184,12 +184,12 @@ func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWrit
 
 func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	var view SignupResponse
-	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
+	var resp SignupResponse
+	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
 		render.Error(w, r, users.MalformedInputError(err))
 		return
 	}
-	if view.Email == "" {
+	if resp.Email == "" {
 		render.Error(w, r, users.ValidationErrorf("Email cannot be blank"))
 		return
 	}
@@ -200,7 +200,7 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
-	invitee, created, err := a.db.InviteUser(r.Context(), view.Email, orgExternalID)
+	invitee, created, err := a.db.InviteUser(r.Context(), resp.Email, orgExternalID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -226,7 +226,7 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
-	render.JSON(w, http.StatusOK, view)
+	render.JSON(w, http.StatusOK, resp)
 }
 
 func (a *API) deleteUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
