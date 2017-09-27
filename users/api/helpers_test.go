@@ -13,6 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db"
@@ -58,6 +59,8 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, promAPI, netAPI stri
 		FromAddress: "test@test.com",
 	}
 	grpcServer := grpc.New(sessionStore, database, nil)
+	var billingEnabler featureflag.Enabler
+	billingEnabler = featureflag.NewRandomEnabler(0) // Always disabled, does not really matter here.
 	app = api.New(
 		directLogin,
 		emailer,
@@ -76,6 +79,7 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, promAPI, netAPI stri
 		scopeAPI,
 		promAPI,
 		netAPI,
+		billingEnabler,
 	)
 }
 
