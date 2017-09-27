@@ -55,8 +55,10 @@ service Users {
 }
 
 enum AuthorizedAction {
-    OTHER       = 0;
+    OTHER = 0;
+    // Allows reading data
     INSTANCE_DATA_ACCESS = 1;
+    // Allows writing data
     INSTANCE_DATA_UPLOAD = 2;
 }
 
