@@ -164,8 +164,8 @@ message Organization {
     string ProbeToken = 4;
     google.protobuf.Timestamp CreatedAt = 5 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
     repeated string FeatureFlags = 6;
-    bool DenyUIFeatures = 7;
-    bool DenyTokenAuth = 8;
+    bool RefuseDataAccess = 7;
+    bool RefuseDataUpload = 8;
     google.protobuf.Timestamp FirstSeenConnectedAt = 9 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
     string Platform = 10;
     string Environment = 11;

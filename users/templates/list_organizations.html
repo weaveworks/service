@@ -66,8 +66,8 @@
             <th class="mdl-data-table__cell--non-numeric">Name</th>
             <th class="mdl-data-table__cell--non-numeric">CreatedAt ▼</th>
             <th class="mdl-data-table__cell--non-numeric">FirstSeenConnectedAt</th>
-            <th class="mdl-data-table__cell--non-numeric">DenyUIFeatures</th>
-            <th class="mdl-data-table__cell--non-numeric">DenyTokenAuth</th>
+            <th class="mdl-data-table__cell--non-numeric">RefuseDataAccess</th>
+            <th class="mdl-data-table__cell--non-numeric">RefuseDataUpload</th>
             <th class="mdl-data-table__cell--non-numeric">FeatureFlags</th>
           </tr>
       </thead>
@@ -89,8 +89,8 @@
         <td>
           <form action="organizations/{{.ExternalID}}" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-            <input type="hidden" name="field" value="DenyUIFeatures">
-            <input type="checkbox" name="value" {{if .DenyUIFeatures}}checked {{end}}/>
+            <input type="hidden" name="field" value="RefuseDataAccess">
+            <input type="checkbox" name="value" {{if .RefuseDataAccess}}checked {{end}}/>
             <input class="mdl-button mdl-js-button mdl-button--raised"
                    type="submit" value="Save" />
           </form>
@@ -98,8 +98,8 @@
         <td>
           <form action="organizations/{{.ExternalID}}" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-            <input type="hidden" name="field" value="DenyTokenAuth">
-            <input type="checkbox" name="value" {{if .DenyTokenAuth}}checked {{end}}/>
+            <input type="hidden" name="field" value="RefuseDataUpload">
+            <input type="checkbox" name="value" {{if .RefuseDataUpload}}checked {{end}}/>
             <input class="mdl-button mdl-js-button mdl-button--raised"
                    type="submit" value="Save" />
           </form>

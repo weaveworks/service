@@ -30,14 +30,13 @@ func New(sessions sessions.Store, db db.DB, emailer emailer.Emailer) users.Users
 }
 
 func authorizeAction(action users.AuthorizedAction, org *users.Organization) error {
-	// TODO: Rename DenyUIFeatures & DenyTokenAuth https://github.com/weaveworks/service/issues/1256
 	switch action {
 	case users.INSTANCE_DATA_ACCESS:
-		if org.DenyUIFeatures {
+		if org.RefuseDataAccess {
 			return users.ErrInstanceDataAccessDenied
 		}
 	case users.INSTANCE_DATA_UPLOAD:
-		if org.DenyTokenAuth {
+		if org.RefuseDataUpload {
 			return users.ErrInstanceDataUploadDenied
 		}
 	}
@@ -220,8 +219,8 @@ func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganiz
 			ProbeToken:            organization.ProbeToken,
 			CreatedAt:             organization.CreatedAt,
 			FeatureFlags:          organization.FeatureFlags,
-			DenyUIFeatures:        organization.DenyUIFeatures,
-			DenyTokenAuth:         organization.DenyTokenAuth,
+			RefuseDataAccess:      organization.RefuseDataAccess,
+			RefuseDataUpload:      organization.RefuseDataUpload,
 			FirstSeenConnectedAt:  organization.FirstSeenConnectedAt,
 			Platform:              organization.Platform,
 			Environment:           organization.Environment,
@@ -235,10 +234,12 @@ func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganiz
 func (a *usersServer) SetOrganizationFlag(ctx context.Context, req *users.SetOrganizationFlagRequest) (*users.SetOrganizationFlagResponse, error) {
 	var err error
 	switch req.Flag {
-	case "DenyUIFeatures":
-		err = a.db.SetOrganizationDenyUIFeatures(ctx, req.ExternalID, req.Value)
-	case "DenyTokenAuth":
-		err = a.db.SetOrganizationDenyTokenAuth(ctx, req.ExternalID, req.Value)
+	case "DenyUIAccess": // TODO(rndstr): remove once rename refactor done
+	case "RefuseDataAccess":
+		err = a.db.SetOrganizationRefuseDataAccess(ctx, req.ExternalID, req.Value)
+	case "DenyTokenAuth": // TODO(rndstr): remove once rename refactor done
+	case "RefuseDataUpload":
+		err = a.db.SetOrganizationRefuseDataUpload(ctx, req.ExternalID, req.Value)
 	default:
 		err = fmt.Errorf("Invalid flag: %v", req.Flag)
 	}

@@ -191,12 +191,14 @@ func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
 	case "FirstSeenConnectedAt":
 		now := time.Now()
 		err = a.db.SetOrganizationFirstSeenConnectedAt(r.Context(), orgExternalID, &now)
-	case "DenyUIFeatures":
+	case "DenyUIAccess": // TODO(rndstr): remove once rename refactor done
+	case "RefuseDataAccess":
 		deny := value == "on"
-		err = a.db.SetOrganizationDenyUIFeatures(r.Context(), orgExternalID, deny)
-	case "DenyTokenAuth":
+		err = a.db.SetOrganizationRefuseDataAccess(r.Context(), orgExternalID, deny)
+	case "DenyTokenAuth": // TODO(rndstr): remove once rename refactor done
+	case "RefuseDataUpload":
 		deny := value == "on"
-		err = a.db.SetOrganizationDenyTokenAuth(r.Context(), orgExternalID, deny)
+		err = a.db.SetOrganizationRefuseDataUpload(r.Context(), orgExternalID, deny)
 	case "FeatureFlags":
 		err = a.setOrganizationFeatureFlags(r.Context(), orgExternalID, strings.Fields(value))
 	default:

@@ -242,15 +242,15 @@ func (t timed) SetFeatureFlags(ctx context.Context, externalID string, featureFl
 	})
 }
 
-func (t timed) SetOrganizationDenyUIFeatures(ctx context.Context, externalID string, value bool) error {
-	return t.timeRequest(ctx, "SetOrganizationDenyUIFeatures", func(ctx context.Context) error {
-		return t.d.SetOrganizationDenyUIFeatures(ctx, externalID, value)
+func (t timed) SetOrganizationRefuseDataAccess(ctx context.Context, externalID string, value bool) error {
+	return t.timeRequest(ctx, "SetOrganizationRefuseDataAccess", func(ctx context.Context) error {
+		return t.d.SetOrganizationRefuseDataAccess(ctx, externalID, value)
 	})
 }
 
-func (t timed) SetOrganizationDenyTokenAuth(ctx context.Context, externalID string, value bool) error {
-	return t.timeRequest(ctx, "SetOrganizationDenyTokenAuth", func(ctx context.Context) error {
-		return t.d.SetOrganizationDenyTokenAuth(ctx, externalID, value)
+func (t timed) SetOrganizationRefuseDataUpload(ctx context.Context, externalID string, value bool) error {
+	return t.timeRequest(ctx, "SetOrganizationRefuseDataUpload", func(ctx context.Context) error {
+		return t.d.SetOrganizationRefuseDataUpload(ctx, externalID, value)
 	})
 }
 
