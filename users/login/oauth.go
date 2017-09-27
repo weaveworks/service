@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/justinas/nosurf"
+	"github.com/weaveworks/service/common"
 	"golang.org/x/oauth2"
 )
 
@@ -50,12 +51,14 @@ func (a *OAuth) Link(r *http.Request) (Link, bool) {
 		// Do not allow linking accounts if the anti CSRF token isn't set
 		return Link{}, false
 	}
+	// pass on any query parameters (ignoring duplicate keys)
+	state := common.FlattenQueryParams(r.URL.Query())
+	state["token"] = token
+
 	return Link{
 		ID: strings.ToLower(a.name),
 		Href: a.Config.AuthCodeURL(
-			a.encodeState(map[string]string{
-				"token": token,
-			}),
+			a.encodeState(state),
 		),
 		Label: a.name,
 		Icon:  "fa fa-" + strings.ToLower(a.name),
@@ -100,12 +103,14 @@ func (a *OAuth) decodeState(raw string) (map[string]string, error) {
 	return m, json.Unmarshal(j, &m)
 }
 
-func (a *OAuth) verifyState(r *http.Request) bool {
+func (a *OAuth) verifyState(r *http.Request) (map[string]string, bool) {
 	state, err := a.decodeState(r.FormValue("state"))
 	if err != nil {
-		return false
+		return nil, false
 	}
-	return nosurf.VerifyToken(csrfToken(r), state["token"])
+	token := state["token"]
+	delete(state, "token")
+	return state, nosurf.VerifyToken(csrfToken(r), token)
 }
 
 // csrfToken extracts the anti-CSRF token from the cookie injected by authfe.

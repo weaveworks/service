@@ -20,7 +20,7 @@ import (
 )
 
 func findLoginLink(t *testing.T, e *email.Email) (url, token string) {
-	pattern := domain + `/login/[\w.%]+/([A-Za-z0-9%._=-]+)`
+	pattern := domain + `/login/[\w.@]+/([A-Za-z0-9%._=-]+)`
 	re := regexp.MustCompile(pattern)
 	matches := re.FindStringSubmatch(string(e.Text))
 	require.Len(t, matches, 2, fmt.Sprintf("Could not find Login Link in text: %q", e.Text))
@@ -71,7 +71,7 @@ func Test_Signup(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, map[string]interface{}{"mailSent": true, "email": email}, body)
+	assert.Equal(t, map[string]interface{}{"email": email}, body)
 	require.Len(t, sentEmails, 1)
 	user, err := database.FindUserByEmail(context.Background(), email)
 	require.NoError(t, err)

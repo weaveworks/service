@@ -19,7 +19,7 @@ var ErrUnsupportedEmailProtocol = errors.New("Unsupported email protocol")
 // Emailer is the interface which emailers implement. There should be a method
 // for each type of email we send.
 type Emailer interface {
-	LoginEmail(u *users.User, token string) error
+	LoginEmail(u *users.User, token string, queryParams map[string]string) error
 	InviteEmail(inviter, invited *users.User, orgExternalID, orgName, token string) error
 	GrantAccessEmail(inviter, invited *users.User, orgExternalID, orgName string) error
 	TrialExtendedEmail(members []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
@@ -57,13 +57,19 @@ func MustNew(emailURI, fromAddress string, templates templates.Engine, domain st
 	}
 }
 
-func loginURL(email, rawToken, domain string) string {
-	return fmt.Sprintf(
+func loginURL(email, rawToken, domain string, queryParams map[string]string) string {
+	out, _ := url.ParseRequestURI(fmt.Sprintf(
 		"%s/login/%s/%s",
 		domain,
-		url.QueryEscape(email),
-		url.QueryEscape(rawToken),
-	)
+		url.PathEscape(email),
+		url.PathEscape(rawToken),
+	))
+	q := out.Query()
+	for key, value := range queryParams {
+		q.Set(key, value)
+	}
+	out.RawQuery = q.Encode()
+	return out.String()
 }
 
 func inviteURL(email, rawToken, domain, orgName string) string {

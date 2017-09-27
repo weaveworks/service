@@ -69,8 +69,5 @@ func PushUpdatedFile(ctx context.Context, version string) error {
 		return errors.Wrapf(err, "commit failed")
 	}
 
-	if err := execGitCommand(ctx, tmpdir, "push", "origin", "master"); err != nil {
-		return err
-	}
-	return nil
+	return execGitCommand(ctx, tmpdir, "push", "origin", "master")
 }

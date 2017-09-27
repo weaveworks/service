@@ -178,9 +178,9 @@ func main() {
 
 func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string, featureFlags []string) {
 	ctx := context.Background()
-	user, err := a.Signup(ctx, &api.SignupView{
-		Email: email,
-	})
+	_, user, err := a.Signup(ctx, api.SignupRequest{
+		Email:       email,
+		QueryParams: make(map[string]string)})
 	if err != nil {
 		log.Errorf("Error creating local test user: %v", err)
 		return

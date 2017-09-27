@@ -296,10 +296,7 @@ func (d *DB) UpdateOrganization(_ context.Context, externalID string, update use
 			o.TrialPendingExpiryNotifiedAt = update.TrialPendingExpiryNotifiedAt
 		}
 
-		if err := o.Valid(); err != nil {
-			return err
-		}
-		return nil
+		return o.Valid()
 	})
 }
 

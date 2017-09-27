@@ -22,8 +22,8 @@ type Provider interface {
 	Link(r *http.Request) (Link, bool)
 
 	// Login handles a user login request with this provider. It should return
-	// the remote ID, email, and session for a user.
-	Login(r *http.Request) (id, email string, session json.RawMessage, err error)
+	// the remote ID, email, session for a user and the oauth state data from this handshake.
+	Login(r *http.Request) (id, email string, session json.RawMessage, state map[string]string, err error)
 
 	// Username fetches a user's username on the remote service, for displaying
 	// *which* account this is linked with.

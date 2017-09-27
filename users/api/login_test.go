@@ -33,17 +33,17 @@ func (a MockLoginProvider) Link(r *http.Request) (login.Link, bool) {
 }
 
 // Login converts a user to a db ID and email
-func (a MockLoginProvider) Login(r *http.Request) (id, email string, session json.RawMessage, err error) {
+func (a MockLoginProvider) Login(r *http.Request) (id, email string, session json.RawMessage, state map[string]string, err error) {
 	code := r.FormValue("code")
 	u, ok := a[code]
 	if !ok {
-		return "", "", nil, users.ErrInvalidAuthenticationData
+		return "", "", nil, nil, users.ErrInvalidAuthenticationData
 	}
 	session, err = json.Marshal(u.ID)
 	if err != nil {
-		return "", "", nil, err
+		return "", "", nil, nil, err
 	}
-	return u.ID, u.Email, session, nil
+	return u.ID, u.Email, session, make(map[string]string), nil
 }
 
 // Username fetches a user's username on the remote service, for displaying *which* account this is linked with.
