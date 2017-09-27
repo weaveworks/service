@@ -94,7 +94,8 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 		}
 
 		response, err := a.UsersClient.LookupUsingToken(r.Context(), &users.LookupUsingTokenRequest{
-			Token: token,
+			Token:        token,
+			AuthorizeFor: a.AuthorizeFor,
 		})
 		if err != nil {
 			handleError(err, w, r)
