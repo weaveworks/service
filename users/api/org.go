@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
 
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/render"
 )
@@ -262,5 +264,79 @@ func (a *API) userCanAccessOrg(ctx context.Context, currentUser *users.User, org
 		}
 		return users.ErrNotFound
 	}
+	return nil
+}
+
+// setOrgFeatureFlags updates feature flags of an organization.
+func (a *API) setOrgFeatureFlags(ctx context.Context, orgExternalID string, flags []string) error {
+	uniqueFlags := map[string]struct{}{}
+	for _, f := range flags {
+		uniqueFlags[f] = struct{}{}
+	}
+	var sortedFlags []string
+	for f := range uniqueFlags {
+		sortedFlags = append(sortedFlags, f)
+	}
+	sort.Strings(sortedFlags)
+
+	// Track whether we are about to enable billing
+	enablingBilling, org, err := a.enablingOrgFeatureFlag(ctx, orgExternalID, uniqueFlags, users.BillingFeatureFlag)
+	if err != nil {
+		return err
+	}
+
+	if err = a.db.SetFeatureFlags(ctx, orgExternalID, sortedFlags); err != nil {
+		return err
+	}
+
+	if enablingBilling {
+		// For existing customers, we extend the trial period starting today and send members an email if we did so
+		expires := time.Now().Add(users.TrialExtensionDuration)
+		if err := a.extendOrgTrialPeriod(ctx, org, expires); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// enablingOrgFeatureFlag determines whether we are about to enable a feature flag for the given organization. It only
+// returns true if the organization did *not* have the flag previously.
+func (a *API) enablingOrgFeatureFlag(ctx context.Context, orgExternalID string, flags map[string]struct{}, flag string) (bool, *users.Organization, error) {
+	if _, ok := flags[flag]; !ok {
+		return false, nil, nil
+	}
+	org, err := a.db.FindOrganizationByID(ctx, orgExternalID)
+	if err != nil {
+		return false, nil, err
+	}
+
+	return !org.HasFeatureFlag(flag), org, nil
+}
+
+// extendOrgTrialPeriod update the trial period but only if it's later than the current.
+// It also sends an email to all members notifying them of the change.
+func (a *API) extendOrgTrialPeriod(ctx context.Context, org *users.Organization, t time.Time) error {
+	// If new expiry date is not after current, there is nothing to change
+	if !t.Truncate(24 * time.Hour).After(org.TrialExpiresAt) {
+		return nil
+	}
+	logging.With(ctx).Infof("Extending trial period from %v to %v for %v", org.TrialExpiresAt, t, org.ExternalID)
+
+	err := a.db.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{TrialExpiresAt: &t})
+	if err != nil {
+		return err
+	}
+
+	members, err := a.db.ListOrganizationUsers(ctx, org.ExternalID)
+	if err != nil {
+		return err
+	}
+
+	err = a.emailer.TrialExtendedEmail(members, org.ExternalID, org.Name, t)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
