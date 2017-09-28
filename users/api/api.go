@@ -3,6 +3,8 @@ package api
 import (
 	"net/http"
 
+	"github.com/weaveworks/service/common/featureflag"
+
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/service/users"
@@ -33,6 +35,7 @@ type API struct {
 	scopeProbesAPI     string
 	promMetricsAPI     string
 	netPeersAPI        string
+	billingEnabler     featureflag.Enabler
 	http.Handler
 }
 
@@ -55,6 +58,7 @@ func New(
 	scopeProbesAPI string,
 	promMetricsAPI string,
 	netPeersAPI string,
+	billingEnabler featureflag.Enabler,
 ) *API {
 	a := &API{
 		directLogin:        directLogin,
@@ -74,6 +78,7 @@ func New(
 		scopeProbesAPI:     scopeProbesAPI,
 		promMetricsAPI:     promMetricsAPI,
 		netPeersAPI:        netPeersAPI,
+		billingEnabler:     billingEnabler,
 	}
 
 	r := mux.NewRouter()

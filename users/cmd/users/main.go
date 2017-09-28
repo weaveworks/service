@@ -12,6 +12,7 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common"
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db"
@@ -71,6 +72,8 @@ func main() {
 
 		forceFeatureFlags common.ArrayFlags
 		webhookTokens     common.ArrayFlags
+
+		billingFeatureFlagProbability = flag.Uint("billing-feature-flag-probability", 0, "Percentage of *new* organizations for which we want to enable the 'billing' feature flag. 0 means always disabled. 100 means always enabled. Any value X in between will enable billing randomly X% of the time.")
 	)
 
 	flag.Var(&forceFeatureFlags, "force-feature-flags", "Force this feature flag to be on for all organisations.")
@@ -88,6 +91,10 @@ func main() {
 		log.Fatalf("Error configuring logging: %v", err)
 		return
 	}
+
+	var billingEnabler featureflag.Enabler
+	billingEnabler = featureflag.NewRandomEnabler(*billingFeatureFlagProbability)
+	log.Infof("Billing enabled for %v%% of newly created organizations.", *billingFeatureFlagProbability)
 
 	var marketingQueues marketing.Queues
 	if *pardotEmail != "" {
@@ -148,6 +155,7 @@ func main() {
 		*scopeProbesAPI,
 		*promMetricsAPI,
 		*netPeersAPI,
+		billingEnabler,
 	)
 
 	if *localTestUserCreate {

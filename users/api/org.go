@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	logger "github.com/Sirupsen/logrus"
+
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/logging"
@@ -105,8 +107,18 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 
 // CreateOrg creates an organisation
 func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgView) error {
-	_, err := a.db.CreateOrganization(ctx, currentUser.ID, view.ExternalID, view.Name, view.ProbeToken)
-	return err
+	org, err := a.db.CreateOrganization(ctx, currentUser.ID, view.ExternalID, view.Name, view.ProbeToken)
+	if err != nil {
+		return err
+	}
+	if a.billingEnabler.IsEnabled() {
+		err = a.db.AddFeatureFlag(ctx, view.ExternalID, users.BillingFeatureFlag)
+		if err != nil {
+			return err
+		}
+		logger.Infof("Billing enabled for %v/%v/%v.", org.ID, view.ExternalID, view.Name)
+	}
+	return nil
 }
 
 func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
