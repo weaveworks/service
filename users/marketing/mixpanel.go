@@ -26,8 +26,8 @@ func NewMixpanelClient(token string) *MixpanelClient {
 func (m *MixpanelClient) TrackLogin(email string, firstLogin bool) error {
 	return m.client.Track(email, loginEventName, &mixpanel.Event{
 		Properties: map[string]interface{}{
-			"email":     email,
-			"firsLogin": firstLogin,
+			"email":      email,
+			"firstLogin": firstLogin,
 		},
 	})
 }
