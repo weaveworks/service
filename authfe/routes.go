@@ -418,6 +418,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/api/users/signup_webhook",                     // Validated by explicit token in the users service
 	)
 	return middleware.Merge(
+		AuthHeaderStrippingMiddleware{},
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
 		csrfTokenVerifier{exemptPrefixes: csrfExemptPrefixes, secure: c.secureCookie},
 		middleware.Func(func(handler http.Handler) http.Handler {
@@ -537,6 +538,33 @@ func (o originCheckerMiddleware) Wrap(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// AuthHeaderStrippingMiddleware strips weaveworks auth headers from incoming http requests to prevent impersonation
+// The users/client middleware also checks these headers, and prevents double headers and impersonation by raising an
+// error. However, internal grafana needs to proxy requests for flux data to cloud.w.w, but this is disallowed due to
+// double header errors. We concluded it is simpler & safer to drop headers at authfe, than in the common middleware.
+//
+// see https://github.com/weaveworks/common/pull/63 & https://github.com/weaveworks/service-conf/pull/1295
+type AuthHeaderStrippingMiddleware struct {
+}
+
+// Wrap another HTTP handler
+func (a AuthHeaderStrippingMiddleware) Wrap(next http.Handler) http.Handler {
+	removeHeader := func(headerName string, r *http.Request) {
+		value := r.Header.Get(headerName)
+		if value != "" {
+			logging.With(r.Context()).Debugf("AuthHeaderStrippingMiddleware: Stripped auth header from incoming request (%s: %s) URL: %s Referer: %s",
+				headerName, value, r.URL, r.Referer())
+			r.Header.Del(headerName)
+		}
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		removeHeader("X-Scope-OrgID", r)
+		removeHeader("X-Scope-UserID", r)
 		next.ServeHTTP(w, r)
 	})
 }
