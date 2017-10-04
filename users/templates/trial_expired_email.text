@@ -1,6 +1,6 @@
 Hi,
 
-Your free trial of Weave Cloud for “{{.OrganizationName}}” has now come to an end.
+Your free trial of Weave Cloud for ‘{{.OrganizationName}}’ has now come to an end.
 
 But don't worry, to continue using Weave Cloud just add a payment method:
 
