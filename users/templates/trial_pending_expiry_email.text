@@ -1,6 +1,6 @@
 Hi,
 
-Your free trial of Weave Cloud for «{{.OrganizationName}}» is almost finished. It will expire in {{.TrialLeft}}, on {{.TrialExpiresAt}}.
+Your free trial of Weave Cloud for “{{.OrganizationName}}” is almost finished. It will expire in {{.TrialLeft}}, on {{.TrialExpiresAt}}.
 
 To continue your subscription please add a payment method:
 
