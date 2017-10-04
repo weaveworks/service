@@ -1,0 +1,160 @@
+{
+  "products": [
+    {
+      "id": "2c92a0ff58bdf4ee0158f2f527db6271",
+      "sku": "SKU-00000002",
+      "name": "Weave Cloud NotWhatWeWant",
+      "description": "Weave Cloud SaaS subscription",
+      "category": "Base Products",
+      "effectiveStartDate": "2000-01-01",
+      "effectiveEndDate": "3000-01-01",
+      "productRatePlans": []
+    },
+    {
+      "id": "2c92a0ff58bdf4ee0158f2f527db6271",
+      "sku": "SKU-00000001",
+      "name": "Weave Cloud",
+      "description": "Weave Cloud SaaS subscription",
+      "category": "Base Products",
+      "effectiveStartDate": "2000-01-01",
+      "effectiveEndDate": "3000-01-01",
+      "productRatePlans": [
+        {
+          "id": "2c92a0ff5e1dcf1a015e2e6b8d542b66",
+          "status": "Active",
+          "name": "Weave Cloud SaaS | Container Usage Log",
+          "description": "",
+          "effectiveStartDate": "2017-08-01",
+          "effectiveEndDate": "3000-01-01",
+          "productRatePlanCharges": [
+            {
+              "id": "2c92a0fc5e1dc084015e2e6cd7c2310d",
+              "name": "Weave Cloud SaaS | Per container second | Usage",
+              "type": "Usage",
+              "model": "PerUnit",
+              "uom": "container-seconds",
+              "pricingSummary": [
+                "USD0.00000278/container-seconds"
+              ],
+              "pricing": [
+                {
+                  "currency": "USD",
+                  "price": 0.000002780,
+                  "tiers": null,
+                  "includedUnits": null,
+                  "overagePrice": null,
+                  "discountPercentage": null,
+                  "discountAmount": null
+                }
+              ],
+              "defaultQuantity": null,
+              "applyDiscountTo": null,
+              "discountLevel": null,
+              "discountClass": null,
+              "productDiscountApplyDetails": [],
+              "endDateCondition": "Subscription_End",
+              "upToPeriods": null,
+              "upToPeriodsType": null,
+              "billingDay": "SubscriptionStartDay",
+              "listPriceBase": null,
+              "billingTiming": null,
+              "billingPeriod": "Month",
+              "billingPeriodAlignment": "AlignToCharge",
+              "specificBillingPeriod": null,
+              "smoothingModel": null,
+              "numberOfPeriods": null,
+              "overageCalculationOption": null,
+              "overageUnusedUnitsCreditOption": null,
+              "unusedIncludedUnitPrice": null,
+              "usageRecordRatingOption": "EndOfBillingPeriod",
+              "priceChangeOption": null,
+              "priceIncreasePercentage": null,
+              "useTenantDefaultForPriceChange": true,
+              "taxable": false,
+              "taxCode": "",
+              "taxMode": "TaxExclusive",
+              "triggerEvent": "ContractEffective",
+              "description": "",
+              "revenueRecognitionRuleName": "Recognize upon invoicing",
+              "useDiscountSpecificAccountingCode": null,
+              "financeInformation": {
+                "recognizedRevenueAccountingCode": "Subscription Revenue",
+                "recognizedRevenueAccountingCodeType": "SalesRevenue",
+                "deferredRevenueAccountingCode": "Subscription Revenue",
+                "deferredRevenueAccountingCodeType": "SalesRevenue"
+              }
+            }
+          ]
+        },
+        {
+          "id": "2c92a0fe5e1dc065015e2e673ba81e9a",
+          "status": "Active",
+          "name": "Weave Cloud SaaS | Node Usage",
+          "description": "Charged by counting nodes over time",
+          "effectiveStartDate": "2017-08-01",
+          "effectiveEndDate": "3000-01-01",
+          "productRatePlanCharges": [
+            {
+              "id": "2c92a0fe5e1dc06a015e2e6a688123b6",
+              "name": "Weave Cloud SaaS | Per node second | Usage",
+              "type": "Usage",
+              "model": "PerUnit",
+              "uom": "node-seconds",
+              "pricingSummary": [
+                "USD0.000011416/node-seconds"
+              ],
+              "pricing": [
+                {
+                  "currency": "USD",
+                  "price": 0.000011416,
+                  "tiers": null,
+                  "includedUnits": null,
+                  "overagePrice": null,
+                  "discountPercentage": null,
+                  "discountAmount": null
+                }
+              ],
+              "defaultQuantity": null,
+              "applyDiscountTo": null,
+              "discountLevel": null,
+              "discountClass": null,
+              "productDiscountApplyDetails": [],
+              "endDateCondition": "Subscription_End",
+              "upToPeriods": null,
+              "upToPeriodsType": null,
+              "billingDay": "SubscriptionStartDay",
+              "listPriceBase": null,
+              "billingTiming": null,
+              "billingPeriod": "Month",
+              "billingPeriodAlignment": "AlignToCharge",
+              "specificBillingPeriod": null,
+              "smoothingModel": null,
+              "numberOfPeriods": null,
+              "overageCalculationOption": null,
+              "overageUnusedUnitsCreditOption": null,
+              "unusedIncludedUnitPrice": null,
+              "usageRecordRatingOption": "EndOfBillingPeriod",
+              "priceChangeOption": null,
+              "priceIncreasePercentage": null,
+              "useTenantDefaultForPriceChange": true,
+              "taxable": false,
+              "taxCode": "",
+              "taxMode": "TaxExclusive",
+              "triggerEvent": "ContractEffective",
+              "description": "",
+              "revenueRecognitionRuleName": "Recognize upon invoicing",
+              "useDiscountSpecificAccountingCode": null,
+              "financeInformation": {
+                "recognizedRevenueAccountingCode": "Subscription Revenue",
+                "recognizedRevenueAccountingCodeType": "SalesRevenue",
+                "deferredRevenueAccountingCode": "Subscription Revenue",
+                "deferredRevenueAccountingCodeType": "SalesRevenue"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "success": true
+}

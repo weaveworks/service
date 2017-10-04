@@ -34,6 +34,7 @@ test:
     - cd $SRCDIR; make RM=
     - cd $SRCDIR; make RM= notebooks-integration-test
     - cd $SRCDIR; make RM= users-integration-test
+    - cd $SRCDIR; make RM= billing-integration-test
     - cd $SRCDIR; make RM= client-lint
 
 teardown:

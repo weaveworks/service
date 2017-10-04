@@ -3,7 +3,7 @@
 
 [[projects]]
   name = "cloud.google.com/go"
-  packages = ["compute/metadata"]
+  packages = ["bigquery","civil","compute/metadata","internal","internal/atomiccache","internal/fields","internal/optional","internal/version"]
   revision = "5a9e19d4e1e41a734154e44a2132b358afb49a03"
   version = "v0.13.0"
 
@@ -117,6 +117,12 @@
   version = "v0.4"
 
 [[projects]]
+  name = "github.com/golang/mock"
+  packages = ["gomock"]
+  revision = "13f360950a79f5864a972c786a10a50e44b69541"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto","ptypes","ptypes/any","ptypes/duration","ptypes/empty","ptypes/timestamp"]
@@ -138,6 +144,12 @@
   name = "github.com/google/go-querystring"
   packages = ["query"]
   revision = "53e6ce116135b80d037921a7fdd5138cf32d7a8a"
+
+[[projects]]
+  name = "github.com/googleapis/gax-go"
+  packages = ["."]
+  revision = "317e0006254c44a0ac427cc52a0e083ff0b9622f"
+  version = "v2.0.0"
 
 [[projects]]
   name = "github.com/gorilla/context"
@@ -215,6 +227,12 @@
   name = "github.com/lib/pq"
   packages = [".","oid"]
   revision = "23da1db4f16d9658a86ae9b717c245fc078f10f1"
+
+[[projects]]
+  name = "github.com/mattes/migrate"
+  packages = ["driver/postgres","migrate"]
+  revision = "afc973c4e5a6b746217c2d3950fcd110ed1ba349"
+  version = "v1.3.2"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -326,6 +344,12 @@
   revision = "1f30fe9094a513ce4c700b9a54458bbb0c96996c"
 
 [[projects]]
+  name = "github.com/robfig/cron"
+  packages = ["."]
+  revision = "b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4"
+  version = "v1"
+
+[[projects]]
   name = "github.com/satori/go.uuid"
   packages = ["."]
   revision = "879c5887cd475cd7864858769793b2ceb0d44feb"
@@ -370,7 +394,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/weaveworks/common"
-  packages = ["errors","httpgrpc","httpgrpc/server","instrument","logging","mflag","mflagext","middleware","mtime","server","signals","user"]
+  packages = ["errors","http/client","httpgrpc","httpgrpc/server","instrument","logging","mflag","mflagext","middleware","mtime","server","signals","user"]
   revision = "955c13089be4f5ee948aeca47af832d23e4bc394"
 
 [[projects]]
@@ -424,7 +448,7 @@
 [[projects]]
   branch = "master"
   name = "google.golang.org/api"
-  packages = ["gensupport","googleapi","googleapi/internal/uritemplates","plus/v1"]
+  packages = ["bigquery/v2","gensupport","googleapi","googleapi/internal/uritemplates","googleapi/transport","internal","iterator","option","plus/v1","transport/http"]
   revision = "aab106b125917246a672526055e2260b77258755"
 
 [[projects]]
@@ -460,6 +484,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1fe7b78e91de2926dabf1d38b8c40173bfb5429fe7a970540bf8a3289e798e9e"
+  inputs-digest = "970ea179373162f7e284f8dd0aac59e41c2566b7bccd204977d2e8c106a94314"
   solver-name = "gps-cdcl"
   solver-version = 1
