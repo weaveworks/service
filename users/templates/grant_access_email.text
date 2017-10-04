@@ -1,4 +1,4 @@
-{{.InviterName}} has granted you access to the «{{.OrganizationName}}» monitoring instance on Weave Cloud.
+{{.InviterName}} has granted you access to the ‘{{.OrganizationName}}’ monitoring instance on Weave Cloud.
 
 View «{{.OrganizationName}}»:
 
