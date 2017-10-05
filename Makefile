@@ -1,4 +1,4 @@
-PHONY: all test notebooks-integration-test users-integration-test billing-integration-test clean client-lint images ui-upload
+PHONY: all test notebooks-integration-test users-integration-test billing-integration-test clean images ui-upload
 .DEFAULT_GOAL := all
 
 # Boiler plate for bulding Docker containers.
