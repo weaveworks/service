@@ -9,7 +9,7 @@ import (
 )
 
 func TestConfigValidate(t *testing.T) {
-	// Empty -zuora.subscription-plan-id
+	// Empty `-zuora.subscription-plan-id`
 	c := main.Config{}
 	assert.Error(t, c.Validate())
 }
