@@ -25,7 +25,7 @@ billing/%/$(UPTODATE): billing/%/Dockerfile
 DOCKERFILES=$(shell find * -type f -name Dockerfile ! -path "tools/*" ! -path "vendor/*")
 UPTODATE_FILES=$(patsubst %/Dockerfile,%/$(UPTODATE),$(DOCKERFILES))
 DOCKER_IMAGE_DIRS=$(patsubst %/Dockerfile,%,$(DOCKERFILES))
-IMAGE_NAMES=$(foreach dir,$(DOCKER_IMAGE_DIRS),$(patsubst %,$(IMAGE_PREFIX)/%,$(shell basename $(dir))))
+IMAGE_NAMES=$(foreach dir,$(DOCKER_IMAGE_DIRS),$(patsubst %,$(IMAGE_PREFIX)/%,$(call image-suffix,$(dir))))
 
 images:
 	$(info $(IMAGE_NAMES))
@@ -205,3 +205,9 @@ clean:
 	rm -rf $(BILLING_DIR)/aggregator/migrations $(BILLING_DIR)/api/migrations $(BILLING_DIR)/uploader/migrations
 
 	go clean ./...
+
+# The following function will add `billing-` to the image name if part of billing/ dir
+image-suffix = \
+	$(if $(filter billing%,$(1)), \
+		billing-$(shell basename $(1)), \
+		$(shell basename $(1)))
