@@ -37,7 +37,8 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-COMPONENTS=(authfe users metrics logging notebooks service-ui-kicker github-receiver)
+COMPONENTS=(authfe users metrics logging notebooks service-ui-kicker github-receiver
+    billing-api billing-uploader billing-hpm_demo billing-ingester billing-enforcer billing-aggregator)
 if [ $# -gt 0 ]; then
     COMPONENTS=("$@")
 fi
