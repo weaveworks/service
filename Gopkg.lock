@@ -362,6 +362,12 @@
   revision = "7b3d51468778ed0c53045edd7015b5a21f902d53"
 
 [[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
+  version = "v1.0.3"
+
+[[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert","require"]
   revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
@@ -395,7 +401,13 @@
   branch = "master"
   name = "github.com/weaveworks/common"
   packages = ["errors","http/client","httpgrpc","httpgrpc/server","instrument","logging","mflag","mflagext","middleware","mtime","server","signals","user"]
-  revision = "955c13089be4f5ee948aeca47af832d23e4bc394"
+  revision = "15746cbb5831e70c58d520634b09393b7c3cfd56"
+
+[[projects]]
+  name = "github.com/weaveworks/promrus"
+  packages = ["."]
+  revision = "0b17fa8b72895f7896cc65da81c3c945a66c8f82"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
