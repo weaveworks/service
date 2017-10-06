@@ -1,0 +1,452 @@
+swagger: '2.0'
+host: localhost:8080
+info:
+  version: ''
+  title: Accounts
+  description: ''
+schemes:
+  - http
+consumes:
+  - application/json; charset=utf-8
+produces:
+  - application/json; charset=utf-8
+paths:
+  '/api/billing/accounts':
+    post:
+      description: Post account
+      operationId: Create Account
+      produces:
+        - application/json; charset=utf-8
+      consumes:
+        - application/json
+      parameters:
+        - name: newAccount
+          in: body
+          description: New Account object
+          required: true
+          schema:
+            $ref: '#/definitions/newAccountObject'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/createAccountResponse'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+  '/api/billing/accounts/{id}':
+    get:
+      description: Returns account
+      operationId: Get account
+      produces:
+        - application/json; charset=utf-8
+      parameters:
+        - name: id
+          in: path
+          description: ID of account
+          required: true
+          type: string
+          default: '12345'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/getAccountResponse'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+  '/api/billing/accounts/{id}/invoices':
+    get:
+      description: Returns invoices
+      operationId: Get invoices
+      produces:
+        - application/json; charset=utf-8
+      parameters:
+        - name: id
+          in: path
+          description: ID of account to fetch invoices for
+          required: true
+          type: string
+          default: '12345'
+        - name: pageSize
+          in: query
+          description: number of invoices to return in request
+          required: false
+          type: string
+          default: '10'
+        - name: page
+          in: query
+          description: page number of multiple paged invoice request
+          required: false
+          type: string
+          default: '1'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/getInvoicesResponse'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+  '/api/billing/payments/authTokens/{id}':
+    get:
+      description: Returns payment auth token
+      operationId: Get auth token for update
+      produces:
+        - application/json; charset=utf-8
+      parameters:
+        - name: id
+          in: path
+          description: ID of account to fetch invoices for
+          required: true
+          type: string
+          default: '12345'
+      responses:
+        '200':
+          description: 'success'
+          schema:
+            $ref: '#/definitions/getAuthTokenResponse'
+  '/api/billing/payments/authTokens':
+    get:
+      description: Returns payment auth tokens for a new user
+      operationId: Get auth token for create
+      produces:
+        - application/json; charset=utf-8
+      responses:
+        '200':
+          description: 'success'
+          schema:
+            $ref: '#/definitions/getAuthTokenResponse'
+  '/api/billing/payments/{paymentID}':
+    post:
+      description: Update user's primary payment method
+      operationId: Update payment method
+      produces:
+        - application/json; charset=utf-8
+      parameters:
+        - name: paymentID
+          in: path
+          description: Id of the new payment method produced by HPM page
+          required: true
+          type: string
+          default: '12345'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/genericZuoraResponse'
+        '500':
+          description: Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+  '/api/billing/usage/{id}':
+    get:
+      description: Returns usage
+      operationId: Get usage
+      produces:
+        - application/json; charset=utf-8
+      parameters:
+        - name: id
+          in: path
+          description: ID of account to fetch usage for
+          required: true
+          type: string
+          default: '123ABC'
+        - name: start
+          in: query
+          description: start time of usage request
+          required: true
+          type: string
+          default: '1970-01-01T00:00:00Z'
+        - name: end
+          in: query
+          description: end time of usage request
+          required: true
+          type: string
+          default: '1970-01-01T00:30:00Z'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/getUsageResponse'
+        '404':
+          description: Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+  '/metrics':
+    get:
+      description: Returns prometheus metrics
+      operationId: Prometheus metrics
+      produces:
+        - text/plain; version=0.0.4
+      responses:
+        200:
+          description: ''
+definitions:
+  newAccountObject:
+    title: Create Account Object
+    type: object
+    required:
+      - id
+      - currency
+      - firstName
+      - lastName
+      - email
+      - country
+      - paymentMethodId
+      - subscriptionPlanId
+    properties:
+      currency:
+        description: Currency of new account
+        type: string
+        default: 'USD'
+      id:
+        description: user id
+        type: string
+      firstName:
+        description: First name of new account
+        type: string
+        default: Foo
+      lastName:
+        description: Last name of new account
+        type: string
+        default: 'Bar'
+      email:
+        description: Email address of new account
+        type: string
+        default: 'a@b.com'
+      country:
+        description: Country of new account
+        type: string
+        default: 'USA'
+      paymentMethodId:
+        description: Payment method of new account
+        type: string
+        default: CC
+      subscriptionPlanId:
+        description: Subscription plan of new account
+        type: string
+        default: 'S00004'
+  getAccountResponse:
+    title: Get Account Object
+    type: object
+    properties:
+      user:
+        type: object
+        properties:
+          Id:
+            type: string
+      paymentProviderId:
+        type: string
+      subscriptionStatus:
+        type: string
+      paymentStatus:
+        type: string
+      subscription:
+        type: object
+        properties:
+          id:
+            type: string
+          currency:
+            type: string
+          pricingSummary:
+            type: string
+          price:
+            type: number
+  createAccountResponse:
+    title: Create Account Response
+    type: object
+    properties:
+      success:
+        type: boolean
+      accountNumber:
+        type: string
+  getAuthTokenResponse:
+    title: Get Payment Auth Response
+    type: object
+    required:
+      - success
+      - signature
+      - token
+      - tenantId
+      - key
+      - id
+      - url
+      - paymentGateway
+      - param_supportedTypes
+    properties:
+      success:
+        type: boolean
+      signature:
+        type: string
+      token:
+        type: string
+      tenantId:
+        type: string
+      key:
+        type: string
+      field_accountId:  # Not required, because new users don't have an account ID
+        type: string
+      id:
+        type: string
+      url:
+        type: string
+      paymentGateway:
+        type: string
+      param_supportedTypes:
+        type: string
+  getInvoicesResponse:
+    title: Get invoices response
+    type: array
+    items:
+      $ref: '#/definitions/invoice'
+  invoice:
+    title: A single invoice
+    type: object
+    required:
+      - id
+      - accountId
+      - accountNumber
+      - accountName
+      - invoiceDate
+      - invoiceNumber
+      - dueDate
+      - invoiceTargetDate
+      - amount
+      - balance
+      - createdBy
+      - status
+      - body
+      - invoiceItems
+      - invoiceFiles
+    properties:
+      id:
+        type: string
+      accountId:
+        type: string
+      accountNumber:
+        type: string
+      accountName:
+        type: string
+      invoiceDate:
+        type: string
+      invoiceNumber:
+        type: string
+      dueDate:
+        type: string
+      invoiceTargetDate:
+        type: string
+      amount:
+        type: number
+      balance:
+        type: number
+      createdBy:
+        type: string
+      status:
+        type: string
+      body:
+        type: string
+      invoiceItems:
+        type: array
+        items:
+          $ref: '#/definitions/invoiceItem'
+      invoiceFiles:
+        type: array
+        items:
+          $ref: '#/definitions/invoiceFile'
+  invoiceItem:
+    title: A single invoice item
+    type: object
+    required:
+       - id
+       - subscriptionName
+       - subscriptionId
+       - serviceStartDate
+       - serviceEndDate
+       - chargeAmount
+       - chargeDescription
+       - chargeName
+       - chargeId
+       - productName
+       - quantity
+       - taxAmount
+       - unitOfMeasure
+    properties:
+      id:
+        type: string
+      subscriptionName:
+        type: string
+      subscriptionId:
+        type: string
+      serviceStartDate:
+        type: string
+      serviceEndDate:
+        type: string
+      chargeAmount:
+        type: number
+      chargeDescription:
+        type: string
+      chargeName:
+        type: string
+      chargeId:
+        type: string
+      productName:
+        type: string
+      quantity:
+        type: number
+      taxAmount:
+        type: number
+      unitOfMeasure:
+        type: string
+  invoiceFile:
+    title: A invoice file descriptor
+    type: object
+    required:
+      - id
+      - pdfFileUrl
+      - versionNumber
+    properties:
+      id:
+        type: string
+      pdfFileUrl:
+        type: string
+      versionNumber:
+        type: number
+  getUsageResponse:
+    title: Get Usages Array
+    type: array
+    items:
+        $ref: '#/definitions/usage'
+  usage:
+    title: Usage
+    type: object
+    properties:
+      start:
+        type: string
+      containerSeconds:
+        type: integer
+  errorResponse:
+    title: Standard error response
+    type: object
+    required:
+      - error
+      - status_code
+      - status_text
+    properties:
+      error:
+        type: string
+      status_code:
+        type: integer
+      status_text:
+        type: string
+  genericZuoraResponse:
+    title: A generic response from the payment provider
+    type: object
+    required:
+      - success
+    properties:
+      success:
+        type: boolean

@@ -32,5 +32,6 @@ RUN mkdir protoc && \
 	chmod o+x /usr/bin/protoc && \
 	cd .. && \
 	rm -rf protoc
+RUN go get github.com/golang/mock/mockgen
 COPY build.sh /
 ENTRYPOINT ["/build.sh"]

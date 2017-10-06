@@ -1,0 +1,44 @@
+[
+  {
+    "name": "unique_key",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Unique event id for deduping"
+  },
+  {
+    "name": "internal_instance_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Internal instance id to bill the event to"
+  },
+  {
+    "name": "amount_type",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Type of amount we are adding to the instance's account"
+  },
+  {
+    "name": "amount_value",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": "Amount to bill the instance"
+  },
+  {
+    "name": "occurred_at",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "Time the event actually occurred."
+  },
+  {
+    "name": "received_at",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "Useful metadata included with the event"
+  },
+  {
+    "name": "metadata",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Useful metadata included with the event"
+  }
+]

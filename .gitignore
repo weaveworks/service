@@ -41,6 +41,19 @@ client/build/*
 ui-server/build/*
 service-ui-kicker/service-ui-kicker
 github-receiver/github-receiver
+billing/aggregator/aggregator
+billing/aggregator/migrations
+billing/api/api
+billing/api/migrations
+billing/uploader/uploader
+billing/uploader/migrations
+billing/enforcer/enforcer
+
+users/mock_users/*
+!users/mock_users/README
+
+billing/db/mock_db/*
+!billing/db/mock_db/README
 
 Vagrantfile.local
 .dir-locals.el
