@@ -1,4 +1,4 @@
-.PHONY: all test notebooks-integration-test users-integration-test clean client-lint images ui-upload
+.PHONY: all test notebooks-integration-test users-integration-test clean client-lint images ui-upload genproto
 .DEFAULT_GOAL := all
 
 # Boiler plate for bulding Docker containers.
@@ -27,11 +27,6 @@ images:
 
 all: $(UPTODATE_FILES)
 
-# Generating proto code is automated.
-PROTO_DEFS := $(shell find . -type f -name "*.proto" ! -path "./tools/*" ! -path "./vendor/*")
-PROTO_GOS := $(patsubst %.proto,%.pb.go,$(PROTO_DEFS))
-users/users.pb.go: users/users.proto
-
 # List of exes please
 AUTHFE_EXE := authfe/authfe
 USERS_EXE := users/cmd/users/users
@@ -43,13 +38,12 @@ EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_K
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
-$(AUTHFE_EXE): $(shell find authfe -name '*.go') $(shell find users/client -name '*.go') $(COMMON) users/users.pb.go
-$(USERS_EXE): $(shell find users -name '*.go') $(COMMON) users/users.pb.go
+$(AUTHFE_EXE): $(shell find authfe -name '*.go') $(shell find users/client -name '*.go') $(COMMON)
+$(USERS_EXE): $(shell find users -name '*.go') $(COMMON)
 $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
 $(NOTEBOOKS_EXE): $(shell find notebooks -name '*.go') $(COMMON)
 $(SERVICE_UI_KICKER_EXE): $(shell find service-ui-kicker -name '*.go') $(COMMON)
 $(GITHUB_RECEIVER_EXE): $(shell find github-receiver -name '*.go') $(COMMON)
-test: users/users.pb.go
 
 # And now what goes into each image
 authfe/$(UPTODATE): $(AUTHFE_EXE)
@@ -77,7 +71,15 @@ NETGO_CHECK = @strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
-$(PROTO_GOS) lint: build/$(UPTODATE)
+genproto: build/$(UPTODATE)
+	@mkdir -p $(shell pwd)/.pkg
+	$(SUDO) docker run $(RM) -ti \
+		-v $(shell pwd)/.pkg:/go/pkg \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
+		$(IMAGE_PREFIX)/build genproto
+
+lint: build/$(UPTODATE)
 	@mkdir -p $(shell pwd)/.pkg
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
@@ -85,7 +87,7 @@ $(PROTO_GOS) lint: build/$(UPTODATE)
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
 		$(IMAGE_PREFIX)/build $@
 
-$(EXES) test: build/$(UPTODATE) users/users.pb.go
+$(EXES) test: build/$(UPTODATE)
 	@mkdir -p $(shell pwd)/.pkg
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
@@ -95,17 +97,17 @@ $(EXES) test: build/$(UPTODATE) users/users.pb.go
 
 else
 
-$(EXES): build/$(UPTODATE) users/users.pb.go
+$(EXES): build/$(UPTODATE)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
-%.pb.go: build/$(UPTODATE)
-	protoc -I ./vendor:./$(@D) --gogoslick_out=plugins=grpc:./$(@D) ./$(patsubst %.pb.go,%.proto,$@)
+genproto: build/$(UPTODATE)
+	protoc -I ./vendor:./users --gogoslick_out=plugins=grpc:./users ./users/users.proto
 
 lint: build/$(UPTODATE)
 	./tools/lint .
 
-test: build/$(UPTODATE) users/users.pb.go
+test: build/$(UPTODATE)
 	./tools/test -netgo -no-race
 
 endif
@@ -125,7 +127,7 @@ notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
 
-users-integration-test: $(USERS_UPTODATE) users/users.pb.go
+users-integration-test: $(USERS_UPTODATE)
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=users_test' postgres:9.4)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
@@ -141,5 +143,4 @@ users-integration-test: $(USERS_UPTODATE) users/users.pb.go
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
 	rm -rf $(UPTODATE_FILES) $(EXES)
-	rm -f users/users.pb.go
 	go clean ./...
