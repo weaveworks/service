@@ -12,13 +12,8 @@ UPTODATE := .uptodate
 # Dependencies (i.e. things that go in the image) still need to be explicitly
 # declared.
 %/$(UPTODATE): %/Dockerfile
-	$(SUDO) docker build -t $(IMAGE_PREFIX)/$(shell basename $(@D)) $(@D)/
-	$(SUDO) docker tag $(IMAGE_PREFIX)/$(shell basename $(@D)) $(IMAGE_PREFIX)/$(shell basename $(@D)):$(IMAGE_TAG)
-	touch $@
-
-billing/%/$(UPTODATE): billing/%/Dockerfile
-	$(SUDO) docker build -t $(IMAGE_PREFIX)/$(shell basename $(@D)) $(@D)/
-	$(SUDO) docker tag $(IMAGE_PREFIX)/$(shell basename $(@D)) $(IMAGE_PREFIX)/billing-$(shell basename $(@D)):$(IMAGE_TAG)
+	$(SUDO) docker build -t $(IMAGE_PREFIX)/$(call image-suffix,$(@D)) $(@D)/
+	$(SUDO) docker tag $(IMAGE_PREFIX)/$(call image-suffix,$(@D)) $(IMAGE_PREFIX)/$(call image-suffix,$(@D)):$(IMAGE_TAG)
 	touch $@
 
 # Get a list of directories containing Dockerfiles
@@ -207,7 +202,4 @@ clean:
 	go clean ./...
 
 # The following function will add `billing-` to the image name if part of billing/ dir
-image-suffix = \
-	$(if $(filter billing%,$(1)), \
-		billing-$(shell basename $(1)), \
-		$(shell basename $(1)))
+image-suffix = $(if $(filter billing%,$(1)),billing-$(shell basename $(1)),$(shell basename $(1)))
