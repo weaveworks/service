@@ -36,11 +36,11 @@ func TestToCSV(t *testing.T) {
 	}
 	expected := testID + ",node-seconds,10,01/05/2018,01/05/2018,subID0,chargeID0"
 	if !strings.Contains(string(b), expected) {
-		t.Fatal("ToCSV method produced invalid data:", string(b), expected)
+		t.Fatal("ToCSV method produced invalid data: ", string(b), expected)
 	}
 	expected = "\n"
 	if !strings.Contains(string(b), expected) {
-		t.Fatal("ToCSV method produced invalid data:", string(b), expected)
+		t.Fatal("ToCSV method produced invalid data: ", string(b), expected)
 	}
 }
 
