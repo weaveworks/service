@@ -8,10 +8,11 @@
   version = "v0.13.0"
 
 [[projects]]
-  branch = "master"
+  branch = "sirupsen-case"
   name = "github.com/FrenchBen/goketo"
   packages = ["."]
-  revision = "7e0d5968deb4de75d1913fa887472997adf0d62e"
+  revision = "39bdeaf0faaf9464e520b64e36e2286e783640e3"
+  source = "github.com/weaveworks/goketo"
 
 [[projects]]
   branch = "v1"
@@ -24,12 +25,6 @@
   packages = ["."]
   revision = "c01858abb625b73a3af51d0798e4ad42c8147093"
   version = "v1.12.0"
-
-[[projects]]
-  name = "github.com/Sirupsen/logrus"
-  packages = ["."]
-  revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
-  version = "v1.0.3"
 
 [[projects]]
   name = "github.com/apache/thrift"
@@ -478,6 +473,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8258f5b51723b8aa7f7974b4ffbcb9453b7ce53f1c7e9bb2cd89263c4d8f0bcb"
+  inputs-digest = "e6336b0d5591cfe2ce210dc6b2c6f49b5090deef35bdf54b1fcb6308026e2ebc"
   solver-name = "gps-cdcl"
   solver-version = 1
