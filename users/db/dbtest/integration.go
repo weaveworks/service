@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/postgres"
 )
@@ -26,7 +25,6 @@ var (
 
 // Setup sets up stuff for testing, creating a new database
 func Setup(t *testing.T) db.DB {
-	require.NoError(t, logging.Setup("debug"))
 	db.PasswordHashingCost = bcrypt.MinCost
 	// Don't use db.MustNew, here so we can do a transaction around the whole test, to rollback.
 	pg, err := postgres.New(*databaseURI, *databaseMigrations, bcrypt.MinCost)

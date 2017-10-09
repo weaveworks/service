@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/notebooks/db"
 	"github.com/weaveworks/service/notebooks/db/postgres"
 )
@@ -20,7 +19,6 @@ var (
 
 // Setup sets up stuff for testing, creating a new database
 func Setup(t *testing.T) db.DB {
-	require.NoError(t, logging.Setup("debug"))
 	// Don't use db.MustNew, here so we can do a transaction around the whole test, to rollback.
 	pg, err := postgres.New(
 		"postgres://postgres@configs-db.weave.local/notebooks_test?sslmode=disable",

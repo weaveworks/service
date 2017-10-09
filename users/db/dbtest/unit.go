@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users/db"
 )
 
@@ -21,7 +20,6 @@ var (
 
 // Setup sets up stuff for testing, creating a new database
 func Setup(t *testing.T) db.DB {
-	require.NoError(t, logging.Setup("debug"))
 	db.PasswordHashingCost = bcrypt.MinCost
 	database := db.MustNew(*databaseURI, *databaseMigrations)
 	return database
