@@ -22,7 +22,6 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/common/user"
-	"github.com/weaveworks/scope/common/xfer"
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/users"
 	users_client "github.com/weaveworks/service/users/client"
@@ -83,9 +82,9 @@ func newProbeRequestLogger() HTTPEventExtractor {
 		event := Event{
 			ID:             r.URL.Path,
 			Product:        "scope-probe",
-			Version:        r.Header.Get(xfer.ScopeProbeVersionHeader),
+			Version:        r.Header.Get(probeVersionHeader),
 			UserAgent:      r.UserAgent(),
-			ClientID:       r.Header.Get(xfer.ScopeProbeIDHeader),
+			ClientID:       r.Header.Get(probeIDHeader),
 			OrganizationID: orgID,
 			IPAddress:      mustSplitHostname(r),
 		}
