@@ -387,12 +387,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/ugorji/go"
-  packages = ["codec"]
-  revision = "54210f4e076c57f351166f0ed60e67d3fca57a36"
-
-[[projects]]
-  branch = "master"
   name = "github.com/weaveworks-experiments/loki"
   packages = ["pkg/client"]
   revision = "17ff1516db3dffe25452b4cbf6e6412f303cddea"
@@ -408,18 +402,6 @@
   packages = ["."]
   revision = "0b17fa8b72895f7896cc65da81c3c945a66c8f82"
   version = "v1.1.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/weaveworks/ps"
-  packages = ["."]
-  revision = "70d17b2d6f760345ef36a0748751eddf7290a92c"
-
-[[projects]]
-  name = "github.com/weaveworks/scope"
-  packages = ["common/xfer","test/reflect"]
-  revision = "a5689814d458ac8f01211c7fe4489ebdd4270b07"
-  version = "v1.6.4"
 
 [[projects]]
   branch = "master"
@@ -496,6 +478,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "970ea179373162f7e284f8dd0aac59e41c2566b7bccd204977d2e8c106a94314"
+  inputs-digest = "8258f5b51723b8aa7f7974b4ffbcb9453b7ce53f1c7e9bb2cd89263c4d8f0bcb"
   solver-name = "gps-cdcl"
   solver-version = 1
