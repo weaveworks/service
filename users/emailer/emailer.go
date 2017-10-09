@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/jordan-wright/email"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/templates"

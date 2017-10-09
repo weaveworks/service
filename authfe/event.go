@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/fluent/fluent-logger-golang/fluent"
+	log "github.com/sirupsen/logrus"
 )
 
 const maxBufferedEvents = 100

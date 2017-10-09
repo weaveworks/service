@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/service-ui-kicker/committer"
 	"github.com/weaveworks/service/service-ui-kicker/handler"
 	"gopkg.in/go-playground/webhooks.v3"

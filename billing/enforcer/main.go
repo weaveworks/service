@@ -4,8 +4,8 @@ import (
 	"flag"
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/robfig/cron"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"

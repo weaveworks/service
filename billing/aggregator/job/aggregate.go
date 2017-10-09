@@ -1,7 +1,7 @@
 package job
 
 import (
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"context"
 	"github.com/weaveworks/common/instrument"

@@ -6,7 +6,7 @@ import (
 	"errors"
 
 	"github.com/Masterminds/squirrel"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/notebooks"
 	"gopkg.in/mattes/migrate.v1/migrate"
 

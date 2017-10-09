@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // RandomEnabler randomly enables a feature flag based on the provided percentage and source of randomness.

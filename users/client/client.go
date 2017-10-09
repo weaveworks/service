@@ -1,10 +1,10 @@
 package client
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/mwitkow/go-grpc-middleware"
 	"github.com/opentracing/opentracing-go"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
 	httpgrpc_server "github.com/weaveworks/common/httpgrpc/server"
