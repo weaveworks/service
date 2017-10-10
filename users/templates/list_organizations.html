@@ -66,9 +66,7 @@
             <th class="mdl-data-table__cell--non-numeric">Name</th>
             <th class="mdl-data-table__cell--non-numeric">CreatedAt ▼</th>
             <th class="mdl-data-table__cell--non-numeric">FirstSeenConnectedAt</th>
-            <th class="mdl-data-table__cell--non-numeric">RefuseDataAccess</th>
-            <th class="mdl-data-table__cell--non-numeric">RefuseDataUpload</th>
-            <th class="mdl-data-table__cell--non-numeric">FeatureFlags</th>
+            <th class="mdl-data-table__cell--non-numeric">Fields</th>
           </tr>
       </thead>
       <tbody>
@@ -86,31 +84,13 @@
                 type="submit" value="Onboard" />
             </form>
         {{ end }}</td>
-        <td>
+        <td class="mdl-data-table__cell--non-numeric">
           <form action="organizations/{{.ExternalID}}" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-            <input type="hidden" name="field" value="RefuseDataAccess">
-            <input type="checkbox" name="value" {{if .RefuseDataAccess}}checked {{end}}/>
-            <input class="mdl-button mdl-js-button mdl-button--raised"
-                   type="submit" value="Save" />
-          </form>
-        </td>
-        <td>
-          <form action="organizations/{{.ExternalID}}" method="POST">
-            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-            <input type="hidden" name="field" value="RefuseDataUpload">
-            <input type="checkbox" name="value" {{if .RefuseDataUpload}}checked {{end}}/>
-            <input class="mdl-button mdl-js-button mdl-button--raised"
-                   type="submit" value="Save" />
-          </form>
-        </td>
-        <td>
-          <form action="organizations/{{.ExternalID}}" method="POST">
-            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-            <input type="hidden" name="field" value="FeatureFlags">
-            <input type="text" name="value" value="{{range .FeatureFlags}}{{.}} {{end}}" />
-            <input class="mdl-button mdl-js-button mdl-button--raised"
-                   type="submit" value="Save" />
+              <input type="text" name="FeatureFlags" value="{{range .FeatureFlags}}{{.}} {{end}}" placeholder="Feature Flags"/>
+              <input class="mdl-button mdl-js-button mdl-button--raised" type="submit" value="Save" /><br/>
+              <label><input type="checkbox" name="RefuseDataAccess" {{if .RefuseDataAccess}}checked {{end}}/> RefuseDataAccess</label>
+            <label><input type="checkbox" name="RefuseDataUpload" {{if .RefuseDataUpload}}checked {{end}}/> RefuseDataUpload</label>
           </form>
         </td>
         <td>

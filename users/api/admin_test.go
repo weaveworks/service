@@ -23,7 +23,28 @@ var (
 	ctx       = context.Background()
 )
 
-func TestAPI_ChangeOrgField_FeatureFlags(t *testing.T) {
+func TestAPI_ChangeOrgFields(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	_, org := dbtest.GetOrg(t, database)
+
+	ts := httptest.NewServer(app.Handler)
+	r, err := http.PostForm(
+		fmt.Sprintf("%s/admin/users/organizations/%s", ts.URL, org.ExternalID),
+		url.Values{"FeatureFlags": {"foo"}, "RefuseDataAccess": {"on"}, "RefuseDataUpload": {"on"}},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, r.StatusCode)
+
+	assert.Len(t, sentEmails, 0)
+	newOrg, _ := database.FindOrganizationByID(ctx, org.ExternalID)
+	assert.True(t, newOrg.HasFeatureFlag("foo"))
+	assert.True(t, newOrg.RefuseDataAccess)
+	assert.True(t, newOrg.RefuseDataUpload)
+}
+
+func TestAPI_ChangeOrgFields_BillingFeatureFlags(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
@@ -38,7 +59,7 @@ func TestAPI_ChangeOrgField_FeatureFlags(t *testing.T) {
 	ts := httptest.NewServer(app.Handler)
 	r, err := http.PostForm(
 		fmt.Sprintf("%s/admin/users/organizations/%s", ts.URL, org.ExternalID),
-		url.Values{"field": {"FeatureFlags"}, "value": {"foo billing moo"}},
+		url.Values{"FeatureFlags": {"foo billing moo"}},
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, r.StatusCode)
@@ -52,7 +73,7 @@ func TestAPI_ChangeOrgField_FeatureFlags(t *testing.T) {
 	assert.True(t, newOrg.HasFeatureFlag("moo"))
 }
 
-func TestAPI_ChangeOrgField_NeverShrinkTrialPeriod(t *testing.T) {
+func TestAPI_ChangeOrgFields_BillingNeverShrinkTrialPeriod(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
@@ -65,7 +86,7 @@ func TestAPI_ChangeOrgField_NeverShrinkTrialPeriod(t *testing.T) {
 	ts := httptest.NewServer(app.Handler)
 	r, err := http.PostForm(
 		fmt.Sprintf("%s/admin/users/organizations/%s", ts.URL, org.ExternalID),
-		url.Values{"field": {"FeatureFlags"}, "value": {"foo billing moo"}},
+		url.Values{"FeatureFlags": {"foo billing moo"}},
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, r.StatusCode)
