@@ -129,6 +129,8 @@ func ParseOrgQuery(qs string) Organization {
 				filters = append(filters, ID(kv[1]))
 			case "instance":
 				filters = append(filters, ExternalID(kv[1]))
+			case "token":
+				filters = append(filters, ProbeToken(kv[1]))
 			default:
 				search = append(search, p)
 			}

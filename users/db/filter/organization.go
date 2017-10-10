@@ -115,3 +115,16 @@ func (s SearchName) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder
 func (s SearchName) MatchesOrg(o users.Organization) bool {
 	return strings.Contains(o.Name, string(s))
 }
+
+// ProbeToken filters for organizations with exactly this token.
+type ProbeToken string
+
+// ExtendQuery extends a query to filter by token.
+func (t ProbeToken) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	return b.Where("organizations.probe_token = ?", string(t))
+}
+
+// MatchesOrg checks whether an organization matches this filter.
+func (t ProbeToken) MatchesOrg(o users.Organization) bool {
+	return strings.Contains(o.ProbeToken, string(t))
+}
