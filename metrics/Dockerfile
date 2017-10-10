@@ -1,4 +1,4 @@
-FROM alpine:3.4
+FROM alpine:3.6
 MAINTAINER Weaveworks Inc <help@weave.works>
 WORKDIR /
 COPY metrics /
