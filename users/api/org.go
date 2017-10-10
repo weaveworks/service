@@ -27,8 +27,6 @@ type OrgView struct {
 	FeatureFlags          []string   `json:"featureFlags,omitempty"`
 	RefuseDataAccess      bool       `json:"refuseDataAccess"`
 	RefuseDataUpload      bool       `json:"refuseDataUpload"`
-	DenyUIFeatures        bool       `json:"denyUIFeatures"` // Deprecated: use RefuseDataAccess
-	DenyTokenAuth         bool       `json:"denyTokenAuth"`  // Deprecated: use RefuseDataUpload
 	FirstSeenConnectedAt  *time.Time `json:"firstSeenConnectedAt"`
 	Platform              string     `json:"platform"`
 	Environment           string     `json:"environment"`
@@ -55,8 +53,6 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 				FeatureFlags:         append(org.FeatureFlags, a.forceFeatureFlags...),
 				RefuseDataAccess:     org.RefuseDataAccess,
 				RefuseDataUpload:     org.RefuseDataUpload,
-				DenyUIFeatures:       org.RefuseDataAccess, // TODO(rndstr): remove once rename refactor done
-				DenyTokenAuth:        org.RefuseDataUpload, // TODO(rndstr): remove once rename refactor done
 				FirstSeenConnectedAt: org.FirstSeenConnectedAt,
 				Platform:             org.Platform,
 				Environment:          org.Environment,
