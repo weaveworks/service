@@ -176,25 +176,6 @@ func (a *API) listOrganizationsForUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	orgExternalID, ok := vars["orgExternalID"]
-	if !ok {
-		render.Error(w, r, users.ErrNotFound)
-		return
-	}
-	field := r.FormValue("field")
-	value := r.FormValue("value")
-
-	if err := a.setOrganizationField(r.Context(), orgExternalID, field, value); err != nil {
-		render.Error(w, r, err)
-		return
-	}
-
-	msg := fmt.Sprintf("Saved `%s` for %s", field, orgExternalID)
-	http.Redirect(w, r, "/admin/users/organizations?msg="+url.QueryEscape(msg), http.StatusFound)
-}
-
 func (a *API) changeOrgFields(w http.ResponseWriter, r *http.Request) {
 	fields := [...]string{"FeatureFlags", "RefuseDataAccess", "RefuseDataUpload"}
 	vars := mux.Vars(r)
