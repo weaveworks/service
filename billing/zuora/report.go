@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	timeutil "github.com/weaveworks/service/billing/util/time"
 )
 

@@ -4,7 +4,7 @@ import (
 	"io"
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // Executor renders its data and sends it to a writer.

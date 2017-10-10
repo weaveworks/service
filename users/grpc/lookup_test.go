@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/jordan-wright/email"
-	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/dbtest"
@@ -28,7 +27,6 @@ var (
 )
 
 func setup(t *testing.T) {
-	logging.Setup("debug")
 	database = dbtest.Setup(t)
 	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", false)
 	templates := templates.MustNewEngine("../templates")

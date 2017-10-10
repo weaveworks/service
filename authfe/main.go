@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/armon/go-proxyproto"
 	"github.com/prometheus/client_golang/prometheus"
+	log "github.com/sirupsen/logrus"
 	"github.com/tylerb/graceful"
 
 	"github.com/weaveworks/common/logging"
@@ -22,6 +22,11 @@ const (
 	userIDHeader       = "X-Scope-UserID"
 	featureFlagsHeader = "X-FeatureFlags"
 	proxyTimeout       = 30 * time.Second
+
+	// The next two strings are copied from the Scope repo in order to avoid a dependency,
+	// so that the transition can be managed here if Scope ever changes its headers.
+	probeIDHeader      = "X-Scope-Probe-ID" // set to a random string on probe startup.
+	probeVersionHeader = "X-Scope-Probe-Version"
 )
 
 var (

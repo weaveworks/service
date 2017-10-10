@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // traced adds logrus trace lines on each db call

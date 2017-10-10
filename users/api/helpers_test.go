@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
@@ -44,7 +43,6 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, promAPI, netAPI stri
 
 	var directLogin = false
 
-	logging.Setup("debug")
 	database = dbtest.Setup(t)
 	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", false)
 	templates := templates.MustNewEngine("../templates")

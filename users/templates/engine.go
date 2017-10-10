@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	text "text/template"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // ErrTemplateNotFound is for when a template is not found. Usually this means

@@ -3,8 +3,8 @@ package main
 import (
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/google/go-github/github"
+	log "github.com/sirupsen/logrus"
 )
 
 type handler struct {

@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/billing/api/render"

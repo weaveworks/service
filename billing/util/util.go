@@ -3,7 +3,7 @@ package util
 import (
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/billing/db"
 	timeutil "github.com/weaveworks/service/billing/util/time"

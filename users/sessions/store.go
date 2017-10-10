@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/securecookie"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/client"

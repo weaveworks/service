@@ -3,7 +3,7 @@ package job
 import (
 	"context"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"

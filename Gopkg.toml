@@ -23,3 +23,9 @@
 [[constraint]]
   name = "github.com/golang/mock"
   version = "1.0.0"
+
+# Override until https://github.com/FrenchBen/goketo/pull/14 is merged
+[[constraint]]
+  name = "github.com/FrenchBen/goketo"
+  source = "github.com/weaveworks/goketo"
+  branch = "sirupsen-case"

@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/billing/db"
 )
 
@@ -24,7 +23,6 @@ var (
 
 // Setup sets up stuff for testing, creating a new database
 func Setup(t *testing.T) db.DB {
-	require.NoError(t, logging.Setup("debug"))
 	cfg := db.Config{DatabaseURI: *databaseURI, MigrationsDir: *databaseMigrations}
 	pg, err := db.New(cfg)
 	require.NoError(t, err)

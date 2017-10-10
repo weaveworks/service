@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/Masterminds/squirrel"
-	log "github.com/Sirupsen/logrus"
 	_ "github.com/lib/pq" // Import the postgres sql driver
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // Import the postgres migrations driver
 	"gopkg.in/mattes/migrate.v1/migrate"
 

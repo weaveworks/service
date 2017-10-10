@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // Time renders a timestamp into a string, in the format the user expects.

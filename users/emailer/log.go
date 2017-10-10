@@ -1,8 +1,8 @@
 package emailer
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"github.com/jordan-wright/email"
+	log "github.com/sirupsen/logrus"
 )
 
 // logEmailSender just logs all emails, instead of sending them.
