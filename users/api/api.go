@@ -18,14 +18,14 @@ import (
 
 // API implements the users api.
 type API struct {
-	directLogin        bool
+	directLogin        bool // Whether login without email confirmation is allowed. Development only!
 	sessions           sessions.Store
 	db                 db.DB
 	logins             *login.Providers
 	templates          templates.Engine
 	emailer            emailer.Emailer
 	marketingQueues    marketing.Queues
-	forceFeatureFlags  []string
+	forceFeatureFlags  []string // Appends flags to every organization that is returned in a GET request.
 	marketoMunchkinKey string
 	intercomHashKey    string
 	webhookTokens      map[string]struct{}
