@@ -168,7 +168,7 @@ endif
 
 # Test and misc stuff
 notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
-	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=notebooks_test' postgres:9.4)"; \
+	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=notebooks_test' postgres:9.5)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-v $(shell pwd)/notebooks/db/migrations:/migrations \
@@ -181,7 +181,7 @@ notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
 	exit $$status
 
 users-integration-test: $(USERS_UPTODATE) users/users.pb.go
-	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=users_test' postgres:9.4)"; \
+	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=users_test' postgres:9.5)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-v $(shell pwd)/users/db/migrations:/migrations \
