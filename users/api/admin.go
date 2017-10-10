@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -185,33 +186,65 @@ func (a *API) changeOrgField(w http.ResponseWriter, r *http.Request) {
 	field := r.FormValue("field")
 	value := r.FormValue("value")
 
-	var err error
-	switch field {
-	case "FirstSeenConnectedAt":
-		now := time.Now()
-		err = a.db.SetOrganizationFirstSeenConnectedAt(r.Context(), orgExternalID, &now)
-	case "DenyUIAccess": // TODO(rndstr): remove once rename refactor done
-	case "RefuseDataAccess":
-		deny := value == "on"
-		err = a.db.SetOrganizationRefuseDataAccess(r.Context(), orgExternalID, deny)
-	case "DenyTokenAuth": // TODO(rndstr): remove once rename refactor done
-	case "RefuseDataUpload":
-		deny := value == "on"
-		err = a.db.SetOrganizationRefuseDataUpload(r.Context(), orgExternalID, deny)
-	case "FeatureFlags":
-		err = a.setOrgFeatureFlags(r.Context(), orgExternalID, strings.Fields(value))
-	default:
-		err = users.ValidationErrorf("Invalid field %v", field)
-		return
-	}
-
-	if err != nil {
+	if err := a.setOrganizationField(r.Context(), orgExternalID, field, value); err != nil {
 		render.Error(w, r, err)
 		return
 	}
 
 	msg := fmt.Sprintf("Saved `%s` for %s", field, orgExternalID)
 	http.Redirect(w, r, "/admin/users/organizations?msg="+url.QueryEscape(msg), http.StatusFound)
+}
+
+func (a *API) changeOrgFields(w http.ResponseWriter, r *http.Request) {
+	fields := [...]string{"FeatureFlags", "RefuseDataAccess", "RefuseDataUpload"}
+	vars := mux.Vars(r)
+	orgExternalID, ok := vars["orgExternalID"]
+	if !ok {
+		render.Error(w, r, users.ErrNotFound)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		render.Error(w, r, err)
+		return
+	}
+
+	var errs []string
+	for _, field := range fields {
+		if err := a.setOrganizationField(r.Context(), orgExternalID, field, r.FormValue(field)); err != nil {
+			errs = append(errs, err.Error())
+		}
+	}
+
+	if len(errs) > 0 {
+		render.Error(w, r, errors.New(strings.Join(errs, "; ")))
+		return
+	}
+
+	msg := fmt.Sprintf("Saved config for %s", orgExternalID)
+	http.Redirect(w, r, "/admin/users/organizations?msg="+url.QueryEscape(msg), http.StatusFound)
+}
+
+func (a *API) setOrganizationField(ctx context.Context, orgExternalID, field, value string) error {
+	var err error
+	switch field {
+	case "FirstSeenConnectedAt":
+		now := time.Now()
+		err = a.db.SetOrganizationFirstSeenConnectedAt(ctx, orgExternalID, &now)
+	case "DenyUIAccess": // TODO(rndstr): remove once rename refactor done
+	case "RefuseDataAccess":
+		deny := value == "on"
+		err = a.db.SetOrganizationRefuseDataAccess(ctx, orgExternalID, deny)
+	case "DenyTokenAuth": // TODO(rndstr): remove once rename refactor done
+	case "RefuseDataUpload":
+		deny := value == "on"
+		err = a.db.SetOrganizationRefuseDataUpload(ctx, orgExternalID, deny)
+	case "FeatureFlags":
+		err = a.setOrgFeatureFlags(ctx, orgExternalID, strings.Fields(value))
+	default:
+		err = users.ValidationErrorf("Invalid field %v", field)
+	}
+	return err
 }
 
 func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
