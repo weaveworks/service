@@ -215,11 +215,9 @@ func (a *API) setOrganizationField(ctx context.Context, orgExternalID, field, va
 	case "FirstSeenConnectedAt":
 		now := time.Now()
 		err = a.db.SetOrganizationFirstSeenConnectedAt(ctx, orgExternalID, &now)
-	case "DenyUIAccess": // TODO(rndstr): remove once rename refactor done
 	case "RefuseDataAccess":
 		deny := value == "on"
 		err = a.db.SetOrganizationRefuseDataAccess(ctx, orgExternalID, deny)
-	case "DenyTokenAuth": // TODO(rndstr): remove once rename refactor done
 	case "RefuseDataUpload":
 		deny := value == "on"
 		err = a.db.SetOrganizationRefuseDataUpload(ctx, orgExternalID, deny)

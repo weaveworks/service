@@ -235,10 +235,8 @@ func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganiz
 func (a *usersServer) SetOrganizationFlag(ctx context.Context, req *users.SetOrganizationFlagRequest) (*users.SetOrganizationFlagResponse, error) {
 	var err error
 	switch req.Flag {
-	case "DenyUIAccess": // TODO(rndstr): remove once rename refactor done
 	case "RefuseDataAccess":
 		err = a.db.SetOrganizationRefuseDataAccess(ctx, req.ExternalID, req.Value)
-	case "DenyTokenAuth": // TODO(rndstr): remove once rename refactor done
 	case "RefuseDataUpload":
 		err = a.db.SetOrganizationRefuseDataUpload(ctx, req.ExternalID, req.Value)
 	default:
