@@ -353,8 +353,12 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			middleware.Merge(
 				// If not logged in, prompt user to log in instead of 401ing
 				middleware.ErrorHandler{
-					Code:    401,
-					Handler: redirect("/login"),
+					Code: 401,
+					Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						q := make(url.Values)
+						q.Set("next", r.RequestURI)
+						http.Redirect(w, r, fmt.Sprintf("/login?%s", q.Encode()), 302)
+					}),
 				},
 				users_client.AuthAdminMiddleware{
 					UsersClient: authenticator,
