@@ -177,7 +177,6 @@ func (a *API) listOrganizationsForUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) changeOrgFields(w http.ResponseWriter, r *http.Request) {
-	fields := [...]string{"FeatureFlags", "RefuseDataAccess", "RefuseDataUpload"}
 	vars := mux.Vars(r)
 	orgExternalID, ok := vars["orgExternalID"]
 	if !ok {
@@ -185,21 +184,25 @@ func (a *API) changeOrgFields(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseForm(); err != nil {
-		render.Error(w, r, err)
-		return
-	}
-
-	var errs []string
-	for _, field := range fields {
-		if err := a.setOrganizationField(r.Context(), orgExternalID, field, r.FormValue(field)); err != nil {
-			errs = append(errs, err.Error())
+	// Single value `field=foo, value=bar`
+	if r.FormValue("field") != "" {
+		if err := a.setOrganizationField(r.Context(), orgExternalID, r.FormValue("field"), r.FormValue("value")); err != nil {
+			render.Error(w, r, err)
+			return
 		}
-	}
+	} else { // Multi value `foo=bar, moo=zar`
+		fields := [...]string{"FeatureFlags", "RefuseDataAccess", "RefuseDataUpload"}
+		var errs []string
+		for _, field := range fields {
+			if err := a.setOrganizationField(r.Context(), orgExternalID, field, r.FormValue(field)); err != nil {
+				errs = append(errs, err.Error())
+			}
+		}
 
-	if len(errs) > 0 {
-		render.Error(w, r, errors.New(strings.Join(errs, "; ")))
-		return
+		if len(errs) > 0 {
+			render.Error(w, r, errors.New(strings.Join(errs, "; ")))
+			return
+		}
 	}
 
 	msg := fmt.Sprintf("Saved config for %s", orgExternalID)
