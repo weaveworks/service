@@ -158,6 +158,7 @@ func (j *UsageUpload) Do() error {
 }
 
 // checkOrganization verifies whether an organization's usage should be uploaded.
+// It returns nil if the organization is not ready to be processed.
 func (j *UsageUpload) checkOrganization(ctx context.Context, logger *log.Entry, from, through time.Time, org *users.Organization, fromID int) (*zuora.Account, []db.Aggregate) {
 	// Skip if their trial hasn't expired by the end of this period.
 	// GetBillableOrganizations really shouldn't include any such
@@ -168,10 +169,9 @@ func (j *UsageUpload) checkOrganization(ctx context.Context, logger *log.Entry, 
 	}
 
 	// Check if they have a zuora account
-	// TODO: move this check to GetBillableOrganizations()
 	account, err := j.zuora.GetAccount(ctx, org.ExternalID)
 	if err == zuora.ErrNotFound {
-		logger.Infof("Instance %v has no Zuora account (delinquent)", org.ExternalID)
+		logger.Errorf("Instance %v has no Zuora account", org.ExternalID)
 		return nil, nil
 	}
 	if err != nil {

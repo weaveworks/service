@@ -202,20 +202,36 @@ func Test_GetBillableOrganizations_NotExpired(t *testing.T) {
 }
 
 // Test_GetBillableOrganizations_Expired shows that we return organizations
-// that have expired their trial period, because they might have a Zuora
-// account and thus be billable.
+// that have expired their trial period, because they are billable.
 func Test_GetBillableOrganizations_Expired(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 	org := makeBillingOrganization(t)
-
+	org = setZuoraAccount(t, org, "Wwhatever")
 	now := org.TrialExpiresAt.Add(5 * 24 * time.Hour)
 	{
 		resp, err := server.GetBillableOrganizations(ctx, &users.GetBillableOrganizationsRequest{Now: now})
 		require.NoError(t, err)
 		assert.Equal(t, []users.Organization{*org}, resp.Organizations)
 	}
-	// Giving an organization a Zuora account doesn't make it less billable.
+}
+
+// Test_GetBillableOrganizations_SkipDelinquent shows that delinquent organizations
+// are not billable.
+func Test_GetBillableOrganizations_SkipDelinquent(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	org := makeBillingOrganization(t)
+	now := org.TrialExpiresAt.Add(5 * 24 * time.Hour)
+	// No Zuora account means not billable
+	{
+		resp, err := server.GetBillableOrganizations(ctx, &users.GetBillableOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Empty(t, resp.Organizations)
+	}
+
+	// Organization becomes billable if it has a Zuora account
 	org = setZuoraAccount(t, org, "Wwhatever")
 	{
 		resp, err := server.GetBillableOrganizations(ctx, &users.GetBillableOrganizationsRequest{Now: now})

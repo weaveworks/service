@@ -146,11 +146,12 @@ func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrgani
 }
 
 func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.GetBillableOrganizationsRequest) (*users.GetBillableOrganizationsResponse, error) {
-	// While billing is in development, only pick orgs with ff `billing`
 	organizations, err := a.db.ListOrganizations(
 		ctx,
 		filter.And(
+			filter.ZuoraAccount(true),
 			filter.TrialExpiredBy(req.Now),
+			// While billing is in development, only pick orgs with ff `billing`
 			filter.HasFeatureFlag(users.BillingFeatureFlag),
 		),
 	)
