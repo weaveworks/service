@@ -170,10 +170,6 @@ func (j *UsageUpload) checkOrganization(ctx context.Context, logger *log.Entry, 
 
 	// Check if they have a zuora account
 	account, err := j.zuora.GetAccount(ctx, org.ExternalID)
-	if err == zuora.ErrNotFound {
-		logger.Errorf("Instance %v has no Zuora account", org.ExternalID)
-		return nil, nil
-	}
 	if err != nil {
 		logger.Errorf("Failing to bill instance %v due to Zuora error: %v", org.ExternalID, err)
 		return nil, nil
