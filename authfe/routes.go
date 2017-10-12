@@ -419,6 +419,10 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/github-receiver",
 		`/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`, // Regex copy-pasted from users/organization.go
 		"/api/users/signup_webhook",                     // Validated by explicit token in the users service
+
+		"/admin/grafana",     // grafana does not know to inject CSRF header into requests. Without whitelisting,
+		"/admin/dev-grafana", // this causes the CSRF token & cookie to be re-issued, breaking UI requests.
+		"/admin/prod-grafana",
 	)
 	return middleware.Merge(
 		AuthHeaderStrippingMiddleware{},
