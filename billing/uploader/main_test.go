@@ -63,17 +63,20 @@ func TestJobUpload_Do(t *testing.T) {
 		Return(&users.GetBillableOrganizationsResponse{
 			Organizations: []users.Organization{
 				{
-					ID:         "",
-					ExternalID: "skip-empty_id",
+					ID:                 "",
+					ZuoraAccountNumber: "Wfoo",
+					ExternalID:         "skip-empty_id",
 				},
 				{
-					ID:         "10",
-					ExternalID: "partial-max_aggregates_id",
+					ID:                 "10",
+					ZuoraAccountNumber: "Wboo",
+					ExternalID:         "partial-max_aggregates_id",
 				},
 				{
-					ID:             "11",
-					ExternalID:     "partial-trial_expires_at",
-					TrialExpiresAt: expires,
+					ID:                 "11",
+					ZuoraAccountNumber: "Wzoo",
+					ExternalID:         "partial-trial_expires_at",
+					TrialExpiresAt:     expires,
 				},
 			},
 		}, nil)
@@ -106,7 +109,7 @@ func TestJobUpload_Do(t *testing.T) {
 	}
 	err := d.UpsertAggregates(ctx, aggregates)
 	assert.NoError(t, err)
-	_, err = d.InsertUsageUpload(ctx, 1)
+	_, err = d.InsertUsageUpload(ctx, "zuora", 1)
 	assert.NoError(t, err)
 
 	j := job.NewUsageUpload(d, u, z, instrument.NewJobCollector("foo"))
@@ -126,7 +129,7 @@ func TestJobUpload_Do(t *testing.T) {
 	assert.Equal(t, "Ppartial-trial_expires_at", records[2][idxAcc])
 	assert.Equal(t, "4", records[2][idxQty])
 
-	aggID, err := d.GetUsageUploadLargestAggregateID(ctx)
+	aggID, err := d.GetUsageUploadLargestAggregateID(ctx, "zuora")
 	assert.NoError(t, err)
 	assert.Equal(t, 4, aggID)
 }
@@ -158,14 +161,14 @@ func TestJobUpload_DoError(t *testing.T) {
 	}
 	err := d.UpsertAggregates(ctx, aggregates)
 	assert.NoError(t, err)
-	_, err = d.InsertUsageUpload(ctx, 0)
+	_, err = d.InsertUsageUpload(ctx, "zuora", 0)
 	assert.NoError(t, err)
 
 	j := job.NewUsageUpload(d, u, z, instrument.NewJobCollector("foo"))
 	err = j.Do()
 	assert.Error(t, err)
 
-	aggID, err := d.GetUsageUploadLargestAggregateID(ctx)
+	aggID, err := d.GetUsageUploadLargestAggregateID(ctx, "zuora")
 	assert.NoError(t, err)
 	// Make sure the max_aggregate_id was removed after failing to upload
 	assert.Equal(t, 0, aggID)

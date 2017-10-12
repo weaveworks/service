@@ -34,11 +34,11 @@ type DB interface {
 	GetAggregatesAfter(ctx context.Context, instanceID string, from, through time.Time, fromID int) ([]Aggregate, error)
 
 	// GetUsageUploadLargestAggregateID returns the largest aggregate ID that we have uploaded.
-	GetUsageUploadLargestAggregateID(ctx context.Context) (int, error)
+	GetUsageUploadLargestAggregateID(ctx context.Context, uploader string) (int, error)
 	// InsertUsageUpload records that we just uploaded all aggregates up to the given ID.
-	InsertUsageUpload(ctx context.Context, maxAggregateID int) (int64, error)
+	InsertUsageUpload(ctx context.Context, uploader string, maxAggregateID int) (int64, error)
 	// DeleteUsageUpload removes our previously recorded upload after it failed.
-	DeleteUsageUpload(ctx context.Context, uploadID int64) error
+	DeleteUsageUpload(ctx context.Context, uploader string, uploadID int64) error
 
 	GetMonthSums(ctx context.Context, instanceIDs []string, from, through time.Time) (map[string][]Aggregate, error)
 

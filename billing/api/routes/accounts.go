@@ -13,7 +13,6 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/billing/api/render"
 	"github.com/weaveworks/service/billing/db"
-	"github.com/weaveworks/service/billing/util"
 	timeutil "github.com/weaveworks/service/billing/util/time"
 	"github.com/weaveworks/service/billing/util/trial"
 	"github.com/weaveworks/service/billing/zuora"
@@ -169,7 +168,7 @@ func (a *API) uploadUsage(ctx context.Context, externalID string, account *zuora
 	// If the trial expired before today, then we need to upload the gap that would be missed
 	subscriptionNumber := account.Subscription.SubscriptionNumber
 	chargeNumber := account.Subscription.ChargeNumber
-	report, err := util.ReportFromAggregates(
+	report, err := zuora.ReportFromAggregates(
 		a.Zuora.GetConfig(), aggs, account.PaymentProviderID, trialExpiry, today, subscriptionNumber, chargeNumber, cycleDay,
 	)
 	if err != nil {

@@ -161,18 +161,18 @@ func (d *postgres) GetAggregatesAfter(ctx context.Context, instanceID string, fr
 	return aggregates, nil
 }
 
-func (d *postgres) GetUsageUploadLargestAggregateID(ctx context.Context) (int, error) {
+func (d *postgres) GetUsageUploadLargestAggregateID(ctx context.Context, uploader string) (int, error) {
 	var max int
-	err := d.QueryRow("SELECT MAX(max_aggregate_id) FROM usage_uploads").Scan(&max)
+	err := d.QueryRow("SELECT MAX(max_aggregate_id) FROM usage_uploads WHERE uploader = $1", uploader).Scan(&max)
 	if err != nil {
 		return 0, err
 	}
 	return max, nil
 }
 
-func (d *postgres) InsertUsageUpload(ctx context.Context, aggregatesID int) (int64, error) {
+func (d *postgres) InsertUsageUpload(ctx context.Context, uploader string, aggregatesID int) (int64, error) {
 	var id int64
-	err := d.QueryRow("INSERT INTO usage_uploads (max_aggregate_id) VALUES ($1) RETURNING id", aggregatesID).
+	err := d.QueryRow("INSERT INTO usage_uploads (max_aggregate_id, uploader) VALUES ($1, $2) RETURNING id", aggregatesID, uploader).
 		Scan(&id)
 	if err != nil {
 		return 0, err
@@ -180,8 +180,8 @@ func (d *postgres) InsertUsageUpload(ctx context.Context, aggregatesID int) (int
 	return id, nil
 }
 
-func (d *postgres) DeleteUsageUpload(ctx context.Context, uploadID int64) error {
-	_, err := d.Delete(tableUsageUploads).Where(squirrel.Eq{"id": uploadID}).Exec()
+func (d *postgres) DeleteUsageUpload(ctx context.Context, uploader string, uploadID int64) error {
+	_, err := d.Delete(tableUsageUploads).Where(squirrel.Eq{"id": uploadID, "uploader": uploader}).Exec()
 	return err
 }
 
