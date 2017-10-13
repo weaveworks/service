@@ -73,10 +73,13 @@ func (j *UsageUpload) Run() {
 }
 
 type uploadStats struct {
-	maxAggregateID int              // Highest aggregate ID seen
-	count          map[string]int64 // Maps amount type to number of instances
-	sum            map[string]int64 // Maps amount type to total value
-	instances      int              // Total number of instances
+	count     map[string]int64 // Maps amount type to number of instances
+	sum       map[string]int64 // Maps amount type to total value
+	instances int              // Total number of instances
+
+	// Highest aggregate ID seen is tracked to record up to which aggregate the
+	// job has uploaded.
+	maxAggregateID int
 }
 
 func (us *uploadStats) record(aggs []db.Aggregate) {

@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const uploaderIDZuora = "zuora"
+
 // Zuora sends usage data to Zuora. It implements Uploader.
 type Zuora struct {
 	cl zuora.Client

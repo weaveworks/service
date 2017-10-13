@@ -8,10 +8,6 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
-const (
-	uploaderIDZuora = "zuora"
-)
-
 // Uploader describes a service that aggregates and uploads data to a usage consumer.
 type Uploader interface {
 	// ID is an unique name to represent this uploader.
