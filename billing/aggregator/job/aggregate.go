@@ -31,7 +31,7 @@ func NewAggregate(bigquery *bigquery.Client, db db.DB, collector *instrument.Job
 // Run starts the job and logs errors.
 func (j *Aggregate) Run() {
 	if err := j.Do(nil); err != nil {
-		log.Errorf("Error running job %v", err)
+		log.Errorf("Error running job: %v", err)
 	}
 }
 
