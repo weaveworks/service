@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/sirupsen/logrus"
 	"github.com/jinzhu/now"
+	"github.com/sirupsen/logrus"
 )
 
 type pagingToken struct {
