@@ -11,7 +11,7 @@
   branch = "sirupsen-case"
   name = "github.com/FrenchBen/goketo"
   packages = ["."]
-  revision = "39bdeaf0faaf9464e520b64e36e2286e783640e3"
+  revision = "769d3a54c8f2689a66c02cd5018cdce9d9ef6bb9"
   source = "github.com/weaveworks/goketo"
 
 [[projects]]
@@ -222,12 +222,6 @@
   name = "github.com/lib/pq"
   packages = [".","oid"]
   revision = "23da1db4f16d9658a86ae9b717c245fc078f10f1"
-
-[[projects]]
-  name = "github.com/mattes/migrate"
-  packages = ["driver/postgres","migrate"]
-  revision = "afc973c4e5a6b746217c2d3950fcd110ed1ba349"
-  version = "v1.3.2"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -473,6 +467,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e6336b0d5591cfe2ce210dc6b2c6f49b5090deef35bdf54b1fcb6308026e2ebc"
+  inputs-digest = "1c1644676517de7bd5e36d82c3cf19a969ff796de3316075fff685f3a26ef8a7"
   solver-name = "gps-cdcl"
   solver-version = 1
