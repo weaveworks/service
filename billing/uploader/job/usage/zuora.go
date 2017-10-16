@@ -63,7 +63,7 @@ func (z *Zuora) Upload(ctx context.Context) error {
 	return nil
 }
 
-// Handles returns true for organizations that have a Zuora account number.
-func (z *Zuora) Handles(org users.Organization) bool {
+// IsSupported returns true for organizations that have a Zuora account number.
+func (z *Zuora) IsSupported(org users.Organization) bool {
 	return org.ZuoraAccountNumber != ""
 }

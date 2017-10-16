@@ -147,7 +147,7 @@ func (j *UsageUpload) Do() error {
 			stats := uploadStats{}
 			for _, org := range resp.Organizations {
 				// Skip if uploader is not interested in this organization
-				if !u.Handles(org) {
+				if !u.IsSupported(org) {
 					continue
 				}
 

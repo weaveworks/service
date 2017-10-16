@@ -16,6 +16,6 @@ type Uploader interface {
 	Add(ctx context.Context, orgExternalID string, from, through time.Time, aggs []db.Aggregate) error
 	// Upload sends recorded aggregates.
 	Upload(ctx context.Context) error
-	// Handles returns whether this uploader supports the given organization.
-	Handles(org users.Organization) bool
+	// IsSupported returns whether this uploader handles the given organization.
+	IsSupported(org users.Organization) bool
 }
