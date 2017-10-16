@@ -13,13 +13,14 @@ import (
 	"github.com/tylerb/graceful"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common"
 	users "github.com/weaveworks/service/users/client"
 )
 
 const (
 	sessionCookieKey   = "_weaveclientid"
-	userIDHeader       = "X-Scope-UserID"
+	userIDHeader       = user.UserIDHeaderName
 	featureFlagsHeader = "X-FeatureFlags"
 	proxyTimeout       = 30 * time.Second
 
