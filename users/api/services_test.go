@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/weaveworks/common/mtime"
+	"github.com/weaveworks/common/user"
 )
 
 type mockServicesConfig struct {
@@ -34,7 +35,7 @@ type mockServicesConfig struct {
 // MockServices handles all service endpoints in one server for testing purposes.
 func MockServices(config *mockServicesConfig) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orgID := r.Header.Get("X-Scope-OrgID")
+		orgID := r.Header.Get(user.OrgIDHeaderName)
 		if orgID != config.AcceptedOrgID {
 			w.WriteHeader(http.StatusUnauthorized)
 			return

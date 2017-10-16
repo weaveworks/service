@@ -570,8 +570,8 @@ func (a AuthHeaderStrippingMiddleware) Wrap(next http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		removeHeader("X-Scope-OrgID", r)
-		removeHeader("X-Scope-UserID", r)
+		removeHeader(user.OrgIDHeaderName, r)
+		removeHeader(user.UserIDHeaderName, r)
 		next.ServeHTTP(w, r)
 	})
 }

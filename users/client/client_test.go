@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/weaveworks/common/middleware"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/render"
 	"github.com/weaveworks/service/users/tokens"
@@ -246,7 +247,7 @@ func TestMiddleware(t *testing.T) {
 
 	var (
 		body                   = []byte("OK")
-		headerName             = "X-Scope-OrgID"
+		headerName             = user.OrgIDHeaderName
 		featureFlagsHeaderName = "X-FeatureFlags"
 	)
 
