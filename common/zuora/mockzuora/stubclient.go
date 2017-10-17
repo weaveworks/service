@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/weaveworks/service/billing/zuora"
+	"github.com/weaveworks/service/common/zuora"
 )
 
 // Config is a global instance to prevent redefined flag errors when

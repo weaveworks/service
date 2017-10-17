@@ -10,8 +10,8 @@ import (
 
 	"github.com/weaveworks/service/billing-api/routes"
 	"github.com/weaveworks/service/billing/db"
-	"github.com/weaveworks/service/billing/users"
-	"github.com/weaveworks/service/billing/zuora"
+	"github.com/weaveworks/service/common/users-client"
+	"github.com/weaveworks/service/common/zuora"
 )
 
 // Config holds the API settings.

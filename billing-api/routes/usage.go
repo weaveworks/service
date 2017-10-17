@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/service/billing-api/render"
-	"github.com/weaveworks/service/billing/util"
+	"github.com/weaveworks/service/common/constants/billing"
 	"github.com/weaveworks/service/users"
 )
 
@@ -57,7 +57,7 @@ func (a *API) GetUsage(w http.ResponseWriter, r *http.Request) {
 
 	var usages []Usage
 	for _, agg := range aggs {
-		if agg.AmountType != util.UsageNodeSeconds {
+		if agg.AmountType != billing.UsageNodeSeconds {
 			continue
 		}
 		usages = append(usages, Usage{

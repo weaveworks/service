@@ -13,9 +13,9 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/billing-api/render"
 	"github.com/weaveworks/service/billing/db"
-	"github.com/weaveworks/service/billing/util"
-	timeutil "github.com/weaveworks/service/billing/util/time"
-	"github.com/weaveworks/service/billing/zuora"
+	"github.com/weaveworks/service/common/constants/billing"
+	timeutil "github.com/weaveworks/service/common/time"
+	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/users"
 )
 
@@ -103,7 +103,7 @@ func assertInvoiceVerified(ctx context.Context, a *API, weaveOrgID string, numIn
 	if err != nil {
 		return err
 	}
-	price := rates[util.UsageNodeSeconds]
+	price := rates[billing.UsageNodeSeconds]
 
 	for _, invoice := range invoices {
 		invoiceStatus := invoice.Status
@@ -135,7 +135,7 @@ func assertInvoiceVerified(ctx context.Context, a *API, weaveOrgID string, numIn
 				if invoiceStatus == "Draft" && u.Status != "Processed" {
 					continue
 				}
-				if u.UnitType != util.UsageNodeSeconds {
+				if u.UnitType != billing.UsageNodeSeconds {
 					continue
 				}
 				if timeutil.InTimeRange(startTs, endTs, usageStartTs) {
@@ -246,7 +246,7 @@ func roundHalfUp(amount float64) float64 {
 func sumAggregates(aggs []db.Aggregate) int64 {
 	var sum int64
 	for _, agg := range aggs {
-		if agg.AmountType == util.UsageNodeSeconds {
+		if agg.AmountType == billing.UsageNodeSeconds {
 			sum += agg.AmountValue
 		}
 	}

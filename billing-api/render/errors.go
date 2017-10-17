@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/weaveworks/common/logging"
-	"github.com/weaveworks/service/billing/zuora"
+	"github.com/weaveworks/service/common/zuora"
 )
 
 func errorStatusCode(err error) int {

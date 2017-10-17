@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/weaveworks/service/billing/util/time"
+	"github.com/weaveworks/service/common/time"
 )
 
 func TestDurationGetAmount(t *testing.T) {

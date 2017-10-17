@@ -13,10 +13,10 @@ import (
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/billing-uploader/job/usage"
 	"github.com/weaveworks/service/billing/db"
-	"github.com/weaveworks/service/billing/uploader/job/usage"
-	timeutil "github.com/weaveworks/service/billing/util/time"
-	"github.com/weaveworks/service/billing/zuora"
+	timeutil "github.com/weaveworks/service/common/time"
+	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/users"
 )
 

@@ -11,7 +11,7 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/billing-enforcer/job"
-	billingUsers "github.com/weaveworks/service/billing/users"
+	usersClient "github.com/weaveworks/service/common/users-client"
 )
 
 var jobCollector = instrument.NewJobCollector("billing")
@@ -47,7 +47,7 @@ func main() {
 		logLevel = flag.String("log.level", "info", "The log level")
 
 		serverConfig server.Config
-		usersConfig  billingUsers.Config
+		usersConfig  usersClient.Config
 		cfg          job.Config
 	)
 	cfg.RegisterFlags(flag.CommandLine)
@@ -59,7 +59,7 @@ func main() {
 		log.Fatalf("Error initialising logging: %v", err)
 	}
 
-	users, err := billingUsers.New(usersConfig)
+	users, err := usersClient.New(usersConfig)
 	if err != nil {
 		log.Fatalf("error initialising users client: %v", err)
 	}

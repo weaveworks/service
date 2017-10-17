@@ -11,8 +11,8 @@ import (
 
 	"github.com/weaveworks/service/billing/db"
 	"github.com/weaveworks/service/billing/db/mock_db"
-	"github.com/weaveworks/service/billing/zuora"
-	"github.com/weaveworks/service/billing/zuora/mockzuora"
+	"github.com/weaveworks/service/common/zuora"
+	"github.com/weaveworks/service/common/zuora/mockzuora"
 )
 
 func TestMain(m *testing.M) {

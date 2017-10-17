@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/weaveworks/service/billing/zuora"
+	"github.com/weaveworks/service/common/zuora"
 )
 
 func TestToZuoraAccountNumber(t *testing.T) {

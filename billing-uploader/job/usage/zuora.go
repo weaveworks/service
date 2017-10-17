@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/weaveworks/service/billing/db"
-	"github.com/weaveworks/service/billing/zuora"
+	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/users"
 	"time"
 )

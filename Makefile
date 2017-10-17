@@ -36,7 +36,7 @@ MOCK_USERS := users/mock_users/usersclient.go
 $(MOCK_USERS): users/users.pb.go
 
 BILLING_LIBS := billing
-BILLING_TEST_DIRS := $(shell find . -name '*_test.go' | grep -E  "^\./billing" | xargs -n1 dirname | sort -u)
+BILLING_TEST_DIRS := $(shell find . -name '*_test.go' | grep -E  "^\./(billing|common)" | xargs -n1 dirname | sort -u)
 
 MOCK_BILLING_DB := $(BILLING_LIBS)/db/mock_db/mock_db.go
 MOCK_GOS := $(MOCK_USERS) $(MOCK_BILLING_DB)
@@ -203,4 +203,4 @@ clean:
 
 # For .SECONDEXPANSION docs, see https://www.gnu.org/software/make/manual/html_node/Special-Targets.html
 .SECONDEXPANSION:
-$(BILLING_EXE): $$(shell find $$(@D) -name '*.go') $(shell find $(BILLING_LIBS) -name '*.go') users/users.pb.go
+$(BILLING_EXE): $$(shell find $$(@D) -name '*.go') $(COMMON) $(shell find $(BILLING_LIBS) -name '*.go') users/users.pb.go

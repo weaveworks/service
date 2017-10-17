@@ -13,7 +13,7 @@ import (
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/billing-api/render"
-	"github.com/weaveworks/service/billing/zuora"
+	"github.com/weaveworks/service/common/zuora"
 )
 
 func (a *API) generateInvoiceMAC(orgID, fileID string) []byte {

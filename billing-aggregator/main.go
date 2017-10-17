@@ -13,8 +13,8 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/billing-aggregator/job"
-	"github.com/weaveworks/service/billing/bigquery"
 	"github.com/weaveworks/service/billing/db"
+	"github.com/weaveworks/service/common/bigquery"
 )
 
 var jobCollector = instrument.NewJobCollector("billing")

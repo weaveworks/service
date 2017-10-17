@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/weaveworks/common/logging"
-	"github.com/weaveworks/service/billing/util"
+	"github.com/weaveworks/service/common/constants/billing"
 )
 
 const (
@@ -130,7 +130,7 @@ func extractNodeSecondsSubscription(ctx context.Context, subscriptions []subscri
 	for _, zuoraSubscription := range subscriptions {
 		for _, zuoraPlans := range zuoraSubscription.RatePlans {
 			for _, zuoraPlan := range zuoraPlans.RatePlanCharges {
-				if strings.HasSuffix(zuoraPlan.Uom, util.UsageNodeSeconds) {
+				if strings.HasSuffix(zuoraPlan.Uom, billing.UsageNodeSeconds) {
 					if subscription == nil {
 						subStartDate, err := time.Parse("2006-01-02", zuoraSubscription.SubscriptionStartDate)
 						if err != nil {

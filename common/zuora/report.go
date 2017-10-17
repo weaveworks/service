@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/billing/db"
-	timeutil "github.com/weaveworks/service/billing/util/time"
+	timeutil "github.com/weaveworks/service/common/time"
 )
 
 // Report is a usage report for Zuora.

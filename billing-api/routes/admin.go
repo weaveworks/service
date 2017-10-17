@@ -8,7 +8,7 @@ import (
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/billing-api/render"
-	"github.com/weaveworks/service/billing/util/trial"
+	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/users"
 )
 

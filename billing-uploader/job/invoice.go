@@ -8,7 +8,7 @@ import (
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/billing/db"
-	"github.com/weaveworks/service/billing/zuora"
+	"github.com/weaveworks/service/common/zuora"
 )
 
 // InvoiceUpload sends invoices to Zuora once usage has been processed.

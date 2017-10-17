@@ -12,8 +12,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/weaveworks/service/billing-api/routes"
-	"github.com/weaveworks/service/billing/zuora"
-	"github.com/weaveworks/service/billing/zuora/mockzuora"
+	"github.com/weaveworks/service/common/zuora"
+	"github.com/weaveworks/service/common/zuora/mockzuora"
 )
 
 const sampleFileURL = "https://apisandbox-api.zuora.com/rest/v1/files/2c92c08c5e0d9bd5015e0f84943b3ad0"

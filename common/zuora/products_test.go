@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/weaveworks/service/billing/zuora"
+	"github.com/weaveworks/service/common/zuora"
 )
 
 var conf = zuora.Config{SubscriptionPlanID: "plan-id"}
@@ -31,7 +31,7 @@ func (c *clientMock) Do(req *http.Request) (*http.Response, error) {
 }
 
 func TestGetCurrentRates(t *testing.T) {
-	f, err := ioutil.ReadFile("../testdata/zuora-catalog_products.json")
+	f, err := ioutil.ReadFile("testdata/zuora-catalog_products.json")
 	assert.NoError(t, err)
 
 	c := &clientMock{body: string(f)}
