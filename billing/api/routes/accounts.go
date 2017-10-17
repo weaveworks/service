@@ -13,6 +13,7 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/billing/api/render"
 	"github.com/weaveworks/service/billing/db"
+	"github.com/weaveworks/service/billing/util"
 	timeutil "github.com/weaveworks/service/billing/util/time"
 	"github.com/weaveworks/service/billing/util/trial"
 	"github.com/weaveworks/service/billing/zuora"
@@ -343,7 +344,7 @@ func computeBillingPeriod(billCycleDay int, createdAt, trialEnd, reference time.
 func (a *API) getDefaultUsageRateInfo(ctx context.Context) (int, float64, error) {
 	var err error
 	if rates, err := a.Zuora.GetCurrentRates(ctx); err == nil {
-		price := rates["node-seconds"]
+		price := rates[util.UsageNodeSeconds]
 		return zuora.BillCycleDay, price, nil
 	}
 	return 0, 0, err
@@ -459,7 +460,7 @@ func sumAndFilterAggregates(aggs []db.Aggregate) (int64, []db.Aggregate, map[str
 	var sum int64
 	var nodeAggregates []db.Aggregate
 	for _, agg := range aggs {
-		if agg.AmountType == "node-seconds" {
+		if agg.AmountType == util.UsageNodeSeconds {
 			sum += agg.AmountValue
 			nodeAggregates = append(nodeAggregates, agg)
 
