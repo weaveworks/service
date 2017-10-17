@@ -14,7 +14,7 @@ Billing in Weave Cloud consists of the following components:
 
 ## Architecture
 
-![Architecture Diagram](./docs/architecture.png)
+![Architecture Diagram](./docs/billing_architecture.png)
 ([Source](https://docs.google.com/drawings/d/1VH9RBIwaFXqAMOtevYeiQ_A8CNTbctrhwhLE6GK_w9c))
 
 ## Services

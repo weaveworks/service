@@ -30,6 +30,10 @@
 |          |---------------->| Pipe       |-+
 |          |                 +------------+ |
 |          |                   +------------+
+|          |
+|          | /api/billing    +-------------+  +------------+
+|          |---------------->| billing-api |--| Billing DB |
+|          |                 +-------------+  +------------+
 +----------+
 ```
 
@@ -93,3 +97,7 @@ running `push-images` from your own build directory, it's likely you
 will need to name specific components. The script will bail before
 pushing anything if it can't find all the images you mention (or imply
 by not mentioning any).
+
+## Billing
+
+For information about billing, see [BILLING.md](https://github.com/weaveworks/service/blob/master/BILLING.md)
