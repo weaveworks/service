@@ -55,18 +55,17 @@ func (z *Zuora) GetAuthenticationTokens(ctx context.Context, weaveUserID string)
 		resp.AccountNumber = ToZuoraAccountNumber(weaveUserID)
 	}
 
-	r, err := z.postJSON(
+	err := z.Post(
 		ctx,
 		paymentTokenPath,
 		z.URL(paymentTokenPath), &authenticationRequest{
 			URI:    z.cfg.HostedPaymentPageURI,
 			Method: "POST",
 			PageID: z.cfg.HostedPaymentPageID,
-		})
+		},
+		resp,
+	)
 	if err != nil {
-		return nil, err
-	}
-	if err := z.parseJSON(r, resp); err != nil {
 		return nil, err
 	}
 	if !resp.Success {
@@ -86,17 +85,15 @@ type paymentUpdateMethod struct {
 
 // UpdatePaymentMethod updates the payment method.
 func (z *Zuora) UpdatePaymentMethod(ctx context.Context, paymentMethodID string) error {
-	r, err := z.putJSON(
+	resp := &genericZuoraResponse{}
+	err := z.Put(
 		ctx,
 		updatePaymentPath,
 		z.URL(updatePaymentPath, paymentMethodID),
 		&paymentUpdateMethod{DefaultPaymentMethod: true},
+		resp,
 	)
 	if err != nil {
-		return err
-	}
-	resp := &genericZuoraResponse{}
-	if err := z.parseJSON(r, resp); err != nil {
 		return err
 	}
 	if !resp.Success {
@@ -108,7 +105,7 @@ func (z *Zuora) UpdatePaymentMethod(ctx context.Context, paymentMethodID string)
 // GetPaymentMethod gets the payment method from Zuora.
 func (z *Zuora) GetPaymentMethod(ctx context.Context, weaveUserID string) (*CreditCard, error) {
 	resp := &paymentMethods{}
-	err := z.getJSON(ctx, getPaymentPath, z.URL(getPaymentPath, ToZuoraAccountNumber(weaveUserID)), resp)
+	err := z.Get(ctx, getPaymentPath, z.URL(getPaymentPath, ToZuoraAccountNumber(weaveUserID)), resp)
 	if err != nil {
 		return nil, err
 	}

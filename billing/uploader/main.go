@@ -77,10 +77,7 @@ func main() {
 		log.Fatalf("error initialising users client: %v", err)
 	}
 
-	zuora, err := zuora.New(zuoraConfig, nil)
-	if err != nil {
-		log.Fatalf("error initialising Zuora client: %v", err)
-	}
+	zuora := zuora.New(zuoraConfig, nil)
 
 	server, err := server.New(serverConfig)
 	if err != nil {

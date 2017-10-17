@@ -59,10 +59,7 @@ func main() {
 		log.Fatalf("error initialising users client: %v", err)
 	}
 
-	z, err := zuora.New(cfg.zuoraConfig, nil)
-	if err != nil {
-		log.Fatalf("error initialising Zuora client: %v", err)
-	}
+	z := zuora.New(cfg.zuoraConfig, nil)
 
 	db, err := db.New(cfg.dbConfig)
 	if err != nil {

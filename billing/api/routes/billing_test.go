@@ -40,7 +40,7 @@ func TestPaymentOnBillingDay(t *testing.T) {
 	now := time.Now().UTC()
 	signup := now
 	trialExpiry := now.Add(30 * 24 * time.Hour)
-	z := zuoraClient(t)
+	z := zuoraClient()
 	account, err := createZuoraAccount(ctx, z, externalID, trialExpiry, signup.Day())
 	if err != nil {
 		t.Errorf("Failed to create zuora account: %v", err)
@@ -69,7 +69,7 @@ func TestPaymentInTrial(t *testing.T) {
 		billCycleDay = signup.Add(-24 * time.Hour).Day()
 	}
 	trialExpiry := now.Add(15 * 24 * time.Hour)
-	z := zuoraClient(t)
+	z := zuoraClient()
 	account, err := createZuoraAccount(ctx, z, externalID, trialExpiry, signup.Day())
 	if err != nil {
 		t.Errorf("Failed to create zuora account: %v", err)
@@ -99,7 +99,7 @@ func TestPaymentAfterTrialSignupSameMonth(t *testing.T) {
 	if !trialExpiry.Before(now) {
 		t.Errorf("trialExpiry should be before now: %v, %v", trialExpiry, now)
 	}
-	z := zuoraClient(t)
+	z := zuoraClient()
 	account, err := createZuoraAccount(ctx, z, externalID, trialExpiry, billCycleDay)
 	if err != nil {
 		t.Errorf("Failed to create zuora account: %v", err)
@@ -150,7 +150,7 @@ func TestTrialExpiresPaymentNextMonth(t *testing.T) {
 	if !trialExpiry.Before(now) {
 		t.Errorf("trialExpiry should be before now: %v, %v", trialExpiry, now)
 	}
-	z := zuoraClient(t)
+	z := zuoraClient()
 	account, err := createZuoraAccount(ctx, z, externalID, trialExpiry, billCycleDay)
 	if err != nil {
 		t.Errorf("Failed to create zuora account: %v", err)
@@ -209,7 +209,7 @@ func TestTrialExpiresPaymentNextTwoMonth(t *testing.T) {
 	if !trialExpiry.Before(now) {
 		t.Errorf("trialExpiry should be before now: %v, %v", trialExpiry, now)
 	}
-	z := zuoraClient(t)
+	z := zuoraClient()
 	account, err := createZuoraAccount(ctx, z, externalID, trialExpiry, billCycleDay)
 	if err != nil {
 		t.Errorf("Failed to create zuora account: %v", err)
@@ -262,12 +262,8 @@ func externalID() string {
 	return fmt.Sprintf("billing-test-%v", nanos)
 }
 
-func zuoraClient(t *testing.T) *zuora.Zuora {
-	z, err := zuora.New(mockzuora.Config, nil)
-	if err != nil {
-		t.Errorf("Failed to initialize zuora client: %v", err)
-	}
-	return z
+func zuoraClient() *zuora.Zuora {
+	return zuora.New(mockzuora.Config, nil)
 }
 
 func unitPrice(ctx context.Context, z *zuora.Zuora, t *testing.T) float64 {

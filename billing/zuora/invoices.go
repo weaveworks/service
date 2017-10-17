@@ -93,7 +93,7 @@ func (z *Zuora) GetInvoices(ctx context.Context, weaveOrgID, page, pageSize stri
 	url := z.URL(getInvoicesPath, ToZuoraAccountNumber(weaveOrgID))
 	url = url + "?" + pagingParams(page, pageSize).Encode()
 	resp := &invoicesResponse{}
-	if err := z.getJSON(ctx, getInvoicesPath, url, resp); err != nil {
+	if err := z.Get(ctx, getInvoicesPath, url, resp); err != nil {
 		return nil, err
 	}
 	if !resp.Success {
@@ -110,23 +110,19 @@ func (z *Zuora) GetInvoices(ctx context.Context, weaveOrgID, page, pageSize stri
 // its status set to posted, and the customer is charged.
 func (z *Zuora) CreateInvoice(ctx context.Context, weaveOrgID string) (string, error) {
 	accountKey := ToZuoraAccountNumber(weaveOrgID)
-	resp, err := z.postJSON(
+	resp := &createInvoiceResponse{}
+	err := z.Post(
 		ctx,
 		createInvoicePath,
 		z.URL(createInvoicePath),
 		&createInvoiceRequest{AccountKey: accountKey},
+		resp,
 	)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
-	zuoraResponse := &createInvoiceResponse{}
-	err = json.NewDecoder(resp.Body).Decode(zuoraResponse)
-	if err != nil {
-		return "", err
+	if !resp.Success {
+		return "", resp
 	}
-	if !zuoraResponse.Success {
-		return "", zuoraResponse
-	}
-	return zuoraResponse.PaymentID, nil
+	return resp.PaymentID, nil
 }
