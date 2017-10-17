@@ -384,7 +384,7 @@
   branch = "master"
   name = "github.com/weaveworks/common"
   packages = ["errors","http/client","httpgrpc","httpgrpc/server","instrument","logging","mflag","mflagext","middleware","mtime","server","signals","user"]
-  revision = "3605c1d8b321342414b00d1f2153ad23aee9f1b2"
+  revision = "1df6402aaf7232feadf798b64c6a0cae847e84d8"
 
 [[projects]]
   name = "github.com/weaveworks/promrus"
