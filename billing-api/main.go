@@ -8,7 +8,7 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 
-	"github.com/weaveworks/service/billing/api/routes"
+	"github.com/weaveworks/service/billing-api/routes"
 	"github.com/weaveworks/service/billing/db"
 	"github.com/weaveworks/service/billing/users"
 	"github.com/weaveworks/service/billing/zuora"

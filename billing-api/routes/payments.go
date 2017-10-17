@@ -5,7 +5,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/weaveworks/service/billing/api/render"
+	"github.com/weaveworks/service/billing-api/render"
 )
 
 // GetAuthToken is a HTTP handler to retrieve the auth token.

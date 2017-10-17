@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/weaveworks/service/billing/api"
+	"github.com/weaveworks/service/billing-api"
 )
 
 func TestConfigValidate(t *testing.T) {

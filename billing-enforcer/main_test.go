@@ -8,7 +8,7 @@ import (
 	"github.com/golang/mock/gomock"
 
 	"github.com/weaveworks/common/instrument"
-	"github.com/weaveworks/service/billing/enforcer/job"
+	"github.com/weaveworks/service/billing-enforcer/job"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/mock_users"
 )

@@ -10,7 +10,7 @@ import (
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
-	"github.com/weaveworks/service/billing/enforcer/job"
+	"github.com/weaveworks/service/billing-enforcer/job"
 	billingUsers "github.com/weaveworks/service/billing/users"
 )
 

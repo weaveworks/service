@@ -41,13 +41,13 @@ client/build/*
 ui-server/build/*
 service-ui-kicker/service-ui-kicker
 github-receiver/github-receiver
-billing/aggregator/aggregator
-billing/aggregator/migrations
-billing/api/api
-billing/api/migrations
-billing/uploader/uploader
-billing/uploader/migrations
-billing/enforcer/enforcer
+billing-aggregator/aggregator
+billing-aggregator/migrations
+billing-api/api
+billing-api/migrations
+billing-uploader/uploader
+billing-uploader/migrations
+billing-enforcer/enforcer
 
 users/mock_users/*
 !users/mock_users/README

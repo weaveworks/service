@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/weaveworks/common/logging"
-	"github.com/weaveworks/service/billing/api/render"
+	"github.com/weaveworks/service/billing-api/render"
 	"github.com/weaveworks/service/billing/db"
 	"github.com/weaveworks/service/billing/util"
 	timeutil "github.com/weaveworks/service/billing/util/time"

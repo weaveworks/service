@@ -6,7 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/weaveworks/service/billing/api/render"
+	"github.com/weaveworks/service/billing-api/render"
 	"github.com/weaveworks/service/billing/util"
 	"github.com/weaveworks/service/users"
 )
