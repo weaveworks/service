@@ -11,12 +11,15 @@ type memory struct {
 	mtx                        sync.RWMutex
 	aggregates                 []Aggregate
 	postTrialInvoices          map[string]PostTrialInvoice
-	usageUploadsMaxAggregateID int
+	usageUploadsMaxAggregateID map[string]int // Maps uploaders to agg ID
 }
 
 // New creates a new in-memory database
 func newMemory() *memory {
-	return &memory{}
+	return &memory{
+		postTrialInvoices:          make(map[string]PostTrialInvoice),
+		usageUploadsMaxAggregateID: make(map[string]int),
+	}
 }
 
 func (db *memory) UpsertAggregates(ctx context.Context, aggregates []Aggregate) (err error) {
@@ -60,18 +63,18 @@ func (db *memory) GetAggregatesAfter(ctx context.Context, instanceID string, fro
 	return result, nil
 }
 
-func (db *memory) InsertUsageUpload(ctx context.Context, aggregateID int) (int64, error) {
-	db.usageUploadsMaxAggregateID = aggregateID
+func (db *memory) InsertUsageUpload(ctx context.Context, uploader string, aggregateID int) (int64, error) {
+	db.usageUploadsMaxAggregateID[uploader] = aggregateID
 	return 1, nil
 }
 
-func (db *memory) DeleteUsageUpload(ctx context.Context, uploadID int64) error {
-	db.usageUploadsMaxAggregateID = 0
+func (db *memory) DeleteUsageUpload(ctx context.Context, uploader string, aggregateID int64) error {
+	delete(db.usageUploadsMaxAggregateID, uploader)
 	return nil
 }
 
-func (db *memory) GetUsageUploadLargestAggregateID(ctx context.Context) (int, error) {
-	return db.usageUploadsMaxAggregateID, nil
+func (db *memory) GetUsageUploadLargestAggregateID(ctx context.Context, uploader string) (int, error) {
+	return db.usageUploadsMaxAggregateID[uploader], nil
 }
 
 func (db *memory) GetMonthSums(ctx context.Context, instanceIDs []string, from, through time.Time) (map[string][]Aggregate, error) {

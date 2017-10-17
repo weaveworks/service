@@ -78,13 +78,8 @@ func EndOfCycle(t time.Time, cycleDay int) time.Time {
 	return JustBefore(NextCycleStart(t, cycleDay))
 }
 
-// MonthlyIntervalsWithinRange returns a slice of monthly intervals bounded by `from` and `to`.
-func MonthlyIntervalsWithinRange(from, to time.Time) ([]Interval, error) {
-	return MonthlyIntervalsWithinRangeByCycleDay(from, to, 1)
-}
-
-// MonthlyIntervalsWithinRangeByCycleDay returns a slice of intervals bounded by `from` and `to`, where the start of an interval start on `day`
-func MonthlyIntervalsWithinRangeByCycleDay(from, to time.Time, cycleDay int) ([]Interval, error) {
+// MonthlyIntervalsWithinRange returns a slice of intervals bounded by `from` and `to`, where the start of an interval start on `day`
+func MonthlyIntervalsWithinRange(from, to time.Time, cycleDay int) ([]Interval, error) {
 	if !from.Before(to) {
 		return nil, errors.New("from must be lower than to")
 	}

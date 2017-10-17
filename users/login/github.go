@@ -1,6 +1,7 @@
 package login
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -45,12 +46,12 @@ func (g *github) Login(r *http.Request) (string, string, json.RawMessage, map[st
 	// NewTransportWithCode will do the handshake to retrieve
 	// an access token and initiate a Transport that is
 	// authorized and authenticated by the retrieved token.
-	tok, err := g.Config.Exchange(oauth2.NoContext, r.FormValue("code"))
+	tok, err := g.Config.Exchange(context.TODO(), r.FormValue("code"))
 	if err != nil {
 		return "", "", nil, nil, err
 	}
 
-	oauthClient := g.Config.Client(oauth2.NoContext, tok)
+	oauthClient := g.Config.Client(context.TODO(), tok)
 	client := gClient.NewClient(oauthClient)
 	user, _, err := client.Users.Get("")
 	if err != nil {
@@ -80,7 +81,7 @@ func (g *github) Username(session json.RawMessage) (string, error) {
 	if err := json.Unmarshal(session, &s); err != nil {
 		return "", err
 	}
-	oauthClient := g.Config.Client(oauth2.NoContext, s.Token)
+	oauthClient := g.Config.Client(context.TODO(), s.Token)
 	client := gClient.NewClient(oauthClient)
 	user, _, err := client.Users.Get("")
 	if err != nil {

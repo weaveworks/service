@@ -33,19 +33,19 @@ func (t traced) GetAggregatesAfter(ctx context.Context, instanceID string, from,
 	return t.d.GetAggregatesAfter(ctx, instanceID, from, through, fromID)
 }
 
-func (t traced) GetUsageUploadLargestAggregateID(ctx context.Context) (maxAggregateID int, err error) {
-	defer func() { t.trace("GetUsageUploadLargestAggregateID", maxAggregateID, err) }()
-	return t.d.GetUsageUploadLargestAggregateID(ctx)
+func (t traced) GetUsageUploadLargestAggregateID(ctx context.Context, uploader string) (maxAggregateID int, err error) {
+	defer func() { t.trace("GetUsageUploadLargestAggregateID", uploader, maxAggregateID, err) }()
+	return t.d.GetUsageUploadLargestAggregateID(ctx, uploader)
 }
 
-func (t traced) InsertUsageUpload(ctx context.Context, maxAggregateID int) (uploadID int64, err error) {
-	defer func() { t.trace("InsertUsageUpload", maxAggregateID, uploadID, err) }()
-	return t.d.InsertUsageUpload(ctx, maxAggregateID)
+func (t traced) InsertUsageUpload(ctx context.Context, uploader string, maxAggregateID int) (uploadID int64, err error) {
+	defer func() { t.trace("InsertUsageUpload", uploader, maxAggregateID, uploadID, err) }()
+	return t.d.InsertUsageUpload(ctx, uploader, maxAggregateID)
 }
 
-func (t traced) DeleteUsageUpload(ctx context.Context, uploadID int64) (err error) {
-	defer func() { t.trace("DeletUsageUpload", uploadID, err) }()
-	return t.d.DeleteUsageUpload(ctx, uploadID)
+func (t traced) DeleteUsageUpload(ctx context.Context, uploader string, uploadID int64) (err error) {
+	defer func() { t.trace("DeleteUsageUpload", uploader, uploadID, err) }()
+	return t.d.DeleteUsageUpload(ctx, uploader, uploadID)
 }
 
 func (t traced) GetMonthSums(ctx context.Context, instanceIDs []string, from, through time.Time) (as map[string][]Aggregate, err error) {

@@ -50,25 +50,25 @@ func (t timed) GetAggregatesAfter(ctx context.Context, instanceID string, from, 
 	return
 }
 
-func (t timed) GetUsageUploadLargestAggregateID(ctx context.Context) (largestAggregateID int, err error) {
+func (t timed) GetUsageUploadLargestAggregateID(ctx context.Context, uploader string) (largestAggregateID int, err error) {
 	t.timeRequest(ctx, "GetUsageUploadLargestAggregateID", func(ctx context.Context) error {
-		largestAggregateID, err = t.d.GetUsageUploadLargestAggregateID(ctx)
+		largestAggregateID, err = t.d.GetUsageUploadLargestAggregateID(ctx, uploader)
 		return err
 	})
 	return
 }
 
-func (t timed) InsertUsageUpload(ctx context.Context, maxAggregateID int) (uploadID int64, err error) {
+func (t timed) InsertUsageUpload(ctx context.Context, uploader string, maxAggregateID int) (uploadID int64, err error) {
 	t.timeRequest(ctx, "InsertUsageUpload", func(ctx context.Context) error {
-		uploadID, err = t.d.InsertUsageUpload(ctx, maxAggregateID)
+		uploadID, err = t.d.InsertUsageUpload(ctx, uploader, maxAggregateID)
 		return err
 	})
 	return
 }
 
-func (t timed) DeleteUsageUpload(ctx context.Context, uploadID int64) (err error) {
+func (t timed) DeleteUsageUpload(ctx context.Context, uploader string, aggregateID int64) (err error) {
 	t.timeRequest(ctx, "DeleteUsageUpload", func(ctx context.Context) error {
-		err = t.d.DeleteUsageUpload(ctx, uploadID)
+		err = t.d.DeleteUsageUpload(ctx, uploader, aggregateID)
 		return err
 	})
 	return

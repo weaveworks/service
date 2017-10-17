@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	logger "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gorilla/mux"
 
@@ -112,7 +112,7 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 		if err != nil {
 			return err
 		}
-		logger.Infof("Billing enabled for %v/%v/%v.", org.ID, view.ExternalID, view.Name)
+		log.Infof("Billing enabled for %v/%v/%v.", org.ID, view.ExternalID, view.Name)
 	}
 	return nil
 }
@@ -298,6 +298,7 @@ func (a *API) setOrgFeatureFlags(ctx context.Context, orgExternalID string, flag
 	}
 
 	if enablingBilling {
+		log.Infof("Billing manually enabled for %v", orgExternalID)
 		// For existing customers, we extend the trial period starting today and send members an email if we did so
 		expires := time.Now().Add(users.TrialExtensionDuration)
 		if err := a.extendOrgTrialPeriod(ctx, org, expires); err != nil {

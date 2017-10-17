@@ -57,7 +57,7 @@ func NewEnforce(client users.UsersClient, cfg Config, collector *instrument.JobC
 // Run starts the job and logs errors.
 func (j *Enforce) Run() {
 	if err := j.Do(); err != nil {
-		log.Errorf("Error running job %v", err)
+		log.Errorf("Error running job: %v", err)
 	}
 }
 

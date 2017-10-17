@@ -137,7 +137,7 @@ func TestMonthlyIntervalsWithinRange(t *testing.T) {
 	// first case: no overlapping month
 	from := ts(t, "2017-09-13 12:30:32")
 	to := ts(t, "2017-09-24 23:43:12")
-	intervals, err := MonthlyIntervalsWithinRange(from, to)
+	intervals, err := MonthlyIntervalsWithinRange(from, to, 1)
 	if err != nil {
 		t.Fatal("Failed to run MonthlyIntervalsWithinRange", err)
 	}
@@ -155,7 +155,7 @@ func TestMonthlyIntervalsWithinRange(t *testing.T) {
 	// second case: cross the year
 	from = ts(t, "2017-11-13 12:30:32")
 	to = ts(t, "2018-02-24 23:43:12")
-	intervals, err = MonthlyIntervalsWithinRange(from, to)
+	intervals, err = MonthlyIntervalsWithinRange(from, to, 1)
 	if err != nil {
 		t.Fatal("Failed to run MonthlyIntervalsWithinRange", err)
 	}
@@ -201,7 +201,7 @@ func TestMonthlyIntervalsWithinRange(t *testing.T) {
 	// third case: align with start of month
 	from = ts(t, "2017-11-01 00:00:00")
 	to = ts(t, "2017-12-03 23:43:12")
-	intervals, err = MonthlyIntervalsWithinRange(from, to)
+	intervals, err = MonthlyIntervalsWithinRange(from, to, 1)
 	if err != nil {
 		t.Fatal("Failed to run MonthlyIntervalsWithinRange", err)
 	}
@@ -230,7 +230,7 @@ func TestMonthlyIntervalsWithinRange(t *testing.T) {
 	// fourth case: align with start of next month
 	from = ts(t, "2017-11-23 13:32:12")
 	to = ts(t, "2017-12-01 00:00:00")
-	intervals, err = MonthlyIntervalsWithinRange(from, to)
+	intervals, err = MonthlyIntervalsWithinRange(from, to, 1)
 	if err != nil {
 		t.Fatal("Failed to run MonthlyIntervalsWithinRange", err)
 	}
