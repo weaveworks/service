@@ -1,9 +1,11 @@
 package common_test
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -14,8 +16,6 @@ import (
 
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/service/common"
-	"mime/multipart"
-	"bytes"
 )
 
 var ctx = context.Background()
