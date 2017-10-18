@@ -10,21 +10,16 @@ import (
 	"strings"
 
 	"github.com/weaveworks/common/http/client"
-	"github.com/weaveworks/common/instrument"
 )
 
-// JSONClient is an instrumented HTTP client that receives JSON.
+// JSONClient is an instrumented HTTP cl that receives JSON.
 type JSONClient struct {
-	client    client.Requester
-	collector *instrument.HistogramCollector
+	cl client.Requester
 }
 
 // NewJSONClient creates a JSONClient.
-func NewJSONClient(client client.Requester, collector *instrument.HistogramCollector) *JSONClient {
-	return &JSONClient{
-		client:    client,
-		collector: collector,
-	}
+func NewJSONClient(client client.Requester) *JSONClient {
+	return &JSONClient{client}
 }
 
 // Get does a GET request and unmarshals the response into dest.
@@ -74,27 +69,25 @@ func (c *JSONClient) Delete(ctx context.Context, operation, url string, dest int
 
 // Upload sends a file and unmarshals the response into dest.
 func (c *JSONClient) Upload(ctx context.Context, operation, url, contentType string, body io.Reader, dest interface{}) error {
-	r, err := c.send(ctx, operation, "POST", url, contentType, body)
+	r, err := c.post(ctx, operation, url, contentType, body)
 	if err != nil {
 		return err
 	}
 	return c.parseJSON(r, dest)
 }
 
-// Do executes an instrumented JSON request.
+// Do executes the given request. It embeds the context into the request and ties the operation name to it.
 func (c *JSONClient) Do(ctx context.Context, operation string, r *http.Request) (*http.Response, error) {
-	if r.Header.Get("Content-Type") == "" {
-		r.Header.Set("Content-Type", "application/json")
+	if operation != "" {
+		// TODO(rndstr): once we move this pkg into common, move key constant to this pkg.
+		ctx = context.WithValue(ctx, client.OperationNameContextKey, operation)
 	}
-	return client.TimeRequest(ctx, operation, c.collector, c.client, r)
+	r = r.WithContext(ctx)
+	return c.cl.Do(r)
 }
 
 func (c *JSONClient) get(ctx context.Context, operation, url string) (*http.Response, error) {
-	r, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	return c.Do(ctx, operation, r)
+	return c.send(ctx, operation, "GET", url, "", nil)
 }
 
 func (c *JSONClient) parseJSON(resp *http.Response, dest interface{}) error {
@@ -118,10 +111,16 @@ func (c *JSONClient) post(ctx context.Context, operation, url, contentType strin
 	return c.send(ctx, operation, "POST", url, contentType, body)
 }
 
+// send is the one method in this struct to actually doing the request. It embeds the context in the request
+// and injects the operation name.
 func (c *JSONClient) send(ctx context.Context, operation, method, url, contentType string, body io.Reader) (*http.Response, error) {
 	r, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
+	}
+	// Set context and inject operation name
+	if contentType == "" {
+		contentType = "application/json"
 	}
 	r.Header.Set("Content-Type", contentType)
 	return c.Do(ctx, operation, r)

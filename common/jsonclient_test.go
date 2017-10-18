@@ -11,10 +11,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/service/common"
 )
 
@@ -122,8 +120,7 @@ func TestJSONClient_PostForm(t *testing.T) {
 }
 
 func createMocks() (*httptest.Server, *common.JSONClient, func() (*http.Request, string)) {
-	coll := instrument.NewHistogramCollectorFromOpts(prometheus.HistogramOpts{})
-	cl := common.NewJSONClient(http.DefaultClient, coll)
+	cl := common.NewJSONClient(http.DefaultClient)
 	var req *http.Request
 	var body string
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
