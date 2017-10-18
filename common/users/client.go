@@ -51,8 +51,8 @@ func init() {
 	durationCollector.Register()
 }
 
-// New instantiates Client.
-func New(cfg Config) (*Client, error) {
+// NewClient instantiates Client.
+func NewClient(cfg Config) (*Client, error) {
 	address, dialOptions, err := server.ParseURL(cfg.HostPort)
 	if err != nil {
 		return nil, err

@@ -10,7 +10,7 @@ import (
 
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-api/routes"
-	"github.com/weaveworks/service/common/users-client"
+	"github.com/weaveworks/service/common/users"
 	"github.com/weaveworks/service/common/zuora"
 )
 
@@ -54,7 +54,7 @@ func main() {
 		log.Fatalf("error initialising logging: %v", err)
 	}
 
-	users, err := users.New(cfg.usersConfig)
+	users, err := users.NewClient(cfg.usersConfig)
 	if err != nil {
 		log.Fatalf("error initialising users client: %v", err)
 	}

@@ -13,7 +13,7 @@ import (
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-uploader/job"
-	usersClient "github.com/weaveworks/service/common/users-client"
+	"github.com/weaveworks/service/common/users"
 	"github.com/weaveworks/service/common/zuora"
 )
 
@@ -53,7 +53,7 @@ func main() {
 		logLevel     = flag.String("log.level", "info", "The log level")
 		serverConfig server.Config
 		dbConfig     db.Config
-		usersConfig  usersClient.Config
+		usersConfig  users.Config
 		zuoraConfig  zuora.Config
 	)
 	serverConfig.RegisterFlags(flag.CommandLine)
@@ -72,7 +72,7 @@ func main() {
 	}
 	defer db.Close(context.Background())
 
-	users, err := usersClient.New(usersConfig)
+	users, err := users.NewClient(usersConfig)
 	if err != nil {
 		log.Fatalf("error initialising users client: %v", err)
 	}
