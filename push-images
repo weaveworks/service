@@ -1,83 +1,195 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
 
-set -o errexit
-set -o nounset
-set -o pipefail
+import argparse
+import os
+import subprocess
+import sys
 
-BUILD_IMAGE_REPO=quay.io/weaveworks
-# Override if you want to push images elsewhere, e.g,. a locally-running registry
-IMAGE_REPOSITORY=${IMAGE_REPOSITORY:-${BUILD_IMAGE_REPO}}
 
-echo ""
-if [ "$IMAGE_REPOSITORY" == "$BUILD_IMAGE_REPO" ]; then
-    echo "When pushing to quay.io, you will *not* be prompted to log in. To get your password:"
-    echo ""
-    echo "  1. Go to http://quay.io"
-    echo "  2. Log in with e.g. GitHub"
-    echo "  3. Go to settings and generate an encrypted password"
-    echo "  4. Follow instructions"
-    echo ""
-    echo ""
-fi
+BUILD_IMAGE_REPO = 'quay.io/weaveworks'
 
-SINCE=false
-while [ $# -gt 0 ]; do
-    case "${1:-}" in
-        --if-changed-since=*)
-            SINCE=${1#--if-changed-since}
-            shift 1
-            ;;
-        --if-changed-since)
-            SINCE=${2:-HEAD~1}
-            shift 2
-            ;;
-        *)
-            break
-            ;;
-    esac
-done
+QUAY_IO_WARNING = """
+When pushing to quay.io, you will *not* be prompted to log in. To get your password:
 
-COMPONENTS=(authfe users metrics logging notebooks service-ui-kicker github-receiver
-    billing-api billing-uploader billing-hpm_demo billing-ingester billing-enforcer billing-aggregator)
-if [ $# -gt 0 ]; then
-    COMPONENTS=("$@")
-fi
+  1. Go to http://quay.io
+  2. Log in with e.g. GitHub
+  3. Go to settings and generate an encrypted password
+  4. Follow instructions
+"""
 
-echo "Using components: ${COMPONENTS[*]}"
+DEFAULT_COMPONENTS = [
+    'authfe',
+    'users',
+    'metrics',
+    'logging',
+    'notebooks',
+    'service-ui-kicker',
+    'github-receiver',
+    'billing-api',
+    'billing-uploader',
+    'billing-hpm_demo',
+    'billing-ingester',
+    'billing-enforcer',
+    'billing-aggregator',
+]
 
-IMAGE_TAG=$(./tools/image-tag)
+"""Map from component to list of known dependencies.
 
-for c in ${COMPONENTS[*]}; do
-    if [ "$SINCE" != 'false' ] && [ ! -d "$c" ]; then
-        echo "Component $c does not have a corresponding directory"
-        exit 1
-    fi
-    image=$(basename "$c")
-    build_image="${BUILD_IMAGE_REPO}/${image}:${IMAGE_TAG}"
-    if ! docker inspect "${build_image}" >/dev/null; then
-        echo "Expected image ${build_image} to exist, given the working directory state:" >&2
-        echo "    ${IMAGE_TAG}" >&2
-        echo "and the components to push:" >&2
-        echo "    ${COMPONENTS[*]}" >&2
-        echo "But it does not exist. The local build may not have resulted in a new image." >&2
-        exit 1
-    fi
-done
+Used by 'has_changed_since' (via 'get_dependencies') to calculate whether a
+component has changed, and thus whether to push a new image.
 
-for c in ${COMPONENTS[*]}; do
-    # NB this only works if the code is in directories named for the
-    # components, of course.
-    image=$(basename "$c")
-    push_image="${IMAGE_REPOSITORY}/${image}:${IMAGE_TAG}"
-    if [ "$SINCE" = 'false' ] || ! git diff --quiet "$SINCE" -- "$c"/; then
-        build_image="${BUILD_IMAGE_REPO}/${image}:${IMAGE_TAG}"
-        if [ "$IMAGE_REPOSITORY" != "$BUILD_IMAGE_REPO" ]; then
-            echo "Tagging built image ${build_image} for pushing as ${push_image}"
-            docker tag -f "${build_image}" "${push_image}"
-        fi
-        echo "Pushing ${push_image}"
-        docker push "${push_image}"
-    else
-        echo "Not pushing image for $push_image, because no changes in $c since commit $SINCE"
-    fi
-done
+These need to correspond to the files used to build the Docker image.
+"""
+DEPENDENCIES = {
+    'authfe': ['authfe'],
+    'users': ['users', 'common'],
+    'metrics': ['metrics'],
+    'logging': ['logging'],
+    'notebooks': ['notebooks'],
+    'service-ui-kicker': ['service-ui-kicker'],
+    'github-receiver': ['github-receiver'],
+    'billing-api': ['billing-api', 'common', 'users'],
+    'billing-uploader': ['billing-uploader', 'common', 'users', 'billing-api'],
+    'billing-hpm_demo': ['billing-hpm_demo'],
+    'billing-ingester': ['billing-ingester'],
+    'billing-enforcer': ['billing-enforcer', 'common', 'users'],
+    'billing-aggregator': ['billing-aggregator', 'common', 'users', 'billing-api'],
+}
+
+
+class ConfigError(Exception):
+    """There was a problem with the local repository's config."""
+
+
+def no_such_image(build_image, image_tag, component):
+    """Raised when we cannot find the build image."""
+    return ConfigError('''
+Expected image {} to exist, given the working directory state:
+    {}
+and the component to push:
+    {}
+But it does not exist. The local build may not have resulted in a new image.
+        '''.format(build_image, image_tag, component))
+
+
+def make_parser():
+    parser = argparse.ArgumentParser(prog='push-images')
+    # XXX: Not quite the same behaviour as the old one, since that has
+    # different behaviour depending on whether the flag is given with a value
+    # or without.
+    parser.add_argument(
+        '--if-changed-since', type=str, default=None, dest='since',
+        help='Only push images if changed since this revision')
+    parser.add_argument(
+        '--dry-run', action="store_true",
+        help='Do not perform side-effect (eg pushing images)')
+    parser.add_argument(
+        'components', type=str, nargs='*',
+        help='Which components to push')
+    return parser
+
+
+def get_dependencies(component):
+    """Returns the list of files and directories used to build 'component'.
+
+    Currently assumes that code is named for directories in components.
+    """
+    try:
+        deps = DEPENDENCIES[component]
+    except KeyError:
+        raise ConfigError(
+            "Couldn't find dependencies for component {}".format(component))
+    return deps
+
+
+def has_changed_since(since, component):
+    """Has 'component' changed since the given revision?
+
+    :raise ConfigError: If any of the dependencies are not files or directories
+        that exist on disk.
+    :return: True if component has changed since 'since', otherwise False.
+    """
+    deps = get_dependencies(component)
+    for dep in deps:
+        if not os.path.exists(dep):
+            raise ConfigError(
+                'Component {} depends on {} but it does not exist'.format(
+                    component, dep))
+
+    cmd = ['git', 'diff', '--quiet', since, '--']
+    cmd.extend(deps)
+    try:
+        subprocess.check_output(cmd)
+    except subprocess.CalledProcessError:
+        # git diff --quiet exits with 1 if there were differences.
+        return True
+    return False
+
+
+def image_exists(image_name):
+    """Is there an image named 'image_name' in the local registry?"""
+    try:
+        subprocess.check_output(['docker', 'inspect', image_name])
+    except subprocess.CalledProcessError:
+        return False
+    return True
+
+
+def push_to_repo(build_image, push_image, dry_run=False):
+    """Push 'build_image' to a Docker repository as 'push_image'."""
+    if build_image != push_image:
+        print('Tagging build image {} for pushing as {}'.format(build_image, push_image))
+        subprocess.check_call(['docker', 'tag', '-f', build_image, push_image])
+
+    print('Pushing {}{}'.format('<dry run> ' if dry_run else '', push_image))
+    if not dry_run:
+        subprocess.check_call(['docker', 'push', push_image])
+
+
+def push_component(component, image_repository, image_tag, since=None, dry_run=False):
+    """Push 'compenent' to 'image_repository' with 'image_tag'.
+
+    Do not push if not changed since 'since'. If 'since' not supplied, push
+    regardless.
+    """
+    image = os.path.basename(component)
+    build_image = '{}/{}:{}'.format(BUILD_IMAGE_REPO, image, image_tag)
+    if not image_exists(build_image):
+        raise no_such_image(build_image, image_tag, component)
+
+    push_image = '{}/{}:{}'.format(image_repository, image, image_tag)
+    if since and not has_changed_since(since, component):
+        print(
+            'Not pushing image for {}, because no changes in {} since commit {}'.format(
+                push_image, component, since))
+        return
+
+    push_to_repo(build_image, push_image, dry_run)
+
+
+def main():
+    image_repository = os.environ.get('IMAGE_REPOSITORY', BUILD_IMAGE_REPO)
+    if image_repository == BUILD_IMAGE_REPO:
+        print(QUAY_IO_WARNING)
+
+    parser = make_parser()
+    opts = parser.parse_args()
+
+    components = opts.components
+    if not components:
+        components = DEFAULT_COMPONENTS
+
+    print('Using components: {}'.format(' '.join(components)))
+
+    image_tag = subprocess.check_output(['./tools/image-tag']).strip()
+
+    for component in components:
+        try:
+            push_component(component, image_repository, image_tag, opts.since, opts.dry_run)
+        except ConfigError as e:
+            sys.stderr.write(str(e))
+            sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()
