@@ -40,7 +40,7 @@ type zuoraCatalogResponse struct {
 // GetCurrentRates get the current product rates from Zuora.
 func (z *Zuora) GetCurrentRates(ctx context.Context) (RateMap, error) {
 	resp := &zuoraCatalogResponse{}
-	err := z.getJSON(ctx, productsPath, z.URL(productsPath), resp)
+	err := z.Get(ctx, productsPath, z.URL(productsPath), resp)
 	if err != nil {
 		return nil, err
 	}

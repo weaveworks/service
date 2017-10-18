@@ -3,12 +3,12 @@ package zuora
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/billing/util"
 )
 
 const (
@@ -130,7 +130,7 @@ func extractNodeSecondsSubscription(ctx context.Context, subscriptions []subscri
 	for _, zuoraSubscription := range subscriptions {
 		for _, zuoraPlans := range zuoraSubscription.RatePlans {
 			for _, zuoraPlan := range zuoraPlans.RatePlanCharges {
-				if strings.HasSuffix(zuoraPlan.Uom, "node-seconds") {
+				if strings.HasSuffix(zuoraPlan.Uom, util.UsageNodeSeconds) {
 					if subscription == nil {
 						subStartDate, err := time.Parse("2006-01-02", zuoraSubscription.SubscriptionStartDate)
 						if err != nil {
@@ -233,7 +233,7 @@ type zuoraSummaryResponse struct {
 
 func (z *Zuora) getAccountSummary(ctx context.Context, zuoraID string) (*zuoraSummaryResponse, error) {
 	resp := &zuoraSummaryResponse{}
-	err := z.getJSON(ctx, summaryPath, z.URL(summaryPath, zuoraID), resp)
+	err := z.Get(ctx, summaryPath, z.URL(summaryPath, zuoraID), resp)
 	return resp, err
 }
 
@@ -259,7 +259,7 @@ type subscriptionResponse struct {
 
 func (z *Zuora) getAccountSubscription(ctx context.Context, accountNumber string) (*zuoraSubscriptionResponse, error) {
 	resp := &zuoraSubscriptionResponse{}
-	err := z.getJSON(ctx, accountSubscriptionPath, z.URL(accountSubscriptionPath, accountNumber), resp)
+	err := z.Get(ctx, accountSubscriptionPath, z.URL(accountSubscriptionPath, accountNumber), resp)
 	return resp, err
 }
 
@@ -281,21 +281,15 @@ func (z *Zuora) UpdateAccount(ctx context.Context, id string, userDetails *Accou
 		return nil, ErrNoSubscriptions
 	}
 
-	resp, err := z.putJSON(ctx, accountPath, z.URL(accountPath, ToZuoraAccountNumber(id)), &updateAccountRequest{
+	resp := &updateAccountResponse{}
+	err = z.Put(ctx, accountPath, z.URL(accountPath, ToZuoraAccountNumber(id)), &updateAccountRequest{
 		BillToContact: userDetails.BillToContact,
-	})
-	defer resp.Body.Close()
+	}, resp)
 	if err != nil {
 		return nil, err
 	}
-
-	zuoraResponse := &updateAccountResponse{}
-	err = json.NewDecoder(resp.Body).Decode(zuoraResponse)
-	if err != nil {
-		return nil, err
-	}
-	if !zuoraResponse.Success {
-		return nil, zuoraResponse
+	if !resp.Success {
+		return nil, resp
 	}
 
 	// Account suspension happens separately from updating the actual account data.
@@ -337,18 +331,15 @@ type resumeAccountResponse struct {
 }
 
 func (z *Zuora) resumeAccount(ctx context.Context, subscriptionID string) error {
-	r, err := z.putJSON(
+	resp := &resumeAccountResponse{}
+	err := z.Put(
 		ctx,
 		resumePath,
 		z.URL(resumePath, subscriptionID),
 		&resumeAccountRequest{ResumePolicy: z.cfg.ResumePolicy},
+		resp,
 	)
 	if err != nil {
-		return err
-	}
-	resp := &resumeAccountResponse{}
-
-	if err := z.parseJSON(r, resp); err != nil {
 		return err
 	}
 	if !resp.Success {
@@ -369,17 +360,15 @@ type suspendAccountResponse struct {
 }
 
 func (z *Zuora) suspendAccount(ctx context.Context, subscriptionID string) error {
-	r, err := z.putJSON(
+	resp := &suspendAccountResponse{}
+	err := z.Put(
 		ctx,
 		suspendPath,
 		z.URL(suspendPath, subscriptionID),
 		&suspendAccountRequest{SuspendPolicy: z.cfg.SuspendPolicy},
+		resp,
 	)
 	if err != nil {
-		return err
-	}
-	resp := &suspendAccountResponse{}
-	if err := z.parseJSON(r, resp); err != nil {
 		return err
 	}
 	if !resp.Success {
@@ -516,23 +505,19 @@ func computeActivationAndAcceptanceDate(serviceActivationTime time.Time) (time.T
 
 // CreateAccount creates a Zuora account.
 func (z *Zuora) createAccount(ctx context.Context, orgID string, request *createAccountRequest) (*Account, error) {
-	resp, err := z.postJSON(
+	resp := &createAccountResponse{}
+	err := z.Post(
 		ctx,
 		accountsPath,
 		z.URL(accountsPath),
 		request,
+		resp,
 	)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	zuoraResponse := &createAccountResponse{}
-	err = json.NewDecoder(resp.Body).Decode(zuoraResponse)
-	if err != nil {
-		return nil, err
-	}
-	if !zuoraResponse.Success {
-		return nil, zuoraResponse
+	if !resp.Success {
+		return nil, resp
 	}
 	return z.GetAccount(ctx, orgID)
 }
@@ -542,6 +527,5 @@ func (z *Zuora) DeleteAccount(ctx context.Context, zuoraID string) error {
 	logger := logging.With(ctx)
 	path := deleteURL + fmt.Sprintf(deletePath, zuoraID)
 	logger.Warningf("Deleting account %v", zuoraID)
-	_, err := z.sendJSON(ctx, deletePath, "DELETE", path, nil)
-	return err
+	return z.Delete(ctx, deletePath, path, nil)
 }

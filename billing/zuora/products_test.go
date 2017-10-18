@@ -35,8 +35,7 @@ func TestGetCurrentRates(t *testing.T) {
 	assert.NoError(t, err)
 
 	c := &clientMock{body: string(f)}
-	z, err := zuora.New(conf, c)
-	assert.NoError(t, err)
+	z := zuora.New(conf, c)
 
 	rates, err := z.GetCurrentRates(context.Background())
 	assert.NoError(t, err)

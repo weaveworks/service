@@ -1,9 +1,7 @@
 package zuora
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,18 +13,19 @@ import (
 
 	"github.com/weaveworks/common/http/client"
 	"github.com/weaveworks/common/instrument"
+	"github.com/weaveworks/service/common"
 )
 
-var clientRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+var clientRequestCollector = instrument.NewHistogramCollector(prometheus.NewHistogramVec(prometheus.HistogramOpts{
 	Namespace: "billing",
 	Subsystem: "zuora_client",
 	Name:      "request_duration_seconds",
 	Help:      "Response time of zuora requests.",
 	Buckets:   prometheus.DefBuckets,
-}, instrument.HistogramCollectorBuckets)
+}, instrument.HistogramCollectorBuckets))
 
 func init() {
-	prometheus.MustRegister(clientRequestDuration)
+	clientRequestCollector.Register()
 }
 
 // Client defines an interface to access the Zuora API.
@@ -57,8 +56,20 @@ type Client interface {
 
 // Zuora implements Client.
 type Zuora struct {
-	cfg        Config
-	httpClient client.Requester
+	*common.JSONClient
+	cfg Config
+}
+
+type authClient struct {
+	cl   client.Requester
+	user string
+	pass string
+}
+
+func (a authClient) Do(r *http.Request) (*http.Response, error) {
+	r.Header.Set("apiAccessKeyId", a.user)
+	r.Header.Set("apiSecretAccessKey", a.pass)
+	return a.cl.Do(r)
 }
 
 type zuoraResponse interface {
@@ -125,17 +136,18 @@ func (r *genericZuoraResponse) hasErrorCodeCategory(cat int) bool {
 }
 
 // New returns a Zuora. If client is nil, http.Client is instantiated.
-func New(cfg Config, httpClient client.Requester) (*Zuora, error) {
+func New(cfg Config, httpClient client.Requester) *Zuora {
 	if !strings.HasSuffix(cfg.Endpoint, "/") {
 		cfg.Endpoint += "/"
 	}
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: cfg.Timeout}
 	}
+	httpClient = authClient{cl: httpClient, user: cfg.Username, pass: cfg.Password}
 	return &Zuora{
+		JSONClient: common.NewJSONClient(client.NewTimedClient(httpClient, clientRequestCollector)),
 		cfg:        cfg,
-		httpClient: httpClient,
-	}, nil
+	}
 }
 
 // GetConfig returns the underlying Config.
@@ -164,80 +176,4 @@ func pagingParams(page, pageSize string) url.Values {
 		"page":     []string{page},
 		"pageSize": []string{pageSize},
 	}
-}
-
-func (z *Zuora) do(ctx context.Context, method string, r *http.Request) (*http.Response, error) {
-	r.Header.Set("apiAccessKeyId", z.cfg.Username)
-	r.Header.Set("apiSecretAccessKey", z.cfg.Password)
-	if r.Header.Get("Content-Type") == "" {
-		r.Header.Set("Content-Type", "application/json")
-	}
-	return client.TimeRequestHistogram(ctx, method, clientRequestDuration, z.httpClient, r)
-}
-
-func (z *Zuora) get(ctx context.Context, operation, url string) (*http.Response, error) {
-	r, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	return z.do(ctx, operation, r)
-}
-
-func (z *Zuora) head(ctx context.Context, operation, url string) (*http.Response, error) {
-	r, err := http.NewRequest("HEAD", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	return z.do(ctx, operation, r)
-}
-
-func (z *Zuora) send(ctx context.Context, operation, method, url, contentType string, body io.Reader) (*http.Response, error) {
-	r, err := http.NewRequest(method, url, body)
-	if err != nil {
-		return nil, err
-	}
-	r.Header.Set("Content-Type", contentType)
-	return z.do(ctx, operation, r)
-}
-
-func (z *Zuora) getJSON(ctx context.Context, operation, url string, dest interface{}) error {
-	r, err := z.get(ctx, operation, url)
-	if err != nil {
-		return err
-	}
-	return z.parseJSON(r, dest)
-}
-
-func (z *Zuora) parseJSON(resp *http.Response, dest interface{}) error {
-	defer resp.Body.Close()
-	// TODO: Handle http status code errors
-	return json.NewDecoder(resp.Body).Decode(dest)
-}
-
-func (z *Zuora) sendJSON(ctx context.Context, operation, method, url string, data interface{}) (*http.Response, error) {
-	body, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
-	}
-	return z.send(ctx, operation, method, url, "application/json", bytes.NewReader(body))
-}
-
-func (z *Zuora) post(ctx context.Context, operation, url, contentType string, body io.Reader) (*http.Response, error) {
-	return z.send(ctx, operation, "POST", url, contentType, body)
-}
-
-func (z *Zuora) postJSON(ctx context.Context, operation, url string, data interface{}) (*http.Response, error) {
-	return z.sendJSON(ctx, operation, "POST", url, data)
-}
-
-func (z *Zuora) postForm(ctx context.Context, operation, url string, data url.Values) (*http.Response, error) {
-	return z.post(ctx, operation, url, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
-}
-
-func (z *Zuora) put(ctx context.Context, operation, url, contentType string, body io.Reader) (*http.Response, error) {
-	return z.send(ctx, operation, "PUT", url, contentType, body)
-}
-
-func (z *Zuora) putJSON(ctx context.Context, operation, url string, data interface{}) (*http.Response, error) {
-	return z.sendJSON(ctx, operation, "PUT", url, data)
 }

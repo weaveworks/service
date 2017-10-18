@@ -3,7 +3,6 @@ package zuora
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -63,29 +62,24 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader) (string, error) {
 		return "", err
 	}
 
-	resp, err := z.post(
+	resp := &postUsageResponse{}
+	err = z.Upload(
 		ctx,
 		postUsagePath,
 		z.URL(postUsagePath),
 		writer.FormDataContentType(),
 		body,
+		resp,
 	)
-
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
-	zuoraResponse := &postUsageResponse{}
-	err = json.NewDecoder(resp.Body).Decode(zuoraResponse)
-	if err != nil {
-		return "", err
-	}
-	if !zuoraResponse.Success {
-		return "", zuoraResponse
+	if !resp.Success {
+		return "", resp
 	}
 
-	logging.With(ctx).Infof("Response from Zuora: %v", zuoraResponse.CheckImportStatus)
-	importID, err := extractUsageImportID(zuoraResponse.CheckImportStatus)
+	logging.With(ctx).Infof("Response from Zuora: %v", resp.CheckImportStatus)
+	importID, err := extractUsageImportID(resp.CheckImportStatus)
 	if err != nil {
 		return "", err
 	}
@@ -97,7 +91,7 @@ func (z *Zuora) GetUsage(ctx context.Context, weaveOrgID, page, pageSize string)
 	url := z.URL(getUsagePath, ToZuoraAccountNumber(weaveOrgID))
 	url = url + "?" + pagingParams(page, pageSize).Encode()
 	resp := &getUsageResponse{}
-	if err := z.getJSON(ctx, getUsagePath, url, resp); err != nil {
+	if err := z.Get(ctx, getUsagePath, url, resp); err != nil {
 		return nil, err
 	}
 	if !resp.Success {
@@ -109,7 +103,7 @@ func (z *Zuora) GetUsage(ctx context.Context, weaveOrgID, page, pageSize string)
 // GetUsageImportStatus returns the Zuora status of a given usage.
 func (z *Zuora) GetUsageImportStatus(ctx context.Context, importID string) (string, error) {
 	resp := &importStatusResponse{}
-	if err := z.getJSON(ctx, getUsagePath, z.URL(getImportStatusPath, importID), resp); err != nil {
+	if err := z.Get(ctx, getUsagePath, z.URL(getImportStatusPath, importID), resp); err != nil {
 		return "", err
 	}
 	if !resp.Success {

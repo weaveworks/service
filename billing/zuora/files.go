@@ -26,7 +26,7 @@ func (z *Zuora) ServeFile(ctx context.Context, w http.ResponseWriter, fileID str
 	req.SetBasicAuth(z.cfg.Username, z.cfg.Password)
 	logger.Debugf("File request: %+v", req)
 
-	resp, err := z.do(ctx, filesPath, req)
+	resp, err := z.Do(ctx, filesPath, req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

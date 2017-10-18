@@ -384,7 +384,7 @@
   branch = "master"
   name = "github.com/weaveworks/common"
   packages = ["errors","http/client","httpgrpc","httpgrpc/server","instrument","logging","mflag","mflagext","middleware","mtime","server","signals","user"]
-  revision = "3605c1d8b321342414b00d1f2153ad23aee9f1b2"
+  revision = "03397d471f02a422c623c538edd73baca558326c"
 
 [[projects]]
   name = "github.com/weaveworks/promrus"
@@ -467,6 +467,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1c1644676517de7bd5e36d82c3cf19a969ff796de3316075fff685f3a26ef8a7"
+  inputs-digest = "8565229b8fa6bb6ab4e4c5eb819873c72778f4c6d8258f89b16ae31749473922"
   solver-name = "gps-cdcl"
   solver-version = 1
