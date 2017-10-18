@@ -14,9 +14,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/weaveworks/common/instrument"
+	"github.com/weaveworks/service/billing-api/db"
+	"github.com/weaveworks/service/billing-api/db/dbtest"
 	"github.com/weaveworks/service/billing-uploader/job"
-	"github.com/weaveworks/service/billing/db"
-	"github.com/weaveworks/service/billing/db/dbtest"
 	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/common/zuora/mockzuora"
 	"github.com/weaveworks/service/users"

@@ -10,7 +10,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/weaveworks/service/billing/db"
+	"github.com/weaveworks/service/billing-api/db"
 	timeutil "github.com/weaveworks/service/common/time"
 )
 

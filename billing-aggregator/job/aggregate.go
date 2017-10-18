@@ -5,7 +5,7 @@ import (
 
 	"context"
 	"github.com/weaveworks/common/instrument"
-	"github.com/weaveworks/service/billing/db"
+	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/common/bigquery"
 	"time"
 )

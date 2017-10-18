@@ -11,8 +11,8 @@ import (
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-uploader/job"
-	"github.com/weaveworks/service/billing/db"
 	usersClient "github.com/weaveworks/service/common/users-client"
 	"github.com/weaveworks/service/common/zuora"
 )

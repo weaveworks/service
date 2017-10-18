@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/weaveworks/service/billing/db"
+	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/users"
 )
 

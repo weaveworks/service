@@ -35,27 +35,23 @@ users/users.pb.go: users/users.proto
 MOCK_USERS := users/mock_users/usersclient.go
 $(MOCK_USERS): users/users.pb.go
 
-BILLING_LIBS := billing
+BILLING_DB := billing-api/db
 BILLING_TEST_DIRS := $(shell find . -name '*_test.go' | grep -E  "^\./(billing|common)" | xargs -n1 dirname | sort -u)
 
-MOCK_BILLING_DB := $(BILLING_LIBS)/db/mock_db/mock_db.go
+MOCK_BILLING_DB := $(BILLING_DB)/mock_db/mock_db.go
 MOCK_GOS := $(MOCK_USERS) $(MOCK_BILLING_DB)
 
 # copy billing migrations into each billing application's directory
-billing-aggregator/migrations/%: $(BILLING_LIBS)/db/migrations/%
+billing-aggregator/migrations/%: $(BILLING_DB)/migrations/%
 	mkdir -p $(@D)
 	cp $< $@
 
-billing-api/migrations/%: $(BILLING_LIBS)/db/migrations/%
+billing-uploader/migrations/%: $(BILLING_DB)/migrations/%
 	mkdir -p $(@D)
 	cp $< $@
 
-billing-uploader/migrations/%: $(BILLING_LIBS)/db/migrations/%
-	mkdir -p $(@D)
-	cp $< $@
-
-BILLING_MIGRATION_FILES := $(shell find $(BILLING_LIBS)/db/migrations -type f)
-billing-migrations-deps = $(patsubst $(BILLING_LIBS)/db/migrations/%,$(1)/migrations/%,$(BILLING_MIGRATION_FILES))
+BILLING_MIGRATION_FILES := $(shell find $(BILLING_DB)/migrations -type f)
+billing-migrations-deps = $(patsubst $(BILLING_DB)/migrations/%,$(1)/migrations/%,$(BILLING_MIGRATION_FILES))
 
 # List of exes please
 AUTHFE_EXE := authfe/authfe
@@ -88,8 +84,8 @@ service-ui-kicker/$(UPTODATE): $(SERVICE_UI_KICKER_EXE)
 github-receiver/$(UPTODATE): $(GITHUB_RECEIVER_EXE)
 
 billing-uploader/$(UPTODATE): billing-uploader/uploader $(call billing-migrations-deps,billing-uploader)
-billing-api/$(UPTODATE): billing-api/api $(call billing-migrations-deps,billing-api)
 billing-aggregator/$(UPTODATE): billing-aggregator/aggregator $(call billing-migrations-deps,billing-aggregator)
+billing-api/$(UPTODATE): billing-api/api
 billing-enforcer/$(UPTODATE): billing-enforcer/enforcer
 
 # All the boiler plate for building golang follows:
@@ -131,7 +127,7 @@ billing-integration-test: build/$(UPTODATE)
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
-		-v $(shell pwd)/billing/db/migrations:/migrations \
+		-v $(shell pwd)/billing-api/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service \
 		--link "$$DB_CONTAINER":billing-db.weave.local \
 		$(IMAGE_PREFIX)/build $@; \
@@ -158,8 +154,8 @@ $(MOCK_USERS): build/$(UPTODATE)
 	mockgen -destination $@ github.com/weaveworks/service/users UsersClient \
 		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
-$(MOCK_BILLING_DB): build/$(UPTODATE) $(BILLING_LIBS)/db/db.go
-	mockgen -destination=$@ github.com/weaveworks/service/$(BILLING_LIBS)/db DB
+$(MOCK_BILLING_DB): build/$(UPTODATE) $(BILLING_DB)/db.go
+	mockgen -destination=$@ github.com/weaveworks/service/$(BILLING_DB) DB
 
 billing-integration-test: build/$(UPTODATE) $(MOCK_GOS)
 	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"
@@ -203,4 +199,4 @@ clean:
 
 # For .SECONDEXPANSION docs, see https://www.gnu.org/software/make/manual/html_node/Special-Targets.html
 .SECONDEXPANSION:
-$(BILLING_EXE): $$(shell find $$(@D) -name '*.go') $(COMMON) $(shell find $(BILLING_LIBS) -name '*.go') users/users.pb.go
+$(BILLING_EXE): $$(shell find $$(@D) -name '*.go') $(COMMON) $(shell find $(BILLING_DB) -name '*.go') users/users.pb.go

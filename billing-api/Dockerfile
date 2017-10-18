@@ -4,5 +4,5 @@ ENTRYPOINT ["/api"]
 RUN apk add --update \
     ca-certificates \
   && rm -rf /var/cache/apk/*
-ADD migrations /migrations
+ADD db/migrations /migrations
 ADD api /

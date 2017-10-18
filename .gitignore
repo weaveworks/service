@@ -52,8 +52,8 @@ billing-enforcer/enforcer
 users/mock_users/*
 !users/mock_users/README
 
-billing/db/mock_db/*
-!billing/db/mock_db/README
+billing-api/db/mock_db/*
+!billing-api/db/mock_db/README
 
 Vagrantfile.local
 .dir-locals.el

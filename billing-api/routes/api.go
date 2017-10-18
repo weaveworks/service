@@ -8,7 +8,7 @@ import (
 	"encoding/base64"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
-	"github.com/weaveworks/service/billing/db"
+	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/users"
 )

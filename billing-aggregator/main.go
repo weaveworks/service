@@ -13,7 +13,7 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/billing-aggregator/job"
-	"github.com/weaveworks/service/billing/db"
+	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/common/bigquery"
 )
 

@@ -9,8 +9,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	"github.com/weaveworks/service/billing/db"
-	"github.com/weaveworks/service/billing/db/mock_db"
+	"github.com/weaveworks/service/billing-api/db"
+	"github.com/weaveworks/service/billing-api/db/mock_db"
 	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/common/zuora/mockzuora"
 )

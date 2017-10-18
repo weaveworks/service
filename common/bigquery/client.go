@@ -12,7 +12,7 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/weaveworks/common/instrument"
-	"github.com/weaveworks/service/billing/db"
+	"github.com/weaveworks/service/billing-api/db"
 )
 
 const aggQuery = `

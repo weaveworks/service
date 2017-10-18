@@ -7,7 +7,7 @@ import (
 
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
-	"github.com/weaveworks/service/billing/db"
+	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/common/zuora"
 )
 
