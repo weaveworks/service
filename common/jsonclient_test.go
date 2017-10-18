@@ -8,7 +8,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -101,21 +100,6 @@ func TestJSONClient_Upload(t *testing.T) {
 
 	assert.Equal(t, "yes", resp["response"])
 	req, _ := reqfn()
-	assert.Equal(t, "POST", req.Method)
-}
-func TestJSONClient_PostForm(t *testing.T) {
-	ts, cl, reqfn := createMocks()
-	defer ts.Close()
-
-	resp := map[string]string{}
-	data := url.Values{"req": []string{"postform"}}
-	err := cl.PostForm(ctx, "foo", ts.URL, data, &resp)
-	assert.NoError(t, err)
-
-	assert.Equal(t, "yes", resp["response"])
-	req, body := reqfn()
-	assert.Equal(t, "application/x-www-form-urlencoded", req.Header.Get("Content-Type"))
-	assert.Contains(t, body, "req=postform")
 	assert.Equal(t, "POST", req.Method)
 }
 

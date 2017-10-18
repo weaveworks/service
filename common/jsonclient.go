@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/weaveworks/common/http/client"
 )
@@ -26,15 +24,6 @@ func NewJSONClient(client client.Requester) *JSONClient {
 // Get does a GET request and unmarshals the response into dest.
 func (c *JSONClient) Get(ctx context.Context, operation, url string, dest interface{}) error {
 	r, err := c.get(ctx, operation, url)
-	if err != nil {
-		return err
-	}
-	return c.parseJSON(r, dest)
-}
-
-// PostForm sends a form request. The response is unmarshaled into dest.
-func (c *JSONClient) PostForm(ctx context.Context, operation, url string, data url.Values, dest interface{}) error {
-	r, err := c.post(ctx, operation, url, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 	if err != nil {
 		return err
 	}
