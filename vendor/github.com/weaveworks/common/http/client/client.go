@@ -16,17 +16,19 @@ type Requester interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-
-type contextKey int
-// CtxTimedOperationNameKey specifies the operation name location within the context
-// for instrumentation.
-const OperationNameContextKey contextKey = 0
-
+// TimedClient instruments a request. It implements Requester.
 type TimedClient struct {
 	client    Requester
 	collector instrument.Collector
 }
 
+type contextKey int
+
+// OperationNameContextKey specifies the operation name location within the context
+// for instrumentation.
+const OperationNameContextKey contextKey = 0
+
+// NewTimedClient creates a Requester that instruments requests on `client`.
 func NewTimedClient(client Requester, collector instrument.Collector) *TimedClient {
 	return &TimedClient{
 		client:    client,
@@ -34,6 +36,7 @@ func NewTimedClient(client Requester, collector instrument.Collector) *TimedClie
 	}
 }
 
+// Do executes the request.
 func (c TimedClient) Do(r *http.Request) (*http.Response, error) {
 	return TimeRequest(r.Context(), c.operationName(r), c.collector, c.client, r)
 }

@@ -12,12 +12,13 @@ import (
 	"github.com/weaveworks/common/http/client"
 )
 
-// JSONClient is an instrumented HTTP cl that receives JSON.
+// JSONClient embeds a client to make requests and unmarshals JSON responses into an
+// expected struct.
 type JSONClient struct {
 	cl client.Requester
 }
 
-// NewJSONClient creates a JSONClient.
+// NewJSONClient creates a JSONClient. The `client` is for making requests.
 func NewJSONClient(client client.Requester) *JSONClient {
 	return &JSONClient{client}
 }
