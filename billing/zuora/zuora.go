@@ -72,41 +72,6 @@ func (a authClient) Do(r *http.Request) (*http.Response, error) {
 	return a.cl.Do(r)
 }
 
-// New returns a Zuora. If client is nil, http.Client is instantiated.
-func New(cfg Config, httpClient client.Requester) *Zuora {
-	if !strings.HasSuffix(cfg.Endpoint, "/") {
-		cfg.Endpoint += "/"
-	}
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: cfg.Timeout}
-	}
-	httpClient = authClient{cl: httpClient, user: cfg.Username, pass: cfg.Password}
-	return &Zuora{
-		JSONClient: common.NewJSONClient(client.NewTimedClient(httpClient, clientRequestCollector)),
-		cfg:        cfg,
-	}
-}
-
-// GetConfig returns the underlying Config.
-func (z *Zuora) GetConfig() Config {
-	return z.cfg
-}
-
-// ContainsErrorCode casts the provided error into a genericZuoraResponse and returns true if this response contains the provided error code, or false otherwise.
-// Indeed, the Zuora API sometimes returns 200/OK despite having actual errors in the response's body, and we expose these as normal Go errors.
-// However, in a few occasions, we might want to check the error code returned by Zuora. This method achieves this without revealing Zuora's internals (i.e. genericZuoraResponse).
-func (z *Zuora) ContainsErrorCode(err interface{}, errorCode int) bool {
-	if resp, ok := err.(zuoraResponse); ok {
-		return resp.ContainsErrorCode(errorCode)
-	}
-	return false
-}
-
-// URL on Zuora
-func (z *Zuora) URL(format string, components ...interface{}) string {
-	return z.cfg.Endpoint + fmt.Sprintf(format, components...)
-}
-
 type zuoraResponse interface {
 	ContainsErrorCode(code int) bool
 }
@@ -168,6 +133,41 @@ func (r *genericZuoraResponse) hasErrorCodeCategory(cat int) bool {
 		}
 	}
 	return false
+}
+
+// New returns a Zuora. If client is nil, http.Client is instantiated.
+func New(cfg Config, httpClient client.Requester) *Zuora {
+	if !strings.HasSuffix(cfg.Endpoint, "/") {
+		cfg.Endpoint += "/"
+	}
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: cfg.Timeout}
+	}
+	httpClient = authClient{cl: httpClient, user: cfg.Username, pass: cfg.Password}
+	return &Zuora{
+		JSONClient: common.NewJSONClient(client.NewTimedClient(httpClient, clientRequestCollector)),
+		cfg:        cfg,
+	}
+}
+
+// GetConfig returns the underlying Config.
+func (z *Zuora) GetConfig() Config {
+	return z.cfg
+}
+
+// ContainsErrorCode casts the provided error into a genericZuoraResponse and returns true if this response contains the provided error code, or false otherwise.
+// Indeed, the Zuora API sometimes returns 200/OK despite having actual errors in the response's body, and we expose these as normal Go errors.
+// However, in a few occasions, we might want to check the error code returned by Zuora. This method achieves this without revealing Zuora's internals (i.e. genericZuoraResponse).
+func (z *Zuora) ContainsErrorCode(err interface{}, errorCode int) bool {
+	if resp, ok := err.(zuoraResponse); ok {
+		return resp.ContainsErrorCode(errorCode)
+	}
+	return false
+}
+
+// URL on Zuora
+func (z *Zuora) URL(format string, components ...interface{}) string {
+	return z.cfg.Endpoint + fmt.Sprintf(format, components...)
 }
 
 // pagingParams define the query params zuora accepts for page size and which page
