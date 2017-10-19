@@ -12,15 +12,15 @@ UPTODATE := .uptodate
 # Dependencies (i.e. things that go in the image) still need to be explicitly
 # declared.
 %/$(UPTODATE): %/Dockerfile
-	$(SUDO) docker build -t $(IMAGE_PREFIX)/$(call image-suffix,$(@D)) $(@D)/
-	$(SUDO) docker tag $(IMAGE_PREFIX)/$(call image-suffix,$(@D)) $(IMAGE_PREFIX)/$(call image-suffix,$(@D)):$(IMAGE_TAG)
+	$(SUDO) docker build -t $(IMAGE_PREFIX)/$(shell basename $(@D)) $(@D)/
+	$(SUDO) docker tag $(IMAGE_PREFIX)/$(shell basename $(@D)) $(IMAGE_PREFIX)/$(shell basename $(@D)):$(IMAGE_TAG)
 	touch $@
 
 # Get a list of directories containing Dockerfiles
 DOCKERFILES=$(shell find * -type f -name Dockerfile ! -path "tools/*" ! -path "vendor/*")
 UPTODATE_FILES=$(patsubst %/Dockerfile,%/$(UPTODATE),$(DOCKERFILES))
 DOCKER_IMAGE_DIRS=$(patsubst %/Dockerfile,%,$(DOCKERFILES))
-IMAGE_NAMES=$(foreach dir,$(DOCKER_IMAGE_DIRS),$(patsubst %,$(IMAGE_PREFIX)/%,$(call image-suffix,$(dir))))
+IMAGE_NAMES=$(foreach dir,$(DOCKER_IMAGE_DIRS),$(patsubst %,$(IMAGE_PREFIX)/%,$(shell basename $(dir))))
 
 images:
 	$(info $(IMAGE_NAMES))
@@ -35,25 +35,23 @@ users/users.pb.go: users/users.proto
 MOCK_USERS := users/mock_users/usersclient.go
 $(MOCK_USERS): users/users.pb.go
 
-BILLING_DIR := billing
-BILLING_TEST_DIRS := $(shell git ls-files -- '*_test.go' | grep -E "^$(BILLING_DIR)/" | xargs -n1 dirname | sort -u | sed -e 's|^|./|')
+BILLING_DB := billing-api/db
+BILLING_TEST_DIRS := $(shell find . -name '*_test.go' | grep -E  "^\./(billing|common)" | xargs -n1 dirname | sort -u)
 
-MOCK_BILLING_DB := $(BILLING_DIR)/db/mock_db/mock_db.go
+MOCK_BILLING_DB := $(BILLING_DB)/mock_db/mock_db.go
 MOCK_GOS := $(MOCK_USERS) $(MOCK_BILLING_DB)
 
 # copy billing migrations into each billing application's directory
-BILLING_MIGRATION_FILES := $(shell find $(BILLING_DIR)/db/migrations -type f)
-$(BILLING_DIR)/aggregator/migrations/%: $(BILLING_DIR)/db/migrations/%
+billing-aggregator/migrations/%: $(BILLING_DB)/migrations/%
 	mkdir -p $(@D)
 	cp $< $@
 
-$(BILLING_DIR)/api/migrations/%: $(BILLING_DIR)/db/migrations/%
+billing-uploader/migrations/%: $(BILLING_DB)/migrations/%
 	mkdir -p $(@D)
 	cp $< $@
 
-$(BILLING_DIR)/uploader/migrations/%: $(BILLING_DIR)/db/migrations/%
-	mkdir -p $(@D)
-	cp $< $@
+BILLING_MIGRATION_FILES := $(shell find $(BILLING_DB)/migrations -type f)
+billing-migrations-deps = $(patsubst $(BILLING_DB)/migrations/%,$(1)/migrations/%,$(BILLING_MIGRATION_FILES))
 
 # List of exes please
 AUTHFE_EXE := authfe/authfe
@@ -62,7 +60,7 @@ METRICS_EXE := metrics/metrics
 NOTEBOOKS_EXE := notebooks/cmd/notebooks/notebooks
 SERVICE_UI_KICKER_EXE := service-ui-kicker/service-ui-kicker
 GITHUB_RECEIVER_EXE := github-receiver/github-receiver
-BILLING_EXE := $(BILLING_DIR)/api/api $(BILLING_DIR)/uploader/uploader $(BILLING_DIR)/aggregator/aggregator $(BILLING_DIR)/enforcer/enforcer
+BILLING_EXE := billing-api/api billing-uploader/uploader billing-aggregator/aggregator billing-enforcer/enforcer
 EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) $(GITHUB_RECEIVER_EXE) $(BILLING_EXE)
 
 # And what goes into each exe
@@ -73,7 +71,6 @@ $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
 $(NOTEBOOKS_EXE): $(shell find notebooks -name '*.go') $(COMMON)
 $(SERVICE_UI_KICKER_EXE): $(shell find service-ui-kicker -name '*.go') $(COMMON)
 $(GITHUB_RECEIVER_EXE): $(shell find github-receiver -name '*.go') $(COMMON)
-$(BILLING_EXE): $(shell find $(BILLING_DIR) -name '*.go') users/users.pb.go
 test: users/users.pb.go
 
 # And now what goes into each image
@@ -86,10 +83,10 @@ notebooks/$(UPTODATE): $(NOTEBOOKS_EXE)
 service-ui-kicker/$(UPTODATE): $(SERVICE_UI_KICKER_EXE)
 github-receiver/$(UPTODATE): $(GITHUB_RECEIVER_EXE)
 
-$(BILLING_DIR)/uploader/$(UPTODATE): $(patsubst $(BILLING_DIR)/db/migrations/%,$(BILLING_DIR)/uploader/migrations/%,$(BILLING_MIGRATION_FILES)) $(BILLING_DIR)/uploader/uploader
-$(BILLING_DIR)/api/$(UPTODATE): $(patsubst $(BILLING_DIR)/db/migrations/%,$(BILLING_DIR)/api/migrations/%,$(BILLING_MIGRATION_FILES)) $(BILLING_DIR)/api/api
-$(BILLING_DIR)/aggregator/$(UPTODATE): $(patsubst $(BILLING_DIR)/db/migrations/%,$(BILLING_DIR)/aggregator/migrations/%,$(BILLING_MIGRATION_FILES)) $(BILLING_DIR)/aggregator/aggregator
-$(BILLING_DIR)/enforcer/$(UPTODATE): $(BILLING_DIR)/enforcer/enforcer
+billing-uploader/$(UPTODATE): billing-uploader/uploader $(call billing-migrations-deps,billing-uploader)
+billing-aggregator/$(UPTODATE): billing-aggregator/aggregator $(call billing-migrations-deps,billing-aggregator)
+billing-api/$(UPTODATE): billing-api/api
+billing-enforcer/$(UPTODATE): billing-enforcer/enforcer
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
@@ -130,7 +127,7 @@ billing-integration-test: build/$(UPTODATE)
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
-		-v $(shell pwd)/billing/db/migrations:/migrations \
+		-v $(shell pwd)/billing-api/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service \
 		--link "$$DB_CONTAINER":billing-db.weave.local \
 		$(IMAGE_PREFIX)/build $@; \
@@ -157,8 +154,8 @@ $(MOCK_USERS): build/$(UPTODATE)
 	mockgen -destination $@ github.com/weaveworks/service/users UsersClient \
 		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
-$(MOCK_BILLING_DB): build/$(UPTODATE) $(BILLING_DIR)/db/db.go
-	mockgen -destination=$@ github.com/weaveworks/service/$(BILLING_DIR)/db DB
+$(MOCK_BILLING_DB): build/$(UPTODATE) $(BILLING_DB)/db.go
+	mockgen -destination=$@ github.com/weaveworks/service/$(BILLING_DB) DB
 
 billing-integration-test: build/$(UPTODATE) $(MOCK_GOS)
 	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"
@@ -197,9 +194,9 @@ clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
 	rm -rf $(UPTODATE_FILES) $(EXES)
 	rm -f users/users.pb.go
-	rm -rf $(BILLING_DIR)/aggregator/migrations $(BILLING_DIR)/api/migrations $(BILLING_DIR)/uploader/migrations
-
+	rm -rf billing-aggregator/migrations billing-api/migrations billing-uploader/migrations
 	go clean ./...
 
-# The following function will add `billing-` to the image name if part of billing/ dir
-image-suffix = $(if $(filter billing%,$(1)),billing-$(shell basename $(1)),$(shell basename $(1)))
+# For .SECONDEXPANSION docs, see https://www.gnu.org/software/make/manual/html_node/Special-Targets.html
+.SECONDEXPANSION:
+$(BILLING_EXE): $$(shell find $$(@D) -name '*.go') $(COMMON) $(shell find $(BILLING_DB) -name '*.go') users/users.pb.go

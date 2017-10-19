@@ -38,7 +38,7 @@ while [ $# -gt 0 ]; do
 done
 
 COMPONENTS=(authfe users metrics logging notebooks service-ui-kicker github-receiver
-    billing/api billing/uploader billing/api/docs/hpm_demo billing/ingester billing/enforcer billing/aggregator)
+    billing-api billing-uploader billing-hpm_demo billing-ingester billing-enforcer billing-aggregator)
 if [ $# -gt 0 ]; then
     COMPONENTS=("$@")
 fi
@@ -47,26 +47,12 @@ echo "Using components: ${COMPONENTS[*]}"
 
 IMAGE_TAG=$(./tools/image-tag)
 
-function image_name() {
-    if [ $# -lt 1 ]; then
-        echo "function image-name requires component"
-        exit 1
-    fi
-    c=$1
-    basename=$(basename "$c")
-    if [[ $c == billing* ]]; then
-        echo "billing-${basename}"
-    else
-        echo "$basename"
-    fi
-}
-
 for c in ${COMPONENTS[*]}; do
     if [ "$SINCE" != 'false' ] && [ ! -d "$c" ]; then
         echo "Component $c does not have a corresponding directory"
         exit 1
     fi
-    image=$(image_name "$c")
+    image=$(basename "$c")
     build_image="${BUILD_IMAGE_REPO}/${image}:${IMAGE_TAG}"
     if ! docker inspect "${build_image}" >/dev/null; then
         echo "Expected image ${build_image} to exist, given the working directory state:" >&2
@@ -81,7 +67,7 @@ done
 for c in ${COMPONENTS[*]}; do
     # NB this only works if the code is in directories named for the
     # components, of course.
-    image=$(image_name "$c")
+    image=$(basename "$c")
     push_image="${IMAGE_REPOSITORY}/${image}:${IMAGE_TAG}"
     if [ "$SINCE" = 'false' ] || ! git diff --quiet "$SINCE" -- "$c"/; then
         build_image="${BUILD_IMAGE_REPO}/${image}:${IMAGE_TAG}"
