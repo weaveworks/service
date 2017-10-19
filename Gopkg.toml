@@ -10,7 +10,6 @@ ignored = ["github.com/mattes/migrate"]
   name = "gopkg.in/mattes/migrate.v1"
   version = "v1.3.2"
 
-
 [[constraint]]
   branch = "expose-dstaddr"
   name = "github.com/armon/go-proxyproto"
@@ -18,7 +17,7 @@ ignored = ["github.com/mattes/migrate"]
 
 # google/go-github have added contexts to their API.  Pin version until we
 # can update.
-[[constraint]]
+[[override]]
   name = "github.com/google/go-github"
   revision = "59aa6eea1c58ba063a0c3b90a16499cb39e6332a"
 
@@ -42,3 +41,16 @@ ignored = ["github.com/mattes/migrate"]
   name = "github.com/FrenchBen/goketo"
   source = "github.com/weaveworks/goketo"
   branch = "sirupsen-case"
+
+[[constraint]]
+  name = "github.com/weaveworks/flux"
+  branch = "master"
+
+[[override]]
+  name = "github.com/heroku/docker-registry-client"
+  source = "github.com/weaveworks/docker-registry-client"
+  branch = "master"
+
+[[override]]
+  name = "github.com/go-kit/kit"
+  revision = "00e2b89d8ad42af22b20fdb9adfbbfa0d5f34660"

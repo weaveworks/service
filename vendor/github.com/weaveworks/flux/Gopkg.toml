@@ -1,0 +1,28 @@
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  branch = "release-1.7"
+
+[[constraint]]
+  name = "k8s.io/client-go"
+  version = "4.0.0"
+
+[[constraint]]
+  name = "github.com/go-kit/kit"
+  revision = "00e2b89d8ad42af22b20fdb9adfbbfa0d5f34660"
+
+[[constraint]]
+  name = "github.com/google/go-github"
+  revision = "dfd20fd7fa6edec56447fcb049acd5e17a78ec2e"
+
+[[override]]
+  name = "gopkg.in/mattes/migrate.v1"
+  version = "v1.3.2"
+
+[[constraint]]
+  name = "github.com/heroku/docker-registry-client"
+  source = "github.com/weaveworks/docker-registry-client"
+  branch = "master"
+
+[[override]]
+  name = "github.com/ugorji/go"
+  revision = "8c0409fcbb70099c748d71f714529204975f6c3f"
