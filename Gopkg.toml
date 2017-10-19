@@ -50,7 +50,3 @@ ignored = ["github.com/mattes/migrate"]
   name = "github.com/heroku/docker-registry-client"
   source = "github.com/weaveworks/docker-registry-client"
   branch = "master"
-
-[[override]]
-  name = "github.com/go-kit/kit"
-  revision = "00e2b89d8ad42af22b20fdb9adfbbfa0d5f34660"

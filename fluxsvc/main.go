@@ -13,15 +13,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 
-	"github.com/weaveworks/flux/service/bus"
-	"github.com/weaveworks/flux/service/bus/nats"
-	"github.com/weaveworks/flux/service/db"
-	"github.com/weaveworks/flux/service/history"
-	historysql "github.com/weaveworks/flux/service/history/sql"
-	httpserver "github.com/weaveworks/flux/service/http"
-	"github.com/weaveworks/flux/service/instance"
-	instancedb "github.com/weaveworks/flux/service/instance/sql"
-	"github.com/weaveworks/flux/service/server"
+	"github.com/weaveworks/service/fluxsvc/service/bus"
+	"github.com/weaveworks/service/fluxsvc/service/bus/nats"
+	"github.com/weaveworks/service/fluxsvc/service/db"
+	"github.com/weaveworks/service/fluxsvc/service/history"
+	historysql "github.com/weaveworks/service/fluxsvc/service/history/sql"
+	httpserver "github.com/weaveworks/service/fluxsvc/service/http"
+	"github.com/weaveworks/service/fluxsvc/service/instance"
+	instancedb "github.com/weaveworks/service/fluxsvc/service/instance/sql"
+	"github.com/weaveworks/service/fluxsvc/service/server"
 )
 
 const shutdownTimeout = 30 * time.Second
@@ -60,8 +60,8 @@ func main() {
 	var logger log.Logger
 	{
 		logger = log.NewLogfmtLogger(os.Stderr)
-		logger = log.NewContext(logger).With("ts", log.DefaultTimestampUTC)
-		logger = log.NewContext(logger).With("caller", log.DefaultCaller)
+		logger = log.With(logger, "ts", log.DefaultTimestampUTC)
+		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 
 	// Initialise database; we must fail if we can't do this, because

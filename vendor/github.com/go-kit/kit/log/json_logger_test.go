@@ -13,7 +13,7 @@ func TestJSONLoggerCaller(t *testing.T) {
 	t.Parallel()
 	buf := &bytes.Buffer{}
 	logger := log.NewJSONLogger(buf)
-	logger = log.NewContext(logger).With("caller", log.DefaultCaller)
+	logger = log.With(logger, "caller", log.DefaultCaller)
 
 	if err := logger.Log(); err != nil {
 		t.Fatal(err)
@@ -86,6 +86,10 @@ func (aller) MarshalText() ([]byte, error) {
 
 func (aller) String() string {
 	return "string"
+}
+
+func (aller) Error() string {
+	return "error"
 }
 
 // textstringer implements encoding.TextMarshaler and fmt.Stringer.
