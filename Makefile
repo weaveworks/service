@@ -60,9 +60,9 @@ METRICS_EXE := metrics/metrics
 NOTEBOOKS_EXE := notebooks/cmd/notebooks/notebooks
 SERVICE_UI_KICKER_EXE := service-ui-kicker/service-ui-kicker
 GITHUB_RECEIVER_EXE := github-receiver/github-receiver
-FLUXSVC_EXE := fluxsvc/fluxsvc
+FLUX_EXE := flux/flux
 BILLING_EXE := billing-api/api billing-uploader/uploader billing-aggregator/aggregator billing-enforcer/enforcer
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) $(GITHUB_RECEIVER_EXE) $(FLUXSVC_EXE) $(BILLING_EXE)
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) $(GITHUB_RECEIVER_EXE) $(FLUX_EXE) $(BILLING_EXE)
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
@@ -72,7 +72,7 @@ $(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
 $(NOTEBOOKS_EXE): $(shell find notebooks -name '*.go') $(COMMON)
 $(SERVICE_UI_KICKER_EXE): $(shell find service-ui-kicker -name '*.go') $(COMMON)
 $(GITHUB_RECEIVER_EXE): $(shell find github-receiver -name '*.go') $(COMMON)
-$(FLUXSVC_EXE): $(shell find fluxsvc -name '*.go') $(COMMON)
+$(FLUX_EXE): $(shell find flux -name '*.go') $(COMMON)
 
 test: users/users.pb.go
 
@@ -85,7 +85,7 @@ build/$(UPTODATE): build/build.sh
 notebooks/$(UPTODATE): $(NOTEBOOKS_EXE)
 service-ui-kicker/$(UPTODATE): $(SERVICE_UI_KICKER_EXE)
 github-receiver/$(UPTODATE): $(GITHUB_RECEIVER_EXE)
-fluxsvc/$(UPTODATE): $(FLUXSVC_EXE)
+flux/$(UPTODATE): $(FLUX_EXE)
 
 billing-uploader/$(UPTODATE): billing-uploader/uploader $(call billing-migrations-deps,billing-uploader)
 billing-aggregator/$(UPTODATE): billing-aggregator/aggregator $(call billing-migrations-deps,billing-aggregator)

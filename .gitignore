@@ -48,7 +48,7 @@ billing-api/migrations
 billing-uploader/uploader
 billing-uploader/migrations
 billing-enforcer/enforcer
-fluxsvc/fluxsvc
+flux/flux
 
 users/mock_users/*
 !users/mock_users/README
