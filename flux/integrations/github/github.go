@@ -2,10 +2,13 @@ package github
 
 import (
 	"fmt"
+
 	gh "github.com/google/go-github/github"
 	"github.com/weaveworks/flux/http/httperror"
-	"golang.org/x/oauth2"
+
 	"net/http"
+
+	"golang.org/x/oauth2"
 )
 
 var (

@@ -24,7 +24,6 @@ import (
 	transport "github.com/weaveworks/flux/http"
 	"github.com/weaveworks/flux/http/httperror"
 	"github.com/weaveworks/flux/http/websocket"
-	"github.com/weaveworks/flux/integrations/github"
 	"github.com/weaveworks/flux/job"
 	"github.com/weaveworks/flux/policy"
 	"github.com/weaveworks/flux/remote"
@@ -32,6 +31,7 @@ import (
 	"github.com/weaveworks/flux/update"
 	"github.com/weaveworks/service/flux/api"
 	"github.com/weaveworks/service/flux/config"
+	"github.com/weaveworks/service/flux/integrations/github"
 	"github.com/weaveworks/service/flux/service"
 )
 

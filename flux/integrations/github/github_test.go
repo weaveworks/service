@@ -2,11 +2,12 @@ package github
 
 import (
 	"fmt"
-	gh "github.com/google/go-github/github"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	gh "github.com/google/go-github/github"
 )
 
 var (
