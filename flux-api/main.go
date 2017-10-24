@@ -105,7 +105,7 @@ func main() {
 	var messageBus bus.MessageBus
 	{
 		if *natsURL != "" {
-			bus, err := nats.NewMessageBus(*natsURL, bus.MetricsImpl)
+			bus, err := nats.NewMessageBus(*natsURL)
 			if err != nil {
 				logger.Log("component", "message bus", "err", err)
 				os.Exit(1)

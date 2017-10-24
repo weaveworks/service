@@ -51,14 +51,13 @@ type NATS struct {
 	// since that'll do encoding work for us. When receiving though,
 	// we want to decode based on the method as given in the subject,
 	// so we use a regular connection and do the decoding ourselves.
-	enc     *nats.EncodedConn
-	raw     *nats.Conn
-	metrics bus.Metrics
+	enc *nats.EncodedConn
+	raw *nats.Conn
 }
 
 var _ bus.MessageBus = &NATS{}
 
-func NewMessageBus(url string, metrics bus.Metrics) (*NATS, error) {
+func NewMessageBus(url string) (*NATS, error) {
 	conn, err := nats.Connect(url, nats.MaxReconnects(-1))
 	if err != nil {
 		return nil, err
@@ -68,10 +67,9 @@ func NewMessageBus(url string, metrics bus.Metrics) (*NATS, error) {
 		return nil, err
 	}
 	return &NATS{
-		url:     url,
-		raw:     conn,
-		enc:     encConn,
-		metrics: metrics,
+		url: url,
+		raw: conn,
+		enc: encConn,
 	}, nil
 }
 
@@ -383,7 +381,7 @@ func (n *NATS) processRequest(ctx context.Context, request *nats.Msg, instID ser
 	case strings.HasSuffix(request.Subject, methodKick):
 		id := string(request.Data)
 		if id != myID {
-			n.metrics.IncrKicks(instID)
+			bus.IncrKicks(instID)
 			err = remote.FatalError{errors.New("Kicked by new subscriber " + id)}
 		}
 

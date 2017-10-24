@@ -10,13 +10,10 @@ import (
 	"github.com/nats-io/go-nats"
 
 	"github.com/weaveworks/flux/remote"
-	"github.com/weaveworks/service/flux-api/bus"
 	"github.com/weaveworks/service/flux-api/service"
 )
 
 var testNATS = flag.String("nats-url", "", "NATS connection URL; use NATS' default if empty")
-
-var metrics = bus.MetricsImpl
 
 func setup(t *testing.T) *NATS {
 	flag.Parse()
@@ -24,7 +21,7 @@ func setup(t *testing.T) *NATS {
 		*testNATS = nats.DefaultURL
 	}
 
-	bus, err := NewMessageBus(*testNATS, metrics)
+	bus, err := NewMessageBus(*testNATS)
 	if err != nil {
 		t.Fatal(err)
 	}
