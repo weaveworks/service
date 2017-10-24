@@ -282,7 +282,9 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				Prefix{"/api/prom", c.promQuerierHost},
 				Prefix{"/api/net/peer", c.peerDiscoveryHost},
 				Prefix{"/api/notification/config", c.notificationConfigHost},
+				// Configmanager reads from the events database; eventmanager handles sending notifications
 				PrefixMethods{"/api/notification/events", []string{"GET"}, c.notificationConfigHost},
+				PrefixMethods{"/api/notification/events", []string{"POST"}, c.notificationEventHost},
 				Prefix{"/api/notification/sender", c.notificationSenderHost},
 				Prefix{"/api", c.queryHost},
 

@@ -39,6 +39,7 @@ type Config struct {
 	githubReceiverHost     proxyConfig
 	launchGeneratorHost    proxyConfig
 	notificationConfigHost proxyConfig
+	notificationEventHost  proxyConfig
 	notificationSenderHost proxyConfig
 	peerDiscoveryHost      proxyConfig
 	pipeHost               proxyConfig
@@ -87,6 +88,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"notebooks":            &c.notebooksHost,
 		"notification-configs": &c.notificationConfigHost,
 		"notification-sender":  &c.notificationSenderHost,
+		"notification-events":  &c.notificationEventHost,
 		"peer-discovery":       &c.peerDiscoveryHost,
 		"pipe":                 &c.pipeHost,
 		"prom-alertmanager":    &c.promAlertmanagerHost,
