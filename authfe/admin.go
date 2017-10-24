@@ -43,7 +43,7 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 					<li><a href="/admin/billing/aggregator">Aggregator</a></li>
 					<li><a href="/admin/billing/uploader">Uploader</a></li>
 					<li><a href="/admin/billing/enforcer">Enforcer</a></li>
-					<li><a href="/admin/billing/admin/invoice-verify">Invoice Verifier</a></li>
+					<li><a href="/admin/billing/invoice-verify">Invoice Verifier</a></li>
 				</ul>
 			</li>
 		</ul>
