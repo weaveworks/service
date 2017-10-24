@@ -14,8 +14,8 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 	}{
 		// Admin
 		{"admin", "GET", "/", a.Admin},
-		{"admin_invoice_verify", "GET", "/invoice-verify", a.InvoiceVerify},
-		{"admin_invoice_verify", "POST", "/invoice-verify", a.PerformInvoiceVerify},
+		{"admin_invoice_verify", "GET", "/admin/billing/invoice-verify", a.InvoiceVerify},
+		{"admin_invoice_verify", "POST", "/admin/billing/invoice-verify", a.PerformInvoiceVerify},
 
 		// Accounts
 		{"api_billing_id_accounts", "POST", "/api/billing/{id}/account", a.CreateAccount},
