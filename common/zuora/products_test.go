@@ -20,7 +20,7 @@ type clientMock struct {
 }
 
 func (c *clientMock) Do(req *http.Request) (*http.Response, error) {
-	r := &http.Response{}
+	r := &http.Response{StatusCode: http.StatusOK}
 	if c.body != "" {
 		r.Body = ioutil.NopCloser(bytes.NewReader([]byte(c.body)))
 	}
