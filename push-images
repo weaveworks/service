@@ -41,7 +41,7 @@ component has changed, and thus whether to push a new image.
 These need to correspond to the files used to build the Docker image.
 """
 DEPENDENCIES = {
-    'authfe': ['authfe'],
+    'authfe': ['authfe', 'users'],
     'users': ['users', 'common'],
     'metrics': ['metrics'],
     'logging': ['logging'],
