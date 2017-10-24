@@ -8,6 +8,7 @@ import (
 	"github.com/weaveworks/flux"
 	"github.com/weaveworks/flux/event"
 	"github.com/weaveworks/flux/update"
+	"github.com/weaveworks/service/flux-api/config"
 	"github.com/weaveworks/service/flux-api/instance"
 )
 
@@ -56,8 +57,8 @@ func TestRelease_DryRun(t *testing.T) {
 	ev := event.Event{Metadata: r}
 	r.Spec.Kind = update.ReleaseKindPlan
 	if err := Event(instance.Config{
-		Settings: service.InstanceConfig{
-			Slack: service.NotifierConfig{
+		Settings: config.InstanceConfig{
+			Slack: config.NotifierConfig{
 				HookURL: server.URL,
 			},
 		},

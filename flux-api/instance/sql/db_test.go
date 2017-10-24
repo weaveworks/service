@@ -5,8 +5,10 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/weaveworks/service/flux-api/config"
 	"github.com/weaveworks/service/flux-api/db"
 	"github.com/weaveworks/service/flux-api/instance"
+	"github.com/weaveworks/service/flux-api/service"
 )
 
 func newDB(t *testing.T) *DB {
@@ -30,8 +32,8 @@ func TestUpdateOK(t *testing.T) {
 
 	inst := service.InstanceID("floaty-womble-abc123")
 	c := instance.Config{
-		Settings: service.InstanceConfig{
-			Slack: service.NotifierConfig{
+		Settings: config.InstanceConfig{
+			Slack: config.NotifierConfig{
 				Username: "test Slack user",
 			},
 		},
@@ -56,8 +58,8 @@ func TestUpdateRollback(t *testing.T) {
 
 	inst := service.InstanceID("floaty-womble-abc123")
 	c := instance.Config{
-		Settings: service.InstanceConfig{
-			Slack: service.NotifierConfig{
+		Settings: config.InstanceConfig{
+			Slack: config.NotifierConfig{
 				Username: "test Slack user",
 			},
 		},
