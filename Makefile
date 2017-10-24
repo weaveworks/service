@@ -53,6 +53,9 @@ billing-uploader/migrations/%: $(BILLING_DB)/migrations/%
 BILLING_MIGRATION_FILES := $(shell find $(BILLING_DB)/migrations -type f)
 billing-migrations-deps = $(patsubst $(BILLING_DB)/migrations/%,$(1)/migrations/%,$(BILLING_MIGRATION_FILES))
 
+flux/migrations.tar:
+	tar cf $@ flux/db/migrations
+
 # List of exes please
 AUTHFE_EXE := authfe/authfe
 USERS_EXE := users/cmd/users/users
@@ -85,7 +88,7 @@ build/$(UPTODATE): build/build.sh
 notebooks/$(UPTODATE): $(NOTEBOOKS_EXE)
 service-ui-kicker/$(UPTODATE): $(SERVICE_UI_KICKER_EXE)
 github-receiver/$(UPTODATE): $(GITHUB_RECEIVER_EXE)
-flux/$(UPTODATE): $(FLUX_EXE)
+flux/$(UPTODATE): $(FLUX_EXE) flux/migrations.tar
 
 billing-uploader/$(UPTODATE): billing-uploader/uploader $(call billing-migrations-deps,billing-uploader)
 billing-aggregator/$(UPTODATE): billing-aggregator/aggregator $(call billing-migrations-deps,billing-aggregator)
