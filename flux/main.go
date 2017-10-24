@@ -13,8 +13,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 
+	"github.com/weaveworks/flux/event"
 	"github.com/weaveworks/service/flux/bus"
 	"github.com/weaveworks/service/flux/bus/nats"
+	"github.com/weaveworks/service/flux/config"
 	"github.com/weaveworks/service/flux/db"
 	"github.com/weaveworks/service/flux/history"
 	historysql "github.com/weaveworks/service/flux/history/sql"
@@ -45,6 +47,7 @@ func main() {
 		databaseMigrationsDir = fs.String("database-migrations", "./service/db/migrations", "Path to database migration scripts, which are in subdirectories named for each driver")
 		natsURL               = fs.String("nats-url", "", `URL on which to connect to NATS, or empty to use the standalone message bus (e.g., "nats://user:pass@nats:4222")`)
 		versionFlag           = fs.Bool("version", false, "Get version number")
+		eventsURL             = fs.String("events-url", "", "URL to which events will be sent, or empty to use instance-specific Slack settings")
 	)
 	fs.Parse(os.Args)
 
@@ -54,6 +57,23 @@ func main() {
 	if *versionFlag {
 		fmt.Println(version)
 		os.Exit(0)
+	}
+
+	// If the events-url flag is present, ignore instance specific Slack settings.
+	var defaultEventsConfig *instance.Config
+	if *eventsURL != "" {
+		defaultEventsConfig = &instance.Config{
+			Settings: config.InstanceConfig{
+				Slack: config.NotifierConfig{
+					HookURL: *eventsURL,
+					NotifyEvents: []string{
+						event.EventRelease,
+						event.EventAutoRelease,
+						event.EventSync,
+					},
+				},
+			},
+		}
 	}
 
 	// Logger component.
@@ -131,7 +151,7 @@ func main() {
 	}
 
 	// The server.
-	server := server.New(version, instancer, instanceDB, messageBus, logger)
+	server := server.New(version, instancer, instanceDB, messageBus, logger, defaultEventsConfig)
 
 	// Mechanical components.
 	errc := make(chan error)
