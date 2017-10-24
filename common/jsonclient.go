@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -82,11 +83,15 @@ func (c *JSONClient) get(ctx context.Context, operation, url string) (*http.Resp
 
 func (c *JSONClient) parseJSON(resp *http.Response, dest interface{}) error {
 	defer resp.Body.Close()
-	// TODO: Handle http status code errors
-	if dest == nil {
-		return nil
+	var err error
+	if dest != nil {
+		// Read body even on error status since it may contain further information
+		err = json.NewDecoder(resp.Body).Decode(dest)
 	}
-	return json.NewDecoder(resp.Body).Decode(dest)
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		err = fmt.Errorf("request failed: %v", resp.Status)
+	}
+	return err
 }
 
 func (c *JSONClient) sendJSON(ctx context.Context, operation, method, url string, data interface{}) (*http.Response, error) {
@@ -101,8 +106,7 @@ func (c *JSONClient) post(ctx context.Context, operation, url, contentType strin
 	return c.send(ctx, operation, "POST", url, contentType, body)
 }
 
-// send is the one method in this struct to actually doing the request. It embeds the context in the request
-// and injects the operation name.
+// send is the one method in this struct to actually doing the request.
 func (c *JSONClient) send(ctx context.Context, operation, method, url, contentType string, body io.Reader) (*http.Response, error) {
 	r, err := http.NewRequest(method, url, body)
 	if err != nil {
