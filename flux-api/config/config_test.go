@@ -7,8 +7,8 @@ import (
 
 func TestConfig_Patch(t *testing.T) {
 
-	uic := InstanceConfig{
-		NotifierConfig{
+	uic := Instance{
+		Notifier{
 			HookURL: "existingurl",
 		},
 	}
@@ -19,7 +19,7 @@ func TestConfig_Patch(t *testing.T) {
 		}
 	}`)
 
-	var cf ConfigPatch
+	var cf Patch
 	if err := json.Unmarshal(patchBytes, &cf); err != nil {
 		t.Fatal(err)
 	}

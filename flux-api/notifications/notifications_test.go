@@ -57,8 +57,8 @@ func TestRelease_DryRun(t *testing.T) {
 	ev := event.Event{Metadata: r}
 	r.Spec.Kind = update.ReleaseKindPlan
 	if err := Event(instance.Config{
-		Settings: config.InstanceConfig{
-			Slack: config.NotifierConfig{
+		Settings: config.Instance{
+			Slack: config.Notifier{
 				HookURL: server.URL,
 			},
 		},

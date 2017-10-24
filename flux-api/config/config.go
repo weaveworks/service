@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 )
 
-type NotifierConfig struct {
+type Notifier struct {
 	HookURL         string `json:"hookURL" yaml:"hookURL"`
 	Username        string `json:"username" yaml:"username"`
 	ReleaseTemplate string `json:"releaseTemplate" yaml:"releaseTemplate"`
@@ -12,25 +12,25 @@ type NotifierConfig struct {
 	NotifyEvents []string `json:"notifyEvents" yaml:"notifyEvents"`
 }
 
-type InstanceConfig struct {
-	Slack NotifierConfig `json:"slack" yaml:"slack"`
+type Instance struct {
+	Slack Notifier `json:"slack" yaml:"slack"`
 }
 
 type untypedConfig map[string]interface{}
 
-func (uc untypedConfig) toInstanceConfig() (InstanceConfig, error) {
+func (uc untypedConfig) toInstanceConfig() (Instance, error) {
 	bytes, err := json.Marshal(uc)
 	if err != nil {
-		return InstanceConfig{}, err
+		return Instance{}, err
 	}
-	var uic InstanceConfig
+	var uic Instance
 	if err := json.Unmarshal(bytes, &uic); err != nil {
-		return InstanceConfig{}, err
+		return Instance{}, err
 	}
 	return uic, nil
 }
 
-func (uic InstanceConfig) toUntypedConfig() (untypedConfig, error) {
+func (uic Instance) toUntypedConfig() (untypedConfig, error) {
 	bytes, err := json.Marshal(uic)
 	if err != nil {
 		return nil, err
@@ -42,13 +42,13 @@ func (uic InstanceConfig) toUntypedConfig() (untypedConfig, error) {
 	return uc, nil
 }
 
-type ConfigPatch map[string]interface{}
+type Patch map[string]interface{}
 
-func (uic InstanceConfig) Patch(cp ConfigPatch) (InstanceConfig, error) {
+func (uic Instance) Patch(cp Patch) (Instance, error) {
 	// Convert the strongly-typed config into an untyped form that's easier to patch
 	uc, err := uic.toUntypedConfig()
 	if err != nil {
-		return InstanceConfig{}, err
+		return Instance{}, err
 	}
 
 	applyPatch(uc, cp)
@@ -58,7 +58,7 @@ func (uic InstanceConfig) Patch(cp ConfigPatch) (InstanceConfig, error) {
 	return uc.toInstanceConfig()
 }
 
-func applyPatch(uc untypedConfig, cp ConfigPatch) {
+func applyPatch(uc untypedConfig, cp Patch) {
 	for key, value := range cp {
 		switch value := value.(type) {
 		case nil:

@@ -17,7 +17,7 @@ type Service interface {
 
 	Status(context.Context) (service.Status, error)
 	History(context.Context, update.ResourceSpec, time.Time, int64, time.Time) ([]history.Entry, error)
-	GetConfig(ctx context.Context, fingerprint string) (config.InstanceConfig, error)
-	SetConfig(context.Context, config.InstanceConfig) error
-	PatchConfig(context.Context, config.ConfigPatch) error
+	GetConfig(ctx context.Context, fingerprint string) (config.Instance, error)
+	SetConfig(context.Context, config.Instance) error
+	PatchConfig(context.Context, config.Patch) error
 }

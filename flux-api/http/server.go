@@ -350,7 +350,7 @@ func (s HTTPService) GetConfig(w http.ResponseWriter, r *http.Request) {
 func (s HTTPService) SetConfig(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 
-	var config config.InstanceConfig
+	var config config.Instance
 	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
 		transport.WriteError(w, r, http.StatusBadRequest, err)
 		return
@@ -367,7 +367,7 @@ func (s HTTPService) SetConfig(w http.ResponseWriter, r *http.Request) {
 func (s HTTPService) PatchConfig(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 
-	var patch config.ConfigPatch
+	var patch config.Patch
 	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
 		transport.WriteError(w, r, http.StatusBadRequest, err)
 		return

@@ -287,15 +287,15 @@ func (s *Server) History(ctx context.Context, spec update.ResourceSpec, before t
 	return res, nil
 }
 
-func (s *Server) GetConfig(ctx context.Context, fingerprint string) (config.InstanceConfig, error) {
+func (s *Server) GetConfig(ctx context.Context, fingerprint string) (config.Instance, error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
-		return config.InstanceConfig{}, err
+		return config.Instance{}, err
 	}
 
 	fullConfig, err := s.config.GetConfig(instID)
 	if err != nil {
-		return config.InstanceConfig{}, err
+		return config.Instance{}, err
 	}
 
 	// The UI expects `notifyEvents` to either have an array value, or
@@ -307,12 +307,12 @@ func (s *Server) GetConfig(ctx context.Context, fingerprint string) (config.Inst
 		fullConfig.Settings.Slack.NotifyEvents = notifications.DefaultNotifyEvents
 	}
 
-	config := config.InstanceConfig(fullConfig.Settings)
+	config := config.Instance(fullConfig.Settings)
 
 	return config, nil
 }
 
-func (s *Server) SetConfig(ctx context.Context, updates config.InstanceConfig) error {
+func (s *Server) SetConfig(ctx context.Context, updates config.Instance) error {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
 		return err
@@ -320,7 +320,7 @@ func (s *Server) SetConfig(ctx context.Context, updates config.InstanceConfig) e
 	return s.config.UpdateConfig(instID, applyConfigUpdates(updates))
 }
 
-func (s *Server) PatchConfig(ctx context.Context, patch config.ConfigPatch) error {
+func (s *Server) PatchConfig(ctx context.Context, patch config.Patch) error {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
 		return err
@@ -339,7 +339,7 @@ func (s *Server) PatchConfig(ctx context.Context, patch config.ConfigPatch) erro
 	return s.config.UpdateConfig(instID, applyConfigUpdates(patchedConfig))
 }
 
-func applyConfigUpdates(updates config.InstanceConfig) instance.UpdateFunc {
+func applyConfigUpdates(updates config.Instance) instance.UpdateFunc {
 	return func(config instance.Config) (instance.Config, error) {
 		config.Settings = updates
 		return config, nil

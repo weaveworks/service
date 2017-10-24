@@ -13,8 +13,8 @@ type Connection struct {
 }
 
 type Config struct {
-	Settings   config.InstanceConfig `json:"settings"`
-	Connection Connection            `json:"connection"`
+	Settings   config.Instance `json:"settings"`
+	Connection Connection      `json:"connection"`
 }
 
 type UpdateFunc func(config Config) (Config, error)

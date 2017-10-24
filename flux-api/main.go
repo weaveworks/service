@@ -63,8 +63,8 @@ func main() {
 	var defaultEventsConfig *instance.Config
 	if *eventsURL != "" {
 		defaultEventsConfig = &instance.Config{
-			Settings: config.InstanceConfig{
-				Slack: config.NotifierConfig{
+			Settings: config.Instance{
+				Slack: config.Notifier{
 					HookURL: *eventsURL,
 					NotifyEvents: []string{
 						event.EventRelease,

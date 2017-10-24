@@ -32,8 +32,8 @@ func TestUpdateOK(t *testing.T) {
 
 	inst := service.InstanceID("floaty-womble-abc123")
 	c := instance.Config{
-		Settings: config.InstanceConfig{
-			Slack: config.NotifierConfig{
+		Settings: config.Instance{
+			Slack: config.Notifier{
 				Username: "test Slack user",
 			},
 		},
@@ -58,8 +58,8 @@ func TestUpdateRollback(t *testing.T) {
 
 	inst := service.InstanceID("floaty-womble-abc123")
 	c := instance.Config{
-		Settings: config.InstanceConfig{
-			Slack: config.NotifierConfig{
+		Settings: config.Instance{
+			Slack: config.Notifier{
 				Username: "test Slack user",
 			},
 		},

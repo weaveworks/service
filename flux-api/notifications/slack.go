@@ -59,7 +59,7 @@ var (
 	httpClient = &http.Client{Timeout: 5 * time.Second}
 )
 
-func hasNotifyEvent(config config.NotifierConfig, event string) bool {
+func hasNotifyEvent(config config.Notifier, event string) bool {
 	// For backwards compatibility: if no such configuration exists,
 	// assume we just care about the previously hard-wired events
 	// (releases and autoreleases)
@@ -75,7 +75,7 @@ func hasNotifyEvent(config config.NotifierConfig, event string) bool {
 	return false
 }
 
-func slackNotifyRelease(config config.NotifierConfig, release *event.ReleaseEventMetadata, releaseError string) error {
+func slackNotifyRelease(config config.Notifier, release *event.ReleaseEventMetadata, releaseError string) error {
 	if !hasNotifyEvent(config, event.EventRelease) {
 		return nil
 	}
@@ -124,7 +124,7 @@ func slackNotifyRelease(config config.NotifierConfig, release *event.ReleaseEven
 	})
 }
 
-func slackNotifyAutoRelease(config config.NotifierConfig, release *event.AutoReleaseEventMetadata, releaseError string) error {
+func slackNotifyAutoRelease(config config.Notifier, release *event.AutoReleaseEventMetadata, releaseError string) error {
 	if !hasNotifyEvent(config, event.EventAutoRelease) {
 		return nil
 	}
@@ -153,7 +153,7 @@ func slackNotifyAutoRelease(config config.NotifierConfig, release *event.AutoRel
 	})
 }
 
-func slackNotifySync(config config.NotifierConfig, sync *event.Event) error {
+func slackNotifySync(config config.Notifier, sync *event.Event) error {
 	if !hasNotifyEvent(config, event.EventSync) {
 		return nil
 	}
@@ -209,7 +209,7 @@ func slackCommitsAttachment(ev *event.SyncEventMetadata) SlackAttachment {
 	}
 }
 
-func notify(config config.NotifierConfig, msg SlackMsg) error {
+func notify(config config.Notifier, msg SlackMsg) error {
 	buf := &bytes.Buffer{}
 	if err := json.NewEncoder(buf).Encode(msg); err != nil {
 		return errors.Wrap(err, "encoding Slack POST request")
