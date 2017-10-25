@@ -16,8 +16,8 @@ import (
 //     }
 //   }
 type Event struct {
-	Subscription string  // `json:"subscription"`
-	Message      Message // `json:"message"`
+	Subscription string  `json:"subscription"`
+	Message      Message `json:"message"`
 }
 
 // Unmarshal deserialises the provided bytes into this Event.
@@ -27,9 +27,9 @@ func (e *Event) Unmarshal(data []byte) error {
 
 // Message is a nested struct within Event.
 type Message struct {
-	Data       string            // `json:"data"`
-	MessageID  string            // `json:"messageId"`
-	Attributes map[string]string // `json:"attributes"`
+	Data       string            `json:"data"`
+	MessageID  string            `json:"messageId"`
+	Attributes map[string]string `json:"attributes"`
 	Bytes      []byte
 }
 
