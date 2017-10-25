@@ -30,7 +30,7 @@ func (h EventHandler) Handle(data []byte) error {
 		log.Error("Failed to deserialise event: ", err)
 		return err
 	}
-	switch event.EventType {
+	switch event.Type {
 	case Cancelled:
 		return h.CancelledHandler.Handle(&event.Entitlement)
 	case Suspended:
@@ -64,20 +64,20 @@ const (
 
 // Event is the JSON format used by Cloud Launcher for the events it sends us.
 type Event struct {
-	EventID     string      // `json:"eventId"`
-	EventType   EventType   // `json:"eventType"`
-	Entitlement Entitlement // `json:"entitlement"`
+	ID          string      `json:"eventId"`
+	Type        EventType   `json:"eventType"`
+	Entitlement Entitlement `json:"entitlement"`
 }
 
 // Entitlement is the JSON format used by Cloud Launcher to model entitlements.
 type Entitlement struct {
-	ID               string            // `json:"id"`
-	UpdateTime       string            // `json:"updateTime"`
-	Account          string            // `json:"account,omitempty"`
-	Product          string            // `json:"product,omitempty"`
-	UpcomingPlan     string            // `json:"upcoming_plan,omitempty"`
-	PlanChangeDate   string            // `json:"planChangeDate,omitempty"`
-	CancellationDate string            // `json:"cancellationDate”,omitempty"`
-	Plan             string            // `json:"plan,omitempty"`
-	InputProperties  map[string]string // `json:"inputProperties,omitempty"`
+	ID               string            `json:"id"`
+	UpdateTime       string            `json:"updateTime"`
+	Account          string            `json:"account,omitempty"`
+	Product          string            `json:"product,omitempty"`
+	UpcomingPlan     string            `json:"upcoming_plan,omitempty"`
+	PlanChangeDate   string            `json:"planChangeDate,omitempty"`
+	CancellationDate string            `json:"cancellationDate”,omitempty"`
+	Plan             string            `json:"plan,omitempty"`
+	InputProperties  map[string]string `json:"inputProperties,omitempty"`
 }

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"golang.org/x/net/context"
-
 	"cloud.google.com/go/pubsub"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,7 +22,7 @@ func New(ctx context.Context, projectID, topicName string) (*Publisher, error) {
 		log.Errorf("Failed to create Pub/Sub client for project [%v]: %v", projectID, err)
 		return nil, err
 	}
-	topic, err := mustGetOrCreateTopic(ctx, client, topicName)
+	topic, err := getOrCreateTopic(ctx, client, topicName)
 	if err != nil {
 		log.Errorf("Failed to get or create Pub/Sub topic [%v] for project [%v]: %v", topicName, projectID, err)
 		return nil, err
@@ -35,7 +34,7 @@ func New(ctx context.Context, projectID, topicName string) (*Publisher, error) {
 	}, nil
 }
 
-func mustGetOrCreateTopic(ctx context.Context, client *pubsub.Client, topicName string) (*pubsub.Topic, error) {
+func getOrCreateTopic(ctx context.Context, client *pubsub.Client, topicName string) (*pubsub.Topic, error) {
 	topic := client.Topic(topicName)
 	ok, err := topic.Exists(ctx)
 	if err != nil {
@@ -55,10 +54,10 @@ func mustGetOrCreateTopic(ctx context.Context, client *pubsub.Client, topicName 
 // CreateSubscription is a convenience method to create a subscription for this publisher's project and topic.
 // It is not required to call this method to publish messages if you expect a subscription to already exist.
 func (p Publisher) CreateSubscription(subName, endpoint string, ackDeadline time.Duration) (*pubsub.Subscription, error) {
-	return mustGetOrCreateSubscription(p.ctx, p.client, p.topic, subName, endpoint, ackDeadline)
+	return getOrCreateSubscription(p.ctx, p.client, p.topic, subName, endpoint, ackDeadline)
 }
 
-func mustGetOrCreateSubscription(ctx context.Context, client *pubsub.Client, topic *pubsub.Topic, subName, endpoint string, ackDeadline time.Duration) (*pubsub.Subscription, error) {
+func getOrCreateSubscription(ctx context.Context, client *pubsub.Client, topic *pubsub.Topic, subName, endpoint string, ackDeadline time.Duration) (*pubsub.Subscription, error) {
 	sub := client.Subscription(subName)
 	exists, err := sub.Exists(ctx)
 	if err != nil {
