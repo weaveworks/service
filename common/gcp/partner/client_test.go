@@ -47,29 +47,15 @@ const (
 `
 	list = `{"subscriptions": [` + pending + `]}`
 
-	apiURI = "https://weave.test"
+	basePath = "https://cloudbilling.googleapis.com"
 )
-
-// Mocked service JSON account key, the private key was explicitly generated for this test.
-var jsonKey = map[string]string{
-	"type":                        "service_account",
-	"project_id":                  "weaveworks-test",
-	"private_key_id":              "abc890",
-	"private_key":                 "-----BEGIN RSA PRIVATE KEY-----\nMIICXQIBAAKBgQC7sY2DwxQHWs99Fs1u4aMWNzQZGr29v8gbQTFTaesjtY4h1Z1j\nBYjprYzEg9f+jLg1d4P7cSQfPmCVnSmIwDEi2Ih7RCwf/nbfdLSfWrtw24eBXNyL\nQMH63Q3SlGK8zRcbjhbQt283Gg46f6y0Lt04lcakxiBqhMg44bzPdb1cZQIDAQAB\nAoGALjZhKXf2jnkFbT8YBZz4kpe09BlpbjayBkPe6TLC+l/RRvNZdO//7ckVR61O\nmRX8pO1wSZBp3Gd3UF8JwunPLuEjLSpKzxINlKgVTz/DFrYzC4uwgqBZ0rwHKsL7\nMzndzf3M+blZLBspAsCONMJviVZZYr7xzxixe03ML5n1m2ECQQDlgHhN6iEHhlrJ\nQta4wWQ8vvdw03d6gVMead5+ZRgV9TzvU6yYmbhHpBjg7St5H5xEWRhwaNKreNwN\nnPMnCSr3AkEA0V1UW8uOj+7DBmpu0al6g3epi6NQLNx3KwA+jfaw8kLfEhYns2mn\nHTeF3OyiNf1kYR95axg2FHIz2DGrud6ggwJBAI1V2MDi9wRTUYWwi9ur/bcLRAdP\ns7zV+AI64LKmP3cGWEhrF1fDEyHLhSa/6I3nUa0l0U8ovtSq0Znwli3sD3ECQHy+\n+EmtsucN44RKHHeuXMJCpXH/QAFK53Jmtd8OkwX2VEXJj6Q2Go2tDITDNi+nKI06\nHLVz+p0aIsv5ZJHeFZMCQQC2cunzP6wslKo/JMbvh5Vw5Xj/TNRi+Xp2ucvkh4Ix\n12rMVEoSFh/oQpHJE7aWlOsA+ovCn/WiIjv3A3lmxDOq\n-----END RSA PRIVATE KEY-----\n",
-	"client_email":                "cloud-launcher@weaveworks-public.iam.gserviceaccount.com",
-	"client_id":                   "123456",
-	"auth_apiURI":                 "https://accounts.google.com/o/oauth2/auth",
-	"token_apiURI":                "https://accounts.google.com/o/oauth2/token",
-	"auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-	"client_x509_cert_url":        "https://www.googleapis.com/robot/v1/metadata/x509/cloud-launcher%40weaveworks-public.iam.gserviceaccount.com",
-}
 
 var config partner.Config
 
 func init() {
 	config.RegisterFlags(flag.CommandLine)
+	config.ServiceAccountKeyFile = "../../../testdata/google-service-account-key.json"
 	flag.Parse()
-	config.URL = apiURI + "/v1"
 }
 
 // Unmarshal then marshal needs to lead to the same json.
@@ -82,31 +68,11 @@ func TestSubscription_Marshal(t *testing.T) {
 	assert.JSONEq(t, pending, string(out))
 }
 
-func mockOauth() {
-	gock.New("https://accounts.google.com").
-		Post("/o/oauth2/token").
-		Reply(200).
-		JSON(map[string]interface{}{
-			"access_token":  "ya29.Foo",
-			"token_type":    "",
-			"expires_in":    0,
-			"refresh_token": "",
-		})
-}
-
-func createClient(t *testing.T) *partner.Client {
-	bs, err := json.Marshal(jsonKey)
-	assert.NoError(t, err)
-	cl, err := partner.NewClientFromJSON(bs, config)
-	assert.NoError(t, err)
-	return cl
-}
-
 func TestClient_Approve(t *testing.T) {
 	defer gock.Off()
 
 	mockOauth()
-	gock.New(apiURI).
+	gock.New(basePath).
 		Post("/v1/" + pendingName + ":approve").
 		Reply(200).BodyString(pending)
 
@@ -121,7 +87,7 @@ func TestClient_Deny(t *testing.T) {
 	defer gock.Off()
 
 	mockOauth()
-	gock.New(apiURI).
+	gock.New(basePath).
 		Post("/v1/" + pendingName + ":deny").
 		Reply(200).BodyString(pending)
 
@@ -136,7 +102,7 @@ func TestClient_Get(t *testing.T) {
 	defer gock.Off()
 
 	mockOauth()
-	gock.New(apiURI).
+	gock.New(basePath).
 		Get("/v1/" + pendingName).
 		Reply(200).BodyString(pending)
 
@@ -154,7 +120,7 @@ func TestClient_List(t *testing.T) {
 	defer gock.Off()
 
 	mockOauth()
-	gock.New(apiURI).
+	gock.New(basePath).
 		Get("/v1/partnerSubscriptions").
 		Reply(200).BodyString(list)
 
@@ -169,7 +135,7 @@ func TestClient_GetError(t *testing.T) {
 	defer gock.Off()
 
 	mockOauth()
-	gock.New(apiURI).
+	gock.New(basePath).
 		Get("/v1/" + pendingName).
 		Reply(400).JSON(map[string]interface{}{
 		"code":    400,
@@ -181,4 +147,23 @@ func TestClient_GetError(t *testing.T) {
 	sub, err := cl.GetSubscription(context.Background(), pendingName)
 	assert.Nil(t, sub)
 	assert.Error(t, err)
+}
+
+// mockOauth mocks the oauth2 token request
+func mockOauth() {
+	gock.New("https://accounts.google.com").
+		Post("/o/oauth2/token").
+		Reply(200).
+		JSON(map[string]interface{}{
+			"access_token":  "ya29.Foo",
+			"token_type":    "",
+			"expires_in":    0,
+			"refresh_token": "",
+		})
+}
+
+func createClient(t *testing.T) *partner.Client {
+	cl, err := partner.NewClient(config)
+	assert.NoError(t, err)
+	return cl
 }
