@@ -25,6 +25,7 @@ const (
 )
 
 const (
+	basePath   = "https://cloudbilling.googleapis.com"
 	oauthScope = "https://www.googleapis.com/auth/cloud-platform"
 )
 
@@ -87,7 +88,7 @@ type errorResponse struct {
 	Status  string `json:"status"`
 }
 
-// Error formats this error response as a string.
+// Error includes status, code, and message of the response.
 func (e errorResponse) Error() string {
 	return fmt.Sprintf("%v (%v): %v", e.Code, e.Status, e.Message)
 }
@@ -111,18 +112,13 @@ func NewClient(cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewClientFromJSON(jsonKey, cfg)
-}
 
-// NewClientFromJSON returns a Client accessing the Partner Subscriptions API. It uses
-// oauth2 for authentication.
-func NewClientFromJSON(jsonKey []byte, cfg Config) (*Client, error) {
 	// Create oauth2 HTTP client from the given service account key JSON
 	jwtConf, err := google.JWTConfigFromJSON(jsonKey, oauthScope)
 	if err != nil {
 		return nil, err
 	}
-	cl := jwtConf.Client(nil)
+	cl := jwtConf.Client(context.Background())
 	cl.Timeout = cfg.Timeout
 
 	return &Client{
@@ -134,7 +130,7 @@ func NewClientFromJSON(jsonKey []byte, cfg Config) (*Client, error) {
 // ApproveSubscription marks the subscription approved.
 // See https://cloud.google.com/billing-subscriptions/reference/rest/v1/partnerSubscriptions/approve
 func (c *Client) ApproveSubscription(ctx context.Context, name string) (*Subscription, error) {
-	u := fmt.Sprintf("%s/%s:approve", c.cfg.URL, name)
+	u := fmt.Sprintf("%s/v1/%s:approve", basePath, name)
 	resp := &subscriptionResponse{}
 	err := c.Post(ctx, "partnerSubscriptions:approve", u, nil, resp)
 	if resp.Error != nil {
@@ -150,7 +146,7 @@ func (c *Client) ApproveSubscription(ctx context.Context, name string) (*Subscri
 // DenySubscription marks the subscription denied.
 // See https://cloud.google.com/billing-subscriptions/reference/rest/v1/partnerSubscriptions/deny
 func (c *Client) DenySubscription(ctx context.Context, name string) (*Subscription, error) {
-	u := fmt.Sprintf("%s/%s:deny", c.cfg.URL, name)
+	u := fmt.Sprintf("%s/v1/%s:deny", basePath, name)
 	resp := &subscriptionResponse{}
 	err := c.Post(ctx, "partnerSubscriptions:deny", u, nil, resp)
 	if resp.Error != nil {
@@ -166,7 +162,7 @@ func (c *Client) DenySubscription(ctx context.Context, name string) (*Subscripti
 // GetSubscription returns the requested subscription.
 // See https://cloud.google.com/billing-subscriptions/reference/rest/v1/partnerSubscriptions/get
 func (c *Client) GetSubscription(ctx context.Context, name string) (*Subscription, error) {
-	u := fmt.Sprintf("%s/%s", c.cfg.URL, name)
+	u := fmt.Sprintf("%s/v1/%s", basePath, name)
 	resp := &subscriptionResponse{}
 	err := c.Get(ctx, "partnerSubscriptions:get", u, resp)
 	if resp.Error != nil {
@@ -183,7 +179,7 @@ func (c *Client) GetSubscription(ctx context.Context, name string) (*Subscriptio
 // See https://cloud.google.com/billing-subscriptions/reference/rest/v1/partnerSubscriptions/list
 func (c *Client) ListSubscriptions(ctx context.Context, externalAccountID string) ([]Subscription, error) {
 	q := url.Values{"externalAccountId": []string{externalAccountID}}
-	u := fmt.Sprintf("%s/partnerSubscriptions?%s", c.cfg.URL, q.Encode())
+	u := fmt.Sprintf("%s/v1/partnerSubscriptions?%s", basePath, q.Encode())
 	resp := &listSubscriptionResponse{}
 	err := c.Get(ctx, "partnerSubscriptions:list", u, resp)
 	if resp.Error != nil {

@@ -431,7 +431,7 @@
 [[projects]]
   branch = "master"
   name = "google.golang.org/api"
-  packages = ["bigquery/v2","gensupport","googleapi","googleapi/internal/uritemplates","googleapi/transport","internal","iterator","option","plus/v1","transport/http"]
+  packages = ["bigquery/v2","gensupport","googleapi","googleapi/internal/uritemplates","googleapi/transport","internal","iterator","option","plus/v1","servicecontrol/v1","transport/http"]
   revision = "aab106b125917246a672526055e2260b77258755"
 
 [[projects]]
@@ -459,6 +459,12 @@
   version = "v3.3.0"
 
 [[projects]]
+  name = "gopkg.in/h2non/gock.v1"
+  packages = ["."]
+  revision = "84d599244901620fb3eb96473eb9e50619f69b47"
+  version = "v1.0.6"
+
+[[projects]]
   name = "gopkg.in/mattes/migrate.v1"
   packages = ["driver","driver/postgres","file","migrate","migrate/direction","pipe"]
   revision = "afc973c4e5a6b746217c2d3950fcd110ed1ba349"
@@ -467,6 +473,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8565229b8fa6bb6ab4e4c5eb819873c72778f4c6d8258f89b16ae31749473922"
+  inputs-digest = "a7c2682a79f5880702203102d1e47344ac12bed13d73ec26b051d5c99f3887cf"
   solver-name = "gps-cdcl"
   solver-version = 1
