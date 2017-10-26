@@ -171,7 +171,7 @@ type JobStatusResponse struct {
 	ErrorResponse `json:",omitempty"`
 }
 
-// SyncStatusResponse is the SyncStatus reponse.
+// SyncStatusResponse is the SyncStatus response.
 type SyncStatusResponse struct {
 	Result        []string
 	ErrorResponse `json:",omitempty"`
@@ -390,113 +390,27 @@ func (n *NATS) processRequest(ctx context.Context, request *nats.Msg, instID ser
 	var err error
 	switch {
 	case strings.HasSuffix(request.Subject, methodKick):
-		id := string(request.Data)
-		if id != myID {
-			bus.IncrKicks(instID)
-			err = remote.FatalError{errors.New("Kicked by new subscriber " + id)}
-		}
-
+		err = n.processKick(request, instID, myID)
 	case strings.HasSuffix(request.Subject, methodPing):
-		var p pingReq
-		err = encoder.Decode(request.Subject, request.Data, &p)
-		if err == nil {
-			err = platform.Ping(ctx)
-		}
-		n.enc.Publish(request.Reply, PingResponse{makeErrorResponse(err)})
-
+		err = n.processPing(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodVersion):
-		var vsn string
-		vsn, err = platform.Version(ctx)
-		n.enc.Publish(request.Reply, VersionResponse{vsn, makeErrorResponse(err)})
-
+		err = n.processVersion(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodExport):
-		var (
-			req   exportReq
-			bytes []byte
-		)
-		err = encoder.Decode(request.Subject, request.Data, &req)
-		if err == nil {
-			bytes, err = platform.Export(ctx)
-		}
-		n.enc.Publish(request.Reply, ExportResponse{bytes, makeErrorResponse(err)})
-
+		err = n.processExport(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodListServices):
-		var (
-			namespace string
-			res       []flux.ControllerStatus
-		)
-		err = encoder.Decode(request.Subject, request.Data, &namespace)
-		if err == nil {
-			res, err = platform.ListServices(ctx, namespace)
-		}
-		n.enc.Publish(request.Reply, ListServicesResponse{res, makeErrorResponse(err)})
-
+		err = n.processListServices(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodListImages):
-		var (
-			req update.ResourceSpec
-			res []flux.ImageStatus
-		)
-		err = encoder.Decode(request.Subject, request.Data, &req)
-		if err == nil {
-			res, err = platform.ListImages(ctx, req)
-		}
-		n.enc.Publish(request.Reply, ListImagesResponse{res, makeErrorResponse(err)})
-
+		err = n.processListImages(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodUpdateManifests):
-		var (
-			req update.Spec
-			res job.ID
-		)
-		err = encoder.Decode(request.Subject, request.Data, &req)
-		if err == nil {
-			res, err = platform.UpdateManifests(ctx, req)
-		}
-		n.enc.Publish(request.Reply, UpdateManifestsResponse{res, makeErrorResponse(err)})
-
+		err = n.processUpdateManifests(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodSyncNotify):
-		var p syncReq
-		err = encoder.Decode(request.Subject, request.Data, &p)
-		if err == nil {
-			err = platform.SyncNotify(ctx)
-		}
-		n.enc.Publish(request.Reply, SyncNotifyResponse{makeErrorResponse(err)})
-
+		err = n.processSyncNotify(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodJobStatus):
-		var (
-			req job.ID
-			res job.Status
-		)
-		err = encoder.Decode(request.Subject, request.Data, &req)
-		if err == nil {
-			res, err = platform.JobStatus(ctx, req)
-		}
-		n.enc.Publish(request.Reply, JobStatusResponse{
-			Result:        res,
-			ErrorResponse: makeErrorResponse(err),
-		})
-
+		err = n.processJobStatus(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodSyncStatus):
-		var (
-			req string
-			res []string
-		)
-		err = encoder.Decode(request.Subject, request.Data, &req)
-		if err == nil {
-			res, err = platform.SyncStatus(ctx, req)
-		}
-		n.enc.Publish(request.Reply, SyncStatusResponse{res, makeErrorResponse(err)})
-
+		err = n.processSyncStatus(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodGitRepoConfig):
-		var (
-			req bool
-			res flux.GitConfig
-		)
-		err = encoder.Decode(request.Subject, request.Data, &req)
-		if err == nil {
-			res, err = platform.GitRepoConfig(ctx, req)
-		}
-		n.enc.Publish(request.Reply, GitRepoConfigResponse{res, makeErrorResponse(err)})
-
+		err = n.processGitRepoConfig(ctx, request, platform)
 	default:
 		err = errors.New("unknown message: " + request.Subject)
 	}
@@ -513,4 +427,133 @@ func (n *NATS) processRequest(ctx context.Context, request *nats.Msg, instID ser
 			// - don't panic.
 		}
 	}
+}
+
+func (n *NATS) processKick(request *nats.Msg, instID service.InstanceID, myID string) error {
+	id := string(request.Data)
+	if id != myID {
+		bus.IncrKicks(instID)
+		return remote.FatalError{Err: errors.New("Kicked by new subscriber " + id)}
+	}
+	return nil
+}
+
+func (n *NATS) processPing(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+	var p pingReq
+	err := encoder.Decode(request.Subject, request.Data, &p)
+	if err == nil {
+		err = platform.Ping(ctx)
+	}
+	n.enc.Publish(request.Reply, PingResponse{makeErrorResponse(err)})
+	return err
+}
+
+func (n *NATS) processVersion(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+	v, err := platform.Version(ctx)
+	n.enc.Publish(request.Reply, VersionResponse{v, makeErrorResponse(err)})
+	return err
+}
+
+func (n *NATS) processExport(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+	var (
+		req   exportReq
+		bytes []byte
+	)
+	err := encoder.Decode(request.Subject, request.Data, &req)
+	if err == nil {
+		bytes, err = platform.Export(ctx)
+	}
+	n.enc.Publish(request.Reply, ExportResponse{bytes, makeErrorResponse(err)})
+	return err
+}
+
+func (n *NATS) processListServices(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+	var (
+		namespace string
+		res       []flux.ControllerStatus
+	)
+	err := encoder.Decode(request.Subject, request.Data, &namespace)
+	if err == nil {
+		res, err = platform.ListServices(ctx, namespace)
+	}
+	n.enc.Publish(request.Reply, ListServicesResponse{res, makeErrorResponse(err)})
+	return err
+}
+
+func (n *NATS) processListImages(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+	var (
+		req update.ResourceSpec
+		res []flux.ImageStatus
+	)
+	err := encoder.Decode(request.Subject, request.Data, &req)
+	if err == nil {
+		res, err = platform.ListImages(ctx, req)
+	}
+	n.enc.Publish(request.Reply, ListImagesResponse{res, makeErrorResponse(err)})
+	return err
+}
+
+func (n *NATS) processUpdateManifests(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+	var (
+		req update.Spec
+		res job.ID
+	)
+	err := encoder.Decode(request.Subject, request.Data, &req)
+	if err == nil {
+		res, err = platform.UpdateManifests(ctx, req)
+	}
+	n.enc.Publish(request.Reply, UpdateManifestsResponse{res, makeErrorResponse(err)})
+	return err
+}
+
+func (n *NATS) processSyncNotify(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+	var p syncReq
+	err := encoder.Decode(request.Subject, request.Data, &p)
+	if err == nil {
+		err = platform.SyncNotify(ctx)
+	}
+	n.enc.Publish(request.Reply, SyncNotifyResponse{makeErrorResponse(err)})
+	return err
+}
+
+func (n *NATS) processJobStatus(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+	var (
+		req job.ID
+		res job.Status
+	)
+	err := encoder.Decode(request.Subject, request.Data, &req)
+	if err == nil {
+		res, err = platform.JobStatus(ctx, req)
+	}
+	n.enc.Publish(request.Reply, JobStatusResponse{
+		Result:        res,
+		ErrorResponse: makeErrorResponse(err),
+	})
+	return err
+}
+
+func (n *NATS) processSyncStatus(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+	var (
+		req string
+		res []string
+	)
+	err := encoder.Decode(request.Subject, request.Data, &req)
+	if err == nil {
+		res, err = platform.SyncStatus(ctx, req)
+	}
+	n.enc.Publish(request.Reply, SyncStatusResponse{res, makeErrorResponse(err)})
+	return err
+}
+
+func (n *NATS) processGitRepoConfig(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+	var (
+		req bool
+		res flux.GitConfig
+	)
+	err := encoder.Decode(request.Subject, request.Data, &req)
+	if err == nil {
+		res, err = platform.GitRepoConfig(ctx, req)
+	}
+	n.enc.Publish(request.Reply, GitRepoConfigResponse{res, makeErrorResponse(err)})
+	return err
 }

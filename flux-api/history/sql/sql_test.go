@@ -94,7 +94,7 @@ func TestHistoryLog(t *testing.T) {
 }
 
 func checkInDescOrder(t *testing.T, events []event.Event) {
-	var last time.Time = time.Now()
+	last := time.Now()
 	for _, event := range events {
 		if event.StartedAt.After(last) {
 			t.Fatalf("Events out of order: %+v > %s", event, last)

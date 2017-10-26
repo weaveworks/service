@@ -21,7 +21,7 @@ func exampleRelease(t *testing.T) *event.ReleaseEventMetadata {
 			Status: update.ReleaseStatusFailed,
 			Error:  "overall-release-error",
 			PerContainer: []update.ContainerUpdate{
-				update.ContainerUpdate{
+				{
 					Container: "container1",
 					Current:   img1a1,
 					Target:    img1a2,

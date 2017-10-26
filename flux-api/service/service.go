@@ -9,8 +9,10 @@ import (
 // InstanceID is a Weave Cloud instanceID.
 type InstanceID string
 
+type key string
+
 // InstanceIDKey is the key against which we'll store the instance ID in contexts.
-const InstanceIDKey = "InstanceID"
+const InstanceIDKey key = "InstanceID"
 
 // Status is the status of a given instance.
 // TODO: How similar should this be to the `get-config` result?

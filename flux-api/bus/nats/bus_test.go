@@ -46,7 +46,7 @@ func TestPing(t *testing.T) {
 
 	// AwaitPresence uses Ping, so we have to install our error after
 	// subscribe succeeds.
-	platA.PingError = remote.FatalError{errors.New("ping problem")}
+	platA.PingError = remote.FatalError{Err: errors.New("ping problem")}
 	if err := platA.Ping(ctx); err == nil {
 		t.Fatalf("expected error from directly calling ping, got nil")
 	}
@@ -103,7 +103,7 @@ func TestFatalErrorDisconnects(t *testing.T) {
 
 	instA := service.InstanceID("golden-years-75")
 	mockA := &remote.MockPlatform{
-		ListServicesError: remote.FatalError{errors.New("disaster")},
+		ListServicesError: remote.FatalError{Err: errors.New("disaster")},
 	}
 	subscribe(ctx, t, bus, errc, instA, mockA)
 

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 
-	_ "github.com/cznic/ql/driver" // reasons
+	_ "github.com/cznic/ql/driver" // initialises the ql driver
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
 
