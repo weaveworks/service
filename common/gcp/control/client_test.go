@@ -13,8 +13,7 @@ import (
 )
 
 const (
-	basePath    = "https://servicecontrol.googleapis.com"
-	serviceName = "weaveworks-test-cloudmarketplacepartner.googleapis.com"
+	basePath = "https://servicecontrol.googleapis.com"
 )
 
 var config control.Config
@@ -44,7 +43,7 @@ func TestClient_Report(t *testing.T) {
 
 	mockOauth()
 	gock.New(basePath).
-		Post("/v1/services/" + serviceName + ":report").
+		Post("/v1/services/google.weave.works:report").
 		Reply(200).
 		BodyString(`{"serviceConfigId": "something"}`)
 
@@ -52,7 +51,7 @@ func TestClient_Report(t *testing.T) {
 	assert.NoError(t, err)
 
 	ops := []*servicecontrol.Operation{}
-	err = cl.Report(context.Background(), serviceName, ops)
+	err = cl.Report(context.Background(), ops)
 	assert.NoError(t, err)
 }
 
@@ -61,7 +60,7 @@ func TestClient_ReportError(t *testing.T) {
 
 	mockOauth()
 	gock.New(basePath).
-		Post("/v1/services/" + serviceName + ":report").
+		Post("/v1/services/google.weave.works:report").
 		Reply(200).
 		JSON(map[string]interface{}{
 			"reportErrors": []*servicecontrol.ReportError{{
@@ -77,7 +76,7 @@ func TestClient_ReportError(t *testing.T) {
 	assert.NoError(t, err)
 
 	ops := []*servicecontrol.Operation{}
-	err = cl.Report(context.Background(), serviceName, ops)
+	err = cl.Report(context.Background(), ops)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "foo123")
 	assert.Contains(t, err.Error(), "987")

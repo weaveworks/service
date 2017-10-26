@@ -17,7 +17,8 @@ import (
 // https://cloud.google.com/service-control/overview
 // https://cloud.google.com/service-control/reporting-billing-metrics
 type Client struct {
-	svc *servicecontrol.ServicesService
+	svc         *servicecontrol.ServicesService
+	serviceName string
 }
 
 // NewClient returns a Client accessing the Service Control API. It uses
@@ -40,16 +41,23 @@ func NewClient(cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{s.Services}, nil
+	s.BasePath = cfg.URL
+	if s.BasePath[len(s.BasePath)-1] != '/' {
+		s.BasePath += "/"
+	}
+	return &Client{
+		svc:         s.Services,
+		serviceName: cfg.ServiceName,
+	}, nil
 }
 
 // Report sends off a slice of operations.
 // It requires the `servicemanagement.services.report` permission.
-func (c *Client) Report(ctx context.Context, serviceName string, operations []*servicecontrol.Operation) error {
+func (c *Client) Report(ctx context.Context, operations []*servicecontrol.Operation) error {
 	req := &servicecontrol.ReportRequest{
 		Operations: operations,
 	}
-	res, err := c.svc.Report(serviceName, req).Do()
+	res, err := c.svc.Report(c.serviceName, req).Do()
 	if err != nil {
 		return err
 	}
