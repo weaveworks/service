@@ -14,6 +14,8 @@ machine:
 dependencies:
   cache_directories:
     - "~/docker"
+  override:
+    - go get github.com/nats-io/gnatsd
   post:
     - mkdir -p $(dirname $SRCDIR)
     - cp -r $(pwd)/ $SRCDIR
@@ -24,6 +26,8 @@ dependencies:
 
 test:
   override:
+    - gnatsd:
+        background: true
     - |
         cd $SRCDIR; if [ $(./tools/image-tag --show-diff | grep -e '-WIP$') ]; then
            echo "WIP build; exiting with error to mark as a failure"
