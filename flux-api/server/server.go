@@ -30,7 +30,6 @@ type Server struct {
 	config              instance.DB
 	messageBus          bus.MessageBus
 	logger              log.Logger
-	maxPlatform         chan struct{} // semaphore for concurrent calls to the platform
 	connected           int32
 	defaultEventsConfig *instance.Config
 }
@@ -50,7 +49,6 @@ func New(
 		config:              config,
 		messageBus:          messageBus,
 		logger:              logger,
-		maxPlatform:         make(chan struct{}, 8),
 		defaultEventsConfig: eventsConfig,
 	}
 }
