@@ -9,6 +9,8 @@ import (
 	"github.com/weaveworks/service/flux-api/service"
 )
 
+// MultitenantInstancer is an implementation of Instancer that communicates with
+// Instances over a message bus, in order to support multiple replicas.
 type MultitenantInstancer struct {
 	DB        DB
 	Connecter bus.Connecter
@@ -16,6 +18,7 @@ type MultitenantInstancer struct {
 	History   history.DB
 }
 
+// Get gets an Instance by instanceID.
 func (m *MultitenantInstancer) Get(instanceID service.InstanceID) (*Instance, error) {
 	// Platform interface for this instance
 	platform, err := m.Connecter.Connect(instanceID)
@@ -27,7 +30,7 @@ func (m *MultitenantInstancer) Get(instanceID service.InstanceID) (*Instance, er
 	instanceLogger := log.With(m.Logger, "instanceID", instanceID)
 
 	// Events for this instance
-	eventRW := EventReadWriter{instanceID, m.History}
+	eventRW := eventReadWriter{instanceID, m.History}
 
 	// Configuration for this instance
 	config := configurer{instanceID, m.DB}

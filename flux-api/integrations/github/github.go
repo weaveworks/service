@@ -24,18 +24,19 @@ var (
 	}
 )
 
-type github struct {
+// Github is a Github API client.
+type Github struct {
 	client *gh.Client
 }
 
 // NewGithubClient instantiates a GH client from a provided OAuth token.
-func NewGithubClient(token string) *github {
+func NewGithubClient(token string) *Github {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 
-	return &github{
+	return &Github{
 		client: gh.NewClient(tc),
 	}
 }
@@ -43,7 +44,7 @@ func NewGithubClient(token string) *github {
 // InsertDeployKey will create a new deploy key for the given owner,
 // repo, token using the key deployKey.
 // If a key already exists with that name it will be deleted.
-func (g *github) InsertDeployKey(ownerName string, repoName string, deployKey string) error {
+func (g *Github) InsertDeployKey(ownerName string, repoName string, deployKey string) error {
 	// Get list of keys
 	keys, resp, err := g.client.Repositories.ListKeys(ownerName, repoName, nil)
 	if err != nil {

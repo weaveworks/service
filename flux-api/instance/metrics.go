@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	LabelMethod  = "method"
-	LabelSuccess = "success"
+	labelMethod  = "method"
+	labelSuccess = "success"
 )
 
 var (
@@ -29,13 +29,14 @@ var (
 		Name:      "request_duration_seconds",
 		Help:      "Request duration in seconds.",
 		Buckets:   stdprometheus.DefBuckets,
-	}, []string{LabelMethod, LabelSuccess})
+	}, []string{labelMethod, labelSuccess})
 )
 
 type instrumentedDB struct {
 	db DB
 }
 
+// InstrumentedDB wraps a DB instance in instrumentation.
 func InstrumentedDB(db DB) DB {
 	return &instrumentedDB{db}
 }
@@ -43,8 +44,8 @@ func InstrumentedDB(db DB) DB {
 func (i *instrumentedDB) UpdateConfig(inst service.InstanceID, update UpdateFunc) (err error) {
 	defer func(begin time.Time) {
 		requestDuration.With(
-			LabelMethod, "UpdateConfig",
-			LabelSuccess, fmt.Sprint(err == nil),
+			labelMethod, "UpdateConfig",
+			labelSuccess, fmt.Sprint(err == nil),
 		).Observe(time.Since(begin).Seconds())
 	}(time.Now())
 	return i.db.UpdateConfig(inst, update)
@@ -53,8 +54,8 @@ func (i *instrumentedDB) UpdateConfig(inst service.InstanceID, update UpdateFunc
 func (i *instrumentedDB) GetConfig(inst service.InstanceID) (c Config, err error) {
 	defer func(begin time.Time) {
 		requestDuration.With(
-			LabelMethod, "GetConfig",
-			LabelSuccess, fmt.Sprint(err == nil),
+			labelMethod, "GetConfig",
+			labelSuccess, fmt.Sprint(err == nil),
 		).Observe(time.Since(begin).Seconds())
 	}(time.Now())
 	return i.db.GetConfig(inst)

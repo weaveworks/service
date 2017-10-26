@@ -9,10 +9,12 @@ import (
 	"github.com/weaveworks/service/flux-api/service"
 )
 
+// Instancer gets an Instance by instanceID.
 type Instancer interface {
 	Get(inst service.InstanceID) (*Instance, error)
 }
 
+// Instance is a flux-api connected flux daemon instance.
 type Instance struct {
 	Platform remote.Platform
 	Config   configurer
@@ -22,6 +24,7 @@ type Instance struct {
 	event.EventWriter
 }
 
+// New creates a new Instance.
 func New(
 	platform remote.Platform,
 	config configurer,

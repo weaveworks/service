@@ -15,6 +15,7 @@ var (
 	}, []string{})
 )
 
+// IncrKicks increments the kickCount metric.
 func IncrKicks(inst service.InstanceID) {
 	kickCount.Add(1)
 }

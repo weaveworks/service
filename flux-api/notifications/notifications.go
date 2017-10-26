@@ -5,10 +5,11 @@ import (
 	"github.com/weaveworks/service/flux-api/instance"
 )
 
+// DefaultNotifyEvents is the default list of events on which we notify.
 var DefaultNotifyEvents = []string{"release", "autorelease"}
 
+// Event sends a notification for the given event if cfg specifies HookURL.
 func Event(cfg instance.Config, e event.Event) error {
-	// If this is a release
 	if cfg.Settings.Slack.HookURL != "" {
 		switch e.Type {
 		case event.EventRelease:

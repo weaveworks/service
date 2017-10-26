@@ -7,7 +7,7 @@ import (
 	"github.com/weaveworks/service/flux-api/service"
 )
 
-// For getting a connection to a platform; this can happen in
+// Connecter gets  a connection to a platform; this can happen in
 // different ways, e.g., by having direct access to Kubernetes in
 // standalone mode, or by going via a message bus.
 type Connecter interface {

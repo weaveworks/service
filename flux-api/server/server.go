@@ -24,6 +24,7 @@ import (
 	"github.com/weaveworks/service/flux-api/service"
 )
 
+// Server is a flux-api server.
 type Server struct {
 	version             string
 	instancer           instance.Instancer
@@ -34,6 +35,7 @@ type Server struct {
 	defaultEventsConfig *instance.Config
 }
 
+// New creates a new Server.
 func New(
 	version string,
 	instancer instance.Instancer,
@@ -54,7 +56,7 @@ func New(
 }
 
 var (
-	ErrNoInstanceID = errors.New("No instance ID supplied in request")
+	errNoInstanceID = errors.New("No instance ID supplied in request")
 )
 
 // Get the InstanceID from the context, or fail with an error
@@ -63,9 +65,10 @@ func getInstanceID(ctx context.Context) (service.InstanceID, error) {
 	if ok {
 		return id, nil
 	}
-	return "", ErrNoInstanceID
+	return "", errNoInstanceID
 }
 
+// Status gets the status of the given instance.
 func (s *Server) Status(ctx context.Context) (res service.Status, err error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -109,6 +112,7 @@ func (s *Server) Status(ctx context.Context) (res service.Status, err error) {
 	return res, nil
 }
 
+// ListServices calls ListServices on the given instance.
 func (s *Server) ListServices(ctx context.Context, namespace string) (res []flux.ControllerStatus, err error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -127,6 +131,7 @@ func (s *Server) ListServices(ctx context.Context, namespace string) (res []flux
 	return services, nil
 }
 
+// ListImages calls ListImages on the given instance.
 func (s *Server) ListImages(ctx context.Context, spec update.ResourceSpec) (res []flux.ImageStatus, err error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -140,6 +145,7 @@ func (s *Server) ListImages(ctx context.Context, spec update.ResourceSpec) (res 
 	return inst.Platform.ListImages(ctx, spec)
 }
 
+// UpdateImages updates images on the given instance.
 func (s *Server) UpdateImages(ctx context.Context, spec update.ReleaseSpec, cause update.Cause) (job.ID, error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -153,6 +159,7 @@ func (s *Server) UpdateImages(ctx context.Context, spec update.ReleaseSpec, caus
 	return inst.Platform.UpdateManifests(ctx, update.Spec{Type: update.Images, Cause: cause, Spec: spec})
 }
 
+// UpdatePolicies updates policies on the given instance.
 func (s *Server) UpdatePolicies(ctx context.Context, updates policy.Updates, cause update.Cause) (job.ID, error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -166,6 +173,7 @@ func (s *Server) UpdatePolicies(ctx context.Context, updates policy.Updates, cau
 	return inst.Platform.UpdateManifests(ctx, update.Spec{Type: update.Policy, Cause: cause, Spec: updates})
 }
 
+// SyncNotify calls SyncNotify on the given instance.
 func (s *Server) SyncNotify(ctx context.Context) (err error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -178,6 +186,7 @@ func (s *Server) SyncNotify(ctx context.Context) (err error) {
 	return inst.Platform.SyncNotify(ctx)
 }
 
+// JobStatus calls JobStatus on the given instance.
 func (s *Server) JobStatus(ctx context.Context, jobID job.ID) (res job.Status, err error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -191,6 +200,7 @@ func (s *Server) JobStatus(ctx context.Context, jobID job.ID) (res job.Status, e
 	return inst.Platform.JobStatus(ctx, jobID)
 }
 
+// SyncStatus calls SyncStatus on the given instance.
 func (s *Server) SyncStatus(ctx context.Context, ref string) (res []string, err error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -205,7 +215,7 @@ func (s *Server) SyncStatus(ctx context.Context, ref string) (res []string, err 
 }
 
 // LogEvent receives events from fluxd and pushes events to the history
-// db and a slack notification
+// db and a Slack notification.
 func (s *Server) LogEvent(ctx context.Context, e event.Event) error {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -243,6 +253,7 @@ func (s *Server) LogEvent(ctx context.Context, e event.Event) error {
 	return nil
 }
 
+// History gets event history for the given instance.
 func (s *Server) History(ctx context.Context, spec update.ResourceSpec, before time.Time, limit int64, after time.Time) (res []history.Entry, err error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -285,6 +296,7 @@ func (s *Server) History(ctx context.Context, spec update.ResourceSpec, before t
 	return res, nil
 }
 
+// GetConfig gets the config for the given instance.
 func (s *Server) GetConfig(ctx context.Context, fingerprint string) (config.Instance, error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -310,6 +322,7 @@ func (s *Server) GetConfig(ctx context.Context, fingerprint string) (config.Inst
 	return config, nil
 }
 
+// SetConfig updates the config for the given instance.
 func (s *Server) SetConfig(ctx context.Context, updates config.Instance) error {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -318,6 +331,7 @@ func (s *Server) SetConfig(ctx context.Context, updates config.Instance) error {
 	return s.config.UpdateConfig(instID, applyConfigUpdates(updates))
 }
 
+// PatchConfig patches the config for the given instance.
 func (s *Server) PatchConfig(ctx context.Context, patch config.Patch) error {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -344,6 +358,7 @@ func applyConfigUpdates(updates config.Instance) instance.UpdateFunc {
 	}
 }
 
+// PublicSSHKey gets - and optionally regenerates - the public key for a given instance.
 func (s *Server) PublicSSHKey(ctx context.Context, regenerate bool) (ssh.PublicKey, error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -425,6 +440,7 @@ func setDisconnectedIf(t0 time.Time) instance.UpdateFunc {
 	}
 }
 
+// Export calls Export on the given instance.
 func (s *Server) Export(ctx context.Context) (res []byte, err error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
@@ -451,6 +467,7 @@ func (s *Server) instrumentPlatform(instID service.InstanceID, p remote.Platform
 	}
 }
 
+// IsDaemonConnected pings the given instance.
 func (s *Server) IsDaemonConnected(ctx context.Context) error {
 	instID, err := getInstanceID(ctx)
 	if err != nil {

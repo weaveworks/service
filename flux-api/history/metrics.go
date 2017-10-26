@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	LabelMethod  = "method"
-	LabelSuccess = "success"
+	labelMethod  = "method"
+	labelSuccess = "success"
 )
 
 var (
@@ -24,13 +24,14 @@ var (
 		Name:      "request_duration_seconds",
 		Help:      "Request duration in seconds.",
 		Buckets:   stdprometheus.DefBuckets,
-	}, []string{LabelMethod, LabelSuccess})
+	}, []string{labelMethod, labelSuccess})
 )
 
 type instrumentedDB struct {
 	db DB
 }
 
+// InstrumentedDB wraps a DB instance in instrumentation.
 func InstrumentedDB(db DB) DB {
 	return &instrumentedDB{db}
 }
@@ -38,8 +39,8 @@ func InstrumentedDB(db DB) DB {
 func (i *instrumentedDB) LogEvent(inst service.InstanceID, e event.Event) (err error) {
 	defer func(begin time.Time) {
 		requestDuration.With(
-			LabelMethod, "LogEvent",
-			LabelSuccess, fmt.Sprint(err == nil),
+			labelMethod, "LogEvent",
+			labelSuccess, fmt.Sprint(err == nil),
 		).Observe(time.Since(begin).Seconds())
 	}(time.Now())
 	return i.db.LogEvent(inst, e)
@@ -48,8 +49,8 @@ func (i *instrumentedDB) LogEvent(inst service.InstanceID, e event.Event) (err e
 func (i *instrumentedDB) AllEvents(inst service.InstanceID, before time.Time, limit int64, after time.Time) (e []event.Event, err error) {
 	defer func(begin time.Time) {
 		requestDuration.With(
-			LabelMethod, "AllEvents",
-			LabelSuccess, fmt.Sprint(err == nil),
+			labelMethod, "AllEvents",
+			labelSuccess, fmt.Sprint(err == nil),
 		).Observe(time.Since(begin).Seconds())
 	}(time.Now())
 	return i.db.AllEvents(inst, before, limit, after)
@@ -58,8 +59,8 @@ func (i *instrumentedDB) AllEvents(inst service.InstanceID, before time.Time, li
 func (i *instrumentedDB) EventsForService(inst service.InstanceID, s flux.ResourceID, before time.Time, limit int64, after time.Time) (e []event.Event, err error) {
 	defer func(begin time.Time) {
 		requestDuration.With(
-			LabelMethod, "EventsForService",
-			LabelSuccess, fmt.Sprint(err == nil),
+			labelMethod, "EventsForService",
+			labelSuccess, fmt.Sprint(err == nil),
 		).Observe(time.Since(begin).Seconds())
 	}(time.Now())
 	return i.db.EventsForService(inst, s, before, limit, after)
@@ -68,8 +69,8 @@ func (i *instrumentedDB) EventsForService(inst service.InstanceID, s flux.Resour
 func (i *instrumentedDB) GetEvent(id event.EventID) (e event.Event, err error) {
 	defer func(begin time.Time) {
 		requestDuration.With(
-			LabelMethod, "GetEvent",
-			LabelSuccess, fmt.Sprint(err == nil),
+			labelMethod, "GetEvent",
+			labelSuccess, fmt.Sprint(err == nil),
 		).Observe(time.Since(begin).Seconds())
 	}(time.Now())
 	return i.db.GetEvent(id)
@@ -78,8 +79,8 @@ func (i *instrumentedDB) GetEvent(id event.EventID) (e event.Event, err error) {
 func (i *instrumentedDB) Close() (err error) {
 	defer func(begin time.Time) {
 		requestDuration.With(
-			LabelMethod, "Close",
-			LabelSuccess, fmt.Sprint(err == nil),
+			labelMethod, "Close",
+			labelSuccess, fmt.Sprint(err == nil),
 		).Observe(time.Since(begin).Seconds())
 	}(time.Now())
 	return i.db.Close()

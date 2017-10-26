@@ -35,9 +35,10 @@ import (
 	"github.com/weaveworks/service/flux-api/service"
 )
 
-// Name of the header containing the instance ID in requests
+// InstanceIDHeaderKey is the name of the header containing the instance ID in requests.
 const InstanceIDHeaderKey = "X-Scope-OrgID"
 
+// NewServiceRouter creates a new versioned flux-api router.
 func NewServiceRouter() *mux.Router {
 	r := transport.NewAPIRouter()
 
@@ -79,8 +80,9 @@ func NewServiceRouter() *mux.Router {
 	return r
 }
 
+// NewHandler attaches an api.Service to a flux-api router.
 func NewHandler(s api.Service, r *mux.Router, logger log.Logger) http.Handler {
-	handle := HTTPService{s}
+	handle := httpService{s}
 	for method, handlerMethod := range map[string]http.HandlerFunc{
 		"ListServices":             handle.ListServices,
 		"ListServicesV3":           handle.ListServices,
@@ -124,11 +126,11 @@ func NewHandler(s api.Service, r *mux.Router, logger log.Logger) http.Handler {
 	}.Wrap(r)
 }
 
-type HTTPService struct {
+type httpService struct {
 	service api.Service
 }
 
-func (s HTTPService) ListServices(w http.ResponseWriter, r *http.Request) {
+func (s httpService) ListServices(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 	namespace := mux.Vars(r)["namespace"]
 	res, err := s.service.ListServices(ctx, namespace)
@@ -139,7 +141,7 @@ func (s HTTPService) ListServices(w http.ResponseWriter, r *http.Request) {
 	transport.JSONResponse(w, r, res)
 }
 
-func (s HTTPService) ListImages(w http.ResponseWriter, r *http.Request) {
+func (s httpService) ListImages(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 	service := mux.Vars(r)["service"]
 	spec, err := update.ParseResourceSpec(service)
@@ -157,7 +159,7 @@ func (s HTTPService) ListImages(w http.ResponseWriter, r *http.Request) {
 	transport.JSONResponse(w, r, d)
 }
 
-func (s HTTPService) UpdateImages(w http.ResponseWriter, r *http.Request) {
+func (s httpService) UpdateImages(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx   = getRequestContext(r)
 		vars  = mux.Vars(r)
@@ -215,7 +217,7 @@ func (s HTTPService) UpdateImages(w http.ResponseWriter, r *http.Request) {
 	transport.JSONResponse(w, r, jobID)
 }
 
-func (s HTTPService) SyncNotify(w http.ResponseWriter, r *http.Request) {
+func (s httpService) SyncNotify(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 	err := s.service.SyncNotify(ctx)
 	if err != nil {
@@ -225,7 +227,7 @@ func (s HTTPService) SyncNotify(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
-func (s HTTPService) JobStatus(w http.ResponseWriter, r *http.Request) {
+func (s httpService) JobStatus(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 	id := job.ID(mux.Vars(r)["id"])
 	res, err := s.service.JobStatus(ctx, id)
@@ -236,7 +238,7 @@ func (s HTTPService) JobStatus(w http.ResponseWriter, r *http.Request) {
 	transport.JSONResponse(w, r, res)
 }
 
-func (s HTTPService) SyncStatus(w http.ResponseWriter, r *http.Request) {
+func (s httpService) SyncStatus(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 	rev := mux.Vars(r)["ref"]
 	res, err := s.service.SyncStatus(ctx, rev)
@@ -247,7 +249,7 @@ func (s HTTPService) SyncStatus(w http.ResponseWriter, r *http.Request) {
 	transport.JSONResponse(w, r, res)
 }
 
-func (s HTTPService) UpdatePolicies(w http.ResponseWriter, r *http.Request) {
+func (s httpService) UpdatePolicies(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 
 	var updates policy.Updates
@@ -268,7 +270,7 @@ func (s HTTPService) UpdatePolicies(w http.ResponseWriter, r *http.Request) {
 	transport.JSONResponse(w, r, jobID)
 }
 
-func (s HTTPService) LogEvent(w http.ResponseWriter, r *http.Request) {
+func (s httpService) LogEvent(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 
 	var event event.Event
@@ -286,7 +288,7 @@ func (s HTTPService) LogEvent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s HTTPService) History(w http.ResponseWriter, r *http.Request) {
+func (s httpService) History(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 	service := mux.Vars(r)["service"]
 	spec, err := update.ParseResourceSpec(service)
@@ -335,7 +337,7 @@ func (s HTTPService) History(w http.ResponseWriter, r *http.Request) {
 	transport.JSONResponse(w, r, h)
 }
 
-func (s HTTPService) GetConfig(w http.ResponseWriter, r *http.Request) {
+func (s httpService) GetConfig(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 	fingerprint := r.FormValue("fingerprint")
 	config, err := s.service.GetConfig(ctx, fingerprint)
@@ -347,7 +349,7 @@ func (s HTTPService) GetConfig(w http.ResponseWriter, r *http.Request) {
 	transport.JSONResponse(w, r, config)
 }
 
-func (s HTTPService) SetConfig(w http.ResponseWriter, r *http.Request) {
+func (s httpService) SetConfig(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 
 	var config config.Instance
@@ -364,7 +366,7 @@ func (s HTTPService) SetConfig(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s HTTPService) PatchConfig(w http.ResponseWriter, r *http.Request) {
+func (s httpService) PatchConfig(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 
 	var patch config.Patch
@@ -381,7 +383,7 @@ func (s HTTPService) PatchConfig(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s HTTPService) PostIntegrationsGithub(w http.ResponseWriter, r *http.Request) {
+func (s httpService) PostIntegrationsGithub(w http.ResponseWriter, r *http.Request) {
 	var (
 		ctx   = getRequestContext(r)
 		vars  = mux.Vars(r)
@@ -409,9 +411,9 @@ func (s HTTPService) PostIntegrationsGithub(w http.ResponseWriter, r *http.Reque
 	gh := github.NewGithubClient(tok)
 	err = gh.InsertDeployKey(owner, repo, publicKey.Key)
 	if err != nil {
-		httpErr, isHttpErr := err.(*httperror.APIError)
+		httpErr, isHTTPErr := err.(*httperror.APIError)
 		code := http.StatusInternalServerError
-		if isHttpErr {
+		if isHTTPErr {
 			code = httpErr.StatusCode
 		}
 		transport.WriteError(w, r, code, err)
@@ -421,7 +423,7 @@ func (s HTTPService) PostIntegrationsGithub(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s HTTPService) Status(w http.ResponseWriter, r *http.Request) {
+func (s httpService) Status(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 	status, err := s.service.Status(ctx)
 	if err != nil {
@@ -432,19 +434,19 @@ func (s HTTPService) Status(w http.ResponseWriter, r *http.Request) {
 	transport.JSONResponse(w, r, status)
 }
 
-func (s HTTPService) RegisterV6(w http.ResponseWriter, r *http.Request) {
+func (s httpService) RegisterV6(w http.ResponseWriter, r *http.Request) {
 	s.doRegister(w, r, func(conn io.ReadWriteCloser) platformCloser {
 		return rpc.NewClientV6(conn)
 	})
 }
 
-func (s HTTPService) RegisterV7(w http.ResponseWriter, r *http.Request) {
+func (s httpService) RegisterV7(w http.ResponseWriter, r *http.Request) {
 	s.doRegister(w, r, func(conn io.ReadWriteCloser) platformCloser {
 		return rpc.NewClientV7(conn)
 	})
 }
 
-func (s HTTPService) RegisterV8(w http.ResponseWriter, r *http.Request) {
+func (s httpService) RegisterV8(w http.ResponseWriter, r *http.Request) {
 	s.doRegister(w, r, func(conn io.ReadWriteCloser) platformCloser {
 		return rpc.NewClientV8(conn)
 	})
@@ -457,7 +459,7 @@ type platformCloser interface {
 
 type platformCloserFn func(io.ReadWriteCloser) platformCloser
 
-func (s HTTPService) doRegister(w http.ResponseWriter, r *http.Request, newRPCFn platformCloserFn) {
+func (s httpService) doRegister(w http.ResponseWriter, r *http.Request, newRPCFn platformCloserFn) {
 	ctx := getRequestContext(r)
 
 	// This is not client-facing, so we don't do content
@@ -485,7 +487,7 @@ func (s HTTPService) doRegister(w http.ResponseWriter, r *http.Request, newRPCFn
 	rpcClient.Close() // also closes the underlying socket
 }
 
-func (s HTTPService) IsConnected(w http.ResponseWriter, r *http.Request) {
+func (s httpService) IsConnected(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 
 	err := s.service.IsDaemonConnected(ctx)
@@ -519,7 +521,7 @@ func (s HTTPService) IsConnected(w http.ResponseWriter, r *http.Request) {
 	transport.ErrorResponse(w, r, err)
 }
 
-func (s HTTPService) Export(w http.ResponseWriter, r *http.Request) {
+func (s httpService) Export(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 	status, err := s.service.Export(ctx)
 	if err != nil {
@@ -530,7 +532,7 @@ func (s HTTPService) Export(w http.ResponseWriter, r *http.Request) {
 	transport.JSONResponse(w, r, status)
 }
 
-func (s HTTPService) GetPublicSSHKey(w http.ResponseWriter, r *http.Request) {
+func (s httpService) GetPublicSSHKey(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 	publicSSHKey, err := s.service.PublicSSHKey(ctx, false)
 	if err != nil {
@@ -541,7 +543,7 @@ func (s HTTPService) GetPublicSSHKey(w http.ResponseWriter, r *http.Request) {
 	transport.JSONResponse(w, r, publicSSHKey)
 }
 
-func (s HTTPService) RegeneratePublicSSHKey(w http.ResponseWriter, r *http.Request) {
+func (s httpService) RegeneratePublicSSHKey(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 	_, err := s.service.PublicSSHKey(ctx, true)
 	if err != nil {

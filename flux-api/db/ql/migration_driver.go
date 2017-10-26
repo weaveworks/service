@@ -17,11 +17,14 @@ func init() {
 	driver.RegisterDriver("memory", &Driver{driver: "ql-mem"})
 }
 
+// Driver represents a database driver and db connection.
 type Driver struct {
 	driver string
 	conn   *sql.DB
 }
 
+// Initialize opens a connection to the given source and ensures it
+// has a schema_migration table.
 func (d *Driver) Initialize(source string) (err error) {
 	d.conn, err = sql.Open(d.driver, source)
 	if err != nil {
@@ -43,6 +46,7 @@ func (d *Driver) Initialize(source string) (err error) {
 	return tx.Commit()
 }
 
+// Close closes the underlying database connection.
 func (d *Driver) Close() error {
 	if d.conn != nil {
 		return d.conn.Close()
@@ -50,10 +54,12 @@ func (d *Driver) Close() error {
 	return nil
 }
 
+// FilenameExtension exists to satisfy the migrate Driver interface.
 func (d *Driver) FilenameExtension() string {
 	return "sql"
 }
 
+// Migrate applies the given migration to the underlying database.
 func (d *Driver) Migrate(f file.File, pipe chan interface{}) {
 	defer close(pipe)
 	pipe <- f
@@ -101,6 +107,7 @@ func (d *Driver) Migrate(f file.File, pipe chan interface{}) {
 	}
 }
 
+// Version gets the version of the latest applied migration.
 func (d *Driver) Version() (uint64, error) {
 	var version uint64
 	err := d.conn.QueryRow("SELECT version FROM schema_migration ORDER BY version DESC LIMIT 1").Scan(&version)

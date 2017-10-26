@@ -19,13 +19,13 @@ import (
 	"github.com/weaveworks/service/flux-api/config"
 )
 
-type SlackMsg struct {
+type slackMsg struct {
 	Username    string            `json:"username"`
 	Text        string            `json:"text"`
-	Attachments []SlackAttachment `json:"attachments,omitempty"`
+	Attachments []slackAttachment `json:"attachments,omitempty"`
 }
 
-type SlackAttachment struct {
+type slackAttachment struct {
 	Fallback string   `json:"fallback,omitempty"`
 	Text     string   `json:"text"`
 	Author   string   `json:"author_name,omitempty"`
@@ -33,16 +33,16 @@ type SlackAttachment struct {
 	Markdown []string `json:"mrkdwn_in,omitempty"`
 }
 
-func errorAttachment(msg string) SlackAttachment {
-	return SlackAttachment{
+func errorAttachment(msg string) slackAttachment {
+	return slackAttachment{
 		Fallback: msg,
 		Text:     msg,
 		Color:    "warning",
 	}
 }
 
-func successAttachment(msg string) SlackAttachment {
-	return SlackAttachment{
+func successAttachment(msg string) slackAttachment {
+	return slackAttachment{
 		Fallback: msg,
 		Text:     msg,
 		Color:    "good",
@@ -50,9 +50,9 @@ func successAttachment(msg string) SlackAttachment {
 }
 
 const (
-	ReleaseTemplate = `Release {{trim (print .Release.Spec.ImageSpec) "<>"}} to {{with .Release.Spec.ServiceSpecs}}{{range $index, $spec := .}}{{if not (eq $index 0)}}, {{if last $index $.Release.Spec.ServiceSpecs}}and {{end}}{{end}}{{trim (print .) "<>"}}{{end}}{{end}}.`
+	releaseTemplate = `Release {{trim (print .Release.Spec.ImageSpec) "<>"}} to {{with .Release.Spec.ServiceSpecs}}{{range $index, $spec := .}}{{if not (eq $index 0)}}, {{if last $index $.Release.Spec.ServiceSpecs}}and {{end}}{{end}}{{trim (print .) "<>"}}{{end}}{{end}}.`
 
-	AutoReleaseTemplate = `Automated release of new image{{if not (last 0 $.Images)}}s{{end}} {{with .Images}}{{range $index, $image := .}}{{if not (eq $index 0)}}, {{if last $index $.Images}}and {{end}}{{end}}{{.}}{{end}}{{end}}.`
+	autoReleaseTemplate = `Automated release of new image{{if not (last 0 $.Images)}}s{{end}} {{with .Images}}{{range $index, $image := .}}{{if not (eq $index 0)}}, {{if last $index $.Images}}and {{end}}{{end}}{{.}}{{end}}{{end}}.`
 )
 
 var (
@@ -84,9 +84,9 @@ func slackNotifyRelease(config config.Notifier, release *event.ReleaseEventMetad
 	if release.Spec.Kind != update.ReleaseKindExecute {
 		return nil
 	}
-	var attachments []SlackAttachment
+	var attachments []slackAttachment
 
-	text, err := instantiateTemplate("release", ReleaseTemplate, struct {
+	text, err := instantiateTemplate("release", releaseTemplate, struct {
 		Release *event.ReleaseEventMetadata
 	}{
 		Release: release,
@@ -100,7 +100,7 @@ func slackNotifyRelease(config config.Notifier, release *event.ReleaseEventMetad
 	}
 
 	if release.Cause.User != "" || release.Cause.Message != "" {
-		cause := SlackAttachment{}
+		cause := slackAttachment{}
 		if user := release.Cause.User; user != "" {
 			user = strings.Replace(user, "<", "(", -1)
 			user = strings.Replace(user, ">", ")", -1)
@@ -117,7 +117,7 @@ func slackNotifyRelease(config config.Notifier, release *event.ReleaseEventMetad
 		attachments = append(attachments, result)
 	}
 
-	return notify(config, SlackMsg{
+	return notify(config, slackMsg{
 		Username:    config.Username,
 		Text:        text,
 		Attachments: attachments,
@@ -129,7 +129,7 @@ func slackNotifyAutoRelease(config config.Notifier, release *event.AutoReleaseEv
 		return nil
 	}
 
-	var attachments []SlackAttachment
+	var attachments []slackAttachment
 
 	if releaseError != "" {
 		attachments = append(attachments, errorAttachment(releaseError))
@@ -137,7 +137,7 @@ func slackNotifyAutoRelease(config config.Notifier, release *event.AutoReleaseEv
 	if release.Result != nil {
 		attachments = append(attachments, slackResultAttachment(release.Result))
 	}
-	text, err := instantiateTemplate("auto-release", AutoReleaseTemplate, struct {
+	text, err := instantiateTemplate("auto-release", autoReleaseTemplate, struct {
 		Images []flux.ImageID
 	}{
 		Images: release.Spec.Images(),
@@ -146,7 +146,7 @@ func slackNotifyAutoRelease(config config.Notifier, release *event.AutoReleaseEv
 		return err
 	}
 
-	return notify(config, SlackMsg{
+	return notify(config, slackMsg{
 		Username:    config.Username,
 		Text:        text,
 		Attachments: attachments,
@@ -167,34 +167,34 @@ func slackNotifySync(config config.Notifier, sync *event.Event) error {
 		}
 	}
 
-	var attachments []SlackAttachment
+	var attachments []slackAttachment
 	// A check to see if we got messages with our commits; older
 	// versions don't send them.
 	if len(details.Commits) > 0 && details.Commits[0].Message != "" {
 		attachments = append(attachments, slackCommitsAttachment(details))
 	}
-	return notify(config, SlackMsg{
+	return notify(config, slackMsg{
 		Username:    config.Username,
 		Text:        sync.String(),
 		Attachments: attachments,
 	})
 }
 
-func slackResultAttachment(res update.Result) SlackAttachment {
+func slackResultAttachment(res update.Result) slackAttachment {
 	buf := &bytes.Buffer{}
 	update.PrintResults(buf, res, false)
 	c := "good"
 	if res.Error() != "" {
 		c = "warning"
 	}
-	return SlackAttachment{
+	return slackAttachment{
 		Text:     "```" + buf.String() + "```",
 		Markdown: []string{"text"},
 		Color:    c,
 	}
 }
 
-func slackCommitsAttachment(ev *event.SyncEventMetadata) SlackAttachment {
+func slackCommitsAttachment(ev *event.SyncEventMetadata) slackAttachment {
 	buf := &bytes.Buffer{}
 	fmt.Fprintln(buf, "```")
 
@@ -202,14 +202,14 @@ func slackCommitsAttachment(ev *event.SyncEventMetadata) SlackAttachment {
 		fmt.Fprintf(buf, "%s %s\n", ev.Commits[i].Revision[:7], ev.Commits[i].Message)
 	}
 	fmt.Fprintln(buf, "```")
-	return SlackAttachment{
+	return slackAttachment{
 		Text:     buf.String(),
 		Markdown: []string{"text"},
 		Color:    "good",
 	}
 }
 
-func notify(config config.Notifier, msg SlackMsg) error {
+func notify(config config.Notifier, msg slackMsg) error {
 	buf := &bytes.Buffer{}
 	if err := json.NewEncoder(buf).Encode(msg); err != nil {
 		return errors.Wrap(err, "encoding Slack POST request")

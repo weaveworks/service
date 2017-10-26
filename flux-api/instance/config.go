@@ -7,18 +7,22 @@ import (
 	"github.com/weaveworks/service/flux-api/service"
 )
 
+// Connection contains information about an instance connection.
 type Connection struct {
 	Last      time.Time `json:"last"`
 	Connected bool      `json:"connected"`
 }
 
+// Config contains information about an instance configuration.
 type Config struct {
 	Settings   config.Instance `json:"settings"`
 	Connection Connection      `json:"connection"`
 }
 
+// UpdateFunc takes a Config and returns another Config.
 type UpdateFunc func(config Config) (Config, error)
 
+// DB is the instance DB interface.
 type DB interface {
 	UpdateConfig(instance service.InstanceID, update UpdateFunc) error
 	GetConfig(instance service.InstanceID) (Config, error)

@@ -28,7 +28,7 @@ func setup(t *testing.T) *NATS {
 	return bus
 }
 
-func subscribe(t *testing.T, ctx context.Context, bus *NATS, errc chan error, inst service.InstanceID, plat remote.Platform) {
+func subscribe(ctx context.Context, t *testing.T, bus *NATS, errc chan error, inst service.InstanceID, plat remote.Platform) {
 	bus.Subscribe(ctx, inst, plat, errc)
 	if err := bus.AwaitPresence(inst, 5*time.Second); err != nil {
 		t.Fatal("Timed out waiting for instance to subscribe")
@@ -42,7 +42,7 @@ func TestPing(t *testing.T) {
 	platA := &remote.MockPlatform{}
 
 	ctx := context.Background()
-	subscribe(t, ctx, bus, errc, instID, platA)
+	subscribe(ctx, t, bus, errc, instID, platA)
 
 	// AwaitPresence uses Ping, so we have to install our error after
 	// subscribe succeeds.
@@ -76,7 +76,7 @@ func TestMethods(t *testing.T) {
 	ctx := context.Background()
 
 	wrap := func(mock remote.Platform) remote.Platform {
-		subscribe(t, ctx, bus, errc, instA, mock)
+		subscribe(ctx, t, bus, errc, instA, mock)
 		plat, err := bus.Connect(instA)
 		if err != nil {
 			t.Fatal(err)
@@ -103,9 +103,9 @@ func TestFatalErrorDisconnects(t *testing.T) {
 
 	instA := service.InstanceID("golden-years-75")
 	mockA := &remote.MockPlatform{
-		ListServicesError: remote.FatalError{errors.New("Disaster.")},
+		ListServicesError: remote.FatalError{errors.New("disaster")},
 	}
-	subscribe(t, ctx, bus, errc, instA, mockA)
+	subscribe(ctx, t, bus, errc, instA, mockA)
 
 	plat, err := bus.Connect(instA)
 	if err != nil {
@@ -135,11 +135,11 @@ func TestNewConnectionKicks(t *testing.T) {
 	mockA := &remote.MockPlatform{}
 	errA := make(chan error)
 	ctx := context.Background()
-	subscribe(t, ctx, bus, errA, instA, mockA)
+	subscribe(ctx, t, bus, errA, instA, mockA)
 
 	mockB := &remote.MockPlatform{}
 	errB := make(chan error)
-	subscribe(t, ctx, bus, errB, instA, mockB)
+	subscribe(ctx, t, bus, errB, instA, mockB)
 
 	select {
 	case <-errA:

@@ -45,6 +45,7 @@ var (
 	encoder = nats.EncoderForType(encoderType)
 )
 
+// NATS defines a NATS message bus.
 type NATS struct {
 	url string
 	// It's convenient to send (or request) on an encoding connection,
@@ -57,6 +58,7 @@ type NATS struct {
 
 var _ bus.MessageBus = &NATS{}
 
+// NewMessageBus creates a NATS message bus.
 func NewMessageBus(url string) (*NATS, error) {
 	conn, err := nats.Connect(url, nats.MaxReconnects(-1))
 	if err != nil {
@@ -73,7 +75,7 @@ func NewMessageBus(url string) (*NATS, error) {
 	}, nil
 }
 
-// Wait up to `timeout` for a particular instance to connect. Mostly
+// AwaitPresence waits up to `timeout` for a particular instance to connect. Mostly
 // useful for synchronising during testing.
 func (n *NATS) AwaitPresence(instID service.InstanceID, timeout time.Duration) error {
 	timer := time.After(timeout)
@@ -94,6 +96,7 @@ func (n *NATS) AwaitPresence(instID service.InstanceID, timeout time.Duration) e
 	}
 }
 
+// Ping checks whether the given instance is still connected.
 func (n *NATS) Ping(ctx context.Context, instID service.InstanceID) error {
 	var response PingResponse
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -106,70 +109,78 @@ func (n *NATS) Ping(ctx context.Context, instID service.InstanceID) error {
 
 // ErrorResponse is for dropping into response structs to carry error
 // information over the bus.
-//
-// The field `ApplicationError` carries either nil (no error), or an
-// application-level error. The field `Error`, if non-empty,
-// represents any other kind of error.
 type ErrorResponse struct {
+	// Either nil, or an application-level error.
 	ApplicationError *fluxerr.Error `json:",omitempty"`
-	Error            string         `json:",omitempty"`
+	// Any other error, if non-empty.
+	Error string `json:",omitempty"`
 }
 
 type pingReq struct{}
 
+// PingResponse is the Ping response.
 type PingResponse struct {
-	ErrorResponse `json:",omitempty`
+	ErrorResponse `json:",omitempty"`
 }
 
 type versionReq struct{}
 
+// VersionResponse is the Version response.
 type VersionResponse struct {
 	Result        string
-	ErrorResponse `json:",omitempty`
+	ErrorResponse `json:",omitempty"`
 }
 
 type exportReq struct{}
 
+// ExportResponse is the ExportResponse.
 type ExportResponse struct {
 	Result        []byte
-	ErrorResponse `json:",omitempty`
+	ErrorResponse `json:",omitempty"`
 }
 
+// ListServicesResponse is the ListServices response.
 type ListServicesResponse struct {
 	Result        []flux.ControllerStatus
-	ErrorResponse `json:",omitempty`
+	ErrorResponse `json:",omitempty"`
 }
 
+// ListImagesResponse is the ListImages response.
 type ListImagesResponse struct {
 	Result        []flux.ImageStatus
-	ErrorResponse `json:",omitempty`
+	ErrorResponse `json:",omitempty"`
 }
 
+// UpdateManifestsResponse is the UpdateManifests response.
 type UpdateManifestsResponse struct {
 	Result        job.ID
-	ErrorResponse `json:",omitempty`
+	ErrorResponse `json:",omitempty"`
 }
 
 type syncReq struct{}
+
+// SyncNotifyResponse is the SyncNotify response.
 type SyncNotifyResponse struct {
-	ErrorResponse `json:",omitempty`
+	ErrorResponse `json:",omitempty"`
 }
 
 // JobStatusResponse has status decomposed into it, so that we can transfer the
 // error as an ErrorResponse to avoid marshalling issues.
 type JobStatusResponse struct {
 	Result        job.Status
-	ErrorResponse `json:",omitempty`
+	ErrorResponse `json:",omitempty"`
 }
 
+// SyncStatusResponse is the SyncStatus reponse.
 type SyncStatusResponse struct {
 	Result        []string
-	ErrorResponse `json:",omitempty`
+	ErrorResponse `json:",omitempty"`
 }
 
+// GitRepoConfigResponse is the GitRepoConfig response.
 type GitRepoConfigResponse struct {
 	Result        flux.GitConfig
-	ErrorResponse `json:",omitempty`
+	ErrorResponse `json:",omitempty"`
 }
 
 func extractError(resp ErrorResponse) error {

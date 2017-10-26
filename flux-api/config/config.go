@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 )
 
+// Notifier is the configuration for an event notifier.
 type Notifier struct {
 	HookURL         string `json:"hookURL" yaml:"hookURL"`
 	Username        string `json:"username" yaml:"username"`
@@ -12,6 +13,7 @@ type Notifier struct {
 	NotifyEvents []string `json:"notifyEvents" yaml:"notifyEvents"`
 }
 
+// Instance is the configuration for a Weave Cloud instance.
 type Instance struct {
 	Slack Notifier `json:"slack" yaml:"slack"`
 }
@@ -42,8 +44,10 @@ func (uic Instance) toUntypedConfig() (untypedConfig, error) {
 	return uc, nil
 }
 
+// Patch is an alias of map[string]interface{}.
 type Patch map[string]interface{}
 
+// Patch patches an Instance config with the given Patch.
 func (uic Instance) Patch(cp Patch) (Instance, error) {
 	// Convert the strongly-typed config into an untyped form that's easier to patch
 	uc, err := uic.toUntypedConfig()

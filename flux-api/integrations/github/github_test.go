@@ -66,7 +66,7 @@ func TestInsertDeployKey_KeyDoesntExist(t *testing.T) {
 	defer teardown()
 	initHandlers(t, "doesntMatch")
 
-	g := github{
+	g := Github{
 		client: client,
 	}
 
@@ -90,7 +90,7 @@ func TestInsertDeployKey_KeyDoesExist(t *testing.T) {
 	defer teardown()
 	initHandlers(t, deployKeyName)
 
-	g := github{
+	g := Github{
 		client: client,
 	}
 

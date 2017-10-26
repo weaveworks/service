@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 
-	_ "github.com/cznic/ql/driver"
+	_ "github.com/cznic/ql/driver" // reasons
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
 
@@ -12,10 +12,12 @@ import (
 	"github.com/weaveworks/service/flux-api/service"
 )
 
+// DB is an Instance DB
 type DB struct {
 	conn *sql.DB
 }
 
+// New creates a new DB.
 func New(driver, datasource string) (*DB, error) {
 	conn, err := sql.Open(driver, datasource)
 	if err != nil {
@@ -27,6 +29,7 @@ func New(driver, datasource string) (*DB, error) {
 	return db, db.sanityCheck()
 }
 
+// UpdateConfig updates the config for the given instanceID.
 func (db *DB) UpdateConfig(inst service.InstanceID, update instance.UpdateFunc) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
@@ -73,6 +76,7 @@ func (db *DB) UpdateConfig(inst service.InstanceID, update instance.UpdateFunc) 
 	return err
 }
 
+// GetConfig gets the config for the given instanceID.
 func (db *DB) GetConfig(inst service.InstanceID) (instance.Config, error) {
 	var c string
 	err := db.conn.QueryRow(`SELECT config FROM config WHERE instance = $1`, string(inst)).Scan(&c)
