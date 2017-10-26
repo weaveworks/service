@@ -15,7 +15,7 @@ type Instancer interface {
 
 type Instance struct {
 	Platform remote.Platform
-	Config   Configurer
+	Config   configurer
 
 	log.Logger
 	history.EventReader
@@ -24,7 +24,7 @@ type Instance struct {
 
 func New(
 	platform remote.Platform,
-	config Configurer,
+	config configurer,
 	logger log.Logger,
 	events history.EventReader,
 	eventlog event.EventWriter,

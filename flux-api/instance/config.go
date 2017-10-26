@@ -24,11 +24,6 @@ type DB interface {
 	GetConfig(instance service.InstanceID) (Config, error)
 }
 
-type Configurer interface {
-	Get() (Config, error)
-	Update(UpdateFunc) error
-}
-
 type configurer struct {
 	instance service.InstanceID
 	db       DB
