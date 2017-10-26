@@ -1,7 +1,7 @@
 package webhook
 
 import (
-	"io/ioutil"
+	"encoding/json"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
@@ -10,24 +10,16 @@ import (
 )
 
 // New returns a http.Handler configured to be able to handle Google Pub/Sub events.
-// It requires a EventHandler to be provided to act upon the event.
-func New(handler EventHandler) http.Handler {
+// It requires a MessageHandler to be provided to act upon the message.
+func New(handler MessageHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		body, err := ioutil.ReadAll(req.Body)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, req, err) // NACK: we might want to retry on this message later.
-			return
-		}
 		event := dto.Event{}
-		if err := event.Unmarshal(body); err != nil {
+		if err := json.NewDecoder(req.Body).Decode(&event); err != nil {
 			writeError(w, http.StatusBadRequest, req, err) // NACK: we might want to retry on this message later.
 			return
 		}
-		if err := event.Message.Decode(); err != nil {
-			writeError(w, http.StatusBadRequest, req, err) // NACK: we might want to retry on this message later.
-			return
-		}
-		if err := handler.Handle(event.Message.Bytes); err != nil {
+
+		if err := handler.Handle(event.Message); err != nil {
 			writeError(w, http.StatusInternalServerError, req, err) // NACK: we might want to retry on this message later.
 		} else {
 			write(w, http.StatusNoContent) // ACK: remove this message from Pub/Sub.

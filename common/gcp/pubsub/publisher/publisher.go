@@ -3,9 +3,10 @@ package publisher
 import (
 	"time"
 
-	"golang.org/x/net/context"
 	"cloud.google.com/go/pubsub"
 	log "github.com/sirupsen/logrus"
+	"github.com/weaveworks/service/common/gcp/pubsub/dto"
+	"golang.org/x/net/context"
 )
 
 // Publisher wraps around Client, Topic and Subscription abstractions.
@@ -80,13 +81,15 @@ func getOrCreateSubscription(ctx context.Context, client *pubsub.Client, topic *
 
 // PublishSync send the provided message to this publisher configured project and topic.
 // It is synchronous, i.e. blocks until it received confirmation from Google Pub/Sub that the message was received and enqueued.
-func (p Publisher) PublishSync(data []byte) (string, error) {
+func (p Publisher) PublishSync(msg dto.Message) (string, error) {
 	r := p.topic.Publish(p.ctx, &pubsub.Message{
-		Data: data,
+		ID:         msg.MessageID,
+		Data:       msg.Data,
+		Attributes: msg.Attributes,
 	})
 	msgID, err := r.Get(p.ctx) // Blocks until Publish succeeds or context is done.
 	if err != nil {
-		log.Errorf("Failed to publish message [%v]", data)
+		log.Errorf("Failed to publish message [%+v]", msg)
 		return "", err
 	}
 	return msgID, nil

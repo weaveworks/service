@@ -58,7 +58,9 @@ func Test_SetOrganizationFlag(t *testing.T) {
 			Value:      true,
 		})
 	require.NoError(t, err)
-	resp, _ := server.GetOrganization(ctx, &users.GetOrganizationRequest{ExternalID: org.ExternalID})
+	resp, _ := server.GetOrganization(ctx, &users.GetOrganizationRequest{
+		ID: &users.GetOrganizationRequest_ExternalID{org.ExternalID},
+	})
 	require.True(t, resp.Organization.RefuseDataAccess)
 
 	_, err = server.SetOrganizationFlag(
@@ -68,7 +70,10 @@ func Test_SetOrganizationFlag(t *testing.T) {
 			Value:      true,
 		})
 	require.NoError(t, err)
-	resp, _ = server.GetOrganization(ctx, &users.GetOrganizationRequest{ExternalID: org.ExternalID})
+	resp, _ = server.GetOrganization(ctx, &users.GetOrganizationRequest{
+		ID: &users.GetOrganizationRequest_ExternalID{org.ExternalID},
+	})
+
 	require.True(t, resp.Organization.RefuseDataUpload)
 
 	_, err = server.SetOrganizationFlag(

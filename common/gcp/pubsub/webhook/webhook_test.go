@@ -2,7 +2,6 @@ package webhook_test
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -12,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
-
-	"github.com/weaveworks/service/common/gcp/pubsub/publisher"
-	"github.com/weaveworks/service/common/gcp/pubsub/webhook"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
+
+	"github.com/weaveworks/service/common/gcp/pubsub/dto"
+	"github.com/weaveworks/service/common/gcp/pubsub/publisher"
+	"github.com/weaveworks/service/common/gcp/pubsub/webhook"
 )
 
 const (
@@ -31,7 +30,7 @@ const (
 
 func TestGooglePubSubWebhookViaEmulator(t *testing.T) {
 	if os.Getenv("RUN_MANUAL_TEST") == "" {
-		t.Skip(`Skipping test: this test should be run manually for now. 
+		t.Skip(`Skipping test: this test should be run manually for now.
 - set RUN_MANUAL_TEST=1
 - run: gcloud beta emulators pubsub start -- see: https://cloud.google.com/pubsub/docs/emulator ; and then
 - run this test again.`)
@@ -59,11 +58,11 @@ func TestGooglePubSubWebhookViaEmulator(t *testing.T) {
 	os.Setenv("PUBSUB_EMULATOR_HOST", emulatorHostPort)
 
 	// Configure and start the webhook's HTTP server:
-	OK := make(chan string)
+	OK := make(chan dto.Message)
 	defer close(OK)
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%v", port),
-		Handler: webhook.New(&testEventHandler{OK: OK}),
+		Handler: webhook.New(&testMessageHandler{OK: OK}),
 	}
 	defer server.Close()
 	go server.ListenAndServe()
@@ -80,22 +79,23 @@ func TestGooglePubSubWebhookViaEmulator(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Send a message and ensures it was processed properly:
-	msg := "foobar"
-	id, err := pub.PublishSync([]byte(msg))
+	id, err := pub.PublishSync(dto.Message{MessageID: "OK"})
 	assert.Nil(t, err)
 	assert.NotEmpty(t, id)
-	assert.Equal(t, msg, <-OK)
+
+	msg := <-OK
+	assert.Equal(t, "OK", msg.MessageID)
 }
 
 func TestGooglePubSubWebhook(t *testing.T) {
 	// Configure and start the webhook's HTTP server:
-	OK := make(chan string, 1)
-	KO := make(chan string, 1)
+	OK := make(chan dto.Message, 1)
+	KO := make(chan dto.Message, 1)
 	defer close(OK)
 	defer close(KO)
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%v", port),
-		Handler: webhook.New(&testEventHandler{
+		Handler: webhook.New(&testMessageHandler{
 			OK: OK,
 			KO: KO,
 		}),
@@ -106,39 +106,44 @@ func TestGooglePubSubWebhook(t *testing.T) {
 	client := &http.Client{}
 
 	// Send a valid request to the webhook:
-	msg := "foobar"
-	resp, err := client.Post(fmt.Sprintf("http://localhost:%v", port), "application/json", bytes.NewBufferString(fmt.Sprintf(`{"subscription":"projects\/foo\/subscriptions\/baz","message":{"data":"%v","messageId":"1","attributes":{}}}`, base64.StdEncoding.EncodeToString([]byte(msg)))))
+	resp, err := client.Post(
+		fmt.Sprintf("http://localhost:%v", port),
+		"application/json",
+		bytes.NewBufferString(`{"subscription":"projects\/foo\/subscriptions\/baz","message":{"messageId":"OK"}}`),
+	)
 	assert.Nil(t, err)
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 	body, err := ioutil.ReadAll(resp.Body)
 	assert.Nil(t, resp.Body.Close())
 	assert.Nil(t, err)
 	assert.Equal(t, "", string(body))
-	assert.Equal(t, msg, <-OK)
+	assert.Equal(t, "OK", (<-OK).MessageID)
 
 	// Send an invalid request to the webhook:
-	msg = "foobaz"
-	resp, err = client.Post(fmt.Sprintf("http://localhost:%v", port), "application/json", bytes.NewBufferString(fmt.Sprintf(`{"subscription":"projects\/foo\/subscriptions\/baz","message":{"data":"%v","messageId":"1","attributes":{}}}`, base64.StdEncoding.EncodeToString([]byte(msg)))))
+	resp, err = client.Post(
+		fmt.Sprintf("http://localhost:%v", port),
+		"application/json",
+		bytes.NewBufferString(`{"subscription":"projects\/foo\/subscriptions\/baz","message":{"messageId":"nah"}}`),
+	)
 	assert.Nil(t, err)
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	body, err = ioutil.ReadAll(resp.Body)
 	assert.Nil(t, resp.Body.Close())
 	assert.Nil(t, err)
-	assert.Equal(t, "Invalid data: foobaz", string(body))
-	assert.Equal(t, msg, <-KO)
+	assert.Equal(t, "invalid data: nah", string(body))
+	assert.Equal(t, "nah", (<-KO).MessageID)
 }
 
-type testEventHandler struct {
-	OK chan string
-	KO chan string
+type testMessageHandler struct {
+	OK chan dto.Message
+	KO chan dto.Message
 }
 
-func (h testEventHandler) Handle(data []byte) error {
-	req := string(data)
-	if req == "foobar" {
-		h.OK <- req
+func (h testMessageHandler) Handle(msg dto.Message) error {
+	if msg.MessageID == "OK" {
+		h.OK <- msg
 		return nil
 	}
-	h.KO <- req
-	return fmt.Errorf("Invalid data: %v", req)
+	h.KO <- msg
+	return fmt.Errorf("invalid data: %v", msg.MessageID)
 }
