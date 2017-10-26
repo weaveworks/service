@@ -1,3 +1,5 @@
+// +build nats
+
 package nats
 
 import (
