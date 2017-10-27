@@ -48,6 +48,7 @@ billing-api/migrations
 billing-uploader/uploader
 billing-uploader/migrations
 billing-enforcer/enforcer
+flux-api/flux-api
 
 users/mock_users/*
 !users/mock_users/README
@@ -67,3 +68,4 @@ infra/helloworld/helloworld
 infra/local/kubeconfig
 infra/local/master/pki
 infra/local/master/master.json
+flux-api/migrations.tar
