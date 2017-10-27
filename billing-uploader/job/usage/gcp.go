@@ -2,7 +2,6 @@ package usage
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -15,8 +14,11 @@ import (
 )
 
 const (
-	serviceName   = "weaveworks-public-cloudmarketplacepartner.googleapis.com" // TBD
 	operationName = "weaveworks.billing-uploader.v1.HourlyUsageReport"
+	metricName    = "google.weave.works/standard_nodes"
+
+	// Fake consumerId for staging.google.weave.works
+	fakeConsumerID = "project_number:1051178139075"
 )
 
 // GCP implements usage upload to the Google Cloud Platform through the Google Service Control API.
@@ -48,11 +50,11 @@ func (g *GCP) Add(ctx context.Context, org users.Organization, from, through tim
 		g.ops = append(g.ops, &servicecontrol.Operation{
 			OperationId:   g.client.OperationID(strconv.Itoa(agg.ID)),
 			OperationName: operationName,
-			ConsumerId:    "TBD", // FIXME: get from db
+			ConsumerId:    fakeConsumerID, // TODO(rndstr): replace with non-fake value representing the organization
 			StartTime:     from.Format(time.RFC3339Nano),
 			EndTime:       through.Format(time.RFC3339Nano),
 			MetricValueSets: []*servicecontrol.MetricValueSet{{
-				MetricName: fmt.Sprintf("%s/UsageNodeSeconds", serviceName), // FIXME: G will provide this value
+				MetricName: metricName,
 				MetricValues: []*servicecontrol.MetricValue{{
 					Int64Value: &agg.AmountValue,
 				}},
@@ -64,7 +66,7 @@ func (g *GCP) Add(ctx context.Context, org users.Organization, from, through tim
 
 // Upload sends the usage to the Service Control API as metrics.
 func (g *GCP) Upload(ctx context.Context) error {
-	return g.client.Report(ctx, serviceName, g.ops)
+	return g.client.Report(ctx, g.ops)
 }
 
 // IsSupported doesn't yet know how to determine supported organizations.
