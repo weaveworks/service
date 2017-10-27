@@ -31,6 +31,7 @@ DEFAULT_COMPONENTS = [
     'billing-ingester',
     'billing-enforcer',
     'billing-aggregator',
+    'flux-api',
 ]
 
 """Map from component to list of known dependencies.
@@ -54,6 +55,7 @@ DEPENDENCIES = {
     'billing-ingester': ['billing-ingester'],
     'billing-enforcer': ['billing-enforcer', 'common', 'users'],
     'billing-aggregator': ['billing-aggregator', 'common', 'users', 'billing-api'],
+    'flux-api': ['flux-api'],
 }
 
 
