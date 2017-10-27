@@ -7,10 +7,25 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/satori/go.uuid"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/servicecontrol/v1"
+
+	"github.com/weaveworks/common/instrument"
 )
+
+var clientRequestCollector = instrument.NewHistogramCollectorFromOpts(prometheus.HistogramOpts{
+	Namespace: "google",
+	Subsystem: "servicecontrol_client",
+	Name:      "request_duration_seconds",
+	Help:      "Response time of Google Service Control API requests.",
+	Buckets:   prometheus.DefBuckets,
+})
+
+func init() {
+	clientRequestCollector.Register()
+}
 
 // Client provides access to the Google Service Control API
 //
@@ -57,17 +72,20 @@ func (c *Client) Report(ctx context.Context, operations []*servicecontrol.Operat
 	req := &servicecontrol.ReportRequest{
 		Operations: operations,
 	}
-	res, err := c.svc.Report(c.serviceName, req).Do()
-	if err != nil {
-		return err
-	}
 
-	// Catch partial errors
-	if len(res.ReportErrors) != 0 {
-		return errors.Wrapf(ReportErrors(res.ReportErrors), "control: errors during metric processing")
-	}
+	return instrument.CollectedRequest(ctx, "Report", clientRequestCollector, nil, func(_ context.Context) error {
+		res, err := c.svc.Report(c.serviceName, req).Do()
+		if err != nil {
+			return err
+		}
 
-	return nil
+		// Catch partial errors
+		if len(res.ReportErrors) != 0 {
+			return errors.Wrapf(ReportErrors(res.ReportErrors), "control: errors during metric processing")
+		}
+
+		return nil
+	})
 }
 
 // ReportErrors implements error.

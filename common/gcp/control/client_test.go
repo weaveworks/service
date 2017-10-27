@@ -1,15 +1,15 @@
 package control_test
 
 import (
+	"context"
 	"flag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"context"
-	"github.com/weaveworks/service/common/gcp/control"
 	"google.golang.org/api/servicecontrol/v1"
 	"gopkg.in/h2non/gock.v1"
+
+	"github.com/weaveworks/service/common/gcp/control"
 )
 
 const (
