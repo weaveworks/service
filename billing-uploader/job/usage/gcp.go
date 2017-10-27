@@ -2,6 +2,7 @@ package usage
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -11,14 +12,6 @@ import (
 	"github.com/weaveworks/service/common/constants/billing"
 	"github.com/weaveworks/service/common/gcp/control"
 	"github.com/weaveworks/service/users"
-)
-
-const (
-	operationName = "HourlyUsageReport"
-	metricName    = "google.weave.works/standard_nodes"
-
-	// Fake consumerId for staging.google.weave.works
-	fakeConsumerID = "project_number:1051178139075"
 )
 
 // GCP implements usage upload to the Google Cloud Platform through the Google Service Control API.
@@ -48,13 +41,13 @@ func (g *GCP) Add(ctx context.Context, org users.Organization, from, through tim
 			continue
 		}
 		g.ops = append(g.ops, &servicecontrol.Operation{
-			OperationId:   g.client.OperationID(strconv.Itoa(agg.ID)),
-			OperationName: operationName,
-			ConsumerId:    fakeConsumerID, // TODO(rndstr): replace with non-fake value representing the organization
+			OperationId:   g.client.OperationID(strconv.Itoa(agg.ID)), // same id for same operation helps deduplication
+			OperationName: "HourlyUsageUpload",                        // can be selected freely
+			ConsumerId:    org.GCPConsumerID,
 			StartTime:     from.Format(time.RFC3339Nano),
 			EndTime:       through.Format(time.RFC3339Nano),
 			MetricValueSets: []*servicecontrol.MetricValueSet{{
-				MetricName: metricName,
+				MetricName: fmt.Sprintf("google.weave.works/%s_nodes", org.GCPSubscriptionLevel),
 				MetricValues: []*servicecontrol.MetricValue{{
 					Int64Value: &agg.AmountValue,
 				}},
