@@ -180,7 +180,7 @@ func (j *UsageUpload) Do() error {
 					continue
 				}
 
-				if err := u.Add(ctx, org.ExternalID, orgFrom, through, aggs); err != nil {
+				if err := u.Add(ctx, org, orgFrom, through, aggs); err != nil {
 					return errors.Wrapf(err, "cannot add aggregates to %v", org.ExternalID)
 				}
 
