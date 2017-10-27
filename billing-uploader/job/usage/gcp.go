@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	operationName = "weaveworks.billing-uploader.v1.HourlyUsageReport"
+	operationName = "HourlyUsageReport"
 	metricName    = "google.weave.works/standard_nodes"
 
 	// Fake consumerId for staging.google.weave.works

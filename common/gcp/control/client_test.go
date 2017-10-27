@@ -3,7 +3,9 @@ package control_test
 import (
 	"context"
 	"flag"
+	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/servicecontrol/v1"
@@ -13,14 +15,16 @@ import (
 )
 
 const (
-	basePath = "https://servicecontrol.googleapis.com"
+	basePath = "https://servicecontrol.googleapis.test"
 )
 
 var config control.Config
 
 func init() {
 	config.RegisterFlags(flag.CommandLine)
-	config.ServiceAccountKeyFile = "../../../testdata/google-service-account-key.json"
+	config.ServiceAccountKeyFile = "../../../testdata/cloud-launcher.json"
+	config.ServiceName = "google.weave.test"
+	config.URL = basePath
 	flag.Parse()
 }
 
@@ -43,9 +47,9 @@ func TestClient_Report(t *testing.T) {
 
 	mockOauth()
 	gock.New(basePath).
-		Post("/v1/services/google.weave.works:report").
+		Post("/v1/services/google.weave.test:report").
 		Reply(200).
-		BodyString(`{"serviceConfigId": "something"}`)
+		BodyString(`{"serviceConfigId": "2017-10-25r1"}`)
 
 	cl, err := control.NewClient(config)
 	assert.NoError(t, err)
@@ -60,7 +64,7 @@ func TestClient_ReportError(t *testing.T) {
 
 	mockOauth()
 	gock.New(basePath).
-		Post("/v1/services/google.weave.works:report").
+		Post("/v1/services/google.weave.test:report").
 		Reply(200).
 		JSON(map[string]interface{}{
 			"reportErrors": []*servicecontrol.ReportError{{
@@ -81,6 +85,23 @@ func TestClient_ReportError(t *testing.T) {
 	assert.Contains(t, err.Error(), "foo123")
 	assert.Contains(t, err.Error(), "987")
 	assert.Contains(t, err.Error(), "Hello there, something went wrong.")
+}
+
+func TestClient_ReportBadRequest(t *testing.T) {
+	defer gock.Off()
+
+	mockOauth()
+	gock.New(basePath).
+		Post("/v1/services/google.weave.test:report").
+		Reply(http.StatusBadRequest).
+		BodyString("{}")
+
+	cl, err := control.NewClient(config)
+	assert.NoError(t, err)
+
+	ops := []*servicecontrol.Operation{}
+	err = cl.Report(context.Background(), ops)
+	assert.Error(t, err)
 }
 
 // mockOauth mocks the oauth2 token request
