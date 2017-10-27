@@ -81,6 +81,7 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"gcp_accounts.subscription_name",
 		"gcp_accounts.subscription_level",
 		"gcp_accounts.subscription_status",
+		"organizations.team_id",
 	).
 		From("organizations").
 		LeftJoin("gcp_accounts ON gcp_account_id = gcp_accounts.id").
@@ -222,21 +223,57 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 			}
 		}
 
-		err = tx.QueryRow(`insert into organizations
-			(external_id, name, probe_token, created_at, trial_expires_at)
-			values (lower($1), $2, $3, $4, $5) returning id`,
-			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt, o.TrialExpiresAt,
-		).Scan(&o.ID)
+		o.TeamID, err = tx.ensureTeamExists(ctx, ownerID)
 		if err != nil {
 			return err
 		}
 
-		return tx.addUserToOrganization(ownerID, o.ID)
+		err = tx.QueryRow(`insert into organizations
+			(external_id, name, probe_token, created_at, trial_expires_at, team_id)
+			values (lower($1), $2, $3, $4, $5, $6) returning id`,
+			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt, o.TrialExpiresAt, o.TeamID,
+		).Scan(&o.ID)
+
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
 	return o, err
+}
+
+func (d DB) ensureTeamExists(ctx context.Context, ownerID string) (string, error) {
+	// Which team does the organization go into?
+	// * if the user has a default team, pick that
+	// * if a user is not part of a team, create the team and the organization within that team
+	var teamID string
+	err := d.Transaction(func(tx DB) error {
+		team, err := tx.DefaultTeamByUserID(ownerID)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+		if team != nil {
+			teamID = team.ID
+			return nil
+		}
+
+		// user has no team
+		team, err = tx.CreateTeam(ctx, ownerID)
+		if err != nil {
+			return err
+		}
+		err = tx.addUserToTeam(ownerID, team.ID)
+		if err != nil {
+			return err
+		}
+		err = tx.SetDefaultTeam(ownerID, team.ID)
+		if err != nil {
+			return err
+		}
+		teamID = team.ID
+		return nil
+	})
+	return teamID, err
 }
 
 // FindOrganizationByProbeToken looks up the organization matching a given
@@ -318,7 +355,7 @@ func (d DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
 
 func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, error) {
 	o := &users.Organization{}
-	var externalID, name, probeToken, platform, environment, zuoraAccountNumber sql.NullString
+	var externalID, name, probeToken, platform, environment, zuoraAccountNumber, teamID sql.NullString
 	var createdAt pq.NullTime
 	var firstSeenConnectedAt, zuoraAccountCreatedAt *time.Time
 	var trialExpiry time.Time
@@ -352,6 +389,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&subscriptionName,
 		&subscriptionLevel,
 		&subscriptionStatus,
+		&teamID,
 	); err != nil {
 		return nil, err
 	}
@@ -381,6 +419,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 			SubscriptionStatus: subscriptionStatus.String,
 		}
 	}
+	o.TeamID = teamID.String
 	return o, nil
 }
 
