@@ -1,0 +1,16 @@
+version: 2
+jobs:
+  build:
+    working_directory: /go/src/github.com/weaveworks/service
+    docker:
+      - image: harrisonadamw/weavebuild:0.1
+    steps:
+      - checkout
+      - setup_remote_docker
+
+      - run: make RM=
+    #- run: make RM= lint
+    #- run: COVERDIR=./coverage make RM= test
+    #- run: make RM= notebooks-integration-test
+    #- run: make RM= users-integration-test
+    #- run: make RM= billing-integration-test

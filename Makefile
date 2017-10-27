@@ -84,7 +84,6 @@ authfe/$(UPTODATE): $(AUTHFE_EXE)
 users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/templates/*
 metrics/$(UPTODATE): $(METRICS_EXE)
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
-build/$(UPTODATE): build/build.sh
 notebooks/$(UPTODATE): $(NOTEBOOKS_EXE)
 service-ui-kicker/$(UPTODATE): $(SERVICE_UI_KICKER_EXE)
 github-receiver/$(UPTODATE): $(GITHUB_RECEIVER_EXE)
@@ -111,7 +110,7 @@ NETGO_CHECK = @strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
-$(PROTO_GOS) $(MOCK_GOS) lint: build/$(UPTODATE)
+$(PROTO_GOS) $(MOCK_GOS) lint:
 	@mkdir -p $(shell pwd)/.pkg
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
@@ -119,7 +118,7 @@ $(PROTO_GOS) $(MOCK_GOS) lint: build/$(UPTODATE)
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
 		$(IMAGE_PREFIX)/build $@
 
-$(EXES) test: build/$(UPTODATE) users/users.pb.go
+$(EXES) test: users/users.pb.go
 	@mkdir -p $(shell pwd)/.pkg
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
@@ -128,7 +127,7 @@ $(EXES) test: build/$(UPTODATE) users/users.pb.go
 		-e ZUORA_USERNAME=$(ZUORA_USERNAME) -e ZUORA_PASSWORD=$(ZUORA_PASSWORD) -e ZUORA_SUBSCRIPTIONPLANID=$(ZUORA_SUBSCRIPTIONPLANID) \
 		$(IMAGE_PREFIX)/build $@
 
-billing-integration-test: build/$(UPTODATE)
+billing-integration-test:
 	@mkdir -p $(shell pwd)/.pkg
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=billing_test' postgres:9.5)"; \
 	$(SUDO) docker run $(RM) -ti \
@@ -142,7 +141,7 @@ billing-integration-test: build/$(UPTODATE)
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
 
-flux-nats-test: build/$(UPTODATE)
+flux-nats-test:
 	@mkdir -p $(shell pwd)/.pkg
 	NATS_CONTAINER="$$(docker run -d nats)"; \
 	$(SUDO) docker run $(RM) -ti \
@@ -158,27 +157,27 @@ flux-nats-test: build/$(UPTODATE)
 
 else
 
-$(EXES): build/$(UPTODATE) users/users.pb.go
+$(EXES): users/users.pb.go
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
-%.pb.go: build/$(UPTODATE)
+%.pb.go:
 	protoc -I ./vendor:./$(@D) --gogoslick_out=plugins=grpc:./$(@D) ./$(patsubst %.pb.go,%.proto,$@)
 
-lint: build/$(UPTODATE)
+lint:
 	./tools/lint .
 
-test: build/$(UPTODATE) users/users.pb.go $(MOCK_GOS)
+test: users/users.pb.go $(MOCK_GOS)
 	./tools/test -netgo -no-race
 
-$(MOCK_USERS): build/$(UPTODATE)
+$(MOCK_USERS):
 	mockgen -destination $@ github.com/weaveworks/service/users UsersClient \
 		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
-$(MOCK_BILLING_DB): build/$(UPTODATE) $(BILLING_DB)/db.go
+$(MOCK_BILLING_DB): $(BILLING_DB)/db.go
 	mockgen -destination=$@ github.com/weaveworks/service/$(BILLING_DB) DB
 
-billing-integration-test: build/$(UPTODATE) $(MOCK_GOS)
+billing-integration-test: $(MOCK_GOS)
 	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"
 
 flux-nats-test:
