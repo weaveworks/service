@@ -5,7 +5,6 @@ import (
 	"flag"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/servicecontrol/v1"
@@ -22,7 +21,7 @@ var config control.Config
 
 func init() {
 	config.RegisterFlags(flag.CommandLine)
-	config.ServiceAccountKeyFile = "../../../testdata/cloud-launcher.json"
+	config.ServiceAccountKeyFile = "../../../testdata/google-service-account-key.json"
 	config.ServiceName = "google.weave.test"
 	config.URL = basePath
 	flag.Parse()

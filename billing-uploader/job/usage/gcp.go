@@ -2,7 +2,6 @@ package usage
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -43,11 +42,11 @@ func (g *GCP) Add(ctx context.Context, org users.Organization, from, through tim
 		g.ops = append(g.ops, &servicecontrol.Operation{
 			OperationId:   g.client.OperationID(strconv.Itoa(agg.ID)), // same id for same operation helps deduplication
 			OperationName: "HourlyUsageUpload",                        // can be selected freely
-			ConsumerId:    org.GCPConsumerID,
+			ConsumerId:    "TODO",                                     // TODO(rndstr): org.GCP.ConsumerID,
 			StartTime:     from.Format(time.RFC3339Nano),
 			EndTime:       through.Format(time.RFC3339Nano),
 			MetricValueSets: []*servicecontrol.MetricValueSet{{
-				MetricName: fmt.Sprintf("google.weave.works/%s_nodes", org.GCPSubscriptionLevel),
+				MetricName: "TODO", // TODO(rndstr): fmt.Sprintf("google.weave.works/%s_nodes", org.GCP.SubscriptionLevel),
 				MetricValues: []*servicecontrol.MetricValue{{
 					Int64Value: &agg.AmountValue,
 				}},
@@ -62,7 +61,7 @@ func (g *GCP) Upload(ctx context.Context) error {
 	return g.client.Report(ctx, g.ops)
 }
 
-// IsSupported doesn't yet know how to determine supported organizations.
+// IsSupported only picks organizations that have an active GCP account
 func (g *GCP) IsSupported(org users.Organization) bool {
-	return false
+	return false // TODO(rndstr): org.GCP != nil && org.GCP.Active
 }
