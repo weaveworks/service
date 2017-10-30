@@ -214,3 +214,21 @@ func handleError(err error, w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadGateway)
 	}
 }
+
+// AuthSecretMiddleware is a middleware for authentication based on a shared secret.
+type AuthSecretMiddleware struct {
+	Secret string
+}
+
+// Wrap implements middleware.Interface
+func (a AuthSecretMiddleware) Wrap(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		secret := r.URL.Query().Get("secret")
+		if secret != a.Secret {
+			logging.With(r.Context()).Infof("Unauthorised request, secret mismatch: %v", secret)
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
