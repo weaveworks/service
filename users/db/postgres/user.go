@@ -382,3 +382,9 @@ func (d DB) SetUserLastLoginAt(_ context.Context, id string) error {
 		return nil
 	})
 }
+
+type usersByCreatedAt []*users.User
+
+func (u usersByCreatedAt) Len() int           { return len(u) }
+func (u usersByCreatedAt) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
+func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.After(u[j].CreatedAt) }

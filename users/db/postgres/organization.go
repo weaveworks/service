@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"sort"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -139,7 +141,21 @@ func (d DB) ListOrganizations(_ context.Context, f filter.Organization, page uin
 }
 
 // ListOrganizationUsers lists all the users in an organization
-func (d DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*users.User, error) {
+func (d DB) ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error) {
+	orgUsers, err := d.listDirectOrganizationUsers(ctx, orgExternalID)
+	if err != nil {
+		return nil, err
+	}
+	teamUsers, err := d.listTeamOrganizationUsers(ctx, orgExternalID)
+	if err != nil {
+		return nil, err
+	}
+	users := mergeUsers(orgUsers, teamUsers)
+	sort.Sort(usersByCreatedAt(users))
+	return users, nil
+}
+
+func (d DB) listDirectOrganizationUsers(_ context.Context, orgExternalID string) ([]*users.User, error) {
 	rows, err := d.usersQuery().
 		Join("memberships on (memberships.user_id = users.id)").
 		Join("organizations on (memberships.organization_id = organizations.id)").
@@ -149,6 +165,23 @@ func (d DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*u
 			"organizations.deleted_at":  nil,
 		}).
 		OrderBy("users.created_at").
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return d.scanUsers(rows)
+}
+
+func (d DB) listTeamOrganizationUsers(_ context.Context, orgExternalID string) ([]*users.User, error) {
+	rows, err := d.usersQuery().
+		Join("team_memberships on (team_memberships.user_id = users.id)").
+		Join("organizations on (team_memberships.team_id = organizations.team_id)").
+		Where("team_memberships.deleted_at IS NULL").
+		Where(squirrel.Eq{
+			"organizations.external_id": orgExternalID,
+			"organizations.deleted_at":  nil,
+		}).
 		Query()
 	if err != nil {
 		return nil, err
@@ -169,7 +202,9 @@ func (d DB) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) 
 	if err != nil {
 		return nil, err
 	}
-	return mergeOrgs(memberOrgs, teamOrgs), nil
+	orgs := mergeOrgs(memberOrgs, teamOrgs)
+	sort.Sort(organizationsByCreatedAt(orgs))
+	return orgs, nil
 }
 
 // listMemberOrganizationsForUserIDs lists the organizations these users belong to
@@ -782,3 +817,25 @@ func mergeOrgs(orgsSlice ...[]*users.Organization) []*users.Organization {
 	}
 	return uniqueOrgs
 }
+
+func mergeUsers(usersSlice ...[]*users.User) []*users.User {
+	m := make(map[string]*users.User)
+	for _, users := range usersSlice {
+		for _, user := range users {
+			if _, exists := m[user.ID]; !exists {
+				m[user.ID] = user
+			}
+		}
+	}
+	uniqueUsers := make([]*users.User, 0, len(m))
+	for _, user := range m {
+		uniqueUsers = append(uniqueUsers, user)
+	}
+	return uniqueUsers
+}
+
+type organizationsByCreatedAt []*users.Organization
+
+func (o organizationsByCreatedAt) Len() int           { return len(o) }
+func (o organizationsByCreatedAt) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
+func (o organizationsByCreatedAt) Less(i, j int) bool { return o[i].CreatedAt.After(o[j].CreatedAt) }
