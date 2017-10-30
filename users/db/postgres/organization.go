@@ -123,12 +123,44 @@ func (d DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*u
 	return d.scanUsers(rows)
 }
 
-// ListOrganizationsForUserIDs lists the organizations these users belong to
-func (d DB) ListOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
+// ListOrganizationsForUserIDs lists the organizations these users belong to.
+// This includes direct membership and team membership.
+func (d DB) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
+	// SQL UNIONs are not supported by github.com/Masterminds/squirrel
+	memberOrgs, err := d.listMemberOrganizationsForUserIDs(ctx, userIDs...)
+	if err != nil {
+		return nil, err
+	}
+	teamOrgs, err := d.listTeamOrganizationsForUserIDs(ctx, userIDs...)
+	if err != nil {
+		return nil, err
+	}
+	return mergeOrgs(memberOrgs, teamOrgs), nil
+}
+
+// listMemberOrganizationsForUserIDs lists the organizations these users belong to
+func (d DB) listMemberOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
 	rows, err := d.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userIDs}).
 		Where("memberships.deleted_at is null").
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	orgs, err := d.scanOrganizations(rows)
+	if err != nil {
+		return nil, err
+	}
+	return orgs, err
+}
+
+// listTeamOrganizationsForUserIDs lists the organizations these users' teams belong to
+func (d DB) listTeamOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
+	rows, err := d.organizationsQuery().
+		Join("team_memberships on (organizations.team_id = team_memberships.team_id)").
+		Where("team_memberships.deleted_at IS NULL").
+		Where(squirrel.Eq{"team_memberships.user_id": userIDs}).
 		Query()
 	if err != nil {
 		return nil, err
@@ -699,4 +731,20 @@ func (d DB) createGCP(ctx context.Context, externalAccountID string) (*users.Goo
 	}
 
 	return gcp, nil
+{
+
+func mergeOrgs(orgsSlice ...[]*users.Organization) []*users.Organization {
+	m := make(map[string]*users.Organization)
+	for _, orgs := range orgsSlice {
+		for _, org := range orgs {
+			if _, exists := m[org.ID]; !exists {
+				m[org.ID] = org
+			}
+		}
+	}
+	uniqueOrgs := make([]*users.Organization, 0, len(m))
+	for _, org := range m {
+		uniqueOrgs = append(uniqueOrgs, org)
+	}
+	return uniqueOrgs
 }
