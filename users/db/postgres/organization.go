@@ -17,27 +17,29 @@ import (
 
 // RemoveUserFromOrganization removes the user from the organiation. If they
 // are not a member, this is a noop.
-func (d DB) RemoveUserFromOrganization(_ context.Context, orgExternalID, email string) error {
-	_, err := d.Exec(`
-			update memberships set deleted_at = $1
-			where user_id in (
-					select id
-					  from users
-					 where lower(email) = lower($2)
-					   and deleted_at is null
-				)
-			  and organization_id in (
-					select id
-					  from organizations
-					 where lower(external_id) = lower($3)
-					   and deleted_at is null
-				)
-			  and deleted_at is null`,
-		d.Now(),
-		email,
-		orgExternalID,
-	)
-	return err
+func (d DB) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) error {
+	user, err := d.FindUserByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+
+	org, err := d.FindOrganizationByID(ctx, orgExternalID)
+	if err != nil {
+		return err
+	}
+
+	if org.TeamID == "" {
+		_, err = d.Exec(
+			"update memberships set deleted_at = now() where user_id = $1 and organization_id = $2",
+			user.ID,
+			org.ID,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return d.RemoveUserFromTeam(user.ID, org.TeamID)
 }
 
 // UserIsMemberOf checks if the user is a member of the organization.
@@ -241,13 +243,25 @@ func (d DB) listTeamOrganizationsForUserIDs(_ context.Context, userIDs ...string
 	return orgs, err
 }
 
-func (d DB) addUserToOrganization(userID, organizationID string) error {
-	_, err := d.Exec(`
+// addUserToOrganization adds a user to the team of the organization,
+// if the organization belongs to a team, otherwise populates membership
+func (d DB) addUserToOrganization(ctx context.Context, userID, orgExternalID string) error {
+	org, err := d.FindOrganizationByID(ctx, orgExternalID)
+	if err != nil {
+		return err
+	}
+
+	if org.TeamID != "" {
+		r := d.addUserToTeam(userID, org.TeamID)
+		return r
+	}
+
+	_, err = d.Exec(`
 			insert into memberships
 				(user_id, organization_id, created_at)
 				values ($1, $2, $3)`,
 		userID,
-		organizationID,
+		org.ID,
 		d.Now(),
 	)
 	if err != nil {

@@ -79,6 +79,17 @@ func (d DB) addUserToTeam(userID, teamID string) error {
 	return err
 }
 
+// RemoveUserFromTeam removes the user from the team.
+// If they are not a team member, this is a noop.
+func (d DB) RemoveUserFromTeam(userID, teamID string) error {
+	_, err := d.Exec(
+		"update team_memberships set deleted_at = now() where user_id = $1 and team_id = $2",
+		userID,
+		teamID,
+	)
+	return err
+}
+
 // SetDefaultTeam sets a user's default team
 func (d DB) SetDefaultTeam(userID, teamID string) error {
 	err := d.Transaction(func(tx DB) error {

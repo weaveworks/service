@@ -94,13 +94,7 @@ func (d DB) InviteUser(ctx context.Context, email, orgExternalID string) (*users
 	var u *users.User
 	userCreated := false
 	err := d.Transaction(func(tx DB) error {
-		o, err := tx.scanOrganization(
-			tx.organizationsQuery().Where("lower(organizations.external_id) = lower($1)", orgExternalID).QueryRow(),
-		)
-		if err != nil {
-			return err
-		}
-
+		var err error
 		u, err = tx.FindUserByEmail(ctx, email)
 		if err == users.ErrNotFound {
 			u, err = tx.CreateUser(ctx, email)
@@ -114,7 +108,7 @@ func (d DB) InviteUser(ctx context.Context, email, orgExternalID string) (*users
 		if err != nil || isMember {
 			return err
 		}
-		err = tx.addUserToOrganization(u.ID, o.ID)
+		err = tx.addUserToOrganization(ctx, u.ID, orgExternalID)
 		if err != nil {
 			return err
 		}
