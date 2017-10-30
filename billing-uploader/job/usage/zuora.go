@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-const uploaderIDZuora = "zuora"
-
 // Zuora sends usage data to Zuora. It implements Uploader.
 type Zuora struct {
 	cl zuora.Client
@@ -28,12 +26,12 @@ func NewZuora(client zuora.Client) *Zuora {
 
 // ID identifies this uploader.
 func (z *Zuora) ID() string {
-	return uploaderIDZuora
+	return "zuora"
 }
 
 // Add collects usage by grouping aggregates in billing periods.
-func (z *Zuora) Add(ctx context.Context, orgExternalID string, from, through time.Time, aggs []db.Aggregate) error {
-	account, err := z.cl.GetAccount(ctx, orgExternalID)
+func (z *Zuora) Add(ctx context.Context, org users.Organization, from, through time.Time, aggs []db.Aggregate) error {
+	account, err := z.cl.GetAccount(ctx, org.ExternalID)
 	if err != nil {
 		return errors.Wrapf(err, "cannot get Zuora account")
 	}

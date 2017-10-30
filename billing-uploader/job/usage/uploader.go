@@ -13,7 +13,7 @@ type Uploader interface {
 	// ID is an unique name to represent this uploader.
 	ID() string
 	// Add records aggregates to be uploaded later.
-	Add(ctx context.Context, orgExternalID string, from, through time.Time, aggs []db.Aggregate) error
+	Add(ctx context.Context, org users.Organization, from, through time.Time, aggs []db.Aggregate) error
 	// Upload sends recorded aggregates.
 	Upload(ctx context.Context) error
 	// IsSupported returns whether this uploader handles the given organization.
