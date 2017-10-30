@@ -38,8 +38,24 @@ func (d DB) RemoveUserFromOrganization(_ context.Context, orgExternalID, email s
 	return err
 }
 
-// UserIsMemberOf checks if the user is a member of the organization
-func (d DB) UserIsMemberOf(_ context.Context, userID, orgExternalID string) (bool, error) {
+// UserIsMemberOf checks if the user is a member of the organization.
+// This includes checking membership and team membership
+func (d DB) UserIsMemberOf(ctx context.Context, userID, orgExternalID string) (bool, error) {
+	ok, err := d.userIsDirectMemberOf(ctx, userID, orgExternalID)
+	if err != nil {
+		return false, err
+	}
+	if ok {
+		return ok, nil
+	}
+	ok, err = d.userIsTeamMemberOf(ctx, userID, orgExternalID)
+	if err != nil {
+		return false, err
+	}
+	return ok, nil
+}
+
+func (d DB) userIsDirectMemberOf(_ context.Context, userID, orgExternalID string) (bool, error) {
 	rows, err := d.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userID, "organizations.external_id": orgExternalID}).
@@ -52,7 +68,25 @@ func (d DB) UserIsMemberOf(_ context.Context, userID, orgExternalID string) (boo
 	if rows.Err() != nil {
 		return false, rows.Err()
 	}
-	return ok, rows.Close()
+	defer rows.Close()
+	return ok, nil
+}
+
+func (d DB) userIsTeamMemberOf(_ context.Context, userID, orgExternalID string) (bool, error) {
+	rows, err := d.organizationsQuery().
+		Join("team_memberships on (organizations.team_id = team_memberships.team_id)").
+		Where(squirrel.Eq{"team_memberships.user_id": userID, "organizations.external_id": orgExternalID}).
+		Where("team_memberships.deleted_at IS NULL").
+		Query()
+	if err != nil {
+		return false, err
+	}
+	ok := rows.Next()
+	if rows.Err() != nil {
+		return false, rows.Err()
+	}
+	defer rows.Close()
+	return ok, nil
 }
 
 func (d DB) organizationsQuery() squirrel.SelectBuilder {
