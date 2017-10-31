@@ -11,14 +11,14 @@ import (
 	"github.com/weaveworks/service/users/externalIDs"
 )
 
-// CreateTeam creates a team and links the team to the userID
-func (d DB) CreateTeam(ctx context.Context, userID string) (*users.Team, error) {
+// createTeam creates a team and links the team to the userID
+func (d DB) createTeam(ctx context.Context, userID string) (*users.Team, error) {
 	now := d.Now()
 	TrialExpiresAt := now.Add(users.TrialDuration)
 	t := &users.Team{TrialExpiresAt: TrialExpiresAt}
 
 	err := d.Transaction(func(tx DB) error {
-		externalID, err := tx.GenerateTeamExternalID(ctx)
+		externalID, err := tx.generateTeamExternalID(ctx)
 		if err != nil {
 			return err
 		}
@@ -33,8 +33,8 @@ func (d DB) CreateTeam(ctx context.Context, userID string) (*users.Team, error) 
 	return t, nil
 }
 
-// TeamExternalIDUsed returns whether the team externalID has already been taken
-func (d DB) TeamExternalIDUsed(_ context.Context, externalID string) (bool, error) {
+// teamExternalIDUsed returns whether the team externalID has already been taken
+func (d DB) teamExternalIDUsed(_ context.Context, externalID string) (bool, error) {
 	var exists bool
 	err := d.QueryRow(
 		`select exists(select 1 from teams where external_id = lower($1))`,
@@ -43,9 +43,9 @@ func (d DB) TeamExternalIDUsed(_ context.Context, externalID string) (bool, erro
 	return exists, err
 }
 
-// GenerateTeamExternalID generates a new team externalID.
+// generateTeamExternalID generates a new team externalID.
 // This function slows down the more externalIDs are stored in the database
-func (d DB) GenerateTeamExternalID(ctx context.Context) (string, error) {
+func (d DB) generateTeamExternalID(ctx context.Context) (string, error) {
 	var (
 		externalID string
 		err        error
@@ -54,7 +54,7 @@ func (d DB) GenerateTeamExternalID(ctx context.Context) (string, error) {
 	err = d.Transaction(func(tx DB) error {
 		for used := true; used; {
 			externalID = externalIDs.Generate()
-			used, terr = tx.TeamExternalIDUsed(ctx, externalID)
+			used, terr = tx.teamExternalIDUsed(ctx, externalID)
 			if terr != nil {
 				return terr
 			}
@@ -79,9 +79,9 @@ func (d DB) addUserToTeam(userID, teamID string) error {
 	return err
 }
 
-// RemoveUserFromTeam removes the user from the team.
+// removeUserFromTeam removes the user from the team.
 // If they are not a team member, this is a noop.
-func (d DB) RemoveUserFromTeam(userID, teamID string) error {
+func (d DB) removeUserFromTeam(userID, teamID string) error {
 	_, err := d.Exec(
 		"update team_memberships set deleted_at = now() where user_id = $1 and team_id = $2",
 		userID,
@@ -90,8 +90,8 @@ func (d DB) RemoveUserFromTeam(userID, teamID string) error {
 	return err
 }
 
-// SetDefaultTeam sets a user's default team
-func (d DB) SetDefaultTeam(userID, teamID string) error {
+// setDefaultTeam sets a user's default team
+func (d DB) setDefaultTeam(userID, teamID string) error {
 	err := d.Transaction(func(tx DB) error {
 		_, err := tx.Exec(
 			"update team_memberships set is_default = NULL where user_id = $1",
@@ -110,8 +110,8 @@ func (d DB) SetDefaultTeam(userID, teamID string) error {
 	return err
 }
 
-// DefaultTeamByUserID returns the user's explicit default team or
-func (d DB) DefaultTeamByUserID(userID string) (*users.Team, error) {
+// defaultTeamByUserID returns the user's explicit default team or
+func (d DB) defaultTeamByUserID(userID string) (*users.Team, error) {
 	row := d.Select(`
 		t.id,
 		t.external_id,

@@ -39,7 +39,7 @@ func (d DB) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email
 		}
 	}
 
-	return d.RemoveUserFromTeam(user.ID, org.TeamID)
+	return d.removeUserFromTeam(user.ID, org.TeamID)
 }
 
 // UserIsMemberOf checks if the user is a member of the organization.
@@ -363,7 +363,7 @@ func (d DB) ensureTeamExists(ctx context.Context, ownerID string) (string, error
 	// * if a user is not part of a team, create the team and the organization within that team
 	var teamID string
 	err := d.Transaction(func(tx DB) error {
-		team, err := tx.DefaultTeamByUserID(ownerID)
+		team, err := tx.defaultTeamByUserID(ownerID)
 		if err != nil && err != sql.ErrNoRows {
 			return err
 		}
@@ -373,7 +373,7 @@ func (d DB) ensureTeamExists(ctx context.Context, ownerID string) (string, error
 		}
 
 		// user has no team
-		team, err = tx.CreateTeam(ctx, ownerID)
+		team, err = tx.createTeam(ctx, ownerID)
 		if err != nil {
 			return err
 		}
@@ -381,13 +381,14 @@ func (d DB) ensureTeamExists(ctx context.Context, ownerID string) (string, error
 		if err != nil {
 			return err
 		}
-		err = tx.SetDefaultTeam(ownerID, team.ID)
+		err = tx.setDefaultTeam(ownerID, team.ID)
 		if err != nil {
 			return err
 		}
 		teamID = team.ID
 		return nil
 	})
+
 	return teamID, err
 }
 
