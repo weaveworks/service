@@ -220,6 +220,11 @@ func (t traced) ListMemberships(ctx context.Context) (ms []users.Membership, err
 	return t.d.ListMemberships(ctx)
 }
 
+func (t traced) ListTeamsForUserID(ctx context.Context, userID string) (os []*users.Team, err error) {
+	defer func() { t.trace("ListTeamsForUserID", userID, os, err) }()
+	return t.d.ListTeamsForUserID(ctx, userID)
+}
+
 func (t traced) Close(ctx context.Context) (err error) {
 	defer func() { t.trace("Close", err) }()
 	return t.d.Close(ctx)

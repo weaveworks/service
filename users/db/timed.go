@@ -317,6 +317,14 @@ func (t timed) ListMemberships(ctx context.Context) (memberships []users.Members
 	return
 }
 
+func (t timed) ListTeamsForUserID(ctx context.Context, userID string) (us []*users.Team, err error) {
+	t.timeRequest(ctx, "ListTeamsForUserID", func(ctx context.Context) error {
+		us, err = t.d.ListTeamsForUserID(ctx, userID)
+		return err
+	})
+	return
+}
+
 func (t timed) Close(ctx context.Context) error {
 	return t.timeRequest(ctx, "Close", func(ctx context.Context) error {
 		return t.d.Close(ctx)

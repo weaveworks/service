@@ -11,6 +11,20 @@ import (
 	"github.com/weaveworks/service/users/externalIDs"
 )
 
+// ListTeamsForUserID returns all teams belonging to userId
+func (d DB) ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Team, error) {
+	query := d.teamQuery().
+		Join("team_memberships m ON teams.id = m.team_id").
+		Where(squirrel.Eq{"m.user_id": userID}).
+		Where("m.deleted_at IS NULL")
+	rows, err := query.Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return d.scanTeams(rows)
+}
+
 // createTeam creates a team and links the team to the userID
 func (d DB) createTeam(ctx context.Context, userID string) (*users.Team, error) {
 	now := d.Now()
@@ -112,24 +126,47 @@ func (d DB) setDefaultTeam(userID, teamID string) error {
 
 // defaultTeamByUserID returns the user's explicit default team or
 func (d DB) defaultTeamByUserID(userID string) (*users.Team, error) {
-	row := d.Select(`
-		t.id,
-		t.external_id,
-		t.zuora_account_number,
-		t.zuora_account_created_at,
-		t.trial_expires_at,
-		t.trial_pending_expiry_notified_at,
-		t.trial_expired_notified_at,
-		t.created_at
-	`).
-		From("teams t").
-		Join("team_memberships m ON t.id = m.team_id").
+	row := d.teamQuery().
+		Join("team_memberships m ON teams.id = m.team_id").
 		Where(squirrel.Eq{"m.user_id": userID}).
 		Where("m.deleted_at IS NULL").
 		OrderBy("m.is_default NULLS LAST").
-		OrderBy("t.created_at").
 		Limit(1).
 		QueryRow()
+	return d.scanTeam(row)
+}
+
+func (d DB) teamQuery() squirrel.SelectBuilder {
+	return d.Select(`
+		teams.id,
+		teams.external_id,
+		teams.zuora_account_number,
+		teams.zuora_account_created_at,
+		teams.trial_expires_at,
+		teams.trial_pending_expiry_notified_at,
+		teams.trial_expired_notified_at,
+		teams.created_at
+	`).
+		From("teams").
+		OrderBy("teams.created_at")
+}
+
+func (d DB) scanTeams(rows *sql.Rows) ([]*users.Team, error) {
+	teams := []*users.Team{}
+	for rows.Next() {
+		team, err := d.scanTeam(rows)
+		if err != nil {
+			return nil, err
+		}
+		teams = append(teams, team)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+	return teams, nil
+}
+
+func (d DB) scanTeam(row squirrel.RowScanner) (*users.Team, error) {
 	t := &users.Team{}
 	var (
 		zuoraAccountNumber sql.NullString

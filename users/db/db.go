@@ -106,6 +106,8 @@ type DB interface {
 
 	ListMemberships(ctx context.Context) ([]users.Membership, error)
 
+	ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Team, error)
+
 	Close(ctx context.Context) error
 }
 
