@@ -18,21 +18,17 @@ func New(handler MessageHandler) http.Handler {
 			writeError(w, http.StatusBadRequest, req, err) // NACK: we might want to retry on this message later.
 			return
 		}
+		log.Debugf("Incoming webhook event: %+v", event)
 
 		if err := handler.Handle(event.Message); err != nil {
 			writeError(w, http.StatusInternalServerError, req, err) // NACK: we might want to retry on this message later.
 		} else {
-			write(w, http.StatusNoContent) // ACK: remove this message from Pub/Sub.
+			w.WriteHeader(http.StatusNoContent) // ACK: remove this message from Pub/Sub.
 		}
 	})
 }
 
 func writeError(w http.ResponseWriter, statusCode int, req *http.Request, err error) {
-	write(w, statusCode)
-	w.Write([]byte(err.Error()))
+	http.Error(w, err.Error(), statusCode)
 	log.Errorf("Failed to process: %v. Error: %v", req, err)
-}
-
-func write(w http.ResponseWriter, statusCode int) {
-	w.WriteHeader(statusCode)
 }
