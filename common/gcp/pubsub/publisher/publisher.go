@@ -38,7 +38,12 @@ func New(ctx context.Context, cfg Config) (*Publisher, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create client for project [%v]", cfg.projectID)
 	}
-	topic, err := getOrCreateTopicInProject(ctx, client, cfg.topicID, cfg.topicProjectID)
+	var topic *pubsub.Topic
+	if cfg.CreateTopic {
+		topic, err = createTopic(ctx, client, cfg.topicID, cfg.topicProjectID)
+	} else {
+		topic = newTopic(client, cfg.topicID, cfg.topicProjectID)
+	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot create topic [%v] in project [%v] for project [%v]", cfg.topicID, cfg.topicProjectID, cfg.projectID)
 	}
@@ -49,8 +54,17 @@ func New(ctx context.Context, cfg Config) (*Publisher, error) {
 	}, nil
 }
 
-func getOrCreateTopicInProject(ctx context.Context, client *pubsub.Client, topicID, topicProjectID string) (*pubsub.Topic, error) {
-	topic := client.TopicInProject(topicID, topicProjectID)
+// newTopic creates a topic.
+func newTopic(client *pubsub.Client, topicID, topicProjectID string) *pubsub.Topic {
+	if topicProjectID != "" {
+		return client.TopicInProject(topicID, topicProjectID)
+	}
+	return client.Topic(topicID)
+}
+
+// createTopic makes sure the topic exists.
+func createTopic(ctx context.Context, client *pubsub.Client, topicID, topicProjectID string) (*pubsub.Topic, error) {
+	topic := newTopic(client, topicID, topicProjectID)
 	ok, err := topic.Exists(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot check for topic's existence")
@@ -84,8 +98,7 @@ func getOrCreateSubscription(ctx context.Context, client *pubsub.Client, topic *
 			AckDeadline: ackDeadline,
 		})
 		if err != nil {
-			log.Errorf("Failed to create subscription [%v] on [%v] with endpoint [%v]: %v", subID, topic.ID(), endpoint, err)
-			return nil, err
+			return nil, errors.Wrapf(err, "cannot create subscription [%v] on [%v] with endpoint [%v]", subID, topic.ID(), endpoint)
 		}
 	}
 	return sub, nil
