@@ -193,6 +193,10 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		T: ghIntegration,
 	}
 
+	gcpWebhookSecretMiddleware := users_client.AuthSecretMiddleware{
+		Secret: c.gcpWebhookSecret,
+	}
+
 	// middleware to set header to disable caching if path == "/" exactly
 	noCacheOnRoot := middleware.Func(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -286,6 +290,8 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				PrefixMethods{"/api/notification/events", []string{"GET"}, c.notificationConfigHost},
 				PrefixMethods{"/api/notification/events", []string{"POST"}, c.notificationEventHost},
 				Prefix{"/api/notification/sender", c.notificationSenderHost},
+				// API to push messages to webhook require a secret token.
+				Prefix{"/api/gcp-launcher/webhook", gcpWebhookSecretMiddleware.Wrap(c.gcpWebhookHost)},
 				Prefix{"/api", c.queryHost},
 
 				// Catch-all forward to query service, which is a Scope instance that we
