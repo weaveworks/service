@@ -29,7 +29,7 @@ type config struct {
 
 func (c *config) RegisterFlags(f *flag.FlagSet) {
 	flag.IntVar(&c.port, "port", 80, "HTTP port for the Cloud Launcher's GCP Pub/Sub push webhook")
-	flag.StringVar(&c.endpoint, "webhook-endpoint", "https://cloud.weave.works/api/gcp-launcher/webhook", "Endpoint this webhook is accessible from the outside")
+	flag.StringVar(&c.endpoint, "webhook-endpoint", "https://frontend.dev.weave.works/api/gcp-launcher/webhook", "Endpoint this webhook is accessible from the outside")
 	flag.StringVar(&c.subscriptionID, "pubsub-api.subscription-id", "gcp-subscriptions", "Arbitrary name that denotes this subscription")
 
 	c.publisher.RegisterFlags(f)
@@ -63,15 +63,17 @@ func main() {
 	}
 	defer server.Shutdown()
 
-	pub, err := publisher.New(context.Background(), cfg)
+	pub, err := publisher.New(context.Background(), cfg.publisher)
 	if err != nil {
 		log.Fatalf("Failed creating Pub/Sub publisher: %v", err)
 	}
 	defer pub.Close()
-	_, err = pub.CreateSubscription(cfg.subscriptionID, cfg.endpoint, 10*time.Second)
+	sub, err := pub.CreateSubscription(cfg.subscriptionID, cfg.endpoint, 10*time.Second)
 	if err != nil {
 		log.Fatalf("Failed subscribing to Pub/Sub topic: %v", err)
 	}
+
+	log.Infof("Subscription [%s] is active, awaiting messages at: %v", sub, cfg.endpoint)
 
 	server.HTTP.Handle(
 		"/",

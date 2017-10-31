@@ -102,7 +102,9 @@ func Test_SetOrganizationZuoraAccount(t *testing.T) {
 		})
 	assert.NoError(t, err)
 	ts := time.Now()
-	resp, _ := server.GetOrganization(ctx, &users.GetOrganizationRequest{ExternalID: org.ExternalID})
+	resp, _ := server.GetOrganization(ctx, &users.GetOrganizationRequest{
+		ID: &users.GetOrganizationRequest_ExternalID{org.ExternalID},
+	})
 	assert.Equal(t, "Wfirst-set", resp.Organization.ZuoraAccountNumber)
 	assert.True(t, resp.Organization.ZuoraAccountCreatedAt.Before(ts))
 
@@ -113,7 +115,9 @@ func Test_SetOrganizationZuoraAccount(t *testing.T) {
 			Number:     "Wupdate",
 		})
 	assert.NoError(t, err)
-	resp, _ = server.GetOrganization(ctx, &users.GetOrganizationRequest{ExternalID: org.ExternalID})
+	resp, _ = server.GetOrganization(ctx, &users.GetOrganizationRequest{
+		ID: &users.GetOrganizationRequest_ExternalID{org.ExternalID},
+	})
 	assert.Equal(t, "Wupdate", resp.Organization.ZuoraAccountNumber)
 	assert.True(t, resp.Organization.ZuoraAccountCreatedAt.After(ts))
 
@@ -126,7 +130,9 @@ func Test_SetOrganizationZuoraAccount(t *testing.T) {
 			CreatedAt:  &createdAt,
 		})
 	assert.NoError(t, err)
-	resp, _ = server.GetOrganization(ctx, &users.GetOrganizationRequest{ExternalID: org.ExternalID})
+	resp, _ = server.GetOrganization(ctx, &users.GetOrganizationRequest{
+		&users.GetOrganizationRequest_ExternalID{org.ExternalID},
+	})
 	assert.Equal(t, "Wexplicit-date", resp.Organization.ZuoraAccountNumber)
 	assert.True(t, resp.Organization.ZuoraAccountCreatedAt.Equal(createdAt))
 }

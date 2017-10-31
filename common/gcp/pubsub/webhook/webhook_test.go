@@ -21,11 +21,12 @@ import (
 )
 
 const (
-	projectID   = "foo"
-	topicName   = "bar"
-	subName     = "baz"
-	port        = 1337
-	ackDeadline = 10 * time.Second
+	projectID      = "foo"
+	topicID        = "bar"
+	topicProjectID = "foo2"
+	subID          = "baz"
+	port           = 1337
+	ackDeadline    = 10 * time.Second
 )
 
 func TestGooglePubSubWebhookViaEmulator(t *testing.T) {
@@ -69,12 +70,12 @@ func TestGooglePubSubWebhookViaEmulator(t *testing.T) {
 
 	// Configure test publisher:
 	ctx := context.TODO()
-	pub, err := publisher.New(ctx, projectID, topicName)
+	pub, err := publisher.New(ctx, publisher.Config{})
 	assert.Nil(t, err)
 	defer pub.Close()
 
 	// Create "push" subscription to redirect messages to our webhook HTTP server:
-	sub, err := pub.CreateSubscription(subName, fmt.Sprintf("http://localhost:%v", port), ackDeadline)
+	sub, err := pub.CreateSubscription(subID, fmt.Sprintf("http://localhost:%v", port), ackDeadline)
 	defer sub.Delete(ctx)
 	assert.Nil(t, err)
 
@@ -130,7 +131,7 @@ func TestGooglePubSubWebhook(t *testing.T) {
 	body, err = ioutil.ReadAll(resp.Body)
 	assert.Nil(t, resp.Body.Close())
 	assert.Nil(t, err)
-	assert.Equal(t, "invalid data: nah", string(body))
+	assert.Equal(t, "invalid data: nah\n", string(body))
 	assert.Equal(t, "nah", (<-KO).MessageID)
 }
 

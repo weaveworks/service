@@ -126,6 +126,11 @@ func (t traced) FindOrganizationByID(ctx context.Context, externalID string) (o 
 	return t.d.FindOrganizationByID(ctx, externalID)
 }
 
+func (t traced) FindOrganizationByGCPAccountID(ctx context.Context, accountID string) (o *users.Organization, err error) {
+	defer func() { t.trace("FindOrganizationByGCPAccountID", accountID, o, err) }()
+	return t.d.FindOrganizationByGCPAccountID(ctx, accountID)
+}
+
 func (t traced) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) (err error) {
 	defer func() { t.trace("UpdateOrganization", externalID, update, err) }()
 	return t.d.UpdateOrganization(ctx, externalID, update)

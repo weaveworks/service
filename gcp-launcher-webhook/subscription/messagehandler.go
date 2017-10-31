@@ -91,13 +91,16 @@ func (m MessageHandler) updateSubscription(org users.Organization, sub *partner.
 	ctx := context.Background()
 
 	// Set organization subscription
-	_ := sub.ExtractLabel("weave-cloud", "ServiceLevel")
+	level := sub.ExtractLabel("weave-cloud", "ServiceLevel")
+	_ = level
 	// FIXME(rndstr): the ConsumerID key is most definitely wrong
-	_ := sub.ExtractLabel("weave-cloud", "ConsumerID")
+	consumerID := sub.ExtractLabel("weave-cloud", "ConsumerID")
+	_ = consumerID
+
 	// FIXME(rndstr): m.Users.SetOrganizationGCP(consumerID, approved.Name, level)
 
 	// Approve subscription
-	body := partner.RequestBody{
+	body := &partner.RequestBody{
 		ApprovalID: "default-approval",
 		Labels: map[string]string{
 			// FIXME(rndstr): confirm what we need to pass here

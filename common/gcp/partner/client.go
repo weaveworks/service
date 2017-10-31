@@ -44,8 +44,8 @@ func init() {
 }
 
 type API interface {
-	ApproveSubscription(ctx context.Context, name string, body RequestBody) (*Subscription, error)
-	DenySubscription(ctx context.Context, name string, body RequestBody) (*Subscription, error)
+	ApproveSubscription(ctx context.Context, name string, body *RequestBody) (*Subscription, error)
+	DenySubscription(ctx context.Context, name string, body *RequestBody) (*Subscription, error)
 	GetSubscription(ctx context.Context, name string) (*Subscription, error)
 	ListSubscriptions(ctx context.Context, externalAccountID string) ([]Subscription, error)
 }
@@ -168,7 +168,7 @@ func NewClient(cfg Config) (*Client, error) {
 
 // ApproveSubscription marks the subscription approved.
 // See https://cloud.google.com/billing-subscriptions/reference/rest/v1/partnerSubscriptions/approve
-func (c *Client) ApproveSubscription(ctx context.Context, name string, body RequestBody) (*Subscription, error) {
+func (c *Client) ApproveSubscription(ctx context.Context, name string, body *RequestBody) (*Subscription, error) {
 	u := fmt.Sprintf("%s/v1/%s:approve", basePath, name)
 	resp := &subscriptionResponse{}
 	err := c.Post(ctx, "partnerSubscriptions:approve", u, body, resp)
@@ -184,7 +184,7 @@ func (c *Client) ApproveSubscription(ctx context.Context, name string, body Requ
 
 // DenySubscription marks the subscription denied.
 // See https://cloud.google.com/billing-subscriptions/reference/rest/v1/partnerSubscriptions/deny
-func (c *Client) DenySubscription(ctx context.Context, name string, body RequestBody) (*Subscription, error) {
+func (c *Client) DenySubscription(ctx context.Context, name string, body *RequestBody) (*Subscription, error) {
 	u := fmt.Sprintf("%s/v1/%s:deny", basePath, name)
 	resp := &subscriptionResponse{}
 	err := c.Post(ctx, "partnerSubscriptions:deny", u, body, resp)

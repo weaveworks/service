@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -258,6 +259,12 @@ func (d *DB) FindOrganizationByID(_ context.Context, externalID string) (*users.
 		}
 	}
 	return nil, users.ErrNotFound
+}
+
+// FindOrganizationByGCPAccountID returns the organization with the given account ID.
+func (d *DB) FindOrganizationByGCPAccountID(_ context.Context, accountID string) (*users.Organization, error) {
+	// FIXME: implement me
+	return nil, errors.New("not yet implement")
 }
 
 func changeOrg(d *DB, externalID string, toWrap func(*users.Organization) error) error {
