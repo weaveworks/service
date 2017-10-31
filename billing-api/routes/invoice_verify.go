@@ -93,7 +93,7 @@ func assertInvoiceVerified(ctx context.Context, a *API, weaveOrgID string, numIn
 	}
 
 	resp, err := a.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
-		ID: &users.GetOrganizationRequest_ExternalID{weaveOrgID},
+		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: weaveOrgID},
 	})
 	if err != nil {
 		return fmt.Errorf("Failed to fetch organization: %v", err)

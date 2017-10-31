@@ -2,6 +2,7 @@ package publisher
 
 import "flag"
 
+// Config holds the configuration for a publisher client.
 type Config struct {
 	projectID             string
 	topicID               string
@@ -13,6 +14,7 @@ type Config struct {
 	CreateTopic bool
 }
 
+// RegisterFlags register configuration.
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	name := "pubsub-api"
 	flag.StringVar(&c.projectID, name+".project-id", "weaveworks-public", "Project for Pub/Sub access")

@@ -42,7 +42,7 @@ func (a *API) GetUsage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	org, err := a.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
-		ID: &users.GetOrganizationRequest_ExternalID{mux.Vars(r)["id"]},
+		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: mux.Vars(r)["id"]},
 	})
 	if err != nil {
 		render.Error(w, r, err)

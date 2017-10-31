@@ -24,7 +24,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 
 	// Fetch respective organization
 	resp, err := m.Users.GetOrganization(context.Background(), &users.GetOrganizationRequest{
-		ID: &users.GetOrganizationRequest_GCPAccountID{gcpAccountID},
+		ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: gcpAccountID},
 	})
 	if err != nil {
 		return fmt.Errorf("cannot find organization with GCP account ID: %v", gcpAccountID)

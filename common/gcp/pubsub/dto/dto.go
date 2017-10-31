@@ -17,7 +17,7 @@ type Event struct {
 
 // Message is a nested struct within Event.
 type Message struct {
-	Data        []byte            `json:"data"`
-	MessageID   string            `json:"messageId"`
-	Attributes  map[string]string `json:"attributes"`
+	Data       []byte            `json:"data"`
+	MessageID  string            `json:"messageId"`
+	Attributes map[string]string `json:"attributes"`
 }

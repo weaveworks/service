@@ -15,6 +15,7 @@ import (
 	"github.com/weaveworks/service/common"
 )
 
+// SubscriptionStatus denotes the status of a partner subscription
 type SubscriptionStatus string
 
 // Status of a subscription.
@@ -43,6 +44,7 @@ func init() {
 	clientRequestCollector.Register()
 }
 
+// API defines methods to interact with the Google Partner Subscriptions API.
 type API interface {
 	ApproveSubscription(ctx context.Context, name string, body *RequestBody) (*Subscription, error)
 	DenySubscription(ctx context.Context, name string, body *RequestBody) (*Subscription, error)
@@ -111,6 +113,7 @@ type listSubscriptionResponse struct {
 	Error         *errorResponse `json:"error,omitempty"`
 }
 
+// RequestBody contains the fields for sending approvals and denies.
 type RequestBody struct {
 	ApprovalID   string            `json:"approvalId"`
 	ApprovalNote string            `json:"approvalNote"`

@@ -17,8 +17,8 @@ import (
 )
 
 type config struct {
-	port     int
-	endpoint string
+	port           int
+	endpoint       string
 	subscriptionID string
 
 	publisher publisher.Config

@@ -59,7 +59,7 @@ func Test_SetOrganizationFlag(t *testing.T) {
 		})
 	require.NoError(t, err)
 	resp, _ := server.GetOrganization(ctx, &users.GetOrganizationRequest{
-		ID: &users.GetOrganizationRequest_ExternalID{org.ExternalID},
+		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: org.ExternalID},
 	})
 	require.True(t, resp.Organization.RefuseDataAccess)
 
@@ -71,7 +71,7 @@ func Test_SetOrganizationFlag(t *testing.T) {
 		})
 	require.NoError(t, err)
 	resp, _ = server.GetOrganization(ctx, &users.GetOrganizationRequest{
-		ID: &users.GetOrganizationRequest_ExternalID{org.ExternalID},
+		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: org.ExternalID},
 	})
 
 	require.True(t, resp.Organization.RefuseDataUpload)
@@ -103,7 +103,7 @@ func Test_SetOrganizationZuoraAccount(t *testing.T) {
 	assert.NoError(t, err)
 	ts := time.Now()
 	resp, _ := server.GetOrganization(ctx, &users.GetOrganizationRequest{
-		ID: &users.GetOrganizationRequest_ExternalID{org.ExternalID},
+		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: org.ExternalID},
 	})
 	assert.Equal(t, "Wfirst-set", resp.Organization.ZuoraAccountNumber)
 	assert.True(t, resp.Organization.ZuoraAccountCreatedAt.Before(ts))
@@ -116,7 +116,7 @@ func Test_SetOrganizationZuoraAccount(t *testing.T) {
 		})
 	assert.NoError(t, err)
 	resp, _ = server.GetOrganization(ctx, &users.GetOrganizationRequest{
-		ID: &users.GetOrganizationRequest_ExternalID{org.ExternalID},
+		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: org.ExternalID},
 	})
 	assert.Equal(t, "Wupdate", resp.Organization.ZuoraAccountNumber)
 	assert.True(t, resp.Organization.ZuoraAccountCreatedAt.After(ts))
@@ -131,7 +131,7 @@ func Test_SetOrganizationZuoraAccount(t *testing.T) {
 		})
 	assert.NoError(t, err)
 	resp, _ = server.GetOrganization(ctx, &users.GetOrganizationRequest{
-		&users.GetOrganizationRequest_ExternalID{org.ExternalID},
+		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: org.ExternalID},
 	})
 	assert.Equal(t, "Wexplicit-date", resp.Organization.ZuoraAccountNumber)
 	assert.True(t, resp.Organization.ZuoraAccountCreatedAt.Equal(createdAt))

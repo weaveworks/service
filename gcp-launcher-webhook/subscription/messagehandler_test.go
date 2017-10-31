@@ -2,12 +2,14 @@ package subscription_test
 
 import (
 	"context"
-	"github.com/weaveworks/service/common/gcp/partner"
-	"github.com/golang/mock/gomock"
-	"github.com/weaveworks/service/users/mock_users"
-	"github.com/weaveworks/service/gcp-launcher-webhook/subscription"
 	"testing"
+
+	"github.com/golang/mock/gomock"
+
+	"github.com/weaveworks/service/common/gcp/partner"
+	"github.com/weaveworks/service/gcp-launcher-webhook/subscription"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/mock_users"
 )
 
 type partnerMock struct {
@@ -37,7 +39,7 @@ func TestMessageHandler_Handle(t *testing.T) {
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
 		GetOrganization(ctx, &users.GetOrganizationRequest{
-			ID: &users.GetOrganizationRequest_ExternalID{"foo"},
+			ID: &users.GetOrganizationRequest_ExternalID{ExternalID: "foo"},
 		}).
 		Return(&users.GetOrganizationResponse{
 			Organization: users.Organization{
