@@ -22,9 +22,9 @@ type Publisher struct {
 }
 
 // New is the constructor for new Publisher instances.
-func New(ctx context.Context, projectID, topicID, topicProjectID string, serviceAccountKeyFile string) (*Publisher, error) {
+func New(ctx context.Context, cfg Config) (*Publisher, error) {
 	// Create source for oauth2 token
-	jsonKey, err := ioutil.ReadFile(serviceAccountKeyFile)
+	jsonKey, err := ioutil.ReadFile(cfg.serviceAccountKeyFile)
 	if err != nil {
 		return nil, err
 	}
@@ -34,13 +34,13 @@ func New(ctx context.Context, projectID, topicID, topicProjectID string, service
 	}
 	ts := conf.TokenSource(ctx)
 
-	client, err := pubsub.NewClient(ctx, projectID, option.WithTokenSource(ts))
+	client, err := pubsub.NewClient(ctx, cfg.projectID, option.WithTokenSource(ts))
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create client for project [%v]", projectID)
+		return nil, errors.Wrapf(err, "cannot create client for project [%v]", cfg.projectID)
 	}
-	topic, err := getOrCreateTopicInProject(ctx, client, topicID, topicProjectID)
+	topic, err := getOrCreateTopicInProject(ctx, client, cfg.topicID, cfg.topicProjectID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create topic [%v] in project [%v] for project [%v]", topicID, topicProjectID, projectID)
+		return nil, errors.Wrapf(err, "cannot create topic [%v] in project [%v] for project [%v]", cfg.topicID, cfg.topicProjectID, cfg.projectID)
 	}
 	return &Publisher{
 		ctx:    ctx,

@@ -17,13 +17,11 @@ import (
 )
 
 type config struct {
-	port                  int
-	projectID             string
-	topicID               string
-	topicProjectID        string
-	subscriptionID        string
-	endpoint              string
-	serviceAccountKeyFile string
+	port     int
+	endpoint string
+	subscriptionID string
+
+	publisher publisher.Config
 
 	users   users.Config
 	partner partner.Config
@@ -32,14 +30,9 @@ type config struct {
 func (c *config) RegisterFlags(f *flag.FlagSet) {
 	flag.IntVar(&c.port, "port", 80, "HTTP port for the Cloud Launcher's GCP Pub/Sub push webhook")
 	flag.StringVar(&c.endpoint, "webhook-endpoint", "https://cloud.weave.works/api/gcp-launcher/webhook", "Endpoint this webhook is accessible from the outside")
+	flag.StringVar(&c.subscriptionID, "pubsub-api.subscription-id", "gcp-subscriptions", "Arbitrary name that denotes this subscription")
 
-	name := "pubsub-api"
-	flag.StringVar(&c.projectID, name+".project-id", "weaveworks-public", "Project for Pub/Sub access")
-	flag.StringVar(&c.topicID, name+".topic-id", "weaveworks-public-cloudmarketplacepartner.googleapis.com", "Topic ID for the Pub/Sub subscription")
-	flag.StringVar(&c.topicProjectID, name+".topic-project-id", "cloud-billing-subscriptions", "Project the topic is under (may differ from ")
-	flag.StringVar(&c.subscriptionID, name+".subscription-id", "gcp-launcher-webhook", "Arbitrary name that denotes this subscription")
-	flag.StringVar(&c.serviceAccountKeyFile, name+".service-account-key-file", "", "Service account key JSON file")
-
+	c.publisher.RegisterFlags(f)
 	c.partner.RegisterFlags(f)
 	c.users.RegisterFlags(f)
 }
@@ -70,7 +63,7 @@ func main() {
 	}
 	defer server.Shutdown()
 
-	pub, err := publisher.New(context.Background(), cfg.projectID, cfg.topicID, cfg.topicProjectID, cfg.serviceAccountKeyFile)
+	pub, err := publisher.New(context.Background(), cfg)
 	if err != nil {
 		log.Fatalf("Failed creating Pub/Sub publisher: %v", err)
 	}
