@@ -1,12 +1,17 @@
 package publisher
 
 import (
+	"context"
+	"io/ioutil"
 	"time"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/option"
+
 	"github.com/weaveworks/service/common/gcp/pubsub/dto"
-	"golang.org/x/net/context"
 )
 
 // Publisher wraps around Client, Topic and Subscription abstractions.
@@ -17,16 +22,25 @@ type Publisher struct {
 }
 
 // New is the constructor for new Publisher instances.
-func New(ctx context.Context, projectID, topicName string) (*Publisher, error) {
-	client, err := pubsub.NewClient(ctx, projectID)
+func New(ctx context.Context, projectID, topicID, topicProjectID string, serviceAccountKeyFile string) (*Publisher, error) {
+	// Create source for oauth2 token
+	jsonKey, err := ioutil.ReadFile(serviceAccountKeyFile)
 	if err != nil {
-		log.Errorf("Failed to create Pub/Sub client for project [%v]: %v", projectID, err)
 		return nil, err
 	}
-	topic, err := getOrCreateTopic(ctx, client, topicName)
+	conf, err := google.JWTConfigFromJSON(jsonKey, pubsub.ScopePubSub, pubsub.ScopeCloudPlatform)
 	if err != nil {
-		log.Errorf("Failed to get or create Pub/Sub topic [%v] for project [%v]: %v", topicName, projectID, err)
 		return nil, err
+	}
+	ts := conf.TokenSource(ctx)
+
+	client, err := pubsub.NewClient(ctx, projectID, option.WithTokenSource(ts))
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot create client for project [%v]", projectID)
+	}
+	topic, err := getOrCreateTopicInProject(ctx, client, topicID, topicProjectID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot create topic [%v] in project [%v] for project [%v]", topicID, topicProjectID, projectID)
 	}
 	return &Publisher{
 		ctx:    ctx,
@@ -35,18 +49,16 @@ func New(ctx context.Context, projectID, topicName string) (*Publisher, error) {
 	}, nil
 }
 
-func getOrCreateTopic(ctx context.Context, client *pubsub.Client, topicName string) (*pubsub.Topic, error) {
-	topic := client.Topic(topicName)
+func getOrCreateTopicInProject(ctx context.Context, client *pubsub.Client, topicID, topicProjectID string) (*pubsub.Topic, error) {
+	topic := client.TopicInProject(topicID, topicProjectID)
 	ok, err := topic.Exists(ctx)
 	if err != nil {
-		log.Errorf("Failed to check topic [%v]'s existence: %v", topicName, err)
-		return nil, err
+		return nil, errors.Wrapf(err, "cannot check for topic's existence")
 	}
 	if !ok {
-		topic, err = client.CreateTopic(ctx, topicName)
+		topic, err = client.CreateTopic(ctx, topicID)
 		if err != nil {
-			log.Errorf("Failed to create topic [%v]: %v", topicName, err)
-			return nil, err
+			return nil, errors.Wrapf(err, "cannot create topic")
 		}
 	}
 	return topic, nil
@@ -58,21 +70,21 @@ func (p Publisher) CreateSubscription(subName, endpoint string, ackDeadline time
 	return getOrCreateSubscription(p.ctx, p.client, p.topic, subName, endpoint, ackDeadline)
 }
 
-func getOrCreateSubscription(ctx context.Context, client *pubsub.Client, topic *pubsub.Topic, subName, endpoint string, ackDeadline time.Duration) (*pubsub.Subscription, error) {
-	sub := client.Subscription(subName)
+func getOrCreateSubscription(ctx context.Context, client *pubsub.Client, topic *pubsub.Topic, subID, endpoint string, ackDeadline time.Duration) (*pubsub.Subscription, error) {
+	sub := client.Subscription(subID)
 	exists, err := sub.Exists(ctx)
 	if err != nil {
-		log.Errorf("Failed to check subscription [%v]'s existence: %v", subName, err)
+		log.Errorf("Failed to check subscription [%v]'s existence: %v", subID, err)
 		return nil, err
 	}
 	if !exists {
-		sub, err = client.CreateSubscription(ctx, subName, pubsub.SubscriptionConfig{
+		sub, err = client.CreateSubscription(ctx, subID, pubsub.SubscriptionConfig{
 			PushConfig:  pubsub.PushConfig{Endpoint: endpoint},
 			Topic:       topic,
 			AckDeadline: ackDeadline,
 		})
 		if err != nil {
-			log.Errorf("Failed to create subscription [%v] on [%v] with endpoint [%v]: %v", subName, topic.ID(), endpoint, err)
+			log.Errorf("Failed to create subscription [%v] on [%v] with endpoint [%v]: %v", subID, topic.ID(), endpoint, err)
 			return nil, err
 		}
 	}
