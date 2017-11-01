@@ -1,9 +1,9 @@
-package webhook_test
+// +build integration
+
+package publisher_test
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"testing"
 	"time"
@@ -38,19 +38,18 @@ func TestPublisher(t *testing.T) {
 	// Configure and start the webhook's HTTP server:
 	OK := make(chan dto.Message, 1)
 	KO := make(chan dto.Message, 1)
-	server := &http.Server{
-		Addr:    fmt.Sprintf("127.0.0.1:%v", port),
-		Handler: webhook.New(&testMessageHandler{OK: OK, KO: KO}),
-	}
-	defer server.Close()
-	go server.ListenAndServe()
+	go http.ListenAndServe(
+		fmt.Sprintf(":%v", port),
+		webhook.New(&testMessageHandler{OK: OK, KO: KO}),
+	)
 
 	// Create "push" subscription to redirect messages to our webhook HTTP server:
 	endpoint := fmt.Sprintf("http://127.0.0.1:%d", port)
 	_, err := pub.CreateSubscription(subID, endpoint, ackDeadline)
 	assert.NoError(t, err)
 	// Note that we don't sub.Delete() here because the mock implementation will panic.
-	// If the emulator isn't restarted between runs, the same subscription will be picked up again.
+	// For the emulator, if it isn't restarted between runs, the same subscription will just
+	// be picked up again.
 
 	// Send a message and ensure it was processed properly:
 	{
@@ -68,52 +67,9 @@ func TestPublisher(t *testing.T) {
 	{
 		data := []byte("KO")
 		_, err = pub.PublishSync(data, nil)
-		assert.NoError(t, err)
-
-		<-KO
+		assert.NoError(t, err) // publishing succeeds
+		<-KO                   // handler will detect it as error
 	}
-}
-
-func DisableTestGooglePubSubWebhook(t *testing.T) {
-	// Configure and start the webhook's HTTP server:
-	OK := make(chan dto.Message, 1)
-	KO := make(chan dto.Message, 1)
-	server := &http.Server{
-		Addr:    fmt.Sprintf(":%v", port),
-		Handler: webhook.New(&testMessageHandler{OK: OK, KO: KO}),
-	}
-	defer server.Close()
-	go server.ListenAndServe()
-
-	client := &http.Client{}
-
-	// Send a valid request to the webhook:
-	resp, err := client.Post(
-		fmt.Sprintf("http://localhost:%v", port),
-		"application/json",
-		bytes.NewBufferString(`{"subscription":"projects\/foo\/subscriptions\/baz","message":{"messageId":"OK"}}`),
-	)
-	assert.Nil(t, err)
-	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
-	body, err := ioutil.ReadAll(resp.Body)
-	assert.Nil(t, resp.Body.Close())
-	assert.Nil(t, err)
-	assert.Equal(t, "", string(body))
-	assert.Equal(t, "OK", (<-OK).MessageID)
-
-	// Send an invalid request to the webhook:
-	resp, err = client.Post(
-		fmt.Sprintf("http://localhost:%v", port),
-		"application/json",
-		bytes.NewBufferString(`{"subscription":"projects\/foo\/subscriptions\/baz","message":{"messageId":"nah"}}`),
-	)
-	assert.Nil(t, err)
-	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-	body, err = ioutil.ReadAll(resp.Body)
-	assert.Nil(t, resp.Body.Close())
-	assert.Nil(t, err)
-	assert.Equal(t, "invalid data: nah\n", string(body))
-	assert.Equal(t, "nah", (<-KO).MessageID)
 }
 
 type testMessageHandler struct {
