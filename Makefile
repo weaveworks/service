@@ -1,4 +1,6 @@
-.PHONY: all test notebooks-integration-test users-integration-test billing-integration-test flux-nats-test clean images ui-upload
+.PHONY: all test \
+	notebooks-integration-test users-integration-test billing-integration-test pubsub-integration-test \
+	flux-nats-test clean images ui-upload
 .DEFAULT_GOAL := all
 
 # Boiler plate for bulding Docker containers.
@@ -215,6 +217,18 @@ users-integration-test: $(USERS_UPTODATE) users/users.pb.go
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
+	exit $$status
+
+pubsub-integration-test:
+	PUBSUB_EMU_CONTAINER="$$(docker run --net=host -p 127.0.0.1:8085:8085 -d adilsoncarvalho/gcloud-pubsub-emulator:latest)"; \
+	docker run $(RM) \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		--net=host -p 127.0.0.1:1337:1337 \
+		--workdir /go/src/github.com/weaveworks/service/common/gcp/pubsub \
+		golang:1.8.3-stretch \
+		/bin/bash -c "RUN_MANUAL_TEST=1 go test -tags integration -timeout 30s ./..."; \
+	status=$$?; \
+	test -n "$(CIRCLECI)" || docker rm -f "$$PUBSUB_EMU_CONTAINER"; \
 	exit $$status
 
 clean:

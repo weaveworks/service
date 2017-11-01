@@ -5,101 +5,82 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"os/exec"
-	"strings"
 	"testing"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/common/gcp/pubsub/dto"
 	"github.com/weaveworks/service/common/gcp/pubsub/publisher"
+	"github.com/weaveworks/service/common/gcp/pubsub/pubsubtest"
 	"github.com/weaveworks/service/common/gcp/pubsub/webhook"
 )
 
 const (
-	projectID      = "foo"
-	topicID        = "bar"
-	topicProjectID = "foo2"
-	subID          = "baz"
-	port           = 1337
-	ackDeadline    = 10 * time.Second
+	projectID   = "foo"
+	topicID     = "bar"
+	subID       = "baz"
+	port        = 1337
+	ackDeadline = 10 * time.Second
 )
 
-func TestGooglePubSubWebhookViaEmulator(t *testing.T) {
-	if os.Getenv("RUN_MANUAL_TEST") == "" {
-		t.Skip(`Skipping test: this test should be run manually for now.
-- set RUN_MANUAL_TEST=1
-- run: gcloud beta emulators pubsub start -- see: https://cloud.google.com/pubsub/docs/emulator ; and then
-- run this test again.`)
-	}
-	gcloudPath, err := exec.LookPath("gcloud")
-	if err != nil {
-		t.Skip("Skipping test: this test requires gcloud to run")
-	}
-	log.Infof("gcloud found in $PATH: %v. Now running test...", gcloudPath)
+var cfg = publisher.Config{
+	ProjectID:   projectID,
+	TopicID:     topicID,
+	CreateTopic: true,
+}
 
-	// Start Google Pub/Sub emulator:
-	// TODO: fix the below so that we can run this test automatically.
-	// cmd := exec.Command("gcloud", "beta", "emulators", "pubsub", "start")
-	// cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true} // Kill child processes.
-	// cmd.Start()
-	// time.Sleep(3 * time.Second) // Wait a bit for emulator to start.
-	// defer cmd.Wait()
-	// defer cmd.Process.Signal(syscall.SIGINT)
-
-	// Set environment variables required by Go publisher:
-	out, err := exec.Command("gcloud", "beta", "emulators", "pubsub", "env-init").Output() // export PUBSUB_EMULATOR_HOST=localhost:8085
-	assert.Nil(t, err)
-	emulatorHostPort := strings.Split(strings.TrimSpace(string(out)), "=")[1]
-	assert.Contains(t, emulatorHostPort, "localhost:")
-	os.Setenv("PUBSUB_EMULATOR_HOST", emulatorHostPort)
+func TestPublisher(t *testing.T) {
+	pub := pubsubtest.Setup(context.TODO(), t, cfg)
+	defer pub.Close()
 
 	// Configure and start the webhook's HTTP server:
-	OK := make(chan dto.Message)
-	defer close(OK)
+	OK := make(chan dto.Message, 1)
+	KO := make(chan dto.Message, 1)
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%v", port),
-		Handler: webhook.New(&testMessageHandler{OK: OK}),
+		Addr:    fmt.Sprintf("127.0.0.1:%v", port),
+		Handler: webhook.New(&testMessageHandler{OK: OK, KO: KO}),
 	}
 	defer server.Close()
 	go server.ListenAndServe()
 
-	// Configure test publisher:
-	ctx := context.TODO()
-	pub, err := publisher.New(ctx, publisher.Config{})
-	assert.Nil(t, err)
-	defer pub.Close()
-
 	// Create "push" subscription to redirect messages to our webhook HTTP server:
-	sub, err := pub.CreateSubscription(subID, fmt.Sprintf("http://localhost:%v", port), ackDeadline)
-	defer sub.Delete(ctx)
-	assert.Nil(t, err)
+	endpoint := fmt.Sprintf("http://127.0.0.1:%d", port)
+	_, err := pub.CreateSubscription(subID, endpoint, ackDeadline)
+	assert.NoError(t, err)
+	// Note that we don't sub.Delete() here because the mock implementation will panic.
+	// If the emulator isn't restarted between runs, the same subscription will be picked up again.
 
-	// Send a message and ensures it was processed properly:
-	id, err := pub.PublishSync(dto.Message{MessageID: "OK"})
-	assert.Nil(t, err)
-	assert.NotEmpty(t, id)
+	// Send a message and ensure it was processed properly:
+	{
+		data := []byte("OK")
+		attrs := map[string]string{"consumerId": "123"}
+		_, err = pub.PublishSync(data, attrs)
+		assert.NoError(t, err)
 
-	msg := <-OK
-	assert.Equal(t, "OK", msg.MessageID)
+		m := <-OK
+		assert.Equal(t, data, m.Data)
+		assert.Equal(t, attrs, m.Attributes)
+	}
+
+	// Trigger error in handler
+	{
+		data := []byte("KO")
+		_, err = pub.PublishSync(data, nil)
+		assert.NoError(t, err)
+
+		<-KO
+	}
 }
 
-func TestGooglePubSubWebhook(t *testing.T) {
+func DisableTestGooglePubSubWebhook(t *testing.T) {
 	// Configure and start the webhook's HTTP server:
 	OK := make(chan dto.Message, 1)
 	KO := make(chan dto.Message, 1)
-	defer close(OK)
-	defer close(KO)
 	server := &http.Server{
-		Addr: fmt.Sprintf(":%v", port),
-		Handler: webhook.New(&testMessageHandler{
-			OK: OK,
-			KO: KO,
-		}),
+		Addr:    fmt.Sprintf(":%v", port),
+		Handler: webhook.New(&testMessageHandler{OK: OK, KO: KO}),
 	}
 	defer server.Close()
 	go server.ListenAndServe()
@@ -141,10 +122,10 @@ type testMessageHandler struct {
 }
 
 func (h testMessageHandler) Handle(msg dto.Message) error {
-	if msg.MessageID == "OK" {
+	if string(msg.Data) == "OK" {
 		h.OK <- msg
 		return nil
 	}
 	h.KO <- msg
-	return fmt.Errorf("invalid data: %v", msg.MessageID)
+	return fmt.Errorf("invalid data: %s", string(msg.Data))
 }
