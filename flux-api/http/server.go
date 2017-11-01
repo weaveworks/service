@@ -45,23 +45,6 @@ func NewServiceRouter() *mux.Router {
 	transport.DeprecateVersions(r, "v1", "v2")
 	transport.UpstreamRoutes(r)
 
-	// Backwards compatibility: we only expect the web UI to use these
-	// routes, until it is updated to use v6.
-	r.NewRoute().Name("ListServicesV3").Methods("GET").Path("/v3/services").Queries("namespace", "{namespace}") // optional namespace!
-	r.NewRoute().Name("ListImagesV3").Methods("GET").Path("/v3/images").Queries("service", "{service}")
-	r.NewRoute().Name("UpdatePoliciesV4").Methods("PATCH").Path("/v4/policies")
-	r.NewRoute().Name("HistoryV3").Methods("GET").Path("/v3/history").Queries("service", "{service}")
-	r.NewRoute().Name("StatusV3").Methods("GET").Path("/v3/status")
-	r.NewRoute().Name("GetConfigV4").Methods("GET").Path("/v4/config")
-	r.NewRoute().Name("SetConfigV4").Methods("POST").Path("/v4/config")
-	r.NewRoute().Name("PatchConfigV4").Methods("PATCH").Path("/v4/config")
-	r.NewRoute().Name("ExportV5").Methods("HEAD", "GET").Path("/v5/export")
-	r.NewRoute().Name("PostIntegrationsGithubV5").Methods("POST").Path("/v5/integrations/github").Queries("owner", "{owner}", "repository", "{repository}")
-	// NB no old IsConnected route, as we expect old requests are
-	// forwarded to an instance of the old service, and we want to be
-	// able to sniff the daemon version depending on which ping
-	// responds.
-
 	// V6 service routes
 	r.NewRoute().Name("History").Methods("GET").Path("/v6/history").Queries("service", "{service}")
 	r.NewRoute().Name("Status").Methods("GET").Path("/v6/status")
@@ -84,37 +67,27 @@ func NewServiceRouter() *mux.Router {
 func NewHandler(s api.Service, r *mux.Router, logger log.Logger) http.Handler {
 	handle := httpService{s}
 	for method, handlerMethod := range map[string]http.HandlerFunc{
-		"ListServices":             handle.ListServices,
-		"ListServicesV3":           handle.ListServices,
-		"ListImages":               handle.ListImages,
-		"ListImagesV3":             handle.ListImages,
-		"UpdateImages":             handle.UpdateImages,
-		"UpdatePolicies":           handle.UpdatePolicies,
-		"UpdatePoliciesV4":         handle.UpdatePolicies,
-		"LogEvent":                 handle.LogEvent,
-		"History":                  handle.History,
-		"HistoryV3":                handle.History,
-		"Status":                   handle.Status,
-		"StatusV3":                 handle.Status,
-		"GetConfigV4":              handle.GetConfig,
-		"GetConfig":                handle.GetConfig,
-		"SetConfig":                handle.SetConfig,
-		"SetConfigV4":              handle.SetConfig,
-		"PatchConfig":              handle.PatchConfig,
-		"PatchConfigV4":            handle.PatchConfig,
-		"PostIntegrationsGithub":   handle.PostIntegrationsGithub,
-		"PostIntegrationsGithubV5": handle.PostIntegrationsGithub,
-		"Export":                   handle.Export,
-		"ExportV5":                 handle.Export,
-		"RegisterDaemonV6":         handle.RegisterV6,
-		"RegisterDaemonV7":         handle.RegisterV7,
-		"RegisterDaemonV8":         handle.RegisterV8,
-		"IsConnected":              handle.IsConnected,
-		"SyncNotify":               handle.SyncNotify,
-		"JobStatus":                handle.JobStatus,
-		"SyncStatus":               handle.SyncStatus,
-		"GetPublicSSHKey":          handle.GetPublicSSHKey,
-		"RegeneratePublicSSHKey":   handle.RegeneratePublicSSHKey,
+		"ListServices":           handle.ListServices,
+		"ListImages":             handle.ListImages,
+		"UpdateImages":           handle.UpdateImages,
+		"UpdatePolicies":         handle.UpdatePolicies,
+		"LogEvent":               handle.LogEvent,
+		"History":                handle.History,
+		"Status":                 handle.Status,
+		"GetConfig":              handle.GetConfig,
+		"SetConfig":              handle.SetConfig,
+		"PatchConfig":            handle.PatchConfig,
+		"PostIntegrationsGithub": handle.PostIntegrationsGithub,
+		"Export":                 handle.Export,
+		"RegisterDaemonV6":       handle.RegisterV6,
+		"RegisterDaemonV7":       handle.RegisterV7,
+		"RegisterDaemonV8":       handle.RegisterV8,
+		"IsConnected":            handle.IsConnected,
+		"SyncNotify":             handle.SyncNotify,
+		"JobStatus":              handle.JobStatus,
+		"SyncStatus":             handle.SyncStatus,
+		"GetPublicSSHKey":        handle.GetPublicSSHKey,
+		"RegeneratePublicSSHKey": handle.RegeneratePublicSSHKey,
 	} {
 		handler := logging(handlerMethod, log.With(logger, "method", method))
 		r.Get(method).Handler(handler)
