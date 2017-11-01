@@ -7,7 +7,6 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 
@@ -88,8 +87,7 @@ func getOrCreateSubscription(ctx context.Context, client *pubsub.Client, topic *
 	sub := client.Subscription(subID)
 	exists, err := sub.Exists(ctx)
 	if err != nil {
-		log.Errorf("Failed to check subscription [%v]'s existence: %v", subID, err)
-		return nil, err
+		return nil, errors.Wrapf(err, "cannot check for existence of subscription [%v]", subID)
 	}
 	if !exists {
 		sub, err = client.CreateSubscription(ctx, subID, pubsub.SubscriptionConfig{
@@ -114,8 +112,7 @@ func (p Publisher) PublishSync(msg dto.Message) (string, error) {
 	})
 	msgID, err := r.Get(p.ctx) // Blocks until Publish succeeds or context is done.
 	if err != nil {
-		log.Errorf("Failed to publish message [%+v]", msg)
-		return "", err
+		return "", errors.Wrapf(err, "cannot publish message [%+v]", msg)
 	}
 	return msgID, nil
 }
