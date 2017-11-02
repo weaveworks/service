@@ -61,16 +61,12 @@ type Client struct {
 // Subscription is a plan of a customer.
 // See https://cloud.google.com/billing-subscriptions/reference/rest/v1/partnerSubscriptions#PartnerSubscription
 type Subscription struct {
-	Name                string             `json:"name"` // "partnerSubscriptions/*"
-	ExternalAccountID   string             `json:"externalAccountId"`
-	Version             string             `json:"version"`
-	Status              SubscriptionStatus `json:"status"`
-	SubscribedResources []struct {
-		Labels               map[string]string `json:"labels"`
-		Resource             string            `json:"resource"`
-		SubscriptionProvider string            `json:"subscriptionProvider"`
-	} `json:"subscribedResources"`
-	RequiredApproval []struct {
+	Name                string               `json:"name"` // "partnerSubscriptions/*"
+	ExternalAccountID   string               `json:"externalAccountId"`
+	Version             string               `json:"version"`
+	Status              SubscriptionStatus   `json:"status"`
+	SubscribedResources []SubscribedResource `json:"subscribedResources"`
+	RequiredApproval    []struct {
 		Name         string     `json:"name"`
 		Status       string     `json:"status"`
 		ApprovalTime *time.Time `json:"approvalTime,omitempty"`
@@ -81,6 +77,13 @@ type Subscription struct {
 	EndDate    *date     `json:"endDate,omitempty"`
 	CreateTime time.Time `json:"createTime"`
 	UpdateTime time.Time `json:"updateTime"`
+}
+
+// SubscribedResource describes a product part of this subscription.
+type SubscribedResource struct {
+	Labels               map[string]string `json:"labels"`
+	Resource             string            `json:"resource"`
+	SubscriptionProvider string            `json:"subscriptionProvider"`
 }
 
 // ExtractLabel returns the value of key under given resource. It prefixes the

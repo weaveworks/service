@@ -11,6 +11,12 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
+const (
+	ssoLoginKey          = "keyForSsoLogin"
+	externalAccountIDKey = "externalAccountId"
+	subscriptionNameKey  = "name"
+)
+
 // MessageHandler handles a PubSub message.
 type MessageHandler struct {
 	Partner partner.API
@@ -19,8 +25,8 @@ type MessageHandler struct {
 
 // Handle processes the message for a subscription. It fetches organization and the
 func (m MessageHandler) Handle(msg dto.Message) error {
-	gcpAccountID := msg.Attributes["externalAccountId"]
-	subscriptionName := msg.Attributes["name"]
+	gcpAccountID := msg.Attributes[externalAccountIDKey]
+	subscriptionName := msg.Attributes[subscriptionNameKey]
 
 	// Fetch respective organization
 	resp, err := m.Users.GetOrganization(context.Background(), &users.GetOrganizationRequest{
@@ -68,7 +74,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	if sub.Status == partner.StatusActive {
 		// Subscriptions are activated by first going through the pending state.
 		// The pending status has already been processed or if the account is
-		// freshly created, we update the subscription manually.
+		// freshly created, we will update the subscription through that flow.
 		return nil
 	}
 
@@ -103,8 +109,9 @@ func (m MessageHandler) updateSubscription(org users.Organization, sub *partner.
 	body := &partner.RequestBody{
 		ApprovalID: "default-approval",
 		Labels: map[string]string{
-			// FIXME(rndstr): confirm what we need to pass here
-			"keyForSsoLogin": org.GCP.AccountID,
+			// The value passed here will be sent to us during SSO. It allows us to
+			// verify who the user is and log him in.
+			ssoLoginKey: org.GCP.AccountID,
 		},
 	}
 
