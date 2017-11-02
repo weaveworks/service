@@ -36,7 +36,7 @@ MOCK_USERS := users/mock_users/usersclient.go
 $(MOCK_USERS): users/users.pb.go
 
 BILLING_DB := billing-api/db
-BILLING_TEST_DIRS := $(shell find . -name '*_test.go' | grep -E  "^\./(billing|common)" | xargs -n1 dirname | sort -u)
+BILLING_TEST_DIRS := $(shell find . -name '*_test.go' | grep -E  "^\./billing" | xargs -n1 dirname | sort -u)
 
 MOCK_BILLING_DB := $(BILLING_DB)/mock_db/mock_db.go
 MOCK_GOS := $(MOCK_USERS) $(MOCK_BILLING_DB)
