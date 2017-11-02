@@ -131,7 +131,7 @@ func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrgani
 		filter.Page(req.PageNumber),
 	}
 	if req.Query != "" {
-		fs = append(fs, filter.SearchName(req.Query))
+		fs = append(fs, filter.ExternalID(req.Query))
 	}
 	organizations, err := a.db.ListOrganizations(ctx, filter.And(fs...))
 	if err != nil {
