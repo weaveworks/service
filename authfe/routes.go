@@ -290,8 +290,6 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				PrefixMethods{"/api/notification/events", []string{"GET"}, c.notificationConfigHost},
 				PrefixMethods{"/api/notification/events", []string{"POST"}, c.notificationEventHost},
 				Prefix{"/api/notification/sender", c.notificationSenderHost},
-				// API to push messages to webhook require a secret token.
-				Prefix{"/api/gcp-launcher/webhook", gcpWebhookSecretMiddleware.Wrap(c.gcpWebhookHost)},
 				Prefix{"/api", c.queryHost},
 
 				// Catch-all forward to query service, which is a Scope instance that we
@@ -319,6 +317,18 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			},
 			middleware.Merge(
 				billingAuthMiddleware,
+				uiHTTPlogger,
+			),
+		},
+
+		// Webhook for events from Google PubSub require authentication through a secret.
+		MiddlewarePrefix{
+			"/gcp-launcher/webhook",
+			[]PrefixRoutable{
+				Prefix{"/", c.gcpWebhookHost},
+			},
+			middleware.Merge(
+				gcpWebhookSecretMiddleware,
 				uiHTTPlogger,
 			),
 		},
