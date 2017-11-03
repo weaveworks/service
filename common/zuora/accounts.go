@@ -27,6 +27,8 @@ const (
 	// Current policy is to bill everyone on the 1st of the month
 	// We might want to revisit this later, once things are automated
 	BillCycleDay int = 1
+
+	dateFormat string = "2006-01-02"
 )
 
 // SubscriptionStatus shows the status of a subscription.
@@ -96,7 +98,7 @@ func (z *Zuora) GetAccount(ctx context.Context, weaveUserID string) (*Account, e
 			subscriptionStatus = SubscriptionInactive
 		}
 	}
-	paymentStatus := getPaymentStatus(ctx, zuoraResponse.Payments)
+	paymentStatus := GetPaymentStatus(ctx, zuoraResponse.Payments)
 	subscription := &AccountSubscription{}
 	subscriptionResponse, err := z.getAccountSubscription(ctx, accountNumber)
 
@@ -132,7 +134,7 @@ func extractNodeSecondsSubscription(ctx context.Context, subscriptions []subscri
 			for _, zuoraPlan := range zuoraPlans.RatePlanCharges {
 				if strings.HasSuffix(zuoraPlan.Uom, billing.UsageNodeSeconds) {
 					if subscription == nil {
-						subStartDate, err := time.Parse("2006-01-02", zuoraSubscription.SubscriptionStartDate)
+						subStartDate, err := time.Parse(dateFormat, zuoraSubscription.SubscriptionStartDate)
 						if err != nil {
 							return nil, ErrNoSubscriptions
 						}
@@ -157,26 +159,42 @@ func extractNodeSecondsSubscription(ctx context.Context, subscriptions []subscri
 	return subscription, nil
 }
 
-// getPaymentStatus gets the overall payment status based on the history of Zuora payments.
+// GetPaymentStatus gets the overall payment status based on the history of Zuora payments.
 //
-// If any one payment has an error, we treat the overall status as
-// PaymentError. If there have been no payments, we assume everything is fine,
+// If the last payment has an error, we treat the overall status as PaymentError.
+// If there have been no payments, we assume everything is fine,
 // because PaymentError is meant to indicate that the user needs to take
 // action, and the user doesn't need to do things just because we haven't got
 // around to charging them.
-func getPaymentStatus(ctx context.Context, payments []payment) PaymentStatus {
+// Since zuora returns dates and not datetimes, if there are multiple latest payments (same date)
+// and one of them has an error, treat the overall status as PaymentError.
+func GetPaymentStatus(ctx context.Context, payments []Payment) PaymentStatus {
+	logger := logging.With(ctx)
+	latestStatus := PaymentOK
+	var latestDate time.Time
 	for _, payment := range payments {
+		effectiveDate, err := time.Parse(dateFormat, payment.EffectiveDate)
+		if err != nil {
+			logger.Errorf("Failed to parse payment status effective date: %v, %v", payment.EffectiveDate, err)
+			return PaymentError
+		}
+
 		status, ok := paymentStatusMap[payment.Status]
 		if !ok {
 			// Zuora returned an unexpected payment status. Assume it's bad.
-			logging.With(ctx).Errorf("Unrecognized payment status: %v", payment.Status)
+			logger.Errorf("Unrecognized payment status: %v", payment.Status)
 			return PaymentError
 		}
-		if status == PaymentError {
-			return PaymentError
+
+		if latestDate.IsZero() || latestDate.Before(effectiveDate) {
+			latestDate = effectiveDate
+			latestStatus = status
+		} else if latestDate.Equal(effectiveDate) && status == PaymentError {
+			latestStatus = PaymentError
 		}
 	}
-	return PaymentOK
+
+	return latestStatus
 }
 
 var subscriptionStatusMap = map[string]SubscriptionStatus{
@@ -199,8 +217,10 @@ var paymentStatusMap = map[string]PaymentStatus{
 	"Posted":     PaymentOK,
 }
 
-type payment struct {
-	Status string `json:"status"`
+// Payment represents part of a payment returned from Zuora's getAccountSummary request
+type Payment struct {
+	Status        string `json:"status"`
+	EffectiveDate string `json:"effectiveDate"`
 }
 
 type invoice struct {
@@ -227,7 +247,7 @@ type zuoraSummaryResponse struct {
 		ID     string `json:"id"`
 		Status string `json:"status"`
 	} `json:"subscriptions"`
-	Payments []payment `json:"payments"`
+	Payments []Payment `json:"payments"`
 	Invoices []invoice `json:"invoices"`
 }
 
@@ -449,8 +469,8 @@ func (z *Zuora) CreateAccount(ctx context.Context, orgID, currency, firstName, l
 		HpmCreditCardPaymentMethodID: paymentMethodID,
 		Subscription: &subscription{
 			TermType:               z.cfg.SubscriptionTermType,
-			ContractEffectiveDate:  serviceActivationDate.Format("2006-01-02"),
-			CustomerAcceptanceDate: acceptanceDate.Format("2006-01-02"),
+			ContractEffectiveDate:  serviceActivationDate.Format(dateFormat),
+			CustomerAcceptanceDate: acceptanceDate.Format(dateFormat),
 			SubscribeToRatePlans:   []*ratePlan{{ProductRatePlanID: z.cfg.SubscriptionPlanID}},
 		},
 		BillCycleDay:   billCycleDay,
@@ -480,8 +500,8 @@ func (z *Zuora) CreateAccountWithCC(ctx context.Context, orgID, currency, firstN
 		},
 		Subscription: &subscription{
 			TermType:               z.cfg.SubscriptionTermType,
-			ContractEffectiveDate:  serviceActivationDate.Format("2006-01-02"),
-			CustomerAcceptanceDate: acceptanceDate.Format("2006-01-02"),
+			ContractEffectiveDate:  serviceActivationDate.Format(dateFormat),
+			CustomerAcceptanceDate: acceptanceDate.Format(dateFormat),
 			SubscribeToRatePlans:   []*ratePlan{{ProductRatePlanID: z.cfg.SubscriptionPlanID}},
 		},
 		BillCycleDay:   billCycleDay,
