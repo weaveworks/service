@@ -25,6 +25,10 @@ func TestDB_RemoveOtherUsersAccess(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, otherUserOrganizations, 1)
 
+	otherUserOrganizationsFromTeams, err := db.ListTeamOrganizationsForUserIDs(context.Background(), otherUser.ID)
+	require.NoError(t, err)
+	require.Len(t, otherUserOrganizationsFromTeams, 1)
+
 	orgUsers, err := db.ListOrganizationUsers(context.Background(), org.ExternalID)
 	require.NoError(t, err)
 	require.Len(t, orgUsers, 2)

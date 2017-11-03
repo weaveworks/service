@@ -82,7 +82,7 @@ func (d *DB) DetachLoginFromUser(_ context.Context, userID, provider string) err
 
 // InviteUser invites the user, to join the organization. If they are already a
 // member this is a noop.
-func (d *DB) InviteUser(_ context.Context, email, orgExternalID string) (*users.User, bool, error) {
+func (d *DB) InviteUser(ctx context.Context, email, orgExternalID string) (*users.User, bool, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	created := false
@@ -107,7 +107,12 @@ func (d *DB) InviteUser(_ context.Context, email, orgExternalID string) (*users.
 	if isMember {
 		return u, false, nil
 	}
-	d.memberships[o.ID] = append(d.memberships[o.ID], u.ID)
+	if o.TeamID != "" {
+		teamIDs, _ := d.teamMemberships[u.ID]
+		d.teamMemberships[u.ID] = append(teamIDs, o.TeamID)
+	} else {
+		d.memberships[o.ID] = append(d.memberships[o.ID], u.ID)
+	}
 	return u, created, nil
 }
 

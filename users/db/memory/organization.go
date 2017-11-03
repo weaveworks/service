@@ -30,16 +30,26 @@ func (d *DB) RemoveUserFromOrganization(_ context.Context, orgExternalID, email 
 	}
 
 	memberships, ok := d.memberships[o.ID]
-	if !ok {
-		return nil
-	}
-	var newMemberships []string
-	for _, m := range memberships {
-		if m != u.ID {
-			newMemberships = append(newMemberships, m)
+	if ok {
+		var newMemberships []string
+		for _, m := range memberships {
+			if m != u.ID {
+				newMemberships = append(newMemberships, m)
+			}
 		}
+		d.memberships[o.ID] = newMemberships
 	}
-	d.memberships[o.ID] = newMemberships
+
+	if o.TeamID != "" {
+		var newTeams []string
+		for _, teamID := range d.teamMemberships[u.ID] {
+			if teamID != o.TeamID {
+				newTeams = append(newTeams, teamID)
+			}
+		}
+		d.teamMemberships[u.ID] = newTeams
+	}
+
 	return nil
 }
 
@@ -57,6 +67,16 @@ func (d *DB) userIsMemberOf(userID, orgExternalID string) (bool, error) {
 	}
 	if err != nil {
 		return false, err
+	}
+
+	if o.TeamID != "" {
+		teamIDs, _ := d.teamMemberships[userID]
+		for _, id := range teamIDs {
+			if id == o.TeamID {
+				return true, nil
+			}
+		}
+		return false, nil
 	}
 
 	for _, m := range d.memberships[o.ID] {
@@ -90,6 +110,7 @@ func (d *DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*
 	if err != nil {
 		return nil, err
 	}
+
 	var users []*users.User
 	for _, m := range d.memberships[o.ID] {
 		u, err := d.findUserByID(m)
@@ -98,6 +119,21 @@ func (d *DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*
 		}
 		users = append(users, u)
 	}
+
+	if o.TeamID != "" {
+		for m, teamIDs := range d.teamMemberships {
+			for _, teamID := range teamIDs {
+				if teamID == o.TeamID {
+					u, err := d.findUserByID(m)
+					if err != nil {
+						return nil, err
+					}
+					users = append(users, u)
+				}
+			}
+		}
+	}
+
 	sort.Sort(usersByCreatedAt(users))
 	return users, nil
 }
@@ -126,6 +162,17 @@ func (d *DB) ListOrganizationsForUserIDs(_ context.Context, userIDs ...string) (
 	for orgID, members := range d.memberships {
 		checkOrg(orgID, members)
 	}
+
+	for _, userID := range userIDs {
+		for _, teamID := range d.teamMemberships[userID] {
+			for _, o := range d.organizations {
+				if o.TeamID == teamID {
+					orgIDs[o.ID] = struct{}{}
+				}
+			}
+		}
+	}
+
 	var orgs []*users.Organization
 	for orgID := range orgIDs {
 		o, ok := d.organizations[orgID]
@@ -186,7 +233,7 @@ var (
 )
 
 // CreateOrganization creates a new organization owned by the user
-func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, token string) (*users.Organization, error) {
+func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if _, err := d.findUserByID(ownerID); err != nil {
@@ -230,8 +277,23 @@ func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, to
 			return nil, users.ErrOrgTokenIsTaken
 		}
 	}
+
+	team, err := d.createTeam(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = d.addUserToTeam(ownerID, team.ID)
+	if err != nil {
+		return nil, err
+	}
+	err = d.setDefaultTeam(ownerID, team.ID)
+	if err != nil {
+		return nil, err
+	}
+	o.TeamID = team.ID
+	//d.memberships[o.ID] = []string{ownerID}
+
 	d.organizations[o.ID] = o
-	d.memberships[o.ID] = []string{ownerID}
 	return o, nil
 }
 

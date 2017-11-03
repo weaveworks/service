@@ -25,8 +25,25 @@ func (d DB) ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Tea
 	return d.scanTeams(rows)
 }
 
-// createTeam creates a team and links the team to the userID
-func (d DB) createTeam(ctx context.Context, userID string) (*users.Team, error) {
+// ListTeamOrganizationsForUserIDs lists the organizations these users' teams belong to
+func (d DB) ListTeamOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
+	rows, err := d.organizationsQuery().
+		Join("team_memberships on (organizations.team_id = team_memberships.team_id)").
+		Where("team_memberships.deleted_at IS NULL").
+		Where(squirrel.Eq{"team_memberships.user_id": userIDs}).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	orgs, err := d.scanOrganizations(rows)
+	if err != nil {
+		return nil, err
+	}
+	return orgs, err
+}
+
+// createTeam creates a team
+func (d DB) createTeam(ctx context.Context) (*users.Team, error) {
 	now := d.Now()
 	TrialExpiresAt := now.Add(users.TrialDuration)
 	t := &users.Team{TrialExpiresAt: TrialExpiresAt}
