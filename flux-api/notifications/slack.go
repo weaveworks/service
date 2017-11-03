@@ -53,6 +53,10 @@ const (
 	releaseTemplate = `Release {{trim (print .Release.Spec.ImageSpec) "<>"}} to {{with .Release.Spec.ServiceSpecs}}{{range $index, $spec := .}}{{if not (eq $index 0)}}, {{if last $index $.Release.Spec.ServiceSpecs}}and {{end}}{{end}}{{trim (print .) "<>"}}{{end}}{{end}}.`
 
 	autoReleaseTemplate = `Automated release of new image{{if not (last 0 $.Images)}}s{{end}} {{with .Images}}{{range $index, $image := .}}{{if not (eq $index 0)}}, {{if last $index $.Images}}and {{end}}{{end}}{{.}}{{end}}{{end}}.`
+
+	releaseEventType     = "deploy"
+	autoReleaseEventType = "auto_deploy"
+	syncEventType        = "sync"
 )
 
 var (
@@ -117,7 +121,7 @@ func slackNotifyRelease(config config.Notifier, release *event.ReleaseEventMetad
 		attachments = append(attachments, result)
 	}
 
-	return notify(config, slackMsg{
+	return notify(releaseEventType, config, slackMsg{
 		Username:    config.Username,
 		Text:        text,
 		Attachments: attachments,
@@ -146,7 +150,7 @@ func slackNotifyAutoRelease(config config.Notifier, release *event.AutoReleaseEv
 		return err
 	}
 
-	return notify(config, slackMsg{
+	return notify(autoReleaseEventType, config, slackMsg{
 		Username:    config.Username,
 		Text:        text,
 		Attachments: attachments,
@@ -173,7 +177,7 @@ func slackNotifySync(config config.Notifier, sync *event.Event) error {
 	if len(details.Commits) > 0 && details.Commits[0].Message != "" {
 		attachments = append(attachments, slackCommitsAttachment(details))
 	}
-	return notify(config, slackMsg{
+	return notify(syncEventType, config, slackMsg{
 		Username:    config.Username,
 		Text:        sync.String(),
 		Attachments: attachments,
@@ -209,13 +213,15 @@ func slackCommitsAttachment(ev *event.SyncEventMetadata) slackAttachment {
 	}
 }
 
-func notify(config config.Notifier, msg slackMsg) error {
+func notify(eventType string, config config.Notifier, msg slackMsg) error {
 	buf := &bytes.Buffer{}
 	if err := json.NewEncoder(buf).Encode(msg); err != nil {
 		return errors.Wrap(err, "encoding Slack POST request")
 	}
 
-	req, err := http.NewRequest("POST", config.HookURL, buf)
+	url := strings.Replace(config.HookURL, "{eventType}", eventType, 1)
+
+	req, err := http.NewRequest("POST", url, buf)
 	if err != nil {
 		return errors.Wrap(err, "constructing Slack HTTP request")
 	}

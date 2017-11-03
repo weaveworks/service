@@ -6,7 +6,7 @@ import (
 )
 
 // DefaultNotifyEvents is the default list of events on which we notify.
-var DefaultNotifyEvents = []string{"release", "autorelease"}
+var DefaultNotifyEvents = []string{event.EventRelease, event.EventAutoRelease}
 
 // Event sends a notification for the given event if cfg specifies HookURL.
 func Event(cfg instance.Config, e event.Event) error {
