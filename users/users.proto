@@ -155,6 +155,7 @@ message GetOrganizationRequest {
     oneof ID {
         string ExternalID = 1;
         string GCPAccountID = 2;
+        string InternalID = 3;
     }
 }
 

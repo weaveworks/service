@@ -264,6 +264,21 @@ func (d DB) FindOrganizationByGCPAccountID(_ context.Context, accountID string) 
 	return nil, errors.New("not yet implement")
 }
 
+// FindOrganizationByInternalID finds an org based on its ID
+func (d DB) FindOrganizationByInternalID(ctx context.Context, internalID string) (*users.Organization, error) {
+	o, err := d.scanOrganization(
+		d.organizationsQuery().Where(squirrel.Eq{"organizations.id": internalID}).QueryRow(),
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, users.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return o, nil
+}
+
 func (d DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
 	orgs := []*users.Organization{}
 	for rows.Next() {

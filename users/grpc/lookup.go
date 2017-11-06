@@ -214,8 +214,9 @@ func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganiz
 		organization, err = a.db.FindOrganizationByID(ctx, req.GetExternalID())
 	} else if req.GetGCPAccountID() != "" {
 		organization, err = a.db.FindOrganizationByGCPAccountID(ctx, req.GetGCPAccountID())
-	}
-	if err != nil {
+	} else if req.GetInternalID() != "" {
+		organization, err = a.db.FindOrganizationByInternalID(ctx, req.GetInternalID())
+	} else if err != nil {
 		return nil, err
 	}
 

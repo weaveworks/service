@@ -95,3 +95,32 @@ func Test_DB_ListByFeatureFlag(t *testing.T) {
 		assert.Equal(t, []*users.Organization{org}, orgsWithFlag)
 	}
 }
+
+func Test_DB_FindOrganizationByInternalID(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
+
+	ctx := context.Background()
+
+	u, err := db.CreateUser(ctx, "joe@email.com")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	org, err := db.FindOrganizationByInternalID(ctx, o.ID)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if org.ID != o.ID {
+		t.Fatalf("Expected ID to equal: %v; Actual: %v", o.ID, org.ID)
+	}
+}

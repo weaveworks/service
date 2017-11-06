@@ -234,7 +234,6 @@ pubsub-integration-test:
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
 	rm -rf $(UPTODATE_FILES) $(EXES)
-	rm -f users/users.pb.go
 	rm -rf billing-aggregator/migrations billing-api/migrations billing-uploader/migrations
 	go clean ./...
 
