@@ -16,7 +16,7 @@ type Service interface {
 	api.Client
 	api.Upstream
 
-	Status(context.Context) (service.Status, error)
+	Status(ctx context.Context, withPlatform bool) (service.Status, error)
 	History(context.Context, update.ResourceSpec, time.Time, int64, time.Time) ([]history.Entry, error)
 	GetConfig(ctx context.Context, fingerprint string) (config.Instance, error)
 	SetConfig(context.Context, config.Instance) error

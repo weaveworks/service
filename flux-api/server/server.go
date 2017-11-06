@@ -68,8 +68,9 @@ func getInstanceID(ctx context.Context) (service.InstanceID, error) {
 	return "", errNoInstanceID
 }
 
-// Status gets the status of the given instance.
-func (s *Server) Status(ctx context.Context) (res service.Status, err error) {
+// Status gets the status of the given instance, optionally including
+// information obtained from the connected platform.
+func (s *Server) Status(ctx context.Context, withPlatform bool) (res service.Status, err error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
 		return res, err
@@ -91,21 +92,23 @@ func (s *Server) Status(ctx context.Context) (res service.Status, err error) {
 	// haven't recorded it as connected
 	if config.Connection.Connected {
 		res.Fluxd.Connected = true
-		res.Fluxd.Version, err = inst.Platform.Version(ctx)
-		if err != nil {
-			return res, err
-		}
+		if withPlatform {
+			res.Fluxd.Version, err = inst.Platform.Version(ctx)
+			if err != nil {
+				return res, err
+			}
 
-		res.Git.Config, err = inst.Platform.GitRepoConfig(ctx, false)
-		if err != nil {
-			return res, err
-		}
+			res.Git.Config, err = inst.Platform.GitRepoConfig(ctx, false)
+			if err != nil {
+				return res, err
+			}
 
-		_, err = inst.Platform.SyncStatus(ctx, "HEAD")
-		if err != nil {
-			res.Git.Error = err.Error()
-		} else {
-			res.Git.Configured = true
+			_, err = inst.Platform.SyncStatus(ctx, "HEAD")
+			if err != nil {
+				res.Git.Error = err.Error()
+			} else {
+				res.Git.Configured = true
+			}
 		}
 	}
 

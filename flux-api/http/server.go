@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -425,7 +426,19 @@ func (s httpService) PostIntegrationsGithub(w http.ResponseWriter, r *http.Reque
 
 func (s httpService) Status(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
-	status, err := s.service.Status(ctx)
+
+	withPlatform := true // If value isn't supplied, default to old behaviour
+	withPlatformValue := r.FormValue("withPlatform")
+	if len(withPlatformValue) > 0 {
+		var err error
+		withPlatform, err = strconv.ParseBool(withPlatformValue)
+		if err != nil {
+			transport.WriteError(w, r, http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	status, err := s.service.Status(ctx, withPlatform)
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
 		return
