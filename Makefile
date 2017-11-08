@@ -1,6 +1,6 @@
 .PHONY: all test \
 	notebooks-integration-test users-integration-test billing-integration-test pubsub-integration-test \
-	flux-nats-test clean images ui-upload
+	flux-nats-tests clean images ui-upload
 .DEFAULT_GOAL := all
 
 # Boiler plate for bulding Docker containers.
@@ -147,7 +147,7 @@ billing-integration-test: build/$(UPTODATE)
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
 
-flux-nats-test: build/$(UPTODATE)
+flux-nats-tests: build/$(UPTODATE)
 	@mkdir -p $(shell pwd)/.pkg
 	NATS_CONTAINER="$$(docker run -d nats)"; \
 	$(SUDO) docker run $(RM) -ti \
@@ -186,8 +186,8 @@ $(MOCK_BILLING_DB): build/$(UPTODATE) $(BILLING_DB)/db.go
 billing-integration-test: build/$(UPTODATE) $(MOCK_GOS)
 	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"
 
-flux-nats-test:
-	/bin/bash -c "go test -tags nats -timeout 30s ./flux-api/bus/nats -args -nats-url=nats://nats:4222"
+flux-nats-tests:
+	/bin/bash -c "go test -tags nats -timeout 30s ./flux-api ./flux-api/bus/nats -args -nats-url=nats://nats:4222"
 
 endif
 

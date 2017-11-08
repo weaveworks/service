@@ -3,9 +3,9 @@
 
 [[projects]]
   name = "cloud.google.com/go"
-  packages = ["bigquery","civil","compute/metadata","iam","internal","internal/atomiccache","internal/fields","internal/optional","internal/version","pubsub","pubsub/apiv1"]
-  revision = "eaddaf6dd7ee35fd3c2420c8d27478db176b0485"
-  version = "v0.15.0"
+  packages = ["bigquery","civil","compute/metadata","internal","internal/atomiccache","internal/fields","internal/optional","internal/version"]
+  revision = "5a9e19d4e1e41a734154e44a2132b358afb49a03"
+  version = "v0.13.0"
 
 [[projects]]
   branch = "sirupsen-case"
@@ -216,7 +216,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
-  packages = ["proto","protoc-gen-go/descriptor","ptypes","ptypes/any","ptypes/duration","ptypes/empty","ptypes/timestamp"]
+  packages = ["proto","ptypes","ptypes/any","ptypes/duration","ptypes/empty","ptypes/timestamp"]
   revision = "ae59567b9aab61b50b2590679a62c3c044030b61"
 
 [[projects]]
@@ -528,7 +528,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/weaveworks/flux"
-  packages = [".","api","cluster","errors","event","guid","http","http/httperror","http/websocket","image","job","metrics","policy","registry","registry/cache","registry/middleware","remote","remote/rpc","resource","ssh","update"]
+  packages = [".","api","cluster","errors","event","guid","http","http/client","http/daemon","http/httperror","http/websocket","image","job","metrics","policy","registry","registry/cache","registry/middleware","remote","remote/rpc","resource","ssh","update"]
   revision = "5515622ba36505f17cc359a0b1fe2638fe5f37aa"
 
 [[projects]]
@@ -557,12 +557,6 @@
 
 [[projects]]
   branch = "master"
-  name = "golang.org/x/sync"
-  packages = ["errgroup","semaphore"]
-  revision = "fd80eb99c8f653c847d294a001bdf2a3a6f768f5"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
   revision = "b6e1ae21643682ce023deb8d152024597b0e9bb4"
@@ -588,24 +582,24 @@
 [[projects]]
   branch = "master"
   name = "google.golang.org/api"
-  packages = ["bigquery/v2","gensupport","googleapi","googleapi/internal/uritemplates","googleapi/transport","internal","iterator","option","plus/v1","servicecontrol/v1","support/bundler","transport","transport/grpc","transport/http"]
+  packages = ["bigquery/v2","gensupport","googleapi","googleapi/internal/uritemplates","googleapi/transport","internal","iterator","option","plus/v1","servicecontrol/v1","transport/http"]
   revision = "aab106b125917246a672526055e2260b77258755"
 
 [[projects]]
   name = "google.golang.org/appengine"
-  packages = [".","internal","internal/app_identity","internal/base","internal/datastore","internal/log","internal/modules","internal/remote_api","internal/socket","internal/urlfetch","socket","urlfetch"]
+  packages = [".","internal","internal/app_identity","internal/base","internal/datastore","internal/log","internal/modules","internal/remote_api","internal/urlfetch","urlfetch"]
   revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
   version = "v1.0.0"
 
 [[projects]]
   branch = "master"
   name = "google.golang.org/genproto"
-  packages = ["googleapis/api/annotations","googleapis/iam/v1","googleapis/pubsub/v1","googleapis/rpc/status","protobuf/field_mask"]
+  packages = ["googleapis/rpc/status"]
   revision = "1e559d0a00eef8a9a43151db4665280bd8dd5886"
 
 [[projects]]
   name = "google.golang.org/grpc"
-  packages = [".","codes","connectivity","credentials","credentials/oauth","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","stats","status","tap","transport"]
+  packages = [".","codes","connectivity","credentials","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","stats","status","tap","transport"]
   revision = "f92cdcd7dcdc69e81b2d7b338479a19a8723cfa3"
   version = "v1.6.0"
 
@@ -630,6 +624,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2dc3946473ab80ced616574a6a03721b31f7ce28873fcefb5509eb73f4e85b59"
+  inputs-digest = "242b2f514e25628189dbc25f040a010014b1b6a8f96e64519f466ecd8213ba09"
   solver-name = "gps-cdcl"
   solver-version = 1
