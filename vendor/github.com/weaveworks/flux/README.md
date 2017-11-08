@@ -16,8 +16,6 @@ container images and config changes are propagated to the cluster.
 [![CircleCI](https://circleci.com/gh/weaveworks/flux.svg?style=svg)](https://circleci.com/gh/weaveworks/flux)
 [![GoDoc](https://godoc.org/github.com/weaveworks/flux?status.svg)](https://godoc.org/github.com/weaveworks/flux)
 
-![Flux Example](https://cloud.githubusercontent.com/assets/8793723/22978790/0d58861a-f38c-11e6-92d4-ce3f869e1ace.gif)
-
 Get started by browsing through the documentation below.
 
 [Introduction to Flux](/site/introduction.md)
@@ -27,6 +25,8 @@ Get started by browsing through the documentation below.
 [Installing Flux](/site/installing.md)
 
 [Using Flux](/site/using.md)
+
+[Upgrading to Flux v1](/site/upgrading-to-1.0.md)
 
 [FAQ](/site/faq.md)
 
