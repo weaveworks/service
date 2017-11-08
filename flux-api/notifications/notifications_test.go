@@ -8,6 +8,7 @@ import (
 
 	"github.com/weaveworks/flux"
 	"github.com/weaveworks/flux/event"
+	"github.com/weaveworks/flux/image"
 	"github.com/weaveworks/flux/update"
 	"github.com/weaveworks/service/flux-api/config"
 	"github.com/weaveworks/service/flux-api/instance"
@@ -16,8 +17,8 @@ import (
 
 // Generate an example release
 func exampleRelease(t *testing.T) *event.ReleaseEventMetadata {
-	img1a1, _ := flux.ParseImageID("img1:a1")
-	img1a2, _ := flux.ParseImageID("img1:a2")
+	img1a1, _ := image.ParseRef("img1:a1")
+	img1a2, _ := image.ParseRef("img1:a2")
 	exampleResult := update.Result{
 		flux.MustParseResourceID("default/helloworld"): {
 			Status: update.ReleaseStatusFailed,

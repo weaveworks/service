@@ -40,7 +40,7 @@ test:
     - cd $SRCDIR; make RM= users-integration-test
     - cd $SRCDIR; make RM= billing-integration-test
     - cd $SRCDIR; make RM= pubsub-integration-test
-    - cd $SRCDIR; make RM= flux-nats-test
+    - cd $SRCDIR; make RM= flux-nats-tests
 
 teardown:
   pre:

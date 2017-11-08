@@ -13,8 +13,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/weaveworks/flux"
 	"github.com/weaveworks/flux/event"
+	"github.com/weaveworks/flux/image"
 	"github.com/weaveworks/flux/update"
 	"github.com/weaveworks/service/flux-api/config"
 )
@@ -142,7 +142,7 @@ func slackNotifyAutoRelease(config config.Notifier, release *event.AutoReleaseEv
 		attachments = append(attachments, slackResultAttachment(release.Result))
 	}
 	text, err := instantiateTemplate("auto-release", autoReleaseTemplate, struct {
-		Images []flux.ImageID
+		Images []image.Ref
 	}{
 		Images: release.Spec.Images(),
 	})
