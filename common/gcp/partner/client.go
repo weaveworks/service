@@ -15,13 +15,16 @@ import (
 	"github.com/weaveworks/service/common"
 )
 
+// SubscriptionStatus denotes the status of a partner subscription
+type SubscriptionStatus string
+
 // Status of a subscription.
 const (
-	StatusUnknown  = "UNKNOWN_STATUS"
-	StatusActive   = "ACTIVE"
-	StatusComplete = "COMPLETE"
-	StatusPending  = "PENDING"
-	StatusCanceled = "CANCELED"
+	StatusUnknown  SubscriptionStatus = "UNKNOWN_STATUS"
+	StatusActive   SubscriptionStatus = "ACTIVE"
+	StatusComplete SubscriptionStatus = "COMPLETE"
+	StatusPending  SubscriptionStatus = "PENDING"
+	StatusCanceled SubscriptionStatus = "CANCELED"
 )
 
 const (
@@ -41,6 +44,14 @@ func init() {
 	clientRequestCollector.Register()
 }
 
+// API defines methods to interact with the Google Partner Subscriptions API.
+type API interface {
+	ApproveSubscription(ctx context.Context, name string, body *RequestBody) (*Subscription, error)
+	DenySubscription(ctx context.Context, name string, body *RequestBody) (*Subscription, error)
+	GetSubscription(ctx context.Context, name string) (*Subscription, error)
+	ListSubscriptions(ctx context.Context, externalAccountID string) ([]Subscription, error)
+}
+
 // Client provides access to Google Partner Subscriptions API
 type Client struct {
 	*common.JSONClient
@@ -50,16 +61,12 @@ type Client struct {
 // Subscription is a plan of a customer.
 // See https://cloud.google.com/billing-subscriptions/reference/rest/v1/partnerSubscriptions#PartnerSubscription
 type Subscription struct {
-	Name                string `json:"name"` // "partnerSubscriptions/*"
-	ExternalAccountID   string `json:"externalAccountId"`
-	Version             string `json:"version"`
-	Status              string `json:"status"`
-	SubscribedResources []struct {
-		Labels               map[string]string `json:"labels"`
-		Resource             string            `json:"resource"`
-		SubscriptionProvider string            `json:"subscriptionProvider"`
-	} `json:"subscribedResources"`
-	RequiredApproval []struct {
+	Name                string               `json:"name"` // "partnerSubscriptions/*"
+	ExternalAccountID   string               `json:"externalAccountId"`
+	Version             string               `json:"version"`
+	Status              SubscriptionStatus   `json:"status"`
+	SubscribedResources []SubscribedResource `json:"subscribedResources"`
+	RequiredApproval    []struct {
 		Name         string     `json:"name"`
 		Status       string     `json:"status"`
 		ApprovalTime *time.Time `json:"approvalTime,omitempty"`
@@ -72,6 +79,33 @@ type Subscription struct {
 	UpdateTime time.Time `json:"updateTime"`
 }
 
+// SubscribedResource describes a product part of this subscription.
+type SubscribedResource struct {
+	Labels               map[string]string `json:"labels"`
+	Resource             string            `json:"resource"`
+	SubscriptionProvider string            `json:"subscriptionProvider"`
+}
+
+// ExtractLabel returns the value of key under given resource. It prefixes the
+// key with the Subscription Provider it finds in the resource object.
+//
+// Example resource:
+// {
+// 		"subscriptionProvider": "weaveworks-public-cloudmarketplacepartner.googleapis.com",
+// 		"resource": "weave-cloud",
+// 		"labels": {
+// 			"weaveworks-public-cloudmarketplacepartner.googleapis.com/ServiceLevel": "standard"
+// 		}
+// 	}
+func (s Subscription) ExtractLabel(resource, key string) string {
+	for _, res := range s.SubscribedResources {
+		if res.Resource == resource {
+			return res.Labels[fmt.Sprintf("%s/%s", res.SubscriptionProvider, key)]
+		}
+	}
+	return ""
+}
+
 type subscriptionResponse struct {
 	Subscription
 	Error *errorResponse `json:"error,omitempty"`
@@ -80,6 +114,13 @@ type subscriptionResponse struct {
 type listSubscriptionResponse struct {
 	Subscriptions []Subscription `json:"subscriptions"`
 	Error         *errorResponse `json:"error,omitempty"`
+}
+
+// RequestBody contains the fields for sending approvals and denies.
+type RequestBody struct {
+	ApprovalID   string            `json:"approvalId"`
+	ApprovalNote string            `json:"approvalNote"`
+	Labels       map[string]string `json:"labels"`
 }
 
 type errorResponse struct {
@@ -107,6 +148,10 @@ func (d date) Time(loc *time.Location) time.Time {
 
 // NewClient returns a Client accessing the Partner Subscriptions API. It uses
 // oauth2 for authentication.
+//
+// Requires one of the following OAuth scopes:
+// - https://www.googleapis.com/auth/cloud-platform
+// - https://www.googleapis.com/auth/cloud-billing
 func NewClient(cfg Config) (*Client, error) {
 	jsonKey, err := ioutil.ReadFile(cfg.ServiceAccountKeyFile)
 	if err != nil {
@@ -129,10 +174,10 @@ func NewClient(cfg Config) (*Client, error) {
 
 // ApproveSubscription marks the subscription approved.
 // See https://cloud.google.com/billing-subscriptions/reference/rest/v1/partnerSubscriptions/approve
-func (c *Client) ApproveSubscription(ctx context.Context, name string) (*Subscription, error) {
+func (c *Client) ApproveSubscription(ctx context.Context, name string, body *RequestBody) (*Subscription, error) {
 	u := fmt.Sprintf("%s/v1/%s:approve", basePath, name)
 	resp := &subscriptionResponse{}
-	err := c.Post(ctx, "partnerSubscriptions:approve", u, nil, resp)
+	err := c.Post(ctx, "partnerSubscriptions:approve", u, body, resp)
 	if resp.Error != nil {
 		return nil, resp.Error
 	}
@@ -145,10 +190,10 @@ func (c *Client) ApproveSubscription(ctx context.Context, name string) (*Subscri
 
 // DenySubscription marks the subscription denied.
 // See https://cloud.google.com/billing-subscriptions/reference/rest/v1/partnerSubscriptions/deny
-func (c *Client) DenySubscription(ctx context.Context, name string) (*Subscription, error) {
+func (c *Client) DenySubscription(ctx context.Context, name string, body *RequestBody) (*Subscription, error) {
 	u := fmt.Sprintf("%s/v1/%s:deny", basePath, name)
 	resp := &subscriptionResponse{}
-	err := c.Post(ctx, "partnerSubscriptions:deny", u, nil, resp)
+	err := c.Post(ctx, "partnerSubscriptions:deny", u, body, resp)
 	if resp.Error != nil {
 		return nil, resp.Error
 	}

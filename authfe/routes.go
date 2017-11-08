@@ -193,6 +193,10 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		T: ghIntegration,
 	}
 
+	gcpWebhookSecretMiddleware := users_client.AuthSecretMiddleware{
+		Secret: c.gcpWebhookSecret,
+	}
+
 	// middleware to set header to disable caching if path == "/" exactly
 	noCacheOnRoot := middleware.Func(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -313,6 +317,18 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			},
 			middleware.Merge(
 				billingAuthMiddleware,
+				uiHTTPlogger,
+			),
+		},
+
+		// Webhook for events from Google PubSub require authentication through a secret.
+		MiddlewarePrefix{
+			"/gcp-launcher/webhook",
+			[]PrefixRoutable{
+				Prefix{"/", c.gcpWebhookHost},
+			},
+			middleware.Merge(
+				gcpWebhookSecretMiddleware,
 				uiHTTPlogger,
 			),
 		},

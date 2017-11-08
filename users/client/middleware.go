@@ -224,7 +224,8 @@ type AuthSecretMiddleware struct {
 func (a AuthSecretMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		secret := r.URL.Query().Get("secret")
-		if secret != a.Secret {
+		// Deny access if no secret is configured or secret does not match
+		if a.Secret == "" || secret != a.Secret {
 			logging.With(r.Context()).Infof("Unauthorised request, secret mismatch: %v", secret)
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return

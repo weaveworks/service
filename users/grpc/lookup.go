@@ -207,7 +207,14 @@ func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users
 }
 
 func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganizationRequest) (*users.GetOrganizationResponse, error) {
-	organization, err := a.db.FindOrganizationByID(ctx, req.ExternalID)
+	var organization *users.Organization
+	var err error
+
+	if req.GetExternalID() != "" {
+		organization, err = a.db.FindOrganizationByID(ctx, req.GetExternalID())
+	} else if req.GetGCPAccountID() != "" {
+		organization, err = a.db.FindOrganizationByGCPAccountID(ctx, req.GetGCPAccountID())
+	}
 	if err != nil {
 		return nil, err
 	}

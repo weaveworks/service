@@ -83,7 +83,7 @@ func (a *API) deserializeCreateAccountRequest(logger *log.Entry, r *http.Request
 
 func (a *API) getOrganization(ctx context.Context, logger *log.Entry, req *createAccountRequest) (*users.GetOrganizationResponse, error) {
 	resp, err := a.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
-		ExternalID: req.WeaveID,
+		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: req.WeaveID},
 	})
 	if err != nil {
 		logger.Errorf("Failed to get organization for %v: %v", req.WeaveID, err)
@@ -224,7 +224,7 @@ func (a *API) GetAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := a.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
-		ExternalID: mux.Vars(r)["id"],
+		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: mux.Vars(r)["id"]},
 	})
 	if err != nil {
 		render.Error(w, r, err)
@@ -261,7 +261,7 @@ func (a *API) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 // GetAccountTrial gets trial information about the account.
 func (a *API) GetAccountTrial(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.Users.GetOrganization(r.Context(), &users.GetOrganizationRequest{
-		ExternalID: mux.Vars(r)["id"],
+		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: mux.Vars(r)["id"]},
 	})
 	if err != nil {
 		render.Error(w, r, err)
@@ -382,7 +382,7 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 	orgID := mux.Vars(r)["id"]
 	ctx := r.Context()
 	resp, err := a.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
-		ExternalID: orgID,
+		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: orgID},
 	})
 	if err != nil {
 		render.Error(w, r, err)

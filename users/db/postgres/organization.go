@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -255,6 +256,12 @@ func (d DB) FindOrganizationByID(_ context.Context, externalID string) (*users.O
 		return nil, err
 	}
 	return o, nil
+}
+
+// FindOrganizationByGCPAccountID returns the organization with the given account ID.
+func (d DB) FindOrganizationByGCPAccountID(_ context.Context, accountID string) (*users.Organization, error) {
+	// FIXME: implement me
+	return nil, errors.New("not yet implement")
 }
 
 func (d DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {

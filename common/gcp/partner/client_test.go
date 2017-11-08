@@ -77,7 +77,7 @@ func TestClient_Approve(t *testing.T) {
 		Reply(200).BodyString(pending)
 
 	cl := createClient(t)
-	sub, err := cl.ApproveSubscription(context.Background(), pendingName)
+	sub, err := cl.ApproveSubscription(context.Background(), pendingName, nil)
 	assert.NoError(t, err)
 
 	assert.Equal(t, pendingName, sub.Name)
@@ -92,7 +92,7 @@ func TestClient_Deny(t *testing.T) {
 		Reply(200).BodyString(pending)
 
 	cl := createClient(t)
-	sub, err := cl.DenySubscription(context.Background(), pendingName)
+	sub, err := cl.DenySubscription(context.Background(), pendingName, nil)
 	assert.NoError(t, err)
 
 	assert.Equal(t, pendingName, sub.Name)

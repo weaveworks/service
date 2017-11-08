@@ -1,4 +1,6 @@
-.PHONY: all test notebooks-integration-test users-integration-test billing-integration-test flux-nats-test clean images ui-upload
+.PHONY: all test \
+	notebooks-integration-test users-integration-test billing-integration-test pubsub-integration-test \
+	flux-nats-test clean images ui-upload
 .DEFAULT_GOAL := all
 
 # Boiler plate for bulding Docker containers.
@@ -65,7 +67,8 @@ SERVICE_UI_KICKER_EXE := service-ui-kicker/service-ui-kicker
 GITHUB_RECEIVER_EXE := github-receiver/github-receiver
 FLUX_API_EXE := flux-api/flux-api
 BILLING_EXE := billing-api/api billing-uploader/uploader billing-aggregator/aggregator billing-enforcer/enforcer
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) $(GITHUB_RECEIVER_EXE) $(FLUX_API_EXE) $(BILLING_EXE)
+GCP_LAUNCHER_WEBHOOK_EXE := gcp-launcher-webhook/gcp-launcher-webhook
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) $(GITHUB_RECEIVER_EXE) $(FLUX_API_EXE) $(BILLING_EXE) $(GCP_LAUNCHER_WEBHOOK_EXE)
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
@@ -77,6 +80,7 @@ $(SERVICE_UI_KICKER_EXE): $(shell find service-ui-kicker -name '*.go') $(COMMON)
 $(GITHUB_RECEIVER_EXE): $(shell find github-receiver -name '*.go') $(COMMON)
 $(FLUX_API_EXE): $(shell find flux-api -name '*.go') $(COMMON)
 
+$(GCP_LAUNCHER_WEBHOOK_EXE): $(shell find gcp-launcher-webhook -name '*.go') $(COMMON)
 test: users/users.pb.go
 
 # And now what goes into each image
@@ -89,6 +93,7 @@ notebooks/$(UPTODATE): $(NOTEBOOKS_EXE)
 service-ui-kicker/$(UPTODATE): $(SERVICE_UI_KICKER_EXE)
 github-receiver/$(UPTODATE): $(GITHUB_RECEIVER_EXE)
 flux-api/$(UPTODATE): $(FLUX_API_EXE) flux-api/migrations.tar
+gcp-launcher-webhook/$(UPTODATE): $(GCP_LAUNCHER_WEBHOOK_EXE)
 
 billing-uploader/$(UPTODATE): billing-uploader/uploader $(call billing-migrations-deps,billing-uploader)
 billing-aggregator/$(UPTODATE): billing-aggregator/aggregator $(call billing-migrations-deps,billing-aggregator)
@@ -212,6 +217,18 @@ users-integration-test: $(USERS_UPTODATE) users/users.pb.go
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
+	exit $$status
+
+pubsub-integration-test:
+	PUBSUB_EMU_CONTAINER="$$(docker run --net=host -p 127.0.0.1:8085:8085 -d adilsoncarvalho/gcloud-pubsub-emulator:latest)"; \
+	docker run $(RM) \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		--net=host -p 127.0.0.1:1337:1337 \
+		--workdir /go/src/github.com/weaveworks/service/common/gcp/pubsub \
+		golang:1.8.3-stretch \
+		/bin/bash -c "RUN_MANUAL_TEST=1 go test -tags integration -timeout 30s ./..."; \
+	status=$$?; \
+	test -n "$(CIRCLECI)" || docker rm -f "$$PUBSUB_EMU_CONTAINER"; \
 	exit $$status
 
 clean:

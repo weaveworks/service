@@ -17,6 +17,7 @@ type Config struct {
 	authURL               string
 	externalUI            bool
 	fluentHost            string
+	gcpWebhookSecret      string
 	listen, privateListen string
 	logLevel              string
 	stopTimeout           time.Duration
@@ -36,6 +37,7 @@ type Config struct {
 	demoHost               proxyConfig
 	fluxHost               proxyConfig
 	fluxV6Host             proxyConfig
+	gcpWebhookHost         proxyConfig
 	githubReceiverHost     proxyConfig
 	launchGeneratorHost    proxyConfig
 	notificationConfigHost proxyConfig
@@ -83,6 +85,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"demo":                 &c.demoHost,
 		"flux":                 &c.fluxHost,
 		"flux-v6":              &c.fluxV6Host,
+		"gcp-webhook":          &c.gcpWebhookHost,
 		"github-receiver":      &c.githubReceiverHost,
 		"launch-generator":     &c.launchGeneratorHost,
 		"notebooks":            &c.notebooksHost,
@@ -135,6 +138,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) *Config {
 	f.StringVar(&c.authURL, "authenticator.url", "users:4772", "Where to find web the authenticator service")
 	f.BoolVar(&c.externalUI, "externalUI", true, "Point to externally hosted static UI assets")
 	f.StringVar(&c.fluentHost, "fluent", "", "Hostname & port for fluent")
+	f.StringVar(&c.gcpWebhookSecret, "gcp-webhook.secret", "", "Secret key for webhook authentication")
 	f.StringVar(&c.listen, "listen", ":80", "HTTP server listen address")
 	f.StringVar(&c.privateListen, "private-listen", ":8080", "HTTP server listen address (private endpoints)")
 	f.StringVar(&c.logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
