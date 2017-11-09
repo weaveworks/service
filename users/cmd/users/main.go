@@ -9,10 +9,12 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
+
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/common/featureflag"
+	"github.com/weaveworks/service/common/tracing"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db"
@@ -32,6 +34,10 @@ func init() {
 }
 
 func main() {
+
+	traceCloser := tracing.Init("users-api")
+	defer traceCloser.Close()
+
 	var (
 		logLevel           = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
 		port               = flag.Int("port", 80, "port to listen on")
