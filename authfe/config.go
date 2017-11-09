@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -129,7 +130,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 }
 
 // RegisterFlags registers all the authfe flags with a flagset
-func (c *Config) RegisterFlags(f *flag.FlagSet) *Config {
+func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.StringVar(&c.apiInfo, "api.info", "scopeservice:0.1", "Version info for the api to serve, in format ID:VERSION")
 	f.DurationVar(&c.authCacheExpiration, "auth.cache.expiration", 30*time.Second, "How long to keep entries in the auth client.")
 	f.IntVar(&c.authCacheSize, "auth.cache.size", 0, "How many entries to cache in the auth client.")
@@ -138,7 +139,6 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) *Config {
 	f.StringVar(&c.authURL, "authenticator.url", "users:4772", "Where to find web the authenticator service")
 	f.BoolVar(&c.externalUI, "externalUI", true, "Point to externally hosted static UI assets")
 	f.StringVar(&c.fluentHost, "fluent", "", "Hostname & port for fluent")
-	f.StringVar(&c.gcpWebhookSecret, "gcp-webhook.secret", "", "Secret key for webhook authentication")
 	f.StringVar(&c.listen, "listen", ":80", "HTTP server listen address")
 	f.StringVar(&c.privateListen, "private-listen", ":8080", "HTTP server listen address (private endpoints)")
 	f.StringVar(&c.logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
@@ -154,8 +154,11 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) *Config {
 	for name, proxyCfg := range c.proxies() {
 		proxyCfg.RegisterFlags(name, f)
 	}
+}
 
-	return c
+// ReadEnvVars loads environment variables.
+func (c *Config) ReadEnvVars() {
+	c.gcpWebhookSecret = os.Getenv("GCP_LAUNCHER_WEBHOOK_SECRET") // Secret used to authenticate incoming GCP webhook requests.
 }
 
 type proxyConfig struct {
