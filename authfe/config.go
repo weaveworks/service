@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -138,7 +139,6 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) *Config {
 	f.StringVar(&c.authURL, "authenticator.url", "users:4772", "Where to find web the authenticator service")
 	f.BoolVar(&c.externalUI, "externalUI", true, "Point to externally hosted static UI assets")
 	f.StringVar(&c.fluentHost, "fluent", "", "Hostname & port for fluent")
-	f.StringVar(&c.gcpWebhookSecret, "gcp-webhook.secret", "", "Secret key for webhook authentication")
 	f.StringVar(&c.listen, "listen", ":80", "HTTP server listen address")
 	f.StringVar(&c.privateListen, "private-listen", ":8080", "HTTP server listen address (private endpoints)")
 	f.StringVar(&c.logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
@@ -155,6 +155,12 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) *Config {
 		proxyCfg.RegisterFlags(name, f)
 	}
 
+	return c
+}
+
+// ReadEnvVars loads environment variables.
+func (c *Config) ReadEnvVars() *Config {
+	c.gcpWebhookSecret = os.Getenv("GCP_LAUNCHER_WEBHOOK_SECRET") // Secret used to authenticate incoming GCP webhook requests.
 	return c
 }
 

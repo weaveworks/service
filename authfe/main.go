@@ -54,6 +54,7 @@ func main() {
 	var (
 		cfg Config
 	)
+	cfg.ReadEnvVars()
 	cfg.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 
