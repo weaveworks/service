@@ -130,7 +130,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 }
 
 // RegisterFlags registers all the authfe flags with a flagset
-func (c *Config) RegisterFlags(f *flag.FlagSet) *Config {
+func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.StringVar(&c.apiInfo, "api.info", "scopeservice:0.1", "Version info for the api to serve, in format ID:VERSION")
 	f.DurationVar(&c.authCacheExpiration, "auth.cache.expiration", 30*time.Second, "How long to keep entries in the auth client.")
 	f.IntVar(&c.authCacheSize, "auth.cache.size", 0, "How many entries to cache in the auth client.")
@@ -154,14 +154,11 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) *Config {
 	for name, proxyCfg := range c.proxies() {
 		proxyCfg.RegisterFlags(name, f)
 	}
-
-	return c
 }
 
 // ReadEnvVars loads environment variables.
-func (c *Config) ReadEnvVars() *Config {
+func (c *Config) ReadEnvVars() {
 	c.gcpWebhookSecret = os.Getenv("GCP_LAUNCHER_WEBHOOK_SECRET") // Secret used to authenticate incoming GCP webhook requests.
-	return c
 }
 
 type proxyConfig struct {
