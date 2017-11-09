@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 
@@ -174,7 +176,10 @@ func main() {
 		handler := httpserver.NewHandler(server, httpserver.NewServiceRouter(), logger)
 		mux.Handle("/", handler)
 		mux.Handle("/api/flux/", http.StripPrefix("/api/flux", handler))
-		errc <- http.ListenAndServe(*listenAddr, mux)
+		operationNameFunc := nethttp.OperationNameFunc(func(r *http.Request) string {
+			return r.URL.RequestURI()
+		})
+		errc <- http.ListenAndServe(*listenAddr, nethttp.Middleware(opentracing.GlobalTracer(), mux, operationNameFunc))
 	}()
 
 	logger.Log("exiting", <-errc)
