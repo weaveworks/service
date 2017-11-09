@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
+	"os"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -19,6 +21,7 @@ import (
 type config struct {
 	port           int
 	endpoint       string
+	secret         string // Secret used to authenticate incoming GCP webhook requests.
 	subscriptionID string
 
 	publisher publisher.Config
@@ -37,8 +40,20 @@ func (c *config) RegisterFlags(f *flag.FlagSet) {
 	c.users.RegisterFlags(f)
 }
 
+func (c *config) ReadEnvVars() {
+	c.secret = os.Getenv("GCP_LAUNCHER_WEBHOOK_SECRET") // Secret used to authenticate incoming GCP webhook requests.
+}
+
+func (c config) Endpoint() string {
+	if len(c.secret) > 0 {
+		return fmt.Sprintf("%v?secret=%v", c.endpoint, c.secret)
+	}
+	return c.endpoint
+}
+
 func main() {
 	var cfg config
+	cfg.ReadEnvVars()
 	cfg.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 
@@ -68,12 +83,12 @@ func main() {
 		log.Fatalf("Failed creating Pub/Sub publisher: %v", err)
 	}
 	defer pub.Close()
-	sub, err := pub.CreateSubscription(cfg.subscriptionID, cfg.endpoint, 10*time.Second)
+	sub, err := pub.CreateSubscription(cfg.subscriptionID, cfg.Endpoint(), 10*time.Second)
 	if err != nil {
 		log.Fatalf("Failed subscribing to Pub/Sub topic: %v", err)
 	}
 
-	log.Infof("Subscription [%s] is active, awaiting messages at: %v", sub, cfg.endpoint)
+	log.Infof("Subscription [%s] is active, awaiting messages at: %v", sub, cfg.Endpoint())
 
 	server.HTTP.Handle(
 		"/",
