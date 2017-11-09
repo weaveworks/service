@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -100,7 +99,7 @@ func createSubscription(cfg *config) {
 		log.Fatalf("Failed creating Pub/Sub publisher: %v", err)
 	}
 	defer pub.Close()
-	sub, err := pub.CreateSubscription(cfg.subscriptionID, cfg.Endpoint(), 10*time.Second)
+	sub, err := pub.CreateSubscription(cfg.subscriptionID, cfg.Endpoint(), cfg.publisher.AckDeadline)
 	if err != nil {
 		log.Fatalf("Failed subscribing to Pub/Sub topic: %v", err)
 	}
