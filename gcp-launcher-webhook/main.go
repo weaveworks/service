@@ -34,7 +34,7 @@ func (c *config) RegisterFlags(f *flag.FlagSet) {
 	flag.IntVar(&c.port, "port", 80, "HTTP port for the Cloud Launcher's GCP Pub/Sub push webhook")
 	flag.StringVar(&c.endpoint, "webhook-endpoint", "https://frontend.dev.weave.works/api/gcp-launcher/webhook", "Endpoint this webhook is accessible from the outside")
 	flag.BoolVar(&c.createSubscription, "pubsub-api.create-subscription", false, "Enable/Disable programmatic creation of the Pub/Sub subscription.")
-	flag.StringVar(&c.subscriptionID, "pubsub-api.subscription-id", "gcp-subscriptions", "Arbitrary name that denotes this subscription")
+	flag.StringVar(&c.subscriptionID, "pubsub-api.subscription-id", "gcp-subscriptions", "Arbitrary name that denotes the Pub/Sub subscription 'pushing' to this webhook.")
 
 	c.publisher.RegisterFlags(f)
 	c.partner.RegisterFlags(f)
