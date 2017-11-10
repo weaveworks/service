@@ -19,13 +19,19 @@ import (
 // SubscriptionStatus denotes the status of a partner subscription
 type SubscriptionStatus string
 
-// Status of a subscription.
 const (
+	// Status of a subscription.
 	StatusUnknown  SubscriptionStatus = "UNKNOWN_STATUS"
 	StatusActive   SubscriptionStatus = "ACTIVE"
 	StatusComplete SubscriptionStatus = "COMPLETE"
 	StatusPending  SubscriptionStatus = "PENDING"
 	StatusCanceled SubscriptionStatus = "CANCELED"
+
+	ssoLoginKeyName = "keyForSsoLogin"
+
+	// Common label keys for Subscription.ExtractResourceLabel()
+	ServiceLevelLabelKey = "ServiceLevel"
+	ConsumerIDLabelKey   = "ConsumerId"
 )
 
 const (
@@ -87,7 +93,7 @@ type SubscribedResource struct {
 	SubscriptionProvider string            `json:"subscriptionProvider"`
 }
 
-// ExtractLabel returns the value of key under given resource. It prefixes the
+// ExtractResourceLabel returns the value of key under given resource. It prefixes the
 // key with the Subscription Provider it finds in the resource object.
 //
 // Example resource:
@@ -98,13 +104,26 @@ type SubscribedResource struct {
 // 			"weaveworks-public-cloudmarketplacepartner.googleapis.com/ServiceLevel": "standard"
 // 		}
 // 	}
-func (s Subscription) ExtractLabel(resource, key string) string {
+func (s Subscription) ExtractResourceLabel(resource, key string) string {
 	for _, res := range s.SubscribedResources {
 		if res.Resource == resource {
 			return res.Labels[fmt.Sprintf("%s/%s", res.SubscriptionProvider, key)]
 		}
 	}
 	return ""
+}
+
+// RequestBodyWithSSOLoginKey builds a request body for the ApproveSubscription()
+// calls. It embeds a so-called key which will be sent to us during SSO.
+func RequestBodyWithSSOLoginKey(ssoLoginKey string) *RequestBody {
+	return &RequestBody{
+		ApprovalID: "default-approval",
+		Labels: map[string]string{
+			// The value passed here will be sent to us during SSO. It allows us to
+			// verify who the user is and log him in.
+			ssoLoginKeyName: ssoLoginKey,
+		},
+	}
 }
 
 type subscriptionResponse struct {

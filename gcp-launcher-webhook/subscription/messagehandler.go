@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	ssoLoginKey          = "keyForSsoLogin"
 	externalAccountIDKey = "externalAccountId"
 	subscriptionNameKey  = "name"
 )
@@ -97,24 +96,15 @@ func (m MessageHandler) updateSubscription(org users.Organization, sub *partner.
 	ctx := context.Background()
 
 	// Set organization subscription
-	level := sub.ExtractLabel("weave-cloud", "ServiceLevel")
+	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
 	_ = level
-	// FIXME(rndstr): the ConsumerID key is most definitely wrong
-	consumerID := sub.ExtractLabel("weave-cloud", "ConsumerID")
+	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
 	_ = consumerID
 
-	// FIXME(rndstr): m.Users.SetOrganizationGCP(consumerID, approved.Name, level)
+	// FIXME(rndstr): m.Users.UpdateOrganizationGCP(org.ExternalID, consumerID, approved.Name, level)
 
 	// Approve subscription
-	body := &partner.RequestBody{
-		ApprovalID: "default-approval",
-		Labels: map[string]string{
-			// The value passed here will be sent to us during SSO. It allows us to
-			// verify who the user is and log him in.
-			ssoLoginKey: org.GCP.AccountID,
-		},
-	}
-
+	body := partner.RequestBodyWithSSOLoginKey(org.ExternalID)
 	// TODO(rndstr): retry logic here
 	if _, err := m.Partner.ApproveSubscription(ctx, sub.Name, body); err != nil {
 		return err
@@ -125,7 +115,8 @@ func (m MessageHandler) updateSubscription(org users.Organization, sub *partner.
 
 // cancelSubscriptions removes the subscription from the organization.
 func (m MessageHandler) cancelSubscription(org users.Organization, sub *partner.Subscription) error {
-	// FIXME(rndstr): m.Users.SetOrganizationGCP("", "", "")
+	// FIXME(rndstr): m.Users.SetOrganizationGCP(active = false?)
+	// This should keep the AccountID intact so a re-activation picks it up.
 	return nil
 }
 

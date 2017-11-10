@@ -1,13 +1,13 @@
 package login
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
-
 	"golang.org/x/oauth2"
 	googleOauth "golang.org/x/oauth2/google"
 	plus "google.golang.org/api/plus/v1"
@@ -51,7 +51,7 @@ func (g *google) Login(r *http.Request) (string, string, json.RawMessage, map[st
 	// NewTransportWithCode will do the handshake to retrieve
 	// an access token and initiate a Transport that is
 	// authorized and authenticated by the retrieved token.
-	tok, err := g.Config.Exchange(oauth2.NoContext, r.FormValue("code"))
+	tok, err := g.Config.Exchange(context.TODO(), r.FormValue("code"))
 	if err != nil {
 		return "", "", nil, nil, err
 	}
