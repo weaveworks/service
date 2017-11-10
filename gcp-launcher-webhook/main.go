@@ -86,6 +86,7 @@ func main() {
 			Users:   users,
 		}),
 	).Methods("POST").Name("webhook")
+	log.Infof("Starting GCP Cloud Launcher webhook...")
 	server.Run()
 }
 
@@ -94,6 +95,7 @@ func main() {
 // With more than one replica of this service, we might run into race conditions when creating the subscription.
 // If/when this happens, we may want to consider either manually setting the subscription up in the GCP portal, or using Terraform to do it.
 func createSubscription(cfg *config) {
+	log.Infof("Creating GCP Pub/Sub subscription [projects/%v/subscriptions/%v]...", cfg.publisher.ProjectID, cfg.subscriptionID)
 	pub, err := publisher.New(context.Background(), cfg.publisher)
 	if err != nil {
 		log.Fatalf("Failed creating Pub/Sub publisher: %v", err)
@@ -103,5 +105,5 @@ func createSubscription(cfg *config) {
 	if err != nil {
 		log.Fatalf("Failed subscribing to Pub/Sub topic: %v", err)
 	}
-	log.Infof("Subscription [%s] is active, awaiting messages at: %v", sub, cfg.Endpoint())
+	log.Infof("Created subscription [%s], awaiting messages at: %v", sub, cfg.Endpoint())
 }
