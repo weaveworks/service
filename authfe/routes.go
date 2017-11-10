@@ -289,6 +289,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				// Configmanager reads from the events database; eventmanager handles sending notifications
 				PrefixMethods{"/api/notification/events", []string{"GET"}, c.notificationConfigHost},
 				PrefixMethods{"/api/notification/events", []string{"POST"}, c.notificationEventHost},
+				PrefixMethods{"/api/notification/testevent", []string{"POST"}, c.notificationEventHost},
 				Prefix{"/api/notification/sender", c.notificationSenderHost},
 				Prefix{"/api", c.queryHost},
 
