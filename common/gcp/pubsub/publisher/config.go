@@ -1,6 +1,9 @@
 package publisher
 
-import "flag"
+import (
+	"flag"
+	"time"
+)
 
 // Config holds the configuration for a publisher client.
 type Config struct {
@@ -8,6 +11,7 @@ type Config struct {
 	TopicID               string
 	TopicProjectID        string
 	ServiceAccountKeyFile string
+	AckDeadline           time.Duration
 
 	// CreateTopic says whether to attempt to create the topic. Needs permission to check for
 	// existence of the topic in the topic project.
@@ -21,4 +25,5 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	flag.StringVar(&c.TopicID, name+".topic-id", "weaveworks-public-cloudmarketplacepartner.googleapis.com", "Topic ID for the Pub/Sub subscription")
 	flag.StringVar(&c.TopicProjectID, name+".topic-project-id", "cloud-billing-subscriptions", "Only pass if topic is under another project")
 	flag.StringVar(&c.ServiceAccountKeyFile, name+".service-account-key-file", "", "Service account key JSON file")
+	flag.DurationVar(&c.AckDeadline, name+".ack-deadline", 10*time.Second, "Time to acknowledge the message before it is sent again. See also: https://cloud.google.com/pubsub/docs/subscriber#create")
 }

@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -57,6 +56,8 @@ func main() {
 	cfg.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 
+	createSubscription(&cfg)
+
 	users, err := users.NewClient(cfg.users)
 	if err != nil {
 		log.Fatalf("Failed initialising users client: %v", err)
@@ -78,18 +79,6 @@ func main() {
 	}
 	defer server.Shutdown()
 
-	pub, err := publisher.New(context.Background(), cfg.publisher)
-	if err != nil {
-		log.Fatalf("Failed creating Pub/Sub publisher: %v", err)
-	}
-	defer pub.Close()
-	sub, err := pub.CreateSubscription(cfg.subscriptionID, cfg.Endpoint(), 10*time.Second)
-	if err != nil {
-		log.Fatalf("Failed subscribing to Pub/Sub topic: %v", err)
-	}
-
-	log.Infof("Subscription [%s] is active, awaiting messages at: %v", sub, cfg.Endpoint())
-
 	server.HTTP.Handle(
 		"/",
 		webhook.New(&subscription.MessageHandler{
@@ -98,4 +87,21 @@ func main() {
 		}),
 	).Methods("POST").Name("webhook")
 	server.Run()
+}
+
+// createSubscription programmatically creates a GCP Pub/Sub subscription, signaling GCP Pub/Sub to "push" to our webhook.
+// IMPORTANT:
+// With more than one replica of this service, we might run into race conditions when creating the subscription.
+// If/when this happens, we may want to consider either manually setting the subscription up in the GCP portal, or using Terraform to do it.
+func createSubscription(cfg *config) {
+	pub, err := publisher.New(context.Background(), cfg.publisher)
+	if err != nil {
+		log.Fatalf("Failed creating Pub/Sub publisher: %v", err)
+	}
+	defer pub.Close()
+	sub, err := pub.CreateSubscription(cfg.subscriptionID, cfg.Endpoint(), cfg.publisher.AckDeadline)
+	if err != nil {
+		log.Fatalf("Failed subscribing to Pub/Sub topic: %v", err)
+	}
+	log.Infof("Subscription [%s] is active, awaiting messages at: %v", sub, cfg.Endpoint())
 }
