@@ -33,6 +33,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		// Finds/Creates a user account with a given email, and emails them a new
 		// login link
 		{"api_users_signup", "POST", "/api/users/signup", a.signup},
+		{"api_users_subscribe", "POST", "/api/users/subscribe", a.authenticateUser(a.subscribe)},
 		// The same as api_users_signup, but exempt from CRSF in authfe and authenticated via header here
 		{"api_users_signup_webhook", "POST", "/api/users/signup_webhook", a.authenticateWebhook(a.signup)},
 
