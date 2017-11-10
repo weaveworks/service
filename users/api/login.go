@@ -483,6 +483,7 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 			FirstSeenConnectedAt: org.FirstSeenConnectedAt,
 			Platform:             org.Platform,
 			Environment:          org.Environment,
+			BillingProvider:      org.BillingProvider(),
 		})
 	}
 	render.JSON(w, http.StatusOK, view)

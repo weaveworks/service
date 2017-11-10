@@ -129,3 +129,11 @@ func (o *Organization) HasFeatureFlag(needle string) bool {
 	}
 	return false
 }
+
+// BillingProvider returns the name of the billing provider.
+func (o *Organization) BillingProvider() string {
+	if o.GCP != nil {
+		return "gcp"
+	}
+	return "zuora"
+}
