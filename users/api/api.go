@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
@@ -31,6 +32,7 @@ type API struct {
 	webhookTokens      map[string]struct{}
 	grpc               users.UsersServer
 	mixpanel           *marketing.MixpanelClient
+	partner            partner.API
 	fluxStatusAPI      string
 	scopeProbesAPI     string
 	promMetricsAPI     string
@@ -54,6 +56,7 @@ func New(
 	grpc users.UsersServer,
 	webhookTokens map[string]struct{},
 	mixpanelClient *marketing.MixpanelClient,
+	partnerClient partner.API,
 	fluxStatusAPI string,
 	scopeProbesAPI string,
 	promMetricsAPI string,
@@ -74,6 +77,7 @@ func New(
 		webhookTokens:      webhookTokens,
 		grpc:               grpc,
 		mixpanel:           mixpanelClient,
+		partner:            partnerClient,
 		fluxStatusAPI:      fluxStatusAPI,
 		scopeProbesAPI:     scopeProbesAPI,
 		promMetricsAPI:     promMetricsAPI,
