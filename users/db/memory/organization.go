@@ -263,8 +263,12 @@ func (d *DB) FindOrganizationByID(_ context.Context, externalID string) (*users.
 
 // FindOrganizationByGCPAccountID returns the organization with the given account ID.
 func (d *DB) FindOrganizationByGCPAccountID(_ context.Context, accountID string) (*users.Organization, error) {
-	// FIXME: implement me
-	return nil, errors.New("not yet implement")
+	for _, o := range d.organizations {
+		if o.GCP != nil && o.GCP.AccountID == accountID {
+			return o, nil
+		}
+	}
+	return nil, users.ErrNotFound
 }
 
 // FindOrganizationByInternalID finds an org by its internal ID
@@ -426,4 +430,65 @@ func (d *DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number s
 		org.ZuoraAccountCreatedAt = createdAt
 		return nil
 	})
+}
+
+func (d *DB) AddGCPToOrganization(ctx context.Context, externalID, accountID, consumerID, subscriptionName, subscriptionLevel string) error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	now := time.Now().UTC()
+
+	// Verify we don't have a subscription attached yet
+	o, err := d.findOrganizationByExternalID(externalID)
+	if err != nil {
+		return err
+	}
+	if o.GCP != nil {
+		return errors.New("Organization already has GCP")
+	}
+
+	// Verify GCP account ID is not yet in use.
+	// If it is, Google either sent as a duplicate or we wrongfully called this method.
+	_, err = d.FindOrganizationByGCPAccountID(ctx, accountID)
+	if err != users.ErrNotFound {
+		if err == nil {
+			return errors.New("Duplicate account ID, reactivate subscription at GCP Launcher")
+		}
+		return err
+	}
+
+	// Setting platform/env here disables to select anything else in the frontend,
+	// which is what we want.
+	o.Platform = "kubernetes"
+	o.Environment = "gke"
+
+	// Enable billing otherwise we won't upload usage
+	if !o.HasFeatureFlag(users.BillingFeatureFlag) {
+		o.FeatureFlags = append(o.FeatureFlags, users.BillingFeatureFlag)
+	}
+
+	o.GCP = &users.GCPSubscription{
+		CreatedAt:         now,
+		Active:            false,
+		AccountID:         accountID,
+		ConsumerID:        consumerID,
+		SubscriptionName:  subscriptionName,
+		SubscriptionLevel: subscriptionLevel,
+	}
+	return nil
+}
+
+func (d *DB) UpdateOrganizationGCP(_ context.Context, externalID, consumerID, subscriptionName, subscriptionLevel string) error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+
+	o, err := d.findOrganizationByExternalID(externalID)
+	if err != nil && err != users.ErrNotFound {
+		return nil
+	}
+
+	o.GCP.Active = true // Updating means activating
+	o.GCP.ConsumerID = consumerID
+	o.GCP.SubscriptionName = subscriptionName
+	o.GCP.SubscriptionLevel = subscriptionLevel
+	return nil
 }

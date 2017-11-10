@@ -282,6 +282,18 @@ func (t timed) SetOrganizationZuoraAccount(ctx context.Context, externalID, numb
 	})
 }
 
+func (t timed) AddGCPToOrganization(ctx context.Context, externalID, accountID, consumerID, subscriptionName, subscriptionLevel string) error {
+	return t.timeRequest(ctx, "AddGCPToOrganization", func(ctx context.Context) error {
+		return t.d.AddGCPToOrganization(ctx, externalID, accountID, consumerID, subscriptionName, subscriptionLevel)
+	})
+}
+
+func (t timed) UpdateOrganizationGCP(ctx context.Context, externalID, consumerID, subscriptionName, subscriptionLevel string) error {
+	return t.timeRequest(ctx, "UpdateOrganizationGCP", func(ctx context.Context) error {
+		return t.d.UpdateOrganizationGCP(ctx, externalID, consumerID, subscriptionName, subscriptionLevel)
+	})
+}
+
 func (t timed) ListMemberships(ctx context.Context) (memberships []users.Membership, err error) {
 	t.timeRequest(ctx, "ListMemberships", func(ctx context.Context) error {
 		memberships, err = t.d.ListMemberships(ctx)

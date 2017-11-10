@@ -94,6 +94,9 @@ type DB interface {
 	SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error
 
+	AddGCPToOrganization(ctx context.Context, externalID, accountID, consumerID, subscriptionName, subscriptionLevel string) error
+	UpdateOrganizationGCP(ctx context.Context, externalID, consumerID, subscriptionName, subscriptionLevel string) error
+
 	ListMemberships(ctx context.Context) ([]users.Membership, error)
 
 	Close(ctx context.Context) error

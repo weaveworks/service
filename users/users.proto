@@ -184,20 +184,21 @@ message Organization {
     // When we sent a «trial expired» notification at
     google.protobuf.Timestamp TrialExpiredNotifiedAt = 16 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
     // For organizations that are coming from GCP
-    GoogleCloudPlatform GCP = 17;
+    GCPSubscription GCP = 17;
 }
 
-message GoogleCloudPlatform {
+message GCPSubscription {
+    google.protobuf.Timestamp CreatedAt = 1 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
     // Whether the GCP account is active or not
-    bool Active = 1;
+    bool Active = 2;
     // External account ID from Google
-    string AccountID = 2;
+    string AccountID = 3;
     // Consumer ID to report usage against
-    string GCPConsumerID = 3;
+    string ConsumerID = 4;
     // Name of the active subscription, in the format "partnerSubscriptions/*"
-    string SubscriptionName = 4;
+    string SubscriptionName = 5;
     // Level of the subscription, can be "standard" or "enterprise"
-    string SubscriptionLevel = 5;
+    string SubscriptionLevel = 6;
 }
 
 

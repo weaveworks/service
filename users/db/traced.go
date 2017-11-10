@@ -191,6 +191,16 @@ func (t traced) SetOrganizationZuoraAccount(ctx context.Context, externalID, num
 	return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)
 }
 
+func (t traced) AddGCPToOrganization(ctx context.Context, externalID, accountID, consumerID, subscriptionName, subscriptionLevel string) (err error) {
+	defer func() { t.trace("AddGCPToOrganization", externalID, accountID, consumerID, subscriptionName, subscriptionLevel, err) }()
+	return t.d.AddGCPToOrganization(ctx, externalID, accountID, consumerID, subscriptionName, subscriptionLevel)
+}
+
+func (t traced) UpdateOrganizationGCP(ctx context.Context, externalID, consumerID, subscriptionName, subscriptionLevel string) (err error) {
+	defer func() { t.trace("UpdateOrganizationGCP", externalID, consumerID, subscriptionName, subscriptionLevel, err) }()
+	return t.d.UpdateOrganizationGCP(ctx, externalID, consumerID, subscriptionName, subscriptionLevel)
+}
+
 func (t traced) ListMemberships(ctx context.Context) (ms []users.Membership, err error) {
 	defer func() { t.trace("ListMemberships", err) }()
 	return t.d.ListMemberships(ctx)

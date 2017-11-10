@@ -494,3 +494,11 @@ func (d DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number st
 	)
 	return err
 }
+
+func (d DB) AddGCPToOrganization(ctx context.Context, externalID, accountID, consumerID, subscriptionName, subscriptionLevel string) error {
+	return errors.New("notyetimplemented")
+}
+
+func (d DB) UpdateOrganizationGCP(ctx context.Context, externalID, consumerID, subscriptionName, subscriptionLevel string) error {
+	return errors.New("notyetimplemented")
+}
