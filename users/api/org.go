@@ -33,6 +33,7 @@ type OrgView struct {
 	TrialExpiresAt        time.Time  `json:"trialExpiresAt"`
 	ZuoraAccountNumber    string     `json:"zuoraAccountNumber"`
 	ZuoraAccountCreatedAt *time.Time `json:"zuoraAccountCreatedAt"`
+	IsGCP                 bool       `json:"isGCP"`
 }
 
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -57,6 +58,7 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 				Platform:             org.Platform,
 				Environment:          org.Environment,
 				TrialExpiresAt:       org.TrialExpiresAt,
+				IsGCP:                org.GCP != nil,
 			})
 			return
 		}
