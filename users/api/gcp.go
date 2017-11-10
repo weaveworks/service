@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -14,11 +15,13 @@ import (
 	"github.com/weaveworks/service/users/render"
 )
 
-const defaultOrgName = "GKE"
-
 type subscribeRequest struct {
 	Code         string `json:"code"`
 	GCPAccountID string `json:"gcpAccountId"`
+}
+
+func organizationName(externalID string) string {
+	return strings.Title(strings.Replace(externalID, "-", " ", -1))
 }
 
 func (a *API) subscribe(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -47,7 +50,7 @@ func (a *API) subscribe(currentUser *users.User, w http.ResponseWriter, r *http.
 		return
 	}
 	// FIXME: expand CreateOrganization to also create the GCP (in a transaction)
-	org, err := a.db.CreateOrganization(r.Context(), currentUser.ID, externalID, defaultOrgName, "")
+	org, err := a.db.CreateOrganization(r.Context(), currentUser.ID, externalID, organizationName(externalID), "")
 	if err != nil {
 		render.Error(w, r, err)
 		return
