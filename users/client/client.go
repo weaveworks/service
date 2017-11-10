@@ -17,7 +17,7 @@ func New(kind, address string, opts CachingClientConfig) (users.UsersClient, err
 	var err error
 	switch kind {
 	case "mock":
-		client = mockClient{}
+		client = MockClient{}
 	case "grpc":
 		client, err = newGRPCClient(address)
 		if err != nil {

@@ -202,6 +202,14 @@ func (t timed) FindOrganizationByGCPAccountID(ctx context.Context, accountID str
 	return
 }
 
+func (t timed) FindOrganizationByInternalID(ctx context.Context, internalID string) (o *users.Organization, err error) {
+	t.timeRequest(ctx, "FindOrganizationByInternalID", func(ctx context.Context) error {
+		o, err = t.d.FindOrganizationByInternalID(ctx, internalID)
+		return err
+	})
+	return
+}
+
 func (t timed) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error {
 	return t.timeRequest(ctx, "UpdateOrganization", func(ctx context.Context) error {
 		return t.d.UpdateOrganization(ctx, externalID, update)

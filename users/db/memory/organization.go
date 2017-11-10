@@ -267,6 +267,18 @@ func (d *DB) FindOrganizationByGCPAccountID(_ context.Context, accountID string)
 	return nil, errors.New("not yet implement")
 }
 
+// FindOrganizationByInternalID finds an org by its internal ID
+func (d *DB) FindOrganizationByInternalID(ctx context.Context, internalID string) (*users.Organization, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	for _, o := range d.organizations {
+		if o.ID == internalID {
+			return o, nil
+		}
+	}
+	return nil, users.ErrNotFound
+}
+
 func changeOrg(d *DB, externalID string, toWrap func(*users.Organization) error) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
@@ -317,7 +329,7 @@ func (d *DB) OrganizationExists(_ context.Context, externalID string) (bool, err
 
 // ExternalIDUsed returns true if the given `externalID` has ever been in use for
 // an organization.
-func (d DB) ExternalIDUsed(_ context.Context, externalID string) (bool, error) {
+func (d *DB) ExternalIDUsed(_ context.Context, externalID string) (bool, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	return d.organizationExists(externalID, true)

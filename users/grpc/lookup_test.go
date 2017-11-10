@@ -358,3 +358,35 @@ func makeBillingOrganization(t *testing.T) *users.Organization {
 	require.NoError(t, err)
 	return newOrg
 }
+
+func Test_GetOrganization(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	_, org := dbtest.GetOrg(t, database)
+
+	orgViaExternal, err := server.GetOrganization(ctx, &users.GetOrganizationRequest{
+		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: org.ExternalID},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	orgViaInternal, err := server.GetOrganization(ctx, &users.GetOrganizationRequest{
+		ID: &users.GetOrganizationRequest_InternalID{InternalID: org.ID},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if orgViaExternal.Organization.ID != orgViaInternal.Organization.ID {
+		t.Fatalf(
+			"Expected external and internal to match. External: %v; Internal: %v",
+			orgViaExternal.Organization.ID,
+			orgViaInternal.Organization.ID,
+		)
+	}
+
+}

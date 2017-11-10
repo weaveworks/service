@@ -28,14 +28,17 @@ test:
   override:
     - gnatsd:
         background: true
-    - |
-        cd $SRCDIR; if [ $(./tools/image-tag --show-diff | grep -e '-WIP$') ]; then
-           echo "WIP build; exiting with error to mark as a failure"
-           exit 1
-        fi
     - cd $SRCDIR; make RM= lint
     - cd $SRCDIR; COVERDIR=./coverage make RM= test
     - cd $SRCDIR; make RM=
+    - |
+        set -e
+        set -o pipefail
+        cd $SRCDIR; if [ $(./tools/image-tag --show-diff | grep -e '-WIP$') ]; then
+           echo "WIP build; exiting with error to mark as a failure"
+           git diff
+           exit 1
+        fi
     - cd $SRCDIR; make RM= notebooks-integration-test
     - cd $SRCDIR; make RM= users-integration-test
     - cd $SRCDIR; make RM= billing-integration-test

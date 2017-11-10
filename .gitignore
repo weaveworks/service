@@ -31,7 +31,6 @@ coverage.html
 
 # Project specific
 .uptodate
-users/users.pb.go
 users/cmd/users/users
 notebooks/cmd/notebooks/notebooks
 authfe/authfe
