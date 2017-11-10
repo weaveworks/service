@@ -18,10 +18,11 @@ import (
 )
 
 type config struct {
-	port           int
-	endpoint       string
-	secret         string // Secret used to authenticate incoming GCP webhook requests.
-	subscriptionID string
+	port               int
+	endpoint           string
+	secret             string // Secret used to authenticate incoming GCP webhook requests.
+	createSubscription bool
+	subscriptionID     string
 
 	publisher publisher.Config
 
@@ -32,6 +33,7 @@ type config struct {
 func (c *config) RegisterFlags(f *flag.FlagSet) {
 	flag.IntVar(&c.port, "port", 80, "HTTP port for the Cloud Launcher's GCP Pub/Sub push webhook")
 	flag.StringVar(&c.endpoint, "webhook-endpoint", "https://frontend.dev.weave.works/api/gcp-launcher/webhook", "Endpoint this webhook is accessible from the outside")
+	flag.BoolVar(&c.createSubscription, "pubsub-api.create-subscription", false, "Enable/Disable programmatic creation of the Pub/Sub subscription.")
 	flag.StringVar(&c.subscriptionID, "pubsub-api.subscription-id", "gcp-subscriptions", "Arbitrary name that denotes this subscription")
 
 	c.publisher.RegisterFlags(f)
@@ -56,7 +58,9 @@ func main() {
 	cfg.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 
-	createSubscription(&cfg)
+	if cfg.createSubscription {
+		createSubscription(&cfg)
+	}
 
 	users, err := users.NewClient(cfg.users)
 	if err != nil {
