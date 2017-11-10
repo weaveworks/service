@@ -86,7 +86,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"demo":                 &c.demoHost,
 		"flux":                 &c.fluxHost,
 		"flux-v6":              &c.fluxV6Host,
-		"gcp-webhook":          &c.gcpWebhookHost,
+		"gcp-launcher-webhook": &c.gcpWebhookHost,
 		"github-receiver":      &c.githubReceiverHost,
 		"launch-generator":     &c.launchGeneratorHost,
 		"notebooks":            &c.notebooksHost,
