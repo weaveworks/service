@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
 	"github.com/weaveworks/common/http/client"
@@ -157,7 +158,10 @@ func NewClient(cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	return NewClientFromJsonKey(cfg, jsonKey)
+}
 
+func NewClientFromJsonKey(cfg Config, jsonKey []byte) (*Client, error) {
 	// Create oauth2 HTTP client from the given service account key JSON
 	jwtConf, err := google.JWTConfigFromJSON(jsonKey, oauthScope)
 	if err != nil {
@@ -169,6 +173,13 @@ func NewClient(cfg Config) (*Client, error) {
 	return &Client{
 		JSONClient: common.NewJSONClient(client.NewTimedClient(cl, clientRequestCollector)),
 		cfg:        cfg,
+	}, nil
+}
+
+func NewClientFromTokenSource(ts oauth2.TokenSource) (*Client, error) {
+	cl := oauth2.NewClient(context.Background(), ts)
+	return &Client{
+		JSONClient: common.NewJSONClient(client.NewTimedClient(cl, clientRequestCollector)),
 	}, nil
 }
 
