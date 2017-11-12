@@ -28,6 +28,7 @@ func New(_, _ string, passwordHashingCost int) (*DB, error) {
 		deletedOrganizations: make(map[string]*users.Organization),
 		memberships:          make(map[string][]string),
 		logins:               make(map[string]*login.Login),
+		gcpSubscriptions:     make(map[string]*users.GoogleCloudPlatform),
 		passwordHashingCost:  passwordHashingCost,
 	}, nil
 }

@@ -13,6 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/weaveworks/service/common/featureflag"
+	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db"
@@ -48,6 +49,7 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, promAPI, netAPI stri
 	templates := templates.MustNewEngine("../templates")
 	logins = login.NewProviders()
 	mixpanelClient := marketing.NewMixpanelClient("")
+	var partnerClient partner.API
 
 	sentEmails = nil
 	emailer := emailer.SMTPEmailer{
@@ -73,6 +75,7 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, promAPI, netAPI stri
 		grpcServer,
 		make(map[string]struct{}),
 		mixpanelClient,
+		partnerClient,
 		fluxAPI,
 		scopeAPI,
 		promAPI,

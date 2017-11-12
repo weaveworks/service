@@ -101,7 +101,7 @@ type DB interface {
 	// Update a Google Cloud Platform entry.
 	UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error
 	// Attach a GCP subscription to an organization
-	SetOrganizationGCP(ctx context.Context, externalID, gcpID string) error
+	SetOrganizationGCP(ctx context.Context, externalID, accountID string) error
 
 	ListMemberships(ctx context.Context) ([]users.Membership, error)
 
