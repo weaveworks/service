@@ -108,7 +108,6 @@ func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Sub
 
 	// Approve subscription
 	body := partner.RequestBodyWithSSOLoginKey(sub.ExternalAccountID)
-	// TODO(rndstr): retry logic here
 	if _, err := m.Partner.ApproveSubscription(ctx, sub.Name, body); err != nil {
 		return err
 	}

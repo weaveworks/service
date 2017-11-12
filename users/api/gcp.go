@@ -24,6 +24,14 @@ func organizationName(externalID string) string {
 	return strings.Title(strings.Replace(externalID, "-", " ", -1))
 }
 
+func requestHost(r *http.Request) string {
+	scheme := r.URL.Scheme
+	if scheme == "" {
+		scheme = "http"
+	}
+	return fmt.Sprintf("%s://%s", scheme, r.Host)
+}
+
 func (a *API) subscribe(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var input subscribeRequest
@@ -37,19 +45,17 @@ func (a *API) subscribe(currentUser *users.User, w http.ResponseWriter, r *http.
 		render.Error(w, r, err)
 		return
 	}
-	sub, err := a.verifySubscriptionAccess(r.Context(), subName, input.Code)
+	sub, err := a.verifySubscriptionAccess(r.Context(), subName, input.Code, requestHost(r))
 	if err != nil {
 		render.Error(w, r, err)
 		return
 	}
-	fmt.Printf("Received subscription: %#v\n", sub)
 
 	externalID, err := a.db.GenerateOrganizationExternalID(r.Context())
 	if err != nil {
 		render.Error(w, r, err)
 		return
 	}
-	// FIXME: expand CreateOrganization to also create the GCP (in a transaction)
 	org, err := a.db.CreateOrganization(r.Context(), currentUser.ID, externalID, organizationName(externalID), "")
 	if err != nil {
 		render.Error(w, r, err)
@@ -64,6 +70,7 @@ func (a *API) subscribe(currentUser *users.User, w http.ResponseWriter, r *http.
 		render.Error(w, r, err)
 		return
 	}
+
 	err = a.db.SetOrganizationGCP(r.Context(), org.ExternalID, gcp.AccountID)
 	if err != nil {
 		render.Error(w, r, err)
@@ -90,14 +97,17 @@ func (a *API) subscribe(currentUser *users.User, w http.ResponseWriter, r *http.
 	render.JSON(w, http.StatusOK, org)
 }
 
-func (a *API) verifySubscriptionAccess(ctx context.Context, name, oauthCode string) (*partner.Subscription, error) {
+// verifySubscriptionAccess reads the subscription with the given oauth2 code.
+// It also returns the received subscription.
+func (a *API) verifySubscriptionAccess(ctx context.Context, name, oauthCode, host string) (*partner.Subscription, error) {
+	// TODO(rndstr): put these into a config file
 	cfg := oauth2.Config{
 		ClientID:     "323808423072-m0nrvqj6h5k302gp55mej4nq0k1ossij.apps.googleusercontent.com",
-		Scopes:       []string{"https://www.googleapis.com/auth/cloud-billing-partner-subscriptions.readonly"},
 		ClientSecret: "LWsytKd4BXhGHrMxoX4n0d7V",
+		Scopes:       []string{"https://www.googleapis.com/auth/cloud-billing-partner-subscriptions.readonly"},
 		Endpoint:     google.Endpoint,
 		// Must be same URL as sent for code request
-		RedirectURL: "http://localhost:4046/subscribe-via/gcp",
+		RedirectURL: fmt.Sprintf("%s/subscribe-via/gcp", host),
 	}
 
 	// Get token from oauth code
