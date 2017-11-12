@@ -66,7 +66,7 @@ func (a *API) subscribe(currentUser *users.User, w http.ResponseWriter, r *http.
 
 	// Approve subscription: currently disabled to not "waste" the manually created subscription (approval can't be reversed)
 	/*
-		body := partner.RequestBodyWithSSOLoginKey(org.ExternalID)
+		body := partner.RequestBodyWithSSOLoginKey(gcp.AccountID)
 		_, err = a.partner.ApproveSubscription(r.Context(), sub.Name, body)
 		if err != nil {
 			render.Error(w, r, err)

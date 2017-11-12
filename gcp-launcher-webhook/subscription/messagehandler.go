@@ -104,7 +104,7 @@ func (m MessageHandler) updateSubscription(org users.Organization, sub *partner.
 	// FIXME(rndstr): m.Users.UpdateOrganizationGCP(org.ExternalID, consumerID, approved.Name, level)
 
 	// Approve subscription
-	body := partner.RequestBodyWithSSOLoginKey(org.ExternalID)
+	body := partner.RequestBodyWithSSOLoginKey(sub.ExternalAccountID)
 	// TODO(rndstr): retry logic here
 	if _, err := m.Partner.ApproveSubscription(ctx, sub.Name, body); err != nil {
 		return err

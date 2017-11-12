@@ -115,13 +115,15 @@ func (s Subscription) ExtractResourceLabel(resource, key string) string {
 
 // RequestBodyWithSSOLoginKey builds a request body for the ApproveSubscription()
 // calls. It embeds a so-called key which will be sent to us during SSO.
-func RequestBodyWithSSOLoginKey(ssoLoginKey string) *RequestBody {
+//
+// We pass here the gcpAccountID because…
+func RequestBodyWithSSOLoginKey(gcpAccountID string) *RequestBody {
 	return &RequestBody{
 		ApprovalID: "default-approval",
 		Labels: map[string]string{
 			// The value passed here will be sent to us during SSO. It allows us to
 			// verify who the user is and log him in.
-			ssoLoginKeyName: ssoLoginKey,
+			ssoLoginKeyName: gcpAccountID,
 		},
 	}
 }
