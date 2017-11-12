@@ -20,18 +20,20 @@ import (
 type SubscriptionStatus string
 
 const (
-	// Status of a subscription.
-	StatusUnknown  SubscriptionStatus = "UNKNOWN_STATUS"
-	StatusActive   SubscriptionStatus = "ACTIVE"
-	StatusComplete SubscriptionStatus = "COMPLETE"
-	StatusPending  SubscriptionStatus = "PENDING"
-	StatusCanceled SubscriptionStatus = "CANCELED"
+	// Pending means the subscription is awaiting approval.
+	Pending SubscriptionStatus = "PENDING"
+	// Active is a subscription that is running.
+	Active SubscriptionStatus = "ACTIVE"
+	// Complete are subscriptions that are no longer active (i.e., canceled)
+	Complete SubscriptionStatus = "COMPLETE"
 
 	ssoLoginKeyName = "keyForSsoLogin"
 
-	// Common label keys for Subscription.ExtractResourceLabel()
+	// ServiceLevelLabelKey is the label suffix on the subscribed resource
 	ServiceLevelLabelKey = "ServiceLevel"
-	ConsumerIDLabelKey   = "ConsumerId"
+	// ConsumerIDLabelKey is the label suffix on the subscribed resource
+	// FIXME(rndstr): confirm this is the proper way once we have access to a subscription created through the launcher
+	ConsumerIDLabelKey = "ConsumerId"
 )
 
 const (
@@ -182,6 +184,7 @@ func NewClient(cfg Config) (*Client, error) {
 	return NewClientFromJsonKey(cfg, jsonKey)
 }
 
+// NewClientFromJSONKey instantiates a client from the given JSON key.
 func NewClientFromJsonKey(cfg Config, jsonKey []byte) (*Client, error) {
 	// Create oauth2 HTTP client from the given service account key JSON
 	jwtConf, err := google.JWTConfigFromJSON(jsonKey, oauthScope)
@@ -197,6 +200,7 @@ func NewClientFromJsonKey(cfg Config, jsonKey []byte) (*Client, error) {
 	}, nil
 }
 
+// NewClientFromTokenSource instantiates a client from the given token source.
 func NewClientFromTokenSource(ts oauth2.TokenSource) (*Client, error) {
 	cl := oauth2.NewClient(context.Background(), ts)
 	return &Client{

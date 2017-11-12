@@ -495,18 +495,23 @@ func (d DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number st
 	return err
 }
 
+// CreateGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
 func (d DB) CreateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.GoogleCloudPlatform, error) {
 	return nil, errors.New("notyetimplemented")
 }
 
+// GetGCP returns the Google Cloud Platform subscription for the given account.
 func (d DB) GetGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
 	return nil, errors.New("notyetimplemented")
 }
 
+// UpdateGCP updates a Google Cloud Platform subscription.
 func (d DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error {
 	return errors.New("notyetimplemented")
 }
 
+// SetOrganizationGCP attaches a Google Cloud Platform subscription to an organization.
+// It also enables the billing feature flag and sets platform/env.
 func (d DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string) error {
 	return errors.New("notyetimplemented")
 }

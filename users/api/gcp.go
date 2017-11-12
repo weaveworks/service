@@ -125,7 +125,7 @@ func (a *API) getPendingSubscriptionName(ctx context.Context, gcpAccountID strin
 	}
 	fmt.Printf("%#v\n", subs)
 	for _, sub := range subs {
-		if sub.Status == partner.StatusPending {
+		if sub.Status == partner.Pending {
 			return sub.Name, nil
 		}
 	}

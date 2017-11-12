@@ -94,9 +94,13 @@ type DB interface {
 	SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error
 
+	// Retrieve Google Cloud Platform entry.
 	GetGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error)
+	// Create a new Google Cloud Platform entry.
 	CreateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.GoogleCloudPlatform, error)
+	// Update a Google Cloud Platform entry.
 	UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error
+	// Attach a GCP subscription to an organization
 	SetOrganizationGCP(ctx context.Context, externalID, gcpID string) error
 
 	ListMemberships(ctx context.Context) ([]users.Membership, error)

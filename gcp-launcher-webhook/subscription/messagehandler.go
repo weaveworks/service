@@ -28,7 +28,6 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	gcpAccountID := msg.Attributes[externalAccountIDKey]
 	subscriptionName := msg.Attributes[subscriptionNameKey]
 
-
 	resp, err := m.Users.GetGCP(ctx, &users.GetGCPRequest{AccountID: gcpAccountID})
 	if err != nil {
 		return fmt.Errorf("cannot find account: %v", gcpAccountID)
@@ -47,10 +46,10 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	}
 
 	// Cancel.
-	if sub.Status == partner.StatusComplete {
+	if sub.Status == partner.Complete {
 		hasPending := false
 		for _, s := range subs {
-			if s.Status == partner.StatusPending {
+			if s.Status == partner.Pending {
 				hasPending = true
 				break
 			}
@@ -65,11 +64,11 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	// This covers both
 	// - reactivation after cancellation: no other active subscription
 	// - changing of plan: has other active subscription
-	if sub.Status == partner.StatusPending {
+	if sub.Status == partner.Pending {
 		return m.updateSubscription(ctx, sub)
 	}
 
-	if sub.Status == partner.StatusActive {
+	if sub.Status == partner.Active {
 		// Subscriptions are activated by first going through the pending state.
 		// The pending status has already been processed or if the account is
 		// freshly created, we will update the subscription through that flow.
@@ -92,11 +91,8 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 // return: ack.
 // post: new subscription --> ACTIVE
 func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Subscription) error {
-	// Set organization subscription
 	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
-	_ = level
 	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
-	_ = consumerID
 
 	_, err := m.Users.UpdateGCP(ctx, &users.UpdateGCPRequest{
 		GCP: &users.GoogleCloudPlatform{

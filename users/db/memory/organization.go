@@ -432,13 +432,7 @@ func (d *DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number s
 	})
 }
 
-func (d *DB) GetGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
-	d.mtx.Lock()
-	defer d.mtx.Unlock()
-
-	return nil, nil
-}
-
+// CreateGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
 func (d *DB) CreateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.GoogleCloudPlatform, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
@@ -450,6 +444,7 @@ func (d *DB) CreateGCP(ctx context.Context, accountID, consumerID, subscriptionN
 	gcp := &users.GoogleCloudPlatform{
 		ID:                fmt.Sprint(len(d.gcpSubscriptions)),
 		AccountID:         accountID,
+		Active:            false,
 		ConsumerID:        consumerID,
 		SubscriptionName:  subscriptionName,
 		SubscriptionLevel: subscriptionLevel,
@@ -458,6 +453,15 @@ func (d *DB) CreateGCP(ctx context.Context, accountID, consumerID, subscriptionN
 	return gcp, nil
 }
 
+// GetGCP returns the Google Cloud Platform subscription for the given account.
+func (d *DB) GetGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+
+	return nil, nil
+}
+
+// UpdateGCP updates a Google Cloud Platform subscription.
 func (d *DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
@@ -476,6 +480,8 @@ func (d *DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionN
 	return nil
 }
 
+// SetOrganizationGCP attaches a Google Cloud Platform subscription to an organization.
+// It also enables the billing feature flag and sets platform/env.
 func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()

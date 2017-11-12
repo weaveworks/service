@@ -112,7 +112,7 @@ func TestClient_Get(t *testing.T) {
 
 	assert.Equal(t, pendingName, sub.Name)
 	assert.Equal(t, "E-F65F-C51C-67FE-D42F", sub.ExternalAccountID)
-	assert.Equal(t, partner.StatusPending, sub.Status)
+	assert.Equal(t, partner.Pending, sub.Status)
 	assert.True(t, sub.StartDate.Time(time.UTC).Equal(time.Date(2017, 10, 19, 0, 0, 0, 0, time.UTC)))
 }
 
