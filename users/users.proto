@@ -42,6 +42,9 @@ service Users {
     // omit `ZuoraAccountCreatedAt` it will be automatically updated to now.
     rpc SetOrganizationZuoraAccount(SetOrganizationZuoraAccountRequest) returns (SetOrganizationZuoraAccountResponse) {};
 
+    rpc GetGCP(GetGCPRequest) returns (GetGCPResponse) {};
+    rpc UpdateGCP(UpdateGCPRequest) returns (UpdateGCPResponse) {};
+
     // GetUser returns details for a user
     rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
 
@@ -184,23 +187,37 @@ message Organization {
     // When we sent a «trial expired» notification at
     google.protobuf.Timestamp TrialExpiredNotifiedAt = 16 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
     // For organizations that are coming from GCP
-    GCPSubscription GCP = 17;
+    GoogleCloudPlatform GCP = 17;
 }
 
-message GCPSubscription {
-    google.protobuf.Timestamp CreatedAt = 1 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
-    // Whether the GCP account is active or not
-    bool Active = 2;
+message GoogleCloudPlatform {
+    string ID = 1;
     // External account ID from Google
-    string AccountID = 3;
+    string AccountID = 2;
+    // Whether the GCP account is active or not
+    bool Active = 3;
+    google.protobuf.Timestamp CreatedAt = 4 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
     // Consumer ID to report usage against
-    string ConsumerID = 4;
+    string ConsumerID = 5;
     // Name of the active subscription, in the format "partnerSubscriptions/*"
-    string SubscriptionName = 5;
+    string SubscriptionName = 6;
     // Level of the subscription, can be "standard" or "enterprise"
-    string SubscriptionLevel = 6;
+    string SubscriptionLevel = 7;
 }
 
+message GetGCPRequest {
+    string AccountID = 1;
+}
+
+message GetGCPResponse {
+    GoogleCloudPlatform GCP = 1 [(gogoproto.nullable) = false];
+}
+
+message UpdateGCPRequest {
+    GoogleCloudPlatform GCP  = 1;
+}
+message UpdateGCPResponse {
+}
 
 message SetOrganizationZuoraAccountRequest {
     string ExternalID = 1;

@@ -130,7 +130,8 @@ func (o *Organization) HasFeatureFlag(needle string) bool {
 	return false
 }
 
-// BillingProvider returns the name of the billing provider.
+// BillingProvider returns the name of the provider processing billing.
+// It is `zuora` by default.
 func (o *Organization) BillingProvider() string {
 	if o.GCP != nil {
 		return "gcp"

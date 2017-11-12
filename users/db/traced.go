@@ -191,14 +191,24 @@ func (t traced) SetOrganizationZuoraAccount(ctx context.Context, externalID, num
 	return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)
 }
 
-func (t traced) AddGCPToOrganization(ctx context.Context, externalID, accountID, consumerID, subscriptionName, subscriptionLevel string) (err error) {
-	defer func() { t.trace("AddGCPToOrganization", externalID, accountID, consumerID, subscriptionName, subscriptionLevel, err) }()
-	return t.d.AddGCPToOrganization(ctx, externalID, accountID, consumerID, subscriptionName, subscriptionLevel)
+func (t traced) CreateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (gcp *users.GoogleCloudPlatform, err error) {
+	defer func() { t.trace("CreateGCP", accountID, consumerID, subscriptionName, subscriptionLevel, gcp, err) }()
+	return t.d.CreateGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel)
 }
 
-func (t traced) UpdateOrganizationGCP(ctx context.Context, externalID, consumerID, subscriptionName, subscriptionLevel string) (err error) {
-	defer func() { t.trace("UpdateOrganizationGCP", externalID, consumerID, subscriptionName, subscriptionLevel, err) }()
-	return t.d.UpdateOrganizationGCP(ctx, externalID, consumerID, subscriptionName, subscriptionLevel)
+func (t traced) GetGCP(ctx context.Context, accountID string) (gcp *users.GoogleCloudPlatform, err error) {
+	defer func() { t.trace("GetGCP", accountID, gcp, err) }()
+	return t.d.GetGCP(ctx, accountID)
+}
+
+func (t traced) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) (err error) {
+	defer func() { t.trace("UpdateGCP", accountID, consumerID, subscriptionName, subscriptionLevel, active, err) }()
+	return t.d.UpdateGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel, active)
+}
+
+func (t traced) SetOrganizationGCP(ctx context.Context, externalID, accountID string) (err error) {
+	defer func() { t.trace("SetOrganizationGCP", externalID, accountID, err) }()
+	return t.d.SetOrganizationGCP(ctx, externalID, accountID)
 }
 
 func (t traced) ListMemberships(ctx context.Context) (ms []users.Membership, err error) {

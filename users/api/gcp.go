@@ -55,10 +55,16 @@ func (a *API) subscribe(currentUser *users.User, w http.ResponseWriter, r *http.
 		render.Error(w, r, err)
 		return
 	}
-	// Attach inactive GCP subscription to the organization
+
+	// Create and attach inactive GCP subscription to the organization
 	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
 	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
-	err = a.db.AddGCPToOrganization(r.Context(), org.ExternalID, input.GCPAccountID, consumerID, sub.Name, level)
+	gcp, err := a.db.CreateGCP(r.Context(), input.GCPAccountID, consumerID, sub.Name, level)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	err = a.db.SetOrganizationGCP(r.Context(), org.ExternalID, gcp.AccountID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -74,8 +80,8 @@ func (a *API) subscribe(currentUser *users.User, w http.ResponseWriter, r *http.
 		}
 	*/
 
-	// Activate organization
-	err = a.db.UpdateOrganizationGCP(r.Context(), org.ExternalID, consumerID, sub.Name, level)
+	// Activate subscription account
+	err = a.db.UpdateGCP(r.Context(), gcp.AccountID, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel, true)
 	if err != nil {
 		render.Error(w, r, err)
 		return

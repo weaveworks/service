@@ -432,32 +432,66 @@ func (d *DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number s
 	})
 }
 
-func (d *DB) AddGCPToOrganization(ctx context.Context, externalID, accountID, consumerID, subscriptionName, subscriptionLevel string) error {
+func (d *DB) GetGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	now := time.Now().UTC()
 
-	// Verify we don't have a subscription attached yet
+	return nil, nil
+}
+
+func (d *DB) CreateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.GoogleCloudPlatform, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+
+	if _, exists := d.gcpSubscriptions[accountID]; exists {
+		// If account is already known, Google either sent as a duplicate or we wrongfully called this method.
+		return nil, errors.New("Account is already in use, reactivate subscription in the launcher")
+	}
+	gcp := &users.GoogleCloudPlatform{
+		ID:                fmt.Sprint(len(d.gcpSubscriptions)),
+		AccountID:         accountID,
+		ConsumerID:        consumerID,
+		SubscriptionName:  subscriptionName,
+		SubscriptionLevel: subscriptionLevel,
+	}
+	d.gcpSubscriptions[accountID] = gcp
+	return gcp, nil
+}
+
+func (d *DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+
+	gcp, exists := d.gcpSubscriptions[accountID]
+	if !exists {
+		return errors.New("Account not found")
+	}
+	gcp.AccountID = accountID
+	gcp.ConsumerID = consumerID
+	gcp.SubscriptionName = subscriptionName
+	gcp.SubscriptionLevel = subscriptionLevel
+	gcp.Active = active
+
+	d.gcpSubscriptions[accountID] = gcp
+	return nil
+}
+
+func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string) error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+
 	o, err := d.findOrganizationByExternalID(externalID)
 	if err != nil {
 		return err
 	}
 	if o.GCP != nil {
-		return errors.New("Organization already has GCP")
+		return errors.New("Organization already has a GCP account")
 	}
 
-	// Verify GCP account ID is not yet in use.
-	// If it is, Google either sent as a duplicate or we wrongfully called this method.
-	_, err = d.FindOrganizationByGCPAccountID(ctx, accountID)
-	if err != users.ErrNotFound {
-		if err == nil {
-			return errors.New("Duplicate account ID, reactivate subscription at GCP Launcher")
-		}
-		return err
-	}
+	o.GCP = d.gcpSubscriptions[accountID]
 
-	// Setting platform/env here disables to select anything else in the frontend,
-	// which is what we want.
+	// Hardcode platform/env here, that's what we expect the user to have.
+	// It also skips the platform/env tab during the onboarding process.
 	o.Platform = "kubernetes"
 	o.Environment = "gke"
 
@@ -466,29 +500,5 @@ func (d *DB) AddGCPToOrganization(ctx context.Context, externalID, accountID, co
 		o.FeatureFlags = append(o.FeatureFlags, users.BillingFeatureFlag)
 	}
 
-	o.GCP = &users.GCPSubscription{
-		CreatedAt:         now,
-		Active:            false,
-		AccountID:         accountID,
-		ConsumerID:        consumerID,
-		SubscriptionName:  subscriptionName,
-		SubscriptionLevel: subscriptionLevel,
-	}
-	return nil
-}
-
-func (d *DB) UpdateOrganizationGCP(_ context.Context, externalID, consumerID, subscriptionName, subscriptionLevel string) error {
-	d.mtx.Lock()
-	defer d.mtx.Unlock()
-
-	o, err := d.findOrganizationByExternalID(externalID)
-	if err != nil && err != users.ErrNotFound {
-		return nil
-	}
-
-	o.GCP.Active = true // Updating means activating
-	o.GCP.ConsumerID = consumerID
-	o.GCP.SubscriptionName = subscriptionName
-	o.GCP.SubscriptionLevel = subscriptionLevel
 	return nil
 }

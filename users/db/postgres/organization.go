@@ -495,10 +495,18 @@ func (d DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number st
 	return err
 }
 
-func (d DB) AddGCPToOrganization(ctx context.Context, externalID, accountID, consumerID, subscriptionName, subscriptionLevel string) error {
+func (d DB) CreateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.GoogleCloudPlatform, error) {
+	return nil, errors.New("notyetimplemented")
+}
+
+func (d DB) GetGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
+	return nil, errors.New("notyetimplemented")
+}
+
+func (d DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error {
 	return errors.New("notyetimplemented")
 }
 
-func (d DB) UpdateOrganizationGCP(ctx context.Context, externalID, consumerID, subscriptionName, subscriptionLevel string) error {
+func (d DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string) error {
 	return errors.New("notyetimplemented")
 }

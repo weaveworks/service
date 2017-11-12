@@ -24,25 +24,24 @@ type MessageHandler struct {
 
 // Handle processes the message for a subscription. It fetches organization and the
 func (m MessageHandler) Handle(msg dto.Message) error {
+	ctx := context.Background()
 	gcpAccountID := msg.Attributes[externalAccountIDKey]
 	subscriptionName := msg.Attributes[subscriptionNameKey]
 
-	// Fetch respective organization
-	resp, err := m.Users.GetOrganization(context.Background(), &users.GetOrganizationRequest{
-		ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: gcpAccountID},
-	})
+
+	resp, err := m.Users.GetGCP(ctx, &users.GetGCPRequest{AccountID: gcpAccountID})
 	if err != nil {
-		return fmt.Errorf("cannot find organization with GCP account ID: %v", gcpAccountID)
+		return fmt.Errorf("cannot find account: %v", gcpAccountID)
 	}
-	org := resp.Organization
+	gcp := resp.GCP
 
 	// Activation.
-	if !org.GCP.Active {
-		log.Infof("GCP account has not yet been activated, ignoring message for org: %v", org.ExternalID)
+	if !gcp.Active {
+		log.Infof("account %v is inactive, ignoring message for subscription: %v", gcpAccountID, subscriptionName)
 		return nil // ACK
 	}
 
-	sub, subs, err := m.getSubscriptions(gcpAccountID, subscriptionName)
+	sub, subs, err := m.getSubscriptions(ctx, gcpAccountID, subscriptionName)
 	if err != nil {
 		return err
 	}
@@ -57,7 +56,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 			}
 		}
 		if !hasPending {
-			return m.cancelSubscription(org, sub)
+			return m.cancelSubscription(ctx, sub)
 		}
 	}
 
@@ -67,7 +66,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	// - reactivation after cancellation: no other active subscription
 	// - changing of plan: has other active subscription
 	if sub.Status == partner.StatusPending {
-		return m.updateSubscription(org, sub)
+		return m.updateSubscription(ctx, sub)
 	}
 
 	if sub.Status == partner.StatusActive {
@@ -77,7 +76,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 		return nil
 	}
 
-	log.Warnf("Did not process subscription update for org %v: %+v\nAll: %+v", org.ExternalID, *sub, subs)
+	log.Warnf("Did not process subscription update: %+v\nAll: %+v", *sub, subs)
 	return nil // ACK unknown messages
 }
 
@@ -92,16 +91,24 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 //       retry on failure, otherwise subscriptions might get out of sync
 // return: ack.
 // post: new subscription --> ACTIVE
-func (m MessageHandler) updateSubscription(org users.Organization, sub *partner.Subscription) error {
-	ctx := context.Background()
-
+func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Subscription) error {
 	// Set organization subscription
 	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
 	_ = level
 	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
 	_ = consumerID
 
-	// FIXME(rndstr): m.Users.UpdateOrganizationGCP(org.ExternalID, consumerID, approved.Name, level)
+	_, err := m.Users.UpdateGCP(ctx, &users.UpdateGCPRequest{
+		GCP: &users.GoogleCloudPlatform{
+			AccountID: sub.ExternalAccountID,
+			ConsumerID: consumerID,
+			SubscriptionName: sub.Name,
+			SubscriptionLevel: level,
+		},
+	})
+	if err != nil {
+		return err
+	}
 
 	// Approve subscription
 	body := partner.RequestBodyWithSSOLoginKey(sub.ExternalAccountID)
@@ -114,16 +121,23 @@ func (m MessageHandler) updateSubscription(org users.Organization, sub *partner.
 }
 
 // cancelSubscriptions removes the subscription from the organization.
-func (m MessageHandler) cancelSubscription(org users.Organization, sub *partner.Subscription) error {
-	// FIXME(rndstr): m.Users.SetOrganizationGCP(active = false?)
-	// This should keep the AccountID intact so a re-activation picks it up.
-	return nil
+func (m MessageHandler) cancelSubscription(ctx context.Context, sub *partner.Subscription) error {
+	// The account ID is kept intact to detect a customer reactivating their subscription.
+	_, err := m.Users.UpdateGCP(ctx, &users.UpdateGCPRequest{
+		GCP: &users.GoogleCloudPlatform{
+			AccountID: sub.ExternalAccountID,
+			ConsumerID: "",
+			SubscriptionName: "",
+			SubscriptionLevel: "",
+		},
+	})
+	return err
 }
 
 // getSubscriptions fetches all subscriptions of the account. Furthermore, it picks the subscription with the
 // given subscriptionName.
-func (m MessageHandler) getSubscriptions(gcpAccountID string, subscriptionName string) (*partner.Subscription, []partner.Subscription, error) {
-	subs, err := m.Partner.ListSubscriptions(context.Background(), gcpAccountID)
+func (m MessageHandler) getSubscriptions(ctx context.Context, gcpAccountID string, subscriptionName string) (*partner.Subscription, []partner.Subscription, error) {
+	subs, err := m.Partner.ListSubscriptions(ctx, gcpAccountID)
 	if err != nil {
 		return nil, nil, err
 	}

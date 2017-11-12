@@ -15,6 +15,7 @@ type DB struct {
 	deletedOrganizations map[string]*users.Organization
 	memberships          map[string][]string
 	logins               map[string]*login.Login
+	gcpSubscriptions     map[string]*users.GoogleCloudPlatform // map[accountID]GCP
 	passwordHashingCost  int
 	mtx                  sync.Mutex
 }
