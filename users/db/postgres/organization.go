@@ -497,21 +497,63 @@ func (d DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number st
 
 // CreateGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
 func (d DB) CreateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.GoogleCloudPlatform, error) {
-	return nil, errors.New("notyetimplemented")
+	now := d.Now()
+	gcp := &users.GoogleCloudPlatform{
+		AccountID: accountID,
+		CreatedAt: now,
+		ConsumerID: consumerID,
+		SubscriptionName: subscriptionName,
+		SubscriptionLevel: subscriptionLevel,
+	}
+	err := d.QueryRow(`insert into gcp_subscriptions
+			(account_id, created_at, consumer_id, subscription_name, subscription_level)
+			values ($1, $2, $3, $4, $5) returning id`,
+				gcp.AccountID, gcp.CreatedAt, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel).
+				Scan(&gcp.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return gcp, nil
 }
 
 // GetGCP returns the Google Cloud Platform subscription for the given account.
 func (d DB) GetGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
-	return nil, errors.New("notyetimplemented")
+	var gcp users.GoogleCloudPlatform
+	err := d.QueryRow(
+		`select id, account_id, active, created_at, consumer_id, subscription_name, subscription_level
+		from gcp_subscriptions
+		where account_id = $1`,
+		accountID,
+	).Scan(&gcp.ID, &gcp.AccountID, &gcp.Active, &gcp.CreatedAt, &gcp.ConsumerID, &gcp.SubscriptionName, &gcp.SubscriptionLevel)
+	if err != nil {
+		return nil, err
+	}
+	return &gcp, nil
 }
 
 // UpdateGCP updates a Google Cloud Platform subscription.
 func (d DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error {
-	return errors.New("notyetimplemented")
+	_, err := d.Exec(
+		`update gcp_subscriptions
+		set account_id = $1, active = $2, consumer_id = $3, subscription_name = $4, subscription_level = $5
+		where account_id = $6`,
+		accountID, active, consumerID, subscriptionName, subscriptionLevel, accountID,
+	)
+	return err
 }
 
 // SetOrganizationGCP attaches a Google Cloud Platform subscription to an organization.
 // It also enables the billing feature flag and sets platform/env.
 func (d DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string) error {
-	return errors.New("notyetimplemented")
+	gcp, err := d.GetGCP(ctx, accountID)
+	if err != nil {
+		return err
+	}
+	_, err = d.Exec(
+		`update organizations set gcp_subscription_id = $1 where external_id = $2 deleted_at is null`,
+		gcp.ID, externalID,
+	)
+
+	return err
 }
