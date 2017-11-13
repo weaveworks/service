@@ -95,6 +95,9 @@ func main() {
 	logins.Flags(flag.CommandLine)
 	partnerCfg.RegisterFlags(flag.CommandLine)
 
+	partnerAccess := partner.NewAccess()
+	partnerAccess.Flags(flag.CommandLine)
+
 	flag.Parse()
 
 	if err := logging.Setup(*logLevel); err != nil {
@@ -167,6 +170,7 @@ func main() {
 		webhookTokenMap,
 		mixpanelClient,
 		partnerClient,
+		partnerAccess,
 		*fluxStatusAPI,
 		*scopeProbesAPI,
 		*promMetricsAPI,

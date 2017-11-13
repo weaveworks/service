@@ -126,6 +126,7 @@ func (m MessageHandler) cancelSubscription(ctx context.Context, sub *partner.Sub
 			SubscriptionLevel: "",
 		},
 	})
+	// TODO(rndstr): do we want to refuse data access/upload here?
 	return err
 }
 

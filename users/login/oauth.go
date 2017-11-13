@@ -108,6 +108,7 @@ func (a *OAuth) decodeState(raw string) (map[string]string, error) {
 	return m, json.Unmarshal(j, &m)
 }
 
+// VerifyState validates the token found within the state query param.
 func (a *OAuth) VerifyState(r *http.Request) (map[string]string, bool) {
 	state, err := a.decodeState(r.FormValue("state"))
 	if err != nil {

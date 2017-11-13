@@ -17,21 +17,12 @@ type subscribeRequest struct {
 	GCPAccountID string `json:"gcpAccountId"`
 }
 
-var access *partner.Access
-
-func init() {
-	access = partner.NewAccess()
-	access.Config.ClientID = "323808423072-m0nrvqj6h5k302gp55mej4nq0k1ossij.apps.googleusercontent.com"
-	access.Config.ClientSecret = "LWsytKd4BXhGHrMxoX4n0d7V"
-	access.Config.RedirectURL = "http://localhost:4046/subscribe-via/gcp"
-}
-
 func organizationName(externalID string) string {
 	return strings.Title(strings.Replace(externalID, "-", " ", -1))
 }
 
 func (a *API) gcpAccess(w http.ResponseWriter, r *http.Request) {
-	link, ok := access.Link(r)
+	link, ok := a.partnerAccess.Link(r)
 	if !ok {
 		render.Error(w, r, errors.New("invalid token"))
 	}
@@ -39,7 +30,7 @@ func (a *API) gcpAccess(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	state, ok := access.VerifyState(r)
+	state, ok := a.partnerAccess.VerifyState(r)
 	if !ok {
 		render.Error(w, r, errors.New("oauth state value did not match"))
 	}
@@ -51,7 +42,7 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 		return
 	}
 
-	sub, err := access.RequestSubscription(r.Context(), r, subName)
+	sub, err := a.partnerAccess.RequestSubscription(r.Context(), r, subName)
 	if err != nil {
 		render.Error(w, r, err)
 		return

@@ -50,6 +50,7 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, promAPI, netAPI stri
 	logins = login.NewProviders()
 	mixpanelClient := marketing.NewMixpanelClient("")
 	var partnerClient partner.API
+	partnerAccess := partner.NewAccess()
 
 	sentEmails = nil
 	emailer := emailer.SMTPEmailer{
@@ -76,6 +77,7 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, promAPI, netAPI stri
 		make(map[string]struct{}),
 		mixpanelClient,
 		partnerClient,
+		partnerAccess,
 		fluxAPI,
 		scopeAPI,
 		promAPI,
