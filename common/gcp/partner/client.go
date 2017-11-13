@@ -181,11 +181,11 @@ func NewClient(cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewClientFromJsonKey(cfg, jsonKey)
+	return NewClientFromJSONKey(cfg, jsonKey)
 }
 
 // NewClientFromJSONKey instantiates a client from the given JSON key.
-func NewClientFromJsonKey(cfg Config, jsonKey []byte) (*Client, error) {
+func NewClientFromJSONKey(cfg Config, jsonKey []byte) (*Client, error) {
 	// Create oauth2 HTTP client from the given service account key JSON
 	jwtConf, err := google.JWTConfigFromJSON(jsonKey, oauthScope)
 	if err != nil {

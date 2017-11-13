@@ -96,9 +96,9 @@ func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Sub
 
 	_, err := m.Users.UpdateGCP(ctx, &users.UpdateGCPRequest{
 		GCP: &users.GoogleCloudPlatform{
-			AccountID: sub.ExternalAccountID,
-			ConsumerID: consumerID,
-			SubscriptionName: sub.Name,
+			AccountID:         sub.ExternalAccountID,
+			ConsumerID:        consumerID,
+			SubscriptionName:  sub.Name,
 			SubscriptionLevel: level,
 		},
 	})
@@ -120,9 +120,9 @@ func (m MessageHandler) cancelSubscription(ctx context.Context, sub *partner.Sub
 	// The account ID is kept intact to detect a customer reactivating their subscription.
 	_, err := m.Users.UpdateGCP(ctx, &users.UpdateGCPRequest{
 		GCP: &users.GoogleCloudPlatform{
-			AccountID: sub.ExternalAccountID,
-			ConsumerID: "",
-			SubscriptionName: "",
+			AccountID:         sub.ExternalAccountID,
+			ConsumerID:        "",
+			SubscriptionName:  "",
 			SubscriptionLevel: "",
 		},
 	})

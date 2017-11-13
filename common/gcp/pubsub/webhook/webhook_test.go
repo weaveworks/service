@@ -33,7 +33,7 @@ func TestWebhook_bodyFail(t *testing.T) {
 
 func TestWebhook_fail(t *testing.T) {
 	rec := doRequest(t, &handler{err: errors.New("boom")}, `{}`)
-	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
 func doRequest(t *testing.T, h webhook.MessageHandler, js string) *httptest.ResponseRecorder {

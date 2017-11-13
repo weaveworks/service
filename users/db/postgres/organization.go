@@ -499,17 +499,17 @@ func (d DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number st
 func (d DB) CreateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.GoogleCloudPlatform, error) {
 	now := d.Now()
 	gcp := &users.GoogleCloudPlatform{
-		AccountID: accountID,
-		CreatedAt: now,
-		ConsumerID: consumerID,
-		SubscriptionName: subscriptionName,
+		AccountID:         accountID,
+		CreatedAt:         now,
+		ConsumerID:        consumerID,
+		SubscriptionName:  subscriptionName,
 		SubscriptionLevel: subscriptionLevel,
 	}
 	err := d.QueryRow(`insert into gcp_subscriptions
 			(account_id, created_at, consumer_id, subscription_name, subscription_level)
 			values ($1, $2, $3, $4, $5) returning id`,
-				gcp.AccountID, gcp.CreatedAt, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel).
-				Scan(&gcp.ID)
+		gcp.AccountID, gcp.CreatedAt, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel).
+		Scan(&gcp.ID)
 	if err != nil {
 		return nil, err
 	}

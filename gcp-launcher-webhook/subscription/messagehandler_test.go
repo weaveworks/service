@@ -109,14 +109,14 @@ func TestMessageHandler_Handle_cancel(t *testing.T) {
 	p := &partnerMock{
 		subscriptions: []partner.Subscription{
 			{ // this one has been canceled
-				Name:   "partnerSubscriptions/1",
+				Name:              "partnerSubscriptions/1",
 				ExternalAccountID: "acc123",
-				Status: partner.Complete,
+				Status:            partner.Complete,
 			},
 			{ // a previously canceled subscription
-				Name:   "partnerSubscriptions/99",
+				Name:              "partnerSubscriptions/99",
 				ExternalAccountID: "acc123",
-				Status: partner.Complete,
+				Status:            partner.Complete,
 			},
 		},
 	}
@@ -149,9 +149,9 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 	p := &partnerMock{
 		subscriptions: []partner.Subscription{
 			{
-				Name:   "partnerSubscriptions/1",
+				Name:              "partnerSubscriptions/1",
 				ExternalAccountID: "acc123",
-				Status: partner.Pending,
+				Status:            partner.Pending,
 				SubscribedResources: []partner.SubscribedResource{
 					{
 						SubscriptionProvider: "weaveworks-public-cloudmarketplacepartner.googleapis.com",
@@ -164,9 +164,9 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 				},
 			},
 			{
-				Name:   "partnerSubscriptions/99",
+				Name:              "partnerSubscriptions/99",
 				ExternalAccountID: "acc123",
-				Status: partner.Complete,
+				Status:            partner.Complete,
 			},
 		},
 	}

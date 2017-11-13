@@ -7,8 +7,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/common/gcp/pubsub/dto"
-	"github.com/weaveworks/service/users/render"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/render"
 )
 
 // New returns a http.Handler configured to be able to handle Google Pub/Sub events.
