@@ -15,6 +15,7 @@
 package bigquery
 
 import (
+	"fmt"
 	"testing"
 
 	"cloud.google.com/go/internal/testutil"
@@ -26,7 +27,7 @@ import (
 
 func defaultQueryJob() *bq.Job {
 	return &bq.Job{
-		JobReference: &bq.JobReference{JobId: "RANDOM", ProjectId: "client-project-id"},
+		JobReference: &bq.JobReference{ProjectId: "client-project-id"},
 		Configuration: &bq.JobConfiguration{
 			Query: &bq.JobConfigurationQuery{
 				DestinationTable: &bq.TableReference{
@@ -39,15 +40,12 @@ func defaultQueryJob() *bq.Job {
 					ProjectId: "def-project-id",
 					DatasetId: "def-dataset-id",
 				},
-				UseLegacySql:    false,
-				ForceSendFields: []string{"UseLegacySql"},
 			},
 		},
 	}
 }
 
 func TestQuery(t *testing.T) {
-	defer fixRandomJobID("RANDOM")()
 	c := &Client{
 		projectID: "client-project-id",
 	}
@@ -69,20 +67,6 @@ func TestQuery(t *testing.T) {
 			want: func() *bq.Job {
 				j := defaultQueryJob()
 				j.Configuration.Query.DefaultDataset = nil
-				return j
-			}(),
-		},
-		{
-			dst: c.Dataset("dataset-id").Table("table-id"),
-			src: &QueryConfig{
-				Q:              "query string",
-				JobID:          "jobID",
-				AddJobIDSuffix: true,
-			},
-			want: func() *bq.Job {
-				j := defaultQueryJob()
-				j.Configuration.Query.DefaultDataset = nil
-				j.JobReference.JobId = "jobID-RANDOM"
 				return j
 			}(),
 		},
@@ -262,20 +246,10 @@ func TestQuery(t *testing.T) {
 				DefaultDatasetID: "def-dataset-id",
 				UseStandardSQL:   true,
 			},
-			want: defaultQueryJob(),
-		},
-		{
-			dst: c.Dataset("dataset-id").Table("table-id"),
-			src: &QueryConfig{
-				Q:                "query string",
-				DefaultProjectID: "def-project-id",
-				DefaultDatasetID: "def-dataset-id",
-				UseLegacySQL:     true,
-			},
 			want: func() *bq.Job {
 				j := defaultQueryJob()
-				j.Configuration.Query.UseLegacySql = true
-				j.Configuration.Query.ForceSendFields = nil
+				j.Configuration.Query.UseLegacySql = false
+				j.Configuration.Query.ForceSendFields = []string{"UseLegacySql"}
 				return j
 			}(),
 		},
@@ -316,8 +290,6 @@ func TestConfiguringQuery(t *testing.T) {
 					ProjectId: "def-project-id",
 					DatasetId: "def-dataset-id",
 				},
-				UseLegacySql:    false,
-				ForceSendFields: []string{"UseLegacySql"},
 			},
 		},
 		JobReference: &bq.JobReference{
@@ -329,8 +301,8 @@ func TestConfiguringQuery(t *testing.T) {
 	if _, err := query.Run(context.Background()); err != nil {
 		t.Fatalf("err calling Query.Run: %v", err)
 	}
-	if diff := testutil.Diff(s.Job, want); diff != "" {
-		t.Errorf("querying: -got +want:\n%s", diff)
+	if !testutil.Equal(s.Job, want) {
+		t.Errorf("querying: got:\n%v\nwant:\n%v", s.Job, want)
 	}
 }
 
@@ -352,5 +324,7 @@ func TestQueryLegacySQL(t *testing.T) {
 	_, err = q.Run(context.Background())
 	if err == nil {
 		t.Error("Parameters and UseLegacySQL: got nil, want error")
+	} else {
+		fmt.Println(err)
 	}
 }

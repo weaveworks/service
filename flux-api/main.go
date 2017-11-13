@@ -10,10 +10,13 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 
 	"github.com/weaveworks/flux/event"
+	"github.com/weaveworks/service/common/tracing"
 	"github.com/weaveworks/service/flux-api/bus"
 	"github.com/weaveworks/service/flux-api/bus/nats"
 	"github.com/weaveworks/service/flux-api/config"
@@ -31,6 +34,10 @@ const shutdownTimeout = 30 * time.Second
 var version string
 
 func main() {
+
+	traceCloser := tracing.Init("flux-api")
+	defer traceCloser.Close()
+
 	// Flag domain.
 	fs := pflag.NewFlagSet("default", pflag.ExitOnError)
 	fs.Usage = func() {
@@ -169,7 +176,10 @@ func main() {
 		handler := httpserver.NewHandler(server, httpserver.NewServiceRouter(), logger)
 		mux.Handle("/", handler)
 		mux.Handle("/api/flux/", http.StripPrefix("/api/flux", handler))
-		errc <- http.ListenAndServe(*listenAddr, mux)
+		operationNameFunc := nethttp.OperationNameFunc(func(r *http.Request) string {
+			return r.URL.RequestURI()
+		})
+		errc <- http.ListenAndServe(*listenAddr, nethttp.Middleware(opentracing.GlobalTracer(), mux, operationNameFunc))
 	}()
 
 	logger.Log("exiting", <-errc)

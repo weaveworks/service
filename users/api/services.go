@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/weaveworks/common/instrument"
@@ -264,7 +266,8 @@ func timeRequest(ctx context.Context, serviceName string, f func(context.Context
 }
 
 var netClient = &http.Client{
-	Timeout: time.Second * 10,
+	Timeout:   time.Second * 10,
+	Transport: &nethttp.Transport{},
 }
 
 func doRequest(ctx context.Context, serviceName string, url string) (*http.Response, error) {
@@ -279,6 +282,10 @@ func doRequest(ctx context.Context, serviceName string, url string) (*http.Respo
 		if err != nil {
 			return err
 		}
+
+		req = req.WithContext(ctx)
+		req, ht := nethttp.TraceRequest(opentracing.GlobalTracer(), req)
+		defer ht.Finish()
 
 		resp, err = netClient.Do(req)
 		if err != nil {

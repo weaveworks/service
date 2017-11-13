@@ -445,12 +445,15 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/admin/dev-grafana", // this causes the CSRF token & cookie to be re-issued, breaking UI requests.
 		"/admin/prod-grafana",
 	)
+	operationNameFunc := nethttp.OperationNameFunc(func(r *http.Request) string {
+		return r.URL.RequestURI()
+	})
 	return middleware.Merge(
 		AuthHeaderStrippingMiddleware{},
 		originCheckerMiddleware{expectedTarget: c.targetOrigin},
 		csrfTokenVerifier{exemptPrefixes: csrfExemptPrefixes, secure: c.secureCookie},
 		middleware.Func(func(handler http.Handler) http.Handler {
-			return nethttp.Middleware(opentracing.GlobalTracer(), handler)
+			return nethttp.Middleware(opentracing.GlobalTracer(), handler, operationNameFunc)
 		}),
 		c.commonMiddleWare(r),
 	).Wrap(r), nil
