@@ -104,10 +104,12 @@ func (MockClient) NotifyTrialExpired(ctx context.Context, in *users.NotifyTrialE
 	return &users.NotifyTrialExpiredResponse{}, nil
 }
 
+// GetGCP returns the Google Cloud Platform entry.
 func (MockClient) GetGCP(ctx context.Context, in *users.GetGCPRequest, opts ...grpc.CallOption) (*users.GetGCPResponse, error) {
 	return &users.GetGCPResponse{}, nil
 }
 
+// UpdateGCP updates the Google Cloud Platform entry.
 func (MockClient) UpdateGCP(ctx context.Context, in *users.UpdateGCPRequest, opts ...grpc.CallOption) (*users.UpdateGCPResponse, error) {
 	return &users.UpdateGCPResponse{}, nil
 }

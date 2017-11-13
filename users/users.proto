@@ -42,7 +42,9 @@ service Users {
     // omit `ZuoraAccountCreatedAt` it will be automatically updated to now.
     rpc SetOrganizationZuoraAccount(SetOrganizationZuoraAccountRequest) returns (SetOrganizationZuoraAccountResponse) {};
 
+    // GetGCP returns the Google Cloud Platform entry.
     rpc GetGCP(GetGCPRequest) returns (GetGCPResponse) {};
+    // UpdateGCP updates the Google Cloud Platform entry.
     rpc UpdateGCP(UpdateGCPRequest) returns (UpdateGCPResponse) {};
 
     // GetUser returns details for a user

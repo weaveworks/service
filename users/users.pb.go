@@ -2892,7 +2892,9 @@ type UsersClient interface {
 	// be called when changed which denotes that an account has been created. If you
 	// omit `ZuoraAccountCreatedAt` it will be automatically updated to now.
 	SetOrganizationZuoraAccount(ctx context.Context, in *SetOrganizationZuoraAccountRequest, opts ...grpc.CallOption) (*SetOrganizationZuoraAccountResponse, error)
+	// GetGCP returns the Google Cloud Platform entry.
 	GetGCP(ctx context.Context, in *GetGCPRequest, opts ...grpc.CallOption) (*GetGCPResponse, error)
+	// UpdateGCP updates the Google Cloud Platform entry.
 	UpdateGCP(ctx context.Context, in *UpdateGCPRequest, opts ...grpc.CallOption) (*UpdateGCPResponse, error)
 	// GetUser returns details for a user
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
@@ -3088,7 +3090,9 @@ type UsersServer interface {
 	// be called when changed which denotes that an account has been created. If you
 	// omit `ZuoraAccountCreatedAt` it will be automatically updated to now.
 	SetOrganizationZuoraAccount(context.Context, *SetOrganizationZuoraAccountRequest) (*SetOrganizationZuoraAccountResponse, error)
+	// GetGCP returns the Google Cloud Platform entry.
 	GetGCP(context.Context, *GetGCPRequest) (*GetGCPResponse, error)
+	// UpdateGCP updates the Google Cloud Platform entry.
 	UpdateGCP(context.Context, *UpdateGCPRequest) (*UpdateGCPResponse, error)
 	// GetUser returns details for a user
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)

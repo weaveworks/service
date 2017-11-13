@@ -40,7 +40,7 @@ func (a *Access) Link(r *http.Request) (login.Link, bool) {
 // to access and download the subscription info.
 func (a *Access) RequestSubscription(ctx context.Context, r *http.Request, name string) (*Subscription, error) {
 	// Request a token from the oauth2 code
-	tok, err := a.Config.Exchange(context.TODO(), r.FormValue("code"))
+	tok, err := a.Config.Exchange(ctx, r.FormValue("code"))
 	if err != nil {
 		return nil, err
 	}

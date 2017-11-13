@@ -12,11 +12,6 @@ import (
 	"github.com/weaveworks/service/users/render"
 )
 
-type subscribeRequest struct {
-	Code         string `json:"code"`
-	GCPAccountID string `json:"gcpAccountId"`
-}
-
 func organizationName(externalID string) string {
 	return strings.Title(strings.Replace(externalID, "-", " ", -1))
 }
@@ -35,7 +30,6 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 		render.Error(w, r, errors.New("oauth state value did not match"))
 	}
 	gcpAccountID := state["gcpAccountId"]
-
 	subName, err := a.getPendingSubscriptionName(r.Context(), gcpAccountID)
 	if err != nil {
 		render.Error(w, r, err)
@@ -74,8 +68,8 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Approve subscription: currently disabled to not "waste" the manually created subscription (approval can't be reversed)
-	/*
+	// Approve subscription
+	/* FIXME: currently disabled to not "waste" the manually created subscription (approval can't be reversed)
 		body := partner.RequestBodyWithSSOLoginKey(gcp.AccountID)
 		_, err = a.partner.ApproveSubscription(r.Context(), sub.Name, body)
 		if err != nil {
