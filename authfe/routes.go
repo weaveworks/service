@@ -324,7 +324,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 
 		// Webhook for events from Google PubSub require authentication through a secret.
 		MiddlewarePrefix{
-			"/gcp-launcher/webhook",
+			"/api/gcp-launcher/webhook",
 			[]PrefixRoutable{
 				Prefix{"/", c.gcpWebhookHost},
 			},
@@ -436,7 +436,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/admin/alertmanager",
 		"/service-ui-kicker",
 		"/api/ui/metrics",
-		"/gcp-launcher/webhook",
+		"/api/gcp-launcher/webhook",
 		"/github-receiver",
 		`/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`, // Regex copy-pasted from users/organization.go
 		"/api/users/signup_webhook",                     // Validated by explicit token in the users service
