@@ -1,9 +1,16 @@
 package client
 
 import (
+	"crypto/sha1"
+	"fmt"
+	"io"
 	"net/http"
+	"path"
+	"regexp"
+	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/user"
@@ -232,4 +239,85 @@ func (a AuthSecretMiddleware) Wrap(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// GCPLoginSecretMiddleware validates incoming GCP SSO requests based on a shared secret.
+type GCPLoginSecretMiddleware struct {
+	Secret string
+}
+
+// Arbitrary minimum value to validate the provided timestamp.
+// In this instance: Mon Nov 13 2017 14:11:32, i.e. way before this service was put in production.
+const minTimestampInMillis = 1510582292911
+
+// Tokenise returns the checksum of SHA1("keyForSsoLogin:secret:timestampInMillis").
+// This is useful to verify the authenticity of incoming requests.
+func (m GCPLoginSecretMiddleware) Tokenise(keyForSsoLogin, timestampInMillis string) string {
+	h := sha1.New()
+	io.WriteString(h, keyForSsoLogin)
+	io.WriteString(h, ":")
+	io.WriteString(h, m.Secret)
+	io.WriteString(h, ":")
+	io.WriteString(h, timestampInMillis)
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+// Wrap implements middleware.Interface
+func (m GCPLoginSecretMiddleware) Wrap(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if status, err := m.validate(r); err != nil {
+			logging.With(r.Context()).Warnf("Unauthorised request: %v", err)
+			http.Error(w, http.StatusText(status), status)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (m GCPLoginSecretMiddleware) validate(r *http.Request) (int, error) {
+	ts, err := validateTimestamp(r.URL.Query().Get("timestamp"))
+	if err != nil {
+		return http.StatusBadRequest, err
+	}
+	token, err := validateToken(r.URL.Query().Get("ssoToken"))
+	if err != nil {
+		return http.StatusBadRequest, err
+	}
+	gcpAccountID, err := validateGCPAccountID(path.Base(r.URL.Path))
+	if err != nil {
+		return http.StatusBadRequest, err
+	}
+	expectedToken := m.Tokenise(gcpAccountID, ts)
+	if token != expectedToken {
+		return http.StatusUnauthorized, fmt.Errorf("invalid token [%v], expected [%v] for request [%v]", token, expectedToken, r)
+	}
+	return http.StatusOK, nil
+}
+
+func validateTimestamp(timestampInMillis string) (string, error) {
+	if len(timestampInMillis) <= 0 {
+		return "", errors.New("empty timestamp")
+	}
+	ts, err := strconv.ParseUint(timestampInMillis, 10, 64)
+	if err != nil {
+		return "", errors.Wrapf(err, "invalid timestamp [%v]: ", timestampInMillis)
+	}
+	if ts <= minTimestampInMillis {
+		return "", fmt.Errorf("invalid timestamp [%v]", timestampInMillis)
+	}
+	return timestampInMillis, nil
+}
+
+func validateToken(token string) (string, error) {
+	if match, _ := regexp.MatchString(`^[0-9A-Fa-f]{40}$`, token); !match {
+		return "", fmt.Errorf("invalid token [%v]: malformed", token)
+	}
+	return token, nil
+}
+
+func validateGCPAccountID(gcpAccountID string) (string, error) {
+	if match, _ := regexp.MatchString(`^[0-9A-Fa-f]{1}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}$`, gcpAccountID); !match {
+		return "", fmt.Errorf("invalid GCP account ID [%v]: malformed", gcpAccountID)
+	}
+	return gcpAccountID, nil
 }
