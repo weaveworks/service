@@ -27,7 +27,7 @@ const (
 	// Complete are subscriptions that are no longer active (i.e., canceled)
 	Complete SubscriptionStatus = "COMPLETE"
 
-	ssoLoginKeyName = "keyForSsoLogin"
+	ssoLoginKeyName = "keyForSSOLogin"
 
 	// ServiceLevelLabelKey is the label suffix on the subscribed resource
 	ServiceLevelLabelKey = "ServiceLevel"
