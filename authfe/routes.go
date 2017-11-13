@@ -330,6 +330,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			},
 			middleware.Merge(
 				gcpWebhookSecretMiddleware,
+				middleware.PathRewrite(regexp.MustCompile("(.*)"), ""),
 				uiHTTPlogger,
 			),
 		},
