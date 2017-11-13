@@ -578,10 +578,7 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string
 			return err
 		}
 
-		if err := tx.AddFeatureFlag(ctx, externalID, users.BillingFeatureFlag); err != nil {
-			return err
-		}
-		return nil
+		return tx.AddFeatureFlag(ctx, externalID, users.BillingFeatureFlag)
 	})
 }
 

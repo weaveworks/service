@@ -140,7 +140,7 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 		UpdateGCP(ctx, &users.UpdateGCPRequest{
 			GCP: &users.GoogleCloudPlatform{
 				AccountID:         "acc123",
-				ConsumerID:        "consumer123",
+				ConsumerID:        "project_number:123",
 				SubscriptionName:  "partnerSubscriptions/1",
 				SubscriptionLevel: "enterprise",
 			}}).
@@ -158,7 +158,7 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 						Resource:             "weave-cloud",
 						Labels: map[string]string{
 							"weaveworks-public-cloudmarketplacepartner.googleapis.com/ServiceLevel": "enterprise",
-							"weaveworks-public-cloudmarketplacepartner.googleapis.com/ConsumerId":   "consumer123",
+							"consumerId": "project_number:123",
 						},
 					},
 				},

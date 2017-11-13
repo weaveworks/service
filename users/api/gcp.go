@@ -39,6 +39,10 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 
 	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
 	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
+	if consumerID == "" {
+		render.Error(w, r, errors.New("no consumer ID found"))
+		return
+	}
 	org, gcp, err := a.db.CreateOrganizationWithGCP(r.Context(), currentUser.ID, gcpAccountID, consumerID, sub.Name, level)
 	if err != nil {
 		render.Error(w, r, err)

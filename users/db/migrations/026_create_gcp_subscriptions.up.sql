@@ -1,7 +1,7 @@
 CREATE SEQUENCE gcp_subscriptions_id_seq;
 CREATE TABLE IF NOT EXISTS gcp_subscriptions (
   id                 text PRIMARY KEY NOT NULL DEFAULT nextval('gcp_subscriptions_id_seq'),
-  account_id         text not null,
+  account_id         text,
   active             boolean default false,
   created_at         timestamp with time zone not null default now(),
   consumer_id        text,

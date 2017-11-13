@@ -32,8 +32,7 @@ const (
 	// ServiceLevelLabelKey is the label suffix on the subscribed resource
 	ServiceLevelLabelKey = "ServiceLevel"
 	// ConsumerIDLabelKey is the label suffix on the subscribed resource
-	// FIXME(rndstr): confirm this is the proper way once we have access to a subscription created through the launcher
-	ConsumerIDLabelKey = "ConsumerId"
+	ConsumerIDLabelKey = "consumerId"
 )
 
 const (
@@ -95,21 +94,27 @@ type SubscribedResource struct {
 	SubscriptionProvider string            `json:"subscriptionProvider"`
 }
 
-// ExtractResourceLabel returns the value of key under given resource. It prefixes the
-// key with the Subscription Provider it finds in the resource object.
+// ExtractResourceLabel returns the value of key under given resource. It also attempts to
+// prefix the key with the Subscription Provider if it can't find it by its own.
 //
 // Example resource:
 // {
 // 		"subscriptionProvider": "weaveworks-public-cloudmarketplacepartner.googleapis.com",
 // 		"resource": "weave-cloud",
 // 		"labels": {
+//			"consumerId":"project_number:347113080196",
+//			"serviceName":"staging.google.weave.works",
 // 			"weaveworks-public-cloudmarketplacepartner.googleapis.com/ServiceLevel": "standard"
 // 		}
 // 	}
 func (s Subscription) ExtractResourceLabel(resource, key string) string {
 	for _, res := range s.SubscribedResources {
 		if res.Resource == resource {
-			return res.Labels[fmt.Sprintf("%s/%s", res.SubscriptionProvider, key)]
+			value, ok := res.Labels[key]
+			if !ok {
+				value = res.Labels[fmt.Sprintf("%s/%s", res.SubscriptionProvider, key)]
+			}
+			return value
 		}
 	}
 	return ""
