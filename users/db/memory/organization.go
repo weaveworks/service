@@ -432,25 +432,32 @@ func (d *DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number s
 	})
 }
 
-// CreateGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
-func (d *DB) CreateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.GoogleCloudPlatform, error) {
-	d.mtx.Lock()
-	defer d.mtx.Unlock()
+// CreateOrganizationWithGCP creates an organization as well as a GCP subscription, then links them together.
+func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.Organization, *users.GoogleCloudPlatform, error) {
+	var org *users.Organization
+	var gcp *users.GoogleCloudPlatform
+	externalID, err := d.GenerateOrganizationExternalID(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	name := users.DefaultOrganizationName(externalID)
+	org, err = d.CreateOrganization(ctx, ownerID, externalID, name, "")
+	if err != nil {
+		return nil, nil, err
+	}
 
-	if _, exists := d.gcpSubscriptions[accountID]; exists {
-		// If account is already known, Google either sent as a duplicate or we wrongfully called this method.
-		return nil, errors.New("Account is already in use, reactivate subscription in the launcher")
+	// Create and attach inactive GCP subscription to the organization
+	gcp, err = d.createGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel)
+	if err != nil {
+		return nil, nil, err
 	}
-	gcp := &users.GoogleCloudPlatform{
-		ID:                fmt.Sprint(len(d.gcpSubscriptions)),
-		AccountID:         accountID,
-		Active:            false,
-		ConsumerID:        consumerID,
-		SubscriptionName:  subscriptionName,
-		SubscriptionLevel: subscriptionLevel,
+
+	err = d.SetOrganizationGCP(ctx, externalID, accountID)
+	if err != nil {
+		return nil, nil, err
 	}
-	d.gcpSubscriptions[accountID] = gcp
-	return gcp, nil
+
+	return org, gcp, nil
 }
 
 // GetGCP returns the Google Cloud Platform subscription for the given account.
@@ -507,4 +514,25 @@ func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, accountID strin
 	}
 
 	return nil
+}
+
+// CreateGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
+func (d *DB) createGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.GoogleCloudPlatform, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+
+	if _, exists := d.gcpSubscriptions[accountID]; exists {
+		// If account is already known, Google either sent as a duplicate or we wrongfully called this method.
+		return nil, errors.New("Account is already in use, reactivate subscription in the launcher")
+	}
+	gcp := &users.GoogleCloudPlatform{
+		ID:                fmt.Sprint(len(d.gcpSubscriptions)),
+		AccountID:         accountID,
+		Active:            false,
+		ConsumerID:        consumerID,
+		SubscriptionName:  subscriptionName,
+		SubscriptionLevel: subscriptionLevel,
+	}
+	d.gcpSubscriptions[accountID] = gcp
+	return gcp, nil
 }

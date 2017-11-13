@@ -174,6 +174,6 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 	err := mh.Handle(msgFoo)
 	assert.NoError(t, err)
 	assert.True(t, p.approved)
-	assert.Equal(t, "acc123", p.body.Labels["keyForSsoLogin"])
+	assert.Equal(t, "acc123", p.body.Labels["keyForSSOLogin"])
 	assert.False(t, p.denied)
 }

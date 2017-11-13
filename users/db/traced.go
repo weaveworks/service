@@ -191,9 +191,11 @@ func (t traced) SetOrganizationZuoraAccount(ctx context.Context, externalID, num
 	return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)
 }
 
-func (t traced) CreateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (gcp *users.GoogleCloudPlatform, err error) {
-	defer func() { t.trace("CreateGCP", accountID, consumerID, subscriptionName, subscriptionLevel, gcp, err) }()
-	return t.d.CreateGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel)
+func (t traced) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (org *users.Organization, gcp *users.GoogleCloudPlatform, err error) {
+	defer func() {
+		t.trace("CreateOrganizationWithGCP", ownerID, accountID, consumerID, subscriptionName, subscriptionLevel, org, gcp, err)
+	}()
+	return t.d.CreateOrganizationWithGCP(ctx, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel)
 }
 
 func (t traced) GetGCP(ctx context.Context, accountID string) (gcp *users.GoogleCloudPlatform, err error) {

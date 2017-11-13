@@ -495,26 +495,38 @@ func (d DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number st
 	return err
 }
 
-// CreateGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
-func (d DB) CreateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.GoogleCloudPlatform, error) {
-	now := d.Now()
-	gcp := &users.GoogleCloudPlatform{
-		AccountID:         accountID,
-		CreatedAt:         now,
-		ConsumerID:        consumerID,
-		SubscriptionName:  subscriptionName,
-		SubscriptionLevel: subscriptionLevel,
-	}
-	err := d.QueryRow(`insert into gcp_subscriptions
-			(account_id, created_at, consumer_id, subscription_name, subscription_level)
-			values ($1, $2, $3, $4, $5) returning id`,
-		gcp.AccountID, gcp.CreatedAt, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel).
-		Scan(&gcp.ID)
+// CreateOrganizationWithGCP creates an organization as well as a GCP subscription, then links them together.
+func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.Organization, *users.GoogleCloudPlatform, error) {
+	var org *users.Organization
+	var gcp *users.GoogleCloudPlatform
+	err := d.Transaction(func(DB) error {
+		externalID, err := d.GenerateOrganizationExternalID(ctx)
+		if err != nil {
+			return err
+		}
+		name := users.DefaultOrganizationName(externalID)
+		org, err = d.CreateOrganization(ctx, ownerID, externalID, name, "")
+		if err != nil {
+			return err
+		}
+
+		// Create and attach inactive GCP subscription to the organization
+		gcp, err = d.createGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel)
+		if err != nil {
+			return err
+		}
+
+		err = d.SetOrganizationGCP(ctx, externalID, accountID)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return gcp, nil
+	return org, gcp, nil
 }
 
 // GetGCP returns the Google Cloud Platform subscription for the given account.
@@ -551,9 +563,31 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string
 		return err
 	}
 	_, err = d.Exec(
-		`update organizations set gcp_subscription_id = $1 where external_id = $2 deleted_at is null`,
+		`update organizations set gcp_subscription_id = $1 where external_id = $2 and deleted_at is null`,
 		gcp.ID, externalID,
 	)
 
 	return err
+}
+
+// createGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
+func (d DB) createGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.GoogleCloudPlatform, error) {
+	now := d.Now()
+	gcp := &users.GoogleCloudPlatform{
+		AccountID:         accountID,
+		CreatedAt:         now,
+		ConsumerID:        consumerID,
+		SubscriptionName:  subscriptionName,
+		SubscriptionLevel: subscriptionLevel,
+	}
+	err := d.QueryRow(`insert into gcp_subscriptions
+			(account_id, created_at, consumer_id, subscription_name, subscription_level)
+			values ($1, $2, $3, $4, $5) returning id`,
+		gcp.AccountID, gcp.CreatedAt, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel).
+		Scan(&gcp.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return gcp, nil
 }

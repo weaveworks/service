@@ -8,16 +8,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/weaveworks/service/users/db/dbtest"
 )
 
 func Test_Org_BillingProviderGCP(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, org := getOrg(t)
-	gcp, err := database.CreateGCP(context.TODO(), "acc", "cons", "sub/1", "standard")
-	assert.NoError(t, err)
-	err = database.SetOrganizationGCP(context.TODO(), org.ExternalID, gcp.AccountID)
+	user := dbtest.GetUser(t, database)
+	org, _, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, "acc", "cons", "sub/1", "standard")
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()

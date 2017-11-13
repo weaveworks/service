@@ -2,6 +2,7 @@ package users
 
 import (
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/weaveworks/service/users/tokens"
@@ -137,4 +138,10 @@ func (o *Organization) BillingProvider() string {
 		return "gcp"
 	}
 	return "zuora"
+}
+
+// DefaultOrganizationName returns the default name which is derived from
+// the externalID.
+func DefaultOrganizationName(externalID string) string {
+	return strings.Title(strings.Replace(externalID, "-", " ", -1))
 }

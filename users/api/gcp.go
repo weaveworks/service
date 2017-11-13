@@ -5,16 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/render"
 )
-
-func organizationName(externalID string) string {
-	return strings.Title(strings.Replace(externalID, "-", " ", -1))
-}
 
 func (a *API) gcpAccess(w http.ResponseWriter, r *http.Request) {
 	link, ok := a.partnerAccess.Link(r)
@@ -42,27 +37,9 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 		return
 	}
 
-	externalID, err := a.db.GenerateOrganizationExternalID(r.Context())
-	if err != nil {
-		render.Error(w, r, err)
-		return
-	}
-	org, err := a.db.CreateOrganization(r.Context(), currentUser.ID, externalID, organizationName(externalID), "")
-	if err != nil {
-		render.Error(w, r, err)
-		return
-	}
-
-	// Create and attach inactive GCP subscription to the organization
 	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
 	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
-	gcp, err := a.db.CreateGCP(r.Context(), gcpAccountID, consumerID, sub.Name, level)
-	if err != nil {
-		render.Error(w, r, err)
-		return
-	}
-
-	err = a.db.SetOrganizationGCP(r.Context(), org.ExternalID, gcp.AccountID)
+	org, gcp, err := a.db.CreateOrganizationWithGCP(r.Context(), currentUser.ID, gcpAccountID, consumerID, sub.Name, level)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -70,12 +47,12 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 
 	// Approve subscription
 	/* FIXME: currently disabled to not "waste" the manually created subscription (approval can't be reversed)
-		body := partner.RequestBodyWithSSOLoginKey(gcp.AccountID)
-		_, err = a.partner.ApproveSubscription(r.Context(), sub.Name, body)
-		if err != nil {
-			render.Error(w, r, err)
-			return
-		}
+	body := partner.RequestBodyWithSSOLoginKey(gcp.AccountID)
+	_, err = a.partner.ApproveSubscription(r.Context(), sub.Name, body)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
 	*/
 
 	// Activate subscription account

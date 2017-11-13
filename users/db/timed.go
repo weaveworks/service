@@ -282,9 +282,9 @@ func (t timed) SetOrganizationZuoraAccount(ctx context.Context, externalID, numb
 	})
 }
 
-func (t timed) CreateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (gcp *users.GoogleCloudPlatform, err error) {
-	t.timeRequest(ctx, "CreateGCP", func(ctx context.Context) error {
-		gcp, err = t.d.CreateGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel)
+func (t timed) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (org *users.Organization, gcp *users.GoogleCloudPlatform, err error) {
+	t.timeRequest(ctx, "CreateOrganizationWithGCP", func(ctx context.Context) error {
+		org, gcp, err = t.d.CreateOrganizationWithGCP(ctx, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel)
 		return err
 	})
 	return

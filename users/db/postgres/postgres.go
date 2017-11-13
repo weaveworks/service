@@ -31,7 +31,7 @@ type dbProxy interface {
 	Prepare(query string) (*sql.Stmt, error)
 }
 
-// New creates a new postgred DB
+// New creates a new postgres DB.
 func New(databaseURI, migrationsDir string, passwordHashingCost int) (DB, error) {
 	u, err := url.Parse(databaseURI)
 	if err != nil {
