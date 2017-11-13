@@ -499,24 +499,24 @@ func (d DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number st
 func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.Organization, *users.GoogleCloudPlatform, error) {
 	var org *users.Organization
 	var gcp *users.GoogleCloudPlatform
-	err := d.Transaction(func(DB) error {
-		externalID, err := d.GenerateOrganizationExternalID(ctx)
+	err := d.Transaction(func(tx DB) error {
+		externalID, err := tx.GenerateOrganizationExternalID(ctx)
 		if err != nil {
 			return err
 		}
 		name := users.DefaultOrganizationName(externalID)
-		org, err = d.CreateOrganization(ctx, ownerID, externalID, name, "")
+		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, "")
 		if err != nil {
 			return err
 		}
 
 		// Create and attach inactive GCP subscription to the organization
-		gcp, err = d.createGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel)
+		gcp, err = tx.createGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel)
 		if err != nil {
 			return err
 		}
 
-		err = d.SetOrganizationGCP(ctx, externalID, accountID)
+		err = tx.SetOrganizationGCP(ctx, externalID, accountID)
 		if err != nil {
 			return err
 		}
@@ -558,16 +558,31 @@ func (d DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionNa
 // SetOrganizationGCP attaches a Google Cloud Platform subscription to an organization.
 // It also enables the billing feature flag and sets platform/env.
 func (d DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string) error {
-	gcp, err := d.GetGCP(ctx, accountID)
-	if err != nil {
-		return err
-	}
-	_, err = d.Exec(
-		`update organizations set gcp_subscription_id = $1 where external_id = $2 and deleted_at is null`,
-		gcp.ID, externalID,
-	)
+	return d.Transaction(func(tx DB) error {
+		gcp, err := d.GetGCP(ctx, accountID)
+		if err != nil {
+			return err
+		}
+		_, err = d.Exec(
+			`update organizations set gcp_subscription_id = $1 where external_id = $2 and deleted_at is null`,
+			gcp.ID, externalID,
+		)
 
-	return err
+		// Hardcode platform/env here, that's what we expect the user to have.
+		// It also skips the platform/env tab during the onboarding process.
+		platform, env := "kubernetes", "gke"
+		if err = tx.UpdateOrganization(ctx, externalID, users.OrgWriteView{
+			Platform:    &platform,
+			Environment: &env,
+		}); err != nil {
+			return err
+		}
+
+		if err := tx.AddFeatureFlag(ctx, externalID, users.BillingFeatureFlag); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // createGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
