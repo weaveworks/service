@@ -74,8 +74,14 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.trial_expires_at",
 		"organizations.trial_pending_expiry_notified_at",
 		"organizations.trial_expired_notified_at",
+		"gcp_subscriptions.account_id",
+		"gcp_subscriptions.active",
+		"gcp_subscriptions.consumer_id",
+		"gcp_subscriptions.subscription_name",
+		"gcp_subscriptions.subscription_level",
 	).
 		From("organizations").
+		LeftJoin("gcp_subscriptions ON gcp_subscription_id = gcp_subscriptions.id").
 		Where("organizations.deleted_at is null").
 		OrderBy("organizations.created_at DESC")
 }
@@ -302,6 +308,8 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	var trialExpiry time.Time
 	var trialExpiredNotifiedAt, trialPendingExpiryNotifiedAt *time.Time
 	var refuseDataAccess, refuseDataUpload bool
+	var accountID, consumerID, subscriptionName, subscriptionLevel sql.NullString
+	var active sql.NullBool
 	if err := row.Scan(
 		&o.ID,
 		&externalID,
@@ -319,6 +327,11 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&trialExpiry,
 		&trialPendingExpiryNotifiedAt,
 		&trialExpiredNotifiedAt,
+		&accountID,
+		&active,
+		&consumerID,
+		&subscriptionName,
+		&subscriptionLevel,
 	); err != nil {
 		return nil, err
 	}
@@ -336,6 +349,15 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.TrialExpiresAt = trialExpiry
 	o.TrialPendingExpiryNotifiedAt = trialPendingExpiryNotifiedAt
 	o.TrialExpiredNotifiedAt = trialExpiredNotifiedAt
+	if accountID.Valid {
+		o.GCP = &users.GoogleCloudPlatform{
+			AccountID:         accountID.String,
+			Active:            active.Bool,
+			ConsumerID:        consumerID.String,
+			SubscriptionName:  subscriptionName.String,
+			SubscriptionLevel: subscriptionLevel.String,
+		}
+	}
 	return o, nil
 }
 
