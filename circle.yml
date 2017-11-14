@@ -34,9 +34,9 @@ test:
     - |
         set -e
         set -o pipefail
-        cd $SRCDIR; if [ $(./tools/image-tag --show-diff | grep -e '-WIP$') ]; then
+        cd $SRCDIR; if [ $(./tools/image-tag | grep -e '-WIP$') ]; then
            echo "WIP build; exiting with error to mark as a failure"
-           git diff
+           git --no-pager diff
            exit 1
         fi
     - cd $SRCDIR; make RM= notebooks-integration-test
