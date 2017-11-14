@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/render"
@@ -24,8 +26,10 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 	if !ok {
 		render.Error(w, r, errors.New("oauth state value did not match"))
 	}
+
 	gcpAccountID := state["gcpAccountId"]
-	subName, err := a.getPendingSubscriptionName(r.Context(), gcpAccountID)
+	logger := log.WithFields(log.Fields{"user_id": currentUser.ID, "email": currentUser.Email, "account_id": gcpAccountID})
+	subName, err := a.getPendingSubscriptionName(r.Context(), logger, gcpAccountID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -36,6 +40,7 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 		render.Error(w, r, err)
 		return
 	}
+	logger.Infof("Pending subscription: %+v", sub)
 
 	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
 	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
@@ -69,11 +74,12 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 	render.JSON(w, http.StatusOK, org)
 }
 
-func (a *API) getPendingSubscriptionName(ctx context.Context, gcpAccountID string) (string, error) {
+func (a *API) getPendingSubscriptionName(ctx context.Context, logger *log.Entry, gcpAccountID string) (string, error) {
 	subs, err := a.partner.ListSubscriptions(ctx, gcpAccountID)
 	if err != nil {
 		return "", err
 	}
+	logger.Infof("Received subscriptions: %+v", subs)
 	for _, sub := range subs {
 		if sub.Status == partner.Pending {
 			return sub.Name, nil

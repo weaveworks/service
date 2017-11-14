@@ -27,6 +27,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	ctx := context.Background()
 	gcpAccountID := msg.Attributes[externalAccountIDKey]
 	subscriptionName := msg.Attributes[subscriptionNameKey]
+	logger := log.WithFields(log.Fields{"account_id": gcpAccountID, "subscription": subscriptionName})
 
 	resp, err := m.Users.GetGCP(ctx, &users.GetGCPRequest{AccountID: gcpAccountID})
 	if err != nil {
@@ -36,7 +37,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 
 	// Activation.
 	if !gcp.Active {
-		log.Infof("account %v is inactive, ignoring message for subscription: %v", gcpAccountID, subscriptionName)
+		logger.Infof("Account %v is inactive, ignoring message", gcpAccountID)
 		return nil // ACK
 	}
 
@@ -55,8 +56,12 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 			}
 		}
 		if !hasPending {
+			// Pending subscriptions are supposed to be approved by us.
+			logger.Info("Cancelling subscription: %+v", sub)
 			return m.cancelSubscription(ctx, sub)
 		}
+		logger.Info("Not cancelling subscription because there is another one pending: %+v", sub)
+		return nil // ACK
 	}
 
 	// Reactivation, PlanChange.
@@ -65,6 +70,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	// - reactivation after cancellation: no other active subscription
 	// - changing of plan: has other active subscription
 	if sub.Status == partner.Pending {
+		logger.Info("Activating subscription: %+v", sub)
 		return m.updateSubscription(ctx, sub)
 	}
 
