@@ -390,3 +390,12 @@ func Test_GetOrganization(t *testing.T) {
 	}
 
 }
+
+func Test_GetOrganization_NoIDSet(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	org, err := server.GetOrganization(ctx, &users.GetOrganizationRequest{})
+	assert.Nil(t, org)
+	assert.NotNil(t, err)
+}
