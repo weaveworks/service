@@ -175,8 +175,7 @@ func Test_UpdateOrganization(t *testing.T) {
 
 		app.ServeHTTP(w, r)
 
-		// Exact code not critical, but important it's 4xx not 5xx
-		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	}
 }
 

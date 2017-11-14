@@ -123,9 +123,7 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var update users.OrgWriteView
-	err := json.NewDecoder(r.Body).Decode(&update)
-	switch {
-	case err != nil:
+	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
 		render.Error(w, r, users.NewMalformedInputError(err))
 		return
 	}
