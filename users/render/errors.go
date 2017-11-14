@@ -26,7 +26,7 @@ func errorStatusCode(err error) int {
 	}
 
 	switch err.(type) {
-	case users.MalformedInputError, users.ValidationError, users.AlreadyAttachedError:
+	case *users.MalformedInputError, *users.ValidationError, *users.AlreadyAttachedError:
 		return http.StatusBadRequest
 	}
 

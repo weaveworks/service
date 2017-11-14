@@ -17,7 +17,7 @@ func New(handler MessageHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		event := dto.Event{}
 		if err := json.NewDecoder(req.Body).Decode(&event); err != nil {
-			render.Error(w, req, users.MalformedInputError(err)) // NACK: we might want to retry on this message later.
+			render.Error(w, req, users.NewMalformedInputError(err)) // NACK: we might want to retry on this message later.
 			return
 		}
 		log.Infof("Incoming webhook event: %+v", event)

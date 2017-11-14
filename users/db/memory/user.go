@@ -44,7 +44,7 @@ func (d *DB) AddLoginToUser(_ context.Context, userID, provider, providerID stri
 	// Check if this login is attached to another user
 	existing, err := d.findUserByLogin(provider, providerID)
 	if err == nil && existing.ID != userID {
-		return users.AlreadyAttachedError{ID: existing.ID, Email: existing.Email}
+		return &users.AlreadyAttachedError{ID: existing.ID, Email: existing.Email}
 	}
 
 	// Add it to this one (updating session if needed).

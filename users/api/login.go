@@ -178,7 +178,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.db.AddLoginToUser(r.Context(), u.ID, providerID, id, authSession); err != nil {
-		existing, ok := err.(users.AlreadyAttachedError)
+		existing, ok := err.(*users.AlreadyAttachedError)
 		if !ok {
 			logging.With(r.Context()).Error(err)
 			render.Error(w, r, users.ErrInvalidAuthenticationData)
@@ -283,7 +283,7 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var input SignupRequest
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		render.Error(w, r, users.MalformedInputError(err))
+		render.Error(w, r, users.NewMalformedInputError(err))
 		return
 	}
 
