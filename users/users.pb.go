@@ -267,7 +267,7 @@ func (m *LookupUserResponse) GetUserID() string {
 	return ""
 }
 
-// GetOrganizationRequest requests a list of organizations.
+// GetOrganizationsRequest requests a list of organizations.
 type GetOrganizationsRequest struct {
 	// Query restricts the organizations returned. If specified, will find
 	// only organizations that have Query as a substring of the organization

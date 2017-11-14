@@ -103,7 +103,7 @@ message LookupUserResponse {
     string UserID = 1 [(gogoproto.jsontag) = "userID,omitempty"];
 }
 
-// GetOrganizationRequest requests a list of organizations.
+// GetOrganizationsRequest requests a list of organizations.
 message GetOrganizationsRequest {
     // Query restricts the organizations returned. If specified, will find
     // only organizations that have Query as a substring of the organization

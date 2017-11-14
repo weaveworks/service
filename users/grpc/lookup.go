@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -216,7 +217,11 @@ func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganiz
 		organization, err = a.db.FindOrganizationByGCPAccountID(ctx, req.GetGCPAccountID())
 	} else if req.GetInternalID() != "" {
 		organization, err = a.db.FindOrganizationByInternalID(ctx, req.GetInternalID())
-	} else if err != nil {
+	} else {
+		err = errors.New("ID not set")
+	}
+
+	if err != nil {
 		return nil, err
 	}
 
