@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -265,9 +264,22 @@ func (d DB) FindOrganizationByID(_ context.Context, externalID string) (*users.O
 }
 
 // FindOrganizationByGCPAccountID returns the organization with the given account ID.
-func (d DB) FindOrganizationByGCPAccountID(_ context.Context, accountID string) (*users.Organization, error) {
-	// FIXME: implement me
-	return nil, errors.New("not yet implement")
+// N.B.: it only returns GCP organizations which are active, i.e. for which the subscription has been validated and activated against GCP.
+func (d DB) FindOrganizationByGCPAccountID(ctx context.Context, accountID string) (*users.Organization, error) {
+	gcp, err := d.GetGCP(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	o, err := d.scanOrganization(
+		d.organizationsQuery().Where(squirrel.Eq{"organizations.gcp_subscription_id": gcp.ID, "gcp_subscriptions.active": true}).QueryRow(),
+	)
+	if err == sql.ErrNoRows {
+		return nil, users.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return o, nil
 }
 
 // FindOrganizationByInternalID finds an org based on its ID
