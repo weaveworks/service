@@ -74,8 +74,14 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.trial_expires_at",
 		"organizations.trial_pending_expiry_notified_at",
 		"organizations.trial_expired_notified_at",
+		"gcp_subscriptions.account_id",
+		"gcp_subscriptions.active",
+		"gcp_subscriptions.consumer_id",
+		"gcp_subscriptions.subscription_name",
+		"gcp_subscriptions.subscription_level",
 	).
 		From("organizations").
+		LeftJoin("gcp_subscriptions ON gcp_subscription_id = gcp_subscriptions.id").
 		Where("organizations.deleted_at is null").
 		OrderBy("organizations.created_at DESC")
 }
@@ -302,6 +308,8 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	var trialExpiry time.Time
 	var trialExpiredNotifiedAt, trialPendingExpiryNotifiedAt *time.Time
 	var refuseDataAccess, refuseDataUpload bool
+	var accountID, consumerID, subscriptionName, subscriptionLevel sql.NullString
+	var active sql.NullBool
 	if err := row.Scan(
 		&o.ID,
 		&externalID,
@@ -319,6 +327,11 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&trialExpiry,
 		&trialPendingExpiryNotifiedAt,
 		&trialExpiredNotifiedAt,
+		&accountID,
+		&active,
+		&consumerID,
+		&subscriptionName,
+		&subscriptionLevel,
 	); err != nil {
 		return nil, err
 	}
@@ -336,6 +349,15 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.TrialExpiresAt = trialExpiry
 	o.TrialPendingExpiryNotifiedAt = trialPendingExpiryNotifiedAt
 	o.TrialExpiredNotifiedAt = trialExpiredNotifiedAt
+	if accountID.Valid {
+		o.GCP = &users.GoogleCloudPlatform{
+			AccountID:         accountID.String,
+			Active:            active.Bool,
+			ConsumerID:        consumerID.String,
+			SubscriptionName:  subscriptionName.String,
+			SubscriptionLevel: subscriptionLevel.String,
+		}
+	}
 	return o, nil
 }
 
@@ -493,4 +515,113 @@ func (d DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number st
 		number, createdAt, externalID,
 	)
 	return err
+}
+
+// CreateOrganizationWithGCP creates an organization as well as a GCP subscription, then links them together.
+func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.Organization, *users.GoogleCloudPlatform, error) {
+	var org *users.Organization
+	var gcp *users.GoogleCloudPlatform
+	err := d.Transaction(func(tx DB) error {
+		externalID, err := tx.GenerateOrganizationExternalID(ctx)
+		if err != nil {
+			return err
+		}
+		name := users.DefaultOrganizationName(externalID)
+		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, "")
+		if err != nil {
+			return err
+		}
+
+		// Create and attach inactive GCP subscription to the organization
+		gcp, err = tx.createGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel)
+		if err != nil {
+			return err
+		}
+
+		err = tx.SetOrganizationGCP(ctx, externalID, accountID)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return org, gcp, nil
+}
+
+// GetGCP returns the Google Cloud Platform subscription for the given account.
+func (d DB) GetGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
+	var gcp users.GoogleCloudPlatform
+	err := d.QueryRow(
+		`select id, account_id, active, created_at, consumer_id, subscription_name, subscription_level
+		from gcp_subscriptions
+		where account_id = $1`,
+		accountID,
+	).Scan(&gcp.ID, &gcp.AccountID, &gcp.Active, &gcp.CreatedAt, &gcp.ConsumerID, &gcp.SubscriptionName, &gcp.SubscriptionLevel)
+	if err != nil {
+		return nil, err
+	}
+	return &gcp, nil
+}
+
+// UpdateGCP updates a Google Cloud Platform subscription.
+func (d DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error {
+	_, err := d.Exec(
+		`update gcp_subscriptions
+		set account_id = $1, active = $2, consumer_id = $3, subscription_name = $4, subscription_level = $5
+		where account_id = $6`,
+		accountID, active, consumerID, subscriptionName, subscriptionLevel, accountID,
+	)
+	return err
+}
+
+// SetOrganizationGCP attaches a Google Cloud Platform subscription to an organization.
+// It also enables the billing feature flag and sets platform/env.
+func (d DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string) error {
+	return d.Transaction(func(tx DB) error {
+		gcp, err := d.GetGCP(ctx, accountID)
+		if err != nil {
+			return err
+		}
+		_, err = d.Exec(
+			`update organizations set gcp_subscription_id = $1 where external_id = $2 and deleted_at is null`,
+			gcp.ID, externalID,
+		)
+
+		// Hardcode platform/env here, that's what we expect the user to have.
+		// It also skips the platform/env tab during the onboarding process.
+		platform, env := "kubernetes", "gke"
+		if err = tx.UpdateOrganization(ctx, externalID, users.OrgWriteView{
+			Platform:    &platform,
+			Environment: &env,
+		}); err != nil {
+			return err
+		}
+
+		return tx.AddFeatureFlag(ctx, externalID, users.BillingFeatureFlag)
+	})
+}
+
+// createGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
+func (d DB) createGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.GoogleCloudPlatform, error) {
+	now := d.Now()
+	gcp := &users.GoogleCloudPlatform{
+		AccountID:         accountID,
+		CreatedAt:         now,
+		ConsumerID:        consumerID,
+		SubscriptionName:  subscriptionName,
+		SubscriptionLevel: subscriptionLevel,
+	}
+	err := d.QueryRow(`insert into gcp_subscriptions
+			(account_id, created_at, consumer_id, subscription_name, subscription_level)
+			values ($1, $2, $3, $4, $5) returning id`,
+		gcp.AccountID, gcp.CreatedAt, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel).
+		Scan(&gcp.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return gcp, nil
 }

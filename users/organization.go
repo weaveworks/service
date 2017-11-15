@@ -2,6 +2,7 @@ package users
 
 import (
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/weaveworks/service/users/tokens"
@@ -128,4 +129,19 @@ func (o *Organization) HasFeatureFlag(needle string) bool {
 		}
 	}
 	return false
+}
+
+// BillingProvider returns the name of the provider processing billing.
+// It is `zuora` by default.
+func (o *Organization) BillingProvider() string {
+	if o.GCP != nil {
+		return "gcp"
+	}
+	return "zuora"
+}
+
+// DefaultOrganizationName returns the default name which is derived from
+// the externalID.
+func DefaultOrganizationName(externalID string) string {
+	return strings.Title(strings.Replace(externalID, "-", " ", -1))
 }

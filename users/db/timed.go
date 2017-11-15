@@ -282,6 +282,33 @@ func (t timed) SetOrganizationZuoraAccount(ctx context.Context, externalID, numb
 	})
 }
 
+func (t timed) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (org *users.Organization, gcp *users.GoogleCloudPlatform, err error) {
+	t.timeRequest(ctx, "CreateOrganizationWithGCP", func(ctx context.Context) error {
+		org, gcp, err = t.d.CreateOrganizationWithGCP(ctx, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel)
+		return err
+	})
+	return
+}
+
+func (t timed) GetGCP(ctx context.Context, accountID string) (gcp *users.GoogleCloudPlatform, err error) {
+	t.timeRequest(ctx, "GetGCP", func(ctx context.Context) error {
+		gcp, err = t.d.GetGCP(ctx, accountID)
+		return err
+	})
+	return
+}
+
+func (t timed) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error {
+	return t.timeRequest(ctx, "UpdateGCP", func(ctx context.Context) error {
+		return t.d.UpdateGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel, active)
+	})
+}
+func (t timed) SetOrganizationGCP(ctx context.Context, externalID, accountID string) error {
+	return t.timeRequest(ctx, "SetOrganizationGCP", func(ctx context.Context) error {
+		return t.d.SetOrganizationGCP(ctx, externalID, accountID)
+	})
+}
+
 func (t timed) ListMemberships(ctx context.Context) (memberships []users.Membership, err error) {
 	t.timeRequest(ctx, "ListMemberships", func(ctx context.Context) error {
 		memberships, err = t.d.ListMemberships(ctx)

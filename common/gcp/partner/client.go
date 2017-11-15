@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
 	"github.com/weaveworks/common/http/client"
@@ -18,13 +19,20 @@ import (
 // SubscriptionStatus denotes the status of a partner subscription
 type SubscriptionStatus string
 
-// Status of a subscription.
 const (
-	StatusUnknown  SubscriptionStatus = "UNKNOWN_STATUS"
-	StatusActive   SubscriptionStatus = "ACTIVE"
-	StatusComplete SubscriptionStatus = "COMPLETE"
-	StatusPending  SubscriptionStatus = "PENDING"
-	StatusCanceled SubscriptionStatus = "CANCELED"
+	// Pending means the subscription is awaiting approval.
+	Pending SubscriptionStatus = "PENDING"
+	// Active is a subscription that is running.
+	Active SubscriptionStatus = "ACTIVE"
+	// Complete are subscriptions that are no longer active (i.e., canceled)
+	Complete SubscriptionStatus = "COMPLETE"
+
+	ssoLoginKeyName = "keyForSSOLogin"
+
+	// ServiceLevelLabelKey is the label suffix on the subscribed resource
+	ServiceLevelLabelKey = "ServiceLevel"
+	// ConsumerIDLabelKey is the label suffix on the subscribed resource
+	ConsumerIDLabelKey = "consumerId"
 )
 
 const (
@@ -86,24 +94,43 @@ type SubscribedResource struct {
 	SubscriptionProvider string            `json:"subscriptionProvider"`
 }
 
-// ExtractLabel returns the value of key under given resource. It prefixes the
-// key with the Subscription Provider it finds in the resource object.
+// ExtractResourceLabel returns the value of key under given resource. It also attempts to
+// prefix the key with the Subscription Provider if it can't find it by its own.
 //
 // Example resource:
 // {
 // 		"subscriptionProvider": "weaveworks-public-cloudmarketplacepartner.googleapis.com",
 // 		"resource": "weave-cloud",
 // 		"labels": {
+//			"consumerId":"project_number:347113080196",
+//			"serviceName":"staging.google.weave.works",
 // 			"weaveworks-public-cloudmarketplacepartner.googleapis.com/ServiceLevel": "standard"
 // 		}
 // 	}
-func (s Subscription) ExtractLabel(resource, key string) string {
+func (s Subscription) ExtractResourceLabel(resource, key string) string {
 	for _, res := range s.SubscribedResources {
 		if res.Resource == resource {
-			return res.Labels[fmt.Sprintf("%s/%s", res.SubscriptionProvider, key)]
+			value, ok := res.Labels[key]
+			if !ok {
+				value = res.Labels[fmt.Sprintf("%s/%s", res.SubscriptionProvider, key)]
+			}
+			return value
 		}
 	}
 	return ""
+}
+
+// RequestBodyWithSSOLoginKey builds a request body for the ApproveSubscription()
+// calls. It embeds a so-called key which will be sent to us during SSO.
+func RequestBodyWithSSOLoginKey(gcpAccountID string) *RequestBody {
+	return &RequestBody{
+		ApprovalID: "default-approval",
+		Labels: map[string]string{
+			// The value passed here will be sent to us during SSO. It is supposed to
+			// allow us to determine which instances the user is supposed to have access to.
+			ssoLoginKeyName: gcpAccountID,
+		},
+	}
 }
 
 type subscriptionResponse struct {
@@ -157,7 +184,11 @@ func NewClient(cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	return NewClientFromJSONKey(cfg, jsonKey)
+}
 
+// NewClientFromJSONKey instantiates a client from the given JSON key.
+func NewClientFromJSONKey(cfg Config, jsonKey []byte) (*Client, error) {
 	// Create oauth2 HTTP client from the given service account key JSON
 	jwtConf, err := google.JWTConfigFromJSON(jsonKey, oauthScope)
 	if err != nil {
@@ -169,6 +200,14 @@ func NewClient(cfg Config) (*Client, error) {
 	return &Client{
 		JSONClient: common.NewJSONClient(client.NewTimedClient(cl, clientRequestCollector)),
 		cfg:        cfg,
+	}, nil
+}
+
+// NewClientFromTokenSource instantiates a client from the given token source.
+func NewClientFromTokenSource(ts oauth2.TokenSource) (*Client, error) {
+	cl := oauth2.NewClient(context.Background(), ts)
+	return &Client{
+		JSONClient: common.NewJSONClient(client.NewTimedClient(cl, clientRequestCollector)),
 	}, nil
 }
 

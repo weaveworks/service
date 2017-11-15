@@ -86,7 +86,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, ok := tokens.ExtractToken(r)
 		if !ok {
-			logging.With(r.Context()).Errorf("Unauthorised request, no token")
+			logging.With(r.Context()).Errorf("Unauthorised probe request, no token")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -101,7 +101,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 		}
 
 		if !hasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
-			logging.With(r.Context()).Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
+			logging.With(r.Context()).Errorf("Unauthorised probe request, missing feature flags: %v", a.RequireFeatureFlags)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -138,7 +138,7 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			logging.With(r.Context()).Errorf("Unauthorised request, no auth cookie: %v", err)
+			logging.With(r.Context()).Errorf("Unauthorised admin request, no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -168,7 +168,7 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			logging.With(r.Context()).Infof("unauthorised request - no auth cookie: %v", err)
+			logging.With(r.Context()).Infof("Unauthorised user request, no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -226,7 +226,7 @@ func (a AuthSecretMiddleware) Wrap(next http.Handler) http.Handler {
 		secret := r.URL.Query().Get("secret")
 		// Deny access if no secret is configured or secret does not match
 		if a.Secret == "" || secret != a.Secret {
-			logging.With(r.Context()).Infof("Unauthorised request, secret mismatch: %v", secret)
+			logging.With(r.Context()).Infof("Unauthorised secret request, secret mismatch: %v", secret)
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}

@@ -33,9 +33,14 @@ func (a *OAuth) Name() string {
 	return a.name
 }
 
+// SetName changes the assigned name of this oauth2 endpoint.
+func (a *OAuth) SetName(name string) {
+	a.name = name
+}
+
 // Flags sets the flags this provider requires on the command-line
 func (a *OAuth) Flags(flags *flag.FlagSet) {
-	name := strings.ToLower(a.name)
+	name := strings.Replace(strings.ToLower(a.name), " ", "-", -1)
 	flag.StringVar(&a.Config.ClientID, name+"-client-id", a.Config.ClientID, "The application's ID for "+a.name+" OAuth")
 	flag.StringVar(&a.Config.ClientSecret, name+"-client-secret", a.Config.ClientSecret, "The application's secret for "+a.name+" OAuth")
 	flag.StringVar(&a.Config.Endpoint.AuthURL, name+"-auth-url", a.Config.Endpoint.AuthURL, "The URL to redirect users to begin the "+a.name+" OAuth flow")
@@ -103,7 +108,8 @@ func (a *OAuth) decodeState(raw string) (map[string]string, error) {
 	return m, json.Unmarshal(j, &m)
 }
 
-func (a *OAuth) verifyState(r *http.Request) (map[string]string, bool) {
+// VerifyState validates the token found within the state query param.
+func (a *OAuth) VerifyState(r *http.Request) (map[string]string, bool) {
 	state, err := a.decodeState(r.FormValue("state"))
 	if err != nil {
 		return nil, false
@@ -124,7 +130,7 @@ func csrfToken(r *http.Request) string {
 	}
 	phonyCSRFHandler := nosurf.New(http.HandlerFunc(handler))
 	phonyCSRFHandler.ExemptFunc(func(r *http.Request) bool { return true })
-	phonyResposeWriter := httptest.NewRecorder()
-	phonyCSRFHandler.ServeHTTP(phonyResposeWriter, r)
+	phonyResponseWriter := httptest.NewRecorder()
+	phonyCSRFHandler.ServeHTTP(phonyResponseWriter, r)
 	return token
 }

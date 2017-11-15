@@ -26,8 +26,10 @@ const (
           "subscriptionProvider": "weaveworks-public-cloudmarketplacepartner.googleapis.com",
           "resource": "weave-cloud",
           "labels": {
+            "consumerId":"project_number:123",
+            "serviceName":"staging.google.weave.works",
             "weaveworks-public-cloudmarketplacepartner.googleapis.com/ServiceLevel": "standard"
-          }
+	      }
         }
       ],
       "startDate": {
@@ -56,6 +58,17 @@ func init() {
 	config.RegisterFlags(flag.CommandLine)
 	config.ServiceAccountKeyFile = "../../../testdata/google-service-account-key.json"
 	flag.Parse()
+}
+
+func TestSubscription_ExtractResourceLabel(t *testing.T) {
+	sub := &partner.Subscription{}
+	err := json.Unmarshal([]byte(pending), sub)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "project_number:123", sub.ExtractResourceLabel("weave-cloud", "consumerId"))
+	assert.Equal(t, "standard", sub.ExtractResourceLabel("weave-cloud", "ServiceLevel"))
+	assert.Equal(t, "standard",
+		sub.ExtractResourceLabel("weave-cloud", "weaveworks-public-cloudmarketplacepartner.googleapis.com/ServiceLevel"))
 }
 
 // Unmarshal then marshal needs to lead to the same json.
@@ -112,7 +125,7 @@ func TestClient_Get(t *testing.T) {
 
 	assert.Equal(t, pendingName, sub.Name)
 	assert.Equal(t, "E-F65F-C51C-67FE-D42F", sub.ExternalAccountID)
-	assert.Equal(t, partner.StatusPending, sub.Status)
+	assert.Equal(t, partner.Pending, sub.Status)
 	assert.True(t, sub.StartDate.Time(time.UTC).Equal(time.Date(2017, 10, 19, 0, 0, 0, 0, time.UTC)))
 }
 

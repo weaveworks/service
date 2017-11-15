@@ -336,3 +336,20 @@ func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyT
 
 	return &users.NotifyTrialExpiredResponse{}, nil
 }
+
+func (a *usersServer) GetGCP(ctx context.Context, req *users.GetGCPRequest) (*users.GetGCPResponse, error) {
+	gcp, err := a.db.GetGCP(ctx, req.AccountID)
+	if err != nil {
+		return nil, err
+	}
+	return &users.GetGCPResponse{GCP: *gcp}, nil
+}
+
+func (a *usersServer) UpdateGCP(ctx context.Context, req *users.UpdateGCPRequest) (*users.UpdateGCPResponse, error) {
+	err := a.db.UpdateGCP(ctx, req.GCP.AccountID, req.GCP.ConsumerID, req.GCP.SubscriptionName, req.GCP.SubscriptionLevel, req.GCP.Active)
+	if err != nil {
+		return nil, err
+
+	}
+	return &users.UpdateGCPResponse{}, nil
+}

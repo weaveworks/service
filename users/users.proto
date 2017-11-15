@@ -42,6 +42,11 @@ service Users {
     // omit `ZuoraAccountCreatedAt` it will be automatically updated to now.
     rpc SetOrganizationZuoraAccount(SetOrganizationZuoraAccountRequest) returns (SetOrganizationZuoraAccountResponse) {};
 
+    // GetGCP returns the Google Cloud Platform entry.
+    rpc GetGCP(GetGCPRequest) returns (GetGCPResponse) {};
+    // UpdateGCP updates the Google Cloud Platform entry.
+    rpc UpdateGCP(UpdateGCPRequest) returns (UpdateGCPResponse) {};
+
     // GetUser returns details for a user
     rpc GetUser(GetUserRequest) returns (GetUserResponse) {};
 
@@ -188,18 +193,33 @@ message Organization {
 }
 
 message GoogleCloudPlatform {
-    // Whether the GCP account is active or not
-    bool Active = 1;
+    string ID = 1;
     // External account ID from Google
     string AccountID = 2;
+    // Whether the GCP account is active or not
+    bool Active = 3;
+    google.protobuf.Timestamp CreatedAt = 4 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
     // Consumer ID to report usage against
-    string GCPConsumerID = 3;
+    string ConsumerID = 5;
     // Name of the active subscription, in the format "partnerSubscriptions/*"
-    string SubscriptionName = 4;
+    string SubscriptionName = 6;
     // Level of the subscription, can be "standard" or "enterprise"
-    string SubscriptionLevel = 5;
+    string SubscriptionLevel = 7;
 }
 
+message GetGCPRequest {
+    string AccountID = 1;
+}
+
+message GetGCPResponse {
+    GoogleCloudPlatform GCP = 1 [(gogoproto.nullable) = false];
+}
+
+message UpdateGCPRequest {
+    GoogleCloudPlatform GCP  = 1;
+}
+message UpdateGCPResponse {
+}
 
 message SetOrganizationZuoraAccountRequest {
     string ExternalID = 1;

@@ -56,6 +56,7 @@ func Test_Org(t *testing.T) {
 		"trialExpiresAt":        string(trialExpiresAt),
 		"zuoraAccountNumber":    "",
 		"zuoraAccountCreatedAt": nil,
+		"billingProvider":       "zuora",
 	}, body)
 }
 
@@ -87,6 +88,7 @@ func Test_Org_NoProbeUpdates(t *testing.T) {
 		"trialExpiresAt":        string(trialExpiresAt),
 		"zuoraAccountNumber":    "",
 		"zuoraAccountCreatedAt": nil,
+		"billingProvider":       "zuora",
 	}, body)
 }
 

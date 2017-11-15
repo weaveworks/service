@@ -15,6 +15,7 @@ type DB struct {
 	deletedOrganizations map[string]*users.Organization
 	memberships          map[string][]string
 	logins               map[string]*login.Login
+	gcpSubscriptions     map[string]*users.GoogleCloudPlatform // map[accountID]GCP
 	passwordHashingCost  int
 	mtx                  sync.Mutex
 }
@@ -27,6 +28,7 @@ func New(_, _ string, passwordHashingCost int) (*DB, error) {
 		deletedOrganizations: make(map[string]*users.Organization),
 		memberships:          make(map[string][]string),
 		logins:               make(map[string]*login.Login),
+		gcpSubscriptions:     make(map[string]*users.GoogleCloudPlatform),
 		passwordHashingCost:  passwordHashingCost,
 	}, nil
 }

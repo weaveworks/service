@@ -9,11 +9,13 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/common/featureflag"
+	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/common/tracing"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
@@ -25,7 +27,6 @@ import (
 	"github.com/weaveworks/service/users/render"
 	"github.com/weaveworks/service/users/sessions"
 	"github.com/weaveworks/service/users/templates"
-	"google.golang.org/grpc"
 )
 
 func init() {
@@ -80,6 +81,8 @@ func main() {
 		webhookTokens     common.ArrayFlags
 
 		billingFeatureFlagProbability = flag.Uint("billing-feature-flag-probability", 0, "Percentage of *new* organizations for which we want to enable the 'billing' feature flag. 0 means always disabled. 100 means always enabled. Any value X in between will enable billing randomly X% of the time.")
+
+		partnerCfg partner.Config
 	)
 
 	flag.Var(&forceFeatureFlags, "force-feature-flags", "Force this feature flag to be on for all organisations.")
@@ -90,6 +93,10 @@ func main() {
 	logins.Register("github", login.NewGithubProvider())
 	logins.Register("google", login.NewGoogleProvider())
 	logins.Flags(flag.CommandLine)
+	partnerCfg.RegisterFlags(flag.CommandLine)
+
+	partnerAccess := partner.NewAccess()
+	partnerAccess.Flags(flag.CommandLine)
 
 	flag.Parse()
 
@@ -127,6 +134,11 @@ func main() {
 		mixpanelClient = marketing.NewMixpanelClient(*mixpanelToken)
 	}
 
+	partnerClient, err := partner.NewClient(partnerCfg)
+	if err != nil {
+		log.Fatalf("Failed creating Google Partner Subscriptions API client: %v", err)
+	}
+
 	webhookTokenMap := make(map[string]struct{})
 	for _, value := range webhookTokens {
 		webhookTokenMap[value] = struct{}{}
@@ -157,6 +169,8 @@ func main() {
 		grpcServer,
 		webhookTokenMap,
 		mixpanelClient,
+		partnerClient,
+		partnerAccess,
 		*fluxStatusAPI,
 		*scopeProbesAPI,
 		*promMetricsAPI,

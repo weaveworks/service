@@ -263,8 +263,12 @@ func (d *DB) FindOrganizationByID(_ context.Context, externalID string) (*users.
 
 // FindOrganizationByGCPAccountID returns the organization with the given account ID.
 func (d *DB) FindOrganizationByGCPAccountID(_ context.Context, accountID string) (*users.Organization, error) {
-	// FIXME: implement me
-	return nil, errors.New("not yet implement")
+	for _, o := range d.organizations {
+		if o.GCP != nil && o.GCP.AccountID == accountID {
+			return o, nil
+		}
+	}
+	return nil, users.ErrNotFound
 }
 
 // FindOrganizationByInternalID finds an org by its internal ID
@@ -426,4 +430,109 @@ func (d *DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number s
 		org.ZuoraAccountCreatedAt = createdAt
 		return nil
 	})
+}
+
+// CreateOrganizationWithGCP creates an organization as well as a GCP subscription, then links them together.
+func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.Organization, *users.GoogleCloudPlatform, error) {
+	var org *users.Organization
+	var gcp *users.GoogleCloudPlatform
+	externalID, err := d.GenerateOrganizationExternalID(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	name := users.DefaultOrganizationName(externalID)
+	org, err = d.CreateOrganization(ctx, ownerID, externalID, name, "")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Create and attach inactive GCP subscription to the organization
+	gcp, err = d.createGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = d.SetOrganizationGCP(ctx, externalID, accountID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return org, gcp, nil
+}
+
+// GetGCP returns the Google Cloud Platform subscription for the given account.
+func (d *DB) GetGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+
+	return nil, nil
+}
+
+// UpdateGCP updates a Google Cloud Platform subscription.
+func (d *DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+
+	gcp, exists := d.gcpSubscriptions[accountID]
+	if !exists {
+		return errors.New("Account not found")
+	}
+	gcp.AccountID = accountID
+	gcp.ConsumerID = consumerID
+	gcp.SubscriptionName = subscriptionName
+	gcp.SubscriptionLevel = subscriptionLevel
+	gcp.Active = active
+
+	d.gcpSubscriptions[accountID] = gcp
+	return nil
+}
+
+// SetOrganizationGCP attaches a Google Cloud Platform subscription to an organization.
+// It also enables the billing feature flag and sets platform/env.
+func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string) error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+
+	o, err := d.findOrganizationByExternalID(externalID)
+	if err != nil {
+		return err
+	}
+	if o.GCP != nil {
+		return errors.New("Organization already has a GCP account")
+	}
+
+	o.GCP = d.gcpSubscriptions[accountID]
+
+	// Hardcode platform/env here, that's what we expect the user to have.
+	// It also skips the platform/env tab during the onboarding process.
+	o.Platform = "kubernetes"
+	o.Environment = "gke"
+
+	// Enable billing otherwise we won't upload usage
+	if !o.HasFeatureFlag(users.BillingFeatureFlag) {
+		o.FeatureFlags = append(o.FeatureFlags, users.BillingFeatureFlag)
+	}
+
+	return nil
+}
+
+// CreateGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
+func (d *DB) createGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.GoogleCloudPlatform, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+
+	if _, exists := d.gcpSubscriptions[accountID]; exists {
+		// If account is already known, Google either sent as a duplicate or we wrongfully called this method.
+		return nil, errors.New("Account is already in use, reactivate subscription in the launcher")
+	}
+	gcp := &users.GoogleCloudPlatform{
+		ID:                fmt.Sprint(len(d.gcpSubscriptions)),
+		AccountID:         accountID,
+		Active:            false,
+		ConsumerID:        consumerID,
+		SubscriptionName:  subscriptionName,
+		SubscriptionLevel: subscriptionLevel,
+	}
+	d.gcpSubscriptions[accountID] = gcp
+	return gcp, nil
 }

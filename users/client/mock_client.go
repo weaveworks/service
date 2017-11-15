@@ -10,7 +10,7 @@ import (
 // MockClient is a mock usersClient that can be used in testing
 type MockClient struct{}
 
-// LookupOrg authenticates a cookie for access to an org by extenal ID.
+// LookupOrg authenticates a cookie for access to an org by external ID.
 func (MockClient) LookupOrg(ctx context.Context, in *users.LookupOrgRequest, opts ...grpc.CallOption) (*users.LookupOrgResponse, error) {
 	return &users.LookupOrgResponse{
 		OrganizationID: "mockID",
@@ -102,4 +102,14 @@ func (MockClient) NotifyTrialPendingExpiry(ctx context.Context, in *users.Notify
 // and records the date sent.
 func (MockClient) NotifyTrialExpired(ctx context.Context, in *users.NotifyTrialExpiredRequest, opts ...grpc.CallOption) (*users.NotifyTrialExpiredResponse, error) {
 	return &users.NotifyTrialExpiredResponse{}, nil
+}
+
+// GetGCP returns the Google Cloud Platform entry.
+func (MockClient) GetGCP(ctx context.Context, in *users.GetGCPRequest, opts ...grpc.CallOption) (*users.GetGCPResponse, error) {
+	return &users.GetGCPResponse{}, nil
+}
+
+// UpdateGCP updates the Google Cloud Platform entry.
+func (MockClient) UpdateGCP(ctx context.Context, in *users.UpdateGCPRequest, opts ...grpc.CallOption) (*users.UpdateGCPResponse, error) {
+	return &users.UpdateGCPResponse{}, nil
 }
