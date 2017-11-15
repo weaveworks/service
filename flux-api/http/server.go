@@ -71,6 +71,7 @@ func NewServiceRouter() *mux.Router {
 	r.NewRoute().Name("PatchConfig").Methods("PATCH").Path("/v6/config")
 	r.NewRoute().Name("PostIntegrationsGithub").Methods("POST").Path("/v6/integrations/github").Queries("owner", "{owner}", "repository", "{repository}")
 	r.NewRoute().Name("IsConnected").Methods("HEAD", "GET").Path("/v6/ping")
+	r.NewRoute().Name("DockerHubImageNotify").Methods("POST").Path("/v6/notify/dockerhub/image")
 
 	// We assume every request that doesn't match a route is a client
 	// calling an old or hitherto unsupported API.
@@ -116,6 +117,7 @@ func NewHandler(s api.Service, r *mux.Router, logger log.Logger) http.Handler {
 		"SyncStatus":               handle.SyncStatus,
 		"GetPublicSSHKey":          handle.GetPublicSSHKey,
 		"RegeneratePublicSSHKey":   handle.RegeneratePublicSSHKey,
+		"DockerHubImageNotify":     handle.ImageNotify,
 	} {
 		handler := logging(handlerMethod, log.With(logger, "method", method))
 		r.Get(method).Handler(handler)
@@ -568,6 +570,20 @@ func (s httpService) RegeneratePublicSSHKey(w http.ResponseWriter, r *http.Reque
 	return
 }
 
+func (s httpService) ImageNotify(w http.ResponseWriter, r *http.Request) {
+	ctx := makeWebhookContext(r)
+	var body api.ImageChangeData
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		transport.WriteError(w, r, http.StatusBadRequest, err)
+		return
+	}
+	if err := s.service.ChangeNotify(ctx, "image", body); err != nil {
+		transport.ErrorResponse(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 // --- end handlers
 
 func logging(next http.Handler, logger log.Logger) http.Handler {
@@ -594,6 +610,16 @@ func logging(next http.Handler, logger log.Logger) http.Handler {
 // Make a context from the request, with the value of the instance ID in it
 func getRequestContext(req *http.Request) context.Context {
 	s := req.Header.Get(InstanceIDHeaderKey)
+	if s != "" {
+		return context.WithValue(req.Context(), service.InstanceIDKey, service.InstanceID(s))
+	}
+	return req.Context()
+}
+
+// Temporary function to populate instanceID key. Unconditionally trusts user input.
+// TODO: figure out how to do this securely. Don't deploy this to prod.
+func makeWebhookContext(req *http.Request) context.Context {
+	s := req.FormValue("instance")
 	if s != "" {
 		return context.WithValue(req.Context(), service.InstanceIDKey, service.InstanceID(s))
 	}

@@ -478,3 +478,19 @@ func (s *Server) IsDaemonConnected(ctx context.Context) error {
 	}
 	return s.messageBus.Ping(ctx, instID)
 }
+
+// ChangeNotify notifies a daemon about an image push.
+// TODO: notify on git push.
+func (s *Server) ChangeNotify(ctx context.Context, kind string, body interface{}) error {
+	instID, err := getInstanceID(ctx)
+	if err != nil {
+		return err
+	}
+	inst, err := s.instancer.Get(instID)
+	if err != nil {
+		return errors.Wrapf(err, "getting instance %s", string(instID))
+	}
+	// return inst.Platform.ChangeNotify(kind, body)
+	_ = inst
+	return errors.New("ChangeNotify unimplemented on Platform")
+}
