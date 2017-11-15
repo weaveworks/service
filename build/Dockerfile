@@ -6,8 +6,8 @@ RUN apt-get update && apt-get install -y \
 		jq \
 		shellcheck \
 		unzip \
-		protobuf-compiler \
-		libprotobuf-dev && \
+		protobuf-compiler=3.0.0-9 \
+		libprotobuf-dev=3.0.0-9 && \
 	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN go clean -i net && \
 	go install -tags netgo std && \
@@ -17,16 +17,23 @@ RUN go get -tags netgo \
 		github.com/golang/lint/golint \
 		github.com/kisielk/errcheck \
 		github.com/mjibson/esc \
-		github.com/client9/misspell/cmd/misspell \
-		github.com/gogo/protobuf/protoc-gen-gogoslick \
-		github.com/gogo/protobuf/gogoproto && \
+		github.com/client9/misspell/cmd/misspell && \
 	rm -rf /go/pkg/ /go/src/
+RUN curl -fsSLO https://github.com/gogo/protobuf/archive/v0.5.tar.gz && \
+	echo "38a9888ae3f2117ce4678209baf04ee75c7b9c04dd9f79990f1b7da802e41157  v0.5.tar.gz" | sha256sum -c && \
+	mkdir -p /go/src/github.com/gogo/protobuf && \
+	tar zxf v0.5.tar.gz -C /go/src/github.com/gogo/protobuf --strip 1 && \
+	cd /go/src/github.com/gogo/protobuf && \
+	make && \
+	rm -rf /go/pkg/ /go/src/ /go/v0.5.tar.gz /go/bin/gogoreplace /go/bin/protoc-gen-combo /go/bin/protoc-gen-gofast /go/bin/protoc-gen-gogo /go/bin/protoc-gen-gogofast /go/bin/protoc-gen-gogofaster /go/bin/protoc-gen-gogotypes /go/bin/protoc-gen-gostring /go/bin/protoc-min-version
 RUN curl -fsSL -o shfmt https://github.com/mvdan/sh/releases/download/v1.3.0/shfmt_v1.3.0_linux_amd64 && \
+	echo "b1925c2c405458811f0c227266402cf1868b4de529f114722c2e3a5af4ac7bb2  shfmt" | sha256sum -c && \
 	chmod +x shfmt && \
 	mv shfmt /usr/bin
 RUN mkdir protoc && \
 	cd protoc && \
 	curl -O -L https://github.com/google/protobuf/releases/download/v3.1.0/protoc-3.1.0-linux-x86_64.zip && \
+	echo "7c98f9e8a3d77e49a072861b7a9b18ffb22c98e37d2a80650264661bfaad5b3a  protoc-3.1.0-linux-x86_64.zip" | sha256sum -c && \
 	unzip protoc-3.1.0-linux-x86_64.zip && \
 	cp bin/protoc /usr/bin/ && \
 	chmod o+x /usr/bin/protoc && \
