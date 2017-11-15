@@ -6,8 +6,8 @@ RUN apt-get update && apt-get install -y \
 		jq \
 		shellcheck \
 		unzip \
-		protobuf-compiler \
-		libprotobuf-dev && \
+		protobuf-compiler=3.0.0-9 \
+		libprotobuf-dev=3.0.0-9 && \
 	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN go clean -i net && \
 	go install -tags netgo std && \
