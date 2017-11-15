@@ -29,6 +29,9 @@ coverage.html
 # Emacs backup files
 *~
 
+# Vim swap files
+.*.sw?
+
 # Project specific
 .uptodate
 users/cmd/users/users
