@@ -134,9 +134,13 @@ func main() {
 		mixpanelClient = marketing.NewMixpanelClient(*mixpanelToken)
 	}
 
-	partnerClient, err := partner.NewClient(partnerCfg)
-	if err != nil {
-		log.Fatalf("Failed creating Google Partner Subscriptions API client: %v", err)
+	var partnerClient partner.API
+	if partnerCfg.ServiceAccountKeyFile != "" {
+		var err error
+		partnerClient, err = partner.NewClient(partnerCfg)
+		if err != nil {
+			log.Fatalf("Failed creating Google Partner Subscriptions API client: %v", err)
+		}
 	}
 
 	webhookTokenMap := make(map[string]struct{})
