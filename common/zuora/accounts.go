@@ -422,7 +422,7 @@ type contact struct {
 	LastName  string `json:"lastName"`
 	Country   string `json:"country"`
 	State     string `json:"state"`
-	WorkEmail string `json:"workEmail"` // Email address that account issues are emailed to
+	WorkEmail string `json:"workEmail,omitempty"` // Email address that account issues are emailed to
 }
 
 // subscription is a type of Zuora product. It says when this subscription started and how long it lasts.
