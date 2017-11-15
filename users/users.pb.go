@@ -59,12 +59,10 @@ import strconv "strconv"
 import strings "strings"
 import reflect "reflect"
 
-import (
-	context "golang.org/x/net/context"
-	grpc "google.golang.org/grpc"
-)
+import context "golang.org/x/net/context"
+import grpc "google.golang.org/grpc"
 
-import github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
+import types "github.com/gogo/protobuf/types"
 
 import io "io"
 
@@ -2525,7 +2523,11 @@ func (this *GetOrganizationsResponse) GoString() string {
 	s := make([]string, 0, 5)
 	s = append(s, "&users.GetOrganizationsResponse{")
 	if this.Organizations != nil {
-		s = append(s, "Organizations: "+fmt.Sprintf("%#v", this.Organizations)+",\n")
+		vs := make([]*Organization, len(this.Organizations))
+		for i := range vs {
+			vs[i] = &this.Organizations[i]
+		}
+		s = append(s, "Organizations: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -2547,7 +2549,11 @@ func (this *GetBillableOrganizationsResponse) GoString() string {
 	s := make([]string, 0, 5)
 	s = append(s, "&users.GetBillableOrganizationsResponse{")
 	if this.Organizations != nil {
-		s = append(s, "Organizations: "+fmt.Sprintf("%#v", this.Organizations)+",\n")
+		vs := make([]*Organization, len(this.Organizations))
+		for i := range vs {
+			vs[i] = &this.Organizations[i]
+		}
+		s = append(s, "Organizations: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -2569,7 +2575,11 @@ func (this *GetTrialOrganizationsResponse) GoString() string {
 	s := make([]string, 0, 5)
 	s = append(s, "&users.GetTrialOrganizationsResponse{")
 	if this.Organizations != nil {
-		s = append(s, "Organizations: "+fmt.Sprintf("%#v", this.Organizations)+",\n")
+		vs := make([]*Organization, len(this.Organizations))
+		for i := range vs {
+			vs[i] = &this.Organizations[i]
+		}
+		s = append(s, "Organizations: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -2591,7 +2601,11 @@ func (this *GetDelinquentOrganizationsResponse) GoString() string {
 	s := make([]string, 0, 5)
 	s = append(s, "&users.GetDelinquentOrganizationsResponse{")
 	if this.Organizations != nil {
-		s = append(s, "Organizations: "+fmt.Sprintf("%#v", this.Organizations)+",\n")
+		vs := make([]*Organization, len(this.Organizations))
+		for i := range vs {
+			vs[i] = &this.Organizations[i]
+		}
+		s = append(s, "Organizations: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -3789,8 +3803,8 @@ func (m *GetBillableOrganizationsRequest) MarshalTo(dAtA []byte) (int, error) {
 	_ = l
 	dAtA[i] = 0xa
 	i++
-	i = encodeVarintUsers(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(m.Now)))
-	n1, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.Now, dAtA[i:])
+	i = encodeVarintUsers(dAtA, i, uint64(types.SizeOfStdTime(m.Now)))
+	n1, err := types.StdTimeMarshalTo(m.Now, dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -3845,8 +3859,8 @@ func (m *GetTrialOrganizationsRequest) MarshalTo(dAtA []byte) (int, error) {
 	_ = l
 	dAtA[i] = 0xa
 	i++
-	i = encodeVarintUsers(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(m.Now)))
-	n2, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.Now, dAtA[i:])
+	i = encodeVarintUsers(dAtA, i, uint64(types.SizeOfStdTime(m.Now)))
+	n2, err := types.StdTimeMarshalTo(m.Now, dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -3901,8 +3915,8 @@ func (m *GetDelinquentOrganizationsRequest) MarshalTo(dAtA []byte) (int, error) 
 	_ = l
 	dAtA[i] = 0xa
 	i++
-	i = encodeVarintUsers(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(m.Now)))
-	n3, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.Now, dAtA[i:])
+	i = encodeVarintUsers(dAtA, i, uint64(types.SizeOfStdTime(m.Now)))
+	n3, err := types.StdTimeMarshalTo(m.Now, dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -4056,8 +4070,8 @@ func (m *Organization) MarshalTo(dAtA []byte) (int, error) {
 	}
 	dAtA[i] = 0x2a
 	i++
-	i = encodeVarintUsers(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(m.CreatedAt)))
-	n6, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.CreatedAt, dAtA[i:])
+	i = encodeVarintUsers(dAtA, i, uint64(types.SizeOfStdTime(m.CreatedAt)))
+	n6, err := types.StdTimeMarshalTo(m.CreatedAt, dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -4100,8 +4114,8 @@ func (m *Organization) MarshalTo(dAtA []byte) (int, error) {
 	if m.FirstSeenConnectedAt != nil {
 		dAtA[i] = 0x4a
 		i++
-		i = encodeVarintUsers(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(*m.FirstSeenConnectedAt)))
-		n7, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(*m.FirstSeenConnectedAt, dAtA[i:])
+		i = encodeVarintUsers(dAtA, i, uint64(types.SizeOfStdTime(*m.FirstSeenConnectedAt)))
+		n7, err := types.StdTimeMarshalTo(*m.FirstSeenConnectedAt, dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -4121,8 +4135,8 @@ func (m *Organization) MarshalTo(dAtA []byte) (int, error) {
 	}
 	dAtA[i] = 0x62
 	i++
-	i = encodeVarintUsers(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(m.TrialExpiresAt)))
-	n8, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.TrialExpiresAt, dAtA[i:])
+	i = encodeVarintUsers(dAtA, i, uint64(types.SizeOfStdTime(m.TrialExpiresAt)))
+	n8, err := types.StdTimeMarshalTo(m.TrialExpiresAt, dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -4136,8 +4150,8 @@ func (m *Organization) MarshalTo(dAtA []byte) (int, error) {
 	if m.ZuoraAccountCreatedAt != nil {
 		dAtA[i] = 0x72
 		i++
-		i = encodeVarintUsers(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(*m.ZuoraAccountCreatedAt)))
-		n9, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(*m.ZuoraAccountCreatedAt, dAtA[i:])
+		i = encodeVarintUsers(dAtA, i, uint64(types.SizeOfStdTime(*m.ZuoraAccountCreatedAt)))
+		n9, err := types.StdTimeMarshalTo(*m.ZuoraAccountCreatedAt, dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -4146,8 +4160,8 @@ func (m *Organization) MarshalTo(dAtA []byte) (int, error) {
 	if m.TrialPendingExpiryNotifiedAt != nil {
 		dAtA[i] = 0x7a
 		i++
-		i = encodeVarintUsers(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(*m.TrialPendingExpiryNotifiedAt)))
-		n10, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(*m.TrialPendingExpiryNotifiedAt, dAtA[i:])
+		i = encodeVarintUsers(dAtA, i, uint64(types.SizeOfStdTime(*m.TrialPendingExpiryNotifiedAt)))
+		n10, err := types.StdTimeMarshalTo(*m.TrialPendingExpiryNotifiedAt, dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -4158,8 +4172,8 @@ func (m *Organization) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		dAtA[i] = 0x1
 		i++
-		i = encodeVarintUsers(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(*m.TrialExpiredNotifiedAt)))
-		n11, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(*m.TrialExpiredNotifiedAt, dAtA[i:])
+		i = encodeVarintUsers(dAtA, i, uint64(types.SizeOfStdTime(*m.TrialExpiredNotifiedAt)))
+		n11, err := types.StdTimeMarshalTo(*m.TrialExpiredNotifiedAt, dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -4219,8 +4233,8 @@ func (m *GoogleCloudPlatform) MarshalTo(dAtA []byte) (int, error) {
 	}
 	dAtA[i] = 0x22
 	i++
-	i = encodeVarintUsers(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(m.CreatedAt)))
-	n13, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.CreatedAt, dAtA[i:])
+	i = encodeVarintUsers(dAtA, i, uint64(types.SizeOfStdTime(m.CreatedAt)))
+	n13, err := types.StdTimeMarshalTo(m.CreatedAt, dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -4372,8 +4386,8 @@ func (m *SetOrganizationZuoraAccountRequest) MarshalTo(dAtA []byte) (int, error)
 	if m.CreatedAt != nil {
 		dAtA[i] = 0x1a
 		i++
-		i = encodeVarintUsers(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(*m.CreatedAt)))
-		n16, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(*m.CreatedAt, dAtA[i:])
+		i = encodeVarintUsers(dAtA, i, uint64(types.SizeOfStdTime(*m.CreatedAt)))
+		n16, err := types.StdTimeMarshalTo(*m.CreatedAt, dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -4543,24 +4557,24 @@ func (m *User) MarshalTo(dAtA []byte) (int, error) {
 	}
 	dAtA[i] = 0x22
 	i++
-	i = encodeVarintUsers(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(m.TokenCreatedAt)))
-	n18, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.TokenCreatedAt, dAtA[i:])
+	i = encodeVarintUsers(dAtA, i, uint64(types.SizeOfStdTime(m.TokenCreatedAt)))
+	n18, err := types.StdTimeMarshalTo(m.TokenCreatedAt, dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n18
 	dAtA[i] = 0x2a
 	i++
-	i = encodeVarintUsers(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(m.FirstLoginAt)))
-	n19, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.FirstLoginAt, dAtA[i:])
+	i = encodeVarintUsers(dAtA, i, uint64(types.SizeOfStdTime(m.FirstLoginAt)))
+	n19, err := types.StdTimeMarshalTo(m.FirstLoginAt, dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n19
 	dAtA[i] = 0x32
 	i++
-	i = encodeVarintUsers(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(m.CreatedAt)))
-	n20, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.CreatedAt, dAtA[i:])
+	i = encodeVarintUsers(dAtA, i, uint64(types.SizeOfStdTime(m.CreatedAt)))
+	n20, err := types.StdTimeMarshalTo(m.CreatedAt, dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -4662,24 +4676,6 @@ func (m *NotifyTrialExpiredResponse) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func encodeFixed64Users(dAtA []byte, offset int, v uint64) int {
-	dAtA[offset] = uint8(v)
-	dAtA[offset+1] = uint8(v >> 8)
-	dAtA[offset+2] = uint8(v >> 16)
-	dAtA[offset+3] = uint8(v >> 24)
-	dAtA[offset+4] = uint8(v >> 32)
-	dAtA[offset+5] = uint8(v >> 40)
-	dAtA[offset+6] = uint8(v >> 48)
-	dAtA[offset+7] = uint8(v >> 56)
-	return offset + 8
-}
-func encodeFixed32Users(dAtA []byte, offset int, v uint32) int {
-	dAtA[offset] = uint8(v)
-	dAtA[offset+1] = uint8(v >> 8)
-	dAtA[offset+2] = uint8(v >> 16)
-	dAtA[offset+3] = uint8(v >> 24)
-	return offset + 4
-}
 func encodeVarintUsers(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
@@ -4796,7 +4792,7 @@ func NewPopulatedGetOrganizationsResponse(r randyUsers, easy bool) *GetOrganizat
 
 func NewPopulatedGetBillableOrganizationsRequest(r randyUsers, easy bool) *GetBillableOrganizationsRequest {
 	this := &GetBillableOrganizationsRequest{}
-	v5 := github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
+	v5 := types.NewPopulatedStdTime(r, easy)
 	this.Now = *v5
 	if !easy && r.Intn(10) != 0 {
 	}
@@ -4820,7 +4816,7 @@ func NewPopulatedGetBillableOrganizationsResponse(r randyUsers, easy bool) *GetB
 
 func NewPopulatedGetTrialOrganizationsRequest(r randyUsers, easy bool) *GetTrialOrganizationsRequest {
 	this := &GetTrialOrganizationsRequest{}
-	v8 := github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
+	v8 := types.NewPopulatedStdTime(r, easy)
 	this.Now = *v8
 	if !easy && r.Intn(10) != 0 {
 	}
@@ -4844,7 +4840,7 @@ func NewPopulatedGetTrialOrganizationsResponse(r randyUsers, easy bool) *GetTria
 
 func NewPopulatedGetDelinquentOrganizationsRequest(r randyUsers, easy bool) *GetDelinquentOrganizationsRequest {
 	this := &GetDelinquentOrganizationsRequest{}
-	v11 := github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
+	v11 := types.NewPopulatedStdTime(r, easy)
 	this.Now = *v11
 	if !easy && r.Intn(10) != 0 {
 	}
@@ -4912,7 +4908,7 @@ func NewPopulatedOrganization(r randyUsers, easy bool) *Organization {
 	this.ExternalID = string(randStringUsers(r))
 	this.Name = string(randStringUsers(r))
 	this.ProbeToken = string(randStringUsers(r))
-	v15 := github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
+	v15 := types.NewPopulatedStdTime(r, easy)
 	this.CreatedAt = *v15
 	v16 := r.Intn(10)
 	this.FeatureFlags = make([]string, v16)
@@ -4922,21 +4918,21 @@ func NewPopulatedOrganization(r randyUsers, easy bool) *Organization {
 	this.RefuseDataAccess = bool(bool(r.Intn(2) == 0))
 	this.RefuseDataUpload = bool(bool(r.Intn(2) == 0))
 	if r.Intn(10) != 0 {
-		this.FirstSeenConnectedAt = github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
+		this.FirstSeenConnectedAt = types.NewPopulatedStdTime(r, easy)
 	}
 	this.Platform = string(randStringUsers(r))
 	this.Environment = string(randStringUsers(r))
-	v17 := github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
+	v17 := types.NewPopulatedStdTime(r, easy)
 	this.TrialExpiresAt = *v17
 	this.ZuoraAccountNumber = string(randStringUsers(r))
 	if r.Intn(10) != 0 {
-		this.ZuoraAccountCreatedAt = github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
+		this.ZuoraAccountCreatedAt = types.NewPopulatedStdTime(r, easy)
 	}
 	if r.Intn(10) != 0 {
-		this.TrialPendingExpiryNotifiedAt = github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
+		this.TrialPendingExpiryNotifiedAt = types.NewPopulatedStdTime(r, easy)
 	}
 	if r.Intn(10) != 0 {
-		this.TrialExpiredNotifiedAt = github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
+		this.TrialExpiredNotifiedAt = types.NewPopulatedStdTime(r, easy)
 	}
 	if r.Intn(10) != 0 {
 		this.GCP = NewPopulatedGoogleCloudPlatform(r, easy)
@@ -4951,7 +4947,7 @@ func NewPopulatedGoogleCloudPlatform(r randyUsers, easy bool) *GoogleCloudPlatfo
 	this.ID = string(randStringUsers(r))
 	this.AccountID = string(randStringUsers(r))
 	this.Active = bool(bool(r.Intn(2) == 0))
-	v18 := github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
+	v18 := types.NewPopulatedStdTime(r, easy)
 	this.CreatedAt = *v18
 	this.ConsumerID = string(randStringUsers(r))
 	this.SubscriptionName = string(randStringUsers(r))
@@ -5000,7 +4996,7 @@ func NewPopulatedSetOrganizationZuoraAccountRequest(r randyUsers, easy bool) *Se
 	this.ExternalID = string(randStringUsers(r))
 	this.Number = string(randStringUsers(r))
 	if r.Intn(10) != 0 {
-		this.CreatedAt = github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
+		this.CreatedAt = types.NewPopulatedStdTime(r, easy)
 	}
 	if !easy && r.Intn(10) != 0 {
 	}
@@ -5053,11 +5049,11 @@ func NewPopulatedUser(r randyUsers, easy bool) *User {
 	this.ID = string(randStringUsers(r))
 	this.Email = string(randStringUsers(r))
 	this.Token = string(randStringUsers(r))
-	v21 := github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
+	v21 := types.NewPopulatedStdTime(r, easy)
 	this.TokenCreatedAt = *v21
-	v22 := github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
+	v22 := types.NewPopulatedStdTime(r, easy)
 	this.FirstLoginAt = *v22
-	v23 := github_com_gogo_protobuf_types.NewPopulatedStdTime(r, easy)
+	v23 := types.NewPopulatedStdTime(r, easy)
 	this.CreatedAt = *v23
 	this.Admin = bool(bool(r.Intn(2) == 0))
 	if !easy && r.Intn(10) != 0 {
@@ -5301,7 +5297,7 @@ func (m *GetOrganizationsResponse) Size() (n int) {
 func (m *GetBillableOrganizationsRequest) Size() (n int) {
 	var l int
 	_ = l
-	l = github_com_gogo_protobuf_types.SizeOfStdTime(m.Now)
+	l = types.SizeOfStdTime(m.Now)
 	n += 1 + l + sovUsers(uint64(l))
 	return n
 }
@@ -5321,7 +5317,7 @@ func (m *GetBillableOrganizationsResponse) Size() (n int) {
 func (m *GetTrialOrganizationsRequest) Size() (n int) {
 	var l int
 	_ = l
-	l = github_com_gogo_protobuf_types.SizeOfStdTime(m.Now)
+	l = types.SizeOfStdTime(m.Now)
 	n += 1 + l + sovUsers(uint64(l))
 	return n
 }
@@ -5341,7 +5337,7 @@ func (m *GetTrialOrganizationsResponse) Size() (n int) {
 func (m *GetDelinquentOrganizationsRequest) Size() (n int) {
 	var l int
 	_ = l
-	l = github_com_gogo_protobuf_types.SizeOfStdTime(m.Now)
+	l = types.SizeOfStdTime(m.Now)
 	n += 1 + l + sovUsers(uint64(l))
 	return n
 }
@@ -5415,7 +5411,7 @@ func (m *Organization) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovUsers(uint64(l))
 	}
-	l = github_com_gogo_protobuf_types.SizeOfStdTime(m.CreatedAt)
+	l = types.SizeOfStdTime(m.CreatedAt)
 	n += 1 + l + sovUsers(uint64(l))
 	if len(m.FeatureFlags) > 0 {
 		for _, s := range m.FeatureFlags {
@@ -5430,7 +5426,7 @@ func (m *Organization) Size() (n int) {
 		n += 2
 	}
 	if m.FirstSeenConnectedAt != nil {
-		l = github_com_gogo_protobuf_types.SizeOfStdTime(*m.FirstSeenConnectedAt)
+		l = types.SizeOfStdTime(*m.FirstSeenConnectedAt)
 		n += 1 + l + sovUsers(uint64(l))
 	}
 	l = len(m.Platform)
@@ -5441,22 +5437,22 @@ func (m *Organization) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovUsers(uint64(l))
 	}
-	l = github_com_gogo_protobuf_types.SizeOfStdTime(m.TrialExpiresAt)
+	l = types.SizeOfStdTime(m.TrialExpiresAt)
 	n += 1 + l + sovUsers(uint64(l))
 	l = len(m.ZuoraAccountNumber)
 	if l > 0 {
 		n += 1 + l + sovUsers(uint64(l))
 	}
 	if m.ZuoraAccountCreatedAt != nil {
-		l = github_com_gogo_protobuf_types.SizeOfStdTime(*m.ZuoraAccountCreatedAt)
+		l = types.SizeOfStdTime(*m.ZuoraAccountCreatedAt)
 		n += 1 + l + sovUsers(uint64(l))
 	}
 	if m.TrialPendingExpiryNotifiedAt != nil {
-		l = github_com_gogo_protobuf_types.SizeOfStdTime(*m.TrialPendingExpiryNotifiedAt)
+		l = types.SizeOfStdTime(*m.TrialPendingExpiryNotifiedAt)
 		n += 1 + l + sovUsers(uint64(l))
 	}
 	if m.TrialExpiredNotifiedAt != nil {
-		l = github_com_gogo_protobuf_types.SizeOfStdTime(*m.TrialExpiredNotifiedAt)
+		l = types.SizeOfStdTime(*m.TrialExpiredNotifiedAt)
 		n += 2 + l + sovUsers(uint64(l))
 	}
 	if m.GCP != nil {
@@ -5480,7 +5476,7 @@ func (m *GoogleCloudPlatform) Size() (n int) {
 	if m.Active {
 		n += 2
 	}
-	l = github_com_gogo_protobuf_types.SizeOfStdTime(m.CreatedAt)
+	l = types.SizeOfStdTime(m.CreatedAt)
 	n += 1 + l + sovUsers(uint64(l))
 	l = len(m.ConsumerID)
 	if l > 0 {
@@ -5543,7 +5539,7 @@ func (m *SetOrganizationZuoraAccountRequest) Size() (n int) {
 		n += 1 + l + sovUsers(uint64(l))
 	}
 	if m.CreatedAt != nil {
-		l = github_com_gogo_protobuf_types.SizeOfStdTime(*m.CreatedAt)
+		l = types.SizeOfStdTime(*m.CreatedAt)
 		n += 1 + l + sovUsers(uint64(l))
 	}
 	return n
@@ -5611,11 +5607,11 @@ func (m *User) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovUsers(uint64(l))
 	}
-	l = github_com_gogo_protobuf_types.SizeOfStdTime(m.TokenCreatedAt)
+	l = types.SizeOfStdTime(m.TokenCreatedAt)
 	n += 1 + l + sovUsers(uint64(l))
-	l = github_com_gogo_protobuf_types.SizeOfStdTime(m.FirstLoginAt)
+	l = types.SizeOfStdTime(m.FirstLoginAt)
 	n += 1 + l + sovUsers(uint64(l))
-	l = github_com_gogo_protobuf_types.SizeOfStdTime(m.CreatedAt)
+	l = types.SizeOfStdTime(m.CreatedAt)
 	n += 1 + l + sovUsers(uint64(l))
 	if m.Admin {
 		n += 2
@@ -7110,7 +7106,7 @@ func (m *GetBillableOrganizationsRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(&m.Now, dAtA[iNdEx:postIndex]); err != nil {
+			if err := types.StdTimeUnmarshal(&m.Now, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -7271,7 +7267,7 @@ func (m *GetTrialOrganizationsRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(&m.Now, dAtA[iNdEx:postIndex]); err != nil {
+			if err := types.StdTimeUnmarshal(&m.Now, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -7432,7 +7428,7 @@ func (m *GetDelinquentOrganizationsRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(&m.Now, dAtA[iNdEx:postIndex]); err != nil {
+			if err := types.StdTimeUnmarshal(&m.Now, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -7926,7 +7922,7 @@ func (m *Organization) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(&m.CreatedAt, dAtA[iNdEx:postIndex]); err != nil {
+			if err := types.StdTimeUnmarshal(&m.CreatedAt, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -8028,7 +8024,7 @@ func (m *Organization) Unmarshal(dAtA []byte) error {
 			if m.FirstSeenConnectedAt == nil {
 				m.FirstSeenConnectedAt = new(time.Time)
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(m.FirstSeenConnectedAt, dAtA[iNdEx:postIndex]); err != nil {
+			if err := types.StdTimeUnmarshal(m.FirstSeenConnectedAt, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -8116,7 +8112,7 @@ func (m *Organization) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(&m.TrialExpiresAt, dAtA[iNdEx:postIndex]); err != nil {
+			if err := types.StdTimeUnmarshal(&m.TrialExpiresAt, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -8178,7 +8174,7 @@ func (m *Organization) Unmarshal(dAtA []byte) error {
 			if m.ZuoraAccountCreatedAt == nil {
 				m.ZuoraAccountCreatedAt = new(time.Time)
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(m.ZuoraAccountCreatedAt, dAtA[iNdEx:postIndex]); err != nil {
+			if err := types.StdTimeUnmarshal(m.ZuoraAccountCreatedAt, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -8211,7 +8207,7 @@ func (m *Organization) Unmarshal(dAtA []byte) error {
 			if m.TrialPendingExpiryNotifiedAt == nil {
 				m.TrialPendingExpiryNotifiedAt = new(time.Time)
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(m.TrialPendingExpiryNotifiedAt, dAtA[iNdEx:postIndex]); err != nil {
+			if err := types.StdTimeUnmarshal(m.TrialPendingExpiryNotifiedAt, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -8244,7 +8240,7 @@ func (m *Organization) Unmarshal(dAtA []byte) error {
 			if m.TrialExpiredNotifiedAt == nil {
 				m.TrialExpiredNotifiedAt = new(time.Time)
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(m.TrialExpiredNotifiedAt, dAtA[iNdEx:postIndex]); err != nil {
+			if err := types.StdTimeUnmarshal(m.TrialExpiredNotifiedAt, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -8435,7 +8431,7 @@ func (m *GoogleCloudPlatform) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(&m.CreatedAt, dAtA[iNdEx:postIndex]); err != nil {
+			if err := types.StdTimeUnmarshal(&m.CreatedAt, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -8955,7 +8951,7 @@ func (m *SetOrganizationZuoraAccountRequest) Unmarshal(dAtA []byte) error {
 			if m.CreatedAt == nil {
 				m.CreatedAt = new(time.Time)
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(m.CreatedAt, dAtA[iNdEx:postIndex]); err != nil {
+			if err := types.StdTimeUnmarshal(m.CreatedAt, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -9509,7 +9505,7 @@ func (m *User) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(&m.TokenCreatedAt, dAtA[iNdEx:postIndex]); err != nil {
+			if err := types.StdTimeUnmarshal(&m.TokenCreatedAt, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -9539,7 +9535,7 @@ func (m *User) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(&m.FirstLoginAt, dAtA[iNdEx:postIndex]); err != nil {
+			if err := types.StdTimeUnmarshal(&m.FirstLoginAt, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -9569,7 +9565,7 @@ func (m *User) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(&m.CreatedAt, dAtA[iNdEx:postIndex]); err != nil {
+			if err := types.StdTimeUnmarshal(&m.CreatedAt, dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
