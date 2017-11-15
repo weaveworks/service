@@ -47,20 +47,7 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 	}
 	for _, org := range organizations {
 		if org.ExternalID == strings.ToLower(orgExternalID) {
-			render.JSON(w, http.StatusOK, OrgView{
-				User:                 currentUser.Email,
-				ExternalID:           org.ExternalID,
-				Name:                 org.Name,
-				ProbeToken:           org.ProbeToken,
-				FeatureFlags:         append(org.FeatureFlags, a.forceFeatureFlags...),
-				RefuseDataAccess:     org.RefuseDataAccess,
-				RefuseDataUpload:     org.RefuseDataUpload,
-				FirstSeenConnectedAt: org.FirstSeenConnectedAt,
-				Platform:             org.Platform,
-				Environment:          org.Environment,
-				TrialExpiresAt:       org.TrialExpiresAt,
-				BillingProvider:      org.BillingProvider(),
-			})
+			render.JSON(w, http.StatusOK, a.createOrgView(currentUser, org))
 			return
 		}
 	}
@@ -74,6 +61,23 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 		return
 	}
 	renderError(w, r, users.ErrNotFound)
+}
+
+func (a *API) createOrgView(currentUser *users.User, org *users.Organization) OrgView {
+	return OrgView{
+		User:                 currentUser.Email,
+		ExternalID:           org.ExternalID,
+		Name:                 org.Name,
+		ProbeToken:           org.ProbeToken,
+		FeatureFlags:         append(org.FeatureFlags, a.forceFeatureFlags...),
+		RefuseDataAccess:     org.RefuseDataAccess,
+		RefuseDataUpload:     org.RefuseDataUpload,
+		FirstSeenConnectedAt: org.FirstSeenConnectedAt,
+		Platform:             org.Platform,
+		Environment:          org.Environment,
+		TrialExpiresAt:       org.TrialExpiresAt,
+		BillingProvider:      org.BillingProvider(),
+	}
 }
 
 func (a *API) generateOrgExternalID(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
