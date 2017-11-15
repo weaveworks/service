@@ -28,6 +28,7 @@ RUN curl -fsSL -o shfmt https://github.com/mvdan/sh/releases/download/v1.3.0/shf
 RUN mkdir protoc && \
 	cd protoc && \
 	curl -O -L https://github.com/google/protobuf/releases/download/v3.1.0/protoc-3.1.0-linux-x86_64.zip && \
+	echo "7c98f9e8a3d77e49a072861b7a9b18ffb22c98e37d2a80650264661bfaad5b3a  protoc-3.1.0-linux-x86_64.zip" | sha256sum -c && \
 	unzip protoc-3.1.0-linux-x86_64.zip && \
 	cp bin/protoc /usr/bin/ && \
 	chmod o+x /usr/bin/protoc && \
