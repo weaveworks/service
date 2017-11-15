@@ -13,6 +13,10 @@ import (
 	"github.com/weaveworks/service/users/render"
 )
 
+// We do not approve subscriptions coming from this accountID as to not
+// "waste" all of our staging billing accounts.
+const testingAccountID = "E-97A7-79FC-AD2D-9D31"
+
 func (a *API) gcpAccess(w http.ResponseWriter, r *http.Request) {
 	link, ok := a.partnerAccess.Link(r)
 	if !ok {
@@ -54,15 +58,15 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Approve subscription
-	/* FIXME: currently disabled to not "waste" the manually created subscription (approval can't be reversed)
-	body := partner.RequestBodyWithSSOLoginKey(gcp.AccountID)
-	_, err = a.partner.ApproveSubscription(r.Context(), sub.Name, body)
-	if err != nil {
-		render.Error(w, r, err)
-		return
+	if gcpAccountID != testingAccountID {
+		// Approve subscription
+		body := partner.RequestBodyWithSSOLoginKey(gcp.AccountID)
+		_, err = a.partner.ApproveSubscription(r.Context(), sub.Name, body)
+		if err != nil {
+			render.Error(w, r, err)
+			return
+		}
 	}
-	*/
 
 	// Activate subscription account
 	err = a.db.UpdateGCP(r.Context(), gcp.AccountID, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel, true)
