@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path"
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/render"
@@ -23,6 +25,42 @@ func (a *API) gcpAccess(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, errors.New("invalid token"))
 	}
 	render.JSON(w, http.StatusOK, link)
+}
+
+func (a *API) gcpSSOLogin(w http.ResponseWriter, r *http.Request) {
+	gcpAccountID := path.Base(r.URL.Path)
+
+	org, err := a.db.FindOrganizationByGCPAccountID(r.Context(), gcpAccountID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	admins, err := a.db.ListOrganizationUsers(r.Context(), org.ExternalID)
+	if err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	user := admins[0] // Arbitrarily log in as first admin.
+
+	firstLogin := user.FirstLoginAt.IsZero()
+	if err := a.UpdateUserAtLogin(r.Context(), user); err != nil {
+		render.Error(w, r, err)
+		return
+	}
+	impersonatingUserID := "" // SSO login => cannot be impersonating
+	if err := a.sessions.Set(w, r, user.ID, impersonatingUserID); err != nil {
+		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		return
+	}
+	// Track mixpanel event https://github.com/weaveworks/service/issues/1301
+	if a.mixpanel != nil {
+		go func() {
+			if err := a.mixpanel.TrackLogin(user.Email, firstLogin); err != nil {
+				logging.With(r.Context()).Error(err)
+			}
+		}()
+	}
+	http.Redirect(w, r, "/", 302)
 }
 
 func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
