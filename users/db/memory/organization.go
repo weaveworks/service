@@ -460,8 +460,8 @@ func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, 
 	return org, gcp, nil
 }
 
-// GetGCP returns the Google Cloud Platform subscription for the given account.
-func (d *DB) GetGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
+// FindGCP returns the Google Cloud Platform subscription for the given account.
+func (d *DB) FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
