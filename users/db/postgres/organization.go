@@ -120,9 +120,11 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"gcp_accounts.subscription_level",
 		"gcp_accounts.subscription_status",
 		"organizations.team_id",
+		"teams.external_id",
 	).
 		From("organizations").
 		LeftJoin("gcp_accounts ON gcp_account_id = gcp_accounts.id").
+		LeftJoin("teams ON teams.id = organizations.team_id").
 		Where("organizations.deleted_at is null").
 		OrderBy("organizations.created_at DESC")
 }
@@ -200,7 +202,7 @@ func (d DB) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) 
 	if err != nil {
 		return nil, err
 	}
-	teamOrgs, err := d.ListTeamOrganizationsForUserIDs(ctx, userIDs...)
+	teamOrgs, err := d.listTeamOrganizationsForUserIDs(ctx, userIDs...)
 	if err != nil {
 		return nil, err
 	}
@@ -211,11 +213,14 @@ func (d DB) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) 
 
 // listMemberOrganizationsForUserIDs lists the organizations these users belong to
 func (d DB) listMemberOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
-	rows, err := d.organizationsQuery().
+	qq := d.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userIDs}).
-		Where("memberships.deleted_at is null").
-		Query()
+		Where("memberships.deleted_at is null")
+
+	sql, args, err := qq.ToSql()
+
+	rows, err := qq.Query()
 	if err != nil {
 		return nil, err
 	}
@@ -228,23 +233,13 @@ func (d DB) listMemberOrganizationsForUserIDs(_ context.Context, userIDs ...stri
 
 // addUserToOrganization adds a user to the team of the organization,
 // if the organization belongs to a team, otherwise populates membership
-func (d DB) addUserToOrganization(ctx context.Context, userID, orgExternalID string) error {
-	org, err := d.FindOrganizationByID(ctx, orgExternalID)
-	if err != nil {
-		return err
-	}
-
-	if org.TeamID != "" {
-		r := d.addUserToTeam(userID, org.TeamID)
-		return r
-	}
-
-	_, err = d.Exec(`
+func (d DB) addUserToOrganization(userID, orgID string) error {
+	_, err := d.Exec(`
 			insert into memberships
 				(user_id, organization_id, created_at)
 				values ($1, $2, $3)`,
 		userID,
-		org.ID,
+		orgID,
 		d.Now(),
 	)
 	if err != nil {
@@ -280,13 +275,14 @@ func (d DB) GenerateOrganizationExternalID(ctx context.Context) (string, error) 
 }
 
 // CreateOrganization creates a new organization owned by the user
-func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (*users.Organization, error) {
+func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string) (*users.Organization, error) {
 	now := d.Now()
 	o := &users.Organization{
 		ExternalID:     externalID,
 		Name:           name,
 		CreatedAt:      now,
 		TrialExpiresAt: now.Add(users.TrialDuration),
+		TeamID:         teamID,
 	}
 	if err := o.Valid(); err != nil {
 		return nil, err
@@ -321,16 +317,18 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 			}
 		}
 
-		o.TeamID, err = tx.ensureTeamExists(ctx, ownerID)
+		err = tx.QueryRow(`insert into organizations
+			(external_id, name, probe_token, created_at, trial_expires_at, team_id)
+			values (lower($1), $2, $3, $4, $5, $6) returning id`,
+			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt, o.TrialExpiresAt, toNullString(o.TeamID),
+		).Scan(&o.ID)
 		if err != nil {
 			return err
 		}
 
-		err = tx.QueryRow(`insert into organizations
-			(external_id, name, probe_token, created_at, trial_expires_at, team_id)
-			values (lower($1), $2, $3, $4, $5, $6) returning id`,
-			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt, o.TrialExpiresAt, o.TeamID,
-		).Scan(&o.ID)
+		if o.TeamID == "" {
+			return tx.addUserToOrganization(ownerID, o.ID)
+		}
 
 		return err
 	})
@@ -338,41 +336,6 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 		return nil, err
 	}
 	return o, err
-}
-
-func (d DB) ensureTeamExists(ctx context.Context, ownerID string) (string, error) {
-	// Which team does the organization go into?
-	// * if the user has a default team, pick that
-	// * if a user is not part of a team, create the team and the organization within that team
-	var teamID string
-	err := d.Transaction(func(tx DB) error {
-		team, err := tx.defaultTeamByUserID(ownerID)
-		if err != nil && err != sql.ErrNoRows {
-			return err
-		}
-		if team != nil {
-			teamID = team.ID
-			return nil
-		}
-
-		// user has no team
-		team, err = tx.createTeam(ctx)
-		if err != nil {
-			return err
-		}
-		err = tx.addUserToTeam(ownerID, team.ID)
-		if err != nil {
-			return err
-		}
-		err = tx.setDefaultTeam(ownerID, team.ID)
-		if err != nil {
-			return err
-		}
-		teamID = team.ID
-		return nil
-	})
-
-	return teamID, err
 }
 
 // FindOrganizationByProbeToken looks up the organization matching a given
@@ -454,7 +417,7 @@ func (d DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
 
 func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, error) {
 	o := &users.Organization{}
-	var externalID, name, probeToken, platform, environment, zuoraAccountNumber, teamID sql.NullString
+	var externalID, name, probeToken, platform, environment, zuoraAccountNumber, teamID, teamExternalID sql.NullString
 	var createdAt pq.NullTime
 	var firstSeenConnectedAt, zuoraAccountCreatedAt *time.Time
 	var trialExpiry time.Time
@@ -489,6 +452,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&subscriptionLevel,
 		&subscriptionStatus,
 		&teamID,
+		&teamExternalID,
 	); err != nil {
 		return nil, err
 	}
@@ -519,6 +483,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		}
 	}
 	o.TeamID = teamID.String
+	o.TeamExternalID = teamExternalID.String
 	return o, nil
 }
 
@@ -837,3 +802,7 @@ type organizationsByCreatedAt []*users.Organization
 func (o organizationsByCreatedAt) Len() int           { return len(o) }
 func (o organizationsByCreatedAt) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
 func (o organizationsByCreatedAt) Less(i, j int) bool { return o[i].CreatedAt.After(o[j].CreatedAt) }
+
+func toNullString(s string) sql.NullString {
+	return sql.NullString{String: s, Valid: s != ""}
+}

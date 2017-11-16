@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/externalIDs"
@@ -25,8 +26,7 @@ func (d DB) ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Tea
 	return d.scanTeams(rows)
 }
 
-// ListTeamOrganizationsForUserIDs lists the organizations these users' teams belong to
-func (d DB) ListTeamOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
+func (d DB) listTeamOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
 	rows, err := d.organizationsQuery().
 		Join("team_memberships on (organizations.team_id = team_memberships.team_id)").
 		Where("team_memberships.deleted_at IS NULL").
@@ -42,8 +42,24 @@ func (d DB) ListTeamOrganizationsForUserIDs(_ context.Context, userIDs ...string
 	return orgs, err
 }
 
-// createTeam creates a team
-func (d DB) createTeam(ctx context.Context) (*users.Team, error) {
+// ListTeamUsers lists all the users in a team
+func (d DB) ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error) {
+	rows, err := d.usersQuery().
+		Join("team_memberships on (team_memberships.user_id = users.id)").
+		Where("team_memberships.deleted_at IS NULL").
+		Where(squirrel.Eq{
+			"team_memberships.team_id": teamID,
+		}).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return d.scanUsers(rows)
+}
+
+// CreateTeam creates a team
+func (d DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
 	now := d.Now()
 	TrialExpiresAt := now.Add(users.TrialDuration)
 	t := &users.Team{TrialExpiresAt: TrialExpiresAt}
@@ -54,14 +70,31 @@ func (d DB) createTeam(ctx context.Context) (*users.Team, error) {
 			return err
 		}
 		t.ExternalID = externalID
-		err = tx.QueryRow(`insert into teams (external_id, trial_expires_at)
-						  values (lower($1), $2) returning id, created_at`, externalID, TrialExpiresAt).Scan(&t.ID, &t.CreatedAt)
+		err = tx.QueryRow(`insert into teams (external_id, trial_expires_at, name)
+						  values (lower($1), $2, $3) returning id, created_at`, externalID, TrialExpiresAt, name).Scan(&t.ID, &t.CreatedAt)
 		return err
 	})
 	if err != nil {
 		return nil, err
 	}
 	return t, nil
+}
+
+// AddUserToTeam links a user to the team
+func (d DB) AddUserToTeam(ctx context.Context, userID, teamID string) error {
+	_, err := d.Exec(`
+			insert into team_memberships
+				(user_id, team_id)
+				values ($1, $2)`,
+		userID,
+		teamID,
+	)
+	if err != nil {
+		if e, ok := err.(*pq.Error); ok && e.Constraint == "team_memberships_user_id_team_id_idx" {
+			return nil
+		}
+	}
+	return err
 }
 
 // teamExternalIDUsed returns whether the team externalID has already been taken
@@ -95,21 +128,6 @@ func (d DB) generateTeamExternalID(ctx context.Context) (string, error) {
 	return externalID, err
 }
 
-// addUserToTeam links a user to the team
-func (d DB) addUserToTeam(userID, teamID string) error {
-	_, err := d.Exec(`
-			insert into team_memberships
-				(user_id, team_id)
-				values ($1, $2)`,
-		userID,
-		teamID,
-	)
-	if err != nil {
-		return err
-	}
-	return err
-}
-
 // removeUserFromTeam removes the user from the team.
 // If they are not a team member, this is a noop.
 func (d DB) removeUserFromTeam(userID, teamID string) error {
@@ -121,42 +139,24 @@ func (d DB) removeUserFromTeam(userID, teamID string) error {
 	return err
 }
 
-// setDefaultTeam sets a user's default team
-func (d DB) setDefaultTeam(userID, teamID string) error {
-	err := d.Transaction(func(tx DB) error {
-		_, err := tx.Exec(
-			"update team_memberships set is_default = NULL where user_id = $1",
-			userID,
-		)
-		if err != nil {
-			return err
-		}
-		_, err = tx.Exec(
-			"update team_memberships set is_default = true where user_id = $1 and team_id = $2 and deleted_at is NULL",
-			userID,
-			teamID,
-		)
-		return err
-	})
-	return err
-}
-
-// defaultTeamByUserID returns the user's explicit default team or
-func (d DB) defaultTeamByUserID(userID string) (*users.Team, error) {
-	row := d.teamQuery().
-		Join("team_memberships m ON teams.id = m.team_id").
-		Where(squirrel.Eq{"m.user_id": userID}).
-		Where("m.deleted_at IS NULL").
-		OrderBy("m.is_default NULLS LAST").
-		Limit(1).
-		QueryRow()
-	return d.scanTeam(row)
+func (d DB) findTeamByExternalID(_ context.Context, externalID string) (*users.Team, error) {
+	team, err := d.scanTeam(
+		d.teamQuery().Where("lower(teams.external_id) = lower($1)", externalID).QueryRow(),
+	)
+	if err == sql.ErrNoRows {
+		err = users.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return team, nil
 }
 
 func (d DB) teamQuery() squirrel.SelectBuilder {
 	return d.Select(`
 		teams.id,
 		teams.external_id,
+		teams.name,
 		teams.zuora_account_number,
 		teams.zuora_account_created_at,
 		teams.trial_expires_at,
@@ -193,7 +193,7 @@ func (d DB) scanTeam(row squirrel.RowScanner) (*users.Team, error) {
 		trialExpiredNotifiedAt *time.Time
 	)
 	if err := row.Scan(
-		&t.ID, &t.ExternalID, &zuoraAccountNumber,
+		&t.ID, &t.ExternalID, &t.Name, &zuoraAccountNumber,
 		&zuoraAccountCreatedAt, &t.TrialExpiresAt,
 		&trialPendingExpiryNotifiedAt, &trialExpiredNotifiedAt,
 		&t.CreatedAt,

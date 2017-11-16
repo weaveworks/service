@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/weaveworks/service/users"
@@ -29,24 +30,29 @@ func (d *DB) ListTeamsForUserID(_ context.Context, userID string) ([]*users.Team
 	return teams, nil
 }
 
-// ListTeamOrganizationsForUserIDs lists the organizations these users' teams belong to
-func (d *DB) ListTeamOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
+// ListTeamUsers lists all the users in an team
+func (d *DB) ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
+	return d.listTeamUsers(ctx, teamID)
+}
 
-	var organizations []*users.Organization
-	// O(n^3)!
-	for _, userID := range userIDs {
-		for _, teamID := range d.teamMemberships[userID] {
-			for _, org := range d.organizations {
-				if org.TeamID == teamID {
-					organizations = append(organizations, org)
+func (d *DB) listTeamUsers(_ context.Context, teamID string) ([]*users.User, error) {
+	var users []*users.User
+	for m, teamIDs := range d.teamMemberships {
+		for _, teamID := range teamIDs {
+			if teamID == teamID {
+				u, err := d.findUserByID(m)
+				if err != nil {
+					return nil, err
 				}
+				users = append(users, u)
 			}
 		}
 	}
 
-	return organizations, nil
+	sort.Sort(usersByCreatedAt(users))
+	return users, nil
 }
 
 func (d *DB) generateTeamExternalID(_ context.Context) (string, error) {
@@ -66,12 +72,14 @@ func (d *DB) generateTeamExternalID(_ context.Context) (string, error) {
 	return externalID, nil
 }
 
-func (d *DB) createTeam(ctx context.Context) (*users.Team, error) {
+// CreateTeam creates a team
+func (d *DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
 	// no lock needed: called by CreateOrganization which acquired the lock
 	now := time.Now()
 	TrialExpiresAt := now.Add(users.TrialDuration)
 	t := &users.Team{
 		ID:             fmt.Sprint(len(d.teams)),
+		Name:           name,
 		TrialExpiresAt: TrialExpiresAt,
 	}
 	externalID, err := d.generateTeamExternalID(ctx)
@@ -84,7 +92,8 @@ func (d *DB) createTeam(ctx context.Context) (*users.Team, error) {
 	return t, nil
 }
 
-func (d *DB) addUserToTeam(userID, teamID string) error {
+// AddUserToTeam links a user to the team
+func (d *DB) AddUserToTeam(_ context.Context, userID, teamID string) error {
 	// no lock needed: called by CreateOrganization which acquired the lock
 	teamIDs, _ := d.teamMemberships[userID]
 	for _, id := range teamIDs {

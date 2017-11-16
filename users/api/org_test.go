@@ -336,7 +336,7 @@ func Test_Organization_CheckIfExternalIDExists(t *testing.T) {
 	}
 
 	// Create the org so it exists
-	org, err := database.CreateOrganization(context.Background(), otherUser.ID, id, id, "")
+	org, err := database.CreateOrganization(context.Background(), otherUser.ID, id, id, "", "")
 	require.NoError(t, err)
 
 	{
@@ -406,7 +406,7 @@ func Test_Organization_Delete(t *testing.T) {
 	}
 
 	// Create the org so it exists
-	org, err := database.CreateOrganization(context.Background(), user.ID, externalID, externalID, "")
+	org, err := database.CreateOrganization(context.Background(), user.ID, externalID, externalID, "", "")
 	require.NoError(t, err)
 
 	// Should 401 because otherUser doesn't have access
@@ -443,7 +443,7 @@ func Test_Organization_Name(t *testing.T) {
 	externalID, err := database.GenerateOrganizationExternalID(context.Background())
 	require.NoError(t, err)
 
-	_, err = database.CreateOrganization(context.Background(), user.ID, externalID, orgName100, "")
+	_, err = database.CreateOrganization(context.Background(), user.ID, externalID, orgName100, "", "")
 	require.NoError(t, err)
 
 	foundName, err := database.GetOrganizationName(context.Background(), externalID)
@@ -458,7 +458,7 @@ func Test_Organization_Overlong_Name(t *testing.T) {
 		externalID, err := database.GenerateOrganizationExternalID(context.Background())
 		require.NoError(t, err)
 
-		_, err = database.CreateOrganization(context.Background(), user.ID, externalID, orgName101, "")
+		_, err = database.CreateOrganization(context.Background(), user.ID, externalID, orgName101, "", "")
 		assert.IsType(t, &pq.Error{}, err)
 	}
 }

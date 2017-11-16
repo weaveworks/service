@@ -24,9 +24,15 @@ type ZuoraAccount bool
 // Where returns the query to filter by Zuora account.
 func (z ZuoraAccount) Where() squirrel.Sqlizer {
 	if bool(z) {
+<<<<<<< HEAD
 		return squirrel.Expr("zuora_account_number IS NOT NULL")
 	}
 	return squirrel.Eq{"zuora_account_number": nil}
+=======
+		return b.Where("organizations.zuora_account_number IS NOT NULL")
+	}
+	return b.Where(map[string]interface{}{"organizations.zuora_account_number": nil})
+>>>>>>> Refactor team logic
 }
 
 // MatchesOrg checks whether the organization matches this filter.

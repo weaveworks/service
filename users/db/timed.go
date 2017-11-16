@@ -170,9 +170,9 @@ func (t timed) GenerateOrganizationExternalID(ctx context.Context) (s string, er
 	return
 }
 
-func (t timed) CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (o *users.Organization, err error) {
+func (t timed) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string) (o *users.Organization, err error) {
 	t.timeRequest(ctx, "CreateOrganization", func(ctx context.Context) error {
-		o, err = t.d.CreateOrganization(ctx, ownerID, externalID, name, token)
+		o, err = t.d.CreateOrganization(ctx, ownerID, externalID, name, token, teamID)
 		return err
 	})
 	return
@@ -325,9 +325,25 @@ func (t timed) ListTeamsForUserID(ctx context.Context, userID string) (us []*use
 	return
 }
 
-func (t timed) ListTeamOrganizationsForUserIDs(ctx context.Context, userIDs ...string) (us []*users.Organization, err error) {
-	t.timeRequest(ctx, "ListTeamOrganizationsForUserIDs", func(ctx context.Context) error {
-		us, err = t.d.ListTeamOrganizationsForUserIDs(ctx, userIDs...)
+func (t timed) ListTeamUsers(ctx context.Context, teamID string) (us []*users.User, err error) {
+	t.timeRequest(ctx, "ListTeamUsers", func(ctx context.Context) error {
+		us, err = t.d.ListTeamUsers(ctx, teamID)
+		return err
+	})
+	return
+}
+
+func (t timed) CreateTeam(ctx context.Context, name string) (ut *users.Team, err error) {
+	t.timeRequest(ctx, "CreateTeam", func(ctx context.Context) error {
+		ut, err = t.d.CreateTeam(ctx, name)
+		return err
+	})
+	return
+}
+
+func (t timed) AddUserToTeam(ctx context.Context, userID, teamID string) (err error) {
+	t.timeRequest(ctx, "AddUserToTeam", func(ctx context.Context) error {
+		err = t.d.AddUserToTeam(ctx, userID, teamID)
 		return err
 	})
 	return

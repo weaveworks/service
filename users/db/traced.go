@@ -111,9 +111,9 @@ func (t traced) GenerateOrganizationExternalID(ctx context.Context) (s string, e
 	return t.d.GenerateOrganizationExternalID(ctx)
 }
 
-func (t traced) CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (o *users.Organization, err error) {
-	defer func() { t.trace("CreateOrganization", ownerID, externalID, name, token, o, err) }()
-	return t.d.CreateOrganization(ctx, ownerID, externalID, name, token)
+func (t traced) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string) (o *users.Organization, err error) {
+	defer func() { t.trace("CreateOrganization", ownerID, externalID, name, token, teamID, o, err) }()
+	return t.d.CreateOrganization(ctx, ownerID, externalID, name, token, teamID)
 }
 
 func (t traced) FindOrganizationByProbeToken(ctx context.Context, probeToken string) (o *users.Organization, err error) {
@@ -225,9 +225,19 @@ func (t traced) ListTeamsForUserID(ctx context.Context, userID string) (os []*us
 	return t.d.ListTeamsForUserID(ctx, userID)
 }
 
-func (t traced) ListTeamOrganizationsForUserIDs(ctx context.Context, userIDs ...string) (os []*users.Organization, err error) {
-	defer func() { t.trace("ListTeamOrganizationsForUserIDs", userIDs, os, err) }()
-	return t.d.ListTeamOrganizationsForUserIDs(ctx, userIDs...)
+func (t traced) ListTeamUsers(ctx context.Context, teamID string) (os []*users.User, err error) {
+	defer func() { t.trace("ListTeamUsers", teamID, os, err) }()
+	return t.d.ListTeamUsers(ctx, teamID)
+}
+
+func (t traced) CreateTeam(ctx context.Context, name string) (ut *users.Team, err error) {
+	defer func() { t.trace("CreateTeam", name, ut, err) }()
+	return t.d.CreateTeam(ctx, name)
+}
+
+func (t traced) AddUserToTeam(ctx context.Context, userID, teamID string) (err error) {
+	defer func() { t.trace("AddUserToTeam", userID, teamID, err) }()
+	return t.d.AddUserToTeam(ctx, userID, teamID)
 }
 
 func (t traced) Close(ctx context.Context) (err error) {

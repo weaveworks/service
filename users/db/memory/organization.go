@@ -103,7 +103,7 @@ func (d *DB) ListOrganizations(_ context.Context, f filter.Organization, page ui
 }
 
 // ListOrganizationUsers lists all the users in an organization
-func (d *DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*users.User, error) {
+func (d *DB) ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	o, err := d.findOrganizationByExternalID(orgExternalID)
@@ -121,17 +121,11 @@ func (d *DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*
 	}
 
 	if o.TeamID != "" {
-		for m, teamIDs := range d.teamMemberships {
-			for _, teamID := range teamIDs {
-				if teamID == o.TeamID {
-					u, err := d.findUserByID(m)
-					if err != nil {
-						return nil, err
-					}
-					users = append(users, u)
-				}
-			}
+		teamUsers, err := d.listTeamUsers(ctx, o.TeamID)
+		if err != nil {
+			return nil, err
 		}
+		users = append(users, teamUsers...)
 	}
 
 	sort.Sort(usersByCreatedAt(users))
@@ -233,7 +227,7 @@ var (
 )
 
 // CreateOrganization creates a new organization owned by the user
-func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (*users.Organization, error) {
+func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string) (*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if _, err := d.findUserByID(ownerID); err != nil {
@@ -243,12 +237,21 @@ func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, 
 		return nil, &errorOrgNameLengthConstraint
 	}
 	now := time.Now().UTC()
+	var teamExternalID string
+	for _, team := range d.teams {
+		if team.ID == teamID {
+			teamExternalID = team.ExternalID
+			break
+		}
+	}
 	o := &users.Organization{
 		ID:             fmt.Sprint(len(d.organizations)),
 		ExternalID:     externalID,
 		Name:           name,
 		CreatedAt:      now,
 		TrialExpiresAt: now.Add(users.TrialDuration),
+		TeamID:         teamID,
+		TeamExternalID: teamExternalID,
 	}
 	if err := o.Valid(); err != nil {
 		return nil, err
@@ -278,21 +281,9 @@ func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, 
 		}
 	}
 
-	team, err := d.createTeam(ctx)
-	if err != nil {
-		return nil, err
+	if o.TeamID == "" {
+		d.memberships[o.ID] = []string{ownerID}
 	}
-	err = d.addUserToTeam(ownerID, team.ID)
-	if err != nil {
-		return nil, err
-	}
-	err = d.setDefaultTeam(ownerID, team.ID)
-	if err != nil {
-		return nil, err
-	}
-	o.TeamID = team.ID
-	//d.memberships[o.ID] = []string{ownerID}
-
 	d.organizations[o.ID] = o
 	return o, nil
 }
