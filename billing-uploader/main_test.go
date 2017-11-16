@@ -24,14 +24,14 @@ import (
 	"github.com/weaveworks/service/users/mock_users"
 )
 
-type stubClient struct {
+type stubZuoraClient struct {
 	mockzuora.StubClient
 
 	err         error
 	uploadUsage io.Reader
 }
 
-func (z *stubClient) GetAccount(ctx context.Context, weaveUserID string) (*zuora.Account, error) {
+func (z *stubZuoraClient) GetAccount(ctx context.Context, weaveUserID string) (*zuora.Account, error) {
 	return &zuora.Account{
 		PaymentProviderID: "P" + weaveUserID,
 		Subscription: &zuora.AccountSubscription{
@@ -41,7 +41,7 @@ func (z *stubClient) GetAccount(ctx context.Context, weaveUserID string) (*zuora
 	}, nil
 }
 
-func (z *stubClient) UploadUsage(ctx context.Context, r io.Reader) (string, error) {
+func (z *stubZuoraClient) UploadUsage(ctx context.Context, r io.Reader) (string, error) {
 	z.uploadUsage = r
 	return "", z.err
 }
@@ -55,7 +55,7 @@ func TestJobUpload_Do(t *testing.T) {
 
 	ctx := context.Background()
 
-	z := &stubClient{}
+	z := &stubZuoraClient{}
 	u := mock_users.NewMockUsersClient(ctrl)
 	start := time.Now().Truncate(24 * time.Hour).Add(-1 * 24 * time.Hour)
 	expires := start.Add(-2 * 24 * time.Hour)
@@ -145,7 +145,7 @@ func TestJobUpload_DoError(t *testing.T) {
 
 	ctx := context.Background()
 
-	z := &stubClient{err: errors.New("BOOM")}
+	z := &stubZuoraClient{err: errors.New("BOOM")}
 	u := mock_users.NewMockUsersClient(ctrl)
 	u.EXPECT().
 		GetBillableOrganizations(gomock.Any(), gomock.Any()).
