@@ -76,6 +76,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	}
 
 	if sub.Status == partner.Active {
+		logger.Infof("No action for active subscription: %+v", sub)
 		// Subscriptions are activated by first going through the pending state.
 		// The pending status has already been processed or if the account is
 		// freshly created, we will update the subscription through that flow.
