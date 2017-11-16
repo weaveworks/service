@@ -100,6 +100,7 @@ func TestMessageHandler_Handle_cancel(t *testing.T) {
 		UpdateGCP(ctx, &users.UpdateGCPRequest{
 			GCP: &users.GoogleCloudPlatform{
 				AccountID:         "acc123",
+				Active:            false,
 				ConsumerID:        "",
 				SubscriptionName:  "",
 				SubscriptionLevel: "",
