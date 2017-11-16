@@ -649,7 +649,19 @@ func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAcco
 			return err
 		}
 		name := users.DefaultOrganizationName(externalID)
-		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, "", "")
+
+		// create one team for each gcp instance
+		team, err := tx.CreateTeam(ctx, name)
+		if err != nil {
+			return err
+		}
+
+		err = tx.AddUserToTeam(ctx, ownerID, team.ID)
+		if err != nil {
+			return err
+		}
+
+		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, "", team.ID)
 		if err != nil {
 			return err
 		}
