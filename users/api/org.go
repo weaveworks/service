@@ -115,7 +115,18 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 
 // CreateOrg creates an organisation
 func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgView) error {
-	org, err := a.db.CreateOrganization(ctx, currentUser.ID, view.ExternalID, view.Name, view.ProbeToken)
+	var teamID string
+	if view.TeamExternalID != "" || view.TeamName != "" {
+		team, err := a.ensureUserPartOfTeam(ctx, currentUser, view.TeamExternalID, view.TeamName)
+		if err != nil {
+			return err
+		}
+		if team != nil {
+			teamID = team.ID
+		}
+	}
+
+	org, err := a.db.CreateOrganization(ctx, currentUser.ID, view.ExternalID, view.Name, view.ProbeToken, teamID)
 	if err != nil {
 		return err
 	}

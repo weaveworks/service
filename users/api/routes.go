@@ -49,6 +49,8 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		// This is the first endpoint the UI hits to see if the user is logged in.
 		{"api_users_lookup", "GET", "/api/users/lookup", a.authenticateUser(a.publicLookup)},
 
+		{"api_users_teams", "GET", "/api/users/teams", a.authenticateUser(a.listTeams)},
+
 		// Basic view and management of an organization
 		{"api_users_generateOrgName", "GET", "/api/users/generateOrgName", a.authenticateUser(a.generateOrgExternalID)},
 		{"api_users_generateOrgID", "GET", "/api/users/generateOrgID", a.authenticateUser(a.generateOrgExternalID)},

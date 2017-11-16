@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/api"
 )
 
 func Test_Org(t *testing.T) {
@@ -461,4 +462,38 @@ func Test_Organization_Overlong_Name(t *testing.T) {
 		_, err = database.CreateOrganization(context.Background(), user.ID, externalID, orgName101, "", "")
 		assert.IsType(t, &pq.Error{}, err)
 	}
+}
+
+func Test_Organization_CreateTeam(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user := getUser(t)
+
+	teamName := "my-team-name"
+	r1 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-org-id", "name": "my-org-name", "teamName": teamName}.Reader(t))
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, r1)
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
+	require.NoError(t, err)
+	assert.Len(t, organizations, 1)
+	assert.NotEqual(t, "", organizations[0].ID)
+	assert.Equal(t, "my-org-id", organizations[0].ExternalID)
+	assert.Equal(t, "my-org-name", organizations[0].Name)
+	assert.NotEqual(t, "", organizations[0].TeamID)
+	assert.NotEqual(t, "", organizations[0].TeamExternalID)
+
+	r2 := requestAs(t, user, "GET", "/api/users/teams", nil)
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, r2)
+	assert.Equal(t, http.StatusOK, w.Code)
+	body := api.TeamsView{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+
+	assert.Len(t, body.Teams, 1)
+	assert.Equal(t, body.Teams[0].ExternalID, organizations[0].TeamExternalID)
+	assert.Equal(t, body.Teams[0].Name, teamName)
 }
