@@ -547,7 +547,7 @@
   branch = "master"
   name = "github.com/weaveworks/flux"
   packages = [".","api","cluster","errors","event","guid","http","http/client","http/daemon","http/httperror","http/websocket","image","job","metrics","policy","registry","registry/cache","registry/middleware","remote","remote/rpc","resource","ssh","update"]
-  revision = "5515622ba36505f17cc359a0b1fe2638fe5f37aa"
+  revision = "aa60beb79a201a24c18e19dda093bca7ec74ac59"
 
 [[projects]]
   name = "github.com/weaveworks/promrus"
@@ -648,6 +648,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "98d79aca30a6c0971e756c32a6f611f08c361e3f1e70eee27c1578d9e7592a52"
+  inputs-digest = "07b7e0bde70ea1e2a078fba55aa5bcf627683fadd6a4ae1e5459bbe695de48e2"
   solver-name = "gps-cdcl"
   solver-version = 1
