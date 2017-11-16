@@ -17,7 +17,6 @@ type Client interface {
 	ListServices(ctx context.Context, namespace string) ([]flux.ControllerStatus, error)
 	ListImages(context.Context, update.ResourceSpec) ([]flux.ImageStatus, error)
 	UpdateImages(context.Context, update.ReleaseSpec, update.Cause) (job.ID, error)
-	SyncNotify(context.Context) error
 	JobStatus(context.Context, job.ID) (job.Status, error)
 	SyncStatus(ctx context.Context, ref string) ([]string, error)
 	UpdatePolicies(context.Context, policy.Updates, update.Cause) (job.ID, error)
@@ -30,4 +29,5 @@ type Upstream interface {
 	RegisterDaemon(context.Context, remote.Platform) error
 	IsDaemonConnected(context.Context) error
 	LogEvent(context.Context, event.Event) error
+	NotifyChange(context.Context, remote.Change) error
 }
