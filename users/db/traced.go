@@ -198,9 +198,9 @@ func (t traced) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountI
 	return t.d.CreateOrganizationWithGCP(ctx, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel)
 }
 
-func (t traced) GetGCP(ctx context.Context, accountID string) (gcp *users.GoogleCloudPlatform, err error) {
-	defer func() { t.trace("GetGCP", accountID, gcp, err) }()
-	return t.d.GetGCP(ctx, accountID)
+func (t traced) FindGCP(ctx context.Context, accountID string) (gcp *users.GoogleCloudPlatform, err error) {
+	defer func() { t.trace("FindGCP", accountID, gcp, err) }()
+	return t.d.FindGCP(ctx, accountID)
 }
 
 func (t traced) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) (err error) {

@@ -197,6 +197,10 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		Secret: c.gcpWebhookSecret,
 	}
 
+	gcpLoginSecretMiddleware := users_client.GCPLoginSecretMiddleware{
+		Secret: c.gcpSSOSecret,
+	}
+
 	// middleware to set header to disable caching if path == "/" exactly
 	noCacheOnRoot := middleware.Func(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -318,6 +322,19 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			},
 			middleware.Merge(
 				billingAuthMiddleware,
+				uiHTTPlogger,
+			),
+		},
+
+		// Google Single Sign-On for GCP Cloud Launcher integration.
+		MiddlewarePrefix{
+			"/login/gcp/{keyForSSOLogin}",
+			[]PrefixRoutable{
+				Prefix{"/", c.usersHost},
+			},
+			middleware.Merge(
+				gcpLoginSecretMiddleware,
+				middleware.PathRewrite(regexp.MustCompile("^/login/gcp/([^/^?]+)"), "/api/users/gcp/sso/login/$1"),
 				uiHTTPlogger,
 			),
 		},

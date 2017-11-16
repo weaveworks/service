@@ -290,9 +290,9 @@ func (t timed) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID
 	return
 }
 
-func (t timed) GetGCP(ctx context.Context, accountID string) (gcp *users.GoogleCloudPlatform, err error) {
-	t.timeRequest(ctx, "GetGCP", func(ctx context.Context) error {
-		gcp, err = t.d.GetGCP(ctx, accountID)
+func (t timed) FindGCP(ctx context.Context, accountID string) (gcp *users.GoogleCloudPlatform, err error) {
+	t.timeRequest(ctx, "FindGCP", func(ctx context.Context) error {
+		gcp, err = t.d.FindGCP(ctx, accountID)
 		return err
 	})
 	return

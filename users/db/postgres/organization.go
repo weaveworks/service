@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -109,6 +108,7 @@ func (d DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*u
 			"memberships.deleted_at":    nil,
 			"organizations.deleted_at":  nil,
 		}).
+		OrderBy("users.created_at").
 		Query()
 	if err != nil {
 		return nil, err
@@ -265,9 +265,22 @@ func (d DB) FindOrganizationByID(_ context.Context, externalID string) (*users.O
 }
 
 // FindOrganizationByGCPAccountID returns the organization with the given account ID.
-func (d DB) FindOrganizationByGCPAccountID(_ context.Context, accountID string) (*users.Organization, error) {
-	// FIXME: implement me
-	return nil, errors.New("not yet implement")
+// N.B.: it only returns GCP organizations which are active, i.e. for which the subscription has been validated and activated against GCP.
+func (d DB) FindOrganizationByGCPAccountID(ctx context.Context, accountID string) (*users.Organization, error) {
+	gcp, err := d.FindGCP(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	o, err := d.scanOrganization(
+		d.organizationsQuery().Where(squirrel.Eq{"organizations.gcp_subscription_id": gcp.ID, "gcp_subscriptions.active": true}).QueryRow(),
+	)
+	if err == sql.ErrNoRows {
+		return nil, users.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return o, nil
 }
 
 // FindOrganizationByInternalID finds an org based on its ID
@@ -551,8 +564,8 @@ func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, c
 	return org, gcp, nil
 }
 
-// GetGCP returns the Google Cloud Platform subscription for the given account.
-func (d DB) GetGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
+// FindGCP returns the Google Cloud Platform subscription for the given account.
+func (d DB) FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
 	var gcp users.GoogleCloudPlatform
 	err := d.QueryRow(
 		`select id, account_id, active, created_at, consumer_id, subscription_name, subscription_level
@@ -581,7 +594,7 @@ func (d DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionNa
 // It also enables the billing feature flag and sets platform/env.
 func (d DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string) error {
 	return d.Transaction(func(tx DB) error {
-		gcp, err := d.GetGCP(ctx, accountID)
+		gcp, err := d.FindGCP(ctx, accountID)
 		if err != nil {
 			return err
 		}

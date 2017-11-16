@@ -338,7 +338,7 @@ func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyT
 }
 
 func (a *usersServer) GetGCP(ctx context.Context, req *users.GetGCPRequest) (*users.GetGCPResponse, error) {
-	gcp, err := a.db.GetGCP(ctx, req.AccountID)
+	gcp, err := a.db.FindGCP(ctx, req.AccountID)
 	if err != nil {
 		return nil, err
 	}

@@ -97,7 +97,7 @@ type DB interface {
 	// CreateOrganizationWithGCP creates an organization as well as a GCP subscription, then links them together.
 	CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.Organization, *users.GoogleCloudPlatform, error)
 	// Retrieve Google Cloud Platform entry.
-	GetGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error)
+	FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error)
 	// Update a Google Cloud Platform entry.
 	UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error
 	// Attach a GCP subscription to an organization

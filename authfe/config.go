@@ -18,6 +18,7 @@ type Config struct {
 	authURL               string
 	externalUI            bool
 	fluentHost            string
+	gcpSSOSecret          string
 	gcpWebhookSecret      string
 	listen, privateListen string
 	logLevel              string
@@ -159,6 +160,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 // ReadEnvVars loads environment variables.
 func (c *Config) ReadEnvVars() {
 	c.gcpWebhookSecret = os.Getenv("GCP_LAUNCHER_WEBHOOK_SECRET") // Secret used to authenticate incoming GCP webhook requests.
+	c.gcpSSOSecret = os.Getenv("GCP_LAUNCHER_SSO_SECRET")         // Secret used to authenticate incoming GCP SSO requests.
 }
 
 type proxyConfig struct {
