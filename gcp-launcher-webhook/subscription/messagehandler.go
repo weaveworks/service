@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/common/gcp/partner"
@@ -31,7 +32,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 
 	resp, err := m.Users.GetGCP(ctx, &users.GetGCPRequest{AccountID: gcpAccountID})
 	if err != nil {
-		return fmt.Errorf("cannot find account: %v", gcpAccountID) // NACK
+		return errors.Wrapf(err, "cannot find account: %v", gcpAccountID) // NACK
 	}
 	gcp := resp.GCP
 
