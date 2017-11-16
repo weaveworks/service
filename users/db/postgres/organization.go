@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"sort"
 	"time"
 
@@ -213,14 +212,11 @@ func (d DB) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) 
 
 // listMemberOrganizationsForUserIDs lists the organizations these users belong to
 func (d DB) listMemberOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
-	qq := d.organizationsQuery().
+	rows, err := d.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userIDs}).
-		Where("memberships.deleted_at is null")
-
-	sql, args, err := qq.ToSql()
-
-	rows, err := qq.Query()
+		Where("memberships.deleted_at is null").
+		Query()
 	if err != nil {
 		return nil, err
 	}
@@ -653,7 +649,7 @@ func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAcco
 			return err
 		}
 		name := users.DefaultOrganizationName(externalID)
-		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, "")
+		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, "", "")
 		if err != nil {
 			return err
 		}
@@ -763,7 +759,7 @@ func (d DB) createGCP(ctx context.Context, externalAccountID string) (*users.Goo
 	}
 
 	return gcp, nil
-{
+}
 
 func mergeOrgs(orgsSlice ...[]*users.Organization) []*users.Organization {
 	m := make(map[string]*users.Organization)

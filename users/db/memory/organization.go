@@ -494,7 +494,7 @@ func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAcc
 		return nil, err
 	}
 	name := users.DefaultOrganizationName(externalID)
-	org, err = d.CreateOrganization(ctx, ownerID, externalID, name, "")
+	org, err = d.CreateOrganization(ctx, ownerID, externalID, name, "", "")
 	if err != nil {
 		return nil, err
 	}
