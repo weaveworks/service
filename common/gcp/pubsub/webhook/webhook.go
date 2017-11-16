@@ -20,7 +20,7 @@ func New(handler MessageHandler) http.Handler {
 			render.Error(w, req, users.MalformedInputError(err)) // NACK: we might want to retry on this message later.
 			return
 		}
-		log.Debugf("Incoming webhook event: %+v", event)
+		log.Infof("Incoming webhook event: %+v", event)
 
 		if err := handler.Handle(event.Message); err != nil {
 			render.Error(w, req, err) // NACK: we might want to retry on this message later.

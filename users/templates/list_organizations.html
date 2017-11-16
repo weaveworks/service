@@ -96,6 +96,12 @@
         <td>
           <a href="organizations/{{.ExternalID}}/users">Users</a>
         </td>
+        <td>
+          {{if .GCP}}
+            <strong title="{{.GCP.SubscriptionName}} [{{.GCP.SubscriptionLevel}}, {{.GCP.ConsumerID}}]">GCP</strong> {{.GCP.AccountID}}
+            {{if not .GCP.Active}}INACTIVE!{{end}}
+          {{end}}
+        </td>
       </tr>
       {{end}}
       </tbody>
