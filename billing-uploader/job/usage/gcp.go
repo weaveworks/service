@@ -64,5 +64,5 @@ func (g *GCP) Upload(ctx context.Context) error {
 
 // IsSupported only picks organizations that have an active GCP account
 func (g *GCP) IsSupported(org users.Organization) bool {
-	return org.GCP != nil
+	return org.GCP != nil && org.GCP.Active
 }
