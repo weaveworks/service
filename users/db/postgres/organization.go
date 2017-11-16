@@ -603,12 +603,15 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string
 			gcp.ID, externalID,
 		)
 
-		// Hardcode platform/env here, that's what we expect the user to have.
-		// It also skips the platform/env tab during the onboarding process.
 		platform, env := "kubernetes", "gke"
+		now := d.Now()
 		if err = tx.UpdateOrganization(ctx, externalID, users.OrgWriteView{
+			// Hardcode platform/env here, that's what we expect the user to have.
+			// It also skips the platform/env tab during the onboarding process.
 			Platform:    &platform,
 			Environment: &env,
+			// No trial for GCP instances
+			TrialExpiresAt: &now,
 		}); err != nil {
 			return err
 		}

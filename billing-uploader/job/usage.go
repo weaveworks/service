@@ -16,7 +16,6 @@ import (
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-uploader/job/usage"
 	timeutil "github.com/weaveworks/service/common/time"
-	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/users"
 )
 
@@ -51,18 +50,23 @@ func init() {
 type UsageUpload struct {
 	db        db.DB
 	users     users.UsersClient
-	zuora     zuora.Client
+	uploaders []usage.Uploader
 	collector *instrument.JobCollector
 }
 
 // NewUsageUpload instantiates UsageUpload.
-func NewUsageUpload(db db.DB, users users.UsersClient, zuora zuora.Client, collector *instrument.JobCollector) *UsageUpload {
+func NewUsageUpload(db db.DB, users users.UsersClient, collector *instrument.JobCollector) *UsageUpload {
 	return &UsageUpload{
 		db:        db,
 		users:     users,
-		zuora:     zuora,
+		uploaders: []usage.Uploader{},
 		collector: collector,
 	}
+}
+
+// Register adds an uploader.
+func (j *UsageUpload) Register(uploader usage.Uploader) {
+	j.uploaders = append(j.uploaders, uploader)
 }
 
 // Run starts the job and logs errors.
@@ -129,12 +133,8 @@ func (j *UsageUpload) Do() error {
 			return err
 		}
 
-		uploaders := []usage.Uploader{
-			usage.NewZuora(j.zuora),
-		}
-
 		var uperrs []string
-		for _, u := range uploaders {
+		for _, u := range j.uploaders {
 			logger = logger.WithField("uploader", u.ID())
 
 			startAggregateID, err := j.db.GetUsageUploadLargestAggregateID(ctx, u.ID())

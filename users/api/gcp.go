@@ -23,6 +23,7 @@ func (a *API) gcpAccess(w http.ResponseWriter, r *http.Request) {
 	link, ok := a.partnerAccess.Link(r)
 	if !ok {
 		render.Error(w, r, errors.New("invalid token"))
+		return
 	}
 	render.JSON(w, http.StatusOK, link)
 }
@@ -67,6 +68,7 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 	state, ok := a.partnerAccess.VerifyState(r)
 	if !ok {
 		render.Error(w, r, errors.New("oauth state value did not match"))
+		return
 	}
 
 	gcpAccountID := state["gcpAccountId"]

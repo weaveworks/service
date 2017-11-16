@@ -17,20 +17,21 @@ import (
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-api/db/dbtest"
 	"github.com/weaveworks/service/billing-uploader/job"
+	"github.com/weaveworks/service/billing-uploader/job/usage"
 	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/common/zuora/mockzuora"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/mock_users"
 )
 
-type stubClient struct {
+type stubZuoraClient struct {
 	mockzuora.StubClient
 
 	err         error
 	uploadUsage io.Reader
 }
 
-func (z *stubClient) GetAccount(ctx context.Context, weaveUserID string) (*zuora.Account, error) {
+func (z *stubZuoraClient) GetAccount(ctx context.Context, weaveUserID string) (*zuora.Account, error) {
 	return &zuora.Account{
 		PaymentProviderID: "P" + weaveUserID,
 		Subscription: &zuora.AccountSubscription{
@@ -40,7 +41,7 @@ func (z *stubClient) GetAccount(ctx context.Context, weaveUserID string) (*zuora
 	}, nil
 }
 
-func (z *stubClient) UploadUsage(ctx context.Context, r io.Reader) (string, error) {
+func (z *stubZuoraClient) UploadUsage(ctx context.Context, r io.Reader) (string, error) {
 	z.uploadUsage = r
 	return "", z.err
 }
@@ -54,7 +55,7 @@ func TestJobUpload_Do(t *testing.T) {
 
 	ctx := context.Background()
 
-	z := &stubClient{}
+	z := &stubZuoraClient{}
 	u := mock_users.NewMockUsersClient(ctrl)
 	start := time.Now().Truncate(24 * time.Hour).Add(-1 * 24 * time.Hour)
 	expires := start.Add(-2 * 24 * time.Hour)
@@ -112,7 +113,8 @@ func TestJobUpload_Do(t *testing.T) {
 	_, err = d.InsertUsageUpload(ctx, "zuora", 1)
 	assert.NoError(t, err)
 
-	j := job.NewUsageUpload(d, u, z, instrument.NewJobCollector("foo"))
+	j := job.NewUsageUpload(d, u, instrument.NewJobCollector("foo"))
+	j.Register(usage.NewZuora(z))
 	err = j.Do()
 	assert.NoError(t, err)
 	bcsv, err := ioutil.ReadAll(z.uploadUsage)
@@ -143,7 +145,7 @@ func TestJobUpload_DoError(t *testing.T) {
 
 	ctx := context.Background()
 
-	z := &stubClient{err: errors.New("BOOM")}
+	z := &stubZuoraClient{err: errors.New("BOOM")}
 	u := mock_users.NewMockUsersClient(ctrl)
 	u.EXPECT().
 		GetBillableOrganizations(gomock.Any(), gomock.Any()).
@@ -164,7 +166,8 @@ func TestJobUpload_DoError(t *testing.T) {
 	_, err = d.InsertUsageUpload(ctx, "zuora", 0)
 	assert.NoError(t, err)
 
-	j := job.NewUsageUpload(d, u, z, instrument.NewJobCollector("foo"))
+	j := job.NewUsageUpload(d, u, instrument.NewJobCollector("foo"))
+	j.Register(usage.NewZuora(z))
 	err = j.Do()
 	assert.Error(t, err)
 
