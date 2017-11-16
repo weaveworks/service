@@ -575,11 +575,13 @@ func logging(next http.Handler, logger log.Logger) http.Handler {
 		begin := time.Now()
 		cw := &codeWriter{w, http.StatusOK}
 		tw := &teeWriter{cw, bytes.Buffer{}}
+		inst := r.Header.Get(InstanceIDHeaderKey)
 
 		next.ServeHTTP(tw, r)
 
 		requestLogger := log.With(
 			logger,
+			"instance", inst,
 			"url", mustUnescape(r.URL.String()),
 			"took", time.Since(begin).String(),
 			"status_code", cw.code,
