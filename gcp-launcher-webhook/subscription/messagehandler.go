@@ -31,7 +31,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 
 	resp, err := m.Users.GetGCP(ctx, &users.GetGCPRequest{AccountID: gcpAccountID})
 	if err != nil {
-		return fmt.Errorf("cannot find account: %v", gcpAccountID)
+		return fmt.Errorf("cannot find account: %v", gcpAccountID) // NACK
 	}
 	gcp := resp.GCP
 
