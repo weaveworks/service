@@ -108,6 +108,7 @@ func (d DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*u
 			"memberships.deleted_at":    nil,
 			"organizations.deleted_at":  nil,
 		}).
+		OrderBy("users.created_at").
 		Query()
 	if err != nil {
 		return nil, err
