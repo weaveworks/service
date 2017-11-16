@@ -112,7 +112,6 @@ func NewHandler(s api.Service, r *mux.Router, logger log.Logger) http.Handler {
 		"RegisterDaemonV7":         handle.RegisterV7,
 		"RegisterDaemonV8":         handle.RegisterV8,
 		"IsConnected":              handle.IsConnected,
-		"SyncNotify":               handle.SyncNotify,
 		"JobStatus":                handle.JobStatus,
 		"SyncStatus":               handle.SyncStatus,
 		"GetPublicSSHKey":          handle.GetPublicSSHKey,
@@ -218,16 +217,6 @@ func (s httpService) UpdateImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	transport.JSONResponse(w, r, jobID)
-}
-
-func (s httpService) SyncNotify(w http.ResponseWriter, r *http.Request) {
-	ctx := getRequestContext(r)
-	err := s.service.SyncNotify(ctx)
-	if err != nil {
-		transport.ErrorResponse(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusAccepted)
 }
 
 func (s httpService) JobStatus(w http.ResponseWriter, r *http.Request) {
@@ -572,15 +561,21 @@ func (s httpService) RegeneratePublicSSHKey(w http.ResponseWriter, r *http.Reque
 
 func (s httpService) ImageNotify(w http.ResponseWriter, r *http.Request) {
 	ctx := makeWebhookContext(r)
-	var body api.ImageChangeData
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	var update remote.ImageUpdate
+	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
 		transport.WriteError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if err := s.service.ChangeNotify(ctx, "image", body); err != nil {
+
+	change := remote.Change{
+		Kind:   remote.ImageChange,
+		Source: update,
+	}
+	if err := s.service.NotifyChange(ctx, change); err != nil {
 		transport.ErrorResponse(w, r, err)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 }
 

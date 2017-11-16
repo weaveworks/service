@@ -176,19 +176,6 @@ func (s *Server) UpdatePolicies(ctx context.Context, updates policy.Updates, cau
 	return inst.Platform.UpdateManifests(ctx, update.Spec{Type: update.Policy, Cause: cause, Spec: updates})
 }
 
-// SyncNotify calls SyncNotify on the given instance.
-func (s *Server) SyncNotify(ctx context.Context) (err error) {
-	instID, err := getInstanceID(ctx)
-	if err != nil {
-		return err
-	}
-	inst, err := s.instancer.Get(instID)
-	if err != nil {
-		return errors.Wrapf(err, "getting instance "+string(instID))
-	}
-	return inst.Platform.SyncNotify(ctx)
-}
-
 // JobStatus calls JobStatus on the given instance.
 func (s *Server) JobStatus(ctx context.Context, jobID job.ID) (res job.Status, err error) {
 	instID, err := getInstanceID(ctx)
@@ -479,9 +466,8 @@ func (s *Server) IsDaemonConnected(ctx context.Context) error {
 	return s.messageBus.Ping(ctx, instID)
 }
 
-// ChangeNotify notifies a daemon about an image push.
-// TODO: notify on git push.
-func (s *Server) ChangeNotify(ctx context.Context, kind string, body interface{}) error {
+// NotifyChange notifies a daemon about change.
+func (s *Server) NotifyChange(ctx context.Context, change remote.Change) error {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
 		return err
@@ -490,7 +476,5 @@ func (s *Server) ChangeNotify(ctx context.Context, kind string, body interface{}
 	if err != nil {
 		return errors.Wrapf(err, "getting instance %s", string(instID))
 	}
-	// return inst.Platform.ChangeNotify(kind, body)
-	_ = inst
-	return errors.New("ChangeNotify unimplemented on Platform")
+	return inst.Platform.NotifyChange(ctx, change)
 }
