@@ -13,6 +13,8 @@ import (
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-uploader/job"
+	"github.com/weaveworks/service/billing-uploader/job/usage"
+	"github.com/weaveworks/service/common/gcp/control"
 	"github.com/weaveworks/service/common/users"
 	"github.com/weaveworks/service/common/zuora"
 )
@@ -55,11 +57,13 @@ func main() {
 		dbConfig     db.Config
 		usersConfig  users.Config
 		zuoraConfig  zuora.Config
+		gcpConfig    control.Config
 	)
 	serverConfig.RegisterFlags(flag.CommandLine)
 	dbConfig.RegisterFlags(flag.CommandLine)
 	usersConfig.RegisterFlags(flag.CommandLine)
 	zuoraConfig.RegisterFlags(flag.CommandLine)
+	gcpConfig.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 
 	if err := logging.Setup(*logLevel); err != nil {
@@ -74,7 +78,7 @@ func main() {
 
 	users, err := users.NewClient(usersConfig)
 	if err != nil {
-		log.Fatalf("error initialising users client: %v", err)
+		log.Fatalf("Error initialising users client: %v", err)
 	}
 
 	zuora := zuora.New(zuoraConfig, nil)
@@ -85,8 +89,17 @@ func main() {
 	}
 	defer server.Shutdown()
 
+	upload := job.NewUsageUpload(db, users, jobCollector)
+	upload.Register(usage.NewZuora(zuora))
+	if gcpConfig.ServiceAccountKeyFile != "" {
+		gcp, err := usage.NewGCP(gcpConfig)
+		if err != nil {
+			log.Fatalf("Error initialising GCP Control API client: %v", err)
+		}
+		upload.Register(gcp)
+	}
+
 	uploadCron := cron.New()
-	upload := job.NewUsageUpload(db, users, zuora, jobCollector)
 	uploadCron.AddJob(*uploadCronSpec, upload)
 	uploadCron.Start()
 	defer uploadCron.Stop()

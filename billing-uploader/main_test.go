@@ -17,6 +17,7 @@ import (
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-api/db/dbtest"
 	"github.com/weaveworks/service/billing-uploader/job"
+	"github.com/weaveworks/service/billing-uploader/job/usage"
 	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/common/zuora/mockzuora"
 	"github.com/weaveworks/service/users"
@@ -112,7 +113,8 @@ func TestJobUpload_Do(t *testing.T) {
 	_, err = d.InsertUsageUpload(ctx, "zuora", 1)
 	assert.NoError(t, err)
 
-	j := job.NewUsageUpload(d, u, z, instrument.NewJobCollector("foo"))
+	j := job.NewUsageUpload(d, u, instrument.NewJobCollector("foo"))
+	j.Register(usage.NewZuora(z))
 	err = j.Do()
 	assert.NoError(t, err)
 	bcsv, err := ioutil.ReadAll(z.uploadUsage)
@@ -164,7 +166,8 @@ func TestJobUpload_DoError(t *testing.T) {
 	_, err = d.InsertUsageUpload(ctx, "zuora", 0)
 	assert.NoError(t, err)
 
-	j := job.NewUsageUpload(d, u, z, instrument.NewJobCollector("foo"))
+	j := job.NewUsageUpload(d, u, instrument.NewJobCollector("foo"))
+	j.Register(usage.NewZuora(z))
 	err = j.Do()
 	assert.Error(t, err)
 
