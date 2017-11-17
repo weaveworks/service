@@ -407,6 +407,8 @@ func (n *NATS) processRequest(ctx context.Context, request *nats.Msg, instID ser
 		err = n.processJobStatus(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodSyncStatus):
 		err = n.processSyncStatus(ctx, request, platform)
+	case strings.HasSuffix(request.Subject, methodNotifyChange):
+		err = n.processNotifyChange(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodGitRepoConfig):
 		err = n.processGitRepoConfig(ctx, request, platform)
 	default:
@@ -530,6 +532,16 @@ func (n *NATS) processSyncStatus(ctx context.Context, request *nats.Msg, platfor
 		res, err = platform.SyncStatus(ctx, req)
 	}
 	n.enc.Publish(request.Reply, SyncStatusResponse{res, makeErrorResponse(err)})
+	return err
+}
+
+func (n *NATS) processNotifyChange(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+	var req remote.Change
+	err := encoder.Decode(request.Subject, request.Data, &req)
+	if err == nil {
+		err = platform.NotifyChange(ctx, req)
+	}
+	n.enc.Publish(request.Reply, NotifyChangeResponse{makeErrorResponse(err)})
 	return err
 }
 
