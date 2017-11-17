@@ -11,6 +11,8 @@ import (
 // Uploader describes a service that aggregates and uploads data to a usage consumer.
 type Uploader interface {
 	// ID is an unique name to represent this uploader.
+	// IMPORTANT: when implementing the Uploader interface, values returned by ID() need to be added as
+	// valid values in the DB's enum uploader_type. See also: 005 and 006 in billing-api/db/migrations/
 	ID() string
 	// Add records aggregates to be uploaded later.
 	Add(ctx context.Context, org users.Organization, from, through time.Time, aggs []db.Aggregate) error
