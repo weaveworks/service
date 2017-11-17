@@ -16,17 +16,13 @@ import (
 
 // GCP implements usage upload to the Google Cloud Platform through the Google Service Control API.
 type GCP struct {
-	client *control.Client
+	client control.API
 	ops    []*servicecontrol.Operation
 }
 
-// NewGCP creates a client for the Service Control API.
-func NewGCP(cfg control.Config) (*GCP, error) {
-	cl, err := control.NewClient(cfg)
-	if err != nil {
-		return nil, err
-	}
-	return &GCP{client: cl}, nil
+// NewGCP instantiates a GCP usage uploader.
+func NewGCP(client control.API) *GCP {
+	return &GCP{client: client}
 }
 
 // ID returns an unique uploader id.
