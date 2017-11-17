@@ -114,7 +114,7 @@ func (j *UsageUpload) Do() error {
 		logger := logging.With(ctx)
 
 		now := time.Now().UTC()
-		through := now.Truncate(24 * time.Hour)
+		through := j.uploader.ThroughTime(now)
 		// Go back at most one week
 		earliest := through.Add(-7 * 24 * time.Hour)
 

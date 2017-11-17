@@ -62,3 +62,8 @@ func (g *GCP) Upload(ctx context.Context) error {
 func (g *GCP) IsSupported(org users.Organization) bool {
 	return org.GCP != nil && org.GCP.Active
 }
+
+// ThroughTime returns now. We always want to upload everything up to now.
+func (g *GCP) ThroughTime(now time.Time) time.Time {
+	return now
+}

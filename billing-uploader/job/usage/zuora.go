@@ -65,3 +65,8 @@ func (z *Zuora) Upload(ctx context.Context) error {
 func (z *Zuora) IsSupported(org users.Organization) bool {
 	return org.ZuoraAccountNumber != ""
 }
+
+// ThroughTime returns time of the previous midnight.
+func (z *Zuora) ThroughTime(now time.Time) time.Time {
+	return now.Truncate(24 * time.Hour)
+}
