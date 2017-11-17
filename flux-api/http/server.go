@@ -577,7 +577,6 @@ func (s httpService) DockerHubImageNotify(w http.ResponseWriter, r *http.Request
 		transport.WriteError(w, r, http.StatusUnprocessableEntity, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 
 	// Hack to populate request context with instanceID
 	instID := mux.Vars(r)["instance"]
@@ -594,6 +593,7 @@ func (s httpService) DockerHubImageNotify(w http.ResponseWriter, r *http.Request
 		transport.ErrorResponse(w, r, err)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
 }
 
 // --- end handlers
