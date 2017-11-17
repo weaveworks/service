@@ -144,6 +144,7 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 				ConsumerID:        "project_number:123",
 				SubscriptionName:  "partnerSubscriptions/1",
 				SubscriptionLevel: "enterprise",
+				Active:            true, // the new subscription should be activated.
 			}}).
 		Return(nil, nil)
 
