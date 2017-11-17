@@ -44,10 +44,14 @@ func init() {
 
 func main() {
 	var (
-		uploadCronSpec = flag.String(
-			"upload-cron-spec",
+		uploadZuoraCronSpec = flag.String(
+			"upload-zuora-cron-spec",
 			"0 15 2 * * *", // Daily at 02:15:00 - Seconds, Minutes, Hours, Day of month, Month, Day of week
-			"Cron spec for periodic execution of the uploader job. Should be scheduled to run once per day")
+			"Cron spec for periodic execution of the Zuora uploader job. Should be scheduled to run once per day")
+		uploadGCPCronSpec = flag.String(
+			"upload-gcp-cron-spec",
+			"0 0 * * * *", // Hourly at :00 - Seconds, Minutes, Hours, Day of month, Month, Day of week
+			"Cron spec for periodic execution of the GCP uploader job. Should be scheduled to run once an hour")
 		invoiceCronSpec = flag.String(
 			"invoice-cron-spec",
 			"0 * * * * *", // Every minute
@@ -81,44 +85,64 @@ func main() {
 		log.Fatalf("Error initialising users client: %v", err)
 	}
 
-	zuora := zuora.New(zuoraConfig, nil)
-
 	server, err := server.New(serverConfig)
 	if err != nil {
 		log.Fatalf("Error initialising server: %v", err)
 	}
 	defer server.Shutdown()
 
-	upload := job.NewUsageUpload(db, users, jobCollector)
-	upload.Register(usage.NewZuora(zuora))
+	// Zuora upload cron
+	zuora := zuora.New(zuoraConfig, nil)
+	zuoraCron, zuoraUpload := startCron(*uploadZuoraCronSpec, db, users, usage.NewZuora(zuora), jobCollector)
+	defer zuoraCron.Stop()
+
+	// GCP upload cron
+	var gcpCron *cron.Cron
+	var gcpUpload *job.UsageUpload
 	if gcpConfig.ServiceAccountKeyFile != "" {
-		gcp, err := usage.NewGCP(gcpConfig)
+		gcp, err := control.NewClient(gcpConfig)
 		if err != nil {
 			log.Fatalf("Error initialising GCP Control API client: %v", err)
 		}
-		upload.Register(gcp)
+		gcpCron, gcpUpload = startCron(*uploadGCPCronSpec, db, users, usage.NewGCP(gcp), jobCollector)
+		defer gcpCron.Stop()
+	} else {
+		log.Infof("GCP usage uploader is disabled")
 	}
-
-	uploadCron := cron.New()
-	uploadCron.AddJob(*uploadCronSpec, upload)
-	uploadCron.Start()
-	defer uploadCron.Stop()
 
 	invoiceCron := cron.New()
 	invoice := job.NewInvoiceUpload(db, zuora, jobCollector)
 	invoiceCron.AddJob(*invoiceCronSpec, invoice)
 	invoiceCron.Start()
-	defer uploadCron.Stop()
+	defer invoiceCron.Stop()
 
 	server.HTTP.Path("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(index))
 	})
 	server.HTTP.Path("/upload").Methods("POST").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := upload.Do(); err != nil {
-			w.Write([]byte(err.Error()))
+		http.Error(w, "usage /upload/gcp or /upload/zuora", http.StatusSeeOther)
+	})
+	server.HTTP.Path("/upload/gcp").Methods("POST").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := gcpUpload.Do(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		} else {
+			w.Write([]byte("Success"))
+		}
+	})
+	server.HTTP.Path("/upload/zuora").Methods("POST").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := zuoraUpload.Do(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
 			w.Write([]byte("Success"))
 		}
 	})
 	server.Run()
+}
+
+func startCron(cronspec string, db db.DB, u *users.Client, uploader usage.Uploader, collector *instrument.JobCollector) (*cron.Cron, *job.UsageUpload) {
+	c := cron.New()
+	upload := job.NewUsageUpload(db, u, uploader, jobCollector)
+	c.AddJob(cronspec, upload)
+	c.Start()
+	return c, upload
 }

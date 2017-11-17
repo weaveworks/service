@@ -36,6 +36,12 @@ type Client struct {
 	serviceName string
 }
 
+// API is the interface for clients reporting to the Service Control API.
+type API interface {
+	Report(ctx context.Context, operations []*servicecontrol.Operation) error
+	OperationID(name string) string
+}
+
 // NewClient returns a Client accessing the Service Control API. It uses
 // oauth2 for authentication.
 func NewClient(cfg Config) (*Client, error) {

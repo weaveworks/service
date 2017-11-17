@@ -18,4 +18,6 @@ type Uploader interface {
 	Upload(ctx context.Context) error
 	// IsSupported returns whether this uploader handles the given organization.
 	IsSupported(org users.Organization) bool
+	// ThroughTime returns the upper bound we want to upload usage until.
+	ThroughTime(now time.Time) time.Time
 }

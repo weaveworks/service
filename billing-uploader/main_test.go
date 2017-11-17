@@ -113,8 +113,7 @@ func TestJobUpload_Do(t *testing.T) {
 	_, err = d.InsertUsageUpload(ctx, "zuora", 1)
 	assert.NoError(t, err)
 
-	j := job.NewUsageUpload(d, u, instrument.NewJobCollector("foo"))
-	j.Register(usage.NewZuora(z))
+	j := job.NewUsageUpload(d, u, usage.NewZuora(z), instrument.NewJobCollector("foo"))
 	err = j.Do()
 	assert.NoError(t, err)
 	bcsv, err := ioutil.ReadAll(z.uploadUsage)
@@ -166,8 +165,7 @@ func TestJobUpload_DoError(t *testing.T) {
 	_, err = d.InsertUsageUpload(ctx, "zuora", 0)
 	assert.NoError(t, err)
 
-	j := job.NewUsageUpload(d, u, instrument.NewJobCollector("foo"))
-	j.Register(usage.NewZuora(z))
+	j := job.NewUsageUpload(d, u, usage.NewZuora(z), instrument.NewJobCollector("foo"))
 	err = j.Do()
 	assert.Error(t, err)
 
