@@ -173,6 +173,7 @@ func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetT
 		filter.And(
 			filter.TrialActiveAt(req.Now),
 			filter.HasFeatureFlag(users.BillingFeatureFlag),
+			filter.GCPSubscription(false),
 		),
 	)
 	if err != nil {

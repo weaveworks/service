@@ -35,6 +35,25 @@ func (z ZuoraAccount) MatchesOrg(o users.Organization) bool {
 	return o.ZuoraAccountNumber == ""
 }
 
+// GCPSubscription filters an organization based on whether it has a GCP subscription or not
+type GCPSubscription bool
+
+// ExtendQuery extends a query to filter by GCP subscription existence.
+func (g GCPSubscription) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+	if bool(g) {
+		return b.Where("gcp_subscription_id IS NOT NULL")
+	}
+	return b.Where(map[string]interface{}{"gcp_subscription_id": nil})
+}
+
+// MatchesOrg checks whether the organization matches this filter.
+func (g GCPSubscription) MatchesOrg(o users.Organization) bool {
+	if bool(g) {
+		return o.GCP != nil
+	}
+	return o.GCP == nil
+}
+
 // TrialExpiredBy filters for organizations whose trials had expired by a
 // given date.
 type TrialExpiredBy time.Time
