@@ -112,6 +112,7 @@ func NewHandler(s api.Service, r *mux.Router, logger log.Logger) http.Handler {
 		"RegisterDaemonV6":         handle.RegisterV6,
 		"RegisterDaemonV7":         handle.RegisterV7,
 		"RegisterDaemonV8":         handle.RegisterV8,
+		"RegisterDaemonV9":         handle.RegisterV9,
 		"IsConnected":              handle.IsConnected,
 		"JobStatus":                handle.JobStatus,
 		"SyncStatus":               handle.SyncStatus,
@@ -454,6 +455,12 @@ func (s httpService) RegisterV7(w http.ResponseWriter, r *http.Request) {
 func (s httpService) RegisterV8(w http.ResponseWriter, r *http.Request) {
 	s.doRegister(w, r, func(conn io.ReadWriteCloser) platformCloser {
 		return rpc.NewClientV8(conn)
+	})
+}
+
+func (s httpService) RegisterV9(w http.ResponseWriter, r *http.Request) {
+	s.doRegister(w, r, func(conn io.ReadWriteCloser) platformCloser {
+		return rpc.NewClientV9(conn)
 	})
 }
 

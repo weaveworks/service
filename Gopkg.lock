@@ -547,7 +547,7 @@
   branch = "master"
   name = "github.com/weaveworks/flux"
   packages = [".","api","cluster","errors","event","guid","http","http/client","http/daemon","http/httperror","http/websocket","image","job","metrics","policy","registry","registry/cache","registry/middleware","remote","remote/rpc","resource","ssh","update"]
-  revision = "404702615f55de96d447d08f840cdeb6b3dcd170"
+  revision = "37084af49020dc08133fc1057f2b835191ed5a41"
 
 [[projects]]
   name = "github.com/weaveworks/promrus"
