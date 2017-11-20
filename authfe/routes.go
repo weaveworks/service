@@ -437,10 +437,6 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				// There is authentication done inside github-receiver itself to ensure requests came from github
 				{"/github-receiver", c.githubReceiverHost},
 
-				// Flux image push webhooks aren't authenticated as a user.
-				// Authentication must be done in flux-api itself.
-				{"/api/flux/v6/integrations/dockerhub/image", c.fluxV6Host},
-
 				// Final wildcard match to static content
 				{"/", noCacheOnRoot.Wrap(uiServerHandler)},
 			}),
