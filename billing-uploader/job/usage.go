@@ -2,6 +2,7 @@ package job
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -110,7 +111,8 @@ func (us *uploadStats) set(uploader, status string) {
 
 // Do starts the job and returns an error if it fails.
 func (j *UsageUpload) Do() error {
-	return instrument.CollectedRequest(context.Background(), "UsageUpload.Do", j.collector, nil, func(ctx context.Context) error {
+	method := fmt.Sprintf("UsageUpload.Do(%s)", j.uploader.ID())
+	return instrument.CollectedRequest(context.Background(), method, j.collector, nil, func(ctx context.Context) error {
 		logger := logging.With(ctx)
 
 		now := time.Now().UTC()
