@@ -584,6 +584,7 @@ func (s httpService) DockerHubImageNotify(w http.ResponseWriter, r *http.Request
 		transport.WriteError(w, r, http.StatusUnprocessableEntity, err)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
 
 	// Hack to populate request context with instanceID
 	instID := mux.Vars(r)["instance"]
@@ -596,11 +597,9 @@ func (s httpService) DockerHubImageNotify(w http.ResponseWriter, r *http.Request
 		},
 	}
 	ctx := getRequestContext(r)
-	if err := s.service.NotifyChange(ctx, change); err != nil {
-		transport.ErrorResponse(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
+	// Ignore error returned here, as we have no way to log it directly but we also
+	// don't want to potentially make DockerHub wait for 10 seconds.
+	s.service.NotifyChange(ctx, change)
 }
 
 // --- end handlers
