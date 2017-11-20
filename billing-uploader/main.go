@@ -120,7 +120,7 @@ func main() {
 		w.Write([]byte(index))
 	})
 	server.HTTP.Path("/upload").Methods("POST").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "usage /upload/gcp or /upload/zuora", http.StatusSeeOther)
+		http.Error(w, "use /upload/gcp or /upload/zuora", http.StatusSeeOther)
 	})
 	server.HTTP.Path("/upload/gcp").Methods("POST").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := gcpUpload.Do(); err != nil {
