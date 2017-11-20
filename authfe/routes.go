@@ -357,6 +357,14 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			middleware.Merge(authUserMiddleware, analyticsLogger).Wrap(noopHandler),
 		},
 
+		MiddlewarePrefix{
+			"/api/flux/v6/integrations",
+			[]PrefixRoutable{
+				Prefix{"/dockerhub/image", c.fluxV6Host},
+			},
+			uiHTTPlogger,
+		},
+
 		// Token-based auth
 		dataUploadRoutes,
 		dataAccessRoutes,
@@ -429,6 +437,10 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				// There is authentication done inside github-receiver itself to ensure requests came from github
 				{"/github-receiver", c.githubReceiverHost},
 
+				// Flux image push webhooks aren't authenticated as a user.
+				// Authentication must be done in flux-api itself.
+				{"/api/flux/v6/integrations/dockerhub/image", c.fluxV6Host},
+
 				// Final wildcard match to static content
 				{"/", noCacheOnRoot.Wrap(uiServerHandler)},
 			}),
@@ -456,7 +468,6 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/api/ui/metrics",
 		"/api/gcp-launcher/webhook",
 		"/github-receiver",
-		"/api/flux/v6/integrations/dockerhub/image",
 		`/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`, // Regex copy-pasted from users/organization.go
 		"/api/users/signup_webhook",                     // Validated by explicit token in the users service
 
