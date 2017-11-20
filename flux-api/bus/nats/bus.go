@@ -33,11 +33,11 @@ const (
 	methodExport          = ".Platform.Export"
 	methodListServices    = ".Platform.ListServices"
 	methodListImages      = ".Platform.ListImages"
-	methodSyncNotify      = ".Platform.SyncNotify"
 	methodJobStatus       = ".Platform.JobStatus"
 	methodSyncStatus      = ".Platform.SyncStatus"
 	methodUpdateManifests = ".Platform.UpdateManifests"
 	methodGitRepoConfig   = ".Platform.GitRepoConfig"
+	methodNotifyChange    = ".Platform.NotifyChange"
 )
 
 var (
@@ -159,11 +159,6 @@ type UpdateManifestsResponse struct {
 
 type syncReq struct{}
 
-// SyncNotifyResponse is the SyncNotify response.
-type SyncNotifyResponse struct {
-	ErrorResponse `json:",omitempty"`
-}
-
 // JobStatusResponse has status decomposed into it, so that we can transfer the
 // error as an ErrorResponse to avoid marshalling issues.
 type JobStatusResponse struct {
@@ -180,6 +175,11 @@ type SyncStatusResponse struct {
 // GitRepoConfigResponse is the GitRepoConfig response.
 type GitRepoConfigResponse struct {
 	Result        flux.GitConfig
+	ErrorResponse `json:",omitempty"`
+}
+
+// NotifyChangeResponse is the NotifyChange response.
+type NotifyChangeResponse struct {
 	ErrorResponse `json:",omitempty"`
 }
 
@@ -273,16 +273,6 @@ func (r *natsPlatform) UpdateManifests(ctx context.Context, u update.Spec) (job.
 	return response.Result, extractError(response.ErrorResponse)
 }
 
-func (r *natsPlatform) SyncNotify(ctx context.Context) error {
-	var response SyncNotifyResponse
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-	if err := r.conn.RequestWithContext(ctx, r.instance+methodSyncNotify, syncReq{}, &response); err != nil {
-		return remote.UnavailableError(err)
-	}
-	return extractError(response.ErrorResponse)
-}
-
 func (r *natsPlatform) JobStatus(ctx context.Context, jobID job.ID) (job.Status, error) {
 	var response JobStatusResponse
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -311,6 +301,16 @@ func (r *natsPlatform) GitRepoConfig(ctx context.Context, regenerate bool) (flux
 		return response.Result, remote.UnavailableError(err)
 	}
 	return response.Result, extractError(response.ErrorResponse)
+}
+
+func (r *natsPlatform) NotifyChange(ctx context.Context, change remote.Change) error {
+	var response NotifyChangeResponse
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	if err := r.conn.RequestWithContext(ctx, r.instance+methodNotifyChange, change, &response); err != nil {
+		return remote.UnavailableError(err)
+	}
+	return extractError(response.ErrorResponse)
 }
 
 // --- end Platform implementation
@@ -403,12 +403,12 @@ func (n *NATS) processRequest(ctx context.Context, request *nats.Msg, instID ser
 		err = n.processListImages(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodUpdateManifests):
 		err = n.processUpdateManifests(ctx, request, platform)
-	case strings.HasSuffix(request.Subject, methodSyncNotify):
-		err = n.processSyncNotify(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodJobStatus):
 		err = n.processJobStatus(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodSyncStatus):
 		err = n.processSyncStatus(ctx, request, platform)
+	case strings.HasSuffix(request.Subject, methodNotifyChange):
+		err = n.processNotifyChange(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodGitRepoConfig):
 		err = n.processGitRepoConfig(ctx, request, platform)
 	default:
@@ -506,16 +506,6 @@ func (n *NATS) processUpdateManifests(ctx context.Context, request *nats.Msg, pl
 	return err
 }
 
-func (n *NATS) processSyncNotify(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
-	var p syncReq
-	err := encoder.Decode(request.Subject, request.Data, &p)
-	if err == nil {
-		err = platform.SyncNotify(ctx)
-	}
-	n.enc.Publish(request.Reply, SyncNotifyResponse{makeErrorResponse(err)})
-	return err
-}
-
 func (n *NATS) processJobStatus(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
 	var (
 		req job.ID
@@ -542,6 +532,16 @@ func (n *NATS) processSyncStatus(ctx context.Context, request *nats.Msg, platfor
 		res, err = platform.SyncStatus(ctx, req)
 	}
 	n.enc.Publish(request.Reply, SyncStatusResponse{res, makeErrorResponse(err)})
+	return err
+}
+
+func (n *NATS) processNotifyChange(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+	var req remote.Change
+	err := encoder.Decode(request.Subject, request.Data, &req)
+	if err == nil {
+		err = platform.NotifyChange(ctx, req)
+	}
+	n.enc.Publish(request.Reply, NotifyChangeResponse{makeErrorResponse(err)})
 	return err
 }
 

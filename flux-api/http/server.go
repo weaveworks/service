@@ -25,6 +25,7 @@ import (
 	transport "github.com/weaveworks/flux/http"
 	"github.com/weaveworks/flux/http/httperror"
 	"github.com/weaveworks/flux/http/websocket"
+	"github.com/weaveworks/flux/image"
 	"github.com/weaveworks/flux/job"
 	"github.com/weaveworks/flux/policy"
 	"github.com/weaveworks/flux/remote"
@@ -71,6 +72,7 @@ func NewServiceRouter() *mux.Router {
 	r.NewRoute().Name("PatchConfig").Methods("PATCH").Path("/v6/config")
 	r.NewRoute().Name("PostIntegrationsGithub").Methods("POST").Path("/v6/integrations/github").Queries("owner", "{owner}", "repository", "{repository}")
 	r.NewRoute().Name("IsConnected").Methods("HEAD", "GET").Path("/v6/ping")
+	r.NewRoute().Name("DockerHubImageNotify").Methods("POST").Path("/v6/integrations/dockerhub/image").Queries("instance", "{instance}")
 
 	// We assume every request that doesn't match a route is a client
 	// calling an old or hitherto unsupported API.
@@ -110,12 +112,13 @@ func NewHandler(s api.Service, r *mux.Router, logger log.Logger) http.Handler {
 		"RegisterDaemonV6":         handle.RegisterV6,
 		"RegisterDaemonV7":         handle.RegisterV7,
 		"RegisterDaemonV8":         handle.RegisterV8,
+		"RegisterDaemonV9":         handle.RegisterV9,
 		"IsConnected":              handle.IsConnected,
-		"SyncNotify":               handle.SyncNotify,
 		"JobStatus":                handle.JobStatus,
 		"SyncStatus":               handle.SyncStatus,
 		"GetPublicSSHKey":          handle.GetPublicSSHKey,
 		"RegeneratePublicSSHKey":   handle.RegeneratePublicSSHKey,
+		"DockerHubImageNotify":     handle.DockerHubImageNotify,
 	} {
 		handler := logging(handlerMethod, log.With(logger, "method", method))
 		r.Get(method).Handler(handler)
@@ -216,16 +219,6 @@ func (s httpService) UpdateImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	transport.JSONResponse(w, r, jobID)
-}
-
-func (s httpService) SyncNotify(w http.ResponseWriter, r *http.Request) {
-	ctx := getRequestContext(r)
-	err := s.service.SyncNotify(ctx)
-	if err != nil {
-		transport.ErrorResponse(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusAccepted)
 }
 
 func (s httpService) JobStatus(w http.ResponseWriter, r *http.Request) {
@@ -465,6 +458,12 @@ func (s httpService) RegisterV8(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s httpService) RegisterV9(w http.ResponseWriter, r *http.Request) {
+	s.doRegister(w, r, func(conn io.ReadWriteCloser) platformCloser {
+		return rpc.NewClientV9(conn)
+	})
+}
+
 type platformCloser interface {
 	remote.Platform
 	io.Closer
@@ -568,6 +567,41 @@ func (s httpService) RegeneratePublicSSHKey(w http.ResponseWriter, r *http.Reque
 	return
 }
 
+func (s httpService) DockerHubImageNotify(w http.ResponseWriter, r *http.Request) {
+	// From https://docs.docker.com/docker-hub/webhooks/
+	type payload struct {
+		Repository struct {
+			RepoName string `json:"repo_name"`
+		} `json:"repository"`
+	}
+	var p payload
+	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+		transport.WriteError(w, r, http.StatusBadRequest, err)
+		return
+	}
+	ref, err := image.ParseRef(p.Repository.RepoName)
+	if err != nil {
+		transport.WriteError(w, r, http.StatusUnprocessableEntity, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+
+	// Hack to populate request context with instanceID
+	instID := mux.Vars(r)["instance"]
+	overrideInstanceID(r, instID)
+
+	change := remote.Change{
+		Kind: remote.ImageChange,
+		Source: remote.ImageUpdate{
+			Name: ref.Name,
+		},
+	}
+	ctx := getRequestContext(r)
+	// Ignore error returned here, as we have no way to log it directly but we also
+	// don't want to potentially make DockerHub wait for 10 seconds.
+	s.service.NotifyChange(ctx, change)
+}
+
 // --- end handlers
 
 func logging(next http.Handler, logger log.Logger) http.Handler {
@@ -600,6 +634,12 @@ func getRequestContext(req *http.Request) context.Context {
 		return context.WithValue(req.Context(), service.InstanceIDKey, service.InstanceID(s))
 	}
 	return req.Context()
+}
+
+func overrideInstanceID(req *http.Request, instID string) {
+	if instID != "" {
+		req.Header.Set(InstanceIDHeaderKey, instID)
+	}
 }
 
 // codeWriter intercepts the HTTP status code. WriteHeader may not be called in

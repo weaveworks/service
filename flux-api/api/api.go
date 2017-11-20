@@ -11,7 +11,7 @@ import (
 	"github.com/weaveworks/service/flux-api/service"
 )
 
-// Service defines the interface for flux-service.
+// Service defines the interface for flux-api.
 type Service interface {
 	api.Client
 	api.Upstream

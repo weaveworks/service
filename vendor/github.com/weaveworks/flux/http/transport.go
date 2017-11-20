@@ -34,7 +34,6 @@ func NewAPIRouter() *mux.Router {
 
 	r.NewRoute().Name("UpdateImages").Methods("POST").Path("/v6/update-images").Queries("service", "{service}", "image", "{image}", "kind", "{kind}")
 	r.NewRoute().Name("UpdatePolicies").Methods("PATCH").Path("/v6/policies")
-	r.NewRoute().Name("SyncNotify").Methods("POST").Path("/v6/sync")
 	r.NewRoute().Name("JobStatus").Methods("GET").Path("/v6/jobs").Queries("id", "{id}")
 	r.NewRoute().Name("SyncStatus").Methods("GET").Path("/v6/sync").Queries("ref", "{ref}")
 	r.NewRoute().Name("Export").Methods("HEAD", "GET").Path("/v6/export")
@@ -48,6 +47,7 @@ func UpstreamRoutes(r *mux.Router) {
 	r.NewRoute().Name("RegisterDaemonV6").Methods("GET").Path("/v6/daemon")
 	r.NewRoute().Name("RegisterDaemonV7").Methods("GET").Path("/v7/daemon")
 	r.NewRoute().Name("RegisterDaemonV8").Methods("GET").Path("/v8/daemon")
+	r.NewRoute().Name("RegisterDaemonV9").Methods("GET").Path("/v9/daemon")
 	r.NewRoute().Name("LogEvent").Methods("POST").Path("/v6/events")
 }
 
