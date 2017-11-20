@@ -67,7 +67,7 @@ func NewUsageUpload(db db.DB, users users.UsersClient, uploader usage.Uploader, 
 // Run starts the job and logs errors.
 func (j *UsageUpload) Run() {
 	if err := j.Do(); err != nil {
-		log.Errorf("Error running upload job: %v", err)
+		log.Errorf("Error running upload job [%v]: %v", j.uploader.ID(), err)
 	}
 }
 
