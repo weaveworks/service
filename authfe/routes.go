@@ -360,7 +360,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		MiddlewarePrefix{
 			"/api/flux/v6/integrations",
 			[]PrefixRoutable{
-				Prefix{"/dockerhub/image", c.fluxV6Host},
+				PrefixMethods{"/dockerhub/image", []string{"POST"}, c.fluxV6Host},
 			},
 			uiHTTPlogger,
 		},
