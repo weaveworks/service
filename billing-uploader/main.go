@@ -52,11 +52,12 @@ func main() {
 	var (
 		uploadZuoraCronSpec = flag.String(
 			"upload-zuora-cron-spec",
-			"0 15 2 * * *", // Daily at 02:15:00 - Seconds, Minutes, Hours, Day of month, Month, Day of week
+			"0 30 2 * * *", // Daily at 02:30:00 - Seconds, Minutes, Hours, Day of month, Month, Day of week
 			"Cron spec for periodic execution of the Zuora uploader job. Should be scheduled to run once per day")
 		uploadGCPCronSpec = flag.String(
 			"upload-gcp-cron-spec",
-			"0 0 * * * *", // Hourly at :00 - Seconds, Minutes, Hours, Day of month, Month, Day of week
+			// It is scheduled to go hourly at :15 because the aggregation of usage is scheduled at :10
+			"0 15 * * * *", // Seconds, Minutes, Hours, Day of month, Month, Day of week
 			"Cron spec for periodic execution of the GCP uploader job. Should be scheduled to run once an hour")
 		invoiceCronSpec = flag.String(
 			"invoice-cron-spec",
