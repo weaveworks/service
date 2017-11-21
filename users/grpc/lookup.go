@@ -148,7 +148,7 @@ func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.G
 	organizations, err := a.db.ListOrganizations(
 		ctx,
 		filter.And(
-			filter.ZuoraAccount(true),
+			filter.Or(filter.ZuoraAccount(true), filter.GCPSubscription(true)),
 			filter.TrialExpiredBy(req.Now),
 			// While billing is in development, only pick orgs with ff `billing`
 			filter.HasFeatureFlag(users.BillingFeatureFlag),
