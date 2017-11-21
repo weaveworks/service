@@ -184,10 +184,12 @@ func (j *UsageUpload) Do() error {
 
 		logger.Infof("Found %d billable instances", stats.instances)
 
-		if err := j.upload(ctx, stats.maxAggregateID); err != nil {
-			logger.Errorf("Failed uploading: %v", err)
-			stats.set(j.uploader.ID(), "error")
-			return err
+		if stats.instances > 0 {
+			if err := j.upload(ctx, stats.maxAggregateID); err != nil {
+				logger.Errorf("Failed uploading: %v", err)
+				stats.set(j.uploader.ID(), "error")
+				return err
+			}
 		}
 
 		stats.set(j.uploader.ID(), "success")

@@ -149,7 +149,7 @@ func TestJobUpload_DoError(t *testing.T) {
 	u.EXPECT().
 		GetBillableOrganizations(gomock.Any(), gomock.Any()).
 		Return(&users.GetBillableOrganizationsResponse{
-			Organizations: []users.Organization{{ID: "100", ExternalID: "foo-bar-999"}},
+			Organizations: []users.Organization{{ID: "100", ExternalID: "foo-bar-999", ZuoraAccountNumber: "Wfoo"}},
 		}, nil)
 	ns := "node-seconds"
 	aggregates := []db.Aggregate{
