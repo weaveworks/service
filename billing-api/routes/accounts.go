@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/weaveworks/service/common/orgs"
+
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
@@ -126,12 +128,12 @@ func (a *API) markOrganizationDutiful(ctx context.Context, logger *log.Entry, ex
 
 	logger.Infof("Updating users service with billing account status for %v", externalID)
 	_, err = a.Users.SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{
-		ExternalID: externalID, Flag: "RefuseDataAccess", Value: false})
+		ExternalID: externalID, Flag: orgs.RefuseDataAccess, Value: false})
 	if err != nil {
 		logger.Errorf("Failed to update RefuseDataAccess for %v", externalID)
 	}
 	_, err = a.Users.SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{
-		ExternalID: externalID, Flag: "RefuseDataUpload", Value: false})
+		ExternalID: externalID, Flag: orgs.RefuseDataUpload, Value: false})
 	if err != nil {
 		logger.Errorf("Failed to update RefuseDataUpload for %v", externalID)
 	}

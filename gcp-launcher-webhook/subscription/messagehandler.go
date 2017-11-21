@@ -9,6 +9,7 @@ import (
 
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/common/gcp/pubsub/dto"
+	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/users"
 )
 
@@ -115,6 +116,10 @@ func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Sub
 		return err
 	}
 
+	if err := m.enableWeaveCloudAccess(ctx, sub.ExternalAccountID); err != nil {
+		return err
+	}
+
 	// Approve subscription
 	body := partner.RequestBodyWithSSOLoginKey(sub.ExternalAccountID)
 	if _, err := m.Partner.ApproveSubscription(ctx, sub.Name, body); err != nil {
@@ -126,6 +131,10 @@ func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Sub
 
 // cancelSubscriptions removes the subscription from the organization.
 func (m MessageHandler) cancelSubscription(ctx context.Context, sub *partner.Subscription) error {
+	if err := m.disableWeaveCloudAccess(ctx, sub.ExternalAccountID); err != nil {
+		return err
+	}
+
 	// The account ID is kept intact to detect a customer reactivating their subscription.
 	_, err := m.Users.UpdateGCP(ctx, &users.UpdateGCPRequest{
 		GCP: &users.GoogleCloudPlatform{
@@ -135,8 +144,33 @@ func (m MessageHandler) cancelSubscription(ctx context.Context, sub *partner.Sub
 			SubscriptionLevel: "",
 		},
 	})
-	// TODO(rndstr): do we want to refuse data access/upload here?
 	return err
+}
+
+func (m MessageHandler) enableWeaveCloudAccess(ctx context.Context, gcpAccountID string) error {
+	return m.setWeaveCloudAccessFlagsTo(ctx, gcpAccountID, false)
+}
+
+func (m MessageHandler) disableWeaveCloudAccess(ctx context.Context, gcpAccountID string) error {
+	return m.setWeaveCloudAccessFlagsTo(ctx, gcpAccountID, true)
+}
+
+func (m MessageHandler) setWeaveCloudAccessFlagsTo(ctx context.Context, gcpAccountID string, value bool) error {
+	org, err := m.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
+		ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: gcpAccountID},
+	})
+	if err != nil {
+		return err
+	}
+	if _, err := m.Users.SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{
+		ExternalID: org.Organization.ExternalID, Flag: orgs.RefuseDataAccess, Value: value}); err != nil {
+		return err
+	}
+	if _, err := m.Users.SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{
+		ExternalID: org.Organization.ExternalID, Flag: orgs.RefuseDataUpload, Value: value}); err != nil {
+		return err
+	}
+	return nil
 }
 
 // getSubscriptions fetches all subscriptions of the account. Furthermore, it picks the subscription with the

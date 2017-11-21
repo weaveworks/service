@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/weaveworks/service/common/orgs"
+
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/filter"
@@ -249,9 +251,9 @@ func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganiz
 func (a *usersServer) SetOrganizationFlag(ctx context.Context, req *users.SetOrganizationFlagRequest) (*users.SetOrganizationFlagResponse, error) {
 	var err error
 	switch req.Flag {
-	case "RefuseDataAccess":
+	case orgs.RefuseDataAccess:
 		err = a.db.SetOrganizationRefuseDataAccess(ctx, req.ExternalID, req.Value)
-	case "RefuseDataUpload":
+	case orgs.RefuseDataUpload:
 		err = a.db.SetOrganizationRefuseDataUpload(ctx, req.ExternalID, req.Value)
 	default:
 		err = fmt.Errorf("Invalid flag: %v", req.Flag)

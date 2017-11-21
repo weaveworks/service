@@ -55,6 +55,11 @@ var (
 			"externalAccountId": "acc123",
 		},
 	}
+
+	orgExternalID = "optimistic-organization-42"
+	org           = users.Organization{
+		ExternalID: orgExternalID,
+	}
 )
 
 func TestMessageHandler_Handle_notFound(t *testing.T) {
@@ -97,6 +102,15 @@ func TestMessageHandler_Handle_cancel(t *testing.T) {
 		GetGCP(ctx, &users.GetGCPRequest{AccountID: "acc123"}).
 		Return(&users.GetGCPResponse{GCP: gcpActive}, nil)
 	client.EXPECT().
+		GetOrganization(ctx, &users.GetOrganizationRequest{ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: "acc123"}}).
+		Return(&users.GetOrganizationResponse{Organization: org}, nil)
+	client.EXPECT().
+		SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataAccess", Value: true}).
+		Return(&users.SetOrganizationFlagResponse{}, nil)
+	client.EXPECT().
+		SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataUpload", Value: true}).
+		Return(&users.SetOrganizationFlagResponse{}, nil)
+	client.EXPECT().
 		UpdateGCP(ctx, &users.UpdateGCPRequest{
 			GCP: &users.GoogleCloudPlatform{
 				AccountID:         "acc123",
@@ -137,6 +151,15 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 	client.EXPECT().
 		GetGCP(ctx, &users.GetGCPRequest{AccountID: "acc123"}).
 		Return(&users.GetGCPResponse{GCP: gcpActive}, nil)
+	client.EXPECT().
+		GetOrganization(ctx, &users.GetOrganizationRequest{ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: "acc123"}}).
+		Return(&users.GetOrganizationResponse{Organization: org}, nil)
+	client.EXPECT().
+		SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataAccess", Value: false}).
+		Return(&users.SetOrganizationFlagResponse{}, nil)
+	client.EXPECT().
+		SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataUpload", Value: false}).
+		Return(&users.SetOrganizationFlagResponse{}, nil)
 	client.EXPECT().
 		UpdateGCP(ctx, &users.UpdateGCPRequest{
 			GCP: &users.GoogleCloudPlatform{

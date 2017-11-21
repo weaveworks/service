@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/weaveworks/service/common/orgs"
+
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/logging"
@@ -191,7 +193,7 @@ func (a *API) changeOrgFields(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else { // Multi value `foo=bar, moo=zar`
-		fields := [...]string{"FeatureFlags", "RefuseDataAccess", "RefuseDataUpload"}
+		fields := [...]string{"FeatureFlags", orgs.RefuseDataAccess, orgs.RefuseDataUpload}
 		var errs []string
 		for _, field := range fields {
 			if err := a.setOrganizationField(r.Context(), orgExternalID, field, r.FormValue(field)); err != nil {
@@ -215,10 +217,10 @@ func (a *API) setOrganizationField(ctx context.Context, orgExternalID, field, va
 	case "FirstSeenConnectedAt":
 		now := time.Now()
 		err = a.db.SetOrganizationFirstSeenConnectedAt(ctx, orgExternalID, &now)
-	case "RefuseDataAccess":
+	case orgs.RefuseDataAccess:
 		deny := value == "on"
 		err = a.db.SetOrganizationRefuseDataAccess(ctx, orgExternalID, deny)
-	case "RefuseDataUpload":
+	case orgs.RefuseDataUpload:
 		deny := value == "on"
 		err = a.db.SetOrganizationRefuseDataUpload(ctx, orgExternalID, deny)
 	case "FeatureFlags":
