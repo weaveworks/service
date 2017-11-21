@@ -507,6 +507,8 @@ func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, accountID strin
 	// It also skips the platform/env tab during the onboarding process.
 	o.Platform = "kubernetes"
 	o.Environment = "gke"
+	// No trial for GCP instances
+	o.TrialExpiresAt = time.Now()
 
 	// Enable billing otherwise we won't upload usage
 	if !o.HasFeatureFlag(users.BillingFeatureFlag) {
