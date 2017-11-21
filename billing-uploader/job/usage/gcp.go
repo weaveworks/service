@@ -58,11 +58,11 @@ func (g *GCP) Upload(ctx context.Context) error {
 	return g.client.Report(ctx, g.ops)
 }
 
-// IsSupported only picks organizations that have an active GCP account
+// IsSupported only picks organizations that have an activated GCP account
 func (g *GCP) IsSupported(org users.Organization) bool {
 	// Note that users.GetBillableOrganizations should already check for all of these except
 	// GCP != nil. Better safe than sorry.
-	return org.GCP != nil && org.GCP.Active && org.GCP.SubscriptionName != ""
+	return org.GCP != nil && org.GCP.Activated && org.GCP.SubscriptionName != ""
 }
 
 // ThroughTime returns now. We always want to upload everything up to now.

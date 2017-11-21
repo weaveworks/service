@@ -298,9 +298,9 @@ func (t timed) FindGCP(ctx context.Context, accountID string) (gcp *users.Google
 	return
 }
 
-func (t timed) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error {
+func (t timed) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, activated bool) error {
 	return t.timeRequest(ctx, "UpdateGCP", func(ctx context.Context) error {
-		return t.d.UpdateGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel, active)
+		return t.d.UpdateGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel, activated)
 	})
 }
 func (t timed) SetOrganizationGCP(ctx context.Context, externalID, accountID string) error {

@@ -42,11 +42,11 @@ func (m *partnerMock) ListSubscriptions(ctx context.Context, externalAccountID s
 var (
 	gcpInactive = users.GoogleCloudPlatform{
 		AccountID: "acc123",
-		Active:    false,
+		Activated: false,
 	}
-	gcpActive = users.GoogleCloudPlatform{
+	gcpActivated = users.GoogleCloudPlatform{
 		AccountID: "acc123",
-		Active:    true,
+		Activated: true,
 	}
 
 	msgFoo = dto.Message{
@@ -100,7 +100,7 @@ func TestMessageHandler_Handle_cancel(t *testing.T) {
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
 		GetGCP(ctx, &users.GetGCPRequest{AccountID: "acc123"}).
-		Return(&users.GetGCPResponse{GCP: gcpActive}, nil)
+		Return(&users.GetGCPResponse{GCP: gcpActivated}, nil)
 	client.EXPECT().
 		GetOrganization(ctx, &users.GetOrganizationRequest{ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: "acc123"}}).
 		Return(&users.GetOrganizationResponse{Organization: org}, nil)
@@ -114,7 +114,7 @@ func TestMessageHandler_Handle_cancel(t *testing.T) {
 		UpdateGCP(ctx, &users.UpdateGCPRequest{
 			GCP: &users.GoogleCloudPlatform{
 				AccountID:         "acc123",
-				Active:            false,
+				Activated:         false,
 				ConsumerID:        "",
 				SubscriptionName:  "",
 				SubscriptionLevel: "",
@@ -150,7 +150,7 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
 		GetGCP(ctx, &users.GetGCPRequest{AccountID: "acc123"}).
-		Return(&users.GetGCPResponse{GCP: gcpActive}, nil)
+		Return(&users.GetGCPResponse{GCP: gcpActivated}, nil)
 	client.EXPECT().
 		GetOrganization(ctx, &users.GetOrganizationRequest{ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: "acc123"}}).
 		Return(&users.GetOrganizationResponse{Organization: org}, nil)
@@ -167,7 +167,7 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 				ConsumerID:        "project_number:123",
 				SubscriptionName:  "partnerSubscriptions/1",
 				SubscriptionLevel: "enterprise",
-				Active:            true, // the new subscription should be activated.
+				Activated:         true, // the new subscription should be activated.
 			}}).
 		Return(nil, nil)
 

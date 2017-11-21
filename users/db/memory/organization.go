@@ -469,7 +469,7 @@ func (d *DB) FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudP
 }
 
 // UpdateGCP updates a Google Cloud Platform subscription.
-func (d *DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error {
+func (d *DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, activated bool) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
@@ -481,7 +481,7 @@ func (d *DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionN
 	gcp.ConsumerID = consumerID
 	gcp.SubscriptionName = subscriptionName
 	gcp.SubscriptionLevel = subscriptionLevel
-	gcp.Active = active
+	gcp.Activated = activated
 
 	d.gcpSubscriptions[accountID] = gcp
 	return nil
@@ -530,7 +530,7 @@ func (d *DB) createGCP(ctx context.Context, accountID, consumerID, subscriptionN
 	gcp := &users.GoogleCloudPlatform{
 		ID:                fmt.Sprint(len(d.gcpSubscriptions)),
 		AccountID:         accountID,
-		Active:            false,
+		Activated:         false,
 		ConsumerID:        consumerID,
 		SubscriptionName:  subscriptionName,
 		SubscriptionLevel: subscriptionLevel,

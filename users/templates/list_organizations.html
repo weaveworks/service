@@ -99,7 +99,7 @@
         <td>
           {{if .GCP}}
             <strong title="{{.GCP.SubscriptionName}} [{{.GCP.SubscriptionLevel}}, {{.GCP.ConsumerID}}]">GCP</strong> {{.GCP.AccountID}}
-            {{if not .GCP.Active}}INACTIVE!{{end}}
+            {{if not .GCP.Activated}}INACTIVE!{{end}}
           {{end}}
         </td>
       </tr>

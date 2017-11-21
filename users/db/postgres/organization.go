@@ -73,14 +73,14 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.trial_expires_at",
 		"organizations.trial_pending_expiry_notified_at",
 		"organizations.trial_expired_notified_at",
-		"gcp_subscriptions.account_id",
-		"gcp_subscriptions.active",
-		"gcp_subscriptions.consumer_id",
-		"gcp_subscriptions.subscription_name",
-		"gcp_subscriptions.subscription_level",
+		"gcp_accounts.account_id",
+		"gcp_accounts.activated",
+		"gcp_accounts.consumer_id",
+		"gcp_accounts.subscription_name",
+		"gcp_accounts.subscription_level",
 	).
 		From("organizations").
-		LeftJoin("gcp_subscriptions ON gcp_subscription_id = gcp_subscriptions.id").
+		LeftJoin("gcp_accounts ON gcp_account_id = gcp_accounts.id").
 		Where("organizations.deleted_at is null").
 		OrderBy("organizations.created_at DESC")
 }
@@ -267,14 +267,14 @@ func (d DB) FindOrganizationByID(_ context.Context, externalID string) (*users.O
 }
 
 // FindOrganizationByGCPAccountID returns the organization with the given account ID.
-// N.B.: it only returns GCP organizations which are active, i.e. for which the subscription has been validated and activated against GCP.
+// N.B.: it only returns GCP organizations which have been activated, i.e. for which the subscription has been validated and activated against GCP.
 func (d DB) FindOrganizationByGCPAccountID(ctx context.Context, accountID string) (*users.Organization, error) {
 	gcp, err := d.FindGCP(ctx, accountID)
 	if err != nil {
 		return nil, err
 	}
 	o, err := d.scanOrganization(
-		d.organizationsQuery().Where(squirrel.Eq{"organizations.gcp_subscription_id": gcp.ID, "gcp_subscriptions.active": true}).QueryRow(),
+		d.organizationsQuery().Where(squirrel.Eq{"organizations.gcp_account_id": gcp.ID, "gcp_accounts.activated": true}).QueryRow(),
 	)
 	if err == sql.ErrNoRows {
 		return nil, users.ErrNotFound
@@ -324,7 +324,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	var trialExpiredNotifiedAt, trialPendingExpiryNotifiedAt *time.Time
 	var refuseDataAccess, refuseDataUpload bool
 	var accountID, consumerID, subscriptionName, subscriptionLevel sql.NullString
-	var active sql.NullBool
+	var activated sql.NullBool
 	if err := row.Scan(
 		&o.ID,
 		&externalID,
@@ -343,7 +343,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&trialPendingExpiryNotifiedAt,
 		&trialExpiredNotifiedAt,
 		&accountID,
-		&active,
+		&activated,
 		&consumerID,
 		&subscriptionName,
 		&subscriptionLevel,
@@ -367,7 +367,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	if accountID.Valid {
 		o.GCP = &users.GoogleCloudPlatform{
 			AccountID:         accountID.String,
-			Active:            active.Bool,
+			Activated:         activated.Bool,
 			ConsumerID:        consumerID.String,
 			SubscriptionName:  subscriptionName.String,
 			SubscriptionLevel: subscriptionLevel.String,
@@ -570,11 +570,11 @@ func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, c
 func (d DB) FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
 	var gcp users.GoogleCloudPlatform
 	err := d.QueryRow(
-		`select id, account_id, active, created_at, consumer_id, subscription_name, subscription_level
-		from gcp_subscriptions
+		`select id, account_id, activated, created_at, consumer_id, subscription_name, subscription_level
+		from gcp_accounts
 		where account_id = $1`,
 		accountID,
-	).Scan(&gcp.ID, &gcp.AccountID, &gcp.Active, &gcp.CreatedAt, &gcp.ConsumerID, &gcp.SubscriptionName, &gcp.SubscriptionLevel)
+	).Scan(&gcp.ID, &gcp.AccountID, &gcp.Activated, &gcp.CreatedAt, &gcp.ConsumerID, &gcp.SubscriptionName, &gcp.SubscriptionLevel)
 	if err != nil {
 		return nil, err
 	}
@@ -582,12 +582,12 @@ func (d DB) FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPl
 }
 
 // UpdateGCP updates a Google Cloud Platform subscription.
-func (d DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error {
+func (d DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, activated bool) error {
 	_, err := d.Exec(
-		`update gcp_subscriptions
-		set account_id = $1, active = $2, consumer_id = $3, subscription_name = $4, subscription_level = $5
+		`update gcp_accounts
+		set account_id = $1, activated = $2, consumer_id = $3, subscription_name = $4, subscription_level = $5
 		where account_id = $6`,
-		accountID, active, consumerID, subscriptionName, subscriptionLevel, accountID,
+		accountID, activated, consumerID, subscriptionName, subscriptionLevel, accountID,
 	)
 	return err
 }
@@ -601,7 +601,7 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string
 			return err
 		}
 		_, err = d.Exec(
-			`update organizations set gcp_subscription_id = $1 where external_id = $2 and deleted_at is null`,
+			`update organizations set gcp_account_id = $1 where external_id = $2 and deleted_at is null`,
 			gcp.ID, externalID,
 		)
 
@@ -632,7 +632,7 @@ func (d DB) createGCP(ctx context.Context, accountID, consumerID, subscriptionNa
 		SubscriptionName:  subscriptionName,
 		SubscriptionLevel: subscriptionLevel,
 	}
-	err := d.QueryRow(`insert into gcp_subscriptions
+	err := d.QueryRow(`insert into gcp_accounts
 			(account_id, created_at, consumer_id, subscription_name, subscription_level)
 			values ($1, $2, $3, $4, $5) returning id`,
 		gcp.AccountID, gcp.CreatedAt, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel).

@@ -256,7 +256,7 @@ func Test_GetBillableOrganizations_SkipDelinquent(t *testing.T) {
 func Test_GetBillableOrganizations_GCP(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
-	org, gcp := makeGCPBillingOrganization(t)
+	org := makeGCPBillingOrganization(t)
 
 	now := time.Now()
 	{
@@ -265,7 +265,7 @@ func Test_GetBillableOrganizations_GCP(t *testing.T) {
 		assert.Equal(t, []users.Organization{*org}, resp.Organizations)
 	}
 
-	cancelGCPSubscription(t, gcp.AccountID)
+	cancelGCPSubscription(t, org.GCP.AccountID)
 	{
 		resp, err := server.GetBillableOrganizations(ctx, &users.GetBillableOrganizationsRequest{Now: now})
 		require.NoError(t, err)
@@ -412,7 +412,7 @@ func makeBillingOrganization(t *testing.T) *users.Organization {
 	return newOrg
 }
 
-func makeGCPBillingOrganization(t *testing.T) (*users.Organization, *users.GoogleCloudPlatform) {
+func makeGCPBillingOrganization(t *testing.T) *users.Organization {
 	user := dbtest.GetUser(t, database)
 	org, gcp, err := database.CreateOrganizationWithGCP(
 		context.Background(),
@@ -428,7 +428,9 @@ func makeGCPBillingOrganization(t *testing.T) (*users.Organization, *users.Googl
 	err = database.UpdateGCP(context.Background(), gcp.AccountID, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel, true)
 	require.NoError(t, err)
 
-	return org, gcp
+	newOrg, err := database.FindOrganizationByID(context.Background(), org.ExternalID)
+	require.NoError(t, err)
+	return newOrg
 }
 
 func cancelGCPSubscription(t *testing.T, gcpAccountID string) {

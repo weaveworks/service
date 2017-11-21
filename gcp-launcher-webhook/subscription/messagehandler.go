@@ -38,7 +38,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	gcp := resp.GCP
 
 	// Activation.
-	if !gcp.Active {
+	if !gcp.Activated {
 		logger.Infof("Account %v has not yet been activated, ignoring message", gcpAccountID)
 		return nil // ACK
 	}
@@ -101,7 +101,7 @@ func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Sub
 			ConsumerID:        consumerID,
 			SubscriptionName:  sub.Name,
 			SubscriptionLevel: level,
-			Active:            true,
+			Activated:         true,
 		},
 	})
 	if err != nil {
