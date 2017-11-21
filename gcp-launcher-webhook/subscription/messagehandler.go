@@ -50,20 +50,12 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 
 	// Cancel.
 	if sub.Status == partner.Complete {
-		hasPending := false
-		for _, s := range subs {
-			if s.Status == partner.Pending {
-				hasPending = true
-				break
-			}
+		if hasOtherSubscription(partner.Pending, subs) || hasOtherSubscription(partner.Active, subs) {
+			logger.Info("Not cancelling subscription because there is another one either pending or active: %+v", sub)
+			return nil // ACK
 		}
-		if !hasPending {
-			// Pending subscriptions are supposed to be approved by us.
-			logger.Info("Cancelling subscription: %+v", sub)
-			return m.cancelSubscription(ctx, sub)
-		}
-		logger.Info("Not cancelling subscription because there is another one pending: %+v", sub)
-		return nil // ACK
+		logger.Info("Cancelling subscription: %+v", sub)
+		return m.cancelSubscription(ctx, sub)
 	}
 
 	// Reactivation, PlanChange.
@@ -193,4 +185,14 @@ func (m MessageHandler) getSubscriptions(ctx context.Context, gcpAccountID strin
 	}
 
 	return sub, subs, nil
+}
+
+// hasOtherSubscription return true if there is a subscription among the provided ones with status equal to the provided one, or false otherwise.
+func hasOtherSubscription(status partner.SubscriptionStatus, subs []partner.Subscription) bool {
+	for _, s := range subs {
+		if s.Status == status {
+			return true
+		}
+	}
+	return false
 }
