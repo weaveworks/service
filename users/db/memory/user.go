@@ -165,7 +165,7 @@ func (u usersByCreatedAt) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.After(u[j].CreatedAt) }
 
 // ListUsers lists users
-func (d *DB) ListUsers(_ context.Context, f filter.User) ([]*users.User, error) {
+func (d *DB) ListUsers(_ context.Context, f filter.User, page uint64) ([]*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	users := []*users.User{}

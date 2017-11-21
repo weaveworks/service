@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"strconv"
 	"strings"
 
 	"github.com/Masterminds/squirrel"
@@ -11,9 +10,6 @@ import (
 const (
 	// Delimiter for query WHERE conditions as in `id:3`
 	queryFilterDelim = ":"
-
-	// Page size for paginated listings
-	resultsPerPage = 30
 )
 
 var (
@@ -23,8 +19,7 @@ var (
 
 // Filter filters things.
 type Filter interface {
-	// ExtendQuery extends a query to filter by something.
-	ExtendQuery(squirrel.SelectBuilder) squirrel.SelectBuilder
+	Where() squirrel.Sqlizer
 }
 
 // And combines many filters.
@@ -35,12 +30,13 @@ func And(filters ...Filter) AndFilter {
 // AndFilter combines many filters
 type AndFilter []Filter
 
-// ExtendQuery extends a query to filter by all the filters in this AndFilter.
-func (a AndFilter) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+// Where returns the query to filter by all the filters in this AndFilter.
+func (a AndFilter) Where() squirrel.Sqlizer {
+	wheres := []squirrel.Sqlizer{}
 	for _, f := range a {
-		b = f.ExtendQuery(b)
+		wheres = append(wheres, f.Where())
 	}
-	return b
+	return squirrel.And(wheres)
 }
 
 // MatchesOrg matches all the filters in this AndFilter.
@@ -65,42 +61,43 @@ func (a AndFilter) MatchesUser(u users.User) bool {
 	return true
 }
 
-// Page shows only a single page of results.
-type Page uint64
+// OrFilter requires at least one filter to pass.
+type OrFilter []Filter
 
-// MatchesOrg says whether the given organization matches this filter.
-//
-// We don't implement pagination for queries against the in-memory database,
-// so just lets everything through.
-func (p Page) MatchesOrg(_ users.Organization) bool {
-	return true
+// Or combines filters into an OR'ed condition.
+func Or(filters ...Filter) OrFilter {
+	return OrFilter(filters)
 }
 
-// MatchesUser says whether the given user matches this filter.
-//
-// We don't implement pagination for queries against the in-memory database,
-// so just lets everything through.
-func (p Page) MatchesUser(_ users.User) bool {
-	return true
-}
-
-// ExtendQuery applies the filter to the query builder.
-func (p Page) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	page := uint64(p)
-	if page > 0 {
-		b = b.Limit(resultsPerPage).Offset((page - 1) * resultsPerPage)
+// Where returns the query to filter by at least one of the filters in this OrFilter.
+func (o OrFilter) Where() squirrel.Sqlizer {
+	ors := []squirrel.Sqlizer{}
+	for _, f := range o {
+		ors = append(ors, f.Where())
 	}
-	return b
+	return squirrel.Or(ors)
 }
 
-// ParsePageValue parses the `page` form value of the request. It also
-// clamps it to (1, ∞).
-func ParsePageValue(pageStr string) uint64 {
-	page, _ := strconv.ParseInt(pageStr, 10, 32)
-	if page <= 0 {
-		page = 1
+// MatchesOrg matches at least one of the filters in this OrFilter.
+func (o OrFilter) MatchesOrg(org users.Organization) bool {
+	for _, f := range o {
+		orgMatcher := f.(Organization)
+		if orgMatcher.MatchesOrg(org) {
+			return true
+		}
 	}
-	return uint64(page)
+	return false
+}
+
+// MatchesUser matches at least one of the filters in this OrFilter.
+func (o OrFilter) MatchesUser(u users.User) bool {
+	for _, f := range o {
+		userMatcher := f.(User)
+		if userMatcher.MatchesUser(u) {
+			return true
+		}
+	}
+	return false
 }
 
 // ParseOrgQuery extracts filters and search from the `query` form

@@ -55,8 +55,8 @@ type privateUserView struct {
 func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 	page := filter.ParsePageValue(r.FormValue("page"))
 	query := r.FormValue("query")
-	f := filter.And(filter.ParseUserQuery(query), filter.Page(page))
-	users, err := a.db.ListUsers(r.Context(), f)
+	f := filter.And(filter.ParseUserQuery(query))
+	users, err := a.db.ListUsers(r.Context(), f, page)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -124,8 +124,7 @@ func (a *API) listUsersForOrganization(w http.ResponseWriter, r *http.Request) {
 func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 	page := filter.ParsePageValue(r.FormValue("page"))
 	query := r.FormValue("query")
-	f := filter.And(filter.ParseOrgQuery(query), filter.Page(page))
-	organizations, err := a.db.ListOrganizations(r.Context(), f)
+	organizations, err := a.db.ListOrganizations(r.Context(), filter.ParseOrgQuery(query), page)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -232,7 +231,7 @@ func (a *API) setOrganizationField(ctx context.Context, orgExternalID, field, va
 }
 
 func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
-	users, err := a.db.ListUsers(r.Context(), filter.All)
+	users, err := a.db.ListUsers(r.Context(), filter.All, 0)
 	if err != nil {
 		render.Error(w, r, err)
 		return

@@ -104,17 +104,17 @@ func (t timed) RemoveUserFromOrganization(ctx context.Context, orgExternalID, em
 	})
 }
 
-func (t timed) ListUsers(ctx context.Context, f filter.User) (us []*users.User, err error) {
+func (t timed) ListUsers(ctx context.Context, f filter.User, page uint64) (us []*users.User, err error) {
 	t.timeRequest(ctx, "ListUsers", func(ctx context.Context) error {
-		us, err = t.d.ListUsers(ctx, f)
+		us, err = t.d.ListUsers(ctx, f, page)
 		return err
 	})
 	return
 }
 
-func (t timed) ListOrganizations(ctx context.Context, f filter.Organization) (os []*users.Organization, err error) {
+func (t timed) ListOrganizations(ctx context.Context, f filter.Organization, page uint64) (os []*users.Organization, err error) {
 	t.timeRequest(ctx, "ListOrganizations", func(ctx context.Context) error {
-		os, err = t.d.ListOrganizations(ctx, f)
+		os, err = t.d.ListOrganizations(ctx, f, page)
 		return err
 	})
 	return

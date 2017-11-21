@@ -130,13 +130,11 @@ func (a *usersServer) LookupUser(ctx context.Context, req *users.LookupUserReque
 }
 
 func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrganizationsRequest) (*users.GetOrganizationsResponse, error) {
-	fs := []filter.Filter{
-		filter.Page(req.PageNumber),
-	}
+	fs := []filter.Filter{}
 	if req.Query != "" {
 		fs = append(fs, filter.ExternalID(req.Query))
 	}
-	organizations, err := a.db.ListOrganizations(ctx, filter.And(fs...))
+	organizations, err := a.db.ListOrganizations(ctx, filter.And(fs...), uint64(req.PageNumber))
 	if err != nil {
 		return nil, err
 	}
@@ -152,11 +150,12 @@ func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.G
 	organizations, err := a.db.ListOrganizations(
 		ctx,
 		filter.And(
-			filter.ZuoraAccount(true),
+			filter.Or(filter.ZuoraAccount(true), filter.GCPSubscription(true)),
 			filter.TrialExpiredBy(req.Now),
 			// While billing is in development, only pick orgs with ff `billing`
 			filter.HasFeatureFlag(users.BillingFeatureFlag),
 		),
+		0,
 	)
 	if err != nil {
 		return nil, err
@@ -173,10 +172,11 @@ func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetT
 	organizations, err := a.db.ListOrganizations(
 		ctx,
 		filter.And(
+			filter.GCP(false), // Trial is never active for GCP instances but we still make sure here.
 			filter.TrialActiveAt(req.Now),
 			filter.HasFeatureFlag(users.BillingFeatureFlag),
-			filter.GCPSubscription(false),
 		),
+		0,
 	)
 	if err != nil {
 		return nil, err
@@ -195,9 +195,11 @@ func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users
 		ctx,
 		filter.And(
 			filter.ZuoraAccount(false),
+			filter.GCP(false),
 			filter.TrialExpiredBy(req.Now),
 			filter.HasFeatureFlag(users.BillingFeatureFlag),
 		),
+		0,
 	)
 	if err != nil {
 		return nil, err
