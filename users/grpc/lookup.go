@@ -170,9 +170,9 @@ func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetT
 	organizations, err := a.db.ListOrganizations(
 		ctx,
 		filter.And(
+			filter.GCP(false), // Trial is never active for GCP instances but we still make sure here.
 			filter.TrialActiveAt(req.Now),
 			filter.HasFeatureFlag(users.BillingFeatureFlag),
-			filter.GCPSubscription(false),
 		),
 		0,
 	)
@@ -193,6 +193,7 @@ func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users
 		ctx,
 		filter.And(
 			filter.ZuoraAccount(false),
+			filter.GCP(false),
 			filter.TrialExpiredBy(req.Now),
 			filter.HasFeatureFlag(users.BillingFeatureFlag),
 		),
