@@ -362,7 +362,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			[]PrefixRoutable{
 				PrefixMethods{"/dockerhub/image", []string{"POST"}, c.fluxV6Host},
 			},
-			uiHTTPlogger,
+			nil,
 		},
 
 		// Token-based auth
