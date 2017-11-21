@@ -19,7 +19,7 @@ type Organization interface {
 // ZuoraAccount filters an organization based on whether or not there's a Zuora account.
 type ZuoraAccount bool
 
-// Where filters by Zuora account.
+// Where returns the query to filter by Zuora account.
 func (z ZuoraAccount) Where() squirrel.Sqlizer {
 	if bool(z) {
 		return squirrel.Expr("zuora_account_number IS NOT NULL")
@@ -38,7 +38,7 @@ func (z ZuoraAccount) MatchesOrg(o users.Organization) bool {
 // GCP filters an organization whether it has been created through GCP.
 type GCP bool
 
-// Where filters by GCP.
+// Where returns the query to filter by GCP.
 func (g GCP) Where() squirrel.Sqlizer {
 	if bool(g) {
 		return squirrel.NotEq{"gcp_subscription_id": nil}
@@ -46,10 +46,18 @@ func (g GCP) Where() squirrel.Sqlizer {
 	return squirrel.Eq{"gcp_subscription_id": nil}
 }
 
+// MatchesOrg checks whether an organization matches this filter.
+func (g GCP) MatchesOrg(o users.Organization) bool {
+	if bool(g) {
+		return o.GCP != nil
+	}
+	return o.GCP == nil
+}
+
 // GCPSubscription filters an organization based on whether it has a running GCP subscription or not.
 type GCPSubscription bool
 
-// Where filters by a running GCP subscription.
+// Where returns the query to filter by a running GCP subscription.
 func (g GCPSubscription) Where() squirrel.Sqlizer {
 	if bool(g) {
 		return squirrel.Expr("gcp_subscriptions.active AND gcp_subscriptions.subscription_name <> ''")
@@ -70,7 +78,7 @@ func (g GCPSubscription) MatchesOrg(o users.Organization) bool {
 // given date.
 type TrialExpiredBy time.Time
 
-// ExtendQuery extends a query to filter by trial expiry.
+// Where returns the query to filter by trial expiry.
 func (t TrialExpiredBy) Where() squirrel.Sqlizer {
 	return squirrel.Lt{"organizations.trial_expires_at": time.Time(t)}
 }
@@ -84,7 +92,7 @@ func (t TrialExpiredBy) MatchesOrg(o users.Organization) bool {
 // date.
 type TrialActiveAt time.Time
 
-// ExtendQuery extends a query to filter by trial expiry.
+// Where returns the query to filter by trial expiry.
 func (t TrialActiveAt) Where() squirrel.Sqlizer {
 	return squirrel.Gt{"organizations.trial_expires_at": time.Time(t)}
 }
@@ -97,7 +105,7 @@ func (t TrialActiveAt) MatchesOrg(o users.Organization) bool {
 // HasFeatureFlag filters for organizations that has the given feature flag.
 type HasFeatureFlag string
 
-// ExtendQuery extends a query to filter by feature flag.
+// Where returns the query to filter by feature flag.
 func (f HasFeatureFlag) Where() squirrel.Sqlizer {
 	return squirrel.Expr("?=ANY(feature_flags)", string(f))
 }
@@ -110,7 +118,7 @@ func (f HasFeatureFlag) MatchesOrg(o users.Organization) bool {
 // ID filters for organizations with exactly this ID.
 type ID string
 
-// ExtendQuery extends a query to filter by ID.
+// Where returns the query to filter by ID.
 func (i ID) Where() squirrel.Sqlizer {
 	return squirrel.Eq{"id": string(i)}
 }
@@ -123,7 +131,7 @@ func (i ID) MatchesOrg(o users.Organization) bool {
 // ExternalID filters for organizations with exactly this external ID.
 type ExternalID string
 
-// ExtendQuery extends a query to filter by ID.
+// Where returns the query to filter by ID.
 func (e ExternalID) Where() squirrel.Sqlizer {
 	return squirrel.Eq{"external_id": string(e)}
 }
@@ -136,7 +144,7 @@ func (e ExternalID) MatchesOrg(o users.Organization) bool {
 // SearchName finds organizations that have names that contain a string.
 type SearchName string
 
-// ExtendQuery extends a query to filter by having names that match our search.
+// Where returns the query to match our search.
 func (s SearchName) Where() squirrel.Sqlizer {
 	return squirrel.Expr("lower(organizations.name) LIKE ?",
 		fmt.Sprint("%", strings.ToLower(string(s)), "%"))
@@ -150,7 +158,7 @@ func (s SearchName) MatchesOrg(o users.Organization) bool {
 // ProbeToken filters for organizations with exactly this token.
 type ProbeToken string
 
-// ExtendQuery extends a query to filter by token.
+// Where returns the query to filter by token.
 func (t ProbeToken) Where() squirrel.Sqlizer {
 	return squirrel.Expr("organizations.probe_token = ?", string(t))
 }

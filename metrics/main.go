@@ -125,7 +125,7 @@ func main() {
 }
 
 func getUsers(ctx context.Context, d db.DB) ([]interface{}, error) {
-	users, err := d.ListUsers(ctx, filter.All)
+	users, err := d.ListUsers(ctx, filter.All, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func getMemberships(ctx context.Context, d db.DB) ([]interface{}, error) {
 }
 
 func getInstances(ctx context.Context, d db.DB) ([]interface{}, error) {
-	instances, err := d.ListOrganizations(ctx, filter.All)
+	instances, err := d.ListOrganizations(ctx, filter.All, 0)
 	if err != nil {
 		return nil, err
 	}

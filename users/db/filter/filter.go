@@ -30,7 +30,7 @@ func And(filters ...Filter) AndFilter {
 // AndFilter combines many filters
 type AndFilter []Filter
 
-// ExtendQuery extends a query to filter by all the filters in this AndFilter.
+// Where returns the query to filter by all the filters in this AndFilter.
 func (a AndFilter) Where() squirrel.Sqlizer {
 	wheres := []squirrel.Sqlizer{}
 	for _, f := range a {
@@ -69,13 +69,35 @@ func Or(filters ...Filter) OrFilter {
 	return OrFilter(filters)
 }
 
-// Where filters by all the filters in this OrFilter.
+// Where returns the query to filter by at least one of the filters in this OrFilter.
 func (o OrFilter) Where() squirrel.Sqlizer {
 	ors := []squirrel.Sqlizer{}
 	for _, f := range o {
 		ors = append(ors, f.Where())
 	}
 	return squirrel.Or(ors)
+}
+
+// MatchesOrg matches at least one of the filters in this OrFilter.
+func (o OrFilter) MatchesOrg(org users.Organization) bool {
+	for _, f := range o {
+		orgMatcher := f.(Organization)
+		if orgMatcher.MatchesOrg(org) {
+			return true
+		}
+	}
+	return false
+}
+
+// MatchesUser matches at least one of the filters in this OrFilter.
+func (o OrFilter) MatchesUser(u users.User) bool {
+	for _, f := range o {
+		userMatcher := f.(User)
+		if userMatcher.MatchesUser(u) {
+			return true
+		}
+	}
+	return false
 }
 
 // ParseOrgQuery extracts filters and search from the `query` form

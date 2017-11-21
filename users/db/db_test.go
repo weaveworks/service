@@ -80,7 +80,7 @@ func Test_DB_ListByFeatureFlag(t *testing.T) {
 	flag := "foo"
 	filterForFlag := filter.HasFeatureFlag(flag)
 	{
-		orgsWithFlag, err := db.ListOrganizations(ctx, filterForFlag)
+		orgsWithFlag, err := db.ListOrganizations(ctx, filterForFlag, 0)
 		require.NoError(t, err)
 		assert.Equal(t, []*users.Organization{}, orgsWithFlag)
 	}
@@ -90,7 +90,7 @@ func Test_DB_ListByFeatureFlag(t *testing.T) {
 	require.NoError(t, err)
 	{
 
-		orgsWithFlag, err := db.ListOrganizations(ctx, filterForFlag)
+		orgsWithFlag, err := db.ListOrganizations(ctx, filterForFlag, 0)
 		require.NoError(t, err)
 		assert.Equal(t, []*users.Organization{org}, orgsWithFlag)
 	}

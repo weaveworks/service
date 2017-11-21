@@ -2,7 +2,7 @@ package filter
 
 import "strconv"
 
-// Page size for paginated listings
+// ResultsPerPage is the page size for paginated listings
 const ResultsPerPage = 30
 
 // ParsePageValue parses the `page` form value of the request. It also
@@ -14,4 +14,3 @@ func ParsePageValue(pageStr string) uint64 {
 	}
 	return uint64(page)
 }
-

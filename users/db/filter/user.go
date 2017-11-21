@@ -23,7 +23,7 @@ func (s SearchEmail) MatchesUser(u users.User) bool {
 	return strings.Contains(u.Email, string(s))
 }
 
-// ExtendQuery extends a query to also filter for emails that contain the given string.
+// Where returns the query to filter for emails that contain the given string.
 func (s SearchEmail) Where() squirrel.Sqlizer {
 	return squirrel.Expr("lower(users.email) LIKE ?",
 		fmt.Sprint("%", strings.ToLower(string(s)), "%"))
@@ -37,7 +37,7 @@ func (a Admin) MatchesUser(u users.User) bool {
 	return u.Admin == bool(a)
 }
 
-// ExtendQuery extends a query to filter for admin status.
+// Where returns the query to filter for admin status.
 func (a Admin) Where() squirrel.Sqlizer {
 	return squirrel.Eq{"users.admin": bool(a)}
 }
