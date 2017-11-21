@@ -357,6 +357,14 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			middleware.Merge(authUserMiddleware, analyticsLogger).Wrap(noopHandler),
 		},
 
+		MiddlewarePrefix{
+			"/api/flux/v6/integrations",
+			[]PrefixRoutable{
+				PrefixMethods{"/dockerhub/image", []string{"POST"}, c.fluxV6Host},
+			},
+			nil,
+		},
+
 		// Token-based auth
 		dataUploadRoutes,
 		dataAccessRoutes,
@@ -456,7 +464,6 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/api/ui/metrics",
 		"/api/gcp-launcher/webhook",
 		"/github-receiver",
-		"/api/flux/v6/integrations/dockerhub/image",
 		`/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`, // Regex copy-pasted from users/organization.go
 		"/api/users/signup_webhook",                     // Validated by explicit token in the users service
 
