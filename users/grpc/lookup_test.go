@@ -414,7 +414,7 @@ func makeBillingOrganization(t *testing.T) *users.Organization {
 
 func makeGCPBillingOrganization(t *testing.T) *users.Organization {
 	user := dbtest.GetUser(t, database)
-	org, gcp, err := database.CreateOrganizationWithGCP(
+	org, err := database.CreateOrganizationWithGCP(
 		context.Background(),
 		user.ID,
 		"E-97A7-79FC-AD2D-9D31",
@@ -425,7 +425,7 @@ func makeGCPBillingOrganization(t *testing.T) *users.Organization {
 	require.NoError(t, err)
 
 	// activate account
-	err = database.UpdateGCP(context.Background(), gcp.AccountID, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel, true)
+	err = database.UpdateGCP(context.Background(), org.GCP.AccountID, org.GCP.ConsumerID, org.GCP.SubscriptionName, org.GCP.SubscriptionLevel, true)
 	require.NoError(t, err)
 
 	newOrg, err := database.FindOrganizationByID(context.Background(), org.ExternalID)

@@ -92,7 +92,7 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 		render.Error(w, r, errors.New("no consumer ID found"))
 		return
 	}
-	org, gcp, err := a.db.CreateOrganizationWithGCP(r.Context(), currentUser.ID, gcpAccountID, consumerID, sub.Name, level)
+	org, err := a.db.CreateOrganizationWithGCP(r.Context(), currentUser.ID, gcpAccountID, consumerID, sub.Name, level)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -100,7 +100,7 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 
 	if gcpAccountID != testingAccountID {
 		// Approve subscription
-		body := partner.RequestBodyWithSSOLoginKey(gcp.AccountID)
+		body := partner.RequestBodyWithSSOLoginKey(gcpAccountID)
 		_, err = a.partner.ApproveSubscription(r.Context(), sub.Name, body)
 		if err != nil {
 			render.Error(w, r, err)
@@ -109,7 +109,7 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 	}
 
 	// Activate subscription account
-	err = a.db.UpdateGCP(r.Context(), gcp.AccountID, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel, true)
+	err = a.db.UpdateGCP(r.Context(), gcpAccountID, org.GCP.ConsumerID, org.GCP.SubscriptionName, org.GCP.SubscriptionLevel, true)
 	if err != nil {
 		render.Error(w, r, err)
 		return

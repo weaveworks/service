@@ -533,7 +533,7 @@ func (d DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number st
 }
 
 // CreateOrganizationWithGCP creates an organization as well as a GCP subscription, then links them together.
-func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.Organization, *users.GoogleCloudPlatform, error) {
+func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.Organization, error) {
 	var org *users.Organization
 	var gcp *users.GoogleCloudPlatform
 	err := d.Transaction(func(tx DB) error {
@@ -560,10 +560,11 @@ func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, c
 		return nil
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return org, gcp, nil
+	org.GCP = gcp
+	return org, nil
 }
 
 // FindGCP returns the Google Cloud Platform subscription for the given account.

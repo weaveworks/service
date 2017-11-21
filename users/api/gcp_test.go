@@ -17,7 +17,7 @@ func Test_Org_BillingProviderGCP(t *testing.T) {
 	defer cleanup(t)
 
 	user := dbtest.GetUser(t, database)
-	org, _, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, "acc", "cons", "sub/1", "standard")
+	org, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, "acc", "cons", "sub/1", "standard")
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()

@@ -95,7 +95,7 @@ type DB interface {
 	SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error
 
 	// CreateOrganizationWithGCP creates an organization as well as a GCP subscription, then links them together.
-	CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.Organization, *users.GoogleCloudPlatform, error)
+	CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.Organization, error)
 	// Retrieve Google Cloud Platform entry.
 	FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error)
 	// Update a Google Cloud Platform entry.
