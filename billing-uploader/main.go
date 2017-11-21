@@ -28,9 +28,15 @@ const index = `
 		<h1>Billing Uploader</h1>
 		<ul>
 			<li>
-				<form action="uploader/upload" method="post">
+				<form action="uploader/upload/gcp" method="post">
 				<input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-				<button type="submit">Trigger Upload</button>
+				<button type="submit">Google Cloud Platform</button>
+				</form>
+			</li>
+			<li>
+				<form action="uploader/upload/zuora" method="post">
+				<input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+				<button type="submit">Zuora</button>
 				</form>
 			</li>
 		</ul>
