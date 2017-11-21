@@ -86,9 +86,11 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 }
 
 // ListOrganizations lists organizations
-func (d DB) ListOrganizations(_ context.Context, f filter.Organization) ([]*users.Organization, error) {
-	q := d.organizationsQuery()
-	q = f.ExtendQuery(q)
+func (d DB) ListOrganizations(_ context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
+	q := d.organizationsQuery().Where(f.Where())
+	if page > 0 {
+		q = q.Limit(filter.ResultsPerPage).Offset((page - 1) * filter.ResultsPerPage)
+	}
 
 	rows, err := q.Query()
 	if err != nil {

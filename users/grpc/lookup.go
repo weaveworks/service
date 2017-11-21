@@ -128,13 +128,11 @@ func (a *usersServer) LookupUser(ctx context.Context, req *users.LookupUserReque
 }
 
 func (a *usersServer) GetOrganizations(ctx context.Context, req *users.GetOrganizationsRequest) (*users.GetOrganizationsResponse, error) {
-	fs := []filter.Filter{
-		filter.Page(req.PageNumber),
-	}
+	fs := []filter.Filter{}
 	if req.Query != "" {
 		fs = append(fs, filter.ExternalID(req.Query))
 	}
-	organizations, err := a.db.ListOrganizations(ctx, filter.And(fs...))
+	organizations, err := a.db.ListOrganizations(ctx, filter.And(fs...), uint64(req.PageNumber))
 	if err != nil {
 		return nil, err
 	}
@@ -155,6 +153,7 @@ func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.G
 			// While billing is in development, only pick orgs with ff `billing`
 			filter.HasFeatureFlag(users.BillingFeatureFlag),
 		),
+		0,
 	)
 	if err != nil {
 		return nil, err
@@ -175,6 +174,7 @@ func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetT
 			filter.HasFeatureFlag(users.BillingFeatureFlag),
 			filter.GCPSubscription(false),
 		),
+		0,
 	)
 	if err != nil {
 		return nil, err
@@ -196,6 +196,7 @@ func (a *usersServer) GetDelinquentOrganizations(ctx context.Context, req *users
 			filter.TrialExpiredBy(req.Now),
 			filter.HasFeatureFlag(users.BillingFeatureFlag),
 		),
+		0,
 	)
 	if err != nil {
 		return nil, err

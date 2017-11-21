@@ -24,8 +24,8 @@ func (s SearchEmail) MatchesUser(u users.User) bool {
 }
 
 // ExtendQuery extends a query to also filter for emails that contain the given string.
-func (s SearchEmail) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where("lower(users.email) LIKE ?",
+func (s SearchEmail) Where() squirrel.Sqlizer {
+	return squirrel.Expr("lower(users.email) LIKE ?",
 		fmt.Sprint("%", strings.ToLower(string(s)), "%"))
 }
 
@@ -38,8 +38,8 @@ func (a Admin) MatchesUser(u users.User) bool {
 }
 
 // ExtendQuery extends a query to filter for admin status.
-func (a Admin) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where(squirrel.Eq{"users.admin": bool(a)})
+func (a Admin) Where() squirrel.Sqlizer {
+	return squirrel.Eq{"users.admin": bool(a)}
 }
 
 // ParseUserQuery extracts filters and search from the 'query' form value.

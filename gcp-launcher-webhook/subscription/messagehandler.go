@@ -38,7 +38,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 
 	// Activation.
 	if !gcp.Active {
-		logger.Infof("Account %v is inactive, ignoring message", gcpAccountID)
+		logger.Infof("Account %v has not yet been activated, ignoring message", gcpAccountID)
 		return nil // ACK
 	}
 

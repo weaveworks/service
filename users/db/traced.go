@@ -66,14 +66,14 @@ func (t traced) RemoveUserFromOrganization(ctx context.Context, orgExternalID, e
 	return t.d.RemoveUserFromOrganization(ctx, orgExternalID, email)
 }
 
-func (t traced) ListUsers(ctx context.Context, f filter.User) (us []*users.User, err error) {
-	defer func() { t.trace("ListUsers", us, err) }()
-	return t.d.ListUsers(ctx, f)
+func (t traced) ListUsers(ctx context.Context, f filter.User, page uint64) (us []*users.User, err error) {
+	defer func() { t.trace("ListUsers", page, us, err) }()
+	return t.d.ListUsers(ctx, f, page)
 }
 
-func (t traced) ListOrganizations(ctx context.Context, f filter.Organization) (os []*users.Organization, err error) {
-	defer func() { t.trace("ListOrganizations", os, err) }()
-	return t.d.ListOrganizations(ctx, f)
+func (t traced) ListOrganizations(ctx context.Context, f filter.Organization, page uint64) (os []*users.Organization, err error) {
+	defer func() { t.trace("ListOrganizations", page, os, err) }()
+	return t.d.ListOrganizations(ctx, f, page)
 }
 
 func (t traced) ListOrganizationUsers(ctx context.Context, orgExternalID string) (us []*users.User, err error) {

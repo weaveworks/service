@@ -19,12 +19,12 @@ type Organization interface {
 // ZuoraAccount filters an organization based on whether or not there's a Zuora account.
 type ZuoraAccount bool
 
-// ExtendQuery extends a query to filter by Zuora account.
-func (z ZuoraAccount) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+// Where filters by Zuora account.
+func (z ZuoraAccount) Where() squirrel.Sqlizer {
 	if bool(z) {
-		return b.Where("zuora_account_number IS NOT NULL")
+		return squirrel.Expr("zuora_account_number IS NOT NULL")
 	}
-	return b.Where(map[string]interface{}{"zuora_account_number": nil})
+	return squirrel.Eq{"zuora_account_number": nil}
 }
 
 // MatchesOrg checks whether the organization matches this filter.
@@ -35,23 +35,35 @@ func (z ZuoraAccount) MatchesOrg(o users.Organization) bool {
 	return o.ZuoraAccountNumber == ""
 }
 
-// GCPSubscription filters an organization based on whether it has a GCP subscription or not
+// GCP filters an organization whether it has been created through GCP.
+type GCP bool
+
+// Where filters by GCP.
+func (g GCP) Where() squirrel.Sqlizer {
+	if bool(g) {
+		return squirrel.NotEq{"gcp_subscription_id": nil}
+	}
+	return squirrel.Eq{"gcp_subscription_id": nil}
+}
+
+// GCPSubscription filters an organization based on whether it has a running GCP subscription or not.
 type GCPSubscription bool
 
-// ExtendQuery extends a query to filter by GCP subscription existence.
-func (g GCPSubscription) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
+// Where filters by a running GCP subscription.
+func (g GCPSubscription) Where() squirrel.Sqlizer {
 	if bool(g) {
-		return b.Where("gcp_subscription_id IS NOT NULL")
+		return squirrel.Expr("gcp_subscriptions.active AND gcp_subscriptions.subscription_name <> ''")
 	}
-	return b.Where(map[string]interface{}{"gcp_subscription_id": nil})
+	return squirrel.Expr("gcp_subscriptions.active = false OR gcp_subscriptions.subscription_name = ''")
 }
 
 // MatchesOrg checks whether the organization matches this filter.
 func (g GCPSubscription) MatchesOrg(o users.Organization) bool {
+	has := o.GCP != nil && o.GCP.Active && o.GCP.SubscriptionName != ""
 	if bool(g) {
-		return o.GCP != nil
+		return has
 	}
-	return o.GCP == nil
+	return !has
 }
 
 // TrialExpiredBy filters for organizations whose trials had expired by a
@@ -59,8 +71,8 @@ func (g GCPSubscription) MatchesOrg(o users.Organization) bool {
 type TrialExpiredBy time.Time
 
 // ExtendQuery extends a query to filter by trial expiry.
-func (t TrialExpiredBy) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where(squirrel.Lt{"organizations.trial_expires_at": time.Time(t)})
+func (t TrialExpiredBy) Where() squirrel.Sqlizer {
+	return squirrel.Lt{"organizations.trial_expires_at": time.Time(t)}
 }
 
 // MatchesOrg checks whether an organization matches this filter.
@@ -73,8 +85,8 @@ func (t TrialExpiredBy) MatchesOrg(o users.Organization) bool {
 type TrialActiveAt time.Time
 
 // ExtendQuery extends a query to filter by trial expiry.
-func (t TrialActiveAt) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where(squirrel.Gt{"organizations.trial_expires_at": time.Time(t)})
+func (t TrialActiveAt) Where() squirrel.Sqlizer {
+	return squirrel.Gt{"organizations.trial_expires_at": time.Time(t)}
 }
 
 // MatchesOrg checks whether an organization matches this filter.
@@ -86,8 +98,8 @@ func (t TrialActiveAt) MatchesOrg(o users.Organization) bool {
 type HasFeatureFlag string
 
 // ExtendQuery extends a query to filter by feature flag.
-func (f HasFeatureFlag) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where("?=ANY(feature_flags)", string(f))
+func (f HasFeatureFlag) Where() squirrel.Sqlizer {
+	return squirrel.Expr("?=ANY(feature_flags)", string(f))
 }
 
 // MatchesOrg checks whether an organization matches this filter.
@@ -99,8 +111,8 @@ func (f HasFeatureFlag) MatchesOrg(o users.Organization) bool {
 type ID string
 
 // ExtendQuery extends a query to filter by ID.
-func (i ID) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where(squirrel.Eq{"id": string(i)})
+func (i ID) Where() squirrel.Sqlizer {
+	return squirrel.Eq{"id": string(i)}
 }
 
 // MatchesOrg checks whether an organization matches this filter.
@@ -112,8 +124,8 @@ func (i ID) MatchesOrg(o users.Organization) bool {
 type ExternalID string
 
 // ExtendQuery extends a query to filter by ID.
-func (e ExternalID) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where(squirrel.Eq{"external_id": string(e)})
+func (e ExternalID) Where() squirrel.Sqlizer {
+	return squirrel.Eq{"external_id": string(e)}
 }
 
 // MatchesOrg checks whether an organization matches this filter.
@@ -125,8 +137,8 @@ func (e ExternalID) MatchesOrg(o users.Organization) bool {
 type SearchName string
 
 // ExtendQuery extends a query to filter by having names that match our search.
-func (s SearchName) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where("lower(organizations.name) LIKE ?",
+func (s SearchName) Where() squirrel.Sqlizer {
+	return squirrel.Expr("lower(organizations.name) LIKE ?",
 		fmt.Sprint("%", strings.ToLower(string(s)), "%"))
 }
 
@@ -139,8 +151,8 @@ func (s SearchName) MatchesOrg(o users.Organization) bool {
 type ProbeToken string
 
 // ExtendQuery extends a query to filter by token.
-func (t ProbeToken) ExtendQuery(b squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return b.Where("organizations.probe_token = ?", string(t))
+func (t ProbeToken) Where() squirrel.Sqlizer {
+	return squirrel.Expr("organizations.probe_token = ?", string(t))
 }
 
 // MatchesOrg checks whether an organization matches this filter.

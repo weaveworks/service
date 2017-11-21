@@ -229,9 +229,11 @@ func (d DB) usersQuery() squirrel.SelectBuilder {
 }
 
 // ListUsers lists users
-func (d DB) ListUsers(_ context.Context, f filter.User) ([]*users.User, error) {
-	q := d.usersQuery()
-	q = f.ExtendQuery(q)
+func (d DB) ListUsers(_ context.Context, f filter.User, page uint64) ([]*users.User, error) {
+	q := d.usersQuery().Where(f.Where())
+	if page > 0 {
+		q = q.Limit(filter.ResultsPerPage).Offset((page - 1) * filter.ResultsPerPage)
+	}
 
 	rows, err := q.Query()
 	if err != nil {
