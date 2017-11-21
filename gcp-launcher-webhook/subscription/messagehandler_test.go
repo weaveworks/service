@@ -152,6 +152,15 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 		GetGCP(ctx, &users.GetGCPRequest{AccountID: "acc123"}).
 		Return(&users.GetGCPResponse{GCP: gcpActive}, nil)
 	client.EXPECT().
+		GetOrganization(ctx, &users.GetOrganizationRequest{ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: "acc123"}}).
+		Return(&users.GetOrganizationResponse{Organization: org}, nil)
+	client.EXPECT().
+		SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataAccess", Value: false}).
+		Return(&users.SetOrganizationFlagResponse{}, nil)
+	client.EXPECT().
+		SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataUpload", Value: false}).
+		Return(&users.SetOrganizationFlagResponse{}, nil)
+	client.EXPECT().
 		UpdateGCP(ctx, &users.UpdateGCPRequest{
 			GCP: &users.GoogleCloudPlatform{
 				AccountID:         "acc123",

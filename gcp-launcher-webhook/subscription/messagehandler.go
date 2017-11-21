@@ -116,6 +116,10 @@ func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Sub
 		return err
 	}
 
+	if err := m.enableWeaveCloudAccess(ctx, sub.ExternalAccountID); err != nil {
+		return err
+	}
+
 	// Approve subscription
 	body := partner.RequestBodyWithSSOLoginKey(sub.ExternalAccountID)
 	if _, err := m.Partner.ApproveSubscription(ctx, sub.Name, body); err != nil {
@@ -143,7 +147,15 @@ func (m MessageHandler) cancelSubscription(ctx context.Context, sub *partner.Sub
 	return err
 }
 
+func (m MessageHandler) enableWeaveCloudAccess(ctx context.Context, gcpAccountID string) error {
+	return m.setWeaveCloudAccessFlagsTo(ctx, gcpAccountID, false)
+}
+
 func (m MessageHandler) disableWeaveCloudAccess(ctx context.Context, gcpAccountID string) error {
+	return m.setWeaveCloudAccessFlagsTo(ctx, gcpAccountID, true)
+}
+
+func (m MessageHandler) setWeaveCloudAccessFlagsTo(ctx context.Context, gcpAccountID string, value bool) error {
 	org, err := m.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
 		ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: gcpAccountID},
 	})
@@ -151,11 +163,11 @@ func (m MessageHandler) disableWeaveCloudAccess(ctx context.Context, gcpAccountI
 		return err
 	}
 	if _, err := m.Users.SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{
-		ExternalID: org.Organization.ExternalID, Flag: orgs.RefuseDataAccess, Value: true}); err != nil {
+		ExternalID: org.Organization.ExternalID, Flag: orgs.RefuseDataAccess, Value: value}); err != nil {
 		return err
 	}
 	if _, err := m.Users.SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{
-		ExternalID: org.Organization.ExternalID, Flag: orgs.RefuseDataUpload, Value: true}); err != nil {
+		ExternalID: org.Organization.ExternalID, Flag: orgs.RefuseDataUpload, Value: value}); err != nil {
 		return err
 	}
 	return nil
