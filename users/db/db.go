@@ -94,12 +94,12 @@ type DB interface {
 	SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error
 
-	// CreateOrganizationWithGCP creates an organization as well as a GCP subscription, then links them together.
-	CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.Organization, error)
+	// CreateOrganizationWithGCP creates an organization with an inactive GCP account attached to it.
+	CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID string) (*users.Organization, error)
 	// Retrieve Google Cloud Platform entry.
 	FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error)
-	// Update a Google Cloud Platform entry.
-	UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, activated bool) error
+	// Update a Google Cloud Platform entry. This marks the account as activated.
+	UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) error
 	// Attach a GCP subscription to an organization
 	SetOrganizationGCP(ctx context.Context, externalID, accountID string) error
 

@@ -191,11 +191,11 @@ func (t traced) SetOrganizationZuoraAccount(ctx context.Context, externalID, num
 	return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)
 }
 
-func (t traced) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (org *users.Organization, err error) {
+func (t traced) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID string) (org *users.Organization, err error) {
 	defer func() {
-		t.trace("CreateOrganizationWithGCP", ownerID, accountID, consumerID, subscriptionName, subscriptionLevel, org, err)
+		t.trace("CreateOrganizationWithGCP", ownerID, accountID, org, err)
 	}()
-	return t.d.CreateOrganizationWithGCP(ctx, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel)
+	return t.d.CreateOrganizationWithGCP(ctx, ownerID, accountID)
 }
 
 func (t traced) FindGCP(ctx context.Context, accountID string) (gcp *users.GoogleCloudPlatform, err error) {
@@ -203,11 +203,11 @@ func (t traced) FindGCP(ctx context.Context, accountID string) (gcp *users.Googl
 	return t.d.FindGCP(ctx, accountID)
 }
 
-func (t traced) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, activated bool) (err error) {
+func (t traced) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (err error) {
 	defer func() {
-		t.trace("UpdateGCP", accountID, consumerID, subscriptionName, subscriptionLevel, activated, err)
+		t.trace("UpdateGCP", accountID, consumerID, subscriptionName, subscriptionLevel, err)
 	}()
-	return t.d.UpdateGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel, activated)
+	return t.d.UpdateGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel)
 }
 
 func (t traced) SetOrganizationGCP(ctx context.Context, externalID, accountID string) (err error) {

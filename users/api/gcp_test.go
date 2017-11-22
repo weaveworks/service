@@ -17,9 +17,11 @@ import (
 	"github.com/weaveworks/service/users/sessions"
 )
 
+const externalAccountID = "E-F65F-C51C-67FE-D42F"
+
 var pendingSubscription_noConsumerID = partner.Subscription{
 	Name:              "partnerSubscriptions/47426f1a-d744-4249-ae84-3f4fe194c107",
-	ExternalAccountID: "E-F65F-C51C-67FE-D42F",
+	ExternalAccountID: externalAccountID,
 	Version:           "1508480169982224",
 	Status:            "PENDING",
 	SubscribedResources: []partner.SubscribedResource{{
@@ -37,7 +39,7 @@ func Test_Org_BillingProviderGCP(t *testing.T) {
 	defer cleanup(t)
 
 	user := dbtest.GetUser(t, database)
-	org, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, "acc", "cons", "sub/1", "standard")
+	org, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, externalAccountID)
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
@@ -50,10 +52,12 @@ func Test_Org_BillingProviderGCP(t *testing.T) {
 }
 
 func TestAPI_GCPSubscribe_missingConsumerID(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
 	// Create an existing GCP instance
 	user := dbtest.GetUser(t, database)
-	accountID := "E-ACC"
-	_, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, accountID, "cons", "sub/1", "standard")
+	_, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, externalAccountID)
 	assert.NoError(t, err)
 
 	// Mock API
@@ -67,14 +71,14 @@ func TestAPI_GCPSubscribe_missingConsumerID(t *testing.T) {
 	r := requestAs(t, user, "GET", "/api/users/gcp/subscribe", nil)
 
 	client.EXPECT().
-		ListSubscriptions(r.Context(), accountID).
+		ListSubscriptions(r.Context(), externalAccountID).
 		Return([]partner.Subscription{pendingSubscription_noConsumerID}, nil)
 
 	access.EXPECT().
 		RequestSubscription(r.Context(), r, pendingSubscription_noConsumerID.Name).
 		Return(&pendingSubscription_noConsumerID, nil)
 
-	_, err = api.GCPSubscribe(user, accountID, w, r)
+	_, err = api.GCPSubscribe(user, externalAccountID, w, r)
 	assert.Error(t, err)
 	assert.Equal(t, "no consumer ID found", err.Error())
 }

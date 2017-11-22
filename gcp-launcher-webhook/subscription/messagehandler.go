@@ -101,7 +101,6 @@ func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Sub
 			ConsumerID:        consumerID,
 			SubscriptionName:  sub.Name,
 			SubscriptionLevel: level,
-			Activated:         true,
 		},
 	})
 	if err != nil {

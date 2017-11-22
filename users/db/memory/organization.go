@@ -432,8 +432,8 @@ func (d *DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number s
 	})
 }
 
-// CreateOrganizationWithGCP creates an organization as well as a GCP subscription, then links them together.
-func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.Organization, error) {
+// CreateOrganizationWithGCP creates an organization with an inactive GCP account attached to it.
+func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID string) (*users.Organization, error) {
 	var org *users.Organization
 	var gcp *users.GoogleCloudPlatform
 	externalID, err := d.GenerateOrganizationExternalID(ctx)
@@ -447,7 +447,7 @@ func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, 
 	}
 
 	// Create and attach inactive GCP subscription to the organization
-	gcp, err = d.createGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel)
+	gcp, err = d.createGCP(ctx, accountID)
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +470,7 @@ func (d *DB) FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudP
 }
 
 // UpdateGCP updates a Google Cloud Platform subscription.
-func (d *DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, activated bool) error {
+func (d *DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
@@ -482,7 +482,7 @@ func (d *DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionN
 	gcp.ConsumerID = consumerID
 	gcp.SubscriptionName = subscriptionName
 	gcp.SubscriptionLevel = subscriptionLevel
-	gcp.Activated = activated
+	gcp.Activated = true
 
 	d.gcpSubscriptions[accountID] = gcp
 	return nil
@@ -520,7 +520,7 @@ func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, accountID strin
 }
 
 // CreateGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
-func (d *DB) createGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.GoogleCloudPlatform, error) {
+func (d *DB) createGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
@@ -532,9 +532,6 @@ func (d *DB) createGCP(ctx context.Context, accountID, consumerID, subscriptionN
 		ID:                fmt.Sprint(len(d.gcpSubscriptions)),
 		AccountID:         accountID,
 		Activated:         false,
-		ConsumerID:        consumerID,
-		SubscriptionName:  subscriptionName,
-		SubscriptionLevel: subscriptionLevel,
 	}
 	d.gcpSubscriptions[accountID] = gcp
 	return gcp, nil

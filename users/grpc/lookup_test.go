@@ -414,18 +414,20 @@ func makeBillingOrganization(t *testing.T) *users.Organization {
 
 func makeGCPBillingOrganization(t *testing.T) *users.Organization {
 	user := dbtest.GetUser(t, database)
+	accountID := "E-97A7-79FC-AD2D-9D31"
 	org, err := database.CreateOrganizationWithGCP(
 		context.Background(),
 		user.ID,
-		"E-97A7-79FC-AD2D-9D31",
+		accountID,
+	)
+
+	// activate account
+	err = database.UpdateGCP(context.TODO(),
+		accountID,
 		"project_number:123",
 		"partnerSubscriptions/123",
 		"standard",
 	)
-	require.NoError(t, err)
-
-	// activate account
-	err = database.UpdateGCP(context.Background(), org.GCP.AccountID, org.GCP.ConsumerID, org.GCP.SubscriptionName, org.GCP.SubscriptionLevel, true)
 	require.NoError(t, err)
 
 	newOrg, err := database.FindOrganizationByID(context.Background(), org.ExternalID)
@@ -434,7 +436,7 @@ func makeGCPBillingOrganization(t *testing.T) *users.Organization {
 }
 
 func cancelGCPSubscription(t *testing.T, gcpAccountID string) {
-	err := database.UpdateGCP(context.Background(), gcpAccountID, "", "", "", true)
+	err := database.UpdateGCP(context.Background(), gcpAccountID, "", "", "")
 	require.NoError(t, err)
 }
 

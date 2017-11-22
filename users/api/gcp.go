@@ -98,10 +98,12 @@ func (a *API) GCPSubscribe(currentUser *users.User, gcpAccountID string, w http.
 	if consumerID == "" {
 		return nil, errors.New("no consumer ID found")
 	}
+
 	// Are we resuming?
 	org, err := a.db.FindOrganizationByGCPAccountID(r.Context(), gcpAccountID)
-	if org == nil && err == nil{
-		org, err = a.db.CreateOrganizationWithGCP(r.Context(), currentUser.ID, gcpAccountID, consumerID, sub.Name, level)
+	if org == nil && err == nil {
+		// Nope, create a new instance.
+		org, err = a.db.CreateOrganizationWithGCP(r.Context(), currentUser.ID, gcpAccountID)
 	}
 	if err != nil {
 		return nil, err
@@ -120,7 +122,7 @@ func (a *API) GCPSubscribe(currentUser *users.User, gcpAccountID string, w http.
 	}
 
 	// Activate subscription account
-	err = a.db.UpdateGCP(r.Context(), gcpAccountID, org.GCP.ConsumerID, org.GCP.SubscriptionName, org.GCP.SubscriptionLevel, true)
+	err = a.db.UpdateGCP(r.Context(), gcpAccountID, consumerID, sub.Name, level)
 	if err != nil {
 		return nil, err
 	}
