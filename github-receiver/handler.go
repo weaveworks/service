@@ -35,6 +35,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 	}
+	w.WriteHeader(http.StatusOK)
 
 	switch hook := hook.(type) {
 	case *github.PushEvent:
@@ -45,13 +46,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		err := client.Post(r.Context(), "", h.makeNotifyURL(instID), nil, nil)
 		if err != nil {
 			log.Error(err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
 		}
 	default:
 		log.Printf("received webhook: %T\n%s", hook, github.Stringify(hook))
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func (h *handler) makeNotifyURL(instID string) string {
