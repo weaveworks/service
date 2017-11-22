@@ -64,16 +64,13 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	// - reactivation after cancellation: no other active subscription
 	// - changing of plan: has other active subscription
 	if sub.Status == partner.Pending {
-		logger.Infof("Activating subscription: %+v", sub)
+		logger.Infof("Approving subscription: %+v", sub)
 		return m.updateSubscription(ctx, sub)
 	}
 
 	if sub.Status == partner.Active {
-		logger.Infof("No action for active subscription: %+v", sub)
-		// Subscriptions are activated by first going through the pending state.
-		// The pending status has already been processed or if the account is
-		// freshly created, we will update the subscription through that flow.
-		return nil
+		logger.Infof("Activating subscription: %+v", sub)
+		return m.updateSubscription(ctx, sub)
 	}
 
 	log.Warnf("Did not process subscription update: %+v\nAll: %+v", *sub, subs)
@@ -100,10 +97,12 @@ func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Sub
 		return err
 	}
 
-	// Approve subscription
-	body := partner.RequestBodyWithSSOLoginKey(sub.ExternalAccountID)
-	if _, err := m.Partner.ApproveSubscription(ctx, sub.Name, body); err != nil {
-		return err
+	// Approve subscription if it is in pending state
+	if sub.Status == partner.Pending {
+		body := partner.RequestBodyWithSSOLoginKey(sub.ExternalAccountID)
+		if _, err := m.Partner.ApproveSubscription(ctx, sub.Name, body); err != nil {
+			return err
+		}
 	}
 
 	return nil

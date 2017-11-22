@@ -19,6 +19,13 @@ import (
 // "waste" all of our staging billing accounts.
 const testingAccountID = "E-97A7-79FC-AD2D-9D31"
 
+var (
+	// ErrAlreadyActivated says the account has already been activated and cannot be activated a second time.
+	ErrAlreadyActivated = errors.New("account has already been activated")
+	// ErrMissingConsumerID denotes the consumerId label is missing in the subscribed resource.
+	ErrMissingConsumerID = errors.New("missing consumer ID")
+)
+
 func (a *API) gcpAccess(w http.ResponseWriter, r *http.Request) {
 	link, ok := a.partnerAccess.Link(r)
 	if !ok {
@@ -97,12 +104,12 @@ func (a *API) GCPSubscribe(currentUser *users.User, gcpAccountID string, w http.
 	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
 	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
 	if consumerID == "" {
-		return nil, errors.New("no consumer ID found")
+		return nil, ErrMissingConsumerID
 	}
 
 	// Are we resuming?
 	org, err := a.db.FindOrganizationByGCPAccountID(r.Context(), gcpAccountID)
-	if org == nil && err == nil {
+	if err == users.ErrNotFound {
 		// Nope, create a new instance.
 		org, err = a.db.CreateOrganizationWithGCP(r.Context(), currentUser.ID, gcpAccountID)
 	}
@@ -110,7 +117,7 @@ func (a *API) GCPSubscribe(currentUser *users.User, gcpAccountID string, w http.
 		return nil, err
 	}
 	if org.GCP.Activated {
-		return nil, errors.New("account has already been activated")
+		return nil, ErrAlreadyActivated
 	}
 
 	if gcpAccountID != testingAccountID {
@@ -122,8 +129,11 @@ func (a *API) GCPSubscribe(currentUser *users.User, gcpAccountID string, w http.
 		}
 	}
 
-	// Activate subscription account
-	err = a.db.UpdateGCP(r.Context(), gcpAccountID, consumerID, sub.Name, level, string(sub.Status))
+	// Mark GCP account as activated account.
+	// Set subscription status to ACTIVE because approval passed. We will also receive a PubSub message
+	// with Status = ACTIVE later. If we set it to PENDING here (what sub.Status currently is), we get
+	// into a race with the PubSub message.
+	err = a.db.UpdateGCP(r.Context(), gcpAccountID, consumerID, sub.Name, level, string(partner.Active))
 	if err != nil {
 		return nil, err
 	}
