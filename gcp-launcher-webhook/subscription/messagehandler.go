@@ -92,18 +92,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 // return: ack.
 // post: new subscription --> ACTIVE
 func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Subscription) error {
-	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
-	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
-
-	_, err := m.Users.UpdateGCP(ctx, &users.UpdateGCPRequest{
-		GCP: &users.GoogleCloudPlatform{
-			AccountID:         sub.ExternalAccountID,
-			ConsumerID:        consumerID,
-			SubscriptionName:  sub.Name,
-			SubscriptionLevel: level,
-		},
-	})
-	if err != nil {
+	if err := m.updateGCP(ctx, sub); err != nil {
 		return err
 	}
 
@@ -125,14 +114,18 @@ func (m MessageHandler) cancelSubscription(ctx context.Context, sub *partner.Sub
 	if err := m.disableWeaveCloudAccess(ctx, sub.ExternalAccountID); err != nil {
 		return err
 	}
+	return m.updateGCP(ctx, sub)
+}
 
-	// The account ID is kept intact to detect a customer reactivating their subscription.
+func (m MessageHandler) updateGCP(ctx context.Context, sub *partner.Subscription) error {
+	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
+	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
 	_, err := m.Users.UpdateGCP(ctx, &users.UpdateGCPRequest{
 		GCP: &users.GoogleCloudPlatform{
-			AccountID:         sub.ExternalAccountID,
-			ConsumerID:        "",
-			SubscriptionName:  "",
-			SubscriptionLevel: "",
+			AccountID:          sub.ExternalAccountID,
+			ConsumerID:         consumerID,
+			SubscriptionName:   sub.Name,
+			SubscriptionLevel:  level,
 		},
 	})
 	return err

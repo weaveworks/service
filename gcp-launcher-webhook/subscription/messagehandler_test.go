@@ -9,27 +9,29 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/weaveworks/service/common/gcp/partner"
+	"github.com/weaveworks/service/common/gcp/partner/mock_partner"
 	"github.com/weaveworks/service/common/gcp/pubsub/dto"
 	"github.com/weaveworks/service/gcp-launcher-webhook/subscription"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/mock_users"
-	"github.com/weaveworks/service/common/gcp/partner/mock_partner"
 )
+
+const externalAccountID = "E-F65F-C51C-67FE-D42F"
 
 var (
 	gcpInactive = users.GoogleCloudPlatform{
-		AccountID: "acc123",
+		AccountID: externalAccountID,
 		Activated: false,
 	}
 	gcpActivated = users.GoogleCloudPlatform{
-		AccountID: "acc123",
+		AccountID: externalAccountID,
 		Activated: true,
 	}
 
 	msgFoo = dto.Message{
 		Attributes: map[string]string{
 			"name":              "partnerSubscriptions/1",
-			"externalAccountId": "acc123",
+			"externalAccountId": externalAccountID,
 		},
 	}
 
@@ -46,7 +48,7 @@ func TestMessageHandler_Handle_notFound(t *testing.T) {
 	ctx := context.Background()
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
-		GetGCP(ctx, &users.GetGCPRequest{AccountID: "acc123"}).
+		GetGCP(ctx, &users.GetGCPRequest{AccountID: externalAccountID}).
 		Return(nil, errors.New("boom"))
 	p := mock_partner.NewMockAPI(ctrl)
 
@@ -62,7 +64,7 @@ func TestMessageHandler_Handle_inactive(t *testing.T) {
 	ctx := context.Background()
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
-		GetGCP(ctx, &users.GetGCPRequest{AccountID: "acc123"}).
+		GetGCP(ctx, &users.GetGCPRequest{AccountID: externalAccountID}).
 		Return(&users.GetGCPResponse{GCP: gcpInactive}, nil)
 	p := mock_partner.NewMockAPI(ctrl)
 
@@ -78,10 +80,10 @@ func TestMessageHandler_Handle_cancel(t *testing.T) {
 	ctx := context.Background()
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
-		GetGCP(ctx, &users.GetGCPRequest{AccountID: "acc123"}).
+		GetGCP(ctx, &users.GetGCPRequest{AccountID: externalAccountID}).
 		Return(&users.GetGCPResponse{GCP: gcpActivated}, nil)
 	client.EXPECT().
-		GetOrganization(ctx, &users.GetOrganizationRequest{ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: "acc123"}}).
+		GetOrganization(ctx, &users.GetOrganizationRequest{ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: externalAccountID}}).
 		Return(&users.GetOrganizationResponse{Organization: org}, nil)
 	client.EXPECT().
 		SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataAccess", Value: true}).
@@ -92,28 +94,19 @@ func TestMessageHandler_Handle_cancel(t *testing.T) {
 	client.EXPECT().
 		UpdateGCP(ctx, &users.UpdateGCPRequest{
 			GCP: &users.GoogleCloudPlatform{
-				AccountID:         "acc123",
-				Activated:         false,
-				ConsumerID:        "",
-				SubscriptionName:  "",
-				SubscriptionLevel: "",
+				AccountID:         externalAccountID,
+				ConsumerID:        "project_number:123",
+				SubscriptionName:  "partnerSubscriptions/1",
+				SubscriptionLevel: "enterprise",
 			}}).
 		Return(nil, nil)
 
 	p := mock_partner.NewMockAPI(ctrl)
 	p.EXPECT().
-		ListSubscriptions(gomock.Any(), "acc123").
+		ListSubscriptions(gomock.Any(), externalAccountID).
 		Return([]partner.Subscription{
-			{ // this one has been canceled
-				Name:              "partnerSubscriptions/1",
-				ExternalAccountID: "acc123",
-				Status:            partner.Complete,
-			},
-			{ // a previously canceled subscription
-				Name:              "partnerSubscriptions/99",
-				ExternalAccountID: "acc123",
-				Status:            partner.Complete,
-			},
+			makeSubscription("1", partner.Complete),
+			makeSubscription("99", partner.Complete),
 		}, nil)
 
 	mh := subscription.MessageHandler{Users: client, Partner: p}
@@ -128,10 +121,10 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 	ctx := context.Background()
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
-		GetGCP(ctx, &users.GetGCPRequest{AccountID: "acc123"}).
+		GetGCP(ctx, &users.GetGCPRequest{AccountID: externalAccountID}).
 		Return(&users.GetGCPResponse{GCP: gcpActivated}, nil)
 	client.EXPECT().
-		GetOrganization(ctx, &users.GetOrganizationRequest{ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: "acc123"}}).
+		GetOrganization(ctx, &users.GetOrganizationRequest{ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: externalAccountID}}).
 		Return(&users.GetOrganizationResponse{Organization: org}, nil)
 	client.EXPECT().
 		SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataAccess", Value: false}).
@@ -142,7 +135,7 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 	client.EXPECT().
 		UpdateGCP(ctx, &users.UpdateGCPRequest{
 			GCP: &users.GoogleCloudPlatform{
-				AccountID:         "acc123",
+				AccountID:         externalAccountID,
 				ConsumerID:        "project_number:123",
 				SubscriptionName:  "partnerSubscriptions/1",
 				SubscriptionLevel: "enterprise",
@@ -151,38 +144,37 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 
 	p := mock_partner.NewMockAPI(ctrl)
 	p.EXPECT().
-		ListSubscriptions(gomock.Any(), "acc123").
+		ListSubscriptions(gomock.Any(), externalAccountID).
 		Return([]partner.Subscription{
-			{
-				Name:              "partnerSubscriptions/1",
-				ExternalAccountID: "acc123",
-				Status:            partner.Pending,
-				SubscribedResources: []partner.SubscribedResource{
-					{
-						SubscriptionProvider: "weaveworks-public-cloudmarketplacepartner.googleapis.com",
-						Resource:             "weave-cloud",
-						Labels: map[string]string{
-							"weaveworks-public-cloudmarketplacepartner.googleapis.com/ServiceLevel": "enterprise",
-							"consumerId": "project_number:123",
-						},
-					},
-				},
-			},
-			{
-				Name:              "partnerSubscriptions/99",
-				ExternalAccountID: "acc123",
-				Status:            partner.Complete,
-			},
+			makeSubscription("1", partner.Pending),
+			makeSubscription("99", partner.Complete),
 		}, nil)
 	expectedBody := &partner.RequestBody{
 		ApprovalID: "default-approval",
-		Labels: map[string]string{"keyForSSOLogin": "acc123"},
+		Labels:     map[string]string{"keyForSSOLogin": externalAccountID},
 	}
 	p.EXPECT().
 		ApproveSubscription(gomock.Any(), "partnerSubscriptions/1", expectedBody)
 
-
 	mh := subscription.MessageHandler{Users: client, Partner: p}
 	err := mh.Handle(msgFoo)
 	assert.NoError(t, err)
+}
+
+func makeSubscription(id string, status partner.SubscriptionStatus) partner.Subscription {
+	return partner.Subscription{
+		Name:              "partnerSubscriptions/" + id,
+		ExternalAccountID: externalAccountID,
+		Status:            status,
+		SubscribedResources: []partner.SubscribedResource{
+			{
+				SubscriptionProvider: "weaveworks-public-cloudmarketplacepartner.googleapis.com",
+				Resource:             "weave-cloud",
+				Labels: map[string]string{
+					"weaveworks-public-cloudmarketplacepartner.googleapis.com/ServiceLevel": "enterprise",
+					"consumerId": "project_number:123",
+				},
+			},
+		},
+	}
 }
