@@ -1,11 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/google/go-github/github"
 	log "github.com/sirupsen/logrus"
+	"github.com/weaveworks/service/common"
 )
+
+const notifyPath = "/v6/integrations/github/push"
 
 type handler struct {
 	fluxSvcURL string
@@ -34,9 +38,22 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch hook := hook.(type) {
 	case *github.PushEvent:
-		log.Println("received push event:", *hook.Repo.SSHURL, *hook.Ref)
+		instID := r.FormValue("instance")
+		client := common.NewJSONClient(http.DefaultClient)
+
+		log.Println("Posting to", h.makeNotifyURL(instID))
+		err := client.Post(r.Context(), "", h.makeNotifyURL(instID), nil, nil)
+		if err != nil {
+			log.Error(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	default:
 		log.Printf("received webhook: %T\n%s", hook, github.Stringify(hook))
 	}
+	w.WriteHeader(http.StatusOK)
+}
 
+func (h *handler) makeNotifyURL(instID string) string {
+	return fmt.Sprintf("http://%s%s?instance=%s", h.fluxSvcURL, notifyPath, instID)
 }

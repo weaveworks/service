@@ -73,6 +73,7 @@ func NewServiceRouter() *mux.Router {
 	r.NewRoute().Name("PostIntegrationsGithub").Methods("POST").Path("/v6/integrations/github").Queries("owner", "{owner}", "repository", "{repository}")
 	r.NewRoute().Name("IsConnected").Methods("HEAD", "GET").Path("/v6/ping")
 	r.NewRoute().Name("DockerHubImageNotify").Methods("POST").Path("/v6/integrations/dockerhub/image").Queries("instance", "{instance}")
+	r.NewRoute().Name("GithubPushNotify").Methods("POST").Path("/v6/integrations/github/push").Queries("instance", "{instance}")
 
 	// We assume every request that doesn't match a route is a client
 	// calling an old or hitherto unsupported API.
@@ -119,6 +120,7 @@ func NewHandler(s api.Service, r *mux.Router, logger log.Logger) http.Handler {
 		"GetPublicSSHKey":          handle.GetPublicSSHKey,
 		"RegeneratePublicSSHKey":   handle.RegeneratePublicSSHKey,
 		"DockerHubImageNotify":     handle.DockerHubImageNotify,
+		"GithubPushNotify":         handle.GithubPushNotify,
 	} {
 		handler := logging(handlerMethod, log.With(logger, "method", method))
 		r.Get(method).Handler(handler)
@@ -600,6 +602,24 @@ func (s httpService) DockerHubImageNotify(w http.ResponseWriter, r *http.Request
 	// Ignore error returned here, as we have no way to log it directly but we also
 	// don't want to potentially make DockerHub wait for 10 seconds.
 	s.service.NotifyChange(ctx, change)
+}
+
+func (s httpService) GithubPushNotify(w http.ResponseWriter, r *http.Request) {
+	instID := mux.Vars(r)["instance"]
+	overrideInstanceID(r, instID)
+
+	change := remote.Change{
+		Kind:   remote.GitChange,
+		Source: remote.GitUpdate{
+		// We don't care about the body while this is just being used for our demos.
+		},
+	}
+	ctx := getRequestContext(r)
+	if err := s.service.NotifyChange(ctx, change); err != nil {
+		transport.WriteError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 // --- end handlers
