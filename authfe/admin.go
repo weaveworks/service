@@ -27,6 +27,11 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 			<li><a href="/admin/terradiff/">Terradiff</a></li>
 		</ul>
 
+		<h2>Tracing</h2>
+		<ul>
+			<li><a href="/admin/jaeger/">Jaeger</a></li>
+		</ul>
+
 		<h2>Management</h2>
 		<ul>
 			<li><a href="/admin/users">Users Service</a></li>
