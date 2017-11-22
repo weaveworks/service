@@ -54,7 +54,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 			logger.Info("Not cancelling subscription because there is another one either pending or active: %+v", sub)
 			return nil // ACK
 		}
-		logger.Info("Cancelling subscription: %+v", sub)
+		logger.Infof("Cancelling subscription: %+v", sub)
 		return m.cancelSubscription(ctx, sub)
 	}
 
@@ -64,7 +64,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	// - reactivation after cancellation: no other active subscription
 	// - changing of plan: has other active subscription
 	if sub.Status == partner.Pending {
-		logger.Info("Activating subscription: %+v", sub)
+		logger.Infof("Activating subscription: %+v", sub)
 		return m.updateSubscription(ctx, sub)
 	}
 
