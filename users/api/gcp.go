@@ -80,6 +80,7 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 	render.JSON(w, http.StatusOK, org)
 }
 
+// GCPSubscribe creates an organization with GCP subscription. It also approves the subscription.
 func (a *API) GCPSubscribe(currentUser *users.User, gcpAccountID string, w http.ResponseWriter, r *http.Request) (*users.Organization, error) {
 	logger := log.WithFields(log.Fields{"user_id": currentUser.ID, "email": currentUser.Email, "account_id": gcpAccountID})
 	subName, err := a.getPendingSubscriptionName(r.Context(), logger, gcpAccountID)

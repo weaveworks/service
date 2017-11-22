@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jordan-wright/email"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/jordan-wright/email"
 
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"

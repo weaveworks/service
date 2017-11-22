@@ -19,7 +19,7 @@ import (
 
 const externalAccountID = "E-F65F-C51C-67FE-D42F"
 
-var pendingSubscription_noConsumerID = partner.Subscription{
+var pendingSubscriptionNoConsumerID = partner.Subscription{
 	Name:              "partnerSubscriptions/47426f1a-d744-4249-ae84-3f4fe194c107",
 	ExternalAccountID: externalAccountID,
 	Version:           "1508480169982224",
@@ -72,11 +72,11 @@ func TestAPI_GCPSubscribe_missingConsumerID(t *testing.T) {
 
 	client.EXPECT().
 		ListSubscriptions(r.Context(), externalAccountID).
-		Return([]partner.Subscription{pendingSubscription_noConsumerID}, nil)
+		Return([]partner.Subscription{pendingSubscriptionNoConsumerID}, nil)
 
 	access.EXPECT().
-		RequestSubscription(r.Context(), r, pendingSubscription_noConsumerID.Name).
-		Return(&pendingSubscription_noConsumerID, nil)
+		RequestSubscription(r.Context(), r, pendingSubscriptionNoConsumerID.Name).
+		Return(&pendingSubscriptionNoConsumerID, nil)
 
 	_, err = api.GCPSubscribe(user, externalAccountID, w, r)
 	assert.Error(t, err)
