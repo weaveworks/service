@@ -34,7 +34,7 @@ PROTO_DEFS := $(shell find . -type f -name "*.proto" ! -path "./tools/*" ! -path
 PROTO_GOS := $(patsubst %.proto,%.pb.go,$(PROTO_DEFS))
 users/users.pb.go: users/users.proto
 
-MOCK_USERS := users/mock_users/usersclient.go
+MOCK_USERS := users/mock_users/mock_usersclient.go
 $(MOCK_USERS): users/users.pb.go
 
 BILLING_DB := billing-api/db

@@ -33,7 +33,9 @@ func NewAccess() *Access {
 			},
 		},
 	}
-	l.SetName("Partner Subscriptions API")
+	// The name determines the prefix for the configuration.
+	// Do not change this.
+	l.SetName("Partner ReturnSubscriptions API")
 	return l
 }
 

@@ -72,30 +72,42 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 	}
 
 	gcpAccountID := state["gcpAccountId"]
-	logger := log.WithFields(log.Fields{"user_id": currentUser.ID, "email": currentUser.Email, "account_id": gcpAccountID})
-	subName, err := a.getPendingSubscriptionName(r.Context(), logger, gcpAccountID)
+	org, err := a.GCPSubscribe(currentUser, gcpAccountID, w, r)
 	if err != nil {
 		render.Error(w, r, err)
 		return
 	}
+	render.JSON(w, http.StatusOK, org)
+}
+
+func (a *API) GCPSubscribe(currentUser *users.User, gcpAccountID string, w http.ResponseWriter, r *http.Request) (*users.Organization, error) {
+	logger := log.WithFields(log.Fields{"user_id": currentUser.ID, "email": currentUser.Email, "account_id": gcpAccountID})
+	subName, err := a.getPendingSubscriptionName(r.Context(), logger, gcpAccountID)
+	if err != nil {
+		return nil, err
+	}
 
 	sub, err := a.partnerAccess.RequestSubscription(r.Context(), r, subName)
 	if err != nil {
-		render.Error(w, r, err)
-		return
+		return nil, err
 	}
 	logger.Infof("Pending subscription: %+v", sub)
 
 	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
 	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
 	if consumerID == "" {
-		render.Error(w, r, errors.New("no consumer ID found"))
-		return
+		return nil, errors.New("no consumer ID found")
 	}
-	org, err := a.db.CreateOrganizationWithGCP(r.Context(), currentUser.ID, gcpAccountID, consumerID, sub.Name, level)
+	// Are we resuming?
+	org, err := a.db.FindOrganizationByGCPAccountID(r.Context(), gcpAccountID)
+	if org == nil && err == nil{
+		org, err = a.db.CreateOrganizationWithGCP(r.Context(), currentUser.ID, gcpAccountID, consumerID, sub.Name, level)
+	}
 	if err != nil {
-		render.Error(w, r, err)
-		return
+		return nil, err
+	}
+	if org.GCP.Activated {
+		return nil, errors.New("account has already been activated")
 	}
 
 	if gcpAccountID != testingAccountID {
@@ -103,19 +115,17 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 		body := partner.RequestBodyWithSSOLoginKey(gcpAccountID)
 		_, err = a.partner.ApproveSubscription(r.Context(), sub.Name, body)
 		if err != nil {
-			render.Error(w, r, err)
-			return
+			return nil, err
 		}
 	}
 
 	// Activate subscription account
 	err = a.db.UpdateGCP(r.Context(), gcpAccountID, org.GCP.ConsumerID, org.GCP.SubscriptionName, org.GCP.SubscriptionLevel, true)
 	if err != nil {
-		render.Error(w, r, err)
-		return
+		return nil, err
 	}
 
-	render.JSON(w, http.StatusOK, org)
+	return org, nil
 }
 
 func (a *API) getPendingSubscriptionName(ctx context.Context, logger *log.Entry, gcpAccountID string) (string, error) {

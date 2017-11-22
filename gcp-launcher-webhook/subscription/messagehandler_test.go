@@ -13,31 +13,8 @@ import (
 	"github.com/weaveworks/service/gcp-launcher-webhook/subscription"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/mock_users"
+	"github.com/weaveworks/service/common/gcp/partner/mock_partner"
 )
-
-type partnerMock struct {
-	subscriptions []partner.Subscription
-	approved      bool
-	denied        bool
-	body          *partner.RequestBody
-}
-
-func (m *partnerMock) ApproveSubscription(ctx context.Context, name string, body *partner.RequestBody) (*partner.Subscription, error) {
-	m.approved = true
-	m.body = body
-	return nil, nil
-}
-func (m *partnerMock) DenySubscription(ctx context.Context, name string, body *partner.RequestBody) (*partner.Subscription, error) {
-	m.denied = true
-	m.body = body
-	return nil, nil
-}
-func (m *partnerMock) GetSubscription(ctx context.Context, name string) (*partner.Subscription, error) {
-	return nil, nil
-}
-func (m *partnerMock) ListSubscriptions(ctx context.Context, externalAccountID string) ([]partner.Subscription, error) {
-	return m.subscriptions, nil
-}
 
 var (
 	gcpInactive = users.GoogleCloudPlatform{
@@ -71,8 +48,9 @@ func TestMessageHandler_Handle_notFound(t *testing.T) {
 	client.EXPECT().
 		GetGCP(ctx, &users.GetGCPRequest{AccountID: "acc123"}).
 		Return(nil, errors.New("boom"))
+	p := mock_partner.NewMockAPI(ctrl)
 
-	mh := subscription.MessageHandler{Users: client, Partner: &partnerMock{}}
+	mh := subscription.MessageHandler{Users: client, Partner: p}
 	err := mh.Handle(msgFoo)
 	assert.Error(t, err)
 }
@@ -86,8 +64,9 @@ func TestMessageHandler_Handle_inactive(t *testing.T) {
 	client.EXPECT().
 		GetGCP(ctx, &users.GetGCPRequest{AccountID: "acc123"}).
 		Return(&users.GetGCPResponse{GCP: gcpInactive}, nil)
+	p := mock_partner.NewMockAPI(ctrl)
 
-	mh := subscription.MessageHandler{Users: client, Partner: &partnerMock{}}
+	mh := subscription.MessageHandler{Users: client, Partner: p}
 	err := mh.Handle(msgFoo)
 	assert.NoError(t, err)
 }
@@ -121,8 +100,10 @@ func TestMessageHandler_Handle_cancel(t *testing.T) {
 			}}).
 		Return(nil, nil)
 
-	p := &partnerMock{
-		subscriptions: []partner.Subscription{
+	p := mock_partner.NewMockAPI(ctrl)
+	p.EXPECT().
+		ListSubscriptions(gomock.Any(), "acc123").
+		Return([]partner.Subscription{
 			{ // this one has been canceled
 				Name:              "partnerSubscriptions/1",
 				ExternalAccountID: "acc123",
@@ -133,13 +114,11 @@ func TestMessageHandler_Handle_cancel(t *testing.T) {
 				ExternalAccountID: "acc123",
 				Status:            partner.Complete,
 			},
-		},
-	}
+		}, nil)
+
 	mh := subscription.MessageHandler{Users: client, Partner: p}
 	err := mh.Handle(msgFoo)
 	assert.NoError(t, err)
-	assert.False(t, p.approved)
-	assert.False(t, p.denied)
 }
 
 func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
@@ -171,8 +150,10 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 			}}).
 		Return(nil, nil)
 
-	p := &partnerMock{
-		subscriptions: []partner.Subscription{
+	p := mock_partner.NewMockAPI(ctrl)
+	p.EXPECT().
+		ListSubscriptions(gomock.Any(), "acc123").
+		Return([]partner.Subscription{
 			{
 				Name:              "partnerSubscriptions/1",
 				ExternalAccountID: "acc123",
@@ -193,12 +174,16 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 				ExternalAccountID: "acc123",
 				Status:            partner.Complete,
 			},
-		},
+		}, nil)
+	expectedBody := &partner.RequestBody{
+		ApprovalID: "default-approval",
+		Labels: map[string]string{"keyForSSOLogin": "acc123"},
 	}
+	p.EXPECT().
+		ApproveSubscription(gomock.Any(), "partnerSubscriptions/1", expectedBody)
+
+
 	mh := subscription.MessageHandler{Users: client, Partner: p}
 	err := mh.Handle(msgFoo)
 	assert.NoError(t, err)
-	assert.True(t, p.approved)
-	assert.Equal(t, "acc123", p.body.Labels["keyForSSOLogin"])
-	assert.False(t, p.denied)
 }
