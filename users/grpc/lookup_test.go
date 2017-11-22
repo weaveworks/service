@@ -7,8 +7,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"github.com/jordan-wright/email"
+
+	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/dbtest"
@@ -265,7 +266,7 @@ func Test_GetBillableOrganizations_GCP(t *testing.T) {
 		assert.Equal(t, []users.Organization{*org}, resp.Organizations)
 	}
 
-	cancelGCPSubscription(t, org.GCP.AccountID)
+	cancelGCPSubscription(t, org.GCP)
 	{
 		resp, err := server.GetBillableOrganizations(ctx, &users.GetBillableOrganizationsRequest{Now: now})
 		require.NoError(t, err)
@@ -420,6 +421,7 @@ func makeGCPBillingOrganization(t *testing.T) *users.Organization {
 		user.ID,
 		accountID,
 	)
+	require.NoError(t, err)
 
 	// activate account
 	err = database.UpdateGCP(context.TODO(),
@@ -427,6 +429,7 @@ func makeGCPBillingOrganization(t *testing.T) *users.Organization {
 		"project_number:123",
 		"partnerSubscriptions/123",
 		"standard",
+		string(partner.Active),
 	)
 	require.NoError(t, err)
 
@@ -435,8 +438,8 @@ func makeGCPBillingOrganization(t *testing.T) *users.Organization {
 	return newOrg
 }
 
-func cancelGCPSubscription(t *testing.T, gcpAccountID string) {
-	err := database.UpdateGCP(context.Background(), gcpAccountID, "", "", "")
+func cancelGCPSubscription(t *testing.T, gcp *users.GoogleCloudPlatform) {
+	err := database.UpdateGCP(context.Background(), gcp.AccountID, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel, string(partner.Complete))
 	require.NoError(t, err)
 }
 

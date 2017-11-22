@@ -73,11 +73,14 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.trial_expires_at",
 		"organizations.trial_pending_expiry_notified_at",
 		"organizations.trial_expired_notified_at",
+		"organizations.gcp_account_id",
+		"gcp_accounts.created_at",
 		"gcp_accounts.account_id",
 		"gcp_accounts.activated",
 		"gcp_accounts.consumer_id",
 		"gcp_accounts.subscription_name",
 		"gcp_accounts.subscription_level",
+		"gcp_accounts.subscription_status",
 	).
 		From("organizations").
 		LeftJoin("gcp_accounts ON gcp_account_id = gcp_accounts.id").
@@ -323,7 +326,8 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	var trialExpiry time.Time
 	var trialExpiredNotifiedAt, trialPendingExpiryNotifiedAt *time.Time
 	var refuseDataAccess, refuseDataUpload bool
-	var accountID, consumerID, subscriptionName, subscriptionLevel sql.NullString
+	var gcpID, accountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus sql.NullString
+	var gcpCreatedAt pq.NullTime
 	var activated sql.NullBool
 	if err := row.Scan(
 		&o.ID,
@@ -342,11 +346,14 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&trialExpiry,
 		&trialPendingExpiryNotifiedAt,
 		&trialExpiredNotifiedAt,
+		&gcpID,
+		&gcpCreatedAt,
 		&accountID,
 		&activated,
 		&consumerID,
 		&subscriptionName,
 		&subscriptionLevel,
+		&subscriptionStatus,
 	); err != nil {
 		return nil, err
 	}
@@ -364,13 +371,16 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.TrialExpiresAt = trialExpiry
 	o.TrialPendingExpiryNotifiedAt = trialPendingExpiryNotifiedAt
 	o.TrialExpiredNotifiedAt = trialExpiredNotifiedAt
-	if accountID.Valid {
+	if gcpID.Valid {
 		o.GCP = &users.GoogleCloudPlatform{
-			AccountID:         accountID.String,
-			Activated:         activated.Bool,
-			ConsumerID:        consumerID.String,
-			SubscriptionName:  subscriptionName.String,
-			SubscriptionLevel: subscriptionLevel.String,
+			ID:                 gcpID.String,
+			CreatedAt:          gcpCreatedAt.Time,
+			AccountID:          accountID.String,
+			Activated:          activated.Bool,
+			ConsumerID:         consumerID.String,
+			SubscriptionName:   subscriptionName.String,
+			SubscriptionLevel:  subscriptionLevel.String,
+			SubscriptionStatus: subscriptionStatus.String,
 		}
 	}
 	return o, nil
@@ -570,25 +580,30 @@ func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID st
 // FindGCP returns the Google Cloud Platform subscription for the given account.
 func (d DB) FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
 	var gcp users.GoogleCloudPlatform
+	var consumerID, name, level, status sql.NullString
 	err := d.QueryRow(
-		`select id, account_id, activated, created_at, consumer_id, subscription_name, subscription_level
+		`select id, account_id, activated, created_at, consumer_id, subscription_name, subscription_level, subscription_status
 		from gcp_accounts
 		where account_id = $1`,
 		accountID,
-	).Scan(&gcp.ID, &gcp.AccountID, &gcp.Activated, &gcp.CreatedAt, &gcp.ConsumerID, &gcp.SubscriptionName, &gcp.SubscriptionLevel)
+	).Scan(&gcp.ID, &gcp.AccountID, &gcp.Activated, &gcp.CreatedAt, &consumerID, &name, &level, &status)
 	if err != nil {
 		return nil, err
 	}
+	gcp.ConsumerID = consumerID.String
+	gcp.SubscriptionName = name.String
+	gcp.SubscriptionLevel = level.String
+	gcp.SubscriptionStatus = status.String
 	return &gcp, nil
 }
 
 // UpdateGCP updates a Google Cloud Platform subscription.
-func (d DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) error {
+func (d DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus string) error {
 	_, err := d.Exec(
 		`update gcp_accounts
-		set activated = true, consumer_id = $2, subscription_name = $3, subscription_level = $4
+		set activated = true, consumer_id = $2, subscription_name = $3, subscription_level = $4, subscription_status = $5
 		where account_id = $1`,
-		accountID, consumerID, subscriptionName, subscriptionLevel,
+		accountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus,
 	)
 	return err
 }

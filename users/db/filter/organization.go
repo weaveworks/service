@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/Masterminds/squirrel"
+
+	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
 )
 
@@ -60,18 +62,18 @@ type GCPSubscription bool
 // Where returns the query to filter by a running GCP subscription.
 func (g GCPSubscription) Where() squirrel.Sqlizer {
 	if bool(g) {
-		return squirrel.Expr("gcp_accounts.activated AND gcp_accounts.subscription_name <> ''")
+		return squirrel.Expr("gcp_accounts.activated AND gcp_accounts.subscription_status = 'ACTIVE'")
 	}
 	return squirrel.Expr("gcp_accounts.activated = false OR gcp_accounts.subscription_name = ''")
 }
 
 // MatchesOrg checks whether the organization matches this filter.
 func (g GCPSubscription) MatchesOrg(o users.Organization) bool {
-	has := o.GCP != nil && o.GCP.Activated && o.GCP.SubscriptionName != ""
+	active := o.GCP != nil && o.GCP.Activated && o.GCP.SubscriptionStatus == string(partner.Active)
 	if bool(g) {
-		return has
+		return active
 	}
-	return !has
+	return !active
 }
 
 // TrialExpiredBy filters for organizations whose trials had expired by a

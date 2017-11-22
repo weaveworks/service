@@ -109,7 +109,7 @@ func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Sub
 	return nil
 }
 
-// cancelSubscriptions removes the subscription from the organization.
+// cancelSubscriptions updates the subscription status and disables access for the organization.
 func (m MessageHandler) cancelSubscription(ctx context.Context, sub *partner.Subscription) error {
 	if err := m.disableWeaveCloudAccess(ctx, sub.ExternalAccountID); err != nil {
 		return err

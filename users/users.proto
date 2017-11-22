@@ -205,6 +205,8 @@ message GoogleCloudPlatform {
     string SubscriptionName = 6;
     // Level of the subscription, can be "standard" or "enterprise"
     string SubscriptionLevel = 7;
+    // Status of the subscrption, can be one of "PENDING", "ACTIVE', or "COMPLETE"
+    string SubscriptionStatus = 8;
 }
 
 message GetGCPRequest {

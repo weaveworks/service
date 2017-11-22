@@ -122,7 +122,7 @@ func (a *API) GCPSubscribe(currentUser *users.User, gcpAccountID string, w http.
 	}
 
 	// Activate subscription account
-	err = a.db.UpdateGCP(r.Context(), gcpAccountID, consumerID, sub.Name, level)
+	err = a.db.UpdateGCP(r.Context(), gcpAccountID, consumerID, sub.Name, level, string(sub.Status))
 	if err != nil {
 		return nil, err
 	}

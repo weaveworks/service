@@ -203,11 +203,11 @@ func (t traced) FindGCP(ctx context.Context, accountID string) (gcp *users.Googl
 	return t.d.FindGCP(ctx, accountID)
 }
 
-func (t traced) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) (err error) {
+func (t traced) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus string) (err error) {
 	defer func() {
-		t.trace("UpdateGCP", accountID, consumerID, subscriptionName, subscriptionLevel, err)
+		t.trace("UpdateGCP", accountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus, err)
 	}()
-	return t.d.UpdateGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel)
+	return t.d.UpdateGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus)
 }
 
 func (t traced) SetOrganizationGCP(ctx context.Context, externalID, accountID string) (err error) {

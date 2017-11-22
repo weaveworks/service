@@ -99,7 +99,7 @@ type DB interface {
 	// Retrieve Google Cloud Platform entry.
 	FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error)
 	// Update a Google Cloud Platform entry. This marks the account as activated.
-	UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string) error
+	UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus string) error
 	// Attach a GCP subscription to an organization
 	SetOrganizationGCP(ctx context.Context, externalID, accountID string) error
 
