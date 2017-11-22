@@ -64,7 +64,7 @@ func (g GCPSubscription) Where() squirrel.Sqlizer {
 	if bool(g) {
 		return squirrel.Expr("gcp_accounts.activated AND gcp_accounts.subscription_status = 'ACTIVE'")
 	}
-	return squirrel.Expr("gcp_accounts.activated = false OR gcp_accounts.subscription_name = ''")
+	return squirrel.Expr("gcp_accounts.activated = false OR gcp_accounts.subscription_status <> 'ACTIVE'")
 }
 
 // MatchesOrg checks whether the organization matches this filter.
