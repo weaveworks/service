@@ -466,7 +466,11 @@ func (d *DB) FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudP
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
-	return nil, nil
+	gcp, exists := d.gcpAccounts[accountID]
+	if !exists {
+		return nil, users.ErrNotFound
+	}
+	return gcp, nil
 }
 
 // UpdateGCP updates a Google Cloud Platform subscription.
@@ -474,9 +478,9 @@ func (d *DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionN
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
-	gcp, exists := d.gcpSubscriptions[accountID]
+	gcp, exists := d.gcpAccounts[accountID]
 	if !exists {
-		return errors.New("Account not found")
+		return users.ErrNotFound
 	}
 	gcp.AccountID = accountID
 	gcp.ConsumerID = consumerID
@@ -485,7 +489,7 @@ func (d *DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionN
 	gcp.SubscriptionStatus = subscriptionStatus
 	gcp.Activated = true
 
-	d.gcpSubscriptions[accountID] = gcp
+	d.gcpAccounts[accountID] = gcp
 	return nil
 }
 
@@ -503,7 +507,7 @@ func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, accountID strin
 		return errors.New("Organization already has a GCP account")
 	}
 
-	o.GCP = d.gcpSubscriptions[accountID]
+	o.GCP = d.gcpAccounts[accountID]
 
 	// Hardcode platform/env here, that's what we expect the user to have.
 	// It also skips the platform/env tab during the onboarding process.
@@ -525,15 +529,15 @@ func (d *DB) createGCP(ctx context.Context, accountID string) (*users.GoogleClou
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
-	if _, exists := d.gcpSubscriptions[accountID]; exists {
+	if _, exists := d.gcpAccounts[accountID]; exists {
 		// If account is already known, Google either sent as a duplicate or we wrongfully called this method.
 		return nil, errors.New("Account is already in use, reactivate subscription in the launcher")
 	}
 	gcp := &users.GoogleCloudPlatform{
-		ID:                fmt.Sprint(len(d.gcpSubscriptions)),
-		AccountID:         accountID,
-		Activated:         false,
+		ID:        fmt.Sprint(len(d.gcpAccounts)),
+		AccountID: accountID,
+		Activated: false,
 	}
-	d.gcpSubscriptions[accountID] = gcp
+	d.gcpAccounts[accountID] = gcp
 	return gcp, nil
 }
