@@ -3,7 +3,9 @@ package subscription
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/common/gcp/partner"
@@ -32,9 +34,18 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 
 	resp, err := m.Users.GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID})
 	if err != nil {
-		// TODO(rndstr): differentiate between "Not Found" and error. The latter should NACK, the former not.
-		log.Warnf("Account [%v] does not yet exist: %v", externalAccountID, err)
-		return nil // ACK
+		// If the account does not yet exist, this means the user hasn't gone through the signup.
+		// It is safe to ACK this as once the account becomes ready, we fetch the current subscription
+		// and update our data accordingly.
+		//
+		// If for some reason the returned error message is changed from «Not found» we will NACK
+		// the message which is not an issue of urgency except for flooding our logs. Google will
+		// resend that message over and over till the user actually starts the subscription process.
+		if strings.Contains(err.Error(), "Not found") {
+			return nil // ACK
+		}
+
+		return errors.Wrapf(err, "failed getting account: %v", externalAccountID) // NACK
 	}
 	gcp := resp.GCP
 
