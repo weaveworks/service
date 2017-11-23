@@ -35,7 +35,7 @@ func NewAccess() *Access {
 	}
 	// This name determines the prefix for the CLI config. (see login.OAuth.Flags())
 	// Do not change this or CLI flag names will change.
-	l.SetName("Partner ReturnSubscriptions API")
+	l.SetName("Partner Subscriptions API")
 	return l
 }
 
