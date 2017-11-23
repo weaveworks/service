@@ -62,6 +62,7 @@ type Config struct {
 	compareRevisionsHost  proxyConfig
 	devGrafanaHost        proxyConfig
 	grafanaHost           proxyConfig
+	jaegerHost            proxyConfig
 	kubedashHost          proxyConfig
 	kubediffHost          proxyConfig
 	lokiHost              proxyConfig
@@ -114,6 +115,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"compare-revisions":  &c.compareRevisionsHost,
 		"dev-grafana":        &c.devGrafanaHost,
 		"grafana":            &c.grafanaHost,
+		"jaeger":             &c.jaegerHost,
 		"kubedash":           &c.kubedashHost,
 		"kubediff":           &c.kubediffHost,
 		"loki":               &c.lokiHost,
