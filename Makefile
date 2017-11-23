@@ -34,14 +34,18 @@ PROTO_DEFS := $(shell find . -type f -name "*.proto" ! -path "./tools/*" ! -path
 PROTO_GOS := $(patsubst %.proto,%.pb.go,$(PROTO_DEFS))
 users/users.pb.go: users/users.proto
 
-MOCK_USERS := users/mock_users/usersclient.go
+MOCK_USERS := users/mock_users/mock_usersclient.go
 $(MOCK_USERS): users/users.pb.go
 
 BILLING_DB := billing-api/db
 BILLING_TEST_DIRS := $(shell find . -name '*_test.go' | grep -E  "^\./billing" | xargs -n1 dirname | sort -u)
 
 MOCK_BILLING_DB := $(BILLING_DB)/mock_db/mock_db.go
-MOCK_GOS := $(MOCK_USERS) $(MOCK_BILLING_DB)
+MOCK_COMMON_GCP_PARTNER_CLIENT := common/gcp/partner/mock_partner/mock_client.go
+MOCK_COMMON_GCP_PARTNER_ACCESS := common/gcp/partner/mock_partner/mock_access.go
+
+MOCK_GOS := $(MOCK_USERS) $(MOCK_BILLING_DB) $(MOCK_COMMON_GCP_PARTNER_CLIENT) $(MOCK_COMMON_GCP_PARTNER_ACCESS)
+
 
 # copy billing migrations into each billing application's directory
 billing-aggregator/migrations/%: $(BILLING_DB)/migrations/%
@@ -177,11 +181,17 @@ test: build/$(UPTODATE) users/users.pb.go $(MOCK_GOS)
 	./tools/test -netgo -no-race
 
 $(MOCK_USERS): build/$(UPTODATE)
-	mockgen -destination $@ github.com/weaveworks/service/users UsersClient \
+	mockgen -destination=$@ github.com/weaveworks/service/users UsersClient \
 		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
 $(MOCK_BILLING_DB): build/$(UPTODATE) $(BILLING_DB)/db.go
 	mockgen -destination=$@ github.com/weaveworks/service/$(BILLING_DB) DB
+
+$(MOCK_COMMON_GCP_PARTNER_CLIENT): build/$(UPTODATE)
+	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner API
+
+$(MOCK_COMMON_GCP_PARTNER_ACCESS): build/$(UPTODATE)
+	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner Accessor
 
 billing-integration-test: build/$(UPTODATE) $(MOCK_GOS)
 	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"

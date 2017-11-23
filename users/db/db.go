@@ -80,7 +80,7 @@ type DB interface {
 	CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (*users.Organization, error)
 	FindOrganizationByProbeToken(ctx context.Context, probeToken string) (*users.Organization, error)
 	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)
-	FindOrganizationByGCPAccountID(ctx context.Context, gcpAccountID string) (*users.Organization, error)
+	FindOrganizationByGCPExternalAccountID(ctx context.Context, externalAccountID string) (*users.Organization, error)
 	FindOrganizationByInternalID(ctx context.Context, internalID string) (*users.Organization, error)
 	UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error
 	OrganizationExists(ctx context.Context, externalID string) (bool, error)
@@ -94,14 +94,15 @@ type DB interface {
 	SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error
 
-	// CreateOrganizationWithGCP creates an organization as well as a GCP subscription, then links them together.
-	CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (*users.Organization, *users.GoogleCloudPlatform, error)
-	// Retrieve Google Cloud Platform entry.
-	FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error)
-	// Update a Google Cloud Platform entry.
-	UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error
-	// Attach a GCP subscription to an organization
-	SetOrganizationGCP(ctx context.Context, externalID, accountID string) error
+	// CreateOrganizationWithGCP creates an organization with an inactive GCP account attached to it.
+	CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string) (*users.Organization, error)
+	// FindGCP returns the Google Cloud Platform subscription for the given account.
+	FindGCP(ctx context.Context, externalAccountID string) (*users.GoogleCloudPlatform, error)
+	// UpdateGCP Update a Google Cloud Platform entry. This marks the account as activated.
+	UpdateGCP(ctx context.Context, externalAccountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus string) error
+	// SetOrganizationGCP attaches a Google Cloud Platform subscription to an organization.
+	// It also enables the billing feature flag and sets platform/env.
+	SetOrganizationGCP(ctx context.Context, externalID, externalAccountID string) error
 
 	ListMemberships(ctx context.Context) ([]users.Membership, error)
 

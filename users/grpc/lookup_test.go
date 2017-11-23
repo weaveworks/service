@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jordan-wright/email"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/jordan-wright/email"
+	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/dbtest"
@@ -251,6 +252,28 @@ func Test_GetBillableOrganizations_SkipDelinquent(t *testing.T) {
 	}
 }
 
+// Test_GetBillableOrganizations_GCP shows that we return GCP organizations
+// that have running subscriptions.
+func Test_GetBillableOrganizations_GCP(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	org := makeGCPBillingOrganization(t)
+
+	now := time.Now()
+	{
+		resp, err := server.GetBillableOrganizations(ctx, &users.GetBillableOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization{*org}, resp.Organizations)
+	}
+
+	cancelGCPSubscription(t, org.GCP)
+	{
+		resp, err := server.GetBillableOrganizations(ctx, &users.GetBillableOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization(nil), resp.Organizations)
+	}
+}
+
 // Test_GetTrialOrganizations_NotExpired shows GetTrialOrganizations returns
 // organizations that have yet to reach the end of their trial period.
 func Test_GetTrialOrganizations_NotExpired(t *testing.T) {
@@ -286,6 +309,21 @@ func Test_GetTrialOrganizations_Expired(t *testing.T) {
 		assert.Equal(t, []users.Organization(nil), resp.Organizations)
 	}
 	org = setZuoraAccount(t, org, "Wwhatever")
+	{
+		resp, err := server.GetTrialOrganizations(ctx, &users.GetTrialOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization(nil), resp.Organizations)
+	}
+}
+
+// Test_GetTrialOrganizations_GCP shows that
+// GetDelinquentOrganizations does not return GCP organizations
+func Test_GetTrialOrganizations_GCP(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	makeGCPBillingOrganization(t)
+
+	now := time.Now()
 	{
 		resp, err := server.GetTrialOrganizations(ctx, &users.GetTrialOrganizationsRequest{Now: now})
 		require.NoError(t, err)
@@ -336,6 +374,21 @@ func Test_GetDelinquentOrganizations_Expired(t *testing.T) {
 	}
 }
 
+// Test_GetDelinquentOrganizations_GCP shows that
+// GetDelinquentOrganizations does not return GCP organizations
+func Test_GetDelinquentOrganizations_GCP(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	makeGCPBillingOrganization(t)
+
+	now := time.Now()
+	{
+		resp, err := server.GetDelinquentOrganizations(ctx, &users.GetDelinquentOrganizationsRequest{Now: now})
+		require.NoError(t, err)
+		assert.Equal(t, []users.Organization(nil), resp.Organizations)
+	}
+}
+
 // setZuoraAccount sets a Zuora account.
 func setZuoraAccount(t *testing.T, org *users.Organization, account string) *users.Organization {
 	_, err := server.SetOrganizationZuoraAccount(
@@ -353,10 +406,41 @@ func setZuoraAccount(t *testing.T, org *users.Organization, account string) *use
 // Won't be necessary after we remove the billing feature flag.
 func makeBillingOrganization(t *testing.T) *users.Organization {
 	_, org := dbtest.GetOrg(t, database)
-	database.AddFeatureFlag(ctx, org.ExternalID, users.BillingFeatureFlag)
+	err := database.AddFeatureFlag(ctx, org.ExternalID, users.BillingFeatureFlag)
+	require.NoError(t, err)
 	newOrg, err := database.FindOrganizationByID(ctx, org.ExternalID)
 	require.NoError(t, err)
 	return newOrg
+}
+
+func makeGCPBillingOrganization(t *testing.T) *users.Organization {
+	user := dbtest.GetUser(t, database)
+	accountID := "E-97A7-79FC-AD2D-9D31"
+	org, err := database.CreateOrganizationWithGCP(
+		context.Background(),
+		user.ID,
+		accountID,
+	)
+	require.NoError(t, err)
+
+	// activate account
+	err = database.UpdateGCP(context.TODO(),
+		accountID,
+		"project_number:123",
+		"partnerSubscriptions/123",
+		"standard",
+		string(partner.Active),
+	)
+	require.NoError(t, err)
+
+	newOrg, err := database.FindOrganizationByID(context.Background(), org.ExternalID)
+	require.NoError(t, err)
+	return newOrg
+}
+
+func cancelGCPSubscription(t *testing.T, gcp *users.GoogleCloudPlatform) {
+	err := database.UpdateGCP(context.Background(), gcp.ExternalAccountID, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel, string(partner.Complete))
+	require.NoError(t, err)
 }
 
 func Test_GetOrganization(t *testing.T) {

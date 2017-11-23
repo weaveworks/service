@@ -33,7 +33,7 @@ type API struct {
 	grpc               users.UsersServer
 	mixpanel           *marketing.MixpanelClient
 	partner            partner.API
-	partnerAccess      *partner.Access
+	partnerAccess      partner.Accessor
 	fluxStatusAPI      string
 	scopeProbesAPI     string
 	promMetricsAPI     string
@@ -58,7 +58,7 @@ func New(
 	webhookTokens map[string]struct{},
 	mixpanelClient *marketing.MixpanelClient,
 	partnerClient partner.API,
-	partnerAccess *partner.Access,
+	partnerAccess partner.Accessor,
 	fluxStatusAPI string,
 	scopeProbesAPI string,
 	promMetricsAPI string,

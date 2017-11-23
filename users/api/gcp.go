@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"path"
 
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/logging"
@@ -17,7 +17,14 @@ import (
 
 // We do not approve subscriptions coming from this accountID as to not
 // "waste" all of our staging billing accounts.
-const testingAccountID = "E-97A7-79FC-AD2D-9D31"
+const testingExternalAccountID = "E-97A7-79FC-AD2D-9D31"
+
+var (
+	// ErrAlreadyActivated says the account has already been activated and cannot be activated a second time.
+	ErrAlreadyActivated = errors.New("account has already been activated")
+	// ErrMissingConsumerID denotes the consumerId label is missing in the subscribed resource.
+	ErrMissingConsumerID = errors.New("missing consumer ID")
+)
 
 func (a *API) gcpAccess(w http.ResponseWriter, r *http.Request) {
 	link, ok := a.partnerAccess.Link(r)
@@ -29,9 +36,9 @@ func (a *API) gcpAccess(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) gcpSSOLogin(w http.ResponseWriter, r *http.Request) {
-	gcpAccountID := path.Base(r.URL.Path)
+	externalAccountID := mux.Vars(r)["externalAccountID"]
 
-	org, err := a.db.FindOrganizationByGCPAccountID(r.Context(), gcpAccountID)
+	org, err := a.db.FindOrganizationByGCPExternalAccountID(r.Context(), externalAccountID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
@@ -71,55 +78,71 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 		return
 	}
 
-	gcpAccountID := state["gcpAccountId"]
-	logger := log.WithFields(log.Fields{"user_id": currentUser.ID, "email": currentUser.Email, "account_id": gcpAccountID})
-	subName, err := a.getPendingSubscriptionName(r.Context(), logger, gcpAccountID)
+	externalAccountID := state["gcpAccountId"]
+	org, err := a.GCPSubscribe(currentUser, externalAccountID, w, r)
 	if err != nil {
 		render.Error(w, r, err)
 		return
 	}
+	render.JSON(w, http.StatusOK, org)
+}
+
+// GCPSubscribe creates an organization with GCP subscription. It also approves the subscription.
+func (a *API) GCPSubscribe(currentUser *users.User, externalAccountID string, w http.ResponseWriter, r *http.Request) (*users.Organization, error) {
+	logger := log.WithFields(log.Fields{"user_id": currentUser.ID, "email": currentUser.Email, "external_account_id": externalAccountID})
+	subName, err := a.getPendingSubscriptionName(r.Context(), logger, externalAccountID)
+	if err != nil {
+		return nil, err
+	}
 
 	sub, err := a.partnerAccess.RequestSubscription(r.Context(), r, subName)
 	if err != nil {
-		render.Error(w, r, err)
-		return
+		return nil, err
 	}
 	logger.Infof("Pending subscription: %+v", sub)
 
 	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
 	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
 	if consumerID == "" {
-		render.Error(w, r, errors.New("no consumer ID found"))
-		return
-	}
-	org, gcp, err := a.db.CreateOrganizationWithGCP(r.Context(), currentUser.ID, gcpAccountID, consumerID, sub.Name, level)
-	if err != nil {
-		render.Error(w, r, err)
-		return
+		return nil, ErrMissingConsumerID
 	}
 
-	if gcpAccountID != testingAccountID {
+	// Are we resuming?
+	org, err := a.db.FindOrganizationByGCPExternalAccountID(r.Context(), externalAccountID)
+	if err == users.ErrNotFound {
+		// Nope, create a new instance.
+		org, err = a.db.CreateOrganizationWithGCP(r.Context(), currentUser.ID, externalAccountID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if org.GCP.Activated {
+		return nil, ErrAlreadyActivated
+	}
+
+	if externalAccountID != testingExternalAccountID {
 		// Approve subscription
-		body := partner.RequestBodyWithSSOLoginKey(gcp.AccountID)
+		body := partner.RequestBodyWithSSOLoginKey(externalAccountID)
 		_, err = a.partner.ApproveSubscription(r.Context(), sub.Name, body)
 		if err != nil {
-			render.Error(w, r, err)
-			return
+			return nil, err
 		}
 	}
 
-	// Activate subscription account
-	err = a.db.UpdateGCP(r.Context(), gcp.AccountID, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel, true)
+	// Mark GCP account as activated account.
+	// Set subscription status to ACTIVE because approval passed. We will also receive a PubSub message
+	// with Status = ACTIVE later. If we set it to PENDING here (what sub.Status currently is), we get
+	// into a race with the PubSub message.
+	err = a.db.UpdateGCP(r.Context(), externalAccountID, consumerID, sub.Name, level, string(partner.Active))
 	if err != nil {
-		render.Error(w, r, err)
-		return
+		return nil, err
 	}
 
-	render.JSON(w, http.StatusOK, org)
+	return org, nil
 }
 
-func (a *API) getPendingSubscriptionName(ctx context.Context, logger *log.Entry, gcpAccountID string) (string, error) {
-	subs, err := a.partner.ListSubscriptions(ctx, gcpAccountID)
+func (a *API) getPendingSubscriptionName(ctx context.Context, logger *log.Entry, externalAccountID string) (string, error) {
+	subs, err := a.partner.ListSubscriptions(ctx, externalAccountID)
 	if err != nil {
 		return "", err
 	}
@@ -129,5 +152,5 @@ func (a *API) getPendingSubscriptionName(ctx context.Context, logger *log.Entry,
 			return sub.Name, nil
 		}
 	}
-	return "", fmt.Errorf("no pending subscription found for account: %v", gcpAccountID)
+	return "", fmt.Errorf("no pending subscription found for account: %v", externalAccountID)
 }

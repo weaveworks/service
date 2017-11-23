@@ -7,12 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/dbtest"
 	"github.com/weaveworks/service/users/db/filter"
 )
 
-func Test_DB_RemoveOtherUsersAccess(t *testing.T) {
+func TestDB_RemoveOtherUsersAccess(t *testing.T) {
 	db := dbtest.Setup(t)
 	defer dbtest.Cleanup(t, db)
 
@@ -36,7 +37,7 @@ func Test_DB_RemoveOtherUsersAccess(t *testing.T) {
 	require.Len(t, orgUsers, 1)
 }
 
-func Test_DB_AddFeatureFlag(t *testing.T) {
+func TestDB_AddFeatureFlag(t *testing.T) {
 	db := dbtest.Setup(t)
 	defer dbtest.Cleanup(t, db)
 
@@ -49,7 +50,7 @@ func Test_DB_AddFeatureFlag(t *testing.T) {
 	require.Equal(t, org.FeatureFlags, []string{"supercow"})
 }
 
-func Test_DB_SetFeatureFlags(t *testing.T) {
+func TestDB_SetFeatureFlags(t *testing.T) {
 	db := dbtest.Setup(t)
 	defer dbtest.Cleanup(t, db)
 
@@ -68,9 +69,9 @@ func Test_DB_SetFeatureFlags(t *testing.T) {
 	}
 }
 
-// Test_DB_ListByFeatureFlag shows that we can have ListOrganizations return
+// TestDB_ListByFeatureFlag shows that we can have ListOrganizations return
 // only organizations that have a given feature flag set.
-func Test_DB_ListByFeatureFlag(t *testing.T) {
+func TestDB_ListByFeatureFlag(t *testing.T) {
 	db := dbtest.Setup(t)
 	defer dbtest.Cleanup(t, db)
 
@@ -96,7 +97,7 @@ func Test_DB_ListByFeatureFlag(t *testing.T) {
 	}
 }
 
-func Test_DB_FindOrganizationByInternalID(t *testing.T) {
+func TestDB_FindOrganizationByInternalID(t *testing.T) {
 	db := dbtest.Setup(t)
 	defer dbtest.Cleanup(t, db)
 
@@ -123,4 +124,33 @@ func Test_DB_FindOrganizationByInternalID(t *testing.T) {
 	if org.ID != o.ID {
 		t.Fatalf("Expected ID to equal: %v; Actual: %v", o.ID, org.ID)
 	}
+}
+
+func TestDB_FindGCP(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
+
+	ctx := context.Background()
+
+	externalAccountID := "E-XTERNAL-ACC-ID"
+	u, err := db.CreateUser(ctx, "joe@weave.test")
+	assert.NoError(t, err)
+	org, err := db.CreateOrganizationWithGCP(ctx, u.ID, externalAccountID)
+	assert.NoError(t, err)
+	err = db.UpdateGCP(ctx, externalAccountID, "project_number:123", "partnerSubscriptions/1", "enterprise", string(partner.Active))
+	assert.NoError(t, err)
+
+	// Database request returns same values
+	gcp, err := db.FindGCP(ctx, externalAccountID)
+	assert.NoError(t, err)
+	assert.Equal(t, externalAccountID, gcp.ExternalAccountID)
+	assert.Equal(t, "project_number:123", gcp.ConsumerID)
+	assert.Equal(t, "partnerSubscriptions/1", gcp.SubscriptionName)
+	assert.Equal(t, "enterprise", gcp.SubscriptionLevel)
+	assert.EqualValues(t, partner.Active, gcp.SubscriptionStatus)
+
+	// FindOrganization returns same GCP as FindGCP
+	neworg, err := db.FindOrganizationByID(ctx, org.ExternalID)
+	assert.NoError(t, err)
+	assert.Equal(t, gcp, neworg.GCP)
 }

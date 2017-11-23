@@ -218,8 +218,8 @@ func (a *usersServer) GetOrganization(ctx context.Context, req *users.GetOrganiz
 
 	if req.GetExternalID() != "" {
 		organization, err = a.db.FindOrganizationByID(ctx, req.GetExternalID())
-	} else if req.GetGCPAccountID() != "" {
-		organization, err = a.db.FindOrganizationByGCPAccountID(ctx, req.GetGCPAccountID())
+	} else if req.GetGCPExternalAccountID() != "" {
+		organization, err = a.db.FindOrganizationByGCPExternalAccountID(ctx, req.GetGCPExternalAccountID())
 	} else if req.GetInternalID() != "" {
 		organization, err = a.db.FindOrganizationByInternalID(ctx, req.GetInternalID())
 	} else {
@@ -343,7 +343,7 @@ func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyT
 }
 
 func (a *usersServer) GetGCP(ctx context.Context, req *users.GetGCPRequest) (*users.GetGCPResponse, error) {
-	gcp, err := a.db.FindGCP(ctx, req.AccountID)
+	gcp, err := a.db.FindGCP(ctx, req.ExternalAccountID)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +351,7 @@ func (a *usersServer) GetGCP(ctx context.Context, req *users.GetGCPRequest) (*us
 }
 
 func (a *usersServer) UpdateGCP(ctx context.Context, req *users.UpdateGCPRequest) (*users.UpdateGCPResponse, error) {
-	err := a.db.UpdateGCP(ctx, req.GCP.AccountID, req.GCP.ConsumerID, req.GCP.SubscriptionName, req.GCP.SubscriptionLevel, req.GCP.Active)
+	err := a.db.UpdateGCP(ctx, req.GCP.ExternalAccountID, req.GCP.ConsumerID, req.GCP.SubscriptionName, req.GCP.SubscriptionLevel, req.GCP.SubscriptionStatus)
 	if err != nil {
 		return nil, err
 

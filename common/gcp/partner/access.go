@@ -10,6 +10,13 @@ import (
 	"github.com/weaveworks/service/users/login"
 )
 
+// Accessor describes public methods of Access to allow mocking.
+type Accessor interface {
+	RequestSubscription(ctx context.Context, r *http.Request, name string) (*Subscription, error)
+	VerifyState(r *http.Request) (map[string]string, bool)
+	Link(r *http.Request) (login.Link, bool)
+}
+
 // Access provides a subscription permission check.
 // It uses oauth2 to verify a user can access a specific subscription.
 type Access struct {
@@ -26,7 +33,9 @@ func NewAccess() *Access {
 			},
 		},
 	}
-	l.SetName("Partner Subscriptions API")
+	// This name determines the prefix for the CLI config. (see login.OAuth.Flags())
+	// Do not change this or CLI flag names will change.
+	l.SetName("Partner ReturnSubscriptions API")
 	return l
 }
 

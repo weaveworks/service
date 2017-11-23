@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/common/gcp/partner"
@@ -27,23 +26,25 @@ type MessageHandler struct {
 // Handle processes the message for a subscription. It fetches organization and the
 func (m MessageHandler) Handle(msg dto.Message) error {
 	ctx := context.Background()
-	gcpAccountID := msg.Attributes[externalAccountIDKey]
+	externalAccountID := msg.Attributes[externalAccountIDKey]
 	subscriptionName := msg.Attributes[subscriptionNameKey]
-	logger := log.WithFields(log.Fields{"account_id": gcpAccountID, "subscription": subscriptionName})
+	logger := log.WithFields(log.Fields{"external_account_id": externalAccountID, "subscription": subscriptionName})
 
-	resp, err := m.Users.GetGCP(ctx, &users.GetGCPRequest{AccountID: gcpAccountID})
+	resp, err := m.Users.GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID})
 	if err != nil {
-		return errors.Wrapf(err, "cannot find account: %v", gcpAccountID) // NACK
+		// TODO(rndstr): differentiate between "Not Found" and error. The latter should NACK, the former not.
+		log.Warnf("Account [%v] does not yet exist: %v", externalAccountID, err)
+		return nil // ACK
 	}
 	gcp := resp.GCP
 
 	// Activation.
-	if !gcp.Active {
-		logger.Infof("Account %v has not yet been activated, ignoring message", gcpAccountID)
+	if !gcp.Activated {
+		logger.Infof("Account %v has not yet been activated, ignoring message", externalAccountID)
 		return nil // ACK
 	}
 
-	sub, subs, err := m.getSubscriptions(ctx, gcpAccountID, subscriptionName)
+	sub, subs, err := m.getSubscriptions(ctx, externalAccountID, subscriptionName)
 	if err != nil {
 		return err
 	}
@@ -54,7 +55,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 			logger.Info("Not cancelling subscription because there is another one either pending or active: %+v", sub)
 			return nil // ACK
 		}
-		logger.Info("Cancelling subscription: %+v", sub)
+		logger.Infof("Cancelling subscription: %+v", sub)
 		return m.cancelSubscription(ctx, sub)
 	}
 
@@ -64,16 +65,13 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 	// - reactivation after cancellation: no other active subscription
 	// - changing of plan: has other active subscription
 	if sub.Status == partner.Pending {
-		logger.Info("Activating subscription: %+v", sub)
+		logger.Infof("Approving subscription: %+v", sub)
 		return m.updateSubscription(ctx, sub)
 	}
 
 	if sub.Status == partner.Active {
-		logger.Infof("No action for active subscription: %+v", sub)
-		// Subscriptions are activated by first going through the pending state.
-		// The pending status has already been processed or if the account is
-		// freshly created, we will update the subscription through that flow.
-		return nil
+		logger.Infof("Activating subscription: %+v", sub)
+		return m.updateSubscription(ctx, sub)
 	}
 
 	log.Warnf("Did not process subscription update: %+v\nAll: %+v", *sub, subs)
@@ -92,19 +90,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 // return: ack.
 // post: new subscription --> ACTIVE
 func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Subscription) error {
-	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
-	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
-
-	_, err := m.Users.UpdateGCP(ctx, &users.UpdateGCPRequest{
-		GCP: &users.GoogleCloudPlatform{
-			AccountID:         sub.ExternalAccountID,
-			ConsumerID:        consumerID,
-			SubscriptionName:  sub.Name,
-			SubscriptionLevel: level,
-			Active:            true,
-		},
-	})
-	if err != nil {
+	if err := m.updateGCP(ctx, sub); err != nil {
 		return err
 	}
 
@@ -112,44 +98,50 @@ func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Sub
 		return err
 	}
 
-	// Approve subscription
-	body := partner.RequestBodyWithSSOLoginKey(sub.ExternalAccountID)
-	if _, err := m.Partner.ApproveSubscription(ctx, sub.Name, body); err != nil {
-		return err
+	// Approve subscription if it is in pending state
+	if sub.Status == partner.Pending {
+		body := partner.RequestBodyWithSSOLoginKey(sub.ExternalAccountID)
+		if _, err := m.Partner.ApproveSubscription(ctx, sub.Name, body); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-// cancelSubscriptions removes the subscription from the organization.
+// cancelSubscriptions updates the subscription status and disables access for the organization.
 func (m MessageHandler) cancelSubscription(ctx context.Context, sub *partner.Subscription) error {
 	if err := m.disableWeaveCloudAccess(ctx, sub.ExternalAccountID); err != nil {
 		return err
 	}
+	return m.updateGCP(ctx, sub)
+}
 
-	// The account ID is kept intact to detect a customer reactivating their subscription.
+func (m MessageHandler) updateGCP(ctx context.Context, sub *partner.Subscription) error {
+	level := sub.ExtractResourceLabel("weave-cloud", partner.ServiceLevelLabelKey)
+	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
 	_, err := m.Users.UpdateGCP(ctx, &users.UpdateGCPRequest{
 		GCP: &users.GoogleCloudPlatform{
-			AccountID:         sub.ExternalAccountID,
-			ConsumerID:        "",
-			SubscriptionName:  "",
-			SubscriptionLevel: "",
+			ExternalAccountID: sub.ExternalAccountID,
+			ConsumerID:        consumerID,
+			SubscriptionName:  sub.Name,
+			SubscriptionLevel: level,
 		},
 	})
 	return err
 }
 
-func (m MessageHandler) enableWeaveCloudAccess(ctx context.Context, gcpAccountID string) error {
-	return m.setWeaveCloudAccessFlagsTo(ctx, gcpAccountID, false)
+func (m MessageHandler) enableWeaveCloudAccess(ctx context.Context, externalAccountID string) error {
+	return m.setWeaveCloudAccessFlagsTo(ctx, externalAccountID, false)
 }
 
-func (m MessageHandler) disableWeaveCloudAccess(ctx context.Context, gcpAccountID string) error {
-	return m.setWeaveCloudAccessFlagsTo(ctx, gcpAccountID, true)
+func (m MessageHandler) disableWeaveCloudAccess(ctx context.Context, externalAccountID string) error {
+	return m.setWeaveCloudAccessFlagsTo(ctx, externalAccountID, true)
 }
 
-func (m MessageHandler) setWeaveCloudAccessFlagsTo(ctx context.Context, gcpAccountID string, value bool) error {
+func (m MessageHandler) setWeaveCloudAccessFlagsTo(ctx context.Context, externalAccountID string, value bool) error {
 	org, err := m.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
-		ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: gcpAccountID},
+		ID: &users.GetOrganizationRequest_GCPExternalAccountID{GCPExternalAccountID: externalAccountID},
 	})
 	if err != nil {
 		return err
@@ -167,8 +159,8 @@ func (m MessageHandler) setWeaveCloudAccessFlagsTo(ctx context.Context, gcpAccou
 
 // getSubscriptions fetches all subscriptions of the account. Furthermore, it picks the subscription with the
 // given subscriptionName.
-func (m MessageHandler) getSubscriptions(ctx context.Context, gcpAccountID string, subscriptionName string) (*partner.Subscription, []partner.Subscription, error) {
-	subs, err := m.Partner.ListSubscriptions(ctx, gcpAccountID)
+func (m MessageHandler) getSubscriptions(ctx context.Context, externalAccountID string, subscriptionName string) (*partner.Subscription, []partner.Subscription, error) {
+	subs, err := m.Partner.ListSubscriptions(ctx, externalAccountID)
 	if err != nil {
 		return nil, nil, err
 	}

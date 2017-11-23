@@ -194,9 +194,9 @@ func (t timed) FindOrganizationByID(ctx context.Context, externalID string) (o *
 	return
 }
 
-func (t timed) FindOrganizationByGCPAccountID(ctx context.Context, accountID string) (o *users.Organization, err error) {
-	t.timeRequest(ctx, "FindOrganizationByGCPAccountID", func(ctx context.Context) error {
-		o, err = t.d.FindOrganizationByGCPAccountID(ctx, accountID)
+func (t timed) FindOrganizationByGCPExternalAccountID(ctx context.Context, externalAccountID string) (o *users.Organization, err error) {
+	t.timeRequest(ctx, "FindOrganizationByGCPExternalAccountID", func(ctx context.Context) error {
+		o, err = t.d.FindOrganizationByGCPExternalAccountID(ctx, externalAccountID)
 		return err
 	})
 	return
@@ -282,30 +282,30 @@ func (t timed) SetOrganizationZuoraAccount(ctx context.Context, externalID, numb
 	})
 }
 
-func (t timed) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel string) (org *users.Organization, gcp *users.GoogleCloudPlatform, err error) {
+func (t timed) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string) (org *users.Organization, err error) {
 	t.timeRequest(ctx, "CreateOrganizationWithGCP", func(ctx context.Context) error {
-		org, gcp, err = t.d.CreateOrganizationWithGCP(ctx, ownerID, accountID, consumerID, subscriptionName, subscriptionLevel)
+		org, err = t.d.CreateOrganizationWithGCP(ctx, ownerID, externalAccountID)
 		return err
 	})
 	return
 }
 
-func (t timed) FindGCP(ctx context.Context, accountID string) (gcp *users.GoogleCloudPlatform, err error) {
+func (t timed) FindGCP(ctx context.Context, externalAccountID string) (gcp *users.GoogleCloudPlatform, err error) {
 	t.timeRequest(ctx, "FindGCP", func(ctx context.Context) error {
-		gcp, err = t.d.FindGCP(ctx, accountID)
+		gcp, err = t.d.FindGCP(ctx, externalAccountID)
 		return err
 	})
 	return
 }
 
-func (t timed) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel string, active bool) error {
+func (t timed) UpdateGCP(ctx context.Context, externalAccountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus string) error {
 	return t.timeRequest(ctx, "UpdateGCP", func(ctx context.Context) error {
-		return t.d.UpdateGCP(ctx, accountID, consumerID, subscriptionName, subscriptionLevel, active)
+		return t.d.UpdateGCP(ctx, externalAccountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus)
 	})
 }
-func (t timed) SetOrganizationGCP(ctx context.Context, externalID, accountID string) error {
+func (t timed) SetOrganizationGCP(ctx context.Context, externalID, externalAccountID string) error {
 	return t.timeRequest(ctx, "SetOrganizationGCP", func(ctx context.Context) error {
-		return t.d.SetOrganizationGCP(ctx, externalID, accountID)
+		return t.d.SetOrganizationGCP(ctx, externalID, externalAccountID)
 	})
 }
 

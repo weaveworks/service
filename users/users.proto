@@ -159,7 +159,7 @@ message GetDelinquentOrganizationsResponse {
 message GetOrganizationRequest {
     oneof ID {
         string ExternalID = 1;
-        string GCPAccountID = 2;
+        string GCPExternalAccountID = 2;
         string InternalID = 3;
     }
 }
@@ -195,20 +195,22 @@ message Organization {
 message GoogleCloudPlatform {
     string ID = 1;
     // External account ID from Google
-    string AccountID = 2;
-    // Whether the GCP account is active or not
-    bool Active = 3;
+    string ExternalAccountID = 2;
+    // Whether the GCP account has been activated or not. Note that this does not describe the state of the subscription.
+    bool Activated = 3;
     google.protobuf.Timestamp CreatedAt = 4 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
     // Consumer ID to report usage against
     string ConsumerID = 5;
-    // Name of the active subscription, in the format "partnerSubscriptions/*"
+    // Name of the running subscription, in the format "partnerSubscriptions/*"
     string SubscriptionName = 6;
     // Level of the subscription, can be "standard" or "enterprise"
     string SubscriptionLevel = 7;
+    // Status of the subscrption, can be one of "PENDING", "ACTIVE', or "COMPLETE"
+    string SubscriptionStatus = 8;
 }
 
 message GetGCPRequest {
-    string AccountID = 1;
+    string ExternalAccountID = 1;
 }
 
 message GetGCPResponse {
