@@ -277,7 +277,7 @@ func (d DB) FindOrganizationByGCPAccountID(ctx context.Context, accountID string
 		return nil, err
 	}
 	o, err := d.scanOrganization(
-		d.organizationsQuery().Where(squirrel.Eq{"organizations.gcp_account_id": gcp.ID, "gcp_accounts.activated": true}).QueryRow(),
+		d.organizationsQuery().Where(squirrel.Eq{"organizations.gcp_account_id": gcp.ID}).QueryRow(),
 	)
 	if err == sql.ErrNoRows {
 		return nil, users.ErrNotFound
