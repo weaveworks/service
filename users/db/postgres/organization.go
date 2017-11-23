@@ -585,6 +585,9 @@ func (d DB) FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPl
 		where account_id = $1`,
 		accountID,
 	).Scan(&gcp.ID, &gcp.AccountID, &gcp.Activated, &gcp.CreatedAt, &consumerID, &name, &level, &status)
+	if err == sql.ErrNoRows {
+		return nil, users.ErrNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -614,10 +617,14 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string
 		if err != nil {
 			return err
 		}
+
 		_, err = d.Exec(
 			`update organizations set gcp_account_id = $1 where external_id = $2 and deleted_at is null`,
 			gcp.ID, externalID,
 		)
+		if err != nil {
+			return err
+		}
 
 		platform, env := "kubernetes", "gke"
 		now := d.Now()
