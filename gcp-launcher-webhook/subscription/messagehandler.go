@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/common/gcp/partner"
@@ -33,7 +32,9 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 
 	resp, err := m.Users.GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID})
 	if err != nil {
-		return errors.Wrapf(err, "cannot find account: %v", externalAccountID) // NACK
+		// TODO(rndstr): differentiate between "Not Found" and error. The latter should NACK, the former not.
+		log.Warnf("Account [%v] does not yet exist: %v", externalAccountID, err)
+		return nil // ACK
 	}
 	gcp := resp.GCP
 

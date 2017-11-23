@@ -54,7 +54,7 @@ func TestMessageHandler_Handle_notFound(t *testing.T) {
 
 	mh := subscription.MessageHandler{Users: client, Partner: p}
 	err := mh.Handle(msgFoo)
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
 
 func TestMessageHandler_Handle_inactive(t *testing.T) {
