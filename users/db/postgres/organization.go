@@ -644,7 +644,6 @@ func (d DB) createGCP(ctx context.Context, accountID string) (*users.GoogleCloud
 	gcp := &users.GoogleCloudPlatform{
 		AccountID: accountID,
 		CreatedAt: now,
-		Activated: false,
 	}
 	err := d.QueryRow(`insert into gcp_accounts
 			(account_id, created_at, activated)
