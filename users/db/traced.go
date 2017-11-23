@@ -240,6 +240,13 @@ func (t traced) AddUserToTeam(ctx context.Context, userID, teamID string) (err e
 	return t.d.AddUserToTeam(ctx, userID, teamID)
 }
 
+func (t traced) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string) (o *users.Organization, err error) {
+	defer func() {
+		t.trace("CreateOrganizationWithTeam", ownerID, externalID, name, token, teamExternalID, teamName, o, err)
+	}()
+	return t.d.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, token, teamExternalID, teamName)
+}
+
 func (t traced) Close(ctx context.Context) (err error) {
 	defer func() { t.trace("Close", err) }()
 	return t.d.Close(ctx)

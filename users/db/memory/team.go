@@ -2,8 +2,10 @@ package memory
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/weaveworks/service/users"
@@ -75,6 +77,10 @@ func (d *DB) generateTeamExternalID(_ context.Context) (string, error) {
 // CreateTeam creates a team
 func (d *DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
 	// no lock needed: called by CreateOrganization which acquired the lock
+	if name == "" {
+		return nil, errors.New("Team name cannot be blank")
+	}
+
 	now := time.Now()
 	TrialExpiresAt := now.Add(users.TrialDuration)
 	t := &users.Team{
@@ -106,21 +112,64 @@ func (d *DB) AddUserToTeam(_ context.Context, userID, teamID string) error {
 	return nil
 }
 
-func (d *DB) setDefaultTeam(userID, teamID string) error {
+// ensureUserIsPartOfTeamByExternalID ensures the users is part of an existing team
+func (d DB) ensureUserIsPartOfTeamByExternalID(ctx context.Context, userID, teamExternalID string) (*users.Team, error) {
 	// no lock needed: called by CreateOrganization which acquired the lock
-	teamIDs, _ := d.teamMemberships[userID]
-	idx := -1
-	for i, id := range teamIDs {
-		idx = i
-		if id == teamID {
+	if teamExternalID == "" {
+		return nil, errors.New("teamExternalID must be provided")
+	}
+
+	var team *users.Team
+	for _, t := range d.teams {
+		if t.ExternalID == teamExternalID {
+			team = t
 			break
 		}
 	}
-	if idx == -1 {
-		return fmt.Errorf("Team %v not found, available teams: %v", teamID, teamIDs)
+
+	if team == nil {
+		return nil, fmt.Errorf("team does not exist: %v", teamExternalID)
 	}
-	// make the first element the default
-	teamIDs = append([]string{teamID}, append(teamIDs[:idx], teamIDs[idx+1:]...)...)
-	d.teamMemberships[userID] = teamIDs
-	return nil
+
+	for _, teamID := range d.teamMemberships[userID] {
+		if teamID == team.ID {
+			// user is part of team
+			return d.teams[teamID], nil
+		}
+	}
+
+	err := d.AddUserToTeam(ctx, userID, team.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return team, nil
+}
+
+// ensureUserIsPartOfTeamByName ensures the users is part of team by name, the team is created if it does not exist
+func (d DB) ensureUserIsPartOfTeamByName(ctx context.Context, userID, teamName string) (*users.Team, error) {
+	if teamName == "" {
+		return nil, errors.New("teamName must be provided")
+	}
+
+	for _, teamID := range d.teamMemberships[userID] {
+		team := d.teams[teamID]
+		if strings.ToLower(teamName) == strings.ToLower(team.Name) {
+			// user is part of the team
+			return team, nil
+		}
+	}
+
+	// teams does not exists for the user, create it!
+	team, err := d.CreateTeam(ctx, teamName)
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.AddUserToTeam(ctx, userID, team.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return team, nil
 }

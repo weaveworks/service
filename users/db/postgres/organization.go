@@ -3,12 +3,15 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"sort"
 	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 
+	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/externalIDs"
@@ -17,28 +20,31 @@ import (
 // RemoveUserFromOrganization removes the user from the organiation. If they
 // are not a member, this is a noop.
 func (d DB) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) error {
-	user, err := d.FindUserByEmail(ctx, email)
-	if err != nil {
-		return err
-	}
-
-	org, err := d.FindOrganizationByID(ctx, orgExternalID)
-	if err != nil {
-		return err
-	}
-
-	if org.TeamID == "" {
-		_, err = d.Exec(
-			"update memberships set deleted_at = now() where user_id = $1 and organization_id = $2",
-			user.ID,
-			org.ID,
-		)
+	err := d.Transaction(func(tx DB) error {
+		user, err := tx.FindUserByEmail(ctx, email)
 		if err != nil {
 			return err
 		}
-	}
 
-	return d.removeUserFromTeam(user.ID, org.TeamID)
+		org, err := tx.FindOrganizationByID(ctx, orgExternalID)
+		if err != nil {
+			return err
+		}
+
+		if org.TeamID == "" {
+			_, err = tx.Exec(
+				"update memberships set deleted_at = now() where user_id = $1 and organization_id = $2",
+				user.ID,
+				org.ID,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+		return tx.removeUserFromTeam(user.ID, org.TeamID)
+	})
+	return err
 }
 
 // UserIsMemberOf checks if the user is a member of the organization.
@@ -651,17 +657,8 @@ func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAcco
 		name := users.DefaultOrganizationName(externalID)
 
 		// create one team for each gcp instance
-		team, err := tx.CreateTeam(ctx, name)
-		if err != nil {
-			return err
-		}
-
-		err = tx.AddUserToTeam(ctx, ownerID, team.ID)
-		if err != nil {
-			return err
-		}
-
-		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, "", team.ID)
+		teamName := orgs.TeamNameFromOrgExternalID(externalID)
+		org, err = tx.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, "", "", teamName)
 		if err != nil {
 			return err
 		}
@@ -752,6 +749,48 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccountI
 
 		return tx.AddFeatureFlag(ctx, externalID, users.BillingFeatureFlag)
 	})
+}
+
+// CreateOrganizationWithTeam creates a new organization, ensuring it is part of a team and owned by the user
+func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string) (*users.Organization, error) {
+	if teamName == "" && teamExternalID == "" {
+		return nil, errors.New("At least one of teamExternalID, teamName needs to be provided")
+	}
+	if teamName != "" && teamExternalID != "" {
+		return nil, fmt.Errorf("Only one of teamExternalID, teamName needs to be provided: %v, %v", teamExternalID, teamName)
+	}
+
+	var org *users.Organization
+	err := d.Transaction(func(tx DB) error {
+		var team *users.Team
+		var err error
+		// one of two cases must be reached: it is ensured by the validation above
+		if teamExternalID != "" {
+			team, err = d.ensureUserIsPartOfTeamByExternalID(ctx, ownerID, teamExternalID)
+		} else if teamName != "" {
+			team, err = d.ensureUserIsPartOfTeamByName(ctx, ownerID, teamName)
+		}
+		if err != nil {
+			return err
+		}
+
+		// it should not happen, but just in case, be loud
+		if team == nil {
+			return fmt.Errorf("team should not be nil: %v, %v", teamExternalID, teamName)
+		}
+
+		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, token, team.ID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return org, nil
 }
 
 // createGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.

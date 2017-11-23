@@ -349,6 +349,14 @@ func (t timed) AddUserToTeam(ctx context.Context, userID, teamID string) (err er
 	return
 }
 
+func (t timed) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string) (o *users.Organization, err error) {
+	t.timeRequest(ctx, "CreateOrganizationWithTeam", func(ctx context.Context) error {
+		o, err = t.d.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, token, teamExternalID, teamName)
+		return err
+	})
+	return
+}
+
 func (t timed) Close(ctx context.Context) error {
 	return t.timeRequest(ctx, "Close", func(ctx context.Context) error {
 		return t.d.Close(ctx)

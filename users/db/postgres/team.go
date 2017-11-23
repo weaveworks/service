@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"strings"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -60,6 +62,9 @@ func (d DB) ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, er
 
 // CreateTeam creates a team
 func (d DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
+	if name == "" {
+		return nil, errors.New("Team name cannot be blank")
+	}
 	now := d.Now()
 	TrialExpiresAt := now.Add(users.TrialDuration)
 	t := &users.Team{TrialExpiresAt: TrialExpiresAt}
@@ -205,4 +210,67 @@ func (d DB) scanTeam(row squirrel.RowScanner) (*users.Team, error) {
 	t.TrialPendingExpiryNotifiedAt = trialPendingExpiryNotifiedAt
 	t.TrialExpiredNotifiedAt = trialExpiredNotifiedAt
 	return t, nil
+}
+
+// ensureUserIsPartOfTeamByExternalID ensures the users is part of an existing team
+func (d DB) ensureUserIsPartOfTeamByExternalID(ctx context.Context, userID, teamExternalID string) (*users.Team, error) {
+	if teamExternalID == "" {
+		return nil, errors.New("teamExternalID must be provided")
+	}
+
+	teams, err := d.ListTeamsForUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, team := range teams {
+		if team.ExternalID == teamExternalID {
+			// user is already part of the team
+			return team, nil
+		}
+	}
+
+	team, err := d.findTeamByExternalID(ctx, teamExternalID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.AddUserToTeam(ctx, userID, team.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return team, nil
+}
+
+// ensureUserIsPartOfTeamByName ensures the users is part of team by name, the team is created if it does not exist
+func (d DB) ensureUserIsPartOfTeamByName(ctx context.Context, userID, teamName string) (*users.Team, error) {
+	if teamName == "" {
+		return nil, errors.New("teamName must be provided")
+	}
+
+	teams, err := d.ListTeamsForUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, team := range teams {
+		// case insensitive
+		if strings.ToLower(team.Name) == strings.ToLower(teamName) {
+			// user is part of the team
+			return team, nil
+		}
+	}
+
+	// teams does not exists for the user, create it!
+	team, err := d.CreateTeam(ctx, teamName)
+	if err != nil {
+		return nil, err
+	}
+	err = d.AddUserToTeam(ctx, userID, team.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return team, nil
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/lib/pq"
 
+	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/externalIDs"
@@ -494,17 +495,9 @@ func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAcc
 		return nil, err
 	}
 	name := users.DefaultOrganizationName(externalID)
-	// create one team for each gcp instance
-	team, err := d.CreateTeam(ctx, name)
-	if err != nil {
-		return nil, nil, err
-	}
 
-	err = d.AddUserToTeam(ctx, ownerID, team.ID)
-	if err != nil {
-		return nil, nil, err
-	}
-	org, err = d.CreateOrganization(ctx, ownerID, externalID, name, "", team.ID)
+	teamName := orgs.TeamNameFromOrgExternalID(externalID)
+	org, err = d.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, "", "", teamName)
 	if err != nil {
 		return nil, err
 	}
@@ -585,6 +578,83 @@ func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccount
 	}
 
 	return nil
+}
+
+// CreateOrganizationWithTeam creates a new organization owned by the user
+// If teamExternalID is not empty, the organizations is assigned to that team, if it exists.
+// If teamName is not empty, the organizations is assigned to that team. it is created if it does not exists.
+// One, and only one, of teamExternalID, teamName must be provided.
+func (d *DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string) (*users.Organization, error) {
+	if teamName == "" && teamExternalID == "" {
+		return nil, errors.New("At least one of teamExternalID, teamName needs to be provided")
+	}
+	if teamName != "" && teamExternalID != "" {
+		return nil, fmt.Errorf("Only one of teamExternalID, teamName needs to be provided: %v, %v", teamExternalID, teamName)
+	}
+
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	if _, err := d.findUserByID(ownerID); err != nil {
+		return nil, err
+	}
+	if len(name) > organizationMaxLength {
+		return nil, &errorOrgNameLengthConstraint
+	}
+	now := time.Now().UTC()
+
+	var team *users.Team
+	var err error
+	if teamExternalID != "" {
+		team, err = d.ensureUserIsPartOfTeamByExternalID(ctx, ownerID, teamExternalID)
+	} else if teamName != "" {
+		team, err = d.ensureUserIsPartOfTeamByName(ctx, ownerID, teamName)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	o := &users.Organization{
+		ID:             fmt.Sprint(len(d.organizations)),
+		ExternalID:     externalID,
+		Name:           name,
+		CreatedAt:      now,
+		TrialExpiresAt: now.Add(users.TrialDuration),
+		TeamID:         team.ID,
+		TeamExternalID: team.ExternalID,
+	}
+	if err := o.Valid(); err != nil {
+		return nil, err
+	}
+	if exists, err := d.organizationExists(o.ExternalID, true); err != nil {
+		return nil, err
+	} else if exists {
+		return nil, users.ErrOrgExternalIDIsTaken
+	}
+	for exists := true; exists; {
+		if token != "" {
+			o.ProbeToken = token
+		} else {
+			if err := o.RegenerateProbeToken(); err != nil {
+				return nil, err
+			}
+		}
+		exists = false
+		for _, org := range d.organizations {
+			if org.ProbeToken == o.ProbeToken {
+				exists = true
+				break
+			}
+		}
+		if token != "" && exists {
+			return nil, users.ErrOrgTokenIsTaken
+		}
+	}
+
+	if o.TeamID == "" {
+		d.memberships[o.ID] = []string{ownerID}
+	}
+	d.organizations[o.ID] = o
+	return o, nil
 }
 
 // CreateGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
