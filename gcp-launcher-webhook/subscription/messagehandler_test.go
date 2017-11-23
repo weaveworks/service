@@ -41,7 +41,28 @@ var (
 	}
 )
 
+// TestMessageHandler_Handle_notFound verifies that a «Not found» error does not
+// lead to an error because we expect the account not to be found before signup
+// has finished.
 func TestMessageHandler_Handle_notFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	client := mock_users.NewMockUsersClient(ctrl)
+	client.EXPECT().
+		GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
+		Return(nil, errors.New("rpc error: code = Code(400) desc = Not found"))
+	p := mock_partner.NewMockAPI(ctrl)
+
+	mh := subscription.MessageHandler{Users: client, Partner: p}
+	err := mh.Handle(msgFoo)
+	assert.NoError(t, err)
+}
+
+// TestMessageHandler_Handle_getError says that we should get an error if GetGCP()
+// fails for anything other than «Not found».
+func TestMessageHandler_Handle_getError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -54,7 +75,7 @@ func TestMessageHandler_Handle_notFound(t *testing.T) {
 
 	mh := subscription.MessageHandler{Users: client, Partner: p}
 	err := mh.Handle(msgFoo)
-	assert.NoError(t, err)
+	assert.Error(t, err)
 }
 
 func TestMessageHandler_Handle_inactive(t *testing.T) {
