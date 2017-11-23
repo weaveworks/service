@@ -1,15 +1,25 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/google/go-github/github"
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/common"
+	fluxhttp "github.com/weaveworks/service/flux-api/http"
 )
 
-const notifyPath = "/v6/integrations/github/push"
+var router *mux.Router
+
+func init() {
+	router = fluxhttp.NewServiceRouter()
+	// Test creating the route here so we can safely ignore errors later.
+	_, err := router.GetRoute("GitPushNotify").URL("instance", "")
+	if err != nil {
+		panic(err)
+	}
+}
 
 type handler struct {
 	fluxSvcURL string
@@ -42,7 +52,6 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		instID := r.FormValue("instance")
 		client := common.NewJSONClient(http.DefaultClient)
 
-		log.Println("Posting to", h.makeNotifyURL(instID))
 		err := client.Post(r.Context(), "", h.makeNotifyURL(instID), nil, nil)
 		if err != nil {
 			log.Error(err)
@@ -53,5 +62,8 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) makeNotifyURL(instID string) string {
-	return fmt.Sprintf("http://%s%s?instance=%s", h.fluxSvcURL, notifyPath, instID)
+	url, _ := router.GetRoute("GitPushNotify").URL("instance", instID)
+	url.Scheme = "http"
+	url.Host = h.fluxSvcURL
+	return url.String()
 }

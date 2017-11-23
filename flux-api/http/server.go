@@ -73,7 +73,7 @@ func NewServiceRouter() *mux.Router {
 	r.NewRoute().Name("PostIntegrationsGithub").Methods("POST").Path("/v6/integrations/github").Queries("owner", "{owner}", "repository", "{repository}")
 	r.NewRoute().Name("IsConnected").Methods("HEAD", "GET").Path("/v6/ping")
 	r.NewRoute().Name("DockerHubImageNotify").Methods("POST").Path("/v6/integrations/dockerhub/image").Queries("instance", "{instance}")
-	r.NewRoute().Name("GithubPushNotify").Methods("POST").Path("/v6/integrations/github/push").Queries("instance", "{instance}")
+	r.NewRoute().Name("GitPushNotify").Methods("POST").Path("/v6/integrations/git/push").Queries("instance", "{instance}")
 
 	// We assume every request that doesn't match a route is a client
 	// calling an old or hitherto unsupported API.
@@ -120,7 +120,7 @@ func NewHandler(s api.Service, r *mux.Router, logger log.Logger) http.Handler {
 		"GetPublicSSHKey":          handle.GetPublicSSHKey,
 		"RegeneratePublicSSHKey":   handle.RegeneratePublicSSHKey,
 		"DockerHubImageNotify":     handle.DockerHubImageNotify,
-		"GithubPushNotify":         handle.GithubPushNotify,
+		"GitPushNotify":            handle.GitPushNotify,
 	} {
 		handler := logging(handlerMethod, log.With(logger, "method", method))
 		r.Get(method).Handler(handler)
@@ -604,7 +604,10 @@ func (s httpService) DockerHubImageNotify(w http.ResponseWriter, r *http.Request
 	s.service.NotifyChange(ctx, change)
 }
 
-func (s httpService) GithubPushNotify(w http.ResponseWriter, r *http.Request) {
+func (s httpService) GitPushNotify(w http.ResponseWriter, r *http.Request) {
+	// Immediately write 200 because the sender doesn't care what happens next.
+	w.WriteHeader(http.StatusOK)
+
 	instID := mux.Vars(r)["instance"]
 	overrideInstanceID(r, instID)
 
@@ -615,11 +618,9 @@ func (s httpService) GithubPushNotify(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	ctx := getRequestContext(r)
-	if err := s.service.NotifyChange(ctx, change); err != nil {
-		transport.WriteError(w, r, http.StatusInternalServerError, err)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
+	// Ignore the error returned here as the sender doesn't care. We'll log any
+	// errors at the daemon level.
+	s.service.NotifyChange(ctx, change)
 }
 
 // --- end handlers
