@@ -598,7 +598,7 @@ func (d DB) FindGCP(ctx context.Context, externalAccountID string) (*users.Googl
 	return &gcp, nil
 }
 
-// UpdateGCP updates a Google Cloud Platform subscription.
+// UpdateGCP Update a Google Cloud Platform entry. This marks the account as activated.
 func (d DB) UpdateGCP(ctx context.Context, externalAccountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus string) error {
 	_, err := d.Exec(
 		`update gcp_accounts

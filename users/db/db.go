@@ -96,11 +96,12 @@ type DB interface {
 
 	// CreateOrganizationWithGCP creates an organization with an inactive GCP account attached to it.
 	CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string) (*users.Organization, error)
-	// Retrieve Google Cloud Platform entry.
+	// FindGCP returns the Google Cloud Platform subscription for the given account.
 	FindGCP(ctx context.Context, externalAccountID string) (*users.GoogleCloudPlatform, error)
-	// Update a Google Cloud Platform entry. This marks the account as activated.
+	// UpdateGCP Update a Google Cloud Platform entry. This marks the account as activated.
 	UpdateGCP(ctx context.Context, externalAccountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus string) error
-	// Attach a GCP subscription to an organization
+	// SetOrganizationGCP attaches a Google Cloud Platform subscription to an organization.
+	// It also enables the billing feature flag and sets platform/env.
 	SetOrganizationGCP(ctx context.Context, externalID, externalAccountID string) error
 
 	ListMemberships(ctx context.Context) ([]users.Membership, error)
