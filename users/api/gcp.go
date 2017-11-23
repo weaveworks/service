@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"path"
 
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/logging"
@@ -36,7 +36,7 @@ func (a *API) gcpAccess(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) gcpSSOLogin(w http.ResponseWriter, r *http.Request) {
-	externalAccountID := path.Base(r.URL.Path)
+	externalAccountID := mux.Vars(r)["externalAccountID"]
 
 	org, err := a.db.FindOrganizationByGCPExternalAccountID(r.Context(), externalAccountID)
 	if err != nil {
