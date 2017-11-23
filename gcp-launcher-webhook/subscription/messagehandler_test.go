@@ -20,12 +20,12 @@ const externalAccountID = "E-F65F-C51C-67FE-D42F"
 
 var (
 	gcpInactive = users.GoogleCloudPlatform{
-		AccountID: externalAccountID,
-		Activated: false,
+		ExternalAccountID: externalAccountID,
+		Activated:         false,
 	}
 	gcpActivated = users.GoogleCloudPlatform{
-		AccountID: externalAccountID,
-		Activated: true,
+		ExternalAccountID: externalAccountID,
+		Activated:         true,
 	}
 
 	msgFoo = dto.Message{
@@ -48,7 +48,7 @@ func TestMessageHandler_Handle_notFound(t *testing.T) {
 	ctx := context.Background()
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
-		GetGCP(ctx, &users.GetGCPRequest{AccountID: externalAccountID}).
+		GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
 		Return(nil, errors.New("boom"))
 	p := mock_partner.NewMockAPI(ctrl)
 
@@ -64,7 +64,7 @@ func TestMessageHandler_Handle_inactive(t *testing.T) {
 	ctx := context.Background()
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
-		GetGCP(ctx, &users.GetGCPRequest{AccountID: externalAccountID}).
+		GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
 		Return(&users.GetGCPResponse{GCP: gcpInactive}, nil)
 	p := mock_partner.NewMockAPI(ctrl)
 
@@ -80,10 +80,12 @@ func TestMessageHandler_Handle_cancel(t *testing.T) {
 	ctx := context.Background()
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
-		GetGCP(ctx, &users.GetGCPRequest{AccountID: externalAccountID}).
+		GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
 		Return(&users.GetGCPResponse{GCP: gcpActivated}, nil)
 	client.EXPECT().
-		GetOrganization(ctx, &users.GetOrganizationRequest{ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: externalAccountID}}).
+		GetOrganization(ctx, &users.GetOrganizationRequest{
+			ID: &users.GetOrganizationRequest_GCPExternalAccountID{GCPExternalAccountID: externalAccountID},
+		}).
 		Return(&users.GetOrganizationResponse{Organization: org}, nil)
 	client.EXPECT().
 		SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataAccess", Value: true}).
@@ -94,7 +96,7 @@ func TestMessageHandler_Handle_cancel(t *testing.T) {
 	client.EXPECT().
 		UpdateGCP(ctx, &users.UpdateGCPRequest{
 			GCP: &users.GoogleCloudPlatform{
-				AccountID:         externalAccountID,
+				ExternalAccountID: externalAccountID,
 				ConsumerID:        "project_number:123",
 				SubscriptionName:  "partnerSubscriptions/1",
 				SubscriptionLevel: "enterprise",
@@ -121,10 +123,12 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 	ctx := context.Background()
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
-		GetGCP(ctx, &users.GetGCPRequest{AccountID: externalAccountID}).
+		GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
 		Return(&users.GetGCPResponse{GCP: gcpActivated}, nil)
 	client.EXPECT().
-		GetOrganization(ctx, &users.GetOrganizationRequest{ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: externalAccountID}}).
+		GetOrganization(ctx, &users.GetOrganizationRequest{
+			ID: &users.GetOrganizationRequest_GCPExternalAccountID{GCPExternalAccountID: externalAccountID},
+		}).
 		Return(&users.GetOrganizationResponse{Organization: org}, nil)
 	client.EXPECT().
 		SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{ExternalID: orgExternalID, Flag: "RefuseDataAccess", Value: false}).
@@ -135,7 +139,7 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 	client.EXPECT().
 		UpdateGCP(ctx, &users.UpdateGCPRequest{
 			GCP: &users.GoogleCloudPlatform{
-				AccountID:         externalAccountID,
+				ExternalAccountID: externalAccountID,
 				ConsumerID:        "project_number:123",
 				SubscriptionName:  "partnerSubscriptions/1",
 				SubscriptionLevel: "enterprise",

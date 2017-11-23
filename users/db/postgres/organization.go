@@ -75,7 +75,7 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"organizations.trial_expired_notified_at",
 		"organizations.gcp_account_id",
 		"gcp_accounts.created_at",
-		"gcp_accounts.account_id",
+		"gcp_accounts.external_account_id",
 		"gcp_accounts.activated",
 		"gcp_accounts.consumer_id",
 		"gcp_accounts.subscription_name",
@@ -269,10 +269,10 @@ func (d DB) FindOrganizationByID(_ context.Context, externalID string) (*users.O
 	return o, nil
 }
 
-// FindOrganizationByGCPAccountID returns the organization with the given account ID.
+// FindOrganizationByGCPExternalAccountID returns the organization with the given account ID.
 // N.B.: it only returns GCP organizations which have been activated, i.e. for which the subscription has been validated and activated against GCP.
-func (d DB) FindOrganizationByGCPAccountID(ctx context.Context, accountID string) (*users.Organization, error) {
-	gcp, err := d.FindGCP(ctx, accountID)
+func (d DB) FindOrganizationByGCPExternalAccountID(ctx context.Context, externalAccountID string) (*users.Organization, error) {
+	gcp, err := d.FindGCP(ctx, externalAccountID)
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +324,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	var trialExpiry time.Time
 	var trialExpiredNotifiedAt, trialPendingExpiryNotifiedAt *time.Time
 	var refuseDataAccess, refuseDataUpload bool
-	var gcpID, accountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus sql.NullString
+	var gcpID, externalAccountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus sql.NullString
 	var gcpCreatedAt pq.NullTime
 	var activated sql.NullBool
 	if err := row.Scan(
@@ -346,7 +346,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&trialExpiredNotifiedAt,
 		&gcpID,
 		&gcpCreatedAt,
-		&accountID,
+		&externalAccountID,
 		&activated,
 		&consumerID,
 		&subscriptionName,
@@ -373,7 +373,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		o.GCP = &users.GoogleCloudPlatform{
 			ID:                 gcpID.String,
 			CreatedAt:          gcpCreatedAt.Time,
-			AccountID:          accountID.String,
+			ExternalAccountID:  externalAccountID.String,
 			Activated:          activated.Bool,
 			ConsumerID:         consumerID.String,
 			SubscriptionName:   subscriptionName.String,
@@ -541,7 +541,7 @@ func (d DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number st
 }
 
 // CreateOrganizationWithGCP creates an organization with an inactive GCP account attached to it.
-func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID string) (*users.Organization, error) {
+func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string) (*users.Organization, error) {
 	var org *users.Organization
 	var gcp *users.GoogleCloudPlatform
 	err := d.Transaction(func(tx DB) error {
@@ -556,12 +556,12 @@ func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID st
 		}
 
 		// Create and attach inactive GCP subscription to the organization
-		gcp, err = tx.createGCP(ctx, accountID)
+		gcp, err = tx.createGCP(ctx, externalAccountID)
 		if err != nil {
 			return err
 		}
 
-		err = tx.SetOrganizationGCP(ctx, externalID, accountID)
+		err = tx.SetOrganizationGCP(ctx, externalID, externalAccountID)
 		if err != nil {
 			return err
 		}
@@ -576,15 +576,15 @@ func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID st
 }
 
 // FindGCP returns the Google Cloud Platform subscription for the given account.
-func (d DB) FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
+func (d DB) FindGCP(ctx context.Context, externalAccountID string) (*users.GoogleCloudPlatform, error) {
 	var gcp users.GoogleCloudPlatform
 	var consumerID, name, level, status sql.NullString
 	err := d.QueryRow(
-		`select id, account_id, activated, created_at, consumer_id, subscription_name, subscription_level, subscription_status
+		`select id, external_account_id, activated, created_at, consumer_id, subscription_name, subscription_level, subscription_status
 		from gcp_accounts
-		where account_id = $1`,
-		accountID,
-	).Scan(&gcp.ID, &gcp.AccountID, &gcp.Activated, &gcp.CreatedAt, &consumerID, &name, &level, &status)
+		where external_account_id = $1`,
+		externalAccountID,
+	).Scan(&gcp.ID, &gcp.ExternalAccountID, &gcp.Activated, &gcp.CreatedAt, &consumerID, &name, &level, &status)
 	if err == sql.ErrNoRows {
 		return nil, users.ErrNotFound
 	}
@@ -599,21 +599,21 @@ func (d DB) FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPl
 }
 
 // UpdateGCP updates a Google Cloud Platform subscription.
-func (d DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus string) error {
+func (d DB) UpdateGCP(ctx context.Context, externalAccountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus string) error {
 	_, err := d.Exec(
 		`update gcp_accounts
 		set activated = true, consumer_id = $2, subscription_name = $3, subscription_level = $4, subscription_status = $5
-		where account_id = $1`,
-		accountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus,
+		where external_account_id = $1`,
+		externalAccountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus,
 	)
 	return err
 }
 
 // SetOrganizationGCP attaches a Google Cloud Platform subscription to an organization.
 // It also enables the billing feature flag and sets platform/env.
-func (d DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string) error {
+func (d DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccountID string) error {
 	return d.Transaction(func(tx DB) error {
-		gcp, err := d.FindGCP(ctx, accountID)
+		gcp, err := d.FindGCP(ctx, externalAccountID)
 		if err != nil {
 			return err
 		}
@@ -644,16 +644,16 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string
 }
 
 // createGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
-func (d DB) createGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
+func (d DB) createGCP(ctx context.Context, externalAccountID string) (*users.GoogleCloudPlatform, error) {
 	now := d.Now()
 	gcp := &users.GoogleCloudPlatform{
-		AccountID: accountID,
-		CreatedAt: now,
+		ExternalAccountID: externalAccountID,
+		CreatedAt:         now,
 	}
 	err := d.QueryRow(`insert into gcp_accounts
-			(account_id, created_at, activated)
+			(external_account_id, created_at, activated)
 			values ($1, $2, false) returning id`,
-		gcp.AccountID, gcp.CreatedAt).
+		gcp.ExternalAccountID, gcp.CreatedAt).
 		Scan(&gcp.ID)
 	if err != nil {
 		return nil, err

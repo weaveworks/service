@@ -159,7 +159,7 @@ message GetDelinquentOrganizationsResponse {
 message GetOrganizationRequest {
     oneof ID {
         string ExternalID = 1;
-        string GCPAccountID = 2;
+        string GCPExternalAccountID = 2;
         string InternalID = 3;
     }
 }
@@ -195,7 +195,7 @@ message Organization {
 message GoogleCloudPlatform {
     string ID = 1;
     // External account ID from Google
-    string AccountID = 2;
+    string ExternalAccountID = 2;
     // Whether the GCP account has been activated or not. Note that this does not describe the state of the subscription.
     bool Activated = 3;
     google.protobuf.Timestamp CreatedAt = 4 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
@@ -210,7 +210,7 @@ message GoogleCloudPlatform {
 }
 
 message GetGCPRequest {
-    string AccountID = 1;
+    string ExternalAccountID = 1;
 }
 
 message GetGCPResponse {

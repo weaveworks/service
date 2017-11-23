@@ -143,7 +143,7 @@ func TestDB_FindGCP(t *testing.T) {
 	// Database request returns same values
 	gcp, err := db.FindGCP(ctx, externalAccountID)
 	assert.NoError(t, err)
-	assert.Equal(t, externalAccountID, gcp.AccountID)
+	assert.Equal(t, externalAccountID, gcp.ExternalAccountID)
 	assert.Equal(t, "project_number:123", gcp.ConsumerID)
 	assert.Equal(t, "partnerSubscriptions/1", gcp.SubscriptionName)
 	assert.Equal(t, "enterprise", gcp.SubscriptionLevel)

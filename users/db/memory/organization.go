@@ -261,10 +261,10 @@ func (d *DB) FindOrganizationByID(_ context.Context, externalID string) (*users.
 	return nil, users.ErrNotFound
 }
 
-// FindOrganizationByGCPAccountID returns the organization with the given account ID.
-func (d *DB) FindOrganizationByGCPAccountID(_ context.Context, accountID string) (*users.Organization, error) {
+// FindOrganizationByGCPExternalAccountID returns the organization with the given account ID.
+func (d *DB) FindOrganizationByGCPExternalAccountID(_ context.Context, externalAccountID string) (*users.Organization, error) {
 	for _, o := range d.organizations {
-		if o.GCP != nil && o.GCP.AccountID == accountID {
+		if o.GCP != nil && o.GCP.ExternalAccountID == externalAccountID {
 			return o, nil
 		}
 	}
@@ -433,7 +433,7 @@ func (d *DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number s
 }
 
 // CreateOrganizationWithGCP creates an organization with an inactive GCP account attached to it.
-func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID string) (*users.Organization, error) {
+func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string) (*users.Organization, error) {
 	var org *users.Organization
 	var gcp *users.GoogleCloudPlatform
 	externalID, err := d.GenerateOrganizationExternalID(ctx)
@@ -447,12 +447,12 @@ func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID s
 	}
 
 	// Create and attach inactive GCP subscription to the organization
-	gcp, err = d.createGCP(ctx, accountID)
+	gcp, err = d.createGCP(ctx, externalAccountID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = d.SetOrganizationGCP(ctx, externalID, accountID)
+	err = d.SetOrganizationGCP(ctx, externalID, externalAccountID)
 	if err != nil {
 		return nil, err
 	}
@@ -462,11 +462,11 @@ func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID s
 }
 
 // FindGCP returns the Google Cloud Platform subscription for the given account.
-func (d *DB) FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
+func (d *DB) FindGCP(ctx context.Context, externalAccountID string) (*users.GoogleCloudPlatform, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
-	gcp, exists := d.gcpAccounts[accountID]
+	gcp, exists := d.gcpAccounts[externalAccountID]
 	if !exists {
 		return nil, users.ErrNotFound
 	}
@@ -474,28 +474,28 @@ func (d *DB) FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudP
 }
 
 // UpdateGCP updates a Google Cloud Platform subscription.
-func (d *DB) UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus string) error {
+func (d *DB) UpdateGCP(ctx context.Context, externalAccountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
-	gcp, exists := d.gcpAccounts[accountID]
+	gcp, exists := d.gcpAccounts[externalAccountID]
 	if !exists {
 		return users.ErrNotFound
 	}
-	gcp.AccountID = accountID
+	gcp.ExternalAccountID = externalAccountID
 	gcp.ConsumerID = consumerID
 	gcp.SubscriptionName = subscriptionName
 	gcp.SubscriptionLevel = subscriptionLevel
 	gcp.SubscriptionStatus = subscriptionStatus
 	gcp.Activated = true
 
-	d.gcpAccounts[accountID] = gcp
+	d.gcpAccounts[externalAccountID] = gcp
 	return nil
 }
 
 // SetOrganizationGCP attaches a Google Cloud Platform subscription to an organization.
 // It also enables the billing feature flag and sets platform/env.
-func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, accountID string) error {
+func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccountID string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
@@ -507,7 +507,7 @@ func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, accountID strin
 		return errors.New("Organization already has a GCP account")
 	}
 
-	o.GCP = d.gcpAccounts[accountID]
+	o.GCP = d.gcpAccounts[externalAccountID]
 
 	// Hardcode platform/env here, that's what we expect the user to have.
 	// It also skips the platform/env tab during the onboarding process.
@@ -525,19 +525,19 @@ func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, accountID strin
 }
 
 // CreateGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
-func (d *DB) createGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error) {
+func (d *DB) createGCP(ctx context.Context, externalAccountID string) (*users.GoogleCloudPlatform, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
-	if _, exists := d.gcpAccounts[accountID]; exists {
+	if _, exists := d.gcpAccounts[externalAccountID]; exists {
 		// If account is already known, Google either sent as a duplicate or we wrongfully called this method.
 		return nil, errors.New("Account is already in use, reactivate subscription in the launcher")
 	}
 	gcp := &users.GoogleCloudPlatform{
-		ID:        fmt.Sprint(len(d.gcpAccounts)),
-		AccountID: accountID,
-		Activated: false,
+		ID:                fmt.Sprint(len(d.gcpAccounts)),
+		ExternalAccountID: externalAccountID,
+		Activated:         false,
 	}
-	d.gcpAccounts[accountID] = gcp
+	d.gcpAccounts[externalAccountID] = gcp
 	return gcp, nil
 }

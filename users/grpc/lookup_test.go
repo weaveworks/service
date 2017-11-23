@@ -439,7 +439,7 @@ func makeGCPBillingOrganization(t *testing.T) *users.Organization {
 }
 
 func cancelGCPSubscription(t *testing.T, gcp *users.GoogleCloudPlatform) {
-	err := database.UpdateGCP(context.Background(), gcp.AccountID, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel, string(partner.Complete))
+	err := database.UpdateGCP(context.Background(), gcp.ExternalAccountID, gcp.ConsumerID, gcp.SubscriptionName, gcp.SubscriptionLevel, string(partner.Complete))
 	require.NoError(t, err)
 }
 

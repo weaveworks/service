@@ -80,7 +80,7 @@ type DB interface {
 	CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (*users.Organization, error)
 	FindOrganizationByProbeToken(ctx context.Context, probeToken string) (*users.Organization, error)
 	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)
-	FindOrganizationByGCPAccountID(ctx context.Context, gcpAccountID string) (*users.Organization, error)
+	FindOrganizationByGCPExternalAccountID(ctx context.Context, externalAccountID string) (*users.Organization, error)
 	FindOrganizationByInternalID(ctx context.Context, internalID string) (*users.Organization, error)
 	UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error
 	OrganizationExists(ctx context.Context, externalID string) (bool, error)
@@ -95,13 +95,13 @@ type DB interface {
 	SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error
 
 	// CreateOrganizationWithGCP creates an organization with an inactive GCP account attached to it.
-	CreateOrganizationWithGCP(ctx context.Context, ownerID, accountID string) (*users.Organization, error)
+	CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string) (*users.Organization, error)
 	// Retrieve Google Cloud Platform entry.
-	FindGCP(ctx context.Context, accountID string) (*users.GoogleCloudPlatform, error)
+	FindGCP(ctx context.Context, externalAccountID string) (*users.GoogleCloudPlatform, error)
 	// Update a Google Cloud Platform entry. This marks the account as activated.
-	UpdateGCP(ctx context.Context, accountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus string) error
+	UpdateGCP(ctx context.Context, externalAccountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus string) error
 	// Attach a GCP subscription to an organization
-	SetOrganizationGCP(ctx context.Context, externalID, accountID string) error
+	SetOrganizationGCP(ctx context.Context, externalID, externalAccountID string) error
 
 	ListMemberships(ctx context.Context) ([]users.Membership, error)
 

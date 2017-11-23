@@ -283,11 +283,11 @@ func (m GCPLoginSecretMiddleware) validate(r *http.Request) (int, error) {
 	if err != nil {
 		return http.StatusBadRequest, err
 	}
-	gcpAccountID, err := validateGCPAccountID(path.Base(r.URL.Path))
+	externalAccountID, err := validateGCPExternalAccountID(path.Base(r.URL.Path))
 	if err != nil {
 		return http.StatusBadRequest, err
 	}
-	expectedToken := m.Tokenise(gcpAccountID, ts)
+	expectedToken := m.Tokenise(externalAccountID, ts)
 	if token != expectedToken {
 		return http.StatusUnauthorized, fmt.Errorf("invalid token [%v], expected [%v] for request [%v]", token, expectedToken, r)
 	}
@@ -315,9 +315,9 @@ func validateToken(token string) (string, error) {
 	return token, nil
 }
 
-func validateGCPAccountID(gcpAccountID string) (string, error) {
-	if match, _ := regexp.MatchString(`^[0-9A-Fa-f]{1}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}$`, gcpAccountID); !match {
-		return "", fmt.Errorf("invalid GCP account ID [%v]: malformed", gcpAccountID)
+func validateGCPExternalAccountID(externalAccountID string) (string, error) {
+	if match, _ := regexp.MatchString(`^[0-9A-Fa-f]{1}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}$`, externalAccountID); !match {
+		return "", fmt.Errorf("invalid GCP account ID [%v]: malformed", externalAccountID)
 	}
-	return gcpAccountID, nil
+	return externalAccountID, nil
 }

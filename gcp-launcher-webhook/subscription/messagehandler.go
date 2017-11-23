@@ -27,23 +27,23 @@ type MessageHandler struct {
 // Handle processes the message for a subscription. It fetches organization and the
 func (m MessageHandler) Handle(msg dto.Message) error {
 	ctx := context.Background()
-	gcpAccountID := msg.Attributes[externalAccountIDKey]
+	externalAccountID := msg.Attributes[externalAccountIDKey]
 	subscriptionName := msg.Attributes[subscriptionNameKey]
-	logger := log.WithFields(log.Fields{"account_id": gcpAccountID, "subscription": subscriptionName})
+	logger := log.WithFields(log.Fields{"external_account_id": externalAccountID, "subscription": subscriptionName})
 
-	resp, err := m.Users.GetGCP(ctx, &users.GetGCPRequest{AccountID: gcpAccountID})
+	resp, err := m.Users.GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID})
 	if err != nil {
-		return errors.Wrapf(err, "cannot find account: %v", gcpAccountID) // NACK
+		return errors.Wrapf(err, "cannot find account: %v", externalAccountID) // NACK
 	}
 	gcp := resp.GCP
 
 	// Activation.
 	if !gcp.Activated {
-		logger.Infof("Account %v has not yet been activated, ignoring message", gcpAccountID)
+		logger.Infof("Account %v has not yet been activated, ignoring message", externalAccountID)
 		return nil // ACK
 	}
 
-	sub, subs, err := m.getSubscriptions(ctx, gcpAccountID, subscriptionName)
+	sub, subs, err := m.getSubscriptions(ctx, externalAccountID, subscriptionName)
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func (m MessageHandler) updateGCP(ctx context.Context, sub *partner.Subscription
 	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
 	_, err := m.Users.UpdateGCP(ctx, &users.UpdateGCPRequest{
 		GCP: &users.GoogleCloudPlatform{
-			AccountID:         sub.ExternalAccountID,
+			ExternalAccountID: sub.ExternalAccountID,
 			ConsumerID:        consumerID,
 			SubscriptionName:  sub.Name,
 			SubscriptionLevel: level,
@@ -130,17 +130,17 @@ func (m MessageHandler) updateGCP(ctx context.Context, sub *partner.Subscription
 	return err
 }
 
-func (m MessageHandler) enableWeaveCloudAccess(ctx context.Context, gcpAccountID string) error {
-	return m.setWeaveCloudAccessFlagsTo(ctx, gcpAccountID, false)
+func (m MessageHandler) enableWeaveCloudAccess(ctx context.Context, externalAccountID string) error {
+	return m.setWeaveCloudAccessFlagsTo(ctx, externalAccountID, false)
 }
 
-func (m MessageHandler) disableWeaveCloudAccess(ctx context.Context, gcpAccountID string) error {
-	return m.setWeaveCloudAccessFlagsTo(ctx, gcpAccountID, true)
+func (m MessageHandler) disableWeaveCloudAccess(ctx context.Context, externalAccountID string) error {
+	return m.setWeaveCloudAccessFlagsTo(ctx, externalAccountID, true)
 }
 
-func (m MessageHandler) setWeaveCloudAccessFlagsTo(ctx context.Context, gcpAccountID string, value bool) error {
+func (m MessageHandler) setWeaveCloudAccessFlagsTo(ctx context.Context, externalAccountID string, value bool) error {
 	org, err := m.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
-		ID: &users.GetOrganizationRequest_GCPAccountID{GCPAccountID: gcpAccountID},
+		ID: &users.GetOrganizationRequest_GCPExternalAccountID{GCPExternalAccountID: externalAccountID},
 	})
 	if err != nil {
 		return err
@@ -158,8 +158,8 @@ func (m MessageHandler) setWeaveCloudAccessFlagsTo(ctx context.Context, gcpAccou
 
 // getSubscriptions fetches all subscriptions of the account. Furthermore, it picks the subscription with the
 // given subscriptionName.
-func (m MessageHandler) getSubscriptions(ctx context.Context, gcpAccountID string, subscriptionName string) (*partner.Subscription, []partner.Subscription, error) {
-	subs, err := m.Partner.ListSubscriptions(ctx, gcpAccountID)
+func (m MessageHandler) getSubscriptions(ctx context.Context, externalAccountID string, subscriptionName string) (*partner.Subscription, []partner.Subscription, error) {
+	subs, err := m.Partner.ListSubscriptions(ctx, externalAccountID)
 	if err != nil {
 		return nil, nil, err
 	}

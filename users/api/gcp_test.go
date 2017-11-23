@@ -118,7 +118,7 @@ func TestAPI_GCPSubscribe(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	// Make sure account was activated and the subscription is running
-	org, err = database.FindOrganizationByGCPAccountID(context.TODO(), sub.ExternalAccountID)
+	org, err = database.FindOrganizationByGCPExternalAccountID(context.TODO(), sub.ExternalAccountID)
 	assert.NoError(t, err)
 	assert.True(t, org.GCP.Activated)
 	assert.EqualValues(t, partner.Active, org.GCP.SubscriptionStatus)
@@ -162,7 +162,7 @@ func TestAPI_GCPSubscribe_resumeInactivated(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		// Make sure account was activated and the subscription is running
-		org, err = database.FindOrganizationByGCPAccountID(context.TODO(), sub.ExternalAccountID)
+		org, err = database.FindOrganizationByGCPExternalAccountID(context.TODO(), sub.ExternalAccountID)
 		assert.NoError(t, err)
 		assert.True(t, org.GCP.Activated)
 		assert.EqualValues(t, partner.Active, org.GCP.SubscriptionStatus)

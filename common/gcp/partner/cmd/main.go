@@ -22,15 +22,15 @@ import (
 )
 
 type config struct {
-	action         string
-	accountID      string
-	subscriptionID string
-	partner        partner.Config
+	action            string
+	externalAccountID string
+	subscriptionID    string
+	partner           partner.Config
 }
 
 func (c *config) RegisterFlags(f *flag.FlagSet) {
 	flag.StringVar(&c.action, "action", "approve", "Action to perform on the provided GCP account-subscription pair.")
-	flag.StringVar(&c.accountID, "account-id", "X-XXXX-XXXX-XXXX-XXXX", "GCP account ID.")
+	flag.StringVar(&c.externalAccountID, "external-account-id", "X-XXXX-XXXX-XXXX-XXXX", "GCP external account ID.")
 	flag.StringVar(&c.subscriptionID, "subscription-id", "partnerSubscriptions/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX", "GCP subscription ID.")
 	c.partner.RegisterFlags(f)
 }
@@ -47,15 +47,15 @@ func main() {
 
 	switch cfg.action {
 	case "approve":
-		approve(partner, cfg.accountID, cfg.subscriptionID)
+		approve(partner, cfg.externalAccountID, cfg.subscriptionID)
 	default:
 		fmt.Printf("Unknown command [%v].", cfg.action)
 	}
 }
 
-func approve(client *partner.Client, accountID, subscriptionID string) error {
+func approve(client *partner.Client, externalAccountID, subscriptionID string) error {
 	ctx := context.Background()
-	body := partner.RequestBodyWithSSOLoginKey(accountID)
+	body := partner.RequestBodyWithSSOLoginKey(externalAccountID)
 	if _, err := client.ApproveSubscription(ctx, subscriptionID, body); err != nil {
 		return err
 	}
