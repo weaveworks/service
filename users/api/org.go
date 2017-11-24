@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/render"
 )
@@ -207,6 +208,10 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	}
 	if resp.Email == "" {
 		render.Error(w, r, users.ValidationErrorf("Email cannot be blank"))
+		return
+	}
+	if !validation.ValidateEmail(resp.Email) {
+		render.Error(w, r, users.ValidationErrorf("Please provide a valid email"))
 		return
 	}
 
