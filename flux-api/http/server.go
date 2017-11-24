@@ -73,6 +73,7 @@ func NewServiceRouter() *mux.Router {
 	r.NewRoute().Name("PostIntegrationsGithub").Methods("POST").Path("/v6/integrations/github").Queries("owner", "{owner}", "repository", "{repository}")
 	r.NewRoute().Name("IsConnected").Methods("HEAD", "GET").Path("/v6/ping")
 	r.NewRoute().Name("DockerHubImageNotify").Methods("POST").Path("/v6/integrations/dockerhub/image").Queries("instance", "{instance}")
+	r.NewRoute().Name("QuayImageNotify").Methods("POST").Path("/v6/integrations/quay/image").Queries("instance", "{instance}")
 	r.NewRoute().Name("GitPushNotify").Methods("POST").Path("/v6/integrations/git/push").Queries("instance", "{instance}")
 
 	// We assume every request that doesn't match a route is a client
@@ -120,6 +121,7 @@ func NewHandler(s api.Service, r *mux.Router, logger log.Logger) http.Handler {
 		"GetPublicSSHKey":          handle.GetPublicSSHKey,
 		"RegeneratePublicSSHKey":   handle.RegeneratePublicSSHKey,
 		"DockerHubImageNotify":     handle.DockerHubImageNotify,
+		"QuayImageNotify":          handle.QuayImageNotify,
 		"GitPushNotify":            handle.GitPushNotify,
 	} {
 		handler := logging(handlerMethod, log.With(logger, "method", method))
@@ -581,7 +583,23 @@ func (s httpService) DockerHubImageNotify(w http.ResponseWriter, r *http.Request
 		transport.WriteError(w, r, http.StatusBadRequest, err)
 		return
 	}
-	ref, err := image.ParseRef(p.Repository.RepoName)
+	s.imageNotify(w, r, p.Repository.RepoName)
+}
+
+func (s httpService) QuayImageNotify(w http.ResponseWriter, r *http.Request) {
+	type payload struct {
+		DockerURL string `json:"docker_url"`
+	}
+	var p payload
+	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+		transport.WriteError(w, r, http.StatusBadRequest, err)
+		return
+	}
+	s.imageNotify(w, r, p.DockerURL)
+}
+
+func (s httpService) imageNotify(w http.ResponseWriter, r *http.Request, img string) {
+	ref, err := image.ParseRef(img)
 	if err != nil {
 		transport.WriteError(w, r, http.StatusUnprocessableEntity, err)
 		return
