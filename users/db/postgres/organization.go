@@ -83,8 +83,11 @@ func (d DB) userIsDirectMemberOf(_ context.Context, userID, orgExternalID string
 func (d DB) userIsTeamMemberOf(_ context.Context, userID, orgExternalID string) (bool, error) {
 	rows, err := d.organizationsQuery().
 		Join("team_memberships on (organizations.team_id = team_memberships.team_id)").
-		Where(squirrel.Eq{"team_memberships.user_id": userID, "organizations.external_id": orgExternalID}).
-		Where("team_memberships.deleted_at IS NULL").
+		Where(squirrel.Eq{
+			"team_memberships.user_id":    userID,
+			"team_memberships.deleted_at": nil,
+			"organizations.external_id":   orgExternalID,
+		}).
 		Query()
 	if err != nil {
 		return false, err
@@ -185,10 +188,10 @@ func (d DB) listTeamOrganizationUsers(_ context.Context, orgExternalID string) (
 	rows, err := d.usersQuery().
 		Join("team_memberships on (team_memberships.user_id = users.id)").
 		Join("organizations on (team_memberships.team_id = organizations.team_id)").
-		Where("team_memberships.deleted_at IS NULL").
 		Where(squirrel.Eq{
-			"organizations.external_id": orgExternalID,
-			"organizations.deleted_at":  nil,
+			"organizations.external_id":   orgExternalID,
+			"organizations.deleted_at":    nil,
+			"team_memberships.deleted_at": nil,
 		}).
 		Query()
 	if err != nil {
