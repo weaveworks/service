@@ -13,6 +13,9 @@ import (
 	plus "google.golang.org/api/plus/v1"
 )
 
+// GoogleProviderID is the ID to register this login provider.
+const GoogleProviderID = "google"
+
 type google struct {
 	OAuth
 }

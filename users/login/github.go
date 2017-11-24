@@ -12,6 +12,9 @@ import (
 	githubOauth "golang.org/x/oauth2/github"
 )
 
+// GithubProviderID is the ID to register this login provider.
+const GithubProviderID = "github"
+
 type github struct {
 	OAuth
 }
