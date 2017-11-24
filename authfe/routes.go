@@ -361,6 +361,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			"/api/flux/v6/integrations",
 			[]PrefixRoutable{
 				PrefixMethods{"/dockerhub/image", []string{"POST"}, c.fluxV6Host},
+				PrefixMethods{"/quay/image", []string{"POST"}, c.fluxV6Host},
 			},
 			nil,
 		},
