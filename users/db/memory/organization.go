@@ -10,7 +10,6 @@ import (
 
 	"github.com/lib/pq"
 
-	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/externalIDs"
@@ -495,8 +494,7 @@ func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAcc
 		return nil, err
 	}
 	name := users.DefaultOrganizationName(externalID)
-
-	teamName := orgs.TeamNameFromOrgExternalID(externalID)
+	teamName := users.DefaultTeamName(externalID)
 	org, err = d.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, "", "", teamName)
 	if err != nil {
 		return nil, err

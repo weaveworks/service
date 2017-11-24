@@ -1,6 +1,7 @@
 package users
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -19,6 +20,8 @@ const (
 
 	// BillingFeatureFlag enables billing for an organization
 	BillingFeatureFlag = "billing"
+
+	defaultTeamNameTemplate = "%v Team"
 )
 
 var (
@@ -144,4 +147,10 @@ func (o *Organization) BillingProvider() string {
 // the externalID.
 func DefaultOrganizationName(externalID string) string {
 	return strings.Title(strings.Replace(externalID, "-", " ", -1))
+}
+
+// DefaultTeamName returns the default name which is derived from
+// the organization externalID.
+func DefaultTeamName(orgExternalID string) string {
+	return fmt.Sprintf(defaultTeamNameTemplate, DefaultOrganizationName(orgExternalID))
 }

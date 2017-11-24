@@ -11,7 +11,6 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 
-	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/externalIDs"
@@ -655,9 +654,8 @@ func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAcco
 			return err
 		}
 		name := users.DefaultOrganizationName(externalID)
-
 		// create one team for each gcp instance
-		teamName := orgs.TeamNameFromOrgExternalID(externalID)
+		teamName := users.DefaultTeamName(externalID)
 		org, err = tx.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, "", "", teamName)
 		if err != nil {
 			return err
