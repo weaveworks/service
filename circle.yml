@@ -63,7 +63,7 @@ deployment:
           echo Last successful build was commit $LAST_BUILD_COMMIT
           ./push-images --if-changed-since $LAST_BUILD_COMMIT
   dry_run:
-    branch: /^((?!master).)*$/  # not the master branch
+    branch: /^(?!master$).*/  # not master branch
     commands:
       - |
           set -o pipefail
