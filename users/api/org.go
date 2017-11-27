@@ -206,11 +206,12 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		render.Error(w, r, users.MalformedInputError(err))
 		return
 	}
-	if resp.Email == "" {
+	email := strings.TrimSpace(resp.Email)
+	if email == "" {
 		render.Error(w, r, users.ValidationErrorf("Email cannot be blank"))
 		return
 	}
-	if !validation.ValidateEmail(resp.Email) {
+	if !validation.ValidateEmail(email) {
 		render.Error(w, r, users.ValidationErrorf("Please provide a valid email"))
 		return
 	}
@@ -221,7 +222,7 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
-	invitee, created, err := a.db.InviteUser(r.Context(), resp.Email, orgExternalID)
+	invitee, created, err := a.db.InviteUser(r.Context(), email, orgExternalID)
 	if err != nil {
 		render.Error(w, r, err)
 		return
