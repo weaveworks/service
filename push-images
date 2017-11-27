@@ -45,7 +45,7 @@ These need to correspond to the files used to build the Docker image.
 DEPENDENCIES = {
     'authfe': ['authfe', 'users'],
     'users': ['users', 'common'],
-    'metrics': ['metrics'],
+    'metrics': ['metrics', 'users'],
     'logging': ['logging'],
     'notebooks': ['notebooks'],
     'service-ui-kicker': ['service-ui-kicker'],
