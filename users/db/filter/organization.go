@@ -109,7 +109,7 @@ type HasFeatureFlag string
 
 // Where returns the query to filter by feature flag.
 func (f HasFeatureFlag) Where() squirrel.Sqlizer {
-	return squirrel.Expr("?=ANY(feature_flags)", string(f))
+	return squirrel.Expr("?=ANY(organizations.feature_flags)", string(f))
 }
 
 // MatchesOrg checks whether an organization matches this filter.
@@ -122,7 +122,7 @@ type ID string
 
 // Where returns the query to filter by ID.
 func (i ID) Where() squirrel.Sqlizer {
-	return squirrel.Eq{"id": string(i)}
+	return squirrel.Eq{"organizations.id": string(i)}
 }
 
 // MatchesOrg checks whether an organization matches this filter.
@@ -135,7 +135,7 @@ type ExternalID string
 
 // Where returns the query to filter by ID.
 func (e ExternalID) Where() squirrel.Sqlizer {
-	return squirrel.Eq{"external_id": string(e)}
+	return squirrel.Eq{"organizations.external_id": string(e)}
 }
 
 // MatchesOrg checks whether an organization matches this filter.
