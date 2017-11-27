@@ -181,6 +181,23 @@ func Test_Signup_WithBlankEmail(t *testing.T) {
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 }
 
+func Test_Signup_WithInvalidEmail(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	email := "foo@test"
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("POST", "/api/users/signup", jsonBody{"email": email}.Reader(t))
+
+	_, err := database.FindUserByEmail(context.Background(), email)
+	assert.EqualError(t, err, users.ErrNotFound.Error())
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Please provide a valid email")
+	_, err = database.FindUserByEmail(context.Background(), email)
+	assert.EqualError(t, err, users.ErrNotFound.Error())
+}
+
 func Test_Signup_ViaOAuth(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
@@ -230,6 +247,25 @@ func Test_Signup_ProviderBlankEmail(t *testing.T) {
 	defer cleanup(t)
 
 	email := ""
+	logins.Register("mock", MockLoginProvider{
+		"joe": {ID: "joe", Email: email},
+	})
+
+	w := httptest.NewRecorder()
+	r, _ := http.NewRequest("GET", "/api/users/logins/mock/attach?code=joe&state=state", nil)
+	_, err := database.FindUserByEmail(context.Background(), email)
+	assert.EqualError(t, err, users.ErrNotFound.Error())
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid authentication data")
+}
+
+// Test the case where the Provider fails to return an email address
+func Test_Signup_ProviderInvalidEmail(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	email := "test@test"
 	logins.Register("mock", MockLoginProvider{
 		"joe": {ID: "joe", Email: email},
 	})

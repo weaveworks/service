@@ -9,11 +9,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/common"
+	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/render"
@@ -115,6 +117,11 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	}
 	if email == "" {
 		logging.With(r.Context()).Errorf("Login provider returned blank email: %q", providerID)
+		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		return
+	}
+	if !validation.ValidateEmail(email) {
+		logging.With(r.Context()).Errorf("Login provider returned an invalid email: %q, %v", providerID, email)
 		render.Error(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -294,15 +301,19 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 	if req.Email == "" {
 		return nil, nil, users.ValidationErrorf("Email cannot be blank")
 	}
+	email := strings.TrimSpace(req.Email)
 
-	user, err := a.db.FindUserByEmail(ctx, req.Email)
+	user, err := a.db.FindUserByEmail(ctx, email)
 	if err == users.ErrNotFound {
-		user, err = a.db.CreateUser(ctx, req.Email)
+		if !validation.ValidateEmail(email) {
+			return nil, nil, users.ValidationErrorf("Please provide a valid email")
+		}
+		user, err = a.db.CreateUser(ctx, email)
 		if err == nil {
 			a.marketingQueues.UserCreated(user.Email, user.CreatedAt)
 			if a.mixpanel != nil {
 				go func() {
-					if err := a.mixpanel.TrackSignup(req.Email); err != nil {
+					if err := a.mixpanel.TrackSignup(email); err != nil {
 						logging.With(ctx).Error(err)
 					}
 				}()
@@ -320,7 +331,7 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 	}
 
 	resp := SignupResponse{
-		Email: req.Email,
+		Email: email,
 	}
 	if a.directLogin {
 		// This path is enabled for local development only
