@@ -7,6 +7,7 @@ import sys
 
 
 BUILD_IMAGE_REPO = 'quay.io/weaveworks'
+SERVICE_REPO = 'github.com/weaveworks/service'
 
 QUAY_IO_WARNING = """
 When pushing to quay.io, you will *not* be prompted to log in. To get your password:
@@ -34,31 +35,6 @@ DEFAULT_COMPONENTS = [
     'billing-aggregator',
     'flux-api',
 ]
-
-"""Map from component to list of known dependencies.
-
-Used by 'has_changed_since' (via 'get_dependencies') to calculate whether a
-component has changed, and thus whether to push a new image.
-
-These need to correspond to the files used to build the Docker image.
-"""
-DEPENDENCIES = {
-    'authfe': ['authfe', 'users'],
-    'users': ['users', 'common'],
-    'metrics': ['metrics', 'users'],
-    'logging': ['logging'],
-    'notebooks': ['notebooks'],
-    'service-ui-kicker': ['service-ui-kicker'],
-    'gcp-launcher-webhook': ['gcp-launcher-webhook', 'users', 'common'],
-    'github-receiver': ['github-receiver'],
-    'billing-api': ['billing-api', 'common', 'users'],
-    'billing-uploader': ['billing-uploader', 'common', 'users', 'billing-api'],
-    'billing-hpm_demo': ['billing-hpm_demo'],
-    'billing-ingester': ['billing-ingester'],
-    'billing-enforcer': ['billing-enforcer', 'common', 'users'],
-    'billing-aggregator': ['billing-aggregator', 'common', 'users', 'billing-api'],
-    'flux-api': ['flux-api'],
-}
 
 
 class ConfigError(Exception):
@@ -98,14 +74,20 @@ def get_dependencies(component):
 
     Currently assumes that code is named for directories in components.
     """
+    # add itself
+    deps = [component]
+
+    # add go dependencies
     try:
-        deps = DEPENDENCIES[component]
+        deps.extend(get_go_dependencies(component))
     except KeyError:
         raise ConfigError(
             "Couldn't find dependencies for component {}".format(component))
 
+    # common non-go dependencies
     deps.extend(common_dependencies())
     return deps
+
 
 def common_dependencies():
     # If this script changes, push all images (should be rare).
@@ -116,6 +98,20 @@ def common_dependencies():
     # 4. Edits `push-images` accordingly, but the image, again, isn't pushed
     #    because the code was not changed.
     return ['push-images']
+
+
+def get_go_dependencies(component):
+    # Fetch go depedencies using 'go list'
+    cmd = """
+        cd {} &&
+        for dep in `go list -f '{{{{ .Deps }}}}'`; do
+            echo $dep | grep '{}' | grep -v vendor;
+        done | xargs
+    """.format(component, SERVICE_REPO)
+    deps = subprocess.check_output(cmd, shell=True).strip().split()
+    deps = list(map(lambda dep: dep[len(SERVICE_REPO + '/'):], deps))
+    return deps
+
 
 def has_changed_since(since, component):
     """Has 'component' changed since the given revision?
