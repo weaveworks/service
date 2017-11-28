@@ -67,16 +67,18 @@
             <th class="mdl-data-table__cell--non-numeric">CreatedAt ▼</th>
             <th class="mdl-data-table__cell--non-numeric">FirstSeenConnectedAt</th>
             <th class="mdl-data-table__cell--non-numeric">Fields</th>
+            <th></th>
+            <th class="mdl-data-table__cell--non-numeric">Billing</th>
           </tr>
       </thead>
       <tbody>
       {{range .Organizations}}
       <tr>
         <td>{{.ID}}</td>
-        <td>{{.ExternalID}}</td>
-        <td style="max-width:300px;text-overflow:ellipsis;overflow:hidden" title="{{.Name}}">{{.Name}}</td>
-        <td>{{.FormatCreatedAt}}</td>
-        <td>{{if .FirstSeenConnectedAt}}{{.FirstSeenConnectedAt}}{{ else }}
+        <td class="mdl-data-table__cell--non-numeric">{{.ExternalID}}</td>
+        <td class="mdl-data-table__cell--non-numeric" style="max-width:300px;text-overflow:ellipsis;overflow:hidden" title="{{.Name}}">{{.Name}}</td>
+        <td class="mdl-data-table__cell--non-numeric">{{.FormatCreatedAt}}</td>
+        <td class="mdl-data-table__cell--non-numeric">{{if .FirstSeenConnectedAt}}{{.FirstSeenConnectedAt}}{{ else }}
             <form action="organizations/{{.ExternalID}}" method="POST">
                 <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
                 <input type="hidden" name="field" value="FirstSeenConnectedAt">
@@ -96,10 +98,15 @@
         <td>
           <a href="organizations/{{.ExternalID}}/users">Users</a>
         </td>
-        <td>
+        <td class="mdl-data-table__cell--non-numeric">
           {{if .GCP}}
-            <strong title="{{.GCP.SubscriptionName}} [{{.GCP.SubscriptionLevel}}, {{.GCP.ConsumerID}}]">GCP</strong> {{.GCP.ExternalAccountID}}
-            {{if not .GCP.Activated}}INACTIVE!{{end}}
+            {{if not .GCP.Activated}}<div class="material-icons" title="Account was not activated">error</div>{{end}}
+            <strong title="{{.GCP.SubscriptionName}} [{{.GCP.ConsumerID}}]">GCP</strong> <em>{{.GCP.SubscriptionLevel}}</em><br />
+            {{.GCP.ExternalAccountID}}
+          {{end}}
+          {{if .ZuoraAccountNumber }}
+            <strong>Zuora</strong><br />
+            {{.ZuoraAccountNumber}}
           {{end}}
         </td>
       </tr>
