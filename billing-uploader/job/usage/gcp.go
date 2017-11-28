@@ -37,6 +37,7 @@ func (g *GCP) Add(ctx context.Context, org users.Organization, from, through tim
 		if agg.AmountType != billing.UsageNodeSeconds {
 			continue
 		}
+		value := agg.AmountValue
 		g.ops = append(g.ops, &servicecontrol.Operation{
 			OperationId:   g.client.OperationID(strconv.Itoa(agg.ID)), // same id for same operation helps deduplication
 			OperationName: "HourlyUsageUpload",                        // can be selected freely
@@ -46,7 +47,7 @@ func (g *GCP) Add(ctx context.Context, org users.Organization, from, through tim
 			MetricValueSets: []*servicecontrol.MetricValueSet{{
 				MetricName: fmt.Sprintf("google.weave.works/%s_nodes", org.GCP.SubscriptionLevel),
 				MetricValues: []*servicecontrol.MetricValue{{
-					Int64Value: &agg.AmountValue,
+					Int64Value: &value,
 				}},
 			}},
 		})
