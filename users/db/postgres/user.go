@@ -336,31 +336,6 @@ func (d DB) SetUserToken(_ context.Context, id, token string) error {
 	return nil
 }
 
-// SetUserFirstLoginAt is called the first time a user logs in, to set their
-// first_login_at field.
-func (d DB) SetUserFirstLoginAt(_ context.Context, id string) error {
-	result, err := d.Exec(`
-		update users set
-			first_login_at = $2
-		where id = $1
-			and first_login_at is null
-			and deleted_at is null`,
-		id,
-		d.Now(),
-	)
-	if err != nil {
-		return err
-	}
-	count, err := result.RowsAffected()
-	switch {
-	case err != nil:
-		return err
-	case count != 1:
-		return users.ErrNotFound
-	}
-	return nil
-}
-
 // SetUserLastLoginAt is called the ever ytime a user logs in, to set their
 // lasst_login_at field.
 // If it also is their forst login, first_login_at is also set

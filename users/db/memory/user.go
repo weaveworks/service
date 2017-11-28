@@ -227,21 +227,6 @@ func (d *DB) SetUserToken(_ context.Context, id, token string) error {
 	return nil
 }
 
-// SetUserFirstLoginAt is called the first time a user logs in, to set their
-// first_login_at field.
-func (d *DB) SetUserFirstLoginAt(_ context.Context, id string) error {
-	d.mtx.Lock()
-	defer d.mtx.Unlock()
-	user, ok := d.users[id]
-	if !ok {
-		return users.ErrNotFound
-	}
-	if user.FirstLoginAt.IsZero() {
-		user.FirstLoginAt = time.Now().UTC()
-	}
-	return nil
-}
-
 // SetUserLastLoginAt is called the ever ytime a user logs in, to set their last_login_at field.
 // If it also is their forst login, first_login_at is also set
 func (d *DB) SetUserLastLoginAt(_ context.Context, id string) error {

@@ -68,9 +68,6 @@ type DB interface {
 	// user's token.
 	SetUserToken(ctx context.Context, id, token string) error
 
-	// Update the user's first login timestamp. Should be called the first time a user logs in (ctx context.Context, i.e. if FirstLoginAt.IsZero())
-	SetUserFirstLoginAt(ctx context.Context, id string) error
-
 	// Update the user's last login timestamp. If it is the user's first login, also set the user's first login timestamp
 	SetUserLastLoginAt(ctx context.Context, id string) error
 

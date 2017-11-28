@@ -101,11 +101,6 @@ func (t traced) SetUserToken(ctx context.Context, id, token string) (err error) 
 	return t.d.SetUserToken(ctx, id, token)
 }
 
-func (t traced) SetUserFirstLoginAt(ctx context.Context, id string) (err error) {
-	defer func() { t.trace("SetUserFirstLoginAt", id, err) }()
-	return t.d.SetUserFirstLoginAt(ctx, id)
-}
-
 func (t traced) SetUserLastLoginAt(ctx context.Context, id string) (err error) {
 	defer func() { t.trace("SetUserLastLoginAt", id, err) }()
 	return t.d.SetUserLastLoginAt(ctx, id)

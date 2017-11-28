@@ -156,12 +156,6 @@ func (t timed) SetUserToken(ctx context.Context, id, token string) error {
 	})
 }
 
-func (t timed) SetUserFirstLoginAt(ctx context.Context, id string) error {
-	return t.timeRequest(ctx, "SetUserFirstLoginAt", func(ctx context.Context) error {
-		return t.d.SetUserFirstLoginAt(ctx, id)
-	})
-}
-
 func (t timed) SetUserLastLoginAt(ctx context.Context, id string) error {
 	return t.timeRequest(ctx, "SetUserLastLoginAt", func(ctx context.Context) error {
 		return t.d.SetUserLastLoginAt(ctx, id)
