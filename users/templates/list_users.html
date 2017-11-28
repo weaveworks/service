@@ -60,6 +60,7 @@
             <th class="mdl-data-table__cell--non-numeric">Email</th>
             <th class="mdl-data-table__cell--non-numeric">CreatedAt ▼</th>
             <th class="mdl-data-table__cell--non-numeric">FirstLoginAt</th>
+            <th class="mdl-data-table__cell--non-numeric">LastLoginAt</th>
             <th class="mdl-data-table__cell--non-numeric">Admin</th>
         </tr>
         </thead>
@@ -69,6 +70,7 @@
         <td><div style="max-width: 640px; overflow: hidden; text-overflow: ellipsis; white-space; nowrap;">{{.Email}}</div></td>
         <td>{{.FormatCreatedAt}}</td>
         <td>{{.FormatFirstLoginAt}}</td>
+        <td>{{.FormatLastLoginAt}}</td>
         <td>
           <form action="users/{{.ID}}/admin" method="POST">
             <input type="hidden" name="admin" value="{{if .Admin}}false{{else}}true{{end}}" />
