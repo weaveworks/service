@@ -116,11 +116,15 @@ func ParseOrgQuery(qs string) Organization {
 				switch kv[1] {
 				case "zuora":
 					filters = append(filters, ZuoraAccount(true))
+				case "gcp":
+					filters = append(filters, GCPSubscription(true))
 				}
 			case "!has":
 				switch kv[1] {
 				case "zuora":
 					filters = append(filters, ZuoraAccount(false))
+				case "gcp":
+					filters = append(filters, GCPSubscription(false))
 				}
 			case "id":
 				filters = append(filters, ID(kv[1]))
