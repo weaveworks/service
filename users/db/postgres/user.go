@@ -198,11 +198,12 @@ func (d DB) scanUser(row squirrel.RowScanner) (*users.User, error) {
 
 		createdAt,
 		firstLoginAt,
+		lastLoginAt,
 		tokenCreatedAt pq.NullTime
 	)
 	if err := row.Scan(
 		&u.ID, &u.Email, &token, &tokenCreatedAt, &createdAt,
-		&u.Admin, &firstLoginAt,
+		&u.Admin, &firstLoginAt, &lastLoginAt,
 	); err != nil {
 		return nil, err
 	}
@@ -210,6 +211,7 @@ func (d DB) scanUser(row squirrel.RowScanner) (*users.User, error) {
 	u.TokenCreatedAt = tokenCreatedAt.Time
 	u.CreatedAt = createdAt.Time
 	u.FirstLoginAt = firstLoginAt.Time
+	u.LastLoginAt = lastLoginAt.Time
 	return u, nil
 }
 
@@ -222,6 +224,7 @@ func (d DB) usersQuery() squirrel.SelectBuilder {
 		"users.created_at",
 		"users.admin",
 		"users.first_login_at",
+		"users.last_login_at",
 	).
 		From("users").
 		Where("users.deleted_at is null").
@@ -333,27 +336,49 @@ func (d DB) SetUserToken(_ context.Context, id, token string) error {
 	return nil
 }
 
-// SetUserFirstLoginAt is called the first time a user logs in, to set their
-// first_login_at field.
-func (d DB) SetUserFirstLoginAt(_ context.Context, id string) error {
-	result, err := d.Exec(`
-		update users set
-			first_login_at = $2
-		where id = $1
-			and first_login_at is null
-			and deleted_at is null`,
-		id,
-		d.Now(),
-	)
-	if err != nil {
-		return err
-	}
-	count, err := result.RowsAffected()
-	switch {
-	case err != nil:
-		return err
-	case count != 1:
-		return users.ErrNotFound
-	}
-	return nil
+// SetUserLastLoginAt is called the ever ytime a user logs in, to set their
+// lasst_login_at field.
+// If it also is their forst login, first_login_at is also set
+func (d DB) SetUserLastLoginAt(_ context.Context, id string) error {
+	now := d.Now()
+	return d.Transaction(func(tx DB) error {
+		var firstLoginAt pq.NullTime
+		err := tx.QueryRow(`
+			update users set
+				last_login_at = $2
+			where id = $1
+				and deleted_at is null
+			returning
+				first_login_at`,
+			id,
+			now,
+		).Scan(&firstLoginAt)
+		if err != nil {
+			return err
+		}
+		// not null: saves a query
+		if firstLoginAt.Valid {
+			return nil
+		}
+		result, err := tx.Exec(`
+			update users set
+				first_login_at = $2
+			where id = $1
+				and first_login_at is null
+				and deleted_at is null`,
+			id,
+			now,
+		)
+		if err != nil {
+			return err
+		}
+		count, err := result.RowsAffected()
+		switch {
+		case err != nil:
+			return err
+		case count != 1:
+			return users.ErrNotFound
+		}
+		return nil
+	})
 }

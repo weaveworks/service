@@ -30,6 +30,11 @@ func (u *User) FormatFirstLoginAt() string {
 	return formatTimestamp(u.FirstLoginAt)
 }
 
+// FormatLastLoginAt formats the user's first login timestamp
+func (u *User) FormatLastLoginAt() string {
+	return formatTimestamp(u.LastLoginAt)
+}
+
 // CompareToken does a cryptographically-secure comparison of the user's login token
 func (u *User) CompareToken(other string) bool {
 	var (

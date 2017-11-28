@@ -434,12 +434,7 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 
 // UpdateUserAtLogin sets u.FirstLoginAt if not already set
 func (a *API) UpdateUserAtLogin(ctx context.Context, u *users.User) error {
-	if u.FirstLoginAt.IsZero() {
-		if err := a.db.SetUserFirstLoginAt(ctx, u.ID); err != nil {
-			return err
-		}
-	}
-	return nil
+	return a.db.SetUserLastLoginAt(ctx, u.ID)
 }
 
 func (a *API) logout(w http.ResponseWriter, r *http.Request) {

@@ -49,6 +49,7 @@ type privateUserView struct {
 	Email        string `json:"email"`
 	CreatedAt    string `json:"created_at"`
 	FirstLoginAt string `json:"first_login_at"`
+	LastLoginAt  string `json:"last_login_at"`
 	Admin        bool   `json:"admin"`
 }
 
@@ -70,6 +71,7 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 				Email:        user.Email,
 				CreatedAt:    user.FormatCreatedAt(),
 				FirstLoginAt: user.FormatFirstLoginAt(),
+				LastLoginAt:  user.FormatLastLoginAt(),
 				Admin:        user.Admin,
 			})
 		}

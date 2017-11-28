@@ -154,3 +154,39 @@ func TestDB_FindGCP(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, gcp, neworg.GCP)
 }
+
+func TestDB_LastLoginTimestamp(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
+
+	ctx := context.Background()
+
+	u, err := db.CreateUser(ctx, "james@weave.test")
+	assert.NoError(t, err)
+	assert.Equal(t, u.FirstLoginAt.IsZero(), true)
+	assert.Equal(t, u.LastLoginAt.IsZero(), true)
+
+	err = db.SetUserLastLoginAt(ctx, u.ID)
+	assert.NoError(t, err)
+
+	// reload user
+	u, err = db.FindUserByID(ctx, u.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, u.FirstLoginAt.IsZero(), false)
+	assert.Equal(t, u.LastLoginAt.IsZero(), false)
+	assert.Equal(t, u.FirstLoginAt.Equal(u.LastLoginAt), true)
+
+	// keep a copy
+	firstLoginAt := u.FirstLoginAt
+
+	err = db.SetUserLastLoginAt(ctx, u.ID)
+	assert.NoError(t, err)
+
+	// reload user, again
+	u, err = db.FindUserByID(ctx, u.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, u.FirstLoginAt.IsZero(), false)
+	assert.Equal(t, u.LastLoginAt.IsZero(), false)
+	assert.Equal(t, u.FirstLoginAt.Equal(firstLoginAt), true)
+	assert.Equal(t, u.LastLoginAt.After(u.FirstLoginAt), true)
+}
