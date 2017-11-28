@@ -162,6 +162,12 @@ func (t timed) SetUserFirstLoginAt(ctx context.Context, id string) error {
 	})
 }
 
+func (t timed) SetUserLastLoginAt(ctx context.Context, id string) error {
+	return t.timeRequest(ctx, "SetUserLastLoginAt", func(ctx context.Context) error {
+		return t.d.SetUserLastLoginAt(ctx, id)
+	})
+}
+
 func (t timed) GenerateOrganizationExternalID(ctx context.Context) (s string, err error) {
 	t.timeRequest(ctx, "GenerateOrganizationExternalID", func(ctx context.Context) error {
 		s, err = t.d.GenerateOrganizationExternalID(ctx)

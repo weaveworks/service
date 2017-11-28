@@ -106,6 +106,11 @@ func (t traced) SetUserFirstLoginAt(ctx context.Context, id string) (err error) 
 	return t.d.SetUserFirstLoginAt(ctx, id)
 }
 
+func (t traced) SetUserLastLoginAt(ctx context.Context, id string) (err error) {
+	defer func() { t.trace("SetUserLastLoginAt", id, err) }()
+	return t.d.SetUserLastLoginAt(ctx, id)
+}
+
 func (t traced) GenerateOrganizationExternalID(ctx context.Context) (s string, err error) {
 	defer func() { t.trace("GenerateOrganizationExternalID", s, err) }()
 	return t.d.GenerateOrganizationExternalID(ctx)
