@@ -47,7 +47,127 @@ func (z *stubZuoraClient) UploadUsage(ctx context.Context, r io.Reader) (string,
 	return "", z.err
 }
 
-func TestJobUpload_Do_zuora(t *testing.T) {
+// stubControlClient implements control.API
+type stubControlClient struct {
+	operations []*servicecontrol.Operation
+}
+
+func (c *stubControlClient) Report(ctx context.Context, operations []*servicecontrol.Operation) error {
+	c.operations = operations
+	return nil
+}
+
+func (c *stubControlClient) OperationID(name string) string {
+	return "opid"
+}
+
+var (
+	start         = time.Now().Truncate(24 * time.Hour).Add(-1 * 24 * time.Hour)
+	expires       = start.Add(-2 * 24 * time.Hour)
+	organizations = []users.Organization{
+		// Zuora accounts
+		{
+			ID:                 "",
+			ZuoraAccountNumber: "Wfoo",
+			ExternalID:         "skip-empty_id",
+		},
+		{
+			ID:                 "100",
+			ZuoraAccountNumber: "Wboo",
+			ExternalID:         "partial-max_aggregates_id",
+		},
+		{
+			ID:                 "101",
+			ZuoraAccountNumber: "Wzoo",
+			ExternalID:         "partial-trial_expires_at",
+			TrialExpiresAt:     expires,
+		},
+		// GCP accounts
+		{
+			ID:         "200",
+			ExternalID: "yes",
+			GCP: &users.GoogleCloudPlatform{
+				ExternalAccountID:  "F-EEE",
+				ConsumerID:         "project_number:123",
+				Activated:          true,
+				SubscriptionName:   "partnerSubscriptions/123",
+				SubscriptionLevel:  "standard",
+				SubscriptionStatus: "ACTIVE",
+			},
+		},
+		{
+			ID:         "201",
+			ExternalID: "skip-inactivated",
+			GCP: &users.GoogleCloudPlatform{
+				ExternalAccountID:  "F-EEE",
+				ConsumerID:         "project_number:123",
+				Activated:          false,
+				SubscriptionName:   "partnerSubscriptions/123",
+				SubscriptionLevel:  "standard",
+				SubscriptionStatus: "ACTIVE",
+			},
+		},
+		{
+			ID:         "202",
+			ExternalID: "skip-inactive_subscription",
+			GCP: &users.GoogleCloudPlatform{
+				ExternalAccountID:  "F-EEE",
+				ConsumerID:         "project_number:123",
+				Activated:          true,
+				SubscriptionStatus: "",
+			},
+		},
+	}
+	aggregates = []db.Aggregate{
+		// Zuora
+		{ // ID==1; skip: <=max_aggregate_id
+			BucketStart: start,
+			InstanceID:  "100",
+			AmountType:  "node-seconds",
+			AmountValue: 1,
+		},
+		{ // ID==2; pick
+			BucketStart: start.Add(1 * time.Hour),
+			InstanceID:  "100",
+			AmountType:  "node-seconds",
+			AmountValue: 2,
+		},
+		{ // ID==3; skip: <trial_expires_at
+			BucketStart: expires.Add(-1 * time.Minute),
+			InstanceID:  "101",
+			AmountType:  "node-seconds",
+			AmountValue: 3,
+		},
+		{ // ID==4; pick
+			BucketStart: expires.Add(1 * time.Minute),
+			InstanceID:  "101",
+			AmountType:  "node-seconds",
+			AmountValue: 4,
+		},
+
+		// GCP
+		{ // ID==5
+			BucketStart: start,
+			InstanceID:  "200",
+			AmountType:  "node-seconds",
+			AmountValue: 10800,
+		},
+		{ // ID==6
+			BucketStart: start.Add(-1 * time.Hour),
+			InstanceID:  "200",
+			AmountType:  "node-seconds",
+			AmountValue: 1,
+		},
+		{ // ID==7; skip
+			BucketStart: start,
+			InstanceID:  "201",
+			AmountType:  "node-seconds",
+			AmountValue: 2,
+		},
+	}
+)
+
+func TestJobUpload_Do(t *testing.T) {
 	d := dbtest.Setup(t)
 	defer dbtest.Cleanup(t, d)
 
@@ -58,82 +178,65 @@ func TestJobUpload_Do_zuora(t *testing.T) {
 
 	z := &stubZuoraClient{}
 	u := mock_users.NewMockUsersClient(ctrl)
-	start := time.Now().Truncate(24 * time.Hour).Add(-1 * 24 * time.Hour)
-	expires := start.Add(-2 * 24 * time.Hour)
 	u.EXPECT().
 		GetBillableOrganizations(gomock.Any(), gomock.Any()).
 		Return(&users.GetBillableOrganizationsResponse{
-			Organizations: []users.Organization{
-				{
-					ID:                 "",
-					ZuoraAccountNumber: "Wfoo",
-					ExternalID:         "skip-empty_id",
-				},
-				{
-					ID:                 "10",
-					ZuoraAccountNumber: "Wboo",
-					ExternalID:         "partial-max_aggregates_id",
-				},
-				{
-					ID:                 "11",
-					ZuoraAccountNumber: "Wzoo",
-					ExternalID:         "partial-trial_expires_at",
-					TrialExpiresAt:     expires,
-				},
-			},
-		}, nil)
-	ns := "node-seconds"
-	aggregates := []db.Aggregate{
-		{ // ID==1; skip: <=max_aggregate_id
-			BucketStart: start,
-			InstanceID:  "10",
-			AmountType:  ns,
-			AmountValue: 1,
-		},
-		{ // ID==2; pick
-			BucketStart: start.Add(1 * time.Hour),
-			InstanceID:  "10",
-			AmountType:  ns,
-			AmountValue: 2,
-		},
-		{ // ID==3; skip: <trial_expires_at
-			BucketStart: expires.Add(-1 * time.Minute),
-			InstanceID:  "11",
-			AmountType:  ns,
-			AmountValue: 3,
-		},
-		{ // ID==4; pick
-			BucketStart: expires.Add(1 * time.Minute),
-			InstanceID:  "11",
-			AmountType:  ns,
-			AmountValue: 4,
-		},
-	}
+			Organizations: organizations,
+		}, nil).
+		AnyTimes()
+
+	// prepare data
 	err := d.UpsertAggregates(ctx, aggregates)
 	assert.NoError(t, err)
+
 	_, err = d.InsertUsageUpload(ctx, "zuora", 1)
 	assert.NoError(t, err)
 
-	j := job.NewUsageUpload(d, u, usage.NewZuora(z), instrument.NewJobCollector("foo"))
-	err = j.Do()
-	assert.NoError(t, err)
-	bcsv, err := ioutil.ReadAll(z.uploadUsage)
-	assert.NoError(t, err)
+	{ // zuora upload
+		j := job.NewUsageUpload(d, u, usage.NewZuora(z), instrument.NewJobCollector("foo"))
+		err = j.Do()
+		assert.NoError(t, err)
+		bcsv, err := ioutil.ReadAll(z.uploadUsage)
+		assert.NoError(t, err)
 
-	records, err := csv.NewReader(bytes.NewReader(bcsv)).ReadAll()
-	assert.NoError(t, err)
-	assert.Len(t, records, 3) // headers + two rows
+		records, err := csv.NewReader(bytes.NewReader(bcsv)).ReadAll()
+		assert.NoError(t, err)
+		assert.Len(t, records, 3) // headers + two rows
 
-	idxAcc := 0
-	idxQty := 2
-	assert.Equal(t, "Ppartial-max_aggregates_id", records[1][idxAcc])
-	assert.Equal(t, "2", records[1][idxQty])
-	assert.Equal(t, "Ppartial-trial_expires_at", records[2][idxAcc])
-	assert.Equal(t, "4", records[2][idxQty])
+		idxAcc := 0
+		idxQty := 2
+		assert.Equal(t, "Ppartial-max_aggregates_id", records[1][idxAcc])
+		assert.Equal(t, "2", records[1][idxQty])
+		assert.Equal(t, "Ppartial-trial_expires_at", records[2][idxAcc])
+		assert.Equal(t, "4", records[2][idxQty])
 
-	aggID, err := d.GetUsageUploadLargestAggregateID(ctx, "zuora")
-	assert.NoError(t, err)
-	assert.Equal(t, 4, aggID)
+		aggID, err := d.GetUsageUploadLargestAggregateID(ctx, "zuora")
+		assert.NoError(t, err)
+		assert.Equal(t, 4, aggID) // latest id of picked aggregation
+	}
+	{
+		cl := &stubControlClient{}
+		j := job.NewUsageUpload(d, u, usage.NewGCP(cl), instrument.NewJobCollector("foo"))
+		err = j.Do()
+		assert.NoError(t, err)
+		assert.Len(t, cl.operations, 2)
+		first := cl.operations[0]
+		second := cl.operations[1]
+
+		// Proper assignment of usage
+		assert.Equal(t, int64(10801),
+			*first.MetricValueSets[0].MetricValues[0].Int64Value+*second.MetricValueSets[0].MetricValues[0].Int64Value)
+
+		assert.Equal(t, "google.weave.works/standard_nodes", first.MetricValueSets[0].MetricName)
+		assert.Equal(t, "project_number:123", first.ConsumerId)
+		assert.Equal(t, "opid", first.OperationId)
+		assert.Equal(t, "HourlyUsageUpload", first.OperationName)
+
+		aggID, err := d.GetUsageUploadLargestAggregateID(ctx, "gcp")
+		assert.NoError(t, err)
+		assert.Equal(t, 6, aggID) // latest id of picked aggregation
+
+	}
 }
 
 func TestJobUpload_Do_zuoraError(t *testing.T) {
@@ -163,8 +266,7 @@ func TestJobUpload_Do_zuoraError(t *testing.T) {
 	}
 	err := d.UpsertAggregates(ctx, aggregates)
 	assert.NoError(t, err)
-	_, err = d.InsertUsageUpload(ctx, "zuora", 0)
-	assert.NoError(t, err)
+	maxAggregateID, err := d.GetUsageUploadLargestAggregateID(ctx, "zuora")
 
 	j := job.NewUsageUpload(d, u, usage.NewZuora(z), instrument.NewJobCollector("foo"))
 	err = j.Do()
@@ -173,118 +275,5 @@ func TestJobUpload_Do_zuoraError(t *testing.T) {
 	aggID, err := d.GetUsageUploadLargestAggregateID(ctx, "zuora")
 	assert.NoError(t, err)
 	// Make sure the max_aggregate_id was removed after failing to upload
-	assert.Equal(t, 0, aggID)
-}
-
-// stubControlClient implements control.API
-type stubControlClient struct {
-	operations []*servicecontrol.Operation
-}
-
-func (c *stubControlClient) Report(ctx context.Context, operations []*servicecontrol.Operation) error {
-	c.operations = operations
-	return nil
-}
-
-func (c *stubControlClient) OperationID(name string) string {
-	return "opid"
-}
-
-func TestJobUpload_Do_gcp(t *testing.T) {
-	d := dbtest.Setup(t)
-	defer dbtest.Cleanup(t, d)
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-
-	cl := &stubControlClient{}
-	u := mock_users.NewMockUsersClient(ctrl)
-	start := time.Now()
-	u.EXPECT().
-		GetBillableOrganizations(gomock.Any(), gomock.Any()).
-		Return(&users.GetBillableOrganizationsResponse{
-			Organizations: []users.Organization{
-				{
-					ID:         "1",
-					ExternalID: "yes",
-					GCP: &users.GoogleCloudPlatform{
-						ExternalAccountID:  "F-EEE",
-						ConsumerID:         "project_number:123",
-						Activated:          true,
-						SubscriptionName:   "partnerSubscriptions/123",
-						SubscriptionLevel:  "standard",
-						SubscriptionStatus: "ACTIVE",
-					},
-				},
-				{
-					ID:         "10",
-					ExternalID: "skip-inactivated",
-					GCP: &users.GoogleCloudPlatform{
-						ExternalAccountID:  "F-EEE",
-						ConsumerID:         "project_number:123",
-						Activated:          false,
-						SubscriptionName:   "partnerSubscriptions/123",
-						SubscriptionLevel:  "standard",
-						SubscriptionStatus: "ACTIVE",
-					},
-				},
-				{
-					ID:         "11",
-					ExternalID: "skip-inactive_subscription",
-					GCP: &users.GoogleCloudPlatform{
-						ExternalAccountID:  "F-EEE",
-						ConsumerID:         "project_number:123",
-						Activated:          true,
-						SubscriptionStatus: "",
-					},
-				},
-			},
-		}, nil)
-	ns := "node-seconds"
-	aggregates := []db.Aggregate{
-		{
-			BucketStart: start,
-			InstanceID:  "1",
-			AmountType:  ns,
-			AmountValue: 10800,
-		},
-		{
-			BucketStart: start.Add(-1 * time.Hour),
-			InstanceID:  "1",
-			AmountType:  ns,
-			AmountValue: 0,
-		},
-		{
-			BucketStart: start,
-			InstanceID:  "10",
-			AmountType:  ns,
-			AmountValue: 2,
-		},
-	}
-	err := d.UpsertAggregates(ctx, aggregates)
-	assert.NoError(t, err)
-	_, err = d.InsertUsageUpload(ctx, "gcp", 0)
-	assert.NoError(t, err)
-
-	j := job.NewUsageUpload(d, u, usage.NewGCP(cl), instrument.NewJobCollector("foo"))
-	err = j.Do()
-	assert.NoError(t, err)
-
-	assert.Len(t, cl.operations, 2)
-	first := cl.operations[0]
-	second := cl.operations[1]
-	// Proper assignment of usage
-	assert.Equal(t, int64(10800), *first.MetricValueSets[0].MetricValues[0].Int64Value)
-	assert.Equal(t, int64(0), *second.MetricValueSets[0].MetricValues[0].Int64Value)
-
-	assert.Equal(t, "google.weave.works/standard_nodes", first.MetricValueSets[0].MetricName)
-	assert.Equal(t, "project_number:123", first.ConsumerId)
-	assert.Equal(t, "opid", first.OperationId)
-	assert.Equal(t, "HourlyUsageUpload", first.OperationName)
-
-	aggID, err := d.GetUsageUploadLargestAggregateID(ctx, "gcp")
-	assert.NoError(t, err)
-	assert.Equal(t, 2, aggID)
+	assert.Equal(t, maxAggregateID, aggID)
 }
