@@ -71,7 +71,7 @@ func main() {
 		emailFromAddress = flag.String("email-from-address", "Weave Cloud <support@weave.works>", "From address for emails.")
 
 		localTestUserCreate               = flag.Bool("local-test-user.create", false, "Create a test user (for local deployments only.)")
-		localTestUserEmail                = flag.String("local-test-user.email", "test@test", "Email for test user (for local deployments only.)")
+		localTestUserEmail                = flag.String("local-test-user.email", "test@test.test", "Email for test user (for local deployments only.)")
 		localTestUserInstanceID           = flag.String("local-test-user.instance-id", "local-test", "Instance ID for test user (for local deployments only.)")
 		localTestUserInstanceName         = flag.String("local-test-user.instance-name", "Local Test Instance", "Instance name for test user (for local deployments only.)")
 		localTestUserInstanceToken        = flag.String("local-test-user.instance-token", "local-test-token", "Instance token for test user (for local deployments only.)")
