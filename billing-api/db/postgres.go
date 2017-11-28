@@ -162,12 +162,12 @@ func (d *postgres) GetAggregatesAfter(ctx context.Context, instanceID string, fr
 }
 
 func (d *postgres) GetUsageUploadLargestAggregateID(ctx context.Context, uploader string) (int, error) {
-	var max int
+	var max sql.NullInt64
 	err := d.QueryRow("SELECT MAX(max_aggregate_id) FROM usage_uploads WHERE uploader = $1", uploader).Scan(&max)
 	if err != nil {
 		return 0, err
 	}
-	return max, nil
+	return int(max.Int64), nil
 }
 
 func (d *postgres) InsertUsageUpload(ctx context.Context, uploader string, aggregatesID int) (int64, error) {
