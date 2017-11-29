@@ -18,24 +18,10 @@ When pushing to quay.io, you will *not* be prompted to log in. To get your passw
   4. Follow instructions
 """
 
-DEFAULT_COMPONENTS = [
-    'authfe',
-    'users',
-    'metrics',
-    'logging',
-    'notebooks',
-    'service-ui-kicker',
-    'gcp-launcher-webhook',
-    'github-receiver',
-    'billing-api',
-    'billing-uploader',
-    'billing-hpm_demo',
-    'billing-ingester',
-    'billing-enforcer',
-    'billing-aggregator',
-    'flux-api',
+EXCLUDED_COMPONENTS = [
+    'build',
+    'postgres-configs-db',
 ]
-
 
 class ConfigError(Exception):
     """There was a problem with the local repository's config."""
@@ -178,6 +164,15 @@ def push_component(component, image_repository, image_tag, since=None, dry_run=F
     push_to_repo(build_image, push_image, dry_run)
 
 
+def get_components():
+    components = subprocess.check_output(['make', 'images']).strip().split()
+    components = list(map(lambda dep: dep[len(BUILD_IMAGE_REPO + '/'):], components))
+    for excluded in EXCLUDED_COMPONENTS:
+        if excluded in components:
+            components.remove(excluded)
+    return components
+
+
 def main():
     image_repository = os.environ.get('IMAGE_REPOSITORY', BUILD_IMAGE_REPO)
     if image_repository == BUILD_IMAGE_REPO:
@@ -188,7 +183,7 @@ def main():
 
     components = opts.components
     if not components:
-        components = DEFAULT_COMPONENTS
+        components = get_components()
 
     print('Using components: {}'.format(' '.join(components)))
 

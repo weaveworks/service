@@ -26,6 +26,7 @@ IMAGE_NAMES=$(foreach dir,$(DOCKER_IMAGE_DIRS),$(patsubst %,$(IMAGE_PREFIX)/%,$(
 
 images:
 	$(info $(IMAGE_NAMES))
+	@echo > /dev/null
 
 all: $(UPTODATE_FILES)
 
