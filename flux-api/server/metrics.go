@@ -19,7 +19,7 @@ var (
 
 	connectedDaemonsAPI = prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
 		Namespace: "flux",
-		Subsystem: "flux-api",
+		Subsystem: "api",
 		Name:      "connected_daemons_count",
 		Help:      "Gauge of the current number of connected daemons",
 	}, []string{})
