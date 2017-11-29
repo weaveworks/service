@@ -59,6 +59,7 @@ func TestAPI_GCPSubscribe_missingConsumerID(t *testing.T) {
 
 	// Create an existing GCP instance
 	user := dbtest.GetUser(t, database)
+	token := dbtest.AddGoogleLoginToUser(t, database, user.ID)
 	_, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, pendingSubscriptionNoConsumerID.ExternalAccountID)
 	assert.NoError(t, err)
 
@@ -77,7 +78,7 @@ func TestAPI_GCPSubscribe_missingConsumerID(t *testing.T) {
 		Return([]partner.Subscription{pendingSubscriptionNoConsumerID}, nil)
 
 	access.EXPECT().
-		RequestSubscription(r.Context(), r, pendingSubscriptionNoConsumerID.Name).
+		RequestSubscription(r.Context(), token, pendingSubscriptionNoConsumerID.Name).
 		Return(&pendingSubscriptionNoConsumerID, nil)
 
 	_, err = a.GCPSubscribe(user, pendingSubscriptionNoConsumerID.ExternalAccountID, w, r)
@@ -91,6 +92,7 @@ func TestAPI_GCPSubscribe(t *testing.T) {
 
 	// Create an existing org
 	user := dbtest.GetUser(t, database)
+	token := dbtest.AddGoogleLoginToUser(t, database, user.ID)
 
 	// Mock API
 	ctrl := gomock.NewController(t)
@@ -107,7 +109,7 @@ func TestAPI_GCPSubscribe(t *testing.T) {
 		ListSubscriptions(r.Context(), sub.ExternalAccountID).
 		Return([]partner.Subscription{sub}, nil)
 	access.EXPECT().
-		RequestSubscription(r.Context(), r, sub.Name).
+		RequestSubscription(r.Context(), token, sub.Name).
 		Return(&sub, nil)
 	client.EXPECT().
 		ApproveSubscription(r.Context(), sub.Name, gomock.Any()).
@@ -132,6 +134,7 @@ func TestAPI_GCPSubscribe_resumeInactivated(t *testing.T) {
 
 	// Create an existing org
 	user := dbtest.GetUser(t, database)
+	token := dbtest.AddGoogleLoginToUser(t, database, user.ID)
 	sub := makeSubscription()
 	org, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, sub.ExternalAccountID)
 	assert.NoError(t, err)
@@ -150,7 +153,7 @@ func TestAPI_GCPSubscribe_resumeInactivated(t *testing.T) {
 		ListSubscriptions(r.Context(), sub.ExternalAccountID).
 		Return([]partner.Subscription{sub}, nil).Times(2)
 	access.EXPECT().
-		RequestSubscription(r.Context(), r, sub.Name).
+		RequestSubscription(r.Context(), token, sub.Name).
 		Return(&sub, nil).Times(2)
 	client.EXPECT().
 		ApproveSubscription(r.Context(), sub.Name, gomock.Any()).

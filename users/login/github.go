@@ -74,13 +74,13 @@ func (g *github) Login(r *http.Request) (string, string, json.RawMessage, map[st
 		return "", "", nil, nil, errors.New("Github account primary email address not verified")
 	}
 
-	session, err := json.Marshal(oauthUserSession{Token: tok})
+	session, err := json.Marshal(OAuthUserSession{Token: tok})
 	return fmt.Sprint(*user.ID), email, session, extraState, err
 }
 
 // Username fetches a user's username on the remote service, for displaying *which* account this is linked with.
 func (g *github) Username(session json.RawMessage) (string, error) {
-	var s oauthUserSession
+	var s OAuthUserSession
 	if err := json.Unmarshal(session, &s); err != nil {
 		return "", err
 	}
@@ -96,7 +96,7 @@ func (g *github) Username(session json.RawMessage) (string, error) {
 // Logout handles a user logout request with this provider. It should revoke
 // the remote user session, requiring the user to re-authenticate next time.
 func (g *github) Logout(session json.RawMessage) error {
-	var s oauthUserSession
+	var s OAuthUserSession
 	if err := json.Unmarshal(session, &s); err != nil {
 		return err
 	}

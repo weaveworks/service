@@ -189,10 +189,12 @@ $(MOCK_BILLING_DB): build/$(UPTODATE) $(BILLING_DB)/db.go
 	mockgen -destination=$@ github.com/weaveworks/service/$(BILLING_DB) DB
 
 $(MOCK_COMMON_GCP_PARTNER_CLIENT): build/$(UPTODATE)
-	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner API
+	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner API \
+		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
 $(MOCK_COMMON_GCP_PARTNER_ACCESS): build/$(UPTODATE)
-	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner Accessor
+	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner Accessor \
+		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
 billing-integration-test: build/$(UPTODATE) $(MOCK_GOS)
 	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"
