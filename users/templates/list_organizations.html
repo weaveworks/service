@@ -101,7 +101,7 @@
         <td class="mdl-data-table__cell--non-numeric">
           {{if .GCP}}
             {{if not .GCP.Activated}}<div class="material-icons" title="Account was not activated">error</div>{{end}}
-            <strong title="{{.GCP.SubscriptionName}} [{{.GCP.ConsumerID}}]">GCP</strong> <em>{{.GCP.SubscriptionLevel}}</em><br />
+            <strong title="{{.GCP.SubscriptionName}} [{{.GCP.ConsumerID}}]">GCP</strong> <em>{{.GCP.SubscriptionLevel}}</em> [{{.GCP.SubscriptionStatus}}]<br />
             {{.GCP.ExternalAccountID}}
           {{end}}
           {{if .ZuoraAccountNumber }}
