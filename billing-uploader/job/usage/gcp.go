@@ -44,8 +44,8 @@ func (g *GCP) Add(ctx context.Context, org users.Organization, from, through tim
 			OperationId:   g.client.OperationID(strconv.Itoa(agg.ID)), // same id for same operation helps deduplication
 			OperationName: "HourlyUsageUpload",                        // can be selected freely
 			ConsumerId:    org.GCP.ConsumerID,
-			StartTime:     from.Format(time.RFC3339Nano),
-			EndTime:       through.Format(time.RFC3339Nano),
+			StartTime:     agg.BucketStart.Format(time.RFC3339Nano),
+			EndTime:       agg.BucketStart.Add(1 * time.Hour).Format(time.RFC3339Nano), // bucket size is always 1h
 			MetricValueSets: []*servicecontrol.MetricValueSet{{
 				MetricName: fmt.Sprintf("google.weave.works/%s_nodes", org.GCP.SubscriptionLevel),
 				MetricValues: []*servicecontrol.MetricValue{{
@@ -71,7 +71,7 @@ func (g *GCP) IsSupported(org users.Organization) bool {
 	return org.GCP != nil && org.GCP.Activated && org.GCP.SubscriptionStatus == string(partner.Active)
 }
 
-// ThroughTime returns now. We always want to upload everything up to now.
+// ThroughTime truncates to the hour. We always want to upload everything that has been fully aggregated.
 func (g *GCP) ThroughTime(now time.Time) time.Time {
-	return now
+	return now.Truncate(1 * time.Hour)
 }

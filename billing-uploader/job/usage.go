@@ -117,6 +117,12 @@ func (j *UsageUpload) Do() error {
 
 		now := time.Now().UTC()
 		through := j.uploader.ThroughTime(now)
+		// We only process buckets that were fully aggregated. Buckets are aggregated continuously
+		// by the hour. Aggregates with bucket_start equal "current time truncated to the hour" are still
+		// in the process of receiving more aggregates. Since db.GetAggregatesAfter only selects aggregates
+		// with bucket_start < through, we will only receive completed buckets.
+		through = through.Truncate(1 * time.Hour)
+
 		// Go back at most one week
 		earliest := through.Add(-7 * 24 * time.Hour)
 

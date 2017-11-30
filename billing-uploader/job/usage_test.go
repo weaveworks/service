@@ -62,7 +62,7 @@ func (c *stubControlClient) OperationID(name string) string {
 }
 
 var (
-	start         = time.Now().Truncate(24 * time.Hour).Add(-1 * 24 * time.Hour)
+	start         = time.Date(2017, 11, 27, 0, 0, 0, 0, time.UTC)
 	expires       = start.Add(-2 * 24 * time.Hour)
 	organizations = []users.Organization{
 		// Zuora accounts
