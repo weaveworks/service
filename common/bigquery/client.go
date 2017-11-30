@@ -66,7 +66,7 @@ type Client struct {
 
 // New instantiates a Client.
 func New(ctx context.Context, cfg Config) (*Client, error) {
-	client, err := bigquery.NewClient(ctx, cfg.Project, option.WithServiceAccountFile(cfg.ServiceAccountFile))
+	client, err := bigquery.NewClient(ctx, cfg.Project, option.WithCredentialsFile(cfg.ServiceAccountFile))
 	if err != nil {
 		return nil, err
 	}
