@@ -6,12 +6,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	googleOauth "golang.org/x/oauth2/google"
 	plus "google.golang.org/api/plus/v1"
 )
+
+// GoogleProviderID is the ID to register this login provider.
+const GoogleProviderID = "google"
 
 type google struct {
 	OAuth
@@ -36,8 +40,25 @@ func NewGoogleProvider() Provider {
 
 func (g *google) Link(r *http.Request) (Link, bool) {
 	l, ok := g.OAuth.Link(r)
+	// If user is coming from GCP Cloud Launcher, we add one scope to be able to access
+	// his subscriptions, and manage access to Weave Cloud and billing via GCP.
+	if gcpAccountID := r.URL.Query().Get("gcpAccountId"); gcpAccountID != "" {
+		l.Href = addGCPSubscriptionScope(l.Href)
+	}
 	l.BackgroundColor = "#dd4b39"
 	return l, ok
+}
+
+func addGCPSubscriptionScope(oauthURL string) string {
+	u, err := url.Parse(oauthURL)
+	if err != nil {
+		log.Errorf("Failed to parse Google OAuth URL, falling back to existing URL. Root cause: %v", err)
+		return oauthURL
+	}
+	q := u.Query()
+	q.Set("scope", q.Get("scope")+" https://www.googleapis.com/auth/cloud-billing-partner-subscriptions.readonly")
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 // Login converts a user to a db ID
@@ -66,13 +87,13 @@ func (g *google) Login(r *http.Request) (string, string, json.RawMessage, map[st
 		return "", "", nil, nil, err
 	}
 
-	session, err := json.Marshal(oauthUserSession{Token: tok})
+	session, err := json.Marshal(OAuthUserSession{Token: tok})
 	return person.Id, email, session, extraState, err
 }
 
 // Username fetches a user's username on the remote service, for displaying *which* account this is linked with.
 func (g *google) Username(session json.RawMessage) (string, error) {
-	var s oauthUserSession
+	var s OAuthUserSession
 	if err := json.Unmarshal(session, &s); err != nil {
 		return "", err
 	}
@@ -104,7 +125,7 @@ func (g *google) personEmail(p *plus.Person) (string, error) {
 // Logout handles a user logout request with this provider. It should revoke
 // the remote user session, requiring the user to re-authenticate next time.
 func (g *google) Logout(session json.RawMessage) error {
-	var s oauthUserSession
+	var s OAuthUserSession
 	if err := json.Unmarshal(session, &s); err != nil {
 		return err
 	}

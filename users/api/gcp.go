@@ -2,9 +2,12 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+
+	"golang.org/x/oauth2"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -12,6 +15,7 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/login"
 	"github.com/weaveworks/service/users/render"
 )
 
@@ -25,15 +29,6 @@ var (
 	// ErrMissingConsumerID denotes the consumerId label is missing in the subscribed resource.
 	ErrMissingConsumerID = errors.New("missing consumer ID")
 )
-
-func (a *API) gcpAccess(w http.ResponseWriter, r *http.Request) {
-	link, ok := a.partnerAccess.Link(r)
-	if !ok {
-		render.Error(w, r, errors.New("invalid token"))
-		return
-	}
-	render.JSON(w, http.StatusOK, link)
-}
 
 func (a *API) gcpSSOLogin(w http.ResponseWriter, r *http.Request) {
 	externalAccountID := mux.Vars(r)["externalAccountID"]
@@ -95,7 +90,11 @@ func (a *API) GCPSubscribe(currentUser *users.User, externalAccountID string, w 
 		return nil, err
 	}
 
-	sub, err := a.partnerAccess.RequestSubscription(r.Context(), r, subName)
+	token, err := a.getGoogleOAuthToken(r.Context(), logger, currentUser.ID)
+	if err != nil {
+		return nil, err
+	}
+	sub, err := a.partnerAccess.RequestSubscription(r.Context(), token, subName)
 	if err != nil {
 		return nil, err
 	}
@@ -153,4 +152,21 @@ func (a *API) getPendingSubscriptionName(ctx context.Context, logger *log.Entry,
 		}
 	}
 	return "", fmt.Errorf("no pending subscription found for account: %v", externalAccountID)
+}
+
+func (a *API) getGoogleOAuthToken(ctx context.Context, logger *log.Entry, userID string) (*oauth2.Token, error) {
+	logins, err := a.db.ListLoginsForUserIDs(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	for _, l := range logins {
+		if l.Provider == login.GoogleProviderID {
+			var session login.OAuthUserSession
+			if err := json.Unmarshal(l.Session, &session); err != nil {
+				return nil, err
+			}
+			return session.Token, nil
+		}
+	}
+	return nil, errors.New("No active Google OAuth session: please authenticate again")
 }

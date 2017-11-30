@@ -23,8 +23,8 @@ type OAuth struct {
 	oauth2.Config
 }
 
-// Oauth providers will need to store some session data for each user.
-type oauthUserSession struct {
+// OAuthUserSession stores the OAuth provider's session for a given user.
+type OAuthUserSession struct {
 	Token *oauth2.Token `json:"token"`
 }
 

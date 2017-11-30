@@ -90,8 +90,8 @@ func main() {
 	flag.Var(&webhookTokens, "webhook-token", "Secret tokens used to validate webhooks from external services (e.g. Marketo).")
 
 	logins := login.NewProviders()
-	logins.Register("github", login.NewGithubProvider())
-	logins.Register("google", login.NewGoogleProvider())
+	logins.Register(login.GithubProviderID, login.NewGithubProvider())
+	logins.Register(login.GoogleProviderID, login.NewGoogleProvider())
 	logins.Flags(flag.CommandLine)
 	partnerCfg.RegisterFlags(flag.CommandLine)
 
