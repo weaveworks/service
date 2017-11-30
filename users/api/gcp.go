@@ -115,11 +115,11 @@ func (a *API) GCPSubscribe(currentUser *users.User, externalAccountID string, w 
 	if err != nil {
 		return nil, err
 	}
-	if org.GCP.Activated {
-		return nil, ErrAlreadyActivated
-	}
-
 	if externalAccountID != testingExternalAccountID {
+		if org.GCP.Activated {
+			return nil, ErrAlreadyActivated
+		}
+
 		// Approve subscription
 		body := partner.RequestBodyWithSSOLoginKey(externalAccountID)
 		_, err = a.partner.ApproveSubscription(r.Context(), sub.Name, body)
