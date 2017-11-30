@@ -58,11 +58,11 @@ func (c *stubControlClient) Report(ctx context.Context, operations []*servicecon
 }
 
 func (c *stubControlClient) OperationID(name string) string {
-	return "opid"
+	return name
 }
 
 var (
-	start         = time.Now().Truncate(24 * time.Hour).Add(-1 * 24 * time.Hour)
+	start         = time.Date(2017, 11, 27, 0, 0, 0, 0, time.UTC)
 	expires       = start.Add(-2 * 24 * time.Hour)
 	organizations = []users.Organization{
 		// Zuora accounts
@@ -214,28 +214,44 @@ func TestJobUpload_Do(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 4, aggID) // latest id of picked aggregation
 	}
-	{
+	{ // gcp upload
 		cl := &stubControlClient{}
 		j := job.NewUsageUpload(d, u, usage.NewGCP(cl), instrument.NewJobCollector("foo"))
 		err = j.Do()
 		assert.NoError(t, err)
 		assert.Len(t, cl.operations, 2)
-		first := cl.operations[0]
-		second := cl.operations[1]
+
+		ops := map[string]*servicecontrol.Operation{} // map[ID]op
+		for _, op := range cl.operations {
+			ops[op.OperationId] = op
+		}
+
+		five := ops["5"]
+		six := ops["6"]
+		assert.NotNil(t, five, "ID=5 was not picked")
+		assert.NotNil(t, six, "ID=6 was not picked")
 
 		// Proper assignment of usage
-		assert.Equal(t, int64(10801),
-			*first.MetricValueSets[0].MetricValues[0].Int64Value+*second.MetricValueSets[0].MetricValues[0].Int64Value)
+		assert.Equal(t, int64(10800), *five.MetricValueSets[0].MetricValues[0].Int64Value)
+		assert.Equal(t, int64(1), *six.MetricValueSets[0].MetricValues[0].Int64Value)
 
-		assert.Equal(t, "google.weave.works/standard_nodes", first.MetricValueSets[0].MetricName)
-		assert.Equal(t, "project_number:123", first.ConsumerId)
-		assert.Equal(t, "opid", first.OperationId)
-		assert.Equal(t, "HourlyUsageUpload", first.OperationName)
+		// org related
+		assert.Equal(t, "google.weave.works/standard_nodes", five.MetricValueSets[0].MetricName)
+		assert.Equal(t, "project_number:123", five.ConsumerId)
+		assert.Equal(t, "HourlyUsageUpload", five.OperationName)
+
+		// bucket related
+		assert.Equal(t, "5", five.OperationId)
+		assert.Equal(t, start.Format(time.RFC3339), five.StartTime)
+		assert.Equal(t, start.Add(1*time.Hour).Format(time.RFC3339), five.EndTime)
+
+		assert.Equal(t, "6", six.OperationId)
+		assert.Equal(t, start.Add(-1*time.Hour).Format(time.RFC3339), six.StartTime)
+		assert.Equal(t, start.Format(time.RFC3339), six.EndTime)
 
 		aggID, err := d.GetUsageUploadLargestAggregateID(ctx, "gcp")
 		assert.NoError(t, err)
 		assert.Equal(t, 6, aggID) // latest id of picked aggregation
-
 	}
 }
 
