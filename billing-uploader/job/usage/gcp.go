@@ -2,10 +2,12 @@ package usage
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/api/servicecontrol/v1"
 
 	"github.com/weaveworks/service/billing-api/db"
@@ -57,6 +59,8 @@ func (g *GCP) Add(ctx context.Context, org users.Organization, from, through tim
 
 // Upload sends the usage to the Service Control API as metrics.
 func (g *GCP) Upload(ctx context.Context) error {
+	bs, _ := json.Marshal(g.ops)
+	log.Infof("Uploading GCP usage: %s", bs)
 	return g.client.Report(ctx, g.ops)
 }
 
