@@ -10,8 +10,7 @@ import (
 
 func main() {
 	var (
-		fluxSvcURL    = flag.String("flux-svc-url", "fluxsvc.flux.svc.cluster.local.:80", "Flux service base URL")
-		fluxURL       = flag.String("flux-url", "", "Flux base URL")
+		fluxURL       = flag.String("flux-url", "flux-api.flux.svc.cluster.local.:80", "Flux base URL")
 		webhookSecret = flag.String("webhook-secret", "", "Github App webhook secret")
 		cfg           = server.Config{
 			MetricsNamespace:        common.PrometheusNamespace,
@@ -24,9 +23,6 @@ func main() {
 	if *webhookSecret == "" {
 		log.Fatal("webhook secret not set")
 	}
-	if *fluxURL != "" {
-		*fluxSvcURL = *fluxURL
-	}
 
 	server, err := server.New(cfg)
 	if err != nil {
@@ -36,7 +32,7 @@ func main() {
 
 	server.HTTP.Handle(
 		"/github-receiver/webhook",
-		makeHandler(*fluxSvcURL, []byte(*webhookSecret)),
+		makeHandler(*fluxURL, []byte(*webhookSecret)),
 	).Methods("POST").Name("receive_webhook")
 	server.Run()
 }

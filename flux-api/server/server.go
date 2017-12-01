@@ -44,8 +44,7 @@ func New(
 	logger log.Logger,
 	eventsConfig *instance.Config,
 ) *Server {
-	connectedDaemonsSvc.Set(0)
-	connectedDaemonsAPI.Set(0)
+	connectedDaemons.Set(0)
 	return &Server{
 		version:             version,
 		instancer:           instancer,
@@ -392,13 +391,9 @@ func (s *Server) RegisterDaemon(ctx context.Context, platform remote.Platform) (
 		if err != nil {
 			s.logger.Log("method", "RegisterDaemon", "err", err)
 		}
-		connected := float64(atomic.AddInt32(&s.connected, -1))
-		connectedDaemonsSvc.Set(connected)
-		connectedDaemonsAPI.Set(connected)
+		connectedDaemons.Set(float64(atomic.AddInt32(&s.connected, -1)))
 	}()
-	connected := float64(atomic.AddInt32(&s.connected, 1))
-	connectedDaemonsSvc.Set(connected)
-	connectedDaemonsAPI.Set(connected)
+	connectedDaemons.Set(float64(atomic.AddInt32(&s.connected, 1)))
 
 	// Record the time of connection in the "config"
 	now := time.Now()
