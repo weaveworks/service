@@ -22,14 +22,14 @@ func init() {
 }
 
 type handler struct {
-	fluxSvcURL string
-	secret     []byte
+	fluxURL string
+	secret  []byte
 }
 
 func makeHandler(u string, s []byte) *handler {
 	return &handler{
-		fluxSvcURL: u,
-		secret:     s,
+		fluxURL: u,
+		secret:  s,
 	}
 }
 
@@ -64,6 +64,6 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *handler) makeNotifyURL(instID string) string {
 	url, _ := router.GetRoute("GitPushNotify").URL("instance", instID)
 	url.Scheme = "http"
-	url.Host = h.fluxSvcURL
+	url.Host = h.fluxURL
 	return url.String()
 }
