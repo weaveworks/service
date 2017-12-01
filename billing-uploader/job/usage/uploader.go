@@ -18,6 +18,8 @@ type Uploader interface {
 	Add(ctx context.Context, org users.Organization, from, through time.Time, aggs []db.Aggregate) error
 	// Upload sends recorded aggregates.
 	Upload(ctx context.Context) error
+	// Reset creates a fresh report.
+	Reset()
 	// IsSupported returns whether this uploader handles the given organization.
 	IsSupported(org users.Organization) bool
 	// ThroughTime returns the upper bound we want to upload usage until.
