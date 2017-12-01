@@ -23,16 +23,16 @@ import (
 )
 
 var (
-	postRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	postRequestCollector = instrument.NewHistogramCollector(prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: common.PrometheusNamespace,
 		Name:      "post_request_duration_seconds",
 		Help:      "Time spent (in seconds) doing post requests.",
 		Buckets:   prometheus.DefBuckets,
-	}, []string{"method", "status_code"})
+	}, []string{"method", "status_code"}))
 )
 
 func init() {
-	prometheus.MustRegister(postRequestDuration)
+	postRequestCollector.Register()
 }
 
 type bqUser struct {
@@ -96,7 +96,7 @@ func main() {
 	}()
 
 	for ticker := time.Tick(*period); ; <-ticker {
-		instrument.TimeRequestHistogram(context.Background(), "Metrics upload", postRequestDuration, func(ctx context.Context) error {
+		instrument.CollectedRequest(context.Background(), "Metrics upload", postRequestCollector, nil, func(ctx context.Context) error {
 			for _, getter := range []struct {
 				ty  string
 				get func(context.Context, db.DB) ([]interface{}, error)
@@ -111,7 +111,7 @@ func main() {
 					continue
 				}
 
-				if err := instrument.TimeRequestHistogram(ctx, getter.ty, postRequestDuration, func(_ context.Context) error {
+				if err := instrument.CollectedRequest(ctx, getter.ty, postRequestCollector, nil, func(_ context.Context) error {
 					return post(client, objs, *endpoint+getter.ty)
 				}); err != nil {
 					log.Printf("Error posting %s: %v", getter.ty, err)
