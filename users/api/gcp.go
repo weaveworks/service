@@ -67,13 +67,7 @@ func (a *API) gcpSSOLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	state, ok := a.partnerAccess.VerifyState(r)
-	if !ok {
-		render.Error(w, r, errors.New("oauth state value did not match"))
-		return
-	}
-
-	externalAccountID := state["gcpAccountId"]
+	externalAccountID := r.FormValue("gcpAccountId")
 	org, err := a.GCPSubscribe(currentUser, externalAccountID, w, r)
 	if err != nil {
 		render.Error(w, r, err)
