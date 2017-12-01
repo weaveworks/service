@@ -67,13 +67,7 @@ func (a *API) gcpSSOLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	state, ok := a.partnerAccess.VerifyState(r)
-	if !ok {
-		render.Error(w, r, errors.New("oauth state value did not match"))
-		return
-	}
-
-	externalAccountID := state["gcpAccountId"]
+	externalAccountID := r.FormValue("gcpAccountId")
 	org, err := a.GCPSubscribe(currentUser, externalAccountID, w, r)
 	if err != nil {
 		render.Error(w, r, err)
@@ -85,6 +79,7 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 // GCPSubscribe creates an organization with GCP subscription. It also approves the subscription.
 func (a *API) GCPSubscribe(currentUser *users.User, externalAccountID string, w http.ResponseWriter, r *http.Request) (*users.Organization, error) {
 	logger := log.WithFields(log.Fields{"user_id": currentUser.ID, "email": currentUser.Email, "external_account_id": externalAccountID})
+	logger.Info("Subscribing GCP Cloud Launcher user")
 	subName, err := a.getPendingSubscriptionName(r.Context(), logger, externalAccountID)
 	if err != nil {
 		return nil, err
