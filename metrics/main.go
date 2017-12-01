@@ -49,6 +49,7 @@ type bqInstance struct {
 	FirstSeenConnectedAt *time.Time
 	Platform             string
 	Environment          string
+	BillingProvider      string
 }
 
 type bqMembership struct {
@@ -172,6 +173,7 @@ func getInstances(ctx context.Context, d db.DB) ([]interface{}, error) {
 			FirstSeenConnectedAt: instance.FirstSeenConnectedAt,
 			Platform:             instance.Platform,
 			Environment:          instance.Environment,
+			BillingProvider:      instance.BillingProvider(),
 		}
 		results = append(results, result)
 	}
