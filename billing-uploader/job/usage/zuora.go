@@ -3,11 +3,13 @@ package usage
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/pkg/errors"
+
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/users"
-	"time"
 )
 
 // Zuora sends usage data to Zuora. It implements Uploader.
@@ -18,15 +20,21 @@ type Zuora struct {
 
 // NewZuora creates a Zuora instance.
 func NewZuora(client zuora.Client) *Zuora {
-	return &Zuora{
+	z := &Zuora{
 		cl: client,
-		r:  zuora.NewReport(client.GetConfig()),
 	}
+	z.Reset()
+	return z
 }
 
 // ID identifies this uploader.
 func (z *Zuora) ID() string {
 	return "zuora"
+}
+
+// Reset replaces the current report with an empty one
+func (z *Zuora) Reset() {
+	z.r = zuora.NewReport(z.cl.GetConfig())
 }
 
 // Add collects usage by grouping aggregates in billing periods.

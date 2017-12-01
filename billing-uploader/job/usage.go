@@ -126,6 +126,9 @@ func (j *UsageUpload) Do() error {
 		// Go back at most one week
 		earliest := through.Add(-7 * 24 * time.Hour)
 
+		// Reset previous report
+		j.uploader.Reset()
+
 		// Look up the billing-enabled instances where the trial has expired.
 		resp, err := j.users.GetBillableOrganizations(ctx, &users.GetBillableOrganizationsRequest{
 			Now: through,

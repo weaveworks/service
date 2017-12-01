@@ -153,7 +153,7 @@ var (
 			AmountValue: 10800,
 		},
 		{ // ID==6
-			BucketStart: start.Add(-1 * time.Hour),
+			BucketStart: start.Add(1 * time.Hour),
 			InstanceID:  "200",
 			AmountType:  "node-seconds",
 			AmountValue: 1,
@@ -246,12 +246,27 @@ func TestJobUpload_Do(t *testing.T) {
 		assert.Equal(t, start.Add(1*time.Hour).Format(time.RFC3339), five.EndTime)
 
 		assert.Equal(t, "6", six.OperationId)
-		assert.Equal(t, start.Add(-1*time.Hour).Format(time.RFC3339), six.StartTime)
-		assert.Equal(t, start.Format(time.RFC3339), six.EndTime)
+		assert.Equal(t, start.Add(1*time.Hour).Format(time.RFC3339), six.StartTime)
+		assert.Equal(t, start.Add(2*time.Hour).Format(time.RFC3339), six.EndTime)
 
 		aggID, err := d.GetUsageUploadLargestAggregateID(ctx, "gcp")
 		assert.NoError(t, err)
 		assert.Equal(t, 6, aggID) // latest id of picked aggregation
+
+		// Add one more aggregate and make sure this second run has successfully
+		// reset the previous report
+		err = d.UpsertAggregates(ctx, []db.Aggregate{
+			{ // ID==7
+				BucketStart: start.Add(2 * time.Hour),
+				InstanceID:  "200",
+				AmountType:  "node-seconds",
+				AmountValue: 999,
+			},
+		})
+		assert.NoError(t, err)
+		err = j.Do()
+		assert.NoError(t, err)
+		assert.Len(t, cl.operations, 1)
 	}
 }
 

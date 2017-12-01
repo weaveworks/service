@@ -33,6 +33,11 @@ func (g *GCP) ID() string {
 	return "gcp"
 }
 
+// Reset removes all current operations.
+func (g *GCP) Reset() {
+	g.ops = nil
+}
+
 // Add collects node-seconds aggregates.
 func (g *GCP) Add(ctx context.Context, org users.Organization, from, through time.Time, aggs []db.Aggregate) error {
 	for _, agg := range aggs {
