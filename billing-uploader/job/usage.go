@@ -66,7 +66,7 @@ func NewUsageUpload(db db.DB, users users.UsersClient, uploader usage.Uploader, 
 
 // Run starts the job and logs errors.
 func (j *UsageUpload) Run() {
-	if err := j.Do(); err != nil {
+	if err := j.Do(time.Now()); err != nil {
 		log.Errorf("Error running upload job [%v]: %v", j.uploader.ID(), err)
 	}
 }
@@ -110,12 +110,12 @@ func (us *uploadStats) set(uploader, status string) {
 }
 
 // Do starts the job and returns an error if it fails.
-func (j *UsageUpload) Do() error {
+func (j *UsageUpload) Do(now time.Time) error {
+	now = now.UTC()
 	method := fmt.Sprintf("UsageUpload.Do(%s)", j.uploader.ID())
 	return instrument.CollectedRequest(context.Background(), method, j.collector, nil, func(ctx context.Context) error {
 		logger := logging.With(ctx)
 
-		now := time.Now().UTC()
 		through := j.uploader.ThroughTime(now)
 		// We only process buckets that were fully aggregated. Buckets are aggregated continuously
 		// by the hour. Aggregates with bucket_start equal "current time truncated to the hour" are still

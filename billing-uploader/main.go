@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"net/http"
+	"time"
 
 	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
@@ -130,14 +131,14 @@ func main() {
 		http.Error(w, "use /upload/gcp or /upload/zuora", http.StatusSeeOther)
 	})
 	server.HTTP.Path("/upload/gcp").Methods("POST").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := gcpUpload.Do(); err != nil {
+		if err := gcpUpload.Do(time.Now()); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
 			w.Write([]byte("Success"))
 		}
 	})
 	server.HTTP.Path("/upload/zuora").Methods("POST").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := zuoraUpload.Do(); err != nil {
+		if err := zuoraUpload.Do(time.Now()); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
 			w.Write([]byte("Success"))
