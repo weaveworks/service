@@ -63,6 +63,7 @@ func (c *stubControlClient) OperationID(name string) string {
 
 var (
 	start         = time.Date(2017, 11, 27, 0, 0, 0, 0, time.UTC)
+	now           = start.Add(2 * 24 * time.Hour)
 	expires       = start.Add(-2 * 24 * time.Hour)
 	organizations = []users.Organization{
 		// Zuora accounts
@@ -138,7 +139,7 @@ var (
 			AmountType:  "node-seconds",
 			AmountValue: 3,
 		},
-		{ // ID==4; pick
+		{ // ID==4; pick: >trial_expires_at
 			BucketStart: expires.Add(1 * time.Minute),
 			InstanceID:  "101",
 			AmountType:  "node-seconds",
@@ -194,7 +195,7 @@ func TestJobUpload_Do(t *testing.T) {
 
 	{ // zuora upload
 		j := job.NewUsageUpload(d, u, usage.NewZuora(z), instrument.NewJobCollector("foo"))
-		err = j.Do()
+		err = j.Do(now)
 		assert.NoError(t, err)
 		bcsv, err := ioutil.ReadAll(z.uploadUsage)
 		assert.NoError(t, err)
@@ -217,7 +218,7 @@ func TestJobUpload_Do(t *testing.T) {
 	{ // gcp upload
 		cl := &stubControlClient{}
 		j := job.NewUsageUpload(d, u, usage.NewGCP(cl), instrument.NewJobCollector("foo"))
-		err = j.Do()
+		err = j.Do(now)
 		assert.NoError(t, err)
 		assert.Len(t, cl.operations, 2)
 
@@ -264,7 +265,7 @@ func TestJobUpload_Do(t *testing.T) {
 			},
 		})
 		assert.NoError(t, err)
-		err = j.Do()
+		err = j.Do(now)
 		assert.NoError(t, err)
 		assert.Len(t, cl.operations, 1)
 	}
@@ -286,12 +287,11 @@ func TestJobUpload_Do_zuoraError(t *testing.T) {
 		Return(&users.GetBillableOrganizationsResponse{
 			Organizations: []users.Organization{{ID: "100", ExternalID: "foo-bar-999", ZuoraAccountNumber: "Wfoo"}},
 		}, nil)
-	ns := "node-seconds"
 	aggregates := []db.Aggregate{
 		{
-			BucketStart: time.Now().Truncate(24 * time.Hour).Add(-1 * 24 * time.Hour),
+			BucketStart: now.Add(-1 * 24 * time.Hour),
 			InstanceID:  "100",
-			AmountType:  ns,
+			AmountType:  "node-seconds",
 			AmountValue: 1,
 		},
 	}
@@ -300,7 +300,7 @@ func TestJobUpload_Do_zuoraError(t *testing.T) {
 	maxAggregateID, err := d.GetUsageUploadLargestAggregateID(ctx, "zuora")
 
 	j := job.NewUsageUpload(d, u, usage.NewZuora(z), instrument.NewJobCollector("foo"))
-	err = j.Do()
+	err = j.Do(now)
 	assert.Error(t, err)
 
 	aggID, err := d.GetUsageUploadLargestAggregateID(ctx, "zuora")
