@@ -117,10 +117,11 @@ func TestMessageHandler_Handle_cancel(t *testing.T) {
 	client.EXPECT().
 		UpdateGCP(ctx, &users.UpdateGCPRequest{
 			GCP: &users.GoogleCloudPlatform{
-				ExternalAccountID: externalAccountID,
-				ConsumerID:        "project_number:123",
-				SubscriptionName:  "partnerSubscriptions/1",
-				SubscriptionLevel: "enterprise",
+				ExternalAccountID:  externalAccountID,
+				ConsumerID:         "project_number:123",
+				SubscriptionName:   "partnerSubscriptions/1",
+				SubscriptionLevel:  "enterprise",
+				SubscriptionStatus: "COMPLETE",
 			}}).
 		Return(nil, nil)
 
@@ -160,10 +161,11 @@ func TestMessageHandler_Handle_reactivationPlanChange(t *testing.T) {
 	client.EXPECT().
 		UpdateGCP(ctx, &users.UpdateGCPRequest{
 			GCP: &users.GoogleCloudPlatform{
-				ExternalAccountID: externalAccountID,
-				ConsumerID:        "project_number:123",
-				SubscriptionName:  "partnerSubscriptions/1",
-				SubscriptionLevel: "enterprise",
+				ExternalAccountID:  externalAccountID,
+				ConsumerID:         "project_number:123",
+				SubscriptionName:   "partnerSubscriptions/1",
+				SubscriptionLevel:  "enterprise",
+				SubscriptionStatus: "PENDING",
 			}}).
 		Return(nil, nil)
 
