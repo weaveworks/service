@@ -60,9 +60,10 @@ type marketoResponse struct {
 }
 
 type marketoProspect struct {
-	Email      string `json:"email"`
-	CreatedAt  string `json:"Weave_Cloud_Created_On__c,omitempty"`
-	LastAccess string `json:"Weave_Cloud_Last_Active__c,omitempty"`
+	Email        string `json:"email"`
+	SignupSource string `json:"Weave_Cloud_Signup_Source__c,omitempty"`
+	CreatedAt    string `json:"Weave_Cloud_Created_On__c,omitempty"`
+	LastAccess   string `json:"Weave_Cloud_Last_Active__c,omitempty"`
 }
 
 func (m *marketoResponse) Error() string {
@@ -93,9 +94,10 @@ func (c *MarketoClient) batchUpsertProspect(prospects []prospect) error {
 	}
 	for _, p := range prospects {
 		leads.Input = append(leads.Input, marketoProspect{
-			Email:      p.Email,
-			CreatedAt:  nilTime(p.ServiceCreatedAt),
-			LastAccess: nilTime(p.ServiceLastAccess),
+			Email:        p.Email,
+			SignupSource: p.SignupSource,
+			CreatedAt:    nilTime(p.ServiceCreatedAt),
+			LastAccess:   nilTime(p.ServiceLastAccess),
 		})
 	}
 	req, err := json.Marshal(leads)
