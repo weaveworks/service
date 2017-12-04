@@ -133,10 +133,11 @@ func (m MessageHandler) updateGCP(ctx context.Context, sub *partner.Subscription
 	consumerID := sub.ExtractResourceLabel("weave-cloud", partner.ConsumerIDLabelKey)
 	_, err := m.Users.UpdateGCP(ctx, &users.UpdateGCPRequest{
 		GCP: &users.GoogleCloudPlatform{
-			ExternalAccountID: sub.ExternalAccountID,
-			ConsumerID:        consumerID,
-			SubscriptionName:  sub.Name,
-			SubscriptionLevel: level,
+			ExternalAccountID:  sub.ExternalAccountID,
+			ConsumerID:         consumerID,
+			SubscriptionName:   sub.Name,
+			SubscriptionLevel:  level,
+			SubscriptionStatus: string(sub.Status),
 		},
 	})
 	return err
