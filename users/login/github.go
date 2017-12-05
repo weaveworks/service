@@ -71,7 +71,7 @@ func (g *github) Login(r *http.Request) (string, string, json.RawMessage, map[st
 		}
 	}
 	if email == "" {
-		return "", "", nil, nil, errors.New("Github account primary email address not verified")
+		return "", "", nil, nil, errors.New("GitHub account primary email address not verified")
 	}
 
 	session, err := json.Marshal(OAuthUserSession{Token: tok})

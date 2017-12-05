@@ -163,5 +163,5 @@ func (a *API) getGoogleOAuthToken(ctx context.Context, logger *log.Entry, userID
 			return session.Token, nil
 		}
 	}
-	return nil, errors.New("No active Google OAuth session: please authenticate again")
+	return nil, errors.New("no active Google OAuth session, please authenticate again")
 }

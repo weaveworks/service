@@ -206,11 +206,11 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	}
 	email := strings.TrimSpace(resp.Email)
 	if email == "" {
-		render.Error(w, r, users.ValidationErrorf("Email cannot be blank"))
+		render.Error(w, r, users.ValidationErrorf("email cannot be blank"))
 		return
 	}
 	if !validation.ValidateEmail(email) {
-		render.Error(w, r, users.ValidationErrorf("Please provide a valid email"))
+		render.Error(w, r, users.ValidationErrorf("please provide a valid email"))
 		return
 	}
 
@@ -228,12 +228,12 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	// We always do this so that the timing difference can't be used to infer a user's existence.
 	token, err := a.generateUserToken(r.Context(), invitee)
 	if err != nil {
-		render.Error(w, r, fmt.Errorf("Error sending invite email: %s", err))
+		render.Error(w, r, fmt.Errorf("cannot send invite email: %s", err))
 		return
 	}
 	orgName, err := a.db.GetOrganizationName(r.Context(), orgExternalID)
 	if err != nil {
-		render.Error(w, r, fmt.Errorf("Error getting organization name: %s", err))
+		render.Error(w, r, fmt.Errorf("cannot get organization name: %s", err))
 	}
 
 	if created {
@@ -242,7 +242,7 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		err = a.emailer.GrantAccessEmail(currentUser, invitee, orgExternalID, orgName)
 	}
 	if err != nil {
-		render.Error(w, r, fmt.Errorf("Error sending invite email: %s", err))
+		render.Error(w, r, fmt.Errorf("cannot send invite email: %s", err))
 		return
 	}
 
