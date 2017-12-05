@@ -74,6 +74,9 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"admin_users_users_userID_become", "POST", "/admin/users/users/{userID}/become", a.becomeUser},
 		{"admin_users_users_userID_logins_provider_token", "GET", "/admin/users/users/{userID}/logins/{provider}/token", a.getUserToken},
 		{"admin_users_users_userID_organizations", "GET", "/admin/users/users/{userID}/organizations", a.listOrganizationsForUser},
+
+		// HealthCheck
+		{"healthcheck", "GET", "/api/users/healthcheck", a.healthcheck},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}

@@ -16,6 +16,11 @@ type instanceMonthSums map[string]map[time.Month]map[string]int64
 type monthSums map[time.Month]map[string]int64
 type totalSums map[string]int64
 
+// healthCheck handles a very simple health check
+func (a *API) healthcheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
 // Admin renders a website listing all organizations with their aggregations by month.
 func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().UTC()

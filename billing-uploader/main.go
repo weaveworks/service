@@ -144,6 +144,10 @@ func main() {
 			w.Write([]byte("Success"))
 		}
 	})
+	// healthCheck handles a very simple health check
+	server.HTTP.Path("/healthcheck").Methods("GET").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 	server.Run()
 }
 
