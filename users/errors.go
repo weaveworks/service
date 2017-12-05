@@ -6,14 +6,33 @@ import (
 )
 
 // MalformedInputError is an error on malformed input
-type MalformedInputError error
+type MalformedInputError struct {
+	err error
+}
+
+// NewMalformedInputError wraps an error to denote invalid input.
+func NewMalformedInputError(err error) error {
+	return &MalformedInputError{err}
+}
+
+// Error returns the text of the wrapped error.
+func (e *MalformedInputError) Error() string {
+	return e.err.Error()
+}
 
 // ValidationError is an error of data validation
-type ValidationError error
+type ValidationError struct {
+	s string
+}
+
+// Error returns the text.
+func (e *ValidationError) Error() string {
+	return e.s
+}
 
 // ValidationErrorf creates a new validation error
-func ValidationErrorf(format string, args ...interface{}) ValidationError {
-	return ValidationError(fmt.Errorf(format, args...))
+func ValidationErrorf(format string, args ...interface{}) error {
+	return &ValidationError{s: fmt.Sprintf(format, args...)}
 }
 
 // AlreadyAttachedError is when an oauth login is already attached to some other account
@@ -22,12 +41,12 @@ type AlreadyAttachedError struct {
 	Email string
 }
 
-func (err AlreadyAttachedError) Error() string {
+func (err *AlreadyAttachedError) Error() string {
 	return fmt.Sprintf("Login is already attached to %q", err.Email)
 }
 
 // Metadata implements WithMetadata
-func (err AlreadyAttachedError) Metadata() map[string]interface{} {
+func (err *AlreadyAttachedError) Metadata() map[string]interface{} {
 	return map[string]interface{}{"email": err.Email}
 }
 

@@ -89,7 +89,7 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 	defer r.Body.Close()
 	var view OrgView
 	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
-		render.Error(w, r, users.MalformedInputError(err))
+		render.Error(w, r, users.NewMalformedInputError(err))
 		return
 	}
 	// Don't allow users to specify their own token.
@@ -123,10 +123,8 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var update users.OrgWriteView
-	err := json.NewDecoder(r.Body).Decode(&update)
-	switch {
-	case err != nil:
-		render.Error(w, r, users.MalformedInputError(err))
+	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+		render.Error(w, r, users.NewMalformedInputError(err))
 		return
 	}
 	orgExternalID := mux.Vars(r)["orgExternalID"]
@@ -203,7 +201,7 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	defer r.Body.Close()
 	var resp SignupResponse
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
-		render.Error(w, r, users.MalformedInputError(err))
+		render.Error(w, r, users.NewMalformedInputError(err))
 		return
 	}
 	email := strings.TrimSpace(resp.Email)

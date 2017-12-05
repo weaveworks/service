@@ -49,7 +49,7 @@ func (d DB) AddLoginToUser(ctx context.Context, userID, provider, providerID str
 		switch err {
 		case nil:
 			if existing.ID != userID {
-				return users.AlreadyAttachedError{ID: existing.ID, Email: existing.Email}
+				return &users.AlreadyAttachedError{ID: existing.ID, Email: existing.Email}
 			}
 			// User is already attached to this auth provider, just update the session
 			_, err = tx.
