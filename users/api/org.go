@@ -205,12 +205,8 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 	email := strings.TrimSpace(resp.Email)
-	if email == "" {
-		render.Error(w, r, users.ValidationErrorf("email cannot be blank"))
-		return
-	}
-	if !validation.ValidateEmail(email) {
-		render.Error(w, r, users.ValidationErrorf("please provide a valid email"))
+	if email == "" || !validation.ValidateEmail(email) {
+		render.Error(w, r, users.ErrEmailIsInvalid)
 		return
 	}
 

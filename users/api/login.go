@@ -379,7 +379,7 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	token := r.FormValue("token")
 	switch {
 	case email == "":
-		render.Error(w, r, users.ValidationErrorf("email cannot be blank"))
+		render.Error(w, r, users.ErrEmailIsInvalid)
 		return
 	case token == "":
 		render.Error(w, r, users.ValidationErrorf("token cannot be blank"))
