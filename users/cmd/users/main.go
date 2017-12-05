@@ -159,7 +159,7 @@ func main() {
 	log.Debug("Debug logging enabled")
 
 	grpcServer := grpc_server.New(sessions, db, emailer)
-	api := api.New(
+	app := api.New(
 		*directLogin,
 		emailer,
 		sessions,
@@ -183,7 +183,7 @@ func main() {
 	)
 
 	if *localTestUserCreate {
-		makeLocalTestUser(api, *localTestUserEmail, *localTestUserInstanceID,
+		makeLocalTestUser(app, *localTestUserEmail, *localTestUserInstanceID,
 			*localTestUserInstanceName, *localTestUserInstanceToken,
 			strings.Split(*localTestUserInstanceFeatureFlags, ","))
 	}
@@ -202,7 +202,7 @@ func main() {
 	}
 	defer s.Shutdown()
 
-	api.RegisterRoutes(s.HTTP)
+	app.RegisterRoutes(s.HTTP)
 	users.RegisterUsersServer(s.GRPC, grpcServer)
 
 	s.Run()

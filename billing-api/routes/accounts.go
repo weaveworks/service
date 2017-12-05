@@ -7,16 +7,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/weaveworks/service/common/orgs"
-
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/billing-api/db"
-	"github.com/weaveworks/service/billing-api/render"
 	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/common/constants/billing"
+	"github.com/weaveworks/service/common/orgs"
+	"github.com/weaveworks/service/common/render"
 	timeutil "github.com/weaveworks/service/common/time"
 	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/users"
@@ -199,7 +198,7 @@ func (a *API) uploadUsage(ctx context.Context, externalID string, account *zuora
 func (a *API) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	err := a.createAccount(w, r)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 	}
 }
 
@@ -221,7 +220,7 @@ func (a *API) GetAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	account, err := a.Zuora.GetAccount(ctx, mux.Vars(r)["id"])
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 
@@ -229,7 +228,7 @@ func (a *API) GetAccount(w http.ResponseWriter, r *http.Request) {
 		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: mux.Vars(r)["id"]},
 	})
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 
@@ -249,12 +248,12 @@ func (a *API) GetAccount(w http.ResponseWriter, r *http.Request) {
 func (a *API) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	req := &zuora.Account{}
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	account, err := a.Zuora.UpdateAccount(r.Context(), mux.Vars(r)["id"], req)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	render.JSON(w, http.StatusOK, account)
@@ -266,7 +265,7 @@ func (a *API) GetAccountTrial(w http.ResponseWriter, r *http.Request) {
 		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: mux.Vars(r)["id"]},
 	})
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	trial := trial.Info(resp.Organization, time.Now().UTC())
@@ -387,7 +386,7 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: orgID},
 	})
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	now := time.Now().UTC()
@@ -404,7 +403,7 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	start, end := computeBillingPeriod(billCycleDay, resp.Organization.CreatedAt, resp.Organization.TrialExpiresAt, now)
@@ -414,7 +413,7 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 	if zuoraAcct == nil && !resp.Organization.InTrialPeriod(start) {
 		interimAggs, err := a.DB.GetAggregates(ctx, resp.Organization.ID, resp.Organization.TrialExpiresAt, start)
 		if err != nil {
-			render.Error(w, r, err)
+			renderError(w, r, err)
 			return
 		}
 		interimSum, _, _ := sumAndFilterAggregates(interimAggs)
@@ -427,7 +426,7 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 
 	aggs, err := a.DB.GetAggregates(ctx, resp.Organization.ID, start, end)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 

@@ -257,7 +257,7 @@ func Test_Signup_ProviderBlankEmail(t *testing.T) {
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid authentication data")
+	assert.Contains(t, w.Body.String(), "invalid authentication data")
 }
 
 // Test the case where the Provider fails to return an email address
@@ -276,7 +276,7 @@ func Test_Signup_ProviderInvalidEmail(t *testing.T) {
 	assert.EqualError(t, err, users.ErrNotFound.Error())
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid authentication data")
+	assert.Contains(t, w.Body.String(), "invalid authentication data")
 }
 
 func Test_Signup_ViaOAuth_MatchesByEmail(t *testing.T) {

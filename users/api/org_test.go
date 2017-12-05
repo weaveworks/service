@@ -213,11 +213,11 @@ func Test_UpdateOrganization_Validation(t *testing.T) {
 		environment string
 		errMsg      string
 	}{
-		{"", "", "", "Name cannot be blank"},
-		{"Test", "invalid", "minikube", "Platform is invalid"},
-		{"Test", "kubernetes", "invalid", "Environment is invalid"},
-		{"Test", "kubernetes", "", "Environment is required with platform"},
-		{"Test", "", "minikube", "Platform is required with environment"},
+		{"", "", "", "name cannot be blank"},
+		{"Test", "invalid", "minikube", "platform is invalid"},
+		{"Test", "kubernetes", "invalid", "environment is invalid"},
+		{"Test", "kubernetes", "", "environment is required with platform"},
+		{"Test", "", "minikube", "platform is required with environment"},
 	}
 
 	for _, tc := range tests {

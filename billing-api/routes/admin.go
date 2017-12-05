@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/weaveworks/common/logging"
-	"github.com/weaveworks/service/billing-api/render"
 	"github.com/weaveworks/service/billing-api/trial"
+	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
 )
 
@@ -35,7 +35,7 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 		PageNumber: int32(page),
 	})
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 
@@ -47,7 +47,7 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 	}
 	sums, err := a.DB.GetMonthSums(r.Context(), ids, from, now)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 

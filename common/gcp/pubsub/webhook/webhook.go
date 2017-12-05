@@ -7,8 +7,9 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/common/gcp/pubsub/dto"
+	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/render"
+	users_render "github.com/weaveworks/service/users/render"
 )
 
 // New returns a http.Handler configured to be able to handle Google Pub/Sub events.
@@ -17,13 +18,14 @@ func New(handler MessageHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		event := dto.Event{}
 		if err := json.NewDecoder(req.Body).Decode(&event); err != nil {
-			render.Error(w, req, users.NewMalformedInputError(err)) // NACK: we might want to retry on this message later.
+			// NACK: we might want to retry on this message later.
+			render.Error(w, req, users.NewMalformedInputError(err), users_render.ErrorStatusCode)
 			return
 		}
 		log.Infof("Incoming webhook event: %+v", event)
 
 		if err := handler.Handle(event.Message); err != nil {
-			render.Error(w, req, err) // NACK: we might want to retry on this message later.
+			render.Error(w, req, err, users_render.ErrorStatusCode) // NACK: we might want to retry on this message later.
 		} else {
 			w.WriteHeader(http.StatusNoContent) // ACK: remove this message from Pub/Sub.
 		}

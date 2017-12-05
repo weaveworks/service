@@ -18,8 +18,8 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/mtime"
 	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/render"
 )
 
 type getOrgServiceStatusView struct {
@@ -79,7 +79,7 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 	exists, err := a.db.OrganizationExists(r.Context(), orgExternalID)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	if !exists {
@@ -88,7 +88,7 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 	}
 	isMember, err := a.db.UserIsMemberOf(r.Context(), currentUser.ID, orgExternalID)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	if !isMember {
@@ -98,7 +98,7 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 
 	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	r = r.WithContext(user.InjectOrgID(r.Context(), org.ID))
@@ -113,7 +113,7 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 		now := mtime.Now()
 		err := a.db.SetOrganizationFirstSeenConnectedAt(r.Context(), orgExternalID, &now)
 		if err != nil {
-			render.Error(w, r, err)
+			renderError(w, r, err)
 			return
 		}
 		org.FirstSeenConnectedAt = &now

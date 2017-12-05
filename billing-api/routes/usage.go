@@ -6,8 +6,8 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/weaveworks/service/billing-api/render"
 	"github.com/weaveworks/service/common/constants/billing"
+	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
 )
 
@@ -29,14 +29,14 @@ func (a *API) GetUsage(w http.ResponseWriter, r *http.Request) {
 	if start := r.FormValue("start"); start != "" {
 		from, err = parseTime(start)
 		if err != nil {
-			render.Error(w, r, err)
+			renderError(w, r, err)
 			return
 		}
 	}
 	if end := r.FormValue("end"); end != "" {
 		through, err = parseTime(end)
 		if err != nil {
-			render.Error(w, r, err)
+			renderError(w, r, err)
 			return
 		}
 	}
@@ -45,13 +45,13 @@ func (a *API) GetUsage(w http.ResponseWriter, r *http.Request) {
 		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: mux.Vars(r)["id"]},
 	})
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 
 	aggs, err := a.DB.GetAggregates(ctx, org.Organization.ID, from, through)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 

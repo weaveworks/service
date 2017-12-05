@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/render"
 	"github.com/weaveworks/service/users/sessions"
 	"github.com/weaveworks/service/users/tokens"
 )
@@ -44,7 +43,7 @@ func (a *API) authenticateWebhook(handler http.HandlerFunc) http.HandlerFunc {
 		if ok {
 			handler(w, r)
 		} else {
-			render.Error(w, r, users.ErrForbidden)
+			renderError(w, r, users.ErrForbidden)
 		}
 	}
 }
@@ -78,7 +77,7 @@ func (a *API) authenticateUserVia(handler func(*users.User, http.ResponseWriter,
 		if err == users.ErrNotFound {
 			err = users.ErrInvalidAuthenticationData
 		}
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	})
 }
@@ -102,7 +101,7 @@ func (a *API) authenticateInstanceVia(handler func(*users.Organization, http.Res
 		if err == users.ErrNotFound {
 			err = users.ErrInvalidAuthenticationData
 		}
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	})
 }
