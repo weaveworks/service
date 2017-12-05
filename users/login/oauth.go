@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -15,6 +16,8 @@ import (
 	"github.com/weaveworks/service/common"
 	"golang.org/x/oauth2"
 )
+
+var errOAuthStateMismatch = errors.New("oauth state value did not match")
 
 // OAuth authenticates users via generic oauth. It should probably be embedded
 // in another type, or at least needs the Config set.
@@ -87,21 +90,21 @@ func (a *OAuth) encodeState(raw map[string]string) string {
 func (a *OAuth) decodeState(raw string) (map[string]string, error) {
 	parts := strings.SplitN(raw, ":", 2)
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("oauth state value did not match")
+		return nil, errOAuthStateMismatch
 	}
 
 	j, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
-		return nil, fmt.Errorf("oauth state value did not match")
+		return nil, errOAuthStateMismatch
 	}
 	sum, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		return nil, fmt.Errorf("oauth state value did not match")
+		return nil, errOAuthStateMismatch
 	}
 
 	expected := hmac.New(sha256.New, []byte(a.Config.ClientSecret)).Sum(j)
 	if !hmac.Equal(expected, sum) {
-		return nil, fmt.Errorf("oauth state value did not match")
+		return nil, errOAuthStateMismatch
 	}
 
 	var m map[string]string

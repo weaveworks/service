@@ -42,7 +42,7 @@ func (g *github) Link(r *http.Request) (Link, bool) {
 func (g *github) Login(r *http.Request) (string, string, json.RawMessage, map[string]string, error) {
 	extraState, ok := g.VerifyState(r)
 	if !ok {
-		return "", "", nil, nil, fmt.Errorf("oauth state value did not match")
+		return "", "", nil, nil, errOAuthStateMismatch
 	}
 
 	// Use the authorization code that is pushed to the redirect URL.

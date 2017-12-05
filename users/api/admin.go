@@ -232,16 +232,36 @@ func (a *API) setOrganizationField(ctx context.Context, orgExternalID, field, va
 	return err
 }
 
+// marketingRefresh re-sends an event for each user as if he had just been created.
+// Use wisely.
 func (a *API) marketingRefresh(w http.ResponseWriter, r *http.Request) {
-	users, err := a.db.ListUsers(r.Context(), filter.All, 0)
-	if err != nil {
-		render.Error(w, r, err)
-		return
-	}
+	http.Error(w,
+		"Marketing refresh has been disabled, contact an engineer to have it re-enabled",
+		http.StatusForbidden)
+	return
 
-	for _, user := range users {
-		a.marketingQueues.UserCreated(user.Email, user.CreatedAt)
-	}
+	// It seems that this might be a leftover for when we used Pardot.
+	//
+	// Savannah's comment to this action:
+	// | Last time someone accidentally pressed that button it caused everyone to go through
+	// | the onboarding nurture again. It was a terrible, terrible situation.
+	//
+	// If for some reason you re-enable this you need to add support for sending the proper
+	// `signupSource` which is either our website or then GCP Launcher. For the latter, you would
+	// need to check out whether user X is the owner (first user) of any GCP instance.
+	// Pick up the exact values to send from other places calling the UserCreated() method.
+
+	/*
+		users, err := a.db.ListUsers(r.Context(), filter.All, 0)
+		if err != nil {
+			render.Error(w, r, err)
+			return
+		}
+
+		for _, user := range users {
+			a.marketingQueues.UserCreated(user.Email, "TBD", user.CreatedAt)
+		}
+	*/
 }
 
 func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {

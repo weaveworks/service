@@ -29,6 +29,7 @@ func init() {
 
 type prospect struct {
 	Email             string    `json:"email"`
+	SignupSource      string    `json:"signupSource"`
 	ServiceCreatedAt  time.Time `json:"createdAt"`
 	ServiceLastAccess time.Time `json:"lastAccess"`
 }
@@ -45,9 +46,14 @@ func (p1 prospect) merge(p2 prospect) prospect {
 	if email == "" {
 		email = p2.Email
 	}
+	signupSource := p1.SignupSource
+	if signupSource == "" {
+		signupSource = p2.SignupSource
+	}
 
 	return prospect{
 		Email:             email,
+		SignupSource:      signupSource,
 		ServiceCreatedAt:  latest(p1.ServiceCreatedAt, p2.ServiceCreatedAt),
 		ServiceLastAccess: latest(p1.ServiceLastAccess, p2.ServiceLastAccess),
 	}
@@ -185,7 +191,7 @@ func (c *Queue) UserAccess(email string, hitAt time.Time) {
 // UserCreated should be called when new users are created.
 // This will trigger an immediate 'upload' to pardot, although
 // that upload will still happen in the background.
-func (c *Queue) UserCreated(email string, createdAt time.Time) {
+func (c *Queue) UserCreated(email, signupSource string, createdAt time.Time) {
 	if c == nil {
 		return
 	}
@@ -193,6 +199,7 @@ func (c *Queue) UserCreated(email string, createdAt time.Time) {
 	defer c.Unlock()
 	c.prospects = append(c.prospects, prospect{
 		Email:            email,
+		SignupSource:     signupSource,
 		ServiceCreatedAt: createdAt,
 	})
 	c.cond.Broadcast()
@@ -209,8 +216,8 @@ func (qs Queues) UserAccess(email string, hitAt time.Time) {
 }
 
 // UserCreated calls UserCreated on each Queue.
-func (qs Queues) UserCreated(email string, createdAt time.Time) {
+func (qs Queues) UserCreated(email, signupSource string, createdAt time.Time) {
 	for _, q := range qs {
-		q.UserCreated(email, createdAt)
+		q.UserCreated(email, signupSource, createdAt)
 	}
 }

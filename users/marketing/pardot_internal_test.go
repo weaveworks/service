@@ -94,7 +94,7 @@ func TestPardotClient(t *testing.T) {
 	defer queue.Stop()
 
 	createdAt := time.Now()
-	queue.UserCreated(userEmail, createdAt)
+	queue.UserCreated(userEmail, "", createdAt)
 	select {
 	case ps := <-prospects:
 		if !reflect.DeepEqual(ps, map[string]pardotProspect{
