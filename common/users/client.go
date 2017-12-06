@@ -15,6 +15,7 @@ import (
 
 	"github.com/weaveworks/common/httpgrpc/server"
 	"github.com/weaveworks/common/instrument"
+	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/users"
 )
 
@@ -39,13 +40,12 @@ type Client struct {
 	users.UsersClient
 }
 
-var durationCollector = instrument.NewHistogramCollector(prometheus.NewHistogramVec(prometheus.HistogramOpts{
-	Namespace: "billing",
+var durationCollector = instrument.NewHistogramCollectorFromOpts(prometheus.HistogramOpts{
+	Namespace: common.PrometheusNamespace,
 	Subsystem: "users_client",
 	Name:      "request_duration_seconds",
 	Help:      "Response time of users requests.",
-	Buckets:   prometheus.DefBuckets,
-}, instrument.HistogramCollectorBuckets))
+})
 
 func init() {
 	durationCollector.Register()
