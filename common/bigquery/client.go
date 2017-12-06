@@ -13,6 +13,7 @@ import (
 
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/service/billing-api/db"
+	"github.com/weaveworks/service/common"
 )
 
 const aggQuery = `
@@ -32,13 +33,12 @@ GROUP BY
   BucketStart
 `
 
-var queryCollector = instrument.NewHistogramCollector(prometheus.NewHistogramVec(prometheus.HistogramOpts{
-	Namespace: "billing",
-	Subsystem: "aggregator",
-	Name:      "bigquery_query_duration_seconds",
+var queryCollector = instrument.NewHistogramCollectorFromOpts(prometheus.HistogramOpts{
+	Namespace: common.PrometheusNamespace,
+	Subsystem: "bigquery",
+	Name:      "query_duration_seconds",
 	Help:      "Time spent running queries.",
-	Buckets:   prometheus.DefBuckets,
-}, instrument.HistogramCollectorBuckets))
+})
 
 func init() {
 	queryCollector.Register()
