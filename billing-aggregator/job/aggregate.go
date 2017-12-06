@@ -43,7 +43,7 @@ func (j *Aggregate) Do(since *time.Time) error {
 		since = &t
 	}
 	return instrument.CollectedRequest(context.Background(), "Aggregate.Do", j.collector, nil, func(ctx context.Context) error {
-		aggs, err := j.bigqueryClient.Query(ctx, *since)
+		aggs, err := j.bigqueryClient.Aggregates(ctx, *since)
 		if err != nil {
 			return err
 		}
