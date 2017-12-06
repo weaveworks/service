@@ -7,11 +7,11 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/weaveworks/common/httpgrpc"
-	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/users"
 )
 
-func errorStatusCode(err error) int {
+// ErrorStatusCode translates error into HTTP status code.
+func ErrorStatusCode(err error) int {
 	switch err {
 	case users.ErrForbidden:
 		return http.StatusForbidden
@@ -38,26 +38,7 @@ func errorStatusCode(err error) int {
 var GRPCErrorInterceptor grpc.UnaryServerInterceptor = func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	resp, err := handler(ctx, req)
 	if err != nil {
-		err = httpgrpc.Errorf(errorStatusCode(err), err.Error())
+		err = httpgrpc.Errorf(ErrorStatusCode(err), err.Error())
 	}
 	return resp, err
-}
-
-// Error renders a specific error to the API
-func Error(w http.ResponseWriter, r *http.Request, err error) {
-	logging.With(r.Context()).Errorf("%s %s: %v", r.Method, r.URL.Path, err)
-
-	code := errorStatusCode(err)
-	if code == http.StatusInternalServerError {
-		http.Error(w, `{"errors":[{"message":"An internal server error occurred"}]}`, http.StatusInternalServerError)
-	} else {
-		m := map[string]interface{}{}
-		if err, ok := err.(users.WithMetadata); ok {
-			m = err.Metadata()
-		}
-		m["message"] = err.Error()
-		JSON(w, code, map[string][]map[string]interface{}{
-			"errors": {m},
-		})
-	}
 }

@@ -12,8 +12,8 @@ import (
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/billing-api/db"
-	"github.com/weaveworks/service/billing-api/render"
 	"github.com/weaveworks/service/common/constants/billing"
+	"github.com/weaveworks/service/common/render"
 	timeutil "github.com/weaveworks/service/common/time"
 	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/users"

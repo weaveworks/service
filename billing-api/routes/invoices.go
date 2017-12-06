@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/logging"
-	"github.com/weaveworks/service/billing-api/render"
+	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/common/zuora"
 )
 

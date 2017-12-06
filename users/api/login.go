@@ -15,10 +15,10 @@ import (
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/common"
+	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
-	"github.com/weaveworks/service/users/render"
 	"github.com/weaveworks/service/users/tokens"
 )
 
@@ -64,7 +64,7 @@ func (a *API) listAttachedLoginProviders(currentUser *users.User, w http.Respons
 	view := attachedLoginProvidersView{}
 	logins, err := a.db.ListLoginsForUserIDs(r.Context(), currentUser.ID)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	for _, l := range logins {
@@ -105,24 +105,24 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	provider, ok := a.logins.Get(providerID)
 	if !ok {
 		logging.With(r.Context()).Errorf("Login provider not found: %q", providerID)
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
 
 	id, email, authSession, extraState, err := provider.Login(r)
 	view.QueryParams = extraState
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	if email == "" {
 		logging.With(r.Context()).Errorf("Login provider returned blank email: %q", providerID)
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
 	if !validation.ValidateEmail(email) {
 		logging.With(r.Context()).Errorf("Login provider returned an invalid email: %q, %v", providerID, email)
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
 
@@ -159,7 +159,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			break
 		} else if err != users.ErrNotFound {
 			logging.With(r.Context()).Error(err)
-			render.Error(w, r, users.ErrInvalidAuthenticationData)
+			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
 	}
@@ -171,7 +171,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		u, err = a.db.CreateUser(r.Context(), email)
 		if err != nil {
 			logging.With(r.Context()).Error(err)
-			render.Error(w, r, users.ErrInvalidAuthenticationData)
+			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
 		a.marketingQueues.UserCreated(u.Email, signupSource(extraState), u.CreatedAt)
@@ -181,22 +181,22 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		existing, ok := err.(*users.AlreadyAttachedError)
 		if !ok {
 			logging.With(r.Context()).Error(err)
-			render.Error(w, r, users.ErrInvalidAuthenticationData)
+			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
 
 		if r.FormValue("force") != "true" {
-			render.Error(w, r, existing)
+			renderError(w, r, existing)
 			return
 		}
 		if err := a.db.DetachLoginFromUser(r.Context(), existing.ID, providerID); err != nil {
 			logging.With(r.Context()).Error(err)
-			render.Error(w, r, users.ErrInvalidAuthenticationData)
+			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
 		if err := a.db.AddLoginToUser(r.Context(), u.ID, providerID, id, authSession); err != nil {
 			logging.With(r.Context()).Error(err)
-			render.Error(w, r, users.ErrInvalidAuthenticationData)
+			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
 	}
@@ -220,13 +220,13 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.UpdateUserAtLogin(r.Context(), u); err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 
 	impersonatingUserID := "" // Logging in via provider credentials => cannot be impersonating
 	if err := a.sessions.Set(w, r, u.ID, impersonatingUserID); err != nil {
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
 
@@ -251,7 +251,7 @@ func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter
 
 	logins, err := a.db.ListLoginsForUserIDs(r.Context(), currentUser.ID)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	for _, login := range logins {
@@ -259,13 +259,13 @@ func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter
 			continue
 		}
 		if err := provider.Logout(login.Session); err != nil {
-			render.Error(w, r, err)
+			renderError(w, r, err)
 			return
 		}
 	}
 
 	if err := a.db.DetachLoginFromUser(r.Context(), currentUser.ID, providerID); err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -290,13 +290,13 @@ func (a *API) signup(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var input SignupRequest
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		render.Error(w, r, users.NewMalformedInputError(err))
+		renderError(w, r, users.NewMalformedInputError(err))
 		return
 	}
 
 	resp, _, err := a.Signup(r.Context(), input)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 	} else {
 		render.JSON(w, http.StatusOK, resp)
 	}
@@ -379,10 +379,10 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	token := r.FormValue("token")
 	switch {
 	case email == "":
-		render.Error(w, r, users.ValidationErrorf("Email cannot be blank"))
+		renderError(w, r, users.ErrEmailIsInvalid)
 		return
 	case token == "":
-		render.Error(w, r, users.ValidationErrorf("Token cannot be blank"))
+		renderError(w, r, users.ValidationErrorf("token cannot be blank"))
 		return
 	}
 
@@ -392,31 +392,31 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		logging.With(r.Context()).Error(err)
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
 
 	// We always do this so that the timing difference can't be used to infer a user's existence.
 	if !u.CompareToken(token) {
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
 
 	if err := a.db.SetUserToken(r.Context(), u.ID, ""); err != nil {
 		logging.With(r.Context()).Error(err)
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
 
 	firstLogin := u.FirstLoginAt.IsZero()
 	if err := a.UpdateUserAtLogin(r.Context(), u); err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 
 	impersonatingUserID := "" // Direct login => cannot be impersonating
 	if err := a.sessions.Set(w, r, u.ID, impersonatingUserID); err != nil {
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
 	// Track mixpanel event https://github.com/weaveworks/service/issues/1301
@@ -477,7 +477,7 @@ func (a *API) IntercomHash(email string) string {
 func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	organizations, err := a.db.ListOrganizationsForUserIDs(r.Context(), currentUser.ID)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	view := publicLookupView{

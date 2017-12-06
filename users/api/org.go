@@ -14,9 +14,9 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/render"
 )
 
 // OrgView describes an organisation
@@ -42,7 +42,7 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 	orgExternalID := vars["orgExternalID"]
 	organizations, err := a.db.ListOrganizationsForUserIDs(r.Context(), currentUser.ID)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	for _, org := range organizations {
@@ -67,19 +67,19 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 
 	// If the organization exists but we just don't have access to it, tell the client
 	if exists, err := a.db.OrganizationExists(r.Context(), orgExternalID); err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	} else if exists {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-	render.Error(w, r, users.ErrNotFound)
+	renderError(w, r, users.ErrNotFound)
 }
 
 func (a *API) generateOrgExternalID(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	externalID, err := a.db.GenerateOrganizationExternalID(r.Context())
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	render.JSON(w, http.StatusOK, OrgView{Name: externalID, ExternalID: externalID})
@@ -89,7 +89,7 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 	defer r.Body.Close()
 	var view OrgView
 	if err := json.NewDecoder(r.Body).Decode(&view); err != nil {
-		render.Error(w, r, users.NewMalformedInputError(err))
+		renderError(w, r, users.NewMalformedInputError(err))
 		return
 	}
 	// Don't allow users to specify their own token.
@@ -98,7 +98,7 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	} else if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
@@ -124,16 +124,16 @@ func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 	defer r.Body.Close()
 	var update users.OrgWriteView
 	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
-		render.Error(w, r, users.NewMalformedInputError(err))
+		renderError(w, r, users.NewMalformedInputError(err))
 		return
 	}
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	if err := a.db.UpdateOrganization(r.Context(), orgExternalID, update); err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -143,7 +143,7 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 	exists, err := a.db.OrganizationExists(r.Context(), orgExternalID)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	if !exists {
@@ -152,7 +152,7 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 	}
 	isMember, err := a.db.UserIsMemberOf(r.Context(), currentUser.ID, orgExternalID)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	if !isMember {
@@ -160,7 +160,7 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		return
 	}
 	if err := a.db.DeleteOrganization(r.Context(), orgExternalID); err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -178,13 +178,13 @@ type organizationUserView struct {
 func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 
 	users, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	view := organizationUsersView{}
@@ -201,39 +201,35 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	defer r.Body.Close()
 	var resp SignupResponse
 	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
-		render.Error(w, r, users.NewMalformedInputError(err))
+		renderError(w, r, users.NewMalformedInputError(err))
 		return
 	}
 	email := strings.TrimSpace(resp.Email)
-	if email == "" {
-		render.Error(w, r, users.ValidationErrorf("Email cannot be blank"))
-		return
-	}
-	if !validation.ValidateEmail(email) {
-		render.Error(w, r, users.ValidationErrorf("Please provide a valid email"))
+	if email == "" || !validation.ValidateEmail(email) {
+		renderError(w, r, users.ErrEmailIsInvalid)
 		return
 	}
 
 	orgExternalID := mux.Vars(r)["orgExternalID"]
 	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 
 	invitee, created, err := a.db.InviteUser(r.Context(), email, orgExternalID)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	// We always do this so that the timing difference can't be used to infer a user's existence.
 	token, err := a.generateUserToken(r.Context(), invitee)
 	if err != nil {
-		render.Error(w, r, fmt.Errorf("Error sending invite email: %s", err))
+		renderError(w, r, fmt.Errorf("cannot send invite email: %s", err))
 		return
 	}
 	orgName, err := a.db.GetOrganizationName(r.Context(), orgExternalID)
 	if err != nil {
-		render.Error(w, r, fmt.Errorf("Error getting organization name: %s", err))
+		renderError(w, r, fmt.Errorf("cannot get organization name: %s", err))
 	}
 
 	if created {
@@ -242,7 +238,7 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		err = a.emailer.GrantAccessEmail(currentUser, invitee, orgExternalID, orgName)
 	}
 	if err != nil {
-		render.Error(w, r, fmt.Errorf("Error sending invite email: %s", err))
+		renderError(w, r, fmt.Errorf("cannot send invite email: %s", err))
 		return
 	}
 
@@ -254,12 +250,12 @@ func (a *API) deleteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	orgExternalID := vars["orgExternalID"]
 	userEmail := vars["userEmail"]
 	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 
 	if err := a.db.RemoveUserFromOrganization(r.Context(), orgExternalID, userEmail); err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

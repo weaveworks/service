@@ -107,7 +107,7 @@ func Test_Invite_WithBlankEmail(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{
 		"errors": []interface{}{
 			map[string]interface{}{
-				"message": "Email cannot be blank"},
+				"message": "email is not valid"},
 		},
 	}, body)
 

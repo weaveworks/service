@@ -14,7 +14,7 @@ import (
 )
 
 // ErrUnsupportedEmailProtocol is the error when an email protocol is unsupported.
-var ErrUnsupportedEmailProtocol = errors.New("Unsupported email protocol")
+var ErrUnsupportedEmailProtocol = errors.New("unsupported email protocol")
 
 // Emailer is the interface which emailers implement. There should be a method
 // for each type of email we send.

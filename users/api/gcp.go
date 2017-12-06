@@ -14,9 +14,9 @@ import (
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/common/gcp/partner"
+	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
-	"github.com/weaveworks/service/users/render"
 )
 
 // We do not approve subscriptions coming from this accountID as to not
@@ -35,24 +35,24 @@ func (a *API) gcpSSOLogin(w http.ResponseWriter, r *http.Request) {
 
 	org, err := a.db.FindOrganizationByGCPExternalAccountID(r.Context(), externalAccountID)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	admins, err := a.db.ListOrganizationUsers(r.Context(), org.ExternalID)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	user := admins[0] // Arbitrarily log in as first admin.
 
 	firstLogin := user.FirstLoginAt.IsZero()
 	if err := a.UpdateUserAtLogin(r.Context(), user); err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	impersonatingUserID := "" // SSO login => cannot be impersonating
 	if err := a.sessions.Set(w, r, user.ID, impersonatingUserID); err != nil {
-		render.Error(w, r, users.ErrInvalidAuthenticationData)
+		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
 	// Track mixpanel event https://github.com/weaveworks/service/issues/1301
@@ -70,7 +70,7 @@ func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *ht
 	externalAccountID := r.FormValue("gcpAccountId")
 	org, err := a.GCPSubscribe(currentUser, externalAccountID, w, r)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	render.JSON(w, http.StatusOK, org)
@@ -163,5 +163,5 @@ func (a *API) getGoogleOAuthToken(ctx context.Context, logger *log.Entry, userID
 			return session.Token, nil
 		}
 	}
-	return nil, errors.New("No active Google OAuth session: please authenticate again")
+	return nil, errors.New("no active Google OAuth session, please authenticate again")
 }

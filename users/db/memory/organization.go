@@ -504,7 +504,7 @@ func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccount
 		return err
 	}
 	if o.GCP != nil {
-		return errors.New("Organization already has a GCP account")
+		return errors.New("organization already has a GCP account")
 	}
 
 	o.GCP = d.gcpAccounts[externalAccountID]
@@ -531,7 +531,7 @@ func (d *DB) createGCP(ctx context.Context, externalAccountID string) (*users.Go
 
 	if _, exists := d.gcpAccounts[externalAccountID]; exists {
 		// If account is already known, Google either sent as a duplicate or we wrongfully called this method.
-		return nil, errors.New("Account is already in use, reactivate subscription in the launcher")
+		return nil, errors.New("account is already in use, reactivate subscription in the launcher")
 	}
 	gcp := &users.GoogleCloudPlatform{
 		ID:                fmt.Sprint(len(d.gcpAccounts)),
