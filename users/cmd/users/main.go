@@ -56,10 +56,6 @@ func main() {
 		promMetricsAPI = flag.String("prom-metrics-api", "", "Hostname and port for cortex querier. e.g. http://querier.cortex.svc.cluster.local:80/api/prom/api/v1/label/__name__/values")
 		netPeersAPI    = flag.String("net-peers-api", "", "Hostname and port for peer discovery. e.g. http://discovery.service-net.svc.cluster.local:80/api/net/peers")
 
-		pardotEmail    = flag.String("pardot-email", "", "Email of Pardot account.  If not supplied pardot integration will be disabled.")
-		pardotPassword = flag.String("pardot-password", "", "Password of Pardot account.")
-		pardotUserKey  = flag.String("pardot-userkey", "", "User key of Pardot account.")
-
 		marketoClientID    = flag.String("marketo-client-id", "", "Client ID of Marketo account.  If not supplied marketo integration will be disabled.")
 		marketoSecret      = flag.String("marketo-secret", "", "Secret for Marketo account.")
 		marketoEndpoint    = flag.String("marketo-endpoint", "", "REST API endpoint for Marketo.")
@@ -110,14 +106,6 @@ func main() {
 	log.Infof("Billing enabled for %v%% of newly created organizations.", *billingFeatureFlagProbability)
 
 	var marketingQueues marketing.Queues
-	if *pardotEmail != "" {
-		pardotClient := marketing.NewPardotClient(marketing.PardotAPIURL,
-			*pardotEmail, *pardotPassword, *pardotUserKey)
-		queue := marketing.NewQueue(pardotClient)
-		defer queue.Stop()
-		marketingQueues = append(marketingQueues, queue)
-	}
-
 	if *marketoClientID != "" {
 		marketoClient, err := marketing.NewMarketoClient(*marketoClientID, *marketoSecret, *marketoEndpoint, *marketoProgram)
 		if err != nil {

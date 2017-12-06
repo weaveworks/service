@@ -93,7 +93,7 @@ func NewQueue(client client) *Queue {
 	return queue
 }
 
-// Stop the pardot client.
+// Stop the client.
 func (c *Queue) Stop() {
 	close(c.quit)
 }
