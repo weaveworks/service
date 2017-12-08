@@ -34,7 +34,12 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 
 		<h2>Management</h2>
 		<ul>
-			<li><a href="/admin/users">Users Service</a></li>
+			<li><a href="/admin/users">Users Service</a>
+				<ul>
+					<li><a href="/admin/users/users">Users</a></li>
+					<li><a href="/admin/users/organizations">Organizations</a></li>
+				</ul>
+			</li>
 			<li><a href="https://frontend.dev.weave.works/flux/proud-wind-05">Deploy (Dev)</a>
 			<li><a href="https://cloud.weave.works/flux/loud-breeze-77">Deploy (Prod)</a>
 			<li><a href="/admin/kubedash/">Kubernetes Dashboard</a></li>
