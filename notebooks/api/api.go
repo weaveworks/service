@@ -36,6 +36,8 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_get_notebook", "GET", "/api/prom/notebooks/{notebookID}", a.getNotebook},
 		{"api_update_notebook", "PUT", "/api/prom/notebooks/{notebookID}", a.updateNotebook},
 		{"api_delete_notebook", "DELETE", "/api/prom/notebooks/{notebookID}", a.deleteNotebook},
+
+		{"healthcheck", "GET", "/healthcheck", a.healthcheck},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}

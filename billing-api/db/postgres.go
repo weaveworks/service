@@ -11,6 +11,7 @@ import (
 	_ "github.com/lib/pq" // Import the postgres sql driver
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/weaveworks/service/common/dbwait"
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // Import the postgres migrations driver
 	"gopkg.in/mattes/migrate.v1/migrate"
 )
@@ -58,6 +59,15 @@ func newPostgres(databaseURI, migrationsDir string) (*postgres, error) {
 	u.RawQuery = query.Encode()
 	databaseURI = u.String()
 
+	db, err := sql.Open("postgres", databaseURI)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := dbwait.Wait(db); err != nil {
+		return nil, errors.Wrap(err, "cannot establish db connection")
+	}
+
 	if migrationsDir != "" {
 		log.Infof("Running Database Migrations...")
 		if errs, ok := migrate.UpSync(databaseURI, migrationsDir); !ok {
@@ -67,10 +77,7 @@ func newPostgres(databaseURI, migrationsDir string) (*postgres, error) {
 			return nil, errors.New("Database migrations failed")
 		}
 	}
-	db, err := sql.Open("postgres", databaseURI)
-	if err != nil {
-		return nil, err
-	}
+
 	db.SetMaxOpenConns(intOptions["max_open_conns"])
 	db.SetMaxIdleConns(intOptions["max_idle_conns"])
 

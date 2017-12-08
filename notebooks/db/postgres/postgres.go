@@ -3,7 +3,8 @@ package postgres
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
+
+	"github.com/pkg/errors"
 
 	"github.com/Masterminds/squirrel"
 	log "github.com/sirupsen/logrus"
@@ -11,6 +12,7 @@ import (
 	"gopkg.in/mattes/migrate.v1/migrate"
 
 	uuid "github.com/satori/go.uuid"
+	"github.com/weaveworks/service/common/dbwait"
 
 	_ "github.com/lib/pq"                          // Import the postgres sql driver
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // Import the postgres migrations driver
@@ -31,6 +33,15 @@ type dbProxy interface {
 
 // New creates a new postgres DB
 func New(uri, migrationsDir string) (DB, error) {
+	db, err := sql.Open("postgres", uri)
+	if err != nil {
+		return DB{}, err
+	}
+
+	if err := dbwait.Wait(db); err != nil {
+		return DB{}, errors.Wrap(err, "cannot establish db connection")
+	}
+
 	if migrationsDir != "" {
 		log.Infof("Running Database Migrations...")
 		if errs, ok := migrate.UpSync(uri, migrationsDir); !ok {
@@ -40,7 +51,7 @@ func New(uri, migrationsDir string) (DB, error) {
 			return DB{}, errors.New("Database migrations failed")
 		}
 	}
-	db, err := sql.Open("postgres", uri)
+
 	return DB{
 		dbProxy:              db,
 		StatementBuilderType: statementBuilder(db),

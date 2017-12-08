@@ -14,6 +14,7 @@ import (
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // Import the postgres migrations driver
 	"gopkg.in/mattes/migrate.v1/migrate"
 
+	"github.com/weaveworks/service/common/dbwait"
 	"github.com/weaveworks/service/users"
 )
 
@@ -55,6 +56,15 @@ func New(databaseURI, migrationsDir string, passwordHashingCost int) (DB, error)
 	u.RawQuery = query.Encode()
 	databaseURI = u.String()
 
+	db, err := sql.Open("postgres", databaseURI)
+	if err != nil {
+		return DB{}, err
+	}
+
+	if err := dbwait.Wait(db); err != nil {
+		return DB{}, errors.Wrap(err, "cannot establish db connection")
+	}
+
 	if migrationsDir != "" {
 		log.Infof("Running Database Migrations...")
 		if errs, ok := migrate.UpSync(databaseURI, migrationsDir); !ok {
@@ -64,10 +74,7 @@ func New(databaseURI, migrationsDir string, passwordHashingCost int) (DB, error)
 			return DB{}, errors.New("Database migrations failed")
 		}
 	}
-	db, err := sql.Open("postgres", databaseURI)
-	if err != nil {
-		return DB{}, err
-	}
+
 	db.SetMaxOpenConns(intOptions["max_open_conns"])
 	db.SetMaxIdleConns(intOptions["max_idle_conns"])
 

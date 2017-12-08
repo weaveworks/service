@@ -365,6 +365,11 @@ func (a *API) generateUserToken(ctx context.Context, user *users.User) (string, 
 	return token, nil
 }
 
+// healthCheck handles a very simple health check
+func (a *API) healthcheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
 type loginResponse struct {
 	FirstLogin   bool              `json:"firstLogin,omitempty"`
 	Email        string            `json:"email"`

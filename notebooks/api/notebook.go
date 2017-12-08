@@ -16,6 +16,11 @@ type NotebooksView struct {
 	Notebooks []notebooks.Notebook `json:"notebooks"`
 }
 
+// healthCheck handles a very simple health check
+func (a *API) healthcheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
 // listNotebooks returns all of the notebooks for an instance
 func (a *API) listNotebooks(w http.ResponseWriter, r *http.Request) {
 	orgID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
