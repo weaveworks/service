@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
+	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/render"
 )
 
 // TeamsView describes an array of teams
@@ -21,7 +21,7 @@ type TeamView struct {
 func (a *API) listTeams(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	teams, err := a.db.ListTeamsForUserID(r.Context(), currentUser.ID)
 	if err != nil {
-		render.Error(w, r, err)
+		renderError(w, r, err)
 		return
 	}
 	view := TeamsView{Teams: make([]TeamView, 0, len(teams))}
