@@ -32,7 +32,6 @@ func (a *API) admin(w http.ResponseWriter, r *http.Request) {
 		<ul>
 			<li><a href="/admin/users/users">Users</a></li>
 			<li><a href="/admin/users/organizations">Organizations</a></li>
-			<li><a href="/admin/users/marketing_refresh">Sync User-Creation with marketing integrations</a></li>
 		</ul>
 	</body>
 </html>

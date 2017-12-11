@@ -62,10 +62,10 @@
       <thead>
           <tr>
             <th class="mdl-data-table__cell--non-numeric">ID</th>
-            <th class="mdl-data-table__cell--non-numeric">Instance</th>
-            <th class="mdl-data-table__cell--non-numeric">Name</th>
+            <th class="mdl-data-table__cell--non-numeric">Name<br />Instance</th>
             <th class="mdl-data-table__cell--non-numeric">CreatedAt ▼</th>
             <th class="mdl-data-table__cell--non-numeric">FirstSeenConnectedAt</th>
+            <th class="mdl-data-table__cell--non-numeric">Platform/Env</th>
             <th class="mdl-data-table__cell--non-numeric">Fields</th>
             <th></th>
             <th class="mdl-data-table__cell--non-numeric">Billing</th>
@@ -75,10 +75,12 @@
       {{range .Organizations}}
       <tr>
         <td>{{.ID}}</td>
-        <td class="mdl-data-table__cell--non-numeric">{{.ExternalID}}</td>
-        <td class="mdl-data-table__cell--non-numeric" style="max-width:300px;text-overflow:ellipsis;overflow:hidden" title="{{.Name}}">{{.Name}}</td>
+        <td class="mdl-data-table__cell--non-numeric">
+            <span style="font-size:larger">{{.Name}}</span><br />
+            <div style="max-width:300px;text-overflow:ellipsis;overflow:hidden" title="{{.ExternalID}}">{{.ExternalID}}</div>
+        </td>
         <td class="mdl-data-table__cell--non-numeric">{{.FormatCreatedAt}}</td>
-        <td class="mdl-data-table__cell--non-numeric">{{if .FirstSeenConnectedAt}}{{.FirstSeenConnectedAt}}{{ else }}
+        <td class="mdl-data-table__cell--non-numeric">{{if .FirstSeenConnectedAt}}{{.FirstSeenConnectedAt.Format "2006-01-02T15:04:05Z07:00"}}{{ else }}
             <form action="organizations/{{.ExternalID}}" method="POST">
                 <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
                 <input type="hidden" name="field" value="FirstSeenConnectedAt">
@@ -86,6 +88,10 @@
                 type="submit" value="Onboard" />
             </form>
         {{ end }}</td>
+        <td class="mdl-data-table__cell--non-numeric">
+          {{.Platform}}
+          {{if .Environment}}/{{.Environment}}{{end}}
+        </td>
         <td class="mdl-data-table__cell--non-numeric">
           <form action="organizations/{{.ExternalID}}" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
@@ -96,7 +102,8 @@
           </form>
         </td>
         <td>
-          <a href="organizations/{{.ExternalID}}/users">Users</a>
+          <a href="organizations/{{.ExternalID}}/users">Users</a><br />
+          <a href="/admin/billing/organizations?query={{.ExternalID}}">Billing</a>
         </td>
         <td class="mdl-data-table__cell--non-numeric">
           {{if .GCP}}
