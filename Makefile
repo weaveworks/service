@@ -136,6 +136,7 @@ $(EXES) test: build/$(UPTODATE) users/users.pb.go
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
 		-e ZUORA_USERNAME=$(ZUORA_USERNAME) -e ZUORA_PASSWORD=$(ZUORA_PASSWORD) -e ZUORA_SUBSCRIPTIONPLANID=$(ZUORA_SUBSCRIPTIONPLANID) \
+		-e TESTDIRS=${TESTDIRS} \
 		$(IMAGE_PREFIX)/build $@
 
 billing-integration-test: build/$(UPTODATE)
@@ -179,7 +180,7 @@ lint: build/$(UPTODATE)
 	./tools/lint .
 
 test: build/$(UPTODATE) users/users.pb.go $(MOCK_GOS)
-	./tools/test -netgo -no-race
+	TESTDIRS=${TESTDIRS} ./tools/test -netgo -no-race
 
 $(MOCK_USERS): build/$(UPTODATE)
 	mockgen -destination=$@ github.com/weaveworks/service/users UsersClient \

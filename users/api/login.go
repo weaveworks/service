@@ -491,18 +491,7 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 		IntercomHash: a.IntercomHash(currentUser.Email),
 	}
 	for _, org := range organizations {
-		view.Organizations = append(view.Organizations, OrgView{
-			ExternalID:           org.ExternalID,
-			Name:                 org.Name,
-			ProbeToken:           org.ProbeToken,
-			FeatureFlags:         append(org.FeatureFlags, a.forceFeatureFlags...),
-			RefuseDataAccess:     org.RefuseDataAccess,
-			RefuseDataUpload:     org.RefuseDataUpload,
-			FirstSeenConnectedAt: org.FirstSeenConnectedAt,
-			Platform:             org.Platform,
-			Environment:          org.Environment,
-			BillingProvider:      org.BillingProvider(),
-		})
+		view.Organizations = append(view.Organizations, a.createOrgView(currentUser, org))
 	}
 	render.JSON(w, http.StatusOK, view)
 }

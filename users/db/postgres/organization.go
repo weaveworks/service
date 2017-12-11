@@ -3,6 +3,9 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
+	"sort"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -15,31 +18,52 @@ import (
 
 // RemoveUserFromOrganization removes the user from the organiation. If they
 // are not a member, this is a noop.
-func (d DB) RemoveUserFromOrganization(_ context.Context, orgExternalID, email string) error {
-	_, err := d.Exec(`
-			update memberships set deleted_at = $1
-			where user_id in (
-					select id
-					  from users
-					 where lower(email) = lower($2)
-					   and deleted_at is null
-				)
-			  and organization_id in (
-					select id
-					  from organizations
-					 where lower(external_id) = lower($3)
-					   and deleted_at is null
-				)
-			  and deleted_at is null`,
-		d.Now(),
-		email,
-		orgExternalID,
-	)
+func (d DB) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) error {
+	err := d.Transaction(func(tx DB) error {
+		user, err := tx.FindUserByEmail(ctx, email)
+		if err != nil {
+			return err
+		}
+
+		org, err := tx.FindOrganizationByID(ctx, orgExternalID)
+		if err != nil {
+			return err
+		}
+
+		if org.TeamID == "" {
+			_, err = tx.Exec(
+				"update memberships set deleted_at = now() where user_id = $1 and organization_id = $2",
+				user.ID,
+				org.ID,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+		return tx.removeUserFromTeam(user.ID, org.TeamID)
+	})
 	return err
 }
 
-// UserIsMemberOf checks if the user is a member of the organization
-func (d DB) UserIsMemberOf(_ context.Context, userID, orgExternalID string) (bool, error) {
+// UserIsMemberOf checks if the user is a member of the organization.
+// This includes checking membership and team membership
+func (d DB) UserIsMemberOf(ctx context.Context, userID, orgExternalID string) (bool, error) {
+	ok, err := d.userIsDirectMemberOf(ctx, userID, orgExternalID)
+	if err != nil {
+		return false, err
+	}
+	if ok {
+		return ok, nil
+	}
+	ok, err = d.userIsTeamMemberOf(ctx, userID, orgExternalID)
+	if err != nil {
+		return false, err
+	}
+	return ok, nil
+}
+
+func (d DB) userIsDirectMemberOf(_ context.Context, userID, orgExternalID string) (bool, error) {
 	rows, err := d.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userID, "organizations.external_id": orgExternalID}).
@@ -52,7 +76,28 @@ func (d DB) UserIsMemberOf(_ context.Context, userID, orgExternalID string) (boo
 	if rows.Err() != nil {
 		return false, rows.Err()
 	}
-	return ok, rows.Close()
+	defer rows.Close()
+	return ok, nil
+}
+
+func (d DB) userIsTeamMemberOf(_ context.Context, userID, orgExternalID string) (bool, error) {
+	rows, err := d.organizationsQuery().
+		Join("team_memberships on (organizations.team_id = team_memberships.team_id)").
+		Where(squirrel.Eq{
+			"team_memberships.user_id":    userID,
+			"team_memberships.deleted_at": nil,
+			"organizations.external_id":   orgExternalID,
+		}).
+		Query()
+	if err != nil {
+		return false, err
+	}
+	ok := rows.Next()
+	if rows.Err() != nil {
+		return false, rows.Err()
+	}
+	defer rows.Close()
+	return ok, nil
 }
 
 func (d DB) organizationsQuery() squirrel.SelectBuilder {
@@ -81,9 +126,12 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"gcp_accounts.subscription_name",
 		"gcp_accounts.subscription_level",
 		"gcp_accounts.subscription_status",
+		"organizations.team_id",
+		"teams.external_id",
 	).
 		From("organizations").
 		LeftJoin("gcp_accounts ON gcp_account_id = gcp_accounts.id").
+		LeftJoin("teams ON teams.id = organizations.team_id").
 		Where("organizations.deleted_at is null").
 		OrderBy("organizations.created_at DESC")
 }
@@ -104,7 +152,21 @@ func (d DB) ListOrganizations(_ context.Context, f filter.Organization, page uin
 }
 
 // ListOrganizationUsers lists all the users in an organization
-func (d DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*users.User, error) {
+func (d DB) ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error) {
+	orgUsers, err := d.listDirectOrganizationUsers(ctx, orgExternalID)
+	if err != nil {
+		return nil, err
+	}
+	teamUsers, err := d.listTeamOrganizationUsers(ctx, orgExternalID)
+	if err != nil {
+		return nil, err
+	}
+	users := mergeUsers(orgUsers, teamUsers)
+	sort.Sort(usersByCreatedAt(users))
+	return users, nil
+}
+
+func (d DB) listDirectOrganizationUsers(_ context.Context, orgExternalID string) ([]*users.User, error) {
 	rows, err := d.usersQuery().
 		Join("memberships on (memberships.user_id = users.id)").
 		Join("organizations on (memberships.organization_id = organizations.id)").
@@ -122,8 +184,42 @@ func (d DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*u
 	return d.scanUsers(rows)
 }
 
-// ListOrganizationsForUserIDs lists the organizations these users belong to
-func (d DB) ListOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
+func (d DB) listTeamOrganizationUsers(_ context.Context, orgExternalID string) ([]*users.User, error) {
+	rows, err := d.usersQuery().
+		Join("team_memberships on (team_memberships.user_id = users.id)").
+		Join("organizations on (team_memberships.team_id = organizations.team_id)").
+		Where(squirrel.Eq{
+			"organizations.external_id":   orgExternalID,
+			"organizations.deleted_at":    nil,
+			"team_memberships.deleted_at": nil,
+		}).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return d.scanUsers(rows)
+}
+
+// ListOrganizationsForUserIDs lists the organizations these users belong to.
+// This includes direct membership and team membership.
+func (d DB) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
+	// SQL UNIONs are not supported by github.com/Masterminds/squirrel
+	memberOrgs, err := d.listMemberOrganizationsForUserIDs(ctx, userIDs...)
+	if err != nil {
+		return nil, err
+	}
+	teamOrgs, err := d.listTeamOrganizationsForUserIDs(ctx, userIDs...)
+	if err != nil {
+		return nil, err
+	}
+	orgs := mergeOrgs(memberOrgs, teamOrgs)
+	sort.Sort(organizationsByCreatedAt(orgs))
+	return orgs, nil
+}
+
+// listMemberOrganizationsForUserIDs lists the organizations these users belong to
+func (d DB) listMemberOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
 	rows, err := d.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userIDs}).
@@ -139,13 +235,15 @@ func (d DB) ListOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([
 	return orgs, err
 }
 
-func (d DB) addUserToOrganization(userID, organizationID string) error {
+// addUserToOrganization adds a user to the team of the organization,
+// if the organization belongs to a team, otherwise populates membership
+func (d DB) addUserToOrganization(userID, orgID string) error {
 	_, err := d.Exec(`
 			insert into memberships
 				(user_id, organization_id, created_at)
 				values ($1, $2, $3)`,
 		userID,
-		organizationID,
+		orgID,
 		d.Now(),
 	)
 	if err != nil {
@@ -181,13 +279,14 @@ func (d DB) GenerateOrganizationExternalID(ctx context.Context) (string, error) 
 }
 
 // CreateOrganization creates a new organization owned by the user
-func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (*users.Organization, error) {
+func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string) (*users.Organization, error) {
 	now := d.Now()
 	o := &users.Organization{
 		ExternalID:     externalID,
 		Name:           name,
 		CreatedAt:      now,
 		TrialExpiresAt: now.Add(users.TrialDuration),
+		TeamID:         teamID,
 	}
 	if err := o.Valid(); err != nil {
 		return nil, err
@@ -223,15 +322,19 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 		}
 
 		err = tx.QueryRow(`insert into organizations
-			(external_id, name, probe_token, created_at, trial_expires_at)
-			values (lower($1), $2, $3, $4, $5) returning id`,
-			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt, o.TrialExpiresAt,
+			(external_id, name, probe_token, created_at, trial_expires_at, team_id)
+			values (lower($1), $2, $3, $4, $5, $6) returning id`,
+			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt, o.TrialExpiresAt, toNullString(o.TeamID),
 		).Scan(&o.ID)
 		if err != nil {
 			return err
 		}
 
-		return tx.addUserToOrganization(ownerID, o.ID)
+		if o.TeamID == "" {
+			return tx.addUserToOrganization(ownerID, o.ID)
+		}
+
+		return err
 	})
 	if err != nil {
 		return nil, err
@@ -318,7 +421,7 @@ func (d DB) scanOrganizations(rows *sql.Rows) ([]*users.Organization, error) {
 
 func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, error) {
 	o := &users.Organization{}
-	var externalID, name, probeToken, platform, environment, zuoraAccountNumber sql.NullString
+	var externalID, name, probeToken, platform, environment, zuoraAccountNumber, teamID, teamExternalID sql.NullString
 	var createdAt pq.NullTime
 	var firstSeenConnectedAt, zuoraAccountCreatedAt *time.Time
 	var trialExpiry time.Time
@@ -352,6 +455,8 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&subscriptionName,
 		&subscriptionLevel,
 		&subscriptionStatus,
+		&teamID,
+		&teamExternalID,
 	); err != nil {
 		return nil, err
 	}
@@ -381,6 +486,8 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 			SubscriptionStatus: subscriptionStatus.String,
 		}
 	}
+	o.TeamID = teamID.String
+	o.TeamExternalID = teamExternalID.String
 	return o, nil
 }
 
@@ -550,7 +657,9 @@ func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAcco
 			return err
 		}
 		name := users.DefaultOrganizationName(externalID)
-		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, "")
+		// create one team for each gcp instance
+		teamName := users.DefaultTeamName(externalID)
+		org, err = tx.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, "", "", teamName)
 		if err != nil {
 			return err
 		}
@@ -643,6 +752,48 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccountI
 	})
 }
 
+// CreateOrganizationWithTeam creates a new organization, ensuring it is part of a team and owned by the user
+func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string) (*users.Organization, error) {
+	if teamName == "" && teamExternalID == "" {
+		return nil, errors.New("At least one of teamExternalID, teamName needs to be provided")
+	}
+	if teamName != "" && teamExternalID != "" {
+		return nil, fmt.Errorf("Only one of teamExternalID, teamName needs to be provided: %v, %v", teamExternalID, teamName)
+	}
+
+	var org *users.Organization
+	err := d.Transaction(func(tx DB) error {
+		var team *users.Team
+		var err error
+		// one of two cases must be reached: it is ensured by the validation above
+		if teamExternalID != "" {
+			team, err = d.ensureUserIsPartOfTeamByExternalID(ctx, ownerID, teamExternalID)
+		} else if teamName != "" {
+			team, err = d.ensureUserIsPartOfTeamByName(ctx, ownerID, teamName)
+		}
+		if err != nil {
+			return err
+		}
+
+		// it should not happen, but just in case, be loud
+		if team == nil {
+			return fmt.Errorf("team should not be nil: %v, %v", teamExternalID, teamName)
+		}
+
+		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, token, team.ID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return org, nil
+}
+
 // createGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.
 func (d DB) createGCP(ctx context.Context, externalAccountID string) (*users.GoogleCloudPlatform, error) {
 	now := d.Now()
@@ -660,4 +811,46 @@ func (d DB) createGCP(ctx context.Context, externalAccountID string) (*users.Goo
 	}
 
 	return gcp, nil
+}
+
+func mergeOrgs(orgsSlice ...[]*users.Organization) []*users.Organization {
+	m := make(map[string]*users.Organization)
+	for _, orgs := range orgsSlice {
+		for _, org := range orgs {
+			if _, exists := m[org.ID]; !exists {
+				m[org.ID] = org
+			}
+		}
+	}
+	uniqueOrgs := make([]*users.Organization, 0, len(m))
+	for _, org := range m {
+		uniqueOrgs = append(uniqueOrgs, org)
+	}
+	return uniqueOrgs
+}
+
+func mergeUsers(usersSlice ...[]*users.User) []*users.User {
+	m := make(map[string]*users.User)
+	for _, users := range usersSlice {
+		for _, user := range users {
+			if _, exists := m[user.ID]; !exists {
+				m[user.ID] = user
+			}
+		}
+	}
+	uniqueUsers := make([]*users.User, 0, len(m))
+	for _, user := range m {
+		uniqueUsers = append(uniqueUsers, user)
+	}
+	return uniqueUsers
+}
+
+type organizationsByCreatedAt []*users.Organization
+
+func (o organizationsByCreatedAt) Len() int           { return len(o) }
+func (o organizationsByCreatedAt) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
+func (o organizationsByCreatedAt) Less(i, j int) bool { return o[i].CreatedAt.After(o[j].CreatedAt) }
+
+func toNullString(s string) sql.NullString {
+	return sql.NullString{String: s, Valid: s != ""}
 }

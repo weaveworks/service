@@ -190,6 +190,8 @@ message Organization {
     google.protobuf.Timestamp TrialExpiredNotifiedAt = 16 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
     // For organizations that are coming from GCP
     GoogleCloudPlatform GCP = 17;
+    string TeamID = 18;
+    string TeamExternalID = 19;
 }
 
 message GoogleCloudPlatform {
@@ -273,4 +275,16 @@ message NotifyTrialExpiredRequest {
 }
 
 message NotifyTrialExpiredResponse {
+}
+
+message Team {
+    string ID = 1 [(gogoproto.jsontag) = "-"];
+    string Name = 2 [(gogoproto.jsontag) = "-"];
+    string ExternalID = 3 [(gogoproto.jsontag) = "-"];
+    string ZuoraAccountNumber = 4 [(gogoproto.nullable) = true, (gogoproto.jsontag) = "-"];
+    google.protobuf.Timestamp ZuoraAccountCreatedAt = 5 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true, (gogoproto.jsontag) = "-"];
+    google.protobuf.Timestamp TrialExpiresAt = 6 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "-"];
+    google.protobuf.Timestamp TrialPendingExpiryNotifiedAt = 7 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true, (gogoproto.jsontag) = "-"];
+    google.protobuf.Timestamp TrialExpiredNotifiedAt = 8 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true, (gogoproto.jsontag) = "-"];
+    google.protobuf.Timestamp CreatedAt = 9 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "-"];
 }

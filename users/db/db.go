@@ -77,7 +77,7 @@ type DB interface {
 	// Create a new organization owned by the user. ExternalID and name cannot be blank.
 	// ExternalID must match the ExternalID regex.  If token is blank, a random one will
 	// be chosen.
-	CreateOrganization(ctx context.Context, ownerID, externalID, name, token string) (*users.Organization, error)
+	CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string) (*users.Organization, error)
 	FindOrganizationByProbeToken(ctx context.Context, probeToken string) (*users.Organization, error)
 	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)
 	FindOrganizationByGCPExternalAccountID(ctx context.Context, externalAccountID string) (*users.Organization, error)
@@ -105,6 +105,12 @@ type DB interface {
 	SetOrganizationGCP(ctx context.Context, externalID, externalAccountID string) error
 
 	ListMemberships(ctx context.Context) ([]users.Membership, error)
+
+	ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Team, error)
+	ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error)
+	CreateTeam(_ context.Context, name string) (*users.Team, error)
+	AddUserToTeam(_ context.Context, userID, teamID string) error
+	CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string) (*users.Organization, error)
 
 	Close(ctx context.Context) error
 }

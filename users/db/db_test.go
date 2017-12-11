@@ -2,6 +2,8 @@ package db_test
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,6 +37,58 @@ func TestDB_RemoveOtherUsersAccess(t *testing.T) {
 	orgUsers, err = db.ListOrganizationUsers(context.Background(), org.ExternalID)
 	require.NoError(t, err)
 	require.Len(t, orgUsers, 1)
+}
+
+func TestDB_RemoveOtherUsersAccessWithTeams(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
+
+	ctx := context.Background()
+
+	// first, test two team name edge cases
+	_, err := db.CreateTeam(ctx, "")
+	require.Error(t, err)
+
+	team, err := db.CreateTeam(ctx, "A-Team")
+	require.NoError(t, err)
+
+	user, org := dbtest.GetOrgForTeam(t, db, team)
+	otherUser := dbtest.GetUser(t, db)
+
+	userTeams, err := db.ListTeamsForUserID(ctx, user.ID)
+	require.NoError(t, err)
+	require.Len(t, userTeams, 1)
+	require.Equal(t, team.ID, userTeams[0].ID)
+
+	otherUser, _, err = db.InviteUser(ctx, otherUser.Email, org.ExternalID)
+	require.NoError(t, err)
+	otherUserOrganizations, err := db.ListOrganizationsForUserIDs(context.Background(), otherUser.ID)
+	require.NoError(t, err)
+	require.Len(t, otherUserOrganizations, 1)
+
+	otherUserTeams, err := db.ListTeamsForUserID(ctx, otherUser.ID)
+	require.NoError(t, err)
+	require.Len(t, otherUserTeams, 1)
+	require.Equal(t, team.ID, otherUserTeams[0].ID)
+
+	orgUsers, err := db.ListOrganizationUsers(ctx, org.ExternalID)
+	require.NoError(t, err)
+	require.Len(t, orgUsers, 2)
+
+	teamUsers, err := db.ListTeamUsers(ctx, team.ID)
+	require.NoError(t, err)
+	require.Len(t, teamUsers, 2)
+
+	err = db.RemoveUserFromOrganization(ctx, org.ExternalID, otherUser.Email)
+	require.NoError(t, err)
+
+	orgUsers, err = db.ListOrganizationUsers(ctx, org.ExternalID)
+	require.NoError(t, err)
+	require.Len(t, orgUsers, 1)
+
+	teamUsers, err = db.ListTeamUsers(ctx, team.ID)
+	require.NoError(t, err)
+	require.Len(t, teamUsers, 1)
 }
 
 func TestDB_AddFeatureFlag(t *testing.T) {
@@ -109,7 +163,7 @@ func TestDB_FindOrganizationByInternalID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234")
+	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "")
 
 	if err != nil {
 		t.Fatal(err)
@@ -189,4 +243,61 @@ func TestDB_LastLoginTimestamp(t *testing.T) {
 	assert.Equal(t, u.LastLoginAt.IsZero(), false)
 	assert.Equal(t, u.FirstLoginAt.Equal(firstLoginAt), true)
 	assert.Equal(t, u.LastLoginAt.After(u.FirstLoginAt), true)
+}
+
+func TestDB_DoubleTeamMembershipEntry(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
+
+	ctx := context.Background()
+
+	team, err := db.CreateTeam(ctx, "A-Team")
+	require.NoError(t, err)
+
+	user, _ := dbtest.GetOrgForTeam(t, db, team)
+
+	userTeams, err := db.ListTeamsForUserID(ctx, user.ID)
+	require.NoError(t, err)
+	require.Len(t, userTeams, 1)
+	require.Equal(t, team.ID, userTeams[0].ID)
+
+	// re-add user to the same team
+	err = db.AddUserToTeam(ctx, user.ID, team.ID)
+	require.NoError(t, err)
+}
+
+func Test_DB_CreateOrganizationWithTeam(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
+
+	ctx := context.Background()
+	user := dbtest.GetUser(t, db)
+
+	externalID, err := db.GenerateOrganizationExternalID(ctx)
+	require.NoError(t, err)
+	name := strings.Replace(externalID, "-", " ", -1)
+
+	// first test an edge case
+	_, err = db.CreateOrganizationWithTeam(ctx, user.ID, externalID, name, "", "", "")
+	require.Error(t, err)
+
+	_, err = db.CreateOrganizationWithTeam(ctx, user.ID, externalID, name, "", "non-existent", "")
+	require.Error(t, err)
+
+	teamName := fmt.Sprintf("%v Team", name)
+	org, err := db.CreateOrganizationWithTeam(ctx, user.ID, externalID, name, "", "", teamName)
+	require.NoError(t, err)
+	require.Equal(t, name, org.Name)
+	require.NotEqual(t, org.TeamID, "")
+
+	teamUsers, err := db.ListTeamUsers(ctx, org.TeamID)
+	require.NoError(t, err)
+	require.Len(t, teamUsers, 1)
+	require.Equal(t, teamUsers[0].ID, user.ID)
+
+	teams, err := db.ListTeamsForUserID(ctx, user.ID)
+	require.NoError(t, err)
+	require.Len(t, teams, 1)
+	require.Equal(t, teams[0].ID, org.TeamID)
+	require.Equal(t, teams[0].Name, teamName)
 }

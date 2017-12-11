@@ -110,13 +110,20 @@ func (d DB) InviteUser(ctx context.Context, email, orgExternalID string) (*users
 			return err
 		}
 
-		isMember, err := tx.UserIsMemberOf(ctx, u.ID, orgExternalID)
-		if err != nil || isMember {
-			return err
-		}
-		err = tx.addUserToOrganization(u.ID, o.ID)
-		if err != nil {
-			return err
+		if o.TeamID == "" {
+			isMember, err := tx.UserIsMemberOf(ctx, u.ID, orgExternalID)
+			if err != nil || isMember {
+				return err
+			}
+			err = tx.addUserToOrganization(u.ID, o.ID)
+			if err != nil {
+				return err
+			}
+		} else {
+			err := tx.AddUserToTeam(ctx, u.ID, o.TeamID)
+			if err != nil {
+				return nil
+			}
 		}
 		u, err = tx.FindUserByID(ctx, u.ID)
 		return err
@@ -382,3 +389,9 @@ func (d DB) SetUserLastLoginAt(_ context.Context, id string) error {
 		return nil
 	})
 }
+
+type usersByCreatedAt []*users.User
+
+func (u usersByCreatedAt) Len() int           { return len(u) }
+func (u usersByCreatedAt) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
+func (u usersByCreatedAt) Less(i, j int) bool { return u[i].CreatedAt.After(u[j].CreatedAt) }

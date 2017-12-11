@@ -35,6 +35,9 @@ type OrgView struct {
 	ZuoraAccountNumber    string     `json:"zuoraAccountNumber"`
 	ZuoraAccountCreatedAt *time.Time `json:"zuoraAccountCreatedAt"`
 	BillingProvider       string     `json:"billingProvider"`
+	TeamID                string     `json:"teamId,omitempty"`
+	TeamExternalID        string     `json:"teamExternalId,omitempty"`
+	TeamName              string     `json:"teamName,omitempty"`
 }
 
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -47,20 +50,7 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 	}
 	for _, org := range organizations {
 		if org.ExternalID == strings.ToLower(orgExternalID) {
-			render.JSON(w, http.StatusOK, OrgView{
-				User:                 currentUser.Email,
-				ExternalID:           org.ExternalID,
-				Name:                 org.Name,
-				ProbeToken:           org.ProbeToken,
-				FeatureFlags:         append(org.FeatureFlags, a.forceFeatureFlags...),
-				RefuseDataAccess:     org.RefuseDataAccess,
-				RefuseDataUpload:     org.RefuseDataUpload,
-				FirstSeenConnectedAt: org.FirstSeenConnectedAt,
-				Platform:             org.Platform,
-				Environment:          org.Environment,
-				TrialExpiresAt:       org.TrialExpiresAt,
-				BillingProvider:      org.BillingProvider(),
-			})
+			render.JSON(w, http.StatusOK, a.createOrgView(currentUser, org))
 			return
 		}
 	}
@@ -74,6 +64,25 @@ func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Reques
 		return
 	}
 	renderError(w, r, users.ErrNotFound)
+}
+
+func (a *API) createOrgView(currentUser *users.User, org *users.Organization) OrgView {
+	return OrgView{
+		User:                 currentUser.Email,
+		ExternalID:           org.ExternalID,
+		Name:                 org.Name,
+		ProbeToken:           org.ProbeToken,
+		FeatureFlags:         append(org.FeatureFlags, a.forceFeatureFlags...),
+		RefuseDataAccess:     org.RefuseDataAccess,
+		RefuseDataUpload:     org.RefuseDataUpload,
+		FirstSeenConnectedAt: org.FirstSeenConnectedAt,
+		Platform:             org.Platform,
+		Environment:          org.Environment,
+		TrialExpiresAt:       org.TrialExpiresAt,
+		BillingProvider:      org.BillingProvider(),
+		TeamID:               org.TeamID,
+		TeamExternalID:       org.TeamExternalID,
+	}
 }
 
 func (a *API) generateOrgExternalID(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -106,7 +115,21 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 
 // CreateOrg creates an organisation
 func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgView) error {
-	org, err := a.db.CreateOrganization(ctx, currentUser.ID, view.ExternalID, view.Name, view.ProbeToken)
+	var org *users.Organization
+	var err error
+	if view.TeamExternalID == "" && view.TeamName == "" {
+		org, err = a.db.CreateOrganization(ctx, currentUser.ID, view.ExternalID, view.Name, view.ProbeToken, "")
+	} else {
+		org, err = a.db.CreateOrganizationWithTeam(
+			ctx,
+			currentUser.ID,
+			view.ExternalID,
+			view.Name,
+			view.ProbeToken,
+			view.TeamExternalID,
+			view.TeamName,
+		)
+	}
 	if err != nil {
 		return err
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/api"
 )
 
 func Test_Org(t *testing.T) {
@@ -336,7 +337,7 @@ func Test_Organization_CheckIfExternalIDExists(t *testing.T) {
 	}
 
 	// Create the org so it exists
-	org, err := database.CreateOrganization(context.Background(), otherUser.ID, id, id, "")
+	org, err := database.CreateOrganization(context.Background(), otherUser.ID, id, id, "", "")
 	require.NoError(t, err)
 
 	{
@@ -406,7 +407,7 @@ func Test_Organization_Delete(t *testing.T) {
 	}
 
 	// Create the org so it exists
-	org, err := database.CreateOrganization(context.Background(), user.ID, externalID, externalID, "")
+	org, err := database.CreateOrganization(context.Background(), user.ID, externalID, externalID, "", "")
 	require.NoError(t, err)
 
 	// Should 401 because otherUser doesn't have access
@@ -443,7 +444,7 @@ func Test_Organization_Name(t *testing.T) {
 	externalID, err := database.GenerateOrganizationExternalID(context.Background())
 	require.NoError(t, err)
 
-	_, err = database.CreateOrganization(context.Background(), user.ID, externalID, orgName100, "")
+	_, err = database.CreateOrganization(context.Background(), user.ID, externalID, orgName100, "", "")
 	require.NoError(t, err)
 
 	foundName, err := database.GetOrganizationName(context.Background(), externalID)
@@ -458,7 +459,41 @@ func Test_Organization_Overlong_Name(t *testing.T) {
 		externalID, err := database.GenerateOrganizationExternalID(context.Background())
 		require.NoError(t, err)
 
-		_, err = database.CreateOrganization(context.Background(), user.ID, externalID, orgName101, "")
+		_, err = database.CreateOrganization(context.Background(), user.ID, externalID, orgName101, "", "")
 		assert.IsType(t, &pq.Error{}, err)
 	}
+}
+
+func Test_Organization_CreateTeam(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user := getUser(t)
+
+	teamName := "my-team-name"
+	r1 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-org-id", "name": "my-org-name", "teamName": teamName}.Reader(t))
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, r1)
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
+	require.NoError(t, err)
+	assert.Len(t, organizations, 1)
+	assert.NotEqual(t, "", organizations[0].ID)
+	assert.Equal(t, "my-org-id", organizations[0].ExternalID)
+	assert.Equal(t, "my-org-name", organizations[0].Name)
+	assert.NotEqual(t, "", organizations[0].TeamID)
+	assert.NotEqual(t, "", organizations[0].TeamExternalID)
+
+	r2 := requestAs(t, user, "GET", "/api/users/teams", nil)
+	w = httptest.NewRecorder()
+	app.ServeHTTP(w, r2)
+	assert.Equal(t, http.StatusOK, w.Code)
+	body := api.TeamsView{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+
+	assert.Len(t, body.Teams, 1)
+	assert.Equal(t, body.Teams[0].ExternalID, organizations[0].TeamExternalID)
+	assert.Equal(t, body.Teams[0].Name, teamName)
 }

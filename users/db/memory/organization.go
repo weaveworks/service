@@ -30,16 +30,26 @@ func (d *DB) RemoveUserFromOrganization(_ context.Context, orgExternalID, email 
 	}
 
 	memberships, ok := d.memberships[o.ID]
-	if !ok {
-		return nil
-	}
-	var newMemberships []string
-	for _, m := range memberships {
-		if m != u.ID {
-			newMemberships = append(newMemberships, m)
+	if ok {
+		var newMemberships []string
+		for _, m := range memberships {
+			if m != u.ID {
+				newMemberships = append(newMemberships, m)
+			}
 		}
+		d.memberships[o.ID] = newMemberships
 	}
-	d.memberships[o.ID] = newMemberships
+
+	if o.TeamID != "" {
+		var newTeams []string
+		for _, teamID := range d.teamMemberships[u.ID] {
+			if teamID != o.TeamID {
+				newTeams = append(newTeams, teamID)
+			}
+		}
+		d.teamMemberships[u.ID] = newTeams
+	}
+
 	return nil
 }
 
@@ -57,6 +67,16 @@ func (d *DB) userIsMemberOf(userID, orgExternalID string) (bool, error) {
 	}
 	if err != nil {
 		return false, err
+	}
+
+	if o.TeamID != "" {
+		teamIDs, _ := d.teamMemberships[userID]
+		for _, id := range teamIDs {
+			if id == o.TeamID {
+				return true, nil
+			}
+		}
+		return false, nil
 	}
 
 	for _, m := range d.memberships[o.ID] {
@@ -83,13 +103,14 @@ func (d *DB) ListOrganizations(_ context.Context, f filter.Organization, page ui
 }
 
 // ListOrganizationUsers lists all the users in an organization
-func (d *DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*users.User, error) {
+func (d *DB) ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	o, err := d.findOrganizationByExternalID(orgExternalID)
 	if err != nil {
 		return nil, err
 	}
+
 	var users []*users.User
 	for _, m := range d.memberships[o.ID] {
 		u, err := d.findUserByID(m)
@@ -98,6 +119,15 @@ func (d *DB) ListOrganizationUsers(_ context.Context, orgExternalID string) ([]*
 		}
 		users = append(users, u)
 	}
+
+	if o.TeamID != "" {
+		teamUsers, err := d.listTeamUsers(ctx, o.TeamID)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, teamUsers...)
+	}
+
 	sort.Sort(usersByCreatedAt(users))
 	return users, nil
 }
@@ -126,6 +156,17 @@ func (d *DB) ListOrganizationsForUserIDs(_ context.Context, userIDs ...string) (
 	for orgID, members := range d.memberships {
 		checkOrg(orgID, members)
 	}
+
+	for _, userID := range userIDs {
+		for _, teamID := range d.teamMemberships[userID] {
+			for _, o := range d.organizations {
+				if o.TeamID == teamID {
+					orgIDs[o.ID] = struct{}{}
+				}
+			}
+		}
+	}
+
 	var orgs []*users.Organization
 	for orgID := range orgIDs {
 		o, ok := d.organizations[orgID]
@@ -186,7 +227,7 @@ var (
 )
 
 // CreateOrganization creates a new organization owned by the user
-func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, token string) (*users.Organization, error) {
+func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string) (*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if _, err := d.findUserByID(ownerID); err != nil {
@@ -196,12 +237,21 @@ func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, to
 		return nil, &errorOrgNameLengthConstraint
 	}
 	now := time.Now().UTC()
+	var teamExternalID string
+	for _, team := range d.teams {
+		if team.ID == teamID {
+			teamExternalID = team.ExternalID
+			break
+		}
+	}
 	o := &users.Organization{
 		ID:             fmt.Sprint(len(d.organizations)),
 		ExternalID:     externalID,
 		Name:           name,
 		CreatedAt:      now,
 		TrialExpiresAt: now.Add(users.TrialDuration),
+		TeamID:         teamID,
+		TeamExternalID: teamExternalID,
 	}
 	if err := o.Valid(); err != nil {
 		return nil, err
@@ -230,8 +280,11 @@ func (d *DB) CreateOrganization(_ context.Context, ownerID, externalID, name, to
 			return nil, users.ErrOrgTokenIsTaken
 		}
 	}
+
+	if o.TeamID == "" {
+		d.memberships[o.ID] = []string{ownerID}
+	}
 	d.organizations[o.ID] = o
-	d.memberships[o.ID] = []string{ownerID}
 	return o, nil
 }
 
@@ -441,7 +494,8 @@ func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAcc
 		return nil, err
 	}
 	name := users.DefaultOrganizationName(externalID)
-	org, err = d.CreateOrganization(ctx, ownerID, externalID, name, "")
+	teamName := users.DefaultTeamName(externalID)
+	org, err = d.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, "", "", teamName)
 	if err != nil {
 		return nil, err
 	}
@@ -522,6 +576,83 @@ func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccount
 	}
 
 	return nil
+}
+
+// CreateOrganizationWithTeam creates a new organization owned by the user
+// If teamExternalID is not empty, the organizations is assigned to that team, if it exists.
+// If teamName is not empty, the organizations is assigned to that team. it is created if it does not exists.
+// One, and only one, of teamExternalID, teamName must be provided.
+func (d *DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string) (*users.Organization, error) {
+	if teamName == "" && teamExternalID == "" {
+		return nil, errors.New("At least one of teamExternalID, teamName needs to be provided")
+	}
+	if teamName != "" && teamExternalID != "" {
+		return nil, fmt.Errorf("Only one of teamExternalID, teamName needs to be provided: %v, %v", teamExternalID, teamName)
+	}
+
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	if _, err := d.findUserByID(ownerID); err != nil {
+		return nil, err
+	}
+	if len(name) > organizationMaxLength {
+		return nil, &errorOrgNameLengthConstraint
+	}
+	now := time.Now().UTC()
+
+	var team *users.Team
+	var err error
+	if teamExternalID != "" {
+		team, err = d.ensureUserIsPartOfTeamByExternalID(ctx, ownerID, teamExternalID)
+	} else if teamName != "" {
+		team, err = d.ensureUserIsPartOfTeamByName(ctx, ownerID, teamName)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	o := &users.Organization{
+		ID:             fmt.Sprint(len(d.organizations)),
+		ExternalID:     externalID,
+		Name:           name,
+		CreatedAt:      now,
+		TrialExpiresAt: now.Add(users.TrialDuration),
+		TeamID:         team.ID,
+		TeamExternalID: team.ExternalID,
+	}
+	if err := o.Valid(); err != nil {
+		return nil, err
+	}
+	if exists, err := d.organizationExists(o.ExternalID, true); err != nil {
+		return nil, err
+	} else if exists {
+		return nil, users.ErrOrgExternalIDIsTaken
+	}
+	for exists := true; exists; {
+		if token != "" {
+			o.ProbeToken = token
+		} else {
+			if err := o.RegenerateProbeToken(); err != nil {
+				return nil, err
+			}
+		}
+		exists = false
+		for _, org := range d.organizations {
+			if org.ProbeToken == o.ProbeToken {
+				exists = true
+				break
+			}
+		}
+		if token != "" && exists {
+			return nil, users.ErrOrgTokenIsTaken
+		}
+	}
+
+	if o.TeamID == "" {
+		d.memberships[o.ID] = []string{ownerID}
+	}
+	d.organizations[o.ID] = o
+	return o, nil
 }
 
 // CreateGCP creates a Google Cloud Platform account/subscription. It is initialized as inactive.

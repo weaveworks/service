@@ -48,7 +48,26 @@ func CreateOrgForUser(t *testing.T, db db.DB, u *users.User) *users.Organization
 	require.NoError(t, err)
 
 	name := strings.Replace(externalID, "-", " ", -1)
-	org, err := db.CreateOrganization(context.Background(), u.ID, externalID, name, "")
+	org, err := db.CreateOrganization(context.Background(), u.ID, externalID, name, "", "")
+	require.NoError(t, err)
+
+	assert.NotEqual(t, "", org.ID)
+	assert.NotEqual(t, "", org.Name)
+	assert.Equal(t, externalID, org.ExternalID)
+
+	return org
+}
+
+// CreateOrgForTeam creates a new random organization for this team
+func CreateOrgForTeam(t *testing.T, db db.DB, u *users.User, team *users.Team) *users.Organization {
+	assert.NotEqual(t, nil, team)
+	assert.NotEqual(t, "", team.ID)
+
+	externalID, err := db.GenerateOrganizationExternalID(context.Background())
+	require.NoError(t, err)
+
+	name := strings.Replace(externalID, "-", " ", -1)
+	org, err := db.CreateOrganizationWithTeam(context.Background(), u.ID, externalID, name, "", team.ExternalID, "")
 	require.NoError(t, err)
 
 	assert.NotEqual(t, "", org.ID)
@@ -62,5 +81,12 @@ func CreateOrgForUser(t *testing.T, db db.DB, u *users.User) *users.Organization
 func GetOrg(t *testing.T, db db.DB) (*users.User, *users.Organization) {
 	user := GetUser(t, db)
 	org := CreateOrgForUser(t, db, user)
+	return user, org
+}
+
+// GetOrgForTeam makes org with a random ExternalID, user and a team for testing
+func GetOrgForTeam(t *testing.T, db db.DB, team *users.Team) (*users.User, *users.Organization) {
+	user := GetUser(t, db)
+	org := CreateOrgForTeam(t, db, user, team)
 	return user, org
 }
