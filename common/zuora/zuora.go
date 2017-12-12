@@ -16,13 +16,12 @@ import (
 	"github.com/weaveworks/service/common"
 )
 
-var clientRequestCollector = instrument.NewHistogramCollector(prometheus.NewHistogramVec(prometheus.HistogramOpts{
-	Namespace: "billing",
+var clientRequestCollector = instrument.NewHistogramCollectorFromOpts(prometheus.HistogramOpts{
+	Namespace: common.PrometheusNamespace,
 	Subsystem: "zuora_client",
 	Name:      "request_duration_seconds",
 	Help:      "Response time of zuora requests.",
-	Buckets:   prometheus.DefBuckets,
-}, instrument.HistogramCollectorBuckets))
+})
 
 func init() {
 	clientRequestCollector.Register()

@@ -13,6 +13,7 @@ import (
 
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/service/billing-api/db"
+	"github.com/weaveworks/service/common"
 )
 
 const aggQuery = `
@@ -32,13 +33,12 @@ GROUP BY
   BucketStart
 `
 
-var queryCollector = instrument.NewHistogramCollector(prometheus.NewHistogramVec(prometheus.HistogramOpts{
-	Namespace: "billing",
-	Subsystem: "aggregator",
-	Name:      "bigquery_query_duration_seconds",
+var queryCollector = instrument.NewHistogramCollectorFromOpts(prometheus.HistogramOpts{
+	Namespace: common.PrometheusNamespace,
+	Subsystem: "bigquery",
+	Name:      "query_duration_seconds",
 	Help:      "Time spent running queries.",
-	Buckets:   prometheus.DefBuckets,
-}, instrument.HistogramCollectorBuckets))
+})
 
 func init() {
 	queryCollector.Register()
@@ -77,10 +77,10 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 	}, nil
 }
 
-// Query returns a slice of the results of a query.
-func (c *Client) Query(ctx context.Context, since time.Time) ([]db.Aggregate, error) {
+// Aggregates returns a slice of the results of a query.
+func (c *Client) Aggregates(ctx context.Context, since time.Time) ([]db.Aggregate, error) {
 	var result []db.Aggregate
-	if err := instrument.CollectedRequest(ctx, "bigquery.Client.Query", queryCollector, nil, func(ctx context.Context) error {
+	if err := instrument.CollectedRequest(ctx, "bigquery.Client.Aggregates", queryCollector, nil, func(ctx context.Context) error {
 		query := c.client.Query(fmt.Sprintf(aggQuery, c.cfg.DatasetAndTable, since.Format("2006-01-02 15:04:05 MST")))
 		it, err := query.Read(ctx)
 		if err != nil {
