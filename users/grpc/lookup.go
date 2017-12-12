@@ -313,9 +313,9 @@ func (a *usersServer) NotifyTrialPendingExpiry(ctx context.Context, req *users.N
 
 	// Persist sent date in db
 	now := time.Now()
-	a.db.UpdateOrganization(ctx, req.ExternalID, users.OrgWriteView{TrialPendingExpiryNotifiedAt: &now})
+	err = a.db.UpdateOrganization(ctx, req.ExternalID, users.OrgWriteView{TrialPendingExpiryNotifiedAt: &now})
 
-	return &users.NotifyTrialPendingExpiryResponse{}, nil
+	return &users.NotifyTrialPendingExpiryResponse{}, err
 }
 
 func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyTrialExpiredRequest) (*users.NotifyTrialExpiredResponse, error) {
@@ -337,9 +337,9 @@ func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyT
 
 	// Persist sent date in db
 	now := time.Now()
-	a.db.UpdateOrganization(ctx, req.ExternalID, users.OrgWriteView{TrialExpiredNotifiedAt: &now})
+	err = a.db.UpdateOrganization(ctx, req.ExternalID, users.OrgWriteView{TrialExpiredNotifiedAt: &now})
 
-	return &users.NotifyTrialExpiredResponse{}, nil
+	return &users.NotifyTrialExpiredResponse{}, err
 }
 
 func (a *usersServer) GetGCP(ctx context.Context, req *users.GetGCPRequest) (*users.GetGCPResponse, error) {
