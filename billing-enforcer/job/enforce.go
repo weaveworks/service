@@ -116,6 +116,7 @@ func (j *Enforce) NotifyTrialOrganizations(ctx context.Context, now time.Time) e
 			ExternalID: org.ExternalID,
 		})
 		if err == nil {
+			logger.Infof("Notified trial pending expiry for organization: %s", org.ExternalID)
 			ok++
 		} else {
 			logger.Errorf("Failed notifying trial organization %s: %v", org.ExternalID, err)
@@ -154,6 +155,7 @@ func (j *Enforce) NotifyDelinquentOrganizations(ctx context.Context, now time.Ti
 			ExternalID: org.ExternalID,
 		})
 		if err == nil {
+			logger.Infof("Notified trial expired for organization: %s", org.ExternalID)
 			ok++
 		} else {
 			logger.Errorf("Failed notifying delinquent organization %s: %v", org.ExternalID, err)
