@@ -68,6 +68,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		// Internal stuff for our internal usage, internally.
 		{"root", "GET", "/admin/users", a.admin},
 		{"admin_users_organizations", "GET", "/admin/users/organizations", a.listOrganizations},
+		{"admin_users_gcp_externalAccoutnID_subscriptions", "GET", "/admin/users/gcp/{externalAccountID}/subscriptions", a.gcpListSubscriptions},
 		{"admin_users_organizations_orgExternalID_users", "GET", "/admin/users/organizations/{orgExternalID}/users", a.listUsersForOrganization},
 		{"admin_users_organizations_orgExternalID", "POST", "/admin/users/organizations/{orgExternalID}", a.changeOrgFields},
 		{"admin_users_users", "GET", "/admin/users/users", a.listUsers},
