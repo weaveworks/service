@@ -135,6 +135,17 @@ func (a *API) GCPSubscribe(currentUser *users.User, externalAccountID string, w 
 	return org, nil
 }
 
+func (a *API) gcpListSubscriptions(w http.ResponseWriter, r *http.Request) {
+	externalAccountID := mux.Vars(r)["externalAccountID"]
+	subs, err := a.partner.ListSubscriptions(r.Context(), externalAccountID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	render.JSON(w, http.StatusOK, subs)
+}
+
 func (a *API) getPendingSubscriptionName(ctx context.Context, logger *log.Entry, externalAccountID string) (string, error) {
 	subs, err := a.partner.ListSubscriptions(ctx, externalAccountID)
 	if err != nil {
