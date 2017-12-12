@@ -146,7 +146,8 @@ func (a *API) getPendingSubscriptionName(ctx context.Context, logger *log.Entry,
 			return sub.Name, nil
 		}
 	}
-	return "", fmt.Errorf("no pending subscription found for account: %v", externalAccountID)
+	err = fmt.Errorf("no pending subscription found for account: %v", externalAccountID)
+	return "", users.NewMalformedInputError(err)
 }
 
 func (a *API) getGoogleOAuthToken(ctx context.Context, logger *log.Entry, userID string) (*oauth2.Token, error) {
@@ -163,5 +164,6 @@ func (a *API) getGoogleOAuthToken(ctx context.Context, logger *log.Entry, userID
 			return session.Token, nil
 		}
 	}
-	return nil, errors.New("no active Google OAuth session, please authenticate again")
+	// "no active Google OAuth session, please authenticate again"
+	return nil, users.ErrInvalidAuthenticationData
 }
