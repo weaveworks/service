@@ -31,27 +31,34 @@ var (
 
 func (a *API) gcpSSOLogin(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	externalAccountID := mux.Vars(r)["externalAccountID"]
-	logger := log.WithFields(log.Fields{"user_id": currentUser.ID, "email": currentUser.Email, "external_account_id": externalAccountID})
-	logger.Infof("User SSO-ing into GCP account")
-	org, err := a.db.FindOrganizationByGCPExternalAccountID(r.Context(), externalAccountID)
+	org, err := a.GCPSSOLogin(currentUser, externalAccountID, w, r)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
+	render.JSON(w, http.StatusOK, org)
+}
+
+// GCPSSOLogin attaches users logging in via GCP SSO to the organization attached to the provided externalAccountID.
+// Behavior should be similar to regular invites to a specific instance.
+func (a *API) GCPSSOLogin(currentUser *users.User, externalAccountID string, w http.ResponseWriter, r *http.Request) (*users.Organization, error) {
+	logger := log.WithFields(log.Fields{"user_id": currentUser.ID, "email": currentUser.Email, "external_account_id": externalAccountID})
+	logger.Infof("User SSO-ing into GCP account")
+	org, err := a.db.FindOrganizationByGCPExternalAccountID(r.Context(), externalAccountID)
+	if err != nil {
+		return nil, err
+	}
 	if ok, err := a.db.UserIsMemberOf(r.Context(), currentUser.ID, org.ExternalID); err != nil {
-		renderError(w, r, err)
-		return
+		return nil, err
 	} else if ok {
 		logger.Infof("User already has access to organization [%v]", org.ExternalID)
-		render.JSON(w, http.StatusOK, org)
-		return
+		return org, nil
 	}
 	log.Infof("Now granting user access to organization [%v]", org.ExternalID)
 	if _, _, err = a.db.InviteUser(r.Context(), currentUser.Email, org.ExternalID); err != nil {
-		renderError(w, r, err)
-		return
+		return nil, err
 	}
-	render.JSON(w, http.StatusOK, org)
+	return org, nil
 }
 
 func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
