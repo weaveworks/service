@@ -40,13 +40,22 @@ func NewGoogleProvider() Provider {
 
 func (g *google) Link(r *http.Request) (Link, bool) {
 	l, ok := g.OAuth.Link(r)
-	// If user is coming from GCP Cloud Launcher, we add one scope to be able to access
-	// his subscriptions, and manage access to Weave Cloud and billing via GCP.
-	if gcpAccountID := r.URL.Query().Get("gcpAccountId"); gcpAccountID != "" {
+	// If user is subscribing from GCP Cloud Launcher,
+	// we request one additional scope to be able to access his subscriptions,
+	// in order to be able to bill her via GCP and manage access to Weave Cloud.
+	if isSubscribingFromGCP(r) {
 		l.Href = addGCPSubscriptionScope(l.Href)
 	}
 	l.BackgroundColor = "#dd4b39"
 	return l, ok
+}
+
+func isSubscribingFromGCP(r *http.Request) bool {
+	// N.B.: when user is subscribing from GCP, the only gcpAccountId is provided
+	// as a query parameter. When user is SSO-ing from GCP, both are provided.
+	gcpAccountID := r.URL.Query().Get("gcpAccountId")
+	ssoToken := r.URL.Query().Get("ssoToken")
+	return gcpAccountID != "" && ssoToken == ""
 }
 
 func addGCPSubscriptionScope(oauthURL string) string {
