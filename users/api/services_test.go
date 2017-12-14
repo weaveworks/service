@@ -97,34 +97,36 @@ func getOrgServiceStatus(t *testing.T, user *users.User, org *users.Organization
 	return body
 }
 
+func assertCount(t *testing.T, count int, v interface{}, key string) {
+	m, ok := v.(map[string]interface{})
+	if !ok {
+		assert.FailNow(t, "incorrect structure", "expected map, got %v", v)
+	}
+	assert.Equal(t, 1, len(m))
+	assert.Equal(t, float64(count), m[key])
+}
+
 func assertGetOrgServiceStatus(t *testing.T, user *users.User, org *users.Organization, cfg *mockServicesConfig, now interface{}) {
 	body := getOrgServiceStatus(t, user, org)
+	assert.Equal(t, 6, len(body))
+	assert.Equal(t, (cfg.Flux.Connected ||
+		cfg.Scope.NumberOfProbes > 0 ||
+		cfg.Prom.NumberOfMetrics > 0 ||
+		cfg.Net.NumberOfPeers > 0), body["connected"])
+	assert.Equal(t, now, body["firstSeenConnectedAt"])
 	assert.Equal(t, map[string]interface{}{
-		"connected": (cfg.Flux.Connected ||
-			cfg.Scope.NumberOfProbes > 0 ||
-			cfg.Prom.NumberOfMetrics > 0 ||
-			cfg.Net.NumberOfPeers > 0),
-		"firstSeenConnectedAt": now,
-		"flux": map[string]interface{}{
-			"fluxsvc": map[string]interface{}{},
-			"fluxd": map[string]interface{}{
-				"connected": cfg.Flux.Connected,
-			},
-			"git": map[string]interface{}{
-				"configured": false,
-				"config":     nil,
-			},
+		"fluxsvc": map[string]interface{}{},
+		"fluxd": map[string]interface{}{
+			"connected": cfg.Flux.Connected,
 		},
-		"scope": map[string]interface{}{
-			"numberOfProbes": float64(cfg.Scope.NumberOfProbes),
+		"git": map[string]interface{}{
+			"configured": false,
+			"config":     nil,
 		},
-		"prom": map[string]interface{}{
-			"numberOfMetrics": float64(cfg.Prom.NumberOfMetrics),
-		},
-		"net": map[string]interface{}{
-			"numberOfPeers": float64(cfg.Net.NumberOfPeers),
-		},
-	}, body)
+	}, body["flux"])
+	assertCount(t, cfg.Scope.NumberOfProbes, body["scope"], "numberOfProbes")
+	assertCount(t, cfg.Prom.NumberOfMetrics, body["prom"], "numberOfMetrics")
+	assertCount(t, cfg.Net.NumberOfPeers, body["net"], "numberOfPeers")
 }
 
 func Test_GetOrgServiceStatus(t *testing.T) {
