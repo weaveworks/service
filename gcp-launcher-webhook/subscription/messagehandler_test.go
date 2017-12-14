@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/status"
 
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/common/gcp/partner/mock_partner"
@@ -52,7 +53,7 @@ func TestMessageHandler_Handle_notFound(t *testing.T) {
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
 		GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
-		Return(nil, errors.New("rpc error: code = Code(400) desc = Not found"))
+		Return(nil, status.Error(404, "not found"))
 	p := mock_partner.NewMockAPI(ctrl)
 
 	mh := subscription.MessageHandler{Users: client, Partner: p}

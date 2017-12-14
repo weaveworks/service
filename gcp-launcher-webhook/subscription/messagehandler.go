@@ -3,7 +3,7 @@ package subscription
 import (
 	"context"
 	"fmt"
-	"strings"
+	"net/http"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -11,6 +11,7 @@ import (
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/common/gcp/pubsub/dto"
 	"github.com/weaveworks/service/common/orgs"
+	common_users "github.com/weaveworks/service/common/users"
 	"github.com/weaveworks/service/users"
 )
 
@@ -37,11 +38,8 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 		// If the account does not yet exist, this means the user hasn't gone through the signup.
 		// It is safe to ACK this as once the account becomes ready, we fetch the current subscription
 		// and update our data accordingly.
-		//
-		// If for some reason the returned error message is changed from «Not found» we will NACK
-		// the message which is not an issue of urgency except for flooding our logs. Google will
-		// resend that message over and over till the user actually starts the subscription process.
-		if strings.Contains(err.Error(), "Not found") {
+		if common_users.IsGRPCStatusErrorCode(err, http.StatusNotFound) {
+			logger.Infof("Account %v has not yet finished signing up, ignoring message", externalAccountID)
 			return nil // ACK
 		}
 
