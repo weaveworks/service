@@ -60,6 +60,10 @@ func MockServices(config *mockServicesConfig) *httptest.Server {
 				}
 				resp = probes
 			}
+		case "/api/probes?sparse":
+			if config.Scope.Online {
+				resp = config.Scope.NumberOfProbes > 0
+			}
 		case "/api/prom/api/v1/label/__name__/values":
 			if config.Prom.Online {
 				metrics := []interface{}{}
@@ -87,9 +91,13 @@ func MockServices(config *mockServicesConfig) *httptest.Server {
 	}))
 }
 
-func getOrgServiceStatus(t *testing.T, user *users.User, org *users.Organization) map[string]interface{} {
+func getOrgServiceStatus(t *testing.T, sparse bool, user *users.User, org *users.Organization) map[string]interface{} {
 	w := httptest.NewRecorder()
-	r := requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID+"/status", nil)
+	api := "/api/users/org/" + org.ExternalID + "/status"
+	if sparse {
+		api = api + "?sparse"
+	}
+	r := requestAs(t, user, "GET", api, nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
 	body := map[string]interface{}{}
@@ -97,17 +105,25 @@ func getOrgServiceStatus(t *testing.T, user *users.User, org *users.Organization
 	return body
 }
 
-func assertCount(t *testing.T, count int, v interface{}, key string) {
+func assertCount(t *testing.T, sparse bool, count int, v interface{}, key string) {
 	m, ok := v.(map[string]interface{})
 	if !ok {
 		assert.FailNow(t, "incorrect structure", "expected map, got %v", v)
 	}
-	assert.Equal(t, 1, len(m))
-	assert.Equal(t, float64(count), m[key])
+	assert.Equal(t, 1, len(m), "expected map with one key, got %v", m)
+	f, ok := m[key].(float64)
+	if !ok {
+		assert.FailNow(t, "incorrect structure", "expected float, got %v", m[key])
+	}
+	if sparse {
+		assert.True(t, (count == 0 && f == 0) || (count > 0 && f > 0))
+	} else {
+		assert.Equal(t, float64(count), f)
+	}
 }
 
-func assertGetOrgServiceStatus(t *testing.T, user *users.User, org *users.Organization, cfg *mockServicesConfig, now interface{}) {
-	body := getOrgServiceStatus(t, user, org)
+func assertGetOrgServiceStatus(t *testing.T, sparse bool, user *users.User, org *users.Organization, cfg *mockServicesConfig, now interface{}) {
+	body := getOrgServiceStatus(t, sparse, user, org)
 	assert.Equal(t, 6, len(body))
 	assert.Equal(t, (cfg.Flux.Connected ||
 		cfg.Scope.NumberOfProbes > 0 ||
@@ -124,12 +140,12 @@ func assertGetOrgServiceStatus(t *testing.T, user *users.User, org *users.Organi
 			"config":     nil,
 		},
 	}, body["flux"])
-	assertCount(t, cfg.Scope.NumberOfProbes, body["scope"], "numberOfProbes")
-	assertCount(t, cfg.Prom.NumberOfMetrics, body["prom"], "numberOfMetrics")
-	assertCount(t, cfg.Net.NumberOfPeers, body["net"], "numberOfPeers")
+	assertCount(t, sparse, cfg.Scope.NumberOfProbes, body["scope"], "numberOfProbes")
+	assertCount(t, sparse, cfg.Prom.NumberOfMetrics, body["prom"], "numberOfMetrics")
+	assertCount(t, sparse, cfg.Net.NumberOfPeers, body["net"], "numberOfPeers")
 }
 
-func Test_GetOrgServiceStatus(t *testing.T) {
+func testGetOrgServiceStatus(t *testing.T, sparse bool) {
 	now := time.Date(2017, 1, 1, 1, 1, 0, 0, time.UTC)
 	cfg := &mockServicesConfig{}
 	mockServices := MockServices(cfg)
@@ -146,7 +162,7 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 
 	// Test when services are down.
 	{
-		body := getOrgServiceStatus(t, user, org)
+		body := getOrgServiceStatus(t, sparse, user, org)
 		assert.Equal(t, false, body["connected"])
 		assert.Nil(t, body["firstSeenConnectedAt"])
 		for _, component := range []string{"flux", "scope", "prom", "net"} {
@@ -169,7 +185,7 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 		cfg.Prom.Online = true
 		cfg.Net.Online = true
 
-		assertGetOrgServiceStatus(t, user, org, cfg, nil)
+		assertGetOrgServiceStatus(t, sparse, user, org, cfg, nil)
 	}
 
 	// Test when services are online and connected.
@@ -180,7 +196,7 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 		cfg.Net.NumberOfPeers = 2
 
 		mtime.NowForce(now)
-		assertGetOrgServiceStatus(t, user, org, cfg, now.Format(time.RFC3339))
+		assertGetOrgServiceStatus(t, sparse, user, org, cfg, now.Format(time.RFC3339))
 		mtime.NowReset()
 	}
 
@@ -191,6 +207,14 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 		cfg.Prom.NumberOfMetrics = 0
 		cfg.Net.NumberOfPeers = 0
 
-		assertGetOrgServiceStatus(t, user, org, cfg, now.Format(time.RFC3339))
+		assertGetOrgServiceStatus(t, sparse, user, org, cfg, now.Format(time.RFC3339))
 	}
+}
+
+func Test_GetOrgServiceStatus(t *testing.T) {
+	testGetOrgServiceStatus(t, false)
+}
+
+func Test_GetOrgServiceStatusSparse(t *testing.T) {
+	testGetOrgServiceStatus(t, true)
 }
