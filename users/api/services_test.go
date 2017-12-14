@@ -52,7 +52,7 @@ func MockServices(config *mockServicesConfig) *httptest.Server {
 				}
 			}
 		case "/api/probes":
-			if config.Net.Online {
+			if config.Scope.Online {
 				probes := []interface{}{}
 				for i := 0; i < config.Scope.NumberOfProbes; i++ {
 					probes = append(probes, struct{}{})
