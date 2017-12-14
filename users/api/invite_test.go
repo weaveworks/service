@@ -209,11 +209,11 @@ func Test_Invite_RemoveMyOwnAccess(t *testing.T) {
 
 	user, org := getOrg(t)
 
-	requestOrgAs(t, user, "DELETE", org.ExternalID, user.Email, nil, http.StatusForbidden)
+	requestOrgAs(t, user, "DELETE", org.ExternalID, user.Email, nil, http.StatusNoContent)
 
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
 	require.NoError(t, err)
-	require.Len(t, organizations, 1)
+	require.Len(t, organizations, 0)
 }
 
 func Test_Invite_RemoveAccess_Forbidden(t *testing.T) {
@@ -234,10 +234,7 @@ func Test_Invite_RemoveAccess_NotFound(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, org := getOrg(t)
-	otherUser := getUser(t)
-	otherUser, _, err := database.InviteUser(context.Background(), otherUser.Email, org.ExternalID)
-	require.NoError(t, err)
+	user, _ := getOrg(t)
 
-	requestOrgAs(t, user, "DELETE", "foobar", otherUser.Email, nil, http.StatusNotFound)
+	requestOrgAs(t, user, "DELETE", "foobar", user.Email, nil, http.StatusNotFound)
 }
