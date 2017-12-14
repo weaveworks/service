@@ -3,6 +3,8 @@ package users
 import (
 	"fmt"
 	"net/http"
+
+	"google.golang.org/grpc/status"
 )
 
 // APIError When an API call fails, we may want to distinguish among the causes
@@ -25,4 +27,14 @@ type Unauthorized struct {
 
 func (u Unauthorized) Error() string {
 	return http.StatusText(u.httpStatus)
+}
+
+// IsGRPCStatusErrorCode returns true if the error is a gRPC status error and
+// has the given status code.
+func IsGRPCStatusErrorCode(err error, code int) bool {
+	st, ok := status.FromError(err)
+	if !ok {
+		return false
+	}
+	return code == int(st.Code())
 }
