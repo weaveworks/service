@@ -87,15 +87,18 @@ func MockServices(config *mockServicesConfig) *httptest.Server {
 	}))
 }
 
-func assertGetOrgServiceStatus(t *testing.T, user *users.User, org *users.Organization, cfg *mockServicesConfig, now interface{}) {
+func getOrgServiceStatus(t *testing.T, user *users.User, org *users.Organization) map[string]interface{} {
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID+"/status", nil)
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusOK, w.Code)
-
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	return body
+}
 
+func assertGetOrgServiceStatus(t *testing.T, user *users.User, org *users.Organization, cfg *mockServicesConfig, now interface{}) {
+	body := getOrgServiceStatus(t, user, org)
 	assert.Equal(t, map[string]interface{}{
 		"connected": (cfg.Flux.Connected ||
 			cfg.Scope.NumberOfProbes > 0 ||
@@ -141,14 +144,7 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 
 	// Test when services are down.
 	{
-		w := httptest.NewRecorder()
-		r := requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID+"/status", nil)
-		app.ServeHTTP(w, r)
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		body := map[string]interface{}{}
-		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-
+		body := getOrgServiceStatus(t, user, org)
 		assert.Equal(t, false, body["connected"])
 		assert.Nil(t, body["firstSeenConnectedAt"])
 		for _, component := range []string{"flux", "scope", "prom", "net"} {
