@@ -52,7 +52,7 @@ func TestMessageHandler_Handle_notFound(t *testing.T) {
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
 		GetGCP(ctx, &users.GetGCPRequest{ExternalAccountID: externalAccountID}).
-		Return(nil, errors.New("rpc error: code = Code(400) desc = Not found"))
+		Return(nil, errors.New("rpc error: code = Code(400) desc = not found"))
 	p := mock_partner.NewMockAPI(ctrl)
 
 	mh := subscription.MessageHandler{Users: client, Partner: p}
