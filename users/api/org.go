@@ -272,11 +272,6 @@ func (a *API) deleteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	vars := mux.Vars(r)
 	orgExternalID := vars["orgExternalID"]
 	userEmail := vars["userEmail"]
-	if userEmail == currentUser.Email {
-		renderError(w, r, users.ErrForbidden)
-		return
-	}
-
 	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
