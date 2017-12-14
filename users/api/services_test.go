@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/weaveworks/common/mtime"
 	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/users"
 )
 
 type mockServicesConfig struct {
@@ -86,6 +87,43 @@ func MockServices(config *mockServicesConfig) *httptest.Server {
 	}))
 }
 
+func assertGetOrgServiceStatus(t *testing.T, user *users.User, org *users.Organization, cfg *mockServicesConfig, now interface{}) {
+	w := httptest.NewRecorder()
+	r := requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID+"/status", nil)
+	app.ServeHTTP(w, r)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+
+	assert.Equal(t, map[string]interface{}{
+		"connected": (cfg.Flux.Connected ||
+			cfg.Scope.NumberOfProbes > 0 ||
+			cfg.Prom.NumberOfMetrics > 0 ||
+			cfg.Net.NumberOfPeers > 0),
+		"firstSeenConnectedAt": now,
+		"flux": map[string]interface{}{
+			"fluxsvc": map[string]interface{}{},
+			"fluxd": map[string]interface{}{
+				"connected": cfg.Flux.Connected,
+			},
+			"git": map[string]interface{}{
+				"configured": false,
+				"config":     nil,
+			},
+		},
+		"scope": map[string]interface{}{
+			"numberOfProbes": float64(cfg.Scope.NumberOfProbes),
+		},
+		"prom": map[string]interface{}{
+			"numberOfMetrics": float64(cfg.Prom.NumberOfMetrics),
+		},
+		"net": map[string]interface{}{
+			"numberOfPeers": float64(cfg.Net.NumberOfPeers),
+		},
+	}, body)
+}
+
 func Test_GetOrgServiceStatus(t *testing.T) {
 	now := time.Date(2017, 1, 1, 1, 1, 0, 0, time.UTC)
 	cfg := &mockServicesConfig{}
@@ -146,37 +184,7 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 		cfg.Prom.Online = true
 		cfg.Net.Online = true
 
-		w := httptest.NewRecorder()
-		r := requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID+"/status", nil)
-
-		app.ServeHTTP(w, r)
-		assert.Equal(t, http.StatusOK, w.Code)
-		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-		assert.Equal(t, map[string]interface{}{
-			"connected":            false,
-			"firstSeenConnectedAt": nil,
-			"flux": map[string]interface{}{
-				"fluxsvc": map[string]interface{}{},
-				"fluxd": map[string]interface{}{
-					"connected": false,
-				},
-				"git": map[string]interface{}{
-					"configured": false,
-					"config":     nil,
-				},
-			},
-			"scope": map[string]interface{}{
-				"numberOfProbes": float64(0),
-			},
-			"prom": map[string]interface{}{
-				"numberOfMetrics": float64(0),
-			},
-			"net": map[string]interface{}{
-				"numberOfPeers": float64(0),
-			},
-		}, body)
-
-		mtime.NowReset()
+		assertGetOrgServiceStatus(t, user, org, cfg, nil)
 	}
 
 	// Test when services are online and connected.
@@ -187,36 +195,7 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 		cfg.Net.NumberOfPeers = 2
 
 		mtime.NowForce(now)
-		w := httptest.NewRecorder()
-		r := requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID+"/status", nil)
-
-		app.ServeHTTP(w, r)
-		assert.Equal(t, http.StatusOK, w.Code)
-		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-		assert.Equal(t, map[string]interface{}{
-			"connected":            true,
-			"firstSeenConnectedAt": now.Format(time.RFC3339),
-			"flux": map[string]interface{}{
-				"fluxsvc": map[string]interface{}{},
-				"fluxd": map[string]interface{}{
-					"connected": true,
-				},
-				"git": map[string]interface{}{
-					"configured": false,
-					"config":     nil,
-				},
-			},
-			"scope": map[string]interface{}{
-				"numberOfProbes": float64(3),
-			},
-			"prom": map[string]interface{}{
-				"numberOfMetrics": float64(4),
-			},
-			"net": map[string]interface{}{
-				"numberOfPeers": float64(2),
-			},
-		}, body)
-
+		assertGetOrgServiceStatus(t, user, org, cfg, now.Format(time.RFC3339))
 		mtime.NowReset()
 	}
 
@@ -227,34 +206,6 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 		cfg.Prom.NumberOfMetrics = 0
 		cfg.Net.NumberOfPeers = 0
 
-		w := httptest.NewRecorder()
-		r := requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID+"/status", nil)
-
-		app.ServeHTTP(w, r)
-		assert.Equal(t, http.StatusOK, w.Code)
-		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-		assert.Equal(t, map[string]interface{}{
-			"connected":            false, // Now false but firstSeenConnectedAt still set.
-			"firstSeenConnectedAt": now.Format(time.RFC3339),
-			"flux": map[string]interface{}{
-				"fluxsvc": map[string]interface{}{},
-				"fluxd": map[string]interface{}{
-					"connected": false,
-				},
-				"git": map[string]interface{}{
-					"configured": false,
-					"config":     nil,
-				},
-			},
-			"scope": map[string]interface{}{
-				"numberOfProbes": float64(0),
-			},
-			"prom": map[string]interface{}{
-				"numberOfMetrics": float64(0),
-			},
-			"net": map[string]interface{}{
-				"numberOfPeers": float64(0),
-			},
-		}, body)
+		assertGetOrgServiceStatus(t, user, org, cfg, now.Format(time.RFC3339))
 	}
 }
