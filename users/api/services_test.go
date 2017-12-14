@@ -138,43 +138,30 @@ func Test_GetOrgServiceStatus(t *testing.T) {
 
 	user, org := getOrg(t)
 	cfg.AcceptedOrgID = org.ID
-	body := map[string]interface{}{}
 
 	// Test when services are down.
 	{
 		w := httptest.NewRecorder()
 		r := requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID+"/status", nil)
-
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusOK, w.Code)
+
+		body := map[string]interface{}{}
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-		assert.Equal(t, map[string]interface{}{
-			"connected":            false,
-			"firstSeenConnectedAt": nil,
-			"flux": map[string]interface{}{
-				"fluxsvc": map[string]interface{}{},
-				"fluxd": map[string]interface{}{
-					"connected": false,
-				},
-				"git": map[string]interface{}{
-					"configured": false,
-					"config":     nil,
-				},
-				"error": "Unexpected status code: 500",
-			},
-			"scope": map[string]interface{}{
-				"numberOfProbes": float64(0),
-				"error":          "Unexpected status code: 500",
-			},
-			"prom": map[string]interface{}{
-				"numberOfMetrics": float64(0),
-				"error":           "Unexpected status code: 500",
-			},
-			"net": map[string]interface{}{
-				"numberOfPeers": float64(0),
-				"error":         "Unexpected status code: 500",
-			},
-		}, body)
+
+		assert.Equal(t, false, body["connected"])
+		assert.Nil(t, body["firstSeenConnectedAt"])
+		for _, component := range []string{"flux", "scope", "prom", "net"} {
+			v, ok := body[component]
+			if !ok {
+				assert.FailNow(t, "incorrect structure", "missing '%s' element", component)
+			}
+			vMap, ok := v.(map[string]interface{})
+			if !ok {
+				assert.FailNow(t, "incorrect structure", "'%s' element is not a map: %v", component, v)
+			}
+			assert.Equal(t, "Unexpected status code: 500", vMap["error"])
+		}
 	}
 
 	// Test when services are online but not connected.
