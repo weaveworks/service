@@ -328,13 +328,12 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 
 		// Google Single Sign-On for GCP Cloud Launcher integration.
 		MiddlewarePrefix{
-			"/login/gcp/{keyForSSOLogin}",
+			"/api/users/gcp/sso/login/{gcpAccountId}",
 			[]PrefixRoutable{
 				Prefix{"/", c.usersHost},
 			},
 			middleware.Merge(
 				gcpLoginSecretMiddleware,
-				middleware.PathRewrite(regexp.MustCompile("^/login/gcp/([^/^?]+)"), "/api/users/gcp/sso/login/$1"),
 				uiHTTPlogger,
 			),
 		},

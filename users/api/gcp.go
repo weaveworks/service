@@ -12,7 +12,6 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
@@ -30,40 +29,36 @@ var (
 	ErrMissingConsumerID = errors.New("missing consumer ID")
 )
 
-func (a *API) gcpSSOLogin(w http.ResponseWriter, r *http.Request) {
+func (a *API) gcpSSOLogin(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	externalAccountID := mux.Vars(r)["externalAccountID"]
+	org, err := a.GCPSSOLogin(currentUser, externalAccountID, w, r)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	render.JSON(w, http.StatusOK, org)
+}
 
+// GCPSSOLogin attaches users logging in via GCP SSO to the organization attached to the provided externalAccountID.
+// Behavior should be similar to regular invites to a specific instance.
+func (a *API) GCPSSOLogin(currentUser *users.User, externalAccountID string, w http.ResponseWriter, r *http.Request) (*users.Organization, error) {
+	logger := log.WithFields(log.Fields{"user_id": currentUser.ID, "email": currentUser.Email, "external_account_id": externalAccountID})
+	logger.Infof("User SSO-ing into GCP account")
 	org, err := a.db.FindOrganizationByGCPExternalAccountID(r.Context(), externalAccountID)
 	if err != nil {
-		renderError(w, r, err)
-		return
+		return nil, err
 	}
-	admins, err := a.db.ListOrganizationUsers(r.Context(), org.ExternalID)
-	if err != nil {
-		renderError(w, r, err)
-		return
+	if ok, err := a.db.UserIsMemberOf(r.Context(), currentUser.ID, org.ExternalID); err != nil {
+		return nil, err
+	} else if ok {
+		logger.Infof("User already has access to organization [%v]", org.ExternalID)
+		return org, nil
 	}
-	user := admins[0] // Arbitrarily log in as first admin.
-
-	firstLogin := user.FirstLoginAt.IsZero()
-	if err := a.UpdateUserAtLogin(r.Context(), user); err != nil {
-		renderError(w, r, err)
-		return
+	log.Infof("Now granting user access to organization [%v]", org.ExternalID)
+	if _, _, err = a.db.InviteUser(r.Context(), currentUser.Email, org.ExternalID); err != nil {
+		return nil, err
 	}
-	impersonatingUserID := "" // SSO login => cannot be impersonating
-	if err := a.sessions.Set(w, r, user.ID, impersonatingUserID); err != nil {
-		renderError(w, r, users.ErrInvalidAuthenticationData)
-		return
-	}
-	// Track mixpanel event https://github.com/weaveworks/service/issues/1301
-	if a.mixpanel != nil {
-		go func() {
-			if err := a.mixpanel.TrackLogin(user.Email, firstLogin); err != nil {
-				logging.With(r.Context()).Error(err)
-			}
-		}()
-	}
-	http.Redirect(w, r, "/", 302)
+	return org, nil
 }
 
 func (a *API) gcpSubscribe(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
