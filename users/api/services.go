@@ -61,7 +61,8 @@ type fluxGitStatus struct {
 }
 
 type scopeStatus struct {
-	NumberOfProbes int    `json:"numberOfProbes"`
+	HasProbes      bool   `json:"hasProbes"`
+	NumberOfProbes int    `json:"numberOfProbes,omitempty"`
 	Error          string `json:"error,omitempty"`
 }
 
@@ -106,7 +107,7 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 	_, sparse := r.Form["sparse"]
 	status := a.getServiceStatus(r.Context(), sparse)
 	connected := (status.flux.Fluxd.Connected ||
-		status.scope.NumberOfProbes > 0 ||
+		status.scope.HasProbes ||
 		status.prom.NumberOfMetrics > 0 ||
 		status.net.NumberOfPeers > 0)
 
@@ -180,22 +181,15 @@ func (a *API) getServiceStatus(ctx context.Context, sparse bool) serviceStatus {
 		}
 		defer resp.Body.Close()
 
-		var probes []interface{}
 		if sparse {
 			var hasProbes bool
 			err = json.NewDecoder(resp.Body).Decode(&hasProbes)
-			if hasProbes {
-				// We fake this. The "correct" approach would be to
-				// have a getOrgServiceStatusViewSparse structure,
-				// that only contains HasX instead of NumberOfX for
-				// scope/prom/net. But that entails an enormous amount
-				// of code duplication for little gain, and
-				// complicates the client end too.
-				scope.NumberOfProbes = 1
-			}
+			scope.HasProbes = hasProbes
 		} else {
+			var probes []interface{}
 			err = json.NewDecoder(resp.Body).Decode(&probes)
 			scope.NumberOfProbes = len(probes)
+			scope.HasProbes = scope.NumberOfProbes > 0
 		}
 		if err != nil {
 			scope.Error = "Could not decode scope data"
