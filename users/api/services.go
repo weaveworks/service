@@ -102,8 +102,9 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 		return
 	}
 	r = r.WithContext(user.InjectOrgID(r.Context(), org.ID))
-
-	status := a.getServiceStatus(r.Context())
+	r.ParseForm()
+	_, sparse := r.Form["sparse"]
+	status := a.getServiceStatus(r.Context(), sparse)
 	connected := (status.flux.Fluxd.Connected ||
 		status.scope.NumberOfProbes > 0 ||
 		status.prom.NumberOfMetrics > 0 ||
@@ -136,7 +137,7 @@ type serviceStatus struct {
 	net   netStatus
 }
 
-func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
+func (a *API) getServiceStatus(ctx context.Context, sparse bool) serviceStatus {
 	var flux fluxStatus
 	var scope scopeStatus
 	var prom promStatus
@@ -168,7 +169,11 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 	go func() {
 		defer wg.Done()
 
-		resp, err := doRequest(ctx, "scope", a.scopeProbesAPI)
+		api := a.scopeProbesAPI
+		if sparse {
+			api = api + "?sparse"
+		}
+		resp, err := doRequest(ctx, "scope", api)
 		if err != nil {
 			scope.Error = err.Error()
 			return
@@ -176,13 +181,27 @@ func (a *API) getServiceStatus(ctx context.Context) serviceStatus {
 		defer resp.Body.Close()
 
 		var probes []interface{}
-		err = json.NewDecoder(resp.Body).Decode(&probes)
+		if sparse {
+			var hasProbes bool
+			err = json.NewDecoder(resp.Body).Decode(&hasProbes)
+			if hasProbes {
+				// We fake this. The "correct" approach would be to
+				// have a getOrgServiceStatusViewSparse structure,
+				// that only contains HasX instead of NumberOfX for
+				// scope/prom/net. But that entails an enormous amount
+				// of code duplication for little gain, and
+				// complicates the client end too.
+				scope.NumberOfProbes = 1
+			}
+		} else {
+			err = json.NewDecoder(resp.Body).Decode(&probes)
+			scope.NumberOfProbes = len(probes)
+		}
 		if err != nil {
 			scope.Error = "Could not decode scope data"
 			logging.With(ctx).Errorf("Could not decode scope data: %s", err)
 			return
 		}
-		scope.NumberOfProbes = len(probes)
 	}()
 
 	// Get prom status.
