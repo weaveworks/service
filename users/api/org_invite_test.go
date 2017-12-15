@@ -39,6 +39,19 @@ func requestInvite(t *testing.T, user *users.User, org *users.Organization, emai
 	return requestOrgAs(t, user, "POST", org.ExternalID, "", jsonBody{"email": email}.Reader(t), expectedStatus)
 }
 
+// getOrgWithMembers populates the organization with given member count.
+func getOrgWithMembers(t *testing.T, count int) (*users.User, []*users.User, *users.Organization) {
+	owner, org := getOrg(t)
+	members := []*users.User{}
+	for ; count > 1; count-- {
+		u := getUser(t)
+		u, _, err := database.InviteUser(context.Background(), u.Email, org.ExternalID)
+		require.NoError(t, err)
+		members = append(members, u)
+	}
+	return owner, members, org
+}
+
 func assertEmailSent(t *testing.T, to string, contains string) {
 	if assert.Len(t, sentEmails, 1) {
 		assert.Equal(t, []string{to}, sentEmails[0].To)
@@ -178,10 +191,8 @@ func Test_Invite_RemoveOtherUsersAccess(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, org := getOrg(t)
-	otherUser := getUser(t)
-	otherUser, _, err := database.InviteUser(context.Background(), otherUser.Email, org.ExternalID)
-	require.NoError(t, err)
+	user, us, org := getOrgWithMembers(t, 2)
+	otherUser := us[0]
 	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), otherUser.ID)
 	require.NoError(t, err)
 	require.Len(t, organizations, 1)
@@ -207,7 +218,7 @@ func Test_Invite_RemoveMyOwnAccess(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, org := getOrg(t)
+	user, _, org := getOrgWithMembers(t, 2)
 
 	requestOrgAs(t, user, "DELETE", org.ExternalID, user.Email, nil, http.StatusNoContent)
 
@@ -216,12 +227,25 @@ func Test_Invite_RemoveMyOwnAccess(t *testing.T) {
 	require.Len(t, organizations, 0)
 }
 
+func Test_Invite_RemoveLastUser(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user, org := getOrg(t)
+
+	requestOrgAs(t, user, "DELETE", org.ExternalID, user.Email, nil, http.StatusForbidden)
+
+	organizations, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
+	require.NoError(t, err)
+	require.Len(t, organizations, 1)
+}
+
 func Test_Invite_RemoveAccess_Forbidden(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
-	user, _ := getOrg(t)
-	otherUser, otherOrg := getOrg(t)
+	user, _, _ := getOrgWithMembers(t, 2)
+	otherUser, _, otherOrg := getOrgWithMembers(t, 2)
 
 	requestOrgAs(t, user, "DELETE", otherOrg.ExternalID, otherUser.Email, nil, http.StatusForbidden)
 
