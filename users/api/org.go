@@ -277,6 +277,15 @@ func (a *API) deleteUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
+	if members, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID); err != nil {
+		renderError(w, r, err)
+		return
+	} else if len(members) == 1 {
+		// An organization cannot be with zero members
+		renderError(w, r, users.ErrForbidden)
+		return
+	}
+
 	if err := a.db.RemoveUserFromOrganization(r.Context(), orgExternalID, userEmail); err != nil {
 		renderError(w, r, err)
 		return
