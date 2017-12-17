@@ -20,7 +20,7 @@ func (d DB) ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Tea
 		Join("team_memberships m ON teams.id = m.team_id").
 		Where(squirrel.Eq{"m.user_id": userID}).
 		Where("m.deleted_at IS NULL")
-	rows, err := query.Query()
+	rows, err := query.QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -28,12 +28,12 @@ func (d DB) ListTeamsForUserID(ctx context.Context, userID string) ([]*users.Tea
 	return d.scanTeams(rows)
 }
 
-func (d DB) listTeamOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
+func (d DB) listTeamOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
 	rows, err := d.organizationsQuery().
 		Join("team_memberships on (organizations.team_id = team_memberships.team_id)").
 		Where("team_memberships.deleted_at IS NULL").
 		Where(squirrel.Eq{"team_memberships.user_id": userIDs}).
-		Query()
+		QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (d DB) ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, er
 		Where(squirrel.Eq{
 			"team_memberships.team_id": teamID,
 		}).
-		Query()
+		QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (d DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
 			return err
 		}
 		t.ExternalID = externalID
-		err = tx.QueryRow(`insert into teams (external_id, trial_expires_at, name)
+		err = tx.QueryRowContext(ctx, `insert into teams (external_id, trial_expires_at, name)
 						  values (lower($1), $2, $3) returning id, created_at`, externalID, TrialExpiresAt, name).Scan(&t.ID, &t.CreatedAt)
 		return err
 	})
@@ -87,7 +87,7 @@ func (d DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
 
 // AddUserToTeam links a user to the team
 func (d DB) AddUserToTeam(ctx context.Context, userID, teamID string) error {
-	_, err := d.Exec(`
+	_, err := d.ExecContext(ctx, `
 			insert into team_memberships
 				(user_id, team_id)
 				values ($1, $2)`,
@@ -103,9 +103,9 @@ func (d DB) AddUserToTeam(ctx context.Context, userID, teamID string) error {
 }
 
 // teamExternalIDUsed returns whether the team externalID has already been taken
-func (d DB) teamExternalIDUsed(_ context.Context, externalID string) (bool, error) {
+func (d DB) teamExternalIDUsed(ctx context.Context, externalID string) (bool, error) {
 	var exists bool
-	err := d.QueryRow(
+	err := d.QueryRowContext(ctx,
 		`select exists(select 1 from teams where external_id = lower($1))`,
 		externalID,
 	).Scan(&exists)
@@ -135,8 +135,8 @@ func (d DB) generateTeamExternalID(ctx context.Context) (string, error) {
 
 // removeUserFromTeam removes the user from the team.
 // If they are not a team member, this is a noop.
-func (d DB) removeUserFromTeam(userID, teamID string) error {
-	_, err := d.Exec(
+func (d DB) removeUserFromTeam(ctx context.Context, userID, teamID string) error {
+	_, err := d.ExecContext(ctx,
 		"update team_memberships set deleted_at = now() where user_id = $1 and team_id = $2",
 		userID,
 		teamID,
@@ -144,9 +144,9 @@ func (d DB) removeUserFromTeam(userID, teamID string) error {
 	return err
 }
 
-func (d DB) findTeamByExternalID(_ context.Context, externalID string) (*users.Team, error) {
+func (d DB) findTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error) {
 	team, err := d.scanTeam(
-		d.teamQuery().Where("lower(teams.external_id) = lower($1)", externalID).QueryRow(),
+		d.teamQuery().Where("lower(teams.external_id) = lower($1)", externalID).QueryRowContext(ctx),
 	)
 	if err == sql.ErrNoRows {
 		err = users.ErrNotFound

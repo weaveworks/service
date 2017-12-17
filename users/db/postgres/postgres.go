@@ -26,9 +26,9 @@ type DB struct {
 }
 
 type dbProxy interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Query(query string, args ...interface{}) (*sql.Rows, error)
-	QueryRow(query string, args ...interface{}) *sql.Row
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 	Prepare(query string) (*sql.Stmt, error)
 }
 
@@ -122,8 +122,8 @@ func (d DB) Transaction(f func(DB) error) error {
 }
 
 // ListMemberships lists memberships list memberships
-func (d DB) ListMemberships(_ context.Context) ([]users.Membership, error) {
-	rows, err := d.dbProxy.Query(`
+func (d DB) ListMemberships(ctx context.Context) ([]users.Membership, error) {
+	rows, err := d.dbProxy.QueryContext(ctx, `
 	SELECT
 		memberships.user_id,
 		memberships.organization_id
