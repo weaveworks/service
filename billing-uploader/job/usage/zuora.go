@@ -49,12 +49,22 @@ func (z *Zuora) Add(ctx context.Context, org users.Organization, from, through t
 
 	subscriptionNumber := account.Subscription.SubscriptionNumber
 	chargeNumber := account.Subscription.ChargeNumber
-	orgReport, err := zuora.ReportFromAggregates(z.cl.GetConfig(), aggs, account.PaymentProviderID, from, through, subscriptionNumber, chargeNumber, zuora.BillCycleDay)
+	orgReport, err := zuora.ReportFromAggregates(z.cl.GetConfig(), aggs, account.PaymentProviderID, minBucketStart(aggs), through, subscriptionNumber, chargeNumber, zuora.BillCycleDay)
 	if err != nil {
 		return errors.Wrap(err, "cannot create report")
 	}
 	z.r = z.r.ConcatEntries(orgReport)
 	return nil
+}
+
+func minBucketStart(aggs []db.Aggregate) time.Time {
+	var l time.Time
+	for _, a := range aggs {
+		if l.IsZero() || a.BucketStart.Before(l) {
+			l = a.BucketStart
+		}
+	}
+	return l
 }
 
 // Upload sends usage to Zuora.

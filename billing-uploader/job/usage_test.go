@@ -122,13 +122,13 @@ var (
 	aggregates = []db.Aggregate{
 		// Zuora
 		{ // ID==1; skip: <=max_aggregate_id
-			BucketStart: start,
+			BucketStart: start, // 2017-11-27 00:00
 			InstanceID:  "100",
 			AmountType:  "node-seconds",
 			AmountValue: 1,
 		},
 		{ // ID==2; pick
-			BucketStart: start.Add(1 * time.Hour),
+			BucketStart: start.Add(1 * time.Hour), // 2017-11-27 01:00
 			InstanceID:  "100",
 			AmountType:  "node-seconds",
 			AmountValue: 2,
@@ -204,12 +204,24 @@ func TestJobUpload_Do(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, records, 3) // headers + two rows
 
-		idxAcc := 0
-		idxQty := 2
-		assert.Equal(t, "Ppartial-max_aggregates_id", records[1][idxAcc])
-		assert.Equal(t, "2", records[1][idxQty])
-		assert.Equal(t, "Ppartial-trial_expires_at", records[2][idxAcc])
-		assert.Equal(t, "4", records[2][idxQty])
+		assert.Equal(t, []string{
+			"Ppartial-max_aggregates_id",
+			"node-seconds",
+			"2",
+			"11/27/2017", // day of first aggregate
+			"11/29/2017",
+			"Spartial-max_aggregates_id",
+			"Cpartial-max_aggregates_id",
+		}, records[1][0:7])
+		assert.Equal(t, []string{
+			"Ppartial-trial_expires_at",
+			"node-seconds",
+			"4",
+			"11/25/2017",
+			"11/29/2017",
+			"Spartial-trial_expires_at",
+			"Cpartial-trial_expires_at",
+		}, records[2][0:7])
 
 		aggID, err := d.GetUsageUploadLargestAggregateID(ctx, "zuora")
 		assert.NoError(t, err)

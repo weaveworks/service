@@ -14,7 +14,8 @@ type Uploader interface {
 	// IMPORTANT: when implementing the Uploader interface, values returned by ID() need to be added as
 	// valid values in the DB's enum uploader_type. See also: 005 and 006 in billing-api/db/migrations/
 	ID() string
-	// Add records aggregates to be uploaded later.
+	// Add records aggregates to be uploaded later. `from` and `through` are the boundaries of the time
+	// period used when looking for aggregates.
 	Add(ctx context.Context, org users.Organization, from, through time.Time, aggs []db.Aggregate) error
 	// Upload sends recorded aggregates.
 	Upload(ctx context.Context) error
