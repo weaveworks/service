@@ -19,6 +19,7 @@ import (
 	"github.com/weaveworks/service/common/tracing"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
+	"github.com/weaveworks/service/users/cleaner"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
 	grpc_server "github.com/weaveworks/service/users/grpc"
@@ -80,11 +81,14 @@ func main() {
 		billingFeatureFlagProbability = flag.Uint("billing-feature-flag-probability", 0, "Percentage of *new* organizations for which we want to enable the 'billing' feature flag. 0 means always disabled. 100 means always enabled. Any value X in between will enable billing randomly X% of the time.")
 
 		partnerCfg partner.Config
+
+		cleanupURLs common.ArrayFlags
 	)
 
 	flag.Var(&forceFeatureFlags, "force-feature-flags", "Force this feature flag to be on for all organisations.")
 	flag.Var(&forceFeatureFlags, "fff", "Force this feature flag to be on for all organisations.")
 	flag.Var(&webhookTokens, "webhook-token", "Secret tokens used to validate webhooks from external services (e.g. Marketo).")
+	flag.Var(&cleanupURLs, "cleanup-url", "Endpoints for cleanup after instance deletion")
 
 	logins := login.NewProviders()
 	logins.Register(login.GithubProviderID, login.NewGithubProvider())
@@ -145,6 +149,7 @@ func main() {
 	defer db.Close(context.Background())
 	sessions := sessions.MustNewStore(*sessionSecret, *secureCookie)
 
+	orgCleaner := cleaner.New(cleanupURLs, db)
 	log.Debug("Debug logging enabled")
 
 	grpcServer := grpc_server.New(sessions, db, emailer)
@@ -170,6 +175,7 @@ func main() {
 		*cortexStatsAPI,
 		*netPeersAPI,
 		billingEnabler,
+		orgCleaner,
 	)
 
 	if *localTestUserCreate {
@@ -195,7 +201,10 @@ func main() {
 	app.RegisterRoutes(s.HTTP)
 	users.RegisterUsersServer(s.GRPC, grpcServer)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	app.OrgCleaner.Run(ctx)
 	s.Run()
+	cancel()
 }
 
 func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string, featureFlags []string) {

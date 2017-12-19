@@ -192,6 +192,8 @@ message Organization {
     GoogleCloudPlatform GCP = 17;
     string TeamID = 18;
     string TeamExternalID = 19;
+    google.protobuf.Timestamp DeletedAt = 20 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+    bool Cleanup = 21;
 }
 
 message GoogleCloudPlatform {

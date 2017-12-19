@@ -9,6 +9,7 @@ import (
 
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/cleaner"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/login"
@@ -40,6 +41,7 @@ type API struct {
 	cortexStatsAPI     string
 	netPeersAPI        string
 	billingEnabler     featureflag.Enabler
+	OrgCleaner         *cleaner.OrgCleaner
 	http.Handler
 }
 
@@ -66,6 +68,7 @@ func New(
 	cortexStatsAPI string,
 	netPeersAPI string,
 	billingEnabler featureflag.Enabler,
+	orgCleaner *cleaner.OrgCleaner,
 ) *API {
 	a := &API{
 		directLogin:        directLogin,
@@ -89,6 +92,7 @@ func New(
 		cortexStatsAPI:     cortexStatsAPI,
 		netPeersAPI:        netPeersAPI,
 		billingEnabler:     billingEnabler,
+		OrgCleaner:         orgCleaner,
 	}
 
 	r := mux.NewRouter()

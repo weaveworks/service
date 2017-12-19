@@ -116,6 +116,11 @@ func (t traced) CreateOrganization(ctx context.Context, ownerID, externalID, nam
 	return t.d.CreateOrganization(ctx, ownerID, externalID, name, token, teamID)
 }
 
+func (t traced) FindUncleanedOrgIDs(ctx context.Context) (ids []string, err error) {
+	defer func() { t.trace("FindUncleanedOrgIDs", ids, err) }()
+	return t.d.FindUncleanedOrgIDs(ctx)
+}
+
 func (t traced) FindOrganizationByProbeToken(ctx context.Context, probeToken string) (o *users.Organization, err error) {
 	defer func() { t.trace("FindOrganizationByProbeToken", probeToken, o, err) }()
 	return t.d.FindOrganizationByProbeToken(ctx, probeToken)
@@ -169,6 +174,11 @@ func (t traced) AddFeatureFlag(ctx context.Context, externalID string, featureFl
 func (t traced) SetFeatureFlags(ctx context.Context, externalID string, featureFlags []string) (err error) {
 	defer func() { t.trace("SetFeatureFlags", externalID, featureFlags, err) }()
 	return t.d.SetFeatureFlags(ctx, externalID, featureFlags)
+}
+
+func (t traced) SetOrganizationCleanup(ctx context.Context, internalID string, value bool) (err error) {
+	defer func() { t.trace("SetOrganizationCleanup", internalID, err) }()
+	return t.d.SetOrganizationCleanup(ctx, internalID, value)
 }
 
 func (t traced) SetOrganizationRefuseDataAccess(ctx context.Context, externalID string, value bool) (err error) {

@@ -342,6 +342,32 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 	return o, err
 }
 
+// FindUncleanedOrgIDs looks up deleted but uncleaned organization IDs
+func (d DB) FindUncleanedOrgIDs(ctx context.Context) ([]string, error) {
+	rows, err := d.Select("organizations.id").
+		From("organizations").
+		Where(squirrel.Expr("organizations.cleanup = false and (organizations.deleted_at is not null or organizations.refuse_data_upload = true)")).
+		QueryContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
+
 // FindOrganizationByProbeToken looks up the organization matching a given
 // probe token.
 func (d DB) FindOrganizationByProbeToken(ctx context.Context, probeToken string) (*users.Organization, error) {
@@ -611,6 +637,15 @@ func (d DB) SetFeatureFlags(ctx context.Context, externalID string, featureFlags
 	return err
 }
 
+// SetOrganizationCleanup sets cleanup true for organization with internalID
+func (d DB) SetOrganizationCleanup(ctx context.Context, internalID string, value bool) error {
+	_, err := d.ExecContext(ctx,
+		`update organizations set cleanup = $1 where id = lower($2)`,
+		value, internalID,
+	)
+	return err
+}
+
 // SetOrganizationRefuseDataAccess sets the "deny UI features" flag on an organization
 func (d DB) SetOrganizationRefuseDataAccess(ctx context.Context, externalID string, value bool) error {
 	_, err := d.ExecContext(ctx,
@@ -671,10 +706,8 @@ func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAcco
 		}
 
 		err = tx.SetOrganizationGCP(ctx, externalID, externalAccountID)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
+
 	})
 	if err != nil {
 		return nil, err
@@ -781,11 +814,7 @@ func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID,
 		}
 
 		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, token, team.ID)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return err
 	})
 	if err != nil {
 		return nil, err
