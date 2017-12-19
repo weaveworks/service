@@ -57,7 +57,7 @@ func (a *API) createAccount(w http.ResponseWriter, r *http.Request) error {
 	if !resp.Organization.InTrialPeriod(today) {
 		orgID := resp.Organization.ID
 		trialExpiry := resp.Organization.TrialExpiresAt
-		usageImportID, err := a.fetchAndUploadUsage(r.Context(), account, orgID, externalID, trialExpiry, today, zuora.BillCycleDay)
+		usageImportID, err := a.FetchAndUploadUsage(r.Context(), account, orgID, externalID, trialExpiry, today, zuora.BillCycleDay)
 		if err != nil {
 			return err
 		}
@@ -138,7 +138,8 @@ func (a *API) markOrganizationDutiful(ctx context.Context, logger *log.Entry, ex
 	}
 }
 
-func (a *API) fetchAndUploadUsage(ctx context.Context, account *zuora.Account, orgID, externalID string, trialExpiry, today time.Time, cycleDay int) (string, error) {
+// FetchAndUploadUsage gets usage from the database and uploads it to Zuora.
+func (a *API) FetchAndUploadUsage(ctx context.Context, account *zuora.Account, orgID, externalID string, trialExpiry, today time.Time, cycleDay int) (string, error) {
 	aggs, err := a.getPostTrialChargeableUsage(ctx, orgID, trialExpiry, today)
 	if err != nil {
 		return "", err

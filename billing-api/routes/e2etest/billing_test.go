@@ -1,4 +1,6 @@
-package routes
+// Package e2etest does end to end testing by accessing the staging
+// environment (sandbox) of Zuora.
+package e2etest
 
 import (
 	"context"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-api/db/mock_db"
+	"github.com/weaveworks/service/billing-api/routes"
 	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/common/zuora/mockzuora"
 )
@@ -114,8 +117,8 @@ func TestPaymentAfterTrialSignupSameMonth(t *testing.T) {
 			{InstanceID: externalID, BucketStart: trialExpiry.Add(2 * 24 * time.Hour), AmountType: "node-seconds", AmountValue: 12000},
 			{InstanceID: externalID, BucketStart: trialExpiry.Add(3 * 24 * time.Hour), AmountType: "node-seconds", AmountValue: 1728000},
 		}, nil)
-	a := &API{Zuora: z, DB: database}
-	importID, err := a.fetchAndUploadUsage(ctx, account, orgID, externalID, trialExpiry, now, billCycleDay)
+	a := &routes.API{Zuora: z, DB: database}
+	importID, err := a.FetchAndUploadUsage(ctx, account, orgID, externalID, trialExpiry, now, billCycleDay)
 	if err != nil {
 		t.Errorf("Failed to fetch and/or upload usage: %v", err)
 	}
@@ -169,8 +172,8 @@ func TestTrialExpiresPaymentNextMonth(t *testing.T) {
 			{InstanceID: externalID, BucketStart: now.Add(-2 * 24 * time.Hour), AmountType: "node-seconds", AmountValue: 1728000},
 		}, nil)
 
-	a := &API{Zuora: z, DB: database}
-	importID, err := a.fetchAndUploadUsage(ctx, account, orgID, externalID, trialExpiry, now, billCycleDay)
+	a := &routes.API{Zuora: z, DB: database}
+	importID, err := a.FetchAndUploadUsage(ctx, account, orgID, externalID, trialExpiry, now, billCycleDay)
 	if err != nil {
 		t.Errorf("Failed to fetch and/or upload usage: %v", err)
 	}
@@ -192,7 +195,7 @@ func TestTrialExpiresPaymentNextMonth(t *testing.T) {
 	unitPrice := unitPrice(ctx, z, t)
 	expectedAmount := float64(usageA+usageB+usageC) * unitPrice
 	invoiceAmount := invoices[0].Amount
-	if !floatEqual(invoiceAmount, roundHalfUp(expectedAmount)) {
+	if !routes.FloatEqual(invoiceAmount, routes.RoundHalfUp(expectedAmount)) {
 		t.Errorf("Invoice amount different than expected %v != %v", invoiceAmount, expectedAmount)
 	}
 }
@@ -228,8 +231,8 @@ func TestTrialExpiresPaymentNextTwoMonth(t *testing.T) {
 			// usage for yesterday, in current billing period, therefore not part of the invoice
 			{InstanceID: externalID, BucketStart: now.Add(-1 * 24 * time.Hour), AmountType: "node-seconds", AmountValue: 1728000},
 		}, nil)
-	a := &API{Zuora: z, DB: database}
-	importID, err := a.fetchAndUploadUsage(ctx, account, orgID, externalID, trialExpiry, now, billCycleDay)
+	a := &routes.API{Zuora: z, DB: database}
+	importID, err := a.FetchAndUploadUsage(ctx, account, orgID, externalID, trialExpiry, now, billCycleDay)
 	if err != nil {
 		t.Errorf("Failed to fetch and/or upload usage: %v", err)
 	}
@@ -251,7 +254,7 @@ func TestTrialExpiresPaymentNextTwoMonth(t *testing.T) {
 	unitPrice := unitPrice(ctx, z, t)
 	expectedAmount := float64(usageA+usageB+usageC+usageD) * unitPrice
 	invoiceAmount := invoices[0].Amount
-	if !floatEqual(invoiceAmount, roundHalfUp(expectedAmount)) {
+	if !routes.FloatEqual(invoiceAmount, routes.RoundHalfUp(expectedAmount)) {
 		t.Errorf("Invoice amount different than expected %v != %v", invoiceAmount, expectedAmount)
 	}
 }
