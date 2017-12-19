@@ -88,3 +88,34 @@ func TestGetBillingPeriod(t *testing.T) {
 	require.Equal(t, date(2017, time.June, 4), start)
 	require.Equal(t, date(2017, time.July, 1), end)
 }
+
+func TestAverageUsagePerDay(t *testing.T) {
+	require.Equal(t, float64(0), averageUsagePerDay(map[string]int64{}))
+	require.Equal(t, float64(0), averageUsagePerDay(map[string]int64{
+		"2017-12-12": 60,
+	}))
+	// ignore last entry
+	require.Equal(t, float64(60), averageUsagePerDay(map[string]int64{
+		"2017-12-12": 60,
+		"2017-12-13": 60,
+		"2017-12-14": 60,
+		"2017-12-15": 45,
+	}))
+
+	// missing day
+	require.Equal(t, float64(45), averageUsagePerDay(map[string]int64{
+		"2017-12-11": 60,
+		"2017-12-12": 60,
+		"2017-12-14": 60,
+		"2017-12-15": 45,
+	}))
+
+	// more than 30 days
+	morethanmonth := map[string]int64{}
+	ti := time.Now()
+	for i := 0; i < 45; i++ {
+		morethanmonth[ti.Format("2006-01-02")] = 60
+		ti = ti.Add(24 * time.Hour)
+	}
+	require.Equal(t, float64(60), averageUsagePerDay(morethanmonth))
+}

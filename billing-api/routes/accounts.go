@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -20,6 +22,8 @@ import (
 	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/users"
 )
+
+const dayTimeLayout = "2006-01-02"
 
 type createAccountRequest struct {
 	WeaveID            string `json:"id"`
@@ -285,14 +289,15 @@ type interim struct {
 }
 
 type accountStatusResponse struct {
-	Trial              trial.Trial      `json:"trial"`
-	BillingPeriodStart string           `json:"billing_period_start"`
-	BillingPeriodEnd   string           `json:"billing_period_end"`
-	UsageToDate        string           `json:"usage_to_date"` // in dollar$
-	UsagePerDay        map[string]int64 `json:"usage_per_day"` // in node-seconds; key is day in `YYYY-MM-DD`
-	ActiveHosts        float64          `json:"active_hosts"`
-	Status             status           `json:"status"`
-	Interim            *interim         `json:"interim,omitempty"`
+	Trial                 trial.Trial      `json:"trial"`
+	BillingPeriodStart    string           `json:"billing_period_start"`
+	BillingPeriodEnd      string           `json:"billing_period_end"`
+	UsageToDate           string           `json:"usage_to_date"` // in dollar$
+	UsagePerDay           map[string]int64 `json:"usage_per_day"` // in node-seconds; key is day in `YYYY-MM-DD`
+	ActiveHosts           float64          `json:"active_hosts"`
+	Status                status           `json:"status"`
+	Interim               *interim         `json:"interim,omitempty"`
+	EstimatedMonthlyUsage string           `json:"estimated_monthly_usage"` // in dollar$
 }
 
 const (
@@ -443,18 +448,58 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 
 	trial := trial.Info(resp.Organization, now)
 
+	estimated := ""
+	if len(daily) > 1 {
+		if avg := averageUsagePerDay(daily); avg > 0 {
+			daysInMonth := timeutil.EndOfMonth(start).Day()
+			estimated = fmt.Sprintf("%.0f", math.Ceil(price*float64(daysInMonth)*avg))
+		}
+	}
+
 	// TODO some kind of payment status info
 	status := accountStatusResponse{
-		BillingPeriodStart: start.Format("2006-01-02"),
-		BillingPeriodEnd:   end.Format("2006-01-02"),
-		Trial:              trial,
-		UsageToDate:        fmt.Sprintf("%.2f", price*float64(sum)),
-		ActiveHosts:        activeHosts,
-		Status:             getBillingStatus(ctx, trial, zuoraAcct),
-		UsagePerDay:        daily,
-		Interim:            interimPeriod,
+		BillingPeriodStart:    start.Format(dayTimeLayout),
+		BillingPeriodEnd:      end.Format(dayTimeLayout),
+		Trial:                 trial,
+		UsageToDate:           fmt.Sprintf("%.2f", price*float64(sum)),
+		ActiveHosts:           activeHosts,
+		Status:                getBillingStatus(ctx, trial, zuoraAcct),
+		UsagePerDay:           daily,
+		Interim:               interimPeriod,
+		EstimatedMonthlyUsage: estimated,
 	}
 	render.JSON(w, http.StatusOK, status)
+}
+
+func averageUsagePerDay(daily map[string]int64) float64 {
+	if len(daily) <= 1 {
+		return 0
+	}
+
+	var days []string
+	for day := range daily {
+		days = append(days, day)
+	}
+	sort.Sort(sort.StringSlice(days))
+	days = days[0 : len(days)-1] // Skip current day which is incomplete
+
+	// Number of days between first and last day
+	first, err := time.Parse(dayTimeLayout, days[0])
+	if err != nil {
+		return 0
+	}
+	last, err := time.Parse(dayTimeLayout, days[len(days)-1])
+	if err != nil {
+		return 0
+	}
+	daycount := float64(last.Sub(first).Hours())/24 + 1
+
+	var total int64
+	for _, d := range days {
+		total += daily[d]
+	}
+
+	return float64(total) / daycount
 }
 
 func sumAndFilterAggregates(aggs []db.Aggregate) (int64, []db.Aggregate, map[string]int64) {
@@ -466,7 +511,7 @@ func sumAndFilterAggregates(aggs []db.Aggregate) (int64, []db.Aggregate, map[str
 			sum += agg.AmountValue
 			nodeAggregates = append(nodeAggregates, agg)
 
-			day := agg.BucketStart.Format("2006-01-02")
+			day := agg.BucketStart.Format(dayTimeLayout)
 			daily[day] += agg.AmountValue
 		}
 	}
