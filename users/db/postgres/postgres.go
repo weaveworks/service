@@ -7,8 +7,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ExpansiveWorlds/instrumentedsql"
+	"github.com/ExpansiveWorlds/instrumentedsql/opentracing"
 	"github.com/Masterminds/squirrel"
-	_ "github.com/lib/pq" // Import the postgres sql driver
+	"github.com/lib/pq" // Import the postgres sql driver
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // Import the postgres migrations driver
@@ -30,6 +32,10 @@ type dbProxy interface {
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 	Prepare(query string) (*sql.Stmt, error)
+}
+
+func init() {
+	sql.Register("postgres-i", instrumentedsql.WrapDriver(&pq.Driver{}, instrumentedsql.WithTracer(opentracing.NewTracer())))
 }
 
 // New creates a new postgres DB.
@@ -56,7 +62,7 @@ func New(databaseURI, migrationsDir string, passwordHashingCost int) (DB, error)
 	u.RawQuery = query.Encode()
 	databaseURI = u.String()
 
-	db, err := sql.Open("postgres", databaseURI)
+	db, err := sql.Open("postgres-i", databaseURI)
 	if err != nil {
 		return DB{}, err
 	}
