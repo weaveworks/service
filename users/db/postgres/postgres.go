@@ -97,12 +97,15 @@ func (d DB) Now() time.Time {
 // Transaction runs the given function in a postgres transaction. If fn returns
 // an error the txn will be rolled back.
 func (d DB) Transaction(f func(DB) error) error {
-	if _, ok := d.dbProxy.(*sql.Tx); ok {
+	type beginner interface {
+		Begin() (*sql.Tx, error)
+	}
+	if _, ok := d.dbProxy.(beginner); !ok {
 		// Already in a nested transaction
 		return f(d)
 	}
 
-	tx, err := d.dbProxy.(*sql.DB).Begin()
+	tx, err := d.dbProxy.(beginner).Begin()
 	if err != nil {
 		return err
 	}
