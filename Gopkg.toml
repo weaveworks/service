@@ -1,15 +1,3 @@
-# By default, dep pulls both gopkg.in/mattes/migrate and github.com/mattes/migrate,
-# which breaks the build following dep ensure:
-# We therefore ignore github.com/mattes/migrate to avoid conflicts:
-ignored = ["github.com/mattes/migrate"]
-
-# By default, dep pulls both gopkg.in/mattes/migrate and github.com/mattes/migrate,
-# which breaks the build following dep ensure:
-# We therefore enforce v1.3.2 via gopkg.in to avoid conflicts:
-[[override]]
-  name = "gopkg.in/mattes/migrate.v1"
-  version = "v1.3.2"
-
 [[constraint]]
   branch = "expose-dstaddr"
   name = "github.com/armon/go-proxyproto"
