@@ -58,12 +58,6 @@
   revision = "6748215c018ea9d23fd269d499a3553c94d3ddf9"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/bradfitz/gomemcache"
-  packages = ["memcache"]
-  revision = "1952afaa557dc08e8e0d89eafab110fb501c1a2b"
-
-[[projects]]
   name = "github.com/certifi/gocertifi"
   packages = ["."]
   revision = "3fd9e1adb12b72d2f3f82191d49be9b93c69f67c"
@@ -138,7 +132,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/docker/distribution"
-  packages = [".","digestset","manifest","manifest/schema1","manifest/schema2","reference"]
+  packages = [".","digestset","manifest","manifest/manifestlist","manifest/schema1","manifest/schema2","reference","registry/api/errcode","registry/api/v2","registry/client","registry/client/auth","registry/client/auth/challenge","registry/client/transport","registry/storage/cache","registry/storage/cache/memory"]
   revision = "7484e51bf6af0d3b1a849644cdaced3cfcf13617"
 
 [[projects]]
@@ -277,19 +271,6 @@
   name = "github.com/grpc-ecosystem/grpc-opentracing"
   packages = ["go/otgrpc"]
   revision = "6c130eed1e297e1aa4d415a50c90d0c81c52677e"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/heroku/docker-registry-client"
-  packages = ["registry"]
-  revision = "2e2f1c58a06fae38b08307d1a834ae9c971a2467"
-  source = "github.com/weaveworks/docker-registry-client"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/jehiah/go-strftime"
-  packages = ["."]
-  revision = "2efbe75097a505e2789f7e39cb9da067b5be8e3e"
 
 [[projects]]
   branch = "master"
@@ -546,8 +527,8 @@
 [[projects]]
   branch = "master"
   name = "github.com/weaveworks/flux"
-  packages = [".","api","cluster","errors","event","guid","http","http/client","http/daemon","http/httperror","http/websocket","image","job","metrics","policy","registry","registry/cache","registry/middleware","remote","remote/rpc","resource","ssh","update"]
-  revision = "37084af49020dc08133fc1057f2b835191ed5a41"
+  packages = [".","api","cluster","errors","event","guid","http","http/client","http/daemon","http/httperror","http/websocket","image","job","metrics","policy","registry","registry/middleware","remote","remote/rpc","resource","ssh","update"]
+  revision = "5245a0cf9e9d2c8f760726fd0a4ceb3c9d6f186f"
 
 [[projects]]
   name = "github.com/weaveworks/promrus"
@@ -564,7 +545,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = ["context","context/ctxhttp","http2","http2/hpack","idna","internal/timeseries","lex/httplex","publicsuffix","trace","websocket"]
+  packages = ["context","context/ctxhttp","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace","websocket"]
   revision = "8351a756f30f1297fe94bbf4b767ec589c6ea6d0"
 
 [[projects]]
@@ -648,6 +629,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "07b7e0bde70ea1e2a078fba55aa5bcf627683fadd6a4ae1e5459bbe695de48e2"
+  inputs-digest = "7cc01f5259f6f311a5145fe5918266c78fa1066ffc5a77e4b0fa36f80ede1c11"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -127,6 +127,9 @@ func (c *Client) TopicInProject(id, projectID string) *Topic {
 }
 
 func newTopic(s service, name string) *Topic {
+	// bundlec is unbuffered. A buffer would occupy memory not
+	// accounted for by the bundler, so BufferedByteLimit would be a lie:
+	// the actual memory consumed would be higher.
 	return &Topic{
 		s:               s,
 		name:            name,
