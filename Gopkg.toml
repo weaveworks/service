@@ -42,11 +42,8 @@ ignored = ["github.com/mattes/migrate"]
   source = "github.com/weaveworks/goketo"
   branch = "sirupsen-case"
 
+# Pin to master flux instead of a specific release so that we can develop
+# flux-api for against it.
 [[constraint]]
   name = "github.com/weaveworks/flux"
-  branch = "master"
-
-[[override]]
-  name = "github.com/heroku/docker-registry-client"
-  source = "github.com/weaveworks/docker-registry-client"
   branch = "master"
