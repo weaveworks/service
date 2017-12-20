@@ -287,12 +287,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/jehiah/go-strftime"
-  packages = ["."]
-  revision = "2efbe75097a505e2789f7e39cb9da067b5be8e3e"
-
-[[projects]]
-  branch = "master"
   name = "github.com/jinzhu/now"
   packages = ["."]
   revision = "d939ba741945c047cac69c329c5fb0d6b4a06520"
@@ -648,6 +642,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "07b7e0bde70ea1e2a078fba55aa5bcf627683fadd6a4ae1e5459bbe695de48e2"
+  inputs-digest = "b87195237ab373855148b5daa7edcebef671cac6194c3139419d5777d018abe2"
   solver-name = "gps-cdcl"
   solver-version = 1
