@@ -395,6 +395,7 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, err)
 		return
 	}
+	org := resp.Organization
 	now := time.Now().UTC()
 
 	var billCycleDay int
@@ -412,12 +413,12 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, err)
 		return
 	}
-	start, end := computeBillingPeriod(billCycleDay, resp.Organization.CreatedAt, resp.Organization.TrialExpiresAt, now)
+	start, end := computeBillingPeriod(billCycleDay, org.CreatedAt, org.TrialExpiresAt, now)
 	// assumption: if a zuora account is present, the customer has been charged and therefore
 	// interim usage is zero
 	var interimPeriod *interim
-	if zuoraAcct == nil && !resp.Organization.InTrialPeriod(start) {
-		interimAggs, err := a.DB.GetAggregates(ctx, resp.Organization.ID, resp.Organization.TrialExpiresAt, start)
+	if zuoraAcct == nil && !org.InTrialPeriod(start) {
+		interimAggs, err := a.DB.GetAggregates(ctx, org.ID, org.TrialExpiresAt, start)
 		if err != nil {
 			renderError(w, r, err)
 			return
@@ -425,12 +426,12 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		interimSum, _, _ := sumAndFilterAggregates(interimAggs)
 		interimPeriod = &interim{
 			Usage: fmt.Sprintf("%.2f", price*float64(interimSum)),
-			Start: resp.Organization.TrialExpiresAt,
+			Start: org.TrialExpiresAt,
 			End:   start,
 		}
 	}
 
-	aggs, err := a.DB.GetAggregates(ctx, resp.Organization.ID, start, end)
+	aggs, err := a.DB.GetAggregates(ctx, org.ID, start, end)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -446,7 +447,7 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		activeHosts = float64(bucket.AmountValue) / time.Hour.Seconds()
 	}
 
-	trial := trial.Info(resp.Organization, now)
+	trial := trial.Info(org, now)
 
 	estimated := ""
 	if len(daily) > 1 {
