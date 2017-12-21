@@ -449,13 +449,12 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 	trial := trial.Info(org, now)
 
 	estFrom, estTo, estDays := computeEstimationPeriod(now, org.TrialExpiresAt)
-	estTaggs, err := a.DB.GetAggregates(ctx, org.ID, estFrom, estTo)
+	estAggs, err := a.DB.GetAggregates(ctx, org.ID, estFrom, estTo)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
-	daysInMonth := timeutil.EndOfMonth(start).Day()
-	estimated := estimatedMonthlyUsage(estTaggs, estDays, daysInMonth, price)
+	estimated := estimatedMonthlyUsage(daily, start, estAggs, estDays, price, now)
 
 	// TODO some kind of payment status info
 	status := accountStatusResponse{
@@ -489,19 +488,29 @@ func computeEstimationPeriod(now time.Time, trialExpiresAt time.Time) (time.Time
 	return from, to, days
 }
 
-func estimatedMonthlyUsage(aggs []db.Aggregate, daysInAggs, daysInMonth int, price float64) float64 {
-	if len(aggs) == 0 {
-		return 0
-	}
+func estimatedMonthlyUsage(daily map[string]int64, start time.Time, estAggs []db.Aggregate, estDays int, price float64, reference time.Time) float64 {
+	today := reference.Truncate(24 * time.Hour)
 
-	var total int64
-	for _, a := range aggs {
-		if a.AmountType != timeutil.NodeSeconds {
-			continue
+	// Current billing period usage. This excludes usage of today.
+	var sum int64
+	todayfmt := today.Format(dayTimeLayout)
+	for day, value := range daily {
+		if day != todayfmt {
+			sum += value
 		}
-		total += a.AmountValue
 	}
-	return price * float64(total) / float64(daysInAggs) * float64(daysInMonth)
+	dayCount := float64(today.Sub(start).Hours()) / 24
+	daysInMonth := timeutil.EndOfMonth(start).Day()
+
+	// Estimation over given past period
+	var estSum int64
+	for _, a := range estAggs {
+		if a.AmountType == timeutil.NodeSeconds {
+			estSum += a.AmountValue
+		}
+	}
+	usage := float64(sum) + (float64(daysInMonth)-dayCount)*float64(estSum)/float64(estDays)
+	return price * usage
 }
 
 func sumAndFilterAggregates(aggs []db.Aggregate) (int64, []db.Aggregate, map[string]int64) {

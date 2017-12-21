@@ -93,7 +93,7 @@ func TestGetBillingPeriod(t *testing.T) {
 }
 
 func TestComputeEstimationPeriod(t *testing.T) {
-	now := time.Date(2017, 12, 21, 0, 0, 0, 0, time.UTC)
+	now := date(2017, time.December, 21)
 	ago := now.Add(-7 * 24 * time.Hour)
 
 	var from, to time.Time
@@ -113,7 +113,7 @@ func TestComputeEstimationPeriod(t *testing.T) {
 	}
 	{ // with trial expiration within those 7d
 		expires := time.Date(2017, 12, 18, 15, 0, 0, 0, time.UTC)
-		expectedFrom := time.Date(2017, 12, 19, 0, 0, 0, 0, time.UTC)
+		expectedFrom := date(2017, time.December, 19)
 		from, to, days = computeEstimationPeriod(now, expires)
 		assert.Equal(t, expectedFrom, from) // end of expires day
 		assert.Equal(t, now, to)
@@ -128,8 +128,15 @@ func TestComputeEstimationPeriod(t *testing.T) {
 }
 
 func TestEstimatedMonthlyUsage(t *testing.T) {
-	ti := time.Date(2017, 12, 21, 0, 0, 0, 0, time.UTC)
+	ti := date(2017, time.December, 21)
+	start := date(2017, time.December, 1)
+	now := time.Date(2017, 12, 21, 12, 0, 0, 0, time.UTC)
 	var usage float64
+	daily := map[string]int64{
+		"2017-12-01": 400,
+		"2017-12-20": 600,
+		"2017-12-21": 2000, // should be ignored
+	}
 	aggs := []db.Aggregate{
 		{
 			AmountType:  "node-seconds",
@@ -145,31 +152,31 @@ func TestEstimatedMonthlyUsage(t *testing.T) {
 	{ // same day
 		aggs[0].BucketStart = ti
 		aggs[1].BucketStart = ti.Add(time.Hour)
-		usage = estimatedMonthlyUsage(aggs, 1, 30, 1)
-		assert.Equal(t, float64(900), usage)
+		usage = estimatedMonthlyUsage(daily, start, aggs, 1, 1, now)
+		assert.Equal(t, float64(1330), usage)
 
 		// two days, second day had no usage
-		usage = estimatedMonthlyUsage(aggs, 2, 30, 1)
-		assert.Equal(t, float64(450), usage)
+		usage = estimatedMonthlyUsage(daily, start, aggs, 2, 1, now)
+		assert.Equal(t, float64(1165), usage)
 	}
 	{ // consecutive day
 		aggs[0].BucketStart = ti
 		aggs[1].BucketStart = ti.Add(24 * time.Hour)
-		usage = estimatedMonthlyUsage(aggs, 2, 30, 1)
-		assert.Equal(t, float64(450), usage)
+		usage = estimatedMonthlyUsage(daily, start, aggs, 2, 1, now)
+		assert.Equal(t, float64(1165), usage)
 
 		// third day empty
-		usage = estimatedMonthlyUsage(aggs, 3, 30, 1)
-		assert.Equal(t, float64(300), usage)
+		usage = estimatedMonthlyUsage(daily, start, aggs, 3, 1, now)
+		assert.Equal(t, float64(1110), usage)
 	}
 	{ // skip day
 		aggs[0].BucketStart = ti
 		aggs[1].BucketStart = ti.Add(2 * 24 * time.Hour)
-		usage = estimatedMonthlyUsage(aggs, 3, 30, 1)
-		assert.Equal(t, float64(300), usage)
+		usage = estimatedMonthlyUsage(daily, start, aggs, 3, 1, now)
+		assert.Equal(t, float64(1110), usage)
 
 		// fourth day empty
-		usage = estimatedMonthlyUsage(aggs, 4, 30, 1)
-		assert.Equal(t, float64(225), usage)
+		usage = estimatedMonthlyUsage(daily, start, aggs, 4, 1, now)
+		assert.Equal(t, float64(1082.5), usage)
 	}
 }
