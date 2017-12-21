@@ -149,41 +149,20 @@ func (a *API) getServiceStatus(ctx context.Context, sparse bool) serviceStatus {
 	// Get flux status.
 	go func() {
 		defer wg.Done()
-
-		resp, err := doRequest(ctx, "flux", a.fluxStatusAPI)
+		err := doRequest(ctx, "flux", a.fluxStatusAPI, &flux)
 		if err != nil {
 			flux.Error = err.Error()
-			return
-		}
-		defer resp.Body.Close()
-
-		err = json.NewDecoder(resp.Body).Decode(&flux)
-		if err != nil {
-			flux.Error = "Could not decode flux data"
-			logging.With(ctx).Errorf("Could not decode flux data: %s", err)
-			return
 		}
 	}()
 
 	// Get scope status.
 	go func() {
 		defer wg.Done()
+		var err error
 
-		api := a.scopeProbesAPI
-		if sparse {
-			api = api + "?sparse"
-		}
-		resp, err := doRequest(ctx, "scope", api)
-		if err != nil {
-			scope.Error = err.Error()
-			return
-		}
-		defer resp.Body.Close()
-
-		var probes []interface{}
 		if sparse {
 			var hasProbes bool
-			err = json.NewDecoder(resp.Body).Decode(&hasProbes)
+			err = doRequest(ctx, "scope", a.scopeProbesAPI+"?sparse", &hasProbes)
 			if hasProbes {
 				// We fake this. The "correct" approach would be to
 				// have a getOrgServiceStatusViewSparse structure,
@@ -194,13 +173,12 @@ func (a *API) getServiceStatus(ctx context.Context, sparse bool) serviceStatus {
 				scope.NumberOfProbes = 1
 			}
 		} else {
-			err = json.NewDecoder(resp.Body).Decode(&probes)
+			var probes []interface{}
+			err = doRequest(ctx, "scope", a.scopeProbesAPI, &probes)
 			scope.NumberOfProbes = len(probes)
 		}
 		if err != nil {
-			scope.Error = "Could not decode scope data"
-			logging.With(ctx).Errorf("Could not decode scope data: %s", err)
-			return
+			scope.Error = err.Error()
 		}
 	}()
 
@@ -208,20 +186,12 @@ func (a *API) getServiceStatus(ctx context.Context, sparse bool) serviceStatus {
 	go func() {
 		defer wg.Done()
 
-		resp, err := doRequest(ctx, "prom", a.promMetricsAPI)
-		if err != nil {
-			prom.Error = err.Error()
-			return
-		}
-		defer resp.Body.Close()
-
 		var metrics struct {
 			Data []interface{} `json:"data"`
 		}
-		err = json.NewDecoder(resp.Body).Decode(&metrics)
+		err := doRequest(ctx, "prom", a.promMetricsAPI, &metrics)
 		if err != nil {
-			prom.Error = "Could not decode prom data"
-			logging.With(ctx).Errorf("Could not decode prom data: %s", err)
+			prom.Error = err.Error()
 			return
 		}
 		prom.NumberOfMetrics = len(metrics.Data)
@@ -231,18 +201,10 @@ func (a *API) getServiceStatus(ctx context.Context, sparse bool) serviceStatus {
 	go func() {
 		defer wg.Done()
 
-		resp, err := doRequest(ctx, "net", a.netPeersAPI)
+		var peers []interface{}
+		err := doRequest(ctx, "net", a.netPeersAPI, &peers)
 		if err != nil {
 			net.Error = err.Error()
-			return
-		}
-		defer resp.Body.Close()
-
-		var peers []interface{}
-		err = json.NewDecoder(resp.Body).Decode(&peers)
-		if err != nil {
-			net.Error = "Could not decode net data"
-			logging.With(ctx).Errorf("Could not decode net data: %s", err)
 			return
 		}
 		net.NumberOfPeers = len(peers)
@@ -289,7 +251,7 @@ var netClient = &http.Client{
 	Transport: &nethttp.Transport{},
 }
 
-func doRequest(ctx context.Context, serviceName string, url string) (*http.Response, error) {
+func doRequest(ctx context.Context, serviceName string, url string, into interface{}) error {
 	var resp *http.Response
 	err := timeRequest(ctx, serviceName, func(ctx context.Context) error {
 		req, err := http.NewRequest("GET", url, nil)
@@ -315,5 +277,15 @@ func doRequest(ctx context.Context, serviceName string, url string) (*http.Respo
 		}
 		return nil
 	})
-	return resp, err
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	err = json.NewDecoder(resp.Body).Decode(into)
+
+	if err != nil {
+		logging.With(ctx).Errorf("Could not decode %s data: %s", serviceName, err)
+		return fmt.Errorf("Could not decode %s data", serviceName)
+	}
+	return nil
 }
