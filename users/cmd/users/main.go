@@ -54,6 +54,7 @@ func main() {
 		fluxStatusAPI  = flag.String("flux-status-api", "", "Hostname and port for flux V6 service. e.g. http://fluxsvc.flux.svc.cluster.local:80/api/flux/v6/status")
 		scopeProbesAPI = flag.String("scope-probes-api", "", "Hostname and port for scope query. e.g. http://query.scope.svc.cluster.local:80/api/probes")
 		promMetricsAPI = flag.String("prom-metrics-api", "", "Hostname and port for cortex querier. e.g. http://querier.cortex.svc.cluster.local:80/api/prom/api/v1/label/__name__/values")
+		cortexStatsAPI = flag.String("cortex-stats-api", "", "Hostname and port for cortex stats. e.g. http://querier.cortex.svc.cluster.local:80/api/prom/api/user_stats")
 		netPeersAPI    = flag.String("net-peers-api", "", "Hostname and port for peer discovery. e.g. http://discovery.service-net.svc.cluster.local:80/api/net/peers")
 
 		marketoClientID    = flag.String("marketo-client-id", "", "Client ID of Marketo account.  If not supplied marketo integration will be disabled.")
@@ -166,6 +167,7 @@ func main() {
 		*fluxStatusAPI,
 		*scopeProbesAPI,
 		*promMetricsAPI,
+		*cortexStatsAPI,
 		*netPeersAPI,
 		billingEnabler,
 	)

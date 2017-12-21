@@ -37,6 +37,7 @@ type API struct {
 	fluxStatusAPI      string
 	scopeProbesAPI     string
 	promMetricsAPI     string
+	cortexStatsAPI     string
 	netPeersAPI        string
 	billingEnabler     featureflag.Enabler
 	http.Handler
@@ -62,6 +63,7 @@ func New(
 	fluxStatusAPI string,
 	scopeProbesAPI string,
 	promMetricsAPI string,
+	cortexStatsAPI string,
 	netPeersAPI string,
 	billingEnabler featureflag.Enabler,
 ) *API {
@@ -84,6 +86,7 @@ func New(
 		fluxStatusAPI:      fluxStatusAPI,
 		scopeProbesAPI:     scopeProbesAPI,
 		promMetricsAPI:     promMetricsAPI,
+		cortexStatsAPI:     cortexStatsAPI,
 		netPeersAPI:        netPeersAPI,
 		billingEnabler:     billingEnabler,
 	}

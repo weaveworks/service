@@ -66,8 +66,10 @@ type scopeStatus struct {
 }
 
 type promStatus struct {
-	NumberOfMetrics int    `json:"numberOfMetrics"`
-	Error           string `json:"error,omitempty"`
+	IngestionRate   float64 `json:"ingestionRate"`
+	NumSeries       uint64  `json:"numSeries"`
+	NumberOfMetrics int     `json:"numberOfMetrics"`
+	Error           string  `json:"error,omitempty"`
 }
 
 type netStatus struct {
@@ -186,15 +188,27 @@ func (a *API) getServiceStatus(ctx context.Context, sparse bool) serviceStatus {
 	go func() {
 		defer wg.Done()
 
-		var metrics struct {
-			Data []interface{} `json:"data"`
+		if a.cortexStatsAPI != "" {
+			err := doRequest(ctx, "prom", a.cortexStatsAPI, &prom)
+			if err != nil {
+				prom.Error = err.Error()
+				return
+			}
+			// Fake this for backwards-compatibility - the old one is
+			// the count of unique metric names, whereas the new one
+			// counts all the differently-labeled timeseries.
+			prom.NumberOfMetrics = int(prom.NumSeries)
+		} else {
+			var metrics struct {
+				Data []interface{} `json:"data"`
+			}
+			err := doRequest(ctx, "prom", a.promMetricsAPI, &metrics)
+			if err != nil {
+				prom.Error = err.Error()
+				return
+			}
+			prom.NumberOfMetrics = len(metrics.Data)
 		}
-		err := doRequest(ctx, "prom", a.promMetricsAPI, &metrics)
-		if err != nil {
-			prom.Error = err.Error()
-			return
-		}
-		prom.NumberOfMetrics = len(metrics.Data)
 	}()
 
 	// Get net status.
