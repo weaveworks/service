@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-	"sort"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -449,58 +448,60 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 
 	trial := trial.Info(org, now)
 
-	estimated := ""
-	if len(daily) > 1 {
-		if avg := averageUsagePerDay(daily); avg > 0 {
-			daysInMonth := timeutil.EndOfMonth(start).Day()
-			estimated = fmt.Sprintf("%.0f", math.Ceil(price*float64(daysInMonth)*avg))
-		}
+	estFrom, estTo, estDays := computeEstimationPeriod(now, org.TrialExpiresAt)
+	estTaggs, err := a.DB.GetAggregates(ctx, org.ID, estFrom, estTo)
+	if err != nil {
+		renderError(w, r, err)
+		return
 	}
+	daysInMonth := timeutil.EndOfMonth(start).Day()
+	estimated := estimatedMonthlyUsage(estTaggs, estDays, daysInMonth, price)
 
 	// TODO some kind of payment status info
 	status := accountStatusResponse{
-		BillingPeriodStart:    start.Format(dayTimeLayout),
-		BillingPeriodEnd:      end.Format(dayTimeLayout),
-		Trial:                 trial,
-		UsageToDate:           fmt.Sprintf("%.2f", price*float64(sum)),
-		ActiveHosts:           activeHosts,
-		Status:                getBillingStatus(ctx, trial, zuoraAcct),
-		UsagePerDay:           daily,
-		Interim:               interimPeriod,
-		EstimatedMonthlyUsage: estimated,
+		BillingPeriodStart: start.Format(dayTimeLayout),
+		BillingPeriodEnd:   end.Format(dayTimeLayout),
+		Trial:              trial,
+		UsageToDate:        fmt.Sprintf("%.2f", price*float64(sum)),
+		ActiveHosts:        activeHosts,
+		Status:             getBillingStatus(ctx, trial, zuoraAcct),
+		UsagePerDay:        daily,
+		Interim:            interimPeriod,
 	}
+	if estimated > 0 {
+		status.EstimatedMonthlyUsage = fmt.Sprintf("%0.f", math.Ceil(estimated))
+	}
+
 	render.JSON(w, http.StatusOK, status)
 }
 
-func averageUsagePerDay(daily map[string]int64) float64 {
-	if len(daily) <= 1 {
-		return 0
+func computeEstimationPeriod(now time.Time, trialExpiresAt time.Time) (time.Time, time.Time, int) {
+	to := now.Truncate(24 * time.Hour)
+
+	from := to.Add(-7 * 24 * time.Hour)
+	if trialExpiresAt.Before(now) {
+		// Do not cross into trial
+		from = timeutil.MaxTime(from,
+			trialExpiresAt.Add(24*time.Hour).Truncate(24*time.Hour))
 	}
 
-	var days []string
-	for day := range daily {
-		days = append(days, day)
-	}
-	sort.Sort(sort.StringSlice(days))
-	days = days[0 : len(days)-1] // Skip current day which is incomplete
+	days := int(to.Sub(from).Hours()) / 24
+	return from, to, days
+}
 
-	// Number of days between first and last day
-	first, err := time.Parse(dayTimeLayout, days[0])
-	if err != nil {
+func estimatedMonthlyUsage(aggs []db.Aggregate, daysInAggs, daysInMonth int, price float64) float64 {
+	if len(aggs) == 0 {
 		return 0
 	}
-	last, err := time.Parse(dayTimeLayout, days[len(days)-1])
-	if err != nil {
-		return 0
-	}
-	daycount := float64(last.Sub(first).Hours())/24 + 1
 
 	var total int64
-	for _, d := range days {
-		total += daily[d]
+	for _, a := range aggs {
+		if a.AmountType != timeutil.NodeSeconds {
+			continue
+		}
+		total += a.AmountValue
 	}
-
-	return float64(total) / daycount
+	return price * float64(total) / float64(daysInAggs) * float64(daysInMonth)
 }
 
 func sumAndFilterAggregates(aggs []db.Aggregate) (int64, []db.Aggregate, map[string]int64) {

@@ -4,7 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/weaveworks/service/billing-api/db"
 )
 
 func date(year int, month time.Month, day int) time.Time {
@@ -89,33 +92,84 @@ func TestGetBillingPeriod(t *testing.T) {
 	require.Equal(t, date(2017, time.July, 1), end)
 }
 
-func TestAverageUsagePerDay(t *testing.T) {
-	require.Equal(t, float64(0), averageUsagePerDay(map[string]int64{}))
-	require.Equal(t, float64(0), averageUsagePerDay(map[string]int64{
-		"2017-12-12": 60,
-	}))
-	// ignore last entry
-	require.Equal(t, float64(60), averageUsagePerDay(map[string]int64{
-		"2017-12-12": 60,
-		"2017-12-13": 60,
-		"2017-12-14": 60,
-		"2017-12-15": 45,
-	}))
+func TestComputeEstimationPeriod(t *testing.T) {
+	now := time.Date(2017, 12, 21, 0, 0, 0, 0, time.UTC)
+	ago := now.Add(-7 * 24 * time.Hour)
 
-	// missing day
-	require.Equal(t, float64(45), averageUsagePerDay(map[string]int64{
-		"2017-12-11": 60,
-		"2017-12-12": 60,
-		"2017-12-14": 60,
-		"2017-12-15": 45,
-	}))
+	var from, to time.Time
+	var days int
 
-	// more than 30 days
-	morethanmonth := map[string]int64{}
-	ti := time.Now()
-	for i := 0; i < 45; i++ {
-		morethanmonth[ti.Format("2006-01-02")] = 60
-		ti = ti.Add(24 * time.Hour)
+	{ // trial
+		from, to, days = computeEstimationPeriod(now, now.Add(time.Hour))
+		assert.Equal(t, ago, from)
+		assert.Equal(t, now, to)
+		assert.Equal(t, 7, days)
 	}
-	require.Equal(t, float64(60), averageUsagePerDay(morethanmonth))
+	{ // first day after trial
+		from, to, days = computeEstimationPeriod(now, now.Add(-time.Hour))
+		assert.Equal(t, now, from)
+		assert.Equal(t, now, to)
+		assert.Equal(t, 0, days)
+	}
+	{ // with trial expiration within those 7d
+		expires := time.Date(2017, 12, 18, 15, 0, 0, 0, time.UTC)
+		expectedFrom := time.Date(2017, 12, 19, 0, 0, 0, 0, time.UTC)
+		from, to, days = computeEstimationPeriod(now, expires)
+		assert.Equal(t, expectedFrom, from) // end of expires day
+		assert.Equal(t, now, to)
+		assert.Equal(t, 2, days)
+	}
+	{ // defaults to 7d
+		from, to, days = computeEstimationPeriod(now, time.Time{})
+		assert.Equal(t, ago, from)
+		assert.Equal(t, now, to)
+		assert.Equal(t, 7, days)
+	}
+}
+
+func TestEstimatedMonthlyUsage(t *testing.T) {
+	ti := time.Date(2017, 12, 21, 0, 0, 0, 0, time.UTC)
+	var usage float64
+	aggs := []db.Aggregate{
+		{
+			AmountType:  "node-seconds",
+			AmountValue: 10,
+			BucketStart: ti,
+		},
+		{
+			AmountType:  "node-seconds",
+			AmountValue: 20,
+			BucketStart: ti.Add(time.Hour),
+		},
+	}
+	{ // same day
+		aggs[0].BucketStart = ti
+		aggs[1].BucketStart = ti.Add(time.Hour)
+		usage = estimatedMonthlyUsage(aggs, 1, 30, 1)
+		assert.Equal(t, float64(900), usage)
+
+		// two days, second day had no usage
+		usage = estimatedMonthlyUsage(aggs, 2, 30, 1)
+		assert.Equal(t, float64(450), usage)
+	}
+	{ // consecutive day
+		aggs[0].BucketStart = ti
+		aggs[1].BucketStart = ti.Add(24 * time.Hour)
+		usage = estimatedMonthlyUsage(aggs, 2, 30, 1)
+		assert.Equal(t, float64(450), usage)
+
+		// third day empty
+		usage = estimatedMonthlyUsage(aggs, 3, 30, 1)
+		assert.Equal(t, float64(300), usage)
+	}
+	{ // skip day
+		aggs[0].BucketStart = ti
+		aggs[1].BucketStart = ti.Add(2 * 24 * time.Hour)
+		usage = estimatedMonthlyUsage(aggs, 3, 30, 1)
+		assert.Equal(t, float64(300), usage)
+
+		// fourth day empty
+		usage = estimatedMonthlyUsage(aggs, 4, 30, 1)
+		assert.Equal(t, float64(225), usage)
+	}
 }
