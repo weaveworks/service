@@ -102,12 +102,14 @@ func getOrgServiceStatus(t *testing.T, sparse bool, user *users.User, org *users
 	return body
 }
 
-func assertCount(t *testing.T, sparse bool, count int, v interface{}, key string) {
+func assertCount(t *testing.T, keys int, sparse bool, count int, v interface{}, key string) {
 	m, ok := v.(map[string]interface{})
 	if !ok {
 		assert.FailNow(t, "incorrect structure", "expected map, got %v", v)
 	}
-	assert.Equal(t, 1, len(m), "expected map with one key, got %v", m)
+	if keys > 0 {
+		assert.Equal(t, keys, len(m), "expected map with %d key(s), got %v", keys, m)
+	}
 	f, ok := m[key].(float64)
 	if !ok {
 		assert.FailNow(t, "incorrect structure", "expected float, got %v", m[key])
@@ -137,9 +139,9 @@ func assertGetOrgServiceStatus(t *testing.T, sparse bool, user *users.User, org 
 			"config":     nil,
 		},
 	}, body["flux"])
-	assertCount(t, sparse, cfg.Scope.NumberOfProbes, body["scope"], "numberOfProbes")
-	assertCount(t, sparse, cfg.Prom.NumberOfMetrics, body["prom"], "numberOfMetrics")
-	assertCount(t, sparse, cfg.Net.NumberOfPeers, body["net"], "numberOfPeers")
+	assertCount(t, 1, sparse, cfg.Scope.NumberOfProbes, body["scope"], "numberOfProbes")
+	assertCount(t, -1, sparse, cfg.Prom.NumberOfMetrics, body["prom"], "numberOfMetrics")
+	assertCount(t, 1, sparse, cfg.Net.NumberOfPeers, body["net"], "numberOfPeers")
 }
 
 func testGetOrgServiceStatus(t *testing.T, sparse bool) {
