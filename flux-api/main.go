@@ -177,7 +177,7 @@ func main() {
 		mux.Handle("/", handler)
 		mux.Handle("/api/flux/", http.StripPrefix("/api/flux", handler))
 		operationNameFunc := nethttp.OperationNameFunc(func(r *http.Request) string {
-			return r.URL.RequestURI()
+			return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 		})
 		errc <- http.ListenAndServe(*listenAddr, nethttp.Middleware(opentracing.GlobalTracer(), mux, operationNameFunc))
 	}()

@@ -68,7 +68,7 @@ var proxyTransport http.RoundTripper = &nethttp.Transport{
 func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !middleware.IsWSHandshakeRequest(r) {
 		var ht *nethttp.Tracer
-		cmo := nethttp.OperationName(r.URL.RequestURI())
+		cmo := nethttp.OperationName(fmt.Sprintf("%s %s", r.Method, r.URL.Path))
 		r, ht = nethttp.TraceRequest(opentracing.GlobalTracer(), r, cmo)
 		defer ht.Finish()
 	}

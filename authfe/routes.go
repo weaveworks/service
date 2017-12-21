@@ -473,7 +473,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/admin/prod-grafana",
 	)
 	operationNameFunc := nethttp.OperationNameFunc(func(r *http.Request) string {
-		return r.URL.RequestURI()
+		return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 	})
 	return middleware.Merge(
 		AuthHeaderStrippingMiddleware{},
