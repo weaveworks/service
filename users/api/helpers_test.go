@@ -39,7 +39,7 @@ func setup(t *testing.T) {
 	setupWithMockServices(t, "", "", "", "")
 }
 
-func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, promAPI, netAPI string) {
+func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI string) {
 	db.PasswordHashingCost = bcrypt.MinCost
 
 	var directLogin = false
@@ -80,7 +80,8 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, promAPI, netAPI stri
 		partnerAccess,
 		fluxAPI,
 		scopeAPI,
-		promAPI,
+		"",
+		cortexAPI,
 		netAPI,
 		billingEnabler,
 	)
