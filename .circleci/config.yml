@@ -1,0 +1,119 @@
+version: 2
+defaults: &defaults
+  machine:
+    docker_layer_caching: true
+  working_directory: ~/weaveworks/service
+  shell: /bin/bash --login
+jobs:
+  lint:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: make RM= lint
+
+  build:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: sudo docker info >/dev/null 2>&1 || sudo service docker start;
+      - run: echo -e "export GOPATH=$HOME\nexport SRCDIR=$HOME/src/github.com/weaveworks/service\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
+      - run: mkdir -p $(dirname $SRCDIR) && cp -r $(pwd)/ $SRCDIR
+      - run: |
+          cd $SRCDIR/build && \
+          ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile && \
+          touch .uptodate
+      - run: cd $SRCDIR; make RM=
+      - run: |
+          set -e
+          set -o pipefail
+          cd $SRCDIR; if [ $(./tools/image-tag | grep -e '-WIP$') ]; then
+            echo "WIP build; exiting with error to mark as a failure"
+            git --no-pager diff
+            exit 1
+          fi
+      - attach_workspace:
+          at: /tmp/workspace
+      - run: docker save $(make images) | gzip > /tmp/workspace/images.tgz
+
+  test:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: echo -e "export GOPATH=$HOME\nexport SRCDIR=$HOME/src/github.com/weaveworks/service\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
+      - run: mkdir -p $(dirname $SRCDIR) && cp -r $(pwd)/ $SRCDIR
+      - run: go get github.com/mattn/goveralls
+      - run: COVERDIR=./coverage make RM= test
+      - run: ./tools/cover/gather_coverage.sh ./coverage $SRCDIR/coverage
+      - run: goveralls -repotoken $COVERALLS_REPO_TOKEN -coverprofile=$SRCDIR/profile.cov -service=circleci || true
+      - run: mkdir /tmp/coverage && cp coverage.* /tmp/coverage
+      - store_artifacts:
+          path: /tmp/coverage
+
+  integration-test:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: echo -e "export GOPATH=$HOME\nexport SRCDIR=$HOME/src/github.com/weaveworks/service\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
+      - run: mkdir -p $(dirname $SRCDIR) && cp -r $(pwd)/ $SRCDIR
+      - run: go get github.com/nats-io/gnatsd
+      - run:
+          command: gnatsd
+          background: true
+      - run: |
+          cd $SRCDIR && \
+          make RM= notebooks-integration-test && \
+          make RM= users-integration-test && \
+          make RM= billing-integration-test && \
+          make RM= pubsub-integration-test && \
+          make RM= flux-nats-tests
+
+  publish:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - run: gunzip -c /tmp/workspace/images.tgz | docker load
+      - run: docker login -e '.' -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD" quay.io
+      - run: |
+          set -o pipefail
+          export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/'$CIRCLE_BRANCH'?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=1' | jq -r '.[0].vcs_revision')
+          echo Last successful build was commit $LAST_BUILD_COMMIT
+          ./push-images --if-changed-since $LAST_BUILD_COMMIT
+
+  dry-run-publish:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - run: gunzip -c /tmp/workspace/images.tgz | docker load
+      - run: |
+          set -o pipefail
+          export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/master?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=1' | jq -r '.[0].vcs_revision')
+          echo Last successful build was commit $LAST_BUILD_COMMIT
+          ./push-images --dry-run --if-changed-since $LAST_BUILD_COMMIT
+
+workflows:
+  version: 2
+  build_test_and_publish:
+    jobs:
+      - lint
+      - test
+      - build:
+          requires:
+            - lint
+            - test
+      - integration-test:
+          requires:
+            - build
+      - publish:
+          requires:
+            - integration-test
+          filters:
+            branches:
+              only: master
+      - dry-run-publish:
+          requires:
+            - integration-test
+          filters:
+            branches:
+              ignore: master
