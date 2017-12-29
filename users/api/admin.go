@@ -121,6 +121,33 @@ func (a *API) listUsersForOrganization(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *API) removeUserFromOrganization(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	orgExternalID := vars["orgExternalID"]
+	userID := vars["userID"]
+
+	if members, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID); err != nil {
+		renderError(w, r, err)
+		return
+	} else if len(members) == 1 {
+		// An organization cannot be with zero members
+		renderError(w, r, users.ErrForbidden)
+		return
+	}
+
+	user, err := a.db.FindUserByID(r.Context(), userID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	if err := a.db.RemoveUserFromOrganization(r.Context(), orgExternalID, user.Email); err != nil {
+		renderError(w, r, err)
+		return
+	}
+	http.Redirect(w, r, "/admin/users/organizations/"+orgExternalID+"/users", http.StatusFound)
+}
+
 func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 	page := filter.ParsePageValue(r.FormValue("page"))
 	query := r.FormValue("query")

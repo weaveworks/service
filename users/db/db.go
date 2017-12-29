@@ -47,7 +47,7 @@ type DB interface {
 	// Invite a user to access an existing organization.
 	InviteUser(ctx context.Context, email, orgExternalID string) (*users.User, bool, error)
 
-	// Remove a user from an organization. If they do not exist (ctx context.Context, or are not a member of the org), return success.
+	// Remove a user from an organization. If they do not exist (or are not a member of the org), return success.
 	RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) error
 
 	ListUsers(ctx context.Context, f filter.User, page uint64) ([]*users.User, error)

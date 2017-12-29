@@ -92,6 +92,15 @@
                    type="submit" value="Become User" />
           </form>
         </td>
+        {{if $.OrgExternalID}}
+        <td>
+          <form action="organizations/{{$.OrgExternalID}}/users/{{.ID}}/remove" method="POST">
+            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+            <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+                   type="submit" value="Remove from Org" />
+          </form>
+        <td>
+        {{end}}
         <td>
           <a href="users/{{.ID}}/organizations">Organizations</a>
         </td>

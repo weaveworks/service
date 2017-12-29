@@ -70,6 +70,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"admin_users_organizations", "GET", "/admin/users/organizations", a.listOrganizations},
 		{"admin_users_gcp_externalAccoutnID_subscriptions", "GET", "/admin/users/gcp/{externalAccountID}/subscriptions", a.gcpListSubscriptions},
 		{"admin_users_organizations_orgExternalID_users", "GET", "/admin/users/organizations/{orgExternalID}/users", a.listUsersForOrganization},
+		{"admin_users_organizations_orgExternalID_users_userID", "POST", "/admin/users/organizations/{orgExternalID}/users/{userID}/remove", a.removeUserFromOrganization},
 		{"admin_users_organizations_orgExternalID", "POST", "/admin/users/organizations/{orgExternalID}", a.changeOrgFields},
 		{"admin_users_users", "GET", "/admin/users/users", a.listUsers},
 		{"admin_users_users_userID_admin", "POST", "/admin/users/users/{userID}/admin", a.makeUserAdmin},
