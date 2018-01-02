@@ -76,6 +76,7 @@ jobs:
           at: /tmp/workspace
       - run: gunzip -c /tmp/workspace/images.tgz | docker load
       - run: docker login -e '.' -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD" quay.io
+      - checkout
       - run: |
           set -o pipefail
           export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/'$CIRCLE_BRANCH'?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=1' | jq -r '.[0].vcs_revision')
@@ -88,6 +89,7 @@ jobs:
       - attach_workspace:
           at: /tmp/workspace
       - run: gunzip -c /tmp/workspace/images.tgz | docker load
+      - checkout
       - run: |
           set -o pipefail
           export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/master?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=1' | jq -r '.[0].vcs_revision')
