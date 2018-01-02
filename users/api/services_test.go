@@ -64,7 +64,7 @@ func MockServices(config *mockServicesConfig) *httptest.Server {
 			if config.Scope.Online {
 				resp = config.Scope.NumberOfProbes > 0
 			}
-		case "/api/prom/user_status":
+		case "/api/prom/user_stats":
 			if config.Prom.Online {
 				resp = map[string]interface{}{
 					"ingestionRate": config.Prom.NumberOfMetrics / 4,
@@ -151,7 +151,7 @@ func testGetOrgServiceStatus(t *testing.T, sparse bool) {
 	setupWithMockServices(t,
 		mockServices.URL+"/api/flux/v6/status",
 		mockServices.URL+"/api/probes",
-		mockServices.URL+"/api/prom/user_status",
+		mockServices.URL+"/api/prom/user_stats",
 		mockServices.URL+"/api/net/peer",
 	)
 	defer cleanup(t)
