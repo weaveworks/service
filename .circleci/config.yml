@@ -31,9 +31,11 @@ jobs:
             git --no-pager diff
             exit 1
           fi
-      - attach_workspace:
-          at: /tmp/workspace
-      - run: docker save $(make images) | gzip > /tmp/workspace/images.tgz
+      - run: docker save $(make images) | gzip > images.tgz
+      - persist_to_workspace:
+          root: .
+          paths:
+            - images.tgz
 
   test:
     <<: *defaults
