@@ -28,6 +28,7 @@ func (m *MixpanelClient) TrackLogin(email string, firstLogin bool) error {
 		Properties: map[string]interface{}{
 			"email":      email,
 			"firstLogin": firstLogin,
+			"distinct_id": email,
 		},
 	})
 }
@@ -37,6 +38,7 @@ func (m *MixpanelClient) TrackSignup(email string) error {
 	return m.client.Track(email, signupEventName, &mixpanel.Event{
 		Properties: map[string]interface{}{
 			"email": email,
+			"distinct_id": email,
 		},
 	})
 }
