@@ -31,7 +31,7 @@ func (d DB) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email
 		}
 
 		if org.TeamID == "" {
-			_, err = tx.Exec(
+			_, err = tx.ExecContext(ctx,
 				"update memberships set deleted_at = now() where user_id = $1 and organization_id = $2",
 				user.ID,
 				org.ID,
@@ -41,7 +41,7 @@ func (d DB) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email
 			}
 		}
 
-		return tx.removeUserFromTeam(user.ID, org.TeamID)
+		return tx.removeUserFromTeam(ctx, user.ID, org.TeamID)
 	})
 	return err
 }
@@ -63,12 +63,12 @@ func (d DB) UserIsMemberOf(ctx context.Context, userID, orgExternalID string) (b
 	return ok, nil
 }
 
-func (d DB) userIsDirectMemberOf(_ context.Context, userID, orgExternalID string) (bool, error) {
+func (d DB) userIsDirectMemberOf(ctx context.Context, userID, orgExternalID string) (bool, error) {
 	rows, err := d.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userID, "organizations.external_id": orgExternalID}).
 		Where("memberships.deleted_at is null").
-		Query()
+		QueryContext(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -80,7 +80,7 @@ func (d DB) userIsDirectMemberOf(_ context.Context, userID, orgExternalID string
 	return ok, nil
 }
 
-func (d DB) userIsTeamMemberOf(_ context.Context, userID, orgExternalID string) (bool, error) {
+func (d DB) userIsTeamMemberOf(ctx context.Context, userID, orgExternalID string) (bool, error) {
 	rows, err := d.organizationsQuery().
 		Join("team_memberships on (organizations.team_id = team_memberships.team_id)").
 		Where(squirrel.Eq{
@@ -88,7 +88,7 @@ func (d DB) userIsTeamMemberOf(_ context.Context, userID, orgExternalID string) 
 			"team_memberships.deleted_at": nil,
 			"organizations.external_id":   orgExternalID,
 		}).
-		Query()
+		QueryContext(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -137,13 +137,13 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 }
 
 // ListOrganizations lists organizations
-func (d DB) ListOrganizations(_ context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
+func (d DB) ListOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
 	q := d.organizationsQuery().Where(f.Where())
 	if page > 0 {
 		q = q.Limit(filter.ResultsPerPage).Offset((page - 1) * filter.ResultsPerPage)
 	}
 
-	rows, err := q.Query()
+	rows, err := q.QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func (d DB) ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]
 	return users, nil
 }
 
-func (d DB) listDirectOrganizationUsers(_ context.Context, orgExternalID string) ([]*users.User, error) {
+func (d DB) listDirectOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error) {
 	rows, err := d.usersQuery().
 		Join("memberships on (memberships.user_id = users.id)").
 		Join("organizations on (memberships.organization_id = organizations.id)").
@@ -176,7 +176,7 @@ func (d DB) listDirectOrganizationUsers(_ context.Context, orgExternalID string)
 			"organizations.deleted_at":  nil,
 		}).
 		OrderBy("users.created_at").
-		Query()
+		QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func (d DB) listDirectOrganizationUsers(_ context.Context, orgExternalID string)
 	return d.scanUsers(rows)
 }
 
-func (d DB) listTeamOrganizationUsers(_ context.Context, orgExternalID string) ([]*users.User, error) {
+func (d DB) listTeamOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error) {
 	rows, err := d.usersQuery().
 		Join("team_memberships on (team_memberships.user_id = users.id)").
 		Join("organizations on (team_memberships.team_id = organizations.team_id)").
@@ -193,7 +193,7 @@ func (d DB) listTeamOrganizationUsers(_ context.Context, orgExternalID string) (
 			"organizations.deleted_at":    nil,
 			"team_memberships.deleted_at": nil,
 		}).
-		Query()
+		QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -219,12 +219,12 @@ func (d DB) ListOrganizationsForUserIDs(ctx context.Context, userIDs ...string) 
 }
 
 // listMemberOrganizationsForUserIDs lists the organizations these users belong to
-func (d DB) listMemberOrganizationsForUserIDs(_ context.Context, userIDs ...string) ([]*users.Organization, error) {
+func (d DB) listMemberOrganizationsForUserIDs(ctx context.Context, userIDs ...string) ([]*users.Organization, error) {
 	rows, err := d.organizationsQuery().
 		Join("memberships on (organizations.id = memberships.organization_id)").
 		Where(squirrel.Eq{"memberships.user_id": userIDs}).
 		Where("memberships.deleted_at is null").
-		Query()
+		QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -237,8 +237,8 @@ func (d DB) listMemberOrganizationsForUserIDs(_ context.Context, userIDs ...stri
 
 // addUserToOrganization adds a user to the team of the organization,
 // if the organization belongs to a team, otherwise populates membership
-func (d DB) addUserToOrganization(userID, orgID string) error {
-	_, err := d.Exec(`
+func (d DB) addUserToOrganization(ctx context.Context, userID, orgID string) error {
+	_, err := d.ExecContext(ctx, `
 			insert into memberships
 				(user_id, organization_id, created_at)
 				values ($1, $2, $3)`,
@@ -310,7 +310,7 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 				}
 			}
 
-			if err := tx.QueryRow(
+			if err := tx.QueryRowContext(ctx,
 				`select exists(select 1 from organizations where probe_token = $1 and deleted_at is null)`,
 				o.ProbeToken,
 			).Scan(&exists); err != nil {
@@ -321,7 +321,7 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 			}
 		}
 
-		err = tx.QueryRow(`insert into organizations
+		err = tx.QueryRowContext(ctx, `insert into organizations
 			(external_id, name, probe_token, created_at, trial_expires_at, team_id)
 			values (lower($1), $2, $3, $4, $5, $6) returning id`,
 			o.ExternalID, o.Name, o.ProbeToken, o.CreatedAt, o.TrialExpiresAt, toNullString(o.TeamID),
@@ -331,7 +331,7 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 		}
 
 		if o.TeamID == "" {
-			return tx.addUserToOrganization(ownerID, o.ID)
+			return tx.addUserToOrganization(ctx, ownerID, o.ID)
 		}
 
 		return err
@@ -344,9 +344,9 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 
 // FindOrganizationByProbeToken looks up the organization matching a given
 // probe token.
-func (d DB) FindOrganizationByProbeToken(_ context.Context, probeToken string) (*users.Organization, error) {
+func (d DB) FindOrganizationByProbeToken(ctx context.Context, probeToken string) (*users.Organization, error) {
 	o, err := d.scanOrganization(
-		d.organizationsQuery().Where(squirrel.Eq{"organizations.probe_token": probeToken}).QueryRow(),
+		d.organizationsQuery().Where(squirrel.Eq{"organizations.probe_token": probeToken}).QueryRowContext(ctx),
 	)
 	if err == sql.ErrNoRows {
 		err = users.ErrNotFound
@@ -359,9 +359,9 @@ func (d DB) FindOrganizationByProbeToken(_ context.Context, probeToken string) (
 
 // FindOrganizationByID looks up the organization matching a given
 // external ID.
-func (d DB) FindOrganizationByID(_ context.Context, externalID string) (*users.Organization, error) {
+func (d DB) FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error) {
 	o, err := d.scanOrganization(
-		d.organizationsQuery().Where(squirrel.Eq{"organizations.external_id": externalID}).QueryRow(),
+		d.organizationsQuery().Where(squirrel.Eq{"organizations.external_id": externalID}).QueryRowContext(ctx),
 	)
 	if err == sql.ErrNoRows {
 		return nil, users.ErrNotFound
@@ -380,7 +380,7 @@ func (d DB) FindOrganizationByGCPExternalAccountID(ctx context.Context, external
 		return nil, err
 	}
 	o, err := d.scanOrganization(
-		d.organizationsQuery().Where(squirrel.Eq{"organizations.gcp_account_id": gcp.ID}).QueryRow(),
+		d.organizationsQuery().Where(squirrel.Eq{"organizations.gcp_account_id": gcp.ID}).QueryRowContext(ctx),
 	)
 	if err != nil {
 		// If error is sql.ErrNoRows we have a dangling GCP account ID.
@@ -392,7 +392,7 @@ func (d DB) FindOrganizationByGCPExternalAccountID(ctx context.Context, external
 // FindOrganizationByInternalID finds an org based on its ID
 func (d DB) FindOrganizationByInternalID(ctx context.Context, internalID string) (*users.Organization, error) {
 	o, err := d.scanOrganization(
-		d.organizationsQuery().Where(squirrel.Eq{"organizations.id": internalID}).QueryRow(),
+		d.organizationsQuery().Where(squirrel.Eq{"organizations.id": internalID}).QueryRowContext(ctx),
 	)
 
 	if err == sql.ErrNoRows {
@@ -535,7 +535,7 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 	result, err := d.Update("organizations").
 		SetMap(setFields).
 		Where(squirrel.Expr("external_id = lower(?) and deleted_at is null", externalID)).
-		Exec()
+		ExecContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -551,9 +551,9 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 
 // OrganizationExists just returns a simple bool checking if an organization
 // exists. It exists if it hasn't been deleted.
-func (d DB) OrganizationExists(_ context.Context, externalID string) (bool, error) {
+func (d DB) OrganizationExists(ctx context.Context, externalID string) (bool, error) {
 	var exists bool
-	err := d.QueryRow(
+	err := d.QueryRowContext(ctx,
 		`select exists(select 1 from organizations where external_id = lower($1) and deleted_at is null)`,
 		externalID,
 	).Scan(&exists)
@@ -562,9 +562,9 @@ func (d DB) OrganizationExists(_ context.Context, externalID string) (bool, erro
 
 // ExternalIDUsed returns true if the given `externalID` has ever been in use for
 // an organization.
-func (d DB) ExternalIDUsed(_ context.Context, externalID string) (bool, error) {
+func (d DB) ExternalIDUsed(ctx context.Context, externalID string) (bool, error) {
 	var exists bool
-	err := d.QueryRow(
+	err := d.QueryRowContext(ctx,
 		`select exists(select 1 from organizations where external_id = lower($1))`,
 		externalID,
 	).Scan(&exists)
@@ -572,9 +572,9 @@ func (d DB) ExternalIDUsed(_ context.Context, externalID string) (bool, error) {
 }
 
 // GetOrganizationName gets the name of an organization from its external ID.
-func (d DB) GetOrganizationName(_ context.Context, externalID string) (string, error) {
+func (d DB) GetOrganizationName(ctx context.Context, externalID string) (string, error) {
 	var name string
-	err := d.QueryRow(
+	err := d.QueryRowContext(ctx,
 		`select name from organizations where external_id = lower($1) and deleted_at is null`,
 		externalID,
 	).Scan(&name)
@@ -582,8 +582,8 @@ func (d DB) GetOrganizationName(_ context.Context, externalID string) (string, e
 }
 
 // DeleteOrganization deletes an organization
-func (d DB) DeleteOrganization(_ context.Context, externalID string) error {
-	_, err := d.Exec(
+func (d DB) DeleteOrganization(ctx context.Context, externalID string) error {
+	_, err := d.ExecContext(ctx,
 		`update organizations set deleted_at = $1 where external_id = lower($2) and deleted_at is null`,
 		d.Now(), externalID,
 	)
@@ -591,8 +591,8 @@ func (d DB) DeleteOrganization(_ context.Context, externalID string) error {
 }
 
 // AddFeatureFlag adds a new feature flag to a organization.
-func (d DB) AddFeatureFlag(_ context.Context, externalID string, featureFlag string) error {
-	_, err := d.Exec(
+func (d DB) AddFeatureFlag(ctx context.Context, externalID string, featureFlag string) error {
+	_, err := d.ExecContext(ctx,
 		`update organizations set feature_flags = feature_flags || $1 where external_id = lower($2) and deleted_at is null`,
 		pq.Array([]string{featureFlag}), externalID,
 	)
@@ -600,11 +600,11 @@ func (d DB) AddFeatureFlag(_ context.Context, externalID string, featureFlag str
 }
 
 // SetFeatureFlags sets all feature flags of an organization.
-func (d DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags []string) error {
+func (d DB) SetFeatureFlags(ctx context.Context, externalID string, featureFlags []string) error {
 	if featureFlags == nil {
 		featureFlags = []string{}
 	}
-	_, err := d.Exec(
+	_, err := d.ExecContext(ctx,
 		`update organizations set feature_flags = $1 where external_id = lower($2) and deleted_at is null`,
 		pq.Array(featureFlags), externalID,
 	)
@@ -612,8 +612,8 @@ func (d DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags [
 }
 
 // SetOrganizationRefuseDataAccess sets the "deny UI features" flag on an organization
-func (d DB) SetOrganizationRefuseDataAccess(_ context.Context, externalID string, value bool) error {
-	_, err := d.Exec(
+func (d DB) SetOrganizationRefuseDataAccess(ctx context.Context, externalID string, value bool) error {
+	_, err := d.ExecContext(ctx,
 		`update organizations set refuse_data_access = $1 where external_id = lower($2) and deleted_at is null`,
 		value, externalID,
 	)
@@ -621,8 +621,8 @@ func (d DB) SetOrganizationRefuseDataAccess(_ context.Context, externalID string
 }
 
 // SetOrganizationRefuseDataUpload sets the "deny token auth" flag on an organization
-func (d DB) SetOrganizationRefuseDataUpload(_ context.Context, externalID string, value bool) error {
-	_, err := d.Exec(
+func (d DB) SetOrganizationRefuseDataUpload(ctx context.Context, externalID string, value bool) error {
+	_, err := d.ExecContext(ctx,
 		`update organizations set refuse_data_upload = $1 where external_id = lower($2) and deleted_at is null`,
 		value, externalID,
 	)
@@ -630,8 +630,8 @@ func (d DB) SetOrganizationRefuseDataUpload(_ context.Context, externalID string
 }
 
 // SetOrganizationFirstSeenConnectedAt sets the first time an organisation has been connected
-func (d DB) SetOrganizationFirstSeenConnectedAt(_ context.Context, externalID string, value *time.Time) error {
-	_, err := d.Exec(
+func (d DB) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
+	_, err := d.ExecContext(ctx,
 		`update organizations set first_seen_connected_at = $1 where external_id = lower($2) and deleted_at is null`,
 		value, externalID,
 	)
@@ -639,8 +639,8 @@ func (d DB) SetOrganizationFirstSeenConnectedAt(_ context.Context, externalID st
 }
 
 // SetOrganizationZuoraAccount sets the account number and time it was created at.
-func (d DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number string, createdAt *time.Time) error {
-	_, err := d.Exec(
+func (d DB) SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error {
+	_, err := d.ExecContext(ctx,
 		`update organizations set zuora_account_number = $1, zuora_account_created_at = $2 where external_id = lower($3) and deleted_at is null`,
 		number, createdAt, externalID,
 	)
@@ -688,7 +688,7 @@ func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAcco
 func (d DB) FindGCP(ctx context.Context, externalAccountID string) (*users.GoogleCloudPlatform, error) {
 	var gcp users.GoogleCloudPlatform
 	var consumerID, name, level, status sql.NullString
-	err := d.QueryRow(
+	err := d.QueryRowContext(ctx,
 		`select id, external_account_id, activated, created_at, consumer_id, subscription_name, subscription_level, subscription_status
 		from gcp_accounts
 		where external_account_id = $1`,
@@ -709,7 +709,7 @@ func (d DB) FindGCP(ctx context.Context, externalAccountID string) (*users.Googl
 
 // UpdateGCP Update a Google Cloud Platform entry. This marks the account as activated.
 func (d DB) UpdateGCP(ctx context.Context, externalAccountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus string) error {
-	_, err := d.Exec(
+	_, err := d.ExecContext(ctx,
 		`update gcp_accounts
 		set activated = true, consumer_id = $2, subscription_name = $3, subscription_level = $4, subscription_status = $5
 		where external_account_id = $1`,
@@ -727,7 +727,7 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccountI
 			return err
 		}
 
-		_, err = d.Exec(
+		_, err = d.ExecContext(ctx,
 			`update organizations set gcp_account_id = $1 where external_id = $2 and deleted_at is null`,
 			gcp.ID, externalID,
 		)
@@ -801,7 +801,7 @@ func (d DB) createGCP(ctx context.Context, externalAccountID string) (*users.Goo
 		ExternalAccountID: externalAccountID,
 		CreatedAt:         now,
 	}
-	err := d.QueryRow(`insert into gcp_accounts
+	err := d.QueryRowContext(ctx, `insert into gcp_accounts
 			(external_account_id, created_at, activated)
 			values ($1, $2, false) returning id`,
 		gcp.ExternalAccountID, gcp.CreatedAt).

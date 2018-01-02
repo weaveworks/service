@@ -8,6 +8,12 @@
   version = "v0.13.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/ExpansiveWorlds/instrumentedsql"
+  packages = [".","opentracing"]
+  revision = "55151537c3a7c0e0ca34be1660247546570a6e2f"
+
+[[projects]]
   branch = "sirupsen-case"
   name = "github.com/FrenchBen/goketo"
   packages = ["."]
@@ -300,6 +306,18 @@
   name = "github.com/kr/logfmt"
   packages = ["."]
   revision = "b84e30acd515aadc4b783ad4ff83aff3299bdfe0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/kr/pretty"
+  packages = ["."]
+  revision = "cfb55aafdaf3ec08f0db22699ab822c50091b1c4"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/kr/text"
+  packages = ["."]
+  revision = "7cafcd837844e784b526369c9bce262804aebc60"
 
 [[projects]]
   branch = "master"
@@ -629,6 +647,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9686473a667bdf781fc27700f3e7177320e0c4cb93eae0fee6a45ca0b59d542c"
+  inputs-digest = "3f8b67c62f14fa04731beda4c18663279fb0be3df43708bbf024ce909fe6fece"
   solver-name = "gps-cdcl"
   solver-version = 1

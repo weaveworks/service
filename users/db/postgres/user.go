@@ -15,9 +15,9 @@ import (
 )
 
 // CreateUser creates a new user with the given email.
-func (d DB) CreateUser(_ context.Context, email string) (*users.User, error) {
+func (d DB) CreateUser(ctx context.Context, email string) (*users.User, error) {
 	u := &users.User{Email: email, CreatedAt: d.Now()}
-	err := d.QueryRow("insert into users (email, approved_at, created_at) values (lower($1), $2, $2) returning id", email, u.CreatedAt).Scan(&u.ID)
+	err := d.QueryRowContext(ctx, "insert into users (email, approved_at, created_at) values (lower($1), $2, $2) returning id", email, u.CreatedAt).Scan(&u.ID)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil, users.ErrNotFound
@@ -76,8 +76,8 @@ func (d DB) AddLoginToUser(ctx context.Context, userID, provider, providerID str
 
 // DetachLoginFromUser detaches the specified login from a user. e.g. if you
 // want to attach it to a different user, do this first.
-func (d DB) DetachLoginFromUser(_ context.Context, userID, provider string) error {
-	_, err := d.Exec(
+func (d DB) DetachLoginFromUser(ctx context.Context, userID, provider string) error {
+	_, err := d.ExecContext(ctx,
 		`update logins
 			set deleted_at = $3
 			where user_id = $1
@@ -115,7 +115,7 @@ func (d DB) InviteUser(ctx context.Context, email, orgExternalID string) (*users
 			if err != nil || isMember {
 				return err
 			}
-			err = tx.addUserToOrganization(u.ID, o.ID)
+			err = tx.addUserToOrganization(ctx, u.ID, o.ID)
 			if err != nil {
 				return err
 			}
@@ -135,9 +135,9 @@ func (d DB) InviteUser(ctx context.Context, email, orgExternalID string) (*users
 }
 
 // FindUserByID finds the user by id
-func (d DB) FindUserByID(_ context.Context, id string) (*users.User, error) {
+func (d DB) FindUserByID(ctx context.Context, id string) (*users.User, error) {
 	user, err := d.scanUser(
-		d.usersQuery().Where(squirrel.Eq{"users.id": id}).QueryRow(),
+		d.usersQuery().Where(squirrel.Eq{"users.id": id}).QueryRowContext(ctx),
 	)
 	if err == sql.ErrNoRows {
 		err = users.ErrNotFound
@@ -149,9 +149,9 @@ func (d DB) FindUserByID(_ context.Context, id string) (*users.User, error) {
 }
 
 // FindUserByEmail finds the user by email
-func (d DB) FindUserByEmail(_ context.Context, email string) (*users.User, error) {
+func (d DB) FindUserByEmail(ctx context.Context, email string) (*users.User, error) {
 	user, err := d.scanUser(
-		d.usersQuery().Where("lower(users.email) = lower($1)", email).QueryRow(),
+		d.usersQuery().Where("lower(users.email) = lower($1)", email).QueryRowContext(ctx),
 	)
 	if err == sql.ErrNoRows {
 		err = users.ErrNotFound
@@ -163,7 +163,7 @@ func (d DB) FindUserByEmail(_ context.Context, email string) (*users.User, error
 }
 
 // FindUserByLogin finds the user by login
-func (d DB) FindUserByLogin(_ context.Context, provider, providerID string) (*users.User, error) {
+func (d DB) FindUserByLogin(ctx context.Context, provider, providerID string) (*users.User, error) {
 	user, err := d.scanUser(
 		d.usersQuery().
 			Join("logins on (logins.user_id = users.id)").
@@ -172,7 +172,7 @@ func (d DB) FindUserByLogin(_ context.Context, provider, providerID string) (*us
 				"logins.provider_id": providerID,
 			}).
 			Where("logins.deleted_at is null").
-			QueryRow(),
+			QueryRowContext(ctx),
 	)
 	if err == sql.ErrNoRows {
 		err = users.ErrNotFound
@@ -239,13 +239,13 @@ func (d DB) usersQuery() squirrel.SelectBuilder {
 }
 
 // ListUsers lists users
-func (d DB) ListUsers(_ context.Context, f filter.User, page uint64) ([]*users.User, error) {
+func (d DB) ListUsers(ctx context.Context, f filter.User, page uint64) ([]*users.User, error) {
 	q := d.usersQuery().Where(f.Where())
 	if page > 0 {
 		q = q.Limit(filter.ResultsPerPage).Offset((page - 1) * filter.ResultsPerPage)
 	}
 
-	rows, err := q.Query()
+	rows, err := q.QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +254,7 @@ func (d DB) ListUsers(_ context.Context, f filter.User, page uint64) ([]*users.U
 }
 
 // ListLoginsForUserIDs lists the logins for these users
-func (d DB) ListLoginsForUserIDs(_ context.Context, userIDs ...string) ([]*login.Login, error) {
+func (d DB) ListLoginsForUserIDs(ctx context.Context, userIDs ...string) ([]*login.Login, error) {
 	rows, err := d.Select(
 		"logins.user_id",
 		"logins.provider",
@@ -293,8 +293,8 @@ func (d DB) ListLoginsForUserIDs(_ context.Context, userIDs ...string) ([]*login
 }
 
 // SetUserAdmin sets the admin flag of a user
-func (d DB) SetUserAdmin(_ context.Context, id string, value bool) error {
-	result, err := d.Exec(`
+func (d DB) SetUserAdmin(ctx context.Context, id string, value bool) error {
+	result, err := d.ExecContext(ctx, `
 		update users set admin = $2 where id = $1 and deleted_at is null
 	`, id, value,
 	)
@@ -312,7 +312,7 @@ func (d DB) SetUserAdmin(_ context.Context, id string, value bool) error {
 }
 
 // SetUserToken updates the user's login token
-func (d DB) SetUserToken(_ context.Context, id, token string) error {
+func (d DB) SetUserToken(ctx context.Context, id, token string) error {
 	var hashed []byte
 	if token != "" {
 		var err error
@@ -321,7 +321,7 @@ func (d DB) SetUserToken(_ context.Context, id, token string) error {
 			return err
 		}
 	}
-	result, err := d.Exec(`
+	result, err := d.ExecContext(ctx, `
 		update users set
 			token = $2,
 			token_created_at = $3
@@ -346,11 +346,11 @@ func (d DB) SetUserToken(_ context.Context, id, token string) error {
 // SetUserLastLoginAt is called the ever ytime a user logs in, to set their
 // lasst_login_at field.
 // If it also is their forst login, first_login_at is also set
-func (d DB) SetUserLastLoginAt(_ context.Context, id string) error {
+func (d DB) SetUserLastLoginAt(ctx context.Context, id string) error {
 	now := d.Now()
 	return d.Transaction(func(tx DB) error {
 		var firstLoginAt pq.NullTime
-		err := tx.QueryRow(`
+		err := tx.QueryRowContext(ctx, `
 			update users set
 				last_login_at = $2
 			where id = $1
@@ -367,7 +367,7 @@ func (d DB) SetUserLastLoginAt(_ context.Context, id string) error {
 		if firstLoginAt.Valid {
 			return nil
 		}
-		result, err := tx.Exec(`
+		result, err := tx.ExecContext(ctx, `
 			update users set
 				first_login_at = $2
 			where id = $1
