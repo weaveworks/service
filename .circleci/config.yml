@@ -69,7 +69,7 @@ jobs:
           make RM= pubsub-integration-test && \
           make RM= flux-nats-tests
 
-  publish:
+  upload:
     <<: *defaults
     steps:
       - attach_workspace:
@@ -82,7 +82,7 @@ jobs:
           echo Last successful build was commit $LAST_BUILD_COMMIT
           ./push-images --if-changed-since $LAST_BUILD_COMMIT
 
-  dry-run-publish:
+  dry-run-upload:
     <<: *defaults
     steps:
       - attach_workspace:
@@ -96,7 +96,7 @@ jobs:
 
 workflows:
   version: 2
-  build_test_and_publish:
+  build_test_and_upload:
     jobs:
       - lint
       - test
@@ -107,13 +107,13 @@ workflows:
       - integration-test:
           requires:
             - build
-      - publish:
+      - upload:
           requires:
             - integration-test
           filters:
             branches:
               only: master
-      - dry-run-publish:
+      - dry-run-upload:
           requires:
             - integration-test
           filters:
