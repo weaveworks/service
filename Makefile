@@ -220,7 +220,7 @@ notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
 
-users-integration-test: $(USERS_UPTODATE) users/users.pb.go
+users-integration-test: $(USERS_UPTODATE) users/users.pb.go $(MOCK_GOS)
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=users_test' postgres:9.5)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
