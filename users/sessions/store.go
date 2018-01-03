@@ -24,9 +24,11 @@ func MustNewStore(validationSecret string, secure bool) Store {
 	}
 
 	return Store{
-		secret:  validationSecret,
-		encoder: securecookie.New(secretBytes, nil).SetSerializer(securecookie.JSONEncoder{}),
-		secure:  secure,
+		secret: validationSecret,
+		encoder: securecookie.New(secretBytes, nil).
+			SetSerializer(securecookie.JSONEncoder{}).
+			MaxAge(int(SessionDuration.Seconds())),
+		secure: secure,
 	}
 }
 
