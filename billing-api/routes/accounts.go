@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"time"
 
@@ -20,6 +21,8 @@ import (
 	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/users"
 )
+
+const dayTimeLayout = "2006-01-02"
 
 type createAccountRequest struct {
 	WeaveID            string `json:"id"`
@@ -57,7 +60,7 @@ func (a *API) createAccount(w http.ResponseWriter, r *http.Request) error {
 	if !resp.Organization.InTrialPeriod(today) {
 		orgID := resp.Organization.ID
 		trialExpiry := resp.Organization.TrialExpiresAt
-		usageImportID, err := a.fetchAndUploadUsage(r.Context(), account, orgID, externalID, trialExpiry, today, zuora.BillCycleDay)
+		usageImportID, err := a.FetchAndUploadUsage(r.Context(), account, orgID, externalID, trialExpiry, today, zuora.BillCycleDay)
 		if err != nil {
 			return err
 		}
@@ -138,7 +141,8 @@ func (a *API) markOrganizationDutiful(ctx context.Context, logger *log.Entry, ex
 	}
 }
 
-func (a *API) fetchAndUploadUsage(ctx context.Context, account *zuora.Account, orgID, externalID string, trialExpiry, today time.Time, cycleDay int) (string, error) {
+// FetchAndUploadUsage gets usage from the database and uploads it to Zuora.
+func (a *API) FetchAndUploadUsage(ctx context.Context, account *zuora.Account, orgID, externalID string, trialExpiry, today time.Time, cycleDay int) (string, error) {
 	aggs, err := a.getPostTrialChargeableUsage(ctx, orgID, trialExpiry, today)
 	if err != nil {
 		return "", err
@@ -284,14 +288,15 @@ type interim struct {
 }
 
 type accountStatusResponse struct {
-	Trial              trial.Trial      `json:"trial"`
-	BillingPeriodStart string           `json:"billing_period_start"`
-	BillingPeriodEnd   string           `json:"billing_period_end"`
-	UsageToDate        string           `json:"usage_to_date"` // in dollar$
-	UsagePerDay        map[string]int64 `json:"usage_per_day"` // in node-seconds; key is day in `YYYY-MM-DD`
-	ActiveHosts        float64          `json:"active_hosts"`
-	Status             status           `json:"status"`
-	Interim            *interim         `json:"interim,omitempty"`
+	Trial                 trial.Trial      `json:"trial"`
+	BillingPeriodStart    string           `json:"billing_period_start"`
+	BillingPeriodEnd      string           `json:"billing_period_end"`
+	UsageToDate           string           `json:"usage_to_date"` // in dollar$
+	UsagePerDay           map[string]int64 `json:"usage_per_day"` // in node-seconds; key is day in `YYYY-MM-DD`
+	ActiveHosts           float64          `json:"active_hosts"`
+	Status                status           `json:"status"`
+	Interim               *interim         `json:"interim,omitempty"`
+	EstimatedMonthlyUsage string           `json:"estimated_monthly_usage"` // in dollar$
 }
 
 const (
@@ -389,6 +394,7 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, err)
 		return
 	}
+	org := resp.Organization
 	now := time.Now().UTC()
 
 	var billCycleDay int
@@ -406,12 +412,12 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, err)
 		return
 	}
-	start, end := computeBillingPeriod(billCycleDay, resp.Organization.CreatedAt, resp.Organization.TrialExpiresAt, now)
+	start, end := computeBillingPeriod(billCycleDay, org.CreatedAt, org.TrialExpiresAt, now)
 	// assumption: if a zuora account is present, the customer has been charged and therefore
 	// interim usage is zero
 	var interimPeriod *interim
-	if zuoraAcct == nil && !resp.Organization.InTrialPeriod(start) {
-		interimAggs, err := a.DB.GetAggregates(ctx, resp.Organization.ID, resp.Organization.TrialExpiresAt, start)
+	if zuoraAcct == nil && !org.InTrialPeriod(start) {
+		interimAggs, err := a.DB.GetAggregates(ctx, org.ID, org.TrialExpiresAt, start)
 		if err != nil {
 			renderError(w, r, err)
 			return
@@ -419,12 +425,12 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		interimSum, _, _ := sumAndFilterAggregates(interimAggs)
 		interimPeriod = &interim{
 			Usage: fmt.Sprintf("%.2f", price*float64(interimSum)),
-			Start: resp.Organization.TrialExpiresAt,
+			Start: org.TrialExpiresAt,
 			End:   start,
 		}
 	}
 
-	aggs, err := a.DB.GetAggregates(ctx, resp.Organization.ID, start, end)
+	aggs, err := a.DB.GetAggregates(ctx, org.ID, start, end)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -440,12 +446,20 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		activeHosts = float64(bucket.AmountValue) / time.Hour.Seconds()
 	}
 
-	trial := trial.Info(resp.Organization, now)
+	trial := trial.Info(org, now)
+
+	estFrom, estTo, estDays := computeEstimationPeriod(now, org.TrialExpiresAt)
+	estAggs, err := a.DB.GetAggregates(ctx, org.ID, estFrom, estTo)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	estimated := estimatedMonthlyUsage(daily, start, estAggs, estDays, price, now)
 
 	// TODO some kind of payment status info
 	status := accountStatusResponse{
-		BillingPeriodStart: start.Format("2006-01-02"),
-		BillingPeriodEnd:   end.Format("2006-01-02"),
+		BillingPeriodStart: start.Format(dayTimeLayout),
+		BillingPeriodEnd:   end.Format(dayTimeLayout),
 		Trial:              trial,
 		UsageToDate:        fmt.Sprintf("%.2f", price*float64(sum)),
 		ActiveHosts:        activeHosts,
@@ -453,7 +467,50 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		UsagePerDay:        daily,
 		Interim:            interimPeriod,
 	}
+	if estimated > 0 {
+		status.EstimatedMonthlyUsage = fmt.Sprintf("%0.f", math.Ceil(estimated))
+	}
+
 	render.JSON(w, http.StatusOK, status)
+}
+
+func computeEstimationPeriod(now time.Time, trialExpiresAt time.Time) (time.Time, time.Time, int) {
+	to := now.Truncate(24 * time.Hour)
+
+	from := to.Add(-7 * 24 * time.Hour)
+	if trialExpiresAt.Before(now) {
+		// Do not cross into trial
+		from = timeutil.MaxTime(from,
+			trialExpiresAt.Add(24*time.Hour).Truncate(24*time.Hour))
+	}
+
+	days := int(to.Sub(from).Hours()) / 24
+	return from, to, days
+}
+
+func estimatedMonthlyUsage(daily map[string]int64, start time.Time, estAggs []db.Aggregate, estDays int, price float64, reference time.Time) float64 {
+	today := reference.Truncate(24 * time.Hour)
+
+	// Current billing period usage. This excludes usage of today.
+	var sum int64
+	todayfmt := today.Format(dayTimeLayout)
+	for day, value := range daily {
+		if day != todayfmt {
+			sum += value
+		}
+	}
+	dayCount := float64(today.Sub(start).Hours()) / 24
+	daysInMonth := timeutil.EndOfMonth(start).Day()
+
+	// Estimation over given past period
+	var estSum int64
+	for _, a := range estAggs {
+		if a.AmountType == timeutil.NodeSeconds {
+			estSum += a.AmountValue
+		}
+	}
+	usage := float64(sum) + (float64(daysInMonth)-dayCount)*float64(estSum)/float64(estDays)
+	return price * usage
 }
 
 func sumAndFilterAggregates(aggs []db.Aggregate) (int64, []db.Aggregate, map[string]int64) {
@@ -465,7 +522,7 @@ func sumAndFilterAggregates(aggs []db.Aggregate) (int64, []db.Aggregate, map[str
 			sum += agg.AmountValue
 			nodeAggregates = append(nodeAggregates, agg)
 
-			day := agg.BucketStart.Format("2006-01-02")
+			day := agg.BucketStart.Format(dayTimeLayout)
 			daily[day] += agg.AmountValue
 		}
 	}

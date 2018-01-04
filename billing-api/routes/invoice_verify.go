@@ -149,9 +149,9 @@ func assertInvoiceVerified(ctx context.Context, a *API, weaveOrgID string, numIn
 				return fmt.Errorf("Invoice %v, quantities do not match usage %v != %v", invoice.InvoiceNumber, invoiceItem.Quantity, invoiceItemQuantity)
 			}
 			// verify charge
-			charge := roundHalfUp(price * invoiceItemQuantity)
+			charge := RoundHalfUp(price * invoiceItemQuantity)
 			logger.Infof("Invoice %v, charge: %v, usage charge %v", invoice.InvoiceNumber, invoiceItem.ChargeAmount, charge)
-			if !floatEqual(invoiceItem.ChargeAmount, charge) {
+			if !FloatEqual(invoiceItem.ChargeAmount, charge) {
 				return fmt.Errorf("Invoice %v, charge amount does not match usage %v != %v", invoice.InvoiceNumber, invoiceItem.ChargeAmount, charge)
 			}
 
@@ -230,14 +230,15 @@ func minInvoicesDate(invoices []zuora.Invoice) (time.Time, error) {
 	return min, nil
 }
 
-// floatEqual compares floating point numbers, comparing floats is difficult
-func floatEqual(lhs, rhs float64) bool {
+// FloatEqual compares floating point numbers, comparing floats is difficult
+func FloatEqual(lhs, rhs float64) bool {
 	const TOLERANCE = 0.000001
 	diff := math.Abs(lhs - rhs)
 	return diff < TOLERANCE
 }
 
-func roundHalfUp(amount float64) float64 {
+// RoundHalfUp properly rounds to the resolution of 0.01
+func RoundHalfUp(amount float64) float64 {
 	// zuora rounds half up by default
 	const unit = 0.01
 	return float64(int64(amount/unit+0.5)) * unit
