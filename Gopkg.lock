@@ -605,8 +605,8 @@
 [[projects]]
   branch = "master"
   name = "google.golang.org/api"
-  packages = ["bigquery/v2","gensupport","googleapi","googleapi/internal/uritemplates","googleapi/transport","internal","iterator","option","plus/v1","servicecontrol/v1","support/bundler","transport","transport/grpc","transport/http"]
-  revision = "aab106b125917246a672526055e2260b77258755"
+  packages = ["bigquery/v2","cloudresourcemanager/v1","compute/v1","container/v1","gensupport","googleapi","googleapi/internal/uritemplates","googleapi/transport","internal","iterator","option","plus/v1","servicecontrol/v1","support/bundler","transport","transport/grpc","transport/http"]
+  revision = "251495678c7835dbcdc35027844ab32f2fcee7a0"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -644,9 +644,15 @@
   revision = "afc973c4e5a6b746217c2d3950fcd110ed1ba349"
   version = "v1.3.2"
 
+[[projects]]
+  branch = "v2"
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  revision = "c95af922eae69f190717a0b7148960af8c55a072"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3f8b67c62f14fa04731beda4c18663279fb0be3df43708bbf024ce909fe6fece"
+  inputs-digest = "c915863b2f001a6c8273689b9ed7525672333fd3ec8f229355a6fc1521a496f2"
   solver-name = "gps-cdcl"
   solver-version = 1
