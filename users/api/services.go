@@ -239,7 +239,7 @@ var ServiceStatusRequestDuration = prometheus.NewHistogramVec(prometheus.Histogr
 	Namespace: "users",
 	Name:      "get_service_status_request_duration_seconds",
 	Help:      "Time spent (in seconds) doing service status requests.",
-	Buckets:   prometheus.DefBuckets,
+	Buckets:   instrument.DefBuckets,
 }, []string{"service_name", "status_code"})
 
 func errorCode(err error) string {
