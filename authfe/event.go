@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const maxBufferedEvents = 100
+const maxBufferedEvents = 1000
 
 // Event is a user event to be sent to out analytics system
 type Event struct {
