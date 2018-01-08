@@ -80,6 +80,7 @@ jobs:
           make RM= pubsub-integration-test
           make RM= flux-nats-tests
           make RM= kubectl-service-integration-test
+          make RM= gcp-service-integration-test
 
   upload:
     <<: *defaults

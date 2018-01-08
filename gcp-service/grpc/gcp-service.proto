@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package grpc;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+// import "google/protobuf/timestamp.proto";
+
+option (gogoproto.populate_all) = true;
+
+service GCP {
+  rpc GetClusters (ClustersRequest) returns (ClustersReply) {}
+  rpc GetProjects (ProjectsRequest) returns (ProjectsReply) {}
+  rpc GetClustersForProject (ClustersRequest) returns (ClustersReply) {}
+  rpc RunKubectlCmd (KubectlCmdRequest) returns (KubectlCmdReply) {}
+}
+
+message ProjectsRequest {
+  string userID = 1;
+}
+
+message ProjectsReply {
+  repeated string projectIDs = 1;
+}
+
+message ClustersRequest {
+  string userID = 1;
+  string projectID = 2;
+}
+
+message ClustersReply {
+  repeated Cluster clusters = 1;
+}
+
+message Cluster {
+  string projectID = 1;
+  string clusterID = 2;
+  string zone = 3;
+  string kubernetesVersion = 4;
+}
+
+message KubectlCmdRequest {
+  string userID = 1;
+  string projectID = 2;
+  string clusterID = 3;
+  string zone = 4;
+  repeated string args = 5; // e.g. ["apply", "-n", "kube-system", "-f", "https://..."]
+}
+
+message KubectlCmdReply {
+  string output = 1;
+}
