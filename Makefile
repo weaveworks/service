@@ -34,6 +34,7 @@ all: $(UPTODATE_FILES)
 PROTO_DEFS := $(shell find . -type f -name "*.proto" ! -path "./tools/*" ! -path "./vendor/*")
 PROTO_GOS := $(patsubst %.proto,%.pb.go,$(PROTO_DEFS))
 users/users.pb.go: users/users.proto
+kubectl-service/grpc/kubectl-service.pb.go: kubectl-service/grpc/kubectl-service.proto
 
 MOCK_USERS := users/mock_users/mock_usersclient.go
 $(MOCK_USERS): users/users.pb.go
@@ -73,7 +74,8 @@ GITHUB_RECEIVER_EXE := github-receiver/github-receiver
 FLUX_API_EXE := flux-api/flux-api
 BILLING_EXE := billing-api/api billing-uploader/uploader billing-aggregator/aggregator billing-enforcer/enforcer
 GCP_LAUNCHER_WEBHOOK_EXE := gcp-launcher-webhook/gcp-launcher-webhook
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) $(GITHUB_RECEIVER_EXE) $(FLUX_API_EXE) $(BILLING_EXE) $(GCP_LAUNCHER_WEBHOOK_EXE)
+KUBECTL_SERVICE_EXE := kubectl-service/kubectl-service
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) $(GITHUB_RECEIVER_EXE) $(FLUX_API_EXE) $(BILLING_EXE) $(GCP_LAUNCHER_WEBHOOK_EXE) $(KUBECTL_SERVICE_EXE)
 
 # And what goes into each exe
 COMMON := $(shell find common -name '*.go')
@@ -86,7 +88,8 @@ $(GITHUB_RECEIVER_EXE): $(shell find github-receiver -name '*.go') $(COMMON)
 $(FLUX_API_EXE): $(shell find flux-api -name '*.go') $(COMMON)
 
 $(GCP_LAUNCHER_WEBHOOK_EXE): $(shell find gcp-launcher-webhook -name '*.go') $(COMMON)
-test: users/users.pb.go
+$(KUBECTL_SERVICE_EXE): $(shell find kubectl-service -name '*.go') $(COMMON)
+test: users/users.pb.go kubectl-service/grpc/kubectl-service.pb.go
 
 # And now what goes into each image
 authfe/$(UPTODATE): $(AUTHFE_EXE)
@@ -99,6 +102,7 @@ service-ui-kicker/$(UPTODATE): $(SERVICE_UI_KICKER_EXE)
 github-receiver/$(UPTODATE): $(GITHUB_RECEIVER_EXE)
 flux-api/$(UPTODATE): $(FLUX_API_EXE) flux-api/migrations.tar
 gcp-launcher-webhook/$(UPTODATE): $(GCP_LAUNCHER_WEBHOOK_EXE)
+kubectl-service/$(UPTODATE): $(KUBECTL_SERVICE_EXE)
 
 billing-uploader/$(UPTODATE): billing-uploader/uploader $(call billing-migrations-deps,billing-uploader)
 billing-aggregator/$(UPTODATE): billing-aggregator/aggregator $(call billing-migrations-deps,billing-aggregator)
@@ -129,7 +133,7 @@ $(PROTO_GOS) $(MOCK_GOS) lint: build/$(UPTODATE)
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
 		$(IMAGE_PREFIX)/build $@
 
-$(EXES) test: build/$(UPTODATE) users/users.pb.go
+$(EXES) test: build/$(UPTODATE) users/users.pb.go kubectl-service/grpc/kubectl-service.pb.go
 	@mkdir -p $(shell pwd)/.pkg
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
@@ -169,7 +173,7 @@ flux-nats-tests: build/$(UPTODATE)
 
 else
 
-$(EXES): build/$(UPTODATE) users/users.pb.go
+$(EXES): build/$(UPTODATE) users/users.pb.go kubectl-service/grpc/kubectl-service.pb.go
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
@@ -179,7 +183,7 @@ $(EXES): build/$(UPTODATE) users/users.pb.go
 lint: build/$(UPTODATE)
 	./tools/lint .
 
-test: build/$(UPTODATE) users/users.pb.go $(MOCK_GOS)
+test: build/$(UPTODATE) users/users.pb.go kubectl-service/grpc/kubectl-service.pb.go $(MOCK_GOS)
 	TESTDIRS=${TESTDIRS} ./tools/test -netgo -no-race
 
 $(MOCK_USERS): build/$(UPTODATE)
@@ -244,6 +248,19 @@ pubsub-integration-test:
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$PUBSUB_EMU_CONTAINER"; \
 	exit $$status
+
+kubectl-service-integration-test: kubectl-service/$(UPTODATE) kubectl-service/grpc/kubectl-service.pb.go
+	SVC_CONTAINER="$$(docker run -d -p 4887:4772 -p 8887:80 $(IMAGE_PREFIX)/kubectl-service -dry-run=true)"; \
+	docker run $(RM) \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		--workdir /go/src/github.com/weaveworks/service/kubectl-service \
+		--link "$$SVC_CONTAINER":kubectl-service.weave.local \
+		golang:1.8.3-stretch \
+		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
+	status=$$?; \
+	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \
+	exit $$status
+
 
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true

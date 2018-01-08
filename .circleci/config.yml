@@ -79,6 +79,7 @@ jobs:
           make RM= billing-integration-test
           make RM= pubsub-integration-test
           make RM= flux-nats-tests
+          make RM= kubectl-service-integration-test
 
   upload:
     <<: *defaults

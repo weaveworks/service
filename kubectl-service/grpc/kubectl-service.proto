@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package grpc;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+// import "google/protobuf/timestamp.proto";
+
+option (gogoproto.populate_all) = true;
+
+service Kubectl {
+  rpc RunKubectlCmd (KubectlRequest) returns (KubectlReply) {}
+}
+
+message KubectlRequest {
+  string version = 1;
+  bytes kubeconfig = 2; // YAML document containing cluster’s credentials
+  repeated string args = 3; // e.g. ["apply", "-n", "kube-system", "-f", "https://..."]
+}
+
+message KubectlReply {
+  string output = 1;
+}
