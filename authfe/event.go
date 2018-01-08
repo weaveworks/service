@@ -121,6 +121,7 @@ func (el *EventLogger) LogEvent(ev Event) error {
 	default:
 		// full
 	}
+	eventsDiscardedCount.Inc()
 	return fmt.Errorf("Reached event buffer limit (%d), discarding event: %v", maxBufferedEvents, ev)
 }
 
