@@ -87,6 +87,7 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Tweak request before sending
+	r.Header.Add("X-Forwarded-Host", r.Host) // Used for previews of UI builds at https://1234.build.dev.weave.works
 	r.Host = p.hostAndPort
 	r.URL.Host = p.hostAndPort
 	r.URL.Scheme = "http"
