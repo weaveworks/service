@@ -4,7 +4,4 @@ Click here to log in to Weave Cloud:
 
 This single-use login link is valid for 3 days. You can generate a new one at any time by visiting {{.RootURL}}
 
-You need to run probes on your Docker hosts to send information to Weave
-Cloud. Instructions are available once you've logged in.
-
 Thanks, the Weaveworks team
