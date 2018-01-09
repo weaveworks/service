@@ -70,7 +70,7 @@ func NewEventLogger(fluentHostPort string) (*EventLogger, error) {
 }
 
 func (el *EventLogger) post(e TimedEvent) {
-	if err := el.logger.PostWithTime("events", e.Time, e.Event); err != nil {
+	if err := el.logger.PostWithTime("events", e.Time, *e.Event); err != nil {
 		log.Warnf("EventLogger: failed to log event: %v", e)
 	}
 }
