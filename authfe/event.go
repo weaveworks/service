@@ -5,13 +5,12 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/fluent/fluent-logger-golang/fluent"
 	log "github.com/sirupsen/logrus"
 )
 
-const maxBufferedEvents = 1000
+const maxBufferedEvents = 100
 
 // Event is a user event to be sent to out analytics system
 type Event struct {
@@ -27,16 +26,10 @@ type Event struct {
 	Values         string `msg:"values"`
 }
 
-// TimedEvent tracks the time an event occurred
-type TimedEvent struct {
-	Event *Event
-	Time  time.Time
-}
-
 // EventLogger logs events to the analytics system
 type EventLogger struct {
 	stop   chan struct{}
-	events chan TimedEvent
+	events chan Event
 	logger *fluent.Fluent
 }
 
@@ -62,15 +55,15 @@ func NewEventLogger(fluentHostPort string) (*EventLogger, error) {
 
 	el := &EventLogger{
 		stop:   make(chan struct{}),
-		events: make(chan TimedEvent, maxBufferedEvents),
+		events: make(chan Event, maxBufferedEvents),
 		logger: logger,
 	}
 	go el.logLoop()
 	return el, nil
 }
 
-func (el *EventLogger) post(e TimedEvent) {
-	if err := el.logger.PostWithTime("events", e.Time, e.Event); err != nil {
+func (el *EventLogger) post(e Event) {
+	if err := el.logger.Post("events", e); err != nil {
 		log.Warnf("EventLogger: failed to log event: %v", e)
 	}
 }
@@ -105,24 +98,20 @@ func (el *EventLogger) Close() error {
 }
 
 // LogEvent logs an event to the analytics system
-func (el *EventLogger) LogEvent(ev Event) error {
+func (el *EventLogger) LogEvent(e Event) error {
 	select {
 	case <-el.stop:
-		return fmt.Errorf("Stopping, discarding event: %v", ev)
+		return fmt.Errorf("Stopping, discarding event: %v", e)
 	default:
 	}
-	e := TimedEvent{
-		Event: &ev,
-		Time:  time.Now(),
-	}
+
 	select {
 	case el.events <- e: // Put event in the channel unless it is full
 		return nil
 	default:
 		// full
 	}
-	eventsDiscardedCount.Inc()
-	return fmt.Errorf("Reached event buffer limit (%d), discarding event: %v", maxBufferedEvents, ev)
+	return fmt.Errorf("Reached event buffer limit (%d), discarding event: %v", maxBufferedEvents, e)
 }
 
 // HTTPEventExtractor extracts an event from an http requests indicating whether it should be loggged

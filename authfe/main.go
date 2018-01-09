@@ -42,18 +42,12 @@ var (
 		Name:      "websocket_request_count",
 		Help:      "Total number of websocket requests received.",
 	})
-	eventsDiscardedCount = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: common.PrometheusNamespace,
-		Name:      "bi_events_discarded_count",
-		Help:      "Total number BI events discarded.",
-	})
 	orgPrefix = regexp.MustCompile("^/api/app/[^/]+")
 )
 
 func init() {
 	prometheus.MustRegister(wsConnections)
 	prometheus.MustRegister(wsRequestCount)
-	prometheus.MustRegister(eventsDiscardedCount)
 	prometheus.MustRegister(common.RequestDuration)
 }
 
