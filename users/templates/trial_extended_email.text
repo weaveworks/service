@@ -8,7 +8,9 @@ Your free trial period ends on {{.TrialExpiresAt}}. To continue your subscriptio
 
     {{.BillingURL}}
 
-If you have any questions please contact us via billing@weave.works or through Slack: https://weaveworks.github.io/community-slack/
+To terminate your subscription for ‘{{.OrganizationName}}’, visit the settings pages and delete the instance.
+
+If you have any questions please contact us via billing@weave.works or through Slack: https://slack.weave.works/
 
 Thanks,
 
