@@ -119,7 +119,7 @@ func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {
 	targetConn, err := net.Dial("tcp", address)
 	if err != nil {
 		logging.With(r.Context()).Errorf("proxy: websocket: error dialing backend %q: %v", p.hostAndPort, err)
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
 	defer targetConn.Close()
