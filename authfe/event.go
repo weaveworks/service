@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fluent/fluent-logger-golang/fluent"
@@ -70,8 +71,18 @@ func NewEventLogger(fluentHostPort string) (*EventLogger, error) {
 }
 
 func (el *EventLogger) post(e TimedEvent) {
-	if err := el.logger.PostWithTime("events", e.Time, *e.Event); err != nil {
-		log.Warnf("EventLogger: failed to log event: %v", e)
+	err := el.logger.PostWithTime("events", e.Time, *e.Event)
+	if err != nil {
+		log.Warnf("EventLogger: failed to log event: %v, %v", *e.Event, err)
+		// Fluentd takes a few seconds to start up
+		for i := 0; i < 10 && strings.Contains(err.Error(), "connecting"); i++ {
+			time.Sleep(1 * time.Second)
+			err = el.logger.PostWithTime("events", e.Time, *e.Event)
+			if err == nil {
+				return
+			}
+		}
+		log.Warnf("EventLogger: failed to log event: %v, %v", *e.Event, err)
 	}
 }
 
