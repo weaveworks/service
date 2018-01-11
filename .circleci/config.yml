@@ -30,19 +30,21 @@ jobs:
             git --no-pager diff
             exit 1
           fi
-      - run: |
-          docker login -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD" quay.io
-          IMAGE_TAG="$(./tools/image-tag)"
-          IMAGES=$(make images)
-          for image in ${IMAGES}; do
-            if [[ "$image" == *"build"* ]]; then
-              continue
-            fi
-            tagged_image="${image}:${IMAGE_TAG}"
-            repo_tmp_image="$(echo $tagged_image | sed -E 's|(/weaveworks)/(.*):(.*)|\1/build-tmp:\2-\3|')"
-            docker tag ${tagged_image} ${repo_tmp_image}
-            docker push $repo_tmp_image
-          done
+      - run:
+          name: Upload docker images for use later in workflow
+          command: |
+            docker login -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD" quay.io
+            IMAGE_TAG="$(./tools/image-tag)"
+            IMAGES=$(make images)
+            for image in ${IMAGES}; do
+              if [[ "$image" == *"build"* ]]; then
+                continue
+              fi
+              tagged_image="${image}:${IMAGE_TAG}"
+              repo_tmp_image="$(echo $tagged_image | sed -E 's|(/weaveworks)/(.*):(.*)|\1/build-tmp:\2-\3|')"
+              docker tag ${tagged_image} ${repo_tmp_image}
+              docker push $repo_tmp_image
+            done
   test:
     <<: *defaults
     steps:
@@ -80,37 +82,43 @@ jobs:
     steps:
       - checkout
       - &pull-tmp-images
-        run: |
-          docker login -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD" quay.io
-          # Pull our previously built image, retag it
-          IMAGE_TAG="$(./tools/image-tag)"
-          IMAGES=$(make images)
-          for image in ${IMAGES}; do
-            if [[ "$image" == *"build"* ]]; then
-              continue
-            fi
-            tagged_image="${image}:${IMAGE_TAG}"
-            repo_tmp_image="$(echo $tagged_image | sed -E 's|(/weaveworks)/(.*):(.*)|\1/build-tmp:\2-\3|')"
-            docker pull $repo_tmp_image
-            docker tag ${repo_tmp_image} ${tagged_image}
-            docker image rm ${repo_tmp_image}
-          done
-      - run: |
-          set -o pipefail
-          export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/'$CIRCLE_BRANCH'?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=1' | jq -r '.[0].vcs_revision')
-          echo Last successful build was commit $LAST_BUILD_COMMIT
-          ./push-images --if-changed-since $LAST_BUILD_COMMIT
+        run:
+          name: Download docker images build earlier in workflow
+          command: |
+            docker login -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD" quay.io
+            # Pull our previously built image, retag it
+            IMAGE_TAG="$(./tools/image-tag)"
+            IMAGES=$(make images)
+            for image in ${IMAGES}; do
+              if [[ "$image" == *"build"* ]]; then
+                continue
+              fi
+              tagged_image="${image}:${IMAGE_TAG}"
+              repo_tmp_image="$(echo $tagged_image | sed -E 's|(/weaveworks)/(.*):(.*)|\1/build-tmp:\2-\3|')"
+              docker pull $repo_tmp_image
+              docker tag ${repo_tmp_image} ${tagged_image}
+              docker image rm ${repo_tmp_image}
+            done
+      - run:
+          name: Publish docker images to final repository
+          command: |
+            set -o pipefail
+            export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/'$CIRCLE_BRANCH'?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=1' | jq -r '.[0].vcs_revision')
+            echo Last successful build was commit $LAST_BUILD_COMMIT
+            ./push-images --if-changed-since $LAST_BUILD_COMMIT
 
   dry-run-upload:
     <<: *defaults
     steps:
       - checkout
       - <<: *pull-tmp-images
-      - run: |
-          set -o pipefail
-          export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/master?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=1' | jq -r '.[0].vcs_revision')
-          echo Last successful build was commit $LAST_BUILD_COMMIT
-          ./push-images --dry-run --if-changed-since $LAST_BUILD_COMMIT
+      - run:
+          name: Dry-run of publishing docker images
+          command: |
+            set -o pipefail
+            export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/master?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=1' | jq -r '.[0].vcs_revision')
+            echo Last successful build was commit $LAST_BUILD_COMMIT
+            ./push-images --dry-run --if-changed-since $LAST_BUILD_COMMIT
 
 workflows:
   version: 2
