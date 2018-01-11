@@ -45,6 +45,7 @@ type Engine interface {
 	Lookup(name string) (Executor, error)
 	Bytes(name string, data interface{}) ([]byte, error)
 	QuietBytes(name string, data interface{}) []byte
+	EmbedHTML(name string, wrapper string, title string, data interface{}) []byte
 }
 
 type extensionsTemplateEngine struct {
@@ -85,4 +86,26 @@ func (l *extensionsTemplateEngine) QuietBytes(name string, data interface{}) []b
 		log.Error(err)
 	}
 	return b
+}
+
+// Embed HTML content in a wrapper HTML page. This keeps emails looking consistent.
+func (l *extensionsTemplateEngine) EmbedHTML(name, wrapper, title string, data interface{}) []byte {
+	content, err := l.Bytes(name, data)
+
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+
+	h, err := l.Bytes(wrapper, map[string]html.HTML{
+		"Content": html.HTML(content),
+		"Title":   html.HTML(title),
+	})
+
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+
+	return h
 }

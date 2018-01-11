@@ -25,6 +25,7 @@ type SMTPEmailer struct {
 
 // Date format to use in email templates
 const dateFormat = "January 2 2006"
+const emailWrapperFilename = "wrapper.html"
 
 // Takes a uri of the form smtp://username:password@hostname:port
 func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
@@ -58,7 +59,7 @@ func (s SMTPEmailer) LoginEmail(u *users.User, token string, queryParams map[str
 		"RootURL":  s.Domain,
 	}
 	e.Text = s.Templates.QuietBytes("login_email.text", data)
-	e.HTML = s.Templates.QuietBytes("login_email.html", data)
+	e.HTML = s.Templates.EmbedHTML("login_email.html", emailWrapperFilename, e.Subject, data)
 	return s.Sender(e)
 }
 
@@ -75,7 +76,7 @@ func (s SMTPEmailer) InviteEmail(inviter, invited *users.User, orgExternalID, or
 		"OrganizationName": orgName,
 	}
 	e.Text = s.Templates.QuietBytes("invite_email.text", data)
-	e.HTML = s.Templates.QuietBytes("invite_email.html", data)
+	e.HTML = s.Templates.EmbedHTML("invite_email.html", emailWrapperFilename, e.Subject, data)
 	return s.Sender(e)
 }
 
@@ -91,7 +92,7 @@ func (s SMTPEmailer) GrantAccessEmail(inviter, invited *users.User, orgExternalI
 		"OrganizationURL":  organizationURL(s.Domain, orgExternalID),
 	}
 	e.Text = s.Templates.QuietBytes("grant_access_email.text", data)
-	e.HTML = s.Templates.QuietBytes("grant_access_email.html", data)
+	e.HTML = s.Templates.EmbedHTML("grant_access_email.html", emailWrapperFilename, e.Subject, data)
 	return s.Sender(e)
 }
 
@@ -109,7 +110,7 @@ func (s SMTPEmailer) TrialPendingExpiryEmail(members []*users.User, orgExternalI
 		"TrialLeft":        trialLeft(trialExpiresAt),
 	}
 	e.Text = s.Templates.QuietBytes("trial_pending_expiry_email.text", data)
-	e.HTML = s.Templates.QuietBytes("trial_pending_expiry_email.html", data)
+	e.HTML = s.Templates.EmbedHTML("trial_pending_expiry_email.html", emailWrapperFilename, e.Subject, data)
 
 	return s.Sender(e)
 }
@@ -126,7 +127,7 @@ func (s SMTPEmailer) TrialExpiredEmail(members []*users.User, orgExternalID, org
 		"BillingURL":       billingURL(s.Domain, orgExternalID),
 	}
 	e.Text = s.Templates.QuietBytes("trial_expired_email.text", data)
-	e.HTML = s.Templates.QuietBytes("trial_expired_email.html", data)
+	e.HTML = s.Templates.EmbedHTML("trial_expired_email.html", emailWrapperFilename, e.Subject, data)
 
 	return s.Sender(e)
 }
@@ -146,7 +147,7 @@ func (s SMTPEmailer) TrialExtendedEmail(members []*users.User, orgExternalID, or
 	e.To = collectEmails(members)
 	e.Subject = fmt.Sprintf("%s left of your free trial", left)
 	e.Text = s.Templates.QuietBytes("trial_extended_email.text", data)
-	e.HTML = s.Templates.QuietBytes("trial_extended_email.html", data)
+	e.HTML = s.Templates.EmbedHTML("trial_extended_email.html", emailWrapperFilename, e.Subject, data)
 
 	return s.Sender(e)
 }
