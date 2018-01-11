@@ -3,7 +3,6 @@ defaults: &defaults
   machine:
     docker_layer_caching: true
   working_directory: ~/weaveworks/service
-  shell: /bin/bash --login
 jobs:
   lint:
     <<: *defaults
