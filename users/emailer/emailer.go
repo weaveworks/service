@@ -36,7 +36,7 @@ func MustNew(emailURI, fromAddress string, templates templates.Engine, domain st
 	var sender func(*email.Email) error
 	u, err := url.Parse(emailURI)
 	if err != nil {
-		log.Fatal(fmt.Errorf("Error parsing -email-uri: %s", err))
+		log.Fatalf("Error parsing -email-uri: %s", err)
 	}
 	switch u.Scheme {
 	case "smtp":
@@ -91,7 +91,7 @@ func billingURL(domain, orgExternalID string) string {
 }
 
 func collectEmails(users []*users.User) []string {
-	e := []string{}
+	var e []string
 	for _, u := range users {
 		e = append(e, u.Email)
 	}
