@@ -24,6 +24,15 @@ import (
 	"github.com/weaveworks/service/flux-api/service"
 )
 
+// Messages for various states of the git repo sync not being ready to
+// go yet
+const (
+	GitNotConfigured = "No git repository has been supplied yet."
+	GitNotCloned     = "The git repository has not yet been successfully cloned. If this persists, check the git URL, branch, and that the deploy key is installed."
+	GitNotWritable   = "The git repository has been cloned, but may not be writable. If this persists, check that the deploy key has read/write permission."
+	GitNotSynced     = "The git repository has not yet been synced. If this persists, that you have supplied a git URL, and installed a deploy key with read/write permission."
+)
+
 // Server is a flux-api server.
 type Server struct {
 	version             string
@@ -103,11 +112,29 @@ func (s *Server) Status(ctx context.Context, withPlatform bool) (res service.Sta
 				return res, err
 			}
 
-			_, err = inst.Platform.SyncStatus(ctx, "HEAD")
-			if err != nil {
-				res.Git.Error = err.Error()
-			} else {
+			switch res.Git.Config.Status {
+			case flux.RepoNoConfig:
+				res.Git.Configured = false
+				res.Git.Error = GitNotConfigured
+			case flux.RepoNew:
+				res.Git.Configured = false
+				res.Git.Error = GitNotCloned
+			case flux.RepoCloned:
+				res.Git.Configured = false
+				res.Git.Error = GitNotWritable
+			case flux.RepoReady:
 				res.Git.Configured = true
+				res.Git.Error = ""
+			default:
+				// most likely, an old daemon connecting; these don't
+				// report the git readiness. Checking the sync status
+				// will give some indication of where it's got up to.
+				_, err = inst.Platform.SyncStatus(ctx, "HEAD")
+				if err != nil {
+					res.Git.Error = GitNotSynced
+				} else {
+					res.Git.Configured = true
+				}
 			}
 		}
 	}
