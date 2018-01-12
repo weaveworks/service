@@ -48,7 +48,7 @@ func TestSlackNotifier(t *testing.T) {
 
 	// compile a result output to compare to
 	var resultOut bytes.Buffer
-	update.PrintResults(&resultOut, release.Result, false)
+	update.PrintResults(&resultOut, release.Result, 1)
 	expected := map[string]interface{}{
 		"username": "user1",
 		"text":     "Release all latest to default/helloworld.",

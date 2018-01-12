@@ -186,7 +186,7 @@ func slackNotifySync(config config.Notifier, sync *event.Event) error {
 
 func slackResultAttachment(res update.Result) slackAttachment {
 	buf := &bytes.Buffer{}
-	update.PrintResults(buf, res, false)
+	update.PrintResults(buf, res, 1)
 	c := "good"
 	if res.Error() != "" {
 		c = "warning"
