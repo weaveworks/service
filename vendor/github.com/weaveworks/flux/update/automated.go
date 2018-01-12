@@ -25,13 +25,12 @@ func (a *Automated) Add(service flux.ResourceID, container cluster.Container, im
 }
 
 func (a *Automated) CalculateRelease(rc ReleaseContext, logger log.Logger) ([]*ControllerUpdate, Result, error) {
-	filters, err := a.filters(rc)
-	if err != nil {
-		return nil, nil, err
+	prefilters := []ControllerFilter{
+		&IncludeFilter{a.serviceIDs()},
 	}
 
 	result := Result{}
-	updates, err := rc.SelectServices(result, filters...)
+	updates, err := rc.SelectServices(result, prefilters, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -73,12 +72,6 @@ func (a *Automated) Images() []image.Ref {
 	return images
 }
 
-func (a *Automated) filters(rc ReleaseContext) ([]ControllerFilter, error) {
-	return []ControllerFilter{
-		&IncludeFilter{a.serviceIDs()},
-	}, nil
-}
-
 func (a *Automated) markSkipped(results Result) {
 	for _, v := range a.serviceIDs() {
 		if _, ok := results[v]; !ok {
@@ -117,7 +110,8 @@ func (a *Automated) calculateImageUpdates(rc ReleaseContext, candidates []*Contr
 					continue
 				}
 
-				u.ManifestBytes, err = rc.Manifests().UpdateDefinition(u.ManifestBytes, container.Name, change.ImageID)
+				newImageID := currentImageID.WithNewTag(change.ImageID.Tag)
+				u.ManifestBytes, err = rc.Manifests().UpdateDefinition(u.ManifestBytes, container.Name, newImageID)
 				if err != nil {
 					return nil, err
 				}
@@ -125,7 +119,7 @@ func (a *Automated) calculateImageUpdates(rc ReleaseContext, candidates []*Contr
 				containerUpdates = append(containerUpdates, ContainerUpdate{
 					Container: container.Name,
 					Current:   currentImageID,
-					Target:    change.ImageID,
+					Target:    newImageID,
 				})
 			}
 		}
