@@ -106,7 +106,7 @@ jobs:
           name: Publish docker images to final repository
           command: |
             set -o pipefail
-            export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/'$CIRCLE_BRANCH'?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=1' | jq -r '.[0].vcs_revision')
+            export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/'$CIRCLE_BRANCH'?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=50' | jq -r 'map(select(.build_parameters.CIRCLE_JOB == "upload")) | .[0].vcs_revision')
             echo Last successful build was commit $LAST_BUILD_COMMIT
             ./push-images --if-changed-since $LAST_BUILD_COMMIT
 
@@ -119,7 +119,7 @@ jobs:
           name: Dry-run of publishing docker images
           command: |
             set -o pipefail
-            export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/master?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=1' | jq -r '.[0].vcs_revision')
+            export LAST_BUILD_COMMIT=$(curl -sS 'https://circleci.com/api/v1/project/weaveworks/service/tree/master?circle-token='$CIRCLE_TOKEN'&filter=successful&limit=50' | jq -r 'map(select(.build_parameters.CIRCLE_JOB == "upload")) | .[0].vcs_revision')
             echo Last successful build was commit $LAST_BUILD_COMMIT
             ./push-images --dry-run --if-changed-since $LAST_BUILD_COMMIT
 
