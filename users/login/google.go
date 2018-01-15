@@ -7,9 +7,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/common/gcp"
+	"github.com/weaveworks/service/common/gcp/gke"
 	"golang.org/x/oauth2"
 	googleOauth "golang.org/x/oauth2/google"
 	plus "google.golang.org/api/plus/v1"
@@ -66,7 +68,11 @@ func addGCPSubscriptionScope(oauthURL string) string {
 		return oauthURL
 	}
 	q := u.Query()
-	q.Set("scope", q.Get("scope")+" "+gcp.OAuthScopeCloudBillingPartnerSubscriptionsRO)
+	q.Set("scope", strings.Join([]string{
+		q.Get("scope"),
+		gcp.OAuthScopeCloudBillingPartnerSubscriptionsRO,
+		gke.OAuthScopeCloudPlatform,
+	}, " "))
 	u.RawQuery = q.Encode()
 	return u.String()
 }
