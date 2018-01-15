@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/weaveworks/service/common/gcp"
 	"golang.org/x/oauth2"
 	googleOauth "golang.org/x/oauth2/google"
 	plus "google.golang.org/api/plus/v1"
@@ -65,7 +66,7 @@ func addGCPSubscriptionScope(oauthURL string) string {
 		return oauthURL
 	}
 	q := u.Query()
-	q.Set("scope", q.Get("scope")+" https://www.googleapis.com/auth/cloud-billing-partner-subscriptions.readonly")
+	q.Set("scope", q.Get("scope")+" "+gcp.OAuthScopeCloudBillingPartnerSubscriptionsRO)
 	u.RawQuery = q.Encode()
 	return u.String()
 }
