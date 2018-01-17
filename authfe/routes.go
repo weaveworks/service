@@ -475,9 +475,13 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	operationNameFunc := nethttp.OperationNameFunc(func(r *http.Request) string {
 		return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 	})
+	originChecker := originCheckerMiddleware{
+		allowedOrigin:         c.targetOrigin,
+		allowedOriginSuffixes: c.allowedOriginSuffixes,
+	}
 	return middleware.Merge(
 		AuthHeaderStrippingMiddleware{},
-		originCheckerMiddleware{expectedTarget: c.targetOrigin},
+		originChecker,
 		csrfTokenVerifier{exemptPrefixes: csrfExemptPrefixes, secure: c.secureCookie},
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler, operationNameFunc)
@@ -564,11 +568,12 @@ func injectTokenInHTMLResponses(next http.Handler) http.Handler {
 // Checks Origin and Referer headers against the expected target of the site
 // to protect against CSRF attacks.
 type originCheckerMiddleware struct {
-	expectedTarget string
+	allowedOrigin         string   // The expected origin under normal operation
+	allowedOriginSuffixes []string // permitted origin suffixes e.g. .build.dev.weave.works
 }
 
 func (o originCheckerMiddleware) Wrap(next http.Handler) http.Handler {
-	if o.expectedTarget == "" {
+	if o.allowedOrigin == "" && len(o.allowedOriginSuffixes) == 0 {
 		// Nothing to check against
 		return next
 	}
@@ -580,7 +585,17 @@ func (o originCheckerMiddleware) Wrap(next http.Handler) http.Handler {
 				logging.With(r.Context()).Warnf("originCheckerMiddleware: Cannot parse %s header: %v", headerName, err)
 				return false
 			}
-			return url.Host == o.expectedTarget
+			if o.allowedOrigin != "" && url.Host == o.allowedOrigin {
+				return true
+			}
+			if o.allowedOriginSuffixes != nil {
+				for _, suffix := range o.allowedOriginSuffixes {
+					if strings.HasSuffix(url.Host, suffix) {
+						return true
+					}
+				}
+			}
+			return false
 		}
 		// If the header is missing we intentionally consider it a match
 		// Some legitimate requests come without headers, e.g: Scope probe requests and non-js browser requests
@@ -589,7 +604,7 @@ func (o originCheckerMiddleware) Wrap(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logging.With(r.Context()).Debugf("originCheckerMiddleware: URL %s, Method %s, Origin: %q, Referer: %q, expectedTarget: %q",
-			r.URL, r.Method, r.Header.Get("Origin"), r.Referer(), o.expectedTarget)
+			r.URL, r.Method, r.Header.Get("Origin"), r.Referer(), o.allowedOrigin)
 
 		// Verify that origin or referer headers (when present) match the expected target
 		if !isSafeMethod(r.Method) && (!headerMatchesTarget("Origin", r) || !headerMatchesTarget("Referer", r)) {
