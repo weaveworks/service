@@ -19,6 +19,7 @@ import (
 	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
+	"github.com/weaveworks/service/users/marketing"
 	"github.com/weaveworks/service/users/tokens"
 )
 
@@ -235,7 +236,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 
 func signupSource(extraState map[string]string) string {
 	if extraState["gcpAccountId"] != "" {
-		return "gcp"
+		return marketing.SignupSourceGCP
 	}
 	return ""
 }
