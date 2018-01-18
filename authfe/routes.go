@@ -18,6 +18,7 @@ import (
 	"github.com/justinas/nosurf"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
+	logrus "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/middleware"
@@ -603,15 +604,25 @@ func (o originCheckerMiddleware) Wrap(next http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logging.With(r.Context()).Debugf("originCheckerMiddleware: URL %s, Method %s, Origin: %q, Referer: %q, expectedTarget: %q",
-			r.URL, r.Method, r.Header.Get("Origin"), r.Referer(), o.allowedOrigin)
-
 		// Verify that origin or referer headers (when present) match the expected target
-		if !isSafeMethod(r.Method) && (!headerMatchesTarget("Origin", r) || !headerMatchesTarget("Referer", r)) {
+		permitted := isSafeMethod(r.Method) || (headerMatchesTarget("Origin", r) && !headerMatchesTarget("Referer", r))
+
+		logging.With(r.Context()).WithFields(
+			logrus.Fields{
+				"URL":                   r.URL,
+				"Method":                r.Method,
+				"Origin":                r.Header.Get("Origin"),
+				"Referer":               r.Referer(),
+				"allowedOrigin":         o.allowedOrigin,
+				"allowedOriginSuffixes": o.allowedOriginSuffixes,
+				"Permitted":             permitted,
+			}).Debugf("originCheckerMiddleware checked request")
+
+		if permitted {
+			next.ServeHTTP(w, r)
+		} else {
 			w.WriteHeader(http.StatusForbidden)
-			return
 		}
-		next.ServeHTTP(w, r)
 	})
 }
 
