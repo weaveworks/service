@@ -605,7 +605,7 @@ func (o originCheckerMiddleware) Wrap(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify that origin or referer headers (when present) match the expected target
-		permitted := isSafeMethod(r.Method) || (headerMatchesTarget("Origin", r) && !headerMatchesTarget("Referer", r))
+		permitted := isSafeMethod(r.Method) || (headerMatchesTarget("Origin", r) && headerMatchesTarget("Referer", r))
 
 		logging.With(r.Context()).WithFields(
 			logrus.Fields{
