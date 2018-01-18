@@ -310,7 +310,7 @@ func (a *API) becomeUser(w http.ResponseWriter, r *http.Request) {
 func (a *API) getUserToken(w http.ResponseWriter, r *http.Request) {
 	// Get User ID from path
 	vars := mux.Vars(r)
-	userID, ok := vars["userID"]
+	userIDOrEmail, ok := vars["userID"]
 	if !ok {
 		renderError(w, r, users.ErrProviderParameters)
 		return
@@ -322,10 +322,22 @@ func (a *API) getUserToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Does user exist?
-	_, err := a.db.FindUserByID(r.Context(), userID)
-	if err != nil {
-		renderError(w, r, err)
-		return
+	userID := ""
+	user, err := a.db.FindUserByID(r.Context(), userIDOrEmail)
+	if err == nil {
+		userID = user.ID
+	} else {
+		if err == users.ErrNotFound {
+			user, err := a.db.FindUserByEmail(r.Context(), userIDOrEmail)
+			if err != nil {
+				renderError(w, r, err)
+				return
+			}
+			userID = user.ID
+		} else {
+			renderError(w, r, err)
+			return
+		}
 	}
 
 	// Get logins for user
