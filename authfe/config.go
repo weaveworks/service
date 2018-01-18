@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/weaveworks/service/common"
 	"net/http"
 	"os"
 	"time"
@@ -26,12 +25,11 @@ type Config struct {
 	stopTimeout           time.Duration
 
 	// Security-related flags
-	hstsMaxAge            int
-	redirectHTTPS         bool
-	secureCookie          bool
-	sendCSPHeader         bool
-	targetOrigin          string
-	allowedOriginSuffixes common.ArrayFlags
+	hstsMaxAge    int
+	redirectHTTPS bool
+	secureCookie  bool
+	sendCSPHeader bool
+	targetOrigin  string
 
 	// User-visible services - keep alphabetically sorted pls
 	billingAPIHost         proxyConfig
@@ -155,7 +153,6 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.BoolVar(&c.secureCookie, "secure-cookie", false, "Send CRSF cookie as HTTPS only.")
 	f.BoolVar(&c.sendCSPHeader, "send-csp-header", false, "Send \"Content-Security-Policy: default-src https:\" in all responses.")
 	f.StringVar(&c.targetOrigin, "hostname", "", "Hostname through which this server is accessed, for same-origin checks (CSRF protection)")
-	f.Var(&c.allowedOriginSuffixes, "allowed-origin-suffix", "Hostname suffix to permit through same-origin checks (CSRF protection).")
 
 	for name, proxyCfg := range c.proxies() {
 		proxyCfg.RegisterFlags(name, f)

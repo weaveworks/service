@@ -73,13 +73,6 @@ func main() {
 		return
 	}
 
-	// Guard against accidentally disabling CSRF protection
-	for _, suffix := range cfg.allowedOriginSuffixes {
-		if suffix == "" {
-			log.Fatalf("Empty origin suffix not permitted")
-		}
-	}
-
 	// Initialize all the proxies
 	for name, proxyCfg := range cfg.proxies() {
 		if proxyCfg.hostAndPort == "" && proxyCfg.grpcHost == "" {
