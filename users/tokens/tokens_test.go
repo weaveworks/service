@@ -18,6 +18,7 @@ func Test_ExtractToken(t *testing.T) {
 		{``, "", false},
 		{`Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==`, "open sesame", true},
 		{`Scope-Probe token=oiu38ufoialsmlsi913`, "oiu38ufoialsmlsi913", true},
+		{`Bearer dga91iexj5c751hnnyhhnc9y5a1q19ta`, "dga91iexj5c751hnnyhhnc9y5a1q19ta", true},
 		{`Digest username=Mufasa,qop=auth`, "", false},
 		{`APIKey apiKeyHere`, "", false},
 	}

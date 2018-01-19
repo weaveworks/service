@@ -11,6 +11,7 @@ import (
 const (
 	AuthHeaderName = "Authorization"
 	Prefix         = "Scope-Probe token="
+	BearerPrefix   = "Bearer "
 )
 
 var (
@@ -41,6 +42,13 @@ func ExtractToken(r *http.Request) (string, bool) {
 	authHeader := r.Header.Get(AuthHeaderName)
 	if strings.HasPrefix(authHeader, Prefix) {
 		return strings.TrimPrefix(authHeader, Prefix), true
+	}
+
+	// Prometheus can use a bearer token for remote_writes. We use bearer_token_file
+	// as it allows us to not encode the instance token in the prometheus.
+	// https://prometheus.io/docs/prometheus/1.8/configuration/configuration/#<remote_write>
+	if strings.HasPrefix(authHeader, BearerPrefix) {
+		return strings.TrimPrefix(authHeader, BearerPrefix), true
 	}
 
 	// To allow grafana to talk to the service, we also accept basic auth,
