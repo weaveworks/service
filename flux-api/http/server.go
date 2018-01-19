@@ -32,7 +32,6 @@ import (
 	"github.com/weaveworks/flux/remote/rpc"
 	"github.com/weaveworks/flux/update"
 	"github.com/weaveworks/service/flux-api/api"
-	"github.com/weaveworks/service/flux-api/config"
 	"github.com/weaveworks/service/flux-api/integrations/github"
 	"github.com/weaveworks/service/flux-api/service"
 )
@@ -55,9 +54,6 @@ func NewServiceRouter() *mux.Router {
 	// V6 service routes
 	r.NewRoute().Name("History").Methods("GET").Path("/v6/history").Queries("service", "{service}")
 	r.NewRoute().Name("Status").Methods("GET").Path("/v6/status")
-	r.NewRoute().Name("GetConfig").Methods("GET").Path("/v6/config")
-	r.NewRoute().Name("SetConfig").Methods("POST").Path("/v6/config")
-	r.NewRoute().Name("PatchConfig").Methods("PATCH").Path("/v6/config")
 	r.NewRoute().Name("PostIntegrationsGithub").Methods("POST").Path("/v6/integrations/github").Queries("owner", "{owner}", "repository", "{repository}")
 	r.NewRoute().Name("IsConnected").Methods("HEAD", "GET").Path("/v6/ping")
 	r.NewRoute().Name("DockerHubImageNotify").Methods("POST").Path("/v6/integrations/dockerhub/image").Queries("instance", "{instance}")
@@ -314,52 +310,6 @@ func (s httpService) History(w http.ResponseWriter, r *http.Request) {
 	}
 
 	transport.JSONResponse(w, r, h)
-}
-
-func (s httpService) GetConfig(w http.ResponseWriter, r *http.Request) {
-	ctx := getRequestContext(r)
-	fingerprint := r.FormValue("fingerprint")
-	config, err := s.service.GetConfig(ctx, fingerprint)
-	if err != nil {
-		transport.ErrorResponse(w, r, err)
-		return
-	}
-
-	transport.JSONResponse(w, r, config)
-}
-
-func (s httpService) SetConfig(w http.ResponseWriter, r *http.Request) {
-	ctx := getRequestContext(r)
-
-	var config config.Instance
-	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	if err := s.service.SetConfig(ctx, config); err != nil {
-		transport.ErrorResponse(w, r, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-}
-
-func (s httpService) PatchConfig(w http.ResponseWriter, r *http.Request) {
-	ctx := getRequestContext(r)
-
-	var patch config.Patch
-	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	if err := s.service.PatchConfig(ctx, patch); err != nil {
-		transport.ErrorResponse(w, r, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func (s httpService) PostIntegrationsGithub(w http.ResponseWriter, r *http.Request) {
