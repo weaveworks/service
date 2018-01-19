@@ -32,7 +32,6 @@ import (
 	"github.com/weaveworks/flux/remote/rpc"
 	"github.com/weaveworks/flux/update"
 	"github.com/weaveworks/service/flux-api/api"
-	"github.com/weaveworks/service/flux-api/config"
 	"github.com/weaveworks/service/flux-api/integrations/github"
 	"github.com/weaveworks/service/flux-api/service"
 )
@@ -44,32 +43,17 @@ const InstanceIDHeaderKey = "X-Scope-OrgID"
 func NewServiceRouter() *mux.Router {
 	r := transport.NewAPIRouter()
 
-	transport.DeprecateVersions(r, "v1", "v2")
-	transport.UpstreamRoutes(r)
+	// v1-v5 are deprecated. Older daemons may retry connections
+	// continuously, so to rate limit them, we have a special handler
+	// that delays the response.
+	r.NewRoute().Name("RegisterDeprecated").Methods("GET").Path("/{vsn:v[1-5]}/daemon")
 
-	// Backwards compatibility: we only expect the web UI to use these
-	// routes, until it is updated to use v6.
-	r.NewRoute().Name("ListServicesV3").Methods("GET").Path("/v3/services").Queries("namespace", "{namespace}") // optional namespace!
-	r.NewRoute().Name("ListImagesV3").Methods("GET").Path("/v3/images").Queries("service", "{service}")
-	r.NewRoute().Name("UpdatePoliciesV4").Methods("PATCH").Path("/v4/policies")
-	r.NewRoute().Name("HistoryV3").Methods("GET").Path("/v3/history").Queries("service", "{service}")
-	r.NewRoute().Name("StatusV3").Methods("GET").Path("/v3/status")
-	r.NewRoute().Name("GetConfigV4").Methods("GET").Path("/v4/config")
-	r.NewRoute().Name("SetConfigV4").Methods("POST").Path("/v4/config")
-	r.NewRoute().Name("PatchConfigV4").Methods("PATCH").Path("/v4/config")
-	r.NewRoute().Name("ExportV5").Methods("HEAD", "GET").Path("/v5/export")
-	r.NewRoute().Name("PostIntegrationsGithubV5").Methods("POST").Path("/v5/integrations/github").Queries("owner", "{owner}", "repository", "{repository}")
-	// NB no old IsConnected route, as we expect old requests are
-	// forwarded to an instance of the old service, and we want to be
-	// able to sniff the daemon version depending on which ping
-	// responds.
+	transport.DeprecateVersions(r, "v1", "v2", "v3", "v4", "v5")
+	transport.UpstreamRoutes(r)
 
 	// V6 service routes
 	r.NewRoute().Name("History").Methods("GET").Path("/v6/history").Queries("service", "{service}")
 	r.NewRoute().Name("Status").Methods("GET").Path("/v6/status")
-	r.NewRoute().Name("GetConfig").Methods("GET").Path("/v6/config")
-	r.NewRoute().Name("SetConfig").Methods("POST").Path("/v6/config")
-	r.NewRoute().Name("PatchConfig").Methods("PATCH").Path("/v6/config")
 	r.NewRoute().Name("PostIntegrationsGithub").Methods("POST").Path("/v6/integrations/github").Queries("owner", "{owner}", "repository", "{repository}")
 	r.NewRoute().Name("IsConnected").Methods("HEAD", "GET").Path("/v6/ping")
 	r.NewRoute().Name("DockerHubImageNotify").Methods("POST").Path("/v6/integrations/dockerhub/image").Queries("instance", "{instance}")
@@ -85,44 +69,37 @@ func NewServiceRouter() *mux.Router {
 	return r
 }
 
+func registerDaemonDeprecated(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(5 * time.Second)
+	transport.WriteError(w, r, http.StatusGone, transport.ErrorDeprecated)
+}
+
 // NewHandler attaches an api.Service to a flux-api router.
 func NewHandler(s api.Service, r *mux.Router, logger log.Logger) http.Handler {
 	handle := httpService{s}
 	for method, handlerMethod := range map[string]http.HandlerFunc{
-		"ListServices":             handle.ListServices,
-		"ListServicesV3":           handle.ListServices,
-		"ListImages":               handle.ListImages,
-		"ListImagesV3":             handle.ListImages,
-		"UpdateImages":             handle.UpdateImages,
-		"UpdatePolicies":           handle.UpdatePolicies,
-		"UpdatePoliciesV4":         handle.UpdatePolicies,
-		"LogEvent":                 handle.LogEvent,
-		"History":                  handle.History,
-		"HistoryV3":                handle.History,
-		"Status":                   handle.Status,
-		"StatusV3":                 handle.Status,
-		"GetConfigV4":              handle.GetConfig,
-		"GetConfig":                handle.GetConfig,
-		"SetConfig":                handle.SetConfig,
-		"SetConfigV4":              handle.SetConfig,
-		"PatchConfig":              handle.PatchConfig,
-		"PatchConfigV4":            handle.PatchConfig,
-		"PostIntegrationsGithub":   handle.PostIntegrationsGithub,
-		"PostIntegrationsGithubV5": handle.PostIntegrationsGithub,
-		"Export":                   handle.Export,
-		"ExportV5":                 handle.Export,
-		"RegisterDaemonV6":         handle.RegisterV6,
-		"RegisterDaemonV7":         handle.RegisterV7,
-		"RegisterDaemonV8":         handle.RegisterV8,
-		"RegisterDaemonV9":         handle.RegisterV9,
-		"IsConnected":              handle.IsConnected,
-		"JobStatus":                handle.JobStatus,
-		"SyncStatus":               handle.SyncStatus,
-		"GetPublicSSHKey":          handle.GetPublicSSHKey,
-		"RegeneratePublicSSHKey":   handle.RegeneratePublicSSHKey,
-		"DockerHubImageNotify":     handle.DockerHubImageNotify,
-		"QuayImageNotify":          handle.QuayImageNotify,
-		"GitPushNotify":            handle.GitPushNotify,
+		"RegisterDeprecated":     registerDaemonDeprecated,
+		"ListServices":           handle.ListServices,
+		"ListImages":             handle.ListImages,
+		"UpdateImages":           handle.UpdateImages,
+		"UpdatePolicies":         handle.UpdatePolicies,
+		"LogEvent":               handle.LogEvent,
+		"History":                handle.History,
+		"Status":                 handle.Status,
+		"PostIntegrationsGithub": handle.PostIntegrationsGithub,
+		"Export":                 handle.Export,
+		"RegisterDaemonV6":       handle.RegisterV6,
+		"RegisterDaemonV7":       handle.RegisterV7,
+		"RegisterDaemonV8":       handle.RegisterV8,
+		"RegisterDaemonV9":       handle.RegisterV9,
+		"IsConnected":            handle.IsConnected,
+		"JobStatus":              handle.JobStatus,
+		"SyncStatus":             handle.SyncStatus,
+		"GetPublicSSHKey":        handle.GetPublicSSHKey,
+		"RegeneratePublicSSHKey": handle.RegeneratePublicSSHKey,
+		"DockerHubImageNotify":   handle.DockerHubImageNotify,
+		"QuayImageNotify":        handle.QuayImageNotify,
+		"GitPushNotify":          handle.GitPushNotify,
 	} {
 		handler := logging(handlerMethod, log.With(logger, "method", method))
 		r.Get(method).Handler(handler)
@@ -333,52 +310,6 @@ func (s httpService) History(w http.ResponseWriter, r *http.Request) {
 	}
 
 	transport.JSONResponse(w, r, h)
-}
-
-func (s httpService) GetConfig(w http.ResponseWriter, r *http.Request) {
-	ctx := getRequestContext(r)
-	fingerprint := r.FormValue("fingerprint")
-	config, err := s.service.GetConfig(ctx, fingerprint)
-	if err != nil {
-		transport.ErrorResponse(w, r, err)
-		return
-	}
-
-	transport.JSONResponse(w, r, config)
-}
-
-func (s httpService) SetConfig(w http.ResponseWriter, r *http.Request) {
-	ctx := getRequestContext(r)
-
-	var config config.Instance
-	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	if err := s.service.SetConfig(ctx, config); err != nil {
-		transport.ErrorResponse(w, r, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-}
-
-func (s httpService) PatchConfig(w http.ResponseWriter, r *http.Request) {
-	ctx := getRequestContext(r)
-
-	var patch config.Patch
-	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	if err := s.service.PatchConfig(ctx, patch); err != nil {
-		transport.ErrorResponse(w, r, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func (s httpService) PostIntegrationsGithub(w http.ResponseWriter, r *http.Request) {
