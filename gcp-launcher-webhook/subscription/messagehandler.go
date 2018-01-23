@@ -10,8 +10,8 @@ import (
 
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/common/gcp/pubsub/dto"
+	common_grpc "github.com/weaveworks/service/common/grpc"
 	"github.com/weaveworks/service/common/orgs"
-	common_users "github.com/weaveworks/service/common/users"
 	"github.com/weaveworks/service/users"
 )
 
@@ -38,7 +38,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 		// If the account does not yet exist, this means the user hasn't gone through the signup.
 		// It is safe to ACK this as once the account becomes ready, we fetch the current subscription
 		// and update our data accordingly.
-		if common_users.IsGRPCStatusErrorCode(err, http.StatusNotFound) {
+		if common_grpc.IsGRPCStatusErrorCode(err, http.StatusNotFound) {
 			logger.Infof("Account %v has not yet finished signing up, ignoring message", externalAccountID)
 			return nil // ACK
 		}

@@ -1,21 +1,18 @@
 package users
 
 import (
-	"context"
 	"flag"
-	"strconv"
 
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/mwitkow/go-grpc-middleware"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
-	oldcontext "golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 
 	"github.com/weaveworks/common/httpgrpc/server"
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/service/common"
+	common_grpc "github.com/weaveworks/service/common/grpc"
 	"github.com/weaveworks/service/users"
 )
 
@@ -62,8 +59,8 @@ func NewClient(cfg Config) (*Client, error) {
 		grpc.WithInsecure(),
 		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(
 			otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer()),
-			errorInterceptor,
-			monitoringInterceptor,
+			common_grpc.NewErrorInterceptor(UsersErrorCode),
+			common_grpc.NewMetricsInterceptor(durationCollector),
 		)),
 	)
 	conn, err := grpc.Dial(address, dialOptions...)
@@ -71,31 +68,4 @@ func NewClient(cfg Config) (*Client, error) {
 		return nil, err
 	}
 	return &Client{users.NewUsersClient(conn)}, nil
-}
-
-var errorInterceptor grpc.UnaryClientInterceptor = func(ctx oldcontext.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-	var md metadata.MD
-	opts = append(opts, grpc.Trailer(&md))
-	err := invoker(ctx, method, req, reply, cc, opts...)
-
-	if codes, ok := md[UsersErrorCode]; err != nil && ok {
-		if len(codes) != 1 {
-			return err
-		}
-		code, convErr := strconv.Atoi(codes[0])
-		if convErr != nil {
-			return err
-		}
-		return &Unauthorized{
-			httpStatus: code,
-		}
-	}
-
-	return err
-}
-
-var monitoringInterceptor grpc.UnaryClientInterceptor = func(ctx oldcontext.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-	return instrument.CollectedRequest(ctx, method, durationCollector, nil, func(_ context.Context) error {
-		return invoker(ctx, method, req, reply, cc, opts...)
-	})
 }
