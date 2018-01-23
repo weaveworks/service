@@ -6,11 +6,32 @@ import (
 	"os"
 	"os/exec"
 	strings "strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/service/common/collections"
+)
+
+// Prometheus metrics for kubectl commands.
+var kubectlCollector = instrument.NewHistogramCollectorFromOpts(prometheus.HistogramOpts{
+	Namespace: "kubectl_service",
+	Subsystem: "kubectl",
+	Name:      "request_duration_seconds",
+	Help:      "Response time of kubectl commands.",
+	Buckets:   prometheus.DefBuckets,
+})
+
+func init() {
+	kubectlCollector.Register()
+}
+
+const (
+	ok                  = "200"
+	internalServerError = "500"
 )
 
 // Server implements KubectlServer.
@@ -112,9 +133,16 @@ type DefaultKubectlRunner struct {
 func (r DefaultKubectlRunner) RunCmd(kubeCfgFileName, version string, rawArgs []string) ([]byte, error) {
 	cmd, args := cmdAndArgs(kubeCfgFileName, version, rawArgs)
 	log.Infof("Running: %v %v", cmd, args)
-	// TODO: instrument.
+	start := time.Now()
+	kubectlCollector.Before(cmd, start)
 	command := exec.Command(cmd, args...)
-	return command.CombinedOutput()
+	out, err := command.CombinedOutput()
+	if err != nil {
+		kubectlCollector.After(cmd, internalServerError, start)
+	} else {
+		kubectlCollector.After(cmd, ok, start)
+	}
+	return out, err
 }
 
 func cmdAndArgs(kubeCfgFileName, version string, rawArgs []string) (string, []string) {
