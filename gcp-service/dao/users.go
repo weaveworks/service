@@ -5,10 +5,32 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/weaveworks/common/instrument"
 
 	log "github.com/sirupsen/logrus"
 
 	"golang.org/x/oauth2"
+)
+
+// Prometheus metrics for users service client.
+var clientRequestCollector = instrument.NewHistogramCollectorFromOpts(prometheus.HistogramOpts{
+	Namespace: "google",
+	Subsystem: "users_client",
+	Name:      "request_duration_seconds",
+	Help:      "Response time of Weave Cloud's users service.",
+	Buckets:   prometheus.DefBuckets,
+})
+
+func init() {
+	clientRequestCollector.Register()
+}
+
+const (
+	ok                  = "200"
+	internalServerError = "500"
 )
 
 // UsersClient is an interface for users service's clients.
@@ -25,14 +47,20 @@ type UsersHTTPClient struct {
 // GoogleOAuthToken returns the Google OAuth token for the specified user.
 func (c UsersHTTPClient) GoogleOAuthToken(userID string) (*oauth2.Token, error) {
 	logger := log.WithField("user_id", userID)
+	method := "GET /admin/users/users/{user}/logins/google/token"
+	start := time.Now()
+	clientRequestCollector.Before(method, start)
+
 	resp, err := http.Get(fmt.Sprintf("%s/admin/users/users/%s/logins/google/token", c.UsersHostPort, userID))
 	if err != nil {
+		clientRequestCollector.After(method, internalServerError, start)
 		logger.Errorf("Failed to get token from users service: %v", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		clientRequestCollector.After(method, internalServerError, start)
 		logger.Errorf("Failed to read response from users service: %v", err)
 		return nil, err
 	}
@@ -41,9 +69,11 @@ func (c UsersHTTPClient) GoogleOAuthToken(userID string) (*oauth2.Token, error) 
 		AccessToken string `json:"token"`
 	}{}
 	if err = json.Unmarshal(body, token); err != nil {
+		clientRequestCollector.After(method, internalServerError, start)
 		logger.Errorf("Failed to deserialise token from users service: %v", err)
 		return nil, err
 	}
+	clientRequestCollector.After(method, ok, start)
 	return &oauth2.Token{AccessToken: token.AccessToken}, nil
 }
 
