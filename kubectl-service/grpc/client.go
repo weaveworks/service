@@ -5,10 +5,30 @@ import (
 	"fmt"
 	strings "strings"
 
+	"github.com/weaveworks/common/instrument"
+	common_grpc "github.com/weaveworks/service/common/grpc"
+
+	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	"github.com/mwitkow/go-grpc-middleware"
+	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	google_grpc "google.golang.org/grpc"
 )
+
+// Prometheus metrics for gcp-service's client.
+var clientRequestCollector = instrument.NewHistogramCollectorFromOpts(prometheus.HistogramOpts{
+	Namespace: "kubectl_service",
+	Subsystem: "client",
+	Name:      "request_duration_seconds",
+	Help:      "Response time of Weave Cloud's kubectl-service.",
+	Buckets:   prometheus.DefBuckets,
+})
+
+func init() {
+	clientRequestCollector.Register()
+}
 
 // CloseableKubectlClient exposes Close() in addition to the methods generated for KubectlClient,
 // so that the gRPC connection can be managed internally to implementations of this interface.
@@ -17,7 +37,7 @@ type CloseableKubectlClient interface {
 	KubectlClient
 }
 
-// Client is the canonical implementation of CloseableKubectlClient.
+// Client is the canonical implementation of CloseableKubectlClient. It also comes with Prometheus instrumentation.
 type Client struct {
 	conn   *google_grpc.ClientConn
 	client KubectlClient
@@ -36,7 +56,15 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 
 // NewClient creates... a new client.
 func NewClient(cfg Config) (*Client, error) {
-	conn, err := google_grpc.Dial(cfg.HostPort, google_grpc.WithInsecure())
+	dialOptions := []google_grpc.DialOption{
+		google_grpc.WithInsecure(),
+		google_grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(
+			otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer()),
+			common_grpc.NewErrorInterceptor("kubectl-error-code"),
+			common_grpc.NewMetricsInterceptor(clientRequestCollector),
+		)),
+	}
+	conn, err := google_grpc.Dial(cfg.HostPort, dialOptions...)
 	if err != nil {
 		return nil, err
 	}
