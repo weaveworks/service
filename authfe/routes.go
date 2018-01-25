@@ -263,6 +263,15 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	}
 
 	for _, route := range []Routable{
+		// Launcher service catch-all
+		HostnameSpecific{
+			c.launcherServiceExternalHost,
+			[]PrefixRoutable{
+				Prefix{"/", c.launcherServiceHost},
+			},
+			nil,
+		},
+
 		// special case /demo redirect, which can't be inside a prefix{} rule as otherwise it matches /demo/
 		Path{"/demo", redirect("/demo/")},
 

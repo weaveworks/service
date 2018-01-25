@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/weaveworks/service/common"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/weaveworks/service/common"
 )
 
 // Config is all the config we need to build the routes
@@ -33,6 +34,9 @@ type Config struct {
 	targetOrigin          string
 	allowedOriginSuffixes common.ArrayFlags
 
+	// External hostnames
+	launcherServiceExternalHost string
+
 	// User-visible services - keep alphabetically sorted pls
 	billingAPIHost         proxyConfig
 	billingUIHost          proxyConfig
@@ -44,6 +48,7 @@ type Config struct {
 	gcpWebhookHost         proxyConfig
 	githubReceiverHost     proxyConfig
 	launchGeneratorHost    proxyConfig
+	launcherServiceHost    proxyConfig
 	notificationConfigHost proxyConfig
 	notificationEventHost  proxyConfig
 	notificationSenderHost proxyConfig
@@ -93,10 +98,11 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"gcp-launcher-webhook": &c.gcpWebhookHost,
 		"github-receiver":      &c.githubReceiverHost,
 		"launch-generator":     &c.launchGeneratorHost,
+		"launcher-service":     &c.launcherServiceHost,
 		"notebooks":            &c.notebooksHost,
 		"notification-configs": &c.notificationConfigHost,
-		"notification-sender":  &c.notificationSenderHost,
 		"notification-events":  &c.notificationEventHost,
+		"notification-sender":  &c.notificationSenderHost,
 		"peer-discovery":       &c.peerDiscoveryHost,
 		"pipe":                 &c.pipeHost,
 		"prom-alertmanager":    &c.promAlertmanagerHost,
@@ -156,6 +162,9 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.BoolVar(&c.sendCSPHeader, "send-csp-header", false, "Send \"Content-Security-Policy: default-src https:\" in all responses.")
 	f.StringVar(&c.targetOrigin, "hostname", "", "Hostname through which this server is accessed, for same-origin checks (CSRF protection)")
 	f.Var(&c.allowedOriginSuffixes, "allowed-origin-suffix", "Hostname suffix to permit through same-origin checks (CSRF protection).")
+
+	// External hostnames
+	f.StringVar(&c.launcherServiceExternalHost, "launcher-service-external-host", "get.weave.works", "External hostname used for the launcher service")
 
 	for name, proxyCfg := range c.proxies() {
 		proxyCfg.RegisterFlags(name, f)

@@ -34,6 +34,8 @@ func newProxy(cfg proxyConfig) (http.Handler, error) {
 			Director:  func(*http.Request) {},
 			Transport: proxyTransport,
 		}}, nil
+	case "mock":
+		return &mockProxy{cfg}, nil
 	}
 	return nil, fmt.Errorf("Unknown protocol %q for service %s", cfg.protocol, cfg.name)
 }
@@ -175,4 +177,13 @@ func copyStream(dst io.WriteCloser, src io.Reader, wg *sync.WaitGroup, tag strin
 		log.Warningf("%s: error closing connection: %s", tag, err)
 	}
 	log.Debugf("%s: copier exited", tag)
+}
+
+// mockProxy wrties the proxy name in the body for testing
+type mockProxy struct {
+	proxyConfig
+}
+
+func (p *mockProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, p.name)
 }
