@@ -92,7 +92,7 @@ $(FLUX_API_EXE): $(shell find flux-api -name '*.go') $(COMMON)
 $(GCP_LAUNCHER_WEBHOOK_EXE): $(shell find gcp-launcher-webhook -name '*.go') $(COMMON)
 $(KUBECTL_SERVICE_EXE): $(shell find kubectl-service -name '*.go') $(COMMON)
 $(GCP_SERVICE_EXE): $(shell find gcp-service -name '*.go') $(COMMON) $(KUBECTL_SERVICE_EXE)
-test: users/users.pb.go kubectl-service/grpc/kubectl-service.pb.go gcp-service/grpc/gcp-service.pb.go
+test: $(PROTO_GOS)
 
 # And now what goes into each image
 authfe/$(UPTODATE): $(AUTHFE_EXE)
@@ -137,7 +137,7 @@ $(PROTO_GOS) $(MOCK_GOS) lint: build/$(UPTODATE)
 		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
 		$(IMAGE_PREFIX)/build $@
 
-$(EXES) test: build/$(UPTODATE) users/users.pb.go kubectl-service/grpc/kubectl-service.pb.go gcp-service/grpc/gcp-service.pb.go
+$(EXES) test: build/$(UPTODATE) $(PROTO_GOS)
 	@mkdir -p $(shell pwd)/.pkg
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
@@ -177,7 +177,7 @@ flux-nats-tests: build/$(UPTODATE)
 
 else
 
-$(EXES): build/$(UPTODATE) users/users.pb.go kubectl-service/grpc/kubectl-service.pb.go gcp-service/grpc/gcp-service.pb.go
+$(EXES): build/$(UPTODATE) $(PROTO_GOS)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
@@ -187,7 +187,7 @@ $(EXES): build/$(UPTODATE) users/users.pb.go kubectl-service/grpc/kubectl-servic
 lint: build/$(UPTODATE)
 	./tools/lint .
 
-test: build/$(UPTODATE) users/users.pb.go kubectl-service/grpc/kubectl-service.pb.go gcp-service/grpc/gcp-service.pb.go $(MOCK_GOS)
+test: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
 	TESTDIRS=${TESTDIRS} ./tools/test -netgo -no-race
 
 $(MOCK_USERS): build/$(UPTODATE)
