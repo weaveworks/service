@@ -52,6 +52,18 @@
   revision = "e75332964ef517daa070d7c38a9466a0d687e0a5"
 
 [[projects]]
+  name = "github.com/aws/aws-sdk-go"
+  packages = ["aws","aws/awserr","aws/awsutil","aws/client","aws/client/metadata","aws/corehandlers","aws/credentials","aws/credentials/ec2rolecreds","aws/credentials/endpointcreds","aws/credentials/stscreds","aws/defaults","aws/ec2metadata","aws/endpoints","aws/request","aws/session","aws/signer/v4","internal/shareddefaults","private/protocol","private/protocol/query","private/protocol/query/queryutil","private/protocol/rest","private/protocol/xml/xmlutil","service/sqs","service/sqs/sqsiface","service/sts"]
+  revision = "b0e76431638de15ec1e6be51b6f745e1f2134fde"
+  version = "v1.12.63"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/badoux/checkmail"
+  packages = ["."]
+  revision = "d0a759655d62bcdc95c50a0676f3e9702ed59453"
+
+[[projects]]
   branch = "master"
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
@@ -184,6 +196,12 @@
   version = "v1.2.1"
 
 [[projects]]
+  name = "github.com/go-ini/ini"
+  packages = ["."]
+  revision = "32e4c1e6bc4e7d0d8451aa6b75200d19e37a536a"
+  version = "v1.32.0"
+
+[[projects]]
   name = "github.com/go-kit/kit"
   packages = ["log","metrics","metrics/internal/lv","metrics/prometheus"]
   revision = "4dc7be5d2d12881735283bcab7352178e190fc71"
@@ -243,6 +261,12 @@
   revision = "53e6ce116135b80d037921a7fdd5138cf32d7a8a"
 
 [[projects]]
+  name = "github.com/google/uuid"
+  packages = ["."]
+  revision = "064e2069ce9c359c118179501254f67d7d37ba24"
+  version = "0.2"
+
+[[projects]]
   name = "github.com/googleapis/gax-go"
   packages = ["."]
   revision = "317e0006254c44a0ac427cc52a0e083ff0b9622f"
@@ -283,6 +307,11 @@
   name = "github.com/jinzhu/now"
   packages = ["."]
   revision = "d939ba741945c047cac69c329c5fb0d6b4a06520"
+
+[[projects]]
+  name = "github.com/jmespath/go-jmespath"
+  packages = ["."]
+  revision = "0b12d6b5"
 
 [[projects]]
   branch = "master"
@@ -489,6 +518,12 @@
   revision = "7b3d51468778ed0c53045edd7015b5a21f902d53"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/shurcooL/sanitized_anchor_name"
+  packages = ["."]
+  revision = "86672fcb3f950f35f2e675df2240550f2a50762f"
+
+[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
@@ -535,6 +570,12 @@
   name = "github.com/weaveworks-experiments/loki"
   packages = ["pkg/client"]
   revision = "17ff1516db3dffe25452b4cbf6e6412f303cddea"
+
+[[projects]]
+  name = "github.com/weaveworks/blackfriday"
+  packages = ["."]
+  revision = "0b647d0506a698cca42caca173e55559b12a69f2"
+  version = "v1.4"
 
 [[projects]]
   branch = "master"
@@ -627,10 +668,22 @@
   version = "v1.6.0"
 
 [[projects]]
+  branch = "v3"
+  name = "gopkg.in/alexcesaro/quotedprintable.v3"
+  packages = ["."]
+  revision = "2caba252f4dc53eaf6b553000885530023f54623"
+
+[[projects]]
   name = "gopkg.in/go-playground/webhooks.v3"
   packages = [".","github"]
   revision = "cd89a10b6412a823fe9d24f12dd7275d036f4f80"
   version = "v3.3.0"
+
+[[projects]]
+  name = "gopkg.in/gomail.v2"
+  packages = ["."]
+  revision = "41f3572897373c5538c50a2402db15db079fa4fd"
+  version = "2.0.0"
 
 [[projects]]
   name = "gopkg.in/h2non/gock.v1"

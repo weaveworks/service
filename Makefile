@@ -32,6 +32,10 @@ all: $(UPTODATE_FILES)
 
 # Generating proto code is automated.
 PROTO_DEFS := $(shell find . -type f -name "*.proto" ! -path "./tools/*" ! -path "./vendor/*")
+#define PROTODEF_template =
+# $(patsubst %.proto,%.pb.go, $(1)): $(1)
+#endef
+#$(foreach def,$(PROTO_DEFS),$(eval $(call PROTODEF_template,$(def))))
 PROTO_GOS := $(patsubst %.proto,%.pb.go,$(PROTO_DEFS))
 users/users.pb.go: users/users.proto
 kubectl-service/grpc/kubectl-service.pb.go: kubectl-service/grpc/kubectl-service.proto
@@ -73,25 +77,30 @@ NOTEBOOKS_EXE := notebooks/cmd/notebooks/notebooks
 SERVICE_UI_KICKER_EXE := service-ui-kicker/service-ui-kicker
 GITHUB_RECEIVER_EXE := github-receiver/github-receiver
 FLUX_API_EXE := flux-api/flux-api
-BILLING_EXE := billing-api/api billing-uploader/uploader billing-aggregator/aggregator billing-enforcer/enforcer
+BILLING_EXES := billing-api/api billing-uploader/uploader billing-aggregator/aggregator billing-enforcer/enforcer
 GCP_LAUNCHER_WEBHOOK_EXE := gcp-launcher-webhook/gcp-launcher-webhook
 KUBECTL_SERVICE_EXE := kubectl-service/kubectl-service
 GCP_SERVICE_EXE := gcp-service/gcp-service
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) $(GITHUB_RECEIVER_EXE) $(FLUX_API_EXE) $(BILLING_EXE) $(GCP_LAUNCHER_WEBHOOK_EXE) $(KUBECTL_SERVICE_EXE) $(GCP_SERVICE_EXE)
+NOTIFICATION_EXES := notification-configmanager/cmd/configmanager/configmanager notification-eventmanager/cmd/eventmanager/eventmanager notification-sender/cmd/sender/sender
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) $(GITHUB_RECEIVER_EXE) $(FLUX_API_EXE) $(BILLING_EXES) $(GCP_LAUNCHER_WEBHOOK_EXE) $(NOTIFICATION_EXES) $(KUBECTL_SERVICE_EXE) $(GCP_SERVICE_EXE)
 
 # And what goes into each exe
-COMMON := $(shell find common -name '*.go')
-$(AUTHFE_EXE): $(shell find authfe -name '*.go') $(shell find users/client -name '*.go') $(COMMON) users/users.pb.go
-$(USERS_EXE): $(shell find users -name '*.go') $(COMMON) users/users.pb.go
-$(METRICS_EXE): $(shell find metrics -name '*.go') $(COMMON)
-$(NOTEBOOKS_EXE): $(shell find notebooks -name '*.go') $(COMMON)
-$(SERVICE_UI_KICKER_EXE): $(shell find service-ui-kicker -name '*.go') $(COMMON)
-$(GITHUB_RECEIVER_EXE): $(shell find github-receiver -name '*.go') $(COMMON)
-$(FLUX_API_EXE): $(shell find flux-api -name '*.go') $(COMMON)
-
-$(GCP_LAUNCHER_WEBHOOK_EXE): $(shell find gcp-launcher-webhook -name '*.go') $(COMMON)
+gofiles = $(shell find $1 -name '*.go')
+basedir = $(firstword $(subst /, ,$1))
+COMMON := $(call gofiles,common)
+$(AUTHFE_EXE): $(call gofiles,authfe) $(calli gofiles,users/client) $(COMMON) users/users.pb.go
+$(USERS_EXE): $(call gofiles,users) $(COMMON) users/users.pb.go
+$(METRICS_EXE): $(call gofiles,metrics) $(COMMON)
+$(NOTEBOOKS_EXE): $(call gofiles,notebooks) $(COMMON)
+$(SERVICE_UI_KICKER_EXE): $(call gofiles,service-ui-kicker) $(COMMON)
+$(GITHUB_RECEIVER_EXE): $(call gofiles,github-receiver) $(COMMON)
+$(FLUX_API_EXE): $(call gofiles,flux-api) $(COMMON)
+$(GCP_LAUNCHER_WEBHOOK_EXE): $(call gofiles,gcp-launcher-webhook) $(COMMON)
 $(KUBECTL_SERVICE_EXE): $(shell find kubectl-service -name '*.go') $(COMMON)
 $(GCP_SERVICE_EXE): $(shell find gcp-service -name '*.go') $(COMMON) $(KUBECTL_SERVICE_EXE)
+$(NOTIFICATION_EXES): $(call gofiles,notification-*) $(COMMON)
+# See secondary expansion at bottom for BILLING_EXES gofiles
+
 test: $(PROTO_GOS)
 
 # And now what goes into each image
@@ -108,10 +117,22 @@ gcp-launcher-webhook/$(UPTODATE): $(GCP_LAUNCHER_WEBHOOK_EXE)
 kubectl-service/$(UPTODATE): $(KUBECTL_SERVICE_EXE)
 gcp-service/$(UPTODATE): $(GCP_SERVICE_EXE)
 
-billing-uploader/$(UPTODATE): billing-uploader/uploader $(call billing-migrations-deps,billing-uploader)
-billing-aggregator/$(UPTODATE): billing-aggregator/aggregator $(call billing-migrations-deps,billing-aggregator)
-billing-api/$(UPTODATE): billing-api/api
-billing-enforcer/$(UPTODATE): billing-enforcer/enforcer
+# Expands a list of binary paths to have their respective images depend on the binary
+# Example:
+#   $(eval $(call IMAGEDEP_template,"foo/cmd/foo bar/cmd/bar"))
+# Output:
+# foo/$(UPTODATE): foo/cmd/foo
+# bar/$(UPTODATE): bar/cmd/bar
+define IMAGEDEP_template =
+ $(call basedir,$(1))/$$(UPTODATE): $(1)
+endef
+
+$(foreach exe,$(BILLING_EXES),$(eval $(call IMAGEDEP_template,$(exe))))
+billing-uploader/$(UPTODATE): $(call billing-migrations-deps,billing-uploader)
+billing-aggregator/$(UPTODATE): $(call billing-migrations-deps,billing-aggregator)
+
+$(foreach nexe,$(NOTIFICATION_EXES),$(eval $(call IMAGEDEP_template,$(nexe))))
+notification-configmanager/$(UPTODATE): $(wildcard notification-configmanager/migrations/*)
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
@@ -174,6 +195,10 @@ flux-nats-tests: build/$(UPTODATE)
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$NATS_CONTAINER"; \
 	exit $$status
+
+notification-integration-test: $(UPTODATE_FILES)
+	docker build -f notification-configmanager/integrationtest/Dockerfile.integration -t notification-integrationtest .
+	cd notification-configmanager/integrationtest && $(SUDO) docker-compose up --abort-on-container-exit; EXIT_CODE=$$?; $(SUDO) docker-compose down; exit $$EXIT_CODE
 
 else
 
@@ -280,9 +305,9 @@ gcp-service-integration-test: gcp-service/$(UPTODATE) gcp-service/grpc/gcp-servi
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
 	rm -rf $(UPTODATE_FILES) $(EXES)
-	rm -rf billing-aggregator/migrations billing-api/migrations billing-uploader/migrations
+	rm -rf billing-aggregator/migrations billing-uploader/migrations
 	go clean ./...
 
 # For .SECONDEXPANSION docs, see https://www.gnu.org/software/make/manual/html_node/Special-Targets.html
 .SECONDEXPANSION:
-$(BILLING_EXE): $$(shell find $$(@D) -name '*.go') $(COMMON) $(shell find $(BILLING_DB) -name '*.go') users/users.pb.go
+$(BILLING_EXES): $$(shell find $$(@D) -name '*.go') $(COMMON) $(shell find $(BILLING_DB) -name '*.go') users/users.pb.go

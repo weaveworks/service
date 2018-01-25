@@ -1,0 +1,67 @@
+[
+    {
+      "name": "info",
+      "display_name": "Test info event",
+      "description": "An example event type info",
+      "default_receiver_types": [
+        "email",
+        "slack"
+      ]
+    },
+    {
+      "name": "warning",
+      "display_name": "Test warning event",
+      "description": "An example event type warning",
+      "default_receiver_types": [
+        "browser"
+      ]
+    },
+    {
+      "name": "critical",
+      "display_name": "Test critical event",
+      "description": "An example event type critical",
+      "default_receiver_types": [
+        "email",
+        "slack",
+        "browser"
+      ]
+    },
+    {
+      "name": "user",
+      "display_name": "Test user Event",
+      "description": "An example event type for user",
+      "default_receiver_types": [
+        
+      ]
+    },
+    {
+      "name": "flag1",
+      "display_name": "Test flag1 Event",
+      "description": "An example event type for feature flag1",
+      "default_receiver_types": [
+        "browser",
+        "slack"
+      ],
+      "feature_flag": "flag1"
+    },
+    {
+      "name": "flag2",
+      "display_name": "Test flag2 Event",
+      "description": "An example event type for feature flag2",
+      "default_receiver_types": [
+        "browser",
+        "email"
+      ],
+      "feature_flag": "flag2"
+    },
+    {
+      "name": "user_test",
+      "display_name": "Test Event",
+      "description": "A test event triggered from the Weave Cloud UI",
+      "default_receiver_types": [
+        "browser",
+        "email",
+        "slack"
+      ]
+    }
+  ]
