@@ -133,3 +133,20 @@ func (p MiddlewarePrefix) AbsolutePrefixes() []string {
 	}
 	return result
 }
+
+// HostnameSpecific says "only match when the hostname matches"
+type HostnameSpecific struct {
+	hostname string
+	routes   []PrefixRoutable
+	mid      middleware.Interface
+}
+
+// RegisterRoutes adds routes to a router
+func (h HostnameSpecific) RegisterRoutes(r *mux.Router) {
+	if h.mid == nil {
+		h.mid = middleware.Identity
+	}
+	for _, route := range h.routes {
+		r.Host(h.hostname).Handler(h.mid.Wrap(route.Handler()))
+	}
+}
