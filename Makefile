@@ -1,6 +1,6 @@
 .PHONY: all test \
 	notebooks-integration-test users-integration-test billing-integration-test pubsub-integration-test \
-	flux-nats-tests clean images ui-upload
+	notification-integration-test flux-nats-tests clean images ui-upload
 .DEFAULT_GOAL := all
 
 # Boiler plate for bulding Docker containers.
@@ -32,14 +32,11 @@ all: $(UPTODATE_FILES)
 
 # Generating proto code is automated.
 PROTO_DEFS := $(shell find . -type f -name "*.proto" ! -path "./tools/*" ! -path "./vendor/*")
-#define PROTODEF_template =
-# $(patsubst %.proto,%.pb.go, $(1)): $(1)
-#endef
-#$(foreach def,$(PROTO_DEFS),$(eval $(call PROTODEF_template,$(def))))
+define PROTODEF_template
+ $(patsubst %.proto,%.pb.go, $(1)): $(1)
+endef
+$(foreach def,$(PROTO_DEFS),$(eval $(call PROTODEF_template,$(def))))
 PROTO_GOS := $(patsubst %.proto,%.pb.go,$(PROTO_DEFS))
-users/users.pb.go: users/users.proto
-kubectl-service/grpc/kubectl-service.pb.go: kubectl-service/grpc/kubectl-service.proto
-gcp-service/grpc/gcp-service.pb.go: gcp-service/grpc/gcp-service.proto
 
 MOCK_USERS := users/mock_users/mock_usersclient.go
 $(MOCK_USERS): users/users.pb.go
@@ -123,7 +120,7 @@ gcp-service/$(UPTODATE): $(GCP_SERVICE_EXE)
 # Output:
 # foo/$(UPTODATE): foo/cmd/foo
 # bar/$(UPTODATE): bar/cmd/bar
-define IMAGEDEP_template =
+define IMAGEDEP_template
  $(call basedir,$(1))/$$(UPTODATE): $(1)
 endef
 
@@ -195,10 +192,6 @@ flux-nats-tests: build/$(UPTODATE)
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$NATS_CONTAINER"; \
 	exit $$status
-
-notification-integration-test: $(UPTODATE_FILES)
-	docker build -f notification-configmanager/integrationtest/Dockerfile.integration -t notification-integrationtest .
-	cd notification-configmanager/integrationtest && $(SUDO) docker-compose up --abort-on-container-exit; EXIT_CODE=$$?; $(SUDO) docker-compose down; exit $$EXIT_CODE
 
 else
 
@@ -278,6 +271,7 @@ pubsub-integration-test:
 	test -n "$(CIRCLECI)" || docker rm -f "$$PUBSUB_EMU_CONTAINER"; \
 	exit $$status
 
+<<<<<<< HEAD
 kubectl-service-integration-test: kubectl-service/$(UPTODATE) kubectl-service/grpc/kubectl-service.pb.go
 	SVC_CONTAINER="$$(docker run -d -p 4887:4772 -p 8887:80 $(IMAGE_PREFIX)/kubectl-service -dry-run=true)"; \
 	docker run $(RM) \
@@ -301,6 +295,12 @@ gcp-service-integration-test: gcp-service/$(UPTODATE) gcp-service/grpc/gcp-servi
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \
 	exit $$status
+=======
+notification-integration-test:
+	docker build -f notification-configmanager/integrationtest/Dockerfile.integration -t notification-integrationtest .
+	cd notification-configmanager/integrationtest && $(SUDO) docker-compose up --abort-on-container-exit; EXIT_CODE=$$?; $(SUDO) docker-compose down; exit $$EXIT_CODE
+
+>>>>>>> Makefile fixes
 
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
