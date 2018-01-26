@@ -1,78 +1,52 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	"github.com/weaveworks/service/service-ui-kicker/committer"
-	"github.com/weaveworks/service/service-ui-kicker/handler"
 	"gopkg.in/go-playground/webhooks.v3"
 	"gopkg.in/go-playground/webhooks.v3/github"
+
+	"github.com/weaveworks/service/service-ui-kicker/handler"
+	"github.com/weaveworks/service/service-ui-kicker/scope"
+	"github.com/weaveworks/service/service-ui-kicker/self"
 )
 
 const (
-	secretEnv = "WEBHOOK_SECRET"
-	scopeRepo = "https://github.com/weaveworks/scope.git"
+	secretEnv      = "WEBHOOK_SECRET"
+	githubTokenEnv = "GITHUB_TOKEN"
 )
 
 var path = flag.String("path", "/webhooks", "webhook path for payload URL")
 var port = flag.Int("port", 80, "webhook port for payload URL")
 
-var tasksCompleted = prometheus.NewCounterVec(
-	prometheus.CounterOpts{
-		Name: "tasks_completed",
-		Help: "Number of completed tasks for scope version update.",
-	},
-	[]string{},
-)
-var tasksFailed = prometheus.NewCounterVec(
-	prometheus.CounterOpts{
-		Name: "tasks_failed",
-		Help: "Number of failed tasks for scope version update.",
-	},
-	[]string{},
-)
-var completedDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-	Name: "completed_task_duration",
-	Help: "Histogram for the completed tasks duration.",
-},
-)
-
 func init() {
-	prometheus.MustRegister(tasksCompleted, tasksFailed, completedDuration)
+	scope.Init()
 }
 
 func main() {
 	flag.Parse()
 	secret, ok := os.LookupEnv(secretEnv)
 	if !ok {
-		log.Fatalf("Webhook secret %s not set\n", secretEnv)
+		log.Fatalf("Webhook secret var %s not set\n", secretEnv)
+	}
+	githubToken, ok := os.LookupEnv(githubTokenEnv)
+	if !ok {
+		log.Errorf("github token var %s not set\n", githubTokenEnv)
 	}
 	hook := github.New(&github.Config{Secret: secret})
-	hs := handler.New(scopeRepo)
+	hs := handler.New()
 
-	go func() {
-		log.Info("Start waiting for new tasks...")
-		for t := range hs.Tasks() {
-			log.Infof("Got new task %s", t)
-			begin := time.Now()
-			if err := committer.PushUpdatedFile(context.Background(), t); err != nil {
-				log.Errorf("Cannot clone, commit and push new version: %v", err)
-				tasksFailed.With(prometheus.Labels{}).Inc()
-			} else {
-				log.Infof("Task done: version %q pushed to weaveworks/service-ui", t)
-				tasksCompleted.With(prometheus.Labels{}).Inc()
-				completedDuration.Observe(time.Since(begin).Seconds())
-			}
-		}
-	}()
+	su := scope.NewUpdater()
+	su.Start(hs)
+
+	pl := self.NewPreviewLinker(githubToken)
+	pl.Start(hs)
 
 	hook.RegisterEvents(hs.HandlePush, github.PushEvent)
 	hook.RegisterEvents(hs.HandleStatus, github.StatusEvent)

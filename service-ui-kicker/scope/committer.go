@@ -1,4 +1,4 @@
-package committer
+package scope
 
 import (
 	"context"
