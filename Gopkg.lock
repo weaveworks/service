@@ -3,9 +3,8 @@
 
 [[projects]]
   name = "cloud.google.com/go"
-  packages = ["bigquery","civil","compute/metadata","iam","internal","internal/atomiccache","internal/fields","internal/optional","internal/version","pubsub","pubsub/apiv1"]
-  revision = "5a9e19d4e1e41a734154e44a2132b358afb49a03"
-  version = "v0.13.0"
+  packages = ["bigquery","civil","compute/metadata","iam","internal","internal/atomiccache","internal/fields","internal/optional","internal/version","logging","logging/apiv2","logging/internal","pubsub","pubsub/apiv1"]
+  revision = "eb1cc5f3c0a93e56aa3c13e3ad4f336d327c0c86"
 
 [[projects]]
   branch = "master"
@@ -240,7 +239,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
-  packages = ["proto","protoc-gen-go/descriptor","ptypes","ptypes/any","ptypes/duration","ptypes/empty","ptypes/timestamp"]
+  packages = ["proto","protoc-gen-go/descriptor","ptypes","ptypes/any","ptypes/duration","ptypes/empty","ptypes/struct","ptypes/timestamp"]
   revision = "ae59567b9aab61b50b2590679a62c3c044030b61"
 
 [[projects]]
@@ -658,7 +657,7 @@
 [[projects]]
   branch = "master"
   name = "google.golang.org/genproto"
-  packages = ["googleapis/api/annotations","googleapis/iam/v1","googleapis/pubsub/v1","googleapis/rpc/status","protobuf/field_mask"]
+  packages = ["googleapis/api/annotations","googleapis/api/distribution","googleapis/api/label","googleapis/api/metric","googleapis/api/monitoredres","googleapis/iam/v1","googleapis/logging/type","googleapis/logging/v2","googleapis/pubsub/v1","googleapis/rpc/status","protobuf/field_mask"]
   revision = "1e559d0a00eef8a9a43151db4665280bd8dd5886"
 
 [[projects]]
@@ -706,6 +705,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c915863b2f001a6c8273689b9ed7525672333fd3ec8f229355a6fc1521a496f2"
+  inputs-digest = "242ac72c7c6fe790a4424a2b833cab839ec249c64427c0ef06db5cb7dad9c5f8"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -46,6 +46,19 @@ type BrowserMessage struct {
 	Timestamp   time.Time         `json:"timestamp"`
 }
 
+// StackdriverMessage contains is a stackdriver log entry.
+// See https://cloud.google.com/logging/docs/view/logs_index for more about entries.
+type StackdriverMessage struct {
+	// Timestamp is the time of the entry. If zero, the current time is used.
+	Timestamp time.Time
+
+	// Payload is log entry payload, represented as a structure that is expressed as a JSON object.
+	Payload json.RawMessage
+
+	// Labels optionally specifies key/value labels for the log entry.
+	Labels map[string]string
+}
+
 // Event is a single instance of something for the user to be informed of
 type Event struct {
 	ID         string                     `json:"id"`
@@ -83,6 +96,8 @@ const (
 	EmailReceiver = "email"
 	// BrowserReceiver is the type of receiver for browser notifications
 	BrowserReceiver = "browser"
+	// StackdriverReceiver is the type of receiver for Stackdriver
+	StackdriverReceiver = "stackdriver"
 )
 
 // Notification is the actual message in data delivered to a user from address.

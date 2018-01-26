@@ -218,7 +218,7 @@ func (s *Sender) HandleNotification(ctx context.Context) error {
 	go func() {
 		defer s.wg.Done()
 		if err = s.sendNotification(ctx, notif, msg.ReceiptHandle); err != nil {
-			log.Errorf("cannot send notification %s; error %s", notif, err)
+			log.Errorf("cannot send notification; error %s", err)
 			notificationsError.With(prometheus.Labels{"receiver_type": notif.ReceiverType}).Inc()
 			return
 		}
@@ -247,11 +247,10 @@ func (s *Sender) sendNotification(ctx context.Context, notif types.Notification,
 	begin := time.Now()
 	if err := h(ctx, notif.Address, notif.Data, notif.InstanceID); err != nil {
 		if _, ok := err.(RetriableError); ok {
-			return errors.Wrapf(err, "cannot send %s notification to %s; retriable error, will retry request later", notif.ReceiverType, notif.Address)
-
+			return errors.Wrapf(err, "cannot send %s notification; will retry request later, retriable error: %s", notif.ReceiverType, err)
 		}
 		// Warning because it must be user error and shouldn't trigger the alerts
-		log.Warnf("cannot send %s notification to %s; the request will not be retried without correction; error: %s", notif.ReceiverType, notif.Address, err)
+		log.Warnf("cannot send %s notification; the request will not be retried without correction; error: %s", notif.ReceiverType, err)
 		noRetryError.Inc()
 	}
 	completedDuration.Observe(time.Since(begin).Seconds())

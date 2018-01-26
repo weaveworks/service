@@ -138,7 +138,7 @@ func (em *EventManager) SendNotificationBatchesToQueue(ctx context.Context, e ty
 			defer em.wg.Done()
 			_, err = em.config.SQSClient.SendMessageBatch(sendInp)
 			if err != nil {
-				log.Errorf("cannot send to SQS queue batch input %v, error: %s", sendInp, err)
+				log.Errorf("cannot send to SQS queue batch input, error: %s", err)
 				eventsToSQSError.With(prometheus.Labels{"event_type": e.Type}).Inc()
 				return
 			}
@@ -154,7 +154,7 @@ func (em *EventManager) getNotifications(ctx context.Context, e types.Event) ([]
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get receivers for event %v", e)
 	}
-	log.Debugf("Got receivers for InstanceID = %s and event type = %s, receivers: %s", e.InstanceID, e.Type, receivers)
+	log.Debugf("Got %d receivers for InstanceID = %s and event type = %s", len(receivers), e.InstanceID, e.Type)
 
 	var notifications []types.Notification
 	for _, r := range receivers {
@@ -254,14 +254,26 @@ func (em *EventManager) TestEventHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	instanceName := instanceData.Organization.Name
+	etype := "user_test"
+
+	sdMsg, err := getStackdriverMessage(json.RawMessage(`"A test event triggered from Weave Cloud!"`), etype, instanceName)
+	if err != nil {
+		log.Errorf("error getting stackdriver message for test event: %s", err)
+		http.Error(w, "unable to get stackdriver message", http.StatusInternalServerError)
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
+		return
+	}
+
 	testEvent := types.Event{
 		Type:       "user_test",
 		InstanceID: instanceID,
 		Timestamp:  time.Now(),
 		Messages: map[string]json.RawMessage{
-			types.EmailReceiver:   json.RawMessage(fmt.Sprintf(`{"subject": "Weave Cloud Test Event - %v", "body": "A test event triggered from Weave Cloud!"}`, instanceData.Organization.Name)),
-			types.BrowserReceiver: json.RawMessage(`{"text": "A test event triggered from Weave Cloud!"}`),
-			types.SlackReceiver:   json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\nA test event triggered from Weave Cloud!"}`, instanceData.Organization.Name)),
+			types.EmailReceiver:       json.RawMessage(fmt.Sprintf(`{"subject": "Weave Cloud Test Event - %v", "body": "A test event triggered from Weave Cloud!"}`, instanceName)),
+			types.BrowserReceiver:     json.RawMessage(`{"text": "A test event triggered from Weave Cloud!"}`),
+			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\nA test event triggered from Weave Cloud!"}`, instanceName)),
+			types.StackdriverReceiver: sdMsg,
 		},
 	}
 
@@ -443,10 +455,14 @@ func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceN
 		return event, errors.Wrap(err, "cannot get email message")
 	}
 
+	stackdriverMsg, err := getStackdriverMessage(json.RawMessage(body), etype, instanceName)
+	if err != nil {
+		return event, errors.Wrap(err, "cannot get stackdriver message")
+	}
+
 	sm.Text = fmt.Sprintf("*Instance*: %v\n%s", instanceName, sm.Text)
 
 	slackMsg, err := json.Marshal(sm)
-
 	if err != nil {
 		return event, errors.Wrap(err, "cannot get slack message")
 	}
@@ -455,9 +471,10 @@ func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceN
 	event.Type = etype
 	event.Timestamp = time.Now()
 	event.Messages = map[string]json.RawMessage{
-		types.BrowserReceiver: browserMsg,
-		types.SlackReceiver:   slackMsg,
-		types.EmailReceiver:   emailMsg,
+		types.BrowserReceiver:     browserMsg,
+		types.SlackReceiver:       slackMsg,
+		types.EmailReceiver:       emailMsg,
+		types.StackdriverReceiver: stackdriverMsg,
 	}
 
 	return event, nil
@@ -489,6 +506,21 @@ func getEmailMessage(msg, etype, instanceName string) (json.RawMessage, error) {
 	msgRaw, err := json.Marshal(em)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot marshal email message %s to json", em)
+	}
+
+	return msgRaw, nil
+}
+
+func getStackdriverMessage(msg json.RawMessage, etype string, instanceName string) (json.RawMessage, error) {
+	sdMsg := types.StackdriverMessage{
+		Timestamp: time.Now(),
+		Payload:   msg,
+		Labels:    map[string]string{"instance": instanceName, "event_type": etype},
+	}
+
+	msgRaw, err := json.Marshal(sdMsg)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot marshal stackdriver message %s to json", sdMsg)
 	}
 
 	return msgRaw, nil

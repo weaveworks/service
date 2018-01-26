@@ -6,7 +6,7 @@
 // run on prod:
 // go run main.go -database "/usr/home/go/src/github.com/weaveworks/service-conf/infra/database" -env prod
 
-package fluxmigration
+package main
 
 import (
 	"bufio"
