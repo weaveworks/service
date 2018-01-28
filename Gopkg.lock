@@ -540,7 +540,7 @@
   branch = "master"
   name = "github.com/weaveworks/common"
   packages = ["errors","http/client","httpgrpc","httpgrpc/server","instrument","logging","mflag","mflagext","middleware","mtime","server","signals","user"]
-  revision = "d85bab03a1b1327e94db89d64a84dfd1e79f193f"
+  revision = "61d550eccac1e7a022723f7e36386206282913ef"
 
 [[projects]]
   branch = "master"
