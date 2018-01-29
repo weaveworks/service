@@ -216,8 +216,8 @@ func notificationToString(n types.Notification) (string, error) {
 	return string(raw), nil
 }
 
-// isStatusErrorCode returns true if the error has the given status code.
-func isStatusErrorCode(err error, code int) bool {
+// IsStatusErrorCode returns true if the error has the given status code.
+func IsStatusErrorCode(err error, code int) bool {
 	st, ok := status.FromError(err)
 	if !ok {
 		return false
@@ -242,7 +242,7 @@ func (em *EventManager) TestEventHandler(w http.ResponseWriter, r *http.Request)
 	})
 
 	if err != nil {
-		if isStatusErrorCode(err, http.StatusNotFound) {
+		if IsStatusErrorCode(err, http.StatusNotFound) {
 			log.Warnf("instance name for ID %s not found for test event", instanceID)
 			http.Error(w, "Instance not found", http.StatusNotFound)
 			requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusNotFound)}).Inc()
@@ -257,7 +257,7 @@ func (em *EventManager) TestEventHandler(w http.ResponseWriter, r *http.Request)
 	instanceName := instanceData.Organization.Name
 	etype := "user_test"
 
-	sdMsg, err := getStackdriverMessage(json.RawMessage(`"A test event triggered from Weave Cloud!"`), etype, instanceName)
+	sdMsg, err := GetStackdriverMessage(json.RawMessage(`"A test event triggered from Weave Cloud!"`), etype, instanceName)
 	if err != nil {
 		log.Errorf("error getting stackdriver message for test event: %s", err)
 		http.Error(w, "unable to get stackdriver message", http.StatusInternalServerError)
@@ -377,7 +377,7 @@ func (em *EventManager) SlackHandler(w http.ResponseWriter, r *http.Request) {
 		ID: &users.GetOrganizationRequest_InternalID{InternalID: instanceID},
 	})
 	if err != nil {
-		if isStatusErrorCode(err, http.StatusNotFound) {
+		if IsStatusErrorCode(err, http.StatusNotFound) {
 			log.Warnf("instance name for ID %s not found for event type %s", instanceID, eventType)
 			http.Error(w, "Instance not found", http.StatusNotFound)
 			requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusNotFound)}).Inc()
@@ -445,17 +445,17 @@ func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceN
 	allText := getAllMarkdownText(sm, instanceName)
 	html := string(blackfriday.MarkdownBasic([]byte(allText)))
 
-	emailMsg, err := getEmailMessage(html, etype, instanceName)
+	emailMsg, err := GetEmailMessage(html, etype, instanceName)
 	if err != nil {
 		return event, errors.Wrap(err, "cannot get email message")
 	}
 
-	browserMsg, err := getBrowserMessage(sm.Text, sm.Attachments, etype)
+	browserMsg, err := GetBrowserMessage(sm.Text, sm.Attachments, etype)
 	if err != nil {
 		return event, errors.Wrap(err, "cannot get email message")
 	}
 
-	stackdriverMsg, err := getStackdriverMessage(json.RawMessage(body), etype, instanceName)
+	stackdriverMsg, err := GetStackdriverMessage(json.RawMessage(body), etype, instanceName)
 	if err != nil {
 		return event, errors.Wrap(err, "cannot get stackdriver message")
 	}
@@ -480,7 +480,8 @@ func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceN
 	return event, nil
 }
 
-func getBrowserMessage(msg string, attachments []types.SlackAttachment, etype string) (json.RawMessage, error) {
+// GetBrowserMessage returns messaage for browser
+func GetBrowserMessage(msg string, attachments []types.SlackAttachment, etype string) (json.RawMessage, error) {
 	bm := types.BrowserMessage{
 		Type:        etype,
 		Text:        msg,
@@ -496,7 +497,8 @@ func getBrowserMessage(msg string, attachments []types.SlackAttachment, etype st
 	return msgRaw, nil
 }
 
-func getEmailMessage(msg, etype, instanceName string) (json.RawMessage, error) {
+// GetEmailMessage returns message for email
+func GetEmailMessage(msg, etype, instanceName string) (json.RawMessage, error) {
 	em := types.EmailMessage{
 		Subject: fmt.Sprintf("%v - %v", instanceName, etype),
 		Body:    msg,
@@ -511,7 +513,8 @@ func getEmailMessage(msg, etype, instanceName string) (json.RawMessage, error) {
 	return msgRaw, nil
 }
 
-func getStackdriverMessage(msg json.RawMessage, etype string, instanceName string) (json.RawMessage, error) {
+// GetStackdriverMessage returns message for stackdriver
+func GetStackdriverMessage(msg json.RawMessage, etype string, instanceName string) (json.RawMessage, error) {
 	sdMsg := types.StackdriverMessage{
 		Timestamp: time.Now(),
 		Payload:   msg,

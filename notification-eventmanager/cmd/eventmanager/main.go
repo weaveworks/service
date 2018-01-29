@@ -26,10 +26,9 @@ func newConfig(queueURL, configManagerURL, usersServiceURL string) (eventmanager
 		uclient = &users.Client{UsersClient: usersClient.MockClient{}}
 	} else {
 		uclient, err = users.NewClient(users.Config{HostPort: usersServiceURL})
-	}
-
-	if err != nil {
-		return eventmanager.Config{}, errors.Wrapf(err, "cannot create users client: %v", usersServiceURL)
+		if err != nil {
+			return eventmanager.Config{}, errors.Wrapf(err, "cannot create users client: %v", usersServiceURL)
+		}
 	}
 
 	return eventmanager.Config{

@@ -13,9 +13,11 @@ services:
      - config-db
     image: quay.io/weaveworks/notification-configmanager
     command: |
-      -database.uri=postgres://postgres@config-db/notifications?sslmode=disable -database.migrations=/migrations -eventtypes=/mnt/eventtypes.json
+      -database.uri=postgres://postgres@config-db/notifications?sslmode=disable -database.migrations=/migrations -eventtypes=/mnt/eventtypes.json -eventManagerURL=http://eventmanager
     volumes:
       - ./eventtypes.json:/mnt/eventtypes.json
+    ports:
+      - "8082:80"
 
   sqslocal:
     image: "pakohan/elasticmq"

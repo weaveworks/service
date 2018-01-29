@@ -1,13 +1,18 @@
 package configmanager
 
 import (
+	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/url"
+	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -17,10 +22,16 @@ import (
 	"github.com/lib/pq" // Import the postgres sql driver
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
+
 	log "github.com/sirupsen/logrus"
+	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/common/users"
 	"github.com/weaveworks/service/notification-configmanager/types"
 	"github.com/weaveworks/service/notification-configmanager/utils"
+	"github.com/weaveworks/service/notification-eventmanager"
+	serviceUsers "github.com/weaveworks/service/users"
+	usersClient "github.com/weaveworks/service/users/client"
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // Import the postgres migrations driver
 	"gopkg.in/mattes/migrate.v1/migrate"
 )
@@ -42,17 +53,59 @@ var (
 		Help:      "Time spent (in seconds) doing database requests.",
 		Buckets:   prometheus.DefBuckets,
 	}, []string{"method", "status_code"})
+
+	eventsToEventmanagerTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "events_to_eventmanager_total",
+		Help: "Number of events sent to eventmanager.",
+	}, []string{"event_type"})
+	eventsToEventmanagerError = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "event_to_eventmanager_errors_total",
+		Help: "Number of errors sending event to eventmanager.",
+	}, []string{"event_type"})
 )
 
 func init() {
-	prometheus.MustRegister(databaseRequestDuration)
+	prometheus.MustRegister(
+		databaseRequestDuration,
+		eventsToEventmanagerTotal,
+		eventsToEventmanagerError,
+	)
+	rand.Seed(time.Now().UnixNano()) // set seed for retry function
+}
+
+// https://upgear.io/blog/simple-golang-retry-function/
+func retry(attempts int, sleep time.Duration, f func() error) error {
+	if err := f(); err != nil {
+		if s, ok := err.(stop); ok {
+			// Return the original error for later checking
+			return s.error
+		}
+
+		if attempts--; attempts > 0 {
+			// Add some randomness to prevent creating a Thundering Herd
+			jitter := time.Duration(rand.Int63n(int64(sleep)))
+			sleep = sleep + jitter/2
+
+			time.Sleep(sleep)
+			return retry(attempts, 2*sleep, f) // exponential backoff
+		}
+		return err
+	}
+
+	return nil
+}
+
+type stop struct {
+	error
 }
 
 // Config is the configuration for Config Manager, not to be confused with the user configs it manages!
 type Config struct {
-	databaseURI    string
-	migrationsDir  string
-	eventTypesPath string
+	databaseURI     string
+	migrationsDir   string
+	eventTypesPath  string
+	eventManagerURL string
+	usersServiceURL string
 }
 
 // RegisterFlags registers CLI flags to configure a Config Manager
@@ -60,11 +113,15 @@ func (c *Config) RegisterFlags() {
 	flag.StringVar(&c.databaseURI, "database.uri", "", "URI where the database can be found")
 	flag.StringVar(&c.migrationsDir, "database.migrations", "", "Path where the database migration files can be found")
 	flag.StringVar(&c.eventTypesPath, "eventtypes", "", "Path to a JSON file defining available event types")
+	flag.StringVar(&c.eventManagerURL, "eventManagerURL", "", "URL to connect to event manager")
+	flag.StringVar(&c.usersServiceURL, "usersServiceURL", "users.default:4772", "URL to connect to users service")
 }
 
 // ConfigManager is the struct we hang all methods off
 type ConfigManager struct {
-	db *utils.DB
+	db          *utils.DB
+	eventURL    string
+	usersClient serviceUsers.UsersClient
 }
 
 func waitForDBConnection(db *sql.DB) error {
@@ -107,8 +164,20 @@ func New(config Config) (*ConfigManager, error) {
 		}
 	}
 
+	var uclient *users.Client
+	if config.usersServiceURL == "mock" {
+		uclient = &users.Client{UsersClient: usersClient.MockClient{}}
+	} else {
+		uclient, err = users.NewClient(users.Config{HostPort: config.usersServiceURL})
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot create users client: %v", config.usersServiceURL)
+		}
+	}
+
 	c := &ConfigManager{
-		db: wrappedDB,
+		db:          wrappedDB,
+		eventURL:    config.eventManagerURL,
+		usersClient: uclient,
 	}
 
 	if config.eventTypesPath != "" {
@@ -122,6 +191,10 @@ func New(config Config) (*ConfigManager, error) {
 			return nil, err
 		}
 		log.Infof("Syncronized event types")
+	}
+
+	if config.eventManagerURL == "" {
+		return nil, errors.New("eventmanager URL is required")
 	}
 
 	return c, nil
@@ -310,7 +383,7 @@ func (c *ConfigManager) httpCreateReceiver(r *http.Request, instanceID string) (
 		return "Bad request body", http.StatusBadRequest, nil
 	}
 	if err := isValidAddress(receiver.AddressData, receiver.RType); err != nil {
-		log.Errorf("address validation failed, %s address %s, error: %s", receiver.RType, receiver.AddressData, err)
+		log.Errorf("address validation failed for %s address, error: %s", receiver.RType, err)
 		return "address validation failed", http.StatusBadRequest, nil
 	}
 	var result interface{}
@@ -327,22 +400,13 @@ func (c *ConfigManager) httpCreateReceiver(r *http.Request, instanceID string) (
 }
 
 func isValidAddress(addressData json.RawMessage, rtype string) error {
-	addr, err := json.Marshal(addressData)
-	if err != nil {
-		return errors.Wrapf(err, "cannot unmarshal %s receiver address data %s", rtype, addressData)
-	}
-	if string(addr) == "null" && rtype == "browser" {
-		return nil
-	}
-	uqAddr, err := strconv.Unquote(string(addr))
-	if err != nil {
-		return errors.Wrapf(err, "cannot unquote %s address %s", rtype, addr)
-	}
-
-	addrStr := string(uqAddr)
-
 	switch rtype {
-	case "slack":
+	case types.SlackReceiver:
+		var addrStr string
+		if err := json.Unmarshal(addressData, &addrStr); err != nil {
+			return errors.Wrapf(err, "cannot unmarshal %s receiver address data %s", rtype, addressData)
+		}
+
 		url, err := url.ParseRequestURI(addrStr)
 		if err != nil {
 			return errors.Wrapf(err, "cannot parse URI %s", addrStr)
@@ -351,13 +415,42 @@ func isValidAddress(addressData json.RawMessage, rtype string) error {
 			return errors.Errorf("invalid slack webhook URL %s", addrStr)
 		}
 
-	case "email":
+	case types.EmailReceiver:
+		var addrStr string
+		if err := json.Unmarshal(addressData, &addrStr); err != nil {
+			return errors.Wrapf(err, "cannot unmarshal %s receiver address data %s", rtype, addressData)
+		}
+
 		if err := checkmail.ValidateFormat(addrStr); err != nil {
 			return errors.Wrapf(err, "invalid email address %s", addrStr)
 		}
 
-	case "browser":
+	case types.BrowserReceiver:
 		return nil
+
+	case types.StackdriverReceiver:
+		fields := []string{
+			"type",
+			"project_id",
+			"private_key_id",
+			"private_key",
+			"client_email",
+			"client_id",
+			"auth_uri",
+			"token_uri",
+			"auth_provider_x509_cert_url",
+			"client_x509_cert_url",
+		}
+		var creds map[string]string
+		if err := json.Unmarshal(addressData, &creds); err != nil {
+			return errors.Wrapf(err, "cannot unmarshal %s receiver address data", rtype)
+		}
+
+		for _, v := range fields {
+			if creds[v] == "" || (v == "type" && creds[v] != "service_account") {
+				return errors.Errorf("invalid stackdriver receiver")
+			}
+		}
 	}
 
 	return nil
@@ -437,7 +530,154 @@ func (c *ConfigManager) getReceiver(r *http.Request, instanceID string, receiver
 	return receiver, http.StatusOK, nil
 }
 
+func (c *ConfigManager) createConfigChangedEvent(ctx context.Context, instanceID string, oldReceiver, receiver types.Receiver, eventTime time.Time) error {
+	log.Debug("update_config Event Firing...")
+
+	eventType := "config_changed"
+	event := types.Event{
+		Type:       eventType,
+		InstanceID: instanceID,
+		Timestamp:  eventTime,
+	}
+
+	instanceData, err := c.usersClient.GetOrganization(ctx, &serviceUsers.GetOrganizationRequest{
+		ID: &serviceUsers.GetOrganizationRequest_InternalID{InternalID: instanceID},
+	})
+	if err != nil {
+		if eventmanager.IsStatusErrorCode(err, http.StatusNotFound) {
+			log.Warnf("instance name for ID %s not found for event type %s", instanceID, eventType)
+			return errors.Wrap(err, "instance not found")
+		}
+		log.Errorf("error requesting instance data from users service for event type %s: %s", eventType, err)
+		return errors.Wrapf(err, "error requesting instance data from users service for event type %s", eventType)
+	}
+	instanceName := instanceData.Organization.Name
+
+	sort.Strings(oldReceiver.EventTypes)
+	sort.Strings(receiver.EventTypes)
+
+	// currently only 3 events can happen on config/notifications page
+	// 1) the address changed
+	// 2) the eventTypes changed
+	// 3) event fired unnecessarily, and niether address or eventTypes changed. (This happens because all receivers fire PUT change events on save)
+	// Currently these are distinct non-overlapping events
+	if !bytes.Equal(oldReceiver.AddressData, receiver.AddressData) {
+		// address changed event
+		msg := fmt.Sprintf("The address for <b>%s</b> was updated!", receiver.RType)
+
+		emailMsg, err := eventmanager.GetEmailMessage(msg, eventType, instanceName)
+		if err != nil {
+			return errors.Wrap(err, "cannot get email message")
+		}
+
+		browserMsg, err := eventmanager.GetBrowserMessage(msg, nil, eventType)
+		if err != nil {
+			return errors.Wrap(err, "cannot get email message")
+		}
+
+		msgJSON, err := json.Marshal(msg)
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal message")
+		}
+		stackdriverMsg, err := eventmanager.GetStackdriverMessage(msgJSON, eventType, instanceName)
+		if err != nil {
+			return errors.Wrap(err, "cannot get stackdriver message")
+		}
+
+		event.Messages = map[string]json.RawMessage{
+			types.EmailReceiver:       emailMsg,
+			types.BrowserReceiver:     browserMsg,
+			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\nThe address for *%s* was updated!"}`, instanceName, receiver.RType)),
+			types.StackdriverReceiver: stackdriverMsg,
+		}
+	} else if !reflect.DeepEqual(oldReceiver.EventTypes, receiver.EventTypes) {
+		// eventTypes changed event
+		// PossibleTodo: find set difference between oldEventTypes and newEventTypes -> "removed [...] and added [...]"
+		msg := fmt.Sprintf("The event types for <b>%s</b> were updated from <i>%s</i> to <i>%s</i>", receiver.RType, oldReceiver.EventTypes, receiver.EventTypes)
+
+		emailMsg, err := eventmanager.GetEmailMessage(msg, eventType, instanceName)
+		if err != nil {
+			return errors.Wrap(err, "cannot get email message")
+		}
+
+		browserMsg, err := eventmanager.GetBrowserMessage(msg, nil, eventType)
+		if err != nil {
+			return errors.Wrap(err, "cannot get email message")
+		}
+
+		msgJSON, err := json.Marshal(msg)
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal message")
+		}
+		stackdriverMsg, err := eventmanager.GetStackdriverMessage(msgJSON, eventType, instanceName)
+		if err != nil {
+			return errors.Wrap(err, "cannot get stackdriver message for event types changed")
+		}
+
+		event.Messages = map[string]json.RawMessage{
+			types.EmailReceiver:       emailMsg,
+			types.BrowserReceiver:     browserMsg,
+			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\nThe event types for *%s* were updated from _%s_ to _%s_"}`, instanceName, receiver.RType, oldReceiver.EventTypes, receiver.EventTypes)),
+			types.StackdriverReceiver: stackdriverMsg,
+		}
+	} else {
+		// nothing changed, don't send event
+		return nil
+	}
+
+	rawJSONEvent, jsonErr := json.Marshal(event)
+	if jsonErr != nil {
+		return jsonErr
+	}
+
+	eventsToEventmanagerTotal.With(prometheus.Labels{"event_type": event.Type}).Inc()
+	postEventURL := fmt.Sprintf("%s/api/notification/events", c.eventURL)
+	req, err := http.NewRequest("POST", postEventURL, bytes.NewBuffer(rawJSONEvent))
+	if err != nil {
+		return errors.Wrap(err, "cannot create request to send config_change event")
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// try 5 times to POST our request
+	retryErr := retry(5, time.Second, func() error {
+		ctxWithID := user.InjectOrgID(context.Background(), instanceID)
+		err = user.InjectOrgIDIntoHTTPRequest(ctxWithID, req)
+		if err != nil {
+			return errors.Wrap(err, "cannot inject instanceID into request")
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			log.Debugf("POSTing to events connection not established, error: %s; retrying...", err)
+			return err
+		}
+		defer resp.Body.Close()
+
+		s := resp.StatusCode
+		switch {
+		case s >= 500:
+			// Retry
+			log.Debugf("POSTing to events connection not established, status: %s; retrying...", s)
+			return errors.Errorf("internal server error, status %d", s)
+		case s >= 400:
+			// Don't retry, it was client's fault
+			return stop{errors.Errorf("client error, status %d", s)}
+		default:
+			// Happy
+			return nil
+		}
+	})
+
+	if retryErr != nil {
+		eventsToEventmanagerError.With(prometheus.Labels{"event_type": event.Type}).Inc()
+		return errors.Wrapf(err, "could not send %s event", event.Type)
+	}
+
+	return nil
+}
+
 func (c *ConfigManager) updateReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
+	eventTime := time.Now()
 	if err := c.checkInstanceDefaults(instanceID); err != nil {
 		return nil, 0, err
 	}
@@ -446,6 +686,7 @@ func (c *ConfigManager) updateReceiver(r *http.Request, instanceID string, recei
 		return nil, http.StatusNotFound, nil
 	}
 	receiver := types.Receiver{}
+
 	err := parseBody(r, &receiver)
 	if err != nil {
 		return "Bad request body", http.StatusBadRequest, nil
@@ -455,7 +696,7 @@ func (c *ConfigManager) updateReceiver(r *http.Request, instanceID string, recei
 	}
 
 	if err := isValidAddress(receiver.AddressData, receiver.RType); err != nil {
-		log.Errorf("address validation failed, %s address %s, error: %s", receiver.RType, receiver.AddressData, err)
+		log.Errorf("address validation failed for %s address, error: %s", receiver.RType, err)
 		return "address validation failed", http.StatusBadRequest, nil
 	}
 
@@ -469,6 +710,26 @@ func (c *ConfigManager) updateReceiver(r *http.Request, instanceID string, recei
 	// to return a meaningful error message if we do that). We do this in a transaction to prevent races.
 	// We set these vars as a way of returning more values from inside the closure, since the function can only return error.
 	code := http.StatusOK
+
+	if receiver.ID == "" {
+		receiver.ID = receiverID
+	}
+
+	// before transaction changes the addressData and eventTypes, get oldReceiver which has oldAddressData and oldEventTypes
+	receiverOrNil, status, err := c.getReceiver(r, instanceID, receiverID)
+	gotOldReceiverValues := true
+	if err != nil {
+		gotOldReceiverValues = false
+		log.Errorf("error with c.getReceiver call. Status: %v\nError: %s", status, err)
+	}
+
+	oldReceiver, ok := receiverOrNil.(types.Receiver)
+	if !ok {
+		gotOldReceiverValues = false
+		log.Errorf("error converting result of getReceiver call, %v to types.Receiver", receiverOrNil)
+	}
+
+	// Transaction to actually update the receiver in DB
 	userErrorMsg := ""
 	err = c.withTx("update_receiver_tx", func(tx *utils.Tx) error {
 		// Verify receiver exists, has correct instance id and type.
@@ -560,6 +821,18 @@ func (c *ConfigManager) updateReceiver(r *http.Request, instanceID string, recei
 		return nil, 0, err
 	}
 	if code == http.StatusOK {
+		// all good!
+		// Fire event every time config is successfully changed
+		if gotOldReceiverValues {
+			go func() {
+				eventErr := c.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime)
+				if eventErr != nil {
+					log.Error(eventErr)
+				}
+			}()
+		} else {
+			log.Error("Event config_changed not sent. Old receiver values not acquired.")
+		}
 		return nil, code, nil
 	}
 	return userErrorMsg, code, nil
@@ -624,6 +897,7 @@ func (c *ConfigManager) getReceiversForEvent(r *http.Request, instanceID string,
 }
 
 func (c *ConfigManager) createEvent(r *http.Request, instanceID string) (interface{}, int, error) {
+
 	event := types.Event{}
 	if err := parseBody(r, &event); err != nil {
 		return "Bad request body", http.StatusBadRequest, nil

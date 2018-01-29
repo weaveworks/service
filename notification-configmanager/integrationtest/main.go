@@ -25,7 +25,7 @@ const (
 	wsPath          = "/api/notification/sender"
 	smtpURL         = "http://mailcatcher/messages"
 	orgID           = "mockID"
-	numEventTypes   = 5
+	numEventTypes   = 6
 )
 
 var (
