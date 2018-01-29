@@ -1,4 +1,4 @@
-package self
+package preview
 
 import (
 	"bytes"
@@ -12,25 +12,25 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/webhooks.v3/github"
 
-	"github.com/weaveworks/service/service-ui-kicker/handler"
+	"github.com/weaveworks/service/service-ui-kicker/hookdispatcher"
 )
 
 const (
 	repo = "https://github.com/weaveworks/service-ui.git"
 )
 
-// PreviewLinker updates commits in github with build preview URLs
-type PreviewLinker struct {
+// LinkPoster updates commits in github with build preview URLs
+type LinkPoster struct {
 	token string
 }
 
-// NewPreviewLinker creates a new PreviewLinker
-func NewPreviewLinker(token string) *PreviewLinker {
-	return &PreviewLinker{token: token}
+// New creates a new LinkPoster
+func New(token string) *LinkPoster {
+	return &LinkPoster{token: token}
 }
 
-// Start starts a PreviewLinker
-func (l *PreviewLinker) Start(hs *handler.HookServer) {
+// Start starts a LinkPoster
+func (l *LinkPoster) Start(hs *hookdispatcher.HookDispatcher) {
 	events := hs.Listen(repo)
 	go func() {
 		for payload := range events {
@@ -47,10 +47,12 @@ func (l *PreviewLinker) Start(hs *handler.HookServer) {
 	}()
 }
 
-// HandleStatus handles GitHub Commit status updated from the API
-func (l *PreviewLinker) HandleStatus(pl github.StatusPayload) {
+// HandleStatus handles GitHub Commit status updates from the API
+func (l *LinkPoster) HandleStatus(pl github.StatusPayload) {
 	if !(pl.State == "success" && pl.Context == "ci/circleci: upload") {
-		log.WithField("state", pl.State).WithField("context", pl.Context).Debugf("Payload not eligible")
+		log.WithFields(log.Fields{
+			"state": pl.State, "context": pl.Context,
+		}).Debugf("Payload not eligible")
 		return
 	}
 	// "target_url": "https://circleci.com/gh/weaveworks/service-ui/5100?utm_campaign=vcs-integration-link&utm_medium=referral&utm_source=github-build-link",
@@ -75,7 +77,9 @@ func (l *PreviewLinker) HandleStatus(pl github.StatusPayload) {
 	}
 	jsonValue, _ := json.Marshal(values)
 
-	log.WithFields(log.Fields{"sha": pl.Sha, "Preview URL": previewURL}).Info("Posting preview URL")
+	log.WithFields(log.Fields{
+		"sha": pl.Sha, "Preview URL": previewURL,
+	}).Info("Posting preview URL")
 
 	req, err := http.NewRequest("POST", statusURL, bytes.NewBuffer(jsonValue))
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", l.token))

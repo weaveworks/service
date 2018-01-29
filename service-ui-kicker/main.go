@@ -12,9 +12,9 @@ import (
 	"gopkg.in/go-playground/webhooks.v3"
 	"gopkg.in/go-playground/webhooks.v3/github"
 
-	"github.com/weaveworks/service/service-ui-kicker/handler"
+	"github.com/weaveworks/service/service-ui-kicker/hookdispatcher"
+	"github.com/weaveworks/service/service-ui-kicker/preview"
 	"github.com/weaveworks/service/service-ui-kicker/scope"
-	"github.com/weaveworks/service/service-ui-kicker/self"
 )
 
 const (
@@ -39,15 +39,15 @@ func main() {
 	if !ok {
 		log.Errorf("github token var %s not set\n", githubTokenEnv)
 	}
-	hook := github.New(&github.Config{Secret: secret})
-	hs := handler.New()
+	hs := hookdispatcher.New()
 
 	su := scope.NewUpdater()
 	su.Start(hs)
 
-	pl := self.NewPreviewLinker(githubToken)
+	pl := preview.New(githubToken)
 	pl.Start(hs)
 
+	hook := github.New(&github.Config{Secret: secret})
 	hook.RegisterEvents(hs.HandlePush, github.PushEvent)
 	hook.RegisterEvents(hs.HandleStatus, github.StatusEvent)
 

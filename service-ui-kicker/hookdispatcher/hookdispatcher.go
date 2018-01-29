@@ -1,4 +1,4 @@
-package handler
+package hookdispatcher
 
 import (
 	log "github.com/sirupsen/logrus"
@@ -6,25 +6,25 @@ import (
 	"gopkg.in/go-playground/webhooks.v3/github"
 )
 
-// HookServer handles webhook
-type HookServer struct {
+// HookDispatcher handles webhooks and dispatches them to listeners
+type HookDispatcher struct {
 	listeners map[string]chan interface{}
 }
 
 // New returns new hook server
-func New() *HookServer {
-	return &HookServer{listeners: make(map[string]chan interface{})}
+func New() *HookDispatcher {
+	return &HookDispatcher{listeners: make(map[string]chan interface{})}
 }
 
 // Listen registers a listener for a repo
-func (hs *HookServer) Listen(repo string) chan interface{} {
+func (hs *HookDispatcher) Listen(repo string) chan interface{} {
 	ch := make(chan interface{}, 8)
 	hs.listeners[repo] = ch
 	return ch
 }
 
 // HandlePush handles GitHub push events
-func (hs *HookServer) HandlePush(payload interface{}, header webhooks.Header) {
+func (hs *HookDispatcher) HandlePush(payload interface{}, header webhooks.Header) {
 	pl := payload.(github.PushPayload)
 	url := pl.Repository.CloneURL
 	ch, ok := hs.listeners[url]
@@ -36,7 +36,7 @@ func (hs *HookServer) HandlePush(payload interface{}, header webhooks.Header) {
 }
 
 // HandleStatus handles GitHub Commit status updated from the API
-func (hs *HookServer) HandleStatus(payload interface{}, header webhooks.Header) {
+func (hs *HookDispatcher) HandleStatus(payload interface{}, header webhooks.Header) {
 	pl := payload.(github.StatusPayload)
 	url := pl.Repository.CloneURL
 	ch, ok := hs.listeners[url]

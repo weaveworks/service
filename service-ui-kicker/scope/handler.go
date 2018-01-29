@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/webhooks.v3/github"
 
-	"github.com/weaveworks/service/service-ui-kicker/handler"
+	"github.com/weaveworks/service/service-ui-kicker/hookdispatcher"
 )
 
 const (
@@ -45,8 +45,8 @@ func Init() {
 	prometheus.MustRegister(tasksCompleted, tasksFailed, completedDuration)
 }
 
-// getLastSha returns last sha for master branch repository repo
-func getLastSha(repo string) string {
+// getLatestRevision returns last sha for master branch repository repo
+func getLatestRevision(repo string) string {
 	cmd := exec.Command("git", "ls-remote", repo, "refs/heads/master")
 	stdout := bytes.NewBuffer(nil)
 	stderr := bytes.NewBuffer(nil)
@@ -60,21 +60,21 @@ func getLastSha(repo string) string {
 	return strings.Fields(stdout.String())[0]
 }
 
-// Updater pushes updated scope (and dependencies) into service-ui
+// Updater pushes updated scope versions (and dependencies) into service-ui
 type Updater struct {
 	mu     sync.Mutex
 	latest string
 }
 
-// NewUpdater creates a new updater
+// NewUpdater creates a new scope version updater
 func NewUpdater() *Updater {
-	latest := getLastSha(scopeRepo)
+	latest := getLatestRevision(scopeRepo)
 	log.Infof("Set the latest version for Scope updater to %q", latest)
 	return &Updater{latest: latest}
 }
 
 // Start starts the updater
-func (u *Updater) Start(hs *handler.HookServer) {
+func (u *Updater) Start(hs *hookdispatcher.HookDispatcher) {
 	events := hs.Listen(scopeRepo)
 	go func() {
 		log.Info("Start waiting for new tasks...")
