@@ -36,7 +36,7 @@ func init() {
 
 func main() {
 
-	traceCloser := tracing.Init("users-api")
+	traceCloser := tracing.Init("users")
 	defer traceCloser.Close()
 
 	var (
