@@ -7,6 +7,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
+	"github.com/weaveworks/service/common/gcp"
 	"github.com/weaveworks/service/users/login"
 )
 
@@ -29,7 +30,7 @@ func NewAccess() *Access {
 		OAuth: login.OAuth{
 			Config: oauth2.Config{
 				Endpoint: google.Endpoint,
-				Scopes:   []string{"https://www.googleapis.com/auth/cloud-billing-partner-subscriptions.readonly"},
+				Scopes:   []string{gcp.OAuthScopeCloudBillingPartnerSubscriptionsRO},
 			},
 		},
 	}

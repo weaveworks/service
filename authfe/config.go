@@ -45,6 +45,7 @@ type Config struct {
 	demoHost               proxyConfig
 	fluxHost               proxyConfig
 	fluxV6Host             proxyConfig
+	gcpServiceHost         proxyConfig
 	gcpWebhookHost         proxyConfig
 	githubReceiverHost     proxyConfig
 	launchGeneratorHost    proxyConfig
@@ -96,6 +97,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"flux":                 &c.fluxHost,
 		"flux-v6":              &c.fluxV6Host,
 		"gcp-launcher-webhook": &c.gcpWebhookHost,
+		"gcp-service":          &c.gcpServiceHost,
 		"github-receiver":      &c.githubReceiverHost,
 		"launch-generator":     &c.launchGeneratorHost,
 		"launcher-service":     &c.launcherServiceHost,

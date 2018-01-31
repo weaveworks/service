@@ -1,9 +1,13 @@
-package users
+package grpc
 
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -37,4 +41,29 @@ func IsGRPCStatusErrorCode(err error, code int) bool {
 		return false
 	}
 	return code == int(st.Code())
+}
+
+// NewErrorInterceptor generates a gRPC error interceptor configured with the
+// provided error code.
+func NewErrorInterceptor(errorCode string) grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		var md metadata.MD
+		opts = append(opts, grpc.Trailer(&md))
+		err := invoker(ctx, method, req, reply, cc, opts...)
+
+		if codes, ok := md[errorCode]; err != nil && ok {
+			if len(codes) != 1 {
+				return err
+			}
+			code, convErr := strconv.Atoi(codes[0])
+			if convErr != nil {
+				return err
+			}
+			return &Unauthorized{
+				httpStatus: code,
+			}
+		}
+
+		return err
+	}
 }
