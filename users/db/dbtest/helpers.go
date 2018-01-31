@@ -48,7 +48,7 @@ func CreateOrgForUser(t *testing.T, db db.DB, u *users.User) *users.Organization
 	require.NoError(t, err)
 
 	name := strings.Replace(externalID, "-", " ", -1)
-	org, err := db.CreateOrganization(context.Background(), u.ID, externalID, name, "", "")
+	org, err := db.CreateOrganization(context.Background(), u.ID, externalID, name, "", "", u.TrialExpiresAt())
 	require.NoError(t, err)
 
 	assert.NotEqual(t, "", org.ID)
@@ -67,7 +67,7 @@ func CreateOrgForTeam(t *testing.T, db db.DB, u *users.User, team *users.Team) *
 	require.NoError(t, err)
 
 	name := strings.Replace(externalID, "-", " ", -1)
-	org, err := db.CreateOrganizationWithTeam(context.Background(), u.ID, externalID, name, "", team.ExternalID, "")
+	org, err := db.CreateOrganizationWithTeam(context.Background(), u.ID, externalID, name, "", team.ExternalID, "", u.TrialExpiresAt())
 	require.NoError(t, err)
 
 	assert.NotEqual(t, "", org.ID)

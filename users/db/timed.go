@@ -170,9 +170,9 @@ func (t timed) GenerateOrganizationExternalID(ctx context.Context) (s string, er
 	return
 }
 
-func (t timed) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string) (o *users.Organization, err error) {
+func (t timed) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string, trialExpiresAt time.Time) (o *users.Organization, err error) {
 	t.timeRequest(ctx, "CreateOrganization", func(ctx context.Context) error {
-		o, err = t.d.CreateOrganization(ctx, ownerID, externalID, name, token, teamID)
+		o, err = t.d.CreateOrganization(ctx, ownerID, externalID, name, token, teamID, trialExpiresAt)
 		return err
 	})
 	return
@@ -296,9 +296,9 @@ func (t timed) SetOrganizationZuoraAccount(ctx context.Context, externalID, numb
 	})
 }
 
-func (t timed) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string) (org *users.Organization, err error) {
+func (t timed) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string, trialExpiresAt time.Time) (org *users.Organization, err error) {
 	t.timeRequest(ctx, "CreateOrganizationWithGCP", func(ctx context.Context) error {
-		org, err = t.d.CreateOrganizationWithGCP(ctx, ownerID, externalAccountID)
+		org, err = t.d.CreateOrganizationWithGCP(ctx, ownerID, externalAccountID, trialExpiresAt)
 		return err
 	})
 	return
@@ -363,9 +363,9 @@ func (t timed) AddUserToTeam(ctx context.Context, userID, teamID string) (err er
 	return
 }
 
-func (t timed) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string) (o *users.Organization, err error) {
+func (t timed) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (o *users.Organization, err error) {
 	t.timeRequest(ctx, "CreateOrganizationWithTeam", func(ctx context.Context) error {
-		o, err = t.d.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, token, teamExternalID, teamName)
+		o, err = t.d.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, token, teamExternalID, teamName, trialExpiresAt)
 		return err
 	})
 	return

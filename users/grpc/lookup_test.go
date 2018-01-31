@@ -420,6 +420,7 @@ func makeGCPBillingOrganization(t *testing.T) *users.Organization {
 		context.Background(),
 		user.ID,
 		accountID,
+		user.TrialExpiresAt(),
 	)
 	require.NoError(t, err)
 

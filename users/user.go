@@ -50,3 +50,8 @@ func (u *User) CompareToken(other string) bool {
 	}
 	return time.Now().UTC().Sub(tokenCreatedAt) <= 72*time.Hour
 }
+
+// TrialExpiresAt returns the timestamp when the trial expires for the user
+func (u *User) TrialExpiresAt() time.Time {
+	return u.CreatedAt.Add(TrialDuration)
+}
