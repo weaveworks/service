@@ -6,6 +6,7 @@ LABEL org.label-schema.name="gcp-service" \
         org.label-schema.vendor="Weaveworks" \
         org.label-schema.schema-version="1.0"
 
+RUN apk add --no-cache -q ca-certificates
 WORKDIR /
 COPY gcp-service /
 EXPOSE 80
