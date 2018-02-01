@@ -6,6 +6,8 @@ LABEL org.label-schema.name="kubectl-service" \
         org.label-schema.vendor="Weaveworks" \
         org.label-schema.schema-version="1.0"
 
+RUN apk add --no-cache -q ca-certificates
+
 RUN mkdir kubectl
 WORKDIR /kubectl
 
