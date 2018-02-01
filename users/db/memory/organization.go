@@ -288,6 +288,19 @@ func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, 
 	return o, nil
 }
 
+// FindUncleanedOrgIDs looks up deleted but uncleaned organization IDs
+func (d *DB) FindUncleanedOrgIDs(_ context.Context) ([]string, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	var ids []string
+	for _, org := range d.organizations {
+		if !org.Cleanup && (!org.DeletedAt.IsZero() || org.RefuseDataUpload) {
+			ids = append(ids, org.ID)
+		}
+	}
+	return ids, nil
+}
+
 // FindOrganizationByProbeToken looks up the organization matching a given
 // probe token.
 func (d *DB) FindOrganizationByProbeToken(_ context.Context, probeToken string) (*users.Organization, error) {
@@ -448,6 +461,18 @@ func (d *DB) AddFeatureFlag(_ context.Context, externalID string, featureFlag st
 func (d *DB) SetFeatureFlags(_ context.Context, externalID string, featureFlags []string) error {
 	return changeOrg(d, externalID, func(o *users.Organization) error {
 		o.FeatureFlags = featureFlags
+		return nil
+	})
+}
+
+// SetOrganizationCleanup sets cleanup for organization with internalID
+func (d *DB) SetOrganizationCleanup(ctx context.Context, internalID string, value bool) error {
+	org, err := d.FindOrganizationByInternalID(ctx, internalID)
+	if err != nil {
+		return err
+	}
+	return changeOrg(d, org.ExternalID, func(org *users.Organization) error {
+		org.Cleanup = value
 		return nil
 	})
 }

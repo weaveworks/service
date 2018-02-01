@@ -20,7 +20,7 @@ func Wait(db *sql.DB) error {
 		if err == nil {
 			return nil
 		}
-		log.Debugf("db connection not established, error: %s; retrying...", err)
+		log.Warnf("db connection not established, error: %s; retrying...", err)
 		time.Sleep(time.Second << uint(tries))
 	}
 	return errors.Wrapf(err, "db connection not established after %s", timeout)

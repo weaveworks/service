@@ -78,6 +78,7 @@ type DB interface {
 	// ExternalID must match the ExternalID regex.  If token is blank, a random one will
 	// be chosen.
 	CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string) (*users.Organization, error)
+	FindUncleanedOrgIDs(ctx context.Context) ([]string, error)
 	FindOrganizationByProbeToken(ctx context.Context, probeToken string) (*users.Organization, error)
 	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)
 	FindOrganizationByGCPExternalAccountID(ctx context.Context, externalAccountID string) (*users.Organization, error)
@@ -88,6 +89,7 @@ type DB interface {
 	GetOrganizationName(ctx context.Context, externalID string) (string, error)
 	DeleteOrganization(ctx context.Context, externalID string) error
 	AddFeatureFlag(ctx context.Context, externalID string, featureFlag string) error
+	SetOrganizationCleanup(ctx context.Context, internalID string, value bool) error
 	SetFeatureFlags(ctx context.Context, externalID string, featureFlags []string) error
 	SetOrganizationRefuseDataAccess(ctx context.Context, externalID string, value bool) error
 	SetOrganizationRefuseDataUpload(ctx context.Context, externalID string, value bool) error

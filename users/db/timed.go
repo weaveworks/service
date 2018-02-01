@@ -178,6 +178,14 @@ func (t timed) CreateOrganization(ctx context.Context, ownerID, externalID, name
 	return
 }
 
+func (t timed) FindUncleanedOrgIDs(ctx context.Context) (ids []string, err error) {
+	t.timeRequest(ctx, "FindUncleanedOrgIDs", func(ctx context.Context) error {
+		ids, err = t.d.FindUncleanedOrgIDs(ctx)
+		return err
+	})
+	return
+}
+
 func (t timed) FindOrganizationByProbeToken(ctx context.Context, probeToken string) (o *users.Organization, err error) {
 	t.timeRequest(ctx, "FindOrganizationByProbeToken", func(ctx context.Context) error {
 		o, err = t.d.FindOrganizationByProbeToken(ctx, probeToken)
@@ -255,6 +263,12 @@ func (t timed) AddFeatureFlag(ctx context.Context, externalID string, featureFla
 func (t timed) SetFeatureFlags(ctx context.Context, externalID string, featureFlags []string) error {
 	return t.timeRequest(ctx, "SetFeatureFlags", func(ctx context.Context) error {
 		return t.d.SetFeatureFlags(ctx, externalID, featureFlags)
+	})
+}
+
+func (t timed) SetOrganizationCleanup(ctx context.Context, internalID string, value bool) error {
+	return t.timeRequest(ctx, "SetOrganizationCleanup", func(ctx context.Context) error {
+		return t.d.SetOrganizationCleanup(ctx, internalID, value)
 	})
 }
 
