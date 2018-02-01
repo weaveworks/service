@@ -137,7 +137,11 @@ func (c *OrgCleaner) clean(ctx context.Context, id string) {
 
 // runCleanupJobs tries to run all cleaning jobs for organization with id
 // it returns true only if all jobs are successfully done
+// if no jobs found, return false to cleanup later, when there are some jobs
 func (c *OrgCleaner) runCleanupJobs(ctx context.Context, id string) bool {
+	if len(c.urls) == 0 {
+		return false
+	}
 	res := true
 	for _, url := range c.urls {
 		callEndpointTotal.With(prometheus.Labels{"url": url}).Inc()
