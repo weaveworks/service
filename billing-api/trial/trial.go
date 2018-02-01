@@ -29,7 +29,7 @@ type Trial struct {
 // Info returns a bundle of information about the trial period that gets
 // used in the Javascript frontend.
 func Info(o users.Organization, now time.Time) Trial {
-	length := o.TrialExpiresAt.Sub(o.CreatedAt)
+	length := int(math.Max(days(o.TrialExpiresAt.Sub(o.CreatedAt)), 0.0))
 
 	// Remaining is the expiry - time now
 	remainingTime := o.TrialExpiresAt.Sub(now)
@@ -40,7 +40,7 @@ func Info(o users.Organization, now time.Time) Trial {
 	remaining := int(math.Max(0, math.Ceil(remainingDays)))
 
 	return Trial{
-		Length:    int(days(length)),
+		Length:    length,
 		Remaining: remaining,
 		Start:     o.CreatedAt,
 		End:       o.TrialExpiresAt,
