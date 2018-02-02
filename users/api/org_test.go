@@ -497,3 +497,23 @@ func Test_Organization_CreateTeam(t *testing.T) {
 	assert.Equal(t, body.Teams[0].ExternalID, organizations[0].TeamExternalID)
 	assert.Equal(t, body.Teams[0].Name, teamName)
 }
+
+func Test_Organization_Lookup(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user := getUser(t)
+	org := createOrgForUser(t, user)
+
+	request, err := http.NewRequest("GET", "/api/users/org/lookup", nil)
+	require.NoError(t, err)
+	request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", org.ProbeToken))
+
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, request)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	body := map[string]interface{}{}
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(t, org.ExternalID, body["externalID"])
+}
