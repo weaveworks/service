@@ -1,8 +1,11 @@
 package sender
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -274,6 +277,25 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+type websocketResponseWriter struct {
+	statusCode int
+	http.ResponseWriter
+	http.Hijacker
+}
+
+func (w *websocketResponseWriter) WriteHeader(statusCode int) {
+	w.statusCode = statusCode
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (w *websocketResponseWriter) Status() int {
+	return w.statusCode
+}
+
+func (w *websocketResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return w.Hijacker.Hijack()
+}
+
 // HandleBrowserNotifications handles browser requests for notifications (websocket)
 func (s *Sender) HandleBrowserNotifications(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("new websocket connection from %s", r.UserAgent())
@@ -310,12 +332,22 @@ func (s *Sender) HandleBrowserNotifications(w http.ResponseWriter, r *http.Reque
 		subscribersNATS.Dec()
 	}()
 
-	c, err := upgrader.Upgrade(w, r, nil)
+	writer := &websocketResponseWriter{http.StatusOK, w, w.(http.Hijacker)}
+	c, err := upgrader.Upgrade(writer, r, nil)
+
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		log.Errorf("cannot upgrade websocket, error: %s\n", err)
+		msg := fmt.Sprintf("cannot upgrade websocket, error: %s\n", err)
 		websocketsActive.Dec()
-		websocketErrors.Inc()
+		if writer.Status() == http.StatusInternalServerError {
+			// Server error.
+			log.Error(msg)
+			websocketErrors.Inc()
+		} else {
+			// Bad request from client. Don't increment metrics to trigger an alert on this.
+			// https://github.com/weaveworks/service-conf/issues/1862
+			log.Warn(msg)
+		}
+
 		return
 	}
 	defer c.Close()

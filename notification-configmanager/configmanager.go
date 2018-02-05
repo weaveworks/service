@@ -349,10 +349,9 @@ func (c *ConfigManager) listReceivers(r *http.Request, instanceID string) (inter
 		FROM receivers r
 		LEFT JOIN receiver_event_types rt ON (r.receiver_id = rt.receiver_id)
 		LEFT JOIN event_types et ON (rt.event_type = et.name)
-		WHERE r.instance_id = $1 AND (et.feature_flag IS NULL OR et.feature_flag = ANY ($2))
+		WHERE r.instance_id = $1
 		GROUP BY r.receiver_id`,
 		instanceID,
-		pq.Array(getFeatureFlags(r)),
 	)
 	if err != nil {
 		return nil, 0, err

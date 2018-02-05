@@ -20,4 +20,4 @@ docker run --name=configmanager -p 8080:80 -d quay.io/weaveworks/notification-co
 ## To configure / add / remove an event type ##
 
 Please see the relevant section of
-[the production playbook](https://github.com/weaveworks/service-conf/master/tree/docs/PLAYBOOK.md#adding-or-removing-event-types)
+[the production playbook](https://github.com/weaveworks/service-conf/tree/master/docs/PLAYBOOK.md#adding-or-removing-event-types)
