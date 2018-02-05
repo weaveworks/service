@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	deployKeyName   = "flux-generated"
-	errUnauthorized = httperror.APIError{
-		Body: "Unable to list deploy keys. Permission deined. Check user token.",
+	defaultDeployKeyName = "flux-generated"
+	errUnauthorized      = httperror.APIError{
+		Body: "Unable to list deploy keys. Permission denied. Check user token.",
 	}
 	errNotFound = httperror.APIError{
 		Body: "Cannot find owner or repository. Check spelling.",
@@ -41,10 +41,14 @@ func NewGithubClient(token string) *Github {
 	}
 }
 
-// InsertDeployKey will create a new deploy key for the given owner,
-// repo, token using the key deployKey.
-// If a key already exists with that name it will be deleted.
-func (g *Github) InsertDeployKey(ownerName string, repoName string, deployKey string) error {
+// InsertDeployKey will create a new deploy key titled `deployKeyName`
+// (or defaultDeployKeyName if that argument is empty) for the given
+// owner, repo, token, containing the public key `deployKey`.  If a
+// key already exists with that title it will be deleted first.
+func (g *Github) InsertDeployKey(ownerName string, repoName string, deployKey, deployKeyName string) error {
+	if deployKeyName == "" {
+		deployKeyName = defaultDeployKeyName
+	}
 	// Get list of keys
 	keys, resp, err := g.client.Repositories.ListKeys(ownerName, repoName, nil)
 	if err != nil {

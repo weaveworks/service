@@ -314,11 +314,12 @@ func (s httpService) History(w http.ResponseWriter, r *http.Request) {
 
 func (s httpService) PostIntegrationsGithub(w http.ResponseWriter, r *http.Request) {
 	var (
-		ctx   = getRequestContext(r)
-		vars  = mux.Vars(r)
-		owner = vars["owner"]
-		repo  = vars["repository"]
-		tok   = r.Header.Get("GithubToken")
+		ctx     = getRequestContext(r)
+		vars    = mux.Vars(r)
+		owner   = vars["owner"]
+		repo    = vars["repository"]
+		keyname = vars["keyname"]
+		tok     = r.Header.Get("GithubToken")
 	)
 
 	if repo == "" || owner == "" || tok == "" {
@@ -338,7 +339,7 @@ func (s httpService) PostIntegrationsGithub(w http.ResponseWriter, r *http.Reque
 	// clean way of injecting without significantly altering
 	// the initialisation (at the top)
 	gh := github.NewGithubClient(tok)
-	err = gh.InsertDeployKey(owner, repo, publicKey.Key)
+	err = gh.InsertDeployKey(owner, repo, publicKey.Key, keyname)
 	if err != nil {
 		httpErr, isHTTPErr := err.(*httperror.APIError)
 		code := http.StatusInternalServerError

@@ -70,7 +70,7 @@ func TestInsertDeployKey_KeyDoesntExist(t *testing.T) {
 		client: client,
 	}
 
-	err := g.InsertDeployKey("o", "r", "ssh-rsa AAA")
+	err := g.InsertDeployKey("o", "r", "ssh-rsa AAA", "test-deploy-key")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,13 +88,13 @@ func TestInsertDeployKey_KeyDoesntExist(t *testing.T) {
 func TestInsertDeployKey_KeyDoesExist(t *testing.T) {
 	setup()
 	defer teardown()
-	initHandlers(t, deployKeyName)
+	initHandlers(t, "test-deploy-key")
 
 	g := Github{
 		client: client,
 	}
 
-	err := g.InsertDeployKey("o", "r", "ssh-rsa AAA")
+	err := g.InsertDeployKey("o", "r", "ssh-rsa AAA", "test-deploy-key")
 	if err != nil {
 		t.Fatal(err)
 	}
