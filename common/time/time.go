@@ -65,12 +65,15 @@ func InTimeRange(begin, end, t time.Time) bool {
 
 // NextCycleStart calculates when the next period starts regarding given cycleDay.
 func NextCycleStart(reference time.Time, cycleDay int) time.Time {
-	if cycleDay > reference.Day() {
-		daysInMonth := DaysIn(reference.Month(), reference.Year())
-		day := int(math.Min(float64(daysInMonth), float64(cycleDay)))
-		return time.Date(reference.Year(), reference.Month(), day, 0, 0, 0, 0, reference.Location())
+	var month time.Month
+	if cycleDay > reference.Day() && !IsEndOfMonth(reference) {
+		month = reference.Month()
+	} else {
+		month = reference.Month() + 1
 	}
-	return time.Date(reference.Year(), reference.Month()+1, cycleDay, 0, 0, 0, 0, reference.Location())
+	daysInMonth := DaysIn(month, reference.Year())
+	day := int(math.Min(float64(daysInMonth), float64(cycleDay)))
+	return time.Date(reference.Year(), month, day, 0, 0, 0, 0, reference.Location())
 }
 
 // EndOfCycle returns 1ns before the next cycle starts.
@@ -93,4 +96,8 @@ func MonthlyIntervalsWithinRange(from, to time.Time, cycleDay int) ([]Interval, 
 		begin = end
 	}
 	return intervals, nil
+}
+
+func IsEndOfMonth(t time.Time) bool {
+	return DaysIn(t.Month(), t.Year()) == t.Day()
 }

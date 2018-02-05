@@ -263,6 +263,7 @@ func TestNextCycleDay(t *testing.T) {
 		{dateStr: "2016-02-13 23:59:59", cycleDay: 28}: "2016-02-28 00:00:00",
 		{dateStr: "2017-12-13 11:45:12", cycleDay: 31}: "2017-12-31 00:00:00",
 		{dateStr: "2017-12-13 23:00:00", cycleDay: 6}:  "2018-01-06 00:00:00",
+		{dateStr: "2017-11-30 00:00:00", cycleDay: 31}:  "2017-12-31 00:00:00",
 	} {
 		reference := ts(t, input.dateStr)
 		expected := ts(t, expectedStr)
