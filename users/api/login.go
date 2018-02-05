@@ -310,7 +310,7 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 		}
 		user, err = a.db.CreateUser(ctx, email)
 		if err == nil {
-			a.marketingQueues.UserCreated(user.Email, user.CreatedAt, nil)
+			a.marketingQueues.UserCreated(user.Email, user.CreatedAt, req.QueryParams)
 			if a.mixpanel != nil {
 				go func() {
 					if err := a.mixpanel.TrackSignup(email); err != nil {

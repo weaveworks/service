@@ -69,6 +69,8 @@ type marketoProspect struct {
 	ActivatedOnGCP string `json:"Activated_on_GCP__c"`
 	CreatedAt      string `json:"Weave_Cloud_Created_On__c,omitempty"`
 	LastAccess     string `json:"Weave_Cloud_Last_Active__c,omitempty"`
+	LeadSource     string `json:"Lead_Source__c,omitempty"`
+	CampaignID     string `json:"salesforceCampaignID,omitempty"`
 }
 
 func (m *marketoResponse) Error() string {
@@ -104,6 +106,8 @@ func (c *MarketoClient) batchUpsertProspect(prospects []prospect) error {
 			ActivatedOnGCP: strconv.FormatBool(p.SignupSource == SignupSourceGCP),
 			CreatedAt:      nilTime(p.ServiceCreatedAt),
 			LastAccess:     nilTime(p.ServiceLastAccess),
+			LeadSource:     p.LeadSource,
+			CampaignID:     p.CampaignID,
 		})
 	}
 	req, err := json.Marshal(leads)

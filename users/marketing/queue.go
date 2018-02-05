@@ -32,6 +32,8 @@ type prospect struct {
 	SignupSource      string    `json:"signupSource"`
 	ServiceCreatedAt  time.Time `json:"createdAt"`
 	ServiceLastAccess time.Time `json:"lastAccess"`
+	CampaignID        string    `json:"campaignId"`
+	LeadSource        string    `json:"leadSource"`
 }
 
 func (p1 prospect) merge(p2 prospect) prospect {
@@ -50,12 +52,22 @@ func (p1 prospect) merge(p2 prospect) prospect {
 	if signupSource == "" {
 		signupSource = p2.SignupSource
 	}
+	leadSource := p1.LeadSource
+	if leadSource == "" {
+		leadSource = p2.LeadSource
+	}
+	campaignID := p1.CampaignID
+	if campaignID == "" {
+		campaignID = p2.CampaignID
+	}
 
 	return prospect{
 		Email:             email,
 		SignupSource:      signupSource,
 		ServiceCreatedAt:  latest(p1.ServiceCreatedAt, p2.ServiceCreatedAt),
 		ServiceLastAccess: latest(p1.ServiceLastAccess, p2.ServiceLastAccess),
+		CampaignID:        campaignID,
+		LeadSource:        leadSource,
 	}
 }
 
@@ -201,6 +213,8 @@ func (c *Queue) UserCreated(email string, createdAt time.Time, params map[string
 		Email:            email,
 		SignupSource:     signupSource(params),
 		ServiceCreatedAt: createdAt,
+		CampaignID:       params["CampaignID"],
+		LeadSource:       params["LeadSource"],
 	})
 	c.cond.Broadcast()
 }
