@@ -86,7 +86,7 @@ func MonthlyIntervalsWithinRange(from, to time.Time, cycleDay int) ([]Interval, 
 	if !from.Before(to) {
 		return nil, errors.New("from must be lower than to")
 	}
-	if cycleDay < 1 && cycleDay > 31 {
+	if cycleDay < 1 || cycleDay > 31 {
 		return nil, errors.New("day must be within [1, 31]")
 	}
 	var intervals []Interval
@@ -98,6 +98,7 @@ func MonthlyIntervalsWithinRange(from, to time.Time, cycleDay int) ([]Interval, 
 	return intervals, nil
 }
 
+// IsEndOfMonth checks whether the given date is the last day of this month.
 func IsEndOfMonth(t time.Time) bool {
 	return DaysIn(t.Month(), t.Year()) == t.Day()
 }
