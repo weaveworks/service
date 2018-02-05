@@ -387,3 +387,12 @@ func (a *API) extendOrgTrialPeriod(ctx context.Context, org *users.Organization,
 
 	return nil
 }
+
+type orgLookupView struct {
+	ExternalID string `json:"externalID"`
+}
+
+func (a *API) orgLookup(org *users.Organization, w http.ResponseWriter, r *http.Request) {
+	view := orgLookupView{ExternalID: org.ExternalID}
+	render.JSON(w, http.StatusOK, view)
+}
