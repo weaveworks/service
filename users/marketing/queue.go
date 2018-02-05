@@ -191,7 +191,7 @@ func (c *Queue) UserAccess(email string, hitAt time.Time) {
 // UserCreated should be called when new users are created.
 // This will trigger an immediate 'upload' to pardot, although
 // that upload will still happen in the background.
-func (c *Queue) UserCreated(email, signupSource string, createdAt time.Time) {
+func (c *Queue) UserCreated(email string, createdAt time.Time, params map[string]string) {
 	if c == nil {
 		return
 	}
@@ -199,10 +199,17 @@ func (c *Queue) UserCreated(email, signupSource string, createdAt time.Time) {
 	defer c.Unlock()
 	c.prospects = append(c.prospects, prospect{
 		Email:            email,
-		SignupSource:     signupSource,
+		SignupSource:     signupSource(params),
 		ServiceCreatedAt: createdAt,
 	})
 	c.cond.Broadcast()
+}
+
+func signupSource(params map[string]string) string {
+	if params["gcpAccountId"] != "" {
+		return SignupSourceGCP
+	}
+	return ""
 }
 
 // Queues is a list of Queue; it handles the fanout.
@@ -216,8 +223,8 @@ func (qs Queues) UserAccess(email string, hitAt time.Time) {
 }
 
 // UserCreated calls UserCreated on each Queue.
-func (qs Queues) UserCreated(email, signupSource string, createdAt time.Time) {
+func (qs Queues) UserCreated(email string, createdAt time.Time, params map[string]string) {
 	for _, q := range qs {
-		q.UserCreated(email, signupSource, createdAt)
+		q.UserCreated(email, createdAt, params)
 	}
 }
