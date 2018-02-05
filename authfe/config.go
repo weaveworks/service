@@ -44,7 +44,6 @@ type Config struct {
 	controlHost            proxyConfig
 	demoHost               proxyConfig
 	fluxHost               proxyConfig
-	fluxV6Host             proxyConfig
 	gcpServiceHost         proxyConfig
 	gcpWebhookHost         proxyConfig
 	githubReceiverHost     proxyConfig
@@ -95,7 +94,6 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"control":              &c.controlHost,
 		"demo":                 &c.demoHost,
 		"flux":                 &c.fluxHost,
-		"flux-v6":              &c.fluxV6Host,
 		"gcp-launcher-webhook": &c.gcpWebhookHost,
 		"gcp-service":          &c.gcpServiceHost,
 		"github-receiver":      &c.githubReceiverHost,
@@ -171,6 +169,9 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	for name, proxyCfg := range c.proxies() {
 		proxyCfg.RegisterFlags(name, f)
 	}
+
+	// Deprecated
+	_ = f.String("flux-v6", "", "deprecated: set -flux to point to the flux-api service instead")
 }
 
 // ReadEnvVars loads environment variables.

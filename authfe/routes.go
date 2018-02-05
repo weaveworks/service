@@ -221,8 +221,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			Prefix{"/report", c.collectionHost},
 			Prefix{"/prom/push", c.promDistributorHost},
 			Prefix{"/net/peer", c.peerDiscoveryHost},
-			PrefixMethods{"/flux/{flux_vsn:v[345]}", []string{"POST", "PATCH"}, c.fluxHost},
-			PrefixMethods{"/flux", []string{"POST", "PATCH"}, c.fluxV6Host},
+			PrefixMethods{"/flux", []string{"POST", "PATCH"}, c.fluxHost},
 			PrefixMethods{"/prom/alertmanager/alerts", []string{"POST"}, c.promAlertmanagerHost},
 			PrefixMethods{"/prom/alertmanager/v1/alerts", []string{"POST"}, c.promAlertmanagerHost},
 		},
@@ -240,8 +239,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		Matchables([]Prefix{
 			{"/control", c.controlHost},
 			{"/pipe", c.pipeHost},
-			{"/flux/{flux_vsn:v[345]}", c.fluxHost},
-			{"/flux", c.fluxV6Host},
+			{"/flux", c.fluxHost},
 			{"/prom/alertmanager", c.promAlertmanagerHost},
 			{"/prom/configs", c.promConfigsHost},
 			{"/prom", c.promQuerierHost},
@@ -287,13 +285,10 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				Prefix{"/api/control", c.controlHost},
 				Prefix{"/api/pipe", c.pipeHost},
 				// API to insert deploy key requires GH token. Insert token with middleware.
-				Prefix{"/api/flux/v5/integrations/github",
-					fluxGHTokenMiddleware.Wrap(c.fluxHost)},
 				Prefix{"/api/flux/{flux_vsn}/integrations/github",
-					fluxGHTokenMiddleware.Wrap(c.fluxV6Host)},
+					fluxGHTokenMiddleware.Wrap(c.fluxHost)},
 				// While we transition to newer Flux API
-				Prefix{"/api/flux/{flux_vsn:v[345]}", c.fluxHost},
-				Prefix{"/api/flux", c.fluxV6Host},
+				Prefix{"/api/flux", c.fluxHost},
 				Prefix{"/api/prom/alertmanager", c.promAlertmanagerHost},
 				Prefix{"/api/prom/configs", c.promConfigsHost},
 				Prefix{"/api/prom/notebooks", c.notebooksHost},
@@ -368,10 +363,10 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		},
 
 		MiddlewarePrefix{
-			"/api/flux/v6/integrations",
+			"/api/flux/{flux_vsn}/integrations",
 			[]PrefixRoutable{
-				PrefixMethods{"/dockerhub/image", []string{"POST"}, c.fluxV6Host},
-				PrefixMethods{"/quay/image", []string{"POST"}, c.fluxV6Host},
+				PrefixMethods{"/dockerhub/image", []string{"POST"}, c.fluxHost},
+				PrefixMethods{"/quay/image", []string{"POST"}, c.fluxHost},
 			},
 			nil,
 		},
