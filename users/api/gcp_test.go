@@ -43,7 +43,7 @@ func Test_Org_BillingProviderGCP(t *testing.T) {
 	defer cleanup(t)
 
 	user := dbtest.GetUser(t, database)
-	org, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, "E-BILL-ACC-ID")
+	org, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, "E-BILL-ACC-ID", user.TrialExpiresAt())
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
@@ -64,7 +64,7 @@ func TestAPI_GCPSubscribe_missingConsumerID(t *testing.T) {
 	// Create an existing GCP instance
 	user := dbtest.GetUser(t, database)
 	token := dbtest.AddGoogleLoginToUser(t, database, user.ID)
-	_, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, pendingSubscriptionNoConsumerID.ExternalAccountID)
+	_, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, pendingSubscriptionNoConsumerID.ExternalAccountID, user.TrialExpiresAt())
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
@@ -104,7 +104,7 @@ func TestAPI_GCPSubscribe_resumeInactivated(t *testing.T) {
 	user := dbtest.GetUser(t, database)
 	token := dbtest.AddGoogleLoginToUser(t, database, user.ID)
 	sub := makeSubscription()
-	org, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, sub.ExternalAccountID)
+	org, err := database.CreateOrganizationWithGCP(context.TODO(), user.ID, sub.ExternalAccountID, user.TrialExpiresAt())
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()

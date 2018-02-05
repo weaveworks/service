@@ -153,7 +153,7 @@ func (s SMTPEmailer) TrialExtendedEmail(members []*users.User, orgExternalID, or
 }
 
 func trialLeft(expires time.Time) string {
-	days := int16(math.Ceil(expires.Sub(time.Now()).Hours() / 24))
+	days := int16(math.Max(0, math.Ceil(expires.Sub(time.Now()).Hours()/24)))
 	if days == 1 {
 		return "1 day"
 	}

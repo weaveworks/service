@@ -100,7 +100,7 @@ func (a *API) GCPSubscribe(currentUser *users.User, externalAccountID string, w 
 	org, err := a.db.FindOrganizationByGCPExternalAccountID(r.Context(), externalAccountID)
 	if err == users.ErrNotFound {
 		// Nope, create a new instance.
-		org, err = a.db.CreateOrganizationWithGCP(r.Context(), currentUser.ID, externalAccountID)
+		org, err = a.db.CreateOrganizationWithGCP(r.Context(), currentUser.ID, externalAccountID, currentUser.TrialExpiresAt())
 	}
 	if err != nil {
 		return nil, err

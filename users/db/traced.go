@@ -111,9 +111,11 @@ func (t traced) GenerateOrganizationExternalID(ctx context.Context) (s string, e
 	return t.d.GenerateOrganizationExternalID(ctx)
 }
 
-func (t traced) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string) (o *users.Organization, err error) {
-	defer func() { t.trace("CreateOrganization", ownerID, externalID, name, token, teamID, o, err) }()
-	return t.d.CreateOrganization(ctx, ownerID, externalID, name, token, teamID)
+func (t traced) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string, trialExpiresAt time.Time) (o *users.Organization, err error) {
+	defer func() {
+		t.trace("CreateOrganization", ownerID, externalID, name, token, teamID, trialExpiresAt, o, err)
+	}()
+	return t.d.CreateOrganization(ctx, ownerID, externalID, name, token, teamID, trialExpiresAt)
 }
 
 func (t traced) FindUncleanedOrgIDs(ctx context.Context) (ids []string, err error) {
@@ -201,11 +203,11 @@ func (t traced) SetOrganizationZuoraAccount(ctx context.Context, externalID, num
 	return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)
 }
 
-func (t traced) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string) (org *users.Organization, err error) {
+func (t traced) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string, trialExpiresAt time.Time) (org *users.Organization, err error) {
 	defer func() {
-		t.trace("CreateOrganizationWithGCP", ownerID, externalAccountID, org, err)
+		t.trace("CreateOrganizationWithGCP", ownerID, externalAccountID, trialExpiresAt, org, err)
 	}()
-	return t.d.CreateOrganizationWithGCP(ctx, ownerID, externalAccountID)
+	return t.d.CreateOrganizationWithGCP(ctx, ownerID, externalAccountID, trialExpiresAt)
 }
 
 func (t traced) FindGCP(ctx context.Context, externalAccountID string) (gcp *users.GoogleCloudPlatform, err error) {
@@ -250,11 +252,11 @@ func (t traced) AddUserToTeam(ctx context.Context, userID, teamID string) (err e
 	return t.d.AddUserToTeam(ctx, userID, teamID)
 }
 
-func (t traced) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string) (o *users.Organization, err error) {
+func (t traced) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (o *users.Organization, err error) {
 	defer func() {
-		t.trace("CreateOrganizationWithTeam", ownerID, externalID, name, token, teamExternalID, teamName, o, err)
+		t.trace("CreateOrganizationWithTeam", ownerID, externalID, name, token, teamExternalID, teamName, trialExpiresAt, o, err)
 	}()
-	return t.d.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, token, teamExternalID, teamName)
+	return t.d.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, token, teamExternalID, teamName, trialExpiresAt)
 }
 
 func (t traced) Close(ctx context.Context) (err error) {

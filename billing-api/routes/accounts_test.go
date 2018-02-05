@@ -90,6 +90,36 @@ func TestGetBillingPeriod(t *testing.T) {
 		date(2017, time.June, 30))
 	require.Equal(t, date(2017, time.June, 4), start)
 	require.Equal(t, date(2017, time.July, 1), end)
+
+	// trial end before created timestamp,
+	// billing day before reference day
+	start, end = computeBillingPeriod(
+		1,
+		date(2017, time.May, 10),
+		date(2017, time.May, 3),
+		date(2017, time.May, 25))
+	require.Equal(t, date(2017, time.May, 10), start)
+	require.Equal(t, date(2017, time.June, 1), end)
+
+	// trial end before created timestamp.
+	// billing day after reference day
+	start, end = computeBillingPeriod(
+		5,
+		date(2017, time.May, 10),
+		date(2017, time.May, 7),
+		date(2017, time.May, 4))
+	require.Equal(t, date(2017, time.May, 10), start)
+	require.Equal(t, date(2017, time.May, 5), end)
+
+	// trial end before created timestamp.
+	// created at and trial end in previous periods.
+	start, end = computeBillingPeriod(
+		5,
+		date(2017, time.March, 10),
+		date(2017, time.March, 5),
+		date(2017, time.May, 4))
+	require.Equal(t, date(2017, time.April, 5), start)
+	require.Equal(t, date(2017, time.May, 5), end)
 }
 
 func TestComputeEstimationPeriod(t *testing.T) {

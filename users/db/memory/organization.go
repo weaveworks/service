@@ -227,7 +227,7 @@ var (
 )
 
 // CreateOrganization creates a new organization owned by the user
-func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string) (*users.Organization, error) {
+func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string, trialExpiresAt time.Time) (*users.Organization, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if _, err := d.findUserByID(ownerID); err != nil {
@@ -249,7 +249,7 @@ func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, 
 		ExternalID:     externalID,
 		Name:           name,
 		CreatedAt:      now,
-		TrialExpiresAt: now.Add(users.TrialDuration),
+		TrialExpiresAt: trialExpiresAt,
 		TeamID:         teamID,
 		TeamExternalID: teamExternalID,
 	}
@@ -511,7 +511,7 @@ func (d *DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number s
 }
 
 // CreateOrganizationWithGCP creates an organization with an inactive GCP account attached to it.
-func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string) (*users.Organization, error) {
+func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string, trialExpiresAt time.Time) (*users.Organization, error) {
 	var org *users.Organization
 	var gcp *users.GoogleCloudPlatform
 	externalID, err := d.GenerateOrganizationExternalID(ctx)
@@ -520,7 +520,7 @@ func (d *DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAcc
 	}
 	name := users.DefaultOrganizationName(externalID)
 	teamName := users.DefaultTeamName(externalID)
-	org, err = d.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, "", "", teamName)
+	org, err = d.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, "", "", teamName, trialExpiresAt)
 	if err != nil {
 		return nil, err
 	}
@@ -607,7 +607,7 @@ func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccount
 // If teamExternalID is not empty, the organizations is assigned to that team, if it exists.
 // If teamName is not empty, the organizations is assigned to that team. it is created if it does not exists.
 // One, and only one, of teamExternalID, teamName must be provided.
-func (d *DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string) (*users.Organization, error) {
+func (d *DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error) {
 	if teamName == "" && teamExternalID == "" {
 		return nil, errors.New("At least one of teamExternalID, teamName needs to be provided")
 	}
@@ -641,7 +641,7 @@ func (d *DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID
 		ExternalID:     externalID,
 		Name:           name,
 		CreatedAt:      now,
-		TrialExpiresAt: now.Add(users.TrialDuration),
+		TrialExpiresAt: trialExpiresAt,
 		TeamID:         team.ID,
 		TeamExternalID: team.ExternalID,
 	}

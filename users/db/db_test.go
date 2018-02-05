@@ -163,7 +163,7 @@ func TestDB_FindOrganizationByInternalID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "")
+	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
 
 	if err != nil {
 		t.Fatal(err)
@@ -189,7 +189,7 @@ func TestDB_FindGCP(t *testing.T) {
 	externalAccountID := "E-XTERNAL-ACC-ID"
 	u, err := db.CreateUser(ctx, "joe@weave.test")
 	assert.NoError(t, err)
-	org, err := db.CreateOrganizationWithGCP(ctx, u.ID, externalAccountID)
+	org, err := db.CreateOrganizationWithGCP(ctx, u.ID, externalAccountID, u.TrialExpiresAt())
 	assert.NoError(t, err)
 	err = db.UpdateGCP(ctx, externalAccountID, "project_number:123", "partnerSubscriptions/1", "enterprise", string(partner.Active))
 	assert.NoError(t, err)
@@ -278,14 +278,14 @@ func Test_DB_CreateOrganizationWithTeam(t *testing.T) {
 	name := strings.Replace(externalID, "-", " ", -1)
 
 	// first test an edge case
-	_, err = db.CreateOrganizationWithTeam(ctx, user.ID, externalID, name, "", "", "")
+	_, err = db.CreateOrganizationWithTeam(ctx, user.ID, externalID, name, "", "", "", user.TrialExpiresAt())
 	require.Error(t, err)
 
-	_, err = db.CreateOrganizationWithTeam(ctx, user.ID, externalID, name, "", "non-existent", "")
+	_, err = db.CreateOrganizationWithTeam(ctx, user.ID, externalID, name, "", "non-existent", "", user.TrialExpiresAt())
 	require.Error(t, err)
 
 	teamName := fmt.Sprintf("%v Team", name)
-	org, err := db.CreateOrganizationWithTeam(ctx, user.ID, externalID, name, "", "", teamName)
+	org, err := db.CreateOrganizationWithTeam(ctx, user.ID, externalID, name, "", "", teamName, user.TrialExpiresAt())
 	require.NoError(t, err)
 	require.Equal(t, name, org.Name)
 	require.NotEqual(t, org.TeamID, "")

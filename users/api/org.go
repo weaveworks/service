@@ -118,7 +118,7 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 	var org *users.Organization
 	var err error
 	if view.TeamExternalID == "" && view.TeamName == "" {
-		org, err = a.db.CreateOrganization(ctx, currentUser.ID, view.ExternalID, view.Name, view.ProbeToken, "")
+		org, err = a.db.CreateOrganization(ctx, currentUser.ID, view.ExternalID, view.Name, view.ProbeToken, "", currentUser.TrialExpiresAt())
 	} else {
 		org, err = a.db.CreateOrganizationWithTeam(
 			ctx,
@@ -128,6 +128,7 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 			view.ProbeToken,
 			view.TeamExternalID,
 			view.TeamName,
+			currentUser.TrialExpiresAt(),
 		)
 	}
 	if err != nil {

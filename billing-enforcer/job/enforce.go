@@ -107,6 +107,12 @@ func (j *Enforce) NotifyTrialOrganizations(ctx context.Context, now time.Time) e
 		if expiresIn > j.cfg.NotifyPendingExpiryPeriod {
 			continue
 		}
+
+		// Trial already expired
+		if expiresIn <= 0 {
+			continue
+		}
+
 		// No payment method added?
 		if org.ZuoraAccountNumber != "" {
 			continue

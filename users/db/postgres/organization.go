@@ -279,13 +279,13 @@ func (d DB) GenerateOrganizationExternalID(ctx context.Context) (string, error) 
 }
 
 // CreateOrganization creates a new organization owned by the user
-func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string) (*users.Organization, error) {
+func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string, trialExpiresAt time.Time) (*users.Organization, error) {
 	now := d.Now()
 	o := &users.Organization{
 		ExternalID:     externalID,
 		Name:           name,
 		CreatedAt:      now,
-		TrialExpiresAt: now.Add(users.TrialDuration),
+		TrialExpiresAt: trialExpiresAt,
 		TeamID:         teamID,
 	}
 	if err := o.Valid(); err != nil {
@@ -683,7 +683,7 @@ func (d DB) SetOrganizationZuoraAccount(ctx context.Context, externalID, number 
 }
 
 // CreateOrganizationWithGCP creates an organization with an inactive GCP account attached to it.
-func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string) (*users.Organization, error) {
+func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string, trialExpiresAt time.Time) (*users.Organization, error) {
 	var org *users.Organization
 	var gcp *users.GoogleCloudPlatform
 	err := d.Transaction(func(tx DB) error {
@@ -694,7 +694,7 @@ func (d DB) CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAcco
 		name := users.DefaultOrganizationName(externalID)
 		// create one team for each gcp instance
 		teamName := users.DefaultTeamName(externalID)
-		org, err = tx.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, "", "", teamName)
+		org, err = tx.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, "", "", teamName, trialExpiresAt)
 		if err != nil {
 			return err
 		}
@@ -786,7 +786,7 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccountI
 }
 
 // CreateOrganizationWithTeam creates a new organization, ensuring it is part of a team and owned by the user
-func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string) (*users.Organization, error) {
+func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error) {
 	if teamName == "" && teamExternalID == "" {
 		return nil, errors.New("At least one of teamExternalID, teamName needs to be provided")
 	}
@@ -813,7 +813,7 @@ func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID,
 			return fmt.Errorf("team should not be nil: %v, %v", teamExternalID, teamName)
 		}
 
-		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, token, team.ID)
+		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, token, team.ID, trialExpiresAt)
 		return err
 	})
 	if err != nil {

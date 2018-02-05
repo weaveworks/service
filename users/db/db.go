@@ -77,7 +77,7 @@ type DB interface {
 	// Create a new organization owned by the user. ExternalID and name cannot be blank.
 	// ExternalID must match the ExternalID regex.  If token is blank, a random one will
 	// be chosen.
-	CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string) (*users.Organization, error)
+	CreateOrganization(ctx context.Context, ownerID, externalID, name, token, teamID string, trialExpiresAt time.Time) (*users.Organization, error)
 	FindUncleanedOrgIDs(ctx context.Context) ([]string, error)
 	FindOrganizationByProbeToken(ctx context.Context, probeToken string) (*users.Organization, error)
 	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)
@@ -97,7 +97,7 @@ type DB interface {
 	SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error
 
 	// CreateOrganizationWithGCP creates an organization with an inactive GCP account attached to it.
-	CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string) (*users.Organization, error)
+	CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string, trialExpiresAt time.Time) (*users.Organization, error)
 	// FindGCP returns the Google Cloud Platform subscription for the given account.
 	FindGCP(ctx context.Context, externalAccountID string) (*users.GoogleCloudPlatform, error)
 	// UpdateGCP Update a Google Cloud Platform entry. This marks the account as activated.
@@ -112,7 +112,7 @@ type DB interface {
 	ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error)
 	CreateTeam(_ context.Context, name string) (*users.Team, error)
 	AddUserToTeam(_ context.Context, userID, teamID string) error
-	CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string) (*users.Organization, error)
+	CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error)
 
 	Close(ctx context.Context) error
 }
