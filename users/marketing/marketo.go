@@ -2,7 +2,6 @@ package marketing
 
 import (
 	"encoding/json"
-	"strconv"
 	"time"
 
 	"github.com/FrenchBen/goketo"
@@ -66,7 +65,7 @@ type marketoResponse struct {
 type marketoProspect struct {
 	Email          string `json:"email"`
 	SignupSource   string `json:"Weave_Cloud_Signup_Source__c,omitempty"`
-	ActivatedOnGCP string `json:"Activated_on_GCP__c"`
+	ActivatedOnGCP int    `json:"Activated_on_GCP__c"`
 	CreatedAt      string `json:"Weave_Cloud_Created_On__c,omitempty"`
 	LastAccess     string `json:"Weave_Cloud_Last_Active__c,omitempty"`
 }
@@ -101,7 +100,7 @@ func (c *MarketoClient) batchUpsertProspect(prospects []prospect) error {
 		leads.Input = append(leads.Input, marketoProspect{
 			Email:          p.Email,
 			SignupSource:   p.SignupSource,
-			ActivatedOnGCP: strconv.FormatBool(p.SignupSource == SignupSourceGCP),
+			ActivatedOnGCP: boolToInt(p.SignupSource == SignupSourceGCP),
 			CreatedAt:      nilTime(p.ServiceCreatedAt),
 			LastAccess:     nilTime(p.ServiceLastAccess),
 		})
@@ -133,4 +132,11 @@ func (c *MarketoClient) batchUpsertProspect(prospects []prospect) error {
 		return &marketoResponse
 	}
 	return nil
+}
+
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
