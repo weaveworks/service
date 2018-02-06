@@ -1,4 +1,4 @@
-FROM golang:1.8.3-stretch
+FROM golang:1.9.2-stretch
 RUN apt-get update && apt-get install -y \
 		python-requests \
 		python-yaml \

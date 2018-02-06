@@ -3,9 +3,8 @@
 
 [[projects]]
   name = "cloud.google.com/go"
-  packages = ["bigquery","civil","compute/metadata","iam","internal","internal/atomiccache","internal/fields","internal/optional","internal/version","pubsub","pubsub/apiv1"]
-  revision = "5a9e19d4e1e41a734154e44a2132b358afb49a03"
-  version = "v0.13.0"
+  packages = ["bigquery","civil","compute/metadata","iam","internal","internal/atomiccache","internal/fields","internal/optional","internal/version","logging","logging/apiv2","logging/internal","pubsub","pubsub/apiv1"]
+  revision = "eb1cc5f3c0a93e56aa3c13e3ad4f336d327c0c86"
 
 [[projects]]
   branch = "master"
@@ -50,6 +49,18 @@
   name = "github.com/armon/go-socks5"
   packages = ["."]
   revision = "e75332964ef517daa070d7c38a9466a0d687e0a5"
+
+[[projects]]
+  name = "github.com/aws/aws-sdk-go"
+  packages = ["aws","aws/awserr","aws/awsutil","aws/client","aws/client/metadata","aws/corehandlers","aws/credentials","aws/credentials/ec2rolecreds","aws/credentials/endpointcreds","aws/credentials/stscreds","aws/defaults","aws/ec2metadata","aws/endpoints","aws/request","aws/session","aws/signer/v4","internal/shareddefaults","private/protocol","private/protocol/query","private/protocol/query/queryutil","private/protocol/rest","private/protocol/xml/xmlutil","service/sqs","service/sqs/sqsiface","service/sts"]
+  revision = "b0e76431638de15ec1e6be51b6f745e1f2134fde"
+  version = "v1.12.63"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/badoux/checkmail"
+  packages = ["."]
+  revision = "d0a759655d62bcdc95c50a0676f3e9702ed59453"
 
 [[projects]]
   branch = "master"
@@ -184,6 +195,12 @@
   version = "v1.2.1"
 
 [[projects]]
+  name = "github.com/go-ini/ini"
+  packages = ["."]
+  revision = "32e4c1e6bc4e7d0d8451aa6b75200d19e37a536a"
+  version = "v1.32.0"
+
+[[projects]]
   name = "github.com/go-kit/kit"
   packages = ["log","metrics","metrics/internal/lv","metrics/prometheus"]
   revision = "4dc7be5d2d12881735283bcab7352178e190fc71"
@@ -222,7 +239,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
-  packages = ["proto","protoc-gen-go/descriptor","ptypes","ptypes/any","ptypes/duration","ptypes/empty","ptypes/timestamp"]
+  packages = ["proto","protoc-gen-go/descriptor","ptypes","ptypes/any","ptypes/duration","ptypes/empty","ptypes/struct","ptypes/timestamp"]
   revision = "ae59567b9aab61b50b2590679a62c3c044030b61"
 
 [[projects]]
@@ -241,6 +258,12 @@
   name = "github.com/google/go-querystring"
   packages = ["query"]
   revision = "53e6ce116135b80d037921a7fdd5138cf32d7a8a"
+
+[[projects]]
+  name = "github.com/google/uuid"
+  packages = ["."]
+  revision = "064e2069ce9c359c118179501254f67d7d37ba24"
+  version = "0.2"
 
 [[projects]]
   name = "github.com/googleapis/gax-go"
@@ -283,6 +306,11 @@
   name = "github.com/jinzhu/now"
   packages = ["."]
   revision = "d939ba741945c047cac69c329c5fb0d6b4a06520"
+
+[[projects]]
+  name = "github.com/jmespath/go-jmespath"
+  packages = ["."]
+  revision = "0b12d6b5"
 
 [[projects]]
   branch = "master"
@@ -489,6 +517,12 @@
   revision = "7b3d51468778ed0c53045edd7015b5a21f902d53"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/shurcooL/sanitized_anchor_name"
+  packages = ["."]
+  revision = "86672fcb3f950f35f2e675df2240550f2a50762f"
+
+[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
@@ -535,6 +569,12 @@
   name = "github.com/weaveworks-experiments/loki"
   packages = ["pkg/client"]
   revision = "17ff1516db3dffe25452b4cbf6e6412f303cddea"
+
+[[projects]]
+  name = "github.com/weaveworks/blackfriday"
+  packages = ["."]
+  revision = "0b647d0506a698cca42caca173e55559b12a69f2"
+  version = "v1.4"
 
 [[projects]]
   branch = "master"
@@ -617,7 +657,7 @@
 [[projects]]
   branch = "master"
   name = "google.golang.org/genproto"
-  packages = ["googleapis/api/annotations","googleapis/iam/v1","googleapis/pubsub/v1","googleapis/rpc/status","protobuf/field_mask"]
+  packages = ["googleapis/api/annotations","googleapis/api/distribution","googleapis/api/label","googleapis/api/metric","googleapis/api/monitoredres","googleapis/iam/v1","googleapis/logging/type","googleapis/logging/v2","googleapis/pubsub/v1","googleapis/rpc/status","protobuf/field_mask"]
   revision = "1e559d0a00eef8a9a43151db4665280bd8dd5886"
 
 [[projects]]
@@ -627,10 +667,22 @@
   version = "v1.6.0"
 
 [[projects]]
+  branch = "v3"
+  name = "gopkg.in/alexcesaro/quotedprintable.v3"
+  packages = ["."]
+  revision = "2caba252f4dc53eaf6b553000885530023f54623"
+
+[[projects]]
   name = "gopkg.in/go-playground/webhooks.v3"
   packages = [".","github"]
   revision = "cd89a10b6412a823fe9d24f12dd7275d036f4f80"
   version = "v3.3.0"
+
+[[projects]]
+  name = "gopkg.in/gomail.v2"
+  packages = ["."]
+  revision = "41f3572897373c5538c50a2402db15db079fa4fd"
+  version = "2.0.0"
 
 [[projects]]
   name = "gopkg.in/h2non/gock.v1"
@@ -653,6 +705,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c915863b2f001a6c8273689b9ed7525672333fd3ec8f229355a6fc1521a496f2"
+  inputs-digest = "5802fd46d8ad852ee0c90fd9bafed0e4de964d4d8604214317baf0e559001e54"
   solver-name = "gps-cdcl"
   solver-version = 1

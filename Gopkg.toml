@@ -20,10 +20,6 @@
   name = "github.com/justinas/nosurf"
   revision = "cbe5fdb4a426586632a1ff60eca311bd286220f5"
 
-[[constraint]]
-  name = "github.com/golang/mock"
-  version = "1.0.0"
-
 # Override until https://github.com/FrenchBen/goketo/pull/14 is merged
 [[constraint]]
   name = "github.com/FrenchBen/goketo"
@@ -34,4 +30,16 @@
 # flux-api for against it.
 [[constraint]]
   name = "github.com/weaveworks/flux"
+  branch = "master"
+
+# Stackdriver logging with notifications; no logs are shown on the cloud logging console
+# when using last release (on Dec 11, 2017 v0.17.0 050b16d)
+[[constraint]]
+  name = "cloud.google.com/go"
+  revision = "eb1cc5f3c0a93e56aa3c13e3ad4f336d327c0c86"
+
+# `go get github.com/golang/mock/mockgen` (in our image) installs the master branch
+# while Godep wants to get the latest tagged release, which is v1.0.0. These are incompatible.
+[[constraint]]
+  name = "github.com/google/mock"
   branch = "master"
