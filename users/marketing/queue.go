@@ -32,6 +32,8 @@ type prospect struct {
 	SignupSource      string    `json:"signupSource"`
 	ServiceCreatedAt  time.Time `json:"createdAt"`
 	ServiceLastAccess time.Time `json:"lastAccess"`
+	CampaignID        string    `json:"campaignId"`
+	LeadSource        string    `json:"leadSource"`
 }
 
 func (p1 prospect) merge(p2 prospect) prospect {
@@ -50,12 +52,22 @@ func (p1 prospect) merge(p2 prospect) prospect {
 	if signupSource == "" {
 		signupSource = p2.SignupSource
 	}
+	leadSource := p1.LeadSource
+	if leadSource == "" {
+		leadSource = p2.LeadSource
+	}
+	campaignID := p1.CampaignID
+	if campaignID == "" {
+		campaignID = p2.CampaignID
+	}
 
 	return prospect{
 		Email:             email,
 		SignupSource:      signupSource,
 		ServiceCreatedAt:  latest(p1.ServiceCreatedAt, p2.ServiceCreatedAt),
 		ServiceLastAccess: latest(p1.ServiceLastAccess, p2.ServiceLastAccess),
+		CampaignID:        campaignID,
+		LeadSource:        leadSource,
 	}
 }
 
@@ -191,7 +203,7 @@ func (c *Queue) UserAccess(email string, hitAt time.Time) {
 // UserCreated should be called when new users are created.
 // This will trigger an immediate 'upload' to pardot, although
 // that upload will still happen in the background.
-func (c *Queue) UserCreated(email, signupSource string, createdAt time.Time) {
+func (c *Queue) UserCreated(email string, createdAt time.Time, params map[string]string) {
 	if c == nil {
 		return
 	}
@@ -199,10 +211,19 @@ func (c *Queue) UserCreated(email, signupSource string, createdAt time.Time) {
 	defer c.Unlock()
 	c.prospects = append(c.prospects, prospect{
 		Email:            email,
-		SignupSource:     signupSource,
+		SignupSource:     signupSource(params),
 		ServiceCreatedAt: createdAt,
+		CampaignID:       params["CampaignID"],
+		LeadSource:       params["LeadSource"],
 	})
 	c.cond.Broadcast()
+}
+
+func signupSource(params map[string]string) string {
+	if params["gcpAccountId"] != "" {
+		return SignupSourceGCP
+	}
+	return ""
 }
 
 // Queues is a list of Queue; it handles the fanout.
@@ -216,8 +237,8 @@ func (qs Queues) UserAccess(email string, hitAt time.Time) {
 }
 
 // UserCreated calls UserCreated on each Queue.
-func (qs Queues) UserCreated(email, signupSource string, createdAt time.Time) {
+func (qs Queues) UserCreated(email string, createdAt time.Time, params map[string]string) {
 	for _, q := range qs {
-		q.UserCreated(email, signupSource, createdAt)
+		q.UserCreated(email, createdAt, params)
 	}
 }

@@ -19,7 +19,6 @@ import (
 	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/login"
-	"github.com/weaveworks/service/users/marketing"
 	"github.com/weaveworks/service/users/tokens"
 )
 
@@ -175,7 +174,7 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
-		a.marketingQueues.UserCreated(u.Email, signupSource(extraState), u.CreatedAt)
+		a.marketingQueues.UserCreated(u.Email, u.CreatedAt, extraState)
 	}
 
 	if err := a.db.AddLoginToUser(r.Context(), u.ID, providerID, id, authSession); err != nil {
@@ -232,13 +231,6 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.JSON(w, http.StatusOK, view)
-}
-
-func signupSource(extraState map[string]string) string {
-	if extraState["gcpAccountId"] != "" {
-		return marketing.SignupSourceGCP
-	}
-	return ""
 }
 
 func (a *API) detachLoginProvider(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -318,7 +310,7 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 		}
 		user, err = a.db.CreateUser(ctx, email)
 		if err == nil {
-			a.marketingQueues.UserCreated(user.Email, "", user.CreatedAt)
+			a.marketingQueues.UserCreated(user.Email, user.CreatedAt, req.QueryParams)
 			if a.mixpanel != nil {
 				go func() {
 					if err := a.mixpanel.TrackSignup(email); err != nil {
