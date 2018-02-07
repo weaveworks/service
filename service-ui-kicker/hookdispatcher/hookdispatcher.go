@@ -12,8 +12,8 @@ type listenerMap map[string]chan interface{}
 
 // HookDispatcher handles webhooks and dispatches them to listeners
 type HookDispatcher struct {
-	listeners listenerMap
 	mu        sync.Mutex
+	listeners listenerMap
 }
 
 // New returns new hook server
@@ -34,7 +34,9 @@ func (hs *HookDispatcher) Listen(repo string) chan interface{} {
 func (hs *HookDispatcher) HandlePush(payload interface{}, header webhooks.Header) {
 	pl := payload.(github.PushPayload)
 	url := pl.Repository.CloneURL
+	hs.mu.Lock()
 	ch, ok := hs.listeners[url]
+	hs.mu.Unlock()
 	if ok {
 		ch <- payload
 	} else {
@@ -46,7 +48,9 @@ func (hs *HookDispatcher) HandlePush(payload interface{}, header webhooks.Header
 func (hs *HookDispatcher) HandleStatus(payload interface{}, header webhooks.Header) {
 	pl := payload.(github.StatusPayload)
 	url := pl.Repository.CloneURL
+	hs.mu.Lock()
 	ch, ok := hs.listeners[url]
+	hs.mu.Unlock()
 	if ok {
 		ch <- payload
 	} else {
