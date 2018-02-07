@@ -272,7 +272,7 @@ func (a *API) inviteUser(currentUser *users.User, w http.ResponseWriter, r *http
 	render.JSON(w, http.StatusOK, resp)
 }
 
-func (a *API) deleteUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+func (a *API) removeUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orgExternalID := vars["orgExternalID"]
 	userEmail := vars["userEmail"]
