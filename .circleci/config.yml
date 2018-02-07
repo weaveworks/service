@@ -81,6 +81,7 @@ jobs:
               repo_tmp_image="$(echo $tagged_image | sed -E 's|(/weaveworks)/(.*):(.*)|\1/build-tmp:\2-\3|')"
               docker pull $repo_tmp_image
               docker tag ${repo_tmp_image} ${tagged_image}
+              docker tag ${repo_tmp_image} ${image}:latest
               docker image rm ${repo_tmp_image}
             done
       # FIXME: we probably don't need to copy the code and change the working dir
