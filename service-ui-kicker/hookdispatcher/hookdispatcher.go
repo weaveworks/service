@@ -1,23 +1,30 @@
 package hookdispatcher
 
 import (
+	"sync"
+
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/webhooks.v3"
 	"gopkg.in/go-playground/webhooks.v3/github"
 )
 
+type listenerMap map[string]chan interface{}
+
 // HookDispatcher handles webhooks and dispatches them to listeners
 type HookDispatcher struct {
-	listeners map[string]chan interface{}
+	listeners listenerMap
+	mu        sync.Mutex
 }
 
 // New returns new hook server
 func New() *HookDispatcher {
-	return &HookDispatcher{listeners: make(map[string]chan interface{})}
+	return &HookDispatcher{listeners: make(listenerMap)}
 }
 
 // Listen registers a listener for a repo
 func (hs *HookDispatcher) Listen(repo string) chan interface{} {
+	hs.mu.Lock()
+	defer hs.mu.Unlock()
 	ch := make(chan interface{}, 8)
 	hs.listeners[repo] = ch
 	return ch
