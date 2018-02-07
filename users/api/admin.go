@@ -307,6 +307,21 @@ func (a *API) becomeUser(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
+func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
+	userID := mux.Vars(r)["userID"]
+	if userID == "" {
+		renderError(w, r, users.NewMalformedInputError(errors.New("missing userID")))
+		return
+	}
+
+	if err := a.db.DeleteUser(r.Context(), userID); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (a *API) getUserToken(w http.ResponseWriter, r *http.Request) {
 	// Get User ID from path
 	vars := mux.Vars(r)

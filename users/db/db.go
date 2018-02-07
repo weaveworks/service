@@ -27,6 +27,7 @@ var (
 type DB interface {
 	// Create a user. The driver should set ID to some default only when it is "".
 	CreateUser(ctx context.Context, email string) (*users.User, error)
+	DeleteUser(ctx context.Context, userID string) error
 
 	users.FindUserByIDer
 	FindUserByEmail(ctx context.Context, email string) (*users.User, error)

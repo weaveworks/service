@@ -22,6 +22,38 @@ func (d *DB) CreateUser(_ context.Context, email string) (*users.User, error) {
 	return d.createUser(email)
 }
 
+// DeleteUser marks a user as deleted. It also removes the user from memberships and triggers a deletion of organizations
+// where the user was the lone member.
+func (d DB) DeleteUser(ctx context.Context, userID string) error {
+	// All organizations with this user as sole member
+	for orgID, us := range d.memberships {
+		if len(us) == 1 && us[0] == userID {
+			d.deletedOrganizations[orgID] = d.organizations[orgID]
+			delete(d.organizations, orgID)
+			delete(d.memberships, orgID)
+		}
+	}
+
+	// Delete organization memberships
+	for orgID, us := range d.memberships {
+		var newus []string
+		for _, u := range us {
+			if u != userID {
+				newus = append(newus, u)
+			}
+		}
+		d.memberships[orgID] = newus
+	}
+
+	// Delete team memberships
+	delete(d.teamMemberships, userID)
+
+	// Delete user
+	delete(d.users, userID)
+
+	return nil
+}
+
 func (d *DB) createUser(email string) (*users.User, error) {
 	u := &users.User{
 		ID:        fmt.Sprint(len(d.users)),

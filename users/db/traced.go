@@ -26,6 +26,11 @@ func (t traced) CreateUser(ctx context.Context, email string) (u *users.User, er
 	return t.d.CreateUser(ctx, email)
 }
 
+func (t traced) DeleteUser(ctx context.Context, userID string) (err error) {
+	defer func() { t.trace("DeleteUser", userID, err) }()
+	return t.d.DeleteUser(ctx, userID)
+}
+
 func (t traced) FindUserByID(ctx context.Context, id string) (u *users.User, err error) {
 	defer func() { t.trace("FindUserByID", id, u, err) }()
 	return t.d.FindUserByID(ctx, id)

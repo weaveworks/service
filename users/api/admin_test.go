@@ -139,3 +139,37 @@ func TestAPI_GetUserToken_NoToken(t *testing.T) {
 	app.ServeHTTP(w, r)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
+
+func TestAPI_DeleteUser(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	usr, single := getOrg(t)
+	other, multi := getOrg(t)
+	// single: usr / multi: usr, other
+	_, _, err := database.InviteUser(context.TODO(), usr.Email, multi.ExternalID)
+	assert.NoError(t, err)
+
+	{ // delete first user
+		w := httptest.NewRecorder()
+		r := requestAs(t, usr, "DELETE", fmt.Sprintf("/admin/users/users/%s", usr.ID), nil)
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusNoContent, w.Code)
+
+		_, err = database.FindOrganizationByID(context.TODO(), single.ExternalID)
+		assert.Equal(t, users.ErrNotFound, err)
+
+		_, err = database.FindOrganizationByID(context.TODO(), multi.ExternalID)
+		assert.NoError(t, err)
+	}
+
+	{ // delete other user
+		w := httptest.NewRecorder()
+		r := requestAs(t, usr, "DELETE", fmt.Sprintf("/admin/users/users/%s", other.ID), nil)
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusNoContent, w.Code)
+
+		_, err = database.FindOrganizationByID(context.TODO(), multi.ExternalID)
+		assert.Equal(t, users.ErrNotFound, err)
+	}
+}
