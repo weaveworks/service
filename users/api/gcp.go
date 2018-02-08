@@ -152,8 +152,23 @@ func (a *API) getPendingSubscriptionName(ctx context.Context, logger *log.Entry,
 			return sub.Name, nil
 		}
 	}
+	// In case our test account no longer has a PENDING subscription,
+	// try to re-use an ACTIVE subscription, and if none,
+	// fallback on the first subscription found, even if COMPLETE:
+	if externalAccountID == testingExternalAccountID {
+		return getTestSubscriptionName(externalAccountID, subs)
+	}
 	err = fmt.Errorf("no pending subscription found for account: %v", externalAccountID)
 	return "", users.NewMalformedInputError(err)
+}
+
+func getTestSubscriptionName(externalAccountID string, subs []partner.Subscription) (string, error) {
+	for _, sub := range subs {
+		if sub.Status == partner.Active {
+			return sub.Name, nil
+		}
+	}
+	return subs[0].Name, nil
 }
 
 func (a *API) getGoogleOAuthToken(ctx context.Context, logger *log.Entry, userID string) (*oauth2.Token, error) {
