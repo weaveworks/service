@@ -514,7 +514,7 @@
   branch = "master"
   name = "github.com/sercand/kuberesolver"
   packages = ["."]
-  revision = "7b3d51468778ed0c53045edd7015b5a21f902d53"
+  revision = "aa801ca262949d887bbe0bae3f6f731ac82c26f6"
 
 [[projects]]
   branch = "master"
