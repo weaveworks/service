@@ -1,0 +1,63 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "api_error.go",
+        "cache.go",
+        "client.go",
+        "middleware.go",
+        "mock_client.go",
+        "token_injector.go",
+    ],
+    importpath = "github.com/weaveworks/service/users/client",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common:go_default_library",
+        "//users:go_default_library",
+        "//users/tokens:go_default_library",
+        "//vendor/github.com/bluele/gcache:go_default_library",
+        "//vendor/github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc:go_default_library",
+        "//vendor/github.com/mwitkow/go-grpc-middleware:go_default_library",
+        "//vendor/github.com/opentracing/opentracing-go:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/httpgrpc:go_default_library",
+        "//vendor/github.com/weaveworks/common/httpgrpc/server:go_default_library",
+        "//vendor/github.com/weaveworks/common/logging:go_default_library",
+        "//vendor/github.com/weaveworks/common/user:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/google.golang.org/grpc:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "client_test.go",
+        "token_injector_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//users:go_default_library",
+        "//users/render:go_default_library",
+        "//users/tokens:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//vendor/github.com/stretchr/testify/require:go_default_library",
+        "//vendor/github.com/weaveworks/common/middleware:go_default_library",
+        "//vendor/github.com/weaveworks/common/user:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/google.golang.org/grpc:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = ["middleware_test.go"],
+    deps = [
+        ":go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//vendor/github.com/weaveworks/common/middleware:go_default_library",
+    ],
+)

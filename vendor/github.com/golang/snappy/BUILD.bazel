@@ -1,0 +1,73 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "decode.go",
+        "encode.go",
+        "snappy.go",
+    ] + select({
+        "@io_bazel_rules_go//go/platform:386": [
+            "decode_other.go",
+            "encode_other.go",
+        ],
+        "@io_bazel_rules_go//go/platform:amd64": [
+            "decode_amd64.go",
+            "decode_amd64.s",
+            "encode_amd64.go",
+            "encode_amd64.s",
+        ],
+        "@io_bazel_rules_go//go/platform:amd64p32": [
+            "decode_other.go",
+            "encode_other.go",
+        ],
+        "@io_bazel_rules_go//go/platform:arm": [
+            "decode_other.go",
+            "encode_other.go",
+        ],
+        "@io_bazel_rules_go//go/platform:arm64": [
+            "decode_other.go",
+            "encode_other.go",
+        ],
+        "@io_bazel_rules_go//go/platform:mips": [
+            "decode_other.go",
+            "encode_other.go",
+        ],
+        "@io_bazel_rules_go//go/platform:mips64": [
+            "decode_other.go",
+            "encode_other.go",
+        ],
+        "@io_bazel_rules_go//go/platform:mips64le": [
+            "decode_other.go",
+            "encode_other.go",
+        ],
+        "@io_bazel_rules_go//go/platform:mipsle": [
+            "decode_other.go",
+            "encode_other.go",
+        ],
+        "@io_bazel_rules_go//go/platform:ppc64": [
+            "decode_other.go",
+            "encode_other.go",
+        ],
+        "@io_bazel_rules_go//go/platform:ppc64le": [
+            "decode_other.go",
+            "encode_other.go",
+        ],
+        "@io_bazel_rules_go//go/platform:s390x": [
+            "decode_other.go",
+            "encode_other.go",
+        ],
+        "//conditions:default": [],
+    }),
+    importpath = "github.com/golang/snappy",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "golden_test.go",
+        "snappy_test.go",
+    ],
+    embed = [":go_default_library"],
+)

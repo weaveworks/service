@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "handler.go",
+        "main.go",
+    ],
+    importpath = "github.com/weaveworks/service/github-receiver",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//common:go_default_library",
+        "//flux-api/http:go_default_library",
+        "//vendor/github.com/google/go-github/github:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/server:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "github-receiver",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

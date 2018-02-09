@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "configmanager.go",
+        "http_helpers.go",
+    ],
+    importpath = "github.com/weaveworks/service/notification-configmanager",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/users:go_default_library",
+        "//notification-configmanager/types:go_default_library",
+        "//notification-configmanager/utils:go_default_library",
+        "//notification-eventmanager:go_default_library",
+        "//users:go_default_library",
+        "//users/client:go_default_library",
+        "//vendor/github.com/badoux/checkmail:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+        "//vendor/github.com/lib/pq:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/satori/go.uuid:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/user:go_default_library",
+        "//vendor/gopkg.in/mattes/migrate.v1/driver/postgres:go_default_library",
+        "//vendor/gopkg.in/mattes/migrate.v1/migrate:go_default_library",
+    ],
+)

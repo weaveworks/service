@@ -1,0 +1,41 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+
+proto_library(
+    name = "grpc_proto",
+    srcs = ["kubectl-service.proto"],
+    visibility = ["//visibility:public"],
+    deps = ["//github.com/gogo/protobuf/gogoproto:gogoproto_proto"],
+)
+
+go_proto_library(
+    name = "grpc_go_proto",
+    compilers = ["@io_bazel_rules_go//proto:go_grpc"],
+    importpath = "github.com/weaveworks/service/kubectl-service/grpc",
+    proto = ":grpc_proto",
+    visibility = ["//visibility:public"],
+    deps = ["//github.com/gogo/protobuf/gogoproto:go_default_library"],
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "client.go",
+        "server.go",
+    ],
+    embed = [":grpc_go_proto"],
+    importpath = "github.com/weaveworks/service/kubectl-service/grpc",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/collections:go_default_library",
+        "//common/grpc:go_default_library",
+        "//vendor/github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc:go_default_library",
+        "//vendor/github.com/mwitkow/go-grpc-middleware:go_default_library",
+        "//vendor/github.com/opentracing/opentracing-go:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/instrument:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/google.golang.org/grpc:go_default_library",
+    ],
+)

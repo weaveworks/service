@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "job.go",
+        "status_cache.go",
+    ],
+    importpath = "github.com/weaveworks/flux/job",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/go-kit/kit/log:go_default_library",
+        "//vendor/github.com/weaveworks/flux/event:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["job_test.go"],
+    embed = [":go_default_library"],
+)

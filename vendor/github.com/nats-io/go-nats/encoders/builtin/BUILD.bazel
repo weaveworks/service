@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "default_enc.go",
+        "gob_enc.go",
+        "json_enc.go",
+    ],
+    importpath = "github.com/nats-io/go-nats/encoders/builtin",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = [
+        "enc_test.go",
+        "gob_test.go",
+        "json_test.go",
+    ],
+    deps = [
+        ":go_default_library",
+        "//vendor/github.com/nats-io/go-nats:go_default_library",
+        "//vendor/github.com/nats-io/go-nats/test:go_default_library",
+    ],
+)

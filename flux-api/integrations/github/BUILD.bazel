@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["github.go"],
+    importpath = "github.com/weaveworks/service/flux-api/integrations/github",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/google/go-github/github:go_default_library",
+        "//vendor/github.com/weaveworks/flux/http/httperror:go_default_library",
+        "//vendor/golang.org/x/oauth2:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["github_test.go"],
+    embed = [":go_default_library"],
+    deps = ["//vendor/github.com/google/go-github/github:go_default_library"],
+)

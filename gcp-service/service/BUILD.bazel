@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["service.go"],
+    importpath = "github.com/weaveworks/service/gcp-service/service",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/gcp/gke:go_default_library",
+        "//gcp-service/dao:go_default_library",
+        "//kubectl-service/grpc:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/golang.org/x/oauth2:go_default_library",
+    ],
+)

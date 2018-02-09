@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "config.go",
+        "main.go",
+    ],
+    importpath = "github.com/weaveworks/service/notebooks/cmd/notebooks",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//notebooks/api:go_default_library",
+        "//notebooks/db:go_default_library",
+        "//users/client:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/server:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "notebooks",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

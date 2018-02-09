@@ -1,0 +1,46 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "context.go",
+        "enc.go",
+        "nats.go",
+        "netchan.go",
+        "parser.go",
+        "timer.go",
+    ],
+    importpath = "github.com/nats-io/go-nats",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/nats-io/go-nats/encoders/builtin:go_default_library",
+        "//vendor/github.com/nats-io/go-nats/util:go_default_library",
+        "//vendor/github.com/nats-io/nuid:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "nats_test.go",
+        "timer_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/nats-io/gnatsd/server:go_default_library",
+        "//vendor/github.com/nats-io/gnatsd/test:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = [
+        "enc_test.go",
+        "example_test.go",
+    ],
+    deps = [
+        ":go_default_library",
+        "//vendor/github.com/nats-io/go-nats/encoders/protobuf:go_default_library",
+        "//vendor/github.com/nats-io/go-nats/encoders/protobuf/testdata:go_default_library",
+    ],
+)

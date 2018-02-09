@@ -1,0 +1,52 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "accounts.go",
+        "config.go",
+        "errors.go",
+        "files.go",
+        "invoices.go",
+        "payments.go",
+        "products.go",
+        "report.go",
+        "usage.go",
+        "zuora.go",
+    ],
+    importpath = "github.com/weaveworks/service/common/zuora",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//billing-api/db:go_default_library",
+        "//common:go_default_library",
+        "//common/constants/billing:go_default_library",
+        "//common/time:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/http/client:go_default_library",
+        "//vendor/github.com/weaveworks/common/instrument:go_default_library",
+        "//vendor/github.com/weaveworks/common/logging:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["report_test.go"],
+    data = glob(["testdata/**"]),
+    embed = [":go_default_library"],
+    deps = ["//vendor/github.com/stretchr/testify/assert:go_default_library"],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = [
+        "accounts_test.go",
+        "products_test.go",
+        "zuora_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    deps = [
+        ":go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+    ],
+)

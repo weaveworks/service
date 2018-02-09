@@ -1,0 +1,33 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "arc.go",
+        "cache.go",
+        "clock.go",
+        "lfu.go",
+        "lru.go",
+        "simple.go",
+        "singleflight.go",
+        "stats.go",
+        "utils.go",
+    ],
+    importpath = "github.com/bluele/gcache",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "arc_test.go",
+        "cache_test.go",
+        "helpers_test.go",
+        "lfu_test.go",
+        "lru_test.go",
+        "simple_test.go",
+        "singleflight_test.go",
+        "stats_test.go",
+    ],
+    embed = [":go_default_library"],
+)

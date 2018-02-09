@@ -1,0 +1,51 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "lock.go",
+    ] + select({
+        "@io_bazel_rules_go//go/platform:darwin": [
+            "lock_sigzero.go",
+        ],
+        "@io_bazel_rules_go//go/platform:dragonfly": [
+            "lock_sigzero.go",
+        ],
+        "@io_bazel_rules_go//go/platform:freebsd": [
+            "lock_freebsd.go",
+            "lock_sigzero.go",
+        ],
+        "@io_bazel_rules_go//go/platform:linux": [
+            "lock_sigzero.go",
+        ],
+        "@io_bazel_rules_go//go/platform:netbsd": [
+            "lock_sigzero.go",
+        ],
+        "@io_bazel_rules_go//go/platform:openbsd": [
+            "lock_sigzero.go",
+        ],
+        "@io_bazel_rules_go//go/platform:plan9": [
+            "lock_plan9.go",
+        ],
+        "//conditions:default": [],
+    }) + select({
+        "@io_bazel_rules_go//go/platform:darwin_amd64": [
+            "lock_darwin_amd64.go",
+        ],
+        "@io_bazel_rules_go//go/platform:linux_amd64": [
+            "lock_linux_amd64.go",
+        ],
+        "@io_bazel_rules_go//go/platform:linux_arm": [
+            "lock_linux_arm.go",
+        ],
+        "//conditions:default": [],
+    }),
+    importpath = "github.com/cznic/ql/vendored/github.com/camlistore/go4/lock",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["lock_test.go"],
+    embed = [":go_default_library"],
+)

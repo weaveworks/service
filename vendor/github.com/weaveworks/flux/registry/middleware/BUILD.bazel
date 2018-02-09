@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["rate_limiter.go"],
+    importpath = "github.com/weaveworks/flux/registry/middleware",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/golang.org/x/time/rate:go_default_library",
+    ],
+)

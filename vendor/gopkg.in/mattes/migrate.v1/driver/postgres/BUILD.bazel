@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["postgres.go"],
+    importpath = "gopkg.in/mattes/migrate.v1/driver/postgres",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/lib/pq:go_default_library",
+        "//vendor/gopkg.in/mattes/migrate.v1/driver:go_default_library",
+        "//vendor/gopkg.in/mattes/migrate.v1/file:go_default_library",
+        "//vendor/gopkg.in/mattes/migrate.v1/migrate/direction:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["postgres_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/gopkg.in/mattes/migrate.v1/file:go_default_library",
+        "//vendor/gopkg.in/mattes/migrate.v1/migrate/direction:go_default_library",
+        "//vendor/gopkg.in/mattes/migrate.v1/pipe:go_default_library",
+    ],
+)

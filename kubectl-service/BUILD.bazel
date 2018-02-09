@@ -1,0 +1,22 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/weaveworks/service/kubectl-service",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//common:go_default_library",
+        "//kubectl-service/grpc:go_default_library",
+        "//kubectl-service/render:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/server:go_default_library",
+        "//vendor/google.golang.org/grpc:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "kubectl-service",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

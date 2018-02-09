@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/weaveworks/service/notification-sender/cmd/sender",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//notification-configmanager/types:go_default_library",
+        "//notification-eventmanager/sqsconnect:go_default_library",
+        "//notification-sender:go_default_library",
+        "//vendor/cloud.google.com/go/logging:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+        "//vendor/github.com/nats-io/go-nats:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus/promhttp:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/logging:go_default_library",
+        "//vendor/github.com/weaveworks/common/signals:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "sender",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

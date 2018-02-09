@@ -1,0 +1,43 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "invoice.go",
+        "usage.go",
+    ],
+    importpath = "github.com/weaveworks/service/billing-uploader/job",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//billing-api/db:go_default_library",
+        "//billing-uploader/job/usage:go_default_library",
+        "//common/time:go_default_library",
+        "//common/zuora:go_default_library",
+        "//users:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/instrument:go_default_library",
+        "//vendor/github.com/weaveworks/common/logging:go_default_library",
+        "//vendor/github.com/weaveworks/common/user:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = ["usage_test.go"],
+    deps = [
+        ":go_default_library",
+        "//billing-api/db:go_default_library",
+        "//billing-api/db/dbtest:go_default_library",
+        "//billing-uploader/job/usage:go_default_library",
+        "//common/zuora:go_default_library",
+        "//common/zuora/mockzuora:go_default_library",
+        "//users:go_default_library",
+        "//users/mock_users:go_default_library",
+        "//vendor/github.com/golang/mock/gomock:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//vendor/github.com/weaveworks/common/instrument:go_default_library",
+        "//vendor/google.golang.org/api/servicecontrol/v1:go_default_library",
+    ],
+)

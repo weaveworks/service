@@ -1,0 +1,35 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "auth.go",
+        "doc.go",
+        "message.go",
+        "mime.go",
+        "mime_go14.go",
+        "send.go",
+        "smtp.go",
+        "writeto.go",
+    ],
+    importpath = "gopkg.in/gomail.v2",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/gopkg.in/alexcesaro/quotedprintable.v3:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "auth_test.go",
+        "message_test.go",
+        "send_test.go",
+        "smtp_test.go",
+    ],
+    embed = [":go_default_library"],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = ["example_test.go"],
+    deps = [":go_default_library"],
+)

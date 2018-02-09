@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/weaveworks/service/gcp-launcher-webhook",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//common:go_default_library",
+        "//common/gcp/partner:go_default_library",
+        "//common/gcp/pubsub/publisher:go_default_library",
+        "//common/gcp/pubsub/webhook:go_default_library",
+        "//common/users:go_default_library",
+        "//gcp-launcher-webhook/subscription:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/server:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "gcp-launcher-webhook",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

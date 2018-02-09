@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "decode.go",
+        "decode_cgo.go",
+        "decode_nocgo.go",
+        "encode.go",
+        "encode_cgo.go",
+        "encode_nocgo.go",
+        "zappy.go",
+    ],
+    cgo = True,
+    importpath = "github.com/cznic/zappy",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/github.com/cznic/internal/buffer:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["all_test.go"],
+    embed = [":go_default_library"],
+    deps = ["//vendor/github.com/golang/snappy:go_default_library"],
+)

@@ -1,0 +1,27 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/weaveworks/service/billing-uploader",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//billing-api/db:go_default_library",
+        "//billing-uploader/job:go_default_library",
+        "//billing-uploader/job/usage:go_default_library",
+        "//common/gcp/control:go_default_library",
+        "//common/users:go_default_library",
+        "//common/zuora:go_default_library",
+        "//vendor/github.com/robfig/cron:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/instrument:go_default_library",
+        "//vendor/github.com/weaveworks/common/logging:go_default_library",
+        "//vendor/github.com/weaveworks/common/server:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "billing-uploader",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

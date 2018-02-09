@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "go_default_test",
+    srcs = ["billing_test.go"],
+    deps = [
+        "//billing-api/db:go_default_library",
+        "//billing-api/db/mock_db:go_default_library",
+        "//billing-api/routes:go_default_library",
+        "//common/zuora:go_default_library",
+        "//common/zuora/mockzuora:go_default_library",
+        "//vendor/github.com/golang/mock/gomock:go_default_library",
+    ],
+)

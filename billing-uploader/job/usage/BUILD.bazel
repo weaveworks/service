@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "gcp.go",
+        "uploader.go",
+        "zuora.go",
+    ],
+    importpath = "github.com/weaveworks/service/billing-uploader/job/usage",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//billing-api/db:go_default_library",
+        "//common/constants/billing:go_default_library",
+        "//common/gcp/control:go_default_library",
+        "//common/gcp/partner:go_default_library",
+        "//common/zuora:go_default_library",
+        "//users:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/google.golang.org/api/servicecontrol/v1:go_default_library",
+    ],
+)

@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "organization.go",
+        "postgres.go",
+        "team.go",
+        "user.go",
+    ],
+    importpath = "github.com/weaveworks/service/users/db/postgres",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/dbwait:go_default_library",
+        "//users:go_default_library",
+        "//users/db/filter:go_default_library",
+        "//users/externalIDs:go_default_library",
+        "//users/login:go_default_library",
+        "//vendor/github.com/ExpansiveWorlds/instrumentedsql:go_default_library",
+        "//vendor/github.com/ExpansiveWorlds/instrumentedsql/opentracing:go_default_library",
+        "//vendor/github.com/Masterminds/squirrel:go_default_library",
+        "//vendor/github.com/lib/pq:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/golang.org/x/crypto/bcrypt:go_default_library",
+        "//vendor/gopkg.in/mattes/migrate.v1/driver/postgres:go_default_library",
+        "//vendor/gopkg.in/mattes/migrate.v1/migrate:go_default_library",
+    ],
+)

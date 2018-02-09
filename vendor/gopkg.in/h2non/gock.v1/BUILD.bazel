@@ -1,0 +1,36 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "gock.go",
+        "matcher.go",
+        "matchers.go",
+        "mock.go",
+        "request.go",
+        "responder.go",
+        "response.go",
+        "store.go",
+        "transport.go",
+        "version.go",
+    ],
+    importpath = "gopkg.in/h2non/gock.v1",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "gock_test.go",
+        "matcher_test.go",
+        "matchers_test.go",
+        "mock_test.go",
+        "request_test.go",
+        "responder_test.go",
+        "response_test.go",
+        "store_test.go",
+        "transport_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = ["//vendor/github.com/nbio/st:go_default_library"],
+)

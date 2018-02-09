@@ -1,0 +1,49 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "mmap.go",
+    ] + select({
+        "@io_bazel_rules_go//go/platform:darwin": [
+            "mmap_unix.go",
+            "msync_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:dragonfly": [
+            "mmap_unix.go",
+            "msync_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:freebsd": [
+            "mmap_unix.go",
+            "msync_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:linux": [
+            "mmap_unix.go",
+            "msync_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:netbsd": [
+            "mmap_unix.go",
+            "msync_netbsd.go",
+        ],
+        "@io_bazel_rules_go//go/platform:openbsd": [
+            "mmap_unix.go",
+            "msync_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:solaris": [
+            "mmap_unix.go",
+            "msync_unix.go",
+        ],
+        "@io_bazel_rules_go//go/platform:windows": [
+            "mmap_windows.go",
+        ],
+        "//conditions:default": [],
+    }),
+    importpath = "github.com/edsrzf/mmap-go",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["mmap_test.go"],
+    embed = [":go_default_library"],
+)

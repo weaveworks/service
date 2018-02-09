@@ -1,0 +1,22 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "bus.go",
+        "doc.go",
+    ],
+    importpath = "github.com/weaveworks/service/flux-api/bus/nats",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//flux-api/bus:go_default_library",
+        "//flux-api/service:go_default_library",
+        "//vendor/github.com/nats-io/go-nats:go_default_library",
+        "//vendor/github.com/weaveworks/flux:go_default_library",
+        "//vendor/github.com/weaveworks/flux/errors:go_default_library",
+        "//vendor/github.com/weaveworks/flux/guid:go_default_library",
+        "//vendor/github.com/weaveworks/flux/job:go_default_library",
+        "//vendor/github.com/weaveworks/flux/remote:go_default_library",
+        "//vendor/github.com/weaveworks/flux/update:go_default_library",
+    ],
+)

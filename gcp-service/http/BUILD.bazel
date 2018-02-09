@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["server.go"],
+    importpath = "github.com/weaveworks/service/gcp-service/http",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/render:go_default_library",
+        "//gcp-service/render:go_default_library",
+        "//gcp-service/service:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+    ],
+)

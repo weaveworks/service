@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "graceful.go",
+        "keepalive_listener.go",
+        "limit_listen.go",
+        "signal.go",
+    ],
+    importpath = "github.com/tylerb/graceful",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "graceful_test.go",
+        "http2_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = ["//vendor/golang.org/x/net/http2:go_default_library"],
+)

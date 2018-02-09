@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "marketo.go",
+        "mixpanel.go",
+        "queue.go",
+    ],
+    importpath = "github.com/weaveworks/service/users/marketing",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/FrenchBen/goketo:go_default_library",
+        "//vendor/github.com/dukex/mixpanel:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+    ],
+)

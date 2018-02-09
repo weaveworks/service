@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["trial.go"],
+    importpath = "github.com/weaveworks/service/billing-api/trial",
+    visibility = ["//visibility:public"],
+    deps = ["//users:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["trial_test.go"],
+    embed = [":go_default_library"],
+    deps = ["//users:go_default_library"],
+)

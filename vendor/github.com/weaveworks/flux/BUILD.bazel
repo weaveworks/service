@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["flux.go"],
+    importpath = "github.com/weaveworks/flux",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/weaveworks/flux/image:go_default_library",
+        "//vendor/github.com/weaveworks/flux/ssh:go_default_library",
+    ],
+)

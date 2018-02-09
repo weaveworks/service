@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/weaveworks/service/notification-eventmanager/cmd/eventmanager",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//common/users:go_default_library",
+        "//notification-eventmanager:go_default_library",
+        "//notification-eventmanager/sqsconnect:go_default_library",
+        "//users/client:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/logging:go_default_library",
+        "//vendor/github.com/weaveworks/common/server:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "eventmanager",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

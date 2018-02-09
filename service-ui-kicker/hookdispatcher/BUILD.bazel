@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["hookdispatcher.go"],
+    importpath = "github.com/weaveworks/service/service-ui-kicker/hookdispatcher",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/gopkg.in/go-playground/webhooks.v3:go_default_library",
+        "//vendor/gopkg.in/go-playground/webhooks.v3/github:go_default_library",
+    ],
+)

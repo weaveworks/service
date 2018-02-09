@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "filter.go",
+        "organization.go",
+        "pagination.go",
+        "user.go",
+    ],
+    importpath = "github.com/weaveworks/service/users/db/filter",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/gcp/partner:go_default_library",
+        "//users:go_default_library",
+        "//vendor/github.com/Masterminds/squirrel:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = ["filter_test.go"],
+    deps = [
+        ":go_default_library",
+        "//vendor/github.com/Masterminds/squirrel:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+    ],
+)

@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/weaveworks/service/billing-aggregator",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//billing-aggregator/job:go_default_library",
+        "//billing-api/db:go_default_library",
+        "//common/bigquery:go_default_library",
+        "//vendor/github.com/robfig/cron:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/instrument:go_default_library",
+        "//vendor/github.com/weaveworks/common/logging:go_default_library",
+        "//vendor/github.com/weaveworks/common/server:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "billing-aggregator",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "messagehandler.go",
+        "webhook.go",
+    ],
+    importpath = "github.com/weaveworks/service/common/gcp/pubsub/webhook",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/gcp/pubsub/dto:go_default_library",
+        "//common/render:go_default_library",
+        "//users:go_default_library",
+        "//users/render:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = ["webhook_test.go"],
+    deps = [
+        ":go_default_library",
+        "//common/gcp/pubsub/dto:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+    ],
+)

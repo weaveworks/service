@@ -1,0 +1,40 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "client.go",
+        "client_factory.go",
+        "credentials.go",
+        "doc.go",
+        "gcp.go",
+        "monitoring.go",
+        "registry.go",
+    ],
+    importpath = "github.com/weaveworks/flux/registry",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/docker/distribution:go_default_library",
+        "//vendor/github.com/docker/distribution/manifest/manifestlist:go_default_library",
+        "//vendor/github.com/docker/distribution/manifest/schema1:go_default_library",
+        "//vendor/github.com/docker/distribution/manifest/schema2:go_default_library",
+        "//vendor/github.com/docker/distribution/registry/client:go_default_library",
+        "//vendor/github.com/docker/distribution/registry/client/auth:go_default_library",
+        "//vendor/github.com/docker/distribution/registry/client/auth/challenge:go_default_library",
+        "//vendor/github.com/docker/distribution/registry/client/transport:go_default_library",
+        "//vendor/github.com/go-kit/kit/log:go_default_library",
+        "//vendor/github.com/go-kit/kit/metrics/prometheus:go_default_library",
+        "//vendor/github.com/opencontainers/go-digest:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/weaveworks/flux/image:go_default_library",
+        "//vendor/github.com/weaveworks/flux/metrics:go_default_library",
+        "//vendor/github.com/weaveworks/flux/registry/middleware:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["credentials_test.go"],
+    embed = [":go_default_library"],
+)

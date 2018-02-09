@@ -1,0 +1,32 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "access.go",
+        "client.go",
+        "config.go",
+    ],
+    importpath = "github.com/weaveworks/service/common/gcp/partner",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common:go_default_library",
+        "//common/gcp:go_default_library",
+        "//users/login:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/weaveworks/common/http/client:go_default_library",
+        "//vendor/github.com/weaveworks/common/instrument:go_default_library",
+        "//vendor/golang.org/x/oauth2:go_default_library",
+        "//vendor/golang.org/x/oauth2/google:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = ["client_test.go"],
+    deps = [
+        ":go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//vendor/gopkg.in/h2non/gock.v1:go_default_library",
+    ],
+)

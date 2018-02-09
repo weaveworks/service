@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["postgres.go"],
+    importpath = "github.com/weaveworks/service/notebooks/db/postgres",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/dbwait:go_default_library",
+        "//notebooks:go_default_library",
+        "//vendor/github.com/Masterminds/squirrel:go_default_library",
+        "//vendor/github.com/lib/pq:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/satori/go.uuid:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/gopkg.in/mattes/migrate.v1/driver/postgres:go_default_library",
+        "//vendor/gopkg.in/mattes/migrate.v1/migrate:go_default_library",
+    ],
+)

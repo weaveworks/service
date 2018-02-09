@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["client.go"],
+    importpath = "github.com/weaveworks/flux/http/client",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/gorilla/mux:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/weaveworks/flux:go_default_library",
+        "//vendor/github.com/weaveworks/flux/errors:go_default_library",
+        "//vendor/github.com/weaveworks/flux/event:go_default_library",
+        "//vendor/github.com/weaveworks/flux/http:go_default_library",
+        "//vendor/github.com/weaveworks/flux/job:go_default_library",
+        "//vendor/github.com/weaveworks/flux/policy:go_default_library",
+        "//vendor/github.com/weaveworks/flux/ssh:go_default_library",
+        "//vendor/github.com/weaveworks/flux/update:go_default_library",
+    ],
+)

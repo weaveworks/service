@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "helpers.go",
+        "unit.go",
+    ],
+    importpath = "github.com/weaveworks/service/users/db/dbtest",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//users:go_default_library",
+        "//users/db:go_default_library",
+        "//users/login:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//vendor/github.com/stretchr/testify/require:go_default_library",
+        "//vendor/golang.org/x/crypto/bcrypt:go_default_library",
+        "//vendor/golang.org/x/oauth2:go_default_library",
+    ],
+)

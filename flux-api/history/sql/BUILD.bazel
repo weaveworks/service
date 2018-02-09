@@ -1,0 +1,35 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "pg.go",
+        "ql.go",
+        "sql.go",
+    ],
+    importpath = "github.com/weaveworks/service/flux-api/history/sql",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//flux-api/history:go_default_library",
+        "//flux-api/service:go_default_library",
+        "//vendor/github.com/Masterminds/squirrel:go_default_library",
+        "//vendor/github.com/jmoiron/sqlx:go_default_library",
+        "//vendor/github.com/lib/pq:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/weaveworks/flux:go_default_library",
+        "//vendor/github.com/weaveworks/flux/event:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["sql_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//flux-api/db:go_default_library",
+        "//flux-api/history:go_default_library",
+        "//flux-api/service:go_default_library",
+        "//vendor/github.com/weaveworks/flux:go_default_library",
+        "//vendor/github.com/weaveworks/flux/event:go_default_library",
+    ],
+)

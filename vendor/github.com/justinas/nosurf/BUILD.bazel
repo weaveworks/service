@@ -1,0 +1,34 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "context.go",
+        "context_legacy.go",
+        "crypto.go",
+        "exempt.go",
+        "handler.go",
+        "handler_go17.go",
+        "handler_legacy.go",
+        "token.go",
+        "utils.go",
+    ],
+    importpath = "github.com/justinas/nosurf",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "context_legacy_test.go",
+        "crypto_test.go",
+        "exempt_test.go",
+        "handler_go17_test.go",
+        "handler_legacy_test.go",
+        "handler_test.go",
+        "testutils_test.go",
+        "token_test.go",
+        "utils_test.go",
+    ],
+    embed = [":go_default_library"],
+)

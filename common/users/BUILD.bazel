@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["client.go"],
+    importpath = "github.com/weaveworks/service/common/users",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common:go_default_library",
+        "//common/grpc:go_default_library",
+        "//users:go_default_library",
+        "//vendor/github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc:go_default_library",
+        "//vendor/github.com/mwitkow/go-grpc-middleware:go_default_library",
+        "//vendor/github.com/opentracing/opentracing-go:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/weaveworks/common/httpgrpc/server:go_default_library",
+        "//vendor/github.com/weaveworks/common/instrument:go_default_library",
+        "//vendor/google.golang.org/grpc:go_default_library",
+    ],
+)

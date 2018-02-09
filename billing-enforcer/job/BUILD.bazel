@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["enforce.go"],
+    importpath = "github.com/weaveworks/service/billing-enforcer/job",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//users:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/instrument:go_default_library",
+        "//vendor/github.com/weaveworks/common/logging:go_default_library",
+    ],
+)

@@ -1,0 +1,35 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["lookup.go"],
+    importpath = "github.com/weaveworks/service/users/grpc",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/orgs:go_default_library",
+        "//users:go_default_library",
+        "//users/db:go_default_library",
+        "//users/db/filter:go_default_library",
+        "//users/emailer:go_default_library",
+        "//users/sessions:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = ["lookup_test.go"],
+    deps = [
+        ":go_default_library",
+        "//common/gcp/partner:go_default_library",
+        "//users:go_default_library",
+        "//users/db:go_default_library",
+        "//users/db/dbtest:go_default_library",
+        "//users/emailer:go_default_library",
+        "//users/sessions:go_default_library",
+        "//users/templates:go_default_library",
+        "//vendor/github.com/jordan-wright/email:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//vendor/github.com/stretchr/testify/require:go_default_library",
+    ],
+)

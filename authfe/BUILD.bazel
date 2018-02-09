@@ -1,0 +1,59 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "admin.go",
+        "apiinfo.go",
+        "config.go",
+        "event.go",
+        "main.go",
+        "private.go",
+        "proxy.go",
+        "proxy_listener_router.go",
+        "routes.go",
+        "routing_utils.go",
+    ],
+    importpath = "github.com/weaveworks/service/authfe",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//common:go_default_library",
+        "//common/tracing:go_default_library",
+        "//users:go_default_library",
+        "//users/client:go_default_library",
+        "//vendor/github.com/armon/go-proxyproto:go_default_library",
+        "//vendor/github.com/fluent/fluent-logger-golang/fluent:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+        "//vendor/github.com/justinas/nosurf:go_default_library",
+        "//vendor/github.com/opentracing-contrib/go-stdlib/nethttp:go_default_library",
+        "//vendor/github.com/opentracing/opentracing-go:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/tylerb/graceful:go_default_library",
+        "//vendor/github.com/weaveworks/common/httpgrpc/server:go_default_library",
+        "//vendor/github.com/weaveworks/common/logging:go_default_library",
+        "//vendor/github.com/weaveworks/common/middleware:go_default_library",
+        "//vendor/github.com/weaveworks/common/user:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "authfe",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "proxy_test.go",
+        "routes_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//users/client:go_default_library",
+        "//vendor/github.com/gorilla/websocket:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//vendor/golang.org/x/net/websocket:go_default_library",
+    ],
+)

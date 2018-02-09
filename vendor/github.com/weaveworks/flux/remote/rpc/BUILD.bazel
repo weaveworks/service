@@ -1,0 +1,35 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "baseclient.go",
+        "clientV4.go",
+        "clientV5.go",
+        "clientV6.go",
+        "clientV7.go",
+        "clientV8.go",
+        "clientV9.go",
+        "compat.go",
+        "doc.go",
+        "server.go",
+    ],
+    importpath = "github.com/weaveworks/flux/remote/rpc",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/weaveworks/flux:go_default_library",
+        "//vendor/github.com/weaveworks/flux/errors:go_default_library",
+        "//vendor/github.com/weaveworks/flux/job:go_default_library",
+        "//vendor/github.com/weaveworks/flux/policy:go_default_library",
+        "//vendor/github.com/weaveworks/flux/remote:go_default_library",
+        "//vendor/github.com/weaveworks/flux/update:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["rpc_test.go"],
+    embed = [":go_default_library"],
+    deps = ["//vendor/github.com/weaveworks/flux/remote:go_default_library"],
+)

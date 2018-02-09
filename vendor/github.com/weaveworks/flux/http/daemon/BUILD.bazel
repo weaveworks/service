@@ -1,0 +1,37 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "server.go",
+        "upstream.go",
+    ],
+    importpath = "github.com/weaveworks/flux/http/daemon",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/go-kit/kit/log:go_default_library",
+        "//vendor/github.com/go-kit/kit/metrics/prometheus:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/weaveworks/common/middleware:go_default_library",
+        "//vendor/github.com/weaveworks/flux:go_default_library",
+        "//vendor/github.com/weaveworks/flux/event:go_default_library",
+        "//vendor/github.com/weaveworks/flux/http:go_default_library",
+        "//vendor/github.com/weaveworks/flux/http/client:go_default_library",
+        "//vendor/github.com/weaveworks/flux/http/websocket:go_default_library",
+        "//vendor/github.com/weaveworks/flux/image:go_default_library",
+        "//vendor/github.com/weaveworks/flux/job:go_default_library",
+        "//vendor/github.com/weaveworks/flux/metrics:go_default_library",
+        "//vendor/github.com/weaveworks/flux/policy:go_default_library",
+        "//vendor/github.com/weaveworks/flux/remote:go_default_library",
+        "//vendor/github.com/weaveworks/flux/remote/rpc:go_default_library",
+        "//vendor/github.com/weaveworks/flux/update:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["upstream_test.go"],
+    embed = [":go_default_library"],
+)

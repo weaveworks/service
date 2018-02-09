@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["mock.go"],
+    importpath = "github.com/weaveworks/service/common/gcp/pubsub/pubsubtest",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/gcp/pubsub/dto:go_default_library",
+        "//common/gcp/pubsub/publisher:go_default_library",
+        "//vendor/cloud.google.com/go/pubsub:go_default_library",
+    ],
+)

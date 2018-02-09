@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["unit.go"],
+    importpath = "github.com/weaveworks/service/notebooks/db/dbtest",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//notebooks/db:go_default_library",
+        "//vendor/github.com/stretchr/testify/require:go_default_library",
+    ],
+)

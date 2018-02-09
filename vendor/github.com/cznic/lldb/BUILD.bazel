@@ -1,0 +1,51 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "2pc.go",
+        "2pc_docs.go",
+        "btree.go",
+        "errors.go",
+        "falloc.go",
+        "filer.go",
+        "gb.go",
+        "lldb.go",
+        "memfiler.go",
+        "osfiler.go",
+        "simplefilefiler.go",
+        "xact.go",
+    ],
+    importpath = "github.com/cznic/lldb",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/cznic/fileutil:go_default_library",
+        "//vendor/github.com/cznic/internal/buffer:go_default_library",
+        "//vendor/github.com/cznic/internal/file:go_default_library",
+        "//vendor/github.com/cznic/mathutil:go_default_library",
+        "//vendor/github.com/cznic/sortutil:go_default_library",
+        "//vendor/github.com/cznic/zappy:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "2pc_test.go",
+        "all_test.go",
+        "btree_test.go",
+        "falloc_test.go",
+        "filer_test.go",
+        "gb_test.go",
+        "lldb_test.go",
+        "xact_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/cznic/fileutil:go_default_library",
+        "//vendor/github.com/cznic/internal/buffer:go_default_library",
+        "//vendor/github.com/cznic/mathutil:go_default_library",
+        "//vendor/github.com/cznic/sortutil:go_default_library",
+        "//vendor/github.com/cznic/zappy:go_default_library",
+    ],
+)

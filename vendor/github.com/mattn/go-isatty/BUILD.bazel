@@ -1,0 +1,105 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "doc.go",
+    ] + select({
+        "@io_bazel_rules_go//go/platform:android": [
+            "isatty_others.go",
+        ],
+        "@io_bazel_rules_go//go/platform:darwin": [
+            "isatty_bsd.go",
+            "isatty_others.go",
+        ],
+        "@io_bazel_rules_go//go/platform:dragonfly": [
+            "isatty_bsd.go",
+            "isatty_others.go",
+        ],
+        "@io_bazel_rules_go//go/platform:freebsd": [
+            "isatty_bsd.go",
+            "isatty_others.go",
+        ],
+        "@io_bazel_rules_go//go/platform:linux": [
+            "isatty_linux.go",
+            "isatty_others.go",
+        ],
+        "@io_bazel_rules_go//go/platform:nacl": [
+            "isatty_others.go",
+        ],
+        "@io_bazel_rules_go//go/platform:netbsd": [
+            "isatty_bsd.go",
+            "isatty_others.go",
+        ],
+        "@io_bazel_rules_go//go/platform:openbsd": [
+            "isatty_bsd.go",
+            "isatty_others.go",
+        ],
+        "@io_bazel_rules_go//go/platform:plan9": [
+            "isatty_others.go",
+        ],
+        "@io_bazel_rules_go//go/platform:solaris": [
+            "isatty_others.go",
+            "isatty_solaris.go",
+        ],
+        "@io_bazel_rules_go//go/platform:windows": [
+            "isatty_windows.go",
+        ],
+        "//conditions:default": [],
+    }),
+    importpath = "github.com/mattn/go-isatty",
+    visibility = ["//visibility:public"],
+    deps = select({
+        "@io_bazel_rules_go//go/platform:solaris": [
+            "//vendor/golang.org/x/sys/unix:go_default_library",
+        ],
+        "//conditions:default": [],
+    }),
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = select({
+        "@io_bazel_rules_go//go/platform:android": [
+            "isatty_others_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:darwin": [
+            "isatty_others_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:dragonfly": [
+            "isatty_others_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:freebsd": [
+            "isatty_others_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:linux": [
+            "isatty_others_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:nacl": [
+            "isatty_others_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:netbsd": [
+            "isatty_others_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:openbsd": [
+            "isatty_others_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:plan9": [
+            "isatty_others_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:solaris": [
+            "isatty_others_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:windows": [
+            "isatty_windows_test.go",
+        ],
+        "//conditions:default": [],
+    }),
+    embed = [":go_default_library"],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = ["example_test.go"],
+    deps = [":go_default_library"],
+)

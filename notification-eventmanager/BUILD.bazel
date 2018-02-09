@@ -1,0 +1,47 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "configmanagerclient.go",
+        "manager.go",
+    ],
+    importpath = "github.com/weaveworks/service/notification-eventmanager",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//notification-configmanager/types:go_default_library",
+        "//notification-sender:go_default_library",
+        "//users:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/sqs:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/sqs/sqsiface:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/blackfriday:go_default_library",
+        "//vendor/github.com/weaveworks/common/user:go_default_library",
+        "//vendor/golang.org/x/time/rate:go_default_library",
+        "//vendor/google.golang.org/grpc/status:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["manager_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//notification-configmanager/types:go_default_library",
+        "//notification-sender:go_default_library",
+        "//users/client:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/awserr:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/request:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/sqs:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/sqs/sqsiface:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//vendor/github.com/stretchr/testify/require:go_default_library",
+    ],
+)

@@ -1,0 +1,47 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "automated.go",
+        "filter.go",
+        "images.go",
+        "metrics.go",
+        "print.go",
+        "release.go",
+        "result.go",
+        "service.go",
+        "spec.go",
+    ],
+    importpath = "github.com/weaveworks/flux/update",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/go-kit/kit/log:go_default_library",
+        "//vendor/github.com/go-kit/kit/metrics:go_default_library",
+        "//vendor/github.com/go-kit/kit/metrics/prometheus:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/ryanuber/go-glob:go_default_library",
+        "//vendor/github.com/weaveworks/flux:go_default_library",
+        "//vendor/github.com/weaveworks/flux/cluster:go_default_library",
+        "//vendor/github.com/weaveworks/flux/errors:go_default_library",
+        "//vendor/github.com/weaveworks/flux/image:go_default_library",
+        "//vendor/github.com/weaveworks/flux/metrics:go_default_library",
+        "//vendor/github.com/weaveworks/flux/policy:go_default_library",
+        "//vendor/github.com/weaveworks/flux/registry:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "images_test.go",
+        "print_test.go",
+        "spec_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/weaveworks/flux:go_default_library",
+        "//vendor/github.com/weaveworks/flux/image:go_default_library",
+    ],
+)

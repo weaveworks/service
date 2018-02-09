@@ -1,0 +1,136 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "circular.go",
+        "defs.go",
+        "edit.go",
+        "elsize.go",
+        "errors.go",
+        "extension.go",
+        "integers.go",
+        "json.go",
+        "json_bytes.go",
+        "number.go",
+        "read.go",
+        "read_bytes.go",
+        "size.go",
+        "unsafe.go",
+        "write.go",
+        "write_bytes.go",
+    ] + select({
+        "@io_bazel_rules_go//go/platform:android": [
+            "advise_other.go",
+        ],
+        "@io_bazel_rules_go//go/platform:darwin": [
+            "advise_other.go",
+            "file.go",
+        ],
+        "@io_bazel_rules_go//go/platform:dragonfly": [
+            "advise_other.go",
+            "file.go",
+        ],
+        "@io_bazel_rules_go//go/platform:freebsd": [
+            "advise_other.go",
+            "file.go",
+        ],
+        "@io_bazel_rules_go//go/platform:linux": [
+            "advise_linux.go",
+            "file.go",
+        ],
+        "@io_bazel_rules_go//go/platform:nacl": [
+            "advise_other.go",
+        ],
+        "@io_bazel_rules_go//go/platform:netbsd": [
+            "advise_other.go",
+            "file.go",
+        ],
+        "@io_bazel_rules_go//go/platform:openbsd": [
+            "advise_other.go",
+            "file.go",
+        ],
+        "@io_bazel_rules_go//go/platform:plan9": [
+            "advise_other.go",
+        ],
+        "@io_bazel_rules_go//go/platform:solaris": [
+            "advise_other.go",
+        ],
+        "@io_bazel_rules_go//go/platform:windows": [
+            "advise_other.go",
+            "file_port.go",
+        ],
+        "//conditions:default": [],
+    }),
+    importpath = "github.com/tinylib/msgp/msgp",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/philhofer/fwd:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "edit_test.go",
+        "extension_test.go",
+        "floatbench_test.go",
+        "json_bytes_test.go",
+        "json_test.go",
+        "number_test.go",
+        "raw_test.go",
+        "read_bytes_test.go",
+        "read_test.go",
+        "write_bytes_test.go",
+        "write_test.go",
+    ],
+    embed = [":go_default_library"],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = [
+        "defs_test.go",
+    ] + select({
+        "@io_bazel_rules_go//go/platform:darwin": [
+            "file_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:dragonfly": [
+            "file_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:freebsd": [
+            "file_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:linux": [
+            "file_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:netbsd": [
+            "file_test.go",
+        ],
+        "@io_bazel_rules_go//go/platform:openbsd": [
+            "file_test.go",
+        ],
+        "//conditions:default": [],
+    }),
+    deps = select({
+        "@io_bazel_rules_go//go/platform:darwin": [
+            ":go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:dragonfly": [
+            ":go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:freebsd": [
+            ":go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:linux": [
+            ":go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:netbsd": [
+            ":go_default_library",
+        ],
+        "@io_bazel_rules_go//go/platform:openbsd": [
+            ":go_default_library",
+        ],
+        "//conditions:default": [],
+    }),
+)

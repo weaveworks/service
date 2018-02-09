@@ -1,0 +1,53 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "blob.go",
+        "btree.go",
+        "builtin.go",
+        "coerce.go",
+        "doc.go",
+        "driver.go",
+        "errors.go",
+        "etc.go",
+        "expr.go",
+        "file.go",
+        "httpfs.go",
+        "introspection.go",
+        "mem.go",
+        "parser.go",
+        "plan.go",
+        "ql.go",
+        "scanner.go",
+        "stmt.go",
+        "storage.go",
+    ],
+    importpath = "github.com/cznic/ql",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/cznic/b:go_default_library",
+        "//vendor/github.com/cznic/lldb:go_default_library",
+        "//vendor/github.com/cznic/mathutil:go_default_library",
+        "//vendor/github.com/cznic/ql/vendored/github.com/camlistore/go4/lock:go_default_library",
+        "//vendor/github.com/cznic/strutil:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "all_test.go",
+        "file_test.go",
+        "httpfs_test.go",
+        "introspection_test.go",
+        "parser_test.go",
+        "scanner_test.go",
+        "storage_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/cznic/mathutil:go_default_library",
+        "//vendor/github.com/cznic/strutil:go_default_library",
+    ],
+)

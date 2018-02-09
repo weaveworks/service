@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "entry.go",
+        "history.go",
+        "metrics.go",
+    ],
+    importpath = "github.com/weaveworks/service/flux-api/history",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//flux-api/service:go_default_library",
+        "//vendor/github.com/go-kit/kit/metrics/prometheus:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/weaveworks/flux:go_default_library",
+        "//vendor/github.com/weaveworks/flux/event:go_default_library",
+    ],
+)

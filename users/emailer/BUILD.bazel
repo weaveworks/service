@@ -1,0 +1,30 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "emailer.go",
+        "log.go",
+        "smtp.go",
+    ],
+    importpath = "github.com/weaveworks/service/users/emailer",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//users:go_default_library",
+        "//users/templates:go_default_library",
+        "//vendor/github.com/jordan-wright/email:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = ["smtp_test.go"],
+    deps = [
+        ":go_default_library",
+        "//users:go_default_library",
+        "//users/templates:go_default_library",
+        "//vendor/github.com/jordan-wright/email:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+    ],
+)

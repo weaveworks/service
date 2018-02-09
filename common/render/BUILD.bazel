@@ -1,0 +1,30 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "errors.go",
+        "format.go",
+        "json.go",
+        "template.go",
+    ],
+    importpath = "github.com/weaveworks/service/common/render",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//users:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/logging:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = [
+        "errors_test.go",
+        "json_test.go",
+    ],
+    deps = [
+        ":go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+    ],
+)

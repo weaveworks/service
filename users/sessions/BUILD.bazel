@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["store.go"],
+    importpath = "github.com/weaveworks/service/users/sessions",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//users:go_default_library",
+        "//users/client:go_default_library",
+        "//vendor/github.com/gorilla/securecookie:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+    ],
+)

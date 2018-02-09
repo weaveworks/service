@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "config.go",
+        "events.go",
+        "instance.go",
+        "metrics.go",
+        "multi.go",
+    ],
+    importpath = "github.com/weaveworks/service/flux-api/instance",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//flux-api/bus:go_default_library",
+        "//flux-api/config:go_default_library",
+        "//flux-api/history:go_default_library",
+        "//flux-api/service:go_default_library",
+        "//vendor/github.com/go-kit/kit/log:go_default_library",
+        "//vendor/github.com/go-kit/kit/metrics/prometheus:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/weaveworks/flux:go_default_library",
+        "//vendor/github.com/weaveworks/flux/event:go_default_library",
+        "//vendor/github.com/weaveworks/flux/metrics:go_default_library",
+        "//vendor/github.com/weaveworks/flux/remote:go_default_library",
+    ],
+)

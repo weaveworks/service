@@ -1,0 +1,38 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "doc.go",
+        "errors.go",
+        "logging.go",
+        "metrics.go",
+        "mock.go",
+        "notify.go",
+        "platform.go",
+    ],
+    importpath = "github.com/weaveworks/flux/remote",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/go-kit/kit/log:go_default_library",
+        "//vendor/github.com/go-kit/kit/metrics/prometheus:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/weaveworks/flux:go_default_library",
+        "//vendor/github.com/weaveworks/flux/errors:go_default_library",
+        "//vendor/github.com/weaveworks/flux/guid:go_default_library",
+        "//vendor/github.com/weaveworks/flux/image:go_default_library",
+        "//vendor/github.com/weaveworks/flux/job:go_default_library",
+        "//vendor/github.com/weaveworks/flux/metrics:go_default_library",
+        "//vendor/github.com/weaveworks/flux/update:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "notify_test.go",
+        "platform_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = ["//vendor/github.com/weaveworks/flux/image:go_default_library"],
+)

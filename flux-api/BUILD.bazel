@@ -1,0 +1,33 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/weaveworks/service/flux-api",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//common/tracing:go_default_library",
+        "//flux-api/bus:go_default_library",
+        "//flux-api/bus/nats:go_default_library",
+        "//flux-api/config:go_default_library",
+        "//flux-api/db:go_default_library",
+        "//flux-api/history:go_default_library",
+        "//flux-api/history/sql:go_default_library",
+        "//flux-api/http:go_default_library",
+        "//flux-api/instance:go_default_library",
+        "//flux-api/instance/sql:go_default_library",
+        "//flux-api/server:go_default_library",
+        "//vendor/github.com/go-kit/kit/log:go_default_library",
+        "//vendor/github.com/opentracing-contrib/go-stdlib/nethttp:go_default_library",
+        "//vendor/github.com/opentracing/opentracing-go:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus/promhttp:go_default_library",
+        "//vendor/github.com/spf13/pflag:go_default_library",
+        "//vendor/github.com/weaveworks/flux/event:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "flux-api",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

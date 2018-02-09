@@ -1,0 +1,57 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "accounts.go",
+        "admin.go",
+        "api.go",
+        "errors.go",
+        "invoice_verify.go",
+        "invoices.go",
+        "payments.go",
+        "routes.go",
+        "usage.go",
+    ],
+    importpath = "github.com/weaveworks/service/billing-api/routes",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//billing-api/db:go_default_library",
+        "//billing-api/trial:go_default_library",
+        "//common/constants/billing:go_default_library",
+        "//common/orgs:go_default_library",
+        "//common/render:go_default_library",
+        "//common/time:go_default_library",
+        "//common/zuora:go_default_library",
+        "//users:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/logging:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["accounts_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//billing-api/db:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//vendor/github.com/stretchr/testify/require:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = ["invoices_test.go"],
+    deps = [
+        ":go_default_library",
+        "//common/zuora:go_default_library",
+        "//common/zuora/mockzuora:go_default_library",
+        "//users:go_default_library",
+        "//users/mock_users:go_default_library",
+        "//vendor/github.com/golang/mock/gomock:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+    ],
+)

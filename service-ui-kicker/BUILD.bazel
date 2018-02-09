@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/weaveworks/service/service-ui-kicker",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//service-ui-kicker/hookdispatcher:go_default_library",
+        "//service-ui-kicker/preview:go_default_library",
+        "//service-ui-kicker/scope:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus/promhttp:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/gopkg.in/go-playground/webhooks.v3:go_default_library",
+        "//vendor/gopkg.in/go-playground/webhooks.v3/github:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "service-ui-kicker",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

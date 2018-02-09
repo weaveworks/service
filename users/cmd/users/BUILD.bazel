@@ -1,0 +1,36 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/weaveworks/service/users/cmd/users",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//common:go_default_library",
+        "//common/featureflag:go_default_library",
+        "//common/gcp/partner:go_default_library",
+        "//common/tracing:go_default_library",
+        "//users:go_default_library",
+        "//users/api:go_default_library",
+        "//users/cleaner:go_default_library",
+        "//users/db:go_default_library",
+        "//users/emailer:go_default_library",
+        "//users/grpc:go_default_library",
+        "//users/login:go_default_library",
+        "//users/marketing:go_default_library",
+        "//users/render:go_default_library",
+        "//users/sessions:go_default_library",
+        "//users/templates:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/logging:go_default_library",
+        "//vendor/github.com/weaveworks/common/server:go_default_library",
+        "//vendor/google.golang.org/grpc:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "users",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

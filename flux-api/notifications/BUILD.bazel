@@ -1,0 +1,39 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "notifications.go",
+        "slack.go",
+        "template_funcs.go",
+    ],
+    importpath = "github.com/weaveworks/service/flux-api/notifications",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//flux-api/config:go_default_library",
+        "//flux-api/instance:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/weaveworks/flux/event:go_default_library",
+        "//vendor/github.com/weaveworks/flux/image:go_default_library",
+        "//vendor/github.com/weaveworks/flux/update:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "notifications_test.go",
+        "slack_test.go",
+        "template_funcs_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//flux-api/config:go_default_library",
+        "//flux-api/instance:go_default_library",
+        "//flux-api/service:go_default_library",
+        "//vendor/github.com/weaveworks/flux:go_default_library",
+        "//vendor/github.com/weaveworks/flux/event:go_default_library",
+        "//vendor/github.com/weaveworks/flux/image:go_default_library",
+        "//vendor/github.com/weaveworks/flux/update:go_default_library",
+    ],
+)

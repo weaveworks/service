@@ -1,0 +1,33 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "browser.go",
+        "email.go",
+        "sender.go",
+        "slack.go",
+        "stackdriver.go",
+    ],
+    importpath = "github.com/weaveworks/service/notification-sender",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//notification-configmanager/types:go_default_library",
+        "//vendor/cloud.google.com/go/logging:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/awserr:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/sqs:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/sqs/sqsiface:go_default_library",
+        "//vendor/github.com/gorilla/websocket:go_default_library",
+        "//vendor/github.com/nats-io/go-nats:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/sirupsen/logrus:go_default_library",
+        "//vendor/github.com/weaveworks/common/user:go_default_library",
+        "//vendor/golang.org/x/oauth2/google:go_default_library",
+        "//vendor/google.golang.org/api/option:go_default_library",
+        "//vendor/google.golang.org/grpc/codes:go_default_library",
+        "//vendor/google.golang.org/grpc/status:go_default_library",
+        "//vendor/gopkg.in/gomail.v2:go_default_library",
+    ],
+)

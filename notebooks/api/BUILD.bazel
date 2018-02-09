@@ -1,0 +1,37 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "api.go",
+        "notebook.go",
+    ],
+    importpath = "github.com/weaveworks/service/notebooks/api",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//notebooks:go_default_library",
+        "//notebooks/db:go_default_library",
+        "//users:go_default_library",
+        "//vendor/github.com/gorilla/mux:go_default_library",
+        "//vendor/github.com/weaveworks/common/logging:go_default_library",
+        "//vendor/github.com/weaveworks/common/user:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = [
+        "helpers_test.go",
+        "notebook_test.go",
+    ],
+    deps = [
+        ":go_default_library",
+        "//notebooks:go_default_library",
+        "//notebooks/db:go_default_library",
+        "//notebooks/db/dbtest:go_default_library",
+        "//users/client:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//vendor/github.com/stretchr/testify/require:go_default_library",
+        "//vendor/github.com/weaveworks/common/user:go_default_library",
+    ],
+)
