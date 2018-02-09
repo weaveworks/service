@@ -130,9 +130,7 @@ func (c *OrgCleaner) clean(ctx context.Context, id string) {
 			return
 		}
 		cleanedOrgsTotal.Inc()
-		return
 	}
-	log.Infof("cleanup for org ID %s hasn't finished yet, will try again later", id)
 }
 
 // runCleanupJobs tries to run all cleaning jobs for organization with id
@@ -154,6 +152,9 @@ func (c *OrgCleaner) runCleanupJobs(ctx context.Context, id string) bool {
 		if !isDone(status) {
 			res = false
 		}
+	}
+	if !res {
+		log.Infof("cleanup for org ID %s hasn't finished yet, will try again later", id)
 	}
 	return res
 }
