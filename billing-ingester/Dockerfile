@@ -11,6 +11,13 @@ RUN \
     gem install bigdecimal 'fluent-plugin-bigquery: < 1.0.0' && \
     apk del --no-cache g++ make ruby-dev
 
+# Install & inject rbtrace so that we can debug memory leaks in a running process!
+RUN \
+    apk add --no-cache g++ make ruby-dev autoconf automake libtool && \
+    gem install rbtrace && \
+    sed -i -E "/^load /i require 'rbtrace'" /usr/bin/fluentd && \
+    apk del --no-cache g++ make ruby-dev autoconf automake libtool
+
 # Cleanup
 WORKDIR /home/fluent
 COPY schema_events.json /bigquery/
