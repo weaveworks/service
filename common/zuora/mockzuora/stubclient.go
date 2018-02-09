@@ -37,12 +37,12 @@ func (z StubClient) UploadUsage(ctx context.Context, r io.Reader) (string, error
 }
 
 // GetAccount mocks.
-func (z StubClient) GetAccount(ctx context.Context, weaveUserID string) (*zuora.Account, error) {
+func (z StubClient) GetAccount(ctx context.Context, zuoraAccountNumber string) (*zuora.Account, error) {
 	return nil, nil
 }
 
 // UpdateAccount mocks.
-func (z StubClient) UpdateAccount(ctx context.Context, id string, userDetails *zuora.Account) (*zuora.Account, error) {
+func (z StubClient) UpdateAccount(ctx context.Context, zuoraAccountNumber string, userDetails *zuora.Account) (*zuora.Account, error) {
 	return nil, nil
 }
 
@@ -52,12 +52,12 @@ func (z StubClient) GetCurrentRates(ctx context.Context) (zuora.RateMap, error) 
 }
 
 // GetInvoices mocks.
-func (z StubClient) GetInvoices(ctx context.Context, weaveOrgID, page, pageSize string) ([]zuora.Invoice, error) {
+func (z StubClient) GetInvoices(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]zuora.Invoice, error) {
 	return nil, nil
 }
 
 // CreateInvoice mocks.
-func (z StubClient) CreateInvoice(ctx context.Context, weaveOrgID string) (string, error) {
+func (z StubClient) CreateInvoice(ctx context.Context, zuoraAccountNumber string) (string, error) {
 	return "", nil
 }
 
@@ -66,12 +66,12 @@ func (z StubClient) ServeFile(ctx context.Context, w http.ResponseWriter, fileID
 }
 
 // GetAuthenticationTokens mocks.
-func (z StubClient) GetAuthenticationTokens(ctx context.Context, weaveUserID string) (*zuora.AuthenticationTokens, error) {
+func (z StubClient) GetAuthenticationTokens(ctx context.Context, zuoraAccountNumber string) (*zuora.AuthenticationTokens, error) {
 	return nil, nil
 }
 
 // GetPaymentMethod mocks.
-func (z StubClient) GetPaymentMethod(ctx context.Context, weaveUserID string) (*zuora.CreditCard, error) {
+func (z StubClient) GetPaymentMethod(ctx context.Context, zuoraAccountNumber string) (*zuora.CreditCard, error) {
 	return nil, nil
 }
 
@@ -106,7 +106,7 @@ func (z StubClient) URL(format string, components ...interface{}) string {
 }
 
 // GetUsage mocks.
-func (z StubClient) GetUsage(ctx context.Context, weaveOrgID, page, pageSize string) ([]zuora.Usage, error) {
+func (z StubClient) GetUsage(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]zuora.Usage, error) {
 	return nil, nil
 }
 

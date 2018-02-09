@@ -49,10 +49,10 @@ type authenticationRequest struct {
 }
 
 // GetAuthenticationTokens gets authentication tokens from Zuora.
-func (z *Zuora) GetAuthenticationTokens(ctx context.Context, weaveUserID string) (*AuthenticationTokens, error) {
+func (z *Zuora) GetAuthenticationTokens(ctx context.Context, zuoraAccountNumber string) (*AuthenticationTokens, error) {
 	resp := &AuthenticationTokens{}
-	if weaveUserID != "" {
-		resp.AccountNumber = ToZuoraAccountNumber(weaveUserID)
+	if zuoraAccountNumber != "" {
+		resp.AccountNumber = zuoraAccountNumber
 	}
 
 	err := z.Post(
@@ -103,9 +103,12 @@ func (z *Zuora) UpdatePaymentMethod(ctx context.Context, paymentMethodID string)
 }
 
 // GetPaymentMethod gets the payment method from Zuora.
-func (z *Zuora) GetPaymentMethod(ctx context.Context, weaveUserID string) (*CreditCard, error) {
+func (z *Zuora) GetPaymentMethod(ctx context.Context, zuoraAccountNumber string) (*CreditCard, error) {
+	if zuoraAccountNumber == "" {
+		return nil, ErrInvalidAccountNumber
+	}
 	resp := &paymentMethods{}
-	err := z.Get(ctx, getPaymentPath, z.URL(getPaymentPath, ToZuoraAccountNumber(weaveUserID)), resp)
+	err := z.Get(ctx, getPaymentPath, z.URL(getPaymentPath, zuoraAccountNumber), resp)
 	if err != nil {
 		return nil, err
 	}

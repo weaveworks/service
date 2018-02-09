@@ -14,7 +14,7 @@ func renderError(w http.ResponseWriter, r *http.Request, err error) {
 
 func errorStatusCode(err error) int {
 	switch err {
-	case sql.ErrNoRows, zuora.ErrNotFound, zuora.ErrNoDefaultPaymentMethod, zuora.ErrorObtainingPaymentMethod:
+	case sql.ErrNoRows, zuora.ErrNotFound, zuora.ErrNoDefaultPaymentMethod, zuora.ErrorObtainingPaymentMethod, zuora.ErrInvalidAccountNumber:
 		return http.StatusNotFound
 	case zuora.ErrInvalidSubscriptionStatus:
 		return http.StatusBadRequest

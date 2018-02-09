@@ -32,12 +32,12 @@ type stubZuoraClient struct {
 	uploadUsage io.Reader
 }
 
-func (z *stubZuoraClient) GetAccount(ctx context.Context, weaveUserID string) (*zuora.Account, error) {
+func (z *stubZuoraClient) GetAccount(ctx context.Context, zuoraAccountNumber string) (*zuora.Account, error) {
 	return &zuora.Account{
-		PaymentProviderID: "P" + weaveUserID,
+		PaymentProviderID: "P" + zuoraAccountNumber,
 		Subscription: &zuora.AccountSubscription{
-			SubscriptionNumber: "S" + weaveUserID,
-			ChargeNumber:       "C" + weaveUserID,
+			SubscriptionNumber: "S" + zuoraAccountNumber,
+			ChargeNumber:       "C" + zuoraAccountNumber,
 		},
 	}, nil
 }
@@ -205,22 +205,22 @@ func TestJobUpload_Do(t *testing.T) {
 		assert.Len(t, records, 3) // headers + two rows
 
 		assert.Equal(t, []string{
-			"Ppartial-max_aggregates_id",
+			"PWboo",
 			"node-seconds",
 			"2",
 			"11/27/2017", // day of first aggregate
 			"11/29/2017",
-			"Spartial-max_aggregates_id",
-			"Cpartial-max_aggregates_id",
+			"SWboo",
+			"CWboo",
 		}, records[1][0:7])
 		assert.Equal(t, []string{
-			"Ppartial-trial_expires_at",
+			"PWzoo",
 			"node-seconds",
 			"4",
 			"11/25/2017",
 			"11/29/2017",
-			"Spartial-trial_expires_at",
-			"Cpartial-trial_expires_at",
+			"SWzoo",
+			"CWzoo",
 		}, records[2][0:7])
 
 		aggID, err := d.GetUsageUploadLargestAggregateID(ctx, "zuora")

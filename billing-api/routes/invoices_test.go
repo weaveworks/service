@@ -9,11 +9,15 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
+
 	"github.com/weaveworks/service/billing-api/routes"
 	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/common/zuora/mockzuora"
+	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/mock_users"
 )
 
 const sampleFileURL = "https://apisandbox-api.zuora.com/rest/v1/files/2c92c08c5e0d9bd5015e0f84943b3ad0"
@@ -26,7 +30,17 @@ type zuoraStubInvoices struct {
 	noFile   bool
 }
 
-func (z *zuoraStubInvoices) GetInvoices(ctx context.Context, weaveOrgID, page, pageSize string) ([]zuora.Invoice, error) {
+func usersClient(ctrl *gomock.Controller, zuoraAccountNumber string) *mock_users.MockUsersClient {
+	u := mock_users.NewMockUsersClient(ctrl)
+	u.EXPECT().
+		GetOrganization(gomock.Any(), gomock.Any()).
+		Return(&users.GetOrganizationResponse{
+			Organization: users.Organization{ZuoraAccountNumber: zuoraAccountNumber},
+		}, nil)
+	return u
+}
+
+func (z *zuoraStubInvoices) GetInvoices(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]zuora.Invoice, error) {
 	if z.err != nil {
 		return nil, z.err
 	}
@@ -45,7 +59,7 @@ func (z *zuoraStubInvoices) GetInvoices(ctx context.Context, weaveOrgID, page, p
 	return invoices, nil
 }
 
-func (z *zuoraStubInvoices) CreateInvoice(ctx context.Context, weaveOrgID string) (string, error) {
+func (z *zuoraStubInvoices) CreateInvoice(ctx context.Context, zuoraAccountNumber string) (string, error) {
 	return "stubPaymentID", nil
 }
 
@@ -92,7 +106,10 @@ func createInvoice(status, fileURL string) zuora.Invoice {
 }
 
 func TestGetAccountInvoices(t *testing.T) {
-	api := &routes.API{Zuora: &zuoraStubInvoices{}}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	api := &routes.API{Zuora: &zuoraStubInvoices{}, Users: usersClient(ctrl, "Wbee8866756aee4702b5e4f9021a44a2")}
 
 	response := doRequest(t, api, http.StatusOK)
 	assert.JSONEq(t,
@@ -101,12 +118,18 @@ func TestGetAccountInvoices(t *testing.T) {
 }
 
 func TestGetAccountInvoices_PostedOnly(t *testing.T) {
-	api := &routes.API{Zuora: &zuoraStubInvoices{statuses: []string{
-		zuora.InvoiceStatusPosted,
-		zuora.InvoiceStatusCanceled,
-		zuora.InvoiceStatusError,
-		zuora.InvoiceStatusDraft,
-	}}}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	api := &routes.API{
+		Zuora: &zuoraStubInvoices{statuses: []string{
+			zuora.InvoiceStatusPosted,
+			zuora.InvoiceStatusCanceled,
+			zuora.InvoiceStatusError,
+			zuora.InvoiceStatusDraft,
+		}},
+		Users: usersClient(ctrl, "abc"),
+	}
 
 	response := doRequest(t, api, http.StatusOK)
 	invoices := parseInvoices(t, response)
@@ -114,10 +137,16 @@ func TestGetAccountInvoices_PostedOnly(t *testing.T) {
 }
 
 func TestGetAccountInvoices_UnknownStatus(t *testing.T) {
-	api := &routes.API{Zuora: &zuoraStubInvoices{statuses: []string{
-		zuora.InvoiceStatusPosted,
-		"youdontknowme",
-	}}}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	api := &routes.API{
+		Zuora: &zuoraStubInvoices{statuses: []string{
+			zuora.InvoiceStatusPosted,
+			"youdontknowme",
+		}},
+		Users: usersClient(ctrl, "abc"),
+	}
 
 	response := doRequest(t, api, http.StatusOK)
 	invoices := parseInvoices(t, response)
@@ -125,7 +154,13 @@ func TestGetAccountInvoices_UnknownStatus(t *testing.T) {
 }
 
 func TestGetAccountInvoices_NotFound(t *testing.T) {
-	api := &routes.API{Zuora: &zuoraStubInvoices{err: zuora.ErrNotFound}}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	api := &routes.API{
+		Zuora: &zuoraStubInvoices{err: zuora.ErrNotFound},
+		Users: usersClient(ctrl, "abc"),
+	}
 
 	response := doRequest(t, api, http.StatusOK)
 	invoices := parseInvoices(t, response)
@@ -133,13 +168,25 @@ func TestGetAccountInvoices_NotFound(t *testing.T) {
 }
 
 func TestGetAccountInvoices_UnknownError(t *testing.T) {
-	api := &routes.API{Zuora: &zuoraStubInvoices{err: errors.New("some unknown error")}}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	api := &routes.API{
+		Zuora: &zuoraStubInvoices{err: errors.New("some unknown error")},
+		Users: usersClient(ctrl, "abc"),
+	}
 
 	doRequest(t, api, http.StatusInternalServerError)
 }
 
 func TestGetAccountInvoices_MissingPDF(t *testing.T) {
-	api := &routes.API{Zuora: &zuoraStubInvoices{noFile: true}}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	api := &routes.API{
+		Zuora: &zuoraStubInvoices{noFile: true},
+		Users: usersClient(ctrl, "abc"),
+	}
 
 	// Missing PDFs should still return the invoice successfully
 	response := doRequest(t, api, http.StatusOK)

@@ -9,19 +9,22 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/common/zuora"
+	"github.com/weaveworks/service/users"
 )
 
 // InvoiceUpload sends invoices to Zuora once usage has been processed.
 type InvoiceUpload struct {
 	db        db.DB
+	users     users.UsersClient
 	zuora     zuora.Client
 	collector *instrument.JobCollector
 }
 
 // NewInvoiceUpload creates an InvoiceUpload instance.
-func NewInvoiceUpload(db db.DB, zuora zuora.Client, collector *instrument.JobCollector) *InvoiceUpload {
+func NewInvoiceUpload(db db.DB, users users.UsersClient, zuora zuora.Client, collector *instrument.JobCollector) *InvoiceUpload {
 	return &InvoiceUpload{
 		db:        db,
+		users:     users,
 		zuora:     zuora,
 		collector: collector,
 	}
@@ -61,7 +64,15 @@ func (j *InvoiceUpload) Do() error {
 			}
 
 			externalID := postTrialInvoice.ExternalID
-			paymentID, err := j.zuora.CreateInvoice(ctx, externalID)
+			resp, err := j.users.GetOrganization(ctx, &users.GetOrganizationRequest{
+				ID: &users.GetOrganizationRequest_ExternalID{ExternalID: externalID},
+			})
+			if err != nil {
+				logger.Errorf("Failed to get organization for %v: %v", externalID, err)
+				continue
+			}
+			org := resp.Organization
+			paymentID, err := j.zuora.CreateInvoice(ctx, org.ZuoraAccountNumber)
 			if err == nil {
 				logger.Infof("Created invoice for %v, paymentID %v", externalID, paymentID)
 				// now delete the row from post_trial_invoices
