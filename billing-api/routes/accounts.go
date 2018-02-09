@@ -296,7 +296,8 @@ type accountStatusResponse struct {
 	ActiveHosts           float64          `json:"active_hosts"`
 	Status                status           `json:"status"`
 	Interim               *interim         `json:"interim,omitempty"`
-	EstimatedMonthlyUsage string           `json:"estimated_monthly_usage"` // in dollar$
+	EstimatedMonthlyUsage string           `json:"estimated_monthly_usage"`
+	Currency              string           `json:"currency"`
 }
 
 const (
@@ -399,13 +400,16 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 
 	var billCycleDay int
 	var price float64
+	var currency string
 	zuoraAcct, err := a.Zuora.GetAccount(ctx, orgID)
 	if err == zuora.ErrNotFound {
 		billCycleDay, price, err = a.getDefaultUsageRateInfo(ctx)
+		currency = zuora.DefaultCurrency
 		zuoraAcct = nil
 	} else if err == nil {
 		billCycleDay = zuoraAcct.BillCycleDay
 		price = zuoraAcct.Subscription.Price
+		currency = zuoraAcct.Subscription.Currency
 	}
 
 	if err != nil {
@@ -466,6 +470,7 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		Status:             getBillingStatus(ctx, trial, zuoraAcct),
 		UsagePerDay:        daily,
 		Interim:            interimPeriod,
+		Currency:           currency,
 	}
 	if estimated > 0 {
 		status.EstimatedMonthlyUsage = fmt.Sprintf("%0.f", math.Ceil(estimated))
