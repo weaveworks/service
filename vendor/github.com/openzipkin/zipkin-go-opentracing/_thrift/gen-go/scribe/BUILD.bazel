@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "ttypes.go",
+        "constants.go",
+	"scribe.go",
+    ],
+    importpath = "github.com/openzipkin/zipkin-go-opentracing/_thrift/gen-go/scribe",
+    visibility = ["//visibility:public"],
+    deps = [
+	"//vendor/github.com/apache/thrift/lib/go/thrift:go_default_library",
+    ],
+)
