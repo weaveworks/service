@@ -98,6 +98,10 @@ func (j *Enforce) NotifyTrialOrganizations(ctx context.Context, now time.Time) e
 	for _, org := range resp.Organizations {
 		// TODO: move filters to GetTrialOrganizationsRequest
 
+		if !org.IsOnboarded() {
+			continue
+		}
+
 		// Have we already notified?
 		if org.TrialPendingExpiryNotifiedAt != nil {
 			continue
@@ -151,6 +155,10 @@ func (j *Enforce) NotifyDelinquentOrganizations(ctx context.Context, now time.Ti
 	fail := 0
 	for _, org := range resp.Organizations {
 		// TODO: move filters to GetDelinquentOrganizationsRequest
+
+		if !org.IsOnboarded() {
+			continue
+		}
 
 		// Have we already notified?
 		if org.TrialExpiredNotifiedAt != nil {
