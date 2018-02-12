@@ -6,19 +6,19 @@ proto_library(
     srcs = ["users.proto"],
     visibility = ["//visibility:public"],
     deps = [
-        "//github.com/gogo/protobuf/gogoproto:gogoproto_proto",
+        "@gogo_special_proto//github.com/gogo/protobuf/gogoproto",
         "@com_google_protobuf//:timestamp_proto",
     ],
 )
 
 go_proto_library(
     name = "users_go_proto",
-    compilers = ["@io_bazel_rules_go//proto:gogo_grpc"],
+    compilers = ["@io_bazel_rules_go//proto:gogoslick_grpc"],
     importpath = "github.com/weaveworks/service/users",
     proto = ":users_proto",
     visibility = ["//visibility:public"],
     deps = [
-        "//github.com/gogo/protobuf/gogoproto:go_default_library",
+        "//vendor/github.com/gogo/protobuf/gogoproto:go_default_library",
         "//vendor/github.com/golang/protobuf/ptypes/timestamp:go_default_library",
     ],
 )

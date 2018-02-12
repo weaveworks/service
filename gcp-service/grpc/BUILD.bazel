@@ -5,7 +5,7 @@ proto_library(
     name = "grpc_proto",
     srcs = ["gcp-service.proto"],
     visibility = ["//visibility:public"],
-    deps = ["//github.com/gogo/protobuf/gogoproto:gogoproto_proto"],
+    deps = ["@gogo_special_proto//github.com/gogo/protobuf/gogoproto"],
 )
 
 go_proto_library(
@@ -14,7 +14,7 @@ go_proto_library(
     importpath = "github.com/weaveworks/service/gcp-service/grpc",
     proto = ":grpc_proto",
     visibility = ["//visibility:public"],
-    deps = ["//github.com/gogo/protobuf/gogoproto:go_default_library"],
+    deps = ["//vendor/github.com/gogo/protobuf/gogoproto:go_default_library"],
 )
 
 go_library(
