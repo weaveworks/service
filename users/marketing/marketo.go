@@ -86,7 +86,8 @@ func nilTime(t time.Time) string {
 	return t.Format("2006-01-02")
 }
 
-func (c *MarketoClient) batchUpsertProspect(prospects []Prospect) error {
+// BatchUpsertProspect batches the provided prospects and insert/update them in Marketo.
+func (c *MarketoClient) BatchUpsertProspect(prospects []Prospect) error {
 	if err := c.client.RefreshToken(); err != nil {
 		return err
 	}

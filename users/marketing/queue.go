@@ -45,7 +45,7 @@ type Queue struct {
 
 type client interface {
 	name() string
-	batchUpsertProspect(prospects []Prospect) error
+	BatchUpsertProspect(prospects []Prospect) error
 }
 
 // NewQueue makes a new marketing queue.
@@ -122,7 +122,7 @@ func (c *Queue) push() {
 		if end > len(prospects) {
 			end = len(prospects)
 		}
-		err := c.client.batchUpsertProspect(prospects[i:end])
+		err := c.client.BatchUpsertProspect(prospects[i:end])
 		if err != nil {
 			prospectsSent.WithLabelValues(name, "failed").Add(float64(end - i))
 			log.Errorf("Error pushing prospects: %v", err)
