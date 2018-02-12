@@ -152,7 +152,7 @@ func TestAPI_DeleteUser(t *testing.T) {
 
 	{ // delete first user
 		w := httptest.NewRecorder()
-		r := requestAs(t, usr, "DELETE", fmt.Sprintf("/admin/users/users/%s", usr.ID), nil)
+		r := requestAs(t, usr, "POST", fmt.Sprintf("/admin/users/users/%s/remove", usr.ID), nil)
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusNoContent, w.Code)
 
@@ -165,7 +165,7 @@ func TestAPI_DeleteUser(t *testing.T) {
 
 	{ // delete other user
 		w := httptest.NewRecorder()
-		r := requestAs(t, usr, "DELETE", fmt.Sprintf("/admin/users/users/%s", other.ID), nil)
+		r := requestAs(t, usr, "POST", fmt.Sprintf("/admin/users/users/%s/remove", other.ID), nil)
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusNoContent, w.Code)
 
