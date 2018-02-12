@@ -71,14 +71,20 @@ func (a *API) mangleInvoice(orgID string, invoice zuora.Invoice) (zuora.Invoice,
 // GetAccountInvoices gets the invoices for an account.
 func (a *API) GetAccountInvoices(w http.ResponseWriter, r *http.Request) {
 	logger := logging.With(r.Context())
-	orgID := mux.Vars(r)["id"]
+	externalID := mux.Vars(r)["id"]
+	resp, err := a.getOrganization(r.Context(), externalID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	org := resp.Organization
 	invoices, err := a.Zuora.GetInvoices(
 		r.Context(),
-		orgID,
+		org.ZuoraAccountNumber,
 		r.FormValue("page"),
 		r.FormValue("pageSize"),
 	)
-	if err == zuora.ErrNotFound {
+	if err == zuora.ErrNotFound || err == zuora.ErrInvalidAccountNumber {
 		invoices = []zuora.Invoice{}
 	} else if err != nil {
 		logger.Errorf("Problem loading invoices: %v", err)
@@ -92,7 +98,7 @@ func (a *API) GetAccountInvoices(w http.ResponseWriter, r *http.Request) {
 		if invoice.Status != zuora.InvoiceStatusPosted {
 			continue
 		}
-		invoice, err = a.mangleInvoice(orgID, invoice)
+		invoice, err = a.mangleInvoice(externalID, invoice)
 		if err != nil {
 			logger.Errorf("Error mangling invoice: %v", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

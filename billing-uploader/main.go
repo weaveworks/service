@@ -119,7 +119,7 @@ func main() {
 	}
 
 	invoiceCron := cron.New()
-	invoice := job.NewInvoiceUpload(db, zuora, jobCollector)
+	invoice := job.NewInvoiceUpload(db, users, zuora, jobCollector)
 	invoiceCron.AddJob(*invoiceCronSpec, invoice)
 	invoiceCron.Start()
 	defer invoiceCron.Stop()

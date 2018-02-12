@@ -53,7 +53,7 @@ func TestPaymentOnBillingDay(t *testing.T) {
 		t.Errorf("Bill cycle day must be %v instead of %v", signup.Day(), account.BillCycleDay)
 	}
 	// no usage uploaded, since pre-trial
-	paymentID, err := z.CreateInvoice(ctx, externalID)
+	paymentID, err := z.CreateInvoice(ctx, account.Number)
 	if err == nil {
 		t.Errorf("CreateInvoice should fail, there's no chargable usage, paymentID %v", paymentID)
 	}
@@ -79,7 +79,7 @@ func TestPaymentInTrial(t *testing.T) {
 	}
 	defer z.DeleteAccount(ctx, account.ZuoraID)
 	// no usage uploaded, since pre-trial
-	paymentID, err := z.CreateInvoice(ctx, externalID)
+	paymentID, err := z.CreateInvoice(ctx, account.Number)
 	if err == nil {
 		t.Errorf("CreateInvoice should fail, there's no chargable usage, paymentID %v", paymentID)
 	}
@@ -126,11 +126,11 @@ func TestPaymentAfterTrialSignupSameMonth(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, err = z.CreateInvoice(ctx, externalID)
+	_, err = z.CreateInvoice(ctx, account.Number)
 	if !z.NoChargeableUsage(err) {
 		t.Errorf("Expected no chargable usage: %v", err)
 	}
-	invoices, err := z.GetInvoices(ctx, externalID, "1", "40")
+	invoices, err := z.GetInvoices(ctx, account.Number, "1", "40")
 	if err != nil {
 		t.Errorf("Failed to fetch invoices: %v", err)
 	}
@@ -181,11 +181,11 @@ func TestTrialExpiresPaymentNextMonth(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, err = z.CreateInvoice(ctx, externalID)
+	_, err = z.CreateInvoice(ctx, account.Number)
 	if err != nil {
 		t.Errorf("Failed to generate invoice: %v", err)
 	}
-	invoices, err := z.GetInvoices(ctx, externalID, "1", "40")
+	invoices, err := z.GetInvoices(ctx, account.Number, "1", "40")
 	if err != nil {
 		t.Errorf("Failed to fetch invoices: %v", err)
 	}
@@ -240,11 +240,11 @@ func TestTrialExpiresPaymentNextTwoMonth(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, err = z.CreateInvoice(ctx, externalID)
+	_, err = z.CreateInvoice(ctx, account.Number)
 	if err != nil {
 		t.Errorf("Failed to generate invoice: %v", err)
 	}
-	invoices, err := z.GetInvoices(ctx, externalID, "1", "40")
+	invoices, err := z.GetInvoices(ctx, account.Number, "1", "40")
 	if err != nil {
 		t.Errorf("Failed to fetch invoices: %v", err)
 	}

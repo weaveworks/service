@@ -9,6 +9,9 @@ import (
 const (
 	productsPath  = "catalog/products"
 	weaveCloudSKU = "SKU-00000001"
+
+	// DefaultCurrency represents Weave Cloud's default currency
+	DefaultCurrency = "USD"
 )
 
 // RateMap maps product names to their rates.
@@ -30,14 +33,15 @@ type zuoraCatalogResponse struct {
 				Name    string `json:"name"`
 				UOM     string `json:"uom"` //: "node-seconds",
 				Pricing []struct {
-					Price float64 `json:"price"`
+					Price    float64 `json:"price"`
+					Currency string  `json:"currency"`
 				} `json:"pricing"`
 			} `json:"productRatePlanCharges"`
 		} `json:"productRatePlans"`
 	} `json:"products"`
 }
 
-// GetCurrentRates get the current product rates from Zuora.
+// GetCurrentRates get the current product rates in USD from Zuora.
 func (z *Zuora) GetCurrentRates(ctx context.Context) (RateMap, error) {
 	resp := &zuoraCatalogResponse{}
 	err := z.Get(ctx, productsPath, z.URL(productsPath), resp)
@@ -62,7 +66,11 @@ func (z *Zuora) GetCurrentRates(ctx context.Context) (RateMap, error) {
 	for _, ratePlan := range product.ProductRatePlans {
 		for _, charge := range ratePlan.ProductRatePlanCharges {
 			// Pricing is per currency which we are supposed to only have one of (USD).
-			rates[charge.UOM] = charge.Pricing[0].Price
+			for _, pricing := range charge.Pricing {
+				if pricing.Currency == DefaultCurrency {
+					rates[charge.UOM] = pricing.Price
+				}
+			}
 		}
 	}
 

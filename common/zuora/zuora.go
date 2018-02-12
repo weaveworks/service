@@ -29,25 +29,25 @@ func init() {
 
 // Client defines an interface to access the Zuora API.
 type Client interface {
-	GetAuthenticationTokens(ctx context.Context, weaveUserID string) (*AuthenticationTokens, error)
+	GetAuthenticationTokens(ctx context.Context, zuoraAccountNumber string) (*AuthenticationTokens, error)
 	GetConfig() Config
 	ContainsErrorCode(err interface{}, errorCode int) bool
 	NoChargeableUsage(err error) bool
 	ChargeableUsageTooLow(err error) bool
 	URL(format string, components ...interface{}) string
 
-	GetAccount(ctx context.Context, weaveUserID string) (*Account, error)
+	GetAccount(ctx context.Context, zuoraAccountNumber string) (*Account, error)
 	CreateAccount(ctx context.Context, orgID, currency, firstName, lastName, country, email, state, paymentMethodID string, billCycleDay int, serviceActivationTime time.Time) (*Account, error)
-	UpdateAccount(ctx context.Context, id string, userDetails *Account) (*Account, error)
+	UpdateAccount(ctx context.Context, zuoraAccountNumber string, userDetails *Account) (*Account, error)
 	DeleteAccount(ctx context.Context, zuoraID string) error
 
-	GetInvoices(ctx context.Context, weaveOrgID, page, pageSize string) ([]Invoice, error)
-	CreateInvoice(ctx context.Context, weaveOrgID string) (string, error)
+	GetInvoices(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]Invoice, error)
+	CreateInvoice(ctx context.Context, zuoraAccountNumber string) (string, error)
 	GetCurrentRates(ctx context.Context) (RateMap, error)
-	GetPaymentMethod(ctx context.Context, weaveUserID string) (*CreditCard, error)
+	GetPaymentMethod(ctx context.Context, zuoraAccountNumber string) (*CreditCard, error)
 	UpdatePaymentMethod(ctx context.Context, paymentMethodID string) error
 	UploadUsage(ctx context.Context, r io.Reader) (string, error)
-	GetUsage(ctx context.Context, weaveOrgID, page, pageSize string) ([]Usage, error)
+	GetUsage(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]Usage, error)
 	GetUsageImportStatus(ctx context.Context, importID string) (string, error)
 
 	ServeFile(ctx context.Context, w http.ResponseWriter, fileID string)

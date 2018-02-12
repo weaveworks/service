@@ -21,6 +21,8 @@ var (
 	ErrNotFound = fmt.Errorf("not found")
 	// ErrDuplicateSubscriptions means we found too many rate plans with the same Uom
 	ErrDuplicateSubscriptions = fmt.Errorf("duplicate subscriptions")
+	// ErrInvalidAccountNumber means the zuora account number is invalid, most likely blank
+	ErrInvalidAccountNumber = fmt.Errorf("invalid zuora account number")
 )
 
 const (

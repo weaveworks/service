@@ -9,7 +9,13 @@ import (
 
 // GetAuthToken is a HTTP handler to retrieve the auth token.
 func (a *API) GetAuthToken(w http.ResponseWriter, r *http.Request) {
-	account, err := a.Zuora.GetAuthenticationTokens(r.Context(), mux.Vars(r)["id"])
+	resp, err := a.getOrganization(r.Context(), mux.Vars(r)["id"])
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	org := resp.Organization
+	account, err := a.Zuora.GetAuthenticationTokens(r.Context(), org.ZuoraAccountNumber)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -19,7 +25,13 @@ func (a *API) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 
 // GetPaymentMethod is a HTTP handler to retrieve an account's payment method.
 func (a *API) GetPaymentMethod(w http.ResponseWriter, r *http.Request) {
-	method, err := a.Zuora.GetPaymentMethod(r.Context(), mux.Vars(r)["id"])
+	resp, err := a.getOrganization(r.Context(), mux.Vars(r)["id"])
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	org := resp.Organization
+	method, err := a.Zuora.GetPaymentMethod(r.Context(), org.ZuoraAccountNumber)
 	if err != nil {
 		renderError(w, r, err)
 		return

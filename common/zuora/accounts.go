@@ -78,10 +78,12 @@ func ToZuoraAccountNumber(weaveID string) string {
 }
 
 // GetAccount gets an account on Zuora.
-func (z *Zuora) GetAccount(ctx context.Context, weaveUserID string) (*Account, error) {
+func (z *Zuora) GetAccount(ctx context.Context, zuoraAccountNumber string) (*Account, error) {
 	logger := logging.With(ctx)
-	accountNumber := ToZuoraAccountNumber(weaveUserID)
-	zuoraResponse, err := z.getAccountSummary(ctx, accountNumber)
+	if zuoraAccountNumber == "" {
+		return nil, ErrInvalidAccountNumber
+	}
+	zuoraResponse, err := z.getAccountSummary(ctx, zuoraAccountNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +102,7 @@ func (z *Zuora) GetAccount(ctx context.Context, weaveUserID string) (*Account, e
 	}
 	paymentStatus := GetPaymentStatus(ctx, zuoraResponse.Payments)
 	subscription := &AccountSubscription{}
-	subscriptionResponse, err := z.getAccountSubscription(ctx, accountNumber)
+	subscriptionResponse, err := z.getAccountSubscription(ctx, zuoraAccountNumber)
 
 	if err == nil && zuoraResponse.Success {
 		subscription, err = extractNodeSecondsSubscription(ctx, subscriptionResponse.Subscriptions)
@@ -111,7 +113,7 @@ func (z *Zuora) GetAccount(ctx context.Context, weaveUserID string) (*Account, e
 	}
 	return &Account{
 		ZuoraID:            zuoraResponse.BasicInfo.ZuoraID,
-		Number:             accountNumber,
+		Number:             zuoraAccountNumber,
 		PaymentProviderID:  zuoraResponse.BasicInfo.ID,
 		SubscriptionStatus: subscriptionStatus,
 		PaymentStatus:      paymentStatus,
@@ -292,8 +294,11 @@ type updateAccountResponse struct {
 }
 
 // UpdateAccount changes the details on an existing account, and returns the newly updated account.
-func (z *Zuora) UpdateAccount(ctx context.Context, id string, userDetails *Account) (*Account, error) {
-	currentAccount, err := z.getAccountSummary(ctx, ToZuoraAccountNumber(id))
+func (z *Zuora) UpdateAccount(ctx context.Context, zuoraAccountNumber string, userDetails *Account) (*Account, error) {
+	if zuoraAccountNumber == "" {
+		return nil, ErrInvalidAccountNumber
+	}
+	currentAccount, err := z.getAccountSummary(ctx, zuoraAccountNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -302,7 +307,7 @@ func (z *Zuora) UpdateAccount(ctx context.Context, id string, userDetails *Accou
 	}
 
 	resp := &updateAccountResponse{}
-	err = z.Put(ctx, accountPath, z.URL(accountPath, ToZuoraAccountNumber(id)), &updateAccountRequest{
+	err = z.Put(ctx, accountPath, z.URL(accountPath, zuoraAccountNumber), &updateAccountRequest{
 		BillToContact: userDetails.BillToContact,
 	}, resp)
 	if err != nil {
@@ -334,7 +339,7 @@ func (z *Zuora) UpdateAccount(ctx context.Context, id string, userDetails *Accou
 
 	}
 
-	return z.GetAccount(ctx, id)
+	return z.GetAccount(ctx, zuoraAccountNumber)
 }
 
 type resumeAccountRequest struct {
@@ -455,8 +460,9 @@ type createAccountResponse struct {
 // CreateAccount creates an account.
 func (z *Zuora) CreateAccount(ctx context.Context, orgID, currency, firstName, lastName, country, email, state, paymentMethodID string, billCycleDay int, serviceActivationTime time.Time) (*Account, error) {
 	serviceActivationDate, acceptanceDate := computeActivationAndAcceptanceDate(serviceActivationTime)
-	return z.createAccount(ctx, orgID, &createAccountRequest{
-		AccountNumber: ToZuoraAccountNumber(orgID),
+	zuoraAccountNumber := ToZuoraAccountNumber(orgID)
+	return z.createAccount(ctx, zuoraAccountNumber, &createAccountRequest{
+		AccountNumber: zuoraAccountNumber,
 		Name:          orgID,
 		Currency:      currency,
 		BillToContact: &contact{
@@ -481,8 +487,9 @@ func (z *Zuora) CreateAccount(ctx context.Context, orgID, currency, firstName, l
 // CreateAccountWithCC creates an account with credit card details. It is, for now, only used in tests.
 func (z *Zuora) CreateAccountWithCC(ctx context.Context, orgID, currency, firstName, lastName, country, email, state string, billCycleDay int, cardType, cardNumber string, expirationMonth, expirationYear int, serviceActivationTime time.Time) (*Account, error) {
 	serviceActivationDate, acceptanceDate := computeActivationAndAcceptanceDate(serviceActivationTime)
-	return z.createAccount(ctx, orgID, &createAccountRequest{
-		AccountNumber: ToZuoraAccountNumber(orgID),
+	zuoraAccountNumber := ToZuoraAccountNumber(orgID)
+	return z.createAccount(ctx, zuoraAccountNumber, &createAccountRequest{
+		AccountNumber: zuoraAccountNumber,
 		Name:          orgID,
 		Currency:      currency,
 		BillToContact: &contact{
@@ -524,7 +531,7 @@ func computeActivationAndAcceptanceDate(serviceActivationTime time.Time) (time.T
 }
 
 // CreateAccount creates a Zuora account.
-func (z *Zuora) createAccount(ctx context.Context, orgID string, request *createAccountRequest) (*Account, error) {
+func (z *Zuora) createAccount(ctx context.Context, zuoraAccountNumber string, request *createAccountRequest) (*Account, error) {
 	resp := &createAccountResponse{}
 	err := z.Post(
 		ctx,
@@ -539,7 +546,7 @@ func (z *Zuora) createAccount(ctx context.Context, orgID string, request *create
 	if !resp.Success {
 		return nil, resp
 	}
-	return z.GetAccount(ctx, orgID)
+	return z.GetAccount(ctx, zuoraAccountNumber)
 }
 
 // DeleteAccount deletes a Zuora account.

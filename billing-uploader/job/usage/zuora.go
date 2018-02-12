@@ -39,7 +39,7 @@ func (z *Zuora) Reset() {
 
 // Add collects usage by grouping aggregates in billing periods.
 func (z *Zuora) Add(ctx context.Context, org users.Organization, from, through time.Time, aggs []db.Aggregate) error {
-	account, err := z.cl.GetAccount(ctx, org.ExternalID)
+	account, err := z.cl.GetAccount(ctx, org.ZuoraAccountNumber)
 	if err != nil {
 		return errors.Wrapf(err, "cannot get Zuora account")
 	}

@@ -87,16 +87,17 @@ func renderPage(w http.ResponseWriter, status int, instanceID, result, csrfToken
 func assertInvoiceVerified(ctx context.Context, a *API, weaveOrgID string, numInvoices int) error {
 	logger := logging.With(ctx)
 
-	invoices, usages, err := getInvoicesAndCorrespondingUsage(ctx, a.Zuora, weaveOrgID, string(numInvoices))
-	if err != nil {
-		return err
-	}
-
 	resp, err := a.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
 		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: weaveOrgID},
 	})
 	if err != nil {
 		return fmt.Errorf("Failed to fetch organization: %v", err)
+	}
+
+	zuoraAccountNumber := resp.Organization.ZuoraAccountNumber
+	invoices, usages, err := getInvoicesAndCorrespondingUsage(ctx, a.Zuora, zuoraAccountNumber, string(numInvoices))
+	if err != nil {
+		return err
 	}
 
 	rates, err := a.Zuora.GetCurrentRates(ctx)
@@ -170,11 +171,11 @@ func assertInvoiceVerified(ctx context.Context, a *API, weaveOrgID string, numIn
 	return nil
 }
 
-func getInvoicesAndCorrespondingUsage(ctx context.Context, z zuora.Client, weaveOrgID, pageSize string) ([]zuora.Invoice, []zuora.Usage, error) {
+func getInvoicesAndCorrespondingUsage(ctx context.Context, z zuora.Client, zuoraAccountNumber, pageSize string) ([]zuora.Invoice, []zuora.Usage, error) {
 	var invoices []zuora.Invoice
 	var usages []zuora.Usage
 
-	invoices, err := z.GetInvoices(ctx, weaveOrgID, "1", pageSize)
+	invoices, err := z.GetInvoices(ctx, zuoraAccountNumber, "1", pageSize)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Failed to fetch invoices: %v", err)
 	}
@@ -189,7 +190,7 @@ func getInvoicesAndCorrespondingUsage(ctx context.Context, z zuora.Client, weave
 	}
 
 	for usagePage := 1; ; usagePage++ {
-		u, err := z.GetUsage(ctx, weaveOrgID, strconv.Itoa(usagePage), "40") // 40 is the maximum (zuora)
+		u, err := z.GetUsage(ctx, zuoraAccountNumber, strconv.Itoa(usagePage), "40") // 40 is the maximum (zuora)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Failed to fetch usage: %v", err)
 		}

@@ -87,8 +87,11 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader) (string, error) {
 }
 
 // GetUsage retrieves paginated usages of given organization.
-func (z *Zuora) GetUsage(ctx context.Context, weaveOrgID, page, pageSize string) ([]Usage, error) {
-	url := z.URL(getUsagePath, ToZuoraAccountNumber(weaveOrgID))
+func (z *Zuora) GetUsage(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]Usage, error) {
+	if zuoraAccountNumber == "" {
+		return nil, ErrInvalidAccountNumber
+	}
+	url := z.URL(getUsagePath, zuoraAccountNumber)
 	url = url + "?" + pagingParams(page, pageSize).Encode()
 	resp := &getUsageResponse{}
 	if err := z.Get(ctx, getUsagePath, url, resp); err != nil {

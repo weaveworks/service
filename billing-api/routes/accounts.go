@@ -37,12 +37,14 @@ type createAccountRequest struct {
 }
 
 func (a *API) createAccount(w http.ResponseWriter, r *http.Request) error {
-	logger := logging.With(r.Context())
+	ctx := r.Context()
+	logger := logging.With(ctx)
 	req, err := a.deserializeCreateAccountRequest(logger, r)
 	if err != nil {
 		return err
 	}
-	resp, err := a.getOrganization(r.Context(), logger, req)
+	externalID := req.WeaveID
+	resp, err := a.getOrganization(ctx, externalID)
 	if err != nil {
 		return err
 	}
@@ -50,8 +52,7 @@ func (a *API) createAccount(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	externalID := req.WeaveID
-	a.markOrganizationDutiful(r.Context(), logger, externalID, account.Number)
+	a.markOrganizationDutiful(ctx, logger, externalID, account.Number)
 
 	// As the customer may have delayed setting up their account, we need to
 	// upload any historic usage data since their trial period expired
@@ -85,12 +86,12 @@ func (a *API) deserializeCreateAccountRequest(logger *log.Entry, r *http.Request
 	return req, nil
 }
 
-func (a *API) getOrganization(ctx context.Context, logger *log.Entry, req *createAccountRequest) (*users.GetOrganizationResponse, error) {
+func (a *API) getOrganization(ctx context.Context, externalID string) (*users.GetOrganizationResponse, error) {
 	resp, err := a.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
-		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: req.WeaveID},
+		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: externalID},
 	})
 	if err != nil {
-		logger.Errorf("Failed to get organization for %v: %v", req.WeaveID, err)
+		logging.With(ctx).Errorf("Failed to get organization for %v: %v", externalID, err)
 		return nil, err
 	}
 	return resp, nil
@@ -222,15 +223,15 @@ type organizationWithTrial struct {
 // GetAccount gets the account from Zuora.
 func (a *API) GetAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	account, err := a.Zuora.GetAccount(ctx, mux.Vars(r)["id"])
+	resp, err := a.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
+		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: mux.Vars(r)["id"]},
+	})
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	resp, err := a.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
-		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: mux.Vars(r)["id"]},
-	})
+	account, err := a.Zuora.GetAccount(ctx, resp.Organization.ZuoraAccountNumber)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -255,7 +256,13 @@ func (a *API) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, err)
 		return
 	}
-	account, err := a.Zuora.UpdateAccount(r.Context(), mux.Vars(r)["id"], req)
+	resp, err := a.getOrganization(r.Context(), mux.Vars(r)["id"])
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	org := resp.Organization
+	account, err := a.Zuora.UpdateAccount(r.Context(), org.ZuoraAccountNumber, req)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -296,7 +303,8 @@ type accountStatusResponse struct {
 	ActiveHosts           float64          `json:"active_hosts"`
 	Status                status           `json:"status"`
 	Interim               *interim         `json:"interim,omitempty"`
-	EstimatedMonthlyUsage string           `json:"estimated_monthly_usage"` // in dollar$
+	EstimatedMonthlyUsage string           `json:"estimated_monthly_usage"`
+	Currency              string           `json:"currency"`
 }
 
 const (
@@ -399,13 +407,16 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 
 	var billCycleDay int
 	var price float64
-	zuoraAcct, err := a.Zuora.GetAccount(ctx, orgID)
-	if err == zuora.ErrNotFound {
+	var currency string
+	zuoraAcct, err := a.Zuora.GetAccount(ctx, org.ZuoraAccountNumber)
+	if err == zuora.ErrNotFound || err == zuora.ErrInvalidAccountNumber {
 		billCycleDay, price, err = a.getDefaultUsageRateInfo(ctx)
+		currency = zuora.DefaultCurrency
 		zuoraAcct = nil
 	} else if err == nil {
 		billCycleDay = zuoraAcct.BillCycleDay
 		price = zuoraAcct.Subscription.Price
+		currency = zuoraAcct.Subscription.Currency
 	}
 
 	if err != nil {
@@ -466,6 +477,7 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		Status:             getBillingStatus(ctx, trial, zuoraAcct),
 		UsagePerDay:        daily,
 		Interim:            interimPeriod,
+		Currency:           currency,
 	}
 	if estimated > 0 {
 		status.EstimatedMonthlyUsage = fmt.Sprintf("%0.f", math.Ceil(estimated))

@@ -89,8 +89,11 @@ type createInvoiceResponse struct {
 }
 
 // GetInvoices gets the invoices for a Weave organization.
-func (z *Zuora) GetInvoices(ctx context.Context, weaveOrgID, page, pageSize string) ([]Invoice, error) {
-	url := z.URL(getInvoicesPath, ToZuoraAccountNumber(weaveOrgID))
+func (z *Zuora) GetInvoices(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]Invoice, error) {
+	if zuoraAccountNumber == "" {
+		return nil, ErrInvalidAccountNumber
+	}
+	url := z.URL(getInvoicesPath, zuoraAccountNumber)
 	url = url + "?" + pagingParams(page, pageSize).Encode()
 	resp := &invoicesResponse{}
 	if err := z.Get(ctx, getInvoicesPath, url, resp); err != nil {
@@ -108,14 +111,16 @@ func (z *Zuora) GetInvoices(ctx context.Context, weaveOrgID, page, pageSize stri
 
 // CreateInvoice generates and collects an invoice for unbilled usage. The invoice is created,
 // its status set to posted, and the customer is charged.
-func (z *Zuora) CreateInvoice(ctx context.Context, weaveOrgID string) (string, error) {
-	accountKey := ToZuoraAccountNumber(weaveOrgID)
+func (z *Zuora) CreateInvoice(ctx context.Context, zuoraAccountNumber string) (string, error) {
+	if zuoraAccountNumber == "" {
+		return "", ErrInvalidAccountNumber
+	}
 	resp := &createInvoiceResponse{}
 	err := z.Post(
 		ctx,
 		createInvoicePath,
 		z.URL(createInvoicePath),
-		&createInvoiceRequest{AccountKey: accountKey},
+		&createInvoiceRequest{AccountKey: zuoraAccountNumber},
 		resp,
 	)
 	if err != nil {
