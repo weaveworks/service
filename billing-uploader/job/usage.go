@@ -179,7 +179,7 @@ func (j *UsageUpload) Do(now time.Time) error {
 				return errors.Wrap(err, "error querying aggregates database")
 			}
 
-			orgLogger.Infof("Found %d aggregates for %v", len(aggs), org.ExternalID)
+			orgLogger.Infof("Found %d aggregates for %v, from: %v, through: %v", len(aggs), org.ExternalID, orgFrom, through)
 			if len(aggs) == 0 {
 				continue
 			}
