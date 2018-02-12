@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/FrenchBen/goketo"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,22 +22,25 @@ func init() {
 	prometheus.MustRegister(marketoLeadsSkipped)
 }
 
+// GoketoClient is an interface augmenting goketo.Requester with goketo.Client#RefreshToken,
+// for better dependency injection of mocks/real implementations.
+type GoketoClient interface {
+	Post(string, []byte) ([]byte, error)
+	RefreshToken() error
+}
+
 // MarketoClient is a client for marketo.
 type MarketoClient struct {
-	client      *goketo.Client
+	client      GoketoClient
 	programName string
 }
 
 // NewMarketoClient makes a new marketo client.
-func NewMarketoClient(clientID, clientSecret, clientEndpoint, programName string) (*MarketoClient, error) {
-	client, err := goketo.NewAuthClient(clientID, clientSecret, clientEndpoint)
-	if err != nil {
-		return nil, err
-	}
+func NewMarketoClient(client GoketoClient, programName string) *MarketoClient {
 	return &MarketoClient{
 		client:      client,
 		programName: programName,
-	}, nil
+	}
 }
 
 func (*MarketoClient) name() string {
