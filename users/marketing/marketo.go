@@ -79,6 +79,13 @@ func (m *marketoResponse) Error() string {
 	return string(err)
 }
 
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 func nilTime(t time.Time) string {
 	if t.IsZero() {
 		return ""
@@ -139,11 +146,4 @@ func (c *MarketoClient) BatchUpsertProspect(prospects []Prospect) error {
 		return &marketoResponse
 	}
 	return nil
-}
-
-func boolToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
 }
