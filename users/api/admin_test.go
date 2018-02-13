@@ -154,7 +154,7 @@ func TestAPI_DeleteUser(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := requestAs(t, usr, "POST", fmt.Sprintf("/admin/users/users/%s/remove", usr.ID), nil)
 		app.ServeHTTP(w, r)
-		assert.Equal(t, http.StatusNoContent, w.Code)
+		assert.Equal(t, http.StatusFound, w.Code)
 
 		_, err = database.FindOrganizationByID(context.TODO(), single.ExternalID)
 		assert.Equal(t, users.ErrNotFound, err)
@@ -167,9 +167,16 @@ func TestAPI_DeleteUser(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := requestAs(t, usr, "POST", fmt.Sprintf("/admin/users/users/%s/remove", other.ID), nil)
 		app.ServeHTTP(w, r)
-		assert.Equal(t, http.StatusNoContent, w.Code)
+		assert.Equal(t, http.StatusFound, w.Code)
 
 		_, err = database.FindOrganizationByID(context.TODO(), multi.ExternalID)
 		assert.Equal(t, users.ErrNotFound, err)
+	}
+
+	{ // delete already deleted user does not error
+		w := httptest.NewRecorder()
+		r := requestAs(t, usr, "POST", "/admin/users/users/nope/remove", nil)
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusFound, w.Code)
 	}
 }

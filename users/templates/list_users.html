@@ -12,6 +12,11 @@
     <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
   </head>
   <body>
+  {{if .Message}}
+  <div class="mdl-snackbar mdl-snackbar--active">
+      <div class="mdl-snackbar__text">{{.Message}}</div>
+  </div>
+  {{end}}
   <form action="users" method="GET">
     <input type="hidden" name="page" value="1" />
     <header class="mdl-layout__header mdl-color--grey-100 mdl-color-text--grey-600 is-casting-shadow">
@@ -80,7 +85,7 @@
               <input class="mdl-button mdl-js-button mdl-button--raised"
                      type="submit" value="Clear Admin" />
             {{else}}
-              <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent"
+              <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
                      type="submit" value="Make Admin" />
             {{end}}
           </form>
@@ -88,7 +93,7 @@
         <td>
           <form action="users/{{.ID}}/become" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-            <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+            <input class="mdl-button mdl-js-button mdl-button--raised"
                    type="submit" value="Become User" />
           </form>
         </td>
@@ -96,9 +101,17 @@
         <td>
           <form action="organizations/{{$.OrgExternalID}}/users/{{.ID}}/remove" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-            <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+            <input class="mdl-button mdl-js-button mdl-button--accent"
                    type="submit" value="Remove from Org" />
           </form>
+        <td>
+        {{else}}
+            <td>
+                <form action="users/{{.ID}}/remove" method="POST">
+                    <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+                    <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent"
+                           type="submit" value="Delete" onclick="return confirm('Are you sure to delete this user?')"/>
+                </form>
         <td>
         {{end}}
         <td>
