@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//:gomock.bzl", "gomock")
+
+gomock(
+    name = "mock_db",
+    out = "mock_db.go",
+    interfaces = ["DB"],
+    library = "//billing-api/db:go_default_library",
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = [":mock_db"],
+    importpath = "github.com/weaveworks/service/billing-api/db/mock_db",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//billing-api/db:go_default_library",
+	"//vendor/github.com/golang/mock/gomock:go_default_library",
+    ],
+)

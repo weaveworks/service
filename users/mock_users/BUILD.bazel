@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//:gomock.bzl", "gomock")
+
+gomock(
+    name = "mock_usersclient",
+    out = "mock_usersclient.go",
+    interfaces = ["UsersClient"],
+    library = "//users:go_default_library",
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = [":mock_usersclient"],
+    importpath = "github.com/weaveworks/service/users/mock_users",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//users:go_default_library",
+        "//vendor/github.com/golang/mock/gomock:go_default_library",
+        "//vendor/google.golang.org/grpc:go_default_library",
+    ],
+)

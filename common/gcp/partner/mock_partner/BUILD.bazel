@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//:gomock.bzl", "gomock")
+
+gomock(
+    name = "mock_client",
+    out = "mock_client.go",
+    interfaces = ["API"],
+    library = "//common/gcp/partner:go_default_library",
+)
+
+gomock(
+    name = "mock_access",
+    out = "mock_acccess.go",
+    interfaces = ["Accessor"],
+    library = "//common/gcp/partner:go_default_library",
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = [":mock_client", ":mock_access"],
+    importpath = "github.com/weaveworks/service/common/gcp/partner/mock_partner",
+    visibility = ["//visibility:public"],
+    deps = [ 
+        "//common/gcp/partner:go_default_library",
+        "//users/login:go_default_library",
+        "//vendor/golang.org/x/oauth2:go_default_library",
+        "//vendor/github.com/golang/mock/gomock:go_default_library",
+    ],  
+)
