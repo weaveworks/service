@@ -108,11 +108,7 @@ func (c *MarketoClient) BatchUpsertProspect(prospects []Prospect) error {
 		LookupField: "email",
 		Input:       []marketoProspect{},
 	}
-	isGCP := false
 	for _, p := range prospects {
-		if p.SignupSource == SignupSourceGCP {
-			isGCP = true
-		}
 		leads.Input = append(leads.Input, marketoProspect{
 			Email:          p.Email,
 			SignupSource:   p.SignupSource,
@@ -127,17 +123,12 @@ func (c *MarketoClient) BatchUpsertProspect(prospects []Prospect) error {
 	if err != nil {
 		return err
 	}
-	level := log.GetLevel()
-	if isGCP {
-		log.SetLevel(log.DebugLevel)
-	}
 	log.Debugf("Marketo request: %s", string(req))
 	resp, err := c.client.Post("leads/push.json", req)
 	if err != nil {
 		return err
 	}
 	log.Debugf("Marketo response: %s", string(resp))
-	log.SetLevel(level)
 
 	var marketoResponse marketoResponse
 	if err := json.Unmarshal(resp, &marketoResponse); err != nil {
