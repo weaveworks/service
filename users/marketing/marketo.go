@@ -70,7 +70,7 @@ type marketoProspect struct {
 	ActivatedOnGCP int    `json:"Activated_on_GCP__c,omitempty"`
 	CreatedAt      string `json:"Weave_Cloud_Created_On__c,omitempty"`
 	LastAccess     string `json:"Weave_Cloud_Last_Active__c,omitempty"`
-	LeadSource     string `json:"Lead_Source__c,omitempty"`
+	LeadSource     string `json:"leadSource,omitempty"`
 	CampaignID     string `json:"salesforceCampaignID,omitempty"`
 }
 
