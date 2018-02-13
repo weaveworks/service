@@ -38,7 +38,7 @@ func TestBatchUpsertOneProspectComingFromGCPShouldSet_Activated_on_GCP__c(t *tes
 			LeadSource:        "baz",
 		},
 	})
-	expectedReq := "{\"programName\":\"test\",\"lookupField\":\"email\",\"input\":[{\"email\":\"foo@bar.com\",\"Weave_Cloud_Signup_Source__c\":\"gcp\",\"Activated_on_GCP__c\":1,\"Weave_Cloud_Created_On__c\":\"2018-02-12\",\"Weave_Cloud_Last_Active__c\":\"2018-02-12\",\"Lead_Source__c\":\"baz\",\"salesforceCampaignID\":\"123\"}]}"
+	expectedReq := "{\"programName\":\"test\",\"lookupField\":\"email\",\"input\":[{\"email\":\"foo@bar.com\",\"Weave_Cloud_Signup_Source__c\":\"gcp\",\"Activated_on_GCP__c\":1,\"Weave_Cloud_Created_On__c\":\"2018-02-12\",\"Weave_Cloud_Last_Active__c\":\"2018-02-12\",\"leadSource\":\"baz\",\"salesforceCampaignID\":\"123\"}]}"
 	assert.Equal(t, expectedReq, string(mock.LatestReq))
 }
 
@@ -55,7 +55,7 @@ func TestBatchUpsertOneProspectNotComingFromGCPShouldNotUnset_Activated_on_GCP__
 			LeadSource:        "baz",
 		},
 	})
-	expectedReq := "{\"programName\":\"test\",\"lookupField\":\"email\",\"input\":[{\"email\":\"foo@bar.com\",\"Weave_Cloud_Signup_Source__c\":\"earth\",\"Weave_Cloud_Created_On__c\":\"2018-02-12\",\"Weave_Cloud_Last_Active__c\":\"2018-02-12\",\"Lead_Source__c\":\"baz\",\"salesforceCampaignID\":\"123\"}]}"
+	expectedReq := "{\"programName\":\"test\",\"lookupField\":\"email\",\"input\":[{\"email\":\"foo@bar.com\",\"Weave_Cloud_Signup_Source__c\":\"earth\",\"Weave_Cloud_Created_On__c\":\"2018-02-12\",\"Weave_Cloud_Last_Active__c\":\"2018-02-12\",\"leadSource\":\"baz\",\"salesforceCampaignID\":\"123\"}]}"
 	assert.Equal(t, expectedReq, string(mock.LatestReq))
 }
 
@@ -80,6 +80,6 @@ func TestBatchUpsertManyProspects(t *testing.T) {
 			LeadSource:        "pretzel",
 		},
 	})
-	expectedReq := "{\"programName\":\"test\",\"lookupField\":\"email\",\"input\":[{\"email\":\"foo@bar.com\",\"Weave_Cloud_Signup_Source__c\":\"gcp\",\"Activated_on_GCP__c\":1,\"Weave_Cloud_Created_On__c\":\"2018-02-12\",\"Weave_Cloud_Last_Active__c\":\"2018-02-12\",\"Lead_Source__c\":\"baz\",\"salesforceCampaignID\":\"123\"},{\"email\":\"donald@trump.com\",\"Weave_Cloud_Signup_Source__c\":\"whitehouse\",\"Weave_Cloud_Created_On__c\":\"2018-02-12\",\"Weave_Cloud_Last_Active__c\":\"2018-02-12\",\"Lead_Source__c\":\"pretzel\",\"salesforceCampaignID\":\"US presidential 456\"}]}"
+	expectedReq := "{\"programName\":\"test\",\"lookupField\":\"email\",\"input\":[{\"email\":\"foo@bar.com\",\"Weave_Cloud_Signup_Source__c\":\"gcp\",\"Activated_on_GCP__c\":1,\"Weave_Cloud_Created_On__c\":\"2018-02-12\",\"Weave_Cloud_Last_Active__c\":\"2018-02-12\",\"leadSource\":\"baz\",\"salesforceCampaignID\":\"123\"},{\"email\":\"donald@trump.com\",\"Weave_Cloud_Signup_Source__c\":\"whitehouse\",\"Weave_Cloud_Created_On__c\":\"2018-02-12\",\"Weave_Cloud_Last_Active__c\":\"2018-02-12\",\"leadSource\":\"pretzel\",\"salesforceCampaignID\":\"US presidential 456\"}]}"
 	assert.Equal(t, expectedReq, string(mock.LatestReq))
 }
