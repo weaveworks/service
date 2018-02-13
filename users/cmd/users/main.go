@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FrenchBen/goketo"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -112,10 +113,11 @@ func main() {
 
 	var marketingQueues marketing.Queues
 	if *marketoClientID != "" {
-		marketoClient, err := marketing.NewMarketoClient(*marketoClientID, *marketoSecret, *marketoEndpoint, *marketoProgram)
+		goketoClient, err := goketo.NewAuthClient(*marketoClientID, *marketoSecret, *marketoEndpoint)
 		if err != nil {
 			log.Warningf("Failed to initialise Marketo client: %v", err)
 		} else {
+			marketoClient := marketing.NewMarketoClient(goketoClient, *marketoProgram)
 			queue := marketing.NewQueue(marketoClient)
 			defer queue.Stop()
 			marketingQueues = append(marketingQueues, queue)

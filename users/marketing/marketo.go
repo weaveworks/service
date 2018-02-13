@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/FrenchBen/goketo"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,22 +22,25 @@ func init() {
 	prometheus.MustRegister(marketoLeadsSkipped)
 }
 
+// GoketoClient is an interface augmenting goketo.Requester with goketo.Client#RefreshToken,
+// for better dependency injection of mocks/real implementations.
+type GoketoClient interface {
+	Post(string, []byte) ([]byte, error)
+	RefreshToken() error
+}
+
 // MarketoClient is a client for marketo.
 type MarketoClient struct {
-	client      *goketo.Client
+	client      GoketoClient
 	programName string
 }
 
 // NewMarketoClient makes a new marketo client.
-func NewMarketoClient(clientID, clientSecret, clientEndpoint, programName string) (*MarketoClient, error) {
-	client, err := goketo.NewAuthClient(clientID, clientSecret, clientEndpoint)
-	if err != nil {
-		return nil, err
-	}
+func NewMarketoClient(client GoketoClient, programName string) *MarketoClient {
 	return &MarketoClient{
 		client:      client,
 		programName: programName,
-	}, nil
+	}
 }
 
 func (*MarketoClient) name() string {
@@ -77,6 +79,13 @@ func (m *marketoResponse) Error() string {
 	return string(err)
 }
 
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 func nilTime(t time.Time) string {
 	if t.IsZero() {
 		return ""
@@ -84,7 +93,8 @@ func nilTime(t time.Time) string {
 	return t.Format("2006-01-02")
 }
 
-func (c *MarketoClient) batchUpsertProspect(prospects []prospect) error {
+// BatchUpsertProspect batches the provided prospects and insert/update them in Marketo.
+func (c *MarketoClient) BatchUpsertProspect(prospects []Prospect) error {
 	if err := c.client.RefreshToken(); err != nil {
 		return err
 	}
@@ -98,7 +108,11 @@ func (c *MarketoClient) batchUpsertProspect(prospects []prospect) error {
 		LookupField: "email",
 		Input:       []marketoProspect{},
 	}
+	isGCP := false
 	for _, p := range prospects {
+		if p.SignupSource == SignupSourceGCP {
+			isGCP = true
+		}
 		leads.Input = append(leads.Input, marketoProspect{
 			Email:          p.Email,
 			SignupSource:   p.SignupSource,
@@ -113,12 +127,17 @@ func (c *MarketoClient) batchUpsertProspect(prospects []prospect) error {
 	if err != nil {
 		return err
 	}
+	level := log.GetLevel()
+	if isGCP {
+		log.SetLevel(log.DebugLevel)
+	}
 	log.Debugf("Marketo request: %s", string(req))
 	resp, err := c.client.Post("leads/push.json", req)
 	if err != nil {
 		return err
 	}
 	log.Debugf("Marketo response: %s", string(resp))
+	log.SetLevel(level)
 
 	var marketoResponse marketoResponse
 	if err := json.Unmarshal(resp, &marketoResponse); err != nil {
@@ -136,11 +155,4 @@ func (c *MarketoClient) batchUpsertProspect(prospects []prospect) error {
 		return &marketoResponse
 	}
 	return nil
-}
-
-func boolToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
 }

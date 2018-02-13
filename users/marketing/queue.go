@@ -27,50 +27,6 @@ func init() {
 	prometheus.MustRegister(prospectsSent)
 }
 
-type prospect struct {
-	Email             string    `json:"email"`
-	SignupSource      string    `json:"signupSource"`
-	ServiceCreatedAt  time.Time `json:"createdAt"`
-	ServiceLastAccess time.Time `json:"lastAccess"`
-	CampaignID        string    `json:"campaignId"`
-	LeadSource        string    `json:"leadSource"`
-}
-
-func (p1 prospect) merge(p2 prospect) prospect {
-	latest := func(t1, t2 time.Time) time.Time {
-		if t1.After(t2) {
-			return t1
-		}
-		return t2
-	}
-
-	email := p1.Email
-	if email == "" {
-		email = p2.Email
-	}
-	signupSource := p1.SignupSource
-	if signupSource == "" {
-		signupSource = p2.SignupSource
-	}
-	leadSource := p1.LeadSource
-	if leadSource == "" {
-		leadSource = p2.LeadSource
-	}
-	campaignID := p1.CampaignID
-	if campaignID == "" {
-		campaignID = p2.CampaignID
-	}
-
-	return prospect{
-		Email:             email,
-		SignupSource:      signupSource,
-		ServiceCreatedAt:  latest(p1.ServiceCreatedAt, p2.ServiceCreatedAt),
-		ServiceLastAccess: latest(p1.ServiceLastAccess, p2.ServiceLastAccess),
-		CampaignID:        campaignID,
-		LeadSource:        leadSource,
-	}
-}
-
 // Queue for sending updates to marketing.
 type Queue struct {
 	sync.Mutex
@@ -84,12 +40,12 @@ type Queue struct {
 
 	// We also don't send prospect updates
 	// synchronously - we queue them.
-	prospects []prospect
+	prospects []Prospect
 }
 
 type client interface {
 	name() string
-	batchUpsertProspect(prospects []prospect) error
+	BatchUpsertProspect(prospects []Prospect) error
 }
 
 // NewQueue makes a new marketing queue.
@@ -143,18 +99,18 @@ func (c *Queue) waitForStuffToDo() {
 func (c *Queue) push() {
 	accesses, creations := c.swap()
 
-	prospectsByEmail := map[string]prospect{}
+	prospectsByEmail := map[string]Prospect{}
 	for _, prospect := range creations {
 		prospectsByEmail[prospect.Email] = prospect
 	}
 	for email, timestamp := range accesses {
-		prospectsByEmail[email] = prospectsByEmail[email].merge(prospect{
+		prospectsByEmail[email] = prospectsByEmail[email].Merge(Prospect{
 			Email:             email,
 			ServiceLastAccess: timestamp,
 		})
 	}
 
-	prospects := []prospect{}
+	prospects := []Prospect{}
 	for _, prospect := range prospectsByEmail {
 		prospects = append(prospects, prospect)
 	}
@@ -166,7 +122,7 @@ func (c *Queue) push() {
 		if end > len(prospects) {
 			end = len(prospects)
 		}
-		err := c.client.batchUpsertProspect(prospects[i:end])
+		err := c.client.BatchUpsertProspect(prospects[i:end])
 		if err != nil {
 			prospectsSent.WithLabelValues(name, "failed").Add(float64(end - i))
 			log.Errorf("Error pushing prospects: %v", err)
@@ -177,11 +133,11 @@ func (c *Queue) push() {
 	}
 }
 
-func (c *Queue) swap() (map[string]time.Time, []prospect) {
+func (c *Queue) swap() (map[string]time.Time, []Prospect) {
 	c.Lock()
 	defer func() {
 		c.hits = map[string]time.Time{}
-		c.prospects = []prospect{}
+		c.prospects = []Prospect{}
 		c.Unlock()
 	}()
 	return c.hits, c.prospects
@@ -209,7 +165,7 @@ func (c *Queue) UserCreated(email string, createdAt time.Time, params map[string
 	}
 	c.Lock()
 	defer c.Unlock()
-	c.prospects = append(c.prospects, prospect{
+	c.prospects = append(c.prospects, Prospect{
 		Email:            email,
 		SignupSource:     signupSource(params),
 		ServiceCreatedAt: createdAt,
