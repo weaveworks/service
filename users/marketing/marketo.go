@@ -67,7 +67,7 @@ type marketoResponse struct {
 type marketoProspect struct {
 	Email          string `json:"email"`
 	SignupSource   string `json:"Weave_Cloud_Signup_Source__c,omitempty"`
-	ActivatedOnGCP int    `json:"Activated_on_GCP__c"`
+	ActivatedOnGCP int    `json:"Activated_on_GCP__c,omitempty"`
 	CreatedAt      string `json:"Weave_Cloud_Created_On__c,omitempty"`
 	LastAccess     string `json:"Weave_Cloud_Last_Active__c,omitempty"`
 	LeadSource     string `json:"Lead_Source__c,omitempty"`
