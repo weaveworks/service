@@ -224,6 +224,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			PrefixMethods{"/flux", []string{"POST", "PATCH"}, c.fluxHost},
 			PrefixMethods{"/prom/alertmanager/alerts", []string{"POST"}, c.promAlertmanagerHost},
 			PrefixMethods{"/prom/alertmanager/v1/alerts", []string{"POST"}, c.promAlertmanagerHost},
+			PrefixMethods{"/notification/external/events", []string{"POST"}, c.notificationEventHost},
 		},
 		middleware.Merge(
 			users_client.AuthProbeMiddleware{
