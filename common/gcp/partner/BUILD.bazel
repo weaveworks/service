@@ -29,4 +29,5 @@ go_test(
         "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/gopkg.in/h2non/gock.v1:go_default_library",
     ],
+    data = ["//:testdata"],
 )

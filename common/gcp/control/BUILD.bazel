@@ -27,4 +27,5 @@ go_test(
         "//vendor/google.golang.org/api/servicecontrol/v1:go_default_library",
         "//vendor/gopkg.in/h2non/gock.v1:go_default_library",
     ],
+    data = ["//:testdata"],
 )

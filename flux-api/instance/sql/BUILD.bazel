@@ -24,4 +24,5 @@ go_test(
         "//flux-api/instance:go_default_library",
         "//flux-api/service:go_default_library",
     ],
+    data = ["//flux-api/db:migrations"],
 )

@@ -1,5 +1,11 @@
 load("@bazel_gazelle//:def.bzl", "gazelle")
 
+filegroup(
+    name = "testdata",
+    srcs = glob(["testdata/*"]),
+    visibility = ["//visibility:public"],
+)
+
 gazelle(
     name = "gazelle",
     prefix = "github.com/weaveworks/service",

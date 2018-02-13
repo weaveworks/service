@@ -15,4 +15,11 @@ go_test(
         ":go_default_library",
         "//vendor/github.com/stretchr/testify/assert:go_default_library",
     ],
+    data = [":template_files"],
+)
+
+filegroup(
+    name = "template_files",
+    srcs = glob(["*.html", "*.text"]),
+    visibility = ["//visibility:public"],
 )

@@ -86,4 +86,5 @@ go_test(
         "//vendor/github.com/weaveworks/common/user:go_default_library",
         "//vendor/golang.org/x/crypto/bcrypt:go_default_library",
     ],
+    data = ["//users/templates:template_files"],
 )

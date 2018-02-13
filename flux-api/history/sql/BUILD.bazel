@@ -32,4 +32,5 @@ go_test(
         "//vendor/github.com/weaveworks/flux:go_default_library",
         "//vendor/github.com/weaveworks/flux/event:go_default_library",
     ],
+    data = ["//flux-api/db:migrations"],
 )

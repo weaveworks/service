@@ -27,4 +27,5 @@ go_test(
         "//vendor/github.com/jordan-wright/email:go_default_library",
         "//vendor/github.com/stretchr/testify/assert:go_default_library",
     ],
+    data = ["//users/templates:template_files"],
 )
