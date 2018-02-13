@@ -1,6 +1,6 @@
 .PHONY: all test \
 	notebooks-integration-test users-integration-test billing-integration-test pubsub-integration-test \
-	notification-integration-test flux-nats-tests clean images ui-upload
+	notification-integration-test flux-nats-tests clean images ui-upload bazel-build bazel-test
 .DEFAULT_GOAL := all
 
 # Boiler plate for bulding Docker containers.
@@ -308,3 +308,9 @@ clean:
 # For .SECONDEXPANSION docs, see https://www.gnu.org/software/make/manual/html_node/Special-Targets.html
 .SECONDEXPANSION:
 $(BILLING_EXES): $$(shell find $$(@D) -name '*.go') $(COMMON) $(shell find $(BILLING_DB) -name '*.go') users/users.pb.go
+
+bazel-build:
+	bazel build --features=pure -- //... -//vendor/...
+
+bazel-test:
+	bazel test --features=pure -- //... -//vendor/...
