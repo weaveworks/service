@@ -309,7 +309,7 @@ func waitUntilUsageCompleted(ctx context.Context, z *zuora.Zuora, timeout time.D
 			return nil
 		}
 		if time.Now().UTC().Sub(startTime) >= timeout {
-			return fmt.Errorf("waitUntilUsageCompleted timed out, timeout: %v, importID %v", timeout, importID)
+			return fmt.Errorf("waitUntilUsageCompleted timed out, status: %v, timeout: %v, importID %v", importStatus, timeout, importID)
 		}
 		time.Sleep(pollInterval)
 	}
