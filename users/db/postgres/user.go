@@ -30,6 +30,7 @@ func (d DB) CreateUser(ctx context.Context, email string) (*users.User, error) {
 // DeleteUser marks a user as deleted. It also removes the user from memberships and triggers a deletion of organizations
 // where the user was the lone member.
 func (d DB) DeleteUser(ctx context.Context, userID string) error {
+	deleted := d.Now()
 	return d.Transaction(func(tx DB) error {
 		// All organizations with this user as sole member
 		rows, err := d.QueryContext(ctx, `
@@ -65,7 +66,7 @@ having count(m.id)=1;
 			set deleted_at=$1
 			where user_id=$2
 			and deleted_at is null`,
-			d.Now(), userID); err != nil {
+			deleted, userID); err != nil {
 			return err
 		}
 
@@ -75,7 +76,7 @@ having count(m.id)=1;
 			set deleted_at=$1
 			where user_id=$2
 			and deleted_at is null`,
-			d.Now(), userID); err != nil {
+			deleted, userID); err != nil {
 			return err
 		}
 
@@ -85,7 +86,7 @@ having count(m.id)=1;
 			set deleted_at = $1
 			where id = $2
 			and deleted_at is null`,
-			d.Now(), userID); err != nil {
+			deleted, userID); err != nil {
 			return err
 		}
 
