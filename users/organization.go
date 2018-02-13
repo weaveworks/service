@@ -143,6 +143,11 @@ func (o *Organization) BillingProvider() string {
 	return "zuora"
 }
 
+// IsOnboarded returns whether the organization has onboarded
+func (o *Organization) IsOnboarded() bool {
+	return o.FirstSeenConnectedAt != nil
+}
+
 // DefaultOrganizationName returns the default name which is derived from
 // the externalID.
 func DefaultOrganizationName(externalID string) string {

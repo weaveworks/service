@@ -28,16 +28,25 @@ func TestNotifyTrialOrganizations(t *testing.T) {
 					ExternalID:                   "notify-yes",
 					TrialExpiresAt:               now.Add(1 * 24 * time.Hour),
 					TrialPendingExpiryNotifiedAt: nil,
+					FirstSeenConnectedAt:         &now,
 				},
 				{ // already notified
 					ExternalID:                   "notify-no-already",
 					TrialExpiresAt:               now.Add(1 * 24 * time.Hour),
 					TrialPendingExpiryNotifiedAt: &now, // any date
+					FirstSeenConnectedAt:         &now,
 				},
 				{ // is not yet within notification range
 					ExternalID:                   "notify-no-notyet",
 					TrialExpiresAt:               now.Add(6 * 24 * time.Hour),
 					TrialPendingExpiryNotifiedAt: nil,
+					FirstSeenConnectedAt:         &now,
+				},
+				{ // not onboarded
+					ExternalID:                   "notify-no-not-onboarded",
+					TrialExpiresAt:               now.Add(1 * 24 * time.Hour),
+					TrialPendingExpiryNotifiedAt: nil,
+					FirstSeenConnectedAt:         nil,
 				},
 			},
 		}, nil)
@@ -64,10 +73,17 @@ func TestNotifyDelinquentOrganizations(t *testing.T) {
 				{
 					ExternalID:             "notify-yes",
 					TrialExpiredNotifiedAt: nil,
+					FirstSeenConnectedAt:   &now,
 				},
 				{ // already notified
 					ExternalID:             "notify-no-already",
 					TrialExpiredNotifiedAt: &now,
+					FirstSeenConnectedAt:   &now,
+				},
+				{
+					ExternalID:             "notify-no-not-onboarded",
+					TrialExpiredNotifiedAt: nil,
+					FirstSeenConnectedAt:   nil,
 				},
 			},
 		}, nil)
