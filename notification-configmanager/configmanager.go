@@ -185,12 +185,12 @@ func New(config Config) (*ConfigManager, error) {
 		if err != nil {
 			return nil, err
 		}
-		log.Infof("Syncronizing %d event types with DB", len(eventTypes))
+		log.Infof("Synchronizing %d event types with DB", len(eventTypes))
 		err = c.syncEventTypes(eventTypes)
 		if err != nil {
 			return nil, err
 		}
-		log.Infof("Syncronized event types")
+		log.Infof("Synchronized event types")
 	}
 
 	if config.eventManagerURL == "" {
