@@ -19,8 +19,6 @@ func ErrorStatusCode(err error) int {
 		return http.StatusNotFound
 	case users.ErrInvalidAuthenticationData, users.ErrLoginNotFound:
 		return http.StatusUnauthorized
-	case users.ErrInstanceDataAccessDenied, users.ErrInstanceDataUploadDenied:
-		return http.StatusPaymentRequired
 	case users.ErrProviderParameters:
 		return http.StatusUnprocessableEntity
 	}
@@ -28,6 +26,8 @@ func ErrorStatusCode(err error) int {
 	switch err.(type) {
 	case *users.MalformedInputError, *users.ValidationError, *users.AlreadyAttachedError:
 		return http.StatusBadRequest
+	case *users.InstanceDeniedError:
+		return http.StatusPaymentRequired
 	}
 
 	// Just incase there's something sensitive in the error

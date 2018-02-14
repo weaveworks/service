@@ -56,6 +56,25 @@ type WithMetadata interface {
 	Metadata() map[string]interface{}
 }
 
+// InstanceDeniedError represents errors when the instances access is denied
+type InstanceDeniedError struct {
+	text string
+	id   string
+}
+
+// NewInstanceDeniedErrorFactory returns an InstanceDeniedError contructor,
+// its message is pre-assigned, while its id is provided when the error is constructed
+func NewInstanceDeniedErrorFactory(text string) func(id string) *InstanceDeniedError {
+	return func(id string) *InstanceDeniedError {
+		return &InstanceDeniedError{text: text, id: id}
+	}
+}
+
+// Error returns the error message
+func (e *InstanceDeniedError) Error() string {
+	return fmt.Sprintf(e.text, e.id)
+}
+
 // These are specific instances of errors the users application deals with.
 var (
 	ErrForbidden                  = errors.New("forbidden")
@@ -75,6 +94,6 @@ var (
 	ErrOrgTokenIsTaken            = errors.New("token already taken")
 	ErrLoginNotFound              = errors.New("no login for this user")
 	ErrProviderParameters         = errors.New("must pass provider and userID")
-	ErrInstanceDataAccessDenied   = errors.New("access to data from this instance is prohibited")
-	ErrInstanceDataUploadDenied   = errors.New("uploading new data to this instance is prohibited")
+	ErrInstanceDataAccessDenied   = NewInstanceDeniedErrorFactory("access to data from %v instance is prohibited")
+	ErrInstanceDataUploadDenied   = NewInstanceDeniedErrorFactory("uploading new data to %v instance is prohibited")
 )
