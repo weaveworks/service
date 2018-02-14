@@ -78,10 +78,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Internal API
 	s.HTTP.HandleFunc("/api/notification/testevent", em.RateLimited(em.TestEventHandler)).Methods("POST")
 	s.HTTP.HandleFunc("/api/notification/events", em.RateLimited(em.EventHandler)).Methods("POST")
 	s.HTTP.HandleFunc("/api/notification/slack/{instanceID}/{eventType}", em.RateLimited(em.SlackHandler)).Methods("POST")
 	s.HTTP.HandleFunc("/api/notification/events/healthcheck", em.HandleHealthCheck).Methods("GET")
+
+	// External API - reachable from outside Weave Cloud cluster
+	s.HTTP.HandleFunc("/api/notification/external/events", em.RateLimited(em.EventHandler)).Methods("POST")
+
 	defer func() {
 		s.Shutdown()
 		em.Wait()
