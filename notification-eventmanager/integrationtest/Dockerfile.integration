@@ -2,6 +2,6 @@ FROM quay.io/weaveworks/build
 MAINTAINER Weaveworks Inc <help@weave.works>
 WORKDIR /
 COPY . /go/src/github.com/weaveworks/service
-RUN go install github.com/weaveworks/service/notification-configmanager/integrationtest
+RUN go install github.com/weaveworks/service/notification-eventmanager/integrationtest
 EXPOSE 80
 ENTRYPOINT ["/go/bin/integrationtest"]

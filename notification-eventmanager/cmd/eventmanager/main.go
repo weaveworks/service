@@ -1,24 +1,55 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"time"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/service/common/dbwait"
 	"github.com/weaveworks/service/common/users"
-	"github.com/weaveworks/service/notification-eventmanager"
+	"github.com/weaveworks/service/notification-eventmanager/eventmanager"
 	"github.com/weaveworks/service/notification-eventmanager/sqsconnect"
+	"github.com/weaveworks/service/notification-eventmanager/types"
 	usersClient "github.com/weaveworks/service/users/client"
+	"gopkg.in/mattes/migrate.v1/migrate"
 )
 
-// NewConfig returns new config for event manager with connection to SQS and a connection to users service
-func newConfig(queueURL, configManagerURL, usersServiceURL string) (eventmanager.Config, error) {
-	sqsCli, sqsQueue, err := sqsconnect.NewSQS(queueURL)
+func main() {
+	var (
+		serverConfig = server.Config{
+			MetricsNamespace:              "notification",
+			ServerGracefulShutdownTimeout: 16 * time.Second,
+		}
+		logLevel string
+		sqsURL   string
+		// Connect to users service to get information about an event's instance
+		usersServiceURL string
+		databaseURI     string
+		migrationsDir   string
+		eventTypesPath  string
+	)
+
+	serverConfig.RegisterFlags(flag.CommandLine)
+
+	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
+	flag.StringVar(&sqsURL, "sqsURL", "sqs://123user:123password@localhost:9324/events", "URL to connect to SQS")
+	flag.StringVar(&usersServiceURL, "usersServiceURL", "users.default:4772", "URL to connect to users service")
+	flag.StringVar(&databaseURI, "database.uri", "", "URI where the database can be found")
+	flag.StringVar(&migrationsDir, "database.migrations", "", "Path where the database migration files can be found")
+	flag.StringVar(&eventTypesPath, "eventtypes", "", "Path to a JSON file defining available event types")
+
+	flag.Parse()
+
+	if err := logging.Setup(logLevel); err != nil {
+		log.Fatalf("Error configuring logging: %v", err)
+	}
+
+	sqsCli, sqsQueue, err := sqsconnect.NewSQS(sqsURL)
 	if err != nil {
-		return eventmanager.Config{}, errors.Wrapf(err, "cannot connect to SQS %q", queueURL)
+		log.Fatalf("cannot connect to SQS %q, error: %s", sqsURL, err)
 	}
 
 	var uclient *users.Client
@@ -27,50 +58,47 @@ func newConfig(queueURL, configManagerURL, usersServiceURL string) (eventmanager
 	} else {
 		uclient, err = users.NewClient(users.Config{HostPort: usersServiceURL})
 		if err != nil {
-			return eventmanager.Config{}, errors.Wrapf(err, "cannot create users client: %v", usersServiceURL)
+			log.Fatalf("cannot create users client: %v, error: %s", usersServiceURL, err)
 		}
 	}
 
-	return eventmanager.Config{
-		ConfigManager: &eventmanager.ConfigClient{URL: configManagerURL},
-		SQSClient:     sqsCli,
-		SQSQueue:      sqsQueue,
-		UsersClient:   uclient,
-	}, nil
-}
-
-func main() {
-	var (
-		serverConfig = server.Config{
-			MetricsNamespace:              "notification",
-			ServerGracefulShutdownTimeout: 16 * time.Second,
-		}
-		logLevel         string
-		sqsURL           string
-		configManagerURL string
-		// Connect to users service to get information about an event's instance
-		usersServiceURL string
-	)
-
-	serverConfig.RegisterFlags(flag.CommandLine)
-
-	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
-	flag.StringVar(&sqsURL, "sqsURL", "sqs://123user:123password@localhost:9324/events", "URL to connect to SQS")
-	flag.StringVar(&configManagerURL, "configManagerURL", "", "URL to connect to config managerr")
-	flag.StringVar(&usersServiceURL, "usersServiceURL", "users.default:4772", "URL to connect to users service")
-	flag.Parse()
-
-	if err := logging.Setup(logLevel); err != nil {
-		log.Fatalf("Error configuring logging: %v", err)
-		return
+	if databaseURI == "" {
+		log.Fatal("Database URI is required")
 	}
 
-	var cfg eventmanager.Config
-	cfg, err := newConfig(sqsURL, configManagerURL, usersServiceURL)
+	db, err := sql.Open("postgres", databaseURI)
 	if err != nil {
-		log.Fatalf("cannot create config for event manager, error: %s", err)
+		log.Fatalf("cannot open postgres URI %s, error: %s", databaseURI, err)
 	}
-	em := eventmanager.New(cfg)
+
+	if err := dbwait.Wait(db); err != nil {
+		log.Fatalf("cannot establish db connection, error: %s", err)
+	}
+
+	if migrationsDir != "" {
+		log.Infof("Running Database Migrations...")
+		if errs, ok := migrate.UpSync(databaseURI, migrationsDir); !ok {
+			for _, err := range errs {
+				log.Error(err)
+			}
+			log.Fatalf("database migrations failed: %s", err)
+		}
+	}
+
+	em := eventmanager.New(uclient, db, sqsCli, sqsQueue)
+
+	if eventTypesPath != "" {
+		eventTypes, err := types.EventTypesFromFile(eventTypesPath)
+		if err != nil {
+			log.Fatalf("Cannot get event types from file %s: %s", eventTypesPath, err)
+		}
+		log.Infof("Synchronizing %d event types with DB", len(eventTypes))
+		err = em.SyncEventTypes(eventTypes)
+		if err != nil {
+			log.Fatalf("Cannot synchronize event types: %s", err)
+		}
+		log.Infof("Synchronized event types")
+	}
 
 	log.Info("listening for requests")
 	s, err := server.New(serverConfig)
@@ -78,14 +106,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Internal API
-	s.HTTP.HandleFunc("/api/notification/testevent", em.RateLimited(em.TestEventHandler)).Methods("POST")
-	s.HTTP.HandleFunc("/api/notification/events", em.RateLimited(em.EventHandler)).Methods("POST")
-	s.HTTP.HandleFunc("/api/notification/slack/{instanceID}/{eventType}", em.RateLimited(em.SlackHandler)).Methods("POST")
-	s.HTTP.HandleFunc("/api/notification/events/healthcheck", em.HandleHealthCheck).Methods("GET")
-
-	// External API - reachable from outside Weave Cloud cluster
-	s.HTTP.HandleFunc("/api/notification/external/events", em.RateLimited(em.EventHandler)).Methods("POST")
+	em.Register(s.HTTP)
 
 	defer func() {
 		s.Shutdown()

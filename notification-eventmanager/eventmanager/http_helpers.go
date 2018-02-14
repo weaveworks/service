@@ -1,4 +1,4 @@
-package configmanager
+package eventmanager
 
 import (
 	"encoding/json"

@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/weaveworks/service/notification-configmanager/utils"
+	"github.com/weaveworks/service/notification-eventmanager/utils"
 )
 
 // Timeout waiting for SQS queue to be created

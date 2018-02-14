@@ -78,7 +78,7 @@ BILLING_EXES := billing-api/api billing-uploader/uploader billing-aggregator/agg
 GCP_LAUNCHER_WEBHOOK_EXE := gcp-launcher-webhook/gcp-launcher-webhook
 KUBECTL_SERVICE_EXE := kubectl-service/kubectl-service
 GCP_SERVICE_EXE := gcp-service/gcp-service
-NOTIFICATION_EXES := notification-configmanager/cmd/configmanager/configmanager notification-eventmanager/cmd/eventmanager/eventmanager notification-sender/cmd/sender/sender
+NOTIFICATION_EXES := notification-eventmanager/cmd/eventmanager/eventmanager notification-sender/cmd/sender/sender
 EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) $(GITHUB_RECEIVER_EXE) $(FLUX_API_EXE) $(BILLING_EXES) $(GCP_LAUNCHER_WEBHOOK_EXE) $(NOTIFICATION_EXES) $(KUBECTL_SERVICE_EXE) $(GCP_SERVICE_EXE)
 
 # And what goes into each exe
@@ -129,7 +129,7 @@ billing-uploader/$(UPTODATE): $(call billing-migrations-deps,billing-uploader)
 billing-aggregator/$(UPTODATE): $(call billing-migrations-deps,billing-aggregator)
 
 $(foreach nexe,$(NOTIFICATION_EXES),$(eval $(call IMAGEDEP_template,$(nexe))))
-notification-configmanager/$(UPTODATE): $(wildcard notification-configmanager/migrations/*)
+notification-eventmanager/$(UPTODATE): $(wildcard notification-eventmanager/migrations/*)
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
@@ -296,8 +296,8 @@ gcp-service-integration-test: gcp-service/$(UPTODATE) gcp-service/grpc/gcp-servi
 	exit $$status
 
 notification-integration-test:
-	docker build -f notification-configmanager/integrationtest/Dockerfile.integration -t notification-integrationtest .
-	cd notification-configmanager/integrationtest && $(SUDO) docker-compose up --abort-on-container-exit; EXIT_CODE=$$?; $(SUDO) docker-compose down; exit $$EXIT_CODE
+	docker build -f notification-eventmanager/integrationtest/Dockerfile.integration -t notification-integrationtest .
+	cd notification-eventmanager/integrationtest && $(SUDO) docker-compose up --abort-on-container-exit; EXIT_CODE=$$?; $(SUDO) docker-compose down; exit $$EXIT_CODE
 
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
