@@ -27,6 +27,73 @@ func (d DB) CreateUser(ctx context.Context, email string) (*users.User, error) {
 	return u, nil
 }
 
+// DeleteUser marks a user as deleted. It also removes the user from memberships and triggers a deletion of organizations
+// where the user was the lone member.
+func (d DB) DeleteUser(ctx context.Context, userID string) error {
+	deleted := d.Now()
+	return d.Transaction(func(tx DB) error {
+		// All organizations with this user as sole member
+		rows, err := d.QueryContext(ctx, `
+select o.external_id from organizations o join memberships m on m.organization_id=o.id
+where exists(select 1 from memberships mi where mi.user_id=$1 and o.id=mi.organization_id and mi.deleted_at is null)
+      and o.deleted_at is null
+      and m.deleted_at is null
+group by o.id
+having count(m.id)=1;
+`, userID)
+		if err != nil {
+			return err
+		}
+
+		var ids []string
+		var externalID string
+		for rows.Next() {
+			if err := rows.Scan(&externalID); err != nil {
+				return err
+			}
+			ids = append(ids, externalID)
+		}
+
+		for _, externalID := range ids {
+			if err := d.DeleteOrganization(ctx, externalID); err != nil {
+				return err
+			}
+		}
+
+		// Delete organization memberships
+		if _, err = d.ExecContext(ctx,
+			`update memberships
+			set deleted_at=$1
+			where user_id=$2
+			and deleted_at is null`,
+			deleted, userID); err != nil {
+			return err
+		}
+
+		// Delete team memberships
+		if _, err = d.ExecContext(ctx,
+			`update team_memberships
+			set deleted_at=$1
+			where user_id=$2
+			and deleted_at is null`,
+			deleted, userID); err != nil {
+			return err
+		}
+
+		// Delete user
+		if _, err = d.ExecContext(ctx,
+			`update users
+			set deleted_at = $1
+			where id = $2
+			and deleted_at is null`,
+			deleted, userID); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
 // AddLoginToUser adds the given login to the specified user. If it is already
 // attached elsewhere, this will error.
 func (d DB) AddLoginToUser(ctx context.Context, userID, provider, providerID string, session json.RawMessage) error {

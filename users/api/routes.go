@@ -66,7 +66,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		// Used to list and manage organization access (invites)
 		{"api_users_org_orgExternalID_users", "GET", "/api/users/org/{orgExternalID}/users", a.authenticateUser(a.listOrganizationUsers)},
 		{"api_users_org_orgExternalID_inviteUser", "POST", "/api/users/org/{orgExternalID}/users", a.authenticateUser(a.inviteUser)},
-		{"api_users_org_orgExternalID_deleteUser", "DELETE", "/api/users/org/{orgExternalID}/users/{userEmail}", a.authenticateUser(a.deleteUser)},
+		{"api_users_org_orgExternalID_removeUser", "DELETE", "/api/users/org/{orgExternalID}/users/{userEmail}", a.authenticateUser(a.removeUser)},
 
 		// Internal stuff for our internal usage, internally.
 		{"root", "GET", "/admin/users", a.admin},
@@ -78,6 +78,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"admin_users_users", "GET", "/admin/users/users", a.listUsers},
 		{"admin_users_users_userID_admin", "POST", "/admin/users/users/{userID}/admin", a.makeUserAdmin},
 		{"admin_users_users_userID_become", "POST", "/admin/users/users/{userID}/become", a.becomeUser},
+		{"admin_users_users_userID_delete", "POST", "/admin/users/users/{userID}/remove", a.deleteUser},
 		{"admin_users_users_userID_logins_provider_token", "GET", "/admin/users/users/{userID}/logins/{provider}/token", a.getUserToken},
 		{"admin_users_users_userID_organizations", "GET", "/admin/users/users/{userID}/organizations", a.listOrganizationsForUser},
 

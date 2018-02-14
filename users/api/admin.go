@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -80,6 +79,7 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 			"Query":    r.FormValue("query"),
 			"Page":     page,
 			"NextPage": page + 1,
+			"Message":  r.FormValue("msg"),
 		})
 		if err != nil {
 			renderError(w, r, err)
@@ -111,6 +111,7 @@ func (a *API) listUsersForOrganization(w http.ResponseWriter, r *http.Request) {
 	b, err := a.templates.Bytes("list_users.html", map[string]interface{}{
 		"Users":         us,
 		"OrgExternalID": orgID,
+		"Message":       r.FormValue("msg"),
 	})
 	if err != nil {
 		renderError(w, r, err)
@@ -233,8 +234,7 @@ func (a *API) changeOrgFields(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	msg := fmt.Sprintf("Saved config for %s", orgExternalID)
-	http.Redirect(w, r, "/admin/users/organizations?msg="+url.QueryEscape(msg), http.StatusFound)
+	redirectWithMessage(w, r, fmt.Sprintf("Saved config for %s", orgExternalID))
 }
 
 func (a *API) setOrganizationField(ctx context.Context, orgExternalID, field, value string) error {
@@ -305,6 +305,21 @@ func (a *API) becomeUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
+	userID := mux.Vars(r)["userID"]
+	if userID == "" {
+		renderError(w, r, users.NewMalformedInputError(errors.New("missing userID")))
+		return
+	}
+
+	if err := a.db.DeleteUser(r.Context(), userID); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	redirectWithMessage(w, r, fmt.Sprintf("Deleted user %s", userID))
 }
 
 func (a *API) getUserToken(w http.ResponseWriter, r *http.Request) {
@@ -385,6 +400,14 @@ func parseTokenFromSession(session json.RawMessage) (string, error) {
 	}
 	err = json.Unmarshal(b, &sess)
 	return sess.Token.AccessToken, err
+}
+
+func redirectWithMessage(w http.ResponseWriter, r *http.Request, msg string) {
+	u := r.URL
+	query := u.Query()
+	query.Set("msg", msg)
+	path := strings.Join(strings.Split(u.Path, "/")[:4], "/")
+	http.Redirect(w, r, fmt.Sprintf("%s?%s", path, query.Encode()), http.StatusFound)
 }
 
 // MakeUserAdmin makes a user an admin
