@@ -109,11 +109,12 @@ func (u *Updater) HandlePush(pl github.PushPayload) {
 // HandleStatus handles GitHub Commit status updated from the API
 func (u *Updater) HandleStatus(pl github.StatusPayload) {
 	u.mu.Lock()
-	defer u.mu.Unlock()
 	if !(pl.Sha == u.latest && pl.State == "success") {
+		u.mu.Unlock()
 		return
 	}
 	u.latest = ""
+	u.mu.Unlock()
 
 	shortSha := pl.Sha[:8]
 	log.Infoln("weaveworks/scope build has finished successfully")
