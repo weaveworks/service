@@ -310,7 +310,7 @@ func (a *API) adminBecomeUser(w http.ResponseWriter, r *http.Request) {
 func (a *API) adminDeleteUser(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["userID"]
 	if userID == "" {
-		renderError(w, r, users.NewMalformedInputError(errors.New("missing userID")))
+		renderError(w, r, users.ErrNotFound)
 		return
 	}
 
@@ -325,7 +325,7 @@ func (a *API) adminDeleteUser(w http.ResponseWriter, r *http.Request) {
 func (a *API) adminDeleteOrganization(w http.ResponseWriter, r *http.Request) {
 	externalID := mux.Vars(r)["orgExternalID"]
 	if externalID == "" {
-		renderError(w, r, users.NewMalformedInputError(errors.New("missing orgExternalID")))
+		renderError(w, r, users.ErrNotFound)
 		return
 	}
 
