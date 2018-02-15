@@ -130,7 +130,7 @@ func (a *API) GCPSubscribe(currentUser *users.User, externalAccountID string, w 
 	return org, nil
 }
 
-func (a *API) gcpListSubscriptions(w http.ResponseWriter, r *http.Request) {
+func (a *API) adminGCPListSubscriptions(w http.ResponseWriter, r *http.Request) {
 	externalAccountID := mux.Vars(r)["externalAccountID"]
 	subs, err := a.partner.ListSubscriptions(r.Context(), externalAccountID)
 	if err != nil {

@@ -50,7 +50,7 @@ type privateUserView struct {
 	Admin        bool   `json:"admin"`
 }
 
-func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
+func (a *API) adminListUsers(w http.ResponseWriter, r *http.Request) {
 	page := filter.ParsePageValue(r.FormValue("page"))
 	query := r.FormValue("query")
 	f := filter.And(filter.ParseUserQuery(query))
@@ -91,7 +91,7 @@ func (a *API) listUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *API) listUsersForOrganization(w http.ResponseWriter, r *http.Request) {
+func (a *API) adminListUsersForOrganization(w http.ResponseWriter, r *http.Request) {
 	orgID, ok := mux.Vars(r)["orgExternalID"]
 	if !ok {
 		renderError(w, r, users.ErrNotFound)
@@ -122,7 +122,7 @@ func (a *API) listUsersForOrganization(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *API) removeUserFromOrganization(w http.ResponseWriter, r *http.Request) {
+func (a *API) adminRemoveUserFromOrganization(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orgExternalID := vars["orgExternalID"]
 	userID := vars["userID"]
@@ -149,7 +149,7 @@ func (a *API) removeUserFromOrganization(w http.ResponseWriter, r *http.Request)
 	http.Redirect(w, r, "/admin/users/organizations/"+orgExternalID+"/users", http.StatusFound)
 }
 
-func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
+func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 	page := filter.ParsePageValue(r.FormValue("page"))
 	query := r.FormValue("query")
 	organizations, err := a.db.ListOrganizations(r.Context(), filter.ParseOrgQuery(query), page)
@@ -174,7 +174,7 @@ func (a *API) listOrganizations(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *API) listOrganizationsForUser(w http.ResponseWriter, r *http.Request) {
+func (a *API) adminListOrganizationsForUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, ok := vars["userID"]
 	if !ok {
@@ -205,7 +205,7 @@ func (a *API) listOrganizationsForUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *API) changeOrgFields(w http.ResponseWriter, r *http.Request) {
+func (a *API) adminChangeOrgFields(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orgExternalID, ok := vars["orgExternalID"]
 	if !ok {
@@ -257,7 +257,7 @@ func (a *API) setOrganizationField(ctx context.Context, orgExternalID, field, va
 	return err
 }
 
-func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
+func (a *API) adminMakeUserAdmin(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID, ok := vars["userID"]
 	if !ok {
@@ -276,7 +276,7 @@ func (a *API) makeUserAdmin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirectTo, http.StatusFound)
 }
 
-func (a *API) becomeUser(w http.ResponseWriter, r *http.Request) {
+func (a *API) adminBecomeUser(w http.ResponseWriter, r *http.Request) {
 	logging.With(r.Context()).Info(r)
 	vars := mux.Vars(r)
 	userID, ok := vars["userID"]
@@ -307,7 +307,7 @@ func (a *API) becomeUser(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
+func (a *API) adminDeleteUser(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)["userID"]
 	if userID == "" {
 		renderError(w, r, users.NewMalformedInputError(errors.New("missing userID")))
@@ -322,7 +322,7 @@ func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
 	redirectWithMessage(w, r, fmt.Sprintf("Deleted user %s", userID))
 }
 
-func (a *API) getUserToken(w http.ResponseWriter, r *http.Request) {
+func (a *API) adminGetUserToken(w http.ResponseWriter, r *http.Request) {
 	// Get User ID from path
 	vars := mux.Vars(r)
 	userIDOrEmail, ok := vars["userID"]

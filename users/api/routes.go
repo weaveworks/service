@@ -70,17 +70,17 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 
 		// Internal stuff for our internal usage, internally.
 		{"root", "GET", "/admin/users", a.admin},
-		{"admin_users_organizations", "GET", "/admin/users/organizations", a.listOrganizations},
-		{"admin_users_gcp_externalAccoutnID_subscriptions", "GET", "/admin/users/gcp/{externalAccountID}/subscriptions", a.gcpListSubscriptions},
-		{"admin_users_organizations_orgExternalID_users", "GET", "/admin/users/organizations/{orgExternalID}/users", a.listUsersForOrganization},
-		{"admin_users_organizations_orgExternalID_users_userID", "POST", "/admin/users/organizations/{orgExternalID}/users/{userID}/remove", a.removeUserFromOrganization},
-		{"admin_users_organizations_orgExternalID", "POST", "/admin/users/organizations/{orgExternalID}", a.changeOrgFields},
-		{"admin_users_users", "GET", "/admin/users/users", a.listUsers},
-		{"admin_users_users_userID_admin", "POST", "/admin/users/users/{userID}/admin", a.makeUserAdmin},
-		{"admin_users_users_userID_become", "POST", "/admin/users/users/{userID}/become", a.becomeUser},
-		{"admin_users_users_userID_delete", "POST", "/admin/users/users/{userID}/remove", a.deleteUser},
-		{"admin_users_users_userID_logins_provider_token", "GET", "/admin/users/users/{userID}/logins/{provider}/token", a.getUserToken},
-		{"admin_users_users_userID_organizations", "GET", "/admin/users/users/{userID}/organizations", a.listOrganizationsForUser},
+		{"admin_users_organizations", "GET", "/admin/users/organizations", a.adminListOrganizations},
+		{"admin_users_gcp_externalAccoutnID_subscriptions", "GET", "/admin/users/gcp/{externalAccountID}/subscriptions", a.adminGCPListSubscriptions},
+		{"admin_users_organizations_orgExternalID_users", "GET", "/admin/users/organizations/{orgExternalID}/users", a.adminListUsersForOrganization},
+		{"admin_users_organizations_orgExternalID_users_userID", "POST", "/admin/users/organizations/{orgExternalID}/users/{userID}/remove", a.adminRemoveUserFromOrganization},
+		{"admin_users_organizations_orgExternalID", "POST", "/admin/users/organizations/{orgExternalID}", a.adminChangeOrgFields},
+		{"admin_users_users", "GET", "/admin/users/users", a.adminListUsers},
+		{"admin_users_users_userID_admin", "POST", "/admin/users/users/{userID}/admin", a.adminMakeUserAdmin},
+		{"admin_users_users_userID_become", "POST", "/admin/users/users/{userID}/become", a.adminBecomeUser},
+		{"admin_users_users_userID_delete", "POST", "/admin/users/users/{userID}/remove", a.adminDeleteUser},
+		{"admin_users_users_userID_logins_provider_token", "GET", "/admin/users/users/{userID}/logins/{provider}/token", a.adminGetUserToken},
+		{"admin_users_users_userID_organizations", "GET", "/admin/users/users/{userID}/organizations", a.adminListOrganizationsForUser},
 
 		// HealthCheck
 		{"healthcheck", "GET", "/api/users/healthcheck", a.healthcheck},
