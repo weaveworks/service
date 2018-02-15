@@ -42,6 +42,7 @@ billing-api/api
 billing-enforcer/enforcer
 billing-uploader/migrations
 billing-uploader/uploader
+dashboard-api/dashboard-api
 flux-api/flux-api
 flux-api/migrations.tar
 gcp-launcher-webhook/gcp-launcher-webhook
