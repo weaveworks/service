@@ -319,7 +319,22 @@ func (a *API) adminDeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	redirectWithMessage(w, r, fmt.Sprintf("Deleted user %s", userID))
+	redirectWithMessage(w, r, fmt.Sprintf("Deleted user with id %s", userID))
+}
+
+func (a *API) adminDeleteOrganization(w http.ResponseWriter, r *http.Request) {
+	externalID := mux.Vars(r)["orgExternalID"]
+	if externalID == "" {
+		renderError(w, r, users.NewMalformedInputError(errors.New("missing orgExternalID")))
+		return
+	}
+
+	if err := a.db.DeleteOrganization(r.Context(), externalID); err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	redirectWithMessage(w, r, fmt.Sprintf("Deleted organization with id %s", externalID))
 }
 
 func (a *API) adminGetUserToken(w http.ResponseWriter, r *http.Request) {

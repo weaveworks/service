@@ -75,6 +75,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"admin_users_organizations_orgExternalID_users", "GET", "/admin/users/organizations/{orgExternalID}/users", a.adminListUsersForOrganization},
 		{"admin_users_organizations_orgExternalID_users_userID", "POST", "/admin/users/organizations/{orgExternalID}/users/{userID}/remove", a.adminRemoveUserFromOrganization},
 		{"admin_users_organizations_orgExternalID", "POST", "/admin/users/organizations/{orgExternalID}", a.adminChangeOrgFields},
+		{"admin_users_organizations_orgExternalID_delete", "POST", "/admin/users/organizations/{orgExternalID}/remove", a.adminDeleteOrganization},
 		{"admin_users_users", "GET", "/admin/users/users", a.adminListUsers},
 		{"admin_users_users_userID_admin", "POST", "/admin/users/users/{userID}/admin", a.adminMakeUserAdmin},
 		{"admin_users_users_userID_become", "POST", "/admin/users/users/{userID}/become", a.adminBecomeUser},

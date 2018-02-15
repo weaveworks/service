@@ -113,6 +113,13 @@
             {{.ZuoraAccountNumber}}
           {{end}}
         </td>
+        <td>
+          <form action="organizations/{{.ExternalID}}/remove" method="POST">
+            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+            <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent"
+            type="submit" value="Delete" onclick="return confirm('Are you sure to delete this organization?')"/>
+          </form>
+        </td>
       </tr>
       {{end}}
       </tbody>
