@@ -72,7 +72,10 @@
       {{range .Users}}
       <tr>
         <td>{{.ID}}</td>
-        <td><div style="max-width: 640px; overflow: hidden; text-overflow: ellipsis; white-space; nowrap;">{{.Email}}</div></td>
+        <td class="mdl-data-table__cell--non-numeric">
+            <div style="max-width: 640px; overflow: hidden; text-overflow: ellipsis; white-space; nowrap;">{{.Email}}</div>
+            <a href="users/{{.ID}}/organizations">Organizations</a>
+        </td>
         <td>{{.FormatCreatedAt}}</td>
         <td>{{.FormatFirstLoginAt}}</td>
         <td>{{.FormatLastLoginAt}}</td>
@@ -112,11 +115,8 @@
                     <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent"
                            type="submit" value="Delete" onclick="return confirm('Are you sure to delete this user?')"/>
                 </form>
-        <td>
+            <td>
         {{end}}
-        <td>
-          <a href="users/{{.ID}}/organizations">Organizations</a>
-        </td>
       </tr>
       {{end}}
     </table>

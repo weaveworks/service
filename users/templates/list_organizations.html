@@ -67,8 +67,8 @@
             <th class="mdl-data-table__cell--non-numeric">FirstSeenConnectedAt</th>
             <th class="mdl-data-table__cell--non-numeric">Platform/Env</th>
             <th class="mdl-data-table__cell--non-numeric">Fields</th>
-            <th></th>
             <th class="mdl-data-table__cell--non-numeric">Billing</th>
+            <th class="mdl-data-table__cell--non-numeric">Admin</th>
           </tr>
       </thead>
       <tbody>
@@ -78,13 +78,14 @@
         <td class="mdl-data-table__cell--non-numeric">
             <span style="font-size:larger">{{.Name}}</span><br />
             <div style="max-width:300px;text-overflow:ellipsis;overflow:hidden" title="{{.ExternalID}}">{{.ExternalID}}</div>
+            <a href="organizations/{{.ExternalID}}/users">Users</a> <a href="/admin/billing/organizations?query={{.ExternalID}}">Billing</a>
         </td>
         <td class="mdl-data-table__cell--non-numeric">{{.FormatCreatedAt}}</td>
         <td class="mdl-data-table__cell--non-numeric">{{if .FirstSeenConnectedAt}}{{.FirstSeenConnectedAt.Format "2006-01-02T15:04:05Z07:00"}}{{ else }}
             <form action="organizations/{{.ExternalID}}" method="POST">
                 <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
                 <input type="hidden" name="field" value="FirstSeenConnectedAt">
-                <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent"
+                <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
                 type="submit" value="Onboard" />
             </form>
         {{ end }}</td>
@@ -101,10 +102,6 @@
             <label><input type="checkbox" name="RefuseDataUpload" {{if .RefuseDataUpload}}checked {{end}}/> RefuseDataUpload</label>
           </form>
         </td>
-        <td>
-          <a href="organizations/{{.ExternalID}}/users">Users</a><br />
-          <a href="/admin/billing/organizations?query={{.ExternalID}}">Billing</a>
-        </td>
         <td class="mdl-data-table__cell--non-numeric">
           {{if .GCP}}
             {{if not .GCP.Activated}}<div class="material-icons" title="Account was not activated">error</div>{{end}}
@@ -115,6 +112,13 @@
             <strong>Zuora</strong><br />
             {{.ZuoraAccountNumber}}
           {{end}}
+        </td>
+        <td>
+          <form action="organizations/{{.ExternalID}}/remove" method="POST">
+            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+            <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent"
+            type="submit" value="Delete" onclick="return confirm('Are you sure to delete this organization?')"/>
+          </form>
         </td>
       </tr>
       {{end}}
