@@ -471,12 +471,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/prometheus/client_golang"
-  packages = [
-    "api",
-    "api/prometheus/v1",
-    "prometheus",
-    "prometheus/promhttp"
-  ]
+  packages = ["api","api/prometheus/v1","prometheus","prometheus/promhttp"]
   revision = "9bb6ab929dcbe1c8393cd9ef70387cb69811bd1c"
 
 [[projects]]
@@ -597,7 +592,7 @@
   branch = "master"
   name = "github.com/weaveworks/flux"
   packages = [".","api","cluster","errors","event","guid","http","http/client","http/daemon","http/httperror","http/websocket","image","job","metrics","policy","registry","registry/middleware","remote","remote/rpc","resource","ssh","update"]
-  revision = "dfd6bc5ff64d31b343d10e26f64a1fab24fa0fdf"
+  revision = "ca5faa4e64540646800f6a3dfe8c5715bad807fb"
 
 [[projects]]
   branch = "master"
@@ -722,6 +717,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "804a27861bb7d4d715fa519d92d806b862308c0f863c028e4663203f8bba138f"
+  inputs-digest = "00b5cf838cfa3cdd23d1302ba762dfabfaf5295e8be6cefd57ab533b1f4183a1"
   solver-name = "gps-cdcl"
   solver-version = 1

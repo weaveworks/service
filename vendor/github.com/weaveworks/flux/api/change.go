@@ -1,4 +1,4 @@
-package remote
+package api
 
 import (
 	"encoding/json"
@@ -57,5 +57,5 @@ type ImageUpdate struct {
 }
 
 type GitUpdate struct {
-	URL string
+	URL, Branch string
 }

@@ -29,26 +29,31 @@ func DeprecateVersions(r *mux.Router, versions ...string) {
 func NewAPIRouter() *mux.Router {
 	r := mux.NewRouter()
 
-	r.NewRoute().Name("ListServices").Methods("GET").Path("/v6/services").Queries("namespace", "{namespace}") // optional namespace!
-	r.NewRoute().Name("ListImages").Methods("GET").Path("/v6/images").Queries("service", "{service}")
+	r.NewRoute().Name(ListServices).Methods("GET").Path("/v6/services").Queries("namespace", "{namespace}") // optional namespace!
+	r.NewRoute().Name(ListImages).Methods("GET").Path("/v6/images").Queries("service", "{service}")
 
-	r.NewRoute().Name("UpdateImages").Methods("POST").Path("/v6/update-images").Queries("service", "{service}", "image", "{image}", "kind", "{kind}")
-	r.NewRoute().Name("UpdatePolicies").Methods("PATCH").Path("/v6/policies")
-	r.NewRoute().Name("JobStatus").Methods("GET").Path("/v6/jobs").Queries("id", "{id}")
-	r.NewRoute().Name("SyncStatus").Methods("GET").Path("/v6/sync").Queries("ref", "{ref}")
-	r.NewRoute().Name("Export").Methods("HEAD", "GET").Path("/v6/export")
-	r.NewRoute().Name("GetPublicSSHKey").Methods("GET").Path("/v6/identity.pub")
-	r.NewRoute().Name("RegeneratePublicSSHKey").Methods("POST").Path("/v6/identity.pub")
+	r.NewRoute().Name(UpdateManifests).Methods("POST").Path("/v9/update-manifests")
+	r.NewRoute().Name(JobStatus).Methods("GET").Path("/v6/jobs").Queries("id", "{id}")
+	r.NewRoute().Name(SyncStatus).Methods("GET").Path("/v6/sync").Queries("ref", "{ref}")
+	r.NewRoute().Name(Export).Methods("HEAD", "GET").Path("/v6/export")
+	r.NewRoute().Name(GitRepoConfig).Methods("POST").Path("/v9/git-repo-config")
+
+	// These routes persist to support requests from older fluxctls. In general we
+	// should avoid adding references to them so that they can eventually be removed.
+	r.NewRoute().Name(UpdateImages).Methods("POST").Path("/v6/update-images").Queries("service", "{service}", "image", "{image}", "kind", "{kind}")
+	r.NewRoute().Name(UpdatePolicies).Methods("PATCH").Path("/v6/policies")
+	r.NewRoute().Name(GetPublicSSHKey).Methods("GET").Path("/v6/identity.pub")
+	r.NewRoute().Name(RegeneratePublicSSHKey).Methods("POST").Path("/v6/identity.pub")
 
 	return r // TODO 404 though?
 }
 
 func UpstreamRoutes(r *mux.Router) {
-	r.NewRoute().Name("RegisterDaemonV6").Methods("GET").Path("/v6/daemon")
-	r.NewRoute().Name("RegisterDaemonV7").Methods("GET").Path("/v7/daemon")
-	r.NewRoute().Name("RegisterDaemonV8").Methods("GET").Path("/v8/daemon")
-	r.NewRoute().Name("RegisterDaemonV9").Methods("GET").Path("/v9/daemon")
-	r.NewRoute().Name("LogEvent").Methods("POST").Path("/v6/events")
+	r.NewRoute().Name(RegisterDaemonV6).Methods("GET").Path("/v6/daemon")
+	r.NewRoute().Name(RegisterDaemonV7).Methods("GET").Path("/v7/daemon")
+	r.NewRoute().Name(RegisterDaemonV8).Methods("GET").Path("/v8/daemon")
+	r.NewRoute().Name(RegisterDaemonV9).Methods("GET").Path("/v9/daemon")
+	r.NewRoute().Name(LogEvent).Methods("POST").Path("/v6/events")
 }
 
 func NewUpstreamRouter() *mux.Router {
@@ -66,8 +71,11 @@ func MakeURL(endpoint string, router *mux.Router, routeName string, urlParams ..
 	if err != nil {
 		return nil, errors.Wrapf(err, "parsing endpoint %s", endpoint)
 	}
-
-	routeURL, err := router.Get(routeName).URLPath()
+	route := router.Get(routeName)
+	if route == nil {
+		return nil, errors.New("no route with name " + routeName)
+	}
+	routeURL, err := route.URLPath()
 	if err != nil {
 		return nil, errors.Wrapf(err, "retrieving route path %s", routeName)
 	}

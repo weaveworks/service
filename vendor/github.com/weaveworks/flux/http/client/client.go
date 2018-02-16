@@ -12,13 +12,16 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/weaveworks/flux"
+	"github.com/weaveworks/flux/api"
 	fluxerr "github.com/weaveworks/flux/errors"
 	"github.com/weaveworks/flux/event"
 	transport "github.com/weaveworks/flux/http"
 	"github.com/weaveworks/flux/job"
-	"github.com/weaveworks/flux/policy"
-	"github.com/weaveworks/flux/ssh"
 	"github.com/weaveworks/flux/update"
+)
+
+var (
+	errNotImplemented = errors.New("not implemented")
 )
 
 type Client struct {
@@ -27,6 +30,8 @@ type Client struct {
 	router   *mux.Router
 	endpoint string
 }
+
+var _ api.Server = &Client{}
 
 func New(c *http.Client, router *mux.Router, endpoint string, t flux.Token) *Client {
 	return &Client{
@@ -39,78 +44,47 @@ func New(c *http.Client, router *mux.Router, endpoint string, t flux.Token) *Cli
 
 func (c *Client) ListServices(ctx context.Context, namespace string) ([]flux.ControllerStatus, error) {
 	var res []flux.ControllerStatus
-	err := c.Get(ctx, &res, "ListServices", "namespace", namespace)
+	err := c.Get(ctx, &res, transport.ListServices, "namespace", namespace)
 	return res, err
 }
 
 func (c *Client) ListImages(ctx context.Context, s update.ResourceSpec) ([]flux.ImageStatus, error) {
 	var res []flux.ImageStatus
-	err := c.Get(ctx, &res, "ListImages", "service", string(s))
-	return res, err
-}
-
-func (c *Client) UpdateImages(ctx context.Context, s update.ReleaseSpec, cause update.Cause) (job.ID, error) {
-	args := []string{
-		"image", string(s.ImageSpec),
-		"kind", string(s.Kind),
-		"user", cause.User,
-	}
-	for _, spec := range s.ServiceSpecs {
-		args = append(args, "service", string(spec))
-	}
-	for _, ex := range s.Excludes {
-		args = append(args, "exclude", ex.String())
-	}
-	if cause.Message != "" {
-		args = append(args, "message", cause.Message)
-	}
-
-	var res job.ID
-	err := c.methodWithResp(ctx, "POST", &res, "UpdateImages", nil, args...)
+	err := c.Get(ctx, &res, transport.ListImages, "service", string(s))
 	return res, err
 }
 
 func (c *Client) JobStatus(ctx context.Context, jobID job.ID) (job.Status, error) {
 	var res job.Status
-	err := c.Get(ctx, &res, "JobStatus", "id", string(jobID))
+	err := c.Get(ctx, &res, transport.JobStatus, "id", string(jobID))
 	return res, err
 }
 
 func (c *Client) SyncStatus(ctx context.Context, ref string) ([]string, error) {
 	var res []string
-	err := c.Get(ctx, &res, "SyncStatus", "ref", ref)
+	err := c.Get(ctx, &res, transport.SyncStatus, "ref", ref)
 	return res, err
 }
 
-func (c *Client) UpdatePolicies(ctx context.Context, updates policy.Updates, cause update.Cause) (job.ID, error) {
-	args := []string{"user", cause.User}
-	if cause.Message != "" {
-		args = append(args, "message", cause.Message)
-	}
+func (c *Client) UpdateManifests(ctx context.Context, spec update.Spec) (job.ID, error) {
 	var res job.ID
-	return res, c.methodWithResp(ctx, "PATCH", &res, "UpdatePolicies", updates, args...)
+	err := c.methodWithResp(ctx, "POST", &res, transport.UpdateManifests, spec)
+	return res, err
 }
 
 func (c *Client) LogEvent(ctx context.Context, event event.Event) error {
-	return c.PostWithBody(ctx, "LogEvent", event)
+	return c.PostWithBody(ctx, transport.LogEvent, event)
 }
 
 func (c *Client) Export(ctx context.Context) ([]byte, error) {
 	var res []byte
-	err := c.Get(ctx, &res, "Export")
+	err := c.Get(ctx, &res, transport.Export)
 	return res, err
 }
 
-func (c *Client) PublicSSHKey(ctx context.Context, regenerate bool) (ssh.PublicKey, error) {
-	if regenerate {
-		err := c.Post(ctx, "RegeneratePublicSSHKey")
-		if err != nil {
-			return ssh.PublicKey{}, err
-		}
-	}
-
-	var res ssh.PublicKey
-	err := c.Get(ctx, &res, "GetPublicSSHKey")
+func (c *Client) GitRepoConfig(ctx context.Context, regenerate bool) (flux.GitConfig, error) {
+	var res flux.GitConfig
+	err := c.methodWithResp(ctx, "POST", &res, transport.GitRepoConfig, regenerate)
 	return res, err
 }
 

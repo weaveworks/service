@@ -9,6 +9,7 @@ import (
 	"github.com/nats-io/go-nats"
 
 	"github.com/weaveworks/flux"
+	"github.com/weaveworks/flux/api"
 	fluxerr "github.com/weaveworks/flux/errors"
 	"github.com/weaveworks/flux/guid"
 	"github.com/weaveworks/flux/job"
@@ -207,7 +208,7 @@ func makeErrorResponse(err error) ErrorResponse {
 }
 
 // natsPlatform collects the things you need to make a request via NATS
-// together, and implements remote.Platform using that mechanism.
+// together, and implements api.UpstreamServer using that mechanism.
 type natsPlatform struct {
 	conn     *nats.EncodedConn
 	instance string
@@ -303,7 +304,7 @@ func (r *natsPlatform) GitRepoConfig(ctx context.Context, regenerate bool) (flux
 	return response.Result, extractError(response.ErrorResponse)
 }
 
-func (r *natsPlatform) NotifyChange(ctx context.Context, change remote.Change) error {
+func (r *natsPlatform) NotifyChange(ctx context.Context, change api.Change) error {
 	var response NotifyChangeResponse
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -315,21 +316,21 @@ func (r *natsPlatform) NotifyChange(ctx context.Context, change remote.Change) e
 
 // --- end Platform implementation
 
-// Connect returns a remote.Platform implementation that can be used
+// Connect returns a api.UpstreamServer implementation that can be used
 // to talk to a particular instance.
-func (n *NATS) Connect(instID service.InstanceID) (remote.Platform, error) {
+func (n *NATS) Connect(instID service.InstanceID) (api.UpstreamServer, error) {
 	return &natsPlatform{
 		conn:     n.enc,
 		instance: string(instID),
 	}, nil
 }
 
-// Subscribe registers a remote remote.Platform implementation as
+// Subscribe registers a remote api.UpstreamServer implementation as
 // the daemon for an instance (identified by instID). Any
 // remote.FatalError returned when processing requests will result
 // in the platform being deregistered, with the error put on the
 // channel `done`.
-func (n *NATS) Subscribe(ctx context.Context, instID service.InstanceID, platform remote.Platform, done chan<- error) {
+func (n *NATS) Subscribe(ctx context.Context, instID service.InstanceID, platform api.UpstreamServer, done chan<- error) {
 	requests := make(chan *nats.Msg)
 	sub, err := n.raw.ChanSubscribe(string(instID)+".Platform.>", requests)
 	if err != nil {
@@ -386,7 +387,7 @@ func (n *NATS) Subscribe(ctx context.Context, instID service.InstanceID, platfor
 	}()
 }
 
-func (n *NATS) processRequest(ctx context.Context, request *nats.Msg, instID service.InstanceID, platform remote.Platform, myID string, errc chan<- error) {
+func (n *NATS) processRequest(ctx context.Context, request *nats.Msg, instID service.InstanceID, platform api.UpstreamServer, myID string, errc chan<- error) {
 	var err error
 	switch {
 	case strings.HasSuffix(request.Subject, methodKick):
@@ -438,7 +439,7 @@ func (n *NATS) processKick(request *nats.Msg, instID service.InstanceID, myID st
 	return nil
 }
 
-func (n *NATS) processPing(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+func (n *NATS) processPing(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
 	var p pingReq
 	err := encoder.Decode(request.Subject, request.Data, &p)
 	if err == nil {
@@ -448,13 +449,13 @@ func (n *NATS) processPing(ctx context.Context, request *nats.Msg, platform remo
 	return err
 }
 
-func (n *NATS) processVersion(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+func (n *NATS) processVersion(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
 	v, err := platform.Version(ctx)
 	n.enc.Publish(request.Reply, VersionResponse{v, makeErrorResponse(err)})
 	return err
 }
 
-func (n *NATS) processExport(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+func (n *NATS) processExport(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
 	var (
 		req   exportReq
 		bytes []byte
@@ -467,7 +468,7 @@ func (n *NATS) processExport(ctx context.Context, request *nats.Msg, platform re
 	return err
 }
 
-func (n *NATS) processListServices(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+func (n *NATS) processListServices(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
 	var (
 		namespace string
 		res       []flux.ControllerStatus
@@ -480,7 +481,7 @@ func (n *NATS) processListServices(ctx context.Context, request *nats.Msg, platf
 	return err
 }
 
-func (n *NATS) processListImages(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+func (n *NATS) processListImages(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
 	var (
 		req update.ResourceSpec
 		res []flux.ImageStatus
@@ -493,7 +494,7 @@ func (n *NATS) processListImages(ctx context.Context, request *nats.Msg, platfor
 	return err
 }
 
-func (n *NATS) processUpdateManifests(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+func (n *NATS) processUpdateManifests(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
 	var (
 		req update.Spec
 		res job.ID
@@ -506,7 +507,7 @@ func (n *NATS) processUpdateManifests(ctx context.Context, request *nats.Msg, pl
 	return err
 }
 
-func (n *NATS) processJobStatus(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+func (n *NATS) processJobStatus(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
 	var (
 		req job.ID
 		res job.Status
@@ -522,7 +523,7 @@ func (n *NATS) processJobStatus(ctx context.Context, request *nats.Msg, platform
 	return err
 }
 
-func (n *NATS) processSyncStatus(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+func (n *NATS) processSyncStatus(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
 	var (
 		req string
 		res []string
@@ -535,8 +536,8 @@ func (n *NATS) processSyncStatus(ctx context.Context, request *nats.Msg, platfor
 	return err
 }
 
-func (n *NATS) processNotifyChange(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
-	var req remote.Change
+func (n *NATS) processNotifyChange(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
+	var req api.Change
 	err := encoder.Decode(request.Subject, request.Data, &req)
 	if err == nil {
 		err = platform.NotifyChange(ctx, req)
@@ -545,7 +546,7 @@ func (n *NATS) processNotifyChange(ctx context.Context, request *nats.Msg, platf
 	return err
 }
 
-func (n *NATS) processGitRepoConfig(ctx context.Context, request *nats.Msg, platform remote.Platform) error {
+func (n *NATS) processGitRepoConfig(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
 	var (
 		req bool
 		res flux.GitConfig

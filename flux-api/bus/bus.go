@@ -3,7 +3,7 @@ package bus
 import (
 	"context"
 
-	"github.com/weaveworks/flux/remote"
+	"github.com/weaveworks/flux/api"
 	"github.com/weaveworks/service/flux-api/service"
 )
 
@@ -15,7 +15,7 @@ type Connecter interface {
 	// is returned only if there is a problem (possibly transient)
 	// with the underlying mechanism (i.e., not if the platform is
 	// simply not known to be connected at this time).
-	Connect(inst service.InstanceID) (remote.Platform, error)
+	Connect(inst service.InstanceID) (api.UpstreamServer, error)
 }
 
 // MessageBus handles routing messages to/from the matching platform.
@@ -23,7 +23,7 @@ type MessageBus interface {
 	Connecter
 	// Subscribe registers a platform as the daemon for the instance
 	// specified.
-	Subscribe(ctx context.Context, inst service.InstanceID, p remote.Platform, done chan<- error)
+	Subscribe(ctx context.Context, inst service.InstanceID, s api.UpstreamServer, done chan<- error)
 	// Ping returns nil if the daemon for the instance given is known
 	// to be connected, or ErrPlatformNotAvailable otherwise. NB this
 	// differs from the semantics of `Connecter.Connect`.
