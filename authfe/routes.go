@@ -73,6 +73,18 @@ func ifEmpty(a, b string) string {
 	return b
 }
 
+func newLauncherServiceLogger() HTTPEventExtractor {
+	return func(r *http.Request) (Event, bool) {
+		event := Event{
+			ID:        r.URL.Path,
+			Product:   "launcher-service",
+			UserAgent: r.UserAgent(),
+			IPAddress: mustSplitHostname(r),
+		}
+		return event, true
+	}
+}
+
 func newProbeRequestLogger() HTTPEventExtractor {
 	return func(r *http.Request) (Event, bool) {
 		orgID, err := user.ExtractOrgID(r.Context())
@@ -146,8 +158,12 @@ func newAnalyticsLogger(userIDHeader string) HTTPEventExtractor {
 }
 
 func routes(c Config, authenticator users.UsersClient, ghIntegration *users_client.TokenRequester, eventLogger *EventLogger) (http.Handler, error) {
-	probeHTTPlogger, uiHTTPlogger, analyticsLogger := middleware.Identity, middleware.Identity, middleware.Identity
+	launcherServiceLogger, probeHTTPlogger, uiHTTPlogger, analyticsLogger := middleware.Identity, middleware.Identity, middleware.Identity, middleware.Identity
 	if eventLogger != nil {
+		launcherServiceLogger = HTTPEventLogger{
+			Extractor: newLauncherServiceLogger(),
+			Logger:    eventLogger,
+		}
 		probeHTTPlogger = HTTPEventLogger{
 			Extractor: newProbeRequestLogger(),
 			Logger:    eventLogger,
@@ -268,7 +284,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			[]PrefixRoutable{
 				Prefix{"/", c.launcherServiceHost},
 			},
-			nil,
+			launcherServiceLogger,
 		},
 
 		// special case /demo redirect, which can't be inside a prefix{} rule as otherwise it matches /demo/
