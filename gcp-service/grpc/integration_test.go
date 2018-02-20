@@ -70,6 +70,20 @@ func TestRunKubectlCmd(t *testing.T) {
 	assert.Equal(t, "Dry run: kubectl get pods --all-namespaces (1.8.5-gke.0)", reply.Output)
 }
 
+func TestInstallWeaveCloud(t *testing.T) {
+	client := newClient(t)
+	defer client.Close()
+	reply, err := client.InstallWeaveCloud(context.Background(), &grpc.InstallWeaveCloudRequest{
+		UserID:    "123456",
+		ProjectID: "gke-integration",
+		Zone:      "us-central1-a",
+		ClusterID: "gke-integration",
+		Token:     "abc123",
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, reply)
+}
+
 func newClient(t *testing.T) *grpc.Client {
 	cfg := grpc.Config{HostPort: "gcp-service.weave.local:4772"}
 	client, err := grpc.NewClient(cfg)
