@@ -1,14 +1,11 @@
 package http
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
-
-	"github.com/weaveworks/launcher/pkg/kubectl"
 
 	"github.com/weaveworks/service/common/render"
 	gcprender "github.com/weaveworks/service/gcp-service/render"
@@ -120,21 +117,6 @@ func deserializeStringArray(body io.ReadCloser) ([]string, error) {
 	return strings, nil
 }
 
-// KubectlServiceClient implements kubectl.Client
-type KubectlServiceClient struct {
-	Context   context.Context
-	Service   *service.Service
-	UserID    string
-	ProjectID string
-	Zone      string
-	ClusterID string
-}
-
-// Execute implements kubectl.Client
-func (k KubectlServiceClient) Execute(args ...string) (string, error) {
-	return k.Service.RunKubectlCmd(k.Context, k.UserID, k.ProjectID, k.Zone, k.ClusterID, args)
-}
-
 // InstallWeaveCloud executes the provided kubectl command against the specified cluster.
 func (s Server) InstallWeaveCloud(w http.ResponseWriter, r *http.Request) {
 	userID := mux.Vars(r)[UserID]
@@ -147,35 +129,16 @@ func (s Server) InstallWeaveCloud(w http.ResponseWriter, r *http.Request) {
 	}
 	json.NewDecoder(r.Body).Decode(&payload)
 
-	client := KubectlServiceClient{
-		Context:   r.Context(),
-		Service:   s.Service,
-		UserID:    userID,
-		ProjectID: projectID,
-		Zone:      zone,
-		ClusterID: clusterID,
-	}
-
-	// 1. Create weave namespace
-	_, err := kubectl.CreateNamespace(client, "weave")
+	err := s.Service.InstallWeaveCloud(
+		r.Context(),
+		userID,
+		projectID,
+		zone,
+		clusterID,
+		payload.Token,
+	)
 	if err != nil {
 		render.Error(w, r, err, gcprender.ErrorStatusCode)
-		return
 	}
-
-	// 2. Create weave-cloud token secret
-	_, err = kubectl.CreateSecretFromLiteral(client, "weave", "weave-cloud", "token", payload.Token, true)
-	if err != nil {
-		render.Error(w, r, err, gcprender.ErrorStatusCode)
-		return
-	}
-
-	// 3. Apply agent k8s
-	err = kubectl.Apply(client, "https://get.weave.works/k8s/agent.yaml")
-	if err != nil {
-		render.Error(w, r, err, gcprender.ErrorStatusCode)
-		return
-	}
-
 	render.JSON(w, http.StatusOK, nil)
 }

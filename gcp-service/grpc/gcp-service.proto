@@ -12,6 +12,7 @@ service GCP {
   rpc GetProjects (ProjectsRequest) returns (ProjectsReply) {}
   rpc GetClustersForProject (ClustersRequest) returns (ClustersReply) {}
   rpc RunKubectlCmd (KubectlCmdRequest) returns (KubectlCmdReply) {}
+  rpc InstallWeaveCloud (InstallWeaveCloudRequest) returns (InstallWeaveCloudReply) {}
 }
 
 message ProjectsRequest {
@@ -49,3 +50,13 @@ message KubectlCmdRequest {
 message KubectlCmdReply {
   string output = 1;
 }
+
+message InstallWeaveCloudRequest {
+  string userID = 1;
+  string projectID = 2;
+  string clusterID = 3;
+  string zone = 4;
+  string token = 5;
+}
+
+message InstallWeaveCloudReply {}
