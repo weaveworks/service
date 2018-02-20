@@ -2,7 +2,9 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/weaveworks/service/common/render"
@@ -10,9 +12,6 @@ import (
 	"github.com/weaveworks/service/gcp-service/service"
 
 	"github.com/gorilla/mux"
-
-	"fmt"
-	"io/ioutil"
 )
 
 // Server handles HTTP requests/responses, but delegates actual servicing of requests to... Service.
@@ -45,6 +44,9 @@ func (s Server) RegisterRoutes(r *mux.Router) {
 
 		// Run the provided kubectl command (as a JSON array in the request's body) to the specified GKE cluster (belonging to the specified user, and existing in the specified zone):
 		{"users_projects_clusters_zones_kubectl", "POST", fmt.Sprintf("/api/gcp/users/{%v}/projects/{%v}/clusters/{%v}/zones/{%v}/kubectl", UserID, ProjectID, ClusterID, Zone), s.RunKubectlCmd},
+
+		// Install Weave Cloud to the specified GKE cluster (belonging to the specified user, and existing in the specified zone):
+		{"users_projects_clusters_zones_install", "POST", fmt.Sprintf("/api/gcp/users/{%v}/projects/{%v}/clusters/{%v}/zones/{%v}/install", UserID, ProjectID, ClusterID, Zone), s.InstallWeaveCloud},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
@@ -113,4 +115,30 @@ func deserializeStringArray(body io.ReadCloser) ([]string, error) {
 		return nil, err
 	}
 	return strings, nil
+}
+
+// InstallWeaveCloud executes the provided kubectl command against the specified cluster.
+func (s Server) InstallWeaveCloud(w http.ResponseWriter, r *http.Request) {
+	userID := mux.Vars(r)[UserID]
+	projectID := mux.Vars(r)[ProjectID]
+	zone := mux.Vars(r)[Zone]
+	clusterID := mux.Vars(r)[ClusterID]
+
+	var payload struct {
+		WeaveCloudToken string `json:"weaveCloudToken"`
+	}
+	json.NewDecoder(r.Body).Decode(&payload)
+
+	err := s.Service.InstallWeaveCloud(
+		r.Context(),
+		userID,
+		projectID,
+		zone,
+		clusterID,
+		payload.WeaveCloudToken,
+	)
+	if err != nil {
+		render.Error(w, r, err, gcprender.ErrorStatusCode)
+	}
+	render.JSON(w, http.StatusOK, nil)
 }

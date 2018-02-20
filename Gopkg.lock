@@ -759,6 +759,12 @@
   revision = "dfd6bc5ff64d31b343d10e26f64a1fab24fa0fdf"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/weaveworks/launcher"
+  packages = ["pkg/kubectl"]
+  revision = "985a36f4b7b460258bddad25024aa4f06baa7ec7"
+
+[[projects]]
   name = "github.com/weaveworks/promrus"
   packages = ["."]
   revision = "0599d764e054d4e983bb120e30759179fafe3942"
@@ -987,6 +993,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "aa01ceac8911ee0e9df68efdb53a6b7770550f2da202b69f531bfdced9bee125"
+  inputs-digest = "fdb49a818cae48182a02e9103939b0da1236cc9a562b10496dc00fa2838c0237"
   solver-name = "gps-cdcl"
   solver-version = 1

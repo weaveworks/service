@@ -63,6 +63,11 @@ func (c Client) RunKubectlCmd(ctx context.Context, in *KubectlCmdRequest, opts .
 	return c.client.RunKubectlCmd(ctx, in, opts...)
 }
 
+// InstallWeaveCloud installs Weave Cloud against the specified cluster.
+func (c Client) InstallWeaveCloud(ctx context.Context, in *InstallWeaveCloudRequest, opts ...googlegrpc.CallOption) (*Empty, error) {
+	return c.client.InstallWeaveCloud(ctx, in, opts...)
+}
+
 // Close closes the underlying TCP connection for to the remote gRPC server.
 func (c *Client) Close() {
 	c.conn.Close()

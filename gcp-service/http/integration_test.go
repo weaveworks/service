@@ -45,6 +45,12 @@ func TestRunKubectlCmd(t *testing.T) {
 	assert.Equal(t, "\"Dry run: kubectl get pods --all-namespaces (1.8.5-gke.0)\"\n", resp)
 }
 
+func TestInstallWeaveCloud(t *testing.T) {
+	post(t, "/api/gcp/users/123456/projects/gke-integration/clusters/gke-integration/zones/us-central1-a/install", map[string]string{
+		"weaveCloudToken": "abc123",
+	})
+}
+
 const baseURL = "http://gcp-service.weave.local"
 
 func get(t *testing.T, endpoint string) string {
@@ -52,8 +58,8 @@ func get(t *testing.T, endpoint string) string {
 	return read(t, resp, err)
 }
 
-func post(t *testing.T, endpoint string, args []string) string {
-	body, err := json.Marshal(args)
+func post(t *testing.T, endpoint string, data interface{}) string {
+	body, err := json.Marshal(data)
 	assert.NoError(t, err)
 	resp, err := http.Post(baseURL+endpoint, "application/json", bytes.NewBuffer(body))
 	return read(t, resp, err)
