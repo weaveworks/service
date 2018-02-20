@@ -317,6 +317,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				PrefixMethods{"/api/notification/testevent", []string{"POST"}, c.notificationEventHost},
 				Prefix{"/api/notification/sender", c.notificationSenderHost},
 				Prefix{"/api/gcp/users", c.gcpServiceHost},
+				Prefix{"/api/dashboard", c.dashboardHost},
 				Prefix{"/api", c.queryHost},
 
 				// Catch-all forward to query service, which is a Scope instance that we

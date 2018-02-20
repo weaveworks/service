@@ -42,6 +42,7 @@ type Config struct {
 	billingUIHost          proxyConfig
 	collectionHost         proxyConfig
 	controlHost            proxyConfig
+	dashboardHost          proxyConfig
 	demoHost               proxyConfig
 	fluxHost               proxyConfig
 	gcpServiceHost         proxyConfig
@@ -91,6 +92,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"billing-ui":           &c.billingUIHost,
 		"collection":           &c.collectionHost,
 		"control":              &c.controlHost,
+		"dashboard":            &c.dashboardHost,
 		"demo":                 &c.demoHost,
 		"flux":                 &c.fluxHost,
 		"gcp-launcher-webhook": &c.gcpWebhookHost,
