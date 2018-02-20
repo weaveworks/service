@@ -194,6 +194,10 @@ message Organization {
     string TeamExternalID = 19;
     google.protobuf.Timestamp DeletedAt = 20 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
     bool Cleanup = 21;
+    google.protobuf.Timestamp FirstSeenFluxConnectedAt = 22 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+    google.protobuf.Timestamp FirstSeenNetConnectedAt = 23 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+    google.protobuf.Timestamp FirstSeenPromConnectedAt = 24 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+    google.protobuf.Timestamp FirstSeenScopeConnectedAt = 25 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
 }
 
 message GoogleCloudPlatform {

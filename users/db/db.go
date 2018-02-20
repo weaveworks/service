@@ -95,6 +95,10 @@ type DB interface {
 	SetOrganizationRefuseDataAccess(ctx context.Context, externalID string, value bool) error
 	SetOrganizationRefuseDataUpload(ctx context.Context, externalID string, value bool) error
 	SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error
+	SetOrganizationFirstSeenFluxConnectedAt(ctx context.Context, externalID string, value *time.Time) error
+	SetOrganizationFirstSeenNetConnectedAt(ctx context.Context, externalID string, value *time.Time) error
+	SetOrganizationFirstSeenPromConnectedAt(ctx context.Context, externalID string, value *time.Time) error
+	SetOrganizationFirstSeenScopeConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error
 
 	// CreateOrganizationWithGCP creates an organization with an inactive GCP account attached to it.

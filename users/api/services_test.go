@@ -130,7 +130,8 @@ func assertGetOrgServiceStatus(t *testing.T, sparse bool, user *users.User, org 
 		cfg.Net.NumberOfPeers > 0), body["connected"])
 	assert.Equal(t, now, body["firstSeenConnectedAt"])
 	assert.Equal(t, map[string]interface{}{
-		"fluxsvc": map[string]interface{}{},
+		"firstSeenConnectedAt": now,
+		"fluxsvc":              map[string]interface{}{},
 		"fluxd": map[string]interface{}{
 			"connected": cfg.Flux.Connected,
 		},
@@ -139,9 +140,9 @@ func assertGetOrgServiceStatus(t *testing.T, sparse bool, user *users.User, org 
 			"config":     nil,
 		},
 	}, body["flux"])
-	assertCount(t, 1, sparse, cfg.Scope.NumberOfProbes, body["scope"], "numberOfProbes")
+	assertCount(t, 2, sparse, cfg.Scope.NumberOfProbes, body["scope"], "numberOfProbes")
 	assertCount(t, -1, sparse, cfg.Prom.NumberOfMetrics, body["prom"], "numberOfMetrics")
-	assertCount(t, 1, sparse, cfg.Net.NumberOfPeers, body["net"], "numberOfPeers")
+	assertCount(t, 2, sparse, cfg.Net.NumberOfPeers, body["net"], "numberOfPeers")
 }
 
 func testGetOrgServiceStatus(t *testing.T, sparse bool) {
