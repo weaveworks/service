@@ -64,7 +64,7 @@ func (c Client) RunKubectlCmd(ctx context.Context, in *KubectlCmdRequest, opts .
 }
 
 // InstallWeaveCloud installs Weave Cloud against the specified cluster.
-func (c Client) InstallWeaveCloud(ctx context.Context, in *InstallWeaveCloudRequest, opts ...googlegrpc.CallOption) (*InstallWeaveCloudReply, error) {
+func (c Client) InstallWeaveCloud(ctx context.Context, in *InstallWeaveCloudRequest, opts ...googlegrpc.CallOption) (*Empty, error) {
 	return c.client.InstallWeaveCloud(ctx, in, opts...)
 }
 

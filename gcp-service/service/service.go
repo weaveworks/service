@@ -130,7 +130,7 @@ func (s Service) gkeClientFor(userID string) (gke.Client, error) {
 	return s.GKEClientFactory(token)
 }
 
-// KubectlServiceClient implements kubectl.Client
+// KubectlServiceClient implements github.com/weaveworks/launcher/pkg/kubectl.Client
 type KubectlServiceClient struct {
 	Context   context.Context
 	Service   Service
@@ -140,13 +140,13 @@ type KubectlServiceClient struct {
 	ClusterID string
 }
 
-// Execute implements kubectl.Client
+// Execute implements github.com/weaveworks/launcher/pkg/kubectl.Client
 func (k KubectlServiceClient) Execute(args ...string) (string, error) {
 	return k.Service.RunKubectlCmd(k.Context, k.UserID, k.ProjectID, k.Zone, k.ClusterID, args)
 }
 
 // InstallWeaveCloud executes the provided kubectl command against the specified cluster.
-func (s Service) InstallWeaveCloud(ctx context.Context, userID, projectID, zone, clusterID, token string) error {
+func (s Service) InstallWeaveCloud(ctx context.Context, userID, projectID, zone, clusterID, weaveCloudToken string) error {
 	// Create client which implements kubectl.Client so we can use our kubectl pkg helpers
 	client := KubectlServiceClient{
 		Context:   ctx,
@@ -164,7 +164,7 @@ func (s Service) InstallWeaveCloud(ctx context.Context, userID, projectID, zone,
 	}
 
 	// 2. Create weave-cloud token secret
-	_, err = kubectl.CreateSecretFromLiteral(client, "weave", "weave-cloud", "token", token, true)
+	_, err = kubectl.CreateSecretFromLiteral(client, "weave", "weave-cloud", "token", weaveCloudToken, true)
 	if err != nil {
 		return err
 	}

@@ -65,10 +65,10 @@ func (s Server) RunKubectlCmd(ctx context.Context, req *KubectlCmdRequest) (*Kub
 }
 
 // InstallWeaveCloud installs Weave Cloud against the specified cluster.
-func (s Server) InstallWeaveCloud(ctx context.Context, req *InstallWeaveCloudRequest) (*InstallWeaveCloudReply, error) {
-	err := s.Service.InstallWeaveCloud(ctx, req.UserID, req.ProjectID, req.Zone, req.ClusterID, req.Token)
+func (s Server) InstallWeaveCloud(ctx context.Context, req *InstallWeaveCloudRequest) (*Empty, error) {
+	err := s.Service.InstallWeaveCloud(ctx, req.UserID, req.ProjectID, req.Zone, req.ClusterID, req.WeaveCloudToken)
 	if err != nil {
 		return nil, err
 	}
-	return &InstallWeaveCloudReply{}, nil
+	return &Empty{}, nil
 }

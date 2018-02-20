@@ -125,7 +125,7 @@ func (s Server) InstallWeaveCloud(w http.ResponseWriter, r *http.Request) {
 	clusterID := mux.Vars(r)[ClusterID]
 
 	var payload struct {
-		Token string `json:"token"`
+		WeaveCloudToken string `json:"weaveCloudToken"`
 	}
 	json.NewDecoder(r.Body).Decode(&payload)
 
@@ -135,7 +135,7 @@ func (s Server) InstallWeaveCloud(w http.ResponseWriter, r *http.Request) {
 		projectID,
 		zone,
 		clusterID,
-		payload.Token,
+		payload.WeaveCloudToken,
 	)
 	if err != nil {
 		render.Error(w, r, err, gcprender.ErrorStatusCode)

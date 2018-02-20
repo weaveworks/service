@@ -74,11 +74,11 @@ func TestInstallWeaveCloud(t *testing.T) {
 	client := newClient(t)
 	defer client.Close()
 	reply, err := client.InstallWeaveCloud(context.Background(), &grpc.InstallWeaveCloudRequest{
-		UserID:    "123456",
-		ProjectID: "gke-integration",
-		Zone:      "us-central1-a",
-		ClusterID: "gke-integration",
-		Token:     "abc123",
+		UserID:          "123456",
+		ProjectID:       "gke-integration",
+		Zone:            "us-central1-a",
+		ClusterID:       "gke-integration",
+		WeaveCloudToken: "abc123",
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, reply)

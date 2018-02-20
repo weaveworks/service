@@ -47,7 +47,7 @@ func TestRunKubectlCmd(t *testing.T) {
 
 func TestInstallWeaveCloud(t *testing.T) {
 	post(t, "/api/gcp/users/123456/projects/gke-integration/clusters/gke-integration/zones/us-central1-a/install", map[string]string{
-		"token": "abc123",
+		"weaveCloudToken": "abc123",
 	})
 }
 
