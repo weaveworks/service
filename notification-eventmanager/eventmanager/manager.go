@@ -3,6 +3,7 @@ package eventmanager
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -24,7 +25,8 @@ import (
 
 	"github.com/weaveworks/blackfriday"
 	"github.com/weaveworks/common/user"
-	"github.com/weaveworks/service/notification-configmanager/types"
+	"github.com/weaveworks/service/notification-eventmanager/types"
+	"github.com/weaveworks/service/notification-eventmanager/utils"
 	"github.com/weaveworks/service/notification-sender"
 	"github.com/weaveworks/service/users"
 )
@@ -52,14 +54,14 @@ var (
 		Help: "Number of incoming event requests not allowed because of rate limit.",
 	}, []string{"method", "path"})
 
-	eventsToConfigmanagerTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "events_to_configmanager_total",
-		Help: "Number of events sent to configmanager.",
+	eventsToDBTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "events_to_db_total",
+		Help: "Number of events sent to db.",
 	}, []string{"event_type"})
 
-	eventsToConfigmanagerError = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "event_to_configmanager_errors_total",
-		Help: "Number of errors sending event to configmanager.",
+	eventsToDBError = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "event_to_db_errors_total",
+		Help: "Number of errors sending event to db.",
 	}, []string{"event_type"})
 
 	eventsToSQSTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -71,27 +73,23 @@ var (
 		Name: "event_to_sqs_errors_total",
 		Help: "Number of errors enqueueing notification batches into SQS.",
 	}, []string{"event_type"})
+
+	databaseRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "notification",
+		Name:      "database_request_duration_seconds",
+		Help:      "Time spent (in seconds) doing database requests.",
+		Buckets:   prometheus.DefBuckets,
+	}, []string{"method", "status_code"})
 )
 
-// ConfigManager gets receivers for specified event type and instance
-type ConfigManager interface {
-	GetReceiversForEvent(ctx context.Context, instance string, eventType string) ([]types.Receiver, error)
-	PostEvent(ctx context.Context, e types.Event) error
-}
-
-// Config for event manager contains ConfigManager and SQS queue to send notifications
-type Config struct {
-	ConfigManager ConfigManager
-	SQSClient     sqsiface.SQSAPI
-	SQSQueue      string
-	UsersClient   users.UsersClient
-}
-
-// EventManager contains config with info to send notifications to SQS queue
+// EventManager contains Users service client, DB connection and SQS queue to store events into DB and send notifications to SQS queue
 type EventManager struct {
-	config  Config
-	wg      sync.WaitGroup
-	limiter *rate.Limiter
+	UsersClient users.UsersClient
+	DB          *utils.DB
+	SQSClient   sqsiface.SQSAPI
+	SQSQueue    string
+	wg          sync.WaitGroup
+	limiter     *rate.Limiter
 }
 
 func init() {
@@ -99,18 +97,49 @@ func init() {
 		requestsTotal,
 		requestsError,
 		rateLimitedRequests,
-		eventsToConfigmanagerTotal,
-		eventsToConfigmanagerError,
+		eventsToDBTotal,
+		eventsToDBError,
 		eventsToSQSTotal,
 		eventsToSQSError,
+		databaseRequestDuration,
 	)
 }
 
 // New creates new EventManager
-func New(c Config) *EventManager {
+func New(usersClient users.UsersClient, db *sql.DB, sqsClient sqsiface.SQSAPI, sqsQueue string) *EventManager {
 	return &EventManager{
-		config:  c,
-		limiter: rate.NewLimiter(ratelimit, ratelimit),
+		UsersClient: usersClient,
+		DB:          utils.NewDB(db, databaseRequestDuration),
+		SQSClient:   sqsClient,
+		SQSQueue:    sqsQueue,
+		limiter:     rate.NewLimiter(ratelimit, ratelimit),
+	}
+}
+
+// Register HTTP handlers
+func (em *EventManager) Register(r *mux.Router) {
+	for _, route := range []struct {
+		name, method, path string
+		handler            http.Handler
+	}{
+		{"list_event_types", "GET", "/api/notification/config/eventtypes", withNoArgs(em.httpListEventTypes)},
+		{"list_receivers", "GET", "/api/notification/config/receivers", withInstance(em.listReceivers)},
+		{"create_receiver", "POST", "/api/notification/config/receivers", withInstance(em.httpCreateReceiver)},
+		{"get_receiver", "GET", "/api/notification/config/receivers/{id}", withInstanceAndID(em.getReceiver)},
+		{"update_receiver", "PUT", "/api/notification/config/receivers/{id}", withInstanceAndID(em.updateReceiver)},
+		{"delete_receiver", "DELETE", "/api/notification/config/receivers/{id}", withInstanceAndID(em.deleteReceiver)},
+		{"get_events", "GET", "/api/notification/events", withInstance(em.getEvents)},
+
+		// Internal API
+		{"create_test_event", "POST", "/api/notification/testevent", em.RateLimited(em.TestEventHandler)},
+		{"create_event", "POST", "/api/notification/events", em.RateLimited(em.EventHandler)},
+		{"create_slack_event", "POST", "/api/notification/slack/{instanceID}/{eventType}", em.RateLimited(em.SlackHandler)},
+		{"health_check", "GET", "/api/notification/events/healthcheck", http.HandlerFunc(em.HandleHealthCheck)},
+
+		// External API - reachable from outside Weave Cloud cluster
+		{"create_event_external", "POST", "/api/notification/external/events", em.RateLimited(em.EventHandler)},
+	} {
+		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}
 }
 
@@ -136,7 +165,7 @@ func (em *EventManager) SendNotificationBatchesToQueue(ctx context.Context, e ty
 		em.wg.Add(1)
 		go func() {
 			defer em.wg.Done()
-			_, err = em.config.SQSClient.SendMessageBatch(sendInp)
+			_, err = em.SQSClient.SendMessageBatch(sendInp)
 			if err != nil {
 				log.Errorf("cannot send to SQS queue batch input, error: %s", err)
 				eventsToSQSError.With(prometheus.Labels{"event_type": e.Type}).Inc()
@@ -150,7 +179,7 @@ func (em *EventManager) SendNotificationBatchesToQueue(ctx context.Context, e ty
 }
 
 func (em *EventManager) getNotifications(ctx context.Context, e types.Event) ([]types.Notification, error) {
-	receivers, err := em.config.ConfigManager.GetReceiversForEvent(ctx, e.InstanceID, e.Type)
+	receivers, err := em.GetReceiversForEvent(e)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get receivers for event %v", e)
 	}
@@ -203,7 +232,7 @@ func (em *EventManager) notificationBatchToSendInput(batch []types.Notification)
 	}
 	return &sqs.SendMessageBatchInput{
 		Entries:  entries,
-		QueueUrl: &em.config.SQSQueue,
+		QueueUrl: &em.SQSQueue,
 	}, nil
 }
 
@@ -216,8 +245,8 @@ func notificationToString(n types.Notification) (string, error) {
 	return string(raw), nil
 }
 
-// IsStatusErrorCode returns true if the error has the given status code.
-func IsStatusErrorCode(err error, code int) bool {
+// isStatusErrorCode returns true if the error has the given status code.
+func isStatusErrorCode(err error, code int) bool {
 	st, ok := status.FromError(err)
 	if !ok {
 		return false
@@ -237,12 +266,12 @@ func (em *EventManager) TestEventHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	instanceData, err := em.config.UsersClient.GetOrganization(r.Context(), &users.GetOrganizationRequest{
+	instanceData, err := em.UsersClient.GetOrganization(r.Context(), &users.GetOrganizationRequest{
 		ID: &users.GetOrganizationRequest_InternalID{InternalID: instanceID},
 	})
 
 	if err != nil {
-		if IsStatusErrorCode(err, http.StatusNotFound) {
+		if isStatusErrorCode(err, http.StatusNotFound) {
 			log.Warnf("instance name for ID %s not found for test event", instanceID)
 			http.Error(w, "Instance not found", http.StatusNotFound)
 			requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusNotFound)}).Inc()
@@ -257,7 +286,7 @@ func (em *EventManager) TestEventHandler(w http.ResponseWriter, r *http.Request)
 	instanceName := instanceData.Organization.Name
 	etype := "user_test"
 
-	sdMsg, err := GetStackdriverMessage(json.RawMessage(`"A test event triggered from Weave Cloud!"`), etype, instanceName)
+	sdMsg, err := getStackdriverMessage(json.RawMessage(`"A test event triggered from Weave Cloud!"`), etype, instanceName)
 	if err != nil {
 		log.Errorf("error getting stackdriver message for test event: %s", err)
 		http.Error(w, "unable to get stackdriver message", http.StatusInternalServerError)
@@ -277,7 +306,7 @@ func (em *EventManager) TestEventHandler(w http.ResponseWriter, r *http.Request)
 		},
 	}
 
-	if err := em.postAndSend(r.Context(), testEvent); err != nil {
+	if err := em.storeAndSend(r.Context(), testEvent); err != nil {
 		log.Errorf("cannot post and send test event, error: %s", err)
 		http.Error(w, "Failed handle event", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
@@ -334,7 +363,7 @@ func (em *EventManager) EventHandler(w http.ResponseWriter, r *http.Request) {
 		e.Timestamp = time.Now()
 	}
 
-	if err := em.postAndSend(r.Context(), e); err != nil {
+	if err := em.storeAndSend(r.Context(), e); err != nil {
 		log.Errorf("cannot post and send %s event, error: %s", e.Type, err)
 		http.Error(w, "Failed handle event", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
@@ -373,11 +402,11 @@ func (em *EventManager) SlackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Debugf("instanceID = %s", instanceID)
 
-	instanceData, err := em.config.UsersClient.GetOrganization(r.Context(), &users.GetOrganizationRequest{
+	instanceData, err := em.UsersClient.GetOrganization(r.Context(), &users.GetOrganizationRequest{
 		ID: &users.GetOrganizationRequest_InternalID{InternalID: instanceID},
 	})
 	if err != nil {
-		if IsStatusErrorCode(err, http.StatusNotFound) {
+		if isStatusErrorCode(err, http.StatusNotFound) {
 			log.Warnf("instance name for ID %s not found for event type %s", instanceID, eventType)
 			http.Error(w, "Instance not found", http.StatusNotFound)
 			requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusNotFound)}).Inc()
@@ -414,7 +443,7 @@ func (em *EventManager) SlackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := em.postAndSend(r.Context(), e); err != nil {
+	if err := em.storeAndSend(r.Context(), e); err != nil {
 		log.Errorf("cannot post and send %s event, error: %s", e.Type, err)
 		http.Error(w, "Failed handle event", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
@@ -424,12 +453,13 @@ func (em *EventManager) SlackHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (em *EventManager) postAndSend(ctx context.Context, ev types.Event) error {
-	if err := em.config.ConfigManager.PostEvent(ctx, ev); err != nil {
-		eventsToConfigmanagerError.With(prometheus.Labels{"event_type": ev.Type}).Inc()
-		return errors.Wrapf(err, "cannot post event to config manager")
+// storeAndSend stores event in DB and sends notification batches for this event to SQS
+func (em *EventManager) storeAndSend(ctx context.Context, ev types.Event) error {
+	if err := em.CreateEvent(ev); err != nil {
+		eventsToDBError.With(prometheus.Labels{"event_type": ev.Type}).Inc()
+		return errors.Wrapf(err, "cannot store event in DB")
 	}
-	eventsToConfigmanagerTotal.With(prometheus.Labels{"event_type": ev.Type}).Inc()
+	eventsToDBTotal.With(prometheus.Labels{"event_type": ev.Type}).Inc()
 
 	if err := em.SendNotificationBatchesToQueue(ctx, ev); err != nil {
 		eventsToSQSError.With(prometheus.Labels{"event_type": ev.Type}).Inc()
@@ -445,17 +475,17 @@ func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceN
 	allText := getAllMarkdownText(sm, instanceName)
 	html := string(blackfriday.MarkdownBasic([]byte(allText)))
 
-	emailMsg, err := GetEmailMessage(html, etype, instanceName)
+	emailMsg, err := getEmailMessage(html, etype, instanceName)
 	if err != nil {
 		return event, errors.Wrap(err, "cannot get email message")
 	}
 
-	browserMsg, err := GetBrowserMessage(sm.Text, sm.Attachments, etype)
+	browserMsg, err := getBrowserMessage(sm.Text, sm.Attachments, etype)
 	if err != nil {
 		return event, errors.Wrap(err, "cannot get email message")
 	}
 
-	stackdriverMsg, err := GetStackdriverMessage(json.RawMessage(body), etype, instanceName)
+	stackdriverMsg, err := getStackdriverMessage(json.RawMessage(body), etype, instanceName)
 	if err != nil {
 		return event, errors.Wrap(err, "cannot get stackdriver message")
 	}
@@ -481,7 +511,7 @@ func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceN
 }
 
 // GetBrowserMessage returns messaage for browser
-func GetBrowserMessage(msg string, attachments []types.SlackAttachment, etype string) (json.RawMessage, error) {
+func getBrowserMessage(msg string, attachments []types.SlackAttachment, etype string) (json.RawMessage, error) {
 	bm := types.BrowserMessage{
 		Type:        etype,
 		Text:        msg,
@@ -498,12 +528,11 @@ func GetBrowserMessage(msg string, attachments []types.SlackAttachment, etype st
 }
 
 // GetEmailMessage returns message for email
-func GetEmailMessage(msg, etype, instanceName string) (json.RawMessage, error) {
+func getEmailMessage(msg, etype, instanceName string) (json.RawMessage, error) {
 	em := types.EmailMessage{
 		Subject: fmt.Sprintf("%v - %v", instanceName, etype),
 		Body:    msg,
 	}
-	log.Infof("email subject: %v", em.Subject)
 
 	msgRaw, err := json.Marshal(em)
 	if err != nil {
@@ -514,7 +543,7 @@ func GetEmailMessage(msg, etype, instanceName string) (json.RawMessage, error) {
 }
 
 // GetStackdriverMessage returns message for stackdriver
-func GetStackdriverMessage(msg json.RawMessage, etype string, instanceName string) (json.RawMessage, error) {
+func getStackdriverMessage(msg json.RawMessage, etype string, instanceName string) (json.RawMessage, error) {
 	sdMsg := types.StackdriverMessage{
 		Timestamp: time.Now(),
 		Payload:   msg,
@@ -529,9 +558,10 @@ func GetStackdriverMessage(msg json.RawMessage, etype string, instanceName strin
 	return msgRaw, nil
 }
 
+// GetAllMarkdownText returns all text in markdown format from slack message (text and attachments)
 func getAllMarkdownText(sm types.SlackMessage, instanceName string) string {
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("Instance: %v%s", instanceName, markdownNewParagraph))
+	buf.WriteString(fmt.Sprintf("Instance: %s%s", instanceName, markdownNewParagraph))
 	if sm.Text != "" {
 		// a slack message might contain \n for new lines
 		// replace it with markdown line break

@@ -16,7 +16,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/weaveworks/service/notification-configmanager/types"
+	"github.com/weaveworks/service/notification-eventmanager/types"
 )
 
 const (
@@ -175,9 +175,6 @@ func main() {
 		log.SetLevel(log.InfoLevel)
 	}
 	log.SetLevel(level)
-
-	err = healthCheck("http://configmanager/api/notification/config/healthcheck")
-	assertNoError(err, "configmanager has not responded")
 
 	err = healthCheck("http://eventmanager/api/notification/events/healthcheck")
 	assertNoError(err, "eventmanager has not responded")
@@ -388,7 +385,7 @@ func createEvent(orgID string, event types.Event) error {
 }
 
 func listEventTypes() ([]types.EventType, error) {
-	data, err := doReq("http://configmanager/api/notification/config/eventtypes", "GET", "", nil)
+	data, err := doReq("http://eventmanager/api/notification/config/eventtypes", "GET", "", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot get event types")
 	}
@@ -403,7 +400,7 @@ func listEventTypes() ([]types.EventType, error) {
 }
 
 func deleteReceiver(receiverID, orgID string) error {
-	url := fmt.Sprintf("http://configmanager/api/notification/config/receivers/%s", receiverID)
+	url := fmt.Sprintf("http://eventmanager/api/notification/config/receivers/%s", receiverID)
 
 	_, err := doReq(url, "DELETE", orgID, nil)
 	if err != nil {
@@ -415,7 +412,7 @@ func deleteReceiver(receiverID, orgID string) error {
 
 func updateReceiver(receiverID, orgID string, eventTypes []string, address json.RawMessage) error {
 	log.Debugf("id = %s", receiverID)
-	url := fmt.Sprintf("http://configmanager/api/notification/config/receivers/%s", receiverID)
+	url := fmt.Sprintf("http://eventmanager/api/notification/config/receivers/%s", receiverID)
 	log.Debugf("url = %s", url)
 	r, err := getReceiver(orgID, receiverID)
 	if err != nil {
@@ -444,7 +441,7 @@ func updateReceiver(receiverID, orgID string, eventTypes []string, address json.
 
 func getReceiver(orgID, receiverID string) (types.Receiver, error) {
 	var r types.Receiver
-	url := fmt.Sprintf("http://configmanager/api/notification/config/receivers/%s", receiverID)
+	url := fmt.Sprintf("http://eventmanager/api/notification/config/receivers/%s", receiverID)
 	log.Debugf("url = %s", url)
 	data, err := doReq(url, "GET", orgID, nil)
 	if err != nil {
@@ -461,7 +458,7 @@ func getReceiver(orgID, receiverID string) (types.Receiver, error) {
 }
 
 func listReceivers(orgID string) ([]types.Receiver, error) {
-	data, err := doReq("http://configmanager/api/notification/config/receivers", "GET", orgID, nil)
+	data, err := doReq("http://eventmanager/api/notification/config/receivers", "GET", orgID, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot get receivers")
 	}
@@ -485,7 +482,7 @@ func createReceiver(orgID string, rtype string, address json.RawMessage) (string
 		return "", errors.Wrapf(err, "cannot marshal receiver %s", r)
 	}
 
-	receiverID, err := doReq("http://configmanager/api/notification/config/receivers", "POST", orgID, data)
+	receiverID, err := doReq("http://eventmanager/api/notification/config/receivers", "POST", orgID, data)
 	if err != nil {
 		return "", errors.Wrap(err, "cannot create receiver")
 	}
@@ -502,7 +499,7 @@ func createReceiver(orgID string, rtype string, address json.RawMessage) (string
 }
 
 func getEvents(orgID string) ([]types.Event, error) {
-	data, err := doReq("http://configmanager/api/notification/events", "GET", orgID, nil)
+	data, err := doReq("http://eventmanager/api/notification/events", "GET", orgID, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot get events")
 	}

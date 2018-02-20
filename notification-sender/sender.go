@@ -20,7 +20,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/user"
-	"github.com/weaveworks/service/notification-configmanager/types"
+	"github.com/weaveworks/service/notification-eventmanager/types"
 )
 
 // RetriableError is error after sending notification when sender will retry sending again

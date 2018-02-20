@@ -9,7 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/weaveworks/service/notification-configmanager/types"
+	"github.com/weaveworks/service/notification-eventmanager/types"
 	gomail "gopkg.in/gomail.v2"
 )
 

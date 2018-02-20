@@ -8,17 +8,6 @@ services:
    environment:
     - POSTGRES_DB=notifications
 
-  configmanager:
-    depends_on:
-     - config-db
-    image: quay.io/weaveworks/notification-configmanager
-    command: |
-      -database.uri=postgres://postgres@config-db/notifications?sslmode=disable -database.migrations=/migrations -eventtypes=/mnt/eventtypes.json -eventManagerURL=http://eventmanager
-    volumes:
-      - ./eventtypes.json:/mnt/eventtypes.json
-    ports:
-      - "8082:80"
-
   sqslocal:
     image: "pakohan/elasticmq"
     expose:
@@ -41,10 +30,12 @@ services:
   eventmanager:
     depends_on:
       - sqslocal
-      - configmanager
+      - config-db
     image: quay.io/weaveworks/notification-eventmanager
     command: |
-      -log.level=info -sqsURL=sqs://user:password@sqslocal:9324/events -configManagerURL=http://configmanager -usersServiceURL=mock
+      -log.level=info -sqsURL=sqs://user:password@sqslocal:9324/events -usersServiceURL=mock -database.uri=postgres://postgres@config-db/notifications?sslmode=disable -database.migrations=/migrations -eventtypes=/mnt/eventtypes.json
+    volumes:
+      - ./eventtypes.json:/mnt/eventtypes.json
 
   sender:
     depends_on:
@@ -57,7 +48,6 @@ services:
 
   tester:
     depends_on:
-      - configmanager
       - eventmanager
       - sender
     image: notification-integrationtest

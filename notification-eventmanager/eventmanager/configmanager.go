@@ -1,13 +1,11 @@
-package configmanager
+package eventmanager
 
 import (
 	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
-	"flag"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -18,220 +16,29 @@ import (
 	"time"
 
 	"github.com/badoux/checkmail"
-	"github.com/gorilla/mux"
 	"github.com/lib/pq" // Import the postgres sql driver
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
 	uuid "github.com/satori/go.uuid"
-
 	log "github.com/sirupsen/logrus"
-	"github.com/weaveworks/common/user"
-	"github.com/weaveworks/service/common/users"
-	"github.com/weaveworks/service/notification-configmanager/types"
-	"github.com/weaveworks/service/notification-configmanager/utils"
-	"github.com/weaveworks/service/notification-eventmanager"
+	"github.com/weaveworks/service/notification-eventmanager/types"
+	"github.com/weaveworks/service/notification-eventmanager/utils"
 	serviceUsers "github.com/weaveworks/service/users"
-	usersClient "github.com/weaveworks/service/users/client"
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // Import the postgres migrations driver
-	"gopkg.in/mattes/migrate.v1/migrate"
 )
 
 const (
 	// MaxEventsList is the highest number of events that can be requested in one list call
 	MaxEventsList = 100
-	// timeout waiting for database connection to be established
-	dbConnectTimeout = 5 * time.Minute
 )
 
 var (
 	// isWebHookPath regexp checks string contains only letters, numbers and slashes
 	// for url.Path in slack webhook (services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX)
-	isWebHookPath           = regexp.MustCompile(`^[A-Za-z0-9\/]+$`).MatchString
-	databaseRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "notification",
-		Name:      "database_request_duration_seconds",
-		Help:      "Time spent (in seconds) doing database requests.",
-		Buckets:   prometheus.DefBuckets,
-	}, []string{"method", "status_code"})
-
-	eventsToEventmanagerTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "events_to_eventmanager_total",
-		Help: "Number of events sent to eventmanager.",
-	}, []string{"event_type"})
-	eventsToEventmanagerError = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "event_to_eventmanager_errors_total",
-		Help: "Number of errors sending event to eventmanager.",
-	}, []string{"event_type"})
+	isWebHookPath = regexp.MustCompile(`^[A-Za-z0-9\/]+$`).MatchString
 )
 
-func init() {
-	prometheus.MustRegister(
-		databaseRequestDuration,
-		eventsToEventmanagerTotal,
-		eventsToEventmanagerError,
-	)
-	rand.Seed(time.Now().UnixNano()) // set seed for retry function
-}
-
-// https://upgear.io/blog/simple-golang-retry-function/
-func retry(attempts int, sleep time.Duration, f func() error) error {
-	if err := f(); err != nil {
-		if s, ok := err.(stop); ok {
-			// Return the original error for later checking
-			return s.error
-		}
-
-		if attempts--; attempts > 0 {
-			// Add some randomness to prevent creating a Thundering Herd
-			jitter := time.Duration(rand.Int63n(int64(sleep)))
-			sleep = sleep + jitter/2
-
-			time.Sleep(sleep)
-			return retry(attempts, 2*sleep, f) // exponential backoff
-		}
-		return err
-	}
-
-	return nil
-}
-
-type stop struct {
-	error
-}
-
-// Config is the configuration for Config Manager, not to be confused with the user configs it manages!
-type Config struct {
-	databaseURI     string
-	migrationsDir   string
-	eventTypesPath  string
-	eventManagerURL string
-	usersServiceURL string
-}
-
-// RegisterFlags registers CLI flags to configure a Config Manager
-func (c *Config) RegisterFlags() {
-	flag.StringVar(&c.databaseURI, "database.uri", "", "URI where the database can be found")
-	flag.StringVar(&c.migrationsDir, "database.migrations", "", "Path where the database migration files can be found")
-	flag.StringVar(&c.eventTypesPath, "eventtypes", "", "Path to a JSON file defining available event types")
-	flag.StringVar(&c.eventManagerURL, "eventManagerURL", "", "URL to connect to event manager")
-	flag.StringVar(&c.usersServiceURL, "usersServiceURL", "users.default:4772", "URL to connect to users service")
-}
-
-// ConfigManager is the struct we hang all methods off
-type ConfigManager struct {
-	db          *utils.DB
-	eventURL    string
-	usersClient serviceUsers.UsersClient
-}
-
-func waitForDBConnection(db *sql.DB) error {
-	deadline := time.Now().Add(dbConnectTimeout)
-	for tries := 0; time.Now().Before(deadline); tries++ {
-		err := db.Ping()
-		if err == nil {
-			return nil
-		}
-		log.Warnf("db connection not established, error: %s; retrying...", err)
-		time.Sleep(time.Second << uint(tries))
-	}
-	return fmt.Errorf("db connection not established after %s", dbConnectTimeout)
-}
-
-// New creates a new ConfigManager from a Config
-func New(config Config) (*ConfigManager, error) {
-	if config.databaseURI == "" {
-		return nil, errors.New("Database URI is required")
-	}
-
-	db, err := sql.Open("postgres", config.databaseURI)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := waitForDBConnection(db); err != nil {
-		return nil, errors.Wrap(err, "cannot establish db connection")
-	}
-
-	wrappedDB := utils.NewDB(db, databaseRequestDuration)
-
-	if config.migrationsDir != "" {
-		log.Infof("Running Database Migrations...")
-		if errs, ok := migrate.UpSync(config.databaseURI, config.migrationsDir); !ok {
-			for _, err := range errs {
-				log.Error(err)
-			}
-			return nil, errors.New("Database migrations failed")
-		}
-	}
-
-	var uclient *users.Client
-	if config.usersServiceURL == "mock" {
-		uclient = &users.Client{UsersClient: usersClient.MockClient{}}
-	} else {
-		uclient, err = users.NewClient(users.Config{HostPort: config.usersServiceURL})
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot create users client: %v", config.usersServiceURL)
-		}
-	}
-
-	c := &ConfigManager{
-		db:          wrappedDB,
-		eventURL:    config.eventManagerURL,
-		usersClient: uclient,
-	}
-
-	if config.eventTypesPath != "" {
-		eventTypes, err := types.EventTypesFromFile(config.eventTypesPath)
-		if err != nil {
-			return nil, err
-		}
-		log.Infof("Synchronizing %d event types with DB", len(eventTypes))
-		err = c.syncEventTypes(eventTypes)
-		if err != nil {
-			return nil, err
-		}
-		log.Infof("Synchronized event types")
-	}
-
-	if config.eventManagerURL == "" {
-		return nil, errors.New("eventmanager URL is required")
-	}
-
-	return c, nil
-}
-
-// Register HTTP handlers
-func (c *ConfigManager) Register(r *mux.Router) {
-	for _, route := range []struct {
-		name, method, path string
-		handler            http.Handler
-	}{
-		{"list_event_types", "GET", "/api/notification/config/eventtypes", withNoArgs(c.httpListEventTypes)},
-
-		{"list_receivers", "GET", "/api/notification/config/receivers", withInstance(c.listReceivers)},
-		{"create_receiver", "POST", "/api/notification/config/receivers", withInstance(c.httpCreateReceiver)},
-		{"get_receiver", "GET", "/api/notification/config/receivers/{id}", withInstanceAndID(c.getReceiver)},
-		{"update_receiver", "PUT", "/api/notification/config/receivers/{id}", withInstanceAndID(c.updateReceiver)},
-		{"delete_receiver", "DELETE", "/api/notification/config/receivers/{id}", withInstanceAndID(c.deleteReceiver)},
-
-		{"list_receivers_for_event", "GET", "/api/notification/config/receivers_for_event/{id}", withInstanceAndID(c.getReceiversForEvent)},
-
-		{"create_event", "POST", "/api/notification/events", withInstance(c.createEvent)},
-		{"get_events", "GET", "/api/notification/events", withInstance(c.getEvents)},
-
-		{"healthcheck", "GET", "/api/notification/config/healthcheck", withNoArgs(c.healthCheck)},
-	} {
-		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
-	}
-}
-
-// healthCheck handles a very simple health check
-func (c *ConfigManager) healthCheck(r *http.Request) (interface{}, int, error) {
-	return nil, http.StatusOK, nil
-}
-
 // for each row returned from query, calls callback
-func (c *ConfigManager) forEachRow(rows *sql.Rows, callback func(*sql.Rows) error) error {
+func (em *EventManager) forEachRow(rows *sql.Rows, callback func(*sql.Rows) error) error {
 	var err error
 	for err == nil && rows.Next() {
 		err = callback(rows)
@@ -244,8 +51,8 @@ func (c *ConfigManager) forEachRow(rows *sql.Rows, callback func(*sql.Rows) erro
 
 // Executes the given function in a transaction, and rolls back or commits depending on if the function errors.
 // Ignores errors from rollback.
-func (c *ConfigManager) withTx(method string, f func(tx *utils.Tx) error) error {
-	tx, err := c.db.Begin(method)
+func (em *EventManager) withTx(method string, f func(tx *utils.Tx) error) error {
+	tx, err := em.DB.Begin(method)
 	if err != nil {
 		return err
 	}
@@ -266,8 +73,8 @@ func (c *ConfigManager) withTx(method string, f func(tx *utils.Tx) error) error 
 
 // Called before any handlers involving receivers, to initialize receiver defaults for the instance
 // if it hasn't been already.
-func (c *ConfigManager) checkInstanceDefaults(instanceID string) error {
-	return c.withTx("check_instance_defaults_tx", func(tx *utils.Tx) error {
+func (em *EventManager) checkInstanceDefaults(instanceID string) error {
+	return em.withTx("check_instance_defaults_tx", func(tx *utils.Tx) error {
 		// Test if instance is already initialized
 		row := tx.QueryRow("check_instance_initialized", "SELECT 1 FROM instances_initialized WHERE instance_id = $1", instanceID)
 		var unused int // We're only interested if a row is present, if it is the value will be 1.
@@ -285,7 +92,7 @@ func (c *ConfigManager) checkInstanceDefaults(instanceID string) error {
 			RType:       types.BrowserReceiver,
 			AddressData: json.RawMessage("null"),
 		}
-		if _, _, err := c.createReceiver(tx, receiver, instanceID); err != nil {
+		if _, _, err := em.createReceiver(tx, receiver, instanceID); err != nil {
 			return err
 		}
 
@@ -295,8 +102,8 @@ func (c *ConfigManager) checkInstanceDefaults(instanceID string) error {
 	})
 }
 
-func (c *ConfigManager) httpListEventTypes(r *http.Request) (interface{}, int, error) {
-	result, err := c.listEventTypes(nil, getFeatureFlags(r))
+func (em *EventManager) httpListEventTypes(r *http.Request) (interface{}, int, error) {
+	result, err := em.listEventTypes(nil, getFeatureFlags(r))
 	if err != nil {
 		return nil, 0, err
 	}
@@ -305,8 +112,8 @@ func (c *ConfigManager) httpListEventTypes(r *http.Request) (interface{}, int, e
 
 // Return a list of event types from the DB, either using given transaction or without a transaction if nil.
 // Also filter by enabled feature flags if featureFlags is not nil.
-func (c *ConfigManager) listEventTypes(tx *utils.Tx, featureFlags []string) ([]types.EventType, error) {
-	queryFn := c.db.Query
+func (em *EventManager) listEventTypes(tx *utils.Tx, featureFlags []string) ([]types.EventType, error) {
+	queryFn := em.DB.Query
 	if tx != nil {
 		queryFn = tx.Query
 	}
@@ -322,7 +129,7 @@ func (c *ConfigManager) listEventTypes(tx *utils.Tx, featureFlags []string) ([]t
 		return nil, err
 	}
 	eventTypes := []types.EventType{}
-	err = c.forEachRow(rows, func(row *sql.Rows) error {
+	err = em.forEachRow(rows, func(row *sql.Rows) error {
 		et, err := types.EventTypeFromRow(row)
 		if err != nil {
 			return err
@@ -336,13 +143,13 @@ func (c *ConfigManager) listEventTypes(tx *utils.Tx, featureFlags []string) ([]t
 	return eventTypes, nil
 }
 
-func (c *ConfigManager) listReceivers(r *http.Request, instanceID string) (interface{}, int, error) {
-	if err := c.checkInstanceDefaults(instanceID); err != nil {
+func (em *EventManager) listReceivers(r *http.Request, instanceID string) (interface{}, int, error) {
+	if err := em.checkInstanceDefaults(instanceID); err != nil {
 		return nil, 0, err
 	}
 	// In the below query, note the array_remove to transform [null] to [] if there are no matching rows.
 	// Note we exclude event types with non-matching feature flags.
-	rows, err := c.db.Query(
+	rows, err := em.DB.Query(
 		"list_receivers",
 		`SELECT r.receiver_id, r.receiver_type, r.instance_id, r.address_data,
 			array_remove(array_agg(rt.event_type), NULL)
@@ -357,7 +164,7 @@ func (c *ConfigManager) listReceivers(r *http.Request, instanceID string) (inter
 		return nil, 0, err
 	}
 	receivers := []types.Receiver{}
-	err = c.forEachRow(rows, func(row *sql.Rows) error {
+	err = em.forEachRow(rows, func(row *sql.Rows) error {
 		r, err := types.ReceiverFromRow(row)
 		if err != nil {
 			return err
@@ -371,8 +178,8 @@ func (c *ConfigManager) listReceivers(r *http.Request, instanceID string) (inter
 	return receivers, http.StatusOK, err
 }
 
-func (c *ConfigManager) httpCreateReceiver(r *http.Request, instanceID string) (interface{}, int, error) {
-	if err := c.checkInstanceDefaults(instanceID); err != nil {
+func (em *EventManager) httpCreateReceiver(r *http.Request, instanceID string) (interface{}, int, error) {
+	if err := em.checkInstanceDefaults(instanceID); err != nil {
 		return nil, 0, err
 	}
 	receiver := types.Receiver{}
@@ -387,9 +194,9 @@ func (c *ConfigManager) httpCreateReceiver(r *http.Request, instanceID string) (
 	}
 	var result interface{}
 	var code int
-	err = c.withTx("create_receiver_tx", func(tx *utils.Tx) error {
+	err = em.withTx("create_receiver_tx", func(tx *utils.Tx) error {
 		var err error
-		result, code, err = c.createReceiver(tx, receiver, instanceID)
+		result, code, err = em.createReceiver(tx, receiver, instanceID)
 		return err
 	})
 	if err != nil {
@@ -455,7 +262,7 @@ func isValidAddress(addressData json.RawMessage, rtype string) error {
 	return nil
 }
 
-func (c *ConfigManager) createReceiver(tx *utils.Tx, receiver types.Receiver, instanceID string) (interface{}, int, error) {
+func (em *EventManager) createReceiver(tx *utils.Tx, receiver types.Receiver, instanceID string) (interface{}, int, error) {
 	// Validate they only set the fields we're going to use
 	if receiver.ID != "" || receiver.InstanceID != "" || len(receiver.EventTypes) != 0 {
 		return "ID, instance and event types should not be specified", http.StatusBadRequest, nil
@@ -497,8 +304,8 @@ func (c *ConfigManager) createReceiver(tx *utils.Tx, receiver types.Receiver, in
 	return receiverID, http.StatusCreated, nil
 }
 
-func (c *ConfigManager) getReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
-	if err := c.checkInstanceDefaults(instanceID); err != nil {
+func (em *EventManager) getReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
+	if err := em.checkInstanceDefaults(instanceID); err != nil {
 		return nil, 0, err
 	}
 	if _, err := uuid.FromString(receiverID); err != nil {
@@ -506,7 +313,7 @@ func (c *ConfigManager) getReceiver(r *http.Request, instanceID string, receiver
 		return nil, http.StatusNotFound, nil
 	}
 	// In the below query, note the array_remove to transform [null] to [] if there are no matching rows.
-	row := c.db.QueryRow(
+	row := em.DB.QueryRow(
 		"get_receiver",
 		`SELECT r.receiver_id, r.receiver_type, r.instance_id, r.address_data,
 			array_remove(array_agg(rt.event_type), NULL)
@@ -529,7 +336,7 @@ func (c *ConfigManager) getReceiver(r *http.Request, instanceID string, receiver
 	return receiver, http.StatusOK, nil
 }
 
-func (c *ConfigManager) createConfigChangedEvent(ctx context.Context, instanceID string, oldReceiver, receiver types.Receiver, eventTime time.Time) error {
+func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID string, oldReceiver, receiver types.Receiver, eventTime time.Time) error {
 	log.Debug("update_config Event Firing...")
 
 	eventType := "config_changed"
@@ -539,11 +346,11 @@ func (c *ConfigManager) createConfigChangedEvent(ctx context.Context, instanceID
 		Timestamp:  eventTime,
 	}
 
-	instanceData, err := c.usersClient.GetOrganization(ctx, &serviceUsers.GetOrganizationRequest{
+	instanceData, err := em.UsersClient.GetOrganization(ctx, &serviceUsers.GetOrganizationRequest{
 		ID: &serviceUsers.GetOrganizationRequest_InternalID{InternalID: instanceID},
 	})
 	if err != nil {
-		if eventmanager.IsStatusErrorCode(err, http.StatusNotFound) {
+		if isStatusErrorCode(err, http.StatusNotFound) {
 			log.Warnf("instance name for ID %s not found for event type %s", instanceID, eventType)
 			return errors.Wrap(err, "instance not found")
 		}
@@ -564,12 +371,12 @@ func (c *ConfigManager) createConfigChangedEvent(ctx context.Context, instanceID
 		// address changed event
 		msg := fmt.Sprintf("The address for <b>%s</b> was updated!", receiver.RType)
 
-		emailMsg, err := eventmanager.GetEmailMessage(msg, eventType, instanceName)
+		emailMsg, err := getEmailMessage(msg, eventType, instanceName)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
 
-		browserMsg, err := eventmanager.GetBrowserMessage(msg, nil, eventType)
+		browserMsg, err := getBrowserMessage(msg, nil, eventType)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
@@ -578,7 +385,7 @@ func (c *ConfigManager) createConfigChangedEvent(ctx context.Context, instanceID
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal message")
 		}
-		stackdriverMsg, err := eventmanager.GetStackdriverMessage(msgJSON, eventType, instanceName)
+		stackdriverMsg, err := getStackdriverMessage(msgJSON, eventType, instanceName)
 		if err != nil {
 			return errors.Wrap(err, "cannot get stackdriver message")
 		}
@@ -594,12 +401,12 @@ func (c *ConfigManager) createConfigChangedEvent(ctx context.Context, instanceID
 		// PossibleTodo: find set difference between oldEventTypes and newEventTypes -> "removed [...] and added [...]"
 		msg := fmt.Sprintf("The event types for <b>%s</b> were updated from <i>%s</i> to <i>%s</i>", receiver.RType, oldReceiver.EventTypes, receiver.EventTypes)
 
-		emailMsg, err := eventmanager.GetEmailMessage(msg, eventType, instanceName)
+		emailMsg, err := getEmailMessage(msg, eventType, instanceName)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
 
-		browserMsg, err := eventmanager.GetBrowserMessage(msg, nil, eventType)
+		browserMsg, err := getBrowserMessage(msg, nil, eventType)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
@@ -608,7 +415,7 @@ func (c *ConfigManager) createConfigChangedEvent(ctx context.Context, instanceID
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal message")
 		}
-		stackdriverMsg, err := eventmanager.GetStackdriverMessage(msgJSON, eventType, instanceName)
+		stackdriverMsg, err := getStackdriverMessage(msgJSON, eventType, instanceName)
 		if err != nil {
 			return errors.Wrap(err, "cannot get stackdriver message for event types changed")
 		}
@@ -624,60 +431,18 @@ func (c *ConfigManager) createConfigChangedEvent(ctx context.Context, instanceID
 		return nil
 	}
 
-	rawJSONEvent, jsonErr := json.Marshal(event)
-	if jsonErr != nil {
-		return jsonErr
-	}
-
-	eventsToEventmanagerTotal.With(prometheus.Labels{"event_type": event.Type}).Inc()
-	postEventURL := fmt.Sprintf("%s/api/notification/events", c.eventURL)
-	req, err := http.NewRequest("POST", postEventURL, bytes.NewBuffer(rawJSONEvent))
-	if err != nil {
-		return errors.Wrap(err, "cannot create request to send config_change event")
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	// try 5 times to POST our request
-	retryErr := retry(5, time.Second, func() error {
-		ctxWithID := user.InjectOrgID(context.Background(), instanceID)
-		err = user.InjectOrgIDIntoHTTPRequest(ctxWithID, req)
-		if err != nil {
-			return errors.Wrap(err, "cannot inject instanceID into request")
+	go func() {
+		if err := em.storeAndSend(ctx, event); err != nil {
+			log.Warnf("failed to store in DB or send to SQS config change event")
 		}
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			log.Debugf("POSTing to events connection not established, error: %s; retrying...", err)
-			return err
-		}
-		defer resp.Body.Close()
-
-		s := resp.StatusCode
-		switch {
-		case s >= 500:
-			// Retry
-			log.Debugf("POSTing to events connection not established, status: %s; retrying...", s)
-			return errors.Errorf("internal server error, status %d", s)
-		case s >= 400:
-			// Don't retry, it was client's fault
-			return stop{errors.Errorf("client error, status %d", s)}
-		default:
-			// Happy
-			return nil
-		}
-	})
-
-	if retryErr != nil {
-		eventsToEventmanagerError.With(prometheus.Labels{"event_type": event.Type}).Inc()
-		return errors.Wrapf(err, "could not send %s event", event.Type)
-	}
+	}()
 
 	return nil
 }
 
-func (c *ConfigManager) updateReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
+func (em *EventManager) updateReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
 	eventTime := time.Now()
-	if err := c.checkInstanceDefaults(instanceID); err != nil {
+	if err := em.checkInstanceDefaults(instanceID); err != nil {
 		return nil, 0, err
 	}
 	if _, err := uuid.FromString(receiverID); err != nil {
@@ -715,7 +480,7 @@ func (c *ConfigManager) updateReceiver(r *http.Request, instanceID string, recei
 	}
 
 	// before transaction changes the addressData and eventTypes, get oldReceiver which has oldAddressData and oldEventTypes
-	receiverOrNil, status, err := c.getReceiver(r, instanceID, receiverID)
+	receiverOrNil, status, err := em.getReceiver(r, instanceID, receiverID)
 	gotOldReceiverValues := true
 	if err != nil {
 		gotOldReceiverValues = false
@@ -730,7 +495,7 @@ func (c *ConfigManager) updateReceiver(r *http.Request, instanceID string, recei
 
 	// Transaction to actually update the receiver in DB
 	userErrorMsg := ""
-	err = c.withTx("update_receiver_tx", func(tx *utils.Tx) error {
+	err = em.withTx("update_receiver_tx", func(tx *utils.Tx) error {
 		// Verify receiver exists, has correct instance id and type.
 		row := tx.QueryRow("check_receiver_exists", `SELECT receiver_type FROM receivers WHERE receiver_id = $1 AND instance_id = $2`, receiverID, instanceID)
 		var rtype string
@@ -824,7 +589,7 @@ func (c *ConfigManager) updateReceiver(r *http.Request, instanceID string, recei
 		// Fire event every time config is successfully changed
 		if gotOldReceiverValues {
 			go func() {
-				eventErr := c.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime)
+				eventErr := em.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime)
 				if eventErr != nil {
 					log.Error(eventErr)
 				}
@@ -837,15 +602,15 @@ func (c *ConfigManager) updateReceiver(r *http.Request, instanceID string, recei
 	return userErrorMsg, code, nil
 }
 
-func (c *ConfigManager) deleteReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
-	if err := c.checkInstanceDefaults(instanceID); err != nil {
+func (em *EventManager) deleteReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
+	if err := em.checkInstanceDefaults(instanceID); err != nil {
 		return nil, 0, err
 	}
 	if _, err := uuid.FromString(receiverID); err != nil {
 		// Bad identifier
 		return nil, http.StatusNotFound, nil
 	}
-	result, err := c.db.Exec(
+	result, err := em.DB.Exec(
 		"delete_receiver",
 		`DELETE FROM receivers
 		WHERE receiver_id = $1 AND instance_id = $2`,
@@ -865,26 +630,27 @@ func (c *ConfigManager) deleteReceiver(r *http.Request, instanceID string, recei
 	return nil, http.StatusOK, nil
 }
 
-func (c *ConfigManager) getReceiversForEvent(r *http.Request, instanceID string, eventType string) (interface{}, int, error) {
-	if err := c.checkInstanceDefaults(instanceID); err != nil {
-		return nil, 0, err
+// GetReceiversForEvent returns all receivers for event from DB
+func (em *EventManager) GetReceiversForEvent(event types.Event) ([]types.Receiver, error) {
+	if err := em.checkInstanceDefaults(event.InstanceID); err != nil {
+		return nil, errors.Wrapf(err, "failed to check receiver defaults for instance %s", event.InstanceID)
 	}
 	receivers := []types.Receiver{}
 	// In the below query, note the array_remove to transform [null] to [] if there are no matching rows.
-	rows, err := c.db.Query(
+	rows, err := em.DB.Query(
 		"get_receivers_for_event",
 		`SELECT r.receiver_id, r.receiver_type, r.instance_id, r.address_data,
 			array_remove(array_agg(rt.event_type), NULL)
 		FROM receivers r LEFT JOIN receiver_event_types rt ON (r.receiver_id = rt.receiver_id)
 		WHERE instance_id = $1 AND event_type = $2
 		GROUP BY r.receiver_id`,
-		instanceID,
-		eventType,
+		event.InstanceID,
+		event.Type,
 	)
 	if err != nil {
-		return nil, 0, err
+		return nil, errors.Wrap(err, "cannot select receivers for event")
 	}
-	err = c.forEachRow(rows, func(row *sql.Rows) error {
+	err = em.forEachRow(rows, func(row *sql.Rows) error {
 		r, err := types.ReceiverFromRow(row)
 		if err != nil {
 			return err
@@ -892,26 +658,18 @@ func (c *ConfigManager) getReceiversForEvent(r *http.Request, instanceID string,
 		receivers = append(receivers, r)
 		return nil
 	})
-	return receivers, http.StatusOK, err
+	return receivers, err
 }
 
-func (c *ConfigManager) createEvent(r *http.Request, instanceID string) (interface{}, int, error) {
-
-	event := types.Event{}
-	if err := parseBody(r, &event); err != nil {
-		return "Bad request body", http.StatusBadRequest, nil
-	}
-	if instanceID != event.InstanceID {
-		return "Mismatching instance ids", http.StatusBadRequest, nil
-	}
+// CreateEvent inserts event in DB
+func (em *EventManager) CreateEvent(event types.Event) error {
 	// Re-encode the message data because the sql driver doesn't understand json columns
 	encodedMessages, err := json.Marshal(event.Messages)
 	if err != nil {
-		return nil, 0, err // This is a server error, because this round-trip *should* work.
+		return err // This is a server error, because this round-trip *should* work.
 	}
-	code := http.StatusOK
-	userErrorMsg := ""
-	err = c.withTx("add_event_tx", func(tx *utils.Tx) error {
+
+	err = em.withTx("add_event_tx", func(tx *utils.Tx) error {
 		row := tx.QueryRow(
 			"check_event_type_exists",
 			`SELECT 1 FROM event_types WHERE name = $1`,
@@ -920,9 +678,7 @@ func (c *ConfigManager) createEvent(r *http.Request, instanceID string) (interfa
 		var junk int
 		err := row.Scan(&junk)
 		if err == sql.ErrNoRows {
-			userErrorMsg = "Event type does not exist"
-			code = http.StatusBadRequest
-			return nil
+			return errors.Errorf("event type %s does not exist", event.Type)
 		} else if err != nil {
 			return err
 		}
@@ -937,12 +693,12 @@ func (c *ConfigManager) createEvent(r *http.Request, instanceID string) (interfa
 		return err
 	})
 	if err != nil {
-		return nil, 0, err
+		return errors.Wrap(err, "cannot insert event")
 	}
-	return userErrorMsg, code, nil
+	return nil
 }
 
-func (c *ConfigManager) getEvents(r *http.Request, instanceID string) (interface{}, int, error) {
+func (em *EventManager) getEvents(r *http.Request, instanceID string) (interface{}, int, error) {
 	params := r.URL.Query()
 	length := 50
 	offset := 0
@@ -966,7 +722,7 @@ func (c *ConfigManager) getEvents(r *http.Request, instanceID string) (interface
 		}
 		offset = o
 	}
-	rows, err := c.db.Query(
+	rows, err := em.DB.Query(
 		"get_events",
 		`SELECT event_id, event_type, instance_id, timestamp, messages
 		FROM events
@@ -981,7 +737,7 @@ func (c *ConfigManager) getEvents(r *http.Request, instanceID string) (interface
 		return nil, 0, err
 	}
 	events := []types.Event{}
-	err = c.forEachRow(rows, func(row *sql.Rows) error {
+	err = em.forEachRow(rows, func(row *sql.Rows) error {
 		e, err := types.EventFromRow(row)
 		if err != nil {
 			return err
@@ -995,9 +751,10 @@ func (c *ConfigManager) getEvents(r *http.Request, instanceID string) (interface
 	return events, http.StatusOK, err
 }
 
-func (c *ConfigManager) syncEventTypes(eventTypes map[string]types.EventType) error {
-	return c.withTx("sync_event_types_tx", func(tx *utils.Tx) error {
-		oldEventTypes, err := c.listEventTypes(tx, nil)
+// SyncEventTypes synchronize event types
+func (em *EventManager) SyncEventTypes(eventTypes map[string]types.EventType) error {
+	return em.withTx("sync_event_types_tx", func(tx *utils.Tx) error {
+		oldEventTypes, err := em.listEventTypes(tx, nil)
 		if err != nil {
 			return err
 		}
@@ -1007,7 +764,7 @@ func (c *ConfigManager) syncEventTypes(eventTypes map[string]types.EventType) er
 				delete(eventTypes, eventType.Name)
 				if !eventType.Equals(oldEventType) {
 					log.Infof("Updating event type %s", eventType.Name)
-					err = c.updateEventType(tx, eventType)
+					err = em.updateEventType(tx, eventType)
 					if err != nil {
 						return err
 					}
@@ -1019,7 +776,7 @@ func (c *ConfigManager) syncEventTypes(eventTypes map[string]types.EventType) er
 		// Now create any new types
 		for _, eventType := range eventTypes {
 			log.Infof("Creating new event type %s", eventType.Name)
-			err = c.createEventType(tx, eventType)
+			err = em.createEventType(tx, eventType)
 			if err != nil {
 				return err
 			}
@@ -1028,7 +785,7 @@ func (c *ConfigManager) syncEventTypes(eventTypes map[string]types.EventType) er
 	})
 }
 
-func (c *ConfigManager) createEventType(tx *utils.Tx, e types.EventType) error {
+func (em *EventManager) createEventType(tx *utils.Tx, e types.EventType) error {
 	// Since go interprets omitted as empty string for feature flag, translate empty string to NULL on insert.
 	result, err := tx.Exec(
 		"create_event_type",
@@ -1064,7 +821,7 @@ func (c *ConfigManager) createEventType(tx *utils.Tx, e types.EventType) error {
 	return err
 }
 
-func (c *ConfigManager) updateEventType(tx *utils.Tx, e types.EventType) error {
+func (em *EventManager) updateEventType(tx *utils.Tx, e types.EventType) error {
 	// Since go interprets omitted as empty string for feature flag, translate empty string to NULL on insert.
 	result, err := tx.Exec(
 		"update_event_type",
@@ -1090,8 +847,8 @@ func (c *ConfigManager) updateEventType(tx *utils.Tx, e types.EventType) error {
 	return nil
 }
 
-func (c *ConfigManager) deleteEventType(tx *utils.Tx, eventTypeName string) error {
-	result, err := c.db.Exec(
+func (em *EventManager) deleteEventType(tx *utils.Tx, eventTypeName string) error {
+	result, err := em.DB.Exec(
 		"delete_event_type",
 		`DELETE FROM event_types
 		WHERE name = $1`,

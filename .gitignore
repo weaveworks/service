@@ -49,7 +49,6 @@ gcp-service/gcp-service
 github-receiver/github-receiver
 kubectl-service/kubectl-service
 notebooks/cmd/notebooks/notebooks
-notification-configmanager/cmd/configmanager/configmanager
 notification-eventmanager/cmd/eventmanager/eventmanager
 notification-sender/cmd/sender/sender
 service-ui-kicker/service-ui-kicker

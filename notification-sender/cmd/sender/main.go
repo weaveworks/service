@@ -12,8 +12,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/signals"
-	"github.com/weaveworks/service/notification-configmanager/types"
 	"github.com/weaveworks/service/notification-eventmanager/sqsconnect"
+	"github.com/weaveworks/service/notification-eventmanager/types"
 	"github.com/weaveworks/service/notification-sender"
 )
 
