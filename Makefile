@@ -314,3 +314,19 @@ bazel-build:
 
 bazel-test:
 	bazel test --features=pure -- //... -//vendor/...
+
+bazel-local-build:
+	bazel --batch build \
+			--features=pure \
+			--experimental_remote_spawn_cache \
+			--remote_http_cache=http://localhost:9090 \
+			-- //... -//vendor/...
+
+bazel-ci-build:
+	echo "$$BAZEL_GCS_KEY" | base64 -d > bazel-gcs-key.json
+	bazel --batch build \
+			--features=pure \
+			--experimental_remote_spawn_cache \
+			--remote_http_cache=https://storage.googleapis.com/weaveworks-bazel-cache \
+			--google_credentials=bazel-gcs-key.json \
+			-- //... -//vendor/...
