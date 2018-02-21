@@ -73,10 +73,7 @@ func getLabelValue(expression, label string) string {
 func (mock *mockPrometheus) Series(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) ([]model.LabelSet, error) {
 	response := seriesResponse{}
 
-	if len(matches) != 1 {
-		return nil, fmt.Errorf("multiple matches are not supported by the mock object, got %d", len(matches))
-	}
-
+	// Parse the first match to extract ns and service
 	ns := getLabelValue(matches[0], "kubernetes_namespace")
 	service := getLabelValue(matches[0], "_weave_service")
 

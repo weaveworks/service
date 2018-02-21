@@ -58,8 +58,12 @@ func (api *API) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
 
 	log.Debugf("GetServiceMetrics ns=%s service=%s start=%v end=%v", namespace, service, startTime, endTime)
 
+	// Metrics the pods expose
 	query := fmt.Sprintf("{kubernetes_namespace=\"%s\",_weave_service=\"%s\"}", namespace, service)
-	labelsets, err := api.prometheus.Series(ctx, []string{query}, startTime, endTime)
+	// Metrics cAdvisor exposes about the service containers
+	queryCAdvisor := fmt.Sprintf("{_weave_pod_name=\"%s\"}", service)
+
+	labelsets, err := api.prometheus.Series(ctx, []string{query, queryCAdvisor}, startTime, endTime)
 	if err != nil {
 		renderError(w, r, err)
 		return
