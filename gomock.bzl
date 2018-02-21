@@ -21,7 +21,7 @@ def _gomock_sh_impl(ctx):
         outputs = [ctx.outputs.out],
         inputs = [ctx.file._mockgen] + ctx.attr.gopath_dep.files.to_list(),
         command = """
-		   export GOROOT=/home/awh/cloud/src/service/bazel-service/external/go_sdk &&
+		   export GOROOT=/home/circleci/weaveworks/service/bazel-service/external/go_sdk &&
            export PATH=$GOROOT/bin:$PATH &&
            export GOPATH={gopath} &&
            {mockgen} {args}
