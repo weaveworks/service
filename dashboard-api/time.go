@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"net/http"
 	"strconv"
 	"time"
 )
@@ -19,4 +20,32 @@ func parseTime(s string) (time.Time, error) {
 		return t, nil
 	}
 	return time.Time{}, fmt.Errorf("cannot parse %q to a valid timestamp", s)
+}
+
+func parseRequestTime(r *http.Request, param string, defaultValue time.Time) (time.Time, error) {
+	value := r.FormValue(param)
+	if value == "" {
+		return defaultValue, nil
+	}
+
+	time, err := parseTime(value)
+	if err != nil {
+		return defaultValue, err
+	}
+
+	return time, nil
+}
+
+func parseRequestStartEnd(r *http.Request) (time.Time, time.Time, error) {
+	start, err := parseRequestTime(r, "start", time.Now().Add(-time.Hour))
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+
+	end, err := parseRequestTime(r, "end", time.Now())
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+
+	return start, end, nil
 }

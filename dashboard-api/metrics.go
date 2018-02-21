@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -30,30 +29,10 @@ func (api *API) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
 	service := mux.Vars(r)["service"]
 
 	// Forward start and end to the prometheus API
-	start := r.FormValue("start")
-	var startTime time.Time
-	if start == "" {
-		startTime = time.Now().Add(-time.Hour)
-	} else {
-		var err error
-		startTime, err = parseTime(start)
-		if err != nil {
-			renderError(w, r, errInvalidParameter)
-			return
-		}
-	}
-
-	end := r.FormValue("end")
-	var endTime time.Time
-	if end == "" {
-		endTime = time.Now()
-	} else {
-		var err error
-		endTime, err = parseTime(end)
-		if err != nil {
-			renderError(w, r, errInvalidParameter)
-			return
-		}
+	startTime, endTime, err := parseRequestStartEnd(r)
+	if err != nil {
+		renderError(w, r, errInvalidParameter)
+		return
 	}
 
 	log.Debugf("GetServiceMetrics ns=%s service=%s start=%v end=%v", namespace, service, startTime, endTime)
