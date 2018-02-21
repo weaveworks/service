@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/prometheus/common/model"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common/render"
 )
 
@@ -20,7 +21,8 @@ type getServiceMetricsResponse struct {
 
 // GetServiceMetrics returns the list of metrics that a service exposes.
 func (api *API) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), api.cfg.prometheus.timeout)
+	_, ctx, err := user.ExtractOrgIDFromHTTPRequest(r)
+	ctx, cancel := context.WithTimeout(ctx, api.cfg.prometheus.timeout)
 	defer cancel()
 
 	log.Debug(r.URL)

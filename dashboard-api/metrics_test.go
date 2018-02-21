@@ -11,8 +11,14 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/weaveworks/common/user"
 )
+
+const testNS = "notification"
+const testService = "eventmanager"
+const testOrgID = "1234"
 
 func setupMock(t *testing.T) *API {
 	cfg := &config{}
@@ -51,10 +57,8 @@ func TestGetServiceMetricsNoMetrics(t *testing.T) {
 
 func TestGetServiceMetrics(t *testing.T) {
 	api := setupMock(t)
-	ns := "notification"
-	service := "eventmanager"
 
-	req := httptest.NewRequest("GET", makeGetServiceMetricsURL(ns, service), nil)
+	req := httptest.NewRequest("GET", makeGetServiceMetricsURL(testNS, testService), nil)
 	w := httptest.NewRecorder()
 	api.handler.ServeHTTP(w, req)
 
@@ -71,7 +75,7 @@ func TestGetServiceMetrics(t *testing.T) {
 	assert.Nil(t, err)
 	sort.Strings(got.Metrics)
 
-	golden := filepath.Join("testdata", fmt.Sprintf("%s-%s-%s.golden", t.Name(), ns, service))
+	golden := filepath.Join("testdata", fmt.Sprintf("%s-%s-%s.golden", t.Name(), testNS, testService))
 	if *update {
 		data, err := json.Marshal(got)
 		assert.Nil(t, err)
@@ -85,4 +89,21 @@ func TestGetServiceMetrics(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, expected, got)
+}
+
+// Ensure we forward the OrgID from the incoming request to the querier
+func TestGetServiceMetricsForwardOrgID(t *testing.T) {
+	api := setupMock(t)
+	mockClient := &mockPrometheusClient{}
+	api.prometheus = v1.NewAPI(&prometheusClient{client: mockClient})
+
+	req := httptest.NewRequest("GET", makeGetServiceMetricsURL(testNS, testService), nil)
+	req.Header.Set(user.OrgIDHeaderName, testOrgID)
+	w := httptest.NewRecorder()
+	api.handler.ServeHTTP(w, req)
+
+	resp := w.Result()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	assert.Equal(t, testOrgID, mockClient.lastRequest.Header.Get(user.OrgIDHeaderName))
 }

@@ -1,15 +1,19 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
 
+	prom "github.com/prometheus/client_golang/api"
 	"github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 )
@@ -87,4 +91,28 @@ func (mock *mockPrometheus) Series(ctx context.Context, matches []string, startT
 	}
 
 	return response.Data, nil
+}
+
+// mockPrometheusClient is a specialization of the default prom.Client that does
+// nothing but stores the last HTTP request for inspection by the testing code.
+type mockPrometheusClient struct {
+	lastRequest *http.Request
+}
+
+var _ prom.Client = &mockPrometheusClient{}
+
+func (c *mockPrometheusClient) URL(ep string, args map[string]string) *url.URL {
+	url, _ := url.Parse("http://example.com")
+	return url
+}
+func (c *mockPrometheusClient) Do(ctx context.Context, r *http.Request) (*http.Response, []byte, error) {
+	c.lastRequest = r
+
+	resp := &http.Response{
+		Body:       ioutil.NopCloser(bytes.NewBufferString("mock response")),
+		StatusCode: http.StatusOK,
+	}
+
+	data := []byte(`{"status":"success", "data": []}`)
+	return resp, data, nil
 }

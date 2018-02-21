@@ -7,7 +7,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 
-	prom "github.com/prometheus/client_golang/api"
 	"github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
@@ -36,11 +35,9 @@ func newAPI(cfg *config) (*API, error) {
 		api.prometheus = newPrometheusMock(promURI.Path)
 	} else {
 		// FIXME(damien): provide our own RoundTripper?
-		client, err := prom.NewClient(prom.Config{
-			Address: cfg.prometheus.uri,
-		})
+		client, err := newPrometheusClient(cfg.prometheus.uri)
 		if err != nil {
-			return nil, errors.Wrap(err, "prometheus client")
+			return nil, err
 		}
 
 		api.prometheus = v1.NewAPI(client)
