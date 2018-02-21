@@ -323,6 +323,11 @@ bazel-local-build:
 			-- //... -//vendor/...
 
 bazel-ci-build:
+	bazel --batch build \
+			--features=pure \
+			-- //... -//vendor/...
+
+bazel-gcs-build:
 	echo "$$BAZEL_GCS_KEY" | base64 -d > bazel-gcs-key.json
 	bazel --batch build \
 			--features=pure \

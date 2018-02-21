@@ -18,7 +18,17 @@ jobs:
       - run: echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | sudo tee /etc/apt/sources.list.d/bazel.list
       - run: curl https://bazel.build/bazel-release.pub.gpg | sudo apt-key add -
       - run: sudo apt-get update && sudo apt-get install bazel
+
+      - restore_cache:
+         keys:
+           - bazel-cache-testing-v1-
+
       - run: make bazel-ci-build
+
+      - save_cache:
+          key: bazel-cache-testing-v1-{{ epoch }}
+          paths:
+            - "/home/circleci/.cache/bazel"
 
 workflows:
   version: 2
