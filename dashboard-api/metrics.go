@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -16,6 +17,32 @@ import (
 type getServiceMetricsResponse struct {
 	// Metrics is an unordered array of metric names
 	Metrics []string `json:"metrics"`
+}
+
+func (api *API) getServiceMetrics(ctx context.Context, namespace, service string, startTime time.Time, endTime time.Time) ([]string, error) {
+	var metrics []string
+
+	// Metrics the pods expose
+	query := fmt.Sprintf("{kubernetes_namespace=\"%s\",_weave_service=\"%s\"}", namespace, service)
+	// Metrics cAdvisor exposes about the service containers
+	queryCAdvisor := fmt.Sprintf("{_weave_pod_name=\"%s\"}", service)
+
+	labelsets, err := api.prometheus.Series(ctx, []string{query, queryCAdvisor}, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+
+	names := make(map[string]bool)
+
+	for _, set := range labelsets {
+		names[string(set[model.LabelName("__name__")])] = true
+	}
+
+	for key := range names {
+		metrics = append(metrics, key)
+	}
+
+	return metrics, nil
 }
 
 // GetServiceMetrics returns the list of metrics that a service exposes.
@@ -37,27 +64,14 @@ func (api *API) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
 
 	log.Debugf("GetServiceMetrics ns=%s service=%s start=%v end=%v", namespace, service, startTime, endTime)
 
-	// Metrics the pods expose
-	query := fmt.Sprintf("{kubernetes_namespace=\"%s\",_weave_service=\"%s\"}", namespace, service)
-	// Metrics cAdvisor exposes about the service containers
-	queryCAdvisor := fmt.Sprintf("{_weave_pod_name=\"%s\"}", service)
-
-	labelsets, err := api.prometheus.Series(ctx, []string{query, queryCAdvisor}, startTime, endTime)
+	metrics, err := api.getServiceMetrics(ctx, namespace, service, startTime, endTime)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	names := make(map[string]bool)
-
-	for _, set := range labelsets {
-		names[string(set[model.LabelName("__name__")])] = true
-	}
-
-	resp := &getServiceMetricsResponse{}
-
-	for key := range names {
-		resp.Metrics = append(resp.Metrics, key)
+	resp := &getServiceMetricsResponse{
+		Metrics: metrics,
 	}
 
 	if len(resp.Metrics) == 0 {
