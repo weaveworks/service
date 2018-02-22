@@ -203,6 +203,26 @@ func (t traced) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externa
 	return t.d.SetOrganizationFirstSeenConnectedAt(ctx, externalID, value)
 }
 
+func (t traced) SetOrganizationFirstSeenFluxConnectedAt(ctx context.Context, externalID string, value *time.Time) (err error) {
+	defer func() { t.trace("SetOrganizationFirstSeenFluxConnectedAt", externalID, value, err) }()
+	return t.d.SetOrganizationFirstSeenFluxConnectedAt(ctx, externalID, value)
+}
+
+func (t traced) SetOrganizationFirstSeenNetConnectedAt(ctx context.Context, externalID string, value *time.Time) (err error) {
+	defer func() { t.trace("SetOrganizationFirstSeenNetConnectedAt", externalID, value, err) }()
+	return t.d.SetOrganizationFirstSeenNetConnectedAt(ctx, externalID, value)
+}
+
+func (t traced) SetOrganizationFirstSeenPromConnectedAt(ctx context.Context, externalID string, value *time.Time) (err error) {
+	defer func() { t.trace("SetOrganizationFirstSeenPromConnectedAt", externalID, value, err) }()
+	return t.d.SetOrganizationFirstSeenPromConnectedAt(ctx, externalID, value)
+}
+
+func (t traced) SetOrganizationFirstSeenScopeConnectedAt(ctx context.Context, externalID string, value *time.Time) (err error) {
+	defer func() { t.trace("SetOrganizationFirstSeenScopeConnectedAt", externalID, value, err) }()
+	return t.d.SetOrganizationFirstSeenScopeConnectedAt(ctx, externalID, value)
+}
+
 func (t traced) SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) (err error) {
 	defer func() { t.trace("SetOrganizationZuoraAccount", externalID, number, createdAt, err) }()
 	return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)

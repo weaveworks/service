@@ -295,6 +295,30 @@ func (t timed) SetOrganizationFirstSeenConnectedAt(ctx context.Context, external
 	})
 }
 
+func (t timed) SetOrganizationFirstSeenFluxConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
+	return t.timeRequest(ctx, "SetOrganizationFirstSeenFluxConnectedAt", func(ctx context.Context) error {
+		return t.d.SetOrganizationFirstSeenFluxConnectedAt(ctx, externalID, value)
+	})
+}
+
+func (t timed) SetOrganizationFirstSeenNetConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
+	return t.timeRequest(ctx, "SetOrganizationFirstSeenNetConnectedAt", func(ctx context.Context) error {
+		return t.d.SetOrganizationFirstSeenNetConnectedAt(ctx, externalID, value)
+	})
+}
+
+func (t timed) SetOrganizationFirstSeenPromConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
+	return t.timeRequest(ctx, "SetOrganizationFirstSeenPromConnectedAt", func(ctx context.Context) error {
+		return t.d.SetOrganizationFirstSeenPromConnectedAt(ctx, externalID, value)
+	})
+}
+
+func (t timed) SetOrganizationFirstSeenScopeConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
+	return t.timeRequest(ctx, "SetOrganizationFirstSeenScopeConnectedAt", func(ctx context.Context) error {
+		return t.d.SetOrganizationFirstSeenScopeConnectedAt(ctx, externalID, value)
+	})
+}
+
 func (t timed) SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error {
 	return t.timeRequest(ctx, "SetOrganizationZuoraAccount", func(ctx context.Context) error {
 		return t.d.SetOrganizationZuoraAccount(ctx, externalID, number, createdAt)

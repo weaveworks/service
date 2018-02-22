@@ -128,6 +128,10 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		"gcp_accounts.subscription_status",
 		"organizations.team_id",
 		"teams.external_id",
+		"organizations.first_seen_flux_connected_at",
+		"organizations.first_seen_net_connected_at",
+		"organizations.first_seen_prom_connected_at",
+		"organizations.first_seen_scope_connected_at",
 	).
 		From("organizations").
 		LeftJoin("gcp_accounts ON gcp_account_id = gcp_accounts.id").
@@ -449,7 +453,6 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o := &users.Organization{}
 	var externalID, name, probeToken, platform, environment, zuoraAccountNumber, teamID, teamExternalID sql.NullString
 	var createdAt pq.NullTime
-	var firstSeenConnectedAt, zuoraAccountCreatedAt *time.Time
 	var trialExpiry time.Time
 	var trialExpiredNotifiedAt, trialPendingExpiryNotifiedAt *time.Time
 	var refuseDataAccess, refuseDataUpload bool
@@ -465,11 +468,11 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		pq.Array(&o.FeatureFlags),
 		&refuseDataAccess,
 		&refuseDataUpload,
-		&firstSeenConnectedAt,
+		&o.FirstSeenConnectedAt,
 		&platform,
 		&environment,
 		&zuoraAccountNumber,
-		&zuoraAccountCreatedAt,
+		&o.ZuoraAccountCreatedAt,
 		&trialExpiry,
 		&trialPendingExpiryNotifiedAt,
 		&trialExpiredNotifiedAt,
@@ -483,6 +486,10 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&subscriptionStatus,
 		&teamID,
 		&teamExternalID,
+		&o.FirstSeenFluxConnectedAt,
+		&o.FirstSeenNetConnectedAt,
+		&o.FirstSeenPromConnectedAt,
+		&o.FirstSeenScopeConnectedAt,
 	); err != nil {
 		return nil, err
 	}
@@ -492,11 +499,9 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.CreatedAt = createdAt.Time
 	o.RefuseDataAccess = refuseDataAccess
 	o.RefuseDataUpload = refuseDataUpload
-	o.FirstSeenConnectedAt = firstSeenConnectedAt
 	o.Platform = platform.String
 	o.Environment = environment.String
 	o.ZuoraAccountNumber = zuoraAccountNumber.String
-	o.ZuoraAccountCreatedAt = zuoraAccountCreatedAt
 	o.TrialExpiresAt = trialExpiry
 	o.TrialPendingExpiryNotifiedAt = trialPendingExpiryNotifiedAt
 	o.TrialExpiredNotifiedAt = trialExpiredNotifiedAt
@@ -671,6 +676,34 @@ func (d DB) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID 
 		value, externalID,
 	)
 	return err
+}
+
+func (d DB) setOrganizationAgentFirstSeenConnectedAt(ctx context.Context, externalID, agent string, value *time.Time) error {
+	_, err := d.Update("organizations").
+		Where(squirrel.Expr("external_id = lower(?) and deleted_at is null", externalID)).
+		Set(fmt.Sprintf("first_seen_%s_connected_at", agent), value).
+		ExecContext(ctx)
+	return err
+}
+
+// SetOrganizationFirstSeenFluxConnectedAt sets the first time an organisation flux agent has been connected
+func (d DB) SetOrganizationFirstSeenFluxConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
+	return d.setOrganizationAgentFirstSeenConnectedAt(ctx, externalID, "flux", value)
+}
+
+// SetOrganizationFirstSeenNetConnectedAt sets the first time an organisation weave net agent has been connected
+func (d DB) SetOrganizationFirstSeenNetConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
+	return d.setOrganizationAgentFirstSeenConnectedAt(ctx, externalID, "net", value)
+}
+
+// SetOrganizationFirstSeenPromConnectedAt sets the first time an organisation prometheus agent has been connected
+func (d DB) SetOrganizationFirstSeenPromConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
+	return d.setOrganizationAgentFirstSeenConnectedAt(ctx, externalID, "prom", value)
+}
+
+// SetOrganizationFirstSeenScopeConnectedAt sets the first time an organisation scope agent has been connected
+func (d DB) SetOrganizationFirstSeenScopeConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
+	return d.setOrganizationAgentFirstSeenConnectedAt(ctx, externalID, "scope", value)
 }
 
 // SetOrganizationZuoraAccount sets the account number and time it was created at.

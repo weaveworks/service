@@ -501,6 +501,38 @@ func (d *DB) SetOrganizationFirstSeenConnectedAt(_ context.Context, externalID s
 	})
 }
 
+// SetOrganizationFirstSeenFluxConnectedAt sets the first time an organisation flux agent has been connected
+func (d *DB) SetOrganizationFirstSeenFluxConnectedAt(_ context.Context, externalID string, value *time.Time) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.FirstSeenFluxConnectedAt = value
+		return nil
+	})
+}
+
+// SetOrganizationFirstSeenNetConnectedAt sets the first time an organisation weave net agent has been connected
+func (d *DB) SetOrganizationFirstSeenNetConnectedAt(_ context.Context, externalID string, value *time.Time) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.FirstSeenNetConnectedAt = value
+		return nil
+	})
+}
+
+// SetOrganizationFirstSeenPromConnectedAt sets the first time an organisation prometheus agent has been connected
+func (d *DB) SetOrganizationFirstSeenPromConnectedAt(_ context.Context, externalID string, value *time.Time) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.FirstSeenPromConnectedAt = value
+		return nil
+	})
+}
+
+// SetOrganizationFirstSeenScopeConnectedAt sets the first time an organisation scope agent has been connected
+func (d *DB) SetOrganizationFirstSeenScopeConnectedAt(_ context.Context, externalID string, value *time.Time) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.FirstSeenScopeConnectedAt = value
+		return nil
+	})
+}
+
 // SetOrganizationZuoraAccount sets the account number and time it was created at.
 func (d *DB) SetOrganizationZuoraAccount(_ context.Context, externalID, number string, createdAt *time.Time) error {
 	return changeOrg(d, externalID, func(org *users.Organization) error {

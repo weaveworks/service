@@ -38,10 +38,11 @@ type getOrgServiceStatusView struct {
 }
 
 type fluxStatus struct {
-	Fluxsvc fluxsvcStatus `json:"fluxsvc"`
-	Fluxd   fluxdStatus   `json:"fluxd"`
-	Git     fluxGitStatus `json:"git"`
-	Error   string        `json:"error,omitempty"`
+	FirstSeenConnectedAt *time.Time    `json:"firstSeenConnectedAt"`
+	Fluxsvc              fluxsvcStatus `json:"fluxsvc"`
+	Fluxd                fluxdStatus   `json:"fluxd"`
+	Git                  fluxGitStatus `json:"git"`
+	Error                string        `json:"error,omitempty"`
 }
 
 type fluxsvcStatus struct {
@@ -61,20 +62,23 @@ type fluxGitStatus struct {
 }
 
 type scopeStatus struct {
-	NumberOfProbes int    `json:"numberOfProbes"`
-	Error          string `json:"error,omitempty"`
+	FirstSeenConnectedAt *time.Time `json:"firstSeenConnectedAt"`
+	NumberOfProbes       int        `json:"numberOfProbes"`
+	Error                string     `json:"error,omitempty"`
 }
 
 type promStatus struct {
-	IngestionRate   float64 `json:"ingestionRate"`
-	NumSeries       uint64  `json:"numSeries"`
-	NumberOfMetrics int     `json:"numberOfMetrics"`
-	Error           string  `json:"error,omitempty"`
+	FirstSeenConnectedAt *time.Time `json:"firstSeenConnectedAt"`
+	IngestionRate        float64    `json:"ingestionRate"`
+	NumSeries            uint64     `json:"numSeries"`
+	NumberOfMetrics      int        `json:"numberOfMetrics"`
+	Error                string     `json:"error,omitempty"`
 }
 
 type netStatus struct {
-	NumberOfPeers int    `json:"numberOfPeers"`
-	Error         string `json:"error,omitempty"`
+	FirstSeenConnectedAt *time.Time `json:"firstSeenConnectedAt"`
+	NumberOfPeers        int        `json:"numberOfPeers"`
+	Error                string     `json:"error,omitempty"`
 }
 
 func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -107,29 +111,39 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 	r.ParseForm()
 	_, sparse := r.Form["sparse"]
 	status := a.getServiceStatus(r.Context(), sparse)
-	connected := (status.flux.Fluxd.Connected ||
-		status.scope.NumberOfProbes > 0 ||
-		status.prom.NumberOfMetrics > 0 ||
-		status.net.NumberOfPeers > 0)
+	fluxConnected := status.flux.Fluxd.Connected
+	scopeConnected := status.scope.NumberOfProbes > 0
+	promConnected := status.prom.NumSeries > 0
+	netConnected := status.net.NumberOfPeers > 0
+	anyConnected := (fluxConnected || scopeConnected || promConnected || netConnected)
+	now := mtime.Now()
 
-	if org.FirstSeenConnectedAt == nil && connected {
-		now := mtime.Now()
-		err := a.db.SetOrganizationFirstSeenConnectedAt(r.Context(), orgExternalID, &now)
-		if err != nil {
-			renderError(w, r, err)
-			return
+	UpdateFirstSeen := func(connectedNow bool, prevSeen *time.Time, outputSeen **time.Time, updateDB func(context.Context, string, *time.Time) error) {
+		if prevSeen == nil && connectedNow {
+			err := updateDB(r.Context(), orgExternalID, &now)
+			if err != nil {
+				renderError(w, r, err)
+				return
+			}
+			*outputSeen = &now
+		} else {
+			*outputSeen = prevSeen
 		}
-		org.FirstSeenConnectedAt = &now
 	}
+	out := getOrgServiceStatusView{
+		Connected: anyConnected,
+		Flux:      status.flux,
+		Scope:     status.scope,
+		Prom:      status.prom,
+		Net:       status.net,
+	}
+	UpdateFirstSeen(anyConnected, org.FirstSeenConnectedAt, &out.FirstSeenConnectedAt, a.db.SetOrganizationFirstSeenConnectedAt)
+	UpdateFirstSeen(fluxConnected, org.FirstSeenFluxConnectedAt, &out.Flux.FirstSeenConnectedAt, a.db.SetOrganizationFirstSeenFluxConnectedAt)
+	UpdateFirstSeen(netConnected, org.FirstSeenNetConnectedAt, &out.Net.FirstSeenConnectedAt, a.db.SetOrganizationFirstSeenNetConnectedAt)
+	UpdateFirstSeen(promConnected, org.FirstSeenPromConnectedAt, &out.Prom.FirstSeenConnectedAt, a.db.SetOrganizationFirstSeenPromConnectedAt)
+	UpdateFirstSeen(scopeConnected, org.FirstSeenScopeConnectedAt, &out.Scope.FirstSeenConnectedAt, a.db.SetOrganizationFirstSeenScopeConnectedAt)
 
-	render.JSON(w, http.StatusOK, getOrgServiceStatusView{
-		Connected:            connected,
-		FirstSeenConnectedAt: org.FirstSeenConnectedAt,
-		Flux:                 status.flux,
-		Scope:                status.scope,
-		Prom:                 status.prom,
-		Net:                  status.net,
-	})
+	render.JSON(w, http.StatusOK, out)
 }
 
 type serviceStatus struct {
