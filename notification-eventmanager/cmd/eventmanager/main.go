@@ -10,6 +10,7 @@ import (
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common/dbwait"
 	"github.com/weaveworks/service/common/users"
+	"github.com/weaveworks/service/notification-eventmanager/db/postgres"
 	"github.com/weaveworks/service/notification-eventmanager/eventmanager"
 	"github.com/weaveworks/service/notification-eventmanager/sqsconnect"
 	"github.com/weaveworks/service/notification-eventmanager/types"
@@ -84,8 +85,12 @@ func main() {
 			log.Fatalf("database migrations failed: %s", err)
 		}
 	}
+	psql, err := postgres.New(databaseURI, migrationsDir)
 
-	em := eventmanager.New(uclient, db, sqsCli, sqsQueue)
+	if err != nil {
+		log.Fatalf("Its dead fam %s", err)
+	}
+	em := eventmanager.New(uclient, db, sqsCli, sqsQueue, psql)
 
 	if eventTypesPath != "" {
 		eventTypes, err := types.EventTypesFromFile(eventTypesPath)

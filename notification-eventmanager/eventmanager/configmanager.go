@@ -722,32 +722,42 @@ func (em *EventManager) getEvents(r *http.Request, instanceID string) (interface
 		}
 		offset = o
 	}
-	rows, err := em.DB.Query(
-		"get_events",
-		`SELECT event_id, event_type, instance_id, timestamp, messages
-		FROM events
-		WHERE instance_id = $1
-		ORDER BY timestamp DESC
-		LIMIT $2 OFFSET $3`,
-		instanceID,
-		length,
-		offset,
-	)
-	if err != nil {
-		return nil, 0, err
-	}
-	events := []types.Event{}
-	err = em.forEachRow(rows, func(row *sql.Rows) error {
-		e, err := types.EventFromRow(row)
-		if err != nil {
-			return err
-		}
-		events = append(events, e)
-		return nil
-	})
-	if err != nil {
-		return nil, 0, err
-	}
+
+	events, err := em.dbClient.ListEvents(instanceID, offset, length)
+	// rows, err := em.DB.Query(
+	// 	"get_events",
+	// 	`SELECT
+	// 		event_id,
+	// 		event_type,
+	// 		instance_id,
+	// 		timestamp,
+	// 		fallback,
+	// 		html,
+	// 		metadata,
+	// 		messages
+	// 	FROM events
+	// 	WHERE instance_id = $1
+	// 	ORDER BY timestamp DESC
+	// 	LIMIT $2 OFFSET $3`,
+	// 	instanceID,
+	// 	length,
+	// 	offset,
+	// )
+	// if err != nil {
+	// 	return nil, 0, err
+	// }
+	// events := []types.Event{}
+	// err = em.forEachRow(rows, func(row *sql.Rows) error {
+	// 	e, err := types.EventFromRow(row)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	events = append(events, e)
+	// 	return nil
+	// })
+	// if err != nil {
+	// 	return nil, 0, err
+	// }
 	return events, http.StatusOK, err
 }
 

@@ -73,7 +73,7 @@ func (db *dbOrTx) QueryRow(method string, query string, args ...interface{}) (re
 		result = db.wrappedDbOrTx.QueryRow(query, args...)
 		return nil
 	})
-	return
+	return result
 }
 
 // Exec wraps sql.DB.Exec(), with a metric status 500 on error and 200 otherwise
