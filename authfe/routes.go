@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"mime"
 	"net"
@@ -65,103 +64,11 @@ func mustSplitHostname(r *http.Request) string {
 	return host
 }
 
-// ifEmpty(a,b) returns b iff a is empty
-func ifEmpty(a, b string) string {
-	if a != "" {
-		return a
-	}
-	return b
-}
-
-func newLauncherServiceLogger() HTTPEventExtractor {
-	return func(r *http.Request) (Event, bool) {
-		event := Event{
-			ID:        r.URL.Path,
-			Product:   "launcher-service",
-			UserAgent: r.UserAgent(),
-			IPAddress: mustSplitHostname(r),
-		}
-		return event, true
-	}
-}
-
-func newProbeRequestLogger() HTTPEventExtractor {
-	return func(r *http.Request) (Event, bool) {
-		orgID, err := user.ExtractOrgID(r.Context())
-		if err != nil {
-			return Event{}, false
-		}
-
-		event := Event{
-			ID:             r.URL.Path,
-			Product:        "scope-probe",
-			Version:        r.Header.Get(probeVersionHeader),
-			UserAgent:      r.UserAgent(),
-			ClientID:       r.Header.Get(probeIDHeader),
-			OrganizationID: orgID,
-			IPAddress:      mustSplitHostname(r),
-		}
-		return event, true
-	}
-}
-
-func newUIRequestLogger(userIDHeader string) HTTPEventExtractor {
-	return func(r *http.Request) (Event, bool) {
-		sessionCookie, err := r.Cookie(sessionCookieKey)
-		var sessionID string
-		if err == nil {
-			sessionID = sessionCookie.Value
-		}
-
-		orgID, _ := user.ExtractOrgID(r.Context())
-
-		event := Event{
-			ID:             r.URL.Path,
-			SessionID:      sessionID,
-			Product:        "scope-ui",
-			UserAgent:      r.UserAgent(),
-			OrganizationID: orgID,
-			UserID:         r.Header.Get(userIDHeader),
-			IPAddress:      mustSplitHostname(r),
-		}
-		return event, true
-	}
-}
-
-func newAnalyticsLogger(userIDHeader string) HTTPEventExtractor {
-	return func(r *http.Request) (Event, bool) {
-		sessionCookie, err := r.Cookie(sessionCookieKey)
-		var sessionID string
-		if err == nil {
-			sessionID = sessionCookie.Value
-		}
-
-		values, err := ioutil.ReadAll(&io.LimitedReader{
-			R: r.Body,
-			N: maxAnalyticsPayloadSize,
-		})
-		if err != nil {
-			return Event{}, false
-		}
-
-		event := Event{
-			ID:        r.URL.Path,
-			SessionID: sessionID,
-			Product:   "scope-ui",
-			UserAgent: r.UserAgent(),
-			UserID:    r.Header.Get(userIDHeader),
-			Values:    string(values),
-			IPAddress: mustSplitHostname(r),
-		}
-		return event, true
-	}
-}
-
 func routes(c Config, authenticator users.UsersClient, ghIntegration *users_client.TokenRequester, eventLogger *EventLogger) (http.Handler, error) {
 	launcherServiceLogger, probeHTTPlogger, uiHTTPlogger, analyticsLogger := middleware.Identity, middleware.Identity, middleware.Identity, middleware.Identity
 	if eventLogger != nil {
 		launcherServiceLogger = HTTPEventLogger{
-			Extractor: newLauncherServiceLogger(),
+			Extractor: newLauncherServiceLogger(authenticator),
 			Logger:    eventLogger,
 		}
 		probeHTTPlogger = HTTPEventLogger{
