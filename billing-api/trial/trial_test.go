@@ -71,6 +71,19 @@ func TestTrialInfo(t *testing.T) {
 				End:       now.Add(asDays(20) + 1*time.Hour),
 			},
 		},
+		{
+			name: "created after trial expired",
+			organization: users.Organization{
+				CreatedAt:      now.Add(time.Hour),
+				TrialExpiresAt: now.Add(-time.Hour),
+			},
+			trial: Trial{
+				Length:    0,
+				Remaining: 0,
+				Start:     now.Add(-time.Hour),
+				End:       now.Add(-time.Hour),
+			},
+		},
 	} {
 		gotTrial := Info(example.organization, now)
 		if fmt.Sprint(gotTrial) != fmt.Sprint(example.trial) {
