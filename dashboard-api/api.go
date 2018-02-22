@@ -61,6 +61,7 @@ func (api *API) registerRoutes(r *mux.Router) {
 
 		// per-service entry points
 		{"api_dashboard_services_namespace_service_metrics", "GET", "/api/dashboard/services/{ns}/{service}/metrics", api.GetServiceMetrics},
+		{"api_dashboard_services_namespace_service_dashboards", "GET", "/api/dashboard/services/{ns}/{service}/dashboards", api.GetServiceDashboards},
 	} {
 		r.Handle(route.path, route.handler).Methods(route.method).Name(route.name)
 	}

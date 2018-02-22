@@ -8,6 +8,7 @@ import (
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/service/dashboard-api/dashboard"
 )
 
 type config struct {
@@ -48,6 +49,8 @@ func main() {
 		log.Fatalf("error initializing API: %v", err)
 	}
 	api.registerRoutes(server.HTTP)
+
+	dashboard.Init()
 
 	server.Run()
 }
