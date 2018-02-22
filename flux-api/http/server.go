@@ -318,7 +318,7 @@ func (s httpService) PostIntegrationsGithub(w http.ResponseWriter, r *http.Reque
 		vars    = mux.Vars(r)
 		owner   = vars["owner"]
 		repo    = vars["repository"]
-		keyname = vars["keyname"]
+		keyname = r.FormValue("keyname")
 		tok     = r.Header.Get("GithubToken")
 	)
 
