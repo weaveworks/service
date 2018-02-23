@@ -385,6 +385,18 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/mitchellh/copystructure"
+  packages = ["."]
+  revision = "d23ffcb85de31694d6ccaa23ccb4a03e55c1303f"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mitchellh/reflectwalk"
+  packages = ["."]
+  revision = "63d60e9d0dbc60cf9164e6510889b0db6683d98c"
+
+[[projects]]
+  branch = "master"
   name = "github.com/mwitkow/go-grpc-middleware"
   packages = ["."]
   revision = "645b33ed7ba8739747bf2df55d0349d4bba2e7f6"
@@ -459,7 +471,12 @@
 [[projects]]
   branch = "master"
   name = "github.com/prometheus/client_golang"
-  packages = ["prometheus","prometheus/promhttp"]
+  packages = [
+    "api",
+    "api/prometheus/v1",
+    "prometheus",
+    "prometheus/promhttp"
+  ]
   revision = "9bb6ab929dcbe1c8393cd9ef70387cb69811bd1c"
 
 [[projects]]
@@ -705,6 +722,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "92c051b231cdfa5c65a13891fbc89944f50a5b3725d532ec1d678480de0986e9"
+  inputs-digest = "804a27861bb7d4d715fa519d92d806b862308c0f863c028e4663203f8bba138f"
   solver-name = "gps-cdcl"
   solver-version = 1

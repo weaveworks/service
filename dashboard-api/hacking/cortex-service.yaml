@@ -1,0 +1,20 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: querier
+  namespace: cortex
+spec:
+  selector:
+    name: prometheus
+    app: weave-cortex
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+
+# Useful when wanting to debug prom API from outside the cluster
+# type: NodePort
+# ports:
+# - protocol: TCP
+#   port: 8080
+#   nodePort: 30099

@@ -79,7 +79,10 @@ GCP_LAUNCHER_WEBHOOK_EXE := gcp-launcher-webhook/gcp-launcher-webhook
 KUBECTL_SERVICE_EXE := kubectl-service/kubectl-service
 GCP_SERVICE_EXE := gcp-service/gcp-service
 NOTIFICATION_EXES := notification-eventmanager/cmd/eventmanager/eventmanager notification-sender/cmd/sender/sender
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) $(GITHUB_RECEIVER_EXE) $(FLUX_API_EXE) $(BILLING_EXES) $(GCP_LAUNCHER_WEBHOOK_EXE) $(NOTIFICATION_EXES) $(KUBECTL_SERVICE_EXE) $(GCP_SERVICE_EXE)
+DASHBOARD_EXE := dashboard-api/dashboard-api
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) \
+	$(GITHUB_RECEIVER_EXE) $(FLUX_API_EXE) $(BILLING_EXES) $(GCP_LAUNCHER_WEBHOOK_EXE) \
+	$(NOTIFICATION_EXES) $(KUBECTL_SERVICE_EXE) $(GCP_SERVICE_EXE) $(DASHBOARD_EXE)
 
 # And what goes into each exe
 gofiles = $(shell find $1 -name '*.go')
@@ -96,6 +99,7 @@ $(GCP_LAUNCHER_WEBHOOK_EXE): $(call gofiles,gcp-launcher-webhook) $(COMMON)
 $(KUBECTL_SERVICE_EXE): $(shell find kubectl-service -name '*.go') $(COMMON)
 $(GCP_SERVICE_EXE): $(shell find gcp-service -name '*.go') $(COMMON) $(KUBECTL_SERVICE_EXE)
 $(NOTIFICATION_EXES): $(call gofiles,notification-*) $(COMMON)
+$(DASHBOARD_EXE): $(call gofiles,dashboard-*) $(COMMON)
 # See secondary expansion at bottom for BILLING_EXES gofiles
 
 test: $(PROTO_GOS)
@@ -113,6 +117,7 @@ flux-api/$(UPTODATE): $(FLUX_API_EXE) flux-api/migrations.tar
 gcp-launcher-webhook/$(UPTODATE): $(GCP_LAUNCHER_WEBHOOK_EXE)
 kubectl-service/$(UPTODATE): $(KUBECTL_SERVICE_EXE)
 gcp-service/$(UPTODATE): $(GCP_SERVICE_EXE)
+dashboard-api/$(UPTODATE): $(DASHBOARD_EXE)
 
 # Expands a list of binary paths to have their respective images depend on the binary
 # Example:
