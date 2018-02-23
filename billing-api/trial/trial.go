@@ -29,24 +29,16 @@ type Trial struct {
 // Info returns a bundle of information about the trial period that gets
 // used in the Javascript frontend.
 func Info(o users.Organization, now time.Time) Trial {
-	length := int(math.Max(days(o.TrialExpiresAt.Sub(o.CreatedAt)), 0.0))
-
-	// Remaining is the expiry - time now
-	remainingTime := o.TrialExpiresAt.Sub(now)
-	remainingDays := days(remainingTime)
-
-	// Ceil because if expires in a few hours, we still have 1 day left.
-	// Max because if time is negative, then just report 0 days left
-	remaining := int(math.Max(0, math.Ceil(remainingDays)))
-
 	return Trial{
-		Length:    length,
-		Remaining: remaining,
+		Length:    days(o.TrialExpiresAt.Sub(o.CreatedAt)),
+		Remaining: days(o.TrialExpiresAt.Sub(now)),
 		Start:     o.CreatedAt,
 		End:       o.TrialExpiresAt,
 	}
 }
 
-func days(duration time.Duration) float64 {
-	return duration.Hours() / 24.0
+// Days returns number of days in a duration. It rounds up to the next day and
+// will return 0 for negative durations.
+func days(duration time.Duration) int {
+	return int(math.Max(math.Ceil(duration.Hours()/24.0), 0))
 }
