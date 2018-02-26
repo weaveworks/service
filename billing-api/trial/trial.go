@@ -4,6 +4,7 @@ import (
 	"math"
 	"time"
 
+	common_time "github.com/weaveworks/service/common/time"
 	"github.com/weaveworks/service/users"
 )
 
@@ -32,8 +33,11 @@ func Info(o users.Organization, now time.Time) Trial {
 	return Trial{
 		Length:    days(o.TrialExpiresAt.Sub(o.CreatedAt)),
 		Remaining: days(o.TrialExpiresAt.Sub(now)),
-		Start:     o.CreatedAt,
-		End:       o.TrialExpiresAt,
+		// An instance may be created after the trial expires. In that case,
+		// we just return the same time for Start and End. This should be
+		// caught in the frontend by length == 0.
+		Start: common_time.MinTime(o.CreatedAt, o.TrialExpiresAt),
+		End:   o.TrialExpiresAt,
 	}
 }
 
