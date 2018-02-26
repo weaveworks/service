@@ -50,7 +50,7 @@ var (
 	router *mux.Router
 
 	// Mocked out remote platform.
-	mockPlatform *remote.MockPlatform
+	mockPlatform *remote.MockServer
 
 	// API Client
 	apiClient *client.Client
@@ -85,7 +85,7 @@ func setup(t *testing.T) {
 	}
 
 	imageID, _ := image.ParseRef("quay.io/weaveworks/helloworld:v1")
-	mockPlatform = &remote.MockPlatform{
+	mockPlatform = &remote.MockServer{
 		ListServicesAnswer: []flux.ControllerStatus{
 			{
 				ID:     flux.MustParseResourceID(helloWorldSvc),
@@ -155,7 +155,8 @@ func setup(t *testing.T) {
 	// Server
 	apiServer := server.New(ver, instancer, instanceDB, messageBus, log.NewNopLogger(), nil)
 	router = httpserver.NewServiceRouter()
-	handler := httpserver.NewHandler(apiServer, router, log.NewNopLogger())
+	httpServer := httpserver.NewServer(apiServer, apiServer, apiServer)
+	handler := httpServer.MakeHandler(router, log.NewNopLogger())
 	handler = addInstanceIDHandler(handler)
 	ts = httptest.NewServer(handler)
 	apiClient = client.New(http.DefaultClient, router, ts.URL, "")
@@ -264,11 +265,15 @@ func TestFluxsvc_Release(t *testing.T) {
 	}
 
 	// Test UpdateImages
-	r, err := apiClient.UpdateImages(ctx, update.ReleaseSpec{
+	spec := update.ReleaseSpec{
 		ImageSpec:    "alpine:latest",
 		Kind:         "execute",
 		ServiceSpecs: []update.ResourceSpec{helloWorldSvc},
-	}, update.Cause{})
+	}
+	r, err := apiClient.UpdateManifests(ctx, update.Spec{
+		Type: update.Images,
+		Spec: spec,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -365,7 +370,10 @@ func TestFluxsvc_Ping(t *testing.T) {
 	defer teardown()
 
 	// Test Ping
-	u, _ := transport.MakeURL(ts.URL, router, "IsConnected")
+	u, err := transport.MakeURL(ts.URL, router, httpserver.Ping)
+	if err != nil {
+		t.Fatal(err)
+	}
 	resp, err := http.Get(u.String())
 	if err != nil {
 		t.Fatal(err)
@@ -390,7 +398,10 @@ func TestFluxsvc_Register(t *testing.T) {
 	}
 
 	// Test Ping to make sure daemon has registered.
-	u, _ := transport.MakeURL(ts.URL, router, "IsConnected")
+	u, err := transport.MakeURL(ts.URL, router, httpserver.Ping)
+	if err != nil {
+		t.Fatal(err)
+	}
 	resp, err := http.Get(u.String())
 	if err != nil {
 		t.Fatal(err)

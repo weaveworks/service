@@ -11,6 +11,7 @@ import (
 
 	"github.com/nats-io/go-nats"
 
+	"github.com/weaveworks/flux/api"
 	"github.com/weaveworks/flux/remote"
 	"github.com/weaveworks/service/flux-api/service"
 )
@@ -30,8 +31,8 @@ func setup(t *testing.T) *NATS {
 	return bus
 }
 
-func subscribe(ctx context.Context, t *testing.T, bus *NATS, errc chan error, inst service.InstanceID, plat remote.Platform) {
-	bus.Subscribe(ctx, inst, plat, errc)
+func subscribe(ctx context.Context, t *testing.T, bus *NATS, inst service.InstanceID, server api.UpstreamServer, errc chan error) {
+	bus.Subscribe(ctx, inst, server, errc)
 	if err := bus.AwaitPresence(inst, 5*time.Second); err != nil {
 		t.Fatal("Timed out waiting for instance to subscribe")
 	}
@@ -41,10 +42,10 @@ func TestPing(t *testing.T) {
 	bus := setup(t)
 	errc := make(chan error)
 	instID := service.InstanceID("wirey-bird-68")
-	platA := &remote.MockPlatform{}
+	platA := &remote.MockServer{}
 
 	ctx := context.Background()
-	subscribe(ctx, t, bus, errc, instID, platA)
+	subscribe(ctx, t, bus, instID, platA, errc)
 
 	// AwaitPresence uses Ping, so we have to install our error after
 	// subscribe succeeds.
@@ -77,15 +78,15 @@ func TestMethods(t *testing.T) {
 
 	ctx := context.Background()
 
-	wrap := func(mock remote.Platform) remote.Platform {
-		subscribe(ctx, t, bus, errc, instA, mock)
+	wrap := func(mock api.UpstreamServer) api.UpstreamServer {
+		subscribe(ctx, t, bus, instA, mock, errc)
 		plat, err := bus.Connect(instA)
 		if err != nil {
 			t.Fatal(err)
 		}
 		return plat
 	}
-	remote.PlatformTestBattery(t, wrap)
+	remote.ServerTestBattery(t, wrap)
 
 	close(errc)
 	err := <-errc
@@ -104,10 +105,10 @@ func TestFatalErrorDisconnects(t *testing.T) {
 	errc := make(chan error)
 
 	instA := service.InstanceID("golden-years-75")
-	mockA := &remote.MockPlatform{
+	mockA := &remote.MockServer{
 		ListServicesError: remote.FatalError{Err: errors.New("disaster")},
 	}
-	subscribe(ctx, t, bus, errc, instA, mockA)
+	subscribe(ctx, t, bus, instA, mockA, errc)
 
 	plat, err := bus.Connect(instA)
 	if err != nil {
@@ -134,14 +135,14 @@ func TestNewConnectionKicks(t *testing.T) {
 
 	instA := service.InstanceID("breaky-chain-77")
 
-	mockA := &remote.MockPlatform{}
+	mockA := &remote.MockServer{}
 	errA := make(chan error)
 	ctx := context.Background()
-	subscribe(ctx, t, bus, errA, instA, mockA)
+	subscribe(ctx, t, bus, instA, mockA, errA)
 
-	mockB := &remote.MockPlatform{}
+	mockB := &remote.MockServer{}
 	errB := make(chan error)
-	subscribe(ctx, t, bus, errB, instA, mockB)
+	subscribe(ctx, t, bus, instA, mockB, errB)
 
 	select {
 	case <-errA:

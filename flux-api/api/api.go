@@ -5,20 +5,20 @@ import (
 	"time"
 
 	"github.com/weaveworks/flux/api"
+	"github.com/weaveworks/flux/event"
 	"github.com/weaveworks/flux/update"
-	"github.com/weaveworks/service/flux-api/config"
 	"github.com/weaveworks/service/flux-api/history"
 	"github.com/weaveworks/service/flux-api/service"
 )
 
-// Service defines the interface for flux-api.
-type Service interface {
-	api.Client
-	api.Upstream
-
+// UI defines the flux-api methods which are only used for the Weave Cloud UI.
+type UI interface {
 	Status(ctx context.Context, withPlatform bool) (service.Status, error)
 	History(context.Context, update.ResourceSpec, time.Time, int64, time.Time) ([]history.Entry, error)
-	GetConfig(ctx context.Context, fingerprint string) (config.Instance, error)
-	SetConfig(context.Context, config.Instance) error
-	PatchConfig(context.Context, config.Patch) error
+}
+
+// Upstream defines the flux-api methods which a flux daemon may call.
+type Upstream interface {
+	RegisterDaemon(context.Context, api.UpstreamServer) error
+	LogEvent(context.Context, event.Event) error
 }

@@ -3,8 +3,8 @@ package instance
 import (
 	"github.com/go-kit/kit/log"
 
+	"github.com/weaveworks/flux/api"
 	"github.com/weaveworks/flux/event"
-	"github.com/weaveworks/flux/remote"
 	"github.com/weaveworks/service/flux-api/history"
 	"github.com/weaveworks/service/flux-api/service"
 )
@@ -16,7 +16,7 @@ type Instancer interface {
 
 // Instance is a flux-api connected flux daemon instance.
 type Instance struct {
-	Platform remote.Platform
+	Platform api.UpstreamServer
 	Config   configurer
 
 	log.Logger
@@ -26,7 +26,7 @@ type Instance struct {
 
 // New creates a new Instance.
 func New(
-	platform remote.Platform,
+	platform api.UpstreamServer,
 	config configurer,
 	logger log.Logger,
 	events history.EventReader,

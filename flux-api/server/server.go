@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/weaveworks/flux"
+	"github.com/weaveworks/flux/api"
 	"github.com/weaveworks/flux/event"
 	"github.com/weaveworks/flux/job"
 	"github.com/weaveworks/flux/policy"
@@ -408,7 +409,7 @@ func (s *Server) PublicSSHKey(ctx context.Context, regenerate bool) (ssh.PublicK
 // go, aside from just trying to connection. Therefore, the server
 // will get an error when we try to use the client. We rely on that to
 // break us out of this method.
-func (s *Server) RegisterDaemon(ctx context.Context, platform remote.Platform) (err error) {
+func (s *Server) RegisterDaemon(ctx context.Context, platform api.UpstreamServer) (err error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
 		return err
@@ -477,15 +478,15 @@ func (s *Server) Export(ctx context.Context) (res []byte, err error) {
 	return res, nil
 }
 
-func (s *Server) instrumentPlatform(instID service.InstanceID, p remote.Platform) remote.Platform {
-	return &remote.ErrorLoggingPlatform{
-		Platform: remote.Instrument(p),
-		Logger:   log.With(s.logger, "instanceID", instID),
-	}
+func (s *Server) instrumentPlatform(instID service.InstanceID, p api.UpstreamServer) api.UpstreamServer {
+	return remote.NewErrorLoggingUpstreamServer(
+		remote.InstrumentUpstream(p),
+		log.With(s.logger, "instanceID", instID),
+	)
 }
 
-// IsDaemonConnected pings the given instance.
-func (s *Server) IsDaemonConnected(ctx context.Context) error {
+// Ping pings the given instance.
+func (s *Server) Ping(ctx context.Context) error {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
 		return err
@@ -494,7 +495,7 @@ func (s *Server) IsDaemonConnected(ctx context.Context) error {
 }
 
 // NotifyChange notifies a daemon about change.
-func (s *Server) NotifyChange(ctx context.Context, change remote.Change) error {
+func (s *Server) NotifyChange(ctx context.Context, change api.Change) error {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
 		return err
@@ -504,4 +505,43 @@ func (s *Server) NotifyChange(ctx context.Context, change remote.Change) error {
 		return errors.Wrapf(err, "getting instance %s", string(instID))
 	}
 	return inst.Platform.NotifyChange(ctx, change)
+}
+
+// GitRepoConfig gets a daemon's git configuration.
+func (s *Server) GitRepoConfig(ctx context.Context, regenerate bool) (flux.GitConfig, error) {
+	instID, err := getInstanceID(ctx)
+	if err != nil {
+		return flux.GitConfig{}, err
+	}
+	inst, err := s.instancer.Get(instID)
+	if err != nil {
+		return flux.GitConfig{}, errors.Wrapf(err, "getting instance %s", string(instID))
+	}
+	return inst.Platform.GitRepoConfig(ctx, regenerate)
+}
+
+// UpdateManifests updates a daemon's manifests.
+func (s *Server) UpdateManifests(ctx context.Context, spec update.Spec) (job.ID, error) {
+	instID, err := getInstanceID(ctx)
+	if err != nil {
+		return "", err
+	}
+	inst, err := s.instancer.Get(instID)
+	if err != nil {
+		return "", errors.Wrapf(err, "getting instance %s", string(instID))
+	}
+	return inst.Platform.UpdateManifests(ctx, spec)
+}
+
+// Version gets a daemon's version.
+func (s *Server) Version(ctx context.Context) (string, error) {
+	instID, err := getInstanceID(ctx)
+	if err != nil {
+		return "", err
+	}
+	inst, err := s.instancer.Get(instID)
+	if err != nil {
+		return "", errors.Wrapf(err, "getting instance %s", string(instID))
+	}
+	return inst.Platform.Version(ctx)
 }

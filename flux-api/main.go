@@ -173,7 +173,8 @@ func main() {
 		logger.Log("addr", *listenAddr)
 		mux := http.NewServeMux()
 		mux.Handle("/metrics", promhttp.Handler())
-		handler := httpserver.NewHandler(server, httpserver.NewServiceRouter(), logger)
+		httpServer := httpserver.NewServer(server, server, server)
+		handler := httpServer.MakeHandler(httpserver.NewServiceRouter(), logger)
 		mux.Handle("/", handler)
 		mux.Handle("/api/flux/", http.StripPrefix("/api/flux", handler))
 		operationNameFunc := nethttp.OperationNameFunc(func(r *http.Request) string {

@@ -8,14 +8,13 @@ import (
 	"github.com/pkg/errors"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/common/middleware"
-
 	"github.com/weaveworks/flux"
+
+	"github.com/weaveworks/flux/api"
 	transport "github.com/weaveworks/flux/http"
-	"github.com/weaveworks/flux/image"
 	"github.com/weaveworks/flux/job"
 	fluxmetrics "github.com/weaveworks/flux/metrics"
 	"github.com/weaveworks/flux/policy"
-	"github.com/weaveworks/flux/remote"
 	"github.com/weaveworks/flux/update"
 )
 
@@ -32,9 +31,6 @@ var (
 func NewRouter() *mux.Router {
 	r := transport.NewAPIRouter()
 
-	r.NewRoute().Methods("POST").Name("GitPushHook").Path("/v9/hook/git").Queries("repo", "{repo}")
-	r.NewRoute().Methods("POST").Name("ImagePushHook").Path("/v9/hook/image").Queries("name", "{name}")
-
 	// All old versions are deprecated in the daemon. Use an up to
 	// date client!
 	transport.DeprecateVersions(r, "v1", "v2", "v3", "v4", "v5")
@@ -47,20 +43,22 @@ func NewRouter() *mux.Router {
 	return r
 }
 
-func NewHandler(d remote.Platform, r *mux.Router) http.Handler {
-	handle := HTTPServer{d}
+func NewHandler(s api.Server, r *mux.Router) http.Handler {
+	handle := HTTPServer{s}
 	r.Get("JobStatus").HandlerFunc(handle.JobStatus)
 	r.Get("SyncStatus").HandlerFunc(handle.SyncStatus)
-	r.Get("UpdateImages").HandlerFunc(handle.UpdateImages)
-	r.Get("UpdatePolicies").HandlerFunc(handle.UpdatePolicies)
+	r.Get("UpdateManifests").HandlerFunc(handle.UpdateManifests)
 	r.Get("ListServices").HandlerFunc(handle.ListServices)
 	r.Get("ListImages").HandlerFunc(handle.ListImages)
 	r.Get("Export").HandlerFunc(handle.Export)
+	r.Get("GitRepoConfig").HandlerFunc(handle.GitRepoConfig)
+
+	// These handlers persist to support requests from older fluxctls. In general we
+	// should avoid adding references to them so that they can eventually be removed.
+	r.Get("UpdateImages").HandlerFunc(handle.UpdateImages)
+	r.Get("UpdatePolicies").HandlerFunc(handle.UpdatePolicies)
 	r.Get("GetPublicSSHKey").HandlerFunc(handle.GetPublicSSHKey)
 	r.Get("RegeneratePublicSSHKey").HandlerFunc(handle.RegeneratePublicSSHKey)
-
-	r.Get("GitPushHook").HandlerFunc(handle.GitPushHook)
-	r.Get("ImagePushHook").HandlerFunc(handle.ImagePushHook)
 
 	return middleware.Instrument{
 		RouteMatcher: r,
@@ -69,43 +67,12 @@ func NewHandler(d remote.Platform, r *mux.Router) http.Handler {
 }
 
 type HTTPServer struct {
-	daemon remote.Platform
-}
-
-func (s HTTPServer) GitPushHook(w http.ResponseWriter, r *http.Request) {
-	repo := mux.Vars(r)["repo"]
-	err := s.daemon.NotifyChange(r.Context(), remote.Change{
-		Kind:   remote.GitChange,
-		Source: remote.GitUpdate{URL: repo},
-	})
-	if err != nil {
-		transport.ErrorResponse(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-	return
-}
-
-func (s HTTPServer) ImagePushHook(w http.ResponseWriter, r *http.Request) {
-	nameString := mux.Vars(r)["name"]
-	ref, err := image.ParseRef(nameString)
-	if err == nil {
-		err = s.daemon.NotifyChange(r.Context(), remote.Change{
-			Kind:   remote.ImageChange,
-			Source: remote.ImageUpdate{Name: ref.Name},
-		})
-	}
-	if err != nil {
-		transport.ErrorResponse(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-	return
+	server api.Server
 }
 
 func (s HTTPServer) JobStatus(w http.ResponseWriter, r *http.Request) {
 	id := job.ID(mux.Vars(r)["id"])
-	status, err := s.daemon.JobStatus(r.Context(), id)
+	status, err := s.server.JobStatus(r.Context(), id)
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
 		return
@@ -115,7 +82,7 @@ func (s HTTPServer) JobStatus(w http.ResponseWriter, r *http.Request) {
 
 func (s HTTPServer) SyncStatus(w http.ResponseWriter, r *http.Request) {
 	ref := mux.Vars(r)["ref"]
-	commits, err := s.daemon.SyncStatus(r.Context(), ref)
+	commits, err := s.server.SyncStatus(r.Context(), ref)
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
 		return
@@ -131,13 +98,62 @@ func (s HTTPServer) ListImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d, err := s.daemon.ListImages(r.Context(), spec)
+	d, err := s.server.ListImages(r.Context(), spec)
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
 		return
 	}
 	transport.JSONResponse(w, r, d)
 }
+
+func (s HTTPServer) UpdateManifests(w http.ResponseWriter, r *http.Request) {
+	var spec update.Spec
+	if err := json.NewDecoder(r.Body).Decode(&spec); err != nil {
+		transport.WriteError(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	jobID, err := s.server.UpdateManifests(r.Context(), spec)
+	if err != nil {
+		transport.ErrorResponse(w, r, err)
+		return
+	}
+	transport.JSONResponse(w, r, jobID)
+}
+
+func (s HTTPServer) ListServices(w http.ResponseWriter, r *http.Request) {
+	namespace := mux.Vars(r)["namespace"]
+	res, err := s.server.ListServices(r.Context(), namespace)
+	if err != nil {
+		transport.ErrorResponse(w, r, err)
+		return
+	}
+	transport.JSONResponse(w, r, res)
+}
+
+func (s HTTPServer) Export(w http.ResponseWriter, r *http.Request) {
+	status, err := s.server.Export(r.Context())
+	if err != nil {
+		transport.ErrorResponse(w, r, err)
+		return
+	}
+
+	transport.JSONResponse(w, r, status)
+}
+
+func (s HTTPServer) GitRepoConfig(w http.ResponseWriter, r *http.Request) {
+	var regenerate bool
+	if err := json.NewDecoder(r.Body).Decode(&regenerate); err != nil {
+		transport.WriteError(w, r, http.StatusBadRequest, err)
+	}
+	res, err := s.server.GitRepoConfig(r.Context(), regenerate)
+	if err != nil {
+		transport.ErrorResponse(w, r, err)
+	}
+	transport.JSONResponse(w, r, res)
+}
+
+// --- handlers supporting deprecated requests
 
 func (s HTTPServer) UpdateImages(w http.ResponseWriter, r *http.Request) {
 	var (
@@ -189,7 +205,7 @@ func (s HTTPServer) UpdateImages(w http.ResponseWriter, r *http.Request) {
 		User:    r.FormValue("user"),
 		Message: r.FormValue("message"),
 	}
-	result, err := s.daemon.UpdateManifests(r.Context(), update.Spec{Type: update.Images, Cause: cause, Spec: spec})
+	result, err := s.server.UpdateManifests(r.Context(), update.Spec{Type: update.Images, Cause: cause, Spec: spec})
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
 		return
@@ -209,7 +225,7 @@ func (s HTTPServer) UpdatePolicies(w http.ResponseWriter, r *http.Request) {
 		Message: r.FormValue("message"),
 	}
 
-	jobID, err := s.daemon.UpdateManifests(r.Context(), update.Spec{Type: update.Policy, Cause: cause, Spec: updates})
+	jobID, err := s.server.UpdateManifests(r.Context(), update.Spec{Type: update.Policy, Cause: cause, Spec: updates})
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
 		return
@@ -218,28 +234,8 @@ func (s HTTPServer) UpdatePolicies(w http.ResponseWriter, r *http.Request) {
 	transport.JSONResponse(w, r, jobID)
 }
 
-func (s HTTPServer) ListServices(w http.ResponseWriter, r *http.Request) {
-	namespace := mux.Vars(r)["namespace"]
-	res, err := s.daemon.ListServices(r.Context(), namespace)
-	if err != nil {
-		transport.ErrorResponse(w, r, err)
-		return
-	}
-	transport.JSONResponse(w, r, res)
-}
-
-func (s HTTPServer) Export(w http.ResponseWriter, r *http.Request) {
-	status, err := s.daemon.Export(r.Context())
-	if err != nil {
-		transport.ErrorResponse(w, r, err)
-		return
-	}
-
-	transport.JSONResponse(w, r, status)
-}
-
 func (s HTTPServer) GetPublicSSHKey(w http.ResponseWriter, r *http.Request) {
-	res, err := s.daemon.GitRepoConfig(r.Context(), false)
+	res, err := s.server.GitRepoConfig(r.Context(), false)
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
 		return
@@ -248,7 +244,7 @@ func (s HTTPServer) GetPublicSSHKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s HTTPServer) RegeneratePublicSSHKey(w http.ResponseWriter, r *http.Request) {
-	_, err := s.daemon.GitRepoConfig(r.Context(), true)
+	_, err := s.server.GitRepoConfig(r.Context(), true)
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
 		return
