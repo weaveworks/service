@@ -516,4 +516,5 @@ func Test_Organization_Lookup(t *testing.T) {
 	body := map[string]interface{}{}
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, org.ExternalID, body["externalID"])
+	assert.Equal(t, org.Name, body["name"])
 }
