@@ -2,7 +2,6 @@ package emailer
 
 import (
 	"fmt"
-	"math"
 	"net"
 	"net/smtp"
 	"net/url"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/jordan-wright/email"
 
+	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/templates"
 )
@@ -153,7 +153,7 @@ func (s SMTPEmailer) TrialExtendedEmail(members []*users.User, orgExternalID, or
 }
 
 func trialLeft(expires time.Time) string {
-	days := int16(math.Max(0, math.Ceil(expires.Sub(time.Now()).Hours()/24)))
+	days := trial.Remaining(expires, time.Now().UTC())
 	if days == 1 {
 		return "1 day"
 	}
