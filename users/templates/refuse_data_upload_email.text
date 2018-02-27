@@ -1,0 +1,15 @@
+Hi,
+
+Your free trial of Weave Cloud for ‘{{.OrganizationName}}’ has expired and we don’t accept data sent by your cluster anymore.
+
+To continue using Weave Cloud, add a payment method:
+
+    {{.BillingURL}}
+
+To terminate your subscription for ‘{{.OrganizationName}}’, visit the settings pages and delete the instance.
+
+If you have any questions please contact us via billing@weave.works or through Slack: https://slack.weave.works/
+
+Thanks,
+
+The Weaveworks team
