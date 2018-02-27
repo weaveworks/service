@@ -295,7 +295,7 @@ func (s Server) postIntegrationsGithub(w http.ResponseWriter, r *http.Request) {
 		vars    = mux.Vars(r)
 		owner   = vars["owner"]
 		repo    = vars["repository"]
-		keyname = vars["keyname"]
+		keyname = r.FormValue("keyname")
 		tok     = r.Header.Get("GithubToken")
 	)
 
