@@ -46,15 +46,15 @@ func ValidateEmailSender(uri, from string) error {
 }
 
 // Send sends data to address with EmailSender creds
-func (es *EmailSender) Send(_ context.Context, addr, data json.RawMessage, _ string) error {
+func (es *EmailSender) Send(_ context.Context, addr json.RawMessage, notif types.Notification, _ string) error {
 	var addrStr string
 	if err := json.Unmarshal(addr, &addrStr); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal address %s", addr)
 	}
 
 	var notifData types.EmailMessage
-	if err := json.Unmarshal(data, &notifData); err != nil {
-		return errors.Wrapf(err, "cannot unmarshal notification data %s to string", data)
+	if err := json.Unmarshal(notif.Data, &notifData); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal notification data %s to string", notif.Data)
 	}
 
 	if es.URI == "" {

@@ -122,7 +122,7 @@ type Config struct {
 }
 
 // NotifyHandler notifies address about notification in data
-type NotifyHandler func(ctx context.Context, address, data json.RawMessage, instance string) error
+type NotifyHandler func(ctx context.Context, address json.RawMessage, notif types.Notification, instance string) error
 
 // Sender contains creds for SQS and map of handlers to each ReceiverType
 type Sender struct {
@@ -248,7 +248,7 @@ func (s *Sender) sendNotification(ctx context.Context, notif types.Notification,
 	}
 
 	begin := time.Now()
-	if err := h(ctx, notif.Address, notif.Data, notif.InstanceID); err != nil {
+	if err := h(ctx, notif.Address, notif, notif.InstanceID); err != nil {
 		if _, ok := err.(RetriableError); ok {
 			return errors.Wrapf(err, "cannot send %s notification; will retry request later, retriable error: %s", notif.ReceiverType, err)
 		}
