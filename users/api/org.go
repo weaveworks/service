@@ -375,16 +375,17 @@ func (a *API) extendOrgTrialPeriod(ctx context.Context, org *users.Organization,
 		return err
 	}
 
+	if !sendmail {
+		return nil
+	}
+
 	members, err := a.db.ListOrganizationUsers(ctx, org.ExternalID)
 	if err != nil {
 		return err
 	}
-
-	if sendmail {
-		err = a.emailer.TrialExtendedEmail(members, org.ExternalID, org.Name, t)
-		if err != nil {
-			return err
-		}
+	err = a.emailer.TrialExtendedEmail(members, org.ExternalID, org.Name, t)
+	if err != nil {
+		return err
 	}
 
 	return nil

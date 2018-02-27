@@ -112,7 +112,7 @@
             <td>
                 <form action="users/{{.ID}}/remove" method="POST">
                     <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-                    <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent"
+                    <input class="mdl-button mdl-js-button mdl-button--accent"
                            type="submit" value="Delete" onclick="return confirm('Are you sure to delete this user?')"/>
                 </form>
             <td>
