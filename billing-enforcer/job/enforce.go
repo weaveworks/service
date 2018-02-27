@@ -3,6 +3,7 @@ package job
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -12,6 +13,7 @@ import (
 	"flag"
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/users"
 )
 
@@ -29,6 +31,7 @@ func init() {
 // Config provides settings for this job.
 type Config struct {
 	NotifyPendingExpiryPeriod time.Duration
+	RefuseDataUploadAfter     time.Duration
 }
 
 // RegisterFlags registers configuration variables.
@@ -36,6 +39,9 @@ func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
 	f.DurationVar(&cfg.NotifyPendingExpiryPeriod,
 		"trial.notify-pending-expiry-period", 3*24*time.Hour,
 		"Duration before trial expiry when we send the notification")
+	f.DurationVar(&cfg.RefuseDataUploadAfter,
+		"trial.refuse-data-upload-after", 15*24*time.Hour,
+		"Duration before RefuseDataUpload flag is set for delinquent organizations")
 }
 
 // Enforce job sends notification emails.
@@ -65,17 +71,17 @@ func (j *Enforce) Run() {
 func (j *Enforce) Do() error {
 	return instrument.CollectedRequest(context.Background(), "Enforce.Do", j.collector, nil, func(ctx context.Context) error {
 		now := time.Now().UTC()
-		terr := j.NotifyTrialOrganizations(ctx, now)
-		derr := j.NotifyDelinquentOrganizations(ctx, now)
-
-		if terr != nil && derr != nil {
-			return fmt.Errorf("%v\n%v", terr, derr)
+		var errs []string
+		for _, call := range []func(context.Context, time.Time) error{
+			j.NotifyTrialOrganizations,
+			j.ProcessDelinquentOrganizations,
+		} {
+			if err := call(ctx, now); err != nil {
+				errs = append(errs, err.Error())
+			}
 		}
-		if terr != nil {
-			return terr
-		}
-		if derr != nil {
-			return derr
+		if len(errs) > 0 {
+			return fmt.Errorf("%v", strings.Join(errs, " / "))
 		}
 		return nil
 	})
@@ -139,8 +145,10 @@ func (j *Enforce) NotifyTrialOrganizations(ctx context.Context, now time.Time) e
 	return nil
 }
 
-// NotifyDelinquentOrganizations sends emails to organizations whose trial has expired.
-func (j *Enforce) NotifyDelinquentOrganizations(ctx context.Context, now time.Time) error {
+// ProcessDelinquentOrganizations sends emails to organizations whose trial has expired.
+// It also makes sure their RefuseDataAccess flag is set and if delinquent for more than
+// 15 days, RefuseDataUpload is set.
+func (j *Enforce) ProcessDelinquentOrganizations(ctx context.Context, now time.Time) error {
 	logger := logging.With(ctx)
 
 	resp, err := j.users.GetDelinquentOrganizations(ctx, &users.GetDelinquentOrganizationsRequest{
@@ -159,6 +167,11 @@ func (j *Enforce) NotifyDelinquentOrganizations(ctx context.Context, now time.Ti
 		if !org.IsOnboarded() {
 			continue
 		}
+
+		// Failure in any of these flag updates should not interfere with the notification
+		// email. It will just pick it up on the next run. We do log an error.
+		j.refuseDataAccess(ctx, org)
+		j.refuseDataUpload(ctx, now, org)
 
 		// Have we already notified?
 		if org.TrialExpiredNotifiedAt != nil {
@@ -180,4 +193,43 @@ func (j *Enforce) NotifyDelinquentOrganizations(ctx context.Context, now time.Ti
 	trialNotifiedCount.WithLabelValues("trial_expired", "error").Set(float64(fail))
 
 	return nil
+}
+
+func (j *Enforce) refuseDataAccess(ctx context.Context, org users.Organization) {
+	if org.RefuseDataAccess {
+		return
+	}
+	_, err := j.users.SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{
+		ExternalID: org.ExternalID,
+		Flag:       orgs.RefuseDataAccess,
+		Value:      true,
+	})
+	logger := logging.With(ctx)
+	if err == nil {
+		logger.Infof("Refused data access for organization: %s", org.ExternalID)
+	} else {
+		logger.Errorf("Failed refusing data access for organization %s: %v", org.ExternalID, err)
+	}
+}
+
+func (j *Enforce) refuseDataUpload(ctx context.Context, now time.Time, org users.Organization) {
+	if org.RefuseDataUpload {
+		return
+	}
+	if org.TrialExpiresAt.Add(j.cfg.RefuseDataUploadAfter).After(now) {
+		return
+	}
+
+	_, err := j.users.SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{
+		ExternalID: org.ExternalID,
+		Flag:       orgs.RefuseDataUpload,
+		Value:      true,
+	})
+
+	logger := logging.With(ctx)
+	if err == nil {
+		logger.Infof("Refused data upload for organization: %s", org.ExternalID)
+	} else {
+		logger.Errorf("Failed refusing data upload for organization %s: %v", org.ExternalID, err)
+	}
 }
