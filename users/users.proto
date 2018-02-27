@@ -57,6 +57,10 @@ service Users {
     // NotifyTrialExpired sends a "Trial expired" notification to this user
     // and records the date sent.
     rpc NotifyTrialExpired(NotifyTrialExpiredRequest) returns (NotifyTrialExpiredResponse) {};
+
+    // NotifyRefuseDataUpload sends a "data upload blocked" notification to the members
+    // of this organization.
+    rpc NotifyRefuseDataUpload(NotifyRefuseDataUploadRequest) returns (NotifyRefuseDataUploadResponse) {};
 }
 
 enum AuthorizedAction {
@@ -281,6 +285,13 @@ message NotifyTrialExpiredRequest {
 }
 
 message NotifyTrialExpiredResponse {
+}
+
+message NotifyRefuseDataUploadRequest {
+    string ExternalID = 1;
+}
+
+message NotifyRefuseDataUploadResponse {
 }
 
 message Team {

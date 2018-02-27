@@ -158,12 +158,15 @@ func TestEnforce_ProcessDelinquentOrganizations_refuseData(t *testing.T) {
 			Flag:       orgs.RefuseDataAccess,
 			Value:      true,
 		})
+
 	client.EXPECT().
 		SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{
 			ExternalID: "refuse-upload",
 			Flag:       orgs.RefuseDataUpload,
 			Value:      true,
 		})
+	client.EXPECT().
+		NotifyRefuseDataUpload(ctx, &users.NotifyRefuseDataUploadRequest{ExternalID: "refuse-upload"})
 
 	j := job.NewEnforce(client, job.Config{RefuseDataUploadAfter: 15 * 24 * time.Hour}, instrument.NewJobCollector("foo"))
 	j.ProcessDelinquentOrganizations(context.Background(), now)

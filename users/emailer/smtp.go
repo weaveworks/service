@@ -159,3 +159,20 @@ func trialLeft(expires time.Time) string {
 	}
 	return fmt.Sprintf("%d days", days)
 }
+
+// RefuseDataUploadEmail notifies all members of the organization that the trial
+// period has been expired for a while and we now block their data upload.
+func (s SMTPEmailer) RefuseDataUploadEmail(members []*users.User, orgExternalID, orgName string) error {
+	data := map[string]interface{}{
+		"OrganizationName": orgName,
+		"BillingURL":       billingURL(s.Domain, orgExternalID),
+	}
+	e := email.NewEmail()
+	e.From = s.FromAddress
+	e.To = collectEmails(members)
+	e.Subject = "Weave Cloud no longer accepts data sent by your cluster"
+	e.Text = s.Templates.QuietBytes("refuse_data_upload_email.text", data)
+	e.HTML = s.Templates.EmbedHTML("refuse_data_upload_email.html", emailWrapperFilename, e.Subject, data)
+
+	return s.Sender(e)
+}

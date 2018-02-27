@@ -25,6 +25,7 @@ type Emailer interface {
 	TrialExtendedEmail(members []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
 	TrialPendingExpiryEmail(memebrs []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
 	TrialExpiredEmail(members []*users.User, orgExternalID, orgName string) error
+	RefuseDataUploadEmail(members []*users.User, orgExternalID, orgName string) error
 }
 
 // MustNew creates a new Emailer, from the URI, or panics.

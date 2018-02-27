@@ -13,6 +13,7 @@ import (
 	"flag"
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/users"
 )
@@ -171,7 +172,17 @@ func (j *Enforce) ProcessDelinquentOrganizations(ctx context.Context, now time.T
 		// Failure in any of these flag updates should not interfere with the notification
 		// email. It will just pick it up on the next run. We do log an error.
 		j.refuseDataAccess(ctx, org)
-		j.refuseDataUpload(ctx, now, org)
+
+		// Only send notification if the instance actually had any trial and the RefuseDataUpload flag
+		// hasn't been set already. If there was no trial, they already received the `trial_expired` email today.
+		// No need to flood.
+		if j.refuseDataUpload(ctx, now, org) && trial.Length(org.TrialExpiresAt, org.CreatedAt) > 0 {
+			if _, err := j.users.NotifyRefuseDataUpload(ctx, &users.NotifyRefuseDataUploadRequest{ExternalID: org.ExternalID}); err == nil {
+				logger.Infof("Notified data upload refusal for organization: %s", org.ExternalID)
+			} else {
+				logger.Errorf("Failed notifying data upload refusal for organization %s: %v", org.ExternalID, err)
+			}
+		}
 
 		// Have we already notified?
 		if org.TrialExpiredNotifiedAt != nil {
@@ -212,12 +223,12 @@ func (j *Enforce) refuseDataAccess(ctx context.Context, org users.Organization) 
 	}
 }
 
-func (j *Enforce) refuseDataUpload(ctx context.Context, now time.Time, org users.Organization) {
+func (j *Enforce) refuseDataUpload(ctx context.Context, now time.Time, org users.Organization) bool {
 	if org.RefuseDataUpload {
-		return
+		return false
 	}
 	if org.TrialExpiresAt.Add(j.cfg.RefuseDataUploadAfter).After(now) {
-		return
+		return false
 	}
 
 	_, err := j.users.SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{
@@ -232,4 +243,5 @@ func (j *Enforce) refuseDataUpload(ctx context.Context, now time.Time, org users
 	} else {
 		logger.Errorf("Failed refusing data upload for organization %s: %v", org.ExternalID, err)
 	}
+	return true
 }
