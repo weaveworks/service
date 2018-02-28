@@ -77,7 +77,7 @@ func TestGetServiceMetrics(t *testing.T) {
 
 	golden := filepath.Join("testdata", fmt.Sprintf("%s-%s-%s.golden", t.Name(), testNS, testService))
 	if *update {
-		data, err := json.Marshal(got)
+		data, err := json.MarshalIndent(got, "", "  ")
 		assert.Nil(t, err)
 		ioutil.WriteFile(golden, data, 0644)
 	}
