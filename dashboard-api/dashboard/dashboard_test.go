@@ -1,6 +1,10 @@
 package dashboard
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -63,6 +67,38 @@ func TestUniqueIDs(t *testing.T) {
 	}
 
 	assert.Equal(t, len(dashboards), len(ids))
+
+	Deinit()
+}
+
+// TestGolden ensures we don't deviate from a tested golden state. We don't have
+// a way to test for the validity of the generated JSON (will the queries actual
+// get any data?), but we can test what we produce now is the same as what we
+// used to produce.
+func TestGolden(t *testing.T) {
+	Init()
+
+	dashboards, err := getAllDashboards()
+	assert.NoError(t, err)
+
+	for i := range dashboards {
+		dashboard := &dashboards[i]
+
+		golden := filepath.Join("testdata", fmt.Sprintf("%s-%s.golden", t.Name(), dashboard.ID))
+		if *update {
+			data, err := json.MarshalIndent(dashboard, "", "  ")
+			assert.Nil(t, err)
+			ioutil.WriteFile(golden, data, 0644)
+		}
+
+		expectedBytes, err := ioutil.ReadFile(golden)
+		assert.Nil(t, err)
+		gotBytes, err := json.MarshalIndent(dashboard, "", "  ")
+		assert.NoError(t, err)
+		assert.Nil(t, err)
+
+		assert.Equal(t, string(expectedBytes), string(gotBytes))
+	}
 
 	Deinit()
 }

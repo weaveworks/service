@@ -1,0 +1,86 @@
+{
+  "id": "cadvisor-system-resources",
+  "name": "System Resources",
+  "sections": [
+    {
+      "name": "CPU",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "CPU Usage",
+              "type": "line",
+              "query": "sum (rate(container_cpu_usage_seconds_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Memory",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Memory Usage",
+              "type": "line",
+              "query": "sum (rate(container_memory_working_set_bytes{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Network",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Incoming Network Traffic",
+              "type": "line",
+              "query": "sum (rate(container_network_receive_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+            },
+            {
+              "title": "Outgoing Network Traffic",
+              "type": "line",
+              "query": "sum (rate(container_network_transmit_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Disk",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "I/O Bandwidth (Read)",
+              "type": "line",
+              "query": "sum (rate(container_fs_reads_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+            },
+            {
+              "title": "I/O Bandwidth (Write)",
+              "type": "line",
+              "query": "sum (rate(container_fs_writes_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+            }
+          ]
+        },
+        {
+          "panels": [
+            {
+              "title": "I/O Operations per Second (Read)",
+              "type": "line",
+              "query": "sum (rate(container_fs_reads_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+            },
+            {
+              "title": "I/O Operations per Second (Write)",
+              "type": "line",
+              "query": "sum (rate(container_fs_writes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
