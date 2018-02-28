@@ -470,10 +470,6 @@ func (em *EventManager) updateReceiver(r *http.Request, instanceID string, recei
 	if err != nil {
 		return nil, 0, err // This is a server error, because this round-trip *should* work.
 	}
-	// We need to read some DB values to validate the new data (we could just rely on the DB's constraints, but it's hard
-	// to return a meaningful error message if we do that). We do this in a transaction to prevent races.
-	// We set these vars as a way of returning more values from inside the closure, since the function can only return error.
-	code := http.StatusOK
 
 	if receiver.ID == "" {
 		receiver.ID = receiverID
@@ -494,12 +490,39 @@ func (em *EventManager) updateReceiver(r *http.Request, instanceID string, recei
 	}
 
 	// Transaction to actually update the receiver in DB
+	userErrorMsg, code, err := em.updateReceiverTX(r, receiver, instanceID, receiverID, encodedAddress)
+	if err != nil {
+		return nil, 0, err
+	}
+	if code == http.StatusOK {
+		// all good!
+		// Fire event every time config is successfully changed
+		if gotOldReceiverValues {
+			go func() {
+				eventErr := em.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime)
+				if eventErr != nil {
+					log.Error(eventErr)
+				}
+			}()
+		} else {
+			log.Error("Event config_changed not sent. Old receiver values not acquired.")
+		}
+		return nil, code, nil
+	}
+	return userErrorMsg, code, nil
+}
+
+func (em *EventManager) updateReceiverTX(r *http.Request, receiver types.Receiver, receiverID, instanceID string, encodedAddress []byte) (string, int, error) {
+	// We need to read some DB values to validate the new data (we could just rely on the DB's constraints, but it's hard
+	// to return a meaningful error message if we do that). We do this in a transaction to prevent races.
+	// We set these vars as a way of returning more values from inside the closure, since the function can only return error.
+	code := http.StatusOK
 	userErrorMsg := ""
-	err = em.withTx("update_receiver_tx", func(tx *utils.Tx) error {
+	err := em.withTx("update_receiver_tx", func(tx *utils.Tx) error {
 		// Verify receiver exists, has correct instance id and type.
-		row := tx.QueryRow("check_receiver_exists", `SELECT receiver_type FROM receivers WHERE receiver_id = $1 AND instance_id = $2`, receiverID, instanceID)
 		var rtype string
-		err := row.Scan(&rtype)
+		err := tx.QueryRow("check_receiver_exists", `SELECT receiver_type FROM receivers WHERE receiver_id = $1 AND instance_id = $2`, receiverID, instanceID).
+			Scan(&rtype)
 		if err == sql.ErrNoRows {
 			code = http.StatusNotFound
 			return nil
@@ -581,25 +604,7 @@ func (em *EventManager) updateReceiver(r *http.Request, instanceID string, recei
 		return err
 	})
 
-	if err != nil {
-		return nil, 0, err
-	}
-	if code == http.StatusOK {
-		// all good!
-		// Fire event every time config is successfully changed
-		if gotOldReceiverValues {
-			go func() {
-				eventErr := em.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime)
-				if eventErr != nil {
-					log.Error(eventErr)
-				}
-			}()
-		} else {
-			log.Error("Event config_changed not sent. Old receiver values not acquired.")
-		}
-		return nil, code, nil
-	}
-	return userErrorMsg, code, nil
+	return userErrorMsg, code, err
 }
 
 func (em *EventManager) deleteReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
