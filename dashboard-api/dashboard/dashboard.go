@@ -38,6 +38,8 @@ type Section struct {
 
 // Dashboard is a collection of graphs categorized by sections and rows.
 type Dashboard struct {
+	// An ID uniquely identifying the dashboard type, eg cadvisor-system-resources.
+	ID       string    `json:"id"`
 	Name     string    `json:"name"`
 	Sections []Section `json:"sections"`
 }
@@ -115,4 +117,9 @@ func Init() {
 	registerProviders(
 		cadvisor,
 	)
+}
+
+// Deinit reverses what Init does.
+func Deinit() {
+	unregisterAllProviders()
 }

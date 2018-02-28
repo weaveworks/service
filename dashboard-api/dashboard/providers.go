@@ -11,6 +11,10 @@ func registerProviders(p ...provider) {
 	providers = append(providers, p...)
 }
 
+func unregisterAllProviders() {
+	providers = nil
+}
+
 type staticProvider struct {
 	requiredMetrics []string
 	dashboard       Dashboard
