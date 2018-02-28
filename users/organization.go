@@ -64,8 +64,7 @@ type OrgWriteView struct {
 	Environment    *string
 	TrialExpiresAt *time.Time
 
-	// These time values are nullable in the database but cannot be set to NULL
-	// through this struct.
+	// To set these values to NULL in the database, provide a zero time (time.Time{}).
 	TrialPendingExpiryNotifiedAt *time.Time
 	TrialExpiredNotifiedAt       *time.Time
 }

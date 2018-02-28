@@ -379,14 +379,21 @@ func (d *DB) UpdateOrganization(_ context.Context, externalID string, update use
 			o.TrialExpiresAt = *update.TrialExpiresAt
 		}
 		if update.TrialExpiredNotifiedAt != nil {
-			o.TrialExpiredNotifiedAt = update.TrialExpiredNotifiedAt
+			o.TrialExpiredNotifiedAt = zeroTimeIsNil(update.TrialExpiredNotifiedAt)
 		}
 		if update.TrialPendingExpiryNotifiedAt != nil {
-			o.TrialPendingExpiryNotifiedAt = update.TrialPendingExpiryNotifiedAt
+			o.TrialPendingExpiryNotifiedAt = zeroTimeIsNil(update.TrialPendingExpiryNotifiedAt)
 		}
 
 		return o.Valid()
 	})
+}
+
+func zeroTimeIsNil(t *time.Time) *time.Time {
+	if t.IsZero() {
+		return nil
+	}
+	return t
 }
 
 // OrganizationExists just returns a simple bool checking if an organization

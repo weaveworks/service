@@ -547,12 +547,12 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 		setFields["trial_expires_at"] = *update.TrialExpiresAt
 	}
 	if update.TrialPendingExpiryNotifiedAt != nil {
-		org.TrialPendingExpiryNotifiedAt = update.TrialPendingExpiryNotifiedAt
-		setFields["trial_pending_expiry_notified_at"] = *update.TrialPendingExpiryNotifiedAt
+		org.TrialPendingExpiryNotifiedAt = zeroTimeIsNil(update.TrialPendingExpiryNotifiedAt)
+		setFields["trial_pending_expiry_notified_at"] = org.TrialPendingExpiryNotifiedAt
 	}
 	if update.TrialExpiredNotifiedAt != nil {
-		org.TrialExpiredNotifiedAt = update.TrialExpiredNotifiedAt
-		setFields["trial_expired_notified_at"] = *update.TrialExpiredNotifiedAt
+		org.TrialExpiredNotifiedAt = zeroTimeIsNil(update.TrialExpiredNotifiedAt)
+		setFields["trial_expired_notified_at"] = org.TrialExpiredNotifiedAt
 	}
 
 	if len(setFields) == 0 {
@@ -578,6 +578,13 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 		return users.ErrNotFound
 	}
 	return nil
+}
+
+func zeroTimeIsNil(t *time.Time) *time.Time {
+	if t.IsZero() {
+		return nil
+	}
+	return t
 }
 
 // OrganizationExists just returns a simple bool checking if an organization
