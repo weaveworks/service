@@ -211,4 +211,26 @@ func TestAPI_adminTrial(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 31, org.TrialRemaining())
 	}
+	{ // resets TrialExpiredNotifiedAt
+		// set it to already notified
+		expires := time.Now().UTC().Add(-5 * 24 * time.Hour)
+		notified := expires.Add(24 * time.Hour)
+		database.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{
+			TrialExpiresAt:         &expires,
+			TrialExpiredNotifiedAt: &notified,
+		})
+		org, err := database.FindOrganizationByID(context.TODO(), org.ExternalID)
+		assert.NoError(t, err)
+		assert.NotNil(t, org.TrialExpiredNotifiedAt)
+
+		w := httptest.NewRecorder()
+		r := requestAs(t, usr, "POST", fmt.Sprintf("/admin/users/organizations/%s/trial", org.ExternalID), strings.NewReader("remaining=3"))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusFound, w.Code)
+
+		org, err = database.FindOrganizationByID(context.TODO(), org.ExternalID)
+		assert.NoError(t, err)
+		assert.Nil(t, org.TrialExpiredNotifiedAt)
+	}
 }
