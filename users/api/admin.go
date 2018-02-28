@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -255,6 +256,34 @@ func (a *API) setOrganizationField(ctx context.Context, orgExternalID, field, va
 		err = users.ValidationErrorf("Invalid field %v", field)
 	}
 	return err
+}
+
+func (a *API) adminTrial(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	orgExternalID, ok := vars["orgExternalID"]
+	if !ok {
+		renderError(w, r, users.ErrNotFound)
+		return
+	}
+
+	remaining, err := strconv.Atoi(r.FormValue("remaining"))
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	email := r.FormValue("email") == "on"
+	if err := a.extendOrgTrialPeriod(r.Context(), org, time.Now().UTC().Add(time.Duration(remaining)*24*time.Hour), email); err != nil {
+		renderError(w, r, err)
+		return
+	}
+	redirectWithMessage(w, r, fmt.Sprintf("Extended trial to %d remaining days for %s", remaining, orgExternalID))
 }
 
 func (a *API) adminMakeUserAdmin(w http.ResponseWriter, r *http.Request) {

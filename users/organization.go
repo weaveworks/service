@@ -2,6 +2,7 @@ package users
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strings"
 	"time"
@@ -146,6 +147,12 @@ func (o *Organization) BillingProvider() string {
 // IsOnboarded returns whether the organization has onboarded
 func (o *Organization) IsOnboarded() bool {
 	return o.FirstSeenConnectedAt != nil
+}
+
+// TrialRemaining returns the number of days that is left in the trial.
+func (o *Organization) TrialRemaining() int {
+	// TODO(rndstr): replace with trial.Remaining() once #1811 is merged
+	return int(math.Max(math.Ceil(o.TrialExpiresAt.Sub(time.Now()).Hours()/24.0), 0))
 }
 
 // DefaultOrganizationName returns the default name which is derived from
