@@ -12,9 +12,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
+	"github.com/weaveworks/flux"
 	"github.com/weaveworks/flux/event"
 	"github.com/weaveworks/flux/image"
+	"github.com/weaveworks/flux/policy"
 	"github.com/weaveworks/flux/update"
 	"github.com/weaveworks/service/flux-api/config"
 )
@@ -57,6 +58,7 @@ const (
 	releaseEventType     = "deploy"
 	autoReleaseEventType = "auto_deploy"
 	syncEventType        = "sync"
+	policyEventType      = "policy"
 )
 
 var (
@@ -182,6 +184,49 @@ func slackNotifySync(config config.Notifier, sync *event.Event) error {
 		Text:        sync.String(),
 		Attachments: attachments,
 	})
+}
+
+func slackNotifyCommitPolicyChange(config config.Notifier, commitMetadata *event.CommitEventMetadata) error {
+	rev := commitMetadata.ShortRevision()
+	userUpd := commitMetadata.Spec.Cause.User
+	var text string
+	for res, upd := range commitMetadata.Spec.Spec.(policy.Updates) {
+		text += getUpdatePolicyMessage(rev, res, upd, userUpd)
+	}
+	return notify(policyEventType, config, slackMsg{Text: text})
+}
+
+func getUpdatePolicyMessage(revision string, resource flux.ResourceID, upd policy.Update, user string) string {
+	var resMsg string
+
+	if _, ok := upd.Add.Get(policy.Locked); ok {
+		lockMessage, _ := upd.Add.Get(policy.LockedMsg)
+		user, _ := upd.Add.Get(policy.LockedUser)
+		resMsg += fmt.Sprintf("Lock: %s (%s) %s by %s\n", resource, revision, lockMessage, user)
+	}
+	if _, ok := upd.Remove.Get(policy.Locked); ok {
+		lockMessage, _ := upd.Remove.Get(policy.LockedMsg)
+		user, _ := upd.Remove.Get(policy.LockedUser)
+		resMsg += fmt.Sprintf("Unlock: %s (%s) %s by %s\n", resource, revision, lockMessage, user)
+	}
+	if _, ok := upd.Add.Get(policy.Automated); ok {
+		resMsg += fmt.Sprintf("Automate: %s (%s) by %s\n", resource, revision, user)
+	}
+	if _, ok := upd.Remove.Get(policy.Automated); ok {
+		resMsg += fmt.Sprintf("Deautomate: %s (%s) by %s\n", resource, revision, user)
+	}
+
+	_, _, resName := resource.Components()
+
+	tagPolicy := policy.TagPrefix(resName)
+	if tagFilter, ok := upd.Add.Get(tagPolicy); ok {
+		resMsg += fmt.Sprintf("Add tag filter _%s_ to %s (%s) by %s\n", tagFilter, resource, revision, user)
+	}
+	if tagFilter, ok := upd.Remove.Get(tagPolicy); ok {
+		resMsg += fmt.Sprintf("Remove tag filter _%s_ for %s (%s) by %s\n", tagFilter, resource, revision, user)
+	}
+
+	return resMsg
 }
 
 func slackResultAttachment(res update.Result) slackAttachment {

@@ -57,7 +57,7 @@ func TestRelease_DryRun(t *testing.T) {
 
 	// It should send releases to slack
 	r := exampleRelease(t)
-	ev := event.Event{Metadata: r}
+	ev := event.Event{Metadata: r, Type: event.EventRelease}
 	r.Spec.Kind = update.ReleaseKindPlan
 	if err := Event(instance.Config{
 		Settings: config.Instance{
