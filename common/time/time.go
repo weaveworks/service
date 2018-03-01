@@ -102,3 +102,11 @@ func MonthlyIntervalsWithinRange(from, to time.Time, cycleDay int) ([]Interval, 
 func IsEndOfMonth(t time.Time) bool {
 	return DaysIn(t.Month(), t.Year()) == t.Day()
 }
+
+// ZeroTimeIsNil returns nil if the time is zero. Otherwise it just returns itself.
+func ZeroTimeIsNil(t *time.Time) *time.Time {
+	if t.IsZero() {
+		return nil
+	}
+	return t
+}
