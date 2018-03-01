@@ -11,6 +11,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 
+	timeutil "github.com/weaveworks/service/common/time"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/externalIDs"
@@ -547,12 +548,12 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 		setFields["trial_expires_at"] = *update.TrialExpiresAt
 	}
 	if update.TrialPendingExpiryNotifiedAt != nil {
-		org.TrialPendingExpiryNotifiedAt = update.TrialPendingExpiryNotifiedAt
-		setFields["trial_pending_expiry_notified_at"] = *update.TrialPendingExpiryNotifiedAt
+		org.TrialPendingExpiryNotifiedAt = timeutil.ZeroTimeIsNil(update.TrialPendingExpiryNotifiedAt)
+		setFields["trial_pending_expiry_notified_at"] = org.TrialPendingExpiryNotifiedAt
 	}
 	if update.TrialExpiredNotifiedAt != nil {
-		org.TrialExpiredNotifiedAt = update.TrialExpiredNotifiedAt
-		setFields["trial_expired_notified_at"] = *update.TrialExpiredNotifiedAt
+		org.TrialExpiredNotifiedAt = timeutil.ZeroTimeIsNil(update.TrialExpiredNotifiedAt)
+		setFields["trial_expired_notified_at"] = org.TrialExpiredNotifiedAt
 	}
 
 	if len(setFields) == 0 {

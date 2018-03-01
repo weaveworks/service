@@ -10,6 +10,7 @@ import (
 
 	"github.com/lib/pq"
 
+	timeutil "github.com/weaveworks/service/common/time"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/externalIDs"
@@ -379,10 +380,10 @@ func (d *DB) UpdateOrganization(_ context.Context, externalID string, update use
 			o.TrialExpiresAt = *update.TrialExpiresAt
 		}
 		if update.TrialExpiredNotifiedAt != nil {
-			o.TrialExpiredNotifiedAt = update.TrialExpiredNotifiedAt
+			o.TrialExpiredNotifiedAt = timeutil.ZeroTimeIsNil(update.TrialExpiredNotifiedAt)
 		}
 		if update.TrialPendingExpiryNotifiedAt != nil {
-			o.TrialPendingExpiryNotifiedAt = update.TrialPendingExpiryNotifiedAt
+			o.TrialPendingExpiryNotifiedAt = timeutil.ZeroTimeIsNil(update.TrialPendingExpiryNotifiedAt)
 		}
 
 		return o.Valid()

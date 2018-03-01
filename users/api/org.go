@@ -339,7 +339,7 @@ func (a *API) setOrgFeatureFlags(ctx context.Context, orgExternalID string, flag
 		log.Infof("Billing manually enabled for %v", orgExternalID)
 		// For existing customers, we extend the trial period starting today and send members an email if we did so
 		expires := time.Now().Add(users.TrialExtensionDuration)
-		if err := a.extendOrgTrialPeriod(ctx, org, expires); err != nil {
+		if err := a.extendOrgTrialPeriod(ctx, org, expires, true); err != nil {
 			return err
 		}
 	}
@@ -363,23 +363,29 @@ func (a *API) enablingOrgFeatureFlag(ctx context.Context, orgExternalID string, 
 
 // extendOrgTrialPeriod update the trial period but only if it's later than the current.
 // It also sends an email to all members notifying them of the change.
-func (a *API) extendOrgTrialPeriod(ctx context.Context, org *users.Organization, t time.Time) error {
+func (a *API) extendOrgTrialPeriod(ctx context.Context, org *users.Organization, t time.Time, sendmail bool) error {
 	// If new expiry date is not after current, there is nothing to change
 	if !t.Truncate(24 * time.Hour).After(org.TrialExpiresAt) {
 		return nil
 	}
 	logging.With(ctx).Infof("Extending trial period from %v to %v for %v", org.TrialExpiresAt, t, org.ExternalID)
 
-	err := a.db.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{TrialExpiresAt: &t})
+	err := a.db.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{
+		TrialExpiresAt:         &t,
+		TrialExpiredNotifiedAt: &time.Time{}, // sets it to NULL
+	})
 	if err != nil {
 		return err
+	}
+
+	if !sendmail {
+		return nil
 	}
 
 	members, err := a.db.ListOrganizationUsers(ctx, org.ExternalID)
 	if err != nil {
 		return err
 	}
-
 	err = a.emailer.TrialExtendedEmail(members, org.ExternalID, org.Name, t)
 	if err != nil {
 		return err

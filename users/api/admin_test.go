@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,7 +24,7 @@ var (
 	ctx       = context.Background()
 )
 
-func TestAPI_ChangeOrgFields(t *testing.T) {
+func TestAPI_adminChangeOrgFields(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
@@ -44,7 +45,7 @@ func TestAPI_ChangeOrgFields(t *testing.T) {
 	assert.True(t, newOrg.RefuseDataUpload)
 }
 
-func TestAPI_ChangeOrgFields_BillingFeatureFlags(t *testing.T) {
+func TestAPI_adminChangeOrgFields_BillingFeatureFlags(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
@@ -73,7 +74,7 @@ func TestAPI_ChangeOrgFields_BillingFeatureFlags(t *testing.T) {
 	assert.True(t, newOrg.HasFeatureFlag("moo"))
 }
 
-func TestAPI_ChangeOrgFields_BillingNeverShrinkTrialPeriod(t *testing.T) {
+func TestAPI_adminChangeOrgFields_BillingNeverShrinkTrialPeriod(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
@@ -96,7 +97,7 @@ func TestAPI_ChangeOrgFields_BillingNeverShrinkTrialPeriod(t *testing.T) {
 	assert.True(t, prevExpires.Equal(newOrg.TrialExpiresAt))
 }
 
-func TestAPI_GetUserToken(t *testing.T) {
+func TestAPI_adminGetUserToken(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
@@ -115,7 +116,7 @@ func TestAPI_GetUserToken(t *testing.T) {
 	assert.Equal(t, ghToken, tok.Token)
 }
 
-func TestAPI_GetUserToken_NoUser(t *testing.T) {
+func TestAPI_adminGetUserToken_NoUser(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
@@ -127,7 +128,7 @@ func TestAPI_GetUserToken_NoUser(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
-func TestAPI_GetUserToken_NoToken(t *testing.T) {
+func TestAPI_adminGetUserToken_NoToken(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
@@ -140,7 +141,7 @@ func TestAPI_GetUserToken_NoToken(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
-func TestAPI_DeleteUser(t *testing.T) {
+func TestAPI_adminDeleteUser(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
@@ -178,5 +179,58 @@ func TestAPI_DeleteUser(t *testing.T) {
 		r := requestAs(t, usr, "POST", "/admin/users/users/nope/remove", nil)
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusFound, w.Code)
+	}
+}
+
+func TestAPI_adminTrial(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	usr, org := getOrg(t)
+	assert.Equal(t, 30, org.TrialRemaining(), "trial is not 30 days on instance creation")
+
+	{ // Cannot shrink
+		w := httptest.NewRecorder()
+		r := requestAs(t, usr, "POST", fmt.Sprintf("/admin/users/organizations/%s/trial", org.ExternalID), strings.NewReader("remaining=29"))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusFound, w.Code)
+
+		org, err := database.FindOrganizationByID(context.TODO(), org.ExternalID)
+		assert.NoError(t, err)
+		assert.Equal(t, 30, org.TrialRemaining())
+	}
+	{ // but can expand
+		w := httptest.NewRecorder()
+		r := requestAs(t, usr, "POST", fmt.Sprintf("/admin/users/organizations/%s/trial", org.ExternalID), strings.NewReader("remaining=31"))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusFound, w.Code)
+
+		org, err := database.FindOrganizationByID(context.TODO(), org.ExternalID)
+		assert.NoError(t, err)
+		assert.Equal(t, 31, org.TrialRemaining())
+	}
+	{ // resets TrialExpiredNotifiedAt
+		// set it to already notified
+		expires := time.Now().UTC().Add(-5 * 24 * time.Hour)
+		notified := expires.Add(24 * time.Hour)
+		database.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{
+			TrialExpiresAt:         &expires,
+			TrialExpiredNotifiedAt: &notified,
+		})
+		org, err := database.FindOrganizationByID(context.TODO(), org.ExternalID)
+		assert.NoError(t, err)
+		assert.NotNil(t, org.TrialExpiredNotifiedAt)
+
+		w := httptest.NewRecorder()
+		r := requestAs(t, usr, "POST", fmt.Sprintf("/admin/users/organizations/%s/trial", org.ExternalID), strings.NewReader("remaining=3"))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusFound, w.Code)
+
+		org, err = database.FindOrganizationByID(context.TODO(), org.ExternalID)
+		assert.NoError(t, err)
+		assert.Nil(t, org.TrialExpiredNotifiedAt)
 	}
 }
