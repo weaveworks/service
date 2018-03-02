@@ -490,7 +490,7 @@ func (em *EventManager) updateReceiver(r *http.Request, instanceID string, recei
 	}
 
 	// Transaction to actually update the receiver in DB
-	userErrorMsg, code, err := em.updateReceiverTX(r, receiver, receiverID, instanceID, encodedAddress)
+	userErrorMsg, code, err := em.updateReceiverTX(r, receiver, instanceID, encodedAddress)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -512,7 +512,7 @@ func (em *EventManager) updateReceiver(r *http.Request, instanceID string, recei
 	return userErrorMsg, code, nil
 }
 
-func (em *EventManager) updateReceiverTX(r *http.Request, receiver types.Receiver, receiverID, instanceID string, encodedAddress []byte) (string, int, error) {
+func (em *EventManager) updateReceiverTX(r *http.Request, receiver types.Receiver, instanceID string, encodedAddress []byte) (string, int, error) {
 	// We need to read some DB values to validate the new data (we could just rely on the DB's constraints, but it's hard
 	// to return a meaningful error message if we do that). We do this in a transaction to prevent races.
 	// We set these vars as a way of returning more values from inside the closure, since the function can only return error.
@@ -521,7 +521,7 @@ func (em *EventManager) updateReceiverTX(r *http.Request, receiver types.Receive
 	err := em.withTx("update_receiver_tx", func(tx *utils.Tx) error {
 		// Verify receiver exists, has correct instance id and type.
 		var rtype string
-		err := tx.QueryRow("check_receiver_exists", `SELECT receiver_type FROM receivers WHERE receiver_id = $1 AND instance_id = $2`, receiverID, instanceID).
+		err := tx.QueryRow("check_receiver_exists", `SELECT receiver_type FROM receivers WHERE receiver_id = $1 AND instance_id = $2`, receiver.ID, instanceID).
 			Scan(&rtype)
 		if err == sql.ErrNoRows {
 			code = http.StatusNotFound
@@ -569,7 +569,7 @@ func (em *EventManager) updateReceiverTX(r *http.Request, receiver types.Receive
 			"update_receiver",
 			`UPDATE receivers SET (address_data) = ($2)
 			WHERE receiver_id = $1`,
-			receiverID,
+			receiver.ID,
 			encodedAddress,
 		)
 		if err != nil {
@@ -585,7 +585,7 @@ func (em *EventManager) updateReceiverTX(r *http.Request, receiver types.Receive
 				FROM event_types
 				WHERE name = ANY ($2) OR NOT (feature_flag IS NULL OR feature_flag = ANY ($3))
 			)`,
-			receiverID,
+			receiver.ID,
 			pq.Array(receiver.EventTypes),
 			pq.Array(getFeatureFlags(r)),
 		)
@@ -598,7 +598,7 @@ func (em *EventManager) updateReceiverTX(r *http.Request, receiver types.Receive
 			`INSERT INTO receiver_event_types (receiver_id, event_type) (
 				SELECT $1, unnest FROM unnest($2::text[])
 			) ON CONFLICT DO NOTHING`,
-			receiverID,
+			receiver.ID,
 			pq.Array(receiver.EventTypes),
 		)
 		return err
