@@ -3,10 +3,9 @@ package types
 import (
 	"database/sql"
 	"encoding/json"
+	"github.com/lib/pq"
 	"io/ioutil"
 	"time"
-
-	"github.com/lib/pq"
 )
 
 // SlackMessage is a Slack API payload with the message text and some options

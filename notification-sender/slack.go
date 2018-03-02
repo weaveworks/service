@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/pkg/errors"
+	"github.com/weaveworks/service/notification-eventmanager/types"
 	"io"
 	"io/ioutil"
 	"net/http"
-
-	"github.com/pkg/errors"
-	"github.com/weaveworks/service/notification-eventmanager/types"
 )
 
 // SlackSender contains name of user who sends notifications to slack
@@ -24,17 +24,31 @@ func (ss *SlackSender) Send(ctx context.Context, addr json.RawMessage, notif typ
 		return errors.Wrapf(err, "cannot unmarshal address %s", addr)
 	}
 
-	data := notif.Data
+	var data json.RawMessage
+	var err error
+	// See if we should use the new Event schema.
+	// Handle the formatting for the client (event creator)
+	// https://github.com/weaveworks/service/issues/1791
+	if notif.Event.Text != nil {
+		// New notification schema
+		data, err = generateSlackMessage(notif.Event, ss.Username)
+	} else {
+		// Old schema
+		data = notif.Data
+	}
+
+	if err != nil {
+		return errors.Wrap(err, "cannot generate slack message")
+	}
 
 	var msg map[string]interface{}
-	if err := json.Unmarshal(data, &msg); err != nil {
+	if err = json.Unmarshal(data, &msg); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal data %s", data)
 	}
 
 	// If incoming message doesn't set the username, make it our own
 	if _, ok := msg["username"]; !ok {
 		msg["username"] = ss.Username
-		var err error
 		data, err = json.Marshal(msg)
 		if err != nil {
 			return errors.Wrapf(err, "cannot marshal msg %s", msg)
@@ -70,4 +84,38 @@ func (ss *SlackSender) Send(ctx context.Context, addr json.RawMessage, notif typ
 	}
 
 	return nil
+}
+
+func generateSlackMessage(e types.Event, username string) (json.RawMessage, error) {
+	sm := types.SlackMessage{
+		Text:     fmt.Sprintf("*Instance*: %v\n%v", e.InstanceName, convertLinks(*e.Text)),
+		Username: username,
+	}
+
+	for _, a := range e.Attachments {
+
+		sm.Attachments = append(sm.Attachments, types.SlackAttachment{
+			Text: a.Body,
+		})
+	}
+
+	return json.Marshal(sm)
+}
+
+// Links can be defined in the event text by using a markdown-like syntax:
+// Go to [Weave Cloud](https://cloud.weave.works)
+// Slack wants this format instead: Go to <https://cloud.weave.works|Weave Cloud>
+// Convert the links from []() to <|>
+func convertLinks(t string) string {
+	// Replace the links in the string
+	return linkRE.ReplaceAllStringFunc(t, func(found string) string {
+		_, text, url := getLinkParts(found)
+
+		// Convert to the Slack link format
+		if text != nil && url != nil {
+			return fmt.Sprintf("<%v|%v>", *url, *text)
+		}
+
+		return found
+	})
 }

@@ -21,6 +21,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/notification-eventmanager/types"
+	"regexp"
 )
 
 // RetriableError is error after sending notification when sender will retry sending again
@@ -28,6 +29,11 @@ import (
 type RetriableError struct {
 	error
 }
+
+var (
+	linkRE      = regexp.MustCompile(`\[.*\]\(.*\)`)
+	linkPartsRE = regexp.MustCompile(`\[(.*)\]\((.*)\)`)
+)
 
 var (
 	receiveFromSQS = prometheus.NewCounter(prometheus.CounterOpts{
@@ -393,4 +399,19 @@ func (s *Sender) HandleBrowserNotifications(w http.ResponseWriter, r *http.Reque
 // HandleHealthCheck handles a very simple health check
 func (s *Sender) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
+}
+
+// Look for links defined in the text string
+func getLinksFromText(t string) []string {
+	return linkRE.FindAllString(t, -1)
+}
+
+// Capture inidividual link parts
+func getLinkParts(t string) (whole, text, url *string) {
+	parts := linkPartsRE.FindStringSubmatch(t)
+
+	if len(parts) > 3 {
+		return &t, nil, nil
+	}
+	return &parts[0], &parts[1], &parts[2]
 }
