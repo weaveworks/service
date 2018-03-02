@@ -1,12 +1,10 @@
 package sender
 
 import (
-	"encoding/json"
-	"sync"
-
-	"context"
-
 	googleLogging "cloud.google.com/go/logging"
+	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/notification-eventmanager/types"
@@ -14,6 +12,9 @@ import (
 	"google.golang.org/api/option"
 	grpcCodes "google.golang.org/grpc/codes"
 	grpcStatus "google.golang.org/grpc/status"
+	"strconv"
+	"strings"
+	"sync"
 )
 
 // StackdriverSender contains logID to write to and map of receivers
@@ -80,8 +81,16 @@ func (sd *StackdriverSender) Send(ctx context.Context, addr json.RawMessage, not
 	// Selects the log to write to.
 	logger := client.Logger(sd.LogID)
 	var entry googleLogging.Entry
-	if err := json.Unmarshal(notif.Data, &entry); err != nil {
-		return errors.Wrapf(err, "cannot unmarshal stackdriver data %s", notif.Data)
+
+	// See if we should use the new Event schema.
+	// Handle the formatting for the client (event creator)
+	// https://github.com/weaveworks/service/issues/1791
+	if notif.Event.Text != nil {
+		entry = generateStackDriverMessage(notif.Event)
+	} else {
+		if err := json.Unmarshal(notif.Data, &entry); err != nil {
+			return errors.Wrapf(err, "cannot unmarshal stackdriver data %s", notif.Data)
+		}
 	}
 
 	// log the entry synchronously without any buffering.
@@ -111,4 +120,50 @@ func (sd *StackdriverSender) Stop() {
 			log.Errorf("failed to close stackdriver client: %s", err)
 		}
 	}
+}
+
+func generateStackDriverMessage(e types.Event) googleLogging.Entry {
+	text, links := generateLinkCitations(*e.Text)
+
+	entry := googleLogging.Entry{
+		Timestamp: e.Timestamp,
+		Payload: map[string]interface{}{
+			"text":  text,
+			"links": links,
+		},
+		Labels: map[string]string{
+			"instance_name": e.InstanceName,
+			"event_type":    e.Type,
+		},
+	}
+
+	for k, v := range e.Metadata {
+		entry.Labels[k] = v
+	}
+
+	return entry
+}
+
+// Converts text into a "cited" list.
+// input: [Welcome to Weave Cloud](https://cloud.weave.works)
+// output:
+// "Weave Cloud[0]", { "0": "https://cloud.weave.works" }
+// Preserves potentially useful information in the Stackdriver log messages,
+// without making the text too cluttered with link syntax.
+func generateLinkCitations(t string) (string, map[string]string) {
+	annotated := t
+	citations := map[string]string{}
+
+	links := getLinksFromText(t)
+
+	if len(links) > 0 {
+		for i, l := range links {
+			key := strconv.Itoa(i)
+			whole, text, url := getLinkParts(l)
+			citations[key] = *url
+			annotated = strings.Replace(annotated, *whole, fmt.Sprintf("%v[%v]", *text, key), 1)
+		}
+	}
+
+	return annotated, citations
 }
