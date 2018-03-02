@@ -60,14 +60,15 @@ type StackdriverMessage struct {
 
 // Event is a single instance of something for the user to be informed of
 type Event struct {
-	ID          string                     `json:"id"`
-	Type        string                     `json:"type"`
-	InstanceID  string                     `json:"instance_id"`
-	Timestamp   time.Time                  `json:"timestamp"`
-	Messages    map[string]json.RawMessage `json:"messages"`
-	Text        *string                    `json:"text"`
-	Metadata    map[string]json.RawMessage `json:"metadata"`
-	Attachments []Attachment               `json:"attachments"`
+	ID           string                     `json:"id"`
+	Type         string                     `json:"type"`
+	InstanceID   string                     `json:"instance_id"`
+	InstanceName string                     `json:"instance_name"`
+	Timestamp    time.Time                  `json:"timestamp"`
+	Messages     map[string]json.RawMessage `json:"messages"`
+	Text         *string                    `json:"text"`
+	Metadata     map[string]json.RawMessage `json:"metadata"`
+	Attachments  []Attachment               `json:"attachments"`
 }
 
 // Attachment is a "rich" text document in a given format, ie markdown

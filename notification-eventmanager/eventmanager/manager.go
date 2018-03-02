@@ -364,6 +364,18 @@ func (em *EventManager) EventHandler(w http.ResponseWriter, r *http.Request) {
 		e.Timestamp = time.Now()
 	}
 
+	instanceData, err := em.UsersClient.GetOrganization(r.Context(), &users.GetOrganizationRequest{
+		ID: &users.GetOrganizationRequest_InternalID{InternalID: instanceID},
+	})
+
+	if err != nil {
+		log.Errorf("error requesting instance data from users service for event type %s: %s", e.Type, err)
+		http.Error(w, "unable to retrieve instance data", http.StatusInternalServerError)
+		return
+	}
+
+	e.InstanceName = instanceData.Organization.Name
+
 	if err := em.storeAndSend(r.Context(), e); err != nil {
 		log.Errorf("cannot post and send %s event, error: %s", e.Type, err)
 		http.Error(w, "Failed handle event", http.StatusInternalServerError)
