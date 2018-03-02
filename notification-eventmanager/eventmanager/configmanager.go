@@ -490,7 +490,7 @@ func (em *EventManager) updateReceiver(r *http.Request, instanceID string, recei
 	}
 
 	// Transaction to actually update the receiver in DB
-	userErrorMsg, code, err := em.updateReceiverTX(r, receiver, instanceID, receiverID, encodedAddress)
+	userErrorMsg, code, err := em.updateReceiverTX(r, receiver, receiverID, instanceID, encodedAddress)
 	if err != nil {
 		return nil, 0, err
 	}
