@@ -65,7 +65,7 @@ func TestEnforce_ProcessDelinquentOrganizations_notifyTrialExpired(t *testing.T)
 	defer ctrl.Finish()
 
 	ctx := context.Background()
-	now := time.Date(2018, time.January, 1, 0, 0, 0, 0, time.UTC)
+	now := time.Date(2019, time.January, 1, 0, 0, 0, 0, time.UTC)
 	client := mock_users.NewMockUsersClient(ctrl)
 	client.EXPECT().
 		GetDelinquentOrganizations(ctx, &users.GetDelinquentOrganizationsRequest{Now: now}).
@@ -105,7 +105,7 @@ func TestEnforce_ProcessDelinquentOrganizations_refuseData(t *testing.T) {
 	defer ctrl.Finish()
 
 	ctx := context.Background()
-	now := time.Date(2018, time.January, 1, 0, 0, 0, 0, time.UTC)
+	now := time.Date(2019, time.January, 1, 0, 0, 0, 0, time.UTC)
 	expiredAccess := now.Add(-2 * 24 * time.Hour)
 	expiredUpload := now.Add(-17 * 24 * time.Hour)
 	client := mock_users.NewMockUsersClient(ctrl)
