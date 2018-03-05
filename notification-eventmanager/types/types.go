@@ -107,6 +107,7 @@ type Notification struct {
 	InstanceID   string
 	Address      json.RawMessage `json:"address"`
 	Data         json.RawMessage `json:"data"`
+	Event        Event           `json:"event"`
 }
 
 // You can't get an sql.Row from an sql.Rows, but you can scan a row from either.

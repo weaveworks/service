@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
+	"github.com/weaveworks/service/notification-eventmanager/types"
 )
 
 // SlackSender contains name of user who sends notifications to slack
@@ -17,11 +18,13 @@ type SlackSender struct {
 }
 
 // Send sends data to address with SlackSender creds
-func (ss *SlackSender) Send(ctx context.Context, addr, data json.RawMessage, _ string) error {
+func (ss *SlackSender) Send(ctx context.Context, addr json.RawMessage, notif types.Notification, _ string) error {
 	var urlStr string
 	if err := json.Unmarshal(addr, &urlStr); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal address %s", addr)
 	}
+
+	data := notif.Data
 
 	var msg map[string]interface{}
 	if err := json.Unmarshal(data, &msg); err != nil {

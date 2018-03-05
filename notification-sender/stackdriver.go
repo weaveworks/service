@@ -9,6 +9,7 @@ import (
 	googleLogging "cloud.google.com/go/logging"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/weaveworks/service/notification-eventmanager/types"
 	googleOAuth2 "golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	grpcCodes "google.golang.org/grpc/codes"
@@ -70,7 +71,7 @@ func (sd *StackdriverSender) getClientByServiceFile(ctx context.Context, content
 }
 
 // Send sends data to Stackdriver with creds from addr
-func (sd *StackdriverSender) Send(ctx context.Context, addr, data json.RawMessage, _ string) error {
+func (sd *StackdriverSender) Send(ctx context.Context, addr json.RawMessage, notif types.Notification, _ string) error {
 	client, err := sd.getClientByServiceFile(ctx, addr)
 	if err != nil {
 		return errors.Wrapf(err, "cannot get stackdriver client for service file")
@@ -79,8 +80,8 @@ func (sd *StackdriverSender) Send(ctx context.Context, addr, data json.RawMessag
 	// Selects the log to write to.
 	logger := client.Logger(sd.LogID)
 	var entry googleLogging.Entry
-	if err := json.Unmarshal(data, &entry); err != nil {
-		return errors.Wrapf(err, "cannot unmarshal stackdriver data %s", data)
+	if err := json.Unmarshal(notif.Data, &entry); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal stackdriver data %s", notif.Data)
 	}
 
 	// log the entry synchronously without any buffering.
