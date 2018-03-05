@@ -16,22 +16,28 @@ import (
 	"github.com/weaveworks/service/common"
 )
 
-const aggQuery = `
+const (
+	aggQuery = `
 SELECT
   internal_instance_id AS InstanceID,
-  USEC_TO_TIMESTAMP(UTC_USEC_TO_HOUR(TIMESTAMP_TO_USEC(received_at))) AS BucketStart,
+  TIMESTAMP_TRUNC(received_at, HOUR, 'UTC') AS BucketStart,
   amount_type AS AmountType,
   SUM(amount_value) as AmountValue
 FROM
   %s
 WHERE
   received_at IS NOT NULL
-  AND received_at > "%s"
+  AND received_at > @StartTime
+  AND received_at <= @EndTime
+  AND _PARTITIONTIME >= @DateLowerLimit
+  AND _PARTITIONTIME < @DateUpperLimit
 GROUP BY
   InstanceID,
   AmountType,
   BucketStart
 `
+	sqlDateFormat = "2006-01-02 15:04:05 MST"
+)
 
 var queryCollector = instrument.NewHistogramCollectorFromOpts(prometheus.HistogramOpts{
 	Namespace: common.PrometheusNamespace,
@@ -78,10 +84,23 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 }
 
 // Aggregates returns a slice of the results of a query.
-func (c *Client) Aggregates(ctx context.Context, since time.Time) ([]db.Aggregate, error) {
+func (c *Client) Aggregates(ctx context.Context, since, until time.Time) ([]db.Aggregate, error) {
 	var result []db.Aggregate
 	if err := instrument.CollectedRequest(ctx, "bigquery.Client.Aggregates", queryCollector, nil, func(ctx context.Context) error {
-		query := c.client.Query(fmt.Sprintf(aggQuery, c.cfg.DatasetAndTable, since.Format("2006-01-02 15:04:05 MST")))
+		query := c.client.Query(fmt.Sprintf(aggQuery, c.cfg.DatasetAndTable))
+		query.Parameters = []bigquery.QueryParameter{
+			{Name: "StartTime", Value: since.Format(sqlDateFormat)},
+			{Name: "EndTime", Value: until.Format(sqlDateFormat)},
+			{Name: "DateLowerLimit", Value: since.Truncate(24 * time.Hour).Format(sqlDateFormat)},
+			{Name: "DateUpperLimit", Value: until.Truncate(24 * time.Hour).Add(24 * time.Hour).Format(sqlDateFormat)},
+		}
+		// If you see the error "query job missing destination table", there's often actually an issue with the query
+		// Enable this temporarily to see the actual error
+		// query.Dst = &bigquery.Table{
+		// 	ProjectID: "weaveworks-bi",
+		// 	DatasetID: "service_dev",
+		// 	TableID:   "test_12345",
+		// }
 		it, err := query.Read(ctx)
 		if err != nil {
 			return err

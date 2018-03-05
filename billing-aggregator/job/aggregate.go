@@ -42,8 +42,9 @@ func (j *Aggregate) Do(since *time.Time) error {
 		t := time.Now().UTC().Add(-6 * time.Hour).Truncate(time.Hour)
 		since = &t
 	}
+	until := since.Add(6 * time.Hour)
 	return instrument.CollectedRequest(context.Background(), "Aggregate.Do", j.collector, nil, func(ctx context.Context) error {
-		aggs, err := j.bigqueryClient.Aggregates(ctx, *since)
+		aggs, err := j.bigqueryClient.Aggregates(ctx, *since, until)
 		if err != nil {
 			return err
 		}
