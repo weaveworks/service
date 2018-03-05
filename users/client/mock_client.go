@@ -104,6 +104,12 @@ func (MockClient) NotifyTrialExpired(ctx context.Context, in *users.NotifyTrialE
 	return &users.NotifyTrialExpiredResponse{}, nil
 }
 
+// NotifyRefuseDataUpload sends a "data upload blocked" notification to the members
+// of this organization.
+func (MockClient) NotifyRefuseDataUpload(ctx context.Context, in *users.NotifyRefuseDataUploadRequest, opts ...grpc.CallOption) (*users.NotifyRefuseDataUploadResponse, error) {
+	return &users.NotifyRefuseDataUploadResponse{}, nil
+}
+
 // GetGCP returns the Google Cloud Platform entry.
 func (MockClient) GetGCP(ctx context.Context, in *users.GetGCPRequest, opts ...grpc.CallOption) (*users.GetGCPResponse, error) {
 	return &users.GetGCPResponse{}, nil

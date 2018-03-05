@@ -342,6 +342,26 @@ func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyT
 	return &users.NotifyTrialExpiredResponse{}, err
 }
 
+func (a *usersServer) NotifyRefuseDataUpload(ctx context.Context, req *users.NotifyRefuseDataUploadRequest) (*users.NotifyRefuseDataUploadResponse, error) {
+	// Make sure the organization exists
+	org, err := a.db.FindOrganizationByID(ctx, req.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Notify all users
+	members, err := a.db.ListOrganizationUsers(ctx, req.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+	err = a.emailer.RefuseDataUploadEmail(members, req.ExternalID, org.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &users.NotifyRefuseDataUploadResponse{}, err
+}
+
 func (a *usersServer) GetGCP(ctx context.Context, req *users.GetGCPRequest) (*users.GetGCPResponse, error) {
 	gcp, err := a.db.FindGCP(ctx, req.ExternalAccountID)
 	if err != nil {
