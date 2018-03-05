@@ -668,6 +668,7 @@ func (em *EventManager) GetReceiversForEvent(event types.Event) ([]types.Receive
 
 // CreateEvent inserts event in DB
 func (em *EventManager) CreateEvent(event types.Event) error {
+	var eventID string
 	// Re-encode the message data because the sql driver doesn't understand json columns
 	encodedMessages, err := json.Marshal(event.Messages)
 	if err != nil {
@@ -681,20 +682,53 @@ func (em *EventManager) CreateEvent(event types.Event) error {
 			event.Type,
 		)
 		var junk int
-		err := row.Scan(&junk)
+		err = row.Scan(&junk)
 		if err == sql.ErrNoRows {
 			return errors.Errorf("event type %s does not exist", event.Type)
 		} else if err != nil {
 			return err
 		}
-		_, err = tx.Exec(
+
+		metadata, err := json.Marshal(event.Metadata)
+
+		if err != nil {
+			return err
+		}
+
+		err = tx.QueryRow(
 			"add_event",
-			`INSERT INTO events (event_type, instance_id, timestamp, messages) VALUES ($1, $2, $3, $4)`,
+			`INSERT INTO events (
+				event_type,
+				instance_id,
+				timestamp,
+				messages,
+				text,
+				metadata
+			) VALUES ($1, $2, $3, $4, $5, $6) RETURNING event_id
+			`,
 			event.Type,
 			event.InstanceID,
 			event.Timestamp,
 			encodedMessages,
-		)
+			event.Text,
+			metadata,
+		).Scan(&eventID)
+
+		// Save attachments
+		for _, attachment := range event.Attachments {
+			_, err = tx.Exec("add_attachment",
+				`INSERT INTO attachments (
+					event_id,
+					format,
+					body
+				) VALUES ($1, $2, $3)
+			`,
+				eventID,
+				attachment.Format,
+				attachment.Body,
+			)
+		}
+
 		return err
 	})
 	if err != nil {
@@ -727,13 +761,25 @@ func (em *EventManager) getEvents(r *http.Request, instanceID string) (interface
 		}
 		offset = o
 	}
+
 	rows, err := em.DB.Query(
 		"get_events",
-		`SELECT event_id, event_type, instance_id, timestamp, messages
-		FROM events
-		WHERE instance_id = $1
+		`SELECT
+			e.event_id,
+			e.event_type,
+			e.instance_id,
+			e.timestamp,
+			e.messages,
+			e.text,
+			e.metadata,
+			COALESCE(json_agg(a) FILTER (WHERE a.event_id IS NOT NULL), '[]')
+		FROM events e
+		LEFT JOIN attachments a ON (a.event_id = e.event_id)
+		WHERE e.instance_id = $1
+		GROUP BY e.event_id
 		ORDER BY timestamp DESC
-		LIMIT $2 OFFSET $3`,
+		LIMIT $2 OFFSET $3
+	`,
 		instanceID,
 		length,
 		offset,
@@ -750,9 +796,6 @@ func (em *EventManager) getEvents(r *http.Request, instanceID string) (interface
 		events = append(events, e)
 		return nil
 	})
-	if err != nil {
-		return nil, 0, err
-	}
 	return events, http.StatusOK, err
 }
 

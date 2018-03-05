@@ -61,11 +61,19 @@ type StackdriverMessage struct {
 
 // Event is a single instance of something for the user to be informed of
 type Event struct {
-	ID         string                     `json:"id"`
-	Type       string                     `json:"type"`
-	InstanceID string                     `json:"instance_id"`
-	Timestamp  time.Time                  `json:"timestamp"`
-	Messages   map[string]json.RawMessage `json:"messages"`
+	ID          string                     `json:"id"`
+	Type        string                     `json:"type"`
+	InstanceID  string                     `json:"instance_id"`
+	Timestamp   time.Time                  `json:"timestamp"`
+	Messages    map[string]json.RawMessage `json:"messages"`
+	Text        *string                    `json:"text"`
+	Metadata    map[string]json.RawMessage `json:"metadata"`
+	Attachments []Attachment               `json:"attachments"`
+}
+
+type Attachment struct {
+	Format string `json:"format,omitempty"`
+	Body   string `json:"body,omitempty"`
 }
 
 // EventType is an identifier describing the type of the event.
@@ -178,11 +186,39 @@ func EventFromRow(row scannable) (Event, error) {
 	e := Event{}
 	// sql driver can't convert from postgres json directly to interface{}, have to get as string and re-parse.
 	messagesBuf := []byte{}
-	if err := row.Scan(&e.ID, &e.Type, &e.InstanceID, &e.Timestamp, &messagesBuf); err != nil {
+	metadataBuf := []byte{}
+	attachmentsBuff := []byte{}
+
+	if err := row.Scan(
+		&e.ID,
+		&e.Type,
+		&e.InstanceID,
+		&e.Timestamp,
+		&messagesBuf,
+		&e.Text,
+		&metadataBuf,
+		&attachmentsBuff,
+	); err != nil {
 		return e, err
 	}
-	if err := json.Unmarshal(messagesBuf, &e.Messages); err != nil {
-		return e, err
+
+	if len(messagesBuf) > 0 {
+		if err := json.Unmarshal(messagesBuf, &e.Messages); err != nil {
+			return e, err
+		}
 	}
+
+	if len(metadataBuf) > 0 {
+		if err := json.Unmarshal(metadataBuf, &e.Metadata); err != nil {
+			return e, err
+		}
+	}
+
+	if len(attachmentsBuff) > 0 {
+		if err := json.Unmarshal(attachmentsBuff, &e.Attachments); err != nil {
+			return e, err
+		}
+	}
+
 	return e, nil
 }
