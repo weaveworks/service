@@ -37,11 +37,15 @@ func (j *Aggregate) Run() {
 
 // Do starts the job and returns an error if it fails.
 func (j *Aggregate) Do(since *time.Time) error {
+	var t time.Time
 	if since == nil {
 		// Default is to check for updated totals for the last 6 hours (rounded to the previous full hour)
-		t := time.Now().UTC().Add(-6 * time.Hour).Truncate(time.Hour)
-		since = &t
+		t = time.Now().UTC().Add(-6 * time.Hour).Truncate(time.Hour)
+	} else {
+		// Ensure any custom time is aligned to the hour, so we don't generate partial totals
+		t = since.UTC().Truncate(time.Hour)
 	}
+	since = &t
 	return instrument.CollectedRequest(context.Background(), "Aggregate.Do", j.collector, nil, func(ctx context.Context) error {
 		aggs, err := j.bigqueryClient.Aggregates(ctx, *since)
 		if err != nil {
