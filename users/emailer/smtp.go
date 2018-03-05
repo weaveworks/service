@@ -170,7 +170,7 @@ func (s SMTPEmailer) RefuseDataUploadEmail(members []*users.User, orgExternalID,
 	e := email.NewEmail()
 	e.From = s.FromAddress
 	e.To = collectEmails(members)
-	e.Subject = "Weave Cloud no longer accepts data sent by your cluster"
+	e.Subject = "Sorry to see you leave Weave Cloud!"
 	e.Text = s.Templates.QuietBytes("refuse_data_upload_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("refuse_data_upload_email.html", emailWrapperFilename, e.Subject, data)
 
