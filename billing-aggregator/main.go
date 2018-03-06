@@ -31,8 +31,8 @@ const index = `
 			<form action="aggregator/aggregate" method="post">
 				<input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
 				<p>
-					<label>Override 6h period of data to import<br />
-					<input type="text" name="since" /> (Format <code>2006-01-02T15:04:05+07:00</code>)
+					<label>Manually re-aggregate and import usage since: <br />
+					<input type="text" name="since" /> (Format <code>2018-01-01T15:00:00+00:00</code>)
 					</label>
 				</p>
 				<button type="submit">Trigger Aggregation</button>
