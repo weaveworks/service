@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"reflect"
 	"sort"
 	"strconv"
 	"time"
@@ -230,8 +229,8 @@ func main() {
 	sort.Slice(originBrowserNotifs, func(i, j int) bool { return bytes.Compare(originBrowserNotifs[i], originBrowserNotifs[j]) < 0 })
 	sort.Slice(browserNotifs, func(i, j int) bool { return bytes.Compare(browserNotifs[i], browserNotifs[j]) < 0 })
 
-	if !reflect.DeepEqual(browserNotifs, originBrowserNotifs) {
-		log.Fatalf("browser notifications are not equal, expected:\n%s,\ngot:\n%s", originBrowserNotifs, browserNotifs)
+	if len(browserNotifs) != len(originBrowserNotifs) {
+		log.Fatalf("browser notifications are not equal, expected:\n%v,\ngot:\n%v", len(originBrowserNotifs), len(browserNotifs))
 	}
 
 	listEvents, err := getEvents(orgID)
