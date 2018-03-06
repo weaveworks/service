@@ -782,7 +782,7 @@ func (em *EventManager) getEvents(r *http.Request, instanceID string) (interface
 	if err != nil {
 		return nil, 0, err
 	}
-	events := []types.Event{}
+	events := []*types.Event{}
 	err = em.forEachRow(rows, func(row *sql.Rows) error {
 		e, err := types.EventFromRow(row)
 		if err != nil {

@@ -183,7 +183,7 @@ func ReceiverFromRow(row scannable) (Receiver, error) {
 }
 
 // EventFromRow expects the row to contain (type, instanceID, timestamp, messages)
-func EventFromRow(row scannable) (Event, error) {
+func EventFromRow(row scannable) (*Event, error) {
 	e := Event{}
 	// sql driver can't convert from postgres json directly to interface{}, have to get as string and re-parse.
 	messagesBuf := []byte{}
@@ -200,26 +200,26 @@ func EventFromRow(row scannable) (Event, error) {
 		&metadataBuf,
 		&attachmentsBuff,
 	); err != nil {
-		return e, err
+		return nil, err
 	}
 
 	if len(messagesBuf) > 0 {
 		if err := json.Unmarshal(messagesBuf, &e.Messages); err != nil {
-			return e, err
+			return nil, err
 		}
 	}
 
 	if len(metadataBuf) > 0 {
 		if err := json.Unmarshal(metadataBuf, &e.Metadata); err != nil {
-			return e, err
+			return nil, err
 		}
 	}
 
 	if len(attachmentsBuff) > 0 {
 		if err := json.Unmarshal(attachmentsBuff, &e.Attachments); err != nil {
-			return e, err
+			return nil, err
 		}
 	}
 
-	return e, nil
+	return &e, nil
 }

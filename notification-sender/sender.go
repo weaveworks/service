@@ -31,7 +31,7 @@ type RetriableError struct {
 }
 
 var (
-	linkRE      = regexp.MustCompile(`\[.*\]\(.*\)`)
+	linkRE      = regexp.MustCompile(`\[.*?\]\(.*?\)`)
 	linkPartsRE = regexp.MustCompile(`\[(.*)\]\((.*)\)`)
 )
 
@@ -407,11 +407,15 @@ func getLinksFromText(t string) []string {
 }
 
 // Capture inidividual link parts
-func getLinkParts(t string) (whole, text, url *string) {
+func getLinkParts(t string) (string, *string, *string) {
 	parts := linkPartsRE.FindStringSubmatch(t)
 
-	if len(parts) > 3 {
-		return &t, nil, nil
+	if len(parts) < 3 {
+		return t, nil, nil
 	}
-	return &parts[0], &parts[1], &parts[2]
+	return parts[0], &parts[1], &parts[2]
+}
+
+func useNewNotifSchema(notif types.Notification) bool {
+	return notif.Event.Text != nil
 }

@@ -29,16 +29,17 @@ func (ss *SlackSender) Send(ctx context.Context, addr json.RawMessage, notif typ
 	// See if we should use the new Event schema.
 	// Handle the formatting for the client (event creator)
 	// https://github.com/weaveworks/service/issues/1791
-	if notif.Event.Text != nil {
+	if useNewNotifSchema(notif) {
 		// New notification schema
 		data, err = generateSlackMessage(notif.Event, ss.Username)
+
+		if err != nil {
+			return errors.Wrap(err, "cannot generate slack message")
+		}
+
 	} else {
 		// Old schema
 		data = notif.Data
-	}
-
-	if err != nil {
-		return errors.Wrap(err, "cannot generate slack message")
 	}
 
 	var msg map[string]interface{}
@@ -113,7 +114,7 @@ func convertLinks(t string) string {
 
 		// Convert to the Slack link format
 		if text != nil && url != nil {
-			return fmt.Sprintf("<%v|%v>", *url, *text)
+			return fmt.Sprintf("<%s|%s>", *url, *text)
 		}
 
 		return found

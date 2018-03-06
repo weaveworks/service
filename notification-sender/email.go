@@ -65,7 +65,7 @@ func (es *EmailSender) Send(_ context.Context, addr json.RawMessage, notif types
 	// See if we should use the new Event schema.
 	// Handle the formatting for the client (event creator)
 	// https://github.com/weaveworks/service/issues/1791
-	if notif.Event.Text != nil {
+	if useNewNotifSchema(notif) {
 		// Using new Event schema
 		notifData, err = generateEmailMessage(notif.Event)
 	} else {

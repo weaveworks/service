@@ -85,7 +85,7 @@ func (sd *StackdriverSender) Send(ctx context.Context, addr json.RawMessage, not
 	// See if we should use the new Event schema.
 	// Handle the formatting for the client (event creator)
 	// https://github.com/weaveworks/service/issues/1791
-	if notif.Event.Text != nil {
+	if useNewNotifSchema(notif) {
 		entry = generateStackDriverMessage(notif.Event)
 	} else {
 		if err := json.Unmarshal(notif.Data, &entry); err != nil {
@@ -151,7 +151,7 @@ func generateStackDriverMessage(e types.Event) googleLogging.Entry {
 // Preserves potentially useful information in the Stackdriver log messages,
 // without making the text too cluttered with link syntax.
 func generateLinkCitations(t string) (string, map[string]string) {
-	annotated := t
+	annotated := string(t)
 	citations := map[string]string{}
 
 	links := getLinksFromText(t)
@@ -160,8 +160,11 @@ func generateLinkCitations(t string) (string, map[string]string) {
 		for i, l := range links {
 			key := strconv.Itoa(i)
 			whole, text, url := getLinkParts(l)
+			if text == nil || url == nil {
+				continue
+			}
 			citations[key] = *url
-			annotated = strings.Replace(annotated, *whole, fmt.Sprintf("%v[%v]", *text, key), 1)
+			annotated = strings.Replace(annotated, whole, fmt.Sprintf("%v[%v]", *text, key), 1)
 		}
 	}
 
