@@ -1,7 +1,9 @@
 package notifications
 
 import (
+	"github.com/pkg/errors"
 	"github.com/weaveworks/flux/event"
+	"github.com/weaveworks/flux/update"
 	"github.com/weaveworks/service/flux-api/instance"
 )
 
@@ -20,6 +22,18 @@ func Event(cfg instance.Config, e event.Event) error {
 			return slackNotifyAutoRelease(cfg.Settings.Slack, r, r.Error)
 		case event.EventSync:
 			return slackNotifySync(cfg.Settings.Slack, &e)
+		case event.EventCommit:
+			commitMetadata := e.Metadata.(*event.CommitEventMetadata)
+			switch commitMetadata.Spec.Type {
+			case update.Policy:
+				return slackNotifyCommitPolicyChange(cfg.Settings.Slack, commitMetadata)
+			case update.Images:
+				//TODO release
+			case update.Auto:
+				//TODO autorelease
+			}
+		default:
+			return errors.Errorf("cannot notify for event, unknown event type %s", e.Type)
 		}
 	}
 	return nil
