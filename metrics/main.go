@@ -50,6 +50,8 @@ type bqInstance struct {
 	Platform             string
 	Environment          string
 	BillingProvider      string
+	RefuseDataAccess     bool
+	RefuseDataUpload     bool
 }
 
 type bqMembership struct {
@@ -174,6 +176,8 @@ func getInstances(ctx context.Context, d db.DB) ([]interface{}, error) {
 			Platform:             instance.Platform,
 			Environment:          instance.Environment,
 			BillingProvider:      instance.BillingProvider(),
+			RefuseDataAccess:     instance.RefuseDataAccess,
+			RefuseDataUpload:     instance.RefuseDataUpload,
 		}
 		results = append(results, result)
 	}
