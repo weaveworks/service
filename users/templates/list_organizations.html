@@ -110,7 +110,7 @@
               {{if .HasFeatureFlag "billing" }}
               <form action="organizations/{{.ExternalID}}/trial" method="POST">
                   <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-                  <input type="number" name="remaining" value="{{.TrialRemaining}}" style="width:5em"/>
+                  <input type="number" name="remaining" value="{{.TrialRemaining}}" min="{{.TrialRemaining}}" style="width:5em"/>
                   <input class="mdl-button mdl-js-button mdl-button--raised" type="submit" value="Save" /><br/>
                   <label title="Notify all members of this organization of the trial extension"><input type="checkbox" name="email" /> Send email</label>
               </form>
