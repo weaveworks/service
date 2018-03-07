@@ -450,7 +450,7 @@ func (a *API) logout(w http.ResponseWriter, r *http.Request) {
 type publicLookupView struct {
 	Email         string    `json:"email,omitempty"`
 	FirstLoginAt  string    `json:"firstLoginAt,omitempty"`
-	Organizations []OrgView `json:"organizations,omitempty"`
+	Organizations []OrgView `json:"organizations"`
 	MunchkinHash  string    `json:"munchkinHash"`
 	IntercomHash  string    `json:"intercomHash"`
 }
@@ -480,10 +480,11 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 		return
 	}
 	view := publicLookupView{
-		Email:        currentUser.Email,
-		FirstLoginAt: currentUser.FormatFirstLoginAt(),
-		MunchkinHash: a.MunchkinHash(currentUser.Email),
-		IntercomHash: a.IntercomHash(currentUser.Email),
+		Email:         currentUser.Email,
+		FirstLoginAt:  currentUser.FormatFirstLoginAt(),
+		MunchkinHash:  a.MunchkinHash(currentUser.Email),
+		IntercomHash:  a.IntercomHash(currentUser.Email),
+		Organizations: make([]OrgView, 0),
 	}
 	for _, org := range organizations {
 		view.Organizations = append(view.Organizations, a.createOrgView(currentUser, org))
