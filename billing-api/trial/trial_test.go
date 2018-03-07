@@ -85,7 +85,7 @@ func TestTrialInfo(t *testing.T) {
 			},
 		},
 	} {
-		gotTrial := Info(example.organization, now)
+		gotTrial := Info(example.organization.TrialExpiresAt, example.organization.CreatedAt, now)
 		if fmt.Sprint(gotTrial) != fmt.Sprint(example.trial) {
 			t.Errorf("[%s]\nExpected trial: %#v\n     Got trial: %#v", example.name, example.trial, gotTrial)
 		}

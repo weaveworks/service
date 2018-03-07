@@ -48,7 +48,7 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 	trialInfo := map[string]trial.Trial{}
 	for _, org := range resp.Organizations {
 		ids = append(ids, org.ID)
-		trialInfo[org.ID] = trial.Info(org, now)
+		trialInfo[org.ID] = trial.Info(org.TrialExpiresAt, org.CreatedAt, now)
 	}
 	sums, err := a.DB.GetMonthSums(r.Context(), ids, from, now)
 	if err != nil {
