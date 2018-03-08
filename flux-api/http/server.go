@@ -21,6 +21,7 @@ import (
 	"github.com/weaveworks/flux"
 
 	fluxapi "github.com/weaveworks/flux/api"
+	"github.com/weaveworks/flux/api/v9"
 	fluxerr "github.com/weaveworks/flux/errors"
 	"github.com/weaveworks/flux/event"
 	transport "github.com/weaveworks/flux/http"
@@ -354,43 +355,34 @@ func (s Server) status(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) registerV6(w http.ResponseWriter, r *http.Request) {
-	s.doRegister(w, r, func(conn io.ReadWriteCloser) platformCloser {
+	s.doRegister(w, r, func(conn io.ReadWriteCloser) fluxapi.UpstreamServer {
 		return rpc.NewClientV6(conn)
 	})
 }
 
 func (s Server) registerV7(w http.ResponseWriter, r *http.Request) {
-	s.doRegister(w, r, func(conn io.ReadWriteCloser) platformCloser {
+	s.doRegister(w, r, func(conn io.ReadWriteCloser) fluxapi.UpstreamServer {
 		return rpc.NewClientV7(conn)
 	})
 }
 
 func (s Server) registerV8(w http.ResponseWriter, r *http.Request) {
-	s.doRegister(w, r, func(conn io.ReadWriteCloser) platformCloser {
+	s.doRegister(w, r, func(conn io.ReadWriteCloser) fluxapi.UpstreamServer {
 		return rpc.NewClientV8(conn)
 	})
 }
 
 func (s Server) registerV9(w http.ResponseWriter, r *http.Request) {
-	s.doRegister(w, r, func(conn io.ReadWriteCloser) platformCloser {
+	s.doRegister(w, r, func(conn io.ReadWriteCloser) fluxapi.UpstreamServer {
 		return rpc.NewClientV9(conn)
 	})
 }
 
-type platformCloser interface {
-	fluxapi.UpstreamServer
-	io.Closer
-}
+// TODO: consider approaches that allow us to version this function so that we don't require
+// old RPC clients implement the newer interface.
+type rpcClientFn func(io.ReadWriteCloser) fluxapi.UpstreamServer
 
-type platformCloserFn func(io.ReadWriteCloser) platformCloser
-
-func (s Server) doRegister(w http.ResponseWriter, r *http.Request, newRPCFn platformCloserFn) {
-	ctx := getRequestContext(r)
-
-	// This is not client-facing, so we don't do content
-	// negotiation here.
-
-	// Upgrade to a websocket
+func (s Server) doRegister(w http.ResponseWriter, r *http.Request, newRPCFn rpcClientFn) {
 	ws, err := websocket.Upgrade(w, r, nil)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -398,18 +390,20 @@ func (s Server) doRegister(w http.ResponseWriter, r *http.Request, newRPCFn plat
 		return
 	}
 
-	// Set up RPC. The service is a websocket _server_ but an RPC
-	// _client_.
+	// Create an RPC client which communicates with a flux daemon - more precisely an
+	// `api.UpstreamServer` implementation - over a websocket.
 	rpcClient := newRPCFn(ws)
 
-	// Make platform available to clients
-	// This should block until the daemon disconnects
-	// TODO: Handle the error here
-	s.daemonHandler.RegisterDaemon(ctx, rpcClient)
-
-	// Clean up
-	// TODO: Handle the error here
-	rpcClient.Close() // also closes the underlying socket
+	// RegisterDaemon will block until the daemon disconnects.
+	ctx := getRequestContext(r)
+	if err := s.daemonHandler.RegisterDaemon(ctx, rpcClient); err != nil {
+		// TODO: Handle this error?
+	}
+	// Close the websocket, in case RegisterDaemon somehow managed to return without
+	// cleaning it up.
+	if err := ws.Close(); err != nil {
+		// TODO: Handle this error?
+	}
 }
 
 func (s Server) ping(w http.ResponseWriter, r *http.Request) {
@@ -519,9 +513,9 @@ func (s Server) imageNotify(w http.ResponseWriter, r *http.Request, img string) 
 	instID := mux.Vars(r)["instance"]
 	overrideInstanceID(r, instID)
 
-	change := fluxapi.Change{
-		Kind: fluxapi.ImageChange,
-		Source: fluxapi.ImageUpdate{
+	change := v9.Change{
+		Kind: v9.ImageChange,
+		Source: v9.ImageUpdate{
 			Name: ref.Name,
 		},
 	}
@@ -538,9 +532,9 @@ func (s Server) gitPushNotify(w http.ResponseWriter, r *http.Request) {
 	instID := mux.Vars(r)["instance"]
 	overrideInstanceID(r, instID)
 
-	change := fluxapi.Change{
-		Kind:   fluxapi.GitChange,
-		Source: fluxapi.GitUpdate{
+	change := v9.Change{
+		Kind:   v9.GitChange,
+		Source: v9.GitUpdate{
 		// We don't care about the body while this is just being used for our demos.
 		},
 	}

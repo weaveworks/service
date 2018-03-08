@@ -11,7 +11,10 @@ import (
 
 	"github.com/weaveworks/flux"
 	"github.com/weaveworks/flux/api"
+	"github.com/weaveworks/flux/api/v6"
+	"github.com/weaveworks/flux/api/v9"
 	"github.com/weaveworks/flux/event"
+	"github.com/weaveworks/flux/git"
 	"github.com/weaveworks/flux/job"
 	"github.com/weaveworks/flux/policy"
 	"github.com/weaveworks/flux/remote"
@@ -114,16 +117,16 @@ func (s *Server) Status(ctx context.Context, withPlatform bool) (res service.Sta
 			}
 
 			switch res.Git.Config.Status {
-			case flux.RepoNoConfig:
+			case git.RepoNoConfig:
 				res.Git.Configured = false
 				res.Git.Error = GitNotConfigured
-			case flux.RepoNew:
+			case git.RepoNew:
 				res.Git.Configured = false
 				res.Git.Error = GitNotCloned
-			case flux.RepoCloned:
+			case git.RepoCloned:
 				res.Git.Configured = false
 				res.Git.Error = GitNotWritable
-			case flux.RepoReady:
+			case git.RepoReady:
 				res.Git.Configured = true
 				res.Git.Error = ""
 			default:
@@ -144,7 +147,7 @@ func (s *Server) Status(ctx context.Context, withPlatform bool) (res service.Sta
 }
 
 // ListServices calls ListServices on the given instance.
-func (s *Server) ListServices(ctx context.Context, namespace string) (res []flux.ControllerStatus, err error) {
+func (s *Server) ListServices(ctx context.Context, namespace string) (res []v6.ControllerStatus, err error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
 		return res, err
@@ -163,7 +166,7 @@ func (s *Server) ListServices(ctx context.Context, namespace string) (res []flux
 }
 
 // ListImages calls ListImages on the given instance.
-func (s *Server) ListImages(ctx context.Context, spec update.ResourceSpec) (res []flux.ImageStatus, err error) {
+func (s *Server) ListImages(ctx context.Context, spec update.ResourceSpec) (res []v6.ImageStatus, err error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
 		return res, err
@@ -495,7 +498,7 @@ func (s *Server) Ping(ctx context.Context) error {
 }
 
 // NotifyChange notifies a daemon about change.
-func (s *Server) NotifyChange(ctx context.Context, change api.Change) error {
+func (s *Server) NotifyChange(ctx context.Context, change v9.Change) error {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
 		return err
@@ -508,14 +511,14 @@ func (s *Server) NotifyChange(ctx context.Context, change api.Change) error {
 }
 
 // GitRepoConfig gets a daemon's git configuration.
-func (s *Server) GitRepoConfig(ctx context.Context, regenerate bool) (flux.GitConfig, error) {
+func (s *Server) GitRepoConfig(ctx context.Context, regenerate bool) (v6.GitConfig, error) {
 	instID, err := getInstanceID(ctx)
 	if err != nil {
-		return flux.GitConfig{}, err
+		return v6.GitConfig{}, err
 	}
 	inst, err := s.instancer.Get(instID)
 	if err != nil {
-		return flux.GitConfig{}, errors.Wrapf(err, "getting instance %s", string(instID))
+		return v6.GitConfig{}, errors.Wrapf(err, "getting instance %s", string(instID))
 	}
 	return inst.Platform.GitRepoConfig(ctx, regenerate)
 }

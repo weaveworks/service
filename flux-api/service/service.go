@@ -3,7 +3,7 @@ package service
 import (
 	"time"
 
-	"github.com/weaveworks/flux"
+	"github.com/weaveworks/flux/api/v6"
 )
 
 // InstanceID is a Weave Cloud instanceID.
@@ -36,7 +36,7 @@ type FluxdStatus struct {
 
 // GitStatus is the git configuration status of a given flux daemon.
 type GitStatus struct {
-	Configured bool           `json:"configured" yaml:"configured"`
-	Error      string         `json:"error,omitempty" yaml:"error,omitempty"`
-	Config     flux.GitConfig `json:"config"`
+	Configured bool         `json:"configured" yaml:"configured"`
+	Error      string       `json:"error,omitempty" yaml:"error,omitempty"`
+	Config     v6.GitConfig `json:"config"`
 }
