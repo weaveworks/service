@@ -50,8 +50,8 @@ type bqInstance struct {
 	Platform             string
 	Environment          string
 	BillingProvider      string
-	RefuseDataAccess     bool
-	RefuseDataUpload     bool
+	RefuseDataAccess     string
+	RefuseDataUpload     string
 }
 
 type bqMembership struct {
@@ -127,6 +127,13 @@ func main() {
 	}
 }
 
+func boolString(value bool) string {
+	if value {
+		return "true"
+	}
+	return "false"
+}
+
 func getUsers(ctx context.Context, d db.DB) ([]interface{}, error) {
 	users, err := d.ListUsers(ctx, filter.All, 0)
 	if err != nil {
@@ -176,8 +183,8 @@ func getInstances(ctx context.Context, d db.DB) ([]interface{}, error) {
 			Platform:             instance.Platform,
 			Environment:          instance.Environment,
 			BillingProvider:      instance.BillingProvider(),
-			RefuseDataAccess:     instance.RefuseDataAccess,
-			RefuseDataUpload:     instance.RefuseDataUpload,
+			RefuseDataAccess:     boolString(instance.RefuseDataAccess),
+			RefuseDataUpload:     boolString(instance.RefuseDataUpload),
 		}
 		results = append(results, result)
 	}
