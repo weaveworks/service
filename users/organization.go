@@ -11,13 +11,13 @@ import (
 )
 
 const (
-	// TrialDuration is how long an organization has a free trial
-	// period before we start charging for it.
-	TrialDuration = 30 * 24 * time.Hour
-
 	// TrialExtensionDuration is the extension period if billing is
 	// enabled for an existing customer
 	TrialExtensionDuration = 15 * 24 * time.Hour
+
+	// TrialRefuseDataUploadAfter is the period after the trial expired before an
+	// instance's data upload is restricted.
+	TrialRefuseDataUploadAfter = 15 * 24 * time.Hour
 
 	// BillingFeatureFlag enables billing for an organization
 	BillingFeatureFlag = "billing"

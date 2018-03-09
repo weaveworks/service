@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/lib/pq"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -385,6 +385,27 @@ func Test_Organization_CreateMultiple(t *testing.T) {
 		assert.Equal(t, "my-first-org", organizations[1].ExternalID)
 		assert.Equal(t, "my first org", organizations[1].Name)
 	}
+}
+
+func Test_Organization_CreateOrg_delinquent(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	now := time.Date(2022, 6, 27, 0, 0, 0, 0, time.UTC)
+	user := getUser(t)
+	eid := "sample-org-12"
+
+	err := app.CreateOrg(context.TODO(), user, api.OrgView{
+		ExternalID:     eid,
+		Name:           "name",
+		TrialExpiresAt: now.Add(-17 * 24 * time.Hour), // more than 15d back to trigger upload refusal
+	}, now)
+	assert.NoError(t, err)
+
+	org, err := database.FindOrganizationByID(context.TODO(), eid)
+	assert.NoError(t, err)
+	assert.True(t, org.RefuseDataAccess)
+	assert.True(t, org.RefuseDataUpload)
 }
 
 func Test_Organization_Delete(t *testing.T) {
