@@ -19,6 +19,9 @@ type StubClient struct{}
 
 func init() {
 	Config.RegisterFlags(flag.CommandLine)
+	// The Sandbox is quite slow these days and exceeds the default 10s ever so slightly
+	// for https://apisandbox-api.zuora.com/rest/v1/catalog/products
+	Config.Timeout = 25 * time.Second
 }
 
 // CreateAccount mocks.
