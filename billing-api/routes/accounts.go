@@ -237,7 +237,7 @@ func (a *API) GetAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	trial := trial.Info(resp.Organization, time.Now().UTC())
+	trial := trial.Info(resp.Organization.TrialExpiresAt, resp.Organization.CreatedAt, time.Now().UTC())
 
 	render.JSON(w, http.StatusOK, accountWithTrial{
 		Account: account,
@@ -279,7 +279,7 @@ func (a *API) GetAccountTrial(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, err)
 		return
 	}
-	trial := trial.Info(resp.Organization, time.Now().UTC())
+	trial := trial.Info(resp.Organization.TrialExpiresAt, resp.Organization.CreatedAt, time.Now().UTC())
 	render.JSON(w, http.StatusOK, trial)
 }
 
@@ -457,7 +457,7 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		activeHosts = float64(bucket.AmountValue) / time.Hour.Seconds()
 	}
 
-	trial := trial.Info(org, now)
+	trial := trial.Info(org.TrialExpiresAt, org.CreatedAt, now)
 
 	estFrom, estTo, estDays := computeEstimationPeriod(now, org.TrialExpiresAt)
 	estAggs, err := a.DB.GetAggregates(ctx, org.ID, estFrom, estTo)
