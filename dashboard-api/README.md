@@ -1,11 +1,11 @@
-= dashboard-api
+# dashboard-api
 
 Serve dashboards to the UI.
 
 - [Scope document](https://docs.google.com/document/d/1I1TKUGlnAJvb7ASGrmgYYME6PyRU-cTZYH_ABUYzDqE/edit)
 - [Initial design doc](https://docs.google.com/document/d/1CQ2JW2_E1Tj6-CfAGcbf6sXzePvJnQCuywcz5L3l7iE/edit?usp=sharing)
 
-== Updating golden test files
+## Updating golden test files
 
 We serve JSON files with promQL queries and we can't really test they are valid
 (ie. will produce data), the way used to ensure we don't regress in what we
