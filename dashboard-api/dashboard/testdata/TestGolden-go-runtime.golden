@@ -1,0 +1,81 @@
+{
+  "id": "go-runtime",
+  "name": "Go",
+  "sections": [
+    {
+      "name": "Concurrency",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Number of Goroutines",
+              "type": "line",
+              "query": "go_goroutines{kubernetes_namespace='default',_weave_service='authfe'}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Memory",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Heap Size",
+              "type": "line",
+              "query": "go_memstats_heap_alloc_bytes{kubernetes_namespace='default',_weave_service='authfe'}"
+            },
+            {
+              "title": "Number of Heap Objects",
+              "type": "line",
+              "query": "go_memstats_heap_objects{kubernetes_namespace='default',_weave_service='authfe'}"
+            }
+          ]
+        },
+        {
+          "panels": [
+            {
+              "title": "Number of Heap Objects Allocated per Second",
+              "type": "line",
+              "query": "rate(go_memstats_mallocs_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+            },
+            {
+              "title": "Number of Heap Objects Freed per Second",
+              "type": "line",
+              "query": "rate(go_memstats_frees_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Garbage Collector",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Time spent in GC each Second",
+              "type": "line",
+              "query": "irate(go_gc_duration_seconds_sum{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+            }
+          ]
+        },
+        {
+          "panels": [
+            {
+              "title": "Number of GC Cycles per Second",
+              "type": "line",
+              "query": "irate(go_gc_duration_seconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+            },
+            {
+              "title": "Duration (75 percentile)",
+              "type": "line",
+              "query": "go_gc_duration_seconds{kubernetes_namespace='default',_weave_service='authfe',quantile='0.75'}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
