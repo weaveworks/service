@@ -1,3 +1,14 @@
+[prune]
+  unused-packages = true
+  go-tests = true
+  non-go = true
+
+  # gcp-service depends on the `gogo.proto` file shipped in the subpackage
+  # github.com/gogo/protobuf/gogoproto, so we must not prune non-go files.
+  [[prune.project]]
+    name = "github.com/gogo/protobuf"
+    non-go = false
+
 [[constraint]]
   branch = "expose-dstaddr"
   name = "github.com/armon/go-proxyproto"
