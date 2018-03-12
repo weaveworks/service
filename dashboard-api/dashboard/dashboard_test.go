@@ -19,7 +19,7 @@ var (
 			Rows: []Row{{
 				Panels: []Panel{{
 					Type:  PanelLine,
-					Query: `test_metric{{{foo}}}`,
+					Query: `test_metric{_weave_service='{{workload}}'}`,
 				}},
 			}},
 		}},
@@ -56,8 +56,8 @@ func TestResolveQueries(t *testing.T) {
 	// work on a copy to not touch the original
 	dashboard := testDashboard
 
-	resolveQueries([]Dashboard{dashboard}, "{{foo}}", "bar")
-	assert.Equal(t, "test_metric{bar}", dashboard.Sections[0].Rows[0].Panels[0].Query)
+	resolveQueries([]Dashboard{dashboard}, &Config{Workload: "bar"})
+	assert.Equal(t, "test_metric{_weave_service='bar'}", dashboard.Sections[0].Rows[0].Panels[0].Query)
 }
 
 // getAllRequiredMetrics gets the union of the metrics required by a list of providers
