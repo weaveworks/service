@@ -63,7 +63,7 @@ type Dashboard struct {
 	Sections []Section `json:"sections"`
 }
 
-func getDashboardsForMetrics(metrics []string) []Dashboard {
+func getDashboardsForMetrics(providers []provider, metrics []string) []Dashboard {
 	var dashboards []Dashboard
 
 	// For O(1) metric existence check.
@@ -73,11 +73,12 @@ func getDashboardsForMetrics(metrics []string) []Dashboard {
 	}
 
 	// Retrieve the list of dashboards.
+nextProvider:
 	for _, provider := range providers {
 		required := provider.GetRequiredMetrics()
 		for _, req := range required {
 			if _, ok := metricsMap[req]; !ok {
-				continue
+				continue nextProvider
 			}
 		}
 
@@ -108,7 +109,10 @@ func resolveQueries(dashboards []Dashboard, oldnew ...string) {
 // GetServiceDashboards returns a list of dashboards that can be shown, given
 // the list of metrics available for a service.
 func GetServiceDashboards(metrics []string, namespace, workload string) ([]Dashboard, error) {
-	templates := getDashboardsForMetrics(metrics)
+	templates := getDashboardsForMetrics(providers, metrics)
+	if len(templates) == 0 {
+		return nil, nil
+	}
 
 	// We deepcopy the dashboards as we're going to mutate the query
 	copy, err := copystructure.Copy(templates)

@@ -24,7 +24,33 @@ var (
 			}},
 		}},
 	}
+
+	testProvider = &staticProvider{
+		dashboard:       testDashboard,
+		requiredMetrics: []string{"test_metric"},
+	}
 )
+
+func TestGetDashboardForMetrics(t *testing.T) {
+	tests := []struct {
+		metrics            []string
+		expectedDashboards []string
+	}{
+		{[]string{}, nil},
+		{[]string{"test_metric"}, []string{"test-dashboard"}},
+	}
+
+	for _, test := range tests {
+		var gotDashboards []string
+
+		dashboards := getDashboardsForMetrics([]provider{testProvider}, test.metrics)
+		for i := range dashboards {
+			gotDashboards = append(gotDashboards, dashboards[i].ID)
+		}
+		assert.Equal(t, test.expectedDashboards, gotDashboards)
+	}
+
+}
 
 func TestResolveQueries(t *testing.T) {
 	// work on a copy to not touch the original
