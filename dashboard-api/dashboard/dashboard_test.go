@@ -10,22 +10,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testDashbard = Dashboard{
-	Name: "Test",
-	Sections: []Section{{
-		Name: "Thingy",
-		Rows: []Row{{
-			Panels: []Panel{{
-				Type:  PanelLine,
-				Query: `{{foo}}`,
+var (
+	testDashboard = Dashboard{
+		ID:   "test-dashboard",
+		Name: "Test",
+		Sections: []Section{{
+			Name: "Thingy",
+			Rows: []Row{{
+				Panels: []Panel{{
+					Type:  PanelLine,
+					Query: `test_metric{{{foo}}}`,
+				}},
 			}},
 		}},
-	}},
-}
+	}
+)
 
 func TestResolveQueries(t *testing.T) {
-	resolveQueries([]Dashboard{testDashbard}, "{{foo}}", "bar")
-	assert.Equal(t, "bar", testDashbard.Sections[0].Rows[0].Panels[0].Query)
+	// work on a copy to not touch the original
+	dashboard := testDashboard
+
+	resolveQueries([]Dashboard{dashboard}, "{{foo}}", "bar")
+	assert.Equal(t, "test_metric{bar}", dashboard.Sections[0].Rows[0].Panels[0].Query)
 }
 
 // getAllRequiredMetrics gets the union of the metrics required by a list of providers
