@@ -10,7 +10,7 @@ import (
 
 	"github.com/weaveworks/service/users"
 
-	"github.com/weaveworks/service/users/externalIDs"
+	"github.com/weaveworks/service/users/externalids"
 )
 
 // ListTeamsForUserID lists the teams these users belong to
@@ -61,7 +61,7 @@ func (d *DB) generateTeamExternalID(_ context.Context) (string, error) {
 	// no lock needed: called by createTeam which acquired the lock
 	var externalID string
 	for used := true; used; {
-		externalID = externalIDs.Generate()
+		externalID = externalids.Generate()
 		if len(d.teams) == 0 {
 			break
 		}

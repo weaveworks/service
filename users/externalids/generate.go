@@ -1,4 +1,4 @@
-package externalIDs
+package externalids
 
 import (
 	"fmt"

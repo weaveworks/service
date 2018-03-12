@@ -11,7 +11,7 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/externalIDs"
+	"github.com/weaveworks/service/users/externalids"
 )
 
 // ListTeamsForUserID returns all teams belonging to userId
@@ -113,7 +113,7 @@ func (d DB) teamExternalIDUsed(ctx context.Context, externalID string) (bool, er
 }
 
 // generateTeamExternalID generates a new team externalID.
-// This function slows down the more externalIDs are stored in the database
+// This function slows down the more externalids are stored in the database
 func (d DB) generateTeamExternalID(ctx context.Context) (string, error) {
 	var (
 		externalID string
@@ -122,7 +122,7 @@ func (d DB) generateTeamExternalID(ctx context.Context) (string, error) {
 	)
 	err = d.Transaction(func(tx DB) error {
 		for used := true; used; {
-			externalID = externalIDs.Generate()
+			externalID = externalids.Generate()
 			used, terr = tx.teamExternalIDUsed(ctx, externalID)
 			if terr != nil {
 				return terr
