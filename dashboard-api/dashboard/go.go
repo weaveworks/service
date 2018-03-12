@@ -10,7 +10,7 @@ var goRuntimeDashboard = Dashboard{
 			Panels: []Panel{{
 				Title: "Number of Goroutines",
 				Type:  PanelLine,
-				Unit:  PanelUnit{Format: PanelUnitNumeric},
+				Unit:  Unit{Format: UnitNumeric},
 				Query: `go_goroutines{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}`,
 			}},
 		}},
@@ -20,24 +20,24 @@ var goRuntimeDashboard = Dashboard{
 			Panels: []Panel{{
 				Title: "Heap Size",
 				Type:  PanelLine,
-				Unit:  PanelUnit{Format: PanelUnitBytes},
+				Unit:  Unit{Format: UnitBytes},
 				Query: `go_memstats_heap_alloc_bytes{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}`,
 			}, {
 				Title: "Number of Heap Objects",
 				Type:  PanelLine,
-				Unit:  PanelUnit{Format: PanelUnitNumeric},
+				Unit:  Unit{Format: UnitNumeric},
 				Query: `go_memstats_heap_objects{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}`,
 			}},
 		}, {
 			Panels: []Panel{{
 				Title: "Number of Heap Objects Allocated per Second",
 				Type:  PanelLine,
-				Unit:  PanelUnit{Format: PanelUnitNumeric},
+				Unit:  Unit{Format: UnitNumeric},
 				Query: `rate(go_memstats_mallocs_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}, {
 				Title: "Number of Heap Objects Freed per Second",
 				Type:  PanelLine,
-				Unit:  PanelUnit{Format: PanelUnitNumeric},
+				Unit:  Unit{Format: UnitNumeric},
 				Query: `rate(go_memstats_frees_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}},
 		}},
@@ -47,19 +47,19 @@ var goRuntimeDashboard = Dashboard{
 			Panels: []Panel{{
 				Title: "Time spent in GC each Second",
 				Type:  PanelLine,
-				Unit:  PanelUnit{Format: PanelUnitSeconds},
+				Unit:  Unit{Format: UnitSeconds},
 				Query: `irate(go_gc_duration_seconds_sum{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}},
 		}, {
 			Panels: []Panel{{
 				Title: "Number of GC Cycles per Second",
 				Type:  PanelLine,
-				Unit:  PanelUnit{Format: PanelUnitNumeric},
+				Unit:  Unit{Format: UnitNumeric},
 				Query: `irate(go_gc_duration_seconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}, {
 				Title: "Duration (75 percentile)",
 				Type:  PanelLine,
-				Unit:  PanelUnit{Format: PanelUnitSeconds},
+				Unit:  Unit{Format: UnitSeconds},
 				Query: `go_gc_duration_seconds{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}',quantile='0.75'}`,
 			}},
 		}},
