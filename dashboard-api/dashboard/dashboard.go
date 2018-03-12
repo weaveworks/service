@@ -117,6 +117,25 @@ func resolveQueries(dashboards []Dashboard, config *Config) {
 	}
 }
 
+// GetDashboardByID retrieves a dashboard by ID
+func GetDashboardByID(ID string, config *Config) *Dashboard {
+	for _, provider := range providers {
+		dashboards := provider.GetDashboards()
+		for i := range dashboards {
+			dashboard := &dashboards[i]
+			if dashboard.ID == ID {
+				results := make([]Dashboard, 1, 1)
+
+				results[0] = *dashboard
+				resolveQueries(results, config)
+				return &results[0]
+			}
+		}
+	}
+
+	return nil
+}
+
 // GetServiceDashboards returns a list of dashboards that can be shown, given
 // the list of metrics available for a service.
 func GetServiceDashboards(metrics []string, namespace, workload string) ([]Dashboard, error) {
