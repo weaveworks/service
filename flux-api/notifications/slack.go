@@ -27,6 +27,7 @@ type slackMsg struct {
 }
 
 type slackAttachment struct {
+	Title    string   `json:"title,omitempty"`
 	Fallback string   `json:"fallback,omitempty"`
 	Text     string   `json:"text"`
 	Author   string   `json:"author_name,omitempty"`
@@ -179,6 +180,9 @@ func slackNotifySync(config config.Notifier, sync *event.Event) error {
 	if len(details.Commits) > 0 && details.Commits[0].Message != "" {
 		attachments = append(attachments, slackCommitsAttachment(details))
 	}
+	if len(details.Errors) > 0 {
+		attachments = append(attachments, slackSyncErrorAttachment(details))
+	}
 	return notify(syncEventType, config, slackMsg{
 		Username:    config.Username,
 		Text:        sync.String(),
@@ -255,6 +259,22 @@ func slackCommitsAttachment(ev *event.SyncEventMetadata) slackAttachment {
 		Text:     buf.String(),
 		Markdown: []string{"text"},
 		Color:    "good",
+	}
+}
+
+func slackSyncErrorAttachment(ev *event.SyncEventMetadata) slackAttachment {
+	buf := &bytes.Buffer{}
+	fmt.Fprintln(buf, "```")
+
+	for _, err := range ev.Errors {
+		fmt.Fprintf(buf, "%s (%s)\n  %s\n", err.ID, err.Path, err.Error)
+	}
+	fmt.Fprintln(buf, "```")
+	return slackAttachment{
+		Title:    "Resource sync errors",
+		Text:     buf.String(),
+		Markdown: []string{"text"},
+		Color:    "warning",
 	}
 }
 
