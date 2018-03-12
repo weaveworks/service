@@ -10,6 +10,10 @@
             {
               "title": "CPU Usage",
               "type": "line",
+              "unit": {
+                "format": "numeric",
+                "explanation": "CPU seconds / second"
+              },
               "query": "sum (rate(container_cpu_usage_seconds_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             }
           ]
@@ -24,6 +28,9 @@
             {
               "title": "Memory Usage",
               "type": "line",
+              "unit": {
+                "format": "bytes"
+              },
               "query": "sum (rate(container_memory_working_set_bytes{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             }
           ]
@@ -38,11 +45,17 @@
             {
               "title": "Incoming Network Traffic",
               "type": "line",
+              "unit": {
+                "format": "bytes"
+              },
               "query": "sum (rate(container_network_receive_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             },
             {
               "title": "Outgoing Network Traffic",
               "type": "line",
+              "unit": {
+                "format": "bytes"
+              },
               "query": "sum (rate(container_network_transmit_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             }
           ]
@@ -57,11 +70,17 @@
             {
               "title": "I/O Bandwidth (Read)",
               "type": "line",
+              "unit": {
+                "format": "bytes"
+              },
               "query": "sum (rate(container_fs_reads_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             },
             {
               "title": "I/O Bandwidth (Write)",
               "type": "line",
+              "unit": {
+                "format": "bytes"
+              },
               "query": "sum (rate(container_fs_writes_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             }
           ]
@@ -71,11 +90,17 @@
             {
               "title": "I/O Operations per Second (Read)",
               "type": "line",
+              "unit": {
+                "format": "bytes"
+              },
               "query": "sum (rate(container_fs_reads_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             },
             {
               "title": "I/O Operations per Second (Write)",
               "type": "line",
+              "unit": {
+                "format": "bytes"
+              },
               "query": "sum (rate(container_fs_writes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             }
           ]

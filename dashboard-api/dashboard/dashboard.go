@@ -13,14 +13,33 @@ type PanelType string
 // The list of supported panel types.
 const (
 	PanelLine        PanelType = "line"
-	PanelStackedArea           = "stacked-area"
-	PanelStackedLine           = "stacked-line"
+	PanelStackedArea PanelType = "stacked-area"
+	PanelStackedLine PanelType = "stacked-line"
 )
+
+// PanelUnitFormat specifies the values unit type.
+type PanelUnitFormat string
+
+// The list of supported panel unit formats.
+const (
+	PanelUnitNumeric PanelUnitFormat = "numeric"
+	PanelUnitBytes   PanelUnitFormat = "bytes"
+	PanelUnitPercent PanelUnitFormat = "percent"
+	PanelUnitSeconds PanelUnitFormat = "seconds"
+)
+
+// PanelUnit describes the metric unit of graph values
+type PanelUnit struct {
+	Format      PanelUnitFormat `json:"format"`
+	Scale       float64         `json:"scale,omitempty"`
+	Explanation string          `json:"explanation,omitempty"`
+}
 
 // Panel is a display of some data on a row, backed by a Prometheus query/
 type Panel struct {
 	Title string    `json:"title"`
 	Type  PanelType `json:"type"`
+	Unit  PanelUnit `json:"unit"`
 	Query string    `json:"query"`
 }
 
