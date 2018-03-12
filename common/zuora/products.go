@@ -65,7 +65,7 @@ func (z *Zuora) GetCurrentRates(ctx context.Context) (RateMap, error) {
 	// Collect all the charges across rate plans
 	for _, ratePlan := range product.ProductRatePlans {
 		for _, charge := range ratePlan.ProductRatePlanCharges {
-			// Pricing is per currency which we are supposed to only have one of (USD).
+			// Pricing is per currency
 			for _, pricing := range charge.Pricing {
 				if pricing.Currency == DefaultCurrency {
 					rates[charge.UOM] = pricing.Price

@@ -122,7 +122,7 @@ func TestPaymentAfterTrialSignupSameMonth(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to fetch and/or upload usage: %v", err)
 	}
-	err = waitUntilUsageCompleted(ctx, z, 5*time.Second, importID)
+	err = waitUntilUsageCompleted(ctx, z, 15*time.Second, importID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -177,7 +177,7 @@ func TestTrialExpiresPaymentNextMonth(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to fetch and/or upload usage: %v", err)
 	}
-	err = waitUntilUsageCompleted(ctx, z, 5*time.Second, importID)
+	err = waitUntilUsageCompleted(ctx, z, 15*time.Second, importID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -236,7 +236,7 @@ func TestTrialExpiresPaymentNextTwoMonth(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to fetch and/or upload usage: %v", err)
 	}
-	err = waitUntilUsageCompleted(ctx, z, 5*time.Second, importID)
+	err = waitUntilUsageCompleted(ctx, z, 15*time.Second, importID)
 	if err != nil {
 		t.Error(err)
 	}
