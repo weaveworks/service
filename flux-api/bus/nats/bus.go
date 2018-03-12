@@ -8,8 +8,9 @@ import (
 
 	"github.com/nats-io/go-nats"
 
-	"github.com/weaveworks/flux"
 	"github.com/weaveworks/flux/api"
+	"github.com/weaveworks/flux/api/v6"
+	"github.com/weaveworks/flux/api/v9"
 	fluxerr "github.com/weaveworks/flux/errors"
 	"github.com/weaveworks/flux/guid"
 	"github.com/weaveworks/flux/job"
@@ -142,13 +143,13 @@ type ExportResponse struct {
 
 // ListServicesResponse is the ListServices response.
 type ListServicesResponse struct {
-	Result        []flux.ControllerStatus
+	Result        []v6.ControllerStatus
 	ErrorResponse `json:",omitempty"`
 }
 
 // ListImagesResponse is the ListImages response.
 type ListImagesResponse struct {
-	Result        []flux.ImageStatus
+	Result        []v6.ImageStatus
 	ErrorResponse `json:",omitempty"`
 }
 
@@ -175,7 +176,7 @@ type SyncStatusResponse struct {
 
 // GitRepoConfigResponse is the GitRepoConfig response.
 type GitRepoConfigResponse struct {
-	Result        flux.GitConfig
+	Result        v6.GitConfig
 	ErrorResponse `json:",omitempty"`
 }
 
@@ -244,7 +245,7 @@ func (r *natsPlatform) Export(ctx context.Context) ([]byte, error) {
 	return response.Result, extractError(response.ErrorResponse)
 }
 
-func (r *natsPlatform) ListServices(ctx context.Context, namespace string) ([]flux.ControllerStatus, error) {
+func (r *natsPlatform) ListServices(ctx context.Context, namespace string) ([]v6.ControllerStatus, error) {
 	var response ListServicesResponse
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -254,7 +255,7 @@ func (r *natsPlatform) ListServices(ctx context.Context, namespace string) ([]fl
 	return response.Result, extractError(response.ErrorResponse)
 }
 
-func (r *natsPlatform) ListImages(ctx context.Context, spec update.ResourceSpec) ([]flux.ImageStatus, error) {
+func (r *natsPlatform) ListImages(ctx context.Context, spec update.ResourceSpec) ([]v6.ImageStatus, error) {
 	var response ListImagesResponse
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -294,7 +295,7 @@ func (r *natsPlatform) SyncStatus(ctx context.Context, ref string) ([]string, er
 	return response.Result, extractError(response.ErrorResponse)
 }
 
-func (r *natsPlatform) GitRepoConfig(ctx context.Context, regenerate bool) (flux.GitConfig, error) {
+func (r *natsPlatform) GitRepoConfig(ctx context.Context, regenerate bool) (v6.GitConfig, error) {
 	var response GitRepoConfigResponse
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -304,7 +305,7 @@ func (r *natsPlatform) GitRepoConfig(ctx context.Context, regenerate bool) (flux
 	return response.Result, extractError(response.ErrorResponse)
 }
 
-func (r *natsPlatform) NotifyChange(ctx context.Context, change api.Change) error {
+func (r *natsPlatform) NotifyChange(ctx context.Context, change v9.Change) error {
 	var response NotifyChangeResponse
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -471,7 +472,7 @@ func (n *NATS) processExport(ctx context.Context, request *nats.Msg, platform ap
 func (n *NATS) processListServices(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
 	var (
 		namespace string
-		res       []flux.ControllerStatus
+		res       []v6.ControllerStatus
 	)
 	err := encoder.Decode(request.Subject, request.Data, &namespace)
 	if err == nil {
@@ -484,7 +485,7 @@ func (n *NATS) processListServices(ctx context.Context, request *nats.Msg, platf
 func (n *NATS) processListImages(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
 	var (
 		req update.ResourceSpec
-		res []flux.ImageStatus
+		res []v6.ImageStatus
 	)
 	err := encoder.Decode(request.Subject, request.Data, &req)
 	if err == nil {
@@ -537,7 +538,7 @@ func (n *NATS) processSyncStatus(ctx context.Context, request *nats.Msg, platfor
 }
 
 func (n *NATS) processNotifyChange(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
-	var req api.Change
+	var req v9.Change
 	err := encoder.Decode(request.Subject, request.Data, &req)
 	if err == nil {
 		err = platform.NotifyChange(ctx, req)
@@ -549,7 +550,7 @@ func (n *NATS) processNotifyChange(ctx context.Context, request *nats.Msg, platf
 func (n *NATS) processGitRepoConfig(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
 	var (
 		req bool
-		res flux.GitConfig
+		res v6.GitConfig
 	)
 	err := encoder.Decode(request.Subject, request.Data, &req)
 	if err == nil {

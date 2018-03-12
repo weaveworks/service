@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 
 	"github.com/weaveworks/flux"
+	"github.com/weaveworks/flux/api/v6"
 	"github.com/weaveworks/flux/event"
 	"github.com/weaveworks/flux/guid"
 	transport "github.com/weaveworks/flux/http"
@@ -86,11 +87,11 @@ func setup(t *testing.T) {
 
 	imageID, _ := image.ParseRef("quay.io/weaveworks/helloworld:v1")
 	mockPlatform = &remote.MockServer{
-		ListServicesAnswer: []flux.ControllerStatus{
+		ListServicesAnswer: []v6.ControllerStatus{
 			{
 				ID:     flux.MustParseResourceID(helloWorldSvc),
 				Status: "ok",
-				Containers: []flux.Container{
+				Containers: []v6.Container{
 					{
 						Name: "helloworld",
 						Current: image.Info{
@@ -101,10 +102,10 @@ func setup(t *testing.T) {
 			},
 			{},
 		},
-		ListImagesAnswer: []flux.ImageStatus{
+		ListImagesAnswer: []v6.ImageStatus{
 			{
 				ID: flux.MustParseResourceID(helloWorldSvc),
-				Containers: []flux.Container{
+				Containers: []v6.Container{
 					{
 						Name: "helloworld",
 						Current: image.Info{
@@ -115,7 +116,7 @@ func setup(t *testing.T) {
 			},
 			{
 				ID: flux.MustParseResourceID("a/another"),
-				Containers: []flux.Container{
+				Containers: []v6.Container{
 					{
 						Name: "helloworld",
 						Current: image.Info{
