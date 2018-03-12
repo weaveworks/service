@@ -7,6 +7,7 @@ import (
 	"flag"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -63,7 +64,10 @@ const (
 	id            = service.InstanceID("californian-hotel-76")
 )
 
-var testNATS = flag.String("nats-url", "", "NATS connection URL; use NATS' default if empty")
+var (
+	testNATS     = flag.String("nats-url", "", "NATS connection URL; use NATS' default if empty")
+	testPostgres = flag.String("postgres-url", "postgres://postgres@postgres:5432?sslmode=disable", "Postgres connection string")
+)
 
 func setup(t *testing.T) {
 	flag.Parse()
@@ -71,12 +75,15 @@ func setup(t *testing.T) {
 		*testNATS = gnats.DefaultURL
 	}
 
-	databaseSource := "file://fluxy.db"
+	u, err := url.Parse(*testPostgres)
+	if err != nil {
+		t.Fatal(err)
+	}
 	databaseMigrationsDir, _ := filepath.Abs("db/migrations")
 	var dbDriver string
 	{
-		db.Migrate(databaseSource, databaseMigrationsDir)
-		dbDriver = db.DriverForScheme("file")
+		db.Migrate(*testPostgres, databaseMigrationsDir)
+		dbDriver = db.DriverForScheme(u.Scheme)
 	}
 
 	// Message bus
@@ -135,11 +142,14 @@ func setup(t *testing.T) {
 	}
 
 	// History
-	hDb, _ := historysql.NewSQL(dbDriver, databaseSource)
+	hDb, _ := historysql.NewSQL(dbDriver, *testPostgres)
 	historyDB := history.InstrumentedDB(hDb)
 
 	// Instancer
-	db, _ := instancedb.New(dbDriver, databaseSource)
+	db, err := instancedb.New(dbDriver, *testPostgres)
+	if err != nil {
+		t.Fatal(err)
+	}
 	instanceDB = instance.InstrumentedDB(db)
 
 	var instancer instance.Instancer
@@ -314,7 +324,9 @@ func TestFluxsvc_History(t *testing.T) {
 		ServiceIDs: []flux.ResourceID{
 			flux.MustParseResourceID(helloWorldSvc),
 		},
-		Message: "default/helloworld locked.",
+		Message:   "default/helloworld locked.",
+		StartedAt: time.Now().UTC(),
+		EndedAt:   time.Now().UTC(),
 	})
 	if err != nil {
 		t.Fatal(err)

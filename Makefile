@@ -1,6 +1,6 @@
 .PHONY: all test \
 	notebooks-integration-test users-integration-test billing-integration-test pubsub-integration-test \
-	notification-integration-test flux-nats-tests clean images ui-upload
+	notification-integration-test flux-integration-test clean images ui-upload
 .DEFAULT_GOAL := all
 
 # Boiler plate for bulding Docker containers.
@@ -184,18 +184,20 @@ billing-integration-test: build/$(UPTODATE)
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
 
-flux-nats-tests: build/$(UPTODATE)
+flux-integration-test: build/$(UPTODATE)
 	@mkdir -p $(shell pwd)/.pkg
 	NATS_CONTAINER="$$(docker run -d nats)"; \
+	POSTGRES_CONTAINER="$$(docker run -d postgres)"; \
 	$(SUDO) docker run $(RM) -ti \
 		-v $(shell pwd)/.pkg:/go/pkg \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-v $(shell pwd)/billing-api/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service \
 		--link "$$NATS_CONTAINER":nats \
+		--link "$$POSTGRES_CONTAINER":postgres \
 		$(IMAGE_PREFIX)/build $@; \
 	status=$$?; \
-	test -n "$(CIRCLECI)" || docker rm -f "$$NATS_CONTAINER"; \
+	test -n "$(CIRCLECI)" || docker rm -f "$$NATS_CONTAINER" "$$POSTGRES_CONTAINER"; \
 	exit $$status
 
 else
@@ -231,7 +233,7 @@ $(MOCK_COMMON_GCP_PARTNER_ACCESS): build/$(UPTODATE)
 billing-integration-test: build/$(UPTODATE) $(MOCK_GOS)
 	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"
 
-flux-nats-tests:
+flux-integration-test:
 	/bin/bash -c "go test -tags nats -timeout 30s ./flux-api ./flux-api/bus/nats -args -nats-url=nats://nats:4222"
 
 endif
