@@ -370,11 +370,17 @@ func (a *API) extendOrgTrialPeriod(ctx context.Context, org *users.Organization,
 	}
 	logging.With(ctx).Infof("Extending trial period from %v to %v for %v", org.TrialExpiresAt, t, org.ExternalID)
 
-	err := a.db.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{
+	if err := a.db.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{
 		TrialExpiresAt:         &t,
 		TrialExpiredNotifiedAt: &time.Time{}, // sets it to NULL
-	})
-	if err != nil {
+	}); err != nil {
+		return err
+	}
+
+	if err := a.db.SetOrganizationRefuseDataAccess(ctx, org.ExternalID, false); err != nil {
+		return err
+	}
+	if err := a.db.SetOrganizationRefuseDataUpload(ctx, org.ExternalID, false); err != nil {
 		return err
 	}
 
