@@ -21,6 +21,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/notification-eventmanager/types"
+	"regexp"
 )
 
 // RetriableError is error after sending notification when sender will retry sending again
@@ -28,6 +29,11 @@ import (
 type RetriableError struct {
 	error
 }
+
+var (
+	linkRE      = regexp.MustCompile(`\[.*?\]\(.*?\)`)
+	linkPartsRE = regexp.MustCompile(`\[(.*)\]\((.*)\)`)
+)
 
 var (
 	receiveFromSQS = prometheus.NewCounter(prometheus.CounterOpts{
@@ -122,7 +128,7 @@ type Config struct {
 }
 
 // NotifyHandler notifies address about notification in data
-type NotifyHandler func(ctx context.Context, address, data json.RawMessage, instance string) error
+type NotifyHandler func(ctx context.Context, address json.RawMessage, notif types.Notification, instance string) error
 
 // Sender contains creds for SQS and map of handlers to each ReceiverType
 type Sender struct {
@@ -248,7 +254,7 @@ func (s *Sender) sendNotification(ctx context.Context, notif types.Notification,
 	}
 
 	begin := time.Now()
-	if err := h(ctx, notif.Address, notif.Data, notif.InstanceID); err != nil {
+	if err := h(ctx, notif.Address, notif, notif.InstanceID); err != nil {
 		if _, ok := err.(RetriableError); ok {
 			return errors.Wrapf(err, "cannot send %s notification; will retry request later, retriable error: %s", notif.ReceiverType, err)
 		}
@@ -393,4 +399,23 @@ func (s *Sender) HandleBrowserNotifications(w http.ResponseWriter, r *http.Reque
 // HandleHealthCheck handles a very simple health check
 func (s *Sender) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
+}
+
+// Look for links defined in the text string
+func getLinksFromText(t string) []string {
+	return linkRE.FindAllString(t, -1)
+}
+
+// Capture inidividual link parts
+func getLinkParts(t string) (string, *string, *string) {
+	parts := linkPartsRE.FindStringSubmatch(t)
+
+	if len(parts) < 3 {
+		return t, nil, nil
+	}
+	return parts[0], &parts[1], &parts[2]
+}
+
+func useNewNotifSchema(notif types.Notification) bool {
+	return notif.Event.Text != nil
 }

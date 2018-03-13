@@ -6,6 +6,7 @@ import (
 
 	nats "github.com/nats-io/go-nats"
 	"github.com/pkg/errors"
+	"github.com/weaveworks/service/notification-eventmanager/types"
 )
 
 // BrowserSender contains NATS connection to subscribe and publish notifications
@@ -14,8 +15,14 @@ type BrowserSender struct {
 }
 
 // Send publishes data to all instance's subcsribers
-func (bs *BrowserSender) Send(_ context.Context, _, data json.RawMessage, instance string) error {
-	if err := bs.NATS.Publish(instance, data); err != nil {
+func (bs *BrowserSender) Send(_ context.Context, _ json.RawMessage, notif types.Notification, instance string) error {
+	payload, err := json.Marshal(notif.Event)
+
+	if err != nil {
+		return errors.Wrap(err, "cannot marshal event for NATS publish")
+	}
+
+	if err := bs.NATS.Publish(instance, payload); err != nil {
 		publicationsNATSErrors.Inc()
 		return errors.Wrap(err, "cannot publish to NATS")
 	}
@@ -26,7 +33,7 @@ func (bs *BrowserSender) Send(_ context.Context, _, data json.RawMessage, instan
 	}
 	if err := bs.NATS.LastError(); err != nil {
 		publicationsNATSErrors.Inc()
-		return errors.Wrapf(err, "cannot publishing data %s to NATS", data)
+		return errors.Wrapf(err, "cannot publishing data %s to NATS", payload)
 	}
 
 	publicationsNATS.Inc()

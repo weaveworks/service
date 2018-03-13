@@ -1,20 +1,28 @@
 package sender
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"net/url"
-	"strconv"
-	"time"
-
+	"fmt"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/weaveworks/blackfriday"
 	"github.com/weaveworks/service/notification-eventmanager/types"
 	gomail "gopkg.in/gomail.v2"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // Timeout waiting for mail service to be ready
 const timeout = 5 * time.Minute
+
+const (
+	markdownNewline      = "  \n"
+	markdownNewParagraph = "\n\n"
+)
 
 // EmailSender contains creds to send emails
 type EmailSender struct {
@@ -46,15 +54,26 @@ func ValidateEmailSender(uri, from string) error {
 }
 
 // Send sends data to address with EmailSender creds
-func (es *EmailSender) Send(_ context.Context, addr, data json.RawMessage, _ string) error {
+func (es *EmailSender) Send(_ context.Context, addr json.RawMessage, notif types.Notification, _ string) error {
 	var addrStr string
 	if err := json.Unmarshal(addr, &addrStr); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal address %s", addr)
 	}
 
 	var notifData types.EmailMessage
-	if err := json.Unmarshal(data, &notifData); err != nil {
-		return errors.Wrapf(err, "cannot unmarshal notification data %s to string", data)
+	var err error
+	// See if we should use the new Event schema.
+	// Handle the formatting for the client (event creator)
+	// https://github.com/weaveworks/service/issues/1791
+	if useNewNotifSchema(notif) {
+		// Using new Event schema
+		notifData, err = generateEmailMessage(notif.Event)
+	} else {
+		err = json.Unmarshal(notif.Data, &notifData)
+	}
+
+	if err != nil {
+		return err
 	}
 
 	if es.URI == "" {
@@ -114,4 +133,30 @@ func parseAndSend(uri, from, addr, subject, body string) error {
 	}
 
 	return nil
+}
+
+func generateEmailMessage(e types.Event) (types.EmailMessage, error) {
+	var msg bytes.Buffer
+	text := *e.Text
+	msg.WriteString(fmt.Sprintf("Instance: %s%s", e.InstanceName, markdownNewParagraph))
+	if text != "" {
+		// a slack message might contain \n for new lines
+		// replace it with markdown line break
+		msg.WriteString(strings.Replace(text, "\n", markdownNewline, -1))
+		msg.WriteString(markdownNewParagraph)
+	}
+
+	for _, a := range e.Attachments {
+		msg.WriteString(strings.Replace(a.Body, "\n", markdownNewline, -1))
+		msg.WriteString(markdownNewline)
+	}
+
+	html := string(blackfriday.MarkdownBasic([]byte(msg.String())))
+
+	email := types.EmailMessage{
+		Subject: fmt.Sprintf("%v - %v", e.InstanceName, e.Type),
+		Body:    html,
+	}
+
+	return email, nil
 }
