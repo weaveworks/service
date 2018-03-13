@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
+
 	"github.com/badoux/checkmail"
 	"github.com/lib/pq" // Import the postgres sql driver
 	"github.com/pkg/errors"
@@ -28,7 +30,7 @@ import (
 
 const (
 	// MaxEventsList is the highest number of events that can be requested in one list call
-	MaxEventsList = 100
+	MaxEventsList = 10000
 )
 
 var (
@@ -738,9 +740,23 @@ func (em *EventManager) CreateEvent(event types.Event) error {
 }
 
 func (em *EventManager) getEvents(r *http.Request, instanceID string) (interface{}, int, error) {
+	var err error
 	params := r.URL.Query()
+	fields := []string{
+		"event_id",
+		"event_type",
+		"instance_id",
+		"timestamp",
+		"messages",
+		"text",
+		"metadata",
+	}
 	length := 50
 	offset := 0
+	after := time.Unix(0, 0)
+	before := time.Now().UTC()
+	var eventType []string
+
 	if params.Get("length") != "" {
 		l, err := strconv.Atoi(params.Get("length"))
 		if err != nil {
@@ -762,28 +778,60 @@ func (em *EventManager) getEvents(r *http.Request, instanceID string) (interface
 		offset = o
 	}
 
-	rows, err := em.DB.Query(
-		"get_events",
-		`SELECT
-			e.event_id,
-			e.event_type,
-			e.instance_id,
-			e.timestamp,
-			e.messages,
-			e.text,
-			e.metadata,
-			COALESCE(json_agg(a) FILTER (WHERE a.event_id IS NOT NULL), '[]')
-		FROM events e
-		LEFT JOIN attachments a ON (a.event_id = e.event_id)
-		WHERE e.instance_id = $1
-		GROUP BY e.event_id
-		ORDER BY timestamp DESC
-		LIMIT $2 OFFSET $3
-	`,
-		instanceID,
-		length,
-		offset,
-	)
+	if params.Get("before") != "" {
+		before, err = time.Parse(time.RFC3339Nano, params.Get("before"))
+		if err != nil {
+			return "Bad before value: Not an RFC3339 time", http.StatusBadRequest, nil
+		}
+	}
+	if params.Get("after") != "" {
+		after, err = time.Parse(time.RFC3339Nano, params.Get("after"))
+		if err != nil {
+			return "Bad after value:  Not an RFC3339 time", http.StatusBadRequest, nil
+		}
+	}
+	if params.Get("event_type") != "" {
+		eventType = strings.Split(params.Get("event_type"), ",")
+	}
+	if params.Get("exclude") != "" {
+		excluded := map[string]struct{}{}
+		for _, e := range strings.Split(params.Get("exclude"), ",") {
+			excluded[e] = struct{}{}
+		}
+
+		filteredFields := []string{}
+		for _, field := range fields {
+			if _, ok := excluded[field]; !ok {
+				filteredFields = append(filteredFields, field)
+			}
+		}
+		fields = filteredFields
+	}
+
+	for i, f := range fields {
+		fields[i] = fmt.Sprintf("e.%s", f) // prepend "e." for join
+	}
+	fields = append(fields, "COALESCE(json_agg(a) FILTER (WHERE a.event_id IS NOT NULL), '[]')")
+	query := sq.Select(fields...).
+		From("events e").
+		LeftJoin("attachments a ON (a.event_id = e.event_id)").
+		Where(sq.Eq{"instance_id": instanceID}).
+		Where(sq.Lt{"timestamp": before}).
+		Where(sq.Gt{"timestamp": after}).
+		GroupBy("e.event_id").
+		OrderBy("timestamp DESC").
+		Limit(uint64(length)).
+		Offset(uint64(offset))
+
+	if len(eventType) > 0 {
+		query = query.Where(sq.Eq{"event_type": eventType})
+	}
+
+	queryString, args, err := query.ToSql()
+	if err != nil {
+		return nil, 0, err
+	}
+	rows, err := em.DB.Query("get_events", queryString, args...)
 	if err != nil {
 		return nil, 0, err
 	}
