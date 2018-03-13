@@ -70,6 +70,7 @@ type Config struct {
 	devGrafanaHost        proxyConfig
 	grafanaHost           proxyConfig
 	jaegerHost            proxyConfig
+	kibanaHost            proxyConfig
 	kubedashHost          proxyConfig
 	kubediffHost          proxyConfig
 	lokiHost              proxyConfig
@@ -124,6 +125,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"dev-grafana":        &c.devGrafanaHost,
 		"grafana":            &c.grafanaHost,
 		"jaeger":             &c.jaegerHost,
+		"kibana":             &c.kibanaHost,
 		"kubedash":           &c.kubedashHost,
 		"kubediff":           &c.kubediffHost,
 		"loki":               &c.lokiHost,

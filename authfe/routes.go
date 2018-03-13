@@ -325,6 +325,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/cortex/ring", trimPrefix("/admin/cortex", c.promDistributorHost)},
 				{"/loki", trimPrefix("/admin/loki", c.lokiHost)},
 				{"/jaeger", trimPrefix("/admin/jaeger", c.jaegerHost)},
+				{"/kibana", trimPrefix("/admin/kibana", c.kibanaHost)},
 				{"/", http.HandlerFunc(adminRoot)},
 			}),
 			middleware.Merge(
@@ -401,6 +402,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/admin/grafana",     // grafana does not know to inject CSRF header into requests. Without whitelisting,
 		"/admin/dev-grafana", // this causes the CSRF token & cookie to be re-issued, breaking UI requests.
 		"/admin/prod-grafana",
+		"/admin/kibana", // kibana has the same issue with CSRF tokens as grafana
 	)
 	operationNameFunc := nethttp.OperationNameFunc(func(r *http.Request) string {
 		return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
