@@ -393,7 +393,7 @@ func Test_Organization_CreateOrg_delinquent(t *testing.T) {
 
 	now := time.Date(2022, 6, 27, 0, 0, 0, 0, time.UTC)
 	user := getUser(t)
-	eid := "sample-org-12"
+	eid := "delinquent-refuse-12"
 
 	err := app.CreateOrg(context.TODO(), user, api.OrgView{
 		ExternalID:     eid,

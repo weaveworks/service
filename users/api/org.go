@@ -142,6 +142,8 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 			return err
 		}
 		log.Infof("Billing enabled for %v/%v/%v.", org.ID, view.ExternalID, view.Name)
+		// Manually append to object for data refusal check below
+		org.FeatureFlags = append(org.FeatureFlags, users.BillingFeatureFlag)
 	}
 
 	if orgs.ShouldRefuseDataAccess(*org, now) {

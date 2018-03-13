@@ -27,7 +27,6 @@ func DelinquentFilter(now time.Time) filter.Organization {
 
 func isDelinquent(o users.Organization, now time.Time) bool {
 	return DelinquentFilter(now).MatchesOrg(o)
-
 }
 
 // ShouldRefuseDataAccess returns true if the organization's flag is supposed to be set.
