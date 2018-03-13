@@ -284,10 +284,6 @@ func (em *EventManager) TestEventHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	instanceName := instanceData.Organization.Name
-	etype := "user_test"
-
-	sdMsg, err := getStackdriverMessage(json.RawMessage(`"A test event triggered from Weave Cloud!"`), etype, instanceName)
 	if err != nil {
 		log.Errorf("error getting stackdriver message for test event: %s", err)
 		http.Error(w, "unable to get stackdriver message", http.StatusInternalServerError)
@@ -295,16 +291,14 @@ func (em *EventManager) TestEventHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	text := "A test event triggered from Weave Cloud!"
+
 	testEvent := types.Event{
 		Type:       "user_test",
 		InstanceID: instanceID,
 		Timestamp:  time.Now(),
-		Messages: map[string]json.RawMessage{
-			types.EmailReceiver:       json.RawMessage(fmt.Sprintf(`{"subject": "Weave Cloud Test Event - %v", "body": "A test event triggered from Weave Cloud!"}`, instanceName)),
-			types.BrowserReceiver:     json.RawMessage(`{"text": "A test event triggered from Weave Cloud!"}`),
-			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\nA test event triggered from Weave Cloud!"}`, instanceName)),
-			types.StackdriverReceiver: sdMsg,
-		},
+		Text:       &text,
+		Metadata:   map[string]string{"instance_name": instanceData.Organization.Name},
 	}
 
 	if err := em.storeAndSend(r.Context(), testEvent); err != nil {
