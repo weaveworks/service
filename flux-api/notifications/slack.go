@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -55,10 +56,12 @@ const (
 
 	autoReleaseTemplate = `Automated release of new image{{if not (last 0 $.Images)}}s{{end}} {{with .Images}}{{range $index, $image := .}}{{if not (eq $index 0)}}, {{if last $index $.Images}}and {{end}}{{end}}{{.}}{{end}}{{end}}.`
 
-	releaseEventType     = "deploy"
-	autoReleaseEventType = "auto_deploy"
-	syncEventType        = "sync"
-	policyEventType      = "policy"
+	releaseEventType           = "deploy"
+	autoReleaseEventType       = "auto_deploy"
+	syncEventType              = "sync"
+	policyEventType            = "policy"
+	releaseCommitEventType     = "deploy_commit"
+	autoReleaseCommitEventType = "auto_deploy_commit"
 )
 
 var (
@@ -103,19 +106,6 @@ func slackNotifyRelease(config config.Notifier, release *event.ReleaseEventMetad
 
 	if releaseError != "" {
 		attachments = append(attachments, errorAttachment(releaseError))
-	}
-
-	if release.Cause.User != "" || release.Cause.Message != "" {
-		cause := slackAttachment{}
-		if user := release.Cause.User; user != "" {
-			user = strings.Replace(user, "<", "(", -1)
-			user = strings.Replace(user, ">", ")", -1)
-			cause.Author = user
-		}
-		if msg := release.Cause.Message; msg != "" {
-			cause.Text = msg
-		}
-		attachments = append(attachments, cause)
 	}
 
 	if release.Result != nil {
@@ -184,6 +174,26 @@ func slackNotifySync(config config.Notifier, sync *event.Event) error {
 		Text:        sync.String(),
 		Attachments: attachments,
 	})
+}
+
+func slackNotifyCommitRelease(config config.Notifier, commitMetadata *event.CommitEventMetadata) error {
+	rev := commitMetadata.ShortRevision()
+	user := commitMetadata.Spec.Cause.User
+	var text string
+	for _, res := range commitMetadata.Spec.Spec.(update.ReleaseSpec).ServiceSpecs {
+		// escape special characters < and > (to preserve ResourceSpec("<all>") value)
+		text += fmt.Sprintf("Commit: %s (%s) by %s\n", html.EscapeString(res.String()), rev, user)
+	}
+	return notify(releaseCommitEventType, config, slackMsg{Text: text})
+}
+
+func slackNotifyCommitAutoRelease(config config.Notifier, commitMetadata *event.CommitEventMetadata) error {
+	rev := commitMetadata.ShortRevision()
+	var text string
+	for _, ch := range commitMetadata.Spec.Spec.(update.Automated).Changes {
+		text += fmt.Sprintf("Commit: %s (%s)\n", ch.ServiceID, rev)
+	}
+	return notify(autoReleaseCommitEventType, config, slackMsg{Text: text})
 }
 
 func slackNotifyCommitPolicyChange(config config.Notifier, commitMetadata *event.CommitEventMetadata) error {

@@ -28,9 +28,9 @@ func Event(cfg instance.Config, e event.Event) error {
 			case update.Policy:
 				return slackNotifyCommitPolicyChange(cfg.Settings.Slack, commitMetadata)
 			case update.Images:
-				//TODO release
+				return slackNotifyCommitRelease(cfg.Settings.Slack, commitMetadata)
 			case update.Auto:
-				//TODO autorelease
+				return slackNotifyCommitAutoRelease(cfg.Settings.Slack, commitMetadata)
 			}
 		default:
 			return errors.Errorf("cannot notify for event, unknown event type %s", e.Type)
