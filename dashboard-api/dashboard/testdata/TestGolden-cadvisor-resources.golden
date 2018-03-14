@@ -31,7 +31,7 @@
               "unit": {
                 "format": "bytes"
               },
-              "query": "sum (rate(container_memory_working_set_bytes{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+              "query": "sum (container_memory_working_set_bytes{image!='',namespace='default',_weave_pod_name='authfe'}) by (pod_name)"
             }
           ]
         }
