@@ -48,11 +48,7 @@ func TestGetServiceMetricsNoMetrics(t *testing.T) {
 	api.handler.ServeHTTP(w, req)
 
 	resp := w.Result()
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-
-	gotBytes, err := ioutil.ReadAll(resp.Body)
-	assert.Nil(t, err)
-	assert.Equal(t, "{\"metrics\":[]}\n", string(gotBytes))
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
 func TestGetServiceMetrics(t *testing.T) {
@@ -101,9 +97,6 @@ func TestGetServiceMetricsForwardOrgID(t *testing.T) {
 	req.Header.Set(user.OrgIDHeaderName, testOrgID)
 	w := httptest.NewRecorder()
 	api.handler.ServeHTTP(w, req)
-
-	resp := w.Result()
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	assert.Equal(t, testOrgID, mockClient.lastRequest.Header.Get(user.OrgIDHeaderName))
 }

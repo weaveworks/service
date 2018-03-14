@@ -10,7 +10,7 @@ import (
 )
 
 var update = flag.Bool("update", false, "update .golden files")
-var logLevel = flag.String("log.level", "debug", "the log level")
+var logLevel = flag.String("log.level", "info", "the log level")
 
 func TestMain(m *testing.M) {
 	if err := logging.Setup(*logLevel); err != nil {

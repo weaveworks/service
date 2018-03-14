@@ -75,9 +75,10 @@ func (api *API) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(resp.Metrics) == 0 {
-		// Do not return { metrics: null } but { metrics: [] }, a slightly nicer API
-		// with a stronger invariant: "metrics is an array of metrics"
-		resp.Metrics = make([]string, 0)
+		// We should have at least the up{kubernetes_namespace="$namespace",_weave_service="$service"} metric.
+		// Not having *any* metric is the sign of a non existent (namespace,service)
+		renderError(w, r, errNotFound)
+		return
 	}
 
 	render.JSON(w, http.StatusOK, resp)

@@ -10,22 +10,54 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testDashbard = Dashboard{
-	Name: "Test",
-	Sections: []Section{{
-		Name: "Thingy",
-		Rows: []Row{{
-			Panels: []Panel{{
-				Type:  PanelLine,
-				Query: `{{foo}}`,
+var (
+	testDashboard = Dashboard{
+		ID:   "test-dashboard",
+		Name: "Test",
+		Sections: []Section{{
+			Name: "Thingy",
+			Rows: []Row{{
+				Panels: []Panel{{
+					Type:  PanelLine,
+					Query: `test_metric{{{foo}}}`,
+				}},
 			}},
 		}},
-	}},
+	}
+
+	testProvider = &staticProvider{
+		dashboard:       testDashboard,
+		requiredMetrics: []string{"test_metric"},
+	}
+)
+
+func TestGetDashboardForMetrics(t *testing.T) {
+	tests := []struct {
+		metrics            []string
+		expectedDashboards []string
+	}{
+		{[]string{}, nil},
+		{[]string{"test_metric"}, []string{"test-dashboard"}},
+	}
+
+	for _, test := range tests {
+		var gotDashboards []string
+
+		dashboards := getDashboardsForMetrics([]provider{testProvider}, test.metrics)
+		for i := range dashboards {
+			gotDashboards = append(gotDashboards, dashboards[i].ID)
+		}
+		assert.Equal(t, test.expectedDashboards, gotDashboards)
+	}
+
 }
 
 func TestResolveQueries(t *testing.T) {
-	resolveQueries([]Dashboard{testDashbard}, "{{foo}}", "bar")
-	assert.Equal(t, "bar", testDashbard.Sections[0].Rows[0].Panels[0].Query)
+	// work on a copy to not touch the original
+	dashboard := testDashboard
+
+	resolveQueries([]Dashboard{dashboard}, "{{foo}}", "bar")
+	assert.Equal(t, "test_metric{bar}", dashboard.Sections[0].Rows[0].Panels[0].Query)
 }
 
 // getAllRequiredMetrics gets the union of the metrics required by a list of providers
