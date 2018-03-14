@@ -499,6 +499,7 @@ func (s *Server) Ping(ctx context.Context) error {
 
 // NotifyChange notifies a daemon about change.
 func (s *Server) NotifyChange(ctx context.Context, change v9.Change) error {
+	// TODO: support mapping a url/branch pair to one or more daemons without an instance id.
 	instID, err := getInstanceID(ctx)
 	if err != nil {
 		return err

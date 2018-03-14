@@ -526,17 +526,19 @@ func (s Server) imageNotify(w http.ResponseWriter, r *http.Request, img string) 
 }
 
 func (s Server) gitPushNotify(w http.ResponseWriter, r *http.Request) {
-	// Immediately write 200 because the sender doesn't care what happens next.
-	w.WriteHeader(http.StatusOK)
-
 	instID := mux.Vars(r)["instance"]
 	overrideInstanceID(r, instID)
 
+	var update v9.GitUpdate
+	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+		transport.WriteError(w, r, http.StatusBadRequest, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+
 	change := v9.Change{
 		Kind:   v9.GitChange,
-		Source: v9.GitUpdate{
-		// We don't care about the body while this is just being used for our demos.
-		},
+		Source: update,
 	}
 	ctx := getRequestContext(r)
 	// Ignore the error returned here as the sender doesn't care. We'll log any
