@@ -1,6 +1,6 @@
 {
-  "id": "cadvisor-system-resources",
-  "name": "System Resources",
+  "id": "cadvisor-resources",
+  "name": "Resources",
   "sections": [
     {
       "name": "CPU",
