@@ -2,8 +2,8 @@ package dashboard
 
 // This dashboard displays metrics "by pod", all line graphs, a line per pod.
 var cadvisorDashboard = Dashboard{
-	ID:   "cadvisor-system-resources",
-	Name: "System Resources",
+	ID:   "cadvisor-resources",
+	Name: "Resources",
 	Sections: []Section{{
 		Name: "CPU",
 		Rows: []Row{{
