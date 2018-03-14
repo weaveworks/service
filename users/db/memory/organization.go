@@ -13,7 +13,7 @@ import (
 	timeutil "github.com/weaveworks/service/common/time"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/filter"
-	"github.com/weaveworks/service/users/externalIDs"
+	"github.com/weaveworks/service/users/externalids"
 )
 
 // RemoveUserFromOrganization removes the user from the organiation. If they
@@ -191,7 +191,7 @@ func (d *DB) GenerateOrganizationExternalID(_ context.Context) (string, error) {
 	var externalID string
 	var err error
 	for used := true; used && err == nil; {
-		externalID = externalIDs.Generate()
+		externalID = externalids.Generate()
 		used, err = d.organizationExists(externalID, true)
 	}
 	return externalID, err
