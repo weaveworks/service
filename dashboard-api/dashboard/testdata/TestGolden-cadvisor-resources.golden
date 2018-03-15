@@ -91,7 +91,7 @@
               "title": "I/O Operations per Second (Read)",
               "type": "line",
               "unit": {
-                "format": "bytes"
+                "format": "numeric"
               },
               "query": "sum (rate(container_fs_reads_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             },
@@ -99,7 +99,7 @@
               "title": "I/O Operations per Second (Write)",
               "type": "line",
               "unit": {
-                "format": "bytes"
+                "format": "numeric"
               },
               "query": "sum (rate(container_fs_writes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             }
