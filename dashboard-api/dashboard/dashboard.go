@@ -139,6 +139,7 @@ func GetServiceDashboards(metrics []string, namespace, workload string) ([]Dashb
 func Init() {
 	registerProviders(
 		cadvisor,
+		memcached,
 		goRuntime,
 	)
 }
