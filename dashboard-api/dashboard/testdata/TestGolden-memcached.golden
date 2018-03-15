@@ -1,0 +1,121 @@
+{
+  "id": "memcached",
+  "name": "memcached",
+  "sections": [
+    {
+      "name": "Cache",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Hit Rate",
+              "type": "line",
+              "unit": {
+                "format": "percent"
+              },
+              "query": "sum(rate(memcached_commands_total{kubernetes_namespace='default',_weave_service='authfe',command=~'get|delete|incr|decr|cas|touch',status='hit'}[2m])) / sum(rate(memcached_commands_total{kubernetes_namespace='default', _weave_service='authfe',command=~'get|delete|incr|decr|cas|touch'}[2m]))"
+            }
+          ]
+        },
+        {
+          "panels": [
+            {
+              "title": "Items in Cache",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(memcached_current_items{kubernetes_namespace='default',_weave_service='authfe'})"
+            },
+            {
+              "title": "Used Cache Memory",
+              "type": "line",
+              "unit": {
+                "format": "percent"
+              },
+              "query": "sum(memcached_current_bytes{kubernetes_namespace='default',_weave_service='authfe'}) / sum(memcached_limit_bytes{kubernetes_namespace='default',_weave_service='authfe'})"
+            }
+          ]
+        },
+        {
+          "panels": [
+            {
+              "title": "Evicted Items per Second",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(rate(memcached_items_evicted_total{kubernetes_namespace='default',_weave_service='authfe'}[2m]))"
+            },
+            {
+              "title": "Reclaimed Items per Second",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(rate(memcached_items_reclaimed_total{kubernetes_namespace='default',_weave_service='authfe'}[2m]))"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Commands",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Operations per Second",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(rate(memcached_commands_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (command)"
+            },
+            {
+              "title": "Get/Set Ratio",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(rate(memcached_commands_total{kubernetes_namespace='default',_weave_service='authfe',command='get'}[2m])) / sum(rate(memcached_commands_total{kubernetes_namespace='default', _weave_service='authfe',command='set'}[2m]))"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Network",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Bytes Read from Network per Second",
+              "type": "line",
+              "unit": {
+                "format": "bytes"
+              },
+              "query": "sum(rate(memcached_read_bytes_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
+            },
+            {
+              "title": "Bytes Written to Network per Second",
+              "type": "line",
+              "unit": {
+                "format": "bytes"
+              },
+              "query": "sum(rate(memcached_written_bytes_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
+            },
+            {
+              "title": "Number of Connections",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(memcached_current_connections{kubernetes_namespace='default',_weave_service='authfe'}) by (kubernetes_pod_name)"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

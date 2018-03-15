@@ -51,7 +51,7 @@ type Row struct {
 // Section is a collection of rows. It can be used to group several graphs into
 // a logical bundle.
 type Section struct {
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 	Rows []Row  `json:"rows"`
 }
 
@@ -139,6 +139,7 @@ func GetServiceDashboards(metrics []string, namespace, workload string) ([]Dashb
 func Init() {
 	registerProviders(
 		cadvisor,
+		memcached,
 		goRuntime,
 	)
 }
