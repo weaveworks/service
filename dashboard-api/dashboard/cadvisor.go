@@ -57,12 +57,12 @@ var cadvisorDashboard = Dashboard{
 			Panels: []Panel{{
 				Title: "I/O Operations per Second (Read)",
 				Type:  PanelLine,
-				Unit:  Unit{Format: UnitBytes},
+				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum (rate(container_fs_reads_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
 			}, {
 				Title: "I/O Operations per Second (Write)",
 				Type:  PanelLine,
-				Unit:  Unit{Format: UnitBytes},
+				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum (rate(container_fs_writes_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
 			}},
 		}},
