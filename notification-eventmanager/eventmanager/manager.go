@@ -294,11 +294,11 @@ func (em *EventManager) TestEventHandler(w http.ResponseWriter, r *http.Request)
 	text := "A test event triggered from Weave Cloud!"
 
 	testEvent := types.Event{
-		Type:       "user_test",
-		InstanceID: instanceID,
-		Timestamp:  time.Now(),
-		Text:       &text,
-		Metadata:   map[string]string{"instance_name": instanceData.Organization.Name},
+		Type:         "user_test",
+		InstanceID:   instanceID,
+		InstanceName: instanceData.Organization.Name,
+		Timestamp:    time.Now(),
+		Text:         &text,
 	}
 
 	if err := em.storeAndSend(r.Context(), testEvent); err != nil {
