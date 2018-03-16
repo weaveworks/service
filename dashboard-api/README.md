@@ -27,48 +27,24 @@ service$ go run ./dashboard-api/cmd/wc-dashboard/main.go -js -namespace cortex -
 
 ```diff
 diff --git a/client/src/pages/prom/workloads/workload-homepage.jsx b/client/src/pages/prom/workloads/workload-homepage.jsx
-index 6cb9cda..493cfce 100644
+index 3411347..3c2c539 100644
 --- a/client/src/pages/prom/workloads/workload-homepage.jsx
 +++ b/client/src/pages/prom/workloads/workload-homepage.jsx
-@@ -2,7 +2,6 @@ import React from 'react';
- import moment from 'moment';
- import styled from 'styled-components';
- import { connect } from 'react-redux';
--import { get } from 'lodash';
- 
- import { trackEvent } from '../../../common/tracking';
- import {
-@@ -12,6 +11,7 @@ import {
- } from '../../../actions';
- import TimeTravelWrapper from '../time-travel-wrapper';
- 
-+import { DashboardsJSON } from './dashboards';
+@@ -18,6 +18,7 @@ import TimeTravelWrapper from '../time-travel-wrapper';
  import TabSection from './tab-section';
  import TabSelector from './tab-selector';
  import WorkloadDashboard from './workload-dashboard';
-@@ -124,8 +124,7 @@ class WorkloadHomepage extends React.Component {
-   }
- }
++import { DashboardsJSON } from './dashboards';
  
--function mapStateToProps(state, { params }) {
--  const { orgId, workloadId } = params;
-+function mapStateToProps(state) {
-   const { timestamp, rangeMs } = state.root.timeTravel;
-   return {
-     startTime: moment(timestamp)
-@@ -136,14 +135,7 @@ function mapStateToProps(state, { params }) {
-       .utc()
-       .format(),
+ const WorkloadHomepageWrapper = styled.div`
+   margin: 15px 20px;
+@@ -199,7 +200,7 @@ function mapStateToProps(state, { params }) {
+     startTime,
+     endTime,
      rangeMs,
--    dashboards: get(state, [
--      'root',
--      'prometheus',
--      orgId,
--      'dashboards',
--      workloadId,
--      'layout',
--    ]),
-+    dashboards: JSON.parse(DashboardsJSON),
+-    dashboards,
++    dashboards: JSON.parse(DashboardsJSON) || dashboards,
+     dashboardIds,
    };
  }
 ```
