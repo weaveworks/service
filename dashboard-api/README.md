@@ -13,15 +13,14 @@ dashboard uploads), but in the mean time, the easiest way to do it is to:
 
 - Spawn a local UI connecting to frontend.dev.w.w:
 
-```shell
+```
 service-ui/client$ SERVICE_HOST=frontend.dev.weave.works yarn start
 ```
 
 - Generate a local dashboard JSON:
 
 ```shell
-service$ go run ./dashboard-api/cmd/wc-dashboard/main.go -js -namespace cortex -workload ingester go-runtime \
-    > /path/to/service-ui/client/src/pages/prom/workloads/dashboards.js
+service$ go run ./dashboard-api/cmd/wc-dashboard/main.go -js -namespace cortex -workload ingester go-runtime > /path/to/service-ui/client/src/pages/prom/workloads/dashboards.js
 ```
 
 - Hack `workload-homepage.jsx` to load the newly generated dashboard:
