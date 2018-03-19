@@ -58,3 +58,29 @@ func TestRoutes(t *testing.T) {
 		assert.Equal(t, tc.expectedProxyName, rr.Body.String())
 	}
 }
+
+func TestStripSetCookieHeader(t *testing.T) {
+	tests := []struct {
+		url      string
+		prefixes []string
+		stripped bool
+	}{
+		{"https://weave.test/test", []string{"/test"}, true},
+		{"https://weave.test/test", []string{}, false},
+		{"https://weave.test/foo", []string{"/test"}, false},
+	}
+
+	for _, tc := range tests {
+		mw := stripSetCookieHeader{prefixes: tc.prefixes}
+		req, err := http.NewRequest("GET", tc.url, nil)
+		assert.NoError(t, err)
+
+		rec := httptest.NewRecorder()
+		mw.Wrap(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			http.SetCookie(w, &http.Cookie{Name: "foo", Value: "bar"})
+		})).ServeHTTP(rec, req)
+		assert.Equal(t, http.StatusOK, rec.Code)
+
+		assert.Equal(t, tc.stripped, rec.Header().Get("Set-Cookie") == "")
+	}
+}
