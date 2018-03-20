@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/github"
 	"github.com/gorilla/mux"
@@ -10,6 +12,10 @@ import (
 	"github.com/weaveworks/flux/api/v9"
 	"github.com/weaveworks/service/common"
 	fluxhttp "github.com/weaveworks/service/flux-api/http"
+)
+
+const (
+	deliveryTimeout = 10 * time.Second
 )
 
 var router *mux.Router
@@ -49,18 +55,26 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 
+	instID := r.FormValue("instance")
+	// Handle the hook in a goroutine so that the `http.Handler` may return.
+	// This prevents Github reporting delivery errors in cases where one of our
+	// internal services times out.
+	go h.handleHook(hook, instID)
+}
+
+func (h *handler) handleHook(hook interface{}, instID string) {
 	switch hook := hook.(type) {
 	case *github.PushEvent:
-		instID := r.FormValue("instance")
-
 		update := v9.GitUpdate{
 			URL:    *hook.Repo.SSHURL,
 			Branch: strings.TrimPrefix(*hook.Ref, "refs/heads/"),
 		}
 
+		ctx, cancel := context.WithTimeout(context.Background(), deliveryTimeout)
+		defer cancel()
 		client := common.NewJSONClient(http.DefaultClient)
 
-		err := client.Post(r.Context(), "", h.makeNotifyURL(instID), update, nil)
+		err := client.Post(ctx, "", h.makeNotifyURL(instID), update, nil)
 		if err != nil {
 			log.Error(err)
 		}
