@@ -5,26 +5,16 @@ package nats
 import (
 	"context"
 	"errors"
-	"flag"
 	"testing"
 	"time"
-
-	"github.com/nats-io/go-nats"
 
 	"github.com/weaveworks/flux/api"
 	"github.com/weaveworks/flux/remote"
 	"github.com/weaveworks/service/flux-api/service"
 )
 
-var testNATS = flag.String("nats-url", "", "NATS connection URL; use NATS' default if empty")
-
 func setup(t *testing.T) *NATS {
-	flag.Parse()
-	if *testNATS == "" {
-		*testNATS = nats.DefaultURL
-	}
-
-	bus, err := NewMessageBus(*testNATS)
+	bus, err := NewMessageBus("nats://nats:4222")
 	if err != nil {
 		t.Fatal(err)
 	}

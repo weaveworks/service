@@ -15,7 +15,6 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
-	gnats "github.com/nats-io/go-nats"
 
 	"io/ioutil"
 
@@ -65,29 +64,23 @@ const (
 )
 
 var (
-	testNATS     = flag.String("nats-url", "", "NATS connection URL; use NATS' default if empty")
 	testPostgres = flag.String("postgres-url", "postgres://postgres@postgres:5432?sslmode=disable", "Postgres connection string")
 )
 
 func setup(t *testing.T) {
-	flag.Parse()
-	if *testNATS == "" {
-		*testNATS = gnats.DefaultURL
-	}
-
 	u, err := url.Parse(*testPostgres)
 	if err != nil {
 		t.Fatal(err)
 	}
-	databaseMigrationsDir, _ := filepath.Abs("db/migrations")
+	databaseMigrationsDir, _ := filepath.Abs("db/migrations/postgres")
 	var dbDriver string
 	{
 		db.Migrate(*testPostgres, databaseMigrationsDir)
-		dbDriver = db.DriverForScheme(u.Scheme)
+		dbDriver = u.Scheme
 	}
 
 	// Message bus
-	messageBus, err := nats.NewMessageBus(*testNATS)
+	messageBus, err := nats.NewMessageBus("nats://nats:4222")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -25,14 +25,8 @@ func NewSQL(driver, datasource string) (history.DB, error) {
 		driver:               db,
 		StatementBuilderType: statementBuilder(db),
 	}
-	switch driver {
-	case "ql", "ql-mem":
-		q := &qlDB{historyDB}
-		return q, q.sanityCheck()
-	default:
-		p := &pgDB{historyDB}
-		return p, p.sanityCheck()
-	}
+	p := &pgDB{historyDB}
+	return p, p.sanityCheck()
 }
 
 var statementBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar).RunWith
