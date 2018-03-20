@@ -1,4 +1,4 @@
-// +build nats
+// +build integration
 
 package sql
 
