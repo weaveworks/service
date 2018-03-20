@@ -14,6 +14,7 @@ type Connection struct {
 }
 
 // Config contains information about an instance configuration.
+// TODO: check whether this needs to exist
 type Config struct {
 	Settings   config.Instance `json:"settings"`
 	Connection Connection      `json:"connection"`

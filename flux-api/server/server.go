@@ -39,13 +39,13 @@ const (
 
 // Server is a flux-api server.
 type Server struct {
-	version             string
-	instancer           instance.Instancer
-	config              instance.DB
-	messageBus          bus.MessageBus
-	logger              log.Logger
-	connected           int32
-	defaultEventsConfig *instance.Config
+	version    string
+	instancer  instance.Instancer
+	config     instance.DB
+	messageBus bus.MessageBus
+	logger     log.Logger
+	connected  int32
+	eventsURL  string
 }
 
 // New creates a new Server.
@@ -55,16 +55,16 @@ func New(
 	config instance.DB,
 	messageBus bus.MessageBus,
 	logger log.Logger,
-	eventsConfig *instance.Config,
+	eventsURL string,
 ) *Server {
 	connectedDaemons.Set(0)
 	return &Server{
-		version:             version,
-		instancer:           instancer,
-		config:              config,
-		messageBus:          messageBus,
-		logger:              logger,
-		defaultEventsConfig: eventsConfig,
+		version:    version,
+		instancer:  instancer,
+		config:     config,
+		messageBus: messageBus,
+		logger:     logger,
+		eventsURL:  eventsURL,
 	}
 }
 
@@ -255,18 +255,16 @@ func (s *Server) LogEvent(ctx context.Context, e event.Event) error {
 		return errors.Wrapf(err, "logging event")
 	}
 
-	// Override the users's slack settings if an events-url flag is provided.
-	var cfg instance.Config
-	if s.defaultEventsConfig != nil {
-		cfg = *s.defaultEventsConfig
-		cfg.Settings.Slack.HookURL = strings.Replace(cfg.Settings.Slack.HookURL, "{instanceID}", string(instID), 1)
-	} else {
-		// Save a database call if we are overriding with an events-url flag
-		cfg, err = helper.Config.Get()
-		if err != nil {
-			return errors.Wrapf(err, "getting config")
-		}
+	// TODO: remove this unnecessary struct-wrapping
+	cfg := instance.Config{
+		Settings: config.Instance{
+			Slack: config.Notifier{
+				HookURL:      strings.Replace(s.eventsURL, "{instanceID}", string(instID), 1),
+				NotifyEvents: notifications.DefaultNotifyEvents,
+			},
+		},
 	}
+
 	err = notifications.Event(cfg, e)
 	if err != nil {
 		return errors.Wrapf(err, "sending notifications")

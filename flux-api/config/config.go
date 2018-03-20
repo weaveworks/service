@@ -5,6 +5,7 @@ import (
 )
 
 // Notifier is the configuration for an event notifier.
+// TODO: check whether this needs to exist
 type Notifier struct {
 	HookURL         string `json:"hookURL" yaml:"hookURL"`
 	Username        string `json:"username" yaml:"username"`
