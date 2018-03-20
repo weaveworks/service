@@ -767,7 +767,7 @@
     "ssh",
     "update"
   ]
-  revision = "e78dc3238effe1da5765db379e1e58206dc79ff3"
+  revision = "1a860b16de3eb86f4a17c088a805da61c7bc8e4c"
 
 [[projects]]
   branch = "master"
