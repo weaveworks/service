@@ -1,0 +1,83 @@
+{
+  "id": "java-jvm",
+  "name": "JVM",
+  "sections": [
+    {
+      "name": "Concurrency",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Threads",
+              "help": "Current number of live threads including both daemon and non-daemon threads",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "rate(jvm_threads_current{kubernetes_namespace='default',_weave_service='authfe'}}[2m])"
+            },
+            {
+              "title": "Threads Created per Second",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "rate(jvm_threads_started_total{kubernetes_namespace='default',_weave_service='authfe'}}[2m])"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Memory",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Used Memory",
+              "help": "Used memory is working set (~live objects in the heap) + garbage",
+              "type": "line",
+              "unit": {
+                "format": "bytes"
+              },
+              "query": "jvm_memory_bytes_used{kubernetes_namespace='default',_weave_service='authfe'}"
+            },
+            {
+              "title": "Memory Used per Pool",
+              "type": "line",
+              "unit": {
+                "format": "bytes"
+              },
+              "query": "jvm_memory_pool_bytes_used{kubernetes_namespace='default',_weave_service='authfe'}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Garbage Collector",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Time Spent in GC every second",
+              "type": "line",
+              "unit": {
+                "format": "seconds"
+              },
+              "query": "rate(jvm_gc_collection_seconds_sum{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+            },
+            {
+              "title": "Number of GC Cycles per Second",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "rate(jvm_gc_collection_seconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -45,6 +45,7 @@ type Unit struct {
 // Panel is a display of some data on a row, backed by a Prometheus query/
 type Panel struct {
 	Title string    `json:"title"`
+	Help  string    `json:"help,omitempty"`
 	Type  PanelType `json:"type"`
 	Unit  Unit      `json:"unit"`
 	Query string    `json:"query"`
@@ -170,6 +171,7 @@ func Init() {
 	registerProviders(
 		cadvisor,
 		memcached,
+		jvm,
 		goRuntime,
 	)
 }
