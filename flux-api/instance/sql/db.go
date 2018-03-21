@@ -28,13 +28,16 @@ func New(driver, datasource string) (*DB, error) {
 	return db, db.sanityCheck()
 }
 
-// UpdateConfig updates the config for the given instanceID.
-func (db *DB) UpdateConfig(inst service.InstanceID, update instance.UpdateFunc) error {
+// UpdateConnection updates the connection for the given instanceID.
+func (db *DB) UpdateConnection(inst service.InstanceID, update instance.UpdateFunc) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
 	}
 
+	// TODO: figure out how to unmarshal into `instance.Connection` safely without
+	// breaking any Weave Cloud behaviour. Specifically we need to preserve the
+	// `Connected` field because some UI behaviour might depend on it.
 	var (
 		currentConfig instance.Config
 		confString    string
@@ -50,7 +53,8 @@ func (db *DB) UpdateConfig(inst service.InstanceID, update instance.UpdateFunc) 
 		return err
 	}
 
-	newConfig, err := update(currentConfig)
+	var newConfig instance.Config
+	newConfig.Connection, err = update(currentConfig.Connection)
 	if err != nil {
 		err2 := tx.Rollback()
 		if err2 != nil {
@@ -75,20 +79,20 @@ func (db *DB) UpdateConfig(inst service.InstanceID, update instance.UpdateFunc) 
 	return err
 }
 
-// GetConfig gets the config for the given instanceID.
-func (db *DB) GetConfig(inst service.InstanceID) (instance.Config, error) {
+// GetConnection gets the connection for the given instanceID.
+func (db *DB) GetConnection(inst service.InstanceID) (instance.Connection, error) {
 	var c string
 	err := db.conn.QueryRow(`SELECT config FROM config WHERE instance = $1`, string(inst)).Scan(&c)
 	switch err {
 	case nil:
 		break
 	case sql.ErrNoRows:
-		return instance.Config{}, nil
+		return instance.Connection{}, nil
 	default:
-		return instance.Config{}, err
+		return instance.Connection{}, err
 	}
 	var conf instance.Config
-	return conf, json.Unmarshal([]byte(c), &conf)
+	return conf.Connection, json.Unmarshal([]byte(c), &conf)
 }
 
 // ---

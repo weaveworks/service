@@ -41,22 +41,22 @@ func InstrumentedDB(db DB) DB {
 	return &instrumentedDB{db}
 }
 
-func (i *instrumentedDB) UpdateConfig(inst service.InstanceID, update UpdateFunc) (err error) {
+func (i *instrumentedDB) UpdateConnection(inst service.InstanceID, update UpdateFunc) (err error) {
 	defer func(begin time.Time) {
 		requestDuration.With(
-			labelMethod, "UpdateConfig",
+			labelMethod, "UpdateConnection",
 			labelSuccess, fmt.Sprint(err == nil),
 		).Observe(time.Since(begin).Seconds())
 	}(time.Now())
-	return i.db.UpdateConfig(inst, update)
+	return i.db.UpdateConnection(inst, update)
 }
 
-func (i *instrumentedDB) GetConfig(inst service.InstanceID) (c Config, err error) {
+func (i *instrumentedDB) GetConnection(inst service.InstanceID) (c Connection, err error) {
 	defer func(begin time.Time) {
 		requestDuration.With(
-			labelMethod, "GetConfig",
+			labelMethod, "GetConnection",
 			labelSuccess, fmt.Sprint(err == nil),
 		).Observe(time.Since(begin).Seconds())
 	}(time.Now())
-	return i.db.GetConfig(inst)
+	return i.db.GetConnection(inst)
 }

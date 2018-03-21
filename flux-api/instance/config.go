@@ -3,7 +3,6 @@ package instance
 import (
 	"time"
 
-	"github.com/weaveworks/service/flux-api/config"
 	"github.com/weaveworks/service/flux-api/service"
 )
 
@@ -14,19 +13,18 @@ type Connection struct {
 }
 
 // Config contains information about an instance configuration.
-// TODO: check whether this needs to exist
+// TODO: remove this since it is unneeded
 type Config struct {
-	Settings   config.Instance `json:"settings"`
-	Connection Connection      `json:"connection"`
+	Connection Connection `json:"connection"`
 }
 
-// UpdateFunc takes a Config and returns another Config.
-type UpdateFunc func(config Config) (Config, error)
+// UpdateFunc takes a Connection and returns another Connection.
+type UpdateFunc func(conn Connection) (Connection, error)
 
 // DB is the instance DB interface.
 type DB interface {
-	UpdateConfig(instance service.InstanceID, update UpdateFunc) error
-	GetConfig(instance service.InstanceID) (Config, error)
+	UpdateConnection(instance service.InstanceID, update UpdateFunc) error
+	GetConnection(instance service.InstanceID) (Connection, error)
 }
 
 type configurer struct {
@@ -34,10 +32,10 @@ type configurer struct {
 	db       DB
 }
 
-func (c configurer) Get() (Config, error) {
-	return c.db.GetConfig(c.instance)
+func (c configurer) Get() (Connection, error) {
+	return c.db.GetConnection(c.instance)
 }
 
 func (c configurer) Update(update UpdateFunc) error {
-	return c.db.UpdateConfig(c.instance, update)
+	return c.db.UpdateConnection(c.instance, update)
 }

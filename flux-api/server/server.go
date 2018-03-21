@@ -94,50 +94,48 @@ func (s *Server) Status(ctx context.Context, withPlatform bool) (res service.Sta
 
 	res.Fluxsvc = service.FluxsvcStatus{Version: s.version}
 
-	config, err := inst.Config.Get()
+	conn, err := inst.Config.Get()
 	if err != nil {
 		return res, err
 	}
 
-	res.Fluxd.Last = config.Connection.Last
+	res.Fluxd.Last = conn.Last
+	res.Fluxd.Connected = conn.Connected
 	// Don't bother trying to get information from the daemon if we
 	// haven't recorded it as connected
-	if config.Connection.Connected {
-		res.Fluxd.Connected = true
-		if withPlatform {
-			res.Fluxd.Version, err = inst.Platform.Version(ctx)
-			if err != nil {
-				return res, err
-			}
+	if conn.Connected && withPlatform {
+		res.Fluxd.Version, err = inst.Platform.Version(ctx)
+		if err != nil {
+			return res, err
+		}
 
-			res.Git.Config, err = inst.Platform.GitRepoConfig(ctx, false)
-			if err != nil {
-				return res, err
-			}
+		res.Git.Config, err = inst.Platform.GitRepoConfig(ctx, false)
+		if err != nil {
+			return res, err
+		}
 
-			switch res.Git.Config.Status {
-			case git.RepoNoConfig:
-				res.Git.Configured = false
-				res.Git.Error = GitNotConfigured
-			case git.RepoNew:
-				res.Git.Configured = false
-				res.Git.Error = GitNotCloned
-			case git.RepoCloned:
-				res.Git.Configured = false
-				res.Git.Error = GitNotWritable
-			case git.RepoReady:
+		switch res.Git.Config.Status {
+		case git.RepoNoConfig:
+			res.Git.Configured = false
+			res.Git.Error = GitNotConfigured
+		case git.RepoNew:
+			res.Git.Configured = false
+			res.Git.Error = GitNotCloned
+		case git.RepoCloned:
+			res.Git.Configured = false
+			res.Git.Error = GitNotWritable
+		case git.RepoReady:
+			res.Git.Configured = true
+			res.Git.Error = ""
+		default:
+			// most likely, an old daemon connecting; these don't
+			// report the git readiness. Checking the sync status
+			// will give some indication of where it's got up to.
+			_, err = inst.Platform.SyncStatus(ctx, "HEAD")
+			if err != nil {
+				res.Git.Error = GitNotSynced
+			} else {
 				res.Git.Configured = true
-				res.Git.Error = ""
-			default:
-				// most likely, an old daemon connecting; these don't
-				// report the git readiness. Checking the sync status
-				// will give some indication of where it's got up to.
-				_, err = inst.Platform.SyncStatus(ctx, "HEAD")
-				if err != nil {
-					res.Git.Error = GitNotSynced
-				} else {
-					res.Git.Configured = true
-				}
 			}
 		}
 	}
@@ -354,8 +352,8 @@ func (s *Server) RegisterDaemon(ctx context.Context, platform api.UpstreamServer
 
 	// Record the time of connection in the "config"
 	now := time.Now()
-	s.config.UpdateConfig(instID, setConnectionTime(now))
-	defer s.config.UpdateConfig(instID, setDisconnectedIf(now))
+	s.config.UpdateConnection(instID, setConnectionTime(now))
+	defer s.config.UpdateConnection(instID, setDisconnectedIf(now))
 
 	// Register the daemon with our message bus, waiting for it to be
 	// closed. NB we cannot in general expect there to be a
@@ -368,10 +366,10 @@ func (s *Server) RegisterDaemon(ctx context.Context, platform api.UpstreamServer
 }
 
 func setConnectionTime(t time.Time) instance.UpdateFunc {
-	return func(config instance.Config) (instance.Config, error) {
-		config.Connection.Last = t
-		config.Connection.Connected = true
-		return config, nil
+	return func(conn instance.Connection) (instance.Connection, error) {
+		conn.Last = t
+		conn.Connected = true
+		return conn, nil
 	}
 }
 
@@ -379,11 +377,11 @@ func setConnectionTime(t time.Time) instance.UpdateFunc {
 // kind of compare and swap). Used so that disconnecting doesn't zero
 // the value set by another connection.
 func setDisconnectedIf(t0 time.Time) instance.UpdateFunc {
-	return func(config instance.Config) (instance.Config, error) {
-		if config.Connection.Last.Equal(t0) {
-			config.Connection.Connected = false
+	return func(conn instance.Connection) (instance.Connection, error) {
+		if conn.Last.Equal(t0) {
+			conn.Connected = false
 		}
-		return config, nil
+		return conn, nil
 	}
 }
 
