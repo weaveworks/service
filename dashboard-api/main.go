@@ -32,7 +32,7 @@ func main() {
 	cfg := &config{}
 	cfg.registerFlags(flag.CommandLine)
 	flag.Parse()
-	cfg.server.MetricsNamespace = "dashboard_api"
+	cfg.server.MetricsNamespace = "service"
 
 	if err := logging.Setup(cfg.logLevel); err != nil {
 		log.Fatalf("error initializing logging: %v", err)
