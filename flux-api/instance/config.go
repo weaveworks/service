@@ -18,24 +18,22 @@ type Config struct {
 	Connection Connection `json:"connection"`
 }
 
-// UpdateFunc takes a Connection and returns another Connection.
-type UpdateFunc func(conn Connection) (Connection, error)
-
-// DB is the instance DB interface.
-type DB interface {
-	UpdateConnection(instance service.InstanceID, update UpdateFunc) error
-	GetConnection(instance service.InstanceID) (Connection, error)
+// ConnectionDB is a Connection database.
+type ConnectionDB interface {
+	Get(service.InstanceID) (Connection, error)
+	Connect(service.InstanceID, time.Time) error
+	Disconnect(service.InstanceID, time.Time) error
 }
 
 type configurer struct {
 	instance service.InstanceID
-	db       DB
+	db       ConnectionDB
 }
 
 func (c configurer) Get() (Connection, error) {
-	return c.db.GetConnection(c.instance)
+	return c.db.Get(c.instance)
 }
 
-func (c configurer) Update(update UpdateFunc) error {
-	return c.db.UpdateConnection(c.instance, update)
+func (c configurer) Connect(t time.Time) error {
+	return c.db.Connect(c.instance, t)
 }

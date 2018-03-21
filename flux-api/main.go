@@ -120,7 +120,7 @@ func main() {
 	}
 
 	// Configuration, i.e., whether services are automated or not.
-	var instanceDB instance.DB
+	var instanceDB instance.ConnectionDB
 	{
 		db, err := instancedb.New(dbDriver, *databaseSource)
 		if err != nil {

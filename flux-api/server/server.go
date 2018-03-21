@@ -40,7 +40,7 @@ const (
 type Server struct {
 	version    string
 	instancer  instance.Instancer
-	config     instance.DB
+	connDB     instance.ConnectionDB
 	messageBus bus.MessageBus
 	logger     log.Logger
 	connected  int32
@@ -51,7 +51,7 @@ type Server struct {
 func New(
 	version string,
 	instancer instance.Instancer,
-	config instance.DB,
+	connDB instance.ConnectionDB,
 	messageBus bus.MessageBus,
 	logger log.Logger,
 	eventsURL string,
@@ -60,7 +60,7 @@ func New(
 	return &Server{
 		version:    version,
 		instancer:  instancer,
-		config:     config,
+		connDB:     connDB,
 		messageBus: messageBus,
 		logger:     logger,
 		eventsURL:  eventsURL,
@@ -350,10 +350,10 @@ func (s *Server) RegisterDaemon(ctx context.Context, platform api.UpstreamServer
 	}()
 	connectedDaemons.Set(float64(atomic.AddInt32(&s.connected, 1)))
 
-	// Record the time of connection in the "config"
+	// Record the time of connection
 	now := time.Now()
-	s.config.UpdateConnection(instID, setConnectionTime(now))
-	defer s.config.UpdateConnection(instID, setDisconnectedIf(now))
+	s.connDB.Connect(instID, now)
+	defer s.connDB.Disconnect(instID, now)
 
 	// Register the daemon with our message bus, waiting for it to be
 	// closed. NB we cannot in general expect there to be a
@@ -363,26 +363,6 @@ func (s *Server) RegisterDaemon(ctx context.Context, platform api.UpstreamServer
 	s.messageBus.Subscribe(ctx, instID, s.instrumentPlatform(instID, platform), done)
 	err = <-done
 	return err
-}
-
-func setConnectionTime(t time.Time) instance.UpdateFunc {
-	return func(conn instance.Connection) (instance.Connection, error) {
-		conn.Last = t
-		conn.Connected = true
-		return conn, nil
-	}
-}
-
-// Only set the connection time if it's what you think it is (i.e., a
-// kind of compare and swap). Used so that disconnecting doesn't zero
-// the value set by another connection.
-func setDisconnectedIf(t0 time.Time) instance.UpdateFunc {
-	return func(conn instance.Connection) (instance.Connection, error) {
-		if conn.Last.Equal(t0) {
-			conn.Connected = false
-		}
-		return conn, nil
-	}
 }
 
 // Export calls Export on the given instance.

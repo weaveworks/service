@@ -33,30 +33,38 @@ var (
 )
 
 type instrumentedDB struct {
-	db DB
+	db ConnectionDB
 }
 
 // InstrumentedDB wraps a DB instance in instrumentation.
-func InstrumentedDB(db DB) DB {
+func InstrumentedDB(db ConnectionDB) ConnectionDB {
 	return &instrumentedDB{db}
 }
 
-func (i *instrumentedDB) UpdateConnection(inst service.InstanceID, update UpdateFunc) (err error) {
+func (i *instrumentedDB) Get(inst service.InstanceID) (_ Connection, err error) {
 	defer func(begin time.Time) {
 		requestDuration.With(
-			labelMethod, "UpdateConnection",
+			labelMethod, "Get",
 			labelSuccess, fmt.Sprint(err == nil),
 		).Observe(time.Since(begin).Seconds())
 	}(time.Now())
-	return i.db.UpdateConnection(inst, update)
+	return i.db.Get(inst)
 }
-
-func (i *instrumentedDB) GetConnection(inst service.InstanceID) (c Connection, err error) {
+func (i *instrumentedDB) Connect(inst service.InstanceID, t time.Time) (err error) {
 	defer func(begin time.Time) {
 		requestDuration.With(
-			labelMethod, "GetConnection",
+			labelMethod, "Connect",
 			labelSuccess, fmt.Sprint(err == nil),
 		).Observe(time.Since(begin).Seconds())
 	}(time.Now())
-	return i.db.GetConnection(inst)
+	return i.db.Connect(inst, t)
+}
+func (i *instrumentedDB) Disconnect(inst service.InstanceID, t time.Time) (err error) {
+	defer func(begin time.Time) {
+		requestDuration.With(
+			labelMethod, "Disconnect",
+			labelSuccess, fmt.Sprint(err == nil),
+		).Observe(time.Since(begin).Seconds())
+	}(time.Now())
+	return i.db.Disconnect(inst, t)
 }

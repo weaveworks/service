@@ -44,7 +44,7 @@ var (
 	ts *httptest.Server
 
 	// Stores information about service configuration (e.g. automation)
-	instanceDB instance.DB
+	instanceDB instance.ConnectionDB
 
 	// Mux router
 	router *mux.Router
