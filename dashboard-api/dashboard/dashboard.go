@@ -7,6 +7,13 @@ import (
 	"github.com/mitchellh/copystructure"
 )
 
+// Config holds the list of template variables that can be used in dashboard queries.
+type Config struct {
+	Namespace string
+	Workload  string
+	Range     string
+}
+
 // PanelType is the type of a panel.
 type PanelType string
 
@@ -88,8 +95,12 @@ nextProvider:
 	return dashboards
 }
 
-func resolveQueries(dashboards []Dashboard, oldnew ...string) {
-	replacer := strings.NewReplacer(oldnew...)
+func resolveQueries(dashboards []Dashboard, config *Config) {
+	replacer := strings.NewReplacer(
+		"{{namespace}}", config.Namespace,
+		"{{workload}}", config.Workload,
+		"{{range}}", config.Range,
+	)
 
 	for d := range dashboards {
 		dashboard := dashboards[d]
@@ -104,6 +115,25 @@ func resolveQueries(dashboards []Dashboard, oldnew ...string) {
 			}
 		}
 	}
+}
+
+// GetDashboardByID retrieves a dashboard by ID
+func GetDashboardByID(ID string, config *Config) *Dashboard {
+	for _, provider := range providers {
+		dashboards := provider.GetDashboards()
+		for i := range dashboards {
+			dashboard := &dashboards[i]
+			if dashboard.ID == ID {
+				results := make([]Dashboard, 1, 1)
+
+				results[0] = *dashboard
+				resolveQueries(results, config)
+				return &results[0]
+			}
+		}
+	}
+
+	return nil
 }
 
 // GetServiceDashboards returns a list of dashboards that can be shown, given
@@ -125,11 +155,11 @@ func GetServiceDashboards(metrics []string, namespace, workload string) ([]Dashb
 	}
 
 	// resolve Queries fields
-	resolveQueries(dashboards,
-		"{{namespace}}", namespace,
-		"{{workload}}", workload,
-		"{{range}}", "2m",
-	)
+	resolveQueries(dashboards, &Config{
+		Namespace: namespace,
+		Workload:  workload,
+		Range:     "2m",
+	})
 
 	return dashboards, nil
 }
