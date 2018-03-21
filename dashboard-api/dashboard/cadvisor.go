@@ -21,7 +21,7 @@ var cadvisorDashboard = Dashboard{
 				Title: "Memory Usage",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitBytes},
-				Query: `sum (rate(container_memory_working_set_bytes{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
+				Query: `sum (container_memory_working_set_bytes{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}) by (pod_name)`,
 			}},
 		}},
 	}, {
