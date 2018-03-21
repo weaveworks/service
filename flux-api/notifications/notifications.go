@@ -4,7 +4,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/weaveworks/flux/event"
 	"github.com/weaveworks/flux/update"
-	"github.com/weaveworks/service/flux-api/instance"
 )
 
 const (
@@ -21,30 +20,26 @@ var DefaultNotifyEvents = []string{
 }
 
 // Event sends a notification for the given event if cfg specifies HookURL.
-func Event(cfg instance.Config, e event.Event) error {
-	if cfg.Settings.Slack.HookURL != "" {
-		switch e.Type {
-		case event.EventRelease:
-			r := e.Metadata.(*event.ReleaseEventMetadata)
-			return slackNotifyRelease(cfg.Settings.Slack, r, r.Error)
-		case event.EventAutoRelease:
-			r := e.Metadata.(*event.AutoReleaseEventMetadata)
-			return slackNotifyAutoRelease(cfg.Settings.Slack, r, r.Error)
-		case event.EventSync:
-			return slackNotifySync(cfg.Settings.Slack, &e)
-		case event.EventCommit:
-			commitMetadata := e.Metadata.(*event.CommitEventMetadata)
-			switch commitMetadata.Spec.Type {
-			case update.Policy:
-				return slackNotifyCommitPolicyChange(cfg.Settings.Slack, commitMetadata)
-			case update.Images:
-				return slackNotifyCommitRelease(cfg.Settings.Slack, commitMetadata)
-			case update.Auto:
-				return slackNotifyCommitAutoRelease(cfg.Settings.Slack, commitMetadata)
-			}
-		default:
-			return errors.Errorf("cannot notify for event, unknown event type %s", e.Type)
+func Event(url string, e event.Event) error {
+	switch e.Type {
+	case event.EventRelease:
+		r := e.Metadata.(*event.ReleaseEventMetadata)
+		return slackNotifyRelease(url, r, r.Error)
+	case event.EventAutoRelease:
+		r := e.Metadata.(*event.AutoReleaseEventMetadata)
+		return slackNotifyAutoRelease(url, r, r.Error)
+	case event.EventSync:
+		return slackNotifySync(url, &e)
+	case event.EventCommit:
+		commitMetadata := e.Metadata.(*event.CommitEventMetadata)
+		switch commitMetadata.Spec.Type {
+		case update.Policy:
+			return slackNotifyCommitPolicyChange(url, commitMetadata)
+		case update.Images:
+			return slackNotifyCommitRelease(url, commitMetadata)
+		case update.Auto:
+			return slackNotifyCommitAutoRelease(url, commitMetadata)
 		}
 	}
-	return nil
+	return errors.Errorf("cannot notify for event, unknown event type %s", e.Type)
 }

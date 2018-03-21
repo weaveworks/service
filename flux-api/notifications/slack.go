@@ -18,21 +18,20 @@ import (
 	"github.com/weaveworks/flux/image"
 	"github.com/weaveworks/flux/policy"
 	"github.com/weaveworks/flux/update"
-	"github.com/weaveworks/service/flux-api/config"
 )
 
 type slackMsg struct {
-	Username    string            `json:"username"`
 	Text        string            `json:"text"`
 	Attachments []slackAttachment `json:"attachments,omitempty"`
 }
 
 type slackAttachment struct {
-	Title    string   `json:"title,omitempty"`
-	Fallback string   `json:"fallback,omitempty"`
-	Text     string   `json:"text"`
-	Author   string   `json:"author_name,omitempty"`
-	Color    string   `json:"color,omitempty"`
+	Title    string `json:"title,omitempty"`
+	Fallback string `json:"fallback,omitempty"`
+	Text     string `json:"text"`
+	Author   string `json:"author_name,omitempty"`
+	Color    string `json:"color,omitempty"`
+	// TODO: figure out what this field is for
 	Markdown []string `json:"mrkdwn_in,omitempty"`
 }
 
@@ -69,15 +68,8 @@ var (
 	httpClient = &http.Client{Timeout: 5 * time.Second}
 )
 
-func hasNotifyEvent(config config.Notifier, event string) bool {
-	// For backwards compatibility: if no such configuration exists,
-	// assume we just care about the previously hard-wired events
-	// (releases and autoreleases)
-	notifyEvents := config.NotifyEvents
-	if notifyEvents == nil {
-		notifyEvents = DefaultNotifyEvents
-	}
-	for _, s := range notifyEvents {
+func hasNotifyEvent(event string) bool {
+	for _, s := range DefaultNotifyEvents {
 		if s == event {
 			return true
 		}
@@ -85,8 +77,8 @@ func hasNotifyEvent(config config.Notifier, event string) bool {
 	return false
 }
 
-func slackNotifyRelease(config config.Notifier, release *event.ReleaseEventMetadata, releaseError string) error {
-	if !hasNotifyEvent(config, event.EventRelease) {
+func slackNotifyRelease(url string, release *event.ReleaseEventMetadata, releaseError string) error {
+	if !hasNotifyEvent(event.EventRelease) {
 		return nil
 	}
 	// Sanity check: we shouldn't get any other kind, but you
@@ -114,15 +106,14 @@ func slackNotifyRelease(config config.Notifier, release *event.ReleaseEventMetad
 		attachments = append(attachments, result)
 	}
 
-	return notify(releaseEventType, config, slackMsg{
-		Username:    config.Username,
+	return notify(releaseEventType, url, slackMsg{
 		Text:        text,
 		Attachments: attachments,
 	})
 }
 
-func slackNotifyAutoRelease(config config.Notifier, release *event.AutoReleaseEventMetadata, releaseError string) error {
-	if !hasNotifyEvent(config, event.EventAutoRelease) {
+func slackNotifyAutoRelease(url string, release *event.AutoReleaseEventMetadata, releaseError string) error {
+	if !hasNotifyEvent(event.EventAutoRelease) {
 		return nil
 	}
 
@@ -143,15 +134,14 @@ func slackNotifyAutoRelease(config config.Notifier, release *event.AutoReleaseEv
 		return err
 	}
 
-	return notify(autoReleaseEventType, config, slackMsg{
-		Username:    config.Username,
+	return notify(autoReleaseEventType, url, slackMsg{
 		Text:        text,
 		Attachments: attachments,
 	})
 }
 
-func slackNotifySync(config config.Notifier, sync *event.Event) error {
-	if !hasNotifyEvent(config, event.EventSync) {
+func slackNotifySync(url string, sync *event.Event) error {
+	if !hasNotifyEvent(event.EventSync) {
 		return nil
 	}
 
@@ -173,14 +163,13 @@ func slackNotifySync(config config.Notifier, sync *event.Event) error {
 	if len(details.Errors) > 0 {
 		attachments = append(attachments, slackSyncErrorAttachment(details.Errors))
 	}
-	return notify(syncEventType, config, slackMsg{
-		Username:    config.Username,
+	return notify(syncEventType, url, slackMsg{
 		Text:        sync.String(),
 		Attachments: attachments,
 	})
 }
 
-func slackNotifyCommitRelease(config config.Notifier, commitMetadata *event.CommitEventMetadata) error {
+func slackNotifyCommitRelease(url string, commitMetadata *event.CommitEventMetadata) error {
 	rev := commitMetadata.ShortRevision()
 	user := commitMetadata.Spec.Cause.User
 	var text string
@@ -188,26 +177,26 @@ func slackNotifyCommitRelease(config config.Notifier, commitMetadata *event.Comm
 		// escape special characters < and > (to preserve ResourceSpec("<all>") value)
 		text += fmt.Sprintf("Commit: %s (%s) by %s\n", html.EscapeString(res.String()), rev, user)
 	}
-	return notify(releaseCommitEventType, config, slackMsg{Text: text})
+	return notify(releaseCommitEventType, url, slackMsg{Text: text})
 }
 
-func slackNotifyCommitAutoRelease(config config.Notifier, commitMetadata *event.CommitEventMetadata) error {
+func slackNotifyCommitAutoRelease(url string, commitMetadata *event.CommitEventMetadata) error {
 	rev := commitMetadata.ShortRevision()
 	var text string
 	for _, ch := range commitMetadata.Spec.Spec.(update.Automated).Changes {
 		text += fmt.Sprintf("Commit: %s (%s)\n", ch.ServiceID, rev)
 	}
-	return notify(autoReleaseCommitEventType, config, slackMsg{Text: text})
+	return notify(autoReleaseCommitEventType, url, slackMsg{Text: text})
 }
 
-func slackNotifyCommitPolicyChange(config config.Notifier, commitMetadata *event.CommitEventMetadata) error {
+func slackNotifyCommitPolicyChange(url string, commitMetadata *event.CommitEventMetadata) error {
 	rev := commitMetadata.ShortRevision()
 	userUpd := commitMetadata.Spec.Cause.User
 	var text string
 	for res, upd := range commitMetadata.Spec.Spec.(policy.Updates) {
 		text += getUpdatePolicyMessage(rev, res, upd, userUpd)
 	}
-	return notify(policyEventType, config, slackMsg{Text: text})
+	return notify(policyEventType, url, slackMsg{Text: text})
 }
 
 func getUpdatePolicyMessage(revision string, resource flux.ResourceID, upd policy.Update, user string) string {
@@ -288,13 +277,13 @@ func slackSyncErrorAttachment(errs []event.ResourceError) slackAttachment {
 	}
 }
 
-func notify(eventType string, config config.Notifier, msg slackMsg) error {
+func notify(eventType string, url string, msg slackMsg) error {
 	buf := &bytes.Buffer{}
 	if err := json.NewEncoder(buf).Encode(msg); err != nil {
 		return errors.Wrap(err, "encoding Slack POST request")
 	}
 
-	url := strings.Replace(config.HookURL, "{eventType}", eventType, 1)
+	url = strings.Replace(url, "{eventType}", eventType, 1)
 
 	req, err := http.NewRequest("POST", url, buf)
 	if err != nil {

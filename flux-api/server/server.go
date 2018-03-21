@@ -21,7 +21,6 @@ import (
 	"github.com/weaveworks/flux/ssh"
 	"github.com/weaveworks/flux/update"
 	"github.com/weaveworks/service/flux-api/bus"
-	"github.com/weaveworks/service/flux-api/config"
 	"github.com/weaveworks/service/flux-api/history"
 	"github.com/weaveworks/service/flux-api/instance"
 	"github.com/weaveworks/service/flux-api/notifications"
@@ -255,17 +254,8 @@ func (s *Server) LogEvent(ctx context.Context, e event.Event) error {
 		return errors.Wrapf(err, "logging event")
 	}
 
-	// TODO: remove this unnecessary struct-wrapping
-	cfg := instance.Config{
-		Settings: config.Instance{
-			Slack: config.Notifier{
-				HookURL:      strings.Replace(s.eventsURL, "{instanceID}", string(instID), 1),
-				NotifyEvents: notifications.DefaultNotifyEvents,
-			},
-		},
-	}
-
-	err = notifications.Event(cfg, e)
+	url := strings.Replace(s.eventsURL, "{instanceID}", string(instID), 1)
+	err = notifications.Event(url, e)
 	if err != nil {
 		return errors.Wrapf(err, "sending notifications")
 	}
@@ -313,68 +303,6 @@ func (s *Server) History(ctx context.Context, spec update.ResourceSpec, before t
 	}
 
 	return res, nil
-}
-
-// GetConfig gets the config for the given instance.
-func (s *Server) GetConfig(ctx context.Context, fingerprint string) (config.Instance, error) {
-	instID, err := getInstanceID(ctx)
-	if err != nil {
-		return config.Instance{}, err
-	}
-
-	fullConfig, err := s.config.GetConfig(instID)
-	if err != nil {
-		return config.Instance{}, err
-	}
-
-	// The UI expects `notifyEvents` to either have an array value, or
-	// be absent from the JSON. Since the field is not marked
-	// `omitEmpty`, so that we can distinguish "never set" from "set
-	// to []", we must patch it if it's `nil`. It's convenient to
-	// patch it to the default.
-	if fullConfig.Settings.Slack.NotifyEvents == nil {
-		fullConfig.Settings.Slack.NotifyEvents = notifications.DefaultNotifyEvents
-	}
-
-	config := config.Instance(fullConfig.Settings)
-
-	return config, nil
-}
-
-// SetConfig updates the config for the given instance.
-func (s *Server) SetConfig(ctx context.Context, updates config.Instance) error {
-	instID, err := getInstanceID(ctx)
-	if err != nil {
-		return err
-	}
-	return s.config.UpdateConfig(instID, applyConfigUpdates(updates))
-}
-
-// PatchConfig patches the config for the given instance.
-func (s *Server) PatchConfig(ctx context.Context, patch config.Patch) error {
-	instID, err := getInstanceID(ctx)
-	if err != nil {
-		return err
-	}
-
-	fullConfig, err := s.config.GetConfig(instID)
-	if err != nil {
-		return errors.Wrap(err, "unable to get config")
-	}
-
-	patchedConfig, err := fullConfig.Settings.Patch(patch)
-	if err != nil {
-		return errors.Wrap(err, "unable to apply patch")
-	}
-
-	return s.config.UpdateConfig(instID, applyConfigUpdates(patchedConfig))
-}
-
-func applyConfigUpdates(updates config.Instance) instance.UpdateFunc {
-	return func(config instance.Config) (instance.Config, error) {
-		config.Settings = updates
-		return config, nil
-	}
 }
 
 // PublicSSHKey gets - and optionally regenerates - the public key for a given instance.
