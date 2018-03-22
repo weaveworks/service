@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/users"
@@ -103,7 +104,8 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 	}
 	// Don't allow users to specify their own token.
 	view.ProbeToken = ""
-	if err := a.CreateOrg(r.Context(), currentUser, view); err == users.ErrOrgTokenIsTaken {
+	view.TrialExpiresAt = currentUser.TrialExpiresAt()
+	if err := a.CreateOrg(r.Context(), currentUser, view, time.Now()); err == users.ErrOrgTokenIsTaken {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	} else if err != nil {
@@ -114,11 +116,11 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 }
 
 // CreateOrg creates an organisation
-func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgView) error {
+func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgView, now time.Time) error {
 	var org *users.Organization
 	var err error
 	if view.TeamExternalID == "" && view.TeamName == "" {
-		org, err = a.db.CreateOrganization(ctx, currentUser.ID, view.ExternalID, view.Name, view.ProbeToken, "", currentUser.TrialExpiresAt())
+		org, err = a.db.CreateOrganization(ctx, currentUser.ID, view.ExternalID, view.Name, view.ProbeToken, "", view.TrialExpiresAt)
 	} else {
 		org, err = a.db.CreateOrganizationWithTeam(
 			ctx,
@@ -128,7 +130,7 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 			view.ProbeToken,
 			view.TeamExternalID,
 			view.TeamName,
-			currentUser.TrialExpiresAt(),
+			view.TrialExpiresAt,
 		)
 	}
 	if err != nil {
@@ -140,7 +142,23 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 			return err
 		}
 		log.Infof("Billing enabled for %v/%v/%v.", org.ID, view.ExternalID, view.Name)
+		// Manually append to object for data refusal check below
+		org.FeatureFlags = append(org.FeatureFlags, users.BillingFeatureFlag)
 	}
+
+	if orgs.ShouldRefuseDataAccess(*org, now) {
+		if err = a.db.SetOrganizationRefuseDataAccess(ctx, org.ExternalID, true); err != nil {
+			log.Errorf("Failed refusing data access for %s: %v", org.ExternalID, err)
+			// do not return error, this is not crucial
+		}
+	}
+	if orgs.ShouldRefuseDataUpload(*org, now) {
+		if err = a.db.SetOrganizationRefuseDataUpload(ctx, org.ExternalID, true); err != nil {
+			log.Errorf("Failed refusing data upload for %s: %v", org.ExternalID, err)
+			// do not return error, this is not crucial
+		}
+	}
+
 	return nil
 }
 

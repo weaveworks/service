@@ -115,6 +115,7 @@ func TestEnforce_ProcessDelinquentOrganizations_refuseData(t *testing.T) {
 			Organizations: []users.Organization{
 				{
 					ExternalID:             "refuse-access",
+					FeatureFlags:           []string{"billing"},
 					TrialExpiredNotifiedAt: &now,
 					FirstSeenConnectedAt:   &now,
 
@@ -124,6 +125,7 @@ func TestEnforce_ProcessDelinquentOrganizations_refuseData(t *testing.T) {
 				},
 				{
 					ExternalID:             "refuse-access-already",
+					FeatureFlags:           []string{"billing"},
 					TrialExpiredNotifiedAt: &now,
 					FirstSeenConnectedAt:   &now,
 
@@ -133,6 +135,7 @@ func TestEnforce_ProcessDelinquentOrganizations_refuseData(t *testing.T) {
 				},
 				{
 					ExternalID:             "refuse-upload",
+					FeatureFlags:           []string{"billing"},
 					TrialExpiredNotifiedAt: &now,
 					FirstSeenConnectedAt:   &now,
 
@@ -142,6 +145,7 @@ func TestEnforce_ProcessDelinquentOrganizations_refuseData(t *testing.T) {
 				},
 				{
 					ExternalID:             "refuse-upload-already",
+					FeatureFlags:           []string{"billing"},
 					TrialExpiredNotifiedAt: &now,
 					FirstSeenConnectedAt:   &now,
 
@@ -168,6 +172,6 @@ func TestEnforce_ProcessDelinquentOrganizations_refuseData(t *testing.T) {
 	client.EXPECT().
 		NotifyRefuseDataUpload(ctx, &users.NotifyRefuseDataUploadRequest{ExternalID: "refuse-upload"})
 
-	j := job.NewEnforce(client, job.Config{RefuseDataUploadAfter: 15 * 24 * time.Hour}, instrument.NewJobCollector("foo"))
+	j := job.NewEnforce(client, job.Config{}, instrument.NewJobCollector("foo"))
 	j.ProcessDelinquentOrganizations(context.Background(), now)
 }

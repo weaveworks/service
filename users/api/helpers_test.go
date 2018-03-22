@@ -61,7 +61,7 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 	}
 	grpcServer := grpc.New(sessionStore, database, nil)
 	var billingEnabler featureflag.Enabler
-	billingEnabler = featureflag.NewRandomEnabler(0) // Always disabled, does not really matter here.
+	billingEnabler = featureflag.NewRandomEnabler(100)
 	app = api.New(
 		directLogin,
 		emailer,

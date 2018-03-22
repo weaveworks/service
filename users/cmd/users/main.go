@@ -234,7 +234,7 @@ func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string
 		Name:         instanceName,
 		ProbeToken:   token,
 		FeatureFlags: featureFlags,
-	}); err != nil {
+	}, time.Now()); err != nil {
 		log.Errorf("Error creating local test instance: %v", err)
 		return
 	}

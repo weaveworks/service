@@ -32,7 +32,6 @@ func init() {
 // Config provides settings for this job.
 type Config struct {
 	NotifyPendingExpiryPeriod time.Duration
-	RefuseDataUploadAfter     time.Duration
 }
 
 // RegisterFlags registers configuration variables.
@@ -40,9 +39,6 @@ func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
 	f.DurationVar(&cfg.NotifyPendingExpiryPeriod,
 		"trial.notify-pending-expiry-period", 3*24*time.Hour,
 		"Duration before trial expiry when we send the notification")
-	f.DurationVar(&cfg.RefuseDataUploadAfter,
-		"trial.refuse-data-upload-after", 15*24*time.Hour,
-		"Duration before RefuseDataUpload flag is set for delinquent organizations")
 }
 
 // Enforce job sends notification emails.
@@ -171,12 +167,12 @@ func (j *Enforce) ProcessDelinquentOrganizations(ctx context.Context, now time.T
 
 		// Failure in any of these flag updates should not interfere with the notification
 		// email. It will just pick it up on the next run. We do log an error.
-		j.refuseDataAccess(ctx, org)
+		j.refuseDataAccess(ctx, org, now)
 
 		// Only send notification if the instance actually had any trial and the RefuseDataUpload flag
 		// hasn't been set already. If there was no trial, they already received the `trial_expired` email today.
 		// No need to flood.
-		if j.refuseDataUpload(ctx, now, org) && trial.Length(org.TrialExpiresAt, org.CreatedAt) > 0 {
+		if j.refuseDataUpload(ctx, org, now) && trial.Length(org.TrialExpiresAt, org.CreatedAt) > 0 {
 			if _, err := j.users.NotifyRefuseDataUpload(ctx, &users.NotifyRefuseDataUploadRequest{ExternalID: org.ExternalID}); err == nil {
 				logger.Infof("Notified data upload refusal for organization: %s", org.ExternalID)
 			} else {
@@ -206,10 +202,14 @@ func (j *Enforce) ProcessDelinquentOrganizations(ctx context.Context, now time.T
 	return nil
 }
 
-func (j *Enforce) refuseDataAccess(ctx context.Context, org users.Organization) {
+func (j *Enforce) refuseDataAccess(ctx context.Context, org users.Organization, now time.Time) {
 	if org.RefuseDataAccess {
 		return
 	}
+	if !orgs.ShouldRefuseDataAccess(org, now) {
+		return
+	}
+
 	_, err := j.users.SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{
 		ExternalID: org.ExternalID,
 		Flag:       orgs.RefuseDataAccess,
@@ -223,22 +223,13 @@ func (j *Enforce) refuseDataAccess(ctx context.Context, org users.Organization) 
 	}
 }
 
-func (j *Enforce) refuseDataUpload(ctx context.Context, now time.Time, org users.Organization) bool {
+func (j *Enforce) refuseDataUpload(ctx context.Context, org users.Organization, now time.Time) bool {
 	if org.RefuseDataUpload {
 		return false
 	}
-	if org.TrialExpiresAt.Add(j.cfg.RefuseDataUploadAfter).After(now) {
+	if !orgs.ShouldRefuseDataUpload(org, now) {
 		return false
 	}
-
-	// At the time we introduced this automatic data upload block, we didn't want to block
-	// access *and* upload at the same time for any organization. For this reason, we will
-	// only start blocking upload 15days from today.
-	// TODO: remove this bit after 2018-03-21
-	if now.Before(time.Date(2018, 03, 21, 0, 0, 0, 0, time.UTC)) {
-		return false
-	}
-
 	_, err := j.users.SetOrganizationFlag(ctx, &users.SetOrganizationFlagRequest{
 		ExternalID: org.ExternalID,
 		Flag:       orgs.RefuseDataUpload,

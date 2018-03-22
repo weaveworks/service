@@ -7,6 +7,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// TrialDuration is how long a user has a free trial
+// period before we start charging for it.
+const TrialDuration = 30 * 24 * time.Hour
+
 // FindUserByIDer is an interface of just FindUserByID, for loosely coupling
 // things to the db.DB
 type FindUserByIDer interface {
