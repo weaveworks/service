@@ -11,12 +11,12 @@ var jvmDashboard = Dashboard{
 				Help:  "Current number of live threads including both daemon and non-daemon threads",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `rate(jvm_threads_current{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}}[{{range}}])`,
+				Query: `rate(jvm_threads_current{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}, {
 				Title: "Threads Created per Second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `rate(jvm_threads_started_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}}[{{range}}])`,
+				Query: `rate(jvm_threads_started_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}},
 		}},
 	}, {
