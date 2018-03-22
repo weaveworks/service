@@ -33,11 +33,11 @@ var (
 
 func TestGetDashboardForMetrics(t *testing.T) {
 	tests := []struct {
-		metrics            []string
+		metrics            map[string]bool
 		expectedDashboards []string
 	}{
-		{[]string{}, nil},
-		{[]string{"test_metric"}, []string{"test-dashboard"}},
+		{map[string]bool{}, nil},
+		{map[string]bool{"test_metric": true}, []string{"test-dashboard"}},
 	}
 
 	for _, test := range tests {

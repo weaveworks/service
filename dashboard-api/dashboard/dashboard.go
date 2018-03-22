@@ -89,14 +89,8 @@ func forEachPanel(d *Dashboard, f func(*Panel, *Path) error) error {
 	return nil
 }
 
-func getDashboardsForMetrics(providers []provider, metrics []string) []Dashboard {
+func getDashboardsForMetrics(providers []provider, metricsMap map[string]bool) []Dashboard {
 	var dashboards []Dashboard
-
-	// For O(1) metric existence check.
-	metricsMap := make(map[string]bool)
-	for _, metric := range metrics {
-		metricsMap[metric] = true
-	}
 
 	// Retrieve the list of dashboards.
 nextProvider:
@@ -152,7 +146,13 @@ func GetDashboardByID(ID string, config *Config) *Dashboard {
 // GetServiceDashboards returns a list of dashboards that can be shown, given
 // the list of metrics available for a service.
 func GetServiceDashboards(metrics []string, namespace, workload string) ([]Dashboard, error) {
-	templates := getDashboardsForMetrics(providers, metrics)
+	// For O(1) metric existence checks.
+	metricsMap := make(map[string]bool)
+	for _, metric := range metrics {
+		metricsMap[metric] = true
+	}
+
+	templates := getDashboardsForMetrics(providers, metricsMap)
 	if len(templates) == 0 {
 		return nil, nil
 	}
