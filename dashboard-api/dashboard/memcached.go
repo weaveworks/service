@@ -75,17 +75,6 @@ var memcachedDashboard = Dashboard{
 	}},
 }
 
-var memcached = &staticProvider{
-	requiredMetrics: []string{
-		"memcached_commands_total",
-		"memcached_items_evicted_total",
-		"memcached_items_reclaimed_total",
-		"memcached_current_items",
-		"memcached_current_bytes",
-		"memcached_limit_bytes",
-		"memcached_read_bytes_total",
-		"memcached_written_bytes_total",
-		"memcached_current_connections",
-	},
+var memcached = &promqlProvider{
 	dashboard: memcachedDashboard,
 }

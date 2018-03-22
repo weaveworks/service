@@ -53,14 +53,6 @@ var jvmDashboard = Dashboard{
 	}},
 }
 
-var jvm = &staticProvider{
-	requiredMetrics: []string{
-		"jvm_threads_current",
-		"jvm_threads_started_total",
-		"jvm_memory_bytes_used",
-		"jvm_memory_pool_bytes_used",
-		"jvm_gc_collection_seconds_sum",
-		"jvm_gc_collection_seconds_count",
-	},
+var jvm = &promqlProvider{
 	dashboard: jvmDashboard,
 }

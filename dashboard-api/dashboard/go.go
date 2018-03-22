@@ -66,16 +66,6 @@ var goRuntimeDashboard = Dashboard{
 	}},
 }
 
-var goRuntime = &staticProvider{
-	requiredMetrics: []string{
-		"go_goroutines",
-		"go_memstats_heap_alloc_bytes",
-		"go_memstats_heap_objects",
-		"go_memstats_mallocs_total",
-		"go_memstats_frees_total",
-		"go_gc_duration_seconds_sum",
-		"go_gc_duration_seconds_count",
-		"go_gc_duration_seconds",
-	},
+var goRuntime = &promqlProvider{
 	dashboard: goRuntimeDashboard,
 }

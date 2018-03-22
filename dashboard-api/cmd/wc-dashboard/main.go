@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/weaveworks/service/dashboard-api/dashboard"
@@ -33,7 +34,10 @@ func main() {
 
 	ID := flag.Arg(0)
 
-	dashboard.Init()
+	if err := dashboard.Init(); err != nil {
+		log.Fatalf("error initializing dashboards: %v", err)
+	}
+
 	d := dashboard.GetDashboardByID(ID, &dashboard.Config{
 		Namespace: *namespace,
 		Workload:  *workload,

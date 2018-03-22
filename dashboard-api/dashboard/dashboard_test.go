@@ -88,7 +88,8 @@ func getAllDashboards() ([]Dashboard, error) {
 
 // TestUniqueIDs ensures all dashboards we can produce have their own unique ID.
 func TestUniqueIDs(t *testing.T) {
-	Init()
+	err := Init()
+	assert.NoError(t, err)
 
 	dashboards, err := getAllDashboards()
 	assert.NoError(t, err)
@@ -108,7 +109,8 @@ func TestUniqueIDs(t *testing.T) {
 // get any data?), but we can test what we produce now is the same as what we
 // used to produce.
 func TestGolden(t *testing.T) {
-	Init()
+	err := Init()
+	assert.NoError(t, err)
 
 	dashboards, err := getAllDashboards()
 	assert.NoError(t, err)
