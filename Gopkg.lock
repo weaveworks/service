@@ -125,6 +125,12 @@
   version = "2017.07.27"
 
 [[projects]]
+  name = "github.com/cespare/xxhash"
+  packages = ["."]
+  revision = "5c37fe3735342a2e0d01c87a907579987c8936cc"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/codahale/hdrhistogram"
   packages = ["."]
@@ -204,6 +210,7 @@
   name = "github.com/go-kit/kit"
   packages = [
     "log",
+    "log/level",
     "metrics",
     "metrics/internal/lv",
     "metrics/prometheus"
@@ -444,6 +451,18 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/nightlyone/lockfile"
+  packages = ["."]
+  revision = "6a197d5ea61168f2ac821de2b7f011b250904900"
+
+[[projects]]
+  name = "github.com/oklog/ulid"
+  packages = ["."]
+  revision = "d311cb43c92434ec4072dfbbda3400741d0a6337"
+  version = "v0.3.0"
+
+[[projects]]
   name = "github.com/opencontainers/go-digest"
   packages = ["."]
   revision = "279bed98673dd5bef374d3b6e4b09e2af76183bf"
@@ -544,6 +563,36 @@
     "xfs"
   ]
   revision = "e645f4e5aaa8506fc71d6edbc5c4ff02c04c46f2"
+
+[[projects]]
+  name = "github.com/prometheus/prometheus"
+  packages = [
+    "pkg/labels",
+    "pkg/textparse",
+    "pkg/timestamp",
+    "pkg/value",
+    "promql",
+    "storage",
+    "storage/tsdb",
+    "util/stats",
+    "util/strutil",
+    "util/testutil"
+  ]
+  revision = "bc6058c81272a8d938c05e75607371284236aadc"
+  version = "v2.2.1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/prometheus/tsdb"
+  packages = [
+    ".",
+    "chunkenc",
+    "chunks",
+    "fileutil",
+    "index",
+    "labels"
+  ]
+  revision = "195bc0d286b077f5633eb4bda76743620588b2fa"
 
 [[projects]]
   branch = "master"
@@ -936,6 +985,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d6c34838603955b519f132a3a642940607d23bdf100f852dcaeb0524a9d0fdbe"
+  inputs-digest = "9f1c7cbbfe1760557ef0fb68624cdccc07e0200c825156b520cbed9f5b32143c"
   solver-name = "gps-cdcl"
   solver-version = 1
