@@ -75,26 +75,22 @@ func (p *promqlProvider) Init() error {
 
 	// Collect the list of required metrics from the query themselves.
 	metricsMap := make(map[string]bool)
-	for i := range p.dashboard.Sections {
-		section := &p.dashboard.Sections[i]
-		for j := range section.Rows {
-			row := &section.Rows[j]
-			for k := range row.Panels {
-				panel := &row.Panels[k]
+	if err := forEachPanel(&p.dashboard, func(panel *Panel, path *Path) error {
+		// Do the bare minimum to make the query parsable.
+		query := replacer.Replace(panel.Query)
 
-				// Do the bare minimum to make the query parsable.
-				query := replacer.Replace(panel.Query)
-
-				metrics, err := parseMetrics(query)
-				if err != nil {
-					return errors.Wrap(err, query)
-				}
-
-				for _, metric := range metrics {
-					metricsMap[metric] = true
-				}
-			}
+		metrics, err := parseMetrics(query)
+		if err != nil {
+			return errors.Wrap(err, query)
 		}
+
+		for _, metric := range metrics {
+			metricsMap[metric] = true
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	for metric := range metricsMap {

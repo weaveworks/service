@@ -71,6 +71,24 @@ type Dashboard struct {
 	Sections []Section `json:"sections"`
 }
 
+// forEachPanel executes f for each panel in d. f can return an error at any
+// time, the walk through the panels is stopped and the error returned.
+func forEachPanel(d *Dashboard, f func(*Panel, *Path) error) error {
+	for s := range d.Sections {
+		section := &d.Sections[s]
+		for r := range section.Rows {
+			row := &section.Rows[r]
+			for p := range row.Panels {
+				panel := &row.Panels[p]
+				if err := f(panel, &Path{s, r, p}); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func getDashboardsForMetrics(providers []provider, metrics []string) []Dashboard {
 	var dashboards []Dashboard
 
@@ -104,17 +122,11 @@ func resolveQueries(dashboards []Dashboard, config *Config) {
 	)
 
 	for d := range dashboards {
-		dashboard := dashboards[d]
-		for s := range dashboard.Sections {
-			section := &dashboards[d].Sections[s]
-			for r := range section.Rows {
-				row := &section.Rows[r]
-				for p := range row.Panels {
-					panel := &row.Panels[p]
-					panel.Query = replacer.Replace(panel.Query)
-				}
-			}
-		}
+		dashboard := &dashboards[d]
+		forEachPanel(dashboard, func(panel *Panel, path *Path) error {
+			panel.Query = replacer.Replace(panel.Query)
+			return nil
+		})
 	}
 }
 
