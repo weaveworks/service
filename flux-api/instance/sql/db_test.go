@@ -1,8 +1,10 @@
+// +build integration
+
 package sql
 
 import (
 	"errors"
-	"io/ioutil"
+	"net/url"
 	"testing"
 
 	"github.com/weaveworks/service/flux-api/config"
@@ -11,16 +13,19 @@ import (
 	"github.com/weaveworks/service/flux-api/service"
 )
 
+var (
+	dbURL = "postgres://postgres@postgres:5432?sslmode=disable"
+)
+
 func newDB(t *testing.T) *DB {
-	f, err := ioutil.TempFile("", "fluxy-testdb")
+	u, err := url.Parse(dbURL)
 	if err != nil {
 		t.Fatal(err)
 	}
-	dbsource := "file://" + f.Name()
-	if _, err = db.Migrate(dbsource, "../../db/migrations"); err != nil {
+	if _, err = db.Migrate(dbURL, "../../db/migrations/postgres"); err != nil {
 		t.Fatal(err)
 	}
-	db, err := New("ql", dbsource)
+	db, err := New(u.Scheme, dbURL)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -131,68 +131,6 @@
   revision = "3a0bb77429bd3a61596f5e8a3172445844342120"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/cznic/b"
-  packages = ["."]
-  revision = "6955404bf550e1eae1bf83121739078b027f4547"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/cznic/fileutil"
-  packages = ["."]
-  revision = "90cf820aafe8f7df39416fdbb932029ff99bd1ab"
-
-[[projects]]
-  name = "github.com/cznic/internal"
-  packages = [
-    "buffer",
-    "file",
-    "slice"
-  ]
-  revision = "cef02a853c3a93623c42eacd574e7ea05f55531b"
-  version = "1.0.0"
-
-[[projects]]
-  name = "github.com/cznic/lldb"
-  packages = ["."]
-  revision = "bea8611dd5c407f3c5eab9f9c68e887a27dc6f0e"
-  version = "v1.1.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/cznic/mathutil"
-  packages = ["."]
-  revision = "09cde8d5df5fd3e1944897ce6d00d83dd5ed3a91"
-
-[[projects]]
-  name = "github.com/cznic/ql"
-  packages = [
-    ".",
-    "driver",
-    "vendored/github.com/camlistore/go4/lock"
-  ]
-  revision = "7a63cd7aa46ecd9f549b96983029576af2178f60"
-  version = "v1.1.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/cznic/sortutil"
-  packages = ["."]
-  revision = "4c7342852e65c2088c981288f2c5610d10b9f7f4"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/cznic/strutil"
-  packages = ["."]
-  revision = "529a34b1c186b483642a7a230c67521d9aa4b0fb"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/cznic/zappy"
-  packages = ["."]
-  revision = "2533cb5b45cc6c07421468ce262899ddc9d53fb7"
-
-[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
@@ -249,12 +187,6 @@
   packages = ["."]
   revision = "ded5959c0d4e360646dc9e9908cff48666781367"
   version = "v1.0.2"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/edsrzf/mmap-go"
-  packages = ["."]
-  revision = "0bce6a6887123b67a60366d2c9fe2dfb74289d2e"
 
 [[projects]]
   name = "github.com/fluent/fluent-logger-golang"
@@ -1004,6 +936,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a25b6ad0734177250cab5ffc7f44e9efc7d3f3036ceb8e70b4eed431f06a1050"
+  inputs-digest = "d6c34838603955b519f132a3a642940607d23bdf100f852dcaeb0524a9d0fdbe"
   solver-name = "gps-cdcl"
   solver-version = 1

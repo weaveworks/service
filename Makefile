@@ -234,7 +234,12 @@ billing-integration-test: build/$(UPTODATE) $(MOCK_GOS)
 	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"
 
 flux-integration-test:
-	/bin/bash -c "go test -tags nats -timeout 30s ./flux-api ./flux-api/bus/nats -args -nats-url=nats://nats:4222"
+# These packages must currently be tested in series because
+# otherwise they will all race to run migrations.
+	/bin/bash -c "go test -tags integration -timeout 30s ./flux-api"
+	/bin/bash -c "go test -tags integration -timeout 30s ./flux-api/bus/nats"
+	/bin/bash -c "go test -tags integration -timeout 30s ./flux-api/history/sql"
+	/bin/bash -c "go test -tags integration -timeout 30s ./flux-api/instance/sql"
 
 endif
 

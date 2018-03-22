@@ -1,8 +1,8 @@
+// +build integration
+
 package sql
 
 import (
-	"flag"
-	"io/ioutil"
 	"net/url"
 	"testing"
 	"time"
@@ -15,16 +15,8 @@ import (
 )
 
 var (
-	databaseSource = flag.String("database-source", "", `Database source name. The default is a temporary DB using ql`)
+	dbURL = "postgres://postgres@postgres:5432?sslmode=disable"
 )
-
-func mkDBFile(t *testing.T) string {
-	f, err := ioutil.TempFile("", "fluxy-testdb")
-	if err != nil {
-		t.Fatal(err)
-	}
-	return f.Name()
-}
 
 func bailIfErr(t *testing.T, err error) {
 	if err != nil {
@@ -33,20 +25,14 @@ func bailIfErr(t *testing.T, err error) {
 }
 
 func newSQL(t *testing.T) history.DB {
-	if *databaseSource == "" {
-		*databaseSource = "file://" + mkDBFile(t)
-	}
-
-	u, err := url.Parse(*databaseSource)
+	u, err := url.Parse(dbURL)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	if _, err = db.Migrate(*databaseSource, "../../db/migrations"); err != nil {
+	if _, err = db.Migrate(dbURL, "../../db/migrations/postgres"); err != nil {
 		t.Fatal(err)
 	}
-
-	db, err := NewSQL(db.DriverForScheme(u.Scheme), *databaseSource)
+	db, err := NewSQL(u.Scheme, dbURL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,16 +48,19 @@ func TestHistoryLog(t *testing.T) {
 		ServiceIDs: []flux.ResourceID{flux.MustParseResourceID("namespace/service")},
 		Type:       "test",
 		Message:    "event 1",
+		EndedAt:    time.Now().UTC(),
 	}))
 	bailIfErr(t, db.LogEvent(instance, event.Event{
 		ServiceIDs: []flux.ResourceID{flux.MustParseResourceID("namespace/other")},
 		Type:       "test",
 		Message:    "event 3",
+		EndedAt:    time.Now().UTC(),
 	}))
 	bailIfErr(t, db.LogEvent(instance, event.Event{
 		ServiceIDs: []flux.ResourceID{flux.MustParseResourceID("namespace/service")},
 		Type:       "test",
 		Message:    "event 2",
+		EndedAt:    time.Now().UTC(),
 	}))
 
 	es, err := db.EventsForService(instance, flux.MustParseResourceID("namespace/service"), time.Now().UTC(), -1, time.Unix(0, 0))

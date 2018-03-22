@@ -4,8 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 
-	_ "github.com/cznic/ql/driver" // initialises the ql driver
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // initialises the postgres driver
 	"github.com/pkg/errors"
 
 	"github.com/weaveworks/service/flux-api/instance"
