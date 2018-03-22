@@ -36,13 +36,5 @@ func ShouldRefuseDataAccess(o users.Organization, now time.Time) bool {
 
 // ShouldRefuseDataUpload returns true if the organization's flag is supposed to be set.
 func ShouldRefuseDataUpload(o users.Organization, now time.Time) bool {
-	// At the time we introduced this automatic data upload block, we didn't want to block
-	// access *and* upload at the same time for any organization. For this reason, we will
-	// only start blocking upload 15days from today.
-	// TODO: remove this bit after 2018-03-21
-	if now.Before(time.Date(2018, 03, 21, 0, 0, 0, 0, time.UTC)) {
-		return false
-	}
-
 	return isDelinquent(o, now) && o.TrialExpiresAt.Add(users.TrialRefuseDataUploadAfter).Before(now)
 }
