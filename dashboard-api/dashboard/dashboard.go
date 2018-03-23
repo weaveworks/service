@@ -1,7 +1,6 @@
 package dashboard
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/mitchellh/copystructure"
@@ -44,11 +43,12 @@ type Unit struct {
 
 // Panel is a display of some data on a row, backed by a Prometheus query/
 type Panel struct {
-	Title string    `json:"title"`
-	Help  string    `json:"help,omitempty"`
-	Type  PanelType `json:"type"`
-	Unit  Unit      `json:"unit"`
-	Query string    `json:"query"`
+	Title    string    `json:"title"`
+	Optional bool      `json:"optional,omitempty"`
+	Help     string    `json:"help,omitempty"`
+	Type     PanelType `json:"type"`
+	Unit     Unit      `json:"unit"`
+	Query    string    `json:"query"`
 }
 
 // Row is a line on a dashboard and holds one or more graphs.
@@ -77,6 +77,38 @@ func (d *Dashboard) DeepCopy() Dashboard {
 	return copy.(Dashboard)
 }
 
+// Panel returns the panel corresponding to path.
+func (d *Dashboard) Panel(path *Path) *Panel {
+	return &d.Sections[path.section].Rows[path.row].Panels[path.panel]
+}
+
+// forEachSection executes f for each section in d. f can return an error at any
+// time, the walk through the section is stopped and the error returned.
+func forEachSection(d *Dashboard, f func(*Section, *Path) error) error {
+	for s := range d.Sections {
+		section := &d.Sections[s]
+		if err := f(section, &Path{s, -1, -1}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// forEachRow executes f for each row in d. f can return an error at any time,
+// the walk through the row is stopped and the error returned.
+func forEachRow(d *Dashboard, f func(*Row, *Path) error) error {
+	for s := range d.Sections {
+		section := &d.Sections[s]
+		for r := range section.Rows {
+			row := &section.Rows[r]
+			if err := f(row, &Path{s, r, -1}); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // forEachPanel executes f for each panel in d. f can return an error at any
 // time, the walk through the panels is stopped and the error returned.
 func forEachPanel(d *Dashboard, f func(*Panel, *Path) error) error {
@@ -95,6 +127,65 @@ func forEachPanel(d *Dashboard, f func(*Panel, *Path) error) error {
 	return nil
 }
 
+func containsMetrics(haystack map[string]bool, needles []string) bool {
+	for _, needle := range needles {
+		if !haystack[needle] {
+			return false
+		}
+	}
+	return true
+}
+
+func discardOptionalPanels(provider provider, metrics map[string]bool) *Dashboard {
+	dashboard := provider.GetDashboard().DeepCopy()
+
+	// Remove optional panels
+	forEachRow(&dashboard, func(row *Row, path *Path) error {
+		var newPanels []Panel
+		for p := range row.Panels {
+			panel := &row.Panels[p]
+			panelPath := &Path{path.section, path.row, p}
+			if panel.Optional && !containsMetrics(metrics, provider.GetPanelMetrics(panelPath)) {
+				continue
+			}
+
+			newPanels = append(newPanels, *panel)
+		}
+		row.Panels = newPanels
+		return nil
+	})
+
+	// Garbage collect empty rows.
+	forEachSection(&dashboard, func(section *Section, path *Path) error {
+		var newRows []Row
+		for r := range section.Rows {
+			row := &section.Rows[r]
+			if len(row.Panels) == 0 {
+				continue
+			}
+			newRows = append(newRows, *row)
+		}
+		section.Rows = newRows
+		return nil
+	})
+
+	// Garbage collect empty sections.
+	var newSections []Section
+	for s := range dashboard.Sections {
+		section := &dashboard.Sections[s]
+		if len(section.Rows) == 0 {
+			continue
+		}
+		newSections = append(newSections, *section)
+	}
+	dashboard.Sections = newSections
+
+	// We assume a dashboard cannot be composed of only optional panels, ie has at
+	// least one panel.
+
+	return &dashboard
+}
+
 func getDashboardsForMetrics(providers []provider, metricsMap map[string]bool) []Dashboard {
 	var dashboards []Dashboard
 
@@ -108,7 +199,10 @@ nextProvider:
 			}
 		}
 
-		dashboards = append(dashboards, *provider.GetDashboard())
+		// Handle Optional:true panels.
+		dashboard := discardOptionalPanels(provider, metricsMap)
+
+		dashboards = append(dashboards, *dashboard)
 	}
 
 	return dashboards
@@ -155,19 +249,9 @@ func GetServiceDashboards(metrics []string, namespace, workload string) ([]Dashb
 		metricsMap[metric] = true
 	}
 
-	templates := getDashboardsForMetrics(providers, metricsMap)
-	if len(templates) == 0 {
+	dashboards := getDashboardsForMetrics(providers, metricsMap)
+	if len(dashboards) == 0 {
 		return nil, nil
-	}
-
-	// We deepcopy the dashboards as we're going to mutate the query
-	copy, err := copystructure.Copy(templates)
-	if err != nil {
-		return nil, err
-	}
-	dashboards, ok := copy.([]Dashboard)
-	if !ok {
-		return nil, errors.New("couldn't deepcopy dashboards")
 	}
 
 	// resolve Queries fields

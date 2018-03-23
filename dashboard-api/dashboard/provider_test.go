@@ -42,4 +42,7 @@ func TestPromQLProvider(t *testing.T) {
 	err := p.Init()
 	assert.NoError(t, err)
 	assert.Equal(t, []string{"test_metric"}, p.GetRequiredMetrics())
+	assert.Equal(t, []string{"test_metric"}, p.GetPanelMetrics(&Path{0, 0, 0}))
+	assert.Equal(t, []string{"test_optional_metric"}, p.GetPanelMetrics(&Path{0, 0, 1}))
+	assert.Nil(t, p.GetPanelMetrics(&Path{12, 13, 14}))
 }

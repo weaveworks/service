@@ -20,6 +20,10 @@ var (
 				Panels: []Panel{{
 					Type:  PanelLine,
 					Query: `test_metric{_weave_service='{{workload}}'}`,
+				}, {
+					Type:     PanelLine,
+					Optional: true,
+					Query:    `test_optional_metric{_weave_service='{{workload}}'}`,
 				}},
 			}},
 		}},
@@ -32,6 +36,22 @@ var (
 
 func init() {
 	testProvider.Init()
+}
+
+func TestContainsMetrics(t *testing.T) {
+	tests := []struct {
+		haystack map[string]bool
+		needles  []string
+		expected bool
+	}{
+		{map[string]bool{"foo": true, "bar": true}, []string{"foo"}, true},
+		{map[string]bool{"foo": true, "bar": true}, []string{"foo", "bar"}, true},
+		{map[string]bool{"foo": true, "bar": true}, []string{"foo", "baz"}, false},
+	}
+
+	for _, test := range tests {
+		assert.Equal(t, test.expected, containsMetrics(test.haystack, test.needles))
+	}
 }
 
 func TestGetDashboardForMetrics(t *testing.T) {
@@ -53,6 +73,96 @@ func TestGetDashboardForMetrics(t *testing.T) {
 		assert.Equal(t, test.expectedDashboards, gotDashboards)
 	}
 
+}
+
+var testOptionalPanel = Dashboard{
+	ID:   "test-optional-dashboard",
+	Name: "Test Optional",
+	Sections: []Section{{
+		Name: "Section 1",
+		Rows: []Row{{
+			Panels: []Panel{{
+				Type:  PanelLine,
+				Query: `test_metric_0_0_0{_weave_service='{{workload}}'}`,
+			}, {
+				Type:  PanelLine,
+				Query: `test_metric_0_0_1{_weave_service='{{workload}}'}`,
+			}},
+		}, {
+			Panels: []Panel{{
+				Type:  PanelLine,
+				Query: `test_metric_0_1_0{_weave_service='{{workload}}'}`,
+			}},
+		}},
+	}, {
+		Name: "Section 2",
+		Rows: []Row{{
+			Panels: []Panel{{
+				Type:  PanelLine,
+				Query: `test_metric_1_0_0{_weave_service='{{workload}}'}`,
+			}, {
+				Type:  PanelLine,
+				Query: `test_metric_1_0_1{_weave_service='{{workload}}'}`,
+			}},
+		}},
+	}},
+}
+
+func getOptionalDashboard(t *testing.T, optionalPanels []Path) Dashboard {
+	dashboard := testOptionalPanel.DeepCopy()
+
+	for _, path := range optionalPanels {
+		dashboard.Panel(&path).Optional = true
+	}
+
+	return dashboard
+}
+
+func TestDiscardOptionalPanels(t *testing.T) {
+	type expected struct {
+		numSections int
+		numRows0    int
+		numPanels00 int
+		numPanels01 int
+		numRows1    int
+		numPanels10 int
+	}
+	tests := []struct {
+		dashboard Dashboard
+		expected  expected
+	}{
+		// Row with multiple panels, one of them being optional.
+		{getOptionalDashboard(t, []Path{{0, 0, 1}}), expected{2, 2, 1, 1, 1, 2}},
+		// Row with one optional panel, the row is discarded entirely.
+		{getOptionalDashboard(t, []Path{{0, 1, 0}}), expected{2, 1, 2, -1, 1, 2}},
+		// Section with only optional panels, the section is discarded entirely.
+		{getOptionalDashboard(t, []Path{{1, 0, 0}, {1, 0, 1}}), expected{1, 2, 2, 1, -1, -1}},
+	}
+
+	for i := range tests {
+		test := &tests[i]
+
+		p := &promqlProvider{dashboard: &test.dashboard}
+		p.Init()
+		metrics := p.GetRequiredMetrics()
+		metricsMap := make(map[string]bool)
+		for _, m := range metrics {
+			metricsMap[m] = true
+		}
+		got := discardOptionalPanels(p, metricsMap)
+		assert.Equal(t, test.expected.numSections, len(got.Sections))
+		assert.Equal(t, test.expected.numRows0, len(got.Sections[0].Rows))
+		assert.Equal(t, test.expected.numPanels00, len(got.Sections[0].Rows[0].Panels))
+		if test.expected.numPanels01 != -1 {
+			assert.Equal(t, test.expected.numPanels01, len(got.Sections[0].Rows[1].Panels))
+		}
+		if test.expected.numRows1 != -1 {
+			assert.Equal(t, test.expected.numRows1, len(got.Sections[1].Rows))
+		}
+		if test.expected.numPanels10 != -1 {
+			assert.Equal(t, test.expected.numPanels10, len(got.Sections[1].Rows[0].Panels))
+		}
+	}
 }
 
 func TestResolveQueries(t *testing.T) {

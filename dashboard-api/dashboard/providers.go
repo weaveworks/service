@@ -9,6 +9,7 @@ import (
 
 type provider interface {
 	Init() error
+	GetPanelMetrics(path *Path) []string
 	GetRequiredMetrics() []string
 	GetDashboard() *Dashboard
 }
@@ -32,6 +33,10 @@ func (p *staticProvider) Init() error {
 	return nil
 }
 
+func (p *staticProvider) GetPanelMetrics(path *Path) []string {
+	panic("Not Implemented")
+}
+
 func (p *staticProvider) GetRequiredMetrics() []string {
 	return p.requiredMetrics
 }
@@ -42,6 +47,7 @@ func (p *staticProvider) GetDashboard() *Dashboard {
 
 type promqlProvider struct {
 	requiredMetrics []string
+	pathToMetrics   map[string][]string
 	dashboard       *Dashboard
 }
 
@@ -73,8 +79,11 @@ func (p *promqlProvider) Init() error {
 		"{{range}}", "2m",
 	)
 
-	// Collect the list of required metrics from the query themselves.
-	metricsMap := make(map[string]bool)
+	// Parse the Dashboard queries and derive:
+	//   - For each panel, the list of the metrics used in the query
+	//   - The list of required  metrics
+	p.pathToMetrics = make(map[string][]string)
+	requiredMetricsMap := make(map[string]bool)
 	if err := forEachPanel(p.dashboard, func(panel *Panel, path *Path) error {
 		// Do the bare minimum to make the query parsable.
 		query := replacer.Replace(panel.Query)
@@ -84,8 +93,15 @@ func (p *promqlProvider) Init() error {
 			return errors.Wrap(err, query)
 		}
 
+		p.pathToMetrics[path.String()] = metrics
+
+		// Don't collect metrics for optional panels in the list of required metrics.
+		if panel.Optional {
+			return nil
+		}
+
 		for _, metric := range metrics {
-			metricsMap[metric] = true
+			requiredMetricsMap[metric] = true
 		}
 
 		return nil
@@ -93,10 +109,17 @@ func (p *promqlProvider) Init() error {
 		return err
 	}
 
-	for metric := range metricsMap {
+	for metric := range requiredMetricsMap {
 		p.requiredMetrics = append(p.requiredMetrics, metric)
 	}
 
+	return nil
+}
+
+func (p *promqlProvider) GetPanelMetrics(path *Path) []string {
+	if metrics, ok := p.pathToMetrics[path.String()]; ok {
+		return metrics
+	}
 	return nil
 }
 
