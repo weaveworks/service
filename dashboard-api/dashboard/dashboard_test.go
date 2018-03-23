@@ -249,3 +249,87 @@ func TestGolden(t *testing.T) {
 
 	Deinit()
 }
+
+func hasOptionalPanels(d *Dashboard) bool {
+	optional := false
+	forEachPanel(d, func(panel *Panel, path *Path) error {
+		if panel.Optional {
+			optional = true
+			return errExitEarly
+		}
+		return nil
+	})
+	return optional
+}
+
+// getAllMetrics gets the union of the metrics required by a list of providers
+// including the metrics for optional panels.
+func getAllMetrics(providers []provider) []string {
+	metricsMap := make(map[string]bool)
+
+	for _, provider := range providers {
+		p := provider.(*promqlProvider)
+		for _, metrics := range p.pathToMetrics {
+			for _, metric := range metrics {
+				metricsMap[metric] = true
+			}
+		}
+	}
+
+	metrics := make([]string, 0, len(metricsMap))
+	for metric := range metricsMap {
+		metrics = append(metrics, metric)
+	}
+
+	return metrics
+}
+
+func getAllDashboardsWithOptionalPanels() ([]Dashboard, error) {
+	const ns = "default"
+	const workload = "authfe"
+
+	metrics := getAllMetrics(providers)
+	allDashboards, err := GetServiceDashboards(metrics, ns, workload)
+	if err != nil {
+		return nil, err
+	}
+
+	var dashboards []Dashboard
+	for d := range allDashboards {
+		dashboard := &allDashboards[d]
+		if hasOptionalPanels(dashboard) {
+			dashboards = append(dashboards, *dashboard)
+		}
+	}
+
+	return dashboards, nil
+}
+
+// TestGolden only looks at required metrics. Here, we also produce golden files
+// with all optional panels in.
+func TestGoldenWithOptionalPanels(t *testing.T) {
+	err := Init()
+	assert.NoError(t, err)
+
+	dashboards, err := getAllDashboardsWithOptionalPanels()
+	assert.NoError(t, err)
+	for i := range dashboards {
+		dashboard := &dashboards[i]
+
+		golden := filepath.Join("testdata", fmt.Sprintf("%s-%s-with-optional-panels.golden", t.Name(), dashboard.ID))
+		if *update {
+			data, err := json.MarshalIndent(dashboard, "", "  ")
+			assert.Nil(t, err)
+			ioutil.WriteFile(golden, data, 0644)
+		}
+
+		expectedBytes, err := ioutil.ReadFile(golden)
+		assert.Nil(t, err)
+		gotBytes, err := json.MarshalIndent(dashboard, "", "  ")
+		assert.NoError(t, err)
+		assert.Nil(t, err)
+
+		assert.Equal(t, string(expectedBytes), string(gotBytes))
+	}
+	Deinit()
+}

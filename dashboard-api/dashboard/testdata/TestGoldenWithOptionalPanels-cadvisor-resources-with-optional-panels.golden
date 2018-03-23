@@ -68,6 +68,28 @@
         {
           "panels": [
             {
+              "title": "I/O Bandwidth (Read)",
+              "optional": true,
+              "type": "line",
+              "unit": {
+                "format": "bytes"
+              },
+              "query": "sum (rate(container_fs_reads_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+            },
+            {
+              "title": "I/O Bandwidth (Write)",
+              "optional": true,
+              "type": "line",
+              "unit": {
+                "format": "bytes"
+              },
+              "query": "sum (rate(container_fs_writes_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
+            }
+          ]
+        },
+        {
+          "panels": [
+            {
               "title": "I/O Operations per Second (Read)",
               "type": "line",
               "unit": {

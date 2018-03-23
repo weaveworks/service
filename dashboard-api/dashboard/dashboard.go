@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/mitchellh/copystructure"
@@ -81,6 +82,8 @@ func (d *Dashboard) DeepCopy() Dashboard {
 func (d *Dashboard) Panel(path *Path) *Panel {
 	return &d.Sections[path.section].Rows[path.row].Panels[path.panel]
 }
+
+var errExitEarly = errors.New("exit early")
 
 // forEachSection executes f for each section in d. f can return an error at any
 // time, the walk through the section is stopped and the error returned.
