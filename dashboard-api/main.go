@@ -50,7 +50,9 @@ func main() {
 	}
 	api.registerRoutes(server.HTTP)
 
-	dashboard.Init()
+	if err := dashboard.Init(); err != nil {
+		log.Fatalf("error initializing dashboards: %v", err)
+	}
 
 	server.Run()
 }

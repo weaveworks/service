@@ -11,12 +11,12 @@ var jvmDashboard = Dashboard{
 				Help:  "Current number of live threads including both daemon and non-daemon threads",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `rate(jvm_threads_current{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}}[{{range}}])`,
+				Query: `rate(jvm_threads_current{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}, {
 				Title: "Threads Created per Second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `rate(jvm_threads_started_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}}[{{range}}])`,
+				Query: `rate(jvm_threads_started_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}},
 		}},
 	}, {
@@ -53,14 +53,6 @@ var jvmDashboard = Dashboard{
 	}},
 }
 
-var jvm = &staticProvider{
-	requiredMetrics: []string{
-		"jvm_threads_current",
-		"jvm_threads_started_total",
-		"jvm_memory_bytes_used",
-		"jvm_memory_pool_bytes_used",
-		"jvm_gc_collection_seconds_sum",
-		"jvm_gc_collection_seconds_count",
-	},
+var jvm = &promqlProvider{
 	dashboard: jvmDashboard,
 }

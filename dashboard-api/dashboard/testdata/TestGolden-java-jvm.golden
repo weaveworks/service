@@ -14,7 +14,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "rate(jvm_threads_current{kubernetes_namespace='default',_weave_service='authfe'}}[2m])"
+              "query": "rate(jvm_threads_current{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
             },
             {
               "title": "Threads Created per Second",
@@ -22,7 +22,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "rate(jvm_threads_started_total{kubernetes_namespace='default',_weave_service='authfe'}}[2m])"
+              "query": "rate(jvm_threads_started_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
             }
           ]
         }

@@ -69,16 +69,6 @@ var cadvisorDashboard = Dashboard{
 	}},
 }
 
-var cadvisor = &staticProvider{
-	requiredMetrics: []string{
-		"container_cpu_usage_seconds_total",
-		"container_memory_working_set_bytes",
-		"container_network_receive_bytes_total",
-		"container_network_transmit_bytes_total",
-		"container_fs_reads_bytes_total",
-		"container_fs_writes_bytes_total",
-		"container_fs_reads_total",
-		"container_fs_writes_total",
-	},
+var cadvisor = &promqlProvider{
 	dashboard: cadvisorDashboard,
 }

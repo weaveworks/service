@@ -167,13 +167,21 @@ func GetServiceDashboards(metrics []string, namespace, workload string) ([]Dashb
 
 // Init initializes the dashboard package. It must be called first before any
 // other API.
-func Init() {
+func Init() error {
 	registerProviders(
 		cadvisor,
 		memcached,
 		jvm,
 		goRuntime,
 	)
+
+	for _, provider := range providers {
+		if err := provider.Init(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Deinit reverses what Init does.
