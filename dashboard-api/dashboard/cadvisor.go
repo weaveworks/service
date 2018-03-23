@@ -70,5 +70,5 @@ var cadvisorDashboard = Dashboard{
 }
 
 var cadvisor = &promqlProvider{
-	dashboard: cadvisorDashboard,
+	dashboard: &cadvisorDashboard,
 }

@@ -38,7 +38,7 @@ func TestParseMetrics(t *testing.T) {
 }
 
 func TestPromQLProvider(t *testing.T) {
-	p := &promqlProvider{dashboard: testDashboard}
+	p := &promqlProvider{dashboard: &testDashboard}
 	err := p.Init()
 	assert.NoError(t, err)
 	assert.Equal(t, []string{"test_metric"}, p.GetRequiredMetrics())

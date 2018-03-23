@@ -10,7 +10,7 @@ import (
 type provider interface {
 	Init() error
 	GetRequiredMetrics() []string
-	GetDashboards() []Dashboard
+	GetDashboard() *Dashboard
 }
 
 var providers []provider
@@ -25,7 +25,7 @@ func unregisterAllProviders() {
 
 type staticProvider struct {
 	requiredMetrics []string
-	dashboard       Dashboard
+	dashboard       *Dashboard
 }
 
 func (p *staticProvider) Init() error {
@@ -36,13 +36,13 @@ func (p *staticProvider) GetRequiredMetrics() []string {
 	return p.requiredMetrics
 }
 
-func (p *staticProvider) GetDashboards() []Dashboard {
-	return []Dashboard{p.dashboard}
+func (p *staticProvider) GetDashboard() *Dashboard {
+	return p.dashboard
 }
 
 type promqlProvider struct {
 	requiredMetrics []string
-	dashboard       Dashboard
+	dashboard       *Dashboard
 }
 
 // parseMetrics walks the expression AST looking for metric names. Only Vector
@@ -75,7 +75,7 @@ func (p *promqlProvider) Init() error {
 
 	// Collect the list of required metrics from the query themselves.
 	metricsMap := make(map[string]bool)
-	if err := forEachPanel(&p.dashboard, func(panel *Panel, path *Path) error {
+	if err := forEachPanel(p.dashboard, func(panel *Panel, path *Path) error {
 		// Do the bare minimum to make the query parsable.
 		query := replacer.Replace(panel.Query)
 
@@ -104,6 +104,6 @@ func (p *promqlProvider) GetRequiredMetrics() []string {
 	return p.requiredMetrics
 }
 
-func (p *promqlProvider) GetDashboards() []Dashboard {
-	return []Dashboard{p.dashboard}
+func (p *promqlProvider) GetDashboard() *Dashboard {
+	return p.dashboard
 }

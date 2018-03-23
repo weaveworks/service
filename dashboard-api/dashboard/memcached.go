@@ -76,5 +76,5 @@ var memcachedDashboard = Dashboard{
 }
 
 var memcached = &promqlProvider{
-	dashboard: memcachedDashboard,
+	dashboard: &memcachedDashboard,
 }

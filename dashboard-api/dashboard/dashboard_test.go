@@ -26,7 +26,7 @@ var (
 	}
 
 	testProvider = &promqlProvider{
-		dashboard: testDashboard,
+		dashboard: &testDashboard,
 	}
 )
 
