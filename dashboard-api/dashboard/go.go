@@ -3,7 +3,7 @@ package dashboard
 // This dashboard displays metrics "by pod", all line graphs, a line per pod.
 var goRuntimeDashboard = Dashboard{
 	ID:   "go-runtime",
-	Name: "Go",
+	Name: "Go Runtime",
 	Sections: []Section{{
 		Name: "Concurrency",
 		Rows: []Row{{
