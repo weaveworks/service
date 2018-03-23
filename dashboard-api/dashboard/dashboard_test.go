@@ -57,7 +57,7 @@ func TestGetDashboardForMetrics(t *testing.T) {
 
 func TestResolveQueries(t *testing.T) {
 	// work on a copy to not touch the original
-	dashboard := testDashboard
+	dashboard := testDashboard.DeepCopy()
 
 	resolveQueries([]Dashboard{dashboard}, &Config{Workload: "bar"})
 	assert.Equal(t, "test_metric{_weave_service='bar'}", dashboard.Sections[0].Rows[0].Panels[0].Query)

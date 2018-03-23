@@ -71,6 +71,12 @@ type Dashboard struct {
 	Sections []Section `json:"sections"`
 }
 
+// DeepCopy returns a deep copy of a dashboard.
+func (d *Dashboard) DeepCopy() Dashboard {
+	copy, _ := copystructure.Copy(*d)
+	return copy.(Dashboard)
+}
+
 // forEachPanel executes f for each panel in d. f can return an error at any
 // time, the walk through the panels is stopped and the error returned.
 func forEachPanel(d *Dashboard, f func(*Panel, *Path) error) error {
