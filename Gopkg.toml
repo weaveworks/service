@@ -49,12 +49,6 @@
   name = "cloud.google.com/go"
   revision = "eb1cc5f3c0a93e56aa3c13e3ad4f336d327c0c86"
 
-# `go get github.com/golang/mock/mockgen` (in our image) installs the master branch
-# while Godep wants to get the latest tagged release, which is v1.0.0. These are incompatible.
-[[constraint]]
-  name = "github.com/google/mock"
-  branch = "master"
-
 # Pin to master branch until there is a more recent stable release:
 #   https://github.com/prometheus/client_golang/issues/375
 [[constraint]]
