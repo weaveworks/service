@@ -25,11 +25,14 @@ var (
 		}},
 	}
 
-	testProvider = &staticProvider{
-		dashboard:       testDashboard,
-		requiredMetrics: []string{"test_metric"},
+	testProvider = &promqlProvider{
+		dashboard: testDashboard,
 	}
 )
+
+func init() {
+	testProvider.Init()
+}
 
 func TestGetDashboardForMetrics(t *testing.T) {
 	tests := []struct {
