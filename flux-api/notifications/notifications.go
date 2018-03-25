@@ -11,14 +11,6 @@ const (
 	DefaultURL = "http://eventmanager.notification.svc.cluster.local/api/notification/slack/{instanceID}/{eventType}"
 )
 
-// DefaultNotifyEvents is the default list of events on which we notify.
-// TODO: check whether this needs to exist
-var DefaultNotifyEvents = []string{
-	event.EventRelease,
-	event.EventAutoRelease,
-	event.EventSync,
-}
-
 // Event sends a notification for the given event if cfg specifies HookURL.
 func Event(url string, e event.Event) error {
 	switch e.Type {

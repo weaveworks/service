@@ -68,19 +68,7 @@ var (
 	httpClient = &http.Client{Timeout: 5 * time.Second}
 )
 
-func hasNotifyEvent(event string) bool {
-	for _, s := range DefaultNotifyEvents {
-		if s == event {
-			return true
-		}
-	}
-	return false
-}
-
 func slackNotifyRelease(url string, release *event.ReleaseEventMetadata, releaseError string) error {
-	if !hasNotifyEvent(event.EventRelease) {
-		return nil
-	}
 	// Sanity check: we shouldn't get any other kind, but you
 	// never know.
 	if release.Spec.Kind != update.ReleaseKindExecute {
@@ -113,10 +101,6 @@ func slackNotifyRelease(url string, release *event.ReleaseEventMetadata, release
 }
 
 func slackNotifyAutoRelease(url string, release *event.AutoReleaseEventMetadata, releaseError string) error {
-	if !hasNotifyEvent(event.EventAutoRelease) {
-		return nil
-	}
-
 	var attachments []slackAttachment
 
 	if releaseError != "" {
@@ -141,10 +125,6 @@ func slackNotifyAutoRelease(url string, release *event.AutoReleaseEventMetadata,
 }
 
 func slackNotifySync(url string, sync *event.Event) error {
-	if !hasNotifyEvent(event.EventSync) {
-		return nil
-	}
-
 	details := sync.Metadata.(*event.SyncEventMetadata)
 	// Only send a notification if this contains something other
 	// releases and autoreleases (and we were told what it contains)
