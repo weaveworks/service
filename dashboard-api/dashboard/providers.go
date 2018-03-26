@@ -9,8 +9,9 @@ import (
 
 type provider interface {
 	Init() error
+	GetPanelMetrics(path *Path) []string
 	GetRequiredMetrics() []string
-	GetDashboards() []Dashboard
+	GetDashboard() *Dashboard
 }
 
 var providers []provider
@@ -25,24 +26,29 @@ func unregisterAllProviders() {
 
 type staticProvider struct {
 	requiredMetrics []string
-	dashboard       Dashboard
+	dashboard       *Dashboard
 }
 
 func (p *staticProvider) Init() error {
 	return nil
 }
 
+func (p *staticProvider) GetPanelMetrics(path *Path) []string {
+	panic("Not Implemented")
+}
+
 func (p *staticProvider) GetRequiredMetrics() []string {
 	return p.requiredMetrics
 }
 
-func (p *staticProvider) GetDashboards() []Dashboard {
-	return []Dashboard{p.dashboard}
+func (p *staticProvider) GetDashboard() *Dashboard {
+	return p.dashboard
 }
 
 type promqlProvider struct {
 	requiredMetrics []string
-	dashboard       Dashboard
+	pathToMetrics   map[string][]string
+	dashboard       *Dashboard
 }
 
 // parseMetrics walks the expression AST looking for metric names. Only Vector
@@ -73,34 +79,47 @@ func (p *promqlProvider) Init() error {
 		"{{range}}", "2m",
 	)
 
-	// Collect the list of required metrics from the query themselves.
-	metricsMap := make(map[string]bool)
-	for i := range p.dashboard.Sections {
-		section := &p.dashboard.Sections[i]
-		for j := range section.Rows {
-			row := &section.Rows[j]
-			for k := range row.Panels {
-				panel := &row.Panels[k]
+	// Parse the Dashboard queries and derive:
+	//   - For each panel, the list of the metrics used in the query
+	//   - The list of required  metrics
+	p.pathToMetrics = make(map[string][]string)
+	requiredMetricsMap := make(map[string]bool)
+	if err := forEachPanel(p.dashboard, func(panel *Panel, path *Path) error {
+		// Do the bare minimum to make the query parsable.
+		query := replacer.Replace(panel.Query)
 
-				// Do the bare minimum to make the query parsable.
-				query := replacer.Replace(panel.Query)
-
-				metrics, err := parseMetrics(query)
-				if err != nil {
-					return errors.Wrap(err, query)
-				}
-
-				for _, metric := range metrics {
-					metricsMap[metric] = true
-				}
-			}
+		metrics, err := parseMetrics(query)
+		if err != nil {
+			return errors.Wrap(err, query)
 		}
+
+		p.pathToMetrics[path.String()] = metrics
+
+		// Don't collect metrics for optional panels in the list of required metrics.
+		if panel.Optional {
+			return nil
+		}
+
+		for _, metric := range metrics {
+			requiredMetricsMap[metric] = true
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
-	for metric := range metricsMap {
+	for metric := range requiredMetricsMap {
 		p.requiredMetrics = append(p.requiredMetrics, metric)
 	}
 
+	return nil
+}
+
+func (p *promqlProvider) GetPanelMetrics(path *Path) []string {
+	if metrics, ok := p.pathToMetrics[path.String()]; ok {
+		return metrics
+	}
 	return nil
 }
 
@@ -108,6 +127,6 @@ func (p *promqlProvider) GetRequiredMetrics() []string {
 	return p.requiredMetrics
 }
 
-func (p *promqlProvider) GetDashboards() []Dashboard {
-	return []Dashboard{p.dashboard}
+func (p *promqlProvider) GetDashboard() *Dashboard {
+	return p.dashboard
 }

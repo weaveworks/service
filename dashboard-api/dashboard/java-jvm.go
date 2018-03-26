@@ -54,5 +54,5 @@ var jvmDashboard = Dashboard{
 }
 
 var jvm = &promqlProvider{
-	dashboard: jvmDashboard,
+	dashboard: &jvmDashboard,
 }

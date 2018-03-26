@@ -67,5 +67,5 @@ var goRuntimeDashboard = Dashboard{
 }
 
 var goRuntime = &promqlProvider{
-	dashboard: goRuntimeDashboard,
+	dashboard: &goRuntimeDashboard,
 }

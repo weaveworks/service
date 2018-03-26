@@ -42,16 +42,20 @@ var cadvisorDashboard = Dashboard{
 	}, {
 		Name: "Disk",
 		Rows: []Row{{
+			// container_fs_reads_bytes_total and container_fs_writes_bytes_total are somethings missing!
+			// https://github.com/weaveworks/service/issues/1893
 			Panels: []Panel{{
-				Title: "I/O Bandwidth (Read)",
-				Type:  PanelLine,
-				Unit:  Unit{Format: UnitBytes},
-				Query: `sum (rate(container_fs_reads_bytes_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
+				Title:    "I/O Bandwidth (Read)",
+				Type:     PanelLine,
+				Optional: true,
+				Unit:     Unit{Format: UnitBytes},
+				Query:    `sum (rate(container_fs_reads_bytes_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
 			}, {
-				Title: "I/O Bandwidth (Write)",
-				Type:  PanelLine,
-				Unit:  Unit{Format: UnitBytes},
-				Query: `sum (rate(container_fs_writes_bytes_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
+				Title:    "I/O Bandwidth (Write)",
+				Type:     PanelLine,
+				Optional: true,
+				Unit:     Unit{Format: UnitBytes},
+				Query:    `sum (rate(container_fs_writes_bytes_total{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}[{{range}}])) by (pod_name)`,
 			}},
 		}, {
 			Panels: []Panel{{
@@ -70,5 +74,5 @@ var cadvisorDashboard = Dashboard{
 }
 
 var cadvisor = &promqlProvider{
-	dashboard: cadvisorDashboard,
+	dashboard: &cadvisorDashboard,
 }
