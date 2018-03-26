@@ -404,6 +404,18 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/admin/prod-grafana",
 		"/admin/kibana", // kibana has the same issue with CSRF tokens as grafana
 	)
+
+	// Strip csrf_token cookies set by the nosurf middleware because the nosurf
+	// middleware does not allow us to exclude paths for setting cookies, only
+	// exclude them from being validated. Strip all cookies because parsing
+	// already set 'Set-Cookie' headers is more involved.
+	stripSetCookieHeaderPrefixes := []string{
+		"/admin/grafana",
+		"/admin/dev-grafana",
+		"/admin/prod-grafana",
+		"/admin/kibana",
+	}
+
 	operationNameFunc := nethttp.OperationNameFunc(func(r *http.Request) string {
 		return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 	})
@@ -414,12 +426,29 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	return middleware.Merge(
 		AuthHeaderStrippingMiddleware{},
 		originChecker,
+		stripSetCookieHeader{prefixes: stripSetCookieHeaderPrefixes},
 		csrfTokenVerifier{exemptPrefixes: csrfExemptPrefixes, secure: c.secureCookie},
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler, operationNameFunc)
 		}),
 		c.commonMiddleWare(r),
 	).Wrap(r), nil
+}
+
+// stripSetCookieHeader deletes any "Set-Cookie" header where the path matches a prefix
+type stripSetCookieHeader struct {
+	prefixes []string
+}
+
+func (s stripSetCookieHeader) Wrap(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+		for _, prefix := range s.prefixes {
+			if strings.HasPrefix(r.URL.Path, prefix) {
+				w.Header().Del("Set-Cookie")
+			}
+		}
+	})
 }
 
 // Takes care of setting and verifying anti-CSRF tokens
