@@ -793,26 +793,16 @@ func (em *EventManager) getEvents(r *http.Request, instanceID string) (interface
 	if params.Get("event_type") != "" {
 		eventType = strings.Split(params.Get("event_type"), ",")
 	}
-	if params.Get("exclude") != "" {
-		excluded := map[string]struct{}{}
-		for _, e := range strings.Split(params.Get("exclude"), ",") {
-			excluded[e] = struct{}{}
-		}
-
-		filteredFields := []string{}
-		for _, field := range fields {
-			if _, ok := excluded[field]; !ok {
-				filteredFields = append(filteredFields, field)
-			}
-		}
-		fields = filteredFields
+	if params.Get("fields") != "" {
+		fields = strings.Split(params.Get("fields"), ",")
 	}
 
 	for i, f := range fields {
 		fields[i] = fmt.Sprintf("e.%s", f) // prepend "e." for join
 	}
 	fields = append(fields, "COALESCE(json_agg(a) FILTER (WHERE a.event_id IS NOT NULL), '[]')")
-	query := sq.Select(fields...).
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	query := psql.Select(fields...).
 		From("events e").
 		LeftJoin("attachments a ON (a.event_id = e.event_id)").
 		Where(sq.Eq{"instance_id": instanceID}).
