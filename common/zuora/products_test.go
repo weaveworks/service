@@ -41,7 +41,7 @@ func TestGetCurrentRates(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Contains(t, rates, "node-seconds")
-	assert.Equal(t, 0.000011416, rates["node-seconds"])
+	assert.Equal(t, 0.000011416, rates["node-seconds"]["USD"])
 	assert.Contains(t, rates, "container-seconds")
-	assert.Equal(t, 0.00000278, rates["container-seconds"])
+	assert.Equal(t, 0.00000278, rates["container-seconds"]["USD"])
 }

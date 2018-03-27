@@ -289,22 +289,22 @@ func (a *API) GetAccountTrial(w http.ResponseWriter, r *http.Request) {
 type status string
 
 type interim struct {
-	Usage string    `json:"usage"`
-	Start time.Time `json:"start"`
-	End   time.Time `json:"end"`
+	Usage map[string]string `json:"usage"` // prices in all supported currencies.
+	Start time.Time         `json:"start"`
+	End   time.Time         `json:"end"`
 }
 
 type accountStatusResponse struct {
-	Trial                 trial.Trial      `json:"trial"`
-	BillingPeriodStart    string           `json:"billing_period_start"`
-	BillingPeriodEnd      string           `json:"billing_period_end"`
-	UsageToDate           string           `json:"usage_to_date"` // in dollar$
-	UsagePerDay           map[string]int64 `json:"usage_per_day"` // in node-seconds; key is day in `YYYY-MM-DD`
-	ActiveHosts           float64          `json:"active_hosts"`
-	Status                status           `json:"status"`
-	Interim               *interim         `json:"interim,omitempty"`
-	EstimatedMonthlyUsage string           `json:"estimated_monthly_usage"`
-	Currency              string           `json:"currency"`
+	Trial                 trial.Trial       `json:"trial"`
+	BillingPeriodStart    string            `json:"billing_period_start"`
+	BillingPeriodEnd      string            `json:"billing_period_end"`
+	UsageToDate           map[string]string `json:"usage_to_date"` // prices in all supported currencies.
+	UsagePerDay           map[string]int64  `json:"usage_per_day"` // in node-seconds; key is day in `YYYY-MM-DD`
+	ActiveHosts           float64           `json:"active_hosts"`
+	Status                status            `json:"status"`
+	Interim               *interim          `json:"interim,omitempty"`
+	EstimatedMonthlyUsage map[string]string `json:"estimated_monthly_usage"` // in all supported currencies.
+	Currency              string            `json:"currency"`                // currency from Zuora's subscription, or default on.
 }
 
 const (
@@ -359,17 +359,16 @@ func computeBillingPeriod(billCycleDay int, createdAt, trialEnd, reference time.
 // WARNING: No eviction strategy, i.e. in case we change the rates, one has to manually restart billing-api.
 var cachedRates zuora.RateMap
 
-func (a *API) getDefaultUsageRateInfo(ctx context.Context) (int, float64, error) {
+func (a *API) getDefaultUsageRateInfo(ctx context.Context) (int, map[string]float64, error) {
 	if cachedRates == nil {
 		// Load the rates from Zuora. This may take a few seconds.
 		rates, err := a.Zuora.GetCurrentRates(ctx)
 		if err != nil {
-			return 0, 0, err
+			return 0, make(map[string]float64), err
 		}
 		cachedRates = rates
 	}
-	price := cachedRates[billing.UsageNodeSeconds]
-	return zuora.BillCycleDay, price, nil
+	return zuora.BillCycleDay, cachedRates[billing.UsageNodeSeconds], nil
 }
 
 // getBillingStatus returns a single overall summary of the user's account.
@@ -413,24 +412,26 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 	org := resp.Organization
 	now := time.Now().UTC()
 
-	var billCycleDay int
-	var price float64
-	var currency string
-	zuoraAcct, err := a.Zuora.GetAccount(ctx, org.ZuoraAccountNumber)
-	if err == zuora.ErrNotFound || err == zuora.ErrInvalidAccountNumber {
-		billCycleDay, price, err = a.getDefaultUsageRateInfo(ctx)
-		currency = zuora.DefaultCurrency
-		zuoraAcct = nil
-	} else if err == nil {
-		billCycleDay = zuoraAcct.BillCycleDay
-		price = zuoraAcct.Subscription.Price
-		currency = zuoraAcct.Subscription.Currency
-	}
-
+	billCycleDay, rates, err := a.getDefaultUsageRateInfo(ctx)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
+
+	currency := "" // Leave currency blank by default. It is only set if a subscription exists...
+	zuoraAcct, err := a.Zuora.GetAccount(ctx, org.ZuoraAccountNumber)
+	if err != nil && err != zuora.ErrNotFound && err != zuora.ErrInvalidAccountNumber {
+		renderError(w, r, err)
+		return
+	}
+	if zuoraAcct != nil {
+		billCycleDay = zuoraAcct.BillCycleDay
+		// ... in which case it can also be used to point to the current subscription's rate,
+		// even though the subscription price should be identical to the default rates.
+		currency = zuoraAcct.Subscription.Currency
+		rates[currency] = zuoraAcct.Subscription.Price
+	}
+
 	start, end := computeBillingPeriod(billCycleDay, org.CreatedAt, org.TrialExpiresAt, now)
 	// assumption: if a zuora account is present, the customer has been charged and therefore
 	// interim usage is zero
@@ -443,7 +444,7 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		}
 		interimSum, _, _ := sumAndFilterAggregates(interimAggs)
 		interimPeriod = &interim{
-			Usage: fmt.Sprintf("%.2f", price*float64(interimSum)),
+			Usage: calculatePrices(rates, float64(interimSum)),
 			Start: org.TrialExpiresAt,
 			End:   start,
 		}
@@ -473,25 +474,28 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, err)
 		return
 	}
-	estimated := estimatedMonthlyUsage(daily, start, estAggs, estDays, price, now)
 
 	// TODO some kind of payment status info
-	status := accountStatusResponse{
-		BillingPeriodStart: start.Format(dayTimeLayout),
-		BillingPeriodEnd:   end.Format(dayTimeLayout),
-		Trial:              trial,
-		UsageToDate:        fmt.Sprintf("%.2f", price*float64(sum)),
-		ActiveHosts:        activeHosts,
-		Status:             getBillingStatus(ctx, trial, zuoraAcct),
-		UsagePerDay:        daily,
-		Interim:            interimPeriod,
-		Currency:           currency,
-	}
-	if estimated > 0 {
-		status.EstimatedMonthlyUsage = fmt.Sprintf("%0.f", math.Ceil(estimated))
-	}
+	render.JSON(w, http.StatusOK, accountStatusResponse{
+		BillingPeriodStart:    start.Format(dayTimeLayout),
+		BillingPeriodEnd:      end.Format(dayTimeLayout),
+		Trial:                 trial,
+		UsageToDate:           calculatePrices(rates, float64(sum)),
+		ActiveHosts:           activeHosts,
+		Status:                getBillingStatus(ctx, trial, zuoraAcct),
+		UsagePerDay:           daily,
+		Interim:               interimPeriod,
+		Currency:              currency,
+		EstimatedMonthlyUsage: estimatedMonthlyUsages(daily, start, estAggs, estDays, rates, now),
+	})
+}
 
-	render.JSON(w, http.StatusOK, status)
+func calculatePrices(rates map[string]float64, quantity float64) map[string]string {
+	prices := make(map[string]string, len(rates))
+	for currency, rate := range rates {
+		prices[currency] = fmt.Sprintf("%.2f", rate*quantity)
+	}
+	return prices
 }
 
 func computeEstimationPeriod(now time.Time, trialExpiresAt time.Time) (time.Time, time.Time, int) {
@@ -508,7 +512,7 @@ func computeEstimationPeriod(now time.Time, trialExpiresAt time.Time) (time.Time
 	return from, to, days
 }
 
-func estimatedMonthlyUsage(daily map[string]int64, start time.Time, estAggs []db.Aggregate, estDays int, price float64, reference time.Time) float64 {
+func estimatedMonthlyUsages(daily map[string]int64, start time.Time, estAggs []db.Aggregate, estDays int, rates map[string]float64, reference time.Time) map[string]string {
 	today := reference.Truncate(24 * time.Hour)
 
 	// Current billing period usage. This excludes usage of today.
@@ -530,7 +534,15 @@ func estimatedMonthlyUsage(daily map[string]int64, start time.Time, estAggs []db
 		}
 	}
 	usage := float64(sum) + (float64(daysInMonth)-dayCount)*float64(estSum)/float64(estDays)
-	return price * usage
+	return calculateAndFormatMonthlyUsages(usage, rates)
+}
+
+func calculateAndFormatMonthlyUsages(usage float64, rates map[string]float64) map[string]string {
+	usages := make(map[string]string, len(rates))
+	for currency, rate := range rates {
+		usages[currency] = fmt.Sprintf("%0.f", math.Ceil(rate*usage))
+	}
+	return usages
 }
 
 func sumAndFilterAggregates(aggs []db.Aggregate) (int64, []db.Aggregate, map[string]int64) {

@@ -161,7 +161,11 @@ func TestEstimatedMonthlyUsage(t *testing.T) {
 	ti := date(2017, time.December, 21)
 	start := date(2017, time.December, 1)
 	now := time.Date(2017, 12, 21, 12, 0, 0, 0, time.UTC)
-	var usage float64
+	currency := "USD"
+	rates := map[string]float64{
+		currency: float64(1),
+	}
+	var usage string
 	daily := map[string]int64{
 		"2017-12-01": 400,
 		"2017-12-20": 600,
@@ -182,31 +186,31 @@ func TestEstimatedMonthlyUsage(t *testing.T) {
 	{ // same day
 		aggs[0].BucketStart = ti
 		aggs[1].BucketStart = ti.Add(time.Hour)
-		usage = estimatedMonthlyUsage(daily, start, aggs, 1, 1, now)
-		assert.Equal(t, float64(1330), usage)
+		usage = estimatedMonthlyUsages(daily, start, aggs, 1, rates, now)[currency]
+		assert.Equal(t, "1330", usage)
 
 		// two days, second day had no usage
-		usage = estimatedMonthlyUsage(daily, start, aggs, 2, 1, now)
-		assert.Equal(t, float64(1165), usage)
+		usage = estimatedMonthlyUsages(daily, start, aggs, 2, rates, now)[currency]
+		assert.Equal(t, "1165", usage)
 	}
 	{ // consecutive day
 		aggs[0].BucketStart = ti
 		aggs[1].BucketStart = ti.Add(24 * time.Hour)
-		usage = estimatedMonthlyUsage(daily, start, aggs, 2, 1, now)
-		assert.Equal(t, float64(1165), usage)
+		usage = estimatedMonthlyUsages(daily, start, aggs, 2, rates, now)[currency]
+		assert.Equal(t, "1165", usage)
 
 		// third day empty
-		usage = estimatedMonthlyUsage(daily, start, aggs, 3, 1, now)
-		assert.Equal(t, float64(1110), usage)
+		usage = estimatedMonthlyUsages(daily, start, aggs, 3, rates, now)[currency]
+		assert.Equal(t, "1110", usage)
 	}
 	{ // skip day
 		aggs[0].BucketStart = ti
 		aggs[1].BucketStart = ti.Add(2 * 24 * time.Hour)
-		usage = estimatedMonthlyUsage(daily, start, aggs, 3, 1, now)
-		assert.Equal(t, float64(1110), usage)
+		usage = estimatedMonthlyUsages(daily, start, aggs, 3, rates, now)[currency]
+		assert.Equal(t, "1110", usage)
 
 		// fourth day empty
-		usage = estimatedMonthlyUsage(daily, start, aggs, 4, 1, now)
-		assert.Equal(t, float64(1082.5), usage)
+		usage = estimatedMonthlyUsages(daily, start, aggs, 4, rates, now)[currency]
+		assert.Equal(t, "1083", usage)
 	}
 }

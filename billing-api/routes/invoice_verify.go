@@ -104,7 +104,12 @@ func assertInvoiceVerified(ctx context.Context, a *API, weaveOrgID string, numIn
 	if err != nil {
 		return err
 	}
-	price := rates[billing.UsageNodeSeconds]
+	zuoraAccount, err := a.Zuora.GetAccount(ctx, zuoraAccountNumber)
+	if err != nil {
+		return err
+	}
+	currency := zuoraAccount.Subscription.Currency
+	price := rates[billing.UsageNodeSeconds][currency]
 
 	for _, invoice := range invoices {
 		invoiceStatus := invoice.Status
