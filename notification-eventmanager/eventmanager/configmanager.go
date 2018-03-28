@@ -794,15 +794,30 @@ func (em *EventManager) getEvents(r *http.Request, instanceID string) (interface
 		eventType = strings.Split(params.Get("event_type"), ",")
 	}
 	if params.Get("fields") != "" {
-		fields = strings.Split(params.Get("fields"), ",")
+		var fieldsMap map[string]struct{}
+		for _, f := range fields {
+			fieldsMap[f] = struct{}{}
+		}
+
+		newFields := strings.Split(params.Get("fields"), ",")
+		for _, nf := range newFields {
+			if _, ok := fieldsMap[nf]; !ok {
+				return nil, http.StatusBadRequest, fmt.Errorf("%s is an invalid field", nf)
+			}
+		}
+
+		fields = newFields
 	}
 
-	for i, f := range fields {
-		fields[i] = fmt.Sprintf("e.%s", f) // prepend "e." for join
+	// Create query
+	queryFields := make([]string, len(fields))
+	copy(queryFields, fields)
+	for i, f := range queryFields {
+		queryFields[i] = fmt.Sprintf("e.%s", f) // prepend "e." for join
 	}
-	fields = append(fields, "COALESCE(json_agg(a) FILTER (WHERE a.event_id IS NOT NULL), '[]')")
+	queryFields = append(queryFields, "COALESCE(json_agg(a) FILTER (WHERE a.event_id IS NOT NULL), '[]')")
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	query := psql.Select(fields...).
+	query := psql.Select(queryFields...).
 		From("events e").
 		LeftJoin("attachments a ON (a.event_id = e.event_id)").
 		Where(sq.Eq{"instance_id": instanceID}).
@@ -827,7 +842,7 @@ func (em *EventManager) getEvents(r *http.Request, instanceID string) (interface
 	}
 	events := []*types.Event{}
 	err = em.forEachRow(rows, func(row *sql.Rows) error {
-		e, err := types.EventFromRow(row)
+		e, err := types.EventFromRow(row, fields)
 		if err != nil {
 			return err
 		}

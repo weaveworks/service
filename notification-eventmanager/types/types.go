@@ -3,9 +3,11 @@ package types
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/lib/pq"
+	"fmt"
 	"io/ioutil"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 // SlackMessage is a Slack API payload with the message text and some options
@@ -183,23 +185,37 @@ func ReceiverFromRow(row scannable) (Receiver, error) {
 }
 
 // EventFromRow expects the row to contain (type, instanceID, timestamp, messages)
-func EventFromRow(row scannable) (*Event, error) {
+func EventFromRow(row scannable, fields []string) (*Event, error) {
 	e := Event{}
 	// sql driver can't convert from postgres json directly to interface{}, have to get as string and re-parse.
 	messagesBuf := []byte{}
 	metadataBuf := []byte{}
 	attachmentsBuff := []byte{}
 
-	if err := row.Scan(
-		&e.ID,
-		&e.Type,
-		&e.InstanceID,
-		&e.Timestamp,
-		&messagesBuf,
-		&e.Text,
-		&metadataBuf,
-		&attachmentsBuff,
-	); err != nil {
+	var structFields []interface{}
+	for _, f := range fields {
+		switch f {
+		case "event_id":
+			structFields = append(structFields, &e.ID)
+		case "event_type":
+			structFields = append(structFields, &e.Type)
+		case "instance_id":
+			structFields = append(structFields, &e.InstanceID)
+		case "timestamp":
+			structFields = append(structFields, &e.Timestamp)
+		case "messages":
+			structFields = append(structFields, &messagesBuf)
+		case "text":
+			structFields = append(structFields, &e.Text)
+		case "metadata":
+			structFields = append(structFields, &metadataBuf)
+		default:
+			return nil, fmt.Errorf("%s is an invalid field", f)
+		}
+	}
+	structFields = append(structFields, &attachmentsBuff)
+
+	if err := row.Scan(structFields...); err != nil {
 		return nil, err
 	}
 
