@@ -355,13 +355,21 @@ func computeBillingPeriod(billCycleDay int, createdAt, trialEnd, reference time.
 	return start, end
 }
 
+// Read-through cache for Zuora's rates.
+// WARNING: No eviction strategy, i.e. in case we change the rates, one has to manually restart billing-api.
+var cachedRates zuora.RateMap
+
 func (a *API) getDefaultUsageRateInfo(ctx context.Context) (int, float64, error) {
-	var err error
-	if rates, err := a.Zuora.GetCurrentRates(ctx); err == nil {
-		price := rates[billing.UsageNodeSeconds]
-		return zuora.BillCycleDay, price, nil
+	if cachedRates == nil {
+		// Load the rates from Zuora. This may take a few seconds.
+		rates, err := a.Zuora.GetCurrentRates(ctx)
+		if err != nil {
+			return 0, 0, err
+		}
+		cachedRates = rates
 	}
-	return 0, 0, err
+	price := cachedRates[billing.UsageNodeSeconds]
+	return zuora.BillCycleDay, price, nil
 }
 
 // getBillingStatus returns a single overall summary of the user's account.
