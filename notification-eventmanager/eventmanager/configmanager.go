@@ -751,21 +751,21 @@ func (em *EventManager) getEvents(r *http.Request, instanceID string) (interface
 		"text",
 		"metadata",
 	}
-	length := 50
+	limit := 50
 	offset := 0
 	after := time.Unix(0, 0)
 	before := time.Now().UTC()
 	var eventType []string
 
-	if params.Get("length") != "" {
-		l, err := strconv.Atoi(params.Get("length"))
+	if params.Get("limit") != "" {
+		l, err := strconv.Atoi(params.Get("limit"))
 		if err != nil {
-			return "Bad length value: Not an integer", http.StatusBadRequest, nil
+			return "Bad limit value: Not an integer", http.StatusBadRequest, nil
 		}
 		if l < 0 || l > MaxEventsList {
-			return fmt.Sprintf("Bad length value: Must be between 0 and %d inclusive", MaxEventsList), http.StatusBadRequest, nil
+			return fmt.Sprintf("Bad limit value: Must be between 0 and %d inclusive", MaxEventsList), http.StatusBadRequest, nil
 		}
-		length = l
+		limit = l
 	}
 	if params.Get("offset") != "" {
 		o, err := strconv.Atoi(params.Get("offset"))
@@ -810,7 +810,7 @@ func (em *EventManager) getEvents(r *http.Request, instanceID string) (interface
 		Where(sq.Gt{"timestamp": after}).
 		GroupBy("e.event_id").
 		OrderBy("timestamp DESC").
-		Limit(uint64(length)).
+		Limit(uint64(limit)).
 		Offset(uint64(offset))
 
 	if len(eventType) > 0 {
