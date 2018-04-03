@@ -31,10 +31,8 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -6, 0)
 
 	query := r.URL.Query().Get("query")
-	page, _ := strconv.ParseInt(r.URL.Query().Get("page"), 10, 32)
-	if page <= 0 {
-		page = 1
-	}
+	page := extractOrDefaultPage(r.URL.Query().Get("page"))
+
 	resp, err := a.Users.GetOrganizations(r.Context(), &users.GetOrganizationsRequest{
 		Query:      query,
 		PageNumber: int32(page),
@@ -98,6 +96,14 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 		"NextPage":      page + 1,
 		"Query":         query,
 	})
+}
+
+func extractOrDefaultPage(pageQueryArg string) int64 {
+	page, _ := strconv.ParseInt(pageQueryArg, 10, 32)
+	if page <= 0 {
+		return 1
+	}
+	return page
 }
 
 // colors is taken from material 300-weight colours for a pleasing display.
