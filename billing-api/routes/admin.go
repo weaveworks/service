@@ -23,13 +23,6 @@ func (a *API) healthcheck(w http.ResponseWriter, r *http.Request) {
 
 // Admin renders a website listing all organizations with their aggregations by month.
 func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
-	now := time.Now().UTC()
-	// 6 months back from this month's start. We can't just do (now - 6 months),
-	// as after the 28th, that will skip february, so we have to find the first
-	// of this month, *then* calculate from there. *BUT*, we use now for the
-	// end-time so that we include records for this month, which is incomplete.
-	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -6, 0)
-
 	query := r.URL.Query().Get("query")
 	page := extractOrDefaultPage(r.URL.Query().Get("page"))
 
@@ -42,20 +35,21 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	from, to := timeRange()
 	var ids []string
 	trialInfo := map[string]trial.Trial{}
 	for _, org := range resp.Organizations {
 		ids = append(ids, org.ID)
-		trialInfo[org.ID] = trial.Info(org.TrialExpiresAt, org.CreatedAt, now)
+		trialInfo[org.ID] = trial.Info(org.TrialExpiresAt, org.CreatedAt, to)
 	}
-	sums, err := a.DB.GetMonthSums(r.Context(), ids, from, now)
+	sums, err := a.DB.GetMonthSums(r.Context(), ids, from, to)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
 	var months []time.Month
-	for t := now; t.After(from) || t.Equal(from); t = t.AddDate(0, -1, 0) {
+	for t := to; t.After(from) || t.Equal(from); t = t.AddDate(0, -1, 0) {
 		months = append(months, t.Month())
 	}
 
@@ -104,6 +98,16 @@ func extractOrDefaultPage(pageQueryArg string) int64 {
 		return 1
 	}
 	return page
+}
+
+func timeRange() (time.Time, time.Time) {
+	now := time.Now().UTC()
+	// 6 months back from this month's start. We can't just do (now - 6 months),
+	// as after the 28th, that will skip february, so we have to find the first
+	// of this month, *then* calculate from there. *BUT*, we use now for the
+	// end-time so that we include records for this month, which is incomplete.
+	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -6, 0)
+	return from, now
 }
 
 // colors is taken from material 300-weight colours for a pleasing display.
