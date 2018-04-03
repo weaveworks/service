@@ -46,16 +46,8 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	instanceMonthSums, amountTypesMap := processSums(sums)
-
 	logging.With(r.Context()).Debugf("instanceMonthSums: %#v", instanceMonthSums)
-	var amountTypes []string
-	colors := map[string]string{}
-	for t := range amountTypesMap {
-		amountTypes = append(amountTypes, t)
-		colors[t] = amountTypeColor(t)
-	}
-	sort.Strings(amountTypes)
-
+	amountTypes, colors := processAmountTypes(amountTypesMap)
 	months := months(from, to)
 	render.HTMLTemplate(w, http.StatusOK, a.adminTemplate, map[string]interface{}{
 		"AdminURL":      a.AdminURL,
@@ -125,6 +117,17 @@ func processSums(sums map[string][]db.Aggregate) (instanceMonthSums, map[string]
 		instanceMonthSums[instanceID] = monthSums
 	}
 	return instanceMonthSums, amountTypesMap
+}
+
+func processAmountTypes(amountTypesMap map[string]struct{}) ([]string, map[string]string) {
+	var amountTypes []string
+	colors := map[string]string{}
+	for t := range amountTypesMap {
+		amountTypes = append(amountTypes, t)
+		colors[t] = amountTypeColor(t)
+	}
+	sort.Strings(amountTypes)
+	return amountTypes, colors
 }
 
 // colors is taken from material 300-weight colours for a pleasing display.
