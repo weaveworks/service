@@ -36,12 +36,8 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	from, to := timeRange()
-	var ids []string
-	trialInfo := map[string]trial.Trial{}
-	for _, org := range resp.Organizations {
-		ids = append(ids, org.ID)
-		trialInfo[org.ID] = trial.Info(org.TrialExpiresAt, org.CreatedAt, to)
-	}
+	ids, trialInfo := processOrgs(resp.Organizations, to)
+
 	sums, err := a.DB.GetMonthSums(r.Context(), ids, from, to)
 	if err != nil {
 		renderError(w, r, err)
@@ -104,6 +100,16 @@ func timeRange() (time.Time, time.Time) {
 	// end-time so that we include records for this month, which is incomplete.
 	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -6, 0)
 	return from, now
+}
+
+func processOrgs(orgs []users.Organization, to time.Time) ([]string, map[string]trial.Trial) {
+	var ids []string
+	trialInfo := map[string]trial.Trial{}
+	for _, org := range orgs {
+		ids = append(ids, org.ID)
+		trialInfo[org.ID] = trial.Info(org.TrialExpiresAt, org.CreatedAt, to)
+	}
+	return ids, trialInfo
 }
 
 func months(from, to time.Time) []time.Month {
