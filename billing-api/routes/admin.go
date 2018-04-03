@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
@@ -44,22 +45,8 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	instanceMonthSums := instanceMonthSums{}
-	amountTypesMap := map[string]struct{}{}
-	for instanceID, aggs := range sums {
-		monthSums := monthSums{}
-		for _, agg := range aggs {
-			s, ok := monthSums[agg.BucketStart.Month()]
-			if !ok {
-				s = totalSums{}
-			}
-			s[agg.AmountType] += agg.AmountValue
-			monthSums[agg.BucketStart.Month()] = s
+	instanceMonthSums, amountTypesMap := processSums(sums)
 
-			amountTypesMap[agg.AmountType] = struct{}{}
-		}
-		instanceMonthSums[instanceID] = monthSums
-	}
 	logging.With(r.Context()).Debugf("instanceMonthSums: %#v", instanceMonthSums)
 	var amountTypes []string
 	colors := map[string]string{}
@@ -118,6 +105,26 @@ func months(from, to time.Time) []time.Month {
 		months = append(months, t.Month())
 	}
 	return months
+}
+
+func processSums(sums map[string][]db.Aggregate) (instanceMonthSums, map[string]struct{}) {
+	instanceMonthSums := instanceMonthSums{}
+	amountTypesMap := map[string]struct{}{}
+	for instanceID, aggs := range sums {
+		monthSums := monthSums{}
+		for _, agg := range aggs {
+			s, ok := monthSums[agg.BucketStart.Month()]
+			if !ok {
+				s = totalSums{}
+			}
+			s[agg.AmountType] += agg.AmountValue
+			monthSums[agg.BucketStart.Month()] = s
+
+			amountTypesMap[agg.AmountType] = struct{}{}
+		}
+		instanceMonthSums[instanceID] = monthSums
+	}
+	return instanceMonthSums, amountTypesMap
 }
 
 // colors is taken from material 300-weight colours for a pleasing display.
