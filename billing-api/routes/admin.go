@@ -48,11 +48,6 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var months []time.Month
-	for t := to; t.After(from) || t.Equal(from); t = t.AddDate(0, -1, 0) {
-		months = append(months, t.Month())
-	}
-
 	instanceMonthSums := instanceMonthSums{}
 	amountTypesMap := map[string]struct{}{}
 	for instanceID, aggs := range sums {
@@ -78,6 +73,7 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Strings(amountTypes)
 
+	months := months(from, to)
 	render.HTMLTemplate(w, http.StatusOK, a.adminTemplate, map[string]interface{}{
 		"AdminURL":      a.AdminURL,
 		"Organizations": resp.Organizations,
@@ -108,6 +104,14 @@ func timeRange() (time.Time, time.Time) {
 	// end-time so that we include records for this month, which is incomplete.
 	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -6, 0)
 	return from, now
+}
+
+func months(from, to time.Time) []time.Month {
+	var months []time.Month
+	for t := to; t.After(from) || t.Equal(from); t = t.AddDate(0, -1, 0) {
+		months = append(months, t.Month())
+	}
+	return months
 }
 
 // colors is taken from material 300-weight colours for a pleasing display.
