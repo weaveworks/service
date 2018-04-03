@@ -192,7 +192,7 @@ func TestTrialExpiresPaymentNextMonth(t *testing.T) {
 	if len(invoices) != 1 {
 		t.Errorf("Expected exactly one invoice, got: %v", len(invoices))
 	}
-	unitPrice := unitPrice(ctx, z, t)
+	unitPrice := unitPrices(ctx, z, t)["USD"]
 	expectedAmount := float64(usageA+usageB+usageC) * unitPrice
 	invoiceAmount := invoices[0].Amount
 	if !routes.FloatEqual(invoiceAmount, routes.RoundHalfUp(expectedAmount)) {
@@ -251,7 +251,7 @@ func TestTrialExpiresPaymentNextTwoMonth(t *testing.T) {
 	if len(invoices) != 1 {
 		t.Errorf("Expected exactly one invoice, got: %v", len(invoices))
 	}
-	unitPrice := unitPrice(ctx, z, t)
+	unitPrice := unitPrices(ctx, z, t)["USD"]
 	expectedAmount := float64(usageA+usageB+usageC+usageD) * unitPrice
 	invoiceAmount := invoices[0].Amount
 	if !routes.FloatEqual(invoiceAmount, routes.RoundHalfUp(expectedAmount)) {
@@ -269,13 +269,13 @@ func zuoraClient() *zuora.Zuora {
 	return zuora.New(mockzuora.Config, nil)
 }
 
-func unitPrice(ctx context.Context, z *zuora.Zuora, t *testing.T) float64 {
+func unitPrices(ctx context.Context, z *zuora.Zuora, t *testing.T) map[string]float64 {
 	rates, err := z.GetCurrentRates(ctx)
 	if err != nil {
 		t.Errorf("Failed to fetch price: %v", err)
 	}
-	price := rates["node-seconds"]
-	return price
+	prices := rates["node-seconds"]
+	return prices
 }
 
 func createZuoraAccount(ctx context.Context, z *zuora.Zuora, externalID string, trialExpiry time.Time, BillCycleDay int) (*zuora.Account, error) {
