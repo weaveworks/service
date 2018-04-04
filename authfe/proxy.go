@@ -27,6 +27,8 @@ func newProxy(cfg proxyConfig) (http.Handler, error) {
 	switch cfg.protocol {
 	case "grpc":
 		return httpgrpc_server.NewClient(cfg.hostAndPort)
+	case "https":
+		fallthrough
 	case "http":
 		// Make all transformations outside of the director since
 		// they are also required when proxying websockets
@@ -92,7 +94,7 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.Header.Add("X-Forwarded-Host", r.Host) // Used for previews of UI builds at https://1234.build.dev.weave.works
 	r.Host = p.hostAndPort
 	r.URL.Host = p.hostAndPort
-	r.URL.Scheme = "http"
+	r.URL.Scheme = p.protocol
 
 	logging.With(r.Context()).Debugf("Forwarding %s %s to %s, final URL: %s", r.Method, r.RequestURI, p.hostAndPort, r.URL)
 
