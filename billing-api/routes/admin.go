@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
@@ -23,18 +24,9 @@ func (a *API) healthcheck(w http.ResponseWriter, r *http.Request) {
 
 // Admin renders a website listing all organizations with their aggregations by month.
 func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
-	now := time.Now().UTC()
-	// 6 months back from this month's start. We can't just do (now - 6 months),
-	// as after the 28th, that will skip february, so we have to find the first
-	// of this month, *then* calculate from there. *BUT*, we use now for the
-	// end-time so that we include records for this month, which is incomplete.
-	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -6, 0)
-
 	query := r.URL.Query().Get("query")
-	page, _ := strconv.ParseInt(r.URL.Query().Get("page"), 10, 32)
-	if page <= 0 {
-		page = 1
-	}
+	page := extractOrDefaultPage(r.URL.Query().Get("page"))
+
 	resp, err := a.Users.GetOrganizations(r.Context(), &users.GetOrganizationsRequest{
 		Query:      query,
 		PageNumber: int32(page),
@@ -44,23 +36,70 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var ids []string
-	trialInfo := map[string]trial.Trial{}
-	for _, org := range resp.Organizations {
-		ids = append(ids, org.ID)
-		trialInfo[org.ID] = trial.Info(org.TrialExpiresAt, org.CreatedAt, now)
-	}
-	sums, err := a.DB.GetMonthSums(r.Context(), ids, from, now)
+	from, to := timeRange()
+	ids, trialInfo := processOrgs(resp.Organizations, to)
+
+	sums, err := a.DB.GetMonthSums(r.Context(), ids, from, to)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
+	instanceMonthSums, amountTypesMap := processSums(sums)
+	logging.With(r.Context()).Debugf("instanceMonthSums: %#v", instanceMonthSums)
+	amountTypes, colors := processAmountTypes(amountTypesMap)
+	months := months(from, to)
+	render.HTMLTemplate(w, http.StatusOK, a.adminTemplate, map[string]interface{}{
+		"AdminURL":      a.AdminURL,
+		"Organizations": resp.Organizations,
+		"TrialInfo":     trialInfo,
+		"Months":        months,
+		"AmountTypes":   amountTypes,
+		"Colors":        colors,
+		"sums":          instanceMonthSums,
+		"Page":          page,
+		"NextPage":      page + 1,
+		"Query":         query,
+	})
+}
+
+func extractOrDefaultPage(pageQueryArg string) int64 {
+	page, _ := strconv.ParseInt(pageQueryArg, 10, 32)
+	if page <= 0 {
+		return 1
+	}
+	return page
+}
+
+func timeRange() (time.Time, time.Time) {
+	now := time.Now().UTC()
+	// 6 months back from this month's start. We can't just do (now - 6 months),
+	// as after the 28th, that will skip february, so we have to find the first
+	// of this month, *then* calculate from there. *BUT*, we use now for the
+	// end-time so that we include records for this month, which is incomplete.
+	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -6, 0)
+	return from, now
+}
+
+func processOrgs(orgs []users.Organization, to time.Time) ([]string, map[string]trial.Trial) {
+	var ids []string
+	trialInfo := map[string]trial.Trial{}
+	for _, org := range orgs {
+		ids = append(ids, org.ID)
+		trialInfo[org.ID] = trial.Info(org.TrialExpiresAt, org.CreatedAt, to)
+	}
+	return ids, trialInfo
+}
+
+func months(from, to time.Time) []time.Month {
 	var months []time.Month
-	for t := now; t.After(from) || t.Equal(from); t = t.AddDate(0, -1, 0) {
+	for t := to; t.After(from) || t.Equal(from); t = t.AddDate(0, -1, 0) {
 		months = append(months, t.Month())
 	}
+	return months
+}
 
+func processSums(sums map[string][]db.Aggregate) (instanceMonthSums, map[string]struct{}) {
 	instanceMonthSums := instanceMonthSums{}
 	amountTypesMap := map[string]struct{}{}
 	for instanceID, aggs := range sums {
@@ -77,7 +116,10 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 		}
 		instanceMonthSums[instanceID] = monthSums
 	}
-	logging.With(r.Context()).Debugf("instanceMonthSums: %#v", instanceMonthSums)
+	return instanceMonthSums, amountTypesMap
+}
+
+func processAmountTypes(amountTypesMap map[string]struct{}) ([]string, map[string]string) {
 	var amountTypes []string
 	colors := map[string]string{}
 	for t := range amountTypesMap {
@@ -85,19 +127,7 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 		colors[t] = amountTypeColor(t)
 	}
 	sort.Strings(amountTypes)
-
-	render.HTMLTemplate(w, http.StatusOK, a.adminTemplate, map[string]interface{}{
-		"AdminURL":      a.AdminURL,
-		"Organizations": resp.Organizations,
-		"TrialInfo":     trialInfo,
-		"Months":        months,
-		"AmountTypes":   amountTypes,
-		"Colors":        colors,
-		"sums":          instanceMonthSums,
-		"Page":          page,
-		"NextPage":      page + 1,
-		"Query":         query,
-	})
+	return amountTypes, colors
 }
 
 // colors is taken from material 300-weight colours for a pleasing display.
