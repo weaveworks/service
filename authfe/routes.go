@@ -326,6 +326,8 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/loki", trimPrefix("/admin/loki", c.lokiHost)},
 				{"/jaeger", trimPrefix("/admin/jaeger", c.jaegerHost)},
 				{"/kibana", trimPrefix("/admin/kibana", c.kibanaHost)},
+				{"/elasticsearch", trimPrefix("/admin/elasticsearch", c.elasticsearchHost)},
+				{"/esh", trimPrefix("/admin/esh", c.eshHost)},
 				{"/", http.HandlerFunc(adminRoot)},
 			}),
 			middleware.Merge(

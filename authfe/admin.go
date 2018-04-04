@@ -57,6 +57,7 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 					<li><a href="/admin/billing/invoice-verify">Invoice Verifier</a></li>
 				</ul>
 			</li>
+			<li><a href="/admin/esh/?base_uri=/admin/elasticsearch/">Elasticsearch Head</a></li>
 		</ul>
 	</body>
 </html>
