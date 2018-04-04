@@ -1,6 +1,10 @@
 package routes
 
 import (
+	"bytes"
+	"context"
+	"encoding/csv"
+	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
@@ -20,6 +24,162 @@ type totalSums map[string]int64
 // healthCheck handles a very simple health check
 func (a *API) healthcheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
+}
+
+// ExportAsCSV loads and formats the billing data as a CSV file.
+func (a *API) ExportAsCSV(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("query")
+	from, to, err := parseRange(r.URL.Query().Get("from"), r.URL.Query().Get("to"))
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	orgs, err := a.getOrganizationsCreatedWithinRange(r.Context(), from, to, query)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	ids := orgIDs(orgs)
+	sums, err := a.DB.GetMonthSums(r.Context(), ids, from, to)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+
+	instanceMonthSums, amountTypesMap := processSums(sums)
+	logging.With(r.Context()).Debugf("instanceMonthSums: %#v", instanceMonthSums)
+	amountTypes, _ := processAmountTypes(amountTypesMap)
+	months := months(sixMonthsAgo(to), to)
+
+	csvLines := [][]string{header(months, amountTypes)}
+	for _, org := range orgs {
+		usages := usages(instanceMonthSums[org.ID], months, amountTypes)
+		csvLines = append(csvLines, toCSVLine(org, usages))
+	}
+	renderCSV(w, csvLines)
+}
+
+func header(months []time.Month, amountTypes []string) []string {
+	header := []string{
+		"ExternalID", "Name", "CreatedAt", "FirstSeenConnectedAt", "DeletedAt", "Platform", "Environment",
+		"TrialExpiresAt", "TrialPendingExpiryNotifiedAt", "TrialExpiredNotifiedAt",
+		"BillingEnabled", "RefuseDataAccess", "RefuseDataUpload",
+		"ZuoraAccountNumber", "GCP ExternalAccountID", "GCP SubscriptionLevel", "GCP SubscriptionStatus",
+	}
+	for _, month := range months {
+		for _, amountType := range amountTypes {
+			header = append(header, fmt.Sprintf("%v in %v", amountType, month))
+		}
+	}
+	return header
+}
+
+func usages(usage map[time.Month]map[string]int64, months []time.Month, amountTypes []string) []int64 {
+	var values []int64
+	for _, month := range months {
+		for _, amountType := range amountTypes {
+			values = append(values, usage[month][amountType])
+		}
+	}
+	return values
+}
+
+func toCSVLine(org users.Organization, usages []int64) []string {
+	line := []string{
+		org.ExternalID,
+		org.Name,
+		toString(&org.CreatedAt),
+		toString(org.FirstSeenConnectedAt),
+		toString(&org.DeletedAt),
+		org.Platform,
+		org.Environment,
+		toString(&org.TrialExpiresAt),
+		toString(org.TrialPendingExpiryNotifiedAt),
+		toString(org.TrialExpiredNotifiedAt),
+		strconv.FormatBool(org.HasFeatureFlag("billing")),
+		strconv.FormatBool(org.RefuseDataAccess),
+		strconv.FormatBool(org.RefuseDataUpload),
+		org.ZuoraAccountNumber,
+	}
+	if org.GCP == nil {
+		line = append(line, "")
+		line = append(line, "")
+		line = append(line, "")
+	} else {
+		line = append(line, org.GCP.ExternalAccountID)
+		line = append(line, org.GCP.SubscriptionLevel)
+		line = append(line, org.GCP.SubscriptionStatus)
+	}
+	for _, usage := range usages {
+		line = append(line, strconv.FormatInt(usage, 10))
+	}
+	return line
+}
+
+func toString(t *time.Time) string {
+	if t == nil || t.IsZero() {
+		return ""
+	}
+	return t.Format(time.RFC3339)
+}
+
+func renderCSV(w http.ResponseWriter, csvLines [][]string) {
+	buffer := &bytes.Buffer{}
+	csvWriter := csv.NewWriter(buffer)
+	csvWriter.WriteAll(csvLines)
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", "attachment;filename=billing.csv")
+	w.Write(buffer.Bytes())
+}
+
+func (a *API) getOrganizationsCreatedWithinRange(ctx context.Context, from, to time.Time, query string) ([]users.Organization, error) {
+	var orgs []users.Organization
+	page := int32(1)
+	for {
+		resp, err := a.Users.GetOrganizations(ctx, &users.GetOrganizationsRequest{
+			Query:      query,
+			PageNumber: page,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if len(resp.Organizations) == 0 {
+			return orgs, nil
+		}
+		for _, org := range resp.Organizations {
+			if isWithinRange(org.CreatedAt, from, to) {
+				orgs = append(orgs, org)
+			}
+			if org.CreatedAt.Before(from) {
+				return orgs, nil
+			}
+		}
+		page++
+	}
+}
+
+const isoDateFormat = "2006-01-02"
+
+func parseRange(fromStr, toStr string) (time.Time, time.Time, error) {
+	from, err := time.Parse(isoDateFormat, fromStr)
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+	to, err := time.Parse(isoDateFormat, toStr)
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+	to = to.Add(24 * time.Hour) // Move "to" one day in the future, to include this entire date, regardless of the time, when doing time comparisons.
+	if from.After(to) {
+		return time.Time{}, time.Time{}, fmt.Errorf("%v is after %v", from, to)
+	}
+	return from, to, err
+}
+
+func isWithinRange(date, from, to time.Time) bool {
+	return (date.After(from) || date.Equal(from)) && date.Before(to)
 }
 
 // Admin renders a website listing all organizations with their aggregations by month.
@@ -73,12 +233,23 @@ func extractOrDefaultPage(pageQueryArg string) int64 {
 
 func timeRange() (time.Time, time.Time) {
 	now := time.Now().UTC()
+	return sixMonthsAgo(now), now
+}
+
+func sixMonthsAgo(t time.Time) time.Time {
 	// 6 months back from this month's start. We can't just do (now - 6 months),
 	// as after the 28th, that will skip february, so we have to find the first
 	// of this month, *then* calculate from there. *BUT*, we use now for the
 	// end-time so that we include records for this month, which is incomplete.
-	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -6, 0)
-	return from, now
+	return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -6, 0)
+}
+
+func orgIDs(orgs []users.Organization) []string {
+	var ids []string
+	for _, org := range orgs {
+		ids = append(ids, org.ID)
+	}
+	return ids
 }
 
 func processOrgs(orgs []users.Organization, to time.Time) ([]string, map[string]trial.Trial) {
