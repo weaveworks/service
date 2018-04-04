@@ -209,6 +209,9 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 	logging.With(r.Context()).Debugf("instanceMonthSums: %#v", instanceMonthSums)
 	amountTypes, colors := processAmountTypes(amountTypesMap)
 	months := months(from, to)
+
+	now := time.Now().UTC()
+
 	render.HTMLTemplate(w, http.StatusOK, a.adminTemplate, map[string]interface{}{
 		"AdminURL":      a.AdminURL,
 		"Organizations": resp.Organizations,
@@ -220,6 +223,8 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 		"Page":          page,
 		"NextPage":      page + 1,
 		"Query":         query,
+		"ExportFrom":    now.AddDate(0, -1, 0).Format(isoDateFormat),
+		"ExportTo":      now.Format(isoDateFormat),
 	})
 }
 
@@ -335,7 +340,8 @@ var adminTemplate = `
 				<div class="material-icons">monetization_on</div>
 				Instance/Organization billing
             </span>
-            <div class="mdl-layout-spacer"></div>
+			<div class="mdl-layout-spacer"></div>
+
 			<form action="" method="GET">
 				<input type="hidden" name="page" value="{{.Page}}" />
 				<label class="mdl-button mdl-js-button mdl-button--icon" for="query">
@@ -345,6 +351,22 @@ var adminTemplate = `
 					<input class="mdl-textfield__input" type="text" name="query" id="query" value="{{.Query}}">
 					<label class="mdl-textfield__label" for="query">Search for InstanceID</label>
 				</div>
+			</form>
+
+			<div class="mdl-layout-spacer"></div>
+
+			<form id="export-as-csv" action="/admin/billing.csv" method="GET">
+				<div class="mdl-textfield mdl-js-textfield" style="width:150px;">
+					<input class="mdl-textfield__input" type="text" name="from" id="from" value="{{.ExportFrom}}" maxlength="10" size="10">
+					<label class="mdl-textfield__label" for="from">From (yyyy-MM-dd)</label>
+				</div>
+				<div class="mdl-textfield mdl-js-textfield" style="width:150px;">
+					<input class="mdl-textfield__input" type="text" name="to" id="to" value="{{.ExportTo}}" maxlength="10" size="10">
+					<label class="mdl-textfield__label" for="to">To (yyyy-MM-dd)</label>
+				</div>
+				<button type="submit" form="export-as-csv" value="Submit" class="mdl-button mdl-button--icon">
+					<i class="material-icons">file_download</i>
+				</button>
 			</form>
 		</div>
 		</header>
