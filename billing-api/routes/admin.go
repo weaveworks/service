@@ -26,8 +26,8 @@ func (a *API) healthcheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// ExportAsCSV loads and formats the billing data as a CSV file.
-func (a *API) ExportAsCSV(w http.ResponseWriter, r *http.Request) {
+// ExportOrgsAndUsageAsCSV loads organizations, usage data for them, and formats this data as a CSV file.
+func (a *API) ExportOrgsAndUsageAsCSV(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("query")
 	from, to, err := parseRange(r.URL.Query().Get("from"), r.URL.Query().Get("to"))
 	if err != nil {
