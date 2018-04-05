@@ -14,7 +14,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 	}{
 		// Admin
 		{"admin", "GET", "/", a.Admin},
-		{"admin_csv", "GET", "/admin/billing.csv", a.ExportAsCSV},
+		{"admin_csv", "GET", "/admin/billing.csv", a.ExportOrgsAndUsageAsCSV},
 		{"admin_invoice_verify", "GET", "/admin/billing/invoice-verify", a.InvoiceVerify},
 		{"admin_invoice_verify", "POST", "/admin/billing/invoice-verify", a.PerformInvoiceVerify},
 
