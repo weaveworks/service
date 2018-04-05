@@ -267,7 +267,8 @@ func (s *Server) LogEvent(ctx context.Context, e event.Event) error {
 			return errors.Wrapf(err, "getting config")
 		}
 	}
-	err = notifications.Event(cfg, e)
+
+	err = notifications.Event(cfg, e, instID)
 	if err != nil {
 		return errors.Wrapf(err, "sending notifications")
 	}

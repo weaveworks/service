@@ -59,13 +59,14 @@ func TestRelease_DryRun(t *testing.T) {
 	r := exampleRelease(t)
 	ev := event.Event{Metadata: r, Type: event.EventRelease}
 	r.Spec.Kind = update.ReleaseKindPlan
-	if err := Event(instance.Config{
+	cfg := instance.Config{
 		Settings: config.Instance{
 			Slack: config.Notifier{
 				HookURL: server.URL,
 			},
 		},
-	}, ev); err != nil {
+	}
+	if err := Event(cfg, ev, service.InstanceID("local-test-instance")); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -100,7 +101,7 @@ func TestNotificationEventsURL(t *testing.T) {
 
 	ev := event.Event{Metadata: exampleRelease(t), Type: event.EventRelease}
 
-	err := Event(cfg, ev)
+	err := Event(cfg, ev, service.InstanceID("local-test-instance"))
 
 	if err != nil {
 		t.Fatal(err)

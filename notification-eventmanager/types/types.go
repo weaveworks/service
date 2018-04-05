@@ -69,7 +69,7 @@ type Event struct {
 	Timestamp    time.Time                  `json:"timestamp"`
 	Messages     map[string]json.RawMessage `json:"messages"`
 	Text         *string                    `json:"text"`
-	Metadata     map[string]string          `json:"metadata"`
+	Metadata     interface{}                `json:"metadata"`
 	Attachments  []Attachment               `json:"attachments"`
 }
 

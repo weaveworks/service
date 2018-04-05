@@ -128,17 +128,14 @@ func generateStackDriverMessage(e types.Event) googleLogging.Entry {
 	entry := googleLogging.Entry{
 		Timestamp: e.Timestamp,
 		Payload: map[string]interface{}{
-			"text":  text,
-			"links": links,
+			"text":     text,
+			"links":    links,
+			"metadata": e.Metadata,
 		},
 		Labels: map[string]string{
 			"instance_name": e.InstanceName,
 			"event_type":    e.Type,
 		},
-	}
-
-	for k, v := range e.Metadata {
-		entry.Labels[k] = v
 	}
 
 	return entry
