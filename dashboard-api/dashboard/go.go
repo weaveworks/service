@@ -21,12 +21,12 @@ var goRuntimeDashboard = Dashboard{
 				Title: "Heap Size",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitBytes},
-				Query: `go_memstats_heap_alloc_bytes{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}`,
+				Query: `avg_over_time(go_memstats_heap_alloc_bytes{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}, {
 				Title: "Number of Heap Objects",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `go_memstats_heap_objects{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}`,
+				Query: `avg_over_time(go_memstats_heap_objects{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}},
 		}, {
 			Panels: []Panel{{
@@ -48,14 +48,14 @@ var goRuntimeDashboard = Dashboard{
 				Title: "Time spent in GC each Second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitSeconds},
-				Query: `irate(go_gc_duration_seconds_sum{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
+				Query: `rate(go_gc_duration_seconds_sum{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}},
 		}, {
 			Panels: []Panel{{
 				Title: "Number of GC Cycles per Second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `irate(go_gc_duration_seconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
+				Query: `rate(go_gc_duration_seconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}, {
 				Title: "Duration (75 percentile)",
 				Type:  PanelLine,
