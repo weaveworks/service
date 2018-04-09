@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"github.com/weaveworks/service/users/externalids"
 	"github.com/weaveworks/service/users/login"
 
 	"github.com/stretchr/testify/assert"
@@ -82,6 +83,17 @@ func GetOrg(t *testing.T, db db.DB) (*users.User, *users.Organization) {
 	user := GetUser(t, db)
 	org := CreateOrgForUser(t, db, user)
 	return user, org
+}
+
+// GetOrgAndTeam makes org with a random ExternalID, user and a team for testing
+func GetOrgAndTeam(t *testing.T, db db.DB) (*users.User, *users.Organization, *users.Team) {
+	teamName := strings.Title(externalids.Generate())
+	team, err := db.CreateTeam(context.Background(), teamName)
+	assert.NoError(t, err)
+	team.Name = teamName
+	user := GetUser(t, db)
+	org := CreateOrgForTeam(t, db, user, team)
+	return user, org, team
 }
 
 // GetOrgForTeam makes org with a random ExternalID, user and a team for testing

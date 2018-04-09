@@ -400,6 +400,14 @@ func (t timed) CreateOrganizationWithTeam(ctx context.Context, ownerID, external
 	return
 }
 
+func (t timed) GetSummary(ctx context.Context) (entries []*users.SummaryEntry, err error) {
+	t.timeRequest(ctx, "GetSummary", func(ctx context.Context) error {
+		entries, err = t.d.GetSummary(ctx)
+		return err
+	})
+	return
+}
+
 func (t timed) Close(ctx context.Context) error {
 	return t.timeRequest(ctx, "Close", func(ctx context.Context) error {
 		return t.d.Close(ctx)

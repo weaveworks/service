@@ -374,3 +374,11 @@ func (a *usersServer) UpdateGCP(ctx context.Context, req *users.UpdateGCPRequest
 	}
 	return &users.UpdateGCPResponse{}, nil
 }
+
+func (a *usersServer) GetSummary(ctx context.Context, _ *users.Empty) (*users.Summary, error) {
+	entries, err := a.db.GetSummary(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &users.Summary{Entries: entries}, nil
+}

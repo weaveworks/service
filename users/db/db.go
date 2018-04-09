@@ -119,6 +119,10 @@ type DB interface {
 	AddUserToTeam(_ context.Context, userID, teamID string) error
 	CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error)
 
+	// GetSummary exports a summary of the DB.
+	// WARNING: this is a relatively expensive query, and basically exports the entire DB.
+	GetSummary(ctx context.Context) ([]*users.SummaryEntry, error)
+
 	Close(ctx context.Context) error
 }
 

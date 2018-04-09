@@ -485,3 +485,37 @@ func Test_GetOrganization_NoIDSet(t *testing.T) {
 	assert.Nil(t, org)
 	assert.NotNil(t, err)
 }
+
+func TestGetSummary(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+	user, org, team := dbtest.GetOrgAndTeam(t, database)
+	summary, err := server.GetSummary(ctx, &users.Empty{})
+	assert.NoError(t, err)
+	assert.Equal(t, len(summary.Entries), 1)
+	entry := summary.Entries[0]
+	assert.Equal(t, team.ExternalID, entry.TeamExternalID)
+	assert.Equal(t, team.Name, entry.TeamName)
+	assert.Equal(t, org.ID, entry.OrgID)
+	assert.Equal(t, org.ExternalID, entry.OrgExternalID)
+	assert.Equal(t, org.Name, entry.OrgName)
+	assert.Equal(t, []string{user.Email}, entry.Emails)
+	assert.Equal(t, org.CreatedAt, entry.OrgCreatedAt)
+	assert.Equal(t, org.FirstSeenConnectedAt, entry.FirstSeenConnectedAt)
+	assert.Equal(t, org.Platform, entry.Platform)
+	assert.Equal(t, org.Environment, entry.Environment)
+	assert.Equal(t, org.TrialExpiresAt, entry.TrialExpiresAt)
+	assert.Equal(t, org.TrialPendingExpiryNotifiedAt, entry.TrialPendingExpiryNotifiedAt)
+	assert.Equal(t, org.TrialExpiredNotifiedAt, entry.TrialExpiredNotifiedAt)
+	assert.Equal(t, org.HasFeatureFlag(featureflag.Billing), entry.BillingEnabled)
+	assert.Equal(t, org.RefuseDataAccess, entry.RefuseDataAccess)
+	assert.Equal(t, org.RefuseDataUpload, entry.RefuseDataUpload)
+	assert.Equal(t, org.ZuoraAccountNumber, entry.ZuoraAccountNumber)
+	assert.Equal(t, org.ZuoraAccountCreatedAt, entry.ZuoraAccountCreatedAt)
+	if org.GCP != nil {
+		assert.Equal(t, org.GCP.ExternalAccountID, entry.GCPAccountExternalID)
+		assert.Equal(t, org.GCP.CreatedAt, entry.GCPAccountCreatedAt)
+		assert.Equal(t, org.GCP.SubscriptionLevel, entry.GCPAccountSubscriptionLevel)
+		assert.Equal(t, org.GCP.SubscriptionStatus, entry.GCPAccountSubscriptionStatus)
+	}
+}

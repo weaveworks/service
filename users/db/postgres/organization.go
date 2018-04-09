@@ -918,3 +918,146 @@ func (o organizationsByCreatedAt) Less(i, j int) bool { return o[i].CreatedAt.Af
 func toNullString(s string) sql.NullString {
 	return sql.NullString{String: s, Valid: s != ""}
 }
+
+// GetSummary exports a summary of the DB.
+// WARNING: this is a relatively expensive query, and basically exports the entire DB.
+// DISCLAIMER: In no event shall the authors be liable for any eye-bleed occurring
+//             while reading the below SQL query. Sincere apologies, though.
+func (d DB) GetSummary(ctx context.Context) ([]*users.SummaryEntry, error) {
+	rows, err := d.QueryContext(ctx, `
+		SELECT team_external_id, team_name, org_id, org_external_id, org_name,
+		ARRAY_AGG(DISTINCT email ORDER BY email) AS emails,
+		org_created_at, first_seen_connected_at, platform, environment,
+		trial_expires_at, trial_pending_expiry_notified_at, trial_expired_notified_at,
+		billing_enabled, refuse_data_access, refuse_data_upload,
+		zuora_account_number, zuora_account_created_at,
+		gcp_account_external_id, gcp_account_created_at, gcp_account_status, gcp_account_plan
+
+		FROM (
+		SELECT
+		teams.external_id AS team_external_id,
+		teams.name AS team_name,
+		organizations.id AS org_id,
+		organizations.external_id AS org_external_id,
+		organizations.name AS org_name,
+		users.email,
+		organizations.created_at AS org_created_at,
+		organizations.first_seen_connected_at,
+		organizations.platform,
+		organizations.environment,
+		organizations.trial_expires_at,
+		organizations.trial_pending_expiry_notified_at,
+		organizations.trial_expired_notified_at,
+		CASE WHEN array_position(organizations.feature_flags, 'billing') IS NULL THEN false ELSE true END AS billing_enabled,
+		organizations.refuse_data_access,
+		organizations.refuse_data_upload,
+		organizations.zuora_account_number,
+		organizations.zuora_account_created_at,
+		gcp_accounts.external_account_id AS gcp_account_external_id,
+		gcp_accounts.created_at AS gcp_account_created_at,
+		gcp_accounts.subscription_status AS gcp_account_status,
+		gcp_accounts.subscription_level AS gcp_account_plan
+		FROM organizations
+		LEFT JOIN teams        ON teams.id = organizations.team_id
+		LEFT JOIN gcp_accounts ON gcp_accounts.id = organizations.gcp_account_id
+		INNER JOIN memberships  ON memberships.organization_id = organizations.id
+		INNER JOIN users        ON users.id = memberships.user_id
+		WHERE
+		users.deleted_at IS NULL AND
+		memberships.deleted_at IS NULL AND
+		organizations.deleted_at IS NULL
+
+		UNION
+
+		SELECT
+		teams.external_id AS team_external_id,
+		teams.name AS team_name,
+		organizations.id AS org_id,
+		organizations.external_id AS org_external_id,
+		organizations.name AS org_name,
+		users.email,
+		organizations.created_at AS org_created_at,
+		organizations.first_seen_connected_at,
+		organizations.platform,
+		organizations.environment,
+		organizations.trial_expires_at,
+		organizations.trial_pending_expiry_notified_at,
+		organizations.trial_expired_notified_at,
+		CASE WHEN array_position(organizations.feature_flags, 'billing') IS NULL THEN false ELSE true END AS billing_enabled,
+		organizations.refuse_data_access,
+		organizations.refuse_data_upload,
+		organizations.zuora_account_number,
+		organizations.zuora_account_created_at,
+		gcp_accounts.external_account_id AS gcp_account_external_id,
+		gcp_accounts.created_at AS gcp_account_created_at,
+		gcp_accounts.subscription_status AS gcp_account_status,
+		gcp_accounts.subscription_level AS gcp_account_plan
+		FROM organizations
+		LEFT JOIN teams             ON teams.id = organizations.team_id
+		LEFT JOIN gcp_accounts      ON gcp_accounts.id = organizations.gcp_account_id
+		INNER JOIN team_memberships ON team_memberships.team_id = organizations.team_id
+		INNER JOIN users            ON users.id = team_memberships.user_id
+		WHERE
+		users.deleted_at IS NULL AND
+		team_memberships.deleted_at IS NULL AND
+		organizations.deleted_at IS NULL
+
+		) AS t
+
+		GROUP BY team_external_id, team_name, org_id, org_external_id, org_name, org_created_at, first_seen_connected_at, platform, environment,
+		trial_expires_at, trial_pending_expiry_notified_at, trial_expired_notified_at,
+		billing_enabled, refuse_data_access, refuse_data_upload,
+		zuora_account_number, zuora_account_created_at,
+		gcp_account_external_id, gcp_account_created_at, gcp_account_status, gcp_account_plan
+		ORDER BY org_created_at DESC;`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return d.scanSummaryEntries(rows)
+}
+
+func (d DB) scanSummaryEntries(rows *sql.Rows) ([]*users.SummaryEntry, error) {
+	entries := []*users.SummaryEntry{}
+	for rows.Next() {
+		entry, err := d.scanSummaryEntry(rows)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, entry)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+	return entries, nil
+}
+
+func (d DB) scanSummaryEntry(row squirrel.RowScanner) (*users.SummaryEntry, error) {
+	e := &users.SummaryEntry{}
+	var teamExternalID, teamName, orgID, orgExternalID, orgName, platform, environment, zuoraAccountNumber,
+		gcpAccountExternalID, gcpAccountSubscriptionStatus, gcpAccountSubscriptionlevel sql.NullString
+	var orgCreatedAt, gcpAccountCreatedAt pq.NullTime
+
+	if err := row.Scan(
+		&teamExternalID, &teamName, &orgID, &orgExternalID, &orgName, pq.Array(&e.Emails), &orgCreatedAt, &e.FirstSeenConnectedAt,
+		&platform, &environment, &e.TrialExpiresAt, &e.TrialPendingExpiryNotifiedAt, &e.TrialExpiredNotifiedAt,
+		&e.BillingEnabled, &e.RefuseDataAccess, &e.RefuseDataUpload, &zuoraAccountNumber, &e.ZuoraAccountCreatedAt,
+		&gcpAccountExternalID, &gcpAccountCreatedAt, &gcpAccountSubscriptionStatus, &gcpAccountSubscriptionlevel,
+	); err != nil {
+		return nil, err
+	}
+	e.TeamExternalID = teamExternalID.String
+	e.TeamName = teamName.String
+	e.OrgID = orgID.String
+	e.OrgExternalID = orgExternalID.String
+	e.OrgName = orgName.String
+	e.OrgCreatedAt = orgCreatedAt.Time
+	e.Platform = platform.String
+	e.Environment = environment.String
+	e.ZuoraAccountNumber = zuoraAccountNumber.String
+	e.GCPAccountExternalID = gcpAccountExternalID.String
+	e.GCPAccountCreatedAt = gcpAccountCreatedAt.Time
+	e.GCPAccountSubscriptionStatus = gcpAccountSubscriptionStatus.String
+	e.GCPAccountSubscriptionLevel = gcpAccountSubscriptionlevel.String
+	return e, nil
+}

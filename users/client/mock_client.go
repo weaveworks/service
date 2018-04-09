@@ -119,3 +119,8 @@ func (MockClient) GetGCP(ctx context.Context, in *users.GetGCPRequest, opts ...g
 func (MockClient) UpdateGCP(ctx context.Context, in *users.UpdateGCPRequest, opts ...grpc.CallOption) (*users.UpdateGCPResponse, error) {
 	return &users.UpdateGCPResponse{}, nil
 }
+
+// GetSummary exports a summary of the DB.
+func (MockClient) GetSummary(ctx context.Context, in *users.Empty, opts ...grpc.CallOption) (*users.Summary, error) {
+	return &users.Summary{}, nil
+}

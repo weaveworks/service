@@ -284,6 +284,11 @@ func (t traced) CreateOrganizationWithTeam(ctx context.Context, ownerID, externa
 	return t.d.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, token, teamExternalID, teamName, trialExpiresAt)
 }
 
+func (t traced) GetSummary(ctx context.Context) (entries []*users.SummaryEntry, err error) {
+	defer func() { t.trace("GetSummary", entries, err) }()
+	return t.d.GetSummary(ctx)
+}
+
 func (t traced) Close(ctx context.Context) (err error) {
 	defer func() { t.trace("Close", err) }()
 	return t.d.Close(ctx)
