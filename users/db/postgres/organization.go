@@ -11,6 +11,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 
+	"github.com/weaveworks/service/common/featureflag"
 	timeutil "github.com/weaveworks/service/common/time"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/filter"
@@ -815,7 +816,7 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccountI
 			return err
 		}
 
-		return tx.AddFeatureFlag(ctx, externalID, users.BillingFeatureFlag)
+		return tx.AddFeatureFlag(ctx, externalID, featureflag.Billing)
 	})
 }
 
