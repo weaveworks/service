@@ -2,12 +2,12 @@ package routes
 
 import (
 	"bytes"
-	"context"
 	"encoding/csv"
 	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/weaveworks/common/logging"
@@ -29,21 +29,20 @@ func (a *API) healthcheck(w http.ResponseWriter, r *http.Request) {
 
 // ExportOrgsAndUsageAsCSV loads organizations, usage data for them, and formats this data as a CSV file.
 func (a *API) ExportOrgsAndUsageAsCSV(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query().Get("query")
 	from, to, err := parseRange(r.URL.Query().Get("from"), r.URL.Query().Get("to"))
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	orgs, err := a.getOrganizationsCreatedWithinRange(r.Context(), from, to, query)
+	summary, err := a.Users.GetSummary(r.Context(), &users.Empty{})
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
-	ids := orgIDs(orgs)
-	sums, err := a.DB.GetMonthSums(r.Context(), ids, from, to)
+	orgIDs := orgIDs(summary.Entries)
+	sums, err := a.DB.GetMonthSums(r.Context(), orgIDs, from, to)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -55,19 +54,20 @@ func (a *API) ExportOrgsAndUsageAsCSV(w http.ResponseWriter, r *http.Request) {
 	months := months(sixMonthsAgo(to), to)
 
 	csvLines := [][]string{header(months, amountTypes)}
-	for _, org := range orgs {
-		usages := usages(instanceMonthSums[org.ID], months, amountTypes)
-		csvLines = append(csvLines, toCSVLine(org, usages))
+	for _, entry := range summary.Entries {
+		usages := usages(instanceMonthSums[entry.OrgID], months, amountTypes)
+		csvLines = append(csvLines, toCSVLine(entry, usages))
 	}
 	renderCSV(w, csvLines)
 }
 
 func header(months []time.Month, amountTypes []string) []string {
 	header := []string{
-		"ExternalID", "Name", "CreatedAt", "FirstSeenConnectedAt", "DeletedAt", "Platform", "Environment",
+		"TeamExternalID", "TeamName", "OrgID", "OrgExternalID", "OrgName", "OrgCreatedAt",
+		"Emails", "FirstSeenConnectedAt", "Platform", "Environment",
 		"TrialExpiresAt", "TrialPendingExpiryNotifiedAt", "TrialExpiredNotifiedAt",
-		"BillingEnabled", "RefuseDataAccess", "RefuseDataUpload",
-		"ZuoraAccountNumber", "GCP ExternalAccountID", "GCP SubscriptionLevel", "GCP SubscriptionStatus",
+		"BillingEnabled", "RefuseDataAccess", "RefuseDataUpload", "ZuoraAccountNumber", "ZuoraAccountCreatedAt",
+		"GCPAccountExternalID", "GCPAccountCreatedAt", "GCPAccountSubscriptionLevel", "GCPAccountSubscriptionStatus",
 	}
 	for _, month := range months {
 		for _, amountType := range amountTypes {
@@ -87,31 +87,30 @@ func usages(usage map[time.Month]map[string]int64, months []time.Month, amountTy
 	return values
 }
 
-func toCSVLine(org users.Organization, usages []int64) []string {
+func toCSVLine(entry *users.SummaryEntry, usages []int64) []string {
 	line := []string{
-		org.ExternalID,
-		org.Name,
-		toString(&org.CreatedAt),
-		toString(org.FirstSeenConnectedAt),
-		toString(&org.DeletedAt),
-		org.Platform,
-		org.Environment,
-		toString(&org.TrialExpiresAt),
-		toString(org.TrialPendingExpiryNotifiedAt),
-		toString(org.TrialExpiredNotifiedAt),
-		strconv.FormatBool(org.HasFeatureFlag(featureflag.Billing)),
-		strconv.FormatBool(org.RefuseDataAccess),
-		strconv.FormatBool(org.RefuseDataUpload),
-		org.ZuoraAccountNumber,
-	}
-	if org.GCP == nil {
-		line = append(line, "")
-		line = append(line, "")
-		line = append(line, "")
-	} else {
-		line = append(line, org.GCP.ExternalAccountID)
-		line = append(line, org.GCP.SubscriptionLevel)
-		line = append(line, org.GCP.SubscriptionStatus)
+		entry.TeamExternalID,
+		entry.TeamName,
+		entry.OrgID,
+		entry.OrgExternalID,
+		entry.OrgName,
+		toString(&entry.OrgCreatedAt),
+		strings.Join(entry.Emails, " ; "),
+		toString(entry.FirstSeenConnectedAt),
+		entry.Platform,
+		entry.Environment,
+		toString(&entry.TrialExpiresAt),
+		toString(entry.TrialPendingExpiryNotifiedAt),
+		toString(entry.TrialExpiredNotifiedAt),
+		strconv.FormatBool(entry.BillingEnabled),
+		strconv.FormatBool(entry.RefuseDataAccess),
+		strconv.FormatBool(entry.RefuseDataUpload),
+		entry.ZuoraAccountNumber,
+		toString(entry.ZuoraAccountCreatedAt),
+		entry.GCPAccountExternalID,
+		toString(&entry.GCPAccountCreatedAt),
+		entry.GCPAccountSubscriptionLevel,
+		entry.GCPAccountSubscriptionStatus,
 	}
 	for _, usage := range usages {
 		line = append(line, strconv.FormatInt(usage, 10))
@@ -132,33 +131,8 @@ func renderCSV(w http.ResponseWriter, csvLines [][]string) {
 	csvWriter.WriteAll(csvLines)
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", "attachment;filename=billing.csv")
+	w.WriteHeader(http.StatusOK)
 	w.Write(buffer.Bytes())
-}
-
-func (a *API) getOrganizationsCreatedWithinRange(ctx context.Context, from, to time.Time, query string) ([]users.Organization, error) {
-	var orgs []users.Organization
-	page := int32(1)
-	for {
-		resp, err := a.Users.GetOrganizations(ctx, &users.GetOrganizationsRequest{
-			Query:      query,
-			PageNumber: page,
-		})
-		if err != nil {
-			return nil, err
-		}
-		if len(resp.Organizations) == 0 {
-			return orgs, nil
-		}
-		for _, org := range resp.Organizations {
-			if isWithinRange(org.CreatedAt, from, to) {
-				orgs = append(orgs, org)
-			}
-			if org.CreatedAt.Before(from) {
-				return orgs, nil
-			}
-		}
-		page++
-	}
 }
 
 const isoDateFormat = "2006-01-02"
@@ -251,10 +225,10 @@ func sixMonthsAgo(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -6, 0)
 }
 
-func orgIDs(orgs []users.Organization) []string {
+func orgIDs(entries []*users.SummaryEntry) []string {
 	var ids []string
-	for _, org := range orgs {
-		ids = append(ids, org.ID)
+	for _, entry := range entries {
+		ids = append(ids, entry.OrgID)
 	}
 	return ids
 }
