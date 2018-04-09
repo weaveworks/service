@@ -21,12 +21,12 @@ var goRuntimeDashboard = Dashboard{
 				Title: "Heap Size",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitBytes},
-				Query: `go_memstats_heap_alloc_bytes{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}`,
+				Query: `avg_over_time(go_memstats_heap_alloc_bytes{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}, {
 				Title: "Number of Heap Objects",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `go_memstats_heap_objects{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}`,
+				Query: `avg_over_time(go_memstats_heap_objects{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}},
 		}, {
 			Panels: []Panel{{

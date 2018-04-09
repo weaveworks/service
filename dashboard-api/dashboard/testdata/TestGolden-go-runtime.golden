@@ -30,7 +30,7 @@
               "unit": {
                 "format": "bytes"
               },
-              "query": "go_memstats_heap_alloc_bytes{kubernetes_namespace='default',_weave_service='authfe'}"
+              "query": "avg_over_time(go_memstats_heap_alloc_bytes{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
             },
             {
               "title": "Number of Heap Objects",
@@ -38,7 +38,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "go_memstats_heap_objects{kubernetes_namespace='default',_weave_service='authfe'}"
+              "query": "avg_over_time(go_memstats_heap_objects{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
             }
           ]
         },
