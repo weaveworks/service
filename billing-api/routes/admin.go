@@ -13,6 +13,7 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-api/trial"
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
 )
@@ -98,7 +99,7 @@ func toCSVLine(org users.Organization, usages []int64) []string {
 		toString(&org.TrialExpiresAt),
 		toString(org.TrialPendingExpiryNotifiedAt),
 		toString(org.TrialExpiredNotifiedAt),
-		strconv.FormatBool(org.HasFeatureFlag("billing")),
+		strconv.FormatBool(org.HasFeatureFlag(featureflag.Billing)),
 		strconv.FormatBool(org.RefuseDataAccess),
 		strconv.FormatBool(org.RefuseDataUpload),
 		org.ZuoraAccountNumber,
@@ -213,18 +214,19 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().UTC()
 
 	render.HTMLTemplate(w, http.StatusOK, a.adminTemplate, map[string]interface{}{
-		"AdminURL":      a.AdminURL,
-		"Organizations": resp.Organizations,
-		"TrialInfo":     trialInfo,
-		"Months":        months,
-		"AmountTypes":   amountTypes,
-		"Colors":        colors,
-		"sums":          instanceMonthSums,
-		"Page":          page,
-		"NextPage":      page + 1,
-		"Query":         query,
-		"ExportFrom":    now.AddDate(0, -1, 0).Format(isoDateFormat),
-		"ExportTo":      now.Format(isoDateFormat),
+		"AdminURL":           a.AdminURL,
+		"Organizations":      resp.Organizations,
+		"TrialInfo":          trialInfo,
+		"Months":             months,
+		"AmountTypes":        amountTypes,
+		"Colors":             colors,
+		"sums":               instanceMonthSums,
+		"Page":               page,
+		"NextPage":           page + 1,
+		"Query":              query,
+		"ExportFrom":         now.AddDate(0, -1, 0).Format(isoDateFormat),
+		"ExportTo":           now.Format(isoDateFormat),
+		"BillingFeatureFlag": featureflag.Billing,
 	})
 }
 
@@ -326,6 +328,7 @@ var adminTemplate = `
 {{ $sums := .sums }}
 {{ $colors := .Colors }}
 {{ $trialInfo := .TrialInfo}}
+{{ $billing := .BillingFeatureFlag }}
 <html>
 	<head>
 		<title>Instance/Organization Billing</title>
@@ -410,7 +413,7 @@ var adminTemplate = `
 							<td class="mdl-data-table__cell--non-numeric">
 								<a href="{{ $admurl }}/users/organizations?query=instance%3A{{ $org.ExternalID }}">{{ $org.ExternalID }}</a>
 							</td>
-							<td class="mdl-data-table__cell--non-numeric">{{$org.HasFeatureFlag "billing"}}</td>
+							<td class="mdl-data-table__cell--non-numeric">{{$org.HasFeatureFlag $billing}}</td>
 							<td class="mdl-data-table__cell--non-numeric">{{with (index $trialInfo $org.ID)}}{{.Remaining}}/{{.Length}} days{{else}}err{{end}}</td>
 							{{ range $k, $month := $months -}}
 							  {{- range $amountType, $color := $colors -}}

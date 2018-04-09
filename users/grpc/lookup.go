@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/orgs"
 
 	"github.com/weaveworks/service/users"
@@ -153,7 +154,7 @@ func (a *usersServer) GetBillableOrganizations(ctx context.Context, req *users.G
 			filter.Or(filter.ZuoraAccount(true), filter.GCPSubscription(true)),
 			filter.TrialExpiredBy(req.Now),
 			// While billing is in development, only pick orgs with ff `billing`
-			filter.HasFeatureFlag(users.BillingFeatureFlag),
+			filter.HasFeatureFlag(featureflag.Billing),
 		),
 		0,
 	)
@@ -174,7 +175,7 @@ func (a *usersServer) GetTrialOrganizations(ctx context.Context, req *users.GetT
 		filter.And(
 			filter.GCP(false), // Trial is never active for GCP instances but we still make sure here.
 			filter.TrialActiveAt(req.Now),
-			filter.HasFeatureFlag(users.BillingFeatureFlag),
+			filter.HasFeatureFlag(featureflag.Billing),
 		),
 		0,
 	)

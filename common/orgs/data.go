@@ -3,6 +3,7 @@ package orgs
 import (
 	"time"
 
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/filter"
 )
@@ -21,7 +22,7 @@ func DelinquentFilter(now time.Time) filter.Organization {
 		filter.ZuoraAccount(false),
 		filter.GCP(false),
 		filter.TrialExpiredBy(now),
-		filter.HasFeatureFlag(users.BillingFeatureFlag),
+		filter.HasFeatureFlag(featureflag.Billing),
 	)
 }
 

@@ -13,6 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/client"
 	"github.com/weaveworks/service/users/db/dbtest"
@@ -55,7 +56,7 @@ func TestAPI_adminChangeOrgFields_BillingFeatureFlags(t *testing.T) {
 	prevExpires := time.Now()
 	database.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{TrialExpiresAt: &prevExpires})
 
-	assert.False(t, org.HasFeatureFlag("billing"))
+	assert.False(t, org.HasFeatureFlag(featureflag.Billing))
 
 	ts := httptest.NewServer(app.Handler)
 	r, err := http.PostForm(
@@ -69,7 +70,7 @@ func TestAPI_adminChangeOrgFields_BillingFeatureFlags(t *testing.T) {
 
 	newOrg, _ := database.FindOrganizationByID(ctx, org.ExternalID)
 	assert.True(t, prevExpires.Before(newOrg.TrialExpiresAt))
-	assert.True(t, newOrg.HasFeatureFlag("billing"))
+	assert.True(t, newOrg.HasFeatureFlag(featureflag.Billing))
 	assert.True(t, newOrg.HasFeatureFlag("foo"))
 	assert.True(t, newOrg.HasFeatureFlag("moo"))
 }

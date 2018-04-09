@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
@@ -406,7 +407,7 @@ func setZuoraAccount(t *testing.T, org *users.Organization, account string) *use
 // Won't be necessary after we remove the billing feature flag.
 func makeBillingOrganization(t *testing.T) *users.Organization {
 	_, org := dbtest.GetOrg(t, database)
-	err := database.AddFeatureFlag(ctx, org.ExternalID, users.BillingFeatureFlag)
+	err := database.AddFeatureFlag(ctx, org.ExternalID, featureflag.Billing)
 	require.NoError(t, err)
 	newOrg, err := database.FindOrganizationByID(ctx, org.ExternalID)
 	require.NoError(t, err)

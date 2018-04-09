@@ -9,6 +9,7 @@ import (
 
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/service/billing-enforcer/job"
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/mock_users"
@@ -115,7 +116,7 @@ func TestEnforce_ProcessDelinquentOrganizations_refuseData(t *testing.T) {
 			Organizations: []users.Organization{
 				{
 					ExternalID:             "refuse-access",
-					FeatureFlags:           []string{"billing"},
+					FeatureFlags:           []string{featureflag.Billing},
 					TrialExpiredNotifiedAt: &now,
 					FirstSeenConnectedAt:   &now,
 
@@ -125,7 +126,7 @@ func TestEnforce_ProcessDelinquentOrganizations_refuseData(t *testing.T) {
 				},
 				{
 					ExternalID:             "refuse-access-already",
-					FeatureFlags:           []string{"billing"},
+					FeatureFlags:           []string{featureflag.Billing},
 					TrialExpiredNotifiedAt: &now,
 					FirstSeenConnectedAt:   &now,
 
@@ -135,7 +136,7 @@ func TestEnforce_ProcessDelinquentOrganizations_refuseData(t *testing.T) {
 				},
 				{
 					ExternalID:             "refuse-upload",
-					FeatureFlags:           []string{"billing"},
+					FeatureFlags:           []string{featureflag.Billing},
 					TrialExpiredNotifiedAt: &now,
 					FirstSeenConnectedAt:   &now,
 
@@ -145,7 +146,7 @@ func TestEnforce_ProcessDelinquentOrganizations_refuseData(t *testing.T) {
 				},
 				{
 					ExternalID:             "refuse-upload-already",
-					FeatureFlags:           []string{"billing"},
+					FeatureFlags:           []string{featureflag.Billing},
 					TrialExpiredNotifiedAt: &now,
 					FirstSeenConnectedAt:   &now,
 

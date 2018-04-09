@@ -10,6 +10,7 @@ import (
 
 	"github.com/lib/pq"
 
+	"github.com/weaveworks/service/common/featureflag"
 	timeutil "github.com/weaveworks/service/common/time"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/filter"
@@ -629,8 +630,8 @@ func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccount
 	o.TrialExpiresAt = time.Now()
 
 	// Enable billing otherwise we won't upload usage
-	if !o.HasFeatureFlag(users.BillingFeatureFlag) {
-		o.FeatureFlags = append(o.FeatureFlags, users.BillingFeatureFlag)
+	if !o.HasFeatureFlag(featureflag.Billing) {
+		o.FeatureFlags = append(o.FeatureFlags, featureflag.Billing)
 	}
 
 	return nil

@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/common/validation"
@@ -137,13 +138,13 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 		return err
 	}
 	if a.billingEnabler.IsEnabled() {
-		err = a.db.AddFeatureFlag(ctx, view.ExternalID, users.BillingFeatureFlag)
+		err = a.db.AddFeatureFlag(ctx, view.ExternalID, featureflag.Billing)
 		if err != nil {
 			return err
 		}
 		log.Infof("Billing enabled for %v/%v/%v.", org.ID, view.ExternalID, view.Name)
 		// Manually append to object for data refusal check below
-		org.FeatureFlags = append(org.FeatureFlags, users.BillingFeatureFlag)
+		org.FeatureFlags = append(org.FeatureFlags, featureflag.Billing)
 	}
 
 	if orgs.ShouldRefuseDataAccess(*org, now) {
@@ -344,7 +345,7 @@ func (a *API) setOrgFeatureFlags(ctx context.Context, orgExternalID string, flag
 	sort.Strings(sortedFlags)
 
 	// Track whether we are about to enable billing
-	enablingBilling, org, err := a.enablingOrgFeatureFlag(ctx, orgExternalID, uniqueFlags, users.BillingFeatureFlag)
+	enablingBilling, org, err := a.enablingOrgFeatureFlag(ctx, orgExternalID, uniqueFlags, featureflag.Billing)
 	if err != nil {
 		return err
 	}

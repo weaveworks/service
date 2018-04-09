@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
@@ -160,11 +161,12 @@ func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 	}
 
 	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
-		"Organizations": organizations,
-		"Query":         r.FormValue("query"),
-		"Page":          page,
-		"NextPage":      page + 1,
-		"Message":       r.FormValue("msg"),
+		"Organizations":      organizations,
+		"Query":              r.FormValue("query"),
+		"Page":               page,
+		"NextPage":           page + 1,
+		"Message":            r.FormValue("msg"),
+		"BillingFeatureFlag": featureflag.Billing,
 	})
 	if err != nil {
 		renderError(w, r, err)

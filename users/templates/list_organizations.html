@@ -1,3 +1,4 @@
+{{ $billing := .BillingFeatureFlag }}
 <!doctype html>
 <html>
  <base href="/admin/users/"/>
@@ -107,7 +108,7 @@
           </form>
         </td>
           <td class="mdl-data-table__cell--non-numeric">
-              {{if .HasFeatureFlag "billing" }}
+              {{if .HasFeatureFlag $billing }}
               <form action="organizations/{{.ExternalID}}/trial" method="POST">
                   <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
                   <input type="number" name="remaining" value="{{.TrialRemaining}}" min="{{.TrialRemaining}}" style="width:5em"/>

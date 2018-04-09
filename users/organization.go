@@ -19,9 +19,6 @@ const (
 	// instance's data upload is restricted.
 	TrialRefuseDataUploadAfter = 15 * 24 * time.Hour
 
-	// BillingFeatureFlag enables billing for an organization
-	BillingFeatureFlag = "billing"
-
 	defaultTeamNameTemplate = "%v Team"
 )
 
