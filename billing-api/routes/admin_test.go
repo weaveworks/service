@@ -13,6 +13,7 @@ import (
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-api/db/mock_db"
 	"github.com/weaveworks/service/billing-api/routes"
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/mock_users"
 )
@@ -38,7 +39,7 @@ func TestExportAsCSV(t *testing.T) {
 					Environment:    "gke",
 					TrialExpiresAt: time.Date(2018, 05, 04, 23, 59, 59, 999999999, time.UTC),
 
-					FeatureFlags:     []string{"billing"},
+					FeatureFlags:     []string{featureflag.Billing},
 					RefuseDataAccess: false,
 					RefuseDataUpload: false,
 					GCP: &users.GoogleCloudPlatform{

@@ -23,6 +23,7 @@ import (
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common"
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
 	users_client "github.com/weaveworks/service/users/client"
 )
@@ -104,7 +105,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		},
 		UserIDHeader:        userIDHeader,
 		FeatureFlagsHeader:  featureFlagsHeader,
-		RequireFeatureFlags: []string{"billing"},
+		RequireFeatureFlags: []string{featureflag.Billing},
 		AuthorizeFor:        users.OTHER,
 	}
 
