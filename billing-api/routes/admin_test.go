@@ -69,7 +69,7 @@ func TestExportAsCSV(t *testing.T) {
 
 	database := mock_db.NewMockDB(ctrl)
 	database.EXPECT().
-		GetMonthSums(gomock.Any(), []string{"1", "2"}, time.Date(2018, 03, 31, 0, 0, 0, 0, time.UTC), time.Date(2018, 04, 05, 0, 0, 0, 0, time.UTC)).
+		GetMonthSums(gomock.Any(), []string{"1", "2"}, time.Date(2017, 10, 01, 0, 0, 0, 0, time.UTC), time.Date(2018, 04, 05, 0, 0, 0, 0, time.UTC)).
 		Return(
 			map[string][]db.Aggregate{
 				"2": {
@@ -85,7 +85,7 @@ func TestExportAsCSV(t *testing.T) {
 	router := mux.NewRouter()
 	api.RegisterRoutes(router)
 	rep := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/admin/billing.csv?from=2018-03-31&to=2018-04-04", nil)
+	req, err := http.NewRequest("GET", "/admin/billing.csv?from=2017-10-01&to=2018-04-04", nil)
 	assert.NoError(t, err)
 	router.ServeHTTP(rep, req)
 

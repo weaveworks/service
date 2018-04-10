@@ -51,7 +51,7 @@ func (a *API) ExportOrgsAndUsageAsCSV(w http.ResponseWriter, r *http.Request) {
 	instanceMonthSums, amountTypesMap := processSums(sums)
 	logging.With(r.Context()).Debugf("instanceMonthSums: %#v", instanceMonthSums)
 	amountTypes, _ := processAmountTypes(amountTypesMap)
-	months := months(sixMonthsAgo(to), to)
+	months := months(from, to)
 
 	csvLines := [][]string{header(months, amountTypes)}
 	for _, entry := range summary.Entries {
@@ -198,8 +198,8 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 		"Page":               page,
 		"NextPage":           page + 1,
 		"Query":              query,
-		"ExportFrom":         now.AddDate(0, -1, 0).Format(isoDateFormat),
-		"ExportTo":           now.Format(isoDateFormat),
+		"UsageFrom":          sixMonthsAgo(now).Format(isoDateFormat),
+		"UsageTo":            now.Format(isoDateFormat),
 		"BillingFeatureFlag": featureflag.Billing,
 	})
 }
@@ -333,13 +333,13 @@ var adminTemplate = `
 			<div class="mdl-layout-spacer"></div>
 
 			<form id="export-as-csv" action="/admin/billing.csv" method="GET">
-				<div class="mdl-textfield mdl-js-textfield" style="width:150px;">
-					<input class="mdl-textfield__input" type="text" name="from" id="from" value="{{.ExportFrom}}" maxlength="10" size="10">
-					<label class="mdl-textfield__label" for="from">From (yyyy-MM-dd)</label>
+				<div class="mdl-textfield mdl-js-textfield" style="width:180px;">
+					<input class="mdl-textfield__input" type="text" name="from" id="from" value="{{.UsageFrom}}" maxlength="10" size="10">
+					<label class="mdl-textfield__label" for="from">Usage from (yyyy-MM-dd)</label>
 				</div>
-				<div class="mdl-textfield mdl-js-textfield" style="width:150px;">
-					<input class="mdl-textfield__input" type="text" name="to" id="to" value="{{.ExportTo}}" maxlength="10" size="10">
-					<label class="mdl-textfield__label" for="to">To (yyyy-MM-dd)</label>
+				<div class="mdl-textfield mdl-js-textfield" style="width:180px;">
+					<input class="mdl-textfield__input" type="text" name="to" id="to" value="{{.UsageTo}}" maxlength="10" size="10">
+					<label class="mdl-textfield__label" for="to">Usage to (yyyy-MM-dd)</label>
 				</div>
 				<button type="submit" form="export-as-csv" value="Submit" class="mdl-button mdl-button--icon">
 					<i class="material-icons">file_download</i>
