@@ -61,6 +61,10 @@ service Users {
     // NotifyRefuseDataUpload sends a "data upload blocked" notification to the members
     // of this organization.
     rpc NotifyRefuseDataUpload(NotifyRefuseDataUploadRequest) returns (NotifyRefuseDataUploadResponse) {};
+
+	// GetSummary exports a summary of the DB.
+	// WARNING: this is a relatively expensive query, and basically exports the entire DB.
+    rpc GetSummary(Empty) returns (Summary) {};
 }
 
 enum AuthorizedAction {
@@ -304,4 +308,42 @@ message Team {
     google.protobuf.Timestamp TrialPendingExpiryNotifiedAt = 7 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true, (gogoproto.jsontag) = "-"];
     google.protobuf.Timestamp TrialExpiredNotifiedAt = 8 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true, (gogoproto.jsontag) = "-"];
     google.protobuf.Timestamp CreatedAt = 9 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "-"];
+}
+
+// Empty message, i.e. equivalent to "void"/"Unit"/etc.
+message Empty {
+}
+
+message Summary {
+    repeated SummaryEntry Entries = 1;
+}
+
+message SummaryEntry {
+    string TeamExternalID = 1 [(gogoproto.jsontag) = "-"];
+    string TeamName = 2 [(gogoproto.jsontag) = "-"];
+    string OrgID = 3 [(gogoproto.jsontag) = "-"];
+    string OrgExternalID = 4 [(gogoproto.jsontag) = "-"];
+    string OrgName = 5 [(gogoproto.jsontag) = "-"];
+    repeated string Emails = 6;
+    google.protobuf.Timestamp OrgCreatedAt = 7 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+    google.protobuf.Timestamp FirstSeenConnectedAt = 8 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+    string Platform = 9;
+    string Environment = 10;
+    // When the organization's trial period expires.
+    google.protobuf.Timestamp TrialExpiresAt = 11 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+    // When we sent a «trial expiring soon» notification at
+    google.protobuf.Timestamp TrialPendingExpiryNotifiedAt = 12 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+    // When we sent a «trial expired» notification at
+    google.protobuf.Timestamp TrialExpiredNotifiedAt = 13 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+    bool BillingEnabled = 14 [(gogoproto.jsontag) = "-"];
+    bool RefuseDataAccess = 15;
+    bool RefuseDataUpload = 16;
+    string ZuoraAccountNumber = 17;
+    google.protobuf.Timestamp ZuoraAccountCreatedAt = 18 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+    string GCPAccountExternalID = 19;
+    google.protobuf.Timestamp GCPAccountCreatedAt = 20 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+    // Level of the subscription, can be "standard" or "enterprise"
+    string GCPAccountSubscriptionLevel = 21;
+    // Status of the subscrption, can be one of "PENDING", "ACTIVE', or "COMPLETE"
+    string GCPAccountSubscriptionStatus = 22;
 }

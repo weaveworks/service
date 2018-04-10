@@ -108,6 +108,13 @@ func (d *DB) ListOrganizations(_ context.Context, f filter.Organization, page ui
 func (d *DB) ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
+	return d.listOrganizationUsers(ctx, orgExternalID)
+}
+
+// listOrganizationUsers lists all the users in an organization
+// This is a lock-free version of the above, in order to be able to re-use the actual logic
+// in other methods as otherwise, calling mtx.Lock() twice on the same goroutine deadlocks it.
+func (d *DB) listOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error) {
 	o, err := d.findOrganizationByExternalID(orgExternalID)
 	if err != nil {
 		return nil, err
@@ -730,4 +737,22 @@ func (d *DB) createGCP(ctx context.Context, externalAccountID string) (*users.Go
 	}
 	d.gcpAccounts[externalAccountID] = gcp
 	return gcp, nil
+}
+
+// GetSummary exports a summary of the DB.
+func (d *DB) GetSummary(ctx context.Context) ([]*users.SummaryEntry, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+
+	entries := []*users.SummaryEntry{}
+	for _, org := range d.organizations {
+		team := d.teams[org.TeamID]
+		orgUsers, err := d.listOrganizationUsers(ctx, org.ExternalID)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, users.NewSummaryEntry(org, team, orgUsers))
+	}
+	sort.Sort(users.SummaryEntriesByCreatedAt(entries))
+	return entries, nil
 }
