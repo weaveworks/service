@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-api/trial"
@@ -29,27 +30,36 @@ func (a *API) healthcheck(w http.ResponseWriter, r *http.Request) {
 
 // ExportOrgsAndUsageAsCSV loads organizations, usage data for them, and formats this data as a CSV file.
 func (a *API) ExportOrgsAndUsageAsCSV(w http.ResponseWriter, r *http.Request) {
-	from, to, err := parseRange(r.URL.Query().Get("from"), r.URL.Query().Get("to"))
+	fromStr := r.URL.Query().Get("from")
+	toStr := r.URL.Query().Get("to")
+	from, to, err := parseRange(fromStr, toStr)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
 
+	logger := logging.With(r.Context()).WithFields(log.Fields{"from": fromStr, "to": toStr})
+	logger.Info("csv export: getting summary from users service")
 	summary, err := a.Users.GetSummary(r.Context(), &users.Empty{})
 	if err != nil {
+		logger.WithField("err", err).Error("csv export: failed to get summary from users service")
 		renderError(w, r, err)
 		return
 	}
+	logger.Info("csv export: successfully got summary from users service")
 
 	orgIDs := orgIDs(summary.Entries)
+	logger.WithField("num_orgs", len(orgIDs)).Info("csv export: getting usage from billing-db")
 	sums, err := a.DB.GetMonthSums(r.Context(), orgIDs, from, to)
+
 	if err != nil {
+		logger.WithField("err", err).Error("csv export: failed to get usage from billing-db")
 		renderError(w, r, err)
 		return
 	}
+	logger.Info("csv export: successfully got usage from billing-db")
 
 	instanceMonthSums, amountTypesMap := processSums(sums)
-	logging.With(r.Context()).Debugf("instanceMonthSums: %#v", instanceMonthSums)
 	amountTypes, _ := processAmountTypes(amountTypesMap)
 	months := months(from, to)
 
