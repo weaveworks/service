@@ -196,8 +196,9 @@ func (a *API) adminListOrganizationsForUser(w http.ResponseWriter, r *http.Reque
 	}
 
 	b, err := a.templates.Bytes("list_organizations.html", map[string]interface{}{
-		"Organizations": organizations,
-		"UserEmail":     user.Email,
+		"Organizations":      organizations,
+		"UserEmail":          user.Email,
+		"BillingFeatureFlag": featureflag.Billing,
 	})
 	if err != nil {
 		renderError(w, r, err)
