@@ -68,7 +68,7 @@ func (a *API) ExportOrgsAndUsageAsCSV(w http.ResponseWriter, r *http.Request) {
 		usages := usages(instanceMonthSums[entry.OrgID], months, amountTypes)
 		csvLines = append(csvLines, toCSVLine(entry, usages))
 	}
-	renderCSV(w, csvLines)
+	renderCSV(w, csvLines, logger)
 }
 
 func header(months []time.Month, amountTypes []string) []string {
@@ -135,14 +135,20 @@ func toString(t *time.Time) string {
 	return t.Format(time.RFC3339)
 }
 
-func renderCSV(w http.ResponseWriter, csvLines [][]string) {
+func renderCSV(w http.ResponseWriter, csvLines [][]string, logger *log.Entry) {
 	buffer := &bytes.Buffer{}
 	csvWriter := csv.NewWriter(buffer)
 	csvWriter.WriteAll(csvLines)
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", "attachment;filename=billing.csv")
 	w.WriteHeader(http.StatusOK)
-	w.Write(buffer.Bytes())
+	bytesCSV := buffer.Bytes()
+	bytesWritten, err := w.Write(bytesCSV)
+	if err != nil {
+		logger.WithField("err", err).Error("csv export: failed to write csv")
+	} else {
+		logger.WithFields(log.Fields{"bytesCSV": len(bytesCSV), "bytesWritten": bytesWritten}).Info("csv export: successfully wrote csv")
+	}
 }
 
 const isoDateFormat = "2006-01-02"
