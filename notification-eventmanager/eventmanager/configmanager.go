@@ -400,8 +400,9 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		}
 	} else if !reflect.DeepEqual(oldReceiver.EventTypes, receiver.EventTypes) {
 		// eventTypes changed event
-		// PossibleTodo: find set difference between oldEventTypes and newEventTypes -> "removed [...] and added [...]"
-		msg := fmt.Sprintf("The event types for <b>%s</b> were updated from <i>%s</i> to <i>%s</i>", receiver.RType, oldReceiver.EventTypes, receiver.EventTypes)
+
+		added, removed := diff(oldReceiver.EventTypes, receiver.EventTypes)
+		msg := fmt.Sprintf("The event types for <b>%s</b> were changed: enabled <i>%s</i> and disabled <i>%s</i>", receiver.RType, added, removed)
 
 		emailMsg, err := getEmailMessage(msg, eventType, instanceName)
 		if err != nil {
@@ -425,7 +426,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		event.Messages = map[string]json.RawMessage{
 			types.EmailReceiver:       emailMsg,
 			types.BrowserReceiver:     browserMsg,
-			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\nThe event types for *%s* were updated from _%s_ to _%s_"}`, instanceName, receiver.RType, oldReceiver.EventTypes, receiver.EventTypes)),
+			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\nThe event types for *%s* were changed: enabled _%s_ and disabled _%s_"}`, instanceName, receiver.RType, added, removed)),
 			types.StackdriverReceiver: stackdriverMsg,
 		}
 	} else {
@@ -440,6 +441,26 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 	}()
 
 	return nil
+}
+
+func diff(old, new []string) (added []string, removed []string) {
+	all := map[string]struct{}{}
+	for _, et := range old {
+		all[et] = struct{}{}
+	}
+
+	for _, et := range new {
+		if _, ok := all[et]; ok {
+			delete(all, et)
+		} else {
+			added = append(added, et)
+		}
+	}
+
+	for et := range all {
+		removed = append(removed, et)
+	}
+	return
 }
 
 func (em *EventManager) updateReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
