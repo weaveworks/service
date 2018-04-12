@@ -402,7 +402,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		// eventTypes changed event
 
 		added, removed := diff(oldReceiver.EventTypes, receiver.EventTypes)
-		msg := fmt.Sprintf("The event types for <b>%s</b> were changed: enabled <i>%s</i> and disabled <i>%s</i>", receiver.RType, added, removed)
+		msg := formatEventTypeMsg("<b>", "</b>", receiver.RType, "<i>", "</i>", added, removed)
 
 		emailMsg, err := getEmailMessage(msg, eventType, instanceName)
 		if err != nil {
@@ -423,10 +423,12 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 			return errors.Wrap(err, "cannot get stackdriver message for event types changed")
 		}
 
+		slackMsg := formatEventTypeMsg("*", "*", receiver.RType, "_", "_", added, removed)
 		event.Messages = map[string]json.RawMessage{
-			types.EmailReceiver:       emailMsg,
-			types.BrowserReceiver:     browserMsg,
-			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\nThe event types for *%s* were changed: enabled _%s_ and disabled _%s_"}`, instanceName, receiver.RType, added, removed)),
+			types.EmailReceiver:   emailMsg,
+			types.BrowserReceiver: browserMsg,
+			// FIXME(rndstr): should use proper JSON marshalling here; e.g., this breaks for instance names with double quotes in them
+			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\n%s"}`, instanceName, slackMsg)),
 			types.StackdriverReceiver: stackdriverMsg,
 		}
 	} else {
@@ -441,6 +443,23 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 	}()
 
 	return nil
+}
+
+func formatEventTypeMsg(rtypeStart, rtypeEnd, rtype, setStart, setEnd string, enabled, disabled []string) string {
+	var b bytes.Buffer
+
+	b.WriteString(fmt.Sprintf("The event types for %s%s%s were changed:", rtypeStart, rtype, rtypeEnd))
+	if len(enabled) > 0 {
+		b.WriteString(fmt.Sprintf(" enabled %s%s%s", setStart, enabled, setEnd))
+	}
+	if len(disabled) > 0 {
+		if len(enabled) > 0 {
+			b.WriteString(" and")
+		}
+		b.WriteString(fmt.Sprintf(" disabled %s%s%s", setStart, disabled, setEnd))
+
+	}
+	return b.String()
 }
 
 func diff(old, new []string) (added []string, removed []string) {
