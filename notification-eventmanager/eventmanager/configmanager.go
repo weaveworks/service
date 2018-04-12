@@ -542,7 +542,6 @@ func (em *EventManager) updateReceiver(r *http.Request, instanceID string, recei
 	// Fire event every time config is successfully changed
 	if receiverOrNil != nil {
 		go func() {
-			// TODO(rndstr): extractUserIDFromRequest
 			eventErr := em.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime)
 			if eventErr != nil {
 				log.Error(eventErr)
@@ -581,7 +580,7 @@ func (em *EventManager) updateReceiverTX(r *http.Request, receiver types.Receive
 		rows, err := tx.Query(
 			"check_new_receiver_event_types",
 			`SELECT unnest FROM unnest($1::text[])
-			WHERE unnest NOT IN (SELECT name FROM event_types)`,
+			WHERE unnest NOT IN (SELECT name FROM event_types WHERE hide_ui_config <> true)`,
 			pq.Array(receiver.EventTypes),
 		)
 		if err != nil {
@@ -601,7 +600,7 @@ func (em *EventManager) updateReceiverTX(r *http.Request, receiver types.Receive
 			return err
 		}
 		if len(badTypes) != 0 {
-			userErrorMsg = fmt.Sprintf("Given event types do not exist: %s", strings.Join(badTypes, ", "))
+			userErrorMsg = fmt.Sprintf("Given event types do not exist or cannot be modified: %s", strings.Join(badTypes, ", "))
 			code = http.StatusNotFound
 			return nil
 		}
