@@ -402,33 +402,33 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		// eventTypes changed event
 
 		added, removed := diff(oldReceiver.EventTypes, receiver.EventTypes)
-		msg := formatEventTypeMsg("<b>", "</b>", receiver.RType, "<i>", "</i>", added, removed)
+		text := formatEventTypeText("<b>", "</b>", receiver.RType, "<i>", "</i>", added, removed)
 
-		emailMsg, err := getEmailMessage(msg, eventType, instanceName)
+		emailMsg, err := getEmailMessage(text, eventType, instanceName)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
 
-		browserMsg, err := getBrowserMessage(msg, nil, eventType)
+		browserMsg, err := getBrowserMessage(text, nil, eventType)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
 
-		msgJSON, err := json.Marshal(msg)
+		textJSON, err := json.Marshal(text)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal message")
 		}
-		stackdriverMsg, err := getStackdriverMessage(msgJSON, eventType, instanceName)
+		stackdriverMsg, err := getStackdriverMessage(textJSON, eventType, instanceName)
 		if err != nil {
 			return errors.Wrap(err, "cannot get stackdriver message for event types changed")
 		}
 
-		slackMsg := formatEventTypeMsg("*", "*", receiver.RType, "_", "_", added, removed)
+		slackText := formatEventTypeText("*", "*", receiver.RType, "_", "_", added, removed)
 		event.Messages = map[string]json.RawMessage{
 			types.EmailReceiver:   emailMsg,
 			types.BrowserReceiver: browserMsg,
 			// FIXME(rndstr): should use proper JSON marshalling here; e.g., this breaks for instance names with double quotes in them
-			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\n%s"}`, instanceName, slackMsg)),
+			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %s\n%s"}`, instanceName, slackText)),
 			types.StackdriverReceiver: stackdriverMsg,
 		}
 	} else {
@@ -445,7 +445,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 	return nil
 }
 
-func formatEventTypeMsg(rtypeStart, rtypeEnd, rtype, setStart, setEnd string, enabled, disabled []string) string {
+func formatEventTypeText(rtypeStart, rtypeEnd, rtype, setStart, setEnd string, enabled, disabled []string) string {
 	var b bytes.Buffer
 
 	b.WriteString(fmt.Sprintf("The event types for %s%s%s were changed:", rtypeStart, rtype, rtypeEnd))

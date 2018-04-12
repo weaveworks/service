@@ -53,7 +53,7 @@ type StackdriverMessage struct {
 	// Timestamp is the time of the entry. If zero, the current time is used.
 	Timestamp time.Time
 
-	// Payload is log entry payload, represented as a structure that is expressed as a JSON object.
+	// Payload is log entry payload. Its type can be either a string or an object formatted as JSON.
 	Payload json.RawMessage
 
 	// Labels optionally specifies key/value labels for the log entry.
