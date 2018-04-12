@@ -519,15 +519,13 @@ func (em *EventManager) updateReceiver(r *http.Request, instanceID string, recei
 
 	// before transaction changes the addressData and eventTypes, get oldReceiver which has oldAddressData and oldEventTypes
 	receiverOrNil, status, err := em.getReceiver(r, instanceID, receiverID)
-	gotOldReceiverValues := true
 	if err != nil {
-		gotOldReceiverValues = false
 		log.Errorf("error with c.getReceiver call. Status: %v\nError: %s", status, err)
 	}
 
 	oldReceiver, ok := receiverOrNil.(types.Receiver)
 	if !ok {
-		gotOldReceiverValues = false
+		receiverOrNil = nil
 		log.Errorf("error converting result of getReceiver call, %v to types.Receiver", receiverOrNil)
 	}
 
@@ -536,22 +534,24 @@ func (em *EventManager) updateReceiver(r *http.Request, instanceID string, recei
 	if err != nil {
 		return nil, 0, err
 	}
-	if code == http.StatusOK {
-		// all good!
-		// Fire event every time config is successfully changed
-		if gotOldReceiverValues {
-			go func() {
-				eventErr := em.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime)
-				if eventErr != nil {
-					log.Error(eventErr)
-				}
-			}()
-		} else {
-			log.Error("Event config_changed not sent. Old receiver values not acquired.")
-		}
-		return nil, code, nil
+	if code != http.StatusOK {
+		return userErrorMsg, code, nil
 	}
-	return userErrorMsg, code, nil
+
+	// all good!
+	// Fire event every time config is successfully changed
+	if receiverOrNil != nil {
+		go func() {
+			// TODO(rndstr): extractUserIDFromRequest
+			eventErr := em.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime)
+			if eventErr != nil {
+				log.Error(eventErr)
+			}
+		}()
+	} else {
+		log.Error("Event config_changed not sent. Old receiver values not acquired.")
+	}
+	return nil, http.StatusOK, nil
 }
 
 func (em *EventManager) updateReceiverTX(r *http.Request, receiver types.Receiver, instanceID string, encodedAddress []byte) (string, int, error) {
