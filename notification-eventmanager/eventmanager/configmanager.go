@@ -123,7 +123,7 @@ func (em *EventManager) listEventTypes(tx *utils.Tx, featureFlags []string) ([]t
 	// and c) feature flag isn't in given list of feature flags.
 	rows, err := queryFn(
 		"list_event_types",
-		`SELECT name, display_name, description, default_receiver_types, feature_flag FROM event_types
+		`SELECT name, display_name, description, default_receiver_types, hide_ui_config, feature_flag FROM event_types
 		WHERE $1::text[] IS NULL OR feature_flag IS NULL OR feature_flag = ANY ($1::text[])`,
 		pq.Array(featureFlags),
 	)
@@ -930,13 +930,14 @@ func (em *EventManager) createEventType(tx *utils.Tx, e types.EventType) error {
 	// Since go interprets omitted as empty string for feature flag, translate empty string to NULL on insert.
 	result, err := tx.Exec(
 		"create_event_type",
-		`INSERT INTO event_types (name, display_name, description, default_receiver_types, feature_flag)
-		VALUES ($1, $2, $3, $4, NULLIF($5, ''))
+		`INSERT INTO event_types (name, display_name, description, default_receiver_types, hide_ui_config, feature_flag)
+		VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''))
 		ON CONFLICT DO NOTHING`,
 		e.Name,
 		e.DisplayName,
 		e.Description,
 		pq.Array(e.DefaultReceiverTypes),
+		e.HideUIConfig,
 		e.FeatureFlag,
 	)
 	if err != nil {
@@ -967,12 +968,13 @@ func (em *EventManager) updateEventType(tx *utils.Tx, e types.EventType) error {
 	result, err := tx.Exec(
 		"update_event_type",
 		`UPDATE event_types
-		SET (display_name, description, default_receiver_types, feature_flag) = ($2, $3, $4, NULLIF($5, ''))
+		SET (display_name, description, default_receiver_types, hide_ui_config, feature_flag) = ($2, $3, $4, $5, NULLIF($6, ''))
 		WHERE name = $1`,
 		e.Name,
 		e.DisplayName,
 		e.Description,
 		pq.Array(e.DefaultReceiverTypes),
+		e.HideUIConfig,
 		e.FeatureFlag,
 	)
 	if err != nil {
