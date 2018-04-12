@@ -400,32 +400,35 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		}
 	} else if !reflect.DeepEqual(oldReceiver.EventTypes, receiver.EventTypes) {
 		// eventTypes changed event
-		// PossibleTodo: find set difference between oldEventTypes and newEventTypes -> "removed [...] and added [...]"
-		msg := fmt.Sprintf("The event types for <b>%s</b> were updated from <i>%s</i> to <i>%s</i>", receiver.RType, oldReceiver.EventTypes, receiver.EventTypes)
 
-		emailMsg, err := getEmailMessage(msg, eventType, instanceName)
+		added, removed := diff(oldReceiver.EventTypes, receiver.EventTypes)
+		text := formatEventTypeText("<b>", "</b>", receiver.RType, "<i>", "</i>", added, removed)
+
+		emailMsg, err := getEmailMessage(text, eventType, instanceName)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
 
-		browserMsg, err := getBrowserMessage(msg, nil, eventType)
+		browserMsg, err := getBrowserMessage(text, nil, eventType)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
 
-		msgJSON, err := json.Marshal(msg)
+		textJSON, err := json.Marshal(text)
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal message")
 		}
-		stackdriverMsg, err := getStackdriverMessage(msgJSON, eventType, instanceName)
+		stackdriverMsg, err := getStackdriverMessage(textJSON, eventType, instanceName)
 		if err != nil {
 			return errors.Wrap(err, "cannot get stackdriver message for event types changed")
 		}
 
+		slackText := formatEventTypeText("*", "*", receiver.RType, "_", "_", added, removed)
 		event.Messages = map[string]json.RawMessage{
-			types.EmailReceiver:       emailMsg,
-			types.BrowserReceiver:     browserMsg,
-			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\nThe event types for *%s* were updated from _%s_ to _%s_"}`, instanceName, receiver.RType, oldReceiver.EventTypes, receiver.EventTypes)),
+			types.EmailReceiver:   emailMsg,
+			types.BrowserReceiver: browserMsg,
+			// FIXME(rndstr): should use proper JSON marshalling here; e.g., this breaks for instance names with double quotes in them
+			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %s\n%s"}`, instanceName, slackText)),
 			types.StackdriverReceiver: stackdriverMsg,
 		}
 	} else {
@@ -440,6 +443,43 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 	}()
 
 	return nil
+}
+
+func formatEventTypeText(rtypeStart, rtypeEnd, rtype, setStart, setEnd string, enabled, disabled []string) string {
+	var b bytes.Buffer
+
+	b.WriteString(fmt.Sprintf("The event types for %s%s%s were changed:", rtypeStart, rtype, rtypeEnd))
+	if len(enabled) > 0 {
+		b.WriteString(fmt.Sprintf(" enabled %s%s%s", setStart, enabled, setEnd))
+	}
+	if len(disabled) > 0 {
+		if len(enabled) > 0 {
+			b.WriteString(" and")
+		}
+		b.WriteString(fmt.Sprintf(" disabled %s%s%s", setStart, disabled, setEnd))
+
+	}
+	return b.String()
+}
+
+func diff(old, new []string) (added []string, removed []string) {
+	all := map[string]struct{}{}
+	for _, et := range old {
+		all[et] = struct{}{}
+	}
+
+	for _, et := range new {
+		if _, ok := all[et]; ok {
+			delete(all, et)
+		} else {
+			added = append(added, et)
+		}
+	}
+
+	for et := range all {
+		removed = append(removed, et)
+	}
+	return
 }
 
 func (em *EventManager) updateReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {

@@ -518,10 +518,10 @@ func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceN
 }
 
 // GetBrowserMessage returns messaage for browser
-func getBrowserMessage(msg string, attachments []types.SlackAttachment, etype string) (json.RawMessage, error) {
+func getBrowserMessage(text string, attachments []types.SlackAttachment, etype string) (json.RawMessage, error) {
 	bm := types.BrowserMessage{
 		Type:        etype,
-		Text:        msg,
+		Text:        text,
 		Attachments: attachments,
 		Timestamp:   time.Now(),
 	}
@@ -535,10 +535,10 @@ func getBrowserMessage(msg string, attachments []types.SlackAttachment, etype st
 }
 
 // GetEmailMessage returns message for email
-func getEmailMessage(msg, etype, instanceName string) (json.RawMessage, error) {
+func getEmailMessage(text, etype, instanceName string) (json.RawMessage, error) {
 	em := types.EmailMessage{
 		Subject: fmt.Sprintf("%v - %v", instanceName, etype),
-		Body:    msg,
+		Body:    text,
 	}
 
 	msgRaw, err := json.Marshal(em)
@@ -550,10 +550,10 @@ func getEmailMessage(msg, etype, instanceName string) (json.RawMessage, error) {
 }
 
 // GetStackdriverMessage returns message for stackdriver
-func getStackdriverMessage(msg json.RawMessage, etype string, instanceName string) (json.RawMessage, error) {
+func getStackdriverMessage(payload json.RawMessage, etype string, instanceName string) (json.RawMessage, error) {
 	sdMsg := types.StackdriverMessage{
 		Timestamp: time.Now(),
-		Payload:   msg,
+		Payload:   payload,
 		Labels:    map[string]string{"instance": instanceName, "event_type": etype},
 	}
 
