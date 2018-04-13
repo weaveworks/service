@@ -156,7 +156,7 @@ func setup(t *testing.T) {
 	}
 
 	// Server
-	apiServer := server.New(ver, instancer, instanceDB, messageBus, log.NewNopLogger(), notifications.DefaultURL)
+	apiServer := server.New(ver, instancer, instanceDB, messageBus, log.NewNopLogger(), notifications.DefaultURL, nil)
 	router = httpserver.NewServiceRouter()
 	httpServer := httpserver.NewServer(apiServer, apiServer, apiServer)
 	handler := httpServer.MakeHandler(router, log.NewNopLogger())

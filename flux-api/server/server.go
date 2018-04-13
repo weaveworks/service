@@ -9,6 +9,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
 
+	billing "github.com/weaveworks/billing-client"
 	"github.com/weaveworks/flux"
 	"github.com/weaveworks/flux/api"
 	"github.com/weaveworks/flux/api/v6"
@@ -38,13 +39,14 @@ const (
 
 // Server is a flux-api server.
 type Server struct {
-	version    string
-	instancer  instance.Instancer
-	connDB     instance.ConnectionDB
-	messageBus bus.MessageBus
-	logger     log.Logger
-	connected  int32
-	eventsURL  string
+	version       string
+	instancer     instance.Instancer
+	connDB        instance.ConnectionDB
+	messageBus    bus.MessageBus
+	logger        log.Logger
+	connected     int32
+	eventsURL     string
+	billingClient *billing.Client
 }
 
 // New creates a new Server.
@@ -55,15 +57,17 @@ func New(
 	messageBus bus.MessageBus,
 	logger log.Logger,
 	eventsURL string,
+	billingClient *billing.Client,
 ) *Server {
 	connectedDaemons.Set(0)
 	return &Server{
-		version:    version,
-		instancer:  instancer,
-		connDB:     connDB,
-		messageBus: messageBus,
-		logger:     logger,
-		eventsURL:  eventsURL,
+		version:       version,
+		instancer:     instancer,
+		connDB:        connDB,
+		messageBus:    messageBus,
+		logger:        logger,
+		eventsURL:     eventsURL,
+		billingClient: billingClient,
 	}
 }
 
@@ -250,6 +254,10 @@ func (s *Server) LogEvent(ctx context.Context, e event.Event) error {
 	err = helper.LogEvent(e)
 	if err != nil {
 		return errors.Wrapf(err, "logging event")
+	}
+
+	if s.billingClient != nil {
+		s.emitBillingRecord(ctx, e)
 	}
 
 	url := strings.Replace(s.eventsURL, "{instanceID}", string(instID), 1)
