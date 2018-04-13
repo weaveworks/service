@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 	"time"
+
+	"github.com/weaveworks/service/common/billing/grpc"
 )
 
 // DB is an in-memory database for testing, and local development
@@ -12,6 +14,7 @@ type memory struct {
 	aggregates                 []Aggregate
 	postTrialInvoices          map[string]PostTrialInvoice
 	usageUploadsMaxAggregateID map[string]int // Maps uploaders to agg ID
+	billingAccountsByTeamID    map[string]*grpc.BillingAccount
 }
 
 // New creates a new in-memory database
@@ -19,6 +22,7 @@ func newMemory() *memory {
 	return &memory{
 		postTrialInvoices:          make(map[string]PostTrialInvoice),
 		usageUploadsMaxAggregateID: make(map[string]int),
+		billingAccountsByTeamID:    make(map[string]*grpc.BillingAccount),
 	}
 }
 
@@ -149,6 +153,12 @@ func (db *memory) DeletePostTrialInvoice(ctx context.Context, usageImportID stri
 	defer db.mtx.Unlock()
 	delete(db.postTrialInvoices, usageImportID)
 	return nil
+}
+
+func (db *memory) FindBillingAccountByTeamID(ctx context.Context, teamID string) (*grpc.BillingAccount, error) {
+	db.mtx.Lock()
+	defer db.mtx.Unlock()
+	return db.billingAccountsByTeamID[teamID], nil
 }
 
 func (db *memory) Transaction(f func(DB) error) error {

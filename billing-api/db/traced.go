@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"github.com/weaveworks/service/common/billing/grpc"
 )
 
 // traced adds logrus trace lines on each db call
@@ -66,6 +67,11 @@ func (t traced) GetPostTrialInvoices(ctx context.Context) (pti []PostTrialInvoic
 func (t traced) DeletePostTrialInvoice(ctx context.Context, usageImportID string) (err error) {
 	defer func() { t.trace("DeletePostTrialInvoice", usageImportID, err) }()
 	return t.d.DeletePostTrialInvoice(ctx, usageImportID)
+}
+
+func (t traced) FindBillingAccountByTeamID(ctx context.Context, teamID string) (account *grpc.BillingAccount, err error) {
+	defer func() { t.trace("FindBillingAccountByTeamID", teamID, account, err) }()
+	return t.d.FindBillingAccountByTeamID(ctx, teamID)
 }
 
 func (t traced) Transaction(f func(DB) error) error {
