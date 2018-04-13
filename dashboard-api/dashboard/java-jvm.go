@@ -27,12 +27,12 @@ var jvmDashboard = Dashboard{
 				Help:  "Used memory is working set (~live objects in the heap) + garbage",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitBytes},
-				Query: `jvm_memory_bytes_used{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}`,
+				Query: `avg_over_time(jvm_memory_bytes_used{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}, {
 				Title: "Memory Used per Pool",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitBytes},
-				Query: `jvm_memory_pool_bytes_used{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}`,
+				Query: `avg_over_time(jvm_memory_pool_bytes_used{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
 			}},
 		}},
 	}, {
