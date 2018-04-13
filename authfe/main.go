@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/armon/go-proxyproto"
@@ -181,7 +182,11 @@ func main() {
 			Handler: cfg.commonMiddleWare(nil).Wrap(
 				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					url := r.URL
-					url.Host = r.Host
+					if strings.HasSuffix(r.Host, ".weave.works") || strings.HasSuffix(r.Host, ".weave.works.") {
+						url.Host = r.Host
+					} else {
+						url.Host = cfg.targetOrigin
+					}
 					url.Scheme = "https"
 					http.Redirect(w, r, url.String(), http.StatusMovedPermanently)
 				}),
