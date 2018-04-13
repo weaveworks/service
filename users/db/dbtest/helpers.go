@@ -85,11 +85,23 @@ func GetOrg(t *testing.T, db db.DB) (*users.User, *users.Organization) {
 	return user, org
 }
 
+// GetTeam creates a team with a randomly generated name.
+func GetTeam(t *testing.T, db db.DB) *users.Team {
+	teamName := strings.Title(externalids.Generate())
+	return GetTeamWithName(t, db, teamName)
+}
+
+// GetTeamWithName creates a team with the provided name.
+func GetTeamWithName(t *testing.T, db db.DB, teamName string) *users.Team {
+	team, err := db.CreateTeam(context.Background(), teamName)
+	assert.NoError(t, err)
+	return team
+}
+
 // GetOrgAndTeam makes org with a random ExternalID, user and a team for testing
 func GetOrgAndTeam(t *testing.T, db db.DB) (*users.User, *users.Organization, *users.Team) {
 	teamName := strings.Title(externalids.Generate())
-	team, err := db.CreateTeam(context.Background(), teamName)
-	assert.NoError(t, err)
+	team := GetTeamWithName(t, db, teamName)
 	team.Name = teamName
 	user := GetUser(t, db)
 	org := CreateOrgForTeam(t, db, user, team)

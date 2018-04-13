@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/jordan-wright/email"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
+	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
@@ -27,12 +29,14 @@ import (
 )
 
 var (
-	sentEmails   []*email.Email
-	app          *api.API
-	database     db.DB
-	logins       *login.Providers
-	sessionStore sessions.Store
-	domain       = "http://fake.scope"
+	sentEmails    []*email.Email
+	app           *api.API
+	database      db.DB
+	logins        *login.Providers
+	sessionStore  sessions.Store
+	domain        = "http://fake.scope"
+	ctrl          *gomock.Controller
+	billingClient *billing_grpc.MockBillingClient
 )
 
 func setup(t *testing.T) {
@@ -60,6 +64,10 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 		FromAddress: "test@test.com",
 	}
 	grpcServer := grpc.New(sessionStore, database, nil)
+
+	ctrl = gomock.NewController(t)
+	billingClient = billing_grpc.NewMockBillingClient(ctrl)
+
 	var billingEnabler featureflag.Enabler
 	billingEnabler = featureflag.NewRandomEnabler(100)
 	app = api.New(
@@ -83,12 +91,14 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 		"",
 		cortexAPI,
 		netAPI,
+		billingClient,
 		billingEnabler,
 		nil,
 	)
 }
 
 func cleanup(t *testing.T) {
+	ctrl.Finish()
 	logins.Reset()
 	dbtest.Cleanup(t, database)
 }
@@ -113,6 +123,10 @@ func requestAs(t *testing.T, u *users.User, method, endpoint string, body io.Rea
 
 func getUser(t *testing.T) *users.User {
 	return dbtest.GetUser(t, database)
+}
+
+func getTeam(t *testing.T) *users.Team {
+	return dbtest.GetTeam(t, database)
 }
 
 func createOrgForUser(t *testing.T, u *users.User) *users.Organization {
