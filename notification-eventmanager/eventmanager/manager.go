@@ -3,7 +3,6 @@ package eventmanager
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -25,8 +24,8 @@ import (
 
 	"github.com/weaveworks/blackfriday"
 	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/notification-eventmanager/db"
 	"github.com/weaveworks/service/notification-eventmanager/types"
-	"github.com/weaveworks/service/notification-eventmanager/utils"
 	"github.com/weaveworks/service/notification-sender"
 	"github.com/weaveworks/service/users"
 )
@@ -73,19 +72,12 @@ var (
 		Name: "event_to_sqs_errors_total",
 		Help: "Number of errors enqueueing notification batches into SQS.",
 	}, []string{"event_type"})
-
-	databaseRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "notification",
-		Name:      "database_request_duration_seconds",
-		Help:      "Time spent (in seconds) doing database requests.",
-		Buckets:   prometheus.DefBuckets,
-	}, []string{"method", "status_code"})
 )
 
 // EventManager contains Users service client, DB connection and SQS queue to store events into DB and send notifications to SQS queue
 type EventManager struct {
 	UsersClient users.UsersClient
-	DB          *utils.DB
+	DB          db.DB
 	SQSClient   sqsiface.SQSAPI
 	SQSQueue    string
 	wg          sync.WaitGroup
@@ -101,15 +93,14 @@ func init() {
 		eventsToDBError,
 		eventsToSQSTotal,
 		eventsToSQSError,
-		databaseRequestDuration,
 	)
 }
 
 // New creates new EventManager
-func New(usersClient users.UsersClient, db *sql.DB, sqsClient sqsiface.SQSAPI, sqsQueue string) *EventManager {
+func New(usersClient users.UsersClient, db db.DB, sqsClient sqsiface.SQSAPI, sqsQueue string) *EventManager {
 	return &EventManager{
 		UsersClient: usersClient,
-		DB:          utils.NewDB(db, databaseRequestDuration),
+		DB:          db,
 		SQSClient:   sqsClient,
 		SQSQueue:    sqsQueue,
 		limiter:     rate.NewLimiter(ratelimit, ratelimit),
@@ -122,9 +113,9 @@ func (em *EventManager) Register(r *mux.Router) {
 		name, method, path string
 		handler            http.Handler
 	}{
-		{"list_event_types", "GET", "/api/notification/config/eventtypes", withNoArgs(em.httpListEventTypes)},
+		{"list_event_types", "GET", "/api/notification/config/eventtypes", withNoArgs(em.listEventTypes)},
 		{"list_receivers", "GET", "/api/notification/config/receivers", withInstance(em.listReceivers)},
-		{"create_receiver", "POST", "/api/notification/config/receivers", withInstance(em.httpCreateReceiver)},
+		{"create_receiver", "POST", "/api/notification/config/receivers", withInstance(em.createReceiver)},
 		{"get_receiver", "GET", "/api/notification/config/receivers/{id}", withInstanceAndID(em.getReceiver)},
 		{"update_receiver", "PUT", "/api/notification/config/receivers/{id}", withInstanceAndID(em.updateReceiver)},
 		{"delete_receiver", "DELETE", "/api/notification/config/receivers/{id}", withInstanceAndID(em.deleteReceiver)},
@@ -179,7 +170,7 @@ func (em *EventManager) SendNotificationBatchesToQueue(ctx context.Context, e ty
 }
 
 func (em *EventManager) getNotifications(ctx context.Context, e types.Event) ([]types.Notification, error) {
-	receivers, err := em.GetReceiversForEvent(e)
+	receivers, err := em.DB.GetReceiversForEvent(e)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot get receivers for event %v", e)
 	}
@@ -462,7 +453,7 @@ func (em *EventManager) SlackHandler(w http.ResponseWriter, r *http.Request) {
 
 // storeAndSend stores event in DB and sends notification batches for this event to SQS
 func (em *EventManager) storeAndSend(ctx context.Context, ev types.Event) error {
-	if err := em.CreateEvent(ev); err != nil {
+	if err := em.DB.CreateEvent(ev); err != nil {
 		eventsToDBError.With(prometheus.Labels{"event_type": ev.Type}).Inc()
 		return errors.Wrapf(err, "cannot store event in DB")
 	}
