@@ -14,7 +14,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "rate(jvm_threads_current{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+              "query": "avg_over_time(jvm_threads_current{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
             },
             {
               "title": "Threads Created per Second",
@@ -40,7 +40,7 @@
               "unit": {
                 "format": "bytes"
               },
-              "query": "jvm_memory_bytes_used{kubernetes_namespace='default',_weave_service='authfe'}"
+              "query": "avg_over_time(jvm_memory_bytes_used{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
             },
             {
               "title": "Memory Used per Pool",
@@ -48,7 +48,7 @@
               "unit": {
                 "format": "bytes"
               },
-              "query": "jvm_memory_pool_bytes_used{kubernetes_namespace='default',_weave_service='authfe'}"
+              "query": "avg_over_time(jvm_memory_pool_bytes_used{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
             }
           ]
         }
