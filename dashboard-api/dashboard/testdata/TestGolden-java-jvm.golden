@@ -60,7 +60,7 @@
         {
           "panels": [
             {
-              "title": "Time Spent in GC every second",
+              "title": "Time Spent in GC per Second",
               "type": "line",
               "unit": {
                 "format": "seconds"

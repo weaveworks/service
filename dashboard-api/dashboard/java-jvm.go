@@ -39,7 +39,7 @@ var jvmDashboard = Dashboard{
 		Name: "Garbage Collector",
 		Rows: []Row{{
 			Panels: []Panel{{
-				Title: "Time Spent in GC every second",
+				Title: "Time Spent in GC per Second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitSeconds},
 				Query: `sum(rate(jvm_gc_collection_seconds_sum{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name, gc)`,
