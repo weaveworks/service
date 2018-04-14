@@ -14,7 +14,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "avg_over_time(jvm_threads_current{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+              "query": "sum(avg_over_time(jvm_threads_current{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
             },
             {
               "title": "Threads Created per Second",
@@ -22,7 +22,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "rate(jvm_threads_started_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+              "query": "sum(rate(jvm_threads_started_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
             }
           ]
         }
@@ -40,7 +40,7 @@
               "unit": {
                 "format": "bytes"
               },
-              "query": "avg_over_time(jvm_memory_bytes_used{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+              "query": "sum(avg_over_time(jvm_memory_bytes_used{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name, area)"
             },
             {
               "title": "Memory Used per Pool",
@@ -48,7 +48,7 @@
               "unit": {
                 "format": "bytes"
               },
-              "query": "avg_over_time(jvm_memory_pool_bytes_used{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+              "query": "sum(avg_over_time(jvm_memory_pool_bytes_used{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name, pool)"
             }
           ]
         }
@@ -65,7 +65,7 @@
               "unit": {
                 "format": "seconds"
               },
-              "query": "rate(jvm_gc_collection_seconds_sum{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+              "query": "sum(rate(jvm_gc_collection_seconds_sum{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name, gc)"
             },
             {
               "title": "Number of GC Cycles per Second",
@@ -73,7 +73,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "rate(jvm_gc_collection_seconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+              "query": "sum(rate(jvm_gc_collection_seconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name, gc)"
             }
           ]
         }
