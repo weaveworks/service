@@ -18,11 +18,11 @@ var openfaasDashboard = Dashboard{
 		Name: "RED Metrics",
 		Rows: []Row{{
 			Panels: []Panel{{
-				Title: "Execution duration",
-				Type:  PanelLine,
+				Title:    "Execution duration",
+				Type:     PanelLine,
 				Optional: true,
-				Unit:  Unit{Format: UnitSeconds},
-				Query: `(rate(gateway_functions_seconds_sum{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) / (rate(gateway_functions_seconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}]))`,
+				Unit:     Unit{Format: UnitSeconds},
+				Query:    `(rate(gateway_functions_seconds_sum{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) / (rate(gateway_functions_seconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}]))`,
 			}},
 		}, {
 			Panels: []Panel{{
@@ -36,7 +36,7 @@ var openfaasDashboard = Dashboard{
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `rate(gateway_function_invocation_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}',code!='200'}[{{range}}])`,
 			}},
-		},{
+		}, {
 			Panels: []Panel{{
 				Title: "Replicas per function",
 				Type:  PanelLine,
