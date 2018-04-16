@@ -11,12 +11,12 @@ var jvmDashboard = Dashboard{
 				Help:  "Current number of live threads including both daemon and non-daemon threads",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `avg_over_time(jvm_threads_current{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
+				Query: `sum(avg_over_time(jvm_threads_current{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name)`,
 			}, {
 				Title: "Threads Created per Second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `rate(jvm_threads_started_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
+				Query: `sum(rate(jvm_threads_started_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name)`,
 			}},
 		}},
 	}, {
@@ -27,27 +27,27 @@ var jvmDashboard = Dashboard{
 				Help:  "Used memory is working set (~live objects in the heap) + garbage",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitBytes},
-				Query: `avg_over_time(jvm_memory_bytes_used{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
+				Query: `sum(avg_over_time(jvm_memory_bytes_used{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name, area)`,
 			}, {
 				Title: "Memory Used per Pool",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitBytes},
-				Query: `avg_over_time(jvm_memory_pool_bytes_used{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
+				Query: `sum(avg_over_time(jvm_memory_pool_bytes_used{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name, pool)`,
 			}},
 		}},
 	}, {
 		Name: "Garbage Collector",
 		Rows: []Row{{
 			Panels: []Panel{{
-				Title: "Time Spent in GC every second",
+				Title: "Time Spent in GC per Second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitSeconds},
-				Query: `rate(jvm_gc_collection_seconds_sum{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
+				Query: `sum(rate(jvm_gc_collection_seconds_sum{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name, gc)`,
 			}, {
 				Title: "Number of GC Cycles per Second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `rate(jvm_gc_collection_seconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])`,
+				Query: `sum(rate(jvm_gc_collection_seconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name, gc)`,
 			}},
 		}},
 	}},

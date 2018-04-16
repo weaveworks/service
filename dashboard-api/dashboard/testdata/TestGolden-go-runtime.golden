@@ -13,7 +13,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "go_goroutines{kubernetes_namespace='default',_weave_service='authfe'}"
+              "query": "sum(go_goroutines{kubernetes_namespace='default',_weave_service='authfe'}) by (kubernetes_pod_name)"
             }
           ]
         }
@@ -30,7 +30,7 @@
               "unit": {
                 "format": "bytes"
               },
-              "query": "avg_over_time(go_memstats_heap_alloc_bytes{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+              "query": "sum(avg_over_time(go_memstats_heap_alloc_bytes{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
             },
             {
               "title": "Number of Heap Objects",
@@ -38,7 +38,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "avg_over_time(go_memstats_heap_objects{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+              "query": "sum(avg_over_time(go_memstats_heap_objects{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
             }
           ]
         },
@@ -50,7 +50,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "rate(go_memstats_mallocs_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+              "query": "sum(rate(go_memstats_mallocs_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
             },
             {
               "title": "Number of Heap Objects Freed per Second",
@@ -58,7 +58,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "rate(go_memstats_frees_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+              "query": "sum(rate(go_memstats_frees_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
             }
           ]
         }
@@ -75,7 +75,7 @@
               "unit": {
                 "format": "seconds"
               },
-              "query": "rate(go_gc_duration_seconds_sum{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+              "query": "sum(rate(go_gc_duration_seconds_sum{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
             }
           ]
         },
@@ -87,7 +87,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "rate(go_gc_duration_seconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m])"
+              "query": "sum(rate(go_gc_duration_seconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
             },
             {
               "title": "Duration (75 percentile)",
@@ -95,7 +95,7 @@
               "unit": {
                 "format": "seconds"
               },
-              "query": "go_gc_duration_seconds{kubernetes_namespace='default',_weave_service='authfe',quantile='0.75'}"
+              "query": "max(go_gc_duration_seconds{kubernetes_namespace='default',_weave_service='authfe',quantile='0.75'}) by (kubernetes_pod_name)"
             }
           ]
         }
