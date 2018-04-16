@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/weaveworks/flux/update"
-	"github.com/weaveworks/service/flux-api/config"
 )
 
 func TestSlackNotifier(t *testing.T) {
@@ -26,10 +25,7 @@ func TestSlackNotifier(t *testing.T) {
 	release := exampleRelease(t)
 
 	// It should send releases to slack
-	if err := slackNotifyRelease(config.Notifier{
-		HookURL:  server.URL,
-		Username: "user1",
-	}, release, "test-error"); err != nil {
+	if err := slackNotifyRelease(server.URL, release, "test-error"); err != nil {
 		t.Fatal(err)
 	}
 	if gotReq == nil {
@@ -50,8 +46,7 @@ func TestSlackNotifier(t *testing.T) {
 	var resultOut bytes.Buffer
 	update.PrintResults(&resultOut, release.Result, 1)
 	expected := map[string]interface{}{
-		"username": "user1",
-		"text":     "Release all latest to default/helloworld.",
+		"text": "Release all latest to default/helloworld.",
 		"attachments": []interface{}{
 			map[string]interface{}{
 				"text":     "test-error",
@@ -79,7 +74,7 @@ func TestSlackNotifierDryRun(t *testing.T) {
 	// It should send releases to slack
 	release := exampleRelease(t)
 	release.Spec.Kind = update.ReleaseKindPlan
-	if err := slackNotifyRelease(config.Notifier{HookURL: server.URL}, release, "test-error"); err != nil {
+	if err := slackNotifyRelease(server.URL, release, "test-error"); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -92,7 +87,7 @@ func TestSlackNotifierErrorHandling(t *testing.T) {
 	defer server.Close()
 
 	// It should get an error back from slack
-	err := slackNotifyRelease(config.Notifier{HookURL: server.URL}, exampleRelease(t), "test-error")
+	err := slackNotifyRelease(server.URL, exampleRelease(t), "test-error")
 	if err == nil {
 		t.Fatal("Expected an error back")
 	}

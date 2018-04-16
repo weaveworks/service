@@ -15,21 +15,22 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 
-	"github.com/weaveworks/flux/event"
 	"github.com/weaveworks/service/common/tracing"
 	"github.com/weaveworks/service/flux-api/bus"
 	"github.com/weaveworks/service/flux-api/bus/nats"
-	"github.com/weaveworks/service/flux-api/config"
 	"github.com/weaveworks/service/flux-api/db"
 	"github.com/weaveworks/service/flux-api/history"
 	historysql "github.com/weaveworks/service/flux-api/history/sql"
 	httpserver "github.com/weaveworks/service/flux-api/http"
 	"github.com/weaveworks/service/flux-api/instance"
 	instancedb "github.com/weaveworks/service/flux-api/instance/sql"
+	"github.com/weaveworks/service/flux-api/notifications"
 	"github.com/weaveworks/service/flux-api/server"
 )
 
-const shutdownTimeout = 30 * time.Second
+const (
+	shutdownTimeout = 30 * time.Second
+)
 
 var version string
 
@@ -54,7 +55,7 @@ func main() {
 		databaseMigrationsDir = fs.String("database-migrations", "./flux-api/db/migrations/postgres", "Path to database migration scripts, which are in subdirectories named for each driver")
 		natsURL               = fs.String("nats-url", "", `URL on which to connect to NATS, or empty to use the standalone message bus (e.g., "nats://user:pass@nats:4222")`)
 		versionFlag           = fs.Bool("version", false, "Get version number")
-		eventsURL             = fs.String("events-url", "", "URL to which events will be sent, or empty to use instance-specific Slack settings")
+		eventsURL             = fs.String("events-url", notifications.DefaultURL, "URL to which events will be sent")
 	)
 	fs.Parse(os.Args)
 
@@ -64,23 +65,6 @@ func main() {
 	if *versionFlag {
 		fmt.Println(version)
 		os.Exit(0)
-	}
-
-	// If the events-url flag is present, ignore instance specific Slack settings.
-	var defaultEventsConfig *instance.Config
-	if *eventsURL != "" {
-		defaultEventsConfig = &instance.Config{
-			Settings: config.Instance{
-				Slack: config.Notifier{
-					HookURL: *eventsURL,
-					NotifyEvents: []string{
-						event.EventRelease,
-						event.EventAutoRelease,
-						event.EventSync,
-					},
-				},
-			},
-		}
 	}
 
 	// Logger component.
@@ -136,7 +120,7 @@ func main() {
 	}
 
 	// Configuration, i.e., whether services are automated or not.
-	var instanceDB instance.DB
+	var instanceDB instance.ConnectionDB
 	{
 		db, err := instancedb.New(dbDriver, *databaseSource)
 		if err != nil {
@@ -158,7 +142,7 @@ func main() {
 	}
 
 	// The server.
-	server := server.New(version, instancer, instanceDB, messageBus, logger, defaultEventsConfig)
+	server := server.New(version, instancer, instanceDB, messageBus, logger, *eventsURL)
 
 	// Mechanical components.
 	errc := make(chan error)

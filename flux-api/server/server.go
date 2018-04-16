@@ -21,7 +21,6 @@ import (
 	"github.com/weaveworks/flux/ssh"
 	"github.com/weaveworks/flux/update"
 	"github.com/weaveworks/service/flux-api/bus"
-	"github.com/weaveworks/service/flux-api/config"
 	"github.com/weaveworks/service/flux-api/history"
 	"github.com/weaveworks/service/flux-api/instance"
 	"github.com/weaveworks/service/flux-api/notifications"
@@ -39,32 +38,32 @@ const (
 
 // Server is a flux-api server.
 type Server struct {
-	version             string
-	instancer           instance.Instancer
-	config              instance.DB
-	messageBus          bus.MessageBus
-	logger              log.Logger
-	connected           int32
-	defaultEventsConfig *instance.Config
+	version    string
+	instancer  instance.Instancer
+	connDB     instance.ConnectionDB
+	messageBus bus.MessageBus
+	logger     log.Logger
+	connected  int32
+	eventsURL  string
 }
 
 // New creates a new Server.
 func New(
 	version string,
 	instancer instance.Instancer,
-	config instance.DB,
+	connDB instance.ConnectionDB,
 	messageBus bus.MessageBus,
 	logger log.Logger,
-	eventsConfig *instance.Config,
+	eventsURL string,
 ) *Server {
 	connectedDaemons.Set(0)
 	return &Server{
-		version:             version,
-		instancer:           instancer,
-		config:              config,
-		messageBus:          messageBus,
-		logger:              logger,
-		defaultEventsConfig: eventsConfig,
+		version:    version,
+		instancer:  instancer,
+		connDB:     connDB,
+		messageBus: messageBus,
+		logger:     logger,
+		eventsURL:  eventsURL,
 	}
 }
 
@@ -95,50 +94,48 @@ func (s *Server) Status(ctx context.Context, withPlatform bool) (res service.Sta
 
 	res.Fluxsvc = service.FluxsvcStatus{Version: s.version}
 
-	config, err := inst.Config.Get()
+	conn, err := inst.Config.Get()
 	if err != nil {
 		return res, err
 	}
 
-	res.Fluxd.Last = config.Connection.Last
+	res.Fluxd.Last = conn.Last
+	res.Fluxd.Connected = conn.Connected
 	// Don't bother trying to get information from the daemon if we
 	// haven't recorded it as connected
-	if config.Connection.Connected {
-		res.Fluxd.Connected = true
-		if withPlatform {
-			res.Fluxd.Version, err = inst.Platform.Version(ctx)
-			if err != nil {
-				return res, err
-			}
+	if conn.Connected && withPlatform {
+		res.Fluxd.Version, err = inst.Platform.Version(ctx)
+		if err != nil {
+			return res, err
+		}
 
-			res.Git.Config, err = inst.Platform.GitRepoConfig(ctx, false)
-			if err != nil {
-				return res, err
-			}
+		res.Git.Config, err = inst.Platform.GitRepoConfig(ctx, false)
+		if err != nil {
+			return res, err
+		}
 
-			switch res.Git.Config.Status {
-			case git.RepoNoConfig:
-				res.Git.Configured = false
-				res.Git.Error = GitNotConfigured
-			case git.RepoNew:
-				res.Git.Configured = false
-				res.Git.Error = GitNotCloned
-			case git.RepoCloned:
-				res.Git.Configured = false
-				res.Git.Error = GitNotWritable
-			case git.RepoReady:
+		switch res.Git.Config.Status {
+		case git.RepoNoConfig:
+			res.Git.Configured = false
+			res.Git.Error = GitNotConfigured
+		case git.RepoNew:
+			res.Git.Configured = false
+			res.Git.Error = GitNotCloned
+		case git.RepoCloned:
+			res.Git.Configured = false
+			res.Git.Error = GitNotWritable
+		case git.RepoReady:
+			res.Git.Configured = true
+			res.Git.Error = ""
+		default:
+			// most likely, an old daemon connecting; these don't
+			// report the git readiness. Checking the sync status
+			// will give some indication of where it's got up to.
+			_, err = inst.Platform.SyncStatus(ctx, "HEAD")
+			if err != nil {
+				res.Git.Error = GitNotSynced
+			} else {
 				res.Git.Configured = true
-				res.Git.Error = ""
-			default:
-				// most likely, an old daemon connecting; these don't
-				// report the git readiness. Checking the sync status
-				// will give some indication of where it's got up to.
-				_, err = inst.Platform.SyncStatus(ctx, "HEAD")
-				if err != nil {
-					res.Git.Error = GitNotSynced
-				} else {
-					res.Git.Configured = true
-				}
 			}
 		}
 	}
@@ -255,19 +252,8 @@ func (s *Server) LogEvent(ctx context.Context, e event.Event) error {
 		return errors.Wrapf(err, "logging event")
 	}
 
-	// Override the users's slack settings if an events-url flag is provided.
-	var cfg instance.Config
-	if s.defaultEventsConfig != nil {
-		cfg = *s.defaultEventsConfig
-		cfg.Settings.Slack.HookURL = strings.Replace(cfg.Settings.Slack.HookURL, "{instanceID}", string(instID), 1)
-	} else {
-		// Save a database call if we are overriding with an events-url flag
-		cfg, err = helper.Config.Get()
-		if err != nil {
-			return errors.Wrapf(err, "getting config")
-		}
-	}
-	err = notifications.Event(cfg, e)
+	url := strings.Replace(s.eventsURL, "{instanceID}", string(instID), 1)
+	err = notifications.Event(url, e)
 	if err != nil {
 		return errors.Wrapf(err, "sending notifications")
 	}
@@ -317,68 +303,6 @@ func (s *Server) History(ctx context.Context, spec update.ResourceSpec, before t
 	return res, nil
 }
 
-// GetConfig gets the config for the given instance.
-func (s *Server) GetConfig(ctx context.Context, fingerprint string) (config.Instance, error) {
-	instID, err := getInstanceID(ctx)
-	if err != nil {
-		return config.Instance{}, err
-	}
-
-	fullConfig, err := s.config.GetConfig(instID)
-	if err != nil {
-		return config.Instance{}, err
-	}
-
-	// The UI expects `notifyEvents` to either have an array value, or
-	// be absent from the JSON. Since the field is not marked
-	// `omitEmpty`, so that we can distinguish "never set" from "set
-	// to []", we must patch it if it's `nil`. It's convenient to
-	// patch it to the default.
-	if fullConfig.Settings.Slack.NotifyEvents == nil {
-		fullConfig.Settings.Slack.NotifyEvents = notifications.DefaultNotifyEvents
-	}
-
-	config := config.Instance(fullConfig.Settings)
-
-	return config, nil
-}
-
-// SetConfig updates the config for the given instance.
-func (s *Server) SetConfig(ctx context.Context, updates config.Instance) error {
-	instID, err := getInstanceID(ctx)
-	if err != nil {
-		return err
-	}
-	return s.config.UpdateConfig(instID, applyConfigUpdates(updates))
-}
-
-// PatchConfig patches the config for the given instance.
-func (s *Server) PatchConfig(ctx context.Context, patch config.Patch) error {
-	instID, err := getInstanceID(ctx)
-	if err != nil {
-		return err
-	}
-
-	fullConfig, err := s.config.GetConfig(instID)
-	if err != nil {
-		return errors.Wrap(err, "unable to get config")
-	}
-
-	patchedConfig, err := fullConfig.Settings.Patch(patch)
-	if err != nil {
-		return errors.Wrap(err, "unable to apply patch")
-	}
-
-	return s.config.UpdateConfig(instID, applyConfigUpdates(patchedConfig))
-}
-
-func applyConfigUpdates(updates config.Instance) instance.UpdateFunc {
-	return func(config instance.Config) (instance.Config, error) {
-		config.Settings = updates
-		return config, nil
-	}
-}
-
 // PublicSSHKey gets - and optionally regenerates - the public key for a given instance.
 func (s *Server) PublicSSHKey(ctx context.Context, regenerate bool) (ssh.PublicKey, error) {
 	instID, err := getInstanceID(ctx)
@@ -426,10 +350,10 @@ func (s *Server) RegisterDaemon(ctx context.Context, platform api.UpstreamServer
 	}()
 	connectedDaemons.Set(float64(atomic.AddInt32(&s.connected, 1)))
 
-	// Record the time of connection in the "config"
+	// Record the time of connection
 	now := time.Now()
-	s.config.UpdateConfig(instID, setConnectionTime(now))
-	defer s.config.UpdateConfig(instID, setDisconnectedIf(now))
+	s.connDB.Connect(instID, now)
+	defer s.connDB.Disconnect(instID, now)
 
 	// Register the daemon with our message bus, waiting for it to be
 	// closed. NB we cannot in general expect there to be a
@@ -439,26 +363,6 @@ func (s *Server) RegisterDaemon(ctx context.Context, platform api.UpstreamServer
 	s.messageBus.Subscribe(ctx, instID, s.instrumentPlatform(instID, platform), done)
 	err = <-done
 	return err
-}
-
-func setConnectionTime(t time.Time) instance.UpdateFunc {
-	return func(config instance.Config) (instance.Config, error) {
-		config.Connection.Last = t
-		config.Connection.Connected = true
-		return config, nil
-	}
-}
-
-// Only set the connection time if it's what you think it is (i.e., a
-// kind of compare and swap). Used so that disconnecting doesn't zero
-// the value set by another connection.
-func setDisconnectedIf(t0 time.Time) instance.UpdateFunc {
-	return func(config instance.Config) (instance.Config, error) {
-		if config.Connection.Last.Equal(t0) {
-			config.Connection.Connected = false
-		}
-		return config, nil
-	}
 }
 
 // Export calls Export on the given instance.

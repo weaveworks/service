@@ -12,7 +12,7 @@ import (
 // MultitenantInstancer is an implementation of Instancer that communicates with
 // Instances over a message bus, in order to support multiple replicas.
 type MultitenantInstancer struct {
-	DB        DB
+	DB        ConnectionDB
 	Connecter bus.Connecter
 	Logger    log.Logger
 	History   history.DB
