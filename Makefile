@@ -108,7 +108,7 @@ test: $(PROTO_GOS)
 authfe/$(UPTODATE): $(AUTHFE_EXE)
 users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/templates/*
 metrics/$(UPTODATE): $(METRICS_EXE)
-logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
+logging/$(UPTODATE): logging/fluent.conf
 build/$(UPTODATE): build/build.sh
 notebooks/$(UPTODATE): $(NOTEBOOKS_EXE)
 service-ui-kicker/$(UPTODATE): $(SERVICE_UI_KICKER_EXE)
