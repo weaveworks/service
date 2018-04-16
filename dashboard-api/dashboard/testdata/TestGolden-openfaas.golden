@@ -1,0 +1,60 @@
+{
+  "id": "openfaas",
+  "name": "OpenFaaS",
+  "sections": [
+    {
+      "name": "Traffic",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Function req/sec",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(rate(gateway_function_invocation_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (function_name)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "RED Metrics",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Successful req/sec",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "rate(gateway_function_invocation_total{kubernetes_namespace='default',_weave_service='authfe',code='200'}[2m])"
+            },
+            {
+              "title": "Failed req/sec",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "rate(gateway_function_invocation_total{kubernetes_namespace='default',_weave_service='authfe',code!='200'}[2m])"
+            }
+          ]
+        },
+        {
+          "panels": [
+            {
+              "title": "Replicas per function",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(gateway_service_count{kubernetes_namespace='default',_weave_service='authfe'}) by (function_name)"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

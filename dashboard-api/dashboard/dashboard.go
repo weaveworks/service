@@ -275,6 +275,7 @@ func Init() error {
 		memcached,
 		jvm,
 		goRuntime,
+		openfaas,
 	)
 
 	for _, provider := range providers {
