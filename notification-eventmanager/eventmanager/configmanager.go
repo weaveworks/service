@@ -123,7 +123,7 @@ func (em *EventManager) listEventTypes(tx *utils.Tx, featureFlags []string) ([]t
 	// and c) feature flag isn't in given list of feature flags.
 	rows, err := queryFn(
 		"list_event_types",
-		`SELECT name, display_name, description, default_receiver_types, feature_flag FROM event_types
+		`SELECT name, display_name, description, default_receiver_types, hide_ui_config, feature_flag FROM event_types
 		WHERE $1::text[] IS NULL OR feature_flag IS NULL OR feature_flag = ANY ($1::text[])`,
 		pq.Array(featureFlags),
 	)
@@ -519,15 +519,13 @@ func (em *EventManager) updateReceiver(r *http.Request, instanceID string, recei
 
 	// before transaction changes the addressData and eventTypes, get oldReceiver which has oldAddressData and oldEventTypes
 	receiverOrNil, status, err := em.getReceiver(r, instanceID, receiverID)
-	gotOldReceiverValues := true
 	if err != nil {
-		gotOldReceiverValues = false
 		log.Errorf("error with c.getReceiver call. Status: %v\nError: %s", status, err)
 	}
 
 	oldReceiver, ok := receiverOrNil.(types.Receiver)
 	if !ok {
-		gotOldReceiverValues = false
+		receiverOrNil = nil
 		log.Errorf("error converting result of getReceiver call, %v to types.Receiver", receiverOrNil)
 	}
 
@@ -536,22 +534,23 @@ func (em *EventManager) updateReceiver(r *http.Request, instanceID string, recei
 	if err != nil {
 		return nil, 0, err
 	}
-	if code == http.StatusOK {
-		// all good!
-		// Fire event every time config is successfully changed
-		if gotOldReceiverValues {
-			go func() {
-				eventErr := em.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime)
-				if eventErr != nil {
-					log.Error(eventErr)
-				}
-			}()
-		} else {
-			log.Error("Event config_changed not sent. Old receiver values not acquired.")
-		}
-		return nil, code, nil
+	if code != http.StatusOK {
+		return userErrorMsg, code, nil
 	}
-	return userErrorMsg, code, nil
+
+	// all good!
+	// Fire event every time config is successfully changed
+	if receiverOrNil != nil {
+		go func() {
+			eventErr := em.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime)
+			if eventErr != nil {
+				log.Error(eventErr)
+			}
+		}()
+	} else {
+		log.Error("Event config_changed not sent. Old receiver values not acquired.")
+	}
+	return nil, http.StatusOK, nil
 }
 
 func (em *EventManager) updateReceiverTX(r *http.Request, receiver types.Receiver, instanceID string, encodedAddress []byte) (string, int, error) {
@@ -581,7 +580,7 @@ func (em *EventManager) updateReceiverTX(r *http.Request, receiver types.Receive
 		rows, err := tx.Query(
 			"check_new_receiver_event_types",
 			`SELECT unnest FROM unnest($1::text[])
-			WHERE unnest NOT IN (SELECT name FROM event_types)`,
+			WHERE unnest NOT IN (SELECT name FROM event_types WHERE hide_ui_config <> true)`,
 			pq.Array(receiver.EventTypes),
 		)
 		if err != nil {
@@ -601,7 +600,7 @@ func (em *EventManager) updateReceiverTX(r *http.Request, receiver types.Receive
 			return err
 		}
 		if len(badTypes) != 0 {
-			userErrorMsg = fmt.Sprintf("Given event types do not exist: %s", strings.Join(badTypes, ", "))
+			userErrorMsg = fmt.Sprintf("Given event types do not exist or cannot be modified: %s", strings.Join(badTypes, ", "))
 			code = http.StatusNotFound
 			return nil
 		}
@@ -930,13 +929,14 @@ func (em *EventManager) createEventType(tx *utils.Tx, e types.EventType) error {
 	// Since go interprets omitted as empty string for feature flag, translate empty string to NULL on insert.
 	result, err := tx.Exec(
 		"create_event_type",
-		`INSERT INTO event_types (name, display_name, description, default_receiver_types, feature_flag)
-		VALUES ($1, $2, $3, $4, NULLIF($5, ''))
+		`INSERT INTO event_types (name, display_name, description, default_receiver_types, hide_ui_config, feature_flag)
+		VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''))
 		ON CONFLICT DO NOTHING`,
 		e.Name,
 		e.DisplayName,
 		e.Description,
 		pq.Array(e.DefaultReceiverTypes),
+		e.HideUIConfig,
 		e.FeatureFlag,
 	)
 	if err != nil {
@@ -967,12 +967,13 @@ func (em *EventManager) updateEventType(tx *utils.Tx, e types.EventType) error {
 	result, err := tx.Exec(
 		"update_event_type",
 		`UPDATE event_types
-		SET (display_name, description, default_receiver_types, feature_flag) = ($2, $3, $4, NULLIF($5, ''))
+		SET (display_name, description, default_receiver_types, hide_ui_config, feature_flag) = ($2, $3, $4, $5, NULLIF($6, ''))
 		WHERE name = $1`,
 		e.Name,
 		e.DisplayName,
 		e.Description,
 		pq.Array(e.DefaultReceiverTypes),
+		e.HideUIConfig,
 		e.FeatureFlag,
 	)
 	if err != nil {

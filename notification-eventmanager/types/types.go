@@ -86,6 +86,7 @@ type EventType struct {
 	DisplayName          string   `json:"display_name"`
 	Description          string   `json:"description"`
 	DefaultReceiverTypes []string `json:"default_receiver_types"`
+	HideUIConfig         bool     `json:"hide_ui_config"`
 	// In most cases FeatureFlag is not included, and will be blank and therefore omitted.
 	FeatureFlag string `json:"feature_flag,omitempty"`
 }
@@ -130,7 +131,7 @@ type scannable interface {
 func EventTypeFromRow(row scannable) (EventType, error) {
 	et := EventType{}
 	featureFlag := sql.NullString{}
-	err := row.Scan(&et.Name, &et.DisplayName, &et.Description, pq.Array(&et.DefaultReceiverTypes), &featureFlag)
+	err := row.Scan(&et.Name, &et.DisplayName, &et.Description, pq.Array(&et.DefaultReceiverTypes), &et.HideUIConfig, &featureFlag)
 	if featureFlag.Valid {
 		et.FeatureFlag = featureFlag.String
 	}
@@ -157,7 +158,9 @@ func EventTypesFromFile(path string) (map[string]EventType, error) {
 // Equals must be defined because go refuses to do equality tests for slices.
 func (e EventType) Equals(other EventType) bool {
 	// I tried to make this split over multiple lines but the compiler said no
-	if !(e.Name == other.Name && e.DisplayName == other.DisplayName && e.Description == other.Description && e.FeatureFlag == other.FeatureFlag && len(e.DefaultReceiverTypes) == len(other.DefaultReceiverTypes)) {
+	if !(e.Name == other.Name && e.DisplayName == other.DisplayName && e.Description == other.Description &&
+		e.FeatureFlag == other.FeatureFlag && len(e.DefaultReceiverTypes) == len(other.DefaultReceiverTypes) &&
+		e.HideUIConfig == other.HideUIConfig) {
 		return false
 	}
 	for i := range e.DefaultReceiverTypes {
