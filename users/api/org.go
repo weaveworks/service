@@ -154,6 +154,7 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 			// for instances billed externally.
 			// We do, however, set the "no-billing" flag to follow the current
 			// convention for instances not billed via Zuora/GCP.
+			log.Infof("Billing disabled for %v/%v/%v as team %v is billed externally.", org.ID, view.ExternalID, view.Name, org.TeamExternalID)
 			return a.db.AddFeatureFlag(ctx, view.ExternalID, featureflag.NoBilling)
 		}
 	}
