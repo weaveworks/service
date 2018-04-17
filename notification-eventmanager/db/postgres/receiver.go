@@ -232,7 +232,7 @@ func (d DB) UpdateReceiver(receiver types.Receiver, instanceID string, featureFl
 		if err != nil {
 			return err
 		}
-		// Delete any newly-dropped event types. Note we keep feature-flag-hidden event types,
+		// Delete any newly-dropped event types. Note we keep feature-flag-hidden event types and those that are hidden from config UI
 		// since the client wouldn't have known about these so omitting them was not an intentional delete.
 		_, err = tx.Exec(
 			"remove_receiver_event_types",
@@ -240,7 +240,7 @@ func (d DB) UpdateReceiver(receiver types.Receiver, instanceID string, featureFl
 			WHERE receiver_id = $1 AND NOT event_type IN (
 				SELECT name
 				FROM event_types
-				WHERE name = ANY ($2) OR NOT (feature_flag IS NULL OR feature_flag = ANY ($3))
+				WHERE name = ANY ($2) OR NOT (feature_flag IS NULL OR feature_flag = ANY ($3)) OR hide_ui_config = true
 			)`,
 			receiver.ID,
 			pq.Array(receiver.EventTypes),
