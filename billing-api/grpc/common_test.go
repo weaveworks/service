@@ -1,7 +1,6 @@
 package grpc_test
 
 import (
-	"fmt"
 	"net"
 	"testing"
 
@@ -12,15 +11,13 @@ import (
 	google_grpc "google.golang.org/grpc"
 )
 
-var ready = make(chan bool)
-
-func startNewServer(t *testing.T, port int, database db.DB) {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+func startNewServer(t *testing.T, database db.DB) net.Listener {
+	listener, err := net.Listen("tcp", ":0") // Listens on a random, free port.
 	assert.NoError(t, err)
 	grpcServer := google_grpc.NewServer()
 	common_grpc.RegisterBillingServer(grpcServer, grpc.Server{DB: database})
-	ready <- true
-	grpcServer.Serve(lis) // Blocks.
+	go grpcServer.Serve(listener) // Blocks.
+	return listener
 }
 
 func newClient(t *testing.T, hostPort string) *common_grpc.Client {
