@@ -9,10 +9,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/weaveworks/service/common/billing/grpc"
+	"github.com/weaveworks/service/common/billing/provider"
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
 )
@@ -491,6 +495,8 @@ func Test_Organization_CreateTeam(t *testing.T) {
 
 	user := getUser(t)
 
+	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), gomock.Any()).Return(&grpc.BillingAccount{}, nil)
+
 	teamName := "my-team-name"
 	r1 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-org-id", "name": "my-org-name", "teamName": teamName}.Reader(t))
 
@@ -538,4 +544,78 @@ func Test_Organization_Lookup(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, org.ExternalID, body["externalID"])
 	assert.Equal(t, org.Name, body["name"])
+}
+
+func Test_Organization_UserWithExpiredTrialButInTeamBilledExternallyShouldBeAbleToAccessOrganization(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user := getUser(t)
+
+	// Create a team, and simulate the fact that team is marked as "billed externally":
+	team := getTeam(t)
+	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
+		Return(&grpc.BillingAccount{Provider: provider.External}, nil)
+
+	// Simulate the fact that the organization we're about to create is created by an user whose trial is already expired, i.e. the organization is delinquent:
+	trialExpiresAt := time.Now().Add(-17 * 24 * time.Hour) // more than 15d back to trigger upload refusal
+
+	err := app.CreateOrg(context.Background(), user, api.OrgView{
+		ExternalID:     "my-org-id",
+		Name:           "my-org-name",
+		TeamExternalID: team.ExternalID,
+		TrialExpiresAt: trialExpiresAt,
+	}, time.Now())
+	assert.NoError(t, err)
+
+	orgs, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
+	require.NoError(t, err)
+	assert.Len(t, orgs, 1)
+	org := orgs[0]
+	assert.NotEqual(t, "", org.ID)
+	assert.Equal(t, "my-org-id", org.ExternalID)
+	assert.Equal(t, "my-org-name", org.Name)
+	assert.NotEqual(t, "", org.TeamID)
+	assert.NotEqual(t, "", org.TeamExternalID)
+	assert.NotContains(t, org.FeatureFlags, featureflag.Billing)
+	assert.Contains(t, org.FeatureFlags, featureflag.NoBilling)
+	assert.False(t, org.RefuseDataAccess)
+	assert.False(t, org.RefuseDataUpload)
+}
+
+func Test_Organization_UserWithExpiredTrialAndNotInTeamBilledExternallyShouldNotBeAbleToAccessOrganization(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user := getUser(t)
+
+	// Create a team, and simulate the fact that team is NOT marked as "billed externally":
+	team := getTeam(t)
+	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
+		Return(&grpc.BillingAccount{}, nil)
+
+	// Simulate the fact that the organization we're about to create is created by an user whose trial is already expired, i.e. the organization is delinquent:
+	trialExpiresAt := time.Now().Add(-17 * 24 * time.Hour) // more than 15d back to trigger upload refusal
+
+	err := app.CreateOrg(context.Background(), user, api.OrgView{
+		ExternalID:     "my-org-id",
+		Name:           "my-org-name",
+		TeamExternalID: team.ExternalID,
+		TrialExpiresAt: trialExpiresAt,
+	}, time.Now())
+	assert.NoError(t, err)
+
+	orgs, err := database.ListOrganizationsForUserIDs(context.Background(), user.ID)
+	require.NoError(t, err)
+	assert.Len(t, orgs, 1)
+	org := orgs[0]
+	assert.NotEqual(t, "", org.ID)
+	assert.Equal(t, "my-org-id", org.ExternalID)
+	assert.Equal(t, "my-org-name", org.Name)
+	assert.NotEqual(t, "", org.TeamID)
+	assert.NotEqual(t, "", org.TeamExternalID)
+	assert.NotContains(t, org.FeatureFlags, featureflag.NoBilling)
+	assert.Contains(t, org.FeatureFlags, featureflag.Billing)
+	assert.True(t, org.RefuseDataAccess)
+	assert.True(t, org.RefuseDataUpload)
 }

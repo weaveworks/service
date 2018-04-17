@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/url"
 	"time"
+
+	"github.com/weaveworks/service/common/billing/grpc"
 )
 
 // Aggregate represents a database row in table `aggregates`.
@@ -45,6 +47,8 @@ type DB interface {
 	InsertPostTrialInvoice(ctx context.Context, externalID, zuoraAccountNumber, usageImportID string) error
 	GetPostTrialInvoices(ctx context.Context) ([]PostTrialInvoice, error)
 	DeletePostTrialInvoice(ctx context.Context, usageImportID string) error
+
+	FindBillingAccountByTeamID(ctx context.Context, teamID string) (*grpc.BillingAccount, error)
 
 	// Transaction runs the given function in a transaction. If fn returns
 	// an error the txn will be rolled back.

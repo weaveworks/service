@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/url"
 	"strconv"
 	"time"
@@ -11,6 +12,8 @@ import (
 	_ "github.com/lib/pq" // Import the postgres sql driver
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/weaveworks/service/common/billing/grpc"
+	"github.com/weaveworks/service/common/billing/provider"
 	"github.com/weaveworks/service/common/dbwait"
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // Import the postgres migrations driver
 	"gopkg.in/mattes/migrate.v1/migrate"
@@ -285,6 +288,74 @@ func (d *postgres) DeletePostTrialInvoice(ctx context.Context, usageImportID str
 		Where(squirrel.Eq{"usage_import_id": usageImportID}).
 		Exec()
 	return err
+}
+
+func (d postgres) FindBillingAccountByTeamID(ctx context.Context, teamID string) (*grpc.BillingAccount, error) {
+	rows, err := d.billingAccounts().
+		Join("billing_accounts_teams ON billing_accounts_teams.billing_account_id = billing_accounts.id").
+		Where(squirrel.Eq{"billing_accounts_teams.team_id": teamID}).
+		QueryContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	accounts, err := d.scanBillingAccounts(rows)
+	if err != nil {
+		return nil, err
+	}
+	// This should never happen, since enforced by the constraint in the DB's schema, but just in case:
+	if len(accounts) > 1 {
+		return nil, fmt.Errorf("more than one billing account for team with ID %s", teamID)
+	}
+	if len(accounts) == 0 {
+		// Return a "null object" rather than nil and a "not found" error to avoid panics in the client.
+		return &grpc.BillingAccount{}, nil
+	}
+	return accounts[0], nil
+}
+
+func (d postgres) billingAccounts() squirrel.SelectBuilder {
+	return d.Select(
+		"billing_accounts.id",
+		"billing_accounts.created_at",
+		"billing_accounts.deleted_at",
+		"billing_accounts.billed_externally",
+	).
+		From("billing_accounts").
+		Where("billing_accounts.deleted_at IS NULL").
+		OrderBy("billing_accounts.created_at DESC")
+}
+
+func (d postgres) scanBillingAccounts(rows *sql.Rows) ([]*grpc.BillingAccount, error) {
+	accounts := []*grpc.BillingAccount{}
+	for rows.Next() {
+		account, err := d.scanBillingAccount(rows)
+		if err != nil {
+			return nil, err
+		}
+		accounts = append(accounts, account)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+	return accounts, nil
+}
+
+func (d postgres) scanBillingAccount(row squirrel.RowScanner) (*grpc.BillingAccount, error) {
+	a := &grpc.BillingAccount{}
+	var billedExternally bool
+	if err := row.Scan(
+		&a.ID,
+		&a.CreatedAt,
+		&a.DeletedAt,
+		&billedExternally,
+	); err != nil {
+		return nil, err
+	}
+	if billedExternally {
+		a.Provider = provider.External
+	}
+	return a, nil
 }
 
 // Close finishes using the db

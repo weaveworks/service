@@ -45,10 +45,16 @@ BILLING_DB := billing-api/db
 BILLING_TEST_DIRS := $(shell find . -name '*_test.go' | grep -E  "^\./billing" | xargs -n1 dirname | sort -u)
 
 MOCK_BILLING_DB := $(BILLING_DB)/mock_db/mock_db.go
+
+BILLING_GRPC := common/billing/grpc/billing.pb.go
+MOCK_BILLING_GRPC := common/billing/grpc/mock_grpc.go
+# Mocks can only be generated once protoc has generated the *.pb.go file:
+$(MOCK_BILLING_GRPC): $(BILLING_GRPC)
+
 MOCK_COMMON_GCP_PARTNER_CLIENT := common/gcp/partner/mock_partner/mock_client.go
 MOCK_COMMON_GCP_PARTNER_ACCESS := common/gcp/partner/mock_partner/mock_access.go
 
-MOCK_GOS := $(MOCK_USERS) $(MOCK_BILLING_DB) $(MOCK_COMMON_GCP_PARTNER_CLIENT) $(MOCK_COMMON_GCP_PARTNER_ACCESS)
+MOCK_GOS := $(MOCK_USERS) $(MOCK_BILLING_DB) $(MOCK_BILLING_GRPC) $(MOCK_COMMON_GCP_PARTNER_CLIENT) $(MOCK_COMMON_GCP_PARTNER_ACCESS)
 
 
 # copy billing migrations into each billing application's directory
@@ -222,6 +228,9 @@ $(MOCK_USERS): build/$(UPTODATE)
 $(MOCK_BILLING_DB): build/$(UPTODATE) $(BILLING_DB)/db.go
 	mockgen -destination=$@ github.com/weaveworks/service/$(BILLING_DB) DB
 
+$(MOCK_BILLING_GRPC): build/$(UPTODATE)
+	mockgen -source=$(BILLING_GRPC) -destination=$@ -package=grpc
+
 $(MOCK_COMMON_GCP_PARTNER_CLIENT): build/$(UPTODATE)
 	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner API \
 		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
@@ -258,7 +267,7 @@ notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
 
-users-integration-test: $(USERS_UPTODATE) users/users.pb.go $(MOCK_GOS)
+users-integration-test: $(USERS_UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=users_test' postgres:9.5)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \

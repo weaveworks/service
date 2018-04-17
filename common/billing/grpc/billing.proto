@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package grpc;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "google/protobuf/timestamp.proto";
+
+option (gogoproto.populate_all) = true;
+
+service Billing {
+  rpc FindBillingAccountByTeamID (BillingAccountByTeamIDRequest) returns (BillingAccount) {}
+}
+
+message BillingAccountByTeamIDRequest {
+  string TeamID = 1;
+}
+
+message BillingAccount {
+  uint32 ID = 1;
+  google.protobuf.Timestamp CreatedAt = 2 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+  google.protobuf.Timestamp DeletedAt = 3 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+  string Provider = 4;
+}

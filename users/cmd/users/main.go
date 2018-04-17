@@ -15,6 +15,7 @@ import (
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common"
+	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/common/tracing"
@@ -82,6 +83,7 @@ func main() {
 		billingFeatureFlagProbability = flag.Uint("billing-feature-flag-probability", 0, "Percentage of *new* organizations for which we want to enable the 'billing' feature flag. 0 means always disabled. 100 means always enabled. Any value X in between will enable billing randomly X% of the time.")
 
 		partnerCfg partner.Config
+		billingCfg billing_grpc.Config
 
 		cleanupURLs common.ArrayFlags
 	)
@@ -96,6 +98,7 @@ func main() {
 	logins.Register(login.GoogleProviderID, login.NewGoogleProvider())
 	logins.Flags(flag.CommandLine)
 	partnerCfg.RegisterFlags(flag.CommandLine)
+	billingCfg.RegisterFlags(flag.CommandLine)
 
 	partnerAccess := partner.NewAccess()
 	partnerAccess.Flags(flag.CommandLine)
@@ -110,6 +113,12 @@ func main() {
 	var billingEnabler featureflag.Enabler
 	billingEnabler = featureflag.NewRandomEnabler(*billingFeatureFlagProbability)
 	log.Infof("Billing enabled for %v%% of newly created organizations.", *billingFeatureFlagProbability)
+
+	billingClient, err := billing_grpc.NewClient(billingCfg)
+	if err != nil {
+		log.Fatalf("Failed creating billing-api's gRPC client: %v", err)
+	}
+	defer billingClient.Close()
 
 	var marketingQueues marketing.Queues
 	if *marketoClientID != "" {
@@ -176,6 +185,7 @@ func main() {
 		*promMetricsAPI,
 		*cortexStatsAPI,
 		*netPeersAPI,
+		billingClient,
 		billingEnabler,
 		orgCleaner,
 	)

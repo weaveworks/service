@@ -14,6 +14,8 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/common/billing/grpc"
+	"github.com/weaveworks/service/common/billing/provider"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/common/render"
@@ -137,6 +139,25 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 	if err != nil {
 		return err
 	}
+
+	if org.TeamID != "" {
+		account, err := a.billingClient.FindBillingAccountByTeamID(ctx, &grpc.BillingAccountByTeamIDRequest{
+			TeamID: org.TeamID,
+		})
+		if err != nil {
+			return err
+		}
+		if account.Provider == provider.External {
+			// Exit early, as we:
+			// - do not want to set the "billing" flag,
+			// - do want to grant access,
+			// for instances billed externally.
+			// We do, however, set the "no-billing" flag to follow the current
+			// convention for instances not billed via Zuora/GCP.
+			return a.db.AddFeatureFlag(ctx, view.ExternalID, featureflag.NoBilling)
+		}
+	}
+
 	if a.billingEnabler.IsEnabled() {
 		err = a.db.AddFeatureFlag(ctx, view.ExternalID, featureflag.Billing)
 		if err != nil {

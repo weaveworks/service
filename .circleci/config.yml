@@ -50,13 +50,13 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-      # FIXME: we probably don't need to copy the code and change the working dir
-      - run: echo -e "export GOPATH=$HOME\nexport SRCDIR=$HOME/src/github.com/weaveworks/service\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
-      - run: mkdir -p $(dirname $SRCDIR) && cp -r $(pwd)/ $SRCDIR
+      - run: echo -e "export GOPATH=$HOME\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
+      # Link the working directory so that it appears in GOPATH. This is required for cover to map coverage statistics to sources.
+      - run: mkdir -p ${GOPATH}/src/github.com/weaveworks && ln -s $(pwd) ${GOPATH}/src/github.com/weaveworks/service
       - run: go get github.com/mattn/goveralls
       - run: COVERDIR=./coverage make RM= test
-      - run: ./tools/cover/gather_coverage.sh ./coverage $SRCDIR/coverage
-      - run: goveralls -repotoken $COVERALLS_REPO_TOKEN -coverprofile=$SRCDIR/profile.cov -service=circleci || true
+      - run: ./tools/cover/gather_coverage.sh ./coverage $CIRCLE_WORKING_DIRECTORY/coverage
+      - run: goveralls -repotoken $COVERALLS_REPO_TOKEN -coverprofile=$CIRCLE_WORKING_DIRECTORY/profile.cov -service=circleci || true
       - run: mkdir /tmp/coverage && cp coverage.* /tmp/coverage
       - store_artifacts:
           path: /tmp/coverage

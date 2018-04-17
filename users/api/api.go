@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/featureflag"
 
 	"github.com/gorilla/mux"
@@ -40,6 +41,7 @@ type API struct {
 	promMetricsAPI     string
 	cortexStatsAPI     string
 	netPeersAPI        string
+	billingClient      billing_grpc.BillingClient
 	billingEnabler     featureflag.Enabler
 	OrgCleaner         *cleaner.OrgCleaner
 	http.Handler
@@ -67,6 +69,7 @@ func New(
 	promMetricsAPI string,
 	cortexStatsAPI string,
 	netPeersAPI string,
+	billingClient billing_grpc.BillingClient,
 	billingEnabler featureflag.Enabler,
 	orgCleaner *cleaner.OrgCleaner,
 ) *API {
@@ -91,6 +94,7 @@ func New(
 		promMetricsAPI:     promMetricsAPI,
 		cortexStatsAPI:     cortexStatsAPI,
 		netPeersAPI:        netPeersAPI,
+		billingClient:      billingClient,
 		billingEnabler:     billingEnabler,
 		OrgCleaner:         orgCleaner,
 	}

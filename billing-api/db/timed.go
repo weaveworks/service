@@ -6,6 +6,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/weaveworks/common/instrument"
+	"github.com/weaveworks/service/common/billing/grpc"
 )
 
 var durationCollector = instrument.NewHistogramCollector(prometheus.NewHistogramVec(prometheus.HistogramOpts{
@@ -100,6 +101,14 @@ func (t timed) DeletePostTrialInvoice(ctx context.Context, usageImportID string)
 	return t.timeRequest(ctx, "DeletePostTrialInvoice", func(ctx context.Context) error {
 		return t.d.DeletePostTrialInvoice(ctx, usageImportID)
 	})
+}
+
+func (t timed) FindBillingAccountByTeamID(ctx context.Context, teamID string) (account *grpc.BillingAccount, err error) {
+	t.timeRequest(ctx, "FindBillingAccountByTeamID", func(ctx context.Context) error {
+		account, err = t.d.FindBillingAccountByTeamID(ctx, teamID)
+		return err
+	})
+	return
 }
 
 func (t timed) Transaction(f func(DB) error) error {
