@@ -9,7 +9,9 @@ import (
 	"github.com/weaveworks/common/server"
 
 	"github.com/weaveworks/service/billing-api/db"
+	"github.com/weaveworks/service/billing-api/grpc"
 	"github.com/weaveworks/service/billing-api/routes"
+	common_grpc "github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/users"
 	"github.com/weaveworks/service/common/zuora"
 )
@@ -78,6 +80,8 @@ func main() {
 		log.Fatalf("error initialising api: %v", err)
 	}
 	routes.RegisterRoutes(server.HTTP)
-
+	log.WithField("port", cfg.serverConfig.HTTPListenPort).Infof("billing-api now serving HTTP requests")
+	common_grpc.RegisterBillingServer(server.GRPC, grpc.Server{DB: db})
+	log.WithField("port", cfg.serverConfig.GRPCListenPort).Infof("billing-api now serving gRPC requests")
 	server.Run()
 }

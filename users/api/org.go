@@ -154,7 +154,7 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 			// for instances billed externally.
 			// We do, however, set the "no-billing" flag to follow the current
 			// convention for instances not billed via Zuora/GCP.
-			log.Infof("Billing disabled for %v/%v/%v as team %v is billed externally.", org.ID, view.ExternalID, view.Name, org.TeamExternalID)
+			log.Infof("billing disabled for %v/%v/%v as team %v is billed externally.", org.ID, view.ExternalID, view.Name, org.TeamID)
 			return a.db.AddFeatureFlag(ctx, view.ExternalID, featureflag.NoBilling)
 		}
 	}
@@ -164,20 +164,20 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 		if err != nil {
 			return err
 		}
-		log.Infof("Billing enabled for %v/%v/%v.", org.ID, view.ExternalID, view.Name)
+		log.Infof("billing enabled for %v/%v/%v.", org.ID, view.ExternalID, view.Name)
 		// Manually append to object for data refusal check below
 		org.FeatureFlags = append(org.FeatureFlags, featureflag.Billing)
 	}
 
 	if orgs.ShouldRefuseDataAccess(*org, now) {
 		if err = a.db.SetOrganizationRefuseDataAccess(ctx, org.ExternalID, true); err != nil {
-			log.Errorf("Failed refusing data access for %s: %v", org.ExternalID, err)
+			log.Errorf("failed refusing data access for %s: %v", org.ExternalID, err)
 			// do not return error, this is not crucial
 		}
 	}
 	if orgs.ShouldRefuseDataUpload(*org, now) {
 		if err = a.db.SetOrganizationRefuseDataUpload(ctx, org.ExternalID, true); err != nil {
-			log.Errorf("Failed refusing data upload for %s: %v", org.ExternalID, err)
+			log.Errorf("failed refusing data upload for %s: %v", org.ExternalID, err)
 			// do not return error, this is not crucial
 		}
 	}
@@ -377,7 +377,7 @@ func (a *API) setOrgFeatureFlags(ctx context.Context, orgExternalID string, flag
 	}
 
 	if enablingBilling {
-		log.Infof("Billing manually enabled for %v", orgExternalID)
+		log.Infof("billing manually enabled for %v", orgExternalID)
 		// For existing customers, we extend the trial period starting today and send members an email if we did so
 		expires := time.Now().Add(users.TrialExtensionDuration)
 		if err := a.extendOrgTrialPeriod(ctx, org, expires, true); err != nil {

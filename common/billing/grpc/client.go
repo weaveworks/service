@@ -3,6 +3,7 @@ package grpc
 import (
 	"flag"
 
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	googlegrpc "google.golang.org/grpc"
 )
@@ -28,11 +29,12 @@ type Config struct {
 
 // RegisterFlags registers configuration variables.
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
-	f.StringVar(&c.HostPort, "billing-api.hostport", "billing-api.billing:4772", "Host and port of the billing-api")
+	f.StringVar(&c.HostPort, "billing-api.hostport", "billing-api.billing.svc.cluster.local:4772", "Host and port of the billing-api")
 }
 
 // NewClient creates... a new client.
 func NewClient(cfg Config) (*Client, error) {
+	log.WithField("url", cfg.HostPort).Infof("creating gRPC client")
 	conn, err := googlegrpc.Dial(cfg.HostPort, googlegrpc.WithInsecure())
 	if err != nil {
 		return nil, err

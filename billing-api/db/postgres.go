@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/squirrel"
-	_ "github.com/lib/pq" // Import the postgres sql driver
+	pq "github.com/lib/pq" // Import the postgres sql driver
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/common/billing/grpc"
@@ -343,15 +343,17 @@ func (d postgres) scanBillingAccounts(rows *sql.Rows) ([]*grpc.BillingAccount, e
 
 func (d postgres) scanBillingAccount(row squirrel.RowScanner) (*grpc.BillingAccount, error) {
 	a := &grpc.BillingAccount{}
+	var deletedAt pq.NullTime
 	var billedExternally bool
 	if err := row.Scan(
 		&a.ID,
 		&a.CreatedAt,
-		&a.DeletedAt,
+		&deletedAt,
 		&billedExternally,
 	); err != nil {
 		return nil, err
 	}
+	a.DeletedAt = deletedAt.Time
 	if billedExternally {
 		a.Provider = provider.External
 	}
