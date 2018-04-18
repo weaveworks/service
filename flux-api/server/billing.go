@@ -31,11 +31,14 @@ func (s *Server) emitBillingRecord(ctx context.Context, event event.Event) error
 		return err
 	}
 	// convert _ to - to match other billing amount types
-	var amountType = billing.AmountType(fmt.Sprintf("flux-%s", strings.Replace(event.Type, "_", "-", -1)))
+	typeName := fmt.Sprintf("flux-%s", strings.Replace(event.Type, "_", "-", -1))
+	actionType := billing.AmountType(typeName)
+	actionServiceCountType := billing.AmountType(fmt.Sprintf("%s-services", typeName))
 	amounts := billing.Amounts{
-		// TODO If multiple services are updated, should we still count 1?
-		amountType: 1,
+		actionType:             1,
+		actionServiceCountType: int64(len(event.ServiceIDs)),
 	}
+
 	now := time.Now().UTC()
 	return s.billingClient.AddAmounts(
 		strconv.FormatInt(int64(event.ID), 10),
