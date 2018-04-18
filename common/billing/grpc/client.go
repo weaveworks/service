@@ -3,6 +3,7 @@ package grpc
 import (
 	"flag"
 
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	googlegrpc "google.golang.org/grpc"
 )
@@ -33,6 +34,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 
 // NewClient creates... a new client.
 func NewClient(cfg Config) (*Client, error) {
+	log.WithField("url", cfg.HostPort).Infof("creating gRPC client")
 	conn, err := googlegrpc.Dial(cfg.HostPort, googlegrpc.WithInsecure())
 	if err != nil {
 		return nil, err
