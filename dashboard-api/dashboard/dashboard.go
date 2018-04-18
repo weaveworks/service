@@ -271,6 +271,8 @@ func GetServiceDashboards(metrics []string, namespace, workload string) ([]Dashb
 // other API.
 func Init() error {
 	registerProviders(
+		http,
+		goKit,
 		cadvisor,
 		openfaas,
 		memcached,

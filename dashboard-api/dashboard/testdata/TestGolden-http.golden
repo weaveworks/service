@@ -1,0 +1,31 @@
+{
+  "id": "http",
+  "name": "HTTP",
+  "sections": [
+    {
+      "name": "HTTP Request Rate and Latency",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Requests per second",
+              "type": "stacked-area",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum by (status_code)(irate(http_request_duration_seconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m]))"
+            },
+            {
+              "title": "Latency",
+              "type": "line",
+              "unit": {
+                "format": "seconds"
+              },
+              "query": "sum by (path)(rate(http_request_duration_seconds_sum{kubernetes_namespace='default',_weave_service='authfe'}[2m])) / sum by (path)(rate(http_request_duration_seconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m]))"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
