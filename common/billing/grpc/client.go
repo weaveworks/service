@@ -29,7 +29,7 @@ type Config struct {
 
 // RegisterFlags registers configuration variables.
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
-	f.StringVar(&c.HostPort, "billing-api.hostport", "billing-api.billing:4772", "Host and port of the billing-api")
+	f.StringVar(&c.HostPort, "billing-api.hostport", "billing-api.billing.svc.cluster.local:4772", "Host and port of the billing-api")
 }
 
 // NewClient creates... a new client.
