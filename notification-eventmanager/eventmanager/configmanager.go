@@ -245,7 +245,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 	}
 
 	go func() {
-		if err := em.storeAndSend(ctx, event); err != nil {
+		if err := em.storeAndSend(ctx, event, instanceData.Organization.FeatureFlags); err != nil {
 			log.Warnf("failed to store in DB or send to SQS config change event")
 		}
 	}()

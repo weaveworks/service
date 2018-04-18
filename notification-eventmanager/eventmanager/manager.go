@@ -292,9 +292,9 @@ func (em *EventManager) TestEventHandler(w http.ResponseWriter, r *http.Request)
 		Text:         &text,
 	}
 
-	if err := em.storeAndSend(r.Context(), testEvent); err != nil {
+	if err := em.storeAndSend(r.Context(), testEvent, instanceData.Organization.FeatureFlags); err != nil {
 		log.Errorf("cannot post and send test event, error: %s", err)
-		http.Error(w, "Failed handle event", http.StatusInternalServerError)
+		http.Error(w, "Failed to handle event", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return
 	}
@@ -361,9 +361,9 @@ func (em *EventManager) EventHandler(w http.ResponseWriter, r *http.Request) {
 
 	e.InstanceName = instanceData.Organization.Name
 
-	if err := em.storeAndSend(r.Context(), e); err != nil {
+	if err := em.storeAndSend(r.Context(), e, instanceData.Organization.FeatureFlags); err != nil {
 		log.Errorf("cannot post and send %s event, error: %s", e.Type, err)
-		http.Error(w, "Failed handle event", http.StatusInternalServerError)
+		http.Error(w, "Failed to handle event", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return
 	}
@@ -441,7 +441,7 @@ func (em *EventManager) SlackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := em.storeAndSend(r.Context(), e); err != nil {
+	if err := em.storeAndSend(r.Context(), e, instanceData.Organization.FeatureFlags); err != nil {
 		log.Errorf("cannot post and send %s event, error: %s", e.Type, err)
 		http.Error(w, "Failed handle event", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
@@ -452,8 +452,8 @@ func (em *EventManager) SlackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // storeAndSend stores event in DB and sends notification batches for this event to SQS
-func (em *EventManager) storeAndSend(ctx context.Context, ev types.Event) error {
-	if err := em.DB.CreateEvent(ev); err != nil {
+func (em *EventManager) storeAndSend(ctx context.Context, ev types.Event, featureFlags []string) error {
+	if err := em.DB.CreateEvent(ev, featureFlags); err != nil {
 		eventsToDBError.With(prometheus.Labels{"event_type": ev.Type}).Inc()
 		return errors.Wrapf(err, "cannot store event in DB")
 	}
