@@ -8,7 +8,7 @@ var openfaasDashboard = Dashboard{
 		Name: "Traffic",
 		Rows: []Row{{
 			Panels: []Panel{{
-				Title: "Function req/sec",
+				Title: "Function Requests per Second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(rate(gateway_function_invocation_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (function_name)`,
@@ -22,23 +22,23 @@ var openfaasDashboard = Dashboard{
 				Type:     PanelLine,
 				Optional: true,
 				Unit:     Unit{Format: UnitSeconds},
-				Query:    `(rate(gateway_functions_seconds_sum{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) / (rate(gateway_functions_seconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}]))`,
+				Query:    `sum(rate(gateway_functions_seconds_sum{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}]) / rate(gateway_functions_seconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (function_name)`,
 			}},
 		}, {
 			Panels: []Panel{{
-				Title: "Successful req/sec",
+				Title: "Successful Requests per Second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `rate(gateway_function_invocation_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}',code='200'}[{{range}}])`,
+				Query: `sum(rate(gateway_function_invocation_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}',code='200'}[{{range}}])) by (function_name)`,
 			}, {
-				Title: "Failed req/sec",
+				Title: "Failed Requests per Second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `rate(gateway_function_invocation_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}',code!='200'}[{{range}}])`,
+				Query: `sum(rate(gateway_function_invocation_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}',code!='200'}[{{range}}])) by (function_name)`,
 			}},
 		}, {
 			Panels: []Panel{{
-				Title: "Replicas per function",
+				Title: "Replicas per Function",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(gateway_service_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}) by (function_name)`,

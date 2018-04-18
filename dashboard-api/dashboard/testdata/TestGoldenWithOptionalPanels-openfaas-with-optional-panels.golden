@@ -8,7 +8,7 @@
         {
           "panels": [
             {
-              "title": "Function req/sec",
+              "title": "Function Requests per Second",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -31,34 +31,34 @@
               "unit": {
                 "format": "seconds"
               },
-              "query": "(rate(gateway_functions_seconds_sum{kubernetes_namespace='default',_weave_service='authfe'}[2m])) / (rate(gateway_functions_seconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m]))"
+              "query": "sum(rate(gateway_functions_seconds_sum{kubernetes_namespace='default',_weave_service='authfe'}[2m]) / rate(gateway_functions_seconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (function_name)"
             }
           ]
         },
         {
           "panels": [
             {
-              "title": "Successful req/sec",
+              "title": "Successful Requests per Second",
               "type": "line",
               "unit": {
                 "format": "numeric"
               },
-              "query": "rate(gateway_function_invocation_total{kubernetes_namespace='default',_weave_service='authfe',code='200'}[2m])"
+              "query": "sum(rate(gateway_function_invocation_total{kubernetes_namespace='default',_weave_service='authfe',code='200'}[2m])) by (function_name)"
             },
             {
-              "title": "Failed req/sec",
+              "title": "Failed Requests per Second",
               "type": "line",
               "unit": {
                 "format": "numeric"
               },
-              "query": "rate(gateway_function_invocation_total{kubernetes_namespace='default',_weave_service='authfe',code!='200'}[2m])"
+              "query": "sum(rate(gateway_function_invocation_total{kubernetes_namespace='default',_weave_service='authfe',code!='200'}[2m])) by (function_name)"
             }
           ]
         },
         {
           "panels": [
             {
-              "title": "Replicas per function",
+              "title": "Replicas per Function",
               "type": "line",
               "unit": {
                 "format": "numeric"
