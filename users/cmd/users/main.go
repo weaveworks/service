@@ -240,10 +240,11 @@ func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string
 	}
 
 	if err := a.CreateOrg(ctx, user, api.OrgView{
-		ExternalID:   instanceID,
-		Name:         instanceName,
-		ProbeToken:   token,
-		FeatureFlags: featureFlags,
+		ExternalID:     instanceID,
+		Name:           instanceName,
+		ProbeToken:     token,
+		FeatureFlags:   featureFlags,
+		TrialExpiresAt: user.TrialExpiresAt(),
 	}, time.Now()); err != nil {
 		log.Errorf("Error creating local test instance: %v", err)
 		return
