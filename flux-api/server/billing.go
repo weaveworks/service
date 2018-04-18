@@ -12,6 +12,19 @@ import (
 	"github.com/weaveworks/flux/event"
 )
 
+// BillingClient covers our use of billing.Client
+type BillingClient interface {
+	AddAmounts(uniqueKey, internalInstanceID string, timestamp time.Time, amounts billing.Amounts, metadata map[string]string) error
+}
+
+// NoopBillingClient is a BillingClient which does nothing
+type NoopBillingClient struct{}
+
+// AddAmounts pretends to add amounts
+func (NoopBillingClient) AddAmounts(uniqueKey, internalInstanceID string, timestamp time.Time, amounts billing.Amounts, metadata map[string]string) error {
+	return nil
+}
+
 func (s *Server) emitBillingRecord(ctx context.Context, event event.Event) error {
 	userID, err := user.ExtractOrgID(ctx)
 	if err != nil {

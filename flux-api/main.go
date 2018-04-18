@@ -148,7 +148,7 @@ func main() {
 		}
 	}
 
-	var billingClient *billing.Client
+	var billingClient server.BillingClient
 	if *enableBilling {
 		var err error
 		billingClient, err = billing.NewClient(billingConfig)
@@ -156,6 +156,8 @@ func main() {
 			logger.Log("component", "billing", "err", err)
 			os.Exit(1)
 		}
+	} else {
+		billingClient = server.NoopBillingClient{}
 	}
 
 	// The server.
