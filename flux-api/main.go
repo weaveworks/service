@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 
+	billing "github.com/weaveworks/billing-client"
 	"github.com/weaveworks/service/common/tracing"
 	"github.com/weaveworks/service/flux-api/bus"
 	"github.com/weaveworks/service/flux-api/bus/nats"
@@ -48,7 +49,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "FLAGS\n")
 		fs.PrintDefaults()
 	}
-
 	var (
 		listenAddr            = fs.StringP("listen", "l", ":3030", "Listen address for Flux API clients")
 		databaseSource        = fs.String("database-source", "file://fluxy.db", `Database source name; includes the DB driver as the scheme. The default is a temporary, file-based DB`)
@@ -56,7 +56,14 @@ func main() {
 		natsURL               = fs.String("nats-url", "", `URL on which to connect to NATS, or empty to use the standalone message bus (e.g., "nats://user:pass@nats:4222")`)
 		versionFlag           = fs.Bool("version", false, "Get version number")
 		eventsURL             = fs.String("events-url", notifications.DefaultURL, "URL to which events will be sent")
+		enableBilling         = fs.Bool("enable-billing", false, "Report each event to the billing system.")
+		billingConfig         = billing.Config{}
 	)
+	// Copied from billing.Config.RegisterFlags because this uses a different flag library
+	fs.IntVar(&billingConfig.MaxBufferedEvents, "billing.max-buffered-events", 1024, "Maximum number of billing events to buffer in memory")
+	fs.DurationVar(&billingConfig.RetryDelay, "billing.retry-delay", 500*time.Millisecond, "How often to retry sending events to the billing ingester.")
+	fs.StringVar(&billingConfig.IngesterHostPort, "billing.ingester", "localhost:24225", "points to the billing ingester sidecar (should be on localhost)")
+
 	fs.Parse(os.Args)
 
 	if version == "" {
@@ -141,8 +148,20 @@ func main() {
 		}
 	}
 
+	var billingClient server.BillingClient
+	if *enableBilling {
+		var err error
+		billingClient, err = billing.NewClient(billingConfig)
+		if err != nil {
+			logger.Log("component", "billing", "err", err)
+			os.Exit(1)
+		}
+	} else {
+		billingClient = server.NoopBillingClient{}
+	}
+
 	// The server.
-	server := server.New(version, instancer, instanceDB, messageBus, logger, *eventsURL)
+	server := server.New(version, instancer, instanceDB, messageBus, logger, *eventsURL, billingClient)
 
 	// Mechanical components.
 	errc := make(chan error)

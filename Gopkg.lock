@@ -693,6 +693,12 @@
   revision = "17ff1516db3dffe25452b4cbf6e6412f303cddea"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/weaveworks/billing-client"
+  packages = ["."]
+  revision = "967593a9e8c8c62d1a9a3fbf34b120aa48581d0e"
+
+[[projects]]
   name = "github.com/weaveworks/blackfriday"
   packages = ["."]
   revision = "0b647d0506a698cca42caca173e55559b12a69f2"
@@ -985,6 +991,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f8c0b0733897389842a99f70798ae78206a15fbfbc6a80bba81ac5a7eac31962"
+  inputs-digest = "1768b90ca328e133c8bd0884bc4fcb8d802bad3a1b1916c40456eb35074ee545"
   solver-name = "gps-cdcl"
   solver-version = 1

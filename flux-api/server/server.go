@@ -38,13 +38,14 @@ const (
 
 // Server is a flux-api server.
 type Server struct {
-	version    string
-	instancer  instance.Instancer
-	connDB     instance.ConnectionDB
-	messageBus bus.MessageBus
-	logger     log.Logger
-	connected  int32
-	eventsURL  string
+	version       string
+	instancer     instance.Instancer
+	connDB        instance.ConnectionDB
+	messageBus    bus.MessageBus
+	logger        log.Logger
+	connected     int32
+	eventsURL     string
+	billingClient BillingClient
 }
 
 // New creates a new Server.
@@ -55,15 +56,17 @@ func New(
 	messageBus bus.MessageBus,
 	logger log.Logger,
 	eventsURL string,
+	billingClient BillingClient,
 ) *Server {
 	connectedDaemons.Set(0)
 	return &Server{
-		version:    version,
-		instancer:  instancer,
-		connDB:     connDB,
-		messageBus: messageBus,
-		logger:     logger,
-		eventsURL:  eventsURL,
+		version:       version,
+		instancer:     instancer,
+		connDB:        connDB,
+		messageBus:    messageBus,
+		logger:        logger,
+		eventsURL:     eventsURL,
+		billingClient: billingClient,
 	}
 }
 
@@ -251,6 +254,8 @@ func (s *Server) LogEvent(ctx context.Context, e event.Event) error {
 	if err != nil {
 		return errors.Wrapf(err, "logging event")
 	}
+
+	s.emitBillingRecord(ctx, e)
 
 	url := strings.Replace(s.eventsURL, "{instanceID}", string(instID), 1)
 	err = notifications.Event(url, e)
