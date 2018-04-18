@@ -272,6 +272,7 @@ func GetServiceDashboards(metrics []string, namespace, workload string) ([]Dashb
 func Init() error {
 	registerProviders(
 		cadvisor,
+		openfaas,
 		memcached,
 		jvm,
 		goRuntime,

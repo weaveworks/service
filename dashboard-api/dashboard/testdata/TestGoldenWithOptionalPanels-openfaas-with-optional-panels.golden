@@ -1,0 +1,73 @@
+{
+  "id": "openfaas",
+  "name": "OpenFaaS",
+  "sections": [
+    {
+      "name": "Traffic",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Function Requests per Second",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(rate(gateway_function_invocation_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (function_name)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "RED Metrics",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Execution duration",
+              "optional": true,
+              "type": "line",
+              "unit": {
+                "format": "seconds"
+              },
+              "query": "sum(rate(gateway_functions_seconds_sum{kubernetes_namespace='default',_weave_service='authfe'}[2m]) / rate(gateway_functions_seconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (function_name)"
+            }
+          ]
+        },
+        {
+          "panels": [
+            {
+              "title": "Successful Requests per Second",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(rate(gateway_function_invocation_total{kubernetes_namespace='default',_weave_service='authfe',code='200'}[2m])) by (function_name)"
+            },
+            {
+              "title": "Failed Requests per Second",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(rate(gateway_function_invocation_total{kubernetes_namespace='default',_weave_service='authfe',code!='200'}[2m])) by (function_name)"
+            }
+          ]
+        },
+        {
+          "panels": [
+            {
+              "title": "Replicas per Function",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(gateway_service_count{kubernetes_namespace='default',_weave_service='authfe'}) by (function_name)"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
