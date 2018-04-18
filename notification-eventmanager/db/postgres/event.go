@@ -8,6 +8,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/notification-eventmanager/types"
 	"github.com/weaveworks/service/notification-eventmanager/utils"
@@ -17,7 +18,7 @@ import (
 )
 
 // CreateEvent inserts event in DB
-func (d DB) CreateEvent(event types.Event) error {
+func (d DB) CreateEvent(event types.Event, featureFlags []string) error {
 	var eventID string
 	// Re-encode the message data because the sql driver doesn't understand json columns
 	encodedMessages, err := json.Marshal(event.Messages)
@@ -28,15 +29,30 @@ func (d DB) CreateEvent(event types.Event) error {
 	err = d.withTx("add_event_tx", func(tx *utils.Tx) error {
 		row := tx.QueryRow(
 			"check_event_type_exists",
-			`SELECT 1 FROM event_types WHERE name = $1`,
+			`SELECT feature_flag FROM event_types WHERE name = $1`,
 			event.Type,
 		)
-		var junk int
-		err = row.Scan(&junk)
+		var wantFlag sql.NullString
+		err = row.Scan(&wantFlag)
 		if err == sql.ErrNoRows {
 			return errors.Errorf("event type %s does not exist", event.Type)
 		} else if err != nil {
 			return err
+		}
+		// If instance does not have necessary feature flag, just skip this event.
+		// This is not an error because the sender might not necessarily know that
+		// this instance is missing the feature flag.
+		if wantFlag.String != "" {
+			hasFlag := false
+			for _, flag := range featureFlags {
+				if flag == wantFlag.String {
+					hasFlag = true
+				}
+			}
+			if !hasFlag {
+				log.Infof("Skipping event `%s` for missing feature flag `%s`", event.Type, wantFlag.String)
+				return nil
+			}
 		}
 
 		metadata, err := json.Marshal(event.Metadata)

@@ -237,8 +237,9 @@ func main() {
 	assertNoError(err, "cannot get events")
 	log.Debugf("Events for instanceID = %s:\n%s", orgID, listEvents)
 
-	if len(listEvents) != len(originEvents)+1 {
-		log.Fatalf("Wrong number of events, expected %d, got %d", len(originEventList)+1, len(listEvents))
+	totalEvents := len(originEvents) + 1 /* test event */ - 2 /* flagged originEvents */
+	if len(listEvents) != totalEvents {
+		log.Fatalf("Wrong number of events, expected %d, got %d", len(originEventList)-1, len(listEvents))
 	}
 
 	listEventTypes, err := listEventTypes()
@@ -278,9 +279,9 @@ func main() {
 	assertNoError(err, "cannot get events")
 	log.Debugf("Events for instanceID = %s:\n%s", orgID, listEvents)
 
-	totalEvents := len(originEvents) + 1 + len(originSlackEvents)
+	totalEvents = len(originEvents) + 1 /* test event */ + len(originSlackEvents) - 2 /* flagged originEvents */
 	if len(listEvents) != totalEvents {
-		log.Fatalf("Wrong number of events, expected %d, got %d", totalEvents, len(listEvents))
+		log.Fatalf("Wrong number of events, expected %d, got %d", len(originEventList)-1, len(listEvents))
 	}
 
 	var originAllEmails []emailNotif
