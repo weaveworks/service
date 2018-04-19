@@ -54,7 +54,8 @@ func TestSlackNotifier(t *testing.T) {
 				"color":    "warning",
 			},
 			map[string]interface{}{
-				"text":      "```" + resultOut.String() + "```",
+				"text": "```\n" + resultOut.String() + "```\n" +
+					"",
 				"color":     "warning",
 				"mrkdwn_in": []interface{}{"text"},
 			},

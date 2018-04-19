@@ -214,13 +214,15 @@ func getUpdatePolicyMessage(revision string, resource flux.ResourceID, upd polic
 
 func slackResultAttachment(res update.Result) slackAttachment {
 	buf := &bytes.Buffer{}
+	fmt.Fprintln(buf, "```")
 	update.PrintResults(buf, res, 0)
+	fmt.Fprintln(buf, "```")
 	c := "good"
 	if res.Error() != "" {
 		c = "warning"
 	}
 	return slackAttachment{
-		Text:     "```" + buf.String() + "```",
+		Text:     buf.String(),
 		Markdown: []string{"text"},
 		Color:    c,
 	}
