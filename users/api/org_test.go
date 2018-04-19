@@ -412,6 +412,28 @@ func Test_Organization_CreateOrg_delinquent(t *testing.T) {
 	assert.True(t, org.RefuseDataUpload)
 }
 
+func Test_Organization_CreateOrg_never_delinquent_for_weaver(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	now := time.Date(2022, 6, 27, 0, 0, 0, 0, time.UTC)
+	user := getUserWithDomain(t, "weave.works")
+	eid := "delinquent-accept-12"
+
+	err := app.CreateOrg(context.TODO(), user, api.OrgView{
+		ExternalID:     eid,
+		Name:           "name",
+		TrialExpiresAt: now.Add(-17 * 24 * time.Hour), // more than 15d back to (normally) trigger upload refusal
+	}, now)
+	assert.NoError(t, err)
+
+	org, err := database.FindOrganizationByID(context.TODO(), eid)
+	assert.NoError(t, err)
+	assert.Contains(t, org.FeatureFlags, featureflag.NoBilling)
+	assert.False(t, org.RefuseDataAccess)
+	assert.False(t, org.RefuseDataUpload)
+}
+
 func Test_Organization_Delete(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
