@@ -23,7 +23,12 @@ import (
 
 // GetUser makes a randomly named user
 func GetUser(t *testing.T, db db.DB) *users.User {
-	email := fmt.Sprintf("%d@weave.works", rand.Int63())
+	return GetUserWithDomain(t, db, "domain.com")
+}
+
+// GetUserWithDomain makes a randomly named user with an address email finishing with the provided domain
+func GetUserWithDomain(t *testing.T, db db.DB, domain string) *users.User {
+	email := fmt.Sprintf("%d@%v", rand.Int63(), domain)
 	user, err := db.CreateUser(context.Background(), email)
 	require.NoError(t, err)
 	return user

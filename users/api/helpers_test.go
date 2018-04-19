@@ -125,6 +125,10 @@ func getUser(t *testing.T) *users.User {
 	return dbtest.GetUser(t, database)
 }
 
+func getUserWithDomain(t *testing.T, domain string) *users.User {
+	return dbtest.GetUserWithDomain(t, database, domain)
+}
+
 func getTeam(t *testing.T) *users.Team {
 	return dbtest.GetTeam(t, database)
 }

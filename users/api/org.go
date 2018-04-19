@@ -159,6 +159,17 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 		}
 	}
 
+	if strings.HasSuffix(currentUser.Email, "@weave.works") {
+		// Exit early, as we:
+		// - do not want to set the "billing" flag,
+		// - do want to grant access,
+		// for instances created by Weaveworks people.
+		// We do, however, set the "no-billing" flag to follow the current
+		// convention for instances not billed via Zuora/GCP.
+		log.Infof("billing disabled for %v/%v/%v as %v is a Weaver.", org.ID, view.ExternalID, view.Name, currentUser.Email)
+		return a.db.AddFeatureFlag(ctx, view.ExternalID, featureflag.NoBilling)
+	}
+
 	if a.billingEnabler.IsEnabled() {
 		err = a.db.AddFeatureFlag(ctx, view.ExternalID, featureflag.Billing)
 		if err != nil {
