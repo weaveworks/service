@@ -177,18 +177,24 @@ func GetPaymentStatus(ctx context.Context, payments []Payment) PaymentStatus {
 	for _, payment := range payments {
 		effectiveDate, err := time.Parse(dateFormat, payment.EffectiveDate)
 		if err != nil {
-			logger.Errorf("Failed to parse payment status effective date: %v, %v", payment.EffectiveDate, err)
+			logger.
+				WithField("date", payment.EffectiveDate).WithField("err", err).
+				Errorf("failed to parse payment status effective date")
 			return PaymentError
 		}
 
 		status, ok := paymentStatusMap[payment.Status]
 		if !ok {
 			// Zuora returned an unexpected payment status. Assume it's bad.
-			logger.Errorf("Unrecognized payment status: %v", payment.Status)
+			logger.WithField("status", payment.Status).Errorf("unrecognized payment status")
 			return PaymentError
 		}
 
 		if latestDate.IsZero() || latestDate.Before(effectiveDate) {
+			logger.
+				WithField("old_status", latestStatus).WithField("old_date", latestDate).
+				WithField("new_status", status).WithField("new_date", effectiveDate).
+				WithField("underlying_zuora_payment_status", payment.Status).Debugf("updating payment status")
 			latestDate = effectiveDate
 			latestStatus = status
 		} else if latestDate.Equal(effectiveDate) && status == PaymentError {

@@ -390,7 +390,11 @@ func getBillingStatus(ctx context.Context, trialInfo trial.Trial, acct *zuora.Ac
 	}
 	// At this point, we know the account is active.
 	if acct.PaymentStatus != zuora.PaymentOK {
-		logging.With(ctx).Debugf("Treating non-active payment status (%v) as error", acct.PaymentStatus)
+		logging.With(ctx).
+			WithField("payment_status", acct.PaymentStatus).
+			WithField("zuora_id", acct.ZuoraID).
+			WithField("zuora_number", acct.Number).
+			Debugf("treating non-active payment status as error")
 		return statusPaymentError
 	}
 	// TODO Future - work out when to use PAYMENT_DUE
@@ -398,10 +402,13 @@ func getBillingStatus(ctx context.Context, trialInfo trial.Trial, acct *zuora.Ac
 	return statusActive
 }
 
+// Introducing the contextKey alias addresses "should not use basic type untyped string as key in context.WithValue".
+type contextKey string
+
 // GetAccountStatus returns the account status as a JSON response.
 func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 	orgID := mux.Vars(r)["id"]
-	ctx := r.Context()
+	ctx := context.WithValue(r.Context(), contextKey("org_id"), orgID)
 	resp, err := a.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
 		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: orgID},
 	})
