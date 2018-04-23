@@ -31,7 +31,7 @@ type slackAttachment struct {
 	Text     string `json:"text"`
 	Author   string `json:"author_name,omitempty"`
 	Color    string `json:"color,omitempty"`
-	// TODO: figure out what this field is for
+	// This tells Slack which of the other fields are markdown
 	Markdown []string `json:"mrkdwn_in,omitempty"`
 }
 
