@@ -8,10 +8,11 @@ import (
 
 // Config provides the values necessary to create a new zuoraAPI
 type Config struct {
-	Username string
-	Password string
-	Endpoint string
-	Timeout  time.Duration
+	Username     string
+	Password     string
+	Endpoint     string
+	RestEndpoint string
+	Timeout      time.Duration
 
 	// Accounts
 	SuspendPolicy        string
@@ -33,7 +34,8 @@ type Config struct {
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.StringVar(&c.Username, "zuora.username", "", "Username for the Zuora API")
 	f.StringVar(&c.Password, "zuora.password", "", "Password for the Zuora API")
-	f.StringVar(&c.Endpoint, "zuora.endpoint", "https://apisandbox-api.zuora.com/rest/v1/", "Endpoint for the Zuora API")
+	f.StringVar(&c.Endpoint, "zuora.endpoint", "https://apisandbox-api.zuora.com/rest/v1/", "Endpoint for Zuora's API")
+	f.StringVar(&c.RestEndpoint, "zuora.rest-endpoint", "https://rest.apisandbox.zuora.com/v1/", "Endpoint for Zuora's REST API")
 	f.DurationVar(&c.Timeout, "zuora.timeout", 10*time.Second, "Timeout for requests to the Zuora API")
 
 	// Accounts
