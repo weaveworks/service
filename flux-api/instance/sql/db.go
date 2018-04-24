@@ -74,8 +74,8 @@ func (db *DB) Connect(inst service.InstanceID, t time.Time) error {
 		return err
 	}
 	_, err = tx.Exec(`INSERT INTO config (instance, config, stamp)
-					  VALUES ($1, $2, now())
-					  ON CONFLICT DO UPDATE`, string(inst), string(configBytes))
+					  VALUES ($1, $2, $3)
+					  ON CONFLICT (instance) DO UPDATE SET (config, stamp) = ($2, $3)`, string(inst), string(configBytes), t)
 	if err != nil {
 		return rollback(tx, err)
 	}
@@ -110,9 +110,9 @@ func (db *DB) Disconnect(inst service.InstanceID, t time.Time) error {
 		return err
 	}
 	_, err = tx.Exec(`UPDATE config
-					  SET (config, stamp) = ($3, now())
+					  SET (config, stamp) = ($3, $4)
 					  WHERE instance = $1 AND config = $2`,
-		string(inst), string(expectedConfigBytes), string(newConfigBytes))
+		string(inst), string(expectedConfigBytes), string(newConfigBytes), t)
 	if err != nil {
 		return rollback(tx, err)
 	}
