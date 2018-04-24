@@ -138,7 +138,7 @@ func (em *EventManager) getReceiver(r *http.Request, instanceID string, receiver
 		return nil, http.StatusNotFound, nil
 	}
 	featureFlags := getFeatureFlags(r)
-	result, err := em.DB.GetReceiver(instanceID, receiverID, featureFlags)
+	result, err := em.DB.GetReceiver(instanceID, receiverID, featureFlags, false)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -318,7 +318,7 @@ func (em *EventManager) updateReceiver(r *http.Request, instanceID string, recei
 	featureFlags := getFeatureFlags(r)
 
 	// before transaction changes the addressData and eventTypes, get oldReceiver which has oldAddressData and oldEventTypes
-	oldReceiver, err := em.DB.GetReceiver(instanceID, receiverID, featureFlags)
+	oldReceiver, err := em.DB.GetReceiver(instanceID, receiverID, featureFlags, true)
 	if err == sql.ErrNoRows {
 		return nil, http.StatusNotFound, nil
 	}
