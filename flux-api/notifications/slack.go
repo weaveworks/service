@@ -15,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/weaveworks/flux"
 	"github.com/weaveworks/flux/event"
-	"github.com/weaveworks/flux/image"
 	"github.com/weaveworks/flux/policy"
 	"github.com/weaveworks/flux/update"
 )
@@ -31,7 +30,7 @@ type slackAttachment struct {
 	Text     string `json:"text"`
 	Author   string `json:"author_name,omitempty"`
 	Color    string `json:"color,omitempty"`
-	// TODO: figure out what this field is for
+	// This tells Slack which of the other fields are markdown
 	Markdown []string `json:"mrkdwn_in,omitempty"`
 }
 
@@ -110,9 +109,9 @@ func slackNotifyAutoRelease(url string, release *event.AutoReleaseEventMetadata,
 		attachments = append(attachments, slackResultAttachment(release.Result))
 	}
 	text, err := instantiateTemplate("auto-release", autoReleaseTemplate, struct {
-		Images []image.Ref
+		Images []string
 	}{
-		Images: release.Spec.Images(),
+		Images: release.Result.ChangedImages(),
 	})
 	if err != nil {
 		return err
@@ -152,19 +151,18 @@ func slackNotifySync(url string, sync *event.Event) error {
 func slackNotifyCommitRelease(url string, commitMetadata *event.CommitEventMetadata) error {
 	rev := commitMetadata.ShortRevision()
 	user := commitMetadata.Spec.Cause.User
-	var text string
-	for _, res := range commitMetadata.Spec.Spec.(update.ReleaseSpec).ServiceSpecs {
-		// escape special characters < and > (to preserve ResourceSpec("<all>") value)
-		text += fmt.Sprintf("Commit: %s (%s) by %s\n", html.EscapeString(res.String()), rev, user)
+	text := fmt.Sprintf("Commit: %s (%s)\n", rev, user)
+	for _, id := range commitMetadata.Result.AffectedResources() {
+		text += fmt.Sprintf(" - %s\n", html.EscapeString(id.String()))
 	}
 	return notify(releaseCommitEventType, url, slackMsg{Text: text})
 }
 
 func slackNotifyCommitAutoRelease(url string, commitMetadata *event.CommitEventMetadata) error {
 	rev := commitMetadata.ShortRevision()
-	var text string
-	for _, ch := range commitMetadata.Spec.Spec.(update.Automated).Changes {
-		text += fmt.Sprintf("Commit: %s (%s)\n", ch.ServiceID, rev)
+	text := fmt.Sprintf("Commit: %s\n", rev)
+	for id := range commitMetadata.Result {
+		text += fmt.Sprintf(" - %s\n", id)
 	}
 	return notify(autoReleaseCommitEventType, url, slackMsg{Text: text})
 }
