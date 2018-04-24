@@ -67,9 +67,15 @@ func (db *DB) Connect(inst service.InstanceID, t time.Time) error {
 	}
 	_, err = tx.Exec(`INSERT INTO config (instance, config, stamp)
 					  VALUES ($1, $2, now())
-					  ON CONFLICT DO UPDATE`, string(inst), string(configBytes))
+					  ON CONFLICT DO UPDATE
+					  SET (config, stamp) = ($2, now())`, string(inst), string(configBytes))
 	if err != nil {
-		return tx.Rollback()
+		// Store this in a different, non-`err` variable, so that we don't
+		// inadvertently lose the `tx.Exec` result which got us here.
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return errors.Wrapf(err, "transaction rollback failed: %s", rollbackErr)
+		}
+		return err
 	}
 	return tx.Commit()
 }
