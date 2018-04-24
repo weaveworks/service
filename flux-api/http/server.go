@@ -81,19 +81,21 @@ type Server struct {
 	ui            api.UI
 	daemonProxy   fluxapi.UpstreamServer
 	daemonHandler api.Upstream
+	logger        log.Logger
 }
 
 // NewServer creates a flux-api HTTP server.
-func NewServer(ui api.UI, dp fluxapi.UpstreamServer, dh api.Upstream) Server {
+func NewServer(ui api.UI, dp fluxapi.UpstreamServer, dh api.Upstream, logger log.Logger) Server {
 	return Server{
 		ui:            ui,
 		daemonProxy:   dp,
 		daemonHandler: dh,
+		logger:        logger,
 	}
 }
 
 // MakeHandler attaches instrumented flux-api handlers to a router.
-func (s Server) MakeHandler(r *mux.Router, logger log.Logger) http.Handler {
+func (s Server) MakeHandler(r *mux.Router) http.Handler {
 	for method, handlerMethod := range map[string]http.HandlerFunc{
 		// flux/api.ServerV5
 		transport.Export: s.export,
@@ -126,7 +128,7 @@ func (s Server) MakeHandler(r *mux.Router, logger log.Logger) http.Handler {
 		QuayImageNotify:      s.quayImageNotify,
 		GitPushNotify:        s.gitPushNotify,
 	} {
-		handler := logging(handlerMethod, log.With(logger, "method", method))
+		handler := logging(handlerMethod, log.With(s.logger, "method", method))
 		r.Get(method).Handler(handler)
 	}
 
@@ -397,12 +399,12 @@ func (s Server) doRegister(w http.ResponseWriter, r *http.Request, newRPCFn rpcC
 	// RegisterDaemon will block until the daemon disconnects.
 	ctx := getRequestContext(r)
 	if err := s.daemonHandler.RegisterDaemon(ctx, rpcClient); err != nil {
-		// TODO: Handle this error?
+		s.logger.Log("component", "server", "action", "daemonHandler.RegisterDaemon", "err", err)
 	}
 	// Close the websocket, in case RegisterDaemon somehow managed to return without
 	// cleaning it up.
 	if err := ws.Close(); err != nil {
-		// TODO: Handle this error?
+		s.logger.Log("component", "server", "action", "ws.Close", "err", err)
 	}
 }
 
