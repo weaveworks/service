@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"html"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -153,7 +152,7 @@ func slackNotifyCommitRelease(url string, commitMetadata *event.CommitEventMetad
 	user := commitMetadata.Spec.Cause.User
 	text := fmt.Sprintf("Commit: %s (%s)\n", rev, user)
 	for _, id := range commitMetadata.Result.AffectedResources() {
-		text += fmt.Sprintf(" - %s\n", html.EscapeString(id.String()))
+		text += fmt.Sprintf(" - %s\n", id)
 	}
 	return notify(releaseCommitEventType, url, slackMsg{Text: text})
 }
@@ -161,7 +160,7 @@ func slackNotifyCommitRelease(url string, commitMetadata *event.CommitEventMetad
 func slackNotifyCommitAutoRelease(url string, commitMetadata *event.CommitEventMetadata) error {
 	rev := commitMetadata.ShortRevision()
 	text := fmt.Sprintf("Commit: %s\n", rev)
-	for id := range commitMetadata.Result {
+	for id := range commitMetadata.Result.AffectedResources() {
 		text += fmt.Sprintf(" - %s\n", id)
 	}
 	return notify(autoReleaseCommitEventType, url, slackMsg{Text: text})
