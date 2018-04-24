@@ -9,7 +9,7 @@ import (
 // This test ensures flux-api implements everything needed by fluxctl.
 func TestRouterImplementsServer(t *testing.T) {
 	router := NewServiceRouter()
-	Server{}.MakeHandler(router, nil)
+	Server{}.MakeHandler(router)
 	err := http.ImplementsServer(router)
 	if err != nil {
 		t.Error(err)

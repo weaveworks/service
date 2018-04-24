@@ -158,8 +158,8 @@ func setup(t *testing.T) {
 	// Server
 	apiServer := server.New(ver, instancer, instanceDB, messageBus, log.NewNopLogger(), notifications.DefaultURL, server.NoopBillingClient{})
 	router = httpserver.NewServiceRouter()
-	httpServer := httpserver.NewServer(apiServer, apiServer, apiServer)
-	handler := httpServer.MakeHandler(router, log.NewNopLogger())
+	httpServer := httpserver.NewServer(apiServer, apiServer, apiServer, log.NewNopLogger())
+	handler := httpServer.MakeHandler(router)
 	handler = addInstanceIDHandler(handler)
 	ts = httptest.NewServer(handler)
 	apiClient = client.New(http.DefaultClient, router, ts.URL, "")

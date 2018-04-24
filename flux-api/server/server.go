@@ -357,8 +357,17 @@ func (s *Server) RegisterDaemon(ctx context.Context, platform api.UpstreamServer
 
 	// Record the time of connection
 	now := time.Now()
-	s.connDB.Connect(instID, now)
-	defer s.connDB.Disconnect(instID, now)
+	err = s.connDB.Connect(instID, now)
+	defer func() {
+		err := s.connDB.Disconnect(instID, now)
+		if err != nil {
+			s.logger.Log("component", "server", "action", "connDB.Disconnect", "err", err)
+		}
+	}()
+	if err != nil {
+		s.logger.Log("component", "server", "action", "connDB.Connect", "err", err)
+		return err
+	}
 
 	// Register the daemon with our message bus, waiting for it to be
 	// closed. NB we cannot in general expect there to be a

@@ -49,13 +49,17 @@ func (db *DB) Get(inst service.InstanceID) (instance.Connection, error) {
 	return conf.Connection, err
 }
 
+func rollback(tx *sql.Tx, err error) error {
+	// Store this in a different, non-`err` variable, so that we don't
+	// inadvertently lose the `tx.Exec` result which got us here.
+	if rollbackErr := tx.Rollback(); rollbackErr != nil {
+		return errors.Wrapf(err, "transaction rollback failed: %s", rollbackErr)
+	}
+	return err
+}
+
 // Connect records connection time for the given instance.
 func (db *DB) Connect(inst service.InstanceID, t time.Time) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-
 	// TODO: store an `instance.Connection` instead
 	var config instance.Config
 	config.Connection.Last = t
@@ -65,11 +69,16 @@ func (db *DB) Connect(inst service.InstanceID, t time.Time) error {
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec(`INSERT INTO config (instance, config, stamp)
-					  VALUES ($1, $2, now())
-					  ON CONFLICT DO UPDATE`, string(inst), string(configBytes))
+
+	tx, err := db.conn.Begin()
 	if err != nil {
-		return tx.Rollback()
+		return err
+	}
+	_, err = tx.Exec(`INSERT INTO config (instance, config, stamp)
+					  VALUES ($1, $2, $3)
+					  ON CONFLICT (instance) DO UPDATE SET (config, stamp) = ($2, $3)`, string(inst), string(configBytes), t)
+	if err != nil {
+		return rollback(tx, err)
 	}
 	return tx.Commit()
 }
@@ -79,10 +88,6 @@ func (db *DB) Connect(inst service.InstanceID, t time.Time) error {
 // daemon being erroneously marked as disconnected in the case that it is
 // able to quickly reconnect before this method executes.
 func (db *DB) Disconnect(inst service.InstanceID, t time.Time) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
 
 	// TODO: store an `instance.Connection` instead
 	var expectedConfig instance.Config
@@ -101,12 +106,16 @@ func (db *DB) Disconnect(inst service.InstanceID, t time.Time) error {
 		return err
 	}
 
-	_, err = tx.Exec(`UPDATE config
-					  SET (config, stamp) = ($3, now())
-					  WHERE instance = $1 AND config = $2`,
-		string(inst), string(expectedConfigBytes), string(newConfigBytes))
+	tx, err := db.conn.Begin()
 	if err != nil {
-		return tx.Rollback()
+		return err
+	}
+	_, err = tx.Exec(`UPDATE config
+					  SET (config, stamp) = ($3, $4)
+					  WHERE instance = $1 AND config = $2`,
+		string(inst), string(expectedConfigBytes), string(newConfigBytes), t)
+	if err != nil {
+		return rollback(tx, err)
 	}
 	return tx.Commit()
 }
