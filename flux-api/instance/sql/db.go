@@ -51,17 +51,17 @@ func (db *DB) Get(inst service.InstanceID) (instance.Connection, error) {
 
 // Connect records connection time for the given instance.
 func (db *DB) Connect(inst service.InstanceID, t time.Time) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-
 	// TODO: store an `instance.Connection` instead
 	var config instance.Config
 	config.Connection.Last = t
 	config.Connection.Connected = true
 
 	configBytes, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
 	}
@@ -79,10 +79,6 @@ func (db *DB) Connect(inst service.InstanceID, t time.Time) error {
 // daemon being erroneously marked as disconnected in the case that it is
 // able to quickly reconnect before this method executes.
 func (db *DB) Disconnect(inst service.InstanceID, t time.Time) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
 
 	// TODO: store an `instance.Connection` instead
 	var expectedConfig instance.Config
@@ -101,6 +97,10 @@ func (db *DB) Disconnect(inst service.InstanceID, t time.Time) error {
 		return err
 	}
 
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
 	_, err = tx.Exec(`UPDATE config
 					  SET (config, stamp) = ($3, now())
 					  WHERE instance = $1 AND config = $2`,
