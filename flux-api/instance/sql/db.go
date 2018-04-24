@@ -49,12 +49,13 @@ func (db *DB) Get(inst service.InstanceID) (instance.Connection, error) {
 	return conf.Connection, err
 }
 
-func rollback(tx *sql.Tx, originalError error) error {
-	rollbackErr := tx.Rollback()
-	if rollbackErr == nil {
-		return originalError
+func rollback(tx *sql.Tx, err error) error {
+	// Store this in a different, non-`err` variable, so that we don't
+	// inadvertently lose the `tx.Exec` result which got us here.
+	if rollbackErr := tx.Rollback(); rollbackErr != nil {
+		return errors.Wrapf(err, "transaction rollback failed: %s", rollbackErr)
 	}
-	return errors.Wrap(originalError, "Error during rollback from error")
+	return err
 }
 
 // Connect records connection time for the given instance.
