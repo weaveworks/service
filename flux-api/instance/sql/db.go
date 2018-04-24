@@ -49,6 +49,14 @@ func (db *DB) Get(inst service.InstanceID) (instance.Connection, error) {
 	return conf.Connection, err
 }
 
+func rollback(tx *sql.Tx, originalError error) error {
+	rollbackErr := tx.Rollback()
+	if rollbackErr == nil {
+		return originalError
+	}
+	return errors.Wrap(originalError, "Error during rollback from error")
+}
+
 // Connect records connection time for the given instance.
 func (db *DB) Connect(inst service.InstanceID, t time.Time) error {
 	// TODO: store an `instance.Connection` instead
@@ -69,7 +77,7 @@ func (db *DB) Connect(inst service.InstanceID, t time.Time) error {
 					  VALUES ($1, $2, now())
 					  ON CONFLICT DO UPDATE`, string(inst), string(configBytes))
 	if err != nil {
-		return tx.Rollback()
+		return rollback(tx, err)
 	}
 	return tx.Commit()
 }
@@ -106,7 +114,7 @@ func (db *DB) Disconnect(inst service.InstanceID, t time.Time) error {
 					  WHERE instance = $1 AND config = $2`,
 		string(inst), string(expectedConfigBytes), string(newConfigBytes))
 	if err != nil {
-		return tx.Rollback()
+		return rollback(tx, err)
 	}
 	return tx.Commit()
 }
