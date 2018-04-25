@@ -10,7 +10,7 @@ var goKitDashboard = Dashboard{
 				Title: "Requests per second",
 				Type:  PanelStackedArea,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `sum by (method)(irate(request_latency_microseconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}]))`,
+				Query: `sum by (method)(rate(request_latency_microseconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}]))`,
 			}, {
 				Title: "Latency",
 				Type:  PanelLine,
