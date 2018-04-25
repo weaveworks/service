@@ -38,7 +38,7 @@ type DB interface {
 	GetReceiversForEvent(event types.Event) ([]types.Receiver, error)
 	ListReceivers(instanceID string) ([]types.Receiver, error)
 
-	CreateEvent(event types.Event, featureFlags []string) error
+	CreateEvent(event types.Event, featureFlags []string) (eventID string, err error)
 	GetEvents(instanceID string, fields, eventTypes []string, before, after time.Time, limit, offset int) ([]*types.Event, error)
 }
 

@@ -453,12 +453,14 @@ func (em *EventManager) SlackHandler(w http.ResponseWriter, r *http.Request) {
 
 // storeAndSend stores event in DB and sends notification batches for this event to SQS
 func (em *EventManager) storeAndSend(ctx context.Context, ev types.Event, featureFlags []string) error {
-	if err := em.DB.CreateEvent(ev, featureFlags); err != nil {
+	eventID, err := em.DB.CreateEvent(ev, featureFlags)
+	if err != nil {
 		eventsToDBError.With(prometheus.Labels{"event_type": ev.Type}).Inc()
 		return errors.Wrapf(err, "cannot store event in DB")
 	}
 	eventsToDBTotal.With(prometheus.Labels{"event_type": ev.Type}).Inc()
 
+	ev.ID = eventID
 	if err := em.SendNotificationBatchesToQueue(ctx, ev); err != nil {
 		eventsToSQSError.With(prometheus.Labels{"event_type": ev.Type}).Inc()
 		return errors.Wrapf(err, "cannot send notification batches to queue")
