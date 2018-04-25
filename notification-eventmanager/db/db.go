@@ -34,7 +34,7 @@ type DB interface {
 	CreateReceiver(receiver types.Receiver, instanceID string) (string, error)
 	UpdateReceiver(receiver types.Receiver, instanceID string, featureFlags []string) error
 	DeleteReceiver(instanceID, receiverID string) (int64, error)
-	GetReceiver(instanceID, receiverID string, featureFlags []string) (types.Receiver, error)
+	GetReceiver(instanceID, receiverID string, featureFlags []string, omitHiddenEventTypes bool) (types.Receiver, error)
 	GetReceiversForEvent(event types.Event) ([]types.Receiver, error)
 	ListReceivers(instanceID string) ([]types.Receiver, error)
 

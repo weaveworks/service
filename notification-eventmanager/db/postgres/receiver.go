@@ -142,7 +142,7 @@ func (d DB) createReceiverTX(receiver types.Receiver, instanceID string) (string
 }
 
 // GetReceiver returns a receiver
-func (d DB) GetReceiver(instanceID string, receiverID string, featureFlags []string) (types.Receiver, error) {
+func (d DB) GetReceiver(instanceID string, receiverID string, featureFlags []string, omitHiddenEventTypes bool) (types.Receiver, error) {
 	if err := d.checkInstanceDefaults(instanceID); err != nil {
 		return types.Receiver{}, err
 	}
@@ -156,10 +156,12 @@ func (d DB) GetReceiver(instanceID string, receiverID string, featureFlags []str
 		LEFT JOIN receiver_event_types rt ON (r.receiver_id = rt.receiver_id)
 		LEFT JOIN event_types et ON (rt.event_type = et.name)
 		WHERE r.receiver_id = $1 AND r.instance_id = $2 AND (et.feature_flag IS NULL OR et.feature_flag = ANY ($3))
+			AND ($4 = false OR et.hide_ui_config = false)
 		GROUP BY r.receiver_id`,
 		receiverID,
 		instanceID,
 		pq.Array(featureFlags),
+		omitHiddenEventTypes,
 	)
 	receiver, err := types.ReceiverFromRow(row)
 	if err != nil {
