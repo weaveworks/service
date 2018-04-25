@@ -45,6 +45,8 @@ type Client interface {
 	CreateInvoice(ctx context.Context, zuoraAccountNumber string) (string, error)
 	GetCurrentRates(ctx context.Context) (RateMap, error)
 	GetPaymentMethod(ctx context.Context, zuoraAccountNumber string) (*CreditCard, error)
+	GetPayments(ctx context.Context, zuoraAccountNumber string) ([]*PaymentDetails, error)
+	GetPaymentTransactionLog(ctx context.Context, paymentID string) ([]*PaymentTransaction, error)
 	UpdatePaymentMethod(ctx context.Context, paymentMethodID string) error
 	UploadUsage(ctx context.Context, r io.Reader) (string, error)
 	GetUsage(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]Usage, error)
@@ -167,6 +169,11 @@ func (z *Zuora) ContainsErrorCode(err interface{}, errorCode int) bool {
 // URL on Zuora
 func (z *Zuora) URL(format string, components ...interface{}) string {
 	return z.cfg.Endpoint + fmt.Sprintf(format, components...)
+}
+
+// RestURL on Zuora
+func (z *Zuora) RestURL(format string, components ...interface{}) string {
+	return z.cfg.RestEndpoint + fmt.Sprintf(format, components...)
 }
 
 // pagingParams define the query params zuora accepts for page size and which page

@@ -117,3 +117,13 @@ func (z StubClient) GetUsage(ctx context.Context, zuoraAccountNumber, page, page
 func (z StubClient) GetUsageImportStatus(ctx context.Context, importID string) (string, error) {
 	return "", nil
 }
+
+// GetPayments mocks.
+func (z StubClient) GetPayments(ctx context.Context, zuoraAccountNumber string) ([]*zuora.PaymentDetails, error) {
+	return nil, nil
+}
+
+// GetPaymentTransactionLog mocks.
+func (z StubClient) GetPaymentTransactionLog(ctx context.Context, paymentID string) ([]*zuora.PaymentTransaction, error) {
+	return nil, nil
+}

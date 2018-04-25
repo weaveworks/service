@@ -1,11 +1,17 @@
 package zuora
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 const (
-	paymentTokenPath  = "rsa-signatures"
-	updatePaymentPath = "payment-methods/credit-cards/%s"
-	getPaymentPath    = "payment-methods/credit-cards/accounts/%s"
+	paymentTokenPath                  = "rsa-signatures"
+	updatePaymentPath                 = "payment-methods/credit-cards/%s"
+	getPaymentPath                    = "payment-methods/credit-cards/accounts/%s"
+	getPaymentsPath                   = "transactions/payments/accounts/%s"
+	actionQueryPath                   = "action/query"
+	paymentTransactionLogZOQLTemplate = "SELECT Id, Gateway, GatewayState, GatewayReasonCode, GatewayReasonCodeDescription, GatewayTransactionType, PaymentId, TransactionId, TransactionDate, RequestString, ResponseString FROM PaymentTransactionLog WHERE PaymentId='%v'"
 )
 
 // PaymentStatus is the status of a payment.
@@ -149,4 +155,83 @@ type CreditCard struct {
 		Email          string `json:"email"`
 		ZipCode        string `json:"zipCode"`
 	} `json:"cardHolderInfo"`
+}
+
+// GetPayments returns payments.
+func (z *Zuora) GetPayments(ctx context.Context, zuoraAccountNumber string) ([]*PaymentDetails, error) {
+	if zuoraAccountNumber == "" {
+		return nil, ErrInvalidAccountNumber
+	}
+	resp := &paymentsResponse{}
+	err := z.Get(ctx, getPaymentsPath, z.URL(getPaymentsPath, zuoraAccountNumber), resp)
+	if err != nil {
+		return nil, err
+	}
+	if !resp.Success {
+		return nil, resp
+	}
+	return resp.PaymentDetails, nil
+}
+
+type paymentsResponse struct {
+	genericZuoraResponse
+	PaymentDetails []*PaymentDetails `json:"payments"`
+}
+
+// PaymentDetails represents... details on a payment!
+type PaymentDetails struct {
+	ID                       string        `json:"id"`
+	AccountID                string        `json:"accountID"`
+	AccountNumber            string        `json:"accountNumber"`
+	Type                     string        `json:"type"`
+	EffectiveDate            string        `json:"effectiveDate"`
+	PaymentNumber            string        `json:"paymentNumber"`
+	PaymentMethodID          string        `json:"paymentMethodID"`
+	Amount                   float64       `json:"amount"`
+	PaidInvoices             []PaidInvoice `json:"paidInvoices"`
+	GatewayTransactionNumber string        `json:"gatewayTransactionNumber"`
+	Status                   string        `json:"status"`
+}
+
+// PaidInvoice represents... a paid invoice!
+type PaidInvoice struct {
+	InvoiceID            string  `json:"invoiceID"`
+	InvoiceNumber        string  `json:"invoiceNumber"`
+	AppliedPaymentAmount float64 `json:"appliedPaymentAmount"`
+}
+
+// GetPaymentTransactionLog retrieves details on a payment transaction. Among other things, it allows us to get details on payment errors from the underlying payment gateway.
+func (z *Zuora) GetPaymentTransactionLog(ctx context.Context, paymentID string) ([]*PaymentTransaction, error) {
+	req := &actionQueryRequest{QueryString: fmt.Sprintf(paymentTransactionLogZOQLTemplate, paymentID)}
+	resp := &actionQueryResponse{}
+	err := z.Post(ctx, actionQueryPath, z.RestURL(actionQueryPath), req, resp)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Records, nil
+}
+
+type actionQueryRequest struct {
+	QueryString string `json:"queryString"`
+}
+
+type actionQueryResponse struct {
+	Done    bool                  `json:"done"`
+	Size    int                   `json:"size"`
+	Records []*PaymentTransaction `json:"records"`
+}
+
+// PaymentTransaction gathers details on a transaction done via a specific payment method.
+type PaymentTransaction struct {
+	ID                           string `json:"Id"`
+	Gateway                      string `json:"Gateway"`
+	GatewayState                 string `json:"GatewayState"`
+	GatewayReasonCode            string `json:"GatewayReasonCode"`
+	GatewayReasonCodeDescription string `json:"GatewayReasonCodeDescription"`
+	GatewayTransactionType       string `json:"GatewayTransactionType"`
+	PaymentID                    string `json:"PaymentId"`
+	TransactionDate              string `json:"TransactionDate"`
+	TransactionID                string `json:"TransactionId"`
+	RequestString                string `json:"RequestString"`
+	ResponseString               string `json:"ResponseString"`
 }
