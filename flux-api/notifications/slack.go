@@ -160,7 +160,7 @@ func slackNotifyCommitRelease(url string, commitMetadata *event.CommitEventMetad
 func slackNotifyCommitAutoRelease(url string, commitMetadata *event.CommitEventMetadata) error {
 	rev := commitMetadata.ShortRevision()
 	text := fmt.Sprintf("Commit: %s\n", rev)
-	for id := range commitMetadata.Result.AffectedResources() {
+	for _, id := range commitMetadata.Result.AffectedResources() {
 		text += fmt.Sprintf(" - %s\n", id)
 	}
 	return notify(autoReleaseCommitEventType, url, slackMsg{Text: text})
