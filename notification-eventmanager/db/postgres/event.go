@@ -18,12 +18,12 @@ import (
 )
 
 // CreateEvent inserts event in DB
-func (d DB) CreateEvent(event types.Event, featureFlags []string) error {
+func (d DB) CreateEvent(event types.Event, featureFlags []string) (string, error) {
 	var eventID string
 	// Re-encode the message data because the sql driver doesn't understand json columns
 	encodedMessages, err := json.Marshal(event.Messages)
 	if err != nil {
-		return err // This is a server error, because this round-trip *should* work.
+		return "", err // This is a server error, because this round-trip *should* work.
 	}
 
 	err = d.withTx("add_event_tx", func(tx *utils.Tx) error {
@@ -98,9 +98,9 @@ func (d DB) CreateEvent(event types.Event, featureFlags []string) error {
 		return err
 	})
 	if err != nil {
-		return errors.Wrap(err, "cannot insert event")
+		return "", errors.Wrap(err, "cannot insert event")
 	}
-	return nil
+	return eventID, nil
 }
 
 // GetEvents returns list of events
