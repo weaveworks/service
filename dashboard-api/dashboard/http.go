@@ -10,7 +10,7 @@ var httpDashboard = Dashboard{
 				Title: "Requests per second",
 				Type:  PanelStackedArea,
 				Unit:  Unit{Format: UnitNumeric},
-				Query: `sum by (status_code)(irate(http_request_duration_seconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}]))`,
+				Query: `sum by (status_code)(rate(http_request_duration_seconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}]))`,
 			}, {
 				Title: "Latency",
 				Type:  PanelLine,

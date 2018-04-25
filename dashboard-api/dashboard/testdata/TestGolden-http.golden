@@ -13,7 +13,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "sum by (status_code)(irate(http_request_duration_seconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m]))"
+              "query": "sum by (status_code)(rate(http_request_duration_seconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m]))"
             },
             {
               "title": "Latency",

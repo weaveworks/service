@@ -13,7 +13,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "sum by (method)(irate(request_latency_microseconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m]))"
+              "query": "sum by (method)(rate(request_latency_microseconds_count{kubernetes_namespace='default',_weave_service='authfe'}[2m]))"
             },
             {
               "title": "Latency",
