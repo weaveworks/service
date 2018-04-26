@@ -104,3 +104,10 @@ func TestGetPaymentTransactionLog(t *testing.T) {
 		ResponseString:               "[body={\n  \"error\": {\n    \"charge\": \"ch_1CIn0nGugdNUCnXwG1p3D0Ps\",\n    \"code\": \"card_declined\",\n    \"decline_code\": \"do_not_honor\",\n    \"doc_url\": \"https://stripe.com/docs/error-codes/card-declined\",\n    \"message\": \"Your card was declined.\",\n    \"type\": \"card_error\"\n  }\n}\n, charge_status_code=402, ]",
 	}, txLog)
 }
+
+func TestGetPaymentTransactionLogForBlankIDShouldReturnErrInvalidPaymentID(t *testing.T) {
+	client := zuora.New(conf, &mockClient{})
+	txLog, err := client.GetPaymentTransactionLog(context.Background(), "")
+	assert.Nil(t, txLog)
+	assert.Equal(t, zuora.ErrInvalidPaymentID, err)
+}
