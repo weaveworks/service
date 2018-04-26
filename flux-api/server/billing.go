@@ -12,6 +12,10 @@ import (
 	"github.com/weaveworks/flux/event"
 )
 
+func init() {
+	billing.MustRegisterMetrics()
+}
+
 // BillingClient covers our use of billing.Client
 type BillingClient interface {
 	AddAmounts(uniqueKey, internalInstanceID string, timestamp time.Time, amounts billing.Amounts, metadata map[string]string) error
