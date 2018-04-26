@@ -91,8 +91,6 @@ func TestGetPaymentTransactionLog(t *testing.T) {
 	txLog, err := client.GetPaymentTransactionLog(context.Background(), payment.ID)
 	assert.Nil(t, err)
 	assert.NotNil(t, txLog)
-	assert.Equal(t, 1, len(txLog))
-	tx := txLog[0]
 	assert.Equal(t, &zuora.PaymentTransaction{
 		ID:                           "2c92a0b362cd4af40162e06df01f3af1",
 		Gateway:                      "stripe",
@@ -104,5 +102,5 @@ func TestGetPaymentTransactionLog(t *testing.T) {
 		TransactionDate:              "2018-04-19T17:22:04.000-07:00",
 		RequestString:                "{Request = [amount=20103&currency=USD&metadata[zpayment_number]=P-00000018&card[number]=554001******4013&card[exp_month]=11&card[exp_year]=2020&card[name]=Eulalia Grau&card[address_line1]=Carrer Aragó 182, piso 6&card[address_city]=Barcelona&card[address_state]=Spain&card[address_country]=ESP&card[address_zip]=08011&capture=true], url = [https://api.stripe.com/v1/charges]}",
 		ResponseString:               "[body={\n  \"error\": {\n    \"charge\": \"ch_1CIn0nGugdNUCnXwG1p3D0Ps\",\n    \"code\": \"card_declined\",\n    \"decline_code\": \"do_not_honor\",\n    \"doc_url\": \"https://stripe.com/docs/error-codes/card-declined\",\n    \"message\": \"Your card was declined.\",\n    \"type\": \"card_error\"\n  }\n}\n, charge_status_code=402, ]",
-	}, tx)
+	}, txLog)
 }

@@ -201,14 +201,20 @@ type PaidInvoice struct {
 }
 
 // GetPaymentTransactionLog retrieves details on a payment transaction. Among other things, it allows us to get details on payment errors from the underlying payment gateway.
-func (z *Zuora) GetPaymentTransactionLog(ctx context.Context, paymentID string) ([]*PaymentTransaction, error) {
+func (z *Zuora) GetPaymentTransactionLog(ctx context.Context, paymentID string) (*PaymentTransaction, error) {
 	req := &actionQueryRequest{QueryString: fmt.Sprintf(paymentTransactionLogZOQLTemplate, paymentID)}
 	resp := &actionQueryResponse{}
 	err := z.Post(ctx, actionQueryPath, z.RestURL(actionQueryPath), req, resp)
 	if err != nil {
 		return nil, err
 	}
-	return resp.Records, nil
+	if len(resp.Records) == 0 {
+		return nil, ErrNotFound
+	}
+	if len(resp.Records) > 1 {
+		return nil, ErrTooManyTransactions
+	}
+	return resp.Records[0], nil
 }
 
 type actionQueryRequest struct {

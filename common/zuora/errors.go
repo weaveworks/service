@@ -19,6 +19,8 @@ var (
 	ErrNoSubscriptions = fmt.Errorf("no subscriptions")
 	// ErrNotFound means we couldn't find what we were looking for.
 	ErrNotFound = fmt.Errorf("not found")
+	// ErrTooManyTransactions means we got more transactions than we expected.
+	ErrTooManyTransactions = fmt.Errorf("too many transactions")
 	// ErrDuplicateSubscriptions means we found too many rate plans with the same Uom
 	ErrDuplicateSubscriptions = fmt.Errorf("duplicate subscriptions")
 	// ErrInvalidAccountNumber means the zuora account number is invalid, most likely blank

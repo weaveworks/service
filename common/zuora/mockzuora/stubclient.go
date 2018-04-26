@@ -124,6 +124,6 @@ func (z StubClient) GetPayments(ctx context.Context, zuoraAccountNumber string) 
 }
 
 // GetPaymentTransactionLog mocks.
-func (z StubClient) GetPaymentTransactionLog(ctx context.Context, paymentID string) ([]*zuora.PaymentTransaction, error) {
+func (z StubClient) GetPaymentTransactionLog(ctx context.Context, paymentID string) (*zuora.PaymentTransaction, error) {
 	return nil, nil
 }
