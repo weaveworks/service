@@ -255,7 +255,10 @@ func (s *Server) LogEvent(ctx context.Context, e event.Event) error {
 		return errors.Wrapf(err, "logging event")
 	}
 
-	s.emitBillingRecord(ctx, e)
+	err = s.emitBillingRecord(ctx, e)
+	if err != nil {
+		s.logger.Log("component", "billing", "err", err)
+	}
 
 	url := strings.Replace(s.eventsURL, "{instanceID}", string(instID), 1)
 	err = notifications.Event(url, e)
