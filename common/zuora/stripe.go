@@ -1,5 +1,8 @@
 package zuora
 
+// StripeDeclineCode defines a type alias for Stripe decline codes.
+type StripeDeclineCode string
+
 // StripeError describes a payment error in Stripe.
 type StripeError struct {
 	Code        StripeDeclineCode
@@ -7,9 +10,28 @@ type StripeError struct {
 	Action      string
 }
 
-// StripeErrors lists all known, documented Stripe errors.
+// GetStripeError returns the Stripe error corresponding to the provided decline code.
+// For fraudulent operations, it returns a GenericDecline error instead, for security reasons.
+// For unknown operations, it also returns a GenericDecline error.
+func GetStripeError(code StripeDeclineCode) StripeError {
+	stripeError, ok := stripeErrors[code]
+	if !ok {
+		return stripeErrors[GenericDecline]
+	}
+	if stripeError.IsFraudulent() {
+		return stripeErrors[GenericDecline]
+	}
+	return stripeError
+}
+
+// IsFraudulent returns true for payment errors which should be notified to the customer as GenericDecline (for security reasons), or false otherwise.
+func (e StripeError) IsFraudulent() bool {
+	return (e.Code == Fraudulent) || (e.Code == LostCard) || (e.Code == StolenCard)
+}
+
+// stripeErrors lists all known, documented Stripe errors.
 // See also: https://stripe.com/docs/declines/codes
-var StripeErrors = map[StripeDeclineCode]StripeError{
+var stripeErrors = map[StripeDeclineCode]StripeError{
 	ApproveWithID: {
 		Code:        ApproveWithID,
 		Description: "The payment cannot be authorized.",
@@ -206,9 +228,6 @@ var StripeErrors = map[StripeDeclineCode]StripeError{
 		Action:      "Please contact your card issuer for more information, or use another card.",
 	},
 }
-
-// StripeDeclineCode defines a type alias for Stripe decline codes.
-type StripeDeclineCode string
 
 // Known Stripe decline codes:
 const (
