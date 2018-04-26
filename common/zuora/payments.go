@@ -15,17 +15,21 @@ const (
 )
 
 // PaymentStatus is the status of a payment.
-type PaymentStatus string
+type PaymentStatus struct {
+	Status      string `json:"status"`
+	Description string `json:"description"`
+	Action      string `json:"action"`
+}
 
 const (
 	// PaymentOK means the user's payment details are OK, and they don't need
 	// to change them. Also can indicate we haven't tried to use their payment
 	// details, and are thus assuming they are OK.
-	PaymentOK PaymentStatus = "active"
+	PaymentOK = "active"
 	// PaymentError means the user needs to sort out their payment details. We
 	// return this when there is at least one payment with the `Error` status
 	// in the returned Zuora summary.
-	PaymentError PaymentStatus = "inactive"
+	PaymentError = "inactive"
 )
 
 // AuthenticationTokens are authentication tokens from Zuora.
