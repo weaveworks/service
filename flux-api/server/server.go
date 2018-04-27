@@ -255,7 +255,7 @@ func (s *Server) LogEvent(ctx context.Context, e event.Event) error {
 		return errors.Wrapf(err, "logging event")
 	}
 
-	err = s.emitBillingRecord(ctx, e)
+	err = s.emitBillingRecord(instID, e)
 	if err != nil {
 		s.logger.Log("component", "billing", "err", err)
 	}

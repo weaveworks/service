@@ -1,15 +1,15 @@
 package server
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	billing "github.com/weaveworks/billing-client"
-	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/flux/event"
+
+	"github.com/weaveworks/service/flux-api/service"
 )
 
 func init() {
@@ -29,11 +29,7 @@ func (NoopBillingClient) AddAmounts(uniqueKey, internalInstanceID string, timest
 	return nil
 }
 
-func (s *Server) emitBillingRecord(ctx context.Context, event event.Event) error {
-	userID, err := user.ExtractOrgID(ctx)
-	if err != nil {
-		return err
-	}
+func (s *Server) emitBillingRecord(instID service.InstanceID, event event.Event) error {
 	// convert _ to - to match other billing amount types
 	typeName := fmt.Sprintf("flux-%s", strings.Replace(event.Type, "_", "-", -1))
 	actionType := billing.AmountType(typeName)
@@ -46,7 +42,7 @@ func (s *Server) emitBillingRecord(ctx context.Context, event event.Event) error
 	now := time.Now().UTC()
 	return s.billingClient.AddAmounts(
 		strconv.FormatInt(int64(event.ID), 10),
-		userID,
+		string(instID),
 		now,
 		amounts,
 		nil,
