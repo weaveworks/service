@@ -100,7 +100,7 @@ func (z *Zuora) GetAccount(ctx context.Context, zuoraAccountNumber string) (*Acc
 			subscriptionStatus = SubscriptionInactive
 		}
 	}
-	paymentStatus := GetPaymentStatus(ctx, zuoraResponse.Payments)
+	paymentStatus := z.GetPaymentStatus(ctx, zuoraResponse.Payments)
 	subscription := &AccountSubscription{}
 	subscriptionResponse, err := z.getAccountSubscription(ctx, zuoraAccountNumber)
 
@@ -170,8 +170,9 @@ func extractNodeSecondsSubscription(ctx context.Context, subscriptions []subscri
 // around to charging them.
 // Since zuora returns dates and not datetimes, if there are multiple latest payments (same date)
 // and one of them has an error, treat the overall status as PaymentError.
-func GetPaymentStatus(ctx context.Context, payments []Payment) PaymentStatus {
+func (z Zuora) GetPaymentStatus(ctx context.Context, payments []Payment) PaymentStatus {
 	logger := logging.With(ctx)
+	var latestID string
 	latestStatus := PaymentOK
 	var latestDate time.Time
 	for _, payment := range payments {
@@ -180,14 +181,14 @@ func GetPaymentStatus(ctx context.Context, payments []Payment) PaymentStatus {
 			logger.
 				WithField("date", payment.EffectiveDate).WithField("err", err).
 				Errorf("failed to parse payment status effective date")
-			return PaymentError
+			return PaymentStatus{Status: PaymentError}
 		}
 
 		status, ok := paymentStatusMap[payment.Status]
 		if !ok {
 			// Zuora returned an unexpected payment status. Assume it's bad.
 			logger.WithField("status", payment.Status).Errorf("unrecognized payment status")
-			return PaymentError
+			return PaymentStatus{Status: PaymentError}
 		}
 
 		if latestDate.IsZero() || latestDate.Before(effectiveDate) {
@@ -195,14 +196,31 @@ func GetPaymentStatus(ctx context.Context, payments []Payment) PaymentStatus {
 				WithField("old_status", latestStatus).WithField("old_date", latestDate).
 				WithField("new_status", status).WithField("new_date", effectiveDate).
 				WithField("underlying_zuora_payment_status", payment.Status).Debugf("updating payment status")
+			latestID = payment.ID
 			latestDate = effectiveDate
 			latestStatus = status
 		} else if latestDate.Equal(effectiveDate) && status == PaymentError {
 			latestStatus = PaymentError
 		}
 	}
+	if latestStatus == PaymentError {
+		stripeError := z.getUnderlyingStripePaymentError(ctx, latestID)
+		return PaymentStatus{
+			Status:      latestStatus,
+			Description: stripeError.Description,
+			Action:      stripeError.Action,
+		}
+	}
+	return PaymentStatus{Status: latestStatus}
+}
 
-	return latestStatus
+func (z Zuora) getUnderlyingStripePaymentError(ctx context.Context, latestID string) StripeError {
+	transactionLog, err := z.GetPaymentTransactionLog(ctx, latestID)
+	if err != nil {
+		logging.With(ctx).WithField("err", err).WithField("id", latestID).Errorf("failed to get transaction log, returning generic error instead")
+		return GetStripeError(GenericDecline)
+	}
+	return GetStripeError(StripeDeclineCode(transactionLog.GatewayReasonCode))
 }
 
 var subscriptionStatusMap = map[string]SubscriptionStatus{
@@ -215,7 +233,7 @@ var subscriptionStatusMap = map[string]SubscriptionStatus{
 	"Expired":           SubscriptionInactive,
 }
 
-var paymentStatusMap = map[string]PaymentStatus{
+var paymentStatusMap = map[string]string{
 	"Draft":      PaymentOK,
 	"Processing": PaymentOK,
 	"Processed":  PaymentOK,
@@ -227,6 +245,7 @@ var paymentStatusMap = map[string]PaymentStatus{
 
 // Payment represents part of a payment returned from Zuora's getAccountSummary request
 type Payment struct {
+	ID            string `json:"id"`
 	Status        string `json:"status"`
 	EffectiveDate string `json:"effectiveDate"`
 }

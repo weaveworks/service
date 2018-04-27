@@ -301,10 +301,16 @@ type accountStatusResponse struct {
 	UsageToDate           map[string]string `json:"usage_to_date"` // prices in all supported currencies.
 	UsagePerDay           map[string]int64  `json:"usage_per_day"` // in node-seconds; key is day in `YYYY-MM-DD`
 	ActiveHosts           float64           `json:"active_hosts"`
-	Status                status            `json:"status"`
+	Status                paymentStatus     `json:"payment_status"`
 	Interim               *interim          `json:"interim,omitempty"`
 	EstimatedMonthlyUsage map[string]string `json:"estimated_monthly_usage"` // in all supported currencies.
 	Currency              string            `json:"currency"`                // currency from Zuora's subscription, or default on.
+}
+
+type paymentStatus struct {
+	Status      status `json:"status"`
+	Description string `json:"description"`
+	Action      string `json:"action"`
 }
 
 const (
@@ -372,34 +378,38 @@ func (a *API) getDefaultUsageRateInfo(ctx context.Context) (int, map[string]floa
 }
 
 // getBillingStatus returns a single overall summary of the user's account.
-func getBillingStatus(ctx context.Context, trialInfo trial.Trial, acct *zuora.Account) status {
+func getBillingStatus(ctx context.Context, trialInfo trial.Trial, acct *zuora.Account) paymentStatus {
 	// Having days left on the trial means we don't have to care about Zuora.
 	if trialInfo.Remaining > 0 {
-		return statusTrialActive
+		return paymentStatus{Status: statusTrialActive}
 	}
 	// We only create an account for a user after they have added a payment method,
 	// so acct == nil is equivalent to "no account on Zuora", which is equivalent to,
 	// "they haven't submitted a payment method", which means their trial has expired.
 	if acct == nil {
-		return statusTrialExpired
+		return paymentStatus{Status: statusTrialExpired}
 	}
 	// Even if the user has an account on Zuora, we can suspend or cancel
 	// their account.
 	if acct.SubscriptionStatus != zuora.SubscriptionActive {
-		return statusSubscriptionInactive
+		return paymentStatus{Status: statusSubscriptionInactive}
 	}
 	// At this point, we know the account is active.
-	if acct.PaymentStatus != zuora.PaymentOK {
+	if acct.PaymentStatus.Status != zuora.PaymentOK {
 		logging.With(ctx).
 			WithField("payment_status", acct.PaymentStatus).
 			WithField("zuora_id", acct.ZuoraID).
 			WithField("zuora_number", acct.Number).
 			Debugf("treating non-active payment status as error")
-		return statusPaymentError
+		return paymentStatus{
+			Status:      statusPaymentError,
+			Description: acct.PaymentStatus.Description,
+			Action:      acct.PaymentStatus.Action,
+		}
 	}
 	// TODO Future - work out when to use PAYMENT_DUE
 	//StatusPaymentDue           = "payment_due"
-	return statusActive
+	return paymentStatus{Status: statusActive}
 }
 
 // Introducing the contextKey alias addresses "should not use basic type untyped string as key in context.WithValue".
@@ -482,7 +492,6 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO some kind of payment status info
 	render.JSON(w, http.StatusOK, accountStatusResponse{
 		BillingPeriodStart:    start.Format(dayTimeLayout),
 		BillingPeriodEnd:      end.Format(dayTimeLayout),

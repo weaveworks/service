@@ -15,17 +15,21 @@ const (
 )
 
 // PaymentStatus is the status of a payment.
-type PaymentStatus string
+type PaymentStatus struct {
+	Status      string `json:"status"`
+	Description string `json:"description"`
+	Action      string `json:"action"`
+}
 
 const (
 	// PaymentOK means the user's payment details are OK, and they don't need
 	// to change them. Also can indicate we haven't tried to use their payment
 	// details, and are thus assuming they are OK.
-	PaymentOK PaymentStatus = "active"
+	PaymentOK = "active"
 	// PaymentError means the user needs to sort out their payment details. We
 	// return this when there is at least one payment with the `Error` status
 	// in the returned Zuora summary.
-	PaymentError PaymentStatus = "inactive"
+	PaymentError = "inactive"
 )
 
 // AuthenticationTokens are authentication tokens from Zuora.
@@ -201,14 +205,23 @@ type PaidInvoice struct {
 }
 
 // GetPaymentTransactionLog retrieves details on a payment transaction. Among other things, it allows us to get details on payment errors from the underlying payment gateway.
-func (z *Zuora) GetPaymentTransactionLog(ctx context.Context, paymentID string) ([]*PaymentTransaction, error) {
+func (z *Zuora) GetPaymentTransactionLog(ctx context.Context, paymentID string) (*PaymentTransaction, error) {
+	if paymentID == "" {
+		return nil, ErrInvalidPaymentID
+	}
 	req := &actionQueryRequest{QueryString: fmt.Sprintf(paymentTransactionLogZOQLTemplate, paymentID)}
 	resp := &actionQueryResponse{}
 	err := z.Post(ctx, actionQueryPath, z.RestURL(actionQueryPath), req, resp)
 	if err != nil {
 		return nil, err
 	}
-	return resp.Records, nil
+	if len(resp.Records) == 0 {
+		return nil, ErrNotFound
+	}
+	if len(resp.Records) > 1 {
+		return nil, ErrTooManyTransactions
+	}
+	return resp.Records[0], nil
 }
 
 type actionQueryRequest struct {
