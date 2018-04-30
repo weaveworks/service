@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -54,8 +55,11 @@ func TestRoutes(t *testing.T) {
 
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
+		resp := rr.Result()
 
-		assert.Equal(t, tc.expectedProxyName, rr.Body.String())
+		body, _ := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+		assert.Equal(t, tc.expectedProxyName, string(body))
 	}
 }
 
@@ -78,9 +82,13 @@ func TestStripSetCookieHeader(t *testing.T) {
 		rec := httptest.NewRecorder()
 		mw.Wrap(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			http.SetCookie(w, &http.Cookie{Name: "foo", Value: "bar"})
+			w.WriteHeader(200)
+			w.Write([]byte{})
 		})).ServeHTTP(rec, req)
-		assert.Equal(t, http.StatusOK, rec.Code)
+		resp := rec.Result()
+		resp.Body.Close()
 
-		assert.Equal(t, tc.stripped, rec.Header().Get("Set-Cookie") == "")
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, tc.stripped, resp.Header.Get("Set-Cookie") == "")
 	}
 }

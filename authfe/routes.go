@@ -464,9 +464,10 @@ func (s stripSetCookieHeader) Wrap(next http.Handler) http.Handler {
 
 		rec := httptest.NewRecorder()
 		next.ServeHTTP(rec, r)
-		responseHeader := w.Header()
+		resp := rec.Result()
 
-		headers := rec.Header()
+		responseHeader := w.Header()
+		headers := resp.Header
 		// Remove the cookie
 		headers.Del("Set-Cookie")
 		// Copy the original headers
@@ -475,8 +476,10 @@ func (s stripSetCookieHeader) Wrap(next http.Handler) http.Handler {
 		}
 
 		// Finally, write the response
-		w.WriteHeader(rec.Code)
-		w.Write(rec.Body.Bytes())
+		w.WriteHeader(resp.StatusCode)
+		body, _ := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+		w.Write(body)
 	})
 }
 
@@ -527,14 +530,16 @@ func injectTokenInHTMLResponses(next http.Handler) http.Handler {
 
 		rec := httptest.NewRecorder()
 		next.ServeHTTP(rec, r)
-		responseHeader := w.Header()
+		resp := rec.Result()
 
+		responseHeader := w.Header()
 		// Copy the original headers
-		for k, v := range rec.Header() {
+		for k, v := range resp.Header {
 			responseHeader[k] = v
 		}
 
-		responseBody := rec.Body.Bytes()
+		responseBody, _ := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
 
 		if mtype, _, err := mime.ParseMediaType(responseHeader.Get("Content-Type")); err == nil && mtype == "text/html" {
 			responseBody = bytes.Replace(responseBody, []byte("$__CSRF_TOKEN_PLACEHOLDER__"), []byte(nosurf.Token(r)), -1)
@@ -550,7 +555,7 @@ func injectTokenInHTMLResponses(next http.Handler) http.Handler {
 		}
 
 		// Finally, write the response
-		w.WriteHeader(rec.Code)
+		w.WriteHeader(resp.StatusCode)
 		w.Write(responseBody)
 	})
 }
