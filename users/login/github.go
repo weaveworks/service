@@ -23,7 +23,7 @@ type github struct {
 func NewGithubProvider() Provider {
 	return &github{
 		OAuth: OAuth{
-			name: "Github",
+			name: "GitHub",
 			Config: oauth2.Config{
 				Endpoint: githubOauth.Endpoint,
 				Scopes:   []string{"user:email", "repo", "write:public_key", "read:public_key"},
