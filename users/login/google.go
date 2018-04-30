@@ -49,7 +49,7 @@ func (g *google) Link(r *http.Request) (Link, bool) {
 	if isSubscribingFromGCP(r) {
 		l.Href = addGCPSubscriptionScope(l.Href)
 	}
-	l.BackgroundColor = "#dd4b39"
+	l.BackgroundColor = "#4285F4"
 	return l, ok
 }
 
