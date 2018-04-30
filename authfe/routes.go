@@ -446,12 +446,37 @@ type stripSetCookieHeader struct {
 
 func (s stripSetCookieHeader) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
+		match := false
 		for _, prefix := range s.prefixes {
 			if strings.HasPrefix(r.URL.Path, prefix) {
-				w.Header().Del("Set-Cookie")
+				match = true
+				break
 			}
 		}
+		if !match {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// If we need to modify the response (headers or body)
+		// we need to intercept it like this, because the reverse proxy
+		// sends the response before control returns to the middleware.
+
+		rec := httptest.NewRecorder()
+		next.ServeHTTP(rec, r)
+		responseHeader := w.Header()
+
+		headers := rec.Header()
+		// Remove the cookie
+		headers.Del("Set-Cookie")
+		// Copy the original headers
+		for k, v := range headers {
+			responseHeader[k] = v
+		}
+
+		// Finally, write the response
+		w.WriteHeader(rec.Code)
+		w.Write(rec.Body.Bytes())
 	})
 }
 
