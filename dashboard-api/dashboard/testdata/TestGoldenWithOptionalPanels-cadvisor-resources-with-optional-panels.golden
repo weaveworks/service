@@ -38,6 +38,24 @@
       ]
     },
     {
+      "name": "GPU",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "GPU Usage",
+              "type": "line",
+              "unit": {
+                "format": "numeric",
+                "explanation": "GPU seconds / second"
+              },
+              "query": "sum (container_accelerator_duty_cycle{image!='',namespace='default',_weave_pod_name='authfe'}) by (pod_name)"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Network",
       "rows": [
         {
