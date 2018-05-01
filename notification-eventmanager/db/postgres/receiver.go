@@ -154,7 +154,7 @@ func (d DB) GetReceiver(instanceID string, receiverID string, featureFlags []str
 			array_remove(array_agg(rt.event_type), NULL)
 		FROM receivers r
 		LEFT JOIN receiver_event_types rt ON (r.receiver_id = rt.receiver_id)
-		LEFT JOIN event_types et ON (rt.event_type = et.name)
+		INNER JOIN event_types et ON (rt.event_type = et.name)
 									AND (et.feature_flag IS NULL OR et.feature_flag = ANY ($3))
 									AND ($4 = false OR et.hide_ui_config = false)
 		WHERE r.receiver_id = $1 AND r.instance_id = $2
