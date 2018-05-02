@@ -44,6 +44,7 @@
           "panels": [
             {
               "title": "GPU Usage",
+              "optional": true,
               "type": "line",
               "unit": {
                 "format": "numeric",
@@ -53,6 +54,7 @@
             },
             {
               "title": "GPU Memory Usage",
+              "optional": true,
               "type": "line",
               "unit": {
                 "format": "bytes"
