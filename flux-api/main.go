@@ -55,6 +55,8 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.BoolVar(&c.versionFlag, "version", false, "Get version number")
 	f.StringVar(&c.eventsURL, "events-url", notifications.DefaultURL, "URL to which events will be sent")
 	f.BoolVar(&c.enableBilling, "enable-billing", false, "Report each event to the billing system.")
+
+	c.billingConfig.RegisterFlags(f)
 }
 
 func main() {
@@ -74,12 +76,6 @@ func main() {
 
 	cfg := Config{}
 	cfg.RegisterFlags(fs)
-
-	// Copied from billing.Config.RegisterFlags because this uses a different flag library
-	fs.IntVar(&cfg.billingConfig.MaxBufferedEvents, "billing.max-buffered-events", 1024, "Maximum number of billing events to buffer in memory")
-	fs.DurationVar(&cfg.billingConfig.RetryDelay, "billing.retry-delay", 500*time.Millisecond, "How often to retry sending events to the billing ingester.")
-	fs.StringVar(&cfg.billingConfig.IngesterHostPort, "billing.ingester", "localhost:24225", "points to the billing ingester sidecar (should be on localhost)")
-
 	fs.Parse(os.Args[1:])
 
 	if version == "" {
