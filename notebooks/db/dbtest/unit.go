@@ -7,14 +7,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/notebooks/db"
 )
 
 // Setup sets up stuff for testing, creating a new database
 func Setup(t *testing.T) db.DB {
-	database, err := db.New(db.Config{
-		URI: "memory://",
-	})
+	database, err := db.New(dbconfig.New("memory://", "", ""))
 	require.NoError(t, err)
 	return database
 }
