@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	billing "github.com/weaveworks/billing-client"
+	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/common/tracing"
 	"github.com/weaveworks/service/flux-api/bus"
 	"github.com/weaveworks/service/flux-api/bus/nats"
@@ -35,26 +35,29 @@ const (
 
 var version string
 
-type Config struct {
-	listenAddr            string
-	databaseSource        string
-	databaseMigrationsDir string
-	natsURL               string
-	versionFlag           bool
-	eventsURL             string
-	enableBilling         bool
+type config struct {
+	listenAddr    string
+	natsURL       string
+	versionFlag   bool
+	eventsURL     string
+	enableBilling bool
 
+	dbConfig      dbconfig.Config
 	billingConfig billing.Config
 }
 
-func (c *Config) RegisterFlags(f *flag.FlagSet) {
+func (c *config) registerFlags(f *flag.FlagSet) {
 	f.StringVar(&c.listenAddr, "listen", ":3030", "Listen address for Flux API clients")
-	f.StringVar(&c.databaseSource, "database-source", "file://fluxy.db", `Database source name; includes the DB driver as the scheme. The default is a temporary, file-based DB`)
-	f.StringVar(&c.databaseMigrationsDir, "database-migrations", "./flux-api/db/migrations/postgres", "Path to database migration scripts, which are in subdirectories named for each driver")
 	f.StringVar(&c.natsURL, "nats-url", "", `URL on which to connect to NATS, or empty to use the standalone message bus (e.g., "nats://user:pass@nats:4222")`)
 	f.BoolVar(&c.versionFlag, "version", false, "Get version number")
 	f.StringVar(&c.eventsURL, "events-url", notifications.DefaultURL, "URL to which events will be sent")
 	f.BoolVar(&c.enableBilling, "enable-billing", false, "Report each event to the billing system.")
+
+	c.dbConfig.RegisterFlags(f,
+		"file://fluxy.db",
+		`Database source name; includes the DB driver as the scheme. The default is a temporary, file-based DB`,
+		"./flux-api/db/migrations/postgres",
+		"Path to database migration scripts, which are in subdirectories named for each driver")
 
 	c.billingConfig.RegisterFlags(f)
 }
@@ -74,8 +77,8 @@ func main() {
 		fs.PrintDefaults()
 	}
 
-	cfg := Config{}
-	cfg.RegisterFlags(fs)
+	cfg := config{}
+	cfg.registerFlags(fs)
 	fs.Parse(os.Args[1:])
 
 	if version == "" {
@@ -97,18 +100,20 @@ func main() {
 	// Initialise database; we must fail if we can't do this, because
 	// most things depend on it.
 	var dbDriver string
+	var dbSource string
 	{
 		var version uint64
-		u, err := url.Parse(cfg.databaseSource)
+		scheme, dataSourceName, migrationsDir, err := cfg.dbConfig.Parameters()
 		if err == nil {
-			version, err = db.Migrate(cfg.databaseSource, cfg.databaseMigrationsDir)
+			version, err = db.Migrate(dataSourceName, migrationsDir)
 		}
 
 		if err != nil {
 			logger.Log("stage", "db init", "err", err)
 			os.Exit(1)
 		}
-		dbDriver = u.Scheme
+		dbDriver = scheme
+		dbSource = dataSourceName
 		logger.Log("migrations", "success", "driver", dbDriver, "db-version", fmt.Sprintf("%d", version))
 	}
 
@@ -130,7 +135,7 @@ func main() {
 
 	var historyDB history.DB
 	{
-		db, err := historysql.NewSQL(dbDriver, cfg.databaseSource)
+		db, err := historysql.NewSQL(dbDriver, dbSource)
 		if err != nil {
 			logger.Log("component", "history", "err", err)
 			os.Exit(1)
@@ -141,7 +146,7 @@ func main() {
 	// Configuration, i.e., whether services are automated or not.
 	var instanceDB instance.ConnectionDB
 	{
-		db, err := instancedb.New(dbDriver, cfg.databaseSource)
+		db, err := instancedb.New(dbDriver, dbSource)
 		if err != nil {
 			logger.Log("component", "config", "err", err)
 			os.Exit(1)
