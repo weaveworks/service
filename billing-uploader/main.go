@@ -15,6 +15,7 @@ import (
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-uploader/job"
 	"github.com/weaveworks/service/billing-uploader/job/usage"
+	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/common/gcp/control"
 	"github.com/weaveworks/service/common/users"
 	"github.com/weaveworks/service/common/zuora"
@@ -66,13 +67,13 @@ func main() {
 			"Cron spec for periodic execution of the invoice job")
 		logLevel     = flag.String("log.level", "info", "The log level")
 		serverConfig server.Config
-		dbConfig     db.Config
+		dbConfig     dbconfig.Config
 		usersConfig  users.Config
 		zuoraConfig  zuora.Config
 		gcpConfig    control.Config
 	)
 	serverConfig.RegisterFlags(flag.CommandLine)
-	dbConfig.RegisterFlags(flag.CommandLine)
+	dbConfig.RegisterFlags(flag.CommandLine, "postgres://postgres@billing-db/billing?sslmode=disable", "Database to use.", "/migrations", "Migrations directory.")
 	usersConfig.RegisterFlags(flag.CommandLine)
 	zuoraConfig.RegisterFlags(flag.CommandLine)
 	gcpConfig.RegisterFlags(flag.CommandLine)

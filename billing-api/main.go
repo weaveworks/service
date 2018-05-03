@@ -12,6 +12,7 @@ import (
 	"github.com/weaveworks/service/billing-api/grpc"
 	"github.com/weaveworks/service/billing-api/routes"
 	common_grpc "github.com/weaveworks/service/common/billing/grpc"
+	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/common/users"
 	"github.com/weaveworks/service/common/zuora"
 )
@@ -20,7 +21,7 @@ import (
 type Config struct {
 	logLevel string
 
-	dbConfig     db.Config
+	dbConfig     dbconfig.Config
 	routesConfig routes.Config
 	serverConfig server.Config
 	usersConfig  users.Config
@@ -31,7 +32,7 @@ type Config struct {
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	flag.StringVar(&c.logLevel, "log.level", "info", "The log level")
 
-	c.dbConfig.RegisterFlags(f)
+	c.dbConfig.RegisterFlags(f, "postgres://postgres@billing-db/billing?sslmode=disable", "Database to use.", "/migrations", "Migrations directory.")
 	c.routesConfig.RegisterFlags(f)
 	c.serverConfig.RegisterFlags(f)
 	c.usersConfig.RegisterFlags(f)
