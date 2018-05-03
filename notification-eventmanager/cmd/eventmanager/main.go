@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/common/users"
 	"github.com/weaveworks/service/notification-eventmanager/db"
 	"github.com/weaveworks/service/notification-eventmanager/eventmanager"
@@ -21,7 +22,7 @@ func main() {
 			MetricsNamespace:              "notification",
 			ServerGracefulShutdownTimeout: 16 * time.Second,
 		}
-		dbConfig db.Config
+		dbConfig dbconfig.Config
 		logLevel string
 		sqsURL   string
 		// Connect to users service to get information about an event's instance
@@ -30,7 +31,7 @@ func main() {
 	)
 
 	serverConfig.RegisterFlags(flag.CommandLine)
-	dbConfig.RegisterFlags(flag.CommandLine)
+	dbConfig.RegisterFlags(flag.CommandLine, "", "URI where the database can be found", "", "Path where the database migration files can be found")
 
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
 	flag.StringVar(&sqsURL, "sqsURL", "sqs://123user:123password@localhost:9324/events", "URL to connect to SQS")
