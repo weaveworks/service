@@ -16,6 +16,7 @@ import (
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common"
 	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
+	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/common/tracing"
@@ -43,16 +44,14 @@ func main() {
 	defer traceCloser.Close()
 
 	var (
-		logLevel           = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
-		port               = flag.Int("port", 80, "port to listen on")
-		grpcPort           = flag.Int("grpc-port", 4772, "grpc port to listen on")
-		domain             = flag.String("domain", "https://cloud.weave.works", "domain where scope service is runnning.")
-		databaseURI        = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
-		databaseMigrations = flag.String("database-migrations", "", "Path where the database migration files can be found")
-		emailURI           = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Email-uri must be provided. For local development, you can set this to: log://, which will log all emails.")
-		sessionSecret      = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
-		directLogin        = flag.Bool("direct-login", false, "Send login token in the signup response (DEV only)")
-		secureCookie       = flag.Bool("secure-cookie", false, "Set secure flag on cookies (so they only get used on HTTPS connections.)")
+		logLevel      = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
+		port          = flag.Int("port", 80, "port to listen on")
+		grpcPort      = flag.Int("grpc-port", 4772, "grpc port to listen on")
+		domain        = flag.String("domain", "https://cloud.weave.works", "domain where scope service is runnning.")
+		emailURI      = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Email-uri must be provided. For local development, you can set this to: log://, which will log all emails.")
+		sessionSecret = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
+		directLogin   = flag.Bool("direct-login", false, "Send login token in the signup response (DEV only)")
+		secureCookie  = flag.Bool("secure-cookie", false, "Set secure flag on cookies (so they only get used on HTTPS connections.)")
 
 		fluxStatusAPI  = flag.String("flux-status-api", "", "Hostname and port for flux V6 service. e.g. http://fluxsvc.flux.svc.cluster.local:80/api/flux/v6/status")
 		scopeProbesAPI = flag.String("scope-probes-api", "", "Hostname and port for scope query. e.g. http://query.scope.svc.cluster.local:80/api/probes")
@@ -82,6 +81,7 @@ func main() {
 
 		billingFeatureFlagProbability = flag.Uint("billing-feature-flag-probability", 0, "Percentage of *new* organizations for which we want to enable the 'billing' feature flag. 0 means always disabled. 100 means always enabled. Any value X in between will enable billing randomly X% of the time.")
 
+		dbCfg      dbconfig.Config
 		partnerCfg partner.Config
 		billingCfg billing_grpc.Config
 
@@ -97,6 +97,7 @@ func main() {
 	logins.Register(login.GithubProviderID, login.NewGithubProvider())
 	logins.Register(login.GoogleProviderID, login.NewGoogleProvider())
 	logins.Flags(flag.CommandLine)
+	dbCfg.RegisterFlags(flag.CommandLine, "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "/migrations", "Migrations directory.")
 	partnerCfg.RegisterFlags(flag.CommandLine)
 	billingCfg.RegisterFlags(flag.CommandLine)
 
@@ -156,7 +157,7 @@ func main() {
 
 	templates := templates.MustNewEngine("templates")
 	emailer := emailer.MustNew(*emailURI, *emailFromAddress, templates, *domain)
-	db := db.MustNew(*databaseURI, *databaseMigrations)
+	db := db.MustNew(dbCfg)
 	defer db.Close(context.Background())
 	sessions := sessions.MustNewStore(*sessionSecret, *secureCookie)
 

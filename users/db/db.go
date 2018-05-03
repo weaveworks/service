@@ -3,12 +3,12 @@ package db
 import (
 	"context"
 	"encoding/json"
-	"net/url"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/common"
+	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/db/memory"
@@ -127,19 +127,19 @@ type DB interface {
 }
 
 // MustNew creates a new database from the URI, or panics.
-func MustNew(databaseURI, migrationsDir string) DB {
-	u, err := url.Parse(databaseURI)
+func MustNew(cfg dbconfig.Config) DB {
+	scheme, dataSourceName, migrationsDir, err := cfg.Parameters()
 	if err != nil {
 		log.Fatal(err)
 	}
 	var d DB
-	switch u.Scheme {
+	switch scheme {
 	case "memory":
-		d, err = memory.New(databaseURI, migrationsDir, PasswordHashingCost)
+		d, err = memory.New(dataSourceName, migrationsDir, PasswordHashingCost)
 	case "postgres":
-		d, err = postgres.New(databaseURI, migrationsDir, PasswordHashingCost)
+		d, err = postgres.New(dataSourceName, migrationsDir, PasswordHashingCost)
 	default:
-		log.Fatalf("Unknown database type: %s", u.Scheme)
+		log.Fatalf("Unknown database type: %s", scheme)
 	}
 	if err != nil {
 		log.Fatal(err)
