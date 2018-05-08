@@ -668,23 +668,29 @@
   packages = [
     ".",
     "config",
+    "internal/baggage",
+    "internal/baggage/remote",
     "internal/spanlog",
+    "internal/throttler",
+    "internal/throttler/remote",
     "log",
     "rpcmetrics",
+    "thrift",
     "thrift-gen/agent",
+    "thrift-gen/baggage",
     "thrift-gen/jaeger",
     "thrift-gen/sampling",
     "thrift-gen/zipkincore",
     "utils"
   ]
-  revision = "3e3870040def0ebdaf65a003863fa64f5cb26139"
-  version = "v2.9.0"
+  revision = "b043381d944715b469fd6b37addfd30145ca1758"
+  version = "v2.14.0"
 
 [[projects]]
   name = "github.com/uber/jaeger-lib"
   packages = ["metrics"]
-  revision = "3b2a9ad2a045881ab7a0f81d465be54c8292ee4f"
-  version = "v1.1.0"
+  revision = "4267858c0679cd4e47cefed8d7f70fd386cfb567"
+  version = "v1.4.0"
 
 [[projects]]
   branch = "master"
