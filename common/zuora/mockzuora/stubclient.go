@@ -25,7 +25,7 @@ func init() {
 }
 
 // CreateAccount mocks.
-func (z StubClient) CreateAccount(ctx context.Context, orgID, currency, firstName, lastName, country, email, state, paymentMethodID string, billCycleDay int, serviceActivationTime time.Time) (*zuora.Account, error) {
+func (z StubClient) CreateAccount(ctx context.Context, orgID string, contact zuora.Contact, currency, paymentMethodID string, billCycleDay int, serviceActivationTime time.Time) (*zuora.Account, error) {
 	return nil, nil
 }
 

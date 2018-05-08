@@ -50,7 +50,7 @@ type Account struct {
 	SubscriptionStatus SubscriptionStatus   `json:"subscriptionStatus"`
 	PaymentStatus      PaymentStatus        `json:"paymentStatus"`
 	Subscription       *AccountSubscription `json:"subscription"`
-	BillToContact      *contact             `json:"billToContact"`
+	BillToContact      Contact              `json:"billToContact"`
 	BillCycleDay       int                  `json:"billCycleDay"`
 }
 
@@ -120,14 +120,8 @@ func (z *Zuora) GetAccount(ctx context.Context, zuoraAccountNumber string) (*Acc
 		SubscriptionStatus: subscriptionStatus,
 		PaymentStatus:      paymentStatus,
 		Subscription:       subscription,
-		BillToContact: &contact{
-			FirstName: zuoraResponse.BillToContact.FirstName,
-			LastName:  zuoraResponse.BillToContact.LastName,
-			Country:   zuoraResponse.BillToContact.Country,
-			State:     zuoraResponse.BillToContact.State,
-			WorkEmail: zuoraResponse.BillToContact.WorkEmail,
-		},
-		BillCycleDay: zuoraResponse.BasicInfo.BillCycleDay,
+		BillToContact:      zuoraResponse.BillToContact,
+		BillCycleDay:       zuoraResponse.BasicInfo.BillCycleDay,
 	}, nil
 }
 
@@ -265,14 +259,7 @@ type zuoraSummaryResponse struct {
 		Currency     string `json:"currency"`
 		BillCycleDay int    `json:"billCycleDay"`
 	} `json:"basicInfo"`
-	BillToContact struct {
-		ID        string `json:"id"`
-		FirstName string `json:"firstName"`
-		LastName  string `json:"lastName"`
-		Country   string `json:"country"`
-		State     string `json:"state"`
-		WorkEmail string `json:"workEmail"`
-	} `json:"billToContact"`
+	BillToContact Contact `json:"billToContact"`
 	Subscriptions []struct {
 		ID        string                 `json:"id"`
 		Status    string                 `json:"status"`
@@ -280,6 +267,21 @@ type zuoraSummaryResponse struct {
 	} `json:"subscriptions"`
 	Payments []Payment `json:"payments"`
 	Invoices []invoice `json:"invoices"`
+}
+
+// Contact groups contact details in Zuora (typically called "billToContact" in their API).
+type Contact struct {
+	ID        string `json:"id,omitempty"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Address1  string `json:"address1"`
+	Address2  string `json:"address2"`
+	City      string `json:"city"`
+	ZipCode   string `json:"zipCode"`
+	State     string `json:"state"`
+	Country   string `json:"country"`
+	WorkEmail string `json:"workEmail"`
+	WorkPhone string `json:"workPhone"`
 }
 
 func (z *Zuora) getAccountSummary(ctx context.Context, zuoraID string) (*zuoraSummaryResponse, error) {
@@ -320,7 +322,7 @@ func (z *Zuora) getAccountSubscription(ctx context.Context, accountNumber string
 }
 
 type updateAccountRequest struct {
-	BillToContact *contact `json:"billToContact"`
+	BillToContact Contact `json:"billToContact"`
 }
 
 type updateAccountResponse struct {
@@ -440,7 +442,7 @@ type createAccountRequest struct {
 	AccountNumber                string             `json:"accountNumber"` // Max 50 chars. See `ToZuoraAccountNumber()`
 	Name                         string             `json:"name"`          // Doesn't matter, but required.
 	Currency                     string             `json:"currency"`      // Must be in product currency list. E.g. USD, GBP.
-	BillToContact                *contact           `json:"billToContact"`
+	BillToContact                Contact            `json:"billToContact"`
 	HpmCreditCardPaymentMethodID string             `json:"hpmCreditCardPaymentMethodId,omitempty"` // refId from callback from hosted payment method iframe.
 	CreditCard                   *accountCreditCard `json:"creditCard,omitempty"`
 	Subscription                 *subscription      `json:"subscription"`
@@ -453,15 +455,6 @@ type createAccountRequest struct {
 	// See https://knowledgecenter.zuora.com/DC_Developers/C_REST_API/A_REST_basics#Zuora_REST_API_Versions
 	// and https://knowledgecenter.zuora.com/DC_Developers/C_REST_API/A_REST_basics/Zuora_REST_API_Minor_Version_History
 	InvoiceCollect bool `json:"invoiceCollect"` // Specify whether to create an initial invoice when creating the account.
-}
-
-// contact is Zuora's representation of a contact
-type contact struct {
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	Country   string `json:"country"`
-	State     string `json:"state"`
-	WorkEmail string `json:"workEmail,omitempty"` // Email address that account issues are emailed to
 }
 
 // subscription is a type of Zuora product. It says when this subscription started and how long it lasts.
@@ -492,20 +485,14 @@ type createAccountResponse struct {
 }
 
 // CreateAccount creates an account.
-func (z *Zuora) CreateAccount(ctx context.Context, orgID, currency, firstName, lastName, country, email, state, paymentMethodID string, billCycleDay int, serviceActivationTime time.Time) (*Account, error) {
+func (z *Zuora) CreateAccount(ctx context.Context, orgID string, contact Contact, currency, paymentMethodID string, billCycleDay int, serviceActivationTime time.Time) (*Account, error) {
 	serviceActivationDate, acceptanceDate := computeActivationAndAcceptanceDate(serviceActivationTime)
 	zuoraAccountNumber := ToZuoraAccountNumber(orgID)
 	return z.createAccount(ctx, zuoraAccountNumber, &createAccountRequest{
-		AccountNumber: zuoraAccountNumber,
-		Name:          orgID,
-		Currency:      currency,
-		BillToContact: &contact{
-			FirstName: firstName,
-			LastName:  lastName,
-			Country:   country,
-			State:     state,
-			WorkEmail: email,
-		},
+		AccountNumber:                zuoraAccountNumber,
+		Name:                         orgID,
+		Currency:                     currency,
+		BillToContact:                contact,
 		HpmCreditCardPaymentMethodID: paymentMethodID,
 		Subscription: &subscription{
 			TermType:               z.cfg.SubscriptionTermType,
@@ -519,20 +506,14 @@ func (z *Zuora) CreateAccount(ctx context.Context, orgID, currency, firstName, l
 }
 
 // CreateAccountWithCC creates an account with credit card details. It is, for now, only used in tests.
-func (z *Zuora) CreateAccountWithCC(ctx context.Context, orgID, currency, firstName, lastName, country, email, state string, billCycleDay int, cardType, cardNumber string, expirationMonth, expirationYear int, serviceActivationTime time.Time) (*Account, error) {
+func (z *Zuora) CreateAccountWithCC(ctx context.Context, orgID string, contact Contact, currency string, billCycleDay int, cardType, cardNumber string, expirationMonth, expirationYear int, serviceActivationTime time.Time) (*Account, error) {
 	serviceActivationDate, acceptanceDate := computeActivationAndAcceptanceDate(serviceActivationTime)
 	zuoraAccountNumber := ToZuoraAccountNumber(orgID)
 	return z.createAccount(ctx, zuoraAccountNumber, &createAccountRequest{
 		AccountNumber: zuoraAccountNumber,
 		Name:          orgID,
 		Currency:      currency,
-		BillToContact: &contact{
-			FirstName: firstName,
-			LastName:  lastName,
-			Country:   country,
-			State:     state,
-			WorkEmail: email,
-		},
+		BillToContact: contact,
 		CreditCard: &accountCreditCard{
 			CardType:        cardType,
 			CardNumber:      cardNumber,
