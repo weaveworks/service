@@ -37,7 +37,7 @@ type Client interface {
 	URL(format string, components ...interface{}) string
 
 	GetAccount(ctx context.Context, zuoraAccountNumber string) (*Account, error)
-	CreateAccount(ctx context.Context, orgID, currency, firstName, lastName, country, email, state, paymentMethodID string, billCycleDay int, serviceActivationTime time.Time) (*Account, error)
+	CreateAccount(ctx context.Context, orgID string, contact Contact, currency, paymentMethodID string, billCycleDay int, serviceActivationTime time.Time) (*Account, error)
 	UpdateAccount(ctx context.Context, zuoraAccountNumber string, userDetails *Account) (*Account, error)
 	DeleteAccount(ctx context.Context, zuoraID string) error
 

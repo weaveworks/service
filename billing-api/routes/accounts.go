@@ -25,15 +25,11 @@ import (
 const dayTimeLayout = "2006-01-02"
 
 type createAccountRequest struct {
-	WeaveID            string `json:"id"`
-	Currency           string `json:"currency"`
-	FirstName          string `json:"firstName"`
-	LastName           string `json:"lastName"`
-	Email              string `json:"email"`
-	Country            string `json:"country"`
-	State              string `json:"state"`
-	PaymentMethodID    string `json:"paymentMethodId"`
-	SubscriptionPlanID string `json:"subscriptionPlanId"`
+	WeaveID            string        `json:"id"`
+	Currency           string        `json:"currency"`
+	BillToContact      zuora.Contact `json:"billToContact"`
+	PaymentMethodID    string        `json:"paymentMethodId"`
+	SubscriptionPlanID string        `json:"subscriptionPlanId"`
 }
 
 func (a *API) createAccount(w http.ResponseWriter, r *http.Request) error {
@@ -102,12 +98,8 @@ func (a *API) createZuoraAccount(ctx context.Context, logger *log.Entry, req *cr
 	account, err := a.Zuora.CreateAccount(
 		ctx,
 		req.WeaveID,
+		req.BillToContact,
 		req.Currency,
-		req.FirstName,
-		req.LastName,
-		req.Country,
-		req.Email,
-		req.State,
 		req.PaymentMethodID,
 		zuora.BillCycleDay,
 		resp.Organization.TrialExpiresAt,
