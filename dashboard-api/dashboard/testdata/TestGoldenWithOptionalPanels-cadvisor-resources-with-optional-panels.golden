@@ -50,7 +50,7 @@
                 "format": "numeric",
                 "explanation": "GPU seconds / second"
               },
-              "query": "sum (container_accelerator_duty_cycle{image!='',namespace='default',_weave_pod_name='authfe'}) by (pod_name)"
+              "query": "avg (container_accelerator_duty_cycle{image!='',namespace='default',_weave_pod_name='authfe'}) by (pod_name)"
             },
             {
               "title": "GPU Memory Usage",
