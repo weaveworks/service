@@ -34,7 +34,7 @@ var cadvisorDashboard = Dashboard{
 				Unit:     Unit{Format: UnitNumeric, Explanation: "GPU seconds / second"},
 				// Already a rate: "Percent of time over the past sample period during which the accelerator was actively processing."
 				// See also: https://github.com/google/cadvisor/blob/08f0c239/metrics/prometheus.go#L334-L335
-				Query: `sum (container_accelerator_duty_cycle{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}) by (pod_name)`,
+				Query: `avg (container_accelerator_duty_cycle{image!='',namespace='{{namespace}}',_weave_pod_name='{{workload}}'}) by (pod_name)`,
 			}, {
 				Title:    "GPU Memory Usage",
 				Type:     PanelLine,
