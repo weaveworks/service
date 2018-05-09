@@ -20,7 +20,7 @@ func Init(serviceName string) io.Closer {
 		fmt.Printf("Could not load jaeger tracer configuration: %s\n", err.Error())
 		os.Exit(1)
 	}
-	if cfg.Sampler.Type == "" {
+	if cfg.Sampler.SamplingServerURL == "" && cfg.Reporter.LocalAgentHostPort == "" {
 		return nopCloser{}
 	}
 
