@@ -9,10 +9,10 @@ import (
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc/status"
+
 	"github.com/weaveworks/common/user"
 )
-
-// Various Handlers that act as wrappers which do some common work
 
 // jsonWrapper wraps a function that takes the request and returns (some json, code, error),
 // and writes an approriate response. If err is not nil, other values are ignored and 500 is returned.
@@ -62,17 +62,6 @@ func withInstance(f func(*http.Request, string) (interface{}, int, error)) http.
 	}}
 }
 
-func withID(f func(*http.Request, string) (interface{}, int, error)) http.Handler {
-	return jsonWrapper{func(r *http.Request) (interface{}, int, error) {
-		itemID, err := extractItemID(r)
-		if err != nil {
-			return nil, 0, err
-		}
-		result, code, err := f(r, itemID)
-		return result, code, err
-	}}
-}
-
 func withInstanceAndID(f func(*http.Request, string, string) (interface{}, int, error)) http.Handler {
 	return jsonWrapper{func(r *http.Request) (interface{}, int, error) {
 		instanceID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
@@ -117,4 +106,13 @@ func getFeatureFlags(r *http.Request) []string {
 		flags = append(flags, strings.ToLower(flag))
 	}
 	return flags
+}
+
+// isStatusErrorCode returns true if the error has the given status code.
+func isStatusErrorCode(err error, code int) bool {
+	st, ok := status.FromError(err)
+	if !ok {
+		return false
+	}
+	return code == int(st.Code())
 }
