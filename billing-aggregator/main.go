@@ -15,6 +15,7 @@ import (
 	"github.com/weaveworks/service/billing-aggregator/job"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/common/bigquery"
+	"github.com/weaveworks/service/common/dbconfig"
 )
 
 var jobCollector = instrument.NewJobCollector("billing")
@@ -50,11 +51,11 @@ func main() {
 		logLevel       = flag.String("log.level", "info", "The log level")
 		serverConfig   server.Config
 		bigQueryConfig bigquery.Config
-		dbConfig       db.Config
+		dbConfig       dbconfig.Config
 	)
 	serverConfig.RegisterFlags(flag.CommandLine)
 	bigQueryConfig.RegisterFlags(flag.CommandLine)
-	dbConfig.RegisterFlags(flag.CommandLine)
+	dbConfig.RegisterFlags(flag.CommandLine, "postgres://postgres@billing-db/billing?sslmode=disable", "Database to use.", "/migrations", "Migrations directory.")
 	flag.Parse()
 
 	if err := logging.Setup(*logLevel); err != nil {

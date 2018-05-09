@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/weaveworks/service/billing-api/db"
+	"github.com/weaveworks/service/common/dbconfig"
 )
 
 var (
@@ -19,8 +20,7 @@ var (
 
 // Setup sets up stuff for testing, creating a new database
 func Setup(t *testing.T) db.DB {
-	cfg := db.Config{DatabaseURI: *databaseURI, MigrationsDir: *databaseMigrations}
-	database, err := db.New(cfg)
+	database, err := db.New(dbconfig.New(*databaseURI, *databaseMigrations, ""))
 	require.NoError(t, err)
 	return database
 }

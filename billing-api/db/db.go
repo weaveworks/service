@@ -2,12 +2,11 @@ package db
 
 import (
 	"context"
-	"flag"
 	"fmt"
-	"net/url"
 	"time"
 
 	"github.com/weaveworks/service/common/billing/grpc"
+	"github.com/weaveworks/service/common/dbconfig"
 )
 
 // Aggregate represents a database row in table `aggregates`.
@@ -57,32 +56,20 @@ type DB interface {
 	Close(ctx context.Context) error
 }
 
-// Config contains database settings.
-type Config struct {
-	DatabaseURI   string
-	MigrationsDir string
-}
-
-// RegisterFlags registers configuration variables.
-func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
-	f.StringVar(&cfg.DatabaseURI, "db.uri", "postgres://postgres@billing-db/billing?sslmode=disable", "Database to use.")
-	f.StringVar(&cfg.MigrationsDir, "db.migrations", "/migrations", "Migrations directory.")
-}
-
 // New creates a new database from the URI
-func New(cfg Config) (DB, error) {
-	u, err := url.Parse(cfg.DatabaseURI)
+func New(cfg dbconfig.Config) (DB, error) {
+	scheme, dataSourceName, migrationsDir, err := cfg.Parameters()
 	if err != nil {
 		return nil, err
 	}
 	var d DB
-	switch u.Scheme {
+	switch scheme {
 	case "memory":
 		d = newMemory()
 	case "postgres":
-		d, err = newPostgres(cfg.DatabaseURI, cfg.MigrationsDir)
+		d, err = newPostgres(dataSourceName, migrationsDir)
 	default:
-		return nil, fmt.Errorf("Unknown database type: %s", u.Scheme)
+		return nil, fmt.Errorf("Unknown database type: %s", scheme)
 	}
 	if err != nil {
 		return nil, err
