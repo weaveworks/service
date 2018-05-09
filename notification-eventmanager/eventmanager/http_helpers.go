@@ -62,17 +62,6 @@ func withInstance(f func(*http.Request, string) (interface{}, int, error)) http.
 	}}
 }
 
-func withID(f func(*http.Request, string) (interface{}, int, error)) http.Handler {
-	return jsonWrapper{func(r *http.Request) (interface{}, int, error) {
-		itemID, err := extractItemID(r)
-		if err != nil {
-			return nil, 0, err
-		}
-		result, code, err := f(r, itemID)
-		return result, code, err
-	}}
-}
-
 func withInstanceAndID(f func(*http.Request, string, string) (interface{}, int, error)) http.Handler {
 	return jsonWrapper{func(r *http.Request) (interface{}, int, error) {
 		instanceID, _, err := user.ExtractOrgIDFromHTTPRequest(r)

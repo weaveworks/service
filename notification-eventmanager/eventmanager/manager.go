@@ -13,12 +13,7 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
-const (
-	batchSize            = 10
-	ratelimit            = 100
-	markdownNewline      = "  \n"
-	markdownNewParagraph = "\n\n"
-)
+const ratelimit = 100
 
 var (
 	requestsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -94,4 +89,3 @@ func New(usersClient users.UsersClient, db db.DB, sqsClient sqsiface.SQSAPI, sqs
 func (em *EventManager) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
-

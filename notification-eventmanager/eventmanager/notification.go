@@ -15,6 +15,8 @@ import (
 	"github.com/weaveworks/service/notification-sender"
 )
 
+const batchSize = 10
+
 // Wait waits until all SQS send requests are finished
 func (em *EventManager) Wait() {
 	em.wg.Wait()

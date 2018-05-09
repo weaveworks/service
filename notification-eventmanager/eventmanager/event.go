@@ -26,7 +26,9 @@ import (
 
 const (
 	// MaxEventsList is the highest number of events that can be requested in one list call
-	MaxEventsList = 10000
+	MaxEventsList        = 10000
+	markdownNewline      = "  \n"
+	markdownNewParagraph = "\n\n"
 )
 
 // handleCreateEvent handles event post requests and log them in DB and queue
