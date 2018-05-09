@@ -71,7 +71,7 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 			handleError(err, w, r)
 			return
 		}
-		maybeForceTrace(ctx, response.FeatureFlags)
+		forceTraceIfFlagged(ctx, response.FeatureFlags)
 
 		if !hasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
 			logging.With(ctx).Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
@@ -114,7 +114,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		maybeForceTrace(ctx, response.FeatureFlags)
+		forceTraceIfFlagged(ctx, response.FeatureFlags)
 
 		if !hasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
 			logging.With(ctx).Errorf("Unauthorised probe request, missing feature flags: %v", a.RequireFeatureFlags)
@@ -128,7 +128,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 	})
 }
 
-func maybeForceTrace(ctx context.Context, featureFlags []string) {
+func forceTraceIfFlagged(ctx context.Context, featureFlags []string) {
 	debugID, found := getFeatureFlagValue("trace-debug-id", featureFlags)
 	if found {
 		if span := opentracing.SpanFromContext(ctx); span != nil {
