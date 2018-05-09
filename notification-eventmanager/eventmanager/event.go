@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"reflect"
 	"sort"
@@ -12,14 +13,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-	"github.com/weaveworks/blackfriday"
 
+	"github.com/weaveworks/blackfriday"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/notification-eventmanager/types"
-	serviceUsers "github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users"
 )
 
 const (
@@ -27,7 +29,63 @@ const (
 	MaxEventsList = 10000
 )
 
-func (em *EventManager) TestEventHandler(w http.ResponseWriter, r *http.Request) {
+// handleCreateEvent handles event post requests and log them in DB and queue
+func (em *EventManager) handleCreateEvent(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	requestsTotal.With(prometheus.Labels{"handler": "EventHandler"}).Inc()
+
+	instanceID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusUnauthorized)}).Inc()
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	var e types.Event
+
+	if err := decoder.Decode(&e); err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		log.Errorf("cannot decode event, error: %s", err)
+		http.Error(w, "Cannot decode event", http.StatusBadRequest)
+		return
+	}
+
+	// Override if InstanceID is undefined.
+	// Events from the weave cloud ui do not popuplate an InstanceID in the POST body.
+	// instanceID is the internal integer identifier, not the user-facing instanceID.
+	if e.InstanceID == "" {
+		e.InstanceID = instanceID
+	}
+
+	if e.Timestamp.IsZero() {
+		e.Timestamp = time.Now()
+	}
+
+	instanceData, err := em.UsersClient.GetOrganization(r.Context(), &users.GetOrganizationRequest{
+		ID: &users.GetOrganizationRequest_InternalID{InternalID: instanceID},
+	})
+
+	if err != nil {
+		log.Errorf("error requesting instance data from users service for event type %s: %s", e.Type, err)
+		http.Error(w, "unable to retrieve instance data", http.StatusInternalServerError)
+		return
+	}
+
+	e.InstanceName = instanceData.Organization.Name
+
+	if err := em.storeAndSend(r.Context(), e, instanceData.Organization.FeatureFlags); err != nil {
+		log.Errorf("cannot post and send %s event, error: %s", e.Type, err)
+		http.Error(w, "Failed to handle event", http.StatusInternalServerError)
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// handleTestEvent posts a test event for the user to verify things are working.
+func (em *EventManager) handleTestEvent(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	requestsTotal.With(prometheus.Labels{"handler": "TestEventHandler"}).Inc()
 	instanceID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
@@ -38,8 +96,8 @@ func (em *EventManager) TestEventHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	instanceData, err := em.UsersClient.GetOrganization(r.Context(), &serviceUsers.GetOrganizationRequest{
-		ID: &serviceUsers.GetOrganizationRequest_InternalID{InternalID: instanceID},
+	instanceData, err := em.UsersClient.GetOrganization(r.Context(), &users.GetOrganizationRequest{
+		ID: &users.GetOrganizationRequest_InternalID{InternalID: instanceID},
 	})
 
 	if err != nil {
@@ -82,54 +140,74 @@ func (em *EventManager) TestEventHandler(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 }
 
-// EventHandler handles event post requests and log them in DB and queue
-func (em *EventManager) EventHandler(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-	requestsTotal.With(prometheus.Labels{"handler": "EventHandler"}).Inc()
+// handleSlackEvent handles slack json payload that includes the message text and some options, creates event, log it in DB and queue
+func (em *EventManager) handleSlackEvent(w http.ResponseWriter, r *http.Request) {
+	requestsTotal.With(prometheus.Labels{"handler": "SlackHandler"}).Inc()
+	vars := mux.Vars(r)
 
-	instanceID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusUnauthorized)}).Inc()
-		return
-	}
-
-	decoder := json.NewDecoder(r.Body)
-	var e types.Event
-
-	if err := decoder.Decode(&e); err != nil {
+	eventType := vars["eventType"]
+	if eventType == "" {
+		eventsToSQSError.With(prometheus.Labels{"event_type": "empty"}).Inc()
+		log.Errorf("eventType is empty in request %s", r.URL)
+		http.Error(w, "eventType is empty in request", http.StatusBadRequest)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
-		log.Errorf("cannot decode event, error: %s", err)
-		http.Error(w, "Cannot decode event", http.StatusBadRequest)
 		return
 	}
+	log.Debugf("eventType = %s", eventType)
 
-	// Override if InstanceID is undefined.
-	// Events from the weave cloud ui do not popuplate an InstanceID in the POST body.
-	// instanceID is the internal integer identifier, not the user-facing instanceID.
-	if e.InstanceID == "" {
-		e.InstanceID = instanceID
+	instanceID := vars["instanceID"]
+	if instanceID == "" {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		log.Errorf("instanceID is empty in request %s", r.URL)
+		http.Error(w, "instanceID is empty in request", http.StatusBadRequest)
+		return
 	}
+	log.Debugf("instanceID = %s", instanceID)
 
-	if e.Timestamp.IsZero() {
-		e.Timestamp = time.Now()
-	}
-
-	instanceData, err := em.UsersClient.GetOrganization(r.Context(), &serviceUsers.GetOrganizationRequest{
-		ID: &serviceUsers.GetOrganizationRequest_InternalID{InternalID: instanceID},
+	instanceData, err := em.UsersClient.GetOrganization(r.Context(), &users.GetOrganizationRequest{
+		ID: &users.GetOrganizationRequest_InternalID{InternalID: instanceID},
 	})
-
 	if err != nil {
-		log.Errorf("error requesting instance data from users service for event type %s: %s", e.Type, err)
+		if isStatusErrorCode(err, http.StatusNotFound) {
+			log.Warnf("instance name for ID %s not found for event type %s", instanceID, eventType)
+			http.Error(w, "Instance not found", http.StatusNotFound)
+			requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusNotFound)}).Inc()
+			return
+		}
+		log.Errorf("error requesting instance data from users service for event type %s: %s", eventType, err)
 		http.Error(w, "unable to retrieve instance data", http.StatusInternalServerError)
 		return
 	}
+	log.Debugf("Got data from users service: %v", instanceData.Organization.Name)
 
-	e.InstanceName = instanceData.Organization.Name
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		log.Errorf("cannot read body for request %s", r.URL)
+		http.Error(w, "cannot read body", http.StatusBadRequest)
+		return
+	}
+
+	var sm types.SlackMessage
+	if err = json.Unmarshal(body, &sm); err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		log.Errorf("cannot unmarshal body to SlackMessage struct, error: %s", err)
+		http.Error(w, "cannot unmarshal body", http.StatusBadRequest)
+		return
+	}
+
+	e, err := buildEvent(body, sm, eventType, instanceID, instanceData.Organization.Name)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		log.Errorf("cannot build event, error: %s", err)
+		http.Error(w, "cannot build event", http.StatusBadRequest)
+		return
+	}
 
 	if err := em.storeAndSend(r.Context(), e, instanceData.Organization.FeatureFlags); err != nil {
 		log.Errorf("cannot post and send %s event, error: %s", e.Type, err)
-		http.Error(w, "Failed to handle event", http.StatusInternalServerError)
+		http.Error(w, "Failed handle event", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return
 	}
@@ -137,7 +215,7 @@ func (em *EventManager) EventHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (em *EventManager) listEventTypes(r *http.Request) (interface{}, int, error) {
+func (em *EventManager) handleGetEventTypes(r *http.Request) (interface{}, int, error) {
 	result, err := em.DB.ListEventTypes(nil, getFeatureFlags(r))
 	if err != nil {
 		return nil, 0, err
@@ -145,7 +223,7 @@ func (em *EventManager) listEventTypes(r *http.Request) (interface{}, int, error
 	return result, http.StatusOK, nil
 }
 
-// CreateConfigChangedEvent creates event with changed configuration
+// createConfigChangedEvent creates event with changed configuration
 func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID string, oldReceiver, receiver types.Receiver, eventTime time.Time) error {
 	log.Debug("update_config Event Firing...")
 
@@ -156,8 +234,8 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		Timestamp:  eventTime,
 	}
 
-	instanceData, err := em.UsersClient.GetOrganization(ctx, &serviceUsers.GetOrganizationRequest{
-		ID: &serviceUsers.GetOrganizationRequest_InternalID{InternalID: instanceID},
+	instanceData, err := em.UsersClient.GetOrganization(ctx, &users.GetOrganizationRequest{
+		ID: &users.GetOrganizationRequest_InternalID{InternalID: instanceID},
 	})
 	if err != nil {
 		if isStatusErrorCode(err, http.StatusNotFound) {
@@ -290,7 +368,7 @@ func diff(old, new []string) (added []string, removed []string) {
 	return
 }
 
-func (em *EventManager) getEvents(r *http.Request, instanceID string) (interface{}, int, error) {
+func (em *EventManager) handleGetEvents(r *http.Request, instanceID string) (interface{}, int, error) {
 	var err error
 	params := r.URL.Query()
 	fields := []string{
@@ -418,7 +496,7 @@ func (em *EventManager) storeAndSend(ctx context.Context, ev types.Event, featur
 	eventsToDBTotal.With(prometheus.Labels{"event_type": ev.Type}).Inc()
 
 	ev.ID = eventID
-	if err := em.SendNotificationBatchesToQueue(ctx, ev); err != nil {
+	if err := em.sendNotificationBatchesToQueue(ctx, ev); err != nil {
 		eventsToSQSError.With(prometheus.Labels{"event_type": ev.Type}).Inc()
 		return errors.Wrapf(err, "cannot send notification batches to queue")
 	}

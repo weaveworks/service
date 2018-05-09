@@ -23,7 +23,7 @@ var (
 	isWebHookPath = regexp.MustCompile(`^[A-Za-z0-9\/]+$`).MatchString
 )
 
-func (em *EventManager) listReceivers(r *http.Request, instanceID string) (interface{}, int, error) {
+func (em *EventManager) handleListReceivers(r *http.Request, instanceID string) (interface{}, int, error) {
 	result, err := em.DB.ListReceivers(instanceID)
 	if err != nil {
 		return nil, 0, err
@@ -31,7 +31,7 @@ func (em *EventManager) listReceivers(r *http.Request, instanceID string) (inter
 	return result, http.StatusOK, nil
 }
 
-func (em *EventManager) createReceiver(r *http.Request, instanceID string) (interface{}, int, error) {
+func (em *EventManager) handleCreateReceiver(r *http.Request, instanceID string) (interface{}, int, error) {
 	receiver := types.Receiver{}
 	err := parseBody(r, &receiver)
 	if err != nil {
@@ -111,7 +111,7 @@ func isValidAddress(addressData json.RawMessage, rtype string) error {
 	return nil
 }
 
-func (em *EventManager) getReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
+func (em *EventManager) handleGetReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
 	if _, err := uuid.FromString(receiverID); err != nil {
 		// Bad identifier
 		return nil, http.StatusNotFound, nil
@@ -124,7 +124,7 @@ func (em *EventManager) getReceiver(r *http.Request, instanceID string, receiver
 	return result, http.StatusOK, nil
 }
 
-func (em *EventManager) updateReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
+func (em *EventManager) handleUpdateReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
 	eventTime := time.Now()
 
 	if _, err := uuid.FromString(receiverID); err != nil {
@@ -184,7 +184,7 @@ func (em *EventManager) updateReceiver(r *http.Request, instanceID string, recei
 	return nil, http.StatusOK, nil
 }
 
-func (em *EventManager) deleteReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
+func (em *EventManager) handleDeleteReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {
 	if _, err := uuid.FromString(receiverID); err != nil {
 		// Bad identifier
 		return nil, http.StatusNotFound, nil

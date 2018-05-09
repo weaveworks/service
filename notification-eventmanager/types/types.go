@@ -115,7 +115,7 @@ const (
 // Notification is the actual message in data delivered to a user from address.
 // One event may trigger multiple notifications if multiple receivers are configured.
 type Notification struct {
-	ReceiverType string          `json:"receiver_type"`
+	ReceiverType string `json:"receiver_type"`
 	InstanceID   string
 	Address      json.RawMessage `json:"address"`
 	Data         json.RawMessage `json:"data"`

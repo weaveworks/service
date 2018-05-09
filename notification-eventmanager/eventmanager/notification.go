@@ -20,8 +20,8 @@ func (em *EventManager) Wait() {
 	em.wg.Wait()
 }
 
-// SendNotificationBatchesToQueue gets notifications for event, partitions them to batches and sends to SQS queue
-func (em *EventManager) SendNotificationBatchesToQueue(ctx context.Context, e types.Event) error {
+// sendNotificationBatchesToQueue gets notifications for event, partitions them to batches and sends to SQS queue
+func (em *EventManager) sendNotificationBatchesToQueue(ctx context.Context, e types.Event) error {
 	notifs, err := em.getNotifications(ctx, e)
 	if err != nil {
 		return errors.Wrapf(err, "cannot get all notifications for event %v", e)
