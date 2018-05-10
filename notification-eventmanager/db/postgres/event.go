@@ -79,22 +79,6 @@ func (d DB) CreateEvent(event types.Event, featureFlags []string) (string, error
 			event.Text,
 			metadata,
 		).Scan(&eventID)
-
-		// Save attachments
-		for _, attachment := range event.Attachments {
-			_, err = tx.Exec("add_attachment",
-				`INSERT INTO attachments (
-					event_id,
-					format,
-					body
-				) VALUES ($1, $2, $3)
-			`,
-				eventID,
-				attachment.Format,
-				attachment.Body,
-			)
-		}
-
 		return err
 	})
 	if err != nil {
@@ -117,7 +101,6 @@ func (d DB) GetEvents(instanceID string, fields, eventTypes []string, before, af
 	// We are operating on an object. With a raw SQL query string, interpolating a WHERE clause depending on a condition becomes messy quickly
 	query := psql.Select(queryFields...).
 		From("events e").
-		LeftJoin("attachments a ON (a.event_id = e.event_id)").
 		Where(sq.Eq{"instance_id": instanceID}).
 		Where(sq.Lt{"timestamp": before}).
 		Where(sq.Gt{"timestamp": after}).
