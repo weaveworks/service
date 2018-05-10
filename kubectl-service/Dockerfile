@@ -1,11 +1,4 @@
 FROM alpine:3.7
-MAINTAINER Weaveworks Inc <help@weave.works>
-LABEL org.label-schema.name="kubectl-service" \
-        org.label-schema.description="multi-version kubectl-as-a-service" \
-        org.label-schema.vcs-url="https://github.com/weaveworks/service/tree/master/kubectl-service" \
-        org.label-schema.vendor="Weaveworks" \
-        org.label-schema.schema-version="1.0"
-
 RUN apk add --no-cache -q ca-certificates
 
 RUN mkdir kubectl
@@ -48,3 +41,11 @@ COPY kubectl-service /
 EXPOSE 80
 EXPOSE 4772
 ENTRYPOINT ["/kubectl-service"]
+
+ARG revision
+LABEL maintainer="Weaveworks <help@weave.works>" \
+      org.opencontainers.image.title="kubectl-service" \
+      org.opencontainers.image.description="multi-version kubectl-as-a-service" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/kubectl-service" \
+      org.opencontainers.image.revision="${revision}" \
+      org.opencontainers.image.vendor="Weaveworks"
