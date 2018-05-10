@@ -33,7 +33,7 @@ services:
       - config-db
     image: quay.io/weaveworks/notification-eventmanager
     command: |
-      -log.level=debug
+      -log.level=info
       -sqsURL=sqs://user:password@sqslocal:9324/events
       -usersServiceURL=mock
       -database.uri=postgres://postgres@config-db/notifications?sslmode=disable
