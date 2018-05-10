@@ -118,6 +118,10 @@ func (em *EventManager) handleGetReceiver(r *http.Request, instanceID string, re
 	}
 	featureFlags := getFeatureFlags(r)
 	result, err := em.DB.GetReceiver(instanceID, receiverID, featureFlags, false)
+	if err == sql.ErrNoRows {
+		return nil, http.StatusNotFound, nil
+	}
+
 	if err != nil {
 		return nil, 0, err
 	}
