@@ -6,3 +6,10 @@ RUN apk add --update \
   && rm -rf /var/cache/apk/*
 ADD migrations /migrations
 ADD uploader /
+
+ARG revision
+LABEL maintainer="Weaveworks <help@weave.works>" \
+      org.opencontainers.image.title="billing-uploader" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/billing-uploader" \
+      org.opencontainers.image.revision="${revision}" \
+      org.opencontainers.image.vendor="Weaveworks"

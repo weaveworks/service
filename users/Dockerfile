@@ -1,5 +1,4 @@
 FROM alpine:3.6
-MAINTAINER Weaveworks Inc <help@weave.works>
 WORKDIR /
 COPY cmd/users/users /
 COPY templates/*.html /templates/
@@ -8,3 +7,10 @@ COPY db/migrations /migrations/
 COPY ca-certificates.crt /etc/ssl/certs/
 EXPOSE 80
 ENTRYPOINT ["/users"]
+
+ARG revision
+LABEL maintainer="Weaveworks <help@weave.works>" \
+      org.opencontainers.image.title="users" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/users" \
+      org.opencontainers.image.revision="${revision}" \
+      org.opencontainers.image.vendor="Weaveworks"

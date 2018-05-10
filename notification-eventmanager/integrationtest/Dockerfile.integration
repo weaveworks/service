@@ -1,7 +1,13 @@
 FROM quay.io/weaveworks/build
-MAINTAINER Weaveworks Inc <help@weave.works>
 WORKDIR /
 COPY . /go/src/github.com/weaveworks/service
 RUN go install github.com/weaveworks/service/notification-eventmanager/integrationtest
 EXPOSE 80
 ENTRYPOINT ["/go/bin/integrationtest"]
+
+ARG revision
+LABEL maintainer="Weaveworks <help@weave.works>" \
+      org.opencontainers.image.title="notification-eventmanager-integrationtest" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/notification-eventmanager/integrationtest" \
+      org.opencontainers.image.revision="${revision}" \
+      org.opencontainers.image.vendor="Weaveworks"

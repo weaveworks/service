@@ -1,5 +1,4 @@
 FROM fluent/fluentd:v0.14.20-debian
-
 USER root
 RUN buildDeps="sudo make gcc g++ libc-dev ruby-dev autoconf automake libtool libltdl-dev" \
  && apt-get update \
@@ -21,3 +20,10 @@ RUN buildDeps="sudo make gcc g++ libc-dev ruby-dev autoconf automake libtool lib
                   $buildDeps \
  && rm -rf /var/lib/apt/lists/* \
            /home/fluent/.gem/ruby/2.3.0/cache/*.gem
+
+ARG revision
+LABEL maintainer="Weaveworks <help@weave.works>" \
+      org.opencontainers.image.title="fluentd-loggly" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/fluentd-loggly" \
+      org.opencontainers.image.revision="${revision}" \
+      org.opencontainers.image.vendor="Weaveworks"

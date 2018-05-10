@@ -1,5 +1,5 @@
 FROM fluent/fluentd:v0.12.40
-MAINTAINER dev@weave.works
+
 USER root
 
 # Install fluent-plugin-prometheus for fluentd 0.12
@@ -25,3 +25,10 @@ COPY fluent-dev.conf /fluentd/etc/
 COPY fluent.conf /fluentd/etc/
 EXPOSE 24225
 EXPOSE 24231
+
+ARG revision
+LABEL maintainer="Weaveworks <help@weave.works>" \
+      org.opencontainers.image.title="billing-ingester" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/billing-ingester" \
+      org.opencontainers.image.revision="${revision}" \
+      org.opencontainers.image.vendor="Weaveworks"

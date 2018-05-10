@@ -6,3 +6,10 @@ RUN apk add --update \
   && rm -rf /var/cache/apk/*
 ADD db/migrations /migrations
 ADD api /
+
+ARG revision
+LABEL maintainer="Weaveworks <help@weave.works>" \
+      org.opencontainers.image.title="billing-api" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/billing-api" \
+      org.opencontainers.image.revision="${revision}" \
+      org.opencontainers.image.vendor="Weaveworks"

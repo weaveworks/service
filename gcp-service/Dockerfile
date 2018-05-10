@@ -1,14 +1,15 @@
 FROM alpine:3.7
-MAINTAINER Weaveworks Inc <help@weave.works>
-LABEL org.label-schema.name="gcp-service" \
-        org.label-schema.description="service to interact with GCP's APIs" \
-        org.label-schema.vcs-url="https://github.com/weaveworks/service/tree/master/gcp-service" \
-        org.label-schema.vendor="Weaveworks" \
-        org.label-schema.schema-version="1.0"
-
 RUN apk add --no-cache -q ca-certificates
 WORKDIR /
 COPY gcp-service /
 EXPOSE 80
 EXPOSE 4772
 ENTRYPOINT ["/gcp-service"]
+
+ARG revision
+LABEL maintainer="Weaveworks <help@weave.works>" \
+      org.opencontainers.image.title="gcp-service" \
+      org.opencontainers.image.description="service to interact with GCP's APIs" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/gcp-service" \
+      org.opencontainers.image.revision="${revision}" \
+      org.opencontainers.image.vendor="Weaveworks"
