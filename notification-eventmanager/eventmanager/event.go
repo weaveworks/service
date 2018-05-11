@@ -425,7 +425,7 @@ func (em *EventManager) handleGetEvents(r *http.Request, instanceID string) (int
 		eventTypes = strings.Split(params.Get("event_type"), ",")
 	}
 	if params.Get("fields") != "" {
-		var fieldsMap map[string]struct{}
+		fieldsMap := map[string]struct{}{}
 		for _, f := range fields {
 			fieldsMap[f] = struct{}{}
 		}
