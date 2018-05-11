@@ -49,7 +49,10 @@ services:
       - mailcatcher
     image: quay.io/weaveworks/notification-sender
     command: |
-      -log.level=info -nats=nats://nats:4222 -sqsURL=sqs://user:password@sqslocal:9324/events -emailURI=smtp://mailcatcher:587
+      -log.level=info 
+      -nats=nats://nats:4222 
+      -sqsURL=sqs://user:password@sqslocal:9324/events 
+      -emailURI=smtp://mailcatcher:587
 
   tester:
     depends_on:

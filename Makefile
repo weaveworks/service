@@ -319,8 +319,8 @@ gcp-service-integration-test: gcp-service/$(UPTODATE) gcp-service/grpc/gcp-servi
 	exit $$status
 
 notification-integration-test: notification-eventmanager/$(UPTODATE) notifications/$(UPTODATE)
-	docker build -f notification-eventmanager/test/Dockerfile.integration -t notification-integrationtest .
-	cd notification-eventmanager/test && $(SUDO) docker-compose up --abort-on-container-exit; EXIT_CODE=$$?; $(SUDO) docker-compose down; exit $$EXIT_CODE
+	docker build -f notification-eventmanager/e2e/Dockerfile.integration -t notification-integrationtest .
+	cd notification-eventmanager/e2e && $(SUDO) docker-compose up --abort-on-container-exit; EXIT_CODE=$$?; $(SUDO) docker-compose down; exit $$EXIT_CODE
 
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
