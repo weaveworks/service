@@ -304,6 +304,7 @@ func (em *EventManager) handleGetEvents(r *http.Request, instanceID string) (int
 		"timestamp",
 		"messages",
 		"text",
+		"data",
 		"metadata",
 	}
 	limit := 50
@@ -367,6 +368,14 @@ func (em *EventManager) handleGetEvents(r *http.Request, instanceID string) (int
 	events, err := em.DB.GetEvents(instanceID, fields, eventTypes, before, after, limit, offset)
 	if err != nil {
 		return nil, 0, err
+	}
+
+	for _, ev := range events {
+		if len(ev.Data) > 0 {
+			ev.Messages = nil
+			text := string(renderData(ev, "browser"))
+			ev.Text = &text
+		}
 	}
 
 	return events, http.StatusOK, nil

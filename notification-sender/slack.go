@@ -93,12 +93,14 @@ func generateSlackMessage(e types.Event, username string) (json.RawMessage, erro
 		Username: username,
 	}
 
+	/*
 	for _, a := range e.Attachments {
 
 		sm.Attachments = append(sm.Attachments, types.SlackAttachment{
 			Text: a.Body,
 		})
 	}
+	*/
 
 	return json.Marshal(sm)
 }

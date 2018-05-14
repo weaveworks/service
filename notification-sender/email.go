@@ -146,10 +146,12 @@ func generateEmailMessage(e types.Event) (types.EmailMessage, error) {
 		msg.WriteString(markdownNewParagraph)
 	}
 
+	/*
 	for _, a := range e.Attachments {
 		msg.WriteString(strings.Replace(a.Body, "\n", markdownNewline, -1))
 		msg.WriteString(markdownNewline)
 	}
+	*/
 
 	html := string(blackfriday.MarkdownBasic([]byte(msg.String())))
 

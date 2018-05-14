@@ -62,20 +62,17 @@ type StackdriverMessage struct {
 
 // Event is a single instance of something for the user to be informed of
 type Event struct {
-	ID           string                     `json:"id"`
-	Type         string                     `json:"type"`
-	InstanceID   string                     `json:"instance_id"`
-	InstanceName string                     `json:"instance_name"`
-	Timestamp    time.Time                  `json:"timestamp"`
-	Messages     map[string]json.RawMessage `json:"messages"`
-	Text         *string                    `json:"text"`
-	Metadata     map[string]string          `json:"metadata"`
-}
+	ID           string            `json:"id"`
+	Type         string            `json:"type"`
+	InstanceID   string            `json:"instance_id"`
+	InstanceName string            `json:"instance_name"`
+	Timestamp    time.Time         `json:"timestamp"`
+	Text         *string            `json:"text"`
+	Data         json.RawMessage   `json:"data,omitempty"` // Format depends on `Type`
+	Metadata     map[string]string `json:"metadata"`       // TBD: Additional data for searching.
 
-// Attachment is a "rich" text document in a given format, ie markdown
-type Attachment struct {
-	Format string `json:"format,omitempty"`
-	Body   string `json:"body,omitempty"`
+	// Deprecated.
+	Messages map[string]json.RawMessage `json:"messages,omitempty"`
 }
 
 // EventType is an identifier describing the type of the event.
@@ -190,8 +187,8 @@ func ReceiverFromRow(row scannable) (Receiver, error) {
 func EventFromRow(row scannable, fields []string) (*Event, error) {
 	e := Event{}
 	// sql driver can't convert from postgres json directly to interface{}, have to get as string and re-parse.
-	messagesBuf := []byte{}
-	metadataBuf := []byte{}
+	// TODO(rndstr): verify this still holds
+	var messages, metadata, data []byte
 
 	var structFields []interface{}
 	for _, f := range fields {
@@ -205,11 +202,13 @@ func EventFromRow(row scannable, fields []string) (*Event, error) {
 		case "timestamp":
 			structFields = append(structFields, &e.Timestamp)
 		case "messages":
-			structFields = append(structFields, &messagesBuf)
+			structFields = append(structFields, &messages)
 		case "text":
 			structFields = append(structFields, &e.Text)
+		case "data":
+			structFields = append(structFields, &data)
 		case "metadata":
-			structFields = append(structFields, &metadataBuf)
+			structFields = append(structFields, &metadata)
 		default:
 			return nil, fmt.Errorf("%s is an invalid field", f)
 		}
@@ -218,17 +217,15 @@ func EventFromRow(row scannable, fields []string) (*Event, error) {
 		return nil, err
 	}
 
-	if len(messagesBuf) > 0 {
-		if err := json.Unmarshal(messagesBuf, &e.Messages); err != nil {
+	if len(metadata) > 0 {
+		if err := json.Unmarshal(metadata, &e.Metadata); err != nil {
 			return nil, err
 		}
 	}
-
-	if len(metadataBuf) > 0 {
-		if err := json.Unmarshal(metadataBuf, &e.Metadata); err != nil {
+	if len(messages) > 0 {
+		if err := json.Unmarshal(messages, &e.Messages); err != nil {
 			return nil, err
 		}
 	}
-
 	return &e, nil
 }

@@ -20,6 +20,7 @@ func (em *EventManager) Register(r *mux.Router) {
 		{"get_receiver", "GET", "/api/notification/config/receivers/{id}", withInstanceAndID(em.handleGetReceiver)},
 		{"update_receiver", "PUT", "/api/notification/config/receivers/{id}", withInstanceAndID(em.handleUpdateReceiver)},
 		{"delete_receiver", "DELETE", "/api/notification/config/receivers/{id}", withInstanceAndID(em.handleDeleteReceiver)},
+
 		{"get_events", "GET", "/api/notification/events", withInstance(em.handleGetEvents)},
 
 		// -- Internal API

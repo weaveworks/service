@@ -69,14 +69,16 @@ func (d DB) CreateEvent(event types.Event, featureFlags []string) (string, error
 				timestamp,
 				messages,
 				text,
+				data,
 				metadata
-			) VALUES ($1, $2, $3, $4, $5, $6) RETURNING event_id
+			) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING event_id
 			`,
 			event.Type,
 			event.InstanceID,
 			event.Timestamp,
 			encodedMessages,
 			event.Text,
+			event.Data,
 			metadata,
 		).Scan(&eventID)
 		return err

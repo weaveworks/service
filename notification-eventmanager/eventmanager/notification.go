@@ -65,7 +65,7 @@ func (em *EventManager) getNotifications(ctx context.Context, e types.Event) ([]
 			ReceiverType: r.RType,
 			InstanceID:   e.InstanceID,
 			Address:      r.AddressData,
-			Data:         e.Messages[r.RType],
+			Data:         renderData(&e, r.RType),
 			Event:        e,
 		}
 		notifications = append(notifications, notif)
@@ -95,13 +95,13 @@ func partitionNotifications(notifs []types.Notification, batchSize int) [][]type
 func (em *EventManager) notificationBatchToSendInput(batch []types.Notification) (*sqs.SendMessageBatchInput, error) {
 	var entries []*sqs.SendMessageBatchRequestEntry
 	for i, notif := range batch {
-		notifStr, err := notificationToString(notif)
+		notifBytes, err := json.Marshal(notif)
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot marshal notification %s to string", notif)
+			return nil, errors.Wrapf(err, "cannot marshal notification %s", notif)
 		}
 		entry := &sqs.SendMessageBatchRequestEntry{
 			Id:          aws.String(strconv.Itoa(i)),
-			MessageBody: aws.String(notifStr),
+			MessageBody: aws.String(string(notifBytes)),
 		}
 		entries = append(entries, entry)
 	}
@@ -109,13 +109,4 @@ func (em *EventManager) notificationBatchToSendInput(batch []types.Notification)
 		Entries:  entries,
 		QueueUrl: &em.SQSQueue,
 	}, nil
-}
-
-func notificationToString(n types.Notification) (string, error) {
-	raw, err := json.Marshal(n)
-	if err != nil {
-		return "", errors.Wrapf(err, "cannot marshal notification %s", n)
-	}
-
-	return string(raw), nil
 }
