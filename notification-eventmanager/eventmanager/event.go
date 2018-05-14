@@ -76,14 +76,16 @@ func (em *EventManager) handleCreateEvent(w http.ResponseWriter, r *http.Request
 
 	e.InstanceName = instanceData.Organization.Name
 
-	if err := em.storeAndSend(r.Context(), e, instanceData.Organization.FeatureFlags); err != nil {
+	eventID, err := em.storeAndSend(r.Context(), e, instanceData.Organization.FeatureFlags)
+
+	if err != nil {
 		log.Errorf("cannot post and send %s event, error: %s", e.Type, err)
 		http.Error(w, "Failed to handle event", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(eventID))
 }
 
 // handleTestEvent posts a test event for the user to verify things are working.
@@ -132,14 +134,15 @@ func (em *EventManager) handleTestEvent(w http.ResponseWriter, r *http.Request) 
 		Text:         &text,
 	}
 
-	if err := em.storeAndSend(r.Context(), testEvent, instanceData.Organization.FeatureFlags); err != nil {
+	eventID, err := em.storeAndSend(r.Context(), testEvent, instanceData.Organization.FeatureFlags)
+
+	if err != nil {
 		log.Errorf("cannot post and send test event, error: %s", err)
 		http.Error(w, "Failed to handle event", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(eventID))
 }
 
 // handleSlackEvent handles slack json payload that includes the message text and some options, creates event, log it in DB and queue
@@ -207,14 +210,16 @@ func (em *EventManager) handleSlackEvent(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := em.storeAndSend(r.Context(), e, instanceData.Organization.FeatureFlags); err != nil {
+	eventID, err := em.storeAndSend(r.Context(), e, instanceData.Organization.FeatureFlags)
+
+	if err != nil {
 		log.Errorf("cannot post and send %s event, error: %s", e.Type, err)
 		http.Error(w, "Failed handle event", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(eventID))
 }
 
 func (em *EventManager) handleGetEventTypes(r *http.Request) (interface{}, int, error) {
@@ -325,7 +330,8 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 	}
 
 	go func() {
-		if err := em.storeAndSend(ctx, event, instanceData.Organization.FeatureFlags); err != nil {
+
+		if _, err := em.storeAndSend(ctx, event, instanceData.Organization.FeatureFlags); err != nil {
 			log.Warnf("failed to store in DB or send to SQS config change event")
 		}
 	}()
@@ -489,22 +495,22 @@ func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceN
 }
 
 // storeAndSend stores event in DB and sends notification batches for this event to SQS
-func (em *EventManager) storeAndSend(ctx context.Context, ev types.Event, featureFlags []string) error {
+func (em *EventManager) storeAndSend(ctx context.Context, ev types.Event, featureFlags []string) (string, error) {
 	eventID, err := em.DB.CreateEvent(ev, featureFlags)
 	if err != nil {
 		eventsToDBError.With(prometheus.Labels{"event_type": ev.Type}).Inc()
-		return errors.Wrapf(err, "cannot store event in DB")
+		return "", errors.Wrapf(err, "cannot store event in DB")
 	}
 	eventsToDBTotal.With(prometheus.Labels{"event_type": ev.Type}).Inc()
 
 	ev.ID = eventID
 	if err := em.sendNotificationBatchesToQueue(ctx, ev); err != nil {
 		eventsToSQSError.With(prometheus.Labels{"event_type": ev.Type}).Inc()
-		return errors.Wrapf(err, "cannot send notification batches to queue")
+		return "", errors.Wrapf(err, "cannot send notification batches to queue")
 	}
 	eventsToSQSTotal.With(prometheus.Labels{"event_type": ev.Type}).Inc()
 
-	return nil
+	return eventID, nil
 }
 
 // GetBrowserMessage returns messaage for browser

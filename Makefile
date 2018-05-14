@@ -125,6 +125,7 @@ gcp-launcher-webhook/$(UPTODATE): $(GCP_LAUNCHER_WEBHOOK_EXE)
 kubectl-service/$(UPTODATE): $(KUBECTL_SERVICE_EXE)
 gcp-service/$(UPTODATE): $(GCP_SERVICE_EXE)
 dashboard-api/$(UPTODATE): $(DASHBOARD_EXE)
+notifications/$(UPTODATE): $(NOTIFICATION_EXES)
 
 # Expands a list of binary paths to have their respective images depend on the binary
 # Example:
@@ -317,9 +318,9 @@ gcp-service-integration-test: gcp-service/$(UPTODATE) gcp-service/grpc/gcp-servi
 	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \
 	exit $$status
 
-notification-integration-test:
-	docker build --build-arg=revision=$(GIT_REVISION) -f notification-eventmanager/integrationtest/Dockerfile.integration -t notification-integrationtest .
-	cd notification-eventmanager/integrationtest && $(SUDO) docker-compose up --abort-on-container-exit; EXIT_CODE=$$?; $(SUDO) docker-compose down; exit $$EXIT_CODE
+notification-integration-test: notification-eventmanager/$(UPTODATE) notifications/$(UPTODATE)
+	docker build -f notification-eventmanager/e2e/Dockerfile.integration -t notification-integrationtest .
+	cd notification-eventmanager/e2e && $(SUDO) docker-compose up --abort-on-container-exit; EXIT_CODE=$$?; $(SUDO) docker-compose down; exit $$EXIT_CODE
 
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
