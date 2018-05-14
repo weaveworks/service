@@ -7,7 +7,7 @@
 # All this must go at top of file I'm afraid.
 IMAGE_PREFIX := quay.io/weaveworks
 IMAGE_TAG := $(shell ./tools/image-tag)
-GIT_REVISION := $(shell git rev-parse --short HEAD)
+GIT_REVISION := $(shell git rev-parse HEAD)
 UPTODATE := .uptodate
 
 # Building Docker images is now automated. The convention is every directory
