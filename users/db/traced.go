@@ -153,6 +153,11 @@ func (t traced) UpdateOrganization(ctx context.Context, externalID string, updat
 	return t.d.UpdateOrganization(ctx, externalID, update)
 }
 
+func (t traced) MoveOrganizationToTeam(ctx context.Context, externalID, teamExternalID, teamName, userID string) (err error) {
+	defer func() { t.trace("MoveOrganizationToTeam", externalID, teamExternalID, teamName, userID, err) }()
+	return t.d.MoveOrganizationToTeam(ctx, externalID, teamExternalID, teamName, userID)
+}
+
 func (t traced) OrganizationExists(ctx context.Context, externalID string) (b bool, err error) {
 	defer func() { t.trace("OrganizationExists", externalID, b, err) }()
 	return t.d.OrganizationExists(ctx, externalID)

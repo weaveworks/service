@@ -39,9 +39,27 @@ type OrgView struct {
 	ZuoraAccountNumber    string     `json:"zuoraAccountNumber"`
 	ZuoraAccountCreatedAt *time.Time `json:"zuoraAccountCreatedAt"`
 	BillingProvider       string     `json:"billingProvider"`
-	TeamID                string     `json:"teamId,omitempty"`
-	TeamExternalID        string     `json:"teamExternalId,omitempty"`
-	TeamName              string     `json:"teamName,omitempty"`
+	// Deprecated. Use TeamExternalID.
+	TeamID         string `json:"teamId,omitempty"`         // TODO(rndstr): remove this once ui-server uses `teamId` as external
+	TeamExternalID string `json:"teamExternalId,omitempty"` // TODO(rndstr): rename json output to `teamId`
+	TeamName       string `json:"teamName,omitempty"`
+}
+
+// UnmarshalJSON does some postprocessing to support `teamExternalId` in JSON usage temporarily.
+// TODO(rndstr): remove once ui-server` uses `teamId`.
+func (o *OrgView) UnmarshalJSON(b []byte) error {
+	// Prevent recursive loop
+	type alias *OrgView
+	var tmp alias = o
+	if err := json.Unmarshal(b, &tmp); err != nil {
+		return err
+	}
+	// For now we support teamId as well as teamExternalId to pass in the external id.
+	// Internally we only use the variable TeamExternalID
+	if tmp.TeamExternalID == "" {
+		tmp.TeamExternalID = tmp.TeamID
+	}
+	return nil
 }
 
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -84,8 +102,8 @@ func (a *API) createOrgView(currentUser *users.User, org *users.Organization) Or
 		Environment:          org.Environment,
 		TrialExpiresAt:       org.TrialExpiresAt,
 		BillingProvider:      org.BillingProvider(),
-		TeamID:               org.TeamID,
 		TeamExternalID:       org.TeamExternalID,
+		TeamID:               org.TeamExternalID,
 	}
 }
 
@@ -204,15 +222,40 @@ func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		return
 	}
 	orgExternalID := mux.Vars(r)["orgExternalID"]
+
+	// Permissions.
 	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	}
+	if update.TeamExternalID != nil {
+		if err := a.userCanAccessTeam(r.Context(), currentUser, *update.TeamExternalID); err != nil {
+			renderError(w, r, err)
+			return
+		}
+	}
+
+	// Modify.
 	if err := a.db.UpdateOrganization(r.Context(), orgExternalID, update); err != nil {
 		renderError(w, r, err)
 		return
 	}
+	if update.TeamExternalID != nil || update.TeamName != nil {
+		if err := a.db.MoveOrganizationToTeam(r.Context(), orgExternalID, ptostr(update.TeamExternalID),
+			ptostr(update.TeamName), currentUser.ID); err != nil {
+			renderError(w, r, err)
+			return
+		}
+	}
+
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func ptostr(pstr *string) string {
+	if pstr == nil {
+		return ""
+	}
+	return *pstr
 }
 
 func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -363,6 +406,19 @@ func (a *API) userCanAccessOrg(ctx context.Context, currentUser *users.User, org
 		return users.ErrNotFound
 	}
 	return nil
+}
+
+func (a *API) userCanAccessTeam(ctx context.Context, currentUser *users.User, teamExternalID string) error {
+	teams, err := a.db.ListTeamsForUserID(ctx, currentUser.ID)
+	if err != nil {
+		return err
+	}
+	for _, t := range teams {
+		if t.ExternalID == teamExternalID {
+			return nil
+		}
+	}
+	return users.ErrForbidden
 }
 
 // setOrgFeatureFlags updates feature flags of an organization.

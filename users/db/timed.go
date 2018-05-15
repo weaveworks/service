@@ -229,6 +229,12 @@ func (t timed) UpdateOrganization(ctx context.Context, externalID string, update
 	})
 }
 
+func (t timed) MoveOrganizationToTeam(ctx context.Context, externalID, teamExternalID, teamName, userID string) error {
+	return t.timeRequest(ctx, "MoveOrganizationToTeam", func(ctx context.Context) error {
+		return t.d.MoveOrganizationToTeam(ctx, externalID, teamExternalID, teamName, userID)
+	})
+}
+
 func (t timed) OrganizationExists(ctx context.Context, externalID string) (b bool, err error) {
 	t.timeRequest(ctx, "OrganizationExists", func(ctx context.Context) error {
 		b, err = t.d.OrganizationExists(ctx, externalID)

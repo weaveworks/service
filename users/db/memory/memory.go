@@ -16,8 +16,8 @@ type DB struct {
 	memberships          map[string][]string // map[orgID][]userID
 	logins               map[string]*login.Login
 	gcpAccounts          map[string]*users.GoogleCloudPlatform // map[externalAccountID]GCP
-	teams                map[string]*users.Team
-	teamMemberships      map[string][]string // map[userID][]teamID
+	teams                map[string]*users.Team                // map[id]team
+	teamMemberships      map[string][]string                   // map[userID][]teamID
 	passwordHashingCost  int
 	mtx                  sync.Mutex
 }

@@ -557,6 +557,14 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 		setFields["trial_expired_notified_at"] = org.TrialExpiredNotifiedAt
 	}
 
+	if update.TeamExternalID != nil {
+		team, err := d.findTeamByExternalID(ctx, *update.TeamExternalID)
+		if err != nil {
+			return err
+		}
+		setFields["team_id"] = team.ID
+	}
+
 	if len(setFields) == 0 {
 		return nil
 	}
@@ -580,6 +588,31 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 		return users.ErrNotFound
 	}
 	return nil
+}
+
+// MoveOrganizationToTeam updates the team of the organization. It does *not* check team permissions.
+func (d DB) MoveOrganizationToTeam(ctx context.Context, externalID, teamExternalID, teamName, userID string) error {
+	if err := verifyTeamParams(teamExternalID, teamName); err != nil {
+		return err
+	}
+
+	var team *users.Team
+	var err error
+	if teamName != "" {
+		if team, err = d.CreateTeam(ctx, teamName); err != nil {
+			return err
+		}
+		if err = d.AddUserToTeam(ctx, userID, team.ID); err != nil {
+			return err
+		}
+	} else {
+		if team, err = d.findTeamByExternalID(ctx, teamExternalID); err != nil {
+			return err
+		}
+	}
+	_, err = d.ExecContext(ctx, `update organizations set team_id = $1 where external_id = lower($2)`,
+		team.ID, externalID)
+	return err
 }
 
 // OrganizationExists just returns a simple bool checking if an organization
@@ -820,16 +853,22 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccountI
 	})
 }
 
-// CreateOrganizationWithTeam creates a new organization, ensuring it is part of a team and owned by the user
-func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error) {
+func verifyTeamParams(teamExternalID, teamName string) error {
 	if teamName == "" && teamExternalID == "" {
-		return nil, errors.New("At least one of teamExternalID, teamName needs to be provided")
+		return errors.New("At least one of teamExternalID, teamName needs to be provided")
 	}
 	if teamName != "" && teamExternalID != "" {
-		return nil, fmt.Errorf("Only one of teamExternalID, teamName needs to be provided: %v, %v", teamExternalID, teamName)
+		return fmt.Errorf("Only one of teamExternalID, teamName needs to be provided: %v, %v", teamExternalID, teamName)
 	}
+	return nil
+}
 
+// CreateOrganizationWithTeam creates a new organization, ensuring it is part of a team and owned by the user
+func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error) {
 	var org *users.Organization
+	if err := verifyTeamParams(teamExternalID, teamName); err != nil {
+		return nil, err
+	}
 	err := d.Transaction(func(tx DB) error {
 		var team *users.Team
 		var err error
