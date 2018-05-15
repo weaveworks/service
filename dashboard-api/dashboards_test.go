@@ -24,5 +24,5 @@ func TestGetServiceDashboardsNoMetrics(t *testing.T) {
 	api.handler.ServeHTTP(w, req)
 
 	resp := w.Result()
-	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 }

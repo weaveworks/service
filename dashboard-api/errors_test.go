@@ -15,7 +15,7 @@ func TestErrorStatusCode(t *testing.T) {
 		err      error
 		expected int
 	}{
-		{errNotFound, http.StatusNotFound},
+		{errNotFound, http.StatusNoContent},
 		{errInvalidParameter, http.StatusBadRequest},
 		{fmt.Errorf("foo"), http.StatusInternalServerError},
 	}
