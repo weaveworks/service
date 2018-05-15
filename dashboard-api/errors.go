@@ -22,7 +22,7 @@ func renderError(w http.ResponseWriter, r *http.Request, err error) {
 func errorStatusCode(err error) int {
 	switch err {
 	case errNotFound:
-		return http.StatusNotFound
+		return http.StatusNoContent
 	case errInvalidParameter:
 		return http.StatusBadRequest
 	}
