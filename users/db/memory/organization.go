@@ -669,7 +669,7 @@ func (d *DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID
 	var team *users.Team
 	var err error
 	if teamExternalID != "" {
-		team, err = d.ensureUserIsPartOfTeamByExternalID(ctx, ownerID, teamExternalID)
+		team, err = d.getTeamUserIsPartOf(ctx, ownerID, teamExternalID)
 	} else if teamName != "" {
 		team, err = d.ensureUserIsPartOfTeamByName(ctx, ownerID, teamName)
 	}
