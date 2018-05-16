@@ -8,7 +8,7 @@
         {
           "panels": [
             {
-              "title": "Number of Goroutines",
+              "title": "Number of goroutines",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -25,7 +25,7 @@
         {
           "panels": [
             {
-              "title": "Heap Size",
+              "title": "Heap size",
               "type": "line",
               "unit": {
                 "format": "bytes"
@@ -33,7 +33,7 @@
               "query": "sum(avg_over_time(go_memstats_heap_alloc_bytes{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
             },
             {
-              "title": "Number of Heap Objects",
+              "title": "Number of heap objects",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -45,7 +45,7 @@
         {
           "panels": [
             {
-              "title": "Number of Heap Objects Allocated per Second",
+              "title": "Number of heap objects allocated per second",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -53,7 +53,7 @@
               "query": "sum(rate(go_memstats_mallocs_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
             },
             {
-              "title": "Number of Heap Objects Freed per Second",
+              "title": "Number of heap objects freed per second",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -65,12 +65,12 @@
       ]
     },
     {
-      "name": "Garbage Collector",
+      "name": "Garbage collector",
       "rows": [
         {
           "panels": [
             {
-              "title": "Time spent in GC each Second",
+              "title": "Time spent in GC each second",
               "type": "line",
               "unit": {
                 "format": "seconds"
@@ -82,7 +82,7 @@
         {
           "panels": [
             {
-              "title": "Number of GC Cycles per Second",
+              "title": "Number of GC cycles per second",
               "type": "line",
               "unit": {
                 "format": "numeric"

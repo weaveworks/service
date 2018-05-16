@@ -13,7 +13,7 @@ var jvmDashboard = Dashboard{
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(avg_over_time(jvm_threads_current{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name)`,
 			}, {
-				Title: "Threads Created per Second",
+				Title: "Threads created per second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(rate(jvm_threads_started_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name)`,
@@ -23,28 +23,28 @@ var jvmDashboard = Dashboard{
 		Name: "Memory",
 		Rows: []Row{{
 			Panels: []Panel{{
-				Title: "Used Memory",
+				Title: "Used memory",
 				Help:  "Used memory is working set (~live objects in the heap) + garbage",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitBytes},
 				Query: `sum(avg_over_time(jvm_memory_bytes_used{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name, area)`,
 			}, {
-				Title: "Memory Used per Pool",
+				Title: "Memory used per pool",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitBytes},
 				Query: `sum(avg_over_time(jvm_memory_pool_bytes_used{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name, pool)`,
 			}},
 		}},
 	}, {
-		Name: "Garbage Collector",
+		Name: "Garbage collector",
 		Rows: []Row{{
 			Panels: []Panel{{
-				Title: "Time Spent in GC per Second",
+				Title: "Time spent in GC per second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitSeconds},
 				Query: `sum(rate(jvm_gc_collection_seconds_sum{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name, gc)`,
 			}, {
-				Title: "Number of GC Cycles per Second",
+				Title: "Number of GC cycles per second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(rate(jvm_gc_collection_seconds_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (kubernetes_pod_name, gc)`,

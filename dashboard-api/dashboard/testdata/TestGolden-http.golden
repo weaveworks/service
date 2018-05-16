@@ -3,7 +3,7 @@
   "name": "HTTP",
   "sections": [
     {
-      "name": "HTTP Request Rate and Latency",
+      "name": "HTTP request rate and latency",
       "rows": [
         {
           "panels": [

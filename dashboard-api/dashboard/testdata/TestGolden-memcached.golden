@@ -8,7 +8,7 @@
         {
           "panels": [
             {
-              "title": "Hit Rate",
+              "title": "Hit rate",
               "type": "line",
               "unit": {
                 "format": "percent"
@@ -20,7 +20,7 @@
         {
           "panels": [
             {
-              "title": "Items in Cache",
+              "title": "Items in cache",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -28,7 +28,7 @@
               "query": "sum(memcached_current_items{kubernetes_namespace='default',_weave_service='authfe'})"
             },
             {
-              "title": "Used Cache Memory",
+              "title": "Used cache memory",
               "type": "line",
               "unit": {
                 "format": "percent"
@@ -40,7 +40,7 @@
         {
           "panels": [
             {
-              "title": "Evicted Items per Second",
+              "title": "Evicted items per second",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -48,7 +48,7 @@
               "query": "sum(rate(memcached_items_evicted_total{kubernetes_namespace='default',_weave_service='authfe'}[2m]))"
             },
             {
-              "title": "Reclaimed Items per Second",
+              "title": "Reclaimed items per second",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -65,7 +65,7 @@
         {
           "panels": [
             {
-              "title": "Operations per Second",
+              "title": "Operations per second",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -73,7 +73,7 @@
               "query": "sum(rate(memcached_commands_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (command)"
             },
             {
-              "title": "Get/Set Ratio",
+              "title": "Get/Set ratio",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -90,7 +90,7 @@
         {
           "panels": [
             {
-              "title": "Bytes Read from Network per Second",
+              "title": "Bytes read from network per second",
               "type": "line",
               "unit": {
                 "format": "bytes"
@@ -98,7 +98,7 @@
               "query": "sum(rate(memcached_read_bytes_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
             },
             {
-              "title": "Bytes Written to Network per Second",
+              "title": "Bytes written to network per second",
               "type": "line",
               "unit": {
                 "format": "bytes"
@@ -106,7 +106,7 @@
               "query": "sum(rate(memcached_written_bytes_total{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
             },
             {
-              "title": "Number of Connections",
+              "title": "Number of connections",
               "type": "line",
               "unit": {
                 "format": "numeric"
