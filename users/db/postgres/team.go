@@ -212,8 +212,8 @@ func (d DB) scanTeam(row squirrel.RowScanner) (*users.Team, error) {
 	return t, nil
 }
 
-// ensureUserIsPartOfTeamByExternalID ensures the users is part of an existing team
-func (d DB) ensureUserIsPartOfTeamByExternalID(ctx context.Context, userID, teamExternalID string) (*users.Team, error) {
+// getTeamUserIsPartOf ensures the users is part of an existing team
+func (d DB) getTeamUserIsPartOf(ctx context.Context, userID, teamExternalID string) (*users.Team, error) {
 	if teamExternalID == "" {
 		return nil, errors.New("teamExternalID must be provided")
 	}
@@ -230,17 +230,7 @@ func (d DB) ensureUserIsPartOfTeamByExternalID(ctx context.Context, userID, team
 		}
 	}
 
-	team, err := d.findTeamByExternalID(ctx, teamExternalID)
-	if err != nil {
-		return nil, err
-	}
-
-	err = d.AddUserToTeam(ctx, userID, team.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return team, nil
+	return nil, users.ErrNotFound
 }
 
 // ensureUserIsPartOfTeamByName ensures the users is part of team by name, the team is created if it does not exist

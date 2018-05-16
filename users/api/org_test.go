@@ -576,13 +576,15 @@ func Test_Organization_UserWithExpiredTrialButInTeamBilledExternallyShouldBeAble
 
 	// Create a team, and simulate the fact that team is marked as "billed externally":
 	team := getTeam(t)
+	err := database.AddUserToTeam(context.Background(), user.ID, team.ID)
+	assert.NoError(t, err)
 	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
 		Return(&grpc.BillingAccount{Provider: provider.External}, nil)
 
 	// Simulate the fact that the organization we're about to create is created by an user whose trial is already expired, i.e. the organization is delinquent:
 	trialExpiresAt := time.Now().Add(-17 * 24 * time.Hour) // more than 15d back to trigger upload refusal
 
-	err := app.CreateOrg(context.Background(), user, api.OrgView{
+	err = app.CreateOrg(context.Background(), user, api.OrgView{
 		ExternalID:     "my-org-id",
 		Name:           "my-org-name",
 		TeamExternalID: team.ExternalID,
@@ -613,13 +615,15 @@ func Test_Organization_UserWithExpiredTrialAndNotInTeamBilledExternallyShouldNot
 
 	// Create a team, and simulate the fact that team is NOT marked as "billed externally":
 	team := getTeam(t)
+	err := database.AddUserToTeam(context.Background(), user.ID, team.ID)
+	assert.NoError(t, err)
 	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
 		Return(&grpc.BillingAccount{}, nil)
 
 	// Simulate the fact that the organization we're about to create is created by an user whose trial is already expired, i.e. the organization is delinquent:
 	trialExpiresAt := time.Now().Add(-17 * 24 * time.Hour) // more than 15d back to trigger upload refusal
 
-	err := app.CreateOrg(context.Background(), user, api.OrgView{
+	err = app.CreateOrg(context.Background(), user, api.OrgView{
 		ExternalID:     "my-org-id",
 		Name:           "my-org-name",
 		TeamExternalID: team.ExternalID,

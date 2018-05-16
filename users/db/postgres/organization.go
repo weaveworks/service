@@ -835,7 +835,7 @@ func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID,
 		var err error
 		// one of two cases must be reached: it is ensured by the validation above
 		if teamExternalID != "" {
-			team, err = d.ensureUserIsPartOfTeamByExternalID(ctx, ownerID, teamExternalID)
+			team, err = d.getTeamUserIsPartOf(ctx, ownerID, teamExternalID)
 		} else if teamName != "" {
 			team, err = d.ensureUserIsPartOfTeamByName(ctx, ownerID, teamName)
 		}
