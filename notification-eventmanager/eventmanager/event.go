@@ -66,6 +66,7 @@ func (em *EventManager) handleCreateEvent(r *http.Request, instanceID string) (i
 	})
 
 	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "unable to retrieve instance data")
 	}
 
