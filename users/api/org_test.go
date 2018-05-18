@@ -210,6 +210,9 @@ func TestAPI_updateOrg_moveTeam(t *testing.T) {
 	defer cleanup(t)
 
 	user, org := getOrg(t)
+	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), gomock.Any()).
+		AnyTimes().
+		Return(&grpc.BillingAccount{}, nil)
 
 	{ // move from no-team to team
 		team := getTeam(t)
@@ -257,24 +260,26 @@ func TestAPI_updateOrg_moveTeam(t *testing.T) {
 	}
 }
 
-func TestAPI_updateOrg_moveTeamExternallyBilled(t *testing.T) {
-	t.SkipNow()
+func TestAPI_updateOrg_moveTeamBilledExternally(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
 	user, org := getOrg(t)
 
-	{ // move from billed no-team to externally billed team
-		database.SetFeatureFlags(context.TODO(), org.ExternalID, []string{featureflag.Billing})
+	exteam := getTeam(t)
+	err := database.AddUserToTeam(context.TODO(), user.ID, exteam.ID)
+	assert.NoError(t, err)
 
-		team := getTeam(t)
-		err := database.AddUserToTeam(context.TODO(), user.ID, team.ID)
-		assert.NoError(t, err)
+	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: ""}).
+		AnyTimes().
+		Return(&grpc.BillingAccount{}, nil)
+	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: exteam.ID}).
+		AnyTimes().
+		Return(&grpc.BillingAccount{Provider: provider.External}, nil)
 
-		billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
-			Return(&grpc.BillingAccount{Provider: provider.External}, nil)
+	{ // move to externally billed team
 
-		body := map[string]interface{}{"teamId": team.ExternalID}
+		body := map[string]interface{}{"teamId": exteam.ExternalID}
 		w := httptest.NewRecorder()
 		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody(body).Reader(t))
 
@@ -285,6 +290,28 @@ func TestAPI_updateOrg_moveTeamExternallyBilled(t *testing.T) {
 		if assert.NoError(t, err) {
 			assert.True(t, org.HasFeatureFlag(featureflag.NoBilling))
 			assert.False(t, org.HasFeatureFlag(featureflag.Billing))
+		}
+	}
+	{ // move back to Zuora-billed team
+		team := getTeam(t)
+		err := database.AddUserToTeam(context.TODO(), user.ID, team.ID)
+		assert.NoError(t, err)
+
+		billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
+			AnyTimes().
+			Return(&grpc.BillingAccount{}, nil)
+
+		body := map[string]interface{}{"teamId": team.ExternalID}
+		w := httptest.NewRecorder()
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody(body).Reader(t))
+
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusNoContent, w.Code)
+
+		org, err := database.FindOrganizationByID(context.TODO(), org.ExternalID)
+		if assert.NoError(t, err) {
+			assert.True(t, org.HasFeatureFlag(featureflag.Billing))
+			assert.False(t, org.HasFeatureFlag(featureflag.NoBilling))
 		}
 	}
 }

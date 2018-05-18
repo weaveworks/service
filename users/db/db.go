@@ -84,7 +84,7 @@ type DB interface {
 	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)
 	FindOrganizationByGCPExternalAccountID(ctx context.Context, externalAccountID string) (*users.Organization, error)
 	FindOrganizationByInternalID(ctx context.Context, internalID string) (*users.Organization, error)
-	UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error
+	UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) (*users.Organization, error)
 	OrganizationExists(ctx context.Context, externalID string) (bool, error)
 	ExternalIDUsed(ctx context.Context, externalID string) (bool, error)
 	GetOrganizationName(ctx context.Context, externalID string) (string, error)

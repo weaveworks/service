@@ -525,11 +525,11 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 }
 
 // UpdateOrganization changes an organization's user-settable name
-func (d DB) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error {
+func (d DB) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) (*users.Organization, error) {
 	// Get org for validation and add update fields to setFields
 	org, err := d.FindOrganizationByID(ctx, externalID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	setFields := map[string]interface{}{}
 	if update.Name != nil {
@@ -557,20 +557,12 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 		setFields["trial_expired_notified_at"] = org.TrialExpiredNotifiedAt
 	}
 
-	if update.TeamExternalID != nil {
-		team, err := d.findTeamByExternalID(ctx, *update.TeamExternalID)
-		if err != nil {
-			return err
-		}
-		setFields["team_id"] = team.ID
-	}
-
 	if len(setFields) == 0 {
-		return nil
+		return org, nil
 	}
 
 	if err := org.Valid(); err != nil {
-		return err
+		return nil, err
 	}
 
 	result, err := d.Update("organizations").
@@ -578,16 +570,16 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 		Where(squirrel.Expr("external_id = lower(?) and deleted_at is null", externalID)).
 		ExecContext(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	count, err := result.RowsAffected()
 	switch {
 	case err != nil:
-		return err
+		return nil, err
 	case count != 1:
-		return users.ErrNotFound
+		return nil, users.ErrNotFound
 	}
-	return nil
+	return org, nil
 }
 
 // MoveOrganizationToTeam updates the team of the organization. It does *not* check team permissions.
@@ -838,7 +830,7 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccountI
 
 		platform, env := "kubernetes", "gke"
 		now := d.Now()
-		if err = tx.UpdateOrganization(ctx, externalID, users.OrgWriteView{
+		if _, err = tx.UpdateOrganization(ctx, externalID, users.OrgWriteView{
 			// Hardcode platform/env here, that's what we expect the user to have.
 			// It also skips the platform/env tab during the onboarding process.
 			Platform:    &platform,

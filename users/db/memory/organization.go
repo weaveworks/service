@@ -370,11 +370,12 @@ func changeOrg(d *DB, externalID string, toWrap func(*users.Organization) error)
 }
 
 // UpdateOrganization changes an organization's data.
-func (d *DB) UpdateOrganization(_ context.Context, externalID string, update users.OrgWriteView) error {
+func (d *DB) UpdateOrganization(_ context.Context, externalID string, update users.OrgWriteView) (*users.Organization, error) {
 	if update.Name != nil && len(*update.Name) > organizationMaxLength {
-		return &errorOrgNameLengthConstraint
+		return nil, &errorOrgNameLengthConstraint
 	}
-	return changeOrg(d, externalID, func(o *users.Organization) error {
+	var org *users.Organization
+	err := changeOrg(d, externalID, func(o *users.Organization) error {
 		if update.Name != nil {
 			o.Name = *update.Name
 		}
@@ -393,8 +394,14 @@ func (d *DB) UpdateOrganization(_ context.Context, externalID string, update use
 		if update.TrialPendingExpiryNotifiedAt != nil {
 			o.TrialPendingExpiryNotifiedAt = timeutil.ZeroTimeIsNil(update.TrialPendingExpiryNotifiedAt)
 		}
+		org = o
 		return o.Valid()
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return org, nil
 }
 
 // MoveOrganizationToTeam updates the team of the organization. It does *not* check team permissions.
