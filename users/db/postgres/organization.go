@@ -32,15 +32,13 @@ func (d DB) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email
 			return err
 		}
 
-		if org.TeamID == "" {
-			_, err = tx.ExecContext(ctx,
-				"update memberships set deleted_at = now() where user_id = $1 and organization_id = $2",
-				user.ID,
-				org.ID,
-			)
-			if err != nil {
-				return err
-			}
+		_, err = tx.ExecContext(ctx,
+			"update memberships set deleted_at = now() where user_id = $1 and organization_id = $2",
+			user.ID,
+			org.ID,
+		)
+		if err != nil {
+			return err
 		}
 
 		return tx.removeUserFromTeam(ctx, user.ID, org.TeamID)
