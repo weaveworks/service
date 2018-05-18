@@ -32,15 +32,14 @@ const (
 )
 
 // handleCreateEvent handles event post requests and log them in DB and queue
-func (em *EventManager) handleCreateEvent(w http.ResponseWriter, r *http.Request) {
+func (em *EventManager) handleCreateEvent(r *http.Request, instanceID string) (interface{}, int, error) {
 	defer r.Body.Close()
 	requestsTotal.With(prometheus.Labels{"handler": "EventHandler"}).Inc()
 
 	instanceID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusUnauthorized)}).Inc()
-		return
+		return nil, http.StatusUnauthorized, err
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -48,9 +47,7 @@ func (em *EventManager) handleCreateEvent(w http.ResponseWriter, r *http.Request
 
 	if err := decoder.Decode(&e); err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
-		log.Errorf("cannot decode event, error: %s", err)
-		http.Error(w, "Cannot decode event", http.StatusBadRequest)
-		return
+		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot decode event")
 	}
 
 	// Override if InstanceID is undefined.
@@ -69,9 +66,7 @@ func (em *EventManager) handleCreateEvent(w http.ResponseWriter, r *http.Request
 	})
 
 	if err != nil {
-		log.Errorf("error requesting instance data from users service for event type %s: %s", e.Type, err)
-		http.Error(w, "unable to retrieve instance data", http.StatusInternalServerError)
-		return
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "unable to retrieve instance data")
 	}
 
 	e.InstanceName = instanceData.Organization.Name
@@ -79,26 +74,19 @@ func (em *EventManager) handleCreateEvent(w http.ResponseWriter, r *http.Request
 	eventID, err := em.storeAndSend(r.Context(), e, instanceData.Organization.FeatureFlags)
 
 	if err != nil {
-		log.Errorf("cannot post and send %s event, error: %s", e.Type, err)
-		http.Error(w, "Failed to handle event", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
-		return
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "failed to handle event")
 	}
 
-	w.Write([]byte(eventID))
+	return struct {
+		ID string `json:"id"`
+	}{eventID}, http.StatusOK, nil
 }
 
 // handleTestEvent posts a test event for the user to verify things are working.
-func (em *EventManager) handleTestEvent(w http.ResponseWriter, r *http.Request) {
+func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (interface{}, int, error) {
 	defer r.Body.Close()
 	requestsTotal.With(prometheus.Labels{"handler": "TestEventHandler"}).Inc()
-	instanceID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
-	if err != nil {
-		log.Errorf("cannot create test event, failed to extract orgID, error: %s", err)
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusUnauthorized)}).Inc()
-		return
-	}
 
 	instanceData, err := em.UsersClient.GetOrganization(r.Context(), &users.GetOrganizationRequest{
 		ID: &users.GetOrganizationRequest_InternalID{InternalID: instanceID},
@@ -106,22 +94,16 @@ func (em *EventManager) handleTestEvent(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		if isStatusErrorCode(err, http.StatusNotFound) {
-			log.Warnf("instance name for ID %s not found for test event", instanceID)
-			http.Error(w, "Instance not found", http.StatusNotFound)
 			requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusNotFound)}).Inc()
-			return
+			return nil, http.StatusNotFound, err
 		}
-		log.Errorf("error requesting instance data from users service for test event: %s", err)
-		http.Error(w, "unable to retrieve instance data", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
-		return
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "error requesting instance data from users service for test event")
 	}
 
 	if err != nil {
-		log.Errorf("error getting stackdriver message for test event: %s", err)
-		http.Error(w, "unable to get stackdriver message", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
-		return
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting stackdriver message for test event")
 	}
 
 	text := "A test event triggered from Weave Cloud!"
@@ -137,35 +119,30 @@ func (em *EventManager) handleTestEvent(w http.ResponseWriter, r *http.Request) 
 	eventID, err := em.storeAndSend(r.Context(), testEvent, instanceData.Organization.FeatureFlags)
 
 	if err != nil {
-		log.Errorf("cannot post and send test event, error: %s", err)
-		http.Error(w, "Failed to handle event", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
-		return
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "cannot post and send test event")
 	}
-	w.Write([]byte(eventID))
+
+	return eventID, http.StatusOK, nil
 }
 
 // handleSlackEvent handles slack json payload that includes the message text and some options, creates event, log it in DB and queue
-func (em *EventManager) handleSlackEvent(w http.ResponseWriter, r *http.Request) {
+func (em *EventManager) handleSlackEvent(r *http.Request) (interface{}, int, error) {
 	requestsTotal.With(prometheus.Labels{"handler": "SlackHandler"}).Inc()
 	vars := mux.Vars(r)
 
 	eventType := vars["eventType"]
 	if eventType == "" {
 		eventsToSQSError.With(prometheus.Labels{"event_type": "empty"}).Inc()
-		log.Errorf("eventType is empty in request %s", r.URL)
-		http.Error(w, "eventType is empty in request", http.StatusBadRequest)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
-		return
+		return nil, http.StatusBadRequest, errors.New("eventType is empty in request")
 	}
 	log.Debugf("eventType = %s", eventType)
 
 	instanceID := vars["instanceID"]
 	if instanceID == "" {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
-		log.Errorf("instanceID is empty in request %s", r.URL)
-		http.Error(w, "instanceID is empty in request", http.StatusBadRequest)
-		return
+		return nil, http.StatusBadRequest, errors.New("instanceID is empty in request")
 	}
 	log.Debugf("instanceID = %s", instanceID)
 
@@ -174,14 +151,10 @@ func (em *EventManager) handleSlackEvent(w http.ResponseWriter, r *http.Request)
 	})
 	if err != nil {
 		if isStatusErrorCode(err, http.StatusNotFound) {
-			log.Warnf("instance name for ID %s not found for event type %s", instanceID, eventType)
-			http.Error(w, "Instance not found", http.StatusNotFound)
 			requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusNotFound)}).Inc()
-			return
+			return nil, http.StatusNotFound, errors.Wrap(err, "instance name not found")
 		}
-		log.Errorf("error requesting instance data from users service for event type %s: %s", eventType, err)
-		http.Error(w, "unable to retrieve instance data", http.StatusInternalServerError)
-		return
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "unable to retrieve instance data")
 	}
 	log.Debugf("Got data from users service: %v", instanceData.Organization.Name)
 
@@ -189,37 +162,31 @@ func (em *EventManager) handleSlackEvent(w http.ResponseWriter, r *http.Request)
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
-		log.Errorf("cannot read body for request %s", r.URL)
-		http.Error(w, "cannot read body", http.StatusBadRequest)
-		return
+		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot read body")
 	}
 
 	var sm types.SlackMessage
 	if err = json.Unmarshal(body, &sm); err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
-		log.Errorf("cannot unmarshal body to SlackMessage struct, error: %s", err)
-		http.Error(w, "cannot unmarshal body", http.StatusBadRequest)
-		return
+		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot unmarshal body")
 	}
 
 	e, err := buildEvent(body, sm, eventType, instanceID, instanceData.Organization.Name)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
-		log.Errorf("cannot build event, error: %s", err)
-		http.Error(w, "cannot build event", http.StatusBadRequest)
-		return
+		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot build event")
 	}
 
 	eventID, err := em.storeAndSend(r.Context(), e, instanceData.Organization.FeatureFlags)
 
 	if err != nil {
-		log.Errorf("cannot post and send %s event, error: %s", e.Type, err)
-		http.Error(w, "Failed handle event", http.StatusInternalServerError)
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
-		return
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "failed to create event")
 	}
 
-	w.Write([]byte(eventID))
+	return struct {
+		ID string `json:"id"`
+	}{eventID}, http.StatusOK, nil
 }
 
 func (em *EventManager) handleGetEventTypes(r *http.Request) (interface{}, int, error) {

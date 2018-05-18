@@ -46,11 +46,13 @@ func (em *EventManager) handleCreateReceiver(r *http.Request, instanceID string)
 	if receiver.ID != "" || receiver.InstanceID != "" || len(receiver.EventTypes) != 0 {
 		return errors.New("ID, instance and event types should not be specified"), http.StatusBadRequest, nil
 	}
-	result, err := em.DB.CreateReceiver(receiver, instanceID)
+	receiverID, err := em.DB.CreateReceiver(receiver, instanceID)
 	if err != nil {
 		return nil, 0, err
 	}
-	return result, http.StatusOK, nil
+	return struct {
+		ID string `json:"id"`
+	}{receiverID}, http.StatusOK, nil
 }
 
 // isValidAddress checks if address is valid for receiver type

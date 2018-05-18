@@ -44,7 +44,7 @@ func (j jsonWrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // to a http.Handler. The wrappers parse the args and return any JSON + code returned from the function,
 // or 500 if they error.
 
-func withNoArgs(f func(*http.Request) (interface{}, int, error)) http.Handler {
+func toJSON(f func(*http.Request) (interface{}, int, error)) http.Handler {
 	return jsonWrapper{func(r *http.Request) (interface{}, int, error) {
 		result, code, err := f(r)
 		return result, code, err
@@ -52,18 +52,18 @@ func withNoArgs(f func(*http.Request) (interface{}, int, error)) http.Handler {
 }
 
 func withInstance(f func(*http.Request, string) (interface{}, int, error)) http.Handler {
-	return jsonWrapper{func(r *http.Request) (interface{}, int, error) {
+	return toJSON(func(r *http.Request) (interface{}, int, error) {
 		instanceID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
 		if err != nil {
 			return nil, 0, err
 		}
 		result, code, err := f(r, instanceID)
 		return result, code, err
-	}}
+	})
 }
 
 func withInstanceAndID(f func(*http.Request, string, string) (interface{}, int, error)) http.Handler {
-	return jsonWrapper{func(r *http.Request) (interface{}, int, error) {
+	return toJSON(func(r *http.Request) (interface{}, int, error) {
 		instanceID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
 		if err != nil {
 			return nil, 0, err
@@ -74,7 +74,7 @@ func withInstanceAndID(f func(*http.Request, string, string) (interface{}, int, 
 		}
 		result, code, err := f(r, instanceID, itemID)
 		return result, code, err
-	}}
+	})
 }
 
 func extractItemID(r *http.Request) (string, error) {
