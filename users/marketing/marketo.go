@@ -56,6 +56,7 @@ type marketoResponse struct {
 		Message string `json:"message"`
 	} `json:"errors"`
 	Results []struct {
+		ID      int    `json:"id"`
 		Status  string `json:"status"`
 		Reasons []struct {
 			Code    string `json:"code"`
@@ -138,7 +139,7 @@ func (c *MarketoClient) BatchUpsertProspect(prospects []Prospect) error {
 	for _, result := range marketoResponse.Results {
 		if result.Status == "skipped" {
 			marketoLeadsSkipped.Add(1)
-			log.Infof("Marketo skipped prospect: %v", result.Reasons)
+			log.Infof("Marketo skipped prospect %v: %v", result.ID, result.Reasons)
 		}
 	}
 
