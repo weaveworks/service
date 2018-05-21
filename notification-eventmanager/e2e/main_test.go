@@ -93,22 +93,20 @@ func waitForReady(t *testing.T) {
 	}
 }
 
-func postEmailReceiver(address string) (*string, error) {
+func postEmailReceiver(address string) ([]byte, error) {
 	receiver := types.Receiver{
 		RType:       types.EmailReceiver,
 		AddressData: json.RawMessage(address),
 	}
 
 	data, _ := json.Marshal(receiver)
-	receiverID, err := request("/config/receivers", "POST", data)
+	response, err := request("/config/receivers", "POST", data)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create receiver")
 	}
 
-	unquoted := unquote(string(receiverID))
-
-	return &unquoted, nil
+	return response, nil
 
 }
 
@@ -176,6 +174,20 @@ func waitForEmail(recipient string) (email, error) {
 	return email{}, errors.Errorf("did not receive email to %#v", recipient)
 }
 
+type ID struct {
+	ID string `json:"id"`
+}
+
+func getID(t *testing.T, data []byte) string {
+	var response ID
+	err := json.Unmarshal(data, &response)
+
+	if err != nil {
+		t.Fatal("could not unmarshal response ID")
+	}
+	return response.ID
+}
+
 func TestListEventTypes(t *testing.T) {
 	waitForReady(t)
 
@@ -211,13 +223,13 @@ func TestGetReceiver(t *testing.T) {
 	waitForReady(t)
 
 	address := `"integration@test.com"`
-	receiverID, err := postEmailReceiver(address)
+	response, err := postEmailReceiver(address)
 
 	if err != nil {
 		t.Error(errors.Wrap(err, "cannot create receiver"))
 	}
 
-	res, err := request(fmt.Sprintf("/config/receivers/%s", *receiverID), "GET", nil)
+	res, err := request(fmt.Sprintf("/config/receivers/%s", getID(t, response)), "GET", nil)
 
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "could not GET receiver"))
@@ -240,7 +252,7 @@ func TestUpdateReceiver(t *testing.T) {
 
 	// Create an initial receiver
 	address := `"integration@test.com"`
-	receiverID, err := postEmailReceiver(address)
+	response, err := postEmailReceiver(address)
 
 	if err != nil {
 		t.Error(errors.Wrap(err, "could not create receiver"))
@@ -258,7 +270,7 @@ func TestUpdateReceiver(t *testing.T) {
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "could not marshal new receiver data"))
 	}
-	url := fmt.Sprintf("/config/receivers/%s", *receiverID)
+	url := fmt.Sprintf("/config/receivers/%s", getID(t, response))
 	// Update with new address data
 	_, err = request(url, "PUT", data)
 
@@ -289,13 +301,13 @@ func TestUpdateReceiver(t *testing.T) {
 func TestDeleteReceiver(t *testing.T) {
 	waitForReady(t)
 
-	receiverID, err := postEmailReceiver(`"integration@test.com"`)
+	response, err := postEmailReceiver(`"integration@test.com"`)
 
 	if err != nil {
 		t.Error(errors.Wrap(err, "could not create receiver"))
 	}
 
-	url := fmt.Sprintf("/config/receivers/%s", *receiverID)
+	url := fmt.Sprintf("/config/receivers/%s", getID(t, response))
 	_, err = request(url, "DELETE", nil)
 
 	if err != nil {
@@ -397,11 +409,12 @@ func TestCreateEvent_Slack(t *testing.T) {
 
 	url := fmt.Sprintf("/slack/%v/info", orgID)
 
-	id, err := request(url, "POST", slackBytes)
+	response, err := request(url, "POST", slackBytes)
 
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "could not create event"))
 	}
+	responseID := getID(t, response)
 
 	events, err := getEvents()
 
@@ -411,14 +424,14 @@ func TestCreateEvent_Slack(t *testing.T) {
 
 	var result *types.Event
 	for _, e := range events {
-		if e.ID == string(id) {
+		if e.ID == responseID {
 			result = &e
 			break
 		}
 	}
 
 	if result == nil {
-		t.Fatalf("expected event id to exist: %v", string(id))
+		t.Fatalf("expected event id to exist: %v", responseID)
 	}
 
 	if result.Type != "info" {
@@ -443,11 +456,12 @@ func TestCreateEvent_External(t *testing.T) {
 		t.Fatal(errors.Wrap(err, "could not marshal event"))
 	}
 
-	id, err := request("/external/events", "POST", eventBytes)
+	response, err := request("/external/events", "POST", eventBytes)
 
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "could not create external event"))
 	}
+	responseID := getID(t, response)
 
 	events, err := getEvents()
 
@@ -457,14 +471,14 @@ func TestCreateEvent_External(t *testing.T) {
 
 	var result *types.Event
 	for _, e := range events {
-		if e.ID == string(id) {
+		if e.ID == responseID {
 			result = &e
 			break
 		}
 	}
 
 	if result == nil {
-		t.Fatalf("expected event id to exist: %v", string(id))
+		t.Fatalf("expected event id to exist: %v", responseID)
 	}
 
 	if *result.Text != text {
@@ -526,11 +540,12 @@ func TestReceiver_Browser(t *testing.T) {
 		t.Fatal(errors.Wrap(err, "could not marshal event"))
 	}
 
-	id, err := request("/events", "POST", bytes)
+	response, err := request("/events", "POST", bytes)
 
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "could not create event"))
 	}
+	responseID := getID(t, response)
 
 	result := <-notifs
 
@@ -542,8 +557,8 @@ func TestReceiver_Browser(t *testing.T) {
 		t.Fatal("expected event to exist")
 	}
 
-	if result.ID != string(id) {
-		t.Errorf("expected event ID to be %v; actual: %#v", string(id), result.ID)
+	if result.ID != responseID {
+		t.Errorf("expected event ID to be %v; actual: %#v", responseID, result.ID)
 	}
 }
 
