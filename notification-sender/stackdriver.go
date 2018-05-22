@@ -137,10 +137,6 @@ func generateStackDriverMessage(e types.Event) googleLogging.Entry {
 		},
 	}
 
-	for k, v := range e.Metadata {
-		entry.Labels[k] = v
-	}
-
 	return entry
 }
 

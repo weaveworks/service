@@ -17,6 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/notification-eventmanager/eventtypes/config_changed"
 	"github.com/weaveworks/service/notification-eventmanager/types"
 	"github.com/weaveworks/service/users"
 )
@@ -171,6 +172,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		return errors.Wrapf(err, "error requesting instance data from users service for event type %s", eventType)
 	}
 	instanceName := instanceData.Organization.Name
+	event.InstanceName = instanceName
 
 	sort.Strings(oldReceiver.EventTypes)
 	sort.Strings(receiver.EventTypes)
@@ -235,6 +237,14 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		}
 
 		slackText := formatEventTypeText("*", "*", receiver.RType, "_", "_", added, removed)
+		event.Data, err = json.Marshal(config_changed.Data{
+			Receiver: receiver.RType,
+			Enabled:  added,
+			Disabled: removed,
+		})
+		if err != nil {
+			return errors.Wrap(err, "while marshalling data")
+		}
 		event.Messages = map[string]json.RawMessage{
 			types.EmailReceiver:   emailMsg,
 			types.BrowserReceiver: browserMsg,
@@ -367,13 +377,17 @@ func (em *EventManager) handleGetEvents(r *http.Request, instanceID string) (int
 
 	events, err := em.DB.GetEvents(instanceID, fields, eventTypes, before, after, limit, offset)
 	if err != nil {
-		return nil, 0, err
+		return nil, http.StatusInternalServerError, err
 	}
 
+	// Process new event format by rendering its data for the browser
 	for _, ev := range events {
 		if len(ev.Data) > 0 {
 			ev.Messages = nil
-			text := string(renderData(ev, "browser"))
+			text := em.types.Render(Browser, ev).Text()
+			if err != nil {
+				return nil, http.StatusInternalServerError, err
+			}
 			ev.Text = &text
 		}
 	}

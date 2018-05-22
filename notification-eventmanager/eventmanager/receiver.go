@@ -17,6 +17,13 @@ import (
 	"github.com/weaveworks/service/notification-eventmanager/types"
 )
 
+const (
+	Browser     = "browser"
+	Email       = "email"
+	Slack       = "slack"
+	Stackdriver = "stackdriver"
+)
+
 var (
 	// isWebHookPath regexp checks string contains only letters, numbers and slashes
 	// for url.Path in slack webhook (services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX)

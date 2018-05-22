@@ -1,8 +1,12 @@
 package config_changed
 
 import (
+	"bytes"
 	"encoding/json"
-	"text/template"
+	"fmt"
+
+	"github.com/weaveworks/service/notification-eventmanager/types"
+	"github.com/weaveworks/service/users/templates"
 )
 
 /*
@@ -54,7 +58,7 @@ import (
   }
 }
 */
-const Name = "config_changed"
+const Type = "config_changed"
 
 type Data struct {
 	Receiver string
@@ -63,21 +67,50 @@ type Data struct {
 	Disabled []string
 }
 
+type ConfigChanged struct {
+	engine templates.Engine
+}
+
 func New() *ConfigChanged {
-	c := &ConfigChanged{
-
+	return &ConfigChanged{
+		engine: templates.MustNewEngine("../../templates/config_changed"),
 	}
-	c.tpl = map[string]template.Template{
-		"browser": template.New("").Parse(browserTemplate),
-	}
-	return c
 }
 
-func (c ConfigChanged) Render(recv string, data json.RawMessage) (string, error) {
-	d := eventData{}
-	if err := json.Unmarshal(data, &d); err != nil {
-		return "", err
+// TODO(rndstr): what to do if anything in here fails? skip? or send as part of notification?
+func (c ConfigChanged) Render(recv string, e *types.Event) (types.Output, error) {
+	data := Data{}
+	if err := json.Unmarshal(e.Data, &data); err != nil {
+		return nil, err
 	}
-	return string(data), nil
+
+	switch recv {
+	case types.BrowserReceiver:
+		return types.BrowserOutput(c.renderTemplate("browser.html", e, data)), nil
+	case types.EmailReceiver:
+		return types.EmailOutput{
+			Subject: fmt.Sprintf("%s – %s", e.InstanceName, e.Type),
+			Body:    c.renderTemplate("email.html", e, data),
+		}, nil
+	case types.SlackReceiver:
+		return types.BrowserOutput(c.renderTemplate("slack.text", e, data)), nil
+
+	case types.StackdriverReceiver:
+		return types.BrowserOutput(c.renderTemplate("browser.html", e, data)), nil
+	default:
+		panic(fmt.Sprintf("unknown receiver: %s", recv))
+	}
 }
 
+func (c ConfigChanged) renderTemplate(name string, e *types.Event, data Data) string {
+	t, err := c.engine.Lookup(name)
+	if err != nil {
+		return fmt.Sprintf("Template not found: %s", name)
+	}
+	buf := &bytes.Buffer{}
+	if err := t.Execute(buf, data); err != nil {
+		return err.Error()
+	}
+	return buf.String()
+
+}

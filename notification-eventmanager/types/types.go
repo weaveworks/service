@@ -62,14 +62,15 @@ type StackdriverMessage struct {
 
 // Event is a single instance of something for the user to be informed of
 type Event struct {
-	ID           string            `json:"id"`
-	Type         string            `json:"type"`
-	InstanceID   string            `json:"instance_id"`
-	InstanceName string            `json:"instance_name"`
-	Timestamp    time.Time         `json:"timestamp"`
-	Text         *string            `json:"text"`
-	Data         json.RawMessage   `json:"data,omitempty"` // Format depends on `Type`
-	Metadata     map[string]string `json:"metadata"`       // TBD: Additional data for searching.
+	ID           string          `json:"id"`
+	Type         string          `json:"type"`
+	InstanceID   string          `json:"instance_id"`
+	InstanceName string          `json:"instance_name"`
+	Timestamp    time.Time       `json:"timestamp"`
+	Data         json.RawMessage `json:"data,omitempty"` // Format depends on `Type`
+
+	Text     *string           `json:"text"`     // TODO(rndstr): needed? could be fallback if client wants to override something
+	Metadata map[string]string `json:"metadata"` // TBD: Additional data for searching. TODO(rndstr): still needed?
 
 	// Deprecated.
 	Messages map[string]json.RawMessage `json:"messages,omitempty"`
@@ -96,6 +97,50 @@ type Receiver struct {
 	EventTypes  []string        `json:"event_types"`
 }
 
+type Output interface {
+	Type() string
+	Text() string
+}
+
+type EmailOutput struct {
+	Subject string
+	Body    string
+}
+
+func (e EmailOutput) Type() string {
+	return EmailReceiver
+}
+func (e EmailOutput) Text() string {
+	return e.Body
+}
+
+type BrowserOutput string
+
+func (b BrowserOutput) Type() string {
+	return BrowserReceiver
+}
+func (b BrowserOutput) Text() string {
+	return string(b)
+}
+
+type SlackOutput string
+
+func (s SlackOutput) Type() string {
+	return SlackReceiver
+}
+func (s SlackOutput) Text() string {
+	return string(s)
+}
+
+type StackdriverOutput string
+
+func (s StackdriverOutput) Type() string {
+	return StackdriverReceiver
+}
+func (s StackdriverOutput) Text() string {
+	return string(s)
+}
+
 // // ReceiverType is a kind of receiver. For example, ‘email’ or ‘slack’.
 const (
 	// SlackReceiver is the type of receiver for slack notifications
@@ -114,7 +159,8 @@ type Notification struct {
 	ReceiverType string `json:"receiver_type"`
 	InstanceID   string
 	Address      json.RawMessage `json:"address"`
-	Data         json.RawMessage `json:"data"`
+	Data         json.RawMessage `json:"data"`             // FIXME(rndstr): this appears to be the former event.Messages[recv] part?
+	Output       Output          `json:"output,omitempty"` // TBD: rendered data? e.g., email needs `subject` and `body`.
 	Event        Event           `json:"event"`
 }
 
@@ -187,8 +233,8 @@ func ReceiverFromRow(row scannable) (Receiver, error) {
 func EventFromRow(row scannable, fields []string) (*Event, error) {
 	e := Event{}
 	// sql driver can't convert from postgres json directly to interface{}, have to get as string and re-parse.
-	// TODO(rndstr): verify this still holds
-	var messages, metadata, data []byte
+	// TODO(rndstr): ^ verify this still holds
+	var messages, metadata []byte
 
 	var structFields []interface{}
 	for _, f := range fields {
@@ -206,7 +252,7 @@ func EventFromRow(row scannable, fields []string) (*Event, error) {
 		case "text":
 			structFields = append(structFields, &e.Text)
 		case "data":
-			structFields = append(structFields, &data)
+			structFields = append(structFields, &e.Data)
 		case "metadata":
 			structFields = append(structFields, &metadata)
 		default:

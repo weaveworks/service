@@ -417,5 +417,5 @@ func getLinkParts(t string) (string, *string, *string) {
 }
 
 func useNewNotifSchema(notif types.Notification) bool {
-	return notif.Event.Text != nil
+	return len(notif.Event.Data) > 0
 }

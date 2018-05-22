@@ -65,7 +65,7 @@ func (em *EventManager) getNotifications(ctx context.Context, e types.Event) ([]
 			ReceiverType: r.RType,
 			InstanceID:   e.InstanceID,
 			Address:      r.AddressData,
-			Data:         renderData(&e, r.RType),
+			Output:       em.types.Render(r.RType, &e),
 			Event:        e,
 		}
 		notifications = append(notifications, notif)

@@ -3,6 +3,7 @@ RUN apk add --no-cache ca-certificates
 WORKDIR /
 COPY cmd/eventmanager/eventmanager /
 COPY       db/migrations /migrations
+COPY templates /templates
 EXPOSE 80
 ENTRYPOINT ["/eventmanager"]
 
