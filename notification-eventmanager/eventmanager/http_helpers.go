@@ -24,7 +24,7 @@ func (j jsonWrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	result, code, err := j.wrapped(r)
 	if err != nil {
 		log.WithError(err).Error("Request error")
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(code)
 		return
 	}
 	encoded := []byte{}
