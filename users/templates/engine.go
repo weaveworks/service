@@ -58,8 +58,18 @@ func (l *extensionsTemplateEngine) Lookup(name string) (t Executor, err error) {
 	switch filepath.Ext(name) {
 	case ".html":
 		t = l.htmlTemplates.Lookup(name)
+		// `t == nil` is going to be false. While the value inside the interface is `nil`,
+		// the interface value itself is not. To compare this with nil we need to assert
+		// its type which we know is `*html.Template`.
+		if t.(*html.Template) == nil {
+			t = nil
+		}
 	case ".text":
 		t = l.textTemplates.Lookup(name)
+		// See above.
+		if t.(*text.Template) == nil {
+			t = nil
+		}
 	}
 	if t == nil {
 		err = ErrTemplateNotFound{name}
