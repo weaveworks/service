@@ -1,0 +1,10 @@
+{
+  "browser": {
+    "type": "foo",
+    "text": "bar"
+  },
+  "slack": {
+    "username": "testy mctest",
+    "text": "a test"
+  }
+}

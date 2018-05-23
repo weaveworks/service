@@ -1,0 +1,15 @@
+{
+  "browser": {
+    "type": "kured",
+    "text": "Rebooting node ip-172-20-1-108.ec2.internal",
+    "timestamp": "2017-10-06T13:08:56.306602322Z"
+  },
+  "email": {
+    "subject": "kured",
+    "body": "\u003cp\u003eRebooting node ip-172-20-1-108.ec2.internal\u003c/p\u003e\n"
+  },
+  "slack": {
+    "text": "Rebooting node ip-172-20-1-108.ec2.internal",
+    "username": "dev"
+  }
+}

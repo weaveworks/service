@@ -1,0 +1,29 @@
+{
+  "browser": {
+    "type": "monitor",
+    "text": "Impact : Details :",
+    "timestamp": "2017-10-06T12:18:28.065963373Z"
+  },
+  "email": {
+    "subject": "monitor",
+    "body": "\u003cp\u003e\u003cem\u003eImpact\u003c/em\u003e:\n\u003cem\u003eDetails\u003c/em\u003e:\u003c/p\u003e\n"
+  },
+  "slack": {
+    "channel": "cortex-alerts",
+    "username": "dev-alert",
+    "attachments": [
+      {
+        "title": "[FIRING:2] ScrapeFailed (notification/configmanager dev warning)",
+        "title_link": "/api/prom/alertmanager/#/alerts?receiver=service-alerts-dev",
+        "text": "\n*Impact*: \n*Details*: \n\n",
+        "fallback": "[FIRING:2] ScrapeFailed (notification/configmanager dev warning) | /api/prom/alertmanager/#/alerts?receiver=service-alerts-dev",
+        "color": "danger",
+        "mrkdwn_in": [
+          "fallback",
+          "pretext",
+          "text"
+        ]
+      }
+    ]
+  }
+}

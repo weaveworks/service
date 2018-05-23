@@ -1,0 +1,33 @@
+{
+  "browser": {
+    "type": "auto_deploy",
+    "text": "Automated release of new image quay.io/weaveworks/scope:master-4872a851.",
+    "attachments": [
+      {
+        "text": "```CONTROLLER                        STATUS   UPDATES\nextra:deployment/demo             success  demo: quay.io/weaveworks/scope:master-4d116fdf -\u003e master-4872a851\nkube-system:deployment/scope-app  success  scope-app: quay.io/weaveworks/scope:master-4d116fdf -\u003e master-4872a851\nscope:deployment/collection       success  collection: quay.io/weaveworks/scope:master-4d116fdf -\u003e master-4872a851\nscope:deployment/control          success  control: quay.io/weaveworks/scope:master-4d116fdf -\u003e master-4872a851\nscope:deployment/pipe             success  pipe: quay.io/weaveworks/scope:master-4d116fdf -\u003e master-4872a851\nscope:deployment/query            success  query: quay.io/weaveworks/scope:master-4d116fdf -\u003e master-4872a851\n```",
+        "color": "good",
+        "mrkdwn_in": [
+          "text"
+        ]
+      }
+    ],
+    "timestamp": "2017-10-23T11:22:02.993043235Z"
+  },
+  "email": {
+    "subject": "auto_deploy",
+    "body": "\u003cp\u003eAutomated release of new image quay.io/weaveworks/scope:master-4872a851.\n\u003ccode\u003eCONTROLLER                        STATUS   UPDATES\nextra:deployment/demo             success  demo: quay.io/weaveworks/scope:master-4d116fdf -\u0026gt; master-4872a851\nkube-system:deployment/scope-app  success  scope-app: quay.io/weaveworks/scope:master-4d116fdf -\u0026gt; master-4872a851\nscope:deployment/collection       success  collection: quay.io/weaveworks/scope:master-4d116fdf -\u0026gt; master-4872a851\nscope:deployment/control          success  control: quay.io/weaveworks/scope:master-4d116fdf -\u0026gt; master-4872a851\nscope:deployment/pipe             success  pipe: quay.io/weaveworks/scope:master-4d116fdf -\u0026gt; master-4872a851\nscope:deployment/query            success  query: quay.io/weaveworks/scope:master-4d116fdf -\u0026gt; master-4872a851\n\u003c/code\u003e\u003c/p\u003e\n"
+  },
+  "slack": {
+    "username": "",
+    "text": "Automated release of new image quay.io/weaveworks/scope:master-4872a851.",
+    "attachments": [
+      {
+        "text": "```CONTROLLER                        STATUS   UPDATES\nextra:deployment/demo             success  demo: quay.io/weaveworks/scope:master-4d116fdf -\u003e master-4872a851\nkube-system:deployment/scope-app  success  scope-app: quay.io/weaveworks/scope:master-4d116fdf -\u003e master-4872a851\nscope:deployment/collection       success  collection: quay.io/weaveworks/scope:master-4d116fdf -\u003e master-4872a851\nscope:deployment/control          success  control: quay.io/weaveworks/scope:master-4d116fdf -\u003e master-4872a851\nscope:deployment/pipe             success  pipe: quay.io/weaveworks/scope:master-4d116fdf -\u003e master-4872a851\nscope:deployment/query            success  query: quay.io/weaveworks/scope:master-4d116fdf -\u003e master-4872a851\n```",
+        "color": "good",
+        "mrkdwn_in": [
+          "text"
+        ]
+      }
+    ]
+  }
+}

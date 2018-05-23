@@ -1,13 +1,4 @@
-package config_changed
-
-import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-
-	"github.com/weaveworks/service/notification-eventmanager/types"
-	"github.com/weaveworks/service/users/templates"
-)
+package event
 
 /*
 {
@@ -58,59 +49,10 @@ import (
   }
 }
 */
-const Type = "config_changed"
 
-type Data struct {
+type ConfigChangedData struct {
 	Receiver string
 	Address  string
 	Enabled  []string
 	Disabled []string
-}
-
-type ConfigChanged struct {
-	engine templates.Engine
-}
-
-func New() *ConfigChanged {
-	return &ConfigChanged{
-		engine: templates.MustNewEngine("../../templates/config_changed"),
-	}
-}
-
-// TODO(rndstr): what to do if anything in here fails? skip? or send as part of notification?
-func (c ConfigChanged) Render(recv string, e *types.Event) (types.Output, error) {
-	data := Data{}
-	if err := json.Unmarshal(e.Data, &data); err != nil {
-		return nil, err
-	}
-
-	switch recv {
-	case types.BrowserReceiver:
-		return types.BrowserOutput(c.renderTemplate("browser.html", e, data)), nil
-	case types.EmailReceiver:
-		return types.EmailOutput{
-			Subject: fmt.Sprintf("%s – %s", e.InstanceName, e.Type),
-			Body:    c.renderTemplate("email.html", e, data),
-		}, nil
-	case types.SlackReceiver:
-		return types.BrowserOutput(c.renderTemplate("slack.text", e, data)), nil
-
-	case types.StackdriverReceiver:
-		return types.BrowserOutput(c.renderTemplate("browser.html", e, data)), nil
-	default:
-		panic(fmt.Sprintf("unknown receiver: %s", recv))
-	}
-}
-
-func (c ConfigChanged) renderTemplate(name string, e *types.Event, data Data) string {
-	t, err := c.engine.Lookup(name)
-	if err != nil {
-		return fmt.Sprintf("Template not found: %s", name)
-	}
-	buf := &bytes.Buffer{}
-	if err := t.Execute(buf, data); err != nil {
-		return err.Error()
-	}
-	return buf.String()
-
 }

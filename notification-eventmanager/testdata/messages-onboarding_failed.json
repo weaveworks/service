@@ -1,0 +1,6 @@
+{
+  "browser": {
+    "type": "onboarding_failed",
+    "text": "Weave Cloud agents could not be installed at this time: We require Kubernetes cluster to be version 1.6.0 or newer."
+  }
+}

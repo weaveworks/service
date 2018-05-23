@@ -17,9 +17,9 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/user"
-	"github.com/weaveworks/service/notification-eventmanager/eventtypes/config_changed"
 	"github.com/weaveworks/service/notification-eventmanager/types"
 	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/notification-eventmanager/event"
 )
 
 const (
@@ -154,7 +154,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 	log.Debug("update_config Event Firing...")
 
 	eventType := "config_changed"
-	event := types.Event{
+	ev := types.Event{
 		Type:       eventType,
 		InstanceID: instanceID,
 		Timestamp:  eventTime,
@@ -172,7 +172,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		return errors.Wrapf(err, "error requesting instance data from users service for event type %s", eventType)
 	}
 	instanceName := instanceData.Organization.Name
-	event.InstanceName = instanceName
+	ev.InstanceName = instanceName
 
 	sort.Strings(oldReceiver.EventTypes)
 	sort.Strings(receiver.EventTypes)
@@ -205,7 +205,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 			return errors.Wrap(err, "cannot get stackdriver message")
 		}
 
-		event.Messages = map[string]json.RawMessage{
+		ev.Messages = map[string]json.RawMessage{
 			types.EmailReceiver:       emailMsg,
 			types.BrowserReceiver:     browserMsg,
 			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\nThe address for *%s* was updated!"}`, instanceName, receiver.RType)),
@@ -237,7 +237,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		}
 
 		slackText := formatEventTypeText("*", "*", receiver.RType, "_", "_", added, removed)
-		event.Data, err = json.Marshal(config_changed.Data{
+		ev.Data, err = json.Marshal(event.ConfigChangedData{
 			Receiver: receiver.RType,
 			Enabled:  added,
 			Disabled: removed,
@@ -245,7 +245,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		if err != nil {
 			return errors.Wrap(err, "while marshalling data")
 		}
-		event.Messages = map[string]json.RawMessage{
+		ev.Messages = map[string]json.RawMessage{
 			types.EmailReceiver:   emailMsg,
 			types.BrowserReceiver: browserMsg,
 			// FIXME(rndstr): should use proper JSON marshalling here; e.g., this breaks for instance names with double quotes in them
@@ -259,7 +259,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 
 	go func() {
 
-		if _, err := em.storeAndSend(ctx, event, instanceData.Organization.FeatureFlags); err != nil {
+		if _, err := em.storeAndSend(ctx, ev, instanceData.Organization.FeatureFlags); err != nil {
 			log.Warnf("failed to store in DB or send to SQS config change event")
 		}
 	}()

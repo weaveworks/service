@@ -1,0 +1,33 @@
+{
+  "browser": {
+    "type": "sync",
+    "text": "Sync: 548d854, no services changed",
+    "attachments": [
+      {
+        "text": "```\n548d854 image update\n```\n",
+        "color": "good",
+        "mrkdwn_in": [
+          "text"
+        ]
+      }
+    ],
+    "timestamp": "2017-10-26T23:45:23.967342122Z"
+  },
+  "email": {
+    "subject": "sync",
+    "body": "\u003cp\u003eSync: 548d854, no services changed\n\u003ccode\u003e\n548d854 image update\n\u003c/code\u003e\u003c/p\u003e\n"
+  },
+  "slack": {
+    "username": "",
+    "text": "Sync: 548d854, no services changed",
+    "attachments": [
+      {
+        "text": "```\n548d854 image update\n```\n",
+        "color": "good",
+        "mrkdwn_in": [
+          "text"
+        ]
+      }
+    ]
+  }
+}

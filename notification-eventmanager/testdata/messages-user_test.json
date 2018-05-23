@@ -1,0 +1,12 @@
+{
+  "browser": {
+    "text": "A test event triggered from the Weave Cloud UI"
+  },
+  "email": {
+    "subject": "Weave Cloud Test Event",
+    "body": "This is a Weave Cloud test event!"
+  },
+  "slack": {
+    "text": "A test event triggered from the Weave Cloud UI"
+  }
+}

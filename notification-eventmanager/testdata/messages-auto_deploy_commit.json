@@ -1,0 +1,27 @@
+{
+  "browser": {
+    "type": "auto_deploy_commit",
+    "text": "Commit: default:deployment/ui-server (8ad2170)\n",
+    "attachments": null,
+    "timestamp": "2018-03-21T22:41:10.987606505Z"
+  },
+  "email": {
+    "subject": "Weave Cloud (Dev) - auto_deploy_commit",
+    "body": "\u003cp\u003eInstance: Weave Cloud (Dev)\u003c/p\u003e\n\n\u003cp\u003eCommit: default:deployment/ui-server (8ad2170)\u003c/p\u003e\n"
+  },
+  "slack": {
+    "text": "*Instance*: Weave Cloud (Dev)\nCommit: default:deployment/ui-server (8ad2170)\n",
+    "attachments": null
+  },
+  "stackdriver": {
+    "Timestamp": "2018-03-21T22:41:10.987623072Z",
+    "Payload": {
+      "username": "",
+      "text": "Commit: default:deployment/ui-server (8ad2170)\n"
+    },
+    "Labels": {
+      "event_type": "auto_deploy_commit",
+      "instance": "Weave Cloud (Dev)"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "browser": {
+    "type": "info",
+    "text": "Bryan testing. What are the labels: / . Impact : just testing Details : Testing notifications",
+    "timestamp": "2017-10-05T14:21:04.363683285Z"
+  },
+  "email": {
+    "subject": "info",
+    "body": "\u003cp\u003eBryan testing.  What are the labels: / .\n\u003cem\u003eImpact\u003c/em\u003e: just testing\n\u003cem\u003eDetails\u003c/em\u003e: Testing notifications\u003c/p\u003e\n"
+  },
+  "slack": {
+    "username": "AlertManager",
+    "attachments": [
+      {
+        "title": "[FIRING:2] bryantest (bryan-home warning)",
+        "title_link": "/api/prom/alertmanager/#/alerts?receiver=alerts",
+        "text": "Bryan testing.  What are the labels: / .\n*Impact*: just testing \n*Details*: Testing notifications",
+        "fallback": "[FIRING:2] bryantest (bryan-home warning) | /api/prom/alertmanager/#/alerts?receiver=alerts",
+        "color": "danger",
+        "mrkdwn_in": [
+          "fallback",
+          "pretext",
+          "text"
+        ]
+      }
+    ]
+  }
+}

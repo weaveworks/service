@@ -1,0 +1,27 @@
+{
+  "browser": {
+    "type": "deploy_commit",
+    "text": "Commit: monitoring:deployment/alertmanager (9b61ce7) by adam \u003cadam@weave.works\u003e\n",
+    "attachments": null,
+    "timestamp": "2018-03-21T10:23:10.65183926Z"
+  },
+  "email": {
+    "subject": "Weave Cloud (Dev) - deploy_commit",
+    "body": "\u003cp\u003eInstance: Weave Cloud (Dev)\u003c/p\u003e\n\n\u003cp\u003eCommit: monitoring:deployment/alertmanager (9b61ce7) by adam \u003ca href=\"mailto:adam@weave.works\"\u003eadam@weave.works\u003c/a\u003e\u003c/p\u003e\n"
+  },
+  "slack": {
+    "text": "*Instance*: Weave Cloud (Dev)\nCommit: monitoring:deployment/alertmanager (9b61ce7) by adam \u003cadam@weave.works\u003e\n",
+    "attachments": null
+  },
+  "stackdriver": {
+    "Timestamp": "2018-03-21T10:23:10.651856315Z",
+    "Payload": {
+      "username": "",
+      "text": "Commit: monitoring:deployment/alertmanager (9b61ce7) by adam \u003cadam@weave.works\u003e\n"
+    },
+    "Labels": {
+      "event_type": "deploy_commit",
+      "instance": "Weave Cloud (Dev)"
+    }
+  }
+}

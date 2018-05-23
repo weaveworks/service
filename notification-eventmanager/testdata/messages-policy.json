@@ -1,0 +1,27 @@
+{
+  "browser": {
+    "type": "policy",
+    "text": "Unlock: weave:deployment/weave-flux-agent (2928f15) \"I never wanted it locked, I was just testing it out.\" by michael \u003cmichael@weave.works\u003e\n",
+    "attachments": null,
+    "timestamp": "2018-03-08T15:40:10.767520013Z"
+  },
+  "email": {
+    "subject": "Weave Cloud (Dev) - policy",
+    "body": "\u003cp\u003eInstance: Weave Cloud (Dev)\u003c/p\u003e\n\n\u003cp\u003eUnlock: weave:deployment/weave-flux-agent (2928f15) \u0026quot;I never wanted it locked, I was just testing it out.\u0026quot; by michael \u003ca href=\"mailto:michael@weave.works\"\u003emichael@weave.works\u003c/a\u003e\u003c/p\u003e\n"
+  },
+  "slack": {
+    "text": "*Instance*: Weave Cloud (Dev)\nUnlock: weave:deployment/weave-flux-agent (2928f15) \"I never wanted it locked, I was just testing it out.\" by michael \u003cmichael@weave.works\u003e\n",
+    "attachments": null
+  },
+  "stackdriver": {
+    "Timestamp": "2018-03-08T15:40:10.767538829Z",
+    "Payload": {
+      "username": "",
+      "text": "Unlock: weave:deployment/weave-flux-agent (2928f15) \"I never wanted it locked, I was just testing it out.\" by michael \u003cmichael@weave.works\u003e\n"
+    },
+    "Labels": {
+      "event_type": "policy",
+      "instance": "Weave Cloud (Dev)"
+    }
+  }
+}

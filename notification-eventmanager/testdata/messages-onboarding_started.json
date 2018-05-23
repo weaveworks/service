@@ -1,0 +1,6 @@
+{
+  "browser": {
+    "type": "onboarding_started",
+    "text": "Installation of Weave Cloud agents has started"
+  }
+}
