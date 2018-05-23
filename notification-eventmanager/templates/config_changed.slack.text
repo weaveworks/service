@@ -1,1 +1,1 @@
-The event types for **{{ .Receiver }}** were changed: enabled _{{ .Enabled }}_ and disabled _{{ .Disabled }}_
+The event types for **{{.Receiver}}** were changed: {{if .Enabled}}enabled _{{ .Enabled }}_{{end}} {{if .Disabled}}disabled _{{.Disabled}}_{{end}}

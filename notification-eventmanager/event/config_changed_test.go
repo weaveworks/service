@@ -7,9 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/weaveworks/service/notification-eventmanager/types"
+	"strings"
 )
 
-func TestTypes_Render(t *testing.T) {
+func TestTypes_Render_configChanged(t *testing.T) {
 	d := &ConfigChangedData{
 		Receiver: "random",
 		Enabled:  []string{"foo"},
@@ -23,27 +24,35 @@ func TestTypes_Render(t *testing.T) {
 	}
 
 	tps := NewEventTypes()
-	{
-		out := tps.Render(types.BrowserReceiver, e)
-		assert.IsType(t, types.BrowserOutput(""), out)
-		assert.Equal(t, "The event types for <b>random</b> were changed: enabled <i>[foo]</i> \n", out.Text())
-	}
+	for _, tcase := range []struct {
+		recv string
+		expectedType interface{}
+		expectedText string
+	}{
+		{
+			recv: types.BrowserReceiver,
+			expectedType:types.BrowserOutput(""),
+			expectedText: "The event types for <b>random</b> were changed: enabled <i>[foo]</i>",
+		},
+		{
+			recv: types.EmailReceiver,
+			expectedType:types.EmailOutput{},
+			expectedText: "foo-bar-12 – config_changed: The event types for <b>random</b> were changed: enabled <i>[foo]</i>",
+		},
+		{
+			recv: types.SlackReceiver,
+			expectedType:types.SlackOutput(""),
+			expectedText: "The event types for **random** were changed: enabled _[foo]_",
+		},
+		{
+			recv: types.StackdriverReceiver,
+			expectedType:types.StackdriverOutput(""),
+			expectedText: "The event types for random were changed: enabled [foo]",
+		},
+	} {
+		out := tps.Render(tcase.recv, e)
+		assert.IsType(t, tcase.expectedType, out)
+		assert.Equal(t, tcase.expectedText,  strings.Trim(out.Text(), " \n"))
 
-	{
-		out := tps.Render(types.EmailReceiver, e)
-		assert.IsType(t, types.EmailOutput{}, out)
-		assert.Equal(t, "foo-bar-12 – config_changed: The event types for <b>random</b> were changed: enabled <i>[foo]</i> \n", out.Text())
-	}
-
-	{
-		out := tps.Render(types.SlackReceiver, e)
-		assert.IsType(t, types.SlackOutput(""), out)
-		assert.Equal(t, "The event types for **random** were changed: enabled _[foo]_ \n", out.Text())
-	}
-
-	{
-		out := tps.Render(types.StackdriverReceiver, e)
-		assert.IsType(t, types.StackdriverOutput(""), out)
-		assert.Equal(t, "The event types for random were changed: enabled [foo] \n", out.Text())
 	}
 }

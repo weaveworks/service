@@ -80,6 +80,7 @@ func (l *extensionsTemplateEngine) Lookup(name string) (t Executor, err error) {
 // Bytes finds and executes the given template by name
 func (l *extensionsTemplateEngine) Bytes(templateName string, data interface{}) ([]byte, error) {
 	t, err := l.Lookup(templateName)
+	fmt.Println(t, err)
 	if err != nil {
 		return nil, err
 	}

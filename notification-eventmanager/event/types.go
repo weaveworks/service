@@ -7,10 +7,6 @@ import (
 	"github.com/weaveworks/service/users/templates"
 )
 
-type OutputRenderer interface {
-	Lookup(name string) (templates.Executor, error)
-}
-
 type Types struct {
 	engine templates.Engine
 }
@@ -36,10 +32,10 @@ func (t Types) Render(recv string, e *types.Event) types.Output {
 			Body:    t.renderTemplate("email.html", e, data),
 		}
 	case types.SlackReceiver:
-		return types.BrowserOutput(t.renderTemplate("slack.text", e, data))
+		return types.SlackOutput(t.renderTemplate("slack.text", e, data))
 
 	case types.StackdriverReceiver:
-		return types.BrowserOutput(t.renderTemplate("stackdriver.text", e, data))
+		return types.StackdriverOutput(t.renderTemplate("stackdriver.text", e, data))
 	default:
 		panic(fmt.Sprintf("unknown receiver: %s", recv))
 	}
@@ -47,6 +43,14 @@ func (t Types) Render(recv string, e *types.Event) types.Output {
 }
 
 func (t Types) renderTemplate(name string, e *types.Event, data map[string]interface{}) string {
-	return string(t.engine.QuietBytes(fmt.Sprintf("%s.%s", e.Type, name), data))
+	tmplname := fmt.Sprintf("%s.%s", e.Type, name)
+	res, err := t.engine.Bytes(tmplname, data)
+	if err != nil {
+		res, err = json.Marshal(data)
+		if err != nil {
+			return "BOOM."
+		}
+	}
+	return string(res)
 
 }

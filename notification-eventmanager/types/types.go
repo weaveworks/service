@@ -111,7 +111,7 @@ func (e EmailOutput) Type() string {
 	return EmailReceiver
 }
 func (e EmailOutput) Text() string {
-	return e.Body
+	return fmt.Sprintf("%s: %s", e.Subject, e.Body)
 }
 
 type BrowserOutput string
@@ -123,13 +123,26 @@ func (b BrowserOutput) Text() string {
 	return string(b)
 }
 
-type SlackOutput string
+type SlackOutput struct {
+	Body        string            `json:"text"`
+	Attachments []slackAttachment `json:"attachments,omitempty"`
+}
+
+type slackAttachment struct {
+	Title    string `json:"title,omitempty"`
+	Fallback string `json:"fallback,omitempty"`
+	Text     string `json:"text"`
+	Author   string `json:"author_name,omitempty"`
+	Color    string `json:"color,omitempty"`
+	// This tells Slack which of the other fields are markdown
+	Markdown []string `json:"mrkdwn_in,omitempty"`
+}
 
 func (s SlackOutput) Type() string {
 	return SlackReceiver
 }
 func (s SlackOutput) Text() string {
-	return string(s)
+	return s.Body
 }
 
 type StackdriverOutput string
