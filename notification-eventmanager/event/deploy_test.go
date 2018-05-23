@@ -12,7 +12,7 @@ import (
 )
 
 // Generate an example release
-func exampleRelease() DeployData {
+func exampleRelease() deployData {
 	img1a1, _ := image.ParseRef("img1:a1")
 	img1a2, _ := image.ParseRef("img1:a2")
 	exampleResult := update.Result{
@@ -28,7 +28,7 @@ func exampleRelease() DeployData {
 			},
 		},
 	}
-	return DeployData(event.ReleaseEventMetadata{
+	return deployData(event.ReleaseEventMetadata{
 		Cause: update.Cause{
 			User:    "test-user",
 			Message: "this was to test notifications",
@@ -57,8 +57,17 @@ func TestTypes_Render_deploy(t *testing.T) {
 
 	tps := NewEventTypes()
 	{
-		out := tps.Render(types.BrowserReceiver, e)
-		assert.IsType(t, types.BrowserOutput(""), out)
-		assert.Equal(t, "The event types for <b>random</b> were changed: enabled <i>[foo]</i> \n", out.Text())
+		out := tps.ReceiverData(types.SlackReceiver, e)
+		assert.IsType(t, SlackReceiverData{}, out)
+		actual := out.(SlackReceiverData)
+		assert.Equal(t, "Release all latest to default/helloworld.", actual.Text)
+		assert.Len(t, actual.Attachments, 1)
+		att := actual.Attachments[0]
+		assert.Equal(t,
+			"```\nCONTROLLER          STATUS   UPDATES\ndefault/helloworld  failed   overall-release-error\n                             container1: img1:a1 -\u003e a2\n```\n",
+			att.Text,
+		)
+		assert.Equal(t, "warning", att.Color)
+		assert.Equal(t, "warning", att.Color)
 	}
 }

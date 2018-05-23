@@ -1,13 +1,13 @@
 package types
 
 import (
-	"database/sql"
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"time"
 
+	"database/sql"
+	"fmt"
 	"github.com/lib/pq"
+	"io/ioutil"
 )
 
 // SlackMessage is a Slack API payload with the message text and some options
@@ -97,6 +97,7 @@ type Receiver struct {
 	EventTypes  []string        `json:"event_types"`
 }
 
+/*
 type Output interface {
 	Type() string
 	Text() string
@@ -125,10 +126,10 @@ func (b BrowserOutput) Text() string {
 
 type SlackOutput struct {
 	Body        string            `json:"text"`
-	Attachments []slackAttachment `json:"attachments,omitempty"`
+	Attachments []SlackAttachment `json:"attachments,omitempty"`
 }
 
-type slackAttachment struct {
+type SlackAttachment struct {
 	Title    string `json:"title,omitempty"`
 	Fallback string `json:"fallback,omitempty"`
 	Text     string `json:"text"`
@@ -153,6 +154,7 @@ func (s StackdriverOutput) Type() string {
 func (s StackdriverOutput) Text() string {
 	return string(s)
 }
+*/
 
 // // ReceiverType is a kind of receiver. For example, ‘email’ or ‘slack’.
 const (
@@ -172,8 +174,8 @@ type Notification struct {
 	ReceiverType string `json:"receiver_type"`
 	InstanceID   string
 	Address      json.RawMessage `json:"address"`
-	Data         json.RawMessage `json:"data"`             // FIXME(rndstr): this appears to be the former event.Messages[recv] part?
-	Output       Output          `json:"output,omitempty"` // TBD: rendered data? e.g., email needs `subject` and `body`.
+	Data         json.RawMessage `json:"data"`                    // FIXME(rndstr): this appears to be the former event.Messages[recv] part?
+	ReceiverData json.RawMessage `json:"receiver_data,omitempty"` // Data specifically prepared for the receiver
 	Event        Event           `json:"event"`
 }
 

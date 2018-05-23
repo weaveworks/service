@@ -384,10 +384,12 @@ func (em *EventManager) handleGetEvents(r *http.Request, instanceID string) (int
 	for _, ev := range events {
 		if len(ev.Data) > 0 {
 			ev.Messages = nil
-			text := em.types.Render(Browser, ev).Text()
+			rdata := em.types.ReceiverData(Browser, ev)
+			bs, err := json.Marshal(rdata)
 			if err != nil {
 				return nil, http.StatusInternalServerError, err
 			}
+			text := string(bs)
 			ev.Text = &text
 		}
 	}

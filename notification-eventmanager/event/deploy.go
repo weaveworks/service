@@ -1,6 +1,11 @@
 package event
 
-import "github.com/weaveworks/flux/event"
+import (
+	"encoding/json"
+	"github.com/weaveworks/flux/event"
+	"github.com/weaveworks/flux/update"
+	"github.com/weaveworks/service/notification-eventmanager/types"
+)
 
 /*
 {
@@ -38,4 +43,54 @@ import "github.com/weaveworks/flux/event"
 }
 */
 
-type DeployData event.ReleaseEventMetadata
+const releaseTemplate = `Release {{trim (print .Release.Spec.ImageSpec) "<>"}} to {{with .Release.Spec.ServiceSpecs}}{{range $index, $spec := .}}{{if not (eq $index 0)}}, {{if last $index $.Release.Spec.ServiceSpecs}}and {{end}}{{end}}{{trim (print .) "<>"}}{{end}}{{end}}.`
+
+type deployData event.ReleaseEventMetadata
+
+type Deploy struct {
+}
+
+func (d *Deploy) ReceiverData(recv string, in []byte) ReceiverData {
+	data := deployData{}
+	if err := json.Unmarshal(in, &data); err != nil {
+		return nil
+	}
+
+	switch recv {
+	case types.SlackReceiver:
+		return d.renderForSlack(data)
+	}
+	return nil
+}
+
+func (d *Deploy) renderForSlack(data deployData) ReceiverData {
+	// Sanity check: we shouldn't get any other kind, but you
+	// never know.
+	if data.Spec.Kind != update.ReleaseKindExecute {
+		return nil
+	}
+	var attachments []types.SlackAttachment
+
+	text, err := textTemplate("release", releaseTemplate, struct {
+		Release *event.ReleaseEventMetadata
+	}{
+		Release: (*event.ReleaseEventMetadata)(&data),
+	})
+	if err != nil {
+		return nil
+	}
+
+	if data.Error != "" {
+		attachments = append(attachments, slackErrorAttachment(data.Error))
+	}
+
+	if data.Result != nil {
+		result := slackResultAttachment(data.Result)
+		attachments = append(attachments, result)
+	}
+
+	return SlackReceiverData{
+		Text:        text,
+		Attachments: attachments,
+	}
+}
