@@ -1,12 +1,8 @@
-package event
+package slack
 
 import "github.com/weaveworks/service/notification-eventmanager/types"
 
-type ReceiverData interface {
-	Type() string
-}
-
-type SlackReceiverData struct {
+type ReceiverData struct {
 	Channel     string                  `json:"channel,omitempty"`
 	Username    string                  `json:"username,omitempty"`
 	Text        string                  `json:"text"`
@@ -16,14 +12,6 @@ type SlackReceiverData struct {
 	Attachments []types.SlackAttachment `json:"attachments"`
 }
 
-func (s SlackReceiverData) Type() string {
+func (r ReceiverData) Type() string {
 	return types.SlackReceiver
-}
-
-type BrowserReceiverData struct {
-	Text string `json:"text"`
-}
-
-func (b BrowserReceiverData) Type() string {
-	return types.BrowserReceiver
 }

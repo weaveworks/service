@@ -1,10 +1,18 @@
-package event
+package deployevent
 
 import (
 	"encoding/json"
-	"github.com/weaveworks/flux/event"
+	"fmt"
+
+	fluxevent "github.com/weaveworks/flux/event"
 	"github.com/weaveworks/flux/update"
+	"github.com/weaveworks/service/notification-eventmanager/receiver"
+	"github.com/weaveworks/service/notification-eventmanager/receiver/browser"
+	"github.com/weaveworks/service/notification-eventmanager/receiver/email"
+	"github.com/weaveworks/service/notification-eventmanager/receiver/slack"
+	"github.com/weaveworks/service/notification-eventmanager/receiver/stackdriver"
 	"github.com/weaveworks/service/notification-eventmanager/types"
+	"github.com/weaveworks/service/users/templates"
 )
 
 /*
@@ -45,25 +53,34 @@ import (
 
 const releaseTemplate = `Release {{trim (print .Release.Spec.ImageSpec) "<>"}} to {{with .Release.Spec.ServiceSpecs}}{{range $index, $spec := .}}{{if not (eq $index 0)}}, {{if last $index $.Release.Spec.ServiceSpecs}}and {{end}}{{end}}{{trim (print .) "<>"}}{{end}}{{end}}.`
 
-type deployData event.ReleaseEventMetadata
+type Data fluxevent.ReleaseEventMetadata
 
-type Deploy struct {
+type Event struct {
 }
 
-func (d *Deploy) ReceiverData(recv string, in []byte) ReceiverData {
-	data := deployData{}
-	if err := json.Unmarshal(in, &data); err != nil {
+func (e *Event) ReceiverData(engine templates.Engine, recv string, ev *types.Event) receiver.Data {
+	data := Data{}
+	if err := json.Unmarshal(ev.Data, &data); err != nil {
 		return nil
 	}
 
 	switch recv {
+	case types.BrowserReceiver:
+		return browser.ReceiverData{}
+	case types.EmailReceiver:
+		return email.ReceiverData{
+			Subject: fmt.Sprintf("%s – %s", ev.InstanceName, ev.Type),
+			Body:    "",
+		}
 	case types.SlackReceiver:
-		return d.renderForSlack(data)
+		return e.renderForSlack(data)
+	case types.StackdriverReceiver:
+		return stackdriver.ReceiverData{}
 	}
 	return nil
 }
 
-func (d *Deploy) renderForSlack(data deployData) ReceiverData {
+func (e *Event) renderForSlack(data Data) receiver.Data {
 	// Sanity check: we shouldn't get any other kind, but you
 	// never know.
 	if data.Spec.Kind != update.ReleaseKindExecute {
@@ -72,24 +89,24 @@ func (d *Deploy) renderForSlack(data deployData) ReceiverData {
 	var attachments []types.SlackAttachment
 
 	text, err := textTemplate("release", releaseTemplate, struct {
-		Release *event.ReleaseEventMetadata
+		Release *fluxevent.ReleaseEventMetadata
 	}{
-		Release: (*event.ReleaseEventMetadata)(&data),
+		Release: (*fluxevent.ReleaseEventMetadata)(&data),
 	})
 	if err != nil {
 		return nil
 	}
 
 	if data.Error != "" {
-		attachments = append(attachments, slackErrorAttachment(data.Error))
+		attachments = append(attachments, slack.ErrorAttachment(data.Error))
 	}
 
 	if data.Result != nil {
-		result := slackResultAttachment(data.Result)
+		result := slack.ResultAttachment(data.Result)
 		attachments = append(attachments, result)
 	}
 
-	return SlackReceiverData{
+	return slack.ReceiverData{
 		Text:        text,
 		Attachments: attachments,
 	}
