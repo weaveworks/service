@@ -309,7 +309,7 @@ func (a *usersServer) NotifyTrialPendingExpiry(ctx context.Context, req *users.N
 
 	// Persist sent date in db
 	now := time.Now()
-	err = a.db.UpdateOrganization(ctx, req.ExternalID, users.OrgWriteView{TrialPendingExpiryNotifiedAt: &now})
+	_, err = a.db.UpdateOrganization(ctx, req.ExternalID, users.OrgWriteView{TrialPendingExpiryNotifiedAt: &now})
 
 	return &users.NotifyTrialPendingExpiryResponse{}, err
 }
@@ -333,7 +333,7 @@ func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyT
 
 	// Persist sent date in db
 	now := time.Now()
-	err = a.db.UpdateOrganization(ctx, req.ExternalID, users.OrgWriteView{TrialExpiredNotifiedAt: &now})
+	_, err = a.db.UpdateOrganization(ctx, req.ExternalID, users.OrgWriteView{TrialExpiredNotifiedAt: &now})
 
 	return &users.NotifyTrialExpiredResponse{}, err
 }

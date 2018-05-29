@@ -84,7 +84,7 @@ type DB interface {
 	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)
 	FindOrganizationByGCPExternalAccountID(ctx context.Context, externalAccountID string) (*users.Organization, error)
 	FindOrganizationByInternalID(ctx context.Context, internalID string) (*users.Organization, error)
-	UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error
+	UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) (*users.Organization, error)
 	OrganizationExists(ctx context.Context, externalID string) (bool, error)
 	ExternalIDUsed(ctx context.Context, externalID string) (bool, error)
 	GetOrganizationName(ctx context.Context, externalID string) (string, error)
@@ -100,6 +100,8 @@ type DB interface {
 	SetOrganizationFirstSeenPromConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationFirstSeenScopeConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error
+	// MoveOrganizationToTeam updates the team of the organization. It does *not* check team permissions.
+	MoveOrganizationToTeam(ctx context.Context, externalID, teamExternalID, teamName, userID string) error
 
 	// CreateOrganizationWithGCP creates an organization with an inactive GCP account attached to it.
 	CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string, trialExpiresAt time.Time) (*users.Organization, error)

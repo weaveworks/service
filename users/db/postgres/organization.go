@@ -523,11 +523,11 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 }
 
 // UpdateOrganization changes an organization's user-settable name
-func (d DB) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error {
+func (d DB) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) (*users.Organization, error) {
 	// Get org for validation and add update fields to setFields
 	org, err := d.FindOrganizationByID(ctx, externalID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	setFields := map[string]interface{}{}
 	if update.Name != nil {
@@ -556,11 +556,11 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 	}
 
 	if len(setFields) == 0 {
-		return nil
+		return org, nil
 	}
 
 	if err := org.Valid(); err != nil {
-		return err
+		return nil, err
 	}
 
 	result, err := d.Update("organizations").
@@ -568,16 +568,41 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 		Where(squirrel.Expr("external_id = lower(?) and deleted_at is null", externalID)).
 		ExecContext(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	count, err := result.RowsAffected()
 	switch {
 	case err != nil:
-		return err
+		return nil, err
 	case count != 1:
-		return users.ErrNotFound
+		return nil, users.ErrNotFound
 	}
-	return nil
+	return org, nil
+}
+
+// MoveOrganizationToTeam updates the team of the organization. It does *not* check team permissions.
+func (d DB) MoveOrganizationToTeam(ctx context.Context, externalID, teamExternalID, teamName, userID string) error {
+	if err := verifyTeamParams(teamExternalID, teamName); err != nil {
+		return err
+	}
+
+	var team *users.Team
+	var err error
+	if teamName != "" {
+		if team, err = d.CreateTeam(ctx, teamName); err != nil {
+			return err
+		}
+		if err = d.AddUserToTeam(ctx, userID, team.ID); err != nil {
+			return err
+		}
+	} else {
+		if team, err = d.findTeamByExternalID(ctx, teamExternalID); err != nil {
+			return err
+		}
+	}
+	_, err = d.ExecContext(ctx, `update organizations set team_id = $1 where external_id = lower($2)`,
+		team.ID, externalID)
+	return err
 }
 
 // OrganizationExists just returns a simple bool checking if an organization
@@ -803,7 +828,7 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccountI
 
 		platform, env := "kubernetes", "gke"
 		now := d.Now()
-		if err = tx.UpdateOrganization(ctx, externalID, users.OrgWriteView{
+		if _, err = tx.UpdateOrganization(ctx, externalID, users.OrgWriteView{
 			// Hardcode platform/env here, that's what we expect the user to have.
 			// It also skips the platform/env tab during the onboarding process.
 			Platform:    &platform,
@@ -818,16 +843,22 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccountI
 	})
 }
 
-// CreateOrganizationWithTeam creates a new organization, ensuring it is part of a team and owned by the user
-func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error) {
+func verifyTeamParams(teamExternalID, teamName string) error {
 	if teamName == "" && teamExternalID == "" {
-		return nil, errors.New("At least one of teamExternalID, teamName needs to be provided")
+		return errors.New("At least one of teamExternalID, teamName needs to be provided")
 	}
 	if teamName != "" && teamExternalID != "" {
-		return nil, fmt.Errorf("Only one of teamExternalID, teamName needs to be provided: %v, %v", teamExternalID, teamName)
+		return fmt.Errorf("Only one of teamExternalID, teamName needs to be provided: %v, %v", teamExternalID, teamName)
 	}
+	return nil
+}
 
+// CreateOrganizationWithTeam creates a new organization, ensuring it is part of a team and owned by the user
+func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error) {
 	var org *users.Organization
+	if err := verifyTeamParams(teamExternalID, teamName); err != nil {
+		return nil, err
+	}
 	err := d.Transaction(func(tx DB) error {
 		var team *users.Team
 		var err error

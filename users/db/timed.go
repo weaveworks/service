@@ -223,9 +223,17 @@ func (t timed) FindOrganizationByInternalID(ctx context.Context, internalID stri
 	return
 }
 
-func (t timed) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error {
-	return t.timeRequest(ctx, "UpdateOrganization", func(ctx context.Context) error {
-		return t.d.UpdateOrganization(ctx, externalID, update)
+func (t timed) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) (o *users.Organization, err error) {
+	t.timeRequest(ctx, "UpdateOrganization", func(ctx context.Context) error {
+		o, err = t.d.UpdateOrganization(ctx, externalID, update)
+		return err
+	})
+	return
+}
+
+func (t timed) MoveOrganizationToTeam(ctx context.Context, externalID, teamExternalID, teamName, userID string) error {
+	return t.timeRequest(ctx, "MoveOrganizationToTeam", func(ctx context.Context) error {
+		return t.d.MoveOrganizationToTeam(ctx, externalID, teamExternalID, teamName, userID)
 	})
 }
 

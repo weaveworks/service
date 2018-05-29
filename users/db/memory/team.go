@@ -58,7 +58,7 @@ func (d *DB) listTeamUsers(_ context.Context, teamID string) ([]*users.User, err
 }
 
 func (d *DB) generateTeamExternalID(_ context.Context) (string, error) {
-	// no lock needed: called by createTeam which acquired the lock
+	// no lock needed: caller must acquire lock.
 	var externalID string
 	for used := true; used; {
 		externalID = externalids.Generate()
@@ -76,7 +76,7 @@ func (d *DB) generateTeamExternalID(_ context.Context) (string, error) {
 
 // CreateTeam creates a team
 func (d *DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
-	// no lock needed: called by CreateOrganization which acquired the lock
+	// no lock needed: caller must acquire lock.
 	if name == "" {
 		return nil, errors.New("Team name cannot be blank")
 	}
@@ -100,7 +100,7 @@ func (d *DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
 
 // AddUserToTeam links a user to the team
 func (d *DB) AddUserToTeam(_ context.Context, userID, teamID string) error {
-	// no lock needed: called by CreateOrganization which acquired the lock
+	// no lock needed: caller must acquire lock.
 	teamIDs, _ := d.teamMemberships[userID]
 	for _, id := range teamIDs {
 		if id == teamID {
@@ -114,7 +114,6 @@ func (d *DB) AddUserToTeam(_ context.Context, userID, teamID string) error {
 
 // getTeamUserIsPartOf returns the team the user is part of.
 func (d DB) getTeamUserIsPartOf(ctx context.Context, userID, teamExternalID string) (*users.Team, error) {
-	// no lock needed: called by CreateOrganization which acquired the lock
 	if teamExternalID == "" {
 		return nil, errors.New("teamExternalID must be provided")
 	}
@@ -143,6 +142,7 @@ func (d DB) getTeamUserIsPartOf(ctx context.Context, userID, teamExternalID stri
 
 // ensureUserIsPartOfTeamByName ensures the users is part of team by name, the team is created if it does not exist
 func (d DB) ensureUserIsPartOfTeamByName(ctx context.Context, userID, teamName string) (*users.Team, error) {
+	// no lock needed: caller must acquire lock.
 	if teamName == "" {
 		return nil, errors.New("teamName must be provided")
 	}

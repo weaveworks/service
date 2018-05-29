@@ -39,9 +39,27 @@ type OrgView struct {
 	ZuoraAccountNumber    string     `json:"zuoraAccountNumber"`
 	ZuoraAccountCreatedAt *time.Time `json:"zuoraAccountCreatedAt"`
 	BillingProvider       string     `json:"billingProvider"`
-	TeamID                string     `json:"teamId,omitempty"`
-	TeamExternalID        string     `json:"teamExternalId,omitempty"`
-	TeamName              string     `json:"teamName,omitempty"`
+	// Deprecated. Use TeamExternalID.
+	TeamID         string `json:"teamId,omitempty"`         // TODO(rndstr): remove this once ui-server uses `teamId` as external
+	TeamExternalID string `json:"teamExternalId,omitempty"` // TODO(rndstr): rename json output to `teamId`
+	TeamName       string `json:"teamName,omitempty"`
+}
+
+// UnmarshalJSON does some postprocessing to support `teamExternalId` in JSON usage temporarily.
+// TODO(rndstr): remove once ui-server` uses `teamId`.
+func (o *OrgView) UnmarshalJSON(b []byte) error {
+	// Prevent recursive loop
+	type alias *OrgView
+	var tmp alias = o
+	if err := json.Unmarshal(b, &tmp); err != nil {
+		return err
+	}
+	// For now we support teamId as well as teamExternalId to pass in the external id.
+	// Internally we only use the variable TeamExternalID
+	if tmp.TeamExternalID == "" {
+		tmp.TeamExternalID = tmp.TeamID
+	}
+	return nil
 }
 
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -84,8 +102,8 @@ func (a *API) createOrgView(currentUser *users.User, org *users.Organization) Or
 		Environment:          org.Environment,
 		TrialExpiresAt:       org.TrialExpiresAt,
 		BillingProvider:      org.BillingProvider(),
-		TeamID:               org.TeamID,
 		TeamExternalID:       org.TeamExternalID,
+		TeamID:               org.TeamExternalID,
 	}
 }
 
@@ -140,60 +158,7 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 		return err
 	}
 
-	if org.TeamID != "" {
-		account, err := a.billingClient.FindBillingAccountByTeamID(ctx, &grpc.BillingAccountByTeamIDRequest{
-			TeamID: org.TeamID,
-		})
-		if err != nil {
-			return err
-		}
-		if account.Provider == provider.External {
-			// Exit early, as we:
-			// - do not want to set the "billing" flag,
-			// - do want to grant access,
-			// for instances billed externally.
-			// We do, however, set the "no-billing" flag to follow the current
-			// convention for instances not billed via Zuora/GCP.
-			log.Infof("billing disabled for %v/%v/%v as team %v is billed externally.", org.ID, view.ExternalID, view.Name, org.TeamID)
-			return a.db.AddFeatureFlag(ctx, view.ExternalID, featureflag.NoBilling)
-		}
-	}
-
-	if strings.HasSuffix(currentUser.Email, "@weave.works") {
-		// Exit early, as we:
-		// - do not want to set the "billing" flag,
-		// - do want to grant access,
-		// for instances created by Weaveworks people.
-		// We do, however, set the "no-billing" flag to follow the current
-		// convention for instances not billed via Zuora/GCP.
-		log.Infof("billing disabled for %v/%v/%v as %v is a Weaver.", org.ID, view.ExternalID, view.Name, currentUser.Email)
-		return a.db.AddFeatureFlag(ctx, view.ExternalID, featureflag.NoBilling)
-	}
-
-	if a.billingEnabler.IsEnabled() {
-		err = a.db.AddFeatureFlag(ctx, view.ExternalID, featureflag.Billing)
-		if err != nil {
-			return err
-		}
-		log.Infof("billing enabled for %v/%v/%v.", org.ID, view.ExternalID, view.Name)
-		// Manually append to object for data refusal check below
-		org.FeatureFlags = append(org.FeatureFlags, featureflag.Billing)
-	}
-
-	if orgs.ShouldRefuseDataAccess(*org, now) {
-		if err = a.db.SetOrganizationRefuseDataAccess(ctx, org.ExternalID, true); err != nil {
-			log.Errorf("failed refusing data access for %s: %v", org.ExternalID, err)
-			// do not return error, this is not crucial
-		}
-	}
-	if orgs.ShouldRefuseDataUpload(*org, now) {
-		if err = a.db.SetOrganizationRefuseDataUpload(ctx, org.ExternalID, true); err != nil {
-			log.Errorf("failed refusing data upload for %s: %v", org.ExternalID, err)
-			// do not return error, this is not crucial
-		}
-	}
-
-	return nil
+	return a.afterOrganizationCreatedOrMoved(ctx, currentUser, org, now)
 }
 
 func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -204,15 +169,142 @@ func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		return
 	}
 	orgExternalID := mux.Vars(r)["orgExternalID"]
+
+	// Update.
 	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	}
-	if err := a.db.UpdateOrganization(r.Context(), orgExternalID, update); err != nil {
+	org, err := a.db.UpdateOrganization(r.Context(), orgExternalID, update)
+	if err != nil {
 		renderError(w, r, err)
 		return
 	}
+
+	// Move teams?
+	if update.TeamExternalID != nil || update.TeamName != nil {
+		if err := a.MoveOrg(r.Context(), currentUser, org, ptostr(update.TeamExternalID), ptostr(update.TeamName)); err != nil {
+			renderError(w, r, err)
+			return
+		}
+	}
+
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// MoveOrg moves the given organization to either an existing or a new team.
+func (a *API) MoveOrg(ctx context.Context, currentUser *users.User, org *users.Organization, teamExternalID, teamName string) error {
+	if teamExternalID != "" {
+		if err := a.userCanAccessTeam(ctx, currentUser, teamExternalID); err != nil {
+			return err
+		}
+	}
+
+	// Move organization into other team
+	prevID := org.TeamID
+	if err := a.db.MoveOrganizationToTeam(ctx, org.ExternalID, teamExternalID, teamName, currentUser.ID); err != nil {
+		return err
+	}
+
+	// Update billing feature flags because the previous team might was externally billed and the new one isn't.
+	// In this case, we need to reinstate the `billing` flag to prevent freeloading. The opposite direction—from
+	// externally billed to locally billed—also needs a billing flag toggle.
+
+	neworg, err := a.db.FindOrganizationByID(ctx, org.ExternalID)
+	if err != nil {
+		return err
+	}
+
+	bacc, err := a.billingClient.FindBillingAccountByTeamID(ctx, &grpc.BillingAccountByTeamIDRequest{
+		TeamID: prevID,
+	})
+	if err != nil {
+		return err
+	}
+	newbacc, err := a.billingClient.FindBillingAccountByTeamID(ctx, &grpc.BillingAccountByTeamIDRequest{
+		TeamID: neworg.TeamID,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Only trigger restrictions update if we move from externally billed account to Zuora-billed account and vice versa
+	if bacc.Provider != newbacc.Provider {
+		if err := a.afterOrganizationCreatedOrMoved(ctx, currentUser, neworg, time.Now()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// afterOrganizationSave is supposed to be an event hook that post processes the organixation after it has been created
+// or updated. It makes sure the proper feature flags with regard to billing are set and also the data access/upload
+// restrictions are in place.
+func (a *API) afterOrganizationCreatedOrMoved(ctx context.Context, currentUser *users.User, org *users.Organization, now time.Time) error {
+	var addFlag, otherFlag string
+
+	if org.TeamID != "" {
+		account, err := a.billingClient.FindBillingAccountByTeamID(ctx, &grpc.BillingAccountByTeamIDRequest{
+			TeamID: org.TeamID,
+		})
+		if err != nil {
+			return err
+		}
+		if account.Provider == provider.External {
+			// No billing for instances billed externally.
+			addFlag = featureflag.NoBilling
+			otherFlag = featureflag.Billing
+			log.Infof("Disabling billing for %v/%v/%v as team %v is billed externally.", org.ID, org.ExternalID, org.Name, org.TeamID)
+		}
+	}
+	if addFlag == "" && a.billingEnabler.IsEnabled() {
+		addFlag = featureflag.Billing
+		otherFlag = featureflag.NoBilling
+		log.Infof("Enabling billing for %v/%v/%v.", org.ID, org.ExternalID, org.Name)
+	}
+
+	if strings.HasSuffix(currentUser.Email, "@weave.works") {
+		// No billing for instances created by Weaveworks people.
+		addFlag = featureflag.NoBilling
+		otherFlag = featureflag.Billing
+		log.Infof("Disabling billing for %v/%v/%v as %v is a Weaver.", org.ID, org.ExternalID, org.Name, currentUser.Email)
+	}
+
+	if addFlag != "" {
+		var ff []string
+		for _, f := range org.FeatureFlags {
+			if otherFlag != f && addFlag != f {
+				ff = append(ff, f)
+			}
+		}
+		ff = append(ff, addFlag)
+		if err := a.db.SetFeatureFlags(ctx, org.ExternalID, ff); err != nil {
+			return err
+		}
+		org.FeatureFlags = ff
+	}
+
+	if orgs.ShouldRefuseDataAccess(*org, now) {
+		if err := a.db.SetOrganizationRefuseDataAccess(ctx, org.ExternalID, true); err != nil {
+			log.Errorf("failed refusing data access for %s: %v", org.ExternalID, err)
+			// do not return error, this is not crucial
+		}
+	}
+	if orgs.ShouldRefuseDataUpload(*org, now) {
+		if err := a.db.SetOrganizationRefuseDataUpload(ctx, org.ExternalID, true); err != nil {
+			log.Errorf("failed refusing data upload for %s: %v", org.ExternalID, err)
+			// do not return error, this is not crucial
+		}
+	}
+
+	return nil
+}
+
+func ptostr(pstr *string) string {
+	if pstr == nil {
+		return ""
+	}
+	return *pstr
 }
 
 func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -365,6 +457,19 @@ func (a *API) userCanAccessOrg(ctx context.Context, currentUser *users.User, org
 	return nil
 }
 
+func (a *API) userCanAccessTeam(ctx context.Context, currentUser *users.User, teamExternalID string) error {
+	teams, err := a.db.ListTeamsForUserID(ctx, currentUser.ID)
+	if err != nil {
+		return err
+	}
+	for _, t := range teams {
+		if t.ExternalID == teamExternalID {
+			return nil
+		}
+	}
+	return users.ErrForbidden
+}
+
 // setOrgFeatureFlags updates feature flags of an organization.
 func (a *API) setOrgFeatureFlags(ctx context.Context, orgExternalID string, flags []string) error {
 	uniqueFlags := map[string]struct{}{}
@@ -422,7 +527,7 @@ func (a *API) extendOrgTrialPeriod(ctx context.Context, org *users.Organization,
 	}
 	logging.With(ctx).Infof("Extending trial period from %v to %v for %v", org.TrialExpiresAt, t, org.ExternalID)
 
-	if err := a.db.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{
+	if _, err := a.db.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{
 		TrialExpiresAt:         &t,
 		TrialExpiredNotifiedAt: &time.Time{}, // sets it to NULL
 	}); err != nil {
