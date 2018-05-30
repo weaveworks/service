@@ -253,7 +253,7 @@ func gcpSubscribe(t *testing.T, database db.DB, a *api.API, client *mock_partner
 }
 
 func createAPI(client partner.API, accessor partner.Accessor) *api.API {
-	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", false)
+	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", false, "")
 	return api.New(
 		false,
 		nil,

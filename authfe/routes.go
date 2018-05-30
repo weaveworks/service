@@ -431,7 +431,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		AuthHeaderStrippingMiddleware{},
 		originChecker,
 		stripSetCookieHeader{prefixes: stripSetCookieHeaderPrefixes},
-		csrfTokenVerifier{exemptPrefixes: csrfExemptPrefixes, secure: c.secureCookie},
+		csrfTokenVerifier{exemptPrefixes: csrfExemptPrefixes, secure: c.secureCookie, domain: c.cookieDomain},
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler, operationNameFunc)
 		}),
@@ -492,6 +492,7 @@ func (s stripSetCookieHeader) Wrap(next http.Handler) http.Handler {
 type csrfTokenVerifier struct {
 	exemptPrefixes []string
 	secure         bool
+	domain         string
 }
 
 func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
@@ -509,6 +510,7 @@ func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
 		HttpOnly: true,
 		Path:     "/",
 		Secure:   c.secure,
+		Domain:   c.domain,
 	})
 	// Make errors a bit more descriptive than a plain 400
 	h.SetFailureHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

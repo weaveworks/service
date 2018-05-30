@@ -30,7 +30,7 @@ var (
 
 func setup(t *testing.T) {
 	database = dbtest.Setup(t)
-	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", false)
+	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", false, "")
 	templates := templates.MustNewEngine("../templates")
 	smtp = emailer.SMTPEmailer{
 		Templates:   templates,

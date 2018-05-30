@@ -52,6 +52,7 @@ func main() {
 		sessionSecret = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
 		directLogin   = flag.Bool("direct-login", false, "Send login token in the signup response (DEV only)")
 		secureCookie  = flag.Bool("secure-cookie", false, "Set secure flag on cookies (so they only get used on HTTPS connections.)")
+		cookieDomain  = flag.String("cookie-domain", "", "The domain to which the authentication cookie will be scoped.")
 
 		fluxStatusAPI  = flag.String("flux-status-api", "", "Hostname and port for flux V6 service. e.g. http://fluxsvc.flux.svc.cluster.local:80/api/flux/v6/status")
 		scopeProbesAPI = flag.String("scope-probes-api", "", "Hostname and port for scope query. e.g. http://query.scope.svc.cluster.local:80/api/probes")
@@ -159,7 +160,7 @@ func main() {
 	emailer := emailer.MustNew(*emailURI, *emailFromAddress, templates, *domain)
 	db := db.MustNew(dbCfg)
 	defer db.Close(context.Background())
-	sessions := sessions.MustNewStore(*sessionSecret, *secureCookie)
+	sessions := sessions.MustNewStore(*sessionSecret, *secureCookie, *cookieDomain)
 
 	orgCleaner := cleaner.New(cleanupURLs, db)
 	log.Debug("Debug logging enabled")

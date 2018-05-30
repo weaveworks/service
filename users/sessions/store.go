@@ -1,11 +1,10 @@
 package sessions
 
 import (
-	"net/http"
-	"time"
-
 	"github.com/gorilla/securecookie"
 	log "github.com/sirupsen/logrus"
+	"net/http"
+	"time"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/client"
@@ -17,7 +16,7 @@ const (
 )
 
 // MustNewStore creates a new session store, or panics.
-func MustNewStore(validationSecret string, secure bool) Store {
+func MustNewStore(validationSecret string, secure bool, domain string) Store {
 	secretBytes := []byte(validationSecret)
 	if len(secretBytes) != 64 {
 		log.Fatal("session-secret must be 64 bytes")
@@ -29,6 +28,7 @@ func MustNewStore(validationSecret string, secure bool) Store {
 			SetSerializer(securecookie.JSONEncoder{}).
 			MaxAge(int(SessionDuration.Seconds())),
 		secure: secure,
+		domain: domain,
 	}
 }
 
@@ -37,6 +37,7 @@ type Store struct {
 	secret  string
 	encoder *securecookie.SecureCookie
 	secure  bool
+	domain  string
 }
 
 // Session is the decoded representation of a session cookie
@@ -90,7 +91,7 @@ func (s Store) Decode(encoded string) (Session, error) {
 
 // Set stores the session with the given userID for the user.
 func (s Store) Set(w http.ResponseWriter, r *http.Request, userID string, impersonatingUserID string) error {
-	cookie, err := s.Cookie(userID, impersonatingUserID)
+	cookie, err := s.Cookie(userID, impersonatingUserID, s.domain)
 	impersonationCookieShouldExist := false
 	if err == nil {
 		http.SetCookie(w, cookie)
@@ -143,7 +144,7 @@ func (s Store) applyImpersonationCookie(w http.ResponseWriter, r *http.Request, 
 }
 
 // Cookie creates the http cookie to set for this user's session.
-func (s Store) Cookie(userID string, impersonatingUserID string) (*http.Cookie, error) {
+func (s Store) Cookie(userID, impersonatingUserID, domain string) (*http.Cookie, error) {
 	value, err := s.Encode(userID, impersonatingUserID)
 	return &http.Cookie{
 		Name:     client.AuthCookieName,
@@ -153,6 +154,7 @@ func (s Store) Cookie(userID string, impersonatingUserID string) (*http.Cookie, 
 		Expires:  time.Now().UTC().Add(SessionDuration),
 		MaxAge:   int(SessionDuration / time.Second),
 		Secure:   s.secure,
+		Domain:   domain,
 	}, err
 }
 

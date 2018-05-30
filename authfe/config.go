@@ -33,6 +33,7 @@ type Config struct {
 	sendCSPHeader         bool
 	targetOrigin          string
 	allowedOriginSuffixes common.ArrayFlags
+	cookieDomain          string
 
 	// External hostnames
 	launcherServiceExternalHost string
@@ -168,6 +169,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.BoolVar(&c.sendCSPHeader, "send-csp-header", false, "Send \"Content-Security-Policy: default-src https:\" in all responses.")
 	f.StringVar(&c.targetOrigin, "hostname", "", "Hostname through which this server is accessed, for same-origin checks (CSRF protection)")
 	f.Var(&c.allowedOriginSuffixes, "allowed-origin-suffix", "Hostname suffix to permit through same-origin checks (CSRF protection).")
+	f.StringVar(&c.cookieDomain, "cookie-domain", "", "Domain to which cookies will be scoped")
 
 	// External hostnames
 	f.StringVar(&c.launcherServiceExternalHost, "launcher-service-external-host", "get.weave.works", "External hostname used for the launcher service")
