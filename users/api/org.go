@@ -157,7 +157,7 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 		return err
 	}
 
-	return a.afterOrganizationCreatedOrMoved(ctx, currentUser, org, now)
+	return a.refreshOrganizationRestrictions(ctx, currentUser, org, now)
 }
 
 func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -233,7 +233,7 @@ func (a *API) MoveOrg(ctx context.Context, currentUser *users.User, org *users.O
 
 	// Only trigger restrictions update if we move from externally billed account to Zuora-billed account and vice versa
 	if bacc.Provider != newbacc.Provider {
-		if err := a.afterOrganizationCreatedOrMoved(ctx, currentUser, neworg, time.Now()); err != nil {
+		if err := a.refreshOrganizationRestrictions(ctx, currentUser, neworg, time.Now()); err != nil {
 			return err
 		}
 	}
@@ -247,10 +247,10 @@ func verifyTeamParams(teamExternalID, teamName string) error {
 	return nil
 }
 
-// afterOrganizationSave is supposed to be an event hook that post processes the organixation after it has been created
-// or updated. It makes sure the proper feature flags with regard to billing are set and also the data access/upload
-// restrictions are in place.
-func (a *API) afterOrganizationCreatedOrMoved(ctx context.Context, currentUser *users.User, org *users.Organization, now time.Time) error {
+// refreshOrganizationRestrictions is supposed to be an event hook that post processes the
+// organization after it has been created or updated. It makes sure the proper feature flags
+// with regard to billing are set and also the data access/upload // restrictions are in place.
+func (a *API) refreshOrganizationRestrictions(ctx context.Context, currentUser *users.User, org *users.Organization, now time.Time) error {
 	var addFlag, otherFlag string
 
 	if org.TeamID != "" {
