@@ -143,7 +143,7 @@ func (d DB) organizationsQueryHelper(deleted bool) squirrel.SelectBuilder {
 	).
 		From("organizations").
 		LeftJoin("gcp_accounts ON gcp_account_id = gcp_accounts.id").
-		LeftJoin("teams ON teams.id = organizations.team_id").
+		LeftJoin("teams ON teams.id = organizations.team_id AND teams.deleted_at is null").
 		OrderBy("organizations.created_at DESC")
 	if !deleted {
 		query = query.Where("organizations.deleted_at is null")
@@ -1008,7 +1008,7 @@ func (d DB) GetSummary(ctx context.Context) ([]*users.SummaryEntry, error) {
 		gcp_accounts.subscription_status AS gcp_account_status,
 		gcp_accounts.subscription_level AS gcp_account_plan
 		FROM organizations
-		LEFT JOIN teams        ON teams.id = organizations.team_id
+		LEFT JOIN teams        ON teams.id = organizations.team_id AND teams.deleted_at IS NULL
 		LEFT JOIN gcp_accounts ON gcp_accounts.id = organizations.gcp_account_id
 		INNER JOIN memberships  ON memberships.organization_id = organizations.id
 		INNER JOIN users        ON users.id = memberships.user_id
@@ -1050,7 +1050,9 @@ func (d DB) GetSummary(ctx context.Context) ([]*users.SummaryEntry, error) {
 		WHERE
 		users.deleted_at IS NULL AND
 		team_memberships.deleted_at IS NULL AND
-		organizations.deleted_at IS NULL
+		organizations.deleted_at IS NULL AND
+		teams.deleted_at IS NULL
+		
 
 		) AS t
 

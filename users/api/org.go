@@ -194,7 +194,7 @@ func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 // MoveOrg moves the given organization to either an existing or a new team.
 func (a *API) MoveOrg(ctx context.Context, currentUser *users.User, org *users.Organization, teamExternalID, teamName string) error {
 	if teamExternalID != "" {
-		if err := a.userCanAccessTeam(ctx, currentUser, teamExternalID); err != nil {
+		if _, err := a.userCanAccessTeam(ctx, currentUser, teamExternalID); err != nil {
 			return err
 		}
 	}
@@ -247,9 +247,8 @@ func verifyTeamParams(teamExternalID, teamName string) error {
 	return nil
 }
 
-// refreshOrganizationRestrictions is supposed to be an event hook that post processes the
-// organization after it has been created or updated. It makes sure the proper feature flags
-// with regard to billing are set and also the data access/upload // restrictions are in place.
+// refreshOrganizationRestrictions updates restrictions of an organization with regard to billing.
+// It makes sure the proper feature flags are set and also the data access/upload restrictions are in place.
 func (a *API) refreshOrganizationRestrictions(ctx context.Context, currentUser *users.User, org *users.Organization, now time.Time) error {
 	var addFlag, otherFlag string
 
@@ -465,19 +464,6 @@ func (a *API) userCanAccessOrg(ctx context.Context, currentUser *users.User, org
 		return users.ErrNotFound
 	}
 	return nil
-}
-
-func (a *API) userCanAccessTeam(ctx context.Context, currentUser *users.User, teamExternalID string) error {
-	teams, err := a.db.ListTeamsForUserID(ctx, currentUser.ID)
-	if err != nil {
-		return err
-	}
-	for _, t := range teams {
-		if t.ExternalID == teamExternalID {
-			return nil
-		}
-	}
-	return users.ErrForbidden
 }
 
 // setOrgFeatureFlags updates feature flags of an organization.

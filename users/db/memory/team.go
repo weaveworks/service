@@ -42,8 +42,8 @@ func (d *DB) ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, e
 func (d *DB) listTeamUsers(_ context.Context, teamID string) ([]*users.User, error) {
 	var users []*users.User
 	for m, teamIDs := range d.teamMemberships {
-		for _, teamID := range teamIDs {
-			if teamID == teamID {
+		for _, tID := range teamIDs {
+			if tID == teamID {
 				u, err := d.findUserByID(m)
 				if err != nil {
 					return nil, err
@@ -109,6 +109,30 @@ func (d *DB) AddUserToTeam(_ context.Context, userID, teamID string) error {
 	}
 	teamIDs = append(teamIDs, teamID)
 	d.teamMemberships[userID] = teamIDs
+	return nil
+}
+
+// DeleteTeam marks the given team as deleted.
+func (d DB) DeleteTeam(ctx context.Context, teamID string) error {
+	// Verify team has no orgs
+	for _, org := range d.organizations {
+		if org.TeamID == teamID {
+			return users.ErrForbidden
+		}
+	}
+
+	// Delete memberships
+	for uid, tids := range d.teamMemberships {
+		for i, tid := range tids {
+			if tid == teamID {
+				d.teamMemberships[uid] = append(tids[:i], tids[i+1:]...)
+			}
+		}
+	}
+
+	// Delete team
+	delete(d.teams, teamID)
+
 	return nil
 }
 
