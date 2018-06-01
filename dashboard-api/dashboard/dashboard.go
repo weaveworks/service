@@ -254,7 +254,9 @@ func GetDashboards(metrics []string, config map[string]string) ([]Dashboard, err
 	}
 
 	// resolve Queries fields
-	config["range"] = "2m"
+	if _, ok := config["range"]; !ok {
+		config["range"] = "2m"
+	}
 	resolveQueries(dashboards, config)
 
 	return dashboards, nil
