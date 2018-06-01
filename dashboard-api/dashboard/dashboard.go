@@ -238,10 +238,10 @@ func GetDashboardByID(ID string, config map[string]string) *Dashboard {
 	return nil
 }
 
-// GetServiceDashboards returns a list of dashboards that can be shown, given
-// the list of metrics available for a service.
+// GetDashboards returns a list of dashboards that can be shown, given the list
+// of metrics available for a service.
 // config contains the values of template variables, (variable -> value)
-func GetServiceDashboards(metrics []string, config map[string]string) ([]Dashboard, error) {
+func GetDashboards(metrics []string, config map[string]string) ([]Dashboard, error) {
 	// For O(1) metric existence checks.
 	metricsMap := make(map[string]bool)
 	for _, metric := range metrics {

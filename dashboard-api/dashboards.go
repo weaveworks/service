@@ -46,7 +46,7 @@ func (api *API) GetServiceDashboards(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := getServiceDashboardsResponse{}
-	resp.Dashboards, err = dashboard.GetServiceDashboards(metrics, map[string]string{
+	resp.Dashboards, err = dashboard.GetDashboards(metrics, map[string]string{
 		"namespace": namespace,
 		"workload":  service,
 	})

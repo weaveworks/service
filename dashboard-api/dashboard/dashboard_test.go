@@ -198,7 +198,7 @@ func getAllDashboards() ([]Dashboard, error) {
 	const workload = "authfe"
 
 	metrics := getAllRequiredMetrics(providers)
-	return GetServiceDashboards(metrics, map[string]string{
+	return GetDashboards(metrics, map[string]string{
 		"namespace": ns,
 		"workload":  workload,
 	})
@@ -294,7 +294,7 @@ func getAllDashboardsWithOptionalPanels() ([]Dashboard, error) {
 	const workload = "authfe"
 
 	metrics := getAllMetrics(providers)
-	allDashboards, err := GetServiceDashboards(metrics, map[string]string{
+	allDashboards, err := GetDashboards(metrics, map[string]string{
 		"namespace": ns,
 		"workload":  workload,
 	})
