@@ -154,7 +154,7 @@ func (a *API) adminRemoveUserFromOrganization(w http.ResponseWriter, r *http.Req
 func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 	page := filter.ParsePageValue(r.FormValue("page"))
 	query := r.FormValue("query")
-	organizations, err := a.db.ListOrganizations(r.Context(), filter.ParseOrgQuery(query), page)
+	organizations, err := a.db.ListAllOrganizations(r.Context(), filter.ParseOrgQuery(query), page)
 	if err != nil {
 		renderError(w, r, err)
 		return

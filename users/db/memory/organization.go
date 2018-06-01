@@ -104,6 +104,26 @@ func (d *DB) ListOrganizations(_ context.Context, f filter.Organization, page ui
 	return orgs, nil
 }
 
+// ListAllOrganizations lists all organizations including deleted ones
+func (d *DB) ListAllOrganizations(_ context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	orgs := []*users.Organization{}
+
+	for _, org := range d.organizations {
+		if f.MatchesOrg(*org) {
+			orgs = append(orgs, org)
+		}
+	}
+	for _, org := range d.deletedOrganizations {
+		if f.MatchesOrg(*org) {
+			orgs = append(orgs, org)
+		}
+	}
+	sort.Sort(organizationsByCreatedAt(orgs))
+	return orgs, nil
+}
+
 // ListOrganizationUsers lists all the users in an organization
 func (d *DB) ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error) {
 	d.mtx.Lock()

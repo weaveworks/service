@@ -53,6 +53,7 @@ type DB interface {
 
 	ListUsers(ctx context.Context, f filter.User, page uint64) ([]*users.User, error)
 	ListOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error)
+	ListAllOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error)
 	ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error)
 
 	// ListOrganizationsForUserIDs lists all organizations these users have
