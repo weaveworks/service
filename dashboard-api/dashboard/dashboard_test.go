@@ -169,7 +169,9 @@ func TestResolveQueries(t *testing.T) {
 	// work on a copy to not touch the original
 	dashboard := testDashboard.DeepCopy()
 
-	resolveQueries([]Dashboard{dashboard}, &Config{Workload: "bar"})
+	resolveQueries([]Dashboard{dashboard}, map[string]string{
+		"workload": "bar",
+	})
 	assert.Equal(t, "test_metric{_weave_service='bar'}", dashboard.Sections[0].Rows[0].Panels[0].Query)
 }
 
@@ -196,7 +198,10 @@ func getAllDashboards() ([]Dashboard, error) {
 	const workload = "authfe"
 
 	metrics := getAllRequiredMetrics(providers)
-	return GetServiceDashboards(metrics, ns, workload)
+	return GetServiceDashboards(metrics, map[string]string{
+		"namespace": ns,
+		"workload":  workload,
+	})
 }
 
 // TestUniqueIDs ensures all dashboards we can produce have their own unique ID.
@@ -289,7 +294,10 @@ func getAllDashboardsWithOptionalPanels() ([]Dashboard, error) {
 	const workload = "authfe"
 
 	metrics := getAllMetrics(providers)
-	allDashboards, err := GetServiceDashboards(metrics, ns, workload)
+	allDashboards, err := GetServiceDashboards(metrics, map[string]string{
+		"namespace": ns,
+		"workload":  workload,
+	})
 	if err != nil {
 		return nil, err
 	}

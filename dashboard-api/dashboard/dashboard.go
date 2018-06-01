@@ -2,17 +2,11 @@ package dashboard
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/mitchellh/copystructure"
 )
-
-// Config holds the list of template variables that can be used in dashboard queries.
-type Config struct {
-	Namespace string
-	Workload  string
-	Range     string
-}
 
 // PanelType is the type of a panel.
 type PanelType string
@@ -211,12 +205,13 @@ nextProvider:
 	return dashboards
 }
 
-func resolveQueries(dashboards []Dashboard, config *Config) {
-	replacer := strings.NewReplacer(
-		"{{namespace}}", config.Namespace,
-		"{{workload}}", config.Workload,
-		"{{range}}", config.Range,
-	)
+func resolveQueries(dashboards []Dashboard, config map[string]string) {
+	var replacements []string
+	for k, v := range config {
+		replacements = append(replacements, fmt.Sprintf("{{%s}}", k), v)
+	}
+
+	replacer := strings.NewReplacer(replacements...)
 
 	for d := range dashboards {
 		dashboard := &dashboards[d]
@@ -228,7 +223,7 @@ func resolveQueries(dashboards []Dashboard, config *Config) {
 }
 
 // GetDashboardByID retrieves a dashboard by ID
-func GetDashboardByID(ID string, config *Config) *Dashboard {
+func GetDashboardByID(ID string, config map[string]string) *Dashboard {
 	for _, provider := range providers {
 		dashboard := provider.GetDashboard()
 		if dashboard.ID == ID {
@@ -245,7 +240,8 @@ func GetDashboardByID(ID string, config *Config) *Dashboard {
 
 // GetServiceDashboards returns a list of dashboards that can be shown, given
 // the list of metrics available for a service.
-func GetServiceDashboards(metrics []string, namespace, workload string) ([]Dashboard, error) {
+// config contains the values of template variables, (variable -> value)
+func GetServiceDashboards(metrics []string, config map[string]string) ([]Dashboard, error) {
 	// For O(1) metric existence checks.
 	metricsMap := make(map[string]bool)
 	for _, metric := range metrics {
@@ -258,11 +254,8 @@ func GetServiceDashboards(metrics []string, namespace, workload string) ([]Dashb
 	}
 
 	// resolve Queries fields
-	resolveQueries(dashboards, &Config{
-		Namespace: namespace,
-		Workload:  workload,
-		Range:     "2m",
-	})
+	config["range"] = "2m"
+	resolveQueries(dashboards, config)
 
 	return dashboards, nil
 }
