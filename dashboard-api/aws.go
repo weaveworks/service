@@ -27,9 +27,7 @@ func (api *API) GetAWSResources(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, err)
 		return
 	}
-	render.JSON(w, http.StatusOK, &getAWSResourcesResponse{
-		Resources: resources,
-	})
+	render.JSON(w, http.StatusOK, getAWSResourcesResponse(resources))
 }
 
 // An AWS resource.
@@ -38,10 +36,8 @@ type resource struct {
 	Name string `json:"name"`
 }
 
-type getAWSResourcesResponse struct {
-	// Resources is an array of AWS resources, alphabetically sorted by type and name.
-	Resources []resource `json:"resources"`
-}
+// An array of AWS resources, alphabetically sorted by type and name.
+type getAWSResourcesResponse = []resource
 
 func (api *API) getAWSResources(ctx context.Context) ([]resource, error) {
 	to := time.Now()

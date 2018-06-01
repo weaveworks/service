@@ -15,13 +15,13 @@ func TestGetAWSResources(t *testing.T) {
 	api.handler.ServeHTTP(w, req)
 	var resp getAWSResourcesResponse
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.Equal(t, getAWSResourcesResponse{Resources: []resource{
+	assert.Equal(t, getAWSResourcesResponse([]resource{
 		{Type: "RDS", Name: "prod-billing-db"},
 		{Type: "RDS", Name: "prod-configs-vpc-database"},
 		{Type: "RDS", Name: "prod-fluxy-vpc-database"},
 		{Type: "RDS", Name: "prod-notification-configs-vpc-database"},
 		{Type: "RDS", Name: "prod-users-vpc-database"},
-	}}, resp)
+	}), resp)
 }
 
 func TestToSnakeCase(t *testing.T) {
