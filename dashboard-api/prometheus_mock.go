@@ -77,7 +77,7 @@ func (mock *mockPrometheus) Series(ctx context.Context, matches []string, startT
 	ns := getLabelValue(matches[0], "kubernetes_namespace")
 	service := getLabelValue(matches[0], "_weave_service")
 
-	data, err := ioutil.ReadFile(filepath.Join(mock.dataDir, "testdata", fmt.Sprintf("series-%s-%s", ns, service)))
+	data, err := ioutil.ReadFile(filepath.Join(mock.dataDir, "testdata", filename(ns, service)))
 	if err != nil {
 		// Treat the absence of mock data as an absence of the data that has been asked for.
 		return nil, nil
@@ -88,6 +88,13 @@ func (mock *mockPrometheus) Series(ctx context.Context, matches []string, startT
 	}
 
 	return response.Data, nil
+}
+
+func filename(ns, service string) string {
+	if service == "cloudwatch-exporter" {
+		return "series-aws-rds.json"
+	}
+	return fmt.Sprintf("series-%s-%s", ns, service)
 }
 
 // mockPrometheusClient is a specialization of the default prom.Client that does
