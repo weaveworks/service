@@ -27,19 +27,13 @@ func (api *API) GetAWSResources(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, err)
 		return
 	}
-	render.JSON(w, http.StatusOK, getAWSResourcesResponse(resources))
-}
-
-// An AWS resource.
-type resource struct {
-	Type string `json:"type"` // e.g. ELB, RDS, SQS, etc.
-	Name string `json:"name"`
+	render.JSON(w, http.StatusOK, resources)
 }
 
 // An array of AWS resources, alphabetically sorted by type and name.
-type getAWSResourcesResponse = []resource
+type resourcesByType = map[string][]string
 
-func (api *API) getAWSResources(ctx context.Context) ([]resource, error) {
+func (api *API) getAWSResources(ctx context.Context) (resourcesByType, error) {
 	to := time.Now()
 	from := to.Add(-1 * time.Hour) // Not too long in the past so that Cortex serves the series from memcached.
 	labelSets, err := api.prometheus.Series(ctx, []string{"{kubernetes_namespace=\"weave\",_weave_service=\"cloudwatch-exporter\"}"}, from, to)
@@ -49,28 +43,37 @@ func (api *API) getAWSResources(ctx context.Context) ([]resource, error) {
 	return labelSetsToResources(labelSets), nil
 }
 
-func labelSetsToResources(labelSets []model.LabelSet) []resource {
-	resourcesSet := make(map[resource]bool)
+// An AWS resource.
+type resource struct {
+	Type string `json:"type"` // e.g. ELB, RDS, SQS, etc.
+	Name string `json:"name"`
+}
+
+func labelSetsToResources(labelSets []model.LabelSet) resourcesByType {
+	resourcesSets := make(map[string]map[string]bool)
 	for _, labelSet := range labelSets {
 		for _, tln := range typesAndLabelNames {
 			if resourceName, ok := labelSet[tln.LabelName]; ok {
-				resourcesSet[resource{Type: tln.Type, Name: string(resourceName)}] = true
+				if _, ok := resourcesSets[tln.Type]; !ok {
+					resourcesSets[tln.Type] = make(map[string]bool)
+				}
+				resourcesSets[tln.Type][string(resourceName)] = true
 				break
 			}
 		}
 	}
-	resources := setToArray(resourcesSet)
-	sort.Slice(resources, func(i, j int) bool {
-		if resources[i].Type != resources[j].Type {
-			return resources[i].Type < resources[j].Type
-		}
-		return resources[i].Name < resources[j].Name
-	})
+	resources := make(resourcesByType, len(resourcesSets))
+	for rtype, rset := range resourcesSets {
+		array := setToArray(rset)
+		sort.Strings(array)
+		resources[rtype] = array
+	}
+
 	return resources
 }
 
-func setToArray(set map[resource]bool) []resource {
-	array := make([]resource, len(set))
+func setToArray(set map[string]bool) []string {
+	array := make([]string, len(set))
 	i := 0
 	for elem := range set {
 		array[i] = elem

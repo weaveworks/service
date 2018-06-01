@@ -13,14 +13,16 @@ func TestGetAWSResources(t *testing.T) {
 	req := httptest.NewRequest("GET", "http://api.dashboard.svc.cluster.local/api/dashboard/aws/resources", nil)
 	w := httptest.NewRecorder()
 	api.handler.ServeHTTP(w, req)
-	var resp getAWSResourcesResponse
+	var resp resourcesByType
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.Equal(t, getAWSResourcesResponse([]resource{
-		{Type: "RDS", Name: "prod-billing-db"},
-		{Type: "RDS", Name: "prod-configs-vpc-database"},
-		{Type: "RDS", Name: "prod-fluxy-vpc-database"},
-		{Type: "RDS", Name: "prod-notification-configs-vpc-database"},
-		{Type: "RDS", Name: "prod-users-vpc-database"},
+	assert.Equal(t, resourcesByType(map[string][]string{
+		"RDS": {
+			"prod-billing-db",
+			"prod-configs-vpc-database",
+			"prod-fluxy-vpc-database",
+			"prod-notification-configs-vpc-database",
+			"prod-users-vpc-database",
+		},
 	}), resp)
 }
 
