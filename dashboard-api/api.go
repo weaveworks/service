@@ -59,6 +59,8 @@ func (api *API) registerRoutes(r *mux.Router) {
 		// Healthcheck
 		{"healthcheck", "GET", "/healthcheck", api.healthcheck},
 
+		{"api_dashboard_aws_resources", "GET", "/api/dashboard/aws/resources", api.GetAWSResources},
+
 		// per-service entry points
 		{"api_dashboard_services_namespace_service_metrics", "GET", "/api/dashboard/services/{ns}/{service}/metrics", api.GetServiceMetrics},
 		{"api_dashboard_services_namespace_service_dashboards", "GET", "/api/dashboard/services/{ns}/{service}/dashboards", api.GetServiceDashboards},

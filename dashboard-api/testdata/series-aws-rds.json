@@ -1,0 +1,65 @@
+{
+  "status": "success",
+  "data": [
+    {
+      "__name__": "aws_rds_cpuutilization_average",
+      "_weave_service": "cloudwatch-exporter",
+      "dbinstance_identifier": "prod-notification-configs-vpc-database",
+      "exported_job": "aws_rds",
+      "instance": "cloudwatch-exporter-1054174667-cshzh",
+      "job": "monitoring/cloudwatch-exporter",
+      "kubernetes_namespace": "monitoring",
+      "kubernetes_pod_name": "cloudwatch-exporter-1054174667-cshzh",
+      "monitor": "prod",
+      "node": "ip-172-20-2-118.ec2.internal"
+    },
+    {
+      "__name__": "aws_rds_cpuutilization_average",
+      "_weave_service": "cloudwatch-exporter",
+      "dbinstance_identifier": "prod-fluxy-vpc-database",
+      "exported_job": "aws_rds",
+      "instance": "cloudwatch-exporter-1054174667-cshzh",
+      "job": "monitoring/cloudwatch-exporter",
+      "kubernetes_namespace": "monitoring",
+      "kubernetes_pod_name": "cloudwatch-exporter-1054174667-cshzh",
+      "monitor": "prod",
+      "node": "ip-172-20-2-118.ec2.internal"
+    },
+    {
+      "__name__": "aws_rds_cpuutilization_average",
+      "_weave_service": "cloudwatch-exporter",
+      "dbinstance_identifier": "prod-billing-db",
+      "exported_job": "aws_rds",
+      "instance": "cloudwatch-exporter-1054174667-cshzh",
+      "job": "monitoring/cloudwatch-exporter",
+      "kubernetes_namespace": "monitoring",
+      "kubernetes_pod_name": "cloudwatch-exporter-1054174667-cshzh",
+      "monitor": "prod",
+      "node": "ip-172-20-2-118.ec2.internal"
+    },
+    {
+      "__name__": "aws_rds_cpuutilization_average",
+      "_weave_service": "cloudwatch-exporter",
+      "dbinstance_identifier": "prod-configs-vpc-database",
+      "exported_job": "aws_rds",
+      "instance": "cloudwatch-exporter-1054174667-cshzh",
+      "job": "monitoring/cloudwatch-exporter",
+      "kubernetes_namespace": "monitoring",
+      "kubernetes_pod_name": "cloudwatch-exporter-1054174667-cshzh",
+      "monitor": "prod",
+      "node": "ip-172-20-2-118.ec2.internal"
+    },
+    {
+      "__name__": "aws_rds_cpuutilization_average",
+      "_weave_service": "cloudwatch-exporter",
+      "dbinstance_identifier": "prod-users-vpc-database",
+      "exported_job": "aws_rds",
+      "instance": "cloudwatch-exporter-1054174667-cshzh",
+      "job": "monitoring/cloudwatch-exporter",
+      "kubernetes_namespace": "monitoring",
+      "kubernetes_pod_name": "cloudwatch-exporter-1054174667-cshzh",
+      "monitor": "prod",
+      "node": "ip-172-20-2-118.ec2.internal"
+    }
+  ]
+}
