@@ -199,8 +199,9 @@ func getAllDashboards() ([]Dashboard, error) {
 
 	metrics := getAllRequiredMetrics(providers)
 	return GetDashboards(metrics, map[string]string{
-		"namespace": ns,
-		"workload":  workload,
+		"namespace":  ns,
+		"workload":   workload,
+		"identifier": "prod-users-vpc-database", // AWS dashboards
 	})
 }
 
@@ -295,8 +296,9 @@ func getAllDashboardsWithOptionalPanels() ([]Dashboard, error) {
 
 	metrics := getAllMetrics(providers)
 	allDashboards, err := GetDashboards(metrics, map[string]string{
-		"namespace": ns,
-		"workload":  workload,
+		"namespace":  ns,
+		"workload":   workload,
+		"identifier": "prod-users-vpc-database", // AWS dashboards
 	})
 	if err != nil {
 		return nil, err
