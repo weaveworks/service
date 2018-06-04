@@ -21,7 +21,7 @@ func TestGetAWSResources(t *testing.T) {
 	assert.Equal(t, []resources{
 		{
 			Type:     aws.RDS,
-			Category: "Database",
+			Category: aws.Database,
 			Names: []string{
 				"prod-billing-db",
 				"prod-configs-vpc-database",
@@ -50,10 +50,10 @@ func TestTypesToLabelNames(t *testing.T) {
 }
 
 func TestTypesToCategories(t *testing.T) {
-	assert.Equal(t, map[aws.Type]string{
-		aws.RDS:    "Database",
-		aws.SQS:    "Queue",
-		aws.ELB:    "Load Balancer",
-		aws.Lambda: "λ-Function",
+	assert.Equal(t, map[aws.Type]aws.Category{
+		aws.RDS:    aws.Database,
+		aws.SQS:    aws.Queue,
+		aws.ELB:    aws.LoadBalancer,
+		aws.Lambda: aws.LambdaFunction,
 	}, categories)
 }

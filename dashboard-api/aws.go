@@ -54,9 +54,9 @@ type resource struct {
 // - in the order we want these to be rendered,
 // - with names sorted alphabetically.
 type resources struct {
-	Type     aws.Type `json:"type"` // e.g. ELB, RDS, SQS, etc.
-	Category string   `json:"category"`
-	Names    []string `json:"names"`
+	Type     aws.Type     `json:"type"` // e.g. ELB, RDS, SQS, etc.
+	Category aws.Category `json:"category"`
+	Names    []string     `json:"names"`
 }
 
 func labelSetsToResources(labelSets []model.LabelSet) []resources {
@@ -103,30 +103,23 @@ var typesToLabelNames = awsMetricDimensionsToLabelNames(awsMetricDimensions)
 
 type typeAndDimension struct {
 	Type      aws.Type
-	Category  string
+	Category  aws.Category
 	Dimension string
 }
-
-const (
-	database       = "Database"
-	loadBalancer   = "Load Balancer"
-	queue          = "Queue"
-	lambdaFunction = "λ-Function"
-)
 
 // N.B.: the order of the below types corresponds to the ordering of resources in the payload, and therefore, how these should be rendered in the frontend.
 var awsMetricDimensions = []typeAndDimension{
 	// AWS RDS (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/rds-metricscollected.html#rds-metric-dimensions):
-	{Type: aws.RDS, Category: database, Dimension: "DBInstanceIdentifier"},
+	{Type: aws.RDS, Category: aws.Database, Dimension: "DBInstanceIdentifier"},
 
 	// AWS SQS (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/sqs-metricscollected.html#sqs-metric-dimensions):
-	{Type: aws.SQS, Category: queue, Dimension: "QueueName"},
+	{Type: aws.SQS, Category: aws.Queue, Dimension: "QueueName"},
 
 	// AWS ELB (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/elb-metricscollected.html#load-balancer-metric-dimensions-clb):
-	{Type: aws.ELB, Category: loadBalancer, Dimension: "LoadBalancerName"},
+	{Type: aws.ELB, Category: aws.LoadBalancer, Dimension: "LoadBalancerName"},
 
 	// AWS Lambda (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/lam-metricscollected.html#lam-metric-dimensions):
-	{Type: aws.Lambda, Category: lambdaFunction, Dimension: "FunctionName"},
+	{Type: aws.Lambda, Category: aws.LambdaFunction, Dimension: "FunctionName"},
 }
 
 var types = awsMetricDimentionsToTypes(awsMetricDimensions)
@@ -153,8 +146,8 @@ func awsMetricDimentionsToTypes(typeAndDimensions []typeAndDimension) []aws.Type
 	return types
 }
 
-func awsMetricDimentionsToCategories(typeAndDimensions []typeAndDimension) map[aws.Type]string {
-	categories := make(map[aws.Type]string, len(typeAndDimensions))
+func awsMetricDimentionsToCategories(typeAndDimensions []typeAndDimension) map[aws.Type]aws.Category {
+	categories := make(map[aws.Type]aws.Category, len(typeAndDimensions))
 	for _, td := range typeAndDimensions {
 		categories[td.Type] = td.Category
 	}
