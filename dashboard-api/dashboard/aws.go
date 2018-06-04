@@ -13,7 +13,7 @@ var awsRDSDashboard = Dashboard{
 			Panels: []Panel{{
 				Title: "CPU utilization",
 				Type:  PanelLine,
-				Unit:  Unit{Format: UnitPercent},
+				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(aws_rds_cpuutilization_average{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}',dbinstance_identifier='{{identifier}}'}) by (dbinstance_identifier)`,
 			}, {
 				Title: "Available RAM",
