@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/weaveworks/service/dashboard-api/aws"
+
 	"github.com/prometheus/common/model"
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/user"
@@ -104,16 +106,16 @@ type typeAndDimension struct {
 // N.B.: the order of the below types corresponds to the ordering of resources in the payload, and therefore, how these should be rendered in the frontend.
 var awsMetricDimensions = []typeAndDimension{
 	// AWS RDS (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/rds-metricscollected.html#rds-metric-dimensions):
-	{Type: "RDS", Dimension: "DBInstanceIdentifier"},
+	{Type: aws.RDS, Dimension: "DBInstanceIdentifier"},
 
 	// AWS SQS (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/sqs-metricscollected.html#sqs-metric-dimensions):
-	{Type: "SQS", Dimension: "QueueName"},
+	{Type: aws.SQS, Dimension: "QueueName"},
 
 	// AWS ELB (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/elb-metricscollected.html#load-balancer-metric-dimensions-clb):
-	{Type: "ELB", Dimension: "LoadBalancerName"},
+	{Type: aws.ELB, Dimension: "LoadBalancerName"},
 
 	// AWS Lambda (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/lam-metricscollected.html#lam-metric-dimensions):
-	{Type: "Lambda", Dimension: "FunctionName"},
+	{Type: aws.Lambda, Dimension: "FunctionName"},
 }
 
 var types = awsMetricDimentionsToTypes(awsMetricDimensions)
