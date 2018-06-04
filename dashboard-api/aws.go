@@ -30,10 +30,7 @@ func (api *API) GetAWSResources(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, resources)
 }
 
-// An array of AWS resources, alphabetically sorted by type and name.
-type resourcesByType = map[string][]string
-
-func (api *API) getAWSResources(ctx context.Context) (resourcesByType, error) {
+func (api *API) getAWSResources(ctx context.Context) ([]resources, error) {
 	to := time.Now()
 	from := to.Add(-1 * time.Hour) // Not too long in the past so that Cortex serves the series from memcached.
 	labelSets, err := api.prometheus.Series(ctx, []string{"{kubernetes_namespace=\"weave\",_weave_service=\"cloudwatch-exporter\"}"}, from, to)
@@ -49,7 +46,16 @@ type resource struct {
 	Name string `json:"name"`
 }
 
-func labelSetsToResources(labelSets []model.LabelSet) resourcesByType {
+// AWS resources,
+// - grouped by type,
+// - in the order we want these to be rendered,
+// - with names sorted alphabetically.
+type resources struct {
+	Type  string   `json:"type"` // e.g. ELB, RDS, SQS, etc.
+	Names []string `json:"names"`
+}
+
+func labelSetsToResources(labelSets []model.LabelSet) []resources {
 	resourcesSets := make(map[string]map[string]bool)
 	for _, labelSet := range labelSets {
 		for _, tln := range typesAndLabelNames {
@@ -62,14 +68,19 @@ func labelSetsToResources(labelSets []model.LabelSet) resourcesByType {
 			}
 		}
 	}
-	resources := make(resourcesByType, len(resourcesSets))
-	for rtype, rset := range resourcesSets {
-		array := setToArray(rset)
-		sort.Strings(array)
-		resources[rtype] = array
+	resourcesArray := []resources{}
+	for _, rtype := range types {
+		if rset, ok := resourcesSets[rtype]; ok {
+			array := setToArray(rset)
+			sort.Strings(array)
+			resourcesArray = append(resourcesArray, resources{
+				Type:  rtype,
+				Names: array,
+			})
+		}
 	}
 
-	return resources
+	return resourcesArray
 }
 
 func setToArray(set map[string]bool) []string {
@@ -89,6 +100,7 @@ type typeAndDimension struct {
 	Dimension string
 }
 
+// N.B.: the order of the below types corresponds to the ordering of resources in the payload, and therefore, how these should be rendered in the frontend.
 var awsMetricDimensions = []typeAndDimension{
 	// AWS RDS (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/rds-metricscollected.html#rds-metric-dimensions):
 	{Type: "RDS", Dimension: "DBInstanceIdentifier"},
@@ -102,6 +114,8 @@ var awsMetricDimensions = []typeAndDimension{
 	// AWS Lambda (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/lam-metricscollected.html#lam-metric-dimensions):
 	{Type: "Lambda", Dimension: "FunctionName"},
 }
+
+var types = awsMetricDimentionsToTypes(awsMetricDimensions)
 
 type typeAndLabel struct {
 	Type      string
@@ -117,6 +131,14 @@ func awsMetricDimensionsToLabels(typeAndDimensions []typeAndDimension) []typeAnd
 		})
 	}
 	return labels
+}
+
+func awsMetricDimentionsToTypes(typeAndDimensions []typeAndDimension) []string {
+	types := []string{}
+	for _, td := range typeAndDimensions {
+		types = append(types, td.Type)
+	}
+	return types
 }
 
 // Use the similar conversion from AWS CloudWatch dimensions to Prometheus labels as the CloudWatch exporter.

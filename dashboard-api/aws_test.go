@@ -13,17 +13,20 @@ func TestGetAWSResources(t *testing.T) {
 	req := httptest.NewRequest("GET", "http://api.dashboard.svc.cluster.local/api/dashboard/aws/resources", nil)
 	w := httptest.NewRecorder()
 	api.handler.ServeHTTP(w, req)
-	var resp resourcesByType
+	var resp []resources
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.Equal(t, resourcesByType(map[string][]string{
-		"RDS": {
-			"prod-billing-db",
-			"prod-configs-vpc-database",
-			"prod-fluxy-vpc-database",
-			"prod-notification-configs-vpc-database",
-			"prod-users-vpc-database",
+	assert.Equal(t, []resources{
+		{
+			Type: "RDS",
+			Names: []string{
+				"prod-billing-db",
+				"prod-configs-vpc-database",
+				"prod-fluxy-vpc-database",
+				"prod-notification-configs-vpc-database",
+				"prod-users-vpc-database",
+			},
 		},
-	}), resp)
+	}, resp)
 }
 
 func TestToSnakeCase(t *testing.T) {
