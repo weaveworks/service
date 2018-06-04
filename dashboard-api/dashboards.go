@@ -81,8 +81,8 @@ func (api *API) getAWSDashboards(ctx context.Context, r *http.Request, startTime
 	resourceName := mux.Vars(r)["name"]
 
 	board := dashboard.GetDashboardByID(aws.TypeToDashboardID(awsType), map[string]string{
-		"namespace":  "weave",
-		"workload":   "cloudwatch-exporter",
+		"namespace":  aws.Namespace,
+		"workload":   aws.Service,
 		"identifier": resourceName,
 	})
 	if board == nil {

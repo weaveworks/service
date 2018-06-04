@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+// Namespace is the namespace of Weaveworks' AWS CloudWatcher pod.
+const Namespace = "weave"
+
+// Service is the name of Weaveworks' AWS CloudWatcher pod.
+const Service = "cloudwatch-exporter"
+
 // Supported AWS types:
 const (
 	RDS    = "RDS"

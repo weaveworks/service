@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"regexp"
 	"sort"
@@ -35,7 +36,7 @@ func (api *API) GetAWSResources(w http.ResponseWriter, r *http.Request) {
 func (api *API) getAWSResources(ctx context.Context) ([]resources, error) {
 	to := time.Now()
 	from := to.Add(-1 * time.Hour) // Not too long in the past so that Cortex serves the series from memcached.
-	labelSets, err := api.prometheus.Series(ctx, []string{"{kubernetes_namespace=\"weave\",_weave_service=\"cloudwatch-exporter\"}"}, from, to)
+	labelSets, err := api.prometheus.Series(ctx, []string{fmt.Sprintf("{kubernetes_namespace=\"%v\",_weave_service=\"%v\"}", aws.Namespace, aws.Service)}, from, to)
 	if err != nil {
 		return nil, err
 	}
