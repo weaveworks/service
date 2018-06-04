@@ -11,7 +11,7 @@
               "title": "CPU utilization",
               "type": "line",
               "unit": {
-                "format": "percent"
+                "format": "numeric"
               },
               "query": "sum(aws_rds_cpuutilization_average{kubernetes_namespace='default',_weave_service='authfe',dbinstance_identifier='prod-users-vpc-database'}) by (dbinstance_identifier)"
             },
