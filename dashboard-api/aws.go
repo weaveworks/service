@@ -54,8 +54,9 @@ type resource struct {
 // - in the order we want these to be rendered,
 // - with names sorted alphabetically.
 type resources struct {
-	Type  string   `json:"type"` // e.g. ELB, RDS, SQS, etc.
-	Names []string `json:"names"`
+	Type     string   `json:"type"` // e.g. ELB, RDS, SQS, etc.
+	Category string   `json:"category"`
+	Names    []string `json:"names"`
 }
 
 func labelSetsToResources(labelSets []model.LabelSet) []resources {
@@ -77,8 +78,9 @@ func labelSetsToResources(labelSets []model.LabelSet) []resources {
 			array := setToArray(rset)
 			sort.Strings(array)
 			resourcesArray = append(resourcesArray, resources{
-				Type:  rtype,
-				Names: array,
+				Type:     rtype,
+				Category: categories[rtype],
+				Names:    array,
 			})
 		}
 	}
@@ -101,25 +103,34 @@ var typesToLabelNames = awsMetricDimensionsToLabelNames(awsMetricDimensions)
 
 type typeAndDimension struct {
 	Type      string
+	Category  string
 	Dimension string
 }
+
+const (
+	database       = "Database"
+	loadBalancer   = "Load Balancer"
+	queue          = "Queue"
+	lambdaFunction = "λ-Function"
+)
 
 // N.B.: the order of the below types corresponds to the ordering of resources in the payload, and therefore, how these should be rendered in the frontend.
 var awsMetricDimensions = []typeAndDimension{
 	// AWS RDS (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/rds-metricscollected.html#rds-metric-dimensions):
-	{Type: aws.RDS, Dimension: "DBInstanceIdentifier"},
+	{Type: aws.RDS, Category: database, Dimension: "DBInstanceIdentifier"},
 
 	// AWS SQS (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/sqs-metricscollected.html#sqs-metric-dimensions):
-	{Type: aws.SQS, Dimension: "QueueName"},
+	{Type: aws.SQS, Category: queue, Dimension: "QueueName"},
 
 	// AWS ELB (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/elb-metricscollected.html#load-balancer-metric-dimensions-clb):
-	{Type: aws.ELB, Dimension: "LoadBalancerName"},
+	{Type: aws.ELB, Category: loadBalancer, Dimension: "LoadBalancerName"},
 
 	// AWS Lambda (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/lam-metricscollected.html#lam-metric-dimensions):
-	{Type: aws.Lambda, Dimension: "FunctionName"},
+	{Type: aws.Lambda, Category: lambdaFunction, Dimension: "FunctionName"},
 }
 
 var types = awsMetricDimentionsToTypes(awsMetricDimensions)
+var categories = awsMetricDimentionsToCategories(awsMetricDimensions)
 
 type typeAndLabel struct {
 	Type      string
@@ -140,6 +151,14 @@ func awsMetricDimentionsToTypes(typeAndDimensions []typeAndDimension) []string {
 		types = append(types, td.Type)
 	}
 	return types
+}
+
+func awsMetricDimentionsToCategories(typeAndDimensions []typeAndDimension) map[string]string {
+	categories := make(map[string]string, len(typeAndDimensions))
+	for _, td := range typeAndDimensions {
+		categories[td.Type] = td.Category
+	}
+	return categories
 }
 
 // Use the similar conversion from AWS CloudWatch dimensions to Prometheus labels as the CloudWatch exporter.

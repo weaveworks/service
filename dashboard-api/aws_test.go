@@ -19,7 +19,8 @@ func TestGetAWSResources(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, []resources{
 		{
-			Type: "RDS",
+			Type:     "RDS",
+			Category: "Database",
 			Names: []string{
 				"prod-billing-db",
 				"prod-configs-vpc-database",
@@ -45,4 +46,13 @@ func TestTypesToLabelNames(t *testing.T) {
 		"ELB":    model.LabelName("load_balancer_name"),
 		"Lambda": model.LabelName("function_name"),
 	}, typesToLabelNames)
+}
+
+func TestTypesToCategories(t *testing.T) {
+	assert.Equal(t, map[string]string{
+		"RDS":    "Database",
+		"SQS":    "Queue",
+		"ELB":    "Load Balancer",
+		"Lambda": "λ-Function",
+	}, categories)
 }
