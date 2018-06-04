@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"strings"
 )
 
 // Namespace is the namespace of Weaveworks' AWS CloudWatcher pod.
@@ -11,15 +10,18 @@ const Namespace = "weave"
 // Service is the name of Weaveworks' AWS CloudWatcher pod.
 const Service = "cloudwatch-exporter"
 
+// Type describes an AWS resource type, e.g. RDS.
+type Type string
+
 // Supported AWS types:
 const (
-	RDS    = "RDS"
-	SQS    = "SQS"
-	ELB    = "ELB"
-	Lambda = "Lambda"
+	RDS    = Type("rds")
+	SQS    = Type("sqs")
+	ELB    = Type("elb")
+	Lambda = Type("lambda")
 )
 
 // TypeToDashboardID converts a supported AWS type to a dashboard ID.
-func TypeToDashboardID(awsType string) string {
-	return fmt.Sprintf("aws-%v", strings.ToLower(awsType))
+func TypeToDashboardID(awsType Type) string {
+	return fmt.Sprintf("aws-%v", awsType)
 }

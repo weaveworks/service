@@ -28,7 +28,7 @@ func TestGetServiceDashboardsNoMetrics(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 }
 
-func makeGetAWSDashboardsURL(awsType, resourceName string) string {
+func makeGetAWSDashboardsURL(awsType aws.Type, resourceName string) string {
 	return fmt.Sprintf("%s/api/dashboard/aws/%s/%s/dashboards", baseURL, awsType, resourceName)
 }
 
