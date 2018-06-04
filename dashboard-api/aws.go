@@ -41,12 +41,6 @@ func (api *API) getAWSResources(ctx context.Context) ([]resources, error) {
 	return labelSetsToResources(labelSets), nil
 }
 
-// An AWS resource.
-type resource struct {
-	Type aws.Type `json:"type"` // e.g. ELB, RDS, SQS, etc.
-	Name string   `json:"name"`
-}
-
 // AWS resources,
 // - grouped by type,
 // - in the order we want these to be rendered,
@@ -115,11 +109,6 @@ var awsMetricDimensions = []typeAndDimension{
 
 var types = awsMetricDimentionsToTypes(awsMetricDimensions)
 var categories = awsMetricDimentionsToCategories(awsMetricDimensions)
-
-type typeAndLabel struct {
-	Type      string
-	LabelName model.LabelName
-}
 
 func awsMetricDimensionsToLabelNames(typeAndDimensions []typeAndDimension) map[aws.Type]model.LabelName {
 	typesToLabelNames := make(map[aws.Type]model.LabelName, len(typeAndDimensions))
