@@ -14,6 +14,25 @@ const Namespace = "weave"
 // Service is the name of Weaveworks' AWS CloudWatcher pod.
 const Service = "cloudwatch-exporter"
 
+// Product represents an AWS product.
+type Product struct {
+	Type          Type
+	Category      Category
+	NameDimension Dimension       // The CloudWatch metrics dimension identifying an instance of this product.
+	LabelName     model.LabelName // The Prometheus label name corresponding to NameDimension.
+}
+
+// Products represents the list of supported AWS products.
+// N.B.: the order of the below products matters, and corresponds to:
+// - to the order of the elements returned by the /api/dashboard/aws/resources endpoint, and therefore
+// - to the order in which these should be rendered in the frontend.
+var Products = []Product{
+	{Type: RDS, Category: Database, NameDimension: DBInstanceIdentifier, LabelName: DBInstanceIdentifier.ToLabelName()},
+	{Type: SQS, Category: Queue, NameDimension: QueueName, LabelName: QueueName.ToLabelName()},
+	{Type: ELB, Category: LoadBalancer, NameDimension: LoadBalancerName, LabelName: LoadBalancerName.ToLabelName()},
+	{Type: Lambda, Category: LambdaFunction, NameDimension: FunctionName, LabelName: FunctionName.ToLabelName()},
+}
+
 // Type describes an AWS resource type, e.g. rds.
 type Type string
 

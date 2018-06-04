@@ -31,16 +31,6 @@ func (api *API) GetAWSResources(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, resources)
 }
 
-func (api *API) getAWSResources(ctx context.Context) ([]resources, error) {
-	to := time.Now()
-	from := to.Add(-1 * time.Hour) // Not too long in the past so that Cortex serves the series from memcached.
-	labelSets, err := api.prometheus.Series(ctx, []string{fmt.Sprintf("{kubernetes_namespace=\"%v\",_weave_service=\"%v\"}", aws.Namespace, aws.Service)}, from, to)
-	if err != nil {
-		return nil, err
-	}
-	return labelSetsToResources(labelSets), nil
-}
-
 // AWS resources,
 // - grouped by type,
 // - in the order we want these to be rendered,
@@ -51,33 +41,48 @@ type resources struct {
 	Names    []string     `json:"names"`
 }
 
+func (api *API) getAWSResources(ctx context.Context) ([]resources, error) {
+	to := time.Now()
+	from := to.Add(-1 * time.Hour) // Not too long in the past so that Cortex serves the series from memcached.
+	labelSets, err := api.prometheus.Series(ctx, []string{fmt.Sprintf("{kubernetes_namespace=\"%v\",_weave_service=\"%v\"}", aws.Namespace, aws.Service)}, from, to)
+	if err != nil {
+		return nil, err
+	}
+	return labelSetsToResources(labelSets), nil
+}
+
 func labelSetsToResources(labelSets []model.LabelSet) []resources {
-	resourcesSets := make(map[aws.Type]map[string]bool)
+	resourcesSets := make(map[aws.Product]map[string]bool)
 	for _, labelSet := range labelSets {
-		for rtype, labelName := range typesToLabelNames {
-			if resourceName, ok := labelSet[labelName]; ok {
-				if _, ok := resourcesSets[rtype]; !ok {
-					resourcesSets[rtype] = make(map[string]bool)
+		for _, product := range aws.Products {
+			if resourceName, ok := labelSet[product.LabelName]; ok {
+				if _, ok := resourcesSets[product]; !ok {
+					resourcesSets[product] = make(map[string]bool)
 				}
-				resourcesSets[rtype][string(resourceName)] = true
+				resourcesSets[product][string(resourceName)] = true
 				break
 			}
 		}
 	}
+
 	resourcesArray := []resources{}
-	for _, rtype := range types {
-		if rset, ok := resourcesSets[rtype]; ok {
-			array := setToArray(rset)
-			sort.Strings(array)
+	for _, product := range aws.Products {
+		if set, ok := resourcesSets[product]; ok {
 			resourcesArray = append(resourcesArray, resources{
-				Type:     rtype,
-				Category: categories[rtype],
-				Names:    array,
+				Type:     product.Type,
+				Category: product.Category,
+				Names:    setToSortedArray(set),
 			})
 		}
 	}
 
 	return resourcesArray
+}
+
+func setToSortedArray(set map[string]bool) []string {
+	array := setToArray(set)
+	sort.Strings(array)
+	return array
 }
 
 func setToArray(set map[string]bool) []string {
@@ -88,48 +93,4 @@ func setToArray(set map[string]bool) []string {
 		i++
 	}
 	return array
-}
-
-// e.g.: "RDS" -> "dbinstance_identifier" -- see tests.
-var typesToLabelNames = awsMetricDimensionsToLabelNames(awsMetricDimensions)
-
-type typeAndDimension struct {
-	Type      aws.Type
-	Category  aws.Category
-	Dimension aws.Dimension
-}
-
-// N.B.: the order of the below types corresponds to the ordering of resources in the payload, and therefore, how these should be rendered in the frontend.
-var awsMetricDimensions = []typeAndDimension{
-	{Type: aws.RDS, Category: aws.Database, Dimension: aws.DBInstanceIdentifier},
-	{Type: aws.SQS, Category: aws.Queue, Dimension: aws.QueueName},
-	{Type: aws.ELB, Category: aws.LoadBalancer, Dimension: aws.LoadBalancerName},
-	{Type: aws.Lambda, Category: aws.LambdaFunction, Dimension: aws.FunctionName},
-}
-
-var types = awsMetricDimentionsToTypes(awsMetricDimensions)
-var categories = awsMetricDimentionsToCategories(awsMetricDimensions)
-
-func awsMetricDimensionsToLabelNames(typeAndDimensions []typeAndDimension) map[aws.Type]model.LabelName {
-	typesToLabelNames := make(map[aws.Type]model.LabelName, len(typeAndDimensions))
-	for _, td := range typeAndDimensions {
-		typesToLabelNames[td.Type] = td.Dimension.ToLabelName()
-	}
-	return typesToLabelNames
-}
-
-func awsMetricDimentionsToTypes(typeAndDimensions []typeAndDimension) []aws.Type {
-	types := []aws.Type{}
-	for _, td := range typeAndDimensions {
-		types = append(types, td.Type)
-	}
-	return types
-}
-
-func awsMetricDimentionsToCategories(typeAndDimensions []typeAndDimension) map[aws.Type]aws.Category {
-	categories := make(map[aws.Type]aws.Category, len(typeAndDimensions))
-	for _, td := range typeAndDimensions {
-		categories[td.Type] = td.Category
-	}
-	return categories
 }

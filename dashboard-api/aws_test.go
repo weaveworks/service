@@ -5,7 +5,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/prometheus/common/model"
 	"github.com/weaveworks/service/dashboard-api/aws"
 
 	"github.com/stretchr/testify/assert"
@@ -31,22 +30,4 @@ func TestGetAWSResources(t *testing.T) {
 			},
 		},
 	}, resp)
-}
-
-func TestTypesToLabelNames(t *testing.T) {
-	assert.Equal(t, map[aws.Type]model.LabelName{
-		aws.RDS:    model.LabelName("dbinstance_identifier"),
-		aws.SQS:    model.LabelName("queue_name"),
-		aws.ELB:    model.LabelName("load_balancer_name"),
-		aws.Lambda: model.LabelName("function_name"),
-	}, typesToLabelNames)
-}
-
-func TestTypesToCategories(t *testing.T) {
-	assert.Equal(t, map[aws.Type]aws.Category{
-		aws.RDS:    aws.Database,
-		aws.SQS:    aws.Queue,
-		aws.ELB:    aws.LoadBalancer,
-		aws.Lambda: aws.LambdaFunction,
-	}, categories)
 }
