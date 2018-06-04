@@ -10,6 +10,7 @@ import (
 	"github.com/weaveworks/common/user"
 
 	"github.com/weaveworks/service/common/render"
+	"github.com/weaveworks/service/dashboard-api/aws"
 	"github.com/weaveworks/service/dashboard-api/dashboard"
 )
 
@@ -67,5 +68,27 @@ func (api *API) getServiceDashboards(ctx context.Context, r *http.Request, start
 	}
 	return &getDashboardsResponse{
 		Dashboards: boards,
+	}, nil
+}
+
+// GetAWSDashboards returns the list of dashboards for a given AWS resource.
+func (api *API) GetAWSDashboards(w http.ResponseWriter, r *http.Request) {
+	api.getDashboards(w, r, api.getAWSDashboards)
+}
+
+func (api *API) getAWSDashboards(ctx context.Context, r *http.Request, startTime, endTime time.Time) (*getDashboardsResponse, error) {
+	awsType := mux.Vars(r)["type"]
+	resourceName := mux.Vars(r)["name"]
+
+	board := dashboard.GetDashboardByID(aws.TypeToDashboardID(awsType), map[string]string{
+		"namespace":  "weave",
+		"workload":   "cloudwatch-exporter",
+		"identifier": resourceName,
+	})
+	if board == nil {
+		return nil, errNotFound
+	}
+	return &getDashboardsResponse{
+		Dashboards: []dashboard.Dashboard{*board},
 	}, nil
 }
