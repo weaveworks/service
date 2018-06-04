@@ -16,7 +16,8 @@ const Service = "cloudwatch-exporter"
 
 // Product represents an AWS product.
 type Product struct {
-	Type          Type
+	Name          string
+	Type          Type // A more API-friendly version of Name.
 	Category      string
 	NameDimension Dimension       // The CloudWatch metrics dimension identifying an instance of this product.
 	LabelName     model.LabelName // The Prometheus label name corresponding to NameDimension.
@@ -25,24 +26,28 @@ type Product struct {
 // Supported AWS products.
 var (
 	RDS = Product{
+		Name:          "RDS",
 		Type:          Type("rds"),
 		Category:      Database,
 		NameDimension: DBInstanceIdentifier,
 		LabelName:     DBInstanceIdentifier.ToLabelName(),
 	}
 	SQS = Product{
+		Name:          "SQS",
 		Type:          Type("sqs"),
 		Category:      Queue,
 		NameDimension: QueueName,
 		LabelName:     QueueName.ToLabelName(),
 	}
 	ELB = Product{
+		Name:          "ELB",
 		Type:          Type("elb"),
 		Category:      LoadBalancer,
 		NameDimension: LoadBalancerName,
 		LabelName:     LoadBalancerName.ToLabelName(),
 	}
 	Lambda = Product{
+		Name:          "Lambda",
 		Type:          Type("lambda"),
 		Category:      LambdaFunction,
 		NameDimension: FunctionName,

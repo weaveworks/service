@@ -20,6 +20,7 @@ func TestGetAWSResources(t *testing.T) {
 	assert.Equal(t, []resources{
 		{
 			Type:     string(aws.RDS.Type),
+			Label:    aws.RDS.Name,
 			Category: aws.Database,
 			Names: []string{
 				"prod-billing-db",

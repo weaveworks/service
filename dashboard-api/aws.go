@@ -36,7 +36,8 @@ func (api *API) GetAWSResources(w http.ResponseWriter, r *http.Request) {
 // - in the order we want these to be rendered,
 // - with names sorted alphabetically.
 type resources struct {
-	Type     string   `json:"type"` // e.g. "elb", "rds", "sqs", etc.
+	Type     string   `json:"type"`  // e.g. "elb", "rds", "sqs", etc.
+	Label    string   `json:"label"` // e.g. "ELB", "RDS", "SQS", etc.
 	Category string   `json:"category"`
 	Names    []string `json:"names"`
 }
@@ -70,6 +71,7 @@ func labelSetsToResources(labelSets []model.LabelSet) []resources {
 		if set, ok := resourcesSets[product]; ok {
 			resourcesArray = append(resourcesArray, resources{
 				Type:     string(product.Type),
+				Label:    product.Name,
 				Category: product.Category,
 				Names:    setToSortedArray(set),
 			})
