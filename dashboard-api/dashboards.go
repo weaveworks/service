@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -12,20 +13,22 @@ import (
 	"github.com/weaveworks/service/dashboard-api/dashboard"
 )
 
-type getServiceDashboardsResponse struct {
+type getDashboardsResponse struct {
 	Dashboards []dashboard.Dashboard `json:"dashboards"`
 }
 
 // GetServiceDashboards returns the list of dashboards for a given service.
 func (api *API) GetServiceDashboards(w http.ResponseWriter, r *http.Request) {
+	api.getDashboards(w, r, api.getServiceDashboards)
+}
+
+type getter func(ctx context.Context, r *http.Request, startTime, endTime time.Time) (*getDashboardsResponse, error)
+
+func (api *API) getDashboards(w http.ResponseWriter, r *http.Request, get getter) {
 	_, ctx, err := user.ExtractOrgIDFromHTTPRequest(r)
 	ctx, cancel := context.WithTimeout(ctx, api.cfg.prometheus.timeout)
 	defer cancel()
-
 	log.Debug(r.URL)
-
-	namespace := mux.Vars(r)["ns"]
-	service := mux.Vars(r)["service"]
 
 	startTime, endTime, err := parseRequestStartEnd(r)
 	if err != nil {
@@ -33,27 +36,36 @@ func (api *API) GetServiceDashboards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metrics, err := api.getServiceMetrics(ctx, namespace, service, startTime, endTime)
+	resp, err := get(ctx, r, startTime, endTime)
 	if err != nil {
 		renderError(w, r, err)
 		return
+	}
+	render.JSON(w, http.StatusOK, resp)
+}
+
+func (api *API) getServiceDashboards(ctx context.Context, r *http.Request, startTime, endTime time.Time) (*getDashboardsResponse, error) {
+	namespace := mux.Vars(r)["ns"]
+	service := mux.Vars(r)["service"]
+
+	metrics, err := api.getServiceMetrics(ctx, namespace, service, startTime, endTime)
+	if err != nil {
+		return nil, err
 	}
 	if len(metrics) == 0 {
 		// We should have at least the up{kubernetes_namespace="$namespace",_weave_service="$service"} metric.
 		// Not having *any* metric is the sign of a non existent (namespace,service)
-		renderError(w, r, errNotFound)
-		return
+		return nil, errNotFound
 	}
 
-	resp := getServiceDashboardsResponse{}
-	resp.Dashboards, err = dashboard.GetDashboards(metrics, map[string]string{
+	boards, err := dashboard.GetDashboards(metrics, map[string]string{
 		"namespace": namespace,
 		"workload":  service,
 	})
 	if err != nil {
-		renderError(w, r, err)
-		return
+		return nil, err
 	}
-
-	render.JSON(w, http.StatusOK, resp)
+	return &getDashboardsResponse{
+		Dashboards: boards,
+	}, nil
 }
