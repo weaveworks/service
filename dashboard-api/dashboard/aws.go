@@ -1,8 +1,12 @@
 package dashboard
 
+import (
+	"github.com/weaveworks/service/dashboard-api/aws"
+)
+
 var awsRDSDashboard = Dashboard{
-	ID:   "aws-rds",
-	Name: "RDS",
+	ID:   aws.TypeToDashboardID(aws.RDS),
+	Name: aws.RDS,
 	Sections: []Section{{
 		Name: "System",
 		Rows: []Row{{

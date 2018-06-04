@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/weaveworks/service/dashboard-api/aws"
 
 	"github.com/prometheus/common/model"
 	log "github.com/sirupsen/logrus"
@@ -33,7 +36,7 @@ func (api *API) GetAWSResources(w http.ResponseWriter, r *http.Request) {
 func (api *API) getAWSResources(ctx context.Context) ([]resources, error) {
 	to := time.Now()
 	from := to.Add(-1 * time.Hour) // Not too long in the past so that Cortex serves the series from memcached.
-	labelSets, err := api.prometheus.Series(ctx, []string{"{kubernetes_namespace=\"weave\",_weave_service=\"cloudwatch-exporter\"}"}, from, to)
+	labelSets, err := api.prometheus.Series(ctx, []string{fmt.Sprintf("{kubernetes_namespace=\"%v\",_weave_service=\"%v\"}", aws.Namespace, aws.Service)}, from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -58,12 +61,12 @@ type resources struct {
 func labelSetsToResources(labelSets []model.LabelSet) []resources {
 	resourcesSets := make(map[string]map[string]bool)
 	for _, labelSet := range labelSets {
-		for _, tln := range typesAndLabelNames {
-			if resourceName, ok := labelSet[tln.LabelName]; ok {
-				if _, ok := resourcesSets[tln.Type]; !ok {
-					resourcesSets[tln.Type] = make(map[string]bool)
+		for rtype, labelName := range typesToLabelNames {
+			if resourceName, ok := labelSet[labelName]; ok {
+				if _, ok := resourcesSets[rtype]; !ok {
+					resourcesSets[rtype] = make(map[string]bool)
 				}
-				resourcesSets[tln.Type][string(resourceName)] = true
+				resourcesSets[rtype][string(resourceName)] = true
 				break
 			}
 		}
@@ -93,7 +96,8 @@ func setToArray(set map[string]bool) []string {
 	return array
 }
 
-var typesAndLabelNames = awsMetricDimensionsToLabels(awsMetricDimensions)
+// e.g.: "RDS" -> "dbinstance_identifier" -- see tests.
+var typesToLabelNames = awsMetricDimensionsToLabelNames(awsMetricDimensions)
 
 type typeAndDimension struct {
 	Type      string
@@ -103,16 +107,16 @@ type typeAndDimension struct {
 // N.B.: the order of the below types corresponds to the ordering of resources in the payload, and therefore, how these should be rendered in the frontend.
 var awsMetricDimensions = []typeAndDimension{
 	// AWS RDS (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/rds-metricscollected.html#rds-metric-dimensions):
-	{Type: "RDS", Dimension: "DBInstanceIdentifier"},
+	{Type: aws.RDS, Dimension: "DBInstanceIdentifier"},
 
 	// AWS SQS (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/sqs-metricscollected.html#sqs-metric-dimensions):
-	{Type: "SQS", Dimension: "QueueName"},
+	{Type: aws.SQS, Dimension: "QueueName"},
 
 	// AWS ELB (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/elb-metricscollected.html#load-balancer-metric-dimensions-clb):
-	{Type: "ELB", Dimension: "LoadBalancerName"},
+	{Type: aws.ELB, Dimension: "LoadBalancerName"},
 
 	// AWS Lambda (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/lam-metricscollected.html#lam-metric-dimensions):
-	{Type: "Lambda", Dimension: "FunctionName"},
+	{Type: aws.Lambda, Dimension: "FunctionName"},
 }
 
 var types = awsMetricDimentionsToTypes(awsMetricDimensions)
@@ -122,15 +126,12 @@ type typeAndLabel struct {
 	LabelName model.LabelName
 }
 
-func awsMetricDimensionsToLabels(typeAndDimensions []typeAndDimension) []typeAndLabel {
-	labels := []typeAndLabel{}
+func awsMetricDimensionsToLabelNames(typeAndDimensions []typeAndDimension) map[string]model.LabelName {
+	typesToLabelNames := make(map[string]model.LabelName, len(typeAndDimensions))
 	for _, td := range typeAndDimensions {
-		labels = append(labels, typeAndLabel{
-			Type:      td.Type,
-			LabelName: model.LabelName(toSnakeCase(td.Dimension)),
-		})
+		typesToLabelNames[td.Type] = model.LabelName(toSnakeCase(td.Dimension))
 	}
-	return labels
+	return typesToLabelNames
 }
 
 func awsMetricDimentionsToTypes(typeAndDimensions []typeAndDimension) []string {
