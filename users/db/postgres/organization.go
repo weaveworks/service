@@ -101,12 +101,21 @@ func (d DB) userIsTeamMemberOf(ctx context.Context, userID, orgExternalID string
 }
 
 func (d DB) organizationsQuery() squirrel.SelectBuilder {
-	return d.Select(
+	return d.organizationsQueryHelper(false)
+}
+
+func (d DB) organizationsQueryWithDeleted() squirrel.SelectBuilder {
+	return d.organizationsQueryHelper(true)
+}
+
+func (d DB) organizationsQueryHelper(deleted bool) squirrel.SelectBuilder {
+	query := d.Select(
 		"organizations.id",
 		"organizations.external_id",
 		"organizations.name",
 		"organizations.probe_token",
 		"organizations.created_at",
+		"organizations.deleted_at",
 		"organizations.feature_flags",
 		"organizations.refuse_data_access",
 		"organizations.refuse_data_upload",
@@ -136,13 +145,40 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 		From("organizations").
 		LeftJoin("gcp_accounts ON gcp_account_id = gcp_accounts.id").
 		LeftJoin("teams ON teams.id = organizations.team_id").
-		Where("organizations.deleted_at is null").
 		OrderBy("organizations.created_at DESC")
+	if !deleted {
+		query = query.Where("organizations.deleted_at is null")
+	}
+	return query
 }
 
 // ListOrganizations lists organizations
 func (d DB) ListOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
 	q := d.organizationsQuery().Where(f.Where())
+	if page > 0 {
+		q = q.Limit(filter.ResultsPerPage).Offset((page - 1) * filter.ResultsPerPage)
+	}
+
+	rows, err := q.QueryContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return d.scanOrganizations(rows)
+}
+
+// ListAllOrganizations lists all organizations including deleted ones
+func (d DB) ListAllOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
+	// check that query is not empty, otherwise q might be like "... where order by ..."
+	queryStr, _, err := f.Where().ToSql()
+	if err != nil {
+		return nil, err
+	}
+	q := d.organizationsQueryWithDeleted()
+	if queryStr != "" {
+		q = q.Where(f.Where())
+	}
+
 	if page > 0 {
 		q = q.Limit(filter.ResultsPerPage).Offset((page - 1) * filter.ResultsPerPage)
 	}
@@ -453,6 +489,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o := &users.Organization{}
 	var externalID, name, probeToken, platform, environment, zuoraAccountNumber, teamID, teamExternalID sql.NullString
 	var createdAt pq.NullTime
+	var deletedAt pq.NullTime
 	var trialExpiry time.Time
 	var trialExpiredNotifiedAt, trialPendingExpiryNotifiedAt *time.Time
 	var refuseDataAccess, refuseDataUpload bool
@@ -465,6 +502,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&name,
 		&probeToken,
 		&createdAt,
+		&deletedAt,
 		pq.Array(&o.FeatureFlags),
 		&refuseDataAccess,
 		&refuseDataUpload,
@@ -497,6 +535,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.Name = name.String
 	o.ProbeToken = probeToken.String
 	o.CreatedAt = createdAt.Time
+	o.DeletedAt = deletedAt.Time
 	o.RefuseDataAccess = refuseDataAccess
 	o.RefuseDataUpload = refuseDataUpload
 	o.Platform = platform.String
