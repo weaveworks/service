@@ -2,6 +2,10 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
+
+	"github.com/prometheus/common/model"
 )
 
 // Namespace is the namespace of Weaveworks' AWS CloudWatcher pod.
@@ -51,3 +55,19 @@ const (
 	// AWS Lambda (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/lam-metricscollected.html#lam-metric-dimensions):
 	FunctionName = Dimension("FunctionName")
 )
+
+// ToLabelName converts this AWS metrics dimension to a Prometheus label name.
+func (d Dimension) ToLabelName() model.LabelName {
+	return model.LabelName(toSnakeCase(string(d)))
+}
+
+// Use the similar conversion from AWS CloudWatch dimensions to Prometheus labels as the CloudWatch exporter.
+// See also:
+// - https://github.com/prometheus/cloudwatch_exporter/blob/cloudwatch_exporter-0.1.0/src/main/java/io/prometheus/cloudwatch/CloudWatchCollector.java#L311-L313
+// - https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CW_Support_For_AWS.html
+
+var snakeCaseRegexp = regexp.MustCompile(`([a-z0-9])([A-Z])`)
+
+func toSnakeCase(s string) string {
+	return strings.ToLower(snakeCaseRegexp.ReplaceAllString(s, `${1}_${2}`))
+}

@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"regexp"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/weaveworks/service/dashboard-api/aws"
@@ -126,7 +124,7 @@ type typeAndLabel struct {
 func awsMetricDimensionsToLabelNames(typeAndDimensions []typeAndDimension) map[aws.Type]model.LabelName {
 	typesToLabelNames := make(map[aws.Type]model.LabelName, len(typeAndDimensions))
 	for _, td := range typeAndDimensions {
-		typesToLabelNames[td.Type] = model.LabelName(toSnakeCase(string(td.Dimension)))
+		typesToLabelNames[td.Type] = td.Dimension.ToLabelName()
 	}
 	return typesToLabelNames
 }
@@ -145,15 +143,4 @@ func awsMetricDimentionsToCategories(typeAndDimensions []typeAndDimension) map[a
 		categories[td.Type] = td.Category
 	}
 	return categories
-}
-
-// Use the similar conversion from AWS CloudWatch dimensions to Prometheus labels as the CloudWatch exporter.
-// See also:
-// - https://github.com/prometheus/cloudwatch_exporter/blob/cloudwatch_exporter-0.1.0/src/main/java/io/prometheus/cloudwatch/CloudWatchCollector.java#L311-L313
-// - https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CW_Support_For_AWS.html
-
-var snakeCaseRegexp = regexp.MustCompile(`([a-z0-9])([A-Z])`)
-
-func toSnakeCase(s string) string {
-	return strings.ToLower(snakeCaseRegexp.ReplaceAllString(s, `${1}_${2}`))
 }

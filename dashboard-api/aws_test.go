@@ -33,13 +33,6 @@ func TestGetAWSResources(t *testing.T) {
 	}, resp)
 }
 
-func TestToSnakeCase(t *testing.T) {
-	assert.Equal(t, "dbinstance_identifier", toSnakeCase("DBInstanceIdentifier"))
-	assert.Equal(t, "queue_name", toSnakeCase("QueueName"))
-	assert.Equal(t, "load_balancer_name", toSnakeCase("LoadBalancerName"))
-	assert.Equal(t, "function_name", toSnakeCase("FunctionName"))
-}
-
 func TestTypesToLabelNames(t *testing.T) {
 	assert.Equal(t, map[aws.Type]model.LabelName{
 		aws.RDS:    model.LabelName("dbinstance_identifier"),
