@@ -13,6 +13,11 @@ const Service = "cloudwatch-exporter"
 // Type describes an AWS resource type, e.g. rds.
 type Type string
 
+// ToDashboardID converts this AWS resource type to a dashboard ID.
+func (t Type) ToDashboardID() string {
+	return fmt.Sprintf("aws-%v", t)
+}
+
 // Supported AWS types:
 const (
 	RDS    = Type("rds")
@@ -46,8 +51,3 @@ const (
 	// AWS Lambda (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/lam-metricscollected.html#lam-metric-dimensions):
 	FunctionName = Dimension("FunctionName")
 )
-
-// TypeToDashboardID converts a supported AWS type to a dashboard ID.
-func TypeToDashboardID(awsType Type) string {
-	return fmt.Sprintf("aws-%v", awsType)
-}

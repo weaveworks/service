@@ -80,7 +80,7 @@ func (api *API) getAWSDashboards(ctx context.Context, r *http.Request, startTime
 	awsType := aws.Type(mux.Vars(r)["type"])
 	resourceName := mux.Vars(r)["name"]
 
-	board := dashboard.GetDashboardByID(aws.TypeToDashboardID(awsType), map[string]string{
+	board := dashboard.GetDashboardByID(awsType.ToDashboardID(), map[string]string{
 		"namespace":  aws.Namespace,
 		"workload":   aws.Service,
 		"identifier": resourceName,

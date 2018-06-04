@@ -8,8 +8,8 @@ import (
 )
 
 func TestTypeToDashboardID(t *testing.T) {
-	assert.Equal(t, "aws-rds", aws.TypeToDashboardID(aws.RDS))
-	assert.Equal(t, "aws-sqs", aws.TypeToDashboardID(aws.SQS))
-	assert.Equal(t, "aws-elb", aws.TypeToDashboardID(aws.ELB))
-	assert.Equal(t, "aws-lambda", aws.TypeToDashboardID(aws.Lambda))
+	assert.Equal(t, "aws-rds", aws.RDS.ToDashboardID())
+	assert.Equal(t, "aws-sqs", aws.SQS.ToDashboardID())
+	assert.Equal(t, "aws-elb", aws.ELB.ToDashboardID())
+	assert.Equal(t, "aws-lambda", aws.Lambda.ToDashboardID())
 }
