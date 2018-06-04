@@ -17,20 +17,48 @@ const Service = "cloudwatch-exporter"
 // Product represents an AWS product.
 type Product struct {
 	Type          Type
-	Category      Category
+	Category      string
 	NameDimension Dimension       // The CloudWatch metrics dimension identifying an instance of this product.
 	LabelName     model.LabelName // The Prometheus label name corresponding to NameDimension.
 }
+
+// Supported AWS products.
+var (
+	RDS = Product{
+		Type:          Type("rds"),
+		Category:      Database,
+		NameDimension: DBInstanceIdentifier,
+		LabelName:     DBInstanceIdentifier.ToLabelName(),
+	}
+	SQS = Product{
+		Type:          Type("sqs"),
+		Category:      Queue,
+		NameDimension: QueueName,
+		LabelName:     QueueName.ToLabelName(),
+	}
+	ELB = Product{
+		Type:          Type("elb"),
+		Category:      LoadBalancer,
+		NameDimension: LoadBalancerName,
+		LabelName:     LoadBalancerName.ToLabelName(),
+	}
+	Lambda = Product{
+		Type:          Type("lambda"),
+		Category:      LambdaFunction,
+		NameDimension: FunctionName,
+		LabelName:     FunctionName.ToLabelName(),
+	}
+)
 
 // Products represents the list of supported AWS products.
 // N.B.: the order of the below products matters, and corresponds to:
 // - to the order of the elements returned by the /api/dashboard/aws/resources endpoint, and therefore
 // - to the order in which these should be rendered in the frontend.
 var Products = []Product{
-	{Type: RDS, Category: Database, NameDimension: DBInstanceIdentifier, LabelName: DBInstanceIdentifier.ToLabelName()},
-	{Type: SQS, Category: Queue, NameDimension: QueueName, LabelName: QueueName.ToLabelName()},
-	{Type: ELB, Category: LoadBalancer, NameDimension: LoadBalancerName, LabelName: LoadBalancerName.ToLabelName()},
-	{Type: Lambda, Category: LambdaFunction, NameDimension: FunctionName, LabelName: FunctionName.ToLabelName()},
+	RDS,
+	SQS,
+	ELB,
+	Lambda,
 }
 
 // Type describes an AWS resource type, e.g. rds.
@@ -41,23 +69,12 @@ func (t Type) ToDashboardID() string {
 	return fmt.Sprintf("aws-%v", t)
 }
 
-// Supported AWS types:
-const (
-	RDS    = Type("rds")
-	SQS    = Type("sqs")
-	ELB    = Type("elb")
-	Lambda = Type("lambda")
-)
-
 // Category describes AWS types' grouping, e.g. RDS and DynamoDB are both databases.
-type Category string
-
-// Supported AWS categories:
 const (
-	Database       = Category("Database")
-	LoadBalancer   = Category("Load Balancer")
-	Queue          = Category("Queue")
-	LambdaFunction = Category("λ-Function")
+	Database       = "Database"
+	LoadBalancer   = "Load Balancer"
+	Queue          = "Queue"
+	LambdaFunction = "λ-Function"
 )
 
 // Dimension describes an AWS resource's metrics dimension, e.g. DBInstanceIdentifier.

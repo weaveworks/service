@@ -19,7 +19,7 @@ func TestGetAWSResources(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, []resources{
 		{
-			Type:     aws.RDS,
+			Type:     string(aws.RDS.Type),
 			Category: aws.Database,
 			Names: []string{
 				"prod-billing-db",

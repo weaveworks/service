@@ -5,7 +5,7 @@ import (
 )
 
 var awsRDSDashboard = Dashboard{
-	ID:   aws.RDS.ToDashboardID(),
+	ID:   aws.RDS.Type.ToDashboardID(),
 	Name: "RDS",
 	Sections: []Section{{
 		Name: "System",

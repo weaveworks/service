@@ -9,11 +9,11 @@ import (
 	"github.com/weaveworks/service/dashboard-api/aws"
 )
 
-func TestTypeToDashboardID(t *testing.T) {
-	assert.Equal(t, "aws-rds", aws.RDS.ToDashboardID())
-	assert.Equal(t, "aws-sqs", aws.SQS.ToDashboardID())
-	assert.Equal(t, "aws-elb", aws.ELB.ToDashboardID())
-	assert.Equal(t, "aws-lambda", aws.Lambda.ToDashboardID())
+func TestToDashboardID(t *testing.T) {
+	assert.Equal(t, "aws-rds", aws.RDS.Type.ToDashboardID())
+	assert.Equal(t, "aws-sqs", aws.SQS.Type.ToDashboardID())
+	assert.Equal(t, "aws-elb", aws.ELB.Type.ToDashboardID())
+	assert.Equal(t, "aws-lambda", aws.Lambda.Type.ToDashboardID())
 }
 
 func TestDimensionToLabelName(t *testing.T) {
