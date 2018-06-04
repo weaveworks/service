@@ -104,22 +104,15 @@ var typesToLabelNames = awsMetricDimensionsToLabelNames(awsMetricDimensions)
 type typeAndDimension struct {
 	Type      aws.Type
 	Category  aws.Category
-	Dimension string
+	Dimension aws.Dimension
 }
 
 // N.B.: the order of the below types corresponds to the ordering of resources in the payload, and therefore, how these should be rendered in the frontend.
 var awsMetricDimensions = []typeAndDimension{
-	// AWS RDS (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/rds-metricscollected.html#rds-metric-dimensions):
-	{Type: aws.RDS, Category: aws.Database, Dimension: "DBInstanceIdentifier"},
-
-	// AWS SQS (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/sqs-metricscollected.html#sqs-metric-dimensions):
-	{Type: aws.SQS, Category: aws.Queue, Dimension: "QueueName"},
-
-	// AWS ELB (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/elb-metricscollected.html#load-balancer-metric-dimensions-clb):
-	{Type: aws.ELB, Category: aws.LoadBalancer, Dimension: "LoadBalancerName"},
-
-	// AWS Lambda (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/lam-metricscollected.html#lam-metric-dimensions):
-	{Type: aws.Lambda, Category: aws.LambdaFunction, Dimension: "FunctionName"},
+	{Type: aws.RDS, Category: aws.Database, Dimension: aws.DBInstanceIdentifier},
+	{Type: aws.SQS, Category: aws.Queue, Dimension: aws.QueueName},
+	{Type: aws.ELB, Category: aws.LoadBalancer, Dimension: aws.LoadBalancerName},
+	{Type: aws.Lambda, Category: aws.LambdaFunction, Dimension: aws.FunctionName},
 }
 
 var types = awsMetricDimentionsToTypes(awsMetricDimensions)
@@ -133,7 +126,7 @@ type typeAndLabel struct {
 func awsMetricDimensionsToLabelNames(typeAndDimensions []typeAndDimension) map[aws.Type]model.LabelName {
 	typesToLabelNames := make(map[aws.Type]model.LabelName, len(typeAndDimensions))
 	for _, td := range typeAndDimensions {
-		typesToLabelNames[td.Type] = model.LabelName(toSnakeCase(td.Dimension))
+		typesToLabelNames[td.Type] = model.LabelName(toSnakeCase(string(td.Dimension)))
 	}
 	return typesToLabelNames
 }
