@@ -58,12 +58,12 @@ type resources struct {
 func labelSetsToResources(labelSets []model.LabelSet) []resources {
 	resourcesSets := make(map[string]map[string]bool)
 	for _, labelSet := range labelSets {
-		for _, tln := range typesAndLabelNames {
-			if resourceName, ok := labelSet[tln.LabelName]; ok {
-				if _, ok := resourcesSets[tln.Type]; !ok {
-					resourcesSets[tln.Type] = make(map[string]bool)
+		for rtype, labelName := range typesToLabelNames {
+			if resourceName, ok := labelSet[labelName]; ok {
+				if _, ok := resourcesSets[rtype]; !ok {
+					resourcesSets[rtype] = make(map[string]bool)
 				}
-				resourcesSets[tln.Type][string(resourceName)] = true
+				resourcesSets[rtype][string(resourceName)] = true
 				break
 			}
 		}
@@ -93,7 +93,8 @@ func setToArray(set map[string]bool) []string {
 	return array
 }
 
-var typesAndLabelNames = awsMetricDimensionsToLabels(awsMetricDimensions)
+// e.g.: "RDS" -> "dbinstance_identifier" -- see tests.
+var typesToLabelNames = awsMetricDimensionsToLabelNames(awsMetricDimensions)
 
 type typeAndDimension struct {
 	Type      string
@@ -122,15 +123,12 @@ type typeAndLabel struct {
 	LabelName model.LabelName
 }
 
-func awsMetricDimensionsToLabels(typeAndDimensions []typeAndDimension) []typeAndLabel {
-	labels := []typeAndLabel{}
+func awsMetricDimensionsToLabelNames(typeAndDimensions []typeAndDimension) map[string]model.LabelName {
+	typesToLabelNames := make(map[string]model.LabelName, len(typeAndDimensions))
 	for _, td := range typeAndDimensions {
-		labels = append(labels, typeAndLabel{
-			Type:      td.Type,
-			LabelName: model.LabelName(toSnakeCase(td.Dimension)),
-		})
+		typesToLabelNames[td.Type] = model.LabelName(toSnakeCase(td.Dimension))
 	}
-	return labels
+	return typesToLabelNames
 }
 
 func awsMetricDimentionsToTypes(typeAndDimensions []typeAndDimension) []string {

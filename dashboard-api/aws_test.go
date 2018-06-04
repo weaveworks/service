@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/prometheus/common/model"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,4 +36,13 @@ func TestToSnakeCase(t *testing.T) {
 	assert.Equal(t, "queue_name", toSnakeCase("QueueName"))
 	assert.Equal(t, "load_balancer_name", toSnakeCase("LoadBalancerName"))
 	assert.Equal(t, "function_name", toSnakeCase("FunctionName"))
+}
+
+func TestTypesToLabelNames(t *testing.T) {
+	assert.Equal(t, map[string]model.LabelName{
+		"RDS":    model.LabelName("dbinstance_identifier"),
+		"SQS":    model.LabelName("queue_name"),
+		"ELB":    model.LabelName("load_balancer_name"),
+		"Lambda": model.LabelName("function_name"),
+	}, typesToLabelNames)
 }
