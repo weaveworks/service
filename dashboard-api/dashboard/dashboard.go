@@ -266,6 +266,7 @@ func GetDashboards(metrics []string, config map[string]string) ([]Dashboard, err
 // other API.
 func Init() error {
 	registerProviders(
+		awsClassicELB,
 		awsRDS,
 
 		http,
