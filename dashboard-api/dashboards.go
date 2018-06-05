@@ -48,6 +48,7 @@ func (api *API) getDashboards(w http.ResponseWriter, r *http.Request, get getter
 func (api *API) getServiceDashboards(ctx context.Context, r *http.Request, startTime, endTime time.Time) (*getDashboardsResponse, error) {
 	namespace := mux.Vars(r)["ns"]
 	service := mux.Vars(r)["service"]
+	log.WithFields(log.Fields{"ns": namespace, "service": service, "from": startTime, "to": endTime}).Info("get service dashboard")
 
 	metrics, err := api.getServiceMetrics(ctx, namespace, service, startTime, endTime)
 	if err != nil {
@@ -79,8 +80,10 @@ func (api *API) GetAWSDashboards(w http.ResponseWriter, r *http.Request) {
 func (api *API) getAWSDashboards(ctx context.Context, r *http.Request, startTime, endTime time.Time) (*getDashboardsResponse, error) {
 	awsType := aws.Type(mux.Vars(r)["type"])
 	resourceName := mux.Vars(r)["name"]
+	id := awsType.ToDashboardID()
+	log.WithFields(log.Fields{"type": awsType, "name": resourceName, "id": id, "from": startTime, "to": endTime, "ctx": ctx, "req": *r}).Info("get AWS dashboard")
 
-	board := dashboard.GetDashboardByID(awsType.ToDashboardID(), map[string]string{
+	board := dashboard.GetDashboardByID(id, map[string]string{
 		"namespace":  aws.Namespace,
 		"workload":   aws.Service,
 		"identifier": resourceName,
