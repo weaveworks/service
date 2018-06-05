@@ -48,6 +48,7 @@ func (api *API) getDashboards(w http.ResponseWriter, r *http.Request, get getter
 func (api *API) getServiceDashboards(ctx context.Context, r *http.Request, startTime, endTime time.Time) (*getDashboardsResponse, error) {
 	namespace := mux.Vars(r)["ns"]
 	service := mux.Vars(r)["service"]
+	log.WithFields(log.Fields{"ns": namespace, "service": service, "from": startTime, "to": endTime}).Info("get service dashboard")
 
 	metrics, err := api.getServiceMetrics(ctx, namespace, service, startTime, endTime)
 	if err != nil {
