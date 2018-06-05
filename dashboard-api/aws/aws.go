@@ -77,7 +77,7 @@ func (t Type) ToDashboardID() string {
 // Category describes AWS types' grouping, e.g. RDS and DynamoDB are both databases.
 const (
 	Database       = "Database"
-	LoadBalancer   = "Load Balancer"
+	LoadBalancer   = "Load balancer"
 	Queue          = "Queue"
 	LambdaFunction = "λ-Function"
 )
