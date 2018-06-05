@@ -108,6 +108,8 @@ func isValidAddress(addressData json.RawMessage, rtype string) error {
 				return errors.Errorf("invalid stackdriver receiver")
 			}
 		}
+	default:
+		return errors.Errorf("invalid receiver type %s", rtype)
 	}
 
 	return nil
