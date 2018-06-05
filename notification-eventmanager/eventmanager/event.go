@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -30,6 +31,9 @@ const (
 	markdownNewline      = "  \n"
 	markdownNewParagraph = "\n\n"
 )
+
+// slack URL like: <http://www.foo.com|foo.com>
+var slackURL = regexp.MustCompile(`<([^|]+)?\|([^>]+)>`)
 
 // handleCreateEvent handles event post requests and log them in DB and queue
 func (em *EventManager) handleCreateEvent(r *http.Request, instanceID string) (interface{}, int, error) {
@@ -425,7 +429,9 @@ func (em *EventManager) handleGetEvents(r *http.Request, instanceID string) (int
 func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceName string) (types.Event, error) {
 	var event types.Event
 	allText := getAllMarkdownText(sm, instanceName)
-	html := string(blackfriday.MarkdownBasic([]byte(allText)))
+	// handle slack URLs
+	allTextMarkdownLinks := slackURL.ReplaceAllString(allText, "[$2]($1)")
+	html := string(blackfriday.MarkdownBasic([]byte(allTextMarkdownLinks)))
 
 	emailMsg, err := getEmailMessage(html, etype, instanceName)
 	if err != nil {
