@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/prometheus/common/model"
+	"github.com/weaveworks/service/dashboard-api/aws"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -19,8 +19,9 @@ func TestGetAWSResources(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, []resources{
 		{
-			Type:     "RDS",
-			Category: "Database",
+			Type:     string(aws.RDS.Type),
+			Label:    aws.RDS.Name,
+			Category: aws.Database,
 			Names: []string{
 				"prod-billing-db",
 				"prod-configs-vpc-database",
@@ -30,29 +31,4 @@ func TestGetAWSResources(t *testing.T) {
 			},
 		},
 	}, resp)
-}
-
-func TestToSnakeCase(t *testing.T) {
-	assert.Equal(t, "dbinstance_identifier", toSnakeCase("DBInstanceIdentifier"))
-	assert.Equal(t, "queue_name", toSnakeCase("QueueName"))
-	assert.Equal(t, "load_balancer_name", toSnakeCase("LoadBalancerName"))
-	assert.Equal(t, "function_name", toSnakeCase("FunctionName"))
-}
-
-func TestTypesToLabelNames(t *testing.T) {
-	assert.Equal(t, map[string]model.LabelName{
-		"RDS":    model.LabelName("dbinstance_identifier"),
-		"SQS":    model.LabelName("queue_name"),
-		"ELB":    model.LabelName("load_balancer_name"),
-		"Lambda": model.LabelName("function_name"),
-	}, typesToLabelNames)
-}
-
-func TestTypesToCategories(t *testing.T) {
-	assert.Equal(t, map[string]string{
-		"RDS":    "Database",
-		"SQS":    "Queue",
-		"ELB":    "Load Balancer",
-		"Lambda": "λ-Function",
-	}, categories)
 }

@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"regexp"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/weaveworks/service/dashboard-api/aws"
@@ -33,6 +31,17 @@ func (api *API) GetAWSResources(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, resources)
 }
 
+// AWS resources,
+// - grouped by type,
+// - in the order we want these to be rendered,
+// - with names sorted alphabetically.
+type resources struct {
+	Type     string   `json:"type"`  // e.g. "elb", "rds", "sqs", etc.
+	Label    string   `json:"label"` // e.g. "ELB", "RDS", "SQS", etc.
+	Category string   `json:"category"`
+	Names    []string `json:"names"`
+}
+
 func (api *API) getAWSResources(ctx context.Context) ([]resources, error) {
 	to := time.Now()
 	from := to.Add(-1 * time.Hour) // Not too long in the past so that Cortex serves the series from memcached.
@@ -43,49 +52,39 @@ func (api *API) getAWSResources(ctx context.Context) ([]resources, error) {
 	return labelSetsToResources(labelSets), nil
 }
 
-// An AWS resource.
-type resource struct {
-	Type string `json:"type"` // e.g. ELB, RDS, SQS, etc.
-	Name string `json:"name"`
-}
-
-// AWS resources,
-// - grouped by type,
-// - in the order we want these to be rendered,
-// - with names sorted alphabetically.
-type resources struct {
-	Type     string   `json:"type"` // e.g. ELB, RDS, SQS, etc.
-	Category string   `json:"category"`
-	Names    []string `json:"names"`
-}
-
 func labelSetsToResources(labelSets []model.LabelSet) []resources {
-	resourcesSets := make(map[string]map[string]bool)
+	resourcesSets := make(map[aws.Product]map[string]bool)
 	for _, labelSet := range labelSets {
-		for rtype, labelName := range typesToLabelNames {
-			if resourceName, ok := labelSet[labelName]; ok {
-				if _, ok := resourcesSets[rtype]; !ok {
-					resourcesSets[rtype] = make(map[string]bool)
+		for _, product := range aws.Products {
+			if resourceName, ok := labelSet[product.LabelName]; ok {
+				if _, ok := resourcesSets[product]; !ok {
+					resourcesSets[product] = make(map[string]bool)
 				}
-				resourcesSets[rtype][string(resourceName)] = true
+				resourcesSets[product][string(resourceName)] = true
 				break
 			}
 		}
 	}
+
 	resourcesArray := []resources{}
-	for _, rtype := range types {
-		if rset, ok := resourcesSets[rtype]; ok {
-			array := setToArray(rset)
-			sort.Strings(array)
+	for _, product := range aws.Products {
+		if set, ok := resourcesSets[product]; ok {
 			resourcesArray = append(resourcesArray, resources{
-				Type:     rtype,
-				Category: categories[rtype],
-				Names:    array,
+				Type:     string(product.Type),
+				Label:    product.Name,
+				Category: product.Category,
+				Names:    setToSortedArray(set),
 			})
 		}
 	}
 
 	return resourcesArray
+}
+
+func setToSortedArray(set map[string]bool) []string {
+	array := setToArray(set)
+	sort.Strings(array)
+	return array
 }
 
 func setToArray(set map[string]bool) []string {
@@ -96,78 +95,4 @@ func setToArray(set map[string]bool) []string {
 		i++
 	}
 	return array
-}
-
-// e.g.: "RDS" -> "dbinstance_identifier" -- see tests.
-var typesToLabelNames = awsMetricDimensionsToLabelNames(awsMetricDimensions)
-
-type typeAndDimension struct {
-	Type      string
-	Category  string
-	Dimension string
-}
-
-const (
-	database       = "Database"
-	loadBalancer   = "Load Balancer"
-	queue          = "Queue"
-	lambdaFunction = "λ-Function"
-)
-
-// N.B.: the order of the below types corresponds to the ordering of resources in the payload, and therefore, how these should be rendered in the frontend.
-var awsMetricDimensions = []typeAndDimension{
-	// AWS RDS (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/rds-metricscollected.html#rds-metric-dimensions):
-	{Type: aws.RDS, Category: database, Dimension: "DBInstanceIdentifier"},
-
-	// AWS SQS (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/sqs-metricscollected.html#sqs-metric-dimensions):
-	{Type: aws.SQS, Category: queue, Dimension: "QueueName"},
-
-	// AWS ELB (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/elb-metricscollected.html#load-balancer-metric-dimensions-clb):
-	{Type: aws.ELB, Category: loadBalancer, Dimension: "LoadBalancerName"},
-
-	// AWS Lambda (https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/lam-metricscollected.html#lam-metric-dimensions):
-	{Type: aws.Lambda, Category: lambdaFunction, Dimension: "FunctionName"},
-}
-
-var types = awsMetricDimentionsToTypes(awsMetricDimensions)
-var categories = awsMetricDimentionsToCategories(awsMetricDimensions)
-
-type typeAndLabel struct {
-	Type      string
-	LabelName model.LabelName
-}
-
-func awsMetricDimensionsToLabelNames(typeAndDimensions []typeAndDimension) map[string]model.LabelName {
-	typesToLabelNames := make(map[string]model.LabelName, len(typeAndDimensions))
-	for _, td := range typeAndDimensions {
-		typesToLabelNames[td.Type] = model.LabelName(toSnakeCase(td.Dimension))
-	}
-	return typesToLabelNames
-}
-
-func awsMetricDimentionsToTypes(typeAndDimensions []typeAndDimension) []string {
-	types := []string{}
-	for _, td := range typeAndDimensions {
-		types = append(types, td.Type)
-	}
-	return types
-}
-
-func awsMetricDimentionsToCategories(typeAndDimensions []typeAndDimension) map[string]string {
-	categories := make(map[string]string, len(typeAndDimensions))
-	for _, td := range typeAndDimensions {
-		categories[td.Type] = td.Category
-	}
-	return categories
-}
-
-// Use the similar conversion from AWS CloudWatch dimensions to Prometheus labels as the CloudWatch exporter.
-// See also:
-// - https://github.com/prometheus/cloudwatch_exporter/blob/cloudwatch_exporter-0.1.0/src/main/java/io/prometheus/cloudwatch/CloudWatchCollector.java#L311-L313
-// - https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CW_Support_For_AWS.html
-
-var snakeCaseRegexp = regexp.MustCompile(`([a-z0-9])([A-Z])`)
-
-func toSnakeCase(s string) string {
-	return strings.ToLower(snakeCaseRegexp.ReplaceAllString(s, `${1}_${2}`))
 }

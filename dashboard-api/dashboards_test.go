@@ -28,7 +28,7 @@ func TestGetServiceDashboardsNoMetrics(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 }
 
-func makeGetAWSDashboardsURL(awsType, resourceName string) string {
+func makeGetAWSDashboardsURL(awsType aws.Type, resourceName string) string {
 	return fmt.Sprintf("%s/api/dashboard/aws/%s/%s/dashboards", baseURL, awsType, resourceName)
 }
 
@@ -36,7 +36,7 @@ func makeGetAWSDashboardsURL(awsType, resourceName string) string {
 func TestGetAWSDashboardsNoMetrics(t *testing.T) {
 	api := setupMock(t)
 
-	req := httptest.NewRequest("GET", makeGetAWSDashboardsURL(aws.RDS, "bar"), nil)
+	req := httptest.NewRequest("GET", makeGetAWSDashboardsURL(aws.RDS.Type, "bar"), nil)
 	w := httptest.NewRecorder()
 	api.handler.ServeHTTP(w, req)
 
