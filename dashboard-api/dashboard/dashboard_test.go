@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/weaveworks/service/dashboard-api/aws"
 )
 
 var (
@@ -342,4 +343,35 @@ func TestGoldenWithOptionalPanels(t *testing.T) {
 		assert.Equal(t, string(expectedBytes), string(gotBytes))
 	}
 	Deinit()
+}
+
+func TestGetDashboardByIDShouldResolveQueryOnACopyOfDashboardTemplate(t *testing.T) {
+	err := Init()
+	assert.NoError(t, err)
+
+	assertDashboardContainsIdentifier(t, GetDashboardByID(aws.RDS.Type.ToDashboardID(), map[string]string{
+		"namespace":  aws.Namespace,
+		"workload":   aws.Service,
+		"identifier": "foo",
+	}), "foo")
+
+	assertDashboardContainsIdentifier(t, GetDashboardByID(aws.RDS.Type.ToDashboardID(), map[string]string{
+		"namespace":  aws.Namespace,
+		"workload":   aws.Service,
+		"identifier": "bar",
+	}), "bar")
+}
+
+func assertDashboardContainsIdentifier(t *testing.T, dashboard *Dashboard, identifier string) {
+	assert.NotNil(t, dashboard)
+	assert.NotEqual(t, 0, len(dashboard.Sections))
+	for _, section := range dashboard.Sections {
+		assert.NotEqual(t, 0, len(section.Rows))
+		for _, row := range section.Rows {
+			assert.NotEqual(t, 0, len(row.Panels))
+			for _, panel := range row.Panels {
+				assert.Contains(t, panel.Query, fmt.Sprintf("dbinstance_identifier='%v'", identifier))
+			}
+		}
+	}
 }

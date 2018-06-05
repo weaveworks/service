@@ -225,11 +225,10 @@ func resolveQueries(dashboards []Dashboard, config map[string]string) {
 // GetDashboardByID retrieves a dashboard by ID
 func GetDashboardByID(ID string, config map[string]string) *Dashboard {
 	for _, provider := range providers {
-		dashboard := provider.GetDashboard()
-		if dashboard.ID == ID {
+		dashboardTemplate := provider.GetDashboard()
+		if dashboardTemplate.ID == ID {
 			results := make([]Dashboard, 1, 1)
-
-			results[0] = *dashboard
+			results[0] = dashboardTemplate.DeepCopy()
 			resolveQueries(results, config)
 			return &results[0]
 		}
