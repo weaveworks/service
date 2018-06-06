@@ -203,7 +203,7 @@ func (em *EventManager) handleGetEventTypes(r *http.Request) (interface{}, int, 
 }
 
 // createConfigChangedEvent creates event with changed configuration
-func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID string, oldReceiver, receiver types.Receiver, eventTime time.Time) error {
+func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID string, oldReceiver, receiver types.Receiver, eventTime time.Time, userEmail string) error {
 	log.Debug("update_config Event Firing...")
 
 	eventType := "config_changed"
@@ -236,7 +236,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 	// Currently these are distinct non-overlapping events
 	if !bytes.Equal(oldReceiver.AddressData, receiver.AddressData) {
 		// address changed event
-		msg := fmt.Sprintf("The address for <b>%s</b> was updated!", receiver.RType)
+		msg := fmt.Sprintf("The address for <b>%s</b> was updated by %s!", receiver.RType, userEmail)
 
 		emailMsg, err := getEmailMessage(msg, eventType, instanceName)
 		if err != nil {
@@ -260,14 +260,14 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		event.Messages = map[string]json.RawMessage{
 			types.EmailReceiver:       emailMsg,
 			types.BrowserReceiver:     browserMsg,
-			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\nThe address for *%s* was updated!"}`, instanceName, receiver.RType)),
+			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\nThe address for *%s* was updated by %s!"}`, instanceName, receiver.RType, userEmail)),
 			types.StackdriverReceiver: stackdriverMsg,
 		}
 	} else if !reflect.DeepEqual(oldReceiver.EventTypes, receiver.EventTypes) {
 		// eventTypes changed event
 
 		added, removed := diff(oldReceiver.EventTypes, receiver.EventTypes)
-		text := formatEventTypeText("<b>", "</b>", receiver.RType, "<i>", "</i>", added, removed)
+		text := formatEventTypeText("<b>", "</b>", receiver.RType, "<i>", "</i>", added, removed, userEmail)
 
 		emailMsg, err := getEmailMessage(text, eventType, instanceName)
 		if err != nil {
@@ -288,7 +288,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 			return errors.Wrap(err, "cannot get stackdriver message for event types changed")
 		}
 
-		slackText := formatEventTypeText("*", "*", receiver.RType, "_", "_", added, removed)
+		slackText := formatEventTypeText("*", "*", receiver.RType, "_", "_", added, removed, userEmail)
 		event.Messages = map[string]json.RawMessage{
 			types.EmailReceiver:   emailMsg,
 			types.BrowserReceiver: browserMsg,
@@ -311,10 +311,10 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 	return nil
 }
 
-func formatEventTypeText(rtypeStart, rtypeEnd, rtype, setStart, setEnd string, enabled, disabled []string) string {
+func formatEventTypeText(rtypeStart, rtypeEnd, rtype, setStart, setEnd string, enabled, disabled []string, userEmail string) string {
 	var b bytes.Buffer
 
-	b.WriteString(fmt.Sprintf("The event types for %s%s%s were changed:", rtypeStart, rtype, rtypeEnd))
+	b.WriteString(fmt.Sprintf("The event types for %s%s%s were changed by %s:", rtypeStart, rtype, rtypeEnd, userEmail))
 	if len(enabled) > 0 {
 		b.WriteString(fmt.Sprintf(" enabled %s%s%s", setStart, enabled, setEnd))
 	}

@@ -15,6 +15,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/notification-eventmanager/types"
+	"github.com/weaveworks/service/users"
+	"github.com/weaveworks/service/users/sessions"
 )
 
 var (
@@ -180,10 +182,31 @@ func (em *EventManager) handleUpdateReceiver(r *http.Request, instanceID string,
 		return nil, 0, err
 	}
 
+	authCookie, err := sessions.Extract(r)
+	if err != nil {
+		return nil, http.StatusUnauthorized, err
+	}
+
+	userIDData, err := em.UsersClient.LookupUser(r.Context(), &users.LookupUserRequest{
+		Cookie: authCookie,
+	})
+	if err != nil {
+		return nil, http.StatusBadRequest, err
+	}
+
+	userData, err := em.UsersClient.GetUser(r.Context(), &users.GetUserRequest{
+		UserID: userIDData.UserID,
+	})
+	if err != nil {
+		return nil, http.StatusBadRequest, err
+	}
+
+	email := userData.User.GetEmail()
+
 	// all good!
 	// Fire event every time config is successfully changed
 	go func() {
-		eventErr := em.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime)
+		eventErr := em.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime, email)
 		if eventErr != nil {
 			log.Error(eventErr)
 		}
