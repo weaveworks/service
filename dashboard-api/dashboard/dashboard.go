@@ -23,10 +23,11 @@ type UnitFormat string
 
 // The list of supported panel metric unit formats.
 const (
-	UnitNumeric UnitFormat = "numeric"
-	UnitBytes   UnitFormat = "bytes"
-	UnitPercent UnitFormat = "percent"
-	UnitSeconds UnitFormat = "seconds"
+	UnitNumeric      UnitFormat = "numeric"
+	UnitBytes        UnitFormat = "bytes"
+	UnitPercent      UnitFormat = "percent"
+	UnitSeconds      UnitFormat = "seconds"
+	UnitMilliseconds UnitFormat = "milliseconds"
 )
 
 // Unit describes the metric unit of graph values.
@@ -267,11 +268,11 @@ func GetDashboards(metrics []string, config map[string]string) ([]Dashboard, err
 func Init() error {
 	registerProviders(
 		awsRDS,
-
 		http,
 		goKit,
 		cadvisor,
 		openfaas,
+		ambassador,
 		memcached,
 		jvm,
 		goRuntime,

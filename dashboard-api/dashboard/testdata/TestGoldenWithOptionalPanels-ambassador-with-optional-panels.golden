@@ -1,0 +1,81 @@
+{
+  "id": "ambassador",
+  "name": "Ambassador",
+  "sections": [
+    {
+      "name": "Traffic",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Total connections per instance",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(envoy_server_total_connections{kubernetes_namespace='default',_weave_service='authfe'}) by (kubernetes_pod_name)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "RED metrics",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Latency",
+              "optional": true,
+              "type": "line",
+              "unit": {
+                "format": "milliseconds"
+              },
+              "query": "avg(envoy_listener_0_0_0_0_80_downstream_cx_length_ms{quantile=\"0.99\"})"
+            }
+          ]
+        },
+        {
+          "panels": [
+            {
+              "title": "2xx requests per second",
+              "optional": true,
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(rate(envoy_http_ingress_http_downstream_rq_2xx{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
+            },
+            {
+              "title": "3xx requests per second",
+              "optional": true,
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(rate(envoy_http_ingress_http_downstream_rq_3xx{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
+            },
+            {
+              "title": "4xx requests per second",
+              "optional": true,
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(rate(envoy_http_ingress_http_downstream_rq_4xx{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
+            },
+            {
+              "title": "5xx requests per second",
+              "optional": true,
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(rate(envoy_http_ingress_http_downstream_rq_5xx{kubernetes_namespace='default',_weave_service='authfe'}[2m])) by (kubernetes_pod_name)"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
