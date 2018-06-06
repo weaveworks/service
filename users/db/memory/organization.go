@@ -243,7 +243,7 @@ var (
 	// service/users/db/migrations/015_limit_length_organizations.up.sql
 	organizationMaxLength = 100
 
-	errorOrgNameLengthConstraint = pq.Error{
+	errorOrgNameLengthConstraint = &pq.Error{
 		Severity: "ERROR",
 		Code:     "22001",
 		Message:  fmt.Sprintf("value too long for type character varying(%v)", organizationMaxLength),
@@ -263,7 +263,7 @@ func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, 
 		return nil, err
 	}
 	if len(name) > organizationMaxLength {
-		return nil, &errorOrgNameLengthConstraint
+		return nil, errorOrgNameLengthConstraint
 	}
 	now := time.Now().UTC()
 	var teamExternalID string
@@ -392,7 +392,7 @@ func changeOrg(d *DB, externalID string, toWrap func(*users.Organization) error)
 // UpdateOrganization changes an organization's data.
 func (d *DB) UpdateOrganization(_ context.Context, externalID string, update users.OrgWriteView) (*users.Organization, error) {
 	if update.Name != nil && len(*update.Name) > organizationMaxLength {
-		return nil, &errorOrgNameLengthConstraint
+		return nil, errorOrgNameLengthConstraint
 	}
 	var org *users.Organization
 	err := changeOrg(d, externalID, func(o *users.Organization) error {
@@ -722,7 +722,7 @@ func (d *DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID
 		return nil, err
 	}
 	if len(name) > organizationMaxLength {
-		return nil, &errorOrgNameLengthConstraint
+		return nil, errorOrgNameLengthConstraint
 	}
 	now := time.Now().UTC()
 
