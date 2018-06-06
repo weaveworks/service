@@ -378,7 +378,7 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 	if err != nil {
 		return nil, err
 	}
-	return o, err
+	return o, nil
 }
 
 // FindUncleanedOrgIDs looks up deleted but uncleaned organization IDs
@@ -899,7 +899,11 @@ func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID,
 		}
 
 		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, token, team.ID, trialExpiresAt)
-		return err
+		if err != nil {
+			return err
+		}
+		org.TeamExternalID = team.ExternalID
+		return nil
 	})
 	if err != nil {
 		return nil, err
