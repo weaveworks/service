@@ -61,7 +61,7 @@ var awsClassicELBDashboard = Dashboard{
 		Name: "Requests",
 		Rows: []Row{{
 			Panels: []Panel{{
-				Title: "Number of requests",
+				Title: "Number of requests / connections",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(aws_elb_request_count_sum{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}',load_balancer_name='{{identifier}}'}) by (load_balancer_name)`,

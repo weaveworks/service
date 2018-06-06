@@ -8,7 +8,7 @@
         {
           "panels": [
             {
-              "title": "Number of requests",
+              "title": "Number of requests / connections",
               "type": "line",
               "unit": {
                 "format": "numeric"
