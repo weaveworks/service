@@ -277,10 +277,6 @@ func Test_DB_CreateOrganizationWithTeam(t *testing.T) {
 	require.NoError(t, err)
 	name := strings.Replace(externalID, "-", " ", -1)
 
-	// first test an edge case
-	_, err = db.CreateOrganizationWithTeam(ctx, user.ID, externalID, name, "", "", "", user.TrialExpiresAt())
-	require.Error(t, err)
-
 	_, err = db.CreateOrganizationWithTeam(ctx, user.ID, externalID, name, "", "non-existent", "", user.TrialExpiresAt())
 	require.Error(t, err)
 

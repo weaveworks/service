@@ -3,15 +3,15 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/common/billing/grpc"
@@ -138,22 +138,19 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 
 // CreateOrg creates an organisation
 func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgView, now time.Time) error {
-	var org *users.Organization
-	var err error
 	if view.TeamExternalID == "" && view.TeamName == "" {
-		org, err = a.db.CreateOrganization(ctx, currentUser.ID, view.ExternalID, view.Name, view.ProbeToken, "", view.TrialExpiresAt)
-	} else {
-		org, err = a.db.CreateOrganizationWithTeam(
-			ctx,
-			currentUser.ID,
-			view.ExternalID,
-			view.Name,
-			view.ProbeToken,
-			view.TeamExternalID,
-			view.TeamName,
-			view.TrialExpiresAt,
-		)
+		return users.NewMalformedInputError(errors.New("either teamId or teamName needs to be provided"))
 	}
+	org, err := a.db.CreateOrganizationWithTeam(
+		ctx,
+		currentUser.ID,
+		view.ExternalID,
+		view.Name,
+		view.ProbeToken,
+		view.TeamExternalID,
+		view.TeamName,
+		view.TrialExpiresAt,
+	)
 	if err != nil {
 		return err
 	}
@@ -198,6 +195,10 @@ func (a *API) MoveOrg(ctx context.Context, currentUser *users.User, org *users.O
 		if err := a.userCanAccessTeam(ctx, currentUser, teamExternalID); err != nil {
 			return err
 		}
+	}
+
+	if teamExternalID == "" && teamName == "" {
+		return users.NewMalformedInputError(errors.New("either teamId or teamName needs to be provided"))
 	}
 
 	// Move organization into other team

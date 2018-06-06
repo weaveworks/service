@@ -709,13 +709,6 @@ func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccount
 // If teamName is not empty, the organizations is assigned to that team. it is created if it does not exists.
 // One, and only one, of teamExternalID, teamName must be provided.
 func (d *DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error) {
-	if teamName == "" && teamExternalID == "" {
-		return nil, errors.New("At least one of teamExternalID, teamName needs to be provided")
-	}
-	if teamName != "" && teamExternalID != "" {
-		return nil, fmt.Errorf("Only one of teamExternalID, teamName needs to be provided: %v, %v", teamExternalID, teamName)
-	}
-
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if _, err := d.findUserByID(ownerID); err != nil {
