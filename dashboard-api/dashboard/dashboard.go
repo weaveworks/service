@@ -27,7 +27,6 @@ const (
 	UnitBytes        UnitFormat = "bytes"
 	UnitPercent      UnitFormat = "percent"
 	UnitSeconds      UnitFormat = "seconds"
-	UnitMilliseconds UnitFormat = "milliseconds"
 )
 
 // Unit describes the metric unit of graph values.

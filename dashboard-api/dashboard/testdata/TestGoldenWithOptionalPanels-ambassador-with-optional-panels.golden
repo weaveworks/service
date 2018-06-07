@@ -29,7 +29,8 @@
               "optional": true,
               "type": "line",
               "unit": {
-                "format": "milliseconds"
+                "format": "seconds",
+                "scale": 0.001
               },
               "query": "avg(envoy_listener_0_0_0_0_80_downstream_cx_length_ms{quantile=\"0.99\"})"
             }

@@ -21,7 +21,7 @@ var ambassadorDashboard = Dashboard{
 				Title:    "Latency",
 				Type:     PanelLine,
 				Optional: true,
-				Unit:     Unit{Format: UnitMilliseconds},
+				Unit:     Unit{Format: UnitSeconds, Scale: 1e-3},
 				Query:    `avg(envoy_listener_0_0_0_0_80_downstream_cx_length_ms{quantile="0.99"})`,
 			}},
 		}, {
