@@ -13,7 +13,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "sum(aws_rds_cpuutilization_average{kubernetes_namespace='default',_weave_service='authfe',dbinstance_identifier='prod-users-vpc-database'}) by (dbinstance_identifier)"
+              "query": "sum(aws_rds_cpuutilization_average{kubernetes_namespace='default',_weave_service='authfe',dbinstance_identifier=~'prod-users-vpc-database'}) by (dbinstance_identifier)"
             },
             {
               "title": "Available RAM",
@@ -21,7 +21,7 @@
               "unit": {
                 "format": "bytes"
               },
-              "query": "sum(aws_rds_freeable_memory_average{kubernetes_namespace='default',_weave_service='authfe',dbinstance_identifier='prod-users-vpc-database'}) by (dbinstance_identifier)"
+              "query": "sum(aws_rds_freeable_memory_average{kubernetes_namespace='default',_weave_service='authfe',dbinstance_identifier=~'prod-users-vpc-database'}) by (dbinstance_identifier)"
             }
           ]
         }
@@ -38,7 +38,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "sum(aws_rds_database_connections_average{kubernetes_namespace='default',_weave_service='authfe',dbinstance_identifier='prod-users-vpc-database'}) by (dbinstance_identifier)"
+              "query": "sum(aws_rds_database_connections_average{kubernetes_namespace='default',_weave_service='authfe',dbinstance_identifier=~'prod-users-vpc-database'}) by (dbinstance_identifier)"
             }
           ]
         }
@@ -55,7 +55,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "sum(aws_rds_read_iops_average{kubernetes_namespace='default',_weave_service='authfe',dbinstance_identifier='prod-users-vpc-database'}) by (dbinstance_identifier)"
+              "query": "sum(aws_rds_read_iops_average{kubernetes_namespace='default',_weave_service='authfe',dbinstance_identifier=~'prod-users-vpc-database'}) by (dbinstance_identifier)"
             },
             {
               "title": "Write IOPS",
@@ -63,7 +63,7 @@
               "unit": {
                 "format": "numeric"
               },
-              "query": "sum(aws_rds_write_iops_average{kubernetes_namespace='default',_weave_service='authfe',dbinstance_identifier='prod-users-vpc-database'}) by (dbinstance_identifier)"
+              "query": "sum(aws_rds_write_iops_average{kubernetes_namespace='default',_weave_service='authfe',dbinstance_identifier=~'prod-users-vpc-database'}) by (dbinstance_identifier)"
             }
           ]
         }

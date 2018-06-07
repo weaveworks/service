@@ -1,11 +1,11 @@
 package dashboard
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/mitchellh/copystructure"
+	"github.com/weaveworks/service/common/errors"
 )
 
 // PanelType is the type of a panel.
@@ -76,8 +76,6 @@ func (d *Dashboard) DeepCopy() Dashboard {
 func (d *Dashboard) Panel(path *Path) *Panel {
 	return &d.Sections[path.section].Rows[path.row].Panels[path.panel]
 }
-
-var errExitEarly = errors.New("exit early")
 
 // forEachSection executes f for each section in d. f can return an error at any
 // time, the walk through the section is stopped and the error returned.
@@ -223,18 +221,18 @@ func resolveQueries(dashboards []Dashboard, config map[string]string) {
 }
 
 // GetDashboardByID retrieves a dashboard by ID
-func GetDashboardByID(ID string, config map[string]string) *Dashboard {
+func GetDashboardByID(ID string, config map[string]string) (*Dashboard, error) {
 	for _, provider := range providers {
 		dashboardTemplate := provider.GetDashboard()
 		if dashboardTemplate.ID == ID {
 			results := make([]Dashboard, 1, 1)
 			results[0] = dashboardTemplate.DeepCopy()
 			resolveQueries(results, config)
-			return &results[0]
+			return &results[0], nil
 		}
 	}
 
-	return nil
+	return nil, errors.ErrNotFound
 }
 
 // GetDashboards returns a list of dashboards that can be shown, given the list
@@ -249,7 +247,7 @@ func GetDashboards(metrics []string, config map[string]string) ([]Dashboard, err
 
 	dashboards := getDashboardsForMetrics(providers, metricsMap)
 	if len(dashboards) == 0 {
-		return nil, nil
+		return nil, errors.ErrNotFound
 	}
 
 	// resolve Queries fields

@@ -66,6 +66,15 @@ var Products = []Product{
 	Lambda,
 }
 
+// ProductsByType allows for the O(1) retrieval of an AWS product by its type.
+var ProductsByType = func() map[Type]Product {
+	products := make(map[Type]Product, len(Products))
+	for _, product := range Products {
+		products[product.Type] = product
+	}
+	return products
+}()
+
 // Type describes an AWS resource type, e.g. rds.
 type Type string
 
