@@ -243,7 +243,7 @@ var (
 	// service/users/db/migrations/015_limit_length_organizations.up.sql
 	organizationMaxLength = 100
 
-	errorOrgNameLengthConstraint = pq.Error{
+	errorOrgNameLengthConstraint = &pq.Error{
 		Severity: "ERROR",
 		Code:     "22001",
 		Message:  fmt.Sprintf("value too long for type character varying(%v)", organizationMaxLength),
@@ -263,7 +263,7 @@ func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, 
 		return nil, err
 	}
 	if len(name) > organizationMaxLength {
-		return nil, &errorOrgNameLengthConstraint
+		return nil, errorOrgNameLengthConstraint
 	}
 	now := time.Now().UTC()
 	var teamExternalID string
@@ -392,7 +392,7 @@ func changeOrg(d *DB, externalID string, toWrap func(*users.Organization) error)
 // UpdateOrganization changes an organization's data.
 func (d *DB) UpdateOrganization(_ context.Context, externalID string, update users.OrgWriteView) (*users.Organization, error) {
 	if update.Name != nil && len(*update.Name) > organizationMaxLength {
-		return nil, &errorOrgNameLengthConstraint
+		return nil, errorOrgNameLengthConstraint
 	}
 	var org *users.Organization
 	err := changeOrg(d, externalID, func(o *users.Organization) error {
@@ -709,20 +709,13 @@ func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccount
 // If teamName is not empty, the organizations is assigned to that team. it is created if it does not exists.
 // One, and only one, of teamExternalID, teamName must be provided.
 func (d *DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error) {
-	if teamName == "" && teamExternalID == "" {
-		return nil, errors.New("At least one of teamExternalID, teamName needs to be provided")
-	}
-	if teamName != "" && teamExternalID != "" {
-		return nil, fmt.Errorf("Only one of teamExternalID, teamName needs to be provided: %v, %v", teamExternalID, teamName)
-	}
-
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if _, err := d.findUserByID(ownerID); err != nil {
 		return nil, err
 	}
 	if len(name) > organizationMaxLength {
-		return nil, &errorOrgNameLengthConstraint
+		return nil, errorOrgNameLengthConstraint
 	}
 	now := time.Now().UTC()
 

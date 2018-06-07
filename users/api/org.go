@@ -3,15 +3,15 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/common/billing/grpc"
@@ -22,6 +22,8 @@ import (
 	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/users"
 )
+
+var errTeamIdentifierRequired = users.NewMalformedInputError(errors.New("either teamId or teamName needs to be provided but not both"))
 
 // OrgView describes an organisation
 type OrgView struct {
@@ -138,22 +140,19 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 
 // CreateOrg creates an organisation
 func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgView, now time.Time) error {
-	var org *users.Organization
-	var err error
-	if view.TeamExternalID == "" && view.TeamName == "" {
-		org, err = a.db.CreateOrganization(ctx, currentUser.ID, view.ExternalID, view.Name, view.ProbeToken, "", view.TrialExpiresAt)
-	} else {
-		org, err = a.db.CreateOrganizationWithTeam(
-			ctx,
-			currentUser.ID,
-			view.ExternalID,
-			view.Name,
-			view.ProbeToken,
-			view.TeamExternalID,
-			view.TeamName,
-			view.TrialExpiresAt,
-		)
+	if err := verifyTeamParams(view.TeamExternalID, view.TeamName); err != nil {
+		return err
 	}
+	org, err := a.db.CreateOrganizationWithTeam(
+		ctx,
+		currentUser.ID,
+		view.ExternalID,
+		view.Name,
+		view.ProbeToken,
+		view.TeamExternalID,
+		view.TeamName,
+		view.TrialExpiresAt,
+	)
 	if err != nil {
 		return err
 	}
@@ -200,6 +199,10 @@ func (a *API) MoveOrg(ctx context.Context, currentUser *users.User, org *users.O
 		}
 	}
 
+	if err := verifyTeamParams(teamExternalID, teamName); err != nil {
+		return err
+	}
+
 	// Move organization into other team
 	prevID := org.TeamID
 	if err := a.db.MoveOrganizationToTeam(ctx, org.ExternalID, teamExternalID, teamName, currentUser.ID); err != nil {
@@ -233,6 +236,13 @@ func (a *API) MoveOrg(ctx context.Context, currentUser *users.User, org *users.O
 		if err := a.afterOrganizationCreatedOrMoved(ctx, currentUser, neworg, time.Now()); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func verifyTeamParams(teamExternalID, teamName string) error {
+	if (teamExternalID == "" && teamName == "") || (teamExternalID != "" && teamName != "") {
+		return errTeamIdentifierRequired
 	}
 	return nil
 }

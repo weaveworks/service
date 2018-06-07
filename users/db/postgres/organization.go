@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -621,10 +620,6 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 
 // MoveOrganizationToTeam updates the team of the organization. It does *not* check team permissions.
 func (d DB) MoveOrganizationToTeam(ctx context.Context, externalID, teamExternalID, teamName, userID string) error {
-	if err := verifyTeamParams(teamExternalID, teamName); err != nil {
-		return err
-	}
-
 	var team *users.Team
 	var err error
 	if teamName != "" {
@@ -882,22 +877,9 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccountI
 	})
 }
 
-func verifyTeamParams(teamExternalID, teamName string) error {
-	if teamName == "" && teamExternalID == "" {
-		return errors.New("At least one of teamExternalID, teamName needs to be provided")
-	}
-	if teamName != "" && teamExternalID != "" {
-		return fmt.Errorf("Only one of teamExternalID, teamName needs to be provided: %v, %v", teamExternalID, teamName)
-	}
-	return nil
-}
-
 // CreateOrganizationWithTeam creates a new organization, ensuring it is part of a team and owned by the user
 func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error) {
 	var org *users.Organization
-	if err := verifyTeamParams(teamExternalID, teamName); err != nil {
-		return nil, err
-	}
 	err := d.Transaction(func(tx DB) error {
 		var team *users.Team
 		var err error

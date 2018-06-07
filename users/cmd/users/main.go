@@ -75,6 +75,7 @@ func main() {
 		localTestUserInstanceID           = flag.String("local-test-user.instance-id", "local-test", "Instance ID for test user (for local deployments only.)")
 		localTestUserInstanceName         = flag.String("local-test-user.instance-name", "Local Test Instance", "Instance name for test user (for local deployments only.)")
 		localTestUserInstanceToken        = flag.String("local-test-user.instance-token", "local-test-token", "Instance token for test user (for local deployments only.)")
+		localTestUserTeamName             = flag.String("local-test-user.team-name", "Local Team", "Team name for test user (for local deployments only.)")
 		localTestUserInstanceFeatureFlags = flag.String("local-test-user.instance-feature-flags", "", "Comma-separated feature flags for the test user (for local deployments only.)")
 
 		forceFeatureFlags common.ArrayFlags
@@ -194,7 +195,7 @@ func main() {
 
 	if *localTestUserCreate {
 		makeLocalTestUser(app, *localTestUserEmail, *localTestUserInstanceID,
-			*localTestUserInstanceName, *localTestUserInstanceToken,
+			*localTestUserInstanceName, *localTestUserInstanceToken, *localTestUserTeamName,
 			strings.Split(*localTestUserInstanceFeatureFlags, ","))
 	}
 
@@ -221,7 +222,7 @@ func main() {
 	cancel()
 }
 
-func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string, featureFlags []string) {
+func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token, teamName string, featureFlags []string) {
 	ctx := context.Background()
 	_, user, err := a.Signup(ctx, api.SignupRequest{
 		Email:       email,
@@ -247,6 +248,7 @@ func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string
 		ProbeToken:     token,
 		FeatureFlags:   featureFlags,
 		TrialExpiresAt: user.TrialExpiresAt(),
+		TeamName:       teamName,
 	}, time.Now()); err != nil {
 		log.Errorf("Error creating local test instance: %v", err)
 		return
