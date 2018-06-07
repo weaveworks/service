@@ -141,6 +141,9 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 	if view.TeamExternalID == "" && view.TeamName == "" {
 		return users.NewMalformedInputError(errors.New("either teamId or teamName needs to be provided"))
 	}
+	if view.TeamExternalID != "" && view.TeamName != "" {
+		return users.NewMalformedInputError(errors.New("either teamId or teamName needs to be provided but not both"))
+	}
 	org, err := a.db.CreateOrganizationWithTeam(
 		ctx,
 		currentUser.ID,
