@@ -23,10 +23,10 @@ type UnitFormat string
 
 // The list of supported panel metric unit formats.
 const (
-	UnitNumeric      UnitFormat = "numeric"
-	UnitBytes        UnitFormat = "bytes"
-	UnitPercent      UnitFormat = "percent"
-	UnitSeconds      UnitFormat = "seconds"
+	UnitNumeric UnitFormat = "numeric"
+	UnitBytes   UnitFormat = "bytes"
+	UnitPercent UnitFormat = "percent"
+	UnitSeconds UnitFormat = "seconds"
 )
 
 // Unit describes the metric unit of graph values.
