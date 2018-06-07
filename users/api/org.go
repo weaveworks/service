@@ -23,6 +23,8 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
+var errTeamIdentifierRequired = users.NewMalformedInputError(errors.New("either teamId or teamName needs to be provided but not both"))
+
 // OrgView describes an organisation
 type OrgView struct {
 	User                  string     `json:"user,omitempty"`
@@ -138,11 +140,8 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 
 // CreateOrg creates an organisation
 func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgView, now time.Time) error {
-	if view.TeamExternalID == "" && view.TeamName == "" {
-		return users.NewMalformedInputError(errors.New("either teamId or teamName needs to be provided"))
-	}
-	if view.TeamExternalID != "" && view.TeamName != "" {
-		return users.NewMalformedInputError(errors.New("either teamId or teamName needs to be provided but not both"))
+	if err := verifyTeamParams(view.TeamExternalID, view.TeamName); err != nil {
+		return err
 	}
 	org, err := a.db.CreateOrganizationWithTeam(
 		ctx,
@@ -200,8 +199,8 @@ func (a *API) MoveOrg(ctx context.Context, currentUser *users.User, org *users.O
 		}
 	}
 
-	if teamExternalID == "" && teamName == "" {
-		return users.NewMalformedInputError(errors.New("either teamId or teamName needs to be provided"))
+	if err := verifyTeamParams(teamExternalID, teamName); err != nil {
+		return err
 	}
 
 	// Move organization into other team
@@ -237,6 +236,13 @@ func (a *API) MoveOrg(ctx context.Context, currentUser *users.User, org *users.O
 		if err := a.afterOrganizationCreatedOrMoved(ctx, currentUser, neworg, time.Now()); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func verifyTeamParams(teamExternalID, teamName string) error {
+	if (teamExternalID == "" && teamName == "") || (teamExternalID != "" && teamName != "") {
+		return errTeamIdentifierRequired
 	}
 	return nil
 }
