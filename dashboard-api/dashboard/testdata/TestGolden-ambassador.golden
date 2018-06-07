@@ -1,0 +1,23 @@
+{
+  "id": "ambassador",
+  "name": "Ambassador",
+  "sections": [
+    {
+      "name": "Traffic",
+      "rows": [
+        {
+          "panels": [
+            {
+              "title": "Total connections per instance",
+              "type": "line",
+              "unit": {
+                "format": "numeric"
+              },
+              "query": "sum(envoy_server_total_connections{kubernetes_namespace='default',_weave_service='authfe'}) by (kubernetes_pod_name)"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

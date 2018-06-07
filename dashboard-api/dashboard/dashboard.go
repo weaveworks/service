@@ -267,11 +267,11 @@ func Init() error {
 	registerProviders(
 		awsClassicELB,
 		awsRDS,
-
 		http,
 		goKit,
 		cadvisor,
 		openfaas,
+		ambassador,
 		memcached,
 		jvm,
 		goRuntime,
