@@ -61,6 +61,7 @@ func (api *API) registerRoutes(r *mux.Router) {
 
 		// AWS:
 		{"api_dashboard_aws_resources", "GET", "/api/dashboard/aws/resources", api.GetAWSResources},
+		{"api_dashboard_aws_type_name_dashboards", "GET", "/api/dashboard/aws/{type}/dashboards", api.GetAWSDashboards},
 		{"api_dashboard_aws_type_name_dashboards", "GET", "/api/dashboard/aws/{type}/{name}/dashboards", api.GetAWSDashboard},
 
 		// per-service entry points

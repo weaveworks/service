@@ -13,6 +13,7 @@ import (
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common/errors"
 	"github.com/weaveworks/service/common/render"
+	"github.com/weaveworks/service/dashboard-api/aws"
 )
 
 type getServiceMetricsResponse struct {
@@ -59,6 +60,15 @@ func (api *API) getServiceMetrics(ctx context.Context, namespace, service string
 	// Metrics cAdvisor exposes about the service containers
 	queryCAdvisor := fmt.Sprintf("{_weave_pod_name=\"%s\"}", service)
 	return api.getMetrics(ctx, []string{query, queryCAdvisor}, startTime, endTime)
+}
+
+func (api *API) getAWSMetrics(ctx context.Context, awsType aws.Type, startTime, endTime time.Time) ([]string, error) {
+	product, ok := aws.ProductsByType[awsType]
+	if !ok {
+		return nil, errors.ErrNotFound
+	}
+	query := fmt.Sprintf("{kubernetes_namespace=\"%s\",_weave_service=\"%s\", %s=\".+\"}", aws.Namespace, aws.Service, product.LabelName)
+	return api.getMetrics(ctx, []string{query}, startTime, endTime)
 }
 
 func (api *API) getMetrics(ctx context.Context, queries []string, startTime time.Time, endTime time.Time) ([]string, error) {

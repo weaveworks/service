@@ -68,6 +68,33 @@ func (api *API) getServiceDashboards(ctx context.Context, r *http.Request, logge
 	}, nil
 }
 
+// GetAWSDashboards returns the dashboards for AWS resources of a given type.
+func (api *API) GetAWSDashboards(w http.ResponseWriter, r *http.Request) {
+	api.getDashboards(w, r, api.getAWSDashboards)
+}
+
+func (api *API) getAWSDashboards(ctx context.Context, r *http.Request, logger *log.Entry, startTime, endTime time.Time) (*getDashboardsResponse, error) {
+	awsType := aws.Type(mux.Vars(r)["type"])
+	log.WithFields(log.Fields{"type": awsType}).Info("get AWS dashboards")
+
+	metrics, err := api.getAWSMetrics(ctx, awsType, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+
+	boards, err := dashboard.GetDashboards(metrics, map[string]string{
+		"namespace":  aws.Namespace,
+		"workload":   aws.Service,
+		"identifier": ".+",
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &getDashboardsResponse{
+		Dashboards: boards,
+	}, nil
+}
+
 // GetAWSDashboard returns the dashboard for a given AWS resource, identified by type and name.
 func (api *API) GetAWSDashboard(w http.ResponseWriter, r *http.Request) {
 	api.getDashboards(w, r, api.getAWSDashboard)
