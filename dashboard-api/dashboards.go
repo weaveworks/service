@@ -72,12 +72,12 @@ func (api *API) getServiceDashboards(ctx context.Context, r *http.Request, start
 	}, nil
 }
 
-// GetAWSDashboards returns the list of dashboards for a given AWS resource.
-func (api *API) GetAWSDashboards(w http.ResponseWriter, r *http.Request) {
-	api.getDashboards(w, r, api.getAWSDashboards)
+// GetAWSDashboard returns the dashboard for a given AWS resource, identified by type and name.
+func (api *API) GetAWSDashboard(w http.ResponseWriter, r *http.Request) {
+	api.getDashboards(w, r, api.getAWSDashboard)
 }
 
-func (api *API) getAWSDashboards(ctx context.Context, r *http.Request, startTime, endTime time.Time) (*getDashboardsResponse, error) {
+func (api *API) getAWSDashboard(ctx context.Context, r *http.Request, startTime, endTime time.Time) (*getDashboardsResponse, error) {
 	awsType := aws.Type(mux.Vars(r)["type"])
 	resourceName := mux.Vars(r)["name"]
 	id := awsType.ToDashboardID()

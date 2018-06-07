@@ -28,15 +28,11 @@ func TestGetServiceDashboardsNoMetrics(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 }
 
-func makeGetAWSDashboardsURL(awsType aws.Type, resourceName string) string {
-	return fmt.Sprintf("%s/api/dashboard/aws/%s/%s/dashboards", baseURL, awsType, resourceName)
-}
-
 // Test that the endpoint returns 404 when there are no metrics
-func TestGetAWSDashboardsNoMetrics(t *testing.T) {
+func TestGetAWSDashboardNoMetrics(t *testing.T) {
 	api := setupMock(t)
 
-	req := httptest.NewRequest("GET", makeGetAWSDashboardsURL(aws.RDS.Type, "bar"), nil)
+	req := httptest.NewRequest("GET", fmt.Sprintf("%s/api/dashboard/aws/%s/%s/dashboards", baseURL, aws.RDS.Type, "bar"), nil)
 	w := httptest.NewRecorder()
 	api.handler.ServeHTTP(w, req)
 
