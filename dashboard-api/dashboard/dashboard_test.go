@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 )
 
 var (
+	errExitEarly  = errors.New("exit early")
 	testDashboard = Dashboard{
 		ID:   "test-dashboard",
 		Name: "Test",
@@ -349,17 +351,21 @@ func TestGetDashboardByIDShouldResolveQueryOnACopyOfDashboardTemplate(t *testing
 	err := Init()
 	assert.NoError(t, err)
 
-	assertDashboardContainsIdentifier(t, GetDashboardByID(aws.RDS.Type.ToDashboardID(), map[string]string{
+	dashboard, err := GetDashboardByID(aws.RDS.Type.ToDashboardID(), map[string]string{
 		"namespace":  aws.Namespace,
 		"workload":   aws.Service,
 		"identifier": "foo",
-	}), "foo")
+	})
+	assert.NoError(t, err)
+	assertDashboardContainsIdentifier(t, dashboard, "foo")
 
-	assertDashboardContainsIdentifier(t, GetDashboardByID(aws.RDS.Type.ToDashboardID(), map[string]string{
+	dashboard, err = GetDashboardByID(aws.RDS.Type.ToDashboardID(), map[string]string{
 		"namespace":  aws.Namespace,
 		"workload":   aws.Service,
 		"identifier": "bar",
-	}), "bar")
+	})
+	assert.NoError(t, err)
+	assertDashboardContainsIdentifier(t, dashboard, "bar")
 }
 
 func assertDashboardContainsIdentifier(t *testing.T, dashboard *Dashboard, identifier string) {

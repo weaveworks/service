@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/weaveworks/service/common/errors"
 )
 
 // == with interfaces has some oddities, make sure the behavior is what we
@@ -15,8 +16,8 @@ func TestErrorStatusCode(t *testing.T) {
 		err      error
 		expected int
 	}{
-		{errNotFound, http.StatusNoContent},
-		{errInvalidParameter, http.StatusBadRequest},
+		{errors.ErrNotFound, http.StatusNoContent},
+		{errors.ErrInvalidParameter, http.StatusBadRequest},
 		{fmt.Errorf("foo"), http.StatusInternalServerError},
 	}
 

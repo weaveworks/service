@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/common/model"
 	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/common/errors"
 	"github.com/weaveworks/service/common/render"
 )
 
@@ -32,7 +33,7 @@ func (api *API) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
 	// Forward start and end to the prometheus API
 	startTime, endTime, err := parseRequestStartEnd(r)
 	if err != nil {
-		renderError(w, r, errInvalidParameter)
+		renderError(w, r, errors.ErrInvalidParameter)
 		return
 	}
 
@@ -76,7 +77,7 @@ func (api *API) getMetrics(ctx context.Context, queries []string, startTime time
 		metrics = append(metrics, key)
 	}
 	if len(metrics) == 0 {
-		return nil, errNotFound
+		return nil, errors.ErrNotFound
 	}
 	return metrics, nil
 }

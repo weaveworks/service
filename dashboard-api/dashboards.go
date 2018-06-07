@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/user"
 
+	"github.com/weaveworks/service/common/errors"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/dashboard-api/aws"
 	"github.com/weaveworks/service/dashboard-api/dashboard"
@@ -32,7 +33,7 @@ func (api *API) getDashboards(w http.ResponseWriter, r *http.Request, get getter
 
 	startTime, endTime, err := parseRequestStartEnd(r)
 	if err != nil {
-		renderError(w, r, errInvalidParameter)
+		renderError(w, r, errors.ErrInvalidParameter)
 		return
 	}
 
@@ -78,13 +79,13 @@ func (api *API) getAWSDashboard(ctx context.Context, r *http.Request, logger *lo
 	id := awsType.ToDashboardID()
 	log.WithFields(log.Fields{"type": awsType, "name": resourceName, "id": id}).Debug("get AWS dashboard")
 
-	board := dashboard.GetDashboardByID(id, map[string]string{
+	board, err := dashboard.GetDashboardByID(id, map[string]string{
 		"namespace":  aws.Namespace,
 		"workload":   aws.Service,
 		"identifier": resourceName,
 	})
-	if board == nil {
-		return nil, errNotFound
+	if err != nil {
+		return nil, err
 	}
 	return &getDashboardsResponse{
 		Dashboards: []dashboard.Dashboard{*board},
