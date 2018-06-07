@@ -370,7 +370,7 @@ func assertDashboardContainsIdentifier(t *testing.T, dashboard *Dashboard, ident
 		for _, row := range section.Rows {
 			assert.NotEqual(t, 0, len(row.Panels))
 			for _, panel := range row.Panels {
-				assert.Contains(t, panel.Query, fmt.Sprintf("dbinstance_identifier='%v'", identifier))
+				assert.Contains(t, panel.Query, fmt.Sprintf("dbinstance_identifier=~'%v'", identifier))
 			}
 		}
 	}
