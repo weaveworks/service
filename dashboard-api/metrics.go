@@ -43,21 +43,15 @@ func (api *API) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, err)
 		return
 	}
-
-	resp := &getServiceMetricsResponse{
+	render.JSON(w, http.StatusOK, &getServiceMetricsResponse{
 		Metrics: metrics,
-	}
-
-	if len(resp.Metrics) == 0 {
-		// We should have at least the up{kubernetes_namespace="$namespace",_weave_service="$service"} metric.
-		// Not having *any* metric is the sign of a non existent (namespace,service)
-		renderError(w, r, errNotFound)
-		return
-	}
-
-	render.JSON(w, http.StatusOK, resp)
+	})
 }
 
+// getServiceMetrics returns metrics for the provided namespace and service.
+// N.B.:
+//   We should have at least the up{kubernetes_namespace="weave",_weave_service="$service"} metric.
+//   Not having *any* metric is the sign of a non existent (namespace, service), and the "not found" error is returned in this case.
 func (api *API) getServiceMetrics(ctx context.Context, namespace, service string, startTime time.Time, endTime time.Time) ([]string, error) {
 	// Metrics the pods expose
 	query := fmt.Sprintf("{kubernetes_namespace=\"%s\",_weave_service=\"%s\"}", namespace, service)
@@ -80,6 +74,9 @@ func (api *API) getMetrics(ctx context.Context, queries []string, startTime time
 	var metrics []string
 	for key := range names {
 		metrics = append(metrics, key)
+	}
+	if len(metrics) == 0 {
+		return nil, errNotFound
 	}
 	return metrics, nil
 }

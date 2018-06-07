@@ -54,11 +54,6 @@ func (api *API) getServiceDashboards(ctx context.Context, r *http.Request, start
 	if err != nil {
 		return nil, err
 	}
-	if len(metrics) == 0 {
-		// We should have at least the up{kubernetes_namespace="$namespace",_weave_service="$service"} metric.
-		// Not having *any* metric is the sign of a non existent (namespace,service)
-		return nil, errNotFound
-	}
 
 	boards, err := dashboard.GetDashboards(metrics, map[string]string{
 		"namespace": namespace,
