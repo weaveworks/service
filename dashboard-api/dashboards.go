@@ -23,13 +23,12 @@ func (api *API) GetServiceDashboards(w http.ResponseWriter, r *http.Request) {
 	api.getDashboards(w, r, api.getServiceDashboards)
 }
 
-type getter func(ctx context.Context, r *http.Request, startTime, endTime time.Time) (*getDashboardsResponse, error)
+type getter func(ctx context.Context, r *http.Request, logger *log.Entry, startTime, endTime time.Time) (*getDashboardsResponse, error)
 
 func (api *API) getDashboards(w http.ResponseWriter, r *http.Request, get getter) {
-	_, ctx, err := user.ExtractOrgIDFromHTTPRequest(r)
+	orgID, ctx, err := user.ExtractOrgIDFromHTTPRequest(r)
 	ctx, cancel := context.WithTimeout(ctx, api.cfg.prometheus.timeout)
 	defer cancel()
-	log.Debug(r.URL)
 
 	startTime, endTime, err := parseRequestStartEnd(r)
 	if err != nil {
@@ -37,7 +36,8 @@ func (api *API) getDashboards(w http.ResponseWriter, r *http.Request, get getter
 		return
 	}
 
-	resp, err := get(ctx, r, startTime, endTime)
+	logger := log.WithFields(log.Fields{"orgID": orgID, "from": startTime, "to": endTime, "url": r.URL})
+	resp, err := get(ctx, r, logger, startTime, endTime)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -45,10 +45,10 @@ func (api *API) getDashboards(w http.ResponseWriter, r *http.Request, get getter
 	render.JSON(w, http.StatusOK, resp)
 }
 
-func (api *API) getServiceDashboards(ctx context.Context, r *http.Request, startTime, endTime time.Time) (*getDashboardsResponse, error) {
+func (api *API) getServiceDashboards(ctx context.Context, r *http.Request, logger *log.Entry, startTime, endTime time.Time) (*getDashboardsResponse, error) {
 	namespace := mux.Vars(r)["ns"]
 	service := mux.Vars(r)["service"]
-	log.WithFields(log.Fields{"ns": namespace, "service": service, "from": startTime, "to": endTime}).Info("get service dashboard")
+	logger.WithFields(log.Fields{"ns": namespace, "service": service}).Debug("get service dashboard")
 
 	metrics, err := api.getServiceMetrics(ctx, namespace, service, startTime, endTime)
 	if err != nil {
@@ -72,11 +72,11 @@ func (api *API) GetAWSDashboard(w http.ResponseWriter, r *http.Request) {
 	api.getDashboards(w, r, api.getAWSDashboard)
 }
 
-func (api *API) getAWSDashboard(ctx context.Context, r *http.Request, startTime, endTime time.Time) (*getDashboardsResponse, error) {
+func (api *API) getAWSDashboard(ctx context.Context, r *http.Request, logger *log.Entry, startTime, endTime time.Time) (*getDashboardsResponse, error) {
 	awsType := aws.Type(mux.Vars(r)["type"])
 	resourceName := mux.Vars(r)["name"]
 	id := awsType.ToDashboardID()
-	log.WithFields(log.Fields{"type": awsType, "name": resourceName, "id": id, "from": startTime, "to": endTime}).Info("get AWS dashboard")
+	log.WithFields(log.Fields{"type": awsType, "name": resourceName, "id": id}).Debug("get AWS dashboard")
 
 	board := dashboard.GetDashboardByID(id, map[string]string{
 		"namespace":  aws.Namespace,

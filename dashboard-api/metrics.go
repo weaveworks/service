@@ -21,7 +21,7 @@ type getServiceMetricsResponse struct {
 
 // GetServiceMetrics returns the list of metrics that a service exposes.
 func (api *API) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
-	_, ctx, err := user.ExtractOrgIDFromHTTPRequest(r)
+	orgID, ctx, err := user.ExtractOrgIDFromHTTPRequest(r)
 	ctx, cancel := context.WithTimeout(ctx, api.cfg.prometheus.timeout)
 	defer cancel()
 
@@ -36,7 +36,7 @@ func (api *API) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Debugf("GetServiceMetrics ns=%s service=%s start=%v end=%v", namespace, service, startTime, endTime)
+	log.WithFields(log.Fields{"orgID": orgID, "ns": namespace, "service": service, "from": startTime, "to": endTime}).Debug("get service metrics")
 
 	metrics, err := api.getServiceMetrics(ctx, namespace, service, startTime, endTime)
 	if err != nil {
