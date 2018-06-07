@@ -19,32 +19,6 @@ type getServiceMetricsResponse struct {
 	Metrics []string `json:"metrics"`
 }
 
-func (api *API) getServiceMetrics(ctx context.Context, namespace, service string, startTime time.Time, endTime time.Time) ([]string, error) {
-	var metrics []string
-
-	// Metrics the pods expose
-	query := fmt.Sprintf("{kubernetes_namespace=\"%s\",_weave_service=\"%s\"}", namespace, service)
-	// Metrics cAdvisor exposes about the service containers
-	queryCAdvisor := fmt.Sprintf("{_weave_pod_name=\"%s\"}", service)
-
-	labelsets, err := api.prometheus.Series(ctx, []string{query, queryCAdvisor}, startTime, endTime)
-	if err != nil {
-		return nil, err
-	}
-
-	names := make(map[string]bool)
-
-	for _, set := range labelsets {
-		names[string(set[model.LabelName("__name__")])] = true
-	}
-
-	for key := range names {
-		metrics = append(metrics, key)
-	}
-
-	return metrics, nil
-}
-
 // GetServiceMetrics returns the list of metrics that a service exposes.
 func (api *API) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
 	_, ctx, err := user.ExtractOrgIDFromHTTPRequest(r)
@@ -82,4 +56,30 @@ func (api *API) GetServiceMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.JSON(w, http.StatusOK, resp)
+}
+
+func (api *API) getServiceMetrics(ctx context.Context, namespace, service string, startTime time.Time, endTime time.Time) ([]string, error) {
+	// Metrics the pods expose
+	query := fmt.Sprintf("{kubernetes_namespace=\"%s\",_weave_service=\"%s\"}", namespace, service)
+	// Metrics cAdvisor exposes about the service containers
+	queryCAdvisor := fmt.Sprintf("{_weave_pod_name=\"%s\"}", service)
+	return api.getMetrics(ctx, []string{query, queryCAdvisor}, startTime, endTime)
+}
+
+func (api *API) getMetrics(ctx context.Context, queries []string, startTime time.Time, endTime time.Time) ([]string, error) {
+	labelsets, err := api.prometheus.Series(ctx, queries, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+
+	names := make(map[string]bool)
+	for _, set := range labelsets {
+		names[string(set[model.LabelName("__name__")])] = true
+	}
+
+	var metrics []string
+	for key := range names {
+		metrics = append(metrics, key)
+	}
+	return metrics, nil
 }
