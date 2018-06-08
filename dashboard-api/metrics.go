@@ -73,6 +73,7 @@ func (api *API) getAWSMetrics(ctx context.Context, awsType aws.Type, startTime, 
 }
 
 func (api *API) getMetrics(ctx context.Context, queries []string, startTime time.Time, endTime time.Time) ([]string, error) {
+	log.WithFields(log.Fields{"queries": queries, "from": startTime, "to": endTime}).Debug("get series")
 	labelsets, err := api.prometheus.Series(ctx, queries, startTime, endTime)
 	if err != nil {
 		return nil, err
