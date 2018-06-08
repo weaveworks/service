@@ -204,7 +204,7 @@ func (em *EventManager) handleUpdateReceiver(r *http.Request, instanceID string,
 	// all good!
 	// Fire event every time config is successfully changed
 	go func() {
-		eventErr := em.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime, email)
+		eventErr := em.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime, email, featureFlags)
 		if eventErr != nil {
 			log.Error(eventErr)
 		}

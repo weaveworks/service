@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -669,6 +670,75 @@ func TestReceiver_RemoveAllEventTypes(t *testing.T) {
 				t.Fatal("expected 'info' event type to not exist")
 			}
 		}
+	}
+
+}
+
+func TestReceiver_NoHiddenEventTypes(t *testing.T) {
+	// Update a receiver and make sure no hidden events come through
+	waitForReady(t)
+
+	// Create an initial receiver
+	address := `"integration@test.com"`
+	response, err := postEmailReceiver(address)
+
+	if err != nil {
+		t.Error(errors.Wrap(err, "could not create receiver"))
+	}
+
+	data, err := json.Marshal(types.Receiver{
+		RType:       types.EmailReceiver,
+		AddressData: json.RawMessage(address),
+		// No event types!
+		EventTypes: []string{},
+	})
+
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "could not marshal new receiver data"))
+	}
+
+	url := fmt.Sprintf("/config/receivers/%s", getID(t, response))
+	// Update with empty event types
+	_, err = request(url, "PUT", data)
+
+	// Will 404 if not working correctly
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "update receiver request failed"))
+	}
+
+	receiverBytes, err := request(url, "GET", nil)
+
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "could not get updated receiver"))
+	}
+
+	var receiver types.Receiver
+	err = json.Unmarshal(receiverBytes, &receiver)
+
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "could not unmarshal receiver bytes"))
+	}
+
+	events, err := getEvents()
+
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "could not get events"))
+	}
+
+	var change *types.Event
+	for _, event := range events {
+		if event.Type == "config_changed" {
+			change = &event
+			break
+		}
+	}
+
+	if change == nil {
+		t.Fatal("no config_change event found")
+	}
+
+	if strings.Contains(string(change.Messages["browser"]), "onboarding_started") {
+		t.Fatalf("should not contain onboarding_started event")
 	}
 
 }

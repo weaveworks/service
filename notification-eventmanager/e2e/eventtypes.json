@@ -67,11 +67,14 @@
     {
       "name": "config_changed",
       "display_name": "Config Changed Event",
-      "description": "A user has changed the configuration for notifications",
-      "default_receiver_types": [
-        "browser",
-        "email",
-        "slack"
-      ]
+    "description": "A user has changed the configuration for notifications",
+    "default_receiver_types": ["browser", "email", "slack"]
+  },
+  {
+    "name": "onboarding_started",
+    "display_name": "Installation started",
+    "description": "Weave Cloud agents are being installed",
+    "default_receiver_types": ["email"],
+    "hide_ui_config": true
     }
   ]

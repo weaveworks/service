@@ -203,7 +203,7 @@ func (em *EventManager) handleGetEventTypes(r *http.Request) (interface{}, int, 
 }
 
 // createConfigChangedEvent creates event with changed configuration
-func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID string, oldReceiver, receiver types.Receiver, eventTime time.Time, userEmail string) error {
+func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID string, oldReceiver, receiver types.Receiver, eventTime time.Time, userEmail string, featureFlags []string) error {
 	log.Debug("update_config Event Firing...")
 
 	eventType := "config_changed"
@@ -266,7 +266,13 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 	} else if !reflect.DeepEqual(oldReceiver.EventTypes, receiver.EventTypes) {
 		// eventTypes changed event
 
-		added, removed := diff(oldReceiver.EventTypes, receiver.EventTypes)
+		visibleEvents, err := em.DB.ListEventTypes(nil, featureFlags)
+
+		if err != nil {
+			return err
+		}
+
+		added, removed := diff(oldReceiver.EventTypes, receiver.EventTypes, visibleEvents)
 		text := formatEventTypeText("<b>", "</b>", receiver.RType, "<i>", "</i>", added, removed, userEmail)
 
 		emailMsg, err := getEmailMessage(text, eventType, instanceName)
@@ -328,16 +334,29 @@ func formatEventTypeText(rtypeStart, rtypeEnd, rtype, setStart, setEnd string, e
 	return b.String()
 }
 
-func diff(old, new []string) (added []string, removed []string) {
+func isVisibleEvent(available []types.EventType, name string) bool {
+	for _, et := range available {
+		if !et.HideUIConfig && et.Name == name {
+			return true
+		}
+	}
+
+	return false
+}
+
+func diff(old, new []string, visibleEvents []types.EventType) (added []string, removed []string) {
 	all := map[string]struct{}{}
 	for _, et := range old {
-		all[et] = struct{}{}
+		if isVisibleEvent(visibleEvents, et) {
+			all[et] = struct{}{}
+		}
+
 	}
 
 	for _, et := range new {
 		if _, ok := all[et]; ok {
 			delete(all, et)
-		} else {
+		} else if isVisibleEvent(visibleEvents, et) {
 			added = append(added, et)
 		}
 	}
