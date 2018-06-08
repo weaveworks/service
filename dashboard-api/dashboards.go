@@ -75,7 +75,7 @@ func (api *API) GetAWSDashboards(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) getAWSDashboards(ctx context.Context, r *http.Request, logger *log.Entry, startTime, endTime time.Time) (*getDashboardsResponse, error) {
 	awsType := aws.Type(mux.Vars(r)["type"])
-	log.WithFields(log.Fields{"type": awsType}).Info("get AWS dashboards")
+	logger.WithFields(log.Fields{"type": awsType}).Info("get AWS dashboards")
 
 	metrics, err := api.getAWSMetrics(ctx, awsType, startTime, endTime)
 	if err != nil {
@@ -104,7 +104,7 @@ func (api *API) getAWSDashboard(ctx context.Context, r *http.Request, logger *lo
 	awsType := aws.Type(mux.Vars(r)["type"])
 	resourceName := mux.Vars(r)["name"]
 	id := awsType.ToDashboardID()
-	log.WithFields(log.Fields{"type": awsType, "name": resourceName, "id": id}).Debug("get AWS dashboard")
+	logger.WithFields(log.Fields{"type": awsType, "name": resourceName, "id": id}).Debug("get AWS dashboard")
 
 	board, err := dashboard.GetDashboardByID(id, map[string]string{
 		"namespace":  aws.Namespace,
