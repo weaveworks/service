@@ -44,6 +44,18 @@ func (d DB) listTeamOrganizationsForUserIDs(ctx context.Context, userIDs ...stri
 	return orgs, err
 }
 
+func (d DB) teamHasOrganizations(ctx context.Context, teamID string) (bool, error) {
+	var exists bool
+	err := d.QueryRowContext(ctx,
+		`select exists(
+				select 1 from organizations join teams on teams.id = organizations.team_id
+					where teams.id = $1 and teams.deleted_at is null and organizations.deleted_at is null
+			)`,
+		teamID,
+	).Scan(&exists)
+	return exists, err
+}
+
 // ListTeamUsers lists all the users in a team
 func (d DB) ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error) {
 	rows, err := d.usersQuery().
@@ -100,6 +112,36 @@ func (d DB) AddUserToTeam(ctx context.Context, userID, teamID string) error {
 		}
 	}
 	return err
+}
+
+// DeleteTeam marks the given team as deleted.
+func (d DB) DeleteTeam(ctx context.Context, teamID string) error {
+	// Verify team has no orgs
+	has, err := d.teamHasOrganizations(ctx, teamID)
+	if err != nil {
+		return err
+	}
+	if has {
+		return users.ErrForbidden
+	}
+
+	// Delete memberships
+	if _, err := d.ExecContext(ctx,
+		"update team_memberships set deleted_at = now() where team_id = $1",
+		teamID,
+	); err != nil {
+		return err
+	}
+
+	// Delete team
+	if _, err := d.ExecContext(ctx,
+		"update teams set deleted_at = now() where id = $1",
+		teamID,
+	); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // teamExternalIDUsed returns whether the team externalID has already been taken
@@ -170,6 +212,7 @@ func (d DB) teamQuery() squirrel.SelectBuilder {
 		teams.created_at
 	`).
 		From("teams").
+		Where("teams.deleted_at is null").
 		OrderBy("teams.created_at")
 }
 

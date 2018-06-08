@@ -287,6 +287,11 @@ func (t traced) AddUserToTeam(ctx context.Context, userID, teamID string) (err e
 	return t.d.AddUserToTeam(ctx, userID, teamID)
 }
 
+func (t traced) DeleteTeam(ctx context.Context, teamID string) (err error) {
+	defer func() { t.trace("DeleteTeam", teamID, err) }()
+	return t.d.DeleteTeam(ctx, teamID)
+}
+
 func (t traced) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (o *users.Organization, err error) {
 	defer func() {
 		t.trace("CreateOrganizationWithTeam", ownerID, externalID, name, token, teamExternalID, teamName, trialExpiresAt, o, err)

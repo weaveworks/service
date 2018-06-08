@@ -50,6 +50,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_users_lookup", "GET", "/api/users/lookup", a.authenticateUser(a.publicLookup)},
 
 		{"api_users_teams", "GET", "/api/users/teams", a.authenticateUser(a.listTeams)},
+		{"api_users_teams_teamExternalID_delete", "DELETE", "/api/users/teams/{teamExternalID}", a.authenticateUser(a.deleteTeam)},
 
 		// Used by the launcher agent to get the external instance ID using a token
 		{"api_users_org_token_lookup", "GET", "/api/users/org/lookup", a.authenticateProbe(a.orgLookup)},
