@@ -15,9 +15,9 @@ import (
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // Import the postgres migrations driver
 )
 
-// Called before any handlers involving receivers, to initialize receiver defaults for the instance
+// CheckInstanceDefaults is called before any handlers involving receivers, to initialize receiver defaults for the instance
 // if it hasn't been already.
-func (d DB) checkInstanceDefaults(instanceID string) error {
+func (d DB) CheckInstanceDefaults(instanceID string, defaultReceiver types.Receiver) error {
 	return d.withTx("check_instance_defaults_tx", func(tx *utils.Tx) error {
 		// Test if instance is already initialized
 		row := tx.QueryRow("check_instance_initialized", "SELECT 1 FROM instances_initialized WHERE instance_id = $1", instanceID)
@@ -30,6 +30,10 @@ func (d DB) checkInstanceDefaults(instanceID string) error {
 			return err
 		}
 		// otherwise, err == ErrNoRows, ie. instance not initialized yet.
+
+		if _, err := d.createReceiverTX(defaultReceiver, instanceID); err != nil {
+			return err
+		}
 
 		// Hard-coded instance defaults, at least for now.
 		receiver := types.Receiver{
@@ -48,9 +52,6 @@ func (d DB) checkInstanceDefaults(instanceID string) error {
 
 // ListReceivers returns a list of receivers
 func (d DB) ListReceivers(instanceID string) ([]types.Receiver, error) {
-	if err := d.checkInstanceDefaults(instanceID); err != nil {
-		return nil, err
-	}
 	// In the below query, note the array_remove to transform [null] to [] if there are no matching rows.
 	// Note we exclude event types with non-matching feature flags.
 	rows, err := d.client.Query(
@@ -84,9 +85,6 @@ func (d DB) ListReceivers(instanceID string) ([]types.Receiver, error) {
 
 // CreateReceiver creates receiver with check for defaults receivers for instance
 func (d DB) CreateReceiver(receiver types.Receiver, instanceID string) (string, error) {
-	if err := d.checkInstanceDefaults(instanceID); err != nil {
-		return "", err
-	}
 	receiverID, err := d.createReceiverTX(receiver, instanceID)
 	if err != nil {
 		return "", err
@@ -143,10 +141,6 @@ func (d DB) createReceiverTX(receiver types.Receiver, instanceID string) (string
 
 // GetReceiver returns a receiver
 func (d DB) GetReceiver(instanceID string, receiverID string, featureFlags []string, omitHiddenEventTypes bool) (types.Receiver, error) {
-	if err := d.checkInstanceDefaults(instanceID); err != nil {
-		return types.Receiver{}, err
-	}
-
 	// In the below query, note the array_remove to transform [null] to [] if there are no matching rows.
 	row := d.client.QueryRow(
 		"get_receiver",
@@ -173,9 +167,6 @@ func (d DB) GetReceiver(instanceID string, receiverID string, featureFlags []str
 
 // UpdateReceiver updates receiver
 func (d DB) UpdateReceiver(receiver types.Receiver, instanceID string, featureFlags []string) error {
-	if err := d.checkInstanceDefaults(instanceID); err != nil {
-		return err
-	}
 	// Re-encode the address data because the sql driver doesn't understand json columns
 	encodedAddress, err := json.Marshal(receiver.AddressData)
 	if err != nil {
@@ -269,10 +260,6 @@ func (d DB) UpdateReceiver(receiver types.Receiver, instanceID string, featureFl
 
 // DeleteReceiver deletes receiver
 func (d DB) DeleteReceiver(instanceID string, receiverID string) (int64, error) {
-	if err := d.checkInstanceDefaults(instanceID); err != nil {
-		return 0, err
-	}
-
 	result, err := d.client.Exec(
 		"delete_receiver",
 		`DELETE FROM receivers
@@ -295,9 +282,6 @@ func (d DB) DeleteReceiver(instanceID string, receiverID string) (int64, error) 
 
 // GetReceiversForEvent returns all receivers for event from DB
 func (d DB) GetReceiversForEvent(event types.Event) ([]types.Receiver, error) {
-	if err := d.checkInstanceDefaults(event.InstanceID); err != nil {
-		return nil, errors.Wrapf(err, "failed to check receiver defaults for instance %s", event.InstanceID)
-	}
 	receivers := []types.Receiver{}
 	// In the below query, note the array_remove to transform [null] to [] if there are no matching rows.
 	rows, err := d.client.Query(
