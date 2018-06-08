@@ -32,3 +32,10 @@ func TestGetAWSResources(t *testing.T) {
 		},
 	}, resp)
 }
+
+func TestProductsByType(t *testing.T) {
+	assert.Equal(t, aws.RDS, aws.ProductsByType[aws.Type("rds")])
+	assert.Equal(t, aws.SQS, aws.ProductsByType[aws.Type("sqs")])
+	assert.Equal(t, aws.ELB, aws.ProductsByType[aws.Type("elb")])
+	assert.Equal(t, aws.Lambda, aws.ProductsByType[aws.Type("lambda")])
+}
