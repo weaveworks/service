@@ -78,10 +78,12 @@ func (api *API) GetAWSDashboards(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) getAWSDashboards(ctx context.Context, r *http.Request, logger *log.Entry, startTime, endTime time.Time) (*getDashboardsResponse, error) {
 	awsType := aws.Type(mux.Vars(r)["type"])
-	logger.WithFields(log.Fields{"type": awsType}).Info("get AWS dashboards")
+	logger = logger.WithFields(log.Fields{"type": awsType})
+	logger.Info("get AWS dashboards")
 
 	metrics, err := api.getAWSMetrics(ctx, awsType, startTime, endTime)
 	if err != nil {
+		logger.WithField("err", err).Error("failed to get AWS dashboards' metrics")
 		return nil, err
 	}
 
@@ -91,6 +93,7 @@ func (api *API) getAWSDashboards(ctx context.Context, r *http.Request, logger *l
 		"identifier": ".+",
 	})
 	if err != nil {
+		logger.WithFields(log.Fields{"metrics": metrics, "err": err}).Error("failed to get AWS dashboards")
 		return nil, err
 	}
 	return &getDashboardsResponse{
