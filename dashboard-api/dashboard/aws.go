@@ -66,10 +66,11 @@ var awsClassicELBDashboard = Dashboard{
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(aws_elb_request_count_sum{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}',load_balancer_name=~'{{identifier}}'}) by (load_balancer_name)`,
 			}, {
-				Title: "Backend connection errors",
-				Type:  PanelLine,
-				Unit:  Unit{Format: UnitBytes},
-				Query: `sum(aws_elb_backend_connection_errors{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}',load_balancer_name=~'{{identifier}}'}) by (load_balancer_name)`,
+				Title:    "Backend connection errors",
+				Optional: true,
+				Type:     PanelLine,
+				Unit:     Unit{Format: UnitBytes},
+				Query:    `sum(aws_elb_backend_connection_errors{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}',load_balancer_name=~'{{identifier}}'}) by (load_balancer_name)`,
 			}},
 		}},
 	}, {

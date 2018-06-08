@@ -14,6 +14,15 @@
                 "format": "numeric"
               },
               "query": "sum(aws_elb_request_count_sum{kubernetes_namespace='default',_weave_service='authfe',load_balancer_name=~'prod-users-vpc-database'}) by (load_balancer_name)"
+            },
+            {
+              "title": "Backend connection errors",
+              "optional": true,
+              "type": "line",
+              "unit": {
+                "format": "bytes"
+              },
+              "query": "sum(aws_elb_backend_connection_errors{kubernetes_namespace='default',_weave_service='authfe',load_balancer_name=~'prod-users-vpc-database'}) by (load_balancer_name)"
             }
           ]
         }
