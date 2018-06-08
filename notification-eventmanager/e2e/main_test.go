@@ -618,3 +618,57 @@ func TestReceiver_Email(t *testing.T) {
 	}
 
 }
+
+func TestReceiver_RemoveAllEventTypes(t *testing.T) {
+	waitForReady(t)
+
+	// Create an initial receiver
+	address := `"integration@test.com"`
+	response, err := postEmailReceiver(address)
+
+	if err != nil {
+		t.Error(errors.Wrap(err, "could not create receiver"))
+	}
+
+	data, err := json.Marshal(types.Receiver{
+		RType:       types.EmailReceiver,
+		AddressData: json.RawMessage(address),
+		// No event types!
+		EventTypes: []string{},
+	})
+
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "could not marshal new receiver data"))
+	}
+
+	url := fmt.Sprintf("/config/receivers/%s", getID(t, response))
+	// Update with empty event types
+	_, err = request(url, "PUT", data)
+
+	// Will 404 if not working correctly
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "update receiver request failed"))
+	}
+
+	receiverBytes, err := request(url, "GET", nil)
+
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "could not get updated receiver"))
+	}
+
+	var receiver types.Receiver
+	err = json.Unmarshal(receiverBytes, &receiver)
+
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "could not unmarshal receiver bytes"))
+	}
+
+	if len(receiver.EventTypes) > 0 {
+		for _, et := range receiver.EventTypes {
+			if et == "info" {
+				t.Fatal("expected 'info' event type to not exist")
+			}
+		}
+	}
+
+}
