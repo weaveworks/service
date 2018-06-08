@@ -18,6 +18,7 @@ import (
 
 const (
 	orgIDHeaderName = "X-Scope-OrgID"
+	AuthCookieName  = "_weave_scope_session"
 	wsHost          = "sender"
 	wsPath          = "/api/notification/sender"
 	smtpURL         = "http://mailcatcher/messages"
@@ -42,6 +43,11 @@ func request(path, method string, body []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create request")
 	}
+
+	req.AddCookie(&http.Cookie{
+		Name:  AuthCookieName,
+		Value: "test cookie",
+	})
 
 	req.Header.Set(orgIDHeaderName, orgID)
 
