@@ -49,10 +49,12 @@ func (api *API) getDashboards(w http.ResponseWriter, r *http.Request, get getter
 func (api *API) getServiceDashboards(ctx context.Context, r *http.Request, logger *log.Entry, startTime, endTime time.Time) (*getDashboardsResponse, error) {
 	namespace := mux.Vars(r)["ns"]
 	service := mux.Vars(r)["service"]
-	logger.WithFields(log.Fields{"ns": namespace, "service": service}).Debug("get service dashboard")
+	logger = logger.WithFields(log.Fields{"ns": namespace, "service": service})
+	logger.Debug("get service dashboard")
 
 	metrics, err := api.getServiceMetrics(ctx, namespace, service, startTime, endTime)
 	if err != nil {
+		logger.WithField("err", err).Error("failed to get service dashboards' metrics")
 		return nil, err
 	}
 
@@ -61,6 +63,7 @@ func (api *API) getServiceDashboards(ctx context.Context, r *http.Request, logge
 		"workload":  service,
 	})
 	if err != nil {
+		logger.WithFields(log.Fields{"metrics": metrics, "err": err}).Error("failed to get service dashboards")
 		return nil, err
 	}
 	return &getDashboardsResponse{
@@ -75,10 +78,12 @@ func (api *API) GetAWSDashboards(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) getAWSDashboards(ctx context.Context, r *http.Request, logger *log.Entry, startTime, endTime time.Time) (*getDashboardsResponse, error) {
 	awsType := aws.Type(mux.Vars(r)["type"])
-	log.WithFields(log.Fields{"type": awsType}).Info("get AWS dashboards")
+	logger = logger.WithFields(log.Fields{"type": awsType})
+	logger.Info("get AWS dashboards")
 
 	metrics, err := api.getAWSMetrics(ctx, awsType, startTime, endTime)
 	if err != nil {
+		logger.WithField("err", err).Error("failed to get AWS dashboards' metrics")
 		return nil, err
 	}
 
@@ -88,6 +93,7 @@ func (api *API) getAWSDashboards(ctx context.Context, r *http.Request, logger *l
 		"identifier": ".+",
 	})
 	if err != nil {
+		logger.WithFields(log.Fields{"metrics": metrics, "err": err}).Error("failed to get AWS dashboards")
 		return nil, err
 	}
 	return &getDashboardsResponse{
@@ -104,7 +110,8 @@ func (api *API) getAWSDashboard(ctx context.Context, r *http.Request, logger *lo
 	awsType := aws.Type(mux.Vars(r)["type"])
 	resourceName := mux.Vars(r)["name"]
 	id := awsType.ToDashboardID()
-	log.WithFields(log.Fields{"type": awsType, "name": resourceName, "id": id}).Debug("get AWS dashboard")
+	logger = logger.WithFields(log.Fields{"type": awsType, "name": resourceName, "id": id})
+	logger.Debug("get AWS dashboard")
 
 	board, err := dashboard.GetDashboardByID(id, map[string]string{
 		"namespace":  aws.Namespace,
@@ -112,6 +119,7 @@ func (api *API) getAWSDashboard(ctx context.Context, r *http.Request, logger *lo
 		"identifier": resourceName,
 	})
 	if err != nil {
+		logger.WithField("err", err).Error("failed to get AWS dashboard")
 		return nil, err
 	}
 	return &getDashboardsResponse{
