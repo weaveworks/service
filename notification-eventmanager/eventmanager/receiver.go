@@ -249,26 +249,10 @@ func (em *EventManager) handleUpdateReceiver(r *http.Request, instanceID string,
 		return nil, 0, err
 	}
 
-	authCookie, err := sessions.Extract(r)
+	email, err := em.getUserEmail(r.Context(), authCookie)
 	if err != nil {
-		return nil, http.StatusUnauthorized, err
+		return nil, 0, err
 	}
-
-	userIDData, err := em.UsersClient.LookupUser(r.Context(), &users.LookupUserRequest{
-		Cookie: authCookie,
-	})
-	if err != nil {
-		return nil, http.StatusBadRequest, err
-	}
-
-	userData, err := em.UsersClient.GetUser(r.Context(), &users.GetUserRequest{
-		UserID: userIDData.UserID,
-	})
-	if err != nil {
-		return nil, http.StatusBadRequest, err
-	}
-
-	email := userData.User.GetEmail()
 
 	// all good!
 	// Fire event every time config is successfully changed
