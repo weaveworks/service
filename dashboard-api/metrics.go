@@ -68,7 +68,7 @@ func (api *API) getAWSMetrics(ctx context.Context, awsType aws.Type, startTime, 
 		log.WithField("type", awsType).Error("no AWS product matching the provided type")
 		return nil, errors.ErrNotFound
 	}
-	query := fmt.Sprintf("{kubernetes_namespace=\"%s\",_weave_service=\"%s\", %s=\".+\"}", aws.Namespace, aws.Service, product.LabelName)
+	query := fmt.Sprintf("{kubernetes_namespace=\"%s\",_weave_service=\"%s\", %s=~\".+\"}", aws.Namespace, aws.Service, product.LabelName)
 	return api.getMetrics(ctx, []string{query}, startTime, endTime)
 }
 
