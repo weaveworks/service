@@ -25,7 +25,51 @@ var (
 	isWebHookPath = regexp.MustCompile(`^[A-Za-z0-9\/]+$`).MatchString
 )
 
+func (em *EventManager) getUserEmail(ctx context.Context, authCookie string) (string, error) {
+	userIDData, err := em.UsersClient.LookupUser(ctx, &users.LookupUserRequest{
+		Cookie: authCookie,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	userData, err := em.UsersClient.GetUser(ctx, &users.GetUserRequest{
+		UserID: userIDData.UserID,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return userData.User.GetEmail(), nil
+}
+
+func (em *EventManager) checkDefaultReceiver(ctx context.Context, instanceID, authCookie string) error {
+	email, err := em.getUserEmail(ctx, authCookie)
+	if err != nil {
+		return err
+	}
+	emailJSON, err := json.Marshal(email)
+	if err != nil {
+		return err
+	}
+	defaultReceiver := types.Receiver{
+		RType:       types.EmailReceiver,
+		AddressData: emailJSON,
+	}
+	if err := em.DB.CheckInstanceDefaults(instanceID, defaultReceiver); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (em *EventManager) handleListReceivers(r *http.Request, instanceID string) (interface{}, int, error) {
+	authCookie, err := sessions.Extract(r)
+	if err != nil {
+		return nil, http.StatusUnauthorized, err
+	}
+	if err := em.checkDefaultReceiver(r.Context(), instanceID, authCookie); err != nil {
+		return nil, 0, err
+	}
 	result, err := em.DB.ListReceivers(instanceID)
 	if err != nil {
 		return nil, 0, err
@@ -47,6 +91,13 @@ func (em *EventManager) handleCreateReceiver(r *http.Request, instanceID string)
 	// Validate they only set the fields we're going to use
 	if receiver.ID != "" || receiver.InstanceID != "" || len(receiver.EventTypes) != 0 {
 		return errors.New("ID, instance and event types should not be specified"), http.StatusBadRequest, nil
+	}
+	authCookie, err := sessions.Extract(r)
+	if err != nil {
+		return nil, http.StatusUnauthorized, err
+	}
+	if err := em.checkDefaultReceiver(r.Context(), instanceID, authCookie); err != nil {
+		return nil, 0, err
 	}
 	receiverID, err := em.DB.CreateReceiver(receiver, instanceID)
 	if err != nil {
@@ -123,6 +174,14 @@ func (em *EventManager) handleGetReceiver(r *http.Request, instanceID string, re
 		return nil, http.StatusNotFound, nil
 	}
 	featureFlags := getFeatureFlags(r)
+
+	authCookie, err := sessions.Extract(r)
+	if err != nil {
+		return nil, http.StatusUnauthorized, err
+	}
+	if err := em.checkDefaultReceiver(r.Context(), instanceID, authCookie); err != nil {
+		return nil, 0, err
+	}
 	result, err := em.DB.GetReceiver(instanceID, receiverID, featureFlags, false)
 	if err == sql.ErrNoRows {
 		return nil, http.StatusNotFound, nil
@@ -160,6 +219,14 @@ func (em *EventManager) handleUpdateReceiver(r *http.Request, instanceID string,
 		receiver.ID = receiverID
 	}
 	featureFlags := getFeatureFlags(r)
+
+	authCookie, err := sessions.Extract(r)
+	if err != nil {
+		return nil, http.StatusUnauthorized, err
+	}
+	if err := em.checkDefaultReceiver(r.Context(), instanceID, authCookie); err != nil {
+		return nil, 0, err
+	}
 
 	// before transaction changes the addressData and eventTypes, get oldReceiver which has oldAddressData and oldEventTypes
 	oldReceiver, err := em.DB.GetReceiver(instanceID, receiverID, featureFlags, true)
@@ -219,6 +286,13 @@ func (em *EventManager) handleDeleteReceiver(r *http.Request, instanceID string,
 	if _, err := uuid.FromString(receiverID); err != nil {
 		// Bad identifier
 		return nil, http.StatusNotFound, nil
+	}
+	authCookie, err := sessions.Extract(r)
+	if err != nil {
+		return nil, http.StatusUnauthorized, err
+	}
+	if err := em.checkDefaultReceiver(r.Context(), instanceID, authCookie); err != nil {
+		return nil, 0, err
 	}
 	affected, err := em.DB.DeleteReceiver(instanceID, receiverID)
 	if err != nil {

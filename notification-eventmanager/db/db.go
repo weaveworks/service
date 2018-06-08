@@ -12,6 +12,8 @@ import (
 
 // DB is the interface for the database.
 type DB interface {
+	CheckInstanceDefaults(instanceID string, defaultReceiver types.Receiver) error
+
 	CreateEventType(tx *utils.Tx, e types.EventType) error
 	UpdateEventType(tx *utils.Tx, e types.EventType) error
 	DeleteEventType(tx *utils.Tx, eventTypeName string) error
