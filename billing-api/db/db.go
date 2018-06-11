@@ -29,7 +29,7 @@ type PostTrialInvoice struct {
 
 // DB is the interface for the database.
 type DB interface {
-	UpsertAggregates(ctx context.Context, aggregates []Aggregate) error
+	InsertAggregates(ctx context.Context, aggregates []Aggregate) error
 	GetAggregates(ctx context.Context, instanceID string, from, through time.Time) ([]Aggregate, error)
 	// GetAggregatesAfter returns all aggregates with an ID greater than fromID. It also requires a `through` time
 	// and supports an optional `from` time.

@@ -17,9 +17,9 @@ func (t traced) trace(name string, args ...interface{}) {
 	logrus.Debugf("%s: %#v", name, args)
 }
 
-func (t traced) UpsertAggregates(ctx context.Context, aggregates []Aggregate) (err error) {
-	defer func() { t.trace("UpsertAggregates", aggregates, err) }()
-	return t.d.UpsertAggregates(ctx, aggregates)
+func (t traced) InsertAggregates(ctx context.Context, aggregates []Aggregate) (err error) {
+	defer func() { t.trace("InsertAggregates", aggregates, err) }()
+	return t.d.InsertAggregates(ctx, aggregates)
 }
 
 func (t traced) GetAggregates(ctx context.Context, instanceID string, from, through time.Time) (as []Aggregate, err error) {

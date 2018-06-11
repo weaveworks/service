@@ -113,7 +113,7 @@ func (d *postgres) Transaction(f func(DB) error) error {
 	return tx.Commit()
 }
 
-func (d *postgres) UpsertAggregates(ctx context.Context, aggregates []Aggregate) error {
+func (d *postgres) InsertAggregates(ctx context.Context, aggregates []Aggregate) error {
 	insert := d.Insert(tableAggregates).
 		Columns("instance_id", "bucket_start", "amount_type", "amount_value")
 
@@ -121,7 +121,6 @@ func (d *postgres) UpsertAggregates(ctx context.Context, aggregates []Aggregate)
 		insert = insert.Values(aggregate.InstanceID, aggregate.BucketStart, aggregate.AmountType, aggregate.AmountValue)
 	}
 
-	insert = insert.Suffix("ON CONFLICT (instance_id, bucket_start, amount_type) DO UPDATE SET amount_value=EXCLUDED.amount_value")
 	log.Debug(insert.ToSql())
 	_, err := insert.Exec()
 	return err

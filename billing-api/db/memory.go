@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -28,7 +29,7 @@ func newMemory() *memory {
 	}
 }
 
-func (db *memory) UpsertAggregates(ctx context.Context, aggregates []Aggregate) (err error) {
+func (db *memory) InsertAggregates(ctx context.Context, aggregates []Aggregate) (err error) {
 	db.mtx.Lock()
 	defer db.mtx.Unlock()
 	lastid := 0
@@ -41,10 +42,11 @@ func (db *memory) UpsertAggregates(ctx context.Context, aggregates []Aggregate) 
 	for idx := range aggregates {
 		lastid++
 		aggregates[idx].ID = lastid
-		if _, ok := db.aggregatesSet[aggregates[idx]]; !ok {
-			aggregates[idx].CreatedAt = now
-			db.aggregatesSet[aggregates[idx]] = true
+		if _, ok := db.aggregatesSet[aggregates[idx]]; ok {
+			return fmt.Errorf("duplicate aggregate: %v", aggregates[idx])
 		}
+		aggregates[idx].CreatedAt = now
+		db.aggregatesSet[aggregates[idx]] = true
 	}
 	db.aggregates = append(db.aggregates, aggregates...)
 	return nil

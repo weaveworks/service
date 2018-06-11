@@ -29,9 +29,9 @@ func (t timed) timeRequest(ctx context.Context, method string, f func(context.Co
 	return instrument.CollectedRequest(ctx, method, durationCollector, nil, f)
 }
 
-func (t timed) UpsertAggregates(ctx context.Context, aggregates []Aggregate) error {
-	return t.timeRequest(ctx, "UpsertAggregates", func(ctx context.Context) error {
-		return t.d.UpsertAggregates(ctx, aggregates)
+func (t timed) InsertAggregates(ctx context.Context, aggregates []Aggregate) error {
+	return t.timeRequest(ctx, "InsertAggregates", func(ctx context.Context) error {
+		return t.d.InsertAggregates(ctx, aggregates)
 	})
 }
 
