@@ -89,7 +89,7 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 		return
 	}
 	if !exists {
-		w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	isMember, err := a.db.UserIsMemberOf(r.Context(), currentUser.ID, orgExternalID)
