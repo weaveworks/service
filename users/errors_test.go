@@ -38,10 +38,11 @@ func TestErrors_comparison(t *testing.T) {
 
 func TestInstanceDeniedError_Status(t *testing.T) {
 	e := users.NewInstanceDeniedErrorFactory("blah")
-	noreason := e("12", "")
-	withreason := e("13", "stop.")
+	noreason := e("reason-absent-25", "")
+	withreason := e("with-reason-25", "stop.")
 
 	assert.Equal(t, http.StatusPaymentRequired, noreason.Status())
+	assert.Contains(t, noreason.Error(), "go to https://cloud.weave.works/reason-absent-25/org/billing")
 	assert.Equal(t, http.StatusForbidden, withreason.Status())
 	assert.Contains(t, withreason.Error(), "stop.")
 }

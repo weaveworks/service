@@ -74,11 +74,12 @@ func NewInstanceDeniedErrorFactory(text string) func(id, reason string) *Instanc
 
 // Error returns the error message
 func (e *InstanceDeniedError) Error() string {
-	t := e.text
-	if e.reason != "" {
-		return fmt.Sprintf("%s: %s", e.text, e.reason)
+	t := fmt.Sprintf(e.text, e.id)
+	r := e.reason
+	if e.reason == "" {
+		r = fmt.Sprintf("go to https://cloud.weave.works/%s/org/billing", e.id)
 	}
-	return fmt.Sprintf(t, e.id)
+	return fmt.Sprintf("%s: %s", t, r)
 }
 
 // Status returns the HTTP status code appropriate for this error.
