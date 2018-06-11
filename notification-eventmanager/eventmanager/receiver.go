@@ -4,15 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"net/http"
-	"net/url"
-	"regexp"
-	"time"
-
 	"github.com/badoux/checkmail"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
+	"net/http"
+	"net/url"
+	"regexp"
+	"time"
 
 	"github.com/weaveworks/service/notification-eventmanager/types"
 	"github.com/weaveworks/service/users"
@@ -139,7 +138,7 @@ func (em *EventManager) handleUpdateReceiver(r *http.Request, instanceID string,
 
 	if _, err := uuid.FromString(receiverID); err != nil {
 		// Bad identifier
-		return nil, http.StatusNotFound, nil
+		return nil, http.StatusNotFound, errors.Wrapf(err, "bad identifier for %#v", receiverID)
 	}
 
 	receiver := types.Receiver{}
@@ -160,11 +159,10 @@ func (em *EventManager) handleUpdateReceiver(r *http.Request, instanceID string,
 		receiver.ID = receiverID
 	}
 	featureFlags := getFeatureFlags(r)
-
 	// before transaction changes the addressData and eventTypes, get oldReceiver which has oldAddressData and oldEventTypes
 	oldReceiver, err := em.DB.GetReceiver(instanceID, receiverID, featureFlags, true)
 	if err == sql.ErrNoRows {
-		return nil, http.StatusNotFound, nil
+		return nil, http.StatusNotFound, errors.Wrapf(err, "no receiver found for %#v", receiverID)
 	}
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
@@ -177,7 +175,7 @@ func (em *EventManager) handleUpdateReceiver(r *http.Request, instanceID string,
 	// Transaction to actually update the receiver in DB
 	if err := em.DB.UpdateReceiver(receiver, instanceID, featureFlags); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, http.StatusNotFound, nil
+			return nil, http.StatusNotFound, errors.Wrap(err, "error on UpdateReceiver")
 		}
 		return nil, 0, err
 	}
@@ -206,7 +204,7 @@ func (em *EventManager) handleUpdateReceiver(r *http.Request, instanceID string,
 	// all good!
 	// Fire event every time config is successfully changed
 	go func() {
-		eventErr := em.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime, email)
+		eventErr := em.createConfigChangedEvent(context.Background(), instanceID, oldReceiver, receiver, eventTime, email, featureFlags)
 		if eventErr != nil {
 			log.Error(eventErr)
 		}
