@@ -208,6 +208,11 @@ func (t traced) SetOrganizationRefuseDataUpload(ctx context.Context, externalID 
 	return t.d.SetOrganizationRefuseDataUpload(ctx, externalID, value)
 }
 
+func (t traced) SetOrganizationRefuseDataReason(ctx context.Context, externalID string, reason string) (err error) {
+	defer func() { t.trace("SetOrganizationRefuseDataReason", externalID, reason, err) }()
+	return t.d.SetOrganizationRefuseDataReason(ctx, externalID, reason)
+}
+
 func (t traced) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) (err error) {
 	defer func() { t.trace("SetOrganizationFirstSeenConnectedAt", externalID, value, err) }()
 	return t.d.SetOrganizationFirstSeenConnectedAt(ctx, externalID, value)

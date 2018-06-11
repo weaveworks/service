@@ -305,6 +305,12 @@ func (t timed) SetOrganizationRefuseDataUpload(ctx context.Context, externalID s
 	})
 }
 
+func (t timed) SetOrganizationRefuseDataReason(ctx context.Context, externalID string, reason string) error {
+	return t.timeRequest(ctx, "SetOrganizationRefuseDataReason", func(ctx context.Context) error {
+		return t.d.SetOrganizationRefuseDataReason(ctx, externalID, reason)
+	})
+}
+
 func (t timed) SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error {
 	return t.timeRequest(ctx, "SetOrganizationFirstSeenConnectedAt", func(ctx context.Context) error {
 		return t.d.SetOrganizationFirstSeenConnectedAt(ctx, externalID, value)

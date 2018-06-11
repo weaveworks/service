@@ -118,6 +118,7 @@ func (d DB) organizationsQueryHelper(deleted bool) squirrel.SelectBuilder {
 		"organizations.feature_flags",
 		"organizations.refuse_data_access",
 		"organizations.refuse_data_upload",
+		"organizations.refuse_data_reason",
 		"organizations.first_seen_connected_at",
 		"organizations.platform",
 		"organizations.environment",
@@ -727,6 +728,15 @@ func (d DB) SetOrganizationRefuseDataUpload(ctx context.Context, externalID stri
 	_, err := d.ExecContext(ctx,
 		`update organizations set refuse_data_upload = $1 where external_id = lower($2) and deleted_at is null`,
 		value, externalID,
+	)
+	return err
+}
+
+// SetOrganizationRefuseDataReason overwrites the default reason for refusal.
+func (d DB) SetOrganizationRefuseDataReason(ctx context.Context, externalID string, reason string) error {
+	_, err := d.ExecContext(ctx,
+		`update organizations set refuse_data_reason = $1 where external_id = lower($2) and deleted_at is null`,
+		reason, externalID,
 	)
 	return err
 }
