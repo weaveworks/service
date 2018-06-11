@@ -16,6 +16,7 @@ type Aggregate struct {
 	BucketStart time.Time
 	AmountType  string
 	AmountValue int64
+	CreatedAt   time.Time
 }
 
 // PostTrialInvoice represents a database row in table `post_trial_invoices`.

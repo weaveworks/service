@@ -138,6 +138,7 @@ func (d *postgres) GetAggregatesAfter(ctx context.Context, instanceID string, fr
 		"aggregates.bucket_start",
 		"aggregates.amount_type",
 		"aggregates.amount_value",
+		"aggregates.created_at",
 	).
 		From(tableAggregates).
 		Where(squirrel.Gt{"aggregates.id": lowerAggregatesID}).
@@ -154,15 +155,18 @@ func (d *postgres) GetAggregatesAfter(ctx context.Context, instanceID string, fr
 	defer rows.Close()
 
 	var aggregates []Aggregate
+	var createdAt pq.NullTime
 	for rows.Next() {
 		var aggregate Aggregate
 		if err := rows.Scan(
 			&aggregate.ID,
 			&aggregate.InstanceID, &aggregate.BucketStart,
 			&aggregate.AmountType, &aggregate.AmountValue,
+			&createdAt,
 		); err != nil {
 			return nil, err
 		}
+		aggregate.CreatedAt = createdAt.Time
 		aggregates = append(aggregates, aggregate)
 	}
 	if rows.Err() != nil {
