@@ -492,6 +492,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	var trialExpiry time.Time
 	var trialExpiredNotifiedAt, trialPendingExpiryNotifiedAt *time.Time
 	var refuseDataAccess, refuseDataUpload bool
+	var refuseDataReason sql.NullString
 	var gcpID, externalAccountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus sql.NullString
 	var gcpCreatedAt pq.NullTime
 	var activated sql.NullBool
@@ -505,6 +506,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		pq.Array(&o.FeatureFlags),
 		&refuseDataAccess,
 		&refuseDataUpload,
+		&refuseDataReason,
 		&o.FirstSeenConnectedAt,
 		&platform,
 		&environment,
@@ -537,6 +539,7 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.DeletedAt = deletedAt.Time
 	o.RefuseDataAccess = refuseDataAccess
 	o.RefuseDataUpload = refuseDataUpload
+	o.RefuseDataReason = refuseDataReason.String
 	o.Platform = platform.String
 	o.Environment = environment.String
 	o.ZuoraAccountNumber = zuoraAccountNumber.String

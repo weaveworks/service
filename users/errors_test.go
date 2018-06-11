@@ -2,6 +2,7 @@ package users_test
 
 import (
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,4 +34,14 @@ func TestErrors_comparison(t *testing.T) {
 	m0 := users.NewMalformedInputError(err)
 	m1 := users.NewMalformedInputError(err)
 	assert.False(t, m0 == m1)
+}
+
+func TestInstanceDeniedError_Status(t *testing.T) {
+	e := users.NewInstanceDeniedErrorFactory("blah")
+	noreason := e("12", "")
+	withreason := e("13", "stop.")
+
+	assert.Equal(t, http.StatusPaymentRequired, noreason.Status())
+	assert.Equal(t, http.StatusForbidden, withreason.Status())
+	assert.Contains(t, withreason.Error(), "stop.")
 }

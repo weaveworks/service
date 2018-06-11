@@ -206,6 +206,8 @@ message Organization {
     google.protobuf.Timestamp FirstSeenNetConnectedAt = 23 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
     google.protobuf.Timestamp FirstSeenPromConnectedAt = 24 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
     google.protobuf.Timestamp FirstSeenScopeConnectedAt = 25 [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+    // Replacing the default data refusal reason
+    string RefuseDataReason = 26;
 }
 
 message GoogleCloudPlatform {

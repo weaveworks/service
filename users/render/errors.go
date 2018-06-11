@@ -23,11 +23,11 @@ func ErrorStatusCode(err error) int {
 		return http.StatusUnprocessableEntity
 	}
 
-	switch err.(type) {
+	switch e := err.(type) {
 	case *users.MalformedInputError, *users.ValidationError, *users.AlreadyAttachedError:
 		return http.StatusBadRequest
 	case *users.InstanceDeniedError:
-		return http.StatusPaymentRequired
+		return e.Status()
 	}
 
 	// Just incase there's something sensitive in the error

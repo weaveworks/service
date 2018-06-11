@@ -37,11 +37,11 @@ func authorizeAction(action users.AuthorizedAction, org *users.Organization) err
 	switch action {
 	case users.INSTANCE_DATA_ACCESS:
 		if org.RefuseDataAccess {
-			return users.ErrInstanceDataAccessDenied(org.ExternalID)
+			return users.ErrInstanceDataAccessDenied(org.ExternalID, org.RefuseDataReason)
 		}
 	case users.INSTANCE_DATA_UPLOAD:
 		if org.RefuseDataUpload {
-			return users.ErrInstanceDataUploadDenied(org.ExternalID)
+			return users.ErrInstanceDataUploadDenied(org.ExternalID, org.RefuseDataReason)
 		}
 	}
 	// TODO: Future - consider switching to default-deny
