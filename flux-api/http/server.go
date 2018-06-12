@@ -107,6 +107,8 @@ func (s Server) MakeHandler(r *mux.Router) http.Handler {
 		transport.SyncStatus:      s.syncStatus,
 		transport.JobStatus:       s.jobStatus,
 		transport.GitRepoConfig:   s.gitRepoConfig,
+		// flux/api/ServerV10
+		transport.ListImagesWithOptions: s.listImagesWithOptions,
 		// fluxctl legacy routes
 		transport.UpdateImages:           s.updateImages,
 		transport.UpdatePolicies:         s.updatePolicies,
@@ -151,6 +153,25 @@ func (s Server) listServices(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) listImages(w http.ResponseWriter, r *http.Request) {
+	ctx := getRequestContext(r)
+	service := mux.Vars(r)["service"]
+
+	spec, err := update.ParseResourceSpec(service)
+	if err != nil {
+		transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", service))
+		return
+	}
+
+	d, err := s.daemonProxy.ListImages(ctx, spec)
+	if err != nil {
+		transport.ErrorResponse(w, r, err)
+		return
+	}
+
+	transport.JSONResponse(w, r, d)
+}
+
+func (s Server) listImagesWithOptions(w http.ResponseWriter, r *http.Request) {
 	var opts v10.ListImagesOptions
 	ctx := getRequestContext(r)
 	queryValues := r.URL.Query()

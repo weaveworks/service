@@ -6,11 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/weaveworks/flux/api/v10"
-
 	"github.com/nats-io/go-nats"
 
 	"github.com/weaveworks/flux/api"
+	"github.com/weaveworks/flux/api/v10"
 	"github.com/weaveworks/flux/api/v6"
 	"github.com/weaveworks/flux/api/v9"
 	fluxerr "github.com/weaveworks/flux/errors"
