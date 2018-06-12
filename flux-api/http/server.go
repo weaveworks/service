@@ -154,7 +154,8 @@ func (s Server) listServices(w http.ResponseWriter, r *http.Request) {
 
 func (s Server) listImages(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
-	service := mux.Vars(r)["service"]
+	queryValues := r.URL.Query()
+	service := queryValues.Get("service")
 
 	spec, err := update.ParseResourceSpec(service)
 	if err != nil {

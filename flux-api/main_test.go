@@ -195,20 +195,6 @@ func TestFluxsvc_ListServices(t *testing.T) {
 	if svcs[0].ID.String() != helloWorldSvc && svcs[1].ID.String() != helloWorldSvc {
 		t.Errorf("Expected one of the services to be %q", helloWorldSvc)
 	}
-
-	// Test that `namespace` argument is mandatory
-	u, err := transport.MakeURL(ts.URL, router, "ListServices")
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp, err := http.Get(u.String())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusNotFound {
-		t.Fatalf("Request should result in 404, but got: %q", resp.Status)
-	}
 }
 
 // Note that this test will reach out to docker hub to check the images
@@ -242,20 +228,6 @@ func TestFluxsvc_ListImages(t *testing.T) {
 	if len(imgs[0].Containers) == 0 {
 		t.Error("Expected >1 containers")
 	}
-
-	// Test that `service` argument is mandatory
-	u, err := transport.MakeURL(ts.URL, router, "ListImages")
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp, err := http.Get(u.String())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusNotFound {
-		t.Fatalf("Request should result in 404, but got: %s", resp.Status)
-	}
 }
 
 // Note that this test will reach out to docker hub to check the images
@@ -288,20 +260,6 @@ func TestFluxsvc_ListImagesWithOptions(t *testing.T) {
 	}
 	if len(imgs[0].Containers) == 0 {
 		t.Error("Expected >1 containers")
-	}
-
-	// Test that `service` argument is mandatory
-	u, err := transport.MakeURL(ts.URL, router, "ListImagesWithOptions")
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp, err := http.Get(u.String())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusNotFound {
-		t.Fatalf("Request should result in 404, but got: %s", resp.Status)
 	}
 }
 
