@@ -21,7 +21,7 @@ import (
 	"github.com/weaveworks/flux"
 
 	fluxapi "github.com/weaveworks/flux/api"
-	"github.com/weaveworks/flux/api/v6"
+	"github.com/weaveworks/flux/api/v10"
 	"github.com/weaveworks/flux/api/v9"
 	fluxerr "github.com/weaveworks/flux/errors"
 	"github.com/weaveworks/flux/event"
@@ -151,6 +151,7 @@ func (s Server) listServices(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) listImages(w http.ResponseWriter, r *http.Request) {
+	var opts v10.ListImagesOptions
 	ctx := getRequestContext(r)
 	queryValues := r.URL.Query()
 
@@ -164,15 +165,15 @@ func (s Server) listImages(w http.ResponseWriter, r *http.Request) {
 		transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", service))
 		return
 	}
+	opts.Spec = spec
 
 	// containerFields - Override which fields to return in the container struct.
-	var opts v6.ListImagesOptions
 	containerFields := queryValues.Get("containerFields")
 	if containerFields != "" {
 		opts.OverrideContainerFields = strings.Split(containerFields, ",")
 	}
 
-	d, err := s.daemonProxy.ListImages(ctx, spec, opts)
+	d, err := s.daemonProxy.ListImagesWithOptions(ctx, opts)
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
 		return
