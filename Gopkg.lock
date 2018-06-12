@@ -730,6 +730,7 @@
   packages = [
     ".",
     "api",
+    "api/v10",
     "api/v6",
     "api/v9",
     "cluster",
@@ -754,7 +755,7 @@
     "ssh",
     "update"
   ]
-  revision = "8f1bc11449df4ed432494d717ecad4de2b8865e3"
+  revision = "03d1eeddc40e5798c94764b4c334325149e00052"
 
 [[projects]]
   branch = "master"
