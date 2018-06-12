@@ -273,6 +273,11 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		}
 
 		added, removed := diff(oldReceiver.EventTypes, receiver.EventTypes, visibleEvents)
+		if len(added) == 0 && len(removed) == 0 {
+			// Nothing changed, no need to make noise
+			return nil
+		}
+
 		text := formatEventTypeText("<b>", "</b>", receiver.RType, "<i>", "</i>", added, removed, userEmail)
 
 		emailMsg, err := getEmailMessage(text, eventType, instanceName)
