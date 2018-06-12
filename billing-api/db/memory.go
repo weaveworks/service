@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 type memory struct {
 	mtx                        sync.RWMutex
 	aggregates                 []Aggregate
+	aggregatesSet              map[Aggregate]struct{} // To allow for O(1) presence checks.
 	postTrialInvoices          map[string]PostTrialInvoice
 	usageUploadsMaxAggregateID map[string]int // Maps uploaders to agg ID
 	billingAccountsByTeamID    map[string]*grpc.BillingAccount
@@ -20,16 +22,18 @@ type memory struct {
 // New creates a new in-memory database
 func newMemory() *memory {
 	return &memory{
+		aggregatesSet:              make(map[Aggregate]struct{}),
 		postTrialInvoices:          make(map[string]PostTrialInvoice),
 		usageUploadsMaxAggregateID: make(map[string]int),
 		billingAccountsByTeamID:    make(map[string]*grpc.BillingAccount),
 	}
 }
 
-func (db *memory) UpsertAggregates(ctx context.Context, aggregates []Aggregate) (err error) {
+func (db *memory) InsertAggregates(ctx context.Context, aggregates []Aggregate) (err error) {
 	db.mtx.Lock()
 	defer db.mtx.Unlock()
 	lastid := 0
+	now := time.Now()
 	for _, a := range db.aggregates {
 		if a.ID > lastid {
 			lastid = a.ID
@@ -38,6 +42,11 @@ func (db *memory) UpsertAggregates(ctx context.Context, aggregates []Aggregate) 
 	for idx := range aggregates {
 		lastid++
 		aggregates[idx].ID = lastid
+		if _, ok := db.aggregatesSet[aggregates[idx]]; ok {
+			return fmt.Errorf("duplicate aggregate: %v", aggregates[idx])
+		}
+		aggregates[idx].CreatedAt = now
+		db.aggregatesSet[aggregates[idx]] = struct{}{}
 	}
 	db.aggregates = append(db.aggregates, aggregates...)
 	return nil

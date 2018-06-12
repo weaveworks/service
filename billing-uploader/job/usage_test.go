@@ -187,7 +187,7 @@ func TestJobUpload_Do(t *testing.T) {
 		AnyTimes()
 
 	// prepare data
-	err := d.UpsertAggregates(ctx, aggregates)
+	err := d.InsertAggregates(ctx, aggregates)
 	assert.NoError(t, err)
 
 	_, err = d.InsertUsageUpload(ctx, "zuora", 1)
@@ -268,7 +268,7 @@ func TestJobUpload_Do(t *testing.T) {
 
 		// Add one more aggregate and make sure this second run has successfully
 		// reset the previous report
-		err = d.UpsertAggregates(ctx, []db.Aggregate{
+		err = d.InsertAggregates(ctx, []db.Aggregate{
 			{ // ID==7
 				BucketStart: start.Add(2 * time.Hour),
 				InstanceID:  "200",
@@ -307,7 +307,7 @@ func TestJobUpload_Do_zuoraError(t *testing.T) {
 			AmountValue: 1,
 		},
 	}
-	err := d.UpsertAggregates(ctx, aggregates)
+	err := d.InsertAggregates(ctx, aggregates)
 	assert.NoError(t, err)
 	maxAggregateID, err := d.GetUsageUploadLargestAggregateID(ctx, "zuora")
 

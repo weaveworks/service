@@ -4,13 +4,14 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"context"
+	"time"
+
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/common/bigquery"
-	"time"
 )
 
-const upsertBatchSize = 100
+const batchSize = 100
 
 // Aggregate reads events from bigquery and stores them in the database.
 type Aggregate struct {
@@ -58,12 +59,12 @@ func (j *Aggregate) Do(since *time.Time) error {
 			log.Debugf("%+v", agg)
 		}
 
-		for i := 0; i < len(aggs); i += upsertBatchSize {
-			l := i + upsertBatchSize
+		for i := 0; i < len(aggs); i += batchSize {
+			l := i + batchSize
 			if l > len(aggs) {
 				l = len(aggs)
 			}
-			if err := j.db.UpsertAggregates(ctx, aggs[i:l]); err != nil {
+			if err := j.db.InsertAggregates(ctx, aggs[i:l]); err != nil {
 				return err
 			}
 		}
