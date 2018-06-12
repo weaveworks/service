@@ -13,7 +13,7 @@ import (
 type memory struct {
 	mtx                        sync.RWMutex
 	aggregates                 []Aggregate
-	aggregatesSet              map[Aggregate]bool // To allow for O(1) presence checks.
+	aggregatesSet              map[Aggregate]struct{} // To allow for O(1) presence checks.
 	postTrialInvoices          map[string]PostTrialInvoice
 	usageUploadsMaxAggregateID map[string]int // Maps uploaders to agg ID
 	billingAccountsByTeamID    map[string]*grpc.BillingAccount
@@ -22,7 +22,7 @@ type memory struct {
 // New creates a new in-memory database
 func newMemory() *memory {
 	return &memory{
-		aggregatesSet:              make(map[Aggregate]bool),
+		aggregatesSet:              make(map[Aggregate]struct{}),
 		postTrialInvoices:          make(map[string]PostTrialInvoice),
 		usageUploadsMaxAggregateID: make(map[string]int),
 		billingAccountsByTeamID:    make(map[string]*grpc.BillingAccount),
@@ -46,7 +46,7 @@ func (db *memory) InsertAggregates(ctx context.Context, aggregates []Aggregate) 
 			return fmt.Errorf("duplicate aggregate: %v", aggregates[idx])
 		}
 		aggregates[idx].CreatedAt = now
-		db.aggregatesSet[aggregates[idx]] = true
+		db.aggregatesSet[aggregates[idx]] = struct{}{}
 	}
 	db.aggregates = append(db.aggregates, aggregates...)
 	return nil
