@@ -21,29 +21,30 @@ import (
 
 // API implements the users api.
 type API struct {
-	directLogin        bool // Whether login without email confirmation is allowed. Development only!
-	sessions           sessions.Store
-	db                 db.DB
-	logins             *login.Providers
-	templates          templates.Engine
-	emailer            emailer.Emailer
-	marketingQueues    marketing.Queues
-	forceFeatureFlags  []string // Appends flags to every organization that is returned in a GET request.
-	marketoMunchkinKey string
-	intercomHashKey    string
-	webhookTokens      map[string]struct{}
-	grpc               users.UsersServer
-	mixpanel           *marketing.MixpanelClient
-	partner            partner.API
-	partnerAccess      partner.Accessor
-	fluxStatusAPI      string
-	scopeProbesAPI     string
-	promMetricsAPI     string
-	cortexStatsAPI     string
-	netPeersAPI        string
-	billingClient      billing_grpc.BillingClient
-	billingEnabler     featureflag.Enabler
-	OrgCleaner         *cleaner.OrgCleaner
+	directLogin              bool // Whether login without email confirmation is allowed. Development only!
+	sessions                 sessions.Store
+	db                       db.DB
+	logins                   *login.Providers
+	templates                templates.Engine
+	emailer                  emailer.Emailer
+	marketingQueues          marketing.Queues
+	forceFeatureFlags        []string // Appends flags to every organization that is returned in a GET request.
+	marketoMunchkinKey       string
+	intercomHashKey          string
+	webhookTokens            map[string]struct{}
+	grpc                     users.UsersServer
+	mixpanel                 *marketing.MixpanelClient
+	partner                  partner.API
+	partnerAccess            partner.Accessor
+	fluxStatusAPI            string
+	scopeProbesAPI           string
+	promMetricsAPI           string
+	cortexStatsAPI           string
+	netPeersAPI              string
+	billingClient            billing_grpc.BillingClient
+	billingEnabler           featureflag.Enabler
+	OrgCleaner               *cleaner.OrgCleaner
+	notificationReceiversURL string
 	http.Handler
 }
 
@@ -72,31 +73,33 @@ func New(
 	billingClient billing_grpc.BillingClient,
 	billingEnabler featureflag.Enabler,
 	orgCleaner *cleaner.OrgCleaner,
+	notificationReceiversURL string,
 ) *API {
 	a := &API{
-		directLogin:        directLogin,
-		sessions:           sessions,
-		db:                 db,
-		logins:             logins,
-		templates:          templates,
-		emailer:            emailer,
-		marketingQueues:    marketingQueues,
-		forceFeatureFlags:  forceFeatureFlags,
-		marketoMunchkinKey: marketoMunchkinKey,
-		intercomHashKey:    intercomHashKey,
-		webhookTokens:      webhookTokens,
-		grpc:               grpc,
-		mixpanel:           mixpanelClient,
-		partner:            partnerClient,
-		partnerAccess:      partnerAccess,
-		fluxStatusAPI:      fluxStatusAPI,
-		scopeProbesAPI:     scopeProbesAPI,
-		promMetricsAPI:     promMetricsAPI,
-		cortexStatsAPI:     cortexStatsAPI,
-		netPeersAPI:        netPeersAPI,
-		billingClient:      billingClient,
-		billingEnabler:     billingEnabler,
-		OrgCleaner:         orgCleaner,
+		directLogin:              directLogin,
+		sessions:                 sessions,
+		db:                       db,
+		logins:                   logins,
+		templates:                templates,
+		emailer:                  emailer,
+		marketingQueues:          marketingQueues,
+		forceFeatureFlags:        forceFeatureFlags,
+		marketoMunchkinKey:       marketoMunchkinKey,
+		intercomHashKey:          intercomHashKey,
+		webhookTokens:            webhookTokens,
+		grpc:                     grpc,
+		mixpanel:                 mixpanelClient,
+		partner:                  partnerClient,
+		partnerAccess:            partnerAccess,
+		fluxStatusAPI:            fluxStatusAPI,
+		scopeProbesAPI:           scopeProbesAPI,
+		promMetricsAPI:           promMetricsAPI,
+		cortexStatsAPI:           cortexStatsAPI,
+		netPeersAPI:              netPeersAPI,
+		billingClient:            billingClient,
+		billingEnabler:           billingEnabler,
+		OrgCleaner:               orgCleaner,
+		notificationReceiversURL: notificationReceiversURL,
 	}
 
 	r := mux.NewRouter()

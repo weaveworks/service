@@ -88,6 +88,8 @@ func main() {
 		billingCfg billing_grpc.Config
 
 		cleanupURLs common.ArrayFlags
+
+		notificationReceiversURL = flag.String("notification-receivers-url", "http://eventmanager.notification.svc.cluster.local/api/notification/config/receivers", "Notification service URL for creating receivers")
 	)
 
 	flag.Var(&forceFeatureFlags, "force-feature-flags", "Force this feature flag to be on for all organisations.")
@@ -191,6 +193,7 @@ func main() {
 		billingClient,
 		billingEnabler,
 		orgCleaner,
+		*notificationReceiversURL,
 	)
 
 	if *localTestUserCreate {

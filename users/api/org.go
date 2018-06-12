@@ -1,25 +1,29 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/billing/provider"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/common/validation"
+	"github.com/weaveworks/service/notification-eventmanager/types"
 	"github.com/weaveworks/service/users"
 )
 
@@ -118,6 +122,45 @@ func (a *API) generateOrgExternalID(currentUser *users.User, w http.ResponseWrit
 	render.JSON(w, http.StatusOK, OrgView{Name: externalID, ExternalID: externalID})
 }
 
+func (a *API) createEmailReceiver(ctx context.Context, email, orgID string) error {
+	emailData, err := json.Marshal(email)
+	if err != nil {
+		return errors.Wrapf(err, "cannot marshal email address %s", email)
+	}
+
+	r := types.Receiver{
+		RType:       types.EmailReceiver,
+		AddressData: emailData,
+	}
+
+	data, err := json.Marshal(r)
+	if err != nil {
+		return errors.Wrapf(err, "cannot marshal receiver data %#v", r)
+	}
+
+	req, err := http.NewRequest("POST", a.notificationReceiversURL, bytes.NewBuffer(data))
+	if err != nil {
+		return errors.Wrap(err, "error constructing POST HTTP request to create email receiver")
+	}
+
+	ctxWithID := user.InjectOrgID(ctx, orgID)
+	err = user.InjectOrgIDIntoHTTPRequest(ctxWithID, req)
+	if err != nil {
+		return errors.Wrap(err, "cannot inject org ID into request")
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "executing HTTP POST to notification service")
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := ioutil.ReadAll(io.LimitReader(resp.Body, 1024*1024))
+		return fmt.Errorf("%s from notification service (%s)", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	return nil
+
+}
 func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var view OrgView
@@ -157,7 +200,17 @@ func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgVi
 		return err
 	}
 
-	return a.refreshOrganizationRestrictions(ctx, currentUser, org, now)
+	if err := a.refreshOrganizationRestrictions(ctx, currentUser, org, now); err != nil {
+		return err
+	}
+
+	if err := a.createEmailReceiver(ctx, currentUser.Email, org.ID); err != nil {
+		// Just warning because it's ok to create org without email receiver
+		// by default browser receiver will be created for all orgs
+		log.Warnf("cannot create email receiver with address %s, error: %s", currentUser.Email, err)
+	}
+
+	return nil
 }
 
 func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
