@@ -21,6 +21,7 @@ import (
 	"github.com/weaveworks/flux"
 
 	fluxapi "github.com/weaveworks/flux/api"
+	"github.com/weaveworks/flux/api/v10"
 	"github.com/weaveworks/flux/api/v9"
 	fluxerr "github.com/weaveworks/flux/errors"
 	"github.com/weaveworks/flux/event"
@@ -106,6 +107,8 @@ func (s Server) MakeHandler(r *mux.Router) http.Handler {
 		transport.SyncStatus:      s.syncStatus,
 		transport.JobStatus:       s.jobStatus,
 		transport.GitRepoConfig:   s.gitRepoConfig,
+		// flux/api/ServerV10
+		transport.ListImagesWithOptions: s.listImagesWithOptions,
 		// fluxctl legacy routes
 		transport.UpdateImages:           s.updateImages,
 		transport.UpdatePolicies:         s.updatePolicies,
@@ -151,7 +154,9 @@ func (s Server) listServices(w http.ResponseWriter, r *http.Request) {
 
 func (s Server) listImages(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
-	service := mux.Vars(r)["service"]
+	queryValues := r.URL.Query()
+	service := queryValues.Get("service")
+
 	spec, err := update.ParseResourceSpec(service)
 	if err != nil {
 		transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", service))
@@ -159,6 +164,38 @@ func (s Server) listImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	d, err := s.daemonProxy.ListImages(ctx, spec)
+	if err != nil {
+		transport.ErrorResponse(w, r, err)
+		return
+	}
+
+	transport.JSONResponse(w, r, d)
+}
+
+func (s Server) listImagesWithOptions(w http.ResponseWriter, r *http.Request) {
+	var opts v10.ListImagesOptions
+	ctx := getRequestContext(r)
+	queryValues := r.URL.Query()
+
+	// service - Select services to update.
+	service := queryValues.Get("service")
+	if service == "" {
+		service = string(update.ResourceSpecAll)
+	}
+	spec, err := update.ParseResourceSpec(service)
+	if err != nil {
+		transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", service))
+		return
+	}
+	opts.Spec = spec
+
+	// containerFields - Override which fields to return in the container struct.
+	containerFields := queryValues.Get("containerFields")
+	if containerFields != "" {
+		opts.OverrideContainerFields = strings.Split(containerFields, ",")
+	}
+
+	d, err := s.daemonProxy.ListImagesWithOptions(ctx, opts)
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
 		return

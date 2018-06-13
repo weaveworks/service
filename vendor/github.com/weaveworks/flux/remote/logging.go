@@ -6,6 +6,7 @@ import (
 	"github.com/go-kit/kit/log"
 
 	"github.com/weaveworks/flux/api"
+	"github.com/weaveworks/flux/api/v10"
 	"github.com/weaveworks/flux/api/v6"
 	"github.com/weaveworks/flux/api/v9"
 	"github.com/weaveworks/flux/job"
@@ -50,6 +51,15 @@ func (p *ErrorLoggingServer) ListImages(ctx context.Context, spec update.Resourc
 		}
 	}()
 	return p.server.ListImages(ctx, spec)
+}
+
+func (p *ErrorLoggingServer) ListImagesWithOptions(ctx context.Context, opts v10.ListImagesOptions) (_ []v6.ImageStatus, err error) {
+	defer func() {
+		if err != nil {
+			p.logger.Log("method", "ListImagesWithOptions", "error", err)
+		}
+	}()
+	return p.server.ListImagesWithOptions(ctx, opts)
 }
 
 func (p *ErrorLoggingServer) JobStatus(ctx context.Context, jobID job.ID) (_ job.Status, err error) {
