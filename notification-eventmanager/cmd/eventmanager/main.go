@@ -28,6 +28,7 @@ func main() {
 		// Connect to users service to get information about an event's instance
 		usersServiceURL string
 		eventTypesPath  string
+		wcURL           string
 	)
 
 	serverConfig.RegisterFlags(flag.CommandLine)
@@ -37,6 +38,7 @@ func main() {
 	flag.StringVar(&sqsURL, "sqsURL", "sqs://123user:123password@localhost:9324/events", "URL to connect to SQS")
 	flag.StringVar(&usersServiceURL, "usersServiceURL", "users.default:4772", "URL to connect to users service")
 	flag.StringVar(&eventTypesPath, "eventtypes", "", "Path to a JSON file defining available event types")
+	flag.StringVar(&wcURL, "wc.url", "https://cloud.weave.works/", "Weave Cloud URL")
 
 	flag.Parse()
 
@@ -64,7 +66,7 @@ func main() {
 		log.Fatalf("Error initializing database: %v", err)
 	}
 
-	em := eventmanager.New(uclient, db, sqsCli, sqsQueue)
+	em := eventmanager.New(uclient, db, sqsCli, sqsQueue, wcURL)
 
 	if eventTypesPath != "" {
 		eventTypes, err := types.EventTypesFromFile(eventTypesPath)
