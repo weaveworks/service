@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"path"
 	"reflect"
 	"regexp"
 	"sort"
@@ -27,9 +29,10 @@ import (
 
 const (
 	// MaxEventsList is the highest number of events that can be requested in one list call
-	MaxEventsList        = 10000
-	markdownNewline      = "  \n"
-	markdownNewParagraph = "\n\n"
+	MaxEventsList          = 10000
+	markdownNewline        = "  \n"
+	markdownNewParagraph   = "\n\n"
+	notificationConfigPath = "/org/notifications"
 )
 
 // slack URL like: <http://www.foo.com|foo.com>
@@ -106,19 +109,55 @@ func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (int
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error requesting instance data from users service for test event")
 	}
 
+	instanceName := instanceData.Organization.Name
+	etype := "user_test"
+	text := "A test event triggered from Weave Cloud!"
+	textJSON, err := json.Marshal(text)
+	if err != nil {
+		return nil, http.StatusInternalServerError, errors.Wrapf(err, "cannot marshal text: %s", text)
+	}
+
+	sdMsg, err := getStackdriverMessage(textJSON, etype, instanceName)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting stackdriver message for test event")
 	}
 
-	text := "A test event triggered from Weave Cloud!"
+	link, err := em.getInstanceLink(instanceData.Organization.ExternalID, notificationConfigPath)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting notification config page link for test event")
+	}
+
+	emailMsg, err := getEmailMessage(text, etype, instanceName, link)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting email message for test event")
+	}
+
+	slackMsg, err := getSlackTextMessage(text, instanceName)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting slack text message for test event")
+	}
+
+	browserMsg, err := getBrowserMessage(text, []types.SlackAttachment{}, etype)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting browser message for test event")
+	}
 
 	testEvent := types.Event{
-		Type:         "user_test",
+		Type:         etype,
 		InstanceID:   instanceID,
 		InstanceName: instanceData.Organization.Name,
 		Timestamp:    time.Now(),
-		Text:         &text,
+		Messages: map[string]json.RawMessage{
+			types.EmailReceiver:       emailMsg,
+			types.BrowserReceiver:     browserMsg,
+			types.SlackReceiver:       slackMsg,
+			types.StackdriverReceiver: sdMsg,
+		},
 	}
 
 	eventID, err := em.storeAndSend(r.Context(), testEvent, instanceData.Organization.FeatureFlags)
@@ -176,7 +215,13 @@ func (em *EventManager) handleSlackEvent(r *http.Request) (interface{}, int, err
 		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot unmarshal body")
 	}
 
-	e, err := buildEvent(body, sm, eventType, instanceID, instanceData.Organization.Name)
+	link, err := em.getInstanceLink(instanceData.Organization.ExternalID, notificationConfigPath)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot get Weave Cloud notification page link")
+	}
+
+	e, err := buildEvent(body, sm, eventType, instanceID, instanceData.Organization.Name, link)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
 		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot build event")
@@ -226,6 +271,12 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 	}
 	instanceName := instanceData.Organization.Name
 
+	link, err := em.getInstanceLink(instanceData.Organization.ExternalID, notificationConfigPath)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		return errors.Wrap(err, "cannot get Weave Cloud notification page link")
+	}
+
 	sort.Strings(oldReceiver.EventTypes)
 	sort.Strings(receiver.EventTypes)
 
@@ -238,7 +289,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		// address changed event
 		msg := fmt.Sprintf("The address for <b>%s</b> was updated by %s!", receiver.RType, userEmail)
 
-		emailMsg, err := getEmailMessage(msg, eventType, instanceName)
+		emailMsg, err := getEmailMessage(msg, eventType, instanceName, link)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
@@ -257,10 +308,16 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 			return errors.Wrap(err, "cannot get stackdriver message")
 		}
 
+		slackText := fmt.Sprintf("The address for *%s* was updated by %s!", receiver.RType, userEmail)
+		slackMsg, err := getSlackTextMessage(slackText, instanceName)
+		if err != nil {
+			return errors.Wrap(err, "cannot get slack text message")
+		}
+
 		event.Messages = map[string]json.RawMessage{
 			types.EmailReceiver:       emailMsg,
 			types.BrowserReceiver:     browserMsg,
-			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %v\nThe address for *%s* was updated by %s!"}`, instanceName, receiver.RType, userEmail)),
+			types.SlackReceiver:       slackMsg,
 			types.StackdriverReceiver: stackdriverMsg,
 		}
 	} else if !reflect.DeepEqual(oldReceiver.EventTypes, receiver.EventTypes) {
@@ -280,7 +337,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 
 		text := formatEventTypeText("<b>", "</b>", receiver.RType, "<i>", "</i>", added, removed, userEmail)
 
-		emailMsg, err := getEmailMessage(text, eventType, instanceName)
+		emailMsg, err := getEmailMessage(text, eventType, instanceName, link)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
@@ -300,11 +357,15 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		}
 
 		slackText := formatEventTypeText("*", "*", receiver.RType, "_", "_", added, removed, userEmail)
+		slackMsg, err := getSlackTextMessage(slackText, instanceName)
+		if err != nil {
+			return errors.Wrap(err, "cannot get slack message")
+		}
+
 		event.Messages = map[string]json.RawMessage{
-			types.EmailReceiver:   emailMsg,
-			types.BrowserReceiver: browserMsg,
-			// FIXME(rndstr): should use proper JSON marshalling here; e.g., this breaks for instance names with double quotes in them
-			types.SlackReceiver:       json.RawMessage(fmt.Sprintf(`{"text": "*Instance:* %s\n%s"}`, instanceName, slackText)),
+			types.EmailReceiver:       emailMsg,
+			types.BrowserReceiver:     browserMsg,
+			types.SlackReceiver:       slackMsg,
 			types.StackdriverReceiver: stackdriverMsg,
 		}
 	} else {
@@ -315,7 +376,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 	go func() {
 
 		if _, err := em.storeAndSend(ctx, event, instanceData.Organization.FeatureFlags); err != nil {
-			log.Warnf("failed to store in DB or send to SQS config change event")
+			log.Warnf("failed to store in DB or send to SQS config change event: %s", err)
 		}
 	}()
 
@@ -450,14 +511,14 @@ func (em *EventManager) handleGetEvents(r *http.Request, instanceID string) (int
 	return events, http.StatusOK, nil
 }
 
-func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceName string) (types.Event, error) {
+func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceName, notificationPageLink string) (types.Event, error) {
 	var event types.Event
 	allText := getAllMarkdownText(sm, instanceName)
 	// handle slack URLs
 	allTextMarkdownLinks := slackURL.ReplaceAllString(allText, "[$2]($1)")
 	html := string(blackfriday.MarkdownBasic([]byte(allTextMarkdownLinks)))
 
-	emailMsg, err := getEmailMessage(html, etype, instanceName)
+	emailMsg, err := getEmailMessage(html, etype, instanceName, notificationPageLink)
 	if err != nil {
 		return event, errors.Wrap(err, "cannot get email message")
 	}
@@ -528,11 +589,27 @@ func getBrowserMessage(text string, attachments []types.SlackAttachment, etype s
 	return msgRaw, nil
 }
 
+func (em *EventManager) getInstanceLink(externalID, resource string) (string, error) {
+	url, err := url.Parse(em.WcURL)
+	if err != nil {
+		return "", errors.Wrapf(err, "cannot parse Weave Cloud URL %s", em.WcURL)
+	}
+
+	url.Path = path.Join(url.Path, externalID, resource)
+	return url.String(), nil
+}
+
 // GetEmailMessage returns message for email
-func getEmailMessage(text, etype, instanceName string) (json.RawMessage, error) {
+func getEmailMessage(htmlText, etype, instanceName, link string) (json.RawMessage, error) {
+	footer := fmt.Sprintf(`
+			<p>
+				<span style="color: #8A8A8A; font-family: 'Calibri', sans-serif; font-size: 8pt; font-weight: regular;">
+				To disable these notifications, adjust the <a href="%s">Settings</a>.
+				</span>
+			</p>`, link)
 	em := types.EmailMessage{
 		Subject: fmt.Sprintf("%v - %v", instanceName, etype),
-		Body:    text,
+		Body:    fmt.Sprintf("%s%s", htmlText, footer),
 	}
 
 	msgRaw, err := json.Marshal(em)
@@ -541,6 +618,20 @@ func getEmailMessage(text, etype, instanceName string) (json.RawMessage, error) 
 	}
 
 	return msgRaw, nil
+}
+
+// GetSlackMessage returns simple text message with instance name for slack (no attachents etc)
+func getSlackTextMessage(text, instanceName string) (json.RawMessage, error) {
+	var sm types.SlackMessage
+
+	sm.Text = fmt.Sprintf("*Instance*: %v\n%s", instanceName, text)
+
+	msg, err := json.Marshal(sm)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot marshal slack text message to json")
+	}
+
+	return msg, nil
 }
 
 // GetStackdriverMessage returns message for stackdriver

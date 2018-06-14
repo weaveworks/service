@@ -58,6 +58,7 @@ type EventManager struct {
 	DB          db.DB
 	SQSClient   sqsiface.SQSAPI
 	SQSQueue    string
+	WcURL       string
 	wg          sync.WaitGroup
 	limiter     *rate.Limiter
 }
@@ -75,12 +76,13 @@ func init() {
 }
 
 // New creates new EventManager
-func New(usersClient users.UsersClient, db db.DB, sqsClient sqsiface.SQSAPI, sqsQueue string) *EventManager {
+func New(usersClient users.UsersClient, db db.DB, sqsClient sqsiface.SQSAPI, sqsQueue, wcURL string) *EventManager {
 	return &EventManager{
 		UsersClient: usersClient,
 		DB:          db,
 		SQSClient:   sqsClient,
 		SQSQueue:    sqsQueue,
+		WcURL:       wcURL,
 		limiter:     rate.NewLimiter(ratelimit, ratelimit),
 	}
 }
