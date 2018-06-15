@@ -115,12 +115,13 @@ func (s Server) MakeHandler(r *mux.Router) http.Handler {
 		transport.GetPublicSSHKey:        s.getPublicSSHKey,
 		transport.RegeneratePublicSSHKey: s.regeneratePublicSSHKey,
 		// fluxd UpstreamRoutes
-		RegisterDeprecated:         registerDaemonDeprecated,
-		transport.RegisterDaemonV6: s.registerV6,
-		transport.RegisterDaemonV7: s.registerV7,
-		transport.RegisterDaemonV8: s.registerV8,
-		transport.RegisterDaemonV9: s.registerV9,
-		transport.LogEvent:         s.logEvent,
+		RegisterDeprecated:          registerDaemonDeprecated,
+		transport.RegisterDaemonV6:  s.registerV6,
+		transport.RegisterDaemonV7:  s.registerV7,
+		transport.RegisterDaemonV8:  s.registerV8,
+		transport.RegisterDaemonV9:  s.registerV9,
+		transport.RegisterDaemonV10: s.registerV10,
+		transport.LogEvent:          s.logEvent,
 		// UI routes
 		Status:  s.status,
 		History: s.history,
@@ -414,6 +415,12 @@ func (s Server) registerV8(w http.ResponseWriter, r *http.Request) {
 func (s Server) registerV9(w http.ResponseWriter, r *http.Request) {
 	s.doRegister(w, r, func(conn io.ReadWriteCloser) fluxapi.UpstreamServer {
 		return rpc.NewClientV9(conn)
+	})
+}
+
+func (s Server) registerV10(w http.ResponseWriter, r *http.Request) {
+	s.doRegister(w, r, func(conn io.ReadWriteCloser) fluxapi.UpstreamServer {
+		return rpc.NewClientV10(conn)
 	})
 }
 
