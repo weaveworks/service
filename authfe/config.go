@@ -198,6 +198,12 @@ type proxyConfig struct {
 	readOnly    bool
 	grpcHost    string
 
+	l7 struct {
+		algorithm   string
+		affinityKey string
+		loadFactor  float64
+	}
+
 	// Set this based on the flags
 	http.Handler
 }
@@ -208,4 +214,8 @@ func (p *proxyConfig) RegisterFlags(name string, f *flag.FlagSet) {
 	f.StringVar(&p.protocol, name+".protocol", "http", fmt.Sprintf("Protocol to connect to this %s service via (Must be: http or grpc)", name))
 	f.BoolVar(&p.readOnly, name+".readonly", false, fmt.Sprintf("Make %s service, read-only (will only accept GETs)", name))
 	f.StringVar(&p.grpcHost, name+"-grpc", "", fmt.Sprintf("Use gRPC for %s, instead of protocol (backwards compat)", name))
+
+	f.StringVar(&p.l7.algorithm, name+".l7.algorithm", "", "Use L7 load balancing (one of: consistent or bounded-load)")
+	f.StringVar(&p.l7.affinityKey, name+".l7.affinity-key", "X-Affinity", "Name of the HTTP header used for affinity")
+	f.Float64Var(&p.l7.loadFactor, name+".l7.load-factor", 1.25, "Load factor for the bounded-load algorithm")
 }

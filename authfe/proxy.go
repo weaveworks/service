@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dlespiau/balance"
+
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
@@ -19,6 +21,44 @@ import (
 )
 
 const defaultPort = "80"
+
+func makeLoadBalancer(cfg proxyConfig) (balance.LoadBalancer, error) {
+	var balancer balance.LoadBalancer
+	needAffinitykey := true
+
+	switch cfg.l7.algorithm {
+	case "":
+		// No load balancer configured.
+		return nil, nil
+	case "consistent":
+		balancer = balance.NewConsistent(balance.ConsistentConfig{})
+	case "bounded-load":
+		balancer = balance.NewConsistent(balance.ConsistentConfig{
+			LoadFactor: cfg.l7.loadFactor,
+		})
+	default:
+		return nil, fmt.Errorf("unknown load balancing algorithm: %s", cfg.l7.algorithm)
+	}
+
+	if needAffinitykey && cfg.l7.affinityKey == "" {
+		return nil, fmt.Errorf("an affinity load balancing scheme was configured, but no affinity key provided")
+	}
+
+	service, err := balance.NewServiceFromString(cfg.hostAndPort)
+	if err != nil {
+		return nil, err
+	}
+
+	balancer = balance.WithServiceFallback(balancer, service)
+
+	watcher := balance.EndpointWatcher{
+		Service:  *service,
+		Receiver: balancer,
+	}
+	watcher.Start(make(<-chan interface{}))
+
+	return balancer, nil
+}
 
 func newProxy(cfg proxyConfig) (http.Handler, error) {
 	if cfg.grpcHost != "" {
@@ -30,12 +70,21 @@ func newProxy(cfg proxyConfig) (http.Handler, error) {
 	case "https":
 		fallthrough
 	case "http":
+		balancer, err := makeLoadBalancer(cfg)
+		if err != nil {
+			return nil, err
+		}
+
 		// Make all transformations outside of the director since
 		// they are also required when proxying websockets
-		return &httpProxy{cfg, httputil.ReverseProxy{
-			Director:  func(*http.Request) {},
-			Transport: proxyTransport,
-		}}, nil
+		return &httpProxy{
+			cfg,
+			balancer,
+			httputil.ReverseProxy{
+				Director:  func(*http.Request) {},
+				Transport: proxyTransport(cfg),
+			},
+		}, nil
 	case "mock":
 		return &mockProxy{cfg}, nil
 	}
@@ -44,6 +93,7 @@ func newProxy(cfg proxyConfig) (http.Handler, error) {
 
 type httpProxy struct {
 	proxyConfig
+	balancer     balance.LoadBalancer
 	reverseProxy httputil.ReverseProxy
 }
 
@@ -53,7 +103,13 @@ var readOnlyMethods = map[string]struct{}{
 	http.MethodOptions: {},
 }
 
-var proxyTransport http.RoundTripper = &nethttp.Transport{
+// We have two different Transports:
+//   - One with Keep-alive disabled to ensure L4 load-balancing. With each new
+//   connection a different service endpoint will be selected, at the expense of a
+//   bit more latency.
+//   - One with Keep-alive enabled for use with L7 load-balancing.
+
+var proxyTransportL7 http.RoundTripper = &nethttp.Transport{
 	RoundTripper: &http.Transport{
 		// No connection pooling, increases latency, but ensures fair load-balancing.
 		DisableKeepAlives: true,
@@ -67,6 +123,29 @@ var proxyTransport http.RoundTripper = &nethttp.Transport{
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	},
+}
+
+var proxyTransportNoKeepAlive http.RoundTripper = &nethttp.Transport{
+	RoundTripper: &http.Transport{
+		// No connection pooling, increases latency, but ensures fair load-balancing.
+		DisableKeepAlives: true,
+
+		// Rest are from http.DefaultTransport
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	},
+}
+
+func proxyTransport(cfg proxyConfig) http.RoundTripper {
+	if cfg.l7.algorithm == "" {
+		return proxyTransportNoKeepAlive
+	}
+	return proxyTransportL7
 }
 
 func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -90,10 +169,23 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	hostAndPort := p.hostAndPort
+	var endpoint balance.Endpoint
+	if p.balancer != nil {
+		key := r.Header.Get(p.l7.affinityKey)
+		if key == "" {
+			http.Error(w, fmt.Sprintf("no affinity header defined: %s", p.l7.affinityKey), http.StatusBadRequest)
+			return
+		}
+
+		endpoint = p.balancer.Get(key)
+		hostAndPort = endpoint.Key()
+	}
+
 	// Tweak request before sending
 	r.Header.Add("X-Forwarded-Host", r.Host) // Used for previews of UI builds at https://1234.build.dev.weave.works
-	r.Host = p.hostAndPort
-	r.URL.Host = p.hostAndPort
+	r.Host = hostAndPort
+	r.URL.Host = hostAndPort
 	r.URL.Scheme = p.protocol
 
 	logging.With(r.Context()).Debugf("Forwarding %s %s to %s, final URL: %s", r.Method, r.RequestURI, p.hostAndPort, r.URL)
@@ -107,6 +199,10 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Proxy request
 	p.reverseProxy.ServeHTTP(w, r)
+
+	if endpoint != nil {
+		p.balancer.Put(endpoint)
+	}
 }
 
 func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {
