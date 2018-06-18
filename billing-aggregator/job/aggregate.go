@@ -15,13 +15,13 @@ const batchSize = 100
 
 // Aggregate reads events from bigquery and stores them in the database.
 type Aggregate struct {
-	bigqueryClient *bigquery.Client
+	bigqueryClient *bigquery.DefaultClient
 	db             db.DB
 	collector      *instrument.JobCollector
 }
 
 // NewAggregate creates an Aggregate instance.
-func NewAggregate(bigquery *bigquery.Client, db db.DB, collector *instrument.JobCollector) *Aggregate {
+func NewAggregate(bigquery *bigquery.DefaultClient, db db.DB, collector *instrument.JobCollector) *Aggregate {
 	return &Aggregate{
 		bigqueryClient: bigquery,
 		db:             db,
