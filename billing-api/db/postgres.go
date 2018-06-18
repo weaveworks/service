@@ -114,6 +114,9 @@ func (d *postgres) Transaction(f func(DB) error) error {
 }
 
 func (d *postgres) InsertAggregates(ctx context.Context, aggregates []Aggregate) error {
+	if len(aggregates) == 0 {
+		return nil
+	}
 	insert := d.Insert(tableAggregates).
 		Columns("instance_id", "bucket_start", "amount_type", "amount_value")
 
