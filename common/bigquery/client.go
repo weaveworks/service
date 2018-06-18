@@ -62,7 +62,12 @@ func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
 	f.StringVar(&cfg.ServiceAccountFile, "bigquery.service-account-file", "", "BigQuery service account credentials file.")
 }
 
-// DefaultClient is a Google BigQuery client.
+// Client is the interface for our Google BigQuery client.
+type Client interface {
+	Aggregates(ctx context.Context, since time.Time) ([]db.Aggregate, error)
+}
+
+// DefaultClient is an implementation for Client, our Google BigQuery client interface.
 type DefaultClient struct {
 	cfg    Config
 	client *bigquery.Client
