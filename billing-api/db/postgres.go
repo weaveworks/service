@@ -152,7 +152,33 @@ func (d *postgres) GetAggregatesAfter(ctx context.Context, instanceID string, fr
 		return nil, err
 	}
 	defer rows.Close()
+	return d.scanAggregates(rows)
+}
 
+func (d *postgres) GetAggregatesFrom(ctx context.Context, instanceIDs []string, from time.Time) ([]Aggregate, error) {
+	q := d.Select(
+		"aggregates.id",
+		"aggregates.instance_id",
+		"aggregates.bucket_start",
+		"aggregates.amount_type",
+		"aggregates.amount_value",
+		"aggregates.created_at",
+	).
+		From(tableAggregates).
+		Where(squirrel.Eq{"aggregates.instance_id": instanceIDs}).
+		OrderBy("aggregates.bucket_start asc", "aggregates.amount_type asc")
+	if !from.IsZero() {
+		q = q.Where(squirrel.GtOrEq{"aggregates.bucket_start": from})
+	}
+	rows, err := q.Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return d.scanAggregates(rows)
+}
+
+func (d postgres) scanAggregates(rows *sql.Rows) ([]Aggregate, error) {
 	var aggregates []Aggregate
 	var createdAt pq.NullTime
 	for rows.Next() {
@@ -168,7 +194,8 @@ func (d *postgres) GetAggregatesAfter(ctx context.Context, instanceID string, fr
 		aggregate.CreatedAt = createdAt.Time
 		aggregates = append(aggregates, aggregate)
 	}
-	if rows.Err() != nil {
+	err := rows.Err()
+	if err != nil {
 		return nil, err
 	}
 	return aggregates, nil
