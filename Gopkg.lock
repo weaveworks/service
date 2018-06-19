@@ -250,7 +250,10 @@
 
 [[projects]]
   name = "github.com/golang/mock"
-  packages = ["gomock"]
+  packages = [
+    "gomock",
+    "mockgen/model"
+  ]
   revision = "13f360950a79f5864a972c786a10a50e44b69541"
   version = "v1.0.0"
 
@@ -755,7 +758,7 @@
     "ssh",
     "update"
   ]
-  revision = "72c9e3b09c669a66a289ed3b080f83966cc89bfb"
+  revision = "33408f23f2afe280d39cea85f203bbe4ed70680d"
 
 [[projects]]
   branch = "master"
@@ -992,6 +995,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f68c7cc38d74e7d3a371ef29c6db09e8c9ba64353f0ca892881f62802dbcd384"
+  inputs-digest = "07d9849ef71ae70f46c2805fa9157fce5fedbeecb1248b623bac217ae17260f5"
   solver-name = "gps-cdcl"
   solver-version = 1
