@@ -34,6 +34,8 @@ type DB interface {
 	// GetAggregatesAfter returns all aggregates with an ID greater than fromID. It also requires a `through` time
 	// and supports an optional `from` time.
 	GetAggregatesAfter(ctx context.Context, instanceID string, from, through time.Time, fromID int) ([]Aggregate, error)
+	// GetAggregatesFrom returns all aggregates for the provided instance IDs from the provided time.
+	GetAggregatesFrom(ctx context.Context, instanceIDs []string, from time.Time) ([]Aggregate, error)
 
 	// GetUsageUploadLargestAggregateID returns the largest aggregate ID that we have uploaded.
 	GetUsageUploadLargestAggregateID(ctx context.Context, uploader string) (int, error)

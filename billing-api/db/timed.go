@@ -51,6 +51,14 @@ func (t timed) GetAggregatesAfter(ctx context.Context, instanceID string, from, 
 	return
 }
 
+func (t timed) GetAggregatesFrom(ctx context.Context, instanceIDs []string, from time.Time) (as []Aggregate, err error) {
+	t.timeRequest(ctx, "GetAggregatesFrom", func(ctx context.Context) error {
+		as, err = t.d.GetAggregatesFrom(ctx, instanceIDs, from)
+		return err
+	})
+	return
+}
+
 func (t timed) GetUsageUploadLargestAggregateID(ctx context.Context, uploader string) (largestAggregateID int, err error) {
 	t.timeRequest(ctx, "GetUsageUploadLargestAggregateID", func(ctx context.Context) error {
 		largestAggregateID, err = t.d.GetUsageUploadLargestAggregateID(ctx, uploader)

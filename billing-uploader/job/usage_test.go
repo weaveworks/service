@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"strconv"
 	"testing"
 	"time"
 
@@ -119,27 +120,30 @@ var (
 			},
 		},
 	}
+	lastAggregateProcessed = db.Aggregate{
+		// ID==max_aggregate_id; skip: <=max_aggregate_id
+		BucketStart: start, // 2017-11-27 00:00
+		InstanceID:  "100",
+		AmountType:  "node-seconds",
+		AmountValue: 1,
+	}
 	aggregates = []db.Aggregate{
 		// Zuora
-		{ // ID==1; skip: <=max_aggregate_id
-			BucketStart: start, // 2017-11-27 00:00
-			InstanceID:  "100",
-			AmountType:  "node-seconds",
-			AmountValue: 1,
-		},
-		{ // ID==2; pick
+		// skip: <=max_aggregate_id
+		lastAggregateProcessed,
+		{ // pick
 			BucketStart: start.Add(1 * time.Hour), // 2017-11-27 01:00
 			InstanceID:  "100",
 			AmountType:  "node-seconds",
 			AmountValue: 2,
 		},
-		{ // ID==3; skip: <trial_expires_at
+		{ // skip: <trial_expires_at
 			BucketStart: expires.Add(-1 * time.Minute),
 			InstanceID:  "101",
 			AmountType:  "node-seconds",
 			AmountValue: 3,
 		},
-		{ // ID==4; pick: >trial_expires_at
+		{ // pick: >trial_expires_at
 			BucketStart: expires.Add(1 * time.Minute),
 			InstanceID:  "101",
 			AmountType:  "node-seconds",
@@ -147,19 +151,19 @@ var (
 		},
 
 		// GCP
-		{ // ID==5
+		{ // pick
 			BucketStart: start,
 			InstanceID:  "200",
 			AmountType:  "node-seconds",
 			AmountValue: 10800,
 		},
-		{ // ID==6
+		{ // pick
 			BucketStart: start.Add(1 * time.Hour),
 			InstanceID:  "200",
 			AmountType:  "node-seconds",
 			AmountValue: 1,
 		},
-		{ // ID==7; skip
+		{ // skip
 			BucketStart: start,
 			InstanceID:  "201",
 			AmountType:  "node-seconds",
@@ -190,7 +194,8 @@ func TestJobUpload_Do(t *testing.T) {
 	err := d.InsertAggregates(ctx, aggregates)
 	assert.NoError(t, err)
 
-	_, err = d.InsertUsageUpload(ctx, "zuora", 1)
+	maxAggregateID := maxAggregateID(t, d)
+	_, err = d.InsertUsageUpload(ctx, "zuora", maxAggregateID)
 	assert.NoError(t, err)
 
 	{ // zuora upload
@@ -225,7 +230,7 @@ func TestJobUpload_Do(t *testing.T) {
 
 		aggID, err := d.GetUsageUploadLargestAggregateID(ctx, "zuora")
 		assert.NoError(t, err)
-		assert.Equal(t, 4, aggID) // latest id of picked aggregation
+		assert.Equal(t, maxAggregateID+3, aggID) // latest id of picked aggregation
 	}
 	{ // gcp upload
 		cl := &stubControlClient{}
@@ -239,10 +244,14 @@ func TestJobUpload_Do(t *testing.T) {
 			ops[op.OperationId] = op
 		}
 
-		five := ops["5"]
-		six := ops["6"]
-		assert.NotNil(t, five, "ID=5 was not picked")
-		assert.NotNil(t, six, "ID=6 was not picked")
+		firstGCPAggID := maxAggregateID + 4
+		firstGCPAggIDStr := strconv.Itoa(firstGCPAggID)
+		secondGCPAggID := maxAggregateID + 5
+		secondGCPAggIDStr := strconv.Itoa(secondGCPAggID)
+		five := ops[firstGCPAggIDStr]
+		six := ops[secondGCPAggIDStr]
+		assert.NotNil(t, five, "ID="+firstGCPAggIDStr+" was not picked")
+		assert.NotNil(t, six, "ID="+secondGCPAggIDStr+" was not picked")
 
 		// Proper assignment of usage
 		assert.Equal(t, int64(10800), *five.MetricValueSets[0].MetricValues[0].Int64Value)
@@ -254,17 +263,17 @@ func TestJobUpload_Do(t *testing.T) {
 		assert.Equal(t, "HourlyUsageUpload", five.OperationName)
 
 		// bucket related
-		assert.Equal(t, "5", five.OperationId)
+		assert.Equal(t, firstGCPAggIDStr, five.OperationId)
 		assert.Equal(t, start.Format(time.RFC3339), five.StartTime)
 		assert.Equal(t, start.Add(1*time.Hour).Format(time.RFC3339), five.EndTime)
 
-		assert.Equal(t, "6", six.OperationId)
+		assert.Equal(t, secondGCPAggIDStr, six.OperationId)
 		assert.Equal(t, start.Add(1*time.Hour).Format(time.RFC3339), six.StartTime)
 		assert.Equal(t, start.Add(2*time.Hour).Format(time.RFC3339), six.EndTime)
 
 		aggID, err := d.GetUsageUploadLargestAggregateID(ctx, "gcp")
 		assert.NoError(t, err)
-		assert.Equal(t, 6, aggID) // latest id of picked aggregation
+		assert.Equal(t, secondGCPAggID, aggID) // latest id of picked aggregation
 
 		// Add one more aggregate and make sure this second run has successfully
 		// reset the previous report
@@ -281,6 +290,29 @@ func TestJobUpload_Do(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, cl.operations, 1)
 	}
+}
+
+func maxAggregateID(t *testing.T, d db.DB) int {
+	instanceID := lastAggregateProcessed.InstanceID
+	from := lastAggregateProcessed.BucketStart
+	to := lastAggregateProcessed.BucketStart.Add(1 * time.Hour)
+	aggs, err := d.GetAggregates(context.Background(), instanceID, from, to)
+	assert.NoError(t, err)
+	maxAggregateID := -1
+	for _, agg := range aggs {
+		if isLastAggregateProcessed(agg) {
+			maxAggregateID = agg.ID
+		}
+	}
+	assert.True(t, maxAggregateID > 0)
+	return maxAggregateID
+}
+
+func isLastAggregateProcessed(agg db.Aggregate) bool {
+	return agg.BucketStart == lastAggregateProcessed.BucketStart &&
+		agg.InstanceID == lastAggregateProcessed.InstanceID &&
+		agg.AmountType == lastAggregateProcessed.AmountType &&
+		agg.AmountValue == lastAggregateProcessed.AmountValue
 }
 
 func TestJobUpload_Do_zuoraError(t *testing.T) {

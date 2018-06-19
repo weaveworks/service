@@ -34,6 +34,11 @@ func (t traced) GetAggregatesAfter(ctx context.Context, instanceID string, from,
 	return t.d.GetAggregatesAfter(ctx, instanceID, from, through, fromID)
 }
 
+func (t traced) GetAggregatesFrom(ctx context.Context, instanceIDs []string, from time.Time) (as []Aggregate, err error) {
+	defer func() { t.trace("GetAggregatesFrom", instanceIDs, from, len(as), err) }()
+	return t.d.GetAggregatesFrom(ctx, instanceIDs, from)
+}
+
 func (t traced) GetUsageUploadLargestAggregateID(ctx context.Context, uploader string) (maxAggregateID int, err error) {
 	defer func() { t.trace("GetUsageUploadLargestAggregateID", uploader, maxAggregateID, err) }()
 	return t.d.GetUsageUploadLargestAggregateID(ctx, uploader)

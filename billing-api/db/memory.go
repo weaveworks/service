@@ -76,6 +76,28 @@ func (db *memory) GetAggregatesAfter(ctx context.Context, instanceID string, fro
 	return result, nil
 }
 
+func (db *memory) GetAggregatesFrom(ctx context.Context, instanceIDs []string, from time.Time) ([]Aggregate, error) {
+	db.mtx.RLock()
+	defer db.mtx.RUnlock()
+
+	idsSet := make(map[string]struct{}, len(instanceIDs))
+	for _, instanceID := range instanceIDs {
+		idsSet[instanceID] = struct{}{}
+	}
+
+	var result []Aggregate
+	for _, a := range db.aggregates {
+		if _, ok := idsSet[a.InstanceID]; !ok {
+			continue
+		}
+		if a.BucketStart.Before(from) {
+			continue
+		}
+		result = append(result, a)
+	}
+	return result, nil
+}
+
 func (db *memory) InsertUsageUpload(ctx context.Context, uploader string, aggregateID int) (int64, error) {
 	db.usageUploadsMaxAggregateID[uploader] = aggregateID
 	return 1, nil

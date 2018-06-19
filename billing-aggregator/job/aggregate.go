@@ -15,13 +15,13 @@ const batchSize = 100
 
 // Aggregate reads events from bigquery and stores them in the database.
 type Aggregate struct {
-	bigqueryClient *bigquery.Client
+	bigqueryClient bigquery.Client
 	db             db.DB
 	collector      *instrument.JobCollector
 }
 
 // NewAggregate creates an Aggregate instance.
-func NewAggregate(bigquery *bigquery.Client, db db.DB, collector *instrument.JobCollector) *Aggregate {
+func NewAggregate(bigquery bigquery.Client, db db.DB, collector *instrument.JobCollector) *Aggregate {
 	return &Aggregate{
 		bigqueryClient: bigquery,
 		db:             db,
@@ -64,7 +64,16 @@ func (j *Aggregate) Do(since *time.Time) error {
 			if l > len(aggs) {
 				l = len(aggs)
 			}
-			if err := j.db.InsertAggregates(ctx, aggs[i:l]); err != nil {
+
+			bqAggs := aggs[i:l]
+			instanceIDs := instanceIDs(bqAggs)
+			dbAggs, err := j.db.GetAggregatesFrom(ctx, instanceIDs, *since)
+			if err != nil {
+				return err
+			}
+			batch := subtract(bqAggs, dbAggs)
+
+			if err := j.db.InsertAggregates(ctx, batch); err != nil {
 				return err
 			}
 		}
@@ -72,4 +81,47 @@ func (j *Aggregate) Do(since *time.Time) error {
 		log.Infof("Inserted %d records into database", len(aggs))
 		return nil
 	})
+}
+
+func instanceIDs(aggs []db.Aggregate) []string {
+	ids := make([]string, len(aggs))
+	for _, agg := range aggs {
+		ids = append(ids, agg.InstanceID)
+	}
+	return ids
+}
+
+func subtract(bqAggs, dbAggs []db.Aggregate) []db.Aggregate {
+	aggs := []db.Aggregate{}
+	sums := sumByKey(dbAggs)
+	for _, bqAgg := range bqAggs {
+		sum := sums[asKey(bqAgg)]
+		bqAgg.AmountValue -= sum
+		if bqAgg.AmountValue > 0 {
+			aggs = append(aggs, bqAgg)
+		}
+	}
+	return aggs
+}
+
+type key struct {
+	InstanceID  string
+	BucketStart time.Time
+	AmountType  string
+}
+
+func asKey(agg db.Aggregate) key {
+	return key{
+		BucketStart: agg.BucketStart,
+		InstanceID:  agg.InstanceID,
+		AmountType:  agg.AmountType,
+	}
+}
+
+func sumByKey(aggs []db.Aggregate) map[key]int64 {
+	m := make(map[key]int64)
+	for _, agg := range aggs {
+		m[asKey(agg)] += agg.AmountValue
+	}
+	return m
 }
