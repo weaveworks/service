@@ -173,6 +173,10 @@ func (s Server) listImages(w http.ResponseWriter, r *http.Request) {
 	transport.JSONResponse(w, r, d)
 }
 
+// listImagesWithOptions serves the newer API, which includes the
+// option to trim down the fields in the response. We rely on the RPC
+// client (talking to the daemon) to backfill this in the case of
+// older clients.
 func (s Server) listImagesWithOptions(w http.ResponseWriter, r *http.Request) {
 	var opts v10.ListImagesOptions
 	ctx := getRequestContext(r)
