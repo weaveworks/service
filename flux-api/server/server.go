@@ -159,12 +159,7 @@ func (s *Server) ListServices(ctx context.Context, namespace string) (res []v6.C
 	if err != nil {
 		return nil, errors.Wrapf(err, "getting instance")
 	}
-
-	services, err := inst.Platform.ListServices(ctx, namespace)
-	if err != nil {
-		return nil, errors.Wrap(err, "getting services from platform")
-	}
-	return services, nil
+	return inst.Platform.ListServices(ctx, namespace)
 }
 
 // ListImages calls ListImages on the given instance.
