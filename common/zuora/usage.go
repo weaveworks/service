@@ -5,8 +5,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"mime/multipart"
 	"regexp"
+	"time"
 
 	"github.com/weaveworks/common/logging"
 )
@@ -28,7 +30,7 @@ type Usage struct {
 
 type postUsageResponse struct {
 	genericZuoraResponse
-	CheckImportStatus string `json:"checkImportStatus"`
+	CheckImportStatusURL string `json:"checkImportStatus"`
 }
 
 type getUsageResponse struct {
@@ -78,10 +80,17 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader) (string, error) {
 		return "", resp
 	}
 
-	logging.With(ctx).Infof("Response from Zuora: %v", resp.CheckImportStatus)
-	importID, err := extractUsageImportID(resp.CheckImportStatus)
+	logging.With(ctx).Infof("Response from Zuora: %v", resp.CheckImportStatusURL)
+	importID, err := extractUsageImportID(resp.CheckImportStatusURL)
 	if err != nil {
 		return "", err
+	}
+	importStatus, err := z.WaitForImportFinished(ctx, importID)
+	if err != nil {
+		return "", err
+	}
+	if importStatus != "Completed" {
+		return importID, fmt.Errorf("Usage import did not succeed: %s", importStatus)
 	}
 	return importID, nil
 }
@@ -113,6 +122,27 @@ func (z *Zuora) GetUsageImportStatus(ctx context.Context, importID string) (stri
 		return "", resp
 	}
 	return resp.ImportStatus, nil
+}
+
+// WaitForImportFinished waits for a usage import to complete and returns the status.
+func (z *Zuora) WaitForImportFinished(ctx context.Context, importID string) (string, error) {
+	maxAttempts := 6
+	var attempt int
+	var importStatus string
+	for attempt = 0; attempt < maxAttempts; attempt++ {
+		logging.With(ctx).Infof("Checking usage import status")
+		importStatus, statusCheckErr := z.GetUsageImportStatus(ctx, importID)
+		if statusCheckErr == nil && !(importStatus == "Pending" || importStatus == "Processing") {
+			break
+		}
+		sleepingTime := time.Duration(math.Pow(float64(2), float64(attempt))) * time.Second
+		logging.With(ctx).Infof("Exponentially retrying in %v", sleepingTime)
+		time.Sleep(sleepingTime)
+	}
+	if attempt < maxAttempts {
+		return importStatus, nil
+	}
+	return "", fmt.Errorf("Usage was not imported within %d retries", attempt)
 }
 
 func extractUsageImportID(path string) (string, error) {
