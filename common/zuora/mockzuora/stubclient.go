@@ -35,7 +35,7 @@ func (z StubClient) DeleteAccount(ctx context.Context, zuoraID string) error {
 }
 
 // UploadUsage mocks.
-func (z StubClient) UploadUsage(ctx context.Context, r io.Reader) (string, error) {
+func (z StubClient) UploadUsage(ctx context.Context, r io.Reader, id string) (string, error) {
 	return "", nil
 }
 

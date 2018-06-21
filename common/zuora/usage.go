@@ -44,13 +44,13 @@ type importStatusResponse struct {
 }
 
 // UploadUsage uploads usage information to Zuora.
-func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader) (string, error) {
+func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string, error) {
 	body := &bytes.Buffer{}
 	// Create a new multipart writer. This is required, because this automates the setting of some funky headers.
 	writer := multipart.NewWriter(body)
 	// This creates a new "part". I.e. a section in the multi-part upload.
 	// The word "file" is the name of the upload, and this is specified by zuora. The filename doesn't matter, but must not be null!!
-	part, err := writer.CreateFormFile("file", "billing-uploader.csv")
+	part, err := writer.CreateFormFile("file", fmt.Sprintf("upload-%s.csv", id))
 	if err != nil {
 		return "", err
 	}

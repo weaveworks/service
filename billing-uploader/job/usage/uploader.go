@@ -18,7 +18,7 @@ type Uploader interface {
 	// period used when looking for aggregates.
 	Add(ctx context.Context, org users.Organization, from, through time.Time, aggs []db.Aggregate) error
 	// Upload sends recorded aggregates.
-	Upload(ctx context.Context) error
+	Upload(ctx context.Context, id string) error
 	// Reset creates a fresh report.
 	Reset()
 	// IsSupported returns whether this uploader handles the given organization.

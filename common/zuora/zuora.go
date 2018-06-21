@@ -48,7 +48,7 @@ type Client interface {
 	GetPayments(ctx context.Context, zuoraAccountNumber string) ([]*PaymentDetails, error)
 	GetPaymentTransactionLog(ctx context.Context, paymentID string) (*PaymentTransaction, error)
 	UpdatePaymentMethod(ctx context.Context, paymentMethodID string) error
-	UploadUsage(ctx context.Context, r io.Reader) (string, error)
+	UploadUsage(ctx context.Context, r io.Reader, id string) (string, error)
 	GetUsage(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]Usage, error)
 	GetUsageImportStatus(ctx context.Context, importID string) (string, error)
 
