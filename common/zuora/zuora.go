@@ -25,6 +25,7 @@ var clientRequestCollector = instrument.NewHistogramCollectorFromOpts(prometheus
 
 func init() {
 	clientRequestCollector.Register()
+	prometheus.MustRegister(usageImportHistogram)
 }
 
 // Client defines an interface to access the Zuora API.

@@ -10,7 +10,10 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/common"
 )
 
 const (
@@ -43,6 +46,16 @@ type importStatusResponse struct {
 	ImportStatus string `json:"importStatus"` // can be: Pending, Processing, Completed, Canceled (or Cancelled ??? but docs say one `l`), Failed
 }
 
+var usageImportHistogram = prometheus.NewHistogramVec(
+	prometheus.HistogramOpts{
+		Namespace: common.PrometheusNamespace,
+		Subsystem: "zuora_client",
+		Name:      "usage_import_duration_seconds",
+		Help:      "Time taken for zuora to import usage data.",
+	},
+	[]string{"status"},
+)
+
 // UploadUsage uploads usage information to Zuora.
 func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string, error) {
 	body := &bytes.Buffer{}
@@ -65,6 +78,7 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string
 	}
 
 	resp := &postUsageResponse{}
+	importStart := time.Now()
 	err = z.Upload(
 		ctx,
 		postUsagePath,
@@ -88,6 +102,9 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string
 	if err != nil {
 		return "", err
 	}
+	importDuration := time.Now().Sub(importStart)
+	usageImportHistogram.WithLabelValues(importStatus).Observe(importDuration.Seconds())
+
 	if importStatus != "Completed" {
 		return "", fmt.Errorf("Usage import did not succeed: %s - see %s", importStatus, resp.CheckImportStatusURL)
 	}
