@@ -88,16 +88,15 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string
 		resp,
 	)
 	if err != nil {
+		logging.With(ctx).Errorf("Usage upload failed! Upload body: %v", body)
 		return "", err
 	}
 	if !resp.Success {
+		logging.With(ctx).Errorf("Usage upload failed! Upload body: %v", body)
 		return "", resp
 	}
 
 	logging.With(ctx).Infof("Import status url: %s", resp.CheckImportStatusURL)
-	if err != nil {
-		return "", err
-	}
 	importStatus, err := z.WaitForImportFinished(ctx, resp.CheckImportStatusURL)
 	if err != nil {
 		return "", err
@@ -106,6 +105,7 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string
 	usageImportHistogram.WithLabelValues(importStatus).Observe(importDuration.Seconds())
 
 	if importStatus != "Completed" {
+		logging.With(ctx).Errorf("Usage import failed! Upload body: %v", body)
 		return "", fmt.Errorf("Usage import did not succeed: %s - see %s", importStatus, resp.CheckImportStatusURL)
 	}
 	return extractUsageImportID(resp.CheckImportStatusURL)
