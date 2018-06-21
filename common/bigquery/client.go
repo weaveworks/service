@@ -17,6 +17,11 @@ import (
 )
 
 const (
+	// Query to retrieve all aggregates from BigQuery since @StartTime.
+	// IMPORTANT:
+	// "_PARTITIONTIME >= @DateLowerLimit" limits the size of the dataset to be scanned by BigQuery,
+	// which in turn reduces the costs associated with running this query, as Google charges by the TB
+	// of data read/processed. See also: https://cloud.google.com/bigquery/pricing#queries
 	aggQuery = `
 SELECT
   internal_instance_id AS InstanceID,
