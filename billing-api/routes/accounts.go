@@ -190,7 +190,7 @@ func (a *API) uploadUsage(ctx context.Context, externalID string, account *zuora
 	}
 
 	logger.Infof("Uploading post-trial usage data for %v", externalID)
-	importID, err := a.Zuora.UploadUsage(ctx, reader, fmt.Sprintf("post-trial-%s", externalID))
+	importID, err := a.Zuora.UploadUsage(ctx, reader, fmt.Sprintf("p-%s", externalID))
 	if err != nil {
 		logger.Errorf("Failed to upload usage report for %v/%v/%v: %v", externalID, subscriptionNumber, chargeNumber, err)
 		return "", err

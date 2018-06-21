@@ -62,8 +62,8 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string
 	// Create a new multipart writer. This is required, because this automates the setting of some funky headers.
 	writer := multipart.NewWriter(body)
 	// This creates a new "part". I.e. a section in the multi-part upload.
-	// The word "file" is the name of the upload, and this is specified by zuora. The filename doesn't matter, but must not be null!!
-	part, err := writer.CreateFormFile("file", fmt.Sprintf("upload-%s.csv", id))
+	// The word "file" is the name of the upload, and this is specified by zuora. The filename doesn't matter, but must not be null, and is limited to 50 chars!!
+	part, err := writer.CreateFormFile("file", fmt.Sprintf("u-%.44s.csv", id))
 	if err != nil {
 		return "", err
 	}
