@@ -80,19 +80,18 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string
 		return "", resp
 	}
 
-	logging.With(ctx).Infof("Response from Zuora: %v", resp.CheckImportStatusURL)
-	importID, err := extractUsageImportID(resp.CheckImportStatusURL)
+	logging.With(ctx).Infof("Import status url: %s", resp.CheckImportStatusURL)
 	if err != nil {
 		return "", err
 	}
-	importStatus, err := z.WaitForImportFinished(ctx, importID)
+	importStatus, err := z.WaitForImportFinished(ctx, resp.CheckImportStatusURL)
 	if err != nil {
 		return "", err
 	}
 	if importStatus != "Completed" {
-		return importID, fmt.Errorf("Usage import did not succeed: %s", importStatus)
+		return "", fmt.Errorf("Usage import did not succeed: %s - see %s", importStatus, resp.CheckImportStatusURL)
 	}
-	return importID, nil
+	return extractUsageImportID(resp.CheckImportStatusURL)
 }
 
 // GetUsage retrieves paginated usages of given organization.
@@ -113,9 +112,9 @@ func (z *Zuora) GetUsage(ctx context.Context, zuoraAccountNumber, page, pageSize
 }
 
 // GetUsageImportStatus returns the Zuora status of a given usage.
-func (z *Zuora) GetUsageImportStatus(ctx context.Context, importID string) (string, error) {
+func (z *Zuora) GetUsageImportStatus(ctx context.Context, url string) (string, error) {
 	resp := &importStatusResponse{}
-	if err := z.Get(ctx, getUsagePath, z.URL(getImportStatusPath, importID), resp); err != nil {
+	if err := z.Get(ctx, getImportStatusPath, url, resp); err != nil {
 		return "", err
 	}
 	if !resp.Success {
@@ -125,13 +124,13 @@ func (z *Zuora) GetUsageImportStatus(ctx context.Context, importID string) (stri
 }
 
 // WaitForImportFinished waits for a usage import to complete and returns the status.
-func (z *Zuora) WaitForImportFinished(ctx context.Context, importID string) (string, error) {
+func (z *Zuora) WaitForImportFinished(ctx context.Context, statusURL string) (string, error) {
 	maxAttempts := 6
 	var attempt int
 	var importStatus string
 	for attempt = 0; attempt < maxAttempts; attempt++ {
 		logging.With(ctx).Infof("Checking usage import status")
-		importStatus, statusCheckErr := z.GetUsageImportStatus(ctx, importID)
+		importStatus, statusCheckErr := z.GetUsageImportStatus(ctx, statusURL)
 		if statusCheckErr == nil && !(importStatus == "Pending" || importStatus == "Processing") {
 			break
 		}
