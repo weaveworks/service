@@ -52,14 +52,15 @@ func (j *InvoiceUpload) Do() error {
 
 		for _, postTrialInvoice := range postTrialInvoices {
 			usageImportID := postTrialInvoice.UsageImportID
-			usageImportStatus, err := j.zuora.GetUsageImportStatus(ctx, usageImportID)
+			usageImportStatusResp, err := j.zuora.GetUsageImportStatus(ctx, usageImportID)
+
 			if err != nil {
 				logger.Errorf("Failed to get usage import status, id %v: %v", usageImportID, err)
 				continue
 			}
 
-			if usageImportStatus != zuora.Completed {
-				logger.Warningf("Usage state is %v instead of Completed, id %v", usageImportStatus, usageImportID)
+			if usageImportStatusResp.ImportStatus != zuora.Completed {
+				logger.Warningf("Usage state is %v instead of Completed, id %v", usageImportStatusResp.ImportStatus, usageImportID)
 				continue
 			}
 

@@ -51,7 +51,7 @@ type Client interface {
 	UpdatePaymentMethod(ctx context.Context, paymentMethodID string) error
 	UploadUsage(ctx context.Context, r io.Reader, id string) (string, error)
 	GetUsage(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]Usage, error)
-	GetUsageImportStatus(ctx context.Context, url string) (string, error)
+	GetUsageImportStatus(ctx context.Context, url string) (*ImportStatusResponse, error)
 
 	ServeFile(ctx context.Context, w http.ResponseWriter, fileID string)
 }
