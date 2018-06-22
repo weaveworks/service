@@ -68,12 +68,12 @@ func minBucketStart(aggs []db.Aggregate) time.Time {
 }
 
 // Upload sends usage to Zuora.
-func (z *Zuora) Upload(ctx context.Context) error {
+func (z *Zuora) Upload(ctx context.Context, id string) error {
 	reader, err := z.r.ToZuoraFormat()
 	if err != nil {
 		return err
 	}
-	if _, err = z.cl.UploadUsage(ctx, reader); err != nil {
+	if _, err = z.cl.UploadUsage(ctx, reader, id); err != nil {
 		return err
 	}
 	return nil

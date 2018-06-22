@@ -35,7 +35,7 @@ func (z StubClient) DeleteAccount(ctx context.Context, zuoraID string) error {
 }
 
 // UploadUsage mocks.
-func (z StubClient) UploadUsage(ctx context.Context, r io.Reader) (string, error) {
+func (z StubClient) UploadUsage(ctx context.Context, r io.Reader, id string) (string, error) {
 	return "", nil
 }
 
@@ -114,8 +114,8 @@ func (z StubClient) GetUsage(ctx context.Context, zuoraAccountNumber, page, page
 }
 
 // GetUsageImportStatus mocks.
-func (z StubClient) GetUsageImportStatus(ctx context.Context, importID string) (string, error) {
-	return "", nil
+func (z StubClient) GetUsageImportStatus(ctx context.Context, importID string) (*zuora.ImportStatusResponse, error) {
+	return &zuora.ImportStatusResponse{}, nil
 }
 
 // GetPayments mocks.

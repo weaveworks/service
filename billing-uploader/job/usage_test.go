@@ -43,7 +43,7 @@ func (z *stubZuoraClient) GetAccount(ctx context.Context, zuoraAccountNumber str
 	}, nil
 }
 
-func (z *stubZuoraClient) UploadUsage(ctx context.Context, r io.Reader) (string, error) {
+func (z *stubZuoraClient) UploadUsage(ctx context.Context, r io.Reader, id string) (string, error) {
 	z.uploadUsage = r
 	return "", z.err
 }

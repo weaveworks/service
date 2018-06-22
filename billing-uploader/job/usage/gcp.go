@@ -63,7 +63,7 @@ func (g *GCP) Add(ctx context.Context, org users.Organization, from, through tim
 }
 
 // Upload sends the usage to the Service Control API as metrics.
-func (g *GCP) Upload(ctx context.Context) error {
+func (g *GCP) Upload(ctx context.Context, id string) error {
 	bs, _ := json.Marshal(g.ops)
 	log.Infof("Uploading GCP usage: %s", bs)
 	return g.client.Report(ctx, g.ops)

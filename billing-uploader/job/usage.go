@@ -3,6 +3,7 @@ package job
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -213,7 +214,7 @@ func (j *UsageUpload) upload(ctx context.Context, maxAggregateID int) error {
 	if err != nil {
 		return err
 	}
-	if err = j.uploader.Upload(ctx); err != nil {
+	if err = j.uploader.Upload(ctx, strconv.Itoa(maxAggregateID)); err != nil {
 		// Delete upload record because we failed, so our next run will picks these aggregates up again.
 		if e := j.db.DeleteUsageUpload(ctx, j.uploader.ID(), uploadID); e != nil {
 			// We couldn't delete the record of uploading usage and therefore will not retry in another run.
