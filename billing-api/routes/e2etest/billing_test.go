@@ -301,7 +301,7 @@ func waitUntilUsageCompleted(ctx context.Context, z *zuora.Zuora, timeout time.D
 	startTime := time.Now().UTC()
 	pollInterval := time.Duration(100 * time.Millisecond)
 	for {
-		importStatusResp, err := z.GetUsageImportStatus(ctx, importID)
+		importStatusResp, err := z.GetUsageImportStatus(ctx, z.URL("usage/%s/status", importID))
 		if err != nil {
 			return err
 		}

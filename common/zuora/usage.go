@@ -108,7 +108,6 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string
 	usageImportHistogram.WithLabelValues(importStatus).Observe(importDuration.Seconds())
 
 	if importStatus != Completed {
-		logging.With(ctx).Errorf("Usage import failed! Upload body: %v", body)
 		return "", fmt.Errorf("Usage import did not succeed: %v - from %s", importStatusResp, resp.CheckImportStatusURL)
 	}
 	return extractUsageImportID(resp.CheckImportStatusURL)
@@ -134,7 +133,7 @@ func (z *Zuora) GetUsage(ctx context.Context, zuoraAccountNumber, page, pageSize
 // GetUsageImportStatus returns the Zuora status of a given usage.
 func (z *Zuora) GetUsageImportStatus(ctx context.Context, url string) (*ImportStatusResponse, error) {
 	resp := ImportStatusResponse{}
-	if err := z.Get(ctx, getImportStatusPath, url, resp); err != nil {
+	if err := z.Get(ctx, getImportStatusPath, url, &resp); err != nil {
 		return nil, err
 	}
 	if !resp.Success {
