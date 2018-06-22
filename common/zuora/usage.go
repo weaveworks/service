@@ -60,6 +60,7 @@ var usageImportHistogram = prometheus.NewHistogramVec(
 
 // UploadUsage uploads usage information to Zuora.
 func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string, error) {
+	usage := bytes.Buffer{}
 	body := &bytes.Buffer{}
 	// Create a new multipart writer. This is required, because this automates the setting of some funky headers.
 	writer := multipart.NewWriter(body)
@@ -70,7 +71,7 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string
 		return "", err
 	}
 	// Copy the report CSV to the part body
-	_, err = io.Copy(part, r)
+	_, err = io.Copy(part, io.TeeReader(r, &usage))
 	if err != nil {
 		return "", err
 	}
@@ -90,11 +91,11 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string
 		resp,
 	)
 	if err != nil {
-		logging.With(ctx).Errorf("Usage upload failed! Upload body: %v", body)
+		logging.With(ctx).Errorf("Usage upload failed! Usage file: %v", usage.String())
 		return "", err
 	}
 	if !resp.Success {
-		logging.With(ctx).Errorf("Usage upload failed! Upload body: %v", body)
+		logging.With(ctx).Errorf("Usage upload failed! Usage file: %v", usage.String())
 		return "", resp
 	}
 
@@ -108,6 +109,7 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string
 	usageImportHistogram.WithLabelValues(importStatus).Observe(importDuration.Seconds())
 
 	if importStatus != Completed {
+		logging.With(ctx).Errorf("Usage upload failed! Usage file: %v", usage.String())
 		return "", fmt.Errorf("Usage import did not succeed: %v - from %s", importStatusResp, resp.CheckImportStatusURL)
 	}
 	return extractUsageImportID(resp.CheckImportStatusURL)
