@@ -13,6 +13,7 @@ RUN buildDeps="sudo make gcc g++ libc-dev ruby-dev autoconf automake libtool lib
          fluent-plugin-fields-parser:0.1.2 \
          fluent-plugin-rewrite-tag-filter:2.0.2 \
          fluent-plugin-elasticsearch:2.8.2 \
+         fluent-plugin-fields-parser \
  && sudo gem sources --clear-all \
  && SUDO_FORCE_REMOVE=yes \
     apt-get purge -y --auto-remove \
