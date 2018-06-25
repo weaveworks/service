@@ -104,11 +104,12 @@
         </td>
         <td class="mdl-data-table__cell--non-numeric">
           <form action="organizations/{{.ExternalID}}" method="POST">
-            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-              <input type="text" name="FeatureFlags" value="{{range .FeatureFlags}}{{.}} {{end}}" placeholder="Feature Flags"/>
-              <input class="mdl-button mdl-js-button mdl-button--raised" type="submit" value="Save" /><br/>
+              <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
               <label><input type="checkbox" name="RefuseDataAccess" {{if .RefuseDataAccess}}checked {{end}}/> RefuseDataAccess</label>
-            <label><input type="checkbox" name="RefuseDataUpload" {{if .RefuseDataUpload}}checked {{end}}/> RefuseDataUpload</label>
+              <label><input type="checkbox" name="RefuseDataUpload" {{if .RefuseDataUpload}}checked {{end}}/> RefuseDataUpload</label><br/>
+              <label>Refuse reason <input type="text" name="RefuseDataReason" value="{{.RefuseDataReason}}" title="If custom reason is set returns 403 Forbidden; otherwise 402 Payment Required" /></label><br/>
+              <input type="text" name="FeatureFlags" value="{{range .FeatureFlags}}{{.}} {{end}}" placeholder="Feature Flags"/>
+              <input class="mdl-button mdl-js-button mdl-button--raised" type="submit" value="Save" />
           </form>
         </td>
           <td class="mdl-data-table__cell--non-numeric">

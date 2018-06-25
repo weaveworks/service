@@ -210,6 +210,8 @@ func handleError(err error, w http.ResponseWriter, r *http.Request) {
 			// found, our API has a user membership check vulnerability
 			// To prevent this, don't send on the actual message.
 			http.Error(w, "Unauthorized", int(errResp.Code))
+		case http.StatusForbidden:
+			fallthrough
 		case http.StatusPaymentRequired:
 			http.Error(w, string(errResp.Body), int(errResp.Code))
 		default:

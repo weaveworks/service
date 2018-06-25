@@ -562,6 +562,14 @@ func (d *DB) SetOrganizationRefuseDataUpload(_ context.Context, externalID strin
 	})
 }
 
+// SetOrganizationRefuseDataReason overwrites the default reason for refusal.
+func (d *DB) SetOrganizationRefuseDataReason(ctx context.Context, externalID string, reason string) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.RefuseDataReason = reason
+		return nil
+	})
+}
+
 // SetOrganizationFirstSeenConnectedAt sets the first time an organisation has been connected
 func (d *DB) SetOrganizationFirstSeenConnectedAt(_ context.Context, externalID string, value *time.Time) error {
 	return changeOrg(d, externalID, func(org *users.Organization) error {

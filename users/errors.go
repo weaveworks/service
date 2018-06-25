@@ -3,6 +3,7 @@ package users
 import (
 	"errors"
 	"fmt"
+	"net/http"
 )
 
 // MalformedInputError is an error on malformed input
@@ -58,21 +59,35 @@ type WithMetadata interface {
 
 // InstanceDeniedError represents errors when the instances access is denied
 type InstanceDeniedError struct {
-	text string
-	id   string
+	text   string
+	id     string
+	reason string
 }
 
 // NewInstanceDeniedErrorFactory returns an InstanceDeniedError contructor,
 // its message is pre-assigned, while its id is provided when the error is constructed
-func NewInstanceDeniedErrorFactory(text string) func(id string) *InstanceDeniedError {
-	return func(id string) *InstanceDeniedError {
-		return &InstanceDeniedError{text: text, id: id}
+func NewInstanceDeniedErrorFactory(text string) func(id, reason string) *InstanceDeniedError {
+	return func(id, reason string) *InstanceDeniedError {
+		return &InstanceDeniedError{text: text, id: id, reason: reason}
 	}
 }
 
 // Error returns the error message
 func (e *InstanceDeniedError) Error() string {
-	return fmt.Sprintf(e.text, e.id)
+	t := fmt.Sprintf(e.text, e.id)
+	r := e.reason
+	if e.reason == "" {
+		r = fmt.Sprintf("go to https://cloud.weave.works/%s/org/billing", e.id)
+	}
+	return fmt.Sprintf("%s: %s", t, r)
+}
+
+// Status returns the HTTP status code appropriate for this error.
+func (e *InstanceDeniedError) Status() int {
+	if e.reason != "" {
+		return http.StatusForbidden
+	}
+	return http.StatusPaymentRequired
 }
 
 // These are specific instances of errors the users application deals with.

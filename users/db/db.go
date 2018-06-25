@@ -95,6 +95,7 @@ type DB interface {
 	SetFeatureFlags(ctx context.Context, externalID string, featureFlags []string) error
 	SetOrganizationRefuseDataAccess(ctx context.Context, externalID string, value bool) error
 	SetOrganizationRefuseDataUpload(ctx context.Context, externalID string, value bool) error
+	SetOrganizationRefuseDataReason(ctx context.Context, externalID string, reason string) error
 	SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationFirstSeenFluxConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationFirstSeenNetConnectedAt(ctx context.Context, externalID string, value *time.Time) error
