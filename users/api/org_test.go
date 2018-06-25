@@ -21,27 +21,6 @@ import (
 	"github.com/weaveworks/service/users/api"
 )
 
-func TestOrgView_UnmarshalJSON(t *testing.T) {
-	{
-		ov := api.OrgView{}
-		err := json.Unmarshal([]byte(`{"teamId": "team-id"}`), &ov)
-		assert.NoError(t, err)
-		assert.Equal(t, "team-id", ov.TeamExternalID)
-	}
-	{
-		ov := api.OrgView{}
-		err := json.Unmarshal([]byte(`{"teamExternalId": "team-external-id"}`), &ov)
-		assert.NoError(t, err)
-		assert.Equal(t, "team-external-id", ov.TeamExternalID)
-	}
-	{
-		ov := api.OrgView{}
-		err := json.Unmarshal([]byte(`{"teamExternalId": "team-external-id", "teamId": "team-id"}`), &ov)
-		assert.NoError(t, err)
-		assert.Equal(t, "team-external-id", ov.TeamExternalID)
-	}
-}
-
 func Test_Org(t *testing.T) {
 	setup(t)
 	defer cleanup(t)

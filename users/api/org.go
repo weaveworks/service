@@ -45,27 +45,8 @@ type OrgView struct {
 	ZuoraAccountNumber    string     `json:"zuoraAccountNumber"`
 	ZuoraAccountCreatedAt *time.Time `json:"zuoraAccountCreatedAt"`
 	BillingProvider       string     `json:"billingProvider"`
-	// Deprecated. Use TeamExternalID.
-	TeamID         string `json:"teamId,omitempty"`         // TODO(rndstr): remove this once ui-server uses `teamId` as external
-	TeamExternalID string `json:"teamExternalId,omitempty"` // TODO(rndstr): rename json output to `teamId`
-	TeamName       string `json:"teamName,omitempty"`
-}
-
-// UnmarshalJSON does some postprocessing to support `teamExternalId` in JSON usage temporarily.
-// TODO(rndstr): remove once ui-server` uses `teamId`.
-func (o *OrgView) UnmarshalJSON(b []byte) error {
-	// Prevent recursive loop
-	type alias *OrgView
-	var tmp alias = o
-	if err := json.Unmarshal(b, &tmp); err != nil {
-		return err
-	}
-	// For now we support teamId as well as teamExternalId to pass in the external id.
-	// Internally we only use the variable TeamExternalID
-	if tmp.TeamExternalID == "" {
-		tmp.TeamExternalID = tmp.TeamID
-	}
-	return nil
+	TeamExternalID        string     `json:"teamId,omitempty"`
+	TeamName              string     `json:"teamName,omitempty"`
 }
 
 func (a *API) org(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
@@ -109,7 +90,6 @@ func (a *API) createOrgView(currentUser *users.User, org *users.Organization) Or
 		TrialExpiresAt:       org.TrialExpiresAt,
 		BillingProvider:      org.BillingProvider(),
 		TeamExternalID:       org.TeamExternalID,
-		TeamID:               org.TeamExternalID,
 	}
 }
 
