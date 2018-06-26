@@ -69,6 +69,11 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_users_org_orgExternalID_inviteUser", "POST", "/api/users/org/{orgExternalID}/users", a.authenticateUser(a.inviteUser)},
 		{"api_users_org_orgExternalID_removeUser", "DELETE", "/api/users/org/{orgExternalID}/users/{userEmail}", a.authenticateUser(a.removeUser)},
 
+		// Organization webhooks
+		{"api_users_webhooks_list", "GET", "/api/users/org/{orgExternalID}/webhooks", a.authenticateUser(a.listOrganizationWebhooks)},
+		{"api_users_webhooks_create", "POST", "/api/users/org/{orgExternalID}/webhooks", a.authenticateUser(a.createOrganizationWebhook)},
+		{"api_users_webhooks_delete", "DELETE", "/api/users/org/{orgExternalID}/webhooks/{secretID}", a.authenticateUser(a.deleteOrganizationWebhook)},
+
 		// Internal stuff for our internal usage, internally.
 		{"root", "GET", "/admin/users", a.admin},
 		{"admin_users_organizations", "GET", "/admin/users/organizations", a.adminListOrganizations},
