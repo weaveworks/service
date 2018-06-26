@@ -63,6 +63,9 @@ func NewServiceRouter() *mux.Router {
 	r.NewRoute().Name(QuayImageNotify).Methods("POST").Path("/v6/integrations/quay/image").Queries("instance", "{instance}")
 	r.NewRoute().Name(GitPushNotify).Methods("POST").Path("/v6/integrations/git/push").Queries("instance", "{instance}")
 
+	// Webhooks
+	r.NewRoute().Name(Webhook).Methods("POST").Path("/webhooks/{secretID}")
+
 	// We assume every request that doesn't match a route is a client
 	// calling an old or hitherto unsupported API.
 	r.NewRoute().Name("NotFound").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -128,6 +131,7 @@ func (s Server) MakeHandler(r *mux.Router) http.Handler {
 		Ping:    s.ping,
 		PostIntegrationsGithub: s.postIntegrationsGithub,
 		// Webhooks
+		Webhook:              s.handleWebhook,
 		DockerHubImageNotify: s.dockerHubImageNotify,
 		QuayImageNotify:      s.quayImageNotify,
 		GitPushNotify:        s.gitPushNotify,
@@ -575,6 +579,7 @@ func (s Server) imageNotify(w http.ResponseWriter, r *http.Request, img string) 
 	s.daemonProxy.NotifyChange(ctx, change)
 }
 
+// DEPRECATED in favour of handleWebhook
 func (s Server) gitPushNotify(w http.ResponseWriter, r *http.Request) {
 	instID := mux.Vars(r)["instance"]
 	overrideInstanceID(r, instID)

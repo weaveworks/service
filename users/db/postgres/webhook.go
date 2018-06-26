@@ -28,9 +28,14 @@ func (d DB) CreateOrganizationWebhook(ctx context.Context, orgExternalID, integr
 	if err != nil {
 		return nil, err
 	}
-	secretSigningKey, err := tokens.Generate()
-	if err != nil {
-		return nil, err
+
+	// Create secretSigningKey only if using GitHub for now.
+	secretSigningKey := ""
+	if integrationType == "github" {
+		secretSigningKey, err = tokens.Generate()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	org, err := d.FindOrganizationByID(ctx, orgExternalID)

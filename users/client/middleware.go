@@ -345,9 +345,10 @@ func validateGCPExternalAccountID(externalAccountID string) (string, error) {
 }
 
 // WebhooksMiddleware is a middleware.Interface for authentication request based
-// on the webhook secret (and signing key if one exists)
+// on the webhook secret (and signing key if one exists).
 type WebhooksMiddleware struct {
-	UsersClient users.UsersClient
+	UsersClient                   users.UsersClient
+	WebhooksIntegrationTypeHeader string
 }
 
 // Wrap implements middleware.Interface
@@ -375,6 +376,8 @@ func (a WebhooksMiddleware) Wrap(next http.Handler) http.Handler {
 			}
 		}
 
-		next.ServeHTTP(w, r)
+		// Add the integration type and org ID to the headers for use by flux-api.
+		r.Header.Add(a.WebhooksIntegrationTypeHeader, response.Webhook.IntegrationType)
+		finishRequest(next, w, r, response.Webhook.OrganizationID)
 	})
 }

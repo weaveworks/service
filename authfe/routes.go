@@ -23,6 +23,7 @@ import (
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common"
+	"github.com/weaveworks/service/common/constants/webhooks"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
 	users_client "github.com/weaveworks/service/users/client"
@@ -112,6 +113,11 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	authUserMiddleware := users_client.AuthUserMiddleware{
 		UsersClient:  authenticator,
 		UserIDHeader: userIDHeader,
+	}
+
+	webhooksMiddleware := users_client.WebhooksMiddleware{
+		UsersClient:                   authenticator,
+		WebhooksIntegrationTypeHeader: webhooks.WebhooksIntegrationTypeHeader,
 	}
 
 	fluxGHTokenMiddleware := users_client.GHIntegrationMiddleware{
@@ -294,6 +300,12 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				PrefixMethods{"/quay/image", []string{"POST"}, c.fluxHost},
 			},
 			nil,
+		},
+
+		// Webhooks
+		Path{
+			"/webhooks/{secretID}/",
+			webhooksMiddleware.Wrap(c.fluxHost),
 		},
 
 		// Token-based auth

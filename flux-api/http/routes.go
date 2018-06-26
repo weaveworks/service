@@ -11,4 +11,6 @@ const (
 	DockerHubImageNotify   = "DockerHubImageNotify"
 	QuayImageNotify        = "QuayImageNotify"
 	GitPushNotify          = "GitPushNotify"
+
+	Webhook = "Webhook"
 )

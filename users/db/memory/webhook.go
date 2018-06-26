@@ -23,14 +23,24 @@ func (d *DB) CreateOrganizationWebhook(ctx context.Context, orgExternalID, integ
 	if err != nil {
 		return nil, err
 	}
-	secretSigningKey, err := tokens.Generate()
+
+	// Create secretSigningKey only if using GitHub for now.
+	secretSigningKey := ""
+	if integrationType == "github" {
+		secretSigningKey, err = tokens.Generate()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	o, err := d.findOrganizationByExternalID(orgExternalID)
 	if err != nil {
 		return nil, err
 	}
 
 	w := &users.Webhook{
 		ID:               fmt.Sprint(len(d.users)),
-		OrganizationID:   orgExternalID,
+		OrganizationID:   o.ID,
 		IntegrationType:  integrationType,
 		SecretID:         secretID,
 		SecretSigningKey: secretSigningKey,
@@ -42,13 +52,13 @@ func (d *DB) CreateOrganizationWebhook(ctx context.Context, orgExternalID, integ
 }
 
 // DeleteOrganizationWebhook deletes a webhook given it's ID
-func (d *DB) DeleteOrganizationWebhook(ctx context.Context, orgExternalID, ID string) error {
+func (d *DB) DeleteOrganizationWebhook(ctx context.Context, orgExternalID, secretID string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 
 	orgWebhooks := d.webhooks[orgExternalID]
 	for i, w := range orgWebhooks {
-		if w.ID == ID {
+		if w.SecretID == secretID {
 			d.webhooks[orgExternalID] = append(orgWebhooks[:i], orgWebhooks[i+1:]...)
 			break
 		}

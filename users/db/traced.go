@@ -315,7 +315,9 @@ func (t traced) ListOrganizationWebhooks(ctx context.Context, orgExternalID stri
 }
 
 func (t traced) CreateOrganizationWebhook(ctx context.Context, orgExternalID, integrationType string) (w *users.Webhook, err error) {
-	defer func() { t.trace("CreateOrganizationWebhook", orgExternalID, integrationType, w, err) }()
+	defer func() {
+		t.trace("CreateOrganizationWebhook", orgExternalID, integrationType, w, err)
+	}()
 	return t.d.CreateOrganizationWebhook(ctx, orgExternalID, integrationType)
 }
 
