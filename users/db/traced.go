@@ -309,6 +309,26 @@ func (t traced) GetSummary(ctx context.Context) (entries []*users.SummaryEntry, 
 	return t.d.GetSummary(ctx)
 }
 
+func (t traced) ListOrganizationWebhooks(ctx context.Context, orgExternalID string) (ws []*users.Webhook, err error) {
+	defer func() { t.trace("ListOrganizationWebhooks", orgExternalID, ws, err) }()
+	return t.d.ListOrganizationWebhooks(ctx, orgExternalID)
+}
+
+func (t traced) CreateOrganizationWebhook(ctx context.Context, orgExternalID, integrationType string) (w *users.Webhook, err error) {
+	defer func() { t.trace("CreateOrganizationWebhook", orgExternalID, integrationType, w, err) }()
+	return t.d.CreateOrganizationWebhook(ctx, orgExternalID, integrationType)
+}
+
+func (t traced) DeleteOrganizationWebhook(ctx context.Context, orgExternalID, secretID string) (err error) {
+	defer func() { t.trace("DeleteOrganizationWebhook", orgExternalID, secretID, err) }()
+	return t.d.DeleteOrganizationWebhook(ctx, orgExternalID, secretID)
+}
+
+func (t traced) FindOrganizationWebhookBySecretID(ctx context.Context, orgExternalID, secretID string) (w *users.Webhook, err error) {
+	defer func() { t.trace("FindOrganizationWebhookBySecretID", orgExternalID, secretID, w, err) }()
+	return t.d.FindOrganizationWebhookBySecretID(ctx, orgExternalID, secretID)
+}
+
 func (t traced) Close(ctx context.Context) (err error) {
 	defer func() { t.trace("Close", err) }()
 	return t.d.Close(ctx)

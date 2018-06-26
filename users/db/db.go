@@ -124,6 +124,12 @@ type DB interface {
 	DeleteTeam(ctx context.Context, teamID string) error
 	CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error)
 
+	// Webhooks
+	ListOrganizationWebhooks(ctx context.Context, orgExternalID string) ([]*users.Webhook, error)
+	CreateOrganizationWebhook(ctx context.Context, orgExternalID, integrationType string) (*users.Webhook, error)
+	DeleteOrganizationWebhook(ctx context.Context, orgExternalID, secretID string) error
+	FindOrganizationWebhookBySecretID(ctx context.Context, orgExternalID, secretID string) (*users.Webhook, error)
+
 	// GetSummary exports a summary of the DB.
 	// WARNING: this is a relatively expensive query, and basically exports the entire DB.
 	GetSummary(ctx context.Context) ([]*users.SummaryEntry, error)

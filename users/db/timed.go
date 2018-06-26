@@ -438,6 +438,38 @@ func (t timed) GetSummary(ctx context.Context) (entries []*users.SummaryEntry, e
 	return
 }
 
+func (t timed) ListOrganizationWebhooks(ctx context.Context, orgExternalID string) (ws []*users.Webhook, err error) {
+	t.timeRequest(ctx, "ListOrganizationWebhooks", func(ctx context.Context) error {
+		ws, err = t.d.ListOrganizationWebhooks(ctx, orgExternalID)
+		return err
+	})
+	return
+}
+
+func (t timed) CreateOrganizationWebhook(ctx context.Context, orgExternalID, integrationType string) (w *users.Webhook, err error) {
+	t.timeRequest(ctx, "CreateOrganizationWebhook", func(ctx context.Context) error {
+		w, err = t.d.CreateOrganizationWebhook(ctx, orgExternalID, integrationType)
+		return err
+	})
+	return
+}
+
+func (t timed) DeleteOrganizationWebhook(ctx context.Context, orgExternalID, secretID string) (err error) {
+	t.timeRequest(ctx, "DeleteOrganizationWebhook", func(ctx context.Context) error {
+		err = t.d.DeleteOrganizationWebhook(ctx, orgExternalID, secretID)
+		return err
+	})
+	return
+}
+
+func (t timed) FindOrganizationWebhookBySecretID(ctx context.Context, orgExternalID, secretID string) (w *users.Webhook, err error) {
+	t.timeRequest(ctx, "FindOrganizationWebhookBySecretID", func(ctx context.Context) error {
+		w, err = t.d.FindOrganizationWebhookBySecretID(ctx, orgExternalID, secretID)
+		return err
+	})
+	return
+}
+
 func (t timed) Close(ctx context.Context) error {
 	return t.timeRequest(ctx, "Close", func(ctx context.Context) error {
 		return t.d.Close(ctx)

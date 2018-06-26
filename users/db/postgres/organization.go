@@ -1069,7 +1069,7 @@ func (d DB) GetSummary(ctx context.Context) ([]*users.SummaryEntry, error) {
 		team_memberships.deleted_at IS NULL AND
 		organizations.deleted_at IS NULL AND
 		teams.deleted_at IS NULL
-		
+
 
 		) AS t
 
