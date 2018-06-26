@@ -4,14 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"github.com/badoux/checkmail"
-	"github.com/pkg/errors"
-	"github.com/satori/go.uuid"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"regexp"
 	"time"
+
+	"github.com/badoux/checkmail"
+	"github.com/pkg/errors"
+	"github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/notification-eventmanager/types"
 	"github.com/weaveworks/service/users"
@@ -109,6 +110,16 @@ func isValidAddress(addressData json.RawMessage, rtype string) error {
 				return errors.Errorf("invalid stackdriver receiver")
 			}
 		}
+
+	case types.OpsGenieReceiver:
+		var key string
+		if err := json.Unmarshal(addressData, &key); err != nil {
+			return errors.Wrapf(err, "cannot unmarshal %s receiver address data", rtype)
+		}
+		if key == "" {
+			return errors.Errorf("OpsGenie API Key is empty")
+		}
+
 	default:
 		return errors.Errorf("invalid receiver type %s", rtype)
 	}
