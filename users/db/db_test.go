@@ -3,6 +3,7 @@ package db_test
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -296,4 +297,108 @@ func Test_DB_CreateOrganizationWithTeam(t *testing.T) {
 	require.Len(t, teams, 1)
 	require.Equal(t, teams[0].ID, org.TeamID)
 	require.Equal(t, teams[0].Name, teamName)
+}
+
+func TestDB_ListOrganizationWebhooks(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
+
+	ctx := context.Background()
+
+	u, err := db.CreateUser(ctx, "joe@email.com")
+	assert.NoError(t, err)
+	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
+	assert.NoError(t, err)
+
+	w1, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, "github")
+	assert.NoError(t, err)
+	w2, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, "github")
+	assert.NoError(t, err)
+
+	ws, err := db.ListOrganizationWebhooks(ctx, o.ExternalID)
+	assert.NoError(t, err)
+
+	assert.Equal(t, []*users.Webhook{w1, w2}, ws)
+}
+
+func TestDB_CreateOrganizationWebhook(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
+
+	ctx := context.Background()
+
+	u, err := db.CreateUser(ctx, "joe@email.com")
+	assert.NoError(t, err)
+	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
+	assert.NoError(t, err)
+
+	w, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, "github")
+	assert.NoError(t, err)
+
+	id, err := strconv.Atoi(w.ID)
+	assert.NoError(t, err)
+	assert.True(t, id >= 1)
+
+	assert.Equal(t, o.ID, w.OrganizationID)
+	assert.Equal(t, "github", w.IntegrationType)
+	assert.NotEmpty(t, w.SecretID)
+	assert.NotEmpty(t, w.SecretSigningKey)
+	assert.NotZero(t, w.CreatedAt)
+	assert.Zero(t, w.DeletedAt)
+
+	ws, err := db.ListOrganizationWebhooks(ctx, o.ExternalID)
+	assert.NoError(t, err)
+
+	assert.Equal(t, []*users.Webhook{w}, ws)
+}
+
+func TestDB_DeleteOrganizationWebhook(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
+
+	ctx := context.Background()
+
+	u, err := db.CreateUser(ctx, "joe@email.com")
+	assert.NoError(t, err)
+	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
+	assert.NoError(t, err)
+
+	w1, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, "github")
+	assert.NoError(t, err)
+	w2, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, "github")
+	assert.NoError(t, err)
+
+	err = db.DeleteOrganizationWebhook(ctx, o.ExternalID, w1.SecretID)
+	assert.NoError(t, err)
+
+	ws, err := db.ListOrganizationWebhooks(ctx, o.ExternalID)
+	assert.NoError(t, err)
+
+	assert.Equal(t, []*users.Webhook{w2}, ws)
+}
+
+func TestDB_FindOrganizationWebhookBySecretID(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
+
+	ctx := context.Background()
+
+	u, err := db.CreateUser(ctx, "joe@email.com")
+	assert.NoError(t, err)
+	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
+	assert.NoError(t, err)
+
+	_, err = db.CreateOrganizationWebhook(ctx, o.ExternalID, "github")
+	assert.NoError(t, err)
+	w2, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, "github")
+	assert.NoError(t, err)
+
+	// Test valid SecretID
+	w, err := db.FindOrganizationWebhookBySecretID(ctx, o.ExternalID, w2.SecretID)
+	assert.NoError(t, err)
+	assert.Equal(t, w2, w)
+
+	// Test invalid SecretID
+	w, err = db.FindOrganizationWebhookBySecretID(ctx, o.ExternalID, w2.SecretID+"a")
+	assert.Error(t, err)
 }
