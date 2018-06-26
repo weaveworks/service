@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/go-github/github"
+	"github.com/gorilla/mux"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 
@@ -340,4 +342,39 @@ func validateGCPExternalAccountID(externalAccountID string) (string, error) {
 		return "", fmt.Errorf("invalid GCP account ID [%v]: malformed", externalAccountID)
 	}
 	return externalAccountID, nil
+}
+
+// WebhooksMiddleware is a middleware.Interface for authentication request based
+// on the webhook secret (and signing key if one exists)
+type WebhooksMiddleware struct {
+	UsersClient users.UsersClient
+}
+
+// Wrap implements middleware.Interface
+func (a WebhooksMiddleware) Wrap(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		orgExternalID := mux.Vars(r)["orgExternalID"]
+		secretID := mux.Vars(r)["secretID"]
+
+		// Verify the secretID
+		response, err := a.UsersClient.LookupOrganizationWebhookUsingSecretID(r.Context(), &users.LookupOrganizationWebhookUsingSecretIDRequest{
+			OrgExternalID: orgExternalID,
+			SecretID:      secretID,
+		})
+		if err != nil {
+			handleError(err, w, r)
+			return
+		}
+
+		// Verify the signature if we require it. This is only used for Github integrations at the moment.
+		if response.Webhook.SecretSigningKey != "" {
+			_, err := github.ValidatePayload(r, []byte(response.Webhook.SecretSigningKey))
+			if err != nil {
+				handleError(err, w, r)
+				return
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

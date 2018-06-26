@@ -65,6 +65,9 @@ service Users {
 	// GetSummary exports a summary of the DB.
 	// WARNING: this is a relatively expensive query, and basically exports the entire DB.
     rpc GetSummary(Empty) returns (Summary) {};
+
+    // LookupOrganizationWebhookUsingSecretID returns a Webhook given the external org ID and the webhook secret ID
+    rpc LookupOrganizationWebhookUsingSecretID(LookupOrganizationWebhookUsingSecretIDRequest) returns (LookupOrganizationWebhookUsingSecretIDResponse) {};
 }
 
 enum AuthorizedAction {
@@ -348,4 +351,23 @@ message SummaryEntry {
     string GCPAccountSubscriptionLevel = 21;
     // Status of the subscrption, can be one of "PENDING", "ACTIVE', or "COMPLETE"
     string GCPAccountSubscriptionStatus = 22;
+}
+
+message Webhook {
+    string ID = 1 [(gogoproto.jsontag) = "-"];
+    string OrganizationID = 2 [(gogoproto.jsontag) = "-"];
+    string IntegrationType = 3 [(gogoproto.jsontag) = "integrationType"];
+    string SecretID = 4 [(gogoproto.jsontag) = "secretID"];
+    string SecretSigningKey = 5 [(gogoproto.jsontag) = "secretSigningKey"];
+    google.protobuf.Timestamp CreatedAt = 6  [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "createdAt"];
+    google.protobuf.Timestamp DeletedAt = 7  [(gogoproto.stdtime) = true, (gogoproto.nullable) = true, (gogoproto.jsontag) = "deletedAt"];
+}
+
+message LookupOrganizationWebhookUsingSecretIDRequest {
+    string OrgExternalID = 1;
+    string SecretID = 2;
+}
+
+message LookupOrganizationWebhookUsingSecretIDResponse {
+    Webhook Webhook = 1;
 }

@@ -124,3 +124,8 @@ func (MockClient) UpdateGCP(ctx context.Context, in *users.UpdateGCPRequest, opt
 func (MockClient) GetSummary(ctx context.Context, in *users.Empty, opts ...grpc.CallOption) (*users.Summary, error) {
 	return &users.Summary{}, nil
 }
+
+// LookupOrganizationWebhookUsingSecretID gets the webhook given the external org ID and the secret ID of the webhook.
+func (MockClient) LookupOrganizationWebhookUsingSecretID(ctx context.Context, in *users.LookupOrganizationWebhookUsingSecretIDRequest, opts ...grpc.CallOption) (*users.LookupOrganizationWebhookUsingSecretIDResponse, error) {
+	return &users.LookupOrganizationWebhookUsingSecretIDResponse{}, nil
+}
