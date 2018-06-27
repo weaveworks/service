@@ -67,13 +67,13 @@ func (d *DB) DeleteOrganizationWebhook(ctx context.Context, orgExternalID, secre
 }
 
 // FindOrganizationWebhookBySecretID returns a webhook based on it's secretID
-func (d *DB) FindOrganizationWebhookBySecretID(ctx context.Context, orgExternalID, secretID string) (*users.Webhook, error) {
-	orgWebhooks := d.webhooks[orgExternalID]
-	for _, w := range orgWebhooks {
-		if w.SecretID == secretID {
-			return w, nil
+func (d *DB) FindOrganizationWebhookBySecretID(ctx context.Context, secretID string) (*users.Webhook, error) {
+	for _, ws := range d.webhooks {
+		for _, w := range ws {
+			if w.SecretID == secretID {
+				return w, nil
+			}
 		}
 	}
-
 	return nil, fmt.Errorf("webhook not found")
 }

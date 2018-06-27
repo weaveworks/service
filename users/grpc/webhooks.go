@@ -7,7 +7,7 @@ import (
 
 // LookupOrganizationWebhookUsingSecretID gets the webhook given the external org ID and the secret ID of the webhook.
 func (a *usersServer) LookupOrganizationWebhookUsingSecretID(ctx context.Context, req *users.LookupOrganizationWebhookUsingSecretIDRequest) (*users.LookupOrganizationWebhookUsingSecretIDResponse, error) {
-	webhook, err := a.db.FindOrganizationWebhookBySecretID(ctx, req.OrgExternalID, req.SecretID)
+	webhook, err := a.db.FindOrganizationWebhookBySecretID(ctx, req.SecretID)
 	if err == users.ErrNotFound {
 		err = users.ErrInvalidAuthenticationData
 	}

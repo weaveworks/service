@@ -364,8 +364,7 @@ message Webhook {
 }
 
 message LookupOrganizationWebhookUsingSecretIDRequest {
-    string OrgExternalID = 1;
-    string SecretID = 2;
+    string SecretID = 1;
 }
 
 message LookupOrganizationWebhookUsingSecretIDResponse {

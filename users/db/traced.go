@@ -326,9 +326,9 @@ func (t traced) DeleteOrganizationWebhook(ctx context.Context, orgExternalID, se
 	return t.d.DeleteOrganizationWebhook(ctx, orgExternalID, secretID)
 }
 
-func (t traced) FindOrganizationWebhookBySecretID(ctx context.Context, orgExternalID, secretID string) (w *users.Webhook, err error) {
-	defer func() { t.trace("FindOrganizationWebhookBySecretID", orgExternalID, secretID, w, err) }()
-	return t.d.FindOrganizationWebhookBySecretID(ctx, orgExternalID, secretID)
+func (t traced) FindOrganizationWebhookBySecretID(ctx context.Context, secretID string) (w *users.Webhook, err error) {
+	defer func() { t.trace("FindOrganizationWebhookBySecretID", secretID, w, err) }()
+	return t.d.FindOrganizationWebhookBySecretID(ctx, secretID)
 }
 
 func (t traced) Close(ctx context.Context) (err error) {

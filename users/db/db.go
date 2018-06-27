@@ -128,7 +128,7 @@ type DB interface {
 	ListOrganizationWebhooks(ctx context.Context, orgExternalID string) ([]*users.Webhook, error)
 	CreateOrganizationWebhook(ctx context.Context, orgExternalID, integrationType string) (*users.Webhook, error)
 	DeleteOrganizationWebhook(ctx context.Context, orgExternalID, secretID string) error
-	FindOrganizationWebhookBySecretID(ctx context.Context, orgExternalID, secretID string) (*users.Webhook, error)
+	FindOrganizationWebhookBySecretID(ctx context.Context, secretID string) (*users.Webhook, error)
 
 	// GetSummary exports a summary of the DB.
 	// WARNING: this is a relatively expensive query, and basically exports the entire DB.

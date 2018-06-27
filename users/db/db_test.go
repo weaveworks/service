@@ -394,11 +394,11 @@ func TestDB_FindOrganizationWebhookBySecretID(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Test valid SecretID
-	w, err := db.FindOrganizationWebhookBySecretID(ctx, o.ExternalID, w2.SecretID)
+	w, err := db.FindOrganizationWebhookBySecretID(ctx, w2.SecretID)
 	assert.NoError(t, err)
 	assert.Equal(t, w2, w)
 
 	// Test invalid SecretID
-	w, err = db.FindOrganizationWebhookBySecretID(ctx, o.ExternalID, w2.SecretID+"a")
+	w, err = db.FindOrganizationWebhookBySecretID(ctx, w2.SecretID+"a")
 	assert.Error(t, err)
 }

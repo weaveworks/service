@@ -462,9 +462,9 @@ func (t timed) DeleteOrganizationWebhook(ctx context.Context, orgExternalID, sec
 	return
 }
 
-func (t timed) FindOrganizationWebhookBySecretID(ctx context.Context, orgExternalID, secretID string) (w *users.Webhook, err error) {
+func (t timed) FindOrganizationWebhookBySecretID(ctx context.Context, secretID string) (w *users.Webhook, err error) {
 	t.timeRequest(ctx, "FindOrganizationWebhookBySecretID", func(ctx context.Context) error {
-		w, err = t.d.FindOrganizationWebhookBySecretID(ctx, orgExternalID, secretID)
+		w, err = t.d.FindOrganizationWebhookBySecretID(ctx, secretID)
 		return err
 	})
 	return

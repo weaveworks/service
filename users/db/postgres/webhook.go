@@ -87,11 +87,8 @@ func (d DB) DeleteOrganizationWebhook(ctx context.Context, orgExternalID, secret
 }
 
 // FindOrganizationWebhookBySecretID returns a webhook based on it's secretID
-func (d DB) FindOrganizationWebhookBySecretID(ctx context.Context, orgExternalID, secretID string) (*users.Webhook, error) {
-	query := d.webhooksQuery().
-		Join("organizations ON (webhooks.organization_id = organizations.id)").
-		Where("organizations.external_id = ?", string(orgExternalID)).
-		Where("webhooks.secret_id = ?", string(secretID))
+func (d DB) FindOrganizationWebhookBySecretID(ctx context.Context, secretID string) (*users.Webhook, error) {
+	query := d.webhooksQuery().Where("webhooks.secret_id = ?", string(secretID))
 	row := query.QueryRowContext(ctx)
 	return d.scanWebhook(row)
 }

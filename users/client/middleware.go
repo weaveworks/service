@@ -354,13 +354,11 @@ type WebhooksMiddleware struct {
 // Wrap implements middleware.Interface
 func (a WebhooksMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		orgExternalID := mux.Vars(r)["orgExternalID"]
 		secretID := mux.Vars(r)["secretID"]
 
 		// Verify the secretID
 		response, err := a.UsersClient.LookupOrganizationWebhookUsingSecretID(r.Context(), &users.LookupOrganizationWebhookUsingSecretIDRequest{
-			OrgExternalID: orgExternalID,
-			SecretID:      secretID,
+			SecretID: secretID,
 		})
 		if err != nil {
 			handleError(err, w, r)

@@ -16,8 +16,7 @@ func Test_LookupOrganizationWebhookUsingSecretID(t *testing.T) {
 	webhook := dbtest.CreateWebhookForOrg(t, database, org, "github")
 
 	response, err := server.LookupOrganizationWebhookUsingSecretID(ctx, &users.LookupOrganizationWebhookUsingSecretIDRequest{
-		OrgExternalID: org.ExternalID,
-		SecretID:      webhook.SecretID,
+		SecretID: webhook.SecretID,
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, webhook.ID, response.Webhook.ID)
