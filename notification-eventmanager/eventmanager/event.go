@@ -151,6 +151,12 @@ func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (int
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting browser message for test event")
 	}
 
+	opsGenieMsg, err := getOpsGenieMessage(text, etype, instanceName)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting OpsGenie message for test event")
+	}
+
 	testEvent := types.Event{
 		Type:         etype,
 		InstanceID:   instanceID,
@@ -161,6 +167,7 @@ func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (int
 			types.BrowserReceiver:     browserMsg,
 			types.SlackReceiver:       slackMsg,
 			types.StackdriverReceiver: sdMsg,
+			types.OpsGenieReceiver:    opsGenieMsg,
 		},
 	}
 
