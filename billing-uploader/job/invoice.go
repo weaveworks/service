@@ -3,6 +3,7 @@ package job
 import (
 	"context"
 
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/instrument"
@@ -11,6 +12,26 @@ import (
 	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/users"
 )
+
+var (
+	invoicesToProcess = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "billing",
+		Subsystem: "uploader",
+		Name:      "invoices_to_process",
+		Help:      "The number of invoices waiting to be processed",
+	})
+	invoicesProcessedTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "billing",
+		Subsystem: "uploader",
+		Name:      "invoices_processed_total",
+		Help:      "The number of invoices processed",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(invoicesToProcess)
+	prometheus.MustRegister(invoicesProcessedTotal)
+}
 
 // InvoiceUpload sends invoices to Zuora once usage has been processed.
 type InvoiceUpload struct {
@@ -47,8 +68,7 @@ func (j *InvoiceUpload) Do() error {
 			return err
 		}
 
-		// TODO: monitor number of outstanding invoices
-		logger.Infof("Post trial invoices %v", len(postTrialInvoices))
+		invoicesToProcess.Set(float64(len(postTrialInvoices)))
 
 		for _, postTrialInvoice := range postTrialInvoices {
 			usageImportID := postTrialInvoice.UsageImportID
@@ -99,6 +119,7 @@ func (j *InvoiceUpload) Do() error {
 				logger.Errorf("Failed to delete post trial invoice %v, %v", usageImportID, err)
 				continue
 			}
+			invoicesProcessedTotal.Inc()
 		}
 
 		return nil
