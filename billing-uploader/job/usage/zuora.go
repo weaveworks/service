@@ -49,6 +49,12 @@ func (z *Zuora) Add(ctx context.Context, org users.Organization, from, through t
 
 	subscriptionNumber := account.Subscription.SubscriptionNumber
 	chargeNumber := account.Subscription.ChargeNumber
+
+	aggs, err = FilterAggregatesForSubscription(ctx, z.cl, aggs, account)
+	if err != nil {
+		return err
+	}
+
 	orgReport, err := zuora.ReportFromAggregates(z.cl.GetConfig(), aggs, account.PaymentProviderID, minBucketStart(aggs), through, subscriptionNumber, chargeNumber, zuora.BillCycleDay)
 	if err != nil {
 		return errors.Wrap(err, "cannot create report")

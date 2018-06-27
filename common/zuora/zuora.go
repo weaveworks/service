@@ -44,7 +44,6 @@ type Client interface {
 
 	GetInvoices(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]Invoice, error)
 	CreateInvoice(ctx context.Context, zuoraAccountNumber string) (string, error)
-	GetCurrentRates(ctx context.Context) (RateMap, error)
 	GetPaymentMethod(ctx context.Context, zuoraAccountNumber string) (*CreditCard, error)
 	GetPayments(ctx context.Context, zuoraAccountNumber string) ([]*PaymentDetails, error)
 	GetPaymentTransactionLog(ctx context.Context, paymentID string) (*PaymentTransaction, error)
@@ -52,6 +51,9 @@ type Client interface {
 	UploadUsage(ctx context.Context, r io.Reader, id string) (string, error)
 	GetUsage(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]Usage, error)
 	GetUsageImportStatus(ctx context.Context, url string) (*ImportStatusResponse, error)
+
+	GetCurrentRates(ctx context.Context) (RateMap, error)
+	GetProductsUnitSet(ctx context.Context, productIDs []string) (map[string]bool, error)
 
 	ServeFile(ctx context.Context, w http.ResponseWriter, fileID string)
 }

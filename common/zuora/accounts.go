@@ -62,6 +62,9 @@ type AccountSubscription struct {
 	PricingSummary        string  `json:"pricingSummary"`
 	Price                 float64 `json:"price"`
 	SubscriptionStartDate string  `json:"subscriptionStartDate"`
+	RatePlans             []struct {
+		ProductID string `json:"productId"`
+	} `json:"ratePlans"`
 }
 
 // ToZuoraAccountNumber converts a weave organization ID to a Zuora Account Number.
@@ -271,8 +274,12 @@ type zuoraSummaryResponse struct {
 		WorkEmail string `json:"workEmail"`
 	} `json:"billToContact"`
 	Subscriptions []struct {
-		ID     string `json:"id"`
-		Status string `json:"status"`
+		ID        string `json:"id"`
+		Status    string `json:"status"`
+		RatePlans []struct {
+			ProductID         string `json:"productId"`
+			ProductRatePlanID string `json:"productRatePlanId"`
+		} `json:"ratePlans"`
 	} `json:"subscriptions"`
 	Payments []Payment `json:"payments"`
 	Invoices []invoice `json:"invoices"`
