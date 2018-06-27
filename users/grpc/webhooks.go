@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/service/users"
 	"golang.org/x/net/context"
 )
@@ -9,7 +10,7 @@ import (
 func (a *usersServer) LookupOrganizationWebhookUsingSecretID(ctx context.Context, req *users.LookupOrganizationWebhookUsingSecretIDRequest) (*users.LookupOrganizationWebhookUsingSecretIDResponse, error) {
 	webhook, err := a.db.FindOrganizationWebhookBySecretID(ctx, req.SecretID)
 	if err == users.ErrNotFound {
-		err = users.ErrInvalidAuthenticationData
+		err = httpgrpc.Errorf(401, "")
 	}
 	if err != nil {
 		return nil, err
