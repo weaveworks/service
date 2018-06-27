@@ -18,7 +18,7 @@ type Config struct {
 	SuspendPolicy        string
 	ResumePolicy         string
 	SubscriptionTermType string
-	SubscriptionPlanID   string
+	ProductRatePlanID    string
 
 	// Payments
 	HostedPaymentPageURI string
@@ -42,7 +42,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.StringVar(&c.SuspendPolicy, "zuora.policy.suspend", "Today", "Must be one of {Today, EndOfLastInvoicePeriod, SpecificDate, FixedPeriodsFromToday}")
 	f.StringVar(&c.ResumePolicy, "zuora.policy.resume", "Today", "Must be one of {Today, EndOfLastInvoicePeriod, SpecificDate, FixedPeriodsFromToday}")
 	f.StringVar(&c.SubscriptionTermType, "zuora.policy.term-type", "EVERGREEN", "Must be one of {TERMED, EVERGREEN}")
-	f.StringVar(&c.SubscriptionPlanID, "zuora.subscription-plan-id", "", "REQUIRED: Zuora subscription plan ID (the id of the subscription plan to subscribe to)")
+	f.StringVar(&c.ProductRatePlanID, "zuora.product-rate-plan-id", "", "REQUIRED: Zuora product rate plan ID (the id of the rate plan to subscribe to)")
 
 	// Payments
 	f.StringVar(&c.HostedPaymentPageURI, "zuora.hosted-payment-page-uri", "https://apisandbox.zuora.com/apps/PublicHostedPageLite.do", "URI of the hosted payments page for zuora")
@@ -57,7 +57,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 
 // Validate returns an error if anything is wrong with the configuration.
 func (c *Config) Validate(requirePlanID bool) error {
-	if requirePlanID && c.SubscriptionPlanID == "" {
+	if requirePlanID && c.ProductRatePlanID == "" {
 		return errors.New("-zuora.subscription-plan-id cannot be empty")
 	}
 	return nil

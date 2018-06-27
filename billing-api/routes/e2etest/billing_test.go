@@ -21,15 +21,15 @@ import (
 func TestMain(m *testing.M) {
 	zuoraUsername := os.Getenv("ZUORA_USERNAME")
 	zuoraPassword := os.Getenv("ZUORA_PASSWORD")
-	zuoraSubscriptionPlanID := os.Getenv("ZUORA_SUBSCRIPTIONPLANID")
+	zuoraProductRatePlanID := os.Getenv("ZUORA_SUBSCRIPTIONPLANID")
 
-	if zuoraUsername == "" || zuoraPassword == "" || zuoraSubscriptionPlanID == "" {
+	if zuoraUsername == "" || zuoraPassword == "" || zuoraProductRatePlanID == "" {
 		return
 	}
 
 	mockzuora.Config.Username = zuoraUsername
 	mockzuora.Config.Password = zuoraPassword
-	mockzuora.Config.SubscriptionPlanID = zuoraSubscriptionPlanID
+	mockzuora.Config.ProductRatePlanID = zuoraProductRatePlanID
 
 	e := m.Run()
 
