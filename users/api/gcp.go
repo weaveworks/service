@@ -158,8 +158,7 @@ func (a *API) getPendingSubscriptionName(ctx context.Context, logger *log.Entry,
 	if externalAccountID == testingExternalAccountID {
 		return getTestSubscriptionName(externalAccountID, subs)
 	}
-	err = fmt.Errorf("no pending subscription found for account: %v", externalAccountID)
-	return "", users.NewMalformedInputError(err)
+	return "", users.NewMalformedInputError(fmt.Errorf("no pending subscription found"))
 }
 
 func getTestSubscriptionName(externalAccountID string, subs []partner.Subscription) (string, error) {
