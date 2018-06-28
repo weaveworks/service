@@ -134,13 +134,12 @@ workflows:
     jobs:
       - lint
       - test
-      - build:
-          requires:
-            - lint
-            - test
+      - build
       - integration-test:
           requires:
             - build
+            - lint
+            - test
       - upload:
           requires:
             - integration-test
