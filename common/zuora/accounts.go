@@ -55,13 +55,14 @@ type Account struct {
 
 // AccountSubscription is an account subscription on Zuora.
 type AccountSubscription struct {
-	SubscriptionNumber    string  `json:"subscriptionNumber"`
-	Currency              string  `json:"currency"`
-	ChargeID              string  `json:"id"`
-	ChargeNumber          string  `json:"chargeNumber"`
-	PricingSummary        string  `json:"pricingSummary"`
-	Price                 float64 `json:"price"`
-	SubscriptionStartDate string  `json:"subscriptionStartDate"`
+	SubscriptionNumber    string                 `json:"subscriptionNumber"`
+	Currency              string                 `json:"currency"`
+	ChargeID              string                 `json:"id"`
+	ChargeNumber          string                 `json:"chargeNumber"`
+	PricingSummary        string                 `json:"pricingSummary"`
+	Price                 float64                `json:"price"`
+	SubscriptionStartDate string                 `json:"subscriptionStartDate"`
+	RatePlans             []SubscriptionRatePlan `json:"ratePlans"`
 }
 
 // ToZuoraAccountNumber converts a weave organization ID to a Zuora Account Number.
@@ -132,22 +133,23 @@ func (z *Zuora) GetAccount(ctx context.Context, zuoraAccountNumber string) (*Acc
 func extractNodeSecondsSubscription(ctx context.Context, subscriptions []subscriptionResponse) (*AccountSubscription, error) {
 	var subscription *AccountSubscription
 	for _, zuoraSubscription := range subscriptions {
-		for _, zuoraPlans := range zuoraSubscription.RatePlans {
-			for _, zuoraPlan := range zuoraPlans.RatePlanCharges {
-				if strings.HasSuffix(zuoraPlan.Uom, billing.UsageNodeSeconds) {
+		for _, zuoraPlan := range zuoraSubscription.RatePlans {
+			for _, zuoraPlanCharge := range zuoraPlan.RatePlanCharges {
+				if strings.HasSuffix(zuoraPlanCharge.Uom, billing.UsageNodeSeconds) {
 					if subscription == nil {
 						subStartDate, err := time.Parse(dateFormat, zuoraSubscription.SubscriptionStartDate)
 						if err != nil {
 							return nil, ErrNoSubscriptions
 						}
 						subscription = &AccountSubscription{
-							Currency:              zuoraPlan.Currency,
-							ChargeID:              zuoraPlan.ID,
-							ChargeNumber:          zuoraPlan.ChargeNumber,
-							Price:                 zuoraPlan.Price,
-							PricingSummary:        zuoraPlan.PricingSummary,
+							Currency:              zuoraPlanCharge.Currency,
+							ChargeID:              zuoraPlanCharge.ID,
+							ChargeNumber:          zuoraPlanCharge.ChargeNumber,
+							Price:                 zuoraPlanCharge.Price,
+							PricingSummary:        zuoraPlanCharge.PricingSummary,
 							SubscriptionNumber:    zuoraSubscription.SubscriptionNumber,
 							SubscriptionStartDate: subStartDate.Format(time.RFC3339),
+							RatePlans:             zuoraSubscription.RatePlans,
 						}
 						// I could return, but I am going to check for duplicate UOMs instead
 					} else {
@@ -271,8 +273,9 @@ type zuoraSummaryResponse struct {
 		WorkEmail string `json:"workEmail"`
 	} `json:"billToContact"`
 	Subscriptions []struct {
-		ID     string `json:"id"`
-		Status string `json:"status"`
+		ID        string                 `json:"id"`
+		Status    string                 `json:"status"`
+		RatePlans []SubscriptionRatePlan `json:"ratePlans"`
 	} `json:"subscriptions"`
 	Payments []Payment `json:"payments"`
 	Invoices []invoice `json:"invoices"`
@@ -290,18 +293,23 @@ type zuoraSubscriptionResponse struct {
 }
 
 type subscriptionResponse struct {
-	SubscriptionNumber    string `json:"subscriptionNumber"`
-	SubscriptionStartDate string `json:"subscriptionStartDate"`
-	RatePlans             []struct {
-		RatePlanCharges []struct {
-			ID             string  `json:"id"`
-			ChargeNumber   string  `json:"number"`
-			PricingSummary string  `json:"pricingSummary"`
-			Currency       string  `json:"currency"`
-			Price          float64 `json:"price"`
-			Uom            string  `json:"uom"`
-		} `json:"ratePlanCharges"`
-	} `json:"ratePlans"`
+	SubscriptionNumber    string                 `json:"subscriptionNumber"`
+	SubscriptionStartDate string                 `json:"subscriptionStartDate"`
+	RatePlans             []SubscriptionRatePlan `json:"ratePlans"`
+}
+
+// SubscriptionRatePlan describes the pricing of a subscription
+type SubscriptionRatePlan struct {
+	ProductID         string `json:"productId"`
+	ProductRatePlanID string `json:"productRatePlanId"`
+	RatePlanCharges   []struct {
+		ID             string  `json:"id"`
+		ChargeNumber   string  `json:"number"`
+		PricingSummary string  `json:"pricingSummary"`
+		Currency       string  `json:"currency"`
+		Price          float64 `json:"price"`
+		Uom            string  `json:"uom"`
+	} `json:"ratePlanCharges"`
 }
 
 func (z *Zuora) getAccountSubscription(ctx context.Context, accountNumber string) (*zuoraSubscriptionResponse, error) {
@@ -502,7 +510,7 @@ func (z *Zuora) CreateAccount(ctx context.Context, orgID, currency, firstName, l
 			TermType:               z.cfg.SubscriptionTermType,
 			ContractEffectiveDate:  serviceActivationDate.Format(dateFormat),
 			CustomerAcceptanceDate: acceptanceDate.Format(dateFormat),
-			SubscribeToRatePlans:   []*ratePlan{{ProductRatePlanID: z.cfg.SubscriptionPlanID}},
+			SubscribeToRatePlans:   []*ratePlan{{ProductRatePlanID: z.cfg.ProductRatePlanID}},
 		},
 		BillCycleDay:   billCycleDay,
 		InvoiceCollect: false,
@@ -534,7 +542,7 @@ func (z *Zuora) CreateAccountWithCC(ctx context.Context, orgID, currency, firstN
 			TermType:               z.cfg.SubscriptionTermType,
 			ContractEffectiveDate:  serviceActivationDate.Format(dateFormat),
 			CustomerAcceptanceDate: acceptanceDate.Format(dateFormat),
-			SubscribeToRatePlans:   []*ratePlan{{ProductRatePlanID: z.cfg.SubscriptionPlanID}},
+			SubscribeToRatePlans:   []*ratePlan{{ProductRatePlanID: z.cfg.ProductRatePlanID}},
 		},
 		BillCycleDay:   billCycleDay,
 		InvoiceCollect: false,

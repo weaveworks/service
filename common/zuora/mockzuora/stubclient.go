@@ -54,6 +54,11 @@ func (z StubClient) GetCurrentRates(ctx context.Context) (zuora.RateMap, error) 
 	return zuora.RateMap{}, nil
 }
 
+// GetProductsUnitSet mocks.
+func (z *StubClient) GetProductsUnitSet(ctx context.Context, productIDs []string) (map[string]bool, error) {
+	return nil, nil
+}
+
 // GetInvoices mocks.
 func (z StubClient) GetInvoices(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]zuora.Invoice, error) {
 	return nil, nil

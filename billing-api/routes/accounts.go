@@ -173,6 +173,11 @@ func (a *API) getPostTrialChargeableUsage(ctx context.Context, orgID string, tri
 func (a *API) uploadUsage(ctx context.Context, externalID string, account *zuora.Account, aggs []db.Aggregate, trialExpiry, today time.Time, cycleDay int) (string, error) {
 	logger := logging.With(ctx)
 	// If the trial expired before today, then we need to upload the gap that would be missed
+	aggs, err := zuora.FilterAggregatesForSubscription(ctx, a.Zuora, aggs, account)
+	if err != nil {
+		logger.Errorf("Failed to filter billable usage report for %v: %v", externalID, err)
+		return "", err
+	}
 	subscriptionNumber := account.Subscription.SubscriptionNumber
 	chargeNumber := account.Subscription.ChargeNumber
 	report, err := zuora.ReportFromAggregates(

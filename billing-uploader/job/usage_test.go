@@ -43,6 +43,12 @@ func (z *stubZuoraClient) GetAccount(ctx context.Context, zuoraAccountNumber str
 	}, nil
 }
 
+func (z *stubZuoraClient) GetProductsUnitSet(ctx context.Context, productIDs []string) (map[string]bool, error) {
+	return map[string]bool{
+		"node-seconds": true,
+	}, nil
+}
+
 func (z *stubZuoraClient) UploadUsage(ctx context.Context, r io.Reader, id string) (string, error) {
 	z.uploadUsage = r
 	return "", z.err
