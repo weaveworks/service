@@ -10,7 +10,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
+
 	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/user"
@@ -26,6 +28,9 @@ const (
 	// It only ever contains an empty string
 	// If creation/deletion needed, will happen at same time as session cookie is operated on
 	ImpersonationCookieName = "_weave_cloud_impersonation"
+
+	userTag = "user"
+	orgTag  = "organization"
 )
 
 // AuthOrgMiddleware is a middleware.Interface for authentication organisations based on the
@@ -66,6 +71,10 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 			handleError(err, w, r)
 			return
 		}
+		if span := opentracing.SpanFromContext(r.Context()); span != nil {
+			span.SetTag(userTag, response.UserID)
+			span.SetTag(orgTag, response.OrganizationID)
+		}
 
 		if !hasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
 			logging.With(r.Context()).Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
@@ -105,6 +114,9 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 		if err != nil {
 			handleError(err, w, r)
 			return
+		}
+		if span := opentracing.SpanFromContext(r.Context()); span != nil {
+			span.SetTag(orgTag, response.OrganizationID)
 		}
 
 		if !hasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
@@ -157,6 +169,9 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 			handleError(err, w, r)
 			return
 		}
+		if span := opentracing.SpanFromContext(r.Context()); span != nil {
+			span.SetTag(userTag, response.AdminID)
+		}
 
 		finishRequest(next, w, r, response.AdminID)
 	})
@@ -186,6 +201,9 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 		if err != nil {
 			handleError(err, w, r)
 			return
+		}
+		if span := opentracing.SpanFromContext(r.Context()); span != nil {
+			span.SetTag(userTag, response.UserID)
 		}
 
 		r.Header.Add(a.UserIDHeader, response.UserID)
