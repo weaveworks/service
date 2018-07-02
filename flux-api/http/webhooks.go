@@ -18,14 +18,14 @@ func (s Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	switch integrationType {
 	case "github":
-		s.handleGithubHook(w, r)
+		handleGithubHook(s, w, r)
 	default:
 		transport.WriteError(w, r, http.StatusBadRequest, fmt.Errorf("Invalid integration type"))
 		return
 	}
 }
 
-func (s Server) handleGithubHook(w http.ResponseWriter, r *http.Request) {
+func handleGithubHook(s Server, w http.ResponseWriter, r *http.Request) {
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
