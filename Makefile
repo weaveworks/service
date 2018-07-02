@@ -176,36 +176,6 @@ $(EXES) test: build/$(UPTODATE) $(PROTO_GOS)
 		-e TESTDIRS=${TESTDIRS} \
 		$(IMAGE_PREFIX)/build $@
 
-billing-integration-test: build/$(UPTODATE)
-	@mkdir -p $(shell pwd)/.pkg
-	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=billing_test' postgres:9.5)"; \
-	$(SUDO) docker run $(RM) -ti \
-		-v $(shell pwd)/.pkg:/go/pkg \
-		-v $(shell pwd):/go/src/github.com/weaveworks/service \
-		-v $(shell pwd)/billing-api/db/migrations:/migrations \
-		--workdir /go/src/github.com/weaveworks/service \
-		--link "$$DB_CONTAINER":billing-db.weave.local \
-		$(IMAGE_PREFIX)/build $@; \
-	status=$$?; \
-	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
-	exit $$status
-
-flux-integration-test: build/$(UPTODATE)
-	@mkdir -p $(shell pwd)/.pkg
-	NATS_CONTAINER="$$(docker run -d nats)"; \
-	POSTGRES_CONTAINER="$$(docker run -d postgres)"; \
-	$(SUDO) docker run $(RM) -ti \
-		-v $(shell pwd)/.pkg:/go/pkg \
-		-v $(shell pwd):/go/src/github.com/weaveworks/service \
-		-v $(shell pwd)/billing-api/db/migrations:/migrations \
-		--workdir /go/src/github.com/weaveworks/service \
-		--link "$$NATS_CONTAINER":nats \
-		--link "$$POSTGRES_CONTAINER":postgres \
-		$(IMAGE_PREFIX)/build $@; \
-	status=$$?; \
-	test -n "$(CIRCLECI)" || docker rm -f "$$NATS_CONTAINER" "$$POSTGRES_CONTAINER"; \
-	exit $$status
-
 else
 
 $(EXES): $(PROTO_GOS)
@@ -239,22 +209,48 @@ $(MOCK_COMMON_GCP_PARTNER_ACCESS):
 	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner Accessor \
 		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
-billing-integration-test: $(MOCK_GOS)
-	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"
-
-flux-integration-test:
-# These packages must currently be tested in series because
-# otherwise they will all race to run migrations.
-	/bin/bash -c "go test -tags integration -timeout 30s ./flux-api"
-	/bin/bash -c "go test -tags integration -timeout 30s ./flux-api/bus/nats"
-	/bin/bash -c "go test -tags integration -timeout 30s ./flux-api/history/sql"
-	/bin/bash -c "go test -tags integration -timeout 30s ./flux-api/instance/sql"
-
 endif
 
 
 # Test and misc stuff
 INTEGRATION_TEST_IMAGE=golang:1.9.2-stretch
+
+billing-integration-test: $(MOCK_GOS)
+	@mkdir -p $(shell pwd)/.pkg
+	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=billing_test' postgres:9.5)"; \
+	$(SUDO) docker run $(RM) -ti \
+		-v $(shell pwd)/.pkg:/go/pkg \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-v $(shell pwd)/billing-api/db/migrations:/migrations \
+		--workdir /go/src/github.com/weaveworks/service \
+		--link "$$DB_CONTAINER":billing-db.weave.local \
+		$(INTEGRATION_TEST_IMAGE) \
+		/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"; \
+	status=$$?; \
+	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
+	exit $$status
+
+flux-integration-test:
+	@mkdir -p $(shell pwd)/.pkg
+# These packages must currently be tested in series because
+# otherwise they will all race to run migrations.
+	NATS_CONTAINER="$$(docker run -d nats)"; \
+	POSTGRES_CONTAINER="$$(docker run -d postgres)"; \
+	$(SUDO) docker run $(RM) -ti \
+		-v $(shell pwd)/.pkg:/go/pkg \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-v $(shell pwd)/billing-api/db/migrations:/migrations \
+		--workdir /go/src/github.com/weaveworks/service \
+		--link "$$NATS_CONTAINER":nats \
+		--link "$$POSTGRES_CONTAINER":postgres \
+		$(INTEGRATION_TEST_IMAGE) \
+		/bin/bash -c "go test -tags integration -timeout 30s ./flux-api && \
+		              go test -tags integration -timeout 30s ./flux-api/bus/nats &&\
+		              go test -tags integration -timeout 30s ./flux-api/history/sql &&\
+		              go test -tags integration -timeout 30s ./flux-api/instance/sql"; \
+	status=$$?; \
+	test -n "$(CIRCLECI)" || docker rm -f "$$NATS_CONTAINER" "$$POSTGRES_CONTAINER"; \
+	exit $$status
 
 notebooks-integration-test:
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=notebooks_test' postgres:9.5)"; \
