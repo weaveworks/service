@@ -100,10 +100,12 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 // post: new subscription --> ACTIVE
 func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Subscription) error {
 	if err := m.updateGCP(ctx, sub); err != nil {
+		log.Error("failed to update GCP: ", err)
 		return err
 	}
 
 	if err := m.enableWeaveCloudAccess(ctx, sub.ExternalAccountID); err != nil {
+		log.Error("Failed to enable Weave Cloud Access: ", err)
 		return err
 	}
 
@@ -111,6 +113,7 @@ func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Sub
 	if sub.Status == partner.Pending {
 		body := partner.RequestBodyWithSSOLoginKey(sub.ExternalAccountID)
 		if _, err := m.Partner.ApproveSubscription(ctx, sub.Name, body); err != nil {
+			log.Error("Partner Failed to approve subscription: ", err)
 			return err
 		}
 	}
