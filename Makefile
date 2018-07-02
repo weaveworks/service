@@ -208,38 +208,38 @@ flux-integration-test: build/$(UPTODATE)
 
 else
 
-$(EXES): build/$(UPTODATE) $(PROTO_GOS)
+$(EXES): $(PROTO_GOS)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
 	$(NETGO_CHECK)
 
-%.pb.go: build/$(UPTODATE)
+%.pb.go:
 	protoc -I ./vendor:./$(@D) --gogoslick_out=plugins=grpc:./$(@D) ./$(patsubst %.pb.go,%.proto,$@)
 
-lint: build/$(UPTODATE)
+lint:
 	./tools/lint .
 
-test: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
+test: $(PROTO_GOS) $(MOCK_GOS)
 	TESTDIRS=${TESTDIRS} ./tools/test -netgo -no-race
 
-$(MOCK_USERS): build/$(UPTODATE)
+$(MOCK_USERS):
 	mockgen -destination=$@ github.com/weaveworks/service/users UsersClient \
 		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
-$(MOCK_BILLING_DB): build/$(UPTODATE) $(BILLING_DB)/db.go
+$(MOCK_BILLING_DB): $(BILLING_DB)/db.go
 	mockgen -destination=$@ github.com/weaveworks/service/$(BILLING_DB) DB
 
-$(MOCK_BILLING_GRPC): build/$(UPTODATE)
+$(MOCK_BILLING_GRPC):
 	mockgen -source=$(BILLING_GRPC) -destination=$@ -package=grpc
 
-$(MOCK_COMMON_GCP_PARTNER_CLIENT): build/$(UPTODATE)
+$(MOCK_COMMON_GCP_PARTNER_CLIENT):
 	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner API \
 		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
-$(MOCK_COMMON_GCP_PARTNER_ACCESS): build/$(UPTODATE)
+$(MOCK_COMMON_GCP_PARTNER_ACCESS):
 	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner Accessor \
 		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
-billing-integration-test: build/$(UPTODATE) $(MOCK_GOS)
+billing-integration-test: $(MOCK_GOS)
 	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"
 
 flux-integration-test:
