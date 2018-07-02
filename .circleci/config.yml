@@ -84,6 +84,7 @@ jobs:
               docker tag ${repo_tmp_image} ${image}:latest
               docker image rm ${repo_tmp_image}
             done
+            make touch-uptodate
       # FIXME: we probably don't need to copy the code and change the working dir
       - run: echo -e "export GOPATH=$HOME\nexport SRCDIR=$HOME/src/github.com/weaveworks/service\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
       - run: mkdir -p $(dirname $SRCDIR) && cp -r $(pwd)/ $SRCDIR

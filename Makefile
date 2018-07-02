@@ -29,6 +29,9 @@ images:
 	$(info $(IMAGE_NAMES))
 	@echo > /dev/null
 
+touch-uptodate:
+	touch $(UPTODATE_FILES)
+
 all: $(UPTODATE_FILES)
 
 # Generating proto code is automated.
