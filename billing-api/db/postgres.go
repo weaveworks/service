@@ -130,10 +130,6 @@ func (d *postgres) InsertAggregates(ctx context.Context, aggregates []Aggregate)
 }
 
 func (d *postgres) GetAggregates(ctx context.Context, instanceID string, from, through time.Time) (as []Aggregate, err error) {
-	return d.GetAggregatesAfter(ctx, instanceID, from, through, 0)
-}
-
-func (d *postgres) GetAggregatesAfter(ctx context.Context, instanceID string, from, through time.Time, lowerAggregatesID int) ([]Aggregate, error) {
 	q := d.Select(
 		"aggregates.id",
 		"aggregates.instance_id",
@@ -143,19 +139,46 @@ func (d *postgres) GetAggregatesAfter(ctx context.Context, instanceID string, fr
 		"aggregates.created_at",
 	).
 		From(tableAggregates).
-		Where(squirrel.Gt{"aggregates.id": lowerAggregatesID}).
 		Where(squirrel.Eq{"aggregates.instance_id": instanceID}).
 		Where(squirrel.Lt{"aggregates.bucket_start": through}).
 		OrderBy("aggregates.bucket_start asc", "aggregates.amount_type asc")
 	if !from.IsZero() {
 		q = q.Where(squirrel.GtOrEq{"aggregates.bucket_start": from})
 	}
-	rows, err := q.Query()
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return d.scanAggregates(rows)
+	return d.aggregateQueryScan(q)
+}
+
+func (d *postgres) GetAggregatesToUpload(ctx context.Context, instanceID string, from, through time.Time) ([]Aggregate, error) {
+	q := d.Select(
+		"aggregates.id",
+		"aggregates.instance_id",
+		"aggregates.bucket_start",
+		"aggregates.amount_type",
+		"aggregates.amount_value",
+		"aggregates.created_at",
+	).
+		From(tableAggregates).
+		Where(squirrel.Eq{"aggregates.upload_id": nil}).
+		Where(squirrel.Eq{"aggregates.instance_id": instanceID}).
+		Where(squirrel.Lt{"aggregates.bucket_start": through}).
+		Where(squirrel.GtOrEq{"aggregates.bucket_start": from}).
+		OrderBy("aggregates.bucket_start asc", "aggregates.amount_type asc")
+	return d.aggregateQueryScan(q)
+}
+
+func (d *postgres) GetAggregatesUploaded(ctx context.Context, uploadID int64) ([]Aggregate, error) {
+	q := d.Select(
+		"aggregates.id",
+		"aggregates.instance_id",
+		"aggregates.bucket_start",
+		"aggregates.amount_type",
+		"aggregates.amount_value",
+		"aggregates.created_at",
+	).
+		From(tableAggregates).
+		Where(squirrel.Eq{"aggregates.upload_id": uploadID}).
+		OrderBy("aggregates.bucket_start asc", "aggregates.amount_type asc")
+	return d.aggregateQueryScan(q)
 }
 
 func (d *postgres) GetAggregatesFrom(ctx context.Context, instanceIDs []string, from time.Time) ([]Aggregate, error) {
@@ -173,6 +196,10 @@ func (d *postgres) GetAggregatesFrom(ctx context.Context, instanceIDs []string, 
 	if !from.IsZero() {
 		q = q.Where(squirrel.GtOrEq{"aggregates.bucket_start": from})
 	}
+	return d.aggregateQueryScan(q)
+}
+
+func (d *postgres) aggregateQueryScan(q squirrel.SelectBuilder) (as []Aggregate, err error) {
 	rows, err := q.Query()
 	if err != nil {
 		return nil, err
@@ -204,27 +231,27 @@ func (d postgres) scanAggregates(rows *sql.Rows) ([]Aggregate, error) {
 	return aggregates, nil
 }
 
-func (d *postgres) GetUsageUploadLargestAggregateID(ctx context.Context, uploader string) (int, error) {
-	var max sql.NullInt64
-	err := d.QueryRow("SELECT MAX(max_aggregate_id) FROM usage_uploads WHERE uploader = $1", uploader).Scan(&max)
-	if err != nil {
-		return 0, err
-	}
-	return int(max.Int64), nil
-}
-
-func (d *postgres) InsertUsageUpload(ctx context.Context, uploader string, aggregatesID int) (int64, error) {
+func (d *postgres) InsertUsageUpload(ctx context.Context, uploader string, aggregatesIDs []int) (int64, error) {
 	var id int64
-	err := d.QueryRow("INSERT INTO usage_uploads (max_aggregate_id, uploader) VALUES ($1, $2) RETURNING id", aggregatesID, uploader).
+	err := d.QueryRow("INSERT INTO usage_uploads (max_aggregate_id, uploader) VALUES (-1, $1) RETURNING id", uploader).
 		Scan(&id)
 	if err != nil {
 		return 0, err
+	}
+	_, err = d.Update("aggregates").Where(squirrel.Eq{"id": aggregatesIDs}).Set("upload_id", id).Query()
+	if err != nil {
+		d.DeleteUsageUpload(ctx, uploader, id)
+		return id, err
 	}
 	return id, nil
 }
 
 func (d *postgres) DeleteUsageUpload(ctx context.Context, uploader string, uploadID int64) error {
 	_, err := d.Delete(tableUsageUploads).Where(squirrel.Eq{"id": uploadID, "uploader": uploader}).Exec()
+	if err != nil {
+		return err
+	}
+	_, err = d.Update(tableAggregates).Where(squirrel.Eq{"upload_id": uploadID}).Set("upload_id", nil).Exec()
 	return err
 }
 
