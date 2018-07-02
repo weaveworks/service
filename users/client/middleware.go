@@ -366,7 +366,10 @@ func (a WebhooksMiddleware) Wrap(next http.Handler) http.Handler {
 		}
 
 		// Verify the signature if we require it. This is only used for Github integrations at the moment.
-		if response.Webhook.SecretSigningKey != "" {
+		if response.Webhook.IntegrationType == "github" {
+			if response.Webhook.SecretSigningKey == "" {
+				handleError(fmt.Errorf("Github webhook requires a signing key"), w, r)
+			}
 			_, err := github.ValidatePayload(r, []byte(response.Webhook.SecretSigningKey))
 			if err != nil {
 				handleError(err, w, r)
