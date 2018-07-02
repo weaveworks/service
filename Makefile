@@ -254,6 +254,8 @@ endif
 
 
 # Test and misc stuff
+INTEGRATION_TEST_IMAGE=golang:1.9.2-stretch
+
 notebooks-integration-test:
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=notebooks_test' postgres:9.5)"; \
 	docker run $(RM) \
@@ -261,7 +263,7 @@ notebooks-integration-test:
 		-v $(shell pwd)/notebooks/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/notebooks \
 		--link "$$DB_CONTAINER":configs-db.weave.local \
-		golang:1.9.2-stretch \
+		$(INTEGRATION_TEST_IMAGE) \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
@@ -274,7 +276,7 @@ users-integration-test: $(PROTO_GOS) $(MOCK_GOS)
 		-v $(shell pwd)/users/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/users \
 		--link "$$DB_CONTAINER":users-db.weave.local \
-		golang:1.9.2-stretch \
+		$(INTEGRATION_TEST_IMAGE) \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
@@ -286,7 +288,7 @@ pubsub-integration-test:
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		--net=host -p 127.0.0.1:1337:1337 \
 		--workdir /go/src/github.com/weaveworks/service/common/gcp/pubsub \
-		golang:1.9.2-stretch \
+		$(INTEGRATION_TEST_IMAGE) \
 		/bin/bash -c "RUN_MANUAL_TEST=1 go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$PUBSUB_EMU_CONTAINER"; \
@@ -298,7 +300,7 @@ kubectl-service-integration-test: kubectl-service/grpc/kubectl-service.pb.go
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		--workdir /go/src/github.com/weaveworks/service/kubectl-service \
 		--link "$$SVC_CONTAINER":kubectl-service.weave.local \
-		golang:1.9.2-stretch \
+		$(INTEGRATION_TEST_IMAGE) \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \
@@ -310,7 +312,7 @@ gcp-service-integration-test: gcp-service/grpc/gcp-service.pb.go
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		--workdir /go/src/github.com/weaveworks/service/gcp-service \
 		--link "$$SVC_CONTAINER":gcp-service.weave.local \
-		golang:1.9.2-stretch \
+		$(INTEGRATION_TEST_IMAGE) \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \
