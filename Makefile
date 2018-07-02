@@ -332,7 +332,7 @@ clean:
 save-images:
 	@mkdir -p images
 	for image_name in $(IMAGE_NAMES); do \
-		if ! echo $$image_name | grep build; then \
+		if ! echo $$image_name | grep "build\\|postgres-configs-db"; then \
 			docker save $$image_name:$(IMAGE_TAG) -o images/$$(echo $$image_name | tr "/" _):$(IMAGE_TAG); \
 		fi \
 	done
