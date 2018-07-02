@@ -254,7 +254,7 @@ endif
 
 
 # Test and misc stuff
-notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
+notebooks-integration-test:
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=notebooks_test' postgres:9.5)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
@@ -267,7 +267,7 @@ notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
 
-users-integration-test: $(USERS_UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
+users-integration-test: $(PROTO_GOS) $(MOCK_GOS)
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=users_test' postgres:9.5)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
@@ -292,7 +292,7 @@ pubsub-integration-test:
 	test -n "$(CIRCLECI)" || docker rm -f "$$PUBSUB_EMU_CONTAINER"; \
 	exit $$status
 
-kubectl-service-integration-test: kubectl-service/$(UPTODATE) kubectl-service/grpc/kubectl-service.pb.go
+kubectl-service-integration-test: kubectl-service/grpc/kubectl-service.pb.go
 	SVC_CONTAINER="$$(docker run -d -p 4887:4772 -p 8887:80 $(IMAGE_PREFIX)/kubectl-service -dry-run=true)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
@@ -304,7 +304,7 @@ kubectl-service-integration-test: kubectl-service/$(UPTODATE) kubectl-service/gr
 	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \
 	exit $$status
 
-gcp-service-integration-test: gcp-service/$(UPTODATE) gcp-service/grpc/gcp-service.pb.go
+gcp-service-integration-test: gcp-service/grpc/gcp-service.pb.go
 	SVC_CONTAINER="$$(docker run -d -p 4888:4772 -p 8888:80 $(IMAGE_PREFIX)/gcp-service -dry-run=true)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
