@@ -93,6 +93,9 @@ jobs:
           background: true
       - run: |
           cd $SRCDIR
+          # Notifications comes first because it uses the downloaded images
+          # subsequent steps will require code generation which would trigger a rebuild
+          make RM= notification-integration-test
           make RM= notebooks-integration-test
           make RM= users-integration-test
           make RM= billing-integration-test
@@ -100,7 +103,6 @@ jobs:
           make RM= flux-integration-test
           make RM= kubectl-service-integration-test
           make RM= gcp-service-integration-test
-          make RM= notification-integration-test
 
   upload:
     <<: *defaults
