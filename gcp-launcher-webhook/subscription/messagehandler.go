@@ -100,7 +100,7 @@ func (m MessageHandler) Handle(msg dto.Message) error {
 // post: new subscription --> ACTIVE
 func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Subscription) error {
 	if err := m.updateGCP(ctx, sub); err != nil {
-		log.Errorf("failed to update GCP for '%s': ", sub.ExternalAccountID, err)
+		log.Errorf("failed to update GCP for '%s': %v", sub.ExternalAccountID, err)
 		return err
 	}
 
@@ -113,7 +113,7 @@ func (m MessageHandler) updateSubscription(ctx context.Context, sub *partner.Sub
 	if sub.Status == partner.Pending {
 		body := partner.RequestBodyWithSSOLoginKey(sub.ExternalAccountID)
 		if _, err := m.Partner.ApproveSubscription(ctx, sub.Name, body); err != nil {
-			log.Errorf("Partner Failed to approve subscription for '%s': ", sub.ExternalAccountID, err)
+			log.Errorf("Partner Failed to approve subscription for '%s': %v", sub.ExternalAccountID, err)
 			return err
 		}
 	}
