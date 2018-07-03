@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/weaveworks/service/common/constants/webhooks"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/users"
 )
@@ -45,7 +46,7 @@ func (a *API) createOrganizationWebhook(currentUser *users.User, w http.Response
 
 	// Validate integration type
 	switch payload.IntegrationType {
-	case "github":
+	case webhooks.GithubPushIntegrationType:
 		break
 	default:
 		renderError(w, r, users.NewMalformedInputError(fmt.Errorf("Invalid integration type")))

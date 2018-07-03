@@ -167,7 +167,7 @@ func TestHandleWebhook(t *testing.T) {
 
 		req, err := http.NewRequest("GET", "https://weave.test/webhooks/secret-abc", bytes.NewReader(payload))
 		assert.NoError(t, err)
-		req.Header.Set(webhooks.WebhooksIntegrationTypeHeader, "github")
+		req.Header.Set(webhooks.WebhooksIntegrationTypeHeader, webhooks.GithubPushIntegrationType)
 		req.Header.Set("X-Github-Event", "push")
 
 		rr := httptest.NewRecorder()

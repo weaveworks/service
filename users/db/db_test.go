@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/weaveworks/service/common/constants/webhooks"
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/dbtest"
@@ -310,9 +311,9 @@ func TestDB_ListOrganizationWebhooks(t *testing.T) {
 	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
 	assert.NoError(t, err)
 
-	w1, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, "github")
+	w1, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, webhooks.GithubPushIntegrationType)
 	assert.NoError(t, err)
-	w2, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, "github")
+	w2, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, webhooks.GithubPushIntegrationType)
 	assert.NoError(t, err)
 
 	ws, err := db.ListOrganizationWebhooks(ctx, o.ExternalID)
@@ -332,7 +333,7 @@ func TestDB_CreateOrganizationWebhook(t *testing.T) {
 	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
 	assert.NoError(t, err)
 
-	w, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, "github")
+	w, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, webhooks.GithubPushIntegrationType)
 	assert.NoError(t, err)
 
 	id, err := strconv.Atoi(w.ID)
@@ -340,7 +341,7 @@ func TestDB_CreateOrganizationWebhook(t *testing.T) {
 	assert.True(t, id >= 1)
 
 	assert.Equal(t, o.ID, w.OrganizationID)
-	assert.Equal(t, "github", w.IntegrationType)
+	assert.Equal(t, webhooks.GithubPushIntegrationType, w.IntegrationType)
 	assert.NotEmpty(t, w.SecretID)
 	assert.NotEmpty(t, w.SecretSigningKey)
 	assert.NotZero(t, w.CreatedAt)
@@ -363,9 +364,9 @@ func TestDB_DeleteOrganizationWebhook(t *testing.T) {
 	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
 	assert.NoError(t, err)
 
-	w1, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, "github")
+	w1, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, webhooks.GithubPushIntegrationType)
 	assert.NoError(t, err)
-	w2, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, "github")
+	w2, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, webhooks.GithubPushIntegrationType)
 	assert.NoError(t, err)
 
 	err = db.DeleteOrganizationWebhook(ctx, o.ExternalID, w1.SecretID)
@@ -388,9 +389,9 @@ func TestDB_FindOrganizationWebhookBySecretID(t *testing.T) {
 	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
 	assert.NoError(t, err)
 
-	_, err = db.CreateOrganizationWebhook(ctx, o.ExternalID, "github")
+	_, err = db.CreateOrganizationWebhook(ctx, o.ExternalID, webhooks.GithubPushIntegrationType)
 	assert.NoError(t, err)
-	w2, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, "github")
+	w2, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, webhooks.GithubPushIntegrationType)
 	assert.NoError(t, err)
 
 	// Test valid SecretID

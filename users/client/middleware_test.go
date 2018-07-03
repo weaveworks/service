@@ -144,7 +144,7 @@ func TestWebhooksMiddleware(t *testing.T) {
 					Webhook: &users.Webhook{
 						ID:               "1",
 						OrganizationID:   "100",
-						IntegrationType:  "github",
+						IntegrationType:  webhooks.GithubPushIntegrationType,
 						SecretID:         "secret-abc",
 						SecretSigningKey: "signing-key-123",
 						CreatedAt:        time.Now(),
@@ -166,7 +166,7 @@ func TestWebhooksMiddleware(t *testing.T) {
 					Webhook: &users.Webhook{
 						ID:               "1",
 						OrganizationID:   "100",
-						IntegrationType:  "github",
+						IntegrationType:  webhooks.GithubPushIntegrationType,
 						SecretID:         "secret-abc",
 						SecretSigningKey: "signing-key-123",
 						CreatedAt:        time.Now(),

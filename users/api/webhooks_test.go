@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/weaveworks/service/common/constants/webhooks"
 	"github.com/weaveworks/service/users/db/dbtest"
 )
 
@@ -17,8 +18,8 @@ func TestAPI_listOrganizationWebhooks(t *testing.T) {
 	defer cleanup(t)
 
 	user, org, _ := dbtest.GetOrgAndTeam(t, database)
-	w1 := dbtest.CreateWebhookForOrg(t, database, org, "github")
-	w2 := dbtest.CreateWebhookForOrg(t, database, org, "github")
+	w1 := dbtest.CreateWebhookForOrg(t, database, org, webhooks.GithubPushIntegrationType)
+	w2 := dbtest.CreateWebhookForOrg(t, database, org, webhooks.GithubPushIntegrationType)
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "GET", "/api/users/org/"+org.ExternalID+"/webhooks", nil)
@@ -52,7 +53,7 @@ func TestAPI_createOrganizationWebhook(t *testing.T) {
 
 	user, org, _ := dbtest.GetOrgAndTeam(t, database)
 
-	payload, err := json.Marshal(map[string]string{"integrationType": "github"})
+	payload, err := json.Marshal(map[string]string{"integrationType": webhooks.GithubPushIntegrationType})
 	assert.NoError(t, err)
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "POST", "/api/users/org/"+org.ExternalID+"/webhooks", bytes.NewReader(payload))
@@ -64,7 +65,7 @@ func TestAPI_createOrganizationWebhook(t *testing.T) {
 
 	assert.NotContains(t, body, "ID")             // Internal ID not exposed to user.
 	assert.NotContains(t, body, "OrganizationID") // Internal Org ID not exposed to user.
-	assert.Equal(t, "github", body["integrationType"])
+	assert.Equal(t, webhooks.GithubPushIntegrationType, body["integrationType"])
 	assert.NotEmpty(t, body["secretID"])
 	assert.NotEmpty(t, body["secretSigningKey"])
 	assert.NotEmpty(t, body["createdAt"])
@@ -84,8 +85,8 @@ func TestAPI_deleteOrganizationWebhook(t *testing.T) {
 	defer cleanup(t)
 
 	user, org, _ := dbtest.GetOrgAndTeam(t, database)
-	w1 := dbtest.CreateWebhookForOrg(t, database, org, "github")
-	w2 := dbtest.CreateWebhookForOrg(t, database, org, "github")
+	w1 := dbtest.CreateWebhookForOrg(t, database, org, webhooks.GithubPushIntegrationType)
+	w2 := dbtest.CreateWebhookForOrg(t, database, org, webhooks.GithubPushIntegrationType)
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "DELETE", "/api/users/org/"+org.ExternalID+"/webhooks/"+w1.SecretID, nil)

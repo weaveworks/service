@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/weaveworks/service/common/constants/webhooks"
+
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/tokens"
 )
@@ -26,7 +28,7 @@ func (d *DB) CreateOrganizationWebhook(ctx context.Context, orgExternalID, integ
 
 	// Create secretSigningKey only if using GitHub for now.
 	secretSigningKey := ""
-	if integrationType == "github" {
+	if integrationType == webhooks.GithubPushIntegrationType {
 		secretSigningKey, err = tokens.Generate()
 		if err != nil {
 			return nil, err

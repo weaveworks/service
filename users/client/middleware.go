@@ -18,6 +18,7 @@ import (
 	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/common/constants/webhooks"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/tokens"
 )
@@ -368,7 +369,7 @@ func (a WebhooksMiddleware) Wrap(next http.Handler) http.Handler {
 		}
 
 		// Verify the signature if we require it. This is only used for Github integrations at the moment.
-		if response.Webhook.IntegrationType == "github" {
+		if response.Webhook.IntegrationType == webhooks.GithubPushIntegrationType {
 			if response.Webhook.SecretSigningKey == "" {
 				http.Error(w, "The GitHub signing key is missing.", 500)
 				return
