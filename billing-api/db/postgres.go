@@ -106,7 +106,7 @@ func (d *postgres) Transaction(f func(DB) error) error {
 	if err != nil {
 		// Rollback error is ignored as we already have one in progress
 		if err2 := tx.Rollback(); err2 != nil {
-			log.Warn("transaction rollback: %v (ignored)", err2)
+			log.Warnf("transaction rollback: %v (ignored)", err2)
 		}
 		return err
 	}
