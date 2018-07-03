@@ -24,10 +24,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/ExpansiveWorlds/instrumentedsql"
-  packages = [
-    ".",
-    "opentracing"
-  ]
+  packages = ["."]
   revision = "55151537c3a7c0e0ca34be1660247546570a6e2f"
 
 [[projects]]
@@ -313,8 +310,8 @@
 [[projects]]
   name = "github.com/gorilla/mux"
   packages = ["."]
-  revision = "24fca303ac6da784b9e8269f724ddeb0b2eea5e7"
-  version = "v1.5.0"
+  revision = "e3702bed27f0d39777b0b37b664b6280e8ef8fbf"
+  version = "v1.6.2"
 
 [[projects]]
   name = "github.com/gorilla/securecookie"
@@ -1028,6 +1025,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b63440af5963b4a713e09f7498f2614a3311e2feb760900f7643a74a43f4e50e"
+  inputs-digest = "88cbe8b087320a54e12e90c534845d063ba2eec0f4acc36b0e2b57c0685c6bd2"
   solver-name = "gps-cdcl"
   solver-version = 1

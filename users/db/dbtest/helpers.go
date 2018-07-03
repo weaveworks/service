@@ -86,6 +86,13 @@ func CreateOrgForTeam(t *testing.T, db db.DB, u *users.User, team *users.Team) *
 	return org
 }
 
+// CreateWebhookForOrg creates a new random webhook for this org
+func CreateWebhookForOrg(t *testing.T, db db.DB, org *users.Organization, integrationType string) *users.Webhook {
+	w, err := db.CreateOrganizationWebhook(context.Background(), org.ExternalID, integrationType)
+	require.NoError(t, err)
+	return w
+}
+
 // GetOrg makes org with a random ExternalID and user for testing
 func GetOrg(t *testing.T, db db.DB) (*users.User, *users.Organization) {
 	user := GetUser(t, db)
