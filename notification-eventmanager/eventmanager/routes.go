@@ -27,6 +27,7 @@ func (em *EventManager) Register(r *mux.Router) {
 		{"create_event", "POST", "/api/notification/events", em.rateLimited(withInstance(em.handleCreateEvent))},
 		// Legacy event handler
 		{"create_slack_event", "POST", "/api/notification/slack/{instanceID}/{eventType}", em.rateLimited(toJSON(em.handleSlackEvent))},
+		{"create_webhook_event", "POST", "/api/notification/webhook/{instanceID}/{eventType}", em.rateLimited(toJSON(em.handleWebhookEvent))},
 		{"health_check", "GET", "/api/notification/events/healthcheck", http.HandlerFunc(em.handleHealthCheck)},
 
 		// -- External API - reachable from outside Weave Cloud cluster
