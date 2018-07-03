@@ -173,7 +173,7 @@ func TestWebhooksMiddleware(t *testing.T) {
 					},
 				}, nil)
 		req.Header.Set("X-Hub-Signature", genGithubMAC([]byte("payload"), []byte("signing-key-invalid")))
-		assertResponse(t, m, req, err, http.StatusBadGateway, "")
+		assertResponse(t, m, req, err, http.StatusUnauthorized, "The GitHub signature header is invalid.\n")
 	}
 
 	{ // Webhook does not exist
@@ -181,11 +181,11 @@ func TestWebhooksMiddleware(t *testing.T) {
 			LookupOrganizationWebhookUsingSecretID(gomock.Any(), &users.LookupOrganizationWebhookUsingSecretIDRequest{
 				SecretID: "secret-invalid",
 			}).
-			Return(nil, httpgrpc.Errorf(http.StatusUnauthorized, ""))
+			Return(nil, httpgrpc.Errorf(http.StatusNotFound, "Webhook does not exist."))
 
 		req, err := http.NewRequest("GET", "https://weave.test/webhooks/secret-invalid", nil)
 		req = mux.SetURLVars(req, map[string]string{"secretID": "secret-invalid"})
-		assertResponse(t, m, req, err, http.StatusUnauthorized, "Unauthorized\n")
+		assertResponse(t, m, req, err, http.StatusNotFound, "Webhook does not exist.\n")
 	}
 }
 

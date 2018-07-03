@@ -234,6 +234,8 @@ func handleError(err error, w http.ResponseWriter, r *http.Request) {
 			fallthrough
 		case http.StatusPaymentRequired:
 			http.Error(w, string(errResp.Body), int(errResp.Code))
+		case http.StatusNotFound:
+			http.Error(w, string(errResp.Body), int(errResp.Code))
 		default:
 			logging.With(r.Context()).Errorf("Error from users svc: %v (%d)", string(errResp.Body), errResp.Code)
 			w.WriteHeader(http.StatusUnauthorized)
@@ -368,11 +370,12 @@ func (a WebhooksMiddleware) Wrap(next http.Handler) http.Handler {
 		// Verify the signature if we require it. This is only used for Github integrations at the moment.
 		if response.Webhook.IntegrationType == "github" {
 			if response.Webhook.SecretSigningKey == "" {
-				handleError(fmt.Errorf("Github webhook requires a signing key"), w, r)
+				http.Error(w, "The GitHub signing key is missing.", 500)
+				return
 			}
 			_, err := github.ValidatePayload(r, []byte(response.Webhook.SecretSigningKey))
 			if err != nil {
-				handleError(err, w, r)
+				http.Error(w, "The GitHub signature header is invalid.", 401)
 				return
 			}
 		}
