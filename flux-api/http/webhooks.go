@@ -19,6 +19,7 @@ func (s Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	switch integrationType {
 	case webhooks.GithubPushIntegrationType:
 		handleGithubHook(s, w, r)
+		return
 	default:
 		transport.WriteError(w, r, http.StatusBadRequest, fmt.Errorf("Invalid integration type"))
 		return
@@ -55,4 +56,6 @@ func handleGithubHook(s Server, w http.ResponseWriter, r *http.Request) {
 	default:
 		log.Printf("received webhook: %T\n%s", hook, github.Stringify(hook))
 	}
+
+	w.WriteHeader(http.StatusOK)
 }
