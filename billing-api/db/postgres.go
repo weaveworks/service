@@ -118,10 +118,17 @@ func (d *postgres) InsertAggregates(ctx context.Context, aggregates []Aggregate)
 		return nil
 	}
 	insert := d.Insert(tableAggregates).
-		Columns("instance_id", "bucket_start", "amount_type", "amount_value")
+		Columns("instance_id", "bucket_start", "amount_type", "amount_value", "upload_id")
 
 	for _, aggregate := range aggregates {
-		insert = insert.Values(aggregate.InstanceID, aggregate.BucketStart, aggregate.AmountType, aggregate.AmountValue)
+		var uploadID sql.NullInt64
+		if aggregate.UploadID == 0 {
+			uploadID = sql.NullInt64{}
+		} else {
+			uploadID = sql.NullInt64{Int64: aggregate.UploadID, Valid: true}
+		}
+		insert = insert.Values(
+			aggregate.InstanceID, aggregate.BucketStart, aggregate.AmountType, aggregate.AmountValue, uploadID)
 	}
 
 	log.Debug(insert.ToSql())
@@ -137,6 +144,7 @@ func (d *postgres) GetAggregates(ctx context.Context, instanceID string, from, t
 		"aggregates.amount_type",
 		"aggregates.amount_value",
 		"aggregates.created_at",
+		"aggregates.upload_id",
 	).
 		From(tableAggregates).
 		Where(squirrel.Eq{"aggregates.instance_id": instanceID}).
@@ -156,6 +164,7 @@ func (d *postgres) GetAggregatesToUpload(ctx context.Context, instanceID string,
 		"aggregates.amount_type",
 		"aggregates.amount_value",
 		"aggregates.created_at",
+		"aggregates.upload_id",
 	).
 		From(tableAggregates).
 		Where(squirrel.Eq{"aggregates.upload_id": nil}).
@@ -174,6 +183,7 @@ func (d *postgres) GetAggregatesUploaded(ctx context.Context, uploadID int64) ([
 		"aggregates.amount_type",
 		"aggregates.amount_value",
 		"aggregates.created_at",
+		"aggregates.upload_id",
 	).
 		From(tableAggregates).
 		Where(squirrel.Eq{"aggregates.upload_id": uploadID}).
@@ -189,6 +199,7 @@ func (d *postgres) GetAggregatesFrom(ctx context.Context, instanceIDs []string, 
 		"aggregates.amount_type",
 		"aggregates.amount_value",
 		"aggregates.created_at",
+		"aggregates.upload_id",
 	).
 		From(tableAggregates).
 		Where(squirrel.Eq{"aggregates.instance_id": instanceIDs}).
@@ -211,17 +222,19 @@ func (d *postgres) aggregateQueryScan(q squirrel.SelectBuilder) (as []Aggregate,
 func (d postgres) scanAggregates(rows *sql.Rows) ([]Aggregate, error) {
 	var aggregates []Aggregate
 	var createdAt pq.NullTime
+	var uploadID sql.NullInt64
 	for rows.Next() {
 		var aggregate Aggregate
 		if err := rows.Scan(
 			&aggregate.ID,
 			&aggregate.InstanceID, &aggregate.BucketStart,
 			&aggregate.AmountType, &aggregate.AmountValue,
-			&createdAt,
+			&createdAt, &uploadID,
 		); err != nil {
 			return nil, err
 		}
 		aggregate.CreatedAt = createdAt.Time
+		aggregate.UploadID = uploadID.Int64
 		aggregates = append(aggregates, aggregate)
 	}
 	err := rows.Err()
@@ -238,7 +251,7 @@ func (d *postgres) InsertUsageUpload(ctx context.Context, uploader string, aggre
 	if err != nil {
 		return 0, err
 	}
-	_, err = d.Update("aggregates").Where(squirrel.Eq{"id": aggregatesIDs}).Set("upload_id", id).Query()
+	_, err = d.Update(tableAggregates).Where(squirrel.Eq{"id": aggregatesIDs}).Set("upload_id", id).Query()
 	if err != nil {
 		d.DeleteUsageUpload(ctx, uploader, id)
 		return id, err
