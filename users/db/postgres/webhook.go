@@ -134,5 +134,5 @@ func (d DB) webhooksQuery() squirrel.SelectBuilder {
 	).
 		From("webhooks").
 		Where("webhooks.deleted_at is null").
-		OrderBy("webhooks.created_at ASC")
+		OrderBy("webhooks.created_at ASC, webhooks.id ASC")
 }
