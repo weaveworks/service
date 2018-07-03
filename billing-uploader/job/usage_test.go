@@ -340,3 +340,87 @@ func TestJobUpload_Do_zuoraError(t *testing.T) {
 	// Make sure the upload_id was cleared after failing to upload
 	assert.Len(t, aggs, 0)
 }
+
+func TestJobUpload_Do_outOfOrder(t *testing.T) {
+	d := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, d)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+
+	z := &stubZuoraClient{}
+	u := mock_users.NewMockUsersClient(ctrl)
+	u.EXPECT().
+		GetBillableOrganizations(gomock.Any(), gomock.Any()).
+		Return(&users.GetBillableOrganizationsResponse{
+			Organizations: []users.Organization{
+				{
+					ID:                 "100",
+					ZuoraAccountNumber: "Wtest100",
+					ExternalID:         "test100",
+				},
+				{
+					ID:                 "101",
+					ZuoraAccountNumber: "Wtest101",
+					ExternalID:         "test101",
+				},
+			},
+		}, nil).
+		AnyTimes()
+
+	firstDayStart := start
+	secondDayStart := firstDayStart.Add(24 * time.Hour)
+	thirdDayStart := secondDayStart.Add(24 * time.Hour)
+
+	aggregates = []db.Aggregate{
+		{
+			BucketStart: firstDayStart.Add(1 * time.Hour), // 2017-11-27 01:00
+			InstanceID:  "100",
+			AmountType:  "node-seconds",
+			AmountValue: 1,
+		},
+		{
+			BucketStart: secondDayStart.Add(1 * time.Hour),
+			InstanceID:  "101",
+			AmountType:  "node-seconds",
+			AmountValue: 2,
+		},
+		{
+			BucketStart: secondDayStart.Add(-1 * time.Hour),
+			InstanceID:  "100",
+			AmountType:  "node-seconds",
+			AmountValue: 3,
+		},
+	}
+	err := d.InsertAggregates(ctx, aggregates)
+	assert.NoError(t, err)
+
+	j := job.NewUsageUpload(d, u, usage.NewZuora(z), instrument.NewJobCollector("foo"))
+	err = j.Do(secondDayStart.Add(10 * time.Minute))
+	assert.NoError(t, err)
+
+	// do usage upload, check next_day usage is not included
+	aggs, err := d.GetAggregatesUploaded(ctx, 1)
+	assert.NoError(t, err)
+	assert.Len(t, aggs, 2)
+
+	err = d.InsertAggregates(ctx, []db.Aggregate{
+		{
+			BucketStart: secondDayStart.Add(2 * time.Hour),
+			InstanceID:  "101",
+			AmountType:  "node-seconds",
+			AmountValue: 4,
+		},
+	})
+	assert.NoError(t, err)
+
+	// do usage upload for next_day, check usage is included
+	err = j.Do(thirdDayStart.Add(10 * time.Minute))
+	aggs, err = d.GetAggregatesUploaded(ctx, 2)
+	assert.NoError(t, err)
+	assert.Len(t, aggs, 2)
+	assert.Equal(t, int64(2), aggs[0].AmountValue)
+	assert.Equal(t, int64(4), aggs[1].AmountValue)
+}
