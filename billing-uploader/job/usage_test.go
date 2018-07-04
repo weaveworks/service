@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"errors"
+	"github.com/stretchr/testify/require"
 	"io"
 	"io/ioutil"
 	"strconv"
@@ -255,10 +256,8 @@ func TestJobUpload_Do(t *testing.T) {
 			ops[op.OperationId] = op
 		}
 
-		firstGCPAggID := 5
-		firstGCPAggIDStr := strconv.Itoa(firstGCPAggID)
-		secondGCPAggID := 6
-		secondGCPAggIDStr := strconv.Itoa(secondGCPAggID)
+		firstGCPAggIDStr := strconv.Itoa(uploadedAggs[0].ID)
+		secondGCPAggIDStr := strconv.Itoa(uploadedAggs[1].ID)
 		five := ops[firstGCPAggIDStr]
 		six := ops[secondGCPAggIDStr]
 		assert.NotNil(t, five, "ID="+firstGCPAggIDStr+" was not picked")
@@ -310,10 +309,11 @@ func TestJobUpload_Do_zuoraError(t *testing.T) {
 	d := dbtest.Setup(t)
 	defer dbtest.Cleanup(t, d)
 
+	ctx := context.Background()
+	uploadBefore := getLatestUpload(t, d)
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-
-	ctx := context.Background()
 
 	z := &stubZuoraClient{err: errors.New("BOOM")}
 	u := mock_users.NewMockUsersClient(ctrl)
@@ -333,23 +333,17 @@ func TestJobUpload_Do_zuoraError(t *testing.T) {
 	err := d.InsertAggregates(ctx, aggregates)
 	assert.NoError(t, err)
 
-	upload, err := d.GetLatestUsageUpload(ctx, "")
-	assert.NoError(t, err)
-	aggs, err := d.GetAggregatesUploaded(ctx, upload.ID)
-	assert.NoError(t, err)
-	assert.Len(t, aggs, 0)
-
 	j := job.NewUsageUpload(d, u, usage.NewZuora(z), instrument.NewJobCollector("foo"))
 	err = j.Do(now)
 	assert.Error(t, err)
 
-	upload2, err := d.GetLatestUsageUpload(ctx, "")
-	assert.NoError(t, err)
-	assert.Equal(t, upload.ID, upload2.ID)
+	// Check there are no new uploads
+	upload := getLatestUpload(t, d)
+	assert.Equal(t, uploadBefore.ID, upload.ID)
 
-	aggs, err = d.GetAggregatesUploaded(ctx, upload.ID+1)
+	// Check that any assigned usage was cleared
+	aggs, err := d.GetAggregatesUploaded(ctx, upload.ID+1)
 	assert.NoError(t, err)
-	// Make sure the upload_id was cleared after failing to upload
 	assert.Len(t, aggs, 0)
 }
 
@@ -414,7 +408,7 @@ func TestJobUpload_Do_outOfOrder(t *testing.T) {
 	assert.NoError(t, err)
 
 	// do usage upload, check next_day usage is not included
-	upload, err := d.GetLatestUsageUpload(ctx, "")
+	upload, err := d.GetLatestUsageUpload(ctx, "zuora")
 	assert.NoError(t, err)
 	aggs, err := d.GetAggregatesUploaded(ctx, upload.ID)
 	assert.NoError(t, err)
@@ -432,11 +426,28 @@ func TestJobUpload_Do_outOfOrder(t *testing.T) {
 
 	// do usage upload for next_day, check usage is included
 	err = j.Do(thirdDayStart.Add(10 * time.Minute))
-	upload, err = d.GetLatestUsageUpload(ctx, "")
+	upload, err = d.GetLatestUsageUpload(ctx, "zuora")
 	assert.NoError(t, err)
 	aggs, err = d.GetAggregatesUploaded(ctx, upload.ID)
 	assert.NoError(t, err)
 	assert.Len(t, aggs, 2)
 	assert.Equal(t, int64(2), aggs[0].AmountValue)
 	assert.Equal(t, int64(4), aggs[1].AmountValue)
+
+	err = d.DeleteUsageUpload(ctx, upload.Uploader, upload.ID)
+	assert.NoError(t, err)
+	aggs, err = d.GetAggregatesUploaded(ctx, upload.ID)
+	assert.Len(t, aggs, 0)
+}
+
+// getLatestUpload provides a default placeholder usage upload entry for when there might not
+// already be an entry
+func getLatestUpload(t *testing.T, d db.DB) db.UsageUpload {
+	usage, err := d.GetLatestUsageUpload(context.Background(), "")
+	require.NoError(t, err)
+
+	if usage == nil {
+		usage = &db.UsageUpload{ID: 0, Uploader: "placeholder"}
+	}
+	return *usage
 }

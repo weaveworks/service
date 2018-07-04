@@ -211,7 +211,7 @@ func (j *UsageUpload) upload(ctx context.Context, aggregateIDs []int, uploadName
 		return err
 	}
 	if err = j.uploader.Upload(ctx, uploadName); err != nil {
-		logger.Warnf("Error uploading usage: %+v. removing usage record", err)
+		logger.Warnf("Error uploading usage: %+v. removing usage record %d", err, uploadID)
 		// Delete upload record because we failed, so our next run will picks these aggregates up again.
 		if e := j.db.DeleteUsageUpload(ctx, j.uploader.ID(), uploadID); e != nil {
 			// We couldn't delete the record of uploading usage and therefore will not retry in another run.

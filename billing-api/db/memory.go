@@ -12,22 +12,20 @@ import (
 
 // DB is an in-memory database for testing, and local development
 type memory struct {
-	mtx                        sync.RWMutex
-	aggregatesSet              map[int]Aggregate // To allow for O(1) presence checks.
-	uploads                    []UsageUpload
-	postTrialInvoices          map[string]PostTrialInvoice
-	usageUploadsMaxAggregateID map[string]int // Maps uploaders to agg ID
-	billingAccountsByTeamID    map[string]*grpc.BillingAccount
+	mtx                     sync.RWMutex
+	aggregatesSet           map[int]Aggregate // To allow for O(1) presence checks.
+	uploads                 []*UsageUpload
+	postTrialInvoices       map[string]PostTrialInvoice
+	billingAccountsByTeamID map[string]*grpc.BillingAccount
 }
 
 // New creates a new in-memory database
 func newMemory() *memory {
 	return &memory{
-		aggregatesSet:              make(map[int]Aggregate),
-		postTrialInvoices:          make(map[string]PostTrialInvoice),
-		usageUploadsMaxAggregateID: make(map[string]int),
-		billingAccountsByTeamID:    make(map[string]*grpc.BillingAccount),
-		uploads:                    []UsageUpload{},
+		aggregatesSet:           make(map[int]Aggregate),
+		postTrialInvoices:       make(map[string]PostTrialInvoice),
+		billingAccountsByTeamID: make(map[string]*grpc.BillingAccount),
+		uploads:                 []*UsageUpload{},
 	}
 }
 
@@ -144,10 +142,14 @@ func (db *memory) GetAggregatesFrom(ctx context.Context, instanceIDs []string, f
 func (db *memory) GetLatestUsageUpload(ctx context.Context, uploader string) (*UsageUpload, error) {
 	db.mtx.RLock()
 	defer db.mtx.RUnlock()
-	if len(db.uploads) == 0 {
-		return nil, fmt.Errorf("no uploads")
+
+	for i := len(db.uploads) - 1; i >= 0; i-- {
+		upload := db.uploads[i]
+		if upload != nil {
+			return upload, nil
+		}
 	}
-	return &db.uploads[len(db.uploads)-1], nil
+	return nil, nil
 }
 
 func (db *memory) InsertUsageUpload(ctx context.Context, uploader string, aggregateIDs []int) (int64, error) {
@@ -155,7 +157,7 @@ func (db *memory) InsertUsageUpload(ctx context.Context, uploader string, aggreg
 	defer db.mtx.RUnlock()
 
 	uploadID := int64(len(db.uploads) + 1) // for this in-memory DB we're using 0 as a proxy for a DB null
-	db.uploads = append(db.uploads, UsageUpload{ID: uploadID})
+	db.uploads = append(db.uploads, &UsageUpload{ID: uploadID, Uploader: uploader})
 	for _, id := range aggregateIDs {
 		agg := db.aggregatesSet[id]
 		agg.UploadID = uploadID
@@ -164,18 +166,19 @@ func (db *memory) InsertUsageUpload(ctx context.Context, uploader string, aggreg
 	return uploadID, nil
 }
 
-func (db *memory) DeleteUsageUpload(ctx context.Context, uploader string, aggregateID int64) error {
-	delete(db.usageUploadsMaxAggregateID, uploader)
+func (db *memory) DeleteUsageUpload(ctx context.Context, uploader string, uploadID int64) error {
+	db.mtx.RLock()
+	defer db.mtx.RUnlock()
+
+	db.uploads[uploadID-1] = nil
 	for id := range db.aggregatesSet {
 		agg := db.aggregatesSet[id]
-		agg.UploadID = 0
-		db.aggregatesSet[id] = agg
+		if agg.UploadID == uploadID {
+			agg.UploadID = 0
+			db.aggregatesSet[id] = agg
+		}
 	}
 	return nil
-}
-
-func (db *memory) GetUsageUploadLargestAggregateID(ctx context.Context, uploader string) (int, error) {
-	return db.usageUploadsMaxAggregateID[uploader], nil
 }
 
 func (db *memory) GetMonthSums(ctx context.Context, instanceIDs []string, from, through time.Time) (map[string][]Aggregate, error) {

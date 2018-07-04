@@ -230,13 +230,25 @@ func (d postgres) scanAggregates(rows *sql.Rows) ([]Aggregate, error) {
 func (d *postgres) GetLatestUsageUpload(ctx context.Context, uploader string) (*UsageUpload, error) {
 	q := d.Select("id", "uploader").
 		From(tableUsageUploads).
-		OrderBy("id desc").Limit(1)
+		OrderBy("id desc").
+		Limit(1)
 	if uploader != "" {
 		q = q.Where(squirrel.Eq{"uploader": uploader})
 	}
-	result := UsageUpload{}
-	err := q.Scan(&result.ID, &result.Uploader)
-	return &result, err
+	rows, err := q.Query()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	if rows.Next() {
+		result := UsageUpload{}
+		err := rows.Scan(&result.ID, &result.Uploader)
+		if err != nil {
+			return nil, err
+		}
+		return &result, nil
+	}
+	return nil, nil
 }
 
 func (d *postgres) InsertUsageUpload(ctx context.Context, uploader string, aggregatesIDs []int) (int64, error) {
@@ -249,7 +261,7 @@ func (d *postgres) InsertUsageUpload(ctx context.Context, uploader string, aggre
 	_, err = d.Update(tableAggregates).Where(squirrel.Eq{"id": aggregatesIDs}).Set("upload_id", id).Exec()
 	if err != nil {
 		d.DeleteUsageUpload(ctx, uploader, id)
-		return id, err
+		return 0, err
 	}
 	return id, nil
 }
@@ -259,7 +271,7 @@ func (d *postgres) DeleteUsageUpload(ctx context.Context, uploader string, uploa
 	if err != nil {
 		return err
 	}
-	_, err = d.Update(tableAggregates).Where(squirrel.Eq{"upload_id": uploadID}).Set("upload_id", nil).Query()
+	_, err = d.Update(tableAggregates).Where(squirrel.Eq{"upload_id": uploadID}).Set("upload_id", nil).Exec()
 	return err
 }
 
