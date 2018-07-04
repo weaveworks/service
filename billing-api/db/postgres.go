@@ -38,6 +38,16 @@ const (
 	tablePostTrialInvoices = "post_trial_invoices"
 )
 
+var aggregateColumns = []string{
+	"aggregates.id",
+	"aggregates.instance_id",
+	"aggregates.bucket_start",
+	"aggregates.amount_type",
+	"aggregates.amount_value",
+	"aggregates.created_at",
+	"aggregates.upload_id",
+}
+
 // newPostgres creates a database connection.
 func newPostgres(databaseURI, migrationsDir string) (*postgres, error) {
 	u, err := url.Parse(databaseURI)
@@ -137,15 +147,7 @@ func (d *postgres) InsertAggregates(ctx context.Context, aggregates []Aggregate)
 }
 
 func (d *postgres) GetAggregates(ctx context.Context, instanceID string, from, through time.Time) (as []Aggregate, err error) {
-	q := d.Select(
-		"aggregates.id",
-		"aggregates.instance_id",
-		"aggregates.bucket_start",
-		"aggregates.amount_type",
-		"aggregates.amount_value",
-		"aggregates.created_at",
-		"aggregates.upload_id",
-	).
+	q := d.Select(aggregateColumns...).
 		From(tableAggregates).
 		Where(squirrel.Eq{"aggregates.instance_id": instanceID}).
 		Where(squirrel.Lt{"aggregates.bucket_start": through}).
@@ -157,15 +159,7 @@ func (d *postgres) GetAggregates(ctx context.Context, instanceID string, from, t
 }
 
 func (d *postgres) GetAggregatesToUpload(ctx context.Context, instanceID string, from, through time.Time) ([]Aggregate, error) {
-	q := d.Select(
-		"aggregates.id",
-		"aggregates.instance_id",
-		"aggregates.bucket_start",
-		"aggregates.amount_type",
-		"aggregates.amount_value",
-		"aggregates.created_at",
-		"aggregates.upload_id",
-	).
+	q := d.Select(aggregateColumns...).
 		From(tableAggregates).
 		Where(squirrel.Eq{"aggregates.upload_id": nil}).
 		Where(squirrel.Eq{"aggregates.instance_id": instanceID}).
@@ -176,15 +170,7 @@ func (d *postgres) GetAggregatesToUpload(ctx context.Context, instanceID string,
 }
 
 func (d *postgres) GetAggregatesUploaded(ctx context.Context, uploadID int64) ([]Aggregate, error) {
-	q := d.Select(
-		"aggregates.id",
-		"aggregates.instance_id",
-		"aggregates.bucket_start",
-		"aggregates.amount_type",
-		"aggregates.amount_value",
-		"aggregates.created_at",
-		"aggregates.upload_id",
-	).
+	q := d.Select(aggregateColumns...).
 		From(tableAggregates).
 		Where(squirrel.Eq{"aggregates.upload_id": uploadID}).
 		OrderBy("aggregates.bucket_start asc", "aggregates.amount_type asc")
@@ -192,15 +178,7 @@ func (d *postgres) GetAggregatesUploaded(ctx context.Context, uploadID int64) ([
 }
 
 func (d *postgres) GetAggregatesFrom(ctx context.Context, instanceIDs []string, from time.Time) ([]Aggregate, error) {
-	q := d.Select(
-		"aggregates.id",
-		"aggregates.instance_id",
-		"aggregates.bucket_start",
-		"aggregates.amount_type",
-		"aggregates.amount_value",
-		"aggregates.created_at",
-		"aggregates.upload_id",
-	).
+	q := d.Select(aggregateColumns...).
 		From(tableAggregates).
 		Where(squirrel.Eq{"aggregates.instance_id": instanceIDs}).
 		OrderBy("aggregates.bucket_start asc", "aggregates.amount_type asc")
