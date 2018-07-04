@@ -246,7 +246,7 @@ func (d *postgres) InsertUsageUpload(ctx context.Context, uploader string, aggre
 	if err != nil {
 		return 0, err
 	}
-	_, err = d.Update(tableAggregates).Where(squirrel.Eq{"id": aggregatesIDs}).Set("upload_id", id).Query()
+	_, err = d.Update(tableAggregates).Where(squirrel.Eq{"id": aggregatesIDs}).Set("upload_id", id).Exec()
 	if err != nil {
 		d.DeleteUsageUpload(ctx, uploader, id)
 		return id, err
@@ -259,7 +259,7 @@ func (d *postgres) DeleteUsageUpload(ctx context.Context, uploader string, uploa
 	if err != nil {
 		return err
 	}
-	_, err = d.Update(tableAggregates).Where(squirrel.Eq{"upload_id": uploadID}).Set("upload_id", nil).Exec()
+	_, err = d.Update(tableAggregates).Where(squirrel.Eq{"upload_id": uploadID}).Set("upload_id", nil).Query()
 	return err
 }
 
