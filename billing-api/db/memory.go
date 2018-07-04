@@ -130,6 +130,15 @@ func (db *memory) GetAggregatesFrom(ctx context.Context, instanceIDs []string, f
 	return result, nil
 }
 
+func (db *memory) GetLatestUsageUpload(ctx context.Context, uploader string) (*UsageUpload, error) {
+	db.mtx.RLock()
+	defer db.mtx.RUnlock()
+	if len(db.uploads) == 0 {
+		return nil, fmt.Errorf("no uploads")
+	}
+	return &db.uploads[len(db.uploads)-1], nil
+}
+
 func (db *memory) InsertUsageUpload(ctx context.Context, uploader string, aggregateIDs []int) (int64, error) {
 	db.mtx.RLock()
 	defer db.mtx.RUnlock()

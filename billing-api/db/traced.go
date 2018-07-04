@@ -45,6 +45,11 @@ func (t traced) GetAggregatesFrom(ctx context.Context, instanceIDs []string, fro
 	return t.d.GetAggregatesFrom(ctx, instanceIDs, from)
 }
 
+func (t traced) GetLatestUsageUpload(ctx context.Context, uploader string) (upload *UsageUpload, err error) {
+	defer func() { t.trace("GetLatestUsageUpload", uploader, upload, err) }()
+	return t.d.GetLatestUsageUpload(ctx, uploader)
+}
+
 func (t traced) InsertUsageUpload(ctx context.Context, uploader string, aggregateIDs []int) (uploadID int64, err error) {
 	defer func() { t.trace("InsertUsageUpload", uploader, aggregateIDs, uploadID, err) }()
 	return t.d.InsertUsageUpload(ctx, uploader, aggregateIDs)

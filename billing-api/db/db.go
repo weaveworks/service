@@ -22,7 +22,8 @@ type Aggregate struct {
 
 // UsageUpload represents a database row in table `usage_uploads`.
 type UsageUpload struct {
-	ID int64
+	ID       int64
+	Uploader string
 }
 
 // PostTrialInvoice represents a database row in table `post_trial_invoices`.
@@ -49,6 +50,8 @@ type DB interface {
 	InsertUsageUpload(ctx context.Context, uploader string, aggregateIDs []int) (int64, error)
 	// DeleteUsageUpload removes our previously recorded upload after it failed.
 	DeleteUsageUpload(ctx context.Context, uploader string, uploadID int64) error
+	// GetLatestUsageUpload finds the latest usage upload, optionally matching the given uploader name
+	GetLatestUsageUpload(ctx context.Context, uploader string) (*UsageUpload, error)
 
 	GetMonthSums(ctx context.Context, instanceIDs []string, from, through time.Time) (map[string][]Aggregate, error)
 

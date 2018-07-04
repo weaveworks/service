@@ -231,7 +231,9 @@ func TestJobUpload_Do(t *testing.T) {
 			"CWpartial-trial_expires_at",
 		}, records[2][0:7])
 
-		aggs, err := d.GetAggregatesUploaded(ctx, 1)
+		upload, err := d.GetLatestUsageUpload(ctx, "")
+		assert.NoError(t, err)
+		aggs, err := d.GetAggregatesUploaded(ctx, upload.ID)
 		assert.NoError(t, err)
 		assert.Len(t, aggs, 2)
 		assert.Equal(t, int64(2), aggs[0].AmountValue)
@@ -243,7 +245,9 @@ func TestJobUpload_Do(t *testing.T) {
 		err = j.Do(now)
 		assert.NoError(t, err)
 		assert.Len(t, cl.operations, 2)
-		uploadedAggs, err := d.GetAggregatesUploaded(ctx, 2)
+		upload, err := d.GetLatestUsageUpload(ctx, "")
+		assert.NoError(t, err)
+		uploadedAggs, err := d.GetAggregatesUploaded(ctx, upload.ID)
 		assert.Len(t, uploadedAggs, 2)
 
 		ops := map[string]*servicecontrol.Operation{} // map[ID]op
@@ -293,7 +297,9 @@ func TestJobUpload_Do(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, cl.operations, 1)
 
-		aggs, err := d.GetAggregatesUploaded(ctx, 3)
+		upload, err = d.GetLatestUsageUpload(ctx, "")
+		assert.NoError(t, err)
+		aggs, err := d.GetAggregatesUploaded(ctx, upload.ID)
 		assert.NoError(t, err)
 		assert.Len(t, aggs, 1)
 		assert.Equal(t, int64(999), aggs[0].AmountValue)
@@ -327,7 +333,9 @@ func TestJobUpload_Do_zuoraError(t *testing.T) {
 	err := d.InsertAggregates(ctx, aggregates)
 	assert.NoError(t, err)
 
-	aggs, err := d.GetAggregatesUploaded(ctx, 1)
+	upload, err := d.GetLatestUsageUpload(ctx, "")
+	assert.NoError(t, err)
+	aggs, err := d.GetAggregatesUploaded(ctx, upload.ID)
 	assert.NoError(t, err)
 	assert.Len(t, aggs, 0)
 
@@ -335,7 +343,11 @@ func TestJobUpload_Do_zuoraError(t *testing.T) {
 	err = j.Do(now)
 	assert.Error(t, err)
 
-	aggs, err = d.GetAggregatesUploaded(ctx, 1)
+	upload2, err := d.GetLatestUsageUpload(ctx, "")
+	assert.NoError(t, err)
+	assert.Equal(t, upload.ID, upload2.ID)
+
+	aggs, err = d.GetAggregatesUploaded(ctx, upload.ID+1)
 	assert.NoError(t, err)
 	// Make sure the upload_id was cleared after failing to upload
 	assert.Len(t, aggs, 0)
@@ -402,7 +414,9 @@ func TestJobUpload_Do_outOfOrder(t *testing.T) {
 	assert.NoError(t, err)
 
 	// do usage upload, check next_day usage is not included
-	aggs, err := d.GetAggregatesUploaded(ctx, 1)
+	upload, err := d.GetLatestUsageUpload(ctx, "")
+	assert.NoError(t, err)
+	aggs, err := d.GetAggregatesUploaded(ctx, upload.ID)
 	assert.NoError(t, err)
 	assert.Len(t, aggs, 2)
 
@@ -418,7 +432,9 @@ func TestJobUpload_Do_outOfOrder(t *testing.T) {
 
 	// do usage upload for next_day, check usage is included
 	err = j.Do(thirdDayStart.Add(10 * time.Minute))
-	aggs, err = d.GetAggregatesUploaded(ctx, 2)
+	upload, err = d.GetLatestUsageUpload(ctx, "")
+	assert.NoError(t, err)
+	aggs, err = d.GetAggregatesUploaded(ctx, upload.ID)
 	assert.NoError(t, err)
 	assert.Len(t, aggs, 2)
 	assert.Equal(t, int64(2), aggs[0].AmountValue)

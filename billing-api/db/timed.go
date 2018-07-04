@@ -67,6 +67,14 @@ func (t timed) GetAggregatesFrom(ctx context.Context, instanceIDs []string, from
 	return
 }
 
+func (t timed) GetLatestUsageUpload(ctx context.Context, uploader string) (upload *UsageUpload, err error) {
+	t.timeRequest(ctx, "GetLatestUsageUpload", func(ctx context.Context) error {
+		upload, err = t.d.GetLatestUsageUpload(ctx, uploader)
+		return err
+	})
+	return
+}
+
 func (t timed) InsertUsageUpload(ctx context.Context, uploader string, aggregateIDs []int) (uploadID int64, err error) {
 	t.timeRequest(ctx, "InsertUsageUpload", func(ctx context.Context) error {
 		uploadID, err = t.d.InsertUsageUpload(ctx, uploader, aggregateIDs)

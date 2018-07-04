@@ -222,6 +222,18 @@ func (d postgres) scanAggregates(rows *sql.Rows) ([]Aggregate, error) {
 	return aggregates, nil
 }
 
+func (d *postgres) GetLatestUsageUpload(ctx context.Context, uploader string) (*UsageUpload, error) {
+	q := d.Select("id", "uploader").
+		From(tableUsageUploads).
+		OrderBy("id desc").Limit(1)
+	if uploader != "" {
+		q = q.Where(squirrel.Eq{"uploader": uploader})
+	}
+	result := UsageUpload{}
+	err := q.Scan(&result.ID, &result.Uploader)
+	return &result, err
+}
+
 func (d *postgres) InsertUsageUpload(ctx context.Context, uploader string, aggregatesIDs []int) (int64, error) {
 	var id int64
 	err := d.QueryRow("INSERT INTO usage_uploads (max_aggregate_id, uploader) VALUES (-1, $1) RETURNING id", uploader).
