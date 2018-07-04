@@ -54,7 +54,18 @@ func (db *memory) InsertAggregates(ctx context.Context, aggregates []Aggregate) 
 }
 
 func sortAggregates(aggs []Aggregate) {
-	sort.Slice(aggs, func(i, j int) bool { return aggs[i].ID < aggs[j].ID })
+	sort.Slice(aggs, func(i, j int) bool {
+		if aggs[i].BucketStart.Before(aggs[j].BucketStart) {
+			return true
+		}
+		if aggs[i].AmountType < aggs[j].AmountType {
+			return true
+		}
+		if aggs[i].CreatedAt.Before(aggs[j].CreatedAt) {
+			return true
+		}
+		return aggs[i].ID < aggs[j].ID
+	})
 }
 
 func (db *memory) GetAggregates(ctx context.Context, instanceID string, from, through time.Time) (as []Aggregate, err error) {

@@ -47,6 +47,11 @@ var aggregateColumns = []string{
 	"aggregates.created_at",
 	"aggregates.upload_id",
 }
+var aggregateOrder = []string{
+	"aggregates.bucket_start asc",
+	"aggregates.amount_type asc",
+	"aggregates.created_at asc",
+}
 
 // newPostgres creates a database connection.
 func newPostgres(databaseURI, migrationsDir string) (*postgres, error) {
@@ -151,7 +156,7 @@ func (d *postgres) GetAggregates(ctx context.Context, instanceID string, from, t
 		From(tableAggregates).
 		Where(squirrel.Eq{"aggregates.instance_id": instanceID}).
 		Where(squirrel.Lt{"aggregates.bucket_start": through}).
-		OrderBy("aggregates.bucket_start asc", "aggregates.amount_type asc")
+		OrderBy(aggregateOrder...)
 	if !from.IsZero() {
 		q = q.Where(squirrel.GtOrEq{"aggregates.bucket_start": from})
 	}
@@ -165,7 +170,7 @@ func (d *postgres) GetAggregatesToUpload(ctx context.Context, instanceID string,
 		Where(squirrel.Eq{"aggregates.instance_id": instanceID}).
 		Where(squirrel.Lt{"aggregates.bucket_start": through}).
 		Where(squirrel.GtOrEq{"aggregates.bucket_start": from}).
-		OrderBy("aggregates.bucket_start asc", "aggregates.amount_type asc")
+		OrderBy(aggregateOrder...)
 	return d.aggregateQueryScan(q)
 }
 
@@ -173,7 +178,7 @@ func (d *postgres) GetAggregatesUploaded(ctx context.Context, uploadID int64) ([
 	q := d.Select(aggregateColumns...).
 		From(tableAggregates).
 		Where(squirrel.Eq{"aggregates.upload_id": uploadID}).
-		OrderBy("aggregates.bucket_start asc", "aggregates.amount_type asc")
+		OrderBy(aggregateOrder...)
 	return d.aggregateQueryScan(q)
 }
 
@@ -181,7 +186,7 @@ func (d *postgres) GetAggregatesFrom(ctx context.Context, instanceIDs []string, 
 	q := d.Select(aggregateColumns...).
 		From(tableAggregates).
 		Where(squirrel.Eq{"aggregates.instance_id": instanceIDs}).
-		OrderBy("aggregates.bucket_start asc", "aggregates.amount_type asc")
+		OrderBy(aggregateOrder...)
 	if !from.IsZero() {
 		q = q.Where(squirrel.GtOrEq{"aggregates.bucket_start": from})
 	}
