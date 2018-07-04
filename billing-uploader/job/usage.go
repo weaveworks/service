@@ -204,11 +204,14 @@ func (j *UsageUpload) Do(now time.Time) error {
 // upload sends collected usage data. It also keeps track by recording in the database
 // up to which aggregate ID it has uploaded.
 func (j *UsageUpload) upload(ctx context.Context, aggregateIDs []int, uploadName string) error {
+	logger := logging.With(ctx).WithField("uploader", j.uploader.ID()).WithField("uploadName", uploadName)
+
 	uploadID, err := j.db.InsertUsageUpload(ctx, j.uploader.ID(), aggregateIDs)
 	if err != nil {
 		return err
 	}
 	if err = j.uploader.Upload(ctx, uploadName); err != nil {
+		logger.Warnf("Error uploading usage: %+v. removing usage record", err)
 		// Delete upload record because we failed, so our next run will picks these aggregates up again.
 		if e := j.db.DeleteUsageUpload(ctx, j.uploader.ID(), uploadID); e != nil {
 			// We couldn't delete the record of uploading usage and therefore will not retry in another run.
