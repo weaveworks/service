@@ -337,6 +337,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/compare-revisions", trimPrefix("/admin/compare-revisions", c.compareRevisionsHost)},
 				{"/cortex/alertmanager/status", trimPrefix("/admin/cortex/alertmanager", c.promAlertmanagerHost)},
 				{"/cortex/ring", trimPrefix("/admin/cortex", c.promDistributorHost)},
+				{"/cortex/all_user_stats", trimPrefix("/admin/cortex", c.promDistributorHost)},
 				{"/loki", trimPrefix("/admin/loki", c.lokiHost)},
 				{"/jaeger", c.jaegerHost},
 				{"/kibana", trimPrefix("/admin/kibana", c.kibanaHost)},
