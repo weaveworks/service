@@ -17,6 +17,13 @@ type Aggregate struct {
 	AmountType  string
 	AmountValue int64
 	CreatedAt   time.Time
+	UploadID    int64
+}
+
+// UsageUpload represents a database row in table `usage_uploads`.
+type UsageUpload struct {
+	ID       int64
+	Uploader string
 }
 
 // PostTrialInvoice represents a database row in table `post_trial_invoices`.
@@ -30,19 +37,21 @@ type PostTrialInvoice struct {
 // DB is the interface for the database.
 type DB interface {
 	InsertAggregates(ctx context.Context, aggregates []Aggregate) error
+	// GetAggregates returns all aggregates. It also requires a `through` time and supports an optional `from` time.
 	GetAggregates(ctx context.Context, instanceID string, from, through time.Time) ([]Aggregate, error)
-	// GetAggregatesAfter returns all aggregates with an ID greater than fromID. It also requires a `through` time
-	// and supports an optional `from` time.
-	GetAggregatesAfter(ctx context.Context, instanceID string, from, through time.Time, fromID int) ([]Aggregate, error)
+	// GetAggregatesToUpload returns all aggregates which have not yet been uploaded. It also requires a `through` and `from` time.
+	GetAggregatesToUpload(ctx context.Context, instanceID string, from, through time.Time) ([]Aggregate, error)
+	// GetAggregatesUploaded returns all aggregates which assigned to a given upload.
+	GetAggregatesUploaded(ctx context.Context, uploadID int64) ([]Aggregate, error)
 	// GetAggregatesFrom returns all aggregates for the provided instance IDs from the provided time.
 	GetAggregatesFrom(ctx context.Context, instanceIDs []string, from time.Time) ([]Aggregate, error)
 
-	// GetUsageUploadLargestAggregateID returns the largest aggregate ID that we have uploaded.
-	GetUsageUploadLargestAggregateID(ctx context.Context, uploader string) (int, error)
 	// InsertUsageUpload records that we just uploaded all aggregates up to the given ID.
-	InsertUsageUpload(ctx context.Context, uploader string, maxAggregateID int) (int64, error)
+	InsertUsageUpload(ctx context.Context, uploader string, aggregateIDs []int) (int64, error)
 	// DeleteUsageUpload removes our previously recorded upload after it failed.
 	DeleteUsageUpload(ctx context.Context, uploader string, uploadID int64) error
+	// GetLatestUsageUpload finds the latest usage upload, optionally matching the given uploader name
+	GetLatestUsageUpload(ctx context.Context, uploader string) (*UsageUpload, error)
 
 	GetMonthSums(ctx context.Context, instanceIDs []string, from, through time.Time) (map[string][]Aggregate, error)
 
