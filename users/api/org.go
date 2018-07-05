@@ -351,13 +351,13 @@ func ptostr(pstr *string) string {
 
 func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	orgExternalID := mux.Vars(r)["orgExternalID"]
-	exists, err := a.db.OrganizationExists(r.Context(), orgExternalID)
-	if err != nil {
-		renderError(w, r, err)
+	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
+	if err == users.ErrNotFound {
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	if !exists {
-		w.WriteHeader(http.StatusNoContent)
+	if err != nil {
+		renderError(w, r, err)
 		return
 	}
 	isMember, err := a.db.UserIsMemberOf(r.Context(), currentUser.ID, orgExternalID)
@@ -369,6 +369,12 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
+	// GCP instances should always be disabled through Google
+	if org.GCP != nil {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
 	if err := a.db.DeleteOrganization(r.Context(), orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
