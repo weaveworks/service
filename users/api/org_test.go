@@ -611,6 +611,30 @@ func Test_Organization_Delete(t *testing.T) {
 	assert.False(t, isMember, "Expected user not to have the deleted org any more")
 }
 
+func Test_Organization_DeleteGCP(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user := getUser(t)
+
+	// Create the org so it exists
+	org, err := database.CreateOrganizationWithGCP(context.Background(), user.ID, "FOO", user.TrialExpiresAt())
+	require.NoError(t, err)
+
+	// Login as the org owner
+	r := requestAs(t, user, "DELETE", "/api/users/org/"+org.ExternalID, nil)
+
+	{
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	}
+
+	// Check the org still exists
+	_, err = database.FindOrganizationByID(context.Background(), org.ExternalID)
+	assert.NoError(t, err)
+}
+
 func Test_Organization_Name(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
