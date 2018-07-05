@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -11,21 +12,20 @@ import (
 
 // DB is an in-memory database for testing, and local development
 type memory struct {
-	mtx                        sync.RWMutex
-	aggregates                 []Aggregate
-	aggregatesSet              map[Aggregate]struct{} // To allow for O(1) presence checks.
-	postTrialInvoices          map[string]PostTrialInvoice
-	usageUploadsMaxAggregateID map[string]int // Maps uploaders to agg ID
-	billingAccountsByTeamID    map[string]*grpc.BillingAccount
+	mtx                     sync.RWMutex
+	aggregatesSet           map[int]Aggregate // To allow for O(1) presence checks.
+	uploads                 []*UsageUpload
+	postTrialInvoices       map[string]PostTrialInvoice
+	billingAccountsByTeamID map[string]*grpc.BillingAccount
 }
 
 // New creates a new in-memory database
 func newMemory() *memory {
 	return &memory{
-		aggregatesSet:              make(map[Aggregate]struct{}),
-		postTrialInvoices:          make(map[string]PostTrialInvoice),
-		usageUploadsMaxAggregateID: make(map[string]int),
-		billingAccountsByTeamID:    make(map[string]*grpc.BillingAccount),
+		aggregatesSet:           make(map[int]Aggregate),
+		postTrialInvoices:       make(map[string]PostTrialInvoice),
+		billingAccountsByTeamID: make(map[string]*grpc.BillingAccount),
+		uploads:                 []*UsageUpload{},
 	}
 }
 
@@ -34,45 +34,85 @@ func (db *memory) InsertAggregates(ctx context.Context, aggregates []Aggregate) 
 	defer db.mtx.Unlock()
 	lastid := 0
 	now := time.Now()
-	for _, a := range db.aggregates {
+	for _, a := range db.aggregatesSet {
 		if a.ID > lastid {
 			lastid = a.ID
 		}
 	}
-	for idx := range aggregates {
+	for _, a := range aggregates {
 		lastid++
-		aggregates[idx].ID = lastid
-		if _, ok := db.aggregatesSet[aggregates[idx]]; ok {
-			return fmt.Errorf("duplicate aggregate: %v", aggregates[idx])
+		a.ID = lastid
+		if _, ok := db.aggregatesSet[a.ID]; ok {
+			return fmt.Errorf("duplicate aggregate: %v", a)
 		}
-		aggregates[idx].CreatedAt = now
-		db.aggregatesSet[aggregates[idx]] = struct{}{}
+		a.CreatedAt = now
+		db.aggregatesSet[a.ID] = a
 	}
-	db.aggregates = append(db.aggregates, aggregates...)
 	return nil
 }
 
-func (db *memory) GetAggregates(ctx context.Context, instanceID string, from, through time.Time) (as []Aggregate, err error) {
-	return db.GetAggregatesAfter(ctx, instanceID, from, through, 0)
+func sortAggregates(aggs []Aggregate) {
+	sort.Slice(aggs, func(i, j int) bool {
+		if aggs[i].BucketStart.Before(aggs[j].BucketStart) {
+			return true
+		}
+		if aggs[i].AmountType < aggs[j].AmountType {
+			return true
+		}
+		if aggs[i].CreatedAt.Before(aggs[j].CreatedAt) {
+			return true
+		}
+		return aggs[i].ID < aggs[j].ID
+	})
 }
 
-func (db *memory) GetAggregatesAfter(ctx context.Context, instanceID string, from, through time.Time, fromID int) (as []Aggregate, err error) {
+func (db *memory) GetAggregates(ctx context.Context, instanceID string, from, through time.Time) (as []Aggregate, err error) {
 	db.mtx.RLock()
 	defer db.mtx.RUnlock()
 
 	var result []Aggregate
-	for _, a := range db.aggregates {
-		if a.ID <= fromID {
+	for _, a := range db.aggregatesSet {
+		if a.BucketStart.Before(from) || a.BucketStart.After(through) {
 			continue
 		}
 		if a.InstanceID != instanceID {
 			continue
 		}
-		if a.BucketStart.Before(from) || a.BucketStart.After(through) {
+		result = append(result, a)
+	}
+	sortAggregates(result)
+	return result, nil
+}
+
+func (db *memory) GetAggregatesToUpload(ctx context.Context, instanceID string, from, through time.Time) (as []Aggregate, err error) {
+	db.mtx.RLock()
+	defer db.mtx.RUnlock()
+	var result []Aggregate
+	all, err := db.GetAggregates(ctx, instanceID, from, through)
+	if err != nil {
+		return nil, err
+	}
+	for _, a := range all {
+		if a.UploadID != 0 {
 			continue
 		}
 		result = append(result, a)
 	}
+	return result, nil
+}
+
+func (db *memory) GetAggregatesUploaded(ctx context.Context, uploadID int64) (as []Aggregate, err error) {
+	db.mtx.RLock()
+	defer db.mtx.RUnlock()
+
+	var result []Aggregate
+	for _, a := range db.aggregatesSet {
+		if a.UploadID != uploadID {
+			continue
+		}
+		result = append(result, a)
+	}
+	sortAggregates(result)
 	return result, nil
 }
 
@@ -86,7 +126,7 @@ func (db *memory) GetAggregatesFrom(ctx context.Context, instanceIDs []string, f
 	}
 
 	var result []Aggregate
-	for _, a := range db.aggregates {
+	for _, a := range db.aggregatesSet {
 		if _, ok := idsSet[a.InstanceID]; !ok {
 			continue
 		}
@@ -95,21 +135,50 @@ func (db *memory) GetAggregatesFrom(ctx context.Context, instanceIDs []string, f
 		}
 		result = append(result, a)
 	}
+	sortAggregates(result)
 	return result, nil
 }
 
-func (db *memory) InsertUsageUpload(ctx context.Context, uploader string, aggregateID int) (int64, error) {
-	db.usageUploadsMaxAggregateID[uploader] = aggregateID
-	return 1, nil
+func (db *memory) GetLatestUsageUpload(ctx context.Context, uploader string) (*UsageUpload, error) {
+	db.mtx.RLock()
+	defer db.mtx.RUnlock()
+
+	for i := len(db.uploads) - 1; i >= 0; i-- {
+		upload := db.uploads[i]
+		if upload != nil {
+			return upload, nil
+		}
+	}
+	return nil, nil
 }
 
-func (db *memory) DeleteUsageUpload(ctx context.Context, uploader string, aggregateID int64) error {
-	delete(db.usageUploadsMaxAggregateID, uploader)
+func (db *memory) InsertUsageUpload(ctx context.Context, uploader string, aggregateIDs []int) (int64, error) {
+	db.mtx.RLock()
+	defer db.mtx.RUnlock()
+
+	uploadID := int64(len(db.uploads) + 1) // for this in-memory DB we're using 0 as a proxy for a DB null
+	db.uploads = append(db.uploads, &UsageUpload{ID: uploadID, Uploader: uploader})
+	for _, id := range aggregateIDs {
+		agg := db.aggregatesSet[id]
+		agg.UploadID = uploadID
+		db.aggregatesSet[id] = agg
+	}
+	return uploadID, nil
+}
+
+func (db *memory) DeleteUsageUpload(ctx context.Context, uploader string, uploadID int64) error {
+	db.mtx.RLock()
+	defer db.mtx.RUnlock()
+
+	db.uploads[uploadID-1] = nil
+	for id := range db.aggregatesSet {
+		agg := db.aggregatesSet[id]
+		if agg.UploadID == uploadID {
+			agg.UploadID = 0
+			db.aggregatesSet[id] = agg
+		}
+	}
 	return nil
-}
-
-func (db *memory) GetUsageUploadLargestAggregateID(ctx context.Context, uploader string) (int, error) {
-	return db.usageUploadsMaxAggregateID[uploader], nil
 }
 
 func (db *memory) GetMonthSums(ctx context.Context, instanceIDs []string, from, through time.Time) (map[string][]Aggregate, error) {
