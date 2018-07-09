@@ -64,7 +64,7 @@ func NewServiceRouter() *mux.Router {
 	r.NewRoute().Name(GitPushNotify).Methods("POST").Path("/v6/integrations/git/push").Queries("instance", "{instance}")
 
 	// Webhooks
-	r.NewRoute().Name(Webhook).Methods("POST").Path("/webhooks/{secretID}")
+	r.NewRoute().Name(Webhook).Methods("POST").Path("/webhooks/{secretID}/")
 
 	// We assume every request that doesn't match a route is a client
 	// calling an old or hitherto unsupported API.

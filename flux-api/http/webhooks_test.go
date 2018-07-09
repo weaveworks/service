@@ -18,7 +18,7 @@ func TestHandleWebhook(t *testing.T) {
 	s := Server{daemonProxy: mockDaemon}
 
 	{ // Invalid integration type
-		req, err := http.NewRequest("GET", "https://weave.test/webhooks/secret-abc", nil)
+		req, err := http.NewRequest("GET", "https://weave.test/webhooks/secret-abc/", nil)
 		assert.NoError(t, err)
 		req.Header.Set(webhooks.WebhooksIntegrationTypeHeader, "invalid")
 
@@ -165,7 +165,7 @@ func TestHandleWebhook(t *testing.T) {
 			  }
 		`)
 
-		req, err := http.NewRequest("GET", "https://weave.test/webhooks/secret-abc", bytes.NewReader(payload))
+		req, err := http.NewRequest("GET", "https://weave.test/webhooks/secret-abc/", bytes.NewReader(payload))
 		assert.NoError(t, err)
 		req.Header.Set(webhooks.WebhooksIntegrationTypeHeader, webhooks.GithubPushIntegrationType)
 		req.Header.Set("X-Github-Event", "push")
