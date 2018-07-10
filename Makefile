@@ -95,7 +95,7 @@ EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_K
 gofiles = $(shell find $1 -name '*.go')
 basedir = $(firstword $(subst /, ,$1))
 COMMON := $(call gofiles,common)
-$(AUTHFE_EXE): $(call gofiles,authfe) $(calli gofiles,users/client) $(COMMON) users/users.pb.go
+$(AUTHFE_EXE): $(call gofiles,authfe) $(call gofiles,users/client) $(COMMON) users/users.pb.go
 $(USERS_EXE): $(call gofiles,users) $(COMMON) users/users.pb.go
 $(METRICS_EXE): $(call gofiles,metrics) $(COMMON)
 $(NOTEBOOKS_EXE): $(call gofiles,notebooks) $(COMMON)
