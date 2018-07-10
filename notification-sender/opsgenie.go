@@ -52,6 +52,29 @@ func (ogs *OpsGenieSender) Send(ctx context.Context, addr json.RawMessage, notif
 		return errors.Wrapf(err, "cannot get stackdriver client for service file")
 	}
 
+	var m types.OpsGenieMessage
+	if err := json.Unmarshal(notif.Data, &m); err != nil {
+		return errors.Wrapf(err, "cannot unmarshal OpsGenie data %s", notif.Data)
+	}
+
+	// close resolved alert
+	if m.Status == "resolved" {
+		identifier := alerts.Identifier{
+			Alias: m.Alias,
+		}
+
+		closeReq := alerts.CloseRequest{
+			Identifier: &identifier,
+		}
+
+		resp, err := client.Close(closeReq)
+		if err != nil {
+			return errors.Wrapf(err, "cannot close OpsGenie alert with alias %s", m.Alias)
+		}
+		return requestSuccess(client, resp.RequestID, key)
+	}
+
+	// if not resolved, send to opsgenie open alert
 	var alert alerts.CreateAlertRequest
 	if err := json.Unmarshal(notif.Data, &alert); err != nil {
 		return errors.Wrapf(err, "cannot unmarshal OpsGenie data %s", notif.Data)

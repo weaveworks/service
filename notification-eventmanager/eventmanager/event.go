@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"path"
 	"reflect"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -21,8 +20,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/weaveworks/blackfriday"
 	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/notification-eventmanager/eventmanager/parser"
 	"github.com/weaveworks/service/notification-eventmanager/types"
 	"github.com/weaveworks/service/users"
 )
@@ -30,17 +29,12 @@ import (
 const (
 	// MaxEventsList is the highest number of events that can be requested in one list call
 	MaxEventsList          = 10000
-	markdownNewline        = "  \n"
-	markdownNewParagraph   = "\n\n"
 	notificationConfigPath = "/org/notifications"
 	alertsPage             = "/prom/alerts"
 	alertLinkText          = "Weave Cloud Alert"
 	deployPage             = "/deploy/services"
 	deployLinkText         = "Weave Cloud Deploy"
 )
-
-// slack URL like: <http://www.foo.com|foo.com>
-var slackURL = regexp.MustCompile(`<([^|]+)?\|([^>]+)>`)
 
 // handleCreateEvent handles event post requests and log them in DB and queue
 func (em *EventManager) handleCreateEvent(r *http.Request, instanceID string) (interface{}, int, error) {
@@ -121,7 +115,7 @@ func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (int
 		return nil, http.StatusInternalServerError, errors.Wrapf(err, "cannot marshal text: %s", text)
 	}
 
-	sdMsg, err := getStackdriverMessage(textJSON, etype, instanceName)
+	sdMsg, err := parser.StackdriverFromSlack(textJSON, etype, instanceName)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting stackdriver message for test event")
@@ -133,25 +127,25 @@ func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (int
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting notification config page link for test event")
 	}
 
-	emailMsg, err := getEmailMessage(text, etype, instanceName, link)
+	emailMsg, err := parser.EmailFromSlack(text, etype, instanceName, link)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting email message for test event")
 	}
 
-	slackMsg, err := getSlackMessage(types.SlackMessage{Text: text}, instanceName, link)
+	slackMsg, err := parser.SlackFromSlack(types.SlackMessage{Text: text}, instanceName, link)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting slack text message for test event")
 	}
 
-	browserMsg, err := getBrowserMessage(text, []types.SlackAttachment{}, etype)
+	browserMsg, err := parser.BrowserFromSlack(types.SlackMessage{Text: text}, etype, "", "")
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting browser message for test event")
 	}
 
-	opsGenieMsg, err := getOpsGenieMessage(text, etype, instanceName)
+	opsGenieMsg, err := parser.OpsGenieFromSlack(text, etype, instanceName)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting OpsGenie message for test event")
@@ -179,6 +173,92 @@ func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (int
 	}
 
 	return eventID, http.StatusOK, nil
+}
+
+// handleWebhookEvent handles webhook json payload, creates event, log it in DB and queue
+func (em *EventManager) handleWebhookEvent(r *http.Request) (interface{}, int, error) {
+	requestsTotal.With(prometheus.Labels{"handler": "handleWebhookEvent"}).Inc()
+	vars := mux.Vars(r)
+
+	eventType := vars["eventType"]
+	if eventType == "" {
+		eventsToSQSError.With(prometheus.Labels{"event_type": "empty"}).Inc()
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		return nil, http.StatusBadRequest, errors.New("eventType is empty in request")
+	}
+	log.Debugf("eventType = %s", eventType)
+
+	instanceID := vars["instanceID"]
+	if instanceID == "" {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		return nil, http.StatusBadRequest, errors.New("instanceID is empty in request")
+	}
+	log.Debugf("instanceID = %s", instanceID)
+
+	instanceData, err := em.UsersClient.GetOrganization(r.Context(), &users.GetOrganizationRequest{
+		ID: &users.GetOrganizationRequest_InternalID{InternalID: instanceID},
+	})
+	if err != nil {
+		if isStatusErrorCode(err, http.StatusNotFound) {
+			requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusNotFound)}).Inc()
+			return nil, http.StatusNotFound, errors.Wrap(err, "instance name not found")
+		}
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "unable to retrieve instance data")
+	}
+	log.Debugf("Got data from users service: %v", instanceData.Organization.Name)
+
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot read body")
+	}
+
+	var wm types.WebhookAlert
+	if err = json.Unmarshal(body, &wm); err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot unmarshal body")
+	}
+
+	notifLink, err := em.getInstanceLink(instanceData.Organization.ExternalID, notificationConfigPath)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot get Weave Cloud notification page link")
+	}
+
+	var linkText, linkPath string
+	// link to Monitor page with Firing alerts for Cortex events
+	switch eventType {
+	case "monitor":
+		linkText = alertLinkText
+		linkPath = alertsPage
+	default:
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		return nil, http.StatusBadRequest, errors.Wrap(err, "wrong event type, a monitor is expected")
+	}
+
+	link, err := em.getInstanceLink(instanceData.Organization.ExternalID, linkPath)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot get Weave Cloud deploy page link")
+	}
+
+	e, err := buildWebhookEvent(wm, eventType, instanceID, instanceData.Organization.Name, notifLink, link, linkText)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot build webhook event")
+	}
+
+	eventID, err := em.storeAndSend(r.Context(), e, instanceData.Organization.FeatureFlags)
+
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "failed to create event")
+	}
+
+	return struct {
+		ID string `json:"id"`
+	}{eventID}, http.StatusOK, nil
 }
 
 // handleSlackEvent handles slack json payload that includes the message text and some options, creates event, log it in DB and queue
@@ -233,7 +313,8 @@ func (em *EventManager) handleSlackEvent(r *http.Request) (interface{}, int, err
 	}
 
 	var linkText, linkPath string
-	// link to Monitor page with Firing alerts for Cortex events and link to Deploy page for Flux events
+	// link to Monitor page with Firing alerts for Cortex events
+	// and link to Deploy page for Flux events
 	switch eventType {
 	case "monitor":
 		linkText = alertLinkText
@@ -322,12 +403,12 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		// address changed event
 		msg := fmt.Sprintf("The address for <b>%s</b> was updated by %s!", receiver.RType, userEmail)
 
-		emailMsg, err := getEmailMessage(msg, eventType, instanceName, link)
+		emailMsg, err := parser.EmailFromSlack(msg, eventType, instanceName, link)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
 
-		browserMsg, err := getBrowserMessage(msg, nil, eventType)
+		browserMsg, err := parser.BrowserFromSlack(types.SlackMessage{Text: msg}, eventType, "", "")
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
@@ -336,13 +417,13 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal message")
 		}
-		stackdriverMsg, err := getStackdriverMessage(msgJSON, eventType, instanceName)
+		stackdriverMsg, err := parser.StackdriverFromSlack(msgJSON, eventType, instanceName)
 		if err != nil {
 			return errors.Wrap(err, "cannot get stackdriver message")
 		}
 
 		slackText := fmt.Sprintf("The address for *%s* was updated by %s!", receiver.RType, userEmail)
-		slackMsg, err := getSlackMessage(types.SlackMessage{Text: slackText}, instanceName, link)
+		slackMsg, err := parser.SlackFromSlack(types.SlackMessage{Text: slackText}, instanceName, link)
 		if err != nil {
 			return errors.Wrap(err, "cannot get slack text message")
 		}
@@ -370,12 +451,12 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 
 		text := formatEventTypeText("<b>", "</b>", receiver.RType, "<i>", "</i>", added, removed, userEmail)
 
-		emailMsg, err := getEmailMessage(text, eventType, instanceName, link)
+		emailMsg, err := parser.EmailFromSlack(text, eventType, instanceName, link)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
 
-		browserMsg, err := getBrowserMessage(text, nil, eventType)
+		browserMsg, err := parser.BrowserFromSlack(types.SlackMessage{Text: text}, eventType, "", "")
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
@@ -384,13 +465,13 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal message")
 		}
-		stackdriverMsg, err := getStackdriverMessage(textJSON, eventType, instanceName)
+		stackdriverMsg, err := parser.StackdriverFromSlack(textJSON, eventType, instanceName)
 		if err != nil {
 			return errors.Wrap(err, "cannot get stackdriver message for event types changed")
 		}
 
 		slackText := formatEventTypeText("*", "*", receiver.RType, "_", "_", added, removed, userEmail)
-		slackMsg, err := getSlackMessage(types.SlackMessage{Text: slackText}, instanceName, link)
+		slackMsg, err := parser.SlackFromSlack(types.SlackMessage{Text: slackText}, instanceName, link)
 		if err != nil {
 			return errors.Wrap(err, "cannot get slack message")
 		}
@@ -545,44 +626,38 @@ func (em *EventManager) handleGetEvents(r *http.Request, instanceID string) (int
 }
 
 func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceName, notificationPageLink, link, linkText string) (types.Event, error) {
-	var event types.Event
-	allText := getAllMarkdownText(sm, instanceName)
-	// handle slack URLs
-	allTextMarkdownLinks := slackURL.ReplaceAllString(allText, "[$2]($1)")
-	mdLink := fmt.Sprintf("[%s](%s)", linkText, link)
-	// insert link
-	allTextMarkdownLinks = fmt.Sprintf("%s%s%s", allTextMarkdownLinks, markdownNewline, mdLink)
-	html := string(blackfriday.MarkdownBasic([]byte(allTextMarkdownLinks)))
-	//remove extra newlines because opsGenie doesn't ignore them
-	html = strings.Replace(html, "\n", "", -1)
+	html := parser.SlackMsgToHTML(sm, instanceName, linkText, link)
 
-	emailMsg, err := getEmailMessage(html, etype, instanceName, notificationPageLink)
+	emailMsg, err := parser.EmailFromSlack(html, etype, instanceName, notificationPageLink)
 	if err != nil {
-		return event, errors.Wrap(err, "cannot get email message")
+		return types.Event{}, errors.Wrap(err, "cannot get email message")
 	}
 
-	browserAtt := append(sm.Attachments, types.SlackAttachment{Text: mdLink})
-	browserMsg, err := getBrowserMessage(sm.Text, browserAtt, etype)
+	browserMsg, err := parser.BrowserFromSlack(sm, etype, link, linkText)
 	if err != nil {
-		return event, errors.Wrap(err, "cannot get email message")
+		return types.Event{}, errors.Wrap(err, "cannot get email message")
 	}
 
-	stackdriverMsg, err := getStackdriverMessage(json.RawMessage(body), etype, instanceName)
+	stackdriverMsg, err := parser.StackdriverFromSlack(json.RawMessage(body), etype, instanceName)
 	if err != nil {
-		return event, errors.Wrap(err, "cannot get stackdriver message")
+		return types.Event{}, errors.Wrap(err, "cannot get stackdriver message")
 	}
 
 	// opsGenie message makes sense only for monitor event
 	var opsGenieMsg json.RawMessage
 	if etype == "monitor" {
-		opsGenieMsg, err = getOpsGenieMessage(html, etype, instanceName)
+		opsGenieMsg, err = parser.OpsGenieFromSlack(html, etype, instanceName)
 		if err != nil {
-			return event, errors.Wrap(err, "cannot get OpsGenie message")
+			return types.Event{}, errors.Wrap(err, "cannot get OpsGenie message")
 		}
 	}
 
-	slackMsg, err := getSlackMessage(sm, instanceName, link)
+	slackMsg, err := parser.SlackFromSlack(sm, instanceName, link)
+	if err != nil {
+		return types.Event{}, errors.Wrap(err, "cannot get slack message")
+	}
 
+	var event types.Event
 	event.InstanceID = instanceID
 	event.Type = etype
 	event.Timestamp = time.Now()
@@ -616,23 +691,6 @@ func (em *EventManager) storeAndSend(ctx context.Context, ev types.Event, featur
 	return eventID, nil
 }
 
-// GetBrowserMessage returns messaage for browser
-func getBrowserMessage(text string, attachments []types.SlackAttachment, etype string) (json.RawMessage, error) {
-	bm := types.BrowserMessage{
-		Type:        etype,
-		Text:        text,
-		Attachments: attachments,
-		Timestamp:   time.Now(),
-	}
-
-	msgRaw, err := json.Marshal(bm)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot marshal browser message %s to json", bm)
-	}
-
-	return msgRaw, nil
-}
-
 func (em *EventManager) getInstanceLink(externalID, resource string) (string, error) {
 	url, err := url.Parse(em.WcURL)
 	if err != nil {
@@ -643,97 +701,58 @@ func (em *EventManager) getInstanceLink(externalID, resource string) (string, er
 	return url.String(), nil
 }
 
-// GetEmailMessage returns message for email
-func getEmailMessage(htmlText, etype, instanceName, link string) (json.RawMessage, error) {
-	footer := fmt.Sprintf(`
-			<p>
-				<span style="color: #8A8A8A; font-family: 'Calibri', sans-serif; font-size: 8pt; font-weight: regular;">
-				To disable these notifications, adjust the <a href="%s">Settings</a>.
-				</span>
-			</p>`, link)
-	em := types.EmailMessage{
-		Subject: fmt.Sprintf("%v - %v", instanceName, etype),
-		Body:    fmt.Sprintf("%s%s", htmlText, footer),
+func buildWebhookEvent(m types.WebhookAlert, etype, instanceID, instanceName, notificationPageLink, link, linkText string) (types.Event, error) {
+	if len(m.Alerts) == 0 {
+		return types.Event{}, errors.New("event is empty, alerts not found")
 	}
 
-	msgRaw, err := json.Marshal(em)
+	m.SettingsURL = notificationPageLink
+	m.WeaveCloudURL = map[string]string{
+		linkText: link,
+	}
+
+	emailMsg, err := parser.EmailFromAlert(m, etype, instanceName, notificationPageLink)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot marshal email message %s to json", em)
+		return types.Event{}, errors.Wrap(err, "cannot get email message")
 	}
 
-	return msgRaw, nil
-}
-
-func getSlackMessage(sm types.SlackMessage, instanceName, link string) (json.RawMessage, error) {
-	sm.Text = fmt.Sprintf("*Instance*: <%s|%s>\n%s", link, instanceName, sm.Text)
-
-	msg, err := json.Marshal(sm)
+	slackMsg, err := parser.SlackFromAlert(m, etype, instanceName, notificationPageLink)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot marshal slack message to json")
+		return types.Event{}, errors.Wrap(err, "cannot get slack message")
 	}
 
-	return msg, nil
-}
-
-// GetStackdriverMessage returns message for stackdriver
-func getStackdriverMessage(payload json.RawMessage, etype string, instanceName string) (json.RawMessage, error) {
-	sdMsg := types.StackdriverMessage{
-		Timestamp: time.Now(),
-		Payload:   payload,
-		Labels:    map[string]string{"instance": instanceName, "event_type": etype},
-	}
-
-	msgRaw, err := json.Marshal(sdMsg)
+	browserMsg, err := parser.BrowserFromAlert(m, etype)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot marshal stackdriver message %s to json", sdMsg)
+		return types.Event{}, errors.Wrap(err, "cannot get browser message")
 	}
 
-	return msgRaw, nil
-}
-
-// GetOpsGenieMessage returns message for OpsGenie
-func getOpsGenieMessage(htmlMsg, etype, instanceName string) (json.RawMessage, error) {
-	ogMsg := types.OpsGenieMessage{
-		Message:     fmt.Sprintf("%v - %v", instanceName, etype),
-		Description: htmlMsg,
-		Tags:        []string{instanceName, etype},
-		Details:     map[string]string{"instance": instanceName, "event_type": etype},
-		Entity:      "Weave Cloud Monitor",
-		Source:      "Weave Cloud",
-	}
-
-	msgRaw, err := json.Marshal(ogMsg)
+	stackdriverMsg, err := parser.StackdriverFromAlert(m, etype, instanceName)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot marshal to json OpsGenie message: %s", ogMsg)
+		return types.Event{}, errors.Wrap(err, "cannot get stackdriver message")
 	}
 
-	return msgRaw, nil
-}
-
-// GetAllMarkdownText returns all text in markdown format from slack message (text and attachments)
-func getAllMarkdownText(sm types.SlackMessage, instanceName string) string {
-	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("Instance: %s%s", instanceName, markdownNewParagraph))
-	if sm.Text != "" {
-		// a slack message might contain \n for new lines
-		// replace it with markdown line break
-		buf.WriteString(strings.Replace(sm.Text, "\n", markdownNewline, -1))
-		buf.WriteString(markdownNewParagraph)
-	}
-	for _, att := range sm.Attachments {
-		if att.Pretext != "" {
-			buf.WriteString(strings.Replace(att.Pretext, "\n", markdownNewline, -1))
-			buf.WriteString(markdownNewline)
+	// opsGenie message makes sense only for monitor event
+	var opsGenieMsg json.RawMessage
+	if etype == "monitor" {
+		opsGenieMsg, err = parser.OpsGenieFromAlert(m, etype, instanceName)
+		if err != nil {
+			return types.Event{}, errors.Wrap(err, "cannot get OpsGenie message")
 		}
-		if att.Title != "" {
-			buf.WriteString(strings.Replace(att.Title, "\n", markdownNewline, -1))
-			buf.WriteString(markdownNewline)
-		}
-		if att.Text != "" {
-			buf.WriteString(strings.Replace(att.Text, "\n", markdownNewline, -1))
-		}
-		buf.WriteString(markdownNewParagraph)
 	}
 
-	return buf.String()
+	ev := types.Event{
+		Type:         etype,
+		InstanceID:   instanceID,
+		InstanceName: instanceName,
+		Timestamp:    time.Now(),
+		Messages: map[string]json.RawMessage{
+			types.BrowserReceiver:     browserMsg,
+			types.SlackReceiver:       slackMsg,
+			types.EmailReceiver:       emailMsg,
+			types.StackdriverReceiver: stackdriverMsg,
+			types.OpsGenieReceiver:    opsGenieMsg,
+		},
+	}
+
+	return ev, nil
 }
