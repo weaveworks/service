@@ -57,9 +57,13 @@ type extensionsTemplateEngine struct {
 func (l *extensionsTemplateEngine) Lookup(name string) (t Executor, err error) {
 	switch filepath.Ext(name) {
 	case ".html":
-		t = l.htmlTemplates.Lookup(name)
+		if ht := l.htmlTemplates.Lookup(name); ht != nil {
+			t = ht
+		}
 	case ".text":
-		t = l.textTemplates.Lookup(name)
+		if tt := l.textTemplates.Lookup(name); tt != nil {
+			t = tt
+		}
 	}
 	if t == nil {
 		err = ErrTemplateNotFound{name}

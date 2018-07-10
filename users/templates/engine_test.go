@@ -33,3 +33,22 @@ func TestEmbedHTML__Invite(t *testing.T) {
 	assert.Contains(t, rendered, "has invited you to access the \"local-test-org\"")
 	assert.Contains(t, rendered, data["LoginURL"])
 }
+
+func TestExtensionsTemplateEngine_Lookup(t *testing.T) {
+	eng := templates.MustNewEngine(".")
+	{
+		tmpl, err := eng.Lookup("notfound.html")
+		assert.Nil(t, tmpl)
+		assert.Error(t, err)
+	}
+	{
+		tmpl, err := eng.Lookup("notfound.text")
+		assert.Nil(t, tmpl)
+		assert.Error(t, err)
+	}
+	{
+		tmpl, err := eng.Lookup("file.unknown")
+		assert.Nil(t, tmpl)
+		assert.Error(t, err)
+	}
+}
