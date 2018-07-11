@@ -15,11 +15,7 @@
 
 ## Create website to host form
 
-Inside [this directory](./hpm_demo) there is a demo website that shows you how this API should interact with a UI.
-
-The main place to look is inside the [javascript file](./hpm_demo/billing-api.js) which performs all the requests. The idea is that the javascript calls the API to obtain the authentication tokens (which differ depending on whether you are creating or updating a user) which you then use to render the hosted payment method page.
-
-Once the user presses submit, a reference ID is returned, and should then be passed back to the API in order to create/update the user.
+[In an older version of this repo there was a demo website that showed you how this API should interact with a UI.]
 
 ### Running the API
 
