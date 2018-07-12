@@ -381,6 +381,17 @@ func (a WebhooksMiddleware) Wrap(next http.Handler) http.Handler {
 			}
 		}
 
+		// Set the FirstSeenAt time if it is not set
+		if response.Webhook.FirstSeenAt == nil {
+			_, err := a.UsersClient.SetOrganizationWebhookFirstSeenAt(r.Context(), &users.SetOrganizationWebhookFirstSeenAtRequest{
+				SecretID: secretID,
+			})
+			if err != nil {
+				handleError(err, w, r)
+				return
+			}
+		}
+
 		// Add the integration type and org ID to the headers for use by flux-api.
 		r.Header.Add(a.WebhooksIntegrationTypeHeader, response.Webhook.IntegrationType)
 		finishRequest(next, w, r, response.Webhook.OrganizationID)
