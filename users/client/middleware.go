@@ -1,9 +1,11 @@
 package client
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"path"
 	"regexp"
@@ -374,11 +376,20 @@ func (a WebhooksMiddleware) Wrap(next http.Handler) http.Handler {
 				http.Error(w, "The GitHub signing key is missing.", 500)
 				return
 			}
-			_, err := github.ValidatePayload(r, []byte(response.Webhook.SecretSigningKey))
+			// Validating the payload consumes the request Body; so we
+			// will need to replace it afterwards.
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, "Could not read request body: "+err.Error(), http.StatusBadRequest)
+				return
+			}
+			r.Body = ioutil.NopCloser(bytes.NewReader(body))
+			_, err = github.ValidatePayload(r, []byte(response.Webhook.SecretSigningKey))
 			if err != nil {
 				http.Error(w, "The GitHub signature header is invalid.", 401)
 				return
 			}
+			r.Body = ioutil.NopCloser(bytes.NewReader(body))
 		}
 
 		// Add the integration type and org ID to the headers for use by flux-api.
