@@ -82,9 +82,11 @@ func waitForReady(t *testing.T) {
 	deadline := time.Now().Add(timeout)
 	for {
 		res, err := http.Get(url)
-		res.Body.Close()
-		if err == nil && res.StatusCode == http.StatusOK {
-			return
+		if err == nil {
+			res.Body.Close()
+			if res.StatusCode == http.StatusOK {
+				return // success
+			}
 		}
 
 		if time.Now().After(deadline) {
