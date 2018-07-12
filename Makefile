@@ -318,7 +318,7 @@ gcp-service-integration-test: gcp-service/$(UPTODATE) gcp-service/grpc/gcp-servi
 	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \
 	exit $$status
 
-notification-integration-test: notification-eventmanager/$(UPTODATE) notifications/$(UPTODATE)
+notification-integration-test: notification-eventmanager/$(UPTODATE) notification-sender/$(UPTODATE)
 	docker build -f notification-eventmanager/e2e/Dockerfile.integration -t notification-integrationtest .
 	cd notification-eventmanager/e2e && $(SUDO) docker-compose up --abort-on-container-exit; EXIT_CODE=$$?; $(SUDO) docker-compose down; exit $$EXIT_CODE
 
