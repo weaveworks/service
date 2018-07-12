@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/badoux/checkmail"
@@ -15,6 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/notification-eventmanager/types"
+	"github.com/weaveworks/service/notification-sender"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/sessions"
 )
@@ -80,8 +82,11 @@ func isValidAddress(addressData json.RawMessage, rtype string) error {
 			return errors.Wrapf(err, "cannot unmarshal %s receiver address data %s", rtype, addressData)
 		}
 
-		if err := checkmail.ValidateFormat(addrStr); err != nil {
-			return errors.Wrapf(err, "invalid email address %s", addrStr)
+		addresses := strings.Split(addrStr, sender.EmailSeparator)
+		for _, addr := range addresses {
+			if err := checkmail.ValidateFormat(addr); err != nil {
+				return errors.Wrapf(err, "invalid email address %s", addr)
+			}
 		}
 
 	case types.BrowserReceiver:

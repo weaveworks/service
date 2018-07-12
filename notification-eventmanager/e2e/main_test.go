@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -81,8 +82,8 @@ func waitForReady(t *testing.T) {
 	deadline := time.Now().Add(timeout)
 	for {
 		res, err := http.Get(url)
-		if err == nil && res.StatusCode == 200 {
-			res.Body.Close()
+		res.Body.Close()
+		if err == nil && res.StatusCode == http.StatusOK {
 			return
 		}
 
@@ -91,11 +92,9 @@ func waitForReady(t *testing.T) {
 				t.Fatal(errors.Wrapf(err, "healthCheck for %s: request error received after %s", url, timeout))
 				return
 			}
-			res.Body.Close()
 			t.Fatal(errors.Errorf("healthCheck for %s: status %d received after %s", url, res.StatusCode, timeout))
 			return
 		}
-
 		time.Sleep(100 * time.Millisecond)
 	}
 }
@@ -146,10 +145,13 @@ func closeWebsocket(c *websocket.Conn) error {
 	return nil
 }
 
-func waitForEmail(recipient string) (email, error) {
+func waitForEmail(recipients ...string) (email, error) {
 	var emails []email
+	var desired []string
 	deadline := time.Now().Add(10 * time.Second)
-	desired := fmt.Sprintf("<%v>", unquote(recipient))
+	for _, r := range recipients {
+		desired = append(desired, fmt.Sprintf("<%s>", unquote(r)))
+	}
 
 	for time.Now().Before(deadline) {
 		res, err := http.Get(smtpURL)
@@ -168,17 +170,14 @@ func waitForEmail(recipient string) (email, error) {
 		}
 
 		for _, email := range emails {
-			for _, r := range email.Recipients {
-				if r == desired {
-					return email, nil
-				}
+			if reflect.DeepEqual(email.Recipients, desired) {
+				return email, nil
 			}
 		}
-
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	return email{}, errors.Errorf("did not receive email to %#v", recipient)
+	return email{}, errors.Errorf("did not receive email to %#v", recipients)
 }
 
 type ID struct {
@@ -223,7 +222,16 @@ func TestCreateReceiver(t *testing.T) {
 	if err != nil {
 		t.Error(errors.Wrap(err, "cannot create receiver"))
 	}
+}
 
+func TestCreateReceiver_MultipleEmails(t *testing.T) {
+	waitForReady(t)
+
+	_, err := postEmailReceiver(`"0@weave.test,1@weave.test"`)
+
+	if err != nil {
+		t.Error(errors.Wrap(err, "cannot create receiver"))
+	}
 }
 
 func TestGetReceiver(t *testing.T) {
@@ -572,12 +580,12 @@ func TestReceiver_Browser(t *testing.T) {
 func TestReceiver_Email(t *testing.T) {
 	waitForReady(t)
 	emails := make(chan *email)
-	address := `"emailtest@integration.com"`
+	addresses := `"a@weave.test,b@weave.test"`
 
-	_, err := postEmailReceiver(address)
+	_, err := postEmailReceiver(addresses)
 
 	go func() {
-		message, err := waitForEmail(address)
+		message, err := waitForEmail(`"a@weave.test"`, `"b@weave.test"`)
 
 		if err != nil {
 			t.Error(errors.Wrap(err, "could not wait for emails"))
@@ -587,7 +595,7 @@ func TestReceiver_Email(t *testing.T) {
 		emails <- &message
 	}()
 
-	text := "This is a critical message"
+	text := "This is a critical email message"
 
 	event := types.Event{
 		Type: "info",
@@ -606,18 +614,15 @@ func TestReceiver_Email(t *testing.T) {
 		t.Fatal(errors.Wrap(err, "could not create event"))
 	}
 
-	result := <-emails
+	email := <-emails
 
-	if result == nil {
+	if email == nil {
 		t.Fatal("no email found")
 	}
 
-	desired := fmt.Sprintf("<%v>", unquote(address))
-
-	if result.Recipients[0] != desired {
-		t.Fatalf("expected recipient[0] to be %#v; actual: %#v", desired, result.Recipients[0])
+	if email.Sender != "<support@weave.works>" {
+		t.Fatalf("expected sender to be <support@weave.works> but got %q", email.Sender)
 	}
-
 }
 
 func TestReceiver_RemoveAllEventTypes(t *testing.T) {
