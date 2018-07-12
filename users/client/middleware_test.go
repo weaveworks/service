@@ -111,6 +111,7 @@ func TestWebhooksMiddleware(t *testing.T) {
 		UsersClient:                   u,
 		WebhooksIntegrationTypeHeader: webhooks.WebhooksIntegrationTypeHeader,
 	}
+	now := time.Now()
 
 	{ // Webhook exists
 		u.EXPECT().
@@ -127,6 +128,14 @@ func TestWebhooksMiddleware(t *testing.T) {
 						SecretSigningKey: "",
 						CreatedAt:        time.Now(),
 					},
+				}, nil)
+		u.EXPECT().
+			SetOrganizationWebhookFirstSeenAt(gomock.Any(), &users.SetOrganizationWebhookFirstSeenAtRequest{
+				SecretID: "secret-abc",
+			}).
+			Return(
+				&users.SetOrganizationWebhookFirstSeenAtResponse{
+					FirstSeenAt: &now,
 				}, nil)
 
 		req, err := http.NewRequest("GET", "https://weave.test/webhooks/secret-abc", nil)
@@ -149,6 +158,14 @@ func TestWebhooksMiddleware(t *testing.T) {
 						SecretSigningKey: "signing-key-123",
 						CreatedAt:        time.Now(),
 					},
+				}, nil)
+		u.EXPECT().
+			SetOrganizationWebhookFirstSeenAt(gomock.Any(), &users.SetOrganizationWebhookFirstSeenAtRequest{
+				SecretID: "secret-abc",
+			}).
+			Return(
+				&users.SetOrganizationWebhookFirstSeenAtResponse{
+					FirstSeenAt: &now,
 				}, nil)
 
 		req, err := http.NewRequest("GET", "https://weave.test/webhooks/secret-abc", strings.NewReader("payload"))

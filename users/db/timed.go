@@ -470,6 +470,14 @@ func (t timed) FindOrganizationWebhookBySecretID(ctx context.Context, secretID s
 	return
 }
 
+func (t timed) SetOrganizationWebhookFirstSeenAt(ctx context.Context, secretID string) (ti *time.Time, err error) {
+	t.timeRequest(ctx, "SetOrganizationWebhookFirstSeenAt", func(ctx context.Context) error {
+		ti, err = t.d.SetOrganizationWebhookFirstSeenAt(ctx, secretID)
+		return err
+	})
+	return
+}
+
 func (t timed) Close(ctx context.Context) error {
 	return t.timeRequest(ctx, "Close", func(ctx context.Context) error {
 		return t.d.Close(ctx)

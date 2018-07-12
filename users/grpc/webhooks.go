@@ -21,3 +21,14 @@ func (a *usersServer) LookupOrganizationWebhookUsingSecretID(ctx context.Context
 		Webhook: webhook,
 	}, nil
 }
+
+// LookupOrganizationWebhookUsingSecretID gets the webhook given the external org ID and the secret ID of the webhook.
+func (a *usersServer) SetOrganizationWebhookFirstSeenAt(ctx context.Context, req *users.SetOrganizationWebhookFirstSeenAtRequest) (*users.SetOrganizationWebhookFirstSeenAtResponse, error) {
+	firstSeenAt, err := a.db.SetOrganizationWebhookFirstSeenAt(ctx, req.SecretID)
+	if err != nil {
+		return nil, err
+	}
+	return &users.SetOrganizationWebhookFirstSeenAtResponse{
+		FirstSeenAt: firstSeenAt,
+	}, nil
+}

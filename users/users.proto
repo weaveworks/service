@@ -68,6 +68,9 @@ service Users {
 
     // LookupOrganizationWebhookUsingSecretID returns a Webhook given the external org ID and the webhook secret ID
     rpc LookupOrganizationWebhookUsingSecretID(LookupOrganizationWebhookUsingSecretIDRequest) returns (LookupOrganizationWebhookUsingSecretIDResponse) {};
+
+    // SetOrganizationWebhookFirstSeenAt sets the FirstSeenAt field on the webhook to the current time
+    rpc SetOrganizationWebhookFirstSeenAt(SetOrganizationWebhookFirstSeenAtRequest) returns (SetOrganizationWebhookFirstSeenAtResponse) {};
 }
 
 enum AuthorizedAction {
@@ -361,6 +364,7 @@ message Webhook {
     string SecretSigningKey = 5 [(gogoproto.jsontag) = "secretSigningKey"];
     google.protobuf.Timestamp CreatedAt = 6  [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "createdAt"];
     google.protobuf.Timestamp DeletedAt = 7  [(gogoproto.stdtime) = true, (gogoproto.nullable) = true, (gogoproto.jsontag) = "deletedAt"];
+    google.protobuf.Timestamp FirstSeenAt = 8  [(gogoproto.stdtime) = true, (gogoproto.nullable) = true, (gogoproto.jsontag) = "firstSeenAt"];
 }
 
 message LookupOrganizationWebhookUsingSecretIDRequest {
@@ -369,4 +373,12 @@ message LookupOrganizationWebhookUsingSecretIDRequest {
 
 message LookupOrganizationWebhookUsingSecretIDResponse {
     Webhook Webhook = 1;
+}
+
+message SetOrganizationWebhookFirstSeenAtRequest {
+    string SecretID = 1;
+}
+
+message SetOrganizationWebhookFirstSeenAtResponse {
+    google.protobuf.Timestamp FirstSeenAt = 1  [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
 }
