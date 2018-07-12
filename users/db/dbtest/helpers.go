@@ -93,6 +93,13 @@ func CreateWebhookForOrg(t *testing.T, db db.DB, org *users.Organization, integr
 	return w
 }
 
+// GetOrgWebhook gets a webhook by secretID
+func GetOrgWebhook(t *testing.T, db db.DB, secretID string) *users.Webhook {
+	w, err := db.FindOrganizationWebhookBySecretID(context.Background(), secretID)
+	require.NoError(t, err)
+	return w
+}
+
 // GetOrg makes org with a random ExternalID and user for testing
 func GetOrg(t *testing.T, db db.DB) (*users.User, *users.Organization) {
 	user := GetUser(t, db)

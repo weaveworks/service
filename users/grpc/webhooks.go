@@ -17,6 +17,15 @@ func (a *usersServer) LookupOrganizationWebhookUsingSecretID(ctx context.Context
 	if err != nil {
 		return nil, err
 	}
+
+	if webhook.FirstSeenAt == nil {
+		firstSeenAt, err := a.db.SetOrganizationWebhookFirstSeenAt(ctx, req.SecretID)
+		if err != nil {
+			return nil, err
+		}
+		webhook.FirstSeenAt = firstSeenAt
+	}
+
 	return &users.LookupOrganizationWebhookUsingSecretIDResponse{
 		Webhook: webhook,
 	}, nil

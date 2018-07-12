@@ -361,6 +361,7 @@ message Webhook {
     string SecretSigningKey = 5 [(gogoproto.jsontag) = "secretSigningKey"];
     google.protobuf.Timestamp CreatedAt = 6  [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "createdAt"];
     google.protobuf.Timestamp DeletedAt = 7  [(gogoproto.stdtime) = true, (gogoproto.nullable) = true, (gogoproto.jsontag) = "deletedAt"];
+    google.protobuf.Timestamp FirstSeenAt = 8  [(gogoproto.stdtime) = true, (gogoproto.nullable) = true, (gogoproto.jsontag) = "firstSeenAt"];
 }
 
 message LookupOrganizationWebhookUsingSecretIDRequest {

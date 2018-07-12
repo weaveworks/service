@@ -403,3 +403,27 @@ func TestDB_FindOrganizationWebhookBySecretID(t *testing.T) {
 	w, err = db.FindOrganizationWebhookBySecretID(ctx, w2.SecretID+"a")
 	assert.Error(t, err)
 }
+
+func TestDB_SetOrganizationWebhookFirstSeenAt(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
+
+	ctx := context.Background()
+
+	u, err := db.CreateUser(ctx, "joe@email.com")
+	assert.NoError(t, err)
+	o, err := db.CreateOrganization(ctx, u.ID, "happy-place-67", "My cool Org", "1234", "", u.TrialExpiresAt())
+	assert.NoError(t, err)
+
+	w, err := db.CreateOrganizationWebhook(ctx, o.ExternalID, webhooks.GithubPushIntegrationType)
+	assert.NoError(t, err)
+	assert.Empty(t, w.FirstSeenAt)
+
+	ti, err := db.SetOrganizationWebhookFirstSeenAt(ctx, w.SecretID)
+	assert.NoError(t, err)
+
+	w, err = db.FindOrganizationWebhookBySecretID(ctx, w.SecretID)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, w.FirstSeenAt)
+	assert.Equal(t, ti, w.FirstSeenAt)
+}

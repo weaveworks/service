@@ -79,3 +79,20 @@ func (d *DB) FindOrganizationWebhookBySecretID(ctx context.Context, secretID str
 	}
 	return nil, fmt.Errorf("webhook not found")
 }
+
+// SetOrganizationWebhookFirstSeenAt sets the first_seen_at time to now
+func (d *DB) SetOrganizationWebhookFirstSeenAt(ctx context.Context, secretID string) (*time.Time, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+
+	for _, ws := range d.webhooks {
+		for _, w := range ws {
+			if w.SecretID == secretID {
+				now := time.Now()
+				w.FirstSeenAt = &now
+				return w.FirstSeenAt, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("Not found")
+}

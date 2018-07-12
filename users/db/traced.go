@@ -329,6 +329,11 @@ func (t traced) FindOrganizationWebhookBySecretID(ctx context.Context, secretID 
 	return t.d.FindOrganizationWebhookBySecretID(ctx, secretID)
 }
 
+func (t traced) SetOrganizationWebhookFirstSeenAt(ctx context.Context, secretID string) (ti *time.Time, err error) {
+	defer t.trace("SetOrganizationWebhookFirstSeenAt", secretID, ti, err)
+	return t.d.SetOrganizationWebhookFirstSeenAt(ctx, secretID)
+}
+
 func (t traced) Close(ctx context.Context) (err error) {
 	defer t.trace("Close", err)
 	return t.d.Close(ctx)

@@ -3,8 +3,10 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
 
 	"github.com/weaveworks/service/common/constants/webhooks"
 	"github.com/weaveworks/service/users"
@@ -81,10 +83,7 @@ func (d DB) DeleteOrganizationWebhook(ctx context.Context, orgExternalID, secret
 		Where("webhooks.secret_id = ?", string(secretID)).
 		Where("webhooks.deleted_at is null").
 		ExecContext(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // FindOrganizationWebhookBySecretID returns a webhook based on it's secretID
@@ -92,6 +91,21 @@ func (d DB) FindOrganizationWebhookBySecretID(ctx context.Context, secretID stri
 	query := d.webhooksQuery().Where("webhooks.secret_id = ?", string(secretID))
 	row := query.QueryRowContext(ctx)
 	return d.scanWebhook(row)
+}
+
+// SetOrganizationWebhookFirstSeenAt sets the first_seen_at time to now
+func (d DB) SetOrganizationWebhookFirstSeenAt(ctx context.Context, secretID string) (*time.Time, error) {
+	var firstSeenAt pq.NullTime
+	err := d.Update("webhooks").
+		Set("first_seen_at", time.Now()).
+		Where("secret_id = ?", secretID).
+		Suffix("RETURNING first_seen_at").
+		QueryRowContext(ctx).
+		Scan(&firstSeenAt)
+	if err != nil {
+		return nil, err
+	}
+	return &firstSeenAt.Time, nil
 }
 
 func (d DB) scanWebhooks(rows *sql.Rows) ([]*users.Webhook, error) {
@@ -113,7 +127,7 @@ func (d DB) scanWebhook(row squirrel.RowScanner) (*users.Webhook, error) {
 	w := &users.Webhook{}
 	if err := row.Scan(
 		&w.ID, &w.OrganizationID, &w.IntegrationType, &w.SecretID,
-		&w.SecretSigningKey, &w.CreatedAt, &w.DeletedAt,
+		&w.SecretSigningKey, &w.CreatedAt, &w.DeletedAt, &w.FirstSeenAt,
 	); err != nil {
 		return nil, err
 	}
@@ -129,6 +143,7 @@ func (d DB) webhooksQuery() squirrel.SelectBuilder {
 		"webhooks.secret_signing_key",
 		"webhooks.created_at",
 		"webhooks.deleted_at",
+		"webhooks.first_seen_at",
 	).
 		From("webhooks").
 		Where("webhooks.deleted_at is null").

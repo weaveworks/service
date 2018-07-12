@@ -37,6 +37,7 @@ func TestAPI_listOrganizationWebhooks(t *testing.T) {
 	assert.Equal(t, w1.SecretSigningKey, body[0]["secretSigningKey"])
 	assert.NotEmpty(t, body[0]["createdAt"])
 	assert.Empty(t, body[0]["deletedAt"])
+	assert.Empty(t, body[0]["firstSeenAt"])
 
 	assert.NotContains(t, body[1], "ID")             // Internal ID not exposed to user.
 	assert.NotContains(t, body[1], "OrganizationID") // Internal Org ID not exposed to user.
@@ -45,6 +46,7 @@ func TestAPI_listOrganizationWebhooks(t *testing.T) {
 	assert.Equal(t, w2.SecretSigningKey, body[1]["secretSigningKey"])
 	assert.NotEmpty(t, body[1]["createdAt"])
 	assert.Empty(t, body[1]["deletedAt"])
+	assert.Empty(t, body[1]["firstSeenAt"])
 }
 
 func TestAPI_createOrganizationWebhook(t *testing.T) {
@@ -70,6 +72,7 @@ func TestAPI_createOrganizationWebhook(t *testing.T) {
 	assert.NotEmpty(t, body["secretSigningKey"])
 	assert.NotEmpty(t, body["createdAt"])
 	assert.Empty(t, body["deletedAt"])
+	assert.Empty(t, body["firstSeenAt"])
 
 	// Test invalid integrationType
 	payload, err = json.Marshal(map[string]string{"integrationType": "invalid"})
