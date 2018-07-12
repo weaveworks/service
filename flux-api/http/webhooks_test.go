@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -165,12 +167,27 @@ func TestHandleWebhook(t *testing.T) {
 			  }
 		`)
 
-		req, err := http.NewRequest("GET", "https://weave.test/webhooks/secret-abc/", bytes.NewReader(payload))
+		req, err := http.NewRequest("POST", "https://weave.test/webhooks/secret-abc/", bytes.NewReader(payload))
 		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set(webhooks.WebhooksIntegrationTypeHeader, webhooks.GithubPushIntegrationType)
 		req.Header.Set("X-Github-Event", "push")
 
 		rr := httptest.NewRecorder()
+		s.handleWebhook(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		// Same thing but as application/x-www-form-urlencoded
+		form := url.Values{}
+		form.Add("payload", string(payload))
+		req, err = http.NewRequest("POST", "https://weave.test/webhooks/secret-abc/", strings.NewReader(form.Encode()))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set(webhooks.WebhooksIntegrationTypeHeader, webhooks.GithubPushIntegrationType)
+		req.Header.Set("X-Github-Event", "push")
+
+		rr = httptest.NewRecorder()
 		s.handleWebhook(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)

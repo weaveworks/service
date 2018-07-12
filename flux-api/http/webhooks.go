@@ -27,12 +27,25 @@ func (s Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGithubHook(s Server, w http.ResponseWriter, r *http.Request) {
-	payload, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		transport.ErrorResponse(w, r, err)
+	var payload []byte
+	switch contentType := r.Header.Get("Content-Type"); contentType {
+	case "application/x-www-form-urlencoded":
+		if err := r.ParseForm(); err != nil {
+			transport.ErrorResponse(w, r, err)
+			return
+		}
+		payload = []byte(r.Form.Get("payload"))
+	case "application/json":
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			transport.ErrorResponse(w, r, err)
+			return
+		}
+		payload = body
+	default:
+		transport.ErrorResponse(w, r, fmt.Errorf("Unknown content type %q for webhook", contentType))
 		return
 	}
-
 	hook, err := github.ParseWebHook(github.WebHookType(r), payload)
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
