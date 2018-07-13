@@ -32,7 +32,7 @@ FROM
   %s
 WHERE
   received_at IS NOT NULL
-  AND received_at > @StartTime
+  AND received_at >= @StartTime
   AND _PARTITIONTIME >= @DateLowerLimit
 GROUP BY
   InstanceID,
