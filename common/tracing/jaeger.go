@@ -21,6 +21,7 @@ func Init(serviceName string) io.Closer {
 		os.Exit(1)
 	}
 	if cfg.Sampler.SamplingServerURL == "" && cfg.Reporter.LocalAgentHostPort == "" {
+		fmt.Printf("Jaeger tracer disabled: No sampling server or local agent\n")
 		return nopCloser{}
 	}
 
