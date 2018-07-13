@@ -1,18 +1,10 @@
 package main
 
 import (
-	"errors"
 	"net/http"
 
+	"github.com/weaveworks/service/common/errors"
 	"github.com/weaveworks/service/common/render"
-)
-
-var (
-	// A generic not found error.
-	errNotFound = errors.New("not found")
-
-	// A generic invalid GET parameter error
-	errInvalidParameter = errors.New("invalid parameter")
 )
 
 func renderError(w http.ResponseWriter, r *http.Request, err error) {
@@ -21,9 +13,9 @@ func renderError(w http.ResponseWriter, r *http.Request, err error) {
 
 func errorStatusCode(err error) int {
 	switch err {
-	case errNotFound:
-		return http.StatusNotFound
-	case errInvalidParameter:
+	case errors.ErrNotFound:
+		return http.StatusNoContent
+	case errors.ErrInvalidParameter:
 		return http.StatusBadRequest
 	}
 

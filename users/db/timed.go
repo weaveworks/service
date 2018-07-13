@@ -125,6 +125,14 @@ func (t timed) ListOrganizations(ctx context.Context, f filter.Organization, pag
 	return
 }
 
+func (t timed) ListAllOrganizations(ctx context.Context, f filter.Organization, page uint64) (os []*users.Organization, err error) {
+	t.timeRequest(ctx, "ListAllOrganizations", func(ctx context.Context) error {
+		os, err = t.d.ListAllOrganizations(ctx, f, page)
+		return err
+	})
+	return
+}
+
 func (t timed) ListOrganizationUsers(ctx context.Context, orgExternalID string) (us []*users.User, err error) {
 	t.timeRequest(ctx, "ListOrganizationUsers", func(ctx context.Context) error {
 		us, err = t.d.ListOrganizationUsers(ctx, orgExternalID)
@@ -223,9 +231,17 @@ func (t timed) FindOrganizationByInternalID(ctx context.Context, internalID stri
 	return
 }
 
-func (t timed) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error {
-	return t.timeRequest(ctx, "UpdateOrganization", func(ctx context.Context) error {
-		return t.d.UpdateOrganization(ctx, externalID, update)
+func (t timed) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) (o *users.Organization, err error) {
+	t.timeRequest(ctx, "UpdateOrganization", func(ctx context.Context) error {
+		o, err = t.d.UpdateOrganization(ctx, externalID, update)
+		return err
+	})
+	return
+}
+
+func (t timed) MoveOrganizationToTeam(ctx context.Context, externalID, teamExternalID, teamName, userID string) error {
+	return t.timeRequest(ctx, "MoveOrganizationToTeam", func(ctx context.Context) error {
+		return t.d.MoveOrganizationToTeam(ctx, externalID, teamExternalID, teamName, userID)
 	})
 }
 
@@ -286,6 +302,12 @@ func (t timed) SetOrganizationRefuseDataAccess(ctx context.Context, externalID s
 func (t timed) SetOrganizationRefuseDataUpload(ctx context.Context, externalID string, value bool) error {
 	return t.timeRequest(ctx, "SetOrganizationRefuseDataUpload", func(ctx context.Context) error {
 		return t.d.SetOrganizationRefuseDataUpload(ctx, externalID, value)
+	})
+}
+
+func (t timed) SetOrganizationRefuseDataReason(ctx context.Context, externalID string, reason string) error {
+	return t.timeRequest(ctx, "SetOrganizationRefuseDataReason", func(ctx context.Context) error {
+		return t.d.SetOrganizationRefuseDataReason(ctx, externalID, reason)
 	})
 }
 
@@ -392,6 +414,14 @@ func (t timed) AddUserToTeam(ctx context.Context, userID, teamID string) (err er
 	return
 }
 
+func (t timed) DeleteTeam(ctx context.Context, teamID string) (err error) {
+	t.timeRequest(ctx, "DeleteTeam", func(ctx context.Context) error {
+		err = t.d.DeleteTeam(ctx, teamID)
+		return err
+	})
+	return
+}
+
 func (t timed) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (o *users.Organization, err error) {
 	t.timeRequest(ctx, "CreateOrganizationWithTeam", func(ctx context.Context) error {
 		o, err = t.d.CreateOrganizationWithTeam(ctx, ownerID, externalID, name, token, teamExternalID, teamName, trialExpiresAt)
@@ -403,6 +433,46 @@ func (t timed) CreateOrganizationWithTeam(ctx context.Context, ownerID, external
 func (t timed) GetSummary(ctx context.Context) (entries []*users.SummaryEntry, err error) {
 	t.timeRequest(ctx, "GetSummary", func(ctx context.Context) error {
 		entries, err = t.d.GetSummary(ctx)
+		return err
+	})
+	return
+}
+
+func (t timed) ListOrganizationWebhooks(ctx context.Context, orgExternalID string) (ws []*users.Webhook, err error) {
+	t.timeRequest(ctx, "ListOrganizationWebhooks", func(ctx context.Context) error {
+		ws, err = t.d.ListOrganizationWebhooks(ctx, orgExternalID)
+		return err
+	})
+	return
+}
+
+func (t timed) CreateOrganizationWebhook(ctx context.Context, orgExternalID, integrationType string) (w *users.Webhook, err error) {
+	t.timeRequest(ctx, "CreateOrganizationWebhook", func(ctx context.Context) error {
+		w, err = t.d.CreateOrganizationWebhook(ctx, orgExternalID, integrationType)
+		return err
+	})
+	return
+}
+
+func (t timed) DeleteOrganizationWebhook(ctx context.Context, orgExternalID, secretID string) (err error) {
+	t.timeRequest(ctx, "DeleteOrganizationWebhook", func(ctx context.Context) error {
+		err = t.d.DeleteOrganizationWebhook(ctx, orgExternalID, secretID)
+		return err
+	})
+	return
+}
+
+func (t timed) FindOrganizationWebhookBySecretID(ctx context.Context, secretID string) (w *users.Webhook, err error) {
+	t.timeRequest(ctx, "FindOrganizationWebhookBySecretID", func(ctx context.Context) error {
+		w, err = t.d.FindOrganizationWebhookBySecretID(ctx, secretID)
+		return err
+	})
+	return
+}
+
+func (t timed) SetOrganizationWebhookFirstSeenAt(ctx context.Context, secretID string) (ti *time.Time, err error) {
+	t.timeRequest(ctx, "SetOrganizationWebhookFirstSeenAt", func(ctx context.Context) error {
+		ti, err = t.d.SetOrganizationWebhookFirstSeenAt(ctx, secretID)
 		return err
 	})
 	return

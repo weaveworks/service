@@ -154,7 +154,7 @@ func (a *API) adminRemoveUserFromOrganization(w http.ResponseWriter, r *http.Req
 func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 	page := filter.ParsePageValue(r.FormValue("page"))
 	query := r.FormValue("query")
-	organizations, err := a.db.ListOrganizations(r.Context(), filter.ParseOrgQuery(query), page)
+	organizations, err := a.db.ListAllOrganizations(r.Context(), filter.ParseOrgQuery(query), page)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -224,7 +224,7 @@ func (a *API) adminChangeOrgFields(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else { // Multi value `foo=bar, moo=zar`
-		fields := [...]string{"FeatureFlags", orgs.RefuseDataAccess, orgs.RefuseDataUpload}
+		fields := [...]string{"FeatureFlags", orgs.RefuseDataAccess, orgs.RefuseDataUpload, "RefuseDataReason"}
 		var errs []string
 		for _, field := range fields {
 			if err := a.setOrganizationField(r.Context(), orgExternalID, field, r.FormValue(field)); err != nil {
@@ -253,6 +253,8 @@ func (a *API) setOrganizationField(ctx context.Context, orgExternalID, field, va
 	case orgs.RefuseDataUpload:
 		deny := value == "on"
 		err = a.db.SetOrganizationRefuseDataUpload(ctx, orgExternalID, deny)
+	case "RefuseDataReason":
+		err = a.db.SetOrganizationRefuseDataReason(ctx, orgExternalID, value)
 	case "FeatureFlags":
 		err = a.setOrgFeatureFlags(ctx, orgExternalID, strings.Fields(value))
 	default:

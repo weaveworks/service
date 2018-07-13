@@ -17,6 +17,11 @@ import (
 )
 
 const (
+	// Query to retrieve all aggregates from BigQuery since @StartTime.
+	// IMPORTANT:
+	// "_PARTITIONTIME >= @DateLowerLimit" limits the size of the dataset to be scanned by BigQuery,
+	// which in turn reduces the costs associated with running this query, as Google charges by the TB
+	// of data read/processed. See also: https://cloud.google.com/bigquery/pricing#queries
 	aggQuery = `
 SELECT
   internal_instance_id AS InstanceID,
@@ -62,27 +67,32 @@ func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
 	f.StringVar(&cfg.ServiceAccountFile, "bigquery.service-account-file", "", "BigQuery service account credentials file.")
 }
 
-// Client is a Google BigQuery client.
-type Client struct {
+// Client is the interface for our Google BigQuery client.
+type Client interface {
+	Aggregates(ctx context.Context, since time.Time) ([]db.Aggregate, error)
+}
+
+// DefaultClient is an implementation for Client, our Google BigQuery client interface.
+type DefaultClient struct {
 	cfg    Config
 	client *bigquery.Client
 }
 
-// New instantiates a Client.
-func New(ctx context.Context, cfg Config) (*Client, error) {
+// New instantiates a DefaultClient.
+func New(ctx context.Context, cfg Config) (*DefaultClient, error) {
 	client, err := bigquery.NewClient(ctx, cfg.Project, option.WithCredentialsFile(cfg.ServiceAccountFile))
 	if err != nil {
 		return nil, err
 	}
 
-	return &Client{
+	return &DefaultClient{
 		cfg:    cfg,
 		client: client,
 	}, nil
 }
 
 // Aggregates returns a slice of the results of a query.
-func (c *Client) Aggregates(ctx context.Context, since time.Time) ([]db.Aggregate, error) {
+func (c *DefaultClient) Aggregates(ctx context.Context, since time.Time) ([]db.Aggregate, error) {
 	var result []db.Aggregate
 	if err := instrument.CollectedRequest(ctx, "bigquery.Client.Aggregates", queryCollector, nil, func(ctx context.Context) error {
 		query := c.client.Query(fmt.Sprintf(aggQuery, c.cfg.DatasetAndTable))

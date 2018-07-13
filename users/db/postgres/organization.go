@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -32,15 +31,13 @@ func (d DB) RemoveUserFromOrganization(ctx context.Context, orgExternalID, email
 			return err
 		}
 
-		if org.TeamID == "" {
-			_, err = tx.ExecContext(ctx,
-				"update memberships set deleted_at = now() where user_id = $1 and organization_id = $2",
-				user.ID,
-				org.ID,
-			)
-			if err != nil {
-				return err
-			}
+		_, err = tx.ExecContext(ctx,
+			"update memberships set deleted_at = now() where user_id = $1 and organization_id = $2",
+			user.ID,
+			org.ID,
+		)
+		if err != nil {
+			return err
 		}
 
 		return tx.removeUserFromTeam(ctx, user.ID, org.TeamID)
@@ -103,15 +100,25 @@ func (d DB) userIsTeamMemberOf(ctx context.Context, userID, orgExternalID string
 }
 
 func (d DB) organizationsQuery() squirrel.SelectBuilder {
-	return d.Select(
+	return d.organizationsQueryHelper(false)
+}
+
+func (d DB) organizationsQueryWithDeleted() squirrel.SelectBuilder {
+	return d.organizationsQueryHelper(true)
+}
+
+func (d DB) organizationsQueryHelper(deleted bool) squirrel.SelectBuilder {
+	query := d.Select(
 		"organizations.id",
 		"organizations.external_id",
 		"organizations.name",
 		"organizations.probe_token",
 		"organizations.created_at",
+		"organizations.deleted_at",
 		"organizations.feature_flags",
 		"organizations.refuse_data_access",
 		"organizations.refuse_data_upload",
+		"organizations.refuse_data_reason",
 		"organizations.first_seen_connected_at",
 		"organizations.platform",
 		"organizations.environment",
@@ -137,14 +144,41 @@ func (d DB) organizationsQuery() squirrel.SelectBuilder {
 	).
 		From("organizations").
 		LeftJoin("gcp_accounts ON gcp_account_id = gcp_accounts.id").
-		LeftJoin("teams ON teams.id = organizations.team_id").
-		Where("organizations.deleted_at is null").
+		LeftJoin("teams ON teams.id = organizations.team_id AND teams.deleted_at is null").
 		OrderBy("organizations.created_at DESC")
+	if !deleted {
+		query = query.Where("organizations.deleted_at is null")
+	}
+	return query
 }
 
 // ListOrganizations lists organizations
 func (d DB) ListOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
 	q := d.organizationsQuery().Where(f.Where())
+	if page > 0 {
+		q = q.Limit(filter.ResultsPerPage).Offset((page - 1) * filter.ResultsPerPage)
+	}
+
+	rows, err := q.QueryContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return d.scanOrganizations(rows)
+}
+
+// ListAllOrganizations lists all organizations including deleted ones
+func (d DB) ListAllOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
+	// check that query is not empty, otherwise q might be like "... where order by ..."
+	queryStr, _, err := f.Where().ToSql()
+	if err != nil {
+		return nil, err
+	}
+	q := d.organizationsQueryWithDeleted()
+	if queryStr != "" {
+		q = q.Where(f.Where())
+	}
+
 	if page > 0 {
 		q = q.Limit(filter.ResultsPerPage).Offset((page - 1) * filter.ResultsPerPage)
 	}
@@ -345,7 +379,7 @@ func (d DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, t
 	if err != nil {
 		return nil, err
 	}
-	return o, err
+	return o, nil
 }
 
 // FindUncleanedOrgIDs looks up deleted but uncleaned organization IDs
@@ -455,9 +489,11 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o := &users.Organization{}
 	var externalID, name, probeToken, platform, environment, zuoraAccountNumber, teamID, teamExternalID sql.NullString
 	var createdAt pq.NullTime
+	var deletedAt pq.NullTime
 	var trialExpiry time.Time
 	var trialExpiredNotifiedAt, trialPendingExpiryNotifiedAt *time.Time
 	var refuseDataAccess, refuseDataUpload bool
+	var refuseDataReason sql.NullString
 	var gcpID, externalAccountID, consumerID, subscriptionName, subscriptionLevel, subscriptionStatus sql.NullString
 	var gcpCreatedAt pq.NullTime
 	var activated sql.NullBool
@@ -467,9 +503,11 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 		&name,
 		&probeToken,
 		&createdAt,
+		&deletedAt,
 		pq.Array(&o.FeatureFlags),
 		&refuseDataAccess,
 		&refuseDataUpload,
+		&refuseDataReason,
 		&o.FirstSeenConnectedAt,
 		&platform,
 		&environment,
@@ -499,8 +537,10 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 	o.Name = name.String
 	o.ProbeToken = probeToken.String
 	o.CreatedAt = createdAt.Time
+	o.DeletedAt = deletedAt.Time
 	o.RefuseDataAccess = refuseDataAccess
 	o.RefuseDataUpload = refuseDataUpload
+	o.RefuseDataReason = refuseDataReason.String
 	o.Platform = platform.String
 	o.Environment = environment.String
 	o.ZuoraAccountNumber = zuoraAccountNumber.String
@@ -525,11 +565,11 @@ func (d DB) scanOrganization(row squirrel.RowScanner) (*users.Organization, erro
 }
 
 // UpdateOrganization changes an organization's user-settable name
-func (d DB) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error {
+func (d DB) UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) (*users.Organization, error) {
 	// Get org for validation and add update fields to setFields
 	org, err := d.FindOrganizationByID(ctx, externalID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	setFields := map[string]interface{}{}
 	if update.Name != nil {
@@ -558,11 +598,11 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 	}
 
 	if len(setFields) == 0 {
-		return nil
+		return org, nil
 	}
 
 	if err := org.Valid(); err != nil {
-		return err
+		return nil, err
 	}
 
 	result, err := d.Update("organizations").
@@ -570,16 +610,37 @@ func (d DB) UpdateOrganization(ctx context.Context, externalID string, update us
 		Where(squirrel.Expr("external_id = lower(?) and deleted_at is null", externalID)).
 		ExecContext(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	count, err := result.RowsAffected()
 	switch {
 	case err != nil:
-		return err
+		return nil, err
 	case count != 1:
-		return users.ErrNotFound
+		return nil, users.ErrNotFound
 	}
-	return nil
+	return org, nil
+}
+
+// MoveOrganizationToTeam updates the team of the organization. It does *not* check team permissions.
+func (d DB) MoveOrganizationToTeam(ctx context.Context, externalID, teamExternalID, teamName, userID string) error {
+	var team *users.Team
+	var err error
+	if teamName != "" {
+		if team, err = d.CreateTeam(ctx, teamName); err != nil {
+			return err
+		}
+		if err = d.AddUserToTeam(ctx, userID, team.ID); err != nil {
+			return err
+		}
+	} else {
+		if team, err = d.findTeamByExternalID(ctx, teamExternalID); err != nil {
+			return err
+		}
+	}
+	_, err = d.ExecContext(ctx, `update organizations set team_id = $1 where external_id = lower($2)`,
+		team.ID, externalID)
+	return err
 }
 
 // OrganizationExists just returns a simple bool checking if an organization
@@ -667,6 +728,15 @@ func (d DB) SetOrganizationRefuseDataUpload(ctx context.Context, externalID stri
 	_, err := d.ExecContext(ctx,
 		`update organizations set refuse_data_upload = $1 where external_id = lower($2) and deleted_at is null`,
 		value, externalID,
+	)
+	return err
+}
+
+// SetOrganizationRefuseDataReason overwrites the default reason for refusal.
+func (d DB) SetOrganizationRefuseDataReason(ctx context.Context, externalID string, reason string) error {
+	_, err := d.ExecContext(ctx,
+		`update organizations set refuse_data_reason = $1 where external_id = lower($2) and deleted_at is null`,
+		reason, externalID,
 	)
 	return err
 }
@@ -805,7 +875,7 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccountI
 
 		platform, env := "kubernetes", "gke"
 		now := d.Now()
-		if err = tx.UpdateOrganization(ctx, externalID, users.OrgWriteView{
+		if _, err = tx.UpdateOrganization(ctx, externalID, users.OrgWriteView{
 			// Hardcode platform/env here, that's what we expect the user to have.
 			// It also skips the platform/env tab during the onboarding process.
 			Platform:    &platform,
@@ -822,20 +892,13 @@ func (d DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccountI
 
 // CreateOrganizationWithTeam creates a new organization, ensuring it is part of a team and owned by the user
 func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error) {
-	if teamName == "" && teamExternalID == "" {
-		return nil, errors.New("At least one of teamExternalID, teamName needs to be provided")
-	}
-	if teamName != "" && teamExternalID != "" {
-		return nil, fmt.Errorf("Only one of teamExternalID, teamName needs to be provided: %v, %v", teamExternalID, teamName)
-	}
-
 	var org *users.Organization
 	err := d.Transaction(func(tx DB) error {
 		var team *users.Team
 		var err error
 		// one of two cases must be reached: it is ensured by the validation above
 		if teamExternalID != "" {
-			team, err = d.ensureUserIsPartOfTeamByExternalID(ctx, ownerID, teamExternalID)
+			team, err = d.getTeamUserIsPartOf(ctx, ownerID, teamExternalID)
 		} else if teamName != "" {
 			team, err = d.ensureUserIsPartOfTeamByName(ctx, ownerID, teamName)
 		}
@@ -849,7 +912,11 @@ func (d DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID,
 		}
 
 		org, err = tx.CreateOrganization(ctx, ownerID, externalID, name, token, team.ID, trialExpiresAt)
-		return err
+		if err != nil {
+			return err
+		}
+		org.TeamExternalID = team.ExternalID
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -958,7 +1025,7 @@ func (d DB) GetSummary(ctx context.Context) ([]*users.SummaryEntry, error) {
 		gcp_accounts.subscription_status AS gcp_account_status,
 		gcp_accounts.subscription_level AS gcp_account_plan
 		FROM organizations
-		LEFT JOIN teams        ON teams.id = organizations.team_id
+		LEFT JOIN teams        ON teams.id = organizations.team_id AND teams.deleted_at IS NULL
 		LEFT JOIN gcp_accounts ON gcp_accounts.id = organizations.gcp_account_id
 		INNER JOIN memberships  ON memberships.organization_id = organizations.id
 		INNER JOIN users        ON users.id = memberships.user_id
@@ -1000,7 +1067,9 @@ func (d DB) GetSummary(ctx context.Context) ([]*users.SummaryEntry, error) {
 		WHERE
 		users.deleted_at IS NULL AND
 		team_memberships.deleted_at IS NULL AND
-		organizations.deleted_at IS NULL
+		organizations.deleted_at IS NULL AND
+		teams.deleted_at IS NULL
+
 
 		) AS t
 

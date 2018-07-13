@@ -8,7 +8,33 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	alerts "github.com/opsgenie/opsgenie-go-sdk/alertsv2"
 )
+
+// WebhookAlert is alertmanager JSON payload with alerts
+type WebhookAlert struct {
+	Version           string            `json:"version,omitempty"`
+	GroupKey          string            `json:"groupKey,omitempty"`
+	Status            string            `json:"status,omitempty"`
+	Receiver          string            `json:"receiver,omitempty"`
+	GroupLabels       map[string]string `json:"groupLabels,omitempty"`
+	CommonLabels      map[string]string `json:"commonLabels,omitempty"`
+	CommonAnnotations map[string]string `json:"commonAnnotations,omitempty"`
+	ExternalURL       string            `json:"externalURL,omitempty"`
+	Alerts            []Alert           `json:"alerts,omitempty"`
+	SettingsURL       string            `json:"settingsURL,omitempty"`
+	WeaveCloudURL     map[string]string `json:"weaveCloudURL,omitempty"`
+}
+
+// Alert is a struct of an alert from alertmanager
+type Alert struct {
+	Status       string            `json:"status,omitempty"`
+	Labels       map[string]string `json:"labels,omitempty"`
+	Annotations  map[string]string `json:"annotations,omitempty"`
+	StartsAt     time.Time         `json:"startsAt,omitempty"`
+	EndsAt       time.Time         `json:"endsAt,omitempty"`
+	GeneratorURL string            `json:"generatorURL,omitempty"`
+}
 
 // SlackMessage is a Slack API payload with the message text and some options
 type SlackMessage struct {
@@ -47,7 +73,7 @@ type BrowserMessage struct {
 	Timestamp   time.Time         `json:"timestamp"`
 }
 
-// StackdriverMessage contains is a stackdriver log entry.
+// StackdriverMessage contains a stackdriver log entry.
 // See https://cloud.google.com/logging/docs/view/logs_index for more about entries.
 type StackdriverMessage struct {
 	// Timestamp is the time of the entry. If zero, the current time is used.
@@ -58,6 +84,22 @@ type StackdriverMessage struct {
 
 	// Labels optionally specifies key/value labels for the log entry.
 	Labels map[string]string
+}
+
+// OpsGenieMessage contains the fields for OpsGenie alert.
+type OpsGenieMessage struct {
+	Message     string
+	Alias       string
+	Status      string
+	Description string
+	Actions     []string
+	Tags        []string
+	Details     map[string]string
+	Entity      string
+	Source      string
+	Priority    alerts.Priority
+	User        string
+	Note        string
 }
 
 // Event is a single instance of something for the user to be informed of
@@ -110,6 +152,8 @@ const (
 	BrowserReceiver = "browser"
 	// StackdriverReceiver is the type of receiver for Stackdriver
 	StackdriverReceiver = "stackdriver"
+	// OpsGenieReceiver is the type of receiver for OpsGenie
+	OpsGenieReceiver = "opsgenie"
 )
 
 // Notification is the actual message in data delivered to a user from address.

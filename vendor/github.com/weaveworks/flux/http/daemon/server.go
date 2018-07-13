@@ -3,6 +3,7 @@ package daemon
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -11,6 +12,7 @@ import (
 	"github.com/weaveworks/flux"
 
 	"github.com/weaveworks/flux/api"
+	"github.com/weaveworks/flux/api/v10"
 	transport "github.com/weaveworks/flux/http"
 	"github.com/weaveworks/flux/job"
 	fluxmetrics "github.com/weaveworks/flux/metrics"
@@ -46,7 +48,8 @@ func NewRouter() *mux.Router {
 func NewHandler(s api.Server, r *mux.Router) http.Handler {
 	handle := HTTPServer{s}
 	r.Get(transport.ListServices).HandlerFunc(handle.ListServices)
-	r.Get(transport.ListImages).HandlerFunc(handle.ListImages)
+	r.Get(transport.ListImages).HandlerFunc(handle.ListImagesWithOptions)
+	r.Get(transport.ListImagesWithOptions).HandlerFunc(handle.ListImagesWithOptions)
 	r.Get(transport.UpdateManifests).HandlerFunc(handle.UpdateManifests)
 	r.Get(transport.JobStatus).HandlerFunc(handle.JobStatus)
 	r.Get(transport.SyncStatus).HandlerFunc(handle.SyncStatus)
@@ -90,15 +93,29 @@ func (s HTTPServer) SyncStatus(w http.ResponseWriter, r *http.Request) {
 	transport.JSONResponse(w, r, commits)
 }
 
-func (s HTTPServer) ListImages(w http.ResponseWriter, r *http.Request) {
-	service := mux.Vars(r)["service"]
+func (s HTTPServer) ListImagesWithOptions(w http.ResponseWriter, r *http.Request) {
+	var opts v10.ListImagesOptions
+	queryValues := r.URL.Query()
+
+	// service - Select services to update.
+	service := queryValues.Get("service")
+	if service == "" {
+		service = string(update.ResourceSpecAll)
+	}
 	spec, err := update.ParseResourceSpec(service)
 	if err != nil {
 		transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", service))
 		return
 	}
+	opts.Spec = spec
 
-	d, err := s.server.ListImages(r.Context(), spec)
+	// containerFields - Override which fields to return in the container struct.
+	containerFields := queryValues.Get("containerFields")
+	if containerFields != "" {
+		opts.OverrideContainerFields = strings.Split(containerFields, ",")
+	}
+
+	d, err := s.server.ListImagesWithOptions(r.Context(), opts)
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
 		return
@@ -122,7 +139,7 @@ func (s HTTPServer) UpdateManifests(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s HTTPServer) ListServices(w http.ResponseWriter, r *http.Request) {
-	namespace := mux.Vars(r)["namespace"]
+	namespace := r.URL.Query().Get("namespace")
 	res, err := s.server.ListServices(r.Context(), namespace)
 	if err != nil {
 		transport.ErrorResponse(w, r, err)

@@ -61,6 +61,11 @@ type OrgWriteView struct {
 	Environment    *string
 	TrialExpiresAt *time.Time
 
+	// Moves the instance to another existing team
+	TeamExternalID *string `json:"teamId"`
+	// Moves the instance to a new team
+	TeamName *string `json:"teamName"`
+
 	// To set these values to NULL in the database, provide a zero time (time.Time{}).
 	TrialPendingExpiryNotifiedAt *time.Time
 	TrialExpiredNotifiedAt       *time.Time

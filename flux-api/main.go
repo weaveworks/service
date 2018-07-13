@@ -1,9 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,9 +13,9 @@ import (
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/spf13/pflag"
 
 	billing "github.com/weaveworks/billing-client"
+	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/common/tracing"
 	"github.com/weaveworks/service/flux-api/bus"
 	"github.com/weaveworks/service/flux-api/bus/nats"
@@ -35,13 +35,40 @@ const (
 
 var version string
 
+type config struct {
+	listenAddr    string
+	natsURL       string
+	versionFlag   bool
+	eventsURL     string
+	enableBilling bool
+
+	dbConfig      dbconfig.Config
+	billingConfig billing.Config
+}
+
+func (c *config) registerFlags(f *flag.FlagSet) {
+	f.StringVar(&c.listenAddr, "listen", ":3030", "Listen address for Flux API clients")
+	f.StringVar(&c.natsURL, "nats-url", "", `URL on which to connect to NATS, or empty to use the standalone message bus (e.g., "nats://user:pass@nats:4222")`)
+	f.BoolVar(&c.versionFlag, "version", false, "Get version number")
+	f.StringVar(&c.eventsURL, "events-url", notifications.DefaultURL, "URL to which events will be sent")
+	f.BoolVar(&c.enableBilling, "enable-billing", false, "Report each event to the billing system.")
+
+	c.dbConfig.RegisterFlags(f,
+		"file://fluxy.db",
+		`Database source name; includes the DB driver as the scheme. The default is a temporary, file-based DB`,
+		"./flux-api/db/migrations/postgres",
+		"Path to database migration scripts, which are in subdirectories named for each driver")
+
+	c.billingConfig.RegisterFlags(f)
+}
+
 func main() {
 
 	traceCloser := tracing.Init("flux-api")
 	defer traceCloser.Close()
 
 	// Flag domain.
-	fs := pflag.NewFlagSet("default", pflag.ExitOnError)
+	fs := flag.NewFlagSet("default", flag.ExitOnError)
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "DESCRIPTION\n")
 		fmt.Fprintf(os.Stderr, "  fluxsvc is a deployment service.\n")
@@ -49,27 +76,15 @@ func main() {
 		fmt.Fprintf(os.Stderr, "FLAGS\n")
 		fs.PrintDefaults()
 	}
-	var (
-		listenAddr            = fs.StringP("listen", "l", ":3030", "Listen address for Flux API clients")
-		databaseSource        = fs.String("database-source", "file://fluxy.db", `Database source name; includes the DB driver as the scheme. The default is a temporary, file-based DB`)
-		databaseMigrationsDir = fs.String("database-migrations", "./flux-api/db/migrations/postgres", "Path to database migration scripts, which are in subdirectories named for each driver")
-		natsURL               = fs.String("nats-url", "", `URL on which to connect to NATS, or empty to use the standalone message bus (e.g., "nats://user:pass@nats:4222")`)
-		versionFlag           = fs.Bool("version", false, "Get version number")
-		eventsURL             = fs.String("events-url", notifications.DefaultURL, "URL to which events will be sent")
-		enableBilling         = fs.Bool("enable-billing", false, "Report each event to the billing system.")
-		billingConfig         = billing.Config{}
-	)
-	// Copied from billing.Config.RegisterFlags because this uses a different flag library
-	fs.IntVar(&billingConfig.MaxBufferedEvents, "billing.max-buffered-events", 1024, "Maximum number of billing events to buffer in memory")
-	fs.DurationVar(&billingConfig.RetryDelay, "billing.retry-delay", 500*time.Millisecond, "How often to retry sending events to the billing ingester.")
-	fs.StringVar(&billingConfig.IngesterHostPort, "billing.ingester", "localhost:24225", "points to the billing ingester sidecar (should be on localhost)")
 
-	fs.Parse(os.Args)
+	cfg := config{}
+	cfg.registerFlags(fs)
+	fs.Parse(os.Args[1:])
 
 	if version == "" {
 		version = "unversioned"
 	}
-	if *versionFlag {
+	if cfg.versionFlag {
 		fmt.Println(version)
 		os.Exit(0)
 	}
@@ -85,25 +100,27 @@ func main() {
 	// Initialise database; we must fail if we can't do this, because
 	// most things depend on it.
 	var dbDriver string
+	var dbSource string
 	{
 		var version uint64
-		u, err := url.Parse(*databaseSource)
+		scheme, dataSourceName, migrationsDir, err := cfg.dbConfig.Parameters()
 		if err == nil {
-			version, err = db.Migrate(*databaseSource, *databaseMigrationsDir)
+			version, err = db.Migrate(dataSourceName, migrationsDir)
 		}
 
 		if err != nil {
 			logger.Log("stage", "db init", "err", err)
 			os.Exit(1)
 		}
-		dbDriver = u.Scheme
+		dbDriver = scheme
+		dbSource = dataSourceName
 		logger.Log("migrations", "success", "driver", dbDriver, "db-version", fmt.Sprintf("%d", version))
 	}
 
 	var messageBus bus.MessageBus
 	{
-		if *natsURL != "" {
-			bus, err := nats.NewMessageBus(*natsURL)
+		if cfg.natsURL != "" {
+			bus, err := nats.NewMessageBus(cfg.natsURL)
 			if err != nil {
 				logger.Log("component", "message bus", "err", err)
 				os.Exit(1)
@@ -118,7 +135,7 @@ func main() {
 
 	var historyDB history.DB
 	{
-		db, err := historysql.NewSQL(dbDriver, *databaseSource)
+		db, err := historysql.NewSQL(dbDriver, dbSource)
 		if err != nil {
 			logger.Log("component", "history", "err", err)
 			os.Exit(1)
@@ -129,7 +146,7 @@ func main() {
 	// Configuration, i.e., whether services are automated or not.
 	var instanceDB instance.ConnectionDB
 	{
-		db, err := instancedb.New(dbDriver, *databaseSource)
+		db, err := instancedb.New(dbDriver, dbSource)
 		if err != nil {
 			logger.Log("component", "config", "err", err)
 			os.Exit(1)
@@ -149,9 +166,9 @@ func main() {
 	}
 
 	var billingClient server.BillingClient
-	if *enableBilling {
+	if cfg.enableBilling {
 		var err error
-		billingClient, err = billing.NewClient(billingConfig)
+		billingClient, err = billing.NewClient(cfg.billingConfig)
 		if err != nil {
 			logger.Log("component", "billing", "err", err)
 			os.Exit(1)
@@ -161,7 +178,7 @@ func main() {
 	}
 
 	// The server.
-	server := server.New(version, instancer, instanceDB, messageBus, logger, *eventsURL, billingClient)
+	server := server.New(version, instancer, instanceDB, messageBus, logger, cfg.eventsURL, billingClient)
 
 	// Mechanical components.
 	errc := make(chan error)
@@ -173,7 +190,7 @@ func main() {
 
 	// HTTP transport component.
 	go func() {
-		logger.Log("addr", *listenAddr)
+		logger.Log("addr", cfg.listenAddr)
 		mux := http.NewServeMux()
 		mux.Handle("/metrics", promhttp.Handler())
 		httpServer := httpserver.NewServer(server, server, server, logger)
@@ -183,7 +200,7 @@ func main() {
 		operationNameFunc := nethttp.OperationNameFunc(func(r *http.Request) string {
 			return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 		})
-		errc <- http.ListenAndServe(*listenAddr, nethttp.Middleware(opentracing.GlobalTracer(), mux, operationNameFunc))
+		errc <- http.ListenAndServe(cfg.listenAddr, nethttp.Middleware(opentracing.GlobalTracer(), mux, operationNameFunc))
 	}()
 
 	logger.Log("exiting", <-errc)

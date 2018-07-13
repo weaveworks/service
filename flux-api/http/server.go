@@ -21,6 +21,7 @@ import (
 	"github.com/weaveworks/flux"
 
 	fluxapi "github.com/weaveworks/flux/api"
+	"github.com/weaveworks/flux/api/v10"
 	"github.com/weaveworks/flux/api/v9"
 	fluxerr "github.com/weaveworks/flux/errors"
 	"github.com/weaveworks/flux/event"
@@ -61,6 +62,9 @@ func NewServiceRouter() *mux.Router {
 	r.NewRoute().Name(DockerHubImageNotify).Methods("POST").Path("/v6/integrations/dockerhub/image").Queries("instance", "{instance}")
 	r.NewRoute().Name(QuayImageNotify).Methods("POST").Path("/v6/integrations/quay/image").Queries("instance", "{instance}")
 	r.NewRoute().Name(GitPushNotify).Methods("POST").Path("/v6/integrations/git/push").Queries("instance", "{instance}")
+
+	// Webhooks
+	r.NewRoute().Name(Webhook).Methods("POST").Path("/webhooks/{secretID}/")
 
 	// We assume every request that doesn't match a route is a client
 	// calling an old or hitherto unsupported API.
@@ -106,24 +110,28 @@ func (s Server) MakeHandler(r *mux.Router) http.Handler {
 		transport.SyncStatus:      s.syncStatus,
 		transport.JobStatus:       s.jobStatus,
 		transport.GitRepoConfig:   s.gitRepoConfig,
+		// flux/api/ServerV10
+		transport.ListImagesWithOptions: s.listImagesWithOptions,
 		// fluxctl legacy routes
 		transport.UpdateImages:           s.updateImages,
 		transport.UpdatePolicies:         s.updatePolicies,
 		transport.GetPublicSSHKey:        s.getPublicSSHKey,
 		transport.RegeneratePublicSSHKey: s.regeneratePublicSSHKey,
 		// fluxd UpstreamRoutes
-		RegisterDeprecated:         registerDaemonDeprecated,
-		transport.RegisterDaemonV6: s.registerV6,
-		transport.RegisterDaemonV7: s.registerV7,
-		transport.RegisterDaemonV8: s.registerV8,
-		transport.RegisterDaemonV9: s.registerV9,
-		transport.LogEvent:         s.logEvent,
+		RegisterDeprecated:          registerDaemonDeprecated,
+		transport.RegisterDaemonV6:  s.registerV6,
+		transport.RegisterDaemonV7:  s.registerV7,
+		transport.RegisterDaemonV8:  s.registerV8,
+		transport.RegisterDaemonV9:  s.registerV9,
+		transport.RegisterDaemonV10: s.registerV10,
+		transport.LogEvent:          s.logEvent,
 		// UI routes
 		Status:  s.status,
 		History: s.history,
 		Ping:    s.ping,
 		PostIntegrationsGithub: s.postIntegrationsGithub,
 		// Webhooks
+		Webhook:              s.handleWebhook,
 		DockerHubImageNotify: s.dockerHubImageNotify,
 		QuayImageNotify:      s.quayImageNotify,
 		GitPushNotify:        s.gitPushNotify,
@@ -151,7 +159,9 @@ func (s Server) listServices(w http.ResponseWriter, r *http.Request) {
 
 func (s Server) listImages(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
-	service := mux.Vars(r)["service"]
+	queryValues := r.URL.Query()
+	service := queryValues.Get("service")
+
 	spec, err := update.ParseResourceSpec(service)
 	if err != nil {
 		transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", service))
@@ -159,6 +169,42 @@ func (s Server) listImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	d, err := s.daemonProxy.ListImages(ctx, spec)
+	if err != nil {
+		transport.ErrorResponse(w, r, err)
+		return
+	}
+
+	transport.JSONResponse(w, r, d)
+}
+
+// listImagesWithOptions serves the newer API, which includes the
+// option to trim down the fields in the response. We rely on the RPC
+// client (talking to the daemon) to backfill this in the case of
+// older clients.
+func (s Server) listImagesWithOptions(w http.ResponseWriter, r *http.Request) {
+	var opts v10.ListImagesOptions
+	ctx := getRequestContext(r)
+	queryValues := r.URL.Query()
+
+	// service - Select services to update.
+	service := queryValues.Get("service")
+	if service == "" {
+		service = string(update.ResourceSpecAll)
+	}
+	spec, err := update.ParseResourceSpec(service)
+	if err != nil {
+		transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", service))
+		return
+	}
+	opts.Spec = spec
+
+	// containerFields - Override which fields to return in the container struct.
+	containerFields := queryValues.Get("containerFields")
+	if containerFields != "" {
+		opts.OverrideContainerFields = strings.Split(containerFields, ",")
+	}
+
+	d, err := s.daemonProxy.ListImagesWithOptions(ctx, opts)
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
 		return
@@ -380,6 +426,12 @@ func (s Server) registerV9(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s Server) registerV10(w http.ResponseWriter, r *http.Request) {
+	s.doRegister(w, r, func(conn io.ReadWriteCloser) fluxapi.UpstreamServer {
+		return rpc.NewClientV10(conn)
+	})
+}
+
 // TODO: consider approaches that allow us to version this function so that we don't require
 // old RPC clients implement the newer interface.
 type rpcClientFn func(io.ReadWriteCloser) fluxapi.UpstreamServer
@@ -527,6 +579,7 @@ func (s Server) imageNotify(w http.ResponseWriter, r *http.Request, img string) 
 	s.daemonProxy.NotifyChange(ctx, change)
 }
 
+// DEPRECATED in favour of handleWebhook
 func (s Server) gitPushNotify(w http.ResponseWriter, r *http.Request) {
 	instID := mux.Vars(r)["instance"]
 	overrideInstanceID(r, instID)

@@ -1,0 +1,6 @@
+FROM quay.io/weaveworks/build
+MAINTAINER Weaveworks Inc <help@weave.works>
+WORKDIR /
+COPY . /go/src/github.com/weaveworks/service
+WORKDIR /go/src/github.com/weaveworks/service/notification-eventmanager/e2e
+ENTRYPOINT /bin/bash -c "go test -v"

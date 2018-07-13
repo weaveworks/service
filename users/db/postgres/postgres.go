@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ExpansiveWorlds/instrumentedsql"
-	"github.com/ExpansiveWorlds/instrumentedsql/opentracing"
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq" // Import the postgres sql driver
 	"github.com/pkg/errors"
@@ -35,7 +34,7 @@ type dbProxy interface {
 }
 
 func init() {
-	sql.Register("postgres-i", instrumentedsql.WrapDriver(&pq.Driver{}, instrumentedsql.WithTracer(opentracing.NewTracer())))
+	sql.Register("postgres-i", instrumentedsql.WrapDriver(&pq.Driver{}, instrumentedsql.WithTracer(NewTracer())))
 }
 
 // New creates a new postgres DB.

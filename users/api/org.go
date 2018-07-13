@@ -1,27 +1,33 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/gorilla/mux"
-
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/billing/provider"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/common/validation"
+	"github.com/weaveworks/service/notification-eventmanager/types"
 	"github.com/weaveworks/service/users"
 )
+
+var errTeamIdentifierRequired = users.NewMalformedInputError(errors.New("either teamId or teamName needs to be provided but not both"))
 
 // OrgView describes an organisation
 type OrgView struct {
@@ -39,8 +45,7 @@ type OrgView struct {
 	ZuoraAccountNumber    string     `json:"zuoraAccountNumber"`
 	ZuoraAccountCreatedAt *time.Time `json:"zuoraAccountCreatedAt"`
 	BillingProvider       string     `json:"billingProvider"`
-	TeamID                string     `json:"teamId,omitempty"`
-	TeamExternalID        string     `json:"teamExternalId,omitempty"`
+	TeamExternalID        string     `json:"teamId,omitempty"`
 	TeamName              string     `json:"teamName,omitempty"`
 }
 
@@ -84,7 +89,6 @@ func (a *API) createOrgView(currentUser *users.User, org *users.Organization) Or
 		Environment:          org.Environment,
 		TrialExpiresAt:       org.TrialExpiresAt,
 		BillingProvider:      org.BillingProvider(),
-		TeamID:               org.TeamID,
 		TeamExternalID:       org.TeamExternalID,
 	}
 }
@@ -98,6 +102,45 @@ func (a *API) generateOrgExternalID(currentUser *users.User, w http.ResponseWrit
 	render.JSON(w, http.StatusOK, OrgView{Name: externalID, ExternalID: externalID})
 }
 
+func (a *API) createEmailReceiver(ctx context.Context, email, orgID string) error {
+	emailData, err := json.Marshal(email)
+	if err != nil {
+		return errors.Wrapf(err, "cannot marshal email address %s", email)
+	}
+
+	r := types.Receiver{
+		RType:       types.EmailReceiver,
+		AddressData: emailData,
+	}
+
+	data, err := json.Marshal(r)
+	if err != nil {
+		return errors.Wrapf(err, "cannot marshal receiver data %#v", r)
+	}
+
+	req, err := http.NewRequest("POST", a.notificationReceiversURL, bytes.NewBuffer(data))
+	if err != nil {
+		return errors.Wrap(err, "error constructing POST HTTP request to create email receiver")
+	}
+
+	ctxWithID := user.InjectOrgID(ctx, orgID)
+	err = user.InjectOrgIDIntoHTTPRequest(ctxWithID, req)
+	if err != nil {
+		return errors.Wrap(err, "cannot inject org ID into request")
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "executing HTTP POST to notification service")
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := ioutil.ReadAll(io.LimitReader(resp.Body, 1024*1024))
+		return fmt.Errorf("%s from notification service (%s)", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	return nil
+
+}
 func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var view OrgView
@@ -120,77 +163,31 @@ func (a *API) createOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 
 // CreateOrg creates an organisation
 func (a *API) CreateOrg(ctx context.Context, currentUser *users.User, view OrgView, now time.Time) error {
-	var org *users.Organization
-	var err error
-	if view.TeamExternalID == "" && view.TeamName == "" {
-		org, err = a.db.CreateOrganization(ctx, currentUser.ID, view.ExternalID, view.Name, view.ProbeToken, "", view.TrialExpiresAt)
-	} else {
-		org, err = a.db.CreateOrganizationWithTeam(
-			ctx,
-			currentUser.ID,
-			view.ExternalID,
-			view.Name,
-			view.ProbeToken,
-			view.TeamExternalID,
-			view.TeamName,
-			view.TrialExpiresAt,
-		)
+	if err := verifyTeamParams(view.TeamExternalID, view.TeamName); err != nil {
+		return err
 	}
+	org, err := a.db.CreateOrganizationWithTeam(
+		ctx,
+		currentUser.ID,
+		view.ExternalID,
+		view.Name,
+		view.ProbeToken,
+		view.TeamExternalID,
+		view.TeamName,
+		view.TrialExpiresAt,
+	)
 	if err != nil {
 		return err
 	}
 
-	if org.TeamID != "" {
-		account, err := a.billingClient.FindBillingAccountByTeamID(ctx, &grpc.BillingAccountByTeamIDRequest{
-			TeamID: org.TeamID,
-		})
-		if err != nil {
-			return err
-		}
-		if account.Provider == provider.External {
-			// Exit early, as we:
-			// - do not want to set the "billing" flag,
-			// - do want to grant access,
-			// for instances billed externally.
-			// We do, however, set the "no-billing" flag to follow the current
-			// convention for instances not billed via Zuora/GCP.
-			log.Infof("billing disabled for %v/%v/%v as team %v is billed externally.", org.ID, view.ExternalID, view.Name, org.TeamID)
-			return a.db.AddFeatureFlag(ctx, view.ExternalID, featureflag.NoBilling)
-		}
+	if err := a.refreshOrganizationRestrictions(ctx, currentUser, org, now); err != nil {
+		return err
 	}
 
-	if strings.HasSuffix(currentUser.Email, "@weave.works") {
-		// Exit early, as we:
-		// - do not want to set the "billing" flag,
-		// - do want to grant access,
-		// for instances created by Weaveworks people.
-		// We do, however, set the "no-billing" flag to follow the current
-		// convention for instances not billed via Zuora/GCP.
-		log.Infof("billing disabled for %v/%v/%v as %v is a Weaver.", org.ID, view.ExternalID, view.Name, currentUser.Email)
-		return a.db.AddFeatureFlag(ctx, view.ExternalID, featureflag.NoBilling)
-	}
-
-	if a.billingEnabler.IsEnabled() {
-		err = a.db.AddFeatureFlag(ctx, view.ExternalID, featureflag.Billing)
-		if err != nil {
-			return err
-		}
-		log.Infof("billing enabled for %v/%v/%v.", org.ID, view.ExternalID, view.Name)
-		// Manually append to object for data refusal check below
-		org.FeatureFlags = append(org.FeatureFlags, featureflag.Billing)
-	}
-
-	if orgs.ShouldRefuseDataAccess(*org, now) {
-		if err = a.db.SetOrganizationRefuseDataAccess(ctx, org.ExternalID, true); err != nil {
-			log.Errorf("failed refusing data access for %s: %v", org.ExternalID, err)
-			// do not return error, this is not crucial
-		}
-	}
-	if orgs.ShouldRefuseDataUpload(*org, now) {
-		if err = a.db.SetOrganizationRefuseDataUpload(ctx, org.ExternalID, true); err != nil {
-			log.Errorf("failed refusing data upload for %s: %v", org.ExternalID, err)
-			// do not return error, this is not crucial
-		}
+	if err := a.createEmailReceiver(ctx, currentUser.Email, org.ID); err != nil {
+		// Just warning because it's ok to create org without email receiver
+		// by default browser receiver will be created for all orgs
+		log.Warnf("cannot create email receiver with address %s, error: %s", currentUser.Email, err)
 	}
 
 	return nil
@@ -204,26 +201,163 @@ func (a *API) updateOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		return
 	}
 	orgExternalID := mux.Vars(r)["orgExternalID"]
+
+	// Update.
 	if err := a.userCanAccessOrg(r.Context(), currentUser, orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	}
-	if err := a.db.UpdateOrganization(r.Context(), orgExternalID, update); err != nil {
-		renderError(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
-	orgExternalID := mux.Vars(r)["orgExternalID"]
-	exists, err := a.db.OrganizationExists(r.Context(), orgExternalID)
+	org, err := a.db.UpdateOrganization(r.Context(), orgExternalID, update)
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
-	if !exists {
+
+	// Move teams?
+	if update.TeamExternalID != nil || update.TeamName != nil {
+		if err := a.MoveOrg(r.Context(), currentUser, org, ptostr(update.TeamExternalID), ptostr(update.TeamName)); err != nil {
+			renderError(w, r, err)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// MoveOrg moves the given organization to either an existing or a new team.
+func (a *API) MoveOrg(ctx context.Context, currentUser *users.User, org *users.Organization, teamExternalID, teamName string) error {
+	if teamExternalID != "" {
+		if _, err := a.userCanAccessTeam(ctx, currentUser, teamExternalID); err != nil {
+			return err
+		}
+	}
+
+	if err := verifyTeamParams(teamExternalID, teamName); err != nil {
+		return err
+	}
+
+	// Move organization into other team
+	prevID := org.TeamID
+	if err := a.db.MoveOrganizationToTeam(ctx, org.ExternalID, teamExternalID, teamName, currentUser.ID); err != nil {
+		return err
+	}
+
+	// Update billing feature flags because the previous team might was externally billed and the new one isn't.
+	// In this case, we need to reinstate the `billing` flag to prevent freeloading. The opposite direction—from
+	// externally billed to locally billed—also needs a billing flag toggle.
+
+	neworg, err := a.db.FindOrganizationByID(ctx, org.ExternalID)
+	if err != nil {
+		return err
+	}
+
+	bacc, err := a.billingClient.FindBillingAccountByTeamID(ctx, &grpc.BillingAccountByTeamIDRequest{
+		TeamID: prevID,
+	})
+	if err != nil {
+		return err
+	}
+	newbacc, err := a.billingClient.FindBillingAccountByTeamID(ctx, &grpc.BillingAccountByTeamIDRequest{
+		TeamID: neworg.TeamID,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Only trigger restrictions update if we move from externally billed account to Zuora-billed account and vice versa
+	if bacc.Provider != newbacc.Provider {
+		if err := a.refreshOrganizationRestrictions(ctx, currentUser, neworg, time.Now()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func verifyTeamParams(teamExternalID, teamName string) error {
+	if (teamExternalID == "" && teamName == "") || (teamExternalID != "" && teamName != "") {
+		return errTeamIdentifierRequired
+	}
+	return nil
+}
+
+// refreshOrganizationRestrictions updates restrictions of an organization with regard to billing.
+// It makes sure the proper feature flags are set and also the data access/upload restrictions are in place.
+func (a *API) refreshOrganizationRestrictions(ctx context.Context, currentUser *users.User, org *users.Organization, now time.Time) error {
+	var addFlag, otherFlag string
+
+	if org.TeamID != "" {
+		account, err := a.billingClient.FindBillingAccountByTeamID(ctx, &grpc.BillingAccountByTeamIDRequest{
+			TeamID: org.TeamID,
+		})
+		if err != nil {
+			return err
+		}
+		if account.Provider == provider.External {
+			// No billing for instances billed externally.
+			addFlag = featureflag.NoBilling
+			otherFlag = featureflag.Billing
+			log.Infof("Disabling billing for %v/%v/%v as team %v is billed externally.", org.ID, org.ExternalID, org.Name, org.TeamID)
+		}
+	}
+	if addFlag == "" && a.billingEnabler.IsEnabled() {
+		addFlag = featureflag.Billing
+		otherFlag = featureflag.NoBilling
+		log.Infof("Enabling billing for %v/%v/%v.", org.ID, org.ExternalID, org.Name)
+	}
+
+	if strings.HasSuffix(currentUser.Email, "@weave.works") {
+		// No billing for instances created by Weaveworks people.
+		addFlag = featureflag.NoBilling
+		otherFlag = featureflag.Billing
+		log.Infof("Disabling billing for %v/%v/%v as %v is a Weaver.", org.ID, org.ExternalID, org.Name, currentUser.Email)
+	}
+
+	if addFlag != "" {
+		var ff []string
+		for _, f := range org.FeatureFlags {
+			if otherFlag != f && addFlag != f {
+				ff = append(ff, f)
+			}
+		}
+		ff = append(ff, addFlag)
+		if err := a.db.SetFeatureFlags(ctx, org.ExternalID, ff); err != nil {
+			return err
+		}
+		org.FeatureFlags = ff
+	}
+
+	if orgs.ShouldRefuseDataAccess(*org, now) {
+		if err := a.db.SetOrganizationRefuseDataAccess(ctx, org.ExternalID, true); err != nil {
+			log.Errorf("failed refusing data access for %s: %v", org.ExternalID, err)
+			// do not return error, this is not crucial
+		}
+	}
+	if orgs.ShouldRefuseDataUpload(*org, now) {
+		if err := a.db.SetOrganizationRefuseDataUpload(ctx, org.ExternalID, true); err != nil {
+			log.Errorf("failed refusing data upload for %s: %v", org.ExternalID, err)
+			// do not return error, this is not crucial
+		}
+	}
+
+	return nil
+}
+
+func ptostr(pstr *string) string {
+	if pstr == nil {
+		return ""
+	}
+	return *pstr
+}
+
+func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	orgExternalID := mux.Vars(r)["orgExternalID"]
+	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
+	if err == users.ErrNotFound {
 		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if err != nil {
+		renderError(w, r, err)
 		return
 	}
 	isMember, err := a.db.UserIsMemberOf(r.Context(), currentUser.ID, orgExternalID)
@@ -235,6 +369,12 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
+	// GCP instances should always be disabled through Google
+	if org.GCP != nil {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
 	if err := a.db.DeleteOrganization(r.Context(), orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
@@ -422,7 +562,7 @@ func (a *API) extendOrgTrialPeriod(ctx context.Context, org *users.Organization,
 	}
 	logging.With(ctx).Infof("Extending trial period from %v to %v for %v", org.TrialExpiresAt, t, org.ExternalID)
 
-	if err := a.db.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{
+	if _, err := a.db.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{
 		TrialExpiresAt:         &t,
 		TrialExpiredNotifiedAt: &time.Time{}, // sets it to NULL
 	}); err != nil {

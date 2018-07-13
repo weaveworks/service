@@ -17,6 +17,7 @@ import (
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/service/common"
+	"github.com/weaveworks/service/common/dbconfig"
 
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/filter"
@@ -61,19 +62,20 @@ type bqMembership struct {
 
 func main() {
 	var (
-		databaseURI = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
-		period      = flag.Duration("period", 10*time.Minute, "Period with which to post the DB to endpoint.")
-		endpoint    = flag.String("endpoint", "https://bi.weave.works/import/service/", "Base URL to post the users to; will have table name added")
-		listen      = flag.String("listen", ":80", "Port to listen on (to serve metrics)")
-		logLevel    = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
+		dbCfg    dbconfig.Config
+		period   = flag.Duration("period", 10*time.Minute, "Period with which to post the DB to endpoint.")
+		endpoint = flag.String("endpoint", "https://bi.weave.works/import/service/", "Base URL to post the users to; will have table name added")
+		listen   = flag.String("listen", ":80", "Port to listen on (to serve metrics)")
+		logLevel = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
 	)
+	dbCfg.RegisterFlags(flag.CommandLine, "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "", "Migrations directory.")
 	flag.Parse()
 	if err := logging.Setup(*logLevel); err != nil {
 		log.Fatalf("Error configuring logging: %v", err)
 		return
 	}
 
-	d := db.MustNew(*databaseURI, "")
+	d := db.MustNew(dbCfg)
 
 	// Use certifi certificates
 	certPool, err := gocertifi.CACerts()

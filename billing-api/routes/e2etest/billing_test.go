@@ -21,15 +21,15 @@ import (
 func TestMain(m *testing.M) {
 	zuoraUsername := os.Getenv("ZUORA_USERNAME")
 	zuoraPassword := os.Getenv("ZUORA_PASSWORD")
-	zuoraSubscriptionPlanID := os.Getenv("ZUORA_SUBSCRIPTIONPLANID")
+	zuoraProductRatePlanID := os.Getenv("ZUORA_SUBSCRIPTIONPLANID")
 
-	if zuoraUsername == "" || zuoraPassword == "" || zuoraSubscriptionPlanID == "" {
+	if zuoraUsername == "" || zuoraPassword == "" || zuoraProductRatePlanID == "" {
 		return
 	}
 
 	mockzuora.Config.Username = zuoraUsername
 	mockzuora.Config.Password = zuoraPassword
-	mockzuora.Config.SubscriptionPlanID = zuoraSubscriptionPlanID
+	mockzuora.Config.ProductRatePlanID = zuoraProductRatePlanID
 
 	e := m.Run()
 
@@ -301,15 +301,15 @@ func waitUntilUsageCompleted(ctx context.Context, z *zuora.Zuora, timeout time.D
 	startTime := time.Now().UTC()
 	pollInterval := time.Duration(100 * time.Millisecond)
 	for {
-		importStatus, err := z.GetUsageImportStatus(ctx, importID)
+		importStatusResp, err := z.GetUsageImportStatus(ctx, z.URL("usage/%s/status", importID))
 		if err != nil {
 			return err
 		}
-		if importStatus == zuora.Completed {
+		if importStatusResp.ImportStatus == zuora.Completed {
 			return nil
 		}
 		if time.Now().UTC().Sub(startTime) >= timeout {
-			return fmt.Errorf("waitUntilUsageCompleted timed out, status: %v, timeout: %v, importID %v", importStatus, timeout, importID)
+			return fmt.Errorf("waitUntilUsageCompleted timed out, status: %v, timeout: %v, importID %v", importStatusResp.ImportStatus, timeout, importID)
 		}
 		time.Sleep(pollInterval)
 	}

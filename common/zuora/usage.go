@@ -5,10 +5,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"mime/multipart"
 	"regexp"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/service/common"
 )
 
 const (
@@ -28,7 +33,7 @@ type Usage struct {
 
 type postUsageResponse struct {
 	genericZuoraResponse
-	CheckImportStatus string `json:"checkImportStatus"`
+	CheckImportStatusURL string `json:"checkImportStatus"`
 }
 
 type getUsageResponse struct {
@@ -36,24 +41,37 @@ type getUsageResponse struct {
 	Usages  []Usage `json:"usage"`
 }
 
-type importStatusResponse struct {
+// ImportStatusResponse describes the status of a usage upload
+type ImportStatusResponse struct {
 	genericZuoraResponse
 	ImportStatus string `json:"importStatus"` // can be: Pending, Processing, Completed, Canceled (or Cancelled ??? but docs say one `l`), Failed
+	Message      string `json:"message"`
 }
 
+var usageImportHistogram = prometheus.NewHistogramVec(
+	prometheus.HistogramOpts{
+		Namespace: common.PrometheusNamespace,
+		Subsystem: "zuora_client",
+		Name:      "usage_import_duration_seconds",
+		Help:      "Time taken for zuora to import usage data.",
+	},
+	[]string{"status"},
+)
+
 // UploadUsage uploads usage information to Zuora.
-func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader) (string, error) {
+func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string, error) {
+	usage := bytes.Buffer{}
 	body := &bytes.Buffer{}
 	// Create a new multipart writer. This is required, because this automates the setting of some funky headers.
 	writer := multipart.NewWriter(body)
 	// This creates a new "part". I.e. a section in the multi-part upload.
-	// The word "file" is the name of the upload, and this is specified by zuora. The filename doesn't matter, but must not be null!!
-	part, err := writer.CreateFormFile("file", "billing-uploader.csv")
+	// The word "file" is the name of the upload, and this is specified by zuora. The filename doesn't matter, but must not be null, and is limited to 50 chars!!
+	part, err := writer.CreateFormFile("file", fmt.Sprintf("u-%.44s.csv", id))
 	if err != nil {
 		return "", err
 	}
 	// Copy the report CSV to the part body
-	_, err = io.Copy(part, r)
+	_, err = io.Copy(part, io.TeeReader(r, &usage))
 	if err != nil {
 		return "", err
 	}
@@ -63,6 +81,7 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader) (string, error) {
 	}
 
 	resp := &postUsageResponse{}
+	importStart := time.Now()
 	err = z.Upload(
 		ctx,
 		postUsagePath,
@@ -72,18 +91,28 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader) (string, error) {
 		resp,
 	)
 	if err != nil {
+		logging.With(ctx).Errorf("Usage upload failed! Usage file: %v", usage.String())
 		return "", err
 	}
 	if !resp.Success {
+		logging.With(ctx).Errorf("Usage upload failed! Usage file: %v", usage.String())
 		return "", resp
 	}
 
-	logging.With(ctx).Infof("Response from Zuora: %v", resp.CheckImportStatus)
-	importID, err := extractUsageImportID(resp.CheckImportStatus)
+	logging.With(ctx).Infof("Import status url: %s", resp.CheckImportStatusURL)
+	importStatusResp, err := z.WaitForImportFinished(ctx, resp.CheckImportStatusURL)
 	if err != nil {
 		return "", err
 	}
-	return importID, nil
+	importDuration := time.Now().Sub(importStart)
+	importStatus := importStatusResp.ImportStatus
+	usageImportHistogram.WithLabelValues(importStatus).Observe(importDuration.Seconds())
+
+	if importStatus != Completed {
+		logging.With(ctx).Errorf("Usage upload failed! Usage file: %v", usage.String())
+		return "", fmt.Errorf("Usage import did not succeed: %v - from %s", importStatusResp, resp.CheckImportStatusURL)
+	}
+	return extractUsageImportID(resp.CheckImportStatusURL)
 }
 
 // GetUsage retrieves paginated usages of given organization.
@@ -104,15 +133,40 @@ func (z *Zuora) GetUsage(ctx context.Context, zuoraAccountNumber, page, pageSize
 }
 
 // GetUsageImportStatus returns the Zuora status of a given usage.
-func (z *Zuora) GetUsageImportStatus(ctx context.Context, importID string) (string, error) {
-	resp := &importStatusResponse{}
-	if err := z.Get(ctx, getUsagePath, z.URL(getImportStatusPath, importID), resp); err != nil {
-		return "", err
+func (z *Zuora) GetUsageImportStatus(ctx context.Context, url string) (*ImportStatusResponse, error) {
+	resp := ImportStatusResponse{}
+	if err := z.Get(ctx, getImportStatusPath, url, &resp); err != nil {
+		return nil, err
 	}
 	if !resp.Success {
-		return "", resp
+		return nil, &resp
 	}
-	return resp.ImportStatus, nil
+	return &resp, nil
+}
+
+// WaitForImportFinished waits for a usage import to complete and returns the status.
+func (z *Zuora) WaitForImportFinished(ctx context.Context, statusURL string) (*ImportStatusResponse, error) {
+	maxAttempts := 6
+	var attempt int
+	var resp *ImportStatusResponse
+	for attempt = 0; attempt < maxAttempts; attempt++ {
+		var statusCheckErr error
+		logging.With(ctx).Infof("Checking usage import status")
+		resp, statusCheckErr = z.GetUsageImportStatus(ctx, statusURL)
+		if statusCheckErr == nil {
+			importStatus := resp.ImportStatus
+			if !(importStatus == "Pending" || importStatus == "Processing") {
+				break
+			}
+		}
+		sleepingTime := time.Duration(math.Pow(float64(2), float64(attempt))) * time.Second
+		logging.With(ctx).Infof("Exponentially retrying in %v", sleepingTime)
+		time.Sleep(sleepingTime)
+	}
+	if attempt < maxAttempts {
+		return resp, nil
+	}
+	return nil, fmt.Errorf("Usage was not imported within %d retries", attempt)
 }
 
 func extractUsageImportID(path string) (string, error) {

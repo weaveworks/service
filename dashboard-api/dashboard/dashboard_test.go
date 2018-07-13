@@ -2,15 +2,18 @@ package dashboard
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/weaveworks/service/dashboard-api/aws"
 )
 
 var (
+	errExitEarly  = errors.New("exit early")
 	testDashboard = Dashboard{
 		ID:   "test-dashboard",
 		Name: "Test",
@@ -169,7 +172,9 @@ func TestResolveQueries(t *testing.T) {
 	// work on a copy to not touch the original
 	dashboard := testDashboard.DeepCopy()
 
-	resolveQueries([]Dashboard{dashboard}, &Config{Workload: "bar"})
+	resolveQueries([]Dashboard{dashboard}, map[string]string{
+		"workload": "bar",
+	})
 	assert.Equal(t, "test_metric{_weave_service='bar'}", dashboard.Sections[0].Rows[0].Panels[0].Query)
 }
 
@@ -196,7 +201,11 @@ func getAllDashboards() ([]Dashboard, error) {
 	const workload = "authfe"
 
 	metrics := getAllRequiredMetrics(providers)
-	return GetServiceDashboards(metrics, ns, workload)
+	return GetDashboards(metrics, map[string]string{
+		"namespace":  ns,
+		"workload":   workload,
+		"identifier": "prod-users-vpc-database", // AWS dashboards
+	})
 }
 
 // TestUniqueIDs ensures all dashboards we can produce have their own unique ID.
@@ -289,7 +298,11 @@ func getAllDashboardsWithOptionalPanels() ([]Dashboard, error) {
 	const workload = "authfe"
 
 	metrics := getAllMetrics(providers)
-	allDashboards, err := GetServiceDashboards(metrics, ns, workload)
+	allDashboards, err := GetDashboards(metrics, map[string]string{
+		"namespace":  ns,
+		"workload":   workload,
+		"identifier": "prod-users-vpc-database", // AWS dashboards
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -332,4 +345,39 @@ func TestGoldenWithOptionalPanels(t *testing.T) {
 		assert.Equal(t, string(expectedBytes), string(gotBytes))
 	}
 	Deinit()
+}
+
+func TestGetDashboardByIDShouldResolveQueryOnACopyOfDashboardTemplate(t *testing.T) {
+	err := Init()
+	assert.NoError(t, err)
+
+	dashboard, err := GetDashboardByID(aws.RDS.Type.ToDashboardID(), map[string]string{
+		"namespace":  aws.Namespace,
+		"workload":   aws.Service,
+		"identifier": "foo",
+	})
+	assert.NoError(t, err)
+	assertDashboardContainsIdentifier(t, dashboard, "foo")
+
+	dashboard, err = GetDashboardByID(aws.RDS.Type.ToDashboardID(), map[string]string{
+		"namespace":  aws.Namespace,
+		"workload":   aws.Service,
+		"identifier": "bar",
+	})
+	assert.NoError(t, err)
+	assertDashboardContainsIdentifier(t, dashboard, "bar")
+}
+
+func assertDashboardContainsIdentifier(t *testing.T, dashboard *Dashboard, identifier string) {
+	assert.NotNil(t, dashboard)
+	assert.NotEqual(t, 0, len(dashboard.Sections))
+	for _, section := range dashboard.Sections {
+		assert.NotEqual(t, 0, len(section.Rows))
+		for _, row := range section.Rows {
+			assert.NotEqual(t, 0, len(row.Panels))
+			for _, panel := range row.Panels {
+				assert.Contains(t, panel.Query, fmt.Sprintf("dbinstance_identifier=~'%v'", identifier))
+			}
+		}
+	}
 }

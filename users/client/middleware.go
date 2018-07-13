@@ -1,20 +1,27 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha1"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/google/go-github/github"
+	"github.com/gorilla/mux"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
+
 	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/common/constants/webhooks"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/tokens"
@@ -31,6 +38,9 @@ const (
 	// It only ever contains an empty string
 	// If creation/deletion needed, will happen at same time as session cookie is operated on
 	ImpersonationCookieName = "_weave_cloud_impersonation"
+
+	userTag = "user"
+	orgTag  = "organization"
 )
 
 // AuthOrgMiddleware is a middleware.Interface for authentication organisations based on the
@@ -71,6 +81,11 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 		if err != nil {
 			handleError(err, w, r)
 			return
+		}
+
+		if span := opentracing.SpanFromContext(r.Context()); span != nil {
+			span.SetTag(userTag, response.UserID)
+			span.SetTag(orgTag, response.OrganizationID)
 		}
 		forceTraceIfFlagged(ctx, response.FeatureFlags)
 
@@ -115,6 +130,9 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
+		if span := opentracing.SpanFromContext(r.Context()); span != nil {
+			span.SetTag(orgTag, response.OrganizationID)
+		}
 		forceTraceIfFlagged(ctx, response.FeatureFlags)
 
 		if !featureflag.HasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
@@ -163,6 +181,9 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 			handleError(err, w, r)
 			return
 		}
+		if span := opentracing.SpanFromContext(r.Context()); span != nil {
+			span.SetTag(userTag, response.AdminID)
+		}
 
 		finishRequest(next, w, r, response.AdminID)
 	})
@@ -195,6 +216,9 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 			handleError(err, w, r)
 			return
 		}
+		if span := opentracing.SpanFromContext(r.Context()); span != nil {
+			span.SetTag(userTag, response.UserID)
+		}
 
 		r.Header.Add(a.UserIDHeader, response.UserID)
 		next.ServeHTTP(w, r)
@@ -218,7 +242,11 @@ func handleError(err error, w http.ResponseWriter, r *http.Request) {
 			// found, our API has a user membership check vulnerability
 			// To prevent this, don't send on the actual message.
 			http.Error(w, "Unauthorized", int(errResp.Code))
+		case http.StatusForbidden:
+			fallthrough
 		case http.StatusPaymentRequired:
+			http.Error(w, string(errResp.Body), int(errResp.Code))
+		case http.StatusNotFound:
 			http.Error(w, string(errResp.Body), int(errResp.Code))
 		default:
 			logging.With(r.Context()).Errorf("Error from users svc: %v (%d)", string(errResp.Body), errResp.Code)
@@ -328,4 +356,64 @@ func validateGCPExternalAccountID(externalAccountID string) (string, error) {
 		return "", fmt.Errorf("invalid GCP account ID [%v]: malformed", externalAccountID)
 	}
 	return externalAccountID, nil
+}
+
+// WebhooksMiddleware is a middleware.Interface for authentication request based
+// on the webhook secret (and signing key if one exists).
+type WebhooksMiddleware struct {
+	UsersClient                   users.UsersClient
+	WebhooksIntegrationTypeHeader string
+}
+
+// Wrap implements middleware.Interface
+func (a WebhooksMiddleware) Wrap(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		secretID := mux.Vars(r)["secretID"]
+
+		// Verify the secretID
+		response, err := a.UsersClient.LookupOrganizationWebhookUsingSecretID(r.Context(), &users.LookupOrganizationWebhookUsingSecretIDRequest{
+			SecretID: secretID,
+		})
+		if err != nil {
+			handleError(err, w, r)
+			return
+		}
+
+		// Verify the signature if we require it. This is only used for Github integrations at the moment.
+		if response.Webhook.IntegrationType == webhooks.GithubPushIntegrationType {
+			if response.Webhook.SecretSigningKey == "" {
+				http.Error(w, "The GitHub signing key is missing.", 500)
+				return
+			}
+			// Validating the payload consumes the request Body; so we
+			// will need to replace it afterwards.
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, "Could not read request body: "+err.Error(), http.StatusBadRequest)
+				return
+			}
+			r.Body = ioutil.NopCloser(bytes.NewReader(body))
+			_, err = github.ValidatePayload(r, []byte(response.Webhook.SecretSigningKey))
+			if err != nil {
+				http.Error(w, "The GitHub signature header is invalid.", 401)
+				return
+			}
+			r.Body = ioutil.NopCloser(bytes.NewReader(body))
+		}
+
+		// Set the FirstSeenAt time if it is not set
+		if response.Webhook.FirstSeenAt == nil {
+			_, err := a.UsersClient.SetOrganizationWebhookFirstSeenAt(r.Context(), &users.SetOrganizationWebhookFirstSeenAtRequest{
+				SecretID: secretID,
+			})
+			if err != nil {
+				handleError(err, w, r)
+				return
+			}
+		}
+
+		// Add the integration type and org ID to the headers for use by flux-api.
+		r.Header.Add(a.WebhooksIntegrationTypeHeader, response.Webhook.IntegrationType)
+		finishRequest(next, w, r, response.Webhook.OrganizationID)
+	})
 }

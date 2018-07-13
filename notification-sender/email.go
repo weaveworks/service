@@ -16,12 +16,14 @@ import (
 	"time"
 )
 
-// Timeout waiting for mail service to be ready
-const timeout = 5 * time.Minute
-
 const (
+	// Timeout waiting for mail service to be ready
+	timeout              = 5 * time.Minute
 	markdownNewline      = "  \n"
 	markdownNewParagraph = "\n\n"
+
+	// EmailSeparator divides addresses in receiver configuration.
+	EmailSeparator = ","
 )
 
 // EmailSender contains creds to send emails
@@ -34,7 +36,7 @@ func waitForMailService(uri, from string) error {
 	deadline := time.Now().Add(timeout)
 	var err error
 	for tries := 0; time.Now().Before(deadline); tries++ {
-		err = parseAndSend(uri, from, "weaveworkstest@gmail.com", "Email sender validation", from)
+		err = parseAndSend(uri, from, []string{"weaveworkstest@gmail.com"}, "Email sender validation", from)
 		if err == nil {
 			return nil
 		}
@@ -80,14 +82,15 @@ func (es *EmailSender) Send(_ context.Context, addr json.RawMessage, notif types
 		return errors.New("cannot create email sender, email URI is empty")
 	}
 
-	if err := parseAndSend(es.URI, es.From, addrStr, notifData.Subject, notifData.Body); err != nil {
+	addresses := strings.Split(addrStr, EmailSeparator)
+	if err := parseAndSend(es.URI, es.From, addresses, notifData.Subject, notifData.Body); err != nil {
 		return errors.Wrap(err, "cannot parse and send email")
 	}
 
 	return nil
 }
 
-func parseAndSend(uri, from, addr, subject, body string) error {
+func parseAndSend(uri, from string, addresses []string, subject, body string) error {
 	u, err := url.Parse(uri)
 	if err != nil {
 		return errors.Wrapf(err, "cannot parse email URI %s", uri)
@@ -115,18 +118,22 @@ func parseAndSend(uri, from, addr, subject, body string) error {
 
 		d := gomail.NewPlainDialer(u.Hostname(), port, username, password)
 		m := gomail.NewMessage()
+		var formatted []string
+		for _, a := range addresses {
+			formatted = append(formatted, m.FormatAddress(a, ""))
+		}
 		m.SetHeader("From", from)
-		m.SetAddressHeader("To", addr, "")
+		m.SetHeader("To", formatted...)
 		m.SetHeader("Subject", subject)
 		m.SetBody("text/html", body)
-		log.Debugf("[Email] From: %s, To: %s, Subject: %s, Body: %s", from, addr, subject, body)
+		log.Debugf("[Email] From: %s, To: %s, Subject: %s, Body: %s", from, addresses, subject, body)
 
 		if err := d.DialAndSend(m); err != nil {
 			return errors.Wrap(err, "cannot create new SMTP dialer and send message")
 		}
 
 	case "log":
-		log.Infof("[Email] From: %s, To: %s, Subject: %s, Body: %s", from, addr, subject, body)
+		log.Infof("[Email] From: %s, To: %s, Subject: %s, Body: %s", from, addresses, subject, body)
 
 	default:
 		return errors.Errorf("Unsupported email protocol: %s", u.Scheme)

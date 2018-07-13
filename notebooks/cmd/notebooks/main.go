@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/notebooks/api"
 	"github.com/weaveworks/service/notebooks/db"
 	users "github.com/weaveworks/service/users/client"
@@ -17,12 +18,17 @@ func main() {
 		serverConfig = server.Config{
 			MetricsNamespace: "notebooks",
 		}
-		dbConfig db.Config
+		dbConfig dbconfig.Config
 	)
 
 	cfg.RegisterFlags(flag.CommandLine)
 	serverConfig.RegisterFlags(flag.CommandLine)
-	dbConfig.RegisterFlags(flag.CommandLine)
+	dbConfig.RegisterFlags(flag.CommandLine,
+		"postgres://postgres@configs-db.default.svc.cluster.local/notebooks?sslmode=disable",
+		"URI where the database can be found (for dev you can use memory://)",
+		"",
+		"Path where the database migration files can be found")
+
 	flag.Parse()
 
 	db, err := db.New(dbConfig)

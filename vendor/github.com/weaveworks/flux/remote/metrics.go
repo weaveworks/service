@@ -9,6 +9,7 @@ import (
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
 	"github.com/weaveworks/flux/api"
+	"github.com/weaveworks/flux/api/v10"
 	"github.com/weaveworks/flux/api/v6"
 	"github.com/weaveworks/flux/api/v9"
 	"github.com/weaveworks/flux/job"
@@ -64,6 +65,16 @@ func (i *instrumentedServer) ListImages(ctx context.Context, spec update.Resourc
 		).Observe(time.Since(begin).Seconds())
 	}(time.Now())
 	return i.s.ListImages(ctx, spec)
+}
+
+func (i *instrumentedServer) ListImagesWithOptions(ctx context.Context, opts v10.ListImagesOptions) (_ []v6.ImageStatus, err error) {
+	defer func(begin time.Time) {
+		requestDuration.With(
+			fluxmetrics.LabelMethod, "ListImagesWithOptions",
+			fluxmetrics.LabelSuccess, fmt.Sprint(err == nil),
+		).Observe(time.Since(begin).Seconds())
+	}(time.Now())
+	return i.s.ListImagesWithOptions(ctx, opts)
 }
 
 func (i *instrumentedServer) UpdateManifests(ctx context.Context, spec update.Spec) (_ job.ID, err error) {

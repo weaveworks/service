@@ -29,8 +29,9 @@ func DeprecateVersions(r *mux.Router, versions ...string) {
 func NewAPIRouter() *mux.Router {
 	r := mux.NewRouter()
 
-	r.NewRoute().Name(ListServices).Methods("GET").Path("/v6/services").Queries("namespace", "{namespace}") // optional namespace!
-	r.NewRoute().Name(ListImages).Methods("GET").Path("/v6/images").Queries("service", "{service}")
+	r.NewRoute().Name(ListServices).Methods("GET").Path("/v6/services")
+	r.NewRoute().Name(ListImages).Methods("GET").Path("/v6/images")
+	r.NewRoute().Name(ListImagesWithOptions).Methods("GET").Path("/v10/images")
 
 	r.NewRoute().Name(UpdateManifests).Methods("POST").Path("/v9/update-manifests")
 	r.NewRoute().Name(JobStatus).Methods("GET").Path("/v6/jobs").Queries("id", "{id}")
@@ -53,6 +54,7 @@ func UpstreamRoutes(r *mux.Router) {
 	r.NewRoute().Name(RegisterDaemonV7).Methods("GET").Path("/v7/daemon")
 	r.NewRoute().Name(RegisterDaemonV8).Methods("GET").Path("/v8/daemon")
 	r.NewRoute().Name(RegisterDaemonV9).Methods("GET").Path("/v9/daemon")
+	r.NewRoute().Name(RegisterDaemonV10).Methods("GET").Path("/v10/daemon")
 	r.NewRoute().Name(LogEvent).Methods("POST").Path("/v6/events")
 }
 

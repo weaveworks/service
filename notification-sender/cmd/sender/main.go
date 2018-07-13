@@ -8,6 +8,7 @@ import (
 	googleLogging "cloud.google.com/go/logging"
 	"github.com/gorilla/mux"
 	nats "github.com/nats-io/go-nats"
+	ogcli "github.com/opsgenie/opsgenie-go-sdk/client"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/logging"
@@ -77,6 +78,10 @@ func main() {
 		Clients: make(map[string]*googleLogging.Client),
 	}
 
+	ogs := &sender.OpsGenieSender{
+		Clients: make(map[string]*ogcli.OpsGenieAlertV2Client),
+	}
+
 	sqsCli, sqsQueue, err := sqsconnect.NewSQS(sqsURL)
 	if err != nil {
 		log.Fatalf("cannot connect to SQS %q, error: %s", sqsURL, err)
@@ -101,6 +106,7 @@ func main() {
 	s.RegisterNotifier(types.SlackReceiver, ss.Send)
 	s.RegisterNotifier(types.BrowserReceiver, bs.Send)
 	s.RegisterNotifier(types.StackdriverReceiver, sds.Send)
+	s.RegisterNotifier(types.OpsGenieReceiver, ogs.Send)
 
 	ctx, cancel := context.WithCancel(context.Background())
 

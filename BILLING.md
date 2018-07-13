@@ -41,3 +41,8 @@ See the makefile for all instructions.
 ### Documentation
 
 Most of the documentation is within the code.
+
+## Testing
+
+Part of the testing typically involves interacting with Zuora manually, uploading usage, creating bill runs, etc.
+More information about this can be found [here](/billing-api/docs/README.md#testing).

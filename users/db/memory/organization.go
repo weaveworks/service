@@ -104,6 +104,26 @@ func (d *DB) ListOrganizations(_ context.Context, f filter.Organization, page ui
 	return orgs, nil
 }
 
+// ListAllOrganizations lists all organizations including deleted ones
+func (d *DB) ListAllOrganizations(_ context.Context, f filter.Organization, page uint64) ([]*users.Organization, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	orgs := []*users.Organization{}
+
+	for _, org := range d.organizations {
+		if f.MatchesOrg(*org) {
+			orgs = append(orgs, org)
+		}
+	}
+	for _, org := range d.deletedOrganizations {
+		if f.MatchesOrg(*org) {
+			orgs = append(orgs, org)
+		}
+	}
+	sort.Sort(organizationsByCreatedAt(orgs))
+	return orgs, nil
+}
+
 // ListOrganizationUsers lists all the users in an organization
 func (d *DB) ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error) {
 	d.mtx.Lock()
@@ -223,7 +243,7 @@ var (
 	// service/users/db/migrations/015_limit_length_organizations.up.sql
 	organizationMaxLength = 100
 
-	errorOrgNameLengthConstraint = pq.Error{
+	errorOrgNameLengthConstraint = &pq.Error{
 		Severity: "ERROR",
 		Code:     "22001",
 		Message:  fmt.Sprintf("value too long for type character varying(%v)", organizationMaxLength),
@@ -243,7 +263,7 @@ func (d *DB) CreateOrganization(ctx context.Context, ownerID, externalID, name, 
 		return nil, err
 	}
 	if len(name) > organizationMaxLength {
-		return nil, &errorOrgNameLengthConstraint
+		return nil, errorOrgNameLengthConstraint
 	}
 	now := time.Now().UTC()
 	var teamExternalID string
@@ -369,12 +389,13 @@ func changeOrg(d *DB, externalID string, toWrap func(*users.Organization) error)
 	return toWrap(o)
 }
 
-// UpdateOrganization changes an organization's user-settable name
-func (d *DB) UpdateOrganization(_ context.Context, externalID string, update users.OrgWriteView) error {
+// UpdateOrganization changes an organization's data.
+func (d *DB) UpdateOrganization(_ context.Context, externalID string, update users.OrgWriteView) (*users.Organization, error) {
 	if update.Name != nil && len(*update.Name) > organizationMaxLength {
-		return &errorOrgNameLengthConstraint
+		return nil, errorOrgNameLengthConstraint
 	}
-	return changeOrg(d, externalID, func(o *users.Organization) error {
+	var org *users.Organization
+	err := changeOrg(d, externalID, func(o *users.Organization) error {
 		if update.Name != nil {
 			o.Name = *update.Name
 		}
@@ -393,9 +414,48 @@ func (d *DB) UpdateOrganization(_ context.Context, externalID string, update use
 		if update.TrialPendingExpiryNotifiedAt != nil {
 			o.TrialPendingExpiryNotifiedAt = timeutil.ZeroTimeIsNil(update.TrialPendingExpiryNotifiedAt)
 		}
-
+		org = o
 		return o.Valid()
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return org, nil
+}
+
+// MoveOrganizationToTeam updates the team of the organization. It does *not* check team permissions.
+func (d *DB) MoveOrganizationToTeam(ctx context.Context, externalID, teamExternalID, teamName, userID string) error {
+	var team *users.Team
+	var err error
+
+	if teamName != "" {
+		if team, err = d.CreateTeam(ctx, teamName); err != nil {
+			return err
+		}
+		if err = d.AddUserToTeam(ctx, userID, team.ID); err != nil {
+			return err
+		}
+	} else {
+		if team, err = d.findTeamByExternalID(ctx, teamExternalID); err != nil {
+			return err
+		}
+	}
+
+	return changeOrg(d, externalID, func(o *users.Organization) error {
+		o.TeamID = team.ID
+		o.TeamExternalID = team.ExternalID
+		return nil
+	})
+}
+
+func (d DB) findTeamByExternalID(ctx context.Context, externalID string) (*users.Team, error) {
+	for _, t := range d.teams {
+		if t.ExternalID == externalID {
+			return t, nil
+		}
+	}
+	return nil, users.ErrNotFound
 }
 
 // OrganizationExists just returns a simple bool checking if an organization
@@ -498,6 +558,14 @@ func (d *DB) SetOrganizationRefuseDataAccess(_ context.Context, externalID strin
 func (d *DB) SetOrganizationRefuseDataUpload(_ context.Context, externalID string, value bool) error {
 	return changeOrg(d, externalID, func(org *users.Organization) error {
 		org.RefuseDataUpload = value
+		return nil
+	})
+}
+
+// SetOrganizationRefuseDataReason overwrites the default reason for refusal.
+func (d *DB) SetOrganizationRefuseDataReason(ctx context.Context, externalID string, reason string) error {
+	return changeOrg(d, externalID, func(org *users.Organization) error {
+		org.RefuseDataReason = reason
 		return nil
 	})
 }
@@ -649,27 +717,20 @@ func (d *DB) SetOrganizationGCP(ctx context.Context, externalID, externalAccount
 // If teamName is not empty, the organizations is assigned to that team. it is created if it does not exists.
 // One, and only one, of teamExternalID, teamName must be provided.
 func (d *DB) CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error) {
-	if teamName == "" && teamExternalID == "" {
-		return nil, errors.New("At least one of teamExternalID, teamName needs to be provided")
-	}
-	if teamName != "" && teamExternalID != "" {
-		return nil, fmt.Errorf("Only one of teamExternalID, teamName needs to be provided: %v, %v", teamExternalID, teamName)
-	}
-
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	if _, err := d.findUserByID(ownerID); err != nil {
 		return nil, err
 	}
 	if len(name) > organizationMaxLength {
-		return nil, &errorOrgNameLengthConstraint
+		return nil, errorOrgNameLengthConstraint
 	}
 	now := time.Now().UTC()
 
 	var team *users.Team
 	var err error
 	if teamExternalID != "" {
-		team, err = d.ensureUserIsPartOfTeamByExternalID(ctx, ownerID, teamExternalID)
+		team, err = d.getTeamUserIsPartOf(ctx, ownerID, teamExternalID)
 	} else if teamName != "" {
 		team, err = d.ensureUserIsPartOfTeamByName(ctx, ownerID, teamName)
 	}

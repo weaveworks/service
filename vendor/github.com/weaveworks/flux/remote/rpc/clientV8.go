@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/rpc"
 
+	"github.com/weaveworks/flux/api/v10"
 	"github.com/weaveworks/flux/api/v6"
 	"github.com/weaveworks/flux/job"
 	"github.com/weaveworks/flux/remote"
@@ -25,7 +26,7 @@ type clientV8 interface {
 
 var _ clientV8 = &RPCClientV8{}
 
-var supportedKindsV8 = []string{"deployment", "daemonset", "statefulset", "cronjob"}
+var supportedKindsV8 = []string{"deployment", "daemonset", "statefulset", "cronjob", "fluxhelmrelease"}
 
 // NewClient creates a new rpc-backed implementation of the server.
 func NewClientV8(conn io.ReadWriteCloser) *RPCClientV8 {
@@ -47,6 +48,10 @@ func (p *RPCClientV8) ListImages(ctx context.Context, spec update.ResourceSpec) 
 		err = resp.ApplicationError
 	}
 	return resp.Result, err
+}
+
+func (p *RPCClientV8) ListImagesWithOptions(ctx context.Context, opts v10.ListImagesOptions) ([]v6.ImageStatus, error) {
+	return listImagesWithOptions(ctx, p, opts)
 }
 
 func (p *RPCClientV8) UpdateManifests(ctx context.Context, u update.Spec) (job.ID, error) {

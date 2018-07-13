@@ -50,6 +50,7 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_users_lookup", "GET", "/api/users/lookup", a.authenticateUser(a.publicLookup)},
 
 		{"api_users_teams", "GET", "/api/users/teams", a.authenticateUser(a.listTeams)},
+		{"api_users_teams_teamExternalID_delete", "DELETE", "/api/users/teams/{teamExternalID}", a.authenticateUser(a.deleteTeam)},
 
 		// Used by the launcher agent to get the external instance ID using a token
 		{"api_users_org_token_lookup", "GET", "/api/users/org/lookup", a.authenticateProbe(a.orgLookup)},
@@ -68,10 +69,15 @@ func (a *API) RegisterRoutes(r *mux.Router) {
 		{"api_users_org_orgExternalID_inviteUser", "POST", "/api/users/org/{orgExternalID}/users", a.authenticateUser(a.inviteUser)},
 		{"api_users_org_orgExternalID_removeUser", "DELETE", "/api/users/org/{orgExternalID}/users/{userEmail}", a.authenticateUser(a.removeUser)},
 
+		// Organization webhooks
+		{"api_users_webhooks_list", "GET", "/api/users/org/{orgExternalID}/webhooks", a.authenticateUser(a.listOrganizationWebhooks)},
+		{"api_users_webhooks_create", "POST", "/api/users/org/{orgExternalID}/webhooks", a.authenticateUser(a.createOrganizationWebhook)},
+		{"api_users_webhooks_delete", "DELETE", "/api/users/org/{orgExternalID}/webhooks/{secretID}", a.authenticateUser(a.deleteOrganizationWebhook)},
+
 		// Internal stuff for our internal usage, internally.
 		{"root", "GET", "/admin/users", a.admin},
 		{"admin_users_organizations", "GET", "/admin/users/organizations", a.adminListOrganizations},
-		{"admin_users_gcp_externalAccoutnID_subscriptions", "GET", "/admin/users/gcp/{externalAccountID}/subscriptions", a.adminGCPListSubscriptions},
+		{"admin_users_gcp_externalAccountID_subscriptions", "GET", "/admin/users/gcp/{externalAccountID}/subscriptions", a.adminGCPListSubscriptions},
 		{"admin_users_organizations_orgExternalID_users", "GET", "/admin/users/organizations/{orgExternalID}/users", a.adminListUsersForOrganization},
 		{"admin_users_organizations_orgExternalID_users_userID", "POST", "/admin/users/organizations/{orgExternalID}/users/{userID}/remove", a.adminRemoveUserFromOrganization},
 		{"admin_users_organizations_orgExternalID", "POST", "/admin/users/organizations/{orgExternalID}", a.adminChangeOrgFields},

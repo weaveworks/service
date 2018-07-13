@@ -38,10 +38,10 @@ func main() {
 		log.Fatalf("error initializing dashboards: %v", err)
 	}
 
-	d := dashboard.GetDashboardByID(ID, &dashboard.Config{
-		Namespace: *namespace,
-		Workload:  *workload,
-		Range:     *rangeSelector,
+	d := dashboard.GetDashboardByID(ID, map[string]string{
+		"namespace": *namespace,
+		"workload":  *workload,
+		"range":     *rangeSelector,
 	})
 
 	if d == nil {

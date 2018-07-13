@@ -24,10 +24,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/ExpansiveWorlds/instrumentedsql"
-  packages = [
-    ".",
-    "opentracing"
-  ]
+  packages = ["."]
   revision = "55151537c3a7c0e0ca34be1660247546570a6e2f"
 
 [[projects]]
@@ -131,6 +128,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/cihub/seelog"
+  packages = ["."]
+  revision = "d2c6e5aa9fbfdd1c624e140287063c7730654115"
+  version = "v2.6"
+
+[[projects]]
   branch = "master"
   name = "github.com/codahale/hdrhistogram"
   packages = ["."]
@@ -199,6 +202,12 @@
   packages = ["fluent"]
   revision = "28bdb662295c1b7aca09c1a4edbf9430010775a9"
   version = "v1.2.1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/franela/goreq"
+  packages = ["."]
+  revision = "bcd34c9993f899273c74baaa95e15386cd97b6e7"
 
 [[projects]]
   name = "github.com/go-ini/ini"
@@ -301,8 +310,8 @@
 [[projects]]
   name = "github.com/gorilla/mux"
   packages = ["."]
-  revision = "24fca303ac6da784b9e8269f724ddeb0b2eea5e7"
-  version = "v1.5.0"
+  revision = "e3702bed27f0d39777b0b37b664b6280e8ef8fbf"
+  version = "v1.6.2"
 
 [[projects]]
   name = "github.com/gorilla/securecookie"
@@ -497,6 +506,30 @@
   ]
   revision = "d88c90182f3fb514be54a1c7adc11a04d41c7da9"
   version = "v0.2.4"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/opsgenie/opsgenie-go-sdk"
+  packages = [
+    "alerts",
+    "alertsv2",
+    "alertsv2/savedsearches",
+    "client",
+    "contact",
+    "escalation",
+    "heartbeat",
+    "integration",
+    "logging",
+    "notificationv2",
+    "policy",
+    "schedule",
+    "scheduleoverride",
+    "schedulev2",
+    "team",
+    "user",
+    "userv2"
+  ]
+  revision = "e5f3103b77a51ce247f876687dc717e81722fece"
 
 [[projects]]
   branch = "master"
@@ -736,6 +769,7 @@
   packages = [
     ".",
     "api",
+    "api/v10",
     "api/v6",
     "api/v9",
     "cluster",
@@ -760,7 +794,7 @@
     "ssh",
     "update"
   ]
-  revision = "1fc5294eb70e0353b8c7b0140fc15feb7560f52b"
+  revision = "783f23e66ed8d561cc30606d35bc71eb24b9fa1f"
 
 [[projects]]
   branch = "master"
@@ -997,6 +1031,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1768b90ca328e133c8bd0884bc4fcb8d802bad3a1b1916c40456eb35074ee545"
+  inputs-digest = "88cbe8b087320a54e12e90c534845d063ba2eec0f4acc36b0e2b57c0685c6bd2"
   solver-name = "gps-cdcl"
   solver-version = 1

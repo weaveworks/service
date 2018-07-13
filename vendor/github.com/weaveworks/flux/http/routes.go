@@ -1,13 +1,14 @@
 package http
 
 const (
-	ListServices    = "ListServices"
-	ListImages      = "ListImages"
-	UpdateManifests = "UpdateManifests"
-	JobStatus       = "JobStatus"
-	SyncStatus      = "SyncStatus"
-	Export          = "Export"
-	GitRepoConfig   = "GitRepoConfig"
+	ListServices          = "ListServices"
+	ListImages            = "ListImages"
+	ListImagesWithOptions = "ListImagesWithOptions"
+	UpdateManifests       = "UpdateManifests"
+	JobStatus             = "JobStatus"
+	SyncStatus            = "SyncStatus"
+	Export                = "Export"
+	GitRepoConfig         = "GitRepoConfig"
 
 	UpdateImages           = "UpdateImages"
 	UpdatePolicies         = "UpdatePolicies"
@@ -16,9 +17,10 @@ const (
 )
 
 var (
-	RegisterDaemonV6 = "RegisterDaemonV6"
-	RegisterDaemonV7 = "RegisterDaemonV7"
-	RegisterDaemonV8 = "RegisterDaemonV8"
-	RegisterDaemonV9 = "RegisterDaemonV9"
-	LogEvent         = "LogEvent"
+	RegisterDaemonV6  = "RegisterDaemonV6"
+	RegisterDaemonV7  = "RegisterDaemonV7"
+	RegisterDaemonV8  = "RegisterDaemonV8"
+	RegisterDaemonV9  = "RegisterDaemonV9"
+	RegisterDaemonV10 = "RegisterDaemonV10"
+	LogEvent          = "LogEvent"
 )

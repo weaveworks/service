@@ -54,7 +54,8 @@ func TestAPI_adminChangeOrgFields_BillingFeatureFlags(t *testing.T) {
 
 	// Set trial expiration to trigger extension and notifications
 	prevExpires := time.Now()
-	database.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{TrialExpiresAt: &prevExpires})
+	_, err := database.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{TrialExpiresAt: &prevExpires})
+	assert.NoError(t, err)
 
 	assert.False(t, org.HasFeatureFlag(featureflag.Billing))
 
@@ -83,7 +84,8 @@ func TestAPI_adminChangeOrgFields_BillingNeverShrinkTrialPeriod(t *testing.T) {
 
 	// way in the future to make sure a possible extension does not go past it
 	prevExpires := time.Now().Add(12 * 30 * 24 * time.Hour).Truncate(1 * time.Second)
-	database.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{TrialExpiresAt: &prevExpires})
+	_, err := database.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{TrialExpiresAt: &prevExpires})
+	assert.NoError(t, err)
 
 	ts := httptest.NewServer(app.Handler)
 	r, err := http.PostForm(
@@ -216,10 +218,11 @@ func TestAPI_adminTrial(t *testing.T) {
 		// set it to already notified
 		expires := time.Now().UTC().Add(-5 * 24 * time.Hour)
 		notified := expires.Add(24 * time.Hour)
-		database.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{
+		_, err := database.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{
 			TrialExpiresAt:         &expires,
 			TrialExpiredNotifiedAt: &notified,
 		})
+		assert.NoError(t, err)
 		org, err := database.FindOrganizationByID(context.TODO(), org.ExternalID)
 		assert.NoError(t, err)
 		assert.NotNil(t, org.TrialExpiredNotifiedAt)

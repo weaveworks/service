@@ -70,6 +70,7 @@
             <th class="mdl-data-table__cell--non-numeric">ID</th>
             <th class="mdl-data-table__cell--non-numeric">Name<br />Instance</th>
             <th class="mdl-data-table__cell--non-numeric">CreatedAt ▼<br />FirstSeenConnectedAt</th>
+            <th class="mdl-data-table__cell--non-numeric">DeletedAt</th>
             <th class="mdl-data-table__cell--non-numeric">Platform/Env</th>
             <th class="mdl-data-table__cell--non-numeric">Fields</th>
             <th class="mdl-data-table__cell--non-numeric">Trial days remaining</th>
@@ -82,7 +83,7 @@
       <tr>
         <td>{{.ID}}</td>
         <td class="mdl-data-table__cell--non-numeric">
-            <span style="font-size:larger">{{.Name}}</span><br />
+            <span style="font-size:larger">{{if not .DeletedAt.IsZero}}<strike>{{.Name}}</strike>{{else}}{{.Name}}{{end}}</span><br />
             <div style="max-width:300px;text-overflow:ellipsis;overflow:hidden" title="{{.ExternalID}}">{{.ExternalID}}</div>
             <a href="organizations/{{.ExternalID}}/users">Users</a> <a href="/admin/billing/organizations?query={{.ExternalID}}">Billing</a>
         </td>
@@ -96,15 +97,19 @@
             </form>
         {{ end }}</td>
         <td class="mdl-data-table__cell--non-numeric">
+            {{if not .DeletedAt.IsZero}}{{.DeletedAt.Format "2006-01-02T15:04:05Z07:00"}}{{end}}
+        </td>
+        <td class="mdl-data-table__cell--non-numeric">
           {{.Platform}}{{if .Environment}}/{{.Environment}}{{end}}
         </td>
         <td class="mdl-data-table__cell--non-numeric">
           <form action="organizations/{{.ExternalID}}" method="POST">
-            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-              <input type="text" name="FeatureFlags" value="{{range .FeatureFlags}}{{.}} {{end}}" placeholder="Feature Flags"/>
-              <input class="mdl-button mdl-js-button mdl-button--raised" type="submit" value="Save" /><br/>
+              <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
               <label><input type="checkbox" name="RefuseDataAccess" {{if .RefuseDataAccess}}checked {{end}}/> RefuseDataAccess</label>
-            <label><input type="checkbox" name="RefuseDataUpload" {{if .RefuseDataUpload}}checked {{end}}/> RefuseDataUpload</label>
+              <label><input type="checkbox" name="RefuseDataUpload" {{if .RefuseDataUpload}}checked {{end}}/> RefuseDataUpload</label><br/>
+              <label>Refuse reason <input type="text" name="RefuseDataReason" value="{{.RefuseDataReason}}" title="If custom reason is set returns 403 Forbidden; otherwise 402 Payment Required" /></label><br/>
+              <input type="text" name="FeatureFlags" value="{{range .FeatureFlags}}{{.}} {{end}}" placeholder="Feature Flags"/>
+              <input class="mdl-button mdl-js-button mdl-button--raised" type="submit" value="Save" />
           </form>
         </td>
           <td class="mdl-data-table__cell--non-numeric">
@@ -129,11 +134,13 @@
           {{end}}
         </td>
         <td>
+          {{if .DeletedAt.IsZero}}
           <form action="organizations/{{.ExternalID}}/remove" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
             <input class="mdl-button mdl-js-button mdl-button--accent"
             type="submit" value="Delete" onclick="return confirm('Are you sure to delete this organization?')"/>
           </form>
+          {{end}}
         </td>
       </tr>
       {{end}}

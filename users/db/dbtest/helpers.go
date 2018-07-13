@@ -69,6 +69,9 @@ func CreateOrgForTeam(t *testing.T, db db.DB, u *users.User, team *users.Team) *
 	assert.NotEqual(t, nil, team)
 	assert.NotEqual(t, "", team.ID)
 
+	err := db.AddUserToTeam(context.Background(), u.ID, team.ID)
+	require.NoError(t, err)
+
 	externalID, err := db.GenerateOrganizationExternalID(context.Background())
 	require.NoError(t, err)
 
@@ -81,6 +84,20 @@ func CreateOrgForTeam(t *testing.T, db db.DB, u *users.User, team *users.Team) *
 	assert.Equal(t, externalID, org.ExternalID)
 
 	return org
+}
+
+// CreateWebhookForOrg creates a new random webhook for this org
+func CreateWebhookForOrg(t *testing.T, db db.DB, org *users.Organization, integrationType string) *users.Webhook {
+	w, err := db.CreateOrganizationWebhook(context.Background(), org.ExternalID, integrationType)
+	require.NoError(t, err)
+	return w
+}
+
+// GetOrgWebhook gets a webhook by secretID
+func GetOrgWebhook(t *testing.T, db db.DB, secretID string) *users.Webhook {
+	w, err := db.FindOrganizationWebhookBySecretID(context.Background(), secretID)
+	require.NoError(t, err)
+	return w
 }
 
 // GetOrg makes org with a random ExternalID and user for testing

@@ -1,26 +1,13 @@
 package db
 
 import (
-	"flag"
 	"fmt"
-	"net/url"
 
+	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/notebooks"
 	"github.com/weaveworks/service/notebooks/db/memory"
 	"github.com/weaveworks/service/notebooks/db/postgres"
 )
-
-// Config configures the database.
-type Config struct {
-	URI           string
-	MigrationsDir string
-}
-
-// RegisterFlags adds the flags required to configure this to the given FlagSet.
-func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
-	flag.StringVar(&cfg.URI, "database.uri", "postgres://postgres@configs-db.default.svc.cluster.local/notebooks?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
-	flag.StringVar(&cfg.MigrationsDir, "database.migrations", "", "Path where the database migration files can be found")
-}
 
 // DB is the interface for the database.
 type DB interface {
@@ -35,19 +22,19 @@ type DB interface {
 }
 
 // New creates a new database.
-func New(cfg Config) (DB, error) {
-	u, err := url.Parse(cfg.URI)
+func New(cfg dbconfig.Config) (DB, error) {
+	scheme, dataSourceName, migrationsDir, err := cfg.Parameters()
 	if err != nil {
 		return nil, err
 	}
 	var d DB
-	switch u.Scheme {
+	switch scheme {
 	case "memory":
-		d, err = memory.New(cfg.URI, cfg.MigrationsDir)
+		d, err = memory.New(dataSourceName, migrationsDir)
 	case "postgres":
-		d, err = postgres.New(cfg.URI, cfg.MigrationsDir)
+		d, err = postgres.New(dataSourceName, migrationsDir)
 	default:
-		return nil, fmt.Errorf("Unknown database type: %s", u.Scheme)
+		return nil, fmt.Errorf("Unknown database type: %s", scheme)
 	}
 	if err != nil {
 		return nil, err

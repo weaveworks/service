@@ -3,6 +3,7 @@ package job
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -76,9 +77,7 @@ type uploadStats struct {
 	sum       map[string]int64 // Maps amount type to total value
 	instances int              // Total number of instances
 
-	// Highest aggregate ID seen is tracked to record up to which aggregate the
-	// job has uploaded.
-	maxAggregateID int
+	aggregateIDs []int
 }
 
 func (us *uploadStats) record(aggs []db.Aggregate) {
@@ -88,10 +87,11 @@ func (us *uploadStats) record(aggs []db.Aggregate) {
 	if us.sum == nil {
 		us.sum = make(map[string]int64)
 	}
+	if us.aggregateIDs == nil {
+		us.aggregateIDs = []int{}
+	}
 	for _, agg := range aggs {
-		if agg.ID > us.maxAggregateID {
-			us.maxAggregateID = agg.ID
-		}
+		us.aggregateIDs = append(us.aggregateIDs, agg.ID)
 		us.count[agg.AmountType]++
 		us.sum[agg.AmountType] += agg.AmountValue
 	}
@@ -140,12 +140,7 @@ func (j *UsageUpload) Do(now time.Time) error {
 
 		logger = logger.WithField("uploader", j.uploader.ID())
 
-		startAggregateID, err := j.db.GetUsageUploadLargestAggregateID(ctx, j.uploader.ID())
-		if err != nil {
-			logger.Errorf("Failed reading aggregate ID: %v", err)
-			return err
-		}
-		logger.Infof("Looking at usage between aggregate_id>%d and bucket_start<%v", startAggregateID, through)
+		logger.Infof("Looking at usage where bucket_start<%v and upload_id = nil", through)
 
 		stats := uploadStats{}
 		for _, org := range resp.Organizations {
@@ -174,7 +169,7 @@ func (j *UsageUpload) Do(now time.Time) error {
 				continue
 			}
 
-			aggs, err := j.db.GetAggregatesAfter(ctx, org.ID, orgFrom, through, startAggregateID)
+			aggs, err := j.db.GetAggregatesToUpload(ctx, org.ID, orgFrom, through)
 			if err != nil {
 				return errors.Wrap(err, "error querying aggregates database")
 			}
@@ -194,7 +189,7 @@ func (j *UsageUpload) Do(now time.Time) error {
 		logger.Infof("Found %d billable instances", stats.instances)
 
 		if stats.instances > 0 {
-			if err := j.upload(ctx, stats.maxAggregateID); err != nil {
+			if err := j.upload(ctx, stats.aggregateIDs, strconv.FormatInt(through.Unix(), 10)); err != nil {
 				logger.Errorf("Failed uploading: %v", err)
 				stats.set(j.uploader.ID(), "error")
 				return err
@@ -208,17 +203,20 @@ func (j *UsageUpload) Do(now time.Time) error {
 
 // upload sends collected usage data. It also keeps track by recording in the database
 // up to which aggregate ID it has uploaded.
-func (j *UsageUpload) upload(ctx context.Context, maxAggregateID int) error {
-	uploadID, err := j.db.InsertUsageUpload(ctx, j.uploader.ID(), maxAggregateID)
+func (j *UsageUpload) upload(ctx context.Context, aggregateIDs []int, uploadName string) error {
+	logger := logging.With(ctx).WithField("uploader", j.uploader.ID()).WithField("uploadName", uploadName)
+
+	uploadID, err := j.db.InsertUsageUpload(ctx, j.uploader.ID(), aggregateIDs)
 	if err != nil {
 		return err
 	}
-	if err = j.uploader.Upload(ctx); err != nil {
+	if err = j.uploader.Upload(ctx, uploadName); err != nil {
+		logger.Warnf("Error uploading usage: %+v. removing usage record %d", err, uploadID)
 		// Delete upload record because we failed, so our next run will picks these aggregates up again.
 		if e := j.db.DeleteUsageUpload(ctx, j.uploader.ID(), uploadID); e != nil {
 			// We couldn't delete the record of uploading usage and therefore will not retry in another run.
 			// Manual intervention is required.
-			return errors.Wrapf(e, "cannot delete usage upload entry (id=%v, max_id=%v, uploader=%v) after upload failed, you *must* delete this record manually before the next run", uploadID, maxAggregateID, j.uploader.ID())
+			return errors.Wrapf(e, "cannot delete usage upload entry (id=%v, uploader=%v) after upload failed, you *must* delete this record manually before the next run, and update the aggregates table to unlink records from this upload", uploadID, j.uploader.ID())
 		}
 		return err
 	}

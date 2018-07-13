@@ -3,12 +3,12 @@ package db
 import (
 	"context"
 	"encoding/json"
-	"net/url"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/service/common"
+	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/db/memory"
@@ -53,6 +53,7 @@ type DB interface {
 
 	ListUsers(ctx context.Context, f filter.User, page uint64) ([]*users.User, error)
 	ListOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error)
+	ListAllOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error)
 	ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error)
 
 	// ListOrganizationsForUserIDs lists all organizations these users have
@@ -84,7 +85,7 @@ type DB interface {
 	FindOrganizationByID(ctx context.Context, externalID string) (*users.Organization, error)
 	FindOrganizationByGCPExternalAccountID(ctx context.Context, externalAccountID string) (*users.Organization, error)
 	FindOrganizationByInternalID(ctx context.Context, internalID string) (*users.Organization, error)
-	UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) error
+	UpdateOrganization(ctx context.Context, externalID string, update users.OrgWriteView) (*users.Organization, error)
 	OrganizationExists(ctx context.Context, externalID string) (bool, error)
 	ExternalIDUsed(ctx context.Context, externalID string) (bool, error)
 	GetOrganizationName(ctx context.Context, externalID string) (string, error)
@@ -94,12 +95,15 @@ type DB interface {
 	SetFeatureFlags(ctx context.Context, externalID string, featureFlags []string) error
 	SetOrganizationRefuseDataAccess(ctx context.Context, externalID string, value bool) error
 	SetOrganizationRefuseDataUpload(ctx context.Context, externalID string, value bool) error
+	SetOrganizationRefuseDataReason(ctx context.Context, externalID string, reason string) error
 	SetOrganizationFirstSeenConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationFirstSeenFluxConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationFirstSeenNetConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationFirstSeenPromConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationFirstSeenScopeConnectedAt(ctx context.Context, externalID string, value *time.Time) error
 	SetOrganizationZuoraAccount(ctx context.Context, externalID, number string, createdAt *time.Time) error
+	// MoveOrganizationToTeam updates the team of the organization. It does *not* check team permissions.
+	MoveOrganizationToTeam(ctx context.Context, externalID, teamExternalID, teamName, userID string) error
 
 	// CreateOrganizationWithGCP creates an organization with an inactive GCP account attached to it.
 	CreateOrganizationWithGCP(ctx context.Context, ownerID, externalAccountID string, trialExpiresAt time.Time) (*users.Organization, error)
@@ -117,7 +121,15 @@ type DB interface {
 	ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, error)
 	CreateTeam(_ context.Context, name string) (*users.Team, error)
 	AddUserToTeam(_ context.Context, userID, teamID string) error
+	DeleteTeam(ctx context.Context, teamID string) error
 	CreateOrganizationWithTeam(ctx context.Context, ownerID, externalID, name, token, teamExternalID, teamName string, trialExpiresAt time.Time) (*users.Organization, error)
+
+	// Webhooks
+	ListOrganizationWebhooks(ctx context.Context, orgExternalID string) ([]*users.Webhook, error)
+	CreateOrganizationWebhook(ctx context.Context, orgExternalID, integrationType string) (*users.Webhook, error)
+	DeleteOrganizationWebhook(ctx context.Context, orgExternalID, secretID string) error
+	FindOrganizationWebhookBySecretID(ctx context.Context, secretID string) (*users.Webhook, error)
+	SetOrganizationWebhookFirstSeenAt(ctx context.Context, secretID string) (*time.Time, error)
 
 	// GetSummary exports a summary of the DB.
 	// WARNING: this is a relatively expensive query, and basically exports the entire DB.
@@ -127,19 +139,19 @@ type DB interface {
 }
 
 // MustNew creates a new database from the URI, or panics.
-func MustNew(databaseURI, migrationsDir string) DB {
-	u, err := url.Parse(databaseURI)
+func MustNew(cfg dbconfig.Config) DB {
+	scheme, dataSourceName, migrationsDir, err := cfg.Parameters()
 	if err != nil {
 		log.Fatal(err)
 	}
 	var d DB
-	switch u.Scheme {
+	switch scheme {
 	case "memory":
-		d, err = memory.New(databaseURI, migrationsDir, PasswordHashingCost)
+		d, err = memory.New(dataSourceName, migrationsDir, PasswordHashingCost)
 	case "postgres":
-		d, err = postgres.New(databaseURI, migrationsDir, PasswordHashingCost)
+		d, err = postgres.New(dataSourceName, migrationsDir, PasswordHashingCost)
 	default:
-		log.Fatalf("Unknown database type: %s", u.Scheme)
+		log.Fatalf("Unknown database type: %s", scheme)
 	}
 	if err != nil {
 		log.Fatal(err)

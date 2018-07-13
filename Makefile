@@ -7,6 +7,7 @@
 # All this must go at top of file I'm afraid.
 IMAGE_PREFIX := quay.io/weaveworks
 IMAGE_TAG := $(shell ./tools/image-tag)
+GIT_REVISION := $(shell git rev-parse HEAD)
 UPTODATE := .uptodate
 
 # Building Docker images is now automated. The convention is every directory
@@ -14,7 +15,7 @@ UPTODATE := .uptodate
 # Dependencies (i.e. things that go in the image) still need to be explicitly
 # declared.
 %/$(UPTODATE): %/Dockerfile
-	$(SUDO) docker build -t $(IMAGE_PREFIX)/$(shell basename $(@D)) $(@D)/
+	$(SUDO) docker build --build-arg=revision=$(GIT_REVISION) -t $(IMAGE_PREFIX)/$(shell basename $(@D)) $(@D)/
 	$(SUDO) docker tag $(IMAGE_PREFIX)/$(shell basename $(@D)) $(IMAGE_PREFIX)/$(shell basename $(@D)):$(IMAGE_TAG)
 	touch $@
 
@@ -94,7 +95,7 @@ EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_K
 gofiles = $(shell find $1 -name '*.go')
 basedir = $(firstword $(subst /, ,$1))
 COMMON := $(call gofiles,common)
-$(AUTHFE_EXE): $(call gofiles,authfe) $(calli gofiles,users/client) $(COMMON) users/users.pb.go
+$(AUTHFE_EXE): $(call gofiles,authfe) $(call gofiles,users/client) $(COMMON) users/users.pb.go
 $(USERS_EXE): $(call gofiles,users) $(COMMON) users/users.pb.go
 $(METRICS_EXE): $(call gofiles,metrics) $(COMMON)
 $(NOTEBOOKS_EXE): $(call gofiles,notebooks) $(COMMON)
@@ -124,6 +125,7 @@ gcp-launcher-webhook/$(UPTODATE): $(GCP_LAUNCHER_WEBHOOK_EXE)
 kubectl-service/$(UPTODATE): $(KUBECTL_SERVICE_EXE)
 gcp-service/$(UPTODATE): $(GCP_SERVICE_EXE)
 dashboard-api/$(UPTODATE): $(DASHBOARD_EXE)
+notifications/$(UPTODATE): $(NOTIFICATION_EXES)
 
 # Expands a list of binary paths to have their respective images depend on the binary
 # Example:
@@ -261,7 +263,7 @@ notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
 		-v $(shell pwd)/notebooks/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/notebooks \
 		--link "$$DB_CONTAINER":configs-db.weave.local \
-		golang:1.8.3-stretch \
+		golang:1.9.2-stretch \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
@@ -274,7 +276,7 @@ users-integration-test: $(USERS_UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
 		-v $(shell pwd)/users/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/users \
 		--link "$$DB_CONTAINER":users-db.weave.local \
-		golang:1.8.3-stretch \
+		golang:1.9.2-stretch \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
@@ -286,7 +288,7 @@ pubsub-integration-test:
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		--net=host -p 127.0.0.1:1337:1337 \
 		--workdir /go/src/github.com/weaveworks/service/common/gcp/pubsub \
-		golang:1.8.3-stretch \
+		golang:1.9.2-stretch \
 		/bin/bash -c "RUN_MANUAL_TEST=1 go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$PUBSUB_EMU_CONTAINER"; \
@@ -298,7 +300,7 @@ kubectl-service-integration-test: kubectl-service/$(UPTODATE) kubectl-service/gr
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		--workdir /go/src/github.com/weaveworks/service/kubectl-service \
 		--link "$$SVC_CONTAINER":kubectl-service.weave.local \
-		golang:1.8.3-stretch \
+		golang:1.9.2-stretch \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \
@@ -310,15 +312,15 @@ gcp-service-integration-test: gcp-service/$(UPTODATE) gcp-service/grpc/gcp-servi
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		--workdir /go/src/github.com/weaveworks/service/gcp-service \
 		--link "$$SVC_CONTAINER":gcp-service.weave.local \
-		golang:1.8.3-stretch \
+		golang:1.9.2-stretch \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \
 	exit $$status
 
-notification-integration-test:
-	docker build -f notification-eventmanager/integrationtest/Dockerfile.integration -t notification-integrationtest .
-	cd notification-eventmanager/integrationtest && $(SUDO) docker-compose up --abort-on-container-exit; EXIT_CODE=$$?; $(SUDO) docker-compose down; exit $$EXIT_CODE
+notification-integration-test: notification-eventmanager/$(UPTODATE) notification-sender/$(UPTODATE)
+	docker build -f notification-eventmanager/e2e/Dockerfile.integration -t notification-integrationtest .
+	cd notification-eventmanager/e2e && $(SUDO) docker-compose up --abort-on-container-exit; EXIT_CODE=$$?; $(SUDO) docker-compose down; exit $$EXIT_CODE
 
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true

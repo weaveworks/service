@@ -16,6 +16,7 @@ import (
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common"
 	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
+	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/common/tracing"
@@ -43,16 +44,15 @@ func main() {
 	defer traceCloser.Close()
 
 	var (
-		logLevel           = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
-		port               = flag.Int("port", 80, "port to listen on")
-		grpcPort           = flag.Int("grpc-port", 4772, "grpc port to listen on")
-		domain             = flag.String("domain", "https://cloud.weave.works", "domain where scope service is runnning.")
-		databaseURI        = flag.String("database-uri", "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)")
-		databaseMigrations = flag.String("database-migrations", "", "Path where the database migration files can be found")
-		emailURI           = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Email-uri must be provided. For local development, you can set this to: log://, which will log all emails.")
-		sessionSecret      = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
-		directLogin        = flag.Bool("direct-login", false, "Send login token in the signup response (DEV only)")
-		secureCookie       = flag.Bool("secure-cookie", false, "Set secure flag on cookies (so they only get used on HTTPS connections.)")
+		logLevel      = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
+		port          = flag.Int("port", 80, "port to listen on")
+		grpcPort      = flag.Int("grpc-port", 4772, "grpc port to listen on")
+		domain        = flag.String("domain", "https://cloud.weave.works", "domain where scope service is runnning.")
+		emailURI      = flag.String("email-uri", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port.  Email-uri must be provided. For local development, you can set this to: log://, which will log all emails.")
+		sessionSecret = flag.String("session-secret", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "Secret used validate sessions")
+		directLogin   = flag.Bool("direct-login", false, "Send login token in the signup response (DEV only)")
+		secureCookie  = flag.Bool("secure-cookie", false, "Set secure flag on cookies (so they only get used on HTTPS connections.)")
+		cookieDomain  = flag.String("cookie-domain", "", "The domain to which the authentication cookie will be scoped.")
 
 		fluxStatusAPI  = flag.String("flux-status-api", "", "Hostname and port for flux V6 service. e.g. http://fluxsvc.flux.svc.cluster.local:80/api/flux/v6/status")
 		scopeProbesAPI = flag.String("scope-probes-api", "", "Hostname and port for scope query. e.g. http://query.scope.svc.cluster.local:80/api/probes")
@@ -75,6 +75,7 @@ func main() {
 		localTestUserInstanceID           = flag.String("local-test-user.instance-id", "local-test", "Instance ID for test user (for local deployments only.)")
 		localTestUserInstanceName         = flag.String("local-test-user.instance-name", "Local Test Instance", "Instance name for test user (for local deployments only.)")
 		localTestUserInstanceToken        = flag.String("local-test-user.instance-token", "local-test-token", "Instance token for test user (for local deployments only.)")
+		localTestUserTeamName             = flag.String("local-test-user.team-name", "Local Team", "Team name for test user (for local deployments only.)")
 		localTestUserInstanceFeatureFlags = flag.String("local-test-user.instance-feature-flags", "", "Comma-separated feature flags for the test user (for local deployments only.)")
 
 		forceFeatureFlags common.ArrayFlags
@@ -82,10 +83,13 @@ func main() {
 
 		billingFeatureFlagProbability = flag.Uint("billing-feature-flag-probability", 0, "Percentage of *new* organizations for which we want to enable the 'billing' feature flag. 0 means always disabled. 100 means always enabled. Any value X in between will enable billing randomly X% of the time.")
 
+		dbCfg      dbconfig.Config
 		partnerCfg partner.Config
 		billingCfg billing_grpc.Config
 
 		cleanupURLs common.ArrayFlags
+
+		notificationReceiversURL = flag.String("notification-receivers-url", "http://eventmanager.notification.svc.cluster.local/api/notification/config/receivers", "Notification service URL for creating receivers")
 	)
 
 	flag.Var(&forceFeatureFlags, "force-feature-flags", "Force this feature flag to be on for all organisations.")
@@ -97,6 +101,7 @@ func main() {
 	logins.Register(login.GithubProviderID, login.NewGithubProvider())
 	logins.Register(login.GoogleProviderID, login.NewGoogleProvider())
 	logins.Flags(flag.CommandLine)
+	dbCfg.RegisterFlags(flag.CommandLine, "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "/migrations", "Migrations directory.")
 	partnerCfg.RegisterFlags(flag.CommandLine)
 	billingCfg.RegisterFlags(flag.CommandLine)
 
@@ -156,9 +161,9 @@ func main() {
 
 	templates := templates.MustNewEngine("templates")
 	emailer := emailer.MustNew(*emailURI, *emailFromAddress, templates, *domain)
-	db := db.MustNew(*databaseURI, *databaseMigrations)
+	db := db.MustNew(dbCfg)
 	defer db.Close(context.Background())
-	sessions := sessions.MustNewStore(*sessionSecret, *secureCookie)
+	sessions := sessions.MustNewStore(*sessionSecret, *secureCookie, *cookieDomain)
 
 	orgCleaner := cleaner.New(cleanupURLs, db)
 	log.Debug("Debug logging enabled")
@@ -188,11 +193,12 @@ func main() {
 		billingClient,
 		billingEnabler,
 		orgCleaner,
+		*notificationReceiversURL,
 	)
 
 	if *localTestUserCreate {
 		makeLocalTestUser(app, *localTestUserEmail, *localTestUserInstanceID,
-			*localTestUserInstanceName, *localTestUserInstanceToken,
+			*localTestUserInstanceName, *localTestUserInstanceToken, *localTestUserTeamName,
 			strings.Split(*localTestUserInstanceFeatureFlags, ","))
 	}
 
@@ -219,7 +225,7 @@ func main() {
 	cancel()
 }
 
-func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string, featureFlags []string) {
+func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token, teamName string, featureFlags []string) {
 	ctx := context.Background()
 	_, user, err := a.Signup(ctx, api.SignupRequest{
 		Email:       email,
@@ -245,6 +251,7 @@ func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token string
 		ProbeToken:     token,
 		FeatureFlags:   featureFlags,
 		TrialExpiresAt: user.TrialExpiresAt(),
+		TeamName:       teamName,
 	}, time.Now()); err != nil {
 		log.Errorf("Error creating local test instance: %v", err)
 		return

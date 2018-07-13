@@ -23,6 +23,7 @@ import (
 	"github.com/weaveworks/common/middleware"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common"
+	"github.com/weaveworks/service/common/constants/webhooks"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
 	users_client "github.com/weaveworks/service/users/client"
@@ -112,6 +113,11 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	authUserMiddleware := users_client.AuthUserMiddleware{
 		UsersClient:  authenticator,
 		UserIDHeader: userIDHeader,
+	}
+
+	webhooksMiddleware := users_client.WebhooksMiddleware{
+		UsersClient:                   authenticator,
+		WebhooksIntegrationTypeHeader: webhooks.WebhooksIntegrationTypeHeader,
 	}
 
 	fluxGHTokenMiddleware := users_client.GHIntegrationMiddleware{
@@ -296,6 +302,12 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 			nil,
 		},
 
+		// Webhooks
+		Path{
+			"/webhooks/{secretID}/",
+			webhooksMiddleware.Wrap(c.fluxHost),
+		},
+
 		// Token-based auth
 		dataUploadRoutes,
 		dataAccessRoutes,
@@ -325,6 +337,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/compare-revisions", trimPrefix("/admin/compare-revisions", c.compareRevisionsHost)},
 				{"/cortex/alertmanager/status", trimPrefix("/admin/cortex/alertmanager", c.promAlertmanagerHost)},
 				{"/cortex/ring", trimPrefix("/admin/cortex", c.promDistributorHost)},
+				{"/cortex/all_user_stats", trimPrefix("/admin/cortex", c.promDistributorHost)},
 				{"/loki", trimPrefix("/admin/loki", c.lokiHost)},
 				{"/jaeger", c.jaegerHost},
 				{"/kibana", trimPrefix("/admin/kibana", c.kibanaHost)},
@@ -402,6 +415,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/github-receiver",
 		`/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`, // Regex copy-pasted from users/organization.go
 		"/api/users/signup_webhook",                     // Validated by explicit token in the users service
+		"/webhooks",                                     // POSTed to by external services
 
 		"/admin/grafana",     // grafana does not know to inject CSRF header into requests. Without whitelisting,
 		"/admin/dev-grafana", // this causes the CSRF token & cookie to be re-issued, breaking UI requests.
@@ -431,7 +445,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		AuthHeaderStrippingMiddleware{},
 		originChecker,
 		stripSetCookieHeader{prefixes: stripSetCookieHeaderPrefixes},
-		csrfTokenVerifier{exemptPrefixes: csrfExemptPrefixes, secure: c.secureCookie},
+		csrfTokenVerifier{exemptPrefixes: csrfExemptPrefixes, secure: c.secureCookie, domain: c.cookieDomain},
 		middleware.Func(func(handler http.Handler) http.Handler {
 			return nethttp.Middleware(opentracing.GlobalTracer(), handler, operationNameFunc)
 		}),
@@ -492,6 +506,7 @@ func (s stripSetCookieHeader) Wrap(next http.Handler) http.Handler {
 type csrfTokenVerifier struct {
 	exemptPrefixes []string
 	secure         bool
+	domain         string
 }
 
 func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
@@ -509,6 +524,7 @@ func (c csrfTokenVerifier) Wrap(next http.Handler) http.Handler {
 		HttpOnly: true,
 		Path:     "/",
 		Secure:   c.secure,
+		Domain:   c.domain,
 	})
 	// Make errors a bit more descriptive than a plain 400
 	h.SetFailureHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

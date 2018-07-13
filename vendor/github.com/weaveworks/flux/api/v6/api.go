@@ -5,7 +5,6 @@ import (
 
 	"github.com/weaveworks/flux"
 	"github.com/weaveworks/flux/git"
-	"github.com/weaveworks/flux/image"
 	"github.com/weaveworks/flux/job"
 	"github.com/weaveworks/flux/ssh"
 	"github.com/weaveworks/flux/update"
@@ -35,17 +34,12 @@ type ControllerStatus struct {
 	Containers []Container
 	ReadOnly   ReadOnlyReason
 	Status     string
+	Antecedent flux.ResourceID
+	Labels     map[string]string
 	Automated  bool
 	Locked     bool
 	Ignore     bool
 	Policies   map[string]string
-}
-
-type Container struct {
-	Name           string
-	Current        image.Info
-	Available      []image.Info
-	AvailableError string `json:",omitempty"`
 }
 
 // --- config types
@@ -72,7 +66,7 @@ type NotDeprecated interface {
 
 	// v6
 	ListServices(ctx context.Context, namespace string) ([]ControllerStatus, error)
-	ListImages(context.Context, update.ResourceSpec) ([]ImageStatus, error)
+	ListImages(ctx context.Context, spec update.ResourceSpec) ([]ImageStatus, error)
 	UpdateManifests(context.Context, update.Spec) (job.ID, error)
 	SyncStatus(ctx context.Context, ref string) ([]string, error)
 	JobStatus(context.Context, job.ID) (job.Status, error)

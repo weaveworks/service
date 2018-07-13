@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/common/users"
 	"github.com/weaveworks/service/notification-eventmanager/db"
 	"github.com/weaveworks/service/notification-eventmanager/eventmanager"
@@ -21,21 +22,23 @@ func main() {
 			MetricsNamespace:              "notification",
 			ServerGracefulShutdownTimeout: 16 * time.Second,
 		}
-		dbConfig db.Config
+		dbConfig dbconfig.Config
 		logLevel string
 		sqsURL   string
 		// Connect to users service to get information about an event's instance
 		usersServiceURL string
 		eventTypesPath  string
+		wcURL           string
 	)
 
 	serverConfig.RegisterFlags(flag.CommandLine)
-	dbConfig.RegisterFlags(flag.CommandLine)
+	dbConfig.RegisterFlags(flag.CommandLine, "", "URI where the database can be found", "", "Path where the database migration files can be found")
 
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
 	flag.StringVar(&sqsURL, "sqsURL", "sqs://123user:123password@localhost:9324/events", "URL to connect to SQS")
 	flag.StringVar(&usersServiceURL, "usersServiceURL", "users.default:4772", "URL to connect to users service")
 	flag.StringVar(&eventTypesPath, "eventtypes", "", "Path to a JSON file defining available event types")
+	flag.StringVar(&wcURL, "wc.url", "https://cloud.weave.works/", "Weave Cloud URL")
 
 	flag.Parse()
 
@@ -63,7 +66,7 @@ func main() {
 		log.Fatalf("Error initializing database: %v", err)
 	}
 
-	em := eventmanager.New(uclient, db, sqsCli, sqsQueue)
+	em := eventmanager.New(uclient, db, sqsCli, sqsQueue, wcURL)
 
 	if eventTypesPath != "" {
 		eventTypes, err := types.EventTypesFromFile(eventTypesPath)

@@ -6,6 +6,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/weaveworks/flux/api/v10"
+
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
 
@@ -157,12 +159,7 @@ func (s *Server) ListServices(ctx context.Context, namespace string) (res []v6.C
 	if err != nil {
 		return nil, errors.Wrapf(err, "getting instance")
 	}
-
-	services, err := inst.Platform.ListServices(ctx, namespace)
-	if err != nil {
-		return nil, errors.Wrap(err, "getting services from platform")
-	}
-	return services, nil
+	return inst.Platform.ListServices(ctx, namespace)
 }
 
 // ListImages calls ListImages on the given instance.
@@ -177,6 +174,20 @@ func (s *Server) ListImages(ctx context.Context, spec update.ResourceSpec) (res 
 		return nil, errors.Wrapf(err, "getting instance "+string(instID))
 	}
 	return inst.Platform.ListImages(ctx, spec)
+}
+
+// ListImagesWithOptions calls ListImagesWithOptions on the given instance.
+func (s *Server) ListImagesWithOptions(ctx context.Context, opts v10.ListImagesOptions) (res []v6.ImageStatus, err error) {
+	instID, err := getInstanceID(ctx)
+	if err != nil {
+		return res, err
+	}
+
+	inst, err := s.instancer.Get(instID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "getting instance "+string(instID))
+	}
+	return inst.Platform.ListImagesWithOptions(ctx, opts)
 }
 
 // UpdateImages updates images on the given instance.

@@ -8,14 +8,14 @@ var openfaasDashboard = Dashboard{
 		Name: "Traffic",
 		Rows: []Row{{
 			Panels: []Panel{{
-				Title: "Function Requests per Second",
+				Title: "Function requests per second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(rate(gateway_function_invocation_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}[{{range}}])) by (function_name)`,
 			}},
 		}},
 	}, {
-		Name: "RED Metrics",
+		Name: "RED metrics",
 		Rows: []Row{{
 			Panels: []Panel{{
 				Title:    "Execution duration",
@@ -26,19 +26,19 @@ var openfaasDashboard = Dashboard{
 			}},
 		}, {
 			Panels: []Panel{{
-				Title: "Successful Requests per Second",
+				Title: "Successful requests per second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(rate(gateway_function_invocation_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}',code='200'}[{{range}}])) by (function_name)`,
 			}, {
-				Title: "Failed Requests per Second",
+				Title: "Failed requests per second",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(rate(gateway_function_invocation_total{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}',code!='200'}[{{range}}])) by (function_name)`,
 			}},
 		}, {
 			Panels: []Panel{{
-				Title: "Replicas per Function",
+				Title: "Replicas per function",
 				Type:  PanelLine,
 				Unit:  Unit{Format: UnitNumeric},
 				Query: `sum(gateway_service_count{kubernetes_namespace='{{namespace}}',_weave_service='{{workload}}'}) by (function_name)`,

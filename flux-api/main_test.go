@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/weaveworks/flux/api/v10"
+
 	"github.com/go-kit/kit/log"
 	"github.com/gorilla/mux"
 
@@ -193,20 +195,6 @@ func TestFluxsvc_ListServices(t *testing.T) {
 	if svcs[0].ID.String() != helloWorldSvc && svcs[1].ID.String() != helloWorldSvc {
 		t.Errorf("Expected one of the services to be %q", helloWorldSvc)
 	}
-
-	// Test that `namespace` argument is mandatory
-	u, err := transport.MakeURL(ts.URL, router, "ListServices")
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp, err := http.Get(u.String())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusNotFound {
-		t.Fatalf("Request should result in 404, but got: %q", resp.Status)
-	}
 }
 
 // Note that this test will reach out to docker hub to check the images
@@ -240,19 +228,38 @@ func TestFluxsvc_ListImages(t *testing.T) {
 	if len(imgs[0].Containers) == 0 {
 		t.Error("Expected >1 containers")
 	}
+}
 
-	// Test that `service` argument is mandatory
-	u, err := transport.MakeURL(ts.URL, router, "ListImages")
+// Note that this test will reach out to docker hub to check the images
+// associated with alpine
+func TestFluxsvc_ListImagesWithOptions(t *testing.T) {
+	setup(t)
+	defer teardown()
+
+	ctx := context.Background()
+
+	// Test ListImagesWithOptions
+	imgs, err := apiClient.ListImagesWithOptions(ctx, v10.ListImagesOptions{Spec: update.ResourceSpecAll})
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp, err := http.Get(u.String())
+	if len(imgs) != 2 {
+		t.Error("Expected there two sets of images")
+	}
+	if len(imgs[0].Containers) == 0 && len(imgs[1].Containers) == 0 {
+		t.Error("Should have been lots of containers")
+	}
+
+	// Test ListImagesWithOptions for specific service
+	imgs, err = apiClient.ListImagesWithOptions(ctx, v10.ListImagesOptions{Spec: helloWorldSvc})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusNotFound {
-		t.Fatalf("Request should result in 404, but got: %s", resp.Status)
+	if len(imgs) != 2 {
+		t.Error("Expected two sets of images")
+	}
+	if len(imgs[0].Containers) == 0 {
+		t.Error("Expected >1 containers")
 	}
 }
 

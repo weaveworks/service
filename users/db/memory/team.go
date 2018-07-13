@@ -42,8 +42,8 @@ func (d *DB) ListTeamUsers(ctx context.Context, teamID string) ([]*users.User, e
 func (d *DB) listTeamUsers(_ context.Context, teamID string) ([]*users.User, error) {
 	var users []*users.User
 	for m, teamIDs := range d.teamMemberships {
-		for _, teamID := range teamIDs {
-			if teamID == teamID {
+		for _, tID := range teamIDs {
+			if tID == teamID {
 				u, err := d.findUserByID(m)
 				if err != nil {
 					return nil, err
@@ -58,7 +58,7 @@ func (d *DB) listTeamUsers(_ context.Context, teamID string) ([]*users.User, err
 }
 
 func (d *DB) generateTeamExternalID(_ context.Context) (string, error) {
-	// no lock needed: called by createTeam which acquired the lock
+	// no lock needed: caller must acquire lock.
 	var externalID string
 	for used := true; used; {
 		externalID = externalids.Generate()
@@ -76,7 +76,7 @@ func (d *DB) generateTeamExternalID(_ context.Context) (string, error) {
 
 // CreateTeam creates a team
 func (d *DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
-	// no lock needed: called by CreateOrganization which acquired the lock
+	// no lock needed: caller must acquire lock.
 	if name == "" {
 		return nil, errors.New("Team name cannot be blank")
 	}
@@ -100,7 +100,7 @@ func (d *DB) CreateTeam(ctx context.Context, name string) (*users.Team, error) {
 
 // AddUserToTeam links a user to the team
 func (d *DB) AddUserToTeam(_ context.Context, userID, teamID string) error {
-	// no lock needed: called by CreateOrganization which acquired the lock
+	// no lock needed: caller must acquire lock.
 	teamIDs, _ := d.teamMemberships[userID]
 	for _, id := range teamIDs {
 		if id == teamID {
@@ -112,9 +112,32 @@ func (d *DB) AddUserToTeam(_ context.Context, userID, teamID string) error {
 	return nil
 }
 
-// ensureUserIsPartOfTeamByExternalID ensures the users is part of an existing team
-func (d DB) ensureUserIsPartOfTeamByExternalID(ctx context.Context, userID, teamExternalID string) (*users.Team, error) {
-	// no lock needed: called by CreateOrganization which acquired the lock
+// DeleteTeam marks the given team as deleted.
+func (d DB) DeleteTeam(ctx context.Context, teamID string) error {
+	// Verify team has no orgs
+	for _, org := range d.organizations {
+		if org.TeamID == teamID {
+			return users.ErrForbidden
+		}
+	}
+
+	// Delete memberships
+	for uid, tids := range d.teamMemberships {
+		for i, tid := range tids {
+			if tid == teamID {
+				d.teamMemberships[uid] = append(tids[:i], tids[i+1:]...)
+			}
+		}
+	}
+
+	// Delete team
+	delete(d.teams, teamID)
+
+	return nil
+}
+
+// getTeamUserIsPartOf returns the team the user is part of.
+func (d DB) getTeamUserIsPartOf(ctx context.Context, userID, teamExternalID string) (*users.Team, error) {
 	if teamExternalID == "" {
 		return nil, errors.New("teamExternalID must be provided")
 	}
@@ -138,16 +161,12 @@ func (d DB) ensureUserIsPartOfTeamByExternalID(ctx context.Context, userID, team
 		}
 	}
 
-	err := d.AddUserToTeam(ctx, userID, team.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return team, nil
+	return nil, users.ErrNotFound
 }
 
 // ensureUserIsPartOfTeamByName ensures the users is part of team by name, the team is created if it does not exist
 func (d DB) ensureUserIsPartOfTeamByName(ctx context.Context, userID, teamName string) (*users.Team, error) {
+	// no lock needed: caller must acquire lock.
 	if teamName == "" {
 		return nil, errors.New("teamName must be provided")
 	}

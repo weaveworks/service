@@ -4,7 +4,7 @@ var goKitDashboard = Dashboard{
 	ID:   "go-kit",
 	Name: "Go-kit HTTP",
 	Sections: []Section{{
-		Name: "HTTP Request Rate and Latency",
+		Name: "HTTP request rate and latency",
 		Rows: []Row{{
 			Panels: []Panel{{
 				Title: "Requests per second",

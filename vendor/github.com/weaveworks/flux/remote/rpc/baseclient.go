@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/weaveworks/flux/api"
+	"github.com/weaveworks/flux/api/v10"
 	"github.com/weaveworks/flux/api/v6"
 	"github.com/weaveworks/flux/api/v9"
 	"github.com/weaveworks/flux/job"
@@ -35,6 +36,10 @@ func (bc baseClient) ListServices(context.Context, string) ([]v6.ControllerStatu
 
 func (bc baseClient) ListImages(context.Context, update.ResourceSpec) ([]v6.ImageStatus, error) {
 	return nil, remote.UpgradeNeededError(errors.New("ListImages method not implemented"))
+}
+
+func (bc baseClient) ListImagesWithOptions(context.Context, v10.ListImagesOptions) ([]v6.ImageStatus, error) {
+	return nil, remote.UpgradeNeededError(errors.New("ListImagesWithOptions method not implemented"))
 }
 
 func (bc baseClient) UpdateManifests(context.Context, update.Spec) (job.ID, error) {

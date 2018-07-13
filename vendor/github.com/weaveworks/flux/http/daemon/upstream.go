@@ -52,7 +52,7 @@ func NewUpstream(client *http.Client, ua string, t fluxclient.Token, router *mux
 		return nil, errors.Wrap(err, "inferring WS/HTTP endpoints")
 	}
 
-	u, err := transport.MakeURL(wsEndpoint, router, "RegisterDaemonV9")
+	u, err := transport.MakeURL(wsEndpoint, router, transport.RegisterDaemonV10)
 	if err != nil {
 		return nil, errors.Wrap(err, "constructing URL")
 	}
@@ -163,7 +163,7 @@ func (a *Upstream) connect() error {
 	// _server_.
 	rpcserver, err := rpc.NewServer(a.server)
 	if err != nil {
-		return errors.Wrap(err, "initializing rpc client")
+		return errors.Wrap(err, "initializing rpc server")
 	}
 	rpcserver.ServeConn(ws)
 	a.logger.Log("disconnected", true)
@@ -175,7 +175,6 @@ func (a *Upstream) setConnectionDuration(duration float64) {
 }
 
 func (a *Upstream) LogEvent(event event.Event) error {
-	// Instance ID is set via token here, so we can leave it blank.
 	return a.apiClient.LogEvent(context.TODO(), event)
 }
 

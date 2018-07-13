@@ -2,6 +2,7 @@ package zuora
 
 import (
 	"bytes"
+	"context"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -175,4 +176,25 @@ func ReportFromAggregates(config Config, aggs []db.Aggregate, paymentProviderID 
 	}
 
 	return r, nil
+}
+
+// FilterAggregatesForSubscription removes aggregates are not billable for this subscription
+func FilterAggregatesForSubscription(ctx context.Context, z Client, aggs []db.Aggregate, account *Account) ([]db.Aggregate, error) {
+	productIDs := []string{}
+	for _, ratePlan := range account.Subscription.RatePlans {
+		productIDs = append(productIDs, ratePlan.ProductID)
+	}
+
+	units, err := z.GetProductsUnitSet(ctx, productIDs)
+	if err != nil {
+		return nil, err
+	}
+	results := []db.Aggregate{}
+	for _, a := range aggs {
+		_, supported := units[a.AmountType]
+		if supported {
+			results = append(results, a)
+		}
+	}
+	return results, nil
 }

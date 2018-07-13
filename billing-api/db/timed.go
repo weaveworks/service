@@ -29,9 +29,9 @@ func (t timed) timeRequest(ctx context.Context, method string, f func(context.Co
 	return instrument.CollectedRequest(ctx, method, durationCollector, nil, f)
 }
 
-func (t timed) UpsertAggregates(ctx context.Context, aggregates []Aggregate) error {
-	return t.timeRequest(ctx, "UpsertAggregates", func(ctx context.Context) error {
-		return t.d.UpsertAggregates(ctx, aggregates)
+func (t timed) InsertAggregates(ctx context.Context, aggregates []Aggregate) error {
+	return t.timeRequest(ctx, "InsertAggregates", func(ctx context.Context) error {
+		return t.d.InsertAggregates(ctx, aggregates)
 	})
 }
 
@@ -43,25 +43,41 @@ func (t timed) GetAggregates(ctx context.Context, instanceID string, from, throu
 	return
 }
 
-func (t timed) GetAggregatesAfter(ctx context.Context, instanceID string, from, through time.Time, fromID int) (as []Aggregate, err error) {
-	t.timeRequest(ctx, "GetAggregatesAfter", func(ctx context.Context) error {
-		as, err = t.d.GetAggregatesAfter(ctx, instanceID, from, through, fromID)
+func (t timed) GetAggregatesToUpload(ctx context.Context, instanceID string, from, through time.Time) (as []Aggregate, err error) {
+	t.timeRequest(ctx, "GetAggregatesToUpload", func(ctx context.Context) error {
+		as, err = t.d.GetAggregatesToUpload(ctx, instanceID, from, through)
 		return err
 	})
 	return
 }
 
-func (t timed) GetUsageUploadLargestAggregateID(ctx context.Context, uploader string) (largestAggregateID int, err error) {
-	t.timeRequest(ctx, "GetUsageUploadLargestAggregateID", func(ctx context.Context) error {
-		largestAggregateID, err = t.d.GetUsageUploadLargestAggregateID(ctx, uploader)
+func (t timed) GetAggregatesUploaded(ctx context.Context, uploadID int64) (as []Aggregate, err error) {
+	t.timeRequest(ctx, "GetAggregatesUploaded", func(ctx context.Context) error {
+		as, err = t.d.GetAggregatesUploaded(ctx, uploadID)
 		return err
 	})
 	return
 }
 
-func (t timed) InsertUsageUpload(ctx context.Context, uploader string, maxAggregateID int) (uploadID int64, err error) {
+func (t timed) GetAggregatesFrom(ctx context.Context, instanceIDs []string, from time.Time) (as []Aggregate, err error) {
+	t.timeRequest(ctx, "GetAggregatesFrom", func(ctx context.Context) error {
+		as, err = t.d.GetAggregatesFrom(ctx, instanceIDs, from)
+		return err
+	})
+	return
+}
+
+func (t timed) GetLatestUsageUpload(ctx context.Context, uploader string) (upload *UsageUpload, err error) {
+	t.timeRequest(ctx, "GetLatestUsageUpload", func(ctx context.Context) error {
+		upload, err = t.d.GetLatestUsageUpload(ctx, uploader)
+		return err
+	})
+	return
+}
+
+func (t timed) InsertUsageUpload(ctx context.Context, uploader string, aggregateIDs []int) (uploadID int64, err error) {
 	t.timeRequest(ctx, "InsertUsageUpload", func(ctx context.Context) error {
-		uploadID, err = t.d.InsertUsageUpload(ctx, uploader, maxAggregateID)
+		uploadID, err = t.d.InsertUsageUpload(ctx, uploader, aggregateIDs)
 		return err
 	})
 	return

@@ -1,7 +1,13 @@
 FROM alpine:3.6
-MAINTAINER Weaveworks Inc <help@weave.works>
 WORKDIR /
 COPY authfe /
 COPY ca-certificates.crt /etc/ssl/certs/
 EXPOSE 80
 ENTRYPOINT ["/authfe"]
+
+ARG revision
+LABEL maintainer="Weaveworks <help@weave.works>" \
+      org.opencontainers.image.title="authfe" \
+      org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/authfe" \
+      org.opencontainers.image.revision="${revision}" \
+      org.opencontainers.image.vendor="Weaveworks"

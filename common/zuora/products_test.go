@@ -10,7 +10,7 @@ import (
 	"github.com/weaveworks/service/common/zuora"
 )
 
-var conf = zuora.Config{SubscriptionPlanID: "plan-id"}
+var conf = zuora.Config{ProductRatePlanID: "plan-id"}
 
 func TestGetCurrentRates(t *testing.T) {
 	f, err := ioutil.ReadFile("testdata/zuora-catalog_products.json")

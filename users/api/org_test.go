@@ -184,6 +184,117 @@ func Test_UpdateOrganization(t *testing.T) {
 	}
 }
 
+func TestAPI_updateOrg_moveTeam(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user, org := getOrg(t)
+	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), gomock.Any()).
+		AnyTimes().
+		Return(&grpc.BillingAccount{}, nil)
+
+	{ // move from no-team to team
+		team := getTeam(t)
+		err := database.AddUserToTeam(context.TODO(), user.ID, team.ID)
+		assert.NoError(t, err)
+
+		body := map[string]interface{}{"teamId": team.ExternalID}
+		w := httptest.NewRecorder()
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody(body).Reader(t))
+
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusNoContent, w.Code)
+
+		org, err := database.FindOrganizationByID(context.TODO(), org.ExternalID)
+		if assert.NoError(t, err) {
+			assert.Equal(t, team.ExternalID, org.TeamExternalID)
+		}
+	}
+	{ // move from team to team
+		team := getTeam(t)
+		err := database.AddUserToTeam(context.TODO(), user.ID, team.ID)
+		assert.NoError(t, err)
+
+		body := map[string]interface{}{"teamId": team.ExternalID}
+		w := httptest.NewRecorder()
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody(body).Reader(t))
+
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusNoContent, w.Code)
+
+		org, err := database.FindOrganizationByID(context.TODO(), org.ExternalID)
+		if assert.NoError(t, err) {
+			assert.Equal(t, team.ExternalID, org.TeamExternalID)
+		}
+	}
+	{ // move from team to foreign team
+		team := getTeam(t)
+
+		body := map[string]interface{}{"teamId": team.ExternalID}
+		w := httptest.NewRecorder()
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody(body).Reader(t))
+
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	}
+}
+
+func TestAPI_updateOrg_moveTeamBilledExternally(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user, org := getOrg(t)
+
+	exteam := getTeam(t)
+	err := database.AddUserToTeam(context.TODO(), user.ID, exteam.ID)
+	assert.NoError(t, err)
+
+	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: ""}).
+		AnyTimes().
+		Return(&grpc.BillingAccount{}, nil)
+	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: exteam.ID}).
+		AnyTimes().
+		Return(&grpc.BillingAccount{Provider: provider.External}, nil)
+
+	{ // move to externally billed team
+
+		body := map[string]interface{}{"teamId": exteam.ExternalID}
+		w := httptest.NewRecorder()
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody(body).Reader(t))
+
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusNoContent, w.Code)
+
+		org, err := database.FindOrganizationByID(context.TODO(), org.ExternalID)
+		if assert.NoError(t, err) {
+			assert.True(t, org.HasFeatureFlag(featureflag.NoBilling))
+			assert.False(t, org.HasFeatureFlag(featureflag.Billing))
+		}
+	}
+	{ // move back to Zuora-billed team
+		team := getTeam(t)
+		err := database.AddUserToTeam(context.TODO(), user.ID, team.ID)
+		assert.NoError(t, err)
+
+		billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
+			AnyTimes().
+			Return(&grpc.BillingAccount{}, nil)
+
+		body := map[string]interface{}{"teamId": team.ExternalID}
+		w := httptest.NewRecorder()
+		r := requestAs(t, user, "PUT", "/api/users/org/"+org.ExternalID, jsonBody(body).Reader(t))
+
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusNoContent, w.Code)
+
+		org, err := database.FindOrganizationByID(context.TODO(), org.ExternalID)
+		if assert.NoError(t, err) {
+			assert.True(t, org.HasFeatureFlag(featureflag.Billing))
+			assert.False(t, org.HasFeatureFlag(featureflag.NoBilling))
+		}
+	}
+}
+
 func Test_ReIDOrganization_NotAllowed(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
@@ -252,11 +363,15 @@ func Test_CustomExternalIDOrganization(t *testing.T) {
 	defer cleanup(t)
 
 	user := getUser(t)
+	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), gomock.Any()).
+		AnyTimes().
+		Return(&grpc.BillingAccount{}, nil)
 
 	w := httptest.NewRecorder()
 	r := requestAs(t, user, "POST", "/api/users/org", jsonBody{
-		"id":   "my-organization",
-		"name": "my organization",
+		"id":       "my-organization",
+		"name":     "my organization",
+		"teamName": "crew",
 	}.Reader(t))
 
 	app.ServeHTTP(w, r)
@@ -284,8 +399,9 @@ func Test_CustomExternalIDOrganization_Validation(t *testing.T) {
 	} {
 		w := httptest.NewRecorder()
 		r := requestAs(t, user, "POST", "/api/users/org", jsonBody{
-			"id":   id,
-			"name": "my organization",
+			"id":       id,
+			"name":     "my organization",
+			"teamName": "crew",
 		}.Reader(t))
 
 		app.ServeHTTP(w, r)
@@ -366,14 +482,17 @@ func Test_Organization_CreateMultiple(t *testing.T) {
 	defer cleanup(t)
 
 	user := getUser(t)
+	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), gomock.Any()).
+		AnyTimes().
+		Return(&grpc.BillingAccount{}, nil)
 
-	r1 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-first-org", "name": "my first org"}.Reader(t))
+	r1 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-first-org", "name": "my first org", "teamName": "crew"}.Reader(t))
 
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, r1)
 	assert.Equal(t, http.StatusCreated, w.Code)
 
-	r2 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-second-org", "name": "my second org"}.Reader(t))
+	r2 := requestAs(t, user, "POST", "/api/users/org", jsonBody{"id": "my-second-org", "name": "my second org", "teamName": "squad"}.Reader(t))
 
 	w = httptest.NewRecorder()
 	app.ServeHTTP(w, r2)
@@ -399,17 +518,22 @@ func Test_Organization_CreateOrg_delinquent(t *testing.T) {
 	user := getUser(t)
 	eid := "delinquent-refuse-12"
 
+	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), gomock.Any()).
+		AnyTimes().
+		Return(&grpc.BillingAccount{}, nil)
 	err := app.CreateOrg(context.TODO(), user, api.OrgView{
 		ExternalID:     eid,
 		Name:           "name",
 		TrialExpiresAt: now.Add(-17 * 24 * time.Hour), // more than 15d back to trigger upload refusal
+		TeamName:       "crew",
 	}, now)
 	assert.NoError(t, err)
 
 	org, err := database.FindOrganizationByID(context.TODO(), eid)
-	assert.NoError(t, err)
-	assert.True(t, org.RefuseDataAccess)
-	assert.True(t, org.RefuseDataUpload)
+	if assert.NoError(t, err) {
+		assert.True(t, org.RefuseDataAccess)
+		assert.True(t, org.RefuseDataUpload)
+	}
 }
 
 func Test_Organization_CreateOrg_never_delinquent_for_weaver(t *testing.T) {
@@ -420,10 +544,14 @@ func Test_Organization_CreateOrg_never_delinquent_for_weaver(t *testing.T) {
 	user := getUserWithDomain(t, "weave.works")
 	eid := "delinquent-accept-12"
 
+	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), gomock.Any()).
+		AnyTimes().
+		Return(&grpc.BillingAccount{}, nil)
 	err := app.CreateOrg(context.TODO(), user, api.OrgView{
 		ExternalID:     eid,
 		Name:           "name",
 		TrialExpiresAt: now.Add(-17 * 24 * time.Hour), // more than 15d back to (normally) trigger upload refusal
+		TeamName:       "crew",
 	}, now)
 	assert.NoError(t, err)
 
@@ -481,6 +609,30 @@ func Test_Organization_Delete(t *testing.T) {
 	isMember, err := database.UserIsMemberOf(context.Background(), user.ID, org.ExternalID)
 	require.NoError(t, err)
 	assert.False(t, isMember, "Expected user not to have the deleted org any more")
+}
+
+func Test_Organization_DeleteGCP(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user := getUser(t)
+
+	// Create the org so it exists
+	org, err := database.CreateOrganizationWithGCP(context.Background(), user.ID, "FOO", user.TrialExpiresAt())
+	require.NoError(t, err)
+
+	// Login as the org owner
+	r := requestAs(t, user, "DELETE", "/api/users/org/"+org.ExternalID, nil)
+
+	{
+		w := httptest.NewRecorder()
+		app.ServeHTTP(w, r)
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	}
+
+	// Check the org still exists
+	_, err = database.FindOrganizationByID(context.Background(), org.ExternalID)
+	assert.NoError(t, err)
 }
 
 func Test_Organization_Name(t *testing.T) {
@@ -576,13 +728,15 @@ func Test_Organization_UserWithExpiredTrialButInTeamBilledExternallyShouldBeAble
 
 	// Create a team, and simulate the fact that team is marked as "billed externally":
 	team := getTeam(t)
+	err := database.AddUserToTeam(context.Background(), user.ID, team.ID)
+	assert.NoError(t, err)
 	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
 		Return(&grpc.BillingAccount{Provider: provider.External}, nil)
 
 	// Simulate the fact that the organization we're about to create is created by an user whose trial is already expired, i.e. the organization is delinquent:
 	trialExpiresAt := time.Now().Add(-17 * 24 * time.Hour) // more than 15d back to trigger upload refusal
 
-	err := app.CreateOrg(context.Background(), user, api.OrgView{
+	err = app.CreateOrg(context.Background(), user, api.OrgView{
 		ExternalID:     "my-org-id",
 		Name:           "my-org-name",
 		TeamExternalID: team.ExternalID,
@@ -613,13 +767,15 @@ func Test_Organization_UserWithExpiredTrialAndNotInTeamBilledExternallyShouldNot
 
 	// Create a team, and simulate the fact that team is NOT marked as "billed externally":
 	team := getTeam(t)
+	err := database.AddUserToTeam(context.Background(), user.ID, team.ID)
+	assert.NoError(t, err)
 	billingClient.EXPECT().FindBillingAccountByTeamID(gomock.Any(), &grpc.BillingAccountByTeamIDRequest{TeamID: team.ID}).
 		Return(&grpc.BillingAccount{}, nil)
 
 	// Simulate the fact that the organization we're about to create is created by an user whose trial is already expired, i.e. the organization is delinquent:
 	trialExpiresAt := time.Now().Add(-17 * 24 * time.Hour) // more than 15d back to trigger upload refusal
 
-	err := app.CreateOrg(context.Background(), user, api.OrgView{
+	err = app.CreateOrg(context.Background(), user, api.OrgView{
 		ExternalID:     "my-org-id",
 		Name:           "my-org-name",
 		TeamExternalID: team.ExternalID,

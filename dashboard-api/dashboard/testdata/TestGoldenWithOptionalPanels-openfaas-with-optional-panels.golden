@@ -8,7 +8,7 @@
         {
           "panels": [
             {
-              "title": "Function Requests per Second",
+              "title": "Function requests per second",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -20,7 +20,7 @@
       ]
     },
     {
-      "name": "RED Metrics",
+      "name": "RED metrics",
       "rows": [
         {
           "panels": [
@@ -38,7 +38,7 @@
         {
           "panels": [
             {
-              "title": "Successful Requests per Second",
+              "title": "Successful requests per second",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -46,7 +46,7 @@
               "query": "sum(rate(gateway_function_invocation_total{kubernetes_namespace='default',_weave_service='authfe',code='200'}[2m])) by (function_name)"
             },
             {
-              "title": "Failed Requests per Second",
+              "title": "Failed requests per second",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -58,7 +58,7 @@
         {
           "panels": [
             {
-              "title": "Replicas per Function",
+              "title": "Replicas per function",
               "type": "line",
               "unit": {
                 "format": "numeric"

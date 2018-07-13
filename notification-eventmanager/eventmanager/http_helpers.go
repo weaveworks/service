@@ -9,10 +9,10 @@ import (
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc/status"
+
 	"github.com/weaveworks/common/user"
 )
-
-// Various Handlers that act as wrappers which do some common work
 
 // jsonWrapper wraps a function that takes the request and returns (some json, code, error),
 // and writes an approriate response. If err is not nil, other values are ignored and 500 is returned.
@@ -24,7 +24,7 @@ func (j jsonWrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	result, code, err := j.wrapped(r)
 	if err != nil {
 		log.WithError(err).Error("Request error")
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(code)
 		return
 	}
 	encoded := []byte{}
@@ -44,7 +44,7 @@ func (j jsonWrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // to a http.Handler. The wrappers parse the args and return any JSON + code returned from the function,
 // or 500 if they error.
 
-func withNoArgs(f func(*http.Request) (interface{}, int, error)) http.Handler {
+func toJSON(f func(*http.Request) (interface{}, int, error)) http.Handler {
 	return jsonWrapper{func(r *http.Request) (interface{}, int, error) {
 		result, code, err := f(r)
 		return result, code, err
@@ -52,29 +52,18 @@ func withNoArgs(f func(*http.Request) (interface{}, int, error)) http.Handler {
 }
 
 func withInstance(f func(*http.Request, string) (interface{}, int, error)) http.Handler {
-	return jsonWrapper{func(r *http.Request) (interface{}, int, error) {
+	return toJSON(func(r *http.Request) (interface{}, int, error) {
 		instanceID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
 		if err != nil {
 			return nil, 0, err
 		}
 		result, code, err := f(r, instanceID)
 		return result, code, err
-	}}
-}
-
-func withID(f func(*http.Request, string) (interface{}, int, error)) http.Handler {
-	return jsonWrapper{func(r *http.Request) (interface{}, int, error) {
-		itemID, err := extractItemID(r)
-		if err != nil {
-			return nil, 0, err
-		}
-		result, code, err := f(r, itemID)
-		return result, code, err
-	}}
+	})
 }
 
 func withInstanceAndID(f func(*http.Request, string, string) (interface{}, int, error)) http.Handler {
-	return jsonWrapper{func(r *http.Request) (interface{}, int, error) {
+	return toJSON(func(r *http.Request) (interface{}, int, error) {
 		instanceID, _, err := user.ExtractOrgIDFromHTTPRequest(r)
 		if err != nil {
 			return nil, 0, err
@@ -85,7 +74,7 @@ func withInstanceAndID(f func(*http.Request, string, string) (interface{}, int, 
 		}
 		result, code, err := f(r, instanceID, itemID)
 		return result, code, err
-	}}
+	})
 }
 
 func extractItemID(r *http.Request) (string, error) {
@@ -117,4 +106,13 @@ func getFeatureFlags(r *http.Request) []string {
 		flags = append(flags, strings.ToLower(flag))
 	}
 	return flags
+}
+
+// isStatusErrorCode returns true if the error has the given status code.
+func isStatusErrorCode(err error, code int) bool {
+	st, ok := status.FromError(err)
+	if !ok {
+		return false
+	}
+	return code == int(st.Code())
 }

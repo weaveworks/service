@@ -8,7 +8,7 @@
         {
           "panels": [
             {
-              "title": "CPU Usage",
+              "title": "CPU usage",
               "type": "line",
               "unit": {
                 "format": "numeric",
@@ -26,7 +26,7 @@
         {
           "panels": [
             {
-              "title": "Memory Usage",
+              "title": "Memory usage",
               "type": "line",
               "unit": {
                 "format": "bytes"
@@ -43,17 +43,17 @@
         {
           "panels": [
             {
-              "title": "GPU Usage",
+              "title": "GPU usage",
               "optional": true,
               "type": "line",
               "unit": {
                 "format": "numeric",
                 "explanation": "GPU seconds / second"
               },
-              "query": "sum (container_accelerator_duty_cycle{image!='',namespace='default',_weave_pod_name='authfe'}) by (pod_name)"
+              "query": "avg (container_accelerator_duty_cycle{image!='',namespace='default',_weave_pod_name='authfe'}) by (pod_name)"
             },
             {
-              "title": "GPU Memory Usage",
+              "title": "GPU memory usage",
               "optional": true,
               "type": "line",
               "unit": {
@@ -71,7 +71,7 @@
         {
           "panels": [
             {
-              "title": "Incoming Network Traffic",
+              "title": "Incoming network traffic",
               "type": "line",
               "unit": {
                 "format": "bytes"
@@ -79,7 +79,7 @@
               "query": "sum (rate(container_network_receive_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             },
             {
-              "title": "Outgoing Network Traffic",
+              "title": "Outgoing network traffic",
               "type": "line",
               "unit": {
                 "format": "bytes"
@@ -96,7 +96,7 @@
         {
           "panels": [
             {
-              "title": "I/O Bandwidth (Read)",
+              "title": "I/O bandwidth (read)",
               "optional": true,
               "type": "line",
               "unit": {
@@ -105,7 +105,7 @@
               "query": "sum (rate(container_fs_reads_bytes_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             },
             {
-              "title": "I/O Bandwidth (Write)",
+              "title": "I/O bandwidth (write)",
               "optional": true,
               "type": "line",
               "unit": {
@@ -118,7 +118,7 @@
         {
           "panels": [
             {
-              "title": "I/O Operations per Second (Read)",
+              "title": "I/O operations per second (read)",
               "type": "line",
               "unit": {
                 "format": "numeric"
@@ -126,7 +126,7 @@
               "query": "sum (rate(container_fs_reads_total{image!='',namespace='default',_weave_pod_name='authfe'}[2m])) by (pod_name)"
             },
             {
-              "title": "I/O Operations per Second (Write)",
+              "title": "I/O operations per second (write)",
               "type": "line",
               "unit": {
                 "format": "numeric"
