@@ -15,6 +15,7 @@ import (
 	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/tokens"
 
@@ -73,7 +74,7 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 		}
 		forceTraceIfFlagged(ctx, response.FeatureFlags)
 
-		if !hasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
+		if !featureflag.HasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
 			logging.With(ctx).Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -116,7 +117,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 
 		forceTraceIfFlagged(ctx, response.FeatureFlags)
 
-		if !hasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
+		if !featureflag.HasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
 			logging.With(ctx).Errorf("Unauthorised probe request, missing feature flags: %v", a.RequireFeatureFlags)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -129,7 +130,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 }
 
 func forceTraceIfFlagged(ctx context.Context, featureFlags []string) {
-	debugID, found := getFeatureFlagValue("trace-debug-id", featureFlags)
+	debugID, found := featureflag.GetFeatureFlagValue("trace-debug-id", featureFlags)
 	if found {
 		if span := opentracing.SpanFromContext(ctx); span != nil {
 			if debugID != "" {
@@ -138,35 +139,6 @@ func forceTraceIfFlagged(ctx context.Context, featureFlags []string) {
 			opentracing_ext.SamplingPriority.Set(span, 1)
 		}
 	}
-}
-
-func getFeatureFlagValue(flagID string, haystack []string) (string, bool) {
-	prefix := fmt.Sprintf("%s:", flagID)
-	for _, has := range haystack {
-		if flagID == has {
-			return "", true
-		} else if strings.HasPrefix(has, prefix) {
-			return strings.TrimPrefix(has, prefix), true
-		}
-	}
-	return "", false
-}
-
-func hasFeatureAllFlags(needles, haystack []string) bool {
-	for _, f := range needles {
-		found := false
-		prefix := fmt.Sprintf("%s:", f)
-		for _, has := range haystack {
-			if f == has || strings.HasPrefix(has, prefix) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
 }
 
 // AuthAdminMiddleware is a middleware.Interface for authentication probes based on the headers
