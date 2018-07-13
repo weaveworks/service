@@ -2,7 +2,6 @@ package client
 
 import (
 	"bytes"
-	"context"
 	"crypto/sha1"
 	"fmt"
 	"io"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/google/go-github/github"
 	"github.com/gorilla/mux"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 
 	"github.com/weaveworks/common/httpgrpc"
@@ -23,11 +21,11 @@ import (
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common/constants/webhooks"
 	"github.com/weaveworks/service/common/featureflag"
+	"github.com/weaveworks/service/common/tracing"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/tokens"
 
 	opentracing "github.com/opentracing/opentracing-go"
-	opentracing_ext "github.com/opentracing/opentracing-go/ext"
 )
 
 // Constants exported for testing
@@ -87,7 +85,7 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 			span.SetTag(userTag, response.UserID)
 			span.SetTag(orgTag, response.OrganizationID)
 		}
-		forceTraceIfFlagged(ctx, response.FeatureFlags)
+		tracing.ForceTraceIfFlagged(ctx, response.FeatureFlags)
 
 		if !featureflag.HasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
 			logging.With(ctx).Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
@@ -133,7 +131,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 		if span := opentracing.SpanFromContext(r.Context()); span != nil {
 			span.SetTag(orgTag, response.OrganizationID)
 		}
-		forceTraceIfFlagged(ctx, response.FeatureFlags)
+		tracing.ForceTraceIfFlagged(ctx, response.FeatureFlags)
 
 		if !featureflag.HasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
 			logging.With(ctx).Errorf("Unauthorised probe request, missing feature flags: %v", a.RequireFeatureFlags)
@@ -145,18 +143,6 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 
 		finishRequest(next, w, r, response.OrganizationID)
 	})
-}
-
-func forceTraceIfFlagged(ctx context.Context, featureFlags []string) {
-	debugID, found := featureflag.GetFeatureFlagValue("trace-debug-id", featureFlags)
-	if found {
-		if span := opentracing.SpanFromContext(ctx); span != nil {
-			if debugID != "" {
-				span.SetTag("trace-debug-id", debugID)
-			}
-			opentracing_ext.SamplingPriority.Set(span, 1)
-		}
-	}
 }
 
 // AuthAdminMiddleware is a middleware.Interface for authentication probes based on the headers
