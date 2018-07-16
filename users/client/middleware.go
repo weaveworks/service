@@ -14,15 +14,18 @@ import (
 
 	"github.com/google/go-github/github"
 	"github.com/gorilla/mux"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 
 	"github.com/weaveworks/common/httpgrpc"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common/constants/webhooks"
+	"github.com/weaveworks/service/common/featureflag"
+	"github.com/weaveworks/service/common/tracing"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/tokens"
+
+	opentracing "github.com/opentracing/opentracing-go"
 )
 
 // Constants exported for testing
@@ -53,21 +56,22 @@ type AuthOrgMiddleware struct {
 // Wrap implements middleware.Interface
 func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		orgExternalID, ok := a.OrgExternalID(r)
 		if !ok {
-			logging.With(r.Context()).Errorf("Invalid request, no org id: %s", r.RequestURI)
+			logging.With(ctx).Errorf("Invalid request, no org id: %s", r.RequestURI)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			logging.With(r.Context()).Errorf("Unauthorised request, no auth cookie: %v", err)
+			logging.With(ctx).Errorf("Unauthorised request, no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		response, err := a.UsersClient.LookupOrg(r.Context(), &users.LookupOrgRequest{
+		response, err := a.UsersClient.LookupOrg(ctx, &users.LookupOrgRequest{
 			Cookie:        authCookie.Value,
 			OrgExternalID: orgExternalID,
 			AuthorizeFor:  a.AuthorizeFor,
@@ -76,13 +80,15 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 			handleError(err, w, r)
 			return
 		}
+
 		if span := opentracing.SpanFromContext(r.Context()); span != nil {
 			span.SetTag(userTag, response.UserID)
 			span.SetTag(orgTag, response.OrganizationID)
 		}
+		tracing.ForceTraceIfFlagged(ctx, response.FeatureFlags)
 
-		if !hasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
-			logging.With(r.Context()).Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
+		if !featureflag.HasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
+			logging.With(ctx).Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -105,14 +111,15 @@ type AuthProbeMiddleware struct {
 // Wrap implements middleware.Interface
 func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		token, ok := tokens.ExtractToken(r)
 		if !ok {
-			logging.With(r.Context()).Errorf("Unauthorised probe request, no token")
+			logging.With(ctx).Errorf("Unauthorised probe request, no token")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		response, err := a.UsersClient.LookupUsingToken(r.Context(), &users.LookupUsingTokenRequest{
+		response, err := a.UsersClient.LookupUsingToken(ctx, &users.LookupUsingTokenRequest{
 			Token:        token,
 			AuthorizeFor: a.AuthorizeFor,
 		})
@@ -120,12 +127,14 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 			handleError(err, w, r)
 			return
 		}
+
 		if span := opentracing.SpanFromContext(r.Context()); span != nil {
 			span.SetTag(orgTag, response.OrganizationID)
 		}
+		tracing.ForceTraceIfFlagged(ctx, response.FeatureFlags)
 
-		if !hasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
-			logging.With(r.Context()).Errorf("Unauthorised probe request, missing feature flags: %v", a.RequireFeatureFlags)
+		if !featureflag.HasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
+			logging.With(ctx).Errorf("Unauthorised probe request, missing feature flags: %v", a.RequireFeatureFlags)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -134,22 +143,6 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 
 		finishRequest(next, w, r, response.OrganizationID)
 	})
-}
-
-func hasFeatureAllFlags(needles, haystack []string) bool {
-	for _, f := range needles {
-		found := false
-		for _, has := range haystack {
-			if f == has {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
 }
 
 // AuthAdminMiddleware is a middleware.Interface for authentication probes based on the headers
@@ -193,16 +186,18 @@ type AuthUserMiddleware struct {
 // Wrap implements middleware.Interface
 func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			logging.With(r.Context()).Infof("Unauthorised user request, no auth cookie: %v", err)
+			logging.With(ctx).Infof("Unauthorised user request, no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		response, err := a.UsersClient.LookupUser(r.Context(), &users.LookupUserRequest{
+		response, err := a.UsersClient.LookupUser(ctx, &users.LookupUserRequest{
 			Cookie: authCookie.Value,
 		})
+
 		if err != nil {
 			handleError(err, w, r)
 			return
