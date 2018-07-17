@@ -15,8 +15,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	billing "github.com/weaveworks/billing-client"
+	"github.com/weaveworks/common/tracing"
 	"github.com/weaveworks/service/common/dbconfig"
-	"github.com/weaveworks/service/common/tracing"
 	"github.com/weaveworks/service/flux-api/bus"
 	"github.com/weaveworks/service/flux-api/bus/nats"
 	"github.com/weaveworks/service/flux-api/db"
@@ -64,7 +64,7 @@ func (c *config) registerFlags(f *flag.FlagSet) {
 
 func main() {
 
-	traceCloser := tracing.Init("flux-api")
+	traceCloser := tracing.NewFromEnv("flux-api")
 	defer traceCloser.Close()
 
 	// Flag domain.

@@ -14,9 +14,9 @@ import (
 	"github.com/tylerb/graceful"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/tracing"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common"
-	"github.com/weaveworks/service/common/tracing"
 	users "github.com/weaveworks/service/users/client"
 )
 
@@ -59,7 +59,7 @@ func init() {
 }
 
 func main() {
-	traceCloser := tracing.Init("authfe")
+	traceCloser := tracing.NewFromEnv("authfe")
 	defer traceCloser.Close()
 
 	var (
