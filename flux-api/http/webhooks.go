@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"github.com/google/go-github/github"
 	"github.com/weaveworks/flux/api/v9"
 	transport "github.com/weaveworks/flux/http"
+	"github.com/weaveworks/flux/image"
 	"github.com/weaveworks/service/common/constants/webhooks"
 )
 
@@ -18,7 +20,13 @@ func (s Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	switch integrationType {
 	case webhooks.GithubPushIntegrationType:
-		handleGithubHook(s, w, r)
+		handleGithub(s, w, r)
+		return
+	case webhooks.DockerHubIntegrationType:
+		handleDockerHub(s, w, r)
+		return
+	case webhooks.QuayIntegrationType:
+		handleQuay(s, w, r)
 		return
 	default:
 		transport.WriteError(w, r, http.StatusBadRequest, fmt.Errorf("Invalid integration type"))
@@ -26,7 +34,7 @@ func (s Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleGithubHook(s Server, w http.ResponseWriter, r *http.Request) {
+func handleGithub(s Server, w http.ResponseWriter, r *http.Request) {
 	var payload []byte
 	switch contentType := r.Header.Get("Content-Type"); contentType {
 	case "application/x-www-form-urlencoded":
@@ -69,6 +77,53 @@ func handleGithubHook(s Server, w http.ResponseWriter, r *http.Request) {
 	default:
 		log.Printf("received webhook: %T\n%s", hook, github.Stringify(hook))
 	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func handleDockerHub(s Server, w http.ResponseWriter, r *http.Request) {
+	// From https://docs.docker.com/docker-hub/webhooks/
+	type payload struct {
+		Repository struct {
+			RepoName string `json:"repo_name"`
+		} `json:"repository"`
+	}
+	var p payload
+	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+		transport.WriteError(w, r, http.StatusBadRequest, err)
+		return
+	}
+	handleImageNotify(s, w, r, p.Repository.RepoName)
+}
+
+func handleQuay(s Server, w http.ResponseWriter, r *http.Request) {
+	type payload struct {
+		DockerURL string `json:"docker_url"`
+	}
+	var p payload
+	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+		transport.WriteError(w, r, http.StatusBadRequest, err)
+		return
+	}
+	handleImageNotify(s, w, r, p.DockerURL)
+}
+
+func handleImageNotify(s Server, w http.ResponseWriter, r *http.Request, img string) {
+	ref, err := image.ParseRef(img)
+	if err != nil {
+		transport.WriteError(w, r, http.StatusUnprocessableEntity, err)
+		return
+	}
+	change := v9.Change{
+		Kind: v9.ImageChange,
+		Source: v9.ImageUpdate{
+			Name: ref.Name,
+		},
+	}
+	ctx := getRequestContext(r)
+	// Ignore the error returned here as the sender doesn't care. We'll log any
+	// errors at the daemon level.
+	s.daemonProxy.NotifyChange(ctx, change)
 
 	w.WriteHeader(http.StatusOK)
 }

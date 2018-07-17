@@ -8,8 +8,6 @@ const (
 	RegisterDeprecated     = "RegisterDeprecated"
 	Ping                   = "Ping"
 	PostIntegrationsGithub = "PostIntegrationsGithub"
-	DockerHubImageNotify   = "DockerHubImageNotify"
-	QuayImageNotify        = "QuayImageNotify"
 	GitPushNotify          = "GitPushNotify"
 
 	Webhook = "Webhook"

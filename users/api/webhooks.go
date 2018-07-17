@@ -48,6 +48,10 @@ func (a *API) createOrganizationWebhook(currentUser *users.User, w http.Response
 	switch payload.IntegrationType {
 	case webhooks.GithubPushIntegrationType:
 		break
+	case webhooks.DockerHubIntegrationType:
+		break
+	case webhooks.QuayIntegrationType:
+		break
 	default:
 		renderError(w, r, users.NewMalformedInputError(fmt.Errorf("Invalid integration type")))
 		return
