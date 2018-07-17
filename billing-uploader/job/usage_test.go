@@ -237,8 +237,16 @@ func TestJobUpload_Do(t *testing.T) {
 		aggs, err := d.GetAggregatesUploaded(ctx, upload.ID)
 		assert.NoError(t, err)
 		assert.Len(t, aggs, 2)
-		assert.Equal(t, int64(4), aggs[0].AmountValue)
-		assert.Equal(t, int64(2), aggs[1].AmountValue)
+		for _, a := range aggs {
+			switch a.InstanceID {
+			case "100":
+				assert.Equal(t, int64(2), a.AmountValue)
+			case "101":
+				assert.Equal(t, int64(4), a.AmountValue)
+			default:
+				assert.Fail(t, "unexpected instance id: %s", a.InstanceID)
+			}
+		}
 	}
 	{ // gcp upload
 		cl := &stubControlClient{}
