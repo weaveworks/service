@@ -203,4 +203,96 @@ func TestHandleWebhook(t *testing.T) {
 		// }
 		// assert.Equal(t, mockDaemon.NotifyChangeCalls[0].Change, expectedChange)
 	}
+
+	{ // DockerHub success
+		payload := []byte(`
+		{
+			"callback_url": "https://registry.hub.docker.com/u/svendowideit/testhook/hook/2141b5bi5i5b02bec211i4eeih0242eg11000a/",
+			"push_data": {
+			  "images": [
+				  "27d47432a69bca5f2700e4dff7de0388ed65f9d3fb1ec645e2bc24c223dc1cc3",
+				  "51a9c7c1f8bb2fa19bcd09789a34e63f35abb80044bc10196e304f6634cc582c",
+				  "..."
+			  ],
+			  "pushed_at": 1.417566161e+09,
+			  "pusher": "trustedbuilder",
+			  "tag": "latest"
+			},
+			"repository": {
+			  "comment_count": 0,
+			  "date_created": 1.417494799e+09,
+			  "description": "",
+			  "dockerfile": "",
+			  "full_description": "Docker Hub based automated build from a GitHub repo",
+			  "is_official": false,
+			  "is_private": true,
+			  "is_trusted": true,
+			  "name": "testhook",
+			  "namespace": "svendowideit",
+			  "owner": "svendowideit",
+			  "repo_name": "svendowideit/testhook",
+			  "repo_url": "https://registry.hub.docker.com/u/svendowideit/testhook/",
+			  "star_count": 0,
+			  "status": "Active"
+			}
+		}
+		`)
+
+		req, err := http.NewRequest("POST", "https://weave.test/webhooks/secret-abc/", bytes.NewReader(payload))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set(webhooks.WebhooksIntegrationTypeHeader, webhooks.DockerHubIntegrationType)
+
+		rr := httptest.NewRecorder()
+		s.handleWebhook(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		// TODO: Assert call to NotifyChange once flux has a method for this.
+		// assert.Equal(t, len(mockDaemon.NotifyChangeCalls), 1)
+		// expectedChange := v9.Change{
+		// 	Kind: v9.GitChange,
+		// 	Source: v9.GitUpdate{
+		// 		URL:    "git@github.com:Codertocat/Hello-World.git",
+		// 		Branch: "refs/tags/simple-tag",
+		// 	},
+		// }
+		// assert.Equal(t, mockDaemon.NotifyChangeCalls[0].Change, expectedChange)
+	}
+
+	{ // Quay success
+		payload := []byte(`
+		{
+			"name": "repository",
+			"repository": "mynamespace/repository",
+			"namespace": "mynamespace",
+			"docker_url": "quay.io/mynamespace/repository",
+			"homepage": "https://quay.io/repository/mynamespace/repository",
+			"updated_tags": [
+			  "latest"
+			]
+		}
+		`)
+
+		req, err := http.NewRequest("POST", "https://weave.test/webhooks/secret-abc/", bytes.NewReader(payload))
+		assert.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set(webhooks.WebhooksIntegrationTypeHeader, webhooks.QuayIntegrationType)
+
+		rr := httptest.NewRecorder()
+		s.handleWebhook(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		// TODO: Assert call to NotifyChange once flux has a method for this.
+		// assert.Equal(t, len(mockDaemon.NotifyChangeCalls), 1)
+		// expectedChange := v9.Change{
+		// 	Kind: v9.GitChange,
+		// 	Source: v9.GitUpdate{
+		// 		URL:    "git@github.com:Codertocat/Hello-World.git",
+		// 		Branch: "refs/tags/simple-tag",
+		// 	},
+		// }
+		// assert.Equal(t, mockDaemon.NotifyChangeCalls[0].Change, expectedChange)
+	}
 }

@@ -28,7 +28,6 @@ import (
 	transport "github.com/weaveworks/flux/http"
 	"github.com/weaveworks/flux/http/httperror"
 	"github.com/weaveworks/flux/http/websocket"
-	"github.com/weaveworks/flux/image"
 	"github.com/weaveworks/flux/job"
 	"github.com/weaveworks/flux/policy"
 	"github.com/weaveworks/flux/remote"
@@ -59,8 +58,6 @@ func NewServiceRouter() *mux.Router {
 	r.NewRoute().Name(Status).Methods("GET").Path("/v6/status")
 	r.NewRoute().Name(PostIntegrationsGithub).Methods("POST").Path("/v6/integrations/github").Queries("owner", "{owner}", "repository", "{repository}")
 	r.NewRoute().Name(Ping).Methods("HEAD", "GET").Path("/v6/ping")
-	r.NewRoute().Name(DockerHubImageNotify).Methods("POST").Path("/v6/integrations/dockerhub/image").Queries("instance", "{instance}")
-	r.NewRoute().Name(QuayImageNotify).Methods("POST").Path("/v6/integrations/quay/image").Queries("instance", "{instance}")
 	r.NewRoute().Name(GitPushNotify).Methods("POST").Path("/v6/integrations/git/push").Queries("instance", "{instance}")
 
 	// Webhooks
@@ -131,10 +128,8 @@ func (s Server) MakeHandler(r *mux.Router) http.Handler {
 		Ping:    s.ping,
 		PostIntegrationsGithub: s.postIntegrationsGithub,
 		// Webhooks
-		Webhook:              s.handleWebhook,
-		DockerHubImageNotify: s.dockerHubImageNotify,
-		QuayImageNotify:      s.quayImageNotify,
-		GitPushNotify:        s.gitPushNotify,
+		Webhook:       s.handleWebhook,
+		GitPushNotify: s.gitPushNotify,
 	} {
 		handler := logging(handlerMethod, log.With(s.logger, "method", method))
 		r.Get(method).Handler(handler)
@@ -526,57 +521,6 @@ func (s Server) regeneratePublicSSHKey(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 	return
-}
-
-func (s Server) dockerHubImageNotify(w http.ResponseWriter, r *http.Request) {
-	// From https://docs.docker.com/docker-hub/webhooks/
-	type payload struct {
-		Repository struct {
-			RepoName string `json:"repo_name"`
-		} `json:"repository"`
-	}
-	var p payload
-	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, err)
-		return
-	}
-	s.imageNotify(w, r, p.Repository.RepoName)
-}
-
-func (s Server) quayImageNotify(w http.ResponseWriter, r *http.Request) {
-	type payload struct {
-		DockerURL string `json:"docker_url"`
-	}
-	var p payload
-	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, err)
-		return
-	}
-	s.imageNotify(w, r, p.DockerURL)
-}
-
-func (s Server) imageNotify(w http.ResponseWriter, r *http.Request, img string) {
-	ref, err := image.ParseRef(img)
-	if err != nil {
-		transport.WriteError(w, r, http.StatusUnprocessableEntity, err)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-
-	// Hack to populate request context with instanceID
-	instID := mux.Vars(r)["instance"]
-	overrideInstanceID(r, instID)
-
-	change := v9.Change{
-		Kind: v9.ImageChange,
-		Source: v9.ImageUpdate{
-			Name: ref.Name,
-		},
-	}
-	ctx := getRequestContext(r)
-	// Ignore error returned here, as we have no way to log it directly but we also
-	// don't want to potentially make DockerHub wait for 10 seconds.
-	s.daemonProxy.NotifyChange(ctx, change)
 }
 
 // DEPRECATED in favour of handleWebhook
