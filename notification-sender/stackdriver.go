@@ -1,10 +1,14 @@
 package sender
 
 import (
-	googleLogging "cloud.google.com/go/logging"
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
+	"sync"
+
+	googleLogging "cloud.google.com/go/logging"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/service/notification-eventmanager/types"
@@ -12,9 +16,6 @@ import (
 	"google.golang.org/api/option"
 	grpcCodes "google.golang.org/grpc/codes"
 	grpcStatus "google.golang.org/grpc/status"
-	"strconv"
-	"strings"
-	"sync"
 )
 
 // StackdriverSender contains logID to write to and map of receivers
@@ -135,10 +136,6 @@ func generateStackDriverMessage(e types.Event) googleLogging.Entry {
 			"instance_name": e.InstanceName,
 			"event_type":    e.Type,
 		},
-	}
-
-	for k, v := range e.Metadata {
-		entry.Labels[k] = v
 	}
 
 	return entry

@@ -14,7 +14,7 @@ type BrowserSender struct {
 	NATS *nats.Conn
 }
 
-// Send publishes data to all instance's subcsribers
+// Send publishes data to all instance's subscribers
 func (bs *BrowserSender) Send(_ context.Context, _ json.RawMessage, notif types.Notification, instance string) error {
 	payload, err := json.Marshal(notif.Event)
 

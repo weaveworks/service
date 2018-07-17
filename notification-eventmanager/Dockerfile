@@ -2,7 +2,7 @@ FROM alpine:3.6
 RUN apk add --no-cache ca-certificates
 WORKDIR /
 COPY cmd/eventmanager/eventmanager /
-COPY       db/migrations /migrations
+COPY db/migrations /migrations
 EXPOSE 80
 ENTRYPOINT ["/eventmanager"]
 

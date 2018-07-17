@@ -5,11 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/weaveworks/service/notification-eventmanager/types"
 	"io"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/pkg/errors"
+	"github.com/weaveworks/service/notification-eventmanager/types"
 )
 
 // SlackSender contains name of user who sends notifications to slack
@@ -91,13 +92,6 @@ func generateSlackMessage(e types.Event, username string) (json.RawMessage, erro
 	sm := types.SlackMessage{
 		Text:     fmt.Sprintf("*Instance*: %v\n%v", e.InstanceName, convertLinks(*e.Text)),
 		Username: username,
-	}
-
-	for _, a := range e.Attachments {
-
-		sm.Attachments = append(sm.Attachments, types.SlackAttachment{
-			Text: a.Body,
-		})
 	}
 
 	return json.Marshal(sm)

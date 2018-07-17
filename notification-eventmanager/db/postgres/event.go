@@ -56,7 +56,11 @@ func (d DB) CreateEvent(event types.Event, featureFlags []string) (string, error
 		}
 
 		metadata, err := json.Marshal(event.Metadata)
+		if err != nil {
+			return err
+		}
 
+		data, err := json.Marshal(event.Data)
 		if err != nil {
 			return err
 		}
@@ -69,31 +73,18 @@ func (d DB) CreateEvent(event types.Event, featureFlags []string) (string, error
 				timestamp,
 				messages,
 				text,
+				data,
 				metadata
-			) VALUES ($1, $2, $3, $4, $5, $6) RETURNING event_id
+			) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING event_id
 			`,
 			event.Type,
 			event.InstanceID,
 			event.Timestamp,
 			encodedMessages,
 			event.Text,
+			data,
 			metadata,
 		).Scan(&eventID)
-
-		// Save attachments
-		for _, attachment := range event.Attachments {
-			_, err = tx.Exec("add_attachment",
-				`INSERT INTO attachments (
-					event_id,
-					format,
-					body
-				) VALUES ($1, $2, $3)
-			`,
-				eventID,
-				attachment.Format,
-				attachment.Body,
-			)
-		}
 
 		return err
 	})
@@ -111,13 +102,11 @@ func (d DB) GetEvents(instanceID string, fields, eventTypes []string, before, af
 	for i, f := range queryFields {
 		queryFields[i] = fmt.Sprintf("e.%s", f) // prepend "e." for join
 	}
-	queryFields = append(queryFields, "COALESCE(json_agg(a) FILTER (WHERE a.event_id IS NOT NULL), '[]')")
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	// Use squirrel to abstract away from writing specific postgreSQL (conditional WHERE clause)
 	// We are operating on an object. With a raw SQL query string, interpolating a WHERE clause depending on a condition becomes messy quickly
 	query := psql.Select(queryFields...).
 		From("events e").
-		LeftJoin("attachments a ON (a.event_id = e.event_id)").
 		Where(sq.Eq{"instance_id": instanceID}).
 		Where(sq.Lt{"timestamp": before}).
 		Where(sq.Gt{"timestamp": after}).

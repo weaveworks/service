@@ -109,16 +109,10 @@ type Event struct {
 	InstanceID   string                     `json:"instance_id"`
 	InstanceName string                     `json:"instance_name"`
 	Timestamp    time.Time                  `json:"timestamp"`
+	Data         json.RawMessage            `json:"data,omitempty"` // Format depends on `Type`
 	Messages     map[string]json.RawMessage `json:"messages"`
 	Text         *string                    `json:"text"`
 	Metadata     map[string]string          `json:"metadata"`
-	Attachments  []Attachment               `json:"attachments"`
-}
-
-// Attachment is a "rich" text document in a given format, ie markdown
-type Attachment struct {
-	Format string `json:"format,omitempty"`
-	Body   string `json:"body,omitempty"`
 }
 
 // EventType is an identifier describing the type of the event.
@@ -237,7 +231,6 @@ func EventFromRow(row scannable, fields []string) (*Event, error) {
 	// sql driver can't convert from postgres json directly to interface{}, have to get as string and re-parse.
 	messagesBuf := []byte{}
 	metadataBuf := []byte{}
-	attachmentsBuff := []byte{}
 
 	var structFields []interface{}
 	for _, f := range fields {
@@ -250,6 +243,8 @@ func EventFromRow(row scannable, fields []string) (*Event, error) {
 			structFields = append(structFields, &e.InstanceID)
 		case "timestamp":
 			structFields = append(structFields, &e.Timestamp)
+		case "data":
+			structFields = append(structFields, &e.Data)
 		case "messages":
 			structFields = append(structFields, &messagesBuf)
 		case "text":
@@ -260,7 +255,6 @@ func EventFromRow(row scannable, fields []string) (*Event, error) {
 			return nil, fmt.Errorf("%s is an invalid field", f)
 		}
 	}
-	structFields = append(structFields, &attachmentsBuff)
 
 	if err := row.Scan(structFields...); err != nil {
 		return nil, err
@@ -274,12 +268,6 @@ func EventFromRow(row scannable, fields []string) (*Event, error) {
 
 	if len(metadataBuf) > 0 {
 		if err := json.Unmarshal(metadataBuf, &e.Metadata); err != nil {
-			return nil, err
-		}
-	}
-
-	if len(attachmentsBuff) > 0 {
-		if err := json.Unmarshal(attachmentsBuff, &e.Attachments); err != nil {
 			return nil, err
 		}
 	}
