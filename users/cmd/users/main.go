@@ -14,12 +14,12 @@ import (
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/common/tracing"
 	"github.com/weaveworks/service/common"
 	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/gcp/partner"
-	"github.com/weaveworks/service/common/tracing"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/cleaner"
@@ -40,7 +40,7 @@ func init() {
 
 func main() {
 
-	traceCloser := tracing.Init("users")
+	traceCloser := tracing.NewFromEnv("users")
 	defer traceCloser.Close()
 
 	var (
