@@ -16,7 +16,6 @@ flux-api/flux-api
 flux-api/migrations.tar
 gcp-launcher-webhook/gcp-launcher-webhook
 gcp-service/gcp-service
-github-receiver/github-receiver
 kubectl-service/kubectl-service
 notebooks/cmd/notebooks/notebooks
 notification-eventmanager/cmd/eventmanager/eventmanager

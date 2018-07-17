@@ -22,7 +22,6 @@ import (
 
 	fluxapi "github.com/weaveworks/flux/api"
 	"github.com/weaveworks/flux/api/v10"
-	"github.com/weaveworks/flux/api/v9"
 	fluxerr "github.com/weaveworks/flux/errors"
 	"github.com/weaveworks/flux/event"
 	transport "github.com/weaveworks/flux/http"
@@ -58,7 +57,6 @@ func NewServiceRouter() *mux.Router {
 	r.NewRoute().Name(Status).Methods("GET").Path("/v6/status")
 	r.NewRoute().Name(PostIntegrationsGithub).Methods("POST").Path("/v6/integrations/github").Queries("owner", "{owner}", "repository", "{repository}")
 	r.NewRoute().Name(Ping).Methods("HEAD", "GET").Path("/v6/ping")
-	r.NewRoute().Name(GitPushNotify).Methods("POST").Path("/v6/integrations/git/push").Queries("instance", "{instance}")
 
 	// Webhooks
 	r.NewRoute().Name(Webhook).Methods("POST").Path("/webhooks/{secretID}/")
@@ -128,8 +126,7 @@ func (s Server) MakeHandler(r *mux.Router) http.Handler {
 		Ping:    s.ping,
 		PostIntegrationsGithub: s.postIntegrationsGithub,
 		// Webhooks
-		Webhook:       s.handleWebhook,
-		GitPushNotify: s.gitPushNotify,
+		Webhook: s.handleWebhook,
 	} {
 		handler := logging(handlerMethod, log.With(s.logger, "method", method))
 		r.Get(method).Handler(handler)
@@ -521,28 +518,6 @@ func (s Server) regeneratePublicSSHKey(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 	return
-}
-
-// DEPRECATED in favour of handleWebhook
-func (s Server) gitPushNotify(w http.ResponseWriter, r *http.Request) {
-	instID := mux.Vars(r)["instance"]
-	overrideInstanceID(r, instID)
-
-	var update v9.GitUpdate
-	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
-		transport.WriteError(w, r, http.StatusBadRequest, err)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-
-	change := v9.Change{
-		Kind:   v9.GitChange,
-		Source: update,
-	}
-	ctx := getRequestContext(r)
-	// Ignore the error returned here as the sender doesn't care. We'll log any
-	// errors at the daemon level.
-	s.daemonProxy.NotifyChange(ctx, change)
 }
 
 // Handlers supporting older fluxctls

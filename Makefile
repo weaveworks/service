@@ -79,7 +79,6 @@ USERS_EXE := users/cmd/users/users
 METRICS_EXE := metrics/metrics
 NOTEBOOKS_EXE := notebooks/cmd/notebooks/notebooks
 SERVICE_UI_KICKER_EXE := service-ui-kicker/service-ui-kicker
-GITHUB_RECEIVER_EXE := github-receiver/github-receiver
 FLUX_API_EXE := flux-api/flux-api
 BILLING_EXES := billing-api/api billing-uploader/uploader billing-aggregator/aggregator billing-enforcer/enforcer
 GCP_LAUNCHER_WEBHOOK_EXE := gcp-launcher-webhook/gcp-launcher-webhook
@@ -100,7 +99,6 @@ $(USERS_EXE): $(call gofiles,users) $(COMMON) users/users.pb.go
 $(METRICS_EXE): $(call gofiles,metrics) $(COMMON)
 $(NOTEBOOKS_EXE): $(call gofiles,notebooks) $(COMMON)
 $(SERVICE_UI_KICKER_EXE): $(call gofiles,service-ui-kicker) $(COMMON)
-$(GITHUB_RECEIVER_EXE): $(call gofiles,github-receiver) $(COMMON)
 $(FLUX_API_EXE): $(call gofiles,flux-api) $(COMMON)
 $(GCP_LAUNCHER_WEBHOOK_EXE): $(call gofiles,gcp-launcher-webhook) $(COMMON)
 $(KUBECTL_SERVICE_EXE): $(shell find kubectl-service -name '*.go') $(COMMON)
@@ -119,7 +117,6 @@ logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_
 build/$(UPTODATE): build/build.sh
 notebooks/$(UPTODATE): $(NOTEBOOKS_EXE)
 service-ui-kicker/$(UPTODATE): $(SERVICE_UI_KICKER_EXE)
-github-receiver/$(UPTODATE): $(GITHUB_RECEIVER_EXE)
 flux-api/$(UPTODATE): $(FLUX_API_EXE) flux-api/migrations.tar
 gcp-launcher-webhook/$(UPTODATE): $(GCP_LAUNCHER_WEBHOOK_EXE)
 kubectl-service/$(UPTODATE): $(KUBECTL_SERVICE_EXE)
