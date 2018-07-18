@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"time"
+	"reflect"
 
 	"github.com/lib/pq"
 	alerts "github.com/opsgenie/opsgenie-go-sdk/alertsv2"
@@ -195,18 +196,7 @@ func EventTypesFromFile(path string) (map[string]EventType, error) {
 
 // Equals must be defined because go refuses to do equality tests for slices.
 func (e EventType) Equals(other EventType) bool {
-	// I tried to make this split over multiple lines but the compiler said no
-	if !(e.Name == other.Name && e.DisplayName == other.DisplayName && e.Description == other.Description &&
-		e.FeatureFlag == other.FeatureFlag && len(e.DefaultReceiverTypes) == len(other.DefaultReceiverTypes) &&
-		e.HideUIConfig == other.HideUIConfig) {
-		return false
-	}
-	for i := range e.DefaultReceiverTypes {
-		if e.DefaultReceiverTypes[i] != other.DefaultReceiverTypes[i] {
-			return false
-		}
-	}
-	return true
+	return reflect.DeepEqual(e, other)
 }
 
 // ReceiverFromRow expects the row to contain (id, type, instanceID, addressData, eventTypes)
