@@ -76,5 +76,11 @@
     "description": "Weave Cloud agents are being installed",
     "default_receiver_types": ["email"],
     "hide_ui_config": true
+    },
+    {
+      "name": "monitor",
+      "display_name": "Monitor alert",
+      "description": "An alert from Weave Cloud Monitoring",
+      "default_receiver_types": ["browser", "email", "slack", "stackdriver", "opsgenie"]
     }
   ]

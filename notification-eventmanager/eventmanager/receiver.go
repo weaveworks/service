@@ -196,26 +196,10 @@ func (em *EventManager) handleUpdateReceiver(r *http.Request, instanceID string,
 		return nil, 0, err
 	}
 
-	authCookie, err := sessions.Extract(r)
+	email, status, err := em.extractUserEmail(r)
 	if err != nil {
-		return nil, http.StatusUnauthorized, err
+		return nil, status, err
 	}
-
-	userIDData, err := em.UsersClient.LookupUser(r.Context(), &users.LookupUserRequest{
-		Cookie: authCookie,
-	})
-	if err != nil {
-		return nil, http.StatusBadRequest, err
-	}
-
-	userData, err := em.UsersClient.GetUser(r.Context(), &users.GetUserRequest{
-		UserID: userIDData.UserID,
-	})
-	if err != nil {
-		return nil, http.StatusBadRequest, err
-	}
-
-	email := userData.User.GetEmail()
 
 	// all good!
 	// Fire event every time config is successfully changed
@@ -227,6 +211,29 @@ func (em *EventManager) handleUpdateReceiver(r *http.Request, instanceID string,
 	}()
 
 	return nil, http.StatusOK, nil
+}
+
+func (em *EventManager) extractUserEmail(r *http.Request) (string, int, error) {
+	authCookie, err := sessions.Extract(r)
+	if err != nil {
+		return "", http.StatusUnauthorized, err
+	}
+
+	userIDData, err := em.UsersClient.LookupUser(r.Context(), &users.LookupUserRequest{
+		Cookie: authCookie,
+	})
+	if err != nil {
+		return "", http.StatusBadRequest, err
+	}
+
+	userData, err := em.UsersClient.GetUser(r.Context(), &users.GetUserRequest{
+		UserID: userIDData.UserID,
+	})
+	if err != nil {
+		return "", http.StatusBadRequest, err
+	}
+
+	return userData.User.GetEmail(), http.StatusOK, nil
 }
 
 func (em *EventManager) handleDeleteReceiver(r *http.Request, instanceID string, receiverID string) (interface{}, int, error) {

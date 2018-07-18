@@ -15,6 +15,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
+	"github.com/weaveworks/service/notification-eventmanager/eventmanager"
 	"github.com/weaveworks/service/notification-eventmanager/types"
 )
 
@@ -371,14 +372,27 @@ func TestCreateTestEvent(t *testing.T) {
 	}
 
 	exists := false
+	var result types.Event
 	for _, event := range events {
 		if event.Type == "user_test" {
 			exists = true
+			result = event
 		}
 	}
 
 	if exists == false {
 		t.Error("expected test event to exist")
+	}
+
+	data := eventmanager.UserTestData{UserEmail: "mock-user@example.org"}
+	var resultData eventmanager.UserTestData
+
+	if err := json.Unmarshal(result.Data, &resultData); err != nil {
+		t.Fatal(errors.Wrap(err, "could not unmarshal event data"))
+	}
+
+	if !reflect.DeepEqual(resultData, data) {
+		t.Errorf("expected test event data: %#v, actual data: %#v", data, resultData)
 	}
 
 }
@@ -500,6 +514,122 @@ func TestCreateEvent_External(t *testing.T) {
 
 	if *result.Text != text {
 		t.Errorf("expected event text to equal %v; actual: %v", text, result.Text)
+	}
+
+}
+
+func TestCreateMonitorEvent(t *testing.T) {
+	waitForReady(t)
+
+	alert := types.Alert{
+		Status: "firing",
+		Labels: map[string]string{
+			"alertname":  "TestAlert",
+			"alertstate": "firing",
+			"instance":   "localhost:9090",
+			"job":        "prometheus",
+			"severity":   "critical",
+		},
+		Annotations: map[string]string{
+			"dashboardURL": "http://admin/grafana/dashboard/file/services.json",
+			"description":  "The authfe service has a 99th-quantile latency of more than 5 seconds for 5m.",
+			"detail":       "Node: localhost:9090, severity: critical, state: firing, value: 1",
+			"impact":       "The node might be stuck in a restart cycle and be disrupting the normal scheduling of workloads.",
+			"playbookURL":  "https://github.com/weaveworks/service-conf/blob/master/docs/PLAYBOOK.md#authfe",
+			"summary":      "Kubernetes node has been intermittently available",
+		},
+		StartsAt:     time.Date(2018, time.July, 17, 20, 57, 14, 10, time.UTC),
+		EndsAt:       time.Date(2018, time.July, 17, 22, 18, 11, 16, time.UTC),
+		GeneratorURL: "/graph?g0.expr=up&g0.tab=1",
+	}
+
+	data := eventmanager.MonitorData{
+		GroupKey:    "{}:{alertname=\"TestAlert\"}",
+		Status:      "firing",
+		Receiver:    "test",
+		GroupLabels: map[string]string{"alertname": "TestAlert"},
+		CommonLabels: map[string]string{
+			"alertname":  "TestAlert",
+			"alertstate": "firing",
+			"instance":   "localhost:9090",
+			"job":        "prometheus",
+			"severity":   "critical",
+		},
+		CommonAnnotations: map[string]string{
+			"dashboardURL": "http://admin/grafana/dashboard/file/services.json",
+			"description":  "The authfe service has a 99th-quantile latency of more than 5 seconds for 5m.",
+			"detail":       "Node: localhost:9090, severity: critical, state: firing, value: 1",
+			"impact":       "The node might be stuck in a restart cycle and be disrupting the normal scheduling of workloads.",
+			"playbookURL":  "https://github.com/weaveworks/service-conf/blob/master/docs/PLAYBOOK.md#authfe",
+			"summary":      "Kubernetes node has been intermittently available",
+		},
+		Alerts: []types.Alert{alert},
+	}
+
+	event := types.WebhookAlert{
+		Version:     "4",
+		GroupKey:    "{}:{alertname=\"TestAlert\"}",
+		Status:      "firing",
+		Receiver:    "test",
+		GroupLabels: map[string]string{"alertname": "TestAlert"},
+		CommonLabels: map[string]string{
+			"alertname":  "TestAlert",
+			"alertstate": "firing",
+			"instance":   "localhost:9090",
+			"job":        "prometheus",
+			"severity":   "critical",
+		},
+		CommonAnnotations: map[string]string{
+			"dashboardURL": "http://admin/grafana/dashboard/file/services.json",
+			"description":  "The authfe service has a 99th-quantile latency of more than 5 seconds for 5m.",
+			"detail":       "Node: localhost:9090, severity: critical, state: firing, value: 1",
+			"impact":       "The node might be stuck in a restart cycle and be disrupting the normal scheduling of workloads.",
+			"playbookURL":  "https://github.com/weaveworks/service-conf/blob/master/docs/PLAYBOOK.md#authfe",
+			"summary":      "Kubernetes node has been intermittently available",
+		},
+		ExternalURL: "/api/prom/alertmanager",
+		Alerts:      []types.Alert{alert},
+	}
+
+	eventBytes, err := json.Marshal(event)
+
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "could not marshal event"))
+	}
+
+	response, err := request(fmt.Sprintf("/webhook/%s/monitor", orgID), "POST", eventBytes)
+
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "could not create monitor event"))
+	}
+	responseID := getID(t, response)
+
+	events, err := getEvents()
+
+	if err != nil {
+		t.Fatal(errors.Wrap(err, "could not get events"))
+	}
+
+	var result *types.Event
+	for _, e := range events {
+		if e.ID == responseID {
+			result = &e
+			break
+		}
+	}
+
+	if result == nil {
+		t.Fatalf("expected event id to exist: %v", responseID)
+	}
+
+	var resultData eventmanager.MonitorData
+
+	if err := json.Unmarshal(result.Data, &resultData); err != nil {
+		t.Fatal(errors.Wrap(err, "could not unmarshal event data"))
+	}
+
+	if !reflect.DeepEqual(resultData, data) {
+		t.Errorf("expected monitor event data: %#v, actual data: %#v", data, resultData)
 	}
 
 }

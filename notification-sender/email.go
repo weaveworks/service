@@ -5,15 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/blackfriday"
 	"github.com/weaveworks/service/notification-eventmanager/types"
 	gomail "gopkg.in/gomail.v2"
-	"net/url"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (
@@ -151,11 +152,6 @@ func generateEmailMessage(e types.Event) (types.EmailMessage, error) {
 		// replace it with markdown line break
 		msg.WriteString(strings.Replace(text, "\n", markdownNewline, -1))
 		msg.WriteString(markdownNewParagraph)
-	}
-
-	for _, a := range e.Attachments {
-		msg.WriteString(strings.Replace(a.Body, "\n", markdownNewline, -1))
-		msg.WriteString(markdownNewline)
 	}
 
 	html := string(blackfriday.MarkdownBasic([]byte(msg.String())))
