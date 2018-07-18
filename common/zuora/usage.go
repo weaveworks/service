@@ -59,7 +59,7 @@ var usageImportHistogram = prometheus.NewHistogramVec(
 )
 
 // UploadUsage uploads usage information to Zuora.
-func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (string, error) {
+func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (UsageUploadID, error) {
 	usage := bytes.Buffer{}
 	body := &bytes.Buffer{}
 	// Create a new multipart writer. This is required, because this automates the setting of some funky headers.
@@ -132,6 +132,11 @@ func (z *Zuora) GetUsage(ctx context.Context, zuoraAccountNumber, page, pageSize
 	return resp.Usages, nil
 }
 
+// GetUsageImportStatusURL converts a UsageUploadID to a URL
+func (z *Zuora) GetUsageImportStatusURL(usageUploadID UsageUploadID) string {
+	return z.URL(getImportStatusPath, usageUploadID)
+}
+
 // GetUsageImportStatus returns the Zuora status of a given usage.
 func (z *Zuora) GetUsageImportStatus(ctx context.Context, url string) (*ImportStatusResponse, error) {
 	resp := ImportStatusResponse{}
@@ -169,7 +174,7 @@ func (z *Zuora) WaitForImportFinished(ctx context.Context, statusURL string) (*I
 	return nil, fmt.Errorf("Usage was not imported within %d retries", attempt)
 }
 
-func extractUsageImportID(path string) (string, error) {
+func extractUsageImportID(path string) (UsageUploadID, error) {
 	re := regexp.MustCompile("/v1/usage/([a-z0-9]*)/status")
 	match := re.FindStringSubmatch(path)
 	// match should return 2 elements because the left most match is the entire string.
@@ -177,5 +182,5 @@ func extractUsageImportID(path string) (string, error) {
 	if len(match) != 2 {
 		return "", fmt.Errorf("Could not parse usage import status id path: %v", path)
 	}
-	return match[1], nil
+	return UsageUploadID(match[1]), nil
 }

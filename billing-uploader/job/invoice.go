@@ -71,8 +71,9 @@ func (j *InvoiceUpload) Do() error {
 		invoicesToProcess.Set(float64(len(postTrialInvoices)))
 
 		for _, postTrialInvoice := range postTrialInvoices {
-			usageImportID := postTrialInvoice.UsageImportID
-			usageImportStatusResp, err := j.zuora.GetUsageImportStatus(ctx, usageImportID)
+			usageImportID := zuora.UsageUploadID(postTrialInvoice.UsageImportID)
+			usageImportStatusResp, err := j.zuora.GetUsageImportStatus(
+				ctx, j.zuora.GetUsageImportStatusURL(usageImportID))
 
 			if err != nil {
 				logger.Errorf("Failed to get usage import status, id %v: %v", usageImportID, err)
@@ -114,7 +115,7 @@ func (j *InvoiceUpload) Do() error {
 				}
 			}
 
-			err = j.db.DeletePostTrialInvoice(ctx, usageImportID)
+			err = j.db.DeletePostTrialInvoice(ctx, string(usageImportID))
 			if err != nil {
 				logger.Errorf("Failed to delete post trial invoice %v, %v", usageImportID, err)
 				continue

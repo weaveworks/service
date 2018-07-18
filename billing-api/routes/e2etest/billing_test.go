@@ -297,7 +297,7 @@ func createZuoraAccount(ctx context.Context, z *zuora.Zuora, externalID string, 
 	)
 }
 
-func waitUntilUsageCompleted(ctx context.Context, z *zuora.Zuora, timeout time.Duration, importID string) error {
+func waitUntilUsageCompleted(ctx context.Context, z *zuora.Zuora, timeout time.Duration, importID zuora.UsageUploadID) error {
 	startTime := time.Now().UTC()
 	pollInterval := time.Duration(100 * time.Millisecond)
 	for {

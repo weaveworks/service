@@ -28,6 +28,9 @@ func init() {
 	prometheus.MustRegister(usageImportHistogram)
 }
 
+// UsageUploadID represents the ID of a usage record
+type UsageUploadID string
+
 // Client defines an interface to access the Zuora API.
 type Client interface {
 	GetAuthenticationTokens(ctx context.Context, zuoraAccountNumber string) (*AuthenticationTokens, error)
@@ -48,8 +51,9 @@ type Client interface {
 	GetPayments(ctx context.Context, zuoraAccountNumber string) ([]*PaymentDetails, error)
 	GetPaymentTransactionLog(ctx context.Context, paymentID string) (*PaymentTransaction, error)
 	UpdatePaymentMethod(ctx context.Context, paymentMethodID string) error
-	UploadUsage(ctx context.Context, r io.Reader, id string) (string, error)
+	UploadUsage(ctx context.Context, r io.Reader, id string) (UsageUploadID, error)
 	GetUsage(ctx context.Context, zuoraAccountNumber, page, pageSize string) ([]Usage, error)
+	GetUsageImportStatusURL(usageUploadID UsageUploadID) string
 	GetUsageImportStatus(ctx context.Context, url string) (*ImportStatusResponse, error)
 
 	GetCurrentRates(ctx context.Context) (RateMap, error)
