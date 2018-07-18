@@ -15,8 +15,8 @@ import (
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // Import the postgres migrations driver
 )
 
-// Called before any handlers involving receivers, to initialize receiver defaults for the instance
-// if it hasn't been already.
+// Called before any handlers involving receivers, to initialize
+// the instance with the default receiver (browser).
 func (d DB) checkInstanceDefaults(instanceID string) error {
 	return d.withTx("check_instance_defaults_tx", func(tx *utils.Tx) error {
 		// Test if instance is already initialized
@@ -94,7 +94,7 @@ func (d DB) CreateReceiver(receiver types.Receiver, instanceID string) (string, 
 	return receiverID, nil
 }
 
-// createReceiverTX creates receiver without check for defaults receivers
+// createReceiverTX inserts a receiver.
 func (d DB) createReceiverTX(receiver types.Receiver, instanceID string) (string, error) {
 	// Re-encode the address data because the sql driver doesn't understand json columns
 	// TODO validate this field against the specific receiver type

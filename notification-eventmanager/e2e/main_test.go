@@ -26,7 +26,6 @@ const (
 	wsPath          = "/api/notification/sender"
 	smtpURL         = "http://mailcatcher/messages"
 	orgID           = "mockID"
-	numEventTypes   = 6
 	prefix          = "http://eventmanager/api/notification"
 )
 
