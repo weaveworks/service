@@ -154,7 +154,7 @@ func (c *Config) RegisterFlags(f *flag.FlagSet) {
 	f.IntVar(&c.authCacheSize, "auth.cache.size", 0, "How many entries to cache in the auth client.")
 	f.StringVar(&c.authHTTPURL, "authenticator.httpurl", "http://users:80", "Where to find the authenticator's http service")
 	f.StringVar(&c.authType, "authenticator", "web", "What authenticator to use: web | grpc | mock")
-	f.StringVar(&c.authURL, "authenticator.url", "users:4772", "Where to find web the authenticator service")
+	f.StringVar(&c.authURL, "authenticator.url", "users:4772", "Where to find the authenticator service")
 	f.BoolVar(&c.externalUI, "externalUI", true, "Point to externally hosted static UI assets")
 	f.StringVar(&c.fluentHost, "fluent", "", "Hostname & port for fluent")
 	f.StringVar(&c.listen, "listen", ":80", "HTTP server listen address")

@@ -46,7 +46,7 @@ func (d DB) checkInstanceDefaults(instanceID string) error {
 	})
 }
 
-// ListReceivers returns a list of receivers
+// ListReceivers returns a list of enabled receivers for the given instance.
 func (d DB) ListReceivers(instanceID string) ([]types.Receiver, error) {
 	if err := d.checkInstanceDefaults(instanceID); err != nil {
 		return nil, err

@@ -47,7 +47,7 @@ func (d DB) ListEventTypes(tx *utils.Tx, featureFlags []string) ([]types.EventTy
 	return eventTypes, nil
 }
 
-// SyncEventTypes synchronize event types
+// SyncEventTypes updates the event types in the database.
 func (d DB) SyncEventTypes(eventTypes map[string]types.EventType) error {
 	return d.withTx("sync_event_types_tx", func(tx *utils.Tx) error {
 		oldEventTypes, err := d.ListEventTypes(tx, nil)
