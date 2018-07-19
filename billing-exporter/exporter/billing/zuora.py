@@ -27,6 +27,14 @@ class Zuora(object):
     def get(self, path):
         return self._req('GET', path)
 
+    @lru_cache()
+    def _get_usage_assignment(self, account_id):
+        r = self.get('/v1/subscriptions/accounts/' + account_id)
+        subscription, = r['subscriptions']
+        ratePlan, = subscription['ratePlans']
+        ratePlanCharge, = ratePlan['ratePlanCharges']
+        return subscription['subscriptionNumber'], ratePlanCharge['number']
+
     def get_usage(self, account_id, start, end):
         url = f"{self.base_url}/v1/usage/accounts/{account_id}?pageSize=40"
         while url:
@@ -54,13 +62,8 @@ class Zuora(object):
             else:
                 url = f"{self.base_url}{next_page}"
 
-    @lru_cache()
-    def _get_usage_assignment(self, account_id):
-        r = self.get('/v1/subscriptions/accounts/' + account_id)
-        subscription, = r['subscriptions']
-        ratePlan, = subscription['ratePlans']
-        ratePlanCharge, = ratePlan['ratePlanCharges']
-        return subscription['subscriptionNumber'], ratePlanCharge['number']
+    def delete_usage(self, row):
+        self._req('DELETE', f"/v1/object/usage/{row['id']}")
 
     def upload_usage(self, usage):
         rows = [
