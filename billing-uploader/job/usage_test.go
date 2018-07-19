@@ -50,7 +50,7 @@ func (z *stubZuoraClient) GetProductsUnitSet(ctx context.Context, productIDs []s
 	}, nil
 }
 
-func (z *stubZuoraClient) UploadUsage(ctx context.Context, r io.Reader, id string) (string, error) {
+func (z *stubZuoraClient) UploadUsage(ctx context.Context, r io.Reader, id string) (zuora.UsageUploadID, error) {
 	z.uploadUsage = r
 	return "", z.err
 }

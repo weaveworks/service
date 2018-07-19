@@ -66,7 +66,7 @@ func (a *API) createAccount(w http.ResponseWriter, r *http.Request) error {
 			return err
 		}
 		if usageImportID != "" {
-			err = a.DB.InsertPostTrialInvoice(r.Context(), externalID, account.Number, usageImportID)
+			err = a.DB.InsertPostTrialInvoice(r.Context(), externalID, account.Number, string(usageImportID))
 			if err != nil {
 				return err
 			}
@@ -143,7 +143,7 @@ func (a *API) markOrganizationDutiful(ctx context.Context, logger *log.Entry, ex
 }
 
 // FetchAndUploadUsage gets usage from the database and uploads it to Zuora.
-func (a *API) FetchAndUploadUsage(ctx context.Context, account *zuora.Account, orgID, externalID string, trialExpiry, today time.Time, cycleDay int) (string, error) {
+func (a *API) FetchAndUploadUsage(ctx context.Context, account *zuora.Account, orgID, externalID string, trialExpiry, today time.Time, cycleDay int) (zuora.UsageUploadID, error) {
 	aggs, err := a.getPostTrialChargeableUsage(ctx, orgID, trialExpiry, today)
 	if err != nil {
 		return "", err
@@ -170,7 +170,7 @@ func (a *API) getPostTrialChargeableUsage(ctx context.Context, orgID string, tri
 	return aggs, nil
 }
 
-func (a *API) uploadUsage(ctx context.Context, externalID string, account *zuora.Account, aggs []db.Aggregate, trialExpiry, today time.Time, cycleDay int) (string, error) {
+func (a *API) uploadUsage(ctx context.Context, externalID string, account *zuora.Account, aggs []db.Aggregate, trialExpiry, today time.Time, cycleDay int) (zuora.UsageUploadID, error) {
 	logger := logging.With(ctx)
 	// If the trial expired before today, then we need to upload the gap that would be missed
 	aggs, err := zuora.FilterAggregatesForSubscription(ctx, a.Zuora, aggs, account)
