@@ -71,6 +71,9 @@
       "browser",
       "email",
       "slack"
+    ],
+    "hidden_receiver_types": [
+      "opsgenie"
     ]
   },
   {
@@ -94,5 +97,4 @@
       "opsgenie"
     ]
   }
-]
 ]

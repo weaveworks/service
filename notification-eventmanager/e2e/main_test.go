@@ -20,13 +20,14 @@ import (
 )
 
 const (
-	orgIDHeaderName = "X-Scope-OrgID"
-	AuthCookieName  = "_weave_scope_session"
-	wsHost          = "sender"
-	wsPath          = "/api/notification/sender"
-	smtpURL         = "http://mailcatcher/messages"
-	orgID           = "mockID"
-	prefix          = "http://eventmanager/api/notification"
+	orgIDHeaderName         = "X-Scope-OrgID"
+	AuthCookieName          = "_weave_scope_session"
+	wsHost                  = "sender"
+	wsPath                  = "/api/notification/sender"
+	smtpURL                 = "http://mailcatcher/messages"
+	orgID                   = "mockID"
+	prefix                  = "http://eventmanager/api/notification"
+	hiddenOpsgenieEventType = "config_changed"
 )
 
 type email struct {
@@ -311,6 +312,35 @@ func TestUpdateReceiver(t *testing.T) {
 
 	if string(result.AddressData) != string(newAddress) {
 		t.Errorf("expected updated address to be %v; actual: %v", string(newAddress), string(result.AddressData))
+	}
+
+}
+
+func TestUpdateReceiver_hiddenReceiverType(t *testing.T) {
+	waitForReady(t)
+
+	// create receiver
+	receiver := types.Receiver{RType: types.OpsGenieReceiver, AddressData: json.RawMessage(`"opsgeniekey"`)}
+	data, err := json.Marshal(receiver)
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = request("/config/receivers", "POST", data)
+	if err != nil {
+		t.Error(errors.Wrap(err, "cannot create receiver"))
+	}
+
+	update := types.Receiver{
+		RType:      types.OpsGenieReceiver,
+		EventTypes: []string{hiddenOpsgenieEventType},
+	}
+	data, _ = json.Marshal(update)
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = request("/config/receivers", "PUT", data)
+	if err == nil {
+		t.Error("updating receiver succeeded but it should not have")
 	}
 
 }

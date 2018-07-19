@@ -200,8 +200,9 @@ func (d DB) UpdateReceiver(receiver types.Receiver, instanceID string, featureFl
 		rows, err := tx.Query(
 			"check_new_receiver_event_types",
 			`SELECT unnest FROM unnest($1::text[])
-			WHERE unnest NOT IN (SELECT name FROM event_types WHERE hide_ui_config <> true)`,
+			WHERE unnest NOT IN (SELECT name FROM event_types WHERE hide_ui_config <> true AND $2 <> ALL(hidden_receiver_types))`,
 			pq.Array(receiver.EventTypes),
+			receiver.RType,
 		)
 		if err != nil {
 			return err
