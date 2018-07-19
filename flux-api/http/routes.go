@@ -8,7 +8,6 @@ const (
 	RegisterDeprecated     = "RegisterDeprecated"
 	Ping                   = "Ping"
 	PostIntegrationsGithub = "PostIntegrationsGithub"
-	GitPushNotify          = "GitPushNotify"
 
 	Webhook = "Webhook"
 )

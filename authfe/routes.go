@@ -382,10 +382,6 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				// There is authentication done inside service-ui-kicker itself to ensure requests came from github
 				{"/service-ui-kicker", c.serviceUIKickerHost},
 
-				// Forward Github WebHooks to github-receiver.
-				// There is authentication done inside github-receiver itself to ensure requests came from github
-				{"/github-receiver", c.githubReceiverHost},
-
 				// Final wildcard match to static content
 				{"/", noCacheOnRoot.Wrap(uiServerHandler)},
 			}),
@@ -402,7 +398,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	// * the Cortex alert manager, incorporating tokens would require forking it
 	//   (see https://github.com/weaveworks/service-ui/issues/461#issuecomment-299458350)
 	//   and we don't see alert-silencing as very security-sensitive.
-	// * incoming webhooks (service-ui-kicker, github-receiver, gcp-launcher-webhook and dockerhub),
+	// * incoming webhooks (service-ui-kicker, gcp-launcher-webhook and dockerhub),
 	//   as these are validated by checking HMAC integrity or arbitrary secrets.
 	csrfExemptPrefixes := dataUploadRoutes.AbsolutePrefixes()
 	csrfExemptPrefixes = append(csrfExemptPrefixes, dataAccessRoutes.AbsolutePrefixes()...)
@@ -412,7 +408,6 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/service-ui-kicker",
 		"/api/ui/metrics",
 		"/api/gcp-launcher/webhook",
-		"/github-receiver",
 		`/api/app/[a-zA-Z0-9_-]+/api/prom/alertmanager`, // Regex copy-pasted from users/organization.go
 		"/api/users/signup_webhook",                     // Validated by explicit token in the users service
 		"/webhooks",                                     // POSTed to by external services
