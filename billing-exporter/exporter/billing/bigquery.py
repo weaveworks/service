@@ -4,7 +4,7 @@ from google.cloud.bigquery import QueryJobConfig, ArrayQueryParameter, ScalarQue
 
 from .utils import datetime_ceil_date, datetime_floor_date
 
-QUERY = '''
+_QUERY = '''
 #standardSQL
 SELECT
   internal_instance_id as instance_id,
@@ -30,7 +30,8 @@ ORDER BY
 
 
 def get_daily_aggregates(client, production, orgs, start, end):
-    q = QUERY.format(dataset_suffix='' if production else '_dev')
+    q = _QUERY.format(dataset_suffix='' if production else '_dev')
+    orgs_by_id = {org.internal_id: org for org in orgs}
 
     query_cfg = QueryJobConfig()
     query_cfg.query_parameters = [
@@ -39,12 +40,11 @@ def get_daily_aggregates(client, production, orgs, start, end):
         ScalarQueryParameter('partition_start', 'DATE', datetime_floor_date(start).date()),
         # Extend the partition into the next day so we catch any late usage
         ScalarQueryParameter('partition_end', 'DATE', datetime_ceil_date(end).date() + timedelta(days=1)),
-        ArrayQueryParameter('instance_ids', 'STRING', orgs),
+        # TODO: find a way to pass trial start time into the query
+        ArrayQueryParameter('instance_ids', 'STRING', orgs_by_id.keys()),
     ]
     query_cfg.use_query_cache = True
 
     query_job = client.query(q, job_config=query_cfg)
-    # A dry run query completes immediately.
-    orgs_by_id = {org.internal_id: org for org in orgs}
     for row in query_job.result():
         yield orgs_by_id[row[0]], row[1], row[2], row[3]

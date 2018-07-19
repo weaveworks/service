@@ -13,14 +13,27 @@ def get_org_details(conn, orgs):
 def get_daily_aggregates(conn, orgs, start, end):
     with conn.cursor() as cur:
         q = '''
-        SELECT instance_id, DATE(bucket_start) as day, amount_type, SUM(amount_value) as total
+        WITH instances (instance_id, trial_end) AS (
+            VALUES {orgs}
+        )
+        SELECT aggregates.instance_id, DATE(bucket_start) as day, SUM(amount_value) as total
         FROM aggregates
+        JOIN instances ON CAST(aggregates.instance_id AS INTEGER) = instances.instance_id
+        WHERE amount_type = 'node-seconds'
         AND bucket_start >= {start!r}
         AND bucket_start < {end!r}
-        AND instance_id IN ({orgs})
-        GROUP BY instance_id, day, amount_type
-        ORDER BY instance_id ASC, day DESC, amount_type ASC;
-        '''.format(start=start.isoformat(), end=end.isoformat(), orgs=', '.join(repr(o.interal_id) for o in orgs))
+        AND instances.instance_id IS NOT NULL
+        AND bucket_start > instances.trial_end::timestamp
+        GROUP BY aggregates.instance_id, day, amount_type
+        ORDER BY aggregates.instance_id ASC, day DESC, amount_type ASC;
+        '''.format(
+            start=start.isoformat(),
+            end=end.isoformat(),
+            orgs=', '.join(
+                '({}, {!r})'.format(o.interal_id, o.trial_expires_at)
+                for o in orgs
+            )
+        )
         cur.execute(q)
         orgs_by_id = {org.internal_id: org for org in orgs}
         return [
