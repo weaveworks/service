@@ -231,6 +231,7 @@ func EventFromRow(row scannable, fields []string) (*Event, error) {
 	// sql driver can't convert from postgres json directly to interface{}, have to get as string and re-parse.
 	messagesBuf := []byte{}
 	metadataBuf := []byte{}
+	dataBuf := []byte{}
 
 	var structFields []interface{}
 	for _, f := range fields {
@@ -244,7 +245,7 @@ func EventFromRow(row scannable, fields []string) (*Event, error) {
 		case "timestamp":
 			structFields = append(structFields, &e.Timestamp)
 		case "data":
-			structFields = append(structFields, &e.Data)
+			structFields = append(structFields, &dataBuf)
 		case "messages":
 			structFields = append(structFields, &messagesBuf)
 		case "text":
@@ -268,6 +269,12 @@ func EventFromRow(row scannable, fields []string) (*Event, error) {
 
 	if len(metadataBuf) > 0 {
 		if err := json.Unmarshal(metadataBuf, &e.Metadata); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(dataBuf) > 0 {
+		if err := json.Unmarshal(dataBuf, &e.Data); err != nil {
 			return nil, err
 		}
 	}
