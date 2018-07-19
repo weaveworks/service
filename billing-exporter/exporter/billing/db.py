@@ -1,19 +1,13 @@
+from .model import Org
 
-def get_internal_ids(conn, orgs):
+
+def get_org_details(conn, orgs):
     with conn.cursor() as cur:
         cur.execute(
-            'SELECT external_id, id FROM organizations WHERE external_id IN ({})'.format(
+            'SELECT external_id, id, trial_expires_at, zuora_account_number FROM organizations WHERE external_id IN ({})'.format(
                 ','.join(orgs)
             ))
-        return {row[0]: str(row[1]) for row in cur.fetchall()}
-
-
-def get_zuora_accounts(conn, orgs):
-    with conn.cursor() as cur:
-        cur.execute('SELECT id, zuora_account_number FROM organizations WHERE zuora_account_number IS NOT null AND id IN ({});'.format(
-            ','.join(orgs)
-        ))
-        return {iid: zid for iid, zid in cur.fetchall()}
+        return [Org(row[0], str(row[1]), row[2], row[3]) for row in cur.fetchall()]
 
 
 def get_daily_aggregates(conn, orgs, start, end):
@@ -26,9 +20,10 @@ def get_daily_aggregates(conn, orgs, start, end):
         AND instance_id IN ({orgs})
         GROUP BY instance_id, day, amount_type
         ORDER BY instance_id ASC, day DESC, amount_type ASC;
-        '''.format(start=start.isoformat(), end=end.isoformat(), orgs=', '.join(repr(id) for id in orgs))
+        '''.format(start=start.isoformat(), end=end.isoformat(), orgs=', '.join(repr(o.interal_id) for o in orgs))
         cur.execute(q)
+        orgs_by_id = {org.internal_id: org for org in orgs}
         return [
-            (row[0], row[1], row[2], int(row[3]))
+            (orgs_by_id[row[0]], row[1], row[2], int(row[3]))
             for row in cur.fetchall()
         ]

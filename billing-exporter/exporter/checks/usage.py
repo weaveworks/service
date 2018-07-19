@@ -29,23 +29,23 @@ class UsageCheck(object):
             end = datetime_ceil_date(now  - timedelta(days=1))
 
             with psycopg2.connect(**users_db_creds) as users_conn:
-                internal_ids = db.get_internal_ids(users_conn, org_external_ids)
-            external_ids = {i: e for e, i in internal_ids.items()}
+                orgs = db.get_org_details(users_conn, org_external_ids)
+            orgs_by_internal_id = {org.internal_id: org for org in orgs}
 
             with psycopg2.connect(**billing_db_creds) as billing_conn:
                 aggregates_by_source = {
-                    'bigquery': bigquery.get_daily_aggregates(bq_client, self.production, internal_ids.values(), start, end),
-                    'db': db.get_daily_aggregates(billing_conn, internal_ids.values(), start, end),
-                    'zuora': get_zuora_aggregates(zuora_client, None, internal_ids.values(), start, end),
+                    'bigquery': bigquery.get_daily_aggregates(bq_client, self.production, orgs, start, end),
+                    'db': db.get_daily_aggregates(billing_conn, orgs, start, end),
+                    'zuora': get_zuora_aggregates(zuora_client, None, orgs, start, end),
                 }
 
             for source, aggregates in aggregates_by_source.items():
-                for internal_id, day, unit, value in aggregates:
+                for org, day, unit, value in aggregates:
                     self.usage_gauge.labels(
-                        source=source,
-                        instance=external_ids[internal_id],
-                        days_ago=(today - day).days,
-                        unit=unit
+                            source=source,
+                            instance=org.external_id,
+                            days_ago=(today - day).days,
+                            unit=unit
                         ).set(value)
 
             self.usage_check_time_gauge.set(time.time())
@@ -53,17 +53,14 @@ class UsageCheck(object):
             stop_event.wait(60 * 60 * 24) # it's only worth checking once a day
 
     
-def get_zuora_aggregates(zuora_client, users_db_conn, internal_ids, start, end):
-    # zuora_accounts = db.get_zuora_accounts(users_db_conn, internal_ids)
-    zuora_accounts = {'2': 'Webb5831f5b6f998e183fcec5792a778'}
-
+def get_zuora_aggregates(zuora_client, users_db_conn, orgs, start, end):
     return [
-        (internal_id, date, 'node-seconds', sum(usage['quantity'] for usage in usage_by_day))
-        for internal_id, account_id in sorted(zuora_accounts.items())
+        (org, date, 'node-seconds', sum(usage['quantity'] for usage in usage_by_day))
+        for org in orgs
         for date, usage_by_day in groupby(
             (
                 usage
-                for usage in zuora_client.get_usage(account_id, start, end)
+                for usage in zuora_client.get_usage(org.zuora_account_id, start, end)
                 if usage['unitOfMeasure'] == 'node-seconds'
             ),
             lambda usage:  datetime_floor_date(zuora.parse_datetime(usage['startDateTime'])))

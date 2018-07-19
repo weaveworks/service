@@ -45,4 +45,6 @@ def get_daily_aggregates(client, production, orgs, start, end):
 
     query_job = client.query(q, job_config=query_cfg)
     # A dry run query completes immediately.
-    yield from query_job.result()
+    orgs_by_id = {org.internal_id: org for org in orgs}
+    for row in query_job.result():
+        yield orgs_by_id[row[0]], row[1], row[2], row[3]
