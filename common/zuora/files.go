@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/user"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 
 // ServeFile writes out a file that's stored in Zuora.
 func (z *Zuora) ServeFile(ctx context.Context, w http.ResponseWriter, fileID string) {
-	logger := logging.With(ctx)
+	logger := user.LogWith(ctx, logging.Global())
 	url := z.URL(filesPath, fileID)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

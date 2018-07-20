@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/common/zuora"
 )
@@ -70,7 +71,7 @@ func (a *API) mangleInvoice(orgID string, invoice zuora.Invoice) (zuora.Invoice,
 
 // GetAccountInvoices gets the invoices for an account.
 func (a *API) GetAccountInvoices(w http.ResponseWriter, r *http.Request) {
-	logger := logging.With(r.Context())
+	logger := user.LogWith(r.Context(), logging.Global())
 	externalID := mux.Vars(r)["id"]
 	resp, err := a.getOrganization(r.Context(), externalID)
 	if err != nil {

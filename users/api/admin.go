@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/logging"
+	commonuser "github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/common/render"
@@ -88,7 +89,7 @@ func (a *API) adminListUsers(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if _, err := w.Write(b); err != nil {
-			logging.With(r.Context()).Warnf("list users: %v", err)
+			commonuser.LogWith(r.Context(), logging.Global()).Warnf("list users: %v", err)
 		}
 	}
 }
@@ -120,7 +121,7 @@ func (a *API) adminListUsersForOrganization(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if _, err := w.Write(b); err != nil {
-		logging.With(r.Context()).Warnf("list users: %v", err)
+		commonuser.LogWith(r.Context(), logging.Global()).Warnf("list users: %v", err)
 	}
 }
 
@@ -173,7 +174,7 @@ func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := w.Write(b); err != nil {
-		logging.With(r.Context()).Warnf("list organizations: %v", err)
+		commonuser.LogWith(r.Context(), logging.Global()).Warnf("list organizations: %v", err)
 	}
 }
 
@@ -205,7 +206,7 @@ func (a *API) adminListOrganizationsForUser(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if _, err := w.Write(b); err != nil {
-		logging.With(r.Context()).Warnf("list organizations: %v", err)
+		commonuser.LogWith(r.Context(), logging.Global()).Warnf("list organizations: %v", err)
 	}
 }
 
@@ -311,7 +312,7 @@ func (a *API) adminMakeUserAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) adminBecomeUser(w http.ResponseWriter, r *http.Request) {
-	logging.With(r.Context()).Info(r)
+	commonuser.LogWith(r.Context(), logging.Global()).Infoln(r)
 	vars := mux.Vars(r)
 	userID, ok := vars["userID"]
 	if !ok {

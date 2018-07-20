@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/common/constants/billing"
@@ -38,7 +38,7 @@ type createAccountRequest struct {
 
 func (a *API) createAccount(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
-	logger := logging.With(ctx)
+	logger := user.LogWith(ctx, logging.Global())
 	req, err := a.deserializeCreateAccountRequest(logger, r)
 	if err != nil {
 		return err
@@ -77,7 +77,7 @@ func (a *API) createAccount(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (a *API) deserializeCreateAccountRequest(logger *log.Entry, r *http.Request) (*createAccountRequest, error) {
+func (a *API) deserializeCreateAccountRequest(logger logging.Interface, r *http.Request) (*createAccountRequest, error) {
 	req := &createAccountRequest{}
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		logger.Errorf("Failed to deserialise %v: %v", r.Body, err)
@@ -91,13 +91,13 @@ func (a *API) getOrganization(ctx context.Context, externalID string) (*users.Ge
 		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: externalID},
 	})
 	if err != nil {
-		logging.With(ctx).Errorf("Failed to get organization for %v: %v", externalID, err)
+		user.LogWith(ctx, logging.Global()).Errorf("Failed to get organization for %v: %v", externalID, err)
 		return nil, err
 	}
 	return resp, nil
 }
 
-func (a *API) createZuoraAccount(ctx context.Context, logger *log.Entry, req *createAccountRequest, resp *users.GetOrganizationResponse) (*zuora.Account, error) {
+func (a *API) createZuoraAccount(ctx context.Context, logger logging.Interface, req *createAccountRequest, resp *users.GetOrganizationResponse) (*zuora.Account, error) {
 	logger.Infof("Creating Zuora account for %v", req.WeaveID)
 	account, err := a.Zuora.CreateAccount(
 		ctx,
@@ -120,7 +120,7 @@ func (a *API) createZuoraAccount(ctx context.Context, logger *log.Entry, req *cr
 }
 
 // markOrganizationDutiful tells the user service that the organization is no longer delinquent.
-func (a *API) markOrganizationDutiful(ctx context.Context, logger *log.Entry, externalID, zuoraAccountNumber string) {
+func (a *API) markOrganizationDutiful(ctx context.Context, logger logging.Interface, externalID, zuoraAccountNumber string) {
 	var err error
 	_, err = a.Users.SetOrganizationZuoraAccount(ctx, &users.SetOrganizationZuoraAccountRequest{
 		ExternalID: externalID, Number: zuoraAccountNumber,
@@ -159,7 +159,7 @@ func (a *API) FetchAndUploadUsage(ctx context.Context, account *zuora.Account, o
 }
 
 func (a *API) getPostTrialChargeableUsage(ctx context.Context, orgID string, trialExpiry, today time.Time) ([]db.Aggregate, error) {
-	logger := logging.With(ctx)
+	logger := user.LogWith(ctx, logging.Global())
 	logger.Infof("Querying post-trial usage data for %v, %v -> %v", orgID, trialExpiry, today)
 	aggs, err := a.DB.GetAggregates(ctx, orgID, trialExpiry, today)
 	if err != nil {
@@ -171,7 +171,7 @@ func (a *API) getPostTrialChargeableUsage(ctx context.Context, orgID string, tri
 }
 
 func (a *API) uploadUsage(ctx context.Context, externalID string, account *zuora.Account, aggs []db.Aggregate, trialExpiry, today time.Time, cycleDay int) (string, error) {
-	logger := logging.With(ctx)
+	logger := user.LogWith(ctx, logging.Global())
 	// If the trial expired before today, then we need to upload the gap that would be missed
 	aggs, err := zuora.FilterAggregatesForSubscription(ctx, a.Zuora, aggs, account)
 	if err != nil {
@@ -401,7 +401,7 @@ func getBillingStatus(ctx context.Context, trialInfo trial.Trial, acct *zuora.Ac
 	}
 	// At this point, we know the account is active.
 	if acct.PaymentStatus.Status != zuora.PaymentOK {
-		logging.With(ctx).
+		user.LogWith(ctx, logging.Global()).
 			WithField("payment_status", acct.PaymentStatus).
 			WithField("zuora_id", acct.ZuoraID).
 			WithField("zuora_number", acct.Number).

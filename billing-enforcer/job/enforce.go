@@ -13,6 +13,7 @@ import (
 	"flag"
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/users"
@@ -86,7 +87,7 @@ func (j *Enforce) Do() error {
 
 // NotifyTrialOrganizations sends emails to organizations for pending trial expiry.
 func (j *Enforce) NotifyTrialOrganizations(ctx context.Context, now time.Time) error {
-	logger := logging.With(ctx)
+	logger := user.LogWith(ctx, logging.Global())
 
 	resp, err := j.users.GetTrialOrganizations(ctx, &users.GetTrialOrganizationsRequest{
 		Now: now,
@@ -146,7 +147,7 @@ func (j *Enforce) NotifyTrialOrganizations(ctx context.Context, now time.Time) e
 // It also makes sure their RefuseDataAccess flag is set and if delinquent for more than
 // 15 days, RefuseDataUpload is set.
 func (j *Enforce) ProcessDelinquentOrganizations(ctx context.Context, now time.Time) error {
-	logger := logging.With(ctx)
+	logger := user.LogWith(ctx, logging.Global())
 
 	resp, err := j.users.GetDelinquentOrganizations(ctx, &users.GetDelinquentOrganizationsRequest{
 		Now: now,
@@ -215,7 +216,7 @@ func (j *Enforce) refuseDataAccess(ctx context.Context, org users.Organization, 
 		Flag:       orgs.RefuseDataAccess,
 		Value:      true,
 	})
-	logger := logging.With(ctx)
+	logger := user.LogWith(ctx, logging.Global())
 	if err == nil {
 		logger.Infof("Refused data access for organization: %s", org.ExternalID)
 	} else {
@@ -236,7 +237,7 @@ func (j *Enforce) refuseDataUpload(ctx context.Context, org users.Organization, 
 		Value:      true,
 	})
 
-	logger := logging.With(ctx)
+	logger := user.LogWith(ctx, logging.Global())
 	if err == nil {
 		logger.Infof("Refused data upload for organization: %s", org.ExternalID)
 	} else {

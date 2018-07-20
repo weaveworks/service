@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/common/constants/billing"
 	"github.com/weaveworks/service/common/render"
@@ -85,7 +86,7 @@ func renderPage(w http.ResponseWriter, status int, instanceID, result, csrfToken
 
 //  assertInvoiceVerified checks if invoice quantities and charge amounts match the same values in usage records otherwise it returns an error
 func assertInvoiceVerified(ctx context.Context, a *API, weaveOrgID string, numInvoices int) error {
-	logger := logging.With(ctx)
+	logger := user.LogWith(ctx, logging.Global())
 
 	resp, err := a.Users.GetOrganization(ctx, &users.GetOrganizationRequest{
 		ID: &users.GetOrganizationRequest_ExternalID{ExternalID: weaveOrgID},

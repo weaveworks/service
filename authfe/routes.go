@@ -17,7 +17,6 @@ import (
 	"github.com/justinas/nosurf"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
-	logrus "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/middleware"
@@ -61,7 +60,7 @@ var noopHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) 
 func mustSplitHostname(r *http.Request) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		logging.With(r.Context()).Errorf("Error splitting '%s': %v", r.RemoteAddr, err)
+		user.LogWith(r.Context(), logging.Global()).Errorf("Error splitting '%s': %v", r.RemoteAddr, err)
 	}
 	return host
 }
@@ -589,11 +588,11 @@ func (o originCheckerMiddleware) Wrap(next http.Handler) http.Handler {
 		return next
 	}
 
-	headerMatchesTarget := func(headerName string, r *http.Request) bool {
+	headerMatchesTarget := func(headerName string, r *http.Request, logger logging.Interface) bool {
 		if headerValue := r.Header.Get(headerName); headerValue != "" {
 			url, err := url.Parse(headerValue)
 			if err != nil {
-				logging.With(r.Context()).Warnf("originCheckerMiddleware: Cannot parse %s header: %v", headerName, err)
+				logger.Warnf("originCheckerMiddleware: Cannot parse %s header: %v", headerName, err)
 				return false
 			}
 			if o.allowedOrigin != "" && url.Host == o.allowedOrigin {
@@ -614,11 +613,12 @@ func (o originCheckerMiddleware) Wrap(next http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := user.LogWith(r.Context(), logging.Global())
 		// Verify that origin or referer headers (when present) match the expected target
-		permitted := isSafeMethod(r.Method) || (headerMatchesTarget("Origin", r) && headerMatchesTarget("Referer", r))
+		permitted := isSafeMethod(r.Method) || (headerMatchesTarget("Origin", r, logger) && headerMatchesTarget("Referer", r, logger))
 
-		logging.With(r.Context()).WithFields(
-			logrus.Fields{
+		logger.WithFields(
+			logging.Fields{
 				"URL":                   r.URL,
 				"Method":                r.Method,
 				"Origin":                r.Header.Get("Origin"),
@@ -650,7 +650,7 @@ func (a AuthHeaderStrippingMiddleware) Wrap(next http.Handler) http.Handler {
 	removeHeader := func(headerName string, r *http.Request) {
 		value := r.Header.Get(headerName)
 		if value != "" {
-			logging.With(r.Context()).Debugf("AuthHeaderStrippingMiddleware: Stripped auth header from incoming request (%s: %s) URL: %s Referer: %s",
+			user.LogWith(r.Context(), logging.Global()).Debugf("AuthHeaderStrippingMiddleware: Stripped auth header from incoming request (%s: %s) URL: %s Referer: %s",
 				headerName, value, r.URL, r.Referer())
 			r.Header.Del(headerName)
 		}
