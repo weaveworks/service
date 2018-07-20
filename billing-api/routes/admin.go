@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/common/featureflag"
@@ -38,26 +38,26 @@ func (a *API) ExportOrgsAndUsageAsCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger := logging.With(r.Context()).WithFields(log.Fields{"from": fromStr, "to": toStr})
-	logger.Info("csv export: getting summary from users service")
+	logger := user.LogWith(r.Context(), logging.Global()).WithFields(logging.Fields{"from": fromStr, "to": toStr})
+	logger.Infoln("csv export: getting summary from users service")
 	summary, err := a.Users.GetSummary(r.Context(), &users.Empty{})
 	if err != nil {
-		logger.WithField("err", err).Error("csv export: failed to get summary from users service")
+		logger.WithField("err", err).Errorln("csv export: failed to get summary from users service")
 		renderError(w, r, err)
 		return
 	}
-	logger.Info("csv export: successfully got summary from users service")
+	logger.Infoln("csv export: successfully got summary from users service")
 
 	orgIDs := orgIDs(summary.Entries)
-	logger.WithField("num_orgs", len(orgIDs)).Info("csv export: getting usage from billing-db")
+	logger.WithField("num_orgs", len(orgIDs)).Infoln("csv export: getting usage from billing-db")
 	sums, err := a.DB.GetMonthSums(r.Context(), orgIDs, from, to)
 
 	if err != nil {
-		logger.WithField("err", err).Error("csv export: failed to get usage from billing-db")
+		logger.WithField("err", err).Errorln("csv export: failed to get usage from billing-db")
 		renderError(w, r, err)
 		return
 	}
-	logger.Info("csv export: successfully got usage from billing-db")
+	logger.Infoln("csv export: successfully got usage from billing-db")
 
 	instanceMonthSums, amountTypesMap := processSums(sums)
 	amountTypes, _ := processAmountTypes(amountTypesMap)
@@ -135,7 +135,7 @@ func toString(t *time.Time) string {
 	return t.Format(time.RFC3339)
 }
 
-func renderCSV(w http.ResponseWriter, csvLines [][]string, logger *log.Entry) {
+func renderCSV(w http.ResponseWriter, csvLines [][]string, logger logging.Interface) {
 	buffer := &bytes.Buffer{}
 	csvWriter := csv.NewWriter(buffer)
 	csvWriter.WriteAll(csvLines)
@@ -145,9 +145,9 @@ func renderCSV(w http.ResponseWriter, csvLines [][]string, logger *log.Entry) {
 	bytesCSV := buffer.Bytes()
 	bytesWritten, err := w.Write(bytesCSV)
 	if err != nil {
-		logger.WithField("err", err).Error("csv export: failed to write csv")
+		logger.WithField("err", err).Errorln("csv export: failed to write csv")
 	} else {
-		logger.WithFields(log.Fields{"bytesCSV": len(bytesCSV), "bytesWritten": bytesWritten}).Info("csv export: successfully wrote csv")
+		logger.WithFields(logging.Fields{"bytesCSV": len(bytesCSV), "bytesWritten": bytesWritten}).Infoln("csv export: successfully wrote csv")
 	}
 }
 
@@ -197,7 +197,7 @@ func (a *API) Admin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	instanceMonthSums, amountTypesMap := processSums(sums)
-	logging.With(r.Context()).Debugf("instanceMonthSums: %#v", instanceMonthSums)
+	user.LogWith(r.Context(), logging.Global()).Debugf("instanceMonthSums: %#v", instanceMonthSums)
 	amountTypes, colors := processAmountTypes(amountTypesMap)
 	months := months(from, to)
 

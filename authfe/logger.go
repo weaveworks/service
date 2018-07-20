@@ -24,12 +24,13 @@ func newLauncherServiceLogger(usersClient users.UsersClient) HTTPEventExtractor 
 
 		externalID := r.URL.Query().Get("instanceID")
 		if externalID != "" {
+			ctx := r.Context()
 			// Lookup the internal OrgID
-			response, err := usersClient.GetOrganization(r.Context(), &users.GetOrganizationRequest{
+			response, err := usersClient.GetOrganization(ctx, &users.GetOrganizationRequest{
 				ID: &users.GetOrganizationRequest_ExternalID{ExternalID: externalID},
 			})
 			if err != nil {
-				logging.With(r.Context()).Errorf("launcherServiceLogger: Failed to lookup externalID: %s", externalID)
+				user.LogWith(ctx, logging.Global()).Errorf("launcherServiceLogger: Failed to lookup externalID: %s", externalID)
 			} else {
 				orgID = response.Organization.ID
 			}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/common/zuora"
 	"github.com/weaveworks/service/users"
@@ -61,7 +62,7 @@ func (j *InvoiceUpload) Run() {
 // Do starts the job and returns an error if it fails.
 func (j *InvoiceUpload) Do() error {
 	return instrument.CollectedRequest(context.Background(), "InvoiceUpload.Do", j.collector, nil, func(ctx context.Context) error {
-		logger := logging.With(ctx)
+		logger := user.LogWith(ctx, logging.Global())
 
 		postTrialInvoices, err := j.db.GetPostTrialInvoices(ctx)
 		if err != nil {
@@ -81,7 +82,7 @@ func (j *InvoiceUpload) Do() error {
 			}
 
 			if usageImportStatusResp.ImportStatus != zuora.Completed {
-				logger.Warningf("Usage state is %v instead of Completed, id %v", usageImportStatusResp.ImportStatus, usageImportID)
+				logger.Warnf("Usage state is %v instead of Completed, id %v", usageImportStatusResp.ImportStatus, usageImportID)
 				continue
 			}
 
