@@ -214,7 +214,7 @@ func TestListEventTypes(t *testing.T) {
 func TestCreateReceiver(t *testing.T) {
 	waitForReady(t)
 
-	_, err := postEmailReceiver(`"integration@test.com"`)
+	_, err := postEmailReceiver(`"integration@weave.test"`)
 	assert.NoError(t, err)
 }
 
@@ -228,7 +228,7 @@ func TestCreateReceiver_MultipleEmails(t *testing.T) {
 func TestGetReceiver(t *testing.T) {
 	waitForReady(t)
 
-	address := `"integration@test.com"`
+	address := `"integration@weave.test"`
 	response, err := postEmailReceiver(address)
 	assert.NoError(t, err)
 
@@ -246,11 +246,11 @@ func TestUpdateReceiver(t *testing.T) {
 	waitForReady(t)
 
 	// Create an initial receiver
-	address := `"integration@test.com"`
+	address := `"integration@weave.test"`
 	response, err := postEmailReceiver(address)
 	assert.NoError(t, err)
 
-	newAddress := json.RawMessage(`"foo@bar.com"`)
+	newAddress := json.RawMessage(`"foo@weave.test"`)
 
 	newReceiver := types.Receiver{
 		RType:       types.EmailReceiver,
@@ -279,7 +279,7 @@ func TestUpdateReceiver(t *testing.T) {
 func TestDeleteReceiver(t *testing.T) {
 	waitForReady(t)
 
-	response, err := postEmailReceiver(`"integration@test.com"`)
+	response, err := postEmailReceiver(`"integration@weave.test"`)
 	assert.NoError(t, err)
 
 	url := fmt.Sprintf("/config/receivers/%s", getID(t, response))
@@ -606,7 +606,7 @@ func TestReceiver_RemoveAllEventTypes(t *testing.T) {
 	waitForReady(t)
 
 	// Create an initial receiver
-	address := `"integration@test.com"`
+	address := `"integration@weave.test"`
 	response, err := postEmailReceiver(address)
 	assert.NoError(t, err)
 
@@ -643,7 +643,7 @@ func TestReceiver_NoHiddenEventTypes(t *testing.T) {
 	waitForReady(t)
 
 	// Create an initial receiver
-	address := `"integration@test.com"`
+	address := `"integration@weave.test"`
 	response, err := postEmailReceiver(address)
 	assert.NoError(t, err)
 
