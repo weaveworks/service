@@ -9,12 +9,13 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/weaveworks/service/notification-eventmanager/eventmanager"
 	"github.com/weaveworks/service/notification-eventmanager/types"
 )
@@ -201,40 +202,27 @@ func TestListEventTypes(t *testing.T) {
 	waitForReady(t)
 
 	data, err := request("/config/eventtypes", "GET", nil)
-	if err != nil {
-		t.Error(errors.Wrap(err, "cannot get event types"))
-	}
+	assert.NoError(t, err)
 
 	var eventTypes []types.EventType
 	err = json.Unmarshal(data, &eventTypes)
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "cannot unmarshal event types"))
-	}
+	assert.NoError(t, err)
 
-	if len(eventTypes) == 0 {
-		t.Errorf("expected eventTypes length to be greater than zero; received: %v", len(eventTypes))
-	}
-
+	assert.True(t, len(eventTypes) > 0)
 }
 
 func TestCreateReceiver(t *testing.T) {
 	waitForReady(t)
 
 	_, err := postEmailReceiver(`"integration@test.com"`)
-
-	if err != nil {
-		t.Error(errors.Wrap(err, "cannot create receiver"))
-	}
+	assert.NoError(t, err)
 }
 
 func TestCreateReceiver_MultipleEmails(t *testing.T) {
 	waitForReady(t)
 
 	_, err := postEmailReceiver(`"0@weave.test,1@weave.test"`)
-
-	if err != nil {
-		t.Error(errors.Wrap(err, "cannot create receiver"))
-	}
+	assert.NoError(t, err)
 }
 
 func TestGetReceiver(t *testing.T) {
@@ -242,27 +230,16 @@ func TestGetReceiver(t *testing.T) {
 
 	address := `"integration@test.com"`
 	response, err := postEmailReceiver(address)
-
-	if err != nil {
-		t.Error(errors.Wrap(err, "cannot create receiver"))
-	}
+	assert.NoError(t, err)
 
 	res, err := request(fmt.Sprintf("/config/receivers/%s", getID(t, response)), "GET", nil)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not GET receiver"))
-	}
+	assert.NoError(t, err)
 
 	var result types.Receiver
 	err = json.Unmarshal(res, &result)
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not unmarshal receiver"))
-	}
-
-	if string(result.AddressData) != address {
-		t.Errorf("expected receiver address data to be %v; actual %v", string(address), string(result.AddressData))
-	}
+	assert.Equal(t, address, string(result.AddressData))
 }
 
 func TestUpdateReceiver(t *testing.T) {
@@ -271,10 +248,7 @@ func TestUpdateReceiver(t *testing.T) {
 	// Create an initial receiver
 	address := `"integration@test.com"`
 	response, err := postEmailReceiver(address)
-
-	if err != nil {
-		t.Error(errors.Wrap(err, "could not create receiver"))
-	}
+	assert.NoError(t, err)
 
 	newAddress := json.RawMessage(`"foo@bar.com"`)
 
@@ -284,92 +258,57 @@ func TestUpdateReceiver(t *testing.T) {
 		EventTypes:  []string{"info"},
 	}
 	data, err := json.Marshal(newReceiver)
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not marshal new receiver data"))
-	}
 	url := fmt.Sprintf("/config/receivers/%s", getID(t, response))
 	// Update with new address data
 	_, err = request(url, "PUT", data)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "update receiver request failed"))
-	}
+	assert.NoError(t, err)
 
 	// Request the update record
 	res, err := request(url, "GET", nil)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not retrieve updated recevier"))
-	}
+	assert.NoError(t, err)
 
 	var result types.Receiver
 	err = json.Unmarshal(res, &result)
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not unmarshal receiver"))
-	}
-
-	if string(result.AddressData) != string(newAddress) {
-		t.Errorf("expected updated address to be %v; actual: %v", string(newAddress), string(result.AddressData))
-	}
-
+	assert.Equal(t, string(newAddress), string(result.AddressData))
 }
 
 func TestDeleteReceiver(t *testing.T) {
 	waitForReady(t)
 
 	response, err := postEmailReceiver(`"integration@test.com"`)
-
-	if err != nil {
-		t.Error(errors.Wrap(err, "could not create receiver"))
-	}
+	assert.NoError(t, err)
 
 	url := fmt.Sprintf("/config/receivers/%s", getID(t, response))
 	_, err = request(url, "DELETE", nil)
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not delete receiver"))
-	}
 	_, err = request(url, "GET", nil)
-
-	if err == nil {
-		t.Error(errors.Wrap(err, "expected a 404"))
-	}
-
+	assert.Error(t, err)
 }
 
 func TestGetEvents(t *testing.T) {
 	waitForReady(t)
 
 	_, err := request("/testevent", "POST", nil)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not create test event"))
-	}
+	assert.NoError(t, err)
 
 	events, err := getEvents()
-
-	if len(events) == 0 {
-		t.Errorf("expected at least one event")
-	}
-
+	assert.NoError(t, err)
+	assert.True(t, len(events) > 0)
 }
 
 func TestCreateTestEvent(t *testing.T) {
 	waitForReady(t)
 
 	_, err := request("/testevent", "POST", nil)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not create test event"))
-	}
+	assert.NoError(t, err)
 
 	events, err := getEvents()
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not get events"))
-	}
+	assert.NoError(t, err)
 
 	exists := false
 	var result types.Event
@@ -379,22 +318,15 @@ func TestCreateTestEvent(t *testing.T) {
 			result = event
 		}
 	}
-
-	if exists == false {
-		t.Error("expected test event to exist")
-	}
+	assert.True(t, exists)
 
 	data := eventmanager.UserTestData{UserEmail: "mock-user@example.org"}
 	var resultData eventmanager.UserTestData
 
-	if err := json.Unmarshal(result.Data, &resultData); err != nil {
-		t.Fatal(errors.Wrap(err, "could not unmarshal event data"))
-	}
+	err = json.Unmarshal(result.Data, &resultData)
+	assert.NoError(t, err)
 
-	if !reflect.DeepEqual(resultData, data) {
-		t.Errorf("expected test event data: %#v, actual data: %#v", data, resultData)
-	}
-
+	assert.Equal(t, data, resultData)
 }
 
 func TestCreateEvent(t *testing.T) {
@@ -408,21 +340,12 @@ func TestCreateEvent(t *testing.T) {
 	}
 
 	eventBytes, err := json.Marshal(event)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not marshal event"))
-	}
+	assert.NoError(t, err)
 
 	id, err := request("/events", "POST", eventBytes)
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not create event"))
-	}
-
-	if len(id) == 0 {
-		t.Errorf("expected id to exist; actual: %s", id)
-	}
-
+	assert.True(t, len(id) > 0)
 }
 
 func TestCreateEvent_Slack(t *testing.T) {
@@ -433,25 +356,17 @@ func TestCreateEvent_Slack(t *testing.T) {
 	}
 
 	slackBytes, err := json.Marshal(msg)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not marshal event"))
-	}
+	assert.NoError(t, err)
 
 	url := fmt.Sprintf("/slack/%v/info", orgID)
 
 	response, err := request(url, "POST", slackBytes)
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not create event"))
-	}
 	responseID := getID(t, response)
 
 	events, err := getEvents()
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not get events"))
-	}
+	assert.NoError(t, err)
 
 	var result *types.Event
 	for _, e := range events {
@@ -460,15 +375,8 @@ func TestCreateEvent_Slack(t *testing.T) {
 			break
 		}
 	}
-
-	if result == nil {
-		t.Fatalf("expected event id to exist: %v", responseID)
-	}
-
-	if result.Type != "info" {
-		t.Errorf("expected event to have type 'info'; actual: %#v", result.Type)
-	}
-
+	assert.NotNil(t, result)
+	assert.Equal(t, "info", result.Type)
 }
 
 func TestCreateEvent_External(t *testing.T) {
@@ -482,23 +390,15 @@ func TestCreateEvent_External(t *testing.T) {
 	}
 
 	eventBytes, err := json.Marshal(event)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not marshal event"))
-	}
+	assert.NoError(t, err)
 
 	response, err := request("/external/events", "POST", eventBytes)
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not create external event"))
-	}
 	responseID := getID(t, response)
 
 	events, err := getEvents()
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not get events"))
-	}
+	assert.NoError(t, err)
 
 	var result *types.Event
 	for _, e := range events {
@@ -508,14 +408,9 @@ func TestCreateEvent_External(t *testing.T) {
 		}
 	}
 
-	if result == nil {
-		t.Fatalf("expected event id to exist: %v", responseID)
+	if assert.NotNil(t, result) {
+		assert.Equal(t, text, *result.Text)
 	}
-
-	if *result.Text != text {
-		t.Errorf("expected event text to equal %v; actual: %v", text, result.Text)
-	}
-
 }
 
 func TestCreateMonitorEvent(t *testing.T) {
@@ -592,23 +487,15 @@ func TestCreateMonitorEvent(t *testing.T) {
 	}
 
 	eventBytes, err := json.Marshal(event)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not marshal event"))
-	}
+	assert.NoError(t, err)
 
 	response, err := request(fmt.Sprintf("/webhook/%s/monitor", orgID), "POST", eventBytes)
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not create monitor event"))
-	}
 	responseID := getID(t, response)
 
 	events, err := getEvents()
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not get events"))
-	}
+	assert.NoError(t, err)
 
 	var result *types.Event
 	for _, e := range events {
@@ -617,21 +504,13 @@ func TestCreateMonitorEvent(t *testing.T) {
 			break
 		}
 	}
-
-	if result == nil {
-		t.Fatalf("expected event id to exist: %v", responseID)
-	}
+	assert.NotNil(t, result)
 
 	var resultData eventmanager.MonitorData
 
-	if err := json.Unmarshal(result.Data, &resultData); err != nil {
-		t.Fatal(errors.Wrap(err, "could not unmarshal event data"))
-	}
-
-	if !reflect.DeepEqual(resultData, data) {
-		t.Errorf("expected monitor event data: %#v, actual data: %#v", data, resultData)
-	}
-
+	err = json.Unmarshal(result.Data, &resultData)
+	assert.NoError(t, err)
+	assert.Equal(t, data, resultData)
 }
 
 func TestReceiver_Browser(t *testing.T) {
@@ -652,25 +531,18 @@ func TestReceiver_Browser(t *testing.T) {
 	header.Set(orgIDHeaderName, orgID)
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), header)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not dial websocket"))
-	}
+	assert.NoError(t, err)
 
 	go func() {
 		for {
 			defer closeWebsocket(c)
 			_, message, err := c.ReadMessage()
-			if err != nil {
-				t.Fatal(errors.Wrap(err, "could not read from websocket"))
-				return
-			}
-			var e *types.Event
-			err = json.Unmarshal(message, &e)
+			assert.NoError(t, err)
 
-			if err != nil {
-				t.Fatal(errors.Wrap(err, "could not unmarshal from websocket"))
-			}
+			var e *types.Event
+
+			err = json.Unmarshal(message, &e)
+			assert.NoError(t, err)
 			// This is a hack to ensure that we check only for the event that is created in this test case.
 			// If any other test cases use a "critical" event, this will break :(
 			// The correct way to do this would be to tear down and rebuild the environment for every case.
@@ -682,31 +554,17 @@ func TestReceiver_Browser(t *testing.T) {
 	}()
 
 	bytes, err := json.Marshal(event)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not marshal event"))
-	}
+	assert.NoError(t, err)
 
 	response, err := request("/events", "POST", bytes)
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not create event"))
-	}
 	responseID := getID(t, response)
 
 	result := <-notifs
 
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not unmarshal notification"))
-	}
-
-	if result == nil {
-		t.Fatal("expected event to exist")
-	}
-
-	if result.ID != responseID {
-		t.Errorf("expected event ID to be %v; actual: %#v", responseID, result.ID)
-	}
+	assert.NotNil(t, result)
+	assert.Equal(t, responseID, result.ID)
 }
 
 func TestReceiver_Email(t *testing.T) {
@@ -718,9 +576,7 @@ func TestReceiver_Email(t *testing.T) {
 
 	go func() {
 		message, err := waitForEmail(`"a@weave.test"`, `"b@weave.test"`)
-
 		if err != nil {
-			t.Error(errors.Wrap(err, "could not wait for emails"))
 			emails <- nil
 			return
 		}
@@ -735,26 +591,15 @@ func TestReceiver_Email(t *testing.T) {
 	}
 
 	bytes, err := json.Marshal(event)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not marshal event"))
-	}
+	assert.NoError(t, err)
 
 	_, err = request("/events", "POST", bytes)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not create event"))
-	}
+	assert.NoError(t, err)
 
 	email := <-emails
+	assert.NotNil(t, email)
 
-	if email == nil {
-		t.Fatal("no email found")
-	}
-
-	if email.Sender != "<support@weave.works>" {
-		t.Fatalf("expected sender to be <support@weave.works> but got %q", email.Sender)
-	}
+	assert.Equal(t, "<support@weave.works>", email.Sender)
 }
 
 func TestReceiver_RemoveAllEventTypes(t *testing.T) {
@@ -763,10 +608,7 @@ func TestReceiver_RemoveAllEventTypes(t *testing.T) {
 	// Create an initial receiver
 	address := `"integration@test.com"`
 	response, err := postEmailReceiver(address)
-
-	if err != nil {
-		t.Error(errors.Wrap(err, "could not create receiver"))
-	}
+	assert.NoError(t, err)
 
 	data, err := json.Marshal(types.Receiver{
 		RType:       types.EmailReceiver,
@@ -774,38 +616,23 @@ func TestReceiver_RemoveAllEventTypes(t *testing.T) {
 		// No event types!
 		EventTypes: []string{},
 	})
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not marshal new receiver data"))
-	}
+	assert.NoError(t, err)
 
 	url := fmt.Sprintf("/config/receivers/%s", getID(t, response))
 	// Update with empty event types
-	_, err = request(url, "PUT", data)
-
 	// Will 404 if not working correctly
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "update receiver request failed"))
-	}
-
+	_, err = request(url, "PUT", data)
+	assert.NoError(t, err)
 	receiverBytes, err := request(url, "GET", nil)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not get updated receiver"))
-	}
+	assert.NoError(t, err)
 
 	var receiver types.Receiver
 	err = json.Unmarshal(receiverBytes, &receiver)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not unmarshal receiver bytes"))
-	}
+	assert.NoError(t, err)
 
 	if len(receiver.EventTypes) > 0 {
 		for _, et := range receiver.EventTypes {
-			if et == "info" {
-				t.Fatal("expected 'info' event type to not exist")
-			}
+			assert.NotEqual(t, "info", et)
 		}
 	}
 
@@ -818,10 +645,7 @@ func TestReceiver_NoHiddenEventTypes(t *testing.T) {
 	// Create an initial receiver
 	address := `"integration@test.com"`
 	response, err := postEmailReceiver(address)
-
-	if err != nil {
-		t.Error(errors.Wrap(err, "could not create receiver"))
-	}
+	assert.NoError(t, err)
 
 	data, err := json.Marshal(types.Receiver{
 		RType:       types.EmailReceiver,
@@ -829,38 +653,23 @@ func TestReceiver_NoHiddenEventTypes(t *testing.T) {
 		// No event types!
 		EventTypes: []string{},
 	})
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not marshal new receiver data"))
-	}
+	assert.NoError(t, err)
 
 	url := fmt.Sprintf("/config/receivers/%s", getID(t, response))
 	// Update with empty event types
-	_, err = request(url, "PUT", data)
-
 	// Will 404 if not working correctly
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "update receiver request failed"))
-	}
+	_, err = request(url, "PUT", data)
+	assert.NoError(t, err)
 
 	receiverBytes, err := request(url, "GET", nil)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not get updated receiver"))
-	}
+	assert.NoError(t, err)
 
 	var receiver types.Receiver
 	err = json.Unmarshal(receiverBytes, &receiver)
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not unmarshal receiver bytes"))
-	}
+	assert.NoError(t, err)
 
 	events, err := getEvents()
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "could not get events"))
-	}
+	assert.NoError(t, err)
 
 	var change *types.Event
 	for _, event := range events {
@@ -870,12 +679,6 @@ func TestReceiver_NoHiddenEventTypes(t *testing.T) {
 		}
 	}
 
-	if change == nil {
-		t.Fatal("no config_change event found")
-	}
-
-	if strings.Contains(string(change.Messages["browser"]), "onboarding_started") {
-		t.Fatalf("should not contain onboarding_started event")
-	}
-
+	assert.NotNil(t, change)
+	assert.NotContains(t, string(change.Messages["browser"]), "onboarding_started")
 }
