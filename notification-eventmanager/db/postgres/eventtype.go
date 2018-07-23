@@ -25,7 +25,7 @@ func (d DB) ListEventTypes(tx *utils.Tx, featureFlags []string) ([]types.EventTy
 	// and c) feature flag isn't in given list of feature flags.
 	rows, err := queryFn(
 		"list_event_types",
-		`SELECT name, display_name, description, default_receiver_types, hide_ui_config, feature_flag FROM event_types
+		`SELECT name, display_name, description, default_receiver_types, hide_ui_config, feature_flag, hidden_receiver_types FROM event_types
 		WHERE $1::text[] IS NULL OR feature_flag IS NULL OR feature_flag = ANY ($1::text[])`,
 		pq.Array(featureFlags),
 	)
@@ -47,7 +47,7 @@ func (d DB) ListEventTypes(tx *utils.Tx, featureFlags []string) ([]types.EventTy
 	return eventTypes, nil
 }
 
-// SyncEventTypes synchronize event types
+// SyncEventTypes updates the event types in the database.
 func (d DB) SyncEventTypes(eventTypes map[string]types.EventType) error {
 	return d.withTx("sync_event_types_tx", func(tx *utils.Tx) error {
 		oldEventTypes, err := d.ListEventTypes(tx, nil)
@@ -125,7 +125,7 @@ func (d DB) UpdateEventType(tx *utils.Tx, e types.EventType) error {
 	result, err := tx.Exec(
 		"update_event_type",
 		`UPDATE event_types
-		SET (display_name, description, default_receiver_types, hide_ui_config, feature_flag) = ($2, $3, $4, $5, NULLIF($6, ''))
+		SET (display_name, description, default_receiver_types, hide_ui_config, feature_flag, hidden_receiver_types) = ($2, $3, $4, $5, NULLIF($6, ''), $7)
 		WHERE name = $1`,
 		e.Name,
 		e.DisplayName,
@@ -133,6 +133,7 @@ func (d DB) UpdateEventType(tx *utils.Tx, e types.EventType) error {
 		pq.Array(e.DefaultReceiverTypes),
 		e.HideUIConfig,
 		e.FeatureFlag,
+		pq.Array(e.HiddenReceiverTypes),
 	)
 	if err != nil {
 		return err

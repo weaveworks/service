@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"reflect"
 	"time"
 
 	"github.com/lib/pq"
@@ -122,6 +123,7 @@ type EventType struct {
 	DisplayName          string   `json:"display_name"`
 	Description          string   `json:"description"`
 	DefaultReceiverTypes []string `json:"default_receiver_types"`
+	HiddenReceiverTypes  []string `json:"hidden_receiver_types"`
 	HideUIConfig         bool     `json:"hide_ui_config"`
 	// In most cases FeatureFlag is not included, and will be blank and therefore omitted.
 	FeatureFlag string `json:"feature_flag,omitempty"`
@@ -169,7 +171,8 @@ type scannable interface {
 func EventTypeFromRow(row scannable) (EventType, error) {
 	et := EventType{}
 	featureFlag := sql.NullString{}
-	err := row.Scan(&et.Name, &et.DisplayName, &et.Description, pq.Array(&et.DefaultReceiverTypes), &et.HideUIConfig, &featureFlag)
+	err := row.Scan(&et.Name, &et.DisplayName, &et.Description, pq.Array(&et.DefaultReceiverTypes), &et.HideUIConfig,
+		&featureFlag, pq.Array(&et.HiddenReceiverTypes))
 	if featureFlag.Valid {
 		et.FeatureFlag = featureFlag.String
 	}
@@ -188,6 +191,9 @@ func EventTypesFromFile(path string) (map[string]EventType, error) {
 	}
 	result := map[string]EventType{}
 	for _, eventType := range eventTypeList {
+		if eventType.HiddenReceiverTypes == nil {
+			eventType.HiddenReceiverTypes = []string{}
+		}
 		result[eventType.Name] = eventType
 	}
 	return result, nil
@@ -195,18 +201,7 @@ func EventTypesFromFile(path string) (map[string]EventType, error) {
 
 // Equals must be defined because go refuses to do equality tests for slices.
 func (e EventType) Equals(other EventType) bool {
-	// I tried to make this split over multiple lines but the compiler said no
-	if !(e.Name == other.Name && e.DisplayName == other.DisplayName && e.Description == other.Description &&
-		e.FeatureFlag == other.FeatureFlag && len(e.DefaultReceiverTypes) == len(other.DefaultReceiverTypes) &&
-		e.HideUIConfig == other.HideUIConfig) {
-		return false
-	}
-	for i := range e.DefaultReceiverTypes {
-		if e.DefaultReceiverTypes[i] != other.DefaultReceiverTypes[i] {
-			return false
-		}
-	}
-	return true
+	return reflect.DeepEqual(e, other)
 }
 
 // ReceiverFromRow expects the row to contain (id, type, instanceID, addressData, eventTypes)

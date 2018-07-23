@@ -15,8 +15,8 @@ import (
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // Import the postgres migrations driver
 )
 
-// Called before any handlers involving receivers, to initialize receiver defaults for the instance
-// if it hasn't been already.
+// Called before any handlers involving receivers, to initialize
+// the instance with the default receiver (browser).
 func (d DB) checkInstanceDefaults(instanceID string) error {
 	return d.withTx("check_instance_defaults_tx", func(tx *utils.Tx) error {
 		// Test if instance is already initialized
@@ -46,7 +46,7 @@ func (d DB) checkInstanceDefaults(instanceID string) error {
 	})
 }
 
-// ListReceivers returns a list of receivers
+// ListReceivers returns a list of enabled receivers for the given instance.
 func (d DB) ListReceivers(instanceID string) ([]types.Receiver, error) {
 	if err := d.checkInstanceDefaults(instanceID); err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (d DB) CreateReceiver(receiver types.Receiver, instanceID string) (string, 
 	return receiverID, nil
 }
 
-// createReceiverTX creates receiver without check for defaults receivers
+// createReceiverTX inserts a receiver.
 func (d DB) createReceiverTX(receiver types.Receiver, instanceID string) (string, error) {
 	// Re-encode the address data because the sql driver doesn't understand json columns
 	// TODO validate this field against the specific receiver type
@@ -200,8 +200,9 @@ func (d DB) UpdateReceiver(receiver types.Receiver, instanceID string, featureFl
 		rows, err := tx.Query(
 			"check_new_receiver_event_types",
 			`SELECT unnest FROM unnest($1::text[])
-			WHERE unnest NOT IN (SELECT name FROM event_types WHERE hide_ui_config <> true)`,
+			WHERE unnest NOT IN (SELECT name FROM event_types WHERE hide_ui_config <> true AND $2 <> ALL(hidden_receiver_types))`,
 			pq.Array(receiver.EventTypes),
+			receiver.RType,
 		)
 		if err != nil {
 			return err
