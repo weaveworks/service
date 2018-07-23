@@ -30,13 +30,12 @@ class UsageCheck(object):
 
             with psycopg2.connect(**users_db_creds) as users_conn:
                 orgs = db.get_org_details(users_conn, org_external_ids)
-            orgs_by_internal_id = {org.internal_id: org for org in orgs}
 
             with psycopg2.connect(**billing_db_creds) as billing_conn:
                 aggregates_by_source = {
                     'bigquery': bigquery.get_daily_aggregates(bq_client, self.production, orgs, start, end),
                     'db': db.get_daily_aggregates(billing_conn, orgs, start, end),
-                    'zuora': get_zuora_aggregates(zuora_client, None, orgs, start, end),
+                    'zuora': get_zuora_aggregates(zuora_client, orgs, start, end),
                 }
 
             for source, aggregates in aggregates_by_source.items():
@@ -52,8 +51,7 @@ class UsageCheck(object):
 
             stop_event.wait(60 * 60 * 24) # it's only worth checking once a day
 
-    
-def get_zuora_aggregates(zuora_client, users_db_conn, orgs, start, end):
+def get_zuora_aggregates(zuora_client, orgs, start, end):
     return [
         (org, date, 'node-seconds', sum(usage['quantity'] for usage in usage_by_day))
         for org in orgs
@@ -63,5 +61,5 @@ def get_zuora_aggregates(zuora_client, users_db_conn, orgs, start, end):
                 for usage in zuora_client.get_usage(org.zuora_account_id, start, end)
                 if usage['unitOfMeasure'] == 'node-seconds'
             ),
-            lambda usage:  datetime_floor_date(zuora.parse_datetime(usage['startDateTime'])))
+            lambda usage: datetime_floor_date(zuora.parse_datetime(usage['startDateTime'])))
     ]
