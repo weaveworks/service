@@ -123,6 +123,7 @@ kubectl-service/$(UPTODATE): $(KUBECTL_SERVICE_EXE)
 gcp-service/$(UPTODATE): $(GCP_SERVICE_EXE)
 dashboard-api/$(UPTODATE): $(DASHBOARD_EXE)
 notifications/$(UPTODATE): $(NOTIFICATION_EXES)
+billing-exporter/$(UPTODATE): $(shell find billing-exporter -name '*.py') billing-exporter/Pipfile billing-exporter/Pipfile.lock
 
 # Expands a list of binary paths to have their respective images depend on the binary
 # Example:
