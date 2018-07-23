@@ -794,7 +794,7 @@
     "ssh",
     "update"
   ]
-  revision = "783f23e66ed8d561cc30606d35bc71eb24b9fa1f"
+  revision = "95fe29edd7325be2f1137dff790b0e2529a79b52"
 
 [[projects]]
   branch = "master"
@@ -1031,6 +1031,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "88cbe8b087320a54e12e90c534845d063ba2eec0f4acc36b0e2b57c0685c6bd2"
+  inputs-digest = "4b3f417c3e932e543f74575fb39c96546444223f95072afb9f8abe5db964cfdf"
   solver-name = "gps-cdcl"
   solver-version = 1
