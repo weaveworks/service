@@ -91,7 +91,7 @@ def get_go_dependencies(component):
     cmd = """
         cd {} &&
         for dep in `go list -f '{{{{ .Deps }}}}'`; do
-            echo $dep | grep '{}' | grep -v vendor;
+            echo $dep | grep '{}';
         done | xargs
     """.format(component, SERVICE_REPO)
     deps = subprocess.check_output(cmd, shell=True).strip().split()
