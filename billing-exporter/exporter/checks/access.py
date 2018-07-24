@@ -1,8 +1,11 @@
 from datetime import date, datetime, timedelta
 import time
+import logging
 
 from google.cloud import bigquery
 from prometheus_client import Gauge
+
+_LOG = logging.getLogger(__name__)
 
 _QUERY = '''
 #standardSQL
@@ -32,24 +35,30 @@ ORDER BY internal_instance_id
 class AccessCheck(object):
     def __init__(self, production):
         self.production = production
-        self.client = None
         self.violation_gauge = Gauge('instance_denial_violations', 'Number of instances violating access denial policies')
         self.violation_check_time_gauge = Gauge('instance_denial_violations_check_time', 'The time we last checked the number of instances violating access denial policies')
 
     def run(self, stop_event, bq_creds):
-        self.client = bigquery.Client(project='weaveworks-bi', credentials=bq_creds)
+        bq_client = bigquery.Client(project='weaveworks-bi', credentials=bq_creds)
         while not stop_event.is_set():
-            day_to_check = datetime.utcnow().date() - timedelta(days=1)
-            mistakes = self.check_access_log(day_to_check)
-
-            if mistakes:
-                print(f'Detected access denial violations for {len(mistakes)} instances. IDs: {mistakes!r}')
-            self.violation_gauge.set(len(mistakes))
-            self.violation_check_time_gauge.set(time.time())
+            try:
+                self.check_access(bq_client)
+            except Exception as e:
+                _LOG.exception('Error while checking access')
+                self.violation_check_time_gauge.set(0)
             
             stop_event.wait(60 * 60 * 24) # it's only worth checking once a day
+    
+    def check_access(self, bq_client):
+        day_to_check = datetime.utcnow().date() - timedelta(days=1)
+        mistakes = self.query_access_log(bq_client, day_to_check)
 
-    def check_access_log(self, date):
+        if mistakes:
+            print(f'Detected access denial violations for {len(mistakes)} instances. IDs: {mistakes!r}')
+        self.violation_gauge.set(len(mistakes))
+        self.violation_check_time_gauge.set(time.time())
+
+    def query_access_log(self, bq_client, date):
         q = _QUERY.format(dataset_suffix='' if self.production else '_dev')
         
         query_cfg = bigquery.QueryJobConfig()
@@ -58,7 +67,7 @@ class AccessCheck(object):
         ]
         query_cfg.use_query_cache = True
 
-        query_job = self.client.query(q, query_cfg)
+        query_job = bq_client.query(q, query_cfg)
 
         return tuple(
           internal_instance_id

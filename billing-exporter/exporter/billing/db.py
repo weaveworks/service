@@ -2,15 +2,23 @@ from .model import Org
 
 
 def get_org_details(conn, orgs):
+    if len(orgs) == 1:
+        # Hack to avoid invalid SQL: (foo)
+        orgs = list(orgs) + list(orgs)
+
     with conn.cursor() as cur:
-        cur.execute(
-            'SELECT external_id, id, trial_expires_at, zuora_account_number FROM organizations WHERE external_id IN ({})'.format(
+        cur.execute('''
+            SELECT external_id, id, trial_expires_at, zuora_account_number
+            FROM organizations WHERE external_id IN ({!r})'''.format(
                 ','.join(orgs)
             ))
         return [Org(row[0], str(row[1]), row[2], row[3]) for row in cur.fetchall()]
 
 
 def get_daily_aggregates(conn, orgs, start, end):
+    if not orgs:
+        return []
+
     with conn.cursor() as cur:
         q = '''
         WITH instances (instance_id, trial_end) AS (
