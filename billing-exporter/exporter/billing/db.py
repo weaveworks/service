@@ -8,11 +8,11 @@ def get_org_details(conn, orgs):
 
     with conn.cursor() as cur:
         cur.execute('''
-            SELECT external_id, id, trial_expires_at, zuora_account_number
+            SELECT external_id, id, trial_expires_at, zuora_account_number, gcp_account_id
             FROM organizations WHERE external_id IN ({!r})'''.format(
                 ','.join(orgs)
             ))
-        return [Org(row[0], str(row[1]), row[2], row[3]) for row in cur.fetchall()]
+        return [Org(row[0], str(row[1]), row[2], row[3], row[4]) for row in cur.fetchall()]
 
 
 def get_daily_aggregates(conn, orgs, start, end):
