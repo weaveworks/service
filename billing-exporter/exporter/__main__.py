@@ -2,6 +2,7 @@ import sys
 import argparse
 import json
 import signal
+import logging
 from threading import Event, Thread
 
 from prometheus_client import start_http_server
@@ -46,6 +47,8 @@ def run_checker(checker, *args, **kwargs):
 
 
 def main(args):
+    logging.basicConfig()
+
     opts = parse_args(args)
 
     bq_creds = service_account.Credentials.from_service_account_file(
