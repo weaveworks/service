@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common/constants/billing"
 )
 
@@ -80,7 +81,7 @@ func ToZuoraAccountNumber(weaveID string) string {
 
 // GetAccount gets an account on Zuora.
 func (z *Zuora) GetAccount(ctx context.Context, zuoraAccountNumber string) (*Account, error) {
-	logger := logging.With(ctx)
+	logger := user.LogWith(ctx, logging.Global())
 	if zuoraAccountNumber == "" {
 		return nil, ErrInvalidAccountNumber
 	}
@@ -97,7 +98,7 @@ func (z *Zuora) GetAccount(ctx context.Context, zuoraAccountNumber string) (*Acc
 		var ok bool
 		subscriptionStatus, ok = subscriptionStatusMap[status]
 		if !ok {
-			logging.With(ctx).Errorf("Unrecognized subscription status: %v", status)
+			logger.Errorf("Unrecognized subscription status: %v", status)
 			subscriptionStatus = SubscriptionInactive
 		}
 	}
@@ -173,7 +174,7 @@ func extractNodeSecondsSubscription(ctx context.Context, subscriptions []subscri
 // Since zuora returns dates and not datetimes, if there are multiple latest payments (same date)
 // and one of them has an error, treat the overall status as PaymentError.
 func (z Zuora) GetPaymentStatus(ctx context.Context, payments []Payment) PaymentStatus {
-	logger := logging.With(ctx)
+	logger := user.LogWith(ctx, logging.Global())
 	var latestID string
 	latestStatus := PaymentOK
 	var latestDate time.Time
@@ -219,7 +220,7 @@ func (z Zuora) GetPaymentStatus(ctx context.Context, payments []Payment) Payment
 func (z Zuora) getUnderlyingStripePaymentError(ctx context.Context, latestID string) StripeError {
 	transactionLog, err := z.GetPaymentTransactionLog(ctx, latestID)
 	if err != nil {
-		logging.With(ctx).WithField("err", err).WithField("id", latestID).Errorf("failed to get transaction log, returning generic error instead")
+		user.LogWith(ctx, logging.Global()).WithField("err", err).WithField("id", latestID).Errorf("failed to get transaction log, returning generic error instead")
 		return GetStripeError(GenericDecline)
 	}
 	return GetStripeError(StripeDeclineCode(transactionLog.GatewayReasonCode))
@@ -584,8 +585,7 @@ func (z *Zuora) createAccount(ctx context.Context, zuoraAccountNumber string, re
 
 // DeleteAccount deletes a Zuora account.
 func (z *Zuora) DeleteAccount(ctx context.Context, zuoraID string) error {
-	logger := logging.With(ctx)
 	path := deleteURL + fmt.Sprintf(deletePath, zuoraID)
-	logger.Warningf("Deleting account %v", zuoraID)
+	user.LogWith(ctx, logging.Global()).Warnf("Deleting account %v", zuoraID)
 	return z.Delete(ctx, deletePath, path, nil)
 }

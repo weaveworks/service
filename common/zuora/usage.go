@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common"
 )
 
@@ -91,15 +92,15 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (UsageU
 		resp,
 	)
 	if err != nil {
-		logging.With(ctx).Errorf("Usage upload failed! Usage file: %v", usage.String())
+		user.LogWith(ctx, logging.Global()).Errorf("Usage upload failed! Usage file: %v", usage.String())
 		return "", err
 	}
 	if !resp.Success {
-		logging.With(ctx).Errorf("Usage upload failed! Usage file: %v", usage.String())
+		user.LogWith(ctx, logging.Global()).Errorf("Usage upload failed! Usage file: %v", usage.String())
 		return "", resp
 	}
 
-	logging.With(ctx).Infof("Import status url: %s", resp.CheckImportStatusURL)
+	user.LogWith(ctx, logging.Global()).Infof("Import status url: %s", resp.CheckImportStatusURL)
 	importStatusResp, err := z.WaitForImportFinished(ctx, resp.CheckImportStatusURL)
 	if err != nil {
 		return "", err
@@ -109,7 +110,7 @@ func (z *Zuora) UploadUsage(ctx context.Context, r io.Reader, id string) (UsageU
 	usageImportHistogram.WithLabelValues(importStatus).Observe(importDuration.Seconds())
 
 	if importStatus != Completed {
-		logging.With(ctx).Errorf("Usage upload failed! Usage file: %v", usage.String())
+		user.LogWith(ctx, logging.Global()).Errorf("Usage upload failed! Usage file: %v", usage.String())
 		return "", fmt.Errorf("Usage import did not succeed: %v - from %s", importStatusResp, resp.CheckImportStatusURL)
 	}
 	return extractUsageImportID(resp.CheckImportStatusURL)
@@ -156,7 +157,7 @@ func (z *Zuora) WaitForImportFinished(ctx context.Context, statusURL string) (*I
 	var resp *ImportStatusResponse
 	for attempt = 0; attempt < maxAttempts; attempt++ {
 		var statusCheckErr error
-		logging.With(ctx).Infof("Checking usage import status")
+		user.LogWith(ctx, logging.Global()).Infof("Checking usage import status")
 		resp, statusCheckErr = z.GetUsageImportStatus(ctx, statusURL)
 		if statusCheckErr == nil {
 			importStatus := resp.ImportStatus
@@ -165,7 +166,7 @@ func (z *Zuora) WaitForImportFinished(ctx context.Context, statusURL string) (*I
 			}
 		}
 		sleepingTime := time.Duration(math.Pow(float64(2), float64(attempt))) * time.Second
-		logging.With(ctx).Infof("Exponentially retrying in %v", sleepingTime)
+		user.LogWith(ctx, logging.Global()).Infof("Exponentially retrying in %v", sleepingTime)
 		time.Sleep(sleepingTime)
 	}
 	if attempt < maxAttempts {

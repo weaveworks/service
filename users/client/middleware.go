@@ -57,16 +57,17 @@ type AuthOrgMiddleware struct {
 func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		logger := user.LogWith(ctx, logging.Global())
 		orgExternalID, ok := a.OrgExternalID(r)
 		if !ok {
-			logging.With(ctx).Errorf("Invalid request, no org id: %s", r.RequestURI)
+			logger.Errorf("Invalid request, no org id: %s", r.RequestURI)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			logging.With(ctx).Errorf("Unauthorised request, no auth cookie: %v", err)
+			logger.Errorf("Unauthorised request, no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -88,7 +89,7 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 		tracing.ForceTraceIfFlagged(ctx, response.FeatureFlags)
 
 		if !featureflag.HasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
-			logging.With(ctx).Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
+			logger.Errorf("Unauthorised request, missing feature flags: %v", a.RequireFeatureFlags)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -112,9 +113,10 @@ type AuthProbeMiddleware struct {
 func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		logger := user.LogWith(ctx, logging.Global())
 		token, ok := tokens.ExtractToken(r)
 		if !ok {
-			logging.With(ctx).Errorf("Unauthorised probe request, no token")
+			logger.Errorf("Unauthorised probe request, no token")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -134,7 +136,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 		tracing.ForceTraceIfFlagged(ctx, response.FeatureFlags)
 
 		if !featureflag.HasFeatureAllFlags(a.RequireFeatureFlags, response.FeatureFlags) {
-			logging.With(ctx).Errorf("Unauthorised probe request, missing feature flags: %v", a.RequireFeatureFlags)
+			logger.Errorf("Unauthorised probe request, missing feature flags: %v", a.RequireFeatureFlags)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -153,21 +155,23 @@ type AuthAdminMiddleware struct {
 // Wrap implements middleware.Interface
 func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		logger := user.LogWith(ctx, logging.Global())
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			logging.With(r.Context()).Errorf("Unauthorised admin request, no auth cookie: %v", err)
+			logger.Errorf("Unauthorised admin request, no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		response, err := a.UsersClient.LookupAdmin(r.Context(), &users.LookupAdminRequest{
+		response, err := a.UsersClient.LookupAdmin(ctx, &users.LookupAdminRequest{
 			Cookie: authCookie.Value,
 		})
 		if err != nil {
 			handleError(err, w, r)
 			return
 		}
-		if span := opentracing.SpanFromContext(r.Context()); span != nil {
+		if span := opentracing.SpanFromContext(ctx); span != nil {
 			span.SetTag(userTag, response.AdminID)
 		}
 
@@ -189,7 +193,7 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 		ctx := r.Context()
 		authCookie, err := r.Cookie(AuthCookieName)
 		if err != nil {
-			logging.With(ctx).Infof("Unauthorised user request, no auth cookie: %v", err)
+			user.LogWith(ctx, logging.Global()).Infof("Unauthorised user request, no auth cookie: %v", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -221,6 +225,7 @@ func finishRequest(next http.Handler, w http.ResponseWriter, r *http.Request, or
 }
 
 func handleError(err error, w http.ResponseWriter, r *http.Request) {
+	logger := user.LogWith(r.Context(), logging.Global())
 	if errResp, ok := httpgrpc.HTTPResponseFromError(err); ok {
 		switch errResp.Code {
 		case http.StatusUnauthorized:
@@ -235,11 +240,11 @@ func handleError(err error, w http.ResponseWriter, r *http.Request) {
 		case http.StatusNotFound:
 			http.Error(w, string(errResp.Body), int(errResp.Code))
 		default:
-			logging.With(r.Context()).Errorf("Error from users svc: %v (%d)", string(errResp.Body), errResp.Code)
+			logger.Errorf("Error from users svc: %v (%d)", string(errResp.Body), errResp.Code)
 			w.WriteHeader(http.StatusUnauthorized)
 		}
 	} else {
-		logging.With(r.Context()).Errorf("Error talking to users svc: %v", err)
+		logger.Errorf("Error talking to users svc: %v", err)
 		w.WriteHeader(http.StatusBadGateway)
 	}
 }
@@ -255,7 +260,7 @@ func (a AuthSecretMiddleware) Wrap(next http.Handler) http.Handler {
 		secret := r.URL.Query().Get("secret")
 		// Deny access if no secret is configured or secret does not match
 		if a.Secret == "" || secret != a.Secret {
-			logging.With(r.Context()).Infof("Unauthorised secret request, secret mismatch: %v", secret)
+			user.LogWith(r.Context(), logging.Global()).Infof("Unauthorised secret request, secret mismatch: %v", secret)
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
@@ -288,7 +293,7 @@ func (m GCPLoginSecretMiddleware) Tokenise(keyForSsoLogin, timestampInMillis str
 func (m GCPLoginSecretMiddleware) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if status, err := m.validate(r); err != nil {
-			logging.With(r.Context()).Warnf("Unauthorised request: %v", err)
+			user.LogWith(r.Context(), logging.Global()).Warnf("Unauthorised request: %v", err)
 			http.Error(w, http.StatusText(status), status)
 			return
 		}

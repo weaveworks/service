@@ -560,7 +560,7 @@ func (a *API) extendOrgTrialPeriod(ctx context.Context, org *users.Organization,
 	if !t.Truncate(24 * time.Hour).After(org.TrialExpiresAt) {
 		return nil
 	}
-	logging.With(ctx).Infof("Extending trial period from %v to %v for %v", org.TrialExpiresAt, t, org.ExternalID)
+	user.LogWith(ctx, logging.Global()).Infof("Extending trial period from %v to %v for %v", org.TrialExpiresAt, t, org.ExternalID)
 
 	if _, err := a.db.UpdateOrganization(ctx, org.ExternalID, users.OrgWriteView{
 		TrialExpiresAt:         &t,

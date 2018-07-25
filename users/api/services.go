@@ -312,7 +312,7 @@ func doRequest(ctx context.Context, serviceName string, url string, into interfa
 	err = json.NewDecoder(resp.Body).Decode(into)
 
 	if err != nil {
-		logging.With(ctx).Errorf("Could not decode %s data: %s", serviceName, err)
+		user.LogWith(ctx, logging.Global()).Errorf("Could not decode %s data: %s", serviceName, err)
 		return fmt.Errorf("Could not decode %s data", serviceName)
 	}
 	return nil

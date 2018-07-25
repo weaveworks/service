@@ -16,6 +16,7 @@ import (
 	httpgrpc_server "github.com/weaveworks/common/httpgrpc/server"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/middleware"
+	"github.com/weaveworks/common/user"
 )
 
 const defaultPort = "80"
@@ -96,11 +97,12 @@ func (p *httpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.URL.Host = p.hostAndPort
 	r.URL.Scheme = p.protocol
 
-	logging.With(r.Context()).Debugf("Forwarding %s %s to %s, final URL: %s", r.Method, r.RequestURI, p.hostAndPort, r.URL)
+	logger := user.LogWith(r.Context(), logging.Global())
+	logger.Debugf("Forwarding %s %s to %s, final URL: %s", r.Method, r.RequestURI, p.hostAndPort, r.URL)
 
 	// Detect whether we should do websockets
 	if middleware.IsWSHandshakeRequest(r) {
-		logging.With(r.Context()).Debugf("proxy: detected websocket handshake")
+		logger.Debugf("proxy: detected websocket handshake")
 		p.proxyWS(w, r)
 		return
 	}
@@ -119,10 +121,11 @@ func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {
 		address = address + ":" + defaultPort
 	}
 
+	logger := user.LogWith(r.Context(), logging.Global())
 	// Connect to target
 	targetConn, err := net.Dial("tcp", address)
 	if err != nil {
-		logging.With(r.Context()).Errorf("proxy: websocket: error dialing backend %q: %v", p.hostAndPort, err)
+		logger.Errorf("proxy: websocket: error dialing backend %q: %v", p.hostAndPort, err)
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
@@ -131,33 +134,33 @@ func (p *httpProxy) proxyWS(w http.ResponseWriter, r *http.Request) {
 	// Hijack the connection to copy raw data back to our client
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
-		logging.With(r.Context()).Errorf("proxy: websocket: error casting to Hijacker on request to %q", p.hostAndPort)
+		logger.Errorf("proxy: websocket: error casting to Hijacker on request to %q", p.hostAndPort)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	clientConn, _, err := hijacker.Hijack()
 	if err != nil {
-		logging.With(r.Context()).Errorf("proxy: websocket: Hijack error: %v", err)
+		logger.Errorf("proxy: websocket: Hijack error: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer clientConn.Close()
 
 	// Forward current request to the target host since it was received before hijacking
-	logging.With(r.Context()).Debugf("proxy: websocket: writing original request to %s%s", p.hostAndPort, r.URL.Opaque)
+	logger.Debugf("proxy: websocket: writing original request to %s%s", p.hostAndPort, r.URL.Opaque)
 	if err := r.Write(targetConn); err != nil {
-		logging.With(r.Context()).Errorf("proxy: websocket: error copying request to target: %v", err)
+		logger.Errorf("proxy: websocket: error copying request to target: %v", err)
 		return
 	}
 
 	// Copy websocket payload back and forth between our client and the target host
 	var wg sync.WaitGroup
 	wg.Add(2)
-	logging.With(r.Context()).Debugf("proxy: websocket: spawning copiers")
+	logger.Debugf("proxy: websocket: spawning copiers")
 	go copyStream(clientConn, targetConn, &wg, "proxy: websocket: \"server2client\"")
 	go copyStream(targetConn, clientConn, &wg, "proxy: websocket: \"client2server\"")
 	wg.Wait()
-	logging.With(r.Context()).Debugf("proxy: websocket: connection closed")
+	logger.Debugf("proxy: websocket: connection closed")
 }
 
 type closeWriter interface {

@@ -4,12 +4,13 @@ import (
 	"net/http"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/users"
 )
 
 // Error renders a specific error to the API
 func Error(w http.ResponseWriter, r *http.Request, err error, errorStatusCode func(error) int) {
-	logging.With(r.Context()).Errorf("%s %s: %v", r.Method, r.URL.Path, err)
+	user.LogWith(r.Context(), logging.Global()).Errorf("%s %s: %v", r.Method, r.URL.Path, err)
 
 	m := map[string]interface{}{}
 	code := errorStatusCode(err)

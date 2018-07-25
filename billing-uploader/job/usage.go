@@ -114,7 +114,7 @@ func (j *UsageUpload) Do(now time.Time) error {
 	now = now.UTC()
 	method := fmt.Sprintf("UsageUpload.Do(%s)", j.uploader.ID())
 	return instrument.CollectedRequest(context.Background(), method, j.collector, nil, func(ctx context.Context) error {
-		logger := logging.With(ctx)
+		logger := user.LogWith(ctx, logging.Global())
 
 		through := j.uploader.ThroughTime(now)
 		// We only process buckets that were fully aggregated. Buckets are aggregated continuously
@@ -151,7 +151,7 @@ func (j *UsageUpload) Do(now time.Time) error {
 			}
 
 			orgCtx := user.InjectOrgID(ctx, org.ID)
-			orgLogger := logging.With(orgCtx).WithField("uploader", j.uploader.ID())
+			orgLogger := user.LogWith(orgCtx, logger).WithField("uploader", j.uploader.ID())
 			// Usage during trial is not uploaded
 			orgFrom := timeutil.MaxTime(earliest, org.TrialExpiresAt)
 
@@ -159,7 +159,7 @@ func (j *UsageUpload) Do(now time.Time) error {
 			// GetBillableOrganizations really shouldn't include any such
 			// trials, but it's good to double-check.
 			if org.InTrialPeriod(through) {
-				orgLogger.Warn("Organization returned as 'billable' but trial still ongoing")
+				orgLogger.Warnln("Organization returned as 'billable' but trial still ongoing")
 				continue
 			}
 			if org.ID == "" {
@@ -204,7 +204,7 @@ func (j *UsageUpload) Do(now time.Time) error {
 // upload sends collected usage data. It also keeps track by recording in the database
 // up to which aggregate ID it has uploaded.
 func (j *UsageUpload) upload(ctx context.Context, aggregateIDs []int, uploadName string) error {
-	logger := logging.With(ctx).WithField("uploader", j.uploader.ID()).WithField("uploadName", uploadName)
+	logger := user.LogWith(ctx, logging.Global()).WithField("uploader", j.uploader.ID()).WithField("uploadName", uploadName)
 
 	uploadID, err := j.db.InsertUsageUpload(ctx, j.uploader.ID(), aggregateIDs)
 	if err != nil {

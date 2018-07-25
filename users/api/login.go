@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/weaveworks/common/logging"
+	commonuser "github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/common/render"
 	"github.com/weaveworks/service/common/validation"
@@ -61,8 +62,9 @@ type attachedLoginProviderView struct {
 // List all the login providers currently attached to the current user. Used by
 // the /account page to determine which login providers are currently attached.
 func (a *API) listAttachedLoginProviders(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	view := attachedLoginProvidersView{}
-	logins, err := a.db.ListLoginsForUserIDs(r.Context(), currentUser.ID)
+	logins, err := a.db.ListLoginsForUserIDs(ctx, currentUser.ID)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -81,7 +83,7 @@ func (a *API) listAttachedLoginProviders(currentUser *users.User, w http.Respons
 		var err error
 		v.Username, err = p.Username(l.Session)
 		if err != nil {
-			logging.With(r.Context()).Warningf("Failed fetching %q username for %s: %q", l.Provider, l.ProviderID, err)
+			commonuser.LogWith(ctx, logging.Global()).Warnf("Failed fetching %q username for %s: %q", l.Provider, l.ProviderID, err)
 		}
 		view.Logins = append(view.Logins, v)
 	}
@@ -99,12 +101,14 @@ type attachLoginProviderView struct {
 
 // attachLoginProvider is used for oauth login or signup
 func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := commonuser.LogWith(ctx, logging.Global())
 	view := attachLoginProviderView{}
 	vars := mux.Vars(r)
 	providerID := vars["provider"]
 	provider, ok := a.logins.Get(providerID)
 	if !ok {
-		logging.With(r.Context()).Errorf("Login provider not found: %q", providerID)
+		logger.Errorf("Login provider not found: %q", providerID)
 		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -116,12 +120,12 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if email == "" {
-		logging.With(r.Context()).Errorf("Login provider returned blank email: %q", providerID)
+		logger.Errorf("Login provider returned blank email: %q", providerID)
 		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
 	if !validation.ValidateEmail(email) {
-		logging.With(r.Context()).Errorf("Login provider returned an invalid email: %q, %v", providerID, email)
+		logger.Errorf("Login provider returned an invalid email: %q, %v", providerID, email)
 		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -142,23 +146,23 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			default:
 				return nil, err
 			}
-			return a.db.FindUserByID(r.Context(), session.UserID)
+			return a.db.FindUserByID(ctx, session.UserID)
 		},
 		func() (*users.User, error) {
 			// If the user has already attached this provider, this is a no-op, so we
 			// can just log them in with it.
-			return a.db.FindUserByLogin(r.Context(), providerID, id)
+			return a.db.FindUserByLogin(ctx, providerID, id)
 		},
 		func() (*users.User, error) {
 			// Match based on the user's email
-			return a.db.FindUserByEmail(r.Context(), email)
+			return a.db.FindUserByEmail(ctx, email)
 		},
 	} {
 		u, err = f()
 		if err == nil {
 			break
 		} else if err != users.ErrNotFound {
-			logging.With(r.Context()).Error(err)
+			logger.Errorln(err)
 			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
@@ -168,19 +172,19 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 		// No matching user found, this must be a first-time-login with this
 		// provider, so we'll create an account for them.
 		view.UserCreated = true
-		u, err = a.db.CreateUser(r.Context(), email)
+		u, err = a.db.CreateUser(ctx, email)
 		if err != nil {
-			logging.With(r.Context()).Error(err)
+			logger.Errorln(err)
 			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
 		a.marketingQueues.UserCreated(u.Email, u.CreatedAt, extraState)
 	}
 
-	if err := a.db.AddLoginToUser(r.Context(), u.ID, providerID, id, authSession); err != nil {
+	if err := a.db.AddLoginToUser(ctx, u.ID, providerID, id, authSession); err != nil {
 		existing, ok := err.(*users.AlreadyAttachedError)
 		if !ok {
-			logging.With(r.Context()).Error(err)
+			logger.Errorln(err)
 			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
@@ -189,13 +193,13 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 			renderError(w, r, existing)
 			return
 		}
-		if err := a.db.DetachLoginFromUser(r.Context(), existing.ID, providerID); err != nil {
-			logging.With(r.Context()).Error(err)
+		if err := a.db.DetachLoginFromUser(ctx, existing.ID, providerID); err != nil {
+			logger.Errorln(err)
 			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
-		if err := a.db.AddLoginToUser(r.Context(), u.ID, providerID, id, authSession); err != nil {
-			logging.With(r.Context()).Error(err)
+		if err := a.db.AddLoginToUser(ctx, u.ID, providerID, id, authSession); err != nil {
+			logger.Errorln(err)
 			renderError(w, r, users.ErrInvalidAuthenticationData)
 			return
 		}
@@ -207,19 +211,18 @@ func (a *API) attachLoginProvider(w http.ResponseWriter, r *http.Request) {
 
 	if a.mixpanel != nil {
 		go func() {
-			ctx := r.Context()
 			if view.UserCreated {
 				if err := a.mixpanel.TrackSignup(email); err != nil {
-					logging.With(ctx).Error(err)
+					logger.Errorln(err)
 				}
 			}
 			if err := a.mixpanel.TrackLogin(email, view.FirstLogin); err != nil {
-				logging.With(ctx).Error(err)
+				logger.Errorln(err)
 			}
 		}()
 	}
 
-	if err := a.UpdateUserAtLogin(r.Context(), u); err != nil {
+	if err := a.UpdateUserAtLogin(ctx, u); err != nil {
 		renderError(w, r, err)
 		return
 	}
@@ -314,7 +317,7 @@ func (a *API) Signup(ctx context.Context, req SignupRequest) (*SignupResponse, *
 			if a.mixpanel != nil {
 				go func() {
 					if err := a.mixpanel.TrackSignup(email); err != nil {
-						logging.With(ctx).Error(err)
+						commonuser.LogWith(ctx, logging.Global()).Errorln(err)
 					}
 				}()
 			}
@@ -389,7 +392,7 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 		err = nil
 	}
 	if err != nil {
-		logging.With(r.Context()).Error(err)
+		commonuser.LogWith(r.Context(), logging.Global()).Errorln(err)
 		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -401,7 +404,7 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.db.SetUserToken(r.Context(), u.ID, ""); err != nil {
-		logging.With(r.Context()).Error(err)
+		commonuser.LogWith(r.Context(), logging.Global()).Errorln(err)
 		renderError(w, r, users.ErrInvalidAuthenticationData)
 		return
 	}
@@ -421,7 +424,7 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	if a.mixpanel != nil {
 		go func() {
 			if err := a.mixpanel.TrackLogin(email, firstLogin); err != nil {
-				logging.With(r.Context()).Error(err)
+				commonuser.LogWith(r.Context(), logging.Global()).Errorln(err)
 			}
 		}()
 	}

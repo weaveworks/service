@@ -121,6 +121,6 @@ func main() {
 
 	log.Info("Running notifications sender")
 
-	go signals.SignalHandlerLoop(log.StandardLogger(), stopCancel{cancel: cancel, stackDriverSender: sds})
+	go signals.SignalHandlerLoop(logging.Global(), stopCancel{cancel: cancel, stackDriverSender: sds})
 	s.Run(ctx)
 }

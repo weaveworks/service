@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/weaveworks/common/logging"
+	"github.com/weaveworks/common/user"
 )
 
 const (
@@ -82,7 +83,7 @@ func (z *Zuora) GetCurrentRates(ctx context.Context) (RateMap, error) {
 		}
 	}
 	if product.SKU != weaveCloudSKU {
-		logging.With(ctx).Warnf("Cannot find Zuora product %s", weaveCloudSKU)
+		user.LogWith(ctx, logging.Global()).Warnf("Cannot find Zuora product %s", weaveCloudSKU)
 	}
 
 	// Collect all the charges across rate plans
