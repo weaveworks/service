@@ -41,18 +41,6 @@
   revision = "a6b93000bd219143c56c16e6cb1c4b91da3f224b"
 
 [[projects]]
-  name = "github.com/Shopify/sarama"
-  packages = ["."]
-  revision = "c01858abb625b73a3af51d0798e4ad42c8147093"
-  version = "v1.12.0"
-
-[[projects]]
-  name = "github.com/apache/thrift"
-  packages = ["lib/go/thrift"]
-  revision = "b2a4d4ae21c789b689dd162deb819665567f481c"
-  version = "0.10.0"
-
-[[projects]]
   branch = "expose-dstaddr"
   name = "github.com/armon/go-proxyproto"
   packages = ["."]
@@ -180,24 +168,6 @@
   revision = "53bfdf679eecb9731ac23f01a89d8a6904f09037"
 
 [[projects]]
-  name = "github.com/eapache/go-resiliency"
-  packages = ["breaker"]
-  revision = "6800482f2c813e689c88b7ed3282262385011890"
-  version = "v1.0.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/eapache/go-xerial-snappy"
-  packages = ["."]
-  revision = "bb955e01b9346ac19dc29eb16586c90ded99a98c"
-
-[[projects]]
-  name = "github.com/eapache/queue"
-  packages = ["."]
-  revision = "ded5959c0d4e360646dc9e9908cff48666781367"
-  version = "v1.0.2"
-
-[[projects]]
   name = "github.com/fluent/fluent-logger-golang"
   packages = ["fluent"]
   revision = "28bdb662295c1b7aca09c1a4edbf9430010775a9"
@@ -279,12 +249,6 @@
   revision = "ae59567b9aab61b50b2590679a62c3c044030b61"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/golang/snappy"
-  packages = ["."]
-  revision = "553a641470496b2327abcac10b36396bd98e45c9"
-
-[[projects]]
   name = "github.com/google/go-github"
   packages = ["github"]
   revision = "59aa6eea1c58ba063a0c3b90a16499cb39e6332a"
@@ -329,7 +293,7 @@
   branch = "master"
   name = "github.com/grpc-ecosystem/grpc-opentracing"
   packages = ["go/otgrpc"]
-  revision = "6c130eed1e297e1aa4d415a50c90d0c81c52677e"
+  revision = "8e809c8a86450a29b90dcc9efbf062d0fe6d9746"
 
 [[projects]]
   branch = "master"
@@ -495,19 +459,6 @@
   version = "v1.0.2"
 
 [[projects]]
-  name = "github.com/openzipkin/zipkin-go-opentracing"
-  packages = [
-    ".",
-    "_thrift/gen-go/scribe",
-    "_thrift/gen-go/zipkincore",
-    "flag",
-    "types",
-    "wire"
-  ]
-  revision = "d88c90182f3fb514be54a1c7adc11a04d41c7da9"
-  version = "v0.2.4"
-
-[[projects]]
   branch = "master"
   name = "github.com/opsgenie/opsgenie-go-sdk"
   packages = [
@@ -536,18 +487,6 @@
   name = "github.com/philhofer/fwd"
   packages = ["."]
   revision = "bb6d471dc95d4fe11e432687f8b70ff496cf3136"
-
-[[projects]]
-  name = "github.com/pierrec/lz4"
-  packages = ["."]
-  revision = "5c9560bfa9ace2bf86080bf40d46b34ae44604df"
-  version = "v1.0"
-
-[[projects]]
-  name = "github.com/pierrec/xxHash"
-  packages = ["xxHash32"]
-  revision = "f051bb7f1d1aaf1b5a665d74fb6b0217712c69f7"
-  version = "v0.1.1"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -628,12 +567,6 @@
   revision = "195bc0d286b077f5633eb4bda76743620588b2fa"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/rcrowley/go-metrics"
-  packages = ["."]
-  revision = "1f30fe9094a513ce4c700b9a54458bbb0c96996c"
-
-[[projects]]
   name = "github.com/robfig/cron"
   packages = ["."]
   revision = "b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4"
@@ -652,10 +585,10 @@
   version = "v1.1.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/sercand/kuberesolver"
   packages = ["."]
-  revision = "7b3d51468778ed0c53045edd7015b5a21f902d53"
+  revision = "aa801ca262949d887bbe0bae3f6f731ac82c26f6"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -727,12 +660,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/weaveworks-experiments/loki"
-  packages = ["pkg/client"]
-  revision = "17ff1516db3dffe25452b4cbf6e6412f303cddea"
-
-[[projects]]
-  branch = "master"
   name = "github.com/weaveworks/billing-client"
   packages = ["."]
   revision = "967593a9e8c8c62d1a9a3fbf34b120aa48581d0e"
@@ -761,7 +688,7 @@
     "signals",
     "user"
   ]
-  revision = "01279d867a4f32e27902da9567e96211b23e28c4"
+  revision = "0967b510c9d2da39550a74c6638ff9e3da5e6d19"
 
 [[projects]]
   branch = "master"
