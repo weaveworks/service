@@ -1,4 +1,4 @@
-FROM python:3.6-alpine
+FROM python:3.7-alpine
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="billing-exporter" \
       org.opencontainers.image.source="https://github.com/weaveworks/service/tree/master/billing-exporter" \
