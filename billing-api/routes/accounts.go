@@ -480,10 +480,10 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 
 	sum, hourly, daily := sumAndFilterAggregates(aggs)
 
-	// Look at the usage for the previous hourly bucket because we get bad
-	// (too low) values from the most recent bucket, because it's not
-	// complete yet and we are dividing by a full hour's worth of seconds
-	bucket := time.Now().UTC().Truncate(time.Hour).Add(-1 * time.Hour)
+	// Look at the usage from a previous hourly bucket, picking a bucket to avoid finding a value that is too low.
+	// We can't use the current hour because we don't aggregate until the end of an hour
+	// We don't use the previous hour because sometimes usage arrives late, and won't be counted until the current hour is up
+	bucket := time.Now().UTC().Truncate(time.Hour).Add(-2 * time.Hour)
 	var activeHosts float64
 	if bucketSeconds, ok := hourly[bucket]; ok {
 		activeHosts = float64(bucketSeconds) / time.Hour.Seconds()
