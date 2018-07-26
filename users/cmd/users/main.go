@@ -12,6 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common"
 	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
@@ -43,6 +44,7 @@ func main() {
 	defer traceCloser.Close()
 
 	var (
+		logLevel      = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
 		port          = flag.Int("port", 80, "port to listen on")
 		grpcPort      = flag.Int("grpc-port", 4772, "grpc port to listen on")
 		domain        = flag.String("domain", "https://cloud.weave.works", "domain where scope service is runnning.")
@@ -108,19 +110,10 @@ func main() {
 
 	flag.Parse()
 
-	// Set up server first as it sets up logging as a side-effect
-	s, err := server.New(server.Config{
-		MetricsNamespace:        common.PrometheusNamespace,
-		HTTPListenPort:          *port,
-		GRPCListenPort:          *grpcPort,
-		GRPCMiddleware:          []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
-		RegisterInstrumentation: true,
-	})
-	if err != nil {
-		log.Fatalf("Failed to create server: %v", err)
+	if err := logging.Setup(*logLevel); err != nil {
+		log.Fatalf("Error configuring logging: %v", err)
 		return
 	}
-	defer s.Shutdown()
 
 	var billingEnabler featureflag.Enabler
 	billingEnabler = featureflag.NewRandomEnabler(*billingFeatureFlagProbability)
@@ -210,6 +203,18 @@ func main() {
 	}
 
 	log.Infof("Listening on port %d", *port)
+	s, err := server.New(server.Config{
+		MetricsNamespace:        common.PrometheusNamespace,
+		HTTPListenPort:          *port,
+		GRPCListenPort:          *grpcPort,
+		GRPCMiddleware:          []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
+		RegisterInstrumentation: true,
+	})
+	if err != nil {
+		log.Fatalf("Failed to create server: %v", err)
+		return
+	}
+	defer s.Shutdown()
 
 	app.RegisterRoutes(s.HTTP)
 	users.RegisterUsersServer(s.GRPC, grpcServer)

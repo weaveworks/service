@@ -5,6 +5,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/common/users"
@@ -22,6 +23,7 @@ func main() {
 			ServerGracefulShutdownTimeout: 16 * time.Second,
 		}
 		dbConfig dbconfig.Config
+		logLevel string
 		sqsURL   string
 		// Connect to users service to get information about an event's instance
 		usersServiceURL string
@@ -32,6 +34,7 @@ func main() {
 	serverConfig.RegisterFlags(flag.CommandLine)
 	dbConfig.RegisterFlags(flag.CommandLine, "", "URI where the database can be found", "", "Path where the database migration files can be found")
 
+	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
 	flag.StringVar(&sqsURL, "sqsURL", "sqs://123user:123password@localhost:9324/events", "URL to connect to SQS")
 	flag.StringVar(&usersServiceURL, "usersServiceURL", "users.default:4772", "URL to connect to users service")
 	flag.StringVar(&eventTypesPath, "eventtypes", "", "Path to a JSON file defining available event types")
@@ -39,10 +42,8 @@ func main() {
 
 	flag.Parse()
 
-	// Set up server first as it sets up logging as a side-effect
-	s, err := server.New(serverConfig)
-	if err != nil {
-		log.Fatal(err)
+	if err := logging.Setup(logLevel); err != nil {
+		log.Fatalf("Error configuring logging: %v", err)
 	}
 
 	sqsCli, sqsQueue, err := sqsconnect.NewSQS(sqsURL)
@@ -81,6 +82,11 @@ func main() {
 	}
 
 	log.Info("listening for requests")
+	s, err := server.New(serverConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	em.Register(s.HTTP)
 
 	defer func() {

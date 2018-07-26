@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/instrument"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/billing-enforcer/job"
 	"github.com/weaveworks/service/common/users"
@@ -43,6 +44,7 @@ func main() {
 			// Hourly at xx:40 - Seconds, Minutes, Hours, Day of month, Month, Day of week
 			"0 40  * * *",
 			"Cron spec for periodic enforcement tasks.")
+		logLevel = flag.String("log.level", "info", "The log level")
 
 		serverConfig server.Config
 		usersConfig  users.Config
@@ -53,17 +55,20 @@ func main() {
 	usersConfig.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 
-	// Set up server first as it sets up logging as a side-effect
-	server, err := server.New(serverConfig)
-	if err != nil {
-		log.Fatalf("Error initialising server: %v", err)
+	if err := logging.Setup(*logLevel); err != nil {
+		log.Fatalf("Error initialising logging: %v", err)
 	}
-	defer server.Shutdown()
 
 	users, err := users.NewClient(usersConfig)
 	if err != nil {
 		log.Fatalf("error initialising users client: %v", err)
 	}
+
+	server, err := server.New(serverConfig)
+	if err != nil {
+		log.Fatalf("Error initialising server: %v", err)
+	}
+	defer server.Shutdown()
 
 	c := cron.New()
 	enforceJob := job.NewEnforce(users, cfg, jobCollector)

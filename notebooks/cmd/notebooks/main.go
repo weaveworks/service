@@ -31,17 +31,16 @@ func main() {
 
 	flag.Parse()
 
-	// Set up server first as it sets up logging as a side-effect
+	db, err := db.New(dbConfig)
+	if err != nil {
+		log.Fatalf("Error initializing database: %v", err)
+	}
+
 	server, err := server.New(serverConfig)
 	if err != nil {
 		log.Fatalf("Error initializing server: %v", err)
 	}
 	defer server.Shutdown()
-
-	db, err := db.New(dbConfig)
-	if err != nil {
-		log.Fatalf("Error initializing database: %v", err)
-	}
 
 	usersOptions := users.CachingClientConfig{}
 	if cfg.usersCacheSize > 0 {

@@ -5,6 +5,7 @@ import (
 	"flag"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 
 	"github.com/weaveworks/service/billing-api/db"
@@ -18,6 +19,8 @@ import (
 
 // Config holds the API settings.
 type Config struct {
+	logLevel string
+
 	dbConfig     dbconfig.Config
 	routesConfig routes.Config
 	serverConfig server.Config
@@ -27,6 +30,8 @@ type Config struct {
 
 // RegisterFlags registers configuration variables.
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
+	flag.StringVar(&c.logLevel, "log.level", "info", "The log level")
+
 	c.dbConfig.RegisterFlags(f, "postgres://postgres@billing-db/billing?sslmode=disable", "Database to use.", "/migrations", "Migrations directory.")
 	c.routesConfig.RegisterFlags(f)
 	c.serverConfig.RegisterFlags(f)
@@ -45,15 +50,11 @@ func main() {
 	flag.Parse()
 	cfg.serverConfig.MetricsNamespace = "billing"
 
-	// Set up server first as it sets up logging as a side-effect
-	server, err := server.New(cfg.serverConfig)
-	if err != nil {
-		log.Fatalf("error initialising server: %v", err)
-	}
-	defer server.Shutdown()
-
 	if err := cfg.Validate(); err != nil {
 		log.Fatalf("invalid config: %v", err)
+	}
+	if err := logging.Setup(cfg.logLevel); err != nil {
+		log.Fatalf("error initialising logging: %v", err)
 	}
 
 	users, err := users.NewClient(cfg.usersConfig)
@@ -68,6 +69,12 @@ func main() {
 		log.Fatalf("error initialising database client: %v", err)
 	}
 	defer db.Close(context.Background())
+
+	server, err := server.New(cfg.serverConfig)
+	if err != nil {
+		log.Fatalf("error initialising server: %v", err)
+	}
+	defer server.Shutdown()
 
 	routes, err := routes.New(cfg.routesConfig, db, users, z)
 	if err != nil {

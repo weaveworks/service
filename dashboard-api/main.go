@@ -6,11 +6,13 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/dashboard-api/dashboard"
 )
 
 type config struct {
+	logLevel   string
 	prometheus struct {
 		uri     string
 		timeout time.Duration
@@ -19,6 +21,7 @@ type config struct {
 }
 
 func (c *config) registerFlags(f *flag.FlagSet) {
+	flag.StringVar(&c.logLevel, "log.level", "info", "The log level")
 	flag.StringVar(&c.prometheus.uri, "prometheus.uri", "http://querier.cortex.svc.cluster.local", "Prometheus server URI")
 	flag.DurationVar(&c.prometheus.timeout, "prometheus.timeout", 10*time.Second, "Timout when talking to the prometheus API")
 
@@ -31,7 +34,10 @@ func main() {
 	flag.Parse()
 	cfg.server.MetricsNamespace = "service"
 
-	// Set up server first as it sets up logging as a side-effect
+	if err := logging.Setup(cfg.logLevel); err != nil {
+		log.Fatalf("error initializing logging: %v", err)
+	}
+
 	server, err := server.New(cfg.server)
 	if err != nil {
 		log.Fatalf("error initializing server: %v", err)
