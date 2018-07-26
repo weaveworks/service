@@ -478,14 +478,15 @@ func (a *API) GetAccountStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sum, nodeAggregates, daily := sumAndFilterAggregates(aggs)
+	sum, hourly, daily := sumAndFilterAggregates(aggs)
 
+	// Look at the usage for the previous hourly bucket because we get bad
+	// (too low) values from the most recent bucket, because it's not
+	// complete yet and we are dividing by a full hour's worth of seconds
+	bucket := time.Now().UTC().Truncate(time.Hour).Add(-1 * time.Hour)
 	var activeHosts float64
-	if len(nodeAggregates) > 1 {
-		// we get bad (too low) values from the most recent bucket, because it's not complete yet
-		// and we are dividing by a full hour's worth of seconds
-		bucket := nodeAggregates[len(nodeAggregates)-2]
-		activeHosts = float64(bucket.AmountValue) / time.Hour.Seconds()
+	if bucketSeconds, ok := hourly[bucket]; ok {
+		activeHosts = float64(bucketSeconds) / time.Hour.Seconds()
 	}
 
 	trial := trial.Info(org.TrialExpiresAt, org.CreatedAt, now)
@@ -566,18 +567,19 @@ func calculateAndFormatMonthlyUsages(usage float64, rates map[string]float64) ma
 	return usages
 }
 
-func sumAndFilterAggregates(aggs []db.Aggregate) (int64, []db.Aggregate, map[string]int64) {
+func sumAndFilterAggregates(aggs []db.Aggregate) (int64, map[time.Time]int64, map[string]int64) {
+	hourly := map[time.Time]int64{}
 	daily := map[string]int64{}
 	var sum int64
-	var nodeAggregates []db.Aggregate
 	for _, agg := range aggs {
 		if agg.AmountType == billing.UsageNodeSeconds {
 			sum += agg.AmountValue
-			nodeAggregates = append(nodeAggregates, agg)
 
 			day := agg.BucketStart.Format(dayTimeLayout)
 			daily[day] += agg.AmountValue
+			// We sum hourly aggregates because we might have more than one for an hour
+			hourly[agg.BucketStart] += agg.AmountValue
 		}
 	}
-	return sum, nodeAggregates, daily
+	return sum, hourly, daily
 }
