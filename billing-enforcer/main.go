@@ -44,7 +44,6 @@ func main() {
 			// Hourly at xx:40 - Seconds, Minutes, Hours, Day of month, Month, Day of week
 			"0 40  * * *",
 			"Cron spec for periodic enforcement tasks.")
-		logLevel = flag.String("log.level", "info", "The log level")
 
 		serverConfig server.Config
 		usersConfig  users.Config
@@ -55,9 +54,10 @@ func main() {
 	usersConfig.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 
-	if err := logging.Setup(*logLevel); err != nil {
+	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
 		log.Fatalf("Error initialising logging: %v", err)
 	}
+	serverConfig.Log = logging.Logrus(log.StandardLogger())
 
 	users, err := users.NewClient(usersConfig)
 	if err != nil {

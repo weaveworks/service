@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
+	"github.com/weaveworks/common/logging"
 	commonserver "github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/common/gcp/gke"
@@ -22,6 +23,7 @@ import (
 
 func main() {
 	var (
+		logLevel      = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
 		httpPort      = flag.Int("port", 80, "HTTP port to listen on")
 		grpcPort      = flag.Int("grpc-port", 4772, "gRpc port to listen on")
 		dryRun        = flag.Bool("dry-run", false, "Do NOT actually run DAO calls, but mock them and return arbitrary values.")
@@ -32,6 +34,11 @@ func main() {
 	kubectlConfig.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 
+	if err := logging.Setup(*logLevel); err != nil {
+		log.Fatalf("Error configuring logging: %v", err)
+		return
+	}
+
 	log.Infof("gcp-service configured to listen on ports %d (HTTP) and %d (gRPC)", *httpPort, *grpcPort)
 	serv, err := commonserver.New(commonserver.Config{
 		MetricsNamespace:        common.PrometheusNamespace,
@@ -39,6 +46,7 @@ func main() {
 		GRPCListenPort:          *grpcPort,
 		GRPCMiddleware:          []googlegrpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
 		RegisterInstrumentation: true,
+		Log: logging.Logrus(log.StandardLogger()),
 	})
 	if err != nil {
 		log.Fatalf("Failed to create gcp-service's server: %v", err)

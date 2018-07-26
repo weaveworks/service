@@ -19,8 +19,6 @@ import (
 
 // Config holds the API settings.
 type Config struct {
-	logLevel string
-
 	dbConfig     dbconfig.Config
 	routesConfig routes.Config
 	serverConfig server.Config
@@ -30,8 +28,6 @@ type Config struct {
 
 // RegisterFlags registers configuration variables.
 func (c *Config) RegisterFlags(f *flag.FlagSet) {
-	flag.StringVar(&c.logLevel, "log.level", "info", "The log level")
-
 	c.dbConfig.RegisterFlags(f, "postgres://postgres@billing-db/billing?sslmode=disable", "Database to use.", "/migrations", "Migrations directory.")
 	c.routesConfig.RegisterFlags(f)
 	c.serverConfig.RegisterFlags(f)
@@ -53,9 +49,10 @@ func main() {
 	if err := cfg.Validate(); err != nil {
 		log.Fatalf("invalid config: %v", err)
 	}
-	if err := logging.Setup(cfg.logLevel); err != nil {
+	if err := logging.Setup(cfg.serverConfig.LogLevel.String()); err != nil {
 		log.Fatalf("error initialising logging: %v", err)
 	}
+	cfg.serverConfig.Log = logging.Logrus(log.StandardLogger())
 
 	users, err := users.NewClient(cfg.usersConfig)
 	if err != nil {

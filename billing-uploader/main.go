@@ -65,7 +65,6 @@ func main() {
 			"invoice-cron-spec",
 			"0 * * * * *", // Every minute
 			"Cron spec for periodic execution of the invoice job")
-		logLevel     = flag.String("log.level", "info", "The log level")
 		serverConfig server.Config
 		dbConfig     dbconfig.Config
 		usersConfig  users.Config
@@ -79,9 +78,10 @@ func main() {
 	gcpConfig.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 
-	if err := logging.Setup(*logLevel); err != nil {
+	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
 		log.Fatalf("Error initialising logging: %v", err)
 	}
+	serverConfig.Log = logging.Logrus(log.StandardLogger())
 
 	db, err := db.New(dbConfig)
 	if err != nil {

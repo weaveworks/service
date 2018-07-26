@@ -5,6 +5,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/notebooks/api"
@@ -30,6 +31,11 @@ func main() {
 		"Path where the database migration files can be found")
 
 	flag.Parse()
+
+	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
+		log.Fatalf("error initialising logging: %v", err)
+	}
+	serverConfig.Log = logging.Logrus(log.StandardLogger())
 
 	db, err := db.New(dbConfig)
 	if err != nil {

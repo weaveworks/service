@@ -48,7 +48,6 @@ func main() {
 			"cron-spec",
 			"0 10 * * * *", // Hourly at 10 minutes past - Seconds, Minutes, Hours, Day of month, Month, Day of week
 			"Cron spec for periodic query execution.")
-		logLevel       = flag.String("log.level", "info", "The log level")
 		serverConfig   server.Config
 		bigQueryConfig bigquery.Config
 		dbConfig       dbconfig.Config
@@ -58,9 +57,10 @@ func main() {
 	dbConfig.RegisterFlags(flag.CommandLine, "postgres://postgres@billing-db/billing?sslmode=disable", "Database to use.", "/migrations", "Migrations directory.")
 	flag.Parse()
 
-	if err := logging.Setup(*logLevel); err != nil {
+	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
 		log.Fatalf("Error initialising logging: %v", err)
 	}
+	serverConfig.Log = logging.Logrus(log.StandardLogger())
 
 	bigqueryClient, err := bigquery.New(context.Background(), bigQueryConfig)
 	if err != nil {

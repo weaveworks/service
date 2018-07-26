@@ -12,7 +12,6 @@ import (
 )
 
 type config struct {
-	logLevel   string
 	prometheus struct {
 		uri     string
 		timeout time.Duration
@@ -21,7 +20,6 @@ type config struct {
 }
 
 func (c *config) registerFlags(f *flag.FlagSet) {
-	flag.StringVar(&c.logLevel, "log.level", "info", "The log level")
 	flag.StringVar(&c.prometheus.uri, "prometheus.uri", "http://querier.cortex.svc.cluster.local", "Prometheus server URI")
 	flag.DurationVar(&c.prometheus.timeout, "prometheus.timeout", 10*time.Second, "Timout when talking to the prometheus API")
 
@@ -34,9 +32,10 @@ func main() {
 	flag.Parse()
 	cfg.server.MetricsNamespace = "service"
 
-	if err := logging.Setup(cfg.logLevel); err != nil {
+	if err := logging.Setup(cfg.server.LogLevel.String()); err != nil {
 		log.Fatalf("error initializing logging: %v", err)
 	}
+	cfg.server.Log = logging.Logrus(log.StandardLogger())
 
 	server, err := server.New(cfg.server)
 	if err != nil {
