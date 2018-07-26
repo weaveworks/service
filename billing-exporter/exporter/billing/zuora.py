@@ -3,6 +3,7 @@ import csv
 import tempfile
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
+from urllib.parse import urlparse
 
 
 def _fmt_date(date):
@@ -13,9 +14,21 @@ def parse_datetime(s):
     return datetime.strptime(s, '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
 
 
+def extract_creds(uri):
+    pr = urlparse(uri)
+
+    netloc = pr.hostname
+    if pr.port:
+        netloc += f':{pr.port}'
+    base_url = pr._replace(netloc=netloc).geturl()
+
+    return pr.username, pr.password, base_url
+
+
 class Zuora(object):
-    def __init__(self, url, username, password):
-        self.base_url = url
+    def __init__(self, uri):
+        username, password, base_url = extract_creds(uri)
+        self.base_url = base_url
         self.s = s = requests.Session()
         s.auth = (username, password)
 

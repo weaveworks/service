@@ -22,9 +22,9 @@ class UsageCheck(object):
         self.usage_gauge = Gauge('billable_usage_recorded', 'Billable usage recorded from different sources', ['source', 'instance', 'days_ago', 'unit'])
         self.usage_check_time_gauge = Gauge('billable_usage_recorded_check_time', 'The time we last checked the billable usage')
 
-    def run(self, stop_event, org_external_ids, bq_creds, users_db_creds, billing_db_creds, zuora_creds):
+    def run(self, stop_event, org_external_ids, bq_creds, users_db_creds, billing_db_creds, zuora_uri):
         bq_client = BigQueryClient(project='weaveworks-bi', credentials=bq_creds)
-        zuora_client = zuora.Zuora(**zuora_creds)
+        zuora_client = zuora.Zuora(zuora_uri)
 
         while not stop_event.is_set():
             try:
@@ -35,16 +35,16 @@ class UsageCheck(object):
 
             stop_event.wait(60 * 60 * 24) # it's only worth checking once a day
 
-    def check_usage(self, org_external_ids, bq_client, zuora_client, users_db_creds, billing_db_creds):
+    def check_usage(self, org_external_ids, bq_client, zuora_client, users_db_uri, billing_db_uri):
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         today = datetime_floor_date(now)
         start = datetime_floor_date(now - timedelta(days=2))
         end = datetime_ceil_date(now  - timedelta(days=1))
 
-        with psycopg2.connect(**users_db_creds) as users_conn:
+        with psycopg2.connect(dsn=users_db_uri) as users_conn:
             orgs = db.get_org_details(users_conn, org_external_ids)
 
-        with psycopg2.connect(**billing_db_creds) as billing_conn:
+        with psycopg2.connect(dsn=billing_db_uri) as billing_conn:
             aggregates_by_source = {
                 'bigquery': bigquery.get_daily_aggregates(bq_client, self.production, orgs, start, end),
                 'db': db.get_daily_aggregates(billing_conn, orgs, start, end),
