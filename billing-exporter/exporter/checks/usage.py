@@ -69,7 +69,7 @@ def get_zuora_aggregates(zuora_client, orgs, start, end):
         for date, usage_by_day in groupby(
             (
                 usage
-                for usage in zuora_client.get_usage(org.zuora_account_id, start, end)
+                for usage in zuora_client.get_usage(org.zuora_account_number, start, end)
                 if usage['unitOfMeasure'] == 'node-seconds'
             ),
             lambda usage: datetime_floor_date(zuora.parse_datetime(usage['startDateTime'])))

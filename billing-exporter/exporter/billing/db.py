@@ -9,8 +9,8 @@ def get_org_details(conn, orgs):
     with conn.cursor() as cur:
         cur.execute('''
             SELECT external_id, id, trial_expires_at, zuora_account_number, gcp_account_id
-            FROM organizations WHERE external_id IN ({!r})'''.format(
-                ','.join(orgs)
+            FROM organizations WHERE external_id IN ({})'''.format(
+                ','.join('{!r}'.format(o) for o in orgs)
             ))
         return [Org(row[0], str(row[1]), row[2], row[3], row[4]) for row in cur.fetchall()]
 
@@ -24,7 +24,7 @@ def get_daily_aggregates(conn, orgs, start, end):
         WITH instances (instance_id, trial_end) AS (
             VALUES {orgs}
         )
-        SELECT aggregates.instance_id, DATE(bucket_start) as day, SUM(amount_value) as total
+        SELECT aggregates.instance_id, date_trunc('day', bucket_start) as day, amount_type, SUM(amount_value) as total
         FROM aggregates
         JOIN instances ON CAST(aggregates.instance_id AS INTEGER) = instances.instance_id
         WHERE amount_type = 'node-seconds'
@@ -38,7 +38,7 @@ def get_daily_aggregates(conn, orgs, start, end):
             start=start.isoformat(),
             end=end.isoformat(),
             orgs=', '.join(
-                '({}, {!r})'.format(o.interal_id, o.trial_expires_at)
+                '({}, {!r})'.format(o.internal_id, o.trial_expires_at.isoformat())
                 for o in orgs
             )
         )
