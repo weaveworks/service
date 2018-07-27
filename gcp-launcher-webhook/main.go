@@ -8,6 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common"
 	"github.com/weaveworks/service/common/gcp/partner"
@@ -20,6 +21,7 @@ import (
 type config struct {
 	port               int
 	endpoint           string
+	logLevel           string
 	secret             string // Secret used to authenticate incoming GCP webhook requests.
 	createSubscription bool
 	subscriptionID     string
@@ -31,6 +33,7 @@ type config struct {
 }
 
 func (c *config) RegisterFlags(f *flag.FlagSet) {
+	flag.StringVar(&c.logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
 	flag.IntVar(&c.port, "port", 80, "HTTP port for the Cloud Launcher's GCP Pub/Sub push webhook")
 	flag.StringVar(&c.endpoint, "webhook-endpoint", "https://frontend.dev.weave.works/api/gcp-launcher/webhook?secret=FILLMEIN", "Endpoint this webhook is accessible from the outside")
 	flag.BoolVar(&c.createSubscription, "pubsub-api.create-subscription", false, "Enable/Disable programmatic creation of the Pub/Sub subscription.")
@@ -58,6 +61,11 @@ func main() {
 	cfg.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 
+	if err := logging.Setup(cfg.logLevel); err != nil {
+		log.Fatalf("Error configuring logging: %v", err)
+		return
+	}
+
 	if cfg.createSubscription {
 		createSubscription(&cfg)
 	}
@@ -76,6 +84,7 @@ func main() {
 		HTTPListenPort:          cfg.port,
 		MetricsNamespace:        common.PrometheusNamespace,
 		RegisterInstrumentation: true,
+		Log: logging.Logrus(log.StandardLogger()),
 	}
 	server, err := server.New(serverCfg)
 	if err != nil {

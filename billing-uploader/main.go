@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/instrument"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-uploader/job"
@@ -77,12 +78,10 @@ func main() {
 	gcpConfig.RegisterFlags(flag.CommandLine)
 	flag.Parse()
 
-	// Set up server first as it sets up logging as a side-effect
-	server, err := server.New(serverConfig)
-	if err != nil {
-		log.Fatalf("Error initialising server: %v", err)
+	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
+		log.Fatalf("Error initialising logging: %v", err)
 	}
-	defer server.Shutdown()
+	serverConfig.Log = logging.Logrus(log.StandardLogger())
 
 	db, err := db.New(dbConfig)
 	if err != nil {
@@ -94,6 +93,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error initialising users client: %v", err)
 	}
+
+	server, err := server.New(serverConfig)
+	if err != nil {
+		log.Fatalf("Error initialising server: %v", err)
+	}
+	defer server.Shutdown()
 
 	// Zuora upload cron
 	zuora := zuora.New(zuoraConfig, nil)

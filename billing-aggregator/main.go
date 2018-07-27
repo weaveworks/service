@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/instrument"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/billing-aggregator/job"
 	"github.com/weaveworks/service/billing-api/db"
@@ -56,12 +57,10 @@ func main() {
 	dbConfig.RegisterFlags(flag.CommandLine, "postgres://postgres@billing-db/billing?sslmode=disable", "Database to use.", "/migrations", "Migrations directory.")
 	flag.Parse()
 
-	// Set up server first as it sets up logging as a side-effect
-	server, err := server.New(serverConfig)
-	if err != nil {
-		log.Fatalf("Error initialising server: %v", err)
+	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
+		log.Fatalf("Error initialising logging: %v", err)
 	}
-	defer server.Shutdown()
+	serverConfig.Log = logging.Logrus(log.StandardLogger())
 
 	bigqueryClient, err := bigquery.New(context.Background(), bigQueryConfig)
 	if err != nil {
@@ -73,6 +72,12 @@ func main() {
 		log.Fatalf("Error initialising database client: %v", err)
 	}
 	defer db.Close(context.Background())
+
+	server, err := server.New(serverConfig)
+	if err != nil {
+		log.Fatalf("Error initialising server: %v", err)
+	}
+	defer server.Shutdown()
 
 	c := cron.New()
 	job := job.NewAggregate(bigqueryClient, db, jobCollector)

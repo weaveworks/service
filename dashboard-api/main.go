@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/dashboard-api/dashboard"
 )
@@ -31,7 +32,11 @@ func main() {
 	flag.Parse()
 	cfg.server.MetricsNamespace = "service"
 
-	// Set up server first as it sets up logging as a side-effect
+	if err := logging.Setup(cfg.server.LogLevel.String()); err != nil {
+		log.Fatalf("error initializing logging: %v", err)
+	}
+	cfg.server.Log = logging.Logrus(log.StandardLogger())
+
 	server, err := server.New(cfg.server)
 	if err != nil {
 		log.Fatalf("error initializing server: %v", err)

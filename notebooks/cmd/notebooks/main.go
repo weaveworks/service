@@ -5,6 +5,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/notebooks/api"
@@ -31,17 +32,21 @@ func main() {
 
 	flag.Parse()
 
-	// Set up server first as it sets up logging as a side-effect
-	server, err := server.New(serverConfig)
-	if err != nil {
-		log.Fatalf("Error initializing server: %v", err)
+	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
+		log.Fatalf("error initialising logging: %v", err)
 	}
-	defer server.Shutdown()
+	serverConfig.Log = logging.Logrus(log.StandardLogger())
 
 	db, err := db.New(dbConfig)
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
+
+	server, err := server.New(serverConfig)
+	if err != nil {
+		log.Fatalf("Error initializing server: %v", err)
+	}
+	defer server.Shutdown()
 
 	usersOptions := users.CachingClientConfig{}
 	if cfg.usersCacheSize > 0 {

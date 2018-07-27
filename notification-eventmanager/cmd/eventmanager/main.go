@@ -5,6 +5,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/common/users"
@@ -39,11 +40,10 @@ func main() {
 
 	flag.Parse()
 
-	// Set up server first as it sets up logging as a side-effect
-	s, err := server.New(serverConfig)
-	if err != nil {
-		log.Fatal(err)
+	if err := logging.Setup(serverConfig.LogLevel.String()); err != nil {
+		log.Fatalf("Error configuring logging: %v", err)
 	}
+	serverConfig.Log = logging.Logrus(log.StandardLogger())
 
 	sqsCli, sqsQueue, err := sqsconnect.NewSQS(sqsURL)
 	if err != nil {
@@ -81,6 +81,11 @@ func main() {
 	}
 
 	log.Info("listening for requests")
+	s, err := server.New(serverConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	em.Register(s.HTTP)
 
 	defer func() {

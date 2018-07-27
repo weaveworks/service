@@ -5,6 +5,7 @@ import (
 	"flag"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
 
 	"github.com/weaveworks/service/billing-api/db"
@@ -45,16 +46,13 @@ func main() {
 	flag.Parse()
 	cfg.serverConfig.MetricsNamespace = "billing"
 
-	// Set up server first as it sets up logging as a side-effect
-	server, err := server.New(cfg.serverConfig)
-	if err != nil {
-		log.Fatalf("error initialising server: %v", err)
-	}
-	defer server.Shutdown()
-
 	if err := cfg.Validate(); err != nil {
 		log.Fatalf("invalid config: %v", err)
 	}
+	if err := logging.Setup(cfg.serverConfig.LogLevel.String()); err != nil {
+		log.Fatalf("error initialising logging: %v", err)
+	}
+	cfg.serverConfig.Log = logging.Logrus(log.StandardLogger())
 
 	users, err := users.NewClient(cfg.usersConfig)
 	if err != nil {
@@ -68,6 +66,12 @@ func main() {
 		log.Fatalf("error initialising database client: %v", err)
 	}
 	defer db.Close(context.Background())
+
+	server, err := server.New(cfg.serverConfig)
+	if err != nil {
+		log.Fatalf("error initialising server: %v", err)
+	}
+	defer server.Shutdown()
 
 	routes, err := routes.New(cfg.routesConfig, db, users, z)
 	if err != nil {
