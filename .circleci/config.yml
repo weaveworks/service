@@ -15,10 +15,17 @@ jobs:
     steps:
       - checkout
       - run: sudo docker info >/dev/null 2>&1 || sudo service docker start;
+      - restore_cache:
+          keys:
+            - build-image-cache-{{ checksum "build/build.sh" }}-{{ checksum "build/Dockerfile" }}
       - run: |
           cd build
           ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile
           touch .uptodate
+      - save_cache:
+          key: build-image-cache-{{ checksum "build/build.sh" }}-{{ checksum "build/Dockerfile" }}
+          paths:
+            - docker
       - run: make
       - run: |
           set -e
