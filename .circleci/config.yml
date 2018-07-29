@@ -46,6 +46,16 @@ jobs:
               docker tag ${tagged_image} ${repo_tmp_image}
               docker push $repo_tmp_image
             done
+      - persist_to_workspace:
+          root: .
+          paths:
+          - users/mock_users/mock_usersclient.go
+          - users/client/mock_client.go
+          - billing-api/db/mock_db/mock_db.go
+          - common/billing/grpc/mock_grpc.go
+          - common/gcp/partner/mock_partner/mock_access.go
+          - common/gcp/partner/mock_partner/mock_client.go
+
   test:
     <<: *defaults
     steps:
@@ -88,6 +98,8 @@ jobs:
       # FIXME: we probably don't need to copy the code and change the working dir
       - run: echo -e "export GOPATH=$HOME\nexport SRCDIR=$HOME/src/github.com/weaveworks/service\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
       - run: mkdir -p $(dirname $SRCDIR) && cp -r $(pwd)/ $SRCDIR
+      - attach_workspace:
+          at: .
       - run: go get github.com/nats-io/gnatsd
       - run:
           command: gnatsd
