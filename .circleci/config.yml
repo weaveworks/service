@@ -15,18 +15,15 @@ jobs:
     steps:
       - checkout
       - run: sudo docker info >/dev/null 2>&1 || sudo service docker start;
-      # FIXME: we probably don't need to copy the code and change the working dir
-      - run: echo -e "export GOPATH=$HOME\nexport SRCDIR=$HOME/src/github.com/weaveworks/service\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
-      - run: mkdir -p $(dirname $SRCDIR) && cp -r $(pwd)/ $SRCDIR
       - run: |
-          cd $SRCDIR/build
+          cd build
           ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile
           touch .uptodate
-      - run: cd $SRCDIR; make RM=
+      - run: make
       - run: |
           set -e
           set -o pipefail
-          cd $SRCDIR; if [ $(./tools/image-tag | grep -e '-WIP$') ]; then
+          if [ $(./tools/image-tag | grep -e '-WIP$') ]; then
             echo "WIP build; exiting with error to mark as a failure"
             git --no-pager diff
             exit 1
@@ -95,9 +92,6 @@ jobs:
               docker image rm ${repo_tmp_image}
             done
             make touch-uptodate
-      # FIXME: we probably don't need to copy the code and change the working dir
-      - run: echo -e "export GOPATH=$HOME\nexport SRCDIR=$HOME/src/github.com/weaveworks/service\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
-      - run: mkdir -p $(dirname $SRCDIR) && cp -r $(pwd)/ $SRCDIR
       - attach_workspace:
           at: .
       - run: go get github.com/nats-io/gnatsd
@@ -105,7 +99,6 @@ jobs:
           command: gnatsd
           background: true
       - run: |
-          cd $SRCDIR
           # Notifications comes first because it uses the downloaded images
           # subsequent steps will require code generation which would trigger a rebuild
           make RM= notification-integration-test
