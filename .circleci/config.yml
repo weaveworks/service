@@ -25,7 +25,7 @@ jobs:
       - save_cache:
           key: build-image-cache-{{ checksum "build/build.sh" }}-{{ checksum "build/Dockerfile" }}
           paths:
-            - docker
+            - ~/docker
       - run: make
       - run: |
           set -e
