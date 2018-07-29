@@ -8,6 +8,12 @@ jobs:
     <<: *defaults
     steps:
       - checkout
+      - run:
+          name: Create build image
+          command: |
+            cd build
+            ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile
+            touch .uptodate
       - run: make RM= lint
 
   build:
@@ -18,10 +24,12 @@ jobs:
       - restore_cache:
           keys:
             - build-image-cache-{{ checksum "build/build.sh" }}-{{ checksum "build/Dockerfile" }}
-      - run: |
-          cd build
-          ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile
-          touch .uptodate
+      - run:
+          name: Create build image
+          command: |
+            cd build
+            ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile
+            touch .uptodate
       - save_cache:
           key: build-image-cache-{{ checksum "build/build.sh" }}-{{ checksum "build/Dockerfile" }}
           paths:
@@ -63,6 +71,12 @@ jobs:
     <<: *defaults
     steps:
       - checkout
+      - run:
+          name: Create build image
+          command: |
+            cd build
+            ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile
+            touch .uptodate
       - run: echo -e "export GOPATH=$HOME\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
       # Link the working directory so that it appears in GOPATH. This is required for cover to map coverage statistics to sources.
       - run: mkdir -p ${GOPATH}/src/github.com/weaveworks && ln -s $(pwd) ${GOPATH}/src/github.com/weaveworks/service
