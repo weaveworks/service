@@ -59,6 +59,10 @@ jobs:
           - common/billing/grpc/mock_grpc.go
           - common/gcp/partner/mock_partner/mock_access.go
           - common/gcp/partner/mock_partner/mock_client.go
+          - gcp-service/grpc/gcp-service.pb.go
+          - users/users.pb.go
+          - common/billing/grpc/billing.pb.go
+          - kubectl-service/grpc/kubectl-service.pb.go
 
   test:
     <<: *defaults
