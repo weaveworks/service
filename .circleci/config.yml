@@ -102,7 +102,6 @@ jobs:
               docker tag ${repo_tmp_image} ${image}:latest
               docker image rm ${repo_tmp_image}
             done
-            make touch-uptodate
       - attach_workspace:
           at: .
       - run: go get github.com/nats-io/gnatsd
@@ -111,6 +110,7 @@ jobs:
           background: true
       - run: |
           touch users/mock_users/mock_usersclient.go users/client/mock_client.go billing-api/db/mock_db/mock_db.go common/billing/grpc/mock_grpc.go common/gcp/partner/mock_partner/mock_access.go common/gcp/partner/mock_partner/mock_client.go gcp-service/grpc/gcp-service.pb.go users/users.pb.go common/billing/grpc/billing.pb.go kubectl-service/grpc/kubectl-service.pb.go
+          make touch-uptodate
           make RM= notification-integration-test
           make RM= notebooks-integration-test
           make RM= users-integration-test
