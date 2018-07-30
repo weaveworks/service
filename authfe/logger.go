@@ -4,6 +4,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/user"
@@ -114,6 +115,28 @@ func newAnalyticsLogger(userIDHeader string) HTTPEventExtractor {
 			UserID:    r.Header.Get(userIDHeader),
 			Values:    string(values),
 			IPAddress: mustSplitHostname(r),
+		}
+		return event, true
+	}
+}
+
+func newWebhooksLogger(webhooksIntegrationTypeHeader string) HTTPEventExtractor {
+	return func(r *http.Request) (Event, bool) {
+		orgID, _ := user.ExtractOrgID(r.Context())
+		integrationType := r.Header.Get(webhooksIntegrationTypeHeader)
+
+		// Only pass first 8 chars of secret in URL `/webhooks/abcd1234abcd1234abcd1234abcd1234/`
+		urlParts := strings.Split(r.URL.Path, "/")
+		urlParts[2] = urlParts[2][:8] + strings.Repeat("*", 24)
+		url := strings.Join(urlParts, "/")
+
+		event := Event{
+			ID:             url,
+			Product:        "webhooks",
+			UserAgent:      r.UserAgent(),
+			OrganizationID: orgID,
+			IPAddress:      mustSplitHostname(r),
+			Values:         integrationType,
 		}
 		return event, true
 	}
