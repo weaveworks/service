@@ -9,6 +9,7 @@ billing-aggregator/aggregator
 billing-aggregator/migrations
 billing-api/api
 billing-enforcer/enforcer
+billing-synthetic-usage-injector/injector
 billing-uploader/migrations
 billing-uploader/uploader
 dashboard-api/dashboard-api
