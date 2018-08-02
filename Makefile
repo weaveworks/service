@@ -29,6 +29,9 @@ images:
 	$(info $(IMAGE_NAMES))
 	@echo > /dev/null
 
+touch-uptodate:
+	touch $(UPTODATE_FILES)
+
 all: $(UPTODATE_FILES)
 
 # Generating proto code is automated.
@@ -176,7 +179,46 @@ $(EXES) test: build/$(UPTODATE) $(PROTO_GOS)
 		-e TESTDIRS=${TESTDIRS} \
 		$(IMAGE_PREFIX)/build $@
 
-billing-integration-test: build/$(UPTODATE)
+else
+
+$(EXES): $(PROTO_GOS)
+	go build $(GO_FLAGS) -o $@ ./$(@D)
+	$(NETGO_CHECK)
+
+%.pb.go:
+	protoc -I ./vendor:./$(@D) --gogoslick_out=plugins=grpc:./$(@D) ./$(patsubst %.pb.go,%.proto,$@)
+
+lint:
+	./tools/lint .
+
+test: $(PROTO_GOS) $(MOCK_GOS)
+	TESTDIRS=${TESTDIRS} ./tools/test -netgo -no-race
+
+$(MOCK_USERS):
+	mockgen -destination=$@ github.com/weaveworks/service/users UsersClient \
+		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
+
+$(MOCK_BILLING_DB): $(BILLING_DB)/db.go
+	mockgen -destination=$@ github.com/weaveworks/service/$(BILLING_DB) DB
+
+$(MOCK_BILLING_GRPC):
+	mockgen -source=$(BILLING_GRPC) -destination=$@ -package=grpc
+
+$(MOCK_COMMON_GCP_PARTNER_CLIENT):
+	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner API \
+		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
+
+$(MOCK_COMMON_GCP_PARTNER_ACCESS):
+	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner Accessor \
+		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
+
+endif
+
+
+# Test and misc stuff
+INTEGRATION_TEST_IMAGE=golang:1.9.2-stretch
+
+billing-integration-test: $(MOCK_GOS)
 	@mkdir -p $(shell pwd)/.pkg
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=billing_test' postgres:9.5)"; \
 	$(SUDO) docker run $(RM) -ti \
@@ -185,13 +227,16 @@ billing-integration-test: build/$(UPTODATE)
 		-v $(shell pwd)/billing-api/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service \
 		--link "$$DB_CONTAINER":billing-db.weave.local \
-		$(IMAGE_PREFIX)/build $@; \
+		$(INTEGRATION_TEST_IMAGE) \
+		/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
 
-flux-integration-test: build/$(UPTODATE)
+flux-integration-test:
 	@mkdir -p $(shell pwd)/.pkg
+# These packages must currently be tested in series because
+# otherwise they will all race to run migrations.
 	NATS_CONTAINER="$$(docker run -d nats)"; \
 	POSTGRES_CONTAINER="$$(docker run -d postgres)"; \
 	$(SUDO) docker run $(RM) -ti \
@@ -201,80 +246,36 @@ flux-integration-test: build/$(UPTODATE)
 		--workdir /go/src/github.com/weaveworks/service \
 		--link "$$NATS_CONTAINER":nats \
 		--link "$$POSTGRES_CONTAINER":postgres \
-		$(IMAGE_PREFIX)/build $@; \
+		$(INTEGRATION_TEST_IMAGE) \
+		/bin/bash -c "go test -tags integration -timeout 30s ./flux-api && \
+		              go test -tags integration -timeout 30s ./flux-api/bus/nats &&\
+		              go test -tags integration -timeout 30s ./flux-api/history/sql &&\
+		              go test -tags integration -timeout 30s ./flux-api/instance/sql"; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$NATS_CONTAINER" "$$POSTGRES_CONTAINER"; \
 	exit $$status
 
-else
-
-$(EXES): build/$(UPTODATE) $(PROTO_GOS)
-	go build $(GO_FLAGS) -o $@ ./$(@D)
-	$(NETGO_CHECK)
-
-%.pb.go: build/$(UPTODATE)
-	protoc -I ./vendor:./$(@D) --gogoslick_out=plugins=grpc:./$(@D) ./$(patsubst %.pb.go,%.proto,$@)
-
-lint: build/$(UPTODATE)
-	./tools/lint .
-
-test: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
-	TESTDIRS=${TESTDIRS} ./tools/test -netgo -no-race
-
-$(MOCK_USERS): build/$(UPTODATE)
-	mockgen -destination=$@ github.com/weaveworks/service/users UsersClient \
-		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
-
-$(MOCK_BILLING_DB): build/$(UPTODATE) $(BILLING_DB)/db.go
-	mockgen -destination=$@ github.com/weaveworks/service/$(BILLING_DB) DB
-
-$(MOCK_BILLING_GRPC): build/$(UPTODATE)
-	mockgen -source=$(BILLING_GRPC) -destination=$@ -package=grpc
-
-$(MOCK_COMMON_GCP_PARTNER_CLIENT): build/$(UPTODATE)
-	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner API \
-		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
-
-$(MOCK_COMMON_GCP_PARTNER_ACCESS): build/$(UPTODATE)
-	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner Accessor \
-		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
-
-billing-integration-test: build/$(UPTODATE) $(MOCK_GOS)
-	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"
-
-flux-integration-test:
-# These packages must currently be tested in series because
-# otherwise they will all race to run migrations.
-	/bin/bash -c "go test -tags integration -timeout 30s ./flux-api"
-	/bin/bash -c "go test -tags integration -timeout 30s ./flux-api/bus/nats"
-	/bin/bash -c "go test -tags integration -timeout 30s ./flux-api/history/sql"
-	/bin/bash -c "go test -tags integration -timeout 30s ./flux-api/instance/sql"
-
-endif
-
-
-# Test and misc stuff
-notebooks-integration-test: $(NOTEBOOKS_UPTODATE)
+notebooks-integration-test:
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=notebooks_test' postgres:9.5)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-v $(shell pwd)/notebooks/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/notebooks \
 		--link "$$DB_CONTAINER":configs-db.weave.local \
-		golang:1.9.2-stretch \
+		$(INTEGRATION_TEST_IMAGE) \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
 	exit $$status
 
-users-integration-test: $(USERS_UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
+users-integration-test: $(PROTO_GOS) $(MOCK_GOS)
 	DB_CONTAINER="$$(docker run -d -e 'POSTGRES_DB=users_test' postgres:9.5)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		-v $(shell pwd)/users/db/migrations:/migrations \
 		--workdir /go/src/github.com/weaveworks/service/users \
 		--link "$$DB_CONTAINER":users-db.weave.local \
-		golang:1.9.2-stretch \
+		$(INTEGRATION_TEST_IMAGE) \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$DB_CONTAINER"; \
@@ -286,31 +287,31 @@ pubsub-integration-test:
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		--net=host -p 127.0.0.1:1337:1337 \
 		--workdir /go/src/github.com/weaveworks/service/common/gcp/pubsub \
-		golang:1.9.2-stretch \
+		$(INTEGRATION_TEST_IMAGE) \
 		/bin/bash -c "RUN_MANUAL_TEST=1 go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$PUBSUB_EMU_CONTAINER"; \
 	exit $$status
 
-kubectl-service-integration-test: kubectl-service/$(UPTODATE) kubectl-service/grpc/kubectl-service.pb.go
+kubectl-service-integration-test: kubectl-service/grpc/kubectl-service.pb.go
 	SVC_CONTAINER="$$(docker run -d -p 4887:4772 -p 8887:80 $(IMAGE_PREFIX)/kubectl-service -dry-run=true)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		--workdir /go/src/github.com/weaveworks/service/kubectl-service \
 		--link "$$SVC_CONTAINER":kubectl-service.weave.local \
-		golang:1.9.2-stretch \
+		$(INTEGRATION_TEST_IMAGE) \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \
 	exit $$status
 
-gcp-service-integration-test: gcp-service/$(UPTODATE) gcp-service/grpc/gcp-service.pb.go
+gcp-service-integration-test: gcp-service/grpc/gcp-service.pb.go
 	SVC_CONTAINER="$$(docker run -d -p 4888:4772 -p 8888:80 $(IMAGE_PREFIX)/gcp-service -dry-run=true)"; \
 	docker run $(RM) \
 		-v $(shell pwd):/go/src/github.com/weaveworks/service \
 		--workdir /go/src/github.com/weaveworks/service/gcp-service \
 		--link "$$SVC_CONTAINER":gcp-service.weave.local \
-		golang:1.9.2-stretch \
+		$(INTEGRATION_TEST_IMAGE) \
 		/bin/bash -c "go test -tags integration -timeout 30s ./..."; \
 	status=$$?; \
 	test -n "$(CIRCLECI)" || docker rm -f "$$SVC_CONTAINER"; \

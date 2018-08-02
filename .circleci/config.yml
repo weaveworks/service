@@ -1,32 +1,28 @@
 version: 2
+
+# https://circleci.com/blog/circleci-hacks-reuse-yaml-in-your-circleci-config-with-yaml/
 defaults: &defaults
-  machine:
-    docker_layer_caching: true
+  docker:
+    - image: weaveworks/service-build:master-8245ec7d
   working_directory: ~/weaveworks/service
+
 jobs:
   lint:
     <<: *defaults
     steps:
       - checkout
-      - run: make RM= lint
+      - run: make BUILD_IN_CONTAINER=false lint
 
   build:
     <<: *defaults
     steps:
       - checkout
-      - run: sudo docker info >/dev/null 2>&1 || sudo service docker start;
-      # FIXME: we probably don't need to copy the code and change the working dir
-      - run: echo -e "export GOPATH=$HOME\nexport SRCDIR=$HOME/src/github.com/weaveworks/service\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
-      - run: mkdir -p $(dirname $SRCDIR) && cp -r $(pwd)/ $SRCDIR
-      - run: |
-          cd $SRCDIR/build
-          ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile
-          touch .uptodate
-      - run: cd $SRCDIR; make RM=
+      - setup_remote_docker
+      - run: make BUILD_IN_CONTAINER=false
       - run: |
           set -e
           set -o pipefail
-          cd $SRCDIR; if [ $(./tools/image-tag | grep -e '-WIP$') ]; then
+          if [ $(./tools/image-tag | grep -e '-WIP$') ]; then
             echo "WIP build; exiting with error to mark as a failure"
             git --no-pager diff
             exit 1
@@ -46,15 +42,25 @@ jobs:
               docker tag ${tagged_image} ${repo_tmp_image}
               docker push $repo_tmp_image
             done
+      - persist_to_workspace:
+          root: .
+          paths:
+          - users/client/mock_client.go
+          - gcp-service/grpc/gcp-service.pb.go
+          - users/users.pb.go
+          - common/billing/grpc/billing.pb.go
+          - kubectl-service/grpc/kubectl-service.pb.go
+
   test:
     <<: *defaults
     steps:
       - checkout
+      - setup_remote_docker
       - run: echo -e "export GOPATH=$HOME\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
       # Link the working directory so that it appears in GOPATH. This is required for cover to map coverage statistics to sources.
       - run: mkdir -p ${GOPATH}/src/github.com/weaveworks && ln -s $(pwd) ${GOPATH}/src/github.com/weaveworks/service
       - run: go get github.com/mattn/goveralls
-      - run: COVERDIR=./coverage make RM= test
+      - run: COVERDIR=./coverage make BUILD_IN_CONTAINER=false test
       - run: ./tools/cover/gather_coverage.sh ./coverage $CIRCLE_WORKING_DIRECTORY/coverage
       - run: goveralls -repotoken $COVERALLS_REPO_TOKEN -coverprofile=$CIRCLE_WORKING_DIRECTORY/profile.cov -service=circleci || true
       - run: mkdir /tmp/coverage && cp coverage.* /tmp/coverage
@@ -65,6 +71,7 @@ jobs:
     <<: *defaults
     steps:
       - checkout
+      - setup_remote_docker
       - &pull-tmp-images
         run:
           name: Download docker images build earlier in workflow
@@ -84,28 +91,29 @@ jobs:
               docker tag ${repo_tmp_image} ${image}:latest
               docker image rm ${repo_tmp_image}
             done
-      # FIXME: we probably don't need to copy the code and change the working dir
-      - run: echo -e "export GOPATH=$HOME\nexport SRCDIR=$HOME/src/github.com/weaveworks/service\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
-      - run: mkdir -p $(dirname $SRCDIR) && cp -r $(pwd)/ $SRCDIR
+      - attach_workspace:
+          at: .
       - run: go get github.com/nats-io/gnatsd
       - run:
           command: gnatsd
           background: true
       - run: |
-          cd $SRCDIR
-          make RM= notebooks-integration-test
-          make RM= users-integration-test
-          make RM= billing-integration-test
-          make RM= pubsub-integration-test
-          make RM= flux-integration-test
-          make RM= kubectl-service-integration-test
-          make RM= gcp-service-integration-test
-          make RM= notification-integration-test
+          touch users/client/mock_client.go gcp-service/grpc/gcp-service.pb.go users/users.pb.go common/billing/grpc/billing.pb.go kubectl-service/grpc/kubectl-service.pb.go
+          make touch-uptodate
+          make BUILD_IN_CONTAINER=false notification-integration-test
+          make BUILD_IN_CONTAINER=false notebooks-integration-test
+          make BUILD_IN_CONTAINER=false users-integration-test
+          make BUILD_IN_CONTAINER=false billing-integration-test
+          make BUILD_IN_CONTAINER=false pubsub-integration-test
+          make BUILD_IN_CONTAINER=false flux-integration-test
+          make BUILD_IN_CONTAINER=false kubectl-service-integration-test
+          make BUILD_IN_CONTAINER=false gcp-service-integration-test
 
   upload:
     <<: *defaults
     steps:
       - checkout
+      - setup_remote_docker
       - <<: *pull-tmp-images
       - run:
           name: Publish docker images to final repository
@@ -119,6 +127,7 @@ jobs:
     <<: *defaults
     steps:
       - checkout
+      - setup_remote_docker
       - <<: *pull-tmp-images
       - run:
           name: Dry-run of publishing docker images
