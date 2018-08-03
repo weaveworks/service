@@ -68,6 +68,7 @@ type Config struct {
 	billingUploaderHost   proxyConfig
 	compareImagesHost     proxyConfig
 	compareRevisionsHost  proxyConfig
+	corpAtlantisHost      proxyConfig
 	corpTerradiffHost     proxyConfig
 	devGrafanaHost        proxyConfig
 	elasticsearchHost     proxyConfig
@@ -125,6 +126,7 @@ func (c *Config) proxies() map[string]*proxyConfig {
 		"billing-uploader":   &c.billingUploaderHost,
 		"compare-images":     &c.compareImagesHost,
 		"compare-revisions":  &c.compareRevisionsHost,
+		"corp-atlantis":      &c.corpAtlantisHost,
 		"corp-terradiff":     &c.corpTerradiffHost,
 		"dev-grafana":        &c.devGrafanaHost,
 		"elasticsearch":      &c.elasticsearchHost,
