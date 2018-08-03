@@ -313,6 +313,15 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		dataUploadRoutes,
 		dataAccessRoutes,
 
+		// Unauthenticated webhook for Atlantis. We trust Atlantis to do its own authenication.
+		MiddlewarePrefix{
+			"/",
+			Matchables([]Prefix{
+				{"/admin/corp-atlantis/events", trimPrefix("/admin/corp-atlantis", c.corpAtlantisHost)},
+			}),
+			uiHTTPlogger,
+		},
+
 		// For all admin functionality, authenticated using header credentials
 		MiddlewarePrefix{
 			"/admin",
@@ -344,6 +353,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 				{"/kibana", trimPrefix("/admin/kibana", c.kibanaHost)},
 				{"/elasticsearch", trimPrefix("/admin/elasticsearch", c.elasticsearchHost)},
 				{"/esh", trimPrefix("/admin/esh", c.eshHost)},
+				{"/corp-atlantis", trimPrefix("/admin/corp-atlantis", c.corpAtlantisHost)},
 				{"/corp-terradiff", trimPrefix("/admin/corp-terradiff", c.corpTerradiffHost)},
 				{"/", http.HandlerFunc(adminRoot)},
 			}),
