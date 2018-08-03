@@ -6,6 +6,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/common/constants/webhooks"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/mock_users"
 )
@@ -34,6 +36,26 @@ func TestNewLauncherServiceLogger(t *testing.T) {
 		UserAgent:      "",
 		OrganizationID: "2",
 		IPAddress:      "",
+	})
+	assert.Equal(t, success, true)
+}
+
+func TestNewWebhooksLogger(t *testing.T) {
+	logger := newWebhooksLogger(webhooks.WebhooksIntegrationTypeHeader)
+	req, err := http.NewRequest("GET", "https://cloud.weave.works/webhooks/x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1x1/", nil)
+	assert.NoError(t, err)
+
+	req = req.WithContext(user.InjectOrgID(req.Context(), "2"))
+	req.Header.Set(webhooks.WebhooksIntegrationTypeHeader, webhooks.GithubPushIntegrationType)
+
+	event, success := logger(req)
+	assert.Equal(t, event, Event{
+		ID:             "/webhooks/x1x1x1x1************************/",
+		Product:        "webhooks",
+		UserAgent:      "",
+		OrganizationID: "2",
+		IPAddress:      "",
+		Values:         webhooks.GithubPushIntegrationType,
 	})
 	assert.Equal(t, success, true)
 }

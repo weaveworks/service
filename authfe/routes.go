@@ -68,7 +68,7 @@ func mustSplitHostname(r *http.Request) string {
 }
 
 func routes(c Config, authenticator users.UsersClient, ghIntegration *users_client.TokenRequester, eventLogger *EventLogger) (http.Handler, error) {
-	launcherServiceLogger, probeHTTPlogger, uiHTTPlogger, analyticsLogger := middleware.Identity, middleware.Identity, middleware.Identity, middleware.Identity
+	launcherServiceLogger, probeHTTPlogger, uiHTTPlogger, analyticsLogger, webhooksLogger := middleware.Identity, middleware.Identity, middleware.Identity, middleware.Identity, middleware.Identity
 	if eventLogger != nil {
 		launcherServiceLogger = HTTPEventLogger{
 			Extractor: newLauncherServiceLogger(authenticator),
@@ -84,6 +84,10 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		}
 		analyticsLogger = HTTPEventLogger{
 			Extractor: newAnalyticsLogger(userIDHeader),
+			Logger:    eventLogger,
+		}
+		webhooksLogger = HTTPEventLogger{
+			Extractor: newWebhooksLogger(webhooks.WebhooksIntegrationTypeHeader),
 			Logger:    eventLogger,
 		}
 	}
@@ -306,7 +310,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		// Webhooks
 		Path{
 			"/webhooks/{secretID}/",
-			webhooksMiddleware.Wrap(c.fluxHost),
+			middleware.Merge(webhooksLogger, webhooksMiddleware).Wrap(c.fluxHost),
 		},
 
 		// Token-based auth
