@@ -51,6 +51,7 @@ var aggregateOrder = []string{
 	"aggregates.bucket_start asc",
 	"aggregates.amount_type asc",
 	"aggregates.created_at asc",
+	"aggregates.id asc",
 }
 
 // newPostgres creates a database connection.
