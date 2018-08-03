@@ -17,8 +17,11 @@ WHERE
   received_at IS NOT NULL
   AND received_at >= @start_time
   AND received_at < @end_time
-  AND _PARTITIONDATE >= @partition_start
-  AND _PARTITIONDATE < @partition_end
+  AND (
+    (_PARTITIONDATE >= @partition_start AND _PARTITIONDATE < @partition_end)
+    OR
+    _PARTITIONDATE IS NULL
+  )
   AND internal_instance_id IN UNNEST(@instance_ids)
 GROUP BY
   instance_id,
