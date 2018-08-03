@@ -686,6 +686,7 @@
     "mtime",
     "server",
     "signals",
+    "tracing",
     "user"
   ]
   revision = "0967b510c9d2da39550a74c6638ff9e3da5e6d19"
@@ -958,6 +959,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4b3f417c3e932e543f74575fb39c96546444223f95072afb9f8abe5db964cfdf"
+  inputs-digest = "a3996fd0717743f9c41c53e3d0f58f2ca1381b11523b640edb775a4792b377e0"
   solver-name = "gps-cdcl"
   solver-version = 1
