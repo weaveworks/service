@@ -10,6 +10,7 @@ import (
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/common/tracing"
 	"github.com/weaveworks/service/billing-enforcer/job"
 	"github.com/weaveworks/service/common/users"
 )
@@ -58,6 +59,9 @@ func main() {
 		log.Fatalf("Error initialising logging: %v", err)
 	}
 	serverConfig.Log = logging.Logrus(log.StandardLogger())
+
+	traceCloser := tracing.NewFromEnv("billing-enforcer")
+	defer traceCloser.Close()
 
 	users, err := users.NewClient(usersConfig)
 	if err != nil {

@@ -12,6 +12,7 @@ import (
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/common/tracing"
 	"github.com/weaveworks/service/billing-aggregator/job"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/common/bigquery"
@@ -61,6 +62,9 @@ func main() {
 		log.Fatalf("Error initialising logging: %v", err)
 	}
 	serverConfig.Log = logging.Logrus(log.StandardLogger())
+
+	traceCloser := tracing.NewFromEnv("billing-aggregator")
+	defer traceCloser.Close()
 
 	bigqueryClient, err := bigquery.New(context.Background(), bigQueryConfig)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/common/tracing"
 
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-api/grpc"
@@ -53,6 +54,9 @@ func main() {
 		log.Fatalf("error initialising logging: %v", err)
 	}
 	cfg.serverConfig.Log = logging.Logrus(log.StandardLogger())
+
+	traceCloser := tracing.NewFromEnv("billing")
+	defer traceCloser.Close()
 
 	users, err := users.NewClient(cfg.usersConfig)
 	if err != nil {

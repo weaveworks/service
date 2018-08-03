@@ -12,6 +12,7 @@ import (
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/common/tracing"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-uploader/job"
 	"github.com/weaveworks/service/billing-uploader/job/usage"
@@ -82,6 +83,9 @@ func main() {
 		log.Fatalf("Error initialising logging: %v", err)
 	}
 	serverConfig.Log = logging.Logrus(log.StandardLogger())
+
+	traceCloser := tracing.NewFromEnv("billing-uploader")
+	defer traceCloser.Close()
 
 	db, err := db.New(dbConfig)
 	if err != nil {
