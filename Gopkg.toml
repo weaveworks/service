@@ -58,3 +58,10 @@
 [[constraint]]
   branch = "master"
   name = "github.com/weaveworks/billing-client"
+
+# Make sure we have a Scope version with the latest changes to
+# weaveworks/common as we otherwise get build issues, and without any
+# constraint, dep somehow resolves to v0.12.
+[[constraint]]
+  name = "github.com/weaveworks/scope"
+  revision = "058eedc7f14ad7a09e374cbf9e5e4b9ad5c713e6"
