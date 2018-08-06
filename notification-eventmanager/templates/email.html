@@ -1,0 +1,19 @@
+<p>
+{{.Text}}
+</p>
+
+<p>
+{{- range $text, $url:= .WeaveCloudURL -}}
+	<dl>
+	<dt><a href="{{$url}}">{{$text}}</a></dt>
+	</dl>
+{{- end -}}
+</p>
+
+<p>Thanks, the Weaveworks&nbsp;team</p>
+
+<p>
+    <span style="color: #8A8A8A; font-family: 'Calibri', sans-serif; font-size: 8pt; font-weight: regular;">
+    To disable these notifications, adjust the <a href="{{.SettingsURL}}">Settings</a>.
+    </span>
+</p>

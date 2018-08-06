@@ -10,7 +10,9 @@ import (
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres" // Import the postgres migrations driver
 
 	"github.com/weaveworks/service/notification-eventmanager/db"
+	"github.com/weaveworks/service/notification-eventmanager/eventmanager/render"
 	"github.com/weaveworks/service/users"
+	userTemplates "github.com/weaveworks/service/users/templates"
 )
 
 const ratelimit = 100
@@ -59,6 +61,7 @@ type EventManager struct {
 	SQSClient   sqsiface.SQSAPI
 	SQSQueue    string
 	WcURL       string
+	Render      *render.Render
 	wg          sync.WaitGroup
 	limiter     *rate.Limiter
 }
@@ -76,13 +79,14 @@ func init() {
 }
 
 // New creates new EventManager
-func New(usersClient users.UsersClient, db db.DB, sqsClient sqsiface.SQSAPI, sqsQueue, wcURL string) *EventManager {
+func New(usersClient users.UsersClient, db db.DB, sqsClient sqsiface.SQSAPI, sqsQueue, wcURL string, templates userTemplates.Engine) *EventManager {
 	return &EventManager{
 		UsersClient: usersClient,
 		DB:          db,
 		SQSClient:   sqsClient,
 		SQSQueue:    sqsQueue,
 		WcURL:       wcURL,
+		Render:      render.NewRender(templates),
 		limiter:     rate.NewLimiter(ratelimit, ratelimit),
 	}
 }

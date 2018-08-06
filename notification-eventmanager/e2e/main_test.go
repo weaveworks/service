@@ -28,7 +28,7 @@ const (
 	smtpURL                 = "http://mailcatcher/messages"
 	orgID                   = "mockID"
 	prefix                  = "http://eventmanager/api/notification"
-	hiddenOpsgenieEventType = "config_changed"
+	hiddenOpsgenieEventType = types.ConfigChangedType
 )
 
 type email struct {
@@ -342,7 +342,7 @@ func TestCreateTestEvent(t *testing.T) {
 	exists := false
 	var result types.Event
 	for _, event := range events {
-		if event.Type == "user_test" {
+		if event.Type == types.UserTestType {
 			exists = true
 			result = event
 		}
@@ -702,12 +702,12 @@ func TestReceiver_NoHiddenEventTypes(t *testing.T) {
 
 	var change *types.Event
 	for _, event := range events {
-		if event.Type == "config_changed" {
+		if event.Type == types.ConfigChangedType {
 			change = &event
 			break
 		}
 	}
 
 	assert.NotNil(t, change)
-	assert.NotContains(t, string(change.Messages["browser"]), "onboarding_started")
+	assert.NotContains(t, string(change.Messages["browser"]), types.OnboardingStartedType)
 }

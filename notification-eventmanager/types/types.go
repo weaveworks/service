@@ -10,7 +10,47 @@ import (
 
 	"github.com/lib/pq"
 	alerts "github.com/opsgenie/opsgenie-go-sdk/alertsv2"
+	flux "github.com/weaveworks/flux"
+	fluxevent "github.com/weaveworks/flux/event"
 )
+
+const (
+	// SyncType event type
+	SyncType = "sync"
+	// PolicyType event type
+	PolicyType = "policy"
+	// DeployType event type
+	DeployType = "deploy"
+	// AutoDeployType event type
+	AutoDeployType = "auto_deploy"
+	// DeployCommitType event type
+	DeployCommitType = "deploy_commit"
+	// AutoDeployCommitType event type
+	AutoDeployCommitType = "auto_deploy_commit"
+	// MonitorType event type
+	MonitorType = "monitor"
+	// KuredType event type
+	KuredType = "kured"
+	// UserTestType event type
+	UserTestType = "user_test"
+	// ConfigChangedType event type
+	ConfigChangedType = "config_changed"
+	// OnboardingStartedType event type
+	OnboardingStartedType = "onboarding_started"
+	// OnboardingFailedType event type
+	OnboardingFailedType = "onboarding_failed"
+)
+
+// SyncData is data for sync event, contains metadata and services
+type SyncData struct {
+	Metadata   *fluxevent.SyncEventMetadata
+	ServiceIDs []flux.ResourceID
+}
+
+// Type method implements fluxevent.EventMetadata interface
+func (sd SyncData) Type() string {
+	return SyncType
+}
 
 // WebhookAlert is alertmanager JSON payload with alerts
 type WebhookAlert struct {

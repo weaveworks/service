@@ -4,8 +4,8 @@ ENTRYPOINT ["/api"]
 RUN apk add --update \
     ca-certificates \
   && rm -rf /var/cache/apk/*
-ADD db/migrations /migrations
-ADD api /
+ADD /billing-api/db/migrations /migrations
+ADD /billing-api/api /
 
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \

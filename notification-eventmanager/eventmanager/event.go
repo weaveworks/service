@@ -19,7 +19,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/weaveworks/common/user"
-	"github.com/weaveworks/service/notification-eventmanager/eventmanager/parser"
+	"github.com/weaveworks/service/notification-eventmanager/eventmanager/render"
 	"github.com/weaveworks/service/notification-eventmanager/types"
 	"github.com/weaveworks/service/users"
 )
@@ -74,6 +74,38 @@ func (em *EventManager) handleCreateEvent(r *http.Request, instanceID string) (i
 	}
 
 	e.InstanceName = instanceData.Organization.Name
+
+	notifLink, err := em.getInstanceLink(instanceData.Organization.ExternalID, notificationConfigPath)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot get Weave Cloud notification page link")
+	}
+
+	var eventURL, eventURLText string
+	// and link to Deploy page for Flux events
+	switch e.Type {
+	case types.SyncType,
+		types.PolicyType,
+		types.DeployType,
+		types.AutoDeployType,
+		types.DeployCommitType,
+		types.AutoDeployCommitType:
+		eventURLText = deployLinkText
+		eventURL = deployPage
+	}
+
+	link, err := em.getInstanceLink(instanceData.Organization.ExternalID, eventURL)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot get Weave Cloud page link")
+	}
+
+	if e.Data != nil {
+		if err := em.Render.Data(&e, link, eventURLText, notifLink); err != nil {
+			requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
+			return nil, http.StatusInternalServerError, errors.Wrap(err, "unable to parse event data")
+		}
+	}
 
 	eventID, err := em.storeAndSend(r.Context(), e, instanceData.Organization.FeatureFlags)
 
@@ -142,15 +174,15 @@ func (em *EventManager) handleSlackEvent(r *http.Request) (interface{}, int, err
 	// link to Monitor page with Firing alerts for Cortex events
 	// and link to Deploy page for Flux events
 	switch eventType {
-	case "monitor":
+	case types.MonitorType:
 		linkText = alertLinkText
 		linkPath = alertsPage
-	case "sync",
-		"policy",
-		"deploy",
-		"auto_deploy",
-		"deploy_commit",
-		"auto_deploy_commit":
+	case types.SyncType,
+		types.PolicyType,
+		types.DeployType,
+		types.AutoDeployType,
+		types.DeployCommitType,
+		types.AutoDeployCommitType:
 		linkText = deployLinkText
 		linkPath = deployPage
 	}
@@ -317,33 +349,33 @@ func (em *EventManager) handleGetEvents(r *http.Request, instanceID string) (int
 }
 
 func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceName, notificationPageLink, link, linkText string) (types.Event, error) {
-	html := parser.SlackMsgToHTML(sm, instanceName, linkText, link)
+	html := render.SlackMsgToHTML(sm, instanceName, linkText, link)
 
-	emailMsg, err := parser.EmailFromSlack(html, etype, instanceName, notificationPageLink)
+	emailMsg, err := render.EmailFromSlack(html, etype, instanceName, notificationPageLink)
 	if err != nil {
 		return types.Event{}, errors.Wrap(err, "cannot get email message")
 	}
 
-	browserMsg, err := parser.BrowserFromSlack(sm, etype, link, linkText)
+	browserMsg, err := render.BrowserFromSlack(sm, etype, link, linkText)
 	if err != nil {
 		return types.Event{}, errors.Wrap(err, "cannot get email message")
 	}
 
-	stackdriverMsg, err := parser.StackdriverFromSlack(json.RawMessage(body), etype, instanceName)
+	stackdriverMsg, err := render.StackdriverFromSlack(json.RawMessage(body), etype, instanceName)
 	if err != nil {
 		return types.Event{}, errors.Wrap(err, "cannot get stackdriver message")
 	}
 
 	// opsGenie message makes sense only for monitor event
 	var opsGenieMsg json.RawMessage
-	if etype == "monitor" {
-		opsGenieMsg, err = parser.OpsGenieFromSlack(html, etype, instanceName)
+	if etype == types.MonitorType {
+		opsGenieMsg, err = render.OpsGenieFromSlack(html, etype, instanceName)
 		if err != nil {
 			return types.Event{}, errors.Wrap(err, "cannot get OpsGenie message")
 		}
 	}
 
-	slackMsg, err := parser.SlackFromSlack(sm, instanceName, link)
+	slackMsg, err := render.SlackFromSlack(sm, instanceName, link)
 	if err != nil {
 		return types.Event{}, errors.Wrap(err, "cannot get slack message")
 	}

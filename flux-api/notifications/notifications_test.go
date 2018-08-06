@@ -57,7 +57,7 @@ func TestRelease_DryRun(t *testing.T) {
 	r := exampleRelease(t)
 	ev := event.Event{Metadata: r, Type: event.EventRelease}
 	r.Spec.Kind = update.ReleaseKindPlan
-	if err := Event(server.URL, ev); err != nil {
+	if err := Event(server.URL, ev, ""); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -71,13 +71,13 @@ func TestNotificationEventsURL(t *testing.T) {
 	defer server.Close()
 
 	var instanceID service.InstanceID = "2"
-	eventsURL := server.URL + fmt.Sprintf("/%v/{eventType}", instanceID)
+	eventsURL := server.URL + fmt.Sprintf("/api/notification/slack/%v/{eventType}", instanceID)
 	eventType := "deploy"
-	expectedPath := fmt.Sprintf("/%v/%v", instanceID, eventType)
+	expectedPath := fmt.Sprintf("/api/notification/slack/%v/%v", instanceID, eventType)
 
 	ev := event.Event{Metadata: exampleRelease(t), Type: event.EventRelease}
 
-	err := Event(eventsURL, ev)
+	err := Event(eventsURL, ev, "")
 
 	if err != nil {
 		t.Fatal(err)

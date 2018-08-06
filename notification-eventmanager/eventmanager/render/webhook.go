@@ -1,11 +1,10 @@
-package parser
+package render
 
 import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"strings"
 	"time"
 
@@ -86,10 +85,6 @@ const alertEmailContentTmpl = `
   </span>
 </p>
 `
-
-var funcMap = template.FuncMap{
-	"toUpper": strings.ToUpper,
-}
 
 // title return string with alertname, severity, and summary of an alert:
 // (Alertname - SEVERITY STATUS) Summary
@@ -287,19 +282,8 @@ func hashKey(s string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func executeTempl(data interface{}, tmpl string) (string, error) {
-	t := template.Must(template.New(tmpl).Funcs(funcMap).Parse(tmpl))
-
-	var b bytes.Buffer
-	if err := t.Execute(&b, data); err != nil {
-		return "", errors.Wrap(err, "cannot execute message")
-	}
-
-	return b.String(), nil
-}
-
 func emailBody(m types.WebhookAlert) (string, error) {
-	body, err := executeTempl(m, alertEmailContentTmpl)
+	body, err := executeTempl(alertEmailContentTmpl, m)
 	if err != nil {
 		return "", errors.Wrap(err, "cannot get email body")
 	}

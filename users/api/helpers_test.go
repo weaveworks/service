@@ -50,7 +50,7 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 
 	database = dbtest.Setup(t)
 	sessionStore = sessions.MustNewStore("Test-Session-Secret-Which-Is-64-Bytes-Long-aa1a166556cb719f531cd", false, "")
-	templates := templates.MustNewEngine("../templates")
+	templates := templates.MustNewEngine("../templates", "../../common/templates")
 	logins = login.NewProviders()
 	mixpanelClient := marketing.NewMixpanelClient("")
 	var partnerClient partner.API

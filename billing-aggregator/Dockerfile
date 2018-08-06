@@ -4,8 +4,8 @@ ENTRYPOINT ["/aggregator"]
 RUN apk add --update \
     ca-certificates \
   && rm -rf /var/cache/apk/*
-ADD migrations /migrations
-ADD aggregator /
+ADD /billing-aggregator/migrations /migrations
+ADD /billing-aggregator/aggregator /
 
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \

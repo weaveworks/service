@@ -1,0 +1,9 @@
+{{.Text}}
+
+{{- range $text, $url:= .WeaveCloudURL -}}
+	{{$text}}: {{$url}}
+{{- end -}}
+
+Thanks, the Weaveworks team
+
+To disable these notifications, adjust the Settings: {{.SettingsURL}}.
