@@ -15,7 +15,8 @@ WITH instances_daily_access AS (
     ID as internal_instance_id,
     MIN(RefuseDataUpload) as RefuseDataUpload -- If it was ever false in a 24h window, then count the whole day as false
   FROM service{dataset_suffix}.instances
-  WHERE _PARTITIONDATE = @day
+  WHERE (_PARTITIONDATE = @day OR _PARTITIONDATE IS NULL)
+  AND DATE(dt) = @day
   GROUP BY pd, internal_instance_id
   ORDER BY internal_instance_id
 )
@@ -26,7 +27,8 @@ SELECT
   _PARTITIONDATE as pd,
   internal_instance_id
 FROM billing{dataset_suffix}.events
-WHERE _PARTITIONDATE = @day
+WHERE (_PARTITIONDATE = @day OR _PARTITIONDATE IS NULL)
+AND DATE(received_at) = @day
 GROUP BY _PARTITIONDATE, internal_instance_id
 ORDER BY internal_instance_id
 '''

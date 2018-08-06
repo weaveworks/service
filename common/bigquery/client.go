@@ -18,10 +18,20 @@ import (
 
 const (
 	// Query to retrieve all aggregates from BigQuery since @StartTime.
+	//
 	// IMPORTANT:
-	// "_PARTITIONTIME >= @DateLowerLimit" limits the size of the dataset to be scanned by BigQuery,
+	// 1) "_PARTITIONTIME >= @DateLowerLimit" limits the size of the dataset to be scanned by BigQuery,
 	// which in turn reduces the costs associated with running this query, as Google charges by the TB
 	// of data read/processed. See also: https://cloud.google.com/bigquery/pricing#queries
+	//
+	// 2) Note that BigQuery may place recently ingested data in a temporary
+	// "NULL" partition:
+	//   "Newly arriving data will be temporarily associated with the NULL
+	//   partition while in the streaming buffer."
+	//   See also: https://cloud.google.com/bigquery/streaming-data-into-bigquery#streaming_into_partitioned_tables
+	// Querying this temporary partition is necessary if we want to gather all
+	// usage in a timely fashion, hence "OR _PARTITIONTIME IS NULL" in the
+	// below query.
 	aggQuery = `
 SELECT
   internal_instance_id AS InstanceID,
@@ -33,7 +43,7 @@ FROM
 WHERE
   received_at IS NOT NULL
   AND received_at >= @StartTime
-  AND _PARTITIONTIME >= @DateLowerLimit
+  AND (_PARTITIONTIME >= @DateLowerLimit OR _PARTITIONTIME IS NULL)
 GROUP BY
   InstanceID,
   AmountType,
