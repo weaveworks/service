@@ -1,3 +1,9 @@
+# Specifying 'required = ["codec/codecgen"]' is needed in order to pull the
+# necessary sources to generate code used by billing-synthetic-usage-injector.
+# Otherwise, building fails with:
+#   make: *** No rule to make target `vendor/github.com/weaveworks/scope/report/report.codecgen.go'.  Stop.
+required = ["github.com/ugorji/go/codec/codecgen"]
+
 [prune]
   unused-packages = true
   go-tests = true

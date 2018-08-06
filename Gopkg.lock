@@ -889,9 +889,12 @@
   version = "v1.4.0"
 
 [[projects]]
-  digest = "1:02da8297de6ed5b8df1e522e8bf56363a98b4871b33722b0b5340613de719c45"
+  digest = "1:48b687b663f398d142bb02c0c7656038629aa4d5a05777ee0830c73ed8f9991b"
   name = "github.com/ugorji/go"
-  packages = ["codec"]
+  packages = [
+    "codec",
+    "codec/codecgen",
+  ]
   pruneopts = "NUT"
   revision = "54210f4e076c57f351166f0ed60e67d3fca57a36"
 
@@ -1334,6 +1337,7 @@
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
     "github.com/tylerb/graceful",
+    "github.com/ugorji/go/codec/codecgen",
     "github.com/weaveworks/billing-client",
     "github.com/weaveworks/blackfriday",
     "github.com/weaveworks/common/http/client",
