@@ -414,7 +414,7 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 	// * the Cortex alert manager, incorporating tokens would require forking it
 	//   (see https://github.com/weaveworks/service-ui/issues/461#issuecomment-299458350)
 	//   and we don't see alert-silencing as very security-sensitive.
-	// * incoming webhooks (service-ui-kicker, gcp-launcher-webhook and dockerhub),
+	// * incoming webhooks (service-ui-kicker, gcp-launcher-webhook, dockerhub, and corp-atlantis),
 	//   as these are validated by checking HMAC integrity or arbitrary secrets.
 	csrfExemptPrefixes := dataUploadRoutes.AbsolutePrefixes()
 	csrfExemptPrefixes = append(csrfExemptPrefixes, dataAccessRoutes.AbsolutePrefixes()...)
@@ -428,8 +428,9 @@ func routes(c Config, authenticator users.UsersClient, ghIntegration *users_clie
 		"/api/users/signup_webhook",                     // Validated by explicit token in the users service
 		"/webhooks",                                     // POSTed to by external services
 
-		"/admin/grafana",     // grafana does not know to inject CSRF header into requests. Without whitelisting,
-		"/admin/dev-grafana", // this causes the CSRF token & cookie to be re-issued, breaking UI requests.
+		"/admin/corp-atlantis/events", // GitHub webhook
+		"/admin/grafana",              // grafana does not know to inject CSRF header into requests. Without whitelisting,
+		"/admin/dev-grafana",          // this causes the CSRF token & cookie to be re-issued, breaking UI requests.
 		"/admin/prod-grafana",
 		"/admin/kibana", // kibana has the same issue with CSRF tokens as grafana
 	)
