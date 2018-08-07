@@ -38,11 +38,14 @@ func main() {
 		log.Fatalf("error initializing dashboards: %v", err)
 	}
 
-	d := dashboard.GetDashboardByID(ID, map[string]string{
+	d, err := dashboard.GetDashboardByID(ID, map[string]string{
 		"namespace": *namespace,
 		"workload":  *workload,
 		"range":     *rangeSelector,
 	})
+	if err != nil {
+		log.Fatalf("error getting dashboard by ID: %v", err)
+	}
 
 	if d == nil {
 		fmt.Fprintf(os.Stderr, "error: couldn't find dashboard '%s'\n", ID)
