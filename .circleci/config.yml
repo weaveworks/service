@@ -54,6 +54,7 @@ jobs:
       # Link the working directory so that it appears in GOPATH. This is required for cover to map coverage statistics to sources.
       - run: mkdir -p ${GOPATH}/src/github.com/weaveworks && ln -s $(pwd) ${GOPATH}/src/github.com/weaveworks/service
       - run: go get github.com/mattn/goveralls
+      - run: make RM= vendor/github.com/weaveworks/scope/report/report.codecgen.go
       - run: COVERDIR=./coverage make RM= test
       - run: ./tools/cover/gather_coverage.sh ./coverage $CIRCLE_WORKING_DIRECTORY/coverage
       - run: goveralls -repotoken $COVERALLS_REPO_TOKEN -coverprofile=$CIRCLE_WORKING_DIRECTORY/profile.cov -service=circleci || true
