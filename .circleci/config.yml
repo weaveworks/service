@@ -96,6 +96,7 @@ jobs:
           cd $SRCDIR
           make RM= notebooks-integration-test
           make RM= users-integration-test
+          make RM= vendor/github.com/weaveworks/scope/report/report.codecgen.go
           make RM= billing-integration-test
           make RM= pubsub-integration-test
           make RM= flux-integration-test
