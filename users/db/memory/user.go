@@ -26,9 +26,12 @@ func (d *DB) CreateUser(_ context.Context, email string) (*users.User, error) {
 func (d DB) UpdateUser(ctx context.Context, userID string, update *users.UserUpdate) (*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	d.users[userID].Email = update.Email
-	d.users[userID].Name = update.Name
-	d.users[userID].Company = update.Company
+	if update.Name != "" {
+		d.users[userID].Name = update.Name
+	}
+	if update.Company != "" {
+		d.users[userID].Company = update.Company
+	}
 
 	return d.users[userID], nil
 }

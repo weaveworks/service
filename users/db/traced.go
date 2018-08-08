@@ -17,6 +17,9 @@ type traced struct {
 	d DB
 }
 
+// force interface compliance errors to occur here
+var _ DB = &traced{}
+
 func (t traced) trace(name string, args ...interface{}) {
 	log.Debugf("%s: %#v", name, args)
 }

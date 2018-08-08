@@ -19,6 +19,9 @@ type timed struct {
 	Duration *prometheus.HistogramVec
 }
 
+// force interface compliance errors to occur here
+var _ DB = &timed{}
+
 func (t timed) errorCode(err error) string {
 	switch err {
 	case nil:

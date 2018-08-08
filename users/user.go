@@ -19,7 +19,6 @@ type FindUserByIDer interface {
 
 // UserUpdate represents an update for a user
 type UserUpdate struct {
-	Email   string `json:"email"`
 	Name    string `json:"name"`
 	Company string `json:"company"`
 }

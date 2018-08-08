@@ -38,12 +38,6 @@ func (d DB) UpdateUser(ctx context.Context, userID string, update *users.UserUpd
 		return nil, err
 	}
 
-	if update.Email != "" {
-		email := strings.TrimSpace(update.Email)
-		user.Email = email
-		values["email"] = email
-	}
-
 	if update.Company != "" {
 		company := strings.TrimSpace(update.Company)
 		user.Company = company
