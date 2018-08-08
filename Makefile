@@ -265,7 +265,7 @@ $(EXES): build/$(UPTODATE) $(PROTO_GOS)
 lint: build/$(UPTODATE)
 	./tools/lint .
 
-test: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
+test: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS) $(CODECGEN_TARGETS)
 	TESTDIRS=${TESTDIRS} ./tools/test -netgo -no-race
 
 $(MOCK_USERS): build/$(UPTODATE)
@@ -286,7 +286,7 @@ $(MOCK_COMMON_GCP_PARTNER_ACCESS): build/$(UPTODATE)
 	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner Accessor \
 		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
-billing-integration-test: build/$(UPTODATE) $(MOCK_GOS)
+billing-integration-test: build/$(UPTODATE) $(MOCK_GOS) $(CODECGEN_TARGETS)
 	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"
 
 flux-integration-test:
