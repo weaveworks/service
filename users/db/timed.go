@@ -45,6 +45,13 @@ func (t timed) CreateUser(ctx context.Context, email string) (u *users.User, err
 	})
 	return
 }
+func (t timed) UpdateUser(ctx context.Context, userID string, update *users.UserUpdate) (u *users.User, err error) {
+	t.timeRequest(ctx, "UpdateUser", func(ctx context.Context) error {
+		u, err = t.d.UpdateUser(ctx, userID, update)
+		return err
+	})
+	return
+}
 func (t timed) DeleteUser(ctx context.Context, userID string) error {
 	return t.timeRequest(ctx, "DeleteUser", func(ctx context.Context) error {
 		return t.d.DeleteUser(ctx, userID)

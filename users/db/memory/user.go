@@ -22,6 +22,17 @@ func (d *DB) CreateUser(_ context.Context, email string) (*users.User, error) {
 	return d.createUser(email)
 }
 
+// UpdateUser applies a UserUpdate to an existing user
+func (d DB) UpdateUser(ctx context.Context, userID string, update *users.UserUpdate) (*users.User, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	d.users[userID].Email = update.Email
+	d.users[userID].Name = update.Name
+	d.users[userID].Company = update.Company
+
+	return d.users[userID], nil
+}
+
 // DeleteUser marks a user as deleted. It also removes the user from memberships and triggers a deletion of organizations
 // where the user was the lone member.
 func (d DB) DeleteUser(ctx context.Context, userID string) error {
@@ -58,6 +69,8 @@ func (d *DB) createUser(email string) (*users.User, error) {
 	u := &users.User{
 		ID:        fmt.Sprint(len(d.users)),
 		Email:     strings.ToLower(email),
+		Name:      "",
+		Company:   "",
 		CreatedAt: time.Now().UTC(),
 	}
 	d.users[u.ID] = u
