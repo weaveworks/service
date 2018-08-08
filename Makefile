@@ -70,6 +70,30 @@ billing-uploader/migrations/%: $(BILLING_DB)/migrations/%
 BILLING_MIGRATION_FILES := $(shell find $(BILLING_DB)/migrations -type f)
 billing-migrations-deps = $(patsubst $(BILLING_DB)/migrations/%,$(1)/migrations/%,$(BILLING_MIGRATION_FILES))
 
+### BEGIN: Msgpack code generation for billing-synthetic-usage-injector.
+### N.B.: This typically should replicate what is in github.com/weaveworks/scope/tree/master/Makefile
+GO_ENV=GOGC=off
+GOOS=$(shell go tool dist env | grep GOOS | sed -e 's/GOOS="\(.*\)"/\1/')
+ifeq ($(GOOS),linux)
+GO_ENV+=CGO_ENABLED=1
+endif
+NO_CROSS_COMP=unset GOOS GOARCH
+GO_HOST=$(NO_CROSS_COMP); env $(GO_ENV) go
+WITH_GO_HOST_ENV=$(NO_CROSS_COMP); $(GO_ENV)
+
+GO_BUILD_INSTALL_DEPS=-i
+GO_BUILD_TAGS='netgo unsafe'
+GO_BUILD_FLAGS=$(GO_BUILD_INSTALL_DEPS) -ldflags "-extldflags \"-static\" -X main.version=$(GIT_REVISION) -s -w" -tags $(GO_BUILD_TAGS)
+
+CODECGEN_TARGETS=vendor/github.com/weaveworks/scope/report/report.codecgen.go
+CODECGEN_DIR=vendor/github.com/ugorji/go/codec/codecgen
+CODECGEN_BIN_DIR=$(CODECGEN_DIR)/bin
+CODECGEN_EXE=$(CODECGEN_BIN_DIR)/codecgen
+
+CODECGEN_UID=0
+GET_CODECGEN_DEPS=$(shell find $(1) -maxdepth 1 -type f -name '*.go' -not -name '*_test.go' -not -name '*.codecgen.go' -not -name '*.generated.go')
+### END: Msgpack code generation for billing-synthetic-usage-injector
+
 flux-api/migrations.tar:
 	tar cf $@ flux-api/db/migrations
 
@@ -80,7 +104,8 @@ METRICS_EXE := metrics/metrics
 NOTEBOOKS_EXE := notebooks/cmd/notebooks/notebooks
 SERVICE_UI_KICKER_EXE := service-ui-kicker/service-ui-kicker
 FLUX_API_EXE := flux-api/flux-api
-BILLING_EXES := billing-api/api billing-uploader/uploader billing-aggregator/aggregator billing-enforcer/enforcer
+BILLING_USAGE_INJECTOR_EXE := billing-synthetic-usage-injector/injector
+BILLING_EXES := billing-api/api billing-uploader/uploader billing-aggregator/aggregator billing-enforcer/enforcer $(BILLING_USAGE_INJECTOR_EXE)
 GCP_LAUNCHER_WEBHOOK_EXE := gcp-launcher-webhook/gcp-launcher-webhook
 KUBECTL_SERVICE_EXE := kubectl-service/kubectl-service
 GCP_SERVICE_EXE := gcp-service/gcp-service
@@ -105,6 +130,7 @@ $(KUBECTL_SERVICE_EXE): $(shell find kubectl-service -name '*.go') $(COMMON)
 $(GCP_SERVICE_EXE): $(shell find gcp-service -name '*.go') $(COMMON) $(KUBECTL_SERVICE_EXE)
 $(NOTIFICATION_EXES): $(call gofiles,notification-*) $(COMMON)
 $(DASHBOARD_EXE): $(call gofiles,dashboard-*) $(COMMON)
+$(BILLING_USAGE_INJECTOR_EXE): $(CODECGEN_TARGETS)
 # See secondary expansion at bottom for BILLING_EXES gofiles
 
 test: $(PROTO_GOS)
@@ -158,6 +184,21 @@ NETGO_CHECK = @strings $@ | grep cgo_stub\\\.go >/dev/null || { \
 
 ifeq ($(BUILD_IN_CONTAINER),true)
 
+$(CODECGEN_EXE): build/$(UPTODATE)
+	mkdir -p $(@D)
+	$(SUDO) docker run $(RM) -ti \
+		-v $(shell pwd)/.pkg:/go/pkg \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
+		$(IMAGE_PREFIX)/build $@
+
+$(CODECGEN_TARGETS): $(CODECGEN_EXE) $(call GET_CODECGEN_DEPS,vendor/github.com/weaveworks/scope/report/)
+	$(SUDO) docker run $(RM) -ti \
+		-v $(shell pwd)/.pkg:/go/pkg \
+		-v $(shell pwd):/go/src/github.com/weaveworks/service \
+		-e CIRCLECI -e CIRCLE_BUILD_NUM -e CIRCLE_NODE_TOTAL -e CIRCLE_NODE_INDEX -e COVERDIR \
+		$(IMAGE_PREFIX)/build $@
+
 $(PROTO_GOS) $(MOCK_GOS) lint: build/$(UPTODATE)
 	@mkdir -p $(shell pwd)/.pkg
 	$(SUDO) docker run $(RM) -ti \
@@ -207,6 +248,12 @@ flux-integration-test: build/$(UPTODATE)
 	exit $$status
 
 else
+$(CODECGEN_EXE): build/$(UPTODATE) $(CODECGEN_DIR)/*.go
+	go build $(GO_FLAGS) -o $@ ./$(CODECGEN_DIR)
+
+$(CODECGEN_TARGETS): $(CODECGEN_EXE) $(call GET_CODECGEN_DEPS,vendor/github.com/weaveworks/scope/report/)
+	rm -f $@; go build $(GO_FLAGS) ./$(@D) # workaround for https://github.com/ugorji/go/issues/145
+	cd $(@D) && $(WITH_GO_HOST_ENV) $(shell pwd)/$(CODECGEN_EXE) -d $(CODECGEN_UID) -rt $(GO_BUILD_TAGS) -u -o $(@F) $(notdir $(call GET_CODECGEN_DEPS,$(@D)))
 
 $(EXES): build/$(UPTODATE) $(PROTO_GOS)
 	go build $(GO_FLAGS) -o $@ ./$(@D)
@@ -218,7 +265,7 @@ $(EXES): build/$(UPTODATE) $(PROTO_GOS)
 lint: build/$(UPTODATE)
 	./tools/lint .
 
-test: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS)
+test: build/$(UPTODATE) $(PROTO_GOS) $(MOCK_GOS) $(CODECGEN_TARGETS)
 	TESTDIRS=${TESTDIRS} ./tools/test -netgo -no-race
 
 $(MOCK_USERS): build/$(UPTODATE)
@@ -239,7 +286,7 @@ $(MOCK_COMMON_GCP_PARTNER_ACCESS): build/$(UPTODATE)
 	mockgen -destination=$@ github.com/weaveworks/service/common/gcp/partner Accessor \
 		&& sed -i'' s,github.com/weaveworks/service/vendor/,, $@
 
-billing-integration-test: build/$(UPTODATE) $(MOCK_GOS)
+billing-integration-test: build/$(UPTODATE) $(MOCK_GOS) $(CODECGEN_TARGETS)
 	/bin/bash -c "go test -tags 'netgo integration' -timeout 30s $(BILLING_TEST_DIRS)"
 
 flux-integration-test:
@@ -323,6 +370,7 @@ notification-integration-test: notification-eventmanager/$(UPTODATE) notificatio
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
 	rm -rf $(UPTODATE_FILES) $(EXES)
+	rm -fr $(CODECGEN_TARGETS) $(CODECGEN_BIN_DIR)
 	rm -rf billing-aggregator/migrations billing-uploader/migrations
 	go clean ./...
 
