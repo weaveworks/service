@@ -37,12 +37,6 @@ required = ["github.com/ugorji/go/codec/codecgen"]
   name = "github.com/justinas/nosurf"
   revision = "cbe5fdb4a426586632a1ff60eca311bd286220f5"
 
-# Override until https://github.com/FrenchBen/goketo/pull/14 is merged
-[[constraint]]
-  name = "github.com/FrenchBen/goketo"
-  source = "github.com/weaveworks/goketo"
-  branch = "sirupsen-case"
-
 # Pin to master flux instead of a specific release so that we can develop
 # flux-api for against it.
 [[constraint]]
