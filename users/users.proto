@@ -8,18 +8,6 @@ import "google/protobuf/timestamp.proto";
 option (gogoproto.populate_all) = true;
 
 service Users {
-    // LookupOrg authenticates & authorizes a cookie for access to an org by extenal ID.
-    rpc LookupOrg(LookupOrgRequest) returns (LookupOrgResponse) {};
-
-    // LookupUsingToken authenticates & authorizes a token for access to an org.
-    rpc LookupUsingToken(LookupUsingTokenRequest) returns (LookupUsingTokenResponse) {};
-
-    // LookupAdmin authenticates & authorizes a cookie for admin access.
-    rpc LookupAdmin(LookupAdminRequest) returns (LookupAdminResponse) {};
-
-    // LookupUser authenticates a cookie.
-    rpc LookupUser(LookupUserRequest) returns (LookupUserResponse) {};
-
     // GetOrganizations returns a list of all organizations by default. See
     // GetOrganizationsRequest for more details.
     rpc GetOrganizations(GetOrganizationsRequest) returns (GetOrganizationsResponse) {};
@@ -66,11 +54,45 @@ service Users {
 	// WARNING: this is a relatively expensive query, and basically exports the entire DB.
     rpc GetSummary(Empty) returns (Summary) {};
 
-    // LookupOrganizationWebhookUsingSecretID returns a Webhook given the external org ID and the webhook secret ID
-    rpc LookupOrganizationWebhookUsingSecretID(LookupOrganizationWebhookUsingSecretIDRequest) returns (LookupOrganizationWebhookUsingSecretIDResponse) {};
-
     // SetOrganizationWebhookFirstSeenAt sets the FirstSeenAt field on the webhook to the current time
     rpc SetOrganizationWebhookFirstSeenAt(SetOrganizationWebhookFirstSeenAtRequest) returns (SetOrganizationWebhookFirstSeenAtResponse) {};
+
+    /** LEGACY remove these after all clients in production are upgraded **/
+
+    // LookupOrg authenticates & authorizes a cookie for access to an org by extenal ID.
+    rpc LookupOrg(LookupOrgRequest) returns (LookupOrgResponse) {};
+
+    // LookupUsingToken authenticates & authorizes a token for access to an org.
+    rpc LookupUsingToken(LookupUsingTokenRequest) returns (LookupUsingTokenResponse) {};
+
+    // LookupAdmin authenticates & authorizes a cookie for admin access.
+    rpc LookupAdmin(LookupAdminRequest) returns (LookupAdminResponse) {};
+
+    // LookupUser authenticates a cookie.
+    rpc LookupUser(LookupUserRequest) returns (LookupUserResponse) {};
+
+    // LookupOrganizationWebhookUsingSecretID returns a Webhook given the external org ID and the webhook secret ID
+    rpc LookupOrganizationWebhookUsingSecretID(LookupOrganizationWebhookUsingSecretIDRequest) returns (LookupOrganizationWebhookUsingSecretIDResponse) {};
+    
+    /** END LEGACY **/
+}
+
+// AuthService authenticates & authorizes other requests
+service AuthService {
+    // AuthUser authenticates a cookie for validity.
+    rpc AuthUser(LookupUserRequest) returns (LookupUserResponse) {};
+
+    // AuthUserOrgRequest authenticates & authorizes a cookie for access to an org by extenal ID.
+    rpc AuthUserForOrg(LookupOrgRequest) returns (LookupOrgResponse) {};
+
+    // AuthTokenForOrg authenticates & authorizes a token for access to an org.
+    rpc AuthTokenForOrg(LookupUsingTokenRequest) returns (LookupUsingTokenResponse) {};
+
+    // AuthWebhookSecretForOrg returns a Webhook given the external org ID and the webhook secret ID
+    rpc AuthWebhookSecretForOrg(LookupOrganizationWebhookUsingSecretIDRequest) returns (LookupOrganizationWebhookUsingSecretIDResponse) {};
+
+    // AuthUserForAdmin authenticates & authorizes a cookie for weave cloud admin access.
+    rpc AuthUserForAdmin(LookupAdminRequest) returns (LookupAdminResponse) {};
 }
 
 enum AuthorizedAction {

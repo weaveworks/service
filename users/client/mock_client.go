@@ -1,43 +1,57 @@
 package client
 
 import (
+	"errors"
+
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
 	"github.com/weaveworks/service/users"
 )
 
-// MockClient is a mock usersClient that can be used in testing
-type MockClient struct{}
+// MockAuthClient is a mock users.AuthServiceClient that can be used in testing
+type MockAuthClient struct{}
 
-// LookupOrg authenticates a cookie for access to an org by external ID.
-func (MockClient) LookupOrg(ctx context.Context, in *users.LookupOrgRequest, opts ...grpc.CallOption) (*users.LookupOrgResponse, error) {
+var _ users.AuthServiceClient = &MockAuthClient{}
+
+// AuthUserForOrg authenticates a cookie for access to an org by external ID.
+func (MockAuthClient) AuthUserForOrg(ctx context.Context, in *users.LookupOrgRequest, opts ...grpc.CallOption) (*users.LookupOrgResponse, error) {
 	return &users.LookupOrgResponse{
 		OrganizationID: "mockID",
 		UserID:         "mockUserID",
 	}, nil
 }
 
-// LookupUsingToken authenticates a token for access to an org.
-func (MockClient) LookupUsingToken(ctx context.Context, in *users.LookupUsingTokenRequest, opts ...grpc.CallOption) (*users.LookupUsingTokenResponse, error) {
+// AuthTokenForOrg authenticates a token for access to an org.
+func (MockAuthClient) AuthTokenForOrg(ctx context.Context, in *users.LookupUsingTokenRequest, opts ...grpc.CallOption) (*users.LookupUsingTokenResponse, error) {
 	return &users.LookupUsingTokenResponse{
 		OrganizationID: "mockID",
 	}, nil
 }
 
-// LookupAdmin authenticates a cookie for admin access.
-func (MockClient) LookupAdmin(ctx context.Context, in *users.LookupAdminRequest, opts ...grpc.CallOption) (*users.LookupAdminResponse, error) {
+// AuthUserForAdmin authenticates a cookie for admin access.
+func (MockAuthClient) AuthUserForAdmin(ctx context.Context, in *users.LookupAdminRequest, opts ...grpc.CallOption) (*users.LookupAdminResponse, error) {
 	return &users.LookupAdminResponse{
 		AdminID: "mockUserID",
 	}, nil
 }
 
-// LookupUser authenticates a cookie.
-func (MockClient) LookupUser(ctx context.Context, in *users.LookupUserRequest, opts ...grpc.CallOption) (*users.LookupUserResponse, error) {
+// AuthUser authenticates a cookie.
+func (MockAuthClient) AuthUser(ctx context.Context, in *users.LookupUserRequest, opts ...grpc.CallOption) (*users.LookupUserResponse, error) {
 	return &users.LookupUserResponse{
 		UserID: "mockUserID",
 	}, nil
 }
+
+// AuthWebhookSecretForOrg gets the webhook given the external org ID and the secret ID of the webhook.
+func (MockAuthClient) AuthWebhookSecretForOrg(ctx context.Context, in *users.LookupOrganizationWebhookUsingSecretIDRequest, opts ...grpc.CallOption) (*users.LookupOrganizationWebhookUsingSecretIDResponse, error) {
+	return &users.LookupOrganizationWebhookUsingSecretIDResponse{}, nil
+}
+
+// MockClient is a mock usersClient that can be used in testing
+type MockClient struct{}
+
+var _ users.UsersClient = &MockClient{}
 
 // GetOrganizations gets the organizations for a user
 func (MockClient) GetOrganizations(ctx context.Context, in *users.GetOrganizationsRequest, opts ...grpc.CallOption) (*users.GetOrganizationsResponse, error) {
@@ -125,12 +139,34 @@ func (MockClient) GetSummary(ctx context.Context, in *users.Empty, opts ...grpc.
 	return &users.Summary{}, nil
 }
 
-// LookupOrganizationWebhookUsingSecretID gets the webhook given the external org ID and the secret ID of the webhook.
-func (MockClient) LookupOrganizationWebhookUsingSecretID(ctx context.Context, in *users.LookupOrganizationWebhookUsingSecretIDRequest, opts ...grpc.CallOption) (*users.LookupOrganizationWebhookUsingSecretIDResponse, error) {
-	return &users.LookupOrganizationWebhookUsingSecretIDResponse{}, nil
-}
-
 // SetOrganizationWebhookFirstSeenAt sets the FirstSeenAt field on the webhook to the current time
 func (MockClient) SetOrganizationWebhookFirstSeenAt(ctx context.Context, in *users.SetOrganizationWebhookFirstSeenAtRequest, opts ...grpc.CallOption) (*users.SetOrganizationWebhookFirstSeenAtResponse, error) {
 	return &users.SetOrganizationWebhookFirstSeenAtResponse{}, nil
+}
+
+var errLegacy = errors.New("Legacy mocks methods, to be removed once we remove these from the proto file")
+
+// LookupOrg authenticates a cookie for access to an org by external ID.
+func (MockClient) LookupOrg(ctx context.Context, in *users.LookupOrgRequest, opts ...grpc.CallOption) (*users.LookupOrgResponse, error) {
+	return nil, errLegacy
+}
+
+// LookupUsingToken authenticates a token for access to an org.
+func (MockClient) LookupUsingToken(ctx context.Context, in *users.LookupUsingTokenRequest, opts ...grpc.CallOption) (*users.LookupUsingTokenResponse, error) {
+	return nil, errLegacy
+}
+
+// LookupAdmin authenticates a cookie for admin access.
+func (MockClient) LookupAdmin(ctx context.Context, in *users.LookupAdminRequest, opts ...grpc.CallOption) (*users.LookupAdminResponse, error) {
+	return nil, errLegacy
+}
+
+// LookupUser authenticates a cookie.
+func (MockClient) LookupUser(ctx context.Context, in *users.LookupUserRequest, opts ...grpc.CallOption) (*users.LookupUserResponse, error) {
+	return nil, errLegacy
+}
+
+// LookupOrganizationWebhookUsingSecretID gets the webhook given the external org ID and the secret ID of the webhook.
+func (MockClient) LookupOrganizationWebhookUsingSecretID(ctx context.Context, in *users.LookupOrganizationWebhookUsingSecretIDRequest, opts ...grpc.CallOption) (*users.LookupOrganizationWebhookUsingSecretIDResponse, error) {
+	return nil, errLegacy
 }

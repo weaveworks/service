@@ -38,18 +38,18 @@ type CachingClientConfig struct {
 }
 
 type cachingClient struct {
-	users.UsersClient
+	users.AuthServiceClient
 	probeCredCache gcache.Cache
 	orgCredCache   gcache.Cache
 	userCache      gcache.Cache
 }
 
-func newCachingClient(cfg CachingClientConfig, client users.UsersClient) *cachingClient {
+func newCachingClient(cfg CachingClientConfig, client users.AuthServiceClient) *cachingClient {
 	return &cachingClient{
-		UsersClient:    client,
-		probeCredCache: gcache.New(cfg.ProbeCredCacheSize).LRU().Expiration(cfg.ProbeCredCacheExpiration).Build(),
-		orgCredCache:   gcache.New(cfg.OrgCredCacheSize).LRU().Expiration(cfg.OrgCredCacheExpiration).Build(),
-		userCache:      gcache.New(cfg.UserCacheSize).LRU().Expiration(cfg.UserCacheExpiration).Build(),
+		AuthServiceClient: client,
+		probeCredCache:    gcache.New(cfg.ProbeCredCacheSize).LRU().Expiration(cfg.ProbeCredCacheExpiration).Build(),
+		orgCredCache:      gcache.New(cfg.OrgCredCacheSize).LRU().Expiration(cfg.OrgCredCacheExpiration).Build(),
+		userCache:         gcache.New(cfg.UserCacheSize).LRU().Expiration(cfg.UserCacheExpiration).Build(),
 	}
 }
 
@@ -59,9 +59,9 @@ type cacheValue struct {
 }
 
 // LookupOrg authenticates a cookie for access to an org by extenal ID.
-func (c *cachingClient) LookupOrg(ctx context.Context, in *users.LookupOrgRequest, opts ...grpc.CallOption) (*users.LookupOrgResponse, error) {
+func (c *cachingClient) AuthUserForOrg(ctx context.Context, in *users.LookupOrgRequest, opts ...grpc.CallOption) (*users.LookupOrgResponse, error) {
 	if c.orgCredCache == nil {
-		return c.UsersClient.LookupOrg(ctx, in, opts...)
+		return c.AuthServiceClient.AuthUserForOrg(ctx, in, opts...)
 	}
 
 	org, err := c.orgCredCache.Get(*in)
@@ -70,7 +70,7 @@ func (c *cachingClient) LookupOrg(ctx context.Context, in *users.LookupOrgReques
 		return org.(cacheValue).out.(*users.LookupOrgResponse), org.(cacheValue).err
 	}
 
-	out, err := c.UsersClient.LookupOrg(ctx, in, opts...)
+	out, err := c.AuthServiceClient.AuthUserForOrg(ctx, in, opts...)
 	if err == nil || isErrorCachable(err) {
 		c.orgCredCache.Set(*in, cacheValue{out, err})
 	}
@@ -78,9 +78,9 @@ func (c *cachingClient) LookupOrg(ctx context.Context, in *users.LookupOrgReques
 }
 
 // LookupUsingToken authenticates a token for access to an org.
-func (c *cachingClient) LookupUsingToken(ctx context.Context, in *users.LookupUsingTokenRequest, opts ...grpc.CallOption) (*users.LookupUsingTokenResponse, error) {
+func (c *cachingClient) AuthTokenForOrg(ctx context.Context, in *users.LookupUsingTokenRequest, opts ...grpc.CallOption) (*users.LookupUsingTokenResponse, error) {
 	if c.probeCredCache == nil {
-		return c.UsersClient.LookupUsingToken(ctx, in, opts...)
+		return c.AuthServiceClient.AuthTokenForOrg(ctx, in, opts...)
 	}
 
 	org, err := c.probeCredCache.Get(*in)
@@ -89,7 +89,7 @@ func (c *cachingClient) LookupUsingToken(ctx context.Context, in *users.LookupUs
 		return org.(cacheValue).out.(*users.LookupUsingTokenResponse), org.(cacheValue).err
 	}
 
-	out, err := c.UsersClient.LookupUsingToken(ctx, in, opts...)
+	out, err := c.AuthServiceClient.AuthTokenForOrg(ctx, in, opts...)
 	if err == nil || isErrorCachable(err) {
 		c.probeCredCache.Set(*in, cacheValue{out, err})
 	}
@@ -98,7 +98,7 @@ func (c *cachingClient) LookupUsingToken(ctx context.Context, in *users.LookupUs
 
 func (c *cachingClient) GetUser(ctx context.Context, in *users.GetUserRequest, opts ...grpc.CallOption) (*users.GetUserResponse, error) {
 	if c.userCache == nil {
-		return c.UsersClient.GetUser(ctx, in, opts...)
+		return c.AuthServiceClient.GetUser(ctx, in, opts...)
 	}
 
 	out, err := c.userCache.Get(*in)
@@ -107,7 +107,7 @@ func (c *cachingClient) GetUser(ctx context.Context, in *users.GetUserRequest, o
 		return out.(*users.GetUserResponse), nil
 	}
 
-	out, err = c.UsersClient.GetUser(ctx, in, opts...)
+	out, err = c.AuthServiceClient.GetUser(ctx, in, opts...)
 	if err == nil {
 		c.userCache.Set(*in, out)
 	}
