@@ -8,19 +8,13 @@ import (
 	"golang.org/x/net/context"
 )
 
+/** LEGACY remove these after deployment **/
 // LookupOrganizationWebhookUsingSecretID gets the webhook given the external org ID and the secret ID of the webhook.
 func (a *usersServer) LookupOrganizationWebhookUsingSecretID(ctx context.Context, req *users.LookupOrganizationWebhookUsingSecretIDRequest) (*users.LookupOrganizationWebhookUsingSecretIDResponse, error) {
-	webhook, err := a.db.FindOrganizationWebhookBySecretID(ctx, req.SecretID)
-	if err == users.ErrNotFound {
-		err = httpgrpc.Errorf(http.StatusNotFound, "Webhook does not exist.")
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &users.LookupOrganizationWebhookUsingSecretIDResponse{
-		Webhook: webhook,
-	}, nil
+	return a.AuthWebhookSecretForOrg(ctx, req)
 }
+
+/** END LEGACY **/
 
 // LookupOrganizationWebhookUsingSecretID gets the webhook given the external org ID and the secret ID of the webhook.
 func (a *usersServer) SetOrganizationWebhookFirstSeenAt(ctx context.Context, req *users.SetOrganizationWebhookFirstSeenAtRequest) (*users.SetOrganizationWebhookFirstSeenAtResponse, error) {

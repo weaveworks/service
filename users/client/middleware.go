@@ -44,8 +44,8 @@ const (
 // AuthOrgMiddleware is a middleware.Interface for authentication organisations based on the
 // cookie and an org name in the path
 type AuthOrgMiddleware struct {
-	UsersClient   users.UsersClient
-	OrgExternalID func(*http.Request) (string, bool)
+	AuthServiceClient users.AuthServiceClient
+	OrgExternalID     func(*http.Request) (string, bool)
 
 	UserIDHeader        string
 	FeatureFlagsHeader  string
@@ -72,7 +72,7 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		response, err := a.UsersClient.LookupOrg(ctx, &users.LookupOrgRequest{
+		response, err := a.AuthServiceClient.AuthUserForOrg(ctx, &users.LookupOrgRequest{
 			Cookie:        authCookie.Value,
 			OrgExternalID: orgExternalID,
 			AuthorizeFor:  a.AuthorizeFor,
@@ -103,7 +103,7 @@ func (a AuthOrgMiddleware) Wrap(next http.Handler) http.Handler {
 
 // AuthProbeMiddleware is a middleware.Interface for authentication probes based on the headers
 type AuthProbeMiddleware struct {
-	UsersClient         users.UsersClient
+	AuthServiceClient   users.AuthServiceClient
 	FeatureFlagsHeader  string
 	RequireFeatureFlags []string
 	AuthorizeFor        users.AuthorizedAction
@@ -121,7 +121,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		response, err := a.UsersClient.LookupUsingToken(ctx, &users.LookupUsingTokenRequest{
+		response, err := a.AuthServiceClient.AuthTokenForOrg(ctx, &users.LookupUsingTokenRequest{
 			Token:        token,
 			AuthorizeFor: a.AuthorizeFor,
 		})
@@ -149,7 +149,7 @@ func (a AuthProbeMiddleware) Wrap(next http.Handler) http.Handler {
 
 // AuthAdminMiddleware is a middleware.Interface for authentication probes based on the headers
 type AuthAdminMiddleware struct {
-	UsersClient users.UsersClient
+	AuthServiceClient users.AuthServiceClient
 }
 
 // Wrap implements middleware.Interface
@@ -164,7 +164,7 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		response, err := a.UsersClient.LookupAdmin(ctx, &users.LookupAdminRequest{
+		response, err := a.AuthServiceClient.AuthUserForAdmin(ctx, &users.LookupAdminRequest{
 			Cookie: authCookie.Value,
 		})
 		if err != nil {
@@ -182,7 +182,7 @@ func (a AuthAdminMiddleware) Wrap(next http.Handler) http.Handler {
 // AuthUserMiddleware is a middleware.Interface for authentication users based on the
 // cookie (and not to any specific org)
 type AuthUserMiddleware struct {
-	UsersClient         users.UsersClient
+	AuthServiceClient   users.AuthServiceClient
 	UserIDHeader        string
 	RequireFeatureFlags []string
 }
@@ -198,7 +198,7 @@ func (a AuthUserMiddleware) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		response, err := a.UsersClient.LookupUser(ctx, &users.LookupUserRequest{
+		response, err := a.AuthServiceClient.AuthUser(ctx, &users.LookupUserRequest{
 			Cookie: authCookie.Value,
 		})
 
@@ -352,6 +352,7 @@ func validateGCPExternalAccountID(externalAccountID string) (string, error) {
 // WebhooksMiddleware is a middleware.Interface for authentication request based
 // on the webhook secret (and signing key if one exists).
 type WebhooksMiddleware struct {
+	AuthServiceClient             users.AuthServiceClient
 	UsersClient                   users.UsersClient
 	WebhooksIntegrationTypeHeader string
 }
@@ -362,7 +363,7 @@ func (a WebhooksMiddleware) Wrap(next http.Handler) http.Handler {
 		secretID := mux.Vars(r)["secretID"]
 
 		// Verify the secretID
-		response, err := a.UsersClient.LookupOrganizationWebhookUsingSecretID(r.Context(), &users.LookupOrganizationWebhookUsingSecretIDRequest{
+		response, err := a.AuthServiceClient.AuthWebhookSecretForOrg(r.Context(), &users.LookupOrganizationWebhookUsingSecretIDRequest{
 			SecretID: secretID,
 		})
 		if err != nil {

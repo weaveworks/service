@@ -12,31 +12,33 @@ import (
 )
 
 // New is a factory for Authenticators
-func New(kind, address string, opts CachingClientConfig) (users.UsersClient, error) {
-	var client users.UsersClient
+func New(kind, address string, opts CachingClientConfig) (users.UsersClient, users.AuthServiceClient, error) {
+	var usersClient users.UsersClient
+	var authClient users.AuthServiceClient
 	var err error
 	switch kind {
 	case "mock":
-		client = MockClient{}
+		usersClient = MockClient{}
+		authClient = MockAuthClient{}
 	case "grpc":
-		client, err = newGRPCClient(address)
+		usersClient, authClient, err = newGRPCClient(address)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	default:
 		log.Fatal("Incorrect authenticator type: ", kind)
-		return nil, nil
+		return nil, nil, nil
 	}
 	if opts.CacheEnabled {
-		client = newCachingClient(opts, client)
+		authClient = newCachingClient(opts, authClient)
 	}
-	return client, nil
+	return usersClient, authClient, nil
 }
 
-func newGRPCClient(address string) (users.UsersClient, error) {
+func newGRPCClient(address string) (users.UsersClient, users.AuthServiceClient, error) {
 	address, dialOptions, err := httpgrpc_server.ParseURL(address)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	dialOptions = append(dialOptions,
@@ -51,7 +53,7 @@ func newGRPCClient(address string) (users.UsersClient, error) {
 		dialOptions...,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return users.NewUsersClient(conn), nil
+	return users.NewUsersClient(conn), users.NewAuthServiceClient(conn), nil
 }
