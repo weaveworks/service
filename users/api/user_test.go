@@ -11,7 +11,7 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
-func TestAPI_updateUser(t *testing.T) {
+func TestAPI_User_UpdateUser(t *testing.T) {
 	setup(t)
 	defer cleanup(t)
 
@@ -53,4 +53,21 @@ func TestAPI_updateUser(t *testing.T) {
 		assert.Equal(t, user.Name, resp.Name)
 		assert.Equal(t, "Wayne Enterprises", resp.Company)
 	}
+}
+
+func TestAPI_User_GetCurrentUser(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	user := getUser(t)
+	w := httptest.NewRecorder()
+	r := requestAs(t, user, "GET", "/api/users/user", nil)
+
+	app.ServeHTTP(w, r)
+
+	var resp *users.UserResponse
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, user.Email, resp.Email)
+	assert.Equal(t, user.Company, resp.Company)
+	assert.Equal(t, user.Name, resp.Name)
 }

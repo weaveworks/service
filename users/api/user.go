@@ -8,6 +8,15 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
+func (a *API) getCurrentUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	resp := users.UserResponse{
+		Email:   currentUser.Email,
+		Company: currentUser.Company,
+		Name:    currentUser.Name,
+	}
+	render.JSON(w, http.StatusOK, resp)
+}
+
 func (a *API) updateUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var update *users.UserUpdate
@@ -23,5 +32,11 @@ func (a *API) updateUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
-	render.JSON(w, http.StatusOK, user)
+	resp := users.UserResponse{
+		Email:   user.Email,
+		Name:    user.Name,
+		Company: user.Company,
+	}
+
+	render.JSON(w, http.StatusOK, resp)
 }
