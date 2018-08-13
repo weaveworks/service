@@ -38,7 +38,7 @@ $ env GO15VENDOREXPERIMENT=1 go test
 
 ### User session secret generation
 
-The user management service signs the session cookies with HMAC. In order to do
+The user management service signs the session cookies with HMAC.  In order to do
 that, it needs a key which is provided on the command line with the `--session-key`
 argument.
 
