@@ -19,6 +19,9 @@ type timed struct {
 	Duration *prometheus.HistogramVec
 }
 
+// force interface compliance errors to occur here
+var _ DB = &timed{}
+
 func (t timed) errorCode(err error) string {
 	switch err {
 	case nil:
@@ -41,6 +44,13 @@ func (t timed) timeRequest(ctx context.Context, method string, f func(context.Co
 func (t timed) CreateUser(ctx context.Context, email string) (u *users.User, err error) {
 	t.timeRequest(ctx, "CreateUser", func(ctx context.Context) error {
 		u, err = t.d.CreateUser(ctx, email)
+		return err
+	})
+	return
+}
+func (t timed) UpdateUser(ctx context.Context, userID string, update *users.UserUpdate) (u *users.User, err error) {
+	t.timeRequest(ctx, "UpdateUser", func(ctx context.Context) error {
+		u, err = t.d.UpdateUser(ctx, userID, update)
 		return err
 	})
 	return
