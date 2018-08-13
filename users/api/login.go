@@ -452,8 +452,6 @@ func (a *API) logout(w http.ResponseWriter, r *http.Request) {
 
 type publicLookupView struct {
 	Email         string    `json:"email,omitempty"`
-	Name          string    `json:"name,omitempty"`
-	Company       string    `json:"company,omitempty"`
 	FirstLoginAt  string    `json:"firstLoginAt,omitempty"`
 	Organizations []OrgView `json:"organizations"`
 	MunchkinHash  string    `json:"munchkinHash"`
@@ -486,8 +484,6 @@ func (a *API) publicLookup(currentUser *users.User, w http.ResponseWriter, r *ht
 	}
 	view := publicLookupView{
 		Email:         currentUser.Email,
-		Name:          currentUser.Name,
-		Company:       currentUser.Company,
 		FirstLoginAt:  currentUser.FormatFirstLoginAt(),
 		MunchkinHash:  a.MunchkinHash(currentUser.Email),
 		IntercomHash:  a.IntercomHash(currentUser.Email),

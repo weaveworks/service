@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"strings"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
@@ -17,8 +16,8 @@ import (
 
 // CreateUser creates a new user with the given email.
 func (d DB) CreateUser(ctx context.Context, email string) (*users.User, error) {
-	u := &users.User{Email: email, Company: "", Name: "", CreatedAt: d.Now()}
-	err := d.QueryRowContext(ctx, "insert into users (email, approved_at, created_at, company, name) values (lower($1), $2, $2, $3, $4) returning id", email, u.CreatedAt, u.Company, u.Name).Scan(&u.ID)
+	u := &users.User{Email: email, CreatedAt: d.Now()}
+	err := d.QueryRowContext(ctx, "insert into users (email, approved_at, created_at) values (lower($1), $2, $2) returning id", email, u.CreatedAt).Scan(&u.ID)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil, users.ErrNotFound
@@ -26,47 +25,6 @@ func (d DB) CreateUser(ctx context.Context, email string) (*users.User, error) {
 		return nil, err
 	}
 	return u, nil
-}
-
-// UpdateUser applies a UserUpdate to a *users.User
-func (d DB) UpdateUser(ctx context.Context, userID string, update *users.UserUpdate) (*users.User, error) {
-	var user *users.User
-	values := map[string]interface{}{}
-
-	user, err := d.FindUserByID(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	if update.Company != "" {
-		company := strings.TrimSpace(update.Company)
-		user.Company = company
-		values["company"] = company
-	}
-
-	if update.Name != "" {
-		name := strings.TrimSpace(update.Name)
-		user.Name = name
-		values["name"] = name
-	}
-
-	err = d.Transaction(func(tx DB) error {
-		_, err := tx.
-			Update("users").
-			Where(squirrel.Eq{
-				"id": userID,
-			}).
-			SetMap(values).
-			Exec()
-
-		return err
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
 }
 
 // DeleteUser marks a user as deleted. It also removes the user from memberships and triggers a deletion of organizations
@@ -318,7 +276,7 @@ func (d DB) scanUser(row squirrel.RowScanner) (*users.User, error) {
 		tokenCreatedAt pq.NullTime
 	)
 	if err := row.Scan(
-		&u.ID, &u.Email, &u.Company, &u.Name, &token, &tokenCreatedAt, &createdAt,
+		&u.ID, &u.Email, &token, &tokenCreatedAt, &createdAt,
 		&u.Admin, &firstLoginAt, &lastLoginAt,
 	); err != nil {
 		return nil, err
@@ -335,8 +293,6 @@ func (d DB) usersQuery() squirrel.SelectBuilder {
 	return d.Select(
 		"users.id",
 		"users.email",
-		"users.company",
-		"users.name",
 		"users.token",
 		"users.token_created_at",
 		"users.created_at",

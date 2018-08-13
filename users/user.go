@@ -17,19 +17,6 @@ type FindUserByIDer interface {
 	FindUserByID(ctx context.Context, id string) (*User, error)
 }
 
-// UserUpdate represents an update for a user
-type UserUpdate struct {
-	Name    string `json:"name"`
-	Company string `json:"company"`
-}
-
-// UserResponse is the response representation of a users.User
-type UserResponse struct {
-	Email   string `json:"email"`
-	Name    string `json:"name"`
-	Company string `json:"company"`
-}
-
 func formatTimestamp(t time.Time) string {
 	if t.IsZero() {
 		return ""
