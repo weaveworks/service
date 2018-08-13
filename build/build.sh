@@ -17,4 +17,7 @@ echo "weave:x:$uid:$gid::$SRC_PATH:/bin/sh" >>/etc/passwd
 echo "weave:*:::::::" >>/etc/shadow
 echo "weave	ALL=(ALL)	NOPASSWD: ALL" >>/etc/sudoers
 
+# Grant full access to paths where dependencies are typically installed:
+chmod -R 777 /go/pkg
+
 su weave -c "PATH=$PATH make -C $SRC_PATH BUILD_IN_CONTAINER=false $*"
