@@ -69,9 +69,7 @@ type scopeStatus struct {
 
 type promStatus struct {
 	FirstSeenConnectedAt *time.Time `json:"firstSeenConnectedAt"`
-	IngestionRate        float64    `json:"ingestionRate,omitempty"`
-	APIIngestionRate     float64    `json:"APIIngestionRate"`
-	RuleIngestionRate    float64    `json:"RuleIngestionRate"`
+	IngestionRate        float64    `json:"ingestionRate"`
 	NumSeries            uint64     `json:"numSeries"`
 	NumberOfMetrics      int        `json:"numberOfMetrics"`
 	Error                string     `json:"error,omitempty"`
@@ -115,13 +113,7 @@ func (a *API) getOrgServiceStatus(currentUser *users.User, w http.ResponseWriter
 	status := a.getServiceStatus(r.Context(), sparse)
 	fluxConnected := status.flux.Fluxd.Connected
 	scopeConnected := status.scope.NumberOfProbes > 0
-	var promConnected bool
-	if status.prom.APIIngestionRate == 0 && status.prom.RuleIngestionRate == 0 {
-		// Legacy: if the specific rates are missing, use the series count.
-		promConnected = status.prom.NumSeries > 0
-	} else {
-		promConnected = status.prom.APIIngestionRate > 0
-	}
+	promConnected := status.prom.NumSeries > 0
 	netConnected := status.net.NumberOfPeers > 0
 	anyConnected := (fluxConnected || scopeConnected || promConnected || netConnected)
 	now := mtime.Now()

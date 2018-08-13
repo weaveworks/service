@@ -24,9 +24,8 @@ type mockServicesConfig struct {
 		NumberOfProbes int
 	}
 	Prom struct {
-		Online           bool
-		NumberOfMetrics  int
-		APIIngestionRate int
+		Online          bool
+		NumberOfMetrics int
 	}
 	Net struct {
 		Online        bool
@@ -68,9 +67,8 @@ func MockServices(config *mockServicesConfig) *httptest.Server {
 		case "/api/prom/user_stats":
 			if config.Prom.Online {
 				resp = map[string]interface{}{
-					"ingestionRate":    config.Prom.NumberOfMetrics / 4,
-					"numSeries":        config.Prom.NumberOfMetrics,
-					"APIIngestionRate": config.Prom.APIIngestionRate,
+					"ingestionRate": config.Prom.NumberOfMetrics / 4,
+					"numSeries":     config.Prom.NumberOfMetrics,
 				}
 			}
 		case "/api/net/peer":
@@ -123,16 +121,19 @@ func assertCount(t *testing.T, keys int, sparse bool, count int, v interface{}, 
 	}
 }
 
-func assertGetOrgServiceStatus(t *testing.T, sparse bool, user *users.User, org *users.Organization, cfg *mockServicesConfig, expectedFirstSeen interface{}, expectConnected bool) {
+func assertGetOrgServiceStatus(t *testing.T, sparse bool, user *users.User, org *users.Organization, cfg *mockServicesConfig, now interface{}) {
 	body := getOrgServiceStatus(t, sparse, user, org)
 	assert.Equal(t, 6, len(body))
-	assert.Equal(t, expectConnected, body["connected"])
-	assert.Equal(t, expectedFirstSeen, body["firstSeenConnectedAt"])
+	assert.Equal(t, (cfg.Flux.Connected ||
+		cfg.Scope.NumberOfProbes > 0 ||
+		cfg.Prom.NumberOfMetrics > 0 ||
+		cfg.Net.NumberOfPeers > 0), body["connected"])
+	assert.Equal(t, now, body["firstSeenConnectedAt"])
 	assert.Equal(t, map[string]interface{}{
-		"firstSeenConnectedAt": expectedFirstSeen,
+		"firstSeenConnectedAt": now,
 		"fluxsvc":              map[string]interface{}{},
 		"fluxd": map[string]interface{}{
-			"connected": expectConnected,
+			"connected": cfg.Flux.Connected,
 		},
 		"git": map[string]interface{}{
 			"configured": false,
@@ -184,7 +185,7 @@ func testGetOrgServiceStatus(t *testing.T, sparse bool) {
 		cfg.Prom.Online = true
 		cfg.Net.Online = true
 
-		assertGetOrgServiceStatus(t, sparse, user, org, cfg, nil, false)
+		assertGetOrgServiceStatus(t, sparse, user, org, cfg, nil)
 	}
 
 	// Test when services are online and connected.
@@ -195,7 +196,7 @@ func testGetOrgServiceStatus(t *testing.T, sparse bool) {
 		cfg.Net.NumberOfPeers = 2
 
 		mtime.NowForce(now)
-		assertGetOrgServiceStatus(t, sparse, user, org, cfg, now.Format(time.RFC3339), true)
+		assertGetOrgServiceStatus(t, sparse, user, org, cfg, now.Format(time.RFC3339))
 		mtime.NowReset()
 	}
 
@@ -206,17 +207,7 @@ func testGetOrgServiceStatus(t *testing.T, sparse bool) {
 		cfg.Prom.NumberOfMetrics = 0
 		cfg.Net.NumberOfPeers = 0
 
-		assertGetOrgServiceStatus(t, sparse, user, org, cfg, now.Format(time.RFC3339), false)
-	}
-
-	// Test ingestion rate count
-	{
-		cfg.Flux.Connected = true
-		cfg.Scope.NumberOfProbes = 3
-		cfg.Net.NumberOfPeers = 2
-		cfg.Prom.APIIngestionRate = 1
-
-		assertGetOrgServiceStatus(t, sparse, user, org, cfg, now.Format(time.RFC3339), true)
+		assertGetOrgServiceStatus(t, sparse, user, org, cfg, now.Format(time.RFC3339))
 	}
 }
 
