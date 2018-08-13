@@ -283,8 +283,6 @@ message User {
     google.protobuf.Timestamp CreatedAt = 6 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "-"];
     bool Admin = 7 [(gogoproto.jsontag) = "-"];
     google.protobuf.Timestamp LastLoginAt = 8 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "-"];
-    string Company = 9 [(gogoproto.jsontag) = "company"];
-    string Name = 10 [(gogoproto.jsontag) = "name"];
 }
 
 message NotifyTrialPendingExpiryRequest {

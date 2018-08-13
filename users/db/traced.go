@@ -17,9 +17,6 @@ type traced struct {
 	d DB
 }
 
-// force interface compliance errors to occur here
-var _ DB = &traced{}
-
 func (t traced) trace(name string, args ...interface{}) {
 	log.Debugf("%s: %#v", name, args)
 }
@@ -27,11 +24,6 @@ func (t traced) trace(name string, args ...interface{}) {
 func (t traced) CreateUser(ctx context.Context, email string) (u *users.User, err error) {
 	defer t.trace("CreateUser", email, u, err)
 	return t.d.CreateUser(ctx, email)
-}
-
-func (t traced) UpdateUser(ctx context.Context, userID string, update *users.UserUpdate) (user *users.User, err error) {
-	defer t.trace("UpdateUser", userID, update, user, err)
-	return t.d.UpdateUser(ctx, userID, update)
 }
 
 func (t traced) DeleteUser(ctx context.Context, userID string) (err error) {
