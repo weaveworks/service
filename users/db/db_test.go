@@ -427,3 +427,33 @@ func TestDB_SetOrganizationWebhookFirstSeenAt(t *testing.T) {
 	assert.NotEmpty(t, w.FirstSeenAt)
 	assert.Equal(t, ti, w.FirstSeenAt)
 }
+
+func TestDB_UpdateUser(t *testing.T) {
+	db := dbtest.Setup(t)
+	defer dbtest.Cleanup(t, db)
+
+	ctx := context.Background()
+
+	{ // full update
+		u, err := db.CreateUser(ctx, "joe@email.com")
+		assert.NoError(t, err)
+
+		update := users.UserUpdate{Company: "Wayne Enterprises", Name: "Dave"}
+		u, err = db.UpdateUser(ctx, u.ID, &update)
+		assert.NoError(t, err)
+
+		assert.Equal(t, "Dave", u.Name)
+		assert.Equal(t, "Wayne Enterprises", u.Company)
+	}
+
+	{ // single field update
+		u, err := db.CreateUser(ctx, "bloggs@email.com")
+		assert.NoError(t, err)
+
+		update := users.UserUpdate{Company: "Bane Enterprises"}
+		u, err = db.UpdateUser(ctx, u.ID, &update)
+		assert.NoError(t, err)
+
+		assert.Equal(t, "Bane Enterprises", u.Company)
+	}
+}

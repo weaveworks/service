@@ -1,0 +1,4 @@
+UPDATE users SET company = '' WHERE company IS NULL;
+UPDATE users SET name = '' WHERE name IS NULL;
+ALTER TABLE users ALTER COLUMN company SET NOT NULL;
+ALTER TABLE users ALTER COLUMN name SET NOT NULL;
