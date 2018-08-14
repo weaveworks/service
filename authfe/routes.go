@@ -32,9 +32,13 @@ const maxAnalyticsPayloadSize = 16 * 1024 // bytes
 
 func (c Config) commonMiddleWare(routeMatcher middleware.RouteMatcher) middleware.Interface {
 	extraHeaders := http.Header{}
+
+	// Common security headers
 	extraHeaders.Add("X-Frame-Options", "SAMEORIGIN")
 	extraHeaders.Add("X-XSS-Protection", "1; mode=block")
 	extraHeaders.Add("X-Content-Type-Options", "nosniff")
+	extraHeaders.Add("Referrer-Policy", "origin-when-cross-origin")
+
 	if c.sendCSPHeader {
 		extraHeaders.Add("Content-Security-Policy", "default-src https: 'unsafe-inline'")
 	}
