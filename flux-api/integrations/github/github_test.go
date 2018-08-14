@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	gh "github.com/google/go-github/github"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -43,7 +44,11 @@ func teardown() {
 
 var didGET, didPOST, didDELETE bool
 
-func initHandlers(t *testing.T, keyTitle string) {
+func initKeyHandlers(t *testing.T, keyTitle string) {
+	didGET = false
+	didPOST = false
+	didDELETE = false
+
 	mux.HandleFunc("/repos/o/r/keys", func(w http.ResponseWriter, r *http.Request) {
 		t.Log(r.Method, r.URL)
 		if r.Method == "GET" {
@@ -64,7 +69,7 @@ func initHandlers(t *testing.T, keyTitle string) {
 func TestInsertDeployKey_KeyDoesntExist(t *testing.T) {
 	setup()
 	defer teardown()
-	initHandlers(t, "doesntMatch")
+	initKeyHandlers(t, "doesntMatch")
 
 	g := Github{
 		client: client,
@@ -88,7 +93,7 @@ func TestInsertDeployKey_KeyDoesntExist(t *testing.T) {
 func TestInsertDeployKey_KeyDoesExist(t *testing.T) {
 	setup()
 	defer teardown()
-	initHandlers(t, "test-deploy-key")
+	initKeyHandlers(t, "test-deploy-key")
 
 	g := Github{
 		client: client,
@@ -107,6 +112,53 @@ func TestInsertDeployKey_KeyDoesExist(t *testing.T) {
 	if didDELETE != true {
 		t.Fatal("Should have deleted key")
 	}
+}
+
+func initRepoHandlers(t *testing.T) {
+	mux.HandleFunc("/user/repos", func(w http.ResponseWriter, r *http.Request) {
+		t.Log(r.Method, r.URL)
+		if r.Method == "GET" {
+			fmt.Fprint(w, `
+[{
+  "id": 1,
+  "owner": {
+    "id": 100,
+    "login": "weaveworks"
+  },
+  "name": "service",
+  "full_name": "weaveworks/service",
+  "description": "Weaveworks Service Repo",
+  "ssh_url": "git:github.com/weaveworks/service.git"
+}, {
+  "id": 2,
+  "owner": {
+    "id": 100,
+    "login": "weaveworks"
+  },
+  "name": "service-conf",
+  "full_name": "weaveworks/service-conf",
+  "description": "Weaveworks Service Conf Repo",
+  "ssh_url": "git:github.com/weaveworks/service-conf.git"
+}]
+			`)
+		}
+	})
+}
+
+func TestGetRepos(t *testing.T) {
+	setup()
+	defer teardown()
+	initRepoHandlers(t)
+
+	g := Github{
+		client: client,
+	}
+
+	repos, err := g.GetRepos()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, len(repos), 2)
 }
 
 func testMethod(t *testing.T, r *http.Request, want string) {
