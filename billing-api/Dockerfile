@@ -1,11 +1,11 @@
 FROM alpine:3.6
 EXPOSE 80
-ENTRYPOINT ["/api"]
+ENTRYPOINT ["/billing-api"]
 RUN apk add --update \
     ca-certificates \
   && rm -rf /var/cache/apk/*
 ADD db/migrations /migrations
-ADD api /
+ADD billing-api /
 
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \

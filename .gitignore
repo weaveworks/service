@@ -7,7 +7,7 @@
 authfe/authfe
 billing-aggregator/aggregator
 billing-aggregator/migrations
-billing-api/api
+billing-api/billing-api
 billing-enforcer/enforcer
 billing-synthetic-usage-injector/injector
 billing-uploader/migrations
