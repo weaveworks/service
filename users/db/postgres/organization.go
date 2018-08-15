@@ -213,7 +213,6 @@ func (d DB) listDirectOrganizationUsers(ctx context.Context, orgExternalID strin
 		Where(squirrel.Eq{
 			"organizations.external_id": orgExternalID,
 			"memberships.deleted_at":    nil,
-			"organizations.deleted_at":  nil,
 		}).
 		OrderBy("users.created_at").
 		QueryContext(ctx)
@@ -230,7 +229,6 @@ func (d DB) listTeamOrganizationUsers(ctx context.Context, orgExternalID string)
 		Join("organizations on (team_memberships.team_id = organizations.team_id)").
 		Where(squirrel.Eq{
 			"organizations.external_id":   orgExternalID,
-			"organizations.deleted_at":    nil,
 			"team_memberships.deleted_at": nil,
 		}).
 		QueryContext(ctx)
