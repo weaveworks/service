@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-	"github.com/weaveworks/service/notification-eventmanager/eventmanager/parser"
+	"github.com/weaveworks/service/notification-eventmanager/eventmanager/render"
 	"github.com/weaveworks/service/notification-eventmanager/types"
 	"github.com/weaveworks/service/users"
 )
@@ -30,7 +30,7 @@ type ConfigChangedData struct {
 func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID string, oldReceiver, receiver types.Receiver, eventTime time.Time, userEmail string, featureFlags []string) error {
 	log.Debug("update_config Event Firing...")
 
-	eventType := "config_changed"
+	eventType := types.ConfigChangedType
 
 	instanceData, err := em.UsersClient.GetOrganization(ctx, &users.GetOrganizationRequest{
 		ID: &users.GetOrganizationRequest_InternalID{InternalID: instanceID},
@@ -70,12 +70,12 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		// address changed event
 		msg := fmt.Sprintf("The address for <b>%s</b> was updated by %s!", receiver.RType, userEmail)
 
-		emailMsg, err := parser.EmailFromSlack(msg, eventType, instanceName, link)
+		emailMsg, err := render.EmailFromSlack(msg, eventType, instanceName, link)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
 
-		browserMsg, err := parser.BrowserFromSlack(types.SlackMessage{Text: msg}, eventType, "", "")
+		browserMsg, err := render.BrowserFromSlack(types.SlackMessage{Text: msg}, eventType, "", "")
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
@@ -84,13 +84,13 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal message")
 		}
-		stackdriverMsg, err := parser.StackdriverFromSlack(msgJSON, eventType, instanceName)
+		stackdriverMsg, err := render.StackdriverFromSlack(msgJSON, eventType, instanceName)
 		if err != nil {
 			return errors.Wrap(err, "cannot get stackdriver message")
 		}
 
 		slackText := fmt.Sprintf("The address for *%s* was updated by %s!", receiver.RType, userEmail)
-		slackMsg, err := parser.SlackFromSlack(types.SlackMessage{Text: slackText}, instanceName, link)
+		slackMsg, err := render.SlackFromSlack(types.SlackMessage{Text: slackText}, instanceName, link)
 		if err != nil {
 			return errors.Wrap(err, "cannot get slack text message")
 		}
@@ -128,12 +128,12 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 
 		text := formatEventTypeText("<b>", "</b>", receiver.RType, "<i>", "</i>", added, removed, userEmail)
 
-		emailMsg, err := parser.EmailFromSlack(text, eventType, instanceName, link)
+		emailMsg, err := render.EmailFromSlack(text, eventType, instanceName, link)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
 
-		browserMsg, err := parser.BrowserFromSlack(types.SlackMessage{Text: text}, eventType, "", "")
+		browserMsg, err := render.BrowserFromSlack(types.SlackMessage{Text: text}, eventType, "", "")
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
@@ -142,13 +142,13 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		if err != nil {
 			return errors.Wrap(err, "cannot marshal message")
 		}
-		stackdriverMsg, err := parser.StackdriverFromSlack(textJSON, eventType, instanceName)
+		stackdriverMsg, err := render.StackdriverFromSlack(textJSON, eventType, instanceName)
 		if err != nil {
 			return errors.Wrap(err, "cannot get stackdriver message for event types changed")
 		}
 
 		slackText := formatEventTypeText("*", "*", receiver.RType, "_", "_", added, removed, userEmail)
-		slackMsg, err := parser.SlackFromSlack(types.SlackMessage{Text: slackText}, instanceName, link)
+		slackMsg, err := render.SlackFromSlack(types.SlackMessage{Text: slackText}, instanceName, link)
 		if err != nil {
 			return errors.Wrap(err, "cannot get slack message")
 		}

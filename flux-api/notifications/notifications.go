@@ -1,37 +1,153 @@
 package notifications
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/pkg/errors"
+	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/flux/event"
 	"github.com/weaveworks/flux/update"
-)
-
-const (
-	// DefaultURL is the default url to which events will be sent
-	DefaultURL = "http://eventmanager.notification.svc.cluster.local/api/notification/slack/{instanceID}/{eventType}"
+	"github.com/weaveworks/service/flux-api/service"
+	notificationTypes "github.com/weaveworks/service/notification-eventmanager/types"
 )
 
 // Event sends a notification for the given event if cfg specifies HookURL.
-func Event(url string, e event.Event) error {
+func Event(url string, e event.Event, instID service.InstanceID) error {
+	if url == "" {
+		return nil
+	}
+
+	// temporary check if we should use new url to send events to,
+	// can remove it after we switch to new url in service-conf
+	if strings.Contains(url, "slack") {
+		switch e.Type {
+		case event.EventRelease:
+			r := e.Metadata.(*event.ReleaseEventMetadata)
+			return slackNotifyRelease(url, r, r.Error)
+		case event.EventAutoRelease:
+			r := e.Metadata.(*event.AutoReleaseEventMetadata)
+			return slackNotifyAutoRelease(url, r, r.Error)
+		case event.EventSync:
+			details := e.Metadata.(*event.SyncEventMetadata)
+			if details.Includes != nil {
+				if _, ok := details.Includes[event.NoneOfTheAbove]; !ok {
+					return nil
+				}
+			}
+			return slackNotifySync(url, &e)
+		case event.EventCommit:
+			commitMetadata := e.Metadata.(*event.CommitEventMetadata)
+			switch commitMetadata.Spec.Type {
+			case update.Policy:
+				return slackNotifyCommitPolicyChange(url, commitMetadata)
+			case update.Images:
+				return slackNotifyCommitRelease(url, commitMetadata)
+			case update.Auto:
+				return slackNotifyCommitAutoRelease(url, commitMetadata)
+			default:
+				return errors.Errorf("cannot notify for event, unknown commit metadata event type %s", commitMetadata.Spec.Type)
+			}
+		default:
+			return errors.Errorf("cannot notify for event, unknown event type %s", e.Type)
+		}
+	}
+
+	var notifyEvent notificationTypes.Event
+	notifyData := e.Metadata
+	notifyEvent.InstanceID = string(instID)
+
+	notifyEvent.Timestamp = e.StartedAt
+	if notifyEvent.Timestamp.IsZero() {
+		notifyEvent.Timestamp = time.Now()
+	}
+
+	var notifEventType string
+
 	switch e.Type {
 	case event.EventRelease:
-		r := e.Metadata.(*event.ReleaseEventMetadata)
-		return slackNotifyRelease(url, r, r.Error)
+		// Sanity check: we shouldn't get any other kind, but you
+		// never know.
+		release := e.Metadata.(*event.ReleaseEventMetadata)
+		if release.Spec.Kind != update.ReleaseKindExecute {
+			return nil
+		}
+		notifEventType = releaseEventType
 	case event.EventAutoRelease:
-		r := e.Metadata.(*event.AutoReleaseEventMetadata)
-		return slackNotifyAutoRelease(url, r, r.Error)
+		notifEventType = autoReleaseEventType
 	case event.EventSync:
-		return slackNotifySync(url, &e)
+		details := e.Metadata.(*event.SyncEventMetadata)
+		// Only send a notification if this contains something other
+		// releases and autoreleases (and we were told what it contains)
+		if details.Includes != nil {
+			if _, ok := details.Includes[event.NoneOfTheAbove]; !ok {
+				return nil
+			}
+		}
+		notifEventType = syncEventType
+		// add services, because of sync metadata doesn't contain them
+		notifyData = notificationTypes.SyncData{
+			Metadata:   e.Metadata.(*event.SyncEventMetadata),
+			ServiceIDs: e.ServiceIDs,
+		}
 	case event.EventCommit:
 		commitMetadata := e.Metadata.(*event.CommitEventMetadata)
 		switch commitMetadata.Spec.Type {
 		case update.Policy:
-			return slackNotifyCommitPolicyChange(url, commitMetadata)
+			notifEventType = policyEventType
 		case update.Images:
-			return slackNotifyCommitRelease(url, commitMetadata)
+			notifEventType = releaseCommitEventType
 		case update.Auto:
-			return slackNotifyCommitAutoRelease(url, commitMetadata)
+			notifEventType = autoReleaseCommitEventType
+		default:
+			return errors.Errorf("cannot notify for event, unknown commit metadata event type %s", commitMetadata.Spec.Type)
 		}
+	default:
+		return errors.Errorf("cannot notify for event, unknown event type %s", e.Type)
 	}
-	return errors.Errorf("cannot notify for event, unknown event type %s", e.Type)
+
+	data, err := json.Marshal(notifyData)
+	if err != nil {
+		return err
+	}
+	notifyEvent.Data = data
+
+	notifyEvent.Type = notifEventType
+
+	return sendEvent(url, notifyEvent, instID)
+}
+
+func sendEvent(url string, ev notificationTypes.Event, instID service.InstanceID) error {
+	buf := &bytes.Buffer{}
+	if err := json.NewEncoder(buf).Encode(ev); err != nil {
+		return errors.Wrap(err, "encoding event")
+	}
+
+	req, err := http.NewRequest("POST", url, buf)
+	if err != nil {
+		return errors.Wrap(err, "constructing HTTP request")
+	}
+
+	req = req.WithContext(user.InjectOrgID(req.Context(), string(instID)))
+	if err := user.InjectOrgIDIntoHTTPRequest(req.Context(), req); err != nil {
+		return errors.Wrap(err, "injecting orgID into HTTP request")
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "executing HTTP POST to notification service")
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := ioutil.ReadAll(io.LimitReader(resp.Body, 1024*1024))
+		return fmt.Errorf("%s from eventmanager (%s)", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	return nil
 }

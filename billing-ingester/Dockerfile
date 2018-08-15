@@ -20,9 +20,9 @@ RUN \
 
 # Cleanup
 WORKDIR /home/fluent
-COPY schema_events.json /bigquery/
-COPY fluent-dev.conf /fluentd/etc/
-COPY fluent.conf /fluentd/etc/
+COPY /billing-ingester/schema_events.json /bigquery/
+COPY /billing-ingester/fluent-dev.conf /fluentd/etc/
+COPY /billing-ingester/fluent.conf /fluentd/etc/
 EXPOSE 24225
 EXPOSE 24231
 

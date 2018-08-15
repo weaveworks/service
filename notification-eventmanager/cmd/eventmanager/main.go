@@ -14,6 +14,7 @@ import (
 	"github.com/weaveworks/service/notification-eventmanager/sqsconnect"
 	"github.com/weaveworks/service/notification-eventmanager/types"
 	usersClient "github.com/weaveworks/service/users/client"
+	userTemplates "github.com/weaveworks/service/users/templates"
 )
 
 func main() {
@@ -65,7 +66,9 @@ func main() {
 		log.Fatalf("Error initializing database: %v", err)
 	}
 
-	em := eventmanager.New(uclient, db, sqsCli, sqsQueue, wcURL)
+	templates := userTemplates.MustNewEngine("templates")
+
+	em := eventmanager.New(uclient, db, sqsCli, sqsQueue, wcURL, templates)
 
 	if eventTypesPath != "" {
 		eventTypes, err := types.EventTypesFromFile(eventTypesPath)

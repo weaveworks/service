@@ -1,8 +1,10 @@
 FROM alpine:3.6
 RUN apk add --no-cache ca-certificates
 WORKDIR /
-COPY cmd/eventmanager/eventmanager /
-COPY db/migrations /migrations
+COPY notification-eventmanager/cmd/eventmanager/eventmanager /
+COPY notification-eventmanager/db/migrations /migrations
+COPY /common/templates /templates/
+COPY /notification-eventmanager/templates /templates/
 EXPOSE 80
 ENTRYPOINT ["/eventmanager"]
 

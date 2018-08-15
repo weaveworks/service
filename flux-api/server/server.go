@@ -272,7 +272,7 @@ func (s *Server) LogEvent(ctx context.Context, e event.Event) error {
 	}
 
 	url := strings.Replace(s.eventsURL, "{instanceID}", string(instID), 1)
-	err = notifications.Event(url, e)
+	err = notifications.Event(url, e, instID)
 	if err != nil {
 		return errors.Wrapf(err, "sending notifications")
 	}

@@ -6,10 +6,10 @@ LABEL maintainer="Weaveworks <help@weave.works>" \
 
 RUN pip install pipenv && apk add --no-cache libpq
 
-ADD Pipfile Pipfile.lock /
+ADD /billing-exporter/Pipfile /billing-exporter/Pipfile.lock /
 RUN apk add --no-cache postgresql-dev musl-dev gcc && pipenv install --system --deploy && apk del postgresql-dev musl-dev gcc
 
-ADD exporter /exporter
+ADD /billing-exporter/exporter /exporter
 CMD ["python", "-u", "-m", "exporter"]
 EXPOSE 8000
 

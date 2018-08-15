@@ -8,7 +8,7 @@ import (
 )
 
 func TestEmbedHTML__Login(t *testing.T) {
-	templates := templates.MustNewEngine(".")
+	templates := templates.MustNewEngine(".", "../../common/templates")
 	data := map[string]interface{}{
 		"LoginURL": "cloud.weave.works/login",
 		"RootURL":  "cloud.weave.works",
@@ -21,7 +21,7 @@ func TestEmbedHTML__Login(t *testing.T) {
 }
 
 func TestEmbedHTML__Invite(t *testing.T) {
-	templates := templates.MustNewEngine(".")
+	templates := templates.MustNewEngine(".", "../../common/templates")
 	data := map[string]interface{}{
 		"LoginURL":         "cloud.weave.works/login",
 		"RootURL":          "cloud.weave.works",

@@ -25,7 +25,6 @@ import (
 	httpserver "github.com/weaveworks/service/flux-api/http"
 	"github.com/weaveworks/service/flux-api/instance"
 	instancedb "github.com/weaveworks/service/flux-api/instance/sql"
-	"github.com/weaveworks/service/flux-api/notifications"
 	"github.com/weaveworks/service/flux-api/server"
 )
 
@@ -50,7 +49,7 @@ func (c *config) registerFlags(f *flag.FlagSet) {
 	f.StringVar(&c.listenAddr, "listen", ":3030", "Listen address for Flux API clients")
 	f.StringVar(&c.natsURL, "nats-url", "", `URL on which to connect to NATS, or empty to use the standalone message bus (e.g., "nats://user:pass@nats:4222")`)
 	f.BoolVar(&c.versionFlag, "version", false, "Get version number")
-	f.StringVar(&c.eventsURL, "events-url", notifications.DefaultURL, "URL to which events will be sent")
+	f.StringVar(&c.eventsURL, "events-url", "", "URL to which events will be sent")
 	f.BoolVar(&c.enableBilling, "enable-billing", false, "Report each event to the billing system.")
 
 	c.dbConfig.RegisterFlags(f,

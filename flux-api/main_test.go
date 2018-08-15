@@ -36,7 +36,6 @@ import (
 	httpserver "github.com/weaveworks/service/flux-api/http"
 	"github.com/weaveworks/service/flux-api/instance"
 	instancedb "github.com/weaveworks/service/flux-api/instance/sql"
-	"github.com/weaveworks/service/flux-api/notifications"
 	"github.com/weaveworks/service/flux-api/server"
 	"github.com/weaveworks/service/flux-api/service"
 )
@@ -158,7 +157,7 @@ func setup(t *testing.T) {
 	}
 
 	// Server
-	apiServer := server.New(ver, instancer, instanceDB, messageBus, log.NewNopLogger(), notifications.DefaultURL, server.NoopBillingClient{})
+	apiServer := server.New(ver, instancer, instanceDB, messageBus, log.NewNopLogger(), "", server.NoopBillingClient{})
 	router = httpserver.NewServiceRouter()
 	httpServer := httpserver.NewServer(apiServer, apiServer, apiServer, log.NewNopLogger())
 	handler := httpServer.MakeHandler(router)

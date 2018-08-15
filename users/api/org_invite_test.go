@@ -66,7 +66,6 @@ func Test_InviteNonExistentUser(t *testing.T) {
 
 	user, org := getOrg(t)
 	franEmail := "fran@weave.works"
-
 	body := requestInvite(t, user, org, franEmail, http.StatusOK)
 	assert.Equal(t, map[string]interface{}{"email": franEmail}, body)
 

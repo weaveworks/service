@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-	"github.com/weaveworks/service/notification-eventmanager/eventmanager/parser"
+	"github.com/weaveworks/service/notification-eventmanager/eventmanager/render"
 	"github.com/weaveworks/service/notification-eventmanager/types"
 	"github.com/weaveworks/service/users"
 )
@@ -80,7 +80,7 @@ func (em *EventManager) handleWebhookEvent(r *http.Request) (interface{}, int, e
 	var linkText, linkPath string
 	// link to Monitor page with Firing alerts for Cortex events
 	switch eventType {
-	case "monitor":
+	case types.MonitorType:
 		linkText = alertLinkText
 		linkPath = alertsPage
 	default:
@@ -122,30 +122,30 @@ func buildWebhookEvent(m types.WebhookAlert, etype, instanceID, instanceName, no
 		linkText: link,
 	}
 
-	emailMsg, err := parser.EmailFromAlert(m, etype, instanceName, notificationPageLink)
+	emailMsg, err := render.EmailFromAlert(m, etype, instanceName, notificationPageLink)
 	if err != nil {
 		return types.Event{}, errors.Wrap(err, "cannot get email message")
 	}
 
-	slackMsg, err := parser.SlackFromAlert(m, etype, instanceName, notificationPageLink)
+	slackMsg, err := render.SlackFromAlert(m, etype, instanceName, notificationPageLink)
 	if err != nil {
 		return types.Event{}, errors.Wrap(err, "cannot get slack message")
 	}
 
-	browserMsg, err := parser.BrowserFromAlert(m, etype)
+	browserMsg, err := render.BrowserFromAlert(m, etype)
 	if err != nil {
 		return types.Event{}, errors.Wrap(err, "cannot get browser message")
 	}
 
-	stackdriverMsg, err := parser.StackdriverFromAlert(m, etype, instanceName)
+	stackdriverMsg, err := render.StackdriverFromAlert(m, etype, instanceName)
 	if err != nil {
 		return types.Event{}, errors.Wrap(err, "cannot get stackdriver message")
 	}
 
 	// opsGenie message makes sense only for monitor event
 	var opsGenieMsg json.RawMessage
-	if etype == "monitor" {
-		opsGenieMsg, err = parser.OpsGenieFromAlert(m, etype, instanceName)
+	if etype == types.MonitorType {
+		opsGenieMsg, err = render.OpsGenieFromAlert(m, etype, instanceName)
 		if err != nil {
 			return types.Event{}, errors.Wrap(err, "cannot get OpsGenie message")
 		}

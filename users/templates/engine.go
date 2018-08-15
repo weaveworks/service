@@ -27,17 +27,47 @@ type Executor interface {
 }
 
 // MustNewEngine creates a new Engine, or panics.
-func MustNewEngine(dir string) Engine {
-	h, err := html.ParseGlob(filepath.Join(dir, "*.html"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	t, err := text.ParseGlob(filepath.Join(dir, "*.text"))
-	if err != nil {
-		log.Fatal(err)
+func MustNewEngine(dirs ...string) Engine {
+	var ht *html.Template
+	var tt *text.Template
+	var htmlfilenames, textfilenames []string
+
+	htmlpattern := "*.html"
+	textpattern := "*.text"
+
+	for _, dir := range dirs {
+		htmlfiles, err := filepath.Glob(filepath.Join(dir, htmlpattern))
+		if err != nil {
+			log.Fatal(err)
+		}
+		if len(htmlfiles) == 0 {
+			log.Fatalf("html/template: pattern matches no files: %#q", filepath.Join(dir, htmlpattern))
+		}
+		htmlfilenames = append(htmlfilenames, htmlfiles...)
+
+		textfiles, err := filepath.Glob(filepath.Join(dir, textpattern))
+		if err != nil {
+			log.Fatal(err)
+		}
+		if len(textfiles) == 0 {
+			log.Fatalf("template: pattern matches no files: %#q", filepath.Join(dir, textpattern))
+		}
+		textfilenames = append(textfilenames, textfiles...)
 	}
 
-	return &extensionsTemplateEngine{h, t}
+	h, err := html.ParseFiles(htmlfilenames...)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ht = h
+
+	t, err := text.ParseFiles(textfilenames...)
+	if err != nil {
+		log.Fatal(err)
+	}
+	tt = t
+
+	return &extensionsTemplateEngine{ht, tt}
 }
 
 // Engine is a thing which loads and executes templates

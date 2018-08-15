@@ -17,7 +17,7 @@ CACHEDIR=$HOME/docker/
 rebuild() {
     mkdir -p "$CACHEDIR"
     rm "$CACHEDIR/$SAVEDNAME"* || true
-    docker build -t "$IMAGENAME" "$IMAGEDIR"
+    docker build -t "$IMAGENAME" -f "$IMAGEDIR/Dockerfile" "$IMAGEDIR/.."
     docker save "$IMAGENAME:latest" | gzip - >"$CACHEDIR/$SAVEDNAME-$CIRCLE_SHA1.gz"
 }
 

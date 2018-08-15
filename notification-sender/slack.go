@@ -48,6 +48,9 @@ func (ss *SlackSender) Send(ctx context.Context, addr json.RawMessage, notif typ
 		return errors.Wrapf(err, "cannot unmarshal data %s", data)
 	}
 
+	if msg == nil {
+		msg = make(map[string]interface{})
+	}
 	// If incoming message doesn't set the username, make it our own
 	if _, ok := msg["username"]; !ok {
 		msg["username"] = ss.Username
