@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/weaveworks/service/billing-api/api"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -14,6 +16,7 @@ import (
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/billing-api/db"
 	"github.com/weaveworks/service/billing-api/trial"
+	"github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/constants/billing"
 	"github.com/weaveworks/service/common/orgs"
 	"github.com/weaveworks/service/common/render"
@@ -291,8 +294,26 @@ func (a *API) GetAccountTrial(w http.ResponseWriter, r *http.Request) {
 
 // status indicates the account's billing status. Values of this string must align with values in service-ui.
 // See `renderAccountStatus` in
-// https://github.com/weaveworks/service-ui/blob/master/client/src/pages/organization/billing/page.jsx
+// https://github.com/weaveworks/service-ui/blob/master/client/src/pages/organization/billing/page-zuora.jsx
 type status string
+
+const (
+	statusTrialActive          status = "trial"
+	statusTrialExpired         status = "trial_expired"
+	statusPaymentDue           status = "payment_due"
+	statusPaymentError         status = "payment_error"
+	statusSubscriptionInactive status = "subscription_inactive"
+	statusActive               status = "active"
+)
+
+var billingStatusToAPI = map[grpc.BillingStatus]status{
+	grpc.TRIAL_ACTIVE:          statusTrialActive,
+	grpc.TRIAL_EXPIRED:         statusTrialExpired,
+	grpc.PAYMENT_DUE:           statusPaymentDue,
+	grpc.PAYMENT_ERROR:         statusPaymentError,
+	grpc.SUBSCRIPTION_INACTIVE: statusSubscriptionInactive,
+	grpc.ACTIVE:                statusActive,
+}
 
 type interim struct {
 	Usage map[string]string `json:"usage"` // prices in all supported currencies.
@@ -318,15 +339,6 @@ type paymentStatus struct {
 	Description string `json:"description"`
 	Action      string `json:"action"`
 }
-
-const (
-	statusTrialActive          status = "trial"
-	statusTrialExpired         status = "trial_expired"
-	statusPaymentDue           status = "payment_due"
-	statusPaymentError         status = "payment_error"
-	statusSubscriptionInactive status = "subscription_inactive"
-	statusActive               status = "active"
-)
 
 func monthBillDate(billCycleDay int, month time.Month, year int) time.Time {
 	daysInMonth := timeutil.DaysIn(month, year)
@@ -385,37 +397,13 @@ func (a *API) getDefaultUsageRateInfo(ctx context.Context) (int, map[string]floa
 
 // getBillingStatus returns a single overall summary of the user's account.
 func getBillingStatus(ctx context.Context, trialInfo trial.Trial, acct *zuora.Account) paymentStatus {
-	// Having days left on the trial means we don't have to care about Zuora.
-	if trialInfo.Remaining > 0 {
-		return paymentStatus{Status: statusTrialActive}
+	grpcStatus, description, action := api.GetBillingStatus(ctx, trialInfo, acct)
+	// do some type conversion for backwards compatibility
+	jsonStatus, ok := billingStatusToAPI[grpcStatus]
+	if !ok {
+		jsonStatus = status(strings.ToLower(grpcStatus.String()))
 	}
-	// We only create an account for a user after they have added a payment method,
-	// so acct == nil is equivalent to "no account on Zuora", which is equivalent to,
-	// "they haven't submitted a payment method", which means their trial has expired.
-	if acct == nil {
-		return paymentStatus{Status: statusTrialExpired}
-	}
-	// Even if the user has an account on Zuora, we can suspend or cancel
-	// their account.
-	if acct.SubscriptionStatus != zuora.SubscriptionActive {
-		return paymentStatus{Status: statusSubscriptionInactive}
-	}
-	// At this point, we know the account is active.
-	if acct.PaymentStatus.Status != zuora.PaymentOK {
-		user.LogWith(ctx, logging.Global()).
-			WithField("payment_status", acct.PaymentStatus).
-			WithField("zuora_id", acct.ZuoraID).
-			WithField("zuora_number", acct.Number).
-			Debugf("treating non-active payment status as error")
-		return paymentStatus{
-			Status:      statusPaymentError,
-			Description: acct.PaymentStatus.Description,
-			Action:      acct.PaymentStatus.Action,
-		}
-	}
-	// TODO Future - work out when to use PAYMENT_DUE
-	//StatusPaymentDue           = "payment_due"
-	return paymentStatus{Status: statusActive}
+	return paymentStatus{Status: jsonStatus, Description: description, Action: action}
 }
 
 // Introducing the contextKey alias addresses "should not use basic type untyped string as key in context.WithValue".

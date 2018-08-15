@@ -22,7 +22,6 @@ import (
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/api"
-	"github.com/weaveworks/service/users/cleaner"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
 	grpc_server "github.com/weaveworks/service/users/grpc"
@@ -165,7 +164,6 @@ func main() {
 	defer db.Close(context.Background())
 	sessions := sessions.MustNewStore(*sessionSecret, *secureCookie, *cookieDomain)
 
-	orgCleaner := cleaner.New(cleanupURLs, db)
 	log.Debug("Debug logging enabled")
 
 	grpcServer := grpc_server.New(sessions, db, emailer, marketingQueues)
@@ -192,7 +190,6 @@ func main() {
 		*netPeersAPI,
 		billingClient,
 		billingEnabler,
-		orgCleaner,
 		*notificationReceiversURL,
 	)
 
@@ -221,7 +218,6 @@ func main() {
 	users.RegisterUsersServer(s.GRPC, grpcServer)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	app.OrgCleaner.Run(ctx)
 	s.Run()
 	cancel()
 }

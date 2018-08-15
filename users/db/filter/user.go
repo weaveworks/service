@@ -15,6 +15,26 @@ type User interface {
 	MatchesUser(users.User) bool
 }
 
+// UsersByID finds users by their database IDs.
+type UsersByID []string
+
+// MatchesUser users whose ID is in the list.
+func (f UsersByID) MatchesUser(u users.User) bool {
+	for _, id := range f {
+		if id == u.ID {
+			return true
+		}
+	}
+	return false
+}
+
+// Where returns the query to filter for users whose ID is in the list.
+func (f UsersByID) Where() squirrel.Sqlizer {
+	return squirrel.Eq(map[string]interface{}{
+		"users.id": []string(f),
+	})
+}
+
 // SearchEmail finds users whose email contains the given string.
 type SearchEmail string
 

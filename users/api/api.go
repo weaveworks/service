@@ -10,7 +10,6 @@ import (
 
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/cleaner"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/login"
@@ -43,7 +42,6 @@ type API struct {
 	netPeersAPI              string
 	billingClient            billing_grpc.BillingClient
 	billingEnabler           featureflag.Enabler
-	OrgCleaner               *cleaner.OrgCleaner
 	notificationReceiversURL string
 	http.Handler
 }
@@ -72,7 +70,6 @@ func New(
 	netPeersAPI string,
 	billingClient billing_grpc.BillingClient,
 	billingEnabler featureflag.Enabler,
-	orgCleaner *cleaner.OrgCleaner,
 	notificationReceiversURL string,
 ) *API {
 	a := &API{
@@ -98,7 +95,6 @@ func New(
 		netPeersAPI:              netPeersAPI,
 		billingClient:            billingClient,
 		billingEnabler:           billingEnabler,
-		OrgCleaner:               orgCleaner,
 		notificationReceiversURL: notificationReceiversURL,
 	}
 

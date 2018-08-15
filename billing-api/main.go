@@ -77,13 +77,19 @@ func main() {
 	}
 	defer server.Shutdown()
 
+	grpcServer := grpc.Server{
+		DB:    db,
+		Users: users,
+		Zuora: z,
+	}
+
 	routes, err := routes.New(cfg.routesConfig, db, users, z)
 	if err != nil {
 		log.Fatalf("error initialising api: %v", err)
 	}
 	routes.RegisterRoutes(server.HTTP)
 	log.WithField("port", cfg.serverConfig.HTTPListenPort).Infof("billing-api now serving HTTP requests")
-	common_grpc.RegisterBillingServer(server.GRPC, grpc.Server{DB: db})
+	common_grpc.RegisterBillingServer(server.GRPC, grpcServer)
 	log.WithField("port", cfg.serverConfig.GRPCListenPort).Infof("billing-api now serving gRPC requests")
 	server.Run()
 }

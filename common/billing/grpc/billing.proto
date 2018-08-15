@@ -9,6 +9,7 @@ option (gogoproto.populate_all) = true;
 
 service Billing {
   rpc FindBillingAccountByTeamID (BillingAccountByTeamIDRequest) returns (BillingAccount) {}
+  rpc GetInstanceBillingStatus(InstanceBillingStatusRequest) returns (InstanceBillingStatusResponse) {}
 }
 
 message BillingAccountByTeamIDRequest {
@@ -20,4 +21,24 @@ message BillingAccount {
   google.protobuf.Timestamp CreatedAt = 2 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
   google.protobuf.Timestamp DeletedAt = 3 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
   string Provider = 4;
+}
+
+message InstanceBillingStatusRequest {
+  string InternalID = 1;
+}
+
+enum BillingStatus {
+  // Values of this string must align with values in service-ui. See `renderAccountStatus` in
+  // https://github.com/weaveworks/service-ui/blob/master/client/src/pages/organization/billing/page-zuora.jsx
+  UNKNOWN = 0;
+  TRIAL_ACTIVE = 1;
+  TRIAL_EXPIRED = 2;
+  PAYMENT_DUE = 3;
+  PAYMENT_ERROR = 4;
+  SUBSCRIPTION_INACTIVE = 5;
+  ACTIVE = 6;
+}
+
+message InstanceBillingStatusResponse {
+  BillingStatus BillingStatus = 1;
 }

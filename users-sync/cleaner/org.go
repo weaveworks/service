@@ -2,12 +2,12 @@ package cleaner
 
 import (
 	"context"
+	"github.com/weaveworks/common/logging"
 	"net/http"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
-	log "github.com/sirupsen/logrus"
 	commonUser "github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/users/db"
 )
@@ -57,8 +57,10 @@ var (
 type OrgCleaner struct {
 	ticker  <-chan time.Time
 	trigger chan struct{}
+	quit    chan struct{}
 	urls    []string
 	db      db.DB
+	log     logging.Interface
 }
 
 func init() {
@@ -73,30 +75,40 @@ func init() {
 }
 
 // New returns a new OrgCleaner given a list of URLs and database db.
-func New(urls []string, db db.DB) *OrgCleaner {
+func New(urls []string, log logging.Interface, db db.DB) *OrgCleaner {
 	return &OrgCleaner{
+		log:     log,
 		ticker:  time.NewTicker(tick).C,
 		trigger: make(chan struct{}, 1),
+		quit:    make(chan struct{}),
 		urls:    urls,
 		db:      db,
 	}
 }
 
-// Run runs org cleaner with context
+// Start runs org cleaner
 // runs findAndClean at the beginning and then on every tick and trigger
-func (c *OrgCleaner) Run(ctx context.Context) {
-	log.Info("Run org cleaner")
+func (c *OrgCleaner) Start() {
+	c.log.Infoln("Run org cleaner")
 	go func() {
+		ctx, cancel := context.WithCancel(context.Background())
 		for {
 			c.findAndClean(ctx)
 			select {
 			case <-c.ticker:
 			case <-c.trigger:
-			case <-ctx.Done():
+			case <-c.quit:
+				cancel()
 				return
 			}
 		}
 	}()
+}
+
+// Stop stops the OrgCleaner service
+func (c *OrgCleaner) Stop() error {
+	close(c.quit)
+	return nil
 }
 
 // Trigger triggers cleaning by a non-blocking send to a trigger channel
@@ -112,7 +124,7 @@ func (c *OrgCleaner) findAndClean(ctx context.Context) {
 	findAndCleanTotal.Inc()
 	ids, err := c.db.FindUncleanedOrgIDs(ctx)
 	if err != nil {
-		log.Warnf("cannot find uncleaned org IDs, error: %s", err)
+		c.log.Warnf("cannot find uncleaned org IDs, error: %s\n", err)
 		errorFindUncleanedOrgIDsTotal.Inc()
 		return
 	}
@@ -126,7 +138,7 @@ func (c *OrgCleaner) clean(ctx context.Context, id string) {
 	done := c.runCleanupJobs(ctx, id)
 	if done {
 		if err := c.db.SetOrganizationCleanup(ctx, id, true); err != nil {
-			log.Warnf("cannot set cleanup for org id %s, error: %s", id, err)
+			c.log.Warnf("cannot set cleanup for org id %s, error: %s\n", id, err)
 			return
 		}
 		cleanedOrgsTotal.Inc()
@@ -145,7 +157,7 @@ func (c *OrgCleaner) runCleanupJobs(ctx context.Context, id string) bool {
 		callEndpointTotal.With(prometheus.Labels{"url": url}).Inc()
 		status, err := callEndpoint(ctx, id, url)
 		if err != nil {
-			log.Warnf("failed to clean %s, error %s", url, err)
+			c.log.Warnf("failed to clean %s, error %s\n", url, err)
 			errorCallEndpointTotal.With(prometheus.Labels{"url": url}).Inc()
 			res = false
 		}
@@ -154,7 +166,7 @@ func (c *OrgCleaner) runCleanupJobs(ctx context.Context, id string) bool {
 		}
 	}
 	if !res {
-		log.Infof("cleanup for org ID %s hasn't finished yet, will try again later", id)
+		c.log.Infof("cleanup for org ID %s hasn't finished yet, will try again later\n", id)
 	}
 	return res
 }

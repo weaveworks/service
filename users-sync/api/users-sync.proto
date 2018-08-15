@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package api;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+service UsersSync {
+    rpc EnqueueUsersSync(EnqueueUsersSyncRequest) returns (EnqueueUsersSyncResponse) {};
+    rpc EnqueueOrgsSync(EnqueueOrgsSyncRequest) returns (EnqueueOrgsSyncResponse) {};
+    rpc EnqueueOrgDeletedSync(EnqueueOrgDeletedSyncRequest) returns (EnqueueOrgDeletedSyncResponse) {};
+}
+
+message EnqueueUsersSyncRequest {
+    repeated string UserIDs = 1;
+}
+
+message EnqueueUsersSyncResponse {}
+
+message EnqueueOrgsSyncRequest {
+    repeated string OrgExternalIDs = 1;
+}
+
+message EnqueueOrgsSyncResponse {}
+
+message EnqueueOrgDeletedSyncRequest {
+    string OrgExternalID = 1;
+}
+message EnqueueOrgDeletedSyncResponse {}

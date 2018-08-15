@@ -391,9 +391,6 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		renderError(w, r, err)
 		return
 	}
-	if a.OrgCleaner != nil {
-		a.OrgCleaner.Trigger()
-	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
