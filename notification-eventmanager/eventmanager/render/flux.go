@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/weaveworks/flux"
@@ -214,6 +215,7 @@ func (r *Render) fluxToEmail(ev *types.Event, pd *parsedData, eventURL, eventURL
 	}
 
 	emailData := map[string]interface{}{
+		"Timestamp":     ev.Timestamp.Format(time.RFC822),
 		"Text":          template.HTML(buf.String()),
 		"WeaveCloudURL": map[string]string{eventURLText: eventURL},
 		"SettingsURL":   settingsURL,

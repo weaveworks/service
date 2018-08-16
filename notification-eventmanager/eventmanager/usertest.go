@@ -13,6 +13,8 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
+const userTestTitle = "Weave Cloud test event"
+
 // UserTestData is data for user_test event
 type UserTestData struct {
 	UserEmail string `json:"user_email,omitempty"`
@@ -20,6 +22,7 @@ type UserTestData struct {
 
 // handleTestEvent posts a test event for the user to verify things are working.
 func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (interface{}, int, error) {
+	timestamp := time.Now()
 	defer r.Body.Close()
 	requestsTotal.With(prometheus.Labels{"handler": "TestEventHandler"}).Inc()
 
@@ -63,7 +66,7 @@ func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (int
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting notification config page link for test event")
 	}
 
-	emailMsg, err := render.EmailFromSlack(text, etype, instanceName, link)
+	emailMsg, err := em.Render.EmailFromSlack(userTestTitle, text, etype, instanceName, "", "", link, timestamp)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting email message for test event")
@@ -99,7 +102,7 @@ func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (int
 		Type:         etype,
 		InstanceID:   instanceID,
 		InstanceName: instanceData.Organization.Name,
-		Timestamp:    time.Now(),
+		Timestamp:    timestamp,
 		Data:         dataBytes,
 		Messages: map[string]json.RawMessage{
 			types.EmailReceiver:       emailMsg,

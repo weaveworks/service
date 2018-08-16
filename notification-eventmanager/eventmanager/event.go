@@ -193,7 +193,7 @@ func (em *EventManager) handleSlackEvent(r *http.Request) (interface{}, int, err
 		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot get Weave Cloud deploy page link")
 	}
 
-	e, err := buildEvent(body, sm, eventType, instanceID, instanceData.Organization.Name, notifLink, link, linkText)
+	e, err := em.buildEvent(body, sm, eventType, instanceID, instanceData.Organization.Name, notifLink, link, linkText)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
 		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot build event")
@@ -348,10 +348,10 @@ func (em *EventManager) handleGetEvents(r *http.Request, instanceID string) (int
 	return events, http.StatusOK, nil
 }
 
-func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceName, notificationPageLink, link, linkText string) (types.Event, error) {
+func (em *EventManager) buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceName, notificationPageLink, link, linkText string) (types.Event, error) {
 	html := render.SlackMsgToHTML(sm, instanceName, linkText, link)
-
-	emailMsg, err := render.EmailFromSlack(html, etype, instanceName, notificationPageLink)
+	timestamp := time.Now()
+	emailMsg, err := em.Render.EmailFromSlack(etype, html, etype, instanceName, link, linkText, notificationPageLink, timestamp)
 	if err != nil {
 		return types.Event{}, errors.Wrap(err, "cannot get email message")
 	}
@@ -383,7 +383,7 @@ func buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceN
 	var event types.Event
 	event.InstanceID = instanceID
 	event.Type = etype
-	event.Timestamp = time.Now()
+	event.Timestamp = timestamp
 	event.Messages = map[string]json.RawMessage{
 		types.BrowserReceiver:     browserMsg,
 		types.SlackReceiver:       slackMsg,

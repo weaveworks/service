@@ -467,7 +467,7 @@ func TestCreateMonitorEvent(t *testing.T) {
 		GeneratorURL: "/graph?g0.expr=up&g0.tab=1",
 	}
 
-	data := eventmanager.MonitorData{
+	data := types.MonitorData{
 		GroupKey:    "{}:{alertname=\"TestAlert\"}",
 		Status:      "firing",
 		Receiver:    "test",
@@ -535,7 +535,7 @@ func TestCreateMonitorEvent(t *testing.T) {
 	}
 	assert.NotNil(t, result)
 
-	var resultData eventmanager.MonitorData
+	var resultData types.MonitorData
 
 	err = json.Unmarshal(result.Data, &resultData)
 	assert.NoError(t, err)

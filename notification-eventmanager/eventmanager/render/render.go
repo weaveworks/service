@@ -10,6 +10,12 @@ import (
 	userTemplates "github.com/weaveworks/service/users/templates"
 )
 
+const (
+	formatHTML     = "html"
+	formatSlack    = "slack"
+	formatMarkdown = "markdown"
+)
+
 // Render is a struct with templates
 type Render struct {
 	Templates userTemplates.Engine
