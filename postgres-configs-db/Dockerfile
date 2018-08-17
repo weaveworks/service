@@ -1,6 +1,6 @@
 FROM postgres:9.6
 ENV POSTGRES_DB configs
-ADD /postgres-configs-db/init.sql /docker-entrypoint-initdb.d/
+ADD init.sql /docker-entrypoint-initdb.d/
 
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \

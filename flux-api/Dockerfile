@@ -2,8 +2,8 @@ FROM alpine:3.7
 WORKDIR /home/flux
 ENTRYPOINT [ "/sbin/tini", "--", "flux-api" ]
 RUN apk add --no-cache ca-certificates tini
-ADD /flux-api/migrations.tar /home/flux
-COPY /flux-api/flux-api /usr/local/bin/
+ADD migrations.tar /home/flux
+COPY flux-api /usr/local/bin/
 
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \

@@ -40,7 +40,7 @@ RUN mkdir protoc && \
 	cd .. && \
 	rm -rf protoc
 RUN go get github.com/golang/mock/mockgen
-COPY build/build.sh /
+COPY build.sh /
 ENTRYPOINT ["/build.sh"]
 
 ARG revision

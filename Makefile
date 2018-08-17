@@ -15,7 +15,7 @@ UPTODATE := .uptodate
 # Dependencies (i.e. things that go in the image) still need to be explicitly
 # declared.
 %/$(UPTODATE): %/Dockerfile
-	$(SUDO) docker build --build-arg=revision=$(GIT_REVISION) -t $(IMAGE_PREFIX)/$(shell basename $(@D)) -f $(@D)/Dockerfile .
+	$(SUDO) docker build --build-arg=revision=$(GIT_REVISION) -t $(IMAGE_PREFIX)/$(shell basename $(@D)) $(@D)/
 	$(SUDO) docker tag $(IMAGE_PREFIX)/$(shell basename $(@D)) $(IMAGE_PREFIX)/$(shell basename $(@D)):$(IMAGE_TAG)
 	touch $@
 
@@ -57,7 +57,6 @@ MOCK_COMMON_GCP_PARTNER_ACCESS := common/gcp/partner/mock_partner/mock_access.go
 
 MOCK_GOS := $(MOCK_USERS) $(MOCK_BILLING_DB) $(MOCK_BILLING_GRPC) $(MOCK_COMMON_GCP_PARTNER_CLIENT) $(MOCK_COMMON_GCP_PARTNER_ACCESS)
 
-
 # copy billing migrations into each billing application's directory
 billing-aggregator/migrations/%: $(BILLING_DB)/migrations/%
 	mkdir -p $(@D)
@@ -69,6 +68,16 @@ billing-uploader/migrations/%: $(BILLING_DB)/migrations/%
 
 BILLING_MIGRATION_FILES := $(shell find $(BILLING_DB)/migrations -type f)
 billing-migrations-deps = $(patsubst $(BILLING_DB)/migrations/%,$(1)/migrations/%,$(BILLING_MIGRATION_FILES))
+
+# common templates and services which depend on common templates
+COMMON_TEMPLATE_FILES := $(shell find common/templates -type f)
+common-templates-deps = $(patsubst common/templates/%,$(1)/templates/%,$(COMMON_TEMPLATE_FILES))
+
+users/templates/%: common/templates/%
+	cp $< $@
+
+notification-eventmanager/templates/%: common/templates/%
+	cp $< $@
 
 ### BEGIN: Msgpack code generation for billing-synthetic-usage-injector.
 ### N.B.: This typically should replicate what is in github.com/weaveworks/scope/tree/master/Makefile
@@ -137,7 +146,7 @@ test: $(PROTO_GOS)
 
 # And now what goes into each image
 authfe/$(UPTODATE): $(AUTHFE_EXE)
-users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') users/templates/*
+users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') $(call common-templates-deps,users) users/templates/*
 metrics/$(UPTODATE): $(METRICS_EXE)
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
 build/$(UPTODATE): build/build.sh
@@ -148,7 +157,6 @@ gcp-launcher-webhook/$(UPTODATE): $(GCP_LAUNCHER_WEBHOOK_EXE)
 kubectl-service/$(UPTODATE): $(KUBECTL_SERVICE_EXE)
 gcp-service/$(UPTODATE): $(GCP_SERVICE_EXE)
 dashboard-api/$(UPTODATE): $(DASHBOARD_EXE)
-notifications/$(UPTODATE): $(NOTIFICATION_EXES)
 billing-exporter/$(UPTODATE): $(shell find billing-exporter -name '*.py') billing-exporter/Pipfile billing-exporter/Pipfile.lock
 
 # Expands a list of binary paths to have their respective images depend on the binary
@@ -166,7 +174,7 @@ billing-uploader/$(UPTODATE): $(call billing-migrations-deps,billing-uploader)
 billing-aggregator/$(UPTODATE): $(call billing-migrations-deps,billing-aggregator)
 
 $(foreach nexe,$(NOTIFICATION_EXES),$(eval $(call IMAGEDEP_template,$(nexe))))
-notification-eventmanager/$(UPTODATE): $(wildcard notification-eventmanager/migrations/*)
+notification-eventmanager/$(UPTODATE): $(wildcard notification-eventmanager/migrations/*) $(call common-templates-deps,notification-eventmanager) notification-eventmanager/templates/*
 
 # All the boiler plate for building golang follows:
 SUDO := $(shell docker info >/dev/null 2>&1 || echo "sudo -E")
@@ -372,6 +380,7 @@ clean:
 	rm -rf $(UPTODATE_FILES) $(EXES)
 	rm -fr $(CODECGEN_TARGETS) $(CODECGEN_BIN_DIR)
 	rm -rf billing-aggregator/migrations billing-uploader/migrations
+	rm -f $(call common-templates-deps,users) $(call common-templates-deps,notification-eventmanager)
 	go clean ./...
 
 # For .SECONDEXPANSION docs, see https://www.gnu.org/software/make/manual/html_node/Special-Targets.html
