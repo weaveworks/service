@@ -1,13 +1,16 @@
 <p>
-{{.Text}}
+    {{.Timestamp}}
+</p>
+<p>
+    {{.Text}}
 </p>
 
 <p>
-{{- range $text, $url:= .WeaveCloudURL -}}
-	<dl>
-	<dt><a href="{{$url}}">{{$text}}</a></dt>
-	</dl>
-{{- end -}}
+    {{- range $text, $url:= .WeaveCloudURL -}}
+        <dl>
+        <dt><a href="{{$url}}">{{$text}}</a></dt>
+        </dl>
+    {{- end -}}
 </p>
 
 <p>Thanks, the Weaveworks&nbsp;team</p>

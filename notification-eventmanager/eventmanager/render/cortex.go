@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"strings"
 	"time"
 
@@ -13,51 +14,36 @@ import (
 	"github.com/weaveworks/service/notification-eventmanager/types"
 )
 
-//alertsLimit is a number of alerts we show in notification
+//alertsLimit is a number of alerts we show in slack, browser and opsgenie notification (not email)
 const (
+	alertTitle  = "Weave Cloud alert"
 	alertsLimit = 10
-
-	formatHTML     = "html"
-	formatSlack    = "slack"
-	formatMarkdown = "markdown"
 )
 
 const alertEmailContentTmpl = `
-<p>
 {{ if .CommonAnnotations.summary -}}
-	<b>({{ index .CommonLabels "alertname" }} - {{ index .CommonLabels "severity" | toUpper }} {{ .Status | toUpper -}}) {{ .CommonAnnotations.summary }}</b>
+	<p><b>({{ index .CommonLabels "alertname" }} - {{ index .CommonLabels "severity" | toUpper }} {{ .Status | toUpper -}}) {{ .CommonAnnotations.summary }}</b></p>
 {{- else -}}
-	<b>{{ with index .Alerts 0 }} ({{ index .Labels "alertname"}} - {{ index .Labels "severity" | toUpper }} {{ .Status | toUpper }}) {{ .Annotations.summary }} {{- end -}}</b>
+	<p><b>{{ with index .Alerts 0 }} ({{ index .Labels "alertname"}} - {{ index .Labels "severity" | toUpper }} {{ .Status | toUpper }}) {{ .Annotations.summary }} {{- end -}}</b>
 	{{- if gt (len .Alerts) 1 -}} ...
-	{{- end -}}
+	{{- end -}}</p>
 {{ end }}
-</p>
 
-<p>
-<b>Impact</b>: {{ if .CommonAnnotations.impact }} {{ .CommonAnnotations.impact -}}
-{{ else }} No impact defined. Please add one or disable this alert. {{ end -}}
-</p>
+
+<p><b>Impact</b>: {{ if .CommonAnnotations.impact }} {{ .CommonAnnotations.impact -}}
+{{ else }} No impact defined. Please add one or disable this alert. {{ end -}}</p>
 
 {{- if index (index .Alerts 0).Annotations "detail" -}}
-<p>
   {{- range $i, $alert := .Alerts -}}
-    {{- if lt $i 10 -}}
-	<ul>
+  	<ul>
       <li> <code>{{- index $alert.Annotations "detail" -}}</code></li>
 	</ul>
-    {{- end -}}
   {{ end -}}
-  {{ if gt (len .Alerts) 10 }} {{- "\n" -}} ... {{ end -}}
-</p>
 {{- end -}}
 
-<p>
-{{- if or .CommonAnnotations.playbookURL .CommonAnnotations.dashboardURL}} {{ "\n" }} {{- end -}}
 {{- if .CommonAnnotations.playbookURL }} <a href="{{.CommonAnnotations.playbookURL}}">Playbook</a> {{- end -}}
-{{- if .CommonAnnotations.playbookURL }} <a href="{{.CommonAnnotations.dashboardURL}}">Dashboard</a> {{- end -}}
-</p>
+{{- if .CommonAnnotations.dashboardURL }} <a href="{{.CommonAnnotations.dashboardURL}}">Dashboard</a> {{- end -}}
 
-<p>
 {{- with index .Alerts 0 -}}
   {{- range $n, $val := .Annotations -}}
 		{{- if (and (ne $n "summary") (ne $n "impact") (ne $n "playbookURL") (ne $n "dashboardURL") (ne $n "detail")) -}}
@@ -67,40 +53,94 @@ const alertEmailContentTmpl = `
     {{- end -}}
   {{- end -}}
 {{- end }}
-</p>
-
-<p>
-{{- range $text, $url:= .WeaveCloudURL -}}
-	<dl>
-	<dt><a href="{{$url}}">{{$text}}</a></dt>
-	</dl>
-{{- end -}}
-</p>
-
-<p>Thanks, the Weaveworks&nbsp;team</p>
-
-<p>
-  <span style="color: #8A8A8A; font-family: 'Calibri', sans-serif; font-size: 8pt; font-weight: regular;">
-  To disable these notifications, adjust the <a href="{{.SettingsURL}}">Settings</a>.
-  </span>
-</p>
 `
+
+// BuildCortexEvent builds event for cortex alerts received to webhook
+func (r *Render) BuildCortexEvent(wa types.WebhookAlert, etype, instanceID, instanceName, notificationPageLink, link, linkText string) (types.Event, error) {
+	if len(wa.Alerts) == 0 {
+		return types.Event{}, errors.New("event is empty, alerts not found")
+	}
+
+	wa.SettingsURL = notificationPageLink
+	wa.WeaveCloudURL = map[string]string{
+		linkText: link,
+	}
+
+	emailMsg, err := r.EmailFromAlert(wa, etype, instanceName, notificationPageLink)
+	if err != nil {
+		return types.Event{}, errors.Wrap(err, "cannot get email message")
+	}
+
+	slackMsg, err := SlackFromAlert(wa, etype, instanceName, notificationPageLink)
+	if err != nil {
+		return types.Event{}, errors.Wrap(err, "cannot get slack message")
+	}
+
+	browserMsg, err := BrowserFromAlert(wa, etype)
+	if err != nil {
+		return types.Event{}, errors.Wrap(err, "cannot get browser message")
+	}
+
+	stackdriverMsg, err := StackdriverFromAlert(wa, etype, instanceName)
+	if err != nil {
+		return types.Event{}, errors.Wrap(err, "cannot get stackdriver message")
+	}
+
+	// opsGenie message makes sense only for monitor event
+	var opsGenieMsg json.RawMessage
+	if etype == types.MonitorType {
+		opsGenieMsg, err = OpsGenieFromAlert(wa, etype, instanceName)
+		if err != nil {
+			return types.Event{}, errors.Wrap(err, "cannot get OpsGenie message")
+		}
+	}
+
+	data, err := json.Marshal(types.MonitorData{
+		GroupKey:          wa.GroupKey,
+		Status:            wa.Status,
+		Receiver:          wa.Receiver,
+		GroupLabels:       wa.GroupLabels,
+		CommonLabels:      wa.CommonLabels,
+		CommonAnnotations: wa.CommonAnnotations,
+		Alerts:            wa.Alerts,
+	})
+	if err != nil {
+		return types.Event{}, errors.Wrap(err, "error marshaling monitor event data")
+	}
+
+	ev := types.Event{
+		Type:         etype,
+		InstanceID:   instanceID,
+		InstanceName: instanceName,
+		Timestamp:    firstAlertTimestamp(wa),
+		Data:         data,
+		Messages: map[string]json.RawMessage{
+			types.BrowserReceiver:     browserMsg,
+			types.SlackReceiver:       slackMsg,
+			types.EmailReceiver:       emailMsg,
+			types.StackdriverReceiver: stackdriverMsg,
+			types.OpsGenieReceiver:    opsGenieMsg,
+		},
+	}
+
+	return ev, nil
+}
 
 // title return string with alertname, severity, and summary of an alert:
 // (Alertname - SEVERITY STATUS) Summary
 // for multiple alerts uses data of the first one
-func title(m types.WebhookAlert) string {
-	if len(m.Alerts) == 0 {
+func title(wa types.WebhookAlert) string {
+	if len(wa.Alerts) == 0 {
 		return ""
 	}
 
 	var alertname, severity, status, summary string
-	a := m.Alerts[0]
+	a := wa.Alerts[0]
 
-	alertname = m.CommonLabels["alertname"]
-	severity = strings.ToUpper(m.CommonLabels["severity"])
-	status = strings.ToUpper(m.Status)
-	summary = m.CommonAnnotations["summary"]
+	alertname = wa.CommonLabels["alertname"]
+	severity = strings.ToUpper(wa.CommonLabels["severity"])
+	status = strings.ToUpper(wa.Status)
+	summary = wa.CommonAnnotations["summary"]
 
 	if alertname == "" {
 		alertname = a.Labels["alertname"]
@@ -117,8 +157,8 @@ func title(m types.WebhookAlert) string {
 	return fmt.Sprintf("(%s - %s %s) %s", alertname, severity, status, summary)
 }
 
-func impact(m types.WebhookAlert, format string) string {
-	if imp := m.CommonAnnotations["impact"]; imp != "" {
+func impact(wa types.WebhookAlert, format string) string {
+	if imp := wa.CommonAnnotations["impact"]; imp != "" {
 		switch format {
 		case formatHTML:
 			return fmt.Sprintf("<b>Impact</b>: %s", imp)
@@ -131,18 +171,18 @@ func impact(m types.WebhookAlert, format string) string {
 	return "No impact defined. Please add one or disable this alert."
 }
 
-func detail(m types.WebhookAlert, format string) string {
-	if len(m.Alerts) == 0 {
+func detail(wa types.WebhookAlert, format string) string {
+	if len(wa.Alerts) == 0 {
 		return ""
 	}
 
-	if len(m.Alerts) > alertsLimit {
-		m.Alerts = m.Alerts[:alertsLimit]
+	if len(wa.Alerts) > alertsLimit {
+		wa.Alerts = wa.Alerts[:alertsLimit]
 	}
 
 	var details []string
 
-	for _, al := range m.Alerts {
+	for _, al := range wa.Alerts {
 		switch format {
 		case formatHTML:
 			if d := al.Annotations["detail"]; d != "" {
@@ -162,21 +202,21 @@ func detail(m types.WebhookAlert, format string) string {
 }
 
 // links returns line with links (playbook and dashboard) in specified format
-func links(m types.WebhookAlert, format string) string {
+func links(wa types.WebhookAlert, format string) string {
 	var res []string
 	links := make(map[string]string)
-	if len(m.WeaveCloudURL) != 0 {
-		for text, link := range m.WeaveCloudURL {
+	if len(wa.WeaveCloudURL) != 0 {
+		for text, link := range wa.WeaveCloudURL {
 			links[text] = link
 		}
 	}
 
-	if m.CommonAnnotations["playbookURL"] != "" {
-		links["Playbook"] = m.CommonAnnotations["playbookURL"]
+	if wa.CommonAnnotations["playbookURL"] != "" {
+		links["Playbook"] = wa.CommonAnnotations["playbookURL"]
 	}
 
-	if m.CommonAnnotations["dashboardURL"] != "" {
-		links["Dashboard"] = m.CommonAnnotations["dashboardURL"]
+	if wa.CommonAnnotations["dashboardURL"] != "" {
+		links["Dashboard"] = wa.CommonAnnotations["dashboardURL"]
 	}
 
 	switch format {
@@ -198,13 +238,13 @@ func links(m types.WebhookAlert, format string) string {
 }
 
 // fallback returns other custom labels for the first alert
-func fallback(m types.WebhookAlert, format string) string {
-	if len(m.Alerts) == 0 {
+func fallback(wa types.WebhookAlert, format string) string {
+	if len(wa.Alerts) == 0 {
 		return ""
 	}
 
 	var res []string
-	all := m.Alerts[0].Annotations
+	all := wa.Alerts[0].Annotations
 	fb := make(map[string]string)
 	for k, v := range all {
 		switch k {
@@ -232,22 +272,22 @@ func fallback(m types.WebhookAlert, format string) string {
 	return strings.Join(res, "\n")
 }
 
-func alertText(m types.WebhookAlert, format string) string {
+func alertText(wa types.WebhookAlert, format string) string {
 	var parts []string
 
-	if impact := impact(m, format); impact != "" {
+	if impact := impact(wa, format); impact != "" {
 		parts = append(parts, impact)
 	}
 
-	if detail := detail(m, format); detail != "" {
+	if detail := detail(wa, format); detail != "" {
 		parts = append(parts, detail)
 	}
 
-	if links := links(m, format); links != "" {
+	if links := links(wa, format); links != "" {
 		parts = append(parts, links)
 	}
 
-	if fallback := fallback(m, format); fallback != "" {
+	if fallback := fallback(wa, format); fallback != "" {
 		parts = append(parts, fallback)
 	}
 
@@ -266,6 +306,22 @@ func alertText(m types.WebhookAlert, format string) string {
 	return ""
 }
 
+func firstAlertTimestamp(wa types.WebhookAlert) time.Time {
+	t := time.Now()
+	alerts := wa.Alerts
+
+	if len(alerts) == 0 {
+		return t
+	}
+
+	at := alerts[0].StartsAt
+	if at.IsZero() {
+		return t
+	}
+
+	return at
+}
+
 func alias(groupKey string, instance string) string {
 	// prepend a Weave Cloud org ID to the incident key
 	key := fmt.Sprintf("%s%s", instance, groupKey)
@@ -282,8 +338,8 @@ func hashKey(s string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func emailBody(m types.WebhookAlert) (string, error) {
-	body, err := executeTempl(alertEmailContentTmpl, m)
+func emailBody(wa types.WebhookAlert) (string, error) {
+	body, err := executeTempl(alertEmailContentTmpl, wa)
 	if err != nil {
 		return "", errors.Wrap(err, "cannot get email body")
 	}
@@ -292,15 +348,24 @@ func emailBody(m types.WebhookAlert) (string, error) {
 }
 
 // EmailFromAlert returns email notification data
-func EmailFromAlert(m types.WebhookAlert, etype, instanceName, link string) (json.RawMessage, error) {
-	body, err := emailBody(m)
+func (r *Render) EmailFromAlert(wa types.WebhookAlert, etype, instanceName, link string) (json.RawMessage, error) {
+	text, err := emailBody(wa)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot get email body")
 	}
 
+	emailData := map[string]interface{}{
+		"Timestamp":     firstAlertTimestamp(wa).Format(time.RFC822),
+		"Text":          template.HTML(text),
+		"WeaveCloudURL": wa.WeaveCloudURL,
+		"SettingsURL":   wa.SettingsURL,
+	}
+
+	body := r.Templates.EmbedHTML("email.html", "wrapper.html", alertTitle, emailData)
+
 	em := types.EmailMessage{
 		Subject: fmt.Sprintf("%v - %v", instanceName, etype),
-		Body:    body,
+		Body:    string(body),
 	}
 
 	msgRaw, err := json.Marshal(em)
@@ -312,16 +377,16 @@ func EmailFromAlert(m types.WebhookAlert, etype, instanceName, link string) (jso
 }
 
 // SlackFromAlert returns slack notification data
-func SlackFromAlert(m types.WebhookAlert, etype, instanceName, link string) (json.RawMessage, error) {
+func SlackFromAlert(wa types.WebhookAlert, etype, instanceName, link string) (json.RawMessage, error) {
 	var sm types.SlackMessage
 	sm.Text = fmt.Sprintf("*Instance*: <%s|%s>\n%s", link, instanceName, sm.Text)
 
-	title := title(m)
+	title := title(wa)
 
-	text := alertText(m, formatSlack)
+	text := alertText(wa, formatSlack)
 
 	color := "good"
-	if m.Status == "firing" {
+	if wa.Status == "firing" {
 		color = "danger"
 	}
 
@@ -342,12 +407,12 @@ func SlackFromAlert(m types.WebhookAlert, etype, instanceName, link string) (jso
 }
 
 // BrowserFromAlert returns browser notification data
-func BrowserFromAlert(m types.WebhookAlert, etype string) (json.RawMessage, error) {
-	title := title(m)
+func BrowserFromAlert(wa types.WebhookAlert, etype string) (json.RawMessage, error) {
+	title := title(wa)
 
-	text := alertText(m, formatMarkdown)
+	text := alertText(wa, formatMarkdown)
 	color := "danger"
-	if m.Status == "resolved" {
+	if wa.Status == "resolved" {
 		color = "good"
 	}
 
@@ -373,8 +438,8 @@ func BrowserFromAlert(m types.WebhookAlert, etype string) (json.RawMessage, erro
 }
 
 // StackdriverFromAlert returns Stackdriver notification
-func StackdriverFromAlert(m types.WebhookAlert, etype string, instanceName string) (json.RawMessage, error) {
-	payload, err := json.Marshal(m)
+func StackdriverFromAlert(wa types.WebhookAlert, etype string, instanceName string) (json.RawMessage, error) {
+	payload, err := json.Marshal(wa)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot marshal message")
 	}
@@ -394,14 +459,14 @@ func StackdriverFromAlert(m types.WebhookAlert, etype string, instanceName strin
 }
 
 // OpsGenieFromAlert returns OpsGenie notification
-func OpsGenieFromAlert(m types.WebhookAlert, etype, instanceName string) (json.RawMessage, error) {
-	title := title(m)
-	descr := alertText(m, formatHTML)
+func OpsGenieFromAlert(wa types.WebhookAlert, etype, instanceName string) (json.RawMessage, error) {
+	title := title(wa)
+	descr := alertText(wa, formatHTML)
 
 	ogMsg := types.OpsGenieMessage{
 		Message:     title,
-		Alias:       alias(m.GroupKey, instanceName),
-		Status:      m.Status,
+		Alias:       alias(wa.GroupKey, instanceName),
+		Status:      wa.Status,
 		Description: descr,
 		Tags:        []string{instanceName, etype},
 		Details:     map[string]string{"instance": instanceName, "event_type": etype},

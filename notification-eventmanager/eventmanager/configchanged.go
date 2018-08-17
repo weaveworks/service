@@ -18,6 +18,8 @@ import (
 	"github.com/weaveworks/service/users"
 )
 
+const configChangeTitle = "Weave Cloud notification config changed"
+
 // ConfigChangedData is data for config_changed event
 type ConfigChangedData struct {
 	UserEmail    string   `json:"user_email,omitempty"`
@@ -70,7 +72,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 		// address changed event
 		msg := fmt.Sprintf("The address for <b>%s</b> was updated by %s!", receiver.RType, userEmail)
 
-		emailMsg, err := render.EmailFromSlack(msg, eventType, instanceName, link)
+		emailMsg, err := em.Render.EmailFromSlack(configChangeTitle, msg, eventType, instanceName, "", "", link, eventTime)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
@@ -128,7 +130,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 
 		text := formatEventTypeText("<b>", "</b>", receiver.RType, "<i>", "</i>", added, removed, userEmail)
 
-		emailMsg, err := render.EmailFromSlack(text, eventType, instanceName, link)
+		emailMsg, err := em.Render.EmailFromSlack(configChangeTitle, text, eventType, instanceName, "", "", link, eventTime)
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}

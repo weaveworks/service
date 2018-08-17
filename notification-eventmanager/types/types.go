@@ -77,6 +77,17 @@ type Alert struct {
 	GeneratorURL string            `json:"generatorURL,omitempty"`
 }
 
+// MonitorData is data for monitor event
+type MonitorData struct {
+	GroupKey          string            `json:"groupKey,omitempty"`
+	Status            string            `json:"status,omitempty"`
+	Receiver          string            `json:"receiver,omitempty"`
+	GroupLabels       map[string]string `json:"groupLabels,omitempty"`
+	CommonLabels      map[string]string `json:"commonLabels,omitempty"`
+	CommonAnnotations map[string]string `json:"commonAnnotations,omitempty"`
+	Alerts            []Alert           `json:"alerts,omitempty"`
+}
+
 // SlackMessage is a Slack API payload with the message text and some options
 type SlackMessage struct {
 	Channel     string            `json:"channel,omitempty"`

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"regexp"
 	"strings"
 	"time"
@@ -22,16 +23,19 @@ const (
 var slackURL = regexp.MustCompile(`<([^|]+)?\|([^>]+)>`)
 
 // EmailFromSlack returns message for email
-func EmailFromSlack(htmlText, etype, instanceName, link string) (json.RawMessage, error) {
-	footer := fmt.Sprintf(`
-			<p>
-				<span style="color: #8A8A8A; font-family: 'Calibri', sans-serif; font-size: 8pt; font-weight: regular;">
-				To disable these notifications, adjust the <a href="%s">Settings</a>.
-				</span>
-			</p>`, link)
+func (r *Render) EmailFromSlack(title, htmlText, etype, instanceName, eventURL, eventURLText, settingsURL string, timestamp time.Time) (json.RawMessage, error) {
+	emailData := map[string]interface{}{
+		"Timestamp":     timestamp.Format(time.RFC822),
+		"Text":          template.HTML(htmlText),
+		"WeaveCloudURL": map[string]string{eventURLText: eventURL},
+		"SettingsURL":   settingsURL,
+	}
+
+	body := r.Templates.EmbedHTML("email.html", "wrapper.html", title, emailData)
+
 	em := types.EmailMessage{
 		Subject: fmt.Sprintf("%v - %v", instanceName, etype),
-		Body:    fmt.Sprintf("%s%s", htmlText, footer),
+		Body:    string(body),
 	}
 
 	msgRaw, err := json.Marshal(em)
