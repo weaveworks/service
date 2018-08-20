@@ -32,13 +32,12 @@
   revision = "55151537c3a7c0e0ca34be1660247546570a6e2f"
 
 [[projects]]
-  branch = "sirupsen-case"
+  branch = "master"
   digest = "1:f3b9c302d059c43e7b622b2aa1c23d0eb638494460e9e781e4b862af242d4953"
   name = "github.com/FrenchBen/goketo"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "769d3a54c8f2689a66c02cd5018cdce9d9ef6bb9"
-  source = "github.com/weaveworks/goketo"
+  revision = "f48837e0040fb62f8011d9dc65a4e14dd94b42e0"
 
 [[projects]]
   branch = "v1"
