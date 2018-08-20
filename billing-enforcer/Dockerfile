@@ -4,7 +4,7 @@ ENTRYPOINT ["/enforcer"]
 RUN apk add --update \
     ca-certificates \
   && rm -rf /var/cache/apk/*
-ADD /billing-enforcer/enforcer /
+ADD enforcer /
 
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \

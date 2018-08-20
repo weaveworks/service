@@ -3,9 +3,9 @@ RUN \
     apk add --no-cache --update g++ make ruby-dev && \
     gem install bigdecimal 'fluent-plugin-bigquery: 2.0.0.beta' 'fluent-plugin-prometheus: 1.0.1' && \
     apk del --no-cache g++ make ruby-dev
-COPY /billing-ingester/schema_events.json /bigquery/
-COPY /billing-ingester/fluent-dev.conf /fluentd/etc/
-COPY /billing-ingester/fluent.conf /fluentd/etc/
+COPY schema_events.json /bigquery/
+COPY fluent-dev.conf /fluentd/etc/
+COPY fluent.conf /fluentd/etc/
 
 EXPOSE 24225
 EXPOSE 24231

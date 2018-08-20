@@ -2,7 +2,7 @@ FROM alpine:3.8
 EXPOSE 80
 ENTRYPOINT ["/injector"]
 RUN apk --no-cache add ca-certificates
-ADD /billing-synthetic-usage-injector/injector /
+ADD injector /
 
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
