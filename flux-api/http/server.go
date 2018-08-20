@@ -56,6 +56,7 @@ func NewServiceRouter() *mux.Router {
 	r.NewRoute().Name(History).Methods("GET").Path("/v6/history").Queries("service", "{service}")
 	r.NewRoute().Name(Status).Methods("GET").Path("/v6/status")
 	r.NewRoute().Name(PostIntegrationsGithub).Methods("POST").Path("/v6/integrations/github").Queries("owner", "{owner}", "repository", "{repository}")
+	r.NewRoute().Name(GetGithubRepos).Methods("GET").Path("/v6/integrations/github/repos")
 	r.NewRoute().Name(Ping).Methods("HEAD", "GET").Path("/v6/ping")
 
 	// Webhooks
@@ -125,6 +126,7 @@ func (s Server) MakeHandler(r *mux.Router) http.Handler {
 		History: s.history,
 		Ping:    s.ping,
 		PostIntegrationsGithub: s.postIntegrationsGithub,
+		GetGithubRepos:         s.getGithubRepos,
 		// Webhooks
 		Webhook: s.handleWebhook,
 	} {
@@ -369,6 +371,29 @@ func (s Server) postIntegrationsGithub(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (s Server) getGithubRepos(w http.ResponseWriter, r *http.Request) {
+	var tok = r.Header.Get("GithubToken")
+	if tok == "" {
+		transport.WriteError(w, r, http.StatusUnprocessableEntity, errors.New("GitHub token for user does not exist"))
+		return
+	}
+
+	// Use the Github API to fetch the user's GitHub repos
+	gh := github.NewGithubClient(tok)
+	repos, err := gh.GetRepos()
+	if err != nil {
+		httpErr, isHTTPErr := err.(*httperror.APIError)
+		code := http.StatusInternalServerError
+		if isHTTPErr {
+			code = httpErr.StatusCode
+		}
+		transport.WriteError(w, r, code, err)
+		return
+	}
+
+	transport.JSONResponse(w, r, repos)
 }
 
 func (s Server) status(w http.ResponseWriter, r *http.Request) {

@@ -77,6 +77,47 @@ func (g *Github) InsertDeployKey(ownerName string, repoName string, deployKey, d
 	return nil
 }
 
+// User describes a GitHub User with minimal information
+type User struct {
+	ID    *int    `json:"id,omitempty"`
+	Login *string `json:"login,omitempty"`
+}
+
+// Repository describes a GitHub Repository with minimal information
+type Repository struct {
+	ID          *int    `json:"id,omitempty"`
+	Owner       *User   `json:"owner,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	FullName    *string `json:"full_name,omitempty"`
+	Description *string `json:"description,omitempty"`
+	SSHURL      *string `json:"ssh_url,omitempty"`
+}
+
+// GetRepos will fetch the GitHub repos for a user
+func (g *Github) GetRepos() ([]*Repository, error) {
+	repos, resp, err := g.client.Repositories.List("", nil)
+	if err != nil {
+		return nil, parseError(resp, err)
+	}
+
+	var result []*Repository
+	for _, r := range repos {
+		result = append(result, &Repository{
+			ID: r.ID,
+			Owner: &User{
+				ID:    r.Owner.ID,
+				Login: r.Owner.Login,
+			},
+			Name:        r.Name,
+			FullName:    r.FullName,
+			Description: r.Description,
+			SSHURL:      r.SSHURL,
+		})
+	}
+
+	return result, nil
+}
+
 func populateError(err httperror.APIError, resp *gh.Response) *httperror.APIError {
 	err.StatusCode = resp.StatusCode
 	err.Status = resp.Status
