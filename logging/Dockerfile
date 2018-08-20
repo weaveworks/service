@@ -7,6 +7,9 @@ COPY /logging/schema_service_events.json /bigquery/
 COPY /logging/fluent.conf /fluentd/etc/
 COPY /logging/fluent-dev.conf /fluentd/etc/
 
+EXPOSE 24225
+EXPOSE 24231
+
 ARG revision
 LABEL maintainer="Weaveworks <help@weave.works>" \
       org.opencontainers.image.title="logging" \
