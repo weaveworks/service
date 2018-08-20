@@ -118,29 +118,47 @@ func initRepoHandlers(t *testing.T) {
 	mux.HandleFunc("/user/repos", func(w http.ResponseWriter, r *http.Request) {
 		t.Log(r.Method, r.URL)
 		if r.Method == "GET" {
-			fmt.Fprint(w, `
-[{
-  "id": 1,
-  "owner": {
-    "id": 100,
-    "login": "weaveworks"
-  },
-  "name": "service",
-  "full_name": "weaveworks/service",
-  "description": "Weaveworks Service Repo",
-  "ssh_url": "git:github.com/weaveworks/service.git"
-}, {
-  "id": 2,
-  "owner": {
-    "id": 100,
-    "login": "weaveworks"
-  },
-  "name": "service-conf",
-  "full_name": "weaveworks/service-conf",
-  "description": "Weaveworks Service Conf Repo",
-  "ssh_url": "git:github.com/weaveworks/service-conf.git"
-}]
-			`)
+			if r.URL.Query().Get("page") == "2" {
+				fmt.Fprint(w, `
+					[{
+					"id": 3,
+					"owner": {
+						"id": 100,
+						"login": "weaveworks"
+					},
+					"name": "service-ui",
+					"full_name": "weaveworks/service-ui",
+					"description": "Weaveworks Service UI Repo",
+					"ssh_url": "git:github.com/weaveworks/service-ui.git"
+					}]
+				`)
+			} else {
+				w.Header().Set("Link", "<https://api.github.com/user/repos?page=2>; rel=\"next\"")
+				fmt.Fprint(w, `
+					[{
+					"id": 1,
+					"owner": {
+						"id": 100,
+						"login": "weaveworks"
+					},
+					"name": "service",
+					"full_name": "weaveworks/service",
+					"description": "Weaveworks Service Repo",
+					"ssh_url": "git:github.com/weaveworks/service.git"
+					}, {
+					"id": 2,
+					"owner": {
+						"id": 100,
+						"login": "weaveworks"
+					},
+					"name": "service-conf",
+					"full_name": "weaveworks/service-conf",
+					"description": "Weaveworks Service Conf Repo",
+					"ssh_url": "git:github.com/weaveworks/service-conf.git"
+					}]
+				`)
+			}
+
 		}
 	})
 }
@@ -158,7 +176,7 @@ func TestGetRepos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, len(repos), 2)
+	assert.Equal(t, len(repos), 3)
 }
 
 func testMethod(t *testing.T, r *http.Request, want string) {

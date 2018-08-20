@@ -95,24 +95,37 @@ type Repository struct {
 
 // GetRepos will fetch the GitHub repos for a user
 func (g *Github) GetRepos() ([]*Repository, error) {
-	repos, resp, err := g.client.Repositories.List("", nil)
-	if err != nil {
-		return nil, parseError(resp, err)
-	}
-
 	var result []*Repository
-	for _, r := range repos {
-		result = append(result, &Repository{
-			ID: r.ID,
-			Owner: &User{
-				ID:    r.Owner.ID,
-				Login: r.Owner.Login,
+	page := 1
+	for {
+		repos, resp, err := g.client.Repositories.List("", &gh.RepositoryListOptions{
+			ListOptions: gh.ListOptions{
+				PerPage: 100,
+				Page:    page,
 			},
-			Name:        r.Name,
-			FullName:    r.FullName,
-			Description: r.Description,
-			SSHURL:      r.SSHURL,
 		})
+		if err != nil {
+			return nil, parseError(resp, err)
+		}
+
+		for _, r := range repos {
+			result = append(result, &Repository{
+				ID: r.ID,
+				Owner: &User{
+					ID:    r.Owner.ID,
+					Login: r.Owner.Login,
+				},
+				Name:        r.Name,
+				FullName:    r.FullName,
+				Description: r.Description,
+				SSHURL:      r.SSHURL,
+			})
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		page = resp.NextPage
 	}
 
 	return result, nil
