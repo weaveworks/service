@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/blackfriday"
@@ -127,6 +128,8 @@ func parseAndSend(uri, from string, addresses []string, subject, body string) er
 		m.SetHeader("To", formatted...)
 		m.SetHeader("Subject", subject)
 		m.SetBody("text/html", body)
+		uid := uuid.New()
+		m.SetHeader("X-Entity-Ref-ID", uid.String())
 		log.Debugf("[Email] From: %s, To: %s, Subject: %s, Body: %s", from, addresses, subject, body)
 
 		if err := d.DialAndSend(m); err != nil {
