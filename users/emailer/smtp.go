@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"net"
 	"net/smtp"
+	"net/textproto"
 	"net/url"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jordan-wright/email"
-
 	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/templates"
@@ -44,6 +45,11 @@ func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 	}
 
 	return func(e *email.Email) error {
+		id := make(textproto.MIMEHeader)
+		uid := uuid.New().String()
+		id.Add("X-Entity-Ref-ID", uid)
+		e.Headers = id
+
 		return e.Send(addr, auth)
 	}, nil
 }
