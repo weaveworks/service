@@ -48,25 +48,27 @@ func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (int
 		return nil, status, errors.Wrap(err, "error extracting user email for test event")
 	}
 
-	text := fmt.Sprintf("A test event triggered from Weave Cloud by %s!", userEmail)
-	textJSON, err := json.Marshal(text)
-	if err != nil {
-		return nil, http.StatusInternalServerError, errors.Wrapf(err, "cannot marshal text: %s", text)
-	}
-
-	sdMsg, err := render.StackdriverFromSlack(textJSON, etype, instanceName)
-	if err != nil {
-		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
-		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting stackdriver message for test event")
-	}
-
 	link, err := em.getInstanceLink(instanceData.Organization.ExternalID, notificationConfigPath)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting notification config page link for test event")
 	}
 
-	emailMsg, err := em.Render.EmailFromSlack(userTestTitle, text, etype, instanceName, "", "", link, timestamp)
+	text := fmt.Sprintf("A test event triggered from Weave Cloud by %s!", userEmail)
+
+	htmlText := fmt.Sprintf(`A test event triggered from <a href="%s">Weave Cloud</a> by %s!`, link, userEmail)
+	htmlTextJSON, err := json.Marshal(htmlText)
+	if err != nil {
+		return nil, http.StatusInternalServerError, errors.Wrapf(err, "cannot marshal text: %s", htmlText)
+	}
+
+	sdMsg, err := render.StackdriverFromSlack(htmlTextJSON, etype, instanceName)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting stackdriver message for test event")
+	}
+
+	emailMsg, err := em.Render.EmailFromSlack(userTestTitle, htmlText, etype, instanceName, "", "", link, timestamp)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting email message for test event")
@@ -78,13 +80,13 @@ func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (int
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting slack text message for test event")
 	}
 
-	browserMsg, err := render.BrowserFromSlack(types.SlackMessage{Text: text}, etype, "", "")
+	browserMsg, err := render.BrowserFromSlack(types.SlackMessage{Text: text}, etype, link, "Weave Cloud notification")
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting browser message for test event")
 	}
 
-	opsGenieMsg, err := render.OpsGenieFromSlack(text, etype, instanceName)
+	opsGenieMsg, err := render.OpsGenieFromSlack(htmlText, etype, instanceName)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting OpsGenie message for test event")
