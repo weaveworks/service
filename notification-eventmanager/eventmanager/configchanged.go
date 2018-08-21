@@ -77,7 +77,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 			return errors.Wrap(err, "cannot get email message")
 		}
 
-		browserMsg, err := render.BrowserFromSlack(types.SlackMessage{Text: msg}, eventType, "", "")
+		browserMsg, err := render.BrowserFromSlack(types.SlackMessage{Text: msg}, eventType, link, "Weave Cloud notification")
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
@@ -135,7 +135,7 @@ func (em *EventManager) createConfigChangedEvent(ctx context.Context, instanceID
 			return errors.Wrap(err, "cannot get email message")
 		}
 
-		browserMsg, err := render.BrowserFromSlack(types.SlackMessage{Text: text}, eventType, "", "")
+		browserMsg, err := render.BrowserFromSlack(types.SlackMessage{Text: text}, eventType, link, "Weave Cloud notification")
 		if err != nil {
 			return errors.Wrap(err, "cannot get email message")
 		}
