@@ -116,13 +116,13 @@ func isValidAddress(addressData json.RawMessage, rtype string) error {
 			}
 		}
 
-	case types.OpsGenieReceiver:
+	case types.OpsGenieReceiver, types.PagerDutyReceiver:
 		var key string
 		if err := json.Unmarshal(addressData, &key); err != nil {
 			return errors.Wrapf(err, "cannot unmarshal %s receiver address data", rtype)
 		}
 		if key == "" {
-			return errors.Errorf("OpsGenie API Key is empty")
+			return errors.Errorf("%s receiver API Key is empty", rtype)
 		}
 
 	default:

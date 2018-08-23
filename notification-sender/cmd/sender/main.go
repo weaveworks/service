@@ -82,6 +82,8 @@ func main() {
 		Clients: make(map[string]*ogcli.OpsGenieAlertV2Client),
 	}
 
+	pds := sender.NewPagerDutySender()
+
 	sqsCli, sqsQueue, err := sqsconnect.NewSQS(sqsURL)
 	if err != nil {
 		log.Fatalf("cannot connect to SQS %q, error: %s", sqsURL, err)
@@ -107,6 +109,7 @@ func main() {
 	s.RegisterNotifier(types.BrowserReceiver, bs.Send)
 	s.RegisterNotifier(types.StackdriverReceiver, sds.Send)
 	s.RegisterNotifier(types.OpsGenieReceiver, ogs.Send)
+	s.RegisterNotifier(types.PagerDutyReceiver, pds.Send)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
