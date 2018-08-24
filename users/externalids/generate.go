@@ -28,7 +28,7 @@ var (
 		"haze", "hill", "lake", "leaf", "meadow", "meteor", "moon", "morning",
 		"mountain", "nebula", "night", "paper", "pine", "planet", "pond", "pulsar",
 		"rain", "resonance", "river", "rock", "sea", "shadow", "shape", "silence",
-		"sky", "smoke", "snow", "snowflake", "sound", "star", "stone", "sun",
+		"sky", "smoke", "snow", "sound", "star", "stone", "sun",
 		"sunset", "surf", "thunder", "tree", "vine", "violet", "voice", "water",
 		"waterfall", "wave", "wildflower", "wind",
 	}
