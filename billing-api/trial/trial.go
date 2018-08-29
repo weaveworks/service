@@ -7,11 +7,6 @@ import (
 	common_time "github.com/weaveworks/service/common/time"
 )
 
-const (
-	trialFlag          string = "trial:days"
-	defaultTrialLength int    = 14
-)
-
 // Trial is a bundle of information about the trial period used by the frontend.
 type Trial struct {
 	// Length is the original length of trial period.
