@@ -17,7 +17,7 @@ const (
 
 	// TrialRefuseDataUploadAfter is the period after the trial expired before an
 	// instance's data upload is restricted.
-	TrialRefuseDataUploadAfter = 15 * 24 * time.Hour
+	TrialRefuseDataUploadAfter = 7 * 24 * time.Hour
 
 	defaultTeamNameTemplate = "%v Team"
 )

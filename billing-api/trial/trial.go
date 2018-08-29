@@ -9,7 +9,7 @@ import (
 
 const (
 	trialFlag          string = "trial:days"
-	defaultTrialLength int    = 30
+	defaultTrialLength int    = 14
 )
 
 // Trial is a bundle of information about the trial period used by the frontend.
