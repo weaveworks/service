@@ -297,6 +297,18 @@ func (a *API) refreshOrganizationRestrictions(ctx context.Context, currentUser *
 			addFlag = featureflag.NoBilling
 			otherFlag = featureflag.Billing
 			log.Infof("Disabling billing for %v/%v/%v as team %v is billed externally.", org.ID, org.ExternalID, org.Name, org.TeamID)
+
+			// Never refuse data for externally billed instances.
+			if org.RefuseDataAccess {
+				if err := a.db.SetOrganizationRefuseDataAccess(ctx, org.ExternalID, false); err != nil {
+					log.Errorf("Failed refusing data access for %s: %v", org.ExternalID, err)
+				}
+			}
+			if org.RefuseDataUpload {
+				if err := a.db.SetOrganizationRefuseDataUpload(ctx, org.ExternalID, false); err != nil {
+					log.Errorf("Failed refusing data access for %s: %v", org.ExternalID, err)
+				}
+			}
 		}
 	}
 	if addFlag == "" && a.billingEnabler.IsEnabled() {
@@ -328,13 +340,13 @@ func (a *API) refreshOrganizationRestrictions(ctx context.Context, currentUser *
 
 	if orgs.ShouldRefuseDataAccess(*org, now) {
 		if err := a.db.SetOrganizationRefuseDataAccess(ctx, org.ExternalID, true); err != nil {
-			log.Errorf("failed refusing data access for %s: %v", org.ExternalID, err)
+			log.Errorf("Failed refusing data access for %s: %v", org.ExternalID, err)
 			// do not return error, this is not crucial
 		}
 	}
 	if orgs.ShouldRefuseDataUpload(*org, now) {
 		if err := a.db.SetOrganizationRefuseDataUpload(ctx, org.ExternalID, true); err != nil {
-			log.Errorf("failed refusing data upload for %s: %v", org.ExternalID, err)
+			log.Errorf("Failed refusing data upload for %s: %v", org.ExternalID, err)
 			// do not return error, this is not crucial
 		}
 	}
