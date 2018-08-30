@@ -105,6 +105,8 @@ func Event(url string, e event.Event, instID service.InstanceID) error {
 			notifEventType = releaseCommitEventType
 		case update.Auto:
 			notifEventType = autoReleaseCommitEventType
+		case update.Containers:
+			notifEventType = releaseCommitEventType
 		default:
 			return errors.Errorf("cannot notify for event, unknown commit metadata event type %s", commitMetadata.Spec.Type)
 		}
