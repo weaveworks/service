@@ -24,41 +24,6 @@ func Event(url string, e event.Event, instID service.InstanceID) error {
 		return nil
 	}
 
-	// temporary check if we should use new url to send events to,
-	// can remove it after we switch to new url in service-conf
-	if strings.Contains(url, "slack") {
-		switch e.Type {
-		case event.EventRelease:
-			r := e.Metadata.(*event.ReleaseEventMetadata)
-			return slackNotifyRelease(url, r, r.Error)
-		case event.EventAutoRelease:
-			r := e.Metadata.(*event.AutoReleaseEventMetadata)
-			return slackNotifyAutoRelease(url, r, r.Error)
-		case event.EventSync:
-			details := e.Metadata.(*event.SyncEventMetadata)
-			if details.Includes != nil {
-				if _, ok := details.Includes[event.NoneOfTheAbove]; !ok {
-					return nil
-				}
-			}
-			return slackNotifySync(url, &e)
-		case event.EventCommit:
-			commitMetadata := e.Metadata.(*event.CommitEventMetadata)
-			switch commitMetadata.Spec.Type {
-			case update.Policy:
-				return slackNotifyCommitPolicyChange(url, commitMetadata)
-			case update.Images:
-				return slackNotifyCommitRelease(url, commitMetadata)
-			case update.Auto:
-				return slackNotifyCommitAutoRelease(url, commitMetadata)
-			default:
-				return errors.Errorf("cannot notify for event, unknown commit metadata event type %s", commitMetadata.Spec.Type)
-			}
-		default:
-			return errors.Errorf("cannot notify for event, unknown event type %s", e.Type)
-		}
-	}
-
 	var notifyEvent notificationTypes.Event
 	notifyData := e.Metadata
 	notifyEvent.InstanceID = string(instID)
