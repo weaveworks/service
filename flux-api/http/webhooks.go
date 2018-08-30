@@ -1,12 +1,14 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/github"
 	"github.com/weaveworks/flux/api/v9"
@@ -14,6 +16,8 @@ import (
 	"github.com/weaveworks/flux/image"
 	"github.com/weaveworks/service/common/constants/webhooks"
 )
+
+const fluxDaemonTimeout = 5 * time.Second
 
 func (s Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	integrationType := r.Header.Get(webhooks.WebhooksIntegrationTypeHeader)
@@ -71,9 +75,20 @@ func handleGithub(s Server, w http.ResponseWriter, r *http.Request) {
 			Source: update,
 		}
 		ctx := getRequestContext(r)
-		// Ignore the error returned here as the sender doesn't care. We'll log any
-		// errors at the daemon level.
-		s.daemonProxy.NotifyChange(ctx, change)
+		ctx, cancel := context.WithTimeout(ctx, fluxDaemonTimeout)
+		defer cancel()
+
+		err := s.daemonProxy.NotifyChange(ctx, change)
+		if err != nil {
+			select {
+			case <-ctx.Done():
+				fmt.Fprintf(w, "No response from your Weave Cloud agent.")
+				w.WriteHeader(http.StatusRequestTimeout)
+			default:
+				transport.ErrorResponse(w, r, err)
+			}
+			return
+		}
 	default:
 		log.Printf("received webhook: %T\n%s", hook, github.Stringify(hook))
 	}
