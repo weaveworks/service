@@ -73,6 +73,10 @@ type marketoProspect struct {
 	LastAccess     string `json:"Weave_Cloud_Last_Active__c,omitempty"`
 	LeadSource     string `json:"leadSource,omitempty"`
 	CampaignID     string `json:"salesforceCampaignID,omitempty"`
+
+	// Convert Org -> Instance before we tell the external service
+	InstanceBillingConfiguredExternalID string `json:"WC_Billing_Configured_External_ID__c,omitempty"`
+	InstanceBillingConfiguredName       string `json:"WC_Instance_Billing_Configured_Name__c,omitempty"`
 }
 
 func (m *marketoResponse) Error() string {
@@ -118,6 +122,9 @@ func (c *MarketoClient) BatchUpsertProspect(prospects []Prospect) error {
 			LastAccess:     nilTime(p.ServiceLastAccess),
 			LeadSource:     p.LeadSource,
 			CampaignID:     p.CampaignID,
+
+			InstanceBillingConfiguredExternalID: p.OrganizationBillingConfiguredExternalID,
+			InstanceBillingConfiguredName:       p.OrganizationBillingConfiguredName,
 		})
 	}
 	req, err := json.Marshal(leads)

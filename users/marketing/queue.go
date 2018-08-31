@@ -175,6 +175,21 @@ func (c *Queue) UserCreated(email string, createdAt time.Time, params map[string
 	c.cond.Broadcast()
 }
 
+// OrganizationBillingConfigured will be called when a subscription is configured on an Organization
+func (c *Queue) OrganizationBillingConfigured(email string, orgExternalID string, orgName string) {
+	if c == nil {
+		return
+	}
+	c.Lock()
+	defer c.Unlock()
+	c.prospects = append(c.prospects, Prospect{
+		Email: email,
+		OrganizationBillingConfiguredExternalID: orgExternalID,
+		OrganizationBillingConfiguredName:       orgName,
+	})
+	c.cond.Broadcast()
+}
+
 func signupSource(params map[string]string) string {
 	if params["gcpAccountId"] != "" {
 		return SignupSourceGCP
@@ -196,5 +211,12 @@ func (qs Queues) UserAccess(email string, hitAt time.Time) {
 func (qs Queues) UserCreated(email string, createdAt time.Time, params map[string]string) {
 	for _, q := range qs {
 		q.UserCreated(email, createdAt, params)
+	}
+}
+
+// OrganizationBillingConfigured calls OrganizationBillingConfigured on each Queue.
+func (qs Queues) OrganizationBillingConfigured(email string, orgExternalID string, orgName string) {
+	for _, q := range qs {
+		q.OrganizationBillingConfigured(email, orgExternalID, orgName)
 	}
 }

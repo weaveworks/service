@@ -134,3 +134,8 @@ func (MockClient) LookupOrganizationWebhookUsingSecretID(ctx context.Context, in
 func (MockClient) SetOrganizationWebhookFirstSeenAt(ctx context.Context, in *users.SetOrganizationWebhookFirstSeenAtRequest, opts ...grpc.CallOption) (*users.SetOrganizationWebhookFirstSeenAtResponse, error) {
 	return &users.SetOrganizationWebhookFirstSeenAtResponse{}, nil
 }
+
+// InformOrganizationBillingConfigured informs external integrations that a user has begun a paid subscription for an organization
+func (MockClient) InformOrganizationBillingConfigured(ctx context.Context, req *users.InformOrganizationBillingConfiguredRequest, opts ...grpc.CallOption) (*users.Empty, error) {
+	return &users.Empty{}, nil
+}
