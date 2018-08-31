@@ -7,16 +7,9 @@ import (
 	common_time "github.com/weaveworks/service/common/time"
 )
 
-const (
-	trialFlag          string = "trial:days"
-	defaultTrialLength int    = 30
-)
-
 // Trial is a bundle of information about the trial period used by the frontend.
 type Trial struct {
-	// Length is the original length of trial period. This isn't actually
-	// used. TODO(jml): Remove this field once weaveworks/service-ui#1037 is
-	// deployed to production.
+	// Length is the original length of trial period.
 	Length int `json:"length"`
 	// Remaining is the number of days remaining, rounded to whole days.
 	Remaining int `json:"remaining"`

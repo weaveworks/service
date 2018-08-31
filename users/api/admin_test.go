@@ -190,18 +190,18 @@ func TestAPI_adminTrial(t *testing.T) {
 	defer cleanup(t)
 
 	usr, org := getOrg(t)
-	assert.Equal(t, 30, org.TrialRemaining(), "trial is not 30 days on instance creation")
+	assert.Equal(t, 14, org.TrialRemaining(), "trial is not 14 days on instance creation")
 
 	{ // Cannot shrink
 		w := httptest.NewRecorder()
-		r := requestAs(t, usr, "POST", fmt.Sprintf("/admin/users/organizations/%s/trial", org.ExternalID), strings.NewReader("remaining=29"))
+		r := requestAs(t, usr, "POST", fmt.Sprintf("/admin/users/organizations/%s/trial", org.ExternalID), strings.NewReader("remaining=9"))
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		app.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusFound, w.Code)
 
 		org, err := database.FindOrganizationByID(context.TODO(), org.ExternalID)
 		assert.NoError(t, err)
-		assert.Equal(t, 30, org.TrialRemaining())
+		assert.Equal(t, 14, org.TrialRemaining())
 	}
 	{ // but can expand
 		w := httptest.NewRecorder()

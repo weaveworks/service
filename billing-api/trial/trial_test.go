@@ -66,7 +66,7 @@ func TestTrialInfo(t *testing.T) {
 				TrialExpiresAt: now.Add(asDays(20) + 1*time.Hour),
 			},
 			trial: trial.Trial{
-				Length:    int(users.TrialDuration.Hours() / 24),
+				Length:    30,
 				Remaining: 21,
 				Start:     now.Add(asDays(-10) + 1*time.Hour),
 				End:       now.Add(asDays(20) + 1*time.Hour),
