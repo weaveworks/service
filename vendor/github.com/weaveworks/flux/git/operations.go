@@ -53,6 +53,10 @@ func mirror(ctx context.Context, workingDir, repoURL string) (path string, err e
 	return repoPath, nil
 }
 
+func checkout(ctx context.Context, workingDir, ref string) error {
+	return execGitCmd(ctx, workingDir, nil, "checkout", ref)
+}
+
 // checkPush sanity-checks that we can write to the upstream repo
 // (being able to `clone` is an adequate check that we can read the
 // upstream).
@@ -186,21 +190,15 @@ func revlist(ctx context.Context, path, ref string) ([]string, error) {
 }
 
 // Return the revisions and one-line log commit messages
-// subdir argument ... corresponds to the git-path flag supplied to weave-flux-agent
-func onelinelog(ctx context.Context, path, refspec, subdir string) ([]Commit, error) {
+func onelinelog(ctx context.Context, path, refspec string, subdirs []string) ([]Commit, error) {
 	out := &bytes.Buffer{}
-
-	// we need to distinguish whether subdir is populated or not,
-	// because supplying an empty string to execGitCmd results in git complaining about
-	// >> ambiguous argument '' <<
-	if subdir != "" {
-		if err := execGitCmd(ctx, path, out, "log", "--oneline", "--no-abbrev-commit", refspec, "--", subdir); err != nil {
-			return nil, err
-		}
-		return splitLog(out.String())
+	args := []string{"log", "--oneline", "--no-abbrev-commit", refspec}
+	if len(subdirs) > 0 {
+		args = append(args, "--")
+		args = append(args, subdirs...)
 	}
 
-	if err := execGitCmd(ctx, path, out, "log", "--oneline", "--no-abbrev-commit", refspec); err != nil {
+	if err := execGitCmd(ctx, path, out, args...); err != nil {
 		return nil, err
 	}
 
@@ -237,16 +235,18 @@ func moveTagAndPush(ctx context.Context, path string, tag, ref, msg, upstream st
 	return nil
 }
 
-func changedFiles(ctx context.Context, path, subPath, ref string) ([]string, error) {
-	// Remove leading slash if present. diff doesn't work when using github style root paths.
-	if len(subPath) > 0 && subPath[0] == '/' {
-		return []string{}, errors.New("git subdirectory should not have leading forward slash")
-	}
+func changed(ctx context.Context, path, ref string, subPaths []string) ([]string, error) {
 	out := &bytes.Buffer{}
 	// This uses --diff-filter to only look at changes for file _in
 	// the working dir_; i.e, we do not report on things that no
 	// longer appear.
-	if err := execGitCmd(ctx, path, out, "diff", "--name-only", "--diff-filter=ACMRT", ref, "--", subPath); err != nil {
+	args := []string{"diff", "--name-only", "--diff-filter=ACMRT", ref}
+	if len(subPaths) > 0 {
+		args = append(args, "--")
+		args = append(args, subPaths...)
+	}
+
+	if err := execGitCmd(ctx, path, out, args...); err != nil {
 		return nil, err
 	}
 	return splitList(out.String()), nil
@@ -293,9 +293,14 @@ func env() []string {
 }
 
 // check returns true if there are changes locally.
-func check(ctx context.Context, workingDir, subdir string) bool {
+func check(ctx context.Context, workingDir string, subdirs []string) bool {
 	// `--quiet` means "exit with 1 if there are changes"
-	return execGitCmd(ctx, workingDir, nil, "diff", "--quiet", "--", subdir) != nil
+	args := []string{"diff", "--quiet"}
+	if len(subdirs) > 0 {
+		args = append(args, "--")
+		args = append(args, subdirs...)
+	}
+	return execGitCmd(ctx, workingDir, nil, args...) != nil
 }
 
 func findErrorMessage(output io.Reader) string {

@@ -70,7 +70,7 @@ func main() {
 	fs := flag.NewFlagSet("default", flag.ExitOnError)
 	fs.Usage = func() {
 		fmt.Fprintf(os.Stderr, "DESCRIPTION\n")
-		fmt.Fprintf(os.Stderr, "  fluxsvc is a deployment service.\n")
+		fmt.Fprintf(os.Stderr, "  flux-api is the API for flux daemons to connect to, and (in large part) the Deploy UI.\n")
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "FLAGS\n")
 		fs.PrintDefaults()
