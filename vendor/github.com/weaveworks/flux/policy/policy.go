@@ -36,15 +36,15 @@ func Tag(policy Policy) bool {
 	return strings.HasPrefix(string(policy), "tag.")
 }
 
-func GetTagPattern(services ResourceMap, service flux.ResourceID, container string) string {
-	if services == nil {
-		return "*"
+func GetTagPattern(policies Set, container string) Pattern {
+	if policies == nil {
+		return PatternAll
 	}
-	policies := services[service]
-	if pattern, ok := policies.Get(TagPrefix(container)); ok {
-		return strings.TrimPrefix(pattern, "glob:")
+	pattern, ok := policies.Get(TagPrefix(container))
+	if !ok {
+		return PatternAll
 	}
-	return "*"
+	return NewPattern(pattern)
 }
 
 type Updates map[flux.ResourceID]Update
@@ -101,10 +101,14 @@ func clone(s Set) Set {
 	return newMap
 }
 
-// Contains method determines if a resource has a particular policy present
-func (s Set) Contains(needle Policy) bool {
-	for p := range s {
+// Has returns true if a resource has a particular policy present, and
+// for boolean policies, if it is set to true.
+func (s Set) Has(needle Policy) bool {
+	for p, v := range s {
 		if p == needle {
+			if Boolean(needle) {
+				return v == "true"
+			}
 			return true
 		}
 	}
@@ -132,39 +136,4 @@ func (s Set) ToStringMap() map[string]string {
 		m[string(p)] = v
 	}
 	return m
-}
-
-type ResourceMap map[flux.ResourceID]Set
-
-func (s ResourceMap) ToSlice() []flux.ResourceID {
-	slice := []flux.ResourceID{}
-	for service, _ := range s {
-		slice = append(slice, service)
-	}
-	return slice
-}
-
-func (s ResourceMap) Contains(id flux.ResourceID) bool {
-	_, ok := s[id]
-	return ok
-}
-
-func (s ResourceMap) Without(other ResourceMap) ResourceMap {
-	newMap := ResourceMap{}
-	for k, v := range s {
-		if !other.Contains(k) {
-			newMap[k] = v
-		}
-	}
-	return newMap
-}
-
-func (s ResourceMap) OnlyWithPolicy(p Policy) ResourceMap {
-	newMap := ResourceMap{}
-	for k, v := range s {
-		if _, ok := v[p]; ok {
-			newMap[k] = v
-		}
-	}
-	return newMap
 }

@@ -54,6 +54,7 @@ type Repo struct {
 	// As supplied to constructor
 	origin   Remote
 	interval time.Duration
+	readonly bool
 
 	// State
 	mu     sync.RWMutex
@@ -69,10 +70,20 @@ type Option interface {
 	apply(*Repo)
 }
 
+type optionFunc func(*Repo)
+
+func (f optionFunc) apply(r *Repo) {
+	f(r)
+}
+
 type PollInterval time.Duration
 
 func (p PollInterval) apply(r *Repo) {
 	r.interval = time.Duration(p)
+}
+
+var ReadOnly optionFunc = func(r *Repo) {
+	r.readonly = true
 }
 
 // NewRepo constructs a repo mirror which will sync itself.
@@ -187,22 +198,99 @@ func (r *Repo) Revision(ctx context.Context, ref string) (string, error) {
 	return refRevision(ctx, r.dir, ref)
 }
 
-func (r *Repo) CommitsBefore(ctx context.Context, ref, path string) ([]Commit, error) {
+func (r *Repo) CommitsBefore(ctx context.Context, ref string, paths ...string) ([]Commit, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if err := r.errorIfNotReady(); err != nil {
 		return nil, err
 	}
-	return onelinelog(ctx, r.dir, ref, path)
+	return onelinelog(ctx, r.dir, ref, paths)
 }
 
-func (r *Repo) CommitsBetween(ctx context.Context, ref1, ref2, path string) ([]Commit, error) {
+func (r *Repo) CommitsBetween(ctx context.Context, ref1, ref2 string, paths ...string) ([]Commit, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if err := r.errorIfNotReady(); err != nil {
 		return nil, err
 	}
-	return onelinelog(ctx, r.dir, ref1+".."+ref2, path)
+	return onelinelog(ctx, r.dir, ref1+".."+ref2, paths)
+}
+
+// step attempts to advance the repo state machine, and returns `true`
+// if it has made progress, `false` otherwise.
+func (r *Repo) step(bg context.Context) bool {
+	r.mu.RLock()
+	url := r.origin.URL
+	dir := r.dir
+	status := r.status
+	r.mu.RUnlock()
+
+	switch status {
+
+	case RepoNoConfig:
+		// this is not going to change in the lifetime of this
+		// process, so just exit.
+		return false
+
+	case RepoNew:
+		rootdir, err := ioutil.TempDir(os.TempDir(), "flux-gitclone")
+		if err != nil {
+			panic(err)
+		}
+
+		ctx, cancel := context.WithTimeout(bg, opTimeout)
+		dir, err = mirror(ctx, rootdir, url)
+		cancel()
+		if err == nil {
+			r.mu.Lock()
+			r.dir = dir
+			ctx, cancel := context.WithTimeout(bg, opTimeout)
+			err = r.fetch(ctx)
+			cancel()
+			r.mu.Unlock()
+		}
+		if err == nil {
+			r.setUnready(RepoCloned, ErrClonedOnly)
+			return true
+		}
+		dir = ""
+		os.RemoveAll(rootdir)
+		r.setUnready(RepoNew, err)
+		return false
+
+	case RepoCloned:
+		if !r.readonly {
+			ctx, cancel := context.WithTimeout(bg, opTimeout)
+			err := checkPush(ctx, dir, url)
+			cancel()
+			if err != nil {
+				r.setUnready(RepoCloned, err)
+				return false
+			}
+		}
+
+		r.setReady()
+		// Treat every transition to ready as a refresh, so
+		// that any listeners can respond in the same way.
+		r.refreshed()
+		return true
+
+	case RepoReady:
+		return false
+	}
+
+	return false
+}
+
+// Ready tries to advance the cloning process along as far as
+// possible, and returns an error if it is not able to get to a ready
+// state.
+func (r *Repo) Ready(ctx context.Context) error {
+	for r.step(ctx) {
+		// keep going!
+	}
+	_, err := r.Status()
+	return err
 }
 
 // Start begins synchronising the repo by cloning it, then fetching
@@ -211,65 +299,22 @@ func (r *Repo) Start(shutdown <-chan struct{}, done *sync.WaitGroup) error {
 	defer done.Done()
 
 	for {
+		ctx, cancel := context.WithTimeout(context.Background(), opTimeout)
+		advanced := r.step(ctx)
+		cancel()
 
-		r.mu.RLock()
-		url := r.origin.URL
-		dir := r.dir
-		status := r.status
-		r.mu.RUnlock()
+		if advanced {
+			continue
+		}
 
-		bg := context.Background()
-
-		switch status {
-
-		case RepoNoConfig:
-			// this is not going to change in the lifetime of this
-			// process, so just exit.
-			return nil
-		case RepoNew:
-
-			rootdir, err := ioutil.TempDir(os.TempDir(), "flux-gitclone")
-			if err != nil {
-				return err
-			}
-
-			ctx, cancel := context.WithTimeout(bg, opTimeout)
-			dir, err = mirror(ctx, rootdir, url)
-			cancel()
-			if err == nil {
-				r.mu.Lock()
-				r.dir = dir
-				ctx, cancel := context.WithTimeout(bg, opTimeout)
-				err = r.fetch(ctx)
-				cancel()
-				r.mu.Unlock()
-			}
-			if err == nil {
-				r.setUnready(RepoCloned, ErrClonedOnly)
-				continue // with new status, skipping timer
-			}
-			dir = ""
-			os.RemoveAll(rootdir)
-			r.setUnready(RepoNew, err)
-
-		case RepoCloned:
-			ctx, cancel := context.WithTimeout(bg, opTimeout)
-			err := checkPush(ctx, dir, url)
-			cancel()
-			if err == nil {
-				r.setReady()
-				// Treat every transition to ready as a refresh, so
-				// that any listeners can respond in the same way.
-				r.refreshed()
-				continue // with new status, skipping timer
-			}
-			r.setUnready(RepoCloned, err)
-
-		case RepoReady:
+		status, _ := r.Status()
+		if status == RepoReady {
 			if err := r.refreshLoop(shutdown); err != nil {
 				r.setUnready(RepoNew, err)
 				continue // with new status, skipping timer
 			}
+		} else if status == RepoNoConfig {
+			return nil
 		}
 
 		tryAgain := time.NewTimer(10 * time.Second)
@@ -283,6 +328,7 @@ func (r *Repo) Start(shutdown <-chan struct{}, done *sync.WaitGroup) error {
 			continue
 		}
 	}
+	return nil
 }
 
 func (r *Repo) Refresh(ctx context.Context) error {
