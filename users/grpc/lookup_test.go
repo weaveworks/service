@@ -16,6 +16,7 @@ import (
 	"github.com/weaveworks/service/users/db/dbtest"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/grpc"
+	"github.com/weaveworks/service/users/marketing"
 	"github.com/weaveworks/service/users/sessions"
 	"github.com/weaveworks/service/users/templates"
 )
@@ -37,7 +38,7 @@ func setup(t *testing.T) {
 		Domain:      "https://weave.test",
 		FromAddress: "from@weave.test",
 	}
-	server = grpc.New(sessionStore, database, &smtp)
+	server = grpc.New(sessionStore, database, &smtp, []*marketing.Queue{})
 	ctx = context.Background()
 }
 

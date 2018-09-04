@@ -71,6 +71,9 @@ service Users {
 
     // SetOrganizationWebhookFirstSeenAt sets the FirstSeenAt field on the webhook to the current time
     rpc SetOrganizationWebhookFirstSeenAt(SetOrganizationWebhookFirstSeenAtRequest) returns (SetOrganizationWebhookFirstSeenAtResponse) {};
+
+    // InformOrganizationBillingConfigured informs external integrations that a user has begun a paid subscription for an organization
+    rpc InformOrganizationBillingConfigured(InformOrganizationBillingConfiguredRequest) returns (Empty) {};
 }
 
 enum AuthorizedAction {
@@ -383,4 +386,8 @@ message SetOrganizationWebhookFirstSeenAtRequest {
 
 message SetOrganizationWebhookFirstSeenAtResponse {
     google.protobuf.Timestamp FirstSeenAt = 1  [(gogoproto.stdtime) = true, (gogoproto.nullable) = true];
+}
+
+message InformOrganizationBillingConfiguredRequest {
+    string ExternalID = 1;
 }

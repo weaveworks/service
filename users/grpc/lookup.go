@@ -8,28 +8,31 @@ import (
 
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/orgs"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/emailer"
+	"github.com/weaveworks/service/users/marketing"
 	"github.com/weaveworks/service/users/sessions"
-	"golang.org/x/net/context"
 )
 
 // usersServer implements users.UsersServer
 type usersServer struct {
-	sessions sessions.Store
-	db       db.DB
-	emailer  emailer.Emailer
+	sessions        sessions.Store
+	db              db.DB
+	emailer         emailer.Emailer
+	marketingQueues marketing.Queues
 }
 
 // New makes a new users.UsersServer
-func New(sessions sessions.Store, db db.DB, emailer emailer.Emailer) users.UsersServer {
+func New(sessions sessions.Store, db db.DB, emailer emailer.Emailer, marketingQueues marketing.Queues) users.UsersServer {
 	return &usersServer{
-		sessions: sessions,
-		db:       db,
-		emailer:  emailer,
+		sessions:        sessions,
+		db:              db,
+		emailer:         emailer,
+		marketingQueues: marketingQueues,
 	}
 }
 
@@ -381,4 +384,22 @@ func (a *usersServer) GetSummary(ctx context.Context, _ *users.Empty) (*users.Su
 		return nil, err
 	}
 	return &users.Summary{Entries: entries}, nil
+}
+
+func (a *usersServer) InformOrganizationBillingConfigured(ctx context.Context, req *users.InformOrganizationBillingConfiguredRequest) (*users.Empty, error) {
+	org, err := a.db.FindOrganizationByID(ctx, req.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+
+	members, err := a.db.ListOrganizationUsers(ctx, req.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, member := range members {
+		a.marketingQueues.OrganizationBillingConfigured(member.Email, org.ExternalID, org.Name)
+	}
+
+	return &users.Empty{}, nil
 }

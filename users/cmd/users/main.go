@@ -168,7 +168,7 @@ func main() {
 	orgCleaner := cleaner.New(cleanupURLs, db)
 	log.Debug("Debug logging enabled")
 
-	grpcServer := grpc_server.New(sessions, db, emailer)
+	grpcServer := grpc_server.New(sessions, db, emailer, marketingQueues)
 	app := api.New(
 		*directLogin,
 		emailer,

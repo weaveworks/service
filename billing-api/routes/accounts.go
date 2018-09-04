@@ -49,6 +49,15 @@ func (a *API) createAccount(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	a.markOrganizationDutiful(ctx, logger, externalID, account.Number)
+	_, err = a.Users.InformOrganizationBillingConfigured(
+		ctx,
+		&users.InformOrganizationBillingConfiguredRequest{
+			ExternalID: externalID,
+		},
+	)
+	if err != nil {
+		logger.WithField("err", err).Errorln("Error calling InformOrganizationBillingConfigured")
+	}
 
 	// As the customer may have delayed setting up their account, we need to
 	// upload any historic usage data since their trial period expired

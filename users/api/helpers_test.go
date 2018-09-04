@@ -63,7 +63,7 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 		Domain:      domain,
 		FromAddress: "test@test.com",
 	}
-	grpcServer := grpc.New(sessionStore, database, nil)
+	grpcServer := grpc.New(sessionStore, database, nil, []*marketing.Queue{})
 
 	ctrl = gomock.NewController(t)
 	billingClient = billing_grpc.NewMockBillingClient(ctrl)

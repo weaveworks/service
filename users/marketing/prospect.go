@@ -10,6 +10,10 @@ type Prospect struct {
 	ServiceLastAccess time.Time `json:"lastAccess"`
 	CampaignID        string    `json:"campaignId"`
 	LeadSource        string    `json:"leadSource"`
+
+	// TODO: these don't fit well in this prospect system. We should redesign the whole thing.
+	OrganizationBillingConfiguredExternalID string `json:"organizationBillingConfiguredExternalID"`
+	OrganizationBillingConfiguredName       string `json:"organizationBillingConfiguredName"`
 }
 
 // Merge merges this prospect with the provided one, creating a new prospect.
@@ -21,6 +25,9 @@ func (p1 Prospect) Merge(p2 Prospect) Prospect {
 		ServiceLastAccess: latest(p1.ServiceLastAccess, p2.ServiceLastAccess),
 		CampaignID:        either(p1.CampaignID, p2.CampaignID),
 		LeadSource:        either(p1.LeadSource, p2.LeadSource),
+
+		OrganizationBillingConfiguredExternalID: either(p1.OrganizationBillingConfiguredExternalID, p2.OrganizationBillingConfiguredExternalID),
+		OrganizationBillingConfiguredName:       either(p1.OrganizationBillingConfiguredName, p2.OrganizationBillingConfiguredName),
 	}
 }
 
