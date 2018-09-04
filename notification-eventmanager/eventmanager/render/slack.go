@@ -121,6 +121,32 @@ func OpsGenieFromSlack(htmlMsg, etype, instanceName string) (json.RawMessage, er
 	return msgRaw, nil
 }
 
+// PagerDutyFromSlack returns message for PagerDuty
+func PagerDutyFromSlack(text, etype, instanceName, link, linkText string) (json.RawMessage, error) {
+	payload := &types.PagerDutyPayload{
+		Summary:       text,
+		Source:        "cloud.weave.works",
+		Severity:      "info",
+		Timestamp:     time.Now(),
+		Component:     "Weave Cloud Monitor",
+		Class:         "test event",
+		CustomDetails: map[string]string{"instance": instanceName, "event_type": etype},
+	}
+
+	pdMsg := types.PagerDutyMessage{
+		EventAction: "trigger",
+		Payload:     payload,
+		Links:       []*types.Link{{Href: link, Text: linkText}},
+	}
+
+	msgRaw, err := json.Marshal(pdMsg)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot marshal to json PagerDuty message: %s", pdMsg)
+	}
+
+	return msgRaw, nil
+}
+
 // GetAllMarkdownText returns all text in markdown format from slack message (text and attachments)
 func GetAllMarkdownText(sm types.SlackMessage, instanceName string) string {
 	var buf bytes.Buffer

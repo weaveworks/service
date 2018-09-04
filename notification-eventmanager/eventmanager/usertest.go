@@ -92,6 +92,12 @@ func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (int
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting OpsGenie message for test event")
 	}
 
+	pagerDutyMsg, err := render.PagerDutyFromSlack(text, etype, instanceName, link, "Weave Cloud notification")
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
+		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting PagerDuty message for test event")
+	}
+
 	data := UserTestData{UserEmail: userEmail}
 
 	dataBytes, err := json.Marshal(data)
@@ -112,6 +118,7 @@ func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (int
 			types.SlackReceiver:       slackMsg,
 			types.StackdriverReceiver: sdMsg,
 			types.OpsGenieReceiver:    opsGenieMsg,
+			types.PagerDutyReceiver:   pagerDutyMsg,
 		},
 	}
 

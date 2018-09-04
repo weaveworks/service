@@ -55,6 +55,11 @@ const alertEmailContentTmpl = `
 {{- end }}
 `
 
+var alertmanagerToPagerDutyStatus = map[string]string{
+	"resolved": "resolve",
+	"firing":   "trigger",
+}
+
 // BuildCortexEvent builds event for cortex alerts received to webhook
 func (r *Render) BuildCortexEvent(wa types.WebhookAlert, etype, instanceID, instanceName, notificationPageLink, link, linkText string) (types.Event, error) {
 	if len(wa.Alerts) == 0 {
@@ -95,6 +100,14 @@ func (r *Render) BuildCortexEvent(wa types.WebhookAlert, etype, instanceID, inst
 		}
 	}
 
+	var pagerDutyMsg json.RawMessage
+	if etype == types.MonitorType {
+		pagerDutyMsg, err = PagerDutyFromAlert(wa, etype, instanceName)
+		if err != nil {
+			return types.Event{}, errors.Wrap(err, "cannot get PagerDuty message")
+		}
+	}
+
 	data, err := json.Marshal(types.MonitorData{
 		GroupKey:          wa.GroupKey,
 		Status:            wa.Status,
@@ -120,10 +133,33 @@ func (r *Render) BuildCortexEvent(wa types.WebhookAlert, etype, instanceID, inst
 			types.EmailReceiver:       emailMsg,
 			types.StackdriverReceiver: stackdriverMsg,
 			types.OpsGenieReceiver:    opsGenieMsg,
+			types.PagerDutyReceiver:   pagerDutyMsg,
 		},
 	}
 
 	return ev, nil
+}
+
+func severity(wa types.WebhookAlert) string {
+	if len(wa.Alerts) == 0 {
+		return ""
+	}
+
+	severity := strings.ToLower(wa.CommonLabels["severity"])
+	if severity == "" {
+		severity = strings.ToLower(wa.Alerts[0].Labels["severity"])
+	}
+
+	return severity
+}
+
+func pagerDutySeverity(s string) string {
+	switch s {
+	case "critical", "error", "warning", "info":
+		return s
+	default:
+		return "error"
+	}
 }
 
 // title return string with alertname, severity, and summary of an alert:
@@ -166,6 +202,8 @@ func impact(wa types.WebhookAlert, format string) string {
 			return fmt.Sprintf("*Impact*: %s", imp)
 		case formatMarkdown:
 			return fmt.Sprintf("**Impact**: %s", imp)
+		default:
+			return fmt.Sprintf("Impact: %s", imp)
 		}
 	}
 	return "No impact defined. Please add one or disable this alert."
@@ -201,8 +239,8 @@ func detail(wa types.WebhookAlert, format string) string {
 	return strings.Join(details, "\n")
 }
 
-// links returns line with links (playbook and dashboard) in specified format
-func links(wa types.WebhookAlert, format string) string {
+// links returns map and line with links (wc url, playbook and dashboard) in specified format
+func links(wa types.WebhookAlert, format string) (map[string]string, string) {
 	var res []string
 	links := make(map[string]string)
 	if len(wa.WeaveCloudURL) != 0 {
@@ -234,7 +272,7 @@ func links(wa types.WebhookAlert, format string) string {
 		}
 	}
 
-	return strings.Join(res, " ")
+	return links, strings.Join(res, " ")
 }
 
 // fallback returns other custom labels for the first alert
@@ -283,7 +321,7 @@ func alertText(wa types.WebhookAlert, format string) string {
 		parts = append(parts, detail)
 	}
 
-	if links := links(wa, format); links != "" {
+	if _, links := links(wa, format); links != "" {
 		parts = append(parts, links)
 	}
 
@@ -477,6 +515,44 @@ func OpsGenieFromAlert(wa types.WebhookAlert, etype, instanceName string) (json.
 	msgRaw, err := json.Marshal(ogMsg)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot marshal to json OpsGenie message: %s", ogMsg)
+	}
+
+	return msgRaw, nil
+}
+
+// PagerDutyFromAlert returns PagerDuty notification
+func PagerDutyFromAlert(wa types.WebhookAlert, etype, instanceName string) (json.RawMessage, error) {
+	text := fmt.Sprintf("%s %s", title(wa), impact(wa, ""))
+	if len(text) > 1024 {
+		text = text[:1024]
+	}
+
+	payload := &types.PagerDutyPayload{
+		Summary:       text,
+		Source:        "cloud.weave.works",
+		Severity:      pagerDutySeverity(severity(wa)),
+		Timestamp:     firstAlertTimestamp(wa),
+		Component:     "Weave Cloud Monitor",
+		Class:         title(wa),
+		CustomDetails: map[string]string{"instance": instanceName, "event_type": etype},
+	}
+
+	var pdLinks []*types.Link
+	urls, _ := links(wa, "")
+	for text, link := range urls {
+		pdLinks = append(pdLinks, &types.Link{Href: link, Text: text})
+	}
+
+	pdMsg := types.PagerDutyMessage{
+		EventAction: alertmanagerToPagerDutyStatus[wa.Status],
+		DedupKey:    alias(wa.GroupKey, instanceName),
+		Payload:     payload,
+		Links:       pdLinks,
+	}
+
+	msgRaw, err := json.Marshal(pdMsg)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot marshal to json PagerDuty message: %s", pdMsg)
 	}
 
 	return msgRaw, nil

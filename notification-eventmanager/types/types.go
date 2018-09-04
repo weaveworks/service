@@ -154,6 +154,35 @@ type OpsGenieMessage struct {
 	Note        string
 }
 
+// PagerDutyMessage contains the fields for PagerDuty incident.
+type PagerDutyMessage struct {
+	RoutingKey  string            `json:"routing_key,omitempty"`
+	EventAction string            `json:"event_action"`
+	DedupKey    string            `json:"dedup_key,omitempty"`
+	Payload     *PagerDutyPayload `json:"payload"`
+	Links       []*Link           `json:"links,omitempty"`
+}
+
+// Link is a structure that represent a link linked to the event
+type Link struct {
+	// URL of the link to be attached.
+	Href string `json:"href"`
+	// Plain text that describes the purpose of the link, and can be used as the link's text.
+	Text string `json:"text"`
+}
+
+// PagerDutyPayload contains the fields for PagerDuty payload
+type PagerDutyPayload struct {
+	Summary       string            `json:"summary"`
+	Source        string            `json:"source"`
+	Severity      string            `json:"severity"`
+	Timestamp     time.Time         `json:"timestamp,omitempty"`
+	Component     string            `json:"component,omitempty"`
+	Group         string            `json:"group,omitempty"`
+	Class         string            `json:"class,omitempty"`
+	CustomDetails map[string]string `json:"custom_details,omitempty"`
+}
+
 // Event is a single instance of something for the user to be informed of
 type Event struct {
 	ID           string                     `json:"id"`
@@ -201,6 +230,8 @@ const (
 	StackdriverReceiver = "stackdriver"
 	// OpsGenieReceiver is the type of receiver for OpsGenie
 	OpsGenieReceiver = "opsgenie"
+	// PagerDuty is the type of receiver for PagerDuty
+	PagerDutyReceiver = "pagerduty"
 )
 
 // Notification is the actual message in data delivered to a user from address.
