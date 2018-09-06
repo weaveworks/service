@@ -34,7 +34,7 @@ func TestTrialPendingExpiryEmail(t *testing.T) {
 		assert.Contains(t, string(e.Text), "Test Org")
 		assert.Contains(t, string(e.Text), expires.Format("January 2 2006"))
 		assert.Contains(t, string(e.Text), "in 10 days")
-		assert.Contains(t, string(e.Text), "https://weave.test/org/foo-boo-12/billing")
+		assert.Contains(t, string(e.Text), "https://weave.test/foo-boo-12/org/billing")
 		sent = true
 		return nil
 	})
@@ -53,7 +53,7 @@ func TestSMTPEmailer_TrialExpiredEmail(t *testing.T) {
 		assert.Len(t, e.To, 1)
 		assert.Contains(t, e.To, "user@weave.test")
 		assert.Contains(t, string(e.Text), "Test Org")
-		assert.Contains(t, string(e.Text), "https://weave.test/org/foo-boo-12/billing")
+		assert.Contains(t, string(e.Text), "https://weave.test/foo-boo-12/org/billing")
 		sent = true
 		return nil
 	})
@@ -76,7 +76,7 @@ func TestSMTPEmailer_TrialExtendedEmail(t *testing.T) {
 		assert.Contains(t, text, "Test Org")
 		assert.Contains(t, text, "15 days")
 		assert.Contains(t, text, expires.Format("January 2 2006"))
-		assert.Contains(t, text, "https://weave.test/org/foo-boo-12/billing")
+		assert.Contains(t, text, "https://weave.test/foo-boo-12/org/billing")
 		sent = true
 		return nil
 	})

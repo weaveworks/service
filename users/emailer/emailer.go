@@ -84,11 +84,11 @@ func inviteURL(email, rawToken, domain, orgName string) string {
 }
 
 func organizationURL(domain, orgExternalID string) string {
-	return fmt.Sprintf("%s/instances/%s", domain, orgExternalID)
+	return fmt.Sprintf("%s/%s", domain, orgExternalID)
 }
 
 func billingURL(domain, orgExternalID string) string {
-	return fmt.Sprintf("%s/org/%s/billing", domain, orgExternalID)
+	return fmt.Sprintf("%s/%s/org/billing", domain, orgExternalID)
 }
 
 func collectEmails(users []*users.User) []string {
