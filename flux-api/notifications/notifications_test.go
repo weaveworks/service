@@ -1,7 +1,6 @@
 package notifications
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,7 +9,6 @@ import (
 	"github.com/weaveworks/flux/event"
 	"github.com/weaveworks/flux/image"
 	"github.com/weaveworks/flux/update"
-	"github.com/weaveworks/service/flux-api/service"
 )
 
 // Generate an example release
@@ -70,10 +68,8 @@ func TestNotificationEventsURL(t *testing.T) {
 	}))
 	defer server.Close()
 
-	var instanceID service.InstanceID = "2"
-	eventsURL := server.URL + fmt.Sprintf("/api/notification/slack/%v/{eventType}", instanceID)
-	eventType := "deploy"
-	expectedPath := fmt.Sprintf("/api/notification/slack/%v/%v", instanceID, eventType)
+	path := "/api/notification/events"
+	eventsURL := server.URL + path
 
 	ev := event.Event{Metadata: exampleRelease(t), Type: event.EventRelease}
 
@@ -83,7 +79,7 @@ func TestNotificationEventsURL(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if gotReq.URL.EscapedPath() != expectedPath {
-		t.Fatalf("Expected: %v, Got: %v", expectedPath, gotReq.URL.String())
+	if gotReq.URL.EscapedPath() != path {
+		t.Fatalf("Expected: %v, Got: %v", path, gotReq.URL.String())
 	}
 }
