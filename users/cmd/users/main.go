@@ -21,6 +21,7 @@ import (
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
+	users_sync "github.com/weaveworks/service/users-sync/api"
 	"github.com/weaveworks/service/users/api"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
@@ -82,9 +83,10 @@ func main() {
 
 		billingFeatureFlagProbability = flag.Uint("billing-feature-flag-probability", 0, "Percentage of *new* organizations for which we want to enable the 'billing' feature flag. 0 means always disabled. 100 means always enabled. Any value X in between will enable billing randomly X% of the time.")
 
-		dbCfg      dbconfig.Config
-		partnerCfg partner.Config
-		billingCfg billing_grpc.Config
+		dbCfg        dbconfig.Config
+		partnerCfg   partner.Config
+		billingCfg   billing_grpc.Config
+		usersSyncCfg users_sync.Config
 
 		cleanupURLs common.ArrayFlags
 
@@ -103,6 +105,7 @@ func main() {
 	dbCfg.RegisterFlags(flag.CommandLine, "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "/migrations", "Migrations directory.")
 	partnerCfg.RegisterFlags(flag.CommandLine)
 	billingCfg.RegisterFlags(flag.CommandLine)
+	usersSyncCfg.RegisterFlags(flag.CommandLine)
 
 	partnerAccess := partner.NewAccess()
 	partnerAccess.Flags(flag.CommandLine)
@@ -123,6 +126,12 @@ func main() {
 		log.Fatalf("Failed creating billing-api's gRPC client: %v", err)
 	}
 	defer billingClient.Close()
+
+	usersSyncClient, err := users_sync.NewClient(usersSyncCfg)
+	if err != nil {
+		log.Fatalf("Failed creating users-sync-api's gRPC client: %v", err)
+	}
+	defer usersSyncClient.Close()
 
 	var marketingQueues marketing.Queues
 	if *marketoClientID != "" {
@@ -191,6 +200,7 @@ func main() {
 		billingClient,
 		billingEnabler,
 		*notificationReceiversURL,
+		usersSyncClient,
 	)
 
 	if *localTestUserCreate {
@@ -206,7 +216,7 @@ func main() {
 		GRPCListenPort:          *grpcPort,
 		GRPCMiddleware:          []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
 		RegisterInstrumentation: true,
-		Log: logging.Logrus(log.StandardLogger()),
+		Log:                     logging.Logrus(log.StandardLogger()),
 	})
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)

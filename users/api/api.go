@@ -3,13 +3,13 @@ package api
 import (
 	"net/http"
 
-	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
-	"github.com/weaveworks/service/common/featureflag"
-
 	"github.com/gorilla/mux"
 
+	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
+	users_sync "github.com/weaveworks/service/users-sync/api"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/login"
@@ -43,6 +43,7 @@ type API struct {
 	billingClient            billing_grpc.BillingClient
 	billingEnabler           featureflag.Enabler
 	notificationReceiversURL string
+	usersSyncClient          users_sync.UsersSyncClient
 	http.Handler
 }
 
@@ -71,6 +72,7 @@ func New(
 	billingClient billing_grpc.BillingClient,
 	billingEnabler featureflag.Enabler,
 	notificationReceiversURL string,
+	usersSyncClient users_sync.UsersSyncClient,
 ) *API {
 	a := &API{
 		directLogin:              directLogin,
@@ -96,6 +98,7 @@ func New(
 		billingClient:            billingClient,
 		billingEnabler:           billingEnabler,
 		notificationReceiversURL: notificationReceiversURL,
+		usersSyncClient:          usersSyncClient,
 	}
 
 	r := mux.NewRouter()
