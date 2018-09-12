@@ -7,7 +7,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/segmentio/analytics-go"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/logging"
 	commonServer "github.com/weaveworks/common/server"
 	"github.com/weaveworks/common/tracing"
@@ -48,20 +48,20 @@ func main() {
 	flag.Parse()
 
 	if err := logging.Setup(*logLevel); err != nil {
-		log.Fatalf("Error configuring logging: %v", err)
+		logrus.Fatalf("Error configuring logging: %v", err)
 		return
 	}
 
 	db := db.MustNew(dbCfg)
 	defer db.Close(context.Background())
 
-	logger := logging.Logrus(log.StandardLogger())
+	logger := logging.Logrus(logrus.StandardLogger())
 
 	var segmentClient analytics.Client
 	if segementWriteKeyFile != nil {
 		segementWriteKeyBytes, err := ioutil.ReadFile(*segementWriteKeyFile)
 		if err != nil {
-			log.Fatalln("Failed to read segment write key", err)
+			logrus.Fatalln("Failed to read segment write key", err)
 			return
 		}
 		segmentClient := analytics.New(string(segementWriteKeyBytes))
@@ -70,19 +70,19 @@ func main() {
 
 	orgCleaner := cleaner.New(cleanupURLs, logger, db)
 	attributeSyncer := attrsync.New(logger, db, nil, segmentClient)
-	log.Debug("Debug logging enabled")
+	logger.Debugln("Debug logging enabled")
 
-	log.Infof("Listening on port %d", *port)
+	logger.Infof("Listening on port %d\n", *port)
 	cServer, err := commonServer.New(commonServer.Config{
 		MetricsNamespace:        common.PrometheusNamespace,
 		HTTPListenPort:          *port,
 		GRPCListenPort:          *grpcPort,
 		GRPCMiddleware:          []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
 		RegisterInstrumentation: true,
-		Log:                     logging.Logrus(log.StandardLogger()),
+		Log:                     logger,
 	})
 	if err != nil {
-		log.Fatalf("Failed to create server: %v", err)
+		logrus.Fatalf("Failed to create server: %v", err)
 		return
 	}
 	userSyncServer := server.New(logger)
