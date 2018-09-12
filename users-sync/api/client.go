@@ -32,16 +32,12 @@ func init() {
 	durationCollector.Register()
 }
 
-// Client for the users.
-type Client struct {
-	UsersSyncClient
-}
-
 // NewClient instantiates Client.
-func NewClient(cfg Config) (*Client, error) {
+func NewClient(cfg Config) (*UsersSyncClient, error) {
 	conn, err := common_grpc.NewInsecureConn(cfg.HostPort, "", durationCollector)
 	if err != nil {
 		return nil, err
 	}
-	return &Client{NewUsersSyncClient(conn)}, nil
+	client := NewUsersSyncClient(conn)
+	return &client, nil
 }

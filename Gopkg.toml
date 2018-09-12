@@ -65,3 +65,8 @@ required = ["github.com/ugorji/go/codec/codecgen"]
 [[constraint]]
   name = "github.com/weaveworks/common"
   revision = "2a0cb6145a2f541de5ca19437fee675baf6a1985"
+
+# The master branch is stuck on an old version for compatibility
+[[override]]
+  branch = "v3.0"
+  name = "github.com/segmentio/analytics-go"

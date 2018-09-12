@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"flag"
+	"io/ioutil"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/segmentio/analytics-go"
 	log "github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/logging"
 	commonServer "github.com/weaveworks/common/server"
@@ -30,9 +32,10 @@ func main() {
 	defer traceCloser.Close()
 
 	var (
-		logLevel = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
-		port     = flag.Int("port", 80, "port to listen on")
-		grpcPort = flag.Int("grpc-port", 4772, "grpc port to listen on")
+		logLevel             = flag.String("log.level", "info", "Logging level to use: debug | info | warn | error")
+		port                 = flag.Int("port", 80, "port to listen on")
+		grpcPort             = flag.Int("grpc-port", 4772, "grpc port to listen on")
+		segementWriteKeyFile = flag.String("segment-write-key-file", "", "File containing segment write key")
 
 		dbCfg dbconfig.Config
 
@@ -53,6 +56,18 @@ func main() {
 	defer db.Close(context.Background())
 
 	logger := logging.Logrus(log.StandardLogger())
+
+	var segmentClient analytics.Client
+	if segementWriteKeyFile != nil {
+		segementWriteKeyBytes, err := ioutil.ReadFile(*segementWriteKeyFile)
+		if err != nil {
+			log.Fatalln("Failed to read segment write key", err)
+			return
+		}
+		segmentClient := analytics.New(string(segementWriteKeyBytes))
+		defer segmentClient.Close()
+	}
+
 	orgCleaner := cleaner.New(cleanupURLs, logger, db)
 	attributeSyncer := attrsync.New(logger, db)
 	log.Debug("Debug logging enabled")
@@ -64,7 +79,7 @@ func main() {
 		GRPCListenPort:          *grpcPort,
 		GRPCMiddleware:          []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
 		RegisterInstrumentation: true,
-		Log: logging.Logrus(log.StandardLogger()),
+		Log:                     logging.Logrus(log.StandardLogger()),
 	})
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
