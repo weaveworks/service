@@ -69,7 +69,7 @@ func main() {
 	}
 
 	orgCleaner := cleaner.New(cleanupURLs, logger, db)
-	attributeSyncer := attrsync.New(logger, db)
+	attributeSyncer := attrsync.New(logger, db, nil, segmentClient)
 	log.Debug("Debug logging enabled")
 
 	log.Infof("Listening on port %d", *port)
