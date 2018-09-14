@@ -65,6 +65,10 @@ required = ["github.com/ugorji/go/codec/codecgen"]
   branch = "master"
   name = "github.com/weaveworks/billing-client"
 
+[[constraint]]
+  name = "github.com/weaveworks/common"
+  branch = "master"
+
 # Make sure we have a Scope version with the latest changes to
 # weaveworks/common as we otherwise get build issues, and without any
 # constraint, dep somehow resolves to v0.12.
