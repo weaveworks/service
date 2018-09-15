@@ -723,9 +723,12 @@
 
 [[projects]]
   name = "github.com/uber/jaeger-lib"
-  packages = ["metrics"]
-  revision = "4267858c0679cd4e47cefed8d7f70fd386cfb567"
-  version = "v1.4.0"
+  packages = [
+    "metrics",
+    "metrics/prometheus"
+  ]
+  revision = "5519f3beabf28707fca8d3f47f9cff87dad48d96"
+  version = "v1.3.0"
 
 [[projects]]
   name = "github.com/ugorji/go"
@@ -766,7 +769,7 @@
     "tracing",
     "user"
   ]
-  revision = "0967b510c9d2da39550a74c6638ff9e3da5e6d19"
+  revision = "c3db87d00099921464ea2e6882fc41f7747ee17e"
 
 [[projects]]
   branch = "master"
@@ -1061,6 +1064,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "78f4cb126298533a51998507b2ed18d5a4551d69669199f67b7b56a267fa2c38"
+  inputs-digest = "dba5d3c4427406a520fe06004742828d9df6b9f0d25543000a17bc3d0b96c7e2"
   solver-name = "gps-cdcl"
   solver-version = 1
