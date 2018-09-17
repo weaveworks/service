@@ -79,7 +79,7 @@ func main() {
 		GRPCListenPort:          *grpcPort,
 		GRPCMiddleware:          []grpc.UnaryServerInterceptor{render.GRPCErrorInterceptor},
 		RegisterInstrumentation: true,
-		Log:                     logger,
+		Log: logger,
 	})
 	if err != nil {
 		logrus.Fatalf("Failed to create server: %v", err)

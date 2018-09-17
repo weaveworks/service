@@ -3,6 +3,7 @@ package filter
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/weaveworks/service/users"
@@ -47,6 +48,33 @@ func (s SearchEmail) MatchesUser(u users.User) bool {
 func (s SearchEmail) Where() squirrel.Sqlizer {
 	return squirrel.Expr("lower(users.email) LIKE ?",
 		fmt.Sprint("%", strings.ToLower(string(s)), "%"))
+}
+
+// LoggedInSince finds users who have logged in since a given time.
+type LoggedInSince time.Time
+
+// MatchesUser users who have logged in since the given time.
+func (s LoggedInSince) MatchesUser(u users.User) bool {
+	return u.LastLoginAt.After(time.Time(s))
+}
+
+// Where returns the query to filter for users who have logged in since the given time.
+func (s LoggedInSince) Where() squirrel.Sqlizer {
+	return squirrel.Gt{"last_login_at": time.Time(s)}
+}
+
+// NotLoggedInSince finds users who have logged in since a given time.
+// Squirrel has no NOT filter, so we can't have a general NOT filter either
+type NotLoggedInSince time.Time
+
+// MatchesUser users who have logged in since the given time.
+func (s NotLoggedInSince) MatchesUser(u users.User) bool {
+	return u.LastLoginAt.Before(time.Time(s)) || u.LastLoginAt.Equal(time.Time(s))
+}
+
+// Where returns the query to filter for users who have logged in since the given time.
+func (s NotLoggedInSince) Where() squirrel.Sqlizer {
+	return squirrel.LtOrEq{"last_login_at": time.Time(s)}
 }
 
 // Admin finds users who are admins (or who aren't).

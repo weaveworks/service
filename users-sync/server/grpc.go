@@ -11,12 +11,14 @@ import (
 )
 
 type usersSyncServer struct {
-	cleaner         *cleaner.OrgCleaner
 	attributeSyncer *attrsync.AttributeSyncer
+	cleaner         *cleaner.OrgCleaner
+	log             logging.Interface
 }
 
+// New returns a new UsersSyncServer
 func New(log logging.Interface) api.UsersSyncServer {
-	return &usersSyncServer{}
+	return &usersSyncServer{log: log}
 }
 
 func (u *usersSyncServer) EnqueueUsersSync(ctx context.Context, req *api.EnqueueUsersSyncRequest) (*api.EnqueueUsersSyncResponse, error) {

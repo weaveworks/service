@@ -34,7 +34,7 @@ func GetUserWithDomain(t *testing.T, db db.DB, domain string) *users.User {
 	return user
 }
 
-// SetUserInfo makes a random Name and Company name and updates the user
+// AddUserInfoToUser adds a random Name and Company name returns an updated user
 func AddUserInfoToUser(t *testing.T, db db.DB, user *users.User) *users.User {
 	random := rand.Int63()
 	user, err := db.UpdateUser(context.Background(), user.ID, &users.UserUpdate{

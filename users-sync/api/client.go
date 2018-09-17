@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	"github.com/prometheus/client_golang/prometheus"
+	googlegrpc "google.golang.org/grpc"
 
 	"github.com/weaveworks/common/instrument"
 	"github.com/weaveworks/service/common"
@@ -32,12 +33,32 @@ func init() {
 	durationCollector.Register()
 }
 
+// CloseableUsersSyncClient exposes Close() in addition to the methods generated for UsersSyncClient,
+// so that the gRPC connection can be managed internally to implementations of this interface.
+type CloseableUsersSyncClient interface {
+	Close()
+	UsersSyncClient
+}
+
+// Client is the canonical implementation of CloseableUsersSyncClient.
+type Client struct {
+	conn *googlegrpc.ClientConn
+	UsersSyncClient
+}
+
 // NewClient instantiates Client.
-func NewClient(cfg Config) (*UsersSyncClient, error) {
+func NewClient(cfg Config) (CloseableUsersSyncClient, error) {
 	conn, err := common_grpc.NewInsecureConn(cfg.HostPort, "", durationCollector)
 	if err != nil {
 		return nil, err
 	}
-	client := NewUsersSyncClient(conn)
-	return &client, nil
+	return &Client{
+		conn,
+		NewUsersSyncClient(conn),
+	}, nil
+}
+
+// Close closes the underlying TCP connection for to the remote gRPC server.
+func (c *Client) Close() {
+	c.conn.Close()
 }

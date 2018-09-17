@@ -24,10 +24,13 @@ var attrsComputeDurationCollector = instrument.NewHistogramCollectorFromOpts(pro
 	Help:      "Time taken to recompute user attributes.",
 })
 
+const minus30Days = -1 * 30 * 24 * time.Hour
+
 func init() {
 	attrsComputeDurationCollector.Register()
 }
 
+// AttributeSyncer sends metadata about users to external services
 type AttributeSyncer struct {
 	log               logging.Interface
 	recentUsersTicker *time.Ticker
@@ -58,11 +61,14 @@ func (c *AttributeSyncer) Start() error {
 	go c.sync()
 	go func() {
 		for {
+
 			select {
 			case <-c.recentUsersTicker.C:
-				c.work <- filter.All // TODO
+				// FIXME: Logged in since date is a poor proxy for recently 'active' users
+				c.work <- filter.LoggedInSince(time.Now().Add(minus30Days))
 			case <-c.staleUsersTicker.C:
-				c.work <- filter.All // TODO
+				// FIXME: Logged in since date is a poor proxy for recently 'active' users
+				c.work <- filter.NotLoggedInSince(time.Now().Add(minus30Days))
 			case <-c.quit:
 				close(c.work)
 				return
@@ -151,6 +157,9 @@ func (c *AttributeSyncer) syncUsers(ctx context.Context, userFilter filter.User)
 					}
 					return err
 				})
+
+			// Sleep for a while to avoid overloading other services
+			time.Sleep(10 * time.Millisecond)
 		}
 
 		page++
@@ -168,6 +177,7 @@ func (c *AttributeSyncer) syncUser(ctx context.Context, user *users.User) error 
 	traits := analytics.NewTraits().
 		SetName(user.Name).
 		SetEmail(user.Email).
+		SetCreatedAt(user.CreatedAt).
 		Set("company", map[string]string{"name": user.Company})
 
 	for name, val := range attrs {
