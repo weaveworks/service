@@ -96,8 +96,9 @@ func Test_AttrSyncWithOrg(t *testing.T) {
 	require.Equal(t, ident, analytics.Identify{
 		UserId: user.Email,
 		Traits: analytics.Traits{
-			"name":  user.Name,
-			"email": user.Email,
+			"name":      user.Name,
+			"email":     user.Email,
+			"createdAt": user.CreatedAt,
 			"company": map[string]string{
 				"name": user.Company,
 			},

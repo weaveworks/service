@@ -277,8 +277,8 @@ func createAPI(client partner.API, accessor partner.Accessor) *api.API {
 		"",
 		nil,
 		nil,
-		nil,
 		"",
+		nil,
 	)
 }
 func makeSubscription() partner.Subscription {

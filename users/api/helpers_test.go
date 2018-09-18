@@ -93,8 +93,8 @@ func setupWithMockServices(t *testing.T, fluxAPI, scopeAPI, cortexAPI, netAPI st
 		netAPI,
 		billingClient,
 		billingEnabler,
-		nil,
 		"",
+		nil,
 	)
 }
 

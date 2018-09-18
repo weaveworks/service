@@ -226,10 +226,7 @@ func main() {
 
 	app.RegisterRoutes(s.HTTP)
 	users.RegisterUsersServer(s.GRPC, grpcServer)
-
-	ctx, cancel := context.WithCancel(context.Background())
 	s.Run()
-	cancel()
 }
 
 func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token, teamName string, featureFlags []string) {

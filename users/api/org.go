@@ -394,9 +394,11 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		renderError(w, r, err)
 		return
 	}
-	if _, err := a.usersSyncClient.EnqueueOrgDeletedSync(
-		ctx, &users_sync.EnqueueOrgDeletedSyncRequest{OrgExternalID: orgExternalID}); err != nil {
-		log.Warnf("Error notifying users-sync of org (%s) deletion: (%v)", orgExternalID, err)
+	if a.usersSyncClient != nil {
+		if _, err := a.usersSyncClient.EnqueueOrgDeletedSync(
+			ctx, &users_sync.EnqueueOrgDeletedSyncRequest{OrgExternalID: orgExternalID}); err != nil {
+			log.Warnf("Error notifying users-sync of org (%s) deletion: (%v)", orgExternalID, err)
+		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)
