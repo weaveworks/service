@@ -14,7 +14,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/mwitkow/go-grpc-middleware"
 	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
 	"github.com/sercand/kuberesolver"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -44,18 +43,9 @@ func (s Server) Handle(ctx context.Context, r *httpgrpc.HTTPRequest) (*httpgrpc.
 		return nil, err
 	}
 	toHeader(r.Headers, req.Header)
-	if tracer := opentracing.GlobalTracer(); tracer != nil {
-		clientContext, err := tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(req.Header))
-		if err == nil {
-			span := tracer.StartSpan("httpgrpc", ext.RPCServerOption(clientContext))
-			defer span.Finish()
-			ctx = opentracing.ContextWithSpan(ctx, span)
-		} else if err != opentracing.ErrSpanContextNotFound {
-			logging.Global().Warnf("Failed to extract tracing headers from request: %v", err)
-		}
-	}
 	req = req.WithContext(ctx)
 	req.RequestURI = r.Url
+
 	recorder := httptest.NewRecorder()
 	s.handler.ServeHTTP(recorder, req)
 	resp := &httpgrpc.HTTPResponse{
@@ -66,7 +56,7 @@ func (s Server) Handle(ctx context.Context, r *httpgrpc.HTTPRequest) (*httpgrpc.
 	if recorder.Code/100 == 5 {
 		return nil, httpgrpc.ErrorFromHTTPResponse(resp)
 	}
-	return resp, err
+	return resp, nil
 }
 
 // Client is a http.Handler that forwards the request over gRPC.
@@ -143,13 +133,40 @@ func NewClient(address string) (*Client, error) {
 	}, nil
 }
 
-// ServeHTTP implements http.Handler
-func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// HTTPRequest wraps an ordinary HTTPRequest with a gRPC one
+func HTTPRequest(r *http.Request) (*httpgrpc.HTTPRequest, error) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, err
 	}
+	return &httpgrpc.HTTPRequest{
+		Method:  r.Method,
+		Url:     r.RequestURI,
+		Body:    body,
+		Headers: fromHeader(r.Header),
+	}, nil
+}
+
+// WriteResponse converts an httpgrpc response to an HTTP one
+func WriteResponse(w http.ResponseWriter, resp *httpgrpc.HTTPResponse) error {
+	toHeader(resp.Headers, w.Header())
+	w.WriteHeader(int(resp.Code))
+	_, err := w.Write(resp.Body)
+	return err
+}
+
+// WriteError converts an httpgrpc error to an HTTP one
+func WriteError(w http.ResponseWriter, err error) {
+	resp, ok := httpgrpc.HTTPResponseFromError(err)
+	if ok {
+		WriteResponse(w, resp)
+	} else {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// ServeHTTP implements http.Handler
+func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if tracer := opentracing.GlobalTracer(); tracer != nil {
 		if span := opentracing.SpanFromContext(r.Context()); span != nil {
 			if err := tracer.Inject(span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(r.Header)); err != nil {
@@ -157,13 +174,12 @@ func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	req := &httpgrpc.HTTPRequest{
-		Method:  r.Method,
-		Url:     r.RequestURI,
-		Body:    body,
-		Headers: fromHeader(r.Header),
-	}
 
+	req, err := HTTPRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	resp, err := c.client.Handle(r.Context(), req)
 	if err != nil {
 		// Some errors will actually contain a valid resp, just need to unpack it
@@ -176,9 +192,7 @@ func (c *Client) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	toHeader(resp.Headers, w.Header())
-	w.WriteHeader(int(resp.Code))
-	if _, err := w.Write(resp.Body); err != nil {
+	if err := WriteResponse(w, resp); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

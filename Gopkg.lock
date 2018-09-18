@@ -908,12 +908,15 @@
   version = "v2.14.0"
 
 [[projects]]
-  digest = "1:0da2810678a062e0567c3215911869b0423da0e497c56683ff8e87e7a6952597"
+  digest = "1:77d4829f7b91e9efa38dfb4c6aec08857359f25b2d9c932f7ed72ad315560b91"
   name = "github.com/uber/jaeger-lib"
-  packages = ["metrics"]
+  packages = [
+    "metrics",
+    "metrics/prometheus",
+  ]
   pruneopts = "NUT"
-  revision = "4267858c0679cd4e47cefed8d7f70fd386cfb567"
-  version = "v1.4.0"
+  revision = "ed3a127ec5fef7ae9ea95b01b542c47fbd999ce5"
+  version = "v1.5.0"
 
 [[projects]]
   digest = "1:48b687b663f398d142bb02c0c7656038629aa4d5a05777ee0830c73ed8f9991b"
@@ -943,7 +946,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ebfaf147f9e07191241b16efb19aaabfff1d9d0ca832b5434eb15fb859e68459"
+  digest = "1:8286c2b45e7b23a47855ebaad03a811b4d0887de496a0aceca669bad30bd1f50"
   name = "github.com/weaveworks/common"
   packages = [
     "errors",
@@ -962,7 +965,7 @@
     "user",
   ]
   pruneopts = "NUT"
-  revision = "0967b510c9d2da39550a74c6638ff9e3da5e6d19"
+  revision = "c3db87d00099921464ea2e6882fc41f7747ee17e"
 
 [[projects]]
   branch = "master"
