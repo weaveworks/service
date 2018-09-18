@@ -6,4 +6,4 @@
 
 Thanks, the Weaveworks team
 
-To disable these notifications, adjust the Settings: {{.SettingsURL}}.
+To get notified in Slack or disable notifications please change your Settings: {{.SettingsURL}}.
