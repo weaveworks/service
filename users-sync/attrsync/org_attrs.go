@@ -52,6 +52,8 @@ func (c *AttributeSyncer) userOrgBillingStatus(ctx context.Context, orgs []*user
 		)
 		if err == nil {
 			orgBillingStatusCount[attributeNames[resp.BillingStatus]]++
+		} else {
+			return nil, err
 		}
 	}
 

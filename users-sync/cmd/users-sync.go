@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/weaveworks/service/common"
+	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
 	"github.com/weaveworks/service/common/dbconfig"
 	"github.com/weaveworks/service/users-sync/api"
 	"github.com/weaveworks/service/users-sync/attrsync"
@@ -37,13 +38,15 @@ func main() {
 		grpcPort             = flag.Int("grpc-port", 4772, "grpc port to listen on")
 		segementWriteKeyFile = flag.String("segment-write-key-file", "", "File containing segment write key")
 
-		dbCfg dbconfig.Config
+		dbCfg      dbconfig.Config
+		billingCfg billing_grpc.Config
 
 		cleanupURLs common.ArrayFlags
 	)
 
 	flag.Var(&cleanupURLs, "cleanup-url", "Endpoints for cleanup after instance deletion")
-	dbCfg.RegisterFlags(flag.CommandLine, "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "/migrations", "Migrations directory.")
+	dbCfg.RegisterFlags(flag.CommandLine, "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "", "Migrations directory.")
+	billingCfg.RegisterFlags(flag.CommandLine)
 
 	flag.Parse()
 
@@ -57,19 +60,25 @@ func main() {
 
 	logger := logging.Logrus(logrus.StandardLogger())
 
+	billingClient, err := billing_grpc.NewClient(billingCfg)
+	if err != nil {
+		logrus.Fatalf("Failed creating billing-api's gRPC client: %v", err)
+	}
+	defer billingClient.Close()
+
 	var segmentClient analytics.Client
-	if segementWriteKeyFile != nil {
+	if *segementWriteKeyFile != "" {
 		segementWriteKeyBytes, err := ioutil.ReadFile(*segementWriteKeyFile)
 		if err != nil {
 			logrus.Fatalln("Failed to read segment write key", err)
 			return
 		}
-		segmentClient := analytics.New(string(segementWriteKeyBytes))
+		segmentClient = analytics.New(string(segementWriteKeyBytes))
 		defer segmentClient.Close()
 	}
 
 	orgCleaner := cleaner.New(cleanupURLs, logger, db)
-	attributeSyncer := attrsync.New(logger, db, nil, segmentClient)
+	attributeSyncer := attrsync.New(logger, db, billingClient, segmentClient)
 	logger.Debugln("Debug logging enabled")
 
 	logger.Infof("Listening on port %d\n", *port)

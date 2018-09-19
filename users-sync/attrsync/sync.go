@@ -120,26 +120,30 @@ func (c *AttributeSyncer) sync() {
 		}
 
 		err := c.syncUsers(ctx, userFilter)
-		c.log.WithField("error", err).Errorln("Error syncing users")
+		if err != nil {
+			c.log.WithField("error", err).Errorln("Error syncing users")
+		}
 	}
 }
 
 func (c *AttributeSyncer) syncUsers(ctx context.Context, userFilter filter.User) error {
-	page := uint64(0)
+	// page starts at 1 because 0 is "all pages"
+	page := uint64(1)
 	for {
 		users, err := c.db.ListUsers(ctx, userFilter, page)
 		if err != nil {
 			return err
 		}
+
+		if len(users) == 0 {
+			break
+		}
+
 		c.log.WithFields(map[string]interface{}{
 			"filter": userFilter,
 			"count":  len(users),
 			"page":   page,
 		}).Debugf("Syncing attributes for users")
-
-		if len(users) == 0 {
-			break
-		}
 
 		for _, user := range users {
 			ctxWithID := commonUser.InjectUserID(ctx, user.ID)
