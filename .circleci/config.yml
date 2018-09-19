@@ -2,7 +2,9 @@ version: 2
 defaults: &defaults
   machine:
     docker_layer_caching: true
-  working_directory: ~/weaveworks/service
+  working_directory: /home/circleci/src/github.com/weaveworks/service
+  environment:
+    GOPATH: /home/circleci/
 jobs:
   lint:
     <<: *defaults
@@ -15,18 +17,15 @@ jobs:
     steps:
       - checkout
       - run: sudo docker info >/dev/null 2>&1 || sudo service docker start;
-      # FIXME: we probably don't need to copy the code and change the working dir
-      - run: echo -e "export GOPATH=$HOME\nexport SRCDIR=$HOME/src/github.com/weaveworks/service\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
-      - run: mkdir -p $(dirname $SRCDIR) && cp -r $(pwd)/ $SRCDIR
       - run: |
-          cd $SRCDIR/build
+          cd build
           ../tools/rebuild-image quay.io/weaveworks/build . build.sh Dockerfile
           touch .uptodate
-      - run: cd $SRCDIR; make RM=
+      - run: make RM=
       - run: |
           set -e
           set -o pipefail
-          cd $SRCDIR; if [ $(./tools/image-tag | grep -e '-WIP$') ]; then
+          if [ $(./tools/image-tag | grep -e '-WIP$') ]; then
             echo "WIP build; exiting with error to mark as a failure"
             git --no-pager diff
             exit 1
@@ -50,13 +49,10 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-      - run: echo -e "export GOPATH=$HOME\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
-      # Link the working directory so that it appears in GOPATH. This is required for cover to map coverage statistics to sources.
-      - run: mkdir -p ${GOPATH}/src/github.com/weaveworks && ln -s $(pwd) ${GOPATH}/src/github.com/weaveworks/service
       - run: go get github.com/mattn/goveralls
       - run: COVERDIR=./coverage make RM= test
       - run: ./tools/cover/gather_coverage.sh ./coverage $CIRCLE_WORKING_DIRECTORY/coverage
-      - run: goveralls -repotoken $COVERALLS_REPO_TOKEN -coverprofile=$CIRCLE_WORKING_DIRECTORY/profile.cov -service=circleci || true
+      - run: ~/bin/goveralls -repotoken $COVERALLS_REPO_TOKEN -coverprofile=$CIRCLE_WORKING_DIRECTORY/profile.cov -service=circleci || true
       - run: mkdir /tmp/coverage && cp coverage.* /tmp/coverage
       - store_artifacts:
           path: /tmp/coverage
@@ -84,15 +80,11 @@ jobs:
               docker tag ${repo_tmp_image} ${image}:latest
               docker image rm ${repo_tmp_image}
             done
-      # FIXME: we probably don't need to copy the code and change the working dir
-      - run: echo -e "export GOPATH=$HOME\nexport SRCDIR=$HOME/src/github.com/weaveworks/service\nexport PATH=/usr/local/go/bin:$HOME/bin:$PATH" >> $BASH_ENV
-      - run: mkdir -p $(dirname $SRCDIR) && cp -r $(pwd)/ $SRCDIR
       - run: go get github.com/nats-io/gnatsd
       - run:
-          command: gnatsd
+          command: ~/bin/gnatsd
           background: true
       - run: |
-          cd $SRCDIR
           make RM= notebooks-integration-test
           make RM= users-integration-test
           make RM= billing-integration-test
