@@ -274,7 +274,15 @@
   version = "v1.6.0"
 
 [[projects]]
-  digest = "1:e4a6856190215d72169e3d6bcc18b1e80c374ec2c683bd911296e2711ffbe5c6"
+  digest = "1:dfd1bfac4ef78bce8efe6c52548baaaba18f634c0101581f4773336c653289c2"
+  name = "github.com/gogo/googleapis"
+  packages = ["google/rpc"]
+  pruneopts = "NUT"
+  revision = "8558fb44d2f1fc223118afc694129d2c2d2924d1"
+  version = "v1.1.0"
+
+[[projects]]
+  digest = "1:3f7c586d2fd571c4f2e3d313c0638b33b999055de507d5f11fafe27e5adc30db"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -284,8 +292,16 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "100ba4e885062801d56799d78530b73b178a78f3"
-  version = "v0.4"
+  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
+  version = "v1.1.1"
+
+[[projects]]
+  digest = "1:93dfbd1ff3309dcd3573c7fec6ae3db24cba9a2373bcf303008ed8e8262b57e0"
+  name = "github.com/gogo/status"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "d60b5acac426cb52f7e28124c6aaa862d9f339f5"
+  version = "v1.0.3"
 
 [[projects]]
   branch = "master"
@@ -304,8 +320,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:c3b51d77c23373726cf7ef2ebc728cc864757e68a13a0e2c06e712bbda6e5453"
+  digest = "1:14d9dd2c6e434160dea649acdcc5ac4edb071174598210c951c5bdaad6c58335"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -318,7 +333,8 @@
     "ptypes/timestamp",
   ]
   pruneopts = "NUT"
-  revision = "ae59567b9aab61b50b2590679a62c3c044030b61"
+  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:f1f04fa88cfeed14f78c4ad8837c23e1b795db142fb6bd674c570fd114920d72"
@@ -945,8 +961,8 @@
   version = "v1.4"
 
 [[projects]]
-  branch = "master"
-  digest = "1:8286c2b45e7b23a47855ebaad03a811b4d0887de496a0aceca669bad30bd1f50"
+  branch = "gogo-power-rangers"
+  digest = "1:f8c29ed19fbb752509a4fad8ef16c90d3ac708aff624e77c89a5cd8c9acfd1f7"
   name = "github.com/weaveworks/common"
   packages = [
     "errors",
@@ -965,7 +981,7 @@
     "user",
   ]
   pruneopts = "NUT"
-  revision = "c3db87d00099921464ea2e6882fc41f7747ee17e"
+  revision = "786bc1c9ebd45c23ba82e27b07a49847b70ced77"
 
 [[projects]]
   branch = "master"
@@ -1105,14 +1121,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:36933ada2a3a3be582db052913c6324e6f41cf1f3e6991e7eefbda3d0bfafda8"
+  digest = "1:4bdbf3a743b920834a5425755782c3ea9bc0e0f2dc1c64401b9b03c825799a14"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "NUT"
-  revision = "b6e1ae21643682ce023deb8d152024597b0e9bb4"
+  revision = "ee1b12c67af419cf5a9be3bdbeea7fc1c5f32f11"
 
 [[projects]]
   branch = "master"
@@ -1221,29 +1237,40 @@
   revision = "1e559d0a00eef8a9a43151db4665280bd8dd5886"
 
 [[projects]]
-  digest = "1:ed4c706ba28d3dd324042eda0e8a866f465318c899ea344ed385acfe9fd14c16"
+  digest = "1:83db4286030add91301b4fd9cc3b06497683691223937b47510a741559bc07ef"
   name = "google.golang.org/grpc"
   packages = [
     ".",
+    "balancer",
+    "balancer/base",
+    "balancer/roundrobin",
     "codes",
     "connectivity",
     "credentials",
     "credentials/oauth",
-    "grpclb/grpc_lb_v1/messages",
+    "encoding",
+    "encoding/proto",
     "grpclog",
     "internal",
+    "internal/backoff",
+    "internal/channelz",
+    "internal/envconfig",
+    "internal/grpcrand",
+    "internal/transport",
     "keepalive",
     "metadata",
     "naming",
     "peer",
+    "resolver",
+    "resolver/dns",
+    "resolver/passthrough",
     "stats",
     "status",
     "tap",
-    "transport",
   ]
   pruneopts = "NUT"
-  revision = "f92cdcd7dcdc69e81b2d7b338479a19a8723cfa3"
-  version = "v1.6.0"
+  revision = "8dea3dc473e90c8179e519d91302d0597c0ca1d1"
+  version = "v1.15.0"
 
 [[projects]]
   branch = "v3"
