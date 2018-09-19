@@ -34,7 +34,7 @@ func (a *API) admin(w http.ResponseWriter, r *http.Request) {
 		<ul>
 			<li><a href="/admin/users/users">Users</a></li>
 			<li><a href="/admin/users/organizations">Organizations</a></li>
-			<li><a href="/admin/users/emails">Emails</a></li>
+			<li><a href="/admin/users/emails">Email</a></li>
 		</ul>
 	</body>
 </html>

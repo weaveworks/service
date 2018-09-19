@@ -61,8 +61,8 @@ func getFluxWorkloadReleasesCount(endpoint string) int {
 }
 
 const (
-	promTopCPUWorkloadsQuery    = "sort_desc(sum by (namespace, _weave_pod_name) (rate(container_cpu_usage_seconds_total{image!=''}[1d])) / ignoring(namespace, _weave_pod_name) group_left count(node_cpu{mode='idle'}))"
-	promTopMemoryWorkloadsQuery = "sort_desc(sum by (namespace, _weave_pod_name) (max_over_time(container_memory_working_set_bytes{image!=''}[1d])) / ignoring(namespace, _weave_pod_name) group_left sum (node_memory_MemTotal))"
+	promTopCPUWorkloadsQuery    = "sort_desc(sum by (namespace, _weave_pod_name) (rate(container_cpu_usage_seconds_total{image!=''}[1w])) / ignoring(namespace, _weave_pod_name) group_left count(node_cpu{mode='idle'}))"
+	promTopMemoryWorkloadsQuery = "sort_desc(sum by (namespace, _weave_pod_name) (avg_over_time(container_memory_working_set_bytes{image!=''}[1w])) / ignoring(namespace, _weave_pod_name) group_left sum (node_memory_MemTotal))"
 )
 
 // WorkloadResourceConsumption blu

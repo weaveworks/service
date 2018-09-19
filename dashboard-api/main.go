@@ -8,7 +8,7 @@ import (
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
-	"github.com/weaveworks/service/dashboard-api/dashboard/prometheus_client"
+	"github.com/weaveworks/service/dashboard-api/dashboard"
 )
 
 type config struct {
