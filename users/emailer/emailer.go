@@ -11,6 +11,7 @@ import (
 
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/templates"
+	"github.com/weaveworks/service/users/weekly-summary"
 )
 
 // ErrUnsupportedEmailProtocol is the error when an email protocol is unsupported.
@@ -23,9 +24,10 @@ type Emailer interface {
 	InviteEmail(inviter, invited *users.User, orgExternalID, orgName, token string) error
 	GrantAccessEmail(inviter, invited *users.User, orgExternalID, orgName string) error
 	TrialExtendedEmail(members []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
-	TrialPendingExpiryEmail(memebrs []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
+	TrialPendingExpiryEmail(members []*users.User, orgExternalID, orgName string, expiresAt time.Time) error
 	TrialExpiredEmail(members []*users.User, orgExternalID, orgName string) error
 	RefuseDataUploadEmail(members []*users.User, orgExternalID, orgName string) error
+	WeeklySummaryEmail(u *users.User, orgExternalID, orgName string, weeklyReport *weeklySummary.Report) error
 }
 
 // MustNew creates a new Emailer, from the URI, or panics.

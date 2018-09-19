@@ -1,0 +1,19 @@
+Hi,
+
+Here is your weekly summary report for ‘{{.OrganizationName}}’:
+
+Number of workload releases: {{.WorkloadReleasesCount}}
+
+3 most CPU heavy workloads:
+    {{.CPUIntensiveWorkload1Value}} - {{.CPUIntensiveWorkload1Name}}
+    {{.CPUIntensiveWorkload2Value}} - {{.CPUIntensiveWorkload2Name}}
+    {{.CPUIntensiveWorkload3Value}} - {{.CPUIntensiveWorkload3Name}}
+
+3 most Memory heavy workloads:
+    {{.MemoryIntensiveWorkload1Value}} - {{.MemoryIntensiveWorkload1Name}}
+    {{.MemoryIntensiveWorkload2Value}} - {{.MemoryIntensiveWorkload2Name}}
+    {{.MemoryIntensiveWorkload3Value}} - {{.MemoryIntensiveWorkload3Name}}
+
+Thanks,
+
+The Weaveworks team

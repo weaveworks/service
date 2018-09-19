@@ -13,6 +13,7 @@ import (
 	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/templates"
+	"github.com/weaveworks/service/users/weekly-summary"
 )
 
 // SMTPEmailer is an emailer which sends over SMTP. It is exposed for testing.
@@ -52,6 +53,37 @@ func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 
 		return e.Send(addr, auth)
 	}, nil
+}
+
+// WeeklySummaryEmail sends the login email
+func (s SMTPEmailer) WeeklySummaryEmail(u *users.User, orgExternalID, orgName string, weeklyReport *weeklySummary.Report) error {
+	weeklyReportContent := weeklySummary.GenerateReport()
+	weeklyReport = &weeklyReportContent
+
+	e := email.NewEmail()
+	e.From = s.FromAddress
+	e.To = []string{u.Email}
+	e.Subject = "Weekly Summary"
+	data := map[string]interface{}{
+		"OrganizationName":              orgName,
+		"OrganizationURL":               organizationURL(s.Domain, orgExternalID),
+		"WorkloadReleasesCount":         weeklyReport.WorkloadReleasesCount,
+		"CPUIntensiveWorkload1Name":     weeklyReport.CPUIntensiveWorkloads[0].Name,
+		"CPUIntensiveWorkload1Value":    weeklyReport.CPUIntensiveWorkloads[0].Value,
+		"CPUIntensiveWorkload2Name":     weeklyReport.CPUIntensiveWorkloads[1].Name,
+		"CPUIntensiveWorkload2Value":    weeklyReport.CPUIntensiveWorkloads[1].Value,
+		"CPUIntensiveWorkload3Name":     weeklyReport.CPUIntensiveWorkloads[2].Name,
+		"CPUIntensiveWorkload3Value":    weeklyReport.CPUIntensiveWorkloads[2].Value,
+		"MemoryIntensiveWorkload1Name":  weeklyReport.MemoryIntensiveWorkloads[0].Name,
+		"MemoryIntensiveWorkload1Value": weeklyReport.MemoryIntensiveWorkloads[0].Value,
+		"MemoryIntensiveWorkload2Name":  weeklyReport.MemoryIntensiveWorkloads[1].Name,
+		"MemoryIntensiveWorkload2Value": weeklyReport.MemoryIntensiveWorkloads[1].Value,
+		"MemoryIntensiveWorkload3Name":  weeklyReport.MemoryIntensiveWorkloads[2].Name,
+		"MemoryIntensiveWorkload3Value": weeklyReport.MemoryIntensiveWorkloads[2].Value,
+	}
+	e.Text = s.Templates.QuietBytes("weekly_summary_email.text", data)
+	e.HTML = s.Templates.EmbedHTML("weekly_summary_email.html", emailWrapperFilename, e.Subject, data)
+	return s.Sender(e)
 }
 
 // LoginEmail sends the login email

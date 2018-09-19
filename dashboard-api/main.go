@@ -8,7 +8,7 @@ import (
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
-	"github.com/weaveworks/service/dashboard-api/dashboard"
+	"github.com/weaveworks/service/dashboard-api/dashboard/prometheus_client"
 )
 
 type config struct {
@@ -21,7 +21,7 @@ type config struct {
 
 func (c *config) registerFlags(f *flag.FlagSet) {
 	flag.StringVar(&c.prometheus.uri, "prometheus.uri", "http://querier.cortex.svc.cluster.local", "Prometheus server URI")
-	flag.DurationVar(&c.prometheus.timeout, "prometheus.timeout", 10*time.Second, "Timout when talking to the prometheus API")
+	flag.DurationVar(&c.prometheus.timeout, "prometheus.timeout", 10*time.Second, "Timeout when talking to the prometheus API")
 
 	c.server.RegisterFlags(f)
 }

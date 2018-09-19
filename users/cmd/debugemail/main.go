@@ -20,6 +20,7 @@ import (
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/templates"
+	"github.com/weaveworks/service/users/weekly-summary"
 )
 
 func main() {
@@ -44,6 +45,37 @@ func main() {
 		ID:    "456",
 		Email: "inviter@weave.works.example",
 	}
+	weeklyReport := &weeklySummary.Report{
+		WorkloadReleasesCount: 200,
+		CPUIntensiveWorkloads: []weeklySummary.WorkloadResourceConsumption{
+			weeklySummary.WorkloadResourceConsumption{
+				Name:  "cortex:deployment/ingester",
+				Value: "10.34%",
+			},
+			weeklySummary.WorkloadResourceConsumption{
+				Name:  "cortex:deployment/distributor",
+				Value: "3.12%",
+			},
+			weeklySummary.WorkloadResourceConsumption{
+				Name:  "monitoring:daemonset/fluentd-loggly",
+				Value: "1.03%",
+			},
+		},
+		MemoryIntensiveWorkloads: []weeklySummary.WorkloadResourceConsumption{
+			weeklySummary.WorkloadResourceConsumption{
+				Name:  "monitoring:deployment/prometheus",
+				Value: "20.95%",
+			},
+			weeklySummary.WorkloadResourceConsumption{
+				Name:  "cortex:deployment/ingester",
+				Value: "13.10%",
+			},
+			weeklySummary.WorkloadResourceConsumption{
+				Name:  "monitoring:daemonset/fluentd-loggly",
+				Value: "3.45%",
+			},
+		},
+	}
 	orgExternalID := "sample-org-99"
 	orgName := "Sample Org 99"
 
@@ -65,6 +97,9 @@ func main() {
 		},
 		"trial_expired": func() error {
 			return em.TrialExpiredEmail([]*users.User{dst}, orgExternalID, orgName)
+		},
+		"weekly": func() error {
+			return em.WeeklySummaryEmail(dst, orgExternalID, orgName, weeklyReport)
 		},
 	}
 
