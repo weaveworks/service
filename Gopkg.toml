@@ -66,17 +66,7 @@ required = ["github.com/ugorji/go/codec/codecgen"]
   branch = "master"
   name = "github.com/weaveworks/billing-client"
 
-# Make sure we have a Scope version with the latest changes to
-# weaveworks/common as we otherwise get build issues, and without any
-# constraint, dep somehow resolves to v0.12.
+# Force common to latest commit otherwise dep picks one from 8 months ago
 [[constraint]]
-  name = "github.com/weaveworks/scope"
-  revision = "058eedc7f14ad7a09e374cbf9e5e4b9ad5c713e6"
-
-# Also ensure we get Scope's transitive dependencies, as we otherwise get build
-# issues -- see also commit message's details.
-# This needs to be an override as there is no direct import, therefore
-# [[constraint]] fails.
-[[override]]
-  name = "github.com/ugorji/go"
-  revision = "54210f4e076c57f351166f0ed60e67d3fca57a36"
+  name = "github.com/weaveworks/common"
+  revision = "2a0cb6145a2f541de5ca19437fee675baf6a1985"
