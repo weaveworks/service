@@ -2,14 +2,24 @@
 
 <p>Here is your weekly summary report for ‘{{.OrganizationName}}’:</p>
 
+<p>Number of workload releases: {{.WorkloadReleasesCount}}</p>
+
 <ul>
   <li>
     <span>3 most CPU heavy workloads: </span>
-    <span>‘{{.CpuIntensiveWorkloads}}’</span>
+    <ul>
+      <li>{{.CPUIntensiveWorkload1Value}} - {{.CPUIntensiveWorkload1Name}}</li>
+      <li>{{.CPUIntensiveWorkload2Value}} - {{.CPUIntensiveWorkload2Name}}</li>
+      <li>{{.CPUIntensiveWorkload3Value}} - {{.CPUIntensiveWorkload3Name}}</li>
+    </ul>
   </li>
   <li>
     <span>3 most Memory heavy workloads: </span>
-    <span>‘{{.MemoryIntensiveWorkloads}}’</span>
+    <ul>
+      <li>{{.MemoryIntensiveWorkload1Value}} - {{.MemoryIntensiveWorkload1Name}}</li>
+      <li>{{.MemoryIntensiveWorkload2Value}} - {{.MemoryIntensiveWorkload2Name}}</li>
+      <li>{{.MemoryIntensiveWorkload3Value}} - {{.MemoryIntensiveWorkload3Name}}</li>
+    </ul>
   </li>
 </ul>
 

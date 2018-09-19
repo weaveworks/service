@@ -21,6 +21,7 @@ import (
 	"github.com/weaveworks/service/users/client"
 	"github.com/weaveworks/service/users/db/filter"
 	"github.com/weaveworks/service/users/login"
+	"github.com/weaveworks/service/users/weekly-summary"
 )
 
 func (a *API) admin(w http.ResponseWriter, r *http.Request) {
@@ -28,13 +29,13 @@ func (a *API) admin(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `
 <!doctype html>
 <html>
-	<head><title>User service</title></head>
+	<head><title>Users Service</title></head>
 	<body>
-		<h1>User service</h1>
+		<h1>Users Service</h1>
 		<ul>
 			<li><a href="/admin/users/users">Users</a></li>
 			<li><a href="/admin/users/organizations">Organizations</a></li>
-			<li><a href="/admin/users/emails">Email</a></li>
+			<li><a href="/admin/users/emails">Emails</a></li>
 		</ul>
 	</body>
 </html>
@@ -151,6 +152,52 @@ func (a *API) adminRemoveUserFromOrganization(w http.ResponseWriter, r *http.Req
 		return
 	}
 	http.Redirect(w, r, "/admin/users/organizations/"+orgExternalID+"/users", http.StatusFound)
+}
+
+func (a *API) adminListEmails(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "text/html")
+	fmt.Fprintf(w, `
+<!doctype html>
+<html>
+	<head><title>Send Emails - Weave Cloud</title></head>
+	<body>
+		<h1>Send Emails</h1>
+		<ul>
+			<li><a href="/admin/users/emails/weekly-summary">Weekly Summary</a></li>
+		</ul>
+	</body>
+</html>
+`)
+}
+
+func (a *API) adminWeeklySummaryEmailTemplate(w http.ResponseWriter, r *http.Request) {
+	b, err := a.templates.Bytes("weekly_summary_email_form.html", map[string]interface{}{
+		"UserID": r.FormValue("UserID"),
+	})
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	if _, err := w.Write(b); err != nil {
+		commonuser.LogWith(r.Context(), logging.Global()).Warnf("weekly summary email: %v", err)
+	}
+}
+
+func (a *API) adminSendWeeklySummaryEmail(w http.ResponseWriter, r *http.Request) {
+	userID := r.FormValue("UserID")
+	user, err := a.db.FindUserByID(r.Context(), userID)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	weeklyReport := weeklySummary.GenerateReport(time.Now())
+	err = a.emailer.WeeklySummaryEmail(user, "proud-wind-05", "Proud Wind 05", &weeklyReport)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
+	fmt.Printf("%v\n", user)
+	http.Redirect(w, r, "/admin/users/emails/weekly-summary", http.StatusFound)
 }
 
 func (a *API) adminListOrganizations(w http.ResponseWriter, r *http.Request) {

@@ -46,6 +46,8 @@ func main() {
 		Email: "inviter@weave.works.example",
 	}
 	weeklyReport := &weeklySummary.Report{
+		StartAt: time.Now().AddDate(0, 0, -7),
+		EndAt:   time.Now(),
 		WorkloadReleasesCount: 200,
 		CPUIntensiveWorkloads: []weeklySummary.WorkloadResourceConsumption{
 			weeklySummary.WorkloadResourceConsumption{
@@ -54,11 +56,11 @@ func main() {
 			},
 			weeklySummary.WorkloadResourceConsumption{
 				Name:  "cortex:deployment/distributor",
-				Value: "3.12%",
+				Value: " 3.12%",
 			},
 			weeklySummary.WorkloadResourceConsumption{
 				Name:  "monitoring:daemonset/fluentd-loggly",
-				Value: "1.03%",
+				Value: " 1.03%",
 			},
 		},
 		MemoryIntensiveWorkloads: []weeklySummary.WorkloadResourceConsumption{
@@ -72,7 +74,7 @@ func main() {
 			},
 			weeklySummary.WorkloadResourceConsumption{
 				Name:  "monitoring:daemonset/fluentd-loggly",
-				Value: "3.45%",
+				Value: " 3.45%",
 			},
 		},
 	}

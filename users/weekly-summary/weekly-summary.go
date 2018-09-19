@@ -50,9 +50,10 @@ func (c *prometheusClient) Do(ctx context.Context, r *http.Request) (*http.Respo
 	return c.client.Do(ctx, r)
 }
 
-func getFluxWorkloadReleasesCount(endpoint string) int {
-	after := time.Now().AddDate(0, 0, -7).UTC().Format(time.RFC3339)                          // A week ago
-	query := fmt.Sprintf("%s/v6/history?service=<all>&simple=true&after=%s", endpoint, after) // Weave Cloud Dev
+func getFluxWorkloadReleasesCount(endpoint string, startAt time.Time, endAt time.Time) int {
+	after := startAt.UTC().Format(time.RFC3339)
+	before := endAt.UTC().Format(time.RFC3339)
+	query := fmt.Sprintf("%s/v6/history?service=<all>&simple=true&after=%s&before=%s", endpoint, after, before) // Weave Cloud Dev
 	response, _ := http.Get(query)
 
 	var data []interface{}
@@ -74,7 +75,7 @@ type WorkloadResourceConsumption struct {
 func getWorkloadResourceConsumptionFromSample(sample *model.Sample) WorkloadResourceConsumption {
 	return WorkloadResourceConsumption{
 		Name:  fmt.Sprintf("%s:deployment/%s", sample.Metric["namespace"], sample.Metric["_weave_pod_name"]),
-		Value: fmt.Sprintf("%.2f%%", 100*float64(sample.Value)),
+		Value: fmt.Sprintf("%2.2f%%", 100*float64(sample.Value)),
 	}
 }
 
@@ -96,13 +97,16 @@ func getTopResourceIntensiveWorkloads(ctx context.Context, api v1.API, query str
 
 // Report blu
 type Report struct {
+	StartAt                  time.Time
+	EndAt                    time.Time
 	CPUIntensiveWorkloads    []WorkloadResourceConsumption
 	MemoryIntensiveWorkloads []WorkloadResourceConsumption
 	WorkloadReleasesCount    int
 }
 
 // GenerateReport blu
-func GenerateReport() Report {
+func GenerateReport(EndAt time.Time) Report {
+	StartAt := EndAt.AddDate(0, 0, -7) // A week before
 	ctx := user.InjectOrgID(context.Background(), "[ignored anyway]")
 	promAPI := getPromAPI(ctx, "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/prom") // Weave Cloud Dev
 	fluxAPI := "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/flux"                  // Weave Cloud Dev
@@ -110,6 +114,8 @@ func GenerateReport() Report {
 	return Report{
 		CPUIntensiveWorkloads:    getTopResourceIntensiveWorkloads(ctx, promAPI, promTopCPUWorkloadsQuery),
 		MemoryIntensiveWorkloads: getTopResourceIntensiveWorkloads(ctx, promAPI, promTopMemoryWorkloadsQuery),
-		WorkloadReleasesCount:    getFluxWorkloadReleasesCount(fluxAPI),
+		WorkloadReleasesCount:    getFluxWorkloadReleasesCount(fluxAPI, StartAt, EndAt),
+		StartAt:                  StartAt,
+		EndAt:                    EndAt,
 	}
 }

@@ -39,6 +39,7 @@ func adminRoot(w http.ResponseWriter, r *http.Request) {
 				<ul>
 					<li><a href="/admin/users/users">Users</a></li>
 					<li><a href="/admin/users/organizations">Organizations</a></li>
+					<li><a href="/admin/users/emails">Emails</a></li>
 				</ul>
 			</li>
 			<li><a href="https://frontend.dev.weave.works/flux/proud-wind-05">Deploy (Dev)</a>
