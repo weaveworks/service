@@ -18,7 +18,9 @@ func instrumetation(errorKey string, durationCollector *instrument.HistogramColl
 		// Not entirely sure what this bit does, so leaving it as optional for now
 		interceptors = append(interceptors, NewErrorInterceptor(errorKey))
 	}
-	interceptors = append(interceptors, NewMetricsInterceptor(durationCollector))
+	if durationCollector != nil {
+		interceptors = append(interceptors, NewMetricsInterceptor(durationCollector))
+	}
 	return []grpc.DialOption{
 		grpc.WithUnaryInterceptor(
 			grpc_middleware.ChainUnaryClient(
