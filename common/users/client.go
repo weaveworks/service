@@ -45,7 +45,7 @@ func init() {
 
 // NewClient instantiates Client.
 func NewClient(cfg Config) (*Client, error) {
-	conn, err := common_grpc.NewInsecureConn(cfg.HostPort, UsersErrorCode, durationCollector)
+	conn, err := common_grpc.NewInsecureConn(cfg.HostPort, true, UsersErrorCode, durationCollector)
 	if err != nil {
 		return nil, err
 	}

@@ -54,7 +54,7 @@ func init() {
 // NewClient creates... a new client.
 func NewClient(cfg Config) (*Client, error) {
 	log.WithField("url", cfg.HostPort).Infof("creating gRPC client")
-	conn, err := common_grpc.NewInsecureConn(cfg.HostPort, "", durationCollector)
+	conn, err := common_grpc.NewInsecureConn(cfg.HostPort, false, "", durationCollector)
 	if err != nil {
 		return nil, err
 	}

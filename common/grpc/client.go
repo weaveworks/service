@@ -28,19 +28,28 @@ func instrumetation(errorKey string, durationCollector *instrument.HistogramColl
 	}
 }
 
-func dial(url string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	address, dialOptions, err := server.ParseURL(url)
-	if err != nil {
-		return nil, err
+func dial(urlOrHostPort string, loadBalance bool, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	var dialOptions []grpc.DialOption
+	var address string
+	// Passing this flag is a bit ugly, but we might re-do the load balancing soon
+	if loadBalance {
+		var err error
+		address, dialOptions, err = server.ParseURL(urlOrHostPort)
+		if err != nil {
+			return nil, err
+		}
+		dialOptions = append(dialOptions, opts...)
+	} else {
+		dialOptions = opts
+		address = urlOrHostPort
 	}
-	dialOptions = append(dialOptions, opts...)
 	return grpc.Dial(address, dialOptions...)
 }
 
 // NewInsecureConn instantiates ClientConn with middleware.
-func NewInsecureConn(url string, errorKey string, durationCollector *instrument.HistogramCollector) (*grpc.ClientConn, error) {
+func NewInsecureConn(urlOrHostPort string, loadBalance bool, errorKey string, durationCollector *instrument.HistogramCollector) (*grpc.ClientConn, error) {
 	opts := append(
 		[]grpc.DialOption{grpc.WithInsecure()},
 		instrumetation(errorKey, durationCollector)...)
-	return dial(url, opts...)
+	return dial(urlOrHostPort, loadBalance, opts...)
 }

@@ -30,7 +30,7 @@ func New(kind, address string, opts CachingClientConfig) (users.UsersClient, err
 }
 
 func newGRPCClient(address string) (users.UsersClient, error) {
-	conn, err := common_grpc.NewInsecureConn(address, "", nil)
+	conn, err := common_grpc.NewInsecureConn(address, true, "", nil)
 	if err != nil {
 		return nil, err
 	}

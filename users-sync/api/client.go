@@ -48,7 +48,7 @@ type Client struct {
 
 // NewClient instantiates Client.
 func NewClient(cfg Config) (CloseableUsersSyncClient, error) {
-	conn, err := common_grpc.NewInsecureConn(cfg.HostPort, "", durationCollector)
+	conn, err := common_grpc.NewInsecureConn(cfg.HostPort, false, "", durationCollector)
 	if err != nil {
 		return nil, err
 	}
