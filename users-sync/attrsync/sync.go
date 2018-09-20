@@ -2,6 +2,7 @@ package attrsync
 
 import (
 	"context"
+	"github.com/opentracing/opentracing-go"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -118,8 +119,10 @@ func (c *AttributeSyncer) sync() {
 			cancel()
 			return
 		}
+		span, syncCtx := opentracing.StartSpanFromContext(ctx, "Sync")
+		span.LogKV("userFilter", userFilter)
 
-		err := c.syncUsers(ctx, userFilter)
+		err := c.syncUsers(syncCtx, userFilter)
 		if err != nil {
 			c.log.WithField("error", err).Errorln("Error syncing users")
 		}
@@ -139,6 +142,8 @@ func (c *AttributeSyncer) syncUsers(ctx context.Context, userFilter filter.User)
 			break
 		}
 
+		span, pageCtx := opentracing.StartSpanFromContext(ctx, "SyncUsersPage")
+		span.LogKV("count", len(users), "page", page)
 		c.log.WithFields(map[string]interface{}{
 			"filter": userFilter,
 			"count":  len(users),
@@ -146,7 +151,7 @@ func (c *AttributeSyncer) syncUsers(ctx context.Context, userFilter filter.User)
 		}).Debugf("Syncing attributes for users")
 
 		for _, user := range users {
-			ctxWithID := commonUser.InjectUserID(ctx, user.ID)
+			ctxWithID := commonUser.InjectUserID(pageCtx, user.ID)
 			instrument.CollectedRequest(
 				ctxWithID,
 				"syncUser",

@@ -2,6 +2,7 @@ package cleaner
 
 import (
 	"context"
+	"github.com/opentracing/opentracing-go"
 	"github.com/weaveworks/common/logging"
 	"net/http"
 	"time"
@@ -121,6 +122,7 @@ func (c *OrgCleaner) Trigger() {
 }
 
 func (c *OrgCleaner) findAndClean(ctx context.Context) {
+	_, ctx = opentracing.StartSpanFromContext(ctx, "FindAndClean")
 	findAndCleanTotal.Inc()
 	ids, err := c.db.FindUncleanedOrgIDs(ctx)
 	if err != nil {
@@ -128,6 +130,7 @@ func (c *OrgCleaner) findAndClean(ctx context.Context) {
 		errorFindUncleanedOrgIDsTotal.Inc()
 		return
 	}
+
 	uncleanedOrgs.Set(float64(len(ids)))
 	for _, id := range ids {
 		c.clean(ctx, id)
@@ -135,6 +138,9 @@ func (c *OrgCleaner) findAndClean(ctx context.Context) {
 }
 
 func (c *OrgCleaner) clean(ctx context.Context, id string) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Clean")
+	span.LogKV("OrgId", id)
+
 	done := c.runCleanupJobs(ctx, id)
 	if done {
 		if err := c.db.SetOrganizationCleanup(ctx, id, true); err != nil {
