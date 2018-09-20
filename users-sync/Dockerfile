@@ -3,6 +3,7 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /
 COPY cmd/users-sync /
 EXPOSE 80
+EXPOSE 4772
 ENTRYPOINT ["/users-sync"]
 
 ARG revision

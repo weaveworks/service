@@ -1,5 +1,6 @@
 FROM alpine:3.6
 EXPOSE 80
+EXPOSE 4772
 ENTRYPOINT ["/billing-api"]
 RUN apk add --update \
     ca-certificates \
