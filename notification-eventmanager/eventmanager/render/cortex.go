@@ -29,8 +29,7 @@ const alertEmailContentTmpl = `
 	{{- end -}}</p>
 {{ end }}
 
-
-<p>
+<p style="border-left: 3px solid {{ if (eq .Status "firing") -}} red {{- else -}} green {{- end -}}; padding-left: 4px;">
 	<strong>Impact</strong>:
 		{{ if .CommonAnnotations.impact }} {{ .CommonAnnotations.impact -}}
 		{{ else }} No impact defined. Please add one or disable this alert.
@@ -397,10 +396,11 @@ func (r *Render) EmailFromAlert(wa types.WebhookAlert, etype, instanceName, link
 	}
 
 	emailData := map[string]interface{}{
-		"Timestamp":     firstAlertTimestamp(wa).Format(time.RFC822),
-		"Text":          template.HTML(text),
-		"WeaveCloudURL": wa.WeaveCloudURL,
-		"SettingsURL":   wa.SettingsURL,
+		"Timestamp":       firstAlertTimestamp(wa).Format(time.RFC822),
+		"Text":            template.HTML(text),
+		"WeaveCloudURL":   wa.WeaveCloudURL,
+		"SettingsURL":     wa.SettingsURL,
+		"AlertsConfigURL": wa.AlertsConfigURL,
 	}
 
 	body := r.Templates.EmbedHTML("email.html", "wrapper.html", alertTitle, emailData)
