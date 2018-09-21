@@ -1,9 +1,13 @@
 {{.Text}}
 
 {{- range $text, $url:= .WeaveCloudURL -}}
-	{{$text}}: {{$url}}
+  {{ if $url -}}
+    {{$text}}: {{$url}}
+  {{- end -}}
 {{- end -}}
 
-Thanks, the Weaveworks team
+Thanks,
+The Weaveworks team
 
-To get notified in Slack or disable notifications please change your Settings: {{.SettingsURL}}.
+Change which alerts are raised in the Alert configuration: {{.AlertsConfigURL}}
+To get notified in Slack or disable notifications please change your Notification settings: {{.SettingsURL}}

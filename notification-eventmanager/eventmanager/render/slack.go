@@ -23,12 +23,13 @@ const (
 var slackURL = regexp.MustCompile(`<([^|]+)?\|([^>]+)>`)
 
 // EmailFromSlack returns message for email
-func (r *Render) EmailFromSlack(title, htmlText, etype, instanceName, eventURL, eventURLText, settingsURL string, timestamp time.Time) (json.RawMessage, error) {
+func (r *Render) EmailFromSlack(title, htmlText, etype, instanceName, eventURL, eventURLText, settingsURL string, alertsConfigURL string, timestamp time.Time) (json.RawMessage, error) {
 	emailData := map[string]interface{}{
-		"Timestamp":     timestamp.Format(time.RFC822),
-		"Text":          template.HTML(htmlText),
-		"WeaveCloudURL": map[string]string{eventURLText: eventURL},
-		"SettingsURL":   settingsURL,
+		"Timestamp":        timestamp.Format(time.RFC822),
+		"Text":             template.HTML(htmlText),
+		"WeaveCloudURL":    map[string]string{eventURLText: eventURL},
+		"SettingsURL":      settingsURL,
+		"AlertsConfigURL:": alertsConfigURL,
 	}
 
 	body := r.Templates.EmbedHTML("email.html", "wrapper.html", title, emailData)

@@ -64,6 +64,12 @@ func (em *EventManager) handleWebhookEvent(r *http.Request) (interface{}, int, e
 		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot get Weave Cloud notification page link")
 	}
 
+	alertsConfigLink, err := em.getInstanceLink(instanceData.Organization.ExternalID, alertsConfigPath)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot get Weave Cloud alert config page link")
+	}
+
 	var linkText, linkPath string
 	// link to Monitor page with Firing alerts for Cortex events
 	switch eventType {
@@ -81,7 +87,7 @@ func (em *EventManager) handleWebhookEvent(r *http.Request) (interface{}, int, e
 		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot get Weave Cloud deploy page link")
 	}
 
-	e, err := em.Render.BuildCortexEvent(wa, eventType, instanceID, instanceData.Organization.Name, notifLink, link, linkText)
+	e, err := em.Render.BuildCortexEvent(wa, eventType, instanceID, instanceData.Organization.Name, notifLink, alertsConfigLink, link, linkText)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
 		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot build webhook event")

@@ -16,7 +16,7 @@ import (
 
 //alertsLimit is a number of alerts we show in slack, browser and opsgenie notification (not email)
 const (
-	alertTitle  = "Weave Cloud alert"
+	alertTitle  = "Alert from Monitor"
 	alertsLimit = 10
 )
 
@@ -30,29 +30,32 @@ const alertEmailContentTmpl = `
 {{ end }}
 
 
-<p><b>Impact</b>: {{ if .CommonAnnotations.impact }} {{ .CommonAnnotations.impact -}}
-{{ else }} No impact defined. Please add one or disable this alert. {{ end -}}</p>
+<p>
+	<strong>Impact</strong>:
+		{{ if .CommonAnnotations.impact }} {{ .CommonAnnotations.impact -}}
+		{{ else }} No impact defined. Please add one or disable this alert.
+		{{ end -}}
+		<br />
 
-{{- if index (index .Alerts 0).Annotations "detail" -}}
-  {{- range $i, $alert := .Alerts -}}
-  	<ul>
-      <li> <code>{{- index $alert.Annotations "detail" -}}</code></li>
-	</ul>
-  {{ end -}}
-{{- end -}}
+	{{- if index (index .Alerts 0).Annotations "detail" -}}
+		{{- range $i, $alert := .Alerts -}}
+			<code>{{- index $alert.Annotations "detail" -}}</code><br />
+		{{ end -}}
+	{{- end -}}
 
-{{- if .CommonAnnotations.playbookURL }} <a href="{{.CommonAnnotations.playbookURL}}">Playbook</a> {{- end -}}
-{{- if .CommonAnnotations.dashboardURL }} <a href="{{.CommonAnnotations.dashboardURL}}">Dashboard</a> {{- end -}}
+	{{- if .CommonAnnotations.playbookURL }} <a href="{{.CommonAnnotations.playbookURL}}">Playbook</a> {{- end -}}
+	{{- if .CommonAnnotations.dashboardURL }} <a href="{{.CommonAnnotations.dashboardURL}}">Dashboard</a> {{- end -}}
 
-{{- with index .Alerts 0 -}}
-  {{- range $n, $val := .Annotations -}}
-		{{- if (and (ne $n "summary") (ne $n "impact") (ne $n "playbookURL") (ne $n "dashboardURL") (ne $n "detail")) -}}
-			<dl>
-    		<dt><b>{{- $n }}</b>: {{ $val -}}</dt>
-			</dl>
-    {{- end -}}
-  {{- end -}}
-{{- end }}
+	{{- with index .Alerts 0 -}}
+		{{- range $n, $val := .Annotations -}}
+			{{- if (and (ne $n "summary") (ne $n "impact") (ne $n "playbookURL") (ne $n "dashboardURL") (ne $n "detail")) -}}
+				<dl>
+					<dt><b>{{- $n }}</b>: {{ $val -}}</dt>
+				</dl>
+			{{- end -}}
+		{{- end -}}
+	{{- end }}
+</p>
 `
 
 var alertmanagerToPagerDutyStatus = map[string]string{
@@ -61,12 +64,13 @@ var alertmanagerToPagerDutyStatus = map[string]string{
 }
 
 // BuildCortexEvent builds event for cortex alerts received to webhook
-func (r *Render) BuildCortexEvent(wa types.WebhookAlert, etype, instanceID, instanceName, notificationPageLink, link, linkText string) (types.Event, error) {
+func (r *Render) BuildCortexEvent(wa types.WebhookAlert, etype, instanceID, instanceName, notificationPageLink, alertsConfigLink, link, linkText string) (types.Event, error) {
 	if len(wa.Alerts) == 0 {
 		return types.Event{}, errors.New("event is empty, alerts not found")
 	}
 
 	wa.SettingsURL = notificationPageLink
+	wa.AlertsConfigURL = alertsConfigLink
 	wa.WeaveCloudURL = map[string]string{
 		linkText: link,
 	}
