@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -11,8 +13,16 @@ import (
 	"time"
 
 	gorillaws "github.com/gorilla/websocket"
+	"github.com/opentracing/opentracing-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	jaegercfg "github.com/uber/jaeger-client-go/config"
+	"github.com/weaveworks/common/httpgrpc"
+	httpgrpc_server "github.com/weaveworks/common/httpgrpc/server"
+	"github.com/weaveworks/common/middleware"
+	"github.com/weaveworks/common/user"
 	"golang.org/x/net/websocket"
+	"google.golang.org/grpc"
 )
 
 func TestProxyWebSocket(t *testing.T) {
@@ -115,4 +125,94 @@ func TestProxyReadOnly(t *testing.T) {
 	assert.NoError(t, err, "Failed to get URL")
 	assert.Equal(t, resp.StatusCode, http.StatusServiceUnavailable)
 	assert.True(t, atomic.LoadUint32(&handlerCalled) == 1, "Server was called")
+}
+
+type testGRPCServer struct {
+	*httpgrpc_server.Server
+	URL        string
+	grpcServer *grpc.Server
+}
+
+func newTestGRPCServer(handler http.Handler) (*testGRPCServer, error) {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, err
+	}
+
+	server := &testGRPCServer{
+		Server:     httpgrpc_server.NewServer(middleware.Tracer{}.Wrap(handler)),
+		grpcServer: grpc.NewServer(),
+		URL:        "direct://" + lis.Addr().String(),
+	}
+
+	httpgrpc.RegisterHTTPServer(server.grpcServer, server.Server)
+	go server.grpcServer.Serve(lis)
+
+	return server, nil
+}
+
+func TestProxyGRPCTracing(t *testing.T) {
+	jaeger := jaegercfg.Configuration{}
+	closer, err := jaeger.InitGlobalTracer("test")
+	defer closer.Close()
+	require.NoError(t, err)
+
+	server, err := newTestGRPCServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			span := opentracing.SpanFromContext(r.Context())
+			if span == nil {
+				w.WriteHeader(418)
+				fmt.Fprint(w, "Span missing!")
+			} else {
+				w.WriteHeader(200)
+				fmt.Fprint(w, span.BaggageItem("name"))
+			}
+		}),
+	)
+
+	require.NoError(t, err)
+	defer server.grpcServer.GracefulStop()
+
+	// Setup a proxy server pointing at the server
+	proxy, err := newProxy(proxyConfig{grpcHost: server.URL, protocol: "http"})
+	require.NoError(t, err)
+	proxyServer := httptest.NewServer(
+		middleware.Merge(
+			middleware.Func(func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					// Act like authfe and inject the orgID header
+					ctx := user.InjectOrgID(r.Context(), "fakeOrg")
+					err := user.InjectOrgIDIntoHTTPRequest(ctx, r)
+
+					// Either start or continue a span
+					span := opentracing.SpanFromContext(ctx)
+					if span == nil {
+						span, ctx = opentracing.StartSpanFromContext(ctx, "Test")
+					}
+					r = r.WithContext(ctx)
+					// Add some baggage to be sure everything is propagated
+					span.SetBaggageItem("name", "world")
+
+					require.NoError(t, err)
+					next.ServeHTTP(w, r)
+				})
+			}),
+		).Wrap(proxy),
+	)
+
+	defer proxyServer.Close()
+	ctx := context.Background()
+	ctx = user.InjectOrgID(ctx, "fakeOrg")
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", proxyServer.URL, "/foo"), nil)
+	require.NoError(t, err)
+	req = req.WithContext(ctx)
+
+	resp, err := http.DefaultClient.Do(req)
+	assert.NoError(t, err, "error making request")
+
+	body := make([]byte, 50)
+	c, _ := resp.Body.Read(body)
+	assert.Equal(t, 200, resp.StatusCode)
+	assert.Equal(t, "world", string(body[:c]))
 }
