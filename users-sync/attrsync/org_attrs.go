@@ -42,7 +42,7 @@ func (c *AttributeSyncer) userOrgBillingStatus(ctx context.Context, orgs []*user
 	orgBillingStatusCount := map[string]int{}
 	for statusInt, name := range billing_grpc.BillingStatus_name {
 		status := billing_grpc.BillingStatus(statusInt)
-		attributeName := fmt.Sprintf(orgsAttrPrefix+"status_%s_total", strings.ToLower(name))
+		attributeName := fmt.Sprintf("%sstatus_%s_total", orgsAttrPrefix, strings.ToLower(name))
 		attributeNames[status] = attributeName
 		orgBillingStatusCount[attributeName] = 0
 	}
@@ -50,11 +50,10 @@ func (c *AttributeSyncer) userOrgBillingStatus(ctx context.Context, orgs []*user
 		resp, err := c.billingClient.GetInstanceBillingStatus(
 			ctx, &billing_grpc.InstanceBillingStatusRequest{InternalID: org.ID},
 		)
-		if err == nil {
-			orgBillingStatusCount[attributeNames[resp.BillingStatus]]++
-		} else {
+		if err != nil {
 			return nil, err
 		}
+		orgBillingStatusCount[attributeNames[resp.BillingStatus]]++
 	}
 
 	return orgBillingStatusCount, nil

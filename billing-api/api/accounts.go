@@ -11,7 +11,12 @@ import (
 	"github.com/weaveworks/service/common/zuora"
 )
 
-// GetBillingStatus returns a single overall summary of the user's account.
+// GetBillingStatus returns the billing status of the user's account, e.g. are they still in-trial, actively paying us, or was there a problem with payment.
+// - TRIAL_ACTIVE - The trial is still active
+// - TRIAL_EXPIRED - The trial has expired
+// - SUBSCRIPTION_INACTIVE - The account has a billing account but they are not actively paying us
+// - PAYMENT_ERROR - There is a problem with payment
+// - ACTIVE - The user is paying us for service and everything is okay
 func GetBillingStatus(ctx context.Context, trialInfo trial.Trial, acct *zuora.Account) (grpc.BillingStatus, string, string) {
 	// Having days left on the trial means we don't have to care about Zuora.
 	if trialInfo.Remaining > 0 {

@@ -67,12 +67,12 @@ func (s LoggedInSince) Where() squirrel.Sqlizer {
 // Squirrel has no NOT filter, so we can't have a general NOT filter either
 type NotLoggedInSince time.Time
 
-// MatchesUser users who have logged in since the given time.
+// MatchesUser users who have not logged in since the given time.
 func (s NotLoggedInSince) MatchesUser(u users.User) bool {
-	return u.LastLoginAt.Before(time.Time(s)) || u.LastLoginAt.Equal(time.Time(s))
+	return time.Time(s).After(u.LastLoginAt)
 }
 
-// Where returns the query to filter for users who have logged in since the given time.
+// Where returns the query to filter for users who have not logged in since the given time.
 func (s NotLoggedInSince) Where() squirrel.Sqlizer {
 	return squirrel.LtOrEq{"last_login_at": time.Time(s)}
 }

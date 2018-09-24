@@ -10,7 +10,7 @@ import (
 	"github.com/weaveworks/common/instrument"
 )
 
-func instrumetation(errorKey string, durationCollector *instrument.HistogramCollector) []grpc.DialOption {
+func instrumentation(errorKey string, durationCollector *instrument.HistogramCollector) []grpc.DialOption {
 	interceptors := []grpc.UnaryClientInterceptor{
 		otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer()),
 	}
@@ -50,6 +50,6 @@ func dial(urlOrHostPort string, loadBalance bool, opts ...grpc.DialOption) (*grp
 func NewInsecureConn(urlOrHostPort string, loadBalance bool, errorKey string, durationCollector *instrument.HistogramCollector) (*grpc.ClientConn, error) {
 	opts := append(
 		[]grpc.DialOption{grpc.WithInsecure()},
-		instrumetation(errorKey, durationCollector)...)
+		instrumentation(errorKey, durationCollector)...)
 	return dial(urlOrHostPort, loadBalance, opts...)
 }
