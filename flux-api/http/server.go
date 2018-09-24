@@ -22,6 +22,7 @@ import (
 
 	fluxapi "github.com/weaveworks/flux/api"
 	"github.com/weaveworks/flux/api/v10"
+	"github.com/weaveworks/flux/api/v11"
 	fluxerr "github.com/weaveworks/flux/errors"
 	"github.com/weaveworks/flux/event"
 	transport "github.com/weaveworks/flux/http"
@@ -108,6 +109,8 @@ func (s Server) MakeHandler(r *mux.Router) http.Handler {
 		transport.GitRepoConfig:   s.gitRepoConfig,
 		// flux/api/ServerV10
 		transport.ListImagesWithOptions: s.listImagesWithOptions,
+		// flux/api/ServerV11
+		transport.ListServicesWithOptions: s.listServicesWithOptions,
 		// fluxctl legacy routes
 		transport.UpdateImages:           s.updateImages,
 		transport.UpdatePolicies:         s.updatePolicies,
@@ -120,6 +123,7 @@ func (s Server) MakeHandler(r *mux.Router) http.Handler {
 		transport.RegisterDaemonV8:  s.registerV8,
 		transport.RegisterDaemonV9:  s.registerV9,
 		transport.RegisterDaemonV10: s.registerV10,
+		transport.RegisterDaemonV11: s.registerV11,
 		transport.LogEvent:          s.logEvent,
 		// UI routes
 		Status:  s.status,
@@ -144,6 +148,29 @@ func (s Server) listServices(w http.ResponseWriter, r *http.Request) {
 	ctx := getRequestContext(r)
 	namespace := mux.Vars(r)["namespace"]
 	res, err := s.daemonProxy.ListServices(ctx, namespace)
+	if err != nil {
+		transport.ErrorResponse(w, r, err)
+		return
+	}
+	transport.JSONResponse(w, r, res)
+}
+
+func (s Server) listServicesWithOptions(w http.ResponseWriter, r *http.Request) {
+	var opts v11.ListServicesOptions
+	ctx := getRequestContext(r)
+	queryValues := r.URL.Query()
+
+	opts.Namespace = queryValues.Get("namespace")
+	for _, svc := range strings.Split(queryValues.Get("services"), ",") {
+		id, err := flux.ParseResourceID(svc)
+		if err != nil {
+			transport.WriteError(w, r, http.StatusBadRequest, errors.Wrapf(err, "parsing service spec %q", svc))
+			return
+		}
+		opts.Services = append(opts.Services, id)
+	}
+
+	res, err := s.daemonProxy.ListServicesWithOptions(ctx, opts)
 	if err != nil {
 		transport.ErrorResponse(w, r, err)
 		return
@@ -446,6 +473,12 @@ func (s Server) registerV9(w http.ResponseWriter, r *http.Request) {
 func (s Server) registerV10(w http.ResponseWriter, r *http.Request) {
 	s.doRegister(w, r, func(conn io.ReadWriteCloser) fluxapi.UpstreamServer {
 		return rpc.NewClientV10(conn)
+	})
+}
+
+func (s Server) registerV11(w http.ResponseWriter, r *http.Request) {
+	s.doRegister(w, r, func(conn io.ReadWriteCloser) fluxapi.UpstreamServer {
+		return rpc.NewClientV11(conn)
 	})
 }
 

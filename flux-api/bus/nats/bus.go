@@ -10,6 +10,7 @@ import (
 
 	"github.com/weaveworks/flux/api"
 	"github.com/weaveworks/flux/api/v10"
+	"github.com/weaveworks/flux/api/v11"
 	"github.com/weaveworks/flux/api/v6"
 	"github.com/weaveworks/flux/api/v9"
 	fluxerr "github.com/weaveworks/flux/errors"
@@ -30,18 +31,19 @@ const (
 	presenceTick   = 50 * time.Millisecond
 	encoderType    = nats.JSON_ENCODER
 
-	methodKick                  = ".Platform.Kick"
-	methodPing                  = ".Platform.Ping"
-	methodVersion               = ".Platform.Version"
-	methodExport                = ".Platform.Export"
-	methodListServices          = ".Platform.ListServices"
-	methodListImages            = ".Platform.ListImages"
-	methodListImagesWithOptions = ".Platform.ListImagesWithOptions"
-	methodJobStatus             = ".Platform.JobStatus"
-	methodSyncStatus            = ".Platform.SyncStatus"
-	methodUpdateManifests       = ".Platform.UpdateManifests"
-	methodGitRepoConfig         = ".Platform.GitRepoConfig"
-	methodNotifyChange          = ".Platform.NotifyChange"
+	methodKick                    = ".Platform.Kick"
+	methodPing                    = ".Platform.Ping"
+	methodVersion                 = ".Platform.Version"
+	methodExport                  = ".Platform.Export"
+	methodListServices            = ".Platform.ListServices"
+	methodListServicesWithOptions = ".Platform.ListServicesWithOptions"
+	methodListImages              = ".Platform.ListImages"
+	methodListImagesWithOptions   = ".Platform.ListImagesWithOptions"
+	methodJobStatus               = ".Platform.JobStatus"
+	methodSyncStatus              = ".Platform.SyncStatus"
+	methodUpdateManifests         = ".Platform.UpdateManifests"
+	methodGitRepoConfig           = ".Platform.GitRepoConfig"
+	methodNotifyChange            = ".Platform.NotifyChange"
 )
 
 var (
@@ -145,6 +147,12 @@ type ExportResponse struct {
 
 // ListServicesResponse is the ListServices response.
 type ListServicesResponse struct {
+	Result        []v6.ControllerStatus
+	ErrorResponse `json:",omitempty"`
+}
+
+// ListServicesWithOptionsResponse is the ListServicesWithOptions response.
+type ListServicesWithOptionsResponse struct {
 	Result        []v6.ControllerStatus
 	ErrorResponse `json:",omitempty"`
 }
@@ -258,6 +266,16 @@ func (r *natsPlatform) ListServices(ctx context.Context, namespace string) ([]v6
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	if err := r.conn.RequestWithContext(ctx, r.instance+methodListServices, namespace, &response); err != nil {
+		return response.Result, remote.UnavailableError(err)
+	}
+	return response.Result, extractError(response.ErrorResponse)
+}
+
+func (r *natsPlatform) ListServicesWithOptions(ctx context.Context, opts v11.ListServicesOptions) ([]v6.ControllerStatus, error) {
+	var response ListServicesWithOptionsResponse
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	if err := r.conn.RequestWithContext(ctx, r.instance+methodListServicesWithOptions, opts, &response); err != nil {
 		return response.Result, remote.UnavailableError(err)
 	}
 	return response.Result, extractError(response.ErrorResponse)
@@ -419,6 +437,8 @@ func (n *NATS) processRequest(ctx context.Context, request *nats.Msg, instID ser
 		err = n.processExport(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodListServices):
 		err = n.processListServices(ctx, request, platform)
+	case strings.HasSuffix(request.Subject, methodListServicesWithOptions):
+		err = n.processListServicesWithOptions(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodListImages):
 		err = n.processListImages(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodListImagesWithOptions):
@@ -499,6 +519,19 @@ func (n *NATS) processListServices(ctx context.Context, request *nats.Msg, platf
 		res, err = platform.ListServices(ctx, namespace)
 	}
 	n.enc.Publish(request.Reply, ListServicesResponse{res, makeErrorResponse(err)})
+	return err
+}
+
+func (n *NATS) processListServicesWithOptions(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
+	var (
+		req v11.ListServicesOptions
+		res []v6.ControllerStatus
+	)
+	err := encoder.Decode(request.Subject, request.Data, &req)
+	if err == nil {
+		res, err = platform.ListServicesWithOptions(ctx, req)
+	}
+	n.enc.Publish(request.Reply, ListServicesWithOptionsResponse{res, makeErrorResponse(err)})
 	return err
 }
 
