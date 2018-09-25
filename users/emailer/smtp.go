@@ -57,27 +57,18 @@ func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 }
 
 // WeeklySummaryEmail sends the login email
-func (s SMTPEmailer) WeeklySummaryEmail(u *users.User, orgExternalID, orgName string, weeklyReport *weeklySummary.Report) error {
+func (s SMTPEmailer) WeeklySummaryEmail(u *users.User, orgExternalID, orgName string, weeklyReport *weeklysummary.Report) error {
+	weeklyReportContent := weeklysummary.GenerateReport("1", time.Now())
+	weeklyReport = &weeklyReportContent
+
 	e := email.NewEmail()
 	e.From = s.FromAddress
 	e.To = []string{u.Email}
 	e.Subject = fmt.Sprintf("%s (%s - %s) - Weekly Summary", orgName, weeklyReport.StartAt.Format(dateShortFormat), weeklyReport.EndAt.Format(dateShortFormat))
 	data := map[string]interface{}{
-		"OrganizationName":              orgName,
-		"OrganizationURL":               organizationURL(s.Domain, orgExternalID),
-		"WorkloadReleasesCount":         weeklyReport.WorkloadReleasesCount,
-		"CPUIntensiveWorkload1Name":     weeklyReport.CPUIntensiveWorkloads[0].Name,
-		"CPUIntensiveWorkload1Value":    weeklyReport.CPUIntensiveWorkloads[0].Value,
-		"CPUIntensiveWorkload2Name":     weeklyReport.CPUIntensiveWorkloads[1].Name,
-		"CPUIntensiveWorkload2Value":    weeklyReport.CPUIntensiveWorkloads[1].Value,
-		"CPUIntensiveWorkload3Name":     weeklyReport.CPUIntensiveWorkloads[2].Name,
-		"CPUIntensiveWorkload3Value":    weeklyReport.CPUIntensiveWorkloads[2].Value,
-		"MemoryIntensiveWorkload1Name":  weeklyReport.MemoryIntensiveWorkloads[0].Name,
-		"MemoryIntensiveWorkload1Value": weeklyReport.MemoryIntensiveWorkloads[0].Value,
-		"MemoryIntensiveWorkload2Name":  weeklyReport.MemoryIntensiveWorkloads[1].Name,
-		"MemoryIntensiveWorkload2Value": weeklyReport.MemoryIntensiveWorkloads[1].Value,
-		"MemoryIntensiveWorkload3Name":  weeklyReport.MemoryIntensiveWorkloads[2].Name,
-		"MemoryIntensiveWorkload3Value": weeklyReport.MemoryIntensiveWorkloads[2].Value,
+		"OrganizationName": orgName,
+		"OrganizationURL":  organizationURL(s.Domain, orgExternalID),
+		"Report":           weeklyReport,
 	}
 	e.Text = s.Templates.QuietBytes("weekly_summary_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("weekly_summary_email.html", emailWrapperFilename, e.Subject, data)

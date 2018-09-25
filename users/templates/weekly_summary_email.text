@@ -1,18 +1,22 @@
 Hi,
 
-Here is your weekly summary report for ‘{{.OrganizationName}}’:
+Here is your weekly summary breakdown for ‘{{.OrganizationName}}’:
 
-Number of workload releases: {{.WorkloadReleasesCount}}
+{{with .Report}}
+    Number of releases per day:
+    {{range .WorkloadReleasesCounts}}
+        * {{.Day}} - {{.Total}}{{end}}
 
-3 most CPU heavy workloads:
-    {{.CPUIntensiveWorkload1Value}} - {{.CPUIntensiveWorkload1Name}}
-    {{.CPUIntensiveWorkload2Value}} - {{.CPUIntensiveWorkload2Name}}
-    {{.CPUIntensiveWorkload3Value}} - {{.CPUIntensiveWorkload3Name}}
+    Most resource-intense workloads:
+   
+    CPU (average cluster consumption)
+    {{range .CPUIntensiveWorkloads}}
+        * {{.Name}} - {{.Value}}{{end}}
 
-3 most Memory heavy workloads:
-    {{.MemoryIntensiveWorkload1Value}} - {{.MemoryIntensiveWorkload1Name}}
-    {{.MemoryIntensiveWorkload2Value}} - {{.MemoryIntensiveWorkload2Name}}
-    {{.MemoryIntensiveWorkload3Value}} - {{.MemoryIntensiveWorkload3Name}}
+    Memory (average cluster consumption)
+    {{range .MemoryIntensiveWorkloads}}
+        * {{.Name}} - {{.Value}}{{end}}
+{{end}}
 
 Thanks,
 

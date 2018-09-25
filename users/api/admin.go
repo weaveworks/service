@@ -190,7 +190,7 @@ func (a *API) adminSendWeeklySummaryEmail(w http.ResponseWriter, r *http.Request
 		renderError(w, r, err)
 		return
 	}
-	weeklyReport := weeklySummary.GenerateReport(time.Now())
+	weeklyReport := weeklysummary.GenerateReport("1", time.Now())
 	err = a.emailer.WeeklySummaryEmail(user, "proud-wind-05", "Proud Wind 05", &weeklyReport)
 	if err != nil {
 		renderError(w, r, err)

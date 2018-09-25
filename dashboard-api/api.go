@@ -6,8 +6,9 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"github.com/weaveworks/service/common"
 
-	"github.com/prometheus/client_golang/api/prometheus/v1"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
 // API exposes all the entry points of this service.
@@ -32,10 +33,10 @@ func newAPI(cfg *config) (*API, error) {
 	}
 
 	if promURI.Scheme == "mock" {
-		api.prometheus = newPrometheusMock(promURI.Path)
+		api.prometheus = common.NewPrometheusMock(promURI.Path)
 	} else {
 		// FIXME(damien): provide our own RoundTripper?
-		client, err := newPrometheusClient(cfg.prometheus.uri)
+		client, err := common.NewPrometheusClient(cfg.prometheus.uri)
 		if err != nil {
 			return nil, err
 		}

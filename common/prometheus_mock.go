@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ import (
 	"time"
 
 	prom "github.com/prometheus/client_golang/api"
-	"github.com/prometheus/client_golang/api/prometheus/v1"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 )
 
@@ -23,29 +23,32 @@ type mockValueNone struct{}
 func (mockValueNone) Type() model.ValueType { return model.ValNone }
 func (mockValueNone) String() string        { return "none" }
 
-type mockPrometheus struct {
+// MockPrometheus mocks Prometheus data.
+type MockPrometheus struct {
 	dataDir string
 }
 
-var _ v1.API = &mockPrometheus{}
+var _ v1.API = &MockPrometheus{}
 
-func newPrometheusMock(dataDir string) *mockPrometheus {
-	return &mockPrometheus{
+// NewPrometheusMock mocks the Prometheus service.
+func NewPrometheusMock(dataDir string) *MockPrometheus {
+	return &MockPrometheus{
 		dataDir: dataDir,
 	}
 }
 
-func (mock *mockPrometheus) Query(ctx context.Context, query string, ts time.Time) (model.Value, error) {
+// Query performs a query at a given time instant.
+func (mock *MockPrometheus) Query(ctx context.Context, query string, ts time.Time) (model.Value, error) {
 	return &mockValueNone{}, errors.New("Not implemented")
 }
 
 // QueryRange performs a query for the given range.
-func (mock *mockPrometheus) QueryRange(ctx context.Context, query string, r v1.Range) (model.Value, error) {
+func (mock *MockPrometheus) QueryRange(ctx context.Context, query string, r v1.Range) (model.Value, error) {
 	return &mockValueNone{}, errors.New("Not implemented")
 }
 
 // LabelValues performs a query for the values of the given label.
-func (mock *mockPrometheus) LabelValues(ctx context.Context, label string) (model.LabelValues, error) {
+func (mock *MockPrometheus) LabelValues(ctx context.Context, label string) (model.LabelValues, error) {
 	return nil, errors.New("Not implemented")
 }
 
@@ -70,7 +73,7 @@ func getLabelValue(expression, label string) string {
 }
 
 // Series finds series by label matchers.
-func (mock *mockPrometheus) Series(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) ([]model.LabelSet, error) {
+func (mock *MockPrometheus) Series(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) ([]model.LabelSet, error) {
 	response := seriesResponse{}
 
 	// Parse the first match to extract ns and service
