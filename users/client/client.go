@@ -1,13 +1,9 @@
 package client
 
 import (
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/mwitkow/go-grpc-middleware"
-	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 
-	httpgrpc_server "github.com/weaveworks/common/httpgrpc/server"
+	common_grpc "github.com/weaveworks/service/common/grpc"
 	"github.com/weaveworks/service/users"
 )
 
@@ -34,22 +30,7 @@ func New(kind, address string, opts CachingClientConfig) (users.UsersClient, err
 }
 
 func newGRPCClient(address string) (users.UsersClient, error) {
-	address, dialOptions, err := httpgrpc_server.ParseURL(address)
-	if err != nil {
-		return nil, err
-	}
-
-	dialOptions = append(dialOptions,
-		grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(
-			otgrpc.OpenTracingClientInterceptor(opentracing.GlobalTracer()),
-		)),
-	)
-
-	conn, err := grpc.Dial(
-		address,
-		dialOptions...,
-	)
+	conn, err := common_grpc.NewInsecureConn(address, true, "", nil)
 	if err != nil {
 		return nil, err
 	}

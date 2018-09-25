@@ -839,6 +839,22 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "v3.0"
+  digest = "1:cb363cb91901bb784bd225b25c6510be722f25be01e1f0e1ca189e6b9c80e477"
+  name = "github.com/segmentio/analytics-go"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "c541109ba0656ac1a8a90aaf4fa8bc8042811223"
+
+[[projects]]
+  branch = "master"
+  digest = "1:4c39453563e71f7cb6c62c69a94b99910861abfb9f3b904516a171eb558f1c60"
+  name = "github.com/segmentio/backo-go"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "204274ad699c0983a70203a566887f17a717fef4"
+
+[[projects]]
   digest = "1:1ac7b34d4aeee8a7cfc1383bce35622e94ad4976cb4d26549faec6212e6394ce"
   name = "github.com/sercand/kuberesolver"
   packages = ["."]
@@ -1053,6 +1069,14 @@
   ]
   pruneopts = "NUT"
   revision = "058eedc7f14ad7a09e374cbf9e5e4b9ad5c713e6"
+
+[[projects]]
+  branch = "master"
+  digest = "1:2f9538da7381bb981fb8451b2b0fb304c2bc7f1724228dc336a8f002e6fec704"
+  name = "github.com/xtgo/uuid"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "a0b114877d4caeffbd7f87e3757c17fce570fea7"
 
 [[projects]]
   branch = "master"
@@ -1388,10 +1412,12 @@
     "github.com/prometheus/prometheus/promql",
     "github.com/robfig/cron",
     "github.com/satori/go.uuid",
+    "github.com/segmentio/analytics-go",
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
     "github.com/tylerb/graceful",
+    "github.com/uber/jaeger-client-go/config",
     "github.com/ugorji/go/codec/codecgen",
     "github.com/weaveworks/billing-client",
     "github.com/weaveworks/blackfriday",

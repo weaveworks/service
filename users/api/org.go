@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common/billing/grpc"
@@ -25,6 +26,7 @@ import (
 	"github.com/weaveworks/service/common/validation"
 	"github.com/weaveworks/service/notification-eventmanager/types"
 	"github.com/weaveworks/service/users"
+	users_sync "github.com/weaveworks/service/users-sync/api"
 )
 
 var errTeamIdentifierRequired = users.NewMalformedInputError(errors.New("either teamId or teamName needs to be provided but not both"))
@@ -362,8 +364,9 @@ func ptostr(pstr *string) string {
 }
 
 func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	orgExternalID := mux.Vars(r)["orgExternalID"]
-	org, err := a.db.FindOrganizationByID(r.Context(), orgExternalID)
+	org, err := a.db.FindOrganizationByID(ctx, orgExternalID)
 	if err == users.ErrNotFound {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -372,7 +375,7 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		renderError(w, r, err)
 		return
 	}
-	isMember, err := a.db.UserIsMemberOf(r.Context(), currentUser.ID, orgExternalID)
+	isMember, err := a.db.UserIsMemberOf(ctx, currentUser.ID, orgExternalID)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -387,13 +390,17 @@ func (a *API) deleteOrg(currentUser *users.User, w http.ResponseWriter, r *http.
 		return
 	}
 
-	if err := a.db.DeleteOrganization(r.Context(), orgExternalID); err != nil {
+	if err := a.db.DeleteOrganization(ctx, orgExternalID); err != nil {
 		renderError(w, r, err)
 		return
 	}
-	if a.OrgCleaner != nil {
-		a.OrgCleaner.Trigger()
+	if a.usersSyncClient != nil {
+		if _, err := a.usersSyncClient.EnqueueOrgDeletedSync(
+			ctx, &users_sync.EnqueueOrgDeletedSyncRequest{OrgExternalID: orgExternalID}); err != nil {
+			log.Warnf("Error notifying users-sync of org (%s) deletion: (%v)", orgExternalID, err)
+		}
 	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -413,7 +420,7 @@ func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWrit
 		return
 	}
 
-	users, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID)
+	users, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID, false)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -485,7 +492,7 @@ func (a *API) removeUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
-	if members, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID); err != nil {
+	if members, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID, false); err != nil {
 		renderError(w, r, err)
 		return
 	} else if len(members) == 1 {
@@ -592,7 +599,7 @@ func (a *API) extendOrgTrialPeriod(ctx context.Context, org *users.Organization,
 		return nil
 	}
 
-	members, err := a.db.ListOrganizationUsers(ctx, org.ExternalID)
+	members, err := a.db.ListOrganizationUsers(ctx, org.ExternalID, false)
 	if err != nil {
 		return err
 	}

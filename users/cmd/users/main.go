@@ -21,8 +21,8 @@ import (
 	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
+	users_sync "github.com/weaveworks/service/users-sync/api"
 	"github.com/weaveworks/service/users/api"
-	"github.com/weaveworks/service/users/cleaner"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
 	grpc_server "github.com/weaveworks/service/users/grpc"
@@ -83,9 +83,10 @@ func main() {
 
 		billingFeatureFlagProbability = flag.Uint("billing-feature-flag-probability", 0, "Percentage of *new* organizations for which we want to enable the 'billing' feature flag. 0 means always disabled. 100 means always enabled. Any value X in between will enable billing randomly X% of the time.")
 
-		dbCfg      dbconfig.Config
-		partnerCfg partner.Config
-		billingCfg billing_grpc.Config
+		dbCfg        dbconfig.Config
+		partnerCfg   partner.Config
+		billingCfg   billing_grpc.Config
+		usersSyncCfg users_sync.Config
 
 		cleanupURLs common.ArrayFlags
 
@@ -104,6 +105,7 @@ func main() {
 	dbCfg.RegisterFlags(flag.CommandLine, "postgres://postgres@users-db.weave.local/users?sslmode=disable", "URI where the database can be found (for dev you can use memory://)", "/migrations", "Migrations directory.")
 	partnerCfg.RegisterFlags(flag.CommandLine)
 	billingCfg.RegisterFlags(flag.CommandLine)
+	usersSyncCfg.RegisterFlags(flag.CommandLine)
 
 	partnerAccess := partner.NewAccess()
 	partnerAccess.Flags(flag.CommandLine)
@@ -124,6 +126,12 @@ func main() {
 		log.Fatalf("Failed creating billing-api's gRPC client: %v", err)
 	}
 	defer billingClient.Close()
+
+	usersSyncClient, err := users_sync.NewClient(usersSyncCfg)
+	if err != nil {
+		log.Fatalf("Failed creating users-sync-api's gRPC client: %v", err)
+	}
+	defer usersSyncClient.Close()
 
 	var marketingQueues marketing.Queues
 	if *marketoClientID != "" {
@@ -165,7 +173,6 @@ func main() {
 	defer db.Close(context.Background())
 	sessions := sessions.MustNewStore(*sessionSecret, *secureCookie, *cookieDomain)
 
-	orgCleaner := cleaner.New(cleanupURLs, db)
 	log.Debug("Debug logging enabled")
 
 	grpcServer := grpc_server.New(sessions, db, emailer, marketingQueues)
@@ -192,8 +199,8 @@ func main() {
 		*netPeersAPI,
 		billingClient,
 		billingEnabler,
-		orgCleaner,
 		*notificationReceiversURL,
+		usersSyncClient,
 	)
 
 	if *localTestUserCreate {
@@ -219,11 +226,7 @@ func main() {
 
 	app.RegisterRoutes(s.HTTP)
 	users.RegisterUsersServer(s.GRPC, grpcServer)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	app.OrgCleaner.Run(ctx)
 	s.Run()
-	cancel()
 }
 
 func makeLocalTestUser(a *api.API, email, instanceID, instanceName, token, teamName string, featureFlags []string) {

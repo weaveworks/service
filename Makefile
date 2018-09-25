@@ -109,18 +109,19 @@ flux-api/migrations.tar:
 # List of exes please
 AUTHFE_EXE := authfe/authfe
 USERS_EXE := users/cmd/users/users
+USERS_SYNC_EXE := users-sync/cmd/users-sync
 METRICS_EXE := metrics/metrics
 NOTEBOOKS_EXE := notebooks/cmd/notebooks/notebooks
 SERVICE_UI_KICKER_EXE := service-ui-kicker/service-ui-kicker
 FLUX_API_EXE := flux-api/flux-api
 BILLING_USAGE_INJECTOR_EXE := billing-synthetic-usage-injector/injector
-BILLING_EXES := billing-api/api billing-uploader/uploader billing-aggregator/aggregator billing-enforcer/enforcer $(BILLING_USAGE_INJECTOR_EXE)
+BILLING_EXES := billing-api/billing-api billing-uploader/uploader billing-aggregator/aggregator billing-enforcer/enforcer $(BILLING_USAGE_INJECTOR_EXE)
 GCP_LAUNCHER_WEBHOOK_EXE := gcp-launcher-webhook/gcp-launcher-webhook
 KUBECTL_SERVICE_EXE := kubectl-service/kubectl-service
 GCP_SERVICE_EXE := gcp-service/gcp-service
 NOTIFICATION_EXES := notification-eventmanager/cmd/eventmanager/eventmanager notification-sender/cmd/sender/sender
 DASHBOARD_EXE := dashboard-api/dashboard-api
-EXES = $(AUTHFE_EXE) $(USERS_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) \
+EXES = $(AUTHFE_EXE) $(USERS_EXE) $(USERS_SYNC_EXE) $(METRICS_EXE) $(NOTEBOOKS_EXE) $(SERVICE_UI_KICKER_EXE) \
 	$(GITHUB_RECEIVER_EXE) $(FLUX_API_EXE) $(BILLING_EXES) $(GCP_LAUNCHER_WEBHOOK_EXE) \
 	$(NOTIFICATION_EXES) $(KUBECTL_SERVICE_EXE) $(GCP_SERVICE_EXE) $(DASHBOARD_EXE)
 
@@ -130,6 +131,7 @@ basedir = $(firstword $(subst /, ,$1))
 COMMON := $(call gofiles,common)
 $(AUTHFE_EXE): $(call gofiles,authfe) $(call gofiles,users/client) $(COMMON) users/users.pb.go
 $(USERS_EXE): $(call gofiles,users) $(COMMON) users/users.pb.go
+$(USERS_SYNC_EXE): $(call gofiles,users-sync) $(COMMON) users-sync/api/users-sync.pb.go
 $(METRICS_EXE): $(call gofiles,metrics) $(COMMON)
 $(NOTEBOOKS_EXE): $(call gofiles,notebooks) $(COMMON)
 $(SERVICE_UI_KICKER_EXE): $(call gofiles,service-ui-kicker) $(COMMON)
@@ -147,6 +149,7 @@ test: $(PROTO_GOS)
 # And now what goes into each image
 authfe/$(UPTODATE): $(AUTHFE_EXE)
 users/$(UPTODATE): $(USERS_EXE) $(shell find users -name '*.sql') $(call common-templates-deps,users) users/templates/*
+users-sync/$(UPTODATE): $(USERS_SYNC_EXE)
 metrics/$(UPTODATE): $(METRICS_EXE)
 logging/$(UPTODATE): logging/fluent.conf logging/fluent-dev.conf logging/schema_service_events.json
 build/$(UPTODATE): build/build.sh

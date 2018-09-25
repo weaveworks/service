@@ -3,14 +3,13 @@ package api
 import (
 	"net/http"
 
-	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
-	"github.com/weaveworks/service/common/featureflag"
-
 	"github.com/gorilla/mux"
 
+	billing_grpc "github.com/weaveworks/service/common/billing/grpc"
+	"github.com/weaveworks/service/common/featureflag"
 	"github.com/weaveworks/service/common/gcp/partner"
 	"github.com/weaveworks/service/users"
-	"github.com/weaveworks/service/users/cleaner"
+	users_sync "github.com/weaveworks/service/users-sync/api"
 	"github.com/weaveworks/service/users/db"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/login"
@@ -43,8 +42,8 @@ type API struct {
 	netPeersAPI              string
 	billingClient            billing_grpc.BillingClient
 	billingEnabler           featureflag.Enabler
-	OrgCleaner               *cleaner.OrgCleaner
 	notificationReceiversURL string
+	usersSyncClient          users_sync.UsersSyncClient
 	http.Handler
 }
 
@@ -72,8 +71,8 @@ func New(
 	netPeersAPI string,
 	billingClient billing_grpc.BillingClient,
 	billingEnabler featureflag.Enabler,
-	orgCleaner *cleaner.OrgCleaner,
 	notificationReceiversURL string,
+	usersSyncClient users_sync.UsersSyncClient,
 ) *API {
 	a := &API{
 		directLogin:              directLogin,
@@ -98,8 +97,8 @@ func New(
 		netPeersAPI:              netPeersAPI,
 		billingClient:            billingClient,
 		billingEnabler:           billingEnabler,
-		OrgCleaner:               orgCleaner,
 		notificationReceiversURL: notificationReceiversURL,
+		usersSyncClient:          usersSyncClient,
 	}
 
 	r := mux.NewRouter()

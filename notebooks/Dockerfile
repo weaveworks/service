@@ -1,7 +1,7 @@
 FROM alpine:3.6
 WORKDIR /
-COPY cmd/notebooks/notebooks /
 COPY db/migrations /migrations/
+COPY cmd/notebooks/notebooks /
 EXPOSE 80
 ENTRYPOINT ["/notebooks"]
 

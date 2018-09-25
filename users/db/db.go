@@ -52,10 +52,12 @@ type DB interface {
 	// Remove a user from an organization. If they do not exist (or are not a member of the org), return success.
 	RemoveUserFromOrganization(ctx context.Context, orgExternalID, email string) error
 
+	// List users who match a filter
+	// NB: page 0 will return all matches. Use page >= 1 for paginated responses
 	ListUsers(ctx context.Context, f filter.User, page uint64) ([]*users.User, error)
 	ListOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error)
 	ListAllOrganizations(ctx context.Context, f filter.Organization, page uint64) ([]*users.Organization, error)
-	ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error)
+	ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs bool) ([]*users.User, error)
 
 	// ListOrganizationsForUserIDs lists all organizations these users have
 	// access to.

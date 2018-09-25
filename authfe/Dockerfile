@@ -1,7 +1,7 @@
 FROM alpine:3.6
 WORKDIR /
-COPY authfe /
 COPY ca-certificates.crt /etc/ssl/certs/
+COPY authfe /
 EXPOSE 80
 ENTRYPOINT ["/authfe"]
 
