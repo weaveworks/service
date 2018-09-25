@@ -30,15 +30,16 @@ const (
 
 // EmailSender contains creds to send emails
 type EmailSender struct {
-	URI  string
-	From string
+	URI     string
+	From    string
+	ReplyTo string
 }
 
-func waitForMailService(uri, from string) error {
+func waitForMailService(uri, from, replyto string) error {
 	deadline := time.Now().Add(timeout)
 	var err error
 	for tries := 0; time.Now().Before(deadline); tries++ {
-		err = parseAndSend(uri, from, []string{"weaveworkstest@gmail.com"}, "Email sender validation", from)
+		err = parseAndSend(uri, from, replyto, []string{"weaveworkstest@gmail.com"}, "Email sender validation", from)
 		if err == nil {
 			return nil
 		}
@@ -49,8 +50,8 @@ func waitForMailService(uri, from string) error {
 }
 
 // ValidateEmailSender validates uri and from for email sender by sending test email
-func ValidateEmailSender(uri, from string) error {
-	if err := waitForMailService(uri, from); err != nil {
+func ValidateEmailSender(uri, from, replyto string) error {
+	if err := waitForMailService(uri, from, replyto); err != nil {
 		return errors.Wrap(err, "email sender validation failed")
 	}
 	log.Debug("email sender validated successfully")
@@ -85,14 +86,14 @@ func (es *EmailSender) Send(_ context.Context, addr json.RawMessage, notif types
 	}
 
 	addresses := strings.Split(addrStr, EmailSeparator)
-	if err := parseAndSend(es.URI, es.From, addresses, notifData.Subject, notifData.Body); err != nil {
+	if err := parseAndSend(es.URI, es.From, es.ReplyTo, addresses, notifData.Subject, notifData.Body); err != nil {
 		return errors.Wrap(err, "cannot parse and send email")
 	}
 
 	return nil
 }
 
-func parseAndSend(uri, from string, addresses []string, subject, body string) error {
+func parseAndSend(uri, from string, replyto string, addresses []string, subject, body string) error {
 	u, err := url.Parse(uri)
 	if err != nil {
 		return errors.Wrapf(err, "cannot parse email URI %s", uri)
@@ -127,6 +128,7 @@ func parseAndSend(uri, from string, addresses []string, subject, body string) er
 		m.SetHeader("From", from)
 		m.SetHeader("To", formatted...)
 		m.SetHeader("Subject", subject)
+		m.SetHeader("Reply-To", replyto)
 		m.SetBody("text/html", body)
 		uid := uuid.New()
 		m.SetHeader("X-Entity-Ref-ID", uid.String())

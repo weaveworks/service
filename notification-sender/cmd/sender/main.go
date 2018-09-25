@@ -39,6 +39,7 @@ func main() {
 		stackdriverLogID string
 		emailURI         string
 		emailFrom        string
+		emailReplyTo     string
 	)
 
 	flag.StringVar(&logLevel, "log.level", "info", "Logging level to use: debug | info | warn | error")
@@ -51,7 +52,8 @@ func main() {
 	// upper and lower case alphanumeric characters, forward-slash, underscore, hyphen, and period.
 	flag.StringVar(&stackdriverLogID, "stackdriverLogID", "WeaveCloud", "LogID for stackdriver notifications")
 	flag.StringVar(&emailURI, "emailURI", "", "uri of smtp server to send email through, of the format: smtp://username:password@hostname:port. Email-uri must be provided. For local development, you can set this to: log://, which will log all emails.")
-	flag.StringVar(&emailFrom, "emailFrom", "Weave Cloud <support@weave.works>", "From address for emails.")
+	flag.StringVar(&emailFrom, "emailFrom", "Weave Cloud <notifications@weave.works>", "From address for emails.")
+	flag.StringVar(&emailReplyTo, "emailReplyTo", "Weave Cloud <support@weave.works>", "Reply-To for emails.")
 
 	flag.Parse()
 
@@ -60,13 +62,14 @@ func main() {
 		return
 	}
 
-	if err := sender.ValidateEmailSender(emailURI, emailFrom); err != nil {
+	if err := sender.ValidateEmailSender(emailURI, emailFrom, emailReplyTo); err != nil {
 		log.Fatalf("cannot validate email sender (URI: %s, From: %s), error: %s", emailURI, emailFrom, err)
 	}
 
 	es := &sender.EmailSender{
-		URI:  emailURI,
-		From: emailFrom,
+		URI:     emailURI,
+		From:    emailFrom,
+		ReplyTo: emailReplyTo,
 	}
 
 	ss := &sender.SlackSender{

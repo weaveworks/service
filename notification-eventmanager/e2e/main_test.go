@@ -628,7 +628,7 @@ func TestReceiver_Email(t *testing.T) {
 	email := <-emails
 	assert.NotNil(t, email)
 
-	assert.Equal(t, "<support@weave.works>", email.Sender)
+	assert.Equal(t, "<notifications@weave.works>", email.Sender)
 }
 
 func TestReceiver_RemoveAllEventTypes(t *testing.T) {
