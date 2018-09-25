@@ -301,7 +301,7 @@ func (a *usersServer) NotifyTrialPendingExpiry(ctx context.Context, req *users.N
 	}
 
 	// Notify all users
-	members, err := a.db.ListOrganizationUsers(ctx, req.ExternalID)
+	members, err := a.db.ListOrganizationUsers(ctx, req.ExternalID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -325,7 +325,7 @@ func (a *usersServer) NotifyTrialExpired(ctx context.Context, req *users.NotifyT
 	}
 
 	// Notify all users
-	members, err := a.db.ListOrganizationUsers(ctx, req.ExternalID)
+	members, err := a.db.ListOrganizationUsers(ctx, req.ExternalID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -349,7 +349,7 @@ func (a *usersServer) NotifyRefuseDataUpload(ctx context.Context, req *users.Not
 	}
 
 	// Notify all users
-	members, err := a.db.ListOrganizationUsers(ctx, req.ExternalID)
+	members, err := a.db.ListOrganizationUsers(ctx, req.ExternalID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -392,7 +392,7 @@ func (a *usersServer) InformOrganizationBillingConfigured(ctx context.Context, r
 		return nil, err
 	}
 
-	members, err := a.db.ListOrganizationUsers(ctx, req.ExternalID)
+	members, err := a.db.ListOrganizationUsers(ctx, req.ExternalID, false)
 	if err != nil {
 		return nil, err
 	}

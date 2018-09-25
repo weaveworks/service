@@ -98,7 +98,9 @@ func (c *AttributeSyncer) EnqueueOrgsSync(ctx context.Context, orgExternalIDs []
 	// we could do this DB lookup later and remove it from the Enqueue call path
 	// but it should be relatively cheap.
 	for _, externalID := range orgExternalIDs {
-		users, err := c.db.ListOrganizationUsers(ctx, externalID)
+		// We request memberships for deleted orgs too so that we update users who
+		// were connected to the deleted orgs
+		users, err := c.db.ListOrganizationUsers(ctx, externalID, true)
 		if err != nil {
 			return err
 		}

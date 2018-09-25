@@ -125,22 +125,26 @@ func (d *DB) ListAllOrganizations(_ context.Context, f filter.Organization, page
 }
 
 // ListOrganizationUsers lists all the users in an organization
-func (d *DB) ListOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error) {
+func (d *DB) ListOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs bool) ([]*users.User, error) {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
-	return d.listOrganizationUsers(ctx, orgExternalID)
+	return d.listOrganizationUsers(ctx, orgExternalID, includeDeletedOrgs)
 }
 
 // listOrganizationUsers lists all the users in an organization
 // This is a lock-free version of the above, in order to be able to re-use the actual logic
 // in other methods as otherwise, calling mtx.Lock() twice on the same goroutine deadlocks it.
-func (d *DB) listOrganizationUsers(ctx context.Context, orgExternalID string) ([]*users.User, error) {
+func (d *DB) listOrganizationUsers(ctx context.Context, orgExternalID string, includeDeletedOrgs bool) ([]*users.User, error) {
 	o, err := d.findOrganizationByExternalID(orgExternalID)
 	if err != nil {
 		return nil, err
 	}
 
 	var users []*users.User
+	if !o.DeletedAt.IsZero() && !includeDeletedOrgs {
+		return users, nil
+	}
+
 	for _, m := range d.memberships[o.ID] {
 		u, err := d.findUserByID(m)
 		if err != nil {
@@ -808,7 +812,7 @@ func (d *DB) GetSummary(ctx context.Context) ([]*users.SummaryEntry, error) {
 	entries := []*users.SummaryEntry{}
 	for _, org := range d.organizations {
 		team := d.teams[org.TeamID]
-		orgUsers, err := d.listOrganizationUsers(ctx, org.ExternalID)
+		orgUsers, err := d.listOrganizationUsers(ctx, org.ExternalID, false)
 		if err != nil {
 			return nil, err
 		}

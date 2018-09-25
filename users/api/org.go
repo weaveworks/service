@@ -420,7 +420,7 @@ func (a *API) listOrganizationUsers(currentUser *users.User, w http.ResponseWrit
 		return
 	}
 
-	users, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID)
+	users, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID, false)
 	if err != nil {
 		renderError(w, r, err)
 		return
@@ -492,7 +492,7 @@ func (a *API) removeUser(currentUser *users.User, w http.ResponseWriter, r *http
 		return
 	}
 
-	if members, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID); err != nil {
+	if members, err := a.db.ListOrganizationUsers(r.Context(), orgExternalID, false); err != nil {
 		renderError(w, r, err)
 		return
 	} else if len(members) == 1 {
@@ -599,7 +599,7 @@ func (a *API) extendOrgTrialPeriod(ctx context.Context, org *users.Organization,
 		return nil
 	}
 
-	members, err := a.db.ListOrganizationUsers(ctx, org.ExternalID)
+	members, err := a.db.ListOrganizationUsers(ctx, org.ExternalID, false)
 	if err != nil {
 		return err
 	}

@@ -29,14 +29,14 @@ func TestDB_RemoveOtherUsersAccess(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, otherUserOrganizations, 1)
 
-	orgUsers, err := db.ListOrganizationUsers(context.Background(), org.ExternalID)
+	orgUsers, err := db.ListOrganizationUsers(context.Background(), org.ExternalID, false)
 	require.NoError(t, err)
 	require.Len(t, orgUsers, 2)
 
 	err = db.RemoveUserFromOrganization(context.Background(), org.ExternalID, otherUser.Email)
 	require.NoError(t, err)
 
-	orgUsers, err = db.ListOrganizationUsers(context.Background(), org.ExternalID)
+	orgUsers, err = db.ListOrganizationUsers(context.Background(), org.ExternalID, false)
 	require.NoError(t, err)
 	require.Len(t, orgUsers, 1)
 }
@@ -73,7 +73,7 @@ func TestDB_RemoveOtherUsersAccessWithTeams(t *testing.T) {
 	require.Len(t, otherUserTeams, 1)
 	require.Equal(t, team.ID, otherUserTeams[0].ID)
 
-	orgUsers, err := db.ListOrganizationUsers(ctx, org.ExternalID)
+	orgUsers, err := db.ListOrganizationUsers(ctx, org.ExternalID, false)
 	require.NoError(t, err)
 	require.Len(t, orgUsers, 2)
 
@@ -84,7 +84,7 @@ func TestDB_RemoveOtherUsersAccessWithTeams(t *testing.T) {
 	err = db.RemoveUserFromOrganization(ctx, org.ExternalID, otherUser.Email)
 	require.NoError(t, err)
 
-	orgUsers, err = db.ListOrganizationUsers(ctx, org.ExternalID)
+	orgUsers, err = db.ListOrganizationUsers(ctx, org.ExternalID, false)
 	require.NoError(t, err)
 	require.Len(t, orgUsers, 1)
 
