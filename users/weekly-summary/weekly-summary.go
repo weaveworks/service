@@ -13,6 +13,11 @@ import (
 	"github.com/weaveworks/service/common"
 )
 
+const (
+	promURI = "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/prom" // Weave Cloud (Dev)
+	fluxURI = "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/flux" // Weave Cloud (Dev)
+)
+
 // Queries for getting resource consumption data from Prometheus
 // TODO: Fix the memory query - it gives too big numbers over long time spans.
 const (
@@ -118,8 +123,8 @@ func getBeginningofDay(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }
 
-func getPromAPI(ctx context.Context, endpoint string) (v1.API, error) {
-	client, err := common.NewPrometheusClient(endpoint)
+func getPromAPI(ctx context.Context, uri string) (v1.API, error) {
+	client, err := common.NewPrometheusClient(uri)
 	if err != nil {
 		return nil, err
 	}
@@ -132,13 +137,12 @@ func GenerateReport(orgID string, endAt time.Time) (*Report, error) {
 	startAt := endAt.AddDate(0, 0, -7) // The report will contain a week of data, until the end of the previous day.
 	ctx := user.InjectOrgID(context.Background(), orgID)
 
-	fluxURL := "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/flux"                       // Weave Cloud Dev
-	promAPI, err := getPromAPI(ctx, "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/prom") // Weave Cloud Dev
+	promAPI, err := getPromAPI(ctx, promURI)
 	if err != nil {
 		return nil, err
 	}
 
-	workloadReleasesCounts, err := getWorkloadReleasesCounts(ctx, fluxURL, startAt, endAt)
+	workloadReleasesCounts, err := getWorkloadReleasesCounts(ctx, fluxURI, startAt, endAt)
 	if err != nil {
 		return nil, err
 	}

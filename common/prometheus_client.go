@@ -14,7 +14,7 @@ import (
 // the orgID header from the given context and ensures it's forwarded to the
 // querier.
 type PrometheusClient struct {
-	client prom.Client
+	Client prom.Client
 }
 
 var _ prom.Client = &PrometheusClient{}
@@ -29,13 +29,13 @@ func NewPrometheusClient(baseURL string) (*PrometheusClient, error) {
 	}
 
 	return &PrometheusClient{
-		client: client,
+		Client: client,
 	}, nil
 }
 
 // URL override.
 func (c *PrometheusClient) URL(ep string, args map[string]string) *url.URL {
-	return c.client.URL(ep, args)
+	return c.Client.URL(ep, args)
 }
 
 // Do override.
@@ -45,5 +45,5 @@ func (c *PrometheusClient) Do(ctx context.Context, r *http.Request) (*http.Respo
 		return nil, nil, errors.Wrap(err, "inject OrgID")
 	}
 
-	return c.client.Do(ctx, r)
+	return c.Client.Do(ctx, r)
 }

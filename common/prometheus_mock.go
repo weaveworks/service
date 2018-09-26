@@ -100,20 +100,23 @@ func filename(ns, service string) string {
 	return fmt.Sprintf("series-%s-%s", ns, service)
 }
 
-// mockPrometheusClient is a specialization of the default prom.Client that does
+// MockPrometheusClient is a specialization of the default prom.Client that does
 // nothing but stores the last HTTP request for inspection by the testing code.
-type mockPrometheusClient struct {
-	lastRequest *http.Request
+type MockPrometheusClient struct {
+	LastRequest *http.Request
 }
 
-var _ prom.Client = &mockPrometheusClient{}
+var _ prom.Client = &MockPrometheusClient{}
 
-func (c *mockPrometheusClient) URL(ep string, args map[string]string) *url.URL {
+// URL override.
+func (c *MockPrometheusClient) URL(ep string, args map[string]string) *url.URL {
 	url, _ := url.Parse("http://example.com")
 	return url
 }
-func (c *mockPrometheusClient) Do(ctx context.Context, r *http.Request) (*http.Response, []byte, error) {
-	c.lastRequest = r
+
+// Do override.
+func (c *MockPrometheusClient) Do(ctx context.Context, r *http.Request) (*http.Response, []byte, error) {
+	c.LastRequest = r
 
 	resp := &http.Response{
 		Body:       ioutil.NopCloser(bytes.NewBufferString("mock response")),
