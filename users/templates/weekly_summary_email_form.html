@@ -30,8 +30,8 @@
     <div class="mdl-grid">
         <form action="emails/weekly-summary/send" method="POST">
             <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
-            <label>User ID <input type="text" name="UserID" value="{{.UserID}}" /></label><br/>
-            <br />
+            <label>Instance ID <input type="text" name="OrgExternalID" value="{{.OrgExternalID}}" placeholder="e.g. local-test" /></label><br/><br/>
+            <label>User Email <input type="text" name="UserEmail" value="{{.UserEmail}}" placeholder="e.g. test@test.test" /></label><br/><br/>
             <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
             type="submit" value="Send" />
         </form>

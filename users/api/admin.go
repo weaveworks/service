@@ -172,7 +172,8 @@ func (a *API) adminListEmails(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) adminWeeklySummaryEmailTemplate(w http.ResponseWriter, r *http.Request) {
 	b, err := a.templates.Bytes("weekly_summary_email_form.html", map[string]interface{}{
-		"UserID": r.FormValue("UserID"),
+		"UserEmail":     r.FormValue("UserEmail"),
+		"OrgExternalID": r.FormValue("OrgExternalID"),
 	})
 	if err != nil {
 		renderError(w, r, err)
@@ -184,23 +185,26 @@ func (a *API) adminWeeklySummaryEmailTemplate(w http.ResponseWriter, r *http.Req
 }
 
 func (a *API) adminSendWeeklySummaryEmail(w http.ResponseWriter, r *http.Request) {
-	userID := r.FormValue("UserID")
-	user, err := a.db.FindUserByID(r.Context(), userID)
+	user, err := a.db.FindUserByEmail(r.Context(), r.FormValue("UserEmail"))
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
-	weeklyReport, err := weeklysummary.GenerateReport("1", time.Now())
+	org, err := a.db.FindOrganizationByID(r.Context(), r.FormValue("OrgExternalID"))
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
-	err = a.emailer.WeeklySummaryEmail(user, "proud-wind-05", "Proud Wind 05", weeklyReport)
+	weeklyReport, err := weeklysummary.GenerateReport(org.ID, time.Now())
 	if err != nil {
 		renderError(w, r, err)
 		return
 	}
-	fmt.Printf("%v\n", user)
+	err = a.emailer.WeeklySummaryEmail(user, org.ExternalID, org.Name, weeklyReport)
+	if err != nil {
+		renderError(w, r, err)
+		return
+	}
 	http.Redirect(w, r, "/admin/users/emails/weekly-summary", http.StatusFound)
 }
 
