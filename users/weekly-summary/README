@@ -1,0 +1,11 @@
+## Testing
+
+In order to test the weekly summary emails on a local instance, both Flux and Prom services need to be running to generate the weekly report. To avoid that, the report generator can be pointed to remote services by changing `promURI`/`fluxURI` constants in `weekly-summary.go`. For example,
+to point them to an instance in dev, the endpoints need to changed to:
+
+```
+const = (
+    promURI = "https://user:[TOKEN]@frontend.dev.weave.works/api/prom"
+    fluxURI = "https://user:[TOKEN]@frontend.dev.weave.works/api/flux"
+)
+```

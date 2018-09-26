@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	promURI = "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/prom" // Weave Cloud (Dev)
-	fluxURI = "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/flux" // Weave Cloud (Dev)
+	promURI = "http://querier.cortex.svc.cluster.local"
+	fluxURI = "http://flux-api.flux.svc.cluster.local"
 )
 
 // Queries for getting resource consumption data from Prometheus
