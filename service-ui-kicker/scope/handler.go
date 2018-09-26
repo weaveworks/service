@@ -109,7 +109,9 @@ func (u *Updater) HandlePush(pl github.PushPayload) {
 // HandleStatus handles GitHub Commit status updated from the API
 func (u *Updater) HandleStatus(pl github.StatusPayload) {
 	u.mu.Lock()
-	if !(pl.Sha == u.latest && pl.State == "success") {
+	// 'deploy' is the name of the Circle CI job which publishes the scope assets
+	// 'ci/circleci: ' is the prefix CircleCI uses when it reports build status to Github
+	if !(pl.Sha == u.latest && pl.State == "success" && pl.Context == "ci/circleci: deploy") {
 		u.mu.Unlock()
 		return
 	}
