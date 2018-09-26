@@ -27,7 +27,6 @@ type SMTPEmailer struct {
 
 // Date format to use in email templates
 const dateFormat = "January 2 2006"
-const dateShortFormat = "Jan 2"
 const emailWrapperFilename = "wrapper.html"
 
 // Takes a uri of the form smtp://username:password@hostname:port
@@ -56,15 +55,12 @@ func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 	}, nil
 }
 
-// WeeklySummaryEmail sends the login email
+// WeeklySummaryEmail sends the weekly summary email
 func (s SMTPEmailer) WeeklySummaryEmail(u *users.User, orgExternalID, orgName string, weeklyReport *weeklysummary.Report) error {
-	weeklyReportContent := weeklysummary.GenerateReport("1", time.Now())
-	weeklyReport = &weeklyReportContent
-
 	e := email.NewEmail()
 	e.From = s.FromAddress
 	e.To = []string{u.Email}
-	e.Subject = fmt.Sprintf("%s (%s - %s) - Weekly Summary", orgName, weeklyReport.StartAt.Format(dateShortFormat), weeklyReport.EndAt.Format(dateShortFormat))
+	e.Subject = fmt.Sprintf("%s (%s - %s) - Weekly Summary", orgName, weeklyReport.StartAt, weeklyReport.EndAt)
 	data := map[string]interface{}{
 		"OrganizationName": orgName,
 		"OrganizationURL":  organizationURL(s.Domain, orgExternalID),
