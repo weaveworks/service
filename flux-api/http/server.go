@@ -323,9 +323,9 @@ func (s Server) history(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.FormValue("simple") == "true" {
-		// Remove all the individual event data, just return the timestamps and messages
+		// Remove event metadata as it's the only bit that adds a significant overhead.
 		for i := range h {
-			h[i].Event = nil
+			h[i].Event.Metadata = nil
 		}
 	}
 
