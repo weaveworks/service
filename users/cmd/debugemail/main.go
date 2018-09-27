@@ -46,8 +46,8 @@ func main() {
 		Email: "inviter@weave.works.example",
 	}
 	weeklyReport := &weeklysummary.Report{
-		StartAt: "Sep 17",
-		EndAt:   "Sep 23",
+		FirstDay: "Sep 17",
+		LastDay:  "Sep 23",
 		WorkloadReleasesCounts: []weeklysummary.WorkloadReleasesCount{
 			{
 				Day:   "Sep 17 (Mon)",

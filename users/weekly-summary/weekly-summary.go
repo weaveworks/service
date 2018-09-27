@@ -48,8 +48,8 @@ type WorkloadResourceConsumption struct {
 // Report contains the whole of instance data summary to be sent in
 // Weekly Summary emails.
 type Report struct {
-	StartAt                  string
-	EndAt                    string
+	FirstDay                 string
+	LastDay                  string
 	CPUIntensiveWorkloads    []WorkloadResourceConsumption
 	MemoryIntensiveWorkloads []WorkloadResourceConsumption
 	WorkloadReleasesCounts   []WorkloadReleasesCount
@@ -62,6 +62,7 @@ func getWorkloadReleasesCounts(ctx context.Context, fluxURL string, startAt time
 	query := fmt.Sprintf("%s/v6/history?service=<all>&simple=true&after=%s&before=%s", fluxURL, after, before)
 	request, err := http.NewRequest("GET", query, nil)
 	request = request.WithContext(ctx)
+	user.InjectOrgIDIntoHTTPRequest(ctx, request)
 	client := http.DefaultClient
 	if err != nil {
 		return nil, err
@@ -119,10 +120,6 @@ func getMostResourceIntensiveWorkloads(ctx context.Context, api v1.API, query st
 	return topWorkloads, nil
 }
 
-func getBeginningofDay(t time.Time) time.Time {
-	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
-}
-
 func getPromAPI(ctx context.Context, uri string) (v1.API, error) {
 	client, err := common.NewPrometheusClient(uri)
 	if err != nil {
@@ -133,8 +130,12 @@ func getPromAPI(ctx context.Context, uri string) (v1.API, error) {
 
 // GenerateReport returns the weekly summary report in the format directly consumable by email templates.
 func GenerateReport(orgID string, endAt time.Time) (*Report, error) {
-	endAt = getBeginningofDay(endAt)   // We end the report at the beginning of the current day, effectively including whole of the last day.
-	startAt := endAt.AddDate(0, 0, -7) // The report will contain a week of data, until the end of the previous day.
+	endAt = endAt.UTC().Truncate(24 * time.Hour)               // We round down the timestamp to a day to stop at the end of previous day.
+	lastDay := endAt.AddDate(0, 0, -1).Format(dateShortFormat) // Format the last day nicely (go back a day for inclusive interval).
+
+	startAt := endAt.AddDate(0, 0, -7)          // The report will consist of full 7 days of data.
+	firstDay := startAt.Format(dateShortFormat) // Format the first day nicely.
+
 	ctx := user.InjectOrgID(context.Background(), orgID)
 
 	promAPI, err := getPromAPI(ctx, promURI)
@@ -159,7 +160,7 @@ func GenerateReport(orgID string, endAt time.Time) (*Report, error) {
 		CPUIntensiveWorkloads:    cpuIntensiveWorkloads,
 		MemoryIntensiveWorkloads: memoryIntensiveWorkloads,
 		WorkloadReleasesCounts:   workloadReleasesCounts,
-		StartAt:                  startAt.Format(dateShortFormat),
-		EndAt:                    endAt.AddDate(0, 0, -1).Format(dateShortFormat), // Go a day back for the inclusive interval.
+		FirstDay:                 firstDay,
+		LastDay:                  lastDay,
 	}, nil
 }

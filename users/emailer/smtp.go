@@ -60,7 +60,7 @@ func (s SMTPEmailer) WeeklySummaryEmail(u *users.User, orgExternalID, orgName st
 	e := email.NewEmail()
 	e.From = s.FromAddress
 	e.To = []string{u.Email}
-	e.Subject = fmt.Sprintf("%s (%s - %s) - Weekly Summary", orgName, weeklyReport.StartAt, weeklyReport.EndAt)
+	e.Subject = fmt.Sprintf("%s (%s - %s) - Weekly Summary", orgName, weeklyReport.FirstDay, weeklyReport.LastDay)
 	data := map[string]interface{}{
 		"OrganizationName": orgName,
 		"OrganizationURL":  organizationURL(s.Domain, orgExternalID),
