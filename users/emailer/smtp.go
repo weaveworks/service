@@ -13,6 +13,7 @@ import (
 	"github.com/weaveworks/service/billing-api/trial"
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/templates"
+	"github.com/weaveworks/service/users/weekly-summary"
 )
 
 // SMTPEmailer is an emailer which sends over SMTP. It is exposed for testing.
@@ -52,6 +53,22 @@ func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 
 		return e.Send(addr, auth)
 	}, nil
+}
+
+// WeeklySummaryEmail sends the weekly summary email
+func (s SMTPEmailer) WeeklySummaryEmail(u *users.User, orgExternalID, orgName string, weeklyReport *weeklysummary.Report) error {
+	e := email.NewEmail()
+	e.From = s.FromAddress
+	e.To = []string{u.Email}
+	e.Subject = fmt.Sprintf("%s (%s - %s) - Weekly Summary", orgName, weeklyReport.FirstDay, weeklyReport.LastDay)
+	data := map[string]interface{}{
+		"OrganizationName": orgName,
+		"OrganizationURL":  organizationURL(s.Domain, orgExternalID),
+		"Report":           weeklyReport,
+	}
+	e.Text = s.Templates.QuietBytes("weekly_summary_email.text", data)
+	e.HTML = s.Templates.EmbedHTML("weekly_summary_email.html", emailWrapperFilename, e.Subject, data)
+	return s.Sender(e)
 }
 
 // LoginEmail sends the login email

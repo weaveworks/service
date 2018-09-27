@@ -11,9 +11,10 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/prometheus/client_golang/api/prometheus/v1"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/weaveworks/common/user"
+	"github.com/weaveworks/service/common"
 )
 
 const testNS = "notification"
@@ -90,13 +91,13 @@ func TestGetServiceMetrics(t *testing.T) {
 // Ensure we forward the OrgID from the incoming request to the querier
 func TestGetServiceMetricsForwardOrgID(t *testing.T) {
 	api := setupMock(t)
-	mockClient := &mockPrometheusClient{}
-	api.prometheus = v1.NewAPI(&prometheusClient{client: mockClient})
+	mockClient := &common.MockPrometheusClient{}
+	api.prometheus = v1.NewAPI(&common.PrometheusClient{Client: mockClient})
 
 	req := httptest.NewRequest("GET", makeGetServiceMetricsURL(testNS, testService), nil)
 	req.Header.Set(user.OrgIDHeaderName, testOrgID)
 	w := httptest.NewRecorder()
 	api.handler.ServeHTTP(w, req)
 
-	assert.Equal(t, testOrgID, mockClient.lastRequest.Header.Get(user.OrgIDHeaderName))
+	assert.Equal(t, testOrgID, mockClient.LastRequest.Header.Get(user.OrgIDHeaderName))
 }

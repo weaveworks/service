@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+ <base href="/admin/users/emails"/>
+{{with .}}
+  <head>
+    <title>Weekly Summary Email – Weave Cloud</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <style media="screen" type="text/css">
+        .mdl-data-table td {
+            padding: 6px 18px;
+        }
+    </style>
+  </head>
+  <body>
+  {{if .Message}}
+    <div class="mdl-snackbar mdl-snackbar--active">
+        <div class="mdl-snackbar__text">{{.Message}}</div>
+    </div>
+  {{end}}
+    <header class="mdl-layout__header mdl-color--grey-100 mdl-color-text--grey-600 is-casting-shadow">
+        <div class="mdl-layout__header-row">
+            <span class="mdl-layout-title">
+				<div class="material-icons">domain</div>
+                Weekly Summary Email
+            </span>
+        </div>
+    </header>
+    <div class="mdl-grid">
+        <form action="emails/weekly-summary/send" method="POST">
+            <input type="hidden" name="csrf_token" value="$__CSRF_TOKEN_PLACEHOLDER__">
+            <label>Instance ID <input type="text" name="OrgExternalID" value="{{.OrgExternalID}}" placeholder="e.g. local-test" /></label><br/><br/>
+            <label>User Email <input type="text" name="UserEmail" value="{{.UserEmail}}" placeholder="e.g. test@test.test" /></label><br/><br/>
+            <input class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+            type="submit" value="Send" />
+        </form>
+    </div>
+  </body>
+{{end}}
+</html>

@@ -1,0 +1,37 @@
+<p>Hi,</p>
+
+<p>Here is your weekly summary breakdown for ‘{{.OrganizationName}}’:</p>
+
+
+{{with .Report}}
+  <p>Number of releases per day:</p>
+  <ul>
+    {{range .WorkloadReleasesCounts}}
+      <li><i>{{.Day}}</i> - <b>{{.Total}}</b></li>
+    {{end}}
+  </ul>
+
+  <p>Most resource-intense workloads:</p>
+  <ul>
+    <li>
+      <span>CPU (average cluster consumption):</span>
+      <ul>
+        {{range .CPUIntensiveWorkloads}}
+          <li><i>{{.Name}}</i> - <b>{{.Value}}</b></li>
+        {{end}}
+      </ul>
+    </li>
+    <li>
+      <span>Memory (average cluster consumption):</span>
+      <ul>
+        {{range .MemoryIntensiveWorkloads}}
+          <li><i>{{.Name}}</i> - <b>{{.Value}}</b></li>
+        {{end}}
+      </ul>
+    </li>
+  </ul>
+{{end}}
+
+<p>Thanks,<br />
+<br />
+The Weaveworks team</p>

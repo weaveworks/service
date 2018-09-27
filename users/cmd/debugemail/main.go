@@ -20,6 +20,7 @@ import (
 	"github.com/weaveworks/service/users"
 	"github.com/weaveworks/service/users/emailer"
 	"github.com/weaveworks/service/users/templates"
+	"github.com/weaveworks/service/users/weekly-summary"
 )
 
 func main() {
@@ -44,6 +45,68 @@ func main() {
 		ID:    "456",
 		Email: "inviter@weave.works.example",
 	}
+	weeklyReport := &weeklysummary.Report{
+		FirstDay: "Sep 17",
+		LastDay:  "Sep 23",
+		WorkloadReleasesCounts: []weeklysummary.WorkloadReleasesCount{
+			{
+				Day:   "Sep 17 (Mon)",
+				Total: 12,
+			},
+			{
+				Day:   "Sep 18 (Tue)",
+				Total: 43,
+			},
+			{
+				Day:   "Sep 19 (Wed)",
+				Total: 18,
+			},
+			{
+				Day:   "Sep 20 (Thu)",
+				Total: 23,
+			},
+			{
+				Day:   "Sep 21 (Fri)",
+				Total: 4,
+			},
+			{
+				Day:   "Sep 22 (Sat)",
+				Total: 0,
+			},
+			{
+				Day:   "Sep 23 (Sun)",
+				Total: 1,
+			},
+		},
+		CPUIntensiveWorkloads: []weeklysummary.WorkloadResourceConsumption{
+			{
+				Name:  "cortex:deployment/ingester",
+				Value: "10.34%",
+			},
+			{
+				Name:  "cortex:deployment/distributor",
+				Value: "3.12%",
+			},
+			{
+				Name:  "monitoring:daemonset/fluentd-loggly",
+				Value: "1.03%",
+			},
+		},
+		MemoryIntensiveWorkloads: []weeklysummary.WorkloadResourceConsumption{
+			{
+				Name:  "monitoring:deployment/prometheus",
+				Value: "20.95%",
+			},
+			{
+				Name:  "cortex:deployment/ingester",
+				Value: "13.10%",
+			},
+			{
+				Name:  "monitoring:daemonset/fluentd-loggly",
+				Value: "3.45%",
+			},
+		},
+	}
 	orgExternalID := "sample-org-99"
 	orgName := "Sample Org 99"
 
@@ -65,6 +128,9 @@ func main() {
 		},
 		"trial_expired": func() error {
 			return em.TrialExpiredEmail([]*users.User{dst}, orgExternalID, orgName)
+		},
+		"weekly": func() error {
+			return em.WeeklySummaryEmail(dst, orgExternalID, orgName, weeklyReport)
 		},
 	}
 

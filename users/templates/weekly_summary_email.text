@@ -1,0 +1,23 @@
+Hi,
+
+Here is your weekly summary breakdown for ‘{{.OrganizationName}}’:
+
+{{with .Report}}
+    Number of releases per day:
+    {{range .WorkloadReleasesCounts}}
+        * {{.Day}} - {{.Total}}{{end}}
+
+    Most resource-intense workloads:
+   
+    CPU (average cluster consumption)
+    {{range .CPUIntensiveWorkloads}}
+        * {{.Name}} - {{.Value}}{{end}}
+
+    Memory (average cluster consumption)
+    {{range .MemoryIntensiveWorkloads}}
+        * {{.Name}} - {{.Value}}{{end}}
+{{end}}
+
+Thanks,
+
+The Weaveworks team
