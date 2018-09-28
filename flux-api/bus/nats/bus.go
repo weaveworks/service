@@ -151,20 +151,8 @@ type ListServicesResponse struct {
 	ErrorResponse `json:",omitempty"`
 }
 
-// ListServicesWithOptionsResponse is the ListServicesWithOptions response.
-type ListServicesWithOptionsResponse struct {
-	Result        []v6.ControllerStatus
-	ErrorResponse `json:",omitempty"`
-}
-
 // ListImagesResponse is the ListImages response.
 type ListImagesResponse struct {
-	Result        []v6.ImageStatus
-	ErrorResponse `json:",omitempty"`
-}
-
-// ListImagesWithOptionsResponse is the ListImagesWithOptions response.
-type ListImagesWithOptionsResponse struct {
 	Result        []v6.ImageStatus
 	ErrorResponse `json:",omitempty"`
 }
@@ -272,7 +260,7 @@ func (r *natsPlatform) ListServices(ctx context.Context, namespace string) ([]v6
 }
 
 func (r *natsPlatform) ListServicesWithOptions(ctx context.Context, opts v11.ListServicesOptions) ([]v6.ControllerStatus, error) {
-	var response ListServicesWithOptionsResponse
+	var response ListServicesResponse
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	if err := r.conn.RequestWithContext(ctx, r.instance+methodListServicesWithOptions, opts, &response); err != nil {
@@ -292,7 +280,7 @@ func (r *natsPlatform) ListImages(ctx context.Context, spec update.ResourceSpec)
 }
 
 func (r *natsPlatform) ListImagesWithOptions(ctx context.Context, opts v10.ListImagesOptions) ([]v6.ImageStatus, error) {
-	var response ListImagesWithOptionsResponse
+	var response ListImagesResponse
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	if err := r.conn.RequestWithContext(ctx, r.instance+methodListImagesWithOptions, opts, &response); err != nil {
@@ -531,7 +519,7 @@ func (n *NATS) processListServicesWithOptions(ctx context.Context, request *nats
 	if err == nil {
 		res, err = platform.ListServicesWithOptions(ctx, req)
 	}
-	n.enc.Publish(request.Reply, ListServicesWithOptionsResponse{res, makeErrorResponse(err)})
+	n.enc.Publish(request.Reply, ListServicesResponse{res, makeErrorResponse(err)})
 	return err
 }
 
@@ -557,7 +545,7 @@ func (n *NATS) processListImagesWithOptions(ctx context.Context, request *nats.M
 	if err == nil {
 		res, err = platform.ListImagesWithOptions(ctx, req)
 	}
-	n.enc.Publish(request.Reply, ListImagesWithOptionsResponse{res, makeErrorResponse(err)})
+	n.enc.Publish(request.Reply, ListImagesResponse{res, makeErrorResponse(err)})
 	return err
 }
 
