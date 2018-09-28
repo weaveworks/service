@@ -10,6 +10,7 @@ import (
 
 	"github.com/weaveworks/flux/api"
 	"github.com/weaveworks/flux/api/v10"
+	"github.com/weaveworks/flux/api/v11"
 	"github.com/weaveworks/flux/api/v6"
 	"github.com/weaveworks/flux/api/v9"
 	fluxerr "github.com/weaveworks/flux/errors"
@@ -30,18 +31,19 @@ const (
 	presenceTick   = 50 * time.Millisecond
 	encoderType    = nats.JSON_ENCODER
 
-	methodKick                  = ".Platform.Kick"
-	methodPing                  = ".Platform.Ping"
-	methodVersion               = ".Platform.Version"
-	methodExport                = ".Platform.Export"
-	methodListServices          = ".Platform.ListServices"
-	methodListImages            = ".Platform.ListImages"
-	methodListImagesWithOptions = ".Platform.ListImagesWithOptions"
-	methodJobStatus             = ".Platform.JobStatus"
-	methodSyncStatus            = ".Platform.SyncStatus"
-	methodUpdateManifests       = ".Platform.UpdateManifests"
-	methodGitRepoConfig         = ".Platform.GitRepoConfig"
-	methodNotifyChange          = ".Platform.NotifyChange"
+	methodKick                    = ".Platform.Kick"
+	methodPing                    = ".Platform.Ping"
+	methodVersion                 = ".Platform.Version"
+	methodExport                  = ".Platform.Export"
+	methodListServices            = ".Platform.ListServices"
+	methodListServicesWithOptions = ".Platform.ListServicesWithOptions"
+	methodListImages              = ".Platform.ListImages"
+	methodListImagesWithOptions   = ".Platform.ListImagesWithOptions"
+	methodJobStatus               = ".Platform.JobStatus"
+	methodSyncStatus              = ".Platform.SyncStatus"
+	methodUpdateManifests         = ".Platform.UpdateManifests"
+	methodGitRepoConfig           = ".Platform.GitRepoConfig"
+	methodNotifyChange            = ".Platform.NotifyChange"
 )
 
 var (
@@ -155,12 +157,6 @@ type ListImagesResponse struct {
 	ErrorResponse `json:",omitempty"`
 }
 
-// ListImagesWithOptionsResponse is the ListImagesWithOptions response.
-type ListImagesWithOptionsResponse struct {
-	Result        []v6.ImageStatus
-	ErrorResponse `json:",omitempty"`
-}
-
 // UpdateManifestsResponse is the UpdateManifests response.
 type UpdateManifestsResponse struct {
 	Result        job.ID
@@ -263,6 +259,16 @@ func (r *natsPlatform) ListServices(ctx context.Context, namespace string) ([]v6
 	return response.Result, extractError(response.ErrorResponse)
 }
 
+func (r *natsPlatform) ListServicesWithOptions(ctx context.Context, opts v11.ListServicesOptions) ([]v6.ControllerStatus, error) {
+	var response ListServicesResponse
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	if err := r.conn.RequestWithContext(ctx, r.instance+methodListServicesWithOptions, opts, &response); err != nil {
+		return response.Result, remote.UnavailableError(err)
+	}
+	return response.Result, extractError(response.ErrorResponse)
+}
+
 func (r *natsPlatform) ListImages(ctx context.Context, spec update.ResourceSpec) ([]v6.ImageStatus, error) {
 	var response ListImagesResponse
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -274,7 +280,7 @@ func (r *natsPlatform) ListImages(ctx context.Context, spec update.ResourceSpec)
 }
 
 func (r *natsPlatform) ListImagesWithOptions(ctx context.Context, opts v10.ListImagesOptions) ([]v6.ImageStatus, error) {
-	var response ListImagesWithOptionsResponse
+	var response ListImagesResponse
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	if err := r.conn.RequestWithContext(ctx, r.instance+methodListImagesWithOptions, opts, &response); err != nil {
@@ -419,6 +425,8 @@ func (n *NATS) processRequest(ctx context.Context, request *nats.Msg, instID ser
 		err = n.processExport(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodListServices):
 		err = n.processListServices(ctx, request, platform)
+	case strings.HasSuffix(request.Subject, methodListServicesWithOptions):
+		err = n.processListServicesWithOptions(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodListImages):
 		err = n.processListImages(ctx, request, platform)
 	case strings.HasSuffix(request.Subject, methodListImagesWithOptions):
@@ -502,6 +510,19 @@ func (n *NATS) processListServices(ctx context.Context, request *nats.Msg, platf
 	return err
 }
 
+func (n *NATS) processListServicesWithOptions(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
+	var (
+		req v11.ListServicesOptions
+		res []v6.ControllerStatus
+	)
+	err := encoder.Decode(request.Subject, request.Data, &req)
+	if err == nil {
+		res, err = platform.ListServicesWithOptions(ctx, req)
+	}
+	n.enc.Publish(request.Reply, ListServicesResponse{res, makeErrorResponse(err)})
+	return err
+}
+
 func (n *NATS) processListImages(ctx context.Context, request *nats.Msg, platform api.UpstreamServer) error {
 	var (
 		req update.ResourceSpec
@@ -524,7 +545,7 @@ func (n *NATS) processListImagesWithOptions(ctx context.Context, request *nats.M
 	if err == nil {
 		res, err = platform.ListImagesWithOptions(ctx, req)
 	}
-	n.enc.Publish(request.Reply, ListImagesWithOptionsResponse{res, makeErrorResponse(err)})
+	n.enc.Publish(request.Reply, ListImagesResponse{res, makeErrorResponse(err)})
 	return err
 }
 

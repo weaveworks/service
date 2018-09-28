@@ -30,6 +30,7 @@ func NewAPIRouter() *mux.Router {
 	r := mux.NewRouter()
 
 	r.NewRoute().Name(ListServices).Methods("GET").Path("/v6/services")
+	r.NewRoute().Name(ListServicesWithOptions).Methods("GET").Path("/v11/services")
 	r.NewRoute().Name(ListImages).Methods("GET").Path("/v6/images")
 	r.NewRoute().Name(ListImagesWithOptions).Methods("GET").Path("/v10/images")
 
@@ -55,6 +56,7 @@ func UpstreamRoutes(r *mux.Router) {
 	r.NewRoute().Name(RegisterDaemonV8).Methods("GET").Path("/v8/daemon")
 	r.NewRoute().Name(RegisterDaemonV9).Methods("GET").Path("/v9/daemon")
 	r.NewRoute().Name(RegisterDaemonV10).Methods("GET").Path("/v10/daemon")
+	r.NewRoute().Name(RegisterDaemonV11).Methods("GET").Path("/v11/daemon")
 	r.NewRoute().Name(LogEvent).Methods("POST").Path("/v6/events")
 }
 

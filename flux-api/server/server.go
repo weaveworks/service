@@ -6,13 +6,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/weaveworks/flux/api/v10"
-
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
 
 	"github.com/weaveworks/flux"
 	"github.com/weaveworks/flux/api"
+	"github.com/weaveworks/flux/api/v10"
+	"github.com/weaveworks/flux/api/v11"
 	"github.com/weaveworks/flux/api/v6"
 	"github.com/weaveworks/flux/api/v9"
 	"github.com/weaveworks/flux/event"
@@ -160,6 +160,20 @@ func (s *Server) ListServices(ctx context.Context, namespace string) (res []v6.C
 		return nil, errors.Wrapf(err, "getting instance")
 	}
 	return inst.Platform.ListServices(ctx, namespace)
+}
+
+// ListServicesWithOptions calls ListServicesWithOptions on the given instance.
+func (s *Server) ListServicesWithOptions(ctx context.Context, opts v11.ListServicesOptions) (res []v6.ControllerStatus, err error) {
+	instID, err := getInstanceID(ctx)
+	if err != nil {
+		return res, err
+	}
+
+	inst, err := s.instancer.Get(instID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "getting instance")
+	}
+	return inst.Platform.ListServicesWithOptions(ctx, opts)
 }
 
 // ListImages calls ListImages on the given instance.
