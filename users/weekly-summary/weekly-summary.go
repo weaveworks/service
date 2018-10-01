@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	promURI = "http://querier.cortex.svc.cluster.local"
-	fluxURI = "http://flux-api.flux.svc.cluster.local"
+	resourceWorkloadsMaxShown = 3
+	promURI                   = "http://querier.cortex.svc.cluster.local/api/prom"
+	fluxURI                   = "http://flux-api.flux.svc.cluster.local"
 )
 
 // Queries for getting resource consumption data from Prometheus
@@ -61,12 +62,12 @@ func getWorkloadReleasesCounts(ctx context.Context, fluxURL string, startAt time
 	before := endAt.UTC().Format(time.RFC3339)
 	query := fmt.Sprintf("%s/v6/history?service=<all>&simple=true&after=%s&before=%s", fluxURL, after, before)
 	request, err := http.NewRequest("GET", query, nil)
-	request = request.WithContext(ctx)
-	user.InjectOrgIDIntoHTTPRequest(ctx, request)
-	client := http.DefaultClient
 	if err != nil {
 		return nil, err
 	}
+	request = request.WithContext(ctx)
+	user.InjectOrgIDIntoHTTPRequest(ctx, request)
+	client := http.DefaultClient
 	response, err := client.Do(request)
 	if err != nil {
 		return nil, err
@@ -102,14 +103,20 @@ func getWorkloadReleasesCounts(ctx context.Context, fluxURL string, startAt time
 
 func getMostResourceIntensiveWorkloads(ctx context.Context, api v1.API, query string, EndAt time.Time) ([]WorkloadResourceConsumption, error) {
 	// Get the sorted list of workloads based on the query.
-	workloadsVector, err := api.Query(ctx, query, EndAt)
+	workloadsSeries, err := api.Query(ctx, query, EndAt)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get at most 3 workloads from the top and format their name and resource consumption as rounded percentage.
+	// Get at most `resourceWorkloadsMaxShown` workloads from the top ...
+	workloadsVector := workloadsSeries.(model.Vector)
+	if len(workloadsVector) > resourceWorkloadsMaxShown {
+		workloadsVector = workloadsVector[:resourceWorkloadsMaxShown]
+	}
+
+	// ... and format their name and resource consumption as rounded percentage.
 	topWorkloads := []WorkloadResourceConsumption{}
-	for _, workload := range workloadsVector.(model.Vector)[:3] {
+	for _, workload := range workloadsVector {
 		topWorkloads = append(topWorkloads, WorkloadResourceConsumption{
 			// TODO: The 'deployment' part of the name might not be valid at all times but it covers most of the cases.
 			// There should be a way to get the workload in this format from namespace and pod name only, but not sure how do it now.
