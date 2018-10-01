@@ -5,14 +5,16 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	prom "github.com/prometheus/client_golang/api"
+	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/user"
 )
 
 // PrometheusClient is a specialization of the default prom.Client that extracts
-// the orgID header from the given context and ensures it's forwarded to the
-// querier.
+// the orgID and opentracing headers from the given context and ensures they are
+// forwarded to the querier.
 type PrometheusClient struct {
 	Client prom.Client
 }
@@ -43,6 +45,12 @@ func (c *PrometheusClient) Do(ctx context.Context, r *http.Request) (*http.Respo
 	err := user.InjectOrgIDIntoHTTPRequest(ctx, r)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "inject OrgID")
+	}
+
+	if span := opentracing.SpanFromContext(ctx); span != nil {
+		if err := opentracing.GlobalTracer().Inject(span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(r.Header)); err != nil {
+			logging.Global().Warnf("Failed to inject tracing headers into request: %v", err)
+		}
 	}
 
 	return c.Client.Do(ctx, r)
