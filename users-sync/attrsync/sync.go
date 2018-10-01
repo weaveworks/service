@@ -29,6 +29,7 @@ const minus30Days = -1 * 30 * 24 * time.Hour
 
 func init() {
 	attrsComputeDurationCollector.Register()
+	prometheus.MustRegister(segmentMessagesTotalCounter)
 }
 
 // AttributeSyncer sends metadata about users to external services
@@ -195,13 +196,9 @@ func (c *AttributeSyncer) syncUser(ctx context.Context, user *users.User) error 
 		traits.Set(name, val)
 	}
 
-	if c.segmentClient == nil {
-		c.log.WithField("traits", traits).Warnf("No segment client, skipping sending traits")
-	} else {
-		c.segmentClient.Enqueue(analytics.Identify{
-			UserId: user.Email,
-			Traits: traits,
-		})
-	}
+	c.segmentClient.Enqueue(analytics.Identify{
+		UserId: user.Email,
+		Traits: traits,
+	})
 	return nil
 }
