@@ -2,14 +2,16 @@ package cleaner
 
 import (
 	"context"
-	"github.com/opentracing/opentracing-go"
-	"github.com/weaveworks/common/logging"
 	"net/http"
 	"time"
 
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/weaveworks/common/logging"
 	commonUser "github.com/weaveworks/common/user"
+
 	"github.com/weaveworks/service/users/db"
 )
 
@@ -193,7 +195,11 @@ func callEndpoint(ctx context.Context, id, url string) (int, error) {
 	req = req.WithContext(ctx)
 	defer cancel()
 
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Transport: &nethttp.Transport{}}
+	req, ht := nethttp.TraceRequest(opentracing.GlobalTracer(), req)
+	defer ht.Finish()
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return http.StatusInternalServerError, errors.Wrapf(err, "executing DELETE request to URL %s", url)
 	}
