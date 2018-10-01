@@ -8,6 +8,7 @@ import (
 
 	"github.com/weaveworks/common/logging"
 	"github.com/weaveworks/common/server"
+	"github.com/weaveworks/common/tracing"
 	"github.com/weaveworks/service/dashboard-api/dashboard"
 )
 
@@ -36,6 +37,9 @@ func main() {
 		log.Fatalf("error initializing logging: %v", err)
 	}
 	cfg.server.Log = logging.Logrus(log.StandardLogger())
+
+	traceCloser := tracing.NewFromEnv("dashboard-api")
+	defer traceCloser.Close()
 
 	server, err := server.New(cfg.server)
 	if err != nil {
