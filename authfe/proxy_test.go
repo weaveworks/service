@@ -216,3 +216,49 @@ func TestProxyGRPCTracing(t *testing.T) {
 	assert.Equal(t, 200, resp.StatusCode)
 	assert.Equal(t, "world", string(body[:c]))
 }
+
+func TestProxyClientClosed(t *testing.T) {
+	serverCh := make(chan interface{})
+
+	// Set up a slow server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(418)
+		serverCh <- nil // Synchonise with the test
+	}))
+	defer server.Close()
+
+	// Set up a proxy handler pointing at the server
+	serverURL, err := url.Parse(server.URL)
+	assert.NoError(t, err, "Cannot parse URL")
+	proxyHandler, _ := newProxy(proxyConfig{hostAndPort: serverURL.Host, protocol: "http"})
+
+	// Intercept the proxy response to check the response code
+	codeCh := make(chan int)
+	interceptedProxyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		recorder := httptest.NewRecorder()
+		proxyHandler.ServeHTTP(recorder, r)
+		codeCh <- recorder.Code
+		w.WriteHeader(recorder.Code)
+	})
+
+	// Set up the proxy server
+	proxyServer := httptest.NewServer(interceptedProxyHandler)
+	defer proxyServer.Close()
+
+	// Make a request which times out faster than the slow server
+	req, err := http.NewRequest("GET", proxyServer.URL, nil)
+	require.NoError(t, err)
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	req = req.WithContext(ctx)
+
+	_, err = http.DefaultClient.Do(req)
+	// Check that the request timed out early
+	assert.Error(t, context.DeadlineExceeded, err)
+	// Wait for the slow server to receive the request, and allow it to continue
+	assert.Nil(t, <-serverCh)
+	// Wait for the proxyHandler to finish handling the request, and allow it to continue
+	responseCode := <-codeCh
+	// Check that the proxy server set the response code to 499
+	assert.Equal(t, 499, responseCode)
+}
