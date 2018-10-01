@@ -94,7 +94,7 @@ func main() {
 		logrus.Fatalf("Failed to create server: %v", err)
 		return
 	}
-	userSyncServer := server.New(logger)
+	userSyncServer := server.New(logger, orgCleaner, attributeSyncer)
 	api.RegisterUsersSyncServer(cServer.GRPC, userSyncServer)
 
 	orgCleaner.Start()
