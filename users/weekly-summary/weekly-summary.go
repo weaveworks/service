@@ -15,28 +15,32 @@ import (
 
 const (
 	resourceWorkloadsMaxShown = 3
-	promURI                   = "http://querier.cortex.svc.cluster.local/api/prom"
-	fluxURI                   = "http://flux-api.flux.svc.cluster.local"
+	promURI                   = "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/prom"
+	fluxURI                   = "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/flux"
+	// promURI                   = "http://querier.cortex.svc.cluster.local/api/prom"
+	// fluxURI                   = "http://flux-api.flux.svc.cluster.local"
 )
 
 // Queries for getting resource consumption data from Prometheus
 // TODO: Fix the memory query - it gives too big numbers over long time spans.
 const (
-	promTopCPUWorkloadsQuery    = "sort_desc(sum by (namespace, _weave_pod_name) (rate(container_cpu_usage_seconds_total{image!=''}[1w])) / ignoring(namespace, _weave_pod_name) group_left count(node_cpu{mode='idle'}))"
-	promTopMemoryWorkloadsQuery = "sort_desc(sum by (namespace, _weave_pod_name) (avg_over_time(container_memory_working_set_bytes{image!=''}[1w])) / ignoring(namespace, _weave_pod_name) group_left sum (node_memory_MemTotal))"
+	promTopCPUWorkloadsQuery    = "sort_desc(sum by (namespace, _weave_pod_name) (rate(container_cpu_usage_seconds_total{image!=''}[1h])) / ignoring(namespace, _weave_pod_name) group_left count(node_cpu{mode='idle'}))"
+	promTopMemoryWorkloadsQuery = "sort_desc(sum by (namespace, _weave_pod_name) (avg_over_time(container_memory_working_set_bytes{image!=''}[1h])) / ignoring(namespace, _weave_pod_name) group_left sum (node_memory_MemTotal))"
 )
 
 // Date formats for the weekly email.
 const (
-	dateWeekFormat  = "Jan 2 (Mon)"
+	dayOfWeekFormat = "Mon"
 	dateShortFormat = "Jan 2"
 )
 
-// WorkloadReleasesCount consists of a formatted Date and the total
+// WorkloadReleasesBar consists of a formatted Date and the total
 // number of workload releases on that day.
-type WorkloadReleasesCount struct {
-	Day   string
-	Total int
+type WorkloadReleasesBar struct {
+	LinkTo     string
+	DayOfWeek  string
+	TotalCount int
+	BarHeight  int
 }
 
 // WorkloadResourceConsumption consists of the workload name and the
@@ -49,14 +53,14 @@ type WorkloadResourceConsumption struct {
 // Report contains the whole of instance data summary to be sent in
 // Weekly Summary emails.
 type Report struct {
-	FirstDay                 string
-	LastDay                  string
-	CPUIntensiveWorkloads    []WorkloadResourceConsumption
-	MemoryIntensiveWorkloads []WorkloadResourceConsumption
-	WorkloadReleasesCounts   []WorkloadReleasesCount
+	FirstDay                  string
+	LastDay                   string
+	CPUIntensiveWorkloads     []WorkloadResourceConsumption
+	MemoryIntensiveWorkloads  []WorkloadResourceConsumption
+	WorkloadReleasesHistogram []WorkloadReleasesBar
 }
 
-func getWorkloadReleasesCounts(ctx context.Context, fluxURL string, startAt time.Time, endAt time.Time) ([]WorkloadReleasesCount, error) {
+func getWorkloadReleasesHistogram(ctx context.Context, fluxURL string, startAt time.Time, endAt time.Time) ([]WorkloadReleasesBar, error) {
 	// TODO: This should probably be handled via a dedicated Flux client, similar to the Prometheus one.
 	after := startAt.UTC().Format(time.RFC3339)
 	before := endAt.UTC().Format(time.RFC3339)
@@ -80,6 +84,7 @@ func getWorkloadReleasesCounts(ctx context.Context, fluxURL string, startAt time
 	// Build a histogram of releases counts per every day of the week.
 	// TODO: We should probably filter out anything but `Sync` events here for more accurate numbers.
 	weeklyHistogram := [7]int{}
+	weeklyMaxCount := 5
 	for _, release := range data {
 		t, err := time.Parse(time.RFC3339, release.Stamp)
 		if err != nil {
@@ -88,17 +93,23 @@ func getWorkloadReleasesCounts(ctx context.Context, fluxURL string, startAt time
 		// Get a day of the week 0..6
 		day := int(t.Sub(startAt).Hours() / 24)
 		weeklyHistogram[day]++
+		if weeklyHistogram[day] > weeklyMaxCount {
+			weeklyMaxCount = weeklyHistogram[day]
+		}
 	}
 
 	// Finally convert the histogram into the appropriate array with formatted dates.
-	releasesCounts := []WorkloadReleasesCount{}
-	for day, total := range weeklyHistogram {
-		releasesCounts = append(releasesCounts, WorkloadReleasesCount{
-			Day:   startAt.AddDate(0, 0, day).Format(dateWeekFormat),
-			Total: total,
+	releasesHistogram := []WorkloadReleasesBar{}
+	baseLink := "https://frontend.dev.weave.works/proud-wind-05/deploy/history?range=24h"
+	for day, totalCount := range weeklyHistogram {
+		releasesHistogram = append(releasesHistogram, WorkloadReleasesBar{
+			LinkTo:     fmt.Sprintf("%s&timestamp=%s", baseLink, startAt.AddDate(0, 0, day+1).UTC().Format(time.RFC3339)),
+			DayOfWeek:  startAt.AddDate(0, 0, day).Format(dayOfWeekFormat),
+			BarHeight:  2 + (150.0 * totalCount / weeklyMaxCount),
+			TotalCount: totalCount,
 		})
 	}
-	return releasesCounts, nil
+	return releasesHistogram, nil
 }
 
 func getMostResourceIntensiveWorkloads(ctx context.Context, api v1.API, query string, EndAt time.Time) ([]WorkloadResourceConsumption, error) {
@@ -150,7 +161,7 @@ func GenerateReport(orgID string, endAt time.Time) (*Report, error) {
 		return nil, err
 	}
 
-	workloadReleasesCounts, err := getWorkloadReleasesCounts(ctx, fluxURI, startAt, endAt)
+	workloadReleasesHistogram, err := getWorkloadReleasesHistogram(ctx, fluxURI, startAt, endAt)
 	if err != nil {
 		return nil, err
 	}
@@ -164,10 +175,10 @@ func GenerateReport(orgID string, endAt time.Time) (*Report, error) {
 	}
 
 	return &Report{
-		CPUIntensiveWorkloads:    cpuIntensiveWorkloads,
-		MemoryIntensiveWorkloads: memoryIntensiveWorkloads,
-		WorkloadReleasesCounts:   workloadReleasesCounts,
-		FirstDay:                 firstDay,
-		LastDay:                  lastDay,
+		CPUIntensiveWorkloads:     cpuIntensiveWorkloads,
+		MemoryIntensiveWorkloads:  memoryIntensiveWorkloads,
+		WorkloadReleasesHistogram: workloadReleasesHistogram,
+		FirstDay:                  firstDay,
+		LastDay:                   lastDay,
 	}, nil
 }

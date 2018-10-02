@@ -1,15 +1,22 @@
 <p>Hi,</p>
 
-<p>Here is your weekly summary breakdown for ‘{{.OrganizationName}}’:</p>
-
+<p>Here is an overview of your instance ‘{{.OrganizationName}}’ this past week.</p>
 
 {{with .Report}}
-  <p>Number of releases per day:</p>
-  <ul>
-    {{range .WorkloadReleasesCounts}}
-      <li><i>{{.Day}}</i> - <b>{{.Total}}</b></li>
+  <h2 style="color: #888; font-size: 8px; font-weight: normal; margin-top: 40px;">Deployments</h2>
+  <div style="height: 200px; text-align: center; width: 100%;">
+    {{range .WorkloadReleasesHistogram}}
+      <div style="display: inline-block; height: 100%; margin-right: 4%; position: relative; width: 9.5%;">
+        <a href="{{.LinkTo}}" style="text-decoration: none">
+          <div style="bottom: 0; color: #000; position: absolute; text-align: center; width: 100%;">
+            <span style="display: block; margin-bottom: 2px;">{{.TotalCount}}</span>
+            <div style="background-color: #00a7cc; border-radius: 2px; height: {{.BarHeight}}px; width: 100%;"></div>
+            <span style="color: #888; display: block; margin-top: 5px;">{{.DayOfWeek}}</span>
+          </div>
+        </a>
+      </div>
     {{end}}
-  </ul>
+  </div>
 
   <p>Most resource-intense workloads:</p>
   <ul>
