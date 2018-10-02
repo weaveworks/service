@@ -64,6 +64,7 @@ type WebhookAlert struct {
 	ExternalURL       string            `json:"externalURL,omitempty"`
 	Alerts            []Alert           `json:"alerts,omitempty"`
 	SettingsURL       string            `json:"settingsURL,omitempty"`
+	AlertsConfigURL   string            `json:"alertsConfigURL,omitempty"`
 	WeaveCloudURL     map[string]string `json:"weaveCloudURL,omitempty"`
 }
 

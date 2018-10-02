@@ -68,7 +68,7 @@ func (em *EventManager) handleTestEvent(r *http.Request, instanceID string) (int
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting stackdriver message for test event")
 	}
 
-	emailMsg, err := em.Render.EmailFromSlack(userTestTitle, htmlText, etype, instanceName, "", "", link, timestamp)
+	emailMsg, err := em.Render.EmailFromSlack(userTestTitle, htmlText, etype, instanceName, "", "", "", link, timestamp)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusInternalServerError)}).Inc()
 		return nil, http.StatusInternalServerError, errors.Wrap(err, "error getting email message for test event")

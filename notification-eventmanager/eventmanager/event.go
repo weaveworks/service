@@ -28,8 +28,9 @@ const (
 	// MaxEventsList is the highest number of events that can be requested in one list call
 	MaxEventsList          = 10000
 	notificationConfigPath = "/org/notifications"
+	alertsConfigPath       = "/org/alerts"
 	alertsPage             = "/prom/alerts"
-	alertLinkText          = "Weave Cloud Alert"
+	alertLinkText          = "View firing alerts"
 	deployPage             = "/deploy/services"
 	deployLinkText         = "Weave Cloud Deploy"
 )
@@ -170,6 +171,12 @@ func (em *EventManager) handleSlackEvent(r *http.Request) (interface{}, int, err
 		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot get Weave Cloud notification page link")
 	}
 
+	alertsConfigLink, err := em.getInstanceLink(instanceData.Organization.ExternalID, alertsConfigPath)
+	if err != nil {
+		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
+		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot get Weave Cloud alert config page link")
+	}
+
 	var linkText, linkPath string
 	// link to Monitor page with Firing alerts for Cortex events
 	// and link to Deploy page for Flux events
@@ -193,7 +200,7 @@ func (em *EventManager) handleSlackEvent(r *http.Request) (interface{}, int, err
 		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot get Weave Cloud deploy page link")
 	}
 
-	e, err := em.buildEvent(body, sm, eventType, instanceID, instanceData.Organization.Name, notifLink, link, linkText)
+	e, err := em.buildEvent(body, sm, eventType, instanceID, instanceData.Organization.Name, notifLink, alertsConfigLink, link, linkText)
 	if err != nil {
 		requestsError.With(prometheus.Labels{"status_code": http.StatusText(http.StatusBadRequest)}).Inc()
 		return nil, http.StatusBadRequest, errors.Wrap(err, "cannot build event")
@@ -348,10 +355,10 @@ func (em *EventManager) handleGetEvents(r *http.Request, instanceID string) (int
 	return events, http.StatusOK, nil
 }
 
-func (em *EventManager) buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceName, notificationPageLink, link, linkText string) (types.Event, error) {
+func (em *EventManager) buildEvent(body []byte, sm types.SlackMessage, etype, instanceID, instanceName, notificationPageLink, alertsConfigLink, link, linkText string) (types.Event, error) {
 	html := render.SlackMsgToHTML(sm, instanceName, linkText, link)
 	timestamp := time.Now()
-	emailMsg, err := em.Render.EmailFromSlack(etype, html, etype, instanceName, link, linkText, notificationPageLink, timestamp)
+	emailMsg, err := em.Render.EmailFromSlack(etype, html, etype, instanceName, link, linkText, notificationPageLink, alertsConfigLink, timestamp)
 	if err != nil {
 		return types.Event{}, errors.Wrap(err, "cannot get email message")
 	}
