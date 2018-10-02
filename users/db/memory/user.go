@@ -29,6 +29,12 @@ func (d DB) UpdateUser(ctx context.Context, userID string, update *users.UserUpd
 	if update.Name != "" {
 		d.users[userID].Name = update.Name
 	}
+	if update.GivenName != "" {
+		d.users[userID].GivenName = update.GivenName
+	}
+	if update.FamilyName != "" {
+		d.users[userID].FamilyName = update.FamilyName
+	}
 	if update.Company != "" {
 		d.users[userID].Company = update.Company
 	}
@@ -70,11 +76,13 @@ func (d DB) DeleteUser(ctx context.Context, userID string) error {
 
 func (d *DB) createUser(email string) (*users.User, error) {
 	u := &users.User{
-		ID:        fmt.Sprint(len(d.users)),
-		Email:     strings.ToLower(email),
-		Name:      "",
-		Company:   "",
-		CreatedAt: time.Now().UTC(),
+		ID:         fmt.Sprint(len(d.users)),
+		Email:      strings.ToLower(email),
+		Name:       "",
+		GivenName:  "",
+		FamilyName: "",
+		Company:    "",
+		CreatedAt:  time.Now().UTC(),
 	}
 	d.users[u.ID] = u
 	return u, nil

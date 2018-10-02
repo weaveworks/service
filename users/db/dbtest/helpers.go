@@ -38,8 +38,10 @@ func GetUserWithDomain(t *testing.T, db db.DB, domain string) *users.User {
 func AddUserInfoToUser(t *testing.T, db db.DB, user *users.User) *users.User {
 	random := rand.Int63()
 	user, err := db.UpdateUser(context.Background(), user.ID, &users.UserUpdate{
-		Name:    fmt.Sprintf("Test User %d", random),
-		Company: fmt.Sprintf("Test Company %d", random),
+		GivenName:  fmt.Sprintf("Test %d", random),
+		FamilyName: fmt.Sprintf("User %d", random),
+		Name:       fmt.Sprintf("Test %d User %d", random, random),
+		Company:    fmt.Sprintf("Test Company %d", random),
 	})
 	require.NoError(t, err)
 	return user

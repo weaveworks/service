@@ -97,6 +97,8 @@ func Test_AttrSyncWithOrg(t *testing.T) {
 		UserId: user.Email,
 		Traits: analytics.Traits{
 			"name":      user.Name,
+			"firstName": user.GivenName,
+			"lastName":  user.FamilyName,
 			"email":     user.Email,
 			"createdAt": user.CreatedAt,
 			"company": map[string]string{

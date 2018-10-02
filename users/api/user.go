@@ -10,9 +10,11 @@ import (
 
 func (a *API) getCurrentUser(currentUser *users.User, w http.ResponseWriter, r *http.Request) {
 	resp := users.UserResponse{
-		Email:   currentUser.Email,
-		Company: currentUser.Company,
-		Name:    currentUser.Name,
+		Email:      currentUser.Email,
+		Company:    currentUser.Company,
+		Name:       currentUser.Name,
+		GivenName:  currentUser.GivenName,
+		FamilyName: currentUser.FamilyName,
 	}
 	render.JSON(w, http.StatusOK, resp)
 }
@@ -33,9 +35,11 @@ func (a *API) updateUser(currentUser *users.User, w http.ResponseWriter, r *http
 	}
 
 	resp := users.UserResponse{
-		Email:   user.Email,
-		Name:    user.Name,
-		Company: user.Company,
+		Email:      user.Email,
+		Name:       user.Name,
+		GivenName:  user.GivenName,
+		FamilyName: user.FamilyName,
+		Company:    user.Company,
 	}
 
 	render.JSON(w, http.StatusOK, resp)
