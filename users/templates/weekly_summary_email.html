@@ -7,8 +7,8 @@
   <div style="height: 200px; text-align: center; width: 100%;">
     {{range .Deployments}}
       <div style="display: inline-block; height: 100%; margin-right: 4%; position: relative; width: 9.5%;">
-        <a href="{{.LinkTo}}" style="text-decoration: none">
-          <div style="bottom: 0; color: #000; position: absolute; text-align: center; width: 100%;">
+        <a href="{{.LinkTo}}" style="outline: none; text-decoration: none">
+          <div style="bottom: 0; color: #1a1a1a; position: absolute; text-align: center; width: 100%;">
             <span style="display: block; margin-bottom: 2px;">{{.TotalCount}}</span>
             <div style="background: #00a7cc; border-radius: 2px; height: {{.BarHeightPx}}px; width: 100%;"></div>
             <span style="color: #888; display: block; margin-top: 5px;">{{.DayOfWeek}}</span>
@@ -25,15 +25,15 @@
           {{.Label}}
         </h2>
         {{range .TopConsumers}}
-          <div style="margin-top: 20px;">
-            <a href="{{.LinkTo}}" style="text-decoration: none">
+          <a href="{{.LinkTo}}" style="outline: none; text-decoration: none">
+            <div style="color: #1a1a1a; margin-top: 20px;">
               <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{.WorkloadName}}</div>
               <div style="margin-top: 5px;">
                 <span style="background: #00a7cc; border-radius: 2px; display: inline-block; height: 5px; margin-bottom: 2px; width: {{.BarWidthPerc}}%;"></span>
                 <span style="color: #888; display: inline-block; margin-left: 3px;">{{.ClusterPercent}}</span>
               </div>
-            </a>
-          </div>
+            </div>
+          </a>
         {{end}}
       </div>
     {{end}}

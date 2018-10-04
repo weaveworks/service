@@ -11,12 +11,15 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/weaveworks/common/user"
 	"github.com/weaveworks/service/common"
+	"github.com/weaveworks/service/users"
 )
 
 const (
 	resourceWorkloadsMaxShown = 3
+	weaveCloudURL             = "https://frontend.dev.weave.works"
 	promURI                   = "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/prom"
 	fluxURI                   = "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/flux"
+	// weaveCloudURL             = "https://cloud.weave.works"
 	// promURI                   = "http://querier.cortex.svc.cluster.local/api/prom"
 	// fluxURI                   = "http://flux-api.flux.svc.cluster.local"
 )
@@ -32,6 +35,7 @@ const (
 const (
 	dayOfWeekFormat = "Mon"
 	dateShortFormat = "Jan 2"
+	dateLongFormat  = "Jan 2, 2018"
 )
 
 // WorkloadDeploymentsBar consists of a formatted Date and the total
@@ -39,8 +43,8 @@ const (
 type WorkloadDeploymentsBar struct {
 	LinkTo      string
 	DayOfWeek   string
+	TotalCount  string
 	BarHeightPx int
-	TotalCount  int
 }
 
 // WorkloadResourceConsumption consists of the workload name and the
@@ -61,13 +65,23 @@ type WorkloadResourceStats struct {
 // Report contains the whole of instance data summary to be sent in
 // Weekly Summary emails.
 type Report struct {
-	FirstDay    string
-	LastDay     string
-	Deployments []WorkloadDeploymentsBar
-	Resources   []WorkloadResourceStats
+	FirstDay           string
+	LastDay            string
+	InstanceCreatedDay string
+	Deployments        []WorkloadDeploymentsBar
+	Resources          []WorkloadResourceStats
 }
 
-func getWorkloadReleasesHistogram(ctx context.Context, fluxURL string, startAt time.Time, endAt time.Time) ([]WorkloadDeploymentsBar, error) {
+func getDeployHistoryLink(org *users.Organization, endAt time.Time, timeRange string) string {
+	isoTimestamp := endAt.UTC().Format(time.RFC3339)
+	return fmt.Sprintf("%s/%s/deploy/history?range=%s&timestamp=%s", weaveCloudURL, org.ExternalID, timeRange, isoTimestamp)
+}
+
+func getWorkloadSummaryLink(org *users.Organization, workloadName string) string {
+	return fmt.Sprintf("%s/%s/workloads/%s/summary", weaveCloudURL, org.ExternalID, workloadName)
+}
+
+func getWorkloadReleasesHistogram(ctx context.Context, org *users.Organization, fluxURL string, startAt time.Time, endAt time.Time) ([]WorkloadDeploymentsBar, error) {
 	// TODO: This should probably be handled via a dedicated Flux client, similar to the Prometheus one.
 	after := startAt.UTC().Format(time.RFC3339)
 	before := endAt.UTC().Format(time.RFC3339)
@@ -104,22 +118,33 @@ func getWorkloadReleasesHistogram(ctx context.Context, fluxURL string, startAt t
 			weeklyMaxCount = weeklyHistogram[day]
 		}
 	}
+	// org.CreatedAt = startAt.AddDate(0, 0, 3)
 
 	// Finally convert the histogram into the appropriate array with formatted dates.
 	releasesHistogram := []WorkloadDeploymentsBar{}
-	baseLink := "https://frontend.dev.weave.works/proud-wind-05/deploy/history?range=24h"
-	for day, totalCount := range weeklyHistogram {
+	for dayIndex, totalCount := range weeklyHistogram {
+		dayBegin := startAt.AddDate(0, 0, dayIndex)
+		dayEnd := dayBegin.AddDate(0, 0, 1)
+
+		barHeightPx := 2 + (150.0 * totalCount / weeklyMaxCount)
+		totalCount := fmt.Sprintf("%d", totalCount)
+
+		if dayEnd.Before(org.CreatedAt) {
+			barHeightPx = 0
+			totalCount = "-"
+		}
+
 		releasesHistogram = append(releasesHistogram, WorkloadDeploymentsBar{
-			LinkTo:      fmt.Sprintf("%s&timestamp=%s", baseLink, startAt.AddDate(0, 0, day+1).UTC().Format(time.RFC3339)),
-			DayOfWeek:   startAt.AddDate(0, 0, day).Format(dayOfWeekFormat),
-			BarHeightPx: 2 + (150.0 * totalCount / weeklyMaxCount),
+			LinkTo:      getDeployHistoryLink(org, dayEnd, "24h"),
+			DayOfWeek:   dayBegin.Format(dayOfWeekFormat),
 			TotalCount:  totalCount,
+			BarHeightPx: barHeightPx,
 		})
 	}
 	return releasesHistogram, nil
 }
 
-func getMostResourceIntensiveWorkloads(ctx context.Context, api v1.API, query string, EndAt time.Time) ([]WorkloadResourceConsumption, error) {
+func getMostResourceIntensiveWorkloads(ctx context.Context, org *users.Organization, api v1.API, query string, EndAt time.Time) ([]WorkloadResourceConsumption, error) {
 	// Get the sorted list of workloads based on the query.
 	workloadsSeries, err := api.Query(ctx, query, EndAt)
 	if err != nil {
@@ -141,13 +166,14 @@ func getMostResourceIntensiveWorkloads(ctx context.Context, api v1.API, query st
 
 	// ... and format their name and resource consumption as rounded percentage.
 	topWorkloads := []WorkloadResourceConsumption{}
-	baseLink := "https://frontend.dev.weave.works/proud-wind-05/deploy/history?range=24h"
 	for _, workload := range workloadsVector {
+		// TODO: The 'deployment' part of the name might not be valid at all times but it covers most of the cases.
+		// There should be a way to get the workload in this format from namespace and pod name only, but not sure how do it now.
+		workloadName := fmt.Sprintf("%s:deployment/%s", workload.Metric["namespace"], workload.Metric["_weave_pod_name"])
+
 		topWorkloads = append(topWorkloads, WorkloadResourceConsumption{
-			// TODO: The 'deployment' part of the name might not be valid at all times but it covers most of the cases.
-			// There should be a way to get the workload in this format from namespace and pod name only, but not sure how do it now.
-			WorkloadName:   fmt.Sprintf("%s:deployment/%s", workload.Metric["namespace"], workload.Metric["_weave_pod_name"]),
-			LinkTo: fmt.Sprintf()
+			WorkloadName:   workloadName,
+			LinkTo:         getWorkloadSummaryLink(org, workloadName),
 			ClusterPercent: fmt.Sprintf("%2.2f%%", 100*float64(workload.Value)),
 			BarWidthPerc:   1 + (75 * float64(workload.Value) / maxConsumptionValue),
 		})
@@ -164,37 +190,43 @@ func getPromAPI(ctx context.Context, uri string) (v1.API, error) {
 }
 
 // GenerateReport returns the weekly summary report in the format directly consumable by email templates.
-func GenerateReport(orgID string, endAt time.Time) (*Report, error) {
+func GenerateReport(org *users.Organization, endAt time.Time) (*Report, error) {
 	endAt = endAt.UTC().Truncate(24 * time.Hour)               // We round down the timestamp to a day to stop at the end of previous day.
 	lastDay := endAt.AddDate(0, 0, -1).Format(dateShortFormat) // Format the last day nicely (go back a day for inclusive interval).
 
 	startAt := endAt.AddDate(0, 0, -7)          // The report will consist of full 7 days of data.
 	firstDay := startAt.Format(dateShortFormat) // Format the first day nicely.
 
-	ctx := user.InjectOrgID(context.Background(), orgID)
+	ctx := user.InjectOrgID(context.Background(), org.ID)
 
 	promAPI, err := getPromAPI(ctx, promURI)
 	if err != nil {
 		return nil, err
 	}
 
-	workloadReleasesHistogram, err := getWorkloadReleasesHistogram(ctx, fluxURI, startAt, endAt)
+	workloadReleasesHistogram, err := getWorkloadReleasesHistogram(ctx, org, fluxURI, startAt, endAt)
 	if err != nil {
 		return nil, err
 	}
-	cpuIntensiveWorkloads, err := getMostResourceIntensiveWorkloads(ctx, promAPI, promTopCPUWorkloadsQuery, endAt)
+	cpuIntensiveWorkloads, err := getMostResourceIntensiveWorkloads(ctx, org, promAPI, promTopCPUWorkloadsQuery, endAt)
 	if err != nil {
 		return nil, err
 	}
-	memoryIntensiveWorkloads, err := getMostResourceIntensiveWorkloads(ctx, promAPI, promTopMemoryWorkloadsQuery, endAt)
+	memoryIntensiveWorkloads, err := getMostResourceIntensiveWorkloads(ctx, org, promAPI, promTopMemoryWorkloadsQuery, endAt)
 	if err != nil {
 		return nil, err
 	}
 
+	instanceCreatedDay := org.CreatedAt.UTC().Format(dateLongFormat)
+	if org.CreatedAt.After(startAt) {
+		instanceCreatedDay = "" // Don't show instance creation info if it doesn't fall into the report time interval.
+	}
+
 	return &Report{
-		FirstDay:    firstDay,
-		LastDay:     lastDay,
-		Deployments: workloadReleasesHistogram,
+		FirstDay:           firstDay,
+		LastDay:            lastDay,
+		InstanceCreatedDay: instanceCreatedDay,
+		Deployments:        workloadReleasesHistogram,
 		Resources: []WorkloadResourceStats{
 			WorkloadResourceStats{
 				Label:        "CPU intensive workloads",
