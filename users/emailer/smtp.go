@@ -70,7 +70,7 @@ func (s SMTPEmailer) WeeklySummaryEmail(u *users.User, report *weeklysummary.Rep
 		"Report":           summary,
 	}
 	e.Text = s.Templates.QuietBytes("weekly_summary_email.text", data)
-	e.HTML = s.Templates.EmbedHTML("weekly_summary_email.html", emailWrapperFilename, e.Subject, data)
+	e.HTML = s.Templates.EmbedHTML("weekly_summary_email.html", emailWrapperFilename, "", data)
 	return s.Sender(e)
 }
 

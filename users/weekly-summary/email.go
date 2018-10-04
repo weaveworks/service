@@ -134,11 +134,11 @@ func EmailSummaryFromReport(report *Report, organizationURL string) *EmailSummar
 		Deployments:         generateDeploymentsHistogram(report, organizationURL),
 		Resources: []WorkloadResourceStats{
 			WorkloadResourceStats{
-				Label:        "CPU intensive workloads",
+				Label:        "CPU",
 				TopConsumers: generateResourceBars(report.CPUIntensiveWorkloads, organizationURL),
 			},
 			WorkloadResourceStats{
-				Label:        "Memory intensive workloads",
+				Label:        "Memory",
 				TopConsumers: generateResourceBars(report.MemoryIntensiveWorkloads, organizationURL),
 			},
 		},
