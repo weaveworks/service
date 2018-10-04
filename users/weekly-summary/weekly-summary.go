@@ -34,33 +34,40 @@ const (
 	dateShortFormat = "Jan 2"
 )
 
-// WorkloadReleasesBar consists of a formatted Date and the total
+// WorkloadDeploymentsBar consists of a formatted Date and the total
 // number of workload releases on that day.
-type WorkloadReleasesBar struct {
-	LinkTo     string
-	DayOfWeek  string
-	TotalCount int
-	BarHeight  int
+type WorkloadDeploymentsBar struct {
+	LinkTo      string
+	DayOfWeek   string
+	BarHeightPx int
+	TotalCount  int
 }
 
 // WorkloadResourceConsumption consists of the workload name and the
 // formatted percentage average cluster consumption of that workload.
 type WorkloadResourceConsumption struct {
-	Name  string
-	Value string
+	LinkTo         string
+	WorkloadName   string
+	ClusterPercent string
+	BarWidthPerc   float64
+}
+
+// WorkloadResourceStats blu.
+type WorkloadResourceStats struct {
+	Label        string
+	TopConsumers []WorkloadResourceConsumption
 }
 
 // Report contains the whole of instance data summary to be sent in
 // Weekly Summary emails.
 type Report struct {
-	FirstDay                  string
-	LastDay                   string
-	CPUIntensiveWorkloads     []WorkloadResourceConsumption
-	MemoryIntensiveWorkloads  []WorkloadResourceConsumption
-	WorkloadReleasesHistogram []WorkloadReleasesBar
+	FirstDay    string
+	LastDay     string
+	Deployments []WorkloadDeploymentsBar
+	Resources   []WorkloadResourceStats
 }
 
-func getWorkloadReleasesHistogram(ctx context.Context, fluxURL string, startAt time.Time, endAt time.Time) ([]WorkloadReleasesBar, error) {
+func getWorkloadReleasesHistogram(ctx context.Context, fluxURL string, startAt time.Time, endAt time.Time) ([]WorkloadDeploymentsBar, error) {
 	// TODO: This should probably be handled via a dedicated Flux client, similar to the Prometheus one.
 	after := startAt.UTC().Format(time.RFC3339)
 	before := endAt.UTC().Format(time.RFC3339)
@@ -99,14 +106,14 @@ func getWorkloadReleasesHistogram(ctx context.Context, fluxURL string, startAt t
 	}
 
 	// Finally convert the histogram into the appropriate array with formatted dates.
-	releasesHistogram := []WorkloadReleasesBar{}
+	releasesHistogram := []WorkloadDeploymentsBar{}
 	baseLink := "https://frontend.dev.weave.works/proud-wind-05/deploy/history?range=24h"
 	for day, totalCount := range weeklyHistogram {
-		releasesHistogram = append(releasesHistogram, WorkloadReleasesBar{
-			LinkTo:     fmt.Sprintf("%s&timestamp=%s", baseLink, startAt.AddDate(0, 0, day+1).UTC().Format(time.RFC3339)),
-			DayOfWeek:  startAt.AddDate(0, 0, day).Format(dayOfWeekFormat),
-			BarHeight:  2 + (150.0 * totalCount / weeklyMaxCount),
-			TotalCount: totalCount,
+		releasesHistogram = append(releasesHistogram, WorkloadDeploymentsBar{
+			LinkTo:      fmt.Sprintf("%s&timestamp=%s", baseLink, startAt.AddDate(0, 0, day+1).UTC().Format(time.RFC3339)),
+			DayOfWeek:   startAt.AddDate(0, 0, day).Format(dayOfWeekFormat),
+			BarHeightPx: 2 + (150.0 * totalCount / weeklyMaxCount),
+			TotalCount:  totalCount,
 		})
 	}
 	return releasesHistogram, nil
@@ -125,14 +132,24 @@ func getMostResourceIntensiveWorkloads(ctx context.Context, api v1.API, query st
 		workloadsVector = workloadsVector[:resourceWorkloadsMaxShown]
 	}
 
+	maxConsumptionValue := 0.0
+	for _, workload := range workloadsVector {
+		if float64(workload.Value) > maxConsumptionValue {
+			maxConsumptionValue = float64(workload.Value)
+		}
+	}
+
 	// ... and format their name and resource consumption as rounded percentage.
 	topWorkloads := []WorkloadResourceConsumption{}
+	baseLink := "https://frontend.dev.weave.works/proud-wind-05/deploy/history?range=24h"
 	for _, workload := range workloadsVector {
 		topWorkloads = append(topWorkloads, WorkloadResourceConsumption{
 			// TODO: The 'deployment' part of the name might not be valid at all times but it covers most of the cases.
 			// There should be a way to get the workload in this format from namespace and pod name only, but not sure how do it now.
-			Name:  fmt.Sprintf("%s:deployment/%s", workload.Metric["namespace"], workload.Metric["_weave_pod_name"]),
-			Value: fmt.Sprintf("%2.2f%%", 100*float64(workload.Value)),
+			WorkloadName:   fmt.Sprintf("%s:deployment/%s", workload.Metric["namespace"], workload.Metric["_weave_pod_name"]),
+			LinkTo: fmt.Sprintf()
+			ClusterPercent: fmt.Sprintf("%2.2f%%", 100*float64(workload.Value)),
+			BarWidthPerc:   1 + (75 * float64(workload.Value) / maxConsumptionValue),
 		})
 	}
 	return topWorkloads, nil
@@ -175,10 +192,18 @@ func GenerateReport(orgID string, endAt time.Time) (*Report, error) {
 	}
 
 	return &Report{
-		CPUIntensiveWorkloads:     cpuIntensiveWorkloads,
-		MemoryIntensiveWorkloads:  memoryIntensiveWorkloads,
-		WorkloadReleasesHistogram: workloadReleasesHistogram,
-		FirstDay:                  firstDay,
-		LastDay:                   lastDay,
+		FirstDay:    firstDay,
+		LastDay:     lastDay,
+		Deployments: workloadReleasesHistogram,
+		Resources: []WorkloadResourceStats{
+			WorkloadResourceStats{
+				Label:        "CPU intensive workloads",
+				TopConsumers: cpuIntensiveWorkloads,
+			},
+			WorkloadResourceStats{
+				Label:        "Memory intensive workloads",
+				TopConsumers: memoryIntensiveWorkloads,
+			},
+		},
 	}, nil
 }

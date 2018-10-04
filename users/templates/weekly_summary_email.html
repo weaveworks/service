@@ -1,16 +1,16 @@
 <p>Hi,</p>
 
-<p>Here is an overview of your instance ‘{{.OrganizationName}}’ this past week.</p>
+<p>Here is an overview of your instance <b>{{.OrganizationName}}</b> this past week.</p>
 
 {{with .Report}}
-  <h2 style="color: #888; font-size: 8px; font-weight: normal; margin-top: 40px;">Deployments</h2>
+  <h2 style="color: #888; font-size: 16px; font-weight: normal; margin-top: 40px;">Deployments</h2>
   <div style="height: 200px; text-align: center; width: 100%;">
-    {{range .WorkloadReleasesHistogram}}
+    {{range .Deployments}}
       <div style="display: inline-block; height: 100%; margin-right: 4%; position: relative; width: 9.5%;">
         <a href="{{.LinkTo}}" style="text-decoration: none">
           <div style="bottom: 0; color: #000; position: absolute; text-align: center; width: 100%;">
             <span style="display: block; margin-bottom: 2px;">{{.TotalCount}}</span>
-            <div style="background-color: #00a7cc; border-radius: 2px; height: {{.BarHeight}}px; width: 100%;"></div>
+            <div style="background: #00a7cc; border-radius: 2px; height: {{.BarHeightPx}}px; width: 100%;"></div>
             <span style="color: #888; display: block; margin-top: 5px;">{{.DayOfWeek}}</span>
           </div>
         </a>
@@ -18,25 +18,26 @@
     {{end}}
   </div>
 
-  <p>Most resource-intense workloads:</p>
-  <ul>
-    <li>
-      <span>CPU (average cluster consumption):</span>
-      <ul>
-        {{range .CPUIntensiveWorkloads}}
-          <li><i>{{.Name}}</i> - <b>{{.Value}}</b></li>
+  <div style="margin: 30px 0;">
+    {{range .Resources}}
+      <div style="display: inline-block; margin-bottom: 30px; margin-right: 4.5%; width: 45%;">
+        <h2 style="color: #888; font-size: 16px; font-weight: normal; margin-bottom: 30px;">
+          {{.Label}}
+        </h2>
+        {{range .TopConsumers}}
+          <div style="margin-top: 20px;">
+            <a href="{{.LinkTo}}" style="text-decoration: none">
+              <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{.WorkloadName}}</div>
+              <div style="margin-top: 5px;">
+                <span style="background: #00a7cc; border-radius: 2px; display: inline-block; height: 5px; margin-bottom: 2px; width: {{.BarWidthPerc}}%;"></span>
+                <span style="color: #888; display: inline-block; margin-left: 3px;">{{.ClusterPercent}}</span>
+              </div>
+            </a>
+          </div>
         {{end}}
-      </ul>
-    </li>
-    <li>
-      <span>Memory (average cluster consumption):</span>
-      <ul>
-        {{range .MemoryIntensiveWorkloads}}
-          <li><i>{{.Name}}</i> - <b>{{.Value}}</b></li>
-        {{end}}
-      </ul>
-    </li>
-  </ul>
+      </div>
+    {{end}}
+  </div>
 {{end}}
 
 <p>Thanks,<br />
