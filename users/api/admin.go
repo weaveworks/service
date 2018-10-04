@@ -200,7 +200,7 @@ func (a *API) adminSendWeeklySummaryEmail(w http.ResponseWriter, r *http.Request
 		renderError(w, r, err)
 		return
 	}
-	err = a.emailer.WeeklySummaryEmail(user, org.ExternalID, org.Name, weeklyReport)
+	err = a.emailer.WeeklySummaryEmail(user, weeklyReport)
 	if err != nil {
 		renderError(w, r, err)
 		return

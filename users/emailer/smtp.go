@@ -56,15 +56,18 @@ func smtpEmailSender(u *url.URL) (func(e *email.Email) error, error) {
 }
 
 // WeeklySummaryEmail sends the weekly summary email
-func (s SMTPEmailer) WeeklySummaryEmail(u *users.User, orgExternalID, orgName string, weeklyReport *weeklysummary.Report) error {
+func (s SMTPEmailer) WeeklySummaryEmail(u *users.User, report *weeklysummary.Report) error {
+	organizationName := report.Organization.Name
+	organizationURL := organizationURL(s.Domain, report.Organization.ExternalID)
+	summary := weeklysummary.EmailSummaryFromReport(report, organizationURL)
+
 	e := email.NewEmail()
 	e.From = s.FromAddress
 	e.To = []string{u.Email}
-	e.Subject = fmt.Sprintf("%s - %s · %s Report", weeklyReport.FirstDay, weeklyReport.LastDay, orgName)
+	e.Subject = fmt.Sprintf("%s · %s Report", summary.DateInterval, organizationName)
 	data := map[string]interface{}{
-		"OrganizationName": orgName,
-		"OrganizationURL":  organizationURL(s.Domain, orgExternalID),
-		"Report":           weeklyReport,
+		"OrganizationName": organizationName,
+		"Report":           summary,
 	}
 	e.Text = s.Templates.QuietBytes("weekly_summary_email.text", data)
 	e.HTML = s.Templates.EmbedHTML("weekly_summary_email.html", emailWrapperFilename, e.Subject, data)
