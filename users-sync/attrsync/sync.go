@@ -196,9 +196,12 @@ func (c *AttributeSyncer) syncUser(ctx context.Context, user *users.User) error 
 		traits.Set(name, val)
 	}
 
-	c.segmentClient.Enqueue(analytics.Identify{
+	err = c.segmentClient.Enqueue(analytics.Identify{
 		UserId: user.Email,
 		Traits: traits,
 	})
+	if err != nil {
+		c.log.WithField("err", err).Errorln("Error enqueuing segment message")
+	}
 	return nil
 }
