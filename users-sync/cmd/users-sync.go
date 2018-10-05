@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"flag"
-	"io/ioutil"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
 	"github.com/weaveworks/common/logging"
 	commonServer "github.com/weaveworks/common/server"
@@ -66,16 +64,11 @@ func main() {
 	}
 	defer billingClient.Close()
 
-	var segmentClient analytics.Client
-	if *segementWriteKeyFile != "" {
-		segementWriteKeyBytes, err := ioutil.ReadFile(*segementWriteKeyFile)
-		if err != nil {
-			logrus.Fatalln("Failed to read segment write key", err)
-			return
-		}
-		segmentClient = analytics.New(string(segementWriteKeyBytes))
-		defer segmentClient.Close()
+	segmentClient, err := attrsync.NewSegmentClient(*segementWriteKeyFile, logger)
+	if err != nil {
+		logrus.Fatalf("Failed creating a segment client: %v", err)
 	}
+	defer segmentClient.Close()
 
 	orgCleaner := cleaner.New(cleanupURLs, logger, db)
 	attributeSyncer := attrsync.New(logger, db, billingClient, segmentClient)
