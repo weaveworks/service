@@ -1,10 +1,9 @@
 package attrsync
 
 import (
-	"errors"
 	"io/ioutil"
 
-	pkgErrors "github.com/pkg/errors"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/segmentio/analytics-go"
 	"github.com/weaveworks/common/logging"
@@ -22,21 +21,25 @@ var segmentMessagesTotalCounter = prometheus.NewCounterVec(
 // NewSegmentClient returns an instrumented segment client
 func NewSegmentClient(writeKeyFilename string, logger logging.Interface) (analytics.Client, error) {
 	var client analytics.Client
+	callback := &sendCountingCallback{
+		counter: segmentMessagesTotalCounter,
+	}
+
 	if writeKeyFilename == "" {
-		client = &noopSegmentClient{
-			Callback: &promCallback{},
+		client = &alwaysErrorSegmentClient{
+			Callback: callback,
 			Logger:   logger,
 		}
 	} else {
 		keyBytes, err := ioutil.ReadFile(writeKeyFilename)
 		if err != nil {
-			return nil, pkgErrors.Wrap(err, "Failed to read segment write key")
+			return nil, errors.Wrap(err, "Failed to read segment write key")
 		}
 
 		client, err = analytics.NewWithConfig(
 			string(keyBytes),
 			analytics.Config{
-				Callback: &promCallback{},
+				Callback: callback,
 				Logger:   &segmentLogAdapter{logger},
 			},
 		)
@@ -45,62 +48,67 @@ func NewSegmentClient(writeKeyFilename string, logger logging.Interface) (analyt
 		}
 	}
 
-	return &promSegmentClient{client}, nil
+	return &enqueueCountingClient{
+		client:  client,
+		counter: segmentMessagesTotalCounter,
+	}, nil
 }
 
-// promCallback increments a success or failure metric for each message processed
-type promCallback struct {
+// sendCountingCallback increments a success or failure metric for each message processed
+type sendCountingCallback struct {
+	counter *prometheus.CounterVec
 }
 
-var _ analytics.Callback = &promCallback{}
+var _ analytics.Callback = &sendCountingCallback{}
 
-func (cb *promCallback) Success(analytics.Message) {
-	segmentMessagesTotalCounter.WithLabelValues("success").Inc()
+func (cb *sendCountingCallback) Success(analytics.Message) {
+	cb.counter.WithLabelValues("success").Inc()
 }
 
-func (cb *promCallback) Failure(analytics.Message, error) {
-	segmentMessagesTotalCounter.WithLabelValues("failure").Inc()
+func (cb *sendCountingCallback) Failure(analytics.Message, error) {
+	cb.counter.WithLabelValues("failure").Inc()
 }
 
-// promSegmentClient increments a metric for each message enqueued
-type promSegmentClient struct {
-	client analytics.Client
+// enqueueCountingClient increments a metric for each message enqueued
+type enqueueCountingClient struct {
+	client  analytics.Client
+	counter *prometheus.CounterVec
 }
 
-var _ analytics.Client = &promSegmentClient{}
+var _ analytics.Client = &enqueueCountingClient{}
 
-func (c *promSegmentClient) Enqueue(msg analytics.Message) error {
+func (c *enqueueCountingClient) Enqueue(msg analytics.Message) error {
 	err := c.client.Enqueue(msg)
 	if err == nil {
-		segmentMessagesTotalCounter.WithLabelValues("enqueued").Inc()
+		c.counter.WithLabelValues("enqueued").Inc()
 	} else {
-		segmentMessagesTotalCounter.WithLabelValues("enqueue_error").Inc()
+		c.counter.WithLabelValues("enqueue_error").Inc()
 	}
 	return err
 }
 
-func (c *promSegmentClient) Close() error {
+func (c *enqueueCountingClient) Close() error {
 	return c.client.Close()
 }
 
-// noopSegmentClient is a segment client which reports a failure for
-// every message
-type noopSegmentClient struct {
+// alwaysErrorSegmentClient is a segment client which accepts all messages,
+// but reports a delivery failure for every message
+type alwaysErrorSegmentClient struct {
 	Callback analytics.Callback
 	Logger   logging.Interface
 }
 
-var _ analytics.Client = &noopSegmentClient{}
+var _ analytics.Client = &alwaysErrorSegmentClient{}
 
 var errNotImplemented = errors.New("Not implemented")
 
-func (c *noopSegmentClient) Enqueue(msg analytics.Message) error {
-	c.Logger.WithField("message", msg).Warnf("Dummy segment client pretending to enqueue message")
+func (c *alwaysErrorSegmentClient) Enqueue(msg analytics.Message) error {
+	c.Logger.WithField("message", msg).Warnf("alwaysErrorSegmentClient pretending to enqueue message")
 	c.Callback.Failure(msg, errNotImplemented)
 	return nil
 }
 
-func (c *noopSegmentClient) Close() error {
+func (c *alwaysErrorSegmentClient) Close() error {
 	return nil
 }
 
