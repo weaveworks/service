@@ -186,11 +186,21 @@ func (c *AttributeSyncer) syncUser(ctx context.Context, user *users.User) error 
 		return err
 	}
 
-	traits := analytics.NewTraits().
-		SetName(user.Name).
-		SetEmail(user.Email).
-		SetCreatedAt(user.CreatedAt).
-		Set("company", map[string]string{"name": user.Company})
+	traits := analytics.NewTraits().SetEmail(user.Email).SetCreatedAt(user.CreatedAt)
+
+	// Since old users won't have this data, send it optionally
+	if user.Name != "" {
+		traits = traits.SetName(user.Name)
+	}
+	if user.GivenName != "" {
+		traits = traits.SetFirstName(user.GivenName)
+	}
+	if user.FamilyName != "" {
+		traits = traits.SetLastName(user.FamilyName)
+	}
+	if user.Company != "" {
+		traits = traits.Set("company", map[string]string{"name": user.Company})
+	}
 
 	for name, val := range attrs {
 		traits.Set(name, val)

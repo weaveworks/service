@@ -19,15 +19,19 @@ type FindUserByIDer interface {
 
 // UserUpdate represents an update for a user
 type UserUpdate struct {
-	Name    string `json:"name"`
-	Company string `json:"company"`
+	Name       string `json:"name"`
+	GivenName  string `json:"givenName"`
+	FamilyName string `json:"familyName"`
+	Company    string `json:"company"`
 }
 
 // UserResponse is the response representation of a users.User
 type UserResponse struct {
-	Email   string `json:"email"`
-	Name    string `json:"name"`
-	Company string `json:"company"`
+	Email      string `json:"email"`
+	Name       string `json:"name"`
+	GivenName  string `json:"givenName"`
+	FamilyName string `json:"familyName"`
+	Company    string `json:"company"`
 }
 
 func formatTimestamp(t time.Time) string {

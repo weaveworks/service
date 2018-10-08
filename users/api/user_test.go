@@ -23,8 +23,10 @@ func TestAPI_User_UpdateUser(t *testing.T) {
 		user = getUser(t)
 		w := httptest.NewRecorder()
 		body, _ := json.Marshal(map[string]string{
-			"company": "Evil Corp",
-			"name":    "Dave",
+			"company":    "Evil Corp",
+			"name":       "Dave DAVE",
+			"givenName":  "Dave",
+			"familyName": "DAVE",
 		})
 		r := requestAs(t, user, "PUT", "/api/users/user", bytes.NewReader(body))
 		app.ServeHTTP(w, r)
@@ -34,7 +36,9 @@ func TestAPI_User_UpdateUser(t *testing.T) {
 		var resp *users.User
 		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 
-		assert.Equal(t, "Dave", resp.Name)
+		assert.Equal(t, "Dave", resp.GivenName)
+		assert.Equal(t, "DAVE", resp.FamilyName)
+		assert.Equal(t, "Dave DAVE", resp.Name)
 		assert.Equal(t, "Evil Corp", resp.Company)
 	}
 
@@ -70,4 +74,6 @@ func TestAPI_User_GetCurrentUser(t *testing.T) {
 	assert.Equal(t, user.Email, resp.Email)
 	assert.Equal(t, user.Company, resp.Company)
 	assert.Equal(t, user.Name, resp.Name)
+	assert.Equal(t, user.GivenName, resp.GivenName)
+	assert.Equal(t, user.FamilyName, resp.FamilyName)
 }

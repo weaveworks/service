@@ -17,7 +17,14 @@ import (
 
 // CreateUser creates a new user with the given email.
 func (d DB) CreateUser(ctx context.Context, email string) (*users.User, error) {
-	u := &users.User{Email: email, Company: "", Name: "", CreatedAt: d.Now()}
+	u := &users.User{
+		Email:      email,
+		Company:    "",
+		Name:       "",
+		GivenName:  "",
+		FamilyName: "",
+		CreatedAt:  d.Now(),
+	}
 	err := d.QueryRowContext(ctx, "insert into users (email, approved_at, created_at, company, name) values (lower($1), $2, $2, $3, $4) returning id", email, u.CreatedAt, u.Company, u.Name).Scan(&u.ID)
 	switch {
 	case err == sql.ErrNoRows:
@@ -48,6 +55,18 @@ func (d DB) UpdateUser(ctx context.Context, userID string, update *users.UserUpd
 		name := strings.TrimSpace(update.Name)
 		user.Name = name
 		values["name"] = name
+	}
+
+	if update.GivenName != "" {
+		givenName := strings.TrimSpace(update.GivenName)
+		user.GivenName = givenName
+		values["given_name"] = givenName
+	}
+
+	if update.FamilyName != "" {
+		familyName := strings.TrimSpace(update.FamilyName)
+		user.FamilyName = familyName
+		values["family_name"] = familyName
 	}
 
 	err = d.Transaction(func(tx DB) error {
@@ -319,7 +338,7 @@ func (d DB) scanUser(row squirrel.RowScanner) (*users.User, error) {
 	)
 	if err := row.Scan(
 		&u.ID, &u.Email, &u.Company, &u.Name, &token, &tokenCreatedAt, &createdAt,
-		&u.Admin, &firstLoginAt, &lastLoginAt,
+		&u.Admin, &firstLoginAt, &lastLoginAt, &u.GivenName, &u.FamilyName,
 	); err != nil {
 		return nil, err
 	}
@@ -343,6 +362,8 @@ func (d DB) usersQuery() squirrel.SelectBuilder {
 		"users.admin",
 		"users.first_login_at",
 		"users.last_login_at",
+		"users.given_name",
+		"users.family_name",
 	).
 		From("users").
 		Where("users.deleted_at is null").
