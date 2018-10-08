@@ -91,7 +91,7 @@ func generateDeploymentsHistogram(report *Report, organizationURL string) []Work
 	return releasesHistogram
 }
 
-func generateResourceBars(workloads []workloadResourceConsumption, organizationURL string) []WorkloadResourceConsumptionInfo {
+func generateResourceBars(workloads []WorkloadResourceConsumptionRaw, organizationURL string) []WorkloadResourceConsumptionInfo {
 	// To normalize the resource consumption bars to a fixed width, we need to divide them by the longest bar.
 	// The initial value is set just above 0 to avoid division by zero in case it happens to be nil for all workloads.
 	maxConsumptionValue := 0.00001
@@ -141,11 +141,11 @@ func EmailSummaryFromReport(report *Report, organizationURL string) *EmailSummar
 		OrganizationCreationDay: getOrganizationCreationDayIfRecent(report),
 		Deployments:             generateDeploymentsHistogram(report, organizationURL),
 		Resources: []WorkloadResourceStats{
-			WorkloadResourceStats{
+			{
 				Label:        "CPU",
 				TopConsumers: generateResourceBars(report.CPUIntensiveWorkloads, organizationURL),
 			},
-			WorkloadResourceStats{
+			{
 				Label:        "Memory",
 				TopConsumers: generateResourceBars(report.MemoryIntensiveWorkloads, organizationURL),
 			},

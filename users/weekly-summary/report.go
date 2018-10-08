@@ -16,21 +16,19 @@ import (
 
 const (
 	resourceWorkloadsMaxShown = 3
-	promURI                   = "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/prom"
-	fluxURI                   = "https://user:7xs181ap6kabbaz3ttozt37i3ebb5e4b@frontend.dev.weave.works/api/flux"
-	// promURI                   = "http://querier.cortex.svc.cluster.local/api/prom"
-	// fluxURI                   = "http://flux-api.flux.svc.cluster.local"
+	promURI                   = "http://querier.cortex.svc.cluster.local/api/prom"
+	fluxURI                   = "http://flux-api.flux.svc.cluster.local"
 )
 
 // Queries for getting resource consumption data from Prometheus
 // TODO: Fix the memory query - it gives too big numbers over long time spans.
 const (
-	promTopCPUWorkloadsQuery    = "sort_desc(sum by (namespace, _weave_pod_name) (rate(container_cpu_usage_seconds_total{image!=''}[1h])) / ignoring(namespace, _weave_pod_name) group_left count(node_cpu{mode='idle'}))"
-	promTopMemoryWorkloadsQuery = "sort_desc(sum by (namespace, _weave_pod_name) (avg_over_time(container_memory_working_set_bytes{image!=''}[1h])) / ignoring(namespace, _weave_pod_name) group_left sum (node_memory_MemTotal))"
+	promTopCPUWorkloadsQuery    = "sort_desc(sum by (namespace, _weave_pod_name) (rate(container_cpu_usage_seconds_total{image!=''}[1w])) / ignoring(namespace, _weave_pod_name) group_left count(node_cpu{mode='idle'}))"
+	promTopMemoryWorkloadsQuery = "sort_desc(sum by (namespace, _weave_pod_name) (avg_over_time(container_memory_working_set_bytes{image!=''}[1w])) / ignoring(namespace, _weave_pod_name) group_left sum (node_memory_MemTotal))"
 )
 
-// Unformated consumption data returned by Prometheus.
-type workloadResourceConsumption struct {
+// WorkloadResourceConsumptionRaw has unformatted consumption data returned by Prometheus.
+type WorkloadResourceConsumptionRaw struct {
 	WorkloadName       string
 	ClusterConsumption float64
 }
@@ -42,8 +40,8 @@ type Report struct {
 	StartAt                  time.Time
 	EndAt                    time.Time
 	DeploymentsPerDay        []int
-	CPUIntensiveWorkloads    []workloadResourceConsumption
-	MemoryIntensiveWorkloads []workloadResourceConsumption
+	CPUIntensiveWorkloads    []WorkloadResourceConsumptionRaw
+	MemoryIntensiveWorkloads []WorkloadResourceConsumptionRaw
 }
 
 func getWorkloadDeploymentsPerDay(ctx context.Context, org *users.Organization, fluxURL string, startAt time.Time, endAt time.Time) ([]int, error) {
@@ -82,7 +80,7 @@ func getWorkloadDeploymentsPerDay(ctx context.Context, org *users.Organization, 
 	return weeklyHistogram, nil
 }
 
-func getMostResourceIntensiveWorkloads(ctx context.Context, org *users.Organization, api v1.API, query string, EndAt time.Time) ([]workloadResourceConsumption, error) {
+func getMostResourceIntensiveWorkloads(ctx context.Context, org *users.Organization, api v1.API, query string, EndAt time.Time) ([]WorkloadResourceConsumptionRaw, error) {
 	// Get the sorted list of workloads based on the query.
 	workloadsSeries, err := api.Query(ctx, query, EndAt)
 	if err != nil {
@@ -96,12 +94,12 @@ func getMostResourceIntensiveWorkloads(ctx context.Context, org *users.Organizat
 	}
 
 	// ... and store that data, together with the workload names.
-	topWorkloads := []workloadResourceConsumption{}
+	topWorkloads := []WorkloadResourceConsumptionRaw{}
 	for _, workload := range workloadsVector {
 		// TODO: The 'deployment' part of the name might not be valid at all times but it covers most of the cases.
 		// There should be a way to get the workload in this format from namespace and pod name only, but not sure how do it now.
 		workloadName := fmt.Sprintf("%s:deployment/%s", workload.Metric["namespace"], workload.Metric["_weave_pod_name"])
-		topWorkloads = append(topWorkloads, workloadResourceConsumption{
+		topWorkloads = append(topWorkloads, WorkloadResourceConsumptionRaw{
 			WorkloadName:       workloadName,
 			ClusterConsumption: float64(workload.Value),
 		})
